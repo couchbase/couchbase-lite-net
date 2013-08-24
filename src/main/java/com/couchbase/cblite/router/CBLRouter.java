@@ -1187,7 +1187,7 @@ public class CBLRouter implements Observer {
         String prevRevID = null;
 
         if(!deleting) {
-            Boolean deletingBoolean = (Boolean)body.getPropertyForKey("deleted");
+            Boolean deletingBoolean = (Boolean)body.getPropertyForKey("_deleted");
             deleting = (deletingBoolean != null && deletingBoolean.booleanValue());
             if(docID == null) {
                 if(isLocalDoc) {
