@@ -56,6 +56,11 @@ public class CBLBody {
     }
 
     public boolean isValidJSON() {
+
+        if (object == null) {
+            getObject();
+        }
+
         // Yes, this is just like asObject except it doesn't warn.
         if(json == null && !error) {
             try {
