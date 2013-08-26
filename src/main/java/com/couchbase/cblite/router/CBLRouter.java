@@ -406,7 +406,13 @@ public class CBLRouter implements Observer {
         }
 
         if(connection.getResponseBody() != null && connection.getResponseBody().isValidJSON()) {
-            connection.getResHeader().add("Content-Type", "application/json");
+            Header resHeader = connection.getResHeader();
+            if (resHeader != null) {
+                resHeader.add("Content-Type", "application/json");
+            }
+            else {
+                Log.w(CBLDatabase.TAG, "Cannot add Content-Type header because getResHeader() returned null");
+            }
         }
 
         // Check for a mismatch between the Accept request header and the response type:
