@@ -295,7 +295,16 @@ public class CBLPusher extends CBLReplicator implements Observer {
                     multiPart = null;
                 }
                 else {
-                    String contentType = (String) attachment.get("content_type");
+                    // workaround for issue #80 - it was looking at the "content_type" field instead of "content-type".
+                    // fix is backwards compatible in case any code is using content_type.
+                    String contentType = null;
+                    if (attachment.containsKey("content_type")) {
+                        contentType = (String) attachment.get("content_type");
+                        Log.w(CBLDatabase.TAG, "Found attachment that uses content_type field name instead of content-type: " + attachment);
+                    }
+                    else if (attachment.containsKey("content-type")) {
+                        contentType = (String) attachment.get("content-type");
+                    }
                     multiPart.addPart(attachmentKey, new InputStreamBody(inputStream, contentType, attachmentKey));
                 }
 

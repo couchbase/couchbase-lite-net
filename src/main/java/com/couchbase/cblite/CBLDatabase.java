@@ -1560,7 +1560,9 @@ public class CBLDatabase extends Observable {
                 }
 
                 attachment.put("digest", digestString);
-                attachment.put("content_type", cursor.getString(2));
+                String contentType = cursor.getString(2);
+                attachment.put("content_type", contentType);
+                attachment.put("content-type", contentType);
                 attachment.put("length", length);
                 attachment.put("revpos", cursor.getInt(4));
 
@@ -1675,7 +1677,19 @@ public class CBLDatabase extends Observable {
                 }
 
                 // Finally insert the attachment:
-                status = insertAttachmentForSequenceWithNameAndType(new ByteArrayInputStream(newContents), newSequence, name, (String)newAttach.get("content_type"), revpos);
+
+                // workaround for issue #80 - it was looking at the "content_type" field instead of "content-type".
+                // fix is backwards compatible in case any code is using content_type.
+                String contentType = null;
+                if (newAttach.containsKey("content_type")) {
+                    contentType = (String) newAttach.get("content_type");
+                    Log.w(TAG, "Found attachment that uses content_type field name instead of content-type: " + newAttach);
+                }
+                else if (newAttach.containsKey("content-type")) {
+                    contentType = (String) newAttach.get("content-type");
+                }
+
+                status = insertAttachmentForSequenceWithNameAndType(new ByteArrayInputStream(newContents), newSequence, name, contentType, revpos);
             }
             else if (newAttach.containsKey("follows") && ((Boolean)newAttach.get("follows")).booleanValue() == true)  {
 
