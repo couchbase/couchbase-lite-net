@@ -36,7 +36,6 @@ public class CBLAttachment {
         this.contentType = contentType;
         metadata = new HashMap<String, Object>();
         metadata.put("content_type", contentType);
-        metadata.put("content-type", contentType);
         metadata.put("follows", true);
     }
 

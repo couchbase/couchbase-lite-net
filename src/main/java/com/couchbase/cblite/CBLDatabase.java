@@ -1562,7 +1562,6 @@ public class CBLDatabase extends Observable {
                 attachment.put("digest", digestString);
                 String contentType = cursor.getString(2);
                 attachment.put("content_type", contentType);
-                attachment.put("content-type", contentType);
                 attachment.put("length", length);
                 attachment.put("revpos", cursor.getInt(4));
 
