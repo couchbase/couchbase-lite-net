@@ -26,11 +26,9 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
@@ -52,16 +50,20 @@ public class CBLServer {
 
     private File directory;
     private Map<String, CBLDatabase> databases;
-
     private HttpClientFactory defaultHttpClientFactory;
-
     private ScheduledExecutorService workExecutor;
+    private CBLManager manager;
+
 
     public static ObjectMapper getObjectMapper() {
         return mapper;
     }
 
     public CBLServer(String directoryName) throws IOException {
+        this(directoryName, CBLManager.INSTANCE);
+    }
+
+    public CBLServer(String directoryName, CBLManager manager) throws IOException {
         this.directory = new File(directoryName);
         this.databases = new HashMap<String, CBLDatabase>();
 
@@ -74,6 +76,14 @@ public class CBLServer {
         }
 
         workExecutor = Executors.newSingleThreadScheduledExecutor();
+
+        manager.setServer(this);
+        this.manager = manager;
+
+    }
+
+    public CBLManager getManager() {
+        return manager;
     }
 
     private String pathForName(String name) {
@@ -92,7 +102,8 @@ public class CBLServer {
             if(path == null) {
                 return null;
             }
-            db = new CBLDatabase(path);
+            db = new CBLDatabase(path, manager);
+
             if(!create && !db.exists()) {
                 return null;
             }

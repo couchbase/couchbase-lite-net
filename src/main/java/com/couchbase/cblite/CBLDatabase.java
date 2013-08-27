@@ -21,6 +21,7 @@ import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
@@ -67,6 +68,7 @@ public class CBLDatabase extends Observable {
     private Map<String, CBLBlobStoreWriter> pendingAttachmentsByDigest;
     private List<CBLReplicator> activeReplicators;
     private CBLBlobStore attachments;
+    private CBLManager manager;
 
     // Length that constitutes a 'big' attachment
     public static int kBigAttachmentLength = (16*1024);
@@ -154,11 +156,11 @@ public class CBLDatabase extends Observable {
         return attachmentStorePath;
     }
 
-    public static CBLDatabase createEmptyDBAtPath(String path) {
+    public static CBLDatabase createEmptyDBAtPath(String path, CBLManager manager) {
         if(!FileDirUtils.removeItemIfExists(path)) {
             return null;
         }
-        CBLDatabase result = new CBLDatabase(path);
+        CBLDatabase result = new CBLDatabase(path, manager);
         File af = new File(result.getAttachmentStorePath());
         //recursively delete attachments path
         if(!FileDirUtils.deleteRecursive(af)) {
@@ -170,10 +172,11 @@ public class CBLDatabase extends Observable {
         return result;
     }
 
-    public CBLDatabase(String path) {
+    public CBLDatabase(String path, CBLManager manager) {
         assert(path.startsWith("/")); //path must be absolute
         this.path = path;
         this.name = FileDirUtils.getDatabaseNameFromPath(path);
+        this.manager = manager;
     }
 
     public String toString() {
@@ -2380,6 +2383,8 @@ public class CBLDatabase extends Observable {
         }
         return null;
     }
+
+
 
     public CBLReplicator getReplicator(URL remote, HttpClientFactory httpClientFactory, boolean push, boolean continuous, ScheduledExecutorService workExecutor) {
         CBLReplicator result = getActiveReplicator(remote, push);

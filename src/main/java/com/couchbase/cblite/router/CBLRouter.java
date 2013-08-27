@@ -35,6 +35,7 @@ import com.couchbase.cblite.CBLStatus;
 import com.couchbase.cblite.CBLView;
 import com.couchbase.cblite.CBLViewMapBlock;
 import com.couchbase.cblite.CBLViewReduceBlock;
+import com.couchbase.cblite.CBLiteException;
 import com.couchbase.cblite.CBLiteVersion;
 import com.couchbase.cblite.CBLDatabase.TDContentOptions;
 import com.couchbase.cblite.CBLView.TDViewCollation;
@@ -506,88 +507,39 @@ public class CBLRouter implements Observer {
     }
 
     public CBLStatus do_POST_replicate(CBLDatabase _db, String _docID, String _attachmentName) {
+
+        CBLReplicator replicator;
+
         // Extract the parameters from the JSON request body:
         // http://wiki.apache.org/couchdb/Replication
         Map<String,Object> body = getBodyAsDictionary();
         if(body == null) {
             return new CBLStatus(CBLStatus.BAD_REQUEST);
         }
-        String source = (String)body.get("source");
-        String target = (String)body.get("target");
-        Boolean createTargetBoolean = (Boolean)body.get("create_target");
-        boolean createTarget = (createTargetBoolean != null && createTargetBoolean.booleanValue());
-        Boolean continuousBoolean = (Boolean)body.get("continuous");
-        boolean continuous = (continuousBoolean != null && continuousBoolean.booleanValue());
+
+        try {
+            replicator = server.getManager().getReplicator(body);
+        } catch (CBLiteException e) {
+            Map<String, Object> result = new HashMap<String, Object>();
+            result.put("error", e.toString());
+            connection.setResponseBody(new CBLBody(result));
+            return e.getCBLStatus();
+        }
+
         Boolean cancelBoolean = (Boolean)body.get("cancel");
         boolean cancel = (cancelBoolean != null && cancelBoolean.booleanValue());
 
-        // Map the 'source' and 'target' JSON params to a local database and remote URL:
-        if(source == null || target == null) {
-            return new CBLStatus(CBLStatus.BAD_REQUEST);
-        }
-        boolean push = false;
-        CBLDatabase db = server.getExistingDatabaseNamed(source);
-        String remoteStr = null;
-        if(db != null) {
-            remoteStr = target;
-            push = true;
-        } else {
-            remoteStr = source;
-            if(createTarget && !cancel) {
-                db = server.getDatabaseNamed(target);
-                if(!db.open()) {
-                    return new CBLStatus(CBLStatus.INTERNAL_SERVER_ERROR);
-                }
-            } else {
-                db = server.getExistingDatabaseNamed(target);
-            }
-            if(db == null) {
-                return new CBLStatus(CBLStatus.NOT_FOUND);
-            }
-        }
-
-        URL remote = null;
-        try {
-            remote = new URL(remoteStr);
-        } catch (MalformedURLException e) {
-            return new CBLStatus(CBLStatus.BAD_REQUEST);
-        }
-        if(remote == null || !remote.getProtocol().startsWith("http")) {
-            return new CBLStatus(CBLStatus.BAD_REQUEST);
-        }
-
         if(!cancel) {
-            // Start replication:
-            CBLReplicator repl = db.getReplicator(remote, server.getDefaultHttpClientFactory(), push, continuous, server.getWorkExecutor());
-            if(repl == null) {
-                return new CBLStatus(CBLStatus.INTERNAL_SERVER_ERROR);
-            }
-
-            String filterName = (String)body.get("filter");
-            if(filterName != null) {
-                repl.setFilterName(filterName);
-                Map<String,Object> filterParams = (Map<String,Object>)body.get("query_params");
-                if(filterParams != null) {
-                    repl.setFilterParams(filterParams);
-                }
-            }
-
-            if(push) {
-                ((CBLPusher)repl).setCreateTarget(createTarget);
-            }
-            repl.start();
+            replicator.start();
             Map<String,Object> result = new HashMap<String,Object>();
-            result.put("session_id", repl.getSessionID());
+            result.put("session_id", replicator.getSessionID());
             connection.setResponseBody(new CBLBody(result));
         } else {
             // Cancel replication:
-            CBLReplicator repl = db.getActiveReplicator(remote, push);
-            if(repl == null) {
-                return new CBLStatus(CBLStatus.NOT_FOUND);
-            }
-            repl.stop();
+            replicator.stop();
         }
         return new CBLStatus(CBLStatus.OK);
+
     }
 
     public CBLStatus do_GET_uuids(CBLDatabase _db, String _docID, String _attachmentName) {
