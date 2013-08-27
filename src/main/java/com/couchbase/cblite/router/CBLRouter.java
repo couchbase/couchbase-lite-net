@@ -38,6 +38,7 @@ import com.couchbase.cblite.CBLViewReduceBlock;
 import com.couchbase.cblite.CBLiteVersion;
 import com.couchbase.cblite.CBLDatabase.TDContentOptions;
 import com.couchbase.cblite.CBLView.TDViewCollation;
+import com.couchbase.cblite.auth.CBLFacebookAuthorizer;
 import com.couchbase.cblite.replicator.CBLPusher;
 import com.couchbase.cblite.replicator.CBLReplicator;
 
@@ -716,6 +717,52 @@ public class CBLRouter implements Observer {
         }
         connection.setResponseBody(new CBLBody(result));
         return new CBLStatus(CBLStatus.OK);
+    }
+
+    public CBLStatus do_POST_Document_facebook_token(CBLDatabase _db, String _docID, String _attachmentName) {
+
+        Map<String, Object> body = getBodyAsDictionary();
+        if (body == null) {
+            return new CBLStatus(CBLStatus.BAD_REQUEST);
+        }
+
+        String email = (String) body.get("email");
+        String remoteUrl = (String) body.get("remote_url");
+        String accessToken = (String) body.get("access_token");
+        if (email != null && remoteUrl != null && accessToken != null) {
+            try {
+                URL siteUrl = new URL(remoteUrl);
+            } catch (MalformedURLException e) {
+                Map<String, Object> result = new HashMap<String, Object>();
+                result.put("error", "invalid remote_url: " + e.getLocalizedMessage());
+                connection.setResponseBody(new CBLBody(result));
+                return new CBLStatus(CBLStatus.BAD_REQUEST);
+            }
+
+            try {
+                CBLFacebookAuthorizer.registerAccessToken(accessToken, email, remoteUrl);
+            } catch (Exception e) {
+                Map<String, Object> result = new HashMap<String, Object>();
+                result.put("error", "error registering access token: " + e.getLocalizedMessage());
+                connection.setResponseBody(new CBLBody(result));
+                return new CBLStatus(CBLStatus.BAD_REQUEST);
+            }
+
+            Map<String, Object> result = new HashMap<String, Object>();
+            result.put("ok", "registered");
+            connection.setResponseBody(new CBLBody(result));
+            return new CBLStatus(CBLStatus.OK);
+
+
+        }
+        else {
+            Map<String, Object> result = new HashMap<String, Object>();
+            result.put("error", "required fields: access_token, email, remote_url");
+            connection.setResponseBody(new CBLBody(result));
+            return new CBLStatus(CBLStatus.BAD_REQUEST);
+        }
+
+
     }
 
     public CBLStatus do_POST_Document_bulk_docs(CBLDatabase _db, String _docID, String _attachmentName) {
