@@ -39,6 +39,7 @@ import com.couchbase.cblite.CBLiteVersion;
 import com.couchbase.cblite.CBLDatabase.TDContentOptions;
 import com.couchbase.cblite.CBLView.TDViewCollation;
 import com.couchbase.cblite.auth.CBLFacebookAuthorizer;
+import com.couchbase.cblite.auth.CBLPersonaAuthorizer;
 import com.couchbase.cblite.replicator.CBLPusher;
 import com.couchbase.cblite.replicator.CBLReplicator;
 
@@ -761,6 +762,43 @@ public class CBLRouter implements Observer {
             connection.setResponseBody(new CBLBody(result));
             return new CBLStatus(CBLStatus.BAD_REQUEST);
         }
+
+
+    }
+
+    public CBLStatus do_POST_Document_persona_assertion(CBLDatabase _db, String _docID, String _attachmentName) {
+
+        Map<String, Object> body = getBodyAsDictionary();
+        if (body == null) {
+            return new CBLStatus(CBLStatus.BAD_REQUEST);
+        }
+
+        String assertion = (String) body.get("assertion");
+
+        if (assertion == null) {
+            Map<String, Object> result = new HashMap<String, Object>();
+            result.put("error", "required fields: assertion");
+            connection.setResponseBody(new CBLBody(result));
+            return new CBLStatus(CBLStatus.BAD_REQUEST);
+        }
+
+        try {
+            String email = CBLPersonaAuthorizer.registerAssertion(assertion);
+
+            Map<String, Object> result = new HashMap<String, Object>();
+            result.put("ok", "registered");
+            result.put("email", email);
+
+            connection.setResponseBody(new CBLBody(result));
+            return new CBLStatus(CBLStatus.OK);
+
+        } catch (Exception e) {
+            Map<String, Object> result = new HashMap<String, Object>();
+            result.put("error", "error registering persona assertion: " + e.getLocalizedMessage());
+            connection.setResponseBody(new CBLBody(result));
+            return new CBLStatus(CBLStatus.BAD_REQUEST);
+        }
+
 
 
     }
