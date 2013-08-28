@@ -394,8 +394,8 @@ public abstract class CBLReplicator extends Observable {
         }
     }
 
-    String buildRelativeURLString(String relativePath) throws MalformedURLException {
-        return new URL(remote, relativePath).toExternalForm();
+    String buildRelativeURLString(String relativePath) {
+        return remote.toExternalForm() + relativePath;
     }
 
     public void sendAsyncRequest(String method, URL url, Object body, CBLRemoteRequestCompletionBlock onCompletion) {
