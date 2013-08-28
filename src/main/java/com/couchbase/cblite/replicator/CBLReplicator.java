@@ -343,10 +343,11 @@ public abstract class CBLReplicator extends Observable {
 
             @Override
             public void onCompletion(Object result, Throwable e) {
-                if (e != null && e instanceof HttpResponseException && ((HttpResponseException) e).getStatusCode() != 404) {
+                if (e != null) {
                     Log.d(CBLDatabase.TAG, String.format("%s: Login failed for path: %s", this, loginPath));
                     error = e;
-                } else {
+                }
+                else {
                     Log.d(CBLDatabase.TAG, String.format("%s: Successfully logged in!", this));
                     fetchRemoteCheckpointDoc();
                 }
