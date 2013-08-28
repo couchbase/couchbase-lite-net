@@ -147,6 +147,7 @@ public class CBLRouter implements Observer {
             Map<String,Object> bodyMap = CBLServer.getObjectMapper().readValue(contentStream, Map.class);
             return bodyMap;
         } catch (IOException e) {
+            Log.w(CBLDatabase.TAG, "WARNING: Exception parsing body into dictionary", e);
             return null;
         }
     }
