@@ -99,7 +99,7 @@ public class CBLPersonaAuthorizer extends CBLAuthorizer {
     }
 
     public String loginPathForSite(URL site) {
-        return "/_persona";
+        return "_persona";
     }
 
     public synchronized static String registerAssertion(String assertion) {

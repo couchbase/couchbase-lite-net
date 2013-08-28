@@ -42,7 +42,7 @@ public class CBLFacebookAuthorizer extends CBLAuthorizer {
     }
 
     public String loginPathForSite(URL site) {
-        return "/_facebook";
+        return "_facebook";
     }
 
     public synchronized static String registerAccessToken(String accessToken, String email, String origin) {
