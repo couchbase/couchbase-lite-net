@@ -396,7 +396,8 @@ public class CBLRouter implements Observer {
                 String errorMessage = "CBLRouter unable to route request to " + message;
                 Log.e(CBLDatabase.TAG, errorMessage);
                 Map<String, Object> result = new HashMap<String, Object>();
-                result.put("error", errorMessage);
+                result.put("error", "not_found");
+                result.put("reason", errorMessage);
                 connection.setResponseBody(new CBLBody(result));
                 Method m = this.getClass().getMethod("do_UNKNOWN", CBLDatabase.class, String.class, String.class);
                 status = (CBLStatus)m.invoke(this, db, docID, attachmentName);
@@ -404,17 +405,19 @@ public class CBLRouter implements Observer {
                 //default status is internal server error
                 Log.e(CBLDatabase.TAG, "CBLRouter attempted do_UNKNWON fallback, but that threw an exception", e);
                 Map<String, Object> result = new HashMap<String, Object>();
-                result.put("error", "CBLRouter unable to route request");
+                result.put("error", "not_found");
+                result.put("reason", "CBLRouter unable to route request");
                 connection.setResponseBody(new CBLBody(result));
-                status = new CBLStatus(CBLStatus.BAD_REQUEST);
+                status = new CBLStatus(CBLStatus.NOT_FOUND);
             }
         } catch (Exception e) {
             String errorMessage = "CBLRouter unable to route request to " + message;
             Log.e(CBLDatabase.TAG, errorMessage, e);
             Map<String, Object> result = new HashMap<String, Object>();
-            result.put("error", errorMessage + e.toString());
+            result.put("error", "not_found");
+            result.put("reason", errorMessage + e.toString());
             connection.setResponseBody(new CBLBody(result));
-            status = new CBLStatus(CBLStatus.BAD_REQUEST);
+            status = new CBLStatus(CBLStatus.NOT_FOUND);
         }
 
         // Configure response headers:
