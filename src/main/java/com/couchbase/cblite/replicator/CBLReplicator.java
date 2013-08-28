@@ -395,7 +395,17 @@ public abstract class CBLReplicator extends Observable {
     }
 
     String buildRelativeURLString(String relativePath) {
-        return remote.toExternalForm() + relativePath;
+
+        // the following code is a band-aid for a system problem in the codebase
+        // where it is appending "relative paths" that start with a slash, eg:
+        //     http://dotcom/db/ + /relpart == http://dotcom/db/relpart
+        // which is not compatible with the way the java url concatonation works.
+
+        String remoteUrlString = remote.toExternalForm();
+        if (remoteUrlString.endsWith("/") && relativePath.startsWith("/")) {
+            remoteUrlString = remoteUrlString.substring(0, remoteUrlString.length() - 1);
+        }
+        return remoteUrlString + relativePath;
     }
 
     public void sendAsyncRequest(String method, URL url, Object body, CBLRemoteRequestCompletionBlock onCompletion) {
