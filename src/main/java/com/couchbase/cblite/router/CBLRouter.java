@@ -393,14 +393,28 @@ public class CBLRouter implements Observer {
             status = (CBLStatus)m.invoke(this, db, docID, attachmentName);
         } catch (NoSuchMethodException msme) {
             try {
+                String errorMessage = "CBLRouter unable to route request to " + message;
+                Log.e(CBLDatabase.TAG, errorMessage);
+                Map<String, Object> result = new HashMap<String, Object>();
+                result.put("error", errorMessage);
+                connection.setResponseBody(new CBLBody(result));
                 Method m = this.getClass().getMethod("do_UNKNOWN", CBLDatabase.class, String.class, String.class);
                 status = (CBLStatus)m.invoke(this, db, docID, attachmentName);
             } catch (Exception e) {
                 //default status is internal server error
+                Log.e(CBLDatabase.TAG, "CBLRouter attempted do_UNKNWON fallback, but that threw an exception", e);
+                Map<String, Object> result = new HashMap<String, Object>();
+                result.put("error", "CBLRouter unable to route request");
+                connection.setResponseBody(new CBLBody(result));
+                status = new CBLStatus(CBLStatus.BAD_REQUEST);
             }
         } catch (Exception e) {
-            //default status is internal server error
-            Log.e(CBLDatabase.TAG, "Exception in CBLRouter", e);
+            String errorMessage = "CBLRouter unable to route request to " + message;
+            Log.e(CBLDatabase.TAG, errorMessage, e);
+            Map<String, Object> result = new HashMap<String, Object>();
+            result.put("error", errorMessage + e.toString());
+            connection.setResponseBody(new CBLBody(result));
+            status = new CBLStatus(CBLStatus.BAD_REQUEST);
         }
 
         // Configure response headers:
