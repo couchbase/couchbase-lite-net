@@ -579,6 +579,13 @@ public class CBLRouter implements Observer {
                     activity.put("target", target);
                     activity.put("status", status);
                     activity.put("progress", progress);
+
+                    if (replicator.getError() != null) {
+                        int statusCode = 400;  // TODO: store and use appropriate status code
+                        Object[] errorObjects = new Object[]{ statusCode, replicator.getError().toString() };
+                        activity.put("error", errorObjects);
+                    }
+
                     activities.add(activity);
                 }
             }

@@ -535,4 +535,7 @@ public abstract class CBLReplicator extends Observable {
         db.setLastSequence(lastSequence, remote, isPush());
     }
 
+    public Throwable getError() {
+        return error;
+    }
 }
