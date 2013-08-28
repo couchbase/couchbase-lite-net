@@ -44,6 +44,8 @@ import com.couchbase.cblite.auth.CBLPersonaAuthorizer;
 import com.couchbase.cblite.replicator.CBLPusher;
 import com.couchbase.cblite.replicator.CBLReplicator;
 
+import org.apache.http.client.HttpResponseException;
+
 
 public class CBLRouter implements Observer {
 
@@ -599,7 +601,14 @@ public class CBLRouter implements Observer {
                     activity.put("progress", progress);
 
                     if (replicator.getError() != null) {
-                        int statusCode = 400;  // TODO: store and use appropriate status code
+                        String msg = String.format("Replicator error: %s.  Repl: %s.  Source: %s, Target: %s",
+                                replicator.getError(), replicator, source, target);
+                        Log.e(CBLDatabase.TAG, msg);
+                        Throwable error = replicator.getError();
+                        int statusCode = 400;
+                        if (error instanceof HttpResponseException) {
+                            statusCode = ((HttpResponseException)error).getStatusCode();
+                        }
                         Object[] errorObjects = new Object[]{ statusCode, replicator.getError().toString() };
                         activity.put("error", errorObjects);
                     }
