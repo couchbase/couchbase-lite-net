@@ -697,7 +697,7 @@ public class CBLRouter implements Observer {
         return new CBLStatus(CBLStatus.OK);
     }
 
-    public CBLStatus do_POST_Document_facebook_token(CBLDatabase _db, String _docID, String _attachmentName) {
+    public CBLStatus do_POST_facebook_token(CBLDatabase _db, String _docID, String _attachmentName) {
 
         Map<String, Object> body = getBodyAsDictionary();
         if (body == null) {
@@ -743,7 +743,7 @@ public class CBLRouter implements Observer {
 
     }
 
-    public CBLStatus do_POST_Document_persona_assertion(CBLDatabase _db, String _docID, String _attachmentName) {
+    public CBLStatus do_POST_persona_assertion(CBLDatabase _db, String _docID, String _attachmentName) {
 
         Map<String, Object> body = getBodyAsDictionary();
         if (body == null) {
