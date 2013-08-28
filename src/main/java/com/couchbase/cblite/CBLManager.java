@@ -1,10 +1,14 @@
 package com.couchbase.cblite;
 
+import com.couchbase.cblite.auth.CBLAuthorizer;
+import com.couchbase.cblite.auth.CBLFacebookAuthorizer;
+import com.couchbase.cblite.auth.CBLPersonaAuthorizer;
 import com.couchbase.cblite.replicator.CBLPusher;
 import com.couchbase.cblite.replicator.CBLReplicator;
 
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.HashMap;
 import java.util.Map;
 
 public enum CBLManager {
@@ -22,10 +26,35 @@ public enum CBLManager {
     }
 
 
+    private Map<String, Object> parseSourceOrTarget(Map<String,Object> properties, String key) {
+        Map<String, Object> result = new HashMap<String, Object>();
+
+        Object value = properties.get(key);
+
+        if (value instanceof String) {
+            result.put("url", (String)value);
+        }
+        else if (value instanceof Map) {
+            result = (Map<String, Object>) value;
+        }
+        return result;
+
+    }
+
     public CBLReplicator getReplicator(Map<String,Object> properties) throws CBLiteException {
 
-        String source = (String)properties.get("source");
-        String target = (String)properties.get("target");
+        CBLAuthorizer authorizer = null;
+        CBLReplicator repl = null;
+        URL remote = null;
+
+
+        Map<String, Object> remoteMap;
+
+        Map<String, Object> sourceMap = parseSourceOrTarget(properties, "source");
+        Map<String, Object> targetMap = parseSourceOrTarget(properties, "target");
+
+        String source = (String)sourceMap.get("url");
+        String target = (String)targetMap.get("url");
 
         Boolean createTargetBoolean = (Boolean)properties.get("create_target");
         boolean createTarget = (createTargetBoolean != null && createTargetBoolean.booleanValue());
@@ -48,6 +77,7 @@ public enum CBLManager {
         if(db != null) {
             remoteStr = target;
             push = true;
+            remoteMap = targetMap;
         } else {
             remoteStr = source;
             if(createTarget && !cancel) {
@@ -61,10 +91,26 @@ public enum CBLManager {
             if(db == null) {
                 throw new CBLiteException("database is null", new CBLStatus(CBLStatus.NOT_FOUND));
             }
+            remoteMap = sourceMap;
         }
 
 
-        URL remote = null;
+        Map<String, Object> authMap = (Map<String, Object>) remoteMap.get("auth");
+        if (authMap != null) {
+
+            Map<String, Object> persona = (Map<String, Object>) authMap.get("persona");
+            if (persona != null) {
+                String email = (String) persona.get("email");
+                authorizer = new CBLPersonaAuthorizer(email);
+            }
+            Map<String, Object> facebook = (Map<String, Object>) authMap.get("facebook");
+            if (facebook != null) {
+                String email = (String) facebook.get("email");
+                authorizer = new CBLFacebookAuthorizer(email);
+            }
+
+        }
+
         try {
             remote = new URL(remoteStr);
         } catch (MalformedURLException e) {
@@ -74,12 +120,13 @@ public enum CBLManager {
             throw new CBLiteException("remote URL is null or non-http: " + remoteStr, new CBLStatus(CBLStatus.BAD_REQUEST));
         }
 
+
         if(!cancel) {
-            // Start replication:
-            CBLReplicator repl = db.getReplicator(remote, getServer().getDefaultHttpClientFactory(), push, continuous, getServer().getWorkExecutor());
+            repl = db.getReplicator(remote, getServer().getDefaultHttpClientFactory(), push, continuous, getServer().getWorkExecutor());
             if(repl == null) {
                 throw new CBLiteException("unable to create replicator with remote: " + remote, new CBLStatus(CBLStatus.INTERNAL_SERVER_ERROR));
             }
+            repl.setAuthorizer(authorizer);
 
             String filterName = (String)properties.get("filter");
             if(filterName != null) {
@@ -93,18 +140,17 @@ public enum CBLManager {
             if(push) {
                 ((CBLPusher)repl).setCreateTarget(createTarget);
             }
-            return repl;
+
 
         } else {
             // Cancel replication:
-            CBLReplicator repl = db.getActiveReplicator(remote, push);
+            repl = db.getActiveReplicator(remote, push);
             if(repl == null) {
                 throw new CBLiteException("unable to lookup replicator with remote: " + remote, new CBLStatus(CBLStatus.NOT_FOUND));
             }
         }
 
-
-        return null;
+        return repl;
     }
 
 }
