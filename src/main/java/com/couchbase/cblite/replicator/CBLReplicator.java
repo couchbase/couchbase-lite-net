@@ -386,12 +386,16 @@ public abstract class CBLReplicator extends Observable {
     public void sendAsyncRequest(String method, String relativePath, Object body, CBLRemoteRequestCompletionBlock onCompletion) {
         //Log.v(CBLDatabase.TAG, String.format("%s: %s .%s", toString(), method, relativePath));
         try {
-            String urlStr = remote.toExternalForm() + relativePath;
+            String urlStr = buildRelativeURLString(relativePath);
             URL url = new URL(urlStr);
             sendAsyncRequest(method, url, body, onCompletion);
         } catch (MalformedURLException e) {
             Log.e(CBLDatabase.TAG, "Malformed URL for async request", e);
         }
+    }
+
+    String buildRelativeURLString(String relativePath) {
+        return remote.toExternalForm() + relativePath;
     }
 
     public void sendAsyncRequest(String method, URL url, Object body, CBLRemoteRequestCompletionBlock onCompletion) {
@@ -403,7 +407,7 @@ public abstract class CBLReplicator extends Observable {
     public void sendAsyncMultipartDownloaderRequest(String method, String relativePath, Object body, CBLDatabase db, CBLRemoteRequestCompletionBlock onCompletion) {
         try {
 
-            String urlStr = remote.toExternalForm() + relativePath;
+            String urlStr = buildRelativeURLString(relativePath);
             URL url = new URL(urlStr);
             Log.d(CBLDatabase.TAG, String.format("%s: sendAsyncMultipartDownloaderRequest to %s", toString(), url));
 
@@ -417,7 +421,7 @@ public abstract class CBLReplicator extends Observable {
     public void sendAsyncMultipartRequest(String method, String relativePath, MultipartEntity multiPartEntity, CBLRemoteRequestCompletionBlock onCompletion) {
         URL url = null;
         try {
-            String urlStr = remote.toExternalForm() + relativePath;
+            String urlStr = buildRelativeURLString(relativePath);
             url = new URL(urlStr);
         } catch (MalformedURLException e) {
             throw new IllegalArgumentException(e);
