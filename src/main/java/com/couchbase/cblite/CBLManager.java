@@ -126,7 +126,10 @@ public enum CBLManager {
             if(repl == null) {
                 throw new CBLiteException("unable to create replicator with remote: " + remote, new CBLStatus(CBLStatus.INTERNAL_SERVER_ERROR));
             }
-            repl.setAuthorizer(authorizer);
+
+            if (authorizer != null) {
+                repl.setAuthorizer(authorizer);
+            }
 
             String filterName = (String)properties.get("filter");
             if(filterName != null) {
