@@ -117,6 +117,11 @@ public class CBLRemoteRequest implements Runnable {
     protected void executeRequest(HttpClient httpClient, HttpUriRequest request) {
         Object fullBody = null;
         Throwable error = null;
+
+
+
+        Log.d(CBLDatabase.TAG, String.format("executeRequest().  client: %s, thread: %s", httpClient, Thread.currentThread()));
+
         try {
             HttpResponse response = httpClient.execute(request, httpContext);
 
@@ -132,13 +137,14 @@ public class CBLRemoteRequest implements Runnable {
             } else {
                 HttpEntity temp = response.getEntity();
                 if (temp != null) {
+                    InputStream stream = null;
                     try {
-                        InputStream stream = temp.getContent();
+                        stream = temp.getContent();
                         fullBody = CBLServer.getObjectMapper().readValue(stream,
                                 Object.class);
                     } finally {
                         try {
-                            temp.consumeContent();
+                            stream.close();
                         } catch (IOException e) {
                         }
                     }

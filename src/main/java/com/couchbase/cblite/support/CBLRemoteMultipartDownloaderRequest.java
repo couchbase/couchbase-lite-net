@@ -54,6 +54,10 @@ public class CBLRemoteMultipartDownloaderRequest extends CBLRemoteRequest {
     protected void executeRequest(HttpClient httpClient, HttpUriRequest request) {
         Object fullBody = null;
         Throwable error = null;
+
+        Log.d(CBLDatabase.TAG, String.format("executeRequest().  client: %s, thread: %s", httpClient, Thread.currentThread()));
+
+
         try {
             HttpResponse response = httpClient.execute(request, httpContext);
 
@@ -70,11 +74,14 @@ public class CBLRemoteMultipartDownloaderRequest extends CBLRemoteRequest {
 
                 HttpEntity entity = response.getEntity();
                 Header contentTypeHeader = entity.getContentType();
+                InputStream inputStream = null;
+
                 if (contentTypeHeader.getValue().contains("multipart/related")) {
+
                     try {
                         CBLMultipartDocumentReader reader = new CBLMultipartDocumentReader(response, db);
                         reader.setContentType(contentTypeHeader.getValue());
-                        InputStream inputStream = entity.getContent();
+                        inputStream = entity.getContent();
 
                         int bufLen = 1024;
                         byte[] buffer = new byte[bufLen];
@@ -89,8 +96,6 @@ public class CBLRemoteMultipartDownloaderRequest extends CBLRemoteRequest {
                             }
                         }
 
-                        inputStream.close();
-
                         reader.finish();
                         fullBody = reader.getDocumentProperties();
 
@@ -98,7 +103,7 @@ public class CBLRemoteMultipartDownloaderRequest extends CBLRemoteRequest {
 
                     } finally {
                         try {
-                            entity.consumeContent();
+                            inputStream.close();
                         } catch (IOException e) {
                         }
                     }
@@ -108,13 +113,13 @@ public class CBLRemoteMultipartDownloaderRequest extends CBLRemoteRequest {
                 else {
                     if (entity != null) {
                         try {
-                            InputStream stream = entity.getContent();
-                            fullBody = CBLServer.getObjectMapper().readValue(stream,
+                            inputStream = entity.getContent();
+                            fullBody = CBLServer.getObjectMapper().readValue(inputStream,
                                     Object.class);
                             respondWithResult(fullBody, error);
                         } finally {
                             try {
-                                entity.consumeContent();
+                                inputStream.close();
                             } catch (IOException e) {
                             }
                         }
