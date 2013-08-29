@@ -11,6 +11,7 @@ import java.util.concurrent.ScheduledExecutorService;
 
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.HttpResponseException;
+import org.apache.http.protocol.BasicHttpContext;
 
 import android.database.SQLException;
 import android.util.Log;
@@ -61,7 +62,7 @@ public class CBLPuller extends CBLReplicator implements CBLChangeTrackerClient {
         }
         pendingSequences = new CBLSequenceMap();
         Log.w(CBLDatabase.TAG, this + " starting ChangeTracker with since=" + lastSequence);
-        changeTracker = new CBLChangeTracker(remote, continuous ? TDChangeTrackerMode.LongPoll : TDChangeTrackerMode.OneShot, lastSequence, this, this.httpContext);
+        changeTracker = new CBLChangeTracker(remote, continuous ? TDChangeTrackerMode.LongPoll : TDChangeTrackerMode.OneShot, lastSequence, this, new BasicHttpContext());
         if(filterName != null) {
             changeTracker.setFilterName(filterName);
             if(filterParams != null) {

@@ -21,9 +21,16 @@ import com.couchbase.cblite.support.HttpClientFactory;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.HttpResponseException;
 import org.apache.http.client.protocol.ClientContext;
+import org.apache.http.conn.ClientConnectionManager;
+import org.apache.http.conn.scheme.PlainSocketFactory;
+import org.apache.http.conn.scheme.Scheme;
+import org.apache.http.conn.scheme.SchemeRegistry;
+import org.apache.http.conn.ssl.SSLSocketFactory;
 import org.apache.http.entity.mime.MultipartEntity;
 import org.apache.http.impl.client.BasicCookieStore;
 import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.impl.conn.tsccm.ThreadSafeClientConnManager;
+import org.apache.http.params.BasicHttpParams;
 import org.apache.http.protocol.BasicHttpContext;
 
 import java.net.MalformedURLException;
@@ -129,7 +136,16 @@ public abstract class CBLReplicator extends Observable {
         this.clientFacotry = clientFacotry != null ? clientFacotry : new HttpClientFactory() {
             @Override
             public HttpClient getHttpClient() {
-                return new DefaultHttpClient();
+
+                // workaround attempt for issue #81
+                BasicHttpParams params = new BasicHttpParams();
+                SchemeRegistry schemeRegistry = new SchemeRegistry();
+                schemeRegistry.register(new Scheme("http", PlainSocketFactory.getSocketFactory(), 80));
+                final SSLSocketFactory sslSocketFactory = SSLSocketFactory.getSocketFactory();
+                schemeRegistry.register(new Scheme("https", sslSocketFactory, 443));
+                ClientConnectionManager cm = new ThreadSafeClientConnManager(params, schemeRegistry);
+
+                return new DefaultHttpClient(cm, params);
             }
         };
 
@@ -410,7 +426,7 @@ public abstract class CBLReplicator extends Observable {
 
     public void sendAsyncRequest(String method, URL url, Object body, CBLRemoteRequestCompletionBlock onCompletion) {
         Log.d(CBLDatabase.TAG, String.format("%s: sendAsyncRequest to %s", toString(), url));
-        CBLRemoteRequest request = new CBLRemoteRequest(workExecutor, clientFacotry, method, url, body, onCompletion, httpContext);
+        CBLRemoteRequest request = new CBLRemoteRequest(workExecutor, clientFacotry, method, url, body, onCompletion, new BasicHttpContext());
         remoteRequestExecutor.execute(request);
     }
 
@@ -421,7 +437,7 @@ public abstract class CBLReplicator extends Observable {
             URL url = new URL(urlStr);
             Log.d(CBLDatabase.TAG, String.format("%s: sendAsyncMultipartDownloaderRequest to %s", toString(), url));
 
-            CBLRemoteMultipartDownloaderRequest request = new CBLRemoteMultipartDownloaderRequest(workExecutor, clientFacotry, method, url, body, db, onCompletion, httpContext);
+            CBLRemoteMultipartDownloaderRequest request = new CBLRemoteMultipartDownloaderRequest(workExecutor, clientFacotry, method, url, body, db, onCompletion, new BasicHttpContext());
             remoteRequestExecutor.execute(request);
         } catch (MalformedURLException e) {
             Log.e(CBLDatabase.TAG, "Malformed URL for async request", e);
@@ -437,7 +453,7 @@ public abstract class CBLReplicator extends Observable {
             throw new IllegalArgumentException(e);
         }
         Log.d(CBLDatabase.TAG, String.format("%s: sendAsyncMultipartRequest to %s", toString(), url));
-        CBLRemoteMultipartRequest request = new CBLRemoteMultipartRequest(workExecutor, clientFacotry, method, url, multiPartEntity, onCompletion, httpContext);
+        CBLRemoteMultipartRequest request = new CBLRemoteMultipartRequest(workExecutor, clientFacotry, method, url, multiPartEntity, onCompletion, new BasicHttpContext());
         remoteRequestExecutor.execute(request);
     }
 
