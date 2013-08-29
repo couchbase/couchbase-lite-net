@@ -46,7 +46,8 @@ public class CBLServer {
     private static final ObjectMapper mapper = new ObjectMapper();
 
     public static final String LEGAL_CHARACTERS = "[^a-z]{1,}[^a-z0-9_$()/+-]*$";
-    public static final String DATABASE_SUFFIX = ".touchdb";
+    public static final String DATABASE_SUFFIX_OLD = ".touchdb";
+    public static final String DATABASE_SUFFIX = ".cblite";
 
     private File directory;
     private Map<String, CBLDatabase> databases;
@@ -74,6 +75,7 @@ public class CBLServer {
                 throw new IOException("Unable to create directory " + directory);
             }
         }
+        upgradeOldDatabaseFiles(this.directory);
 
         workExecutor = Executors.newSingleThreadScheduledExecutor();
 
@@ -81,6 +83,37 @@ public class CBLServer {
         this.manager = manager;
 
     }
+
+    private void upgradeOldDatabaseFiles(File directory) {
+        File[] files = directory.listFiles(new FilenameFilter() {
+            @Override
+            public boolean accept(File file, String name) {
+                return name.endsWith(DATABASE_SUFFIX_OLD);
+            }
+        });
+
+        for (File file : files) {
+            String oldFilename = file.getName();
+            String newFilename = filenameWithNewExtension(oldFilename, DATABASE_SUFFIX_OLD, DATABASE_SUFFIX);
+            File newFile = new File(directory, newFilename);
+            if (newFile.exists()) {
+                String msg = String.format("Cannot rename %s to %s, %s already exists", oldFilename, newFilename, newFilename);
+                Log.w(CBLDatabase.TAG, msg);
+                continue;
+            }
+            boolean ok = file.renameTo(newFile);
+            if (!ok) {
+                String msg = String.format("Unable to rename %s to %s", oldFilename, newFilename);
+                throw new IllegalStateException(msg);
+            }
+        }
+    }
+
+    private String filenameWithNewExtension(String oldFilename, String oldExtension, String newExtension) {
+        String oldExtensionRegex = String.format("%s$",oldExtension);
+        return oldFilename.replaceAll(oldExtensionRegex, newExtension);
+    }
+
 
     public CBLManager getManager() {
         return manager;
