@@ -118,12 +118,36 @@ public class CBLRemoteRequest implements Runnable {
         Object fullBody = null;
         Throwable error = null;
 
-
-
-        Log.d(CBLDatabase.TAG, String.format("executeRequest().  client: %s, thread: %s", httpClient, Thread.currentThread()));
+        Log.d(CBLDatabase.TAG, String.format("executeRequest().  client: %s, thread: %s, request: %s", httpClient, Thread.currentThread(), request));
 
         try {
+
+            int numCookiesBefore = 0;
+            Log.d(CBLDatabase.TAG, "Cookies before");
+            BasicCookieStore cookieStore = (BasicCookieStore) httpContext.getAttribute(ClientContext.COOKIE_STORE);
+            if (cookieStore != null) {
+                List<Cookie> cookies = cookieStore.getCookies();
+                for (Cookie cookie : cookies) {
+                    Log.d(CBLDatabase.TAG, "Cookie: " + cookie.toString());
+                }
+                numCookiesBefore = cookies.size();
+            }
+
             HttpResponse response = httpClient.execute(request, httpContext);
+
+            Log.d(CBLDatabase.TAG, "Cookies after");
+            cookieStore = (BasicCookieStore) httpContext.getAttribute(ClientContext.COOKIE_STORE);
+            if (cookieStore != null) {
+
+                List<Cookie> cookies = cookieStore.getCookies();
+                for (Cookie cookie : cookies) {
+                    Log.d(CBLDatabase.TAG, "Cookie: " + cookie.toString());
+                }
+
+                if (numCookiesBefore != cookies.size()) {
+                    Log.d(CBLDatabase.TAG, "Got new cookies!");
+                }
+            }
 
             StatusLine status = response.getStatusLine();
             if (status.getStatusCode() >= 300) {

@@ -15,13 +15,17 @@ import org.apache.http.client.HttpResponseException;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpPut;
 import org.apache.http.client.methods.HttpUriRequest;
+import org.apache.http.client.protocol.ClientContext;
+import org.apache.http.cookie.Cookie;
 import org.apache.http.entity.mime.MultipartEntity;
+import org.apache.http.impl.client.BasicCookieStore;
 import org.apache.http.protocol.BasicHttpContext;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
 
 public class CBLRemoteMultipartDownloaderRequest extends CBLRemoteRequest {
@@ -55,11 +59,38 @@ public class CBLRemoteMultipartDownloaderRequest extends CBLRemoteRequest {
         Object fullBody = null;
         Throwable error = null;
 
-        Log.d(CBLDatabase.TAG, String.format("executeRequest().  client: %s, thread: %s", httpClient, Thread.currentThread()));
+        Log.d(CBLDatabase.TAG, String.format("executeRequest().  client: %s, thread: %s, request: %s", httpClient, Thread.currentThread(), request));
 
 
         try {
+
+            int numCookiesBefore = 0;
+            Log.d(CBLDatabase.TAG, "Cookies before");
+            BasicCookieStore cookieStore = (BasicCookieStore) httpContext.getAttribute(ClientContext.COOKIE_STORE);
+            if (cookieStore != null) {
+                List<Cookie> cookies = cookieStore.getCookies();
+                for (Cookie cookie : cookies) {
+                    Log.d(CBLDatabase.TAG, "Cookie: " + cookie.toString());
+                }
+                numCookiesBefore = cookies.size();
+            }
+
             HttpResponse response = httpClient.execute(request, httpContext);
+
+            Log.d(CBLDatabase.TAG, "Cookies after");
+            cookieStore = (BasicCookieStore) httpContext.getAttribute(ClientContext.COOKIE_STORE);
+            if (cookieStore != null) {
+
+                List<Cookie> cookies = cookieStore.getCookies();
+                for (Cookie cookie : cookies) {
+                    Log.d(CBLDatabase.TAG, "Cookie: " + cookie.toString());
+                }
+
+                if (numCookiesBefore != cookies.size()) {
+                    Log.d(CBLDatabase.TAG, "Got new cookies!");
+                }
+            }
+
 
             StatusLine status = response.getStatusLine();
             if (status.getStatusCode() >= 300) {
