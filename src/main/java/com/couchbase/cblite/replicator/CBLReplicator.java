@@ -12,6 +12,7 @@ import com.couchbase.cblite.auth.CBLFacebookAuthorizer;
 import com.couchbase.cblite.auth.CBLPersonaAuthorizer;
 import com.couchbase.cblite.support.CBLBatchProcessor;
 import com.couchbase.cblite.support.CBLBatcher;
+import com.couchbase.cblite.support.CBLHttpClientFactory;
 import com.couchbase.cblite.support.CBLRemoteMultipartDownloaderRequest;
 import com.couchbase.cblite.support.CBLRemoteMultipartRequest;
 import com.couchbase.cblite.support.CBLRemoteRequest;
@@ -133,21 +134,7 @@ public abstract class CBLReplicator extends Observable {
             }
         });
 
-        this.clientFacotry = clientFacotry != null ? clientFacotry : new HttpClientFactory() {
-            @Override
-            public HttpClient getHttpClient() {
-
-                // workaround attempt for issue #81
-                BasicHttpParams params = new BasicHttpParams();
-                SchemeRegistry schemeRegistry = new SchemeRegistry();
-                schemeRegistry.register(new Scheme("http", PlainSocketFactory.getSocketFactory(), 80));
-                final SSLSocketFactory sslSocketFactory = SSLSocketFactory.getSocketFactory();
-                schemeRegistry.register(new Scheme("https", sslSocketFactory, 443));
-                ClientConnectionManager cm = new ThreadSafeClientConnManager(params, schemeRegistry);
-
-                return new DefaultHttpClient(cm, params);
-            }
-        };
+        this.clientFacotry = clientFacotry != null ? clientFacotry : CBLHttpClientFactory.INSTANCE;
 
         httpContext = new BasicHttpContext();
         httpContext.setAttribute(ClientContext.COOKIE_STORE, new BasicCookieStore());

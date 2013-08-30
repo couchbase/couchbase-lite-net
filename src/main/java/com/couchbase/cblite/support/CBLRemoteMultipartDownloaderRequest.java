@@ -19,6 +19,7 @@ import org.apache.http.client.protocol.ClientContext;
 import org.apache.http.cookie.Cookie;
 import org.apache.http.entity.mime.MultipartEntity;
 import org.apache.http.impl.client.BasicCookieStore;
+import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.protocol.BasicHttpContext;
 
 import java.io.IOException;
@@ -61,7 +62,6 @@ public class CBLRemoteMultipartDownloaderRequest extends CBLRemoteRequest {
 
         Log.d(CBLDatabase.TAG, String.format("executeRequest().  client: %s, thread: %s, request: %s", httpClient, Thread.currentThread(), request));
 
-
         try {
 
             int numCookiesBefore = 0;
@@ -76,6 +76,10 @@ public class CBLRemoteMultipartDownloaderRequest extends CBLRemoteRequest {
             }
 
             HttpResponse response = httpClient.execute(request, httpContext);
+
+            // add in cookies to global store
+            DefaultHttpClient defaultHttpClient = (DefaultHttpClient)httpClient;
+            CBLHttpClientFactory.INSTANCE.addCookies(defaultHttpClient.getCookieStore().getCookies());
 
             Log.d(CBLDatabase.TAG, "Cookies after");
             cookieStore = (BasicCookieStore) httpContext.getAttribute(ClientContext.COOKIE_STORE);
