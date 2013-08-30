@@ -55,8 +55,6 @@ public class CBLRemoteMultipartDownloaderRequest extends CBLRemoteRequest {
         Object fullBody = null;
         Throwable error = null;
 
-        Log.d(CBLDatabase.TAG, String.format("executeRequest().  client: %s, thread: %s, request: %s", httpClient, Thread.currentThread(), request));
-
         try {
 
             HttpResponse response = httpClient.execute(request);
