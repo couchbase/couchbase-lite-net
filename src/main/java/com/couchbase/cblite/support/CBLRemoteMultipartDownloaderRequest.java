@@ -110,7 +110,6 @@ public class CBLRemoteMultipartDownloaderRequest extends CBLRemoteRequest {
                         try {
                             inputStream.close();
                         } catch (IOException e) {
-                            Log.e(CBLDatabase.TAG, "exception closing input stream", e);
                         }
                     }
 
@@ -127,7 +126,6 @@ public class CBLRemoteMultipartDownloaderRequest extends CBLRemoteRequest {
                             try {
                                 inputStream.close();
                             } catch (IOException e) {
-                                Log.e(CBLDatabase.TAG, "exception closing input stream", e);
                             }
                         }
                     }
@@ -140,10 +138,6 @@ public class CBLRemoteMultipartDownloaderRequest extends CBLRemoteRequest {
         } catch (IOException e) {
             Log.e(CBLDatabase.TAG, "io exception", e);
             error = e;
-        } catch (IllegalStateException e) {
-            Log.e(CBLDatabase.TAG, "illegal state exception", e);
-            Log.d(CBLDatabase.TAG, String.format("executeRequest() exception.  client: %s, thread: %s", httpClient, Thread.currentThread()));
-            throw e;
         }
     }
 
