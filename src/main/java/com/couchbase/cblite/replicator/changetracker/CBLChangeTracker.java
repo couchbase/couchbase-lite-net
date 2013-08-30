@@ -60,7 +60,6 @@ public class CBLChangeTracker implements Runnable {
     private Map<String, Object> filterParams;
 
     private Throwable error;
-    protected BasicHttpContext httpContext;
 
 
     public enum TDChangeTrackerMode {
@@ -68,12 +67,11 @@ public class CBLChangeTracker implements Runnable {
     }
 
     public CBLChangeTracker(URL databaseURL, TDChangeTrackerMode mode,
-                            Object lastSequenceID, CBLChangeTrackerClient client, BasicHttpContext httpContext) {
+                            Object lastSequenceID, CBLChangeTrackerClient client) {
         this.databaseURL = databaseURL;
         this.mode = mode;
         this.lastSequenceID = lastSequenceID;
         this.client = client;
-        this.httpContext = httpContext;
     }
 
     public void setFilterName(String filterName) {
@@ -199,7 +197,7 @@ public class CBLChangeTracker implements Runnable {
                 String maskedRemoteWithoutCredentials = getChangesFeedURL().toString();
                 maskedRemoteWithoutCredentials = maskedRemoteWithoutCredentials.replaceAll("://.*:.*@","://---:---@");
                 Log.v(CBLDatabase.TAG, "Making request to " + maskedRemoteWithoutCredentials);
-                HttpResponse response = httpClient.execute(request, this.httpContext);
+                HttpResponse response = httpClient.execute(request);
                 StatusLine status = response.getStatusLine();
                 if(status.getStatusCode() >= 300) {
                     Log.e(CBLDatabase.TAG, "Change tracker got error " + Integer.toString(status.getStatusCode()));

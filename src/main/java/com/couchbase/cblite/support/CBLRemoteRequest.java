@@ -53,19 +53,16 @@ public class CBLRemoteRequest implements Runnable {
     protected URL url;
     protected Object body;
     protected CBLRemoteRequestCompletionBlock onCompletion;
-    protected BasicHttpContext httpContext;
 
     public CBLRemoteRequest(ScheduledExecutorService workExecutor,
                             HttpClientFactory clientFactory, String method, URL url,
-                            Object body, CBLRemoteRequestCompletionBlock onCompletion,
-                            BasicHttpContext httpContext) {
+                            Object body, CBLRemoteRequestCompletionBlock onCompletion) {
         this.clientFactory = clientFactory;
         this.method = method;
         this.url = url;
         this.body = body;
         this.onCompletion = onCompletion;
         this.workExecutor = workExecutor;
-        this.httpContext = httpContext;
     }
 
     @Override
@@ -122,37 +119,11 @@ public class CBLRemoteRequest implements Runnable {
 
         try {
 
-            int numCookiesBefore = 0;
-            Log.d(CBLDatabase.TAG, "Cookies before");
-            BasicCookieStore cookieStore = (BasicCookieStore) httpContext.getAttribute(ClientContext.COOKIE_STORE);
-            if (cookieStore != null) {
-                List<Cookie> cookies = cookieStore.getCookies();
-                for (Cookie cookie : cookies) {
-                    Log.d(CBLDatabase.TAG, "Cookie: " + cookie.toString());
-                }
-                numCookiesBefore = cookies.size();
-            }
-
-            HttpResponse response = httpClient.execute(request, httpContext);
+            HttpResponse response = httpClient.execute(request);
 
             // add in cookies to global store
             DefaultHttpClient defaultHttpClient = (DefaultHttpClient)httpClient;
             CBLHttpClientFactory.INSTANCE.addCookies(defaultHttpClient.getCookieStore().getCookies());
-
-
-            Log.d(CBLDatabase.TAG, "Cookies after");
-            cookieStore = (BasicCookieStore) httpContext.getAttribute(ClientContext.COOKIE_STORE);
-            if (cookieStore != null) {
-
-                List<Cookie> cookies = cookieStore.getCookies();
-                for (Cookie cookie : cookies) {
-                    Log.d(CBLDatabase.TAG, "Cookie: " + cookie.toString());
-                }
-
-                if (numCookiesBefore != cookies.size()) {
-                    Log.d(CBLDatabase.TAG, "Got new cookies!");
-                }
-            }
 
             StatusLine status = response.getStatusLine();
             if (status.getStatusCode() >= 300) {
