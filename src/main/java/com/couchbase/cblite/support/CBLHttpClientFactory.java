@@ -24,21 +24,25 @@ public enum CBLHttpClientFactory implements HttpClientFactory {
     @Override
     public HttpClient getHttpClient() {
 
+        // workaround attempt for issue #81
+        // it does not seem like _not_ using the ThreadSafeClientConnManager actually
+        // caused any problems, but it seems wise to use it "just in case", since it provides
+        // extra safety and there are no observed side effects.
+        BasicHttpParams params = new BasicHttpParams();
+        SchemeRegistry schemeRegistry = new SchemeRegistry();
+        schemeRegistry.register(new Scheme("http", PlainSocketFactory.getSocketFactory(), 80));
+        final SSLSocketFactory sslSocketFactory = SSLSocketFactory.getSocketFactory();
+        schemeRegistry.register(new Scheme("https", sslSocketFactory, 443));
+        ClientConnectionManager cm = new ThreadSafeClientConnManager(params, schemeRegistry);
+
+        DefaultHttpClient client = new DefaultHttpClient(cm, params);
+
+        // synchronize access to the cookieStore in case there is another
+        // thread in the middle of updating it.  wait until they are done so we get their changes.
         synchronized (this) {
-
-            // workaround attempt for issue #81
-            BasicHttpParams params = new BasicHttpParams();
-            SchemeRegistry schemeRegistry = new SchemeRegistry();
-            schemeRegistry.register(new Scheme("http", PlainSocketFactory.getSocketFactory(), 80));
-            final SSLSocketFactory sslSocketFactory = SSLSocketFactory.getSocketFactory();
-            schemeRegistry.register(new Scheme("https", sslSocketFactory, 443));
-            ClientConnectionManager cm = new ThreadSafeClientConnManager(params, schemeRegistry);
-
-            DefaultHttpClient client = new DefaultHttpClient(cm, params);
             client.setCookieStore(cookieStore);
-            return client;
-
         }
+        return client;
 
     }
 
