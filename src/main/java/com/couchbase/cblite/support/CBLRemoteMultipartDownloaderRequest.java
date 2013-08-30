@@ -12,16 +12,17 @@ import org.apache.http.StatusLine;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.HttpResponseException;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.client.methods.HttpPut;
 import org.apache.http.client.methods.HttpUriRequest;
-import org.apache.http.entity.mime.MultipartEntity;
-import org.apache.http.protocol.BasicHttpContext;
+import org.apache.http.client.protocol.ClientContext;
+import org.apache.http.cookie.Cookie;
+import org.apache.http.impl.client.BasicCookieStore;
+import org.apache.http.impl.client.DefaultHttpClient;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
 
 public class CBLRemoteMultipartDownloaderRequest extends CBLRemoteRequest {
@@ -29,10 +30,9 @@ public class CBLRemoteMultipartDownloaderRequest extends CBLRemoteRequest {
     private CBLDatabase db;
 
     public CBLRemoteMultipartDownloaderRequest(ScheduledExecutorService workExecutor,
-                                     HttpClientFactory clientFactory, String method, URL url,
-                                     Object body, CBLDatabase db, CBLRemoteRequestCompletionBlock onCompletion,
-                                     BasicHttpContext httpContext) {
-        super(workExecutor, clientFactory, method, url, body, onCompletion, httpContext);
+                                               HttpClientFactory clientFactory, String method, URL url,
+                                               Object body, CBLDatabase db, CBLRemoteRequestCompletionBlock onCompletion) {
+        super(workExecutor, clientFactory, method, url, body, onCompletion);
         this.db = db;
     }
 
@@ -55,11 +55,14 @@ public class CBLRemoteMultipartDownloaderRequest extends CBLRemoteRequest {
         Object fullBody = null;
         Throwable error = null;
 
-        Log.d(CBLDatabase.TAG, String.format("executeRequest().  client: %s, thread: %s", httpClient, Thread.currentThread()));
-
-
         try {
-            HttpResponse response = httpClient.execute(request, httpContext);
+
+            HttpResponse response = httpClient.execute(request);
+
+            // add in cookies to global store
+            DefaultHttpClient defaultHttpClient = (DefaultHttpClient)httpClient;
+            CBLHttpClientFactory.INSTANCE.addCookies(defaultHttpClient.getCookieStore().getCookies());
+
 
             StatusLine status = response.getStatusLine();
             if (status.getStatusCode() >= 300) {

@@ -12,19 +12,15 @@ import com.couchbase.cblite.auth.CBLFacebookAuthorizer;
 import com.couchbase.cblite.auth.CBLPersonaAuthorizer;
 import com.couchbase.cblite.support.CBLBatchProcessor;
 import com.couchbase.cblite.support.CBLBatcher;
+import com.couchbase.cblite.support.CBLHttpClientFactory;
 import com.couchbase.cblite.support.CBLRemoteMultipartDownloaderRequest;
 import com.couchbase.cblite.support.CBLRemoteMultipartRequest;
 import com.couchbase.cblite.support.CBLRemoteRequest;
 import com.couchbase.cblite.support.CBLRemoteRequestCompletionBlock;
 import com.couchbase.cblite.support.HttpClientFactory;
 
-import org.apache.http.client.HttpClient;
 import org.apache.http.client.HttpResponseException;
-import org.apache.http.client.protocol.ClientContext;
 import org.apache.http.entity.mime.MultipartEntity;
-import org.apache.http.impl.client.BasicCookieStore;
-import org.apache.http.impl.client.DefaultHttpClient;
-import org.apache.http.protocol.BasicHttpContext;
 
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -63,7 +59,6 @@ public abstract class CBLReplicator extends Observable {
     protected Map<String, Object> filterParams;
     protected ExecutorService remoteRequestExecutor;
     protected CBLAuthorizer authorizer;
-    protected BasicHttpContext httpContext;
 
     protected static final int PROCESSOR_DELAY = 500;
     protected static final int INBOX_CAPACITY = 100;
@@ -126,15 +121,8 @@ public abstract class CBLReplicator extends Observable {
             }
         });
 
-        this.clientFacotry = clientFacotry != null ? clientFacotry : new HttpClientFactory() {
-            @Override
-            public HttpClient getHttpClient() {
-                return new DefaultHttpClient();
-            }
-        };
+        this.clientFacotry = clientFacotry != null ? clientFacotry : CBLHttpClientFactory.INSTANCE;
 
-        httpContext = new BasicHttpContext();
-        httpContext.setAttribute(ClientContext.COOKIE_STORE, new BasicCookieStore());
 
     }
 
@@ -410,7 +398,7 @@ public abstract class CBLReplicator extends Observable {
 
     public void sendAsyncRequest(String method, URL url, Object body, CBLRemoteRequestCompletionBlock onCompletion) {
         Log.d(CBLDatabase.TAG, String.format("%s: sendAsyncRequest to %s", toString(), url));
-        CBLRemoteRequest request = new CBLRemoteRequest(workExecutor, clientFacotry, method, url, body, onCompletion, httpContext);
+        CBLRemoteRequest request = new CBLRemoteRequest(workExecutor, clientFacotry, method, url, body, onCompletion);
         remoteRequestExecutor.execute(request);
     }
 
@@ -421,7 +409,7 @@ public abstract class CBLReplicator extends Observable {
             URL url = new URL(urlStr);
             Log.d(CBLDatabase.TAG, String.format("%s: sendAsyncMultipartDownloaderRequest to %s", toString(), url));
 
-            CBLRemoteMultipartDownloaderRequest request = new CBLRemoteMultipartDownloaderRequest(workExecutor, clientFacotry, method, url, body, db, onCompletion, httpContext);
+            CBLRemoteMultipartDownloaderRequest request = new CBLRemoteMultipartDownloaderRequest(workExecutor, clientFacotry, method, url, body, db, onCompletion);
             remoteRequestExecutor.execute(request);
         } catch (MalformedURLException e) {
             Log.e(CBLDatabase.TAG, "Malformed URL for async request", e);
@@ -437,7 +425,7 @@ public abstract class CBLReplicator extends Observable {
             throw new IllegalArgumentException(e);
         }
         Log.d(CBLDatabase.TAG, String.format("%s: sendAsyncMultipartRequest to %s", toString(), url));
-        CBLRemoteMultipartRequest request = new CBLRemoteMultipartRequest(workExecutor, clientFacotry, method, url, multiPartEntity, onCompletion, httpContext);
+        CBLRemoteMultipartRequest request = new CBLRemoteMultipartRequest(workExecutor, clientFacotry, method, url, multiPartEntity, onCompletion);
         remoteRequestExecutor.execute(request);
     }
 

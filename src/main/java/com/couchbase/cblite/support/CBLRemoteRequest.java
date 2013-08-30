@@ -53,19 +53,16 @@ public class CBLRemoteRequest implements Runnable {
     protected URL url;
     protected Object body;
     protected CBLRemoteRequestCompletionBlock onCompletion;
-    protected BasicHttpContext httpContext;
 
     public CBLRemoteRequest(ScheduledExecutorService workExecutor,
                             HttpClientFactory clientFactory, String method, URL url,
-                            Object body, CBLRemoteRequestCompletionBlock onCompletion,
-                            BasicHttpContext httpContext) {
+                            Object body, CBLRemoteRequestCompletionBlock onCompletion) {
         this.clientFactory = clientFactory;
         this.method = method;
         this.url = url;
         this.body = body;
         this.onCompletion = onCompletion;
         this.workExecutor = workExecutor;
-        this.httpContext = httpContext;
     }
 
     @Override
@@ -118,12 +115,13 @@ public class CBLRemoteRequest implements Runnable {
         Object fullBody = null;
         Throwable error = null;
 
-
-
-        Log.d(CBLDatabase.TAG, String.format("executeRequest().  client: %s, thread: %s", httpClient, Thread.currentThread()));
-
         try {
-            HttpResponse response = httpClient.execute(request, httpContext);
+
+            HttpResponse response = httpClient.execute(request);
+
+            // add in cookies to global store
+            DefaultHttpClient defaultHttpClient = (DefaultHttpClient)httpClient;
+            CBLHttpClientFactory.INSTANCE.addCookies(defaultHttpClient.getCookieStore().getCookies());
 
             StatusLine status = response.getStatusLine();
             if (status.getStatusCode() >= 300) {

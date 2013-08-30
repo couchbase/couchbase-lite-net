@@ -30,9 +30,16 @@ import org.apache.http.StatusLine;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPut;
+import org.apache.http.conn.ClientConnectionManager;
+import org.apache.http.conn.scheme.PlainSocketFactory;
+import org.apache.http.conn.scheme.Scheme;
+import org.apache.http.conn.scheme.SchemeRegistry;
+import org.apache.http.conn.ssl.SSLSocketFactory;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.entity.StringEntity;
+import org.apache.http.impl.conn.tsccm.ThreadSafeClientConnManager;
 import org.apache.http.message.BasicHeader;
+import org.apache.http.params.BasicHttpParams;
 
 public class Replicator extends CBLiteTestCase {
 
@@ -114,7 +121,9 @@ public class Replicator extends CBLiteTestCase {
 
             @Override
             protected Object doInBackground(Object... aParams) {
+
                 org.apache.http.client.HttpClient httpclient = new DefaultHttpClient();
+
                 HttpResponse response;
                 String responseString = null;
                 try {
@@ -181,7 +190,9 @@ public class Replicator extends CBLiteTestCase {
 
             @Override
             protected Object doInBackground(Object... aParams) {
+
                 org.apache.http.client.HttpClient httpclient = new DefaultHttpClient();
+
                 HttpResponse response;
                 String responseString = null;
                 try {
