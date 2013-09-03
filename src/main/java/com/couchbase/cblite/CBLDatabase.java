@@ -1811,8 +1811,8 @@ public class CBLDatabase extends Observable {
     public void rememberAttachmentWritersForDigests(Map<String, CBLBlobStoreWriter> blobsByDigest) {
         if (pendingAttachmentsByDigest == null) {
             pendingAttachmentsByDigest = new HashMap<String, CBLBlobStoreWriter>();
+            pendingAttachmentsByDigest.putAll(blobsByDigest);
         }
-        pendingAttachmentsByDigest.putAll(blobsByDigest);
     }
 
 
