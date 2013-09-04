@@ -87,23 +87,22 @@ public class CBLMultipartReader {
 
     public void parseHeaders(String headersStr) {
 
-        if (headersStr == null || headersStr.length() == 0) {
-            throw new IllegalArgumentException("Unparseable UTF-8 in headers");
-        }
         headers = new HashMap<String, String>();
-        headersStr = headersStr.trim();
-        StringTokenizer tokenizer = new StringTokenizer(headersStr, "\r\n");
-        while (tokenizer.hasMoreTokens()) {
-            String header = tokenizer.nextToken();
+        if (headersStr != null && headersStr.length() > 0) {
+            headersStr = headersStr.trim();
+            StringTokenizer tokenizer = new StringTokenizer(headersStr, "\r\n");
+            while (tokenizer.hasMoreTokens()) {
+                String header = tokenizer.nextToken();
 
-            if (!header.contains(":")) {
-                throw new IllegalArgumentException("Missing ':' in header line: " + header);
+                if (!header.contains(":")) {
+                    throw new IllegalArgumentException("Missing ':' in header line: " + header);
+                }
+                StringTokenizer headerTokenizer = new StringTokenizer(header, ":");
+                String key = headerTokenizer.nextToken().trim();
+                String value = headerTokenizer.nextToken().trim();
+                headers.put(key, value);
+
             }
-            StringTokenizer headerTokenizer = new StringTokenizer(header, ":");
-            String key = headerTokenizer.nextToken().trim();
-            String value = headerTokenizer.nextToken().trim();
-            headers.put(key, value);
-
         }
 
     }
