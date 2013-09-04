@@ -72,12 +72,12 @@ public class CBLMultipartReader {
         return equals;
     }
 
-    private Range searchFor(byte[] pattern, int start) {
+    public Range searchFor(byte[] pattern, int start) {
 
         KMPMatch searcher = new KMPMatch();
         int matchIndex = searcher.indexOf(buffer, pattern, start);
 
-        if (matchIndex > 0) {
+        if (matchIndex != -1) {
             return new Range(matchIndex, pattern.length);
         }
         else {
@@ -244,24 +244,6 @@ public class CBLMultipartReader {
         }
     }
 
-}
-
-class Range {
-    private int location;
-    private int length;
-
-    Range(int location, int length) {
-        this.location = location;
-        this.length = length;
-    }
-
-    int getLocation() {
-        return location;
-    }
-
-    int getLength() {
-        return length;
-    }
 }
 
 /**
