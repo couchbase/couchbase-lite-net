@@ -47,7 +47,7 @@ android {
 uploadArchives {
     repositories {
         mavenDeployer {
-            repository(url: "http://maven.hq.couchbase.com/nexus/content/repositories/releases/") {
+            repository(url: System.getenv("UPLOAD_MAVEN_REPO_URL")) {
                 authentication(userName: System.getenv("UPLOAD_USERNAME"), password: System.getenv("UPLOAD_PASSWORD"))
             }
             pom.version = System.getenv("UPLOAD_VERSION_CBLITE")
