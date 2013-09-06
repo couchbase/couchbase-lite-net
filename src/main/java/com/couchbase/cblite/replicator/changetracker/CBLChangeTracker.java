@@ -158,19 +158,19 @@ public class CBLChangeTracker implements Runnable {
 
             // if the URL contains user info AND if this a DefaultHttpClient
             // then preemptively set the auth credentials
-            if(url.getUserInfo() != null) {
+            if (url.getUserInfo() != null) {
                 Log.v(CBLDatabase.TAG, "url.getUserInfo(): " + url.getUserInfo());
-                if(url.getUserInfo().contains(":") && !url.getUserInfo().trim().equals(":")) {
+                if (url.getUserInfo().contains(":") && !url.getUserInfo().trim().equals(":")) {
                     String[] userInfoSplit = url.getUserInfo().split(":");
                     final Credentials creds = new UsernamePasswordCredentials(userInfoSplit[0], userInfoSplit[1]);
-                    if(httpClient instanceof DefaultHttpClient) {
-                        DefaultHttpClient dhc = (DefaultHttpClient)httpClient;
+                    if (httpClient instanceof DefaultHttpClient) {
+                        DefaultHttpClient dhc = (DefaultHttpClient) httpClient;
 
                         HttpRequestInterceptor preemptiveAuth = new HttpRequestInterceptor() {
 
                             @Override
                             public void process(HttpRequest request,
-                                    HttpContext context) throws HttpException,
+                                                HttpContext context) throws HttpException,
                                     IOException {
                                 AuthState authState = (AuthState) context.getAttribute(ClientContext.TARGET_AUTH_STATE);
                                 CredentialsProvider credsProvider = (CredentialsProvider) context.getAttribute(
@@ -187,74 +187,69 @@ public class CBLChangeTracker implements Runnable {
 
                         dhc.addRequestInterceptor(preemptiveAuth, 0);
                     }
-                }
-                else {
+                } else {
                     Log.w(CBLDatabase.TAG, "ChangeTracker Unable to parse user info, not setting credentials");
                 }
             }
 
             try {
                 String maskedRemoteWithoutCredentials = getChangesFeedURL().toString();
-                maskedRemoteWithoutCredentials = maskedRemoteWithoutCredentials.replaceAll("://.*:.*@","://---:---@");
+                maskedRemoteWithoutCredentials = maskedRemoteWithoutCredentials.replaceAll("://.*:.*@", "://---:---@");
                 Log.v(CBLDatabase.TAG, "Making request to " + maskedRemoteWithoutCredentials);
                 HttpResponse response = httpClient.execute(request);
                 StatusLine status = response.getStatusLine();
-                if(status.getStatusCode() >= 300) {
+                if (status.getStatusCode() >= 300) {
                     Log.e(CBLDatabase.TAG, "Change tracker got error " + Integer.toString(status.getStatusCode()));
                     stop();
                 }
                 HttpEntity entity = response.getEntity();
                 InputStream input = null;
-                if(entity != null) {
-                	try {
-	                    input = entity.getContent();
-	                    if(mode == TDChangeTrackerMode.LongPoll) {
-	                        Map<String,Object> fullBody = CBLServer.getObjectMapper().readValue(input, Map.class);
-	                        boolean responseOK = receivedPollResponse(fullBody);
-	                        if(mode == TDChangeTrackerMode.LongPoll && responseOK) {
-	                            Log.v(CBLDatabase.TAG, "Starting new longpoll");
-	                            continue;
-	                        } else {
-	                            Log.w(CBLDatabase.TAG, "Change tracker calling stop");
-	                            stop();
-	                        }
-	                    }
-	                    else {
+                if (entity != null) {
 
-                            JsonFactory jsonFactory = CBLServer.getObjectMapper().getJsonFactory();
-                            JsonParser jp = jsonFactory.createJsonParser(input);
-
-                            while (jp.nextToken() != JsonToken.START_ARRAY) {
-                                // ignore these tokens
-                            }
-
-                            while (jp.nextToken() == JsonToken.START_OBJECT) {
-                                Map<String,Object> change = (Map)CBLServer.getObjectMapper().readValue(jp, Map.class);
-                                if(!receivedChange(change)) {
-                                    Log.w(CBLDatabase.TAG, String.format("Received unparseable change line from server: %s", change));
-                                }
-
-                            }
-
+                    input = entity.getContent();
+                    if (mode == TDChangeTrackerMode.LongPoll) {
+                        Map<String, Object> fullBody = CBLServer.getObjectMapper().readValue(input, Map.class);
+                        boolean responseOK = receivedPollResponse(fullBody);
+                        if (mode == TDChangeTrackerMode.LongPoll && responseOK) {
+                            Log.v(CBLDatabase.TAG, "Starting new longpoll");
+                            continue;
+                        } else {
+                            Log.w(CBLDatabase.TAG, "Change tracker calling stop");
                             stop();
-                            break;
+                        }
+                    } else {
 
-	                    }
-                	} catch (Exception e) {
-                        Log.e(CBLDatabase.TAG, "Exception reading changes feed", e);
+                        JsonFactory jsonFactory = CBLServer.getObjectMapper().getJsonFactory();
+                        JsonParser jp = jsonFactory.createJsonParser(input);
+
+                        while (jp.nextToken() != JsonToken.START_ARRAY) {
+                            // ignore these tokens
+                        }
+
+                        while (jp.nextToken() == JsonToken.START_OBJECT) {
+                            Map<String, Object> change = (Map) CBLServer.getObjectMapper().readValue(jp, Map.class);
+                            if (!receivedChange(change)) {
+                                Log.w(CBLDatabase.TAG, String.format("Received unparseable change line from server: %s", change));
+                            }
+
+                        }
+
+                        stop();
+                        break;
+
                     }
 
                     backoff.resetBackoff();
 
                 }
-            } catch (ClientProtocolException e) {
-                Log.e(CBLDatabase.TAG, "ClientProtocolException in change tracker", e);
-            } catch (IOException e) {
+            } catch (Exception e) {
 
-                if(running) {
-                    //we get an exception when we're shutting down and have to
-                    //close the socket underneath our read, ignore that
-                    Log.e(CBLDatabase.TAG, "IOException in change tracker", e);
+                if (!running && e instanceof IOException) {
+                    // in this case, just silently absorb the exception because it
+                    // frequently happens when we're shutting down and have to
+                    // close the socket underneath our read.
+                } else {
+                    Log.e(CBLDatabase.TAG, "Exception in change tracker", e);
                 }
 
                 backoff.sleepAppropriateAmountOfTime();
