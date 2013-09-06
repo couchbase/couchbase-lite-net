@@ -1,10 +1,13 @@
 package com.couchbase.cblite.replicator.changetracker;
 
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLEncoder;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.http.HttpEntity;
@@ -18,6 +21,7 @@ import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.AuthState;
 import org.apache.http.auth.Credentials;
 import org.apache.http.auth.UsernamePasswordCredentials;
+import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.CredentialsProvider;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
@@ -25,6 +29,7 @@ import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.client.protocol.ClientContext;
 import org.apache.http.impl.auth.BasicScheme;
 import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.protocol.BasicHttpContext;
 import org.apache.http.protocol.ExecutionContext;
 import org.apache.http.protocol.HttpContext;
 import org.codehaus.jackson.JsonFactory;
@@ -203,18 +208,15 @@ public class CBLChangeTracker implements Runnable {
 
                     input = entity.getContent();
                     if (mode == TDChangeTrackerMode.LongPoll) {
-
-                        boolean responseOK = receivedPollResponse(input);
-
-                        if (responseOK) {
+                        Map<String, Object> fullBody = CBLServer.getObjectMapper().readValue(input, Map.class);
+                        boolean responseOK = receivedPollResponse(fullBody);
+                        if (mode == TDChangeTrackerMode.LongPoll && responseOK) {
                             Log.v(CBLDatabase.TAG, "Starting new longpoll");
-                            backoff.resetBackoff();
                             continue;
                         } else {
                             Log.w(CBLDatabase.TAG, "Change tracker calling stop");
                             stop();
                         }
-
                     } else {
 
                         JsonFactory jsonFactory = CBLServer.getObjectMapper().getJsonFactory();
@@ -229,6 +231,7 @@ public class CBLChangeTracker implements Runnable {
                             if (!receivedChange(change)) {
                                 Log.w(CBLDatabase.TAG, String.format("Received unparseable change line from server: %s", change));
                             }
+
                         }
 
                         stop();
@@ -269,25 +272,17 @@ public class CBLChangeTracker implements Runnable {
         return true;
     }
 
-    public boolean receivedPollResponse(InputStream input) throws IOException {
-
-        JsonFactory jsonFactory = CBLServer.getObjectMapper().getJsonFactory();
-        JsonParser jp = jsonFactory.createJsonParser(input);
-
-        while (jp.nextToken() != JsonToken.START_ARRAY) {
-            // ignore these tokens
+    public boolean receivedPollResponse(Map<String,Object> response) {
+        List<Map<String,Object>> changes = (List)response.get("results");
+        if(changes == null) {
+            return false;
         }
-
-        while (jp.nextToken() == JsonToken.START_OBJECT) {
-            Map<String, Object> change = (Map) CBLServer.getObjectMapper().readValue(jp, Map.class);
-            if (!receivedChange(change)) {
-                Log.w(CBLDatabase.TAG, String.format("Received unparseable change line from server: %s", change));
+        for (Map<String,Object> change : changes) {
+            if(!receivedChange(change)) {
                 return false;
             }
-
         }
         return true;
-
     }
 
     public void setUpstreamError(String message) {
