@@ -107,7 +107,6 @@ public abstract class CBLReplicator extends Observable {
             } catch (MalformedURLException e) {
                 throw new IllegalArgumentException(e);
             }
-            Log.d(CBLDatabase.TAG, "new remote url: " + remote);
 
         }
 
@@ -252,21 +251,17 @@ public abstract class CBLReplicator extends Observable {
 
     protected void checkSessionAtPath(final String sessionPath) {
 
-        Log.d(CBLDatabase.TAG, String.format("%s checkSessionAtPath:: %s", this, sessionPath));
-
         asyncTaskStarted();
         sendAsyncRequest("GET", sessionPath, null, new CBLRemoteRequestCompletionBlock() {
 
             @Override
             public void onCompletion(Object result, Throwable e) {
 
-                Log.d(CBLDatabase.TAG, String.format("%s checkSessionAtPath.onCompletion(): %s", this, sessionPath));
 
                 if (e instanceof HttpResponseException &&
                         ((HttpResponseException) e).getStatusCode() == 404 &&
                         sessionPath.equalsIgnoreCase("/_session")) {
 
-                    Log.d(CBLDatabase.TAG, String.format("%s checkSessionAtPath got 404 for %s, calling checkSessionAtPath with _session", this, sessionPath));
                     checkSessionAtPath("_session");
                     return;
                 } else {
@@ -364,7 +359,6 @@ public abstract class CBLReplicator extends Observable {
             active = true;
         }
         batcher.queueObject(rev);
-        //Log.v(CBLDatabase.TAG, String.format("%s: Received #%d %s", toString(), rev.getSequence(), rev.toString()));
     }
 
     public void processInbox(CBLRevisionList inbox) {
@@ -372,7 +366,6 @@ public abstract class CBLReplicator extends Observable {
     }
 
     public void sendAsyncRequest(String method, String relativePath, Object body, CBLRemoteRequestCompletionBlock onCompletion) {
-        //Log.v(CBLDatabase.TAG, String.format("%s: %s .%s", toString(), method, relativePath));
         try {
             String urlStr = buildRelativeURLString(relativePath);
             URL url = new URL(urlStr);
@@ -397,7 +390,6 @@ public abstract class CBLReplicator extends Observable {
     }
 
     public void sendAsyncRequest(String method, URL url, Object body, CBLRemoteRequestCompletionBlock onCompletion) {
-        Log.d(CBLDatabase.TAG, String.format("%s: sendAsyncRequest to %s", toString(), url));
         CBLRemoteRequest request = new CBLRemoteRequest(workExecutor, clientFacotry, method, url, body, onCompletion);
         remoteRequestExecutor.execute(request);
     }
@@ -407,7 +399,6 @@ public abstract class CBLReplicator extends Observable {
 
             String urlStr = buildRelativeURLString(relativePath);
             URL url = new URL(urlStr);
-            Log.d(CBLDatabase.TAG, String.format("%s: sendAsyncMultipartDownloaderRequest to %s", toString(), url));
 
             CBLRemoteMultipartDownloaderRequest request = new CBLRemoteMultipartDownloaderRequest(workExecutor, clientFacotry, method, url, body, db, onCompletion);
             remoteRequestExecutor.execute(request);
@@ -424,7 +415,6 @@ public abstract class CBLReplicator extends Observable {
         } catch (MalformedURLException e) {
             throw new IllegalArgumentException(e);
         }
-        Log.d(CBLDatabase.TAG, String.format("%s: sendAsyncMultipartRequest to %s", toString(), url));
         CBLRemoteMultipartRequest request = new CBLRemoteMultipartRequest(workExecutor, clientFacotry, method, url, multiPartEntity, onCompletion);
         remoteRequestExecutor.execute(request);
     }
