@@ -7,7 +7,7 @@ import java.net.URLStreamHandlerFactory;
 
 public class CBLURLStreamHandlerFactory implements URLStreamHandlerFactory {
 
-    public static final String SCHEME = "cblite";
+    public static final String SCHEME = "cblite";  // eg, cblite://
 
     @Override
     public URLStreamHandler createURLStreamHandler(String protocol) {
