@@ -79,7 +79,8 @@ public class CBLRemoteMultipartDownloaderRequest extends CBLRemoteRequest {
                 Header contentTypeHeader = entity.getContentType();
                 InputStream inputStream = null;
 
-                if (contentTypeHeader.getValue().contains("multipart/related")) {
+                if (contentTypeHeader != null
+                        && contentTypeHeader.getValue().contains("multipart/related")) {
 
                     try {
                         CBLMultipartDocumentReader reader = new CBLMultipartDocumentReader(response, db);
