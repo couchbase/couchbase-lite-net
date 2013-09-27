@@ -577,7 +577,7 @@ public class CBLRouter implements Observer {
         // http://wiki.apache.org/couchdb/HttpGetActiveTasks
         List<Map<String,Object>> activities = new ArrayList<Map<String,Object>>();
         for (CBLDatabase db : server.allOpenDatabases()) {
-            List<CBLReplicator> activeReplicators = db.getActiveReplicators();
+            List<CBLReplicator> activeReplicators = db.getAllReplications();
             if(activeReplicators != null) {
                 for (CBLReplicator replicator : activeReplicators) {
                     String source = replicator.getRemote().toExternalForm();
