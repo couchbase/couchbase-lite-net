@@ -25,6 +25,24 @@ public enum CBLManager {
         this.server = server;
     }
 
+    /**
+     * Releases all resources used by the CBLManager instance and closes all its databases.
+     *
+     * @return
+     */
+    public void close() {
+        Log.i(CBLDatabase.TAG, "Closing " + this);
+        server.close();
+        List<CBLDatabase> databases = (List<CBLDatabase>) server.allOpenDatabases();
+        for (CBLDatabase database : databases) {
+            List<CBLReplicator> replicators = database.getAllReplications();
+            for (CBLReplicator replicator : replicators) {
+                replicator.stop();
+            }
+            database.close();
+        }
+        Log.i(CBLDatabase.TAG, "Closed " + this);
+    }
 
     private Map<String, Object> parseSourceOrTarget(Map<String,Object> properties, String key) {
         Map<String, Object> result = new HashMap<String, Object>();
