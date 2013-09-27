@@ -7,6 +7,8 @@ import android.util.Log;
 
 import com.couchbase.cblite.CBLDatabase;
 import com.couchbase.cblite.CBLServer;
+import com.couchbase.cblite.CBLStatus;
+import com.couchbase.cblite.CBLiteException;
 
 import java.util.Map;
 
@@ -56,7 +58,36 @@ public class CBLDatabaseInternal {
             }
         }
 
+    }
 
+
+    public void deleteLocalDocument(String docID, String revID) throws CBLiteException {
+        if(docID == null) {
+            throw new CBLiteException(CBLStatus.BAD_REQUEST);
+        }
+        if(revID == null) {
+            // Didn't specify a revision to delete: 404 or a 409, depending
+            if (getLocalDocument(docID, null) != null) {
+                throw new CBLiteException(CBLStatus.CONFLICT);
+            }
+            else {
+                throw new CBLiteException(CBLStatus.NOT_FOUND);
+            }
+        }
+        String[] whereArgs = { docID, revID };
+        try {
+            int rowsDeleted = sqliteDb.delete("localdocs", "docid=? AND revid=?", whereArgs);
+            if(rowsDeleted == 0) {
+                if (getLocalDocument(docID, null) != null) {
+                    throw new CBLiteException(CBLStatus.CONFLICT);
+                }
+                else {
+                    throw new CBLiteException(CBLStatus.NOT_FOUND);
+                }
+            }
+        } catch (SQLException e) {
+            throw new CBLiteException(e, CBLStatus.INTERNAL_SERVER_ERROR);
+        }
     }
 
 }

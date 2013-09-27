@@ -4,6 +4,10 @@ public class CBLiteException extends Exception {
 
     private CBLStatus status;
 
+    public CBLiteException(int statusCode) {
+        this.status = new CBLStatus(statusCode);
+    }
+
     public CBLiteException(CBLStatus status) {
         this.status = status;
     }
@@ -21,6 +25,11 @@ public class CBLiteException extends Exception {
     public CBLiteException(Throwable throwable, CBLStatus status) {
         super(throwable);
         this.status = status;
+    }
+
+    public CBLiteException(Throwable throwable, int statusCode) {
+        super(throwable);
+        this.status = new CBLStatus(statusCode);
     }
 
     public CBLStatus getCBLStatus() {

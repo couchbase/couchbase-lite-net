@@ -65,6 +65,7 @@ public class CBLDatabase extends Observable {
 
     private Map<String, CBLView> views;
     private Map<String, CBLFilterBlock> filters;
+    private Map<String, CBLFilterCompiler> filterCompiler;
     private Map<String, CBLValidationBlock> validations;
     private Map<String, CBLBlobStoreWriter> pendingAttachmentsByDigest;
     private List<CBLReplicator> activeReplicators;
@@ -461,6 +462,8 @@ public class CBLDatabase extends Observable {
         return size;
     }
 
+
+
     /**
      * Begins a sqliteDb transaction. Transactions can nest.
      * Every beginTransaction() must be balanced by a later endTransaction()
@@ -500,6 +503,30 @@ public class CBLDatabase extends Observable {
 
         --transactionLevel;
         return true;
+    }
+
+    /**
+     * Runs the given code in a transaction.  Does not commit the transaction
+     * if the code throws an Exception.
+     *
+     * TODO: implement retry loop in another function that wraps this one.
+     * @param databaseFunction
+     */
+    public void inTransaction(CBLDatabaseFunction databaseFunction) {
+
+        boolean hadException = false;
+        beginTransaction();
+        try {
+            databaseFunction.performFunction();
+        } catch (Exception e) {
+            hadException = true;
+            Log.e(CBLDatabase.TAG, e.toString(), e);
+            throw new RuntimeException(e);
+        } finally {
+            boolean shouldCommit = !hadException;
+            endTransaction(shouldCommit);
+        }
+
     }
 
     /**
@@ -2069,11 +2096,18 @@ public class CBLDatabase extends Observable {
         return rowId;
     }
 
-    private CBLRevisionInternal putRevision(CBLRevisionInternal rev, String prevRevId, CBLStatus resultStatus) {
+    // TODO: move this to internal API
+    public CBLRevisionInternal putRevision(CBLRevisionInternal rev, String prevRevId, CBLStatus resultStatus) {
         return putRevision(rev, prevRevId, false, resultStatus);
     }
 
+
+    public CBLRevisionInternal putRevision(CBLRevisionInternal rev, String prevRevId, boolean allowConflict) {
+        return putRevision(rev, prevRevId, allowConflict, null);
+    }
+
     /**
+     * TODO: move this to internal API
      * Stores a new (or initial) revision of a document.
      *
      * This is what's invoked by a PUT or POST. As with those, the previous revision ID must be supplied when necessary and the call will fail if it doesn't match.
@@ -2575,13 +2609,21 @@ public class CBLDatabase extends Observable {
      * @return
      */
     public Map<String, Object> getLocalDocument(String documentId) {
-        return dbInternal.getLocalDocument(documentId, null).getProperties();
+        return dbInternal.getLocalDocument(makeLocalDocumentId(documentId), null).getProperties();
     }
 
     static String makeLocalDocumentId(String documentId) {
         return String.format("_local/%s", documentId);
     }
 
+    public boolean putLocalDocument(Map<String, Object> properties, String id) throws CBLiteException {
+        // TODO: there was some code in the iOS implementation equivalent that I did not know if needed
+        CBLRevisionInternal prevRev = dbInternal.getLocalDocument(id, null);
+        if (prevRev == null && properties == null) {
+            return false;
+        }
+        return putLocalRevision(prevRev, prevRev.getRevId()) != null;
+    }
 
     /**
      * Don't use this method!  This should be considered a private API for the Couchbase Lite
@@ -2593,11 +2635,10 @@ public class CBLDatabase extends Observable {
         return dbInternal;
     }
 
-    public CBLRevisionInternal putLocalRevision(CBLRevisionInternal revision, String prevRevID, CBLStatus status) {
+    public CBLRevisionInternal putLocalRevision(CBLRevisionInternal revision, String prevRevID) throws CBLiteException  {
         String docID = revision.getDocId();
         if(!docID.startsWith("_local/")) {
-            status.setCode(CBLStatus.BAD_REQUEST);
-            return null;
+            throw new CBLiteException(CBLStatus.BAD_REQUEST);
         }
 
         if(!revision.isDeleted()) {
@@ -2607,8 +2648,7 @@ public class CBLDatabase extends Observable {
             if(prevRevID != null) {
                 int generation = CBLRevisionInternal.generationFromRevID(prevRevID);
                 if(generation == 0) {
-                    status.setCode(CBLStatus.BAD_REQUEST);
-                    return null;
+                    throw new CBLiteException(CBLStatus.BAD_REQUEST);
                 }
                 newRevID = Integer.toString(++generation) + "-local";
                 ContentValues values = new ContentValues();
@@ -2618,12 +2658,10 @@ public class CBLDatabase extends Observable {
                 try {
                     int rowsUpdated = sqliteDb.update("localdocs", values, "docid=? AND revid=?", whereArgs);
                     if(rowsUpdated == 0) {
-                        status.setCode(CBLStatus.CONFLICT);
-                        return null;
+                        throw new CBLiteException(CBLStatus.CONFLICT);
                     }
                 } catch (SQLException e) {
-                    status.setCode(CBLStatus.INTERNAL_SERVER_ERROR);
-                    return null;
+                    throw new CBLiteException(e, CBLStatus.INTERNAL_SERVER_ERROR);
                 }
             } else {
                 newRevID = "1-local";
@@ -2634,39 +2672,35 @@ public class CBLDatabase extends Observable {
                 try {
                     sqliteDb.insertWithOnConflict("localdocs", null, values, SQLiteDatabase.CONFLICT_IGNORE);
                 } catch (SQLException e) {
-                    status.setCode(CBLStatus.INTERNAL_SERVER_ERROR);
-                    return null;
+                    throw new CBLiteException(e, CBLStatus.INTERNAL_SERVER_ERROR);
                 }
             }
-            status.setCode(CBLStatus.CREATED);
             return revision.copyWithDocID(docID, newRevID);
         }
         else {
             // DELETE:
-            CBLStatus deleteStatus = deleteLocalDocument(docID, prevRevID);
-            status.setCode(deleteStatus.getCode());
-            return (status.isSuccessful()) ? revision : null;
+            dbInternal.deleteLocalDocument(docID, prevRevID);
+            return revision;
         }
     }
 
-    public CBLStatus deleteLocalDocument(String docID, String revID) {
-        if(docID == null) {
-            return new CBLStatus(CBLStatus.BAD_REQUEST);
+    public boolean deleteLocalDocument(String id) throws CBLiteException {
+        CBLRevisionInternal prevRev = dbInternal.getLocalDocument(id, null);
+        if (prevRev == null) {
+            return false;
         }
-        if(revID == null) {
-            // Didn't specify a revision to delete: 404 or a 409, depending
-            return (dbInternal.getLocalDocument(docID, null) != null) ? new CBLStatus(CBLStatus.CONFLICT) : new CBLStatus(CBLStatus.NOT_FOUND);
-        }
-        String[] whereArgs = { docID, revID };
-        try {
-            int rowsDeleted = sqliteDb.delete("localdocs", "docid=? AND revid=?", whereArgs);
-            if(rowsDeleted == 0) {
-                return (dbInternal.getLocalDocument(docID, null) != null) ? new CBLStatus(CBLStatus.CONFLICT) : new CBLStatus(CBLStatus.NOT_FOUND);
-            }
-            return new CBLStatus(CBLStatus.OK);
-        } catch (SQLException e) {
-            return new CBLStatus(CBLStatus.INTERNAL_SERVER_ERROR);
-        }
+        dbInternal.deleteLocalDocument(id, prevRev.getRevId());
+        return true;
+    }
+
+    public Map<String, CBLFilterCompiler> getFilterCompiler() {
+        // TODO: the filter compiler currently ignored
+        return filterCompiler;
+    }
+
+    public void setFilterCompiler(Map<String, CBLFilterCompiler> filterCompiler) {
+        // TODO: the filter compiler currently ignored
+        this.filterCompiler = filterCompiler;
     }
 
 }

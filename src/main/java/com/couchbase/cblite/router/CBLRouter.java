@@ -1296,13 +1296,19 @@ public class CBLRouter implements Observer {
         rev.setBody(body);
 
         CBLRevisionInternal result = null;
-        CBLStatus tmpStatus = new CBLStatus();
-        if(isLocalDoc) {
-            result = _db.putLocalRevision(rev, prevRevID, tmpStatus);
-        } else {
-            result = _db.putRevision(rev, prevRevID, allowConflict, tmpStatus);
+        try {
+            if(isLocalDoc) {
+                result = _db.putLocalRevision(rev, prevRevID);
+            } else {
+                result = _db.putRevision(rev, prevRevID, allowConflict);
+            }
+            outStatus.setCode(CBLStatus.CREATED);
+        } catch (CBLiteException e) {
+            e.printStackTrace();
+            Log.e(CBLDatabase.TAG, e.toString());
+            outStatus.setCode(e.getCBLStatus().getCode());
         }
-        outStatus.setCode(tmpStatus.getCode());
+
         return result;
     }
 
