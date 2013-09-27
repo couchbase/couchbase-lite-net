@@ -21,12 +21,17 @@ public class CBLDocument {
     /**
      * The document's ID.
      */
-    private String documentID;
+    private String documentId;
 
     /**
      * The current/latest revision. This object is cached.
      */
     private CBLRevision currentRevision;
+
+    /**
+     * Application-defined model object representing this document
+     */
+    private Object model;
 
     /**
      * Constructor
@@ -36,7 +41,7 @@ public class CBLDocument {
      */
     public CBLDocument(CBLDatabase database, String documentId) {
         this.database = database;
-        this.documentID = documentId;
+        this.documentId = documentId;
     }
 
     /**
@@ -49,14 +54,14 @@ public class CBLDocument {
     /**
      * Get the document's ID
      */
-    public String getDocumentID() {
-        return documentID;
+    public String getId() {
+        return documentId;
     }
 
     /**
      * Get the document's abbreviated ID
      */
-    public String getAbbreviatedID() {
+    public String getAbbreviatedId() {
         // TODO: implement
         throw new RuntimeException("Not Implemented");
     }
@@ -99,12 +104,30 @@ public class CBLDocument {
      * @param revisionID the revision ID
      * @return the CBLRevision object
      */
-    public CBLRevision revisionWithID(String revisionID) {
-        if (revisionID.equals(currentRevision.getRevId())) {
+    public CBLRevision getRevision(String revisionID) {
+        if (revisionID.equals(currentRevision.getId())) {
             return currentRevision;
         }
         // TODO: implement
         throw new RuntimeException("Not Implemented");
+    }
+
+    /**
+     * Get the current revision
+     *
+     * @return
+     */
+    public CBLRevision getCurrentRevision() {
+        return currentRevision;
+    }
+
+    /**
+     * Get the ID of the current revision
+     *
+     * @return
+     */
+    public String getCurrentRevisionId() {
+        return currentRevision.getId();
     }
 
     /**
@@ -129,7 +152,7 @@ public class CBLDocument {
      * @throws CBLiteException
      */
     public List<String> getConflictingRevisions() throws CBLiteException {
-        return database.getConflictingRevisionIDsOfDocID(documentID);
+        return database.getConflictingRevisionIDsOfDocID(documentId);
     }
 
     /**
@@ -199,13 +222,15 @@ public class CBLDocument {
         return putProperties(properties, prevID);
     }
 
+
+
     CBLRevision putProperties(Map<String,Object> properties, String prevID) throws CBLiteException {
 
         // TODO: here is the objectivec impl
 
         /*
             id idProp = [properties objectForKey: @"_id"];
-            if (idProp && ![idProp isEqual: self.documentID])
+            if (idProp && ![idProp isEqual: self.documentId])
                 Warn(@"Trying to PUT wrong _id to %@: %@", self, properties);
 
             // Process _attachments dict, converting CBLAttachments to dicts:
@@ -262,7 +287,7 @@ public class CBLDocument {
         if (internalRevision == null) {
             return null;
         }
-        else if (internalRevision.getRevId().equals(currentRevision.getRevId())) {
+        else if (internalRevision.getRevId().equals(currentRevision.getId())) {
             return currentRevision;
         }
         else {
@@ -271,6 +296,13 @@ public class CBLDocument {
 
     }
 
+    public Object getModel() {
+        return model;
+    }
+
+    public void setModel(Object model) {
+        this.model = model;
+    }
 
     public static interface CBLRevisionUpdater {
         public boolean updateRevision(CBLNewRevision newRevision);

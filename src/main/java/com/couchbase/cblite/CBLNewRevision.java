@@ -8,19 +8,19 @@ public class CBLNewRevision extends CBLRevisionBase {
     private CBLBody body;
     private String parentRevID;
 
-    protected CBLNewRevision(CBLDocument document, CBLRevision parent) {
+    protected CBLNewRevision(CBLDocument document, CBLRevision parentRevision) {
 
         super(document);
 
-        parentRevID = parent.getRevId();
+        parentRevID = parentRevision.getId();
 
         // note: in the iOS version, this was being converted from an immutable -> mutable map.
         // but since the original map is already mutable, not doing anything special here.
-        body = parent.getBody();
+        body = parentRevision.getBody();
 
         if (body == null) {
             Map properties = new HashMap<String, Object>();
-            properties.put("_id", document.getDocumentID());
+            properties.put("_id", document.getId());
             properties.put("_rev", parentRevID);
             body = new CBLBody(properties);
         }
@@ -35,11 +35,11 @@ public class CBLNewRevision extends CBLRevisionBase {
         this.deleted = deleted;
     }
 
-    public CBLRevision parentRevision() {
+    public CBLRevision getParentRevision() {
         if (parentRevID == null || parentRevID.length() == 0) {
             return null;
         }
-        return document.revisionWithID(parentRevID);
+        return document.getRevision(parentRevID);
     }
 
     public CBLRevision save() throws CBLiteException {

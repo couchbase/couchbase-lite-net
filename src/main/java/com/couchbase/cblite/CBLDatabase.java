@@ -142,36 +142,22 @@ public class CBLDatabase extends Observable {
             "        UNIQUE (remote, push)); " +
             "    PRAGMA user_version = 3";             // at the end, update user_version
 
-    /*************************************************************************************************/
-    /*** CBLDatabase                                                                                ***/
-    /*************************************************************************************************/
-
-    public String getAttachmentStorePath() {
-        String attachmentStorePath = path;
-        int lastDotPosition = attachmentStorePath.lastIndexOf('.');
-        if( lastDotPosition > 0 ) {
-            attachmentStorePath = attachmentStorePath.substring(0, lastDotPosition);
-        }
-        attachmentStorePath = attachmentStorePath + File.separator + "attachments";
-        return attachmentStorePath;
+    public CBLManager getManager() {
+        return manager;
     }
 
-    public static CBLDatabase createEmptyDBAtPath(String path, CBLManager manager) {
-        if(!FileDirUtils.removeItemIfExists(path)) {
-            return null;
-        }
-        CBLDatabase result = new CBLDatabase(path, manager);
-        File af = new File(result.getAttachmentStorePath());
-        //recursively delete attachments path
-        if(!FileDirUtils.deleteRecursive(af)) {
-            return null;
-        }
-        if(!result.open()) {
-            return null;
-        }
-        return result;
+    public URL getInternalURL() {
+        // TODO: implement this
+        throw new RuntimeException("Not implemented");
     }
 
+
+    /**
+     * Constructor
+     *
+     * @param path
+     * @param manager
+     */
     public CBLDatabase(String path, CBLManager manager) {
         assert(path.startsWith("/")); //path must be absolute
         this.path = path;
@@ -179,13 +165,51 @@ public class CBLDatabase extends Observable {
         this.manager = manager;
     }
 
-    public CBLDocument documentWithId(String documentId) {
+    /**
+     * Instantiates a CBLDocument object with the given ID.
+     * Doesn't touch the on-disk database; a document with that ID doesn't
+     * even need to exist yet. CBLDocuments are cached, so there will
+     * never be more than one instance (in this database) at a time with
+     * the same documentID.
+     *
+     * NOTE: the caching described above is not implemented yet
+     *
+     * @param documentId
+     * @return
+     */
+    public CBLDocument getDocument(String documentId) {
         // TODO: try to get from cache first
         if (documentId == null || documentId.length() == 0) {
             return null;
         }
         return new CBLDocument(this, documentId);
     }
+
+    CBLDocument documentWithId(String documentId) {
+        return getDocument(documentId);
+    }
+
+    /**
+     * Creates a CBLDocument object with no current ID.  The first time you PUT to that
+     * document, it will be created on the server (via a POST).
+     *
+     * @return
+     */
+    public CBLDocument getUntitledDocument() {
+        return getDocument(CBLMisc.TDCreateUUID());
+    }
+
+    /**
+     * Returns the already-instantiated cached CBLDocument with the given ID, or nil if none is yet cached.
+     *
+     * @param documentID
+     * @return
+     */
+    public CBLDocument getCachedDocument(String documentID) {
+        // TODO: implement
+        throw new RuntimeException("Not implemented");
+    }
+
 
     public String toString() {
         return this.getClass().getName() + "[" + path + "]";
@@ -216,6 +240,32 @@ public class CBLDatabase extends Observable {
             FileDirUtils.copyFolder(new File(attachmentsPath), attachmentsFile);
         }
         return true;
+    }
+
+    public String getAttachmentStorePath() {
+        String attachmentStorePath = path;
+        int lastDotPosition = attachmentStorePath.lastIndexOf('.');
+        if( lastDotPosition > 0 ) {
+            attachmentStorePath = attachmentStorePath.substring(0, lastDotPosition);
+        }
+        attachmentStorePath = attachmentStorePath + File.separator + "attachments";
+        return attachmentStorePath;
+    }
+
+    public static CBLDatabase createEmptyDBAtPath(String path, CBLManager manager) {
+        if(!FileDirUtils.removeItemIfExists(path)) {
+            return null;
+        }
+        CBLDatabase result = new CBLDatabase(path, manager);
+        File af = new File(result.getAttachmentStorePath());
+        //recursively delete attachments path
+        if(!FileDirUtils.deleteRecursive(af)) {
+            return null;
+        }
+        if(!result.open()) {
+            return null;
+        }
+        return result;
     }
 
     public boolean initialize(String statements) {

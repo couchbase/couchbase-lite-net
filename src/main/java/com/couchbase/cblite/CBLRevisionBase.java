@@ -122,7 +122,7 @@ public class CBLRevisionBase {
      * @param name
      * @return
      */
-    public CBLAttachment getAttachmentNamed(String name) {
+    public CBLAttachment getAttachment(String name) {
         // TODO
         throw new RuntimeException("Not implemented");
     }
@@ -145,7 +145,7 @@ public class CBLRevisionBase {
         boolean result = false;
         if(o instanceof CBLRevision) {
             CBLRevision other = (CBLRevision)o;
-            if(document.getDocumentID().equals(other.getDocument().getDocumentID()) && revId.equals(other.revId)) {
+            if(document.getId().equals(other.getDocument().getId()) && revId.equals(other.revId)) {
                 result = true;
             }
         }
@@ -154,7 +154,7 @@ public class CBLRevisionBase {
 
     @Override
     public int hashCode() {
-        return document.getDocumentID().hashCode() ^ revId.hashCode();
+        return document.getId().hashCode() ^ revId.hashCode();
     }
 
     byte[] getJson() {
@@ -170,11 +170,11 @@ public class CBLRevisionBase {
     }
 
 
-    public String getRevId() {
+    public String getId() {
         return revId;
     }
 
-    void setRevId(String revId) {
+    void setId(String revId) {
         this.revId = revId;
     }
 
@@ -204,7 +204,7 @@ public class CBLRevisionBase {
 
     @Override
     public String toString() {
-        return "{" + this.document.getDocumentID() + " #" + this.revId + (deleted ? "DEL" : "") + "}";
+        return "{" + this.document.getId() + " #" + this.revId + (deleted ? "DEL" : "") + "}";
     }
 
     /**

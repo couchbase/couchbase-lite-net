@@ -45,7 +45,7 @@ public class CBLRevision extends CBLRevisionBase {
     }
 
     CBLRevision(CBLDatabase database, CBLRevisionInternal revision) {
-        this(database.documentWithId(revision.getDocId()), revision);
+        this(database.getDocument(revision.getDocId()), revision);
     }
 
     /**
@@ -53,7 +53,7 @@ public class CBLRevision extends CBLRevisionBase {
      * to this one's, which you can modify and then save.
      * @return
      */
-    public CBLNewRevision newRevision() {
+    public CBLNewRevision createNewRevision() {
         CBLNewRevision newRevision = new CBLNewRevision(document, this);
         return newRevision;
     }
@@ -95,7 +95,7 @@ public class CBLRevision extends CBLRevisionBase {
         List<CBLRevision> revisions = new ArrayList<CBLRevision>();
         List<CBLRevisionInternal> internalRevisions = database.getRevisionHistory(revisionInternal);
         for (CBLRevisionInternal internalRevision : internalRevisions) {
-            if (internalRevision.getRevId().equals(getRevId())) {
+            if (internalRevision.getRevId().equals(getId())) {
                 revisions.add(this);
             }
             else {
