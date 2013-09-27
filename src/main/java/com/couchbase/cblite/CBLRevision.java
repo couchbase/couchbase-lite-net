@@ -62,7 +62,7 @@ public class CBLRevision extends CBLRevisionBase {
      * Creates and saves a new revision with the given properties.
      * This will fail with a 412 error if the receiver is not the current revision of the document.
      */
-    public CBLRevision putProperties(Map<String,Object> properties) {
+    public CBLRevision putProperties(Map<String,Object> properties) throws CBLiteException {
         return document.putProperties(properties);
     }
 

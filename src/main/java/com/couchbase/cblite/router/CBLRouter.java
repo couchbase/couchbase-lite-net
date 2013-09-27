@@ -1147,7 +1147,7 @@ public class CBLRouter implements Observer {
             String revID = getQuery("rev");  // often null
             CBLRevisionInternal rev = null;
             if(isLocalDoc) {
-                rev = db.getLocalDocument(docID, revID);
+                rev = db.getDbInternal().getLocalDocument(docID, revID);
             } else {
                 rev = db.getDocumentWithIDAndRev(docID, revID, options);
                 // Handle ?atts_since query by stubbing out older attachments:
