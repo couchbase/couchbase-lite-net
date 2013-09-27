@@ -21,7 +21,6 @@ import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
@@ -42,6 +41,7 @@ import android.database.sqlite.SQLiteException;
 import android.util.Log;
 
 import com.couchbase.cblite.CBLDatabase.TDContentOptions;
+import com.couchbase.cblite.internal.CBLRevisionInternal;
 import com.couchbase.cblite.replicator.CBLPuller;
 import com.couchbase.cblite.replicator.CBLPusher;
 import com.couchbase.cblite.replicator.CBLReplicator;
@@ -177,6 +177,14 @@ public class CBLDatabase extends Observable {
         this.path = path;
         this.name = FileDirUtils.getDatabaseNameFromPath(path);
         this.manager = manager;
+    }
+
+    public CBLDocument documentWithId(String documentId) {
+        // TODO: try to get from cache first
+        if (documentId == null || documentId.length() == 0) {
+            return null;
+        }
+        return new CBLDocument(this, documentId);
     }
 
     public String toString() {
@@ -372,7 +380,7 @@ public class CBLDatabase extends Observable {
 
     // Leave this package protected, so it can only be used
     // CBLView uses this accessor
-    SQLiteDatabase getDatabase() {
+    public SQLiteDatabase getDatabase() {
         return database;
     }
 
@@ -566,7 +574,7 @@ public class CBLDatabase extends Observable {
 
     /** Inserts the _id, _rev and _attachments properties into the JSON data and stores it in rev.
     Rev must already have its revID and sequence properties set. */
-    public Map<String,Object> extraPropertiesForRevision(CBLRevision rev, EnumSet<TDContentOptions> contentOptions) {
+    public Map<String,Object> extraPropertiesForRevision(CBLRevisionInternal rev, EnumSet<TDContentOptions> contentOptions) {
 
         String docId = rev.getDocId();
         String revId = rev.getRevId();
@@ -592,8 +600,8 @@ public class CBLDatabase extends Observable {
         List<Object> revsInfo = null;
         if(contentOptions.contains(TDContentOptions.TDIncludeRevsInfo)) {
             revsInfo = new ArrayList<Object>();
-            List<CBLRevision> revHistoryFull = getRevisionHistory(rev);
-            for (CBLRevision historicalRev : revHistoryFull) {
+            List<CBLRevisionInternal> revHistoryFull = getRevisionHistory(rev);
+            for (CBLRevisionInternal historicalRev : revHistoryFull) {
                 Map<String,Object> revHistoryItem = new HashMap<String,Object>();
                 String status = "available";
                 if(historicalRev.isDeleted()) {
@@ -611,7 +619,7 @@ public class CBLDatabase extends Observable {
             CBLRevisionList revs = getAllRevisionsOfDocumentID(docId, true);
             if(revs.size() > 1) {
                 conflicts = new ArrayList<String>();
-                for (CBLRevision historicalRev : revs) {
+                for (CBLRevisionInternal historicalRev : revs) {
                     if(!historicalRev.equals(rev)) {
                         conflicts.add(historicalRev.getRevId());
                     }
@@ -646,7 +654,7 @@ public class CBLDatabase extends Observable {
 
     /** Inserts the _id, _rev and _attachments properties into the JSON data and stores it in rev.
     Rev must already have its revID and sequence properties set. */
-    public void expandStoredJSONIntoRevisionWithAttachments(byte[] json, CBLRevision rev, EnumSet<TDContentOptions> contentOptions) {
+    public void expandStoredJSONIntoRevisionWithAttachments(byte[] json, CBLRevisionInternal rev, EnumSet<TDContentOptions> contentOptions) {
         Map<String,Object> extra = extraPropertiesForRevision(rev, contentOptions);
         if(json != null) {
             rev.setJson(appendDictToJSON(json, extra));
@@ -659,7 +667,7 @@ public class CBLDatabase extends Observable {
     @SuppressWarnings("unchecked")
     public Map<String, Object> documentPropertiesFromJSON(byte[] json, String docId, String revId, long sequence, EnumSet<TDContentOptions> contentOptions) {
 
-        CBLRevision rev = new CBLRevision(docId, revId, false, this);
+        CBLRevisionInternal rev = new CBLRevisionInternal(docId, revId, false, this);
         rev.setSequence(sequence);
         Map<String,Object> extra = extraPropertiesForRevision(rev, contentOptions);
         if(json == null) {
@@ -678,8 +686,8 @@ public class CBLDatabase extends Observable {
       return docProperties;
     }
 
-    public CBLRevision getDocumentWithIDAndRev(String id, String rev, EnumSet<TDContentOptions> contentOptions) {
-        CBLRevision result = null;
+    public CBLRevisionInternal getDocumentWithIDAndRev(String id, String rev, EnumSet<TDContentOptions> contentOptions) {
+        CBLRevisionInternal result = null;
         String sql;
 
         Cursor cursor = null;
@@ -705,7 +713,7 @@ public class CBLDatabase extends Observable {
                     rev = cursor.getString(0);
                 }
                 boolean deleted = (cursor.getInt(1) > 0);
-                result = new CBLRevision(id, rev, deleted, this);
+                result = new CBLRevisionInternal(id, rev, deleted, this);
                 result.setSequence(cursor.getLong(2));
                 if(!contentOptions.equals(EnumSet.of(TDContentOptions.TDNoBody))) {
                     byte[] json = null;
@@ -729,7 +737,7 @@ public class CBLDatabase extends Observable {
         return getDocumentWithIDAndRev(docId, revId, EnumSet.of(TDContentOptions.TDNoBody)) != null;
     }
 
-    public CBLStatus loadRevisionBody(CBLRevision rev, EnumSet<TDContentOptions> contentOptions) {
+    public CBLStatus loadRevisionBody(CBLRevisionInternal rev, EnumSet<TDContentOptions> contentOptions) {
         if(rev.getBody() != null) {
             return new CBLStatus(CBLStatus.OK);
         }
@@ -809,7 +817,7 @@ public class CBLDatabase extends Observable {
             cursor.moveToFirst();
             result = new CBLRevisionList();
             while(!cursor.isAfterLast()) {
-                CBLRevision rev = new CBLRevision(docId, cursor.getString(1), (cursor.getInt(2) > 0), this);
+                CBLRevisionInternal rev = new CBLRevisionInternal(docId, cursor.getString(1), (cursor.getInt(2) > 0), this);
                 rev.setSequence(cursor.getLong(0));
                 result.add(rev);
                 cursor.moveToNext();
@@ -869,7 +877,7 @@ public class CBLDatabase extends Observable {
         return result;
     }
 
-    public String findCommonAncestorOf(CBLRevision rev, List<String> revIDs) {
+    public String findCommonAncestorOf(CBLRevisionInternal rev, List<String> revIDs) {
         String result = null;
 
     	if (revIDs.size() == 0)
@@ -906,7 +914,7 @@ public class CBLDatabase extends Observable {
     /**
      * Returns an array of TDRevs in reverse chronological order, starting with the given revision.
      */
-    public List<CBLRevision> getRevisionHistory(CBLRevision rev) {
+    public List<CBLRevisionInternal> getRevisionHistory(CBLRevisionInternal rev) {
         String docId = rev.getDocId();
         String revId = rev.getRevId();
         assert((docId != null) && (revId != null));
@@ -916,7 +924,7 @@ public class CBLDatabase extends Observable {
             return null;
         }
         else if(docNumericId == 0) {
-            return new ArrayList<CBLRevision>();
+            return new ArrayList<CBLRevisionInternal>();
         }
 
         String sql = "SELECT sequence, parent, revid, deleted FROM revs " +
@@ -924,13 +932,13 @@ public class CBLDatabase extends Observable {
         String[] args = { Long.toString(docNumericId) };
         Cursor cursor = null;
 
-        List<CBLRevision> result;
+        List<CBLRevisionInternal> result;
         try {
             cursor = database.rawQuery(sql, args);
 
             cursor.moveToFirst();
             long lastSequence = 0;
-            result = new ArrayList<CBLRevision>();
+            result = new ArrayList<CBLRevisionInternal>();
             while(!cursor.isAfterLast()) {
                 long sequence = cursor.getLong(0);
                 boolean matches = false;
@@ -943,7 +951,7 @@ public class CBLDatabase extends Observable {
                 if(matches) {
                     revId = cursor.getString(2);
                     boolean deleted = (cursor.getInt(3) > 0);
-                    CBLRevision aRev = new CBLRevision(docId, revId, deleted, this);
+                    CBLRevisionInternal aRev = new CBLRevisionInternal(docId, revId, deleted, this);
                     aRev.setSequence(cursor.getLong(0));
                     result.add(aRev);
                     lastSequence = cursor.getLong(1);
@@ -989,7 +997,7 @@ public class CBLDatabase extends Observable {
         return result;
     }
 
-    public static Map<String,Object> makeRevisionHistoryDict(List<CBLRevision> history) {
+    public static Map<String,Object> makeRevisionHistoryDict(List<CBLRevisionInternal> history) {
         if(history == null) {
             return null;
         }
@@ -998,7 +1006,7 @@ public class CBLDatabase extends Observable {
         List<String> suffixes = new ArrayList<String>();
         int start = -1;
         int lastRevNo = -1;
-        for (CBLRevision rev : history) {
+        for (CBLRevisionInternal rev : history) {
             int revNo = parseRevIDNumber(rev.getRevId());
             String suffix = parseRevIDSuffix(rev.getRevId());
             if(revNo > 0 && suffix.length() > 0) {
@@ -1022,7 +1030,7 @@ public class CBLDatabase extends Observable {
         if(start == -1) {
             // we failed to build sequence, just stuff all the revs in list
             suffixes = new ArrayList<String>();
-            for (CBLRevision rev : history) {
+            for (CBLRevisionInternal rev : history) {
                 suffixes.add(rev.getRevId());
             }
         }
@@ -1037,7 +1045,7 @@ public class CBLDatabase extends Observable {
     /**
      * Returns the revision history as a _revisions dictionary, as returned by the REST API's ?revs=true option.
      */
-    public Map<String,Object> getRevisionHistoryDict(CBLRevision rev) {
+    public Map<String,Object> getRevisionHistoryDict(CBLRevisionInternal rev) {
         return makeRevisionHistoryDict(getRevisionHistory(rev));
     }
 
@@ -1077,7 +1085,7 @@ public class CBLDatabase extends Observable {
                     lastDocId = docNumericId;
                 }
 
-                CBLRevision rev = new CBLRevision(cursor.getString(2), cursor.getString(3), (cursor.getInt(4) > 0), this);
+                CBLRevisionInternal rev = new CBLRevisionInternal(cursor.getString(2), cursor.getString(3), (cursor.getInt(4) > 0), this);
                 rev.setSequence(cursor.getLong(0));
                 if(includeDocs) {
                     expandStoredJSONIntoRevisionWithAttachments(cursor.getBlob(5), rev, options.getContentOptions());
@@ -1587,12 +1595,12 @@ public class CBLDatabase extends Observable {
     }
 
     /**
-     * Modifies a CBLRevision's body by changing all attachments with revpos < minRevPos into stubs.
+     * Modifies a CBLRevisionInternal's body by changing all attachments with revpos < minRevPos into stubs.
      *
      * @param rev
      * @param minRevPos
      */
-    public void stubOutAttachmentsIn(CBLRevision rev, int minRevPos)
+    public void stubOutAttachmentsIn(CBLRevisionInternal rev, int minRevPos)
     {
         if (minRevPos <= 1) {
             return;
@@ -1631,7 +1639,7 @@ public class CBLDatabase extends Observable {
     /**
      * Given a newly-added revision, adds the necessary attachment rows to the database and stores inline attachments into the blob store.
      */
-    public CBLStatus processAttachmentsForRevision(CBLRevision rev, long parentSequence) {
+    public CBLStatus processAttachmentsForRevision(CBLRevisionInternal rev, long parentSequence) {
         assert(rev != null);
         long newSequence = rev.getSequence();
         assert(newSequence > parentSequence);
@@ -1733,7 +1741,7 @@ public class CBLDatabase extends Observable {
      * Updates or deletes an attachment, creating a new document revision in the process.
      * Used by the PUT / DELETE methods called on attachment URLs.
      */
-    public CBLRevision updateAttachment(String filename, InputStream contentStream, String contentType, String docID, String oldRevID, CBLStatus status) {
+    public CBLRevisionInternal updateAttachment(String filename, InputStream contentStream, String contentType, String docID, String oldRevID, CBLStatus status) {
         status.setCode(CBLStatus.BAD_REQUEST);
         if(filename == null || filename.length() == 0 || (contentStream != null && contentType == null) || (oldRevID != null && docID == null) || (contentStream != null && docID == null)) {
             return null;
@@ -1741,7 +1749,7 @@ public class CBLDatabase extends Observable {
 
         beginTransaction();
         try {
-            CBLRevision oldRev = new CBLRevision(docID, oldRevID, false, this);
+            CBLRevisionInternal oldRev = new CBLRevisionInternal(docID, oldRevID, false, this);
             if(oldRevID != null) {
                 // Load existing revision if this is a replacement:
                 CBLStatus loadStatus = loadRevisionBody(oldRev, EnumSet.noneOf(TDContentOptions.class));
@@ -1771,7 +1779,7 @@ public class CBLDatabase extends Observable {
             }
 
             // Create a new revision:
-            CBLRevision newRev = putRevision(oldRev, oldRevID, false, status);
+            CBLRevisionInternal newRev = putRevision(oldRev, oldRevID, false, status);
             if(newRev == null) {
                 return null;
             }
@@ -1888,7 +1896,7 @@ public class CBLDatabase extends Observable {
         // Revision IDs have a generation count, a hyphen, and a UUID.
         int generation = 0;
         if(revisionId != null) {
-            generation = CBLRevision.generationFromRevID(revisionId);
+            generation = CBLRevisionInternal.generationFromRevID(revisionId);
             if(generation == 0) {
                 return null;
             }
@@ -1938,7 +1946,7 @@ public class CBLDatabase extends Observable {
 
     /** INSERTION: **/
 
-    public byte[] encodeDocumentJSON(CBLRevision rev) {
+    public byte[] encodeDocumentJSON(CBLRevisionInternal rev) {
 
         Map<String,Object> origProps = rev.getProperties();
         if(origProps == null) {
@@ -1967,7 +1975,7 @@ public class CBLDatabase extends Observable {
         return json;
     }
 
-    public void notifyChange(CBLRevision rev, URL source) {
+    public void notifyChange(CBLRevisionInternal rev, URL source) {
         Map<String,Object> changeNotification = new HashMap<String, Object>();
         changeNotification.put("rev", rev);
         changeNotification.put("seq", rev.getSequence());
@@ -1978,7 +1986,7 @@ public class CBLDatabase extends Observable {
         notifyObservers(changeNotification);
     }
 
-    public long insertRevision(CBLRevision rev, long docNumericID, long parentSequence, boolean current, byte[] data) {
+    public long insertRevision(CBLRevisionInternal rev, long docNumericID, long parentSequence, boolean current, byte[] data) {
         long rowId = 0;
         try {
             ContentValues args = new ContentValues();
@@ -1998,7 +2006,7 @@ public class CBLDatabase extends Observable {
         return rowId;
     }
 
-    private CBLRevision putRevision(CBLRevision rev, String prevRevId, CBLStatus resultStatus) {
+    private CBLRevisionInternal putRevision(CBLRevisionInternal rev, String prevRevId, CBLStatus resultStatus) {
         return putRevision(rev, prevRevId, false, resultStatus);
     }
 
@@ -2011,10 +2019,10 @@ public class CBLDatabase extends Observable {
      * @param prevRevId The ID of the revision to replace (same as the "?rev=" parameter to a PUT), or null if this is a new document.
      * @param allowConflict If false, an error status 409 will be returned if the insertion would create a conflict, i.e. if the previous revision already has a child.
      * @param resultStatus On return, an HTTP status code indicating success or failure.
-     * @return A new CBLRevision with the docID, revID and sequence filled in (but no body).
+     * @return A new CBLRevisionInternal with the docID, revID and sequence filled in (but no body).
      */
     @SuppressWarnings("unchecked")
-    public CBLRevision putRevision(CBLRevision rev, String prevRevId, boolean allowConflict, CBLStatus resultStatus) {
+    public CBLRevisionInternal putRevision(CBLRevisionInternal rev, String prevRevId, boolean allowConflict, CBLStatus resultStatus) {
         // prevRevId is the rev ID being replaced, or nil if an insert
         String docId = rev.getDocId();
         boolean deleted = rev.isDeleted();
@@ -2066,7 +2074,7 @@ public class CBLDatabase extends Observable {
 
                 if(validations != null && validations.size() > 0) {
                     // Fetch the previous revision and validate the new one against it:
-                    CBLRevision prevRev = new CBLRevision(docId, prevRevId, false, this);
+                    CBLRevisionInternal prevRev = new CBLRevisionInternal(docId, prevRevId, false, this);
                     CBLStatus status = validateRevision(rev, prevRev);
                     if(!status.isSuccessful()) {
                         resultStatus.setCode(status.getCode());
@@ -2198,7 +2206,7 @@ public class CBLDatabase extends Observable {
      *
      * It must already have a revision ID. This may create a conflict! The revision's history must be given; ancestor revision IDs that don't already exist locally will create phantom revisions with no content.
      */
-    public CBLStatus forceInsert(CBLRevision rev, List<String> revHistory, URL source) {
+    public CBLStatus forceInsert(CBLRevisionInternal rev, List<String> revHistory, URL source) {
 
         String docId = rev.getDocId();
         String revId = rev.getRevId();
@@ -2235,7 +2243,7 @@ public class CBLDatabase extends Observable {
             long localParentSequence = 0;
             for(int i = revHistory.size() - 1; i >= 0; --i) {
                 revId = revHistory.get(i);
-                CBLRevision localRev = localRevs.revWithDocIdAndRevId(docId, revId);
+                CBLRevisionInternal localRev = localRevs.revWithDocIdAndRevId(docId, revId);
                 if(localRev != null) {
                     // This revision is known locally. Remember its sequence as the parent of the next one:
                     sequence = localRev.getSequence();
@@ -2244,7 +2252,7 @@ public class CBLDatabase extends Observable {
                 }
                 else {
                     // This revision isn't known, so add it:
-                    CBLRevision newRev;
+                    CBLRevisionInternal newRev;
                     byte[] data = null;
                     boolean current = false;
                     if(i == 0) {
@@ -2260,7 +2268,7 @@ public class CBLDatabase extends Observable {
                     }
                     else {
                         // It's an intermediate parent, so insert a stub:
-                        newRev = new CBLRevision(docId, revId, false, this);
+                        newRev = new CBLRevisionInternal(docId, revId, false, this);
                     }
 
                     // Insert it:
@@ -2330,7 +2338,7 @@ public class CBLDatabase extends Observable {
         return result;
     }
 
-    public CBLStatus validateRevision(CBLRevision newRev, CBLRevision oldRev) {
+    public CBLStatus validateRevision(CBLRevisionInternal newRev, CBLRevisionInternal oldRev) {
         CBLStatus result = new CBLStatus(CBLStatus.OK);
         if(validations == null || validations.size() == 0) {
             return result;
@@ -2474,7 +2482,7 @@ public class CBLDatabase extends Observable {
             cursor = database.rawQuery(sql, null);
             cursor.moveToFirst();
             while(!cursor.isAfterLast()) {
-                CBLRevision rev = touchRevs.revWithDocIdAndRevId(cursor.getString(0), cursor.getString(1));
+                CBLRevisionInternal rev = touchRevs.revWithDocIdAndRevId(cursor.getString(0), cursor.getString(1));
 
                 if(rev != null) {
                     touchRevs.remove(rev);
@@ -2497,8 +2505,8 @@ public class CBLDatabase extends Observable {
     /*** CBLDatabase+LocalDocs                                                                      ***/
     /*************************************************************************************************/
 
-    public CBLRevision getLocalDocument(String docID, String revID) {
-        CBLRevision result = null;
+    public CBLRevisionInternal getLocalDocument(String docID, String revID) {
+        CBLRevisionInternal result = null;
         Cursor cursor = null;
         try {
             String[] args = { docID };
@@ -2514,7 +2522,7 @@ public class CBLDatabase extends Observable {
                     properties = CBLServer.getObjectMapper().readValue(json, Map.class);
                     properties.put("_id", docID);
                     properties.put("_rev", gotRevID);
-                    result = new CBLRevision(docID, gotRevID, false, this);
+                    result = new CBLRevisionInternal(docID, gotRevID, false, this);
                     result.setProperties(properties);
                 } catch (Exception e) {
                     Log.w(TAG, "Error parsing local doc JSON", e);
@@ -2533,7 +2541,7 @@ public class CBLDatabase extends Observable {
         }
     }
 
-    public CBLRevision putLocalRevision(CBLRevision revision, String prevRevID, CBLStatus status) {
+    public CBLRevisionInternal putLocalRevision(CBLRevisionInternal revision, String prevRevID, CBLStatus status) {
         String docID = revision.getDocId();
         if(!docID.startsWith("_local/")) {
             status.setCode(CBLStatus.BAD_REQUEST);
@@ -2545,7 +2553,7 @@ public class CBLDatabase extends Observable {
             byte[] json = encodeDocumentJSON(revision);
             String newRevID;
             if(prevRevID != null) {
-                int generation = CBLRevision.generationFromRevID(prevRevID);
+                int generation = CBLRevisionInternal.generationFromRevID(prevRevID);
                 if(generation == 0) {
                     status.setCode(CBLStatus.BAD_REQUEST);
                     return null;
@@ -2614,11 +2622,11 @@ public class CBLDatabase extends Observable {
 class TDValidationContextImpl implements CBLValidationContext {
 
     private CBLDatabase database;
-    private CBLRevision currentRevision;
+    private CBLRevisionInternal currentRevision;
     private CBLStatus errorType;
     private String errorMessage;
 
-    public TDValidationContextImpl(CBLDatabase database, CBLRevision currentRevision) {
+    public TDValidationContextImpl(CBLDatabase database, CBLRevisionInternal currentRevision) {
         this.database = database;
         this.currentRevision = currentRevision;
         this.errorType = new CBLStatus(CBLStatus.FORBIDDEN);
@@ -2626,7 +2634,7 @@ class TDValidationContextImpl implements CBLValidationContext {
     }
 
     @Override
-    public CBLRevision getCurrentRevision() {
+    public CBLRevisionInternal getCurrentRevision() {
         if(currentRevision != null) {
             database.loadRevisionBody(currentRevision, EnumSet.noneOf(TDContentOptions.class));
         }

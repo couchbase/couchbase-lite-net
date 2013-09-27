@@ -15,7 +15,6 @@ import java.util.concurrent.ScheduledExecutorService;
 
 import org.apache.http.client.HttpResponseException;
 import org.apache.http.entity.mime.MultipartEntity;
-import org.apache.http.entity.mime.content.ByteArrayBody;
 import org.apache.http.entity.mime.content.InputStreamBody;
 import org.apache.http.entity.mime.content.StringBody;
 
@@ -25,7 +24,7 @@ import com.couchbase.cblite.CBLBlobKey;
 import com.couchbase.cblite.CBLBlobStore;
 import com.couchbase.cblite.CBLDatabase;
 import com.couchbase.cblite.CBLFilterBlock;
-import com.couchbase.cblite.CBLRevision;
+import com.couchbase.cblite.internal.CBLRevisionInternal;
 import com.couchbase.cblite.CBLRevisionList;
 import com.couchbase.cblite.CBLServer;
 import com.couchbase.cblite.CBLStatus;
@@ -145,7 +144,7 @@ public class CBLPusher extends CBLReplicator implements Observer {
             if(source != null && source.equals(remote.toExternalForm())) {
                 return;
             }
-            CBLRevision rev = (CBLRevision)change.get("rev");
+            CBLRevisionInternal rev = (CBLRevisionInternal)change.get("rev");
             if(rev != null && ((filter == null) || filter.filter(rev))) {
                 addToInbox(rev);
             }
@@ -158,7 +157,7 @@ public class CBLPusher extends CBLReplicator implements Observer {
         final long lastInboxSequence = inbox.get(inbox.size()-1).getSequence();
         // Generate a set of doc/rev IDs in the JSON format that _revs_diff wants:
         Map<String,List<String>> diffs = new HashMap<String,List<String>>();
-        for (CBLRevision rev : inbox) {
+        for (CBLRevisionInternal rev : inbox) {
             String docID = rev.getDocId();
             List<String> revs = diffs.get(docID);
             if(revs == null) {
@@ -182,7 +181,7 @@ public class CBLPusher extends CBLReplicator implements Observer {
                     // Go through the list of local changes again, selecting the ones the destination server
                     // said were missing and mapping them to a JSON dictionary in the form _bulk_docs wants:
                     List<Object> docsToSend = new ArrayList<Object>();
-                    for(CBLRevision rev : inbox) {
+                    for(CBLRevisionInternal rev : inbox) {
                         Map<String,Object> properties = null;
                         Map<String,Object> resultDoc = (Map<String,Object>)results.get(rev.getDocId());
                         if(resultDoc != null) {
@@ -259,7 +258,7 @@ public class CBLPusher extends CBLReplicator implements Observer {
         });
     }
 
-    private boolean uploadMultipartRevision(CBLRevision revision) {
+    private boolean uploadMultipartRevision(CBLRevisionInternal revision) {
 
         MultipartEntity multiPart = null;
 

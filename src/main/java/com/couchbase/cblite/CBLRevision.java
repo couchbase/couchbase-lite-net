@@ -17,7 +17,11 @@
 
 package com.couchbase.cblite;
 
-import java.util.HashMap;
+import com.couchbase.cblite.internal.CBLRevisionInternal;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -25,174 +29,85 @@ import java.util.Map;
  *
  * It can also store the sequence number and document contents (they can be added after creation).
  */
-public class CBLRevision {
+public class CBLRevision extends CBLRevisionBase {
 
     private String docId;
-    private String revId;
-    private boolean deleted;
-    private CBLBody body;
-    private long sequence;
-    private CBLDatabase database;
+    private CBLRevisionInternal revisionInternal;
 
-    public CBLRevision(String docId, String revId, boolean deleted, CBLDatabase database) {
-        this.docId = docId;
-        this.revId = revId;
-        this.deleted = deleted;
-        this.database = database;
+    /**
+     * Has this object fetched its contents from the database yet?
+     */
+    protected boolean propertiesAreLoaded;
+
+    CBLRevision(CBLDocument document, CBLRevisionInternal revision) {
+        super(document);
+        this.revisionInternal = revision;
     }
 
-    public CBLRevision(CBLBody body, CBLDatabase database) {
-        this((String)body.getPropertyForKey("_id"),
-                (String)body.getPropertyForKey("_rev"),
-                (((Boolean)body.getPropertyForKey("_deleted") != null)
-                        && ((Boolean)body.getPropertyForKey("_deleted") == true)), database);
-        this.body = body;
-    }
-
-    public CBLRevision(Map<String, Object> properties, CBLDatabase database) {
-        this(new CBLBody(properties), database);
-    }
-
-    public Map<String,Object> getProperties() {
-        Map<String,Object> result = null;
-        if(body != null) {
-            result = body.getProperties();
-        }
-        return result;
-    }
-
-    public void setProperties(Map<String,Object> properties) {
-        this.body = new CBLBody(properties);
-
-        // this is a much more simplified version that what happens on the iOS.  it was
-        // done this way due to time constraints, so at some point this needs to be
-        // revisited to port the remaining functionality.
-        Map<String, Object> attachments = (Map<String, Object>) properties.get("_attachments");
-        if (attachments != null && attachments.size() > 0) {
-            for (String attachmentName : attachments.keySet()) {
-                Map<String, Object> attachment = (Map<String, Object>) attachments.get(attachmentName);
-
-                // if there is actual data in this attachment, no need to try to install it
-                if (attachment.containsKey("data")) {
-                    continue;
-                }
-
-                CBLStatus status = database.installPendingAttachment(attachment);
-                if (status.isSuccessful() == false) {
-                    String msg = String.format("Unable to install pending attachment: %s.  Status: %d", attachment.toString(), status.getCode());
-                    throw new IllegalStateException(msg);
-                }
-            }
-
-        }
-
-    }
-
-
-
-    public byte[] getJson() {
-        byte[] result = null;
-        if(body != null) {
-            result = body.getJson();
-        }
-        return result;
-    }
-
-    public void setJson(byte[] json) {
-        this.body = new CBLBody(json);
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        boolean result = false;
-        if(o instanceof CBLRevision) {
-            CBLRevision other = (CBLRevision)o;
-            if(docId.equals(other.docId) && revId.equals(other.revId)) {
-                result = true;
-            }
-        }
-        return result;
-    }
-
-    @Override
-    public int hashCode() {
-        return docId.hashCode() ^ revId.hashCode();
-    }
-
-    public String getDocId() {
-        return docId;
-    }
-
-    public void setDocId(String docId) {
-        this.docId = docId;
-    }
-
-    public String getRevId() {
-        return revId;
-    }
-
-    public void setRevId(String revId) {
-        this.revId = revId;
-    }
-
-    public boolean isDeleted() {
-        return deleted;
-    }
-
-    public void setDeleted(boolean deleted) {
-        this.deleted = deleted;
-    }
-
-    public CBLBody getBody() {
-        return body;
-    }
-
-    public void setBody(CBLBody body) {
-        this.body = body;
-    }
-
-    public CBLRevision copyWithDocID(String docId, String revId) {
-        assert((docId != null) && (revId != null));
-        assert((this.docId == null) || (this.docId.equals(docId)));
-        CBLRevision result = new CBLRevision(docId, revId, deleted, database);
-        Map<String, Object> properties = getProperties();
-        if(properties == null) {
-            properties = new HashMap<String, Object>();
-        }
-        properties.put("_id", docId);
-        properties.put("_rev", revId);
-        result.setProperties(properties);
-        return result;
-    }
-
-    public void setSequence(long sequence) {
-        this.sequence = sequence;
-    }
-
-    public long getSequence() {
-        return sequence;
-    }
-
-    @Override
-    public String toString() {
-        return "{" + this.docId + " #" + this.revId + (deleted ? "DEL" : "") + "}";
+    CBLRevision(CBLDatabase database, CBLRevisionInternal revision) {
+        this(database.documentWithId(revision.getDocId()), revision);
     }
 
     /**
-     * Generation number: 1 for a new document, 2 for the 2nd revision, ...
-     * Extracted from the numeric prefix of the revID.
+     * Creates a new mutable child revision whose properties and attachments are initially identical
+     * to this one's, which you can modify and then save.
+     * @return
      */
-    public int getGeneration() {
-        return generationFromRevID(revId);
+    public CBLNewRevision newRevision() {
+        CBLNewRevision newRevision = new CBLNewRevision(document, this);
+        return newRevision;
     }
 
-    public static int generationFromRevID(String revID) {
-        int generation = 0;
-        int dashPos = revID.indexOf("-");
-        if(dashPos > 0) {
-            generation = Integer.parseInt(revID.substring(0, dashPos));
+    /**
+     * Creates and saves a new revision with the given properties.
+     * This will fail with a 412 error if the receiver is not the current revision of the document.
+     */
+    public CBLRevision putProperties(Map<String,Object> properties) {
+        return document.putProperties(properties);
+    }
+
+    /**
+     * Has this object fetched its contents from the database yet?
+     */
+    public boolean isPropertiesAreLoaded() {
+        return propertiesAreLoaded;
+    }
+
+    /**
+     * Deletes the document by creating a new deletion-marker revision.
+     *
+     * @return
+     * @throws CBLiteException
+     */
+    public CBLRevision deleteDocument() throws CBLiteException {
+        // TODO: implement
+        throw new RuntimeException("Not Implemented");
+    }
+
+    /**
+     * Returns the history of this document as an array of CBLRevisions, in forward order.
+     * Older revisions are NOT guaranteed to have their properties available.
+     *
+     * @return
+     * @throws CBLiteException
+     */
+    public List<CBLRevision> getRevisionHistory() throws CBLiteException {
+        List<CBLRevision> revisions = new ArrayList<CBLRevision>();
+        List<CBLRevisionInternal> internalRevisions = database.getRevisionHistory(revisionInternal);
+        for (CBLRevisionInternal internalRevision : internalRevisions) {
+            if (internalRevision.getRevId().equals(getRevId())) {
+                revisions.add(this);
+            }
+            else {
+                CBLRevision revision = document.getRevisionFromRev(internalRevision);
+                revisions.add(this);
+            }
+
         }
-        return generation;
+        Collections.reverse(revisions);
+        return revisions;
     }
 
 }
+
+

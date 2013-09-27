@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Map;
 
 import com.couchbase.cblite.CBLDatabase.TDContentOptions;
+import com.couchbase.cblite.internal.CBLRevisionInternal;
 
 import android.content.ContentValues;
 import android.database.Cursor;
@@ -633,7 +634,7 @@ public class CBLView {
                         // http://wiki.apache.org/couchdb/Introduction_to_CouchDB_views#Linked_documents
                         if (value instanceof Map && ((Map) value).containsKey("_id")) {
                             String linkedDocId = (String) ((Map) value).get("_id");
-                            CBLRevision linkedDoc = db.getDocumentWithIDAndRev(linkedDocId, null, EnumSet.noneOf(TDContentOptions.class));
+                            CBLRevisionInternal linkedDoc = db.getDocumentWithIDAndRev(linkedDocId, null, EnumSet.noneOf(TDContentOptions.class));
                             docContents = linkedDoc.getProperties();
                         }
                         else {

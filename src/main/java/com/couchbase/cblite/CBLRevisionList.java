@@ -17,6 +17,8 @@
 
 package com.couchbase.cblite;
 
+import com.couchbase.cblite.internal.CBLRevisionInternal;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -27,24 +29,24 @@ import java.util.List;
  * An ordered list of TDRevisions
  */
 @SuppressWarnings("serial")
-public class CBLRevisionList extends ArrayList<CBLRevision> {
+public class CBLRevisionList extends ArrayList<CBLRevisionInternal> {
 
     public CBLRevisionList() {
         super();
     }
 
     /**
-     * Allow converting to CBLRevisionList from List<CBLRevision>
+     * Allow converting to CBLRevisionList from List<CBLRevisionInternal>
      * @param list
      */
-    public CBLRevisionList(List<CBLRevision> list) {
+    public CBLRevisionList(List<CBLRevisionInternal> list) {
         super(list);
     }
 
-    public CBLRevision revWithDocIdAndRevId(String docId, String revId) {
-        Iterator<CBLRevision> iterator = iterator();
+    public CBLRevisionInternal revWithDocIdAndRevId(String docId, String revId) {
+        Iterator<CBLRevisionInternal> iterator = iterator();
         while(iterator.hasNext()) {
-            CBLRevision rev = iterator.next();
+            CBLRevisionInternal rev = iterator.next();
             if(docId.equals(rev.getDocId()) && revId.equals(rev.getRevId())) {
                 return rev;
             }
@@ -55,9 +57,9 @@ public class CBLRevisionList extends ArrayList<CBLRevision> {
     public List<String> getAllDocIds() {
         List<String> result = new ArrayList<String>();
 
-        Iterator<CBLRevision> iterator = iterator();
+        Iterator<CBLRevisionInternal> iterator = iterator();
         while(iterator.hasNext()) {
-            CBLRevision rev = iterator.next();
+            CBLRevisionInternal rev = iterator.next();
             result.add(rev.getDocId());
         }
 
@@ -67,9 +69,9 @@ public class CBLRevisionList extends ArrayList<CBLRevision> {
     public List<String> getAllRevIds() {
         List<String> result = new ArrayList<String>();
 
-        Iterator<CBLRevision> iterator = iterator();
+        Iterator<CBLRevisionInternal> iterator = iterator();
         while(iterator.hasNext()) {
-            CBLRevision rev = iterator.next();
+            CBLRevisionInternal rev = iterator.next();
             result.add(rev.getRevId());
         }
 
@@ -77,9 +79,9 @@ public class CBLRevisionList extends ArrayList<CBLRevision> {
     }
 
     public void sortBySequence() {
-        Collections.sort(this, new Comparator<CBLRevision>() {
+        Collections.sort(this, new Comparator<CBLRevisionInternal>() {
 
-            public int compare(CBLRevision rev1, CBLRevision rev2) {
+            public int compare(CBLRevisionInternal rev1, CBLRevisionInternal rev2) {
                 return CBLMisc.TDSequenceCompare(rev1.getSequence(), rev2.getSequence());
             }
 

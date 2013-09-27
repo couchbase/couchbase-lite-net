@@ -18,7 +18,7 @@ import android.util.Log;
 import com.couchbase.cblite.CBLBody;
 import com.couchbase.cblite.CBLDatabase;
 import com.couchbase.cblite.CBLMisc;
-import com.couchbase.cblite.CBLRevision;
+import com.couchbase.cblite.internal.CBLRevisionInternal;
 import com.couchbase.cblite.CBLRevisionList;
 import com.couchbase.cblite.CBLServer;
 import com.couchbase.cblite.CBLStatus;
@@ -36,7 +36,7 @@ public class CBLPuller extends CBLReplicator implements CBLChangeTrackerClient {
     private static final int MAX_OPEN_HTTP_CONNECTIONS = 16;
 
     protected CBLBatcher<List<Object>> downloadsToInsert;
-    protected List<CBLRevision> revsToPull;
+    protected List<CBLRevisionInternal> revsToPull;
     protected CBLChangeTracker changeTracker;
     protected CBLSequenceMap pendingSequences;
     protected volatile int httpConnectionCount;
@@ -199,7 +199,7 @@ public class CBLPuller extends CBLReplicator implements CBLChangeTrackerClient {
         // Dump the revs into the queue of revs to pull from the remote db:
         synchronized (this) {
 	        if(revsToPull == null) {
-	            revsToPull = new ArrayList<CBLRevision>(200);
+	            revsToPull = new ArrayList<CBLRevisionInternal>(200);
 	        }
 
 	        for(int i=0; i < inbox.size(); i++) {
@@ -221,16 +221,16 @@ public class CBLPuller extends CBLReplicator implements CBLChangeTrackerClient {
      */
     public void pullRemoteRevisions() {
         //find the work to be done in a synchronized block
-        List<CBLRevision> workToStartNow = new ArrayList<CBLRevision>();
+        List<CBLRevisionInternal> workToStartNow = new ArrayList<CBLRevisionInternal>();
         synchronized (this) {
 			while(httpConnectionCount + workToStartNow.size() < MAX_OPEN_HTTP_CONNECTIONS && revsToPull != null && revsToPull.size() > 0) {
-				CBLRevision work = revsToPull.remove(0);
+				CBLRevisionInternal work = revsToPull.remove(0);
 				workToStartNow.add(work);
 			}
 		}
 
         //actually run it outside the synchronized block
-        for(CBLRevision work : workToStartNow) {
+        for(CBLRevisionInternal work : workToStartNow) {
             pullRemoteRevision(work);
         }
     }
@@ -239,7 +239,7 @@ public class CBLPuller extends CBLReplicator implements CBLChangeTrackerClient {
      * Fetches the contents of a revision from the remote db, including its parent revision ID.
      * The contents are stored into rev.properties.
      */
-    public void pullRemoteRevision(final CBLRevision rev) {
+    public void pullRemoteRevision(final CBLRevisionInternal rev) {
         asyncTaskStarted();
         ++httpConnectionCount;
 
@@ -312,8 +312,8 @@ public class CBLPuller extends CBLReplicator implements CBLChangeTrackerClient {
         Collections.sort(revs, new Comparator<List<Object>>() {
 
             public int compare(List<Object> list1, List<Object> list2) {
-                CBLRevision reva = (CBLRevision)list1.get(0);
-                CBLRevision revb = (CBLRevision)list2.get(0);
+                CBLRevisionInternal reva = (CBLRevisionInternal)list1.get(0);
+                CBLRevisionInternal revb = (CBLRevisionInternal)list2.get(0);
                 return CBLMisc.TDSequenceCompare(reva.getSequence(), revb.getSequence());
             }
 
@@ -360,7 +360,7 @@ public class CBLPuller extends CBLReplicator implements CBLChangeTrackerClient {
         setChangesProcessed(getChangesProcessed() + revs.size());
     }
 
-    List<String> knownCurrentRevIDs(CBLRevision rev) {
+    List<String> knownCurrentRevIDs(CBLRevisionInternal rev) {
         if(db != null) {
             return db.getAllRevisionsOfDocumentID(rev.getDocId(), true).getAllRevIds();
         }
@@ -385,7 +385,7 @@ public class CBLPuller extends CBLReplicator implements CBLChangeTrackerClient {
 /**
  * A revision received from a remote server during a pull. Tracks the opaque remote sequence ID.
  */
-class TDPulledRevision extends CBLRevision {
+class TDPulledRevision extends CBLRevisionInternal {
 
     public TDPulledRevision(CBLBody body, CBLDatabase database) {
         super(body, database);

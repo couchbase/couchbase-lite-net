@@ -28,7 +28,7 @@ import com.couchbase.cblite.CBLDatabase;
 import com.couchbase.cblite.CBLFilterBlock;
 import com.couchbase.cblite.CBLMisc;
 import com.couchbase.cblite.CBLQueryOptions;
-import com.couchbase.cblite.CBLRevision;
+import com.couchbase.cblite.internal.CBLRevisionInternal;
 import com.couchbase.cblite.CBLRevisionList;
 import com.couchbase.cblite.CBLServer;
 import com.couchbase.cblite.CBLStatus;
@@ -41,7 +41,6 @@ import com.couchbase.cblite.CBLDatabase.TDContentOptions;
 import com.couchbase.cblite.CBLView.TDViewCollation;
 import com.couchbase.cblite.auth.CBLFacebookAuthorizer;
 import com.couchbase.cblite.auth.CBLPersonaAuthorizer;
-import com.couchbase.cblite.replicator.CBLPusher;
 import com.couchbase.cblite.replicator.CBLReplicator;
 
 import org.apache.http.client.HttpResponseException;
@@ -812,11 +811,11 @@ public class CBLRouter implements Observer {
         try {
             for (Map<String, Object> doc : docs) {
                 String docID = (String) doc.get("_id");
-                CBLRevision rev = null;
+                CBLRevisionInternal rev = null;
                 CBLStatus status = new CBLStatus(CBLStatus.BAD_REQUEST);
                 CBLBody docBody = new CBLBody(doc);
                 if (noNewEdits) {
-                    rev = new CBLRevision(docBody, db);
+                    rev = new CBLRevisionInternal(docBody, db);
                     if(rev.getRevId() == null || rev.getDocId() == null || !rev.getDocId().equals(docID)) {
                         status =  new CBLStatus(CBLStatus.BAD_REQUEST);
                     } else {
@@ -876,7 +875,7 @@ public class CBLRouter implements Observer {
         for (String docID : body.keySet()) {
             List<String> revIDs = (List<String>)body.get(docID);
             for (String revID : revIDs) {
-                CBLRevision rev = new CBLRevision(docID, revID, false, db);
+                CBLRevisionInternal rev = new CBLRevisionInternal(docID, revID, false, db);
                 revs.add(rev);
             }
         }
@@ -888,7 +887,7 @@ public class CBLRouter implements Observer {
 
         // Return the missing revs in a somewhat different format:
         Map<String, Object> diffs = new HashMap<String, Object>();
-        for (CBLRevision rev : revs) {
+        for (CBLRevisionInternal rev : revs) {
             String docID = rev.getDocId();
 
             List<String> missingRevs = null;
@@ -930,7 +929,7 @@ public class CBLRouter implements Observer {
 
     /** CHANGES: **/
 
-    public Map<String,Object> changesDictForRevision(CBLRevision rev) {
+    public Map<String,Object> changesDictForRevision(CBLRevisionInternal rev) {
         Map<String,Object> changesDict = new HashMap<String, Object>();
         changesDict.put("rev", rev.getRevId());
 
@@ -950,9 +949,9 @@ public class CBLRouter implements Observer {
         return result;
     }
 
-    public Map<String,Object> responseBodyForChanges(List<CBLRevision> changes, long since) {
+    public Map<String,Object> responseBodyForChanges(List<CBLRevisionInternal> changes, long since) {
         List<Map<String,Object>> results = new ArrayList<Map<String,Object>>();
-        for (CBLRevision rev : changes) {
+        for (CBLRevisionInternal rev : changes) {
             Map<String,Object> changeDict = changesDictForRevision(rev);
             results.add(changeDict);
         }
@@ -965,12 +964,12 @@ public class CBLRouter implements Observer {
         return result;
     }
 
-    public Map<String, Object> responseBodyForChangesWithConflicts(List<CBLRevision> changes, long since) {
+    public Map<String, Object> responseBodyForChangesWithConflicts(List<CBLRevisionInternal> changes, long since) {
         // Assumes the changes are grouped by docID so that conflicts will be adjacent.
         List<Map<String,Object>> entries = new ArrayList<Map<String, Object>>();
         String lastDocID = null;
         Map<String, Object> lastEntry = null;
-        for (CBLRevision rev : changes) {
+        for (CBLRevisionInternal rev : changes) {
             String docID = rev.getDocId();
             if(docID.equals(lastDocID)) {
                 Map<String,Object> changesDict = new HashMap<String, Object>();
@@ -1001,7 +1000,7 @@ public class CBLRouter implements Observer {
         return result;
     }
 
-    public void sendContinuousChange(CBLRevision rev) {
+    public void sendContinuousChange(CBLRevisionInternal rev) {
         Map<String,Object> changeDict = changesDictForRevision(rev);
         try {
             String jsonString = CBLServer.getObjectMapper().writeValueAsString(changeDict);
@@ -1026,7 +1025,7 @@ public class CBLRouter implements Observer {
             //make sure we're listening to the right events
             Map<String,Object> changeNotification = (Map<String,Object>)changeObject;
 
-            CBLRevision rev = (CBLRevision)changeNotification.get("rev");
+            CBLRevisionInternal rev = (CBLRevisionInternal)changeNotification.get("rev");
 
             if(changesFilter != null && !changesFilter.filter(rev)) {
                 return;
@@ -1035,7 +1034,7 @@ public class CBLRouter implements Observer {
             if(longpoll) {
                 Log.w(CBLDatabase.TAG, "CBLRouter: Sending longpoll response");
                 sendResponse();
-                List<CBLRevision> revs = new ArrayList<CBLRevision>();
+                List<CBLRevisionInternal> revs = new ArrayList<CBLRevisionInternal>();
                 revs.add(rev);
                 Map<String,Object> body = responseBodyForChanges(revs, 0);
                 if(callbackBlock != null) {
@@ -1100,7 +1099,7 @@ public class CBLRouter implements Observer {
             connection.setResponseCode(CBLStatus.OK);
             sendResponse();
             if(continuous) {
-                for (CBLRevision rev : changes) {
+                for (CBLRevisionInternal rev : changes) {
                     sendContinuousChange(rev);
                 }
             }
@@ -1132,7 +1131,7 @@ public class CBLRouter implements Observer {
         }
     }
 
-    public String setResponseEtag(CBLRevision rev) {
+    public String setResponseEtag(CBLRevisionInternal rev) {
         String eTag = String.format("\"%s\"", rev.getRevId());
         connection.getResHeader().add("Etag", eTag);
         return eTag;
@@ -1146,7 +1145,7 @@ public class CBLRouter implements Observer {
         if(openRevsParam == null || isLocalDoc) {
             // Regular GET:
             String revID = getQuery("rev");  // often null
-            CBLRevision rev = null;
+            CBLRevisionInternal rev = null;
             if(isLocalDoc) {
                 rev = db.getLocalDocument(docID, revID);
             } else {
@@ -1159,7 +1158,7 @@ public class CBLRouter implements Observer {
                 if (attsSince != null) {
                     String ancestorId = db.findCommonAncestorOf(rev, attsSince);
                     if (ancestorId != null) {
-                        int generation = CBLRevision.generationFromRevID(ancestorId);
+                        int generation = CBLRevisionInternal.generationFromRevID(ancestorId);
                         db.stubOutAttachmentsIn(rev, generation + 1);
                 	}
                 }
@@ -1178,7 +1177,7 @@ public class CBLRouter implements Observer {
                 // Get all conflicting revisions:
                 CBLRevisionList allRevs = db.getAllRevisionsOfDocumentID(docID, true);
                 result = new ArrayList<Map<String,Object>>(allRevs.size());
-                for (CBLRevision rev : allRevs) {
+                for (CBLRevisionInternal rev : allRevs) {
                     CBLStatus status = db.loadRevisionBody(rev, options);
                     if(status.isSuccessful()) {
                         Map<String, Object> dict = new HashMap<String,Object>();
@@ -1200,7 +1199,7 @@ public class CBLRouter implements Observer {
                 }
                 result = new ArrayList<Map<String,Object>>(openRevs.size());
                 for (String revID : openRevs) {
-                    CBLRevision rev = db.getDocumentWithIDAndRev(docID, revID, options);
+                    CBLRevisionInternal rev = db.getDocumentWithIDAndRev(docID, revID, options);
                     if(rev != null) {
                         Map<String, Object> dict = new HashMap<String,Object>();
                         dict.put("ok", rev.getProperties());
@@ -1228,7 +1227,7 @@ public class CBLRouter implements Observer {
         EnumSet<TDContentOptions> options = getContentOptions();
         options.add(TDContentOptions.TDNoBody);
     	String revID = getQuery("rev");  // often null
-    	CBLRevision rev = db.getDocumentWithIDAndRev(docID, revID, options);
+    	CBLRevisionInternal rev = db.getDocumentWithIDAndRev(docID, revID, options);
     	if(rev == null) {
     		return new CBLStatus(CBLStatus.NOT_FOUND);
     	}
@@ -1259,7 +1258,7 @@ public class CBLRouter implements Observer {
     /**
      * NOTE this departs from the iOS version, returning revision, passing status back by reference
      */
-    public CBLRevision update(CBLDatabase _db, String docID, CBLBody body, boolean deleting, boolean allowConflict, CBLStatus outStatus) {
+    public CBLRevisionInternal update(CBLDatabase _db, String docID, CBLBody body, boolean deleting, boolean allowConflict, CBLStatus outStatus) {
         boolean isLocalDoc = docID != null && docID.startsWith(("_local"));
         String prevRevID = null;
 
@@ -1293,10 +1292,10 @@ public class CBLRouter implements Observer {
             prevRevID = getRevIDFromIfMatchHeader();
         }
 
-        CBLRevision rev = new CBLRevision(docID, null, deleting, db);
+        CBLRevisionInternal rev = new CBLRevisionInternal(docID, null, deleting, db);
         rev.setBody(body);
 
-        CBLRevision result = null;
+        CBLRevisionInternal result = null;
         CBLStatus tmpStatus = new CBLStatus();
         if(isLocalDoc) {
             result = _db.putLocalRevision(rev, prevRevID, tmpStatus);
@@ -1310,7 +1309,7 @@ public class CBLRouter implements Observer {
     public CBLStatus update(CBLDatabase _db, String docID, Map<String,Object> bodyDict, boolean deleting) {
         CBLBody body = new CBLBody(bodyDict);
         CBLStatus status = new CBLStatus();
-        CBLRevision rev = update(_db, docID, body, deleting, false, status);
+        CBLRevisionInternal rev = update(_db, docID, body, deleting, false, status);
         if(status.isSuccessful()) {
             cacheWithEtag(rev.getRevId());  // set ETag
             if(!deleting) {
@@ -1347,7 +1346,7 @@ public class CBLRouter implements Observer {
         } else {
             // PUT with new_edits=false -- forcible insertion of existing revision:
             CBLBody body = new CBLBody(bodyDict);
-            CBLRevision rev = new CBLRevision(body, _db);
+            CBLRevisionInternal rev = new CBLRevisionInternal(body, _db);
             if(rev.getRevId() == null || rev.getDocId() == null || !rev.getDocId().equals(docID)) {
                 return new CBLStatus(CBLStatus.BAD_REQUEST);
             }
@@ -1366,7 +1365,7 @@ public class CBLRouter implements Observer {
         if(revID == null) {
             revID = getRevIDFromIfMatchHeader();
         }
-        CBLRevision rev = db.updateAttachment(attachment, contentStream, connection.getRequestProperty("content-type"),
+        CBLRevisionInternal rev = db.updateAttachment(attachment, contentStream, connection.getRequestProperty("content-type"),
                 docID, revID, status);
         if(status.isSuccessful()) {
             Map<String, Object> resultDict = new HashMap<String, Object>();
@@ -1431,7 +1430,7 @@ public class CBLRouter implements Observer {
         if(view == null || view.getMapBlock() == null) {
             // No TouchDB view is defined, or it hasn't had a map block assigned;
             // see if there's a CouchDB view definition we can compile:
-            CBLRevision rev = db.getDocumentWithIDAndRev(String.format("_design/%s", designDoc), null, EnumSet.noneOf(TDContentOptions.class));
+            CBLRevisionInternal rev = db.getDocumentWithIDAndRev(String.format("_design/%s", designDoc), null, EnumSet.noneOf(TDContentOptions.class));
             if(rev == null) {
                 return new CBLStatus(CBLStatus.NOT_FOUND);
             }

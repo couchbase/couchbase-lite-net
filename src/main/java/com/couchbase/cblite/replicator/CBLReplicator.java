@@ -5,7 +5,7 @@ import android.util.Log;
 
 import com.couchbase.cblite.CBLDatabase;
 import com.couchbase.cblite.CBLMisc;
-import com.couchbase.cblite.CBLRevision;
+import com.couchbase.cblite.internal.CBLRevisionInternal;
 import com.couchbase.cblite.CBLRevisionList;
 import com.couchbase.cblite.auth.CBLAuthorizer;
 import com.couchbase.cblite.auth.CBLFacebookAuthorizer;
@@ -50,7 +50,7 @@ public abstract class CBLReplicator extends Observable {
     protected boolean active;
     protected Throwable error;
     protected String sessionID;
-    protected CBLBatcher<CBLRevision> batcher;
+    protected CBLBatcher<CBLRevisionInternal> batcher;
     protected int asyncTaskCount;
     private int changesProcessed;
     private int changesTotal;
@@ -110,9 +110,9 @@ public abstract class CBLReplicator extends Observable {
 
         }
 
-        batcher = new CBLBatcher<CBLRevision>(workExecutor, INBOX_CAPACITY, PROCESSOR_DELAY, new CBLBatchProcessor<CBLRevision>() {
+        batcher = new CBLBatcher<CBLRevisionInternal>(workExecutor, INBOX_CAPACITY, PROCESSOR_DELAY, new CBLBatchProcessor<CBLRevisionInternal>() {
             @Override
-            public void process(List<CBLRevision> inbox) {
+            public void process(List<CBLRevisionInternal> inbox) {
                 Log.v(CBLDatabase.TAG, "*** " + toString() + ": BEGIN processInbox (" + inbox.size() + " sequences)");
                 processInbox(new CBLRevisionList(inbox));
                 Log.v(CBLDatabase.TAG, "*** " + toString() + ": END processInbox (lastSequence=" + lastSequence);
@@ -354,7 +354,7 @@ public abstract class CBLReplicator extends Observable {
         }
     }
 
-    public void addToInbox(CBLRevision rev) {
+    public void addToInbox(CBLRevisionInternal rev) {
         if (batcher.count() == 0) {
             active = true;
         }
