@@ -2457,8 +2457,54 @@ public class CBLDatabase extends Observable {
 
     //TODO implement missing replication methods
 
-    public List<CBLReplicator> getActiveReplicators() {
+    /**
+     * Get all the replicators associated with this database.
+     *
+     * @return
+     */
+    public List<CBLReplicator> getAllReplications() {
         return activeReplicators;
+    }
+
+    /**
+     * Creates a replication that will 'push' to a database at the given URL, or returns an existing
+     * such replication if there already is one.
+     *
+     * @param remote
+     * @return
+     */
+    public CBLReplicator push(URL remote) {
+        return getActiveReplicator(remote, true);
+    }
+
+    /**
+     * Creates a replication that will 'pull' from a database at the given URL, or returns an existing
+     * such replication if there already is one.
+     *
+     * @param remote
+     * @return
+     */
+    public CBLReplicator pull(URL remote) {
+        return getActiveReplicator(remote, false);
+    }
+
+    /**
+     * Creates a pair of replications to both pull and push to database at the given URL, or
+     * returns existing replications if there are any.
+     *
+     * @param remote
+     * @param exclusively - this param is ignored!  TODO: fix this
+     * @return An array whose first element is the "pull" replication and second is the "push".
+     */
+    public CBLReplicator[] replicate(URL remote, boolean exclusively) {
+        CBLReplicator pull;
+        CBLReplicator push;
+        if (remote != null) {
+            pull = pull(remote);
+            push = push(remote);
+            return new CBLReplicator[] { pull, push };
+        }
+        return null;
     }
 
     public CBLReplicator getActiveReplicator(URL remote, boolean push) {
