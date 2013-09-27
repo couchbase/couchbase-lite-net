@@ -193,18 +193,17 @@ public class CBLDocument {
      * @param properties the contents to be saved in the new revision
      * @return a new CBLRevision
      */
-    public CBLRevision putProperties(Map<String,Object> properties) {
+    public CBLRevision putProperties(Map<String,Object> properties) throws CBLiteException {
         String prevID = (String) properties.get("_rev");
 
         return putProperties(properties, prevID);
     }
 
-    CBLRevision putProperties(Map<String,Object> properties, String prevID) {
+    CBLRevision putProperties(Map<String,Object> properties, String prevID) throws CBLiteException {
 
         // TODO: here is the objectivec impl
 
         /*
-
             id idProp = [properties objectForKey: @"_id"];
             if (idProp && ![idProp isEqual: self.documentID])
                 Warn(@"Trying to PUT wrong _id to %@: %@", self, properties);
@@ -237,6 +236,7 @@ public class CBLDocument {
             return [[CBLRevision alloc] initWithDocument: self revision: newRev];
 
          */
+
         return null;
     }
 
