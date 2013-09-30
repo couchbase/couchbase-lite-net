@@ -82,8 +82,7 @@ public class CBLDocument {
      * @throws CBLiteException
      */
     public boolean delete() throws CBLiteException {
-        // TODO: implement
-        throw new RuntimeException("Not Implemented");
+        return currentRevision.deleteDocument() != null;
     }
 
     /**
