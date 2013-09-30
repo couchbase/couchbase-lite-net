@@ -1,5 +1,8 @@
 package com.couchbase.cblite;
 
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -77,8 +80,6 @@ public class CBLRevisionBase {
      * The contents of this revision of the document.
      * Any keys in the dictionary that begin with "_", such as "_id" and "_rev", contain CouchbaseLite metadata.
      *
-     * TODO: this is returning a mutable map, which is a misleading API
-     *
      * @return contents of this revision of the document.
      */
     public Map<String,Object> getProperties() {
@@ -86,7 +87,7 @@ public class CBLRevisionBase {
         if(checkedBody != null) {
             result = checkedBody.getProperties();
         }
-        return result;
+        return Collections.unmodifiableMap(result);
     }
 
     /**
@@ -103,8 +104,19 @@ public class CBLRevisionBase {
      * @return user-defined properties, without the ones reserved by CouchDB.
      */
     public Map<String,Object> getUserProperties() {
-        // TODO
-        throw new RuntimeException("Not implemented");
+
+        Map<String,Object> result = new HashMap<String, Object>();
+
+        if(checkedBody != null) {
+            Map<String,Object> sourceMap = checkedBody.getProperties();
+            for (String key : sourceMap.keySet()) {
+                if (!key.startsWith("_")) {
+                    result.put(key, sourceMap.get(key));
+                }
+            }
+
+        }
+        return Collections.unmodifiableMap(result);
     }
 
     /**
