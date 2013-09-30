@@ -52,7 +52,9 @@ public class CBLPuller extends CBLReplicator implements CBLChangeTrackerClient {
     @Override
     public void beginReplicating() {
         if(downloadsToInsert == null) {
-            downloadsToInsert = new CBLBatcher<List<Object>>(workExecutor, 200, 1000, new CBLBatchProcessor<List<Object>>() {
+            int capacity = 200;
+            int delay = 1000;
+            downloadsToInsert = new CBLBatcher<List<Object>>(workExecutor, capacity, delay, new CBLBatchProcessor<List<Object>>() {
                 @Override
                 public void process(List<List<Object>> inbox) {
                     insertRevisions(inbox);
