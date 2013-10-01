@@ -114,6 +114,10 @@ public class CBLRevisionBase {
         return Collections.unmodifiableMap(result);
     }
 
+    void setProperties(Map<String,Object> properties) {
+        this.checkedBody = new CBLBody(properties);
+    }
+
     /**
      * The names of all attachments
      * @return
@@ -152,9 +156,7 @@ public class CBLRevisionBase {
         return result;
     }
 
-    void setProperties(Map<String,Object> properties) {
-        this.checkedBody = new CBLBody(properties);
-    }
+
 
     Map<String, Object> getAttachmentMetadata() {
         return (Map<String, Object>) getPropertyForKey("_attachments");
@@ -229,7 +231,7 @@ public class CBLRevisionBase {
 
     @Override
     public String toString() {
-        return "{" + this.document.getId() + " #" + this.revId + (deleted ? "DEL" : "") + "}";
+        return "{" + this.document.getId() + " #" + this.revId + (isDeleted() ? "DEL" : "") + "}";
     }
 
     /**
