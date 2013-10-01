@@ -2,6 +2,7 @@ package com.couchbase.cblite;
 
 import com.couchbase.cblite.internal.CBLBody;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -118,8 +119,10 @@ public class CBLRevisionBase {
      * @return
      */
     public List<String> getAttachmentNames() {
-        // TODO
-        throw new RuntimeException("Not implemented");
+        Map<String, Object> attachmentMetadata = getAttachmentMetadata();
+        ArrayList<String> result = new ArrayList<String>();
+        result.addAll(attachmentMetadata.keySet());
+        return result;
     }
 
     /**
@@ -129,8 +132,11 @@ public class CBLRevisionBase {
      * @return
      */
     public CBLAttachment getAttachment(String name) {
-        // TODO
-        throw new RuntimeException("Not implemented");
+        Map<String, Object> attachmentMetadata = getAttachmentMetadata();
+        if (attachmentMetadata == null) {
+            return null;
+        }
+        return new CBLAttachment(this, name, attachmentMetadata);
     }
 
     /**
@@ -144,6 +150,10 @@ public class CBLRevisionBase {
 
     void setProperties(Map<String,Object> properties) {
         this.checkedBody = new CBLBody(properties);
+    }
+
+    Map<String, Object> getAttachmentMetadata() {
+        return (Map<String, Object>) getPropertyForKey("_attachments");
     }
 
     @Override
