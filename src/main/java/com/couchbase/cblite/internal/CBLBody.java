@@ -15,7 +15,7 @@
  * and limitations under the License.
  */
 
-package com.couchbase.cblite;
+package com.couchbase.cblite.internal;
 
 import java.util.List;
 import java.util.Map;
@@ -23,6 +23,9 @@ import java.util.Map;
 import org.codehaus.jackson.map.ObjectWriter;
 
 import android.util.Log;
+
+import com.couchbase.cblite.CBLDatabase;
+import com.couchbase.cblite.CBLServer;
 
 /**
  * A request/response/document body, stored as either JSON or a Map<String,Object>

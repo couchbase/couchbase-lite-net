@@ -21,7 +21,7 @@ import java.util.TreeMap;
 
 import android.util.Log;
 
-import com.couchbase.cblite.CBLBody;
+import com.couchbase.cblite.internal.CBLBody;
 import com.couchbase.cblite.CBLDatabase;
 
 public class CBLURLConnection extends HttpURLConnection {

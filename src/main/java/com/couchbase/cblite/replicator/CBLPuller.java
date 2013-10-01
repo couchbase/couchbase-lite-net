@@ -15,7 +15,7 @@ import org.apache.http.client.HttpResponseException;
 import android.database.SQLException;
 import android.util.Log;
 
-import com.couchbase.cblite.CBLBody;
+import com.couchbase.cblite.internal.CBLBody;
 import com.couchbase.cblite.CBLDatabase;
 import com.couchbase.cblite.CBLMisc;
 import com.couchbase.cblite.CBLiteException;

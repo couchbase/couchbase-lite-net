@@ -41,6 +41,7 @@ import android.database.sqlite.SQLiteException;
 import android.util.Log;
 
 import com.couchbase.cblite.CBLDatabase.TDContentOptions;
+import com.couchbase.cblite.internal.CBLBody;
 import com.couchbase.cblite.internal.CBLDatabaseInternal;
 import com.couchbase.cblite.internal.CBLRevisionInternal;
 import com.couchbase.cblite.replicator.CBLPuller;

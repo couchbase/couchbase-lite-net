@@ -22,7 +22,7 @@ import java.util.Observer;
 import android.util.Log;
 
 import com.couchbase.cblite.CBLAttachment;
-import com.couchbase.cblite.CBLBody;
+import com.couchbase.cblite.internal.CBLBody;
 import com.couchbase.cblite.CBLChangesOptions;
 import com.couchbase.cblite.CBLDatabase;
 import com.couchbase.cblite.CBLFilterBlock;

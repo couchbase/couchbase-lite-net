@@ -17,7 +17,6 @@
 
 package com.couchbase.cblite.internal;
 
-import com.couchbase.cblite.CBLBody;
 import com.couchbase.cblite.CBLDatabase;
 import com.couchbase.cblite.CBLStatus;
 

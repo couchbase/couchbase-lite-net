@@ -1,5 +1,7 @@
 package com.couchbase.cblite;
 
+import com.couchbase.cblite.internal.CBLBody;
+
 import java.util.HashMap;
 import java.util.Map;
 

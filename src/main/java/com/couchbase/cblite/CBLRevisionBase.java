@@ -1,6 +1,7 @@
 package com.couchbase.cblite;
 
-import java.util.Collection;
+import com.couchbase.cblite.internal.CBLBody;
+
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
