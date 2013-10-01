@@ -175,8 +175,7 @@ public class CBLDocument {
      * @return the newly created revision
      */
     public CBLNewRevision newRevision() {
-        // TODO: implement
-        throw new RuntimeException("Not Implemented");
+        return new CBLNewRevision(this, currentRevision);
     }
 
     /**
