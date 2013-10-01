@@ -13,18 +13,12 @@ import java.util.Map;
  *
  * It can also store the sequence number and document contents (they can be added after creation).
  */
-public class CBLRevisionBase {
+public abstract class CBLRevisionBase {
 
     /**
      * The ID of this revision. Will be nil if this is an unsaved CBLNewRevision.
      */
     protected String revId;
-
-    /**
-     * The request/response/document body, stored as either JSON or a Map<String,Object>
-     */
-    protected CBLBody checkedBody;
-
 
     /**
      * The sequence number of this revision.
@@ -77,13 +71,7 @@ public class CBLRevisionBase {
      *
      * @return contents of this revision of the document.
      */
-    public Map<String,Object> getProperties() {
-        Map<String,Object> result = null;
-        if(checkedBody != null) {
-            result = checkedBody.getProperties();
-        }
-        return Collections.unmodifiableMap(result);
-    }
+    public abstract Map<String,Object> getProperties();
 
     /**
      * Shorthand for getProperties().get(key)
@@ -102,21 +90,19 @@ public class CBLRevisionBase {
 
         Map<String,Object> result = new HashMap<String, Object>();
 
-        if(checkedBody != null) {
-            Map<String,Object> sourceMap = checkedBody.getProperties();
-            for (String key : sourceMap.keySet()) {
-                if (!key.startsWith("_")) {
-                    result.put(key, sourceMap.get(key));
-                }
+        Map<String,Object> sourceMap = getProperties();
+        for (String key : sourceMap.keySet()) {
+            if (!key.startsWith("_")) {
+                result.put(key, sourceMap.get(key));
             }
-
         }
         return Collections.unmodifiableMap(result);
     }
 
+    /* I don't think we need/want this, callers should be calling putProperties()
     void setProperties(Map<String,Object> properties) {
         this.checkedBody = new CBLBody(properties);
-    }
+    }*/
 
     /**
      * The names of all attachments
@@ -179,17 +165,6 @@ public class CBLRevisionBase {
         return document.getId().hashCode() ^ revId.hashCode();
     }
 
-    byte[] getJson() {
-        byte[] result = null;
-        if(checkedBody != null) {
-            result = checkedBody.getJson();
-        }
-        return result;
-    }
-
-    void setJson(byte[] json) {
-        this.checkedBody = new CBLBody(json);
-    }
 
 
     public String getId() {
@@ -213,13 +188,6 @@ public class CBLRevisionBase {
         return deletedBool.booleanValue();
     }
 
-    CBLBody getBody() {
-        return checkedBody;
-    }
-
-    void setBody(CBLBody body) {
-        this.checkedBody = body;
-    }
 
     void setSequence(long sequence) {
         this.sequence = sequence;

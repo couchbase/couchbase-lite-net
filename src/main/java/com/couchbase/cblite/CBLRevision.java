@@ -17,10 +17,14 @@
 
 package com.couchbase.cblite;
 
+import android.util.Log;
+
 import com.couchbase.cblite.internal.CBLRevisionInternal;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -31,13 +35,8 @@ import java.util.Map;
  */
 public class CBLRevision extends CBLRevisionBase {
 
-    private String docId;
     private CBLRevisionInternal revisionInternal;
-
-    /**
-     * Has this object fetched its contents from the database yet?
-     */
-    protected boolean propertiesAreLoaded;
+    private boolean checkedProperties;
 
     CBLRevision(CBLDocument document, CBLRevisionInternal revision) {
         super(document);
@@ -58,19 +57,56 @@ public class CBLRevision extends CBLRevisionBase {
         return newRevision;
     }
 
+
+    /**
+     * The contents of this revision of the document.
+     * Any keys in the dictionary that begin with "_", such as "_id" and "_rev", contain CouchbaseLite metadata.
+     *
+     * @return contents of this revision of the document.
+     */
+
+    public Map<String,Object> getProperties() {
+        Map<String, Object> properties = revisionInternal.getProperties();
+        if (properties == null && !checkedProperties) {
+            if (loadProperties() == true) {
+                properties = revisionInternal.getProperties();
+            }
+            checkedProperties = true;
+        }
+        return Collections.unmodifiableMap(properties);
+    }
+
+    boolean loadProperties() {
+        try {
+            HashMap<String, Object> emptyProperties = new HashMap<String, Object>();
+            CBLRevisionInternal loadRevision = new CBLRevisionInternal(emptyProperties, database);
+            database.loadRevisionBody(loadRevision, EnumSet.noneOf(CBLDatabase.TDContentOptions.class));
+            if (loadRevision == null) {
+                Log.w(CBLDatabase.TAG, "Couldn't load body/sequence of %s" + this);
+                return false;
+            }
+            revisionInternal = loadRevision;
+            return true;
+
+        } catch (CBLiteException e) {
+            throw new RuntimeException(e);
+        }
+
+    }
+
     /**
      * Creates and saves a new revision with the given properties.
      * This will fail with a 412 error if the receiver is not the current revision of the document.
      */
     public CBLRevision putProperties(Map<String,Object> properties) throws CBLiteException {
-        return document.putProperties(properties);
+        return document.putProperties(properties, revisionInternal.getRevId());
     }
 
     /**
      * Has this object fetched its contents from the database yet?
      */
-    public boolean isPropertiesAreLoaded() {
-        return propertiesAreLoaded;
+    public boolean isPropertiesLoaded() {
+        return revisionInternal.getProperties() != null;
     }
 
     /**
@@ -80,8 +116,7 @@ public class CBLRevision extends CBLRevisionBase {
      * @throws CBLiteException
      */
     public CBLRevision deleteDocument() throws CBLiteException {
-        // TODO: implement
-        throw new RuntimeException("Not Implemented");
+        return putProperties(null);
     }
 
     /**
