@@ -10,7 +10,7 @@ public interface CBLValidationContext {
     /**
      * The contents of the current revision of the document, or nil if this is a new document.
      */
-    CBLRevisionInternal getCurrentRevision();
+    CBLRevisionInternal getCurrentRevision() throws CBLiteException;
 
     /**
      * The type of HTTP status to report, if the validate block returns NO.

@@ -18,6 +18,7 @@ import android.util.Log;
 import com.couchbase.cblite.CBLBody;
 import com.couchbase.cblite.CBLDatabase;
 import com.couchbase.cblite.CBLMisc;
+import com.couchbase.cblite.CBLiteException;
 import com.couchbase.cblite.internal.CBLRevisionInternal;
 import com.couchbase.cblite.CBLRevisionList;
 import com.couchbase.cblite.CBLServer;
@@ -333,13 +334,15 @@ public class CBLPuller extends CBLReplicator implements CBLChangeTrackerClient {
                 long fakeSequence = rev.getSequence();
                 List<String> history = (List<String>)revAndHistory.get(1);
                 // Insert the revision:
-                CBLStatus status = db.forceInsert(rev, history, remote);
-                if(!status.isSuccessful()) {
-                    if(status.getCode() == CBLStatus.FORBIDDEN) {
+
+                try {
+                    db.forceInsert(rev, history, remote);
+                } catch (CBLiteException e) {
+                    if(e.getCBLStatus().getCode() == CBLStatus.FORBIDDEN) {
                         Log.i(CBLDatabase.TAG, this + ": Remote rev failed validation: " + rev);
                     } else {
-                        Log.w(CBLDatabase.TAG, this + " failed to write " + rev + ": status=" + status.getCode());
-                        error = new HttpResponseException(status.getCode(), null);
+                        Log.w(CBLDatabase.TAG, this + " failed to write " + rev + ": status=" + e.getCBLStatus().getCode());
+                        error = new HttpResponseException(e.getCBLStatus().getCode(), null);
                         continue;
                     }
                 }

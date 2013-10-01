@@ -827,9 +827,9 @@ public class CBLDatabase extends Observable {
         return getDocumentWithIDAndRev(docId, revId, EnumSet.of(TDContentOptions.TDNoBody)) != null;
     }
 
-    public CBLStatus loadRevisionBody(CBLRevisionInternal rev, EnumSet<TDContentOptions> contentOptions) {
+    public void loadRevisionBody(CBLRevisionInternal rev, EnumSet<TDContentOptions> contentOptions) throws CBLiteException {
         if(rev.getBody() != null) {
-            return new CBLStatus(CBLStatus.OK);
+            return;
         }
         assert((rev.getDocId() != null) && (rev.getRevId() != null));
 
@@ -846,13 +846,12 @@ public class CBLDatabase extends Observable {
             }
         } catch(SQLException e) {
             Log.e(CBLDatabase.TAG, "Error loading revision body", e);
-            return new CBLStatus(CBLStatus.INTERNAL_SERVER_ERROR);
+            throw new CBLiteException(CBLStatus.INTERNAL_SERVER_ERROR);
         } finally {
             if(cursor != null) {
                 cursor.close();
             }
         }
-        return result;
     }
 
     public long getDocNumericID(String docId) {
@@ -1449,21 +1448,21 @@ public class CBLDatabase extends Observable {
     /*** CBLDatabase+Attachments                                                                    ***/
     /*************************************************************************************************/
 
-    public CBLStatus insertAttachmentForSequenceWithNameAndType(InputStream contentStream, long sequence, String name, String contentType, int revpos) {
+    public void insertAttachmentForSequenceWithNameAndType(InputStream contentStream, long sequence, String name, String contentType, int revpos) throws CBLiteException {
         assert(sequence > 0);
         assert(name != null);
 
         CBLBlobKey key = new CBLBlobKey();
         if(!attachments.storeBlobStream(contentStream, key)) {
-            return new CBLStatus(CBLStatus.INTERNAL_SERVER_ERROR);
+            throw new CBLiteException(CBLStatus.INTERNAL_SERVER_ERROR);
         }
 
 
-        return insertAttachmentForSequenceWithNameAndType(sequence, name, contentType, revpos, key);
+        insertAttachmentForSequenceWithNameAndType(sequence, name, contentType, revpos, key);
 
     }
 
-    public CBLStatus insertAttachmentForSequenceWithNameAndType(long sequence, String name, String contentType, int revpos, CBLBlobKey key) {
+    public void insertAttachmentForSequenceWithNameAndType(long sequence, String name, String contentType, int revpos, CBLBlobKey key) throws CBLiteException {
         try {
             ContentValues args = new ContentValues();
             args.put("sequence", sequence);
@@ -1473,10 +1472,9 @@ public class CBLDatabase extends Observable {
             args.put("length", attachments.getSizeOfBlob(key));
             args.put("revpos", revpos);
             sqliteDb.insert("attachments", null, args);
-            return new CBLStatus(CBLStatus.CREATED);
         } catch (SQLException e) {
             Log.e(CBLDatabase.TAG, "Error inserting attachment", e);
-            return new CBLStatus(CBLStatus.INTERNAL_SERVER_ERROR);
+            throw new CBLiteException(CBLStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -1514,11 +1512,11 @@ public class CBLDatabase extends Observable {
         return new CBLStatus(CBLStatus.OK);
     }
 
-    public CBLStatus copyAttachmentNamedFromSequenceToSequence(String name, long fromSeq, long toSeq) {
+    public void copyAttachmentNamedFromSequenceToSequence(String name, long fromSeq, long toSeq) throws CBLiteException {
         assert(name != null);
         assert(toSeq > 0);
         if(fromSeq < 0) {
-            return new CBLStatus(CBLStatus.NOT_FOUND);
+            throw new CBLiteException(CBLStatus.NOT_FOUND);
         }
 
         Cursor cursor = null;
@@ -1535,14 +1533,14 @@ public class CBLDatabase extends Observable {
                 // Oops. This means a glitch in our attachment-management or pull code,
                 // or else a bug in the upstream server.
                 Log.w(CBLDatabase.TAG, "Can't find inherited attachment " + name + " from seq# " + Long.toString(fromSeq) + " to copy to " + Long.toString(toSeq));
-                return new CBLStatus(CBLStatus.NOT_FOUND);
+                throw new CBLiteException(CBLStatus.NOT_FOUND);
             }
             else {
-                return new CBLStatus(CBLStatus.OK);
+                return;
             }
         } catch (SQLException e) {
             Log.e(CBLDatabase.TAG, "Error copying attachment", e);
-            return new CBLStatus(CBLStatus.INTERNAL_SERVER_ERROR);
+            throw new CBLiteException(CBLStatus.INTERNAL_SERVER_ERROR);
         } finally {
             if(cursor != null) {
                 cursor.close();
@@ -1553,10 +1551,9 @@ public class CBLDatabase extends Observable {
     /**
      * Returns the content and MIME type of an attachment
      */
-    public CBLAttachment getAttachmentForSequence(long sequence, String filename, CBLStatus status) {
+    public CBLAttachment getAttachmentForSequence(long sequence, String filename) throws CBLiteException {
         assert(sequence > 0);
         assert(filename != null);
-
 
         Cursor cursor = null;
 
@@ -1565,8 +1562,7 @@ public class CBLDatabase extends Observable {
             cursor = sqliteDb.rawQuery("SELECT key, type FROM attachments WHERE sequence=? AND filename=?", args);
 
             if(!cursor.moveToFirst()) {
-                status.setCode(CBLStatus.NOT_FOUND);
-                return null;
+                throw new CBLiteException(CBLStatus.NOT_FOUND);
             }
 
             byte[] keyData = cursor.getBlob(0);
@@ -1575,21 +1571,15 @@ public class CBLDatabase extends Observable {
             InputStream contentStream = attachments.blobStreamForKey(key);
             if(contentStream == null) {
                 Log.e(CBLDatabase.TAG, "Failed to load attachment");
-                status.setCode(CBLStatus.INTERNAL_SERVER_ERROR);
-                return null;
+                throw new CBLiteException(CBLStatus.INTERNAL_SERVER_ERROR);
             }
             else {
-                status.setCode(CBLStatus.OK);
-                CBLAttachment result = new CBLAttachment();
-                result.setContentStream(contentStream);
-                result.setContentType(cursor.getString(1));
+                CBLAttachment result = new CBLAttachment(contentStream, cursor.getString(1));
                 return result;
             }
 
-
         } catch (SQLException e) {
-            status.setCode(CBLStatus.INTERNAL_SERVER_ERROR);
-            return null;
+            throw new CBLiteException(CBLStatus.INTERNAL_SERVER_ERROR);
         } finally {
             if(cursor != null) {
                 cursor.close();
@@ -1729,7 +1719,7 @@ public class CBLDatabase extends Observable {
     /**
      * Given a newly-added revision, adds the necessary attachment rows to the sqliteDb and stores inline attachments into the blob store.
      */
-    public CBLStatus processAttachmentsForRevision(CBLRevisionInternal rev, long parentSequence) {
+    public void processAttachmentsForRevision(CBLRevisionInternal rev, long parentSequence) throws CBLiteException {
         assert(rev != null);
         long newSequence = rev.getSequence();
         assert(newSequence > parentSequence);
@@ -1741,7 +1731,7 @@ public class CBLDatabase extends Observable {
             newAttachments = (Map<String,Object>)properties.get("_attachments");
         }
         if(newAttachments == null || newAttachments.size() == 0 || rev.isDeleted()) {
-            return new CBLStatus(CBLStatus.OK);
+            return;
         }
 
         for (String name : newAttachments.keySet()) {
@@ -1756,10 +1746,10 @@ public class CBLDatabase extends Observable {
                     newContents = Base64.decode(newContentBase64);
                 } catch (IOException e) {
                     Log.e(CBLDatabase.TAG, "IOExeption parsing base64", e);
-                    return new CBLStatus(CBLStatus.BAD_REQUEST);
+                    throw new CBLiteException(CBLStatus.BAD_REQUEST);
                 }
                 if(newContents == null) {
-                    return new CBLStatus(CBLStatus.BAD_REQUEST);
+                    throw new CBLiteException(CBLStatus.BAD_REQUEST);
                 }
 
                 // Now determine the revpos, i.e. generation # this was added in. Usually this is
@@ -1773,7 +1763,7 @@ public class CBLDatabase extends Observable {
                 }
 
                 if(revpos > generation) {
-                    return new CBLStatus(CBLStatus.BAD_REQUEST);
+                    throw new CBLiteException(CBLStatus.BAD_REQUEST);
                 }
 
                 // Finally insert the attachment:
@@ -1789,7 +1779,7 @@ public class CBLDatabase extends Observable {
                     contentType = (String) newAttach.get("content-type");
                 }
 
-                status = insertAttachmentForSequenceWithNameAndType(new ByteArrayInputStream(newContents), newSequence, name, contentType, revpos);
+                insertAttachmentForSequenceWithNameAndType(new ByteArrayInputStream(newContents), newSequence, name, contentType, revpos);
             }
             else if (newAttach.containsKey("follows") && ((Boolean)newAttach.get("follows")).booleanValue() == true)  {
 
@@ -1804,57 +1794,56 @@ public class CBLDatabase extends Observable {
                 }
 
                 if(revpos > generation) {
-                    return new CBLStatus(CBLStatus.BAD_REQUEST);
+                    throw new CBLiteException(CBLStatus.BAD_REQUEST);
                 }
 
                 // Finally insert the attachment:
                 Charset utf8 = Charset.forName("UTF-8");
                 String sha1DigestKey = (String) newAttach.get("digest");
                 CBLBlobKey key = new CBLBlobKey(sha1DigestKey);
-                status = insertAttachmentForSequenceWithNameAndType(newSequence, name, (String)newAttach.get("content_type"), revpos, key);
+                insertAttachmentForSequenceWithNameAndType(newSequence, name, (String) newAttach.get("content_type"), revpos, key);
 
             }
             else {
                 // It's just a stub, so copy the previous revision's attachment entry:
                 //? Should I enforce that the type and digest (if any) match?
-                status = copyAttachmentNamedFromSequenceToSequence(name, parentSequence, newSequence);
+                copyAttachmentNamedFromSequenceToSequence(name, parentSequence, newSequence);
             }
-            if(!status.isSuccessful()) {
-                return status;
-            }
+
         }
 
-        return new CBLStatus(CBLStatus.OK);
+    }
+
+    public CBLRevisionInternal updateAttachment(String filename, InputStream contentStream, String contentType, String docID, String oldRevID) throws CBLiteException {
+        return updateAttachment(filename, contentStream, contentType, docID, oldRevID, null);
     }
 
     /**
      * Updates or deletes an attachment, creating a new document revision in the process.
      * Used by the PUT / DELETE methods called on attachment URLs.
      */
-    public CBLRevisionInternal updateAttachment(String filename, InputStream contentStream, String contentType, String docID, String oldRevID, CBLStatus status) {
-        status.setCode(CBLStatus.BAD_REQUEST);
+    public CBLRevisionInternal updateAttachment(String filename, InputStream contentStream, String contentType, String docID, String oldRevID, CBLStatus status) throws CBLiteException {
         if(filename == null || filename.length() == 0 || (contentStream != null && contentType == null) || (oldRevID != null && docID == null) || (contentStream != null && docID == null)) {
-            return null;
+            throw new CBLiteException(CBLStatus.BAD_REQUEST);
         }
 
         beginTransaction();
         try {
             CBLRevisionInternal oldRev = new CBLRevisionInternal(docID, oldRevID, false, this);
             if(oldRevID != null) {
+
                 // Load existing revision if this is a replacement:
-                CBLStatus loadStatus = loadRevisionBody(oldRev, EnumSet.noneOf(TDContentOptions.class));
-                status.setCode(loadStatus.getCode());
-                if(!status.isSuccessful()) {
-                    if(status.getCode() == CBLStatus.NOT_FOUND && existsDocumentWithIDAndRev(docID, null)) {
-                        status.setCode(CBLStatus.CONFLICT);  // if some other revision exists, it's a conflict
+                try {
+                    loadRevisionBody(oldRev, EnumSet.noneOf(TDContentOptions.class));
+                } catch (CBLiteException e) {
+                    if (e.getCBLStatus().getCode() == CBLStatus.NOT_FOUND && existsDocumentWithIDAndRev(docID, null) ) {
+                        throw new CBLiteException(CBLStatus.CONFLICT);
                     }
-                    return null;
                 }
 
                 Map<String,Object> attachments = (Map<String, Object>) oldRev.getProperties().get("_attachments");
                 if(contentStream == null && attachments != null && !attachments.containsKey(filename)) {
-                    status.setCode(CBLStatus.NOT_FOUND);
-                    return null;
+                    throw new CBLiteException(CBLStatus.NOT_FOUND);
                 }
                 // Remove the _attachments stubs so putRevision: doesn't copy the rows for me
                 // OPT: Would be better if I could tell loadRevisionBody: not to add it
@@ -1869,7 +1858,8 @@ public class CBLDatabase extends Observable {
             }
 
             // Create a new revision:
-            CBLRevisionInternal newRev = putRevision(oldRev, oldRevID, false, status);
+            CBLStatus putStatus = new CBLStatus();
+            CBLRevisionInternal newRev = putRevision(oldRev, oldRevID, false, putStatus);
             if(newRev == null) {
                 return null;
             }
@@ -1885,13 +1875,9 @@ public class CBLDatabase extends Observable {
 
             if(contentStream != null) {
                 // If not deleting, add a new attachment entry:
-                CBLStatus insertStatus = insertAttachmentForSequenceWithNameAndType(contentStream, newRev.getSequence(),
+                insertAttachmentForSequenceWithNameAndType(contentStream, newRev.getSequence(),
                         filename, contentType, newRev.getGeneration());
-                status.setCode(insertStatus.getCode());
 
-                if(!status.isSuccessful()) {
-                    return null;
-                }
             }
 
             status.setCode((contentStream != null) ? CBLStatus.CREATED : CBLStatus.OK);
@@ -1906,6 +1892,7 @@ public class CBLDatabase extends Observable {
         }
     }
 
+
     public void rememberAttachmentWritersForDigests(Map<String, CBLBlobStoreWriter> blobsByDigest) {
         if (pendingAttachmentsByDigest == null) {
             pendingAttachmentsByDigest = new HashMap<String, CBLBlobStoreWriter>();
@@ -1914,9 +1901,10 @@ public class CBLDatabase extends Observable {
     }
 
 
-        /**
-         * Deletes obsolete attachments from the sqliteDb and blob store.
-         */
+
+     /**
+      * Deletes obsolete attachments from the sqliteDb and blob store.
+      */
     public CBLStatus garbageCollectAttachments() {
         // First delete attachment rows for already-cleared revisions:
         // OPT: Could start after last sequence# we GC'd up to
@@ -2097,14 +2085,15 @@ public class CBLDatabase extends Observable {
     }
 
     // TODO: move this to internal API
-    public CBLRevisionInternal putRevision(CBLRevisionInternal rev, String prevRevId, CBLStatus resultStatus) {
+    public CBLRevisionInternal putRevision(CBLRevisionInternal rev, String prevRevId, CBLStatus resultStatus) throws CBLiteException  {
         return putRevision(rev, prevRevId, false, resultStatus);
     }
 
-
-    public CBLRevisionInternal putRevision(CBLRevisionInternal rev, String prevRevId, boolean allowConflict) {
-        return putRevision(rev, prevRevId, allowConflict, null);
+    public CBLRevisionInternal putRevision(CBLRevisionInternal rev, String prevRevId,  boolean allowConflict) throws CBLiteException  {
+        CBLStatus ignoredStatus = new CBLStatus();
+        return putRevision(rev, prevRevId, allowConflict, ignoredStatus);
     }
+
 
     /**
      * TODO: move this to internal API
@@ -2119,17 +2108,15 @@ public class CBLDatabase extends Observable {
      * @return A new CBLRevisionInternal with the docID, revID and sequence filled in (but no body).
      */
     @SuppressWarnings("unchecked")
-    public CBLRevisionInternal putRevision(CBLRevisionInternal rev, String prevRevId, boolean allowConflict, CBLStatus resultStatus) {
+    public CBLRevisionInternal putRevision(CBLRevisionInternal rev, String prevRevId, boolean allowConflict, CBLStatus resultStatus) throws CBLiteException {
         // prevRevId is the rev ID being replaced, or nil if an insert
         String docId = rev.getDocId();
         boolean deleted = rev.isDeleted();
         if((rev == null) || ((prevRevId != null) && (docId == null)) || (deleted && (docId == null))
                 || ((docId != null) && !isValidDocumentId(docId))) {
-            resultStatus.setCode(CBLStatus.BAD_REQUEST);
-            return null;
+            throw new CBLiteException(CBLStatus.BAD_REQUEST);
         }
 
-        resultStatus.setCode(CBLStatus.INTERNAL_SERVER_ERROR);
         beginTransaction();
         Cursor cursor = null;
 
@@ -2141,8 +2128,7 @@ public class CBLDatabase extends Observable {
             if(prevRevId != null) {
                 // Replacing: make sure given prevRevID is current & find its sequence number:
                 if(docNumericID <= 0) {
-                    resultStatus.setCode(CBLStatus.NOT_FOUND);
-                    return null;
+                    throw new CBLiteException(CBLStatus.NOT_FOUND);
                 }
 
                 String[] args = {Long.toString(docNumericID), prevRevId};
@@ -2160,23 +2146,17 @@ public class CBLDatabase extends Observable {
                 if(parentSequence == 0) {
                     // Not found: either a 404 or a 409, depending on whether there is any current revision
                     if(!allowConflict && existsDocumentWithIDAndRev(docId, null)) {
-                        resultStatus.setCode(CBLStatus.CONFLICT);
-                        return null;
+                        throw new CBLiteException(CBLStatus.CONFLICT);
                     }
                     else {
-                        resultStatus.setCode(CBLStatus.NOT_FOUND);
-                        return null;
+                        throw new CBLiteException(CBLStatus.NOT_FOUND);
                     }
                 }
 
                 if(validations != null && validations.size() > 0) {
                     // Fetch the previous revision and validate the new one against it:
                     CBLRevisionInternal prevRev = new CBLRevisionInternal(docId, prevRevId, false, this);
-                    CBLStatus status = validateRevision(rev, prevRev);
-                    if(!status.isSuccessful()) {
-                        resultStatus.setCode(status.getCode());
-                        return null;
-                    }
+                    validateRevision(rev, prevRev);
                 }
 
                 // Make replaced rev non-current:
@@ -2189,21 +2169,15 @@ public class CBLDatabase extends Observable {
                 if(deleted && (docId != null)) {
                     // Didn't specify a revision to delete: 404 or a 409, depending
                     if(existsDocumentWithIDAndRev(docId, null)) {
-                        resultStatus.setCode(CBLStatus.CONFLICT);
-                        return null;
+                        throw new CBLiteException(CBLStatus.CONFLICT);
                     }
                     else {
-                        resultStatus.setCode(CBLStatus.NOT_FOUND);
-                        return null;
+                        throw new CBLiteException(CBLStatus.NOT_FOUND);
                     }
                 }
 
                 // Validate:
-                CBLStatus status = validateRevision(rev, null);
-                if(!status.isSuccessful()) {
-                    resultStatus.setCode(status.getCode());
-                    return null;
-                }
+                validateRevision(rev, null);
 
                 if(docId != null) {
                     // Inserting first revision, with docID given (PUT):
@@ -2228,8 +2202,7 @@ public class CBLDatabase extends Observable {
                             }
                             else if (!allowConflict) {
                                 // docId already exists, current not deleted, conflict
-                                resultStatus.setCode(CBLStatus.CONFLICT);
-                                return null;
+                                throw new CBLiteException(CBLStatus.CONFLICT);
                             }
                         }
                     }
@@ -2253,8 +2226,7 @@ public class CBLDatabase extends Observable {
                 data = encodeDocumentJSON(rev);
                 if(data == null) {
                     // bad or missing json
-                    resultStatus.setCode(CBLStatus.BAD_REQUEST);
-                    return null;
+                    throw new CBLiteException(CBLStatus.BAD_REQUEST);
                 }
             }
 
@@ -2268,11 +2240,7 @@ public class CBLDatabase extends Observable {
 
             // Store any attachments:
             if(attachments != null) {
-                CBLStatus status = processAttachmentsForRevision(rev, parentSequence);
-                if(!status.isSuccessful()) {
-                    resultStatus.setCode(status.getCode());
-                    return null;
-                }
+                processAttachmentsForRevision(rev, parentSequence);
             }
 
             // Success!
@@ -2303,12 +2271,12 @@ public class CBLDatabase extends Observable {
      *
      * It must already have a revision ID. This may create a conflict! The revision's history must be given; ancestor revision IDs that don't already exist locally will create phantom revisions with no content.
      */
-    public CBLStatus forceInsert(CBLRevisionInternal rev, List<String> revHistory, URL source) {
+    public void forceInsert(CBLRevisionInternal rev, List<String> revHistory, URL source) throws CBLiteException {
 
         String docId = rev.getDocId();
         String revId = rev.getRevId();
         if(!isValidDocumentId(docId) || (revId == null)) {
-            return new CBLStatus(CBLStatus.BAD_REQUEST);
+            throw new CBLiteException(CBLStatus.BAD_REQUEST);
         }
 
         int historyCount = 0;
@@ -2320,7 +2288,7 @@ public class CBLDatabase extends Observable {
             revHistory.add(revId);
             historyCount = 1;
         } else if(!revHistory.get(0).equals(rev.getRevId())) {
-            return new CBLStatus(CBLStatus.BAD_REQUEST);
+            throw new CBLiteException(CBLStatus.BAD_REQUEST);
         }
 
         boolean success = false;
@@ -2330,7 +2298,7 @@ public class CBLDatabase extends Observable {
             long docNumericID = getOrInsertDocNumericID(docId);
             CBLRevisionList localRevs = getAllRevisionsOfDocumentID(docId, docNumericID, false);
             if(localRevs == null) {
-                return new CBLStatus(CBLStatus.INTERNAL_SERVER_ERROR);
+                throw new CBLiteException(CBLStatus.INTERNAL_SERVER_ERROR);
             }
 
             // Walk through the remote history in chronological order, matching each revision ID to
@@ -2358,7 +2326,7 @@ public class CBLDatabase extends Observable {
                        if(!rev.isDeleted()) {
                            data = encodeDocumentJSON(rev);
                            if(data == null) {
-                               return new CBLStatus(CBLStatus.BAD_REQUEST);
+                               throw new CBLiteException(CBLStatus.BAD_REQUEST);
                            }
                        }
                        current = true;
@@ -2372,15 +2340,13 @@ public class CBLDatabase extends Observable {
                     sequence = insertRevision(newRev, docNumericID, sequence, current, data);
 
                     if(sequence <= 0) {
-                        return new CBLStatus(CBLStatus.INTERNAL_SERVER_ERROR);
+                        throw new CBLiteException(CBLStatus.INTERNAL_SERVER_ERROR);
                     }
 
                     if(i == 0) {
                         // Write any changed attachments for the new revision:
-                        CBLStatus status = processAttachmentsForRevision(rev, localParentSequence);
-                        if(!status.isSuccessful()) {
-                            return status;
-                        }
+                        processAttachmentsForRevision(rev, localParentSequence);
+
                     }
                 }
             }
@@ -2393,21 +2359,20 @@ public class CBLDatabase extends Observable {
                 try {
                     sqliteDb.update("revs", args, "sequence=?", whereArgs);
                 } catch (SQLException e) {
-                    return new CBLStatus(CBLStatus.INTERNAL_SERVER_ERROR);
+                    throw new CBLiteException(CBLStatus.INTERNAL_SERVER_ERROR);
                 }
             }
 
             success = true;
         } catch(SQLException e) {
             endTransaction(success);
-            return new CBLStatus(CBLStatus.INTERNAL_SERVER_ERROR);
+            throw new CBLiteException(CBLStatus.INTERNAL_SERVER_ERROR);
         } finally {
             endTransaction(success);
         }
 
         // Notify and return:
         notifyChange(rev, source);
-        return new CBLStatus(CBLStatus.CREATED);
     }
 
     /** VALIDATION **/
@@ -2435,20 +2400,17 @@ public class CBLDatabase extends Observable {
         return result;
     }
 
-    public CBLStatus validateRevision(CBLRevisionInternal newRev, CBLRevisionInternal oldRev) {
-        CBLStatus result = new CBLStatus(CBLStatus.OK);
+    public void validateRevision(CBLRevisionInternal newRev, CBLRevisionInternal oldRev) throws CBLiteException {
         if(validations == null || validations.size() == 0) {
-            return result;
+            return;
         }
         TDValidationContextImpl context = new TDValidationContextImpl(this, oldRev);
         for (String validationName : validations.keySet()) {
             CBLValidationBlock validation = getValidationNamed(validationName);
             if(!validation.validate(newRev, context)) {
-                result.setCode(context.getErrorType().getCode());
-                break;
+                throw new CBLiteException(context.getErrorType().getCode());
             }
         }
-        return result;
     }
 
     /*************************************************************************************************/
@@ -2766,7 +2728,7 @@ class TDValidationContextImpl implements CBLValidationContext {
     }
 
     @Override
-    public CBLRevisionInternal getCurrentRevision() {
+    public CBLRevisionInternal getCurrentRevision() throws CBLiteException {
         if(currentRevision != null) {
             database.loadRevisionBody(currentRevision, EnumSet.noneOf(TDContentOptions.class));
         }

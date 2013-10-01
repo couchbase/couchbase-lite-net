@@ -24,6 +24,7 @@ import com.couchbase.cblite.CBLBlobKey;
 import com.couchbase.cblite.CBLBlobStore;
 import com.couchbase.cblite.CBLDatabase;
 import com.couchbase.cblite.CBLFilterBlock;
+import com.couchbase.cblite.CBLiteException;
 import com.couchbase.cblite.internal.CBLRevisionInternal;
 import com.couchbase.cblite.CBLRevisionList;
 import com.couchbase.cblite.CBLServer;
@@ -173,6 +174,8 @@ public class CBLPusher extends CBLReplicator implements Observer {
 
             @Override
             public void onCompletion(Object response, Throwable e) {
+
+
                 Map<String,Object> results = (Map<String,Object>)response;
                 if(e != null) {
                     error = e;
@@ -201,12 +204,13 @@ public class CBLPusher extends CBLReplicator implements Observer {
                                             CBLDatabase.TDContentOptions.TDBigAttachmentsFollow
                                     );
 
-                                    CBLStatus status = db.loadRevisionBody(rev, contentOptions);
-                                    if(!status.isSuccessful()) {
-                                        Log.w(CBLDatabase.TAG, String.format("%s: Couldn't get local contents of %s", this, rev));
-                                    } else {
-                                        properties = new HashMap<String,Object>(rev.getProperties());
+                                    try {
+                                        db.loadRevisionBody(rev, contentOptions);
+                                    } catch (CBLiteException e1) {
+                                        throw new RuntimeException(e1);
                                     }
+                                    properties = new HashMap<String,Object>(rev.getProperties());
+
                                 }
                                 if (properties.containsKey("_attachments")) {
                                     if (uploadMultipartRevision(rev)) {

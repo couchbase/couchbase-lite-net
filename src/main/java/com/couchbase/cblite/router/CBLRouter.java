@@ -389,10 +389,10 @@ public class CBLRouter implements Observer {
         //Log.d(TAG, "path: " + path + " message: " + message + " docID: " + docID + " attachmentName: " + attachmentName);
 
         // Send myself a message based on the components:
-        CBLStatus status = new CBLStatus(CBLStatus.INTERNAL_SERVER_ERROR);
+        CBLStatus status = null;
         try {
             Method m = this.getClass().getMethod(message, CBLDatabase.class, String.class, String.class);
-            status = (CBLStatus)m.invoke(this, db, docID, attachmentName);
+            m.invoke(this, db, docID, attachmentName);
         } catch (NoSuchMethodException msme) {
             try {
                 String errorMessage = "CBLRouter unable to route request to " + message;
@@ -402,7 +402,7 @@ public class CBLRouter implements Observer {
                 result.put("reason", errorMessage);
                 connection.setResponseBody(new CBLBody(result));
                 Method m = this.getClass().getMethod("do_UNKNOWN", CBLDatabase.class, String.class, String.class);
-                status = (CBLStatus)m.invoke(this, db, docID, attachmentName);
+                status = new CBLStatus(CBLStatus.BAD_REQUEST);
             } catch (Exception e) {
                 //default status is internal server error
                 Log.e(CBLDatabase.TAG, "CBLRouter attempted do_UNKNWON fallback, but that threw an exception", e);
@@ -419,7 +419,12 @@ public class CBLRouter implements Observer {
             result.put("error", "not_found");
             result.put("reason", errorMessage + e.toString());
             connection.setResponseBody(new CBLBody(result));
-            status = new CBLStatus(CBLStatus.NOT_FOUND);
+            if (e instanceof CBLiteException) {
+                status = ((CBLiteException)e).getCBLStatus();
+            }
+            else {
+                status = new CBLStatus(CBLStatus.NOT_FOUND);
+            }
         }
 
         // Configure response headers:
@@ -820,7 +825,7 @@ public class CBLRouter implements Observer {
                         status =  new CBLStatus(CBLStatus.BAD_REQUEST);
                     } else {
                         List<String> history = CBLDatabase.parseCouchDBRevisionHistory(doc);
-                        status = db.forceInsert(rev, history, null);
+                        db.forceInsert(rev, history, null);
                     }
                 } else {
                     CBLStatus outStatus = new CBLStatus();
@@ -1138,31 +1143,107 @@ public class CBLRouter implements Observer {
     }
 
     public CBLStatus do_GET_Document(CBLDatabase _db, String docID, String _attachmentName) {
-        // http://wiki.apache.org/couchdb/HTTP_Document_API#GET
-        boolean isLocalDoc = docID.startsWith("_local");
-        EnumSet<TDContentOptions> options = getContentOptions();
-        String openRevsParam = getQuery("open_revs");
-        if(openRevsParam == null || isLocalDoc) {
-            // Regular GET:
-            String revID = getQuery("rev");  // often null
-            CBLRevisionInternal rev = null;
-            if(isLocalDoc) {
-                rev = db.getDbInternal().getLocalDocument(docID, revID);
+        try {
+            // http://wiki.apache.org/couchdb/HTTP_Document_API#GET
+            boolean isLocalDoc = docID.startsWith("_local");
+            EnumSet<TDContentOptions> options = getContentOptions();
+            String openRevsParam = getQuery("open_revs");
+            if(openRevsParam == null || isLocalDoc) {
+                // Regular GET:
+                String revID = getQuery("rev");  // often null
+                CBLRevisionInternal rev = null;
+                if(isLocalDoc) {
+                    rev = db.getDbInternal().getLocalDocument(docID, revID);
+                } else {
+                    rev = db.getDocumentWithIDAndRev(docID, revID, options);
+                    // Handle ?atts_since query by stubbing out older attachments:
+                    //?atts_since parameter - value is a (URL-encoded) JSON array of one or more revision IDs.
+                    // The response will include the content of only those attachments that changed since the given revision(s).
+                    //(You can ask for this either in the default JSON or as multipart/related, as previously described.)
+                    List<String> attsSince = (List<String>)getJSONQuery("atts_since");
+                    if (attsSince != null) {
+                        String ancestorId = db.findCommonAncestorOf(rev, attsSince);
+                        if (ancestorId != null) {
+                            int generation = CBLRevisionInternal.generationFromRevID(ancestorId);
+                            db.stubOutAttachmentsIn(rev, generation + 1);
+                        }
+                    }
+                }
+                if(rev == null) {
+                    return new CBLStatus(CBLStatus.NOT_FOUND);
+                }
+                if(cacheWithEtag(rev.getRevId())) {
+                    return new CBLStatus(CBLStatus.NOT_MODIFIED);  // set ETag and check conditional GET
+                }
+
+                connection.setResponseBody(rev.getBody());
             } else {
-                rev = db.getDocumentWithIDAndRev(docID, revID, options);
-                // Handle ?atts_since query by stubbing out older attachments:
-                //?atts_since parameter - value is a (URL-encoded) JSON array of one or more revision IDs.
-                // The response will include the content of only those attachments that changed since the given revision(s).
-                //(You can ask for this either in the default JSON or as multipart/related, as previously described.)
-                List<String> attsSince = (List<String>)getJSONQuery("atts_since");
-                if (attsSince != null) {
-                    String ancestorId = db.findCommonAncestorOf(rev, attsSince);
-                    if (ancestorId != null) {
-                        int generation = CBLRevisionInternal.generationFromRevID(ancestorId);
-                        db.stubOutAttachmentsIn(rev, generation + 1);
-                	}
+                List<Map<String,Object>> result = null;
+                if(openRevsParam.equals("all")) {
+                    // Get all conflicting revisions:
+                    CBLRevisionList allRevs = db.getAllRevisionsOfDocumentID(docID, true);
+                    result = new ArrayList<Map<String,Object>>(allRevs.size());
+                    for (CBLRevisionInternal rev : allRevs) {
+
+                        try {
+                            db.loadRevisionBody(rev, options);
+                        } catch (CBLiteException e) {
+                            if (e.getCBLStatus().getCode() != CBLStatus.INTERNAL_SERVER_ERROR) {
+                                Map<String, Object> dict = new HashMap<String,Object>();
+                                dict.put("missing", rev.getRevId());
+                                result.add(dict);
+                            }
+                            else {
+                                throw e;
+                            }
+                        }
+
+                        Map<String, Object> dict = new HashMap<String,Object>();
+                        dict.put("ok", rev.getProperties());
+                        result.add(dict);
+
+                    }
+                } else {
+                    // ?open_revs=[...] returns an array of revisions of the document:
+                    List<String> openRevs = (List<String>)getJSONQuery("open_revs");
+                    if(openRevs == null) {
+                        return new CBLStatus(CBLStatus.BAD_REQUEST);
+                    }
+                    result = new ArrayList<Map<String,Object>>(openRevs.size());
+                    for (String revID : openRevs) {
+                        CBLRevisionInternal rev = db.getDocumentWithIDAndRev(docID, revID, options);
+                        if(rev != null) {
+                            Map<String, Object> dict = new HashMap<String,Object>();
+                            dict.put("ok", rev.getProperties());
+                            result.add(dict);
+                        } else {
+                            Map<String, Object> dict = new HashMap<String,Object>();
+                            dict.put("missing", revID);
+                            result.add(dict);
+                        }
+                    }
+                }
+                String acceptMultipart  = getMultipartRequestType();
+                if(acceptMultipart != null) {
+                    //FIXME figure out support for multipart
+                    throw new UnsupportedOperationException();
+                } else {
+                    connection.setResponseBody(new CBLBody(result));
                 }
             }
+            return new CBLStatus(CBLStatus.OK);
+        } catch (CBLiteException e) {
+            return e.getCBLStatus();
+        }
+    }
+
+    public CBLStatus do_GET_Attachment(CBLDatabase _db, String docID, String _attachmentName) {
+        try {
+            // http://wiki.apache.org/couchdb/HTTP_Document_API#GET
+            EnumSet<TDContentOptions> options = getContentOptions();
+            options.add(TDContentOptions.TDNoBody);
+            String revID = getQuery("rev");  // often null
+            CBLRevisionInternal rev = db.getDocumentWithIDAndRev(docID, revID, options);
             if(rev == null) {
                 return new CBLStatus(CBLStatus.NOT_FOUND);
             }
@@ -1170,89 +1251,27 @@ public class CBLRouter implements Observer {
                 return new CBLStatus(CBLStatus.NOT_MODIFIED);  // set ETag and check conditional GET
             }
 
-            connection.setResponseBody(rev.getBody());
-        } else {
-            List<Map<String,Object>> result = null;
-            if(openRevsParam.equals("all")) {
-                // Get all conflicting revisions:
-                CBLRevisionList allRevs = db.getAllRevisionsOfDocumentID(docID, true);
-                result = new ArrayList<Map<String,Object>>(allRevs.size());
-                for (CBLRevisionInternal rev : allRevs) {
-                    CBLStatus status = db.loadRevisionBody(rev, options);
-                    if(status.isSuccessful()) {
-                        Map<String, Object> dict = new HashMap<String,Object>();
-                        dict.put("ok", rev.getProperties());
-                        result.add(dict);
-                    } else if(status.getCode() != CBLStatus.INTERNAL_SERVER_ERROR) {
-                        Map<String, Object> dict = new HashMap<String,Object>();
-                        dict.put("missing", rev.getRevId());
-                        result.add(dict);
-                    } else {
-                        return status;  // internal error getting revision
-                    }
-                }
-            } else {
-                // ?open_revs=[...] returns an array of revisions of the document:
-                List<String> openRevs = (List<String>)getJSONQuery("open_revs");
-                if(openRevs == null) {
-                    return new CBLStatus(CBLStatus.BAD_REQUEST);
-                }
-                result = new ArrayList<Map<String,Object>>(openRevs.size());
-                for (String revID : openRevs) {
-                    CBLRevisionInternal rev = db.getDocumentWithIDAndRev(docID, revID, options);
-                    if(rev != null) {
-                        Map<String, Object> dict = new HashMap<String,Object>();
-                        dict.put("ok", rev.getProperties());
-                        result.add(dict);
-                    } else {
-                        Map<String, Object> dict = new HashMap<String,Object>();
-                        dict.put("missing", revID);
-                        result.add(dict);
-                    }
-                }
+            String type = null;
+            String acceptEncoding = connection.getRequestProperty("Accept-Encoding");
+            CBLAttachment contents = db.getAttachmentForSequence(rev.getSequence(), _attachmentName);
+
+            if (contents == null) {
+                return new CBLStatus(CBLStatus.NOT_FOUND);
             }
-            String acceptMultipart  = getMultipartRequestType();
-            if(acceptMultipart != null) {
-                //FIXME figure out support for multipart
-                throw new UnsupportedOperationException();
-            } else {
-                connection.setResponseBody(new CBLBody(result));
+            type = contents.getContentType();
+            if (type != null) {
+                connection.getResHeader().add("Content-Type", type);
             }
+            if (acceptEncoding != null && acceptEncoding.equals("gzip")) {
+                connection.getResHeader().add("Content-Encoding", acceptEncoding);
+            }
+
+            connection.setResponseInputStream(contents.getBody());
+            return new CBLStatus(CBLStatus.OK);
+
+        } catch (CBLiteException e) {
+            return e.getCBLStatus();
         }
-        return new CBLStatus(CBLStatus.OK);
-    }
-
-    public CBLStatus do_GET_Attachment(CBLDatabase _db, String docID, String _attachmentName) {
-    	// http://wiki.apache.org/couchdb/HTTP_Document_API#GET
-        EnumSet<TDContentOptions> options = getContentOptions();
-        options.add(TDContentOptions.TDNoBody);
-    	String revID = getQuery("rev");  // often null
-    	CBLRevisionInternal rev = db.getDocumentWithIDAndRev(docID, revID, options);
-    	if(rev == null) {
-    		return new CBLStatus(CBLStatus.NOT_FOUND);
-    	}
-    	if(cacheWithEtag(rev.getRevId())) {
-    		return new CBLStatus(CBLStatus.NOT_MODIFIED);  // set ETag and check conditional GET
-    	}
-
-    	String type = null;
-    	CBLStatus status = new CBLStatus();
-    	String acceptEncoding = connection.getRequestProperty("Accept-Encoding");
-    	CBLAttachment contents = db.getAttachmentForSequence(rev.getSequence(), _attachmentName, status);
-
-    	if (contents == null) {
-    		return new CBLStatus(CBLStatus.NOT_FOUND);
-    	}
-    	type = contents.getContentType();
-    	if (type != null) {
-    		connection.getResHeader().add("Content-Type", type);
-    	}
-    	if (acceptEncoding != null && acceptEncoding.equals("gzip")) {
-    		connection.getResHeader().add("Content-Encoding", acceptEncoding);
-    	}
-
-        connection.setResponseInputStream(contents.getContentStream());
-        return new CBLStatus(CBLStatus.OK);
     }
 
     /**
@@ -1340,24 +1359,24 @@ public class CBLRouter implements Observer {
         return status;
     }
 
-    public CBLStatus do_PUT_Document(CBLDatabase _db, String docID, String _attachmentName) {
+    public void do_PUT_Document(CBLDatabase _db, String docID, String _attachmentName) throws CBLiteException {
         Map<String,Object> bodyDict = getBodyAsDictionary();
         if(bodyDict == null) {
-            return new CBLStatus(CBLStatus.BAD_REQUEST);
+            throw new CBLiteException(CBLStatus.BAD_REQUEST);
         }
 
         if(getQuery("new_edits") == null || (getQuery("new_edits") != null && (new Boolean(getQuery("new_edits"))))) {
             // Regular PUT
-            return update(_db, docID, bodyDict, false);
+            update(_db, docID, bodyDict, false);
         } else {
             // PUT with new_edits=false -- forcible insertion of existing revision:
             CBLBody body = new CBLBody(bodyDict);
             CBLRevisionInternal rev = new CBLRevisionInternal(body, _db);
             if(rev.getRevId() == null || rev.getDocId() == null || !rev.getDocId().equals(docID)) {
-                return new CBLStatus(CBLStatus.BAD_REQUEST);
+                throw new CBLiteException(CBLStatus.BAD_REQUEST);
             }
             List<String> history = CBLDatabase.parseCouchDBRevisionHistory(body.getProperties());
-            return db.forceInsert(rev, history, null);
+            db.forceInsert(rev, history, null);
         }
     }
 
@@ -1365,7 +1384,7 @@ public class CBLRouter implements Observer {
         return update(_db, docID, null, true);
     }
 
-    public CBLStatus updateAttachment(String attachment, String docID, InputStream contentStream) {
+    public void updateAttachment(String attachment, String docID, InputStream contentStream) throws CBLiteException {
         CBLStatus status = new CBLStatus();
         String revID = getQuery("rev");
         if(revID == null) {
@@ -1373,26 +1392,23 @@ public class CBLRouter implements Observer {
         }
         CBLRevisionInternal rev = db.updateAttachment(attachment, contentStream, connection.getRequestProperty("content-type"),
                 docID, revID, status);
-        if(status.isSuccessful()) {
-            Map<String, Object> resultDict = new HashMap<String, Object>();
-            resultDict.put("ok", true);
-            resultDict.put("id", rev.getDocId());
-            resultDict.put("rev", rev.getRevId());
-            connection.setResponseBody(new CBLBody(resultDict));
-            cacheWithEtag(rev.getRevId());
-            if(contentStream != null) {
-                setResponseLocation(connection.getURL());
-            }
+        Map<String, Object> resultDict = new HashMap<String, Object>();
+        resultDict.put("ok", true);
+        resultDict.put("id", rev.getDocId());
+        resultDict.put("rev", rev.getRevId());
+        connection.setResponseBody(new CBLBody(resultDict));
+        cacheWithEtag(rev.getRevId());
+        if(contentStream != null) {
+            setResponseLocation(connection.getURL());
         }
-        return status;
     }
 
-    public CBLStatus do_PUT_Attachment(CBLDatabase _db, String docID, String _attachmentName) {
-        return updateAttachment(_attachmentName, docID, connection.getRequestInputStream());
+    public void do_PUT_Attachment(CBLDatabase _db, String docID, String _attachmentName) throws CBLiteException {
+        updateAttachment(_attachmentName, docID, connection.getRequestInputStream());
     }
 
-    public CBLStatus do_DELETE_Attachment(CBLDatabase _db, String docID, String _attachmentName) {
-        return updateAttachment(_attachmentName, docID, null);
+    public void do_DELETE_Attachment(CBLDatabase _db, String docID, String _attachmentName) throws CBLiteException {
+        updateAttachment(_attachmentName, docID, null);
     }
 
     /** VIEW QUERIES: **/

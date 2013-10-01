@@ -1,5 +1,7 @@
 package com.couchbase.cblite;
 
+import android.util.Log;
+
 import com.couchbase.cblite.auth.CBLAuthorizer;
 import com.couchbase.cblite.auth.CBLFacebookAuthorizer;
 import com.couchbase.cblite.auth.CBLPersonaAuthorizer;
@@ -9,6 +11,7 @@ import com.couchbase.cblite.replicator.CBLReplicator;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public enum CBLManager {
