@@ -234,7 +234,9 @@ public class CBLDatabase extends Observable {
     /**
      * Replaces the sqliteDb with a copy of another sqliteDb.
      *
-     * This is primarily used to install a canned sqliteDb on first launch of an app, in which case you should first check .exists to avoid replacing the sqliteDb if it exists already. The canned sqliteDb would have been copied into your app bundle at build time.
+     * This is primarily used to install a canned sqliteDb on first launch of an app, in which case you should
+     * first check .exists to avoid replacing the sqliteDb if it exists already. The canned sqliteDb
+     * would have been copied into your app bundle at build time.
      *
      * @param databasePath  Path of the sqliteDb file that should replace this one.
      * @param attachmentsPath  Path of the associated attachments directory, or nil if there are no attachments.
