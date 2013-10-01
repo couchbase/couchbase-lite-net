@@ -144,8 +144,12 @@ public class CBLRevisionBase {
      * @return
      */
     public List<CBLAttachment> getAttachments() {
-        // TODO
-        throw new RuntimeException("Not implemented");
+        List<CBLAttachment> result = new ArrayList<CBLAttachment>();
+        List<String> attachmentNames = getAttachmentNames();
+        for (String attachmentName : attachmentNames) {
+            result.add(getAttachment(attachmentName));
+        }
+        return result;
     }
 
     void setProperties(Map<String,Object> properties) {
