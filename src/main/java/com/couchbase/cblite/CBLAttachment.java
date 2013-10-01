@@ -104,6 +104,14 @@ public class CBLAttachment {
         return name;
     }
 
+    void setName(String name) {
+        this.name = name;
+    }
+
+    void setRevision(CBLRevisionBase revision) {
+        this.revision = revision;
+    }
+
     /**
      * Get the length in bytes of the contents.
      */

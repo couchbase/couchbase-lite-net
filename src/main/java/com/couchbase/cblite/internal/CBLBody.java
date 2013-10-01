@@ -17,6 +17,7 @@
 
 package com.couchbase.cblite.internal;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -122,7 +123,8 @@ public class CBLBody {
     public Map<String, Object> getProperties() {
         Object object = getObject();
         if(object instanceof Map) {
-            return (Map<String,Object>)object;
+            Map<String, Object> map = (Map<String, Object>) object;
+            return Collections.unmodifiableMap(map);
         }
         return null;
     }

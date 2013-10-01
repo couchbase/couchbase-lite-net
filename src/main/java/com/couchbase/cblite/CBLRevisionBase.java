@@ -20,13 +20,6 @@ public class CBLRevisionBase {
     protected String revId;
 
     /**
-     * Does this revision mark the deletion of its document?
-     * (In other words, does it have a "_deleted" property?)
-     */
-    protected boolean deleted;
-
-
-    /**
      * The request/response/document body, stored as either JSON or a Map<String,Object>
      */
     protected CBLBody checkedBody;
@@ -191,12 +184,17 @@ public class CBLRevisionBase {
         this.revId = revId;
     }
 
+    /**
+     * Does this revision mark the deletion of its document?
+     * (In other words, does it have a "_deleted" property?)
+     */
     boolean isDeleted() {
-        return deleted;
-    }
-
-    void setDeleted(boolean deleted) {
-        this.deleted = deleted;
+        Object deleted = getPropertyForKey("_deleted");
+        if (deleted == null) {
+            return false;
+        }
+        Boolean deletedBool = (Boolean) deleted;
+        return deletedBool.booleanValue();
     }
 
     CBLBody getBody() {

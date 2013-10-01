@@ -7,8 +7,9 @@ import java.util.Map;
 
 public class CBLNewRevision extends CBLRevisionBase {
 
-    private CBLBody body;
+    // private CBLBody body;
     private String parentRevID;
+    private Map<String, Object> properties;
 
     protected CBLNewRevision(CBLDocument document, CBLRevision parentRevision) {
 
@@ -16,25 +17,30 @@ public class CBLNewRevision extends CBLRevisionBase {
 
         parentRevID = parentRevision.getId();
 
-        // note: in the iOS version, this was being converted from an immutable -> mutable map.
-        // but since the original map is already mutable, not doing anything special here.
-        body = parentRevision.getBody();
+        Map<String, Object> parentRevisionProperties = parentRevision.getProperties();
 
-        if (body == null) {
-            Map properties = new HashMap<String, Object>();
+        if (parentRevisionProperties == null) {
+            properties = new HashMap<String, Object>();
             properties.put("_id", document.getId());
             properties.put("_rev", parentRevID);
-            body = new CBLBody(properties);
+        }
+        else {
+            properties = new HashMap<String, Object>(parentRevisionProperties);
         }
 
     }
 
     public void setProperties(Map<String,Object> properties) {
-        this.body = new CBLBody(properties);
+        this.properties = properties;
     }
 
     public void setDeleted(boolean deleted) {
-        this.deleted = deleted;
+        if (deleted == true) {
+            properties.put("_deleted", true);
+        }
+        else {
+            properties.remove("_deleted");
+        }
     }
 
     public CBLRevision getParentRevision() {
@@ -45,17 +51,19 @@ public class CBLNewRevision extends CBLRevisionBase {
     }
 
     public CBLRevision save() throws CBLiteException {
-        return document.putProperties(body.getProperties(), parentRevID);
+        return document.putProperties(properties, parentRevID);
     }
 
-    public void addAttachment(CBLAttachment attachment) {
-        // TODO: implement
-        throw new RuntimeException("Not implemented");
+    public void addAttachment(CBLAttachment attachment, String name) {
+        Map<String, Object> attachments =  (Map<String, Object>) properties.get("_attachments");
+        attachments.put(name, attachment);
+        properties.put("_attachments", attachments);
+        attachment.setName(name);
+        attachment.setRevision(this);
     }
 
-    public void removeAttachmentNamed(String attachmentName) {
-        // TODO: implement
-        throw new RuntimeException("Not implemented");
+    public void removeAttachmentNamed(String name) {
+        addAttachment(null, name);
     }
 
 
