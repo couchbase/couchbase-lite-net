@@ -216,7 +216,6 @@ public class CBLDocument {
      */
     public CBLRevision putProperties(Map<String,Object> properties) throws CBLiteException {
         String prevID = (String) properties.get("_rev");
-
         return putProperties(properties, prevID);
     }
 
@@ -224,12 +223,14 @@ public class CBLDocument {
 
     CBLRevision putProperties(Map<String,Object> properties, String prevID) throws CBLiteException {
 
-        // TODO: here is the objectivec impl
+        String newId = (String) properties.get("_id");
+        if (newId != null && !newId.equalsIgnoreCase(getId())) {
+            Log.w(CBLDatabase.TAG, String.format("Trying to put wrong _id to this: %s properties: %s", this, properties));
+        }
+
+        // TODO: process attachements
 
         /*
-            id idProp = [properties objectForKey: @"_id"];
-            if (idProp && ![idProp isEqual: self.documentId])
-                Warn(@"Trying to PUT wrong _id to %@: %@", self, properties);
 
             // Process _attachments dict, converting CBLAttachments to dicts:
             NSDictionary* attachments = properties[@"_attachments"];
@@ -243,24 +244,21 @@ public class CBLDocument {
                 }
             }
 
-            BOOL deleted = !properties || [properties[@"_deleted"] boolValue];
-            CBL_MutableRevision* rev = [[CBL_MutableRevision alloc] initWithDocID: _docID
-                                                                            revID: nil
-                                                                          deleted: deleted];
-            if (properties)
-                rev.properties = properties;
-            CBLStatus status = 0;
-            CBL_Revision* newRev = [_database putRevision: rev prevRevisionID: prevID
-                                            allowConflict: NO status: &status];
-            if (!newRev) {
-                if (outError) *outError = CBLStatusToNSError(status, nil);
-                return nil;
-            }
-            return [[CBLRevision alloc] initWithDocument: self revision: newRev];
 
          */
 
-        return null;
+
+        boolean deleted = (properties == null) || ((Boolean)properties.get("_deleted")).booleanValue();
+        CBLRevisionInternal rev = new CBLRevisionInternal(documentId, null, deleted, database);
+        if (properties != null) {
+            rev.setProperties(properties);
+        }
+        CBLRevisionInternal newRev = database.putRevision(rev, prevID, false);
+        if (newRev == null) {
+            return null;
+        }
+        return new CBLRevision(this, newRev);
+
     }
 
 

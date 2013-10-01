@@ -2099,7 +2099,6 @@ public class CBLDatabase extends Observable {
 
 
     /**
-     * TODO: move this to internal API
      * Stores a new (or initial) revision of a document.
      *
      * This is what's invoked by a PUT or POST. As with those, the previous revision ID must be supplied when necessary and the call will fail if it doesn't match.
