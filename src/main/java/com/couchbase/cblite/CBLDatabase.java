@@ -1453,6 +1453,10 @@ public class CBLDatabase extends Observable {
     /*** CBLDatabase+Attachments                                                                    ***/
     /*************************************************************************************************/
 
+    void insertAttachmentForSequence(CBLAttachmentInternal attachment, long sequence) throws CBLiteException {
+        insertAttachmentForSequenceWithNameAndType(sequence, attachment.getName(), attachment.getContentType(), attachment.getRevpos(), attachment.getBlobKey());
+    }
+
     public void insertAttachmentForSequenceWithNameAndType(InputStream contentStream, long sequence, String name, String contentType, int revpos) throws CBLiteException {
         assert(sequence > 0);
         assert(name != null);
@@ -1790,8 +1794,61 @@ public class CBLDatabase extends Observable {
 
 
     /**
-     * Given a newly-added revision, adds the necessary attachment rows to the sqliteDb and stores inline attachments into the blob store.
+     * Given a newly-added revision, adds the necessary attachment rows to the sqliteDb and
+     * stores inline attachments into the blob store.
      */
+    void processAttachmentsForRevision(Map<String, CBLAttachmentInternal> attachments, CBLRevisionInternal rev, long parentSequence) throws CBLiteException {
+
+        assert(rev != null);
+        long newSequence = rev.getSequence();
+        assert(newSequence > parentSequence);
+        int generation = rev.getGeneration();
+        assert(generation > 0);
+
+        // If there are no attachments in the new rev, there's nothing to do:
+        Map<String,Object> revAttachments = null;
+        Map<String,Object> properties = (Map<String,Object>)rev.getProperties();
+        if(properties != null) {
+            revAttachments = (Map<String,Object>)properties.get("_attachments");
+        }
+        if(revAttachments == null || revAttachments.size() == 0 || rev.isDeleted()) {
+            return;
+        }
+
+        for (String name : revAttachments.keySet()) {
+            CBLAttachmentInternal attachment = attachments.get(name);
+            if (attachment != null) {
+                // Determine the revpos, i.e. generation # this was added in. Usually this is
+                // implicit, but a rev being pulled in replication will have it set already.
+                if (attachment.getRevpos() == 0) {
+                    attachment.setRevpos(generation);
+                }
+                else if (attachment.getRevpos() > generation) {
+                    Log.w(CBLDatabase.TAG, String.format("Attachment %s %s has unexpected revpos %s, setting to %s", rev, name, attachment.getRevpos(), generation));
+                    attachment.setRevpos(generation);
+                }
+                // Finally insert the attachment:
+                insertAttachmentForSequence(attachment, newSequence);
+
+            }
+            else {
+                // It's just a stub, so copy the previous revision's attachment entry:
+                //? Should I enforce that the type and digest (if any) match?
+                copyAttachmentNamedFromSequenceToSequence(name, parentSequence, newSequence);
+            }
+
+        }
+
+    }
+
+
+
+    /**
+     *
+     * TODO: old, delete this
+     *
+     * Given a newly-added revision, adds the necessary attachment rows to the sqliteDb and stores inline attachments into the blob store.
+
     public void processAttachmentsForRevision(CBLRevisionInternal rev, long parentSequence) throws CBLiteException {
         assert(rev != null);
         long newSequence = rev.getSequence();
@@ -1886,6 +1943,7 @@ public class CBLDatabase extends Observable {
         }
 
     }
+    */
 
     public CBLRevisionInternal updateAttachment(String filename, InputStream contentStream, String contentType, String docID, String oldRevID) throws CBLiteException {
         return updateAttachment(filename, contentStream, contentType, docID, oldRevID, null);

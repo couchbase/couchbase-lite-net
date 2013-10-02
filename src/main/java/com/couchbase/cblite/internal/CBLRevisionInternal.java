@@ -74,7 +74,7 @@ public class CBLRevisionInternal {
         /*
 
         native_api branch: commenting this out to match ios code.  the expectation
-                           is that this attachment handling will happen elsewhere
+                           is that this attachment handling will happen else
 
         // this is a much more simplified version that what happens on the iOS.  it was
         // done this way due to time constraints, so at some point this needs to be
