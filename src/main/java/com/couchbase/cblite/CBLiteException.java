@@ -17,6 +17,10 @@ public class CBLiteException extends Exception {
         this.status = status;
     }
 
+    public CBLiteException(String detailMessage, int statusCode) {
+        this(detailMessage, new CBLStatus(statusCode));
+    }
+
     public CBLiteException(String detailMessage, Throwable throwable, CBLStatus status) {
         super(detailMessage, throwable);
         this.status = status;

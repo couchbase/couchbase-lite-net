@@ -41,6 +41,7 @@ import android.database.sqlite.SQLiteException;
 import android.util.Log;
 
 import com.couchbase.cblite.CBLDatabase.TDContentOptions;
+import com.couchbase.cblite.internal.CBLAttachmentInternal;
 import com.couchbase.cblite.internal.CBLBody;
 import com.couchbase.cblite.internal.CBLDatabaseInternal;
 import com.couchbase.cblite.internal.CBLRevisionInternal;
@@ -68,6 +69,7 @@ public class CBLDatabase extends Observable {
     private Map<String, CBLFilterBlock> filters;
     private Map<String, CBLFilterCompiler> filterCompiler;
     private Map<String, CBLValidationBlock> validations;
+
     private Map<String, CBLBlobStoreWriter> pendingAttachmentsByDigest;
     private List<CBLReplicator> activeReplicators;
     private CBLBlobStore attachments;
@@ -1481,39 +1483,31 @@ public class CBLDatabase extends Observable {
         }
     }
 
-    /**
-     * Move pending (temporary) attachments into their permanent location.
-     */
-    public CBLStatus installPendingAttachment(Map<String, Object> attachment) {
-        String digest = (String) attachment.get("digest");
+    void installAttachment(CBLAttachmentInternal attachment, Map<String, Object> attachInfo) throws CBLiteException {
+        String digest = (String) attachInfo.get("digest");
         if (digest == null) {
-            return new CBLStatus(CBLStatus.BAD_ATTACHMENT);
+            throw new CBLiteException(CBLStatus.BAD_ATTACHMENT);
         }
         if (pendingAttachmentsByDigest != null && pendingAttachmentsByDigest.containsKey(digest)) {
-            Object writer = pendingAttachmentsByDigest.get(digest);
-            if (writer instanceof CBLBlobStoreWriter) {
-                try {
-                    ((CBLBlobStoreWriter) writer).install();
-
-                    // this is a temporary hack.  rather than doing what it does in the ios putRevision()
-                    // method, and creating CBLAttachment objects and passing it down into this method,
-                    // just set the digest in this map to be sha1 (the one we want).
-                    attachment.put("digest", ((CBLBlobStoreWriter) writer).sHA1DigestString());
-
-                } catch (Exception e) {
-                    String msg = String.format("Unable to install pending attachment: %s", digest);
-                    Log.e(CBLDatabase.TAG, msg, e);
-                    return new CBLStatus(CBLStatus.STATUS_ATTACHMENT_ERROR);
-                }
-                return new CBLStatus(CBLStatus.OK);
-            }
-            // TODO: deal with case where its a byte[] rather than a blob store writer, see ios
-            else {
-                return new CBLStatus(CBLStatus.BAD_ATTACHMENT);
+            CBLBlobStoreWriter writer = pendingAttachmentsByDigest.get(digest);
+            try {
+                CBLBlobStoreWriter blobStoreWriter = (CBLBlobStoreWriter) writer;
+                blobStoreWriter.install();
+                attachment.setBlobKey(blobStoreWriter.getBlobKey());
+                attachment.setLength(blobStoreWriter.getLength());
+            } catch (Exception e) {
+                throw new CBLiteException(e, CBLStatus.STATUS_ATTACHMENT_ERROR);
             }
         }
-        return new CBLStatus(CBLStatus.OK);
     }
+
+    private Map<String, CBLBlobStoreWriter> getPendingAttachmentsByDigest() {
+        if (pendingAttachmentsByDigest == null) {
+            pendingAttachmentsByDigest = new HashMap<String, CBLBlobStoreWriter>();
+        }
+        return pendingAttachmentsByDigest;
+    }
+
 
     public void copyAttachmentNamedFromSequenceToSequence(String name, long fromSeq, long toSeq) throws CBLiteException {
         assert(name != null);
@@ -1897,10 +1891,8 @@ public class CBLDatabase extends Observable {
 
 
     public void rememberAttachmentWritersForDigests(Map<String, CBLBlobStoreWriter> blobsByDigest) {
-        if (pendingAttachmentsByDigest == null) {
-            pendingAttachmentsByDigest = new HashMap<String, CBLBlobStoreWriter>();
-        }
-        pendingAttachmentsByDigest.putAll(blobsByDigest);
+
+        getPendingAttachmentsByDigest().putAll(blobsByDigest);
     }
 
 
@@ -1982,7 +1974,7 @@ public class CBLDatabase extends Observable {
                 return null;
             }
         }
-        String digest = CBLMisc.TDCreateUUID();  //TODO: Generate canonical digest of body
+        String digest = CBLMisc.TDCreateUUID();  // TODO: Generate canonical digest of body
         return Integer.toString(generation + 1) + "-" + digest;
     }
 
@@ -2221,6 +2213,9 @@ public class CBLDatabase extends Observable {
 
             //// PART II: In which insertion occurs...
 
+            // Get the attachments:
+            Map<String, Object> attachments = getAttachmentsFromRevision(rev);
+
             // Bump the revID and update the JSON:
             String newRevId = generateNextRevisionID(prevRevId);
             byte[] data = null;
@@ -2233,6 +2228,7 @@ public class CBLDatabase extends Observable {
             }
 
             rev = rev.copyWithDocID(docId, newRevId);
+            stubOutAttachmentsInRevision(attachments, rev);
 
             // Now insert the rev itself:
             long newSequence = insertRevision(rev, docNumericID, parentSequence, true, data);
@@ -2242,7 +2238,7 @@ public class CBLDatabase extends Observable {
 
             // Store any attachments:
             if(attachments != null) {
-                processAttachmentsForRevision(rev, parentSequence);
+                processAttachmentsForRevision(attachments, rev, parentSequence);
             }
 
             // Success!
@@ -2266,6 +2262,76 @@ public class CBLDatabase extends Observable {
         //// EPILOGUE: A change notification is sent...
         notifyChange(rev, null);
         return rev;
+    }
+
+    /**
+     * Given a revision, read its _attachments dictionary (if any), convert each attachment to a
+     * CBLAttachmentInternal object, and return a dictionary mapping names->CBL_Attachments.
+     */
+    Map<String, Object> getAttachmentsFromRevision(CBLRevisionInternal rev) throws CBLiteException {
+
+        Map<String, Object> revAttachments = (Map<String, Object>) rev.getPropertyForKey("_attachmments");
+        if (revAttachments == null || revAttachments.size() == 0 || rev.isDeleted()) {
+            return new HashMap<String, Object>();
+        }
+
+        Map<String, Object> attachments = new HashMap<String, Object>();
+        for (String name : revAttachments.keySet()) {
+            Map<String, Object> attachInfo = (Map<String, Object>) revAttachments.get(name);
+            String contentType = (String) attachInfo.get("content_type");
+            CBLAttachmentInternal attachment = new CBLAttachmentInternal(name, contentType);
+            String newContentBase64 = (String) attachInfo.get("data");
+            if (newContentBase64 != null) {
+                // If there's inline attachment data, decode and store it:
+                byte[] newContents;
+                try {
+                    newContents = Base64.decode(newContentBase64);
+                } catch (IOException e) {
+                    throw new CBLiteException(e, CBLStatus.BAD_ENCODING);
+                }
+                attachment.setLength(newContents.length);
+                boolean storedBlob = getAttachments().storeBlob(newContents, attachment.getBlobKey());
+                if (!storedBlob) {
+                    throw new CBLiteException(CBLStatus.STATUS_ATTACHMENT_ERROR);
+                }
+            }
+            else if (((Boolean)attachInfo.get("follows")).booleanValue() == true) {
+                // "follows" means the uploader provided the attachment in a separate MIME part.
+                // This means it's already been registered in _pendingAttachmentsByDigest;
+                // I just need to look it up by its "digest" property and install it into the store:
+                installAttachment(attachment, attachInfo);
+
+            }
+            else {
+                // This item is just a stub; validate and skip it
+                if (((Boolean)attachInfo.get("stub")).booleanValue() == false) {
+                    throw new CBLiteException("Expected this attachment to be a stub", CBLStatus.BAD_ATTACHMENT);
+                }
+                int revPos = ((Integer)attachInfo.get("revpos")).intValue();
+                if (revPos <= 0) {
+                    throw new CBLiteException("Invalid revpos: " + revPos, CBLStatus.BAD_ATTACHMENT);
+                }
+                continue;
+            }
+
+            // Handle encoded attachment:
+            String encodingStr = (String) attachInfo.get("encoding");
+            if (encodingStr != null && encodingStr.length() > 0) {
+                if (encodingStr.equalsIgnoreCase("gzip")) {
+                    attachment.setEncoding(CBLAttachmentInternal.CBLAttachmentEncoding.CBLAttachmentEncodingGZIP);
+                }
+                else {
+                    throw new CBLiteException("Unnkown encoding: " + encodingStr, CBLStatus.BAD_ENCODING);
+                }
+                attachment.setEncodedLength(attachment.getLength());
+                attachment.setLength((Long)attachInfo.get("length"));
+            }
+            attachment.setRevpos((Integer)attachInfo.get("revpos"));
+            attachments.put(name, attachment);
+        }
+
+        return attachments;
+
     }
 
     /**
@@ -2346,6 +2412,27 @@ public class CBLDatabase extends Observable {
                     }
 
                     if(i == 0) {
+
+                        /*
+
+                        TODO:
+
+                        if (i==0) {
+                            // Write any changed attachments for the new revision. As the parent sequence use
+                            // the latest local revision (this is to copy attachments from):
+                            CBLStatus status;
+                            NSDictionary* attachments = [self attachmentsFromRevision: rev status: &status];
+                            if (attachments) {
+                                status = [self processAttachments: attachments
+                                                      forRevision: rev
+                                               withParentSequence: localParentSequence];
+                                [CBLDatabase stubOutAttachments: attachments inRevision: rev];
+                            }
+                            if (CBLStatusIsError(status))
+                                return status;
+                        }
+                        */
+
                         // Write any changed attachments for the new revision:
                         processAttachmentsForRevision(rev, localParentSequence);
 

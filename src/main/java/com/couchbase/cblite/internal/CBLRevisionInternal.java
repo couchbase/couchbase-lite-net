@@ -71,6 +71,11 @@ public class CBLRevisionInternal {
     public void setProperties(Map<String,Object> properties) {
         this.body = new CBLBody(properties);
 
+        /*
+
+        native_api branch: commenting this out to match ios code.  the expectation
+                           is that this attachment handling will happen elsewhere
+
         // this is a much more simplified version that what happens on the iOS.  it was
         // done this way due to time constraints, so at some point this needs to be
         // revisited to port the remaining functionality.
@@ -92,6 +97,7 @@ public class CBLRevisionInternal {
             }
 
         }
+        */
 
     }
 

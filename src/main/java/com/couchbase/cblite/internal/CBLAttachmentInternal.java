@@ -8,7 +8,7 @@ import com.couchbase.cblite.CBLBlobKey;
 public class CBLAttachmentInternal {
 
     public enum CBLAttachmentEncoding {
-        CBLAttachmentEncodingNone, kCBLAttachmentEncodingGZIP
+        CBLAttachmentEncodingNone, CBLAttachmentEncodingGZIP
     }
 
     private String name;

@@ -12,7 +12,7 @@ import java.io.IOException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
-/** Lets you stream a large attachment to a CBL_BlobStore asynchronously, e.g. from a network download. */
+/** Lets you stream a large attachment to a CBLBlobStore asynchronously, e.g. from a network download. */
 public class CBLBlobStoreWriter {
 
     /** The underlying blob store where it should be stored. */
@@ -131,5 +131,9 @@ public class CBLBlobStoreWriter {
 
     public int getLength() {
         return length;
+    }
+
+    public CBLBlobKey getBlobKey() {
+        return blobKey;
     }
 }
