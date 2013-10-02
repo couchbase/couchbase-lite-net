@@ -1713,6 +1713,82 @@ public class CBLDatabase extends Observable {
             rev.setProperties(editedProperties);
     }
 
+    /*
+    + (void) stubOutAttachments: (NSDictionary*)attachments
+                 inRevision: (CBL_MutableRevision*)rev
+    {
+        [self mutateAttachmentsIn: rev
+                        withBlock: ^NSDictionary *(NSString *name, NSDictionary *attachment) {
+            if (attachment[@"follows"] || attachment[@"data"]) {
+                NSMutableDictionary* editedAttachment = [attachment mutableCopy];
+                [editedAttachment removeObjectForKey: @"follows"];
+                [editedAttachment removeObjectForKey: @"data"];
+                editedAttachment[@"stub"] = $true;
+                if (!editedAttachment[@"revpos"])
+                    editedAttachment[@"revpos"] = @(rev.generation);
+
+                CBL_Attachment* attachmentObject = attachments[name];
+                if (attachmentObject) {
+                    editedAttachment[@"length"] = @(attachmentObject->length);
+                    editedAttachment[@"digest"] = blobKeyToDigest(attachmentObject->blobKey);
+                }
+                attachment = editedAttachment;
+            }
+            return attachment;
+        }];
+    }
+
+    NSDictionary* properties = rev.properties;
+    NSMutableDictionary* editedProperties = nil;
+    NSDictionary* attachments = (id)properties[@"_attachments"];
+    NSMutableDictionary* editedAttachments = nil;
+    for (NSString* name in attachments) {
+        @autoreleasepool {
+            NSDictionary* attachment = attachments[name];
+            NSDictionary* editedAttachment = block(name, attachment);
+            if (!editedAttachment) {
+                return NO;  // block canceled
+            }
+            if (editedAttachment != attachment) {
+                if (!editedProperties) {
+                    // Make the document properties and _attachments dictionary mutable:
+                    editedProperties = [properties mutableCopy];
+                    editedAttachments = [attachments mutableCopy];
+                    editedProperties[@"_attachments"] = editedAttachments;
+                }
+                editedAttachments[name] = editedAttachment;
+            }
+        }
+    }
+
+
+     */
+
+    void stubOutAttachmentsInRevision(Map<String, CBLAttachmentInternal> attachments, CBLRevisionInternal rev) {
+
+        Map<String, Object> properties = rev.getProperties();
+        Map<String, Object> attachmentsFromProps =  (Map<String, Object>) properties.get("_attachments");
+        for (String attachmentKey : attachmentsFromProps.keySet()) {
+            Map<String, Object> attachmentFromProps = (Map<String, Object>) attachmentsFromProps.get(attachmentKey);
+            if (attachmentFromProps.get("follows") != null || attachmentFromProps.get("data") != null) {
+                attachmentFromProps.remove("follows");
+                attachmentFromProps.remove("data");
+                attachmentFromProps.put("stub", true);
+                if (attachmentFromProps.get("revpos") == null) {
+                    attachmentFromProps.put("revpos",rev.getGeneration());
+                }
+                CBLAttachmentInternal attachmentObject = attachments.get(attachmentKey);
+                if (attachmentObject != null) {
+                    attachmentFromProps.put("length", attachmentObject.getLength());
+                    attachmentFromProps.put("digest", attachmentObject.getBlobKey().base64Digest());
+                }
+                attachmentFromProps.put(attachmentKey, attachmentFromProps);
+            }
+        }
+
+    }
+
+
     /**
      * Given a newly-added revision, adds the necessary attachment rows to the sqliteDb and stores inline attachments into the blob store.
      */
@@ -2214,7 +2290,7 @@ public class CBLDatabase extends Observable {
             //// PART II: In which insertion occurs...
 
             // Get the attachments:
-            Map<String, Object> attachments = getAttachmentsFromRevision(rev);
+            Map<String, CBLAttachmentInternal> attachments = getAttachmentsFromRevision(rev);
 
             // Bump the revID and update the JSON:
             String newRevId = generateNextRevisionID(prevRevId);
@@ -2268,14 +2344,14 @@ public class CBLDatabase extends Observable {
      * Given a revision, read its _attachments dictionary (if any), convert each attachment to a
      * CBLAttachmentInternal object, and return a dictionary mapping names->CBL_Attachments.
      */
-    Map<String, Object> getAttachmentsFromRevision(CBLRevisionInternal rev) throws CBLiteException {
+    Map<String, CBLAttachmentInternal> getAttachmentsFromRevision(CBLRevisionInternal rev) throws CBLiteException {
 
         Map<String, Object> revAttachments = (Map<String, Object>) rev.getPropertyForKey("_attachmments");
         if (revAttachments == null || revAttachments.size() == 0 || rev.isDeleted()) {
-            return new HashMap<String, Object>();
+            return new HashMap<String, CBLAttachmentInternal>();
         }
 
-        Map<String, Object> attachments = new HashMap<String, Object>();
+        Map<String, CBLAttachmentInternal> attachments = new HashMap<String, CBLAttachmentInternal>();
         for (String name : revAttachments.keySet()) {
             Map<String, Object> attachInfo = (Map<String, Object>) revAttachments.get(name);
             String contentType = (String) attachInfo.get("content_type");
