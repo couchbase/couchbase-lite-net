@@ -34,6 +34,10 @@ public class CBLNewRevision extends CBLRevisionBase {
         this.properties = properties;
     }
 
+    public Map<String, Object> getProperties() {
+        return properties;
+    }
+
     public void setDeleted(boolean deleted) {
         if (deleted == true) {
             properties.put("_deleted", true);
