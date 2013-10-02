@@ -9,6 +9,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
@@ -74,6 +75,20 @@ public class CBLBlobStoreWriter {
         length += data.length;
         sha1Digest.update(data);
         md5Digest.update(data);
+    }
+
+    void read(InputStream inputStream) {
+        byte[] buffer = new byte[1024];
+        int len;
+        try {
+            while ((len = inputStream.read(buffer)) != -1) {
+                outStream.write(buffer, 0, len);
+                sha1Digest.update(buffer);
+                md5Digest.update(buffer);
+            }
+        } catch (IOException e) {
+            throw new RuntimeException("Unable to read from stream.", e);
+        }
     }
 
     /** Call this after all the data has been added. */

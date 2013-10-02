@@ -1874,6 +1874,9 @@ public class CBLDatabase extends Observable {
         getPendingAttachmentsByDigest().putAll(blobsByDigest);
     }
 
+    void rememberAttachmentWriter(CBLBlobStoreWriter writer) {
+        getPendingAttachmentsByDigest().put(writer.mD5DigestString(), writer);
+    }
 
 
      /**

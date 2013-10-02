@@ -219,8 +219,6 @@ public class CBLDocument {
         return putProperties(properties, prevID);
     }
 
-
-
     CBLRevision putProperties(Map<String,Object> properties, String prevID) throws CBLiteException {
 
         String newId = (String) properties.get("_id");
@@ -228,25 +226,12 @@ public class CBLDocument {
             Log.w(CBLDatabase.TAG, String.format("Trying to put wrong _id to this: %s properties: %s", this, properties));
         }
 
-        // TODO: process attachements
-
-        /*
-
-            // Process _attachments dict, converting CBLAttachments to dicts:
-            NSDictionary* attachments = properties[@"_attachments"];
-            if (attachments.count) {
-                NSDictionary* expanded = [CBLAttachment installAttachmentBodies: attachments
-                                                                     intoDatabase: _database];
-                if (expanded != attachments) {
-                    NSMutableDictionary* nuProperties = [properties mutableCopy];
-                    nuProperties[@"_attachments"] = expanded;
-                    properties = nuProperties;
-                }
-            }
-
-
-         */
-
+        // Process _attachments dict, converting CBLAttachments to dicts:
+        Map<String, Object> attachments = (Map<String, Object>) properties.get("_attachments");
+        if (attachments != null && attachments.size() > 0) {
+            Map<String, Object> updatedAttachments = CBLAttachment.installAttachmentBodies(attachments, database);
+            properties.put("_attachments", updatedAttachments);
+        }
 
         boolean deleted = (properties == null) || ((Boolean)properties.get("_deleted")).booleanValue();
         CBLRevisionInternal rev = new CBLRevisionInternal(documentId, null, deleted, database);

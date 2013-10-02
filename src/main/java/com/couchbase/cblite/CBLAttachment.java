@@ -17,6 +17,7 @@
 
 package com.couchbase.cblite;
 
+import com.couchbase.cblite.internal.CBLAttachmentInternal;
 import com.couchbase.cblite.internal.CBLRevisionInternal;
 
 import java.io.InputStream;
@@ -138,6 +139,10 @@ public class CBLAttachment {
         throw new RuntimeException("Not implemented");
     }
 
+    InputStream getBodyIfNew() {
+        return body;
+    }
+
     /**
      * Updates the body, creating a new document revision in the process.
      * If all you need to do to a document is update a single attachment this is an easy way
@@ -151,6 +156,44 @@ public class CBLAttachment {
         CBLDatabase db = revision.getDatabase();
         CBLRevisionInternal newRevisionInternal = db.updateAttachment(name, body, contentType, revision.getDocument().getId(), revision.getId());
         return new CBLRevision(document, newRevisionInternal);
+    }
+
+    /**
+     * Goes through an _attachments dictionary and replaces any values that are CBLAttachment objects
+     * with proper JSON metadata dicts. It registers the attachment bodies with the blob store and sets
+     * the metadata 'digest' and 'follows' properties accordingly.
+     */
+    static Map<String, Object> installAttachmentBodies(Map<String, Object> attachments, CBLDatabase database) {
+
+        Map<String, Object> updatedAttachments = new HashMap<String, Object>();
+        for (String name : attachments.keySet()) {
+            Object value = attachments.get(name);
+            if (value instanceof CBLAttachment) {
+                CBLAttachment attachment = (CBLAttachment) value;
+                Map<String, Object> metadata = attachment.getMetadata();
+                InputStream body = attachment.getBodyIfNew();
+                if (body != null) {
+                    // Copy attachment body into the database's blob store:
+                    CBLBlobStoreWriter writer = blobStoreWriterForBody(body, database);
+                    metadata.put("length", writer.getLength());
+                    metadata.put("digest", writer.mD5DigestString());
+                    metadata.put("follows", true);
+                    database.rememberAttachmentWriter(writer);
+                }
+                updatedAttachments.put(name, metadata);
+            }
+            else if (value instanceof CBLAttachmentInternal) {
+                throw new IllegalArgumentException("CBLAttachmentInternal objects not expected here.  Could indicate a bug");
+            }
+        }
+        return updatedAttachments;
+    }
+
+    static CBLBlobStoreWriter blobStoreWriterForBody(InputStream body, CBLDatabase database) {
+        CBLBlobStoreWriter writer = database.getAttachmentWriter();
+        writer.read(body);
+        writer.finish();
+        return writer;
     }
 
 
