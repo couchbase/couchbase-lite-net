@@ -1,7 +1,5 @@
 package com.couchbase.cblite;
 
-import com.couchbase.cblite.internal.CBLBody;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -76,7 +74,7 @@ public abstract class CBLRevisionBase {
     /**
      * Shorthand for getProperties().get(key)
      */
-    public Object getPropertyForKey(String key) {
+    public Object getProperty(String key) {
         return getProperties().get(key);
     }
 
@@ -145,7 +143,7 @@ public abstract class CBLRevisionBase {
 
 
     Map<String, Object> getAttachmentMetadata() {
-        return (Map<String, Object>) getPropertyForKey("_attachments");
+        return (Map<String, Object>) getProperty("_attachments");
     }
 
     @Override
@@ -180,7 +178,7 @@ public abstract class CBLRevisionBase {
      * (In other words, does it have a "_deleted" property?)
      */
     boolean isDeleted() {
-        Object deleted = getPropertyForKey("_deleted");
+        Object deleted = getProperty("_deleted");
         if (deleted == null) {
             return false;
         }

@@ -64,6 +64,10 @@ public class CBLRevisionInternal {
         return result;
     }
 
+    public Object getPropertyForKey(String key) {
+        return getProperties().get(key);
+    }
+
     public void setProperties(Map<String,Object> properties) {
         this.body = new CBLBody(properties);
 
