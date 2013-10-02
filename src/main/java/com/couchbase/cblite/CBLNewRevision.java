@@ -50,6 +50,10 @@ public class CBLNewRevision extends CBLRevisionBase {
         return document.getRevision(parentRevID);
     }
 
+    public String getParentRevisionId() {
+        return parentRevID;
+    }
+
     public CBLRevision save() throws CBLiteException {
         return document.putProperties(properties, parentRevID);
     }
