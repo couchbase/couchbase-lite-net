@@ -1717,57 +1717,6 @@ public class CBLDatabase extends Observable {
             rev.setProperties(editedProperties);
     }
 
-    /*
-    + (void) stubOutAttachments: (NSDictionary*)attachments
-                 inRevision: (CBL_MutableRevision*)rev
-    {
-        [self mutateAttachmentsIn: rev
-                        withBlock: ^NSDictionary *(NSString *name, NSDictionary *attachment) {
-            if (attachment[@"follows"] || attachment[@"data"]) {
-                NSMutableDictionary* editedAttachment = [attachment mutableCopy];
-                [editedAttachment removeObjectForKey: @"follows"];
-                [editedAttachment removeObjectForKey: @"data"];
-                editedAttachment[@"stub"] = $true;
-                if (!editedAttachment[@"revpos"])
-                    editedAttachment[@"revpos"] = @(rev.generation);
-
-                CBL_Attachment* attachmentObject = attachments[name];
-                if (attachmentObject) {
-                    editedAttachment[@"length"] = @(attachmentObject->length);
-                    editedAttachment[@"digest"] = blobKeyToDigest(attachmentObject->blobKey);
-                }
-                attachment = editedAttachment;
-            }
-            return attachment;
-        }];
-    }
-
-    NSDictionary* properties = rev.properties;
-    NSMutableDictionary* editedProperties = nil;
-    NSDictionary* attachments = (id)properties[@"_attachments"];
-    NSMutableDictionary* editedAttachments = nil;
-    for (NSString* name in attachments) {
-        @autoreleasepool {
-            NSDictionary* attachment = attachments[name];
-            NSDictionary* editedAttachment = block(name, attachment);
-            if (!editedAttachment) {
-                return NO;  // block canceled
-            }
-            if (editedAttachment != attachment) {
-                if (!editedProperties) {
-                    // Make the document properties and _attachments dictionary mutable:
-                    editedProperties = [properties mutableCopy];
-                    editedAttachments = [attachments mutableCopy];
-                    editedProperties[@"_attachments"] = editedAttachments;
-                }
-                editedAttachments[name] = editedAttachment;
-            }
-        }
-    }
-
-
-     */
-
     void stubOutAttachmentsInRevision(Map<String, CBLAttachmentInternal> attachments, CBLRevisionInternal rev) {
 
         Map<String, Object> properties = rev.getProperties();
@@ -1840,110 +1789,6 @@ public class CBLDatabase extends Observable {
         }
 
     }
-
-
-
-    /**
-     *
-     * TODO: old, delete this
-     *
-     * Given a newly-added revision, adds the necessary attachment rows to the sqliteDb and stores inline attachments into the blob store.
-
-    public void processAttachmentsForRevision(CBLRevisionInternal rev, long parentSequence) throws CBLiteException {
-        assert(rev != null);
-        long newSequence = rev.getSequence();
-        assert(newSequence > parentSequence);
-
-        // If there are no attachments in the new rev, there's nothing to do:
-        Map<String,Object> newAttachments = null;
-        Map<String,Object> properties = (Map<String,Object>)rev.getProperties();
-        if(properties != null) {
-            newAttachments = (Map<String,Object>)properties.get("_attachments");
-        }
-        if(newAttachments == null || newAttachments.size() == 0 || rev.isDeleted()) {
-            return;
-        }
-
-        for (String name : newAttachments.keySet()) {
-
-            CBLStatus status = new CBLStatus();
-            Map<String,Object> newAttach = (Map<String,Object>)newAttachments.get(name);
-            String newContentBase64 = (String)newAttach.get("data");
-            if(newContentBase64 != null) {
-                // New item contains data, so insert it. First decode the data:
-                byte[] newContents;
-                try {
-                    newContents = Base64.decode(newContentBase64);
-                } catch (IOException e) {
-                    Log.e(CBLDatabase.TAG, "IOExeption parsing base64", e);
-                    throw new CBLiteException(CBLStatus.BAD_REQUEST);
-                }
-                if(newContents == null) {
-                    throw new CBLiteException(CBLStatus.BAD_REQUEST);
-                }
-
-                // Now determine the revpos, i.e. generation # this was added in. Usually this is
-                // implicit, but a rev being pulled in replication will have it set already.
-                int generation = rev.getGeneration();
-                assert(generation > 0);
-                Object revposObj = newAttach.get("revpos");
-                int revpos = generation;
-                if(revposObj != null && revposObj instanceof Integer) {
-                    revpos = ((Integer)revposObj).intValue();
-                }
-
-                if(revpos > generation) {
-                    throw new CBLiteException(CBLStatus.BAD_REQUEST);
-                }
-
-                // Finally insert the attachment:
-
-                // workaround for issue #80 - it was looking at the "content_type" field instead of "content-type".
-                // fix is backwards compatible in case any code is using content_type.
-                String contentType = null;
-                if (newAttach.containsKey("content_type")) {
-                    contentType = (String) newAttach.get("content_type");
-                    Log.w(TAG, "Found attachment that uses content_type field name instead of content-type: " + newAttach);
-                }
-                else if (newAttach.containsKey("content-type")) {
-                    contentType = (String) newAttach.get("content-type");
-                }
-
-                insertAttachmentForSequenceWithNameAndType(new ByteArrayInputStream(newContents), newSequence, name, contentType, revpos);
-            }
-            else if (newAttach.containsKey("follows") && ((Boolean)newAttach.get("follows")).booleanValue() == true)  {
-
-                // Now determine the revpos, i.e. generation # this was added in. Usually this is
-                // implicit, but a rev being pulled in replication will have it set already.
-                int generation = rev.getGeneration();
-                assert(generation > 0);
-                Object revposObj = newAttach.get("revpos");
-                int revpos = generation;
-                if(revposObj != null && revposObj instanceof Integer) {
-                    revpos = ((Integer)revposObj).intValue();
-                }
-
-                if(revpos > generation) {
-                    throw new CBLiteException(CBLStatus.BAD_REQUEST);
-                }
-
-                // Finally insert the attachment:
-                Charset utf8 = Charset.forName("UTF-8");
-                String sha1DigestKey = (String) newAttach.get("digest");
-                CBLBlobKey key = new CBLBlobKey(sha1DigestKey);
-                insertAttachmentForSequenceWithNameAndType(newSequence, name, (String) newAttach.get("content_type"), revpos, key);
-
-            }
-            else {
-                // It's just a stub, so copy the previous revision's attachment entry:
-                //? Should I enforce that the type and digest (if any) match?
-                copyAttachmentNamedFromSequenceToSequence(name, parentSequence, newSequence);
-            }
-
-        }
-
-    }
-    */
 
     public CBLRevisionInternal updateAttachment(String filename, InputStream contentStream, String contentType, String docID, String oldRevID) throws CBLiteException {
         return updateAttachment(filename, contentStream, contentType, docID, oldRevID, null);
@@ -2546,31 +2391,15 @@ public class CBLDatabase extends Observable {
                     }
 
                     if(i == 0) {
-
-                        /*
-
-                        TODO:
-
-                        if (i==0) {
-                            // Write any changed attachments for the new revision. As the parent sequence use
-                            // the latest local revision (this is to copy attachments from):
-                            CBLStatus status;
-                            NSDictionary* attachments = [self attachmentsFromRevision: rev status: &status];
-                            if (attachments) {
-                                status = [self processAttachments: attachments
-                                                      forRevision: rev
-                                               withParentSequence: localParentSequence];
-                                [CBLDatabase stubOutAttachments: attachments inRevision: rev];
-                            }
-                            if (CBLStatusIsError(status))
-                                return status;
+                        // Write any changed attachments for the new revision. As the parent sequence use
+                        // the latest local revision (this is to copy attachments from):
+                        Map<String, CBLAttachmentInternal> attachments = getAttachmentsFromRevision(rev);
+                        if (attachments != null) {
+                            processAttachmentsForRevision(attachments, rev, localParentSequence);
+                            stubOutAttachmentsInRevision(attachments, rev);
                         }
-                        */
-
-                        // Write any changed attachments for the new revision:
-                        processAttachmentsForRevision(rev, localParentSequence);
-
                     }
+
                 }
             }
 
