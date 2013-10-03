@@ -24,6 +24,7 @@ import java.io.InputStream;
 import java.net.URL;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -38,7 +39,7 @@ import android.database.Cursor;
 import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteException;
-import android.util.Log;
+import android.text.TextUtils;import android.util.Log;
 
 import com.couchbase.cblite.CBLDatabase.TDContentOptions;
 import com.couchbase.cblite.internal.CBLAttachmentInternal;
@@ -515,20 +516,21 @@ public class CBLDatabase extends Observable {
      * if the code throws an Exception.
      *
      * TODO: implement retry loop in another function that wraps this one.
+     *
      * @param databaseFunction
      */
     public void inTransaction(CBLDatabaseFunction databaseFunction) {
 
-        boolean hadException = false;
+        boolean shouldCommit = true;
+
         beginTransaction();
         try {
-            databaseFunction.performFunction();
+            shouldCommit = databaseFunction.performFunction();
         } catch (Exception e) {
-            hadException = true;
+            shouldCommit = false;
             Log.e(CBLDatabase.TAG, e.toString(), e);
             throw new RuntimeException(e);
         } finally {
-            boolean shouldCommit = !hadException;
             endTransaction(shouldCommit);
         }
 
@@ -2754,6 +2756,126 @@ public class CBLDatabase extends Observable {
         }
         dbInternal.deleteLocalDocument(id, prevRev.getRevId());
         return true;
+    }
+
+    /**
+     * Purges specific revisions, which deletes them completely from the local database _without_ adding a "tombstone" revision. It's as though they were never there.
+     * This operation is described here: http://wiki.apache.org/couchdb/Purge_Documents
+     * @param docsToRevs  A dictionary mapping document IDs to arrays of revision IDs.
+     * @resultOn success will point to an NSDictionary with the same form as docsToRev, containing the doc/revision IDs that were actually removed.
+     */
+
+    Map<String, Object> purgeRevisions(final Map<String, List<String>> docsToRevs) {
+
+        final Map<String, Object> result = new HashMap<String, Object>();
+        inTransaction(new CBLDatabaseFunction() {
+            @Override
+            public boolean performFunction() {
+                for (String docID : docsToRevs.keySet()) {
+                    long docNumericID = getDocNumericID(docID);
+                    if (docNumericID == -1) {
+                        continue; // no such document, skip it
+                    }
+                    List<String> revsPurged = null;
+                    List<String> revIDs = (List<String>) docsToRevs.get(docID);
+                    if (revIDs == null) {
+                        return false;
+                    }
+                    else if (revIDs.size() == 0) {
+                        revsPurged = new ArrayList<String>();
+                    }
+                    else if (revIDs.contains("*")) {
+                        // Delete all revisions if magic "*" revision ID is given:
+                        try {
+                            String[] args = { Long.toString(docNumericID) };
+                            sqliteDb.execSQL("DELETE FROM revs WHERE doc_id=?", args);
+                        }
+                        catch(SQLException e) {
+                            Log.e(CBLDatabase.TAG, "Error deleting revisions", e);
+                            return false;
+                        }
+                        revsPurged.add("*");
+                    }
+                    else {
+                        // Iterate over all the revisions of the doc, in reverse sequence order.
+                        // Keep track of all the sequences to delete, i.e. the given revs and ancestors,
+                        // but not any non-given leaf revs or their ancestors.
+                        Cursor cursor = null;
+
+                        try {
+                            String[] args = { Long.toString(docNumericID) };
+                            String queryString = "SELECT revid, sequence, parent FROM revs WHERE doc_id=? ORDER BY sequence DESC";
+                            cursor = sqliteDb.rawQuery(queryString, args);
+                            if (!cursor.moveToFirst()) {
+                                Log.w(CBLDatabase.TAG, "No results for query: " + queryString);
+                                return false;
+                            }
+
+                            Set<Long> seqsToPurge = new HashSet<Long>();
+                            Set<Long> seqsToKeep = new HashSet<Long>();
+                            Set<String> revsToPurge = new HashSet<String>();
+                            while(!cursor.isAfterLast()) {
+
+                                String revID = cursor.getString(0);
+                                long sequence = cursor.getLong(1);
+                                long parent = cursor.getLong(2);
+                                if (seqsToPurge.contains(sequence) || revIDs.contains(revID) && !seqsToKeep.contains(sequence)) {
+                                    // Purge it and maybe its parent:
+                                    seqsToPurge.add(sequence);
+                                    revsToPurge.add(revID);
+                                    if (parent > 0) {
+                                        seqsToPurge.add(parent);
+                                    }
+                                }
+                                else {
+                                    // Keep it and its parent:
+                                    seqsToPurge.remove(sequence);
+                                    revsToPurge.remove(revID);
+                                    seqsToKeep.add(parent);
+                                }
+
+                                cursor.moveToNext();
+                            }
+
+                            seqsToPurge.removeAll(seqsToKeep);
+                            Log.i(CBLDatabase.TAG, String.format("Purging doc '%s' revs (%s); asked for (%s)", docID, revsToPurge, revIDs));
+                            if (seqsToPurge.size() > 0) {
+                                // Now delete the sequences to be purged.
+                                String seqsToPurgeList = TextUtils.join(",", seqsToPurge);
+                                String sql = String.format("DELETE FROM revs WHERE sequence in (%s)", seqsToPurgeList);
+                                try {
+                                    sqliteDb.execSQL(sql);
+                                }
+                                catch(SQLException e) {
+                                    Log.e(CBLDatabase.TAG, "Error deleting revisions via: " + sql, e);
+                                    return false;
+                                }
+                            }
+                            revsPurged.addAll(revsToPurge);
+
+                        }
+                        catch(SQLException e) {
+                            Log.e(CBLDatabase.TAG, "Error getting revisions", e);
+                            return false;
+                        }
+                        finally {
+                            if(cursor != null) {
+                                cursor.close();
+                            }
+                        }
+
+                    }
+
+                    result.put(docID, revsPurged);
+
+                }
+
+                return true;
+            }
+        });
+
+
+
     }
 
     public Map<String, CBLFilterCompiler> getFilterCompiler() {
