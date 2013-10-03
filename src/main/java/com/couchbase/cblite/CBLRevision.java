@@ -135,7 +135,7 @@ public class CBLRevision extends CBLRevisionBase {
             }
             else {
                 CBLRevision revision = document.getRevisionFromRev(internalRevision);
-                revisions.add(this);
+                revisions.add(revision);
             }
 
         }
