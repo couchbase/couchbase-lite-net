@@ -6,6 +6,7 @@ import android.util.Log;
 import com.couchbase.cblite.internal.CBLRevisionInternal;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
@@ -160,9 +161,8 @@ public class CBLDocument {
      * @return all current conflicting revisions of the document
      * @throws CBLiteException
      */
-    public List<String> getConflictingRevisions() throws CBLiteException {
-        // TODO: is this right??
-        return database.getConflictingRevisionIDsOfDocID(documentId);
+    public List<CBLRevision> getConflictingRevisions() throws CBLiteException {
+        return getLeafRevisions(false);
     }
 
     /**
@@ -189,7 +189,7 @@ public class CBLDocument {
                 result.add(getRevisionFromRev(rev));
             }
         }
-        return result;
+        return Collections.unmodifiableList(result);
     }
 
     /**
