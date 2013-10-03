@@ -5,6 +5,7 @@ import android.util.Log;
 
 import com.couchbase.cblite.internal.CBLRevisionInternal;
 
+import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
@@ -160,6 +161,7 @@ public class CBLDocument {
      * @throws CBLiteException
      */
     public List<String> getConflictingRevisions() throws CBLiteException {
+        // TODO: is this right??
         return database.getConflictingRevisionIDsOfDocID(documentId);
     }
 
@@ -171,8 +173,23 @@ public class CBLDocument {
      * @throws CBLiteException
      */
     public List<CBLRevision> getLeafRevisions() throws CBLiteException {
-        // TODO: implement
-        throw new RuntimeException("Not Implemented");
+        return getLeafRevisions(true);
+    }
+
+    List<CBLRevision> getLeafRevisions(boolean includeDeleted) throws CBLiteException {
+
+        List<CBLRevision> result = new ArrayList<CBLRevision>();
+        CBLRevisionList revs = database.getAllRevisionsOfDocumentID(documentId, true);
+        for (CBLRevisionInternal rev : revs) {
+            // add it to result, unless we are not supposed to include deleted and it's deleted
+            if (!includeDeleted && rev.isDeleted()) {
+                // don't add it
+            }
+            else {
+                result.add(getRevisionFromRev(rev));
+            }
+        }
+        return result;
     }
 
     /**
