@@ -63,8 +63,13 @@ public class CBLDocument {
      * Get the document's abbreviated ID
      */
     public String getAbbreviatedId() {
-        // TODO: implement
-        throw new RuntimeException("Not Implemented");
+        String abbreviated = documentId;
+        if (documentId.length() > 10) {
+            String firstFourChars = documentId.substring(0, 4);
+            String lastFourChars = documentId.substring(abbreviated.length() - 4);
+            return String.format("%s..%s", firstFourChars, lastFourChars);
+        }
+        return documentId;
     }
 
     /**
