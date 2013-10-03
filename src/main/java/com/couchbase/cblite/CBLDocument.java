@@ -255,12 +255,11 @@ public class CBLDocument {
 
     }
 
-
     /**
      * Saves a new revision by letting the caller update the existing properties.
      * This method handles conflicts by retrying (calling the block again).
      * The CBLRevisionUpdater implementation should modify the properties of the new revision and return YES to save or
-     * NO to cancel. Be careful: the block can be called multiple times if there is a conflict!
+     * NO to cancel. Be careful: the CBLRevisionUpdater can be called multiple times if there is a conflict!
      *
      * @param updater the callback CBLRevisionUpdater implementation.  Will be called on each
      *                attempt to save. Should update the given revision's properties and then
@@ -269,8 +268,25 @@ public class CBLDocument {
      * @throws CBLiteException
      */
     public CBLRevision update(CBLRevisionUpdater updater) throws CBLiteException {
-        // TODO: implement
-        throw new RuntimeException("Not Implemented");
+
+        int lastErrorCode = CBLStatus.UNKNOWN;
+        do {
+            CBLNewRevision newRev = newRevision();
+            if (updater.updateRevision(newRev) == false) {
+                break;
+            }
+            try {
+                CBLRevision savedRev = newRev.save();
+                if (savedRev != null) {
+                    return savedRev;
+                }
+            } catch (CBLiteException e) {
+                lastErrorCode = e.getCBLStatus().getCode();
+            }
+
+        } while (lastErrorCode == CBLStatus.CONFLICT);
+        return null;
+
     }
 
     CBLRevision getRevisionFromRev(CBLRevisionInternal internalRevision) {
