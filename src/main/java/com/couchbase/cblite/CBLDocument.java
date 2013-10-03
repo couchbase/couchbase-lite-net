@@ -5,6 +5,7 @@ import android.util.Log;
 
 import com.couchbase.cblite.internal.CBLRevisionInternal;
 
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 
@@ -107,8 +108,11 @@ public class CBLDocument {
         if (revisionID.equals(currentRevision.getId())) {
             return currentRevision;
         }
-        // TODO: implement
-        throw new RuntimeException("Not Implemented");
+        EnumSet<CBLDatabase.TDContentOptions> contentOptions = EnumSet.noneOf(CBLDatabase.TDContentOptions.class);
+        CBLRevisionInternal revisionInternal = database.getDocumentWithIDAndRev(getId(), revisionID, contentOptions);
+        CBLRevision revision = null;
+        revision = getRevisionFromRev(revisionInternal);
+        return revision;
     }
 
     /**
@@ -264,7 +268,7 @@ public class CBLDocument {
         throw new RuntimeException("Not Implemented");
     }
 
-    CBLRevision getRevisionFromRev(CBLRevisionInternal internalRevision) throws CBLiteException {
+    CBLRevision getRevisionFromRev(CBLRevisionInternal internalRevision) {
         if (internalRevision == null) {
             return null;
         }
