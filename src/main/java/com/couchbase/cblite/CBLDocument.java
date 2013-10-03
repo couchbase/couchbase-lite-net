@@ -8,6 +8,7 @@ import com.couchbase.cblite.internal.CBLRevisionInternal;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -101,8 +102,13 @@ public class CBLDocument {
      * @throws CBLiteException
      */
     public boolean purge() throws CBLiteException {
-        // TODO: implement
-        throw new RuntimeException("Not Implemented");
+        Map<String, List<String>> docsToRevs = new HashMap<String, List<String>>();
+        List<String> revs = new ArrayList<String>();
+        revs.add("*");
+        docsToRevs.put(documentId, revs);
+        database.purgeRevisions(docsToRevs);
+        database.removeDocumentFromCache(this);
+        return true;
     }
 
     /**

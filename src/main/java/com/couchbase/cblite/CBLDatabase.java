@@ -226,6 +226,9 @@ public class CBLDatabase extends Observable {
         throw new RuntimeException("Not implemented");
     }
 
+    void removeDocumentFromCache(CBLDocument document) {
+        // TODO: implement
+    }
 
     public String toString() {
         return this.getClass().getName() + "[" + path + "]";
