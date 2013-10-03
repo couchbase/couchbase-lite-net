@@ -2518,13 +2518,16 @@ public class CBLDatabase extends Observable {
      * @param exclusively - this param is ignored!  TODO: fix this
      * @return An array whose first element is the "pull" replication and second is the "push".
      */
-    public CBLReplicator[] replicate(URL remote, boolean exclusively) {
+    public List<CBLReplicator> replicate(URL remote, boolean exclusively) {
         CBLReplicator pull;
         CBLReplicator push;
         if (remote != null) {
             pull = pull(remote);
             push = push(remote);
-            return new CBLReplicator[] { pull, push };
+            ArrayList<CBLReplicator> result = new ArrayList<CBLReplicator>();
+            result.add(pull);
+            result.add(push);
+            return result;
         }
         return null;
     }
