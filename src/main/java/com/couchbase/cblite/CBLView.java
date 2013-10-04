@@ -46,8 +46,8 @@ public class CBLView {
     private CBLDatabase db;
     private String name;
     private int viewId;
-    private CBLViewMapBlock mapBlock;
-    private CBLViewReduceBlock reduceBlock;
+    private CBLMapFunction mapBlock;
+    private CBLReduceFunction reduceBlock;
     private TDViewCollation collation;
     private static CBLViewCompiler compiler;
 
@@ -58,29 +58,35 @@ public class CBLView {
         this.collation = TDViewCollation.TDViewCollationUnicode;
     }
 
+    /**
+     * Get the database that owns this view.
+     */
     public CBLDatabase getDb() {
         return db;
     };
 
+    /**
+     * Get the name of the view.
+     */
     public String getName() {
         return name;
     }
 
-    public CBLViewMapBlock getMapBlock() {
+    /**
+     * The map function that controls how index rows are created from documents.
+     */
+    public CBLMapFunction getMap() {
         return mapBlock;
     }
 
-    public CBLViewReduceBlock getReduceBlock() {
+    /**
+     * The optional reduce function, which aggregates together multiple rows.
+     */
+    public CBLReduceFunction getReduce() {
         return reduceBlock;
     }
 
-    public TDViewCollation getCollation() {
-        return collation;
-    }
 
-    public void setCollation(TDViewCollation collation) {
-        this.collation = collation;
-    }
 
     /**
      * Is the view's index currently out of date?
@@ -113,6 +119,9 @@ public class CBLView {
         return viewId;
     }
 
+    /**
+     * Get the last sequence number indexed so far.
+     */
     public long getLastSequenceIndexed() {
         String sql = "SELECT lastSequence FROM views WHERE name=?";
         String[] args = { name };
@@ -133,8 +142,45 @@ public class CBLView {
         return result;
     }
 
-    public boolean setMapReduceBlocks(CBLViewMapBlock mapBlock,
-            CBLViewReduceBlock reduceBlock, String version) {
+    /**
+     * Defines a view that has no reduce function.
+
+     * @param mapBlock
+     * @param version
+     * @return
+     */
+    public boolean setMap(CBLMapFunction mapBlock, String version) {
+        return setMapAndReduce(mapBlock, null, version);
+    }
+
+    /**
+     * Defines a view's functions.
+     *
+     * The view's definition is given as a class that conforms to the CBLMapFunction or
+     * CBLReduceFunction interface (or null to delete the view). The body of the block
+     * should call the 'emit' object (passed in as a paramter) for every key/value pair
+     * it wants to write to the view.
+     *
+     * Since the function itself is obviously not stored in the database (only a unique
+     * string idenfitying it), you must re-define the view on every launch of the app!
+     * If the database needs to rebuild the view but the function hasn't been defined yet,
+     * it will fail and the view will be empty, causing weird problems later on.
+     *
+     * It is very important that this block be a law-abiding map function! As in other
+     * languages, it must be a "pure" function, with no side effects, that always emits
+     * the same values given the same input document. That means that it should not access
+     * or change any external state; be careful, since callbacks make that so easy that you
+     * might do it inadvertently!  The callback may be called on any thread, or on
+     * multiple threads simultaneously. This won't be a problem if the code is "pure" as
+     * described above, since it will as a consequence also be thread-safe.
+     *
+     * @param mapBlock
+     * @param reduceBlock
+     * @param version
+     * @return
+     */
+    public boolean setMapAndReduce(CBLMapFunction mapBlock,
+                                   CBLReduceFunction reduceBlock, String version) {
         assert (mapBlock != null);
         assert (version != null);
 
@@ -189,6 +235,9 @@ public class CBLView {
 
     }
 
+    /**
+     * Deletes the view's persistent index. It will be regenerated on the next query.
+     */
     public void removeIndex() {
         if (getViewId() < 0) {
             return;
@@ -214,7 +263,10 @@ public class CBLView {
         }
     }
 
-    public void deleteView() {
+    /**
+     * Deletes the view, persistently.
+     */
+    public void delete() {
         db.deleteViewNamed(name);
         viewId = 0;
     }
@@ -250,6 +302,14 @@ public class CBLView {
             // ignore
         }
         return result;
+    }
+
+    public TDViewCollation getCollation() {
+        return collation;
+    }
+
+    public void setCollation(TDViewCollation collation) {
+        this.collation = collation;
     }
 
     /**
@@ -715,7 +775,7 @@ public class CBLView {
 
 }
 
-abstract class AbstractTouchMapEmitBlock implements CBLViewMapEmitBlock {
+abstract class AbstractTouchMapEmitBlock implements CBLMapEmitFunction {
 
     protected long sequence = 0;
 

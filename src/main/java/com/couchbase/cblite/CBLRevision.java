@@ -140,7 +140,7 @@ public class CBLRevision extends CBLRevisionBase {
 
         }
         Collections.reverse(revisions);
-        return Collections.unmodifiableList(revisions);;
+        return Collections.unmodifiableList(revisions);
     }
 
 }

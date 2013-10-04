@@ -22,6 +22,7 @@ import java.util.Observer;
 import android.util.Log;
 
 import com.couchbase.cblite.CBLAttachment;
+import com.couchbase.cblite.CBLReduceFunction;
 import com.couchbase.cblite.internal.CBLBody;
 import com.couchbase.cblite.CBLChangesOptions;
 import com.couchbase.cblite.CBLDatabase;
@@ -33,8 +34,7 @@ import com.couchbase.cblite.CBLRevisionList;
 import com.couchbase.cblite.CBLServer;
 import com.couchbase.cblite.CBLStatus;
 import com.couchbase.cblite.CBLView;
-import com.couchbase.cblite.CBLViewMapBlock;
-import com.couchbase.cblite.CBLViewReduceBlock;
+import com.couchbase.cblite.CBLMapFunction;
 import com.couchbase.cblite.CBLiteException;
 import com.couchbase.cblite.CBLiteVersion;
 import com.couchbase.cblite.CBLDatabase.TDContentOptions;
@@ -1422,13 +1422,13 @@ public class CBLRouter implements Observer {
         if(mapSource == null) {
             return null;
         }
-        CBLViewMapBlock mapBlock = CBLView.getCompiler().compileMapFunction(mapSource, language);
+        CBLMapFunction mapBlock = CBLView.getCompiler().compileMapFunction(mapSource, language);
         if(mapBlock == null) {
             Log.w(CBLDatabase.TAG, String.format("View %s has unknown map function: %s", viewName, mapSource));
             return null;
         }
         String reduceSource = (String)viewProps.get("reduce");
-        CBLViewReduceBlock reduceBlock = null;
+        CBLReduceFunction reduceBlock = null;
         if(reduceSource != null) {
             reduceBlock = CBLView.getCompiler().compileReduceFunction(reduceSource, language);
             if(reduceBlock == null) {
@@ -1438,7 +1438,7 @@ public class CBLRouter implements Observer {
         }
 
         CBLView view = db.getViewNamed(viewName);
-        view.setMapReduceBlocks(mapBlock, reduceBlock, "1");
+        view.setMapAndReduce(mapBlock, reduceBlock, "1");
         String collation = (String)viewProps.get("collation");
         if("raw".equals(collation)) {
             view.setCollation(TDViewCollation.TDViewCollationRaw);
@@ -1449,7 +1449,7 @@ public class CBLRouter implements Observer {
     public CBLStatus queryDesignDoc(String designDoc, String viewName, List<Object> keys) {
         String tdViewName = String.format("%s/%s", designDoc, viewName);
         CBLView view = db.getExistingViewNamed(tdViewName);
-        if(view == null || view.getMapBlock() == null) {
+        if(view == null || view.getMap() == null) {
             // No TouchDB view is defined, or it hasn't had a map block assigned;
             // see if there's a CouchDB view definition we can compile:
             CBLRevisionInternal rev = db.getDocumentWithIDAndRev(String.format("_design/%s", designDoc), null, EnumSet.noneOf(TDContentOptions.class));
@@ -1471,7 +1471,7 @@ public class CBLRouter implements Observer {
         CBLQueryOptions options = new CBLQueryOptions();
 
         //if the view contains a reduce block, it should default to reduce=true
-        if(view.getReduceBlock() != null) {
+        if(view.getReduce() != null) {
             options.setReduce(true);
         }
 
