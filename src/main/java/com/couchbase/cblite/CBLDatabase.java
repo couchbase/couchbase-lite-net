@@ -1595,6 +1595,38 @@ public class CBLDatabase extends Observable {
     }
 
     /**
+     * Returns the location of an attachment's file in the blob store.
+     */
+    String getAttachmentPathForSequence(long sequence, String filename) throws CBLiteException {
+
+        assert(sequence > 0);
+        assert(filename != null);
+        Cursor cursor = null;
+        String filePath = null;
+
+        String args[] = { Long.toString(sequence), filename };
+        try {
+            cursor = sqliteDb.rawQuery("SELECT key, type, encoding FROM attachments WHERE sequence=? AND filename=?", args);
+
+            if(!cursor.moveToFirst()) {
+                throw new CBLiteException(CBLStatus.NOT_FOUND);
+            }
+
+            byte[] keyData = cursor.getBlob(0);
+            CBLBlobKey key = new CBLBlobKey(keyData);
+            filePath = getAttachments().pathForKey(key);
+            return filePath;
+
+        } catch (SQLException e) {
+            throw new CBLiteException(CBLStatus.INTERNAL_SERVER_ERROR);
+        } finally {
+            if(cursor != null) {
+                cursor.close();
+            }
+        }
+    }
+
+    /**
      * Constructs an "_attachments" dictionary for a revision, to be inserted in its JSON body.
      */
     public Map<String,Object> getAttachmentsDictForSequenceWithContent(long sequence, EnumSet<TDContentOptions> contentOptions) {

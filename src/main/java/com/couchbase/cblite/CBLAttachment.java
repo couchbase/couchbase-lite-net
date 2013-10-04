@@ -17,9 +17,12 @@
 
 package com.couchbase.cblite;
 
+import android.net.Uri;
+
 import com.couchbase.cblite.internal.CBLAttachmentInternal;
 import com.couchbase.cblite.internal.CBLRevisionInternal;
 
+import java.io.File;
 import java.io.InputStream;
 import java.net.URL;
 import java.util.Collection;
@@ -134,9 +137,17 @@ public class CBLAttachment {
      * Get the URL of the file containing the body.
      * This is read-only! DO NOT MODIFY OR DELETE THIS FILE.
      */
-    public URL getBodyURL() {
-        // TODO: implement
-        throw new RuntimeException("Not implemented");
+    public Uri getBodyURL() {
+        try {
+            CBLDatabase db = revision.getDatabase();
+            String filePath = db.getAttachmentPathForSequence(revision.getSequence(), name);
+            if (filePath != null && filePath.length() > 0) {
+                return Uri.fromFile(new File(filePath));
+            }
+            return null;
+        } catch (CBLiteException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     InputStream getBodyIfNew() {
