@@ -2912,7 +2912,7 @@ public class CBLDatabase extends Observable {
             }
         });
 
-
+        return result;
 
     }
 
