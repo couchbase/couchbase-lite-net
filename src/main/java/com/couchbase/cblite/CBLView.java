@@ -286,7 +286,7 @@ public class CBLView {
         try {
             result = CBLServer.getObjectMapper().writeValueAsString(object);
         } catch (Exception e) {
-            // ignore
+            Log.w(CBLDatabase.TAG, "Exception serializing object to json: " + object, e);
         }
         return result;
     }
@@ -299,7 +299,7 @@ public class CBLView {
         try {
             result = CBLServer.getObjectMapper().readValue(json, Object.class);
         } catch (Exception e) {
-            // ignore
+            Log.w(CBLDatabase.TAG, "Exception parsing json", e);
         }
         return result;
     }

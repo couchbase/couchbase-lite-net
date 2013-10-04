@@ -1,6 +1,7 @@
 package com.couchbase.cblite;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -11,12 +12,54 @@ public class CBLQueryRow {
 
     private Object key;
     private Object value;
-    private Object parsedKey;
-    private Object parsedValue;
     private long sequence;
     private String sourceDocumentId;
     private Map<String, Object> documentProperties;
     private CBLDatabase database;
+
+    /**
+     * Constructor
+     *
+     * The database property will be filled in when I'm added to a CBLQueryEnumerator.
+     */
+    CBLQueryRow(String documentId, long sequence, Object key, Object value, Map<String, Object> documentProperties) {
+        this.sourceDocumentId = documentId;
+        this.sequence = sequence;
+        this.key = key;
+        this.value = value;
+        this.documentProperties = documentProperties;
+    }
+
+    /**
+     * This is used implicitly by -[CBLLiveQuery update] to decide whether the query result has changed
+     * enough to notify the client. So it's important that it not give false positives, else the app
+     * won't get notified of changes.
+     */
+    @Override
+    public boolean equals(Object object) {
+        if (object == this) {
+            return true;
+        }
+        if (!(object instanceof CBLQueryRow)) {
+            return false;
+        }
+        CBLQueryRow other = (CBLQueryRow) object;
+        if (database == other.database
+                && key.equals(other.getKey())
+                && sourceDocumentId.equals(other.getSourceDocumentId())
+                && documentProperties.equals(other.getDocumentProperties())) {
+            // If values were emitted, compare them. Otherwise we have nothing to go on so check
+            // if _anything_ about the doc has changed (i.e. the sequences are different.)
+            if (value != null || other.getValue() != null) {
+                return value.equals(other.getValue());
+            }
+            else {
+                return sequence == other.sequence;
+            }
+
+        }
+        return false;
+    }
 
     /**
      * The row's key: this is the first parameter passed to the emit() call that generated the row.
@@ -38,7 +81,14 @@ public class CBLQueryRow {
      * property for details.
      */
     public String getDocumentId() {
-        return sourceDocumentId;
+        // _documentProperties may have been 'redirected' from a different document
+        Object idFromDocumentProperties = documentProperties.get("_id");
+        if (idFromDocumentProperties != null && (idFromDocumentProperties instanceof String)) {
+            return (String) idFromDocumentProperties;
+        }
+        else {
+            return sourceDocumentId;
+        }
     }
 
     /**
@@ -57,8 +107,17 @@ public class CBLQueryRow {
      * The revision ID of the document this row was mapped from.
      */
     public String getDocumentRevision() {
-        // TODO: implement
-        throw new RuntimeException("TODO: implement");
+        String rev = (String) documentProperties.get("_rev");
+        if (rev == null) {
+            if (value instanceof Map) {
+                Map<String, Object> mapValue = (Map<String, Object>) value;
+                rev = (String) mapValue.get("_rev");
+                if (rev == null) {
+                    rev = (String) mapValue.get("rev");
+                }
+            }
+        }
+        return rev;
     }
 
     public CBLDatabase getDatabase() {
@@ -70,8 +129,12 @@ public class CBLQueryRow {
      * the query, because then the result rows don't correspond to individual documents.
      */
     public CBLDocument getDocument() {
-        // TODO: implement
-        throw new RuntimeException("TODO: implement");
+        if (getDocumentId() == null) {
+            return null;
+        }
+        CBLDocument document = database.documentWithId(getDocumentId());
+        document.loadCurrentRevisionFrom(this);
+        return document;
     }
 
     /**
@@ -79,7 +142,7 @@ public class CBLQueryRow {
      * To get this, you must have set the -prefetch property on the query; else this will be nil.
      */
     public Map<String, Object> getDocumentProperties() {
-        Collections.unmodifiableMap(documentProperties);
+        return Collections.unmodifiableMap(documentProperties);
     }
 
     /**
@@ -115,5 +178,7 @@ public class CBLQueryRow {
         // TODO: implement
         throw new RuntimeException("TODO: implement");
     }
+
+
 
 }

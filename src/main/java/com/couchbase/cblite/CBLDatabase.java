@@ -769,21 +769,21 @@ public class CBLDatabase extends Observable {
 
         CBLRevisionInternal rev = new CBLRevisionInternal(docId, revId, false, this);
         rev.setSequence(sequence);
-        Map<String,Object> extra = extraPropertiesForRevision(rev, contentOptions);
-        if(json == null) {
+        Map<String, Object> extra = extraPropertiesForRevision(rev, contentOptions);
+        if (json == null) {
             return extra;
         }
 
-      Map<String,Object> docProperties = null;
-      try {
-          docProperties = CBLServer.getObjectMapper().readValue(json, Map.class);
-          docProperties.putAll(extra);
-          return docProperties;
-      } catch (Exception e) {
-          Log.e(CBLDatabase.TAG, "Error serializing properties to JSON", e);
-      }
+        Map<String, Object> docProperties = null;
+        try {
+            docProperties = CBLServer.getObjectMapper().readValue(json, Map.class);
+            docProperties.putAll(extra);
+            return docProperties;
+        } catch (Exception e) {
+            Log.e(CBLDatabase.TAG, "Error serializing properties to JSON", e);
+        }
 
-      return docProperties;
+        return docProperties;
     }
 
     public CBLRevisionInternal getDocumentWithIDAndRev(String id, String rev, EnumSet<TDContentOptions> contentOptions) {

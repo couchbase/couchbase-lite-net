@@ -337,5 +337,31 @@ public class CBLDocument {
         public boolean updateRevision(CBLNewRevision newRevision);
     }
 
+    /*
+    - (void) loadCurrentRevisionFrom: (CBLQueryRow*)row {
+    NSString* revID = row.documentRevision;
+    if (!revID)
+        return;
+    if (!_currentRevision || CBLCompareRevIDs(revID, _currentRevision.revisionID) > 0) {
+        [self forgetCurrentRevision];
+        NSDictionary* properties = row.documentProperties;
+        if (properties) {
+            CBL_Revision* rev = [CBL_Revision revisionWithProperties: properties];
+            _currentRevision = [[CBLRevision alloc] initWithDocument: self revision: rev];
+        }
+    }
+}
+     */
+
+    void loadCurrentRevisionFrom(CBLQueryRow row) {
+        if (row.getDocumentRevision() == null) {
+            return;
+        }
+        // TODO: finish porting
+        /*if (currentRevision == null || ) {
+
+        }*/
+     }
+
 
 }

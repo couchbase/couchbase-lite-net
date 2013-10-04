@@ -208,4 +208,29 @@ public class CBLRevisionInternal {
         return generation;
     }
 
+    /*
+
+    const char *rev1 = chars1, *rev2 = chars2;
+    const char* dash1 = memchr(rev1, '-', len1);
+    const char* dash2 = memchr(rev2, '-', len2);
+    if ((dash1==rev1+1 && dash2==rev2+1)
+            || dash1 > rev1+8 || dash2 > rev2+8
+            || dash1==NULL || dash2==NULL)
+    {
+        // Single-digit generation #s, or improper rev IDs; just compare as plain text:
+        return defaultCollate(rev1,len1, rev2,len2);
+    }
+
+
+     */
+    public static int CBLCollateRevIDs(String revId1, String revId2) {
+        return -1;
+    }
+
+    public static int CBLCompareRevIDs(String revId1, String revId2) {
+        assert(revId1 != null);
+        assert(revId2 != null);
+        return CBLCollateRevIDs(revId1, revId2);
+    }
+
 }
