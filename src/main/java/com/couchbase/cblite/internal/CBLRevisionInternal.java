@@ -22,6 +22,7 @@ import com.couchbase.cblite.CBLStatus;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.StringTokenizer;
 
 /**
  * Stores information about a revision -- its docID, revID, and whether it's deleted.
@@ -221,10 +222,54 @@ public class CBLRevisionInternal {
         return defaultCollate(rev1,len1, rev2,len2);
     }
 
+    // Parse generation numbers. If either is invalid, revert to default collation:
+    int gen1 = parseDigits(rev1, dash1);
+    int gen2 = parseDigits(rev2, dash2);
+    if (!gen1 || !gen2)
+        return defaultCollate(rev1,len1, rev2,len2);
+
+    // Compare generation numbers; if they match, compare suffixes:
+    return sgn(gen1 - gen2) ?: defaultCollate(dash1+1, len1-(int)(dash1+1-rev1),
+                                              dash2+1, len2-(int)(dash2+1-rev2));
+
 
      */
     public static int CBLCollateRevIDs(String revId1, String revId2) {
-        return -1;
+
+        StringTokenizer st1 = new StringTokenizer(revId1, "-");
+        String rev1GenerationStr = st1.nextToken();
+        String rev1Hash = st1.nextToken();
+
+        StringTokenizer st2 = new StringTokenizer(revId2, "-");
+        String rev2GenerationStr = st2.nextToken();
+        String rev2Hash = st2.nextToken();
+
+        // improper rev IDs; just compare as plain text:
+        if (rev1GenerationStr == null || rev2GenerationStr == null) {
+            return revId1.compareToIgnoreCase(revId2);
+        }
+
+        Integer rev1Generation;
+        Integer rev2Generation;
+
+        try {
+            rev1Generation = Integer.parseInt(rev1GenerationStr);
+            rev2Generation = Integer.parseInt(rev2GenerationStr);
+        } catch (NumberFormatException e) {
+            // improper rev IDs; just compare as plain text:
+            return revId1.compareToIgnoreCase(revId2);
+        }
+
+        // Compare generation numbers; if they match, compare suffixes:
+        if (rev1Generation.compareTo(rev2Generation) != 0) {
+            return rev1Generation.compareTo(rev2Generation);
+        }
+        else {
+            // compare suffixes
+            return rev1Hash.compareTo(rev2Hash);
+        }
+
+
     }
 
     public static int CBLCompareRevIDs(String revId1, String revId2) {
