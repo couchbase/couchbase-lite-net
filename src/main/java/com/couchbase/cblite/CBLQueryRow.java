@@ -2,6 +2,7 @@ package com.couchbase.cblite;
 
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -151,8 +152,18 @@ public class CBLQueryRow {
      * If the index is out of range, returns nil.
      */
     public Object getKeyAtIndex(int index) {
-        // TODO: implement
-        throw new RuntimeException("TODO: implement");
+        if (key instanceof List) {
+            List keyList = (List)key;
+            if (index < keyList.size()) {
+                return keyList.get(index);
+            }
+        }
+        else {
+            if (index == 0) {
+                return key;
+            }
+        }
+        return null;
     }
 
     /**
@@ -175,8 +186,7 @@ public class CBLQueryRow {
      * The local sequence number of the associated doc/revision.
      */
     public long getLocalSequence() {
-        // TODO: implement
-        throw new RuntimeException("TODO: implement");
+        return sequence;
     }
 
 
