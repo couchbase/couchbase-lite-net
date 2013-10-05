@@ -209,40 +209,26 @@ public class CBLRevisionInternal {
         return generation;
     }
 
-    /*
-
-    const char *rev1 = chars1, *rev2 = chars2;
-    const char* dash1 = memchr(rev1, '-', len1);
-    const char* dash2 = memchr(rev2, '-', len2);
-    if ((dash1==rev1+1 && dash2==rev2+1)
-            || dash1 > rev1+8 || dash2 > rev2+8
-            || dash1==NULL || dash2==NULL)
-    {
-        // Single-digit generation #s, or improper rev IDs; just compare as plain text:
-        return defaultCollate(rev1,len1, rev2,len2);
-    }
-
-    // Parse generation numbers. If either is invalid, revert to default collation:
-    int gen1 = parseDigits(rev1, dash1);
-    int gen2 = parseDigits(rev2, dash2);
-    if (!gen1 || !gen2)
-        return defaultCollate(rev1,len1, rev2,len2);
-
-    // Compare generation numbers; if they match, compare suffixes:
-    return sgn(gen1 - gen2) ?: defaultCollate(dash1+1, len1-(int)(dash1+1-rev1),
-                                              dash2+1, len2-(int)(dash2+1-rev2));
-
-
-     */
     public static int CBLCollateRevIDs(String revId1, String revId2) {
 
+        String rev1GenerationStr = null;
+        String rev2GenerationStr = null;
+        String rev1Hash = null;
+        String rev2Hash = null;
+
         StringTokenizer st1 = new StringTokenizer(revId1, "-");
-        String rev1GenerationStr = st1.nextToken();
-        String rev1Hash = st1.nextToken();
+        try {
+            rev1GenerationStr = st1.nextToken();
+            rev1Hash = st1.nextToken();
+        } catch (Exception e) {
+        }
 
         StringTokenizer st2 = new StringTokenizer(revId2, "-");
-        String rev2GenerationStr = st2.nextToken();
-        String rev2Hash = st2.nextToken();
+        try {
+            rev2GenerationStr = st2.nextToken();
+            rev2Hash = st2.nextToken();
+        } catch (Exception e) {
+        }
 
         // improper rev IDs; just compare as plain text:
         if (rev1GenerationStr == null || rev2GenerationStr == null) {
@@ -264,11 +250,14 @@ public class CBLRevisionInternal {
         if (rev1Generation.compareTo(rev2Generation) != 0) {
             return rev1Generation.compareTo(rev2Generation);
         }
-        else {
-            // compare suffixes
+        else if (rev1Hash != null && rev2Hash != null) {
+            // compare suffixes if possible
             return rev1Hash.compareTo(rev2Hash);
         }
-
+        else {
+            // just compare as plain text:
+            return revId1.compareToIgnoreCase(revId2);
+        }
 
     }
 
