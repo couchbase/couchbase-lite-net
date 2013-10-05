@@ -36,13 +36,17 @@ public class CBLRevisionInternal {
     private boolean deleted;
     private CBLBody body;
     private long sequence;
-    private CBLDatabase database;
+    private CBLDatabase database;  // TODO: get rid of this field!
 
     public CBLRevisionInternal(String docId, String revId, boolean deleted, CBLDatabase database) {
         this.docId = docId;
         this.revId = revId;
         this.deleted = deleted;
         this.database = database;
+    }
+
+    public CBLRevisionInternal(Map<String, Object>properties) {
+        this.body = new CBLBody(properties);
     }
 
     public CBLRevisionInternal(CBLBody body, CBLDatabase database) {
