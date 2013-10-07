@@ -338,10 +338,10 @@ public class CBLDocument {
     }
 
     void loadCurrentRevisionFrom(CBLQueryRow row) {
-        if (row.getDocumentRevision() == null) {
+        if (row.getDocumentRevisionId() == null) {
             return;
         }
-        String revId = row.getDocumentRevision();
+        String revId = row.getDocumentRevisionId();
         boolean rowRevisionIsGreater = (CBLRevisionInternal.CBLCompareRevIDs(revId, currentRevision.getId()) > 0);
         if (currentRevision == null || rowRevisionIsGreater) {
             Map<String, Object> properties = row.getDocumentProperties();
