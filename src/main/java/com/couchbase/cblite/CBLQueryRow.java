@@ -189,6 +189,7 @@ public class CBLQueryRow {
         return sequence;
     }
 
-
-
+    void setDatabase(CBLDatabase database) {
+        this.database = database;
+    }
 }
