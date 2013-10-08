@@ -1258,6 +1258,70 @@ public class CBLDatabase extends Observable {
         return registerView(new CBLView(this, name));
     }
 
+
+    /*
+
+    - (NSArray*) queryViewNamed: (NSString*)viewName
+                    options: (CBLQueryOptions)options
+               lastSequence: (SequenceNumber*)outLastSequence
+                     status: (CBLStatus*)outStatus
+    {
+        CBLStatus status;
+        NSArray* rows = nil;
+        SequenceNumber lastSequence = 0;
+        do {
+            if (viewName) {
+                CBLView* view = [self viewNamed: viewName];
+                if (!view) {
+                    status = kCBLStatusNotFound;
+                    break;
+                }
+                lastSequence = view.lastSequenceIndexed;
+                if (options.stale == kCBLStaleNever || lastSequence <= 0) {
+                    status = [view updateIndex];
+                    if (CBLStatusIsError(status)) {
+                        Warn(@"Failed to update view index: %d", status);
+                        break;
+                    }
+                    lastSequence = view.lastSequenceIndexed;
+                } else if (options.stale == kCBLStaleUpdateAfter &&
+                           lastSequence < self.lastSequenceNumber) {
+                    [view performSelector: @selector(updateIndex) withObject: nil afterDelay: 0];
+                }
+                rows = [view _queryWithOptions: &options status: &status];
+            } else {
+                // nil view means query _all_docs
+                rows = [self getAllDocs: &options];
+                status = rows ? kCBLStatusOK :self.lastDbError; //FIX: getALlDocs should return status
+                lastSequence = self.lastSequenceNumber;
+            }
+        } while(false); // just to allow 'break' within the block
+
+        if (outLastSequence)
+            *outLastSequence = lastSequence;
+        if (outStatus)
+            *outStatus = status;
+        return rows;
+    }
+
+
+     */
+
+
+
+
+    CBLView makeAnonymousView() {
+        for (int i=0; true; ++i) {
+            String name = String.format("anon%d", i);
+            CBLView existing = getExistingViewNamed(name);
+            if (existing == null) {
+                // this name has not been used yet, so let's use it
+                return getViewNamed(name);
+            }
+        }
+    }
+
+
     public CBLView getExistingViewNamed(String name) {
         CBLView view = null;
         if(views != null) {
