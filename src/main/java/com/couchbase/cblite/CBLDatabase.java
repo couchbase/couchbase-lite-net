@@ -1259,53 +1259,46 @@ public class CBLDatabase extends Observable {
     }
 
 
-    /*
 
-    - (NSArray*) queryViewNamed: (NSString*)viewName
-                    options: (CBLQueryOptions)options
-               lastSequence: (SequenceNumber*)outLastSequence
-                     status: (CBLStatus*)outStatus
-    {
-        CBLStatus status;
-        NSArray* rows = nil;
-        SequenceNumber lastSequence = 0;
-        do {
-            if (viewName) {
-                CBLView* view = [self viewNamed: viewName];
-                if (!view) {
-                    status = kCBLStatusNotFound;
-                    break;
-                }
-                lastSequence = view.lastSequenceIndexed;
-                if (options.stale == kCBLStaleNever || lastSequence <= 0) {
-                    status = [view updateIndex];
-                    if (CBLStatusIsError(status)) {
-                        Warn(@"Failed to update view index: %d", status);
-                        break;
-                    }
-                    lastSequence = view.lastSequenceIndexed;
-                } else if (options.stale == kCBLStaleUpdateAfter &&
-                           lastSequence < self.lastSequenceNumber) {
-                    [view performSelector: @selector(updateIndex) withObject: nil afterDelay: 0];
-                }
-                rows = [view _queryWithOptions: &options status: &status];
-            } else {
-                // nil view means query _all_docs
-                rows = [self getAllDocs: &options];
-                status = rows ? kCBLStatusOK :self.lastDbError; //FIX: getALlDocs should return status
-                lastSequence = self.lastSequenceNumber;
+    public List<CBLQueryRow> queryViewNamed(String viewName, CBLQueryOptions options, List<Long> outLastSequence) throws CBLiteException {
+        long lastSequence = 0;
+        List<CBLQueryRow> rows = null;
+
+        if (viewName != null && viewName.length() > 0) {
+            final CBLView view = getViewNamed(viewName);
+            if (view == null) {
+                throw new CBLiteException(new CBLStatus(CBLStatus.NOT_FOUND));
             }
-        } while(false); // just to allow 'break' within the block
+            lastSequence = view.getLastSequenceIndexed();
+            if (options.getStale() == CBLQuery.CBLStaleness.CBLStaleNever || lastSequence <= 0) {
+                view.updateIndex();
+                lastSequence = view.getLastSequenceIndexed();
+            } else if (options.getStale() == CBLQuery.CBLStaleness.CBLStaleUpdateAfter && lastSequence < getLastSequence()) {
 
-        if (outLastSequence)
-            *outLastSequence = lastSequence;
-        if (outStatus)
-            *outStatus = status;
+                new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+                        try {
+                            view.updateIndex();
+                        } catch (CBLiteException e) {
+                            Log.e(CBLDatabase.TAG, "Error updating view index on background thread", e);
+                        }
+                    }
+                }).start();
+
+            }
+            rows = view.queryWithOptions(options);
+
+
+        } else {
+            // nil view means query _all_docs
+            rows = getAllDocs(options);
+
+        }
+        outLastSequence.add(lastSequence);
         return rows;
+
     }
-
-
-     */
 
 
 

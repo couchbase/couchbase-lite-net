@@ -40,6 +40,8 @@ public class CBLQueryOptions {
     private boolean inclusiveEnd = true;
     private boolean reduce = false;
     private boolean group = false;
+    private CBLQuery.CBLStaleness stale;
+
 
     public Object getStartKey() {
         return startKey;
@@ -144,5 +146,10 @@ public class CBLQueryOptions {
     public void setKeys(List<Object> keys) {
         this.keys = keys;
     }
+
+    public CBLQuery.CBLStaleness getStale() {
+        return stale;
+    }
+
 
 }

@@ -317,12 +317,12 @@ public class CBLView {
      * @return 200 if updated, 304 if already up-to-date, else an error code
      */
     @SuppressWarnings("unchecked")
-    public CBLStatus updateIndex() {
+    public CBLStatus updateIndex() throws CBLiteException {
         Log.v(CBLDatabase.TAG, "Re-indexing view " + name + " ...");
         assert (mapBlock != null);
 
         if (getViewId() < 0) {
-            return new CBLStatus(CBLStatus.NOT_FOUND);
+            throw new CBLiteException(new CBLStatus(CBLStatus.NOT_FOUND));
         }
 
         db.beginTransaction();
@@ -334,14 +334,13 @@ public class CBLView {
             long lastSequence = getLastSequenceIndexed();
             long dbMaxSequence = db.getLastSequence();
             if(lastSequence == dbMaxSequence) {
-                result.setCode(CBLStatus.NOT_MODIFIED);
-                return result;
+                throw new CBLiteException(new CBLStatus(CBLStatus.NOT_MODIFIED));
             }
 
             // First remove obsolete emitted results from the 'maps' table:
             long sequence = lastSequence;
             if (lastSequence < 0) {
-                return result;
+                throw new CBLiteException(new CBLStatus(CBLStatus.INTERNAL_SERVER_ERROR));
             }
 
             if (lastSequence == 0) {
@@ -389,7 +388,7 @@ public class CBLView {
                         db.getSqliteDb().insert("maps", null, insertValues);
                     } catch (Exception e) {
                         Log.e(CBLDatabase.TAG, "Error emitting", e);
-                        // find a better way to propogate this back
+                        // find a better way to propagate this back
                     }
                 }
             };
@@ -756,7 +755,7 @@ public class CBLView {
         return rows;
 
     }
-    
+
 
     /**
      * Utility function to use in reduce blocks. Totals an array of Numbers.
