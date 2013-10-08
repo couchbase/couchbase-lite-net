@@ -192,4 +192,21 @@ public class CBLQueryRow {
     void setDatabase(CBLDatabase database) {
         this.database = database;
     }
+
+    public Map<String, Object> asJSONDictionary() {
+        Map<String, Object> result = new HashMap<String, Object>();
+        if (value != null || sourceDocumentId != null) {
+            result.put("key", key);
+            result.put("value", value);
+            result.put("id", sourceDocumentId);
+            result.put("doc", documentProperties);
+        } else {
+            result.put("key", key);
+            result.put("error", "not_found");
+        }
+        return result;
+    }
+
+
+
 }

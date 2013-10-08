@@ -476,7 +476,7 @@ public class CBLView {
         return result;
     }
 
-    public Cursor resultSetWithOptions(CBLQueryOptions options, CBLStatus status) {
+    public Cursor resultSetWithOptions(CBLQueryOptions options) {
         if (options == null) {
             options = new CBLQueryOptions();
         }
@@ -629,117 +629,124 @@ public class CBLView {
         return result;
     }
 
+    List<CBLQueryRow> reducedQuery(Cursor cursor, boolean group, int groupLevel) throws CBLiteException {
+
+        List<Object> keysToReduce = null;
+        List<Object> valuesToReduce = null;
+        Object lastKey = null;
+        if(getReduce() != null) {
+            keysToReduce = new ArrayList<Object>(REDUCE_BATCH_SIZE);
+            valuesToReduce = new ArrayList<Object>(REDUCE_BATCH_SIZE);
+        }
+        List<CBLQueryRow> rows = new ArrayList<CBLQueryRow>();
+
+        cursor.moveToFirst();
+        while (!cursor.isAfterLast()) {
+            Object keyData = fromJSON(cursor.getBlob(0));
+            Object value = fromJSON(cursor.getBlob(1));
+            assert(keyData != null);
+
+            if(group && !groupTogether(keyData, lastKey, groupLevel)) {
+                if (lastKey != null) {
+                    // This pair starts a new group, so reduce & record the last one:
+                    Object reduced = (reduceBlock != null) ? reduceBlock.reduce(keysToReduce, valuesToReduce, false) : null;
+                    Object key = groupKey(lastKey, groupLevel);
+                    CBLQueryRow row = new CBLQueryRow(null, 0, key, reduced, null);
+                    rows.add(row);
+                    keysToReduce.clear();
+                    valuesToReduce.clear();
+
+                }
+                lastKey = keyData;
+            }
+            keysToReduce.add(keyData);
+            valuesToReduce.add(value);
+
+            cursor.moveToNext();
+
+        }
+
+        if(keysToReduce.size() > 0) {
+            // Finish the last group (or the entire list, if no grouping):
+            Object key = group ? groupKey(lastKey, groupLevel) : null;
+            Object reduced = (reduceBlock != null) ? reduceBlock.reduce(keysToReduce, valuesToReduce, false) : null;
+            CBLQueryRow row = new CBLQueryRow(null, 0, key, reduced, null);
+            rows.add(row);
+        }
+
+        return rows;
+
+    }
+
     /**
      * Queries the view. Does NOT first update the index.
      *
      * @param options The options to use.
-     * @param status An array of result rows -- each is a dictionary with "key" and "value" keys, and possibly "id" and "doc".
+     * @return An array of CBLQueryRow objects.
      */
-    @SuppressWarnings("unchecked")
-    public List<Map<String, Object>> queryWithOptions(CBLQueryOptions options, CBLStatus status) {
+    public List<CBLQueryRow> queryWithOptions(CBLQueryOptions options) throws CBLiteException {
+
         if (options == null) {
             options = new CBLQueryOptions();
         }
 
         Cursor cursor = null;
-        List<Map<String, Object>> rows = new ArrayList<Map<String,Object>>();
+        List<CBLQueryRow> rows = new ArrayList<CBLQueryRow>();
+
         try {
-            cursor = resultSetWithOptions(options, status);
+            cursor = resultSetWithOptions(options);
             int groupLevel = options.getGroupLevel();
             boolean group = options.isGroup() || (groupLevel > 0);
             boolean reduce = options.isReduce() || group;
 
-            if(reduce && (reduceBlock == null) && !group) {
-                Log.w(CBLDatabase.TAG, "Cannot use reduce option in view " + name + " which has no reduce block defined");
-                status.setCode(CBLStatus.BAD_REQUEST);
-                return null;
+            if (reduce && (reduceBlock == null) && !group) {
+                String msg = "Cannot use reduce option in view " + name + " which has no reduce block defined";
+                Log.w(CBLDatabase.TAG, msg);
+                throw new CBLiteException(new CBLStatus(CBLStatus.BAD_REQUEST));
             }
 
-            List<Object> keysToReduce = null;
-            List<Object> valuesToReduce = null;
-            Object lastKey = null;
-            if(reduce) {
-                keysToReduce = new ArrayList<Object>(REDUCE_BATCH_SIZE);
-                valuesToReduce = new ArrayList<Object>(REDUCE_BATCH_SIZE);
-            }
-
-            cursor.moveToFirst();
-            while (!cursor.isAfterLast()) {
-                Object key = fromJSON(cursor.getBlob(0));
-                Object value = fromJSON(cursor.getBlob(1));
-                assert(key != null);
-                if(reduce) {
-                    // Reduced or grouped query:
-                    if(group && !groupTogether(key, lastKey, groupLevel) && (lastKey != null)) {
-                        // This pair starts a new group, so reduce & record the last one:
-                        Object reduced = (reduceBlock != null) ? reduceBlock.reduce(keysToReduce, valuesToReduce, false) : null;
-                        Map<String,Object> row = new HashMap<String,Object>();
-                        row.put("key", groupKey(lastKey, groupLevel));
-                        if(reduced != null) {
-                            row.put("value", reduced);
-                        }
-                        rows.add(row);
-                        keysToReduce.clear();
-                        valuesToReduce.clear();
-                    }
-                    keysToReduce.add(key);
-                    valuesToReduce.add(value);
-                    lastKey = key;
-                } else {
-                	// Regular query:
-                	Map<String,Object> row = new HashMap<String,Object>();
+            if (reduce || group) {
+                // Reduced or grouped query:
+                rows = reducedQuery(cursor, group, groupLevel);
+            } else {
+                // regular query
+                cursor.moveToFirst();
+                while (!cursor.isAfterLast()) {
+                    Object keyData = fromJSON(cursor.getBlob(0));
+                    Object value = fromJSON(cursor.getBlob(1));
                     String docId = cursor.getString(2);
-                    Map<String,Object> docContents = null;
-                    if(options.isIncludeDocs()) {
+                    Map<String, Object> docContents = null;
+                    if (options.isIncludeDocs()) {
                         // http://wiki.apache.org/couchdb/Introduction_to_CouchDB_views#Linked_documents
                         if (value instanceof Map && ((Map) value).containsKey("_id")) {
                             String linkedDocId = (String) ((Map) value).get("_id");
-                            CBLRevisionInternal linkedDoc = db.getDocumentWithIDAndRev(linkedDocId, null, EnumSet.noneOf(TDContentOptions.class));
+                            CBLRevisionInternal linkedDoc = db.getDocumentWithIDAndRev(
+                                    linkedDocId,
+                                    null,
+                                    EnumSet.noneOf(TDContentOptions.class)
+                            );
                             docContents = linkedDoc.getProperties();
+                        } else {
+                            docContents = db.documentPropertiesFromJSON(
+                                    cursor.getBlob(4),
+                                    docId,
+                                    cursor.getString(3),
+                                    cursor.getLong(5),
+                                    options.getContentOptions()
+                            );
                         }
-                        else {
-                            docContents = db.documentPropertiesFromJSON(cursor.getBlob(4), docId, cursor.getString(3), cursor.getLong(5), options.getContentOptions());
-                        }
                     }
-
-
-                    if(docContents != null) {
-                        row.put("doc", docContents);
-                    }
-                    if(value != null) {
-                        row.put("value", value);
-                    }
-                    row.put("id", docId);
-                    row.put("key", key);
-
+                    CBLQueryRow row = new CBLQueryRow(docId, 0, keyData, value, docContents);
                     rows.add(row);
+                    cursor.moveToNext();
+
                 }
-
-
-                cursor.moveToNext();
             }
-
-            if(reduce) {
-                if(keysToReduce.size() > 0) {
-                    // Finish the last group (or the entire list, if no grouping):
-                    Object key = group ? groupKey(lastKey, groupLevel) : null;
-                    Object reduced = (reduceBlock != null) ? reduceBlock.reduce(keysToReduce, valuesToReduce, false) : null;
-                    Map<String,Object> row = new HashMap<String,Object>();
-                    row.put("key", key);
-                    if(reduced != null) {
-                        row.put("value", reduced);
-                    }
-                    rows.add(row);
-                }
-                keysToReduce.clear();
-                valuesToReduce.clear();
-            }
-
-            status.setCode(CBLStatus.OK);
 
         } catch (SQLException e) {
-            Log.e(CBLDatabase.TAG, "Error querying view", e);
-            return null;
+            String errMsg = String.format("Error querying view: %s", this);
+            Log.e(CBLDatabase.TAG, errMsg, e);
+            throw new CBLiteException(errMsg, e, new CBLStatus(CBLStatus.DB_ERROR));
         } finally {
             if (cursor != null) {
                 cursor.close();
@@ -747,7 +754,9 @@ public class CBLView {
         }
 
         return rows;
+
     }
+    
 
     /**
      * Utility function to use in reduce blocks. Totals an array of Numbers.

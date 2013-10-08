@@ -22,6 +22,7 @@ import java.util.Observer;
 import android.util.Log;
 
 import com.couchbase.cblite.CBLAttachment;
+import com.couchbase.cblite.CBLQueryRow;
 import com.couchbase.cblite.CBLReduceFunction;
 import com.couchbase.cblite.internal.CBLBody;
 import com.couchbase.cblite.CBLChangesOptions;
@@ -1446,7 +1447,7 @@ public class CBLRouter implements Observer {
         return view;
     }
 
-    public CBLStatus queryDesignDoc(String designDoc, String viewName, List<Object> keys) {
+    public CBLStatus queryDesignDoc(String designDoc, String viewName, List<Object> keys) throws CBLiteException {
         String tdViewName = String.format("%s/%s", designDoc, viewName);
         CBLView view = db.getExistingViewNamed(tdViewName);
         if(view == null || view.getMap() == null) {
@@ -1497,9 +1498,11 @@ public class CBLRouter implements Observer {
             }
         }
 
-        List<Map<String,Object>> rows = view.queryWithOptions(options, status);
-        if(rows == null) {
-            return status;
+        // convert from CBLQueryRow -> Map
+        List<CBLQueryRow> queryRows = view.queryWithOptions(options);
+        List<Map<String,Object>> rows = new ArrayList<Map<String,Object>>();
+        for (CBLQueryRow queryRow : queryRows) {
+            rows.add(queryRow.asJSONDictionary());
         }
 
         Map<String,Object> responseBody = new HashMap<String,Object>();
@@ -1513,11 +1516,11 @@ public class CBLRouter implements Observer {
         return new CBLStatus(CBLStatus.OK);
     }
 
-    public CBLStatus do_GET_DesignDocument(CBLDatabase _db, String designDocID, String viewName) {
+    public CBLStatus do_GET_DesignDocument(CBLDatabase _db, String designDocID, String viewName) throws CBLiteException {
         return queryDesignDoc(designDocID, viewName, null);
     }
 
-    public CBLStatus do_POST_DesignDocument(CBLDatabase _db, String designDocID, String viewName) {
+    public CBLStatus do_POST_DesignDocument(CBLDatabase _db, String designDocID, String viewName) throws CBLiteException {
     	Map<String,Object> bodyDict = getBodyAsDictionary();
     	if(bodyDict == null) {
     		return new CBLStatus(CBLStatus.BAD_REQUEST);
