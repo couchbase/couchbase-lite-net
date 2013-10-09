@@ -41,6 +41,7 @@ public class CBLQueryOptions {
     private boolean updateSeq = false;
     private boolean inclusiveEnd = true;
     private boolean reduce = false;
+    private boolean reduceSpecified = false;
     private boolean group = false;
     private CBLQuery.CBLStaleness stale;
 
@@ -163,6 +164,14 @@ public class CBLQueryOptions {
 
     public void setStale(CBLQuery.CBLStaleness stale) {
         this.stale = stale;
+    }
+
+    public boolean isReduceSpecified() {
+        return reduceSpecified;
+    }
+
+    public void setReduceSpecified(boolean reduceSpecified) {
+        this.reduceSpecified = reduceSpecified;
     }
 
 }

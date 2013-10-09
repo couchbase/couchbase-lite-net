@@ -1,5 +1,6 @@
 package com.couchbase.cblite;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -60,25 +61,10 @@ public class CBLQuery {
     }
 
     public CBLQueryEnumerator getRows() throws CBLiteException {
-
-        // 1. modify cblview.queryWithOptions to return List<CBRow>
-        // 2: write database.queryViewNamed()
-        // 3. port this method
-
-        /*
-        NSArray* rows = [_database queryViewNamed: _view.name
-                                      options: self.queryOptions
-                                 lastSequence: &_lastSequence
-                                       status: &_status];
-    return [[CBLQueryEnumerator alloc] initWithDatabase: _database
-                                                   rows: rows
-                                         sequenceNumber: _lastSequence];
-         */
-
-        // database.query
-
-        // TODO
-        throw new RuntimeException("Not implemented");
+        List<Long> outSequence = new ArrayList<Long>();
+        List<CBLQueryRow> rows = database.queryViewNamed(view.getName(), getQueryOptions(), outSequence);
+        long lastSequence = outSequence.get(0);
+        return new CBLQueryEnumerator(database, rows, lastSequence);
     }
 
     public CBLQueryEnumerator getRowsIfChanged() throws CBLiteException {
@@ -206,6 +192,26 @@ public class CBLQuery {
 
     public void setGroupLevel(int groupLevel) {
         this.groupLevel = groupLevel;
+    }
+
+    private CBLQueryOptions getQueryOptions() {
+        CBLQueryOptions queryOptions = new CBLQueryOptions();
+        queryOptions.setStartKey(getStartKey());
+        queryOptions.setEndKey(getEndKey());
+        queryOptions.setStartKey(getStartKey());
+        queryOptions.setKeys(getKeys());
+        queryOptions.setSkip(getSkip());
+        queryOptions.setLimit(getLimit());
+        queryOptions.setReduce(!isMapOnly());
+        queryOptions.setReduceSpecified(true);
+        queryOptions.setGroupLevel(getGroupLevel());
+        queryOptions.setDescending(isDescending());
+        queryOptions.setIncludeDocs(isPrefectch());
+        queryOptions.setUpdateSeq(true);
+        queryOptions.setInclusiveEnd(true);
+        queryOptions.setIncludeDeletedDocs(isIncludeDeleted());
+        queryOptions.setStale(getStale());
+        return queryOptions;
     }
 
 
