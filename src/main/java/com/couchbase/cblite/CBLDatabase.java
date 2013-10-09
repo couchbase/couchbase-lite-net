@@ -1371,6 +1371,193 @@ public class CBLDatabase extends Observable {
         return result;
     }
 
+
+    public List<CBLQueryRow> getAllDocs(CBLQueryOptions options) throws CBLiteException {
+
+        List<CBLQueryRow> rows = new ArrayList<CBLQueryRow>();
+        if(options == null) {
+            options = new CBLQueryOptions();
+        }
+        StringBuffer sql = new StringBuffer("SELECT revs.doc_id, docid, revid, sequence");
+        if (options.isIncludeDocs()) {
+            sql.append(", json");
+        }
+        if (options.isIncludeDeletedDocs()) {
+            sql.append(", deleted");
+        }
+        sql.append(" FROM revs, docs WHERE");
+        if (options.getKeys() != null) {
+            if (options.getKeys().size() == 0) {
+                return rows;
+            }
+            String commaSeperatedIds = joinQuotedObjects(options.getKeys());
+            sql.append(String.format(" revs.doc_id IN (SELECT doc_id FROM docs WHERE docid IN (%@)) AND", commaSeperatedIds));
+        }
+        sql.append(" docs.doc_id = revs.doc_id AND current=1");
+        if (!options.isIncludeDeletedDocs()) {
+            sql.append(" AND deleted=0");
+        }
+        List<String> args = new ArrayList<String>();
+        Object minKey = options.getStartKey();
+        Object maxKey = options.getEndKey();
+        boolean inclusiveMin = true;
+        boolean inclusiveMax = options.isInclusiveEnd();
+        if (options.isDescending()) {
+            minKey = maxKey;
+            maxKey = options.getStartKey();
+            inclusiveMin = inclusiveMax;
+            inclusiveMax = true;
+        }
+        if (minKey != null) {
+            assert(minKey instanceof String);
+            sql.append((inclusiveMin ? " AND docid >= ?" :  " AND docid > ?"));
+            args.add((String)minKey);
+        }
+        if (maxKey != null) {
+            assert(maxKey instanceof String);
+            sql.append((inclusiveMax ? " AND docid <= ?" :  " AND docid < ?"));
+            args.add((String)maxKey);
+        }
+
+        sql.append(
+                String.format(
+                        " ORDER BY docid %s, %s revid DESC LIMIT ? OFFSET ?",
+                        (options.isDescending() ? "DESC" : "ASC"),
+                        (options.isIncludeDeletedDocs() ? "deleted ASC," : "")
+                )
+        );
+
+        args.add(Integer.toString(options.getLimit()));
+        args.add(Integer.toString(options.getSkip()));
+
+        Cursor cursor = null;
+        long lastDocID = 0;
+        Map<String, CBLQueryRow> docs = new HashMap<String, CBLQueryRow>();
+
+
+        try {
+            cursor = sqliteDb.rawQuery(sql.toString(), args.toArray(new String[args.size()]));
+
+            cursor.moveToFirst();
+            while(!cursor.isAfterLast()) {
+
+                long docNumericID = cursor.getLong(0);
+                if(docNumericID == lastDocID) {
+                    cursor.moveToNext();
+                    continue;
+                }
+                lastDocID = docNumericID;
+
+                String docId = cursor.getString(1);
+                String revId = cursor.getString(2);
+                long sequenceNumber = cursor.getLong(3);
+                boolean deleted = options.isIncludeDeletedDocs() && cursor.getInt(cursor.getColumnIndex("deleted"))>0;
+                Map<String, Object> docContents = null;
+                if (options.isIncludeDocs()) {
+                    byte[] json = cursor.getBlob(4);
+                    docContents = documentPropertiesFromJSON(json, docId, revId, sequenceNumber, options.getContentOptions());
+                }
+                Map<String, Object> value = new HashMap<String, Object>();
+                value.put("rev", revId);
+                value.put("deleted", (deleted ? true : null));
+                CBLQueryRow change = new CBLQueryRow(docId, sequenceNumber, docId, value, docContents);
+                if (options.getKeys() != null) {
+                    docs.put(docId, change);
+                } else {
+                    rows.add(change);
+                }
+
+                cursor.moveToNext();
+
+            }
+
+            if (options.getKeys() != null) {
+                for (Object docIdObject : options.getKeys()) {
+                    if (docIdObject instanceof String) {
+                        String docId = (String) docIdObject;
+                        CBLQueryRow change = docs.get(docId);
+                        if (change == null) {
+                            Map<String, Object> value = new HashMap<String, Object>();
+                            long docNumericID = getDocNumericID(docId);
+                            if (docNumericID > 0) {
+                                boolean deleted;
+                                List<Boolean> outIsDeleted = new ArrayList<Boolean>();
+                                List<Boolean> outIsConflict = new ArrayList<Boolean>();
+                                String revId = winningRevIDOfDoc(docNumericID, outIsDeleted, outIsConflict);
+                                if (outIsDeleted.size() > 0) {
+                                    deleted = true;
+                                }
+                                if (revId != null) {
+                                    value.put("rev", revId);
+                                    value.put("deleted", true);
+                                }
+                            }
+                            change = new CBLQueryRow((value != null ? docId : null), 0, docId, value, null);
+                        }
+                        rows.add(change);
+                    }
+                }
+
+            }
+
+
+        } catch (SQLException e) {
+            Log.e(CBLDatabase.TAG, "Error getting all docs", e);
+            throw new CBLiteException("Error getting all docs", e, new CBLStatus(CBLStatus.INTERNAL_SERVER_ERROR));
+        } finally {
+            if(cursor != null) {
+                cursor.close();
+            }
+        }
+        return rows;
+    }
+
+
+    /**
+     * Returns the rev ID of the 'winning' revision of this document, and whether it's deleted.
+     */
+    String winningRevIDOfDoc(long docNumericId, List<Boolean> outIsDeleted, List<Boolean> outIsConflict) throws CBLiteException {
+
+        Cursor cursor = null;
+        String sql = "SELECT revid, deleted FROM revs" +
+                " WHERE doc_id=? and current=1" +
+                " ORDER BY deleted asc, revid desc LIMIT 2";
+
+        String[] args = { Long.toString(docNumericId) };
+        String revId = null;
+
+        try {
+            cursor = sqliteDb.rawQuery(sql, args);
+
+            cursor.moveToFirst();
+            if (!cursor.isAfterLast()) {
+                revId = cursor.getString(0);
+                boolean deleted = cursor.getInt(1)>0;
+                if (deleted) {
+                    outIsDeleted.add(true);
+                }
+                // The document is in conflict if there are two+ result rows that are not deletions.
+                boolean hasNextResult = cursor.moveToNext();
+                boolean isNextDeleted = cursor.getInt(1)>0;
+                boolean isInConflict = !deleted && hasNextResult && isNextDeleted;
+                if (isInConflict) {
+                    outIsConflict.add(true);
+                }
+            }
+
+        } catch (SQLException e) {
+            Log.e(CBLDatabase.TAG, "Error", e);
+            throw new CBLiteException("Error", e, new CBLStatus(CBLStatus.INTERNAL_SERVER_ERROR));
+        } finally {
+            if(cursor != null) {
+                cursor.close();
+            }
+        }
+
+        return revId;
+    }
+
+
     //FIX: This has a lot of code in common with -[CBLView queryWithOptions:status:]. Unify the two!
     public Map<String,Object> getDocsWithIDs(List<String> docIDs, CBLQueryOptions options) {
         if(options == null) {
@@ -1507,9 +1694,16 @@ public class CBLDatabase extends Observable {
         return result;
     }
 
+    /*
     public Map<String,Object> getAllDocs(CBLQueryOptions options) {
         return getDocsWithIDs(null, options);
-    }
+    } */
+
+    /*
+
+
+     */
+
 
     /*************************************************************************************************/
     /*** CBLDatabase+Attachments                                                                    ***/
@@ -2696,6 +2890,14 @@ public class CBLDatabase extends Observable {
 
     public static String quote(String string) {
         return string.replace("'", "''");
+    }
+
+    public static String joinQuotedObjects(List<Object> objects) {
+        List<String> strings = new ArrayList<String>();
+        for (Object object : objects) {
+            strings.add(object != null ? object.toString() : null);
+        }
+        return joinQuoted(strings);
     }
 
     public static String joinQuoted(List<String> strings) {

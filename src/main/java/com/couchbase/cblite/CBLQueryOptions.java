@@ -36,6 +36,8 @@ public class CBLQueryOptions {
     private EnumSet<TDContentOptions> contentOptions = EnumSet.noneOf(CBLDatabase.TDContentOptions.class);
     private boolean descending = false;
     private boolean includeDocs = false;
+    private boolean includeDeletedDocs = false; // only works with _all_docs, not regular views
+
     private boolean updateSeq = false;
     private boolean inclusiveEnd = true;
     private boolean reduce = false;
@@ -151,5 +153,16 @@ public class CBLQueryOptions {
         return stale;
     }
 
+    public boolean isIncludeDeletedDocs() {
+        return includeDeletedDocs;
+    }
+
+    public void setIncludeDeletedDocs(boolean includeDeletedDocs) {
+        this.includeDeletedDocs = includeDeletedDocs;
+    }
+
+    public void setStale(CBLQuery.CBLStaleness stale) {
+        this.stale = stale;
+    }
 
 }
