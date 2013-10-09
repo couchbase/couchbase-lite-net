@@ -1292,7 +1292,14 @@ public class CBLDatabase extends Observable {
 
         } else {
             // nil view means query _all_docs
-            rows = getAllDocs(options);
+            // note: this is a little kludgy, but we have to pull out the "rows" field from the
+            // result dictionary because that's what we want.  should be refactored, but
+            // it's a little tricky, so postponing.
+            Map<String,Object> allDocsResult = getAllDocs(options);
+            rows = (List<CBLQueryRow>) allDocsResult.get("rows");
+
+            // TODO: finish porting this method
+
 
         }
         outLastSequence.add(lastSequence);
@@ -1372,12 +1379,19 @@ public class CBLDatabase extends Observable {
     }
 
 
-    public List<CBLQueryRow> getAllDocs(CBLQueryOptions options) throws CBLiteException {
+    public Map<String,Object> getAllDocs(CBLQueryOptions options) throws CBLiteException {
 
+        Map<String, Object> result = new HashMap<String, Object>();
         List<CBLQueryRow> rows = new ArrayList<CBLQueryRow>();
         if(options == null) {
             options = new CBLQueryOptions();
         }
+
+        long updateSeq = 0;
+        if(options.isUpdateSeq()) {
+            updateSeq = getLastSequence();  // TODO: needs to be atomic with the following SELECT
+        }
+
         StringBuffer sql = new StringBuffer("SELECT revs.doc_id, docid, revid, sequence");
         if (options.isIncludeDocs()) {
             sql.append(", json");
@@ -1388,7 +1402,7 @@ public class CBLDatabase extends Observable {
         sql.append(" FROM revs, docs WHERE");
         if (options.getKeys() != null) {
             if (options.getKeys().size() == 0) {
-                return rows;
+                return result;
             }
             String commaSeperatedIds = joinQuotedObjects(options.getKeys());
             sql.append(String.format(" revs.doc_id IN (SELECT doc_id FROM docs WHERE docid IN (%@)) AND", commaSeperatedIds));
@@ -1509,7 +1523,16 @@ public class CBLDatabase extends Observable {
                 cursor.close();
             }
         }
-        return rows;
+
+        int totalRows = cursor.getCount();  //??? Is this true, or does it ignore limit/offset?
+        result.put("rows", rows);
+        result.put("total_rows", totalRows);
+        result.put("offset", options.getSkip());
+        if(updateSeq != 0) {
+            result.put("update_seq", updateSeq);
+        }
+
+        return result;
     }
 
 
@@ -1558,6 +1581,13 @@ public class CBLDatabase extends Observable {
     }
 
 
+    /**
+     * OLD DEPRECATED UNUSED
+     *
+     * @param docIDs
+     * @param options
+     * @return
+     */
     //FIX: This has a lot of code in common with -[CBLView queryWithOptions:status:]. Unify the two!
     public Map<String,Object> getDocsWithIDs(List<String> docIDs, CBLQueryOptions options) {
         if(options == null) {

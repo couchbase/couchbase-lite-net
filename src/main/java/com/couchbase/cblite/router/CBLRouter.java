@@ -664,6 +664,18 @@ public class CBLRouter implements Observer {
         return server.deleteDatabaseNamed(db.getName()) ? new CBLStatus(CBLStatus.OK) : new CBLStatus(CBLStatus.NOT_FOUND);
     }
 
+    /**
+     * This is a hack to deal with the fact that there is currently no custom
+     * serializer for CBLQueryRow.  Instead, just convert everything to generic Maps.
+     */
+    private void convertCBLQueryRowsToMaps(Map<String,Object> allDocsResult) {
+        List<Map<String, Object>> rowsAsMaps = new ArrayList<Map<String, Object>>();
+        List<CBLQueryRow> rows = (List<CBLQueryRow>) allDocsResult.get("rows");
+        for (CBLQueryRow row : rows) {
+            rowsAsMaps.add(row.asJSONDictionary());
+        }
+    }
+
     public CBLStatus do_POST_Database(CBLDatabase _db, String _docID, String _attachmentName) {
         CBLStatus status = openDB();
         if(!status.isSuccessful()) {
@@ -672,12 +684,13 @@ public class CBLRouter implements Observer {
         return update(db, null, getBodyAsDictionary(), false);
     }
 
-    public CBLStatus do_GET_Document_all_docs(CBLDatabase _db, String _docID, String _attachmentName) {
+    public CBLStatus do_GET_Document_all_docs(CBLDatabase _db, String _docID, String _attachmentName) throws CBLiteException {
         CBLQueryOptions options = new CBLQueryOptions();
         if(!getQueryOptions(options)) {
             return new CBLStatus(CBLStatus.BAD_REQUEST);
         }
         Map<String,Object> result = db.getAllDocs(options);
+        convertCBLQueryRowsToMaps(result);
         if(result == null) {
             return new CBLStatus(CBLStatus.INTERNAL_SERVER_ERROR);
         }
@@ -685,27 +698,28 @@ public class CBLRouter implements Observer {
         return new CBLStatus(CBLStatus.OK);
     }
 
-    public CBLStatus do_POST_Document_all_docs(CBLDatabase _db, String _docID, String _attachmentName) {
+    public CBLStatus do_POST_Document_all_docs(CBLDatabase _db, String _docID, String _attachmentName) throws CBLiteException {
         CBLQueryOptions options = new CBLQueryOptions();
         if (!getQueryOptions(options)) {
-                return new CBLStatus(CBLStatus.BAD_REQUEST);
+            return new CBLStatus(CBLStatus.BAD_REQUEST);
         }
 
         Map<String, Object> body = getBodyAsDictionary();
         if (body == null) {
-                return new CBLStatus(CBLStatus.BAD_REQUEST);
+            return new CBLStatus(CBLStatus.BAD_REQUEST);
         }
 
         Map<String, Object> result = null;
         if (body.containsKey("keys") && body.get("keys") instanceof ArrayList) {
-                ArrayList<String> keys = (ArrayList<String>) body.get("keys");
-                result = db.getDocsWithIDs(keys, options);
+            ArrayList<String> keys = (ArrayList<String>) body.get("keys");
+            result = db.getDocsWithIDs(keys, options);
         } else {
-                result = db.getAllDocs(options);
+            result = db.getAllDocs(options);
+            convertCBLQueryRowsToMaps(result);
         }
 
         if (result == null) {
-                return new CBLStatus(CBLStatus.INTERNAL_SERVER_ERROR);
+            return new CBLStatus(CBLStatus.INTERNAL_SERVER_ERROR);
         }
         connection.setResponseBody(new CBLBody(result));
         return new CBLStatus(CBLStatus.OK);
