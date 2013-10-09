@@ -1297,10 +1297,7 @@ public class CBLDatabase extends Observable {
             // it's a little tricky, so postponing.
             Map<String,Object> allDocsResult = getAllDocs(options);
             rows = (List<CBLQueryRow>) allDocsResult.get("rows");
-
-            // TODO: finish porting this method
-
-
+            lastSequence = getLastSequence();
         }
         outLastSequence.add(lastSequence);
         return rows;
