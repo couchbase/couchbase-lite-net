@@ -97,7 +97,7 @@ public class CBLLiveQuery extends CBLQuery implements CBLDatabaseChangedFunction
 
     void update() {
         setWillUpdate(false);
-        updaterThread = runAsync(new CBLQueryCompleteFunction() {
+        updaterThread = runAsyncInternal(new CBLQueryCompleteFunction() {
             @Override
             public void onQueryChanged(CBLQueryEnumerator queryEnumerator) {
                 if (queryEnumerator != null && !queryEnumerator.equals(rows)) {

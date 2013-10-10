@@ -168,7 +168,11 @@ public class CBLQuery {
      *  a non-nil enumerator but its .error property will be set to a value reflecting the error.
      *  The originating CBLQuery's .error property will NOT change.
      */
-    public Thread runAsync(final CBLQueryCompleteFunction queryCompleteFunction) {
+    public void runAsync(final CBLQueryCompleteFunction queryCompleteFunction) {
+        runAsyncInternal(queryCompleteFunction);
+    }
+
+    Thread runAsyncInternal(final CBLQueryCompleteFunction queryCompleteFunction) {
         Thread t = new Thread(new Runnable() {
             @Override
             public void run() {
