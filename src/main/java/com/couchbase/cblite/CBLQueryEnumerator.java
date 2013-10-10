@@ -70,4 +70,8 @@ public class CBLQueryEnumerator {
     public CBLStatus getStatus() {
         return status;
     }
+
+    public long getSequenceNumber() {
+        return sequenceNumber;
+    }
 }
