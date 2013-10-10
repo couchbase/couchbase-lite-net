@@ -43,7 +43,7 @@ public class CBLView {
         TDViewCollationUnicode, TDViewCollationRaw, TDViewCollationASCII
     }
 
-    private CBLDatabase db;
+    private CBLDatabase database;
     private String name;
     private int viewId;
     private CBLMapFunction mapBlock;
@@ -51,8 +51,8 @@ public class CBLView {
     private TDViewCollation collation;
     private static CBLViewCompiler compiler;
 
-    public CBLView(CBLDatabase db, String name) {
-        this.db = db;
+    public CBLView(CBLDatabase database, String name) {
+        this.database = database;
         this.name = name;
         this.viewId = -1; // means 'unknown'
         this.collation = TDViewCollation.TDViewCollationUnicode;
@@ -61,8 +61,8 @@ public class CBLView {
     /**
      * Get the database that owns this view.
      */
-    public CBLDatabase getDb() {
-        return db;
+    public CBLDatabase getDatabase() {
+        return database;
     };
 
     /**
@@ -86,13 +86,18 @@ public class CBLView {
         return reduceBlock;
     }
 
-
-
     /**
      * Is the view's index currently out of date?
      */
     public boolean isStale() {
-        return (getLastSequenceIndexed() < db.getLastSequence());
+        return (getLastSequenceIndexed() < database.getLastSequence());
+    }
+
+    /**
+     * Creates a new query object for this view. The query can be customized and then executed.
+     */
+    public CBLQuery createQuery() {
+        return new CBLQuery(getDatabase(), this);
     }
 
     public int getViewId() {
@@ -101,7 +106,7 @@ public class CBLView {
             String[] args = { name };
             Cursor cursor = null;
             try {
-                cursor = db.getSqliteDb().rawQuery(sql, args);
+                cursor = database.getSqliteDb().rawQuery(sql, args);
                 if (cursor.moveToFirst()) {
                     viewId = cursor.getInt(0);
                 } else {
@@ -128,7 +133,7 @@ public class CBLView {
         Cursor cursor = null;
         long result = -1;
         try {
-            cursor = db.getSqliteDb().rawQuery(sql, args);
+            cursor = database.getSqliteDb().rawQuery(sql, args);
             if (cursor.moveToFirst()) {
                 result = cursor.getLong(0);
             }
@@ -187,15 +192,15 @@ public class CBLView {
         this.mapBlock = mapBlock;
         this.reduceBlock = reduceBlock;
 
-        if(!db.open()) {
+        if(!database.open()) {
             return false;
         }
 
-        // Update the version column in the db. This is a little weird looking
+        // Update the version column in the database. This is a little weird looking
         // because we want to
-        // avoid modifying the db if the version didn't change, and because the
+        // avoid modifying the database if the version didn't change, and because the
         // row might not exist yet.
-        SQLiteDatabase database = db.getSqliteDb();
+        SQLiteDatabase database = this.database.getSqliteDb();
 
         // Older Android doesnt have reliable insert or ignore, will to 2 step
         // FIXME review need for change to execSQL, manual call to changes()
@@ -205,7 +210,7 @@ public class CBLView {
         Cursor cursor = null;
 
         try {
-            cursor = db.getSqliteDb().rawQuery(sql, args);
+            cursor = this.database.getSqliteDb().rawQuery(sql, args);
             if (!cursor.moveToFirst()) {
                 // no such record, so insert
                 ContentValues insertValues = new ContentValues();
@@ -245,21 +250,21 @@ public class CBLView {
 
         boolean success = false;
         try {
-            db.beginTransaction();
+            database.beginTransaction();
 
             String[] whereArgs = { Integer.toString(getViewId()) };
-            db.getSqliteDb().delete("maps", "view_id=?", whereArgs);
+            database.getSqliteDb().delete("maps", "view_id=?", whereArgs);
 
             ContentValues updateValues = new ContentValues();
             updateValues.put("lastSequence", 0);
-            db.getSqliteDb().update("views", updateValues, "view_id=?",
+            database.getSqliteDb().update("views", updateValues, "view_id=?",
                     whereArgs);
 
             success = true;
         } catch (SQLException e) {
             Log.e(CBLDatabase.TAG, "Error removing index", e);
         } finally {
-            db.endTransaction(success);
+            database.endTransaction(success);
         }
     }
 
@@ -267,12 +272,12 @@ public class CBLView {
      * Deletes the view, persistently.
      */
     public void delete() {
-        db.deleteViewNamed(name);
+        database.deleteViewNamed(name);
         viewId = 0;
     }
 
     public void databaseClosing() {
-        db = null;
+        database = null;
         viewId = 0;
     }
 
@@ -325,14 +330,14 @@ public class CBLView {
             throw new CBLiteException(new CBLStatus(CBLStatus.NOT_FOUND));
         }
 
-        db.beginTransaction();
+        database.beginTransaction();
         CBLStatus result = new CBLStatus(CBLStatus.INTERNAL_SERVER_ERROR);
         Cursor cursor = null;
 
         try {
 
             long lastSequence = getLastSequenceIndexed();
-            long dbMaxSequence = db.getLastSequence();
+            long dbMaxSequence = database.getLastSequence();
             if(lastSequence == dbMaxSequence) {
                 throw new CBLiteException(new CBLStatus(CBLStatus.NOT_MODIFIED));
             }
@@ -347,21 +352,21 @@ public class CBLView {
                 // If the lastSequence has been reset to 0, make sure to remove
                 // any leftover rows:
                 String[] whereArgs = { Integer.toString(getViewId()) };
-                db.getSqliteDb().delete("maps", "view_id=?", whereArgs);
+                database.getSqliteDb().delete("maps", "view_id=?", whereArgs);
             } else {
                 // Delete all obsolete map results (ones from since-replaced
                 // revisions):
                 String[] args = { Integer.toString(getViewId()),
                         Long.toString(lastSequence),
                         Long.toString(lastSequence) };
-                db.getSqliteDb().execSQL(
+                database.getSqliteDb().execSQL(
                         "DELETE FROM maps WHERE view_id=? AND sequence IN ("
                                 + "SELECT parent FROM revs WHERE sequence>? "
                                 + "AND parent>0 AND parent<=?)", args);
             }
 
             int deleted = 0;
-            cursor = db.getSqliteDb().rawQuery("SELECT changes()", null);
+            cursor = database.getSqliteDb().rawQuery("SELECT changes()", null);
             cursor.moveToFirst();
             deleted = cursor.getInt(0);
             cursor.close();
@@ -385,7 +390,7 @@ public class CBLView {
                         insertValues.put("sequence", sequence);
                         insertValues.put("key", keyJson);
                         insertValues.put("value", valueJson);
-                        db.getSqliteDb().insert("maps", null, insertValues);
+                        database.getSqliteDb().insert("maps", null, insertValues);
                     } catch (Exception e) {
                         Log.e(CBLDatabase.TAG, "Error emitting", e);
                         // find a better way to propagate this back
@@ -397,7 +402,7 @@ public class CBLView {
             // indexed:
             String[] selectArgs = { Long.toString(lastSequence) };
 
-            cursor = db.getSqliteDb().rawQuery(
+            cursor = database.getSqliteDb().rawQuery(
                     "SELECT revs.doc_id, sequence, docid, revid, json FROM revs, docs "
                             + "WHERE sequence>? AND current!=0 AND deleted=0 "
                             + "AND revs.doc_id = docs.doc_id "
@@ -424,7 +429,7 @@ public class CBLView {
                     }
                     String revId = cursor.getString(3);
                     byte[] json = cursor.getBlob(4);
-                    Map<String, Object> properties = db
+                    Map<String, Object> properties = database
                             .documentPropertiesFromJSON(json, docId, revId,
                                     sequence, EnumSet.noneOf(CBLDatabase.TDContentOptions.class));
 
@@ -448,7 +453,7 @@ public class CBLView {
             ContentValues updateValues = new ContentValues();
             updateValues.put("lastSequence", dbMaxSequence);
             String[] whereArgs = { Integer.toString(getViewId()) };
-            db.getSqliteDb().update("views", updateValues, "view_id=?",
+            database.getSqliteDb().update("views", updateValues, "view_id=?",
                     whereArgs);
 
             // FIXME actually count number added :)
@@ -467,8 +472,8 @@ public class CBLView {
                 Log.w(CBLDatabase.TAG, "Failed to rebuild view " + name + ": "
                         + result.getCode());
             }
-            if(db != null) {
-                db.endTransaction(result.isSuccessful());
+            if(database != null) {
+                database.endTransaction(result.isSuccessful());
             }
         }
 
@@ -555,7 +560,7 @@ public class CBLView {
 
         Log.v(CBLDatabase.TAG, "Query " + name + ": " + sql);
 
-        Cursor cursor = db.getSqliteDb().rawQuery(sql,
+        Cursor cursor = database.getSqliteDb().rawQuery(sql,
                 argsList.toArray(new String[argsList.size()]));
         return cursor;
     }
@@ -600,7 +605,7 @@ public class CBLView {
         List<Map<String, Object>> result = null;
 
         try {
-            cursor = db
+            cursor = database
                     .getSqliteDb()
                     .rawQuery(
                             "SELECT sequence, key, value FROM maps WHERE view_id=? ORDER BY key",
@@ -719,14 +724,14 @@ public class CBLView {
                         // http://wiki.apache.org/couchdb/Introduction_to_CouchDB_views#Linked_documents
                         if (value instanceof Map && ((Map) value).containsKey("_id")) {
                             String linkedDocId = (String) ((Map) value).get("_id");
-                            CBLRevisionInternal linkedDoc = db.getDocumentWithIDAndRev(
+                            CBLRevisionInternal linkedDoc = database.getDocumentWithIDAndRev(
                                     linkedDocId,
                                     null,
                                     EnumSet.noneOf(TDContentOptions.class)
                             );
                             docContents = linkedDoc.getProperties();
                         } else {
-                            docContents = db.documentPropertiesFromJSON(
+                            docContents = database.documentPropertiesFromJSON(
                                     cursor.getBlob(4),
                                     docId,
                                     cursor.getString(3),
