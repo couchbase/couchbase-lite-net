@@ -2,6 +2,9 @@ package com.couchbase.cblite;
 
 public interface CBLLiveQueryChangedFunction {
 
-    public void queryChanged();
+    public void onLiveQueryChanged(CBLQueryEnumerator rows);
+
+    public void onFailureLiveQueryChanged(CBLiteException exception);
+
 
 }

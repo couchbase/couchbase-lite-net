@@ -1721,16 +1721,15 @@ public class CBLDatabase extends Observable {
         return result;
     }
 
-    /*
-    public Map<String,Object> getAllDocs(CBLQueryOptions options) {
-        return getDocsWithIDs(null, options);
-    } */
+    public void addChangeListener(CBLDatabaseChangedFunction listener) {
+        // TODO: implement!
+        throw new RuntimeException("Not implemented");
+    }
 
-    /*
-
-
-     */
-
+    public void removeChangeListener(CBLDatabaseChangedFunction listener) {
+        // TODO: implement!
+        throw new RuntimeException("Not implemented");
+    }
 
     /*************************************************************************************************/
     /*** CBLDatabase+Attachments                                                                    ***/

@@ -2,8 +2,8 @@ package com.couchbase.cblite;
 
 public interface CBLQueryCompleteFunction {
 
-    public void onComplete(CBLQueryEnumerator queryEnumerator);
+    public void onQueryChanged(CBLQueryEnumerator queryEnumerator);
 
-    public void onFailure(CBLiteException exception);
+    public void onFailureQueryChanged(CBLiteException exception);
 
 }

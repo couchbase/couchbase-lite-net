@@ -163,13 +163,13 @@ public class CBLQuery {
     }
 
     /**
-     *  Starts an asynchronous query. Returns immediately, then calls the onComplete block when the
+     *  Starts an asynchronous query. Returns immediately, then calls the onLiveQueryChanged block when the
      *  query completes, passing it the row enumerator. If the query fails, the block will receive
      *  a non-nil enumerator but its .error property will be set to a value reflecting the error.
      *  The originating CBLQuery's .error property will NOT change.
      */
-    public void runAsync(final CBLQueryCompleteFunction queryCompleteFunction) {
-        new Thread(new Runnable() {
+    public Thread runAsync(final CBLQueryCompleteFunction queryCompleteFunction) {
+        Thread t = new Thread(new Runnable() {
             @Override
             public void run() {
                 try {
@@ -179,14 +179,15 @@ public class CBLQuery {
                     List<CBLQueryRow> rows = database.queryViewNamed(viewName, options, outSequence);
                     long sequenceNumber = outSequence.get(0);
                     CBLQueryEnumerator enumerator = new CBLQueryEnumerator(database, rows, sequenceNumber);
-                    queryCompleteFunction.onComplete(enumerator);
+                    queryCompleteFunction.onQueryChanged(enumerator);
 
                 } catch (CBLiteException e) {
-                    queryCompleteFunction.onFailure(e);
+                    queryCompleteFunction.onFailureQueryChanged(e);
                 }
             }
-        }).start();
-
+        });
+        t.start();
+        return t;
     }
 
     public CBLView getView() {
