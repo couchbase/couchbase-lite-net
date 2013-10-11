@@ -133,7 +133,7 @@ public class CBLQueryRow {
         if (getDocumentId() == null) {
             return null;
         }
-        CBLDocument document = database.documentWithId(getDocumentId());
+        CBLDocument document = database.getDocument(getDocumentId());
         document.loadCurrentRevisionFrom(this);
         return document;
     }

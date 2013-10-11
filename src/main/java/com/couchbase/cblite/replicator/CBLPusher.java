@@ -28,7 +28,6 @@ import com.couchbase.cblite.CBLiteException;
 import com.couchbase.cblite.internal.CBLRevisionInternal;
 import com.couchbase.cblite.CBLRevisionList;
 import com.couchbase.cblite.CBLServer;
-import com.couchbase.cblite.CBLStatus;
 import com.couchbase.cblite.support.HttpClientFactory;
 import com.couchbase.cblite.support.CBLRemoteRequestCompletionBlock;
 
@@ -97,7 +96,7 @@ public class CBLPusher extends CBLReplicator implements Observer {
         }
 
         if(filterName != null) {
-            filter = db.getFilterNamed(filterName);
+            filter = db.getFilter(filterName);
         }
         if(filterName != null && filter == null) {
             Log.w(CBLDatabase.TAG, String.format("%s: No CBLFilterBlock registered for filter '%s'; ignoring", this, filterName));;

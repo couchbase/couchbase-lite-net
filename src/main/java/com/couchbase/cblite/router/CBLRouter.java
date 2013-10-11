@@ -1098,7 +1098,7 @@ public class CBLRouter implements Observer {
 
         String filterName = getQuery("filter");
         if(filterName != null) {
-            changesFilter = db.getFilterNamed(filterName);
+            changesFilter = db.getFilter(filterName);
             if(changesFilter == null) {
                 return new CBLStatus(CBLStatus.NOT_FOUND);
             }
@@ -1452,7 +1452,7 @@ public class CBLRouter implements Observer {
             }
         }
 
-        CBLView view = db.getViewNamed(viewName);
+        CBLView view = db.getView(viewName);
         view.setMapAndReduce(mapBlock, reduceBlock, "1");
         String collation = (String)viewProps.get("collation");
         if("raw".equals(collation)) {
@@ -1463,7 +1463,7 @@ public class CBLRouter implements Observer {
 
     public CBLStatus queryDesignDoc(String designDoc, String viewName, List<Object> keys) throws CBLiteException {
         String tdViewName = String.format("%s/%s", designDoc, viewName);
-        CBLView view = db.getExistingViewNamed(tdViewName);
+        CBLView view = db.getExistingView(tdViewName);
         if(view == null || view.getMap() == null) {
             // No TouchDB view is defined, or it hasn't had a map block assigned;
             // see if there's a CouchDB view definition we can compile:

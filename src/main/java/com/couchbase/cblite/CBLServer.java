@@ -163,7 +163,7 @@ public class CBLServer {
         if(db == null) {
             return false;
         }
-        db.deleteDatabase();
+        db.delete();
         databases.remove(name);
         return true;
     }

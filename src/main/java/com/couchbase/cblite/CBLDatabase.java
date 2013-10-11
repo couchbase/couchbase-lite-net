@@ -17,14 +17,11 @@
 
 package com.couchbase.cblite;
 
-import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
-import java.nio.charset.Charset;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -55,7 +52,7 @@ import com.couchbase.cblite.support.HttpClientFactory;
 import com.couchbase.touchdb.TDCollateJSON;
 
 /**
- * A CBLite sqliteDb.
+ * A CouchbaseLite database.
  */
 public class CBLDatabase extends Observable {
 
@@ -149,6 +146,10 @@ public class CBLDatabase extends Observable {
             "        UNIQUE (remote, push)); " +
             "    PRAGMA user_version = 3";             // at the end, update user_version
 
+
+    /**
+     * The database manager that owns this database.
+     */
     public CBLManager getManager() {
         return manager;
     }
@@ -192,15 +193,9 @@ public class CBLDatabase extends Observable {
         return new CBLDocument(this, documentId);
     }
 
-    CBLDocument documentWithId(String documentId) {
-        return getDocument(documentId);
-    }
-
     /**
-     * Creates a CBLDocument object with no current ID.  The first time you PUT to that
-     * document, it will be created on the server (via a POST).
-     *
-     * @return
+     * Creates a new CBLDocument object with no properties and a new (random) UUID.
+     * The document will be saved to the database when you call -putProperties: on it.
      */
     public CBLDocument getUntitledDocument() {
         return getDocument(CBLMisc.TDCreateUUID());
@@ -208,9 +203,6 @@ public class CBLDatabase extends Observable {
 
     /**
      * Returns the already-instantiated cached CBLDocument with the given ID, or nil if none is yet cached.
-     *
-     * @param documentID
-     * @return
      */
     public CBLDocument getCachedDocument(String documentID) {
         // TODO: implement
@@ -421,7 +413,10 @@ public class CBLDatabase extends Observable {
         return true;
     }
 
-    public boolean deleteDatabase() {
+    /**
+     * Deletes the database.
+     */
+    public boolean delete() {
         if(open) {
             if(!close()) {
                 return false;
@@ -443,6 +438,9 @@ public class CBLDatabase extends Observable {
         return path;
     }
 
+    /**
+     * The database's name.
+     */
     public String getName() {
         return name;
     }
@@ -515,10 +513,13 @@ public class CBLDatabase extends Observable {
     }
 
     /**
-     * Runs the given code in a transaction.  Does not commit the transaction
-     * if the code throws an Exception.
+     * Runs the block within a transaction. If the block returns NO, the transaction is rolled back.
+     * Use this when performing bulk write operations like multiple inserts/updates;
+     * it saves the overhead of multiple SQLite commits, greatly improving performance.
      *
-     * TODO: implement retry loop in another function that wraps this one.
+     * Does not commit the transaction if the code throws an Exception.
+     *
+     * TODO: the iOS version has a retry loop, so there should be one here too
      *
      * @param databaseFunction
      */
@@ -540,7 +541,8 @@ public class CBLDatabase extends Observable {
     }
 
     /**
-     * Compacts the sqliteDb storage by removing the bodies and attachments of obsolete revisions.
+     * Compacts the database file by purging non-current revisions, deleting unused attachment files,
+     * and running a SQLite "VACUUM" command.
      */
     public CBLStatus compact() {
         // Can't delete any rows because that would lose revision tree history.
@@ -607,6 +609,9 @@ public class CBLDatabase extends Observable {
 
     /** GETTING DOCUMENTS: **/
 
+    /**
+     * The number of documents in the database.
+     */
     public int getDocumentCount() {
         String sql = "SELECT COUNT(DISTINCT doc_id) FROM revs WHERE current=1 AND deleted=0";
         Cursor cursor = null;
@@ -627,6 +632,11 @@ public class CBLDatabase extends Observable {
         return result;
     }
 
+    /**
+     * The latest sequence number used.  Every new revision is assigned a new sequence number,
+     * so this property increases monotonically as changes are made to the database. It can be
+     * used to check whether the database has changed between two points in time.
+     */
     public long getLastSequence() {
         String sql = "SELECT MAX(sequence) FROM revs";
         Cursor cursor = null;
@@ -1212,7 +1222,11 @@ public class CBLDatabase extends Observable {
     /**
      * Define or clear a named filter function.
      *
-     * These aren't used directly by CBLDatabase, but they're looked up by CBLRouter when a _changes request has a ?filter parameter.
+     * Filters are used by push replications to choose which documents to send.
+     *
+     * TODO: is the comment below still valid?  It's not in the iOS docs.
+     * These aren't used directly by CBLDatabase, but they're looked up by CBLRouter
+     * when a _changes request has a ?filter parameter.
      */
     public void defineFilter(String filterName, CBLFilterBlock filter) {
         if(filters == null) {
@@ -1226,7 +1240,11 @@ public class CBLDatabase extends Observable {
         }
     }
 
-    public CBLFilterBlock getFilterNamed(String filterName) {
+    /**
+     * Returns the existing filter function (block) registered with the given name.
+     * Note that filters are not persistent -- you have to re-register them on every launch.
+     */
+    public CBLFilterBlock getFilter(String filterName) {
         CBLFilterBlock result = null;
         if(filters != null) {
             result = filters.get(filterName);
@@ -1247,7 +1265,12 @@ public class CBLDatabase extends Observable {
         return view;
     }
 
-    public CBLView getViewNamed(String name) {
+    /**
+     * Returns a CBLView object for the view with the given name.
+     * (This succeeds even if the view doesn't already exist, but the view won't be added to
+     * the database until the CBLView is assigned a map function.)
+     */
+    public CBLView getView(String name) {
         CBLView view = null;
         if(views != null) {
             view = views.get(name);
@@ -1265,7 +1288,7 @@ public class CBLDatabase extends Observable {
         List<CBLQueryRow> rows = null;
 
         if (viewName != null && viewName.length() > 0) {
-            final CBLView view = getViewNamed(viewName);
+            final CBLView view = getView(viewName);
             if (view == null) {
                 throw new CBLiteException(new CBLStatus(CBLStatus.NOT_FOUND));
             }
@@ -1310,16 +1333,19 @@ public class CBLDatabase extends Observable {
     CBLView makeAnonymousView() {
         for (int i=0; true; ++i) {
             String name = String.format("anon%d", i);
-            CBLView existing = getExistingViewNamed(name);
+            CBLView existing = getExistingView(name);
             if (existing == null) {
                 // this name has not been used yet, so let's use it
-                return getViewNamed(name);
+                return getView(name);
             }
         }
     }
 
 
-    public CBLView getExistingViewNamed(String name) {
+    /**
+     * Returns the existing CBLView with the given name, or nil if none.
+     */
+    public CBLView getExistingView(String name) {
         CBLView view = null;
         if(views != null) {
             view = views.get(name);
@@ -1344,7 +1370,7 @@ public class CBLDatabase extends Observable {
             cursor.moveToFirst();
             result = new ArrayList<CBLView>();
             while(!cursor.isAfterLast()) {
-                result.add(getViewNamed(cursor.getString(0)));
+                result.add(getView(cursor.getString(0)));
                 cursor.moveToNext();
             }
         } catch (Exception e) {
@@ -2747,7 +2773,9 @@ public class CBLDatabase extends Observable {
     /** VALIDATION **/
 
     /**
-     * Define or clear a named document validation function.
+     * Defines or clears a named document validation function.
+     * Before any change to the database, all registered validation functions are called and given a
+     * chance to reject it. (This includes incoming changes from a pull replication.)
      */
     public void defineValidation(String name, CBLValidationBlock validationBlock) {
         if(validations == null) {
@@ -2761,7 +2789,11 @@ public class CBLDatabase extends Observable {
         }
     }
 
-    public CBLValidationBlock getValidationNamed(String name) {
+    /**
+     * Returns the existing document validation function (block) registered with the given name.
+     * Note that validations are not persistent -- you have to re-register them on every launch.
+     */
+    public CBLValidationBlock getValidation(String name) {
         CBLValidationBlock result = null;
         if(validations != null) {
             result = validations.get(name);
@@ -2775,7 +2807,7 @@ public class CBLDatabase extends Observable {
         }
         TDValidationContextImpl context = new TDValidationContextImpl(this, oldRev);
         for (String validationName : validations.keySet()) {
-            CBLValidationBlock validation = getValidationNamed(validationName);
+            CBLValidationBlock validation = getValidation(validationName);
             if(!validation.validate(newRev, context)) {
                 throw new CBLiteException(context.getErrorType().getCode());
             }
@@ -2992,9 +3024,6 @@ public class CBLDatabase extends Observable {
 
     /**
      * Returns the contents of the local document with the given ID, or nil if none exists.
-     *
-     * @param documentId
-     * @return
      */
     public Map<String, Object> getLocalDocument(String documentId) {
         return dbInternal.getLocalDocument(makeLocalDocumentId(documentId), null).getProperties();
@@ -3004,6 +3033,11 @@ public class CBLDatabase extends Observable {
         return String.format("_local/%s", documentId);
     }
 
+    /**
+     * Sets the contents of the local document with the given ID. Unlike CouchDB, no revision-ID
+     * checking is done; the put always succeeds. If the properties dictionary is nil, the document
+     * will be deleted.
+     */
     public boolean putLocalDocument(Map<String, Object> properties, String id) throws CBLiteException {
         // TODO: there was some code in the iOS implementation equivalent that I did not know if needed
         CBLRevisionInternal prevRev = dbInternal.getLocalDocument(id, null);
@@ -3072,6 +3106,9 @@ public class CBLDatabase extends Observable {
         }
     }
 
+    /**
+     * Deletes the local document with the given ID.
+     */
     public boolean deleteLocalDocument(String id) throws CBLiteException {
         CBLRevisionInternal prevRev = dbInternal.getLocalDocument(id, null);
         if (prevRev == null) {
@@ -3082,12 +3119,29 @@ public class CBLDatabase extends Observable {
     }
 
     /**
+     * Returns a query that matches all documents in the database.
+     * This is like querying an imaginary view that emits every document's ID as a key.
+     */
+    public CBLQuery queryAllDocuments() {
+        return new CBLQuery(this, (CBLView)null);
+    }
+
+    /**
+     * Creates a one-shot query with the given map function. This is equivalent to creating an
+     * anonymous CBLView and then deleting it immediately after querying it. It may be useful during
+     * development, but in general this is inefficient if this map will be used more than once,
+     * because the entire view has to be regenerated from scratch every time.
+     */
+    public CBLQuery slowQuery(CBLMapFunction map) {
+        return new CBLQuery(this, map);
+    }
+
+    /**
      * Purges specific revisions, which deletes them completely from the local database _without_ adding a "tombstone" revision. It's as though they were never there.
      * This operation is described here: http://wiki.apache.org/couchdb/Purge_Documents
      * @param docsToRevs  A dictionary mapping document IDs to arrays of revision IDs.
      * @resultOn success will point to an NSDictionary with the same form as docsToRev, containing the doc/revision IDs that were actually removed.
      */
-
     Map<String, Object> purgeRevisions(final Map<String, List<String>> docsToRevs) {
 
         final Map<String, Object> result = new HashMap<String, Object>();
@@ -3201,11 +3255,17 @@ public class CBLDatabase extends Observable {
 
     }
 
+    /**
+     * Returns the currently registered filter compiler (nil by default).
+     */
     public Map<String, CBLFilterCompiler> getFilterCompiler() {
         // TODO: the filter compiler currently ignored
         return filterCompiler;
     }
 
+    /**
+     * Registers an object that can compile source code into executable filter blocks.
+     */
     public void setFilterCompiler(Map<String, CBLFilterCompiler> filterCompiler) {
         // TODO: the filter compiler currently ignored
         this.filterCompiler = filterCompiler;
