@@ -17,26 +17,14 @@
 
 package com.couchbase.cblite;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.URL;
-import java.util.ArrayList;
-import java.util.EnumSet;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Observable;
-import java.util.Set;
-import java.util.concurrent.ScheduledExecutorService;
-
 import android.content.ContentValues;
 import android.database.Cursor;
 import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteException;
-import android.text.TextUtils;import android.util.Log;
+import android.support.v4.util.LruCache;
+import android.text.TextUtils;
+import android.util.Log;
 
 import com.couchbase.cblite.CBLDatabase.TDContentOptions;
 import com.couchbase.cblite.internal.CBLAttachmentInternal;
@@ -51,10 +39,25 @@ import com.couchbase.cblite.support.FileDirUtils;
 import com.couchbase.cblite.support.HttpClientFactory;
 import com.couchbase.touchdb.TDCollateJSON;
 
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.EnumSet;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ScheduledExecutorService;
+
 /**
  * A CouchbaseLite database.
  */
 public class CBLDatabase {
+
+    private static final int MAX_DOC_CACHE_SIZE = 50;
 
     private String path;
     private String name;
@@ -74,6 +77,7 @@ public class CBLDatabase {
     private CBLManager manager;
     private CBLDatabaseInternal dbInternal;
     private List<CBLDatabaseChangedFunction> changeListeners;
+    private LruCache<String, CBLDocument> docCache;
 
     // Length that constitutes a 'big' attachment
     public static int kBigAttachmentLength = (16*1024);
@@ -173,6 +177,7 @@ public class CBLDatabase {
         this.name = FileDirUtils.getDatabaseNameFromPath(path);
         this.manager = manager;
         this.changeListeners = new ArrayList<CBLDatabaseChangedFunction>();
+        this.docCache = new LruCache<String, CBLDocument>(MAX_DOC_CACHE_SIZE);
     }
 
     /**
@@ -188,11 +193,19 @@ public class CBLDatabase {
      * @return
      */
     public CBLDocument getDocument(String documentId) {
-        // TODO: try to get from cache first
+
         if (documentId == null || documentId.length() == 0) {
             return null;
         }
-        return new CBLDocument(this, documentId);
+        CBLDocument doc = docCache.get(documentId);
+        if (doc == null) {
+            doc = new CBLDocument(this, documentId);
+            if (doc == null) {
+                return null;
+            }
+            docCache.put(documentId, doc);
+        }
+        return doc;
     }
 
     /**
@@ -207,8 +220,7 @@ public class CBLDatabase {
      * Returns the already-instantiated cached CBLDocument with the given ID, or nil if none is yet cached.
      */
     public CBLDocument getCachedDocument(String documentID) {
-        // TODO: implement
-        throw new RuntimeException("Not implemented");
+        return docCache.get(documentID);
     }
 
     /**
@@ -216,12 +228,11 @@ public class CBLDatabase {
      * API calls will now instantiate and return new instances.
      */
     public void clearDocumentCache() {
-        // TODO: implement
-        throw new RuntimeException("Not implemented");
+        docCache.evictAll();
     }
 
     void removeDocumentFromCache(CBLDocument document) {
-        // TODO: implement
+        docCache.remove(document.getId());
     }
 
     public String toString() {
