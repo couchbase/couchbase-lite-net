@@ -23,6 +23,7 @@ import android.util.Log;
 import com.couchbase.cblite.CBLBlobKey;
 import com.couchbase.cblite.CBLBlobStore;
 import com.couchbase.cblite.CBLDatabase;
+import com.couchbase.cblite.CBLDatabaseChangedFunction;
 import com.couchbase.cblite.CBLFilterBlock;
 import com.couchbase.cblite.CBLiteException;
 import com.couchbase.cblite.internal.CBLRevisionInternal;
@@ -31,7 +32,7 @@ import com.couchbase.cblite.CBLServer;
 import com.couchbase.cblite.support.HttpClientFactory;
 import com.couchbase.cblite.support.CBLRemoteRequestCompletionBlock;
 
-public class CBLPusher extends CBLReplicator implements Observer {
+public class CBLPusher extends CBLReplicator implements CBLDatabaseChangedFunction {
 
     private boolean createTarget;
     private boolean observing;
@@ -115,7 +116,7 @@ public class CBLPusher extends CBLReplicator implements Observer {
         // Now listen for future changes (in continuous mode):
         if(continuous) {
             observing = true;
-            db.addObserver(this);
+            db.addChangeListener(this);
             asyncTaskStarted();  // prevents stopped() from being called when other tasks finish
         }
     }
@@ -129,27 +130,27 @@ public class CBLPusher extends CBLReplicator implements Observer {
     private void stopObserving() {
         if(observing) {
             observing = false;
-            db.deleteObserver(this);
+            db.removeChangeListener(this);
             asyncTaskFinished(1);
         }
     }
 
     @Override
-    public void update(Observable observable, Object data) {
-        //make sure this came from where we expected
-        if(observable == db) {
-            Map<String,Object> change = (Map<String,Object>)data;
-            // Skip revisions that originally came from the database I'm syncing to:
-            URL source = (URL)change.get("source");
-            if(source != null && source.equals(remote.toExternalForm())) {
-                return;
-            }
-            CBLRevisionInternal rev = (CBLRevisionInternal)change.get("rev");
-            if(rev != null && ((filter == null) || filter.filter(rev))) {
-                addToInbox(rev);
-            }
+    public void onDatabaseChanged(CBLDatabase database, Map<String, Object> changeNotification) {
+        // Skip revisions that originally came from the database I'm syncing to:
+        URL source = (URL)changeNotification.get("source");
+        if(source != null && source.equals(remote.toExternalForm())) {
+            return;
         }
+        CBLRevisionInternal rev = (CBLRevisionInternal)changeNotification.get("rev");
+        if(rev != null && ((filter == null) || filter.filter(rev))) {
+            addToInbox(rev);
+        }
+    }
 
+    @Override
+    public void onFailureDatabaseChanged(CBLiteException exception) {
+        Log.e(CBLDatabase.TAG, "onFailureDatabaseChanged", exception);
     }
 
     @Override

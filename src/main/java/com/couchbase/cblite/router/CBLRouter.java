@@ -22,6 +22,7 @@ import java.util.Observer;
 import android.util.Log;
 
 import com.couchbase.cblite.CBLAttachment;
+import com.couchbase.cblite.CBLDatabaseChangedFunction;
 import com.couchbase.cblite.CBLQueryRow;
 import com.couchbase.cblite.CBLReduceFunction;
 import com.couchbase.cblite.internal.CBLBody;
@@ -47,7 +48,7 @@ import com.couchbase.cblite.replicator.CBLReplicator;
 import org.apache.http.client.HttpResponseException;
 
 
-public class CBLRouter implements Observer {
+public class CBLRouter implements CBLDatabaseChangedFunction {
 
     private CBLServer server;
     private CBLDatabase db;
@@ -477,7 +478,7 @@ public class CBLRouter implements Observer {
     public void stop() {
         callbackBlock = null;
         if(db != null) {
-            db.deleteObserver(this);
+            db.removeChangeListener(this);
         }
     }
 
@@ -1040,46 +1041,47 @@ public class CBLRouter implements Observer {
     }
 
     @Override
-    public void update(Observable observable, Object changeObject) {
-        if(observable == db) {
-            //make sure we're listening to the right events
-            Map<String,Object> changeNotification = (Map<String,Object>)changeObject;
+    public void onDatabaseChanged(CBLDatabase database, Map<String, Object> changeNotification) {
 
-            CBLRevisionInternal rev = (CBLRevisionInternal)changeNotification.get("rev");
+        CBLRevisionInternal rev = (CBLRevisionInternal)changeNotification.get("rev");
 
-            if(changesFilter != null && !changesFilter.filter(rev)) {
-                return;
-            }
+        if(changesFilter != null && !changesFilter.filter(rev)) {
+            return;
+        }
 
-            if(longpoll) {
-                Log.w(CBLDatabase.TAG, "CBLRouter: Sending longpoll response");
-                sendResponse();
-                List<CBLRevisionInternal> revs = new ArrayList<CBLRevisionInternal>();
-                revs.add(rev);
-                Map<String,Object> body = responseBodyForChanges(revs, 0);
-                if(callbackBlock != null) {
-                    byte[] data = null;
-                    try {
-                        data = CBLServer.getObjectMapper().writeValueAsBytes(body);
-                    } catch (Exception e) {
-                        Log.w(CBLDatabase.TAG, "Error serializing JSON", e);
-                    }
-                    OutputStream os = connection.getResponseOutputStream();
-                    try {
-                        os.write(data);
-                        os.close();
-                    } catch (IOException e) {
-                        Log.e(CBLDatabase.TAG, "IOException writing to internal streams", e);
-                    }
+        if(longpoll) {
+            Log.w(CBLDatabase.TAG, "CBLRouter: Sending longpoll response");
+            sendResponse();
+            List<CBLRevisionInternal> revs = new ArrayList<CBLRevisionInternal>();
+            revs.add(rev);
+            Map<String,Object> body = responseBodyForChanges(revs, 0);
+            if(callbackBlock != null) {
+                byte[] data = null;
+                try {
+                    data = CBLServer.getObjectMapper().writeValueAsBytes(body);
+                } catch (Exception e) {
+                    Log.w(CBLDatabase.TAG, "Error serializing JSON", e);
                 }
-            } else {
-                Log.w(CBLDatabase.TAG, "CBLRouter: Sending continous change chunk");
-                sendContinuousChange(rev);
+                OutputStream os = connection.getResponseOutputStream();
+                try {
+                    os.write(data);
+                    os.close();
+                } catch (IOException e) {
+                    Log.e(CBLDatabase.TAG, "IOException writing to internal streams", e);
+                }
             }
-
+        } else {
+            Log.w(CBLDatabase.TAG, "CBLRouter: Sending continous change chunk");
+            sendContinuousChange(rev);
         }
 
     }
+
+    @Override
+    public void onFailureDatabaseChanged(CBLiteException exception) {
+        Log.e(CBLDatabase.TAG, "onFailureDatabaseChanged", exception);
+    }
+
 
     public CBLStatus do_GET_Document_changes(CBLDatabase _db, String docID, String _attachmentName) {
         // http://wiki.apache.org/couchdb/HTTP_database_API#Changes
@@ -1123,7 +1125,7 @@ public class CBLRouter implements Observer {
                     sendContinuousChange(rev);
                 }
             }
-            db.addObserver(this);
+            db.addChangeListener(this);
          // Don't close connection; more data to come
             return new CBLStatus(0);
         } else {

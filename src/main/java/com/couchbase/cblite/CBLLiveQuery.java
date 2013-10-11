@@ -4,6 +4,7 @@ import android.util.Log;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * A CBLQuery subclass that automatically refreshes the result rows every time the database changes.
@@ -117,7 +118,7 @@ public class CBLLiveQuery extends CBLQuery implements CBLDatabaseChangedFunction
         });
     }
 
-    public void onDatabaseChanged(CBLDatabase database) {
+    public void onDatabaseChanged(CBLDatabase database, Map<String, Object> changeNotification) {
         if (!willUpdate) {
             setWillUpdate(true);
 

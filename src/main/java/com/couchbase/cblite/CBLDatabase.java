@@ -54,7 +54,7 @@ import com.couchbase.touchdb.TDCollateJSON;
 /**
  * A CouchbaseLite database.
  */
-public class CBLDatabase extends Observable {
+public class CBLDatabase {
 
     private String path;
     private String name;
@@ -73,6 +73,7 @@ public class CBLDatabase extends Observable {
     private CBLBlobStore attachments;
     private CBLManager manager;
     private CBLDatabaseInternal dbInternal;
+    private List<CBLDatabaseChangedFunction> changeListeners;
 
     // Length that constitutes a 'big' attachment
     public static int kBigAttachmentLength = (16*1024);
@@ -171,6 +172,7 @@ public class CBLDatabase extends Observable {
         this.path = path;
         this.name = FileDirUtils.getDatabaseNameFromPath(path);
         this.manager = manager;
+        this.changeListeners = new ArrayList<CBLDatabaseChangedFunction>();
     }
 
     /**
@@ -1748,13 +1750,11 @@ public class CBLDatabase extends Observable {
     }
 
     public void addChangeListener(CBLDatabaseChangedFunction listener) {
-        // TODO: implement!
-        throw new RuntimeException("Not implemented");
+        changeListeners.add(listener);
     }
 
     public void removeChangeListener(CBLDatabaseChangedFunction listener) {
-        // TODO: implement!
-        throw new RuntimeException("Not implemented");
+        changeListeners.remove(listener);
     }
 
     /*************************************************************************************************/
@@ -2377,8 +2377,13 @@ public class CBLDatabase extends Observable {
         if(source != null) {
             changeNotification.put("source", source);
         }
-        setChanged();
-        notifyObservers(changeNotification);
+        notifyChangeListeners(changeNotification);
+    }
+
+    private void notifyChangeListeners(Map<String,Object> changeNotification) {
+        for (CBLDatabaseChangedFunction changeListener : changeListeners) {
+            changeListener.onDatabaseChanged(this, changeNotification);
+        }
     }
 
     public long insertRevision(CBLRevisionInternal rev, long docNumericID, long parentSequence, boolean current, byte[] data) {
