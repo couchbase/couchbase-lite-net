@@ -1238,7 +1238,7 @@ public class CBLRouter implements Observer {
 
     	String type = null;
     	CBLStatus status = new CBLStatus();
-    	String acceptEncoding = connection.getRequestProperty("Accept-Encoding");
+    	String acceptEncoding = connection.getRequestProperty("accept-encoding");
     	CBLAttachment contents = db.getAttachmentForSequence(rev.getSequence(), _attachmentName, status);
 
     	if (contents == null) {
@@ -1248,8 +1248,8 @@ public class CBLRouter implements Observer {
     	if (type != null) {
     		connection.getResHeader().add("Content-Type", type);
     	}
-    	if (acceptEncoding != null && acceptEncoding.equals("gzip")) {
-    		connection.getResHeader().add("Content-Encoding", acceptEncoding);
+    	if (acceptEncoding != null && acceptEncoding.contains("gzip") && contents.getGZipped()) {
+    		connection.getResHeader().add("Content-Encoding", "gzip");
     	}
 
         connection.setResponseInputStream(contents.getContentStream());
