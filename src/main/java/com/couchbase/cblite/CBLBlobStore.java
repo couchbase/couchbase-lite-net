@@ -23,6 +23,7 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.RandomAccessFile;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
@@ -32,6 +33,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Set;
+import java.util.zip.GZIPInputStream;
 
 import android.util.Log;
 
@@ -299,6 +301,22 @@ public class CBLBlobStore {
 
     public int deleteBlobs() {
         return deleteBlobsExceptWithKeys(new ArrayList<CBLBlobKey>());
+    }
+    
+    public boolean isGZipped(CBLBlobKey key) {
+        int magic = 0;
+        String path = pathForKey(key);
+        File file = new File(path);
+        if (file.canRead()) {
+            try {
+                RandomAccessFile raf = new RandomAccessFile(file, "r");
+                magic = raf.read() & 0xff | ((raf.read() << 8) & 0xff00);
+                raf.close();
+            } catch (Throwable e) {
+                e.printStackTrace(System.err);
+            }
+        }
+        return magic == GZIPInputStream.GZIP_MAGIC;
     }
 
     public File tempDir() {

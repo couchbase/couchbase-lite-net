@@ -26,6 +26,7 @@ public class CBLAttachment {
     private InputStream contentStream;
     private String contentType;
     private Map<String, Object> metadata;
+    private boolean gzipped;
 
     public CBLAttachment() {
 
@@ -37,6 +38,7 @@ public class CBLAttachment {
         metadata = new HashMap<String, Object>();
         metadata.put("content_type", contentType);
         metadata.put("follows", true);
+        gzipped = false;
     }
 
     public InputStream getContentStream() {
@@ -55,7 +57,13 @@ public class CBLAttachment {
         this.contentType = contentType;
     }
 
+    public boolean getGZipped() {
+        return gzipped;
+    }
 
+    public void setGZipped(boolean gzipped) {
+        this.gzipped = gzipped;
+    }
 
 
 }

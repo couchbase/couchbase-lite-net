@@ -207,8 +207,28 @@ public class CBLDatabase extends Observable {
         if(attachmentsPath != null) {
             FileDirUtils.copyFolder(new File(attachmentsPath), attachmentsFile);
         }
+        replaceUUIDs();
         return true;
     }
+    
+    public boolean replaceUUIDs() {
+        String query = "UPDATE INFO SET value='"+CBLMisc.TDCreateUUID()+"' where key = 'privateUUID';";
+        try {
+            database.execSQL(query);
+        } catch (SQLException e) {
+            Log.e(CBLDatabase.TAG, "Error updating UUIDs", e);
+            return false;
+        }
+        query = "UPDATE INFO SET value='"+CBLMisc.TDCreateUUID()+"' where key = 'publicUUID';";
+        try {
+            database.execSQL(query);
+        } catch (SQLException e) {
+            Log.e(CBLDatabase.TAG, "Error updating UUIDs", e);
+            return false;
+        }
+        return true;
+    }
+
 
     public boolean initialize(String statements) {
         try {
@@ -1485,6 +1505,7 @@ public class CBLDatabase extends Observable {
                 CBLAttachment result = new CBLAttachment();
                 result.setContentStream(contentStream);
                 result.setContentType(cursor.getString(1));
+                result.setGZipped(attachments.isGZipped(key));
                 return result;
             }
 
