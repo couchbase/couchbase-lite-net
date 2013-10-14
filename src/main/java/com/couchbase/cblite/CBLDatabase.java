@@ -50,6 +50,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.StringTokenizer;
 import java.util.concurrent.ScheduledExecutorService;
 
 /**
@@ -58,6 +59,7 @@ import java.util.concurrent.ScheduledExecutorService;
 public class CBLDatabase {
 
     private static final int MAX_DOC_CACHE_SIZE = 50;
+    private static CBLFilterCompiler filterCompiler;
 
     private String path;
     private String name;
@@ -68,7 +70,6 @@ public class CBLDatabase {
 
     private Map<String, CBLView> views;
     private Map<String, CBLFilterBlock> filters;
-    private Map<String, CBLFilterCompiler> filterCompiler;
     private Map<String, CBLValidationBlock> validations;
 
     private Map<String, CBLBlobStoreWriter> pendingAttachmentsByDigest;
@@ -1253,6 +1254,27 @@ public class CBLDatabase {
         }
     }
 
+    public String getDesignDocFunction(String fnName, String key, List<String>outLanguageList) {
+        String[] path = fnName.split("/");
+        if (path.length != 2) {
+            return null;
+        }
+        String docId = String.format("_design/%s", path[0]);
+        CBLRevisionInternal rev = getDocumentWithIDAndRev(docId, null, EnumSet.noneOf(TDContentOptions.class));
+        if (rev == null) {
+            return null;
+        }
+
+        String outLanguage = (String) rev.getPropertyForKey("language");
+        if (outLanguage != null) {
+            outLanguageList.add(outLanguage);
+        } else {
+            outLanguageList.add("javascript");
+        }
+        Map<String, Object> container = (Map<String, Object>) rev.getPropertyForKey(key);
+        return (String) container.get(path[1]);
+    }
+
     /**
      * Returns the existing filter function (block) registered with the given name.
      * Note that filters are not persistent -- you have to re-register them on every launch.
@@ -1261,6 +1283,26 @@ public class CBLDatabase {
         CBLFilterBlock result = null;
         if(filters != null) {
             result = filters.get(filterName);
+        }
+        if (result == null) {
+            CBLFilterCompiler filterCompiler = getFilterCompiler();
+            if (filterCompiler == null) {
+                return null;
+            }
+
+            List<String> outLanguageList = new ArrayList<String>();
+            String sourceCode = getDesignDocFunction(filterName, "filters", outLanguageList);
+            if (sourceCode == null) {
+                return null;
+            }
+            String language = outLanguageList.get(0);
+            CBLFilterBlock filter = filterCompiler.compileFilterFunction(sourceCode, language);
+            if (filter == null) {
+                Log.w(CBLDatabase.TAG, String.format("Filter %s failed to compile", filterName));
+                return null;
+            }
+            defineFilter(filterName, filter);
+            return filter;
         }
         return result;
     }
@@ -3274,17 +3316,15 @@ public class CBLDatabase {
     /**
      * Returns the currently registered filter compiler (nil by default).
      */
-    public Map<String, CBLFilterCompiler> getFilterCompiler() {
-        // TODO: the filter compiler currently ignored
+    public static CBLFilterCompiler getFilterCompiler() {
         return filterCompiler;
     }
 
     /**
      * Registers an object that can compile source code into executable filter blocks.
      */
-    public void setFilterCompiler(Map<String, CBLFilterCompiler> filterCompiler) {
-        // TODO: the filter compiler currently ignored
-        this.filterCompiler = filterCompiler;
+    public static void setFilterCompiler(CBLFilterCompiler filterCompiler) {
+        CBLDatabase.filterCompiler = filterCompiler;
     }
 
 }
