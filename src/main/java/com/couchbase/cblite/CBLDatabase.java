@@ -536,7 +536,7 @@ public class CBLDatabase {
      *
      * @param databaseFunction
      */
-    public void inTransaction(CBLDatabaseFunction databaseFunction) {
+    public void runInTransaction(CBLDatabaseFunction databaseFunction) {
 
         boolean shouldCommit = true;
 
@@ -3051,7 +3051,7 @@ public class CBLDatabase {
     Map<String, Object> purgeRevisions(final Map<String, List<String>> docsToRevs) {
 
         final Map<String, Object> result = new HashMap<String, Object>();
-        inTransaction(new CBLDatabaseFunction() {
+        runInTransaction(new CBLDatabaseFunction() {
             @Override
             public boolean performFunction() {
                 for (String docID : docsToRevs.keySet()) {
@@ -3063,30 +3063,26 @@ public class CBLDatabase {
                     List<String> revIDs = (List<String>) docsToRevs.get(docID);
                     if (revIDs == null) {
                         return false;
-                    }
-                    else if (revIDs.size() == 0) {
+                    } else if (revIDs.size() == 0) {
                         revsPurged = new ArrayList<String>();
-                    }
-                    else if (revIDs.contains("*")) {
+                    } else if (revIDs.contains("*")) {
                         // Delete all revisions if magic "*" revision ID is given:
                         try {
-                            String[] args = { Long.toString(docNumericID) };
+                            String[] args = {Long.toString(docNumericID)};
                             sqliteDb.execSQL("DELETE FROM revs WHERE doc_id=?", args);
-                        }
-                        catch(SQLException e) {
+                        } catch (SQLException e) {
                             Log.e(CBLDatabase.TAG, "Error deleting revisions", e);
                             return false;
                         }
                         revsPurged.add("*");
-                    }
-                    else {
+                    } else {
                         // Iterate over all the revisions of the doc, in reverse sequence order.
                         // Keep track of all the sequences to delete, i.e. the given revs and ancestors,
                         // but not any non-given leaf revs or their ancestors.
                         Cursor cursor = null;
 
                         try {
-                            String[] args = { Long.toString(docNumericID) };
+                            String[] args = {Long.toString(docNumericID)};
                             String queryString = "SELECT revid, sequence, parent FROM revs WHERE doc_id=? ORDER BY sequence DESC";
                             cursor = sqliteDb.rawQuery(queryString, args);
                             if (!cursor.moveToFirst()) {
@@ -3097,7 +3093,7 @@ public class CBLDatabase {
                             Set<Long> seqsToPurge = new HashSet<Long>();
                             Set<Long> seqsToKeep = new HashSet<Long>();
                             Set<String> revsToPurge = new HashSet<String>();
-                            while(!cursor.isAfterLast()) {
+                            while (!cursor.isAfterLast()) {
 
                                 String revID = cursor.getString(0);
                                 long sequence = cursor.getLong(1);
@@ -3109,8 +3105,7 @@ public class CBLDatabase {
                                     if (parent > 0) {
                                         seqsToPurge.add(parent);
                                     }
-                                }
-                                else {
+                                } else {
                                     // Keep it and its parent:
                                     seqsToPurge.remove(sequence);
                                     revsToPurge.remove(revID);
@@ -3128,21 +3123,18 @@ public class CBLDatabase {
                                 String sql = String.format("DELETE FROM revs WHERE sequence in (%s)", seqsToPurgeList);
                                 try {
                                     sqliteDb.execSQL(sql);
-                                }
-                                catch(SQLException e) {
+                                } catch (SQLException e) {
                                     Log.e(CBLDatabase.TAG, "Error deleting revisions via: " + sql, e);
                                     return false;
                                 }
                             }
                             revsPurged.addAll(revsToPurge);
 
-                        }
-                        catch(SQLException e) {
+                        } catch (SQLException e) {
                             Log.e(CBLDatabase.TAG, "Error getting revisions", e);
                             return false;
-                        }
-                        finally {
-                            if(cursor != null) {
+                        } finally {
+                            if (cursor != null) {
                                 cursor.close();
                             }
                         }
