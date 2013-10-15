@@ -212,7 +212,7 @@ public class CBLDatabase {
      * Creates a new CBLDocument object with no properties and a new (random) UUID.
      * The document will be saved to the database when you call -putProperties: on it.
      */
-    public CBLDocument getUntitledDocument() {
+    public CBLDocument createUntitledDocument() {
         return getDocument(CBLMisc.TDCreateUUID());
     }
 
