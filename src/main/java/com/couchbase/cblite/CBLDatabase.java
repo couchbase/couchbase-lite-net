@@ -1237,10 +1237,6 @@ public class CBLDatabase {
      * Define or clear a named filter function.
      *
      * Filters are used by push replications to choose which documents to send.
-     *
-     * TODO: is the comment below still valid?  It's not in the iOS docs.
-     * These aren't used directly by CBLDatabase, but they're looked up by CBLRouter
-     * when a _changes request has a ?filter parameter.
      */
     public void defineFilter(String filterName, CBLFilterBlock filter) {
         if(filters == null) {
@@ -1658,150 +1654,6 @@ public class CBLDatabase {
         return revId;
     }
 
-
-    /**
-     * OLD DEPRECATED UNUSED
-     *
-     * @param docIDs
-     * @param options
-     * @return
-     */
-    //FIX: This has a lot of code in common with -[CBLView queryWithOptions:status:]. Unify the two!
-    public Map<String,Object> getDocsWithIDs(List<String> docIDs, CBLQueryOptions options) {
-        if(options == null) {
-            options = new CBLQueryOptions();
-        }
-
-        long updateSeq = 0;
-        if(options.isUpdateSeq()) {
-            updateSeq = getLastSequence();  // TODO: needs to be atomic with the following SELECT
-        }
-
-        // Generate the SELECT statement, based on the options:
-        String additionalCols = "";
-        if(options.isIncludeDocs()) {
-            additionalCols = ", json, sequence";
-        }
-        String sql = "SELECT revs.doc_id, docid, revid, deleted" + additionalCols + " FROM revs, docs WHERE";
-
-        if(docIDs != null) {
-            sql += " docid IN (" + joinQuoted(docIDs) + ")";
-        } else {
-            sql += " deleted=0";
-        }
-
-        sql += " AND current=1 AND docs.doc_id = revs.doc_id";
-
-        List<String> argsList = new ArrayList<String>();
-        Object minKey = options.getStartKey();
-        Object maxKey = options.getEndKey();
-        boolean inclusiveMin = true;
-        boolean inclusiveMax = options.isInclusiveEnd();
-        if(options.isDescending()) {
-            minKey = maxKey;
-            maxKey = options.getStartKey();
-            inclusiveMin = inclusiveMax;
-            inclusiveMax = true;
-        }
-
-        if(minKey != null) {
-            assert(minKey instanceof String);
-            if(inclusiveMin) {
-                sql += " AND docid >= ?";
-            } else {
-                sql += " AND docid > ?";
-            }
-            argsList.add((String)minKey);
-        }
-
-        if(maxKey != null) {
-            assert(maxKey instanceof String);
-            if(inclusiveMax) {
-                sql += " AND docid <= ?";
-            }
-            else {
-                sql += " AND docid < ?";
-            }
-            argsList.add((String)maxKey);
-        }
-
-
-        String order = "ASC";
-        if(options.isDescending()) {
-            order = "DESC";
-        }
-
-        sql += " ORDER BY docid " + order + ", revid DESC LIMIT ? OFFSET ?";
-
-        argsList.add(Integer.toString(options.getLimit()));
-        argsList.add(Integer.toString(options.getSkip()));
-        Cursor cursor = null;
-        long lastDocID = 0;
-        List<Map<String,Object>> rows = null;
-
-        try {
-            cursor = sqliteDb.rawQuery(sql, argsList.toArray(new String[argsList.size()]));
-
-            cursor.moveToFirst();
-            rows = new ArrayList<Map<String,Object>>();
-            while(!cursor.isAfterLast()) {
-                long docNumericID = cursor.getLong(0);
-                if(docNumericID == lastDocID) {
-                    cursor.moveToNext();
-                    continue;
-                }
-                lastDocID = docNumericID;
-
-                String docId = cursor.getString(1);
-                String revId = cursor.getString(2);
-                Map<String, Object> docContents = null;
-                boolean deleted = cursor.getInt(3) > 0;
-                if(options.isIncludeDocs() && !deleted) {
-                    byte[] json = cursor.getBlob(4);
-                    long sequence = cursor.getLong(5);
-                    docContents = documentPropertiesFromJSON(json, docId, revId, sequence, options.getContentOptions());
-                }
-
-                Map<String,Object> valueMap = new HashMap<String,Object>();
-                valueMap.put("rev", revId);
-
-                Map<String,Object> change = new HashMap<String, Object>();
-                change.put("id", docId);
-                change.put("key", docId);
-                change.put("value", valueMap);
-                if(docContents != null) {
-                    change.put("doc", docContents);
-                }
-                if(deleted) {
-                    change.put("deleted", true);
-                }
-
-                rows.add(change);
-
-                cursor.moveToNext();
-            }
-        } catch (SQLException e) {
-            Log.e(CBLDatabase.TAG, "Error getting all docs", e);
-            return null;
-        } finally {
-            if(cursor != null) {
-                cursor.close();
-            }
-        }
-
-        int totalRows = cursor.getCount();  //??? Is this true, or does it ignore limit/offset?
-        Map<String, Object> result = new HashMap<String, Object>();
-        result.put("rows", rows);
-        result.put("total_rows", totalRows);
-        result.put("offset", options.getSkip());
-        if(updateSeq != 0) {
-            result.put("update_seq", updateSeq);
-        }
-
-
-        return result;
-    }
-
     public void addChangeListener(CBLDatabaseChangedFunction listener) {
         changeListeners.add(listener);
     }
@@ -1826,10 +1678,7 @@ public class CBLDatabase {
         if(!attachments.storeBlobStream(contentStream, key)) {
             throw new CBLiteException(CBLStatus.INTERNAL_SERVER_ERROR);
         }
-
-
         insertAttachmentForSequenceWithNameAndType(sequence, name, contentType, revpos, key);
-
     }
 
     public void insertAttachmentForSequenceWithNameAndType(long sequence, String name, String contentType, int revpos, CBLBlobKey key) throws CBLiteException {

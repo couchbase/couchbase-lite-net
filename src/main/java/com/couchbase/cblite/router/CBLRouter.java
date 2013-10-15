@@ -191,14 +191,32 @@ public class CBLRouter implements CBLDatabaseChangedFunction {
         }
         options.setGroup(getBooleanQuery("group"));
         options.setContentOptions(getContentOptions());
-        options.setStartKey(getJSONQuery("startkey"));
-        options.setEndKey(getJSONQuery("endkey"));
-        Object key = getJSONQuery("key");
-        if(key != null) {
-            List<Object> keys = new ArrayList<Object>();
-            keys.add(key);
+
+
+        List<Object> keys;
+
+        Object keysParam = getJSONQuery("keys");
+        if (keysParam != null && !(keysParam instanceof List)) {
+            return false;
+        }
+        else {
+            keys = ( List<Object>) keysParam;
+        }
+        if (keys == null) {
+            Object key = getJSONQuery("key");
+            if(key != null) {
+                keys = new ArrayList<Object>();
+                keys.add(key);
+            }
+        }
+        if (keys != null) {
             options.setKeys(keys);
         }
+        else {
+            options.setStartKey(getJSONQuery("startkey"));
+            options.setEndKey(getJSONQuery("endkey"));
+        }
+
         return true;
     }
 
@@ -711,13 +729,8 @@ public class CBLRouter implements CBLDatabaseChangedFunction {
         }
 
         Map<String, Object> result = null;
-        if (body.containsKey("keys") && body.get("keys") instanceof ArrayList) {
-            ArrayList<String> keys = (ArrayList<String>) body.get("keys");
-            result = db.getDocsWithIDs(keys, options);
-        } else {
-            result = db.getAllDocs(options);
-            convertCBLQueryRowsToMaps(result);
-        }
+        result = db.getAllDocs(options);
+        convertCBLQueryRowsToMaps(result);
 
         if (result == null) {
             return new CBLStatus(CBLStatus.INTERNAL_SERVER_ERROR);
