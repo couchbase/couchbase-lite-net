@@ -15,7 +15,7 @@
  * and limitations under the License.
  */
 
-package com.couchbase.cblite;
+package com.couchbase.cblite.internal;
 
 import java.io.File;
 import java.io.FilenameFilter;
@@ -36,12 +36,14 @@ import org.codehaus.jackson.map.ObjectMapper;
 
 import android.util.Log;
 
+import com.couchbase.cblite.CBLDatabase;
+import com.couchbase.cblite.CBLManager;
 import com.couchbase.cblite.support.HttpClientFactory;
 
 /**
  * Manages a directory containing CBLDatabases.
  */
-public class CBLServer {
+public class CBLServerInternal {
 
     private static final ObjectMapper mapper = new ObjectMapper();
 
@@ -60,11 +62,11 @@ public class CBLServer {
         return mapper;
     }
 
-    public CBLServer(String directoryName) throws IOException {
+    public CBLServerInternal(String directoryName) throws IOException {
         this(directoryName, CBLManager.INSTANCE);
     }
 
-    public CBLServer(String directoryName, CBLManager manager) throws IOException {
+    public CBLServerInternal(String directoryName, CBLManager manager) throws IOException {
         this.directory = new File(directoryName);
         this.databases = new HashMap<String, CBLDatabase>();
 

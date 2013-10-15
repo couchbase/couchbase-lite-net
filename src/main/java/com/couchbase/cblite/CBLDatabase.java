@@ -31,6 +31,7 @@ import com.couchbase.cblite.internal.CBLAttachmentInternal;
 import com.couchbase.cblite.internal.CBLBody;
 import com.couchbase.cblite.internal.CBLDatabaseInternal;
 import com.couchbase.cblite.internal.CBLRevisionInternal;
+import com.couchbase.cblite.internal.CBLServerInternal;
 import com.couchbase.cblite.replicator.CBLPuller;
 import com.couchbase.cblite.replicator.CBLPusher;
 import com.couchbase.cblite.replicator.CBLReplicator;
@@ -677,7 +678,7 @@ public class CBLDatabase {
 
         byte[] extraJSON = null;
         try {
-            extraJSON = CBLServer.getObjectMapper().writeValueAsBytes(dict);
+            extraJSON = CBLServerInternal.getObjectMapper().writeValueAsBytes(dict);
         } catch (Exception e) {
             Log.e(CBLDatabase.TAG, "Error convert extra JSON to bytes", e);
             return null;
@@ -799,7 +800,7 @@ public class CBLDatabase {
 
         Map<String, Object> docProperties = null;
         try {
-            docProperties = CBLServer.getObjectMapper().readValue(json, Map.class);
+            docProperties = CBLServerInternal.getObjectMapper().readValue(json, Map.class);
             docProperties.putAll(extra);
             return docProperties;
         } catch (Exception e) {
@@ -2264,7 +2265,7 @@ public class CBLDatabase {
 
         byte[] json = null;
         try {
-            json = CBLServer.getObjectMapper().writeValueAsBytes(properties);
+            json = CBLServerInternal.getObjectMapper().writeValueAsBytes(properties);
         } catch (Exception e) {
             Log.e(CBLDatabase.TAG, "Error serializing " + rev + " to JSON", e);
         }

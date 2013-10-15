@@ -31,7 +31,7 @@ import com.couchbase.cblite.CBLMisc;
 import com.couchbase.cblite.CBLQueryOptions;
 import com.couchbase.cblite.internal.CBLRevisionInternal;
 import com.couchbase.cblite.CBLRevisionList;
-import com.couchbase.cblite.CBLServer;
+import com.couchbase.cblite.internal.CBLServerInternal;
 import com.couchbase.cblite.CBLStatus;
 import com.couchbase.cblite.CBLView;
 import com.couchbase.cblite.CBLMapFunction;
@@ -48,7 +48,7 @@ import org.apache.http.client.HttpResponseException;
 
 public class CBLRouter implements CBLDatabaseChangedFunction {
 
-    private CBLServer server;
+    private CBLServerInternal server;
     private CBLDatabase db;
     private CBLURLConnection connection;
     private Map<String,String> queries;
@@ -63,7 +63,7 @@ public class CBLRouter implements CBLDatabaseChangedFunction {
         return CBLiteVersion.CBLiteVersionNumber;
     }
 
-    public CBLRouter(CBLServer server, CBLURLConnection connection) {
+    public CBLRouter(CBLServerInternal server, CBLURLConnection connection) {
         this.server = server;
         this.connection = connection;
     }
@@ -128,7 +128,7 @@ public class CBLRouter implements CBLDatabaseChangedFunction {
         }
         Object result = null;
         try {
-            result = CBLServer.getObjectMapper().readValue(value, Object.class);
+            result = CBLServerInternal.getObjectMapper().readValue(value, Object.class);
         } catch (Exception e) {
             Log.w("Unable to parse JSON Query", e);
         }
@@ -145,7 +145,7 @@ public class CBLRouter implements CBLDatabaseChangedFunction {
     public Map<String,Object> getBodyAsDictionary() {
         try {
             InputStream contentStream = connection.getRequestInputStream();
-            Map<String,Object> bodyMap = CBLServer.getObjectMapper().readValue(contentStream, Map.class);
+            Map<String,Object> bodyMap = CBLServerInternal.getObjectMapper().readValue(contentStream, Map.class);
             return bodyMap;
         } catch (IOException e) {
             Log.w(CBLDatabase.TAG, "WARNING: Exception parsing body into dictionary", e);
@@ -1035,7 +1035,7 @@ public class CBLRouter implements CBLDatabaseChangedFunction {
     public void sendContinuousChange(CBLRevisionInternal rev) {
         Map<String,Object> changeDict = changesDictForRevision(rev);
         try {
-            String jsonString = CBLServer.getObjectMapper().writeValueAsString(changeDict);
+            String jsonString = CBLServerInternal.getObjectMapper().writeValueAsString(changeDict);
             if(callbackBlock != null) {
                 byte[] json = (jsonString + "\n").getBytes();
                 OutputStream os = connection.getResponseOutputStream();
@@ -1069,7 +1069,7 @@ public class CBLRouter implements CBLDatabaseChangedFunction {
             if(callbackBlock != null) {
                 byte[] data = null;
                 try {
-                    data = CBLServer.getObjectMapper().writeValueAsBytes(body);
+                    data = CBLServerInternal.getObjectMapper().writeValueAsBytes(body);
                 } catch (Exception e) {
                     Log.w(CBLDatabase.TAG, "Error serializing JSON", e);
                 }

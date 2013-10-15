@@ -3,7 +3,7 @@ package com.couchbase.cblite.support;
 import android.util.Log;
 
 import com.couchbase.cblite.CBLDatabase;
-import com.couchbase.cblite.CBLServer;
+import com.couchbase.cblite.internal.CBLServerInternal;
 
 import org.apache.http.Header;
 import org.apache.http.HttpEntity;
@@ -113,7 +113,7 @@ public class CBLRemoteMultipartDownloaderRequest extends CBLRemoteRequest {
                     if (entity != null) {
                         try {
                             inputStream = entity.getContent();
-                            fullBody = CBLServer.getObjectMapper().readValue(inputStream,
+                            fullBody = CBLServerInternal.getObjectMapper().readValue(inputStream,
                                     Object.class);
                             respondWithResult(fullBody, error);
                         } finally {

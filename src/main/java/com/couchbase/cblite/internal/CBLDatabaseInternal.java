@@ -6,7 +6,6 @@ import android.database.sqlite.SQLiteDatabase;
 import android.util.Log;
 
 import com.couchbase.cblite.CBLDatabase;
-import com.couchbase.cblite.CBLServer;
 import com.couchbase.cblite.CBLStatus;
 import com.couchbase.cblite.CBLiteException;
 
@@ -37,7 +36,7 @@ public class CBLDatabaseInternal {
                 byte[] json = cursor.getBlob(1);
                 Map<String,Object> properties = null;
                 try {
-                    properties = CBLServer.getObjectMapper().readValue(json, Map.class);
+                    properties = CBLServerInternal.getObjectMapper().readValue(json, Map.class);
                     properties.put("_id", docID);
                     properties.put("_rev", gotRevID);
                     result = new CBLRevisionInternal(docID, gotRevID, false, cblDatabase);

@@ -5,6 +5,7 @@ import android.util.Log;
 import com.couchbase.cblite.auth.CBLAuthorizer;
 import com.couchbase.cblite.auth.CBLFacebookAuthorizer;
 import com.couchbase.cblite.auth.CBLPersonaAuthorizer;
+import com.couchbase.cblite.internal.CBLServerInternal;
 import com.couchbase.cblite.replicator.CBLPusher;
 import com.couchbase.cblite.replicator.CBLReplicator;
 
@@ -18,13 +19,13 @@ public enum CBLManager {
 
     INSTANCE;
 
-    private CBLServer server;
+    private CBLServerInternal server;
 
-    public CBLServer getServer() {
+    public CBLServerInternal getServer() {
         return server;
     }
 
-    public void setServer(CBLServer server) {
+    public void setServer(CBLServerInternal server) {
         this.server = server;
     }
 

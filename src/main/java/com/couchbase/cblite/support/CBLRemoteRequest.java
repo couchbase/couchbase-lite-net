@@ -36,7 +36,7 @@ import org.apache.http.protocol.HttpContext;
 import android.util.Log;
 
 import com.couchbase.cblite.CBLDatabase;
-import com.couchbase.cblite.CBLServer;
+import com.couchbase.cblite.internal.CBLServerInternal;
 
 public class CBLRemoteRequest implements Runnable {
 
@@ -94,7 +94,7 @@ public class CBLRemoteRequest implements Runnable {
         if (body != null && request instanceof HttpEntityEnclosingRequestBase) {
             byte[] bodyBytes = null;
             try {
-                bodyBytes = CBLServer.getObjectMapper().writeValueAsBytes(body);
+                bodyBytes = CBLServerInternal.getObjectMapper().writeValueAsBytes(body);
             } catch (Exception e) {
                 Log.e(CBLDatabase.TAG, "Error serializing body of request", e);
             }
@@ -131,7 +131,7 @@ public class CBLRemoteRequest implements Runnable {
                     InputStream stream = null;
                     try {
                         stream = temp.getContent();
-                        fullBody = CBLServer.getObjectMapper().readValue(stream,
+                        fullBody = CBLServerInternal.getObjectMapper().readValue(stream,
                                 Object.class);
                     } finally {
                         try {

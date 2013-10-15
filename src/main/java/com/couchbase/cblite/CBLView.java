@@ -25,6 +25,7 @@ import java.util.Map;
 
 import com.couchbase.cblite.CBLDatabase.TDContentOptions;
 import com.couchbase.cblite.internal.CBLRevisionInternal;
+import com.couchbase.cblite.internal.CBLServerInternal;
 
 import android.content.ContentValues;
 import android.database.Cursor;
@@ -289,7 +290,7 @@ public class CBLView {
         }
         String result = null;
         try {
-            result = CBLServer.getObjectMapper().writeValueAsString(object);
+            result = CBLServerInternal.getObjectMapper().writeValueAsString(object);
         } catch (Exception e) {
             Log.w(CBLDatabase.TAG, "Exception serializing object to json: " + object, e);
         }
@@ -302,7 +303,7 @@ public class CBLView {
         }
         Object result = null;
         try {
-            result = CBLServer.getObjectMapper().readValue(json, Object.class);
+            result = CBLServerInternal.getObjectMapper().readValue(json, Object.class);
         } catch (Exception e) {
             Log.w(CBLDatabase.TAG, "Exception parsing json", e);
         }
@@ -380,8 +381,8 @@ public class CBLView {
                 public void emit(Object key, Object value) {
 
                     try {
-                        String keyJson = CBLServer.getObjectMapper().writeValueAsString(key);
-                        String valueJson = CBLServer.getObjectMapper().writeValueAsString(value);
+                        String keyJson = CBLServerInternal.getObjectMapper().writeValueAsString(key);
+                        String valueJson = CBLServerInternal.getObjectMapper().writeValueAsString(value);
                         Log.v(CBLDatabase.TAG, "    emit(" + keyJson + ", "
                                 + valueJson + ")");
 

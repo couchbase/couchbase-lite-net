@@ -21,7 +21,7 @@ import com.couchbase.cblite.CBLMisc;
 import com.couchbase.cblite.CBLiteException;
 import com.couchbase.cblite.internal.CBLRevisionInternal;
 import com.couchbase.cblite.CBLRevisionList;
-import com.couchbase.cblite.CBLServer;
+import com.couchbase.cblite.internal.CBLServerInternal;
 import com.couchbase.cblite.CBLStatus;
 import com.couchbase.cblite.replicator.changetracker.CBLChangeTracker;
 import com.couchbase.cblite.replicator.changetracker.CBLChangeTrackerClient;
@@ -378,7 +378,7 @@ public class CBLPuller extends CBLReplicator implements CBLChangeTrackerClient {
         }
         byte[] json = null;
         try {
-            json = CBLServer.getObjectMapper().writeValueAsBytes(strings);
+            json = CBLServerInternal.getObjectMapper().writeValueAsBytes(strings);
         } catch (Exception e) {
             Log.w(CBLDatabase.TAG, "Unable to serialize json", e);
         }

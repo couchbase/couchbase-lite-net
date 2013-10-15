@@ -26,7 +26,6 @@ import org.codehaus.jackson.map.ObjectWriter;
 import android.util.Log;
 
 import com.couchbase.cblite.CBLDatabase;
-import com.couchbase.cblite.CBLServer;
 
 /**
  * A request/response/document body, stored as either JSON or a Map<String,Object>
@@ -68,7 +67,7 @@ public class CBLBody {
         // Yes, this is just like asObject except it doesn't warn.
         if(json == null && !error) {
             try {
-                json = CBLServer.getObjectMapper().writeValueAsBytes(object);
+                json = CBLServerInternal.getObjectMapper().writeValueAsBytes(object);
             } catch (Exception e) {
                 error = true;
             }
@@ -79,7 +78,7 @@ public class CBLBody {
     public byte[] getJson() {
         if(json == null && !error) {
             try {
-                json = CBLServer.getObjectMapper().writeValueAsBytes(object);
+                json = CBLServerInternal.getObjectMapper().writeValueAsBytes(object);
             } catch (Exception e) {
                 Log.w(CBLDatabase.TAG, "CBLBody: couldn't convert JSON");
                 error = true;
@@ -91,7 +90,7 @@ public class CBLBody {
     public byte[] getPrettyJson() {
         Object properties = getObject();
         if(properties != null) {
-            ObjectWriter writer = CBLServer.getObjectMapper().writerWithDefaultPrettyPrinter();
+            ObjectWriter writer = CBLServerInternal.getObjectMapper().writerWithDefaultPrettyPrinter();
             try {
                 json = writer.writeValueAsBytes(properties);
             } catch (Exception e) {
@@ -109,7 +108,7 @@ public class CBLBody {
         if(object == null && !error) {
             try {
                 if(json != null) {
-                    object = CBLServer.getObjectMapper().readValue(json, Map.class);
+                    object = CBLServerInternal.getObjectMapper().readValue(json, Map.class);
                 }
             } catch (Exception e) {
                 Log.w(CBLDatabase.TAG, "CBLBody: couldn't parse JSON: " + new String(json), e);
