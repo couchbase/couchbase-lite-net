@@ -149,7 +149,7 @@ public class CBLQuery {
      * was evaluated (Synchronous).
      */
     public CBLQueryEnumerator getRowsIfChanged() throws CBLiteException {
-        if (database.getLastSequence() == lastSequence) {
+        if (database.getLastSequenceNumber() == lastSequence) {
             return null;
         }
         return getRows();

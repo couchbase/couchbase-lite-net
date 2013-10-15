@@ -50,7 +50,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.StringTokenizer;
 import java.util.concurrent.ScheduledExecutorService;
 
 /**
@@ -651,7 +650,7 @@ public class CBLDatabase {
      * so this property increases monotonically as changes are made to the database. It can be
      * used to check whether the database has changed between two points in time.
      */
-    public long getLastSequence() {
+    public long getLastSequenceNumber() {
         String sql = "SELECT MAX(sequence) FROM revs";
         Cursor cursor = null;
         long result = 0;
@@ -1347,7 +1346,7 @@ public class CBLDatabase {
             if (options.getStale() == CBLQuery.CBLStaleness.CBLStaleNever || lastSequence <= 0) {
                 view.updateIndex();
                 lastSequence = view.getLastSequenceIndexed();
-            } else if (options.getStale() == CBLQuery.CBLStaleness.CBLStaleUpdateAfter && lastSequence < getLastSequence()) {
+            } else if (options.getStale() == CBLQuery.CBLStaleness.CBLStaleUpdateAfter && lastSequence < getLastSequenceNumber()) {
 
                 new Thread(new Runnable() {
                     @Override
@@ -1371,7 +1370,7 @@ public class CBLDatabase {
             // it's a little tricky, so postponing.
             Map<String,Object> allDocsResult = getAllDocs(options);
             rows = (List<CBLQueryRow>) allDocsResult.get("rows");
-            lastSequence = getLastSequence();
+            lastSequence = getLastSequenceNumber();
         }
         outLastSequence.add(lastSequence);
         return rows;
@@ -1463,7 +1462,7 @@ public class CBLDatabase {
 
         long updateSeq = 0;
         if(options.isUpdateSeq()) {
-            updateSeq = getLastSequence();  // TODO: needs to be atomic with the following SELECT
+            updateSeq = getLastSequenceNumber();  // TODO: needs to be atomic with the following SELECT
         }
 
         StringBuffer sql = new StringBuffer("SELECT revs.doc_id, docid, revid, sequence");

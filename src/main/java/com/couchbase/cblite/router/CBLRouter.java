@@ -16,8 +16,6 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Observable;
-import java.util.Observer;
 
 import android.util.Log;
 
@@ -654,7 +652,7 @@ public class CBLRouter implements CBLDatabaseChangedFunction {
             return status;
         }
         int num_docs = db.getDocumentCount();
-        long update_seq = db.getLastSequence();
+        long update_seq = db.getLastSequenceNumber();
         Map<String, Object> result = new HashMap<String,Object>();
         result.put("db_name", db.getName());
         result.put("db_uuid", db.publicUUID());
@@ -1521,7 +1519,7 @@ public class CBLRouter implements CBLDatabaseChangedFunction {
 
         // Check for conditional GET and set response Etag header:
         if(keys == null) {
-            long eTag = options.isIncludeDocs() ? db.getLastSequence() : lastSequenceIndexed;
+            long eTag = options.isIncludeDocs() ? db.getLastSequenceNumber() : lastSequenceIndexed;
             if(cacheWithEtag(String.format("%d", eTag))) {
                 return new CBLStatus(CBLStatus.NOT_MODIFIED);
             }

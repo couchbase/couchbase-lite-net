@@ -90,7 +90,7 @@ public class CBLView {
      * Is the view's index currently out of date?
      */
     public boolean isStale() {
-        return (getLastSequenceIndexed() < database.getLastSequence());
+        return (getLastSequenceIndexed() < database.getLastSequenceNumber());
     }
 
     /**
@@ -337,7 +337,7 @@ public class CBLView {
         try {
 
             long lastSequence = getLastSequenceIndexed();
-            long dbMaxSequence = database.getLastSequence();
+            long dbMaxSequence = database.getLastSequenceNumber();
             if(lastSequence == dbMaxSequence) {
                 throw new CBLiteException(new CBLStatus(CBLStatus.NOT_MODIFIED));
             }
