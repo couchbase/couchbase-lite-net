@@ -9,17 +9,86 @@ import com.couchbase.cblite.internal.CBLServerInternal;
 import com.couchbase.cblite.replicator.CBLPusher;
 import com.couchbase.cblite.replicator.CBLReplicator;
 
+import java.io.File;
+import java.io.FilenameFilter;
+import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public enum CBLManager {
+/**
+ * Top-level CouchbaseLite object; manages a collection of databases as a CouchDB server does.
+ */
+public class CBLManager {
 
-    INSTANCE;
+    public static final String DATABASE_SUFFIX_OLD = ".touchdb";
+    public static final String DATABASE_SUFFIX = ".cblite";
+    private static CBLManager sharedInstance;
 
     private CBLServerInternal server;
+    private CBLManagerOptions options;
+    private File directoryFile;
+    private Map<String, CBLDatabase> databases;
+    private List<CBLReplicator> replications;
+
+    public CBLManager() {
+        // TODO: this is problematic to figure out the application directory
+    }
+
+    public CBLManager(String directory, CBLManagerOptions options) {
+        this.directoryFile = new File(directory);
+        this.options = options;
+        this.databases = new HashMap<String, CBLDatabase>();
+        this.replications = new ArrayList<CBLReplicator>();
+
+        //create the directory, but don't fail if it already exists
+        if(!directoryFile.exists()) {
+            boolean result = directoryFile.mkdir();
+            if(!result) {
+                throw new RuntimeException("Unable to create directory " + directory);
+            }
+        }
+
+        upgradeOldDatabaseFiles(directoryFile);
+
+        // TODO: in the iOS code it starts persistent replications here (using runloop trick)
+
+
+    }
+
+    private void upgradeOldDatabaseFiles(File directory) {
+        File[] files = directory.listFiles(new FilenameFilter() {
+            @Override
+            public boolean accept(File file, String name) {
+                return name.endsWith(DATABASE_SUFFIX_OLD);
+            }
+        });
+
+        for (File file : files) {
+            String oldFilename = file.getName();
+            String newFilename = filenameWithNewExtension(oldFilename, DATABASE_SUFFIX_OLD, DATABASE_SUFFIX);
+            File newFile = new File(directory, newFilename);
+            if (newFile.exists()) {
+                String msg = String.format("Cannot rename %s to %s, %s already exists", oldFilename, newFilename, newFilename);
+                Log.w(CBLDatabase.TAG, msg);
+                continue;
+            }
+            boolean ok = file.renameTo(newFile);
+            if (!ok) {
+                String msg = String.format("Unable to rename %s to %s", oldFilename, newFilename);
+                throw new IllegalStateException(msg);
+            }
+        }
+    }
+
+    private String filenameWithNewExtension(String oldFilename, String oldExtension, String newExtension) {
+        String oldExtensionRegex = String.format("%s$",oldExtension);
+        return oldFilename.replaceAll(oldExtensionRegex, newExtension);
+    }
+
 
     public CBLServerInternal getServer() {
         return server;
@@ -179,3 +248,4 @@ public enum CBLManager {
     }
 
 }
+

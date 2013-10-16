@@ -48,8 +48,6 @@ public class CBLServerInternal {
     private static final ObjectMapper mapper = new ObjectMapper();
 
     public static final String LEGAL_CHARACTERS = "[^a-z]{1,}[^a-z0-9_$()/+-]*$";
-    public static final String DATABASE_SUFFIX_OLD = ".touchdb";
-    public static final String DATABASE_SUFFIX = ".cblite";
 
     private File directory;
     private Map<String, CBLDatabase> databases;
@@ -63,9 +61,15 @@ public class CBLServerInternal {
     }
 
     public CBLServerInternal(String directoryName) throws IOException {
-        this(directoryName, CBLManager.INSTANCE);
+        this(directoryName, CBLManager.getSharedInstance());
     }
 
+    /**
+     * TODO: Is this still needed?  Already in CBLManager
+     * @param directoryName
+     * @param manager
+     * @throws IOException
+     */
     public CBLServerInternal(String directoryName, CBLManager manager) throws IOException {
         this.directory = new File(directoryName);
         this.databases = new HashMap<String, CBLDatabase>();
@@ -86,17 +90,21 @@ public class CBLServerInternal {
 
     }
 
+    /**
+     * TODO: Remove since this is in CBLManager
+     * @param directory
+     */
     private void upgradeOldDatabaseFiles(File directory) {
         File[] files = directory.listFiles(new FilenameFilter() {
             @Override
             public boolean accept(File file, String name) {
-                return name.endsWith(DATABASE_SUFFIX_OLD);
+                return name.endsWith(CBLManager.DATABASE_SUFFIX_OLD);
             }
         });
 
         for (File file : files) {
             String oldFilename = file.getName();
-            String newFilename = filenameWithNewExtension(oldFilename, DATABASE_SUFFIX_OLD, DATABASE_SUFFIX);
+            String newFilename = filenameWithNewExtension(oldFilename, CBLManager.DATABASE_SUFFIX_OLD, CBLManager.DATABASE_SUFFIX);
             File newFile = new File(directory, newFilename);
             if (newFile.exists()) {
                 String msg = String.format("Cannot rename %s to %s, %s already exists", oldFilename, newFilename, newFilename);
@@ -111,6 +119,9 @@ public class CBLServerInternal {
         }
     }
 
+    /**
+     * TODO: Remove since this is in CBLManager
+     */
     private String filenameWithNewExtension(String oldFilename, String oldExtension, String newExtension) {
         String oldExtensionRegex = String.format("%s$",oldExtension);
         return oldFilename.replaceAll(oldExtensionRegex, newExtension);
@@ -126,7 +137,7 @@ public class CBLServerInternal {
             return null;
         }
         name = name.replace('/', ':');
-        String result = directory.getPath() + File.separator + name + DATABASE_SUFFIX;
+        String result = directory.getPath() + File.separator + name + CBLManager.DATABASE_SUFFIX;
         return result;
     }
 
@@ -175,7 +186,7 @@ public class CBLServerInternal {
 
             @Override
             public boolean accept(File dir, String filename) {
-                if(filename.endsWith(DATABASE_SUFFIX)) {
+                if(filename.endsWith(CBLManager.DATABASE_SUFFIX)) {
                     return true;
                 }
                 return false;
@@ -183,7 +194,7 @@ public class CBLServerInternal {
         });
         List<String> result = new ArrayList<String>();
         for (String databaseFile : databaseFiles) {
-            String trimmed = databaseFile.substring(0, databaseFile.length() - DATABASE_SUFFIX.length());
+            String trimmed = databaseFile.substring(0, databaseFile.length() - CBLManager.DATABASE_SUFFIX.length());
             String replaced = trimmed.replace(':', '/');
             result.add(replaced);
         }
