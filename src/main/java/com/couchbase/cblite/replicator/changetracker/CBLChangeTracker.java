@@ -292,7 +292,9 @@ public class CBLChangeTracker implements Runnable {
 
     public boolean start() {
         this.error = null;
-        thread = new Thread(this, "ChangeTracker-" + databaseURL.toExternalForm());
+        String maskedRemoteWithoutCredentials = databaseURL.toExternalForm();
+        maskedRemoteWithoutCredentials = maskedRemoteWithoutCredentials.replaceAll("://.*:.*@", "://---:---@");
+        thread = new Thread(this, "ChangeTracker-" + maskedRemoteWithoutCredentials);
         thread.start();
         return true;
     }
