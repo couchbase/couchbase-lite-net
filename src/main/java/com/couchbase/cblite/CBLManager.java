@@ -172,6 +172,9 @@ public class CBLManager {
     public CBLDatabase getDatabase(String name) {
         CBLDatabase db = databases.get(name);
         if(db == null) {
+            if (!isValidDatabaseName(name)) {
+                throw new IllegalArgumentException("Invalid database name: " + name);
+            }
             String path = pathForName(name);
             if(path == null) {
                 return null;
