@@ -674,11 +674,11 @@ public class CBLRouter implements CBLDatabaseChangedFunction {
         return new CBLStatus(CBLStatus.CREATED);
     }
 
-    public CBLStatus do_DELETE_Database(CBLDatabase _db, String _docID, String _attachmentName) {
+    public CBLStatus do_DELETE_Database(CBLDatabase _db, String _docID, String _attachmentName) throws CBLiteException {
         if(getQuery("rev") != null) {
             return new CBLStatus(CBLStatus.BAD_REQUEST);  // CouchDB checks for this; probably meant to be a document deletion
         }
-        return server.deleteDatabaseNamed(db.getName()) ? new CBLStatus(CBLStatus.OK) : new CBLStatus(CBLStatus.NOT_FOUND);
+        return db.delete();
     }
 
     /**

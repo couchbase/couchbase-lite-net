@@ -171,16 +171,6 @@ public class CBLServerInternal {
         return db;
     }
 
-    public boolean deleteDatabaseNamed(String name) {
-        CBLDatabase db = databases.get(name);
-        if(db == null) {
-            return false;
-        }
-        db.delete();
-        databases.remove(name);
-        return true;
-    }
-
     public List<String> allDatabaseNames() {
         String[] databaseFiles = directory.list(new FilenameFilter() {
 
