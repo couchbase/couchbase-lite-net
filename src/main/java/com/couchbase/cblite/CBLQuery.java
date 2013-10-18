@@ -192,6 +192,7 @@ public class CBLQuery {
         });
         t.start();
         return t;
+
     }
 
     public CBLView getView() {

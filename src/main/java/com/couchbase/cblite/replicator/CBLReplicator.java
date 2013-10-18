@@ -62,6 +62,7 @@ public abstract class CBLReplicator extends Observable {
 
     protected static final int PROCESSOR_DELAY = 500;
     protected static final int INBOX_CAPACITY = 100;
+    public static final String REPLICATOR_DATABASE_NAME = "_replicator";
 
     public CBLReplicator(CBLDatabase db, URL remote, boolean continuous, ScheduledExecutorService workExecutor) {
         this(db, remote, continuous, null, workExecutor);

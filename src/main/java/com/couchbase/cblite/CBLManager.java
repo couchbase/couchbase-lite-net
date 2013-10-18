@@ -1,5 +1,6 @@
 package com.couchbase.cblite;
 
+import android.content.Context;
 import android.util.Log;
 
 import com.couchbase.cblite.auth.CBLAuthorizer;
@@ -8,6 +9,7 @@ import com.couchbase.cblite.auth.CBLPersonaAuthorizer;
 import com.couchbase.cblite.internal.CBLServerInternal;
 import com.couchbase.cblite.replicator.CBLPusher;
 import com.couchbase.cblite.replicator.CBLReplicator;
+import com.couchbase.cblite.support.FileDirUtils;
 
 import java.io.File;
 import java.io.FilenameFilter;
@@ -15,9 +17,12 @@ import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Top-level CouchbaseLite object; manages a collection of databases as a CouchDB server does.
@@ -26,21 +31,25 @@ public class CBLManager {
 
     public static final String DATABASE_SUFFIX_OLD = ".touchdb";
     public static final String DATABASE_SUFFIX = ".cblite";
+    public static final CBLManagerOptions DEFAULT_OPTIONS = new CBLManagerOptions(false, false);
     private static CBLManager sharedInstance;
+    public static final String LEGAL_CHARACTERS = "[^a-z]{1,}[^a-z0-9_$()/+-]*$";
+
 
     private CBLServerInternal server;
     private CBLManagerOptions options;
     private File directoryFile;
     private Map<String, CBLDatabase> databases;
     private List<CBLReplicator> replications;
+    private Context androidContext;
 
-    public CBLManager() {
-        // TODO: this is problematic to figure out the application directory
+    public CBLManager(Context androidContext, String directoryName) {
+        this(androidContext, directoryName, DEFAULT_OPTIONS);
     }
 
-    public CBLManager(String directory, CBLManagerOptions options) {
-        this.directoryFile = new File(directory);
-        this.options = options;
+    public CBLManager(Context androidContext, String directoryName, CBLManagerOptions options) {
+        this.directoryFile = new File(androidContext.getFilesDir(), directoryName);
+        this.options = (options != null) ? options : DEFAULT_OPTIONS;
         this.databases = new HashMap<String, CBLDatabase>();
         this.replications = new ArrayList<CBLReplicator>();
 
@@ -48,15 +57,46 @@ public class CBLManager {
         if(!directoryFile.exists()) {
             boolean result = directoryFile.mkdir();
             if(!result) {
-                throw new RuntimeException("Unable to create directory " + directory);
+                throw new RuntimeException("Unable to create directory " + directoryFile);
             }
         }
-
         upgradeOldDatabaseFiles(directoryFile);
-
         // TODO: in the iOS code it starts persistent replications here (using runloop trick)
+    }
+
+    public synchronized static CBLManager createSharedInstance(Context androidContext, String directoryName, CBLManagerOptions options) {
+        if (sharedInstance == null) {
+            sharedInstance = new CBLManager(androidContext, directoryName, options);
+        }
+        return sharedInstance;
+    }
+
+    public synchronized static CBLManager createSharedInstance(Context androidContext, String directoryName) {
+        return createSharedInstance(androidContext, directoryName, DEFAULT_OPTIONS);
+    }
+
+    public static CBLManager getSharedInstance() {
+        return sharedInstance;
+    }
+
+    /**
+     * Returns YES if the given name is a valid database name.
+     * (Only the characters in "abcdefghijklmnopqrstuvwxyz0123456789_$()+-/" are allowed.)
+     */
+    public static boolean isValidDatabaseName(String databaseName) {
+        if (databaseName.length() > 0 && databaseName.length() < 240 &&
+                containsOnlyLegalCharacters(databaseName) &&
+                Character.isLowerCase(databaseName.charAt(0))) {
+            return true;
+        }
+        return databaseName.equals(CBLReplicator.REPLICATOR_DATABASE_NAME);
+    }
 
 
+    private static boolean containsOnlyLegalCharacters(String databaseName) {
+        Pattern p = Pattern.compile("^[abcdefghijklmnopqrstuvwxyz0123456789_$()+-/]+$");
+        Matcher matcher = p.matcher(databaseName);
+        return matcher.matches();
     }
 
     private void upgradeOldDatabaseFiles(File directory) {
@@ -100,10 +140,11 @@ public class CBLManager {
 
     /**
      * Releases all resources used by the CBLManager instance and closes all its databases.
-     *
-     * @return
      */
     public void close() {
+
+        // TODO: review this code, especially call to server.close()
+
         Log.i(CBLDatabase.TAG, "Closing " + this);
         server.close();
         List<CBLDatabase> databases = (List<CBLDatabase>) server.allOpenDatabases();
@@ -115,6 +156,115 @@ public class CBLManager {
             database.close();
         }
         Log.i(CBLDatabase.TAG, "Closed " + this);
+    }
+
+    /**
+     * The root directory of this manager (as specified at initialization time.)
+     */
+    public String getDirectory() {
+        return directoryFile.getAbsolutePath();
+    }
+
+    /**
+     * Returns the database with the given name, or creates it if it doesn't exist.
+     * Multiple calls with the same name will return the same CBLDatabase instance.
+     */
+    public CBLDatabase getDatabase(String name) {
+        CBLDatabase db = databases.get(name);
+        if(db == null) {
+            String path = pathForName(name);
+            if(path == null) {
+                return null;
+            }
+            db = new CBLDatabase(path, this);
+            db.setName(name);
+            databases.put(name, db);
+        }
+        return db;
+    }
+
+    /**
+     * Returns the database with the given name, or null if it doesn't exist.
+     * Multiple calls with the same name will return the same CBLDatabase instance.
+     */
+    public CBLDatabase getExistingDatabaseNamed(String name) {
+        return databases.get(name);
+    }
+
+    /**
+     * An array of the names of all existing databases.
+     */
+    public List<String> getAllDatabaseNames() {
+        String[] databaseFiles = directoryFile.list(new FilenameFilter() {
+
+            @Override
+            public boolean accept(File dir, String filename) {
+                if(filename.endsWith(CBLManager.DATABASE_SUFFIX)) {
+                    return true;
+                }
+                return false;
+            }
+        });
+        List<String> result = new ArrayList<String>();
+        for (String databaseFile : databaseFiles) {
+            String trimmed = databaseFile.substring(0, databaseFile.length() - CBLManager.DATABASE_SUFFIX.length());
+            String replaced = trimmed.replace(':', '/');
+            result.add(replaced);
+        }
+        Collections.sort(result);
+        return Collections.unmodifiableList(result);
+    }
+
+    /**
+     * Replaces or installs a database from a file.
+     *
+     * This is primarily used to install a canned database on first launch of an app, in which case
+     * you should first check .exists to avoid replacing the database if it exists already. The
+     * canned database would have been copied into your app bundle at build time.
+     *
+     * @param databaseName  The name of the database to replace.
+     * @param databasePath  Path of the database file that should replace it.
+     * @param attachmentsPath  Path of the associated attachments directory, or nil if there are no attachments.
+     **/
+    public void replaceDatabase(String databaseName, String databasePath, String attachmentsPath) throws IOException {
+        CBLDatabase database = getDatabase(databaseName);
+        String dstAttachmentsPath = database.getAttachmentStorePath();
+        File sourceFile = new File(databasePath);
+        File destFile = new File(database.getPath());
+        FileDirUtils.copyFile(sourceFile, destFile);
+        File attachmentsFile = new File(dstAttachmentsPath);
+        FileDirUtils.deleteRecursive(attachmentsFile);
+        attachmentsFile.mkdirs();
+        if(attachmentsPath != null) {
+            FileDirUtils.copyFolder(new File(attachmentsPath), attachmentsFile);
+        }
+        database.replaceUUIDs();
+    }
+
+    /**
+     * Asynchronously dispatches a callback to run on a background thread. The callback will be passed
+     * CBLDatabase instance.  There is not currently a known reason to use it, it may not make
+     * sense on the Android API, but it was added for the purpose of having a consistent API with iOS.
+     */
+    public void runAsync(String databaseName, final CBLDatabaseAsyncFunction function) {
+        final CBLDatabase database = getDatabase(databaseName);
+        Thread t = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                function.performFunction(database);
+            }
+        });
+        t.start();
+    }
+
+
+    private String pathForName(String name) {
+        if((name == null) || (name.length() == 0) || Pattern.matches(LEGAL_CHARACTERS, name)) {
+            return null;
+        }
+        name = name.replace('/', ':');
+        String result = directoryFile.getPath() + File.separator + name + CBLManager.DATABASE_SUFFIX;
+        return result;
     }
 
     private Map<String, Object> parseSourceOrTarget(Map<String,Object> properties, String key) {

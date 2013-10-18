@@ -2,7 +2,14 @@ package com.couchbase.cblite;
 
 public class CBLManagerOptions {
 
+    /**
+     *  No modifications to databases are allowed.
+     */
     private boolean readOnly;
+
+    /**
+     * Persistent replications will not run (until/unless startPersistentReplications is called.)
+     */
     private boolean noReplicator;
 
     public CBLManagerOptions(boolean readOnly, boolean noReplicator) {

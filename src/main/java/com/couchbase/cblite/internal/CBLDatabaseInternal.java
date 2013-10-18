@@ -6,6 +6,7 @@ import android.database.sqlite.SQLiteDatabase;
 import android.util.Log;
 
 import com.couchbase.cblite.CBLDatabase;
+import com.couchbase.cblite.CBLMisc;
 import com.couchbase.cblite.CBLStatus;
 import com.couchbase.cblite.CBLiteException;
 
@@ -88,5 +89,7 @@ public class CBLDatabaseInternal {
             throw new CBLiteException(e, CBLStatus.INTERNAL_SERVER_ERROR);
         }
     }
+
+
 
 }

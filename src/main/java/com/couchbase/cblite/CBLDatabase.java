@@ -244,30 +244,7 @@ public class CBLDatabase {
         return new File(path).exists();
     }
 
-    /**
-     * Replaces the sqliteDb with a copy of another sqliteDb.
-     *
-     * This is primarily used to install a canned sqliteDb on first launch of an app, in which case you should
-     * first check .exists to avoid replacing the sqliteDb if it exists already. The canned sqliteDb
-     * would have been copied into your app bundle at build time.
-     *
-     * @param databasePath  Path of the sqliteDb file that should replace this one.
-     * @param attachmentsPath  Path of the associated attachments directory, or nil if there are no attachments.
-     * @return  true if the sqliteDb was copied, IOException if an error occurs
-     **/
-    public boolean replaceWithDatabase(String databasePath, String attachmentsPath) throws IOException {
-        String dstAttachmentsPath = this.getAttachmentStorePath();
-        File sourceFile = new File(databasePath);
-        File destFile = new File(path);
-        FileDirUtils.copyFile(sourceFile, destFile);
-        File attachmentsFile = new File(dstAttachmentsPath);
-        FileDirUtils.deleteRecursive(attachmentsFile);
-        attachmentsFile.mkdirs();
-        if(attachmentsPath != null) {
-            FileDirUtils.copyFolder(new File(attachmentsPath), attachmentsFile);
-        }
-        return true;
-    }
+
 
     public String getAttachmentStorePath() {
         String attachmentStorePath = path;
@@ -3166,6 +3143,24 @@ public class CBLDatabase {
      */
     public static void setFilterCompiler(CBLFilterCompiler filterCompiler) {
         CBLDatabase.filterCompiler = filterCompiler;
+    }
+
+    protected boolean replaceUUIDs() {
+        String query = "UPDATE INFO SET value='"+ CBLMisc.TDCreateUUID()+"' where key = 'privateUUID';";
+        try {
+            sqliteDb.execSQL(query);
+        } catch (SQLException e) {
+            Log.e(CBLDatabase.TAG, "Error updating UUIDs", e);
+            return false;
+        }
+        query = "UPDATE INFO SET value='"+CBLMisc.TDCreateUUID()+"' where key = 'publicUUID';";
+        try {
+            sqliteDb.execSQL(query);
+        } catch (SQLException e) {
+            Log.e(CBLDatabase.TAG, "Error updating UUIDs", e);
+            return false;
+        }
+        return true;
     }
 
 }
