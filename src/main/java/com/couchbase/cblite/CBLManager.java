@@ -6,10 +6,12 @@ import android.util.Log;
 import com.couchbase.cblite.auth.CBLAuthorizer;
 import com.couchbase.cblite.auth.CBLFacebookAuthorizer;
 import com.couchbase.cblite.auth.CBLPersonaAuthorizer;
-import com.couchbase.cblite.internal.CBLServerInternal;
 import com.couchbase.cblite.replicator.CBLPusher;
 import com.couchbase.cblite.replicator.CBLReplicator;
 import com.couchbase.cblite.support.FileDirUtils;
+import com.couchbase.cblite.support.HttpClientFactory;
+
+import org.codehaus.jackson.map.ObjectMapper;
 
 import java.io.File;
 import java.io.FilenameFilter;
@@ -17,10 +19,13 @@ import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -29,6 +34,7 @@ import java.util.regex.Pattern;
  */
 public class CBLManager {
 
+    private static final ObjectMapper mapper = new ObjectMapper();
     public static final String DATABASE_SUFFIX_OLD = ".touchdb";
     public static final String DATABASE_SUFFIX = ".cblite";
     public static final CBLManagerOptions DEFAULT_OPTIONS = new CBLManagerOptions(false, false);
@@ -36,12 +42,17 @@ public class CBLManager {
     public static final String LEGAL_CHARACTERS = "[^a-z]{1,}[^a-z0-9_$()/+-]*$";
 
 
-    private CBLServerInternal server;
     private CBLManagerOptions options;
     private File directoryFile;
     private Map<String, CBLDatabase> databases;
     private List<CBLReplicator> replications;
     private Context androidContext;
+    private ScheduledExecutorService workExecutor;
+    private HttpClientFactory defaultHttpClientFactory;
+
+    public static ObjectMapper getObjectMapper() {
+        return mapper;
+    }
 
     public CBLManager(Context androidContext, String directoryName) {
         this(androidContext, directoryName, DEFAULT_OPTIONS);
@@ -60,7 +71,10 @@ public class CBLManager {
                 throw new RuntimeException("Unable to create directory " + directoryFile);
             }
         }
+
         upgradeOldDatabaseFiles(directoryFile);
+        workExecutor = Executors.newSingleThreadScheduledExecutor();
+
         // TODO: in the iOS code it starts persistent replications here (using runloop trick)
     }
 
@@ -130,13 +144,6 @@ public class CBLManager {
     }
 
 
-    public CBLServerInternal getServer() {
-        return server;
-    }
-
-    public void setServer(CBLServerInternal server) {
-        this.server = server;
-    }
 
     /**
      * Releases all resources used by the CBLManager instance and closes all its databases.
@@ -146,9 +153,7 @@ public class CBLManager {
         // TODO: review this code, especially call to server.close()
 
         Log.i(CBLDatabase.TAG, "Closing " + this);
-        server.close();
-        List<CBLDatabase> databases = (List<CBLDatabase>) server.allOpenDatabases();
-        for (CBLDatabase database : databases) {
+        for (CBLDatabase database : databases.values()) {
             List<CBLReplicator> replicators = database.getAllReplications();
             for (CBLReplicator replicator : replicators) {
                 replicator.stop();
@@ -190,7 +195,7 @@ public class CBLManager {
      * Returns the database with the given name, or null if it doesn't exist.
      * Multiple calls with the same name will return the same CBLDatabase instance.
      */
-    public CBLDatabase getExistingDatabaseNamed(String name) {
+    public CBLDatabase getExistingDatabase(String name) {
         return databases.get(name);
     }
 
@@ -217,6 +222,11 @@ public class CBLManager {
         Collections.sort(result);
         return Collections.unmodifiableList(result);
     }
+
+    public Collection<CBLDatabase> allOpenDatabases() {
+        return databases.values();
+    }
+
 
     /**
      * Replaces or installs a database from a file.
@@ -316,7 +326,7 @@ public class CBLManager {
 
         boolean push = false;
 
-        CBLDatabase db = getServer().getExistingDatabaseNamed(source);
+        CBLDatabase db = getExistingDatabase(source);
         String remoteStr = null;
         if(db != null) {
             remoteStr = target;
@@ -325,12 +335,12 @@ public class CBLManager {
         } else {
             remoteStr = source;
             if(createTarget && !cancel) {
-                db = getServer().getDatabaseNamed(target);
+                db = getDatabase(target);
                 if(!db.open()) {
                     throw new CBLiteException("cannot open database: " + db, new CBLStatus(CBLStatus.INTERNAL_SERVER_ERROR));
                 }
             } else {
-                db = getServer().getExistingDatabaseNamed(target);
+                db = getExistingDatabase(target);
             }
             if(db == null) {
                 throw new CBLiteException("database is null", new CBLStatus(CBLStatus.NOT_FOUND));
@@ -366,7 +376,7 @@ public class CBLManager {
 
 
         if(!cancel) {
-            repl = db.getReplicator(remote, getServer().getDefaultHttpClientFactory(), push, continuous, getServer().getWorkExecutor());
+            repl = db.getReplicator(remote, getDefaultHttpClientFactory(), push, continuous, getWorkExecutor());
             if(repl == null) {
                 throw new CBLiteException("unable to create replicator with remote: " + remote, new CBLStatus(CBLStatus.INTERNAL_SERVER_ERROR));
             }
@@ -400,5 +410,17 @@ public class CBLManager {
         return repl;
     }
 
+    public ScheduledExecutorService getWorkExecutor() {
+        return workExecutor;
+    }
+
+    public HttpClientFactory getDefaultHttpClientFactory() {
+        return defaultHttpClientFactory;
+    }
+
+    public void setDefaultHttpClientFactory(
+            HttpClientFactory defaultHttpClientFactory) {
+        this.defaultHttpClientFactory = defaultHttpClientFactory;
+    }
 }
 

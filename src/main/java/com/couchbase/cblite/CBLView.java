@@ -17,21 +17,20 @@
 
 package com.couchbase.cblite;
 
-import java.util.ArrayList;
-import java.util.EnumSet;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import com.couchbase.cblite.CBLDatabase.TDContentOptions;
-import com.couchbase.cblite.internal.CBLRevisionInternal;
-import com.couchbase.cblite.internal.CBLServerInternal;
-
 import android.content.ContentValues;
 import android.database.Cursor;
 import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
 import android.util.Log;
+
+import com.couchbase.cblite.CBLDatabase.TDContentOptions;
+import com.couchbase.cblite.internal.CBLRevisionInternal;
+
+import java.util.ArrayList;
+import java.util.EnumSet;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Represents a view available in a database.
@@ -290,7 +289,7 @@ public class CBLView {
         }
         String result = null;
         try {
-            result = CBLServerInternal.getObjectMapper().writeValueAsString(object);
+            result = CBLManager.getObjectMapper().writeValueAsString(object);
         } catch (Exception e) {
             Log.w(CBLDatabase.TAG, "Exception serializing object to json: " + object, e);
         }
@@ -303,7 +302,7 @@ public class CBLView {
         }
         Object result = null;
         try {
-            result = CBLServerInternal.getObjectMapper().readValue(json, Object.class);
+            result = CBLManager.getObjectMapper().readValue(json, Object.class);
         } catch (Exception e) {
             Log.w(CBLDatabase.TAG, "Exception parsing json", e);
         }
@@ -381,8 +380,8 @@ public class CBLView {
                 public void emit(Object key, Object value) {
 
                     try {
-                        String keyJson = CBLServerInternal.getObjectMapper().writeValueAsString(key);
-                        String valueJson = CBLServerInternal.getObjectMapper().writeValueAsString(value);
+                        String keyJson = CBLManager.getObjectMapper().writeValueAsString(key);
+                        String valueJson = CBLManager.getObjectMapper().writeValueAsString(value);
                         Log.v(CBLDatabase.TAG, "    emit(" + keyJson + ", "
                                 + valueJson + ")");
 

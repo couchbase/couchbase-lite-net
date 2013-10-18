@@ -4,8 +4,8 @@ import android.util.Log;
 
 import com.couchbase.cblite.CBLBlobStoreWriter;
 import com.couchbase.cblite.CBLDatabase;
+import com.couchbase.cblite.CBLManager;
 import com.couchbase.cblite.CBLMisc;
-import com.couchbase.cblite.internal.CBLServerInternal;
 
 import org.apache.http.HttpResponse;
 import org.apache.http.util.ByteArrayBuffer;
@@ -39,7 +39,7 @@ public class CBLMultipartDocumentReader implements CBLMultipartReaderDelegate {
 
     public void parseJsonBuffer() {
         try {
-            document = CBLServerInternal.getObjectMapper().readValue(jsonBuffer.toByteArray(), Map.class);
+            document = CBLManager.getObjectMapper().readValue(jsonBuffer.toByteArray(), Map.class);
         } catch (IOException e) {
             throw new IllegalStateException("Failed to parse json buffer", e);
         }

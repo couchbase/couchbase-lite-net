@@ -1,5 +1,24 @@
 package com.couchbase.cblite.replicator;
 
+import android.util.Log;
+
+import com.couchbase.cblite.CBLBlobKey;
+import com.couchbase.cblite.CBLBlobStore;
+import com.couchbase.cblite.CBLDatabase;
+import com.couchbase.cblite.CBLDatabaseChangedFunction;
+import com.couchbase.cblite.CBLFilterBlock;
+import com.couchbase.cblite.CBLManager;
+import com.couchbase.cblite.CBLRevisionList;
+import com.couchbase.cblite.CBLiteException;
+import com.couchbase.cblite.internal.CBLRevisionInternal;
+import com.couchbase.cblite.support.CBLRemoteRequestCompletionBlock;
+import com.couchbase.cblite.support.HttpClientFactory;
+
+import org.apache.http.client.HttpResponseException;
+import org.apache.http.entity.mime.MultipartEntity;
+import org.apache.http.entity.mime.content.InputStreamBody;
+import org.apache.http.entity.mime.content.StringBody;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
@@ -10,25 +29,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ScheduledExecutorService;
-
-import org.apache.http.client.HttpResponseException;
-import org.apache.http.entity.mime.MultipartEntity;
-import org.apache.http.entity.mime.content.InputStreamBody;
-import org.apache.http.entity.mime.content.StringBody;
-
-import android.util.Log;
-
-import com.couchbase.cblite.CBLBlobKey;
-import com.couchbase.cblite.CBLBlobStore;
-import com.couchbase.cblite.CBLDatabase;
-import com.couchbase.cblite.CBLDatabaseChangedFunction;
-import com.couchbase.cblite.CBLFilterBlock;
-import com.couchbase.cblite.CBLiteException;
-import com.couchbase.cblite.internal.CBLRevisionInternal;
-import com.couchbase.cblite.CBLRevisionList;
-import com.couchbase.cblite.internal.CBLServerInternal;
-import com.couchbase.cblite.support.HttpClientFactory;
-import com.couchbase.cblite.support.CBLRemoteRequestCompletionBlock;
 
 public class CBLPusher extends CBLReplicator implements CBLDatabaseChangedFunction {
 
@@ -277,7 +277,7 @@ public class CBLPusher extends CBLReplicator implements CBLDatabaseChangedFuncti
                     multiPart = new MultipartEntity();
 
                     try {
-                        String json  = CBLServerInternal.getObjectMapper().writeValueAsString(revProps);
+                        String json  = CBLManager.getObjectMapper().writeValueAsString(revProps);
                         Charset utf8charset = Charset.forName("UTF-8");
                         multiPart.addPart("param1", new StringBody(json, "application/json", utf8charset));
 

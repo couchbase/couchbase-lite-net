@@ -1,5 +1,33 @@
 package com.couchbase.cblite.router;
 
+import android.util.Log;
+
+import com.couchbase.cblite.CBLAttachment;
+import com.couchbase.cblite.CBLChangesOptions;
+import com.couchbase.cblite.CBLDatabase;
+import com.couchbase.cblite.CBLDatabase.TDContentOptions;
+import com.couchbase.cblite.CBLDatabaseChangedFunction;
+import com.couchbase.cblite.CBLFilterBlock;
+import com.couchbase.cblite.CBLManager;
+import com.couchbase.cblite.CBLMapFunction;
+import com.couchbase.cblite.CBLMisc;
+import com.couchbase.cblite.CBLQueryOptions;
+import com.couchbase.cblite.CBLQueryRow;
+import com.couchbase.cblite.CBLReduceFunction;
+import com.couchbase.cblite.CBLRevisionList;
+import com.couchbase.cblite.CBLStatus;
+import com.couchbase.cblite.CBLView;
+import com.couchbase.cblite.CBLView.TDViewCollation;
+import com.couchbase.cblite.CBLiteException;
+import com.couchbase.cblite.CBLiteVersion;
+import com.couchbase.cblite.auth.CBLFacebookAuthorizer;
+import com.couchbase.cblite.auth.CBLPersonaAuthorizer;
+import com.couchbase.cblite.internal.CBLBody;
+import com.couchbase.cblite.internal.CBLRevisionInternal;
+import com.couchbase.cblite.replicator.CBLReplicator;
+
+import org.apache.http.client.HttpResponseException;
+
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -17,38 +45,10 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import android.util.Log;
-
-import com.couchbase.cblite.CBLAttachment;
-import com.couchbase.cblite.CBLDatabaseChangedFunction;
-import com.couchbase.cblite.CBLQueryRow;
-import com.couchbase.cblite.CBLReduceFunction;
-import com.couchbase.cblite.internal.CBLBody;
-import com.couchbase.cblite.CBLChangesOptions;
-import com.couchbase.cblite.CBLDatabase;
-import com.couchbase.cblite.CBLFilterBlock;
-import com.couchbase.cblite.CBLMisc;
-import com.couchbase.cblite.CBLQueryOptions;
-import com.couchbase.cblite.internal.CBLRevisionInternal;
-import com.couchbase.cblite.CBLRevisionList;
-import com.couchbase.cblite.internal.CBLServerInternal;
-import com.couchbase.cblite.CBLStatus;
-import com.couchbase.cblite.CBLView;
-import com.couchbase.cblite.CBLMapFunction;
-import com.couchbase.cblite.CBLiteException;
-import com.couchbase.cblite.CBLiteVersion;
-import com.couchbase.cblite.CBLDatabase.TDContentOptions;
-import com.couchbase.cblite.CBLView.TDViewCollation;
-import com.couchbase.cblite.auth.CBLFacebookAuthorizer;
-import com.couchbase.cblite.auth.CBLPersonaAuthorizer;
-import com.couchbase.cblite.replicator.CBLReplicator;
-
-import org.apache.http.client.HttpResponseException;
-
 
 public class CBLRouter implements CBLDatabaseChangedFunction {
 
-    private CBLServerInternal server;
+    private CBLManager manager;
     private CBLDatabase db;
     private CBLURLConnection connection;
     private Map<String,String> queries;
@@ -63,8 +63,8 @@ public class CBLRouter implements CBLDatabaseChangedFunction {
         return CBLiteVersion.CBLiteVersionNumber;
     }
 
-    public CBLRouter(CBLServerInternal server, CBLURLConnection connection) {
-        this.server = server;
+    public CBLRouter(CBLManager manager, CBLURLConnection connection) {
+        this.manager = manager;
         this.connection = connection;
     }
 
@@ -128,7 +128,7 @@ public class CBLRouter implements CBLDatabaseChangedFunction {
         }
         Object result = null;
         try {
-            result = CBLServerInternal.getObjectMapper().readValue(value, Object.class);
+            result = CBLManager.getObjectMapper().readValue(value, Object.class);
         } catch (Exception e) {
             Log.w("Unable to parse JSON Query", e);
         }
@@ -145,7 +145,7 @@ public class CBLRouter implements CBLDatabaseChangedFunction {
     public Map<String,Object> getBodyAsDictionary() {
         try {
             InputStream contentStream = connection.getRequestInputStream();
-            Map<String,Object> bodyMap = CBLServerInternal.getObjectMapper().readValue(contentStream, Map.class);
+            Map<String,Object> bodyMap = CBLManager.getObjectMapper().readValue(contentStream, Map.class);
             return bodyMap;
         } catch (IOException e) {
             Log.w(CBLDatabase.TAG, "WARNING: Exception parsing body into dictionary", e);
@@ -295,7 +295,7 @@ public class CBLRouter implements CBLDatabaseChangedFunction {
                 message += dbName;  // special root path, like /_all_dbs
             } else {
                 message += "_Database";
-                db = server.getDatabaseNamed(dbName);
+                db = manager.getDatabase(dbName);
                 if(db == null) {
                     connection.setResponseCode(CBLStatus.BAD_REQUEST);
                     try {
@@ -530,7 +530,7 @@ public class CBLRouter implements CBLDatabaseChangedFunction {
     }
 
     public CBLStatus do_GET_all_dbs(CBLDatabase _db, String _docID, String _attachmentName) {
-        List<String> dbs = server.allDatabaseNames();
+        List<String> dbs = manager.getAllDatabaseNames();
         connection.setResponseBody(new CBLBody(dbs));
         return new CBLStatus(CBLStatus.OK);
     }
@@ -560,7 +560,7 @@ public class CBLRouter implements CBLDatabaseChangedFunction {
         }
 
         try {
-            replicator = server.getManager().getReplicator(body);
+            replicator = manager.getReplicator(body);
         } catch (CBLiteException e) {
             Map<String, Object> result = new HashMap<String, Object>();
             result.put("error", e.toString());
@@ -599,7 +599,7 @@ public class CBLRouter implements CBLDatabaseChangedFunction {
     public CBLStatus do_GET_active_tasks(CBLDatabase _db, String _docID, String _attachmentName) {
         // http://wiki.apache.org/couchdb/HttpGetActiveTasks
         List<Map<String,Object>> activities = new ArrayList<Map<String,Object>>();
-        for (CBLDatabase db : server.allOpenDatabases()) {
+        for (CBLDatabase db : manager.allOpenDatabases()) {
             List<CBLReplicator> activeReplicators = db.getAllReplications();
             if(activeReplicators != null) {
                 for (CBLReplicator replicator : activeReplicators) {
@@ -678,7 +678,8 @@ public class CBLRouter implements CBLDatabaseChangedFunction {
         if(getQuery("rev") != null) {
             return new CBLStatus(CBLStatus.BAD_REQUEST);  // CouchDB checks for this; probably meant to be a document deletion
         }
-        return db.delete();
+        db.delete();
+        return new CBLStatus(CBLStatus.OK);
     }
 
     /**
@@ -1035,7 +1036,7 @@ public class CBLRouter implements CBLDatabaseChangedFunction {
     public void sendContinuousChange(CBLRevisionInternal rev) {
         Map<String,Object> changeDict = changesDictForRevision(rev);
         try {
-            String jsonString = CBLServerInternal.getObjectMapper().writeValueAsString(changeDict);
+            String jsonString = CBLManager.getObjectMapper().writeValueAsString(changeDict);
             if(callbackBlock != null) {
                 byte[] json = (jsonString + "\n").getBytes();
                 OutputStream os = connection.getResponseOutputStream();
@@ -1069,7 +1070,7 @@ public class CBLRouter implements CBLDatabaseChangedFunction {
             if(callbackBlock != null) {
                 byte[] data = null;
                 try {
-                    data = CBLServerInternal.getObjectMapper().writeValueAsBytes(body);
+                    data = CBLManager.getObjectMapper().writeValueAsBytes(body);
                 } catch (Exception e) {
                     Log.w(CBLDatabase.TAG, "Error serializing JSON", e);
                 }

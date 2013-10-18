@@ -30,7 +30,6 @@ import com.couchbase.cblite.CBLDatabase.TDContentOptions;
 import com.couchbase.cblite.internal.CBLAttachmentInternal;
 import com.couchbase.cblite.internal.CBLBody;
 import com.couchbase.cblite.internal.CBLRevisionInternal;
-import com.couchbase.cblite.internal.CBLServerInternal;
 import com.couchbase.cblite.replicator.CBLPuller;
 import com.couchbase.cblite.replicator.CBLPusher;
 import com.couchbase.cblite.replicator.CBLReplicator;
@@ -651,7 +650,7 @@ public class CBLDatabase {
 
         byte[] extraJSON = null;
         try {
-            extraJSON = CBLServerInternal.getObjectMapper().writeValueAsBytes(dict);
+            extraJSON = CBLManager.getObjectMapper().writeValueAsBytes(dict);
         } catch (Exception e) {
             Log.e(CBLDatabase.TAG, "Error convert extra JSON to bytes", e);
             return null;
@@ -773,7 +772,7 @@ public class CBLDatabase {
 
         Map<String, Object> docProperties = null;
         try {
-            docProperties = CBLServerInternal.getObjectMapper().readValue(json, Map.class);
+            docProperties = CBLManager.getObjectMapper().readValue(json, Map.class);
             docProperties.putAll(extra);
             return docProperties;
         } catch (Exception e) {
@@ -2238,7 +2237,7 @@ public class CBLDatabase {
 
         byte[] json = null;
         try {
-            json = CBLServerInternal.getObjectMapper().writeValueAsBytes(properties);
+            json = CBLManager.getObjectMapper().writeValueAsBytes(properties);
         } catch (Exception e) {
             Log.e(CBLDatabase.TAG, "Error serializing " + rev + " to JSON", e);
         }
@@ -3165,7 +3164,7 @@ public class CBLDatabase {
                 byte[] json = cursor.getBlob(1);
                 Map<String,Object> properties = null;
                 try {
-                    properties = CBLServerInternal.getObjectMapper().readValue(json, Map.class);
+                    properties = CBLManager.getObjectMapper().readValue(json, Map.class);
                     properties.put("_id", docID);
                     properties.put("_rev", gotRevID);
                     result = new CBLRevisionInternal(docID, gotRevID, false, this);

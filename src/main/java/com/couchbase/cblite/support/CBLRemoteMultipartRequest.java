@@ -5,7 +5,6 @@ import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpPut;
 import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.entity.mime.MultipartEntity;
-import org.apache.http.protocol.BasicHttpContext;
 
 import java.net.URL;
 import java.util.concurrent.ScheduledExecutorService;
