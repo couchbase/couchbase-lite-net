@@ -1181,7 +1181,7 @@ public class CBLRouter implements CBLDatabaseChangedFunction {
                 String revID = getQuery("rev");  // often null
                 CBLRevisionInternal rev = null;
                 if(isLocalDoc) {
-                    rev = db.getDbInternal().getLocalDocument(docID, revID);
+                    rev = db.getLocalDocument(docID, revID);
                 } else {
                     rev = db.getDocumentWithIDAndRev(docID, revID, options);
                     // Handle ?atts_since query by stubbing out older attachments:

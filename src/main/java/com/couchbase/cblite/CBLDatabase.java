@@ -29,7 +29,6 @@ import android.util.Log;
 import com.couchbase.cblite.CBLDatabase.TDContentOptions;
 import com.couchbase.cblite.internal.CBLAttachmentInternal;
 import com.couchbase.cblite.internal.CBLBody;
-import com.couchbase.cblite.internal.CBLDatabaseInternal;
 import com.couchbase.cblite.internal.CBLRevisionInternal;
 import com.couchbase.cblite.internal.CBLServerInternal;
 import com.couchbase.cblite.replicator.CBLPuller;
@@ -76,7 +75,6 @@ public class CBLDatabase {
     private List<CBLReplicator> activeReplicators;
     private CBLBlobStore attachments;
     private CBLManager manager;
-    private CBLDatabaseInternal dbInternal;
     private List<CBLDatabaseChangedFunction> changeListeners;
     private LruCache<String, CBLDocument> docCache;
 
@@ -297,8 +295,6 @@ public class CBLDatabase {
             Log.e(CBLDatabase.TAG, "Error opening", e);
             return false;
         }
-
-        dbInternal = new CBLDatabaseInternal(this, sqliteDb);
 
         // Stuff we need to initialize every time the sqliteDb opens:
         if(!initialize("PRAGMA foreign_keys = ON;")) {
@@ -2910,7 +2906,7 @@ public class CBLDatabase {
      * Returns the contents of the local document with the given ID, or nil if none exists.
      */
     public Map<String, Object> getLocalDocument(String documentId) {
-        return dbInternal.getLocalDocument(makeLocalDocumentId(documentId), null).getProperties();
+        return getLocalDocument(makeLocalDocumentId(documentId), null).getProperties();
     }
 
     static String makeLocalDocumentId(String documentId) {
@@ -2924,22 +2920,13 @@ public class CBLDatabase {
      */
     public boolean putLocalDocument(Map<String, Object> properties, String id) throws CBLiteException {
         // TODO: there was some code in the iOS implementation equivalent that I did not know if needed
-        CBLRevisionInternal prevRev = dbInternal.getLocalDocument(id, null);
+        CBLRevisionInternal prevRev = getLocalDocument(id, null);
         if (prevRev == null && properties == null) {
             return false;
         }
         return putLocalRevision(prevRev, prevRev.getRevId()) != null;
     }
 
-    /**
-     * Don't use this method!  This should be considered a private API for the Couchbase Lite
-     * library to use internally.
-     *
-     * @return
-     */
-    public CBLDatabaseInternal getDbInternal() {
-        return dbInternal;
-    }
 
     public CBLRevisionInternal putLocalRevision(CBLRevisionInternal revision, String prevRevID) throws CBLiteException  {
         String docID = revision.getDocId();
@@ -2985,7 +2972,7 @@ public class CBLDatabase {
         }
         else {
             // DELETE:
-            dbInternal.deleteLocalDocument(docID, prevRevID);
+            deleteLocalDocument(docID, prevRevID);
             return revision;
         }
     }
@@ -2994,11 +2981,11 @@ public class CBLDatabase {
      * Deletes the local document with the given ID.
      */
     public boolean deleteLocalDocument(String id) throws CBLiteException {
-        CBLRevisionInternal prevRev = dbInternal.getLocalDocument(id, null);
+        CBLRevisionInternal prevRev = getLocalDocument(id, null);
         if (prevRev == null) {
             return false;
         }
-        dbInternal.deleteLocalDocument(id, prevRev.getRevId());
+        deleteLocalDocument(id, prevRev.getRevId());
         return true;
     }
 
@@ -3161,6 +3148,73 @@ public class CBLDatabase {
             return false;
         }
         return true;
+    }
+
+    public CBLRevisionInternal getLocalDocument(String docID, String revID) {
+
+        CBLRevisionInternal result = null;
+        Cursor cursor = null;
+        try {
+            String[] args = { docID };
+            cursor = sqliteDb.rawQuery("SELECT revid, json FROM localdocs WHERE docid=?", args);
+            if(cursor.moveToFirst()) {
+                String gotRevID = cursor.getString(0);
+                if(revID != null && (!revID.equals(gotRevID))) {
+                    return null;
+                }
+                byte[] json = cursor.getBlob(1);
+                Map<String,Object> properties = null;
+                try {
+                    properties = CBLServerInternal.getObjectMapper().readValue(json, Map.class);
+                    properties.put("_id", docID);
+                    properties.put("_rev", gotRevID);
+                    result = new CBLRevisionInternal(docID, gotRevID, false, this);
+                    result.setProperties(properties);
+                } catch (Exception e) {
+                    Log.w(CBLDatabase.TAG, "Error parsing local doc JSON", e);
+                    return null;
+                }
+
+            }
+            return result;
+        } catch (SQLException e) {
+            Log.e(CBLDatabase.TAG, "Error getting local document", e);
+            return null;
+        } finally {
+            if(cursor != null) {
+                cursor.close();
+            }
+        }
+
+    }
+
+    public void deleteLocalDocument(String docID, String revID) throws CBLiteException {
+        if(docID == null) {
+            throw new CBLiteException(CBLStatus.BAD_REQUEST);
+        }
+        if(revID == null) {
+            // Didn't specify a revision to delete: 404 or a 409, depending
+            if (getLocalDocument(docID, null) != null) {
+                throw new CBLiteException(CBLStatus.CONFLICT);
+            }
+            else {
+                throw new CBLiteException(CBLStatus.NOT_FOUND);
+            }
+        }
+        String[] whereArgs = { docID, revID };
+        try {
+            int rowsDeleted = sqliteDb.delete("localdocs", "docid=? AND revid=?", whereArgs);
+            if(rowsDeleted == 0) {
+                if (getLocalDocument(docID, null) != null) {
+                    throw new CBLiteException(CBLStatus.CONFLICT);
+                }
+                else {
+                    throw new CBLiteException(CBLStatus.NOT_FOUND);
+                }
+            }
+        } catch (SQLException e) {
+            throw new CBLiteException(e, CBLStatus.INTERNAL_SERVER_ERROR);
+        }
     }
 
 }
