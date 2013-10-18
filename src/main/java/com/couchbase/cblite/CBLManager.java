@@ -160,6 +160,7 @@ public class CBLManager {
             }
             database.close();
         }
+        databases.clear();
         Log.i(CBLDatabase.TAG, "Closed " + this);
     }
 
