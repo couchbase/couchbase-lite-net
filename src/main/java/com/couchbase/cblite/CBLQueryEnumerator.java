@@ -1,12 +1,13 @@
 package com.couchbase.cblite;
 
+import java.util.Iterator;
 import java.util.List;
 
 /**
  * Enumerator on a CBLQuery's result rows.
  * The objects returned are instances of CBLQueryRow.
  */
-public class CBLQueryEnumerator {
+public class CBLQueryEnumerator implements Iterator {
 
     private CBLDatabase database;
     private List<CBLQueryRow> rows;
@@ -73,5 +74,20 @@ public class CBLQueryEnumerator {
 
     public long getSequenceNumber() {
         return sequenceNumber;
+    }
+
+    @Override
+    public boolean hasNext() {
+        return nextRow < rows.size();
+    }
+
+    @Override
+    public Object next() {
+        return getNextRow();
+    }
+
+    @Override
+    public void remove() {
+        throw new UnsupportedOperationException("CBLQueryEnumerator does not allow remove() to be called");
     }
 }
