@@ -109,7 +109,10 @@ public class CBLQueryRow {
      * The revision ID of the document this row was mapped from.
      */
     public String getDocumentRevisionId() {
-        String rev = (String) documentProperties.get("_rev");
+        String rev = null;
+        if (documentProperties != null && documentProperties.containsKey("_rev")) {
+            rev = (String) documentProperties.get("_rev");
+        }
         if (rev == null) {
             if (value instanceof Map) {
                 Map<String, Object> mapValue = (Map<String, Object>) value;
