@@ -656,6 +656,7 @@ public class CBLView {
                     Object reduced = (reduceBlock != null) ? reduceBlock.reduce(keysToReduce, valuesToReduce, false) : null;
                     Object key = groupKey(lastKey, groupLevel);
                     CBLQueryRow row = new CBLQueryRow(null, 0, key, reduced, null);
+                    row.setDatabase(database);
                     rows.add(row);
                     keysToReduce.clear();
                     valuesToReduce.clear();
@@ -675,6 +676,7 @@ public class CBLView {
             Object key = group ? groupKey(lastKey, groupLevel) : null;
             Object reduced = (reduceBlock != null) ? reduceBlock.reduce(keysToReduce, valuesToReduce, false) : null;
             CBLQueryRow row = new CBLQueryRow(null, 0, key, reduced, null);
+            row.setDatabase(database);
             rows.add(row);
         }
 
@@ -741,6 +743,7 @@ public class CBLView {
                         }
                     }
                     CBLQueryRow row = new CBLQueryRow(docId, 0, keyData, value, docContents);
+                    row.setDatabase(database);
                     rows.add(row);
                     cursor.moveToNext();
 

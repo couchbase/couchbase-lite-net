@@ -1521,6 +1521,7 @@ public class CBLDatabase {
                 value.put("rev", revId);
                 value.put("deleted", (deleted ? true : null));
                 CBLQueryRow change = new CBLQueryRow(docId, sequenceNumber, docId, value, docContents);
+                change.setDatabase(this);
                 if (options.getKeys() != null) {
                     docs.put(docId, change);
                 } else {
@@ -1553,6 +1554,7 @@ public class CBLDatabase {
                                 }
                             }
                             change = new CBLQueryRow((value != null ? docId : null), 0, docId, value, null);
+                            change.setDatabase(this);
                         }
                         rows.add(change);
                     }
