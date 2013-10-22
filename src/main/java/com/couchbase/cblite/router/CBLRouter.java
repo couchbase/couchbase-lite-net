@@ -692,6 +692,7 @@ public class CBLRouter implements CBLDatabaseChangedFunction {
         for (CBLQueryRow row : rows) {
             rowsAsMaps.add(row.asJSONDictionary());
         }
+        allDocsResult.put("rows", rowsAsMaps);
     }
 
     public CBLStatus do_POST_Database(CBLDatabase _db, String _docID, String _attachmentName) {
