@@ -155,8 +155,10 @@ public class CBLManager {
         Log.i(CBLDatabase.TAG, "Closing " + this);
         for (CBLDatabase database : databases.values()) {
             List<CBLReplicator> replicators = database.getAllReplications();
-            for (CBLReplicator replicator : replicators) {
-                replicator.stop();
+            if (replicators != null) {
+                for (CBLReplicator replicator : replicators) {
+                    replicator.stop();
+                }
             }
             database.close();
         }
