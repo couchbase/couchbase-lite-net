@@ -295,16 +295,23 @@ public class CBLRouter implements CBLDatabaseChangedFunction {
                 message += dbName;  // special root path, like /_all_dbs
             } else {
                 message += "_Database";
-                db = manager.getDatabase(dbName);
-                if(db == null) {
-                    connection.setResponseCode(CBLStatus.BAD_REQUEST);
-                    try {
-                        connection.getResponseOutputStream().close();
-                    } catch (IOException e) {
-                        Log.e(CBLDatabase.TAG, "Error closing empty output stream");
-                    }
-                    sendResponse();
+                if (!CBLManager.isValidDatabaseName(dbName)) {
+                    connection.setResponseCode(CBLStatus.NOT_FOUND);
                     return;
+                }
+                else {
+                    db = manager.getDatabase(dbName);
+                    if(db == null) {
+                        connection.setResponseCode(CBLStatus.BAD_REQUEST);
+                        try {
+                            connection.getResponseOutputStream().close();
+                        } catch (IOException e) {
+                            Log.e(CBLDatabase.TAG, "Error closing empty output stream");
+                        }
+                        sendResponse();
+                        return;
+                    }
+
                 }
             }
         } else {
