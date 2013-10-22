@@ -83,9 +83,10 @@ public class CBLQueryRow {
      */
     public String getDocumentId() {
         // _documentProperties may have been 'redirected' from a different document
-        Object idFromDocumentProperties = documentProperties.get("_id");
-        if (idFromDocumentProperties != null && (idFromDocumentProperties instanceof String)) {
-            return (String) idFromDocumentProperties;
+        if (documentProperties != null &&
+                documentProperties.get("_id") != null &&
+                documentProperties.get("_id") instanceof String) {
+            return (String) documentProperties.get("_id");
         }
         else {
             return sourceDocumentId;
