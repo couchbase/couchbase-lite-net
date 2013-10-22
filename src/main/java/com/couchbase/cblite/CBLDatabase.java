@@ -1935,21 +1935,23 @@ public class CBLDatabase {
 
         Map<String, Object> properties = rev.getProperties();
         Map<String, Object> attachmentsFromProps =  (Map<String, Object>) properties.get("_attachments");
-        for (String attachmentKey : attachmentsFromProps.keySet()) {
-            Map<String, Object> attachmentFromProps = (Map<String, Object>) attachmentsFromProps.get(attachmentKey);
-            if (attachmentFromProps.get("follows") != null || attachmentFromProps.get("data") != null) {
-                attachmentFromProps.remove("follows");
-                attachmentFromProps.remove("data");
-                attachmentFromProps.put("stub", true);
-                if (attachmentFromProps.get("revpos") == null) {
-                    attachmentFromProps.put("revpos",rev.getGeneration());
+        if (attachmentsFromProps != null) {
+            for (String attachmentKey : attachmentsFromProps.keySet()) {
+                Map<String, Object> attachmentFromProps = (Map<String, Object>) attachmentsFromProps.get(attachmentKey);
+                if (attachmentFromProps.get("follows") != null || attachmentFromProps.get("data") != null) {
+                    attachmentFromProps.remove("follows");
+                    attachmentFromProps.remove("data");
+                    attachmentFromProps.put("stub", true);
+                    if (attachmentFromProps.get("revpos") == null) {
+                        attachmentFromProps.put("revpos",rev.getGeneration());
+                    }
+                    CBLAttachmentInternal attachmentObject = attachments.get(attachmentKey);
+                    if (attachmentObject != null) {
+                        attachmentFromProps.put("length", attachmentObject.getLength());
+                        attachmentFromProps.put("digest", attachmentObject.getBlobKey().base64Digest());
+                    }
+                    attachmentFromProps.put(attachmentKey, attachmentFromProps);
                 }
-                CBLAttachmentInternal attachmentObject = attachments.get(attachmentKey);
-                if (attachmentObject != null) {
-                    attachmentFromProps.put("length", attachmentObject.getLength());
-                    attachmentFromProps.put("digest", attachmentObject.getBlobKey().base64Digest());
-                }
-                attachmentFromProps.put(attachmentKey, attachmentFromProps);
             }
         }
 
