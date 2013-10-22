@@ -317,7 +317,7 @@ public class CBLDocument {
         if (internalRevision == null) {
             return null;
         }
-        else if (internalRevision.getRevId().equals(currentRevision.getId())) {
+        else if (currentRevision != null && internalRevision.getRevId().equals(currentRevision.getId())) {
             return currentRevision;
         }
         else {
@@ -343,8 +343,7 @@ public class CBLDocument {
             return;
         }
         String revId = row.getDocumentRevisionId();
-        boolean rowRevisionIsGreater = (CBLRevisionInternal.CBLCompareRevIDs(revId, currentRevision.getId()) > 0);
-        if (currentRevision == null || rowRevisionIsGreater) {
+        if (currentRevision == null || revIdGreaterThanCurrent(revId)) {
             Map<String, Object> properties = row.getDocumentProperties();
             if (properties != null) {
                 CBLRevisionInternal rev = new CBLRevisionInternal(properties);
@@ -353,5 +352,8 @@ public class CBLDocument {
         }
      }
 
+    private boolean revIdGreaterThanCurrent(String revId) {
+        return (CBLRevisionInternal.CBLCompareRevIDs(revId, currentRevision.getId()) > 0);
+    }
 
 }
