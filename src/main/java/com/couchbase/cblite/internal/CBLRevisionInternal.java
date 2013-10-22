@@ -66,6 +66,9 @@ public class CBLRevisionInternal {
         if(body != null) {
             result = body.getProperties();
         }
+        else {
+            result = new HashMap<String, Object>();
+        }
         return result;
     }
 
