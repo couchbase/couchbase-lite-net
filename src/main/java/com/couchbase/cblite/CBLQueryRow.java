@@ -144,7 +144,7 @@ public class CBLQueryRow {
      * To get this, you must have set the -prefetch property on the query; else this will be nil.
      */
     public Map<String, Object> getDocumentProperties() {
-        return Collections.unmodifiableMap(documentProperties);
+        return documentProperties != null ? Collections.unmodifiableMap(documentProperties) : null;
     }
 
     /**
