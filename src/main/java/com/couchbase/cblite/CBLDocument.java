@@ -265,7 +265,8 @@ public class CBLDocument {
             properties.put("_attachments", updatedAttachments);
         }
 
-        boolean deleted = (properties == null) || ((Boolean)properties.get("_deleted")).booleanValue();
+        boolean hasTrueDeletedProperty = properties.get("_deleted") != null && ((Boolean)properties.get("_deleted")).booleanValue();
+        boolean deleted = (properties == null) || hasTrueDeletedProperty;
         CBLRevisionInternal rev = new CBLRevisionInternal(documentId, null, deleted, database);
         if (properties != null) {
             rev.setProperties(properties);

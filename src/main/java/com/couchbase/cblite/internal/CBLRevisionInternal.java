@@ -173,10 +173,9 @@ public class CBLRevisionInternal {
         assert((docId != null) && (revId != null));
         assert((this.docId == null) || (this.docId.equals(docId)));
         CBLRevisionInternal result = new CBLRevisionInternal(docId, revId, deleted, database);
-        Map<String, Object> properties = getProperties();
-        if(properties == null) {
-            properties = new HashMap<String, Object>();
-        }
+        Map<String, Object> unmodifiableProperties = getProperties();
+        Map<String, Object> properties = new HashMap<String, Object>();
+        properties.putAll(unmodifiableProperties);
         properties.put("_id", docId);
         properties.put("_rev", revId);
         result.setProperties(properties);
