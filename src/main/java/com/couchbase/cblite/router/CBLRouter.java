@@ -410,7 +410,7 @@ public class CBLRouter implements CBLDatabaseChangedFunction {
         CBLStatus status = null;
         try {
             Method m = this.getClass().getMethod(message, CBLDatabase.class, String.class, String.class);
-            m.invoke(this, db, docID, attachmentName);
+            status = (CBLStatus) m.invoke(this, db, docID, attachmentName);
         } catch (NoSuchMethodException msme) {
             try {
                 String errorMessage = "CBLRouter unable to route request to " + message;
@@ -1388,7 +1388,7 @@ public class CBLRouter implements CBLDatabaseChangedFunction {
         return status;
     }
 
-    public void do_PUT_Document(CBLDatabase _db, String docID, String _attachmentName) throws CBLiteException {
+    public CBLStatus do_PUT_Document(CBLDatabase _db, String docID, String _attachmentName) throws CBLiteException {
         Map<String,Object> bodyDict = getBodyAsDictionary();
         if(bodyDict == null) {
             throw new CBLiteException(CBLStatus.BAD_REQUEST);
@@ -1407,6 +1407,7 @@ public class CBLRouter implements CBLDatabaseChangedFunction {
             List<String> history = CBLDatabase.parseCouchDBRevisionHistory(body.getProperties());
             db.forceInsert(rev, history, null);
         }
+        return new CBLStatus(CBLStatus.CREATED);
     }
 
     public CBLStatus do_DELETE_Document(CBLDatabase _db, String docID, String _attachmentName) {
