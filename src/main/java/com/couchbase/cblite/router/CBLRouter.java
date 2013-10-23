@@ -1423,13 +1423,12 @@ public class CBLRouter implements CBLDatabaseChangedFunction {
     }
 
     public void updateAttachment(String attachment, String docID, InputStream contentStream) throws CBLiteException {
-        CBLStatus status = new CBLStatus();
         String revID = getQuery("rev");
         if(revID == null) {
             revID = getRevIDFromIfMatchHeader();
         }
         CBLRevisionInternal rev = db.updateAttachment(attachment, contentStream, connection.getRequestProperty("content-type"),
-                docID, revID, status);
+                docID, revID);
         Map<String, Object> resultDict = new HashMap<String, Object>();
         resultDict.put("ok", true);
         resultDict.put("id", rev.getDocId());

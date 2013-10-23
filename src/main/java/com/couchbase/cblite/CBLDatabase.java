@@ -2008,15 +2008,15 @@ public class CBLDatabase {
 
     }
 
-    public CBLRevisionInternal updateAttachment(String filename, InputStream contentStream, String contentType, String docID, String oldRevID) throws CBLiteException {
-        return updateAttachment(filename, contentStream, contentType, docID, oldRevID, null);
-    }
 
     /**
      * Updates or deletes an attachment, creating a new document revision in the process.
      * Used by the PUT / DELETE methods called on attachment URLs.
      */
-    public CBLRevisionInternal updateAttachment(String filename, InputStream contentStream, String contentType, String docID, String oldRevID, CBLStatus status) throws CBLiteException {
+    public CBLRevisionInternal updateAttachment(String filename, InputStream contentStream, String contentType, String docID, String oldRevID) throws CBLiteException {
+
+        boolean isSuccessful = false;
+
         if(filename == null || filename.length() == 0 || (contentStream != null && contentType == null) || (oldRevID != null && docID == null) || (contentStream != null && docID == null)) {
             throw new CBLiteException(CBLStatus.BAD_REQUEST);
         }
@@ -2074,16 +2074,16 @@ public class CBLDatabase {
 
             }
 
-            status.setCode((contentStream != null) ? CBLStatus.CREATED : CBLStatus.OK);
+            isSuccessful = true;
             return newRev;
 
         } catch(SQLException e) {
-            Log.e(TAG, "Error uploading attachment", e);
-            status.setCode(CBLStatus.INTERNAL_SERVER_ERROR);
-            return null;
+            Log.e(TAG, "Error updating attachment", e);
+            throw new CBLiteException(new CBLStatus(CBLStatus.INTERNAL_SERVER_ERROR));
         } finally {
-            endTransaction(status.isSuccessful());
+            endTransaction(isSuccessful);
         }
+
     }
 
 
