@@ -2533,7 +2533,12 @@ public class CBLDatabase {
                 attachment.setEncodedLength(attachment.getLength());
                 attachment.setLength((Long)attachInfo.get("length"));
             }
-            attachment.setRevpos((Integer)attachInfo.get("revpos"));
+            if (attachInfo.containsKey("revpos")) {
+                attachment.setRevpos((Integer)attachInfo.get("revpos"));
+            }
+            else {
+                attachment.setRevpos(1);
+            }
             attachments.put(name, attachment);
         }
 
