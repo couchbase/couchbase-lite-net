@@ -1519,10 +1519,7 @@ public class CBLRouter implements CBLDatabaseChangedFunction {
             options.setKeys(keys);
         }
 
-        CBLStatus status = view.updateIndex();
-        if(!status.isSuccessful()) {
-            return status;
-        }
+        view.updateIndex();
 
         long lastSequenceIndexed = view.getLastSequenceIndexed();
 

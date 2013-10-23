@@ -322,7 +322,7 @@ public class CBLView {
      * @return 200 if updated, 304 if already up-to-date, else an error code
      */
     @SuppressWarnings("unchecked")
-    public CBLStatus updateIndex() throws CBLiteException {
+    public void updateIndex() throws CBLiteException {
         Log.v(CBLDatabase.TAG, "Re-indexing view " + name + " ...");
         assert (mapBlock != null);
 
@@ -340,9 +340,8 @@ public class CBLView {
             long lastSequence = getLastSequenceIndexed();
             long dbMaxSequence = database.getLastSequenceNumber();
             if(lastSequence == dbMaxSequence) {
-                // why is this an error?? being thrown for seemingly no reason
-                String msg = String.format("lastSequence (%s) == dbMaxSequence (%s)", lastSequence, dbMaxSequence);
-                throw new CBLiteException(msg, new CBLStatus(CBLStatus.NOT_MODIFIED));
+                // nothing to do (eg,  kCBLStatusNotModified)
+                return;
             }
 
             // First remove obsolete emitted results from the 'maps' table:
@@ -467,7 +466,7 @@ public class CBLView {
             result.setCode(CBLStatus.OK);
 
         } catch (SQLException e) {
-            return result;
+            throw new CBLiteException(e, new CBLStatus(CBLStatus.DB_ERROR));
         } finally {
             if (cursor != null) {
                 cursor.close();
@@ -481,7 +480,6 @@ public class CBLView {
             }
         }
 
-        return result;
     }
 
     public Cursor resultSetWithOptions(CBLQueryOptions options) {
