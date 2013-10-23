@@ -327,7 +327,8 @@ public class CBLView {
         assert (mapBlock != null);
 
         if (getViewId() < 0) {
-            throw new CBLiteException(new CBLStatus(CBLStatus.NOT_FOUND));
+            String msg = String.format("getViewId() < 0");
+            throw new CBLiteException(msg, new CBLStatus(CBLStatus.NOT_FOUND));
         }
 
         database.beginTransaction();
@@ -339,13 +340,16 @@ public class CBLView {
             long lastSequence = getLastSequenceIndexed();
             long dbMaxSequence = database.getLastSequenceNumber();
             if(lastSequence == dbMaxSequence) {
-                throw new CBLiteException(new CBLStatus(CBLStatus.NOT_MODIFIED));
+                // why is this an error?? being thrown for seemingly no reason
+                String msg = String.format("lastSequence (%s) == dbMaxSequence (%s)", lastSequence, dbMaxSequence);
+                throw new CBLiteException(msg, new CBLStatus(CBLStatus.NOT_MODIFIED));
             }
 
             // First remove obsolete emitted results from the 'maps' table:
             long sequence = lastSequence;
             if (lastSequence < 0) {
-                throw new CBLiteException(new CBLStatus(CBLStatus.INTERNAL_SERVER_ERROR));
+                String msg = String.format("lastSequence < 0 (%s)", lastSequence);
+                throw new CBLiteException(msg, new CBLStatus(CBLStatus.INTERNAL_SERVER_ERROR));
             }
 
             if (lastSequence == 0) {
