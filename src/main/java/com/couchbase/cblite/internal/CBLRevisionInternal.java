@@ -45,10 +45,6 @@ public class CBLRevisionInternal {
         this.database = database;
     }
 
-    public CBLRevisionInternal(Map<String, Object>properties) {
-        this.body = new CBLBody(properties);
-    }
-
     public CBLRevisionInternal(CBLBody body, CBLDatabase database) {
         this((String)body.getPropertyForKey("_id"),
                 (String)body.getPropertyForKey("_rev"),

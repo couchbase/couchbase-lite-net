@@ -346,7 +346,7 @@ public class CBLDocument {
         if (currentRevision == null || revIdGreaterThanCurrent(revId)) {
             Map<String, Object> properties = row.getDocumentProperties();
             if (properties != null) {
-                CBLRevisionInternal rev = new CBLRevisionInternal(properties);
+                CBLRevisionInternal rev = new CBLRevisionInternal(properties, row.getDatabase());
                 currentRevision = new CBLRevision(this, rev);
             }
         }
