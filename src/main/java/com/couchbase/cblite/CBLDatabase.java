@@ -2475,7 +2475,7 @@ public class CBLDatabase {
      */
     Map<String, CBLAttachmentInternal> getAttachmentsFromRevision(CBLRevisionInternal rev) throws CBLiteException {
 
-        Map<String, Object> revAttachments = (Map<String, Object>) rev.getPropertyForKey("_attachmments");
+        Map<String, Object> revAttachments = (Map<String, Object>) rev.getPropertyForKey("_attachments");
         if (revAttachments == null || revAttachments.size() == 0 || rev.isDeleted()) {
             return new HashMap<String, CBLAttachmentInternal>();
         }
