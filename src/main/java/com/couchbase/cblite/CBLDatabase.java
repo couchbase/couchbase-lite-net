@@ -2495,7 +2495,9 @@ public class CBLDatabase {
                     throw new CBLiteException(e, CBLStatus.BAD_ENCODING);
                 }
                 attachment.setLength(newContents.length);
-                boolean storedBlob = getAttachments().storeBlob(newContents, attachment.getBlobKey());
+                CBLBlobKey outBlobKey = new CBLBlobKey();
+                boolean storedBlob = getAttachments().storeBlob(newContents, outBlobKey);
+                attachment.setBlobKey(outBlobKey);
                 if (!storedBlob) {
                     throw new CBLiteException(CBLStatus.STATUS_ATTACHMENT_ERROR);
                 }
