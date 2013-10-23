@@ -62,12 +62,9 @@ public class CBLRevisionInternal {
     }
 
     public Map<String,Object> getProperties() {
-        Map<String,Object> result = null;
+        Map<String,Object> result = new HashMap<String, Object>();
         if(body != null) {
-            result = body.getProperties();
-        }
-        else {
-            result = new HashMap<String, Object>();
+            result.putAll(body.getProperties());
         }
         return result;
     }
