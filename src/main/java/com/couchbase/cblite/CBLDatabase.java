@@ -2404,8 +2404,8 @@ public class CBLDatabase {
                                 sqliteDb.update("revs", updateContent, "sequence=" + cursor.getLong(0), null);
                             }
                             else if (!allowConflict) {
-                                // docId already exists, current not deleted, conflict
-                                throw new CBLiteException(CBLStatus.CONFLICT);
+                                String msg = String.format("docId (%s) already exists, current not deleted, conflict", docId);
+                                throw new CBLiteException(msg, CBLStatus.CONFLICT);
                             }
                         }
                     }
