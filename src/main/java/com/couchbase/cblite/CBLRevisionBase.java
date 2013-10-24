@@ -13,10 +13,6 @@ import java.util.Map;
  */
 public abstract class CBLRevisionBase {
 
-    /**
-     * The ID of this revision. Will be nil if this is an unsaved CBLNewRevision.
-     */
-    protected String revId;
 
     /**
      * The sequence number of this revision.
@@ -151,7 +147,7 @@ public abstract class CBLRevisionBase {
         boolean result = false;
         if(o instanceof CBLRevision) {
             CBLRevision other = (CBLRevision)o;
-            if(document.getId().equals(other.getDocument().getId()) && revId.equals(other.revId)) {
+            if(document.getId().equals(other.getDocument().getId()) && getId().equals(other.getId())) {
                 result = true;
             }
         }
@@ -160,17 +156,11 @@ public abstract class CBLRevisionBase {
 
     @Override
     public int hashCode() {
-        return document.getId().hashCode() ^ revId.hashCode();
+        return document.getId().hashCode() ^ getId().hashCode();
     }
-
-
 
     public String getId() {
-        return revId;
-    }
-
-    void setId(String revId) {
-        this.revId = revId;
+        return null;
     }
 
     /**
@@ -197,7 +187,7 @@ public abstract class CBLRevisionBase {
 
     @Override
     public String toString() {
-        return "{" + this.document.getId() + " #" + this.revId + (isDeleted() ? "DEL" : "") + "}";
+        return "{" + this.document.getId() + " #" + this.getId() + (isDeleted() ? "DEL" : "") + "}";
     }
 
     /**
@@ -205,7 +195,7 @@ public abstract class CBLRevisionBase {
      * Extracted from the numeric prefix of the revID.
      */
     int getGeneration() {
-        return generationFromRevID(revId);
+        return generationFromRevID(getId());
     }
 
     static int generationFromRevID(String revID) {

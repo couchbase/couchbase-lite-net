@@ -143,6 +143,16 @@ public class CBLRevision extends CBLRevisionBase {
         return Collections.unmodifiableList(revisions);
     }
 
+    @Override
+    public String getId() {
+        return revisionInternal.getRevId();
+    }
+
+    @Override
+    boolean isDeleted() {
+        return revisionInternal.isDeleted();
+    }
+
 }
 
 
