@@ -2255,6 +2255,10 @@ public class CBLDatabase {
         if(source != null) {
             changeNotification.put("source", source);
         }
+
+        // Notify the corresponding instantiated CBLDocument object (if any):
+        getCachedDocument(rev.getDocId()).revisionAdded(changeNotification);
+
         notifyChangeListeners(changeNotification);
     }
 

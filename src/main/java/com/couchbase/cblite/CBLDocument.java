@@ -356,4 +356,16 @@ public class CBLDocument {
         return (CBLRevisionInternal.CBLCompareRevIDs(revId, currentRevision.getId()) > 0);
     }
 
+
+    void revisionAdded(Map<String,Object> changeNotification) {
+        CBLRevisionInternal rev = (CBLRevisionInternal) changeNotification.get("rev");
+        if (currentRevision != null && !rev.getRevId().equals(currentRevision.getId())) {
+            currentRevision = new CBLRevision(this, rev);
+        }
+
+        // TODO: need to implement void addChangeListener(DocumentChangedFunction listener)
+        // TODO: and at this point, the change listeners should be notified.
+
+    }
+
 }
