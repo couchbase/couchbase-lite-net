@@ -134,6 +134,9 @@ public class CBLDocument {
      * @return
      */
     public CBLRevision getCurrentRevision() {
+        if (currentRevision == null) {
+            currentRevision = getRevisionWithId(null);
+        }
         return currentRevision;
     }
 
@@ -326,12 +329,27 @@ public class CBLDocument {
 
     }
 
+    CBLRevision getRevisionWithId(String revId) {
+        if (revId != null && currentRevision != null && revId.equals(currentRevision.getId())) {
+            return currentRevision;
+        }
+        return getRevisionFromRev(
+                database.getDocumentWithIDAndRev(getId(),
+                revId,
+                EnumSet.noneOf(CBLDatabase.TDContentOptions.class))
+        );
+    }
+
     public Object getModel() {
         return model;
     }
 
     public void setModel(Object model) {
         this.model = model;
+    }
+
+    public void addChangeListener( /* DocumentChangedFunction listener */ ) {
+        throw new IllegalStateException("TODO: this needs to be implemented");
     }
 
     public static interface CBLRevisionUpdater {
