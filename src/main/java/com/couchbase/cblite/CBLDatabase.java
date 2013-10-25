@@ -206,11 +206,22 @@ public class CBLDatabase {
         return doc;
     }
 
+    public CBLDocument getExistingDocument(String documentId) {
+        if (documentId == null || documentId.length() == 0) {
+            return null;
+        }
+        CBLRevisionInternal revisionInternal = getDocumentWithIDAndRev(documentId, null, EnumSet.noneOf(CBLDatabase.TDContentOptions.class));
+        if (revisionInternal == null) {
+            return null;
+        }
+        return getDocument(documentId);
+    }
+
     /**
      * Creates a new CBLDocument object with no properties and a new (random) UUID.
      * The document will be saved to the database when you call -putProperties: on it.
      */
-    public CBLDocument createUntitledDocument() {
+    public CBLDocument createDocument() {
         return getDocument(CBLMisc.TDCreateUUID());
     }
 
