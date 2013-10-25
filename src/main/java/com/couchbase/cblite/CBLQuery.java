@@ -108,7 +108,7 @@ public class CBLQuery {
         this.database = database;
         this.view = view;
         limit = Integer.MAX_VALUE;
-        mapOnly = (view.getReduce() == null);
+        mapOnly = (view != null && view.getReduce() == null);
     }
 
     CBLQuery(CBLDatabase database, CBLMapFunction mapFunction) {
@@ -139,7 +139,8 @@ public class CBLQuery {
      */
     public CBLQueryEnumerator getRows() throws CBLiteException {
         List<Long> outSequence = new ArrayList<Long>();
-        List<CBLQueryRow> rows = database.queryViewNamed(view.getName(), getQueryOptions(), outSequence);
+        String viewName = (view != null) ? view.getName() : null;
+        List<CBLQueryRow> rows = database.queryViewNamed(viewName, getQueryOptions(), outSequence);
         long lastSequence = outSequence.get(0);
         return new CBLQueryEnumerator(database, rows, lastSequence);
     }
