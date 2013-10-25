@@ -255,20 +255,29 @@ public class CBLDocument {
     }
 
     CBLRevision putProperties(Map<String,Object> properties, String prevID) throws CBLiteException {
+        String newId = null;
+        if (properties != null && properties.containsKey("_id")) {
+            newId = (String) properties.get("_id");
+        }
 
-        String newId = (String) properties.get("_id");
         if (newId != null && !newId.equalsIgnoreCase(getId())) {
             Log.w(CBLDatabase.TAG, String.format("Trying to put wrong _id to this: %s properties: %s", this, properties));
         }
 
         // Process _attachments dict, converting CBLAttachments to dicts:
-        Map<String, Object> attachments = (Map<String, Object>) properties.get("_attachments");
+        Map<String, Object> attachments = null;
+        if (properties != null && properties.containsKey("__attachments")) {
+            attachments = (Map<String, Object>) properties.get("_attachments");
+        }
         if (attachments != null && attachments.size() > 0) {
             Map<String, Object> updatedAttachments = CBLAttachment.installAttachmentBodies(attachments, database);
             properties.put("_attachments", updatedAttachments);
         }
 
-        boolean hasTrueDeletedProperty = properties.get("_deleted") != null && ((Boolean)properties.get("_deleted")).booleanValue();
+        boolean hasTrueDeletedProperty = false;
+        if (properties != null) {
+            hasTrueDeletedProperty = properties.get("_deleted") != null && ((Boolean)properties.get("_deleted")).booleanValue();
+        }
         boolean deleted = (properties == null) || hasTrueDeletedProperty;
         CBLRevisionInternal rev = new CBLRevisionInternal(documentId, null, deleted, database);
         if (properties != null) {
