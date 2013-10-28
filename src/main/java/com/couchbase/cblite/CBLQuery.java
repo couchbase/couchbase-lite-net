@@ -109,6 +109,7 @@ public class CBLQuery {
         this.view = view;
         limit = Integer.MAX_VALUE;
         mapOnly = (view != null && view.getReduce() == null);
+        stale = CBLStaleness.CBLStaleNever;
     }
 
     CBLQuery(CBLDatabase database, CBLMapFunction mapFunction) {
