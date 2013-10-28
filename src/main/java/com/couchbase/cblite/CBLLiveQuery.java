@@ -8,7 +8,7 @@ import java.util.Map;
 
 /**
  * A CBLQuery subclass that automatically refreshes the result rows every time the database changes.
- * All you need to do is use add a listener to observe changes to the .rows property.
+ * All you need to do is use add a listener to observe changes.
  */
 public class CBLLiveQuery extends CBLQuery implements CBLDatabaseChangedFunction {
 
