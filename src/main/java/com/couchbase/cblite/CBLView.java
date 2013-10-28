@@ -25,6 +25,7 @@ import android.util.Log;
 
 import com.couchbase.cblite.CBLDatabase.TDContentOptions;
 import com.couchbase.cblite.internal.CBLRevisionInternal;
+import com.couchbase.cblite.internal.InterfaceAudience;
 
 import java.util.ArrayList;
 import java.util.EnumSet;
@@ -692,6 +693,7 @@ public class CBLView {
      * @param options The options to use.
      * @return An array of CBLQueryRow objects.
      */
+    @InterfaceAudience.Private
     public List<CBLQueryRow> queryWithOptions(CBLQueryOptions options) throws CBLiteException {
 
         if (options == null) {
