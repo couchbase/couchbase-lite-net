@@ -433,9 +433,14 @@ public class CBLView {
                     }
                     String revId = cursor.getString(3);
                     byte[] json = cursor.getBlob(4);
-                    Map<String, Object> properties = database
-                            .documentPropertiesFromJSON(json, docId, revId,
-                                    sequence, EnumSet.noneOf(CBLDatabase.TDContentOptions.class));
+                    Map<String, Object> properties = database.documentPropertiesFromJSON(
+                            json,
+                            docId,
+                            revId,
+                            false,
+                            sequence,
+                            EnumSet.noneOf(CBLDatabase.TDContentOptions.class)
+                    );
 
                     if (properties != null) {
                         // Call the user-defined map() to emit new key/value
@@ -722,8 +727,8 @@ public class CBLView {
                 // regular query
                 cursor.moveToFirst();
                 while (!cursor.isAfterLast()) {
-                    Object keyData = fromJSON(cursor.getBlob(0));
-                    Object value = fromJSON(cursor.getBlob(1));
+                    Object keyData = fromJSON(cursor.getBlob(0));  // TODO: delay parsing this for increased efficiency
+                    Object value = fromJSON(cursor.getBlob(1));    // TODO: ditto
                     String docId = cursor.getString(2);
                     Map<String, Object> docContents = null;
                     if (options.isIncludeDocs()) {
@@ -741,6 +746,7 @@ public class CBLView {
                                     cursor.getBlob(4),
                                     docId,
                                     cursor.getString(3),
+                                    false,
                                     cursor.getLong(5),
                                     options.getContentOptions()
                             );

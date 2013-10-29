@@ -772,9 +772,9 @@ public class CBLDatabase {
     }
 
     @SuppressWarnings("unchecked")
-    public Map<String, Object> documentPropertiesFromJSON(byte[] json, String docId, String revId, long sequence, EnumSet<TDContentOptions> contentOptions) {
+    public Map<String, Object> documentPropertiesFromJSON(byte[] json, String docId, String revId, boolean deleted, long sequence, EnumSet<TDContentOptions> contentOptions) {
 
-        CBLRevisionInternal rev = new CBLRevisionInternal(docId, revId, false, this);
+        CBLRevisionInternal rev = new CBLRevisionInternal(docId, revId, deleted, this);
         rev.setSequence(sequence);
         Map<String, Object> extra = extraPropertiesForRevision(rev, contentOptions);
         if (json == null) {
@@ -1318,6 +1318,8 @@ public class CBLDatabase {
 
 
     public List<CBLQueryRow> queryViewNamed(String viewName, CBLQueryOptions options, List<Long> outLastSequence) throws CBLiteException {
+
+        long before = System.currentTimeMillis();
         long lastSequence = 0;
         List<CBLQueryRow> rows = null;
 
@@ -1357,6 +1359,10 @@ public class CBLDatabase {
             lastSequence = getLastSequenceNumber();
         }
         outLastSequence.add(lastSequence);
+
+        long delta = System.currentTimeMillis() - before;
+        Log.d(CBLDatabase.TAG, String.format("Query view %s completed in %d milliseconds", viewName, delta));
+
         return rows;
 
     }
@@ -1526,7 +1532,7 @@ public class CBLDatabase {
                 Map<String, Object> docContents = null;
                 if (options.isIncludeDocs()) {
                     byte[] json = cursor.getBlob(4);
-                    docContents = documentPropertiesFromJSON(json, docId, revId, sequenceNumber, options.getContentOptions());
+                    docContents = documentPropertiesFromJSON(json, docId, revId, deleted, sequenceNumber, options.getContentOptions());
                 }
                 Map<String, Object> value = new HashMap<String, Object>();
                 value.put("rev", revId);
