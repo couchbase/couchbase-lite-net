@@ -1462,7 +1462,7 @@ public class CBLDatabase {
                 return result;
             }
             String commaSeperatedIds = joinQuotedObjects(options.getKeys());
-            sql.append(String.format(" revs.doc_id IN (SELECT doc_id FROM docs WHERE docid IN (%@)) AND", commaSeperatedIds));
+            sql.append(String.format(" revs.doc_id IN (SELECT doc_id FROM docs WHERE docid IN (%s)) AND", commaSeperatedIds));
         }
         sql.append(" docs.doc_id = revs.doc_id AND current=1");
         if (!options.isIncludeDeletedDocs()) {
