@@ -181,9 +181,7 @@ public abstract class CBLReplicator extends Observable {
         return name;
     }
 
-    public boolean isPush() {
-        return false;
-    }
+    public abstract boolean isPush();
 
     public String getLastSequence() {
         return lastSequence;
@@ -532,4 +530,9 @@ public abstract class CBLReplicator extends Observable {
     public Throwable getError() {
         return error;
     }
+
+    public CBLDatabase getDb() {
+        return db;
+    }
+
 }

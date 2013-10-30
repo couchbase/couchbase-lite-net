@@ -6,6 +6,8 @@ import android.util.Log;
 import com.couchbase.cblite.auth.CBLAuthorizer;
 import com.couchbase.cblite.auth.CBLFacebookAuthorizer;
 import com.couchbase.cblite.auth.CBLPersonaAuthorizer;
+import com.couchbase.cblite.internal.InterfaceAudience;
+import com.couchbase.cblite.replicator.CBLPuller;
 import com.couchbase.cblite.replicator.CBLPusher;
 import com.couchbase.cblite.replicator.CBLReplicator;
 import com.couchbase.cblite.support.FileDirUtils;
@@ -46,7 +48,6 @@ public class CBLManager {
     private File directoryFile;
     private Map<String, CBLDatabase> databases;
     private List<CBLReplicator> replications;
-    private Context androidContext;
     private ScheduledExecutorService workExecutor;
     private HttpClientFactory defaultHttpClientFactory;
 
@@ -298,12 +299,43 @@ public class CBLManager {
 
     }
 
+
+    @InterfaceAudience.Private
+    CBLReplicator replicationWithDatabase(CBLDatabase db, URL remote, boolean push, boolean create, boolean start) {
+        for (CBLReplicator replicator : replications) {
+            if (replicator.getDb() == db && replicator.getRemote().equals(remote) && replicator.isPush() == push) {
+                return replicator;
+            }
+
+        }
+        if (!create) {
+            return null;
+        }
+
+        CBLReplicator replicator = null;
+        if (push) {
+            replicator = new CBLPusher(db, remote, true, getWorkExecutor());
+        }
+        else {
+            replicator = new CBLPuller(db, remote, true, getWorkExecutor());
+        }
+
+        replications.add(replicator);
+        if (start) {
+            replicator.start();
+        }
+
+        return replicator;
+    }
+
+
+
+    @InterfaceAudience.Private
     public CBLReplicator getReplicator(Map<String,Object> properties) throws CBLiteException {
 
         CBLAuthorizer authorizer = null;
         CBLReplicator repl = null;
         URL remote = null;
-
 
         Map<String, Object> remoteMap;
 

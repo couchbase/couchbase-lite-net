@@ -385,6 +385,10 @@ public class CBLPuller extends CBLReplicator implements CBLChangeTrackerClient {
         return URLEncoder.encode(new String(json));
     }
 
+    @Override
+    public boolean isPush() {
+        return false;
+    }
 }
 
 /**
