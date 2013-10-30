@@ -117,6 +117,18 @@ public class CBLMultipartReader {
 
     }
 
+    private void trimBuffer() {
+        int bufLen = buffer.length();
+        int boundaryLen = getBoundary().length;
+        if (bufLen > boundaryLen) {
+            // Leave enough bytes in _buffer that we can find an incomplete boundary string
+            byte[] dataToAppend = Arrays.copyOfRange(buffer.toByteArray(), 0, bufLen - boundaryLen);
+            delegate.appendToPart(dataToAppend);
+            deleteUpThrough(bufLen - boundaryLen);
+        }
+
+    }
+
     public void appendData(byte[] data) {
 
         if (buffer == null) {
@@ -141,8 +153,7 @@ public class CBLMultipartReader {
                         if (memcmp(buffer.toByteArray(), boundaryWithoutLeadingCRLF, boundaryWithoutLeadingCRLF.length)) {
                             deleteUpThrough(boundaryWithoutLeadingCRLF.length);
                             nextState = CBLMultipartReaderState.kInHeaders;
-                        }
-                        else {
+                        } else {
                             nextState = CBLMultipartReaderState.kInPrologue;
                         }
                     }
@@ -165,13 +176,15 @@ public class CBLMultipartReader {
                         }
                         deleteUpThrough(r.getLocation() + r.getLength());
                         nextState = CBLMultipartReaderState.kInHeaders;
+                    } else {
+                        trimBuffer();
                     }
                     break;
                 }
                 case kInHeaders: {
                     // First check for the end-of-message string ("--" after separator):
                     if (bufLen >= 2 &&
-                            memcmp(buffer.toByteArray(), eomBytes(), 2 )) {
+                            memcmp(buffer.toByteArray(), eomBytes(), 2)) {
                         state = CBLMultipartReaderState.kAtEnd;
                         close();
                         return;
