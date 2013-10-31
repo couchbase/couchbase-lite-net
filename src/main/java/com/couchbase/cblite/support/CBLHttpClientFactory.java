@@ -21,6 +21,19 @@ public enum CBLHttpClientFactory implements HttpClientFactory {
 
     private CookieStore cookieStore;
 
+    private SSLSocketFactory sslSocketFactory;
+
+    /**
+     * @param sslSocketFactoryFromUser This is to open up the system for end user to inject the sslSocket factories with their
+     *                                 custom KeyStore
+     */
+    public void setSSLSocketFactory(SSLSocketFactory sslSocketFactoryFromUser) {
+        if (sslSocketFactory != null) {
+            throw new RuntimeException("SSLSocketFactory already set");
+        }
+        sslSocketFactory = sslSocketFactoryFromUser;
+    }
+
     @Override
     public HttpClient getHttpClient() {
 
@@ -32,7 +45,7 @@ public enum CBLHttpClientFactory implements HttpClientFactory {
         SchemeRegistry schemeRegistry = new SchemeRegistry();
         schemeRegistry.register(new Scheme("http", PlainSocketFactory.getSocketFactory(), 80));
         final SSLSocketFactory sslSocketFactory = SSLSocketFactory.getSocketFactory();
-        schemeRegistry.register(new Scheme("https", sslSocketFactory, 443));
+        schemeRegistry.register(new Scheme("https", this.sslSocketFactory == null ? sslSocketFactory : this.sslSocketFactory, 443));
         ClientConnectionManager cm = new ThreadSafeClientConnManager(params, schemeRegistry);
 
         DefaultHttpClient client = new DefaultHttpClient(cm, params);
@@ -56,8 +69,6 @@ public enum CBLHttpClientFactory implements HttpClientFactory {
             }
         }
     }
-
-
 
 
 }
