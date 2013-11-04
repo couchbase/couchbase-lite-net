@@ -296,15 +296,15 @@ public class CBLPusher extends CBLReplicator implements CBLDatabaseChangedFuncti
                     multiPart = null;
                 }
                 else {
-                    // workaround for issue #80 - it was looking at the "content_type" field instead of "content-type".
-                    // fix is backwards compatible in case any code is using content_type.
                     String contentType = null;
                     if (attachment.containsKey("content_type")) {
                         contentType = (String) attachment.get("content_type");
-                        Log.w(CBLDatabase.TAG, "Found attachment that uses content_type field name instead of content-type: " + attachment);
                     }
                     else if (attachment.containsKey("content-type")) {
-                        contentType = (String) attachment.get("content-type");
+                        String message = String.format("Found attachment that uses content-type" +
+                                " field name instead of content_type (see couchbase-lite-android" +
+                                " issue #80): " + attachment);
+                        Log.w(CBLDatabase.TAG, message);
                     }
                     multiPart.addPart(attachmentKey, new InputStreamBody(inputStream, contentType, attachmentKey));
                 }
