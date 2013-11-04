@@ -55,12 +55,12 @@ public class CBLManager {
         return mapper;
     }
 
-    public CBLManager(Context androidContext, String directoryName) {
-        this(androidContext, directoryName, DEFAULT_OPTIONS);
+    public CBLManager(File directoryFile) {
+        this(directoryFile, DEFAULT_OPTIONS);
     }
 
-    public CBLManager(Context androidContext, String directoryName, CBLManagerOptions options) {
-        this.directoryFile = new File(androidContext.getFilesDir(), directoryName);
+    public CBLManager(File directoryFile, CBLManagerOptions options) {
+        this.directoryFile = directoryFile;
         this.options = (options != null) ? options : DEFAULT_OPTIONS;
         this.databases = new HashMap<String, CBLDatabase>();
         this.replications = new ArrayList<CBLReplicator>();
@@ -76,18 +76,13 @@ public class CBLManager {
         upgradeOldDatabaseFiles(directoryFile);
         workExecutor = Executors.newSingleThreadScheduledExecutor();
 
-        // TODO: in the iOS code it starts persistent replications here (using runloop trick)
     }
 
-    public synchronized static CBLManager createSharedInstance(Context androidContext, String directoryName, CBLManagerOptions options) {
+    public synchronized static CBLManager createSharedInstance(File directoryFile, CBLManagerOptions options) {
         if (sharedInstance == null) {
-            sharedInstance = new CBLManager(androidContext, directoryName, options);
+            sharedInstance = new CBLManager(directoryFile, options);
         }
         return sharedInstance;
-    }
-
-    public synchronized static CBLManager createSharedInstance(Context androidContext, String directoryName) {
-        return createSharedInstance(androidContext, directoryName, DEFAULT_OPTIONS);
     }
 
     public static CBLManager getSharedInstance() {
