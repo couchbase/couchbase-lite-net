@@ -211,15 +211,15 @@ public class CBLQueryRow {
             result.put("key", key);
             result.put("value", value);
             result.put("id", sourceDocumentId);
-            result.put("doc", documentProperties);
+            if (documentProperties != null){
+                result.put("doc", documentProperties);
+            }
         } else {
             result.put("key", key);
             result.put("error", "not_found");
         }
         return result;
     }
-
-
 
 
 
