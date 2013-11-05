@@ -1537,7 +1537,9 @@ public class CBLDatabase {
                 }
                 Map<String, Object> value = new HashMap<String, Object>();
                 value.put("rev", revId);
-                value.put("deleted", (deleted ? true : null));
+                if (options.isIncludeDeletedDocs()){
+                    value.put("deleted", (deleted ? true : null));
+                }
                 CBLQueryRow change = new CBLQueryRow(docId, sequenceNumber, docId, value, docContents);
                 change.setDatabase(this);
                 if (options.getKeys() != null) {
