@@ -157,7 +157,7 @@ public class CBLPuller extends CBLReplicator implements CBLChangeTrackerClient {
 
     @Override
     public HttpClient getHttpClient() {
-    	HttpClient httpClient = this.clientFacotry.getHttpClient();
+    	HttpClient httpClient = this.clientFactory.getHttpClient();
 
         return httpClient;
     }

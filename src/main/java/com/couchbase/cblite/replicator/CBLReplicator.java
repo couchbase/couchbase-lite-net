@@ -54,7 +54,7 @@ public abstract class CBLReplicator extends Observable {
     protected int asyncTaskCount;
     private int changesProcessed;
     private int changesTotal;
-    protected final HttpClientFactory clientFacotry;
+    protected final HttpClientFactory clientFactory;
     protected String filterName;
     protected Map<String, Object> filterParams;
     protected ExecutorService remoteRequestExecutor;
@@ -67,7 +67,7 @@ public abstract class CBLReplicator extends Observable {
         this(db, remote, continuous, null, workExecutor);
     }
 
-    public CBLReplicator(CBLDatabase db, URL remote, boolean continuous, HttpClientFactory clientFacotry, ScheduledExecutorService workExecutor) {
+    public CBLReplicator(CBLDatabase db, URL remote, boolean continuous, HttpClientFactory clientFactory, ScheduledExecutorService workExecutor) {
 
         this.db = db;
         this.continuous = continuous;
@@ -120,7 +120,7 @@ public abstract class CBLReplicator extends Observable {
             }
         });
 
-        this.clientFacotry = clientFacotry != null ? clientFacotry : CBLHttpClientFactory.INSTANCE;
+        this.clientFactory = clientFactory != null ? clientFactory : CBLHttpClientFactory.INSTANCE;
 
 
     }
@@ -390,7 +390,7 @@ public abstract class CBLReplicator extends Observable {
     }
 
     public void sendAsyncRequest(String method, URL url, Object body, CBLRemoteRequestCompletionBlock onCompletion) {
-        CBLRemoteRequest request = new CBLRemoteRequest(workExecutor, clientFacotry, method, url, body, onCompletion);
+        CBLRemoteRequest request = new CBLRemoteRequest(workExecutor, clientFactory, method, url, body, onCompletion);
         remoteRequestExecutor.execute(request);
     }
 
@@ -400,7 +400,7 @@ public abstract class CBLReplicator extends Observable {
             String urlStr = buildRelativeURLString(relativePath);
             URL url = new URL(urlStr);
 
-            CBLRemoteMultipartDownloaderRequest request = new CBLRemoteMultipartDownloaderRequest(workExecutor, clientFacotry, method, url, body, db, onCompletion);
+            CBLRemoteMultipartDownloaderRequest request = new CBLRemoteMultipartDownloaderRequest(workExecutor, clientFactory, method, url, body, db, onCompletion);
             remoteRequestExecutor.execute(request);
         } catch (MalformedURLException e) {
             Log.e(CBLDatabase.TAG, "Malformed URL for async request", e);
@@ -415,7 +415,7 @@ public abstract class CBLReplicator extends Observable {
         } catch (MalformedURLException e) {
             throw new IllegalArgumentException(e);
         }
-        CBLRemoteMultipartRequest request = new CBLRemoteMultipartRequest(workExecutor, clientFacotry, method, url, multiPartEntity, onCompletion);
+        CBLRemoteMultipartRequest request = new CBLRemoteMultipartRequest(workExecutor, clientFactory, method, url, multiPartEntity, onCompletion);
         remoteRequestExecutor.execute(request);
     }
 
