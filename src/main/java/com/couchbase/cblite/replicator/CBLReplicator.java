@@ -440,6 +440,13 @@ public abstract class CBLReplicator extends Observable {
         return CBLMisc.TDHexSHA1Digest(input.getBytes());
     }
 
+    private boolean is404(Throwable e) {
+        if (e instanceof HttpResponseException) {
+            return ((HttpResponseException) e).getStatusCode() == 404;
+        }
+        return false;
+    }
+
     public void fetchRemoteCheckpointDoc() {
         lastSequenceChanged = false;
         final String localLastSequence = db.lastSequenceWithRemoteURL(remote, isPush());
@@ -454,10 +461,12 @@ public abstract class CBLReplicator extends Observable {
 
             @Override
             public void onCompletion(Object result, Throwable e) {
-                if (e != null && e instanceof HttpResponseException && ((HttpResponseException) e).getStatusCode() != 404) {
+                if (e != null && !is404(e)) {
+                    Log.d(CBLDatabase.TAG, this + " error getting remote checkpoint: " + e);
                     error = e;
                 } else {
-                    if (e instanceof HttpResponseException && ((HttpResponseException) e).getStatusCode() == 404) {
+                    if (e != null && is404(e)) {
+                        Log.d(CBLDatabase.TAG, this + " 404 error getting remote checkpoint " + remoteCheckpointDocID() + ", calling maybeCreateRemoteDB");
                         maybeCreateRemoteDB();
                     }
                     Map<String, Object> response = (Map<String, Object>) result;
