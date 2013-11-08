@@ -39,6 +39,7 @@ import org.apache.http.protocol.BasicHttpContext;
 import org.apache.http.protocol.ExecutionContext;
 import org.apache.http.protocol.HttpContext;
 
+import android.net.Uri;
 import android.os.Handler;
 import android.util.Log;
 
@@ -165,7 +166,7 @@ public class CBLRemoteRequest implements Runnable {
             if (url.getUserInfo().contains(":") && !url.getUserInfo().trim().equals(":")) {
                 String[] userInfoSplit = url.getUserInfo().split(":");
                 final Credentials creds = new UsernamePasswordCredentials(
-                        userInfoSplit[0], userInfoSplit[1]);
+                        Uri.decode(userInfoSplit[0]), Uri.decode(userInfoSplit[1]));
                 if (httpClient instanceof DefaultHttpClient) {
                     DefaultHttpClient dhc = (DefaultHttpClient) httpClient;
 

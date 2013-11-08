@@ -36,6 +36,7 @@ import org.codehaus.jackson.JsonFactory;
 import org.codehaus.jackson.JsonParser;
 import org.codehaus.jackson.JsonToken;
 
+import android.net.Uri;
 import android.util.Log;
 
 import com.couchbase.cblite.CBLDatabase;
@@ -162,7 +163,8 @@ public class CBLChangeTracker implements Runnable {
                 Log.v(CBLDatabase.TAG, "url.getUserInfo(): " + url.getUserInfo());
                 if (url.getUserInfo().contains(":") && !url.getUserInfo().trim().equals(":")) {
                     String[] userInfoSplit = url.getUserInfo().split(":");
-                    final Credentials creds = new UsernamePasswordCredentials(userInfoSplit[0], userInfoSplit[1]);
+                    final Credentials creds = new UsernamePasswordCredentials(
+                            Uri.decode(userInfoSplit[0]), Uri.decode(userInfoSplit[1]));
                     if (httpClient instanceof DefaultHttpClient) {
                         DefaultHttpClient dhc = (DefaultHttpClient) httpClient;
 
