@@ -147,8 +147,19 @@ public class CBLChangeTracker implements Runnable {
 
     @Override
     public void run() {
+
         running = true;
-        HttpClient httpClient = client.getHttpClient();
+        HttpClient httpClient;
+
+        if (client == null) {
+            // This is a race condition that can be reproduced by calling cbpuller.start() and cbpuller.stop()
+            // directly afterwards.  What happens is that by the time the Changetracker thread fires up,
+            // the cbpuller has already set this.client to null.  See issue #109
+            Log.w(CBLDatabase.TAG, "ChangeTracker run() loop aborting because client == null");
+            return;
+        }
+
+        httpClient = client.getHttpClient();
         CBLChangeTrackerBackoff backoff = new CBLChangeTrackerBackoff();
 
         while (running) {
