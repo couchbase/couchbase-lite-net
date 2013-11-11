@@ -21,7 +21,6 @@ import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
@@ -34,21 +33,19 @@ import java.util.Observable;
 import java.util.Set;
 import java.util.concurrent.ScheduledExecutorService;
 
-import android.content.ContentValues;
-import android.database.Cursor;
-import android.database.SQLException;
-import android.database.sqlite.SQLiteDatabase;
-import android.database.sqlite.SQLiteException;
-import android.util.Log;
-
 import com.couchbase.cblite.CBLDatabase.TDContentOptions;
 import com.couchbase.cblite.replicator.CBLPuller;
 import com.couchbase.cblite.replicator.CBLPusher;
 import com.couchbase.cblite.replicator.CBLReplicator;
+import com.couchbase.cblite.storage.ContentValues;
+import com.couchbase.cblite.storage.Cursor;
+import com.couchbase.cblite.storage.SQLException;
+import com.couchbase.cblite.storage.SQLiteStorageEngine;
+import com.couchbase.cblite.storage.SQLiteStorageEngineFactory;
 import com.couchbase.cblite.support.Base64;
 import com.couchbase.cblite.support.FileDirUtils;
 import com.couchbase.cblite.support.HttpClientFactory;
-import com.couchbase.touchdb.TDCollateJSON;
+import com.couchbase.cblite.util.Log;
 
 /**
  * A CBLite database.
@@ -57,7 +54,7 @@ public class CBLDatabase extends Observable {
 
     private String path;
     private String name;
-    private SQLiteDatabase database;
+    private SQLiteStorageEngine database;
     private boolean open = false;
     private int transactionLevel = 0;
     public static final String TAG = "CBLDatabase";
@@ -247,12 +244,11 @@ public class CBLDatabase extends Observable {
             return true;
         }
 
-        try {
-            database = SQLiteDatabase.openDatabase(path, null, SQLiteDatabase.CREATE_IF_NECESSARY);
-            TDCollateJSON.registerCustomCollators(database);
-        }
-        catch(SQLiteException e) {
-            Log.e(CBLDatabase.TAG, "Error opening", e);
+        // Create the storage engine.
+        database = SQLiteStorageEngineFactory.createStorageEngine();
+
+        // Try to open the storage engine and stop if we fail.
+        if (database == null || !database.open(path)) {
             return false;
         }
 
@@ -392,7 +388,7 @@ public class CBLDatabase extends Observable {
 
     // Leave this package protected, so it can only be used
     // CBLView uses this accessor
-    SQLiteDatabase getDatabase() {
+    SQLiteStorageEngine getDatabase() {
         return database;
     }
 
@@ -2446,7 +2442,7 @@ public class CBLDatabase extends Observable {
         values.put("remote", url.toExternalForm());
         values.put("push", push);
         values.put("last_sequence", lastSequence);
-        long newId = database.insertWithOnConflict("replicators", null, values, SQLiteDatabase.CONFLICT_REPLACE);
+        long newId = database.insertWithOnConflict("replicators", null, values, SQLiteStorageEngine.CONFLICT_REPLACE);
         return (newId == -1);
     }
 
@@ -2593,7 +2589,7 @@ public class CBLDatabase extends Observable {
                 values.put("revid", newRevID);
                 values.put("json", json);
                 try {
-                    database.insertWithOnConflict("localdocs", null, values, SQLiteDatabase.CONFLICT_IGNORE);
+                    database.insertWithOnConflict("localdocs", null, values, SQLiteStorageEngine.CONFLICT_IGNORE);
                 } catch (SQLException e) {
                     status.setCode(CBLStatus.INTERNAL_SERVER_ERROR);
                     return null;

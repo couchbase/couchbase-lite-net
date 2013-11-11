@@ -4,7 +4,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.UUID;
 
-import android.util.Log;
+import com.couchbase.cblite.util.Log;
 
 public class CBLMisc {
 

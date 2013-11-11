@@ -36,10 +36,9 @@ import org.codehaus.jackson.JsonFactory;
 import org.codehaus.jackson.JsonParser;
 import org.codehaus.jackson.JsonToken;
 
-import android.util.Log;
-
 import com.couchbase.cblite.CBLDatabase;
 import com.couchbase.cblite.CBLServer;
+import com.couchbase.cblite.util.Log;
 
 /**
  * Reads the continuous-mode _changes feed of a database, and sends the

@@ -34,9 +34,8 @@ import java.util.regex.Pattern;
 
 import org.codehaus.jackson.map.ObjectMapper;
 
-import android.util.Log;
-
 import com.couchbase.cblite.support.HttpClientFactory;
+import com.couchbase.cblite.util.Log;
 
 /**
  * Manages a directory containing CBLDatabases.

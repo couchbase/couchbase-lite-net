@@ -19,10 +19,9 @@ import java.util.Map.Entry;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
-import android.util.Log;
-
 import com.couchbase.cblite.CBLBody;
 import com.couchbase.cblite.CBLDatabase;
+import com.couchbase.cblite.util.Log;
 
 public class CBLURLConnection extends HttpURLConnection {
 

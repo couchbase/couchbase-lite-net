@@ -2,17 +2,12 @@ package com.couchbase.cblite.support;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.Future;
-import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
-import android.os.Handler;
-import android.util.Log;
-
 import com.couchbase.cblite.CBLDatabase;
-import com.couchbase.cblite.CBLRevision;
+import com.couchbase.cblite.util.Log;
 
 /**
  * Utility that queues up objects until the queue fills up or a time interval elapses,

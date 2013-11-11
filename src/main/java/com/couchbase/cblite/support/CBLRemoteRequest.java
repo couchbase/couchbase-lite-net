@@ -30,20 +30,15 @@ import org.apache.http.client.methods.HttpPut;
 import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.client.protocol.ClientContext;
 import org.apache.http.conn.ClientConnectionManager;
-import org.apache.http.cookie.Cookie;
 import org.apache.http.entity.ByteArrayEntity;
 import org.apache.http.impl.auth.BasicScheme;
-import org.apache.http.impl.client.BasicCookieStore;
 import org.apache.http.impl.client.DefaultHttpClient;
-import org.apache.http.protocol.BasicHttpContext;
 import org.apache.http.protocol.ExecutionContext;
 import org.apache.http.protocol.HttpContext;
 
-import android.os.Handler;
-import android.util.Log;
-
 import com.couchbase.cblite.CBLDatabase;
 import com.couchbase.cblite.CBLServer;
+import com.couchbase.cblite.util.Log;
 
 public class CBLRemoteRequest implements Runnable {
 

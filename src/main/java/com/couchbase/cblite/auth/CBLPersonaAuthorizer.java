@@ -1,9 +1,8 @@
 package com.couchbase.cblite.auth;
 
-import android.util.Base64;
-import android.util.Log;
-
 import com.couchbase.cblite.CBLDatabase;
+import com.couchbase.cblite.support.Base64;
+import com.couchbase.cblite.util.Log;
 
 import org.codehaus.jackson.map.ObjectMapper;
 
@@ -158,8 +157,19 @@ public class CBLPersonaAuthorizer extends CBLAuthorizer {
             throw new IllegalArgumentException("Invalid assertion given, only " + components.length + " found.  Expected 4+");
         }
 
-        String component1Decoded = new String(Base64.decode(components[1], Base64.DEFAULT));
-        String component3Decoded = new String(Base64.decode(components[3], Base64.DEFAULT));
+        String component1Decoded = null;
+        try {
+            component1Decoded = new String(Base64.decode(components[1], Base64.NO_OPTIONS));
+        } catch (java.io.IOException e) {
+            Log.w(CBLDatabase.TAG, e);
+        }
+
+        String component3Decoded = null;
+        try {
+            component3Decoded = new String(Base64.decode(components[3], Base64.NO_OPTIONS));
+        } catch (java.io.IOException e) {
+            Log.w(CBLDatabase.TAG, e);
+        }
 
         try {
 

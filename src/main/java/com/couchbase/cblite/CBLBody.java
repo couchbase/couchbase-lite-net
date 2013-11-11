@@ -22,7 +22,7 @@ import java.util.Map;
 
 import org.codehaus.jackson.map.ObjectWriter;
 
-import android.util.Log;
+import com.couchbase.cblite.util.Log;
 
 /**
  * A request/response/document body, stored as either JSON or a Map<String,Object>

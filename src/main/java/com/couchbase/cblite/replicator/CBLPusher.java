@@ -19,8 +19,6 @@ import org.apache.http.entity.mime.content.ByteArrayBody;
 import org.apache.http.entity.mime.content.InputStreamBody;
 import org.apache.http.entity.mime.content.StringBody;
 
-import android.util.Log;
-
 import com.couchbase.cblite.CBLBlobKey;
 import com.couchbase.cblite.CBLBlobStore;
 import com.couchbase.cblite.CBLDatabase;
@@ -31,6 +29,7 @@ import com.couchbase.cblite.CBLServer;
 import com.couchbase.cblite.CBLStatus;
 import com.couchbase.cblite.support.HttpClientFactory;
 import com.couchbase.cblite.support.CBLRemoteRequestCompletionBlock;
+import com.couchbase.cblite.util.Log;
 
 public class CBLPusher extends CBLReplicator implements Observer {
 
