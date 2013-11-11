@@ -31,7 +31,7 @@ public class AndroidSQLiteStorageEngine implements SQLiteStorageEngine {
 
     @Override
     public boolean open(String path) {
-        if(database.isOpen()) {
+        if(database != null && database.isOpen()) {
             return true;
         }
 
@@ -133,16 +133,18 @@ public class AndroidSQLiteStorageEngine implements SQLiteStorageEngine {
         android.content.ContentValues contentValues = new android.content.ContentValues(values.size());
 
         for (Map.Entry<String, Object> value : values.valueSet()) {
-            if (value.getValue() instanceof String) {
-                contentValues.put(value.getKey(), (String)value.getValue());
+            if (value.getValue() == null) {
+                contentValues.put(value.getKey(), (String) null);
+            } else if (value.getValue() instanceof String) {
+                contentValues.put(value.getKey(), (String) value.getValue());
             } else if (value.getValue() instanceof Integer) {
-                contentValues.put(value.getKey(), (Integer)value.getValue());
+                contentValues.put(value.getKey(), (Integer) value.getValue());
             } else if (value.getValue() instanceof Long) {
-                contentValues.put(value.getKey(), (Long)value.getValue());
+                contentValues.put(value.getKey(), (Long) value.getValue());
             } else if (value.getValue() instanceof Boolean) {
-                contentValues.put(value.getKey(), (Boolean)value.getValue());
+                contentValues.put(value.getKey(), (Boolean) value.getValue());
             } else if (value.getValue() instanceof byte[]) {
-                contentValues.put(value.getKey(), (byte[])value.getValue());
+                contentValues.put(value.getKey(), (byte[]) value.getValue());
             }
         }
 
