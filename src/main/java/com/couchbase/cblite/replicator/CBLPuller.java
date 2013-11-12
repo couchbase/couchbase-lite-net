@@ -307,8 +307,16 @@ public class CBLPuller extends CBLReplicator implements CBLChangeTrackerClient {
         Log.i(CBLDatabase.TAG, this + " inserting " + revs.size() + " revisions...");
         //Log.v(CBLDatabase.TAG, String.format("%s inserting %s", this, revs));
 
-        /* Updating self.lastSequence is tricky. It needs to be the received sequence ID of the revision for which we've successfully received and inserted (or rejected) it and all previous received revisions. That way, next time we can start tracking remote changes from that sequence ID and know we haven't missed anything. */
-        /* FIX: The current code below doesn't quite achieve that: it tracks the latest sequence ID we've successfully processed, but doesn't handle failures correctly across multiple calls to -insertRevisions. I think correct behavior will require keeping an NSMutableIndexSet to track the fake-sequences of all processed revisions; then we can find the first missing index in that set and not advance lastSequence past the revision with that fake-sequence. */
+        /* Updating self.lastSequence is tricky. It needs to be the received sequence ID of
+        the revision for which we've successfully received and inserted (or rejected) it and
+        all previous received revisions. That way, next time we can start tracking remote
+        changes from that sequence ID and know we haven't missed anything. */
+        /* FIX: The current code below doesn't quite achieve that: it tracks the latest
+        sequence ID we've successfully processed, but doesn't handle failures correctly
+        across multiple calls to -insertRevisions. I think correct behavior will require
+        keeping an NSMutableIndexSet to track the fake-sequences of all processed revisions;
+        then we can find the first missing index in that set and not advance lastSequence
+        past the revision with that fake-sequence. */
         Collections.sort(revs, new Comparator<List<Object>>() {
 
             public int compare(List<Object> list1, List<Object> list2) {
