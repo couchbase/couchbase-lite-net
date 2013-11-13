@@ -1780,6 +1780,7 @@ public class CBLDatabase {
             }
             else {
                 CBLAttachment result = new CBLAttachment(contentStream, cursor.getString(1));
+                result.setGZipped(attachments.isGZipped(key));
                 return result;
             }
 

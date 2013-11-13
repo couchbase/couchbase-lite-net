@@ -29,6 +29,7 @@ import org.codehaus.jackson.JsonFactory;
 import org.codehaus.jackson.JsonParser;
 import org.codehaus.jackson.JsonToken;
 
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
@@ -36,6 +37,8 @@ import java.net.URL;
 import java.net.URLEncoder;
 import java.util.List;
 import java.util.Map;
+import android.net.Uri;
+
 
 /**
  * Reads the continuous-mode _changes feed of a database, and sends the
@@ -143,8 +146,19 @@ public class CBLChangeTracker implements Runnable {
 
     @Override
     public void run() {
+
         running = true;
-        HttpClient httpClient = client.getHttpClient();
+        HttpClient httpClient;
+
+        if (client == null) {
+            // This is a race condition that can be reproduced by calling cbpuller.start() and cbpuller.stop()
+            // directly afterwards.  What happens is that by the time the Changetracker thread fires up,
+            // the cbpuller has already set this.client to null.  See issue #109
+            Log.w(CBLDatabase.TAG, "ChangeTracker run() loop aborting because client == null");
+            return;
+        }
+
+        httpClient = client.getHttpClient();
         CBLChangeTrackerBackoff backoff = new CBLChangeTrackerBackoff();
 
         while (running) {
@@ -158,7 +172,8 @@ public class CBLChangeTracker implements Runnable {
                 Log.v(CBLDatabase.TAG, "url.getUserInfo(): " + url.getUserInfo());
                 if (url.getUserInfo().contains(":") && !url.getUserInfo().trim().equals(":")) {
                     String[] userInfoSplit = url.getUserInfo().split(":");
-                    final Credentials creds = new UsernamePasswordCredentials(userInfoSplit[0], userInfoSplit[1]);
+                    final Credentials creds = new UsernamePasswordCredentials(
+                            Uri.decode(userInfoSplit[0]), Uri.decode(userInfoSplit[1]));
                     if (httpClient instanceof DefaultHttpClient) {
                         DefaultHttpClient dhc = (DefaultHttpClient) httpClient;
 
@@ -288,7 +303,9 @@ public class CBLChangeTracker implements Runnable {
 
     public boolean start() {
         this.error = null;
-        thread = new Thread(this, "ChangeTracker-" + databaseURL.toExternalForm());
+        String maskedRemoteWithoutCredentials = databaseURL.toExternalForm();
+        maskedRemoteWithoutCredentials = maskedRemoteWithoutCredentials.replaceAll("://.*:.*@", "://---:---@");
+        thread = new Thread(this, "ChangeTracker-" + maskedRemoteWithoutCredentials);
         thread.start();
         return true;
     }

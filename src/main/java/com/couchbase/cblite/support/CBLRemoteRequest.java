@@ -29,14 +29,21 @@ import org.apache.http.client.protocol.ClientContext;
 import org.apache.http.conn.ClientConnectionManager;
 import org.apache.http.entity.ByteArrayEntity;
 import org.apache.http.impl.auth.BasicScheme;
+
+import org.apache.http.impl.client.trunk.BasicCookieStore;
+
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.protocol.ExecutionContext;
 import org.apache.http.protocol.HttpContext;
+
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.util.concurrent.ScheduledExecutorService;
+
+import android.net.Uri;
+
 
 public class CBLRemoteRequest implements Runnable {
 
@@ -158,7 +165,7 @@ public class CBLRemoteRequest implements Runnable {
             if (url.getUserInfo().contains(":") && !url.getUserInfo().trim().equals(":")) {
                 String[] userInfoSplit = url.getUserInfo().split(":");
                 final Credentials creds = new UsernamePasswordCredentials(
-                        userInfoSplit[0], userInfoSplit[1]);
+                        Uri.decode(userInfoSplit[0]), Uri.decode(userInfoSplit[1]));
                 if (httpClient instanceof DefaultHttpClient) {
                     DefaultHttpClient dhc = (DefaultHttpClient) httpClient;
 

@@ -1289,7 +1289,7 @@ public class CBLRouter implements CBLDatabaseChangedFunction {
             }
 
             String type = null;
-            String acceptEncoding = connection.getRequestProperty("Accept-Encoding");
+            String acceptEncoding = connection.getRequestProperty("accept-encoding");
             CBLAttachment contents = db.getAttachmentForSequence(rev.getSequence(), _attachmentName);
 
             if (contents == null) {
@@ -1299,8 +1299,8 @@ public class CBLRouter implements CBLDatabaseChangedFunction {
             if (type != null) {
                 connection.getResHeader().add("Content-Type", type);
             }
-            if (acceptEncoding != null && acceptEncoding.equals("gzip")) {
-                connection.getResHeader().add("Content-Encoding", acceptEncoding);
+            if (acceptEncoding != null && acceptEncoding.contains("gzip") && contents.getGZipped()) {
+                connection.getResHeader().add("Content-Encoding", "gzip");
             }
 
             connection.setResponseInputStream(contents.getBody());

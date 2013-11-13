@@ -32,10 +32,16 @@ import java.util.Map;
 
 public class CBLAttachment {
 
+
     /**
      * The owning document revision.
      */
     private CBLRevisionBase revision;
+
+    /**
+     * Whether or not this attachment is gzipped
+     */
+    private boolean gzipped;
 
     /**
      * The owning document.
@@ -65,6 +71,7 @@ public class CBLAttachment {
         metadata = new HashMap<String, Object>();
         metadata.put("content_type", contentType);
         metadata.put("follows", true);
+        this.gzipped = false;
     }
 
 
@@ -75,6 +82,8 @@ public class CBLAttachment {
         this.revision = revision;
         this.name = name;
         this.metadata = metadata;
+        this.gzipped = false;
+
     }
 
     public InputStream getBody() throws CBLiteException {
@@ -99,6 +108,7 @@ public class CBLAttachment {
     public CBLDocument getDocument() {
         return document;
     }
+
 
     public CBLRevisionBase getRevision() {
         return revision;
@@ -205,6 +215,15 @@ public class CBLAttachment {
         writer.read(body);
         writer.finish();
         return writer;
+
+    }
+
+    public boolean getGZipped() {
+        return gzipped;
+    }
+
+    public void setGZipped(boolean gzipped) {
+        this.gzipped = gzipped;
     }
 
 
