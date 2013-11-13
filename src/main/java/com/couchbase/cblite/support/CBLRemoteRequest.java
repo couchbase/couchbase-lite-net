@@ -1,9 +1,10 @@
 package com.couchbase.cblite.support;
 
-import android.util.Log;
+import android.net.Uri;
 
 import com.couchbase.cblite.CBLDatabase;
 import com.couchbase.cblite.CBLManager;
+import com.couchbase.cblite.util.Log;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpException;
@@ -29,20 +30,14 @@ import org.apache.http.client.protocol.ClientContext;
 import org.apache.http.conn.ClientConnectionManager;
 import org.apache.http.entity.ByteArrayEntity;
 import org.apache.http.impl.auth.BasicScheme;
-
-import org.apache.http.impl.client.trunk.BasicCookieStore;
-
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.protocol.ExecutionContext;
 import org.apache.http.protocol.HttpContext;
-
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.util.concurrent.ScheduledExecutorService;
-
-import android.net.Uri;
 
 
 public class CBLRemoteRequest implements Runnable {

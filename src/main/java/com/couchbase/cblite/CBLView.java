@@ -17,15 +17,15 @@
 
 package com.couchbase.cblite;
 
-import android.content.ContentValues;
-import android.database.Cursor;
-import android.database.SQLException;
-import android.database.sqlite.SQLiteDatabase;
-import android.util.Log;
 
 import com.couchbase.cblite.CBLDatabase.TDContentOptions;
 import com.couchbase.cblite.internal.CBLRevisionInternal;
 import com.couchbase.cblite.internal.InterfaceAudience;
+import com.couchbase.cblite.storage.ContentValues;
+import com.couchbase.cblite.storage.Cursor;
+import com.couchbase.cblite.storage.SQLException;
+import com.couchbase.cblite.storage.SQLiteStorageEngine;
+import com.couchbase.cblite.util.Log;
 
 import java.util.ArrayList;
 import java.util.EnumSet;
@@ -107,7 +107,7 @@ public class CBLView {
             String[] args = { name };
             Cursor cursor = null;
             try {
-                cursor = database.getSqliteDb().rawQuery(sql, args);
+                cursor = database.getDatabase().rawQuery(sql, args);
                 if (cursor.moveToFirst()) {
                     viewId = cursor.getInt(0);
                 } else {
@@ -134,7 +134,7 @@ public class CBLView {
         Cursor cursor = null;
         long result = -1;
         try {
-            cursor = database.getSqliteDb().rawQuery(sql, args);
+            cursor = database.getDatabase().rawQuery(sql, args);
             if (cursor.moveToFirst()) {
                 result = cursor.getLong(0);
             }
@@ -201,7 +201,8 @@ public class CBLView {
         // because we want to
         // avoid modifying the database if the version didn't change, and because the
         // row might not exist yet.
-        SQLiteDatabase database = this.database.getSqliteDb();
+
+        SQLiteStorageEngine storageEngine = this.database.getDatabase();
 
         // Older Android doesnt have reliable insert or ignore, will to 2 step
         // FIXME review need for change to execSQL, manual call to changes()
@@ -211,13 +212,13 @@ public class CBLView {
         Cursor cursor = null;
 
         try {
-            cursor = this.database.getSqliteDb().rawQuery(sql, args);
+            cursor = storageEngine.rawQuery(sql, args);
             if (!cursor.moveToFirst()) {
                 // no such record, so insert
                 ContentValues insertValues = new ContentValues();
                 insertValues.put("name", name);
                 insertValues.put("version", version);
-                database.insert("views", null, insertValues);
+                storageEngine.insert("views", null, insertValues);
                 return true;
             }
 
@@ -226,7 +227,7 @@ public class CBLView {
             updateValues.put("lastSequence", 0);
 
             String[] whereArgs = { name, version };
-            int rowsAffected = database.update("views", updateValues,
+            int rowsAffected = storageEngine.update("views", updateValues,
                     "name=? AND version!=?", whereArgs);
 
             return (rowsAffected > 0);
@@ -254,11 +255,11 @@ public class CBLView {
             database.beginTransaction();
 
             String[] whereArgs = { Integer.toString(getViewId()) };
-            database.getSqliteDb().delete("maps", "view_id=?", whereArgs);
+            database.getDatabase().delete("maps", "view_id=?", whereArgs);
 
             ContentValues updateValues = new ContentValues();
             updateValues.put("lastSequence", 0);
-            database.getSqliteDb().update("views", updateValues, "view_id=?",
+            database.getDatabase().update("views", updateValues, "view_id=?",
                     whereArgs);
 
             success = true;
@@ -356,21 +357,21 @@ public class CBLView {
                 // If the lastSequence has been reset to 0, make sure to remove
                 // any leftover rows:
                 String[] whereArgs = { Integer.toString(getViewId()) };
-                database.getSqliteDb().delete("maps", "view_id=?", whereArgs);
+                database.getDatabase().delete("maps", "view_id=?", whereArgs);
             } else {
                 // Delete all obsolete map results (ones from since-replaced
                 // revisions):
                 String[] args = { Integer.toString(getViewId()),
                         Long.toString(lastSequence),
                         Long.toString(lastSequence) };
-                database.getSqliteDb().execSQL(
+                database.getDatabase().execSQL(
                         "DELETE FROM maps WHERE view_id=? AND sequence IN ("
                                 + "SELECT parent FROM revs WHERE sequence>? "
                                 + "AND parent>0 AND parent<=?)", args);
             }
 
             int deleted = 0;
-            cursor = database.getSqliteDb().rawQuery("SELECT changes()", null);
+            cursor = database.getDatabase().rawQuery("SELECT changes()", null);
             cursor.moveToFirst();
             deleted = cursor.getInt(0);
             cursor.close();
@@ -394,7 +395,7 @@ public class CBLView {
                         insertValues.put("sequence", sequence);
                         insertValues.put("key", keyJson);
                         insertValues.put("value", valueJson);
-                        database.getSqliteDb().insert("maps", null, insertValues);
+                        database.getDatabase().insert("maps", null, insertValues);
                     } catch (Exception e) {
                         Log.e(CBLDatabase.TAG, "Error emitting", e);
                         // find a better way to propagate this back
@@ -406,7 +407,7 @@ public class CBLView {
             // indexed:
             String[] selectArgs = { Long.toString(lastSequence) };
 
-            cursor = database.getSqliteDb().rawQuery(
+            cursor = database.getDatabase().rawQuery(
                     "SELECT revs.doc_id, sequence, docid, revid, json FROM revs, docs "
                             + "WHERE sequence>? AND current!=0 AND deleted=0 "
                             + "AND revs.doc_id = docs.doc_id "
@@ -462,7 +463,7 @@ public class CBLView {
             ContentValues updateValues = new ContentValues();
             updateValues.put("lastSequence", dbMaxSequence);
             String[] whereArgs = { Integer.toString(getViewId()) };
-            database.getSqliteDb().update("views", updateValues, "view_id=?",
+            database.getDatabase().update("views", updateValues, "view_id=?",
                     whereArgs);
 
             // FIXME actually count number added :)
@@ -568,7 +569,7 @@ public class CBLView {
 
         Log.v(CBLDatabase.TAG, "Query " + name + ": " + sql);
 
-        Cursor cursor = database.getSqliteDb().rawQuery(sql,
+        Cursor cursor = database.getDatabase().rawQuery(sql,
                 argsList.toArray(new String[argsList.size()]));
         return cursor;
     }
@@ -614,7 +615,7 @@ public class CBLView {
 
         try {
             cursor = database
-                    .getSqliteDb()
+                    .getDatabase()
                     .rawQuery(
                             "SELECT sequence, key, value FROM maps WHERE view_id=? ORDER BY key",
                             selectArgs);

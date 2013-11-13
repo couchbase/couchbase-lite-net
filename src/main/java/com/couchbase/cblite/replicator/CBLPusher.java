@@ -1,7 +1,5 @@
 package com.couchbase.cblite.replicator;
 
-import android.util.Log;
-
 import com.couchbase.cblite.CBLBlobKey;
 import com.couchbase.cblite.CBLBlobStore;
 import com.couchbase.cblite.CBLDatabase;
@@ -13,6 +11,7 @@ import com.couchbase.cblite.CBLiteException;
 import com.couchbase.cblite.internal.CBLRevisionInternal;
 import com.couchbase.cblite.support.CBLRemoteRequestCompletionBlock;
 import com.couchbase.cblite.support.HttpClientFactory;
+import com.couchbase.cblite.util.Log;
 
 import org.apache.http.client.HttpResponseException;
 import org.apache.http.entity.mime.MultipartEntity;
@@ -31,6 +30,7 @@ import java.util.Map;
 import java.util.concurrent.ScheduledExecutorService;
 
 public class CBLPusher extends CBLReplicator implements CBLDatabaseChangedFunction {
+
 
     private boolean createTarget;
     private boolean observing;

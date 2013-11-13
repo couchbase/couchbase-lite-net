@@ -1,9 +1,8 @@
 package com.couchbase.cblite.support;
 
-import android.util.Log;
-
 import com.couchbase.cblite.CBLDatabase;
 import com.couchbase.cblite.CBLManager;
+import com.couchbase.cblite.util.Log;
 
 import org.apache.http.Header;
 import org.apache.http.HttpEntity;

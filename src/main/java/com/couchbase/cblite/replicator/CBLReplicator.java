@@ -1,8 +1,5 @@
 package com.couchbase.cblite.replicator;
 
-import android.net.Uri;
-import android.util.Log;
-
 import com.couchbase.cblite.CBLDatabase;
 import com.couchbase.cblite.CBLMisc;
 import com.couchbase.cblite.internal.CBLRevisionInternal;
@@ -18,11 +15,14 @@ import com.couchbase.cblite.support.CBLRemoteMultipartRequest;
 import com.couchbase.cblite.support.CBLRemoteRequest;
 import com.couchbase.cblite.support.CBLRemoteRequestCompletionBlock;
 import com.couchbase.cblite.support.HttpClientFactory;
+import com.couchbase.cblite.util.URIUtils;
+import com.couchbase.cblite.util.Log;
 
 import org.apache.http.client.HttpResponseException;
 import org.apache.http.entity.mime.MultipartEntity;
 
 import java.net.MalformedURLException;
+import java.net.URI;
 import java.net.URL;
 import java.util.HashMap;
 import java.util.List;
@@ -78,18 +78,18 @@ public abstract class CBLReplicator extends Observable {
 
         if (remote.getQuery() != null && !remote.getQuery().isEmpty()) {
 
-            Uri uri = Uri.parse(remote.toExternalForm());
+            URI uri = URI.create(remote.toExternalForm());
 
-            String personaAssertion = uri.getQueryParameter(CBLPersonaAuthorizer.QUERY_PARAMETER);
+            String personaAssertion = URIUtils.getQueryParameter(uri, CBLPersonaAuthorizer.QUERY_PARAMETER);
             if (personaAssertion != null && !personaAssertion.isEmpty()) {
                 String email = CBLPersonaAuthorizer.registerAssertion(personaAssertion);
                 CBLPersonaAuthorizer authorizer = new CBLPersonaAuthorizer(email);
                 setAuthorizer(authorizer);
             }
 
-            String facebookAccessToken = uri.getQueryParameter(CBLFacebookAuthorizer.QUERY_PARAMETER);
+            String facebookAccessToken = URIUtils.getQueryParameter(uri, CBLFacebookAuthorizer.QUERY_PARAMETER);
             if (facebookAccessToken != null && !facebookAccessToken.isEmpty()) {
-                String email = uri.getQueryParameter(CBLFacebookAuthorizer.QUERY_PARAMETER_EMAIL);
+                String email = URIUtils.getQueryParameter(uri, CBLFacebookAuthorizer.QUERY_PARAMETER_EMAIL);
                 CBLFacebookAuthorizer authorizer = new CBLFacebookAuthorizer(email);
                 URL remoteWithQueryRemoved = null;
                 try {

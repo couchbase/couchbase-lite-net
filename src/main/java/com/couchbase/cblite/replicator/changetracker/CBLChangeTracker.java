@@ -1,9 +1,11 @@
 package com.couchbase.cblite.replicator.changetracker;
 
-import android.util.Log;
+
+import android.net.Uri;
 
 import com.couchbase.cblite.CBLDatabase;
 import com.couchbase.cblite.CBLManager;
+import com.couchbase.cblite.util.Log;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpException;
@@ -29,7 +31,6 @@ import org.codehaus.jackson.JsonFactory;
 import org.codehaus.jackson.JsonParser;
 import org.codehaus.jackson.JsonToken;
 
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
@@ -37,7 +38,6 @@ import java.net.URL;
 import java.net.URLEncoder;
 import java.util.List;
 import java.util.Map;
-import android.net.Uri;
 
 
 /**

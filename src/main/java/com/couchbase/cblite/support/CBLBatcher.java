@@ -1,8 +1,7 @@
 package com.couchbase.cblite.support;
 
-import android.util.Log;
-
 import com.couchbase.cblite.CBLDatabase;
+import com.couchbase.cblite.util.Log;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -32,7 +31,7 @@ public class CBLBatcher<T> {
                 processNow();
             } catch(Exception e) {
                 // we don't want this to crash the batcher
-                Log.e(CBLDatabase.TAG, "CBLBatchProcessor throw exception", e);
+                com.couchbase.cblite.util.Log.e(CBLDatabase.TAG, "CBLBatchProcessor throw exception", e);
             }
         }
     };

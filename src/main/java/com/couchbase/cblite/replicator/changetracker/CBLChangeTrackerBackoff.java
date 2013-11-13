@@ -1,8 +1,7 @@
 package com.couchbase.cblite.replicator.changetracker;
 
-import android.util.Log;
-
 import com.couchbase.cblite.CBLDatabase;
+import com.couchbase.cblite.util.Log;
 
 public class CBLChangeTrackerBackoff {
 

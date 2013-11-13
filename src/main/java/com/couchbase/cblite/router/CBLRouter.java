@@ -1,6 +1,5 @@
 package com.couchbase.cblite.router;
 
-import android.util.Log;
 
 import com.couchbase.cblite.CBLAttachment;
 import com.couchbase.cblite.CBLChangesOptions;
@@ -25,6 +24,7 @@ import com.couchbase.cblite.auth.CBLPersonaAuthorizer;
 import com.couchbase.cblite.internal.CBLBody;
 import com.couchbase.cblite.internal.CBLRevisionInternal;
 import com.couchbase.cblite.replicator.CBLReplicator;
+import com.couchbase.cblite.util.Log;
 
 import org.apache.http.client.HttpResponseException;
 
@@ -416,8 +416,10 @@ public class CBLRouter implements CBLDatabaseChangedFunction {
         // Send myself a message based on the components:
         CBLStatus status = null;
         try {
-            Method m = this.getClass().getMethod(message, CBLDatabase.class, String.class, String.class);
-            status = (CBLStatus) m.invoke(this, db, docID, attachmentName);
+
+            Method m = CBLRouter.class.getMethod(message, CBLDatabase.class, String.class, String.class);
+            status = (CBLStatus)m.invoke(this, db, docID, attachmentName);
+
         } catch (NoSuchMethodException msme) {
             try {
                 String errorMessage = "CBLRouter unable to route request to " + message;
@@ -426,8 +428,8 @@ public class CBLRouter implements CBLDatabaseChangedFunction {
                 result.put("error", "not_found");
                 result.put("reason", errorMessage);
                 connection.setResponseBody(new CBLBody(result));
-                Method m = this.getClass().getMethod("do_UNKNOWN", CBLDatabase.class, String.class, String.class);
-                status = new CBLStatus(CBLStatus.BAD_REQUEST);
+                Method m = CBLRouter.class.getMethod("do_UNKNOWN", CBLDatabase.class, String.class, String.class);
+                status = (CBLStatus)m.invoke(this, db, docID, attachmentName);
             } catch (Exception e) {
                 //default status is internal server error
                 Log.e(CBLDatabase.TAG, "CBLRouter attempted do_UNKNWON fallback, but that threw an exception", e);

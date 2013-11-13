@@ -24,7 +24,7 @@ import java.util.Map;
 
 import org.codehaus.jackson.map.ObjectWriter;
 
-import android.util.Log;
+import com.couchbase.cblite.util.Log;
 
 import com.couchbase.cblite.CBLDatabase;
 import com.couchbase.cblite.CBLManager;

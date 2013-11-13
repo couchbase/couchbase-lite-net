@@ -1,8 +1,7 @@
 package com.couchbase.cblite.auth;
 
-import android.util.Log;
-
 import com.couchbase.cblite.CBLDatabase;
+import com.couchbase.cblite.util.Log;
 
 import java.net.URL;
 import java.util.ArrayList;

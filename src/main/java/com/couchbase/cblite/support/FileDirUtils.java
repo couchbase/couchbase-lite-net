@@ -17,9 +17,8 @@
 
 package com.couchbase.cblite.support;
 
-import android.util.Log;
-
 import com.couchbase.cblite.CBLDatabase;
+import com.couchbase.cblite.util.Log;
 
 import java.io.File;
 import java.io.FileInputStream;
