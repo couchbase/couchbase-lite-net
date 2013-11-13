@@ -1,8 +1,5 @@
 package com.couchbase.cblite;
 
-import android.content.Context;
-import android.util.Log;
-
 import com.couchbase.cblite.auth.CBLAuthorizer;
 import com.couchbase.cblite.auth.CBLFacebookAuthorizer;
 import com.couchbase.cblite.auth.CBLPersonaAuthorizer;
@@ -12,6 +9,7 @@ import com.couchbase.cblite.replicator.CBLPusher;
 import com.couchbase.cblite.replicator.CBLReplicator;
 import com.couchbase.cblite.support.FileDirUtils;
 import com.couchbase.cblite.support.HttpClientFactory;
+import com.couchbase.cblite.util.Log;
 
 import org.codehaus.jackson.map.ObjectMapper;
 

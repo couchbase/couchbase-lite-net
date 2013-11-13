@@ -1,6 +1,6 @@
 package com.couchbase.cblite;
 
-import android.util.Log;
+import com.couchbase.cblite.util.Log;
 
 import java.util.ArrayList;
 import java.util.List;
