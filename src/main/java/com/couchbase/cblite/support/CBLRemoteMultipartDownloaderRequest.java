@@ -1,9 +1,8 @@
 package com.couchbase.cblite.support;
 
-import android.util.Log;
-
 import com.couchbase.cblite.CBLDatabase;
 import com.couchbase.cblite.CBLServer;
+import com.couchbase.cblite.util.Log;
 
 import org.apache.http.Header;
 import org.apache.http.HttpEntity;
@@ -13,16 +12,12 @@ import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.HttpResponseException;
 import org.apache.http.client.methods.HttpUriRequest;
-import org.apache.http.client.protocol.ClientContext;
-import org.apache.http.cookie.Cookie;
-import org.apache.http.impl.client.trunk.BasicCookieStore;
 import org.apache.http.impl.client.DefaultHttpClient;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.util.Arrays;
-import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
 
 public class CBLRemoteMultipartDownloaderRequest extends CBLRemoteRequest {

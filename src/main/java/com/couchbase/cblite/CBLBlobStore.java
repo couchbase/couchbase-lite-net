@@ -35,7 +35,7 @@ import java.util.ListIterator;
 import java.util.Set;
 import java.util.zip.GZIPInputStream;
 
-import android.util.Log;
+import com.couchbase.cblite.util.Log;
 
 /**
  * A persistent content-addressable store for arbitrary-size data blobs.

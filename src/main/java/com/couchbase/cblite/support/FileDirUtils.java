@@ -23,9 +23,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.channels.FileChannel;
 
-import android.util.Log;
-
 import com.couchbase.cblite.CBLDatabase;
+import com.couchbase.cblite.util.Log;
 
 public class FileDirUtils {
 

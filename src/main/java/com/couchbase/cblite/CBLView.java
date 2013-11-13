@@ -25,11 +25,11 @@ import java.util.Map;
 
 import com.couchbase.cblite.CBLDatabase.TDContentOptions;
 
-import android.content.ContentValues;
-import android.database.Cursor;
-import android.database.SQLException;
-import android.database.sqlite.SQLiteDatabase;
-import android.util.Log;
+import com.couchbase.cblite.storage.ContentValues;
+import com.couchbase.cblite.storage.Cursor;
+import com.couchbase.cblite.storage.SQLException;
+import com.couchbase.cblite.storage.SQLiteStorageEngine;
+import com.couchbase.cblite.util.Log;
 
 /**
  * Represents a view available in a database.
@@ -148,7 +148,7 @@ public class CBLView {
         // because we want to
         // avoid modifying the db if the version didn't change, and because the
         // row might not exist yet.
-        SQLiteDatabase database = db.getDatabase();
+        SQLiteStorageEngine database = db.getDatabase();
 
         // Older Android doesnt have reliable insert or ignore, will to 2 step
         // FIXME review need for change to execSQL, manual call to changes()

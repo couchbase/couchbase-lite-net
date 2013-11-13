@@ -12,9 +12,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.HttpResponseException;
 
-import android.database.SQLException;
-import android.util.Log;
-
 import com.couchbase.cblite.CBLBody;
 import com.couchbase.cblite.CBLDatabase;
 import com.couchbase.cblite.CBLMisc;
@@ -25,11 +22,13 @@ import com.couchbase.cblite.CBLStatus;
 import com.couchbase.cblite.replicator.changetracker.CBLChangeTracker;
 import com.couchbase.cblite.replicator.changetracker.CBLChangeTrackerClient;
 import com.couchbase.cblite.replicator.changetracker.CBLChangeTracker.TDChangeTrackerMode;
+import com.couchbase.cblite.storage.SQLException;
 import com.couchbase.cblite.support.HttpClientFactory;
 import com.couchbase.cblite.support.CBLBatchProcessor;
 import com.couchbase.cblite.support.CBLBatcher;
 import com.couchbase.cblite.support.CBLRemoteRequestCompletionBlock;
 import com.couchbase.cblite.support.CBLSequenceMap;
+import com.couchbase.cblite.util.Log;
 
 public class CBLPuller extends CBLReplicator implements CBLChangeTrackerClient {
 

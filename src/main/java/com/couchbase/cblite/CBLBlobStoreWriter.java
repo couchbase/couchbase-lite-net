@@ -1,8 +1,7 @@
 package com.couchbase.cblite;
 
-import android.util.Log;
-
 import com.couchbase.cblite.support.Base64;
+import com.couchbase.cblite.util.Log;
 
 import java.io.BufferedOutputStream;
 import java.io.File;

@@ -1,9 +1,5 @@
 package com.couchbase.cblite.support;
 
-import android.util.Log;
-
-import com.couchbase.cblite.CBLDatabase;
-
 import org.apache.http.util.ByteArrayBuffer;
 
 import java.nio.charset.Charset;

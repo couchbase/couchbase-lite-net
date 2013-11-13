@@ -4,10 +4,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.TreeSet;
 
-import com.couchbase.cblite.CBLDatabase;
-
-import android.util.Log;
-
 public class CBLSequenceMap {
 	
 	private TreeSet<Long> sequences;

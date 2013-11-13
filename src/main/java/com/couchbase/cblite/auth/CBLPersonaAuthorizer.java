@@ -1,9 +1,8 @@
 package com.couchbase.cblite.auth;
 
-import android.util.Base64;
-import android.util.Log;
-
 import com.couchbase.cblite.CBLDatabase;
+import com.couchbase.cblite.util.Base64;
+import com.couchbase.cblite.util.Log;
 
 import org.codehaus.jackson.map.ObjectMapper;
 

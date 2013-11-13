@@ -19,8 +19,6 @@ import java.util.Map;
 import java.util.Observable;
 import java.util.Observer;
 
-import android.util.Log;
-
 import com.couchbase.cblite.CBLAttachment;
 import com.couchbase.cblite.CBLBody;
 import com.couchbase.cblite.CBLChangesOptions;
@@ -41,8 +39,8 @@ import com.couchbase.cblite.CBLDatabase.TDContentOptions;
 import com.couchbase.cblite.CBLView.TDViewCollation;
 import com.couchbase.cblite.auth.CBLFacebookAuthorizer;
 import com.couchbase.cblite.auth.CBLPersonaAuthorizer;
-import com.couchbase.cblite.replicator.CBLPusher;
 import com.couchbase.cblite.replicator.CBLReplicator;
+import com.couchbase.cblite.util.Log;
 
 import org.apache.http.client.HttpResponseException;
 
@@ -392,7 +390,7 @@ public class CBLRouter implements Observer {
         // Send myself a message based on the components:
         CBLStatus status = new CBLStatus(CBLStatus.INTERNAL_SERVER_ERROR);
         try {
-            Method m = this.getClass().getMethod(message, CBLDatabase.class, String.class, String.class);
+            Method m = CBLRouter.class.getMethod(message, CBLDatabase.class, String.class, String.class);
             status = (CBLStatus)m.invoke(this, db, docID, attachmentName);
         } catch (NoSuchMethodException msme) {
             try {
@@ -402,7 +400,7 @@ public class CBLRouter implements Observer {
                 result.put("error", "not_found");
                 result.put("reason", errorMessage);
                 connection.setResponseBody(new CBLBody(result));
-                Method m = this.getClass().getMethod("do_UNKNOWN", CBLDatabase.class, String.class, String.class);
+                Method m = CBLRouter.class.getMethod("do_UNKNOWN", CBLDatabase.class, String.class, String.class);
                 status = (CBLStatus)m.invoke(this, db, docID, attachmentName);
             } catch (Exception e) {
                 //default status is internal server error
