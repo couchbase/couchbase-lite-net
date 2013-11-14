@@ -161,6 +161,9 @@ public class CBLQuery {
      * Returns a live query with the same parameters.
      */
     public CBLLiveQuery toLiveQuery() {
+        if (view == null) {
+            throw new IllegalStateException("Cannot convert a CBLQuery to CBLLiveQuery if the view is null");
+        }
         return new CBLLiveQuery(this);
     }
 
@@ -175,6 +178,7 @@ public class CBLQuery {
     }
 
     Thread runAsyncInternal(final CBLQueryCompleteFunction queryCompleteFunction) {
+        // TODO: convert this to use a thread pool
         Thread t = new Thread(new Runnable() {
             @Override
             public void run() {

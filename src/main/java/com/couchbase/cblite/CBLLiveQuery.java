@@ -97,6 +97,9 @@ public class CBLLiveQuery extends CBLQuery implements CBLDatabaseChangedFunction
     }
 
     void update() {
+        if (getView() == null) {
+            throw new IllegalStateException("Cannot start LiveQuery when view is null");
+        }
         setWillUpdate(false);
         updaterThread = runAsyncInternal(new CBLQueryCompleteFunction() {
             @Override
