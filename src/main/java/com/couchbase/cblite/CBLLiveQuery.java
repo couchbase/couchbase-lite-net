@@ -134,7 +134,7 @@ public class CBLLiveQuery extends CBLQuery implements CBLDatabaseChangedFunction
 
     }
 
-    public void onFailureDatabaseChanged(CBLiteException exception) {
+    public void onFailureDatabaseChanged(Throwable exception) {
         Log.e(CBLDatabase.TAG, "onFailureDatabaseChanged", exception);
     }
 
