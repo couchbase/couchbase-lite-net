@@ -66,7 +66,9 @@ public class CBLDatabase {
 
     private boolean open = false;
     private int transactionLevel = 0;
+
     public static final String TAG = "CBLDatabase";
+    public static final String TAG_SQL = "CBLSQL";
 
     private Map<String, CBLView> views;
     private Map<String, CBLFilterBlock> filters;
@@ -478,8 +480,9 @@ public class CBLDatabase {
         try {
             database.beginTransaction();
             ++transactionLevel;
-            //Log.v(TAG, "Begin transaction (level " + Integer.toString(transactionLevel) + ")...");
+            Log.i(CBLDatabase.TAG_SQL, "Begin transaction (level " + Integer.toString(transactionLevel) + ")");
         } catch (SQLException e) {
+            Log.e(CBLDatabase.TAG, "Error calling beginTransaction()", e);
             return false;
         }
         return true;
@@ -491,18 +494,20 @@ public class CBLDatabase {
      * @param commit If true, commits; if false, aborts and rolls back, undoing all changes made since the matching -beginTransaction call, *including* any committed nested transactions.
      */
     public boolean endTransaction(boolean commit) {
+
         assert(transactionLevel > 0);
 
         if(commit) {
-            //Log.v(TAG, "Committing transaction (level " + Integer.toString(transactionLevel) + ")...");
+            Log.i(CBLDatabase.TAG_SQL, "Committing transaction (level " + Integer.toString(transactionLevel) + ")");
             database.setTransactionSuccessful();
             database.endTransaction();
         }
         else {
-            Log.v(TAG, "CANCEL transaction (level " + Integer.toString(transactionLevel) + ")...");
+            Log.i(TAG_SQL, "CANCEL transaction (level " + Integer.toString(transactionLevel) + ")");
             try {
                 database.endTransaction();
             } catch (SQLException e) {
+                Log.e(CBLDatabase.TAG, "Error calling endTransaction()", e);
                 return false;
             }
         }
