@@ -343,6 +343,9 @@ public class CBLView {
             long dbMaxSequence = database.getLastSequenceNumber();
             if(lastSequence == dbMaxSequence) {
                 // nothing to do (eg,  kCBLStatusNotModified)
+                String msg = String.format("lastSequence (%d) == dbMaxSequence (%d), nothing to do",
+                        lastSequence, dbMaxSequence);
+                Log.d(CBLDatabase.TAG, msg);
                 return;
             }
 
