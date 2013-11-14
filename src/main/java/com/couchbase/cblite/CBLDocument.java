@@ -78,7 +78,7 @@ public class CBLDocument {
      * @return boolean to indicate whether deleted or not
      */
     public boolean isDeleted() {
-        return currentRevision.isDeleted();
+        return getCurrentRevision().isDeleted();
     }
 
     /**
@@ -89,7 +89,7 @@ public class CBLDocument {
      * @throws CBLiteException
      */
     public boolean delete() throws CBLiteException {
-        return currentRevision.deleteDocument() != null;
+        return getCurrentRevision().deleteDocument() != null;
     }
 
     /**
@@ -144,7 +144,7 @@ public class CBLDocument {
      * @return
      */
     public String getCurrentRevisionId() {
-        return currentRevision.getId();
+        return getCurrentRevision().getId();
     }
 
     /**
@@ -154,11 +154,11 @@ public class CBLDocument {
      * @throws CBLiteException
      */
     public List<CBLRevision> getRevisionHistory() throws CBLiteException {
-        if (currentRevision == null) {
+        if (getCurrentRevision() == null) {
             Log.w(CBLDatabase.TAG, "getRevisionHistory() called but no currentRevision");
             return null;
         }
-        return currentRevision.getRevisionHistory();
+        return getCurrentRevision().getRevisionHistory();
     }
 
     /**
@@ -208,14 +208,14 @@ public class CBLDocument {
      * @return the newly created revision
      */
     public CBLNewRevision newRevision() {
-        return new CBLNewRevision(this, currentRevision);
+        return new CBLNewRevision(this, getCurrentRevision());
     }
 
     /**
      * Shorthand for getProperties().get(key)
      */
     public Object propertyForKey(String key) {
-        return currentRevision.getProperties().get(key);
+        return getCurrentRevision().getProperties().get(key);
     }
 
     /**
@@ -226,7 +226,7 @@ public class CBLDocument {
      * @return contents of the current revision of the document.
      */
     public Map<String,Object> getProperties() {
-        return currentRevision.getProperties();
+        return getCurrentRevision().getProperties();
     }
 
     /**
@@ -236,7 +236,7 @@ public class CBLDocument {
      * @return user-defined properties, without the ones reserved by CouchDB.
      */
     public Map<String,Object> getUserProperties() {
-        return currentRevision.getUserProperties();
+        return getCurrentRevision().getUserProperties();
     }
 
     /**
