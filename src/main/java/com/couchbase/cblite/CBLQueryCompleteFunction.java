@@ -4,6 +4,6 @@ public interface CBLQueryCompleteFunction {
 
     public void onQueryChanged(CBLQueryEnumerator queryEnumerator);
 
-    public void onFailureQueryChanged(CBLiteException exception);
+    public void onFailureQueryChanged(Throwable exception);
 
 }

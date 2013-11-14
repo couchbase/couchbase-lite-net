@@ -110,7 +110,7 @@ public class CBLLiveQuery extends CBLQuery implements CBLDatabaseChangedFunction
             }
 
             @Override
-            public void onFailureQueryChanged(CBLiteException exception) {
+            public void onFailureQueryChanged(Throwable exception) {
                 for (CBLLiveQueryChangedFunction observer : observers) {
                     observer.onFailureLiveQueryChanged(exception);
                 }

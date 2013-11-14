@@ -187,8 +187,8 @@ public class CBLQuery {
                     CBLQueryEnumerator enumerator = new CBLQueryEnumerator(database, rows, sequenceNumber);
                     queryCompleteFunction.onQueryChanged(enumerator);
 
-                } catch (CBLiteException e) {
-                    queryCompleteFunction.onFailureQueryChanged(e);
+                } catch (Throwable t) {
+                    queryCompleteFunction.onFailureQueryChanged(t);
                 }
             }
         });

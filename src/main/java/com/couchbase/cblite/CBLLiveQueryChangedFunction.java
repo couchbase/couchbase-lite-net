@@ -4,7 +4,7 @@ public interface CBLLiveQueryChangedFunction {
 
     public void onLiveQueryChanged(CBLQueryEnumerator rows);
 
-    public void onFailureLiveQueryChanged(CBLiteException exception);
+    public void onFailureLiveQueryChanged(Throwable exception);
 
 
 }

@@ -147,7 +147,7 @@ public class CBLPusher extends CBLReplicator implements CBLDatabaseChangedFuncti
     }
 
     @Override
-    public void onFailureDatabaseChanged(CBLiteException exception) {
+    public void onFailureDatabaseChanged(Throwable exception) {
         Log.e(CBLDatabase.TAG, "onFailureDatabaseChanged", exception);
     }
 

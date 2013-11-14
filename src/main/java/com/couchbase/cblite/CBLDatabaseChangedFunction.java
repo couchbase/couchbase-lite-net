@@ -6,6 +6,6 @@ public interface CBLDatabaseChangedFunction {
 
     public void onDatabaseChanged(CBLDatabase database, Map<String,Object> changeNotification);
 
-    public void onFailureDatabaseChanged(CBLiteException exception);
+    public void onFailureDatabaseChanged(Throwable exception);
 
 }
