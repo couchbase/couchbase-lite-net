@@ -122,12 +122,22 @@ public class CBLLiveQuery extends CBLQuery implements CBLDatabaseChangedFunction
     }
 
     public void onDatabaseChanged(CBLDatabase database, Map<String, Object> changeNotification) {
+
         if (!willUpdate) {
             setWillUpdate(true);
 
             // wait for any existing updates to finish before starting
             // a new one.  TODO: this whole class needs review and solid testing
-            waitForUpdateThread();
+
+            // Commenting waitForUpdateThread() in order to fix a bug:
+            // Deadlock that was happening when the LiveQuery#onDatabaseChanged()
+            // was calling waitForUpdateThread(), but that thread was
+            // waiting on connection to be released by the thread calling
+            // waitForUpdateThread(). On the logcat messages were appearing:
+            // SQLiteConnectionPool The connection pool for database has been unable to grant a connection to thread
+            // SQLiteConnectionPool(14004): Connections: 0 active, 1 idle, 0 available.
+
+            // waitForUpdateThread();
 
             update();
         }
