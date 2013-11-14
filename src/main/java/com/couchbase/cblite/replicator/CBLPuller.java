@@ -364,7 +364,7 @@ public class CBLPuller extends CBLReplicator implements CBLChangeTrackerClient {
 
             success = true;
         } catch(SQLException e) {
-            Log.w(CBLDatabase.TAG, this + ": Exception inserting revisions", e);
+            Log.e(CBLDatabase.TAG, this + ": Exception inserting revisions", e);
         } finally {
             db.endTransaction(success);
             asyncTaskFinished(revs.size());
