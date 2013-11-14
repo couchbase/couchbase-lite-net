@@ -2694,7 +2694,6 @@ public class CBLDatabase {
 
             success = true;
         } catch(SQLException e) {
-            endTransaction(success);
             throw new CBLiteException(CBLStatus.INTERNAL_SERVER_ERROR);
         } finally {
             endTransaction(success);
