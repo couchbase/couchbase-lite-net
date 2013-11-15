@@ -1476,7 +1476,7 @@ public class CBLRouter implements Observer {
 
         List<Map<String,Object>> rows = view.queryWithOptions(options, status);
         if(rows == null) {
-            return status;
+            return new CBLStatus(CBLStatus.INTERNAL_SERVER_ERROR);
         }
 
         Map<String,Object> responseBody = new HashMap<String,Object>();
