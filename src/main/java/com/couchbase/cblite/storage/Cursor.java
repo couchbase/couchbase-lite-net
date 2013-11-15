@@ -17,10 +17,8 @@
 package com.couchbase.cblite.storage;
 
 public interface Cursor {
-    boolean moveToFirst();
     boolean moveToNext();
     boolean isAfterLast();
-    int getCount();
     String getString(int columnIndex);
     int getInt(int columnIndex);
     long getLong(int columnIndex);

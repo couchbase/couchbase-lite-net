@@ -159,11 +159,6 @@ public class AndroidSQLiteStorageEngine implements SQLiteStorageEngine {
         }
 
         @Override
-        public boolean moveToFirst() {
-            return delegate.moveToFirst();
-        }
-
-        @Override
         public boolean moveToNext() {
             return delegate.moveToNext();
         }
@@ -171,11 +166,6 @@ public class AndroidSQLiteStorageEngine implements SQLiteStorageEngine {
         @Override
         public boolean isAfterLast() {
             return delegate.isAfterLast();
-        }
-
-        @Override
-        public int getCount() {
-            return delegate.getCount();
         }
 
         @Override
