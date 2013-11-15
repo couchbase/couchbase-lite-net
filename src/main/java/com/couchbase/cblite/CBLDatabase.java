@@ -480,9 +480,9 @@ public class CBLDatabase {
         try {
             database.beginTransaction();
             ++transactionLevel;
-            Log.i(CBLDatabase.TAG_SQL, "Begin transaction (level " + Integer.toString(transactionLevel) + ")");
+            Log.i(CBLDatabase.TAG_SQL, Thread.currentThread().getName() + " Begin transaction (level " + Integer.toString(transactionLevel) + ")");
         } catch (SQLException e) {
-            Log.e(CBLDatabase.TAG, "Error calling beginTransaction()", e);
+            Log.e(CBLDatabase.TAG, Thread.currentThread().getName() + " Error calling beginTransaction()", e);
             return false;
         }
         return true;
@@ -498,16 +498,16 @@ public class CBLDatabase {
         assert(transactionLevel > 0);
 
         if(commit) {
-            Log.i(CBLDatabase.TAG_SQL, "Committing transaction (level " + Integer.toString(transactionLevel) + ")");
+            Log.i(CBLDatabase.TAG_SQL, Thread.currentThread().getName() + " Committing transaction (level " + Integer.toString(transactionLevel) + ")");
             database.setTransactionSuccessful();
             database.endTransaction();
         }
         else {
-            Log.i(TAG_SQL, "CANCEL transaction (level " + Integer.toString(transactionLevel) + ")");
+            Log.i(TAG_SQL, Thread.currentThread().getName() + " CANCEL transaction (level " + Integer.toString(transactionLevel) + ")");
             try {
                 database.endTransaction();
             } catch (SQLException e) {
-                Log.e(CBLDatabase.TAG, "Error calling endTransaction()", e);
+                Log.e(CBLDatabase.TAG, Thread.currentThread().getName() + " Error calling endTransaction()", e);
                 return false;
             }
         }

@@ -134,7 +134,9 @@ public class CBLView {
         Cursor cursor = null;
         long result = -1;
         try {
+            Log.d(CBLDatabase.TAG_SQL, Thread.currentThread().getName() + " start running query: " + sql);
             cursor = database.getDatabase().rawQuery(sql, args);
+            Log.d(CBLDatabase.TAG_SQL, Thread.currentThread().getName() + " finish running query: " + sql);
             if (cursor.moveToFirst()) {
                 result = cursor.getLong(0);
             }
