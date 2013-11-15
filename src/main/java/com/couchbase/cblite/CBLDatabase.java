@@ -482,7 +482,7 @@ public class CBLDatabase extends Observable {
         Cursor cursor = null;
         try {
             cursor = database.rawQuery("SELECT value FROM info WHERE key='privateUUID'", null);
-            if(cursor.moveToFirst()) {
+            if(cursor.moveToNext()) {
                 result = cursor.getString(0);
             }
         } catch(SQLException e) {
@@ -500,7 +500,7 @@ public class CBLDatabase extends Observable {
         Cursor cursor = null;
         try {
             cursor = database.rawQuery("SELECT value FROM info WHERE key='publicUUID'", null);
-            if(cursor.moveToFirst()) {
+            if(cursor.moveToNext()) {
                 result = cursor.getString(0);
             }
         } catch(SQLException e) {
@@ -521,7 +521,7 @@ public class CBLDatabase extends Observable {
         int result = 0;
         try {
             cursor = database.rawQuery(sql, null);
-            if(cursor.moveToFirst()) {
+            if(cursor.moveToNext()) {
                 result = cursor.getInt(0);
             }
         } catch(SQLException e) {
@@ -541,7 +541,7 @@ public class CBLDatabase extends Observable {
         long result = 0;
         try {
             cursor = database.rawQuery(sql, null);
-            if(cursor.moveToFirst()) {
+            if(cursor.moveToNext()) {
                 result = cursor.getLong(0);
             }
         } catch (SQLException e) {
@@ -716,7 +716,7 @@ public class CBLDatabase extends Observable {
                 cursor = database.rawQuery(sql, args);
             }
 
-            if(cursor.moveToFirst()) {
+            if(cursor.moveToNext()) {
                 if(rev == null) {
                     rev = cursor.getString(0);
                 }
@@ -757,7 +757,7 @@ public class CBLDatabase extends Observable {
             String sql = "SELECT sequence, json FROM revs, docs WHERE revid=? AND docs.docid=? AND revs.doc_id=docs.doc_id LIMIT 1";
             String[] args = { rev.getRevId(), rev.getDocId()};
             cursor = database.rawQuery(sql, args);
-            if(cursor.moveToFirst()) {
+            if(cursor.moveToNext()) {
                 result.setCode(CBLStatus.OK);
                 rev.setSequence(cursor.getLong(0));
                 expandStoredJSONIntoRevisionWithAttachments(cursor.getBlob(1), rev, contentOptions);
@@ -781,7 +781,7 @@ public class CBLDatabase extends Observable {
         try {
             cursor = database.rawQuery("SELECT doc_id FROM docs WHERE docid=?", args);
 
-            if(cursor.moveToFirst()) {
+            if(cursor.moveToNext()) {
                 result = cursor.getLong(0);
             }
             else {
@@ -822,7 +822,7 @@ public class CBLDatabase extends Observable {
 
         CBLRevisionList result;
         try {
-            cursor.moveToFirst();
+            cursor.moveToNext();
             result = new CBLRevisionList();
             while(!cursor.isAfterLast()) {
                 CBLRevision rev = new CBLRevision(docId, cursor.getString(1), (cursor.getInt(2) > 0), this);
@@ -867,7 +867,7 @@ public class CBLDatabase extends Observable {
             String[] args = { Long.toString(docIdNumeric) };
             cursor = database.rawQuery("SELECT revid FROM revs WHERE doc_id=? AND current " +
                                            "ORDER BY revid DESC OFFSET 1", args);
-            cursor.moveToFirst();
+            cursor.moveToNext();
             while(!cursor.isAfterLast()) {
                 result.add(cursor.getString(0));
                 cursor.moveToNext();
@@ -903,7 +903,7 @@ public class CBLDatabase extends Observable {
     	Cursor cursor = null;
     	try {
     		cursor = database.rawQuery(sql, args);
-    		cursor.moveToFirst();
+    		cursor.moveToNext();
             if(!cursor.isAfterLast()) {
                 result = cursor.getString(0);
     		}
@@ -944,7 +944,7 @@ public class CBLDatabase extends Observable {
         try {
             cursor = database.rawQuery(sql, args);
 
-            cursor.moveToFirst();
+            cursor.moveToNext();
             long lastSequence = 0;
             result = new ArrayList<CBLRevision>();
             while(!cursor.isAfterLast()) {
@@ -1079,7 +1079,7 @@ public class CBLDatabase extends Observable {
 
         try {
             cursor = database.rawQuery(sql, args);
-            cursor.moveToFirst();
+            cursor.moveToNext();
             changes = new CBLRevisionList();
             long lastDocId = 0;
             while(!cursor.isAfterLast()) {
@@ -1189,7 +1189,7 @@ public class CBLDatabase extends Observable {
 
         try {
             cursor = database.rawQuery("SELECT name FROM views", null);
-            cursor.moveToFirst();
+            cursor.moveToNext();
             result = new ArrayList<CBLView>();
             while(!cursor.isAfterLast()) {
                 result.add(getViewNamed(cursor.getString(0)));
@@ -1293,15 +1293,18 @@ public class CBLDatabase extends Observable {
         argsList.add(Integer.toString(options.getLimit()));
         argsList.add(Integer.toString(options.getSkip()));
         Cursor cursor = null;
+        int totalRows = 0;
         long lastDocID = 0;
         List<Map<String,Object>> rows = null;
 
         try {
             cursor = database.rawQuery(sql, argsList.toArray(new String[argsList.size()]));
 
-            cursor.moveToFirst();
+            cursor.moveToNext();
             rows = new ArrayList<Map<String,Object>>();
             while(!cursor.isAfterLast()) {
+                totalRows++;
+
                 long docNumericID = cursor.getLong(0);
                 if(docNumericID == lastDocID) {
                     cursor.moveToNext();
@@ -1346,7 +1349,6 @@ public class CBLDatabase extends Observable {
             }
         }
 
-        int totalRows = cursor.getCount();  //??? Is this true, or does it ignore limit/offset?
         Map<String, Object> result = new HashMap<String, Object>();
         result.put("rows", rows);
         result.put("total_rows", totalRows);
@@ -1447,7 +1449,7 @@ public class CBLDatabase extends Observable {
                                       "SELECT ?, ?, key, type, length, revpos FROM attachments " +
                                         "WHERE sequence=? AND filename=?", args);
             cursor = database.rawQuery("SELECT changes()", null);
-            cursor.moveToFirst();
+            cursor.moveToNext();
             int rowsUpdated = cursor.getInt(0);
             if(rowsUpdated == 0) {
                 // Oops. This means a glitch in our attachment-management or pull code,
@@ -1482,7 +1484,7 @@ public class CBLDatabase extends Observable {
         try {
             cursor = database.rawQuery("SELECT key, type FROM attachments WHERE sequence=? AND filename=?", args);
 
-            if(!cursor.moveToFirst()) {
+            if(!cursor.moveToNext()) {
                 status.setCode(CBLStatus.NOT_FOUND);
                 return null;
             }
@@ -1529,7 +1531,7 @@ public class CBLDatabase extends Observable {
         try {
             cursor = database.rawQuery("SELECT filename, key, type, length, revpos FROM attachments WHERE sequence=?", args);
 
-            if(!cursor.moveToFirst()) {
+            if(!cursor.moveToNext()) {
                 return null;
             }
 
@@ -1853,7 +1855,7 @@ public class CBLDatabase extends Observable {
         try {
             cursor = database.rawQuery("SELECT DISTINCT key FROM attachments", null);
 
-            cursor.moveToFirst();
+            cursor.moveToNext();
             List<CBLBlobKey> allKeys = new ArrayList<CBLBlobKey>();
             while(!cursor.isAfterLast()) {
                 CBLBlobKey key = new CBLBlobKey(cursor.getBlob(0));
@@ -2065,7 +2067,7 @@ public class CBLDatabase extends Observable {
 
                 cursor = database.rawQuery("SELECT sequence FROM revs WHERE doc_id=? AND revid=? " + additionalWhereClause + " LIMIT 1", args);
 
-                if(cursor.moveToFirst()) {
+                if(cursor.moveToNext()) {
                     parentSequence = cursor.getLong(0);
                 }
 
@@ -2130,7 +2132,7 @@ public class CBLDatabase extends Observable {
                         String[] args = { Long.toString(docNumericID) };
                         cursor = database.rawQuery("SELECT sequence, deleted FROM revs WHERE doc_id=? and current=1 ORDER BY revid DESC LIMIT 1", args);
 
-                        if(cursor.moveToFirst()) {
+                        if(cursor.moveToNext()) {
                             boolean wasAlreadyDeleted = (cursor.getInt(1) > 0);
                             if(wasAlreadyDeleted) {
                                 // Make the deleted revision no longer current:
@@ -2423,7 +2425,7 @@ public class CBLDatabase extends Observable {
         try {
             String[] args = { url.toExternalForm(), Integer.toString(push ? 1 : 0) };
             cursor = database.rawQuery("SELECT last_sequence FROM replicators WHERE remote=? AND push=?", args);
-            if(cursor.moveToFirst()) {
+            if(cursor.moveToNext()) {
                 result = cursor.getString(0);
             }
         } catch (SQLException e) {
@@ -2489,7 +2491,7 @@ public class CBLDatabase extends Observable {
         Cursor cursor = null;
         try {
             cursor = database.rawQuery(sql, null);
-            cursor.moveToFirst();
+            cursor.moveToNext();
             while(!cursor.isAfterLast()) {
                 CBLRevision rev = touchRevs.revWithDocIdAndRevId(cursor.getString(0), cursor.getString(1));
 
@@ -2520,7 +2522,7 @@ public class CBLDatabase extends Observable {
         try {
             String[] args = { docID };
             cursor = database.rawQuery("SELECT revid, json FROM localdocs WHERE docid=?", args);
-            if(cursor.moveToFirst()) {
+            if(cursor.moveToNext()) {
                 String gotRevID = cursor.getString(0);
                 if(revID != null && (!revID.equals(gotRevID))) {
                     return null;

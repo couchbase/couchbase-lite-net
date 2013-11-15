@@ -95,7 +95,7 @@ public class CBLView {
             Cursor cursor = null;
             try {
                 cursor = db.getDatabase().rawQuery(sql, args);
-                if (cursor.moveToFirst()) {
+                if (cursor.moveToNext()) {
                     viewId = cursor.getInt(0);
                 } else {
                     viewId = 0;
@@ -119,7 +119,7 @@ public class CBLView {
         long result = -1;
         try {
             cursor = db.getDatabase().rawQuery(sql, args);
-            if (cursor.moveToFirst()) {
+            if (cursor.moveToNext()) {
                 result = cursor.getLong(0);
             }
         } catch (Exception e) {
@@ -159,7 +159,7 @@ public class CBLView {
 
         try {
             cursor = db.getDatabase().rawQuery(sql, args);
-            if (!cursor.moveToFirst()) {
+            if (!cursor.moveToNext()) {
                 // no such record, so insert
                 ContentValues insertValues = new ContentValues();
                 insertValues.put("name", name);
@@ -302,7 +302,7 @@ public class CBLView {
 
             int deleted = 0;
             cursor = db.getDatabase().rawQuery("SELECT changes()", null);
-            cursor.moveToFirst();
+            cursor.moveToNext();
             deleted = cursor.getInt(0);
             cursor.close();
 
@@ -343,7 +343,7 @@ public class CBLView {
                             + "AND revs.doc_id = docs.doc_id "
                             + "ORDER BY revs.doc_id, revid DESC", selectArgs);
 
-            cursor.moveToFirst();
+            cursor.moveToNext();
 
             long lastDocID = 0;
             while (!cursor.isAfterLast()) {
@@ -546,7 +546,7 @@ public class CBLView {
                             "SELECT sequence, key, value FROM maps WHERE view_id=? ORDER BY key",
                             selectArgs);
 
-            cursor.moveToFirst();
+            cursor.moveToNext();
             result = new ArrayList<Map<String, Object>>();
             while (!cursor.isAfterLast()) {
                 Map<String, Object> row = new HashMap<String, Object>();
@@ -602,7 +602,7 @@ public class CBLView {
                 valuesToReduce = new ArrayList<Object>(REDUCE_BATCH_SIZE);
             }
 
-            cursor.moveToFirst();
+            cursor.moveToNext();
             while (!cursor.isAfterLast()) {
                 Object key = fromJSON(cursor.getBlob(0));
                 Object value = fromJSON(cursor.getBlob(1));
