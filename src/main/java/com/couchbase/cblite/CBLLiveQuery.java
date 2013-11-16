@@ -5,6 +5,7 @@ import com.couchbase.cblite.util.Log;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
 
 /**
  * A CBLQuery subclass that automatically refreshes the result rows every time the database changes.
@@ -16,7 +17,6 @@ public class CBLLiveQuery extends CBLQuery implements CBLDatabaseChangedFunction
     private boolean willUpdate;
     private CBLQueryEnumerator rows;
     private List<CBLLiveQueryChangedFunction> observers = new ArrayList<CBLLiveQueryChangedFunction>();
-    private Thread updaterThread;
 
     CBLLiveQuery(CBLQuery query) {
         super(query.getDatabase(), query.getView());
@@ -58,7 +58,7 @@ public class CBLLiveQuery extends CBLQuery implements CBLDatabaseChangedFunction
 
         if (willUpdate) {
             setWillUpdate(false);
-            // TODO: how can we cancelPreviousPerformRequestsWithTarget ? as done in iOS?
+            updateQueryFuture.cancel(true);
         }
     }
 
@@ -82,7 +82,13 @@ public class CBLLiveQuery extends CBLQuery implements CBLDatabaseChangedFunction
      */
     public boolean waitForRows() {
         start();
-        waitForUpdateThread();
+        try {
+            updateQueryFuture.get();
+        } catch (InterruptedException e) {
+            Log.e(CBLDatabase.TAG, "Got interrupted exception waiting for rows", e);
+        } catch (ExecutionException e) {
+            Log.e(CBLDatabase.TAG, "Got execution exception waiting for rows", e);
+        }
 
         return rows != null;
     }
@@ -101,7 +107,7 @@ public class CBLLiveQuery extends CBLQuery implements CBLDatabaseChangedFunction
             throw new IllegalStateException("Cannot start LiveQuery when view is null");
         }
         setWillUpdate(false);
-        updaterThread = runAsyncInternal(new CBLQueryCompleteFunction() {
+        updateQueryFuture = runAsyncInternal(new CBLQueryCompleteFunction() {
             @Override
             public void onQueryChanged(CBLQueryEnumerator queryEnumerator) {
                 if (queryEnumerator != null && !queryEnumerator.equals(rows)) {
@@ -126,19 +132,6 @@ public class CBLLiveQuery extends CBLQuery implements CBLDatabaseChangedFunction
         if (!willUpdate) {
             setWillUpdate(true);
 
-            // wait for any existing updates to finish before starting
-            // a new one.  TODO: this whole class needs review and solid testing
-
-            // Commenting waitForUpdateThread() in order to fix a bug:
-            // Deadlock that was happening when the LiveQuery#onDatabaseChanged()
-            // was calling waitForUpdateThread(), but that thread was
-            // waiting on connection to be released by the thread calling
-            // waitForUpdateThread(). On the logcat messages were appearing:
-            // SQLiteConnectionPool The connection pool for database has been unable to grant a connection to thread
-            // SQLiteConnectionPool(14004): Connections: 0 active, 1 idle, 0 available.
-
-            // waitForUpdateThread();
-
             update();
         }
 
@@ -156,15 +149,5 @@ public class CBLLiveQuery extends CBLQuery implements CBLDatabaseChangedFunction
         willUpdate = willUpdateParam;
     }
 
-    private void waitForUpdateThread() {
-        if (updaterThread != null) {
-            try {
-
-                updaterThread.join();
-
-            } catch (InterruptedException e) {
-            }
-        }
-    }
 
 }

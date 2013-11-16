@@ -2,6 +2,7 @@ package com.couchbase.cblite;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Future;
 
 /**
  * Represents a query of a CouchbaseLite 'view', or of a view-like resource like _all_documents.
@@ -101,6 +102,12 @@ public class CBLQuery {
      */
     private int groupLevel;
 
+    /**
+     * If a query is running and the user calls stop() on this query, the future
+     * will be used in order to cancel the query in progress.
+     */
+    protected Future updateQueryFuture;
+
     private long lastSequence;
     private CBLStatus status;  // Result status of last query (.error property derived from this)
 
@@ -173,13 +180,13 @@ public class CBLQuery {
      *  a non-nil enumerator but its .error property will be set to a value reflecting the error.
      *  The originating CBLQuery's .error property will NOT change.
      */
-    public void runAsync(final CBLQueryCompleteFunction queryCompleteFunction) {
-        runAsyncInternal(queryCompleteFunction);
+    public Future runAsync(final CBLQueryCompleteFunction queryCompleteFunction) {
+        return runAsyncInternal(queryCompleteFunction);
     }
 
-    Thread runAsyncInternal(final CBLQueryCompleteFunction queryCompleteFunction) {
-        // TODO: convert this to use a thread pool
-        Thread t = new Thread(new Runnable() {
+    Future runAsyncInternal(final CBLQueryCompleteFunction queryCompleteFunction) {
+
+        return database.getManager().runAsync(new Runnable() {
             @Override
             public void run() {
                 try {
@@ -196,8 +203,6 @@ public class CBLQuery {
                 }
             }
         });
-        t.start();
-        return t;
 
     }
 

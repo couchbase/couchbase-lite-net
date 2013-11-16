@@ -25,7 +25,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -256,17 +258,21 @@ public class CBLManager {
      * CBLDatabase instance.  There is not currently a known reason to use it, it may not make
      * sense on the Android API, but it was added for the purpose of having a consistent API with iOS.
      */
-    public void runAsync(String databaseName, final CBLDatabaseAsyncFunction function) {
+    public Future runAsync(String databaseName, final CBLDatabaseAsyncFunction function) {
+
         final CBLDatabase database = getDatabase(databaseName);
-        Thread t = new Thread(new Runnable() {
+        return runAsync(new Runnable() {
             @Override
             public void run() {
                 function.performFunction(database);
             }
         });
-        t.start();
+
     }
 
+    Future runAsync(Runnable runnable) {
+        return workExecutor.submit(runnable);
+    }
 
     private String pathForName(String name) {
         if((name == null) || (name.length() == 0) || Pattern.matches(LEGAL_CHARACTERS, name)) {
