@@ -55,10 +55,12 @@ public class CBLManager {
         return mapper;
     }
 
+    @InterfaceAudience.Public
     public CBLManager(File directoryFile) {
         this(directoryFile, DEFAULT_OPTIONS);
     }
 
+    @InterfaceAudience.Public
     public CBLManager(File directoryFile, CBLManagerOptions options) {
         this.directoryFile = directoryFile;
         this.options = (options != null) ? options : DEFAULT_OPTIONS;
@@ -78,6 +80,12 @@ public class CBLManager {
 
     }
 
+    @InterfaceAudience.Public
+    public static CBLManager getSharedInstance() {
+        return sharedInstance;
+    }
+
+    @InterfaceAudience.Public
     public synchronized static CBLManager createSharedInstance(File directoryFile, CBLManagerOptions options) {
         if (sharedInstance == null) {
             sharedInstance = new CBLManager(directoryFile, options);
@@ -85,14 +93,12 @@ public class CBLManager {
         return sharedInstance;
     }
 
-    public static CBLManager getSharedInstance() {
-        return sharedInstance;
-    }
 
     /**
      * Returns YES if the given name is a valid database name.
      * (Only the characters in "abcdefghijklmnopqrstuvwxyz0123456789_$()+-/" are allowed.)
      */
+    @InterfaceAudience.Public
     public static boolean isValidDatabaseName(String databaseName) {
         if (databaseName.length() > 0 && databaseName.length() < 240 &&
                 containsOnlyLegalCharacters(databaseName) &&
@@ -102,6 +108,116 @@ public class CBLManager {
         return databaseName.equals(CBLReplicator.REPLICATOR_DATABASE_NAME);
     }
 
+    /**
+     * The root directory of this manager (as specified at initialization time.)
+     */
+    @InterfaceAudience.Public
+    public String getDirectory() {
+        return directoryFile.getAbsolutePath();
+    }
+
+    /**
+     * An array of the names of all existing databases.
+     */
+    @InterfaceAudience.Public
+    public List<String> getAllDatabaseNames() {
+        String[] databaseFiles = directoryFile.list(new FilenameFilter() {
+
+            @Override
+            public boolean accept(File dir, String filename) {
+                if(filename.endsWith(CBLManager.DATABASE_SUFFIX)) {
+                    return true;
+                }
+                return false;
+            }
+        });
+        List<String> result = new ArrayList<String>();
+        for (String databaseFile : databaseFiles) {
+            String trimmed = databaseFile.substring(0, databaseFile.length() - CBLManager.DATABASE_SUFFIX.length());
+            String replaced = trimmed.replace(':', '/');
+            result.add(replaced);
+        }
+        Collections.sort(result);
+        return Collections.unmodifiableList(result);
+    }
+
+    /**
+     * Releases all resources used by the CBLManager instance and closes all its databases.
+     */
+    @InterfaceAudience.Public
+    public void close() {
+        Log.i(CBLDatabase.TAG, "Closing " + this);
+        for (CBLDatabase database : databases.values()) {
+            List<CBLReplicator> replicators = database.getAllReplications();
+            if (replicators != null) {
+                for (CBLReplicator replicator : replicators) {
+                    replicator.stop();
+                }
+            }
+            database.close();
+        }
+        databases.clear();
+        Log.i(CBLDatabase.TAG, "Closed " + this);
+    }
+
+
+    /**
+     * Returns the database with the given name, or creates it if it doesn't exist.
+     * Multiple calls with the same name will return the same CBLDatabase instance.
+     */
+    @InterfaceAudience.Public
+    public CBLDatabase getDatabase(String name) {
+        CBLDatabase db = databases.get(name);
+        if(db == null) {
+            if (!isValidDatabaseName(name)) {
+                throw new IllegalArgumentException("Invalid database name: " + name);
+            }
+            String path = pathForName(name);
+            if(path == null) {
+                return null;
+            }
+            db = new CBLDatabase(path, this);
+            db.setName(name);
+            databases.put(name, db);
+        }
+        return db;
+    }
+
+    /**
+     * Returns the database with the given name, or null if it doesn't exist.
+     * Multiple calls with the same name will return the same CBLDatabase instance.
+     */
+    @InterfaceAudience.Public
+    public CBLDatabase getExistingDatabase(String name) {
+        return databases.get(name);
+    }
+
+    /**
+     * Replaces or installs a database from a file.
+     *
+     * This is primarily used to install a canned database on first launch of an app, in which case
+     * you should first check .exists to avoid replacing the database if it exists already. The
+     * canned database would have been copied into your app bundle at build time.
+     *
+     * @param databaseName  The name of the database to replace.
+     * @param databasePath  Path of the database file that should replace it.
+     * @param attachmentsPath  Path of the associated attachments directory, or nil if there are no attachments.
+     **/
+    @InterfaceAudience.Public
+    public void replaceDatabase(String databaseName, String databasePath, String attachmentsPath) throws IOException {
+        CBLDatabase database = getDatabase(databaseName);
+        String dstAttachmentsPath = database.getAttachmentStorePath();
+        File sourceFile = new File(databasePath);
+        File destFile = new File(database.getPath());
+        FileDirUtils.copyFile(sourceFile, destFile);
+        File attachmentsFile = new File(dstAttachmentsPath);
+        FileDirUtils.deleteRecursive(attachmentsFile);
+        attachmentsFile.mkdirs();
+        if(attachmentsPath != null) {
+            FileDirUtils.copyFolder(new File(attachmentsPath), attachmentsFile);
+        }
+        database.replaceUUIDs();
+    }
 
     private static boolean containsOnlyLegalCharacters(String databaseName) {
         Pattern p = Pattern.compile("^[abcdefghijklmnopqrstuvwxyz0123456789_$()+-/]+$");
@@ -141,117 +257,15 @@ public class CBLManager {
 
 
 
-    /**
-     * Releases all resources used by the CBLManager instance and closes all its databases.
-     */
-    public void close() {
 
-        // TODO: review this code, especially call to server.close()
 
-        Log.i(CBLDatabase.TAG, "Closing " + this);
-        for (CBLDatabase database : databases.values()) {
-            List<CBLReplicator> replicators = database.getAllReplications();
-            if (replicators != null) {
-                for (CBLReplicator replicator : replicators) {
-                    replicator.stop();
-                }
-            }
-            database.close();
-        }
-        databases.clear();
-        Log.i(CBLDatabase.TAG, "Closed " + this);
-    }
 
-    /**
-     * The root directory of this manager (as specified at initialization time.)
-     */
-    public String getDirectory() {
-        return directoryFile.getAbsolutePath();
-    }
-
-    /**
-     * Returns the database with the given name, or creates it if it doesn't exist.
-     * Multiple calls with the same name will return the same CBLDatabase instance.
-     */
-    public CBLDatabase getDatabase(String name) {
-        CBLDatabase db = databases.get(name);
-        if(db == null) {
-            if (!isValidDatabaseName(name)) {
-                throw new IllegalArgumentException("Invalid database name: " + name);
-            }
-            String path = pathForName(name);
-            if(path == null) {
-                return null;
-            }
-            db = new CBLDatabase(path, this);
-            db.setName(name);
-            databases.put(name, db);
-        }
-        return db;
-    }
-
-    /**
-     * Returns the database with the given name, or null if it doesn't exist.
-     * Multiple calls with the same name will return the same CBLDatabase instance.
-     */
-    public CBLDatabase getExistingDatabase(String name) {
-        return databases.get(name);
-    }
-
-    /**
-     * An array of the names of all existing databases.
-     */
-    public List<String> getAllDatabaseNames() {
-        String[] databaseFiles = directoryFile.list(new FilenameFilter() {
-
-            @Override
-            public boolean accept(File dir, String filename) {
-                if(filename.endsWith(CBLManager.DATABASE_SUFFIX)) {
-                    return true;
-                }
-                return false;
-            }
-        });
-        List<String> result = new ArrayList<String>();
-        for (String databaseFile : databaseFiles) {
-            String trimmed = databaseFile.substring(0, databaseFile.length() - CBLManager.DATABASE_SUFFIX.length());
-            String replaced = trimmed.replace(':', '/');
-            result.add(replaced);
-        }
-        Collections.sort(result);
-        return Collections.unmodifiableList(result);
-    }
 
     public Collection<CBLDatabase> allOpenDatabases() {
         return databases.values();
     }
 
 
-    /**
-     * Replaces or installs a database from a file.
-     *
-     * This is primarily used to install a canned database on first launch of an app, in which case
-     * you should first check .exists to avoid replacing the database if it exists already. The
-     * canned database would have been copied into your app bundle at build time.
-     *
-     * @param databaseName  The name of the database to replace.
-     * @param databasePath  Path of the database file that should replace it.
-     * @param attachmentsPath  Path of the associated attachments directory, or nil if there are no attachments.
-     **/
-    public void replaceDatabase(String databaseName, String databasePath, String attachmentsPath) throws IOException {
-        CBLDatabase database = getDatabase(databaseName);
-        String dstAttachmentsPath = database.getAttachmentStorePath();
-        File sourceFile = new File(databasePath);
-        File destFile = new File(database.getPath());
-        FileDirUtils.copyFile(sourceFile, destFile);
-        File attachmentsFile = new File(dstAttachmentsPath);
-        FileDirUtils.deleteRecursive(attachmentsFile);
-        attachmentsFile.mkdirs();
-        if(attachmentsPath != null) {
-            FileDirUtils.copyFolder(new File(attachmentsPath), attachmentsFile);
-        }
-        database.replaceUUIDs();
-    }
 
     /**
      * Asynchronously dispatches a callback to run on a background thread. The callback will be passed
