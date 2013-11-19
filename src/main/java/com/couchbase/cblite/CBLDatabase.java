@@ -358,7 +358,7 @@ public class CBLDatabase {
 
     /**
      * Creates a new CBLDocument object with no properties and a new (random) UUID.
-     * The document will be saved to the database when you call -putProperties: on it.
+     * The document will be saved to the database when you call -createRevision: on it.
      */
     @InterfaceAudience.Public
     public CBLDocument createDocument() {

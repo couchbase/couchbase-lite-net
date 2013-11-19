@@ -56,10 +56,33 @@ public abstract class CBLRevision {
     }
 
     /**
-     * Get the document this is a revision of
+     * Get the document this is a revision of.
      */
+    @InterfaceAudience.Public
     public CBLDocument getDocument() {
         return document;
+    }
+
+    /**
+     * Gets the Revision's id.
+     */
+
+    @InterfaceAudience.Public
+    public abstract String getId();
+
+
+    /**
+     * Does this revision mark the deletion of its document?
+     * (In other words, does it have a "_deleted" property?)
+     */
+    @InterfaceAudience.Public
+    boolean isDeletion() {
+        Object deleted = getProperty("_deleted");
+        if (deleted == null) {
+            return false;
+        }
+        Boolean deletedBool = (Boolean) deleted;
+        return deletedBool.booleanValue();
     }
 
     /**
@@ -68,14 +91,9 @@ public abstract class CBLRevision {
      *
      * @return contents of this revision of the document.
      */
+    @InterfaceAudience.Public
     public abstract Map<String,Object> getProperties();
 
-    /**
-     * Shorthand for getProperties().get(key)
-     */
-    public Object getProperty(String key) {
-        return getProperties().get(key);
-    }
 
     /**
      * The user-defined properties, without the ones reserved by CouchDB.
@@ -83,6 +101,7 @@ public abstract class CBLRevision {
      *
      * @return user-defined properties, without the ones reserved by CouchDB.
      */
+    @InterfaceAudience.Public
     public Map<String,Object> getUserProperties() {
 
         Map<String,Object> result = new HashMap<String, Object>();
@@ -96,15 +115,11 @@ public abstract class CBLRevision {
         return Collections.unmodifiableMap(result);
     }
 
-    /* I don't think we need/want this, callers should be calling putProperties()
-    void setProperties(Map<String,Object> properties) {
-        this.checkedBody = new CBLBody(properties);
-    }*/
-
     /**
      * The names of all attachments
      * @return
      */
+    @InterfaceAudience.Public
     public List<String> getAttachmentNames() {
         Map<String, Object> attachmentMetadata = getAttachmentMetadata();
         ArrayList<String> result = new ArrayList<String>();
@@ -113,23 +128,9 @@ public abstract class CBLRevision {
     }
 
     /**
-     * Looks up the attachment with the given name (without fetching its contents yet).
-     *
-     * @param name
-     * @return
-     */
-    public CBLAttachment getAttachment(String name) {
-        Map<String, Object> attachmentMetadata = getAttachmentMetadata();
-        if (attachmentMetadata == null) {
-            return null;
-        }
-        return new CBLAttachment(this, name, attachmentMetadata);
-    }
-
-    /**
      * All attachments, as CBLAttachment objects.
-     * @return
      */
+    @InterfaceAudience.Public
     public List<CBLAttachment> getAttachments() {
         List<CBLAttachment> result = new ArrayList<CBLAttachment>();
         List<String> attachmentNames = getAttachmentNames();
@@ -137,6 +138,26 @@ public abstract class CBLRevision {
             result.add(getAttachment(attachmentName));
         }
         return result;
+    }
+
+    /**
+     * Shorthand for getProperties().get(key)
+     */
+    @InterfaceAudience.Public
+    public Object getProperty(String key) {
+        return getProperties().get(key);
+    }
+
+    /**
+     * Looks up the attachment with the given name (without fetching its contents yet).
+     */
+    @InterfaceAudience.Public
+    public CBLAttachment getAttachment(String name) {
+        Map<String, Object> attachmentMetadata = getAttachmentMetadata();
+        if (attachmentMetadata == null) {
+            return null;
+        }
+        return new CBLAttachment(this, name, attachmentMetadata);
     }
 
 
@@ -162,23 +183,6 @@ public abstract class CBLRevision {
         return document.getId().hashCode() ^ getId().hashCode();
     }
 
-    public String getId() {
-        return null;
-    }
-
-    /**
-     * Does this revision mark the deletion of its document?
-     * (In other words, does it have a "_deleted" property?)
-     */
-    boolean isDeleted() {
-        Object deleted = getProperty("_deleted");
-        if (deleted == null) {
-            return false;
-        }
-        Boolean deletedBool = (Boolean) deleted;
-        return deletedBool.booleanValue();
-    }
-
 
     void setSequence(long sequence) {
         this.sequence = sequence;
@@ -190,7 +194,7 @@ public abstract class CBLRevision {
 
     @Override
     public String toString() {
-        return "{" + this.document.getId() + " #" + this.getId() + (isDeleted() ? "DEL" : "") + "}";
+        return "{" + this.document.getId() + " #" + this.getId() + (isDeletion() ? "DEL" : "") + "}";
     }
 
     /**

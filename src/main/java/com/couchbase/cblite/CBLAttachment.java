@@ -166,7 +166,7 @@ public class CBLAttachment {
      * Updates the body, creating a new document revision in the process.
      * If all you need to do to a document is update a single attachment this is an easy way
      * to do it; but if you need to change multiple attachments, or change other body
-     * properties, do them in one step by calling putProperties on the revision
+     * properties, do them in one step by calling createRevision on the revision
      * or document.
      * @param body  The new body, or nil to delete the attachment.
      * @param contentType  The new content type, or nil to leave it the same.

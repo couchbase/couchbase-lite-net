@@ -70,7 +70,7 @@ public class CBLDocument {
      */
     @InterfaceAudience.Public
     public boolean isDeleted() {
-        return getCurrentRevision().isDeleted();
+        return getCurrentRevision().isDeletion();
     }
 
     /**
@@ -163,7 +163,7 @@ public class CBLDocument {
      */
     @InterfaceAudience.Public
     public boolean delete() throws CBLiteException {
-        return getCurrentRevision().deleteDocument() != null;
+        return getCurrentRevision().delete() != null;
     }
 
 

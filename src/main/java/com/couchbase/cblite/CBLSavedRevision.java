@@ -56,15 +56,77 @@ public class CBLSavedRevision extends CBLRevision {
     }
 
     /**
+     * Get the document this is a revision of
+     */
+    @InterfaceAudience.Public
+    public CBLDocument getDocument() {
+        return document;
+    }
+
+    /**
+     * Has this object fetched its contents from the database yet?
+     */
+    @InterfaceAudience.Public
+    public boolean getPropertiesAvailable() {
+        return revisionInternal.getProperties() != null;
+    }
+
+    /**
+     * Returns the history of this document as an array of CBLRevisions, in forward order.
+     * Older revisions are NOT guaranteed to have their properties available.
+     *
+     * @throws CBLiteException
+     */
+    @InterfaceAudience.Public
+    public List<CBLSavedRevision> getRevisionHistory() throws CBLiteException {
+        List<CBLSavedRevision> revisions = new ArrayList<CBLSavedRevision>();
+        List<CBLRevisionInternal> internalRevisions = database.getRevisionHistory(revisionInternal);
+        for (CBLRevisionInternal internalRevision : internalRevisions) {
+            if (internalRevision.getRevId().equals(getId())) {
+                revisions.add(this);
+            }
+            else {
+                CBLSavedRevision revision = document.getRevisionFromRev(internalRevision);
+                revisions.add(revision);
+            }
+
+        }
+        Collections.reverse(revisions);
+        return Collections.unmodifiableList(revisions);
+    }
+
+
+    /**
      * Creates a new mutable child revision whose properties and attachments are initially identical
      * to this one's, which you can modify and then save.
      * @return
      */
-    public CBLUnsavedRevision createNewRevision() {
+    @InterfaceAudience.Public
+    public CBLUnsavedRevision createRevision() {
         CBLUnsavedRevision newRevision = new CBLUnsavedRevision(document, this);
         return newRevision;
     }
 
+    /**
+     * Creates and saves a new revision with the given properties.
+     * This will fail with a 412 error if the receiver is not the current revision of the document.
+     */
+    @InterfaceAudience.Public
+    public CBLSavedRevision createRevision(Map<String, Object> properties) throws CBLiteException {
+        return document.putProperties(properties, revisionInternal.getRevId());
+    }
+
+    @Override
+    @InterfaceAudience.Public
+    public String getId() {
+        return revisionInternal.getRevId();
+    }
+
+    @Override
+    @InterfaceAudience.Public
+    boolean isDeletion() {
+        return revisionInternal.isDeleted();
+    }
 
     /**
      * The contents of this revision of the document.
@@ -72,7 +134,8 @@ public class CBLSavedRevision extends CBLRevision {
      *
      * @return contents of this revision of the document.
      */
-
+    @Override
+    @InterfaceAudience.Public
     public Map<String,Object> getProperties() {
         Map<String, Object> properties = revisionInternal.getProperties();
         if (properties == null && !checkedProperties) {
@@ -82,6 +145,17 @@ public class CBLSavedRevision extends CBLRevision {
             checkedProperties = true;
         }
         return Collections.unmodifiableMap(properties);
+    }
+
+    /**
+     * Deletes the document by creating a new deletion-marker revision.
+     *
+     * @return
+     * @throws CBLiteException
+     */
+    @InterfaceAudience.Public
+    public CBLSavedRevision delete() throws CBLiteException {
+        return createRevision(null);
     }
 
     boolean loadProperties() {
@@ -102,64 +176,6 @@ public class CBLSavedRevision extends CBLRevision {
 
     }
 
-    /**
-     * Creates and saves a new revision with the given properties.
-     * This will fail with a 412 error if the receiver is not the current revision of the document.
-     */
-    public CBLSavedRevision putProperties(Map<String,Object> properties) throws CBLiteException {
-        return document.putProperties(properties, revisionInternal.getRevId());
-    }
-
-    /**
-     * Has this object fetched its contents from the database yet?
-     */
-    public boolean isPropertiesLoaded() {
-        return revisionInternal.getProperties() != null;
-    }
-
-    /**
-     * Deletes the document by creating a new deletion-marker revision.
-     *
-     * @return
-     * @throws CBLiteException
-     */
-    public CBLSavedRevision deleteDocument() throws CBLiteException {
-        return putProperties(null);
-    }
-
-    /**
-     * Returns the history of this document as an array of CBLRevisions, in forward order.
-     * Older revisions are NOT guaranteed to have their properties available.
-     *
-     * @return
-     * @throws CBLiteException
-     */
-    public List<CBLSavedRevision> getRevisionHistory() throws CBLiteException {
-        List<CBLSavedRevision> revisions = new ArrayList<CBLSavedRevision>();
-        List<CBLRevisionInternal> internalRevisions = database.getRevisionHistory(revisionInternal);
-        for (CBLRevisionInternal internalRevision : internalRevisions) {
-            if (internalRevision.getRevId().equals(getId())) {
-                revisions.add(this);
-            }
-            else {
-                CBLSavedRevision revision = document.getRevisionFromRev(internalRevision);
-                revisions.add(revision);
-            }
-
-        }
-        Collections.reverse(revisions);
-        return Collections.unmodifiableList(revisions);
-    }
-
-    @Override
-    public String getId() {
-        return revisionInternal.getRevId();
-    }
-
-    @Override
-    boolean isDeleted() {
-        return revisionInternal.isDeleted();
-    }
 
 }
 
