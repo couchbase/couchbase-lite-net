@@ -72,6 +72,7 @@ public class CBLView {
     /**
      * Constructor
      */
+    @InterfaceAudience.Private
     CBLView(CBLDatabase database, String name) {
         this.database = database;
         this.name = name;
