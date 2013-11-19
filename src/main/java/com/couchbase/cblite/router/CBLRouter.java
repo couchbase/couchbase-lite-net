@@ -1305,7 +1305,7 @@ public class CBLRouter implements CBLChangeListener {
                 connection.getResHeader().add("Content-Encoding", "gzip");
             }
 
-            connection.setResponseInputStream(contents.getBody());
+            connection.setResponseInputStream(contents.getContent());
             return new CBLStatus(CBLStatus.OK);
 
         } catch (CBLiteException e) {
