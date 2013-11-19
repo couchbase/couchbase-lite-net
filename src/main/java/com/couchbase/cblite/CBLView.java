@@ -52,7 +52,27 @@ public class CBLView {
     private TDViewCollation collation;
     private static CBLViewCompiler compiler;
 
-    public CBLView(CBLDatabase database, String name) {
+    /**
+     * The registered object, if any, that can compile map/reduce functions from source code.
+     */
+    @InterfaceAudience.Public
+    public static CBLViewCompiler getCompiler() {
+        return compiler;
+    }
+
+    /**
+     * Registers an object that can compile map/reduce functions from source code.
+     */
+    @InterfaceAudience.Public
+    public static void setCompiler(CBLViewCompiler compiler) {
+        CBLView.compiler = compiler;
+    }
+
+
+    /**
+     * Constructor
+     */
+    CBLView(CBLDatabase database, String name) {
         this.database = database;
         this.name = name;
         this.viewId = -1; // means 'unknown'
@@ -62,6 +82,7 @@ public class CBLView {
     /**
      * Get the database that owns this view.
      */
+    @InterfaceAudience.Public
     public CBLDatabase getDatabase() {
         return database;
     };
@@ -69,6 +90,7 @@ public class CBLView {
     /**
      * Get the name of the view.
      */
+    @InterfaceAudience.Public
     public String getName() {
         return name;
     }
@@ -76,6 +98,7 @@ public class CBLView {
     /**
      * The map function that controls how index rows are created from documents.
      */
+    @InterfaceAudience.Public
     public CBLMapFunction getMap() {
         return mapBlock;
     }
@@ -83,6 +106,7 @@ public class CBLView {
     /**
      * The optional reduce function, which aggregates together multiple rows.
      */
+    @InterfaceAudience.Public
     public CBLReduceFunction getReduce() {
         return reduceBlock;
     }
@@ -90,44 +114,15 @@ public class CBLView {
     /**
      * Is the view's index currently out of date?
      */
+    @InterfaceAudience.Public
     public boolean isStale() {
         return (getLastSequenceIndexed() < database.getLastSequenceNumber());
     }
 
     /**
-     * Creates a new query object for this view. The query can be customized and then executed.
-     */
-    public CBLQuery createQuery() {
-        return new CBLQuery(getDatabase(), this);
-    }
-
-    public int getViewId() {
-        if (viewId < 0) {
-            String sql = "SELECT view_id FROM views WHERE name=?";
-            String[] args = { name };
-            Cursor cursor = null;
-            try {
-                cursor = database.getDatabase().rawQuery(sql, args);
-                if (cursor.moveToFirst()) {
-                    viewId = cursor.getInt(0);
-                } else {
-                    viewId = 0;
-                }
-            } catch (SQLException e) {
-                Log.e(CBLDatabase.TAG, "Error getting view id", e);
-                viewId = 0;
-            } finally {
-                if (cursor != null) {
-                    cursor.close();
-                }
-            }
-        }
-        return viewId;
-    }
-
-    /**
      * Get the last sequence number indexed so far.
      */
+    @InterfaceAudience.Public
     public long getLastSequenceIndexed() {
         String sql = "SELECT lastSequence FROM views WHERE name=?";
         String[] args = { name };
@@ -152,11 +147,9 @@ public class CBLView {
 
     /**
      * Defines a view that has no reduce function.
-
-     * @param mapBlock
-     * @param version
-     * @return
+     * See setMapAndReduce() for more information.
      */
+    @InterfaceAudience.Public
     public boolean setMap(CBLMapFunction mapBlock, String version) {
         return setMapAndReduce(mapBlock, null, version);
     }
@@ -182,11 +175,8 @@ public class CBLView {
      * multiple threads simultaneously. This won't be a problem if the code is "pure" as
      * described above, since it will as a consequence also be thread-safe.
      *
-     * @param mapBlock
-     * @param reduceBlock
-     * @param version
-     * @return
      */
+    @InterfaceAudience.Public
     public boolean setMapAndReduce(CBLMapFunction mapBlock,
                                    CBLReduceFunction reduceBlock, String version) {
         assert (mapBlock != null);
@@ -244,10 +234,12 @@ public class CBLView {
 
     }
 
+
     /**
      * Deletes the view's persistent index. It will be regenerated on the next query.
      */
-    public void removeIndex() {
+    @InterfaceAudience.Public
+    public void deleteIndex() {
         if (getViewId() < 0) {
             return;
         }
@@ -275,10 +267,47 @@ public class CBLView {
     /**
      * Deletes the view, persistently.
      */
+    @InterfaceAudience.Public
     public void delete() {
         database.deleteViewNamed(name);
         viewId = 0;
     }
+
+    /**
+     * Creates a new query object for this view. The query can be customized and then executed.
+     */
+    @InterfaceAudience.Public
+    public CBLQuery createQuery() {
+        return new CBLQuery(getDatabase(), this);
+    }
+
+    public int getViewId() {
+        if (viewId < 0) {
+            String sql = "SELECT view_id FROM views WHERE name=?";
+            String[] args = { name };
+            Cursor cursor = null;
+            try {
+                cursor = database.getDatabase().rawQuery(sql, args);
+                if (cursor.moveToFirst()) {
+                    viewId = cursor.getInt(0);
+                } else {
+                    viewId = 0;
+                }
+            } catch (SQLException e) {
+                Log.e(CBLDatabase.TAG, "Error getting view id", e);
+                viewId = 0;
+            } finally {
+                if (cursor != null) {
+                    cursor.close();
+                }
+            }
+        }
+        return viewId;
+    }
+
+
+
+
 
     public void databaseClosing() {
         database = null;
@@ -795,14 +824,6 @@ public class CBLView {
             }
         }
         return total;
-    }
-
-    public static CBLViewCompiler getCompiler() {
-        return compiler;
-    }
-
-    public static void setCompiler(CBLViewCompiler compiler) {
-        CBLView.compiler = compiler;
     }
 
 }
