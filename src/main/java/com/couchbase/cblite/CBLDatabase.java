@@ -171,6 +171,19 @@ public class CBLDatabase {
     }
 
     /**
+     * Constructor
+     */
+    @InterfaceAudience.Private
+    public CBLDatabase(String path, CBLManager manager) {
+        assert(path.startsWith("/")); //path must be absolute
+        this.path = path;
+        this.name = FileDirUtils.getDatabaseNameFromPath(path);
+        this.manager = manager;
+        this.changeListeners = new ArrayList<CBLChangeListener>();
+        this.docCache = new LruCache<String, CBLDocument>(MAX_DOC_CACHE_SIZE);
+    }
+
+    /**
      * Get the database's name.
      */
     @InterfaceAudience.Public
@@ -610,33 +623,10 @@ public class CBLDatabase {
         changeListeners.remove(listener);
     }
 
-
-
-    // ------------------------------------------------ Non Public ---------------------
-
     public URL getInternalURL() {
         // TODO: implement this
         throw new RuntimeException("Not implemented");
     }
-
-
-    /**
-     * Constructor
-     */
-    @InterfaceAudience.Private
-    public CBLDatabase(String path, CBLManager manager) {
-        assert(path.startsWith("/")); //path must be absolute
-        this.path = path;
-        this.name = FileDirUtils.getDatabaseNameFromPath(path);
-        this.manager = manager;
-        this.changeListeners = new ArrayList<CBLChangeListener>();
-        this.docCache = new LruCache<String, CBLDocument>(MAX_DOC_CACHE_SIZE);
-    }
-
-
-
-
-
 
     /**
      * Returns the already-instantiated cached CBLDocument with the given ID, or nil if none is yet cached.
