@@ -1,5 +1,6 @@
 package com.couchbase.cblite;
 
+import com.couchbase.cblite.internal.InterfaceAudience;
 import com.couchbase.cblite.util.Log;
 
 import java.util.ArrayList;
@@ -17,7 +18,12 @@ public class CBLLiveQuery extends CBLQuery implements CBLChangeListener {
     private boolean willUpdate;
     private CBLQueryEnumerator rows;
     private List<CBLLiveQueryChangedFunction> observers = new ArrayList<CBLLiveQueryChangedFunction>();
+    private Throwable lastError;
 
+    /**
+     * Constructor
+     */
+    @InterfaceAudience.Private
     CBLLiveQuery(CBLQuery query) {
         super(query.getDatabase(), query.getView());
         setLimit(query.getLimit());
@@ -31,7 +37,30 @@ public class CBLLiveQuery extends CBLQuery implements CBLChangeListener {
         setMapOnly(query.isMapOnly());
         setStartKeyDocId(query.getStartKeyDocId());
         setEndKeyDocId(query.getEndKeyDocId());
-        setStale(query.getStale());
+        setStaleness(query.getStaleness());
+    }
+
+    /**
+     * In CBLLiveQuery the rows accessor is a non-blocking property.
+     * Its value will be nil until the initial query finishes.
+     */
+    @InterfaceAudience.Public
+    public CBLQueryEnumerator getRows() throws CBLiteException {
+        if (rows == null) {
+            return null;
+        }
+        else {
+            // Have to return a copy because the enumeration has to start at item #0 every time
+            return new CBLQueryEnumerator(rows);
+        }
+    }
+
+    /**
+     * Returns the last error, if any, that occured while executing the Query, otherwise null.
+     */
+    @InterfaceAudience.Public
+    public Throwable getLastError() {
+        return lastError;
     }
 
     /**
@@ -39,6 +68,7 @@ public class CBLLiveQuery extends CBLQuery implements CBLChangeListener {
      * usually don't need to call this yourself, since calling rows()
      * call start for you.)
      */
+    @InterfaceAudience.Public
     public void start() {
         if (!observing) {
             observing = true;
@@ -50,6 +80,7 @@ public class CBLLiveQuery extends CBLQuery implements CBLChangeListener {
     /**
      * Stops observing database changes. Calling start() or rows() will restart it.
      */
+    @InterfaceAudience.Public
     public void stop() {
         if (observing) {
             observing = false;
@@ -63,23 +94,9 @@ public class CBLLiveQuery extends CBLQuery implements CBLChangeListener {
     }
 
     /**
-     * In CBLLiveQuery the rows accessor is a non-blocking property.
-     * Its value will be nil until the initial query finishes.
-     */
-    public CBLQueryEnumerator getRows() throws CBLiteException {
-        if (rows == null) {
-            return null;
-        }
-        else {
-            // Have to return a copy because the enumeration has to start at item #0 every time
-            return new CBLQueryEnumerator(rows);
-        }
-    }
-
-
-    /**
      * Blocks until the intial async query finishes. After this call either .rows or .error will be non-nil.
      */
+    @InterfaceAudience.Public
     public boolean waitForRows() {
         start();
         try {
@@ -93,11 +110,25 @@ public class CBLLiveQuery extends CBLQuery implements CBLChangeListener {
         return rows != null;
     }
 
-
+    /**
+     * Add a change listener to be notified when the live query result
+     * set changes.
+     *
+     * TODO: not currently in the specification
+     * TODO: see https://github.com/couchbaselabs/couchbase-lite-api/issues/13
+     */
+    @InterfaceAudience.Public
     public void addChangeListener(CBLLiveQueryChangedFunction liveQueryChangedFunction) {
         observers.add(liveQueryChangedFunction);
     }
 
+    /**
+     * Remove previously added change listener
+     *
+     * TODO: not currently in the specification
+     * TODO: see https://github.com/couchbaselabs/couchbase-lite-api/issues/13
+     */
+    @InterfaceAudience.Public
     public void removeChangeListener(CBLLiveQueryChangedFunction liveQueryChangedFunction) {
         observers.remove(liveQueryChangedFunction);
     }
@@ -116,6 +147,7 @@ public class CBLLiveQuery extends CBLQuery implements CBLChangeListener {
                         observer.onLiveQueryChanged(queryEnumerator);
                     }
                 }
+                lastError = null;
             }
 
             @Override
@@ -123,6 +155,7 @@ public class CBLLiveQuery extends CBLQuery implements CBLChangeListener {
                 for (CBLLiveQueryChangedFunction observer : observers) {
                     observer.onFailureLiveQueryChanged(exception);
                 }
+                lastError = exception;
             }
         });
     }
