@@ -1480,7 +1480,7 @@ public class CBLDatabase {
                 if(includeDocs) {
                     expandStoredJSONIntoRevisionWithAttachments(cursor.getBlob(5), rev, options.getContentOptions());
                 }
-                if((filter == null) || (filter.filter(rev, ))) {
+                if((filter == null) || (filter.filter(rev, null))) {
                     changes.add(rev);
                 }
                 cursor.moveToNext();

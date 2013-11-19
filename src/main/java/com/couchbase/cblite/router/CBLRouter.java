@@ -1067,7 +1067,7 @@ public class CBLRouter implements CBLChangeListener {
 
         CBLRevisionInternal rev = (CBLRevisionInternal)changeNotification.get("rev");
 
-        if(changesFilter != null && !changesFilter.filter(rev, )) {
+        if(changesFilter != null && !changesFilter.filter(rev, null)) {
             return;
         }
 

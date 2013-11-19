@@ -141,7 +141,7 @@ public class CBLPusher extends CBLReplicator implements CBLChangeListener {
             return;
         }
         CBLRevisionInternal rev = (CBLRevisionInternal)changeNotification.get("rev");
-        if(rev != null && ((filter == null) || filter.filter(rev, ))) {
+        if(rev != null && ((filter == null) || filter.filter(rev, null))) {
             addToInbox(rev);
         }
     }
