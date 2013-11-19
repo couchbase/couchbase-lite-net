@@ -24,8 +24,6 @@ import com.couchbase.cblite.internal.CBLRevisionInternal;
 
 import java.io.File;
 import java.io.InputStream;
-import java.net.URL;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -36,7 +34,7 @@ public class CBLAttachment {
     /**
      * The owning document revision.
      */
-    private CBLRevisionBase revision;
+    private CBLRevision revision;
 
     /**
      * Whether or not this attachment is gzipped
@@ -78,7 +76,7 @@ public class CBLAttachment {
     /**
      * Package Private Constructor
      */
-    CBLAttachment(CBLRevisionBase revision, String name, Map<String, Object> metadata) {
+    CBLAttachment(CBLRevision revision, String name, Map<String, Object> metadata) {
         this.revision = revision;
         this.name = name;
         this.metadata = metadata;
@@ -110,7 +108,7 @@ public class CBLAttachment {
     }
 
 
-    public CBLRevisionBase getRevision() {
+    public CBLRevision getRevision() {
         return revision;
     }
 
@@ -122,7 +120,7 @@ public class CBLAttachment {
         this.name = name;
     }
 
-    void setRevision(CBLRevisionBase revision) {
+    void setRevision(CBLRevision revision) {
         this.revision = revision;
     }
 
@@ -173,10 +171,10 @@ public class CBLAttachment {
      * @param body  The new body, or nil to delete the attachment.
      * @param contentType  The new content type, or nil to leave it the same.
      */
-    public CBLRevision update(InputStream body, String contentType) throws CBLiteException {
+    public CBLSavedRevision update(InputStream body, String contentType) throws CBLiteException {
         CBLDatabase db = revision.getDatabase();
         CBLRevisionInternal newRevisionInternal = db.updateAttachment(name, body, contentType, revision.getDocument().getId(), revision.getId());
-        return new CBLRevision(document, newRevisionInternal);
+        return new CBLSavedRevision(document, newRevisionInternal);
     }
 
     /**

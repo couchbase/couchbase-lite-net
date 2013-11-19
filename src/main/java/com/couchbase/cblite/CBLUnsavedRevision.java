@@ -1,17 +1,15 @@
 package com.couchbase.cblite;
 
-import com.couchbase.cblite.internal.CBLBody;
-
 import java.util.HashMap;
 import java.util.Map;
 
-public class CBLNewRevision extends CBLRevisionBase {
+public class CBLUnsavedRevision extends CBLRevision {
 
     // private CBLBody body;
     private String parentRevID;
     private Map<String, Object> properties;
 
-    protected CBLNewRevision(CBLDocument document, CBLRevision parentRevision) {
+    protected CBLUnsavedRevision(CBLDocument document, CBLSavedRevision parentRevision) {
 
         super(document);
 
@@ -47,7 +45,7 @@ public class CBLNewRevision extends CBLRevisionBase {
         }
     }
 
-    public CBLRevision getParentRevision() {
+    public CBLSavedRevision getParentRevision() {
         if (parentRevID == null || parentRevID.length() == 0) {
             return null;
         }
@@ -58,7 +56,7 @@ public class CBLNewRevision extends CBLRevisionBase {
         return parentRevID;
     }
 
-    public CBLRevision save() throws CBLiteException {
+    public CBLSavedRevision save() throws CBLiteException {
         return document.putProperties(properties, parentRevID);
     }
 

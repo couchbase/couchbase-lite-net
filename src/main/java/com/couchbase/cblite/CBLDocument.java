@@ -29,7 +29,7 @@ public class CBLDocument {
     /**
      * The current/latest revision. This object is cached.
      */
-    private CBLRevision currentRevision;
+    private CBLSavedRevision currentRevision;
 
     /**
      * Application-defined model object representing this document
@@ -85,7 +85,7 @@ public class CBLDocument {
      * Get the current revision
      */
     @InterfaceAudience.Public
-    public CBLRevision getCurrentRevision() {
+    public CBLSavedRevision getCurrentRevision() {
         if (currentRevision == null) {
             currentRevision = getRevisionWithId(null);
         }
@@ -93,13 +93,13 @@ public class CBLDocument {
     }
 
     /**
-     * Returns the document's history as an array of CBLRevisions. (See CBLRevision's method.)
+     * Returns the document's history as an array of CBLRevisions. (See CBLSavedRevision's method.)
      *
      * @return document's history
      * @throws CBLiteException
      */
     @InterfaceAudience.Public
-    public List<CBLRevision> getRevisionHistory() throws CBLiteException {
+    public List<CBLSavedRevision> getRevisionHistory() throws CBLiteException {
         if (getCurrentRevision() == null) {
             Log.w(CBLDatabase.TAG, "getRevisionHistory() called but no currentRevision");
             return null;
@@ -115,7 +115,7 @@ public class CBLDocument {
      * @throws CBLiteException
      */
     @InterfaceAudience.Public
-    public List<CBLRevision> getConflictingRevisions() throws CBLiteException {
+    public List<CBLSavedRevision> getConflictingRevisions() throws CBLiteException {
         return getLeafRevisions(false);
     }
 
@@ -127,7 +127,7 @@ public class CBLDocument {
      * @throws CBLiteException
      */
     @InterfaceAudience.Public
-    public List<CBLRevision> getLeafRevisions() throws CBLiteException {
+    public List<CBLSavedRevision> getLeafRevisions() throws CBLiteException {
         return getLeafRevisions(true);
     }
 
@@ -190,16 +190,16 @@ public class CBLDocument {
      *
      *
      * @param id the revision ID
-     * @return the CBLRevision object
+     * @return the CBLSavedRevision object
      */
     @InterfaceAudience.Public
-    public CBLRevision getRevision(String id) {
+    public CBLSavedRevision getRevision(String id) {
         if (id.equals(currentRevision.getId())) {
             return currentRevision;
         }
         EnumSet<CBLDatabase.TDContentOptions> contentOptions = EnumSet.noneOf(CBLDatabase.TDContentOptions.class);
         CBLRevisionInternal revisionInternal = database.getDocumentWithIDAndRev(getId(), id, contentOptions);
-        CBLRevision revision = null;
+        CBLSavedRevision revision = null;
         revision = getRevisionFromRev(revisionInternal);
         return revision;
     }
@@ -213,8 +213,8 @@ public class CBLDocument {
      * @return the newly created revision
      */
     @InterfaceAudience.Public
-    public CBLNewRevision createRevision() {
-        return new CBLNewRevision(this, getCurrentRevision());
+    public CBLUnsavedRevision createRevision() {
+        return new CBLUnsavedRevision(this, getCurrentRevision());
     }
 
     /**
@@ -231,10 +231,10 @@ public class CBLDocument {
      * copy of this document's .properties property.)
      *
      * @param properties the contents to be saved in the new revision
-     * @return a new CBLRevision
+     * @return a new CBLSavedRevision
      */
     @InterfaceAudience.Public
-    public CBLRevision putProperties(Map<String,Object> properties) throws CBLiteException {
+    public CBLSavedRevision putProperties(Map<String,Object> properties) throws CBLiteException {
         String prevID = (String) properties.get("_rev");
         return putProperties(properties, prevID);
     }
@@ -252,16 +252,16 @@ public class CBLDocument {
      * @throws CBLiteException
      */
     @InterfaceAudience.Public
-    public CBLRevision update(CBLUpdateDelegate updater) throws CBLiteException {
+    public CBLSavedRevision update(CBLUpdateDelegate updater) throws CBLiteException {
 
         int lastErrorCode = CBLStatus.UNKNOWN;
         do {
-            CBLNewRevision newRev = createRevision();
+            CBLUnsavedRevision newRev = createRevision();
             if (updater.updateRevision(newRev) == false) {
                 break;
             }
             try {
-                CBLRevision savedRev = newRev.save();
+                CBLSavedRevision savedRev = newRev.save();
                 if (savedRev != null) {
                     return savedRev;
                 }
@@ -288,8 +288,6 @@ public class CBLDocument {
     }
 
 
-    // --------------------------------------------------
-
     /**
      * Get the document's abbreviated ID
      */
@@ -304,15 +302,9 @@ public class CBLDocument {
     }
 
 
+    List<CBLSavedRevision> getLeafRevisions(boolean includeDeleted) throws CBLiteException {
 
-
-
-
-
-
-    List<CBLRevision> getLeafRevisions(boolean includeDeleted) throws CBLiteException {
-
-        List<CBLRevision> result = new ArrayList<CBLRevision>();
+        List<CBLSavedRevision> result = new ArrayList<CBLSavedRevision>();
         CBLRevisionList revs = database.getAllRevisionsOfDocumentID(documentId, true);
         for (CBLRevisionInternal rev : revs) {
             // add it to result, unless we are not supposed to include deleted and it's deleted
@@ -328,7 +320,7 @@ public class CBLDocument {
 
 
 
-    CBLRevision putProperties(Map<String,Object> properties, String prevID) throws CBLiteException {
+    CBLSavedRevision putProperties(Map<String,Object> properties, String prevID) throws CBLiteException {
         String newId = null;
         if (properties != null && properties.containsKey("_id")) {
             newId = (String) properties.get("_id");
@@ -361,12 +353,12 @@ public class CBLDocument {
         if (newRev == null) {
             return null;
         }
-        return new CBLRevision(this, newRev);
+        return new CBLSavedRevision(this, newRev);
 
     }
 
 
-    CBLRevision getRevisionFromRev(CBLRevisionInternal internalRevision) {
+    CBLSavedRevision getRevisionFromRev(CBLRevisionInternal internalRevision) {
         if (internalRevision == null) {
             return null;
         }
@@ -374,12 +366,12 @@ public class CBLDocument {
             return currentRevision;
         }
         else {
-            return new CBLRevision(this, internalRevision);
+            return new CBLSavedRevision(this, internalRevision);
         }
 
     }
 
-    CBLRevision getRevisionWithId(String revId) {
+    CBLSavedRevision getRevisionWithId(String revId) {
         if (revId != null && currentRevision != null && revId.equals(currentRevision.getId())) {
             return currentRevision;
         }
@@ -400,7 +392,7 @@ public class CBLDocument {
 
 
     public static interface CBLUpdateDelegate {
-        public boolean updateRevision(CBLNewRevision newRevision);
+        public boolean updateRevision(CBLUnsavedRevision newRevision);
     }
 
     void loadCurrentRevisionFrom(CBLQueryRow row) {
@@ -412,7 +404,7 @@ public class CBLDocument {
             Map<String, Object> properties = row.getDocumentProperties();
             if (properties != null) {
                 CBLRevisionInternal rev = new CBLRevisionInternal(properties, row.getDatabase());
-                currentRevision = new CBLRevision(this, rev);
+                currentRevision = new CBLSavedRevision(this, rev);
             }
         }
      }
@@ -425,7 +417,7 @@ public class CBLDocument {
     void revisionAdded(Map<String,Object> changeNotification) {
         CBLRevisionInternal rev = (CBLRevisionInternal) changeNotification.get("rev");
         if (currentRevision != null && !rev.getRevId().equals(currentRevision.getId())) {
-            currentRevision = new CBLRevision(this, rev);
+            currentRevision = new CBLSavedRevision(this, rev);
         }
 
         // TODO: need to implement void addChangeListener(DocumentChangedFunction listener)

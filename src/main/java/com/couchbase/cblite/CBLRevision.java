@@ -1,28 +1,9 @@
-/**
- * Original iOS version by  Jens Alfke
- * Ported to Android by Marty Schoch
- *
- * Copyright (c) 2012 Couchbase, Inc. All rights reserved.
- *
- * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file
- * except in compliance with the License. You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software distributed under the
- * License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
- * either express or implied. See the License for the specific language governing permissions
- * and limitations under the License.
- */
-
 package com.couchbase.cblite;
 
-import com.couchbase.cblite.internal.CBLRevisionInternal;
-import com.couchbase.cblite.util.Log;
+import com.couchbase.cblite.internal.InterfaceAudience;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -32,30 +13,54 @@ import java.util.Map;
  *
  * It can also store the sequence number and document contents (they can be added after creation).
  */
-public class CBLRevision extends CBLRevisionBase {
+public abstract class CBLRevision {
 
-    private CBLRevisionInternal revisionInternal;
-    private boolean checkedProperties;
 
-    CBLRevision(CBLDocument document, CBLRevisionInternal revision) {
-        super(document);
-        this.revisionInternal = revision;
-    }
+    /**
+     * The sequence number of this revision.
+     */
+    protected long sequence;
 
-    CBLRevision(CBLDatabase database, CBLRevisionInternal revision) {
-        this(database.getDocument(revision.getDocId()), revision);
+    /**
+     * The revisions's owning database.
+     */
+    protected CBLDatabase database;
+
+    /**
+     * The document this is a revision of
+     */
+    protected CBLDocument document;
+
+    /**
+     * Constructor
+     */
+    @InterfaceAudience.Private
+    CBLRevision() {
+        super();
     }
 
     /**
-     * Creates a new mutable child revision whose properties and attachments are initially identical
-     * to this one's, which you can modify and then save.
-     * @return
+     * Constructor
      */
-    public CBLNewRevision createNewRevision() {
-        CBLNewRevision newRevision = new CBLNewRevision(document, this);
-        return newRevision;
+    @InterfaceAudience.Private
+    protected CBLRevision(CBLDocument document) {
+        this.document = document;
     }
 
+    /**
+     * Get the revision's owning database.
+     */
+    @InterfaceAudience.Public
+    public CBLDatabase getDatabase() {
+        return database;
+    }
+
+    /**
+     * Get the document this is a revision of
+     */
+    public CBLDocument getDocument() {
+        return document;
+    }
 
     /**
      * The contents of this revision of the document.
@@ -63,95 +68,146 @@ public class CBLRevision extends CBLRevisionBase {
      *
      * @return contents of this revision of the document.
      */
-
-    public Map<String,Object> getProperties() {
-        Map<String, Object> properties = revisionInternal.getProperties();
-        if (properties == null && !checkedProperties) {
-            if (loadProperties() == true) {
-                properties = revisionInternal.getProperties();
-            }
-            checkedProperties = true;
-        }
-        return Collections.unmodifiableMap(properties);
-    }
-
-    boolean loadProperties() {
-        try {
-            HashMap<String, Object> emptyProperties = new HashMap<String, Object>();
-            CBLRevisionInternal loadRevision = new CBLRevisionInternal(emptyProperties, database);
-            database.loadRevisionBody(loadRevision, EnumSet.noneOf(CBLDatabase.TDContentOptions.class));
-            if (loadRevision == null) {
-                Log.w(CBLDatabase.TAG, "Couldn't load body/sequence of %s" + this);
-                return false;
-            }
-            revisionInternal = loadRevision;
-            return true;
-
-        } catch (CBLiteException e) {
-            throw new RuntimeException(e);
-        }
-
-    }
+    public abstract Map<String,Object> getProperties();
 
     /**
-     * Creates and saves a new revision with the given properties.
-     * This will fail with a 412 error if the receiver is not the current revision of the document.
+     * Shorthand for getProperties().get(key)
      */
-    public CBLRevision putProperties(Map<String,Object> properties) throws CBLiteException {
-        return document.putProperties(properties, revisionInternal.getRevId());
+    public Object getProperty(String key) {
+        return getProperties().get(key);
     }
 
     /**
-     * Has this object fetched its contents from the database yet?
-     */
-    public boolean isPropertiesLoaded() {
-        return revisionInternal.getProperties() != null;
-    }
-
-    /**
-     * Deletes the document by creating a new deletion-marker revision.
+     * The user-defined properties, without the ones reserved by CouchDB.
+     * This is based on -properties, with every key whose name starts with "_" removed.
      *
-     * @return
-     * @throws CBLiteException
+     * @return user-defined properties, without the ones reserved by CouchDB.
      */
-    public CBLRevision deleteDocument() throws CBLiteException {
-        return putProperties(null);
+    public Map<String,Object> getUserProperties() {
+
+        Map<String,Object> result = new HashMap<String, Object>();
+
+        Map<String,Object> sourceMap = getProperties();
+        for (String key : sourceMap.keySet()) {
+            if (!key.startsWith("_")) {
+                result.put(key, sourceMap.get(key));
+            }
+        }
+        return Collections.unmodifiableMap(result);
+    }
+
+    /* I don't think we need/want this, callers should be calling putProperties()
+    void setProperties(Map<String,Object> properties) {
+        this.checkedBody = new CBLBody(properties);
+    }*/
+
+    /**
+     * The names of all attachments
+     * @return
+     */
+    public List<String> getAttachmentNames() {
+        Map<String, Object> attachmentMetadata = getAttachmentMetadata();
+        ArrayList<String> result = new ArrayList<String>();
+        result.addAll(attachmentMetadata.keySet());
+        return result;
     }
 
     /**
-     * Returns the history of this document as an array of CBLRevisions, in forward order.
-     * Older revisions are NOT guaranteed to have their properties available.
+     * Looks up the attachment with the given name (without fetching its contents yet).
      *
+     * @param name
      * @return
-     * @throws CBLiteException
      */
-    public List<CBLRevision> getRevisionHistory() throws CBLiteException {
-        List<CBLRevision> revisions = new ArrayList<CBLRevision>();
-        List<CBLRevisionInternal> internalRevisions = database.getRevisionHistory(revisionInternal);
-        for (CBLRevisionInternal internalRevision : internalRevisions) {
-            if (internalRevision.getRevId().equals(getId())) {
-                revisions.add(this);
-            }
-            else {
-                CBLRevision revision = document.getRevisionFromRev(internalRevision);
-                revisions.add(revision);
-            }
-
+    public CBLAttachment getAttachment(String name) {
+        Map<String, Object> attachmentMetadata = getAttachmentMetadata();
+        if (attachmentMetadata == null) {
+            return null;
         }
-        Collections.reverse(revisions);
-        return Collections.unmodifiableList(revisions);
+        return new CBLAttachment(this, name, attachmentMetadata);
+    }
+
+    /**
+     * All attachments, as CBLAttachment objects.
+     * @return
+     */
+    public List<CBLAttachment> getAttachments() {
+        List<CBLAttachment> result = new ArrayList<CBLAttachment>();
+        List<String> attachmentNames = getAttachmentNames();
+        for (String attachmentName : attachmentNames) {
+            result.add(getAttachment(attachmentName));
+        }
+        return result;
+    }
+
+
+
+    Map<String, Object> getAttachmentMetadata() {
+        return (Map<String, Object>) getProperty("_attachments");
     }
 
     @Override
+    public boolean equals(Object o) {
+        boolean result = false;
+        if(o instanceof CBLSavedRevision) {
+            CBLSavedRevision other = (CBLSavedRevision)o;
+            if(document.getId().equals(other.getDocument().getId()) && getId().equals(other.getId())) {
+                result = true;
+            }
+        }
+        return result;
+    }
+
+    @Override
+    public int hashCode() {
+        return document.getId().hashCode() ^ getId().hashCode();
+    }
+
     public String getId() {
-        return revisionInternal.getRevId();
+        return null;
+    }
+
+    /**
+     * Does this revision mark the deletion of its document?
+     * (In other words, does it have a "_deleted" property?)
+     */
+    boolean isDeleted() {
+        Object deleted = getProperty("_deleted");
+        if (deleted == null) {
+            return false;
+        }
+        Boolean deletedBool = (Boolean) deleted;
+        return deletedBool.booleanValue();
+    }
+
+
+    void setSequence(long sequence) {
+        this.sequence = sequence;
+    }
+
+    long getSequence() {
+        return sequence;
     }
 
     @Override
-    boolean isDeleted() {
-        return revisionInternal.isDeleted();
+    public String toString() {
+        return "{" + this.document.getId() + " #" + this.getId() + (isDeleted() ? "DEL" : "") + "}";
+    }
+
+    /**
+     * Generation number: 1 for a new document, 2 for the 2nd revision, ...
+     * Extracted from the numeric prefix of the revID.
+     */
+    int getGeneration() {
+        return generationFromRevID(getId());
+    }
+
+    static int generationFromRevID(String revID) {
+        int generation = 0;
+        int dashPos = revID.indexOf("-");
+        if(dashPos > 0) {
+            generation = Integer.parseInt(revID.substring(0, dashPos));
+        }
+        return generation;
     }
 
 }
-
-
