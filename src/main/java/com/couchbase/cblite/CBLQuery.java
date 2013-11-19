@@ -87,7 +87,7 @@ public class CBLQuery {
     private boolean mapOnly;
 
     /**
-     * If set to YES, queries created by -queryAllDocuments will include deleted documents.
+     * If set to YES, queries created by -createAllDocumentsQuery will include deleted documents.
      * This property has no effect in other types of queries.
      */
     private boolean includeDeleted;

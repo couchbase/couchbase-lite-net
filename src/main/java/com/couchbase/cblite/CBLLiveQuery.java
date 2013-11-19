@@ -11,7 +11,7 @@ import java.util.concurrent.ExecutionException;
  * A CBLQuery subclass that automatically refreshes the result rows every time the database changes.
  * All you need to do is use add a listener to observe changes.
  */
-public class CBLLiveQuery extends CBLQuery implements CBLDatabaseChangedFunction {
+public class CBLLiveQuery extends CBLQuery implements CBLChangeListener {
 
     private boolean observing;
     private boolean willUpdate;

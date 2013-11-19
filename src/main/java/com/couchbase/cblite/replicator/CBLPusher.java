@@ -2,9 +2,9 @@ package com.couchbase.cblite.replicator;
 
 import com.couchbase.cblite.CBLBlobKey;
 import com.couchbase.cblite.CBLBlobStore;
+import com.couchbase.cblite.CBLChangeListener;
 import com.couchbase.cblite.CBLDatabase;
-import com.couchbase.cblite.CBLDatabaseChangedFunction;
-import com.couchbase.cblite.CBLFilterBlock;
+import com.couchbase.cblite.CBLFilterDelegate;
 import com.couchbase.cblite.CBLManager;
 import com.couchbase.cblite.CBLRevisionList;
 import com.couchbase.cblite.CBLiteException;
@@ -29,12 +29,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ScheduledExecutorService;
 
-public class CBLPusher extends CBLReplicator implements CBLDatabaseChangedFunction {
+public class CBLPusher extends CBLReplicator implements CBLChangeListener {
 
 
     private boolean createTarget;
     private boolean observing;
-    private CBLFilterBlock filter;
+    private CBLFilterDelegate filter;
 
     public CBLPusher(CBLDatabase db, URL remote, boolean continuous, ScheduledExecutorService workExecutor) {
         this(db, remote, continuous, null, workExecutor);
@@ -54,7 +54,7 @@ public class CBLPusher extends CBLReplicator implements CBLDatabaseChangedFuncti
         this.createTarget = createTarget;
     }
 
-    public void setFilter(CBLFilterBlock filter) {
+    public void setFilter(CBLFilterDelegate filter) {
         this.filter = filter;
     }
 
@@ -98,7 +98,7 @@ public class CBLPusher extends CBLReplicator implements CBLDatabaseChangedFuncti
             filter = db.getFilter(filterName);
         }
         if(filterName != null && filter == null) {
-            Log.w(CBLDatabase.TAG, String.format("%s: No CBLFilterBlock registered for filter '%s'; ignoring", this, filterName));;
+            Log.w(CBLDatabase.TAG, String.format("%s: No CBLFilterDelegate registered for filter '%s'; ignoring", this, filterName));;
         }
 
         // Process existing changes since the last push:
@@ -141,7 +141,7 @@ public class CBLPusher extends CBLReplicator implements CBLDatabaseChangedFuncti
             return;
         }
         CBLRevisionInternal rev = (CBLRevisionInternal)changeNotification.get("rev");
-        if(rev != null && ((filter == null) || filter.filter(rev))) {
+        if(rev != null && ((filter == null) || filter.filter(rev, ))) {
             addToInbox(rev);
         }
     }

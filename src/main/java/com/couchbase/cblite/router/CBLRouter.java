@@ -2,11 +2,11 @@ package com.couchbase.cblite.router;
 
 
 import com.couchbase.cblite.CBLAttachment;
+import com.couchbase.cblite.CBLChangeListener;
 import com.couchbase.cblite.CBLChangesOptions;
 import com.couchbase.cblite.CBLDatabase;
 import com.couchbase.cblite.CBLDatabase.TDContentOptions;
-import com.couchbase.cblite.CBLDatabaseChangedFunction;
-import com.couchbase.cblite.CBLFilterBlock;
+import com.couchbase.cblite.CBLFilterDelegate;
 import com.couchbase.cblite.CBLManager;
 import com.couchbase.cblite.CBLMapFunction;
 import com.couchbase.cblite.CBLMisc;
@@ -46,7 +46,7 @@ import java.util.List;
 import java.util.Map;
 
 
-public class CBLRouter implements CBLDatabaseChangedFunction {
+public class CBLRouter implements CBLChangeListener {
 
     private CBLManager manager;
     private CBLDatabase db;
@@ -56,7 +56,7 @@ public class CBLRouter implements CBLDatabaseChangedFunction {
     private CBLRouterCallbackBlock callbackBlock;
     private boolean responseSent = false;
     private boolean waiting = false;
-    private CBLFilterBlock changesFilter;
+    private CBLFilterDelegate changesFilter;
     private boolean longpoll = false;
 
     public static String getVersionString() {
@@ -1067,7 +1067,7 @@ public class CBLRouter implements CBLDatabaseChangedFunction {
 
         CBLRevisionInternal rev = (CBLRevisionInternal)changeNotification.get("rev");
 
-        if(changesFilter != null && !changesFilter.filter(rev)) {
+        if(changesFilter != null && !changesFilter.filter(rev, )) {
             return;
         }
 

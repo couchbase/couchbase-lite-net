@@ -58,7 +58,7 @@ import java.util.concurrent.ScheduledExecutorService;
 public class CBLDatabase {
 
     private static final int MAX_DOC_CACHE_SIZE = 50;
-    private static CBLFilterCompiler filterCompiler;
+    private static CBLCompileFilterDelegate filterCompiler;
 
     private String path;
     private String name;
@@ -71,14 +71,14 @@ public class CBLDatabase {
     public static final String TAG_SQL = "CBLSQL";
 
     private Map<String, CBLView> views;
-    private Map<String, CBLFilterBlock> filters;
+    private Map<String, CBLFilterDelegate> filters;
     private Map<String, CBLValidationBlock> validations;
 
     private Map<String, CBLBlobStoreWriter> pendingAttachmentsByDigest;
     private List<CBLReplicator> activeReplicators;
     private CBLBlobStore attachments;
     private CBLManager manager;
-    private List<CBLDatabaseChangedFunction> changeListeners;
+    private List<CBLChangeListener> changeListeners;
     private LruCache<String, CBLDocument> docCache;
 
     // Length that constitutes a 'big' attachment
@@ -155,32 +155,149 @@ public class CBLDatabase {
 
 
     /**
+     * Returns the currently registered filter compiler (nil by default).
+     */
+    @InterfaceAudience.Public
+    public static CBLCompileFilterDelegate getFilterCompiler() {
+        return filterCompiler;
+    }
+
+    /**
+     * Registers an object that can compile source code into executable filter blocks.
+     */
+    @InterfaceAudience.Public
+    public static void setFilterCompiler(CBLCompileFilterDelegate filterCompiler) {
+        CBLDatabase.filterCompiler = filterCompiler;
+    }
+
+    /**
+     * Get the database's name.
+     */
+    @InterfaceAudience.Public
+    public String getName() {
+        return name;
+    }
+
+    /**
      * The database manager that owns this database.
      */
+    @InterfaceAudience.Public
     public CBLManager getManager() {
         return manager;
     }
 
-    public URL getInternalURL() {
-        // TODO: implement this
-        throw new RuntimeException("Not implemented");
+    /**
+     * The number of documents in the database.
+     */
+    @InterfaceAudience.Public
+    public int getDocumentCount() {
+        String sql = "SELECT COUNT(DISTINCT doc_id) FROM revs WHERE current=1 AND deleted=0";
+        Cursor cursor = null;
+        int result = 0;
+        try {
+            cursor = database.rawQuery(sql, null);
+            if(cursor.moveToFirst()) {
+                result = cursor.getInt(0);
+            }
+        } catch(SQLException e) {
+            Log.e(CBLDatabase.TAG, "Error getting document count", e);
+        } finally {
+            if(cursor != null) {
+                cursor.close();
+            }
+        }
+
+        return result;
+    }
+
+    /**
+     * The latest sequence number used.  Every new revision is assigned a new sequence number,
+     * so this property increases monotonically as changes are made to the database. It can be
+     * used to check whether the database has changed between two points in time.
+     */
+    @InterfaceAudience.Public
+    public long getLastSequenceNumber() {
+        String sql = "SELECT MAX(sequence) FROM revs";
+        Cursor cursor = null;
+        long result = 0;
+        try {
+            cursor = database.rawQuery(sql, null);
+            if(cursor.moveToFirst()) {
+                result = cursor.getLong(0);
+            }
+        } catch (SQLException e) {
+            Log.e(CBLDatabase.TAG, "Error getting last sequence", e);
+        } finally {
+            if(cursor != null) {
+                cursor.close();
+            }
+        }
+        return result;
+    }
+
+    /**
+     * Get all the replicators associated with this database.
+     */
+    @InterfaceAudience.Public
+    public List<CBLReplicator> getAllReplications() {
+        return activeReplicators;
+    }
+
+    /**
+     * Compacts the database file by purging non-current revisions, deleting unused attachment files,
+     * and running a SQLite "VACUUM" command.
+     */
+    @InterfaceAudience.Public
+    public CBLStatus compact() {
+        // Can't delete any rows because that would lose revision tree history.
+        // But we can remove the JSON of non-current revisions, which is most of the space.
+        try {
+            Log.v(CBLDatabase.TAG, "Deleting JSON of old revisions...");
+            ContentValues args = new ContentValues();
+            args.put("json", (String)null);
+            database.update("revs", args, "current=0", null);
+        } catch (SQLException e) {
+            Log.e(CBLDatabase.TAG, "Error compacting", e);
+            return new CBLStatus(CBLStatus.INTERNAL_SERVER_ERROR);
+        }
+
+        Log.v(CBLDatabase.TAG, "Deleting old attachments...");
+        CBLStatus result = garbageCollectAttachments();
+
+        Log.v(CBLDatabase.TAG, "Vacuuming SQLite sqliteDb...");
+        try {
+            database.execSQL("VACUUM");
+        } catch (SQLException e) {
+            Log.e(CBLDatabase.TAG, "Error vacuuming sqliteDb", e);
+            return new CBLStatus(CBLStatus.INTERNAL_SERVER_ERROR);
+        }
+
+        return result;
     }
 
 
     /**
-     * Constructor
-     *
-     * @param path
-     * @param manager
+     * Deletes the database.
      */
-    public CBLDatabase(String path, CBLManager manager) {
-        assert(path.startsWith("/")); //path must be absolute
-        this.path = path;
-        this.name = FileDirUtils.getDatabaseNameFromPath(path);
-        this.manager = manager;
-        this.changeListeners = new ArrayList<CBLDatabaseChangedFunction>();
-        this.docCache = new LruCache<String, CBLDocument>(MAX_DOC_CACHE_SIZE);
+    @InterfaceAudience.Public
+    public boolean delete() {
+        if(open) {
+            if(!close()) {
+                return false;
+            }
+        }
+        else if(!exists()) {
+            return true;
+        }
+        File file = new File(path);
+        File attachmentsFile = new File(getAttachmentStorePath());
+
+        boolean deleteStatus = file.delete();
+        //recursively delete attachments path
+        boolean deleteAttachmentStatus = FileDirUtils.deleteRecursive(attachmentsFile);
+        return deleteStatus && deleteAttachmentStatus;
     }
+
 
     /**
      * Instantiates a CBLDocument object with the given ID.
@@ -194,6 +311,7 @@ public class CBLDatabase {
      * @param documentId
      * @return
      */
+    @InterfaceAudience.Public
     public CBLDocument getDocument(String documentId) {
 
         if (documentId == null || documentId.length() == 0) {
@@ -210,6 +328,10 @@ public class CBLDatabase {
         return doc;
     }
 
+    /**
+     * Gets the Document with the given id, or null if it does not exist.
+     */
+    @InterfaceAudience.Public
     public CBLDocument getExistingDocument(String documentId) {
         if (documentId == null || documentId.length() == 0) {
             return null;
@@ -225,9 +347,296 @@ public class CBLDatabase {
      * Creates a new CBLDocument object with no properties and a new (random) UUID.
      * The document will be saved to the database when you call -putProperties: on it.
      */
+    @InterfaceAudience.Public
     public CBLDocument createDocument() {
         return getDocument(CBLMisc.TDCreateUUID());
     }
+
+    /**
+     * Returns the contents of the local document with the given ID, or nil if none exists.
+     */
+    @InterfaceAudience.Public
+    public Map<String, Object> getLocalDocument(String documentId) {
+        return getLocalDocument(makeLocalDocumentId(documentId), null).getProperties();
+    }
+
+    /**
+     * Sets the contents of the local document with the given ID. Unlike CouchDB, no revision-ID
+     * checking is done; the put always succeeds. If the properties dictionary is nil, the document
+     * will be deleted.
+     */
+    @InterfaceAudience.Public
+    public boolean putLocalDocument(Map<String, Object> properties, String id) throws CBLiteException {
+        // TODO: there was some code in the iOS implementation equivalent that I did not know if needed
+        CBLRevisionInternal prevRev = getLocalDocument(id, null);
+        if (prevRev == null && properties == null) {
+            return false;
+        }
+        return putLocalRevision(prevRev, prevRev.getRevId()) != null;
+    }
+
+    /**
+     * Deletes the local document with the given ID.
+     */
+    @InterfaceAudience.Public
+    public boolean deleteLocalDocument(String id) throws CBLiteException {
+        CBLRevisionInternal prevRev = getLocalDocument(id, null);
+        if (prevRev == null) {
+            return false;
+        }
+        deleteLocalDocument(id, prevRev.getRevId());
+        return true;
+    }
+
+    /**
+     * Returns a query that matches all documents in the database.
+     * This is like querying an imaginary view that emits every document's ID as a key.
+     */
+    @InterfaceAudience.Public
+    public CBLQuery createAllDocumentsQuery() {
+        return new CBLQuery(this, (CBLView)null);
+    }
+
+    /**
+     * Returns a CBLView object for the view with the given name.
+     * (This succeeds even if the view doesn't already exist, but the view won't be added to
+     * the database until the CBLView is assigned a map function.)
+     */
+    @InterfaceAudience.Public
+    public CBLView getView(String name) {
+        CBLView view = null;
+        if(views != null) {
+            view = views.get(name);
+        }
+        if(view != null) {
+            return view;
+        }
+        return registerView(new CBLView(this, name));
+    }
+
+    /**
+     * Returns the existing CBLView with the given name, or nil if none.
+     */
+    @InterfaceAudience.Public
+    public CBLView getExistingView(String name) {
+        CBLView view = null;
+        if(views != null) {
+            view = views.get(name);
+        }
+        if(view != null) {
+            return view;
+        }
+        view = new CBLView(this, name);
+        if(view.getViewId() == 0) {
+            return null;
+        }
+
+        return registerView(view);
+    }
+
+    /**
+     * Returns the existing document validation function (block) registered with the given name.
+     * Note that validations are not persistent -- you have to re-register them on every launch.
+     */
+    @InterfaceAudience.Public
+    public CBLValidationBlock getValidation(String name) {
+        CBLValidationBlock result = null;
+        if(validations != null) {
+            result = validations.get(name);
+        }
+        return result;
+    }
+
+    /**
+     * Defines or clears a named document validation function.
+     * Before any change to the database, all registered validation functions are called and given a
+     * chance to reject it. (This includes incoming changes from a pull replication.)
+     */
+    @InterfaceAudience.Public
+    public void setValidation(String name, CBLValidationBlock validationBlock) {
+        if(validations == null) {
+            validations = new HashMap<String, CBLValidationBlock>();
+        }
+        if (validationBlock != null) {
+            validations.put(name, validationBlock);
+        }
+        else {
+            validations.remove(name);
+        }
+    }
+
+    /**
+     * Returns the existing filter function (block) registered with the given name.
+     * Note that filters are not persistent -- you have to re-register them on every launch.
+     */
+    @InterfaceAudience.Public
+    public CBLFilterDelegate getFilter(String filterName) {
+        CBLFilterDelegate result = null;
+        if(filters != null) {
+            result = filters.get(filterName);
+        }
+        if (result == null) {
+            CBLCompileFilterDelegate filterCompiler = getFilterCompiler();
+            if (filterCompiler == null) {
+                return null;
+            }
+
+            List<String> outLanguageList = new ArrayList<String>();
+            String sourceCode = getDesignDocFunction(filterName, "filters", outLanguageList);
+            if (sourceCode == null) {
+                return null;
+            }
+            String language = outLanguageList.get(0);
+            CBLFilterDelegate filter = filterCompiler.compileFilterFunction(sourceCode, language);
+            if (filter == null) {
+                Log.w(CBLDatabase.TAG, String.format("Filter %s failed to compile", filterName));
+                return null;
+            }
+            setFilter(filterName, filter);
+            return filter;
+        }
+        return result;
+    }
+
+    /**
+     * Define or clear a named filter function.
+     *
+     * Filters are used by push replications to choose which documents to send.
+     */
+    @InterfaceAudience.Public
+    public void setFilter(String filterName, CBLFilterDelegate filter) {
+        if(filters == null) {
+            filters = new HashMap<String,CBLFilterDelegate>();
+        }
+        if (filter != null) {
+            filters.put(filterName, filter);
+        }
+        else {
+            filters.remove(filterName);
+        }
+    }
+
+    /**
+     * Runs the block within a transaction. If the block returns NO, the transaction is rolled back.
+     * Use this when performing bulk write operations like multiple inserts/updates;
+     * it saves the overhead of multiple SQLite commits, greatly improving performance.
+     *
+     * Does not commit the transaction if the code throws an Exception.
+     *
+     * TODO: the iOS version has a retry loop, so there should be one here too
+     *
+     * @param databaseFunction
+     */
+    @InterfaceAudience.Public
+    public boolean runInTransaction(CBLRunInTransactionDelegate databaseFunction) {
+
+        boolean shouldCommit = true;
+
+        beginTransaction();
+        try {
+            shouldCommit = databaseFunction.performFunction();
+        } catch (Exception e) {
+            shouldCommit = false;
+            Log.e(CBLDatabase.TAG, e.toString(), e);
+            throw new RuntimeException(e);
+        } finally {
+            endTransaction(shouldCommit);
+        }
+
+        return shouldCommit;
+    }
+
+
+    /**
+     * Creates a replication that will 'push' to a database at the given URL, or returns an existing
+     * such replication if there already is one.
+     *
+     * @param remote
+     * @return
+     */
+    @InterfaceAudience.Public
+    public CBLReplicator getPushReplication(URL remote) {
+        return manager.replicationWithDatabase(this, remote, true, true, false);
+    }
+
+    /**
+     * Creates a replication that will 'pull' from a database at the given URL, or returns an existing
+     * such replication if there already is one.
+     *
+     * @param remote
+     * @return
+     */
+    @InterfaceAudience.Public
+    public CBLReplicator getPullReplication(URL remote) {
+        return manager.replicationWithDatabase(this, remote, false, true, false);
+    }
+
+
+    /**
+     * Creates a pair of replications to both pull and push to database at the given URL, or
+     * returns existing replications if there are any.
+     *
+     * @param remote
+     * @return An array whose first element is the "pull" replication and second is the "push".
+     */
+    @InterfaceAudience.Public
+    public List<CBLReplicator> getReplications(URL remote) {
+        CBLReplicator pull;
+        CBLReplicator push;
+        if (remote != null) {
+            pull = getPullReplication(remote);
+            push = getPushReplication(remote);
+            ArrayList<CBLReplicator> result = new ArrayList<CBLReplicator>();
+            result.add(pull);
+            result.add(push);
+            return result;
+        }
+        return null;
+    }
+
+    /**
+     * Adds a Database change delegate that will be called whenever a Document within the Database changes.
+     */
+    @InterfaceAudience.Public
+    public void addChangeListener(CBLChangeListener listener) {
+        changeListeners.add(listener);
+    }
+
+    /**
+     * Removes the specified delegate as a listener for the Database change event.
+     */
+    @InterfaceAudience.Public
+    public void removeChangeListener(CBLChangeListener listener) {
+        changeListeners.remove(listener);
+    }
+
+
+
+    // ------------------------------------------------ Non Public ---------------------
+
+    public URL getInternalURL() {
+        // TODO: implement this
+        throw new RuntimeException("Not implemented");
+    }
+
+
+    /**
+     * Constructor
+     */
+    @InterfaceAudience.Private
+    public CBLDatabase(String path, CBLManager manager) {
+        assert(path.startsWith("/")); //path must be absolute
+        this.path = path;
+        this.name = FileDirUtils.getDatabaseNameFromPath(path);
+        this.manager = manager;
+        this.changeListeners = new ArrayList<CBLChangeListener>();
+        this.docCache = new LruCache<String, CBLDocument>(MAX_DOC_CACHE_SIZE);
+    }
+
+
+
+
+
 
     /**
      * Returns the already-instantiated cached CBLDocument with the given ID, or nil if none is yet cached.
@@ -413,41 +822,11 @@ public class CBLDatabase {
         return true;
     }
 
-    /**
-     * Deletes the database.
-     */
-    public boolean delete() {
-        if(open) {
-            if(!close()) {
-                return false;
-            }
-        }
-        else if(!exists()) {
-            return true;
-        }
-        File file = new File(path);
-        File attachmentsFile = new File(getAttachmentStorePath());
-
-        boolean deleteStatus = file.delete();
-        //recursively delete attachments path
-        boolean deleteAttachmentStatus = FileDirUtils.deleteRecursive(attachmentsFile);
-        return deleteStatus && deleteAttachmentStatus;
-    }
 
     public String getPath() {
         return path;
     }
 
-    /**
-     * The database's name.
-     */
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
 
     // Leave this package protected, so it can only be used
     // CBLView uses this accessor
@@ -516,64 +895,7 @@ public class CBLDatabase {
         return true;
     }
 
-    /**
-     * Runs the block within a transaction. If the block returns NO, the transaction is rolled back.
-     * Use this when performing bulk write operations like multiple inserts/updates;
-     * it saves the overhead of multiple SQLite commits, greatly improving performance.
-     *
-     * Does not commit the transaction if the code throws an Exception.
-     *
-     * TODO: the iOS version has a retry loop, so there should be one here too
-     *
-     * @param databaseFunction
-     */
-    public void runInTransaction(CBLDatabaseFunction databaseFunction) {
 
-        boolean shouldCommit = true;
-
-        beginTransaction();
-        try {
-            shouldCommit = databaseFunction.performFunction();
-        } catch (Exception e) {
-            shouldCommit = false;
-            Log.e(CBLDatabase.TAG, e.toString(), e);
-            throw new RuntimeException(e);
-        } finally {
-            endTransaction(shouldCommit);
-        }
-
-    }
-
-    /**
-     * Compacts the database file by purging non-current revisions, deleting unused attachment files,
-     * and running a SQLite "VACUUM" command.
-     */
-    public CBLStatus compact() {
-        // Can't delete any rows because that would lose revision tree history.
-        // But we can remove the JSON of non-current revisions, which is most of the space.
-        try {
-            Log.v(CBLDatabase.TAG, "Deleting JSON of old revisions...");
-            ContentValues args = new ContentValues();
-            args.put("json", (String)null);
-            database.update("revs", args, "current=0", null);
-        } catch (SQLException e) {
-            Log.e(CBLDatabase.TAG, "Error compacting", e);
-            return new CBLStatus(CBLStatus.INTERNAL_SERVER_ERROR);
-        }
-
-        Log.v(CBLDatabase.TAG, "Deleting old attachments...");
-        CBLStatus result = garbageCollectAttachments();
-
-        Log.v(CBLDatabase.TAG, "Vacuuming SQLite sqliteDb...");
-        try {
-            database.execSQL("VACUUM");
-        } catch (SQLException e) {
-            Log.e(CBLDatabase.TAG, "Error vacuuming sqliteDb", e);
-            return new CBLStatus(CBLStatus.INTERNAL_SERVER_ERROR);
-        }
-
-        return result;
-    }
 
     public String privateUUID() {
         String result = null;
@@ -613,52 +935,7 @@ public class CBLDatabase {
 
     /** GETTING DOCUMENTS: **/
 
-    /**
-     * The number of documents in the database.
-     */
-    public int getDocumentCount() {
-        String sql = "SELECT COUNT(DISTINCT doc_id) FROM revs WHERE current=1 AND deleted=0";
-        Cursor cursor = null;
-        int result = 0;
-        try {
-            cursor = database.rawQuery(sql, null);
-            if(cursor.moveToFirst()) {
-                result = cursor.getInt(0);
-            }
-        } catch(SQLException e) {
-            Log.e(CBLDatabase.TAG, "Error getting document count", e);
-        } finally {
-            if(cursor != null) {
-                cursor.close();
-            }
-        }
 
-        return result;
-    }
-
-    /**
-     * The latest sequence number used.  Every new revision is assigned a new sequence number,
-     * so this property increases monotonically as changes are made to the database. It can be
-     * used to check whether the database has changed between two points in time.
-     */
-    public long getLastSequenceNumber() {
-        String sql = "SELECT MAX(sequence) FROM revs";
-        Cursor cursor = null;
-        long result = 0;
-        try {
-            cursor = database.rawQuery(sql, null);
-            if(cursor.moveToFirst()) {
-                result = cursor.getLong(0);
-            }
-        } catch (SQLException e) {
-            Log.e(CBLDatabase.TAG, "Error getting last sequence", e);
-        } finally {
-            if(cursor != null) {
-                cursor.close();
-            }
-        }
-        return result;
-    }
 
     /** Splices the contents of an NSDictionary into JSON data (that already represents a dict), without parsing the JSON. */
     public  byte[] appendDictToJSON(byte[] json, Map<String,Object> dict) {
@@ -1162,7 +1439,7 @@ public class CBLDatabase {
         return makeRevisionHistoryDict(getRevisionHistory(rev));
     }
 
-    public CBLRevisionList changesSince(long lastSeq, CBLChangesOptions options, CBLFilterBlock filter) {
+    public CBLRevisionList changesSince(long lastSeq, CBLChangesOptions options, CBLFilterDelegate filter) {
         // http://wiki.apache.org/couchdb/HTTP_database_API#Changes
         if(options == null) {
             options = new CBLChangesOptions();
@@ -1203,7 +1480,7 @@ public class CBLDatabase {
                 if(includeDocs) {
                     expandStoredJSONIntoRevisionWithAttachments(cursor.getBlob(5), rev, options.getContentOptions());
                 }
-                if((filter == null) || (filter.filter(rev))) {
+                if((filter == null) || (filter.filter(rev, ))) {
                     changes.add(rev);
                 }
                 cursor.moveToNext();
@@ -1223,22 +1500,6 @@ public class CBLDatabase {
         return changes;
     }
 
-    /**
-     * Define or clear a named filter function.
-     *
-     * Filters are used by push replications to choose which documents to send.
-     */
-    public void defineFilter(String filterName, CBLFilterBlock filter) {
-        if(filters == null) {
-            filters = new HashMap<String,CBLFilterBlock>();
-        }
-        if (filter != null) {
-            filters.put(filterName, filter);
-        }
-        else {
-            filters.remove(filterName);
-        }
-    }
 
     public String getDesignDocFunction(String fnName, String key, List<String>outLanguageList) {
         String[] path = fnName.split("/");
@@ -1261,37 +1522,6 @@ public class CBLDatabase {
         return (String) container.get(path[1]);
     }
 
-    /**
-     * Returns the existing filter function (block) registered with the given name.
-     * Note that filters are not persistent -- you have to re-register them on every launch.
-     */
-    public CBLFilterBlock getFilter(String filterName) {
-        CBLFilterBlock result = null;
-        if(filters != null) {
-            result = filters.get(filterName);
-        }
-        if (result == null) {
-            CBLFilterCompiler filterCompiler = getFilterCompiler();
-            if (filterCompiler == null) {
-                return null;
-            }
-
-            List<String> outLanguageList = new ArrayList<String>();
-            String sourceCode = getDesignDocFunction(filterName, "filters", outLanguageList);
-            if (sourceCode == null) {
-                return null;
-            }
-            String language = outLanguageList.get(0);
-            CBLFilterBlock filter = filterCompiler.compileFilterFunction(sourceCode, language);
-            if (filter == null) {
-                Log.w(CBLDatabase.TAG, String.format("Filter %s failed to compile", filterName));
-                return null;
-            }
-            defineFilter(filterName, filter);
-            return filter;
-        }
-        return result;
-    }
 
     /** VIEWS: **/
 
@@ -1304,22 +1534,6 @@ public class CBLDatabase {
         }
         views.put(view.getName(), view);
         return view;
-    }
-
-    /**
-     * Returns a CBLView object for the view with the given name.
-     * (This succeeds even if the view doesn't already exist, but the view won't be added to
-     * the database until the CBLView is assigned a map function.)
-     */
-    public CBLView getView(String name) {
-        CBLView view = null;
-        if(views != null) {
-            view = views.get(name);
-        }
-        if(view != null) {
-            return view;
-        }
-        return registerView(new CBLView(this, name));
     }
 
 
@@ -1389,24 +1603,6 @@ public class CBLDatabase {
     }
 
 
-    /**
-     * Returns the existing CBLView with the given name, or nil if none.
-     */
-    public CBLView getExistingView(String name) {
-        CBLView view = null;
-        if(views != null) {
-            view = views.get(name);
-        }
-        if(view != null) {
-            return view;
-        }
-        view = new CBLView(this, name);
-        if(view.getViewId() == 0) {
-            return null;
-        }
-
-        return registerView(view);
-    }
 
     public List<CBLView> getAllViews() {
         Cursor cursor = null;
@@ -1667,13 +1863,6 @@ public class CBLDatabase {
         return revId;
     }
 
-    public void addChangeListener(CBLDatabaseChangedFunction listener) {
-        changeListeners.add(listener);
-    }
-
-    public void removeChangeListener(CBLDatabaseChangedFunction listener) {
-        changeListeners.remove(listener);
-    }
 
     /*************************************************************************************************/
     /*** CBLDatabase+Attachments                                                                    ***/
@@ -2306,7 +2495,7 @@ public class CBLDatabase {
     }
 
     private void notifyChangeListeners(Map<String,Object> changeNotification) {
-        for (CBLDatabaseChangedFunction changeListener : changeListeners) {
+        for (CBLChangeListener changeListener : changeListeners) {
             changeListener.onDatabaseChanged(this, changeNotification);
         }
     }
@@ -2710,34 +2899,7 @@ public class CBLDatabase {
 
     /** VALIDATION **/
 
-    /**
-     * Defines or clears a named document validation function.
-     * Before any change to the database, all registered validation functions are called and given a
-     * chance to reject it. (This includes incoming changes from a pull replication.)
-     */
-    public void defineValidation(String name, CBLValidationBlock validationBlock) {
-        if(validations == null) {
-            validations = new HashMap<String, CBLValidationBlock>();
-        }
-        if (validationBlock != null) {
-            validations.put(name, validationBlock);
-        }
-        else {
-            validations.remove(name);
-        }
-    }
 
-    /**
-     * Returns the existing document validation function (block) registered with the given name.
-     * Note that validations are not persistent -- you have to re-register them on every launch.
-     */
-    public CBLValidationBlock getValidation(String name) {
-        CBLValidationBlock result = null;
-        if(validations != null) {
-            result = validations.get(name);
-        }
-        return result;
-    }
 
     public void validateRevision(CBLRevisionInternal newRev, CBLRevisionInternal oldRev) throws CBLiteException {
         if(validations == null || validations.size() == 0) {
@@ -2756,62 +2918,6 @@ public class CBLDatabase {
     /*** CBLDatabase+Replication                                                                    ***/
     /*************************************************************************************************/
 
-    //TODO implement missing replication methods
-
-    /**
-     * Get all the replicators associated with this database.
-     *
-     * @return
-     */
-    public List<CBLReplicator> getAllReplications() {
-        return activeReplicators;
-    }
-
-    /**
-     * Creates a replication that will 'push' to a database at the given URL, or returns an existing
-     * such replication if there already is one.
-     *
-     * @param remote
-     * @return
-     */
-    @InterfaceAudience.Public
-    public CBLReplicator getPushReplication(URL remote) {
-        return manager.replicationWithDatabase(this, remote, true, true, false);
-    }
-
-    /**
-     * Creates a replication that will 'pull' from a database at the given URL, or returns an existing
-     * such replication if there already is one.
-     *
-     * @param remote
-     * @return
-     */
-    @InterfaceAudience.Public
-    public CBLReplicator getPullReplication(URL remote) {
-        return manager.replicationWithDatabase(this, remote, false, true, false);
-    }
-
-    /**
-     * Creates a pair of replications to both pull and push to database at the given URL, or
-     * returns existing replications if there are any.
-     *
-     * @param remote
-     * @return An array whose first element is the "pull" replication and second is the "push".
-     */
-    @InterfaceAudience.Public
-    public List<CBLReplicator> getReplications(URL remote) {
-        CBLReplicator pull;
-        CBLReplicator push;
-        if (remote != null) {
-            pull = getPullReplication(remote);
-            push = getPushReplication(remote);
-            ArrayList<CBLReplicator> result = new ArrayList<CBLReplicator>();
-            result.add(pull);
-            result.add(push);
-            return result;
-        }
-        return null;
-    }
 
     public CBLReplicator getActiveReplicator(URL remote, boolean push) {
         if(activeReplicators != null) {
@@ -2961,29 +3067,9 @@ public class CBLDatabase {
     /*** CBLDatabase+LocalDocs                                                                      ***/
     /*************************************************************************************************/
 
-    /**
-     * Returns the contents of the local document with the given ID, or nil if none exists.
-     */
-    public Map<String, Object> getLocalDocument(String documentId) {
-        return getLocalDocument(makeLocalDocumentId(documentId), null).getProperties();
-    }
 
     static String makeLocalDocumentId(String documentId) {
         return String.format("_local/%s", documentId);
-    }
-
-    /**
-     * Sets the contents of the local document with the given ID. Unlike CouchDB, no revision-ID
-     * checking is done; the put always succeeds. If the properties dictionary is nil, the document
-     * will be deleted.
-     */
-    public boolean putLocalDocument(Map<String, Object> properties, String id) throws CBLiteException {
-        // TODO: there was some code in the iOS implementation equivalent that I did not know if needed
-        CBLRevisionInternal prevRev = getLocalDocument(id, null);
-        if (prevRev == null && properties == null) {
-            return false;
-        }
-        return putLocalRevision(prevRev, prevRev.getRevId()) != null;
     }
 
 
@@ -3036,25 +3122,6 @@ public class CBLDatabase {
         }
     }
 
-    /**
-     * Deletes the local document with the given ID.
-     */
-    public boolean deleteLocalDocument(String id) throws CBLiteException {
-        CBLRevisionInternal prevRev = getLocalDocument(id, null);
-        if (prevRev == null) {
-            return false;
-        }
-        deleteLocalDocument(id, prevRev.getRevId());
-        return true;
-    }
-
-    /**
-     * Returns a query that matches all documents in the database.
-     * This is like querying an imaginary view that emits every document's ID as a key.
-     */
-    public CBLQuery queryAllDocuments() {
-        return new CBLQuery(this, (CBLView)null);
-    }
 
     /**
      * Creates a one-shot query with the given map function. This is equivalent to creating an
@@ -3075,7 +3142,7 @@ public class CBLDatabase {
     Map<String, Object> purgeRevisions(final Map<String, List<String>> docsToRevs) {
 
         final Map<String, Object> result = new HashMap<String, Object>();
-        runInTransaction(new CBLDatabaseFunction() {
+        runInTransaction(new CBLRunInTransactionDelegate() {
             @Override
             public boolean performFunction() {
                 for (String docID : docsToRevs.keySet()) {
@@ -3177,20 +3244,6 @@ public class CBLDatabase {
 
     }
 
-    /**
-     * Returns the currently registered filter compiler (nil by default).
-     */
-    public static CBLFilterCompiler getFilterCompiler() {
-        return filterCompiler;
-    }
-
-    /**
-     * Registers an object that can compile source code into executable filter blocks.
-     */
-    public static void setFilterCompiler(CBLFilterCompiler filterCompiler) {
-        CBLDatabase.filterCompiler = filterCompiler;
-    }
-
     protected boolean replaceUUIDs() {
         String query = "UPDATE INFO SET value='"+ CBLMisc.TDCreateUUID()+"' where key = 'privateUUID';";
         try {
@@ -3275,6 +3328,15 @@ public class CBLDatabase {
             throw new CBLiteException(e, CBLStatus.INTERNAL_SERVER_ERROR);
         }
     }
+
+    /**
+     * Set the database's name.
+     */
+    @InterfaceAudience.Private
+    public void setName(String name) {
+        this.name = name;
+    }
+
 
 }
 

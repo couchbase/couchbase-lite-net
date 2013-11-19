@@ -1,6 +1,6 @@
 package com.couchbase.cblite;
 
-public interface CBLDatabaseFunction {
+public interface CBLRunInTransactionDelegate {
 
     boolean performFunction();
 
