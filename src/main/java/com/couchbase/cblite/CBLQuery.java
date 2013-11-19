@@ -149,7 +149,7 @@ public class CBLQuery {
         List<Long> outSequence = new ArrayList<Long>();
         String viewName = (view != null) ? view.getName() : null;
         List<CBLQueryRow> rows = database.queryViewNamed(viewName, getQueryOptions(), outSequence);
-        long lastSequence = outSequence.get(0);
+        lastSequence = outSequence.get(0);
         return new CBLQueryEnumerator(database, rows, lastSequence);
     }
 
