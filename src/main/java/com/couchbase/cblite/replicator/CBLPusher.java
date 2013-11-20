@@ -9,6 +9,7 @@ import com.couchbase.cblite.CBLManager;
 import com.couchbase.cblite.CBLRevisionList;
 import com.couchbase.cblite.CBLiteException;
 import com.couchbase.cblite.internal.CBLRevisionInternal;
+import com.couchbase.cblite.internal.InterfaceAudience;
 import com.couchbase.cblite.support.CBLRemoteRequestCompletionBlock;
 import com.couchbase.cblite.support.HttpClientFactory;
 import com.couchbase.cblite.util.Log;
@@ -36,19 +37,37 @@ public class CBLPusher extends CBLReplicator implements CBLChangeListener {
     private boolean observing;
     private CBLFilterDelegate filter;
 
+    /**
+     * Constructor
+     */
+    @InterfaceAudience.Private
     public CBLPusher(CBLDatabase db, URL remote, boolean continuous, ScheduledExecutorService workExecutor) {
         this(db, remote, continuous, null, workExecutor);
     }
 
+    /**
+     * Constructor
+     */
+    @InterfaceAudience.Private
     public CBLPusher(CBLDatabase db, URL remote, boolean continuous, HttpClientFactory clientFactory, ScheduledExecutorService workExecutor) {
         super(db, remote, continuous, clientFactory, workExecutor);
         createTarget = false;
         observing = false;
     }
-    
+
+    @Override
+    @InterfaceAudience.Public
+    public boolean isPull() {
+        return false;
+    }
+
+    @Override
+    @InterfaceAudience.Public
     public boolean isCreateTarget() {
+        // TODO: make this actually do something
         return createTarget;
     }
+
 
     public void setCreateTarget(boolean createTarget) {
         this.createTarget = createTarget;
@@ -58,10 +77,6 @@ public class CBLPusher extends CBLReplicator implements CBLChangeListener {
         this.filter = filter;
     }
 
-    @Override
-    public boolean isPush() {
-        return true;
-    }
 
     @Override
     public void maybeCreateRemoteDB() {

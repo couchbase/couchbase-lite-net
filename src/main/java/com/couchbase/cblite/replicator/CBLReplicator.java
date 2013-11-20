@@ -7,6 +7,7 @@ import com.couchbase.cblite.CBLRevisionList;
 import com.couchbase.cblite.auth.CBLAuthorizer;
 import com.couchbase.cblite.auth.CBLFacebookAuthorizer;
 import com.couchbase.cblite.auth.CBLPersonaAuthorizer;
+import com.couchbase.cblite.internal.InterfaceAudience;
 import com.couchbase.cblite.support.CBLBatchProcessor;
 import com.couchbase.cblite.support.CBLBatcher;
 import com.couchbase.cblite.support.CBLHttpClientFactory;
@@ -37,10 +38,23 @@ public abstract class CBLReplicator extends Observable {
 
     private static int lastSessionID = 0;
 
+    /**
+     * Should the replication operate continuously, copying changes as soon as the source
+     * database is modified? (Defaults to NO).
+     */
+    protected boolean continuous;
+
+    /**
+     *  Name of an optional filter function to run on the source server.
+     *  Only documents for which the function returns true are replicated.
+     *  For a pull replication, the name looks like "designdocname/filtername".
+     *  For a push replication, use the name under which you registered the filter with the CBLDatabase.
+     */
+    protected String filterName;
+
     protected ScheduledExecutorService workExecutor;
     protected CBLDatabase db;
     protected URL remote;
-    protected boolean continuous;
     protected String lastSequence;
     protected boolean lastSequenceChanged;
     protected Map<String, Object> remoteCheckpoint;
@@ -55,7 +69,7 @@ public abstract class CBLReplicator extends Observable {
     private int changesProcessed;
     private int changesTotal;
     protected final HttpClientFactory clientFactory;
-    protected String filterName;
+
     protected Map<String, Object> filterParams;
     protected ExecutorService remoteRequestExecutor;
     protected CBLAuthorizer authorizer;
@@ -64,10 +78,19 @@ public abstract class CBLReplicator extends Observable {
     protected static final int INBOX_CAPACITY = 100;
     public static final String REPLICATOR_DATABASE_NAME = "_replicator";
 
+
+    /**
+     * Constructor
+     */
+    @InterfaceAudience.Private
     public CBLReplicator(CBLDatabase db, URL remote, boolean continuous, ScheduledExecutorService workExecutor) {
         this(db, remote, continuous, null, workExecutor);
     }
 
+    /**
+     * Constructor
+     */
+    @InterfaceAudience.Private
     public CBLReplicator(CBLDatabase db, URL remote, boolean continuous, HttpClientFactory clientFactory, ScheduledExecutorService workExecutor) {
 
         this.db = db;
@@ -126,13 +149,59 @@ public abstract class CBLReplicator extends Observable {
 
     }
 
-    public String getFilterName() {
+
+    /**
+     * Get the local database which is the source or target of this replication
+     */
+    @InterfaceAudience.Public
+    public CBLDatabase getLocalDatabase() {
+        return db;
+    }
+
+    /**
+     * Get the remote URL which is the source or target of this replication
+     */
+    @InterfaceAudience.Public
+    public URL getRemoteUrl() {
+        return remote;
+    }
+
+    /**
+     * Is this a pull replication?  (Eg, it pulls data from Sync Gateway -> Device running CBL?)
+     */
+    @InterfaceAudience.Public
+    public abstract boolean isPull();
+
+
+    /**
+     * Should the target database be created if it doesn't already exist? (Defaults to NO).
+     */
+    @InterfaceAudience.Public
+    public abstract boolean isCreateTarget();
+
+
+    @InterfaceAudience.Public
+    public boolean isContinuous() {
+        return continuous;
+    }
+
+    @InterfaceAudience.Public
+    public void setContinuous(boolean continuous) {
+        if (!isRunning()) {
+            this.continuous = continuous;
+        }
+    }
+
+    @InterfaceAudience.Public
+    public String getFilter() {
         return filterName;
     }
 
-    public void setFilterName(String filterName) {
+    @InterfaceAudience.Public
+    public void setFilter(String filterName) {
         this.filterName = filterName;
     }
+
 
     public Map<String, Object> getFilterParams() {
         return filterParams;
@@ -142,15 +211,6 @@ public abstract class CBLReplicator extends Observable {
         this.filterParams = filterParams;
     }
 
-    public boolean isContinuous() {
-        return continuous;
-    }
-
-    public void setContinuous(boolean continuous) {
-        if (!isRunning()) {
-            this.continuous = continuous;
-        }
-    }
 
     public void setAuthorizer(CBLAuthorizer authorizer) {
         this.authorizer = authorizer;
@@ -164,9 +224,6 @@ public abstract class CBLReplicator extends Observable {
         return running;
     }
 
-    public URL getRemote() {
-        return remote;
-    }
 
     public void databaseClosing() {
         saveLastSequence();
@@ -180,8 +237,6 @@ public abstract class CBLReplicator extends Observable {
         String name = getClass().getSimpleName() + "[" + maskedRemoteWithoutCredentials + "]";
         return name;
     }
-
-    public abstract boolean isPush();
 
     public String getLastSequence() {
         return lastSequence;
@@ -435,7 +490,7 @@ public abstract class CBLReplicator extends Observable {
         if (db == null) {
             return null;
         }
-        String input = db.privateUUID() + "\n" + remote.toExternalForm() + "\n" + (isPush() ? "1" : "0");
+        String input = db.privateUUID() + "\n" + remote.toExternalForm() + "\n" + (!isPull() ? "1" : "0");
         return CBLMisc.TDHexSHA1Digest(input.getBytes());
     }
 
@@ -448,7 +503,7 @@ public abstract class CBLReplicator extends Observable {
 
     public void fetchRemoteCheckpointDoc() {
         lastSequenceChanged = false;
-        final String localLastSequence = db.lastSequenceWithRemoteURL(remote, isPush());
+        final String localLastSequence = db.lastSequenceWithRemoteURL(remote, !isPull());
         if (localLastSequence == null) {
             maybeCreateRemoteDB();
             beginReplicating();
@@ -533,15 +588,11 @@ public abstract class CBLReplicator extends Observable {
             }
 
         });
-        db.setLastSequence(lastSequence, remote, isPush());
+        db.setLastSequence(lastSequence, remote, !isPull());
     }
 
     public Throwable getError() {
         return error;
-    }
-
-    public CBLDatabase getDb() {
-        return db;
     }
 
 }

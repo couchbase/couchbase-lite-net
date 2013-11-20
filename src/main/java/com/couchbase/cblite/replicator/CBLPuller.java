@@ -8,6 +8,7 @@ import com.couchbase.cblite.CBLStatus;
 import com.couchbase.cblite.CBLiteException;
 import com.couchbase.cblite.internal.CBLBody;
 import com.couchbase.cblite.internal.CBLRevisionInternal;
+import com.couchbase.cblite.internal.InterfaceAudience;
 import com.couchbase.cblite.replicator.changetracker.CBLChangeTracker;
 import com.couchbase.cblite.replicator.changetracker.CBLChangeTracker.TDChangeTrackerMode;
 import com.couchbase.cblite.replicator.changetracker.CBLChangeTrackerClient;
@@ -42,13 +43,36 @@ public class CBLPuller extends CBLReplicator implements CBLChangeTrackerClient {
     protected CBLSequenceMap pendingSequences;
     protected volatile int httpConnectionCount;
 
+    /**
+     * Constructor
+     */
+    @InterfaceAudience.Private
     public CBLPuller(CBLDatabase db, URL remote, boolean continuous, ScheduledExecutorService workExecutor) {
         this(db, remote, continuous, null, workExecutor);
     }
 
+    /**
+     * Constructor
+     */
+    @InterfaceAudience.Private
     public CBLPuller(CBLDatabase db, URL remote, boolean continuous, HttpClientFactory clientFactory, ScheduledExecutorService workExecutor) {
         super(db, remote, continuous, clientFactory, workExecutor);
     }
+
+    @Override
+    @InterfaceAudience.Public
+    public boolean isPull() {
+        return true;
+    }
+
+    @Override
+    @InterfaceAudience.Public
+    public boolean isCreateTarget() {
+        // TODO: make this actually do something
+        return false;
+    }
+
+
 
     @Override
     public void beginReplicating() {
@@ -393,10 +417,6 @@ public class CBLPuller extends CBLReplicator implements CBLChangeTrackerClient {
         return URLEncoder.encode(new String(json));
     }
 
-    @Override
-    public boolean isPush() {
-        return false;
-    }
 }
 
 /**

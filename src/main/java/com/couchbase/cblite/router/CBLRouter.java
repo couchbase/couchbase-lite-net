@@ -612,9 +612,9 @@ public class CBLRouter implements CBLChangeListener {
             List<CBLReplicator> activeReplicators = db.getAllReplications();
             if(activeReplicators != null) {
                 for (CBLReplicator replicator : activeReplicators) {
-                    String source = replicator.getRemote().toExternalForm();
+                    String source = replicator.getRemoteUrl().toExternalForm();
                     String target = db.getName();
-                    if(replicator.isPush()) {
+                    if(!replicator.isPull()) {
                         String tmp = source;
                         source = target;
                         target = tmp;

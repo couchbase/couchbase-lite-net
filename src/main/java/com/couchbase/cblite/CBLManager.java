@@ -27,7 +27,6 @@ import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -316,7 +315,7 @@ public class CBLManager {
     @InterfaceAudience.Private
     CBLReplicator replicationWithDatabase(CBLDatabase db, URL remote, boolean push, boolean create, boolean start) {
         for (CBLReplicator replicator : replications) {
-            if (replicator.getDb() == db && replicator.getRemote().equals(remote) && replicator.isPush() == push) {
+            if (replicator.getLocalDatabase() == db && replicator.getRemoteUrl().equals(remote) && replicator.isPull() == !push) {
                 return replicator;
             }
 
@@ -435,7 +434,7 @@ public class CBLManager {
 
             String filterName = (String)properties.get("filter");
             if(filterName != null) {
-                repl.setFilterName(filterName);
+                repl.setFilter(filterName);
                 Map<String,Object> filterParams = (Map<String,Object>)properties.get("query_params");
                 if(filterParams != null) {
                     repl.setFilterParams(filterParams);

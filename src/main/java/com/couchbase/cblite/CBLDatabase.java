@@ -2912,7 +2912,7 @@ public class CBLDatabase {
     public CBLReplicator getActiveReplicator(URL remote, boolean push) {
         if(activeReplicators != null) {
             for (CBLReplicator replicator : activeReplicators) {
-                if(replicator.getRemote().equals(remote) && replicator.isPush() == push  && replicator.isRunning()) {
+                if(replicator.getRemoteUrl().equals(remote) && replicator.isPull() == !push && replicator.isRunning()) {
                     return replicator;
                 }
             }
