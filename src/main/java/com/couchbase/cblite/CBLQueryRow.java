@@ -139,7 +139,7 @@ public class CBLQueryRow {
      * The local sequence number of the associated doc/revision.
      */
     @InterfaceAudience.Public
-    public long getLocalSequence() {
+    public long getSequenceNumber() {
         return sequence;
     }
 
