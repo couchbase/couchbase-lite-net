@@ -171,8 +171,8 @@ public class CBLPuller extends CBLReplicator implements CBLChangeTrackerClient {
     public void changeTrackerStopped(CBLChangeTracker tracker) {
         Log.w(CBLDatabase.TAG, this + ": ChangeTracker stopped");
         //FIXME tracker doesnt have error right now
-//        if(error == null && tracker.getError() != null) {
-//            error = tracker.getError();
+//        if(error == null && tracker.getLastError() != null) {
+//            error = tracker.getLastError();
 //        }
         changeTracker = null;
         if(batcher != null) {

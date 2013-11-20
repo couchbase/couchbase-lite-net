@@ -202,13 +202,50 @@ public abstract class CBLReplicator extends Observable {
         this.filterName = filterName;
     }
 
-
+    @InterfaceAudience.Public
     public Map<String, Object> getFilterParams() {
         return filterParams;
     }
 
+    @InterfaceAudience.Public
     public void setFilterParams(Map<String, Object> filterParams) {
         this.filterParams = filterParams;
+    }
+
+    @InterfaceAudience.Public
+    public boolean isRunning() {
+        return running;
+    }
+
+    @InterfaceAudience.Public
+    public Throwable getLastError() {
+        return error;
+    }
+
+    @InterfaceAudience.Public
+    public void start() {
+        if (running) {
+            return;
+        }
+        this.sessionID = String.format("repl%03d", ++lastSessionID);
+        Log.v(CBLDatabase.TAG, toString() + " STARTING ...");
+        running = true;
+        lastSequence = null;
+
+        checkSession();
+    }
+
+    @InterfaceAudience.Public
+    public void stop() {
+        if (!running) {
+            return;
+        }
+        Log.v(CBLDatabase.TAG, toString() + " STOPPING...");
+        batcher.flush();
+        continuous = false;
+        if (asyncTaskCount == 0) {
+            stopped();
+        }
     }
 
 
@@ -220,9 +257,6 @@ public abstract class CBLReplicator extends Observable {
         return authorizer;
     }
 
-    public boolean isRunning() {
-        return running;
-    }
 
 
     public void databaseClosing() {
@@ -283,17 +317,6 @@ public abstract class CBLReplicator extends Observable {
         return sessionID;
     }
 
-    public void start() {
-        if (running) {
-            return;
-        }
-        this.sessionID = String.format("repl%03d", ++lastSessionID);
-        Log.v(CBLDatabase.TAG, toString() + " STARTING ...");
-        running = true;
-        lastSequence = null;
-
-        checkSession();
-    }
 
     protected void checkSession() {
         if (getAuthorizer() != null && getAuthorizer().usesCookieBasedLogin()) {
@@ -339,17 +362,6 @@ public abstract class CBLReplicator extends Observable {
 
     public abstract void beginReplicating();
 
-    public void stop() {
-        if (!running) {
-            return;
-        }
-        Log.v(CBLDatabase.TAG, toString() + " STOPPING...");
-        batcher.flush();
-        continuous = false;
-        if (asyncTaskCount == 0) {
-            stopped();
-        }
-    }
 
     public void stopped() {
         Log.v(CBLDatabase.TAG, toString() + " STOPPED");
@@ -591,8 +603,5 @@ public abstract class CBLReplicator extends Observable {
         db.setLastSequence(lastSequence, remote, !isPull());
     }
 
-    public Throwable getError() {
-        return error;
-    }
 
 }

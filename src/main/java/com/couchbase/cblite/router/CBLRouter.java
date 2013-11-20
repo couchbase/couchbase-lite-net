@@ -631,16 +631,16 @@ public class CBLRouter implements CBLChangeListener {
                     activity.put("status", status);
                     activity.put("progress", progress);
 
-                    if (replicator.getError() != null) {
+                    if (replicator.getLastError() != null) {
                         String msg = String.format("Replicator error: %s.  Repl: %s.  Source: %s, Target: %s",
-                                replicator.getError(), replicator, source, target);
+                                replicator.getLastError(), replicator, source, target);
                         Log.e(CBLDatabase.TAG, msg);
-                        Throwable error = replicator.getError();
+                        Throwable error = replicator.getLastError();
                         int statusCode = 400;
                         if (error instanceof HttpResponseException) {
                             statusCode = ((HttpResponseException)error).getStatusCode();
                         }
-                        Object[] errorObjects = new Object[]{ statusCode, replicator.getError().toString() };
+                        Object[] errorObjects = new Object[]{ statusCode, replicator.getLastError().toString() };
                         activity.put("error", errorObjects);
                     }
 
