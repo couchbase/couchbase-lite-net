@@ -1360,7 +1360,12 @@ public class CBLRouter implements CBLChangeListener {
             } else {
                 result = _db.putRevision(rev, prevRevID, allowConflict);
             }
-            outStatus.setCode(CBLStatus.CREATED);
+            if(deleting){
+                outStatus.setCode(CBLStatus.OK);
+            } else{
+                outStatus.setCode(CBLStatus.CREATED);
+            }
+
         } catch (CBLiteException e) {
             e.printStackTrace();
             Log.e(CBLDatabase.TAG, e.toString());

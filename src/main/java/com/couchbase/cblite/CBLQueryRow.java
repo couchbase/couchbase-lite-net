@@ -4,7 +4,6 @@ import com.couchbase.cblite.internal.InterfaceAudience;
 
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -194,7 +193,9 @@ public class CBLQueryRow {
         Map<String, Object> result = new HashMap<String, Object>();
         if (value != null || sourceDocumentId != null) {
             result.put("key", key);
-            result.put("value", value);
+            if (value != null){
+                result.put("value", value);
+            }
             result.put("id", sourceDocumentId);
             if (documentProperties != null){
                 result.put("doc", documentProperties);

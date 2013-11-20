@@ -1878,9 +1878,11 @@ public class CBLDatabase {
             ContentValues args = new ContentValues();
             args.put("sequence", sequence);
             args.put("filename", name);
-            args.put("key", key.getBytes());
+            if (key != null){
+                args.put("key", key.getBytes());
+                args.put("length", attachments.getSizeOfBlob(key));
+            }
             args.put("type", contentType);
-            args.put("length", attachments.getSizeOfBlob(key));
             args.put("revpos", revpos);
             database.insert("attachments", null, args);
         } catch (SQLException e) {
@@ -2169,7 +2171,10 @@ public class CBLDatabase {
                     CBLAttachmentInternal attachmentObject = attachments.get(attachmentKey);
                     if (attachmentObject != null) {
                         attachmentFromProps.put("length", attachmentObject.getLength());
-                        attachmentFromProps.put("digest", attachmentObject.getBlobKey().base64Digest());
+                        if (attachmentObject.getBlobKey() != null){
+                            // case with Large Attachment
+                            attachmentFromProps.put("digest", attachmentObject.getBlobKey().base64Digest());
+                        }
                     }
                     attachmentFromProps.put(attachmentKey, attachmentFromProps);
                 }

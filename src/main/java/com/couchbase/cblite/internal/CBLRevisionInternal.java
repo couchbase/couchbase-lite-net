@@ -18,7 +18,6 @@
 package com.couchbase.cblite.internal;
 
 import com.couchbase.cblite.CBLDatabase;
-import com.couchbase.cblite.CBLStatus;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -60,7 +59,14 @@ public class CBLRevisionInternal {
     public Map<String,Object> getProperties() {
         Map<String,Object> result = new HashMap<String, Object>();
         if(body != null) {
-            result.putAll(body.getProperties());
+            Map<String, Object> prop;
+            try{
+                prop = body.getProperties();
+            }  catch (IllegalStateException e){
+                // handle when both object and json are null for this body
+                return result;
+                }
+            result.putAll(prop);
         }
         return result;
     }
