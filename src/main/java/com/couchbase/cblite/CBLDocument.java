@@ -163,7 +163,7 @@ public class CBLDocument {
      */
     @InterfaceAudience.Public
     public boolean delete() throws CBLiteException {
-        return getCurrentRevision().delete() != null;
+        return getCurrentRevision().deleteDocument() != null;
     }
 
 

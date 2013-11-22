@@ -154,7 +154,7 @@ public class CBLSavedRevision extends CBLRevision {
      * @throws CBLiteException
      */
     @InterfaceAudience.Public
-    public CBLSavedRevision delete() throws CBLiteException {
+    public CBLSavedRevision deleteDocument() throws CBLiteException {
         return createRevision(null);
     }
 
