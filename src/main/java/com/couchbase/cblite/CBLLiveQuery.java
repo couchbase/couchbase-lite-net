@@ -97,7 +97,7 @@ public class CBLLiveQuery extends CBLQuery implements CBLChangeListener {
      * Blocks until the intial async query finishes. After this call either .rows or .error will be non-nil.
      */
     @InterfaceAudience.Public
-    public void waitForRows() throws Exception {
+    public void waitForRows() throws InterruptedException, ExecutionException {
         start();
         try {
             updateQueryFuture.get();
