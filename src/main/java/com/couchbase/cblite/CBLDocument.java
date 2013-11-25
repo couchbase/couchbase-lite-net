@@ -287,6 +287,21 @@ public class CBLDocument {
         throw new IllegalStateException("TODO: this needs to be implemented");
     }
 
+    /**
+     * Gets a reference to an optional application-defined model object representing this Document.
+     */
+    @InterfaceAudience.Public
+    public Object getModel() {
+        return model;
+    }
+
+    /**
+     * Sets a reference to an optional application-defined model object representing this Document.
+     */
+    @InterfaceAudience.Public
+    public void setModel(Object model) {
+        this.model = model;
+    }
 
     /**
      * Get the document's abbreviated ID
@@ -380,14 +395,6 @@ public class CBLDocument {
                 revId,
                 EnumSet.noneOf(CBLDatabase.TDContentOptions.class))
         );
-    }
-
-    public Object getModel() {
-        return model;
-    }
-
-    public void setModel(Object model) {
-        this.model = model;
     }
 
 
