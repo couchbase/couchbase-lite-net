@@ -369,7 +369,7 @@ public class CBLDatabase {
      * Returns the contents of the local document with the given ID, or nil if none exists.
      */
     @InterfaceAudience.Public
-    public Map<String, Object> getLocalDocument(String documentId) {
+    public Map<String, Object> getExistingLocalDocument(String documentId) {
         return getLocalDocument(makeLocalDocumentId(documentId), null).getProperties();
     }
 
@@ -3257,6 +3257,7 @@ public class CBLDatabase {
         return true;
     }
 
+    @InterfaceAudience.Private
     public CBLRevisionInternal getLocalDocument(String docID, String revID) {
 
         CBLRevisionInternal result = null;
