@@ -50,6 +50,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 
 /**
@@ -559,6 +560,17 @@ public class CBLDatabase {
         return shouldCommit;
     }
 
+    /**
+     * Runs the delegate asynchronously.
+     */
+    Future runAsync(final CBLDatabaseAsyncFunction function) {
+        return getManager().runAsync(new Runnable() {
+            @Override
+            public void run() {
+                function.performFunction(CBLDatabase.this);
+            }
+        });
+    }
 
     /**
      * Creates a replication that will 'push' to a database at the given URL, or returns an existing
