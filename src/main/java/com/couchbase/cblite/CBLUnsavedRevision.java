@@ -1,7 +1,11 @@
 package com.couchbase.cblite;
 
 import com.couchbase.cblite.internal.InterfaceAudience;
+import com.couchbase.cblite.util.Log;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -125,6 +129,38 @@ public class CBLUnsavedRevision extends CBLRevision {
         properties = newProps;
     }
 
+    /**
+     * Sets the attachment with the given name. The Attachment data will be written to the Database when the Revision is saved.
+     *
+     * @param name The name of the Attachment to set.
+     * @param contentType The content-type of the Attachment.
+     * @param contentStream The Attachment content.
+     */
+    @InterfaceAudience.Public
+    public void setAttachment(String name, String contentType, InputStream contentStream) {
+        CBLAttachment attachment = new CBLAttachment(contentStream, contentType);
+        addAttachment(attachment, name);
+    }
+
+    /**
+     * Sets the attachment with the given name. The Attachment data will be written to the Database when the Revision is saved.
+     *
+     * @param name The name of the Attachment to set.
+     * @param contentType The content-type of the Attachment.
+     * @param contentStreamURL The URL that contains the Attachment content.
+     */
+    @InterfaceAudience.Public
+    public void setAttachment(String name, String contentType, URL contentStreamURL) {
+        try {
+            InputStream inputStream = contentStreamURL.openStream();
+            setAttachment(name, contentType, inputStream);
+        } catch (IOException e) {
+            Log.e(CBLDatabase.TAG, "Error opening stream for url: " + contentStreamURL);
+            throw new RuntimeException(e);
+        }
+    }
+
+
     @Override
     @InterfaceAudience.Public
     public Map<String, Object> getProperties() {
@@ -155,5 +191,5 @@ public class CBLUnsavedRevision extends CBLRevision {
     }
 
 
-    
+
 }
