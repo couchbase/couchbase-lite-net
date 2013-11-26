@@ -71,12 +71,7 @@ public class CBLSavedRevision extends CBLRevision {
         return revisionInternal.getProperties() != null;
     }
 
-    /**
-     * Returns the history of this document as an array of CBLRevisions, in forward order.
-     * Older revisions are NOT guaranteed to have their properties available.
-     *
-     * @throws CBLiteException
-     */
+    @Override
     @InterfaceAudience.Public
     public List<CBLSavedRevision> getRevisionHistory() throws CBLiteException {
         List<CBLSavedRevision> revisions = new ArrayList<CBLSavedRevision>();

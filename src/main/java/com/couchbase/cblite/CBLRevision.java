@@ -175,6 +175,15 @@ public abstract class CBLRevision {
     @InterfaceAudience.Public
     public abstract String getParentRevisionId();
 
+    /**
+     * Returns the history of this document as an array of CBLRevisions, in forward order.
+     * Older revisions are NOT guaranteed to have their properties available.
+     *
+     * @throws CBLiteException
+     */
+    @InterfaceAudience.Public
+    public abstract List<CBLSavedRevision> getRevisionHistory() throws CBLiteException;
+
     Map<String, Object> getAttachmentMetadata() {
         return (Map<String, Object>) getProperty("_attachments");
     }

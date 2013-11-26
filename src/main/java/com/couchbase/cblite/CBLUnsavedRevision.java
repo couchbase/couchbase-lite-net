@@ -2,7 +2,9 @@ package com.couchbase.cblite;
 
 import com.couchbase.cblite.internal.InterfaceAudience;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class CBLUnsavedRevision extends CBLRevision {
@@ -128,6 +130,12 @@ public class CBLUnsavedRevision extends CBLRevision {
         return parentRevID;
     }
 
-
-
+    @Override
+    @InterfaceAudience.Public
+    public List<CBLSavedRevision> getRevisionHistory() throws CBLiteException {
+        // (Don't include self in the array, because this revision doesn't really exist yet)
+        CBLSavedRevision parent = getParentRevision();
+        return parent != null ? parent.getRevisionHistory() : new ArrayList<CBLSavedRevision>();
+    }
+    
 }
