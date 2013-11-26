@@ -274,7 +274,7 @@ public class CBLQuery {
     }
 
     @InterfaceAudience.Public
-    public boolean isPrefetch() {
+    public boolean shouldPrefetch() {
         return prefetch;
     }
 
@@ -284,7 +284,7 @@ public class CBLQuery {
     }
 
     @InterfaceAudience.Public
-    public boolean isIncludeDeleted() {
+    public boolean shouldIncludeDeleted() {
         return includeDeleted;
     }
 
@@ -336,12 +336,12 @@ public class CBLQuery {
      *  The originating CBLQuery's .error property will NOT change.
      */
     @InterfaceAudience.Public
-    public Future runAsync(final CBLQueryCompleteFunction queryCompleteFunction) {
+    public Future runAsync(final CBLQueryCompleteListener queryCompleteFunction) {
         return runAsyncInternal(queryCompleteFunction);
     }
 
     @InterfaceAudience.Private
-    Future runAsyncInternal(final CBLQueryCompleteFunction queryCompleteFunction) {
+    Future runAsyncInternal(final CBLQueryCompleteListener queryCompleteFunction) {
 
         return database.getManager().runAsync(new Runnable() {
             @Override
@@ -379,10 +379,10 @@ public class CBLQuery {
         queryOptions.setReduceSpecified(true);
         queryOptions.setGroupLevel(getGroupLevel());
         queryOptions.setDescending(isDescending());
-        queryOptions.setIncludeDocs(isPrefetch());
+        queryOptions.setIncludeDocs(shouldPrefetch());
         queryOptions.setUpdateSeq(true);
         queryOptions.setInclusiveEnd(true);
-        queryOptions.setIncludeDeletedDocs(isIncludeDeleted());
+        queryOptions.setIncludeDeletedDocs(shouldIncludeDeleted());
         queryOptions.setStale(getStaleness());
         return queryOptions;
     }

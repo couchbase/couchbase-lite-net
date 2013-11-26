@@ -17,7 +17,7 @@ public class CBLLiveQuery extends CBLQuery implements CBLChangeListener {
     private boolean observing;
     private boolean willUpdate;
     private CBLQueryEnumerator rows;
-    private List<CBLLiveQueryChangedFunction> observers = new ArrayList<CBLLiveQueryChangedFunction>();
+    private List<ChangeListener> observers = new ArrayList<ChangeListener>();
     private Throwable lastError;
 
     /**
@@ -31,7 +31,7 @@ public class CBLLiveQuery extends CBLQuery implements CBLChangeListener {
         setStartKey(query.getStartKey());
         setEndKey(query.getEndKey());
         setDescending(query.isDescending());
-        setPrefetch(query.isPrefetch());
+        setPrefetch(query.shouldPrefetch());
         setKeys(query.getKeys());
         setGroupLevel(query.getGroupLevel());
         setMapOnly(query.isMapOnly());
@@ -113,23 +113,17 @@ public class CBLLiveQuery extends CBLQuery implements CBLChangeListener {
     /**
      * Add a change listener to be notified when the live query result
      * set changes.
-     *
-     * TODO: not currently in the specification
-     * TODO: see https://github.com/couchbaselabs/couchbase-lite-api/issues/13
      */
     @InterfaceAudience.Public
-    public void addChangeListener(CBLLiveQueryChangedFunction liveQueryChangedFunction) {
+    public void addChangeListener(ChangeListener liveQueryChangedFunction) {
         observers.add(liveQueryChangedFunction);
     }
 
     /**
      * Remove previously added change listener
-     *
-     * TODO: not currently in the specification
-     * TODO: see https://github.com/couchbaselabs/couchbase-lite-api/issues/13
      */
     @InterfaceAudience.Public
-    public void removeChangeListener(CBLLiveQueryChangedFunction liveQueryChangedFunction) {
+    public void removeChangeListener(ChangeListener liveQueryChangedFunction) {
         observers.remove(liveQueryChangedFunction);
     }
 
@@ -138,13 +132,13 @@ public class CBLLiveQuery extends CBLQuery implements CBLChangeListener {
             throw new IllegalStateException("Cannot start LiveQuery when view is null");
         }
         setWillUpdate(false);
-        updateQueryFuture = runAsyncInternal(new CBLQueryCompleteFunction() {
+        updateQueryFuture = runAsyncInternal(new CBLQueryCompleteListener() {
             @Override
             public void onQueryChanged(CBLQueryEnumerator queryEnumerator) {
                 if (queryEnumerator != null && !queryEnumerator.equals(rows)) {
                     setRows(queryEnumerator);
-                    for (CBLLiveQueryChangedFunction observer : observers) {
-                        observer.onLiveQueryChanged(queryEnumerator);
+                    for (ChangeListener observer : observers) {
+                        observer.change(new ChangeEvent(CBLLiveQuery.this, queryEnumerator));
                     }
                 }
                 lastError = null;
@@ -152,8 +146,8 @@ public class CBLLiveQuery extends CBLQuery implements CBLChangeListener {
 
             @Override
             public void onFailureQueryChanged(Throwable exception) {
-                for (CBLLiveQueryChangedFunction observer : observers) {
-                    observer.onFailureLiveQueryChanged(exception);
+                for (ChangeListener observer : observers) {
+                    observer.change(new ChangeEvent(exception));
                 }
                 lastError = exception;
             }
@@ -180,6 +174,53 @@ public class CBLLiveQuery extends CBLQuery implements CBLChangeListener {
 
     private synchronized void setWillUpdate(boolean willUpdateParam) {
         willUpdate = willUpdateParam;
+    }
+
+    public static class ChangeEvent {
+
+        private CBLLiveQuery source;
+        private Throwable error;
+        private CBLQueryEnumerator queryEnumerator;
+
+        public ChangeEvent() {
+        }
+
+        public ChangeEvent(CBLLiveQuery source, CBLQueryEnumerator queryEnumerator) {
+            this.source = source;
+            this.queryEnumerator = queryEnumerator;
+        }
+
+        public ChangeEvent(Throwable error) {
+            this.error = error;
+        }
+
+        public CBLLiveQuery getSource() {
+            return source;
+        }
+
+        public void setSource(CBLLiveQuery source) {
+            this.source = source;
+        }
+
+        public Throwable getError() {
+            return error;
+        }
+
+        public void setError(Throwable error) {
+            this.error = error;
+        }
+
+        public CBLQueryEnumerator getQueryEnumerator() {
+            return queryEnumerator;
+        }
+
+        public void setQueryEnumerator(CBLQueryEnumerator queryEnumerator) {
+            this.queryEnumerator = queryEnumerator;
+        }
+    }
+
+    public static interface ChangeListener {
+        public void change(ChangeEvent event);
     }
 
 

@@ -1,6 +1,6 @@
 package com.couchbase.cblite;
 
-public interface CBLQueryCompleteFunction {
+public interface CBLQueryCompleteListener {
 
     public void onQueryChanged(CBLQueryEnumerator queryEnumerator);
 
