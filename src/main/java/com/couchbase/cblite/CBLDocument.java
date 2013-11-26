@@ -276,13 +276,13 @@ public class CBLDocument {
 
 
     @InterfaceAudience.Public
-    public void addChangeListener( /* DocumentChangedFunction listener */ ) {
+    public void addChangeListener(ChangeListener changeListener) {
         // TODO: Implement this
         throw new IllegalStateException("TODO: this needs to be implemented");
     }
 
     @InterfaceAudience.Public
-    public void removeChangeListener( /* DocumentChangedFunction listener */ ) {
+    public void removeChangeListener(ChangeListener changeListener) {
         // TODO: Implement this
         throw new IllegalStateException("TODO: this needs to be implemented");
     }
@@ -430,6 +430,22 @@ public class CBLDocument {
         // TODO: need to implement void addChangeListener(DocumentChangedFunction listener)
         // TODO: and at this point, the change listeners should be notified.
 
+    }
+
+    public static class ChangeEvent {
+        private CBLDocument source;
+
+        ChangeEvent(CBLDocument source) {
+            this.source = source;
+        }
+
+        public CBLDocument getSource() {
+            return source;
+        }
+    }
+
+    public static interface ChangeListener {
+        public void change(ChangeEvent event);
     }
 
 }
