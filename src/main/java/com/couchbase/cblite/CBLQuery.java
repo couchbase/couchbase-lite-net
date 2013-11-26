@@ -336,12 +336,12 @@ public class CBLQuery {
      *  The originating CBLQuery's .error property will NOT change.
      */
     @InterfaceAudience.Public
-    public Future runAsync(final CBLQueryCompleteListener onComplete) {
+    public Future runAsync(final QueryCompleteListener onComplete) {
         return runAsyncInternal(onComplete);
     }
 
     @InterfaceAudience.Private
-    Future runAsyncInternal(final CBLQueryCompleteListener onComplete) {
+    Future runAsyncInternal(final QueryCompleteListener onComplete) {
 
         return database.getManager().runAsync(new Runnable() {
             @Override
@@ -353,10 +353,10 @@ public class CBLQuery {
                     List<CBLQueryRow> rows = database.queryViewNamed(viewName, options, outSequence);
                     long sequenceNumber = outSequence.get(0);
                     CBLQueryEnumerator enumerator = new CBLQueryEnumerator(database, rows, sequenceNumber);
-                    onComplete.onQueryChanged(enumerator);
+                    onComplete.queryComplete(enumerator, null);
 
                 } catch (Throwable t) {
-                    onComplete.onFailureQueryChanged(t);
+                    onComplete.queryComplete(null, t);
                 }
             }
         });
@@ -394,5 +394,11 @@ public class CBLQuery {
             view.delete();
         }
     }
+
+    public static interface QueryCompleteListener {
+        public void queryComplete(CBLQueryEnumerator rows, Throwable error);
+    }
+
+
 
 }

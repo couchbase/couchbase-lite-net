@@ -115,16 +115,16 @@ public class CBLLiveQuery extends CBLQuery implements CBLChangeListener {
      * set changes.
      */
     @InterfaceAudience.Public
-    public void addChangeListener(ChangeListener liveQueryChangedFunction) {
-        observers.add(liveQueryChangedFunction);
+    public void addChangeListener(ChangeListener changeListener) {
+        observers.add(changeListener);
     }
 
     /**
      * Remove previously added change listener
      */
     @InterfaceAudience.Public
-    public void removeChangeListener(ChangeListener liveQueryChangedFunction) {
-        observers.remove(liveQueryChangedFunction);
+    public void removeChangeListener(ChangeListener changeListener) {
+        observers.remove(changeListener);
     }
 
     void update() {
@@ -132,36 +132,32 @@ public class CBLLiveQuery extends CBLQuery implements CBLChangeListener {
             throw new IllegalStateException("Cannot start LiveQuery when view is null");
         }
         setWillUpdate(false);
-        updateQueryFuture = runAsyncInternal(new CBLQueryCompleteListener() {
+        updateQueryFuture = runAsyncInternal(new QueryCompleteListener() {
             @Override
-            public void onQueryChanged(CBLQueryEnumerator queryEnumerator) {
-                if (queryEnumerator != null && !queryEnumerator.equals(rows)) {
-                    setRows(queryEnumerator);
+            public void queryComplete(CBLQueryEnumerator rows, Throwable error) {
+                if (error != null) {
                     for (ChangeListener observer : observers) {
-                        observer.change(new ChangeEvent(CBLLiveQuery.this, queryEnumerator));
+                        observer.change(new ChangeEvent(error));
                     }
+                    lastError = error;
+                } else {
+                    if (rows != null && !rows.equals(rows)) {
+                        setRows(rows);
+                        for (ChangeListener observer : observers) {
+                            observer.change(new ChangeEvent(CBLLiveQuery.this, rows));
+                        }
+                    }
+                    lastError = null;
                 }
-                lastError = null;
-            }
-
-            @Override
-            public void onFailureQueryChanged(Throwable exception) {
-                for (ChangeListener observer : observers) {
-                    observer.change(new ChangeEvent(exception));
-                }
-                lastError = exception;
             }
         });
     }
 
     public void onDatabaseChanged(CBLDatabase database, Map<String, Object> changeNotification) {
-
         if (!willUpdate) {
             setWillUpdate(true);
-
             update();
         }
-
     }
 
     public void onFailureDatabaseChanged(Throwable exception) {
