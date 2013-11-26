@@ -340,12 +340,6 @@ public class CBLQuery {
         return runAsyncInternal(queryCompleteFunction);
     }
 
-
-
-
-
-
-
     @InterfaceAudience.Private
     Future runAsyncInternal(final CBLQueryCompleteFunction queryCompleteFunction) {
 
@@ -372,10 +366,6 @@ public class CBLQuery {
     public CBLView getView() {
         return view;
     }
-
-
-
-
 
     private CBLQueryOptions getQueryOptions() {
         CBLQueryOptions queryOptions = new CBLQueryOptions();

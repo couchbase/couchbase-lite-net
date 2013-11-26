@@ -109,6 +109,22 @@ public class CBLUnsavedRevision extends CBLRevision {
         addAttachment(null, name);
     }
 
+    /**
+     * Sets the userProperties of the Revision.
+     * Set replaces all properties except for those with keys prefixed with '_'.
+     */
+    @InterfaceAudience.Public
+    public void setUserProperties(Map<String,Object> userProperties) {
+        Map<String, Object> newProps = new HashMap<String, Object>();
+        newProps.putAll(userProperties);
+        for (String key : properties.keySet()) {
+            if (key.startsWith("_")) {
+                newProps.put(key, properties.get(key));  // Preserve metadata properties
+            }
+        }
+        properties = newProps;
+    }
+
     @Override
     @InterfaceAudience.Public
     public Map<String, Object> getProperties() {
@@ -137,5 +153,7 @@ public class CBLUnsavedRevision extends CBLRevision {
         CBLSavedRevision parent = getParentRevision();
         return parent != null ? parent.getRevisionHistory() : new ArrayList<CBLSavedRevision>();
     }
+
+
     
 }

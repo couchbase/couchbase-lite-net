@@ -121,7 +121,7 @@ public abstract class CBLRevision {
                 result.put(key, sourceMap.get(key));
             }
         }
-        return Collections.unmodifiableMap(result);
+        return result;
     }
 
     /**
