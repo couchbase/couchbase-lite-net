@@ -15,7 +15,6 @@ import java.util.Map;
  */
 public abstract class CBLRevision {
 
-
     /**
      * The sequence number of this revision.
      */
@@ -30,6 +29,16 @@ public abstract class CBLRevision {
      * The document this is a revision of
      */
     protected CBLDocument document;
+
+    /**
+     * The ID of the parentRevision.
+     */
+    protected String parentRevID;
+
+    /**
+     * The revision this one is a child of.
+     */
+    protected CBLSavedRevision parentRevision;
 
     /**
      * Constructor
@@ -160,7 +169,11 @@ public abstract class CBLRevision {
         return new CBLAttachment(this, name, attachmentMetadata);
     }
 
+    @InterfaceAudience.Public
+    public abstract CBLSavedRevision getParentRevision();
 
+    @InterfaceAudience.Public
+    public abstract String getParentRevisionId();
 
     Map<String, Object> getAttachmentMetadata() {
         return (Map<String, Object>) getProperty("_attachments");
@@ -182,7 +195,6 @@ public abstract class CBLRevision {
     public int hashCode() {
         return document.getId().hashCode() ^ getId().hashCode();
     }
-
 
     void setSequence(long sequence) {
         this.sequence = sequence;

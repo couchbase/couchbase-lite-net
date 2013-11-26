@@ -7,7 +7,6 @@ import java.util.Map;
 
 public class CBLUnsavedRevision extends CBLRevision {
 
-    private String parentRevID;
     private Map<String, Object> properties;
 
     /**
@@ -114,9 +113,8 @@ public class CBLUnsavedRevision extends CBLRevision {
         return properties;
     }
 
-
-    // TODO: move this up to base class
-    // TODO: see https://github.com/couchbaselabs/couchbase-lite-api/issues/5
+    @Override
+    @InterfaceAudience.Public
     public CBLSavedRevision getParentRevision() {
         if (parentRevID == null || parentRevID.length() == 0) {
             return null;
@@ -124,12 +122,11 @@ public class CBLUnsavedRevision extends CBLRevision {
         return document.getRevision(parentRevID);
     }
 
-    // TODO: move this up to base class
-    // TODO: see https://github.com/couchbaselabs/couchbase-lite-api/issues/5
+    @Override
+    @InterfaceAudience.Public
     public String getParentRevisionId() {
         return parentRevID;
     }
-
 
 
 

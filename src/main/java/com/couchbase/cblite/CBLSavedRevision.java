@@ -158,6 +158,18 @@ public class CBLSavedRevision extends CBLRevision {
         return createRevision(null);
     }
 
+    @Override
+    @InterfaceAudience.Public
+    public CBLSavedRevision getParentRevision() {
+        return getDocument().getRevisionFromRev(getDatabase().getParentRevision(revisionInternal));
+    }
+
+    @Override
+    @InterfaceAudience.Public
+    public String getParentRevisionId() {
+        return getDocument().getDatabase().getParentRevision(revisionInternal).getRevId();
+    }
+
     boolean loadProperties() {
         try {
             HashMap<String, Object> emptyProperties = new HashMap<String, Object>();
