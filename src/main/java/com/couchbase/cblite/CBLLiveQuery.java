@@ -182,15 +182,15 @@ public class CBLLiveQuery extends CBLQuery implements CBLChangeListener {
         private Throwable error;
         private CBLQueryEnumerator queryEnumerator;
 
-        public ChangeEvent() {
+        ChangeEvent() {
         }
 
-        public ChangeEvent(CBLLiveQuery source, CBLQueryEnumerator queryEnumerator) {
+        ChangeEvent(CBLLiveQuery source, CBLQueryEnumerator queryEnumerator) {
             this.source = source;
             this.queryEnumerator = queryEnumerator;
         }
 
-        public ChangeEvent(Throwable error) {
+        ChangeEvent(Throwable error) {
             this.error = error;
         }
 
@@ -198,25 +198,14 @@ public class CBLLiveQuery extends CBLQuery implements CBLChangeListener {
             return source;
         }
 
-        public void setSource(CBLLiveQuery source) {
-            this.source = source;
-        }
-
         public Throwable getError() {
             return error;
-        }
-
-        public void setError(Throwable error) {
-            this.error = error;
         }
 
         public CBLQueryEnumerator getQueryEnumerator() {
             return queryEnumerator;
         }
 
-        public void setQueryEnumerator(CBLQueryEnumerator queryEnumerator) {
-            this.queryEnumerator = queryEnumerator;
-        }
     }
 
     public static interface ChangeListener {
