@@ -1,6 +1,6 @@
 package com.couchbase.cblite;
 
-public interface CBLCompileFilterDelegate {
+public interface CBLReplicationFilterCompiler {
 
     CBLFilterDelegate compileFilterFunction(String source, String language);
 
