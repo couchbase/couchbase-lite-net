@@ -1466,7 +1466,7 @@ public class CBLRouter implements CBLChangeListener {
         if(mapSource == null) {
             return null;
         }
-        CBLMapper mapBlock = CBLView.getCompiler().compileMapFunction(mapSource, language);
+        CBLMapper mapBlock = CBLView.getCompiler().compileMap(mapSource, language);
         if(mapBlock == null) {
             Log.w(CBLDatabase.TAG, String.format("View %s has unknown map function: %s", viewName, mapSource));
             return null;
@@ -1474,7 +1474,7 @@ public class CBLRouter implements CBLChangeListener {
         String reduceSource = (String)viewProps.get("reduce");
         CBLReducer reduceBlock = null;
         if(reduceSource != null) {
-            reduceBlock = CBLView.getCompiler().compileReduceFunction(reduceSource, language);
+            reduceBlock = CBLView.getCompiler().compileReduce(reduceSource, language);
             if(reduceBlock == null) {
                 Log.w(CBLDatabase.TAG, String.format("View %s has unknown reduce function: %s", viewName, reduceBlock));
                 return null;
