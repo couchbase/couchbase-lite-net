@@ -134,7 +134,7 @@ public class CBLUnsavedRevision extends CBLRevision {
      *
      * @param name The name of the Attachment to set.
      * @param contentType The content-type of the Attachment.
-     * @param contentStream The Attachment content.
+     * @param contentStream The Attachment content.  The InputStream will be closed after it is no longer needed.
      */
     @InterfaceAudience.Public
     public void setAttachment(String name, String contentType, InputStream contentStream) {
