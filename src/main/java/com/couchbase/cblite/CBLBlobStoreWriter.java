@@ -87,6 +87,12 @@ public class CBLBlobStoreWriter {
             }
         } catch (IOException e) {
             throw new RuntimeException("Unable to read from stream.", e);
+        } finally {
+            try {
+                inputStream.close();
+            } catch (IOException e) {
+                Log.w(CBLDatabase.TAG, "Exception closing input stream", e);
+            }
         }
     }
 
