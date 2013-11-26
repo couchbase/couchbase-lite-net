@@ -3140,6 +3140,64 @@ public class CBLDatabase {
         return new CBLQuery(this, map);
     }
 
+
+    CBLRevisionInternal getParentRevision(CBLRevisionInternal rev) {
+
+        // First get the parent's sequence:
+        long seq = rev.getSequence();
+        if (seq > 0) {
+            seq = longForQuery("SELECT parent FROM revs WHERE sequence=?", new String[] { Long.toString(seq) });
+        } else {
+            long docNumericID = getDocNumericID(rev.getDocId());
+            if (docNumericID <= 0) {
+                return null;
+            }
+            String[] args = new String[] { Long.toString(docNumericID), rev.getRevId() } ;
+            seq = longForQuery("SELECT parent FROM revs WHERE doc_id=? and revid=?", args);
+        }
+
+        if (seq == 0) {
+            return null;
+        }
+
+        // Now get its revID and deletion status:
+        CBLRevisionInternal result = null;
+
+        String[] args = { Long.toString(seq) };
+        String queryString = "SELECT revid, deleted FROM revs WHERE sequence=?";
+        Cursor cursor = null;
+
+        try {
+            cursor = database.rawQuery(queryString, args);
+            if (cursor.moveToNext()) {
+                String revId = cursor.getString(0);
+                boolean deleted = (cursor.getInt(1) > 0);
+                result = new CBLRevisionInternal(rev.getDocId(), revId, deleted, this);
+                result.setSequence(seq);
+            }
+        } finally {
+            cursor.close();
+        }
+        return result;
+    }
+
+
+    long longForQuery(String sqlQuery, String[] args) throws SQLException {
+        Cursor cursor = null;
+        long result = 0;
+        try {
+            cursor = database.rawQuery(sqlQuery, args);
+            if(cursor.moveToNext()) {
+                result = cursor.getLong(0);
+            }
+        } finally {
+            if(cursor != null) {
+                cursor.close();
+            }
+        }
+        return result;
+    }
+
     /**
      * Purges specific revisions, which deletes them completely from the local database _without_ adding a "tombstone" revision. It's as though they were never there.
      * This operation is described here: http://wiki.apache.org/couchdb/Purge_Documents
@@ -3389,5 +3447,7 @@ class TDValidationContextImpl implements CBLValidationContext {
     public void setErrorMessage(String message) {
         this.errorMessage = message;
     }
+
+
 
 }
