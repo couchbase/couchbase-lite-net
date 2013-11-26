@@ -1272,35 +1272,35 @@ public class CBLDatabase {
     public String findCommonAncestorOf(CBLRevisionInternal rev, List<String> revIDs) {
         String result = null;
 
-    	if (revIDs.size() == 0)
-    		return null;
-    	String docId = rev.getDocId();
-    	long docNumericID = getDocNumericID(docId);
-    	if (docNumericID <= 0)
-    		return null;
-    	String quotedRevIds = joinQuoted(revIDs);
-    	String sql = "SELECT revid FROM revs " +
-    			"WHERE doc_id=? and revid in (" + quotedRevIds + ") and revid <= ? " +
-    			"ORDER BY revid DESC LIMIT 1";
-    	String[] args = { Long.toString(docNumericID) };
+        if (revIDs.size() == 0)
+            return null;
+        String docId = rev.getDocId();
+        long docNumericID = getDocNumericID(docId);
+        if (docNumericID <= 0)
+            return null;
+        String quotedRevIds = joinQuoted(revIDs);
+        String sql = "SELECT revid FROM revs " +
+                "WHERE doc_id=? and revid in (" + quotedRevIds + ") and revid <= ? " +
+                "ORDER BY revid DESC LIMIT 1";
+        String[] args = {Long.toString(docNumericID)};
 
-    	Cursor cursor = null;
-    	try {
-    		cursor = database.rawQuery(sql, args);
-    		cursor.moveToFirst();
-            if(!cursor.isAfterLast()) {
+        Cursor cursor = null;
+        try {
+            cursor = database.rawQuery(sql, args);
+            cursor.moveToFirst();
+            if (!cursor.isAfterLast()) {
                 result = cursor.getString(0);
-    		}
+            }
 
-    	} catch (SQLException e) {
-    		Log.e(CBLDatabase.TAG, "Error getting all revisions of document", e);
-    	} finally {
-    		if(cursor != null) {
-    			cursor.close();
-    		}
-    	}
+        } catch (SQLException e) {
+            Log.e(CBLDatabase.TAG, "Error getting all revisions of document", e);
+        } finally {
+            if (cursor != null) {
+                cursor.close();
+            }
+        }
 
-    	return result;
+        return result;
     }
 
     /**
