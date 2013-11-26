@@ -67,7 +67,7 @@ public class CBLSavedRevision extends CBLRevision {
      * Has this object fetched its contents from the database yet?
      */
     @InterfaceAudience.Public
-    public boolean getPropertiesAvailable() {
+    public boolean arePropertiesAvailable() {
         return revisionInternal.getProperties() != null;
     }
 
