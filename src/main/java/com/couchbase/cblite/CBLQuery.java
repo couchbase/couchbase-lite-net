@@ -128,7 +128,7 @@ public class CBLQuery {
      * Constructor
      */
     @InterfaceAudience.Private
-    CBLQuery(CBLDatabase database, CBLMapFunction mapFunction) {
+    CBLQuery(CBLDatabase database, CBLMapper mapFunction) {
         this(database, database.makeAnonymousView());
         temporaryView = true;
         view.setMap(mapFunction, "");

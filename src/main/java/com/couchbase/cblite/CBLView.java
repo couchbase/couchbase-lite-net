@@ -47,8 +47,8 @@ public class CBLView {
     private CBLDatabase database;
     private String name;
     private int viewId;
-    private CBLMapFunction mapBlock;
-    private CBLReduceFunction reduceBlock;
+    private CBLMapper mapBlock;
+    private CBLReducer reduceBlock;
     private TDViewCollation collation;
     private static CBLViewCompiler compiler;
 
@@ -100,7 +100,7 @@ public class CBLView {
      * The map function that controls how index rows are created from documents.
      */
     @InterfaceAudience.Public
-    public CBLMapFunction getMap() {
+    public CBLMapper getMap() {
         return mapBlock;
     }
 
@@ -108,7 +108,7 @@ public class CBLView {
      * The optional reduce function, which aggregates together multiple rows.
      */
     @InterfaceAudience.Public
-    public CBLReduceFunction getReduce() {
+    public CBLReducer getReduce() {
         return reduceBlock;
     }
 
@@ -151,15 +151,15 @@ public class CBLView {
      * See setMapAndReduce() for more information.
      */
     @InterfaceAudience.Public
-    public boolean setMap(CBLMapFunction mapBlock, String version) {
+    public boolean setMap(CBLMapper mapBlock, String version) {
         return setMapAndReduce(mapBlock, null, version);
     }
 
     /**
      * Defines a view's functions.
      *
-     * The view's definition is given as a class that conforms to the CBLMapFunction or
-     * CBLReduceFunction interface (or null to delete the view). The body of the block
+     * The view's definition is given as a class that conforms to the CBLMapper or
+     * CBLReducer interface (or null to delete the view). The body of the block
      * should call the 'emit' object (passed in as a paramter) for every key/value pair
      * it wants to write to the view.
      *
@@ -178,8 +178,8 @@ public class CBLView {
      *
      */
     @InterfaceAudience.Public
-    public boolean setMapAndReduce(CBLMapFunction mapBlock,
-                                   CBLReduceFunction reduceBlock, String version) {
+    public boolean setMapAndReduce(CBLMapper mapBlock,
+                                   CBLReducer reduceBlock, String version) {
         assert (mapBlock != null);
         assert (version != null);
 
@@ -829,7 +829,7 @@ public class CBLView {
 
 }
 
-abstract class AbstractTouchMapEmitBlock implements CBLMapEmitFunction {
+abstract class AbstractTouchMapEmitBlock implements CBLEmitter {
 
     protected long sequence = 0;
 

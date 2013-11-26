@@ -8,11 +8,11 @@ import com.couchbase.cblite.CBLDatabase;
 import com.couchbase.cblite.CBLDatabase.TDContentOptions;
 import com.couchbase.cblite.CBLFilterDelegate;
 import com.couchbase.cblite.CBLManager;
-import com.couchbase.cblite.CBLMapFunction;
+import com.couchbase.cblite.CBLMapper;
 import com.couchbase.cblite.CBLMisc;
 import com.couchbase.cblite.CBLQueryOptions;
 import com.couchbase.cblite.CBLQueryRow;
-import com.couchbase.cblite.CBLReduceFunction;
+import com.couchbase.cblite.CBLReducer;
 import com.couchbase.cblite.CBLRevisionList;
 import com.couchbase.cblite.CBLStatus;
 import com.couchbase.cblite.CBLView;
@@ -1466,13 +1466,13 @@ public class CBLRouter implements CBLChangeListener {
         if(mapSource == null) {
             return null;
         }
-        CBLMapFunction mapBlock = CBLView.getCompiler().compileMapFunction(mapSource, language);
+        CBLMapper mapBlock = CBLView.getCompiler().compileMapFunction(mapSource, language);
         if(mapBlock == null) {
             Log.w(CBLDatabase.TAG, String.format("View %s has unknown map function: %s", viewName, mapSource));
             return null;
         }
         String reduceSource = (String)viewProps.get("reduce");
-        CBLReduceFunction reduceBlock = null;
+        CBLReducer reduceBlock = null;
         if(reduceSource != null) {
             reduceBlock = CBLView.getCompiler().compileReduceFunction(reduceSource, language);
             if(reduceBlock == null) {

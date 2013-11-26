@@ -5,7 +5,7 @@ import java.util.List;
 /**
  * Block container for the reduce callback function
  */
-public interface CBLReduceFunction {
+public interface CBLReducer {
 
     /**
      * A "reduce" function called to summarize the results of a view.

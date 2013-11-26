@@ -3136,7 +3136,7 @@ public class CBLDatabase {
      * development, but in general this is inefficient if this map will be used more than once,
      * because the entire view has to be regenerated from scratch every time.
      */
-    public CBLQuery slowQuery(CBLMapFunction map) {
+    public CBLQuery slowQuery(CBLMapper map) {
         return new CBLQuery(this, map);
     }
 

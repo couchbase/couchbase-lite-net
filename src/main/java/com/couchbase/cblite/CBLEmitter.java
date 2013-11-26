@@ -17,7 +17,7 @@
 
 package com.couchbase.cblite;
 
-public interface CBLMapEmitFunction {
+public interface CBLEmitter {
 
     void emit(Object key, Object value);
 
