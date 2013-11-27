@@ -37,6 +37,11 @@ public class CBLDocument {
     private Object model;
 
     /**
+     * Change Listeners
+     */
+    private List<ChangeListener> changeListeners;
+
+    /**
      * Constructor
      *
      * @param database   The document's owning database
@@ -277,14 +282,12 @@ public class CBLDocument {
 
     @InterfaceAudience.Public
     public void addChangeListener(ChangeListener changeListener) {
-        // TODO: Implement this
-        throw new IllegalStateException("TODO: this needs to be implemented");
+        changeListeners.add(changeListener);
     }
 
     @InterfaceAudience.Public
     public void removeChangeListener(ChangeListener changeListener) {
-        // TODO: Implement this
-        throw new IllegalStateException("TODO: this needs to be implemented");
+        changeListeners.remove(changeListener);
     }
 
     /**
@@ -420,16 +423,14 @@ public class CBLDocument {
         return (CBLRevisionInternal.CBLCompareRevIDs(revId, currentRevision.getId()) > 0);
     }
 
-
     void revisionAdded(Map<String,Object> changeNotification) {
         CBLRevisionInternal rev = (CBLRevisionInternal) changeNotification.get("rev");
         if (currentRevision != null && !rev.getRevId().equals(currentRevision.getId())) {
             currentRevision = new CBLSavedRevision(this, rev);
         }
-
-        // TODO: need to implement void addChangeListener(DocumentChangedFunction listener)
-        // TODO: and at this point, the change listeners should be notified.
-
+        for (ChangeListener listener : changeListeners) {
+            listener.change(new ChangeEvent(this));
+        }
     }
 
     public static class ChangeEvent {
