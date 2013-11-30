@@ -39,7 +39,7 @@ public class CBLDocument {
     /**
      * Change Listeners
      */
-    private List<ChangeListener> changeListeners;
+    private List<ChangeListener> changeListeners = new ArrayList<ChangeListener>();
 
     /**
      * Constructor
