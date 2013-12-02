@@ -198,7 +198,7 @@ public class CBLLiveQuery extends CBLQuery implements CBLChangeListener {
             return error;
         }
 
-        public CBLQueryEnumerator getQueryEnumerator() {
+        public CBLQueryEnumerator getRows() {
             return queryEnumerator;
         }
 
