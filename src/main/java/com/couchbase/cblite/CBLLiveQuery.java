@@ -134,7 +134,7 @@ public class CBLLiveQuery extends CBLQuery implements CBLChangeListener {
         setWillUpdate(false);
         updateQueryFuture = runAsyncInternal(new QueryCompleteListener() {
             @Override
-            public void queryComplete(CBLQueryEnumerator rows, Throwable error) {
+            public void completed(CBLQueryEnumerator rows, Throwable error) {
                 if (error != null) {
                     for (ChangeListener observer : observers) {
                         observer.changed(new ChangeEvent(error));

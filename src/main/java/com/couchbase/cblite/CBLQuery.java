@@ -341,10 +341,10 @@ public class CBLQuery {
                     List<CBLQueryRow> rows = database.queryViewNamed(viewName, options, outSequence);
                     long sequenceNumber = outSequence.get(0);
                     CBLQueryEnumerator enumerator = new CBLQueryEnumerator(database, rows, sequenceNumber);
-                    onComplete.queryComplete(enumerator, null);
+                    onComplete.completed(enumerator, null);
 
                 } catch (Throwable t) {
-                    onComplete.queryComplete(null, t);
+                    onComplete.completed(null, t);
                 }
             }
         });
@@ -384,7 +384,7 @@ public class CBLQuery {
     }
 
     public static interface QueryCompleteListener {
-        public void queryComplete(CBLQueryEnumerator rows, Throwable error);
+        public void completed(CBLQueryEnumerator rows, Throwable error);
     }
 
 
