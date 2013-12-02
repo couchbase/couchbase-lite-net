@@ -11,8 +11,8 @@ import java.util.concurrent.Future;
  */
 public class CBLQuery {
 
-    public enum CBLStaleness {
-        CBLStaleNever, CBLStaleOK, CBLStaleUpdateAfter
+    public enum CBLIndexUpdateMode {
+        NEVER, BEFORE, AFTER
     }
 
     /**
@@ -67,7 +67,7 @@ public class CBLQuery {
      * If set, the view will not be updated for this query, even if the database has changed.
      * This allows faster results at the expense of returning possibly out-of-date data.
      */
-    private CBLStaleness staleness;
+    private CBLIndexUpdateMode indexUpdateMode;
 
     /**
      * Should the rows be returned in descending key order? Default value is NO.
@@ -121,7 +121,7 @@ public class CBLQuery {
         this.view = view;
         limit = Integer.MAX_VALUE;
         mapOnly = (view != null && view.getReduce() == null);
-        staleness = CBLStaleness.CBLStaleNever;
+        indexUpdateMode = CBLIndexUpdateMode.NEVER;
     }
 
     /**
@@ -151,7 +151,7 @@ public class CBLQuery {
         mapOnly = query.mapOnly;
         startKeyDocId = query.startKeyDocId;
         endKeyDocId = query.endKeyDocId;
-        staleness = query.staleness;
+        indexUpdateMode = query.indexUpdateMode;
     }
 
     /**
@@ -234,13 +234,13 @@ public class CBLQuery {
     }
 
     @InterfaceAudience.Public
-    public CBLStaleness getStaleness() {
-        return staleness;
+    public CBLIndexUpdateMode getIndexUpdateMode() {
+        return indexUpdateMode;
     }
 
     @InterfaceAudience.Public
-    public void setStaleness(CBLStaleness staleness) {
-        this.staleness = staleness;
+    public void setIndexUpdateMode(CBLIndexUpdateMode indexUpdateMode) {
+        this.indexUpdateMode = indexUpdateMode;
     }
 
     @InterfaceAudience.Public
@@ -383,7 +383,7 @@ public class CBLQuery {
         queryOptions.setUpdateSeq(true);
         queryOptions.setInclusiveEnd(true);
         queryOptions.setIncludeDeletedDocs(shouldIncludeDeleted());
-        queryOptions.setStale(getStaleness());
+        queryOptions.setStale(getIndexUpdateMode());
         return queryOptions;
     }
 

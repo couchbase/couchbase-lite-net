@@ -37,7 +37,7 @@ public class CBLLiveQuery extends CBLQuery implements CBLChangeListener {
         setMapOnly(query.isMapOnly());
         setStartKeyDocId(query.getStartKeyDocId());
         setEndKeyDocId(query.getEndKeyDocId());
-        setStaleness(query.getStaleness());
+        setIndexUpdateMode(query.getIndexUpdateMode());
     }
 
     /**

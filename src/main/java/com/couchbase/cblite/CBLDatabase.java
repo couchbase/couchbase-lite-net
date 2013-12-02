@@ -1552,10 +1552,10 @@ public class CBLDatabase {
                 throw new CBLiteException(new CBLStatus(CBLStatus.NOT_FOUND));
             }
             lastSequence = view.getLastSequenceIndexed();
-            if (options.getStale() == CBLQuery.CBLStaleness.CBLStaleNever || lastSequence <= 0) {
+            if (options.getStale() == CBLQuery.CBLIndexUpdateMode.NEVER || lastSequence <= 0) {
                 view.updateIndex();
                 lastSequence = view.getLastSequenceIndexed();
-            } else if (options.getStale() == CBLQuery.CBLStaleness.CBLStaleUpdateAfter && lastSequence < getLastSequenceNumber()) {
+            } else if (options.getStale() == CBLQuery.CBLIndexUpdateMode.AFTER && lastSequence < getLastSequenceNumber()) {
 
                 new Thread(new Runnable() {
                     @Override

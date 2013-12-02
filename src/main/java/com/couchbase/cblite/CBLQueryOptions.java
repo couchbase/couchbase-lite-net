@@ -43,7 +43,7 @@ public class CBLQueryOptions {
     private boolean reduce = false;
     private boolean reduceSpecified = false;
     private boolean group = false;
-    private CBLQuery.CBLStaleness stale;
+    private CBLQuery.CBLIndexUpdateMode stale;
 
 
     public Object getStartKey() {
@@ -150,7 +150,7 @@ public class CBLQueryOptions {
         this.keys = keys;
     }
 
-    public CBLQuery.CBLStaleness getStale() {
+    public CBLQuery.CBLIndexUpdateMode getStale() {
         return stale;
     }
 
@@ -162,7 +162,7 @@ public class CBLQueryOptions {
         this.includeDeletedDocs = includeDeletedDocs;
     }
 
-    public void setStale(CBLQuery.CBLStaleness stale) {
+    public void setStale(CBLQuery.CBLIndexUpdateMode stale) {
         this.stale = stale;
     }
 
