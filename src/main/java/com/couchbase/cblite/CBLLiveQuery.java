@@ -137,14 +137,14 @@ public class CBLLiveQuery extends CBLQuery implements CBLChangeListener {
             public void queryComplete(CBLQueryEnumerator rows, Throwable error) {
                 if (error != null) {
                     for (ChangeListener observer : observers) {
-                        observer.change(new ChangeEvent(error));
+                        observer.changed(new ChangeEvent(error));
                     }
                     lastError = error;
                 } else {
                     if (rows != null && !rows.equals(rows)) {
                         setRows(rows);
                         for (ChangeListener observer : observers) {
-                            observer.change(new ChangeEvent(CBLLiveQuery.this, rows));
+                            observer.changed(new ChangeEvent(CBLLiveQuery.this, rows));
                         }
                     }
                     lastError = null;
@@ -205,7 +205,7 @@ public class CBLLiveQuery extends CBLQuery implements CBLChangeListener {
     }
 
     public static interface ChangeListener {
-        public void change(ChangeEvent event);
+        public void changed(ChangeEvent event);
     }
 
 
