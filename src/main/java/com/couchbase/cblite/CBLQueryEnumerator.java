@@ -118,4 +118,13 @@ public class CBLQueryEnumerator implements Iterator<CBLQueryRow> {
         return sequenceNumber < database.getLastSequenceNumber();
     }
 
+    /**
+     * Resets the enumeration so the next call to -nextObject or -nextRow will return the first row.
+     */
+    @InterfaceAudience.Public
+    public void reset() {
+        nextRow = 0;
+    }
+
+
 }
