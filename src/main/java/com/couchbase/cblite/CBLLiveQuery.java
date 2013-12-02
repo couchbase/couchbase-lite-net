@@ -45,7 +45,7 @@ public class CBLLiveQuery extends CBLQuery implements CBLChangeListener {
      * Its value will be nil until the initial query finishes.
      */
     @InterfaceAudience.Public
-    public CBLQueryEnumerator getRows() throws CBLiteException {
+    public CBLQueryEnumerator run() throws CBLiteException {
         if (rows == null) {
             return null;
         }

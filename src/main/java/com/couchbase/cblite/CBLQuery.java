@@ -298,24 +298,12 @@ public class CBLQuery {
      * If the query fails, this method returns nil and sets the query's .error property.
      */
     @InterfaceAudience.Public
-    public CBLQueryEnumerator getRows() throws CBLiteException {
+    public CBLQueryEnumerator run() throws CBLiteException {
         List<Long> outSequence = new ArrayList<Long>();
         String viewName = (view != null) ? view.getName() : null;
         List<CBLQueryRow> rows = database.queryViewNamed(viewName, getQueryOptions(), outSequence);
         lastSequence = outSequence.get(0);
         return new CBLQueryEnumerator(database, rows, lastSequence);
-    }
-
-    /**
-     * Same as -rows, except returns nil if the query results have not changed since the last time it
-     * was evaluated (Synchronous).
-     */
-    @InterfaceAudience.Public
-    public CBLQueryEnumerator getRowsIfChanged() throws CBLiteException {
-        if (database.getLastSequenceNumber() == lastSequence) {
-            return null;
-        }
-        return getRows();
     }
 
     /**
