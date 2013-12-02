@@ -109,4 +109,13 @@ public class CBLQueryEnumerator implements Iterator<CBLQueryRow> {
     public void remove() {
         throw new UnsupportedOperationException("CBLQueryEnumerator does not allow remove() to be called");
     }
+
+    /**
+     * True if the database has changed since the view was generated.
+     */
+    @InterfaceAudience.Public
+    public boolean isStale() {
+        return sequenceNumber < database.getLastSequenceNumber();
+    }
+
 }
