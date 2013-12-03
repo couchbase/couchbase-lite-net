@@ -271,13 +271,13 @@ public class CBLManager {
      * CBLDatabase instance.  There is not currently a known reason to use it, it may not make
      * sense on the Android API, but it was added for the purpose of having a consistent API with iOS.
      */
-    public Future runAsync(String databaseName, final CBLDatabaseAsyncFunction function) {
+    public Future runAsync(String databaseName, final AsyncTask function) {
 
         final CBLDatabase database = getDatabase(databaseName);
         return runAsync(new Runnable() {
             @Override
             public void run() {
-                function.performFunction(database);
+                function.run(database);
             }
         });
 

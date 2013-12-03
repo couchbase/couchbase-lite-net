@@ -563,11 +563,11 @@ public class CBLDatabase {
     /**
      * Runs the delegate asynchronously.
      */
-    Future runAsync(final CBLDatabaseAsyncFunction function) {
+    Future runAsync(final AsyncTask function) {
         return getManager().runAsync(new Runnable() {
             @Override
             public void run() {
-                function.performFunction(CBLDatabase.this);
+                function.run(CBLDatabase.this);
             }
         });
     }
