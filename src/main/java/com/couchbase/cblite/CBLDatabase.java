@@ -542,13 +542,13 @@ public class CBLDatabase {
      * @param databaseFunction
      */
     @InterfaceAudience.Public
-    public boolean runInTransaction(CBLRunInTransactionDelegate databaseFunction) {
+    public boolean runInTransaction(TransactionTask databaseFunction) {
 
         boolean shouldCommit = true;
 
         beginTransaction();
         try {
-            shouldCommit = databaseFunction.performFunction();
+            shouldCommit = databaseFunction.run();
         } catch (Exception e) {
             shouldCommit = false;
             Log.e(CBLDatabase.TAG, e.toString(), e);
@@ -3208,9 +3208,9 @@ public class CBLDatabase {
     Map<String, Object> purgeRevisions(final Map<String, List<String>> docsToRevs) {
 
         final Map<String, Object> result = new HashMap<String, Object>();
-        runInTransaction(new CBLRunInTransactionDelegate() {
+        runInTransaction(new TransactionTask() {
             @Override
-            public boolean performFunction() {
+            public boolean run() {
                 for (String docID : docsToRevs.keySet()) {
                     long docNumericID = getDocNumericID(docID);
                     if (docNumericID == -1) {
