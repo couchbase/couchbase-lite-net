@@ -58,7 +58,7 @@ public class CBLManager {
     public CBLManager() {
         final String detailMessage = "Parameterless constructor is not a valid API call on Android. " +
                 " Pure java version coming soon.";
-        throw new RuntimeException(detailMessage);
+        throw new UnsupportedOperationException(detailMessage);
     }
 
     @InterfaceAudience.Public
@@ -85,7 +85,7 @@ public class CBLManager {
     public static CBLManager getSharedInstance() {
         final String detailMessage = "getSharedInstance() is not a valid API call on Android. " +
                 " Pure java version coming soon";
-        throw new RuntimeException(detailMessage);
+        throw new UnsupportedOperationException(detailMessage);
     }
 
     /**
