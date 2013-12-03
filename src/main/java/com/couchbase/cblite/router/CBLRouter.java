@@ -2,10 +2,10 @@ package com.couchbase.cblite.router;
 
 
 import com.couchbase.cblite.CBLAttachment;
-import com.couchbase.cblite.CBLChangeListener;
 import com.couchbase.cblite.CBLChangesOptions;
 import com.couchbase.cblite.CBLDatabase;
 import com.couchbase.cblite.CBLDatabase.TDContentOptions;
+import com.couchbase.cblite.DocumentChange;
 import com.couchbase.cblite.ReplicationFilter;
 import com.couchbase.cblite.CBLManager;
 import com.couchbase.cblite.CBLMapper;
@@ -46,7 +46,7 @@ import java.util.List;
 import java.util.Map;
 
 
-public class CBLRouter implements CBLChangeListener {
+public class CBLRouter implements CBLDatabase.ChangeListener {
 
     private CBLManager manager;
     private CBLDatabase db;
@@ -1063,47 +1063,46 @@ public class CBLRouter implements CBLChangeListener {
     }
 
     @Override
-    public void onDatabaseChanged(CBLDatabase database, Map<String, Object> changeNotification) {
+    public void changed(CBLDatabase.ChangeEvent event) {
 
-        CBLRevisionInternal rev = (CBLRevisionInternal)changeNotification.get("rev");
+        List<DocumentChange> changes = event.getChanges();
+        for (DocumentChange change : changes) {
 
-        if(changesFilter != null && !changesFilter.filter(rev, null)) {
-            return;
-        }
+            CBLRevisionInternal rev = change.getRevisionInternal();
 
-        if(longpoll) {
-            Log.w(CBLDatabase.TAG, "CBLRouter: Sending longpoll response");
-            sendResponse();
-            List<CBLRevisionInternal> revs = new ArrayList<CBLRevisionInternal>();
-            revs.add(rev);
-            Map<String,Object> body = responseBodyForChanges(revs, 0);
-            if(callbackBlock != null) {
-                byte[] data = null;
-                try {
-                    data = CBLManager.getObjectMapper().writeValueAsBytes(body);
-                } catch (Exception e) {
-                    Log.w(CBLDatabase.TAG, "Error serializing JSON", e);
-                }
-                OutputStream os = connection.getResponseOutputStream();
-                try {
-                    os.write(data);
-                    os.close();
-                } catch (IOException e) {
-                    Log.e(CBLDatabase.TAG, "IOException writing to internal streams", e);
-                }
+            if(changesFilter != null && !changesFilter.filter(rev, null)) {
+                return;
             }
-        } else {
-            Log.w(CBLDatabase.TAG, "CBLRouter: Sending continous change chunk");
-            sendContinuousChange(rev);
+
+            if(longpoll) {
+                Log.w(CBLDatabase.TAG, "CBLRouter: Sending longpoll response");
+                sendResponse();
+                List<CBLRevisionInternal> revs = new ArrayList<CBLRevisionInternal>();
+                revs.add(rev);
+                Map<String,Object> body = responseBodyForChanges(revs, 0);
+                if(callbackBlock != null) {
+                    byte[] data = null;
+                    try {
+                        data = CBLManager.getObjectMapper().writeValueAsBytes(body);
+                    } catch (Exception e) {
+                        Log.w(CBLDatabase.TAG, "Error serializing JSON", e);
+                    }
+                    OutputStream os = connection.getResponseOutputStream();
+                    try {
+                        os.write(data);
+                        os.close();
+                    } catch (IOException e) {
+                        Log.e(CBLDatabase.TAG, "IOException writing to internal streams", e);
+                    }
+                }
+            } else {
+                Log.w(CBLDatabase.TAG, "CBLRouter: Sending continous change chunk");
+                sendContinuousChange(rev);
+            }
+
         }
 
     }
-
-    @Override
-    public void onFailureDatabaseChanged(Throwable exception) {
-        Log.e(CBLDatabase.TAG, "onFailureDatabaseChanged", exception);
-    }
-
 
     public CBLStatus do_GET_Document_changes(CBLDatabase _db, String docID, String _attachmentName) {
         // http://wiki.apache.org/couchdb/HTTP_database_API#Changes

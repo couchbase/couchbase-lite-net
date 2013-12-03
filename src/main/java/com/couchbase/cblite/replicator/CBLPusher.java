@@ -2,8 +2,8 @@ package com.couchbase.cblite.replicator;
 
 import com.couchbase.cblite.CBLBlobKey;
 import com.couchbase.cblite.CBLBlobStore;
-import com.couchbase.cblite.CBLChangeListener;
 import com.couchbase.cblite.CBLDatabase;
+import com.couchbase.cblite.DocumentChange;
 import com.couchbase.cblite.ReplicationFilter;
 import com.couchbase.cblite.CBLManager;
 import com.couchbase.cblite.CBLRevisionList;
@@ -30,7 +30,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ScheduledExecutorService;
 
-public class CBLPusher extends CBLReplicator implements CBLChangeListener {
+public class CBLPusher extends CBLReplicator implements CBLDatabase.ChangeListener {
 
 
     private boolean createTarget;
@@ -148,22 +148,22 @@ public class CBLPusher extends CBLReplicator implements CBLChangeListener {
         }
     }
 
-    @Override
-    public void onDatabaseChanged(CBLDatabase database, Map<String, Object> changeNotification) {
-        // Skip revisions that originally came from the database I'm syncing to:
-        URL source = (URL)changeNotification.get("source");
-        if(source != null && source.equals(remote.toExternalForm())) {
-            return;
-        }
-        CBLRevisionInternal rev = (CBLRevisionInternal)changeNotification.get("rev");
-        if(rev != null && ((filter == null) || filter.filter(rev, null))) {
-            addToInbox(rev);
-        }
-    }
 
     @Override
-    public void onFailureDatabaseChanged(Throwable exception) {
-        Log.e(CBLDatabase.TAG, "onFailureDatabaseChanged", exception);
+    public void changed(CBLDatabase.ChangeEvent event) {
+        List<DocumentChange> changes = event.getChanges();
+        for (DocumentChange change : changes) {
+            // Skip revisions that originally came from the database I'm syncing to:
+            URL source = change.getSourceUrl();
+            if(source != null && source.equals(remote)) {
+                return;
+            }
+            CBLRevisionInternal rev = change.getRevisionInternal();
+            if(rev != null && ((filter == null) || filter.filter(rev, null))) {
+                addToInbox(rev);
+            }
+        }
+
     }
 
     @Override
@@ -187,7 +187,6 @@ public class CBLPusher extends CBLReplicator implements CBLChangeListener {
 
             @Override
             public void onCompletion(Object response, Throwable e) {
-
 
                 Map<String,Object> results = (Map<String,Object>)response;
                 if(e != null) {

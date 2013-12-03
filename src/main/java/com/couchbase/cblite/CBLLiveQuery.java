@@ -12,7 +12,7 @@ import java.util.concurrent.ExecutionException;
  * A CBLQuery subclass that automatically refreshes the result rows every time the database changes.
  * All you need to do is use add a listener to observe changes.
  */
-public class CBLLiveQuery extends CBLQuery implements CBLChangeListener {
+public class CBLLiveQuery extends CBLQuery implements CBLDatabase.ChangeListener {
 
     private boolean observing;
     private boolean willUpdate;
@@ -153,15 +153,12 @@ public class CBLLiveQuery extends CBLQuery implements CBLChangeListener {
         });
     }
 
-    public void onDatabaseChanged(CBLDatabase database, Map<String, Object> changeNotification) {
+    @Override
+    public void changed(CBLDatabase.ChangeEvent event) {
         if (!willUpdate) {
             setWillUpdate(true);
             update();
         }
-    }
-
-    public void onFailureDatabaseChanged(Throwable exception) {
-        Log.e(CBLDatabase.TAG, "onFailureDatabaseChanged", exception);
     }
 
     private synchronized void setRows(CBLQueryEnumerator queryEnumerator) {
