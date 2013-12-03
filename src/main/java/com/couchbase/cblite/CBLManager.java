@@ -55,8 +55,10 @@ public class CBLManager {
     }
 
     @InterfaceAudience.Public
-    public CBLManager(File directoryFile) {
-        this(directoryFile, DEFAULT_OPTIONS);
+    public CBLManager() {
+        final String detailMessage = "Parameterless constructor is not a valid API call on Android. " +
+                " Pure java version coming soon.";
+        throw new RuntimeException(detailMessage);
     }
 
     @InterfaceAudience.Public
@@ -81,17 +83,10 @@ public class CBLManager {
 
     @InterfaceAudience.Public
     public static CBLManager getSharedInstance() {
-        return sharedInstance;
+        final String detailMessage = "getSharedInstance() is not a valid API call on Android. " +
+                " Pure java version coming soon";
+        throw new RuntimeException(detailMessage);
     }
-
-    @InterfaceAudience.Public
-    public synchronized static CBLManager createSharedInstance(File directoryFile, CBLManagerOptions options) {
-        if (sharedInstance == null) {
-            sharedInstance = new CBLManager(directoryFile, options);
-        }
-        return sharedInstance;
-    }
-
 
     /**
      * Returns YES if the given name is a valid database name.
