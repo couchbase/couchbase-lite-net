@@ -33,6 +33,7 @@ import java.util.Map;
 import java.util.concurrent.ScheduledExecutorService;
 
 
+@InterfaceAudience.Private
 public class CBLPuller extends CBLReplicator implements CBLChangeTrackerClient {
 
     private static final int MAX_OPEN_HTTP_CONNECTIONS = 16;
@@ -67,12 +68,13 @@ public class CBLPuller extends CBLReplicator implements CBLChangeTrackerClient {
 
     @Override
     @InterfaceAudience.Public
-    public boolean isCreateTarget() {
-        // TODO: make this actually do something
+    public boolean shouldCreateTarget() {
         return false;
     }
 
-
+    @Override
+    @InterfaceAudience.Public
+    public void setCreateTarget(boolean createTarget) { }
 
     @Override
     public void beginReplicating() {

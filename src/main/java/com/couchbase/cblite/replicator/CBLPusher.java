@@ -30,10 +30,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ScheduledExecutorService;
 
+@InterfaceAudience.Private
 public class CBLPusher extends CBLReplicator implements CBLDatabase.ChangeListener {
 
-
-    private boolean createTarget;
+    private boolean shouldCreateTarget;
     private boolean observing;
     private ReplicationFilter filter;
 
@@ -51,7 +51,7 @@ public class CBLPusher extends CBLReplicator implements CBLDatabase.ChangeListen
     @InterfaceAudience.Private
     public CBLPusher(CBLDatabase db, URL remote, boolean continuous, HttpClientFactory clientFactory, ScheduledExecutorService workExecutor) {
         super(db, remote, continuous, clientFactory, workExecutor);
-        createTarget = false;
+        shouldCreateTarget = false;
         observing = false;
     }
 
@@ -63,24 +63,26 @@ public class CBLPusher extends CBLReplicator implements CBLDatabase.ChangeListen
 
     @Override
     @InterfaceAudience.Public
-    public boolean isCreateTarget() {
-        // TODO: make this actually do something
-        return createTarget;
+    public boolean shouldCreateTarget() {
+        return shouldCreateTarget;
     }
 
-
+    @Override
+    @InterfaceAudience.Public
     public void setCreateTarget(boolean createTarget) {
-        this.createTarget = createTarget;
+        this.shouldCreateTarget = createTarget;
     }
 
+    @Override
+    @InterfaceAudience.Public
     public void setFilter(ReplicationFilter filter) {
         this.filter = filter;
     }
 
 
     @Override
-    public void maybeCreateRemoteDB() {
-        if(!createTarget) {
+    void maybeCreateRemoteDB() {
+        if(!shouldCreateTarget) {
             return;
         }
         Log.v(CBLDatabase.TAG, "Remote db might not exist; creating it...");
@@ -94,7 +96,7 @@ public class CBLPusher extends CBLReplicator implements CBLDatabase.ChangeListen
                     Log.v(CBLDatabase.TAG, "Created remote db");
 
                 }
-                createTarget = false;
+                shouldCreateTarget = false;
                 beginReplicating();
             }
 
@@ -105,7 +107,7 @@ public class CBLPusher extends CBLReplicator implements CBLDatabase.ChangeListen
     public void beginReplicating() {
         // If we're still waiting to create the remote db, do nothing now. (This method will be
         // re-invoked after that request finishes; see maybeCreateRemoteDB() above.)
-        if(createTarget) {
+        if(shouldCreateTarget) {
             return;
         }
 

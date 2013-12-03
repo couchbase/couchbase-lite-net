@@ -177,8 +177,13 @@ public abstract class CBLReplicator extends Observable {
      * Should the target database be created if it doesn't already exist? (Defaults to NO).
      */
     @InterfaceAudience.Public
-    public abstract boolean isCreateTarget();
+    public abstract boolean shouldCreateTarget();
 
+    /**
+     * Set whether the target database be created if it doesn't already exist?
+     */
+    @InterfaceAudience.Public
+    public abstract void setCreateTarget(boolean createTarget);
 
     @InterfaceAudience.Public
     public boolean isContinuous() {
@@ -489,7 +494,7 @@ public abstract class CBLReplicator extends Observable {
      * CHECKPOINT STORAGE: *
      */
 
-    public void maybeCreateRemoteDB() {
+     void maybeCreateRemoteDB() {
         // CBLPusher overrides this to implement the .createTarget option
     }
 
