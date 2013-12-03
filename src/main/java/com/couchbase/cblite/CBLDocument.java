@@ -247,22 +247,22 @@ public class CBLDocument {
     /**
      * Saves a new revision by letting the caller update the existing properties.
      * This method handles conflicts by retrying (calling the block again).
-     * The CBLUpdateDelegate implementation should modify the properties of the new revision and return YES to save or
-     * NO to cancel. Be careful: the CBLUpdateDelegate can be called multiple times if there is a conflict!
+     * The DocumentUpdater implementation should modify the properties of the new revision and return YES to save or
+     * NO to cancel. Be careful: the DocumentUpdater can be called multiple times if there is a conflict!
      *
-     * @param updater the callback CBLUpdateDelegate implementation.  Will be called on each
+     * @param updater the callback DocumentUpdater implementation.  Will be called on each
      *                attempt to save. Should update the given revision's properties and then
      *                return YES, or just return NO to cancel.
      * @return The new saved revision, or null on error or cancellation.
      * @throws CBLiteException
      */
     @InterfaceAudience.Public
-    public CBLSavedRevision update(CBLUpdateDelegate updater) throws CBLiteException {
+    public CBLSavedRevision update(DocumentUpdater updater) throws CBLiteException {
 
         int lastErrorCode = CBLStatus.UNKNOWN;
         do {
             CBLUnsavedRevision newRev = createRevision();
-            if (updater.updateRevision(newRev) == false) {
+            if (updater.update(newRev) == false) {
                 break;
             }
             try {
@@ -401,8 +401,8 @@ public class CBLDocument {
     }
 
 
-    public static interface CBLUpdateDelegate {
-        public boolean updateRevision(CBLUnsavedRevision newRevision);
+    public static interface DocumentUpdater {
+        public boolean update(CBLUnsavedRevision newRevision);
     }
 
     void loadCurrentRevisionFrom(CBLQueryRow row) {
