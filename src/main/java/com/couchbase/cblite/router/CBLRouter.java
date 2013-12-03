@@ -6,7 +6,7 @@ import com.couchbase.cblite.CBLChangeListener;
 import com.couchbase.cblite.CBLChangesOptions;
 import com.couchbase.cblite.CBLDatabase;
 import com.couchbase.cblite.CBLDatabase.TDContentOptions;
-import com.couchbase.cblite.CBLFilterDelegate;
+import com.couchbase.cblite.ReplicationFilter;
 import com.couchbase.cblite.CBLManager;
 import com.couchbase.cblite.CBLMapper;
 import com.couchbase.cblite.CBLMisc;
@@ -56,7 +56,7 @@ public class CBLRouter implements CBLChangeListener {
     private CBLRouterCallbackBlock callbackBlock;
     private boolean responseSent = false;
     private boolean waiting = false;
-    private CBLFilterDelegate changesFilter;
+    private ReplicationFilter changesFilter;
     private boolean longpoll = false;
 
     public static String getVersionString() {

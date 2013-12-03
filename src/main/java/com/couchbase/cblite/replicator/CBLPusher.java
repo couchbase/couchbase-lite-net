@@ -4,7 +4,7 @@ import com.couchbase.cblite.CBLBlobKey;
 import com.couchbase.cblite.CBLBlobStore;
 import com.couchbase.cblite.CBLChangeListener;
 import com.couchbase.cblite.CBLDatabase;
-import com.couchbase.cblite.CBLFilterDelegate;
+import com.couchbase.cblite.ReplicationFilter;
 import com.couchbase.cblite.CBLManager;
 import com.couchbase.cblite.CBLRevisionList;
 import com.couchbase.cblite.CBLiteException;
@@ -35,7 +35,7 @@ public class CBLPusher extends CBLReplicator implements CBLChangeListener {
 
     private boolean createTarget;
     private boolean observing;
-    private CBLFilterDelegate filter;
+    private ReplicationFilter filter;
 
     /**
      * Constructor
@@ -73,7 +73,7 @@ public class CBLPusher extends CBLReplicator implements CBLChangeListener {
         this.createTarget = createTarget;
     }
 
-    public void setFilter(CBLFilterDelegate filter) {
+    public void setFilter(ReplicationFilter filter) {
         this.filter = filter;
     }
 
@@ -113,7 +113,7 @@ public class CBLPusher extends CBLReplicator implements CBLChangeListener {
             filter = db.getFilter(filterName);
         }
         if(filterName != null && filter == null) {
-            Log.w(CBLDatabase.TAG, String.format("%s: No CBLFilterDelegate registered for filter '%s'; ignoring", this, filterName));;
+            Log.w(CBLDatabase.TAG, String.format("%s: No ReplicationFilter registered for filter '%s'; ignoring", this, filterName));;
         }
 
         // Process existing changes since the last push:

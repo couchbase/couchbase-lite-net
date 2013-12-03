@@ -72,7 +72,7 @@ public class CBLDatabase {
     public static final String TAG_SQL = "CBLSQL";
 
     private Map<String, CBLView> views;
-    private Map<String, CBLFilterDelegate> filters;
+    private Map<String, ReplicationFilter> filters;
     private Map<String, CBLValidationBlock> validations;
 
     private Map<String, CBLBlobStoreWriter> pendingAttachmentsByDigest;
@@ -484,8 +484,8 @@ public class CBLDatabase {
      * Note that filters are not persistent -- you have to re-register them on every launch.
      */
     @InterfaceAudience.Public
-    public CBLFilterDelegate getFilter(String filterName) {
-        CBLFilterDelegate result = null;
+    public ReplicationFilter getFilter(String filterName) {
+        ReplicationFilter result = null;
         if(filters != null) {
             result = filters.get(filterName);
         }
@@ -501,7 +501,7 @@ public class CBLDatabase {
                 return null;
             }
             String language = outLanguageList.get(0);
-            CBLFilterDelegate filter = filterCompiler.compileFilterFunction(sourceCode, language);
+            ReplicationFilter filter = filterCompiler.compileFilterFunction(sourceCode, language);
             if (filter == null) {
                 Log.w(CBLDatabase.TAG, String.format("Filter %s failed to compile", filterName));
                 return null;
@@ -518,9 +518,9 @@ public class CBLDatabase {
      * Filters are used by push replications to choose which documents to send.
      */
     @InterfaceAudience.Public
-    public void setFilter(String filterName, CBLFilterDelegate filter) {
+    public void setFilter(String filterName, ReplicationFilter filter) {
         if(filters == null) {
-            filters = new HashMap<String,CBLFilterDelegate>();
+            filters = new HashMap<String,ReplicationFilter>();
         }
         if (filter != null) {
             filters.put(filterName, filter);
@@ -1443,7 +1443,7 @@ public class CBLDatabase {
         return makeRevisionHistoryDict(getRevisionHistory(rev));
     }
 
-    public CBLRevisionList changesSince(long lastSeq, CBLChangesOptions options, CBLFilterDelegate filter) {
+    public CBLRevisionList changesSince(long lastSeq, CBLChangesOptions options, ReplicationFilter filter) {
         // http://wiki.apache.org/couchdb/HTTP_database_API#Changes
         if(options == null) {
             options = new CBLChangesOptions();

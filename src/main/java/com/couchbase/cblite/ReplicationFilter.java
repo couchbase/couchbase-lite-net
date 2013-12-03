@@ -7,7 +7,7 @@ import java.util.Map;
 /**
  * Filter block, used in changes feeds and replication.
  */
-public interface CBLFilterDelegate {
+public interface ReplicationFilter {
 
     // TODO: this needs to take a CBLSavedRevision as a parameter, however
     // TODO: the CBLSavedRevision class does not exist yet on either Android or iOS
