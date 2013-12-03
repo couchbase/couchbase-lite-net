@@ -79,7 +79,7 @@ public class CBLDatabase {
     private List<CBLReplicator> activeReplicators;
     private CBLBlobStore attachments;
     private CBLManager manager;
-    private List<CBLChangeListener> changeListeners;
+    private List<ChangeListener> changeListeners;
     private LruCache<String, CBLDocument> docCache;
 
     // Length that constitutes a 'big' attachment
@@ -180,7 +180,7 @@ public class CBLDatabase {
         this.path = path;
         this.name = FileDirUtils.getDatabaseNameFromPath(path);
         this.manager = manager;
-        this.changeListeners = new ArrayList<CBLChangeListener>();
+        this.changeListeners = new ArrayList<ChangeListener>();
         this.docCache = new LruCache<String, CBLDocument>(MAX_DOC_CACHE_SIZE);
     }
 
@@ -621,17 +621,19 @@ public class CBLDatabase {
 
     /**
      * Adds a Database change delegate that will be called whenever a Document within the Database changes.
+     * @param listener
      */
     @InterfaceAudience.Public
-    public void addChangeListener(CBLChangeListener listener) {
+    public void addChangeListener(ChangeListener listener) {
         changeListeners.add(listener);
     }
 
     /**
      * Removes the specified delegate as a listener for the Database change event.
+     * @param listener
      */
     @InterfaceAudience.Public
-    public void removeChangeListener(CBLChangeListener listener) {
+    public void removeChangeListener(ChangeListener listener) {
         changeListeners.remove(listener);
     }
 
@@ -2486,27 +2488,27 @@ public class CBLDatabase {
     }
 
     public void notifyChange(CBLRevisionInternal rev, URL source) {
-        Map<String,Object> changeNotification = new HashMap<String, Object>();
-        changeNotification.put("rev", rev);
-        changeNotification.put("seq", rev.getSequence());
-        if(source != null) {
-            changeNotification.put("source", source);
-        }
 
-        // Notify the corresponding instantiated CBLDocument object (if any):
-        CBLDocument cachedDocument = getCachedDocument(rev.getDocId());
-        if (cachedDocument != null) {
-            cachedDocument.revisionAdded(changeNotification);
-        }
+        boolean isExternalFixMe = false; // TODO: fix this to have a real value
+        boolean isCurrentRevFixMe = false; // TODO: fix this to have a real value
+        boolean isConflictRevFixMe = false; // TODO: fix this to have a real value
 
-        notifyChangeListeners(changeNotification);
+        // TODO: it is currently sending one change at a time rather than batching them up
+        DocumentChange change = new DocumentChange(
+                rev.getDocId(),
+                rev.getRevId(),
+                isCurrentRevFixMe,
+                isConflictRevFixMe,
+                source);
+        List<DocumentChange> changes = new ArrayList<DocumentChange>();
+        changes.add(change);
+        ChangeEvent changeEvent = new ChangeEvent(this, isExternalFixMe, changes);
+
+        for (ChangeListener changeListener : changeListeners) {
+            changeListener.changed(changeEvent);
+        }
     }
 
-    private void notifyChangeListeners(Map<String,Object> changeNotification) {
-        for (CBLChangeListener changeListener : changeListeners) {
-            changeListener.onDatabaseChanged(this, changeNotification);
-        }
-    }
 
     public long insertRevision(CBLRevisionInternal rev, long docNumericID, long parentSequence, boolean current, byte[] data) {
         long rowId = 0;
@@ -3402,6 +3404,36 @@ public class CBLDatabase {
     @InterfaceAudience.Private
     public void setName(String name) {
         this.name = name;
+    }
+
+    public static class ChangeEvent {
+
+        private CBLDatabase source;
+        private boolean isExternal;
+        private List<DocumentChange> changes;
+
+        public ChangeEvent(CBLDatabase source, boolean isExternal, List<DocumentChange> changes) {
+            this.source = source;
+            this.isExternal = isExternal;
+            this.changes = changes;
+        }
+
+        public CBLDatabase getSource() {
+            return source;
+        }
+
+        public boolean isExternal() {
+            return isExternal;
+        }
+
+        public List<DocumentChange> getChanges() {
+            return changes;
+        }
+
+    }
+
+    public static interface ChangeListener {
+        public void changed(ChangeEvent event);
     }
 
 

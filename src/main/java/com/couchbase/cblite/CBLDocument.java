@@ -429,7 +429,7 @@ public class CBLDocument {
             currentRevision = new CBLSavedRevision(this, rev);
         }
         for (ChangeListener listener : changeListeners) {
-            listener.change(new ChangeEvent(this));
+            listener.changed(new ChangeEvent(this));
         }
     }
 
@@ -446,7 +446,7 @@ public class CBLDocument {
     }
 
     public static interface ChangeListener {
-        public void change(ChangeEvent event);
+        public void changed(ChangeEvent event);
     }
 
 }
