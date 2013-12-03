@@ -424,24 +424,35 @@ public class CBLDocument {
     }
 
     void revisionAdded(Map<String,Object> changeNotification) {
+
+        // TODO: the reason this is greyed out is that this should be called from Database.notifyChange()
+
         CBLRevisionInternal rev = (CBLRevisionInternal) changeNotification.get("rev");
         if (currentRevision != null && !rev.getRevId().equals(currentRevision.getId())) {
             currentRevision = new CBLSavedRevision(this, rev);
         }
+        DocumentChange change = DocumentChange.tempFactory(rev, null);
         for (ChangeListener listener : changeListeners) {
-            listener.changed(new ChangeEvent(this));
+            listener.changed(new ChangeEvent(this, change));
         }
+
     }
 
     public static class ChangeEvent {
         private CBLDocument source;
+        private DocumentChange change;
 
-        ChangeEvent(CBLDocument source) {
+        public ChangeEvent(CBLDocument source, DocumentChange documentChange) {
             this.source = source;
+            this.change = documentChange;
         }
 
         public CBLDocument getSource() {
             return source;
+        }
+
+        public DocumentChange getChange() {
+            return change;
         }
     }
 

@@ -1,5 +1,7 @@
 package com.couchbase.cblite;
 
+import com.couchbase.cblite.internal.CBLRevisionInternal;
+
 import java.net.URL;
 
 public class DocumentChange {
@@ -37,4 +39,20 @@ public class DocumentChange {
     public URL getSourceUrl() {
         return sourceUrl;
     }
+
+    public static DocumentChange tempFactory(CBLRevisionInternal revisionInternal, URL sourceUrl) {
+
+        boolean isCurrentRevFixMe = false; // TODO: fix this to have a real value
+        boolean isConflictRevFixMe = false; // TODO: fix this to have a real value
+
+        DocumentChange change = new DocumentChange(
+                revisionInternal.getDocId(),
+                revisionInternal.getRevId(),
+                isCurrentRevFixMe,
+                isConflictRevFixMe,
+                sourceUrl);
+
+        return change;
+    }
+
 }

@@ -2489,17 +2489,11 @@ public class CBLDatabase {
 
     public void notifyChange(CBLRevisionInternal rev, URL source) {
 
-        boolean isExternalFixMe = false; // TODO: fix this to have a real value
-        boolean isCurrentRevFixMe = false; // TODO: fix this to have a real value
-        boolean isConflictRevFixMe = false; // TODO: fix this to have a real value
-
         // TODO: it is currently sending one change at a time rather than batching them up
-        DocumentChange change = new DocumentChange(
-                rev.getDocId(),
-                rev.getRevId(),
-                isCurrentRevFixMe,
-                isConflictRevFixMe,
-                source);
+
+        boolean isExternalFixMe = false; // TODO: fix this to have a real value
+
+        DocumentChange change = DocumentChange.tempFactory(rev, source);
         List<DocumentChange> changes = new ArrayList<DocumentChange>();
         changes.add(change);
         ChangeEvent changeEvent = new ChangeEvent(this, isExternalFixMe, changes);
@@ -2507,6 +2501,18 @@ public class CBLDatabase {
         for (ChangeListener changeListener : changeListeners) {
             changeListener.changed(changeEvent);
         }
+
+        // TODO: it needs to notify the corresponding instantiated CBLDocument object (if any):
+        /*
+            ios code:
+            for (CBLDatabaseChange* change in changes) {
+            // Notify the corresponding instantiated CBLDocument object (if any):
+            [[self _cachedDocumentWithID: change.documentID] revisionAdded: change];
+            if (change.source != nil)
+                external = YES;
+            }
+         */
+
     }
 
 
