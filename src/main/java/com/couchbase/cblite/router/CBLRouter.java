@@ -18,7 +18,6 @@ import com.couchbase.cblite.CBLStatus;
 import com.couchbase.cblite.CBLView;
 import com.couchbase.cblite.CBLView.TDViewCollation;
 import com.couchbase.cblite.CBLiteException;
-import com.couchbase.cblite.CBLiteVersion;
 import com.couchbase.cblite.auth.CBLFacebookAuthorizer;
 import com.couchbase.cblite.auth.CBLPersonaAuthorizer;
 import com.couchbase.cblite.internal.CBLBody;
@@ -60,7 +59,7 @@ public class CBLRouter implements CBLDatabase.ChangeListener {
     private boolean longpoll = false;
 
     public static String getVersionString() {
-        return CBLiteVersion.CBLiteVersionNumber;
+        return CBLManager.VERSION_STRING;
     }
 
     public CBLRouter(CBLManager manager, CBLURLConnection connection) {

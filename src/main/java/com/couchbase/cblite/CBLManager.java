@@ -35,11 +35,13 @@ import java.util.regex.Pattern;
  */
 public class CBLManager {
 
+    public static final String VERSION_STRING =  "1.0.0-beta";
+    public static final String HTTP_ERROR_DOMAIN =  "CBLHTTP";
+
     private static final ObjectMapper mapper = new ObjectMapper();
     public static final String DATABASE_SUFFIX_OLD = ".touchdb";
     public static final String DATABASE_SUFFIX = ".cblite";
     public static final CBLManagerOptions DEFAULT_OPTIONS = new CBLManagerOptions(false, false);
-    private static CBLManager sharedInstance;
     public static final String LEGAL_CHARACTERS = "[^a-z]{1,}[^a-z0-9_$()/+-]*$";
 
 
