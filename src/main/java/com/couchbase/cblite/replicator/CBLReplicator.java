@@ -2,6 +2,7 @@ package com.couchbase.cblite.replicator;
 
 import com.couchbase.cblite.CBLDatabase;
 import com.couchbase.cblite.CBLMisc;
+import com.couchbase.cblite.DocumentChange;
 import com.couchbase.cblite.internal.CBLRevisionInternal;
 import com.couchbase.cblite.CBLRevisionList;
 import com.couchbase.cblite.auth.CBLAuthorizer;
@@ -25,6 +26,7 @@ import org.apache.http.entity.mime.MultipartEntity;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -57,6 +59,7 @@ public abstract class CBLReplicator extends Observable {
     private int completedChangesCount;
     private int changesCount;
     protected final HttpClientFactory clientFactory;
+    private List<ChangeListener> changeListeners;
 
     protected Map<String, Object> filterParams;
     protected ExecutorService remoteRequestExecutor;
@@ -96,6 +99,7 @@ public abstract class CBLReplicator extends Observable {
         this.workExecutor = workExecutor;
         this.remote = remote;
         this.remoteRequestExecutor = Executors.newCachedThreadPool();
+        this.changeListeners = new ArrayList<ChangeListener>();
 
         if (remote.getQuery() != null && !remote.getQuery().isEmpty()) {
 
@@ -371,6 +375,23 @@ public abstract class CBLReplicator extends Observable {
         throw new UnsupportedOperationException();
     }
 
+    /**
+     * Adds a change delegate that will be called whenever the Replication changes.
+     */
+    @InterfaceAudience.Public
+    public void addChangeListener(ChangeListener changeListener) {
+        // TODO: nothing currently fires changes events!  See CBLReplication#updateMode method.
+        changeListeners.add(changeListener);
+    }
+
+    /**
+     * Removes the specified delegate as a listener for the Replication change event.
+     */
+    @InterfaceAudience.Public
+    public void removeChangeListener(ChangeListener changeListener) {
+        // TODO: nothing currently fires changes events!  See CBLReplication#updateMode method.
+        changeListeners.remove(changeListener);
+    }
 
     public void setAuthorizer(CBLAuthorizer authorizer) {
         this.authorizer = authorizer;
@@ -379,8 +400,6 @@ public abstract class CBLReplicator extends Observable {
     public CBLAuthorizer getAuthorizer() {
         return authorizer;
     }
-
-
 
     public void databaseClosing() {
         saveLastSequence();
@@ -715,6 +734,33 @@ public abstract class CBLReplicator extends Observable {
 
         });
         db.setLastSequence(lastSequence, remote, !isPull());
+    }
+
+    /**
+     * The type of event raised by a Replication when any of the following
+     * properties change: mode, running, error, completed, total.
+     */
+    @InterfaceAudience.Public
+    public static class ChangeEvent {
+
+        private CBLReplicator source;
+
+        public ChangeEvent(CBLReplicator source) {
+            this.source = source;
+        }
+
+        public CBLReplicator getSource() {
+            return source;
+        }
+
+    }
+
+    /**
+     * A delegate that can be used to listen for Replication changes.
+     */
+    @InterfaceAudience.Public
+    public static interface ChangeListener {
+        public void changed(ChangeEvent event);
     }
 
 
