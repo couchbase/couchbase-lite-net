@@ -56,6 +56,10 @@ public class CBLManager {
         return mapper;
     }
 
+    /**
+     * Constructor
+     * @throws UnsupportedOperationException - not currently supported
+     */
     @InterfaceAudience.Public
     public CBLManager() {
         final String detailMessage = "Parameterless constructor is not a valid API call on Android. " +
@@ -63,6 +67,9 @@ public class CBLManager {
         throw new UnsupportedOperationException(detailMessage);
     }
 
+    /**
+     * Constructor
+     */
     @InterfaceAudience.Public
     public CBLManager(File directoryFile, CBLManagerOptions options) {
         this.directoryFile = directoryFile;
@@ -83,6 +90,10 @@ public class CBLManager {
 
     }
 
+    /**
+     * Get shared instance
+     * @throws UnsupportedOperationException - not currently supported
+     */
     @InterfaceAudience.Public
     public static CBLManager getSharedInstance() {
         final String detailMessage = "getSharedInstance() is not a valid API call on Android. " +
