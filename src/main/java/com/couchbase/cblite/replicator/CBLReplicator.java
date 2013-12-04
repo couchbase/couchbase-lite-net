@@ -38,20 +38,8 @@ public abstract class CBLReplicator extends Observable {
 
     private static int lastSessionID = 0;
 
-    /**
-     * Should the replication operate continuously, copying changes as soon as the source
-     * database is modified? (Defaults to NO).
-     */
     protected boolean continuous;
-
-    /**
-     *  Name of an optional filter function to run on the source server.
-     *  Only documents for which the function returns true are replicated.
-     *  For a pull replication, the name looks like "designdocname/filtername".
-     *  For a push replication, use the name under which you registered the filter with the CBLDatabase.
-     */
     protected String filterName;
-
     protected ScheduledExecutorService workExecutor;
     protected CBLDatabase db;
     protected URL remote;
@@ -78,9 +66,19 @@ public abstract class CBLReplicator extends Observable {
     protected static final int INBOX_CAPACITY = 100;
     public static final String REPLICATOR_DATABASE_NAME = "_replicator";
 
+    /**
+     * Options for what metadata to include in document bodies
+     */
+    public enum ReplicationMode {
+        REPLICATION_STOPPED,  /**< The replication is finished or hit a fatal error. */
+        REPLICATION_OFFLINE,  /**< The remote host is currently unreachable. */
+        REPLICATION_IDLE,     /**< Continuous replication is caught up and waiting for more changes.*/
+        REPLICATION_ACTIVE    /**< The replication is actively transferring data. */
+    }
+
 
     /**
-     * Constructor
+     * Private Constructor
      */
     @InterfaceAudience.Private
     public CBLReplicator(CBLDatabase db, URL remote, boolean continuous, ScheduledExecutorService workExecutor) {
@@ -88,7 +86,7 @@ public abstract class CBLReplicator extends Observable {
     }
 
     /**
-     * Constructor
+     * Private Constructor
      */
     @InterfaceAudience.Private
     public CBLReplicator(CBLDatabase db, URL remote, boolean continuous, HttpClientFactory clientFactory, ScheduledExecutorService workExecutor) {
@@ -146,7 +144,6 @@ public abstract class CBLReplicator extends Observable {
 
         this.clientFactory = clientFactory != null ? clientFactory : CBLHttpClientFactory.INSTANCE;
 
-
     }
 
 
@@ -185,11 +182,18 @@ public abstract class CBLReplicator extends Observable {
     @InterfaceAudience.Public
     public abstract void setCreateTarget(boolean createTarget);
 
+    /**
+     * Should the replication operate continuously, copying changes as soon as the
+     * source database is modified? (Defaults to NO).
+     */
     @InterfaceAudience.Public
     public boolean isContinuous() {
         return continuous;
     }
 
+    /**
+     * Set whether the replication should operate continuously.
+     */
     @InterfaceAudience.Public
     public void setContinuous(boolean continuous) {
         if (!isRunning()) {
@@ -197,24 +201,100 @@ public abstract class CBLReplicator extends Observable {
         }
     }
 
+    /**
+     * Name of an optional filter function to run on the source server. Only documents for
+     * which the function returns true are replicated.
+     *
+     * For a pull replication, the name looks like "designdocname/filtername".
+     * For a push replication, use the name under which you registered the filter with the CBLDatabase.
+     */
     @InterfaceAudience.Public
     public String getFilter() {
         return filterName;
     }
 
+    /**
+     * Set the filter to be used by this replication
+     */
     @InterfaceAudience.Public
     public void setFilter(String filterName) {
         this.filterName = filterName;
     }
 
+    /**
+     * Parameters to pass to the filter function.  Should map strings to strings.
+     */
     @InterfaceAudience.Public
     public Map<String, Object> getFilterParams() {
         return filterParams;
     }
 
+    /**
+     * Set parameters to pass to the filter function.
+     */
     @InterfaceAudience.Public
     public void setFilterParams(Map<String, Object> filterParams) {
         this.filterParams = filterParams;
+    }
+
+    /**
+     * List of Sync Gateway channel names to filter by; a nil value means no filtering, i.e. all
+     * available channels will be synced.  Only valid for pull replications whose source database
+     * is on a Couchbase Sync Gateway server.  (This is a convenience that just reads or
+     * changes the values of .filter and .query_params.)
+     */
+    @InterfaceAudience.Public
+    public List<String> getChannels() {
+        throw new UnsupportedOperationException();
+    }
+
+    /**
+     * Set the list of Sync Gateway channel names
+     */
+    @InterfaceAudience.Public
+    public void setChannels(List<String> channels) {
+        throw new UnsupportedOperationException();
+    }
+
+    /**
+     * Extra HTTP headers to send in all requests to the remote server.
+     * Should map strings (header names) to strings.
+     */
+    @InterfaceAudience.Public
+    public Map<String, String> getHeaders() {
+        throw new UnsupportedOperationException();
+    }
+
+    /**
+     * Set Extra HTTP headers to be sent in all requests to the remote server.
+     */
+    @InterfaceAudience.Public
+    public void setHeaders(Map<String, String> headers) {
+        throw new UnsupportedOperationException();
+    }
+
+    /**
+     * Gets the documents to specify as part of the replication.
+     */
+    @InterfaceAudience.Public
+    public List<String> getDocsIds() {
+        throw new UnsupportedOperationException();
+    }
+
+    /**
+     * Sets the documents to specify as part of the replication.
+     */
+    @InterfaceAudience.Public
+    public void setDocIds(List<String> docIds) {
+        throw new UnsupportedOperationException();
+    }
+
+    /**
+     * The replication's current state, one of {stopped, offline, idle, active}.
+     */
+    @InterfaceAudience.Public
+    public ReplicationMode getMode() {
+        throw new UnsupportedOperationException();
     }
 
     @InterfaceAudience.Public
