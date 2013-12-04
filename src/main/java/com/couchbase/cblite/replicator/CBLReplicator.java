@@ -36,7 +36,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-public abstract class CBLReplicator extends Observable {
+public abstract class CBLReplicator {
 
     private static int lastSessionID = 0;
 
@@ -380,7 +380,6 @@ public abstract class CBLReplicator extends Observable {
      */
     @InterfaceAudience.Public
     public void addChangeListener(ChangeListener changeListener) {
-        // TODO: nothing currently fires changes events!  See CBLReplication#updateMode method.
         changeListeners.add(changeListener);
     }
 
@@ -389,7 +388,6 @@ public abstract class CBLReplicator extends Observable {
      */
     @InterfaceAudience.Public
     public void removeChangeListener(ChangeListener changeListener) {
-        // TODO: nothing currently fires changes events!  See CBLReplication#updateMode method.
         changeListeners.remove(changeListener);
     }
 
@@ -437,14 +435,12 @@ public abstract class CBLReplicator extends Observable {
 
     void setCompletedChangesCount(int processed) {
         this.completedChangesCount = processed;
-        setChanged();
-        notifyObservers();
+        notifyChangeListeners();
     }
 
     void setChangesCount(int total) {
         this.changesCount = total;
-        setChanged();
-        notifyObservers();
+        notifyChangeListeners();
     }
 
     public String getSessionID() {
@@ -502,11 +498,17 @@ public abstract class CBLReplicator extends Observable {
         this.completedChangesCount = this.changesCount = 0;
 
         saveLastSequence();
-        setChanged();
-        notifyObservers();
+        notifyChangeListeners();
 
         batcher = null;
         db = null;
+    }
+
+    private void notifyChangeListeners() {
+        for (ChangeListener listener : changeListeners) {
+            ChangeEvent changeEvent = new ChangeEvent(this);
+            listener.changed(changeEvent);
+        }
     }
 
     protected void login() {
