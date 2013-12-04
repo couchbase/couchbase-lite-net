@@ -159,7 +159,7 @@ public class CBLPuller extends CBLReplicator implements CBLChangeTrackerClient {
             rev.setRemoteSequenceID(lastSequence);
             addToInbox(rev);
         }
-        setChangesTotal(getChangesTotal() + changes.size());
+        setChangesCount(getChangesCount() + changes.size());
         while(revsToPull != null && revsToPull.size() > 1000) {
             try {
                 Thread.sleep(500);  // <-- TODO: why is this here?
@@ -199,7 +199,7 @@ public class CBLPuller extends CBLReplicator implements CBLChangeTrackerClient {
         // Ask the local database which of the revs are not known to it:
         //Log.w(CBLDatabase.TAG, String.format("%s: Looking up %s", this, inbox));
         String lastInboxSequence = ((TDPulledRevision)inbox.get(inbox.size()-1)).getRemoteSequenceID();
-        int total = getChangesTotal() - inbox.size();
+        int total = getChangesCount() - inbox.size();
         if(!db.findMissingRevisions(inbox)) {
             Log.w(CBLDatabase.TAG, String.format("%s failed to look up local revs", this));
             inbox = null;
@@ -209,8 +209,8 @@ public class CBLPuller extends CBLReplicator implements CBLChangeTrackerClient {
         if(inbox != null) {
             inboxCount = inbox.size();
         }
-        if(getChangesTotal() != total + inboxCount) {
-            setChangesTotal(total + inboxCount);
+        if(getChangesCount() != total + inboxCount) {
+            setChangesCount(total + inboxCount);
         }
 
         if(inboxCount == 0) {
@@ -309,14 +309,14 @@ public class CBLPuller extends CBLReplicator implements CBLChangeTrackerClient {
                         asyncTaskStarted();
                     } else {
                         Log.w(CBLDatabase.TAG, this + ": Missing revision history in response from " + pathInside);
-                        setChangesProcessed(getChangesProcessed() + 1);
+                        setCompletedChangesCount(getCompletedChangesCount() + 1);
                     }
                 } else {
                     if(e != null) {
                         Log.e(CBLDatabase.TAG, "Error pulling remote revision", e);
                         error = e;
                     }
-                    setChangesProcessed(getChangesProcessed() + 1);
+                    setCompletedChangesCount(getCompletedChangesCount() + 1);
                 }
 
                 // Note that we've finished this task; then start another one if there
@@ -396,7 +396,7 @@ public class CBLPuller extends CBLReplicator implements CBLChangeTrackerClient {
             asyncTaskFinished(revs.size());
         }
 
-        setChangesProcessed(getChangesProcessed() + revs.size());
+        setCompletedChangesCount(getCompletedChangesCount() + revs.size());
     }
 
     List<String> knownCurrentRevIDs(CBLRevisionInternal rev) {

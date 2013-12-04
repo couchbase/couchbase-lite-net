@@ -249,7 +249,7 @@ public class CBLPusher extends CBLReplicator implements CBLDatabase.ChangeListen
                     bulkDocsBody.put("new_edits", false);
                     Log.i(CBLDatabase.TAG, String.format("%s: Sending %d revisions", this, numDocsToSend));
                     Log.v(CBLDatabase.TAG, String.format("%s: Sending %s", this, inbox));
-                    setChangesTotal(getChangesTotal() + numDocsToSend);
+                    setChangesCount(getChangesCount() + numDocsToSend);
                     asyncTaskStarted();
                     sendAsyncRequest("POST", "/_bulk_docs", bulkDocsBody, new CBLRemoteRequestCompletionBlock() {
 
@@ -261,7 +261,7 @@ public class CBLPusher extends CBLReplicator implements CBLDatabase.ChangeListen
                                 Log.v(CBLDatabase.TAG, String.format("%s: Sent %s", this, inbox));
                                 setLastSequence(String.format("%d", lastInboxSequence));
                             }
-                            setChangesProcessed(getChangesProcessed() + numDocsToSend);
+                            setCompletedChangesCount(getCompletedChangesCount() + numDocsToSend);
                             asyncTaskFinished(1);
                         }
                     });

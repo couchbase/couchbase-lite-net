@@ -619,8 +619,8 @@ public class CBLRouter implements CBLDatabase.ChangeListener {
                         source = target;
                         target = tmp;
                     }
-                    int processed = replicator.getChangesProcessed();
-                    int total = replicator.getChangesTotal();
+                    int processed = replicator.getCompletedChangesCount();
+                    int total = replicator.getChangesCount();
                     String status = String.format("Processed %d / %d changes", processed, total);
                     int progress = (total > 0) ? Math.round(100 * processed / (float)total) : 0;
                     Map<String,Object> activity = new HashMap<String,Object>();

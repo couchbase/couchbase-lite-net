@@ -54,8 +54,8 @@ public abstract class CBLReplicator extends Observable {
     protected String sessionID;
     protected CBLBatcher<CBLRevisionInternal> batcher;
     protected int asyncTaskCount;
-    private int changesProcessed;
-    private int changesTotal;
+    private int completedChangesCount;
+    private int changesCount;
     protected final HttpClientFactory clientFactory;
 
     protected Map<String, Object> filterParams;
@@ -145,7 +145,6 @@ public abstract class CBLReplicator extends Observable {
         this.clientFactory = clientFactory != null ? clientFactory : CBLHttpClientFactory.INSTANCE;
 
     }
-
 
     /**
      * Get the local database which is the source or target of this replication
@@ -297,16 +296,44 @@ public abstract class CBLReplicator extends Observable {
         throw new UnsupportedOperationException();
     }
 
+    /**
+     * The number of completed changes processed, if the task is active, else 0 (observable).
+     */
+    @InterfaceAudience.Public
+    public int getCompletedChangesCount() {
+        return completedChangesCount;
+    }
+
+    /**
+     * The total number of changes to be processed, if the task is active, else 0 (observable).
+     */
+    @InterfaceAudience.Public
+    public int getChangesCount() {
+        return changesCount;
+    }
+
+    /**
+     * True while the replication is running, False if it's stopped.
+     * Note that a continuous replication never actually stops; it only goes idle waiting for new
+     * data to appear.
+     */
     @InterfaceAudience.Public
     public boolean isRunning() {
         return running;
     }
 
+    /**
+     * The error status of the replication, or null if there have not been any errors since
+     * it started.
+     */
     @InterfaceAudience.Public
     public Throwable getLastError() {
         return error;
     }
 
+    /**
+     * Starts the replication, asynchronously.
+     */
     @InterfaceAudience.Public
     public void start() {
         if (running) {
@@ -320,6 +347,9 @@ public abstract class CBLReplicator extends Observable {
         checkSession();
     }
 
+    /**
+     * Stops replication, asynchronously.
+     */
     @InterfaceAudience.Public
     public void stop() {
         if (!running) {
@@ -331,6 +361,14 @@ public abstract class CBLReplicator extends Observable {
         if (asyncTaskCount == 0) {
             stopped();
         }
+    }
+
+    /**
+     * Restarts a completed or failed replication.
+     */
+    @InterfaceAudience.Public
+    public void restart() {
+        throw new UnsupportedOperationException();
     }
 
 
@@ -378,22 +416,14 @@ public abstract class CBLReplicator extends Observable {
         }
     }
 
-    public int getChangesProcessed() {
-        return changesProcessed;
-    }
-
-    public void setChangesProcessed(int processed) {
-        this.changesProcessed = processed;
+    void setCompletedChangesCount(int processed) {
+        this.completedChangesCount = processed;
         setChanged();
         notifyObservers();
     }
 
-    public int getChangesTotal() {
-        return changesTotal;
-    }
-
-    public void setChangesTotal(int total) {
-        this.changesTotal = total;
+    void setChangesCount(int total) {
+        this.changesCount = total;
         setChanged();
         notifyObservers();
     }
@@ -401,7 +431,6 @@ public abstract class CBLReplicator extends Observable {
     public String getSessionID() {
         return sessionID;
     }
-
 
     protected void checkSession() {
         if (getAuthorizer() != null && getAuthorizer().usesCookieBasedLogin()) {
@@ -451,7 +480,7 @@ public abstract class CBLReplicator extends Observable {
     public void stopped() {
         Log.v(CBLDatabase.TAG, toString() + " STOPPED");
         running = false;
-        this.changesProcessed = this.changesTotal = 0;
+        this.completedChangesCount = this.changesCount = 0;
 
         saveLastSequence();
         setChanged();
