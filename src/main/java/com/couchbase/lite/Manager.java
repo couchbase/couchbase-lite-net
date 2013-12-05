@@ -1,6 +1,6 @@
 package com.couchbase.lite;
 
-import com.couchbase.lite.auth.CBLAuthorizer;
+import com.couchbase.lite.auth.Authorizer;
 import com.couchbase.lite.auth.FacebookAuthorizer;
 import com.couchbase.lite.auth.PersonaAuthorizer;
 import com.couchbase.lite.internal.InterfaceAudience;
@@ -353,7 +353,7 @@ public class Manager {
     @InterfaceAudience.Private
     public Replication getReplicator(Map<String,Object> properties) throws CouchbaseLiteException {
 
-        CBLAuthorizer authorizer = null;
+        Authorizer authorizer = null;
         Replication repl = null;
         URL remote = null;
 

@@ -9,7 +9,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class FacebookAuthorizer extends CBLAuthorizer {
+public class FacebookAuthorizer extends Authorizer {
 
     public static final String LOGIN_PARAMETER_ACCESS_TOKEN = "access_token";
     public static final String QUERY_PARAMETER = "facebookAccessToken";

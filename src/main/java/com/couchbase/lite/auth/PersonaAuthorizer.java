@@ -15,7 +15,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class PersonaAuthorizer extends CBLAuthorizer {
+public class PersonaAuthorizer extends Authorizer {
 
     public static final String LOGIN_PARAMETER_ASSERTION = "assertion";
 

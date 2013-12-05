@@ -3,10 +3,10 @@ package com.couchbase.lite.replicator;
 import com.couchbase.lite.Database;
 import com.couchbase.lite.Misc;
 import com.couchbase.lite.RevisionList;
+import com.couchbase.lite.auth.Authorizer;
 import com.couchbase.lite.auth.FacebookAuthorizer;
 import com.couchbase.lite.auth.PersonaAuthorizer;
 import com.couchbase.lite.internal.RevisionInternal;
-import com.couchbase.lite.auth.CBLAuthorizer;
 import com.couchbase.lite.internal.InterfaceAudience;
 import com.couchbase.lite.support.BatchProcessor;
 import com.couchbase.lite.support.Batcher;
@@ -61,7 +61,7 @@ public abstract class Replication {
 
     protected Map<String, Object> filterParams;
     protected ExecutorService remoteRequestExecutor;
-    protected CBLAuthorizer authorizer;
+    protected Authorizer authorizer;
 
     protected static final int PROCESSOR_DELAY = 500;
     protected static final int INBOX_CAPACITY = 100;
@@ -389,11 +389,11 @@ public abstract class Replication {
         changeListeners.remove(changeListener);
     }
 
-    public void setAuthorizer(CBLAuthorizer authorizer) {
+    public void setAuthorizer(Authorizer authorizer) {
         this.authorizer = authorizer;
     }
 
-    public CBLAuthorizer getAuthorizer() {
+    public Authorizer getAuthorizer() {
         return authorizer;
     }
 

@@ -3,7 +3,7 @@ package com.couchbase.lite.auth;
 import java.net.URL;
 import java.util.Map;
 
-public class CBLAuthorizer {
+public class Authorizer {
 
 
     public boolean usesCookieBasedLogin() {
