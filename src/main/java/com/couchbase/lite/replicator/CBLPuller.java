@@ -13,7 +13,7 @@ import com.couchbase.lite.replicator.changetracker.CBLChangeTracker;
 import com.couchbase.lite.replicator.changetracker.CBLChangeTracker.TDChangeTrackerMode;
 import com.couchbase.lite.replicator.changetracker.CBLChangeTrackerClient;
 import com.couchbase.lite.storage.SQLException;
-import com.couchbase.lite.support.CBLBatchProcessor;
+import com.couchbase.lite.support.BatchProcessor;
 import com.couchbase.lite.support.CBLBatcher;
 import com.couchbase.lite.support.RemoteRequestCompletionBlock;
 import com.couchbase.lite.support.SequenceMap;
@@ -81,7 +81,7 @@ public class CBLPuller extends CBLReplicator implements CBLChangeTrackerClient {
         if(downloadsToInsert == null) {
             int capacity = 200;
             int delay = 1000;
-            downloadsToInsert = new CBLBatcher<List<Object>>(workExecutor, capacity, delay, new CBLBatchProcessor<List<Object>>() {
+            downloadsToInsert = new CBLBatcher<List<Object>>(workExecutor, capacity, delay, new BatchProcessor<List<Object>>() {
                 @Override
                 public void process(List<List<Object>> inbox) {
                     insertRevisions(inbox);

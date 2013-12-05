@@ -20,7 +20,7 @@ public class CBLBatcher<T> {
     private int capacity;
     private int delay;
     private List<T> inbox;
-    private CBLBatchProcessor<T> processor;
+    private BatchProcessor<T> processor;
     private boolean shuttingDown = false;
 
     private Runnable processNowRunnable = new Runnable() {
@@ -31,12 +31,12 @@ public class CBLBatcher<T> {
                 processNow();
             } catch(Exception e) {
                 // we don't want this to crash the batcher
-                com.couchbase.lite.util.Log.e(Database.TAG, "CBLBatchProcessor throw exception", e);
+                com.couchbase.lite.util.Log.e(Database.TAG, "BatchProcessor throw exception", e);
             }
         }
     };
 
-    public CBLBatcher(ScheduledExecutorService workExecutor, int capacity, int delay, CBLBatchProcessor<T> processor) {
+    public CBLBatcher(ScheduledExecutorService workExecutor, int capacity, int delay, BatchProcessor<T> processor) {
         this.workExecutor = workExecutor;
         this.capacity = capacity;
         this.delay = delay;
