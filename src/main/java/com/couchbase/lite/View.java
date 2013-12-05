@@ -829,7 +829,7 @@ public class View {
 
 }
 
-abstract class AbstractTouchMapEmitBlock implements CBLEmitter {
+abstract class AbstractTouchMapEmitBlock implements Emitter {
 
     protected long sequence = 0;
 

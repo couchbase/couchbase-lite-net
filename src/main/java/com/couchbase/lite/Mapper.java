@@ -29,6 +29,6 @@ public interface Mapper {
      * @param document The contents of the document being analyzed.
      * @param emitter A block to be called to add a key/value pair to the view. Your block can call it zero, one or multiple times.
      */
-    void map(Map<String,Object> document, CBLEmitter emitter);
+    void map(Map<String,Object> document, Emitter emitter);
 
 }

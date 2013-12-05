@@ -17,7 +17,7 @@
 
 package com.couchbase.lite;
 
-public interface CBLEmitter {
+public interface Emitter {
 
     void emit(Object key, Object value);
 
