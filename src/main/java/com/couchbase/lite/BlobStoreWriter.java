@@ -13,7 +13,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
 /** Lets you stream a large attachment to a CBLBlobStore asynchronously, e.g. from a network download. */
-public class CBLBlobStoreWriter {
+public class BlobStoreWriter {
 
     /** The underlying blob store where it should be stored. */
     private CBLBlobStore store;
@@ -34,7 +34,7 @@ public class CBLBlobStoreWriter {
     private BufferedOutputStream outStream;
     private File tempFile;
 
-    public CBLBlobStoreWriter(CBLBlobStore store) {
+    public BlobStoreWriter(CBLBlobStore store) {
         this.store = store;
 
         try {

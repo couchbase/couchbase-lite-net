@@ -1,6 +1,6 @@
 package com.couchbase.lite.support;
 
-import com.couchbase.lite.CBLBlobStoreWriter;
+import com.couchbase.lite.BlobStoreWriter;
 import com.couchbase.lite.Database;
 import com.couchbase.lite.Manager;
 import com.couchbase.lite.Misc;
@@ -19,12 +19,12 @@ public class CBLMultipartDocumentReader implements CBLMultipartReaderDelegate {
     private HttpResponse response;
 
     private CBLMultipartReader multipartReader;
-    private CBLBlobStoreWriter curAttachment;
+    private BlobStoreWriter curAttachment;
     private ByteArrayBuffer jsonBuffer;
     private Map<String, Object> document;
     private Database database;
-    private Map<String, CBLBlobStoreWriter> attachmentsByName;
-    private Map<String, CBLBlobStoreWriter> attachmentsByMd5Digest;
+    private Map<String, BlobStoreWriter> attachmentsByName;
+    private Map<String, BlobStoreWriter> attachmentsByMd5Digest;
 
     public CBLMultipartDocumentReader(HttpResponse response, Database database) {
         this.response = response;
@@ -50,8 +50,8 @@ public class CBLMultipartDocumentReader implements CBLMultipartReaderDelegate {
             throw new IllegalArgumentException("contentType must start with multipart/");
         }
         multipartReader = new CBLMultipartReader(contentType, this);
-        attachmentsByName = new HashMap<String, CBLBlobStoreWriter>();
-        attachmentsByMd5Digest = new HashMap<String, CBLBlobStoreWriter>();
+        attachmentsByName = new HashMap<String, BlobStoreWriter>();
+        attachmentsByMd5Digest = new HashMap<String, BlobStoreWriter>();
     }
 
     public void appendData(byte[] data) {
@@ -102,7 +102,7 @@ public class CBLMultipartDocumentReader implements CBLMultipartReaderDelegate {
                 // Check that each attachment in the JSON corresponds to an attachment MIME body.
                 // Look up the attachment by either its MIME Content-Disposition header or MD5 digest:
                 String digest = (String) attachment.get("digest");
-                CBLBlobStoreWriter writer = attachmentsByName.get(attachmentName);
+                BlobStoreWriter writer = attachmentsByName.get(attachmentName);
                 if (writer != null) {
                     // Identified the MIME body by the filename in its Disposition header:
                     String actualDigest = writer.mD5DigestString();

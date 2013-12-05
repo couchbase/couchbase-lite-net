@@ -180,7 +180,7 @@ public class Attachment {
                 InputStream body = attachment.getBodyIfNew();
                 if (body != null) {
                     // Copy attachment body into the database's blob store:
-                    CBLBlobStoreWriter writer = blobStoreWriterForBody(body, database);
+                    BlobStoreWriter writer = blobStoreWriterForBody(body, database);
                     metadata.put("length", writer.getLength());
                     metadata.put("digest", writer.mD5DigestString());
                     metadata.put("follows", true);
@@ -195,8 +195,8 @@ public class Attachment {
         return updatedAttachments;
     }
 
-    static CBLBlobStoreWriter blobStoreWriterForBody(InputStream body, Database database) {
-        CBLBlobStoreWriter writer = database.getAttachmentWriter();
+    static BlobStoreWriter blobStoreWriterForBody(InputStream body, Database database) {
+        BlobStoreWriter writer = database.getAttachmentWriter();
         writer.read(body);
         writer.finish();
         return writer;

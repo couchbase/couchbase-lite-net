@@ -75,7 +75,7 @@ public class Database {
     private Map<String, ReplicationFilter> filters;
     private Map<String, ValidationBlock> validations;
 
-    private Map<String, CBLBlobStoreWriter> pendingAttachmentsByDigest;
+    private Map<String, BlobStoreWriter> pendingAttachmentsByDigest;
     private List<CBLReplicator> activeReplicators;
     private CBLBlobStore attachments;
     private Manager manager;
@@ -843,8 +843,8 @@ public class Database {
         return attachments;
     }
 
-    public CBLBlobStoreWriter getAttachmentWriter() {
-        return new CBLBlobStoreWriter(getAttachments());
+    public BlobStoreWriter getAttachmentWriter() {
+        return new BlobStoreWriter(getAttachments());
     }
 
     public long totalDataSize() {
@@ -1912,9 +1912,9 @@ public class Database {
             throw new CouchbaseLiteException(Status.BAD_ATTACHMENT);
         }
         if (pendingAttachmentsByDigest != null && pendingAttachmentsByDigest.containsKey(digest)) {
-            CBLBlobStoreWriter writer = pendingAttachmentsByDigest.get(digest);
+            BlobStoreWriter writer = pendingAttachmentsByDigest.get(digest);
             try {
-                CBLBlobStoreWriter blobStoreWriter = (CBLBlobStoreWriter) writer;
+                BlobStoreWriter blobStoreWriter = (BlobStoreWriter) writer;
                 blobStoreWriter.install();
                 attachment.setBlobKey(blobStoreWriter.getBlobKey());
                 attachment.setLength(blobStoreWriter.getLength());
@@ -1924,9 +1924,9 @@ public class Database {
         }
     }
 
-    private Map<String, CBLBlobStoreWriter> getPendingAttachmentsByDigest() {
+    private Map<String, BlobStoreWriter> getPendingAttachmentsByDigest() {
         if (pendingAttachmentsByDigest == null) {
-            pendingAttachmentsByDigest = new HashMap<String, CBLBlobStoreWriter>();
+            pendingAttachmentsByDigest = new HashMap<String, BlobStoreWriter>();
         }
         return pendingAttachmentsByDigest;
     }
@@ -2326,12 +2326,12 @@ public class Database {
     }
 
 
-    public void rememberAttachmentWritersForDigests(Map<String, CBLBlobStoreWriter> blobsByDigest) {
+    public void rememberAttachmentWritersForDigests(Map<String, BlobStoreWriter> blobsByDigest) {
 
         getPendingAttachmentsByDigest().putAll(blobsByDigest);
     }
 
-    void rememberAttachmentWriter(CBLBlobStoreWriter writer) {
+    void rememberAttachmentWriter(BlobStoreWriter writer) {
         getPendingAttachmentsByDigest().put(writer.mD5DigestString(), writer);
     }
 
