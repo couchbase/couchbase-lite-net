@@ -47,11 +47,11 @@ public class CBLRemoteRequest implements Runnable {
     protected String method;
     protected URL url;
     protected Object body;
-    protected CBLRemoteRequestCompletionBlock onCompletion;
+    protected RemoteRequestCompletionBlock onCompletion;
 
     public CBLRemoteRequest(ScheduledExecutorService workExecutor,
                             HttpClientFactory clientFactory, String method, URL url,
-                            Object body, CBLRemoteRequestCompletionBlock onCompletion) {
+                            Object body, RemoteRequestCompletionBlock onCompletion) {
         this.clientFactory = clientFactory;
         this.method = method;
         this.url = url;
@@ -207,7 +207,7 @@ public class CBLRemoteRequest implements Runnable {
                     } catch (Exception e) {
                         // don't let this crash the thread
                         Log.e(Database.TAG,
-                                "CBLRemoteRequestCompletionBlock throw Exception",
+                                "RemoteRequestCompletionBlock throw Exception",
                                 e);
                     }
                 }

@@ -1,7 +1,7 @@
 package com.couchbase.lite.support;
 
 
-public interface CBLRemoteRequestCompletionBlock {
+public interface RemoteRequestCompletionBlock {
 
     public void onCompletion(Object result, Throwable e);
 

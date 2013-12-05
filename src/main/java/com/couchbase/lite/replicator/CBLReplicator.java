@@ -14,7 +14,7 @@ import com.couchbase.lite.support.CBLHttpClientFactory;
 import com.couchbase.lite.support.CBLRemoteMultipartDownloaderRequest;
 import com.couchbase.lite.support.CBLRemoteMultipartRequest;
 import com.couchbase.lite.support.CBLRemoteRequest;
-import com.couchbase.lite.support.CBLRemoteRequestCompletionBlock;
+import com.couchbase.lite.support.RemoteRequestCompletionBlock;
 import com.couchbase.lite.support.HttpClientFactory;
 import com.couchbase.lite.util.URIUtils;
 import com.couchbase.lite.util.Log;
@@ -456,7 +456,7 @@ public abstract class CBLReplicator {
     protected void checkSessionAtPath(final String sessionPath) {
 
         asyncTaskStarted();
-        sendAsyncRequest("GET", sessionPath, null, new CBLRemoteRequestCompletionBlock() {
+        sendAsyncRequest("GET", sessionPath, null, new RemoteRequestCompletionBlock() {
 
             @Override
             public void onCompletion(Object result, Throwable e) {
@@ -521,7 +521,7 @@ public abstract class CBLReplicator {
 
         Log.d(Database.TAG, String.format("%s: Doing login with %s at %s", this, getAuthorizer().getClass(), loginPath));
         asyncTaskStarted();
-        sendAsyncRequest("POST", loginPath, loginParameters, new CBLRemoteRequestCompletionBlock() {
+        sendAsyncRequest("POST", loginPath, loginParameters, new RemoteRequestCompletionBlock() {
 
             @Override
             public void onCompletion(Object result, Throwable e) {
@@ -564,7 +564,7 @@ public abstract class CBLReplicator {
 
     }
 
-    public void sendAsyncRequest(String method, String relativePath, Object body, CBLRemoteRequestCompletionBlock onCompletion) {
+    public void sendAsyncRequest(String method, String relativePath, Object body, RemoteRequestCompletionBlock onCompletion) {
         try {
             String urlStr = buildRelativeURLString(relativePath);
             URL url = new URL(urlStr);
@@ -588,12 +588,12 @@ public abstract class CBLReplicator {
         return remoteUrlString + relativePath;
     }
 
-    public void sendAsyncRequest(String method, URL url, Object body, CBLRemoteRequestCompletionBlock onCompletion) {
+    public void sendAsyncRequest(String method, URL url, Object body, RemoteRequestCompletionBlock onCompletion) {
         CBLRemoteRequest request = new CBLRemoteRequest(workExecutor, clientFactory, method, url, body, onCompletion);
         remoteRequestExecutor.execute(request);
     }
 
-    public void sendAsyncMultipartDownloaderRequest(String method, String relativePath, Object body, Database db, CBLRemoteRequestCompletionBlock onCompletion) {
+    public void sendAsyncMultipartDownloaderRequest(String method, String relativePath, Object body, Database db, RemoteRequestCompletionBlock onCompletion) {
         try {
 
             String urlStr = buildRelativeURLString(relativePath);
@@ -606,7 +606,7 @@ public abstract class CBLReplicator {
         }
     }
 
-    public void sendAsyncMultipartRequest(String method, String relativePath, MultipartEntity multiPartEntity, CBLRemoteRequestCompletionBlock onCompletion) {
+    public void sendAsyncMultipartRequest(String method, String relativePath, MultipartEntity multiPartEntity, RemoteRequestCompletionBlock onCompletion) {
         URL url = null;
         try {
             String urlStr = buildRelativeURLString(relativePath);
@@ -656,7 +656,7 @@ public abstract class CBLReplicator {
         }
 
         asyncTaskStarted();
-        sendAsyncRequest("GET", "/_local/" + remoteCheckpointDocID(), null, new CBLRemoteRequestCompletionBlock() {
+        sendAsyncRequest("GET", "/_local/" + remoteCheckpointDocID(), null, new RemoteRequestCompletionBlock() {
 
             @Override
             public void onCompletion(Object result, Throwable e) {
@@ -714,7 +714,7 @@ public abstract class CBLReplicator {
             return;
         }
         savingCheckpoint = true;
-        sendAsyncRequest("PUT", "/_local/" + remoteCheckpointDocID, body, new CBLRemoteRequestCompletionBlock() {
+        sendAsyncRequest("PUT", "/_local/" + remoteCheckpointDocID, body, new RemoteRequestCompletionBlock() {
 
             @Override
             public void onCompletion(Object result, Throwable e) {

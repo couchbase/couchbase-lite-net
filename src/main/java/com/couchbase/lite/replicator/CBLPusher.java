@@ -10,7 +10,7 @@ import com.couchbase.lite.ReplicationFilter;
 import com.couchbase.lite.RevisionList;
 import com.couchbase.lite.internal.CBLRevisionInternal;
 import com.couchbase.lite.internal.InterfaceAudience;
-import com.couchbase.lite.support.CBLRemoteRequestCompletionBlock;
+import com.couchbase.lite.support.RemoteRequestCompletionBlock;
 import com.couchbase.lite.support.HttpClientFactory;
 import com.couchbase.lite.util.Log;
 
@@ -79,7 +79,7 @@ public class CBLPusher extends CBLReplicator implements Database.ChangeListener 
             return;
         }
         Log.v(Database.TAG, "Remote db might not exist; creating it...");
-        sendAsyncRequest("PUT", "", null, new CBLRemoteRequestCompletionBlock() {
+        sendAsyncRequest("PUT", "", null, new RemoteRequestCompletionBlock() {
 
             @Override
             public void onCompletion(Object result, Throwable e) {
@@ -178,7 +178,7 @@ public class CBLPusher extends CBLReplicator implements Database.ChangeListener 
 
         // Call _revs_diff on the target db:
         asyncTaskStarted();
-        sendAsyncRequest("POST", "/_revs_diff", diffs, new CBLRemoteRequestCompletionBlock() {
+        sendAsyncRequest("POST", "/_revs_diff", diffs, new RemoteRequestCompletionBlock() {
 
             @Override
             public void onCompletion(Object response, Throwable e) {
@@ -244,7 +244,7 @@ public class CBLPusher extends CBLReplicator implements Database.ChangeListener 
                     Log.v(Database.TAG, String.format("%s: Sending %s", this, inbox));
                     setChangesCount(getChangesCount() + numDocsToSend);
                     asyncTaskStarted();
-                    sendAsyncRequest("POST", "/_bulk_docs", bulkDocsBody, new CBLRemoteRequestCompletionBlock() {
+                    sendAsyncRequest("POST", "/_bulk_docs", bulkDocsBody, new RemoteRequestCompletionBlock() {
 
                         @Override
                         public void onCompletion(Object result, Throwable e) {
@@ -330,7 +330,7 @@ public class CBLPusher extends CBLReplicator implements Database.ChangeListener 
         // TODO: need to throttle these requests
         Log.d(Database.TAG, "Uploadeding multipart request.  Revision: " + revision);
         asyncTaskStarted();
-        sendAsyncMultipartRequest("PUT", path, multiPart, new CBLRemoteRequestCompletionBlock() {
+        sendAsyncMultipartRequest("PUT", path, multiPart, new RemoteRequestCompletionBlock() {
             @Override
             public void onCompletion(Object result, Throwable e) {
                 if(e != null) {

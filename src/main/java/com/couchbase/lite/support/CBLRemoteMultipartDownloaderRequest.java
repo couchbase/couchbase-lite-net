@@ -26,7 +26,7 @@ public class CBLRemoteMultipartDownloaderRequest extends CBLRemoteRequest {
 
     public CBLRemoteMultipartDownloaderRequest(ScheduledExecutorService workExecutor,
                                                HttpClientFactory clientFactory, String method, URL url,
-                                               Object body, Database db, CBLRemoteRequestCompletionBlock onCompletion) {
+                                               Object body, Database db, RemoteRequestCompletionBlock onCompletion) {
         super(workExecutor, clientFactory, method, url, body, onCompletion);
         this.db = db;
     }

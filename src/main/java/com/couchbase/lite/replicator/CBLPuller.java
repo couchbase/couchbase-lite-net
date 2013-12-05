@@ -15,7 +15,7 @@ import com.couchbase.lite.replicator.changetracker.CBLChangeTrackerClient;
 import com.couchbase.lite.storage.SQLException;
 import com.couchbase.lite.support.CBLBatchProcessor;
 import com.couchbase.lite.support.CBLBatcher;
-import com.couchbase.lite.support.CBLRemoteRequestCompletionBlock;
+import com.couchbase.lite.support.RemoteRequestCompletionBlock;
 import com.couchbase.lite.support.SequenceMap;
 import com.couchbase.lite.support.HttpClientFactory;
 import com.couchbase.lite.util.Log;
@@ -291,7 +291,7 @@ public class CBLPuller extends CBLReplicator implements CBLChangeTrackerClient {
         //create a final version of this variable for the log statement inside
         //FIXME find a way to avoid this
         final String pathInside = path.toString();
-        sendAsyncMultipartDownloaderRequest("GET", pathInside, null, db, new CBLRemoteRequestCompletionBlock() {
+        sendAsyncMultipartDownloaderRequest("GET", pathInside, null, db, new RemoteRequestCompletionBlock() {
 
             @Override
             public void onCompletion(Object result, Throwable e) {

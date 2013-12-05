@@ -15,7 +15,7 @@ public class CBLRemoteMultipartRequest extends CBLRemoteRequest {
 
     public CBLRemoteMultipartRequest(ScheduledExecutorService workExecutor,
                                      HttpClientFactory clientFactory, String method, URL url,
-                                     MultipartEntity multiPart, CBLRemoteRequestCompletionBlock onCompletion) {
+                                     MultipartEntity multiPart, RemoteRequestCompletionBlock onCompletion) {
         super(workExecutor, clientFactory, method, url, null, onCompletion);
         this.multiPart = multiPart;
     }
