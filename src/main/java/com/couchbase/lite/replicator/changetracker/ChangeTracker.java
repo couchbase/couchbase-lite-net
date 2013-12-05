@@ -47,7 +47,7 @@ import java.util.Map;
 public class ChangeTracker implements Runnable {
 
     private URL databaseURL;
-    private CBLChangeTrackerClient client;
+    private ChangeTrackerClient client;
     private TDChangeTrackerMode mode;
     private Object lastSequenceID;
 
@@ -66,7 +66,7 @@ public class ChangeTracker implements Runnable {
     }
 
     public ChangeTracker(URL databaseURL, TDChangeTrackerMode mode,
-                         Object lastSequenceID, CBLChangeTrackerClient client) {
+                         Object lastSequenceID, ChangeTrackerClient client) {
         this.databaseURL = databaseURL;
         this.mode = mode;
         this.lastSequenceID = lastSequenceID;
@@ -81,7 +81,7 @@ public class ChangeTracker implements Runnable {
         this.filterParams = filterParams;
     }
 
-    public void setClient(CBLChangeTrackerClient client) {
+    public void setClient(ChangeTrackerClient client) {
         this.client = client;
     }
 

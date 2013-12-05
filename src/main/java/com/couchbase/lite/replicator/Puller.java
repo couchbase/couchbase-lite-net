@@ -11,7 +11,7 @@ import com.couchbase.lite.internal.CBLRevisionInternal;
 import com.couchbase.lite.internal.InterfaceAudience;
 import com.couchbase.lite.replicator.changetracker.ChangeTracker;
 import com.couchbase.lite.replicator.changetracker.ChangeTracker.TDChangeTrackerMode;
-import com.couchbase.lite.replicator.changetracker.CBLChangeTrackerClient;
+import com.couchbase.lite.replicator.changetracker.ChangeTrackerClient;
 import com.couchbase.lite.storage.SQLException;
 import com.couchbase.lite.support.BatchProcessor;
 import com.couchbase.lite.support.Batcher;
@@ -34,7 +34,7 @@ import java.util.concurrent.ScheduledExecutorService;
 
 
 @InterfaceAudience.Private
-public class Puller extends Replication implements CBLChangeTrackerClient {
+public class Puller extends Replication implements ChangeTrackerClient {
 
     private static final int MAX_OPEN_HTTP_CONNECTIONS = 16;
 

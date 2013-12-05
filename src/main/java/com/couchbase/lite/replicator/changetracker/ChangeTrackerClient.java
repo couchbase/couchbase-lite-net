@@ -4,7 +4,7 @@ import com.couchbase.lite.support.HttpClientFactory;
 
 import java.util.Map;
 
-public interface CBLChangeTrackerClient extends HttpClientFactory {
+public interface ChangeTrackerClient extends HttpClientFactory {
 
     void changeTrackerReceivedChange(Map<String,Object> change);
 
