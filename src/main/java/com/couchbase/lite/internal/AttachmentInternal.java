@@ -5,7 +5,7 @@ import com.couchbase.lite.CBLBlobKey;
 /**
  *  A simple container for attachment metadata.
  */
-public class CBLAttachmentInternal {
+public class AttachmentInternal {
 
     public enum CBLAttachmentEncoding {
         CBLAttachmentEncodingNone, CBLAttachmentEncodingGZIP
@@ -20,7 +20,7 @@ public class CBLAttachmentInternal {
     private CBLAttachmentEncoding encoding;
     private int revpos;
 
-    public CBLAttachmentInternal(String name, String contentType) {
+    public AttachmentInternal(String name, String contentType) {
         this.name = name;
         this.contentType = contentType;
     }

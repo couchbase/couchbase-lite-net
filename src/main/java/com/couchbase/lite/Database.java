@@ -22,8 +22,8 @@ import android.text.TextUtils;
 import android.util.LruCache;
 
 import com.couchbase.lite.Database.TDContentOptions;
+import com.couchbase.lite.internal.AttachmentInternal;
 import com.couchbase.lite.internal.Body;
-import com.couchbase.lite.internal.CBLAttachmentInternal;
 import com.couchbase.lite.internal.RevisionInternal;
 import com.couchbase.lite.internal.InterfaceAudience;
 import com.couchbase.lite.replicator.Puller;
@@ -1873,7 +1873,7 @@ public class Database {
     /*** Database+Attachments                                                                    ***/
     /*************************************************************************************************/
 
-    void insertAttachmentForSequence(CBLAttachmentInternal attachment, long sequence) throws CouchbaseLiteException {
+    void insertAttachmentForSequence(AttachmentInternal attachment, long sequence) throws CouchbaseLiteException {
         insertAttachmentForSequenceWithNameAndType(sequence, attachment.getName(), attachment.getContentType(), attachment.getRevpos(), attachment.getBlobKey());
     }
 
@@ -1906,7 +1906,7 @@ public class Database {
         }
     }
 
-    void installAttachment(CBLAttachmentInternal attachment, Map<String, Object> attachInfo) throws CouchbaseLiteException {
+    void installAttachment(AttachmentInternal attachment, Map<String, Object> attachInfo) throws CouchbaseLiteException {
         String digest = (String) attachInfo.get("digest");
         if (digest == null) {
             throw new CouchbaseLiteException(Status.BAD_ATTACHMENT);
@@ -2169,7 +2169,7 @@ public class Database {
             rev.setProperties(editedProperties);
     }
 
-    void stubOutAttachmentsInRevision(Map<String, CBLAttachmentInternal> attachments, RevisionInternal rev) {
+    void stubOutAttachmentsInRevision(Map<String, AttachmentInternal> attachments, RevisionInternal rev) {
 
         Map<String, Object> properties = rev.getProperties();
         Map<String, Object> attachmentsFromProps =  (Map<String, Object>) properties.get("_attachments");
@@ -2183,7 +2183,7 @@ public class Database {
                     if (attachmentFromProps.get("revpos") == null) {
                         attachmentFromProps.put("revpos",rev.getGeneration());
                     }
-                    CBLAttachmentInternal attachmentObject = attachments.get(attachmentKey);
+                    AttachmentInternal attachmentObject = attachments.get(attachmentKey);
                     if (attachmentObject != null) {
                         attachmentFromProps.put("length", attachmentObject.getLength());
                         if (attachmentObject.getBlobKey() != null){
@@ -2203,7 +2203,7 @@ public class Database {
      * Given a newly-added revision, adds the necessary attachment rows to the sqliteDb and
      * stores inline attachments into the blob store.
      */
-    void processAttachmentsForRevision(Map<String, CBLAttachmentInternal> attachments, RevisionInternal rev, long parentSequence) throws CouchbaseLiteException {
+    void processAttachmentsForRevision(Map<String, AttachmentInternal> attachments, RevisionInternal rev, long parentSequence) throws CouchbaseLiteException {
 
         assert(rev != null);
         long newSequence = rev.getSequence();
@@ -2222,7 +2222,7 @@ public class Database {
         }
 
         for (String name : revAttachments.keySet()) {
-            CBLAttachmentInternal attachment = attachments.get(name);
+            AttachmentInternal attachment = attachments.get(name);
             if (attachment != null) {
                 // Determine the revpos, i.e. generation # this was added in. Usually this is
                 // implicit, but a rev being pulled in replication will have it set already.
@@ -2673,7 +2673,7 @@ public class Database {
             //// PART II: In which insertion occurs...
 
             // Get the attachments:
-            Map<String, CBLAttachmentInternal> attachments = getAttachmentsFromRevision(rev);
+            Map<String, AttachmentInternal> attachments = getAttachmentsFromRevision(rev);
 
             // Bump the revID and update the JSON:
             String newRevId = generateNextRevisionID(prevRevId);
@@ -2725,20 +2725,20 @@ public class Database {
 
     /**
      * Given a revision, read its _attachments dictionary (if any), convert each attachment to a
-     * CBLAttachmentInternal object, and return a dictionary mapping names->CBL_Attachments.
+     * AttachmentInternal object, and return a dictionary mapping names->CBL_Attachments.
      */
-    Map<String, CBLAttachmentInternal> getAttachmentsFromRevision(RevisionInternal rev) throws CouchbaseLiteException {
+    Map<String, AttachmentInternal> getAttachmentsFromRevision(RevisionInternal rev) throws CouchbaseLiteException {
 
         Map<String, Object> revAttachments = (Map<String, Object>) rev.getPropertyForKey("_attachments");
         if (revAttachments == null || revAttachments.size() == 0 || rev.isDeleted()) {
-            return new HashMap<String, CBLAttachmentInternal>();
+            return new HashMap<String, AttachmentInternal>();
         }
 
-        Map<String, CBLAttachmentInternal> attachments = new HashMap<String, CBLAttachmentInternal>();
+        Map<String, AttachmentInternal> attachments = new HashMap<String, AttachmentInternal>();
         for (String name : revAttachments.keySet()) {
             Map<String, Object> attachInfo = (Map<String, Object>) revAttachments.get(name);
             String contentType = (String) attachInfo.get("content_type");
-            CBLAttachmentInternal attachment = new CBLAttachmentInternal(name, contentType);
+            AttachmentInternal attachment = new AttachmentInternal(name, contentType);
             String newContentBase64 = (String) attachInfo.get("data");
             if (newContentBase64 != null) {
                 // If there's inline attachment data, decode and store it:
@@ -2779,7 +2779,7 @@ public class Database {
             String encodingStr = (String) attachInfo.get("encoding");
             if (encodingStr != null && encodingStr.length() > 0) {
                 if (encodingStr.equalsIgnoreCase("gzip")) {
-                    attachment.setEncoding(CBLAttachmentInternal.CBLAttachmentEncoding.CBLAttachmentEncodingGZIP);
+                    attachment.setEncoding(AttachmentInternal.CBLAttachmentEncoding.CBLAttachmentEncodingGZIP);
                 }
                 else {
                     throw new CouchbaseLiteException("Unnkown encoding: " + encodingStr, Status.BAD_ENCODING);
@@ -2880,7 +2880,7 @@ public class Database {
                     if(i == 0) {
                         // Write any changed attachments for the new revision. As the parent sequence use
                         // the latest local revision (this is to copy attachments from):
-                        Map<String, CBLAttachmentInternal> attachments = getAttachmentsFromRevision(rev);
+                        Map<String, AttachmentInternal> attachments = getAttachmentsFromRevision(rev);
                         if (attachments != null) {
                             processAttachmentsForRevision(attachments, rev, localParentSequence);
                             stubOutAttachmentsInRevision(attachments, rev);

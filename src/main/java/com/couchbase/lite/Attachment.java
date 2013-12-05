@@ -17,7 +17,7 @@
 
 package com.couchbase.lite;
 
-import com.couchbase.lite.internal.CBLAttachmentInternal;
+import com.couchbase.lite.internal.AttachmentInternal;
 import com.couchbase.lite.internal.InterfaceAudience;
 
 import java.io.InputStream;
@@ -188,8 +188,8 @@ public class Attachment {
                 }
                 updatedAttachments.put(name, metadata);
             }
-            else if (value instanceof CBLAttachmentInternal) {
-                throw new IllegalArgumentException("CBLAttachmentInternal objects not expected here.  Could indicate a bug");
+            else if (value instanceof AttachmentInternal) {
+                throw new IllegalArgumentException("AttachmentInternal objects not expected here.  Could indicate a bug");
             }
         }
         return updatedAttachments;
