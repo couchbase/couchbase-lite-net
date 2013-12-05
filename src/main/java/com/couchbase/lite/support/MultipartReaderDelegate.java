@@ -2,7 +2,7 @@ package com.couchbase.lite.support;
 
 import java.util.Map;
 
-public interface CBLMultipartReaderDelegate {
+public interface MultipartReaderDelegate {
 
     public void startedPart(Map<String, String> headers);
 

@@ -13,7 +13,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
-public class CBLMultipartDocumentReader implements CBLMultipartReaderDelegate {
+public class MultipartDocumentReader implements MultipartReaderDelegate {
 
     /** The response which contains the input stream we need to read from */
     private HttpResponse response;
@@ -26,7 +26,7 @@ public class CBLMultipartDocumentReader implements CBLMultipartReaderDelegate {
     private Map<String, BlobStoreWriter> attachmentsByName;
     private Map<String, BlobStoreWriter> attachmentsByMd5Digest;
 
-    public CBLMultipartDocumentReader(HttpResponse response, Database database) {
+    public MultipartDocumentReader(HttpResponse response, Database database) {
         this.response = response;
         this.database = database;
     }

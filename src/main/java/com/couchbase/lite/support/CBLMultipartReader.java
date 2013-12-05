@@ -26,10 +26,10 @@ public class CBLMultipartReader {
     private ByteArrayBuffer buffer;
     private String contentType;
     private byte[] boundary;
-    private CBLMultipartReaderDelegate delegate;
+    private MultipartReaderDelegate delegate;
     public Map<String, String> headers;
 
-    public CBLMultipartReader(String contentType, CBLMultipartReaderDelegate delegate) {
+    public CBLMultipartReader(String contentType, MultipartReaderDelegate delegate) {
 
         this.contentType = contentType;
         this.delegate = delegate;

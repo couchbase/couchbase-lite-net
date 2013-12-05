@@ -78,7 +78,7 @@ public class RemoteMultipartDownloaderRequest extends RemoteRequest {
                         && contentTypeHeader.getValue().contains("multipart/related")) {
 
                     try {
-                        CBLMultipartDocumentReader reader = new CBLMultipartDocumentReader(response, db);
+                        MultipartDocumentReader reader = new MultipartDocumentReader(response, db);
                         reader.setContentType(contentTypeHeader.getValue());
                         inputStream = entity.getContent();
 
