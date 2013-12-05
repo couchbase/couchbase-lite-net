@@ -31,7 +31,7 @@ import java.util.Map;
 import java.util.concurrent.ScheduledExecutorService;
 
 @InterfaceAudience.Private
-public class CBLPusher extends Replication implements Database.ChangeListener {
+public class Pusher extends Replication implements Database.ChangeListener {
 
     private boolean shouldCreateTarget;
     private boolean observing;
@@ -41,7 +41,7 @@ public class CBLPusher extends Replication implements Database.ChangeListener {
      * Constructor
      */
     @InterfaceAudience.Private
-    public CBLPusher(Database db, URL remote, boolean continuous, ScheduledExecutorService workExecutor) {
+    public Pusher(Database db, URL remote, boolean continuous, ScheduledExecutorService workExecutor) {
         this(db, remote, continuous, null, workExecutor);
     }
 
@@ -49,7 +49,7 @@ public class CBLPusher extends Replication implements Database.ChangeListener {
      * Constructor
      */
     @InterfaceAudience.Private
-    public CBLPusher(Database db, URL remote, boolean continuous, HttpClientFactory clientFactory, ScheduledExecutorService workExecutor) {
+    public Pusher(Database db, URL remote, boolean continuous, HttpClientFactory clientFactory, ScheduledExecutorService workExecutor) {
         super(db, remote, continuous, clientFactory, workExecutor);
         shouldCreateTarget = false;
         observing = false;

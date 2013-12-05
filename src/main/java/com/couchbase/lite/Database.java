@@ -27,7 +27,7 @@ import com.couchbase.lite.internal.CBLBody;
 import com.couchbase.lite.internal.CBLRevisionInternal;
 import com.couchbase.lite.internal.InterfaceAudience;
 import com.couchbase.lite.replicator.CBLPuller;
-import com.couchbase.lite.replicator.CBLPusher;
+import com.couchbase.lite.replicator.Pusher;
 import com.couchbase.lite.replicator.Replication;
 import com.couchbase.lite.storage.ContentValues;
 import com.couchbase.lite.storage.Cursor;
@@ -2969,7 +2969,7 @@ public class Database {
         if(result != null) {
             return result;
         }
-        result = push ? new CBLPusher(this, remote, continuous, httpClientFactory, workExecutor) : new CBLPuller(this, remote, continuous, httpClientFactory, workExecutor);
+        result = push ? new Pusher(this, remote, continuous, httpClientFactory, workExecutor) : new CBLPuller(this, remote, continuous, httpClientFactory, workExecutor);
 
         if(activeReplicators == null) {
             activeReplicators = new ArrayList<Replication>();

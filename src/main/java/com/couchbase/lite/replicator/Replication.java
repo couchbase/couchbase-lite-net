@@ -623,7 +623,7 @@ public abstract class Replication {
      */
 
      void maybeCreateRemoteDB() {
-        // CBLPusher overrides this to implement the .createTarget option
+        // Pusher overrides this to implement the .createTarget option
     }
 
     /**
