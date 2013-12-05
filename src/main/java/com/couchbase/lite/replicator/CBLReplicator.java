@@ -1,7 +1,7 @@
 package com.couchbase.lite.replicator;
 
 import com.couchbase.lite.Database;
-import com.couchbase.lite.CBLMisc;
+import com.couchbase.lite.Misc;
 import com.couchbase.lite.RevisionList;
 import com.couchbase.lite.internal.CBLRevisionInternal;
 import com.couchbase.lite.auth.CBLAuthorizer;
@@ -636,7 +636,7 @@ public abstract class CBLReplicator {
             return null;
         }
         String input = db.privateUUID() + "\n" + remote.toExternalForm() + "\n" + (!isPull() ? "1" : "0");
-        return CBLMisc.TDHexSHA1Digest(input.getBytes());
+        return Misc.TDHexSHA1Digest(input.getBytes());
     }
 
     private boolean is404(Throwable e) {

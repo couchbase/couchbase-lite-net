@@ -2,7 +2,7 @@ package com.couchbase.lite.replicator;
 
 import com.couchbase.lite.Database;
 import com.couchbase.lite.Manager;
-import com.couchbase.lite.CBLMisc;
+import com.couchbase.lite.Misc;
 import com.couchbase.lite.RevisionList;
 import com.couchbase.lite.Status;
 import com.couchbase.lite.CBLiteException;
@@ -351,7 +351,7 @@ public class CBLPuller extends CBLReplicator implements CBLChangeTrackerClient {
             public int compare(List<Object> list1, List<Object> list2) {
                 CBLRevisionInternal reva = (CBLRevisionInternal)list1.get(0);
                 CBLRevisionInternal revb = (CBLRevisionInternal)list2.get(0);
-                return CBLMisc.TDSequenceCompare(reva.getSequence(), revb.getSequence());
+                return Misc.TDSequenceCompare(reva.getSequence(), revb.getSequence());
             }
 
         });

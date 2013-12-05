@@ -82,7 +82,7 @@ public class RevisionList extends ArrayList<CBLRevisionInternal> {
         Collections.sort(this, new Comparator<CBLRevisionInternal>() {
 
             public int compare(CBLRevisionInternal rev1, CBLRevisionInternal rev2) {
-                return CBLMisc.TDSequenceCompare(rev1.getSequence(), rev2.getSequence());
+                return Misc.TDSequenceCompare(rev1.getSequence(), rev2.getSequence());
             }
 
         });

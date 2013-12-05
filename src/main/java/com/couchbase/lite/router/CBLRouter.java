@@ -7,12 +7,12 @@ import com.couchbase.lite.Database;
 import com.couchbase.lite.Database.TDContentOptions;
 import com.couchbase.lite.DocumentChange;
 import com.couchbase.lite.Manager;
+import com.couchbase.lite.Misc;
 import com.couchbase.lite.QueryOptions;
 import com.couchbase.lite.QueryRow;
 import com.couchbase.lite.Reducer;
 import com.couchbase.lite.ReplicationFilter;
 import com.couchbase.lite.CBLMapper;
-import com.couchbase.lite.CBLMisc;
 import com.couchbase.lite.RevisionList;
 import com.couchbase.lite.Status;
 import com.couchbase.lite.View;
@@ -1027,7 +1027,7 @@ public class CBLRouter implements Database.ChangeListener {
         // After collecting revisions, sort by sequence:
         Collections.sort(entries, new Comparator<Map<String,Object>>() {
            public int compare(Map<String,Object> e1, Map<String,Object> e2) {
-               return CBLMisc.TDSequenceCompare((Long)e1.get("seq"), (Long)e2.get("seq"));
+               return Misc.TDSequenceCompare((Long) e1.get("seq"), (Long) e2.get("seq"));
            }
         });
 

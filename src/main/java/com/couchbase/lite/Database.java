@@ -363,7 +363,7 @@ public class Database {
      */
     @InterfaceAudience.Public
     public Document createDocument() {
-        return getDocument(CBLMisc.TDCreateUUID());
+        return getDocument(Misc.TDCreateUUID());
     }
 
     /**
@@ -778,8 +778,8 @@ public class Database {
             String upgradeSql = "CREATE TABLE info ( " +
                     "key TEXT PRIMARY KEY, " +
                     "value TEXT); " +
-                    "INSERT INTO INFO (key, value) VALUES ('privateUUID', '" + CBLMisc.TDCreateUUID() + "'); " +
-                    "INSERT INTO INFO (key, value) VALUES ('publicUUID',  '" + CBLMisc.TDCreateUUID() + "'); " +
+                    "INSERT INTO INFO (key, value) VALUES ('privateUUID', '" + Misc.TDCreateUUID() + "'); " +
+                    "INSERT INTO INFO (key, value) VALUES ('publicUUID',  '" + Misc.TDCreateUUID() + "'); " +
                     "PRAGMA user_version = 4";
             if(!initialize(upgradeSql)) {
                 database.close();
@@ -2401,7 +2401,7 @@ public class Database {
     }
 
     public static String generateDocumentId() {
-        return CBLMisc.TDCreateUUID();
+        return Misc.TDCreateUUID();
     }
 
     public String generateNextRevisionID(String revisionId) {
@@ -2413,7 +2413,7 @@ public class Database {
                 return null;
             }
         }
-        String digest = CBLMisc.TDCreateUUID();  // TODO: Generate canonical digest of body
+        String digest = Misc.TDCreateUUID();  // TODO: Generate canonical digest of body
         return Integer.toString(generation + 1) + "-" + digest;
     }
 
@@ -3319,14 +3319,14 @@ public class Database {
     }
 
     protected boolean replaceUUIDs() {
-        String query = "UPDATE INFO SET value='"+ CBLMisc.TDCreateUUID()+"' where key = 'privateUUID';";
+        String query = "UPDATE INFO SET value='"+ Misc.TDCreateUUID()+"' where key = 'privateUUID';";
         try {
             database.execSQL(query);
         } catch (SQLException e) {
             Log.e(Database.TAG, "Error updating UUIDs", e);
             return false;
         }
-        query = "UPDATE INFO SET value='"+CBLMisc.TDCreateUUID()+"' where key = 'publicUUID';";
+        query = "UPDATE INFO SET value='"+ Misc.TDCreateUUID()+"' where key = 'publicUUID';";
         try {
             database.execSQL(query);
         } catch (SQLException e) {

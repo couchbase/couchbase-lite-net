@@ -6,7 +6,7 @@ import java.util.UUID;
 
 import com.couchbase.lite.util.Log;
 
-public class CBLMisc {
+public class Misc {
 
     public static String TDCreateUUID() {
         return UUID.randomUUID().toString();

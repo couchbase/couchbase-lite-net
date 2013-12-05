@@ -56,7 +56,7 @@ public class CBLBlobStoreWriter {
 
     private void openTempFile() throws FileNotFoundException {
 
-        String uuid = CBLMisc.TDCreateUUID();
+        String uuid = Misc.TDCreateUUID();
         String filename = String.format("%s.blobtmp", uuid);
         File tempDir = store.tempDir();
         tempFile = new File(tempDir, filename);
