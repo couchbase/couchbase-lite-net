@@ -4,7 +4,7 @@ import com.couchbase.lite.auth.CBLAuthorizer;
 import com.couchbase.lite.auth.CBLFacebookAuthorizer;
 import com.couchbase.lite.auth.CBLPersonaAuthorizer;
 import com.couchbase.lite.internal.InterfaceAudience;
-import com.couchbase.lite.replicator.CBLPuller;
+import com.couchbase.lite.replicator.Puller;
 import com.couchbase.lite.replicator.Pusher;
 import com.couchbase.lite.replicator.Replication;
 import com.couchbase.lite.support.FileDirUtils;
@@ -337,7 +337,7 @@ public class Manager {
             replicator = new Pusher(db, remote, true, getWorkExecutor());
         }
         else {
-            replicator = new CBLPuller(db, remote, true, getWorkExecutor());
+            replicator = new Puller(db, remote, true, getWorkExecutor());
         }
 
         replications.add(replicator);

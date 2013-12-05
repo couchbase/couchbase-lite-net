@@ -34,7 +34,7 @@ import java.util.concurrent.ScheduledExecutorService;
 
 
 @InterfaceAudience.Private
-public class CBLPuller extends Replication implements CBLChangeTrackerClient {
+public class Puller extends Replication implements CBLChangeTrackerClient {
 
     private static final int MAX_OPEN_HTTP_CONNECTIONS = 16;
 
@@ -48,7 +48,7 @@ public class CBLPuller extends Replication implements CBLChangeTrackerClient {
      * Constructor
      */
     @InterfaceAudience.Private
-    public CBLPuller(Database db, URL remote, boolean continuous, ScheduledExecutorService workExecutor) {
+    public Puller(Database db, URL remote, boolean continuous, ScheduledExecutorService workExecutor) {
         this(db, remote, continuous, null, workExecutor);
     }
 
@@ -56,7 +56,7 @@ public class CBLPuller extends Replication implements CBLChangeTrackerClient {
      * Constructor
      */
     @InterfaceAudience.Private
-    public CBLPuller(Database db, URL remote, boolean continuous, HttpClientFactory clientFactory, ScheduledExecutorService workExecutor) {
+    public Puller(Database db, URL remote, boolean continuous, HttpClientFactory clientFactory, ScheduledExecutorService workExecutor) {
         super(db, remote, continuous, clientFactory, workExecutor);
     }
 
