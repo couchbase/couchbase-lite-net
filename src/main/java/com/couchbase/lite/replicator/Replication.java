@@ -3,7 +3,7 @@ package com.couchbase.lite.replicator;
 import com.couchbase.lite.Database;
 import com.couchbase.lite.Misc;
 import com.couchbase.lite.RevisionList;
-import com.couchbase.lite.internal.CBLRevisionInternal;
+import com.couchbase.lite.internal.RevisionInternal;
 import com.couchbase.lite.auth.CBLAuthorizer;
 import com.couchbase.lite.auth.CBLFacebookAuthorizer;
 import com.couchbase.lite.auth.CBLPersonaAuthorizer;
@@ -52,7 +52,7 @@ public abstract class Replication {
     protected boolean active;
     protected Throwable error;
     protected String sessionID;
-    protected Batcher<CBLRevisionInternal> batcher;
+    protected Batcher<RevisionInternal> batcher;
     protected int asyncTaskCount;
     private int completedChangesCount;
     private int changesCount;
@@ -134,9 +134,9 @@ public abstract class Replication {
 
         }
 
-        batcher = new Batcher<CBLRevisionInternal>(workExecutor, INBOX_CAPACITY, PROCESSOR_DELAY, new BatchProcessor<CBLRevisionInternal>() {
+        batcher = new Batcher<RevisionInternal>(workExecutor, INBOX_CAPACITY, PROCESSOR_DELAY, new BatchProcessor<RevisionInternal>() {
             @Override
-            public void process(List<CBLRevisionInternal> inbox) {
+            public void process(List<RevisionInternal> inbox) {
                 Log.v(Database.TAG, "*** " + toString() + ": BEGIN processInbox (" + inbox.size() + " sequences)");
                 processInbox(new RevisionList(inbox));
                 Log.v(Database.TAG, "*** " + toString() + ": END processInbox (lastSequence=" + lastSequence);
@@ -553,7 +553,7 @@ public abstract class Replication {
         }
     }
 
-    public void addToInbox(CBLRevisionInternal rev) {
+    public void addToInbox(RevisionInternal rev) {
         if (batcher.count() == 0) {
             active = true;
         }

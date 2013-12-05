@@ -24,7 +24,7 @@ import android.util.LruCache;
 import com.couchbase.lite.Database.TDContentOptions;
 import com.couchbase.lite.internal.CBLAttachmentInternal;
 import com.couchbase.lite.internal.CBLBody;
-import com.couchbase.lite.internal.CBLRevisionInternal;
+import com.couchbase.lite.internal.RevisionInternal;
 import com.couchbase.lite.internal.InterfaceAudience;
 import com.couchbase.lite.replicator.Puller;
 import com.couchbase.lite.replicator.Pusher;
@@ -350,7 +350,7 @@ public class Database {
         if (documentId == null || documentId.length() == 0) {
             return null;
         }
-        CBLRevisionInternal revisionInternal = getDocumentWithIDAndRev(documentId, null, EnumSet.noneOf(Database.TDContentOptions.class));
+        RevisionInternal revisionInternal = getDocumentWithIDAndRev(documentId, null, EnumSet.noneOf(Database.TDContentOptions.class));
         if (revisionInternal == null) {
             return null;
         }
@@ -382,7 +382,7 @@ public class Database {
     @InterfaceAudience.Public
     public boolean putLocalDocument(Map<String, Object> properties, String id) throws CouchbaseLiteException {
         // TODO: there was some code in the iOS implementation equivalent that I did not know if needed
-        CBLRevisionInternal prevRev = getLocalDocument(id, null);
+        RevisionInternal prevRev = getLocalDocument(id, null);
         if (prevRev == null && properties == null) {
             return false;
         }
@@ -394,7 +394,7 @@ public class Database {
      */
     @InterfaceAudience.Public
     public boolean deleteLocalDocument(String id) throws CouchbaseLiteException {
-        CBLRevisionInternal prevRev = getLocalDocument(id, null);
+        RevisionInternal prevRev = getLocalDocument(id, null);
         if (prevRev == null) {
             return false;
         }
@@ -968,7 +968,7 @@ public class Database {
 
     /** Inserts the _id, _rev and _attachments properties into the JSON data and stores it in rev.
     Rev must already have its revID and sequence properties set. */
-    public Map<String,Object> extraPropertiesForRevision(CBLRevisionInternal rev, EnumSet<TDContentOptions> contentOptions) {
+    public Map<String,Object> extraPropertiesForRevision(RevisionInternal rev, EnumSet<TDContentOptions> contentOptions) {
 
         String docId = rev.getDocId();
         String revId = rev.getRevId();
@@ -994,8 +994,8 @@ public class Database {
         List<Object> revsInfo = null;
         if(contentOptions.contains(TDContentOptions.TDIncludeRevsInfo)) {
             revsInfo = new ArrayList<Object>();
-            List<CBLRevisionInternal> revHistoryFull = getRevisionHistory(rev);
-            for (CBLRevisionInternal historicalRev : revHistoryFull) {
+            List<RevisionInternal> revHistoryFull = getRevisionHistory(rev);
+            for (RevisionInternal historicalRev : revHistoryFull) {
                 Map<String,Object> revHistoryItem = new HashMap<String,Object>();
                 String status = "available";
                 if(historicalRev.isDeleted()) {
@@ -1013,7 +1013,7 @@ public class Database {
             RevisionList revs = getAllRevisionsOfDocumentID(docId, true);
             if(revs.size() > 1) {
                 conflicts = new ArrayList<String>();
-                for (CBLRevisionInternal historicalRev : revs) {
+                for (RevisionInternal historicalRev : revs) {
                     if(!historicalRev.equals(rev)) {
                         conflicts.add(historicalRev.getRevId());
                     }
@@ -1048,7 +1048,7 @@ public class Database {
 
     /** Inserts the _id, _rev and _attachments properties into the JSON data and stores it in rev.
     Rev must already have its revID and sequence properties set. */
-    public void expandStoredJSONIntoRevisionWithAttachments(byte[] json, CBLRevisionInternal rev, EnumSet<TDContentOptions> contentOptions) {
+    public void expandStoredJSONIntoRevisionWithAttachments(byte[] json, RevisionInternal rev, EnumSet<TDContentOptions> contentOptions) {
         Map<String,Object> extra = extraPropertiesForRevision(rev, contentOptions);
         if(json != null) {
             rev.setJson(appendDictToJSON(json, extra));
@@ -1061,7 +1061,7 @@ public class Database {
     @SuppressWarnings("unchecked")
     public Map<String, Object> documentPropertiesFromJSON(byte[] json, String docId, String revId, boolean deleted, long sequence, EnumSet<TDContentOptions> contentOptions) {
 
-        CBLRevisionInternal rev = new CBLRevisionInternal(docId, revId, deleted, this);
+        RevisionInternal rev = new RevisionInternal(docId, revId, deleted, this);
         rev.setSequence(sequence);
         Map<String, Object> extra = extraPropertiesForRevision(rev, contentOptions);
         if (json == null) {
@@ -1080,8 +1080,8 @@ public class Database {
         return docProperties;
     }
 
-    public CBLRevisionInternal getDocumentWithIDAndRev(String id, String rev, EnumSet<TDContentOptions> contentOptions) {
-        CBLRevisionInternal result = null;
+    public RevisionInternal getDocumentWithIDAndRev(String id, String rev, EnumSet<TDContentOptions> contentOptions) {
+        RevisionInternal result = null;
         String sql;
 
         Cursor cursor = null;
@@ -1107,7 +1107,7 @@ public class Database {
                     rev = cursor.getString(0);
                 }
                 boolean deleted = (cursor.getInt(1) > 0);
-                result = new CBLRevisionInternal(id, rev, deleted, this);
+                result = new RevisionInternal(id, rev, deleted, this);
                 result.setSequence(cursor.getLong(2));
                 if(!contentOptions.equals(EnumSet.of(TDContentOptions.TDNoBody))) {
                     byte[] json = null;
@@ -1131,7 +1131,7 @@ public class Database {
         return getDocumentWithIDAndRev(docId, revId, EnumSet.of(TDContentOptions.TDNoBody)) != null;
     }
 
-    public void loadRevisionBody(CBLRevisionInternal rev, EnumSet<TDContentOptions> contentOptions) throws CouchbaseLiteException {
+    public void loadRevisionBody(RevisionInternal rev, EnumSet<TDContentOptions> contentOptions) throws CouchbaseLiteException {
         if(rev.getBody() != null) {
             return;
         }
@@ -1210,7 +1210,7 @@ public class Database {
             cursor.moveToNext();
             result = new RevisionList();
             while(!cursor.isAfterLast()) {
-                CBLRevisionInternal rev = new CBLRevisionInternal(docId, cursor.getString(1), (cursor.getInt(2) > 0), this);
+                RevisionInternal rev = new RevisionInternal(docId, cursor.getString(1), (cursor.getInt(2) > 0), this);
                 rev.setSequence(cursor.getLong(0));
                 result.add(rev);
                 cursor.moveToNext();
@@ -1270,7 +1270,7 @@ public class Database {
         return result;
     }
 
-    public String findCommonAncestorOf(CBLRevisionInternal rev, List<String> revIDs) {
+    public String findCommonAncestorOf(RevisionInternal rev, List<String> revIDs) {
         String result = null;
 
         if (revIDs.size() == 0)
@@ -1307,7 +1307,7 @@ public class Database {
     /**
      * Returns an array of TDRevs in reverse chronological order, starting with the given revision.
      */
-    public List<CBLRevisionInternal> getRevisionHistory(CBLRevisionInternal rev) {
+    public List<RevisionInternal> getRevisionHistory(RevisionInternal rev) {
         String docId = rev.getDocId();
         String revId = rev.getRevId();
         assert((docId != null) && (revId != null));
@@ -1317,7 +1317,7 @@ public class Database {
             return null;
         }
         else if(docNumericId == 0) {
-            return new ArrayList<CBLRevisionInternal>();
+            return new ArrayList<RevisionInternal>();
         }
 
         String sql = "SELECT sequence, parent, revid, deleted FROM revs " +
@@ -1325,13 +1325,13 @@ public class Database {
         String[] args = { Long.toString(docNumericId) };
         Cursor cursor = null;
 
-        List<CBLRevisionInternal> result;
+        List<RevisionInternal> result;
         try {
             cursor = database.rawQuery(sql, args);
 
             cursor.moveToNext();
             long lastSequence = 0;
-            result = new ArrayList<CBLRevisionInternal>();
+            result = new ArrayList<RevisionInternal>();
             while(!cursor.isAfterLast()) {
                 long sequence = cursor.getLong(0);
                 boolean matches = false;
@@ -1344,7 +1344,7 @@ public class Database {
                 if(matches) {
                     revId = cursor.getString(2);
                     boolean deleted = (cursor.getInt(3) > 0);
-                    CBLRevisionInternal aRev = new CBLRevisionInternal(docId, revId, deleted, this);
+                    RevisionInternal aRev = new RevisionInternal(docId, revId, deleted, this);
                     aRev.setSequence(cursor.getLong(0));
                     result.add(aRev);
                     lastSequence = cursor.getLong(1);
@@ -1390,7 +1390,7 @@ public class Database {
         return result;
     }
 
-    public static Map<String,Object> makeRevisionHistoryDict(List<CBLRevisionInternal> history) {
+    public static Map<String,Object> makeRevisionHistoryDict(List<RevisionInternal> history) {
         if(history == null) {
             return null;
         }
@@ -1399,7 +1399,7 @@ public class Database {
         List<String> suffixes = new ArrayList<String>();
         int start = -1;
         int lastRevNo = -1;
-        for (CBLRevisionInternal rev : history) {
+        for (RevisionInternal rev : history) {
             int revNo = parseRevIDNumber(rev.getRevId());
             String suffix = parseRevIDSuffix(rev.getRevId());
             if(revNo > 0 && suffix.length() > 0) {
@@ -1423,7 +1423,7 @@ public class Database {
         if(start == -1) {
             // we failed to build sequence, just stuff all the revs in list
             suffixes = new ArrayList<String>();
-            for (CBLRevisionInternal rev : history) {
+            for (RevisionInternal rev : history) {
                 suffixes.add(rev.getRevId());
             }
         }
@@ -1438,7 +1438,7 @@ public class Database {
     /**
      * Returns the revision history as a _revisions dictionary, as returned by the REST API's ?revs=true option.
      */
-    public Map<String,Object> getRevisionHistoryDict(CBLRevisionInternal rev) {
+    public Map<String,Object> getRevisionHistoryDict(RevisionInternal rev) {
         return makeRevisionHistoryDict(getRevisionHistory(rev));
     }
 
@@ -1478,7 +1478,7 @@ public class Database {
                     lastDocId = docNumericId;
                 }
 
-                CBLRevisionInternal rev = new CBLRevisionInternal(cursor.getString(2), cursor.getString(3), (cursor.getInt(4) > 0), this);
+                RevisionInternal rev = new RevisionInternal(cursor.getString(2), cursor.getString(3), (cursor.getInt(4) > 0), this);
                 rev.setSequence(cursor.getLong(0));
                 if(includeDocs) {
                     expandStoredJSONIntoRevisionWithAttachments(cursor.getBlob(5), rev, options.getContentOptions());
@@ -1510,7 +1510,7 @@ public class Database {
             return null;
         }
         String docId = String.format("_design/%s", path[0]);
-        CBLRevisionInternal rev = getDocumentWithIDAndRev(docId, null, EnumSet.noneOf(TDContentOptions.class));
+        RevisionInternal rev = getDocumentWithIDAndRev(docId, null, EnumSet.noneOf(TDContentOptions.class));
         if (rev == null) {
             return null;
         }
@@ -2128,12 +2128,12 @@ public class Database {
     }
 
     /**
-     * Modifies a CBLRevisionInternal's body by changing all attachments with revpos < minRevPos into stubs.
+     * Modifies a RevisionInternal's body by changing all attachments with revpos < minRevPos into stubs.
      *
      * @param rev
      * @param minRevPos
      */
-    public void stubOutAttachmentsIn(CBLRevisionInternal rev, int minRevPos)
+    public void stubOutAttachmentsIn(RevisionInternal rev, int minRevPos)
     {
         if (minRevPos <= 1) {
             return;
@@ -2169,7 +2169,7 @@ public class Database {
             rev.setProperties(editedProperties);
     }
 
-    void stubOutAttachmentsInRevision(Map<String, CBLAttachmentInternal> attachments, CBLRevisionInternal rev) {
+    void stubOutAttachmentsInRevision(Map<String, CBLAttachmentInternal> attachments, RevisionInternal rev) {
 
         Map<String, Object> properties = rev.getProperties();
         Map<String, Object> attachmentsFromProps =  (Map<String, Object>) properties.get("_attachments");
@@ -2203,7 +2203,7 @@ public class Database {
      * Given a newly-added revision, adds the necessary attachment rows to the sqliteDb and
      * stores inline attachments into the blob store.
      */
-    void processAttachmentsForRevision(Map<String, CBLAttachmentInternal> attachments, CBLRevisionInternal rev, long parentSequence) throws CouchbaseLiteException {
+    void processAttachmentsForRevision(Map<String, CBLAttachmentInternal> attachments, RevisionInternal rev, long parentSequence) throws CouchbaseLiteException {
 
         assert(rev != null);
         long newSequence = rev.getSequence();
@@ -2252,7 +2252,7 @@ public class Database {
      * Updates or deletes an attachment, creating a new document revision in the process.
      * Used by the PUT / DELETE methods called on attachment URLs.
      */
-    public CBLRevisionInternal updateAttachment(String filename, InputStream contentStream, String contentType, String docID, String oldRevID) throws CouchbaseLiteException {
+    public RevisionInternal updateAttachment(String filename, InputStream contentStream, String contentType, String docID, String oldRevID) throws CouchbaseLiteException {
 
         boolean isSuccessful = false;
 
@@ -2262,7 +2262,7 @@ public class Database {
 
         beginTransaction();
         try {
-            CBLRevisionInternal oldRev = new CBLRevisionInternal(docID, oldRevID, false, this);
+            RevisionInternal oldRev = new RevisionInternal(docID, oldRevID, false, this);
             if(oldRevID != null) {
 
                 // Load existing revision if this is a replacement:
@@ -2292,7 +2292,7 @@ public class Database {
 
             // Create a new revision:
             Status putStatus = new Status();
-            CBLRevisionInternal newRev = putRevision(oldRev, oldRevID, false, putStatus);
+            RevisionInternal newRev = putRevision(oldRev, oldRevID, false, putStatus);
             if(newRev == null) {
                 return null;
             }
@@ -2408,7 +2408,7 @@ public class Database {
         // Revision IDs have a generation count, a hyphen, and a UUID.
         int generation = 0;
         if(revisionId != null) {
-            generation = CBLRevisionInternal.generationFromRevID(revisionId);
+            generation = RevisionInternal.generationFromRevID(revisionId);
             if(generation == 0) {
                 return null;
             }
@@ -2458,7 +2458,7 @@ public class Database {
 
     /** INSERTION: **/
 
-    public byte[] encodeDocumentJSON(CBLRevisionInternal rev) {
+    public byte[] encodeDocumentJSON(RevisionInternal rev) {
 
         Map<String,Object> origProps = rev.getProperties();
         if(origProps == null) {
@@ -2487,7 +2487,7 @@ public class Database {
         return json;
     }
 
-    public void notifyChange(CBLRevisionInternal rev, URL source) {
+    public void notifyChange(RevisionInternal rev, URL source) {
 
         // TODO: it is currently sending one change at a time rather than batching them up
 
@@ -2516,7 +2516,7 @@ public class Database {
     }
 
 
-    public long insertRevision(CBLRevisionInternal rev, long docNumericID, long parentSequence, boolean current, byte[] data) {
+    public long insertRevision(RevisionInternal rev, long docNumericID, long parentSequence, boolean current, byte[] data) {
         long rowId = 0;
         try {
             ContentValues args = new ContentValues();
@@ -2537,11 +2537,11 @@ public class Database {
     }
 
     // TODO: move this to internal API
-    public CBLRevisionInternal putRevision(CBLRevisionInternal rev, String prevRevId, Status resultStatus) throws CouchbaseLiteException {
+    public RevisionInternal putRevision(RevisionInternal rev, String prevRevId, Status resultStatus) throws CouchbaseLiteException {
         return putRevision(rev, prevRevId, false, resultStatus);
     }
 
-    public CBLRevisionInternal putRevision(CBLRevisionInternal rev, String prevRevId,  boolean allowConflict) throws CouchbaseLiteException {
+    public RevisionInternal putRevision(RevisionInternal rev, String prevRevId,  boolean allowConflict) throws CouchbaseLiteException {
         Status ignoredStatus = new Status();
         return putRevision(rev, prevRevId, allowConflict, ignoredStatus);
     }
@@ -2556,10 +2556,10 @@ public class Database {
      * @param prevRevId The ID of the revision to replace (same as the "?rev=" parameter to a PUT), or null if this is a new document.
      * @param allowConflict If false, an error status 409 will be returned if the insertion would create a conflict, i.e. if the previous revision already has a child.
      * @param resultStatus On return, an HTTP status code indicating success or failure.
-     * @return A new CBLRevisionInternal with the docID, revID and sequence filled in (but no body).
+     * @return A new RevisionInternal with the docID, revID and sequence filled in (but no body).
      */
     @SuppressWarnings("unchecked")
-    public CBLRevisionInternal putRevision(CBLRevisionInternal rev, String prevRevId, boolean allowConflict, Status resultStatus) throws CouchbaseLiteException {
+    public RevisionInternal putRevision(RevisionInternal rev, String prevRevId, boolean allowConflict, Status resultStatus) throws CouchbaseLiteException {
         // prevRevId is the rev ID being replaced, or nil if an insert
         String docId = rev.getDocId();
         boolean deleted = rev.isDeleted();
@@ -2606,7 +2606,7 @@ public class Database {
 
                 if(validations != null && validations.size() > 0) {
                     // Fetch the previous revision and validate the new one against it:
-                    CBLRevisionInternal prevRev = new CBLRevisionInternal(docId, prevRevId, false, this);
+                    RevisionInternal prevRev = new RevisionInternal(docId, prevRevId, false, this);
                     validateRevision(rev, prevRev);
                 }
 
@@ -2727,7 +2727,7 @@ public class Database {
      * Given a revision, read its _attachments dictionary (if any), convert each attachment to a
      * CBLAttachmentInternal object, and return a dictionary mapping names->CBL_Attachments.
      */
-    Map<String, CBLAttachmentInternal> getAttachmentsFromRevision(CBLRevisionInternal rev) throws CouchbaseLiteException {
+    Map<String, CBLAttachmentInternal> getAttachmentsFromRevision(RevisionInternal rev) throws CouchbaseLiteException {
 
         Map<String, Object> revAttachments = (Map<String, Object>) rev.getPropertyForKey("_attachments");
         if (revAttachments == null || revAttachments.size() == 0 || rev.isDeleted()) {
@@ -2805,7 +2805,7 @@ public class Database {
      *
      * It must already have a revision ID. This may create a conflict! The revision's history must be given; ancestor revision IDs that don't already exist locally will create phantom revisions with no content.
      */
-    public void forceInsert(CBLRevisionInternal rev, List<String> revHistory, URL source) throws CouchbaseLiteException {
+    public void forceInsert(RevisionInternal rev, List<String> revHistory, URL source) throws CouchbaseLiteException {
 
         String docId = rev.getDocId();
         String revId = rev.getRevId();
@@ -2842,7 +2842,7 @@ public class Database {
             long localParentSequence = 0;
             for(int i = revHistory.size() - 1; i >= 0; --i) {
                 revId = revHistory.get(i);
-                CBLRevisionInternal localRev = localRevs.revWithDocIdAndRevId(docId, revId);
+                RevisionInternal localRev = localRevs.revWithDocIdAndRevId(docId, revId);
                 if(localRev != null) {
                     // This revision is known locally. Remember its sequence as the parent of the next one:
                     sequence = localRev.getSequence();
@@ -2851,7 +2851,7 @@ public class Database {
                 }
                 else {
                     // This revision isn't known, so add it:
-                    CBLRevisionInternal newRev;
+                    RevisionInternal newRev;
                     byte[] data = null;
                     boolean current = false;
                     if(i == 0) {
@@ -2867,7 +2867,7 @@ public class Database {
                     }
                     else {
                         // It's an intermediate parent, so insert a stub:
-                        newRev = new CBLRevisionInternal(docId, revId, false, this);
+                        newRev = new RevisionInternal(docId, revId, false, this);
                     }
 
                     // Insert it:
@@ -2917,7 +2917,7 @@ public class Database {
 
 
 
-    public void validateRevision(CBLRevisionInternal newRev, CBLRevisionInternal oldRev) throws CouchbaseLiteException {
+    public void validateRevision(RevisionInternal newRev, RevisionInternal oldRev) throws CouchbaseLiteException {
         if(validations == null || validations.size() == 0) {
             return;
         }
@@ -3060,7 +3060,7 @@ public class Database {
             cursor = database.rawQuery(sql, null);
             cursor.moveToNext();
             while(!cursor.isAfterLast()) {
-                CBLRevisionInternal rev = touchRevs.revWithDocIdAndRevId(cursor.getString(0), cursor.getString(1));
+                RevisionInternal rev = touchRevs.revWithDocIdAndRevId(cursor.getString(0), cursor.getString(1));
 
                 if(rev != null) {
                     touchRevs.remove(rev);
@@ -3089,7 +3089,7 @@ public class Database {
     }
 
 
-    public CBLRevisionInternal putLocalRevision(CBLRevisionInternal revision, String prevRevID) throws CouchbaseLiteException {
+    public RevisionInternal putLocalRevision(RevisionInternal revision, String prevRevID) throws CouchbaseLiteException {
         String docID = revision.getDocId();
         if(!docID.startsWith("_local/")) {
             throw new CouchbaseLiteException(Status.BAD_REQUEST);
@@ -3100,7 +3100,7 @@ public class Database {
             byte[] json = encodeDocumentJSON(revision);
             String newRevID;
             if(prevRevID != null) {
-                int generation = CBLRevisionInternal.generationFromRevID(prevRevID);
+                int generation = RevisionInternal.generationFromRevID(prevRevID);
                 if(generation == 0) {
                     throw new CouchbaseLiteException(Status.BAD_REQUEST);
                 }
@@ -3150,7 +3150,7 @@ public class Database {
     }
 
 
-    CBLRevisionInternal getParentRevision(CBLRevisionInternal rev) {
+    RevisionInternal getParentRevision(RevisionInternal rev) {
 
         // First get the parent's sequence:
         long seq = rev.getSequence();
@@ -3170,7 +3170,7 @@ public class Database {
         }
 
         // Now get its revID and deletion status:
-        CBLRevisionInternal result = null;
+        RevisionInternal result = null;
 
         String[] args = { Long.toString(seq) };
         String queryString = "SELECT revid, deleted FROM revs WHERE sequence=?";
@@ -3181,7 +3181,7 @@ public class Database {
             if (cursor.moveToNext()) {
                 String revId = cursor.getString(0);
                 boolean deleted = (cursor.getInt(1) > 0);
-                result = new CBLRevisionInternal(rev.getDocId(), revId, deleted, this);
+                result = new RevisionInternal(rev.getDocId(), revId, deleted, this);
                 result.setSequence(seq);
             }
         } finally {
@@ -3337,9 +3337,9 @@ public class Database {
     }
 
     @InterfaceAudience.Private
-    public CBLRevisionInternal getLocalDocument(String docID, String revID) {
+    public RevisionInternal getLocalDocument(String docID, String revID) {
 
-        CBLRevisionInternal result = null;
+        RevisionInternal result = null;
         Cursor cursor = null;
         try {
             String[] args = { docID };
@@ -3355,7 +3355,7 @@ public class Database {
                     properties = Manager.getObjectMapper().readValue(json, Map.class);
                     properties.put("_id", docID);
                     properties.put("_rev", gotRevID);
-                    result = new CBLRevisionInternal(docID, gotRevID, false, this);
+                    result = new RevisionInternal(docID, gotRevID, false, this);
                     result.setProperties(properties);
                 } catch (Exception e) {
                     Log.w(Database.TAG, "Error parsing local doc JSON", e);
@@ -3448,11 +3448,11 @@ public class Database {
 class TDValidationContextImpl implements ValidationContext {
 
     private Database database;
-    private CBLRevisionInternal currentRevision;
+    private RevisionInternal currentRevision;
     private Status errorType;
     private String errorMessage;
 
-    public TDValidationContextImpl(Database database, CBLRevisionInternal currentRevision) {
+    public TDValidationContextImpl(Database database, RevisionInternal currentRevision) {
         this.database = database;
         this.currentRevision = currentRevision;
         this.errorType = new Status(Status.FORBIDDEN);
@@ -3460,7 +3460,7 @@ class TDValidationContextImpl implements ValidationContext {
     }
 
     @Override
-    public CBLRevisionInternal getCurrentRevision() throws CouchbaseLiteException {
+    public RevisionInternal getCurrentRevision() throws CouchbaseLiteException {
         if(currentRevision != null) {
             database.loadRevisionBody(currentRevision, EnumSet.noneOf(TDContentOptions.class));
         }

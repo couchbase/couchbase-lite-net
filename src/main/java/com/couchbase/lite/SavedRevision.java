@@ -17,7 +17,7 @@
 
 package com.couchbase.lite;
 
-import com.couchbase.lite.internal.CBLRevisionInternal;
+import com.couchbase.lite.internal.RevisionInternal;
 import com.couchbase.lite.internal.InterfaceAudience;
 import com.couchbase.lite.util.Log;
 
@@ -35,14 +35,14 @@ import java.util.Map;
  */
 public class SavedRevision extends Revision {
 
-    private CBLRevisionInternal revisionInternal;
+    private RevisionInternal revisionInternal;
     private boolean checkedProperties;
 
     /**
      * Constructor
      */
     @InterfaceAudience.Private
-    SavedRevision(Document document, CBLRevisionInternal revision) {
+    SavedRevision(Document document, RevisionInternal revision) {
         super(document);
         this.revisionInternal = revision;
     }
@@ -51,7 +51,7 @@ public class SavedRevision extends Revision {
      * Constructor
      */
     @InterfaceAudience.Private
-    SavedRevision(Database database, CBLRevisionInternal revision) {
+    SavedRevision(Database database, RevisionInternal revision) {
         this(database.getDocument(revision.getDocId()), revision);
     }
 
@@ -75,8 +75,8 @@ public class SavedRevision extends Revision {
     @InterfaceAudience.Public
     public List<SavedRevision> getRevisionHistory() throws CouchbaseLiteException {
         List<SavedRevision> revisions = new ArrayList<SavedRevision>();
-        List<CBLRevisionInternal> internalRevisions = database.getRevisionHistory(revisionInternal);
-        for (CBLRevisionInternal internalRevision : internalRevisions) {
+        List<RevisionInternal> internalRevisions = database.getRevisionHistory(revisionInternal);
+        for (RevisionInternal internalRevision : internalRevisions) {
             if (internalRevision.getRevId().equals(getId())) {
                 revisions.add(this);
             }
@@ -168,7 +168,7 @@ public class SavedRevision extends Revision {
     boolean loadProperties() {
         try {
             HashMap<String, Object> emptyProperties = new HashMap<String, Object>();
-            CBLRevisionInternal loadRevision = new CBLRevisionInternal(emptyProperties, database);
+            RevisionInternal loadRevision = new RevisionInternal(emptyProperties, database);
             database.loadRevisionBody(loadRevision, EnumSet.noneOf(Database.TDContentOptions.class));
             if (loadRevision == null) {
                 Log.w(Database.TAG, "Couldn't load body/sequence of %s" + this);

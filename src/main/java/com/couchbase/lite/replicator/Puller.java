@@ -7,7 +7,7 @@ import com.couchbase.lite.Misc;
 import com.couchbase.lite.RevisionList;
 import com.couchbase.lite.Status;
 import com.couchbase.lite.internal.CBLBody;
-import com.couchbase.lite.internal.CBLRevisionInternal;
+import com.couchbase.lite.internal.RevisionInternal;
 import com.couchbase.lite.internal.InterfaceAudience;
 import com.couchbase.lite.replicator.changetracker.ChangeTracker;
 import com.couchbase.lite.replicator.changetracker.ChangeTracker.TDChangeTrackerMode;
@@ -39,7 +39,7 @@ public class Puller extends Replication implements ChangeTrackerClient {
     private static final int MAX_OPEN_HTTP_CONNECTIONS = 16;
 
     protected Batcher<List<Object>> downloadsToInsert;
-    protected List<CBLRevisionInternal> revsToPull;
+    protected List<RevisionInternal> revsToPull;
     protected ChangeTracker changeTracker;
     protected SequenceMap pendingSequences;
     protected volatile int httpConnectionCount;
@@ -228,7 +228,7 @@ public class Puller extends Replication implements ChangeTrackerClient {
         // Dump the revs into the queue of revs to pull from the remote db:
         synchronized (this) {
 	        if(revsToPull == null) {
-	            revsToPull = new ArrayList<CBLRevisionInternal>(200);
+	            revsToPull = new ArrayList<RevisionInternal>(200);
 	        }
 
 	        for(int i=0; i < inbox.size(); i++) {
@@ -250,16 +250,16 @@ public class Puller extends Replication implements ChangeTrackerClient {
      */
     public void pullRemoteRevisions() {
         //find the work to be done in a synchronized block
-        List<CBLRevisionInternal> workToStartNow = new ArrayList<CBLRevisionInternal>();
+        List<RevisionInternal> workToStartNow = new ArrayList<RevisionInternal>();
         synchronized (this) {
 			while(httpConnectionCount + workToStartNow.size() < MAX_OPEN_HTTP_CONNECTIONS && revsToPull != null && revsToPull.size() > 0) {
-				CBLRevisionInternal work = revsToPull.remove(0);
+				RevisionInternal work = revsToPull.remove(0);
 				workToStartNow.add(work);
 			}
 		}
 
         //actually run it outside the synchronized block
-        for(CBLRevisionInternal work : workToStartNow) {
+        for(RevisionInternal work : workToStartNow) {
             pullRemoteRevision(work);
         }
     }
@@ -268,7 +268,7 @@ public class Puller extends Replication implements ChangeTrackerClient {
      * Fetches the contents of a revision from the remote db, including its parent revision ID.
      * The contents are stored into rev.properties.
      */
-    public void pullRemoteRevision(final CBLRevisionInternal rev) {
+    public void pullRemoteRevision(final RevisionInternal rev) {
         asyncTaskStarted();
         ++httpConnectionCount;
 
@@ -349,8 +349,8 @@ public class Puller extends Replication implements ChangeTrackerClient {
         Collections.sort(revs, new Comparator<List<Object>>() {
 
             public int compare(List<Object> list1, List<Object> list2) {
-                CBLRevisionInternal reva = (CBLRevisionInternal)list1.get(0);
-                CBLRevisionInternal revb = (CBLRevisionInternal)list2.get(0);
+                RevisionInternal reva = (RevisionInternal)list1.get(0);
+                RevisionInternal revb = (RevisionInternal)list2.get(0);
                 return Misc.TDSequenceCompare(reva.getSequence(), revb.getSequence());
             }
 
@@ -399,7 +399,7 @@ public class Puller extends Replication implements ChangeTrackerClient {
         setCompletedChangesCount(getCompletedChangesCount() + revs.size());
     }
 
-    List<String> knownCurrentRevIDs(CBLRevisionInternal rev) {
+    List<String> knownCurrentRevIDs(RevisionInternal rev) {
         if(db != null) {
             return db.getAllRevisionsOfDocumentID(rev.getDocId(), true).getAllRevIds();
         }
@@ -424,7 +424,7 @@ public class Puller extends Replication implements ChangeTrackerClient {
 /**
  * A revision received from a remote server during a pull. Tracks the opaque remote sequence ID.
  */
-class PulledRevision extends CBLRevisionInternal {
+class PulledRevision extends RevisionInternal {
 
     public PulledRevision(CBLBody body, Database database) {
         super(body, database);

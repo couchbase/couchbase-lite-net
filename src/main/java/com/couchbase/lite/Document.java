@@ -1,6 +1,6 @@
 package com.couchbase.lite;
 
-import com.couchbase.lite.internal.CBLRevisionInternal;
+import com.couchbase.lite.internal.RevisionInternal;
 import com.couchbase.lite.internal.InterfaceAudience;
 import com.couchbase.lite.util.Log;
 
@@ -203,7 +203,7 @@ public class Document {
             return currentRevision;
         }
         EnumSet<Database.TDContentOptions> contentOptions = EnumSet.noneOf(Database.TDContentOptions.class);
-        CBLRevisionInternal revisionInternal = database.getDocumentWithIDAndRev(getId(), id, contentOptions);
+        RevisionInternal revisionInternal = database.getDocumentWithIDAndRev(getId(), id, contentOptions);
         SavedRevision revision = null;
         revision = getRevisionFromRev(revisionInternal);
         return revision;
@@ -324,7 +324,7 @@ public class Document {
 
         List<SavedRevision> result = new ArrayList<SavedRevision>();
         RevisionList revs = database.getAllRevisionsOfDocumentID(documentId, true);
-        for (CBLRevisionInternal rev : revs) {
+        for (RevisionInternal rev : revs) {
             // add it to result, unless we are not supposed to include deleted and it's deleted
             if (!includeDeleted && rev.isDeleted()) {
                 // don't add it
@@ -363,11 +363,11 @@ public class Document {
             hasTrueDeletedProperty = properties.get("_deleted") != null && ((Boolean)properties.get("_deleted")).booleanValue();
         }
         boolean deleted = (properties == null) || hasTrueDeletedProperty;
-        CBLRevisionInternal rev = new CBLRevisionInternal(documentId, null, deleted, database);
+        RevisionInternal rev = new RevisionInternal(documentId, null, deleted, database);
         if (properties != null) {
             rev.setProperties(properties);
         }
-        CBLRevisionInternal newRev = database.putRevision(rev, prevID, false);
+        RevisionInternal newRev = database.putRevision(rev, prevID, false);
         if (newRev == null) {
             return null;
         }
@@ -376,7 +376,7 @@ public class Document {
     }
 
 
-    SavedRevision getRevisionFromRev(CBLRevisionInternal internalRevision) {
+    SavedRevision getRevisionFromRev(RevisionInternal internalRevision) {
         if (internalRevision == null) {
             return null;
         }
@@ -413,21 +413,21 @@ public class Document {
         if (currentRevision == null || revIdGreaterThanCurrent(revId)) {
             Map<String, Object> properties = row.getDocumentProperties();
             if (properties != null) {
-                CBLRevisionInternal rev = new CBLRevisionInternal(properties, row.getDatabase());
+                RevisionInternal rev = new RevisionInternal(properties, row.getDatabase());
                 currentRevision = new SavedRevision(this, rev);
             }
         }
      }
 
     private boolean revIdGreaterThanCurrent(String revId) {
-        return (CBLRevisionInternal.CBLCompareRevIDs(revId, currentRevision.getId()) > 0);
+        return (RevisionInternal.CBLCompareRevIDs(revId, currentRevision.getId()) > 0);
     }
 
     void revisionAdded(Map<String,Object> changeNotification) {
 
         // TODO: the reason this is greyed out is that this should be called from Database.notifyChange()
 
-        CBLRevisionInternal rev = (CBLRevisionInternal) changeNotification.get("rev");
+        RevisionInternal rev = (RevisionInternal) changeNotification.get("rev");
         if (currentRevision != null && !rev.getRevId().equals(currentRevision.getId())) {
             currentRevision = new SavedRevision(this, rev);
         }

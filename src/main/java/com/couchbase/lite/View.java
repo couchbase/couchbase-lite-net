@@ -19,7 +19,7 @@ package com.couchbase.lite;
 
 
 import com.couchbase.lite.Database.TDContentOptions;
-import com.couchbase.lite.internal.CBLRevisionInternal;
+import com.couchbase.lite.internal.RevisionInternal;
 import com.couchbase.lite.internal.InterfaceAudience;
 import com.couchbase.lite.storage.ContentValues;
 import com.couchbase.lite.storage.Cursor;
@@ -771,7 +771,7 @@ public class View {
                         // http://wiki.apache.org/couchdb/Introduction_to_CouchDB_views#Linked_documents
                         if (value instanceof Map && ((Map) value).containsKey("_id")) {
                             String linkedDocId = (String) ((Map) value).get("_id");
-                            CBLRevisionInternal linkedDoc = database.getDocumentWithIDAndRev(
+                            RevisionInternal linkedDoc = database.getDocumentWithIDAndRev(
                                     linkedDocId,
                                     null,
                                     EnumSet.noneOf(TDContentOptions.class)

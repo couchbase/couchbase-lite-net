@@ -21,7 +21,7 @@ import com.couchbase.lite.View.TDViewCollation;
 import com.couchbase.lite.auth.CBLFacebookAuthorizer;
 import com.couchbase.lite.auth.CBLPersonaAuthorizer;
 import com.couchbase.lite.internal.CBLBody;
-import com.couchbase.lite.internal.CBLRevisionInternal;
+import com.couchbase.lite.internal.RevisionInternal;
 import com.couchbase.lite.replicator.Replication;
 import com.couchbase.lite.util.Log;
 
@@ -853,11 +853,11 @@ public class Router implements Database.ChangeListener {
         try {
             for (Map<String, Object> doc : docs) {
                 String docID = (String) doc.get("_id");
-                CBLRevisionInternal rev = null;
+                RevisionInternal rev = null;
                 Status status = new Status(Status.BAD_REQUEST);
                 CBLBody docBody = new CBLBody(doc);
                 if (noNewEdits) {
-                    rev = new CBLRevisionInternal(docBody, db);
+                    rev = new RevisionInternal(docBody, db);
                     if(rev.getRevId() == null || rev.getDocId() == null || !rev.getDocId().equals(docID)) {
                         status =  new Status(Status.BAD_REQUEST);
                     } else {
@@ -917,7 +917,7 @@ public class Router implements Database.ChangeListener {
         for (String docID : body.keySet()) {
             List<String> revIDs = (List<String>)body.get(docID);
             for (String revID : revIDs) {
-                CBLRevisionInternal rev = new CBLRevisionInternal(docID, revID, false, db);
+                RevisionInternal rev = new RevisionInternal(docID, revID, false, db);
                 revs.add(rev);
             }
         }
@@ -929,7 +929,7 @@ public class Router implements Database.ChangeListener {
 
         // Return the missing revs in a somewhat different format:
         Map<String, Object> diffs = new HashMap<String, Object>();
-        for (CBLRevisionInternal rev : revs) {
+        for (RevisionInternal rev : revs) {
             String docID = rev.getDocId();
 
             List<String> missingRevs = null;
@@ -971,7 +971,7 @@ public class Router implements Database.ChangeListener {
 
     /** CHANGES: **/
 
-    public Map<String,Object> changesDictForRevision(CBLRevisionInternal rev) {
+    public Map<String,Object> changesDictForRevision(RevisionInternal rev) {
         Map<String,Object> changesDict = new HashMap<String, Object>();
         changesDict.put("rev", rev.getRevId());
 
@@ -991,9 +991,9 @@ public class Router implements Database.ChangeListener {
         return result;
     }
 
-    public Map<String,Object> responseBodyForChanges(List<CBLRevisionInternal> changes, long since) {
+    public Map<String,Object> responseBodyForChanges(List<RevisionInternal> changes, long since) {
         List<Map<String,Object>> results = new ArrayList<Map<String,Object>>();
-        for (CBLRevisionInternal rev : changes) {
+        for (RevisionInternal rev : changes) {
             Map<String,Object> changeDict = changesDictForRevision(rev);
             results.add(changeDict);
         }
@@ -1006,12 +1006,12 @@ public class Router implements Database.ChangeListener {
         return result;
     }
 
-    public Map<String, Object> responseBodyForChangesWithConflicts(List<CBLRevisionInternal> changes, long since) {
+    public Map<String, Object> responseBodyForChangesWithConflicts(List<RevisionInternal> changes, long since) {
         // Assumes the changes are grouped by docID so that conflicts will be adjacent.
         List<Map<String,Object>> entries = new ArrayList<Map<String, Object>>();
         String lastDocID = null;
         Map<String, Object> lastEntry = null;
-        for (CBLRevisionInternal rev : changes) {
+        for (RevisionInternal rev : changes) {
             String docID = rev.getDocId();
             if(docID.equals(lastDocID)) {
                 Map<String,Object> changesDict = new HashMap<String, Object>();
@@ -1042,7 +1042,7 @@ public class Router implements Database.ChangeListener {
         return result;
     }
 
-    public void sendContinuousChange(CBLRevisionInternal rev) {
+    public void sendContinuousChange(RevisionInternal rev) {
         Map<String,Object> changeDict = changesDictForRevision(rev);
         try {
             String jsonString = Manager.getObjectMapper().writeValueAsString(changeDict);
@@ -1067,7 +1067,7 @@ public class Router implements Database.ChangeListener {
         List<DocumentChange> changes = event.getChanges();
         for (DocumentChange change : changes) {
 
-            CBLRevisionInternal rev = change.getRevisionInternal();
+            RevisionInternal rev = change.getRevisionInternal();
 
             if(changesFilter != null && !changesFilter.filter(rev, null)) {
                 return;
@@ -1076,7 +1076,7 @@ public class Router implements Database.ChangeListener {
             if(longpoll) {
                 Log.w(Database.TAG, "Router: Sending longpoll response");
                 sendResponse();
-                List<CBLRevisionInternal> revs = new ArrayList<CBLRevisionInternal>();
+                List<RevisionInternal> revs = new ArrayList<RevisionInternal>();
                 revs.add(rev);
                 Map<String,Object> body = responseBodyForChanges(revs, 0);
                 if(callbackBlock != null) {
@@ -1141,7 +1141,7 @@ public class Router implements Database.ChangeListener {
             connection.setResponseCode(Status.OK);
             sendResponse();
             if(continuous) {
-                for (CBLRevisionInternal rev : changes) {
+                for (RevisionInternal rev : changes) {
                     sendContinuousChange(rev);
                 }
             }
@@ -1173,7 +1173,7 @@ public class Router implements Database.ChangeListener {
         }
     }
 
-    public String setResponseEtag(CBLRevisionInternal rev) {
+    public String setResponseEtag(RevisionInternal rev) {
         String eTag = String.format("\"%s\"", rev.getRevId());
         connection.getResHeader().add("Etag", eTag);
         return eTag;
@@ -1188,7 +1188,7 @@ public class Router implements Database.ChangeListener {
             if(openRevsParam == null || isLocalDoc) {
                 // Regular GET:
                 String revID = getQuery("rev");  // often null
-                CBLRevisionInternal rev = null;
+                RevisionInternal rev = null;
                 if(isLocalDoc) {
                     rev = db.getLocalDocument(docID, revID);
                 } else {
@@ -1201,7 +1201,7 @@ public class Router implements Database.ChangeListener {
                     if (attsSince != null) {
                         String ancestorId = db.findCommonAncestorOf(rev, attsSince);
                         if (ancestorId != null) {
-                            int generation = CBLRevisionInternal.generationFromRevID(ancestorId);
+                            int generation = RevisionInternal.generationFromRevID(ancestorId);
                             db.stubOutAttachmentsIn(rev, generation + 1);
                         }
                     }
@@ -1220,7 +1220,7 @@ public class Router implements Database.ChangeListener {
                     // Get all conflicting revisions:
                     RevisionList allRevs = db.getAllRevisionsOfDocumentID(docID, true);
                     result = new ArrayList<Map<String,Object>>(allRevs.size());
-                    for (CBLRevisionInternal rev : allRevs) {
+                    for (RevisionInternal rev : allRevs) {
 
                         try {
                             db.loadRevisionBody(rev, options);
@@ -1248,7 +1248,7 @@ public class Router implements Database.ChangeListener {
                     }
                     result = new ArrayList<Map<String,Object>>(openRevs.size());
                     for (String revID : openRevs) {
-                        CBLRevisionInternal rev = db.getDocumentWithIDAndRev(docID, revID, options);
+                        RevisionInternal rev = db.getDocumentWithIDAndRev(docID, revID, options);
                         if(rev != null) {
                             Map<String, Object> dict = new HashMap<String,Object>();
                             dict.put("ok", rev.getProperties());
@@ -1280,7 +1280,7 @@ public class Router implements Database.ChangeListener {
             EnumSet<TDContentOptions> options = getContentOptions();
             options.add(TDContentOptions.TDNoBody);
             String revID = getQuery("rev");  // often null
-            CBLRevisionInternal rev = db.getDocumentWithIDAndRev(docID, revID, options);
+            RevisionInternal rev = db.getDocumentWithIDAndRev(docID, revID, options);
             if(rev == null) {
                 return new Status(Status.NOT_FOUND);
             }
@@ -1314,7 +1314,7 @@ public class Router implements Database.ChangeListener {
     /**
      * NOTE this departs from the iOS version, returning revision, passing status back by reference
      */
-    public CBLRevisionInternal update(Database _db, String docID, CBLBody body, boolean deleting, boolean allowConflict, Status outStatus) {
+    public RevisionInternal update(Database _db, String docID, CBLBody body, boolean deleting, boolean allowConflict, Status outStatus) {
         boolean isLocalDoc = docID != null && docID.startsWith(("_local"));
         String prevRevID = null;
 
@@ -1348,10 +1348,10 @@ public class Router implements Database.ChangeListener {
             prevRevID = getRevIDFromIfMatchHeader();
         }
 
-        CBLRevisionInternal rev = new CBLRevisionInternal(docID, null, deleting, db);
+        RevisionInternal rev = new RevisionInternal(docID, null, deleting, db);
         rev.setBody(body);
 
-        CBLRevisionInternal result = null;
+        RevisionInternal result = null;
         try {
             if(isLocalDoc) {
                 result = _db.putLocalRevision(rev, prevRevID);
@@ -1376,7 +1376,7 @@ public class Router implements Database.ChangeListener {
     public Status update(Database _db, String docID, Map<String,Object> bodyDict, boolean deleting) {
         CBLBody body = new CBLBody(bodyDict);
         Status status = new Status();
-        CBLRevisionInternal rev = update(_db, docID, body, deleting, false, status);
+        RevisionInternal rev = update(_db, docID, body, deleting, false, status);
         if(status.isSuccessful()) {
             cacheWithEtag(rev.getRevId());  // set ETag
             if(!deleting) {
@@ -1413,7 +1413,7 @@ public class Router implements Database.ChangeListener {
         } else {
             // PUT with new_edits=false -- forcible insertion of existing revision:
             CBLBody body = new CBLBody(bodyDict);
-            CBLRevisionInternal rev = new CBLRevisionInternal(body, _db);
+            RevisionInternal rev = new RevisionInternal(body, _db);
             if(rev.getRevId() == null || rev.getDocId() == null || !rev.getDocId().equals(docID)) {
                 throw new CouchbaseLiteException(Status.BAD_REQUEST);
             }
@@ -1432,7 +1432,7 @@ public class Router implements Database.ChangeListener {
         if(revID == null) {
             revID = getRevIDFromIfMatchHeader();
         }
-        CBLRevisionInternal rev = db.updateAttachment(attachment, contentStream, connection.getRequestProperty("content-type"),
+        RevisionInternal rev = db.updateAttachment(attachment, contentStream, connection.getRequestProperty("content-type"),
                 docID, revID);
         Map<String, Object> resultDict = new HashMap<String, Object>();
         resultDict.put("ok", true);
@@ -1494,7 +1494,7 @@ public class Router implements Database.ChangeListener {
         if(view == null || view.getMap() == null) {
             // No TouchDB view is defined, or it hasn't had a map block assigned;
             // see if there's a CouchDB view definition we can compile:
-            CBLRevisionInternal rev = db.getDocumentWithIDAndRev(String.format("_design/%s", designDoc), null, EnumSet.noneOf(TDContentOptions.class));
+            RevisionInternal rev = db.getDocumentWithIDAndRev(String.format("_design/%s", designDoc), null, EnumSet.noneOf(TDContentOptions.class));
             if(rev == null) {
                 return new Status(Status.NOT_FOUND);
             }

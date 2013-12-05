@@ -28,7 +28,7 @@ import java.util.StringTokenizer;
  *
  * It can also store the sequence number and document contents (they can be added after creation).
  */
-public class CBLRevisionInternal {
+public class RevisionInternal {
 
     private String docId;
     private String revId;
@@ -37,14 +37,14 @@ public class CBLRevisionInternal {
     private long sequence;
     private Database database;  // TODO: get rid of this field!
 
-    public CBLRevisionInternal(String docId, String revId, boolean deleted, Database database) {
+    public RevisionInternal(String docId, String revId, boolean deleted, Database database) {
         this.docId = docId;
         this.revId = revId;
         this.deleted = deleted;
         this.database = database;
     }
 
-    public CBLRevisionInternal(CBLBody body, Database database) {
+    public RevisionInternal(CBLBody body, Database database) {
         this((String)body.getPropertyForKey("_id"),
                 (String)body.getPropertyForKey("_rev"),
                 (((Boolean)body.getPropertyForKey("_deleted") != null)
@@ -52,7 +52,7 @@ public class CBLRevisionInternal {
         this.body = body;
     }
 
-    public CBLRevisionInternal(Map<String, Object> properties, Database database) {
+    public RevisionInternal(Map<String, Object> properties, Database database) {
         this(new CBLBody(properties), database);
     }
 
@@ -125,8 +125,8 @@ public class CBLRevisionInternal {
     @Override
     public boolean equals(Object o) {
         boolean result = false;
-        if(o instanceof CBLRevisionInternal) {
-            CBLRevisionInternal other = (CBLRevisionInternal)o;
+        if(o instanceof RevisionInternal) {
+            RevisionInternal other = (RevisionInternal)o;
             if(docId.equals(other.docId) && revId.equals(other.revId)) {
                 result = true;
             }
@@ -171,10 +171,10 @@ public class CBLRevisionInternal {
         this.body = body;
     }
 
-    public CBLRevisionInternal copyWithDocID(String docId, String revId) {
+    public RevisionInternal copyWithDocID(String docId, String revId) {
         assert((docId != null) && (revId != null));
         assert((this.docId == null) || (this.docId.equals(docId)));
-        CBLRevisionInternal result = new CBLRevisionInternal(docId, revId, deleted, database);
+        RevisionInternal result = new RevisionInternal(docId, revId, deleted, database);
         Map<String, Object> unmodifiableProperties = getProperties();
         Map<String, Object> properties = new HashMap<String, Object>();
         properties.putAll(unmodifiableProperties);

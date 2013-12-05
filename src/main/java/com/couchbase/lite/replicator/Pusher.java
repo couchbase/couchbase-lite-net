@@ -8,7 +8,7 @@ import com.couchbase.lite.DocumentChange;
 import com.couchbase.lite.Manager;
 import com.couchbase.lite.ReplicationFilter;
 import com.couchbase.lite.RevisionList;
-import com.couchbase.lite.internal.CBLRevisionInternal;
+import com.couchbase.lite.internal.RevisionInternal;
 import com.couchbase.lite.internal.InterfaceAudience;
 import com.couchbase.lite.support.RemoteRequestCompletionBlock;
 import com.couchbase.lite.support.HttpClientFactory;
@@ -153,7 +153,7 @@ public class Pusher extends Replication implements Database.ChangeListener {
             if(source != null && source.equals(remote)) {
                 return;
             }
-            CBLRevisionInternal rev = change.getRevisionInternal();
+            RevisionInternal rev = change.getRevisionInternal();
             if(rev != null && ((filter == null) || filter.filter(rev, null))) {
                 addToInbox(rev);
             }
@@ -166,7 +166,7 @@ public class Pusher extends Replication implements Database.ChangeListener {
         final long lastInboxSequence = inbox.get(inbox.size()-1).getSequence();
         // Generate a set of doc/rev IDs in the JSON format that _revs_diff wants:
         Map<String,List<String>> diffs = new HashMap<String,List<String>>();
-        for (CBLRevisionInternal rev : inbox) {
+        for (RevisionInternal rev : inbox) {
             String docID = rev.getDocId();
             List<String> revs = diffs.get(docID);
             if(revs == null) {
@@ -191,7 +191,7 @@ public class Pusher extends Replication implements Database.ChangeListener {
                     // Go through the list of local changes again, selecting the ones the destination server
                     // said were missing and mapping them to a JSON dictionary in the form _bulk_docs wants:
                     List<Object> docsToSend = new ArrayList<Object>();
-                    for(CBLRevisionInternal rev : inbox) {
+                    for(RevisionInternal rev : inbox) {
                         Map<String,Object> properties = null;
                         Map<String,Object> resultDoc = (Map<String,Object>)results.get(rev.getDocId());
                         if(resultDoc != null) {
@@ -269,7 +269,7 @@ public class Pusher extends Replication implements Database.ChangeListener {
         });
     }
 
-    private boolean uploadMultipartRevision(CBLRevisionInternal revision) {
+    private boolean uploadMultipartRevision(RevisionInternal revision) {
 
         MultipartEntity multiPart = null;
 

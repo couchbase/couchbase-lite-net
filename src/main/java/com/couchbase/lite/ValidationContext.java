@@ -1,6 +1,6 @@
 package com.couchbase.lite;
 
-import com.couchbase.lite.internal.CBLRevisionInternal;
+import com.couchbase.lite.internal.RevisionInternal;
 
 /**
  * Context passed into a ValidationBlock.
@@ -10,7 +10,7 @@ public interface ValidationContext {
     /**
      * The contents of the current revision of the document, or nil if this is a new document.
      */
-    CBLRevisionInternal getCurrentRevision() throws CouchbaseLiteException;
+    RevisionInternal getCurrentRevision() throws CouchbaseLiteException;
 
     /**
      * The type of HTTP status to report, if the validate block returns NO.

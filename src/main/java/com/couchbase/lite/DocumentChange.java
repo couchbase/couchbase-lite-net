@@ -1,20 +1,20 @@
 package com.couchbase.lite;
 
-import com.couchbase.lite.internal.CBLRevisionInternal;
+import com.couchbase.lite.internal.RevisionInternal;
 import com.couchbase.lite.internal.InterfaceAudience;
 
 import java.net.URL;
 
 public class DocumentChange {
 
-    DocumentChange(CBLRevisionInternal revisionInternal, boolean isCurrentRevision, boolean isConflict, URL sourceUrl) {
+    DocumentChange(RevisionInternal revisionInternal, boolean isCurrentRevision, boolean isConflict, URL sourceUrl) {
         this.revisionInternal = revisionInternal;
         this.isCurrentRevision = isCurrentRevision;
         this.isConflict = isConflict;
         this.sourceUrl = sourceUrl;
     }
 
-    private CBLRevisionInternal revisionInternal;
+    private RevisionInternal revisionInternal;
     private boolean isCurrentRevision;
     private boolean isConflict;
     private URL sourceUrl;
@@ -40,11 +40,11 @@ public class DocumentChange {
     }
 
     @InterfaceAudience.Private
-    public CBLRevisionInternal getRevisionInternal() {
+    public RevisionInternal getRevisionInternal() {
         return revisionInternal;
     }
 
-    public static DocumentChange tempFactory(CBLRevisionInternal revisionInternal, URL sourceUrl) {
+    public static DocumentChange tempFactory(RevisionInternal revisionInternal, URL sourceUrl) {
 
         boolean isCurrentRevFixMe = false; // TODO: fix this to have a real value
         boolean isConflictRevFixMe = false; // TODO: fix this to have a real value
