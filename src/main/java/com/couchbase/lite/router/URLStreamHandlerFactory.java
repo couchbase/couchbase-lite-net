@@ -11,7 +11,7 @@ public class URLStreamHandlerFactory implements java.net.URLStreamHandlerFactory
     @Override
     public URLStreamHandler createURLStreamHandler(String protocol) {
         if(SCHEME.equals(protocol)) {
-            return new CBLURLHandler();
+            return new URLHandler();
         }
         return null;
     }
