@@ -30,7 +30,7 @@ public class CBLAttachment {
     /**
      * The owning document revision.
      */
-    private CBLRevision revision;
+    private Revision revision;
 
     /**
      * Whether or not this attachment is gzipped
@@ -71,7 +71,7 @@ public class CBLAttachment {
     /**
      * Constructor
      */
-    CBLAttachment(CBLRevision revision, String name, Map<String, Object> metadata) {
+    CBLAttachment(Revision revision, String name, Map<String, Object> metadata) {
         this.revision = revision;
         this.name = name;
         this.metadata = metadata;
@@ -83,7 +83,7 @@ public class CBLAttachment {
      * Get the owning document revision.
      */
     @InterfaceAudience.Public
-    public CBLRevision getRevision() {
+    public Revision getRevision() {
         return revision;
     }
 
@@ -156,7 +156,7 @@ public class CBLAttachment {
         this.name = name;
     }
 
-    void setRevision(CBLRevision revision) {
+    void setRevision(Revision revision) {
         this.revision = revision;
     }
 

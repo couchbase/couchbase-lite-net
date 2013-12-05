@@ -33,7 +33,7 @@ import java.util.Map;
  *
  * It can also store the sequence number and document contents (they can be added after creation).
  */
-public class CBLSavedRevision extends CBLRevision {
+public class SavedRevision extends Revision {
 
     private CBLRevisionInternal revisionInternal;
     private boolean checkedProperties;
@@ -42,7 +42,7 @@ public class CBLSavedRevision extends CBLRevision {
      * Constructor
      */
     @InterfaceAudience.Private
-    CBLSavedRevision(Document document, CBLRevisionInternal revision) {
+    SavedRevision(Document document, CBLRevisionInternal revision) {
         super(document);
         this.revisionInternal = revision;
     }
@@ -51,7 +51,7 @@ public class CBLSavedRevision extends CBLRevision {
      * Constructor
      */
     @InterfaceAudience.Private
-    CBLSavedRevision(Database database, CBLRevisionInternal revision) {
+    SavedRevision(Database database, CBLRevisionInternal revision) {
         this(database.getDocument(revision.getDocId()), revision);
     }
 
@@ -73,15 +73,15 @@ public class CBLSavedRevision extends CBLRevision {
 
     @Override
     @InterfaceAudience.Public
-    public List<CBLSavedRevision> getRevisionHistory() throws CBLiteException {
-        List<CBLSavedRevision> revisions = new ArrayList<CBLSavedRevision>();
+    public List<SavedRevision> getRevisionHistory() throws CBLiteException {
+        List<SavedRevision> revisions = new ArrayList<SavedRevision>();
         List<CBLRevisionInternal> internalRevisions = database.getRevisionHistory(revisionInternal);
         for (CBLRevisionInternal internalRevision : internalRevisions) {
             if (internalRevision.getRevId().equals(getId())) {
                 revisions.add(this);
             }
             else {
-                CBLSavedRevision revision = document.getRevisionFromRev(internalRevision);
+                SavedRevision revision = document.getRevisionFromRev(internalRevision);
                 revisions.add(revision);
             }
 
@@ -97,8 +97,8 @@ public class CBLSavedRevision extends CBLRevision {
      * @return
      */
     @InterfaceAudience.Public
-    public CBLUnsavedRevision createRevision() {
-        CBLUnsavedRevision newRevision = new CBLUnsavedRevision(document, this);
+    public UnsavedRevision createRevision() {
+        UnsavedRevision newRevision = new UnsavedRevision(document, this);
         return newRevision;
     }
 
@@ -107,7 +107,7 @@ public class CBLSavedRevision extends CBLRevision {
      * This will fail with a 412 error if the receiver is not the current revision of the document.
      */
     @InterfaceAudience.Public
-    public CBLSavedRevision createRevision(Map<String, Object> properties) throws CBLiteException {
+    public SavedRevision createRevision(Map<String, Object> properties) throws CBLiteException {
         return document.putProperties(properties, revisionInternal.getRevId());
     }
 
@@ -149,13 +149,13 @@ public class CBLSavedRevision extends CBLRevision {
      * @throws CBLiteException
      */
     @InterfaceAudience.Public
-    public CBLSavedRevision deleteDocument() throws CBLiteException {
+    public SavedRevision deleteDocument() throws CBLiteException {
         return createRevision(null);
     }
 
     @Override
     @InterfaceAudience.Public
-    public CBLSavedRevision getParentRevision() {
+    public SavedRevision getParentRevision() {
         return getDocument().getRevisionFromRev(getDatabase().getParentRevision(revisionInternal));
     }
 

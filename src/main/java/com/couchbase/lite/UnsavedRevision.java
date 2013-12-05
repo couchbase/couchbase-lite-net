@@ -11,7 +11,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class CBLUnsavedRevision extends CBLRevision {
+public class UnsavedRevision extends Revision {
 
     private Map<String, Object> properties;
 
@@ -19,7 +19,7 @@ public class CBLUnsavedRevision extends CBLRevision {
      * Constructor
      */
     @InterfaceAudience.Private
-    protected CBLUnsavedRevision(Document document, CBLSavedRevision parentRevision) {
+    protected UnsavedRevision(Document document, SavedRevision parentRevision) {
 
         super(document);
 
@@ -78,13 +78,13 @@ public class CBLUnsavedRevision extends CBLRevision {
      * This will throw an exception with a 412 error if its parent (the revision it was created from)
      * is not the current revision of the document.
      *
-     * Afterwards you should use the returned CBLRevision instead of this object.
+     * Afterwards you should use the returned Revision instead of this object.
      *
-     * @return A new CBLRevision representing the saved form of the revision.
+     * @return A new Revision representing the saved form of the revision.
      * @throws CBLiteException
      */
     @InterfaceAudience.Public
-    public CBLSavedRevision save() throws CBLiteException {
+    public SavedRevision save() throws CBLiteException {
         return document.putProperties(properties, parentRevID);
     }
 
@@ -169,7 +169,7 @@ public class CBLUnsavedRevision extends CBLRevision {
 
     @Override
     @InterfaceAudience.Public
-    public CBLSavedRevision getParentRevision() {
+    public SavedRevision getParentRevision() {
         if (parentRevID == null || parentRevID.length() == 0) {
             return null;
         }
@@ -184,10 +184,10 @@ public class CBLUnsavedRevision extends CBLRevision {
 
     @Override
     @InterfaceAudience.Public
-    public List<CBLSavedRevision> getRevisionHistory() throws CBLiteException {
+    public List<SavedRevision> getRevisionHistory() throws CBLiteException {
         // (Don't include self in the array, because this revision doesn't really exist yet)
-        CBLSavedRevision parent = getParentRevision();
-        return parent != null ? parent.getRevisionHistory() : new ArrayList<CBLSavedRevision>();
+        SavedRevision parent = getParentRevision();
+        return parent != null ? parent.getRevisionHistory() : new ArrayList<SavedRevision>();
     }
 
 

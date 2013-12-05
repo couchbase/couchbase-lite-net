@@ -12,7 +12,7 @@ import java.util.Map;
  *
  * It can also store the sequence number and document contents (they can be added after creation).
  */
-public abstract class CBLRevision {
+public abstract class Revision {
 
     /**
      * The sequence number of this revision.
@@ -37,13 +37,13 @@ public abstract class CBLRevision {
     /**
      * The revision this one is a child of.
      */
-    protected CBLSavedRevision parentRevision;
+    protected SavedRevision parentRevision;
 
     /**
      * Constructor
      */
     @InterfaceAudience.Private
-    CBLRevision() {
+    Revision() {
         super();
     }
 
@@ -51,7 +51,7 @@ public abstract class CBLRevision {
      * Constructor
      */
     @InterfaceAudience.Private
-    protected CBLRevision(Document document) {
+    protected Revision(Document document) {
         this.document = document;
     }
 
@@ -169,7 +169,7 @@ public abstract class CBLRevision {
     }
 
     @InterfaceAudience.Public
-    public abstract CBLSavedRevision getParentRevision();
+    public abstract SavedRevision getParentRevision();
 
     @InterfaceAudience.Public
     public abstract String getParentRevisionId();
@@ -181,7 +181,7 @@ public abstract class CBLRevision {
      * @throws CBLiteException
      */
     @InterfaceAudience.Public
-    public abstract List<CBLSavedRevision> getRevisionHistory() throws CBLiteException;
+    public abstract List<SavedRevision> getRevisionHistory() throws CBLiteException;
 
     Map<String, Object> getAttachmentMetadata() {
         return (Map<String, Object>) getProperty("_attachments");
@@ -190,8 +190,8 @@ public abstract class CBLRevision {
     @Override
     public boolean equals(Object o) {
         boolean result = false;
-        if(o instanceof CBLSavedRevision) {
-            CBLSavedRevision other = (CBLSavedRevision)o;
+        if(o instanceof SavedRevision) {
+            SavedRevision other = (SavedRevision)o;
             if(document.getId().equals(other.getDocument().getId()) && getId().equals(other.getId())) {
                 result = true;
             }
