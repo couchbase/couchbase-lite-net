@@ -27,7 +27,7 @@ public abstract class CBLRevision {
     /**
      * The document this is a revision of
      */
-    protected CBLDocument document;
+    protected Document document;
 
     /**
      * The ID of the parentRevision.
@@ -51,7 +51,7 @@ public abstract class CBLRevision {
      * Constructor
      */
     @InterfaceAudience.Private
-    protected CBLRevision(CBLDocument document) {
+    protected CBLRevision(Document document) {
         this.document = document;
     }
 
@@ -67,7 +67,7 @@ public abstract class CBLRevision {
      * Get the document this is a revision of.
      */
     @InterfaceAudience.Public
-    public CBLDocument getDocument() {
+    public Document getDocument() {
         return document;
     }
 

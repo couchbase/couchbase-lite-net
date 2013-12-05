@@ -14,7 +14,7 @@ import java.util.Map;
 /**
  * A CouchbaseLite document (as opposed to any specific revision of it.)
  */
-public class CBLDocument {
+public class Document {
 
     /**
      * The document's owning database.
@@ -48,7 +48,7 @@ public class CBLDocument {
      * @param documentId The document's ID
      */
     @InterfaceAudience.Private
-    public CBLDocument(Database database, String documentId) {
+    public Document(Database database, String documentId) {
         this.database = database;
         this.documentId = documentId;
     }
@@ -439,15 +439,15 @@ public class CBLDocument {
     }
 
     public static class ChangeEvent {
-        private CBLDocument source;
+        private Document source;
         private DocumentChange change;
 
-        public ChangeEvent(CBLDocument source, DocumentChange documentChange) {
+        public ChangeEvent(Document source, DocumentChange documentChange) {
             this.source = source;
             this.change = documentChange;
         }
 
-        public CBLDocument getSource() {
+        public Document getSource() {
             return source;
         }
 

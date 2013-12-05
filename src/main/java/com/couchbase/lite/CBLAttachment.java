@@ -40,7 +40,7 @@ public class CBLAttachment {
     /**
      * The owning document.
      */
-    private CBLDocument document;
+    private Document document;
 
     /**
      * The filename.
@@ -92,7 +92,7 @@ public class CBLAttachment {
      * Get the owning document.
      */
     @InterfaceAudience.Public
-    public CBLDocument getDocument() {
+    public Document getDocument() {
         return document;
     }
 

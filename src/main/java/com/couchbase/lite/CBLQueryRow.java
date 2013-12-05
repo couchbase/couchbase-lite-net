@@ -46,11 +46,11 @@ public class CBLQueryRow {
      * the query, because then the result rows don't correspond to individual documents.
      */
     @InterfaceAudience.Public
-    public CBLDocument getDocument() {
+    public Document getDocument() {
         if (getDocumentId() == null) {
             return null;
         }
-        CBLDocument document = database.getDocument(getDocumentId());
+        Document document = database.getDocument(getDocumentId());
         document.loadCurrentRevisionFrom(this);
         return document;
     }

@@ -42,7 +42,7 @@ public class CBLSavedRevision extends CBLRevision {
      * Constructor
      */
     @InterfaceAudience.Private
-    CBLSavedRevision(CBLDocument document, CBLRevisionInternal revision) {
+    CBLSavedRevision(Document document, CBLRevisionInternal revision) {
         super(document);
         this.revisionInternal = revision;
     }
@@ -59,7 +59,7 @@ public class CBLSavedRevision extends CBLRevision {
      * Get the document this is a revision of
      */
     @InterfaceAudience.Public
-    public CBLDocument getDocument() {
+    public Document getDocument() {
         return document;
     }
 

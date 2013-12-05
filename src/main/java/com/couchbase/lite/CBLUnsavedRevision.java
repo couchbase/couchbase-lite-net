@@ -19,7 +19,7 @@ public class CBLUnsavedRevision extends CBLRevision {
      * Constructor
      */
     @InterfaceAudience.Private
-    protected CBLUnsavedRevision(CBLDocument document, CBLSavedRevision parentRevision) {
+    protected CBLUnsavedRevision(Document document, CBLSavedRevision parentRevision) {
 
         super(document);
 

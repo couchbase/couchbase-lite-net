@@ -80,7 +80,7 @@ public class Database {
     private CBLBlobStore attachments;
     private Manager manager;
     private List<ChangeListener> changeListeners;
-    private LruCache<String, CBLDocument> docCache;
+    private LruCache<String, Document> docCache;
 
     // Length that constitutes a 'big' attachment
     public static int kBigAttachmentLength = (16*1024);
@@ -181,7 +181,7 @@ public class Database {
         this.name = FileDirUtils.getDatabaseNameFromPath(path);
         this.manager = manager;
         this.changeListeners = new ArrayList<ChangeListener>();
-        this.docCache = new LruCache<String, CBLDocument>(MAX_DOC_CACHE_SIZE);
+        this.docCache = new LruCache<String, Document>(MAX_DOC_CACHE_SIZE);
     }
 
     /**
@@ -314,7 +314,7 @@ public class Database {
 
 
     /**
-     * Instantiates a CBLDocument object with the given ID.
+     * Instantiates a Document object with the given ID.
      * Doesn't touch the on-disk sqliteDb; a document with that ID doesn't
      * even need to exist yet. CBLDocuments are cached, so there will
      * never be more than one instance (in this sqliteDb) at a time with
@@ -326,14 +326,14 @@ public class Database {
      * @return
      */
     @InterfaceAudience.Public
-    public CBLDocument getDocument(String documentId) {
+    public Document getDocument(String documentId) {
 
         if (documentId == null || documentId.length() == 0) {
             return null;
         }
-        CBLDocument doc = docCache.get(documentId);
+        Document doc = docCache.get(documentId);
         if (doc == null) {
-            doc = new CBLDocument(this, documentId);
+            doc = new Document(this, documentId);
             if (doc == null) {
                 return null;
             }
@@ -346,7 +346,7 @@ public class Database {
      * Gets the Document with the given id, or null if it does not exist.
      */
     @InterfaceAudience.Public
-    public CBLDocument getExistingDocument(String documentId) {
+    public Document getExistingDocument(String documentId) {
         if (documentId == null || documentId.length() == 0) {
             return null;
         }
@@ -358,11 +358,11 @@ public class Database {
     }
 
     /**
-     * Creates a new CBLDocument object with no properties and a new (random) UUID.
+     * Creates a new Document object with no properties and a new (random) UUID.
      * The document will be saved to the database when you call -createRevision: on it.
      */
     @InterfaceAudience.Public
-    public CBLDocument createDocument() {
+    public Document createDocument() {
         return getDocument(CBLMisc.TDCreateUUID());
     }
 
@@ -643,21 +643,21 @@ public class Database {
     }
 
     /**
-     * Returns the already-instantiated cached CBLDocument with the given ID, or nil if none is yet cached.
+     * Returns the already-instantiated cached Document with the given ID, or nil if none is yet cached.
      */
-    public CBLDocument getCachedDocument(String documentID) {
+    public Document getCachedDocument(String documentID) {
         return docCache.get(documentID);
     }
 
     /**
-     * Empties the cache of recently used CBLDocument objects.
+     * Empties the cache of recently used Document objects.
      * API calls will now instantiate and return new instances.
      */
     public void clearDocumentCache() {
         docCache.evictAll();
     }
 
-    void removeDocumentFromCache(CBLDocument document) {
+    void removeDocumentFromCache(Document document) {
         docCache.remove(document.getId());
     }
 
@@ -2502,11 +2502,11 @@ public class Database {
             changeListener.changed(changeEvent);
         }
 
-        // TODO: it needs to notify the corresponding instantiated CBLDocument object (if any):
+        // TODO: it needs to notify the corresponding instantiated Document object (if any):
         /*
             ios code:
             for (CBLDatabaseChange* change in changes) {
-            // Notify the corresponding instantiated CBLDocument object (if any):
+            // Notify the corresponding instantiated Document object (if any):
             [[self _cachedDocumentWithID: change.documentID] revisionAdded: change];
             if (change.source != nil)
                 external = YES;
