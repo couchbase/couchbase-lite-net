@@ -7,8 +7,8 @@ import com.couchbase.lite.CBLBlobKey;
  */
 public class AttachmentInternal {
 
-    public enum CBLAttachmentEncoding {
-        CBLAttachmentEncodingNone, CBLAttachmentEncodingGZIP
+    public enum AttachmentEncoding {
+        AttachmentEncodingNone, AttachmentEncodingGZIP
     }
 
     private String name;
@@ -17,7 +17,7 @@ public class AttachmentInternal {
     private CBLBlobKey blobKey;
     private long length;
     private long encodedLength;
-    private CBLAttachmentEncoding encoding;
+    private AttachmentEncoding encoding;
     private int revpos;
 
     public AttachmentInternal(String name, String contentType) {
@@ -26,7 +26,7 @@ public class AttachmentInternal {
     }
 
     public boolean isValid() {
-        if (encoding != CBLAttachmentEncoding.CBLAttachmentEncodingNone) {
+        if (encoding != AttachmentEncoding.AttachmentEncodingNone) {
             if (encodedLength == 0 && length > 0) {
                 return false;
             }
@@ -72,11 +72,11 @@ public class AttachmentInternal {
         this.encodedLength = encodedLength;
     }
 
-    public CBLAttachmentEncoding getEncoding() {
+    public AttachmentEncoding getEncoding() {
         return encoding;
     }
 
-    public void setEncoding(CBLAttachmentEncoding encoding) {
+    public void setEncoding(AttachmentEncoding encoding) {
         this.encoding = encoding;
     }
 

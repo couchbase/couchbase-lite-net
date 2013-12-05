@@ -2779,7 +2779,7 @@ public class Database {
             String encodingStr = (String) attachInfo.get("encoding");
             if (encodingStr != null && encodingStr.length() > 0) {
                 if (encodingStr.equalsIgnoreCase("gzip")) {
-                    attachment.setEncoding(AttachmentInternal.CBLAttachmentEncoding.CBLAttachmentEncodingGZIP);
+                    attachment.setEncoding(AttachmentInternal.AttachmentEncoding.AttachmentEncodingGZIP);
                 }
                 else {
                     throw new CouchbaseLiteException("Unnkown encoding: " + encodingStr, Status.BAD_ENCODING);
