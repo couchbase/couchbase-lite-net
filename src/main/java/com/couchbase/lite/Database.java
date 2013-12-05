@@ -59,7 +59,7 @@ import java.util.concurrent.ScheduledExecutorService;
 public class Database {
 
     private static final int MAX_DOC_CACHE_SIZE = 50;
-    private static CBLReplicationFilterCompiler filterCompiler;
+    private static ReplicationFilterCompiler filterCompiler;
 
     private String path;
     private String name;
@@ -159,7 +159,7 @@ public class Database {
      * Returns the currently registered filter compiler (nil by default).
      */
     @InterfaceAudience.Public
-    public static CBLReplicationFilterCompiler getFilterCompiler() {
+    public static ReplicationFilterCompiler getFilterCompiler() {
         return filterCompiler;
     }
 
@@ -167,7 +167,7 @@ public class Database {
      * Registers an object that can compile source code into executable filter blocks.
      */
     @InterfaceAudience.Public
-    public static void setFilterCompiler(CBLReplicationFilterCompiler filterCompiler) {
+    public static void setFilterCompiler(ReplicationFilterCompiler filterCompiler) {
         Database.filterCompiler = filterCompiler;
     }
 
@@ -490,7 +490,7 @@ public class Database {
             result = filters.get(filterName);
         }
         if (result == null) {
-            CBLReplicationFilterCompiler filterCompiler = getFilterCompiler();
+            ReplicationFilterCompiler filterCompiler = getFilterCompiler();
             if (filterCompiler == null) {
                 return null;
             }

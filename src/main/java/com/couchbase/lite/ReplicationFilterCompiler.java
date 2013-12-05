@@ -1,6 +1,6 @@
 package com.couchbase.lite;
 
-public interface CBLReplicationFilterCompiler {
+public interface ReplicationFilterCompiler {
 
     ReplicationFilter compileFilterFunction(String source, String language);
 
