@@ -1,3 +1,4 @@
 /build/
 *.iml
 .DS_Store
+/src/instrumentTest/assets/local-test.properties
