@@ -2,10 +2,9 @@ package com.couchbase.lite.router;
 
 import java.net.URL;
 import java.net.URLStreamHandler;
-import java.net.URLStreamHandlerFactory;
 
 
-public class CBLURLStreamHandlerFactory implements URLStreamHandlerFactory {
+public class URLStreamHandlerFactory implements java.net.URLStreamHandlerFactory {
 
     public static final String SCHEME = "cblite";  // eg, cblite://
 
@@ -19,7 +18,7 @@ public class CBLURLStreamHandlerFactory implements URLStreamHandlerFactory {
 
     public static void registerSelfIgnoreError() {
         try {
-            URL.setURLStreamHandlerFactory(new CBLURLStreamHandlerFactory());
+            URL.setURLStreamHandlerFactory(new URLStreamHandlerFactory());
         } catch (Error e) {
             //usually you should never catch an Error
             //but I can't see how to avoid this
