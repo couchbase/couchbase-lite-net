@@ -423,11 +423,10 @@ public class Document {
         return (RevisionInternal.CBLCompareRevIDs(revId, currentRevision.getId()) > 0);
     }
 
-    void revisionAdded(Map<String,Object> changeNotification) {
+    void revisionAdded(DocumentChange documentChange) {
 
-        // TODO: the reason this is greyed out is that this should be called from Database.notifyChange()
-
-        RevisionInternal rev = (RevisionInternal) changeNotification.get("rev");
+        // TODO: in the iOS code, it calls CBL_Revision* rev = change.winningRevision;
+        RevisionInternal rev = documentChange.getRevisionInternal();
         if (currentRevision != null && !rev.getRevId().equals(currentRevision.getId())) {
             currentRevision = new SavedRevision(this, rev);
         }

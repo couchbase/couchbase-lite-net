@@ -2502,7 +2502,8 @@ public class Database {
             changeListener.changed(changeEvent);
         }
 
-        // TODO: it needs to notify the corresponding instantiated Document object (if any):
+        // TODO: this is expensive, it should be using a WeakHashMap
+        // TODO: instead of loading from the DB.  iOS code below.
         /*
             ios code:
             for (CBLDatabaseChange* change in changes) {
@@ -2512,6 +2513,8 @@ public class Database {
                 external = YES;
             }
          */
+        Document document = getDocument(change.getDocumentId());
+        document.revisionAdded(change);
 
     }
 
