@@ -159,7 +159,7 @@ public class ChangeTracker implements Runnable {
         }
 
         httpClient = client.getHttpClient();
-        CBLChangeTrackerBackoff backoff = new CBLChangeTrackerBackoff();
+        ChangeTrackerBackoff backoff = new ChangeTrackerBackoff();
 
         while (running) {
 
