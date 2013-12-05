@@ -11,7 +11,7 @@ import java.util.concurrent.Future;
  */
 public class Query {
 
-    public enum CBLIndexUpdateMode {
+    public enum IndexUpdateMode {
         NEVER, BEFORE, AFTER
     }
 
@@ -67,7 +67,7 @@ public class Query {
      * If set, the view will not be updated for this query, even if the database has changed.
      * This allows faster results at the expense of returning possibly out-of-date data.
      */
-    private CBLIndexUpdateMode indexUpdateMode;
+    private IndexUpdateMode indexUpdateMode;
 
     /**
      * Should the rows be returned in descending key order? Default value is NO.
@@ -121,7 +121,7 @@ public class Query {
         this.view = view;
         limit = Integer.MAX_VALUE;
         mapOnly = (view != null && view.getReduce() == null);
-        indexUpdateMode = CBLIndexUpdateMode.NEVER;
+        indexUpdateMode = IndexUpdateMode.NEVER;
     }
 
     /**
@@ -234,12 +234,12 @@ public class Query {
     }
 
     @InterfaceAudience.Public
-    public CBLIndexUpdateMode getIndexUpdateMode() {
+    public IndexUpdateMode getIndexUpdateMode() {
         return indexUpdateMode;
     }
 
     @InterfaceAudience.Public
-    public void setIndexUpdateMode(CBLIndexUpdateMode indexUpdateMode) {
+    public void setIndexUpdateMode(IndexUpdateMode indexUpdateMode) {
         this.indexUpdateMode = indexUpdateMode;
     }
 

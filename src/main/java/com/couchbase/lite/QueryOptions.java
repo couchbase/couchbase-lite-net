@@ -43,7 +43,7 @@ public class QueryOptions {
     private boolean reduce = false;
     private boolean reduceSpecified = false;
     private boolean group = false;
-    private Query.CBLIndexUpdateMode stale;
+    private Query.IndexUpdateMode stale;
 
 
     public Object getStartKey() {
@@ -150,7 +150,7 @@ public class QueryOptions {
         this.keys = keys;
     }
 
-    public Query.CBLIndexUpdateMode getStale() {
+    public Query.IndexUpdateMode getStale() {
         return stale;
     }
 
@@ -162,7 +162,7 @@ public class QueryOptions {
         this.includeDeletedDocs = includeDeletedDocs;
     }
 
-    public void setStale(Query.CBLIndexUpdateMode stale) {
+    public void setStale(Query.IndexUpdateMode stale) {
         this.stale = stale;
     }
 
