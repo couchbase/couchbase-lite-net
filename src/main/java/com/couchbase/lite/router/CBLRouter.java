@@ -15,8 +15,8 @@ import com.couchbase.lite.CBLQueryRow;
 import com.couchbase.lite.CBLReducer;
 import com.couchbase.lite.CBLRevisionList;
 import com.couchbase.lite.CBLStatus;
-import com.couchbase.lite.CBLView;
-import com.couchbase.lite.CBLView.TDViewCollation;
+import com.couchbase.lite.View;
+import com.couchbase.lite.View.TDViewCollation;
 import com.couchbase.lite.CBLiteException;
 import com.couchbase.lite.auth.CBLFacebookAuthorizer;
 import com.couchbase.lite.auth.CBLPersonaAuthorizer;
@@ -1455,7 +1455,7 @@ public class CBLRouter implements Database.ChangeListener {
 
     /** VIEW QUERIES: **/
 
-    public CBLView compileView(String viewName, Map<String,Object> viewProps) {
+    public View compileView(String viewName, Map<String,Object> viewProps) {
         String language = (String)viewProps.get("language");
         if(language == null) {
             language = "javascript";
@@ -1464,7 +1464,7 @@ public class CBLRouter implements Database.ChangeListener {
         if(mapSource == null) {
             return null;
         }
-        CBLMapper mapBlock = CBLView.getCompiler().compileMap(mapSource, language);
+        CBLMapper mapBlock = View.getCompiler().compileMap(mapSource, language);
         if(mapBlock == null) {
             Log.w(Database.TAG, String.format("View %s has unknown map function: %s", viewName, mapSource));
             return null;
@@ -1472,14 +1472,14 @@ public class CBLRouter implements Database.ChangeListener {
         String reduceSource = (String)viewProps.get("reduce");
         CBLReducer reduceBlock = null;
         if(reduceSource != null) {
-            reduceBlock = CBLView.getCompiler().compileReduce(reduceSource, language);
+            reduceBlock = View.getCompiler().compileReduce(reduceSource, language);
             if(reduceBlock == null) {
                 Log.w(Database.TAG, String.format("View %s has unknown reduce function: %s", viewName, reduceBlock));
                 return null;
             }
         }
 
-        CBLView view = db.getView(viewName);
+        View view = db.getView(viewName);
         view.setMapAndReduce(mapBlock, reduceBlock, "1");
         String collation = (String)viewProps.get("collation");
         if("raw".equals(collation)) {
@@ -1490,7 +1490,7 @@ public class CBLRouter implements Database.ChangeListener {
 
     public CBLStatus queryDesignDoc(String designDoc, String viewName, List<Object> keys) throws CBLiteException {
         String tdViewName = String.format("%s/%s", designDoc, viewName);
-        CBLView view = db.getExistingView(tdViewName);
+        View view = db.getExistingView(tdViewName);
         if(view == null || view.getMap() == null) {
             // No TouchDB view is defined, or it hasn't had a map block assigned;
             // see if there's a CouchDB view definition we can compile:

@@ -8,10 +8,10 @@ import java.util.List;
 import java.util.concurrent.ExecutionException;
 
 /**
- * A CBLQuery subclass that automatically refreshes the result rows every time the database changes.
+ * A Query subclass that automatically refreshes the result rows every time the database changes.
  * All you need to do is use add a listener to observe changes.
  */
-public class CBLLiveQuery extends CBLQuery implements Database.ChangeListener {
+public class LiveQuery extends Query implements Database.ChangeListener {
 
     private boolean observing;
     private boolean willUpdate;
@@ -23,7 +23,7 @@ public class CBLLiveQuery extends CBLQuery implements Database.ChangeListener {
      * Constructor
      */
     @InterfaceAudience.Private
-    CBLLiveQuery(CBLQuery query) {
+    LiveQuery(Query query) {
         super(query.getDatabase(), query.getView());
         setLimit(query.getLimit());
         setSkip(query.getSkip());
@@ -40,7 +40,7 @@ public class CBLLiveQuery extends CBLQuery implements Database.ChangeListener {
     }
 
     /**
-     * In CBLLiveQuery the rows accessor is a non-blocking property.
+     * In LiveQuery the rows accessor is a non-blocking property.
      * Its value will be nil until the initial query finishes.
      */
     @InterfaceAudience.Public
@@ -143,7 +143,7 @@ public class CBLLiveQuery extends CBLQuery implements Database.ChangeListener {
                     if (rows != null && !rows.equals(rows)) {
                         setRows(rows);
                         for (ChangeListener observer : observers) {
-                            observer.changed(new ChangeEvent(CBLLiveQuery.this, rows));
+                            observer.changed(new ChangeEvent(LiveQuery.this, rows));
                         }
                     }
                     lastError = null;
@@ -170,14 +170,14 @@ public class CBLLiveQuery extends CBLQuery implements Database.ChangeListener {
 
     public static class ChangeEvent {
 
-        private CBLLiveQuery source;
+        private LiveQuery source;
         private Throwable error;
         private CBLQueryEnumerator queryEnumerator;
 
         ChangeEvent() {
         }
 
-        ChangeEvent(CBLLiveQuery source, CBLQueryEnumerator queryEnumerator) {
+        ChangeEvent(LiveQuery source, CBLQueryEnumerator queryEnumerator) {
             this.source = source;
             this.queryEnumerator = queryEnumerator;
         }
@@ -186,7 +186,7 @@ public class CBLLiveQuery extends CBLQuery implements Database.ChangeListener {
             this.error = error;
         }
 
-        public CBLLiveQuery getSource() {
+        public LiveQuery getSource() {
             return source;
         }
 

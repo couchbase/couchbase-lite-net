@@ -143,7 +143,7 @@ public class CBLQueryRow {
     }
 
     /**
-     * This is used implicitly by -[CBLLiveQuery update] to decide whether the query result has changed
+     * This is used implicitly by -[LiveQuery update] to decide whether the query result has changed
      * enough to notify the client. So it's important that it not give false positives, else the app
      * won't get notified of changes.
      */

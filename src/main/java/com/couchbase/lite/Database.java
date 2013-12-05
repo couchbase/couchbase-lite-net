@@ -71,7 +71,7 @@ public class Database {
     public static final String TAG = "Database";
     public static final String TAG_SQL = "CBLSQL";
 
-    private Map<String, CBLView> views;
+    private Map<String, View> views;
     private Map<String, ReplicationFilter> filters;
     private Map<String, CBLValidationBlock> validations;
 
@@ -407,40 +407,40 @@ public class Database {
      * This is like querying an imaginary view that emits every document's ID as a key.
      */
     @InterfaceAudience.Public
-    public CBLQuery createAllDocumentsQuery() {
-        return new CBLQuery(this, (CBLView)null);
+    public Query createAllDocumentsQuery() {
+        return new Query(this, (View)null);
     }
 
     /**
-     * Returns a CBLView object for the view with the given name.
+     * Returns a View object for the view with the given name.
      * (This succeeds even if the view doesn't already exist, but the view won't be added to
-     * the database until the CBLView is assigned a map function.)
+     * the database until the View is assigned a map function.)
      */
     @InterfaceAudience.Public
-    public CBLView getView(String name) {
-        CBLView view = null;
+    public View getView(String name) {
+        View view = null;
         if(views != null) {
             view = views.get(name);
         }
         if(view != null) {
             return view;
         }
-        return registerView(new CBLView(this, name));
+        return registerView(new View(this, name));
     }
 
     /**
-     * Returns the existing CBLView with the given name, or nil if none.
+     * Returns the existing View with the given name, or nil if none.
      */
     @InterfaceAudience.Public
-    public CBLView getExistingView(String name) {
-        CBLView view = null;
+    public View getExistingView(String name) {
+        View view = null;
         if(views != null) {
             view = views.get(name);
         }
         if(view != null) {
             return view;
         }
-        view = new CBLView(this, name);
+        view = new View(this, name);
         if(view.getViewId() == 0) {
             return null;
         }
@@ -805,7 +805,7 @@ public class Database {
         }
 
         if(views != null) {
-            for (CBLView view : views.values()) {
+            for (View view : views.values()) {
                 view.databaseClosing();
             }
         }
@@ -833,7 +833,7 @@ public class Database {
 
 
     // Leave this package protected, so it can only be used
-    // CBLView uses this accessor
+    // View uses this accessor
 
     SQLiteStorageEngine getDatabase() {
         return database;
@@ -1528,12 +1528,12 @@ public class Database {
 
     /** VIEWS: **/
 
-    public CBLView registerView(CBLView view) {
+    public View registerView(View view) {
         if(view == null) {
             return null;
         }
         if(views == null) {
-            views = new HashMap<String,CBLView>();
+            views = new HashMap<String,View>();
         }
         views.put(view.getName(), view);
         return view;
@@ -1548,15 +1548,15 @@ public class Database {
         List<CBLQueryRow> rows = null;
 
         if (viewName != null && viewName.length() > 0) {
-            final CBLView view = getView(viewName);
+            final View view = getView(viewName);
             if (view == null) {
                 throw new CBLiteException(new CBLStatus(CBLStatus.NOT_FOUND));
             }
             lastSequence = view.getLastSequenceIndexed();
-            if (options.getStale() == CBLQuery.CBLIndexUpdateMode.NEVER || lastSequence <= 0) {
+            if (options.getStale() == Query.CBLIndexUpdateMode.NEVER || lastSequence <= 0) {
                 view.updateIndex();
                 lastSequence = view.getLastSequenceIndexed();
-            } else if (options.getStale() == CBLQuery.CBLIndexUpdateMode.AFTER && lastSequence < getLastSequenceNumber()) {
+            } else if (options.getStale() == Query.CBLIndexUpdateMode.AFTER && lastSequence < getLastSequenceNumber()) {
 
                 new Thread(new Runnable() {
                     @Override
@@ -1594,10 +1594,10 @@ public class Database {
 
 
 
-    CBLView makeAnonymousView() {
+    View makeAnonymousView() {
         for (int i=0; true; ++i) {
             String name = String.format("anon%d", i);
-            CBLView existing = getExistingView(name);
+            View existing = getExistingView(name);
             if (existing == null) {
                 // this name has not been used yet, so let's use it
                 return getView(name);
@@ -1607,14 +1607,14 @@ public class Database {
 
 
 
-    public List<CBLView> getAllViews() {
+    public List<View> getAllViews() {
         Cursor cursor = null;
-        List<CBLView> result = null;
+        List<View> result = null;
 
         try {
             cursor = database.rawQuery("SELECT name FROM views", null);
             cursor.moveToNext();
-            result = new ArrayList<CBLView>();
+            result = new ArrayList<View>();
             while(!cursor.isAfterLast()) {
                 result.add(getView(cursor.getString(0)));
                 cursor.moveToNext();
@@ -3141,12 +3141,12 @@ public class Database {
 
     /**
      * Creates a one-shot query with the given map function. This is equivalent to creating an
-     * anonymous CBLView and then deleting it immediately after querying it. It may be useful during
+     * anonymous View and then deleting it immediately after querying it. It may be useful during
      * development, but in general this is inefficient if this map will be used more than once,
      * because the entire view has to be regenerated from scratch every time.
      */
-    public CBLQuery slowQuery(CBLMapper map) {
-        return new CBLQuery(this, map);
+    public Query slowQuery(CBLMapper map) {
+        return new Query(this, map);
     }
 
 

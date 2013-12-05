@@ -36,7 +36,7 @@ import java.util.Map;
 /**
  * Represents a view available in a database.
  */
-public class CBLView {
+public class View {
 
     public static final int REDUCE_BATCH_SIZE = 100;
 
@@ -65,7 +65,7 @@ public class CBLView {
      */
     @InterfaceAudience.Public
     public static void setCompiler(CBLViewCompiler compiler) {
-        CBLView.compiler = compiler;
+        View.compiler = compiler;
     }
 
 
@@ -73,7 +73,7 @@ public class CBLView {
      * Constructor
      */
     @InterfaceAudience.Private
-    CBLView(Database database, String name) {
+    View(Database database, String name) {
         this.database = database;
         this.name = name;
         this.viewId = -1; // means 'unknown'
@@ -278,8 +278,8 @@ public class CBLView {
      * Creates a new query object for this view. The query can be customized and then executed.
      */
     @InterfaceAudience.Public
-    public CBLQuery createQuery() {
-        return new CBLQuery(getDatabase(), this);
+    public Query createQuery() {
+        return new Query(getDatabase(), this);
     }
 
     public int getViewId() {

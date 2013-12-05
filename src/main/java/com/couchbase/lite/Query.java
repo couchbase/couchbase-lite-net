@@ -9,7 +9,7 @@ import java.util.concurrent.Future;
 /**
  * Represents a query of a CouchbaseLite 'view', or of a view-like resource like _all_documents.
  */
-public class CBLQuery {
+public class Query {
 
     public enum CBLIndexUpdateMode {
         NEVER, BEFORE, AFTER
@@ -23,7 +23,7 @@ public class CBLQuery {
     /**
      * The view object associated with this query
      */
-    private CBLView view;  // null for _all_docs query
+    private View view;  // null for _all_docs query
 
     /**
      * Is this query based on a temporary view?
@@ -116,7 +116,7 @@ public class CBLQuery {
      * Constructor
      */
     @InterfaceAudience.Private
-    CBLQuery(Database database, CBLView view) {
+    Query(Database database, View view) {
         this.database = database;
         this.view = view;
         limit = Integer.MAX_VALUE;
@@ -128,7 +128,7 @@ public class CBLQuery {
      * Constructor
      */
     @InterfaceAudience.Private
-    CBLQuery(Database database, CBLMapper mapFunction) {
+    Query(Database database, CBLMapper mapFunction) {
         this(database, database.makeAnonymousView());
         temporaryView = true;
         view.setMap(mapFunction, "");
@@ -138,7 +138,7 @@ public class CBLQuery {
      * Constructor
      */
     @InterfaceAudience.Private
-    CBLQuery(Database database, CBLQuery query) {
+    Query(Database database, Query query) {
         this(database, query.getView());
         limit = query.limit;
         skip = query.skip;
@@ -310,18 +310,18 @@ public class CBLQuery {
      * Returns a live query with the same parameters.
      */
     @InterfaceAudience.Public
-    public CBLLiveQuery toLiveQuery() {
+    public LiveQuery toLiveQuery() {
         if (view == null) {
-            throw new IllegalStateException("Cannot convert a CBLQuery to CBLLiveQuery if the view is null");
+            throw new IllegalStateException("Cannot convert a Query to LiveQuery if the view is null");
         }
-        return new CBLLiveQuery(this);
+        return new LiveQuery(this);
     }
 
     /**
      *  Starts an asynchronous query. Returns immediately, then calls the onLiveQueryChanged block when the
      *  query completes, passing it the row enumerator. If the query fails, the block will receive
      *  a non-nil enumerator but its .error property will be set to a value reflecting the error.
-     *  The originating CBLQuery's .error property will NOT change.
+     *  The originating Query's .error property will NOT change.
      */
     @InterfaceAudience.Public
     public Future runAsync(final QueryCompleteListener onComplete) {
@@ -351,7 +351,7 @@ public class CBLQuery {
 
     }
 
-    public CBLView getView() {
+    public View getView() {
         return view;
     }
 

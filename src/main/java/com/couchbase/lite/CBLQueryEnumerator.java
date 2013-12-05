@@ -6,7 +6,7 @@ import java.util.Iterator;
 import java.util.List;
 
 /**
- * Enumerator on a CBLQuery's result rows.
+ * Enumerator on a Query's result rows.
  * The objects returned are instances of CBLQueryRow.
  */
 public class CBLQueryEnumerator implements Iterator<CBLQueryRow> {
