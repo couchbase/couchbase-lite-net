@@ -18,7 +18,7 @@ import com.couchbase.lite.RevisionList;
 import com.couchbase.lite.Status;
 import com.couchbase.lite.View;
 import com.couchbase.lite.View.TDViewCollation;
-import com.couchbase.lite.auth.CBLFacebookAuthorizer;
+import com.couchbase.lite.auth.FacebookAuthorizer;
 import com.couchbase.lite.auth.PersonaAuthorizer;
 import com.couchbase.lite.internal.Body;
 import com.couchbase.lite.internal.RevisionInternal;
@@ -768,7 +768,7 @@ public class Router implements Database.ChangeListener {
             }
 
             try {
-                CBLFacebookAuthorizer.registerAccessToken(accessToken, email, remoteUrl);
+                FacebookAuthorizer.registerAccessToken(accessToken, email, remoteUrl);
             } catch (Exception e) {
                 Map<String, Object> result = new HashMap<String, Object>();
                 result.put("error", "error registering access token: " + e.getLocalizedMessage());

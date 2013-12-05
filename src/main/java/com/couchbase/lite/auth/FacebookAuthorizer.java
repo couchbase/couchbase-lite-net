@@ -9,7 +9,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class CBLFacebookAuthorizer extends CBLAuthorizer {
+public class FacebookAuthorizer extends CBLAuthorizer {
 
     public static final String LOGIN_PARAMETER_ACCESS_TOKEN = "access_token";
     public static final String QUERY_PARAMETER = "facebookAccessToken";
@@ -19,7 +19,7 @@ public class CBLFacebookAuthorizer extends CBLAuthorizer {
 
     private String emailAddress;
 
-    public CBLFacebookAuthorizer(String emailAddress) {
+    public FacebookAuthorizer(String emailAddress) {
         this.emailAddress = emailAddress;
     }
 
@@ -53,7 +53,7 @@ public class CBLFacebookAuthorizer extends CBLAuthorizer {
         if (accessTokens == null) {
             accessTokens = new HashMap<List<String>, String>();
         }
-        Log.d(Database.TAG, "CBLFacebookAuthorizer registering key: " + key);
+        Log.d(Database.TAG, "FacebookAuthorizer registering key: " + key);
         accessTokens.put(key, accessToken);
 
         return email;
@@ -65,7 +65,7 @@ public class CBLFacebookAuthorizer extends CBLAuthorizer {
         List<String> key = new ArrayList<String>();
         key.add(email);
         key.add(site.toExternalForm().toLowerCase());
-        Log.d(Database.TAG, "CBLFacebookAuthorizer looking up key: " + key + " from list of access tokens");
+        Log.d(Database.TAG, "FacebookAuthorizer looking up key: " + key + " from list of access tokens");
         return accessTokens.get(key);
     }
 

@@ -3,10 +3,10 @@ package com.couchbase.lite.replicator;
 import com.couchbase.lite.Database;
 import com.couchbase.lite.Misc;
 import com.couchbase.lite.RevisionList;
+import com.couchbase.lite.auth.FacebookAuthorizer;
 import com.couchbase.lite.auth.PersonaAuthorizer;
 import com.couchbase.lite.internal.RevisionInternal;
 import com.couchbase.lite.auth.CBLAuthorizer;
-import com.couchbase.lite.auth.CBLFacebookAuthorizer;
 import com.couchbase.lite.internal.InterfaceAudience;
 import com.couchbase.lite.support.BatchProcessor;
 import com.couchbase.lite.support.Batcher;
@@ -110,10 +110,10 @@ public abstract class Replication {
                 setAuthorizer(authorizer);
             }
 
-            String facebookAccessToken = URIUtils.getQueryParameter(uri, CBLFacebookAuthorizer.QUERY_PARAMETER);
+            String facebookAccessToken = URIUtils.getQueryParameter(uri, FacebookAuthorizer.QUERY_PARAMETER);
             if (facebookAccessToken != null && !facebookAccessToken.isEmpty()) {
-                String email = URIUtils.getQueryParameter(uri, CBLFacebookAuthorizer.QUERY_PARAMETER_EMAIL);
-                CBLFacebookAuthorizer authorizer = new CBLFacebookAuthorizer(email);
+                String email = URIUtils.getQueryParameter(uri, FacebookAuthorizer.QUERY_PARAMETER_EMAIL);
+                FacebookAuthorizer authorizer = new FacebookAuthorizer(email);
                 URL remoteWithQueryRemoved = null;
                 try {
                     remoteWithQueryRemoved = new URL(remote.getProtocol(), remote.getHost(), remote.getPort(), remote.getPath());
