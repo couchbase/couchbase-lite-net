@@ -524,9 +524,9 @@ public class View {
 
     }
 
-    public Cursor resultSetWithOptions(CBLQueryOptions options) {
+    public Cursor resultSetWithOptions(QueryOptions options) {
         if (options == null) {
-            options = new CBLQueryOptions();
+            options = new QueryOptions();
         }
 
         // OPT: It would be faster to use separate tables for raw-or ascii-collated views so that
@@ -677,7 +677,7 @@ public class View {
         return result;
     }
 
-    List<CBLQueryRow> reducedQuery(Cursor cursor, boolean group, int groupLevel) throws CBLiteException {
+    List<QueryRow> reducedQuery(Cursor cursor, boolean group, int groupLevel) throws CBLiteException {
 
         List<Object> keysToReduce = null;
         List<Object> valuesToReduce = null;
@@ -686,7 +686,7 @@ public class View {
             keysToReduce = new ArrayList<Object>(REDUCE_BATCH_SIZE);
             valuesToReduce = new ArrayList<Object>(REDUCE_BATCH_SIZE);
         }
-        List<CBLQueryRow> rows = new ArrayList<CBLQueryRow>();
+        List<QueryRow> rows = new ArrayList<QueryRow>();
 
         cursor.moveToNext();
         while (!cursor.isAfterLast()) {
@@ -699,7 +699,7 @@ public class View {
                     // This pair starts a new group, so reduce & record the last one:
                     Object reduced = (reduceBlock != null) ? reduceBlock.reduce(keysToReduce, valuesToReduce, false) : null;
                     Object key = groupKey(lastKey, groupLevel);
-                    CBLQueryRow row = new CBLQueryRow(null, 0, key, reduced, null);
+                    QueryRow row = new QueryRow(null, 0, key, reduced, null);
                     row.setDatabase(database);
                     rows.add(row);
                     keysToReduce.clear();
@@ -719,7 +719,7 @@ public class View {
             // Finish the last group (or the entire list, if no grouping):
             Object key = group ? groupKey(lastKey, groupLevel) : null;
             Object reduced = (reduceBlock != null) ? reduceBlock.reduce(keysToReduce, valuesToReduce, false) : null;
-            CBLQueryRow row = new CBLQueryRow(null, 0, key, reduced, null);
+            QueryRow row = new QueryRow(null, 0, key, reduced, null);
             row.setDatabase(database);
             rows.add(row);
         }
@@ -732,17 +732,17 @@ public class View {
      * Queries the view. Does NOT first update the index.
      *
      * @param options The options to use.
-     * @return An array of CBLQueryRow objects.
+     * @return An array of QueryRow objects.
      */
     @InterfaceAudience.Private
-    public List<CBLQueryRow> queryWithOptions(CBLQueryOptions options) throws CBLiteException {
+    public List<QueryRow> queryWithOptions(QueryOptions options) throws CBLiteException {
 
         if (options == null) {
-            options = new CBLQueryOptions();
+            options = new QueryOptions();
         }
 
         Cursor cursor = null;
-        List<CBLQueryRow> rows = new ArrayList<CBLQueryRow>();
+        List<QueryRow> rows = new ArrayList<QueryRow>();
 
         try {
             cursor = resultSetWithOptions(options);
@@ -788,7 +788,7 @@ public class View {
                             );
                         }
                     }
-                    CBLQueryRow row = new CBLQueryRow(docId, 0, keyData, value, docContents);
+                    QueryRow row = new QueryRow(docId, 0, keyData, value, docContents);
                     row.setDatabase(database);
                     rows.add(row);
                     cursor.moveToNext();

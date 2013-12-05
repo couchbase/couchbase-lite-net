@@ -7,11 +7,11 @@ import com.couchbase.lite.Database;
 import com.couchbase.lite.Database.TDContentOptions;
 import com.couchbase.lite.DocumentChange;
 import com.couchbase.lite.Manager;
+import com.couchbase.lite.QueryOptions;
+import com.couchbase.lite.QueryRow;
 import com.couchbase.lite.ReplicationFilter;
 import com.couchbase.lite.CBLMapper;
 import com.couchbase.lite.CBLMisc;
-import com.couchbase.lite.CBLQueryOptions;
-import com.couchbase.lite.CBLQueryRow;
 import com.couchbase.lite.CBLReducer;
 import com.couchbase.lite.CBLRevisionList;
 import com.couchbase.lite.CBLStatus;
@@ -172,7 +172,7 @@ public class CBLRouter implements Database.ChangeListener {
         return result;
     }
 
-    public boolean getQueryOptions(CBLQueryOptions options) {
+    public boolean getQueryOptions(QueryOptions options) {
         // http://wiki.apache.org/couchdb/HTTP_view_API#Querying_Options
         options.setSkip(getIntQuery("skip", options.getSkip()));
         options.setLimit(getIntQuery("limit", options.getLimit()));
@@ -692,12 +692,12 @@ public class CBLRouter implements Database.ChangeListener {
 
     /**
      * This is a hack to deal with the fact that there is currently no custom
-     * serializer for CBLQueryRow.  Instead, just convert everything to generic Maps.
+     * serializer for QueryRow.  Instead, just convert everything to generic Maps.
      */
     private void convertCBLQueryRowsToMaps(Map<String,Object> allDocsResult) {
         List<Map<String, Object>> rowsAsMaps = new ArrayList<Map<String, Object>>();
-        List<CBLQueryRow> rows = (List<CBLQueryRow>) allDocsResult.get("rows");
-        for (CBLQueryRow row : rows) {
+        List<QueryRow> rows = (List<QueryRow>) allDocsResult.get("rows");
+        for (QueryRow row : rows) {
             rowsAsMaps.add(row.asJSONDictionary());
         }
         allDocsResult.put("rows", rowsAsMaps);
@@ -712,7 +712,7 @@ public class CBLRouter implements Database.ChangeListener {
     }
 
     public CBLStatus do_GET_Document_all_docs(Database _db, String _docID, String _attachmentName) throws CBLiteException {
-        CBLQueryOptions options = new CBLQueryOptions();
+        QueryOptions options = new QueryOptions();
         if(!getQueryOptions(options)) {
             return new CBLStatus(CBLStatus.BAD_REQUEST);
         }
@@ -726,7 +726,7 @@ public class CBLRouter implements Database.ChangeListener {
     }
 
     public CBLStatus do_POST_Document_all_docs(Database _db, String _docID, String _attachmentName) throws CBLiteException {
-        CBLQueryOptions options = new CBLQueryOptions();
+        QueryOptions options = new QueryOptions();
         if (!getQueryOptions(options)) {
             return new CBLStatus(CBLStatus.BAD_REQUEST);
         }
@@ -1510,7 +1510,7 @@ public class CBLRouter implements Database.ChangeListener {
             }
         }
 
-        CBLQueryOptions options = new CBLQueryOptions();
+        QueryOptions options = new QueryOptions();
 
         //if the view contains a reduce block, it should default to reduce=true
         if(view.getReduce() != null) {
@@ -1536,10 +1536,10 @@ public class CBLRouter implements Database.ChangeListener {
             }
         }
 
-        // convert from CBLQueryRow -> Map
-        List<CBLQueryRow> queryRows = view.queryWithOptions(options);
+        // convert from QueryRow -> Map
+        List<QueryRow> queryRows = view.queryWithOptions(options);
         List<Map<String,Object>> rows = new ArrayList<Map<String,Object>>();
-        for (CBLQueryRow queryRow : queryRows) {
+        for (QueryRow queryRow : queryRows) {
             rows.add(queryRow.asJSONDictionary());
         }
 

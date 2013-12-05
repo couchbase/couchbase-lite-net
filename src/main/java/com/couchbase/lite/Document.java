@@ -405,7 +405,7 @@ public class Document {
         public boolean update(UnsavedRevision newRevision);
     }
 
-    void loadCurrentRevisionFrom(CBLQueryRow row) {
+    void loadCurrentRevisionFrom(QueryRow row) {
         if (row.getDocumentRevisionId() == null) {
             return;
         }

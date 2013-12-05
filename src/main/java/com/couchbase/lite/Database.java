@@ -1541,11 +1541,11 @@ public class Database {
 
 
 
-    public List<CBLQueryRow> queryViewNamed(String viewName, CBLQueryOptions options, List<Long> outLastSequence) throws CBLiteException {
+    public List<QueryRow> queryViewNamed(String viewName, QueryOptions options, List<Long> outLastSequence) throws CBLiteException {
 
         long before = System.currentTimeMillis();
         long lastSequence = 0;
-        List<CBLQueryRow> rows = null;
+        List<QueryRow> rows = null;
 
         if (viewName != null && viewName.length() > 0) {
             final View view = getView(viewName);
@@ -1579,7 +1579,7 @@ public class Database {
             // result dictionary because that's what we want.  should be refactored, but
             // it's a little tricky, so postponing.
             Map<String,Object> allDocsResult = getAllDocs(options);
-            rows = (List<CBLQueryRow>) allDocsResult.get("rows");
+            rows = (List<QueryRow>) allDocsResult.get("rows");
             lastSequence = getLastSequenceNumber();
         }
         outLastSequence.add(lastSequence);
@@ -1651,7 +1651,7 @@ public class Database {
     /**
      * Hack because cursor interface does not support cursor.getColumnIndex("deleted") yet.
      */
-    public int getDeletedColumnIndex(CBLQueryOptions options) {
+    public int getDeletedColumnIndex(QueryOptions options) {
         if (options.isIncludeDocs()) {
             return 5;
         }
@@ -1661,12 +1661,12 @@ public class Database {
 
     }
 
-    public Map<String,Object> getAllDocs(CBLQueryOptions options) throws CBLiteException {
+    public Map<String,Object> getAllDocs(QueryOptions options) throws CBLiteException {
 
         Map<String, Object> result = new HashMap<String, Object>();
-        List<CBLQueryRow> rows = new ArrayList<CBLQueryRow>();
+        List<QueryRow> rows = new ArrayList<QueryRow>();
         if(options == null) {
-            options = new CBLQueryOptions();
+            options = new QueryOptions();
         }
 
         long updateSeq = 0;
@@ -1729,7 +1729,7 @@ public class Database {
         Cursor cursor = null;
         long lastDocID = 0;
         int totalRows = 0;
-        Map<String, CBLQueryRow> docs = new HashMap<String, CBLQueryRow>();
+        Map<String, QueryRow> docs = new HashMap<String, QueryRow>();
 
 
         try {
@@ -1761,7 +1761,7 @@ public class Database {
                 if (options.isIncludeDeletedDocs()){
                     value.put("deleted", (deleted ? true : null));
                 }
-                CBLQueryRow change = new CBLQueryRow(docId, sequenceNumber, docId, value, docContents);
+                QueryRow change = new QueryRow(docId, sequenceNumber, docId, value, docContents);
                 change.setDatabase(this);
                 if (options.getKeys() != null) {
                     docs.put(docId, change);
@@ -1777,7 +1777,7 @@ public class Database {
                 for (Object docIdObject : options.getKeys()) {
                     if (docIdObject instanceof String) {
                         String docId = (String) docIdObject;
-                        CBLQueryRow change = docs.get(docId);
+                        QueryRow change = docs.get(docId);
                         if (change == null) {
                             Map<String, Object> value = new HashMap<String, Object>();
                             long docNumericID = getDocNumericID(docId);
@@ -1794,7 +1794,7 @@ public class Database {
                                     value.put("deleted", true);
                                 }
                             }
-                            change = new CBLQueryRow((value != null ? docId : null), 0, docId, value, null);
+                            change = new QueryRow((value != null ? docId : null), 0, docId, value, null);
                             change.setDatabase(this);
                         }
                         rows.add(change);

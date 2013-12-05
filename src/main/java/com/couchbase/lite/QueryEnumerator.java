@@ -7,12 +7,12 @@ import java.util.List;
 
 /**
  * Enumerator on a Query's result rows.
- * The objects returned are instances of CBLQueryRow.
+ * The objects returned are instances of QueryRow.
  */
-public class CBLQueryEnumerator implements Iterator<CBLQueryRow> {
+public class QueryEnumerator implements Iterator<QueryRow> {
 
     private Database database;
-    private List<CBLQueryRow> rows;
+    private List<QueryRow> rows;
     private int nextRow;
     private long sequenceNumber;
 
@@ -20,13 +20,13 @@ public class CBLQueryEnumerator implements Iterator<CBLQueryRow> {
      * Constructor
      */
     @InterfaceAudience.Private
-    CBLQueryEnumerator(Database database, List<CBLQueryRow> rows, long sequenceNumber) {
+    QueryEnumerator(Database database, List<QueryRow> rows, long sequenceNumber) {
         this.database = database;
         this.rows = rows;
         this.sequenceNumber = sequenceNumber;
 
         // Fill in the rows' database reference now
-        for (CBLQueryRow row : rows) {
+        for (QueryRow row : rows) {
             row.setDatabase(database);
         }
     }
@@ -35,7 +35,7 @@ public class CBLQueryEnumerator implements Iterator<CBLQueryRow> {
      * Constructor
      */
     @InterfaceAudience.Private
-    CBLQueryEnumerator(CBLQueryEnumerator other) {
+    QueryEnumerator(QueryEnumerator other) {
         this.database = other.database;
         this.rows = other.rows;
         this.sequenceNumber = other.sequenceNumber;
@@ -58,12 +58,12 @@ public class CBLQueryEnumerator implements Iterator<CBLQueryRow> {
     }
 
     /**
-     * Gets the next CBLQueryRow from the results, or null
+     * Gets the next QueryRow from the results, or null
      * if there are no more results.
      */
     @Override
     @InterfaceAudience.Public
-    public CBLQueryRow next() {
+    public QueryRow next() {
         if (nextRow >= rows.size()) {
             return null;
         }
@@ -74,7 +74,7 @@ public class CBLQueryEnumerator implements Iterator<CBLQueryRow> {
      * Gets the QueryRow at the specified index in the results.
      */
     @InterfaceAudience.Public
-    public CBLQueryRow getRow(int index) {
+    public QueryRow getRow(int index) {
         return rows.get(index);
     }
 
@@ -85,7 +85,7 @@ public class CBLQueryEnumerator implements Iterator<CBLQueryRow> {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
 
-        CBLQueryEnumerator that = (CBLQueryEnumerator) o;
+        QueryEnumerator that = (QueryEnumerator) o;
 
         if (rows != null ? !rows.equals(that.rows) : that.rows != null) return false;
 
@@ -107,7 +107,7 @@ public class CBLQueryEnumerator implements Iterator<CBLQueryRow> {
     @Override
     @InterfaceAudience.Public
     public void remove() {
-        throw new UnsupportedOperationException("CBLQueryEnumerator does not allow remove() to be called");
+        throw new UnsupportedOperationException("QueryEnumerator does not allow remove() to be called");
     }
 
     /**

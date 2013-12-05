@@ -76,7 +76,7 @@ public class Query {
 
     /**
      *  If set to YES, the results will include the entire document contents of the associated rows.
-     *  These can be accessed via CBLQueryRow's -documentProperties property.
+     *  These can be accessed via QueryRow's -documentProperties property.
      *  This slows down the query, but can be a good optimization if you know you'll need the entire
      *  contents of each document. (This property is equivalent to "include_docs" in the CouchDB API.)
      */
@@ -298,12 +298,12 @@ public class Query {
      * If the query fails, this method returns nil and sets the query's .error property.
      */
     @InterfaceAudience.Public
-    public CBLQueryEnumerator run() throws CBLiteException {
+    public QueryEnumerator run() throws CBLiteException {
         List<Long> outSequence = new ArrayList<Long>();
         String viewName = (view != null) ? view.getName() : null;
-        List<CBLQueryRow> rows = database.queryViewNamed(viewName, getQueryOptions(), outSequence);
+        List<QueryRow> rows = database.queryViewNamed(viewName, getQueryOptions(), outSequence);
         lastSequence = outSequence.get(0);
-        return new CBLQueryEnumerator(database, rows, lastSequence);
+        return new QueryEnumerator(database, rows, lastSequence);
     }
 
     /**
@@ -336,11 +336,11 @@ public class Query {
             public void run() {
                 try {
                     String viewName = view.getName();
-                    CBLQueryOptions options = getQueryOptions();
+                    QueryOptions options = getQueryOptions();
                     List<Long> outSequence = new ArrayList<Long>();
-                    List<CBLQueryRow> rows = database.queryViewNamed(viewName, options, outSequence);
+                    List<QueryRow> rows = database.queryViewNamed(viewName, options, outSequence);
                     long sequenceNumber = outSequence.get(0);
-                    CBLQueryEnumerator enumerator = new CBLQueryEnumerator(database, rows, sequenceNumber);
+                    QueryEnumerator enumerator = new QueryEnumerator(database, rows, sequenceNumber);
                     onComplete.completed(enumerator, null);
 
                 } catch (Throwable t) {
@@ -355,8 +355,8 @@ public class Query {
         return view;
     }
 
-    private CBLQueryOptions getQueryOptions() {
-        CBLQueryOptions queryOptions = new CBLQueryOptions();
+    private QueryOptions getQueryOptions() {
+        QueryOptions queryOptions = new QueryOptions();
         queryOptions.setStartKey(getStartKey());
         queryOptions.setEndKey(getEndKey());
         queryOptions.setStartKey(getStartKey());
@@ -384,7 +384,7 @@ public class Query {
     }
 
     public static interface QueryCompleteListener {
-        public void completed(CBLQueryEnumerator rows, Throwable error);
+        public void completed(QueryEnumerator rows, Throwable error);
     }
 
 

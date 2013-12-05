@@ -25,7 +25,7 @@ import com.couchbase.lite.Database.TDContentOptions;
 /**
  * Standard query options for views.
  */
-public class CBLQueryOptions {
+public class QueryOptions {
 
     private Object startKey = null;
     private Object endKey = null;

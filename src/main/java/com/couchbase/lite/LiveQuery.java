@@ -15,7 +15,7 @@ public class LiveQuery extends Query implements Database.ChangeListener {
 
     private boolean observing;
     private boolean willUpdate;
-    private CBLQueryEnumerator rows;
+    private QueryEnumerator rows;
     private List<ChangeListener> observers = new ArrayList<ChangeListener>();
     private Throwable lastError;
 
@@ -44,13 +44,13 @@ public class LiveQuery extends Query implements Database.ChangeListener {
      * Its value will be nil until the initial query finishes.
      */
     @InterfaceAudience.Public
-    public CBLQueryEnumerator run() throws CBLiteException {
+    public QueryEnumerator run() throws CBLiteException {
         if (rows == null) {
             return null;
         }
         else {
             // Have to return a copy because the enumeration has to start at item #0 every time
-            return new CBLQueryEnumerator(rows);
+            return new QueryEnumerator(rows);
         }
     }
 
@@ -133,7 +133,7 @@ public class LiveQuery extends Query implements Database.ChangeListener {
         setWillUpdate(false);
         updateQueryFuture = runAsyncInternal(new QueryCompleteListener() {
             @Override
-            public void completed(CBLQueryEnumerator rows, Throwable error) {
+            public void completed(QueryEnumerator rows, Throwable error) {
                 if (error != null) {
                     for (ChangeListener observer : observers) {
                         observer.changed(new ChangeEvent(error));
@@ -160,7 +160,7 @@ public class LiveQuery extends Query implements Database.ChangeListener {
         }
     }
 
-    private synchronized void setRows(CBLQueryEnumerator queryEnumerator) {
+    private synchronized void setRows(QueryEnumerator queryEnumerator) {
         rows = queryEnumerator;
     }
 
@@ -172,12 +172,12 @@ public class LiveQuery extends Query implements Database.ChangeListener {
 
         private LiveQuery source;
         private Throwable error;
-        private CBLQueryEnumerator queryEnumerator;
+        private QueryEnumerator queryEnumerator;
 
         ChangeEvent() {
         }
 
-        ChangeEvent(LiveQuery source, CBLQueryEnumerator queryEnumerator) {
+        ChangeEvent(LiveQuery source, QueryEnumerator queryEnumerator) {
             this.source = source;
             this.queryEnumerator = queryEnumerator;
         }
@@ -194,7 +194,7 @@ public class LiveQuery extends Query implements Database.ChangeListener {
             return error;
         }
 
-        public CBLQueryEnumerator getRows() {
+        public QueryEnumerator getRows() {
             return queryEnumerator;
         }
 

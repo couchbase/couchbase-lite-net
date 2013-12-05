@@ -10,7 +10,7 @@ import java.util.Map;
  * A result row from a CouchbaseLite view query.
  * Full-text and geo queries return subclasses -- see CBLFullTextQueryRow and CBLGeoQueryRow.
  */
-public class CBLQueryRow {
+public class QueryRow {
 
     private Object key;
     private Object value;
@@ -22,10 +22,10 @@ public class CBLQueryRow {
     /**
      * Constructor
      *
-     * The database property will be filled in when I'm added to a CBLQueryEnumerator.
+     * The database property will be filled in when I'm added to a QueryEnumerator.
      */
     @InterfaceAudience.Private
-    CBLQueryRow(String documentId, long sequence, Object key, Object value, Map<String, Object> documentProperties) {
+    QueryRow(String documentId, long sequence, Object key, Object value, Map<String, Object> documentProperties) {
         this.sourceDocumentId = documentId;
         this.sequence = sequence;
         this.key = key;
@@ -153,12 +153,12 @@ public class CBLQueryRow {
         if (object == this) {
             return true;
         }
-        if (!(object instanceof CBLQueryRow)) {
+        if (!(object instanceof QueryRow)) {
             return false;
         }
 
 
-        CBLQueryRow other = (CBLQueryRow) object;
+        QueryRow other = (QueryRow) object;
 
         boolean documentPropertiesBothNull = (documentProperties == null &&
                 other.getDocumentProperties() == null);
