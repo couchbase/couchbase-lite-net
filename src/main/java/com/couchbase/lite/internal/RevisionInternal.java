@@ -33,7 +33,7 @@ public class RevisionInternal {
     private String docId;
     private String revId;
     private boolean deleted;
-    private CBLBody body;
+    private Body body;
     private long sequence;
     private Database database;  // TODO: get rid of this field!
 
@@ -44,7 +44,7 @@ public class RevisionInternal {
         this.database = database;
     }
 
-    public RevisionInternal(CBLBody body, Database database) {
+    public RevisionInternal(Body body, Database database) {
         this((String)body.getPropertyForKey("_id"),
                 (String)body.getPropertyForKey("_rev"),
                 (((Boolean)body.getPropertyForKey("_deleted") != null)
@@ -53,7 +53,7 @@ public class RevisionInternal {
     }
 
     public RevisionInternal(Map<String, Object> properties, Database database) {
-        this(new CBLBody(properties), database);
+        this(new Body(properties), database);
     }
 
     public Map<String,Object> getProperties() {
@@ -76,7 +76,7 @@ public class RevisionInternal {
     }
 
     public void setProperties(Map<String,Object> properties) {
-        this.body = new CBLBody(properties);
+        this.body = new Body(properties);
 
         /*
 
@@ -119,7 +119,7 @@ public class RevisionInternal {
     }
 
     public void setJson(byte[] json) {
-        this.body = new CBLBody(json);
+        this.body = new Body(json);
     }
 
     @Override
@@ -163,11 +163,11 @@ public class RevisionInternal {
         this.deleted = deleted;
     }
 
-    public CBLBody getBody() {
+    public Body getBody() {
         return body;
     }
 
-    public void setBody(CBLBody body) {
+    public void setBody(Body body) {
         this.body = body;
     }
 

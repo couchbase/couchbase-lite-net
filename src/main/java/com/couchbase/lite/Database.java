@@ -22,8 +22,8 @@ import android.text.TextUtils;
 import android.util.LruCache;
 
 import com.couchbase.lite.Database.TDContentOptions;
+import com.couchbase.lite.internal.Body;
 import com.couchbase.lite.internal.CBLAttachmentInternal;
-import com.couchbase.lite.internal.CBLBody;
 import com.couchbase.lite.internal.RevisionInternal;
 import com.couchbase.lite.internal.InterfaceAudience;
 import com.couchbase.lite.replicator.Puller;
@@ -2283,11 +2283,11 @@ public class Database {
                 if(attachments != null) {
                     Map<String,Object> properties = new HashMap<String,Object>(oldRev.getProperties());
                     properties.remove("_attachments");
-                    oldRev.setBody(new CBLBody(properties));
+                    oldRev.setBody(new Body(properties));
                 }
             } else {
                 // If this creates a new doc, it needs a body:
-                oldRev.setBody(new CBLBody(new HashMap<String,Object>()));
+                oldRev.setBody(new Body(new HashMap<String,Object>()));
             }
 
             // Create a new revision:

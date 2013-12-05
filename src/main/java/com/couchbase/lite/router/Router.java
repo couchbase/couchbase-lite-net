@@ -20,7 +20,7 @@ import com.couchbase.lite.View;
 import com.couchbase.lite.View.TDViewCollation;
 import com.couchbase.lite.auth.CBLFacebookAuthorizer;
 import com.couchbase.lite.auth.CBLPersonaAuthorizer;
-import com.couchbase.lite.internal.CBLBody;
+import com.couchbase.lite.internal.Body;
 import com.couchbase.lite.internal.RevisionInternal;
 import com.couchbase.lite.replicator.Replication;
 import com.couchbase.lite.util.Log;
@@ -426,7 +426,7 @@ public class Router implements Database.ChangeListener {
                 Map<String, Object> result = new HashMap<String, Object>();
                 result.put("error", "not_found");
                 result.put("reason", errorMessage);
-                connection.setResponseBody(new CBLBody(result));
+                connection.setResponseBody(new Body(result));
                 Method m = Router.class.getMethod("do_UNKNOWN", Database.class, String.class, String.class);
                 status = (Status)m.invoke(this, db, docID, attachmentName);
             } catch (Exception e) {
@@ -435,7 +435,7 @@ public class Router implements Database.ChangeListener {
                 Map<String, Object> result = new HashMap<String, Object>();
                 result.put("error", "not_found");
                 result.put("reason", "Router unable to route request");
-                connection.setResponseBody(new CBLBody(result));
+                connection.setResponseBody(new Body(result));
                 status = new Status(Status.NOT_FOUND);
             }
         } catch (Exception e) {
@@ -444,7 +444,7 @@ public class Router implements Database.ChangeListener {
             Map<String, Object> result = new HashMap<String, Object>();
             result.put("error", "not_found");
             result.put("reason", errorMessage + e.toString());
-            connection.setResponseBody(new CBLBody(result));
+            connection.setResponseBody(new Body(result));
             if (e instanceof CouchbaseLiteException) {
                 status = ((CouchbaseLiteException)e).getCBLStatus();
             }
@@ -455,7 +455,7 @@ public class Router implements Database.ChangeListener {
 
         // Configure response headers:
         if(status.isSuccessful() && connection.getResponseBody() == null && connection.getHeaderField("Content-Type") == null) {
-            connection.setResponseBody(new CBLBody("{\"ok\":true}".getBytes()));
+            connection.setResponseBody(new Body("{\"ok\":true}".getBytes()));
         }
 
         if(connection.getResponseBody() != null && connection.getResponseBody().isValidJSON()) {
@@ -533,13 +533,13 @@ public class Router implements Database.ChangeListener {
         info.put("CBLite", "Welcome");
         info.put("couchdb", "Welcome"); // for compatibility
         info.put("version", getVersionString());
-        connection.setResponseBody(new CBLBody(info));
+        connection.setResponseBody(new Body(info));
         return new Status(Status.OK);
     }
 
     public Status do_GET_all_dbs(Database _db, String _docID, String _attachmentName) {
         List<String> dbs = manager.getAllDatabaseNames();
-        connection.setResponseBody(new CBLBody(dbs));
+        connection.setResponseBody(new Body(dbs));
         return new Status(Status.OK);
     }
 
@@ -552,7 +552,7 @@ public class Router implements Database.ChangeListener {
         userCtx.put("name", null);
         userCtx.put("roles", roles);
         session.put("userCtx", userCtx);
-        connection.setResponseBody(new CBLBody(session));
+        connection.setResponseBody(new Body(session));
         return new Status(Status.OK);
     }
 
@@ -572,7 +572,7 @@ public class Router implements Database.ChangeListener {
         } catch (CouchbaseLiteException e) {
             Map<String, Object> result = new HashMap<String, Object>();
             result.put("error", e.toString());
-            connection.setResponseBody(new CBLBody(result));
+            connection.setResponseBody(new Body(result));
             return e.getCBLStatus();
         }
 
@@ -583,7 +583,7 @@ public class Router implements Database.ChangeListener {
             replicator.start();
             Map<String,Object> result = new HashMap<String,Object>();
             result.put("session_id", replicator.getSessionID());
-            connection.setResponseBody(new CBLBody(result));
+            connection.setResponseBody(new Body(result));
         } else {
             // Cancel replication:
             replicator.stop();
@@ -600,7 +600,7 @@ public class Router implements Database.ChangeListener {
         }
         Map<String,Object> result = new HashMap<String,Object>();
         result.put("uuids", uuids);
-        connection.setResponseBody(new CBLBody(result));
+        connection.setResponseBody(new Body(result));
         return new Status(Status.OK);
     }
 
@@ -647,7 +647,7 @@ public class Router implements Database.ChangeListener {
                 }
             }
         }
-        connection.setResponseBody(new CBLBody(activities));
+        connection.setResponseBody(new Body(activities));
         return new Status(Status.OK);
     }
 
@@ -667,7 +667,7 @@ public class Router implements Database.ChangeListener {
         result.put("doc_count", num_docs);
         result.put("update_seq", update_seq);
         result.put("disk_size", db.totalDataSize());
-        connection.setResponseBody(new CBLBody(result));
+        connection.setResponseBody(new Body(result));
         return new Status(Status.OK);
     }
 
@@ -721,7 +721,7 @@ public class Router implements Database.ChangeListener {
         if(result == null) {
             return new Status(Status.INTERNAL_SERVER_ERROR);
         }
-        connection.setResponseBody(new CBLBody(result));
+        connection.setResponseBody(new Body(result));
         return new Status(Status.OK);
     }
 
@@ -743,7 +743,7 @@ public class Router implements Database.ChangeListener {
         if (result == null) {
             return new Status(Status.INTERNAL_SERVER_ERROR);
         }
-        connection.setResponseBody(new CBLBody(result));
+        connection.setResponseBody(new Body(result));
         return new Status(Status.OK);
     }
 
@@ -763,7 +763,7 @@ public class Router implements Database.ChangeListener {
             } catch (MalformedURLException e) {
                 Map<String, Object> result = new HashMap<String, Object>();
                 result.put("error", "invalid remote_url: " + e.getLocalizedMessage());
-                connection.setResponseBody(new CBLBody(result));
+                connection.setResponseBody(new Body(result));
                 return new Status(Status.BAD_REQUEST);
             }
 
@@ -772,13 +772,13 @@ public class Router implements Database.ChangeListener {
             } catch (Exception e) {
                 Map<String, Object> result = new HashMap<String, Object>();
                 result.put("error", "error registering access token: " + e.getLocalizedMessage());
-                connection.setResponseBody(new CBLBody(result));
+                connection.setResponseBody(new Body(result));
                 return new Status(Status.BAD_REQUEST);
             }
 
             Map<String, Object> result = new HashMap<String, Object>();
             result.put("ok", "registered");
-            connection.setResponseBody(new CBLBody(result));
+            connection.setResponseBody(new Body(result));
             return new Status(Status.OK);
 
 
@@ -786,7 +786,7 @@ public class Router implements Database.ChangeListener {
         else {
             Map<String, Object> result = new HashMap<String, Object>();
             result.put("error", "required fields: access_token, email, remote_url");
-            connection.setResponseBody(new CBLBody(result));
+            connection.setResponseBody(new Body(result));
             return new Status(Status.BAD_REQUEST);
         }
 
@@ -805,7 +805,7 @@ public class Router implements Database.ChangeListener {
         if (assertion == null) {
             Map<String, Object> result = new HashMap<String, Object>();
             result.put("error", "required fields: assertion");
-            connection.setResponseBody(new CBLBody(result));
+            connection.setResponseBody(new Body(result));
             return new Status(Status.BAD_REQUEST);
         }
 
@@ -816,13 +816,13 @@ public class Router implements Database.ChangeListener {
             result.put("ok", "registered");
             result.put("email", email);
 
-            connection.setResponseBody(new CBLBody(result));
+            connection.setResponseBody(new Body(result));
             return new Status(Status.OK);
 
         } catch (Exception e) {
             Map<String, Object> result = new HashMap<String, Object>();
             result.put("error", "error registering persona assertion: " + e.getLocalizedMessage());
-            connection.setResponseBody(new CBLBody(result));
+            connection.setResponseBody(new Body(result));
             return new Status(Status.BAD_REQUEST);
         }
 
@@ -855,7 +855,7 @@ public class Router implements Database.ChangeListener {
                 String docID = (String) doc.get("_id");
                 RevisionInternal rev = null;
                 Status status = new Status(Status.BAD_REQUEST);
-                CBLBody docBody = new CBLBody(doc);
+                Body docBody = new Body(doc);
                 if (noNewEdits) {
                     rev = new RevisionInternal(docBody, db);
                     if(rev.getRevId() == null || rev.getDocId() == null || !rev.getDocId().equals(docID)) {
@@ -902,7 +902,7 @@ public class Router implements Database.ChangeListener {
             db.endTransaction(ok);
         }
         Log.d(Database.TAG, "results: " + results.toString());
-        connection.setResponseBody(new CBLBody(results));
+        connection.setResponseBody(new Body(results));
         return new Status(Status.CREATED);
     }
 
@@ -950,7 +950,7 @@ public class Router implements Database.ChangeListener {
 
         // FIXME add support for possible_ancestors
 
-        connection.setResponseBody(new CBLBody(diffs));
+        connection.setResponseBody(new Body(diffs));
         return new Status(Status.OK);
     }
 
@@ -1150,9 +1150,9 @@ public class Router implements Database.ChangeListener {
             return new Status(0);
         } else {
             if(options.isIncludeConflicts()) {
-                connection.setResponseBody(new CBLBody(responseBodyForChangesWithConflicts(changes, since)));
+                connection.setResponseBody(new Body(responseBodyForChangesWithConflicts(changes, since)));
             } else {
-                connection.setResponseBody(new CBLBody(responseBodyForChanges(changes, since)));
+                connection.setResponseBody(new Body(responseBodyForChanges(changes, since)));
             }
             return new Status(Status.OK);
         }
@@ -1265,7 +1265,7 @@ public class Router implements Database.ChangeListener {
                     //FIXME figure out support for multipart
                     throw new UnsupportedOperationException();
                 } else {
-                    connection.setResponseBody(new CBLBody(result));
+                    connection.setResponseBody(new Body(result));
                 }
             }
             return new Status(Status.OK);
@@ -1314,7 +1314,7 @@ public class Router implements Database.ChangeListener {
     /**
      * NOTE this departs from the iOS version, returning revision, passing status back by reference
      */
-    public RevisionInternal update(Database _db, String docID, CBLBody body, boolean deleting, boolean allowConflict, Status outStatus) {
+    public RevisionInternal update(Database _db, String docID, Body body, boolean deleting, boolean allowConflict, Status outStatus) {
         boolean isLocalDoc = docID != null && docID.startsWith(("_local"));
         String prevRevID = null;
 
@@ -1374,7 +1374,7 @@ public class Router implements Database.ChangeListener {
     }
 
     public Status update(Database _db, String docID, Map<String,Object> bodyDict, boolean deleting) {
-        CBLBody body = new CBLBody(bodyDict);
+        Body body = new Body(bodyDict);
         Status status = new Status();
         RevisionInternal rev = update(_db, docID, body, deleting, false, status);
         if(status.isSuccessful()) {
@@ -1396,7 +1396,7 @@ public class Router implements Database.ChangeListener {
             result.put("ok", true);
             result.put("id", rev.getDocId());
             result.put("rev", rev.getRevId());
-            connection.setResponseBody(new CBLBody(result));
+            connection.setResponseBody(new Body(result));
         }
         return status;
     }
@@ -1412,7 +1412,7 @@ public class Router implements Database.ChangeListener {
             update(_db, docID, bodyDict, false);
         } else {
             // PUT with new_edits=false -- forcible insertion of existing revision:
-            CBLBody body = new CBLBody(bodyDict);
+            Body body = new Body(bodyDict);
             RevisionInternal rev = new RevisionInternal(body, _db);
             if(rev.getRevId() == null || rev.getDocId() == null || !rev.getDocId().equals(docID)) {
                 throw new CouchbaseLiteException(Status.BAD_REQUEST);
@@ -1438,7 +1438,7 @@ public class Router implements Database.ChangeListener {
         resultDict.put("ok", true);
         resultDict.put("id", rev.getDocId());
         resultDict.put("rev", rev.getRevId());
-        connection.setResponseBody(new CBLBody(resultDict));
+        connection.setResponseBody(new Body(resultDict));
         cacheWithEtag(rev.getRevId());
         if(contentStream != null) {
             setResponseLocation(connection.getURL());
@@ -1550,7 +1550,7 @@ public class Router implements Database.ChangeListener {
         if(options.isUpdateSeq()) {
             responseBody.put("update_seq", lastSequenceIndexed);
         }
-        connection.setResponseBody(new CBLBody(responseBody));
+        connection.setResponseBody(new Body(responseBody));
         return new Status(Status.OK);
     }
 

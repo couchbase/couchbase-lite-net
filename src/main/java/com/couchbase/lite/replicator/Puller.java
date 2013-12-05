@@ -6,7 +6,7 @@ import com.couchbase.lite.Manager;
 import com.couchbase.lite.Misc;
 import com.couchbase.lite.RevisionList;
 import com.couchbase.lite.Status;
-import com.couchbase.lite.internal.CBLBody;
+import com.couchbase.lite.internal.Body;
 import com.couchbase.lite.internal.RevisionInternal;
 import com.couchbase.lite.internal.InterfaceAudience;
 import com.couchbase.lite.replicator.changetracker.ChangeTracker;
@@ -426,7 +426,7 @@ public class Puller extends Replication implements ChangeTrackerClient {
  */
 class PulledRevision extends RevisionInternal {
 
-    public PulledRevision(CBLBody body, Database database) {
+    public PulledRevision(Body body, Database database) {
         super(body, database);
     }
 

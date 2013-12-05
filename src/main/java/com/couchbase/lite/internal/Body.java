@@ -29,30 +29,30 @@ import com.couchbase.lite.Manager;
 /**
  * A request/response/document body, stored as either JSON or a Map<String,Object>
  */
-public class CBLBody {
+public class Body {
 
     private byte[] json;
     private Object object;
 
-    public CBLBody(byte[] json) {
+    public Body(byte[] json) {
         this.json = json;
     }
 
-    public CBLBody(Map<String, Object> properties) {
+    public Body(Map<String, Object> properties) {
         this.object = properties;
     }
 
-    public CBLBody(List<?> array) {
+    public Body(List<?> array) {
         this.object = array;
     }
 
-    public static CBLBody bodyWithProperties(Map<String,Object> properties) {
-        CBLBody result = new CBLBody(properties);
+    public static Body bodyWithProperties(Map<String,Object> properties) {
+        Body result = new Body(properties);
         return result;
     }
 
-    public static CBLBody bodyWithJSON(byte[] json) {
-        CBLBody result = new CBLBody(json);
+    public static Body bodyWithJSON(byte[] json) {
+        Body result = new Body(json);
         return result;
     }
 

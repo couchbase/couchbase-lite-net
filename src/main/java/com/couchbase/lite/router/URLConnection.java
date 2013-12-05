@@ -2,7 +2,7 @@ package com.couchbase.lite.router;
 
 
 import com.couchbase.lite.Database;
-import com.couchbase.lite.internal.CBLBody;
+import com.couchbase.lite.internal.Body;
 import com.couchbase.lite.util.Log;
 
 import java.io.ByteArrayOutputStream;
@@ -30,7 +30,7 @@ public class URLConnection extends HttpURLConnection {
     private Header resHeader;
     private boolean sentRequest = false;
     private ByteArrayOutputStream os;
-    private CBLBody responseBody;
+    private Body responseBody;
     private boolean chunked = false;
 
     private HashMap<String, List<String>> requestProperties = new HashMap<String, List<String>>();
@@ -166,11 +166,11 @@ public class URLConnection extends HttpURLConnection {
         this.responseCode = responseCode;
     }
 
-    void setResponseBody(CBLBody responseBody) {
+    void setResponseBody(Body responseBody) {
         this.responseBody = responseBody;
     }
 
-    public CBLBody getResponseBody() {
+    public Body getResponseBody() {
         return this.responseBody;
     }
 
