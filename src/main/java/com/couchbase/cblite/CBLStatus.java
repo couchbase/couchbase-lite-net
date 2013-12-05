@@ -33,6 +33,7 @@ public class CBLStatus {
     public static final int NOT_ACCEPTABLE = 406;
     public static final int CONFLICT = 409;
     public static final int PRECONDITION_FAILED = 412;
+    public static final int BAD_ENCODING = 490;
     public static final int BAD_ATTACHMENT = 491;
     public static final int BAD_JSON = 493;
     public static final int INTERNAL_SERVER_ERROR = 500;

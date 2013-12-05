@@ -1,5 +1,10 @@
 package com.couchbase.cblite.router;
 
+
+import com.couchbase.cblite.CBLDatabase;
+import com.couchbase.cblite.internal.CBLBody;
+import com.couchbase.cblite.util.Log;
+
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -19,9 +24,6 @@ import java.util.Map.Entry;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
-import com.couchbase.cblite.CBLBody;
-import com.couchbase.cblite.CBLDatabase;
-import com.couchbase.cblite.util.Log;
 
 public class CBLURLConnection extends HttpURLConnection {
 

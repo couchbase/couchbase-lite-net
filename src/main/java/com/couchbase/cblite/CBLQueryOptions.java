@@ -36,10 +36,15 @@ public class CBLQueryOptions {
     private EnumSet<TDContentOptions> contentOptions = EnumSet.noneOf(CBLDatabase.TDContentOptions.class);
     private boolean descending = false;
     private boolean includeDocs = false;
+    private boolean includeDeletedDocs = false; // only works with _all_docs, not regular views
+
     private boolean updateSeq = false;
     private boolean inclusiveEnd = true;
     private boolean reduce = false;
+    private boolean reduceSpecified = false;
     private boolean group = false;
+    private CBLQuery.CBLIndexUpdateMode stale;
+
 
     public Object getStartKey() {
         return startKey;
@@ -143,6 +148,30 @@ public class CBLQueryOptions {
 
     public void setKeys(List<Object> keys) {
         this.keys = keys;
+    }
+
+    public CBLQuery.CBLIndexUpdateMode getStale() {
+        return stale;
+    }
+
+    public boolean isIncludeDeletedDocs() {
+        return includeDeletedDocs;
+    }
+
+    public void setIncludeDeletedDocs(boolean includeDeletedDocs) {
+        this.includeDeletedDocs = includeDeletedDocs;
+    }
+
+    public void setStale(CBLQuery.CBLIndexUpdateMode stale) {
+        this.stale = stale;
+    }
+
+    public boolean isReduceSpecified() {
+        return reduceSpecified;
+    }
+
+    public void setReduceSpecified(boolean reduceSpecified) {
+        this.reduceSpecified = reduceSpecified;
     }
 
 }

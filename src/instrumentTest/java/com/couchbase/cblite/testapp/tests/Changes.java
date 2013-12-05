@@ -1,34 +1,32 @@
 package com.couchbase.cblite.testapp.tests;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Observable;
-import java.util.Observer;
+import com.couchbase.cblite.CBLDatabase;
+import com.couchbase.cblite.CBLStatus;
+import com.couchbase.cblite.CBLiteException;
+import com.couchbase.cblite.internal.CBLBody;
+import com.couchbase.cblite.internal.CBLRevisionInternal;
+import com.couchbase.cblite.util.Log;
 
 import junit.framework.Assert;
 
-import com.couchbase.cblite.CBLBody;
-import com.couchbase.cblite.CBLRevision;
-import com.couchbase.cblite.CBLStatus;
+import java.util.HashMap;
+import java.util.Map;
 
 public class Changes extends CBLiteTestCase {
 
     private int changeNotifications = 0;
 
-    public void testChangeNotification() {
+    public void testChangeNotification() throws CBLiteException {
 
-        // define a listener
-        Observer changeListener = new Observer() {
-
+        CBLDatabase.ChangeListener changeListener = new CBLDatabase.ChangeListener() {
             @Override
-            public void update(Observable observable, Object data) {
+            public void changed(CBLDatabase.ChangeEvent event) {
                 changeNotifications++;
             }
-
         };
 
         // add listener to database
-        database.addObserver(changeListener);
+        database.addChangeListener(changeListener);
 
         // create a document
         Map<String, Object> documentProperties = new HashMap<String, Object>();
@@ -37,7 +35,7 @@ public class Changes extends CBLiteTestCase {
         documentProperties.put("baz", "touch");
 
         CBLBody body = new CBLBody(documentProperties);
-        CBLRevision rev1 = new CBLRevision(body, database);
+        CBLRevisionInternal rev1 = new CBLRevisionInternal(body, database);
 
         CBLStatus status = new CBLStatus();
         rev1 = database.putRevision(rev1, null, false, status);

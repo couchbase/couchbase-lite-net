@@ -1,13 +1,13 @@
 package com.couchbase.cblite.support;
 
+import com.couchbase.cblite.CBLDatabase;
+import com.couchbase.cblite.util.Log;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
-
-import com.couchbase.cblite.CBLDatabase;
-import com.couchbase.cblite.util.Log;
 
 /**
  * Utility that queues up objects until the queue fills up or a time interval elapses,
@@ -31,7 +31,7 @@ public class CBLBatcher<T> {
                 processNow();
             } catch(Exception e) {
                 // we don't want this to crash the batcher
-                Log.e(CBLDatabase.TAG, "CBLBatchProcessor throw exception", e);
+                com.couchbase.cblite.util.Log.e(CBLDatabase.TAG, "CBLBatchProcessor throw exception", e);
             }
         }
     };

@@ -1,15 +1,18 @@
 package com.couchbase.cblite.testapp.tests;
 
-import java.util.HashMap;
-import java.util.Map;
 
-import junit.framework.Assert;
-
-import com.couchbase.cblite.CBLRevision;
 import com.couchbase.cblite.CBLStatus;
 import com.couchbase.cblite.CBLValidationBlock;
 import com.couchbase.cblite.CBLValidationContext;
+import com.couchbase.cblite.CBLiteException;
+import com.couchbase.cblite.internal.CBLRevisionInternal;
 import com.couchbase.cblite.util.Log;
+
+import junit.framework.Assert;
+
+import java.util.HashMap;
+import java.util.Map;
+
 
 public class Validations extends CBLiteTestCase {
 
@@ -17,12 +20,12 @@ public class Validations extends CBLiteTestCase {
 
     boolean validationCalled = false;
 
-    public void testValidations() {
+    public void testValidations() throws CBLiteException {
 
         CBLValidationBlock validationBlock = new CBLValidationBlock() {
 
             @Override
-            public boolean validate(CBLRevision newRevision, CBLValidationContext context) {
+            public boolean validate(CBLRevisionInternal newRevision, CBLValidationContext context) {
 
                 Assert.assertNotNull(newRevision);
                 Assert.assertNotNull(context);
@@ -37,13 +40,13 @@ public class Validations extends CBLiteTestCase {
             }
         };
 
-        database.defineValidation("hoopy", validationBlock);
+        database.setValidation("hoopy", validationBlock);
 
         // POST a valid new document:
         Map<String, Object> props = new HashMap<String,Object>();
         props.put("name","Zaphod Beeblebrox");
         props.put("towel", "velvet");
-        CBLRevision rev = new CBLRevision(props, database);
+        CBLRevisionInternal rev = new CBLRevisionInternal(props, database);
         CBLStatus status = new CBLStatus();
         validationCalled = false;
         rev = database.putRevision(rev, null, false, status);
@@ -62,49 +65,62 @@ public class Validations extends CBLiteTestCase {
         props.remove("towel");
         rev.setProperties(props);
         validationCalled = false;
-        rev = database.putRevision(rev, rev.getRevId(), false, status);
+        boolean gotExpectedError = false;
+        try {
+            rev = database.putRevision(rev, rev.getRevId(), false, status);
+        } catch (CBLiteException e) {
+            gotExpectedError = (e.getCBLStatus().getCode() == CBLStatus.FORBIDDEN);
+        }
         Assert.assertTrue(validationCalled);
-        Assert.assertEquals(CBLStatus.FORBIDDEN, status.getCode());
+        Assert.assertTrue(gotExpectedError);
 
         // POST an invalid new document:
         props = new HashMap<String,Object>();
         props.put("name","Vogon");
         props.put("poetry", true);
-        rev = new CBLRevision(props, database);
+        rev = new CBLRevisionInternal(props, database);
         validationCalled = false;
-        rev = database.putRevision(rev, null, false, status);
+        gotExpectedError = false;
+        try {
+            rev = database.putRevision(rev, null, false, status);
+        } catch (CBLiteException e) {
+            gotExpectedError = (e.getCBLStatus().getCode() == CBLStatus.FORBIDDEN);
+        }
         Assert.assertTrue(validationCalled);
-        Assert.assertEquals(CBLStatus.FORBIDDEN, status.getCode());
+        Assert.assertTrue(gotExpectedError);
 
         // PUT a valid new document with an ID:
         props = new HashMap<String,Object>();
         props.put("_id", "ford");
         props.put("name","Ford Prefect");
         props.put("towel", "terrycloth");
-        rev = new CBLRevision(props, database);
+        rev = new CBLRevisionInternal(props, database);
         validationCalled = false;
         rev = database.putRevision(rev, null, false, status);
         Assert.assertTrue(validationCalled);
-        Assert.assertEquals(CBLStatus.CREATED, status.getCode());
         Assert.assertEquals("ford", rev.getDocId());
 
         // DELETE a document:
-        rev = new CBLRevision(rev.getDocId(), rev.getRevId(), true, database);
+        rev = new CBLRevisionInternal(rev.getDocId(), rev.getRevId(), true, database);
         Assert.assertTrue(rev.isDeleted());
         validationCalled = false;
         rev = database.putRevision(rev, rev.getRevId(), false, status);
         Assert.assertTrue(validationCalled);
-        Assert.assertEquals(CBLStatus.OK, status.getCode());
 
         // PUT an invalid new document:
         props = new HashMap<String,Object>();
         props.put("_id", "petunias");
         props.put("name","Pot of Petunias");
-        rev = new CBLRevision(props, database);
+        rev = new CBLRevisionInternal(props, database);
         validationCalled = false;
-        rev = database.putRevision(rev, null, false, status);
+        gotExpectedError = false;
+        try {
+            rev = database.putRevision(rev, null, false, status);
+        } catch (CBLiteException e) {
+            gotExpectedError = (e.getCBLStatus().getCode() == CBLStatus.FORBIDDEN);
+        }
         Assert.assertTrue(validationCalled);
-        Assert.assertEquals(CBLStatus.FORBIDDEN, status.getCode());
+        Assert.assertTrue(gotExpectedError);
     }
 
 }

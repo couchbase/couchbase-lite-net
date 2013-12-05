@@ -8,10 +8,11 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
-/** Lets you stream a large attachment to a CBL_BlobStore asynchronously, e.g. from a network download. */
+/** Lets you stream a large attachment to a CBLBlobStore asynchronously, e.g. from a network download. */
 public class CBLBlobStoreWriter {
 
     /** The underlying blob store where it should be stored. */
@@ -75,6 +76,26 @@ public class CBLBlobStoreWriter {
         md5Digest.update(data);
     }
 
+    void read(InputStream inputStream) {
+        byte[] buffer = new byte[1024];
+        int len;
+        try {
+            while ((len = inputStream.read(buffer)) != -1) {
+                outStream.write(buffer, 0, len);
+                sha1Digest.update(buffer);
+                md5Digest.update(buffer);
+            }
+        } catch (IOException e) {
+            throw new RuntimeException("Unable to read from stream.", e);
+        } finally {
+            try {
+                inputStream.close();
+            } catch (IOException e) {
+                Log.w(CBLDatabase.TAG, "Exception closing input stream", e);
+            }
+        }
+    }
+
     /** Call this after all the data has been added. */
     public void finish() {
         try {
@@ -130,5 +151,9 @@ public class CBLBlobStoreWriter {
 
     public int getLength() {
         return length;
+    }
+
+    public CBLBlobKey getBlobKey() {
+        return blobKey;
     }
 }

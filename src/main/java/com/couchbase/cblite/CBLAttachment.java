@@ -17,44 +17,190 @@
 
 package com.couchbase.cblite;
 
+import com.couchbase.cblite.internal.CBLAttachmentInternal;
+import com.couchbase.cblite.internal.InterfaceAudience;
+
 import java.io.InputStream;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
 public class CBLAttachment {
 
-    private InputStream contentStream;
-    private String contentType;
-    private Map<String, Object> metadata;
+    /**
+     * The owning document revision.
+     */
+    private CBLRevision revision;
+
+    /**
+     * Whether or not this attachment is gzipped
+     */
     private boolean gzipped;
 
-    public CBLAttachment() {
+    /**
+     * The owning document.
+     */
+    private CBLDocument document;
 
-    }
+    /**
+     * The filename.
+     */
+    private String name;
 
-    public CBLAttachment(InputStream contentStream, String contentType) {
-        this.contentStream = contentStream;
-        this.contentType = contentType;
+    /**
+     * The CouchbaseLite metadata about the attachment, that lives in the document.
+     */
+    private Map<String, Object> metadata;
+
+    /**
+     * The body data.
+     */
+    private InputStream body;
+
+    /**
+     * Constructor
+     */
+    CBLAttachment(InputStream contentStream, String contentType) {
+        this.body = contentStream;
         metadata = new HashMap<String, Object>();
         metadata.put("content_type", contentType);
         metadata.put("follows", true);
-        gzipped = false;
+        this.gzipped = false;
     }
 
-    public InputStream getContentStream() {
-        return contentStream;
+    /**
+     * Constructor
+     */
+    CBLAttachment(CBLRevision revision, String name, Map<String, Object> metadata) {
+        this.revision = revision;
+        this.name = name;
+        this.metadata = metadata;
+        this.gzipped = false;
+
     }
 
-    public void setContentStream(InputStream contentStream) {
-        this.contentStream = contentStream;
+    /**
+     * Get the owning document revision.
+     */
+    @InterfaceAudience.Public
+    public CBLRevision getRevision() {
+        return revision;
     }
 
+
+    /**
+     * Get the owning document.
+     */
+    @InterfaceAudience.Public
+    public CBLDocument getDocument() {
+        return document;
+    }
+
+    /**
+     * Get the filename.
+     */
+    @InterfaceAudience.Public
+    public String getName() {
+        return name;
+    }
+
+    /**
+     * Get the MIME type of the contents.
+     */
+    @InterfaceAudience.Public
     public String getContentType() {
-        return contentType;
+        return (String) metadata.get("content_type");
     }
 
-    public void setContentType(String contentType) {
-        this.contentType = contentType;
+
+    /**
+     * Get the content (aka 'body') data.
+     * @throws CBLiteException
+     */
+    @InterfaceAudience.Public
+    public InputStream getContent() throws CBLiteException {
+        if (body != null) {
+            return body;
+        }
+        else {
+            CBLDatabase db = revision.getDatabase();
+            CBLAttachment attachment = db.getAttachmentForSequence(revision.getSequence(), this.name);
+            body = attachment.getContent();
+            return body;
+        }
+    }
+
+    /**
+     * Get the length in bytes of the contents.
+     */
+    @InterfaceAudience.Public
+    public long getLength() {
+        Long length = (Long) metadata.get("length");
+        if (length != null) {
+            return length.longValue();
+        }
+        else {
+            return 0;
+        }
+    }
+
+    /**
+     * The CouchbaseLite metadata about the attachment, that lives in the document.
+     */
+    @InterfaceAudience.Public
+    public Map<String, Object> getMetadata() {
+        return Collections.unmodifiableMap(metadata);
+    }
+
+    void setName(String name) {
+        this.name = name;
+    }
+
+    void setRevision(CBLRevision revision) {
+        this.revision = revision;
+    }
+
+    InputStream getBodyIfNew() {
+        return body;
+    }
+
+    /**
+     * Goes through an _attachments dictionary and replaces any values that are CBLAttachment objects
+     * with proper JSON metadata dicts. It registers the attachment bodies with the blob store and sets
+     * the metadata 'digest' and 'follows' properties accordingly.
+     */
+    static Map<String, Object> installAttachmentBodies(Map<String, Object> attachments, CBLDatabase database) {
+
+        Map<String, Object> updatedAttachments = new HashMap<String, Object>();
+        for (String name : attachments.keySet()) {
+            Object value = attachments.get(name);
+            if (value instanceof CBLAttachment) {
+                CBLAttachment attachment = (CBLAttachment) value;
+                Map<String, Object> metadata = attachment.getMetadata();
+                InputStream body = attachment.getBodyIfNew();
+                if (body != null) {
+                    // Copy attachment body into the database's blob store:
+                    CBLBlobStoreWriter writer = blobStoreWriterForBody(body, database);
+                    metadata.put("length", writer.getLength());
+                    metadata.put("digest", writer.mD5DigestString());
+                    metadata.put("follows", true);
+                    database.rememberAttachmentWriter(writer);
+                }
+                updatedAttachments.put(name, metadata);
+            }
+            else if (value instanceof CBLAttachmentInternal) {
+                throw new IllegalArgumentException("CBLAttachmentInternal objects not expected here.  Could indicate a bug");
+            }
+        }
+        return updatedAttachments;
+    }
+
+    static CBLBlobStoreWriter blobStoreWriterForBody(InputStream body, CBLDatabase database) {
+        CBLBlobStoreWriter writer = database.getAttachmentWriter();
+        writer.read(body);
+        writer.finish();
+        return writer;
+
     }
 
     public boolean getGZipped() {

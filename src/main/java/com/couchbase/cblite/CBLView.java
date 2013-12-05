@@ -17,19 +17,21 @@
 
 package com.couchbase.cblite;
 
-import java.util.ArrayList;
-import java.util.EnumSet;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 import com.couchbase.cblite.CBLDatabase.TDContentOptions;
-
+import com.couchbase.cblite.internal.CBLRevisionInternal;
+import com.couchbase.cblite.internal.InterfaceAudience;
 import com.couchbase.cblite.storage.ContentValues;
 import com.couchbase.cblite.storage.Cursor;
 import com.couchbase.cblite.storage.SQLException;
 import com.couchbase.cblite.storage.SQLiteStorageEngine;
 import com.couchbase.cblite.util.Log;
+
+import java.util.ArrayList;
+import java.util.EnumSet;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Represents a view available in a database.
@@ -42,50 +44,242 @@ public class CBLView {
         TDViewCollationUnicode, TDViewCollationRaw, TDViewCollationASCII
     }
 
-    private CBLDatabase db;
+    private CBLDatabase database;
     private String name;
     private int viewId;
-    private CBLViewMapBlock mapBlock;
-    private CBLViewReduceBlock reduceBlock;
+    private CBLMapper mapBlock;
+    private CBLReducer reduceBlock;
     private TDViewCollation collation;
     private static CBLViewCompiler compiler;
 
-    public CBLView(CBLDatabase db, String name) {
-        this.db = db;
+    /**
+     * The registered object, if any, that can compile map/reduce functions from source code.
+     */
+    @InterfaceAudience.Public
+    public static CBLViewCompiler getCompiler() {
+        return compiler;
+    }
+
+    /**
+     * Registers an object that can compile map/reduce functions from source code.
+     */
+    @InterfaceAudience.Public
+    public static void setCompiler(CBLViewCompiler compiler) {
+        CBLView.compiler = compiler;
+    }
+
+
+    /**
+     * Constructor
+     */
+    @InterfaceAudience.Private
+    CBLView(CBLDatabase database, String name) {
+        this.database = database;
         this.name = name;
         this.viewId = -1; // means 'unknown'
         this.collation = TDViewCollation.TDViewCollationUnicode;
     }
 
-    public CBLDatabase getDb() {
-        return db;
+    /**
+     * Get the database that owns this view.
+     */
+    @InterfaceAudience.Public
+    public CBLDatabase getDatabase() {
+        return database;
     };
 
+    /**
+     * Get the name of the view.
+     */
+    @InterfaceAudience.Public
     public String getName() {
         return name;
     }
 
-    public CBLViewMapBlock getMapBlock() {
+    /**
+     * The map function that controls how index rows are created from documents.
+     */
+    @InterfaceAudience.Public
+    public CBLMapper getMap() {
         return mapBlock;
     }
 
-    public CBLViewReduceBlock getReduceBlock() {
+    /**
+     * The optional reduce function, which aggregates together multiple rows.
+     */
+    @InterfaceAudience.Public
+    public CBLReducer getReduce() {
         return reduceBlock;
-    }
-
-    public TDViewCollation getCollation() {
-        return collation;
-    }
-
-    public void setCollation(TDViewCollation collation) {
-        this.collation = collation;
     }
 
     /**
      * Is the view's index currently out of date?
      */
+    @InterfaceAudience.Public
     public boolean isStale() {
-        return (getLastSequenceIndexed() < db.getLastSequence());
+        return (getLastSequenceIndexed() < database.getLastSequenceNumber());
+    }
+
+    /**
+     * Get the last sequence number indexed so far.
+     */
+    @InterfaceAudience.Public
+    public long getLastSequenceIndexed() {
+        String sql = "SELECT lastSequence FROM views WHERE name=?";
+        String[] args = { name };
+        Cursor cursor = null;
+        long result = -1;
+        try {
+            Log.d(CBLDatabase.TAG_SQL, Thread.currentThread().getName() + " start running query: " + sql);
+            cursor = database.getDatabase().rawQuery(sql, args);
+            Log.d(CBLDatabase.TAG_SQL, Thread.currentThread().getName() + " finish running query: " + sql);
+            if (cursor.moveToNext()) {
+                result = cursor.getLong(0);
+            }
+        } catch (Exception e) {
+            Log.e(CBLDatabase.TAG, "Error getting last sequence indexed");
+        } finally {
+            if (cursor != null) {
+                cursor.close();
+            }
+        }
+        return result;
+    }
+
+    /**
+     * Defines a view that has no reduce function.
+     * See setMapAndReduce() for more information.
+     */
+    @InterfaceAudience.Public
+    public boolean setMap(CBLMapper mapBlock, String version) {
+        return setMapAndReduce(mapBlock, null, version);
+    }
+
+    /**
+     * Defines a view's functions.
+     *
+     * The view's definition is given as a class that conforms to the CBLMapper or
+     * CBLReducer interface (or null to delete the view). The body of the block
+     * should call the 'emit' object (passed in as a paramter) for every key/value pair
+     * it wants to write to the view.
+     *
+     * Since the function itself is obviously not stored in the database (only a unique
+     * string idenfitying it), you must re-define the view on every launch of the app!
+     * If the database needs to rebuild the view but the function hasn't been defined yet,
+     * it will fail and the view will be empty, causing weird problems later on.
+     *
+     * It is very important that this block be a law-abiding map function! As in other
+     * languages, it must be a "pure" function, with no side effects, that always emits
+     * the same values given the same input document. That means that it should not access
+     * or change any external state; be careful, since callbacks make that so easy that you
+     * might do it inadvertently!  The callback may be called on any thread, or on
+     * multiple threads simultaneously. This won't be a problem if the code is "pure" as
+     * described above, since it will as a consequence also be thread-safe.
+     *
+     */
+    @InterfaceAudience.Public
+    public boolean setMapAndReduce(CBLMapper mapBlock,
+                                   CBLReducer reduceBlock, String version) {
+        assert (mapBlock != null);
+        assert (version != null);
+
+        this.mapBlock = mapBlock;
+        this.reduceBlock = reduceBlock;
+
+        if(!database.open()) {
+            return false;
+        }
+
+        // Update the version column in the database. This is a little weird looking
+        // because we want to
+        // avoid modifying the database if the version didn't change, and because the
+        // row might not exist yet.
+
+        SQLiteStorageEngine storageEngine = this.database.getDatabase();
+
+        // Older Android doesnt have reliable insert or ignore, will to 2 step
+        // FIXME review need for change to execSQL, manual call to changes()
+
+        String sql = "SELECT name, version FROM views WHERE name=?";
+        String[] args = { name };
+        Cursor cursor = null;
+
+        try {
+            cursor = storageEngine.rawQuery(sql, args);
+            if (!cursor.moveToNext()) {
+                // no such record, so insert
+                ContentValues insertValues = new ContentValues();
+                insertValues.put("name", name);
+                insertValues.put("version", version);
+                storageEngine.insert("views", null, insertValues);
+                return true;
+            }
+
+            ContentValues updateValues = new ContentValues();
+            updateValues.put("version", version);
+            updateValues.put("lastSequence", 0);
+
+            String[] whereArgs = { name, version };
+            int rowsAffected = storageEngine.update("views", updateValues,
+                    "name=? AND version!=?", whereArgs);
+
+            return (rowsAffected > 0);
+        } catch (SQLException e) {
+            Log.e(CBLDatabase.TAG, "Error setting map block", e);
+            return false;
+        } finally {
+            if (cursor != null) {
+                cursor.close();
+            }
+        }
+
+    }
+
+
+    /**
+     * Deletes the view's persistent index. It will be regenerated on the next query.
+     */
+    @InterfaceAudience.Public
+    public void deleteIndex() {
+        if (getViewId() < 0) {
+            return;
+        }
+
+        boolean success = false;
+        try {
+            database.beginTransaction();
+
+            String[] whereArgs = { Integer.toString(getViewId()) };
+            database.getDatabase().delete("maps", "view_id=?", whereArgs);
+
+            ContentValues updateValues = new ContentValues();
+            updateValues.put("lastSequence", 0);
+            database.getDatabase().update("views", updateValues, "view_id=?",
+                    whereArgs);
+
+            success = true;
+        } catch (SQLException e) {
+            Log.e(CBLDatabase.TAG, "Error removing index", e);
+        } finally {
+            database.endTransaction(success);
+        }
+    }
+
+    /**
+     * Deletes the view, persistently.
+     */
+    @InterfaceAudience.Public
+    public void delete() {
+        database.deleteViewNamed(name);
+        viewId = 0;
+    }
+
+    /**
+     * Creates a new query object for this view. The query can be customized and then executed.
+     */
+    @InterfaceAudience.Public
+    public CBLQuery createQuery() {
+        return new CBLQuery(getDatabase(), this);
     }
 
     public int getViewId() {
@@ -94,7 +288,7 @@ public class CBLView {
             String[] args = { name };
             Cursor cursor = null;
             try {
-                cursor = db.getDatabase().rawQuery(sql, args);
+                cursor = database.getDatabase().rawQuery(sql, args);
                 if (cursor.moveToNext()) {
                     viewId = cursor.getInt(0);
                 } else {
@@ -112,114 +306,12 @@ public class CBLView {
         return viewId;
     }
 
-    public long getLastSequenceIndexed() {
-        String sql = "SELECT lastSequence FROM views WHERE name=?";
-        String[] args = { name };
-        Cursor cursor = null;
-        long result = -1;
-        try {
-            cursor = db.getDatabase().rawQuery(sql, args);
-            if (cursor.moveToNext()) {
-                result = cursor.getLong(0);
-            }
-        } catch (Exception e) {
-            Log.e(CBLDatabase.TAG, "Error getting last sequence indexed");
-        } finally {
-            if (cursor != null) {
-                cursor.close();
-            }
-        }
-        return result;
-    }
 
-    public boolean setMapReduceBlocks(CBLViewMapBlock mapBlock,
-            CBLViewReduceBlock reduceBlock, String version) {
-        assert (mapBlock != null);
-        assert (version != null);
 
-        this.mapBlock = mapBlock;
-        this.reduceBlock = reduceBlock;
 
-        if(!db.open()) {
-            return false;
-        }
-
-        // Update the version column in the db. This is a little weird looking
-        // because we want to
-        // avoid modifying the db if the version didn't change, and because the
-        // row might not exist yet.
-        SQLiteStorageEngine database = db.getDatabase();
-
-        // Older Android doesnt have reliable insert or ignore, will to 2 step
-        // FIXME review need for change to execSQL, manual call to changes()
-
-        String sql = "SELECT name, version FROM views WHERE name=?";
-        String[] args = { name };
-        Cursor cursor = null;
-
-        try {
-            cursor = db.getDatabase().rawQuery(sql, args);
-            if (!cursor.moveToNext()) {
-                // no such record, so insert
-                ContentValues insertValues = new ContentValues();
-                insertValues.put("name", name);
-                insertValues.put("version", version);
-                database.insert("views", null, insertValues);
-                return true;
-            }
-
-            ContentValues updateValues = new ContentValues();
-            updateValues.put("version", version);
-            updateValues.put("lastSequence", 0);
-
-            String[] whereArgs = { name, version };
-            int rowsAffected = database.update("views", updateValues,
-                    "name=? AND version!=?", whereArgs);
-
-            return (rowsAffected > 0);
-        } catch (SQLException e) {
-            Log.e(CBLDatabase.TAG, "Error setting map block", e);
-            return false;
-        } finally {
-            if (cursor != null) {
-                cursor.close();
-            }
-        }
-
-    }
-
-    public void removeIndex() {
-        if (getViewId() < 0) {
-            return;
-        }
-
-        boolean success = false;
-        try {
-            db.beginTransaction();
-
-            String[] whereArgs = { Integer.toString(getViewId()) };
-            db.getDatabase().delete("maps", "view_id=?", whereArgs);
-
-            ContentValues updateValues = new ContentValues();
-            updateValues.put("lastSequence", 0);
-            db.getDatabase().update("views", updateValues, "view_id=?",
-                    whereArgs);
-
-            success = true;
-        } catch (SQLException e) {
-            Log.e(CBLDatabase.TAG, "Error removing index", e);
-        } finally {
-            db.endTransaction(success);
-        }
-    }
-
-    public void deleteView() {
-        db.deleteViewNamed(name);
-        viewId = 0;
-    }
 
     public void databaseClosing() {
-        db = null;
+        database = null;
         viewId = 0;
     }
 
@@ -231,9 +323,9 @@ public class CBLView {
         }
         String result = null;
         try {
-            result = CBLServer.getObjectMapper().writeValueAsString(object);
+            result = CBLManager.getObjectMapper().writeValueAsString(object);
         } catch (Exception e) {
-            // ignore
+            Log.w(CBLDatabase.TAG, "Exception serializing object to json: " + object, e);
         }
         return result;
     }
@@ -244,11 +336,19 @@ public class CBLView {
         }
         Object result = null;
         try {
-            result = CBLServer.getObjectMapper().readValue(json, Object.class);
+            result = CBLManager.getObjectMapper().readValue(json, Object.class);
         } catch (Exception e) {
-            // ignore
+            Log.w(CBLDatabase.TAG, "Exception parsing json", e);
         }
         return result;
+    }
+
+    public TDViewCollation getCollation() {
+        return collation;
+    }
+
+    public void setCollation(TDViewCollation collation) {
+        this.collation = collation;
     }
 
     /**
@@ -256,52 +356,57 @@ public class CBLView {
      * @return 200 if updated, 304 if already up-to-date, else an error code
      */
     @SuppressWarnings("unchecked")
-    public CBLStatus updateIndex() {
+    public void updateIndex() throws CBLiteException {
         Log.v(CBLDatabase.TAG, "Re-indexing view " + name + " ...");
         assert (mapBlock != null);
 
         if (getViewId() < 0) {
-            return new CBLStatus(CBLStatus.NOT_FOUND);
+            String msg = String.format("getViewId() < 0");
+            throw new CBLiteException(msg, new CBLStatus(CBLStatus.NOT_FOUND));
         }
 
-        db.beginTransaction();
+        database.beginTransaction();
         CBLStatus result = new CBLStatus(CBLStatus.INTERNAL_SERVER_ERROR);
         Cursor cursor = null;
 
         try {
 
             long lastSequence = getLastSequenceIndexed();
-            long dbMaxSequence = db.getLastSequence();
+            long dbMaxSequence = database.getLastSequenceNumber();
             if(lastSequence == dbMaxSequence) {
-                result.setCode(CBLStatus.NOT_MODIFIED);
-                return result;
+                // nothing to do (eg,  kCBLStatusNotModified)
+                String msg = String.format("lastSequence (%d) == dbMaxSequence (%d), nothing to do",
+                        lastSequence, dbMaxSequence);
+                Log.d(CBLDatabase.TAG, msg);
+                return;
             }
 
             // First remove obsolete emitted results from the 'maps' table:
             long sequence = lastSequence;
             if (lastSequence < 0) {
-                return result;
+                String msg = String.format("lastSequence < 0 (%s)", lastSequence);
+                throw new CBLiteException(msg, new CBLStatus(CBLStatus.INTERNAL_SERVER_ERROR));
             }
 
             if (lastSequence == 0) {
                 // If the lastSequence has been reset to 0, make sure to remove
                 // any leftover rows:
                 String[] whereArgs = { Integer.toString(getViewId()) };
-                db.getDatabase().delete("maps", "view_id=?", whereArgs);
+                database.getDatabase().delete("maps", "view_id=?", whereArgs);
             } else {
                 // Delete all obsolete map results (ones from since-replaced
                 // revisions):
                 String[] args = { Integer.toString(getViewId()),
                         Long.toString(lastSequence),
                         Long.toString(lastSequence) };
-                db.getDatabase().execSQL(
+                database.getDatabase().execSQL(
                         "DELETE FROM maps WHERE view_id=? AND sequence IN ("
                                 + "SELECT parent FROM revs WHERE sequence>? "
                                 + "AND parent>0 AND parent<=?)", args);
             }
 
             int deleted = 0;
-            cursor = db.getDatabase().rawQuery("SELECT changes()", null);
+            cursor = database.getDatabase().rawQuery("SELECT changes()", null);
             cursor.moveToNext();
             deleted = cursor.getInt(0);
             cursor.close();
@@ -315,8 +420,8 @@ public class CBLView {
                 public void emit(Object key, Object value) {
 
                     try {
-                        String keyJson = CBLServer.getObjectMapper().writeValueAsString(key);
-                        String valueJson = CBLServer.getObjectMapper().writeValueAsString(value);
+                        String keyJson = CBLManager.getObjectMapper().writeValueAsString(key);
+                        String valueJson = CBLManager.getObjectMapper().writeValueAsString(value);
                         Log.v(CBLDatabase.TAG, "    emit(" + keyJson + ", "
                                 + valueJson + ")");
 
@@ -325,10 +430,10 @@ public class CBLView {
                         insertValues.put("sequence", sequence);
                         insertValues.put("key", keyJson);
                         insertValues.put("value", valueJson);
-                        db.getDatabase().insert("maps", null, insertValues);
+                        database.getDatabase().insert("maps", null, insertValues);
                     } catch (Exception e) {
                         Log.e(CBLDatabase.TAG, "Error emitting", e);
-                        // find a better way to propogate this back
+                        // find a better way to propagate this back
                     }
                 }
             };
@@ -337,7 +442,7 @@ public class CBLView {
             // indexed:
             String[] selectArgs = { Long.toString(lastSequence) };
 
-            cursor = db.getDatabase().rawQuery(
+            cursor = database.getDatabase().rawQuery(
                     "SELECT revs.doc_id, sequence, docid, revid, json FROM revs, docs "
                             + "WHERE sequence>? AND current!=0 AND deleted=0 "
                             + "AND revs.doc_id = docs.doc_id "
@@ -364,9 +469,14 @@ public class CBLView {
                     }
                     String revId = cursor.getString(3);
                     byte[] json = cursor.getBlob(4);
-                    Map<String, Object> properties = db
-                            .documentPropertiesFromJSON(json, docId, revId,
-                                    sequence, EnumSet.noneOf(CBLDatabase.TDContentOptions.class));
+                    Map<String, Object> properties = database.documentPropertiesFromJSON(
+                            json,
+                            docId,
+                            revId,
+                            false,
+                            sequence,
+                            EnumSet.noneOf(CBLDatabase.TDContentOptions.class)
+                    );
 
                     if (properties != null) {
                         // Call the user-defined map() to emit new key/value
@@ -388,7 +498,7 @@ public class CBLView {
             ContentValues updateValues = new ContentValues();
             updateValues.put("lastSequence", dbMaxSequence);
             String[] whereArgs = { Integer.toString(getViewId()) };
-            db.getDatabase().update("views", updateValues, "view_id=?",
+            database.getDatabase().update("views", updateValues, "view_id=?",
                     whereArgs);
 
             // FIXME actually count number added :)
@@ -398,7 +508,7 @@ public class CBLView {
             result.setCode(CBLStatus.OK);
 
         } catch (SQLException e) {
-            return result;
+            throw new CBLiteException(e, new CBLStatus(CBLStatus.DB_ERROR));
         } finally {
             if (cursor != null) {
                 cursor.close();
@@ -407,15 +517,14 @@ public class CBLView {
                 Log.w(CBLDatabase.TAG, "Failed to rebuild view " + name + ": "
                         + result.getCode());
             }
-            if(db != null) {
-                db.endTransaction(result.isSuccessful());
+            if(database != null) {
+                database.endTransaction(result.isSuccessful());
             }
         }
 
-        return result;
     }
 
-    public Cursor resultSetWithOptions(CBLQueryOptions options, CBLStatus status) {
+    public Cursor resultSetWithOptions(CBLQueryOptions options) {
         if (options == null) {
             options = new CBLQueryOptions();
         }
@@ -495,7 +604,7 @@ public class CBLView {
 
         Log.v(CBLDatabase.TAG, "Query " + name + ": " + sql);
 
-        Cursor cursor = db.getDatabase().rawQuery(sql,
+        Cursor cursor = database.getDatabase().rawQuery(sql,
                 argsList.toArray(new String[argsList.size()]));
         return cursor;
     }
@@ -540,7 +649,7 @@ public class CBLView {
         List<Map<String, Object>> result = null;
 
         try {
-            cursor = db
+            cursor = database
                     .getDatabase()
                     .rawQuery(
                             "SELECT sequence, key, value FROM maps WHERE view_id=? ORDER BY key",
@@ -568,117 +677,129 @@ public class CBLView {
         return result;
     }
 
+    List<CBLQueryRow> reducedQuery(Cursor cursor, boolean group, int groupLevel) throws CBLiteException {
+
+        List<Object> keysToReduce = null;
+        List<Object> valuesToReduce = null;
+        Object lastKey = null;
+        if(getReduce() != null) {
+            keysToReduce = new ArrayList<Object>(REDUCE_BATCH_SIZE);
+            valuesToReduce = new ArrayList<Object>(REDUCE_BATCH_SIZE);
+        }
+        List<CBLQueryRow> rows = new ArrayList<CBLQueryRow>();
+
+        cursor.moveToNext();
+        while (!cursor.isAfterLast()) {
+            Object keyData = fromJSON(cursor.getBlob(0));
+            Object value = fromJSON(cursor.getBlob(1));
+            assert(keyData != null);
+
+            if(group && !groupTogether(keyData, lastKey, groupLevel)) {
+                if (lastKey != null) {
+                    // This pair starts a new group, so reduce & record the last one:
+                    Object reduced = (reduceBlock != null) ? reduceBlock.reduce(keysToReduce, valuesToReduce, false) : null;
+                    Object key = groupKey(lastKey, groupLevel);
+                    CBLQueryRow row = new CBLQueryRow(null, 0, key, reduced, null);
+                    row.setDatabase(database);
+                    rows.add(row);
+                    keysToReduce.clear();
+                    valuesToReduce.clear();
+
+                }
+                lastKey = keyData;
+            }
+            keysToReduce.add(keyData);
+            valuesToReduce.add(value);
+
+            cursor.moveToNext();
+
+        }
+
+        if(keysToReduce.size() > 0) {
+            // Finish the last group (or the entire list, if no grouping):
+            Object key = group ? groupKey(lastKey, groupLevel) : null;
+            Object reduced = (reduceBlock != null) ? reduceBlock.reduce(keysToReduce, valuesToReduce, false) : null;
+            CBLQueryRow row = new CBLQueryRow(null, 0, key, reduced, null);
+            row.setDatabase(database);
+            rows.add(row);
+        }
+
+        return rows;
+
+    }
+
     /**
      * Queries the view. Does NOT first update the index.
      *
      * @param options The options to use.
-     * @param status An array of result rows -- each is a dictionary with "key" and "value" keys, and possibly "id" and "doc".
+     * @return An array of CBLQueryRow objects.
      */
-    @SuppressWarnings("unchecked")
-    public List<Map<String, Object>> queryWithOptions(CBLQueryOptions options, CBLStatus status) {
+    @InterfaceAudience.Private
+    public List<CBLQueryRow> queryWithOptions(CBLQueryOptions options) throws CBLiteException {
+
         if (options == null) {
             options = new CBLQueryOptions();
         }
 
         Cursor cursor = null;
-        List<Map<String, Object>> rows = new ArrayList<Map<String,Object>>();
+        List<CBLQueryRow> rows = new ArrayList<CBLQueryRow>();
+
         try {
-            cursor = resultSetWithOptions(options, status);
+            cursor = resultSetWithOptions(options);
             int groupLevel = options.getGroupLevel();
             boolean group = options.isGroup() || (groupLevel > 0);
             boolean reduce = options.isReduce() || group;
 
-            if(reduce && (reduceBlock == null) && !group) {
-                Log.w(CBLDatabase.TAG, "Cannot use reduce option in view " + name + " which has no reduce block defined");
-                status.setCode(CBLStatus.BAD_REQUEST);
-                return null;
+            if (reduce && (reduceBlock == null) && !group) {
+                String msg = "Cannot use reduce option in view " + name + " which has no reduce block defined";
+                Log.w(CBLDatabase.TAG, msg);
+                throw new CBLiteException(new CBLStatus(CBLStatus.BAD_REQUEST));
             }
 
-            List<Object> keysToReduce = null;
-            List<Object> valuesToReduce = null;
-            Object lastKey = null;
-            if(reduce) {
-                keysToReduce = new ArrayList<Object>(REDUCE_BATCH_SIZE);
-                valuesToReduce = new ArrayList<Object>(REDUCE_BATCH_SIZE);
-            }
-
-            cursor.moveToNext();
-            while (!cursor.isAfterLast()) {
-                Object key = fromJSON(cursor.getBlob(0));
-                Object value = fromJSON(cursor.getBlob(1));
-                assert(key != null);
-                if(reduce) {
-                    // Reduced or grouped query:
-                    if(group && !groupTogether(key, lastKey, groupLevel) && (lastKey != null)) {
-                        // This pair starts a new group, so reduce & record the last one:
-                        Object reduced = (reduceBlock != null) ? reduceBlock.reduce(keysToReduce, valuesToReduce, false) : null;
-                        Map<String,Object> row = new HashMap<String,Object>();
-                        row.put("key", groupKey(lastKey, groupLevel));
-                        if(reduced != null) {
-                            row.put("value", reduced);
-                        }
-                        rows.add(row);
-                        keysToReduce.clear();
-                        valuesToReduce.clear();
-                    }
-                    keysToReduce.add(key);
-                    valuesToReduce.add(value);
-                    lastKey = key;
-                } else {
-                	// Regular query:
-                	Map<String,Object> row = new HashMap<String,Object>();
+            if (reduce || group) {
+                // Reduced or grouped query:
+                rows = reducedQuery(cursor, group, groupLevel);
+            } else {
+                // regular query
+                cursor.moveToNext();
+                while (!cursor.isAfterLast()) {
+                    Object keyData = fromJSON(cursor.getBlob(0));  // TODO: delay parsing this for increased efficiency
+                    Object value = fromJSON(cursor.getBlob(1));    // TODO: ditto
                     String docId = cursor.getString(2);
-                    Map<String,Object> docContents = null;
-                    if(options.isIncludeDocs()) {
+                    Map<String, Object> docContents = null;
+                    if (options.isIncludeDocs()) {
                         // http://wiki.apache.org/couchdb/Introduction_to_CouchDB_views#Linked_documents
                         if (value instanceof Map && ((Map) value).containsKey("_id")) {
                             String linkedDocId = (String) ((Map) value).get("_id");
-                            CBLRevision linkedDoc = db.getDocumentWithIDAndRev(linkedDocId, null, EnumSet.noneOf(TDContentOptions.class));
+                            CBLRevisionInternal linkedDoc = database.getDocumentWithIDAndRev(
+                                    linkedDocId,
+                                    null,
+                                    EnumSet.noneOf(TDContentOptions.class)
+                            );
                             docContents = linkedDoc.getProperties();
+                        } else {
+                            docContents = database.documentPropertiesFromJSON(
+                                    cursor.getBlob(4),
+                                    docId,
+                                    cursor.getString(3),
+                                    false,
+                                    cursor.getLong(5),
+                                    options.getContentOptions()
+                            );
                         }
-                        else {
-                            docContents = db.documentPropertiesFromJSON(cursor.getBlob(4), docId, cursor.getString(3), cursor.getLong(5), options.getContentOptions());
-                        }
                     }
-
-
-                    if(docContents != null) {
-                        row.put("doc", docContents);
-                    }
-                    if(value != null) {
-                        row.put("value", value);
-                    }
-                    row.put("id", docId);
-                    row.put("key", key);
-
+                    CBLQueryRow row = new CBLQueryRow(docId, 0, keyData, value, docContents);
+                    row.setDatabase(database);
                     rows.add(row);
+                    cursor.moveToNext();
+
                 }
-
-
-                cursor.moveToNext();
             }
-
-            if(reduce) {
-                if(keysToReduce.size() > 0) {
-                    // Finish the last group (or the entire list, if no grouping):
-                    Object key = group ? groupKey(lastKey, groupLevel) : null;
-                    Object reduced = (reduceBlock != null) ? reduceBlock.reduce(keysToReduce, valuesToReduce, false) : null;
-                    Map<String,Object> row = new HashMap<String,Object>();
-                    row.put("key", key);
-                    if(reduced != null) {
-                        row.put("value", reduced);
-                    }
-                    rows.add(row);
-                }
-                keysToReduce.clear();
-                valuesToReduce.clear();
-            }
-
-            status.setCode(CBLStatus.OK);
 
         } catch (SQLException e) {
-            Log.e(CBLDatabase.TAG, "Error querying view", e);
-            return null;
+            String errMsg = String.format("Error querying view: %s", this);
+            Log.e(CBLDatabase.TAG, errMsg, e);
+            throw new CBLiteException(errMsg, e, new CBLStatus(CBLStatus.DB_ERROR));
         } finally {
             if (cursor != null) {
                 cursor.close();
@@ -686,7 +807,9 @@ public class CBLView {
         }
 
         return rows;
+
     }
+
 
     /**
      * Utility function to use in reduce blocks. Totals an array of Numbers.
@@ -704,17 +827,9 @@ public class CBLView {
         return total;
     }
 
-    public static CBLViewCompiler getCompiler() {
-        return compiler;
-    }
-
-    public static void setCompiler(CBLViewCompiler compiler) {
-        CBLView.compiler = compiler;
-    }
-
 }
 
-abstract class AbstractTouchMapEmitBlock implements CBLViewMapEmitBlock {
+abstract class AbstractTouchMapEmitBlock implements CBLEmitter {
 
     protected long sequence = 0;
 

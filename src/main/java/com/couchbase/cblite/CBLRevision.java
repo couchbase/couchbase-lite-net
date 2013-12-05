@@ -1,23 +1,11 @@
-/**
- * Original iOS version by  Jens Alfke
- * Ported to Android by Marty Schoch
- *
- * Copyright (c) 2012 Couchbase, Inc. All rights reserved.
- *
- * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file
- * except in compliance with the License. You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software distributed under the
- * License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
- * either express or implied. See the License for the specific language governing permissions
- * and limitations under the License.
- */
-
 package com.couchbase.cblite;
 
+import com.couchbase.cblite.internal.InterfaceAudience;
+
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -25,89 +13,187 @@ import java.util.Map;
  *
  * It can also store the sequence number and document contents (they can be added after creation).
  */
-public class CBLRevision {
+public abstract class CBLRevision {
 
-    private String docId;
-    private String revId;
-    private boolean deleted;
-    private CBLBody body;
-    private long sequence;
-    private CBLDatabase database;
+    /**
+     * The sequence number of this revision.
+     */
+    protected long sequence;
 
-    public CBLRevision(String docId, String revId, boolean deleted, CBLDatabase database) {
-        this.docId = docId;
-        this.revId = revId;
-        this.deleted = deleted;
-        this.database = database;
+    /**
+     * The revisions's owning database.
+     */
+    protected CBLDatabase database;
+
+    /**
+     * The document this is a revision of
+     */
+    protected CBLDocument document;
+
+    /**
+     * The ID of the parentRevision.
+     */
+    protected String parentRevID;
+
+    /**
+     * The revision this one is a child of.
+     */
+    protected CBLSavedRevision parentRevision;
+
+    /**
+     * Constructor
+     */
+    @InterfaceAudience.Private
+    CBLRevision() {
+        super();
     }
 
-    public CBLRevision(CBLBody body, CBLDatabase database) {
-        this((String)body.getPropertyForKey("_id"),
-                (String)body.getPropertyForKey("_rev"),
-                (((Boolean)body.getPropertyForKey("_deleted") != null)
-                        && ((Boolean)body.getPropertyForKey("_deleted") == true)), database);
-        this.body = body;
+    /**
+     * Constructor
+     */
+    @InterfaceAudience.Private
+    protected CBLRevision(CBLDocument document) {
+        this.document = document;
     }
 
-    public CBLRevision(Map<String, Object> properties, CBLDatabase database) {
-        this(new CBLBody(properties), database);
+    /**
+     * Get the revision's owning database.
+     */
+    @InterfaceAudience.Public
+    public CBLDatabase getDatabase() {
+        return database;
     }
 
-    public Map<String,Object> getProperties() {
-        Map<String,Object> result = null;
-        if(body != null) {
-            result = body.getProperties();
+    /**
+     * Get the document this is a revision of.
+     */
+    @InterfaceAudience.Public
+    public CBLDocument getDocument() {
+        return document;
+    }
+
+    /**
+     * Gets the Revision's id.
+     */
+
+    @InterfaceAudience.Public
+    public abstract String getId();
+
+
+    /**
+     * Does this revision mark the deletion of its document?
+     * (In other words, does it have a "_deleted" property?)
+     */
+    @InterfaceAudience.Public
+    boolean isDeletion() {
+        Object deleted = getProperty("_deleted");
+        if (deleted == null) {
+            return false;
         }
-        return result;
+        Boolean deletedBool = (Boolean) deleted;
+        return deletedBool.booleanValue();
     }
 
-    public void setProperties(Map<String,Object> properties) {
-        this.body = new CBLBody(properties);
+    /**
+     * The contents of this revision of the document.
+     * Any keys in the dictionary that begin with "_", such as "_id" and "_rev", contain CouchbaseLite metadata.
+     *
+     * @return contents of this revision of the document.
+     */
+    @InterfaceAudience.Public
+    public abstract Map<String,Object> getProperties();
 
-        // this is a much more simplified version that what happens on the iOS.  it was
-        // done this way due to time constraints, so at some point this needs to be
-        // revisited to port the remaining functionality.
-        Map<String, Object> attachments = (Map<String, Object>) properties.get("_attachments");
-        if (attachments != null && attachments.size() > 0) {
-            for (String attachmentName : attachments.keySet()) {
-                Map<String, Object> attachment = (Map<String, Object>) attachments.get(attachmentName);
 
-                // if there is actual data in this attachment, no need to try to install it
-                if (attachment.containsKey("data")) {
-                    continue;
-                }
+    /**
+     * The user-defined properties, without the ones reserved by CouchDB.
+     * This is based on -properties, with every key whose name starts with "_" removed.
+     *
+     * @return user-defined properties, without the ones reserved by CouchDB.
+     */
+    @InterfaceAudience.Public
+    public Map<String,Object> getUserProperties() {
 
-                CBLStatus status = database.installPendingAttachment(attachment);
-                if (status.isSuccessful() == false) {
-                    String msg = String.format("Unable to install pending attachment: %s.  Status: %d", attachment.toString(), status.getCode());
-                    throw new IllegalStateException(msg);
-                }
+        Map<String,Object> result = new HashMap<String, Object>();
+
+        Map<String,Object> sourceMap = getProperties();
+        for (String key : sourceMap.keySet()) {
+            if (!key.startsWith("_")) {
+                result.put(key, sourceMap.get(key));
             }
-
-        }
-
-    }
-
-
-
-    public byte[] getJson() {
-        byte[] result = null;
-        if(body != null) {
-            result = body.getJson();
         }
         return result;
     }
 
-    public void setJson(byte[] json) {
-        this.body = new CBLBody(json);
+    /**
+     * The names of all attachments
+     * @return
+     */
+    @InterfaceAudience.Public
+    public List<String> getAttachmentNames() {
+        Map<String, Object> attachmentMetadata = getAttachmentMetadata();
+        ArrayList<String> result = new ArrayList<String>();
+        result.addAll(attachmentMetadata.keySet());
+        return result;
+    }
+
+    /**
+     * All attachments, as CBLAttachment objects.
+     */
+    @InterfaceAudience.Public
+    public List<CBLAttachment> getAttachments() {
+        List<CBLAttachment> result = new ArrayList<CBLAttachment>();
+        List<String> attachmentNames = getAttachmentNames();
+        for (String attachmentName : attachmentNames) {
+            result.add(getAttachment(attachmentName));
+        }
+        return result;
+    }
+
+    /**
+     * Shorthand for getProperties().get(key)
+     */
+    @InterfaceAudience.Public
+    public Object getProperty(String key) {
+        return getProperties().get(key);
+    }
+
+    /**
+     * Looks up the attachment with the given name (without fetching its contents yet).
+     */
+    @InterfaceAudience.Public
+    public CBLAttachment getAttachment(String name) {
+        Map<String, Object> attachmentMetadata = getAttachmentMetadata();
+        if (attachmentMetadata == null) {
+            return null;
+        }
+        return new CBLAttachment(this, name, attachmentMetadata);
+    }
+
+    @InterfaceAudience.Public
+    public abstract CBLSavedRevision getParentRevision();
+
+    @InterfaceAudience.Public
+    public abstract String getParentRevisionId();
+
+    /**
+     * Returns the history of this document as an array of CBLRevisions, in forward order.
+     * Older revisions are NOT guaranteed to have their properties available.
+     *
+     * @throws CBLiteException
+     */
+    @InterfaceAudience.Public
+    public abstract List<CBLSavedRevision> getRevisionHistory() throws CBLiteException;
+
+    Map<String, Object> getAttachmentMetadata() {
+        return (Map<String, Object>) getProperty("_attachments");
     }
 
     @Override
     public boolean equals(Object o) {
         boolean result = false;
-        if(o instanceof CBLRevision) {
-            CBLRevision other = (CBLRevision)o;
-            if(docId.equals(other.docId) && revId.equals(other.revId)) {
+        if(o instanceof CBLSavedRevision) {
+            CBLSavedRevision other = (CBLSavedRevision)o;
+            if(document.getId().equals(other.getDocument().getId()) && getId().equals(other.getId())) {
                 result = true;
             }
         }
@@ -116,77 +202,31 @@ public class CBLRevision {
 
     @Override
     public int hashCode() {
-        return docId.hashCode() ^ revId.hashCode();
+        return document.getId().hashCode() ^ getId().hashCode();
     }
 
-    public String getDocId() {
-        return docId;
-    }
-
-    public void setDocId(String docId) {
-        this.docId = docId;
-    }
-
-    public String getRevId() {
-        return revId;
-    }
-
-    public void setRevId(String revId) {
-        this.revId = revId;
-    }
-
-    public boolean isDeleted() {
-        return deleted;
-    }
-
-    public void setDeleted(boolean deleted) {
-        this.deleted = deleted;
-    }
-
-    public CBLBody getBody() {
-        return body;
-    }
-
-    public void setBody(CBLBody body) {
-        this.body = body;
-    }
-
-    public CBLRevision copyWithDocID(String docId, String revId) {
-        assert((docId != null) && (revId != null));
-        assert((this.docId == null) || (this.docId.equals(docId)));
-        CBLRevision result = new CBLRevision(docId, revId, deleted, database);
-        Map<String, Object> properties = getProperties();
-        if(properties == null) {
-            properties = new HashMap<String, Object>();
-        }
-        properties.put("_id", docId);
-        properties.put("_rev", revId);
-        result.setProperties(properties);
-        return result;
-    }
-
-    public void setSequence(long sequence) {
+    void setSequence(long sequence) {
         this.sequence = sequence;
     }
 
-    public long getSequence() {
+    long getSequence() {
         return sequence;
     }
 
     @Override
     public String toString() {
-        return "{" + this.docId + " #" + this.revId + (deleted ? "DEL" : "") + "}";
+        return "{" + this.document.getId() + " #" + this.getId() + (isDeletion() ? "DEL" : "") + "}";
     }
 
     /**
      * Generation number: 1 for a new document, 2 for the 2nd revision, ...
      * Extracted from the numeric prefix of the revID.
      */
-    public int getGeneration() {
-        return generationFromRevID(revId);
+    int getGeneration() {
+        return generationFromRevID(getId());
     }
 
-    public static int generationFromRevID(String revID) {
+    static int generationFromRevID(String revID) {
         int generation = 0;
         int dashPos = revID.indexOf("-");
         if(dashPos > 0) {

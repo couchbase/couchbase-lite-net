@@ -17,14 +17,14 @@
 
 package com.couchbase.cblite.support;
 
+import com.couchbase.cblite.CBLDatabase;
+import com.couchbase.cblite.util.Log;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.channels.FileChannel;
-
-import com.couchbase.cblite.CBLDatabase;
-import com.couchbase.cblite.util.Log;
 
 public class FileDirUtils {
 

@@ -15,25 +15,20 @@
  * and limitations under the License.
  */
 
-package com.couchbase.cblite.testapp.tests;
+package com.couchbase.cblite;
+
+import com.couchbase.cblite.CBLView.TDViewCollation;
+import com.couchbase.cblite.internal.CBLRevisionInternal;
+import com.couchbase.cblite.testapp.tests.CBLiteTestCase;
+import com.couchbase.cblite.util.Log;
+
+import junit.framework.Assert;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import junit.framework.Assert;
-
-import com.couchbase.cblite.CBLDatabase;
-import com.couchbase.cblite.CBLQueryOptions;
-import com.couchbase.cblite.CBLRevision;
-import com.couchbase.cblite.CBLStatus;
-import com.couchbase.cblite.CBLView;
-import com.couchbase.cblite.CBLView.TDViewCollation;
-import com.couchbase.cblite.CBLViewMapBlock;
-import com.couchbase.cblite.CBLViewMapEmitBlock;
-import com.couchbase.cblite.CBLViewReduceBlock;
-import com.couchbase.cblite.util.Log;
 
 public class Views extends CBLiteTestCase {
 
@@ -41,19 +36,19 @@ public class Views extends CBLiteTestCase {
 
     public void testViewCreation() {
 
-        Assert.assertNull(database.getExistingViewNamed("aview"));
+        Assert.assertNull(database.getExistingView("aview"));
 
-        CBLView view = database.getViewNamed("aview");
+        CBLView view = database.getView("aview");
         Assert.assertNotNull(view);
-        Assert.assertEquals(database, view.getDb());
+        Assert.assertEquals(database, view.getDatabase());
         Assert.assertEquals("aview", view.getName());
-        Assert.assertNull(view.getMapBlock());
-        Assert.assertEquals(view, database.getExistingViewNamed("aview"));
+        Assert.assertNull(view.getMap());
+        Assert.assertEquals(view, database.getExistingView("aview"));
 
-        boolean changed = view.setMapReduceBlocks(new CBLViewMapBlock() {
+        boolean changed = view.setMapAndReduce(new CBLMapper() {
 
             @Override
-            public void map(Map<String, Object> document, CBLViewMapEmitBlock emitter) {
+            public void map(Map<String, Object> document, CBLEmitter emitter) {
                 //no-op
             }
         }, null, "1");
@@ -62,20 +57,20 @@ public class Views extends CBLiteTestCase {
         Assert.assertEquals(1, database.getAllViews().size());
         Assert.assertEquals(view, database.getAllViews().get(0));
 
-        changed = view.setMapReduceBlocks(new CBLViewMapBlock() {
+        changed = view.setMapAndReduce(new CBLMapper() {
 
             @Override
-            public void map(Map<String, Object> document, CBLViewMapEmitBlock emitter) {
+            public void map(Map<String, Object> document, CBLEmitter emitter) {
                 //no-op
             }
         }, null, "1");
 
         Assert.assertFalse(changed);
 
-        changed = view.setMapReduceBlocks(new CBLViewMapBlock() {
+        changed = view.setMapAndReduce(new CBLMapper() {
 
             @Override
-            public void map(Map<String, Object> document, CBLViewMapEmitBlock emitter) {
+            public void map(Map<String, Object> document, CBLEmitter emitter) {
                 //no-op
             }
         }, null, "2");
@@ -83,16 +78,21 @@ public class Views extends CBLiteTestCase {
         Assert.assertTrue(changed);
     }
 
-    private CBLRevision putDoc(CBLDatabase db, Map<String,Object> props) {
-        CBLRevision rev = new CBLRevision(props, db);
+    private CBLRevisionInternal putDoc(CBLDatabase db, Map<String,Object> props) throws CBLiteException {
+        CBLRevisionInternal rev = new CBLRevisionInternal(props, db);
         CBLStatus status = new CBLStatus();
         rev = db.putRevision(rev, null, false, status);
         Assert.assertTrue(status.isSuccessful());
         return rev;
     }
 
-    public List<CBLRevision> putDocs(CBLDatabase db) {
-        List<CBLRevision> result = new ArrayList<CBLRevision>();
+    private void putDocViaUntitledDoc(CBLDatabase db, Map<String, Object> props) throws CBLiteException {
+        CBLDocument document = db.createDocument();
+        document.putProperties(props);
+    }
+
+    public List<CBLRevisionInternal> putDocs(CBLDatabase db) throws CBLiteException {
+        List<CBLRevisionInternal> result = new ArrayList<CBLRevisionInternal>();
 
         Map<String,Object> dict2 = new HashMap<String,Object>();
         dict2.put("_id", "22222");
@@ -123,8 +123,8 @@ public class Views extends CBLiteTestCase {
     }
 
     // http://wiki.apache.org/couchdb/Introduction_to_CouchDB_views#Linked_documents
-    public List<CBLRevision> putLinkedDocs(CBLDatabase db) {
-        List<CBLRevision> result = new ArrayList<CBLRevision>();
+    public List<CBLRevisionInternal> putLinkedDocs(CBLDatabase db) throws CBLiteException {
+        List<CBLRevisionInternal> result = new ArrayList<CBLRevisionInternal>();
 
         Map<String,Object> dict1 = new HashMap<String,Object>();
         dict1.put("_id", "11111");
@@ -146,7 +146,7 @@ public class Views extends CBLiteTestCase {
     }
 
     
-    public void putNDocs(CBLDatabase db, int n) {
+    public void putNDocs(CBLDatabase db, int n) throws CBLiteException {
         for(int i=0; i< n; i++) {
             Map<String,Object> doc = new HashMap<String,Object>();
             doc.put("_id", String.format("%d", i));
@@ -156,19 +156,19 @@ public class Views extends CBLiteTestCase {
             }
             key.add(String.format("key-%d", i));
             doc.put("key", key);
-            putDoc(db, doc);
+            putDocViaUntitledDoc(db, doc);
         }
     }
 
     public static CBLView createView(CBLDatabase db) {
-        CBLView view = db.getViewNamed("aview");
-        view.setMapReduceBlocks(new CBLViewMapBlock() {
+        CBLView view = db.getView("aview");
+        view.setMapAndReduce(new CBLMapper() {
 
             @Override
-            public void map(Map<String, Object> document, CBLViewMapEmitBlock emitter) {
+            public void map(Map<String, Object> document, CBLEmitter emitter) {
                 Assert.assertNotNull(document.get("_id"));
                 Assert.assertNotNull(document.get("_rev"));
-                if(document.get("key") != null) {
+                if (document.get("key") != null) {
                     emitter.emit(document.get("key"), null);
                 }
             }
@@ -176,7 +176,7 @@ public class Views extends CBLiteTestCase {
         return view;
     }
 
-    public void testViewIndex() {
+    public void testViewIndex() throws CBLiteException {
 
         int numTimesMapFunctionInvoked = 0;
 
@@ -189,17 +189,17 @@ public class Views extends CBLiteTestCase {
         Map<String,Object> dictX = new HashMap<String,Object>();
         dictX.put("clef", "quatre");
 
-        CBLRevision rev1 = putDoc(database, dict1);
-        CBLRevision rev2 = putDoc(database, dict2);
-        CBLRevision rev3 = putDoc(database, dict3);
+        CBLRevisionInternal rev1 = putDoc(database, dict1);
+        CBLRevisionInternal rev2 = putDoc(database, dict2);
+        CBLRevisionInternal rev3 = putDoc(database, dict3);
         putDoc(database, dictX);
 
-        class InstrumentedMapBlock implements CBLViewMapBlock {
+        class InstrumentedMapBlock implements CBLMapper {
 
             int numTimesInvoked = 0;
 
             @Override
-            public void map(Map<String, Object> document, CBLViewMapEmitBlock emitter) {
+            public void map(Map<String, Object> document, CBLEmitter emitter) {
                 numTimesInvoked += 1;
                 Assert.assertNotNull(document.get("_id"));
                 Assert.assertNotNull(document.get("_rev"));
@@ -213,15 +213,14 @@ public class Views extends CBLiteTestCase {
             }
 
         }
-        CBLView view = database.getViewNamed("aview");
+        CBLView view = database.getView("aview");
         InstrumentedMapBlock mapBlock = new InstrumentedMapBlock();
-        view.setMapReduceBlocks(mapBlock, null, "1");
+        view.setMap(mapBlock, "1");
 
         Assert.assertEquals(1, view.getViewId());
         Assert.assertTrue(view.isStale());
 
-        CBLStatus updated = view.updateIndex();
-        Assert.assertEquals(CBLStatus.OK, updated.getCode());
+        view.updateIndex();
 
         List<Map<String,Object>> dumpResult = view.dump();
         Log.v(TAG, "View dump: " + dumpResult);
@@ -235,13 +234,13 @@ public class Views extends CBLiteTestCase {
 
         //no-op reindex
         Assert.assertFalse(view.isStale());
-        updated = view.updateIndex();
-        Assert.assertEquals(CBLStatus.NOT_MODIFIED, updated.getCode());
 
+        view.updateIndex();
+
+        // Now add a doc and update a doc:
+        CBLRevisionInternal threeUpdated = new CBLRevisionInternal(rev3.getDocId(), rev3.getRevId(), false, database);
         numTimesMapFunctionInvoked = mapBlock.getNumTimesInvoked();
 
-        // Update rev3
-        CBLRevision threeUpdated = new CBLRevision(rev3.getDocId(), rev3.getRevId(), false, database);
         Map<String,Object> newdict3 = new HashMap<String,Object>();
         newdict3.put("key", "3hree");
         threeUpdated.setProperties(newdict3);
@@ -251,24 +250,22 @@ public class Views extends CBLiteTestCase {
 
         // Reindex again:
         Assert.assertTrue(view.isStale());
-        updated = view.updateIndex();
-        Assert.assertEquals(CBLStatus.OK, updated.getCode());
+        view.updateIndex();
 
         // Make sure the map function was only invoked one more time (for the document that was added)
         Assert.assertEquals(mapBlock.getNumTimesInvoked(), numTimesMapFunctionInvoked + 1);
 
         Map<String,Object> dict4 = new HashMap<String,Object>();
         dict4.put("key", "four");
-        CBLRevision rev4 = putDoc(database, dict4);
+        CBLRevisionInternal rev4 = putDoc(database, dict4);
 
-        CBLRevision twoDeleted = new CBLRevision(rev2.getDocId(), rev2.getRevId(), true, database);
+        CBLRevisionInternal twoDeleted = new CBLRevisionInternal(rev2.getDocId(), rev2.getRevId(), true, database);
         database.putRevision(twoDeleted, rev2.getRevId(), false, status);
         Assert.assertTrue(status.isSuccessful());
 
         // Reindex again:
         Assert.assertTrue(view.isStale());
-        updated = view.updateIndex();
-        Assert.assertEquals(CBLStatus.OK, updated.getCode());
+        view.updateIndex();
 
         dumpResult = view.dump();
         Log.v(TAG, "View dump: " + dumpResult);
@@ -281,30 +278,28 @@ public class Views extends CBLiteTestCase {
         Assert.assertEquals(6, dumpResult.get(1).get("seq"));
 
         // Now do a real query:
-        List<Map<String,Object>> rows = view.queryWithOptions(null, status);
+        List<CBLQueryRow> rows = view.queryWithOptions(null);
         Assert.assertEquals(3, rows.size());
-        Assert.assertEquals("one", rows.get(2).get("key"));
-        Assert.assertEquals(rev1.getDocId(), rows.get(2).get("id"));
-        Assert.assertEquals("3hree", rows.get(0).get("key"));
-        Assert.assertEquals(rev3.getDocId(), rows.get(0).get("id"));
-        Assert.assertEquals("four", rows.get(1).get("key"));
-        Assert.assertEquals(rev4.getDocId(), rows.get(1).get("id"));
+        Assert.assertEquals("one", rows.get(2).getKey());
+        Assert.assertEquals(rev1.getDocId(), rows.get(2).getDocumentId());
+        Assert.assertEquals("3hree", rows.get(0).getKey());
+        Assert.assertEquals(rev3.getDocId(), rows.get(0).getDocumentId());
+        Assert.assertEquals("four", rows.get(1).getKey());
+        Assert.assertEquals(rev4.getDocId(), rows.get(1).getDocumentId());
 
-        view.removeIndex();
+        view.deleteIndex();
     }
 
-    public void testViewQuery() {
+    public void testViewQuery() throws CBLiteException {
 
         putDocs(database);
         CBLView view = createView(database);
 
-        CBLStatus updated = view.updateIndex();
-        Assert.assertEquals(CBLStatus.OK, updated.getCode());
+        view.updateIndex();
 
         // Query all rows:
         CBLQueryOptions options = new CBLQueryOptions();
-        CBLStatus status = new CBLStatus();
-        List<Map<String, Object>> rows = view.queryWithOptions(options, status);
+        List<CBLQueryRow> rows = view.queryWithOptions(options);
 
         List<Object> expectedRows = new ArrayList<Object>();
 
@@ -333,34 +328,52 @@ public class Views extends CBLiteTestCase {
         dict2.put("key", "two");
         expectedRows.add(dict2);
 
-        Assert.assertEquals(expectedRows, rows);
+        Assert.assertEquals(5, rows.size());
+        Assert.assertEquals(dict5.get("key"), rows.get(0).getKey());
+        Assert.assertEquals(dict5.get("value"), rows.get(0).getValue());
+        Assert.assertEquals(dict4.get("key"), rows.get(1).getKey());
+        Assert.assertEquals(dict4.get("value"), rows.get(1).getValue());
+        Assert.assertEquals(dict1.get("key"), rows.get(2).getKey());
+        Assert.assertEquals(dict1.get("value"), rows.get(2).getValue());
+        Assert.assertEquals(dict3.get("key"), rows.get(3).getKey());
+        Assert.assertEquals(dict3.get("value"), rows.get(3).getValue());
+        Assert.assertEquals(dict2.get("key"), rows.get(4).getKey());
+        Assert.assertEquals(dict2.get("value"), rows.get(4).getValue());
 
         // Start/end key query:
         options = new CBLQueryOptions();
         options.setStartKey("a");
         options.setEndKey("one");
 
-        status = new CBLStatus();
-        rows = view.queryWithOptions(options, status);
+        rows = view.queryWithOptions(options);
 
         expectedRows = new ArrayList<Object>();
         expectedRows.add(dict5);
         expectedRows.add(dict4);
         expectedRows.add(dict1);
 
-        Assert.assertEquals(expectedRows, rows);
+        Assert.assertEquals(3, rows.size());
+        Assert.assertEquals(dict5.get("key"), rows.get(0).getKey());
+        Assert.assertEquals(dict5.get("value"), rows.get(0).getValue());
+        Assert.assertEquals(dict4.get("key"), rows.get(1).getKey());
+        Assert.assertEquals(dict4.get("value"), rows.get(1).getValue());
+        Assert.assertEquals(dict1.get("key"), rows.get(2).getKey());
+        Assert.assertEquals(dict1.get("value"), rows.get(2).getValue());
 
         // Start/end query without inclusive end:
         options.setInclusiveEnd(false);
 
-        status = new CBLStatus();
-        rows = view.queryWithOptions(options, status);
+        rows = view.queryWithOptions(options);
 
         expectedRows = new ArrayList<Object>();
         expectedRows.add(dict5);
         expectedRows.add(dict4);
 
-        Assert.assertEquals(expectedRows, rows);
+        Assert.assertEquals(2, rows.size());
+        Assert.assertEquals(dict5.get("key"), rows.get(0).getKey());
+        Assert.assertEquals(dict5.get("value"), rows.get(0).getValue());
+        Assert.assertEquals(dict4.get("key"), rows.get(1).getKey());
+        Assert.assertEquals(dict4.get("value"), rows.get(1).getValue());
 
         // Reversed:
         options.setDescending(true);
@@ -368,25 +381,29 @@ public class Views extends CBLiteTestCase {
         options.setEndKey("five");
         options.setInclusiveEnd(true);
 
-        status = new CBLStatus();
-        rows = view.queryWithOptions(options, status);
+        rows = view.queryWithOptions(options);
 
         expectedRows = new ArrayList<Object>();
         expectedRows.add(dict4);
         expectedRows.add(dict5);
 
-        Assert.assertEquals(expectedRows, rows);
+        Assert.assertEquals(2, rows.size());
+        Assert.assertEquals(dict4.get("key"), rows.get(0).getKey());
+        Assert.assertEquals(dict4.get("value"), rows.get(0).getValue());
+        Assert.assertEquals(dict5.get("key"), rows.get(1).getKey());
+        Assert.assertEquals(dict5.get("value"), rows.get(1).getValue());
 
         // Reversed, no inclusive end:
         options.setInclusiveEnd(false);
 
-        status = new CBLStatus();
-        rows = view.queryWithOptions(options, status);
+        rows = view.queryWithOptions(options);
 
         expectedRows = new ArrayList<Object>();
         expectedRows.add(dict4);
 
-        Assert.assertEquals(expectedRows, rows);
+        Assert.assertEquals(1, rows.size());
+        Assert.assertEquals(dict4.get("key"), rows.get(0).getKey());
+        Assert.assertEquals(dict4.get("value"), rows.get(0).getValue());
 
         // Specific keys:
         options = new CBLQueryOptions();
@@ -395,35 +412,37 @@ public class Views extends CBLiteTestCase {
         keys.add("four");
         options.setKeys(keys);
 
-        rows = view.queryWithOptions(options, status);
+        rows = view.queryWithOptions(options);
 
         expectedRows = new ArrayList<Object>();
         expectedRows.add(dict4);
         expectedRows.add(dict2);
 
-        Assert.assertEquals(expectedRows, rows);
+        Assert.assertEquals(2, rows.size());
+        Assert.assertEquals(dict4.get("key"), rows.get(0).getKey());
+        Assert.assertEquals(dict4.get("value"), rows.get(0).getValue());
+        Assert.assertEquals(dict2.get("key"), rows.get(1).getKey());
+        Assert.assertEquals(dict2.get("value"), rows.get(1).getValue());
+
     }
 
-    public void testAllDocsQuery() {
+    public void testAllDocsQuery() throws CBLiteException {
 
-        List<CBLRevision> docs = putDocs(database);
+        List<CBLRevisionInternal> docs = putDocs(database);
 
-        List<Map<String,Object>> expectedRow = new ArrayList<Map<String,Object>>();
-        for (CBLRevision rev : docs) {
+        List<CBLQueryRow> expectedRow = new ArrayList<CBLQueryRow>();
+        for (CBLRevisionInternal rev : docs) {
             Map<String,Object> value = new HashMap<String, Object>();
             value.put("rev", rev.getRevId());
-
-            Map<String, Object> row = new HashMap<String, Object>();
-            row.put("id", rev.getDocId());
-            row.put("key", rev.getDocId());
-            row.put("value", value);
-            expectedRow.add(row);
+            CBLQueryRow queryRow = new CBLQueryRow(rev.getDocId(), 0, rev.getDocId(), value, null);
+            queryRow.setDatabase(database);
+            expectedRow.add(queryRow);
         }
 
         CBLQueryOptions options = new CBLQueryOptions();
-        Map<String,Object> query = database.getAllDocs(options);
+        Map<String,Object> allDocs = database.getAllDocs(options);
 
-        List<Object>expectedRows = new ArrayList<Object>();
+        List<CBLQueryRow> expectedRows = new ArrayList<CBLQueryRow>();
         expectedRows.add(expectedRow.get(2));
         expectedRows.add(expectedRow.get(0));
         expectedRows.add(expectedRow.get(3));
@@ -431,54 +450,64 @@ public class Views extends CBLiteTestCase {
         expectedRows.add(expectedRow.get(4));
 
         Map<String,Object> expectedQueryResult = createExpectedQueryResult(expectedRows, 0);
-        Assert.assertEquals(expectedQueryResult, query);
+
+        Assert.assertEquals(expectedQueryResult, allDocs);
 
         // Start/end key query:
         options = new CBLQueryOptions();
         options.setStartKey("2");
         options.setEndKey("44444");
 
-        query = database.getAllDocs(options);
+        allDocs = database.getAllDocs(options);
 
-        expectedRows = new ArrayList<Object>();
+        expectedRows = new ArrayList<CBLQueryRow>();
         expectedRows.add(expectedRow.get(0));
         expectedRows.add(expectedRow.get(3));
         expectedRows.add(expectedRow.get(1));
 
         expectedQueryResult = createExpectedQueryResult(expectedRows, 0);
-        Assert.assertEquals(expectedQueryResult, query);
+        Assert.assertEquals(expectedQueryResult, allDocs);
 
         // Start/end query without inclusive end:
         options.setInclusiveEnd(false);
 
-        query = database.getAllDocs(options);
+        allDocs = database.getAllDocs(options);
 
-        expectedRows = new ArrayList<Object>();
+        expectedRows = new ArrayList<CBLQueryRow>();
         expectedRows.add(expectedRow.get(0));
         expectedRows.add(expectedRow.get(3));
 
         expectedQueryResult = createExpectedQueryResult(expectedRows, 0);
-        Assert.assertEquals(expectedQueryResult, query);
+        Assert.assertEquals(expectedQueryResult, allDocs);
+
+        // Get all documents: with default CBLQueryOptions
+        options = new CBLQueryOptions();
+        allDocs = database.getAllDocs(options);
+
+        expectedRows = new ArrayList<CBLQueryRow>();
+        expectedRows.add(expectedRow.get(2));
+        expectedRows.add(expectedRow.get(0));
+        expectedRows.add(expectedRow.get(3));
+        expectedRows.add(expectedRow.get(1));
+        expectedRows.add(expectedRow.get(4));
+        expectedQueryResult = createExpectedQueryResult(expectedRows, 0);
+
+        Assert.assertEquals(expectedQueryResult, allDocs);
 
         // Get specific documents:
         options = new CBLQueryOptions();
-        query = database.getDocsWithIDs(new ArrayList<String>(), options);
-        expectedQueryResult = createExpectedQueryResult(new ArrayList<Object>(), 0);
-        Assert.assertEquals(expectedQueryResult, query);
-
-        // Get specific documents:
-        options = new CBLQueryOptions();
-        List<String> docIds = new ArrayList<String>();
-        Map<String,Object> expected2 = expectedRow.get(2);
-        docIds.add((String)expected2.get("id"));
-        query = database.getDocsWithIDs(docIds, options);
-        expectedRows = new ArrayList<Object>();
+        List<Object> docIds = new ArrayList<Object>();
+        CBLQueryRow expected2 = expectedRow.get(2);
+        docIds.add(expected2.getDocument().getId());
+        options.setKeys(docIds);
+        allDocs = database.getAllDocs(options);
+        expectedRows = new ArrayList<CBLQueryRow>();
         expectedRows.add(expected2);
         expectedQueryResult = createExpectedQueryResult(expectedRows, 0);
-        Assert.assertEquals(expectedQueryResult, query);
+        Assert.assertEquals(expectedQueryResult, allDocs);
     }
 
-    private Map<String, Object> createExpectedQueryResult(List<Object> rows, int offset) {
+    private Map<String, Object> createExpectedQueryResult(List<CBLQueryRow> rows, int offset) {
         Map<String, Object> result = new HashMap<String, Object>();
         result.put("rows", rows);
         result.put("total_rows", rows.size());
@@ -486,7 +515,7 @@ public class Views extends CBLiteTestCase {
         return result;
     }
 
-    public void testViewReduce() {
+    public void testViewReduce() throws CBLiteException {
 
         Map<String,Object> docProperties1 = new HashMap<String,Object>();
         docProperties1.put("_id", "CD");
@@ -503,29 +532,29 @@ public class Views extends CBLiteTestCase {
         docProperties3.put("cost", 6.50);
         putDoc(database, docProperties3);
 
-        CBLView view = database.getViewNamed("totaler");
-        view.setMapReduceBlocks(new CBLViewMapBlock() {
+        CBLView view = database.getView("totaler");
+        view.setMapAndReduce(new CBLMapper() {
 
-            @Override
-            public void map(Map<String, Object> document, CBLViewMapEmitBlock emitter) {
-                Assert.assertNotNull(document.get("_id"));
-                Assert.assertNotNull(document.get("_rev"));
-                Object cost = document.get("cost");
-                if(cost != null) {
-                    emitter.emit(document.get("_id"), cost);
-                }
-            }
-        }, new CBLViewReduceBlock() {
+                                 @Override
+                                 public void map(Map<String, Object> document, CBLEmitter emitter) {
+                                     Assert.assertNotNull(document.get("_id"));
+                                     Assert.assertNotNull(document.get("_rev"));
+                                     Object cost = document.get("cost");
+                                     if (cost != null) {
+                                         emitter.emit(document.get("_id"), cost);
+                                     }
+                                 }
+                             }, new CBLReducer() {
 
-            @Override
-            public Object reduce(List<Object> keys, List<Object> values,
-                    boolean rereduce) {
-                return CBLView.totalValues(values);
-            }
-        }, "1");
+                                 @Override
+                                 public Object reduce(List<Object> keys, List<Object> values,
+                                                      boolean rereduce) {
+                                     return CBLView.totalValues(values);
+                                 }
+                             }, "1"
+        );
 
-        CBLStatus updated = view.updateIndex();
-        Assert.assertEquals(CBLStatus.OK, updated.getCode());
+        view.updateIndex();
 
         List<Map<String,Object>> dumpResult = view.dump();
         Log.v(TAG, "View dump: " + dumpResult);
@@ -542,16 +571,15 @@ public class Views extends CBLiteTestCase {
 
         CBLQueryOptions options = new CBLQueryOptions();
         options.setReduce(true);
-        CBLStatus status = new CBLStatus();
-        List<Map<String, Object>> reduced = view.queryWithOptions(options, status);
-        Assert.assertEquals(CBLStatus.OK, status.getCode());
+        List<CBLQueryRow> reduced = view.queryWithOptions(options);
         Assert.assertEquals(1, reduced.size());
-        Object value = reduced.get(0).get("value");
+        Object value = reduced.get(0).getValue();
         Number numberValue = (Number)value;
         Assert.assertTrue(Math.abs(numberValue.doubleValue() - 17.44) < 0.001);
+
     }
 
-    public void testViewGrouped() {
+    public void testViewGrouped() throws CBLiteException {
 
         Map<String,Object> docProperties1 = new HashMap<String,Object>();
         docProperties1.put("_id", "1");
@@ -593,35 +621,33 @@ public class Views extends CBLiteTestCase {
         docProperties5.put("time", 187);
         putDoc(database, docProperties5);
 
-        CBLView view = database.getViewNamed("grouper");
-        view.setMapReduceBlocks(new CBLViewMapBlock() {
+        CBLView view = database.getView("grouper");
+        view.setMapAndReduce(new CBLMapper() {
 
-            @Override
-            public void map(Map<String, Object> document, CBLViewMapEmitBlock emitter) {
-                List<Object> key = new ArrayList<Object>();
-                key.add(document.get("artist"));
-                key.add(document.get("album"));
-                key.add(document.get("track"));
-                emitter.emit(key, document.get("time"));
-            }
-        }, new CBLViewReduceBlock() {
+                                 @Override
+                                 public void map(Map<String, Object> document, CBLEmitter emitter) {
+                                     List<Object> key = new ArrayList<Object>();
+                                     key.add(document.get("artist"));
+                                     key.add(document.get("album"));
+                                     key.add(document.get("track"));
+                                     emitter.emit(key, document.get("time"));
+                                 }
+                             }, new CBLReducer() {
 
-            @Override
-            public Object reduce(List<Object> keys, List<Object> values,
-                    boolean rereduce) {
-                return CBLView.totalValues(values);
-            }
-        }, "1");
+                                 @Override
+                                 public Object reduce(List<Object> keys, List<Object> values,
+                                                      boolean rereduce) {
+                                     return CBLView.totalValues(values);
+                                 }
+                             }, "1"
+        );
 
         CBLStatus status = new CBLStatus();
-        status = view.updateIndex();
-        Assert.assertEquals(CBLStatus.OK, status.getCode());
+        view.updateIndex();
 
         CBLQueryOptions options = new CBLQueryOptions();
         options.setReduce(true);
-        status = new CBLStatus();
-        List<Map<String, Object>> rows = view.queryWithOptions(options, status);
-        Assert.assertEquals(CBLStatus.OK, status.getCode());
+        List<CBLQueryRow> rows = view.queryWithOptions(options);
 
         List<Map<String,Object>> expectedRows = new ArrayList<Map<String,Object>>();
         Map<String,Object> row1 = new HashMap<String,Object>();
@@ -629,13 +655,13 @@ public class Views extends CBLiteTestCase {
         row1.put("value", 1162.0);
         expectedRows.add(row1);
 
-        Assert.assertEquals(expectedRows, rows);
+        Assert.assertEquals(row1.get("key"), rows.get(0).getKey());
+        Assert.assertEquals(row1.get("value"), rows.get(0).getValue());
 
         //now group
         options.setGroup(true);
         status = new CBLStatus();
-        rows = view.queryWithOptions(options, status);
-        Assert.assertEquals(CBLStatus.OK, status.getCode());
+        rows = view.queryWithOptions(options);
 
         expectedRows = new ArrayList<Map<String,Object>>();
 
@@ -684,13 +710,21 @@ public class Views extends CBLiteTestCase {
         row5.put("value", 309.0);
         expectedRows.add(row5);
 
-        Assert.assertEquals(expectedRows, rows);
+        Assert.assertEquals(row1.get("key"), rows.get(0).getKey());
+        Assert.assertEquals(row1.get("value"), rows.get(0).getValue());
+        Assert.assertEquals(row2.get("key"), rows.get(1).getKey());
+        Assert.assertEquals(row2.get("value"), rows.get(1).getValue());
+        Assert.assertEquals(row3.get("key"), rows.get(2).getKey());
+        Assert.assertEquals(row3.get("value"), rows.get(2).getValue());
+        Assert.assertEquals(row4.get("key"), rows.get(3).getKey());
+        Assert.assertEquals(row4.get("value"), rows.get(3).getValue());
+        Assert.assertEquals(row5.get("key"), rows.get(4).getKey());
+        Assert.assertEquals(row5.get("value"), rows.get(4).getValue());
 
         //group level 1
         options.setGroupLevel(1);
         status = new CBLStatus();
-        rows = view.queryWithOptions(options, status);
-        Assert.assertEquals(CBLStatus.OK, status.getCode());
+        rows = view.queryWithOptions(options);
 
         expectedRows = new ArrayList<Map<String,Object>>();
 
@@ -708,13 +742,15 @@ public class Views extends CBLiteTestCase {
         row2.put("value", 309.0);
         expectedRows.add(row2);
 
-        Assert.assertEquals(expectedRows, rows);
+        Assert.assertEquals(row1.get("key"), rows.get(0).getKey());
+        Assert.assertEquals(row1.get("value"), rows.get(0).getValue());
+        Assert.assertEquals(row2.get("key"), rows.get(1).getKey());
+        Assert.assertEquals(row2.get("value"), rows.get(1).getValue());
 
         //group level 2
         options.setGroupLevel(2);
         status = new CBLStatus();
-        rows = view.queryWithOptions(options, status);
-        Assert.assertEquals(CBLStatus.OK, status.getCode());
+        rows = view.queryWithOptions(options);
 
         expectedRows = new ArrayList<Map<String,Object>>();
 
@@ -742,10 +778,16 @@ public class Views extends CBLiteTestCase {
         row3.put("value", 309.0);
         expectedRows.add(row3);
 
-        Assert.assertEquals(expectedRows, rows);
+        Assert.assertEquals(row1.get("key"), rows.get(0).getKey());
+        Assert.assertEquals(row1.get("value"), rows.get(0).getValue());
+        Assert.assertEquals(row2.get("key"), rows.get(1).getKey());
+        Assert.assertEquals(row2.get("value"), rows.get(1).getValue());
+        Assert.assertEquals(row3.get("key"), rows.get(2).getKey());
+        Assert.assertEquals(row3.get("value"), rows.get(2).getValue());
+
     }
 
-    public void testViewGroupedStrings() {
+    public void testViewGroupedStrings() throws CBLiteException {
 
         Map<String,Object> docProperties1 = new HashMap<String,Object>();
         docProperties1.put("name", "Alice");
@@ -767,36 +809,34 @@ public class Views extends CBLiteTestCase {
         docProperties5.put("name", "Jed");
         putDoc(database, docProperties5);
 
-        CBLView view = database.getViewNamed("default/names");
-        view.setMapReduceBlocks(new CBLViewMapBlock() {
+        CBLView view = database.getView("default/names");
+        view.setMapAndReduce(new CBLMapper() {
 
-            @Override
-            public void map(Map<String, Object> document, CBLViewMapEmitBlock emitter) {
-                String name = (String)document.get("name");
-                if(name != null) {
-                    emitter.emit(name.substring(0, 1), 1);
-                }
-            }
+                                 @Override
+                                 public void map(Map<String, Object> document, CBLEmitter emitter) {
+                                     String name = (String) document.get("name");
+                                     if (name != null) {
+                                         emitter.emit(name.substring(0, 1), 1);
+                                     }
+                                 }
 
-        }, new CBLViewReduceBlock() {
+                             }, new CBLReducer() {
 
-            @Override
-            public Object reduce(List<Object> keys, List<Object> values,
-                    boolean rereduce) {
-                return values.size();
-            }
+                                 @Override
+                                 public Object reduce(List<Object> keys, List<Object> values,
+                                                      boolean rereduce) {
+                                     return values.size();
+                                 }
 
-        }, "1.0");
+                             }, "1.0"
+        );
 
-        CBLStatus status = new CBLStatus();
-        status = view.updateIndex();
-        Assert.assertEquals(CBLStatus.OK, status.getCode());
+
+        view.updateIndex();
 
         CBLQueryOptions options = new CBLQueryOptions();
         options.setGroupLevel(1);
-        status = new CBLStatus();
-        List<Map<String,Object>> rows = view.queryWithOptions(options, status);
-        Assert.assertEquals(CBLStatus.OK, status.getCode());
+        List<CBLQueryRow> rows = view.queryWithOptions(options);
 
         List<Map<String,Object>> expectedRows = new ArrayList<Map<String,Object>>();
         Map<String,Object> row1 = new HashMap<String,Object>();
@@ -812,10 +852,16 @@ public class Views extends CBLiteTestCase {
         row3.put("value", 1);
         expectedRows.add(row3);
 
-        Assert.assertEquals(expectedRows, rows);
+        Assert.assertEquals(row1.get("key"), rows.get(0).getKey());
+        Assert.assertEquals(row1.get("value"), rows.get(0).getValue());
+        Assert.assertEquals(row2.get("key"), rows.get(1).getKey());
+        Assert.assertEquals(row2.get("value"), rows.get(1).getValue());
+        Assert.assertEquals(row3.get("key"), rows.get(2).getKey());
+        Assert.assertEquals(row3.get("value"), rows.get(2).getValue());
+
     }
 
-    public void testViewCollation() {
+    public void testViewCollation() throws CBLiteException {
         List<Object> list1 = new ArrayList<Object>();
         list1.add("a");
 
@@ -874,28 +920,26 @@ public class Views extends CBLiteTestCase {
             putDoc(database, docProperties);
         }
 
-        CBLView view = database.getViewNamed("default/names");
-        view.setMapReduceBlocks(new CBLViewMapBlock() {
+        CBLView view = database.getView("default/names");
+        view.setMapAndReduce(new CBLMapper() {
 
             @Override
-            public void map(Map<String, Object> document, CBLViewMapEmitBlock emitter) {
+            public void map(Map<String, Object> document, CBLEmitter emitter) {
                 emitter.emit(document.get("name"), null);
             }
 
         }, null, "1.0");
 
         CBLQueryOptions options = new CBLQueryOptions();
-        CBLStatus status = new CBLStatus();
-        List<Map<String,Object>> rows = view.queryWithOptions(options, status);
-        Assert.assertEquals(CBLStatus.OK, status.getCode());
+        List<CBLQueryRow> rows = view.queryWithOptions(options);
         i = 0;
-        for (Map<String, Object> row : rows) {
-            Assert.assertEquals(testKeys.get(i++), row.get("key"));
+        for (CBLQueryRow row : rows) {
+            Assert.assertEquals(testKeys.get(i++), row.getKey());
         }
     }
 
 
-    public void testViewCollationRaw() {
+    public void testViewCollationRaw() throws CBLiteException {
         List<Object> list1 = new ArrayList<Object>();
         list1.add("a");
 
@@ -954,11 +998,11 @@ public class Views extends CBLiteTestCase {
             putDoc(database, docProperties);
         }
 
-        CBLView view = database.getViewNamed("default/names");
-        view.setMapReduceBlocks(new CBLViewMapBlock() {
+        CBLView view = database.getView("default/names");
+        view.setMapAndReduce(new CBLMapper() {
 
             @Override
-            public void map(Map<String, Object> document, CBLViewMapEmitBlock emitter) {
+            public void map(Map<String, Object> document, CBLEmitter emitter) {
                 emitter.emit(document.get("name"), null);
             }
 
@@ -967,62 +1011,57 @@ public class Views extends CBLiteTestCase {
         view.setCollation(TDViewCollation.TDViewCollationRaw);
 
         CBLQueryOptions options = new CBLQueryOptions();
-        CBLStatus status = new CBLStatus();
-        List<Map<String,Object>> rows = view.queryWithOptions(options, status);
-        Assert.assertEquals(CBLStatus.OK, status.getCode());
+
+        List<CBLQueryRow> rows = view.queryWithOptions(options);
         i = 0;
-        for (Map<String, Object> row : rows) {
-            Assert.assertEquals(testKeys.get(i++), row.get("key"));
+        for (CBLQueryRow row : rows) {
+            Assert.assertEquals(testKeys.get(i++), row.getKey());
         }
 
         database.close();
     }
 
-    public void testLargerViewQuery() {
+    public void testLargerViewQuery() throws CBLiteException {
         putNDocs(database, 4);
         CBLView view = createView(database);
 
-        CBLStatus updated = view.updateIndex();
-        Assert.assertEquals(CBLStatus.OK, updated.getCode());
+        view.updateIndex();
 
         // Query all rows:
         CBLQueryOptions options = new CBLQueryOptions();
         CBLStatus status = new CBLStatus();
-        List<Map<String, Object>> rows = view.queryWithOptions(options, status);
+        List<CBLQueryRow> rows = view.queryWithOptions(options);
     }
     
     
-    public void testViewLinkedDocs() {
+    public void testViewLinkedDocs() throws CBLiteException {
         putLinkedDocs(database);
         
-        CBLView view = database.getViewNamed("linked");
-        view.setMapReduceBlocks(new CBLViewMapBlock() {
+        CBLView view = database.getView("linked");
+        view.setMapAndReduce(new CBLMapper() {
             @Override
-            public void map(Map<String, Object> document, CBLViewMapEmitBlock emitter) {
+            public void map(Map<String, Object> document, CBLEmitter emitter) {
                 if (document.containsKey("value")) {
-                    emitter.emit(new Object[] { document.get("value"), 0 }, null);
+                    emitter.emit(new Object[]{document.get("value"), 0}, null);
                 }
                 if (document.containsKey("ancestors")) {
                     List<Object> ancestors = (List<Object>) document.get("ancestors");
-                    for (int i=0; i < ancestors.size(); i++) {
-                        Map<String,Object> value = new HashMap<String,Object>();
+                    for (int i = 0; i < ancestors.size(); i++) {
+                        Map<String, Object> value = new HashMap<String, Object>();
                         value.put("_id", ancestors.get(i));
-                        emitter.emit(new Object[] { document.get("value"), i+1 }, value);
+                        emitter.emit(new Object[]{document.get("value"), i + 1}, value);
                     }
                 }
             }
         }, null, "1");
         
-        CBLStatus updated = view.updateIndex();
-        Assert.assertEquals(CBLStatus.OK, updated.getCode());
+        view.updateIndex();
 
         CBLQueryOptions options = new CBLQueryOptions();
         options.setIncludeDocs(true);  // required for linked documents
         
-        CBLStatus status = new CBLStatus();
-        List<Map<String, Object>> rows = view.queryWithOptions(options, status);
+        List<CBLQueryRow> rows = view.queryWithOptions(options);
         
-        Assert.assertEquals(CBLStatus.OK, status.getCode());
         Assert.assertNotNull(rows);
         Assert.assertEquals(5, rows.size());
 
@@ -1036,19 +1075,19 @@ public class Views extends CBLiteTestCase {
         };
 
         for (int i=0; i < rows.size(); i++) {
-            Map<String,Object> row = rows.get(i);
-            List<Object> key = (List<Object>) row.get("key");
-            Map<String,Object> doc = (Map<String,Object>)row.get("doc");
+            CBLQueryRow row = rows.get(i);
+            List<Object> key = (List<Object>) row.getKey();
+            Map<String,Object> doc = (Map<String,Object>)row.getDocumentProperties();
             
-            Assert.assertEquals(expected[i][0], row.get("id"));
+            Assert.assertEquals(expected[i][0], row.getDocumentId());
             Assert.assertEquals(2, key.size());
             Assert.assertEquals(expected[i][1], key.get(0));
             Assert.assertEquals(expected[i][2], key.get(1));
             if (expected[i][3] == null) {
-                Assert.assertNull(row.get("value"));
+                Assert.assertNull(row.getValue());
             }
             else {
-                Assert.assertEquals(expected[i][3], ((Map<String,Object>) row.get("value")).get("_id"));
+                Assert.assertEquals(expected[i][3], ((Map<String,Object>) row.getValue()).get("_id"));
             }
             Assert.assertEquals(expected[i][4], doc.get("_id"));
         }

@@ -3,7 +3,7 @@ package com.couchbase.cblite.support;
 import android.net.Uri;
 
 import com.couchbase.cblite.CBLDatabase;
-import com.couchbase.cblite.CBLServer;
+import com.couchbase.cblite.CBLManager;
 import com.couchbase.cblite.util.Log;
 
 import org.apache.http.HttpEntity;
@@ -38,6 +38,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.util.concurrent.ScheduledExecutorService;
+
 
 public class CBLRemoteRequest implements Runnable {
 
@@ -95,7 +96,7 @@ public class CBLRemoteRequest implements Runnable {
         if (body != null && request instanceof HttpEntityEnclosingRequestBase) {
             byte[] bodyBytes = null;
             try {
-                bodyBytes = CBLServer.getObjectMapper().writeValueAsBytes(body);
+                bodyBytes = CBLManager.getObjectMapper().writeValueAsBytes(body);
             } catch (Exception e) {
                 Log.e(CBLDatabase.TAG, "Error serializing body of request", e);
             }
@@ -132,7 +133,7 @@ public class CBLRemoteRequest implements Runnable {
                     InputStream stream = null;
                     try {
                         stream = temp.getContent();
-                        fullBody = CBLServer.getObjectMapper().readValue(stream,
+                        fullBody = CBLManager.getObjectMapper().readValue(stream,
                                 Object.class);
                     } finally {
                         try {

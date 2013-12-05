@@ -1,9 +1,10 @@
 package com.couchbase.cblite.replicator.changetracker;
 
+
 import android.net.Uri;
 
 import com.couchbase.cblite.CBLDatabase;
-import com.couchbase.cblite.CBLServer;
+import com.couchbase.cblite.CBLManager;
 import com.couchbase.cblite.util.Log;
 
 import org.apache.http.HttpEntity;
@@ -37,6 +38,7 @@ import java.net.URL;
 import java.net.URLEncoder;
 import java.util.List;
 import java.util.Map;
+
 
 /**
  * Reads the continuous-mode _changes feed of a database, and sends the
@@ -217,7 +219,7 @@ public class CBLChangeTracker implements Runnable {
 
                     input = entity.getContent();
                     if (mode == TDChangeTrackerMode.LongPoll) {
-                        Map<String, Object> fullBody = CBLServer.getObjectMapper().readValue(input, Map.class);
+                        Map<String, Object> fullBody = CBLManager.getObjectMapper().readValue(input, Map.class);
                         boolean responseOK = receivedPollResponse(fullBody);
                         if (mode == TDChangeTrackerMode.LongPoll && responseOK) {
                             Log.v(CBLDatabase.TAG, "Starting new longpoll");
@@ -228,7 +230,7 @@ public class CBLChangeTracker implements Runnable {
                         }
                     } else {
 
-                        JsonFactory jsonFactory = CBLServer.getObjectMapper().getJsonFactory();
+                        JsonFactory jsonFactory = CBLManager.getObjectMapper().getJsonFactory();
                         JsonParser jp = jsonFactory.createJsonParser(input);
 
                         while (jp.nextToken() != JsonToken.START_ARRAY) {
@@ -236,7 +238,7 @@ public class CBLChangeTracker implements Runnable {
                         }
 
                         while (jp.nextToken() == JsonToken.START_OBJECT) {
-                            Map<String, Object> change = (Map) CBLServer.getObjectMapper().readValue(jp, Map.class);
+                            Map<String, Object> change = (Map) CBLManager.getObjectMapper().readValue(jp, Map.class);
                             if (!receivedChange(change)) {
                                 Log.w(CBLDatabase.TAG, String.format("Received unparseable change line from server: %s", change));
                             }

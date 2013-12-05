@@ -1,13 +1,13 @@
 package com.couchbase.cblite.testapp.tests;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.List;
+import com.couchbase.cblite.CBLDatabase;
+import com.couchbase.cblite.CBLManager;
 
 import junit.framework.Assert;
 
-import com.couchbase.cblite.CBLDatabase;
-import com.couchbase.cblite.CBLServer;
+import java.io.File;
+import java.io.IOException;
+import java.util.List;
 
 public class Server extends CBLiteTestCase {
 
@@ -15,36 +15,35 @@ public class Server extends CBLiteTestCase {
 
         //to ensure this test is easily repeatable we will explicitly remove
         //any stale foo.cblite
-        CBLDatabase old = server.getExistingDatabaseNamed("foo");
+        CBLDatabase old = manager.getExistingDatabase("foo");
         if(old != null) {
-            old.deleteDatabase();
+            old.delete();
         }
 
-        CBLDatabase db = server.getDatabaseNamed("foo");
+        CBLDatabase db = manager.getDatabase("foo");
         Assert.assertNotNull(db);
         Assert.assertEquals("foo", db.getName());
         Assert.assertTrue(db.getPath().startsWith(getServerPath()));
         Assert.assertFalse(db.exists());
 
-        Assert.assertEquals(db, server.getDatabaseNamed("foo"));
+        Assert.assertEquals(db, manager.getDatabase("foo"));
 
         // because foo doesn't exist yet
-        List<String> databaseNames = server.allDatabaseNames();
+        List<String> databaseNames = manager.getAllDatabaseNames();
         Assert.assertTrue(!databaseNames.contains("foo"));
 
         Assert.assertTrue(db.open());
         Assert.assertTrue(db.exists());
 
-        databaseNames = server.allDatabaseNames();
+        databaseNames = manager.getAllDatabaseNames();
         Assert.assertTrue(databaseNames.contains("foo"));
 
         db.close();
-        server.deleteDatabaseNamed("foo");
+        db.delete();
+
     }
 
     public void testUpgradeOldDatabaseFiles() throws Exception {
-
-
         String directoryName = "test-directory-" + System.currentTimeMillis();
         String normalFilesDir = getInstrumentation().getContext().getFilesDir().getAbsolutePath();
         String fakeFilesDir = String.format("%s/%s", normalFilesDir, directoryName);
@@ -56,19 +55,34 @@ public class Server extends CBLiteTestCase {
                 throw new IOException("Unable to create directory " + directory);
             }
         }
-        File oldTouchDbFile = new File(directory, String.format("old%s", CBLServer.DATABASE_SUFFIX_OLD));
+        File oldTouchDbFile = new File(directory, String.format("old%s", CBLManager.DATABASE_SUFFIX_OLD));
         oldTouchDbFile.createNewFile();
-        File newCbLiteFile = new File(directory, String.format("new%s", CBLServer.DATABASE_SUFFIX));
+        File newCbLiteFile = new File(directory, String.format("new%s", CBLManager.DATABASE_SUFFIX));
         newCbLiteFile.createNewFile();
 
-        CBLServer serverForThisTest = new CBLServer(fakeFilesDir);
+        File migratedOldFile = new File(directory, String.format("old%s", CBLManager.DATABASE_SUFFIX));
+        migratedOldFile.createNewFile();
+        super.stopCBLite();
+        manager = manager = new CBLManager(new File(getInstrumentation().getContext().getFilesDir(), directoryName));
 
-        File migratedOldFile = new File(directory, String.format("old%s", CBLServer.DATABASE_SUFFIX));
+        Assert.assertTrue(migratedOldFile.exists());
+        //cannot rename old.touchdb in old.cblite, old.cblite already exists
+        Assert.assertTrue(oldTouchDbFile.exists());
+        Assert.assertTrue(newCbLiteFile.exists());
 
+        File dir=new File(getInstrumentation().getContext().getFilesDir(), directoryName);
+        Assert.assertEquals(3, dir.listFiles().length);
+
+        super.stopCBLite();
+        migratedOldFile.delete();
+        manager = manager = new CBLManager(new File(getInstrumentation().getContext().getFilesDir(), directoryName));
+
+        //rename old.touchdb in old.cblite, previous old.cblite already doesn't exist
         Assert.assertTrue(migratedOldFile.exists());
         Assert.assertTrue(oldTouchDbFile.exists() == false);
         Assert.assertTrue(newCbLiteFile.exists());
-
+        dir=new File(getInstrumentation().getContext().getFilesDir(), directoryName);
+        Assert.assertEquals(2, dir.listFiles().length);
 
     }
 

@@ -17,30 +17,30 @@
 
 package com.couchbase.cblite.testapp.tests;
 
+import com.couchbase.cblite.CBLDatabase;
+import com.couchbase.cblite.DocumentChange;
+import com.couchbase.cblite.ReplicationFilter;
+import com.couchbase.cblite.CBLRevisionList;
+import com.couchbase.cblite.CBLStatus;
+import com.couchbase.cblite.CBLiteException;
+import com.couchbase.cblite.internal.CBLBody;
+import com.couchbase.cblite.internal.CBLRevisionInternal;
+import com.couchbase.cblite.util.Log;
+
+import junit.framework.Assert;
+
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Observable;
-import java.util.Observer;
 
-import junit.framework.Assert;
-
-import com.couchbase.cblite.CBLBody;
-import com.couchbase.cblite.CBLDatabase;
-import com.couchbase.cblite.CBLFilterBlock;
-import com.couchbase.cblite.CBLRevision;
-import com.couchbase.cblite.CBLRevisionList;
-import com.couchbase.cblite.CBLStatus;
-import com.couchbase.cblite.util.Log;
-
-public class CRUDOperations extends CBLiteTestCase implements Observer {
+public class CRUDOperations extends CBLiteTestCase implements CBLDatabase.ChangeListener {
 
     public static final String TAG = "CRUDOperations";
 
-    public void testCRUDOperations() {
+    public void testCRUDOperations() throws CBLiteException {
 
-        database.addObserver(this);
+        database.addChangeListener(this);
 
         String privateUUID = database.privateUUID();
         String publicUUID = database.publicUUID();
@@ -55,18 +55,17 @@ public class CRUDOperations extends CBLiteTestCase implements Observer {
         documentProperties.put("baz", "touch");
 
         CBLBody body = new CBLBody(documentProperties);
-        CBLRevision rev1 = new CBLRevision(body, database);
+        CBLRevisionInternal rev1 = new CBLRevisionInternal(body, database);
 
         CBLStatus status = new CBLStatus();
         rev1 = database.putRevision(rev1, null, false, status);
 
-        Assert.assertEquals(CBLStatus.CREATED, status.getCode());
         Log.v(TAG, "Created " + rev1);
         Assert.assertTrue(rev1.getDocId().length() >= 10);
         Assert.assertTrue(rev1.getRevId().startsWith("1-"));
 
         //read it back
-        CBLRevision readRev = database.getDocumentWithIDAndRev(rev1.getDocId(), null, EnumSet.noneOf(CBLDatabase.TDContentOptions.class));
+        CBLRevisionInternal readRev = database.getDocumentWithIDAndRev(rev1.getDocId(), null, EnumSet.noneOf(CBLDatabase.TDContentOptions.class));
         Assert.assertNotNull(readRev);
         Map<String,Object> readRevProps = readRev.getProperties();
         Assert.assertEquals(userProperties(readRevProps), userProperties(body.getProperties()));
@@ -75,10 +74,9 @@ public class CRUDOperations extends CBLiteTestCase implements Observer {
         documentProperties = readRev.getProperties();
         documentProperties.put("status", "updated!");
         body = new CBLBody(documentProperties);
-        CBLRevision rev2 = new CBLRevision(body, database);
-        CBLRevision rev2input = rev2;
+        CBLRevisionInternal rev2 = new CBLRevisionInternal(body, database);
+        CBLRevisionInternal rev2input = rev2;
         rev2 = database.putRevision(rev2, rev1.getRevId(), false, status);
-        Assert.assertEquals(CBLStatus.CREATED, status.getCode());
         Log.v(TAG, "Updated " + rev1);
         Assert.assertEquals(rev1.getDocId(), rev2.getDocId());
         Assert.assertTrue(rev2.getRevId().startsWith("2-"));
@@ -89,28 +87,33 @@ public class CRUDOperations extends CBLiteTestCase implements Observer {
         Assert.assertEquals(userProperties(readRev.getProperties()), userProperties(body.getProperties()));
 
         // Try to update the first rev, which should fail:
-        database.putRevision(rev2input, rev1.getRevId(), false, status);
-        Assert.assertEquals(CBLStatus.CONFLICT, status.getCode());
+        boolean gotExpectedError = false;
+        try {
+            database.putRevision(rev2input, rev1.getRevId(), false, status);
+        } catch (CBLiteException e) {
+            gotExpectedError = e.getCBLStatus().getCode() == CBLStatus.CONFLICT;
+        }
+        Assert.assertTrue(gotExpectedError);
 
         // Check the changes feed, with and without filters:
         CBLRevisionList changes = database.changesSince(0, null, null);
         Log.v(TAG, "Changes = " + changes);
         Assert.assertEquals(1, changes.size());
 
-        changes = database.changesSince(0, null, new CBLFilterBlock() {
+        changes = database.changesSince(0, null, new ReplicationFilter() {
 
             @Override
-            public boolean filter(CBLRevision revision) {
+            public boolean filter(CBLRevisionInternal revision, Map<String, Object> params) {
                 return "updated!".equals(revision.getProperties().get("status"));
             }
 
         });
         Assert.assertEquals(1, changes.size());
 
-        changes = database.changesSince(0, null, new CBLFilterBlock() {
+        changes = database.changesSince(0, null, new ReplicationFilter() {
 
             @Override
-            public boolean filter(CBLRevision revision) {
+            public boolean filter(CBLRevisionInternal revision, Map<String, Object> params) {
                 return "not updated!".equals(revision.getProperties().get("status"));
             }
 
@@ -119,19 +122,31 @@ public class CRUDOperations extends CBLiteTestCase implements Observer {
 
 
         // Delete it:
-        CBLRevision revD = new CBLRevision(rev2.getDocId(), null, true, database);
-        CBLRevision revResult = database.putRevision(revD, null, false, status);
+        CBLRevisionInternal revD = new CBLRevisionInternal(rev2.getDocId(), null, true, database);
+        CBLRevisionInternal revResult = null;
+        gotExpectedError = false;
+        try {
+            revResult = database.putRevision(revD, null, false, status);
+        } catch (CBLiteException e) {
+            gotExpectedError = e.getCBLStatus().getCode() == CBLStatus.CONFLICT;
+        }
+        Assert.assertTrue(gotExpectedError);
+
         Assert.assertNull(revResult);
-        Assert.assertEquals(CBLStatus.CONFLICT, status.getCode());
         revD = database.putRevision(revD, rev2.getRevId(), false, status);
         Assert.assertEquals(CBLStatus.OK, status.getCode());
         Assert.assertEquals(revD.getDocId(), rev2.getDocId());
         Assert.assertTrue(revD.getRevId().startsWith("3-"));
 
         // Delete nonexistent doc:
-        CBLRevision revFake = new CBLRevision("fake", null, true, database);
-        database.putRevision(revFake, null, false, status);
-        Assert.assertEquals(CBLStatus.NOT_FOUND, status.getCode());
+        CBLRevisionInternal revFake = new CBLRevisionInternal("fake", null, true, database);
+        gotExpectedError = false;
+        try {
+            database.putRevision(revFake, null, false, status);
+        } catch (CBLiteException e) {
+            gotExpectedError = e.getCBLStatus().getCode() == CBLStatus.NOT_FOUND;
+        }
+        Assert.assertTrue(gotExpectedError);
 
         // Read it back (should fail):
         readRev = database.getDocumentWithIDAndRev(revD.getDocId(), null, EnumSet.noneOf(CBLDatabase.TDContentOptions.class));
@@ -142,24 +157,26 @@ public class CRUDOperations extends CBLiteTestCase implements Observer {
         Assert.assertTrue(changes.size() == 1);
 
         // Get Revision History
-        List<CBLRevision> history = database.getRevisionHistory(revD);
+        List<CBLRevisionInternal> history = database.getRevisionHistory(revD);
         Assert.assertEquals(revD, history.get(0));
         Assert.assertEquals(rev2, history.get(1));
         Assert.assertEquals(rev1, history.get(2));
     }
 
-    @Override
-    public void update(Observable observable, Object changeObject) {
-        if(observable instanceof CBLDatabase) {
-            //make sure we're listening to the right events
-            Map<String,Object> changeNotification = (Map<String,Object>)changeObject;
 
-            CBLRevision rev = (CBLRevision)changeNotification.get("rev");
+    @Override
+    public void changed(CBLDatabase.ChangeEvent event) {
+        List<DocumentChange> changes = event.getChanges();
+        for (DocumentChange change : changes) {
+
+            CBLRevisionInternal rev = change.getRevisionInternal();
             Assert.assertNotNull(rev);
             Assert.assertNotNull(rev.getDocId());
             Assert.assertNotNull(rev.getRevId());
             Assert.assertEquals(rev.getDocId(), rev.getProperties().get("_id"));
             Assert.assertEquals(rev.getRevId(), rev.getProperties().get("_rev"));
         }
+
+
     }
 }

@@ -123,4 +123,8 @@ public class CBLBlobKey {
     public String toString() {
         return CBLBlobKey.convertToHex(bytes);
     }
+
+    public String base64Digest() {
+        return String.format("sha1-%s", Base64.encodeBytes(bytes));
+    }
 }
