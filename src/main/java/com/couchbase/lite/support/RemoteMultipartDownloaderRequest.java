@@ -20,13 +20,13 @@ import java.net.URL;
 import java.util.Arrays;
 import java.util.concurrent.ScheduledExecutorService;
 
-public class CBLRemoteMultipartDownloaderRequest extends CBLRemoteRequest {
+public class RemoteMultipartDownloaderRequest extends RemoteRequest {
 
     private Database db;
 
-    public CBLRemoteMultipartDownloaderRequest(ScheduledExecutorService workExecutor,
-                                               HttpClientFactory clientFactory, String method, URL url,
-                                               Object body, Database db, RemoteRequestCompletionBlock onCompletion) {
+    public RemoteMultipartDownloaderRequest(ScheduledExecutorService workExecutor,
+                                            HttpClientFactory clientFactory, String method, URL url,
+                                            Object body, Database db, RemoteRequestCompletionBlock onCompletion) {
         super(workExecutor, clientFactory, method, url, body, onCompletion);
         this.db = db;
     }

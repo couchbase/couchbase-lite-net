@@ -11,9 +11,9 @@ import com.couchbase.lite.internal.InterfaceAudience;
 import com.couchbase.lite.support.CBLBatchProcessor;
 import com.couchbase.lite.support.CBLBatcher;
 import com.couchbase.lite.support.CBLHttpClientFactory;
-import com.couchbase.lite.support.CBLRemoteMultipartDownloaderRequest;
-import com.couchbase.lite.support.CBLRemoteMultipartRequest;
-import com.couchbase.lite.support.CBLRemoteRequest;
+import com.couchbase.lite.support.RemoteMultipartDownloaderRequest;
+import com.couchbase.lite.support.RemoteMultipartRequest;
+import com.couchbase.lite.support.RemoteRequest;
 import com.couchbase.lite.support.RemoteRequestCompletionBlock;
 import com.couchbase.lite.support.HttpClientFactory;
 import com.couchbase.lite.util.URIUtils;
@@ -589,7 +589,7 @@ public abstract class CBLReplicator {
     }
 
     public void sendAsyncRequest(String method, URL url, Object body, RemoteRequestCompletionBlock onCompletion) {
-        CBLRemoteRequest request = new CBLRemoteRequest(workExecutor, clientFactory, method, url, body, onCompletion);
+        RemoteRequest request = new RemoteRequest(workExecutor, clientFactory, method, url, body, onCompletion);
         remoteRequestExecutor.execute(request);
     }
 
@@ -599,7 +599,7 @@ public abstract class CBLReplicator {
             String urlStr = buildRelativeURLString(relativePath);
             URL url = new URL(urlStr);
 
-            CBLRemoteMultipartDownloaderRequest request = new CBLRemoteMultipartDownloaderRequest(workExecutor, clientFactory, method, url, body, db, onCompletion);
+            RemoteMultipartDownloaderRequest request = new RemoteMultipartDownloaderRequest(workExecutor, clientFactory, method, url, body, db, onCompletion);
             remoteRequestExecutor.execute(request);
         } catch (MalformedURLException e) {
             Log.e(Database.TAG, "Malformed URL for async request", e);
@@ -614,7 +614,7 @@ public abstract class CBLReplicator {
         } catch (MalformedURLException e) {
             throw new IllegalArgumentException(e);
         }
-        CBLRemoteMultipartRequest request = new CBLRemoteMultipartRequest(workExecutor, clientFactory, method, url, multiPartEntity, onCompletion);
+        RemoteMultipartRequest request = new RemoteMultipartRequest(workExecutor, clientFactory, method, url, multiPartEntity, onCompletion);
         remoteRequestExecutor.execute(request);
     }
 

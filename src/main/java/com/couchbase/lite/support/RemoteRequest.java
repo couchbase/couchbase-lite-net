@@ -40,7 +40,7 @@ import java.net.URL;
 import java.util.concurrent.ScheduledExecutorService;
 
 
-public class CBLRemoteRequest implements Runnable {
+public class RemoteRequest implements Runnable {
 
     protected ScheduledExecutorService workExecutor;
     protected final HttpClientFactory clientFactory;
@@ -49,9 +49,9 @@ public class CBLRemoteRequest implements Runnable {
     protected Object body;
     protected RemoteRequestCompletionBlock onCompletion;
 
-    public CBLRemoteRequest(ScheduledExecutorService workExecutor,
-                            HttpClientFactory clientFactory, String method, URL url,
-                            Object body, RemoteRequestCompletionBlock onCompletion) {
+    public RemoteRequest(ScheduledExecutorService workExecutor,
+                         HttpClientFactory clientFactory, String method, URL url,
+                         Object body, RemoteRequestCompletionBlock onCompletion) {
         this.clientFactory = clientFactory;
         this.method = method;
         this.url = url;
@@ -191,7 +191,7 @@ public class CBLRemoteRequest implements Runnable {
                 }
             } else {
                 Log.w(Database.TAG,
-                        "CBLRemoteRequest Unable to parse user info, not setting credentials");
+                        "RemoteRequest Unable to parse user info, not setting credentials");
             }
         }
     }

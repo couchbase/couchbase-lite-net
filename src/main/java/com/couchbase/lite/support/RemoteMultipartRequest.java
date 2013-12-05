@@ -9,13 +9,13 @@ import org.apache.http.entity.mime.MultipartEntity;
 import java.net.URL;
 import java.util.concurrent.ScheduledExecutorService;
 
-public class CBLRemoteMultipartRequest extends CBLRemoteRequest {
+public class RemoteMultipartRequest extends RemoteRequest {
 
     private MultipartEntity multiPart;
 
-    public CBLRemoteMultipartRequest(ScheduledExecutorService workExecutor,
-                                     HttpClientFactory clientFactory, String method, URL url,
-                                     MultipartEntity multiPart, RemoteRequestCompletionBlock onCompletion) {
+    public RemoteMultipartRequest(ScheduledExecutorService workExecutor,
+                                  HttpClientFactory clientFactory, String method, URL url,
+                                  MultipartEntity multiPart, RemoteRequestCompletionBlock onCompletion) {
         super(workExecutor, clientFactory, method, url, null, onCompletion);
         this.multiPart = multiPart;
     }
