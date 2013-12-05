@@ -8,5 +8,5 @@ public interface CBLChangeTrackerClient extends HttpClientFactory {
 
     void changeTrackerReceivedChange(Map<String,Object> change);
 
-    void changeTrackerStopped(CBLChangeTracker tracker);
+    void changeTrackerStopped(ChangeTracker tracker);
 }

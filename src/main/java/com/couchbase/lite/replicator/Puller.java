@@ -9,8 +9,8 @@ import com.couchbase.lite.Status;
 import com.couchbase.lite.internal.CBLBody;
 import com.couchbase.lite.internal.CBLRevisionInternal;
 import com.couchbase.lite.internal.InterfaceAudience;
-import com.couchbase.lite.replicator.changetracker.CBLChangeTracker;
-import com.couchbase.lite.replicator.changetracker.CBLChangeTracker.TDChangeTrackerMode;
+import com.couchbase.lite.replicator.changetracker.ChangeTracker;
+import com.couchbase.lite.replicator.changetracker.ChangeTracker.TDChangeTrackerMode;
 import com.couchbase.lite.replicator.changetracker.CBLChangeTrackerClient;
 import com.couchbase.lite.storage.SQLException;
 import com.couchbase.lite.support.BatchProcessor;
@@ -40,7 +40,7 @@ public class Puller extends Replication implements CBLChangeTrackerClient {
 
     protected Batcher<List<Object>> downloadsToInsert;
     protected List<CBLRevisionInternal> revsToPull;
-    protected CBLChangeTracker changeTracker;
+    protected ChangeTracker changeTracker;
     protected SequenceMap pendingSequences;
     protected volatile int httpConnectionCount;
 
@@ -90,7 +90,7 @@ public class Puller extends Replication implements CBLChangeTrackerClient {
         }
         pendingSequences = new SequenceMap();
         Log.w(Database.TAG, this + " starting ChangeTracker with since=" + lastSequence);
-        changeTracker = new CBLChangeTracker(remote, continuous ? TDChangeTrackerMode.LongPoll : TDChangeTrackerMode.OneShot, lastSequence, this);
+        changeTracker = new ChangeTracker(remote, continuous ? TDChangeTrackerMode.LongPoll : TDChangeTrackerMode.OneShot, lastSequence, this);
         if(filterName != null) {
             changeTracker.setFilterName(filterName);
             if(filterParams != null) {
@@ -136,7 +136,7 @@ public class Puller extends Replication implements CBLChangeTrackerClient {
         super.stopped();
     }
 
-    // Got a _changes feed entry from the CBLChangeTracker.
+    // Got a _changes feed entry from the ChangeTracker.
     @Override
     public void changeTrackerReceivedChange(Map<String, Object> change) {
         String lastSequence = change.get("seq").toString();
@@ -170,7 +170,7 @@ public class Puller extends Replication implements CBLChangeTrackerClient {
     }
 
     @Override
-    public void changeTrackerStopped(CBLChangeTracker tracker) {
+    public void changeTrackerStopped(ChangeTracker tracker) {
         Log.w(Database.TAG, this + ": ChangeTracker stopped");
         //FIXME tracker doesnt have error right now
 //        if(error == null && tracker.getLastError() != null) {

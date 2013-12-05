@@ -44,7 +44,7 @@ import java.util.Map;
  * Reads the continuous-mode _changes feed of a database, and sends the
  * individual change entries to its client's changeTrackerReceivedChange()
  */
-public class CBLChangeTracker implements Runnable {
+public class ChangeTracker implements Runnable {
 
     private URL databaseURL;
     private CBLChangeTrackerClient client;
@@ -65,8 +65,8 @@ public class CBLChangeTracker implements Runnable {
         OneShot, LongPoll, Continuous
     }
 
-    public CBLChangeTracker(URL databaseURL, TDChangeTrackerMode mode,
-                            Object lastSequenceID, CBLChangeTrackerClient client) {
+    public ChangeTracker(URL databaseURL, TDChangeTrackerMode mode,
+                         Object lastSequenceID, CBLChangeTrackerClient client) {
         this.databaseURL = databaseURL;
         this.mode = mode;
         this.lastSequenceID = lastSequenceID;
@@ -325,7 +325,7 @@ public class CBLChangeTracker implements Runnable {
         Log.d(Database.TAG, "change tracker in stopped");
         if (client != null) {
             Log.d(Database.TAG, "posting stopped");
-            client.changeTrackerStopped(CBLChangeTracker.this);
+            client.changeTrackerStopped(ChangeTracker.this);
         }
         client = null;
         Log.d(Database.TAG, "change tracker client should be null now");
