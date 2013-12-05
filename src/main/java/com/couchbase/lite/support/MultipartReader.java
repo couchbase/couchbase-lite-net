@@ -8,7 +8,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.StringTokenizer;
 
-public class CBLMultipartReader {
+public class MultipartReader {
 
     private static enum CBLMultipartReaderState {
         kUninitialized,
@@ -29,7 +29,7 @@ public class CBLMultipartReader {
     private MultipartReaderDelegate delegate;
     public Map<String, String> headers;
 
-    public CBLMultipartReader(String contentType, MultipartReaderDelegate delegate) {
+    public MultipartReader(String contentType, MultipartReaderDelegate delegate) {
 
         this.contentType = contentType;
         this.delegate = delegate;

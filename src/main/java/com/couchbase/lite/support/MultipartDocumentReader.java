@@ -18,7 +18,7 @@ public class MultipartDocumentReader implements MultipartReaderDelegate {
     /** The response which contains the input stream we need to read from */
     private HttpResponse response;
 
-    private CBLMultipartReader multipartReader;
+    private MultipartReader multipartReader;
     private BlobStoreWriter curAttachment;
     private ByteArrayBuffer jsonBuffer;
     private Map<String, Object> document;
@@ -49,7 +49,7 @@ public class MultipartDocumentReader implements MultipartReaderDelegate {
         if (!contentType.startsWith("multipart/")) {
             throw new IllegalArgumentException("contentType must start with multipart/");
         }
-        multipartReader = new CBLMultipartReader(contentType, this);
+        multipartReader = new MultipartReader(contentType, this);
         attachmentsByName = new HashMap<String, BlobStoreWriter>();
         attachmentsByMd5Digest = new HashMap<String, BlobStoreWriter>();
     }
