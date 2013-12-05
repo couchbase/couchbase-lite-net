@@ -15,7 +15,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class CBLPersonaAuthorizer extends CBLAuthorizer {
+public class PersonaAuthorizer extends CBLAuthorizer {
 
     public static final String LOGIN_PARAMETER_ASSERTION = "assertion";
 
@@ -31,7 +31,7 @@ public class CBLPersonaAuthorizer extends CBLAuthorizer {
 
     private String emailAddress;
 
-    public CBLPersonaAuthorizer(String emailAddress) {
+    public PersonaAuthorizer(String emailAddress) {
         this.emailAddress = emailAddress;
     }
 
@@ -138,7 +138,7 @@ public class CBLPersonaAuthorizer extends CBLAuthorizer {
         if (assertions == null) {
             assertions = new HashMap<List<String>, String>();
         }
-        Log.d(Database.TAG, "CBLPersonaAuthorizer registering key: " + key);
+        Log.d(Database.TAG, "PersonaAuthorizer registering key: " + key);
         assertions.put(key, assertion);
 
         return email;
@@ -171,7 +171,7 @@ public class CBLPersonaAuthorizer extends CBLAuthorizer {
             result.put(ASSERTION_FIELD_ORIGIN, component3Json.get("aud"));
 
             Long expObject = (Long) component3Json.get("exp");
-            Log.d(Database.TAG, "CBLPersonaAuthorizer exp: " + expObject + " class: " + expObject.getClass());
+            Log.d(Database.TAG, "PersonaAuthorizer exp: " + expObject + " class: " + expObject.getClass());
             Date expDate = new Date(expObject.longValue());
             result.put(ASSERTION_FIELD_EXPIRATION, expDate);
 
@@ -189,7 +189,7 @@ public class CBLPersonaAuthorizer extends CBLAuthorizer {
         List<String> key = new ArrayList<String>();
         key.add(email);
         key.add(site.toExternalForm().toLowerCase());
-        Log.d(Database.TAG, "CBLPersonaAuthorizer looking up key: " + key + " from list of assertions");
+        Log.d(Database.TAG, "PersonaAuthorizer looking up key: " + key + " from list of assertions");
         return assertions.get(key);
     }
 

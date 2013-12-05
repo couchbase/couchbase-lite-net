@@ -2,7 +2,7 @@ package com.couchbase.lite;
 
 import com.couchbase.lite.auth.CBLAuthorizer;
 import com.couchbase.lite.auth.CBLFacebookAuthorizer;
-import com.couchbase.lite.auth.CBLPersonaAuthorizer;
+import com.couchbase.lite.auth.PersonaAuthorizer;
 import com.couchbase.lite.internal.InterfaceAudience;
 import com.couchbase.lite.replicator.Puller;
 import com.couchbase.lite.replicator.Pusher;
@@ -410,7 +410,7 @@ public class Manager {
             Map<String, Object> persona = (Map<String, Object>) authMap.get("persona");
             if (persona != null) {
                 String email = (String) persona.get("email");
-                authorizer = new CBLPersonaAuthorizer(email);
+                authorizer = new PersonaAuthorizer(email);
             }
             Map<String, Object> facebook = (Map<String, Object>) authMap.get("facebook");
             if (facebook != null) {

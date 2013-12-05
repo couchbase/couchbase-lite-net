@@ -3,10 +3,10 @@ package com.couchbase.lite.replicator;
 import com.couchbase.lite.Database;
 import com.couchbase.lite.Misc;
 import com.couchbase.lite.RevisionList;
+import com.couchbase.lite.auth.PersonaAuthorizer;
 import com.couchbase.lite.internal.RevisionInternal;
 import com.couchbase.lite.auth.CBLAuthorizer;
 import com.couchbase.lite.auth.CBLFacebookAuthorizer;
-import com.couchbase.lite.auth.CBLPersonaAuthorizer;
 import com.couchbase.lite.internal.InterfaceAudience;
 import com.couchbase.lite.support.BatchProcessor;
 import com.couchbase.lite.support.Batcher;
@@ -103,10 +103,10 @@ public abstract class Replication {
 
             URI uri = URI.create(remote.toExternalForm());
 
-            String personaAssertion = URIUtils.getQueryParameter(uri, CBLPersonaAuthorizer.QUERY_PARAMETER);
+            String personaAssertion = URIUtils.getQueryParameter(uri, PersonaAuthorizer.QUERY_PARAMETER);
             if (personaAssertion != null && !personaAssertion.isEmpty()) {
-                String email = CBLPersonaAuthorizer.registerAssertion(personaAssertion);
-                CBLPersonaAuthorizer authorizer = new CBLPersonaAuthorizer(email);
+                String email = PersonaAuthorizer.registerAssertion(personaAssertion);
+                PersonaAuthorizer authorizer = new PersonaAuthorizer(email);
                 setAuthorizer(authorizer);
             }
 

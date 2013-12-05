@@ -19,7 +19,7 @@ import com.couchbase.lite.Status;
 import com.couchbase.lite.View;
 import com.couchbase.lite.View.TDViewCollation;
 import com.couchbase.lite.auth.CBLFacebookAuthorizer;
-import com.couchbase.lite.auth.CBLPersonaAuthorizer;
+import com.couchbase.lite.auth.PersonaAuthorizer;
 import com.couchbase.lite.internal.Body;
 import com.couchbase.lite.internal.RevisionInternal;
 import com.couchbase.lite.replicator.Replication;
@@ -810,7 +810,7 @@ public class Router implements Database.ChangeListener {
         }
 
         try {
-            String email = CBLPersonaAuthorizer.registerAssertion(assertion);
+            String email = PersonaAuthorizer.registerAssertion(assertion);
 
             Map<String, Object> result = new HashMap<String, Object>();
             result.put("ok", "registered");
