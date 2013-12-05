@@ -1,11 +1,11 @@
 package com.couchbase.lite.replicator;
 
+import com.couchbase.lite.CouchbaseLiteException;
 import com.couchbase.lite.Database;
 import com.couchbase.lite.Manager;
 import com.couchbase.lite.Misc;
 import com.couchbase.lite.RevisionList;
 import com.couchbase.lite.Status;
-import com.couchbase.lite.CBLiteException;
 import com.couchbase.lite.internal.CBLBody;
 import com.couchbase.lite.internal.CBLRevisionInternal;
 import com.couchbase.lite.internal.InterfaceAudience;
@@ -371,7 +371,7 @@ public class CBLPuller extends CBLReplicator implements CBLChangeTrackerClient {
 
                 try {
                     db.forceInsert(rev, history, remote);
-                } catch (CBLiteException e) {
+                } catch (CouchbaseLiteException e) {
                     if(e.getCBLStatus().getCode() == Status.FORBIDDEN) {
                         Log.i(Database.TAG, this + ": Remote rev failed validation: " + rev);
                     } else {

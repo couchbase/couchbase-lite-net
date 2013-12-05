@@ -101,10 +101,10 @@ public class Document {
      * Returns the document's history as an array of CBLRevisions. (See SavedRevision's method.)
      *
      * @return document's history
-     * @throws CBLiteException
+     * @throws CouchbaseLiteException
      */
     @InterfaceAudience.Public
-    public List<SavedRevision> getRevisionHistory() throws CBLiteException {
+    public List<SavedRevision> getRevisionHistory() throws CouchbaseLiteException {
         if (getCurrentRevision() == null) {
             Log.w(Database.TAG, "getRevisionHistory() called but no currentRevision");
             return null;
@@ -117,10 +117,10 @@ public class Document {
      * in conflict, only the single current revision will be returned.
      *
      * @return all current conflicting revisions of the document
-     * @throws CBLiteException
+     * @throws CouchbaseLiteException
      */
     @InterfaceAudience.Public
-    public List<SavedRevision> getConflictingRevisions() throws CBLiteException {
+    public List<SavedRevision> getConflictingRevisions() throws CouchbaseLiteException {
         return getLeafRevisions(false);
     }
 
@@ -129,10 +129,10 @@ public class Document {
      * including deleted revisions (i.e. previously-resolved conflicts.)
      *
      * @return all the leaf revisions in the document's revision tree
-     * @throws CBLiteException
+     * @throws CouchbaseLiteException
      */
     @InterfaceAudience.Public
-    public List<SavedRevision> getLeafRevisions() throws CBLiteException {
+    public List<SavedRevision> getLeafRevisions() throws CouchbaseLiteException {
         return getLeafRevisions(true);
     }
 
@@ -164,10 +164,10 @@ public class Document {
      * This will be replicated to other databases.
      *
      * @return boolean to indicate whether deleted or not
-     * @throws CBLiteException
+     * @throws CouchbaseLiteException
      */
     @InterfaceAudience.Public
-    public boolean delete() throws CBLiteException {
+    public boolean delete() throws CouchbaseLiteException {
         return getCurrentRevision().deleteDocument() != null;
     }
 
@@ -177,10 +177,10 @@ public class Document {
      * The purge will NOT be replicated to other databases.
      *
      * @return boolean to indicate whether purged or not
-     * @throws CBLiteException
+     * @throws CouchbaseLiteException
      */
     @InterfaceAudience.Public
-    public boolean purge() throws CBLiteException {
+    public boolean purge() throws CouchbaseLiteException {
         Map<String, List<String>> docsToRevs = new HashMap<String, List<String>>();
         List<String> revs = new ArrayList<String>();
         revs.add("*");
@@ -239,7 +239,7 @@ public class Document {
      * @return a new SavedRevision
      */
     @InterfaceAudience.Public
-    public SavedRevision putProperties(Map<String,Object> properties) throws CBLiteException {
+    public SavedRevision putProperties(Map<String,Object> properties) throws CouchbaseLiteException {
         String prevID = (String) properties.get("_rev");
         return putProperties(properties, prevID);
     }
@@ -254,10 +254,10 @@ public class Document {
      *                attempt to save. Should update the given revision's properties and then
      *                return YES, or just return NO to cancel.
      * @return The new saved revision, or null on error or cancellation.
-     * @throws CBLiteException
+     * @throws CouchbaseLiteException
      */
     @InterfaceAudience.Public
-    public SavedRevision update(DocumentUpdater updater) throws CBLiteException {
+    public SavedRevision update(DocumentUpdater updater) throws CouchbaseLiteException {
 
         int lastErrorCode = Status.UNKNOWN;
         do {
@@ -270,7 +270,7 @@ public class Document {
                 if (savedRev != null) {
                     return savedRev;
                 }
-            } catch (CBLiteException e) {
+            } catch (CouchbaseLiteException e) {
                 lastErrorCode = e.getCBLStatus().getCode();
             }
 
@@ -320,7 +320,7 @@ public class Document {
     }
 
 
-    List<SavedRevision> getLeafRevisions(boolean includeDeleted) throws CBLiteException {
+    List<SavedRevision> getLeafRevisions(boolean includeDeleted) throws CouchbaseLiteException {
 
         List<SavedRevision> result = new ArrayList<SavedRevision>();
         RevisionList revs = database.getAllRevisionsOfDocumentID(documentId, true);
@@ -338,7 +338,7 @@ public class Document {
 
 
 
-    SavedRevision putProperties(Map<String,Object> properties, String prevID) throws CBLiteException {
+    SavedRevision putProperties(Map<String,Object> properties, String prevID) throws CouchbaseLiteException {
         String newId = null;
         if (properties != null && properties.containsKey("_id")) {
             newId = (String) properties.get("_id");

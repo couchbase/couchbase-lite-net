@@ -44,7 +44,7 @@ public class LiveQuery extends Query implements Database.ChangeListener {
      * Its value will be nil until the initial query finishes.
      */
     @InterfaceAudience.Public
-    public QueryEnumerator run() throws CBLiteException {
+    public QueryEnumerator run() throws CouchbaseLiteException {
         if (rows == null) {
             return null;
         }

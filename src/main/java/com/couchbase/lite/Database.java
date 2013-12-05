@@ -380,7 +380,7 @@ public class Database {
      * will be deleted.
      */
     @InterfaceAudience.Public
-    public boolean putLocalDocument(Map<String, Object> properties, String id) throws CBLiteException {
+    public boolean putLocalDocument(Map<String, Object> properties, String id) throws CouchbaseLiteException {
         // TODO: there was some code in the iOS implementation equivalent that I did not know if needed
         CBLRevisionInternal prevRev = getLocalDocument(id, null);
         if (prevRev == null && properties == null) {
@@ -393,7 +393,7 @@ public class Database {
      * Deletes the local document with the given ID.
      */
     @InterfaceAudience.Public
-    public boolean deleteLocalDocument(String id) throws CBLiteException {
+    public boolean deleteLocalDocument(String id) throws CouchbaseLiteException {
         CBLRevisionInternal prevRev = getLocalDocument(id, null);
         if (prevRev == null) {
             return false;
@@ -1131,7 +1131,7 @@ public class Database {
         return getDocumentWithIDAndRev(docId, revId, EnumSet.of(TDContentOptions.TDNoBody)) != null;
     }
 
-    public void loadRevisionBody(CBLRevisionInternal rev, EnumSet<TDContentOptions> contentOptions) throws CBLiteException {
+    public void loadRevisionBody(CBLRevisionInternal rev, EnumSet<TDContentOptions> contentOptions) throws CouchbaseLiteException {
         if(rev.getBody() != null) {
             return;
         }
@@ -1150,7 +1150,7 @@ public class Database {
             }
         } catch(SQLException e) {
             Log.e(Database.TAG, "Error loading revision body", e);
-            throw new CBLiteException(Status.INTERNAL_SERVER_ERROR);
+            throw new CouchbaseLiteException(Status.INTERNAL_SERVER_ERROR);
         } finally {
             if(cursor != null) {
                 cursor.close();
@@ -1541,7 +1541,7 @@ public class Database {
 
 
 
-    public List<QueryRow> queryViewNamed(String viewName, QueryOptions options, List<Long> outLastSequence) throws CBLiteException {
+    public List<QueryRow> queryViewNamed(String viewName, QueryOptions options, List<Long> outLastSequence) throws CouchbaseLiteException {
 
         long before = System.currentTimeMillis();
         long lastSequence = 0;
@@ -1550,7 +1550,7 @@ public class Database {
         if (viewName != null && viewName.length() > 0) {
             final View view = getView(viewName);
             if (view == null) {
-                throw new CBLiteException(new Status(Status.NOT_FOUND));
+                throw new CouchbaseLiteException(new Status(Status.NOT_FOUND));
             }
             lastSequence = view.getLastSequenceIndexed();
             if (options.getStale() == Query.CBLIndexUpdateMode.NEVER || lastSequence <= 0) {
@@ -1563,7 +1563,7 @@ public class Database {
                     public void run() {
                         try {
                             view.updateIndex();
-                        } catch (CBLiteException e) {
+                        } catch (CouchbaseLiteException e) {
                             Log.e(Database.TAG, "Error updating view index on background thread", e);
                         }
                     }
@@ -1661,7 +1661,7 @@ public class Database {
 
     }
 
-    public Map<String,Object> getAllDocs(QueryOptions options) throws CBLiteException {
+    public Map<String,Object> getAllDocs(QueryOptions options) throws CouchbaseLiteException {
 
         Map<String, Object> result = new HashMap<String, Object>();
         List<QueryRow> rows = new ArrayList<QueryRow>();
@@ -1806,7 +1806,7 @@ public class Database {
 
         } catch (SQLException e) {
             Log.e(Database.TAG, "Error getting all docs", e);
-            throw new CBLiteException("Error getting all docs", e, new Status(Status.INTERNAL_SERVER_ERROR));
+            throw new CouchbaseLiteException("Error getting all docs", e, new Status(Status.INTERNAL_SERVER_ERROR));
         } finally {
             if(cursor != null) {
                 cursor.close();
@@ -1827,7 +1827,7 @@ public class Database {
     /**
      * Returns the rev ID of the 'winning' revision of this document, and whether it's deleted.
      */
-    String winningRevIDOfDoc(long docNumericId, List<Boolean> outIsDeleted, List<Boolean> outIsConflict) throws CBLiteException {
+    String winningRevIDOfDoc(long docNumericId, List<Boolean> outIsDeleted, List<Boolean> outIsConflict) throws CouchbaseLiteException {
 
         Cursor cursor = null;
         String sql = "SELECT revid, deleted FROM revs" +
@@ -1858,7 +1858,7 @@ public class Database {
 
         } catch (SQLException e) {
             Log.e(Database.TAG, "Error", e);
-            throw new CBLiteException("Error", e, new Status(Status.INTERNAL_SERVER_ERROR));
+            throw new CouchbaseLiteException("Error", e, new Status(Status.INTERNAL_SERVER_ERROR));
         } finally {
             if(cursor != null) {
                 cursor.close();
@@ -1873,22 +1873,22 @@ public class Database {
     /*** Database+Attachments                                                                    ***/
     /*************************************************************************************************/
 
-    void insertAttachmentForSequence(CBLAttachmentInternal attachment, long sequence) throws CBLiteException {
+    void insertAttachmentForSequence(CBLAttachmentInternal attachment, long sequence) throws CouchbaseLiteException {
         insertAttachmentForSequenceWithNameAndType(sequence, attachment.getName(), attachment.getContentType(), attachment.getRevpos(), attachment.getBlobKey());
     }
 
-    public void insertAttachmentForSequenceWithNameAndType(InputStream contentStream, long sequence, String name, String contentType, int revpos) throws CBLiteException {
+    public void insertAttachmentForSequenceWithNameAndType(InputStream contentStream, long sequence, String name, String contentType, int revpos) throws CouchbaseLiteException {
         assert(sequence > 0);
         assert(name != null);
 
         CBLBlobKey key = new CBLBlobKey();
         if(!attachments.storeBlobStream(contentStream, key)) {
-            throw new CBLiteException(Status.INTERNAL_SERVER_ERROR);
+            throw new CouchbaseLiteException(Status.INTERNAL_SERVER_ERROR);
         }
         insertAttachmentForSequenceWithNameAndType(sequence, name, contentType, revpos, key);
     }
 
-    public void insertAttachmentForSequenceWithNameAndType(long sequence, String name, String contentType, int revpos, CBLBlobKey key) throws CBLiteException {
+    public void insertAttachmentForSequenceWithNameAndType(long sequence, String name, String contentType, int revpos, CBLBlobKey key) throws CouchbaseLiteException {
         try {
             ContentValues args = new ContentValues();
             args.put("sequence", sequence);
@@ -1902,14 +1902,14 @@ public class Database {
             database.insert("attachments", null, args);
         } catch (SQLException e) {
             Log.e(Database.TAG, "Error inserting attachment", e);
-            throw new CBLiteException(Status.INTERNAL_SERVER_ERROR);
+            throw new CouchbaseLiteException(Status.INTERNAL_SERVER_ERROR);
         }
     }
 
-    void installAttachment(CBLAttachmentInternal attachment, Map<String, Object> attachInfo) throws CBLiteException {
+    void installAttachment(CBLAttachmentInternal attachment, Map<String, Object> attachInfo) throws CouchbaseLiteException {
         String digest = (String) attachInfo.get("digest");
         if (digest == null) {
-            throw new CBLiteException(Status.BAD_ATTACHMENT);
+            throw new CouchbaseLiteException(Status.BAD_ATTACHMENT);
         }
         if (pendingAttachmentsByDigest != null && pendingAttachmentsByDigest.containsKey(digest)) {
             CBLBlobStoreWriter writer = pendingAttachmentsByDigest.get(digest);
@@ -1919,7 +1919,7 @@ public class Database {
                 attachment.setBlobKey(blobStoreWriter.getBlobKey());
                 attachment.setLength(blobStoreWriter.getLength());
             } catch (Exception e) {
-                throw new CBLiteException(e, Status.STATUS_ATTACHMENT_ERROR);
+                throw new CouchbaseLiteException(e, Status.STATUS_ATTACHMENT_ERROR);
             }
         }
     }
@@ -1932,11 +1932,11 @@ public class Database {
     }
 
 
-    public void copyAttachmentNamedFromSequenceToSequence(String name, long fromSeq, long toSeq) throws CBLiteException {
+    public void copyAttachmentNamedFromSequenceToSequence(String name, long fromSeq, long toSeq) throws CouchbaseLiteException {
         assert(name != null);
         assert(toSeq > 0);
         if(fromSeq < 0) {
-            throw new CBLiteException(Status.NOT_FOUND);
+            throw new CouchbaseLiteException(Status.NOT_FOUND);
         }
 
         Cursor cursor = null;
@@ -1953,14 +1953,14 @@ public class Database {
                 // Oops. This means a glitch in our attachment-management or pull code,
                 // or else a bug in the upstream server.
                 Log.w(Database.TAG, "Can't find inherited attachment " + name + " from seq# " + Long.toString(fromSeq) + " to copy to " + Long.toString(toSeq));
-                throw new CBLiteException(Status.NOT_FOUND);
+                throw new CouchbaseLiteException(Status.NOT_FOUND);
             }
             else {
                 return;
             }
         } catch (SQLException e) {
             Log.e(Database.TAG, "Error copying attachment", e);
-            throw new CBLiteException(Status.INTERNAL_SERVER_ERROR);
+            throw new CouchbaseLiteException(Status.INTERNAL_SERVER_ERROR);
         } finally {
             if(cursor != null) {
                 cursor.close();
@@ -1971,7 +1971,7 @@ public class Database {
     /**
      * Returns the content and MIME type of an attachment
      */
-    public Attachment getAttachmentForSequence(long sequence, String filename) throws CBLiteException {
+    public Attachment getAttachmentForSequence(long sequence, String filename) throws CouchbaseLiteException {
         assert(sequence > 0);
         assert(filename != null);
 
@@ -1982,7 +1982,7 @@ public class Database {
             cursor = database.rawQuery("SELECT key, type FROM attachments WHERE sequence=? AND filename=?", args);
 
             if(!cursor.moveToNext()) {
-                throw new CBLiteException(Status.NOT_FOUND);
+                throw new CouchbaseLiteException(Status.NOT_FOUND);
             }
 
             byte[] keyData = cursor.getBlob(0);
@@ -1991,7 +1991,7 @@ public class Database {
             InputStream contentStream = attachments.blobStreamForKey(key);
             if(contentStream == null) {
                 Log.e(Database.TAG, "Failed to load attachment");
-                throw new CBLiteException(Status.INTERNAL_SERVER_ERROR);
+                throw new CouchbaseLiteException(Status.INTERNAL_SERVER_ERROR);
             }
             else {
                 Attachment result = new Attachment(contentStream, cursor.getString(1));
@@ -2000,7 +2000,7 @@ public class Database {
             }
 
         } catch (SQLException e) {
-            throw new CBLiteException(Status.INTERNAL_SERVER_ERROR);
+            throw new CouchbaseLiteException(Status.INTERNAL_SERVER_ERROR);
         } finally {
             if(cursor != null) {
                 cursor.close();
@@ -2012,7 +2012,7 @@ public class Database {
     /**
      * Returns the location of an attachment's file in the blob store.
      */
-    String getAttachmentPathForSequence(long sequence, String filename) throws CBLiteException {
+    String getAttachmentPathForSequence(long sequence, String filename) throws CouchbaseLiteException {
 
         assert(sequence > 0);
         assert(filename != null);
@@ -2024,7 +2024,7 @@ public class Database {
             cursor = database.rawQuery("SELECT key, type, encoding FROM attachments WHERE sequence=? AND filename=?", args);
 
             if(!cursor.moveToNext()) {
-                throw new CBLiteException(Status.NOT_FOUND);
+                throw new CouchbaseLiteException(Status.NOT_FOUND);
             }
 
             byte[] keyData = cursor.getBlob(0);
@@ -2033,7 +2033,7 @@ public class Database {
             return filePath;
 
         } catch (SQLException e) {
-            throw new CBLiteException(Status.INTERNAL_SERVER_ERROR);
+            throw new CouchbaseLiteException(Status.INTERNAL_SERVER_ERROR);
         } finally {
             if(cursor != null) {
                 cursor.close();
@@ -2203,7 +2203,7 @@ public class Database {
      * Given a newly-added revision, adds the necessary attachment rows to the sqliteDb and
      * stores inline attachments into the blob store.
      */
-    void processAttachmentsForRevision(Map<String, CBLAttachmentInternal> attachments, CBLRevisionInternal rev, long parentSequence) throws CBLiteException {
+    void processAttachmentsForRevision(Map<String, CBLAttachmentInternal> attachments, CBLRevisionInternal rev, long parentSequence) throws CouchbaseLiteException {
 
         assert(rev != null);
         long newSequence = rev.getSequence();
@@ -2252,12 +2252,12 @@ public class Database {
      * Updates or deletes an attachment, creating a new document revision in the process.
      * Used by the PUT / DELETE methods called on attachment URLs.
      */
-    public CBLRevisionInternal updateAttachment(String filename, InputStream contentStream, String contentType, String docID, String oldRevID) throws CBLiteException {
+    public CBLRevisionInternal updateAttachment(String filename, InputStream contentStream, String contentType, String docID, String oldRevID) throws CouchbaseLiteException {
 
         boolean isSuccessful = false;
 
         if(filename == null || filename.length() == 0 || (contentStream != null && contentType == null) || (oldRevID != null && docID == null) || (contentStream != null && docID == null)) {
-            throw new CBLiteException(Status.BAD_REQUEST);
+            throw new CouchbaseLiteException(Status.BAD_REQUEST);
         }
 
         beginTransaction();
@@ -2268,15 +2268,15 @@ public class Database {
                 // Load existing revision if this is a replacement:
                 try {
                     loadRevisionBody(oldRev, EnumSet.noneOf(TDContentOptions.class));
-                } catch (CBLiteException e) {
+                } catch (CouchbaseLiteException e) {
                     if (e.getCBLStatus().getCode() == Status.NOT_FOUND && existsDocumentWithIDAndRev(docID, null) ) {
-                        throw new CBLiteException(Status.CONFLICT);
+                        throw new CouchbaseLiteException(Status.CONFLICT);
                     }
                 }
 
                 Map<String,Object> attachments = (Map<String, Object>) oldRev.getProperties().get("_attachments");
                 if(contentStream == null && attachments != null && !attachments.containsKey(filename)) {
-                    throw new CBLiteException(Status.NOT_FOUND);
+                    throw new CouchbaseLiteException(Status.NOT_FOUND);
                 }
                 // Remove the _attachments stubs so putRevision: doesn't copy the rows for me
                 // OPT: Would be better if I could tell loadRevisionBody: not to add it
@@ -2318,7 +2318,7 @@ public class Database {
 
         } catch(SQLException e) {
             Log.e(TAG, "Error updating attachment", e);
-            throw new CBLiteException(new Status(Status.INTERNAL_SERVER_ERROR));
+            throw new CouchbaseLiteException(new Status(Status.INTERNAL_SERVER_ERROR));
         } finally {
             endTransaction(isSuccessful);
         }
@@ -2537,11 +2537,11 @@ public class Database {
     }
 
     // TODO: move this to internal API
-    public CBLRevisionInternal putRevision(CBLRevisionInternal rev, String prevRevId, Status resultStatus) throws CBLiteException  {
+    public CBLRevisionInternal putRevision(CBLRevisionInternal rev, String prevRevId, Status resultStatus) throws CouchbaseLiteException {
         return putRevision(rev, prevRevId, false, resultStatus);
     }
 
-    public CBLRevisionInternal putRevision(CBLRevisionInternal rev, String prevRevId,  boolean allowConflict) throws CBLiteException  {
+    public CBLRevisionInternal putRevision(CBLRevisionInternal rev, String prevRevId,  boolean allowConflict) throws CouchbaseLiteException {
         Status ignoredStatus = new Status();
         return putRevision(rev, prevRevId, allowConflict, ignoredStatus);
     }
@@ -2559,13 +2559,13 @@ public class Database {
      * @return A new CBLRevisionInternal with the docID, revID and sequence filled in (but no body).
      */
     @SuppressWarnings("unchecked")
-    public CBLRevisionInternal putRevision(CBLRevisionInternal rev, String prevRevId, boolean allowConflict, Status resultStatus) throws CBLiteException {
+    public CBLRevisionInternal putRevision(CBLRevisionInternal rev, String prevRevId, boolean allowConflict, Status resultStatus) throws CouchbaseLiteException {
         // prevRevId is the rev ID being replaced, or nil if an insert
         String docId = rev.getDocId();
         boolean deleted = rev.isDeleted();
         if((rev == null) || ((prevRevId != null) && (docId == null)) || (deleted && (docId == null))
                 || ((docId != null) && !isValidDocumentId(docId))) {
-            throw new CBLiteException(Status.BAD_REQUEST);
+            throw new CouchbaseLiteException(Status.BAD_REQUEST);
         }
 
         beginTransaction();
@@ -2579,7 +2579,7 @@ public class Database {
             if(prevRevId != null) {
                 // Replacing: make sure given prevRevID is current & find its sequence number:
                 if(docNumericID <= 0) {
-                    throw new CBLiteException(Status.NOT_FOUND);
+                    throw new CouchbaseLiteException(Status.NOT_FOUND);
                 }
 
                 String[] args = {Long.toString(docNumericID), prevRevId};
@@ -2597,10 +2597,10 @@ public class Database {
                 if(parentSequence == 0) {
                     // Not found: either a 404 or a 409, depending on whether there is any current revision
                     if(!allowConflict && existsDocumentWithIDAndRev(docId, null)) {
-                        throw new CBLiteException(Status.CONFLICT);
+                        throw new CouchbaseLiteException(Status.CONFLICT);
                     }
                     else {
-                        throw new CBLiteException(Status.NOT_FOUND);
+                        throw new CouchbaseLiteException(Status.NOT_FOUND);
                     }
                 }
 
@@ -2620,10 +2620,10 @@ public class Database {
                 if(deleted && (docId != null)) {
                     // Didn't specify a revision to delete: 404 or a 409, depending
                     if(existsDocumentWithIDAndRev(docId, null)) {
-                        throw new CBLiteException(Status.CONFLICT);
+                        throw new CouchbaseLiteException(Status.CONFLICT);
                     }
                     else {
-                        throw new CBLiteException(Status.NOT_FOUND);
+                        throw new CouchbaseLiteException(Status.NOT_FOUND);
                     }
                 }
 
@@ -2655,7 +2655,7 @@ public class Database {
                                 String msg = String.format("docId (%s) already exists, current not " +
                                         "deleted, so conflict.  Did you forget to pass in a previous " +
                                         "revision ID in the properties being saved?", docId);
-                                throw new CBLiteException(msg, Status.CONFLICT);
+                                throw new CouchbaseLiteException(msg, Status.CONFLICT);
                             }
                         }
                     }
@@ -2682,7 +2682,7 @@ public class Database {
                 data = encodeDocumentJSON(rev);
                 if(data == null) {
                     // bad or missing json
-                    throw new CBLiteException(Status.BAD_REQUEST);
+                    throw new CouchbaseLiteException(Status.BAD_REQUEST);
                 }
             }
 
@@ -2727,7 +2727,7 @@ public class Database {
      * Given a revision, read its _attachments dictionary (if any), convert each attachment to a
      * CBLAttachmentInternal object, and return a dictionary mapping names->CBL_Attachments.
      */
-    Map<String, CBLAttachmentInternal> getAttachmentsFromRevision(CBLRevisionInternal rev) throws CBLiteException {
+    Map<String, CBLAttachmentInternal> getAttachmentsFromRevision(CBLRevisionInternal rev) throws CouchbaseLiteException {
 
         Map<String, Object> revAttachments = (Map<String, Object>) rev.getPropertyForKey("_attachments");
         if (revAttachments == null || revAttachments.size() == 0 || rev.isDeleted()) {
@@ -2746,14 +2746,14 @@ public class Database {
                 try {
                     newContents = Base64.decode(newContentBase64);
                 } catch (IOException e) {
-                    throw new CBLiteException(e, Status.BAD_ENCODING);
+                    throw new CouchbaseLiteException(e, Status.BAD_ENCODING);
                 }
                 attachment.setLength(newContents.length);
                 CBLBlobKey outBlobKey = new CBLBlobKey();
                 boolean storedBlob = getAttachments().storeBlob(newContents, outBlobKey);
                 attachment.setBlobKey(outBlobKey);
                 if (!storedBlob) {
-                    throw new CBLiteException(Status.STATUS_ATTACHMENT_ERROR);
+                    throw new CouchbaseLiteException(Status.STATUS_ATTACHMENT_ERROR);
                 }
             }
             else if (((Boolean)attachInfo.get("follows")).booleanValue() == true) {
@@ -2766,11 +2766,11 @@ public class Database {
             else {
                 // This item is just a stub; validate and skip it
                 if (((Boolean)attachInfo.get("stub")).booleanValue() == false) {
-                    throw new CBLiteException("Expected this attachment to be a stub", Status.BAD_ATTACHMENT);
+                    throw new CouchbaseLiteException("Expected this attachment to be a stub", Status.BAD_ATTACHMENT);
                 }
                 int revPos = ((Integer)attachInfo.get("revpos")).intValue();
                 if (revPos <= 0) {
-                    throw new CBLiteException("Invalid revpos: " + revPos, Status.BAD_ATTACHMENT);
+                    throw new CouchbaseLiteException("Invalid revpos: " + revPos, Status.BAD_ATTACHMENT);
                 }
                 continue;
             }
@@ -2782,7 +2782,7 @@ public class Database {
                     attachment.setEncoding(CBLAttachmentInternal.CBLAttachmentEncoding.CBLAttachmentEncodingGZIP);
                 }
                 else {
-                    throw new CBLiteException("Unnkown encoding: " + encodingStr, Status.BAD_ENCODING);
+                    throw new CouchbaseLiteException("Unnkown encoding: " + encodingStr, Status.BAD_ENCODING);
                 }
                 attachment.setEncodedLength(attachment.getLength());
                 attachment.setLength((Long)attachInfo.get("length"));
@@ -2805,12 +2805,12 @@ public class Database {
      *
      * It must already have a revision ID. This may create a conflict! The revision's history must be given; ancestor revision IDs that don't already exist locally will create phantom revisions with no content.
      */
-    public void forceInsert(CBLRevisionInternal rev, List<String> revHistory, URL source) throws CBLiteException {
+    public void forceInsert(CBLRevisionInternal rev, List<String> revHistory, URL source) throws CouchbaseLiteException {
 
         String docId = rev.getDocId();
         String revId = rev.getRevId();
         if(!isValidDocumentId(docId) || (revId == null)) {
-            throw new CBLiteException(Status.BAD_REQUEST);
+            throw new CouchbaseLiteException(Status.BAD_REQUEST);
         }
 
         int historyCount = 0;
@@ -2822,7 +2822,7 @@ public class Database {
             revHistory.add(revId);
             historyCount = 1;
         } else if(!revHistory.get(0).equals(rev.getRevId())) {
-            throw new CBLiteException(Status.BAD_REQUEST);
+            throw new CouchbaseLiteException(Status.BAD_REQUEST);
         }
 
         boolean success = false;
@@ -2832,7 +2832,7 @@ public class Database {
             long docNumericID = getOrInsertDocNumericID(docId);
             RevisionList localRevs = getAllRevisionsOfDocumentID(docId, docNumericID, false);
             if(localRevs == null) {
-                throw new CBLiteException(Status.INTERNAL_SERVER_ERROR);
+                throw new CouchbaseLiteException(Status.INTERNAL_SERVER_ERROR);
             }
 
             // Walk through the remote history in chronological order, matching each revision ID to
@@ -2860,7 +2860,7 @@ public class Database {
                        if(!rev.isDeleted()) {
                            data = encodeDocumentJSON(rev);
                            if(data == null) {
-                               throw new CBLiteException(Status.BAD_REQUEST);
+                               throw new CouchbaseLiteException(Status.BAD_REQUEST);
                            }
                        }
                        current = true;
@@ -2874,7 +2874,7 @@ public class Database {
                     sequence = insertRevision(newRev, docNumericID, sequence, current, data);
 
                     if(sequence <= 0) {
-                        throw new CBLiteException(Status.INTERNAL_SERVER_ERROR);
+                        throw new CouchbaseLiteException(Status.INTERNAL_SERVER_ERROR);
                     }
 
                     if(i == 0) {
@@ -2898,13 +2898,13 @@ public class Database {
                 try {
                     database.update("revs", args, "sequence=?", whereArgs);
                 } catch (SQLException e) {
-                    throw new CBLiteException(Status.INTERNAL_SERVER_ERROR);
+                    throw new CouchbaseLiteException(Status.INTERNAL_SERVER_ERROR);
                 }
             }
 
             success = true;
         } catch(SQLException e) {
-            throw new CBLiteException(Status.INTERNAL_SERVER_ERROR);
+            throw new CouchbaseLiteException(Status.INTERNAL_SERVER_ERROR);
         } finally {
             endTransaction(success);
         }
@@ -2917,7 +2917,7 @@ public class Database {
 
 
 
-    public void validateRevision(CBLRevisionInternal newRev, CBLRevisionInternal oldRev) throws CBLiteException {
+    public void validateRevision(CBLRevisionInternal newRev, CBLRevisionInternal oldRev) throws CouchbaseLiteException {
         if(validations == null || validations.size() == 0) {
             return;
         }
@@ -2925,7 +2925,7 @@ public class Database {
         for (String validationName : validations.keySet()) {
             ValidationBlock validation = getValidation(validationName);
             if(!validation.validate(newRev, context)) {
-                throw new CBLiteException(context.getErrorType().getCode());
+                throw new CouchbaseLiteException(context.getErrorType().getCode());
             }
         }
     }
@@ -3089,10 +3089,10 @@ public class Database {
     }
 
 
-    public CBLRevisionInternal putLocalRevision(CBLRevisionInternal revision, String prevRevID) throws CBLiteException  {
+    public CBLRevisionInternal putLocalRevision(CBLRevisionInternal revision, String prevRevID) throws CouchbaseLiteException {
         String docID = revision.getDocId();
         if(!docID.startsWith("_local/")) {
-            throw new CBLiteException(Status.BAD_REQUEST);
+            throw new CouchbaseLiteException(Status.BAD_REQUEST);
         }
 
         if(!revision.isDeleted()) {
@@ -3102,7 +3102,7 @@ public class Database {
             if(prevRevID != null) {
                 int generation = CBLRevisionInternal.generationFromRevID(prevRevID);
                 if(generation == 0) {
-                    throw new CBLiteException(Status.BAD_REQUEST);
+                    throw new CouchbaseLiteException(Status.BAD_REQUEST);
                 }
                 newRevID = Integer.toString(++generation) + "-local";
                 ContentValues values = new ContentValues();
@@ -3112,10 +3112,10 @@ public class Database {
                 try {
                     int rowsUpdated = database.update("localdocs", values, "docid=? AND revid=?", whereArgs);
                     if(rowsUpdated == 0) {
-                        throw new CBLiteException(Status.CONFLICT);
+                        throw new CouchbaseLiteException(Status.CONFLICT);
                     }
                 } catch (SQLException e) {
-                    throw new CBLiteException(e, Status.INTERNAL_SERVER_ERROR);
+                    throw new CouchbaseLiteException(e, Status.INTERNAL_SERVER_ERROR);
                 }
             } else {
                 newRevID = "1-local";
@@ -3126,7 +3126,7 @@ public class Database {
                 try {
                     database.insertWithOnConflict("localdocs", null, values, SQLiteStorageEngine.CONFLICT_IGNORE);
                 } catch (SQLException e) {
-                    throw new CBLiteException(e, Status.INTERNAL_SERVER_ERROR);
+                    throw new CouchbaseLiteException(e, Status.INTERNAL_SERVER_ERROR);
                 }
             }
             return revision.copyWithDocID(docID, newRevID);
@@ -3375,17 +3375,17 @@ public class Database {
 
     }
 
-    public void deleteLocalDocument(String docID, String revID) throws CBLiteException {
+    public void deleteLocalDocument(String docID, String revID) throws CouchbaseLiteException {
         if(docID == null) {
-            throw new CBLiteException(Status.BAD_REQUEST);
+            throw new CouchbaseLiteException(Status.BAD_REQUEST);
         }
         if(revID == null) {
             // Didn't specify a revision to delete: 404 or a 409, depending
             if (getLocalDocument(docID, null) != null) {
-                throw new CBLiteException(Status.CONFLICT);
+                throw new CouchbaseLiteException(Status.CONFLICT);
             }
             else {
-                throw new CBLiteException(Status.NOT_FOUND);
+                throw new CouchbaseLiteException(Status.NOT_FOUND);
             }
         }
         String[] whereArgs = { docID, revID };
@@ -3393,14 +3393,14 @@ public class Database {
             int rowsDeleted = database.delete("localdocs", "docid=? AND revid=?", whereArgs);
             if(rowsDeleted == 0) {
                 if (getLocalDocument(docID, null) != null) {
-                    throw new CBLiteException(Status.CONFLICT);
+                    throw new CouchbaseLiteException(Status.CONFLICT);
                 }
                 else {
-                    throw new CBLiteException(Status.NOT_FOUND);
+                    throw new CouchbaseLiteException(Status.NOT_FOUND);
                 }
             }
         } catch (SQLException e) {
-            throw new CBLiteException(e, Status.INTERNAL_SERVER_ERROR);
+            throw new CouchbaseLiteException(e, Status.INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -3460,7 +3460,7 @@ class TDValidationContextImpl implements ValidationContext {
     }
 
     @Override
-    public CBLRevisionInternal getCurrentRevision() throws CBLiteException {
+    public CBLRevisionInternal getCurrentRevision() throws CouchbaseLiteException {
         if(currentRevision != null) {
             database.loadRevisionBody(currentRevision, EnumSet.noneOf(TDContentOptions.class));
         }

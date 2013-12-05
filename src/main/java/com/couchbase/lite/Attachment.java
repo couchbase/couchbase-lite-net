@@ -115,10 +115,10 @@ public class Attachment {
 
     /**
      * Get the content (aka 'body') data.
-     * @throws CBLiteException
+     * @throws CouchbaseLiteException
      */
     @InterfaceAudience.Public
-    public InputStream getContent() throws CBLiteException {
+    public InputStream getContent() throws CouchbaseLiteException {
         if (body != null) {
             return body;
         }

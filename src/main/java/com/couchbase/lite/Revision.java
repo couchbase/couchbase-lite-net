@@ -178,10 +178,10 @@ public abstract class Revision {
      * Returns the history of this document as an array of CBLRevisions, in forward order.
      * Older revisions are NOT guaranteed to have their properties available.
      *
-     * @throws CBLiteException
+     * @throws CouchbaseLiteException
      */
     @InterfaceAudience.Public
-    public abstract List<SavedRevision> getRevisionHistory() throws CBLiteException;
+    public abstract List<SavedRevision> getRevisionHistory() throws CouchbaseLiteException;
 
     Map<String, Object> getAttachmentMetadata() {
         return (Map<String, Object>) getProperty("_attachments");

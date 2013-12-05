@@ -356,13 +356,13 @@ public class View {
      * @return 200 if updated, 304 if already up-to-date, else an error code
      */
     @SuppressWarnings("unchecked")
-    public void updateIndex() throws CBLiteException {
+    public void updateIndex() throws CouchbaseLiteException {
         Log.v(Database.TAG, "Re-indexing view " + name + " ...");
         assert (mapBlock != null);
 
         if (getViewId() < 0) {
             String msg = String.format("getViewId() < 0");
-            throw new CBLiteException(msg, new Status(Status.NOT_FOUND));
+            throw new CouchbaseLiteException(msg, new Status(Status.NOT_FOUND));
         }
 
         database.beginTransaction();
@@ -385,7 +385,7 @@ public class View {
             long sequence = lastSequence;
             if (lastSequence < 0) {
                 String msg = String.format("lastSequence < 0 (%s)", lastSequence);
-                throw new CBLiteException(msg, new Status(Status.INTERNAL_SERVER_ERROR));
+                throw new CouchbaseLiteException(msg, new Status(Status.INTERNAL_SERVER_ERROR));
             }
 
             if (lastSequence == 0) {
@@ -508,7 +508,7 @@ public class View {
             result.setCode(Status.OK);
 
         } catch (SQLException e) {
-            throw new CBLiteException(e, new Status(Status.DB_ERROR));
+            throw new CouchbaseLiteException(e, new Status(Status.DB_ERROR));
         } finally {
             if (cursor != null) {
                 cursor.close();
@@ -677,7 +677,7 @@ public class View {
         return result;
     }
 
-    List<QueryRow> reducedQuery(Cursor cursor, boolean group, int groupLevel) throws CBLiteException {
+    List<QueryRow> reducedQuery(Cursor cursor, boolean group, int groupLevel) throws CouchbaseLiteException {
 
         List<Object> keysToReduce = null;
         List<Object> valuesToReduce = null;
@@ -735,7 +735,7 @@ public class View {
      * @return An array of QueryRow objects.
      */
     @InterfaceAudience.Private
-    public List<QueryRow> queryWithOptions(QueryOptions options) throws CBLiteException {
+    public List<QueryRow> queryWithOptions(QueryOptions options) throws CouchbaseLiteException {
 
         if (options == null) {
             options = new QueryOptions();
@@ -753,7 +753,7 @@ public class View {
             if (reduce && (reduceBlock == null) && !group) {
                 String msg = "Cannot use reduce option in view " + name + " which has no reduce block defined";
                 Log.w(Database.TAG, msg);
-                throw new CBLiteException(new Status(Status.BAD_REQUEST));
+                throw new CouchbaseLiteException(new Status(Status.BAD_REQUEST));
             }
 
             if (reduce || group) {
@@ -799,7 +799,7 @@ public class View {
         } catch (SQLException e) {
             String errMsg = String.format("Error querying view: %s", this);
             Log.e(Database.TAG, errMsg, e);
-            throw new CBLiteException(errMsg, e, new Status(Status.DB_ERROR));
+            throw new CouchbaseLiteException(errMsg, e, new Status(Status.DB_ERROR));
         } finally {
             if (cursor != null) {
                 cursor.close();

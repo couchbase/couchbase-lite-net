@@ -2,12 +2,12 @@ package com.couchbase.lite.replicator;
 
 import com.couchbase.lite.CBLBlobKey;
 import com.couchbase.lite.CBLBlobStore;
+import com.couchbase.lite.CouchbaseLiteException;
 import com.couchbase.lite.Database;
 import com.couchbase.lite.DocumentChange;
 import com.couchbase.lite.Manager;
 import com.couchbase.lite.ReplicationFilter;
 import com.couchbase.lite.RevisionList;
-import com.couchbase.lite.CBLiteException;
 import com.couchbase.lite.internal.CBLRevisionInternal;
 import com.couchbase.lite.internal.InterfaceAudience;
 import com.couchbase.lite.support.CBLRemoteRequestCompletionBlock;
@@ -213,7 +213,7 @@ public class CBLPusher extends CBLReplicator implements Database.ChangeListener 
 
                                     try {
                                         db.loadRevisionBody(rev, contentOptions);
-                                    } catch (CBLiteException e1) {
+                                    } catch (CouchbaseLiteException e1) {
                                         throw new RuntimeException(e1);
                                     }
                                     properties = new HashMap<String,Object>(rev.getProperties());

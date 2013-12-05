@@ -81,10 +81,10 @@ public class UnsavedRevision extends Revision {
      * Afterwards you should use the returned Revision instead of this object.
      *
      * @return A new Revision representing the saved form of the revision.
-     * @throws CBLiteException
+     * @throws CouchbaseLiteException
      */
     @InterfaceAudience.Public
-    public SavedRevision save() throws CBLiteException {
+    public SavedRevision save() throws CouchbaseLiteException {
         return document.putProperties(properties, parentRevID);
     }
 
@@ -184,7 +184,7 @@ public class UnsavedRevision extends Revision {
 
     @Override
     @InterfaceAudience.Public
-    public List<SavedRevision> getRevisionHistory() throws CBLiteException {
+    public List<SavedRevision> getRevisionHistory() throws CouchbaseLiteException {
         // (Don't include self in the array, because this revision doesn't really exist yet)
         SavedRevision parent = getParentRevision();
         return parent != null ? parent.getRevisionHistory() : new ArrayList<SavedRevision>();

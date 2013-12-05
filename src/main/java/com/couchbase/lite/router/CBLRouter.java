@@ -3,6 +3,7 @@ package com.couchbase.lite.router;
 
 import com.couchbase.lite.Attachment;
 import com.couchbase.lite.CBLChangesOptions;
+import com.couchbase.lite.CouchbaseLiteException;
 import com.couchbase.lite.Database;
 import com.couchbase.lite.Database.TDContentOptions;
 import com.couchbase.lite.DocumentChange;
@@ -17,7 +18,6 @@ import com.couchbase.lite.RevisionList;
 import com.couchbase.lite.Status;
 import com.couchbase.lite.View;
 import com.couchbase.lite.View.TDViewCollation;
-import com.couchbase.lite.CBLiteException;
 import com.couchbase.lite.auth.CBLFacebookAuthorizer;
 import com.couchbase.lite.auth.CBLPersonaAuthorizer;
 import com.couchbase.lite.internal.CBLBody;
@@ -445,8 +445,8 @@ public class CBLRouter implements Database.ChangeListener {
             result.put("error", "not_found");
             result.put("reason", errorMessage + e.toString());
             connection.setResponseBody(new CBLBody(result));
-            if (e instanceof CBLiteException) {
-                status = ((CBLiteException)e).getCBLStatus();
+            if (e instanceof CouchbaseLiteException) {
+                status = ((CouchbaseLiteException)e).getCBLStatus();
             }
             else {
                 status = new Status(Status.NOT_FOUND);
@@ -569,7 +569,7 @@ public class CBLRouter implements Database.ChangeListener {
 
         try {
             replicator = manager.getReplicator(body);
-        } catch (CBLiteException e) {
+        } catch (CouchbaseLiteException e) {
             Map<String, Object> result = new HashMap<String, Object>();
             result.put("error", e.toString());
             connection.setResponseBody(new CBLBody(result));
@@ -682,7 +682,7 @@ public class CBLRouter implements Database.ChangeListener {
         return new Status(Status.CREATED);
     }
 
-    public Status do_DELETE_Database(Database _db, String _docID, String _attachmentName) throws CBLiteException {
+    public Status do_DELETE_Database(Database _db, String _docID, String _attachmentName) throws CouchbaseLiteException {
         if(getQuery("rev") != null) {
             return new Status(Status.BAD_REQUEST);  // CouchDB checks for this; probably meant to be a document deletion
         }
@@ -711,7 +711,7 @@ public class CBLRouter implements Database.ChangeListener {
         return update(db, null, getBodyAsDictionary(), false);
     }
 
-    public Status do_GET_Document_all_docs(Database _db, String _docID, String _attachmentName) throws CBLiteException {
+    public Status do_GET_Document_all_docs(Database _db, String _docID, String _attachmentName) throws CouchbaseLiteException {
         QueryOptions options = new QueryOptions();
         if(!getQueryOptions(options)) {
             return new Status(Status.BAD_REQUEST);
@@ -725,7 +725,7 @@ public class CBLRouter implements Database.ChangeListener {
         return new Status(Status.OK);
     }
 
-    public Status do_POST_Document_all_docs(Database _db, String _docID, String _attachmentName) throws CBLiteException {
+    public Status do_POST_Document_all_docs(Database _db, String _docID, String _attachmentName) throws CouchbaseLiteException {
         QueryOptions options = new QueryOptions();
         if (!getQueryOptions(options)) {
             return new Status(Status.BAD_REQUEST);
@@ -1224,7 +1224,7 @@ public class CBLRouter implements Database.ChangeListener {
 
                         try {
                             db.loadRevisionBody(rev, options);
-                        } catch (CBLiteException e) {
+                        } catch (CouchbaseLiteException e) {
                             if (e.getCBLStatus().getCode() != Status.INTERNAL_SERVER_ERROR) {
                                 Map<String, Object> dict = new HashMap<String,Object>();
                                 dict.put("missing", rev.getRevId());
@@ -1269,7 +1269,7 @@ public class CBLRouter implements Database.ChangeListener {
                 }
             }
             return new Status(Status.OK);
-        } catch (CBLiteException e) {
+        } catch (CouchbaseLiteException e) {
             return e.getCBLStatus();
         }
     }
@@ -1306,7 +1306,7 @@ public class CBLRouter implements Database.ChangeListener {
             connection.setResponseInputStream(contents.getContent());
             return new Status(Status.OK);
 
-        } catch (CBLiteException e) {
+        } catch (CouchbaseLiteException e) {
             return e.getCBLStatus();
         }
     }
@@ -1364,7 +1364,7 @@ public class CBLRouter implements Database.ChangeListener {
                 outStatus.setCode(Status.CREATED);
             }
 
-        } catch (CBLiteException e) {
+        } catch (CouchbaseLiteException e) {
             e.printStackTrace();
             Log.e(Database.TAG, e.toString());
             outStatus.setCode(e.getCBLStatus().getCode());
@@ -1401,10 +1401,10 @@ public class CBLRouter implements Database.ChangeListener {
         return status;
     }
 
-    public Status do_PUT_Document(Database _db, String docID, String _attachmentName) throws CBLiteException {
+    public Status do_PUT_Document(Database _db, String docID, String _attachmentName) throws CouchbaseLiteException {
         Map<String,Object> bodyDict = getBodyAsDictionary();
         if(bodyDict == null) {
-            throw new CBLiteException(Status.BAD_REQUEST);
+            throw new CouchbaseLiteException(Status.BAD_REQUEST);
         }
 
         if(getQuery("new_edits") == null || (getQuery("new_edits") != null && (new Boolean(getQuery("new_edits"))))) {
@@ -1415,7 +1415,7 @@ public class CBLRouter implements Database.ChangeListener {
             CBLBody body = new CBLBody(bodyDict);
             CBLRevisionInternal rev = new CBLRevisionInternal(body, _db);
             if(rev.getRevId() == null || rev.getDocId() == null || !rev.getDocId().equals(docID)) {
-                throw new CBLiteException(Status.BAD_REQUEST);
+                throw new CouchbaseLiteException(Status.BAD_REQUEST);
             }
             List<String> history = Database.parseCouchDBRevisionHistory(body.getProperties());
             db.forceInsert(rev, history, null);
@@ -1427,7 +1427,7 @@ public class CBLRouter implements Database.ChangeListener {
         return update(_db, docID, null, true);
     }
 
-    public void updateAttachment(String attachment, String docID, InputStream contentStream) throws CBLiteException {
+    public void updateAttachment(String attachment, String docID, InputStream contentStream) throws CouchbaseLiteException {
         String revID = getQuery("rev");
         if(revID == null) {
             revID = getRevIDFromIfMatchHeader();
@@ -1445,11 +1445,11 @@ public class CBLRouter implements Database.ChangeListener {
         }
     }
 
-    public void do_PUT_Attachment(Database _db, String docID, String _attachmentName) throws CBLiteException {
+    public void do_PUT_Attachment(Database _db, String docID, String _attachmentName) throws CouchbaseLiteException {
         updateAttachment(_attachmentName, docID, connection.getRequestInputStream());
     }
 
-    public void do_DELETE_Attachment(Database _db, String docID, String _attachmentName) throws CBLiteException {
+    public void do_DELETE_Attachment(Database _db, String docID, String _attachmentName) throws CouchbaseLiteException {
         updateAttachment(_attachmentName, docID, null);
     }
 
@@ -1488,7 +1488,7 @@ public class CBLRouter implements Database.ChangeListener {
         return view;
     }
 
-    public Status queryDesignDoc(String designDoc, String viewName, List<Object> keys) throws CBLiteException {
+    public Status queryDesignDoc(String designDoc, String viewName, List<Object> keys) throws CouchbaseLiteException {
         String tdViewName = String.format("%s/%s", designDoc, viewName);
         View view = db.getExistingView(tdViewName);
         if(view == null || view.getMap() == null) {
@@ -1554,11 +1554,11 @@ public class CBLRouter implements Database.ChangeListener {
         return new Status(Status.OK);
     }
 
-    public Status do_GET_DesignDocument(Database _db, String designDocID, String viewName) throws CBLiteException {
+    public Status do_GET_DesignDocument(Database _db, String designDocID, String viewName) throws CouchbaseLiteException {
         return queryDesignDoc(designDocID, viewName, null);
     }
 
-    public Status do_POST_DesignDocument(Database _db, String designDocID, String viewName) throws CBLiteException {
+    public Status do_POST_DesignDocument(Database _db, String designDocID, String viewName) throws CouchbaseLiteException {
     	Map<String,Object> bodyDict = getBodyAsDictionary();
     	if(bodyDict == null) {
     		return new Status(Status.BAD_REQUEST);

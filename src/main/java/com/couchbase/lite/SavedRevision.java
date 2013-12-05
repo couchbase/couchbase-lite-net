@@ -73,7 +73,7 @@ public class SavedRevision extends Revision {
 
     @Override
     @InterfaceAudience.Public
-    public List<SavedRevision> getRevisionHistory() throws CBLiteException {
+    public List<SavedRevision> getRevisionHistory() throws CouchbaseLiteException {
         List<SavedRevision> revisions = new ArrayList<SavedRevision>();
         List<CBLRevisionInternal> internalRevisions = database.getRevisionHistory(revisionInternal);
         for (CBLRevisionInternal internalRevision : internalRevisions) {
@@ -107,7 +107,7 @@ public class SavedRevision extends Revision {
      * This will fail with a 412 error if the receiver is not the current revision of the document.
      */
     @InterfaceAudience.Public
-    public SavedRevision createRevision(Map<String, Object> properties) throws CBLiteException {
+    public SavedRevision createRevision(Map<String, Object> properties) throws CouchbaseLiteException {
         return document.putProperties(properties, revisionInternal.getRevId());
     }
 
@@ -146,10 +146,10 @@ public class SavedRevision extends Revision {
      * Deletes the document by creating a new deletion-marker revision.
      *
      * @return
-     * @throws CBLiteException
+     * @throws CouchbaseLiteException
      */
     @InterfaceAudience.Public
-    public SavedRevision deleteDocument() throws CBLiteException {
+    public SavedRevision deleteDocument() throws CouchbaseLiteException {
         return createRevision(null);
     }
 
@@ -177,7 +177,7 @@ public class SavedRevision extends Revision {
             revisionInternal = loadRevision;
             return true;
 
-        } catch (CBLiteException e) {
+        } catch (CouchbaseLiteException e) {
             throw new RuntimeException(e);
         }
 

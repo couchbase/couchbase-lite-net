@@ -298,7 +298,7 @@ public class Query {
      * If the query fails, this method returns nil and sets the query's .error property.
      */
     @InterfaceAudience.Public
-    public QueryEnumerator run() throws CBLiteException {
+    public QueryEnumerator run() throws CouchbaseLiteException {
         List<Long> outSequence = new ArrayList<Long>();
         String viewName = (view != null) ? view.getName() : null;
         List<QueryRow> rows = database.queryViewNamed(viewName, getQueryOptions(), outSequence);
