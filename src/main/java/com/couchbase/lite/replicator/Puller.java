@@ -155,7 +155,7 @@ public class Puller extends Replication implements CBLChangeTrackerClient {
             if(revID == null) {
                 continue;
             }
-            TDPulledRevision rev = new TDPulledRevision(docID, revID, deleted, db);
+            PulledRevision rev = new PulledRevision(docID, revID, deleted, db);
             rev.setRemoteSequenceID(lastSequence);
             addToInbox(rev);
         }
@@ -198,7 +198,7 @@ public class Puller extends Replication implements CBLChangeTrackerClient {
     public void processInbox(RevisionList inbox) {
         // Ask the local database which of the revs are not known to it:
         //Log.w(Database.TAG, String.format("%s: Looking up %s", this, inbox));
-        String lastInboxSequence = ((TDPulledRevision)inbox.get(inbox.size()-1)).getRemoteSequenceID();
+        String lastInboxSequence = ((PulledRevision)inbox.get(inbox.size()-1)).getRemoteSequenceID();
         int total = getChangesCount() - inbox.size();
         if(!db.findMissingRevisions(inbox)) {
             Log.w(Database.TAG, String.format("%s failed to look up local revs", this));
@@ -232,7 +232,7 @@ public class Puller extends Replication implements CBLChangeTrackerClient {
 	        }
 
 	        for(int i=0; i < inbox.size(); i++) {
-	            TDPulledRevision rev = (TDPulledRevision)inbox.get(i);
+	            PulledRevision rev = (PulledRevision)inbox.get(i);
 				// FIXME add logic here to pull initial revs in bulk
 	            rev.setSequence(pendingSequences.addValue(rev.getRemoteSequenceID()));
 	            revsToPull.add(rev);
@@ -364,7 +364,7 @@ public class Puller extends Replication implements CBLChangeTrackerClient {
         boolean success = false;
         try {
             for (List<Object> revAndHistory : revs) {
-                TDPulledRevision rev = (TDPulledRevision)revAndHistory.get(0);
+                PulledRevision rev = (PulledRevision)revAndHistory.get(0);
                 long fakeSequence = rev.getSequence();
                 List<String> history = (List<String>)revAndHistory.get(1);
                 // Insert the revision:
@@ -424,17 +424,17 @@ public class Puller extends Replication implements CBLChangeTrackerClient {
 /**
  * A revision received from a remote server during a pull. Tracks the opaque remote sequence ID.
  */
-class TDPulledRevision extends CBLRevisionInternal {
+class PulledRevision extends CBLRevisionInternal {
 
-    public TDPulledRevision(CBLBody body, Database database) {
+    public PulledRevision(CBLBody body, Database database) {
         super(body, database);
     }
 
-    public TDPulledRevision(String docId, String revId, boolean deleted, Database database) {
+    public PulledRevision(String docId, String revId, boolean deleted, Database database) {
         super(docId, revId, deleted, database);
     }
 
-    public TDPulledRevision(Map<String, Object> properties, Database database) {
+    public PulledRevision(Map<String, Object> properties, Database database) {
         super(properties, database);
     }
 
