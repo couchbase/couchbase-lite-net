@@ -4,14 +4,14 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.TreeSet;
 
-public class CBLSequenceMap {
+public class SequenceMap {
 	
 	private TreeSet<Long> sequences;
 	private long lastSequence;
 	private List<String> values;
 	private long firstValueSequence;
 	
-	public CBLSequenceMap() {
+	public SequenceMap() {
 		sequences = new TreeSet<Long>();
 		values = new ArrayList<String>(100);
 		firstValueSequence = 1;

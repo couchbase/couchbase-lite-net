@@ -16,7 +16,7 @@ import com.couchbase.lite.storage.SQLException;
 import com.couchbase.lite.support.CBLBatchProcessor;
 import com.couchbase.lite.support.CBLBatcher;
 import com.couchbase.lite.support.CBLRemoteRequestCompletionBlock;
-import com.couchbase.lite.support.CBLSequenceMap;
+import com.couchbase.lite.support.SequenceMap;
 import com.couchbase.lite.support.HttpClientFactory;
 import com.couchbase.lite.util.Log;
 
@@ -41,7 +41,7 @@ public class CBLPuller extends CBLReplicator implements CBLChangeTrackerClient {
     protected CBLBatcher<List<Object>> downloadsToInsert;
     protected List<CBLRevisionInternal> revsToPull;
     protected CBLChangeTracker changeTracker;
-    protected CBLSequenceMap pendingSequences;
+    protected SequenceMap pendingSequences;
     protected volatile int httpConnectionCount;
 
     /**
@@ -88,7 +88,7 @@ public class CBLPuller extends CBLReplicator implements CBLChangeTrackerClient {
                 }
             });
         }
-        pendingSequences = new CBLSequenceMap();
+        pendingSequences = new SequenceMap();
         Log.w(Database.TAG, this + " starting ChangeTracker with since=" + lastSequence);
         changeTracker = new CBLChangeTracker(remote, continuous ? TDChangeTrackerMode.LongPoll : TDChangeTrackerMode.OneShot, lastSequence, this);
         if(filterName != null) {
