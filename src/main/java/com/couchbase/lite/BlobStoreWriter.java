@@ -22,7 +22,7 @@ public class BlobStoreWriter {
     private int length;
 
     /** After finishing, this is the key for looking up the blob through the CBL_BlobStore. */
-    private CBLBlobKey blobKey;
+    private BlobKey blobKey;
 
     /** After finishing, store md5 digest result here */
     private byte[] md5DigestResult;
@@ -103,7 +103,7 @@ public class BlobStoreWriter {
         } catch (IOException e) {
             Log.w(Database.TAG, "Exception closing output stream", e);
         }
-        blobKey = new CBLBlobKey(sha1Digest.digest());
+        blobKey = new BlobKey(sha1Digest.digest());
         md5DigestResult = md5Digest.digest();
     }
 
@@ -153,7 +153,7 @@ public class BlobStoreWriter {
         return length;
     }
 
-    public CBLBlobKey getBlobKey() {
+    public BlobKey getBlobKey() {
         return blobKey;
     }
 }

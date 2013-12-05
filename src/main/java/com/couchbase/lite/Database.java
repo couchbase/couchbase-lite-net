@@ -1881,14 +1881,14 @@ public class Database {
         assert(sequence > 0);
         assert(name != null);
 
-        CBLBlobKey key = new CBLBlobKey();
+        BlobKey key = new BlobKey();
         if(!attachments.storeBlobStream(contentStream, key)) {
             throw new CouchbaseLiteException(Status.INTERNAL_SERVER_ERROR);
         }
         insertAttachmentForSequenceWithNameAndType(sequence, name, contentType, revpos, key);
     }
 
-    public void insertAttachmentForSequenceWithNameAndType(long sequence, String name, String contentType, int revpos, CBLBlobKey key) throws CouchbaseLiteException {
+    public void insertAttachmentForSequenceWithNameAndType(long sequence, String name, String contentType, int revpos, BlobKey key) throws CouchbaseLiteException {
         try {
             ContentValues args = new ContentValues();
             args.put("sequence", sequence);
@@ -1987,7 +1987,7 @@ public class Database {
 
             byte[] keyData = cursor.getBlob(0);
             //TODO add checks on key here? (ios version)
-            CBLBlobKey key = new CBLBlobKey(keyData);
+            BlobKey key = new BlobKey(keyData);
             InputStream contentStream = attachments.blobStreamForKey(key);
             if(contentStream == null) {
                 Log.e(Database.TAG, "Failed to load attachment");
@@ -2028,7 +2028,7 @@ public class Database {
             }
 
             byte[] keyData = cursor.getBlob(0);
-            CBLBlobKey key = new CBLBlobKey(keyData);
+            BlobKey key = new BlobKey(keyData);
             filePath = getAttachments().pathForKey(key);
             return filePath;
 
@@ -2065,7 +2065,7 @@ public class Database {
                 int length = cursor.getInt(3);
 
                 byte[] keyData = cursor.getBlob(1);
-                CBLBlobKey key = new CBLBlobKey(keyData);
+                BlobKey key = new BlobKey(keyData);
                 String digestString = "sha1-" + Base64.encodeBytes(keyData);
                 String dataBase64 = null;
                 if(contentOptions.contains(TDContentOptions.TDIncludeAttachments)) {
@@ -2357,9 +2357,9 @@ public class Database {
             cursor = database.rawQuery("SELECT DISTINCT key FROM attachments", null);
 
             cursor.moveToNext();
-            List<CBLBlobKey> allKeys = new ArrayList<CBLBlobKey>();
+            List<BlobKey> allKeys = new ArrayList<BlobKey>();
             while(!cursor.isAfterLast()) {
-                CBLBlobKey key = new CBLBlobKey(cursor.getBlob(0));
+                BlobKey key = new BlobKey(cursor.getBlob(0));
                 allKeys.add(key);
                 cursor.moveToNext();
             }
@@ -2749,7 +2749,7 @@ public class Database {
                     throw new CouchbaseLiteException(e, Status.BAD_ENCODING);
                 }
                 attachment.setLength(newContents.length);
-                CBLBlobKey outBlobKey = new CBLBlobKey();
+                BlobKey outBlobKey = new BlobKey();
                 boolean storedBlob = getAttachments().storeBlob(newContents, outBlobKey);
                 attachment.setBlobKey(outBlobKey);
                 if (!storedBlob) {

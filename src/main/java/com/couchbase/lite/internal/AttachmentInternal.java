@@ -1,6 +1,6 @@
 package com.couchbase.lite.internal;
 
-import com.couchbase.lite.CBLBlobKey;
+import com.couchbase.lite.BlobKey;
 
 /**
  *  A simple container for attachment metadata.
@@ -14,7 +14,7 @@ public class AttachmentInternal {
     private String name;
     private String contentType;
 
-    private CBLBlobKey blobKey;
+    private BlobKey blobKey;
     private long length;
     private long encodedLength;
     private AttachmentEncoding encoding;
@@ -48,11 +48,11 @@ public class AttachmentInternal {
         return contentType;
     }
 
-    public CBLBlobKey getBlobKey() {
+    public BlobKey getBlobKey() {
         return blobKey;
     }
 
-    public void setBlobKey(CBLBlobKey blobKey) {
+    public void setBlobKey(BlobKey blobKey) {
         this.blobKey = blobKey;
     }
 

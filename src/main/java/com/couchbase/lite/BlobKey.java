@@ -26,14 +26,14 @@ import java.util.Arrays;
 /**
  * Key identifying a data blob. This happens to be a SHA-1 digest.
  */
-public class CBLBlobKey {
+public class BlobKey {
 
     private byte[] bytes;
 
-    public CBLBlobKey() {
+    public BlobKey() {
     }
 
-    public CBLBlobKey(byte[] bytes) {
+    public BlobKey(byte[] bytes) {
         this.bytes = bytes;
     }
 
@@ -43,7 +43,7 @@ public class CBLBlobKey {
      * @param base64Digest string with base64'd digest, with leading "sha1-" attached.
      *                     eg, "sha1-LKJ32423JK..."
      */
-    public CBLBlobKey(String base64Digest) {
+    public BlobKey(String base64Digest) {
         this(decodeBase64Digest(base64Digest));
     }
 
@@ -106,10 +106,10 @@ public class CBLBlobKey {
 
     @Override
     public boolean equals(Object o) {
-        if(!(o instanceof CBLBlobKey)) {
+        if(!(o instanceof BlobKey)) {
             return false;
         }
-        CBLBlobKey oBlobKey = (CBLBlobKey)o;
+        BlobKey oBlobKey = (BlobKey)o;
         return Arrays.equals(getBytes(), oBlobKey.getBytes());
     }
 
@@ -121,7 +121,7 @@ public class CBLBlobKey {
 
     @Override
     public String toString() {
-        return CBLBlobKey.convertToHex(bytes);
+        return BlobKey.convertToHex(bytes);
     }
 
     public String base64Digest() {

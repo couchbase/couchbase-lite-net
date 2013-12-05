@@ -1,6 +1,6 @@
 package com.couchbase.lite.replicator;
 
-import com.couchbase.lite.CBLBlobKey;
+import com.couchbase.lite.BlobKey;
 import com.couchbase.lite.CBLBlobStore;
 import com.couchbase.lite.CouchbaseLiteException;
 import com.couchbase.lite.Database;
@@ -298,7 +298,7 @@ public class Pusher extends Replication implements Database.ChangeListener {
 
                 CBLBlobStore blobStore = this.db.getAttachments();
                 String base64Digest = (String) attachment.get("digest");
-                CBLBlobKey blobKey = new CBLBlobKey(base64Digest);
+                BlobKey blobKey = new BlobKey(base64Digest);
                 InputStream inputStream = blobStore.blobStreamForKey(blobKey);
                 if (inputStream == null) {
                     Log.w(Database.TAG, "Unable to find blob file for blobKey: " + blobKey + " - Skipping upload of multipart revision.");

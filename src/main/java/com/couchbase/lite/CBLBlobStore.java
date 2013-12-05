@@ -60,7 +60,7 @@ public class CBLBlobStore {
         }
     }
 
-    public static CBLBlobKey keyForBlob(byte[] data) {
+    public static BlobKey keyForBlob(byte[] data) {
         MessageDigest md;
         try {
             md = MessageDigest.getInstance("SHA-1");
@@ -71,11 +71,11 @@ public class CBLBlobStore {
         byte[] sha1hash = new byte[40];
         md.update(data, 0, data.length);
         sha1hash = md.digest();
-        CBLBlobKey result = new CBLBlobKey(sha1hash);
+        BlobKey result = new BlobKey(sha1hash);
         return result;
     }
 
-    public static CBLBlobKey keyForBlobFromFile(File file) {
+    public static BlobKey keyForBlobFromFile(File file) {
         MessageDigest md;
         try {
             md = MessageDigest.getInstance("SHA-1");
@@ -99,33 +99,33 @@ public class CBLBlobStore {
         }
 
         sha1hash = md.digest();
-        CBLBlobKey result = new CBLBlobKey(sha1hash);
+        BlobKey result = new BlobKey(sha1hash);
         return result;
     }
 
-    public String pathForKey(CBLBlobKey key) {
-        return path + File.separator + CBLBlobKey.convertToHex(key.getBytes()) + FILE_EXTENSION;
+    public String pathForKey(BlobKey key) {
+        return path + File.separator + BlobKey.convertToHex(key.getBytes()) + FILE_EXTENSION;
     }
 
-    public long getSizeOfBlob(CBLBlobKey key) {
+    public long getSizeOfBlob(BlobKey key) {
         String path = pathForKey(key);
         File file = new File(path);
         return file.length();
     }
 
-    public boolean getKeyForFilename(CBLBlobKey outKey, String filename) {
+    public boolean getKeyForFilename(BlobKey outKey, String filename) {
         if(!filename.endsWith(FILE_EXTENSION)) {
             return false;
         }
         //trim off extension
         String rest = filename.substring(path.length() + 1, filename.length() - FILE_EXTENSION.length());
 
-        outKey.setBytes(CBLBlobKey.convertFromHex(rest));
+        outKey.setBytes(BlobKey.convertFromHex(rest));
 
         return true;
     }
 
-    public byte[] blobForKey(CBLBlobKey key) {
+    public byte[] blobForKey(BlobKey key) {
         String path = pathForKey(key);
         File file = new File(path);
         byte[] result = null;
@@ -137,7 +137,7 @@ public class CBLBlobStore {
         return result;
     }
 
-    public InputStream blobStreamForKey(CBLBlobKey key) {
+    public InputStream blobStreamForKey(BlobKey key) {
         String path = pathForKey(key);
         File file = new File(path);
         if(file.canRead()) {
@@ -151,7 +151,7 @@ public class CBLBlobStore {
         return null;
     }
 
-    public boolean storeBlobStream(InputStream inputStream, CBLBlobKey outKey) {
+    public boolean storeBlobStream(InputStream inputStream, BlobKey outKey) {
 
         File tmp = null;
         try {
@@ -170,7 +170,7 @@ public class CBLBlobStore {
             return false;
         }
 
-        CBLBlobKey newKey = keyForBlobFromFile(tmp);
+        BlobKey newKey = keyForBlobFromFile(tmp);
         outKey.setBytes(newKey.getBytes());
         String path = pathForKey(outKey);
         File file = new File(path);
@@ -186,8 +186,8 @@ public class CBLBlobStore {
         return true;
     }
 
-    public boolean storeBlob(byte[] data, CBLBlobKey outKey) {
-        CBLBlobKey newKey = keyForBlob(data);
+    public boolean storeBlob(byte[] data, BlobKey outKey) {
+        BlobKey newKey = keyForBlob(data);
         outKey.setBytes(newKey.getBytes());
         String path = pathForKey(outKey);
         File file = new File(path);
@@ -245,15 +245,15 @@ public class CBLBlobStore {
         return bytes;
     }
 
-    public Set<CBLBlobKey> allKeys() {
-        Set<CBLBlobKey> result = new HashSet<CBLBlobKey>();
+    public Set<BlobKey> allKeys() {
+        Set<BlobKey> result = new HashSet<BlobKey>();
         File file = new File(path);
         File[] contents = file.listFiles();
         for (File attachment : contents) {
             if (attachment.isDirectory()) {
                 continue;
             }
-            CBLBlobKey attachmentKey = new CBLBlobKey();
+            BlobKey attachmentKey = new BlobKey();
             getKeyForFilename(attachmentKey, attachment.getPath());
             result.add(attachmentKey);
         }
@@ -276,12 +276,12 @@ public class CBLBlobStore {
         return total;
     }
 
-    public int deleteBlobsExceptWithKeys(List<CBLBlobKey> keysToKeep) {
+    public int deleteBlobsExceptWithKeys(List<BlobKey> keysToKeep) {
         int numDeleted = 0;
         File file = new File(path);
         File[] contents = file.listFiles();
         for (File attachment : contents) {
-            CBLBlobKey attachmentKey = new CBLBlobKey();
+            BlobKey attachmentKey = new BlobKey();
             getKeyForFilename(attachmentKey, attachment.getPath());
             if(!keysToKeep.contains(attachmentKey)) {
                 boolean result = attachment.delete();
@@ -297,10 +297,10 @@ public class CBLBlobStore {
     }
 
     public int deleteBlobs() {
-        return deleteBlobsExceptWithKeys(new ArrayList<CBLBlobKey>());
+        return deleteBlobsExceptWithKeys(new ArrayList<BlobKey>());
     }
     
-    public boolean isGZipped(CBLBlobKey key) {
+    public boolean isGZipped(BlobKey key) {
         int magic = 0;
         String path = pathForKey(key);
         File file = new File(path);
