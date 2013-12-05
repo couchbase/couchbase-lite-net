@@ -73,7 +73,7 @@ public class Database {
 
     private Map<String, View> views;
     private Map<String, ReplicationFilter> filters;
-    private Map<String, CBLValidationBlock> validations;
+    private Map<String, ValidationBlock> validations;
 
     private Map<String, CBLBlobStoreWriter> pendingAttachmentsByDigest;
     private List<CBLReplicator> activeReplicators;
@@ -453,8 +453,8 @@ public class Database {
      * Note that validations are not persistent -- you have to re-register them on every launch.
      */
     @InterfaceAudience.Public
-    public CBLValidationBlock getValidation(String name) {
-        CBLValidationBlock result = null;
+    public ValidationBlock getValidation(String name) {
+        ValidationBlock result = null;
         if(validations != null) {
             result = validations.get(name);
         }
@@ -467,9 +467,9 @@ public class Database {
      * chance to reject it. (This includes incoming changes from a pull replication.)
      */
     @InterfaceAudience.Public
-    public void setValidation(String name, CBLValidationBlock validationBlock) {
+    public void setValidation(String name, ValidationBlock validationBlock) {
         if(validations == null) {
-            validations = new HashMap<String, CBLValidationBlock>();
+            validations = new HashMap<String, ValidationBlock>();
         }
         if (validationBlock != null) {
             validations.put(name, validationBlock);
@@ -2923,7 +2923,7 @@ public class Database {
         }
         TDValidationContextImpl context = new TDValidationContextImpl(this, oldRev);
         for (String validationName : validations.keySet()) {
-            CBLValidationBlock validation = getValidation(validationName);
+            ValidationBlock validation = getValidation(validationName);
             if(!validation.validate(newRev, context)) {
                 throw new CBLiteException(context.getErrorType().getCode());
             }
@@ -3445,7 +3445,7 @@ public class Database {
 
 }
 
-class TDValidationContextImpl implements CBLValidationContext {
+class TDValidationContextImpl implements ValidationContext {
 
     private Database database;
     private CBLRevisionInternal currentRevision;

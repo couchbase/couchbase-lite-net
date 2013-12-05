@@ -5,8 +5,8 @@ import com.couchbase.lite.internal.CBLRevisionInternal;
 /**
  * Validation block, used to approve revisions being added to the database.
  */
-public interface CBLValidationBlock {
+public interface ValidationBlock {
 
-    boolean validate(CBLRevisionInternal newRevision, CBLValidationContext context);
+    boolean validate(CBLRevisionInternal newRevision, ValidationContext context);
 
 }

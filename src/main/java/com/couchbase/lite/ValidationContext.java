@@ -3,9 +3,9 @@ package com.couchbase.lite;
 import com.couchbase.lite.internal.CBLRevisionInternal;
 
 /**
- * Context passed into a CBLValidationBlock.
+ * Context passed into a ValidationBlock.
  */
-public interface CBLValidationContext {
+public interface ValidationContext {
 
     /**
      * The contents of the current revision of the document, or nil if this is a new document.
