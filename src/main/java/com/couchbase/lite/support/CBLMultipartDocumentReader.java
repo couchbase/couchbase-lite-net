@@ -2,7 +2,7 @@ package com.couchbase.lite.support;
 
 import com.couchbase.lite.CBLBlobStoreWriter;
 import com.couchbase.lite.CBLDatabase;
-import com.couchbase.lite.CBLManager;
+import com.couchbase.lite.Manager;
 import com.couchbase.lite.CBLMisc;
 import com.couchbase.lite.util.Log;
 
@@ -38,7 +38,7 @@ public class CBLMultipartDocumentReader implements CBLMultipartReaderDelegate {
 
     public void parseJsonBuffer() {
         try {
-            document = CBLManager.getObjectMapper().readValue(jsonBuffer.toByteArray(), Map.class);
+            document = Manager.getObjectMapper().readValue(jsonBuffer.toByteArray(), Map.class);
         } catch (IOException e) {
             throw new IllegalStateException("Failed to parse json buffer", e);
         }

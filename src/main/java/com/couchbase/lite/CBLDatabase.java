@@ -78,7 +78,7 @@ public class CBLDatabase {
     private Map<String, CBLBlobStoreWriter> pendingAttachmentsByDigest;
     private List<CBLReplicator> activeReplicators;
     private CBLBlobStore attachments;
-    private CBLManager manager;
+    private Manager manager;
     private List<ChangeListener> changeListeners;
     private LruCache<String, CBLDocument> docCache;
 
@@ -175,7 +175,7 @@ public class CBLDatabase {
      * Constructor
      */
     @InterfaceAudience.Private
-    public CBLDatabase(String path, CBLManager manager) {
+    public CBLDatabase(String path, Manager manager) {
         assert(path.startsWith("/")); //path must be absolute
         this.path = path;
         this.name = FileDirUtils.getDatabaseNameFromPath(path);
@@ -196,7 +196,7 @@ public class CBLDatabase {
      * The database manager that owns this database.
      */
     @InterfaceAudience.Public
-    public CBLManager getManager() {
+    public Manager getManager() {
         return manager;
     }
 
@@ -681,7 +681,7 @@ public class CBLDatabase {
         return attachmentStorePath;
     }
 
-    public static CBLDatabase createEmptyDBAtPath(String path, CBLManager manager) {
+    public static CBLDatabase createEmptyDBAtPath(String path, Manager manager) {
         if(!FileDirUtils.removeItemIfExists(path)) {
             return null;
         }
@@ -948,7 +948,7 @@ public class CBLDatabase {
 
         byte[] extraJSON = null;
         try {
-            extraJSON = CBLManager.getObjectMapper().writeValueAsBytes(dict);
+            extraJSON = Manager.getObjectMapper().writeValueAsBytes(dict);
         } catch (Exception e) {
             Log.e(CBLDatabase.TAG, "Error convert extra JSON to bytes", e);
             return null;
@@ -1070,7 +1070,7 @@ public class CBLDatabase {
 
         Map<String, Object> docProperties = null;
         try {
-            docProperties = CBLManager.getObjectMapper().readValue(json, Map.class);
+            docProperties = Manager.getObjectMapper().readValue(json, Map.class);
             docProperties.putAll(extra);
             return docProperties;
         } catch (Exception e) {
@@ -2480,7 +2480,7 @@ public class CBLDatabase {
 
         byte[] json = null;
         try {
-            json = CBLManager.getObjectMapper().writeValueAsBytes(properties);
+            json = Manager.getObjectMapper().writeValueAsBytes(properties);
         } catch (Exception e) {
             Log.e(CBLDatabase.TAG, "Error serializing " + rev + " to JSON", e);
         }
@@ -3352,7 +3352,7 @@ public class CBLDatabase {
                 byte[] json = cursor.getBlob(1);
                 Map<String,Object> properties = null;
                 try {
-                    properties = CBLManager.getObjectMapper().readValue(json, Map.class);
+                    properties = Manager.getObjectMapper().readValue(json, Map.class);
                     properties.put("_id", docID);
                     properties.put("_rev", gotRevID);
                     result = new CBLRevisionInternal(docID, gotRevID, false, this);

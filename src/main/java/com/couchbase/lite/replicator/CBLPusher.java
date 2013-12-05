@@ -4,8 +4,8 @@ import com.couchbase.lite.CBLBlobKey;
 import com.couchbase.lite.CBLBlobStore;
 import com.couchbase.lite.CBLDatabase;
 import com.couchbase.lite.DocumentChange;
+import com.couchbase.lite.Manager;
 import com.couchbase.lite.ReplicationFilter;
-import com.couchbase.lite.CBLManager;
 import com.couchbase.lite.CBLRevisionList;
 import com.couchbase.lite.CBLiteException;
 import com.couchbase.lite.internal.CBLRevisionInternal;
@@ -286,7 +286,7 @@ public class CBLPusher extends CBLReplicator implements CBLDatabase.ChangeListen
                     multiPart = new MultipartEntity();
 
                     try {
-                        String json  = CBLManager.getObjectMapper().writeValueAsString(revProps);
+                        String json  = Manager.getObjectMapper().writeValueAsString(revProps);
                         Charset utf8charset = Charset.forName("UTF-8");
                         multiPart.addPart("param1", new StringBody(json, "application/json", utf8charset));
 

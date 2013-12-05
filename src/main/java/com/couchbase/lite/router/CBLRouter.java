@@ -6,8 +6,8 @@ import com.couchbase.lite.CBLChangesOptions;
 import com.couchbase.lite.CBLDatabase;
 import com.couchbase.lite.CBLDatabase.TDContentOptions;
 import com.couchbase.lite.DocumentChange;
+import com.couchbase.lite.Manager;
 import com.couchbase.lite.ReplicationFilter;
-import com.couchbase.lite.CBLManager;
 import com.couchbase.lite.CBLMapper;
 import com.couchbase.lite.CBLMisc;
 import com.couchbase.lite.CBLQueryOptions;
@@ -47,7 +47,7 @@ import java.util.Map;
 
 public class CBLRouter implements CBLDatabase.ChangeListener {
 
-    private CBLManager manager;
+    private Manager manager;
     private CBLDatabase db;
     private CBLURLConnection connection;
     private Map<String,String> queries;
@@ -59,10 +59,10 @@ public class CBLRouter implements CBLDatabase.ChangeListener {
     private boolean longpoll = false;
 
     public static String getVersionString() {
-        return CBLManager.VERSION_STRING;
+        return Manager.VERSION_STRING;
     }
 
-    public CBLRouter(CBLManager manager, CBLURLConnection connection) {
+    public CBLRouter(Manager manager, CBLURLConnection connection) {
         this.manager = manager;
         this.connection = connection;
     }
@@ -127,7 +127,7 @@ public class CBLRouter implements CBLDatabase.ChangeListener {
         }
         Object result = null;
         try {
-            result = CBLManager.getObjectMapper().readValue(value, Object.class);
+            result = Manager.getObjectMapper().readValue(value, Object.class);
         } catch (Exception e) {
             Log.w("Unable to parse JSON Query", e);
         }
@@ -144,7 +144,7 @@ public class CBLRouter implements CBLDatabase.ChangeListener {
     public Map<String,Object> getBodyAsDictionary() {
         try {
             InputStream contentStream = connection.getRequestInputStream();
-            Map<String,Object> bodyMap = CBLManager.getObjectMapper().readValue(contentStream, Map.class);
+            Map<String,Object> bodyMap = Manager.getObjectMapper().readValue(contentStream, Map.class);
             return bodyMap;
         } catch (IOException e) {
             Log.w(CBLDatabase.TAG, "WARNING: Exception parsing body into dictionary", e);
@@ -294,7 +294,7 @@ public class CBLRouter implements CBLDatabase.ChangeListener {
                 message += dbName;  // special root path, like /_all_dbs
             } else {
                 message += "_Database";
-                if (!CBLManager.isValidDatabaseName(dbName)) {
+                if (!Manager.isValidDatabaseName(dbName)) {
                     connection.setResponseCode(CBLStatus.NOT_FOUND);
                     return;
                 }
@@ -1045,7 +1045,7 @@ public class CBLRouter implements CBLDatabase.ChangeListener {
     public void sendContinuousChange(CBLRevisionInternal rev) {
         Map<String,Object> changeDict = changesDictForRevision(rev);
         try {
-            String jsonString = CBLManager.getObjectMapper().writeValueAsString(changeDict);
+            String jsonString = Manager.getObjectMapper().writeValueAsString(changeDict);
             if(callbackBlock != null) {
                 byte[] json = (jsonString + "\n").getBytes();
                 OutputStream os = connection.getResponseOutputStream();
@@ -1082,7 +1082,7 @@ public class CBLRouter implements CBLDatabase.ChangeListener {
                 if(callbackBlock != null) {
                     byte[] data = null;
                     try {
-                        data = CBLManager.getObjectMapper().writeValueAsBytes(body);
+                        data = Manager.getObjectMapper().writeValueAsBytes(body);
                     } catch (Exception e) {
                         Log.w(CBLDatabase.TAG, "Error serializing JSON", e);
                     }

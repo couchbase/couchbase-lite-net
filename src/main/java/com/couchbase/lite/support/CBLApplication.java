@@ -2,7 +2,7 @@ package com.couchbase.lite.support;
 
 import android.app.Application;
 
-import com.couchbase.lite.CBLManager;
+import com.couchbase.lite.Manager;
 
 /**
  * Helper class to make it easier to share a Couchbase Lite Manager
@@ -10,13 +10,13 @@ import com.couchbase.lite.CBLManager;
  */
 public class CBLApplication extends Application {
 
-    private CBLManager manager;
+    private Manager manager;
 
-    public CBLManager getManager() {
+    public Manager getManager() {
         return manager;
     }
 
-    public void setManager(CBLManager manager) {
+    public void setManager(Manager manager) {
         this.manager = manager;
     }
 

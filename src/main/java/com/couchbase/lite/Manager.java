@@ -33,7 +33,7 @@ import java.util.regex.Pattern;
 /**
  * Top-level CouchbaseLite object; manages a collection of databases as a CouchDB server does.
  */
-public class CBLManager {
+public class Manager {
 
     public static final String VERSION_STRING =  "1.0.0-beta";
     public static final String HTTP_ERROR_DOMAIN =  "CBLHTTP";
@@ -61,7 +61,7 @@ public class CBLManager {
      * @throws UnsupportedOperationException - not currently supported
      */
     @InterfaceAudience.Public
-    public CBLManager() {
+    public Manager() {
         final String detailMessage = "Parameterless constructor is not a valid API call on Android. " +
                 " Pure java version coming soon.";
         throw new UnsupportedOperationException(detailMessage);
@@ -71,7 +71,7 @@ public class CBLManager {
      * Constructor
      */
     @InterfaceAudience.Public
-    public CBLManager(File directoryFile, CBLManagerOptions options) {
+    public Manager(File directoryFile, CBLManagerOptions options) {
         this.directoryFile = directoryFile;
         this.options = (options != null) ? options : DEFAULT_OPTIONS;
         this.databases = new HashMap<String, CBLDatabase>();
@@ -95,7 +95,7 @@ public class CBLManager {
      * @throws UnsupportedOperationException - not currently supported
      */
     @InterfaceAudience.Public
-    public static CBLManager getSharedInstance() {
+    public static Manager getSharedInstance() {
         final String detailMessage = "getSharedInstance() is not a valid API call on Android. " +
                 " Pure java version coming soon";
         throw new UnsupportedOperationException(detailMessage);
@@ -132,7 +132,7 @@ public class CBLManager {
 
             @Override
             public boolean accept(File dir, String filename) {
-                if(filename.endsWith(CBLManager.DATABASE_SUFFIX)) {
+                if(filename.endsWith(Manager.DATABASE_SUFFIX)) {
                     return true;
                 }
                 return false;
@@ -140,7 +140,7 @@ public class CBLManager {
         });
         List<String> result = new ArrayList<String>();
         for (String databaseFile : databaseFiles) {
-            String trimmed = databaseFile.substring(0, databaseFile.length() - CBLManager.DATABASE_SUFFIX.length());
+            String trimmed = databaseFile.substring(0, databaseFile.length() - Manager.DATABASE_SUFFIX.length());
             String replaced = trimmed.replace(':', '/');
             result.add(replaced);
         }
@@ -149,7 +149,7 @@ public class CBLManager {
     }
 
     /**
-     * Releases all resources used by the CBLManager instance and closes all its databases.
+     * Releases all resources used by the Manager instance and closes all its databases.
      */
     @InterfaceAudience.Public
     public void close() {
@@ -300,7 +300,7 @@ public class CBLManager {
             return null;
         }
         name = name.replace('/', ':');
-        String result = directoryFile.getPath() + File.separator + name + CBLManager.DATABASE_SUFFIX;
+        String result = directoryFile.getPath() + File.separator + name + Manager.DATABASE_SUFFIX;
         return result;
     }
 

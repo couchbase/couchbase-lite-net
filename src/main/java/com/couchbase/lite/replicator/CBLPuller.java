@@ -1,7 +1,7 @@
 package com.couchbase.lite.replicator;
 
 import com.couchbase.lite.CBLDatabase;
-import com.couchbase.lite.CBLManager;
+import com.couchbase.lite.Manager;
 import com.couchbase.lite.CBLMisc;
 import com.couchbase.lite.CBLRevisionList;
 import com.couchbase.lite.CBLStatus;
@@ -412,7 +412,7 @@ public class CBLPuller extends CBLReplicator implements CBLChangeTrackerClient {
         }
         byte[] json = null;
         try {
-            json = CBLManager.getObjectMapper().writeValueAsBytes(strings);
+            json = Manager.getObjectMapper().writeValueAsBytes(strings);
         } catch (Exception e) {
             Log.w(CBLDatabase.TAG, "Unable to serialize json", e);
         }

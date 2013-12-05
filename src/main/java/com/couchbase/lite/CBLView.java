@@ -323,7 +323,7 @@ public class CBLView {
         }
         String result = null;
         try {
-            result = CBLManager.getObjectMapper().writeValueAsString(object);
+            result = Manager.getObjectMapper().writeValueAsString(object);
         } catch (Exception e) {
             Log.w(CBLDatabase.TAG, "Exception serializing object to json: " + object, e);
         }
@@ -336,7 +336,7 @@ public class CBLView {
         }
         Object result = null;
         try {
-            result = CBLManager.getObjectMapper().readValue(json, Object.class);
+            result = Manager.getObjectMapper().readValue(json, Object.class);
         } catch (Exception e) {
             Log.w(CBLDatabase.TAG, "Exception parsing json", e);
         }
@@ -420,8 +420,8 @@ public class CBLView {
                 public void emit(Object key, Object value) {
 
                     try {
-                        String keyJson = CBLManager.getObjectMapper().writeValueAsString(key);
-                        String valueJson = CBLManager.getObjectMapper().writeValueAsString(value);
+                        String keyJson = Manager.getObjectMapper().writeValueAsString(key);
+                        String valueJson = Manager.getObjectMapper().writeValueAsString(value);
                         Log.v(CBLDatabase.TAG, "    emit(" + keyJson + ", "
                                 + valueJson + ")");
 

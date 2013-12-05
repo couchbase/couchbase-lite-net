@@ -3,7 +3,7 @@ package com.couchbase.lite.support;
 import android.net.Uri;
 
 import com.couchbase.lite.CBLDatabase;
-import com.couchbase.lite.CBLManager;
+import com.couchbase.lite.Manager;
 import com.couchbase.lite.util.Log;
 
 import org.apache.http.HttpEntity;
@@ -96,7 +96,7 @@ public class CBLRemoteRequest implements Runnable {
         if (body != null && request instanceof HttpEntityEnclosingRequestBase) {
             byte[] bodyBytes = null;
             try {
-                bodyBytes = CBLManager.getObjectMapper().writeValueAsBytes(body);
+                bodyBytes = Manager.getObjectMapper().writeValueAsBytes(body);
             } catch (Exception e) {
                 Log.e(CBLDatabase.TAG, "Error serializing body of request", e);
             }
@@ -133,7 +133,7 @@ public class CBLRemoteRequest implements Runnable {
                     InputStream stream = null;
                     try {
                         stream = temp.getContent();
-                        fullBody = CBLManager.getObjectMapper().readValue(stream,
+                        fullBody = Manager.getObjectMapper().readValue(stream,
                                 Object.class);
                     } finally {
                         try {

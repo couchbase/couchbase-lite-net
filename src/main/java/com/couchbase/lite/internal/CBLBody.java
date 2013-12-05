@@ -24,7 +24,7 @@ import java.util.Map;
 
 import org.codehaus.jackson.map.ObjectWriter;
 
-import com.couchbase.lite.CBLManager;
+import com.couchbase.lite.Manager;
 
 /**
  * A request/response/document body, stored as either JSON or a Map<String,Object>
@@ -68,7 +68,7 @@ public class CBLBody {
             throw new IllegalStateException("Both json and object are null for this body: " + this);
         }
         try {
-            json = CBLManager.getObjectMapper().writeValueAsBytes(object);
+            json = Manager.getObjectMapper().writeValueAsBytes(object);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -86,7 +86,7 @@ public class CBLBody {
             throw new IllegalStateException("Both object and json are null for this body: " + this);
         }
         try {
-            object = CBLManager.getObjectMapper().readValue(json, Object.class);
+            object = Manager.getObjectMapper().readValue(json, Object.class);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -99,7 +99,7 @@ public class CBLBody {
                 throw new IllegalStateException("Both object and json are null for this body: " + this);
             }
             try {
-                object = CBLManager.getObjectMapper().readValue(json, Object.class);
+                object = Manager.getObjectMapper().readValue(json, Object.class);
             } catch (IOException e) {
             }
         }
@@ -109,7 +109,7 @@ public class CBLBody {
     public byte[] getPrettyJson() {
         Object properties = getObject();
         if(properties != null) {
-            ObjectWriter writer = CBLManager.getObjectMapper().writerWithDefaultPrettyPrinter();
+            ObjectWriter writer = Manager.getObjectMapper().writerWithDefaultPrettyPrinter();
             try {
                 json = writer.writeValueAsBytes(properties);
             } catch (IOException e) {

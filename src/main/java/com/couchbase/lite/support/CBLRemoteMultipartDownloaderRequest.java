@@ -1,7 +1,7 @@
 package com.couchbase.lite.support;
 
 import com.couchbase.lite.CBLDatabase;
-import com.couchbase.lite.CBLManager;
+import com.couchbase.lite.Manager;
 import com.couchbase.lite.util.Log;
 
 import org.apache.http.Header;
@@ -113,7 +113,7 @@ public class CBLRemoteMultipartDownloaderRequest extends CBLRemoteRequest {
                     if (entity != null) {
                         try {
                             inputStream = entity.getContent();
-                            fullBody = CBLManager.getObjectMapper().readValue(inputStream,
+                            fullBody = Manager.getObjectMapper().readValue(inputStream,
                                     Object.class);
                             respondWithResult(fullBody, error);
                         } finally {
