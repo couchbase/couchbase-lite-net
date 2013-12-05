@@ -1,6 +1,6 @@
 package com.couchbase.lite.replicator.changetracker;
 
-import com.couchbase.lite.CBLDatabase;
+import com.couchbase.lite.Database;
 import com.couchbase.lite.util.Log;
 
 public class CBLChangeTrackerBackoff {
@@ -32,7 +32,7 @@ public class CBLChangeTrackerBackoff {
         try {
             int sleepMilliseconds = getSleepMilliseconds();
             if (sleepMilliseconds > 0) {
-                Log.d(CBLDatabase.TAG, this.getClass().getSimpleName() + " sleeping for " + sleepMilliseconds);
+                Log.d(Database.TAG, this.getClass().getSimpleName() + " sleeping for " + sleepMilliseconds);
                 Thread.sleep(sleepMilliseconds);
             }
         } catch (InterruptedException e1) {

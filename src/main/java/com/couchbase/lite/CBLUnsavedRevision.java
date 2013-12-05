@@ -155,7 +155,7 @@ public class CBLUnsavedRevision extends CBLRevision {
             InputStream inputStream = contentStreamURL.openStream();
             setAttachment(name, contentType, inputStream);
         } catch (IOException e) {
-            Log.e(CBLDatabase.TAG, "Error opening stream for url: " + contentStreamURL);
+            Log.e(Database.TAG, "Error opening stream for url: " + contentStreamURL);
             throw new RuntimeException(e);
         }
     }

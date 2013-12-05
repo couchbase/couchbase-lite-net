@@ -17,7 +17,7 @@
 
 package com.couchbase.lite.internal;
 
-import com.couchbase.lite.CBLDatabase;
+import com.couchbase.lite.Database;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -35,16 +35,16 @@ public class CBLRevisionInternal {
     private boolean deleted;
     private CBLBody body;
     private long sequence;
-    private CBLDatabase database;  // TODO: get rid of this field!
+    private Database database;  // TODO: get rid of this field!
 
-    public CBLRevisionInternal(String docId, String revId, boolean deleted, CBLDatabase database) {
+    public CBLRevisionInternal(String docId, String revId, boolean deleted, Database database) {
         this.docId = docId;
         this.revId = revId;
         this.deleted = deleted;
         this.database = database;
     }
 
-    public CBLRevisionInternal(CBLBody body, CBLDatabase database) {
+    public CBLRevisionInternal(CBLBody body, Database database) {
         this((String)body.getPropertyForKey("_id"),
                 (String)body.getPropertyForKey("_rev"),
                 (((Boolean)body.getPropertyForKey("_deleted") != null)
@@ -52,7 +52,7 @@ public class CBLRevisionInternal {
         this.body = body;
     }
 
-    public CBLRevisionInternal(Map<String, Object> properties, CBLDatabase database) {
+    public CBLRevisionInternal(Map<String, Object> properties, Database database) {
         this(new CBLBody(properties), database);
     }
 

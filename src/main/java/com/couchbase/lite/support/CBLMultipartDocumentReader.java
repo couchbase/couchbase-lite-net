@@ -1,7 +1,7 @@
 package com.couchbase.lite.support;
 
 import com.couchbase.lite.CBLBlobStoreWriter;
-import com.couchbase.lite.CBLDatabase;
+import com.couchbase.lite.Database;
 import com.couchbase.lite.Manager;
 import com.couchbase.lite.CBLMisc;
 import com.couchbase.lite.util.Log;
@@ -22,11 +22,11 @@ public class CBLMultipartDocumentReader implements CBLMultipartReaderDelegate {
     private CBLBlobStoreWriter curAttachment;
     private ByteArrayBuffer jsonBuffer;
     private Map<String, Object> document;
-    private CBLDatabase database;
+    private Database database;
     private Map<String, CBLBlobStoreWriter> attachmentsByName;
     private Map<String, CBLBlobStoreWriter> attachmentsByMd5Digest;
 
-    public CBLMultipartDocumentReader(HttpResponse response, CBLDatabase database) {
+    public CBLMultipartDocumentReader(HttpResponse response, Database database) {
         this.response = response;
         this.database = database;
     }
@@ -149,7 +149,7 @@ public class CBLMultipartDocumentReader implements CBLMultipartReaderDelegate {
             else if (attachment.containsKey("data") && length > 1000) {
                 String msg = String.format("Attachment '%s' sent inline (len=%d).  Large attachments " +
                         "should be sent in MIME parts for reduced memory overhead.", attachmentName);
-                Log.w(CBLDatabase.TAG, msg);
+                Log.w(Database.TAG, msg);
             }
 
         }

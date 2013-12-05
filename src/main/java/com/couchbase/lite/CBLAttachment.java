@@ -123,7 +123,7 @@ public class CBLAttachment {
             return body;
         }
         else {
-            CBLDatabase db = revision.getDatabase();
+            Database db = revision.getDatabase();
             CBLAttachment attachment = db.getAttachmentForSequence(revision.getSequence(), this.name);
             body = attachment.getContent();
             return body;
@@ -169,7 +169,7 @@ public class CBLAttachment {
      * with proper JSON metadata dicts. It registers the attachment bodies with the blob store and sets
      * the metadata 'digest' and 'follows' properties accordingly.
      */
-    static Map<String, Object> installAttachmentBodies(Map<String, Object> attachments, CBLDatabase database) {
+    static Map<String, Object> installAttachmentBodies(Map<String, Object> attachments, Database database) {
 
         Map<String, Object> updatedAttachments = new HashMap<String, Object>();
         for (String name : attachments.keySet()) {
@@ -195,7 +195,7 @@ public class CBLAttachment {
         return updatedAttachments;
     }
 
-    static CBLBlobStoreWriter blobStoreWriterForBody(InputStream body, CBLDatabase database) {
+    static CBLBlobStoreWriter blobStoreWriterForBody(InputStream body, Database database) {
         CBLBlobStoreWriter writer = database.getAttachmentWriter();
         writer.read(body);
         writer.finish();

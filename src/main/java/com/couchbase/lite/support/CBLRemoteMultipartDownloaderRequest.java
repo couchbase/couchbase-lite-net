@@ -1,6 +1,6 @@
 package com.couchbase.lite.support;
 
-import com.couchbase.lite.CBLDatabase;
+import com.couchbase.lite.Database;
 import com.couchbase.lite.Manager;
 import com.couchbase.lite.util.Log;
 
@@ -22,11 +22,11 @@ import java.util.concurrent.ScheduledExecutorService;
 
 public class CBLRemoteMultipartDownloaderRequest extends CBLRemoteRequest {
 
-    private CBLDatabase db;
+    private Database db;
 
     public CBLRemoteMultipartDownloaderRequest(ScheduledExecutorService workExecutor,
                                                HttpClientFactory clientFactory, String method, URL url,
-                                               Object body, CBLDatabase db, CBLRemoteRequestCompletionBlock onCompletion) {
+                                               Object body, Database db, CBLRemoteRequestCompletionBlock onCompletion) {
         super(workExecutor, clientFactory, method, url, body, onCompletion);
         this.db = db;
     }
@@ -61,10 +61,10 @@ public class CBLRemoteMultipartDownloaderRequest extends CBLRemoteRequest {
 
             StatusLine status = response.getStatusLine();
             if (status.getStatusCode() >= 300) {
-                Log.e(CBLDatabase.TAG,
+                Log.e(Database.TAG,
                         "Got error " + Integer.toString(status.getStatusCode()));
-                Log.e(CBLDatabase.TAG, "Request was for: " + request.toString());
-                Log.e(CBLDatabase.TAG,
+                Log.e(Database.TAG, "Request was for: " + request.toString());
+                Log.e(Database.TAG,
                         "Status reason: " + status.getReasonPhrase());
                 error = new HttpResponseException(status.getStatusCode(),
                         status.getReasonPhrase());
@@ -127,10 +127,10 @@ public class CBLRemoteMultipartDownloaderRequest extends CBLRemoteRequest {
                 }
             }
         } catch (ClientProtocolException e) {
-            Log.e(CBLDatabase.TAG, "client protocol exception", e);
+            Log.e(Database.TAG, "client protocol exception", e);
             error = e;
         } catch (IOException e) {
-            Log.e(CBLDatabase.TAG, "io exception", e);
+            Log.e(Database.TAG, "io exception", e);
             error = e;
         }
     }

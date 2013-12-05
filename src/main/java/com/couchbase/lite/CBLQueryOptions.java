@@ -20,7 +20,7 @@ package com.couchbase.lite;
 import java.util.EnumSet;
 import java.util.List;
 
-import com.couchbase.lite.CBLDatabase.TDContentOptions;
+import com.couchbase.lite.Database.TDContentOptions;
 
 /**
  * Standard query options for views.
@@ -33,7 +33,7 @@ public class CBLQueryOptions {
     private int skip = 0;
     private int limit = Integer.MAX_VALUE;
     private int groupLevel = 0;
-    private EnumSet<TDContentOptions> contentOptions = EnumSet.noneOf(CBLDatabase.TDContentOptions.class);
+    private EnumSet<TDContentOptions> contentOptions = EnumSet.noneOf(Database.TDContentOptions.class);
     private boolean descending = false;
     private boolean includeDocs = false;
     private boolean includeDeletedDocs = false; // only works with _all_docs, not regular views

@@ -91,7 +91,7 @@ public class CBLBlobStoreWriter {
             try {
                 inputStream.close();
             } catch (IOException e) {
-                Log.w(CBLDatabase.TAG, "Exception closing input stream", e);
+                Log.w(Database.TAG, "Exception closing input stream", e);
             }
         }
     }
@@ -101,7 +101,7 @@ public class CBLBlobStoreWriter {
         try {
             outStream.close();
         } catch (IOException e) {
-            Log.w(CBLDatabase.TAG, "Exception closing output stream", e);
+            Log.w(Database.TAG, "Exception closing output stream", e);
         }
         blobKey = new CBLBlobKey(sha1Digest.digest());
         md5DigestResult = md5Digest.digest();
@@ -112,7 +112,7 @@ public class CBLBlobStoreWriter {
         try {
             outStream.close();
         } catch (IOException e) {
-            Log.w(CBLDatabase.TAG, "Exception closing output stream", e);
+            Log.w(Database.TAG, "Exception closing output stream", e);
         }
         tempFile.delete();
     }

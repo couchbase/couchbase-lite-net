@@ -21,7 +21,7 @@ package com.couchbase.lite;
 import android.text.TextUtils;
 import android.util.LruCache;
 
-import com.couchbase.lite.CBLDatabase.TDContentOptions;
+import com.couchbase.lite.Database.TDContentOptions;
 import com.couchbase.lite.internal.CBLAttachmentInternal;
 import com.couchbase.lite.internal.CBLBody;
 import com.couchbase.lite.internal.CBLRevisionInternal;
@@ -56,7 +56,7 @@ import java.util.concurrent.ScheduledExecutorService;
 /**
  * A CouchbaseLite database.
  */
-public class CBLDatabase {
+public class Database {
 
     private static final int MAX_DOC_CACHE_SIZE = 50;
     private static CBLReplicationFilterCompiler filterCompiler;
@@ -68,7 +68,7 @@ public class CBLDatabase {
     private boolean open = false;
     private int transactionLevel = 0;
 
-    public static final String TAG = "CBLDatabase";
+    public static final String TAG = "Database";
     public static final String TAG_SQL = "CBLSQL";
 
     private Map<String, CBLView> views;
@@ -168,14 +168,14 @@ public class CBLDatabase {
      */
     @InterfaceAudience.Public
     public static void setFilterCompiler(CBLReplicationFilterCompiler filterCompiler) {
-        CBLDatabase.filterCompiler = filterCompiler;
+        Database.filterCompiler = filterCompiler;
     }
 
     /**
      * Constructor
      */
     @InterfaceAudience.Private
-    public CBLDatabase(String path, Manager manager) {
+    public Database(String path, Manager manager) {
         assert(path.startsWith("/")); //path must be absolute
         this.path = path;
         this.name = FileDirUtils.getDatabaseNameFromPath(path);
@@ -214,7 +214,7 @@ public class CBLDatabase {
                 result = cursor.getInt(0);
             }
         } catch(SQLException e) {
-            Log.e(CBLDatabase.TAG, "Error getting document count", e);
+            Log.e(Database.TAG, "Error getting document count", e);
         } finally {
             if(cursor != null) {
                 cursor.close();
@@ -240,7 +240,7 @@ public class CBLDatabase {
                 result = cursor.getLong(0);
             }
         } catch (SQLException e) {
-            Log.e(CBLDatabase.TAG, "Error getting last sequence", e);
+            Log.e(Database.TAG, "Error getting last sequence", e);
         } finally {
             if(cursor != null) {
                 cursor.close();
@@ -266,23 +266,23 @@ public class CBLDatabase {
         // Can't delete any rows because that would lose revision tree history.
         // But we can remove the JSON of non-current revisions, which is most of the space.
         try {
-            Log.v(CBLDatabase.TAG, "Deleting JSON of old revisions...");
+            Log.v(Database.TAG, "Deleting JSON of old revisions...");
             ContentValues args = new ContentValues();
             args.put("json", (String)null);
             database.update("revs", args, "current=0", null);
         } catch (SQLException e) {
-            Log.e(CBLDatabase.TAG, "Error compacting", e);
+            Log.e(Database.TAG, "Error compacting", e);
             return new CBLStatus(CBLStatus.INTERNAL_SERVER_ERROR);
         }
 
-        Log.v(CBLDatabase.TAG, "Deleting old attachments...");
+        Log.v(Database.TAG, "Deleting old attachments...");
         CBLStatus result = garbageCollectAttachments();
 
-        Log.v(CBLDatabase.TAG, "Vacuuming SQLite sqliteDb...");
+        Log.v(Database.TAG, "Vacuuming SQLite sqliteDb...");
         try {
             database.execSQL("VACUUM");
         } catch (SQLException e) {
-            Log.e(CBLDatabase.TAG, "Error vacuuming sqliteDb", e);
+            Log.e(Database.TAG, "Error vacuuming sqliteDb", e);
             return new CBLStatus(CBLStatus.INTERNAL_SERVER_ERROR);
         }
 
@@ -350,7 +350,7 @@ public class CBLDatabase {
         if (documentId == null || documentId.length() == 0) {
             return null;
         }
-        CBLRevisionInternal revisionInternal = getDocumentWithIDAndRev(documentId, null, EnumSet.noneOf(CBLDatabase.TDContentOptions.class));
+        CBLRevisionInternal revisionInternal = getDocumentWithIDAndRev(documentId, null, EnumSet.noneOf(Database.TDContentOptions.class));
         if (revisionInternal == null) {
             return null;
         }
@@ -503,7 +503,7 @@ public class CBLDatabase {
             String language = outLanguageList.get(0);
             ReplicationFilter filter = filterCompiler.compileFilterFunction(sourceCode, language);
             if (filter == null) {
-                Log.w(CBLDatabase.TAG, String.format("Filter %s failed to compile", filterName));
+                Log.w(Database.TAG, String.format("Filter %s failed to compile", filterName));
                 return null;
             }
             setFilter(filterName, filter);
@@ -551,7 +551,7 @@ public class CBLDatabase {
             shouldCommit = databaseFunction.run();
         } catch (Exception e) {
             shouldCommit = false;
-            Log.e(CBLDatabase.TAG, e.toString(), e);
+            Log.e(Database.TAG, e.toString(), e);
             throw new RuntimeException(e);
         } finally {
             endTransaction(shouldCommit);
@@ -567,7 +567,7 @@ public class CBLDatabase {
         return getManager().runAsync(new Runnable() {
             @Override
             public void run() {
-                function.run(CBLDatabase.this);
+                function.run(Database.this);
             }
         });
     }
@@ -681,11 +681,11 @@ public class CBLDatabase {
         return attachmentStorePath;
     }
 
-    public static CBLDatabase createEmptyDBAtPath(String path, Manager manager) {
+    public static Database createEmptyDBAtPath(String path, Manager manager) {
         if(!FileDirUtils.removeItemIfExists(path)) {
             return null;
         }
-        CBLDatabase result = new CBLDatabase(path, manager);
+        Database result = new Database(path, manager);
         File af = new File(result.getAttachmentStorePath());
         //recursively delete attachments path
         if(!FileDirUtils.deleteRecursive(af)) {
@@ -724,7 +724,7 @@ public class CBLDatabase {
 
         // Stuff we need to initialize every time the sqliteDb opens:
         if(!initialize("PRAGMA foreign_keys = ON;")) {
-            Log.e(CBLDatabase.TAG, "Error turning on foreign keys");
+            Log.e(Database.TAG, "Error turning on foreign keys");
             return false;
         }
 
@@ -733,7 +733,7 @@ public class CBLDatabase {
 
         // Incompatible version changes increment the hundreds' place:
         if(dbVersion >= 100) {
-            Log.w(CBLDatabase.TAG, "CBLDatabase: Database version (" + dbVersion + ") is newer than I know how to work with");
+            Log.w(Database.TAG, "Database: Database version (" + dbVersion + ") is newer than I know how to work with");
             database.close();
             return false;
         }
@@ -790,7 +790,7 @@ public class CBLDatabase {
         try {
             attachments = new CBLBlobStore(getAttachmentStorePath());
         } catch (IllegalArgumentException e) {
-            Log.e(CBLDatabase.TAG, "Could not initialize attachment store", e);
+            Log.e(Database.TAG, "Could not initialize attachment store", e);
             database.close();
             return false;
         }
@@ -863,9 +863,9 @@ public class CBLDatabase {
         try {
             database.beginTransaction();
             ++transactionLevel;
-            Log.i(CBLDatabase.TAG_SQL, Thread.currentThread().getName() + " Begin transaction (level " + Integer.toString(transactionLevel) + ")");
+            Log.i(Database.TAG_SQL, Thread.currentThread().getName() + " Begin transaction (level " + Integer.toString(transactionLevel) + ")");
         } catch (SQLException e) {
-            Log.e(CBLDatabase.TAG, Thread.currentThread().getName() + " Error calling beginTransaction()", e);
+            Log.e(Database.TAG, Thread.currentThread().getName() + " Error calling beginTransaction()", e);
             return false;
         }
         return true;
@@ -881,7 +881,7 @@ public class CBLDatabase {
         assert(transactionLevel > 0);
 
         if(commit) {
-            Log.i(CBLDatabase.TAG_SQL, Thread.currentThread().getName() + " Committing transaction (level " + Integer.toString(transactionLevel) + ")");
+            Log.i(Database.TAG_SQL, Thread.currentThread().getName() + " Committing transaction (level " + Integer.toString(transactionLevel) + ")");
             database.setTransactionSuccessful();
             database.endTransaction();
         }
@@ -890,7 +890,7 @@ public class CBLDatabase {
             try {
                 database.endTransaction();
             } catch (SQLException e) {
-                Log.e(CBLDatabase.TAG, Thread.currentThread().getName() + " Error calling endTransaction()", e);
+                Log.e(Database.TAG, Thread.currentThread().getName() + " Error calling endTransaction()", e);
                 return false;
             }
         }
@@ -950,7 +950,7 @@ public class CBLDatabase {
         try {
             extraJSON = Manager.getObjectMapper().writeValueAsBytes(dict);
         } catch (Exception e) {
-            Log.e(CBLDatabase.TAG, "Error convert extra JSON to bytes", e);
+            Log.e(Database.TAG, "Error convert extra JSON to bytes", e);
             return null;
         }
 
@@ -1074,7 +1074,7 @@ public class CBLDatabase {
             docProperties.putAll(extra);
             return docProperties;
         } catch (Exception e) {
-            Log.e(CBLDatabase.TAG, "Error serializing properties to JSON", e);
+            Log.e(Database.TAG, "Error serializing properties to JSON", e);
         }
 
         return docProperties;
@@ -1118,7 +1118,7 @@ public class CBLDatabase {
                 }
             }
         } catch (SQLException e) {
-            Log.e(CBLDatabase.TAG, "Error getting document with id and rev", e);
+            Log.e(Database.TAG, "Error getting document with id and rev", e);
         } finally {
             if(cursor != null) {
                 cursor.close();
@@ -1149,7 +1149,7 @@ public class CBLDatabase {
                 expandStoredJSONIntoRevisionWithAttachments(cursor.getBlob(1), rev, contentOptions);
             }
         } catch(SQLException e) {
-            Log.e(CBLDatabase.TAG, "Error loading revision body", e);
+            Log.e(Database.TAG, "Error loading revision body", e);
             throw new CBLiteException(CBLStatus.INTERNAL_SERVER_ERROR);
         } finally {
             if(cursor != null) {
@@ -1173,7 +1173,7 @@ public class CBLDatabase {
                 result = 0;
             }
         } catch (Exception e) {
-            Log.e(CBLDatabase.TAG, "Error getting doc numeric id", e);
+            Log.e(Database.TAG, "Error getting doc numeric id", e);
         } finally {
             if(cursor != null) {
                 cursor.close();
@@ -1216,7 +1216,7 @@ public class CBLDatabase {
                 cursor.moveToNext();
             }
         } catch (SQLException e) {
-            Log.e(CBLDatabase.TAG, "Error getting all revisions of document", e);
+            Log.e(Database.TAG, "Error getting all revisions of document", e);
             return null;
         } finally {
             if(cursor != null) {
@@ -1259,7 +1259,7 @@ public class CBLDatabase {
             }
 
         } catch (SQLException e) {
-            Log.e(CBLDatabase.TAG, "Error getting all revisions of document", e);
+            Log.e(Database.TAG, "Error getting all revisions of document", e);
             return null;
         } finally {
             if(cursor != null) {
@@ -1294,7 +1294,7 @@ public class CBLDatabase {
             }
 
         } catch (SQLException e) {
-            Log.e(CBLDatabase.TAG, "Error getting all revisions of document", e);
+            Log.e(Database.TAG, "Error getting all revisions of document", e);
         } finally {
             if (cursor != null) {
                 cursor.close();
@@ -1355,7 +1355,7 @@ public class CBLDatabase {
                 cursor.moveToNext();
             }
         } catch (SQLException e) {
-            Log.e(CBLDatabase.TAG, "Error getting revision history", e);
+            Log.e(Database.TAG, "Error getting revision history", e);
             return null;
         } finally {
             if(cursor != null) {
@@ -1489,7 +1489,7 @@ public class CBLDatabase {
                 cursor.moveToNext();
             }
         } catch (SQLException e) {
-            Log.e(CBLDatabase.TAG, "Error looking for changes", e);
+            Log.e(Database.TAG, "Error looking for changes", e);
         } finally {
             if(cursor != null) {
                 cursor.close();
@@ -1564,7 +1564,7 @@ public class CBLDatabase {
                         try {
                             view.updateIndex();
                         } catch (CBLiteException e) {
-                            Log.e(CBLDatabase.TAG, "Error updating view index on background thread", e);
+                            Log.e(Database.TAG, "Error updating view index on background thread", e);
                         }
                     }
                 }).start();
@@ -1585,7 +1585,7 @@ public class CBLDatabase {
         outLastSequence.add(lastSequence);
 
         long delta = System.currentTimeMillis() - before;
-        Log.d(CBLDatabase.TAG, String.format("Query view %s completed in %d milliseconds", viewName, delta));
+        Log.d(Database.TAG, String.format("Query view %s completed in %d milliseconds", viewName, delta));
 
         return rows;
 
@@ -1620,7 +1620,7 @@ public class CBLDatabase {
                 cursor.moveToNext();
             }
         } catch (Exception e) {
-            Log.e(CBLDatabase.TAG, "Error getting all views", e);
+            Log.e(Database.TAG, "Error getting all views", e);
         } finally {
             if(cursor != null) {
                 cursor.close();
@@ -1642,7 +1642,7 @@ public class CBLDatabase {
                 result.setCode(CBLStatus.NOT_FOUND);
             }
         } catch (SQLException e) {
-            Log.e(CBLDatabase.TAG, "Error deleting view", e);
+            Log.e(Database.TAG, "Error deleting view", e);
         }
         return result;
     }
@@ -1805,7 +1805,7 @@ public class CBLDatabase {
 
 
         } catch (SQLException e) {
-            Log.e(CBLDatabase.TAG, "Error getting all docs", e);
+            Log.e(Database.TAG, "Error getting all docs", e);
             throw new CBLiteException("Error getting all docs", e, new CBLStatus(CBLStatus.INTERNAL_SERVER_ERROR));
         } finally {
             if(cursor != null) {
@@ -1857,7 +1857,7 @@ public class CBLDatabase {
             }
 
         } catch (SQLException e) {
-            Log.e(CBLDatabase.TAG, "Error", e);
+            Log.e(Database.TAG, "Error", e);
             throw new CBLiteException("Error", e, new CBLStatus(CBLStatus.INTERNAL_SERVER_ERROR));
         } finally {
             if(cursor != null) {
@@ -1870,7 +1870,7 @@ public class CBLDatabase {
 
 
     /*************************************************************************************************/
-    /*** CBLDatabase+Attachments                                                                    ***/
+    /*** Database+Attachments                                                                    ***/
     /*************************************************************************************************/
 
     void insertAttachmentForSequence(CBLAttachmentInternal attachment, long sequence) throws CBLiteException {
@@ -1901,7 +1901,7 @@ public class CBLDatabase {
             args.put("revpos", revpos);
             database.insert("attachments", null, args);
         } catch (SQLException e) {
-            Log.e(CBLDatabase.TAG, "Error inserting attachment", e);
+            Log.e(Database.TAG, "Error inserting attachment", e);
             throw new CBLiteException(CBLStatus.INTERNAL_SERVER_ERROR);
         }
     }
@@ -1952,14 +1952,14 @@ public class CBLDatabase {
             if(rowsUpdated == 0) {
                 // Oops. This means a glitch in our attachment-management or pull code,
                 // or else a bug in the upstream server.
-                Log.w(CBLDatabase.TAG, "Can't find inherited attachment " + name + " from seq# " + Long.toString(fromSeq) + " to copy to " + Long.toString(toSeq));
+                Log.w(Database.TAG, "Can't find inherited attachment " + name + " from seq# " + Long.toString(fromSeq) + " to copy to " + Long.toString(toSeq));
                 throw new CBLiteException(CBLStatus.NOT_FOUND);
             }
             else {
                 return;
             }
         } catch (SQLException e) {
-            Log.e(CBLDatabase.TAG, "Error copying attachment", e);
+            Log.e(Database.TAG, "Error copying attachment", e);
             throw new CBLiteException(CBLStatus.INTERNAL_SERVER_ERROR);
         } finally {
             if(cursor != null) {
@@ -1990,7 +1990,7 @@ public class CBLDatabase {
             CBLBlobKey key = new CBLBlobKey(keyData);
             InputStream contentStream = attachments.blobStreamForKey(key);
             if(contentStream == null) {
-                Log.e(CBLDatabase.TAG, "Failed to load attachment");
+                Log.e(Database.TAG, "Failed to load attachment");
                 throw new CBLiteException(CBLStatus.INTERNAL_SERVER_ERROR);
             }
             else {
@@ -2070,7 +2070,7 @@ public class CBLDatabase {
                 String dataBase64 = null;
                 if(contentOptions.contains(TDContentOptions.TDIncludeAttachments)) {
                     if (contentOptions.contains(TDContentOptions.TDBigAttachmentsFollow) &&
-                            length >= CBLDatabase.kBigAttachmentLength) {
+                            length >= Database.kBigAttachmentLength) {
                         dataSuppressed = true;
                     }
                     else {
@@ -2080,7 +2080,7 @@ public class CBLDatabase {
                             dataBase64 = Base64.encodeBytes(data);  // <-- very expensive
                         }
                         else {
-                            Log.w(CBLDatabase.TAG, "Error loading attachment");
+                            Log.w(Database.TAG, "Error loading attachment");
                         }
 
                     }
@@ -2118,7 +2118,7 @@ public class CBLDatabase {
             return result;
 
         } catch (SQLException e) {
-            Log.e(CBLDatabase.TAG, "Error getting attachments for sequence", e);
+            Log.e(Database.TAG, "Error getting attachments for sequence", e);
             return null;
         } finally {
             if(cursor != null) {
@@ -2162,7 +2162,7 @@ public class CBLDatabase {
                 editedAttachment.remove("follows");
                 editedAttachment.put("stub", true);
                 editedAttachments.put(name,editedAttachment);
-                Log.d(CBLDatabase.TAG, "Stubbed out attachment" + rev + " " + name + ": revpos" + revPos + " " + minRevPos);
+                Log.d(Database.TAG, "Stubbed out attachment" + rev + " " + name + ": revpos" + revPos + " " + minRevPos);
             }
         }
         if (editedProperties != null)
@@ -2230,7 +2230,7 @@ public class CBLDatabase {
                     attachment.setRevpos(generation);
                 }
                 else if (attachment.getRevpos() > generation) {
-                    Log.w(CBLDatabase.TAG, String.format("Attachment %s %s has unexpected revpos %s, setting to %s", rev, name, attachment.getRevpos(), generation));
+                    Log.w(Database.TAG, String.format("Attachment %s %s has unexpected revpos %s, setting to %s", rev, name, attachment.getRevpos(), generation));
                     attachment.setRevpos(generation);
                 }
                 // Finally insert the attachment:
@@ -2348,7 +2348,7 @@ public class CBLDatabase {
                     "(SELECT sequence from revs WHERE json IS null)");
         }
         catch(SQLException e) {
-            Log.e(CBLDatabase.TAG, "Error deleting attachments", e);
+            Log.e(Database.TAG, "Error deleting attachments", e);
         }
 
         // Now collect all remaining attachment IDs and tell the store to delete all but these:
@@ -2369,11 +2369,11 @@ public class CBLDatabase {
                 return new CBLStatus(CBLStatus.INTERNAL_SERVER_ERROR);
             }
 
-            Log.v(CBLDatabase.TAG, "Deleted " + numDeleted + " attachments");
+            Log.v(Database.TAG, "Deleted " + numDeleted + " attachments");
 
             return new CBLStatus(CBLStatus.OK);
         } catch (SQLException e) {
-            Log.e(CBLDatabase.TAG, "Error finding attachment keys in use", e);
+            Log.e(Database.TAG, "Error finding attachment keys in use", e);
             return new CBLStatus(CBLStatus.INTERNAL_SERVER_ERROR);
         } finally {
             if(cursor != null) {
@@ -2383,7 +2383,7 @@ public class CBLDatabase {
     }
 
     /*************************************************************************************************/
-    /*** CBLDatabase+Insertion                                                                      ***/
+    /*** Database+Insertion                                                                      ***/
     /*************************************************************************************************/
 
     /** DOCUMENT & REV IDS: **/
@@ -2424,7 +2424,7 @@ public class CBLDatabase {
             args.put("docid", docId);
             rowId = database.insert("docs", null, args);
         } catch (Exception e) {
-            Log.e(CBLDatabase.TAG, "Error inserting document id", e);
+            Log.e(Database.TAG, "Error inserting document id", e);
         }
         return rowId;
     }
@@ -2470,7 +2470,7 @@ public class CBLDatabase {
         for (String key : origProps.keySet()) {
             if(key.startsWith("_")) {
                 if(!KNOWN_SPECIAL_KEYS.contains(key)) {
-                    Log.e(TAG, "CBLDatabase: Invalid top-level key '" + key + "' in document to be inserted");
+                    Log.e(TAG, "Database: Invalid top-level key '" + key + "' in document to be inserted");
                     return null;
                 }
             } else {
@@ -2482,7 +2482,7 @@ public class CBLDatabase {
         try {
             json = Manager.getObjectMapper().writeValueAsBytes(properties);
         } catch (Exception e) {
-            Log.e(CBLDatabase.TAG, "Error serializing " + rev + " to JSON", e);
+            Log.e(Database.TAG, "Error serializing " + rev + " to JSON", e);
         }
         return json;
     }
@@ -2531,7 +2531,7 @@ public class CBLDatabase {
             rowId = database.insert("revs", null, args);
             rev.setSequence(rowId);
         } catch (Exception e) {
-            Log.e(CBLDatabase.TAG, "Error inserting revision", e);
+            Log.e(Database.TAG, "Error inserting revision", e);
         }
         return rowId;
     }
@@ -2662,7 +2662,7 @@ public class CBLDatabase {
                 }
                 else {
                     // Inserting first revision, with no docID given (POST): generate a unique docID:
-                    docId = CBLDatabase.generateDocumentId();
+                    docId = Database.generateDocumentId();
                     docNumericID = insertDocumentID(docId);
                     if(docNumericID <= 0) {
                         return null;
@@ -2709,7 +2709,7 @@ public class CBLDatabase {
             }
 
         } catch (SQLException e1) {
-            Log.e(CBLDatabase.TAG, "Error putting revision", e1);
+            Log.e(Database.TAG, "Error putting revision", e1);
             return null;
         } finally {
             if(cursor != null) {
@@ -2931,7 +2931,7 @@ public class CBLDatabase {
     }
 
     /*************************************************************************************************/
-    /*** CBLDatabase+Replication                                                                    ***/
+    /*** Database+Replication                                                                    ***/
     /*************************************************************************************************/
 
 
@@ -2988,7 +2988,7 @@ public class CBLDatabase {
                 result = cursor.getString(0);
             }
         } catch (SQLException e) {
-            Log.e(CBLDatabase.TAG, "Error getting last sequence", e);
+            Log.e(Database.TAG, "Error getting last sequence", e);
             return null;
         } finally {
             if(cursor != null) {
@@ -3069,7 +3069,7 @@ public class CBLDatabase {
                 cursor.moveToNext();
             }
         } catch (SQLException e) {
-            Log.e(CBLDatabase.TAG, "Error finding missing revisions", e);
+            Log.e(Database.TAG, "Error finding missing revisions", e);
             return false;
         } finally {
             if(cursor != null) {
@@ -3080,7 +3080,7 @@ public class CBLDatabase {
     }
 
     /*************************************************************************************************/
-    /*** CBLDatabase+LocalDocs                                                                      ***/
+    /*** Database+LocalDocs                                                                      ***/
     /*************************************************************************************************/
 
 
@@ -3236,7 +3236,7 @@ public class CBLDatabase {
                             String[] args = {Long.toString(docNumericID)};
                             database.execSQL("DELETE FROM revs WHERE doc_id=?", args);
                         } catch (SQLException e) {
-                            Log.e(CBLDatabase.TAG, "Error deleting revisions", e);
+                            Log.e(Database.TAG, "Error deleting revisions", e);
                             return false;
                         }
                         revsPurged.add("*");
@@ -3251,7 +3251,7 @@ public class CBLDatabase {
                             String queryString = "SELECT revid, sequence, parent FROM revs WHERE doc_id=? ORDER BY sequence DESC";
                             cursor = database.rawQuery(queryString, args);
                             if (!cursor.moveToNext()) {
-                                Log.w(CBLDatabase.TAG, "No results for query: " + queryString);
+                                Log.w(Database.TAG, "No results for query: " + queryString);
                                 return false;
                             }
 
@@ -3281,7 +3281,7 @@ public class CBLDatabase {
                             }
 
                             seqsToPurge.removeAll(seqsToKeep);
-                            Log.i(CBLDatabase.TAG, String.format("Purging doc '%s' revs (%s); asked for (%s)", docID, revsToPurge, revIDs));
+                            Log.i(Database.TAG, String.format("Purging doc '%s' revs (%s); asked for (%s)", docID, revsToPurge, revIDs));
                             if (seqsToPurge.size() > 0) {
                                 // Now delete the sequences to be purged.
                                 String seqsToPurgeList = TextUtils.join(",", seqsToPurge);
@@ -3289,14 +3289,14 @@ public class CBLDatabase {
                                 try {
                                     database.execSQL(sql);
                                 } catch (SQLException e) {
-                                    Log.e(CBLDatabase.TAG, "Error deleting revisions via: " + sql, e);
+                                    Log.e(Database.TAG, "Error deleting revisions via: " + sql, e);
                                     return false;
                                 }
                             }
                             revsPurged.addAll(revsToPurge);
 
                         } catch (SQLException e) {
-                            Log.e(CBLDatabase.TAG, "Error getting revisions", e);
+                            Log.e(Database.TAG, "Error getting revisions", e);
                             return false;
                         } finally {
                             if (cursor != null) {
@@ -3323,14 +3323,14 @@ public class CBLDatabase {
         try {
             database.execSQL(query);
         } catch (SQLException e) {
-            Log.e(CBLDatabase.TAG, "Error updating UUIDs", e);
+            Log.e(Database.TAG, "Error updating UUIDs", e);
             return false;
         }
         query = "UPDATE INFO SET value='"+CBLMisc.TDCreateUUID()+"' where key = 'publicUUID';";
         try {
             database.execSQL(query);
         } catch (SQLException e) {
-            Log.e(CBLDatabase.TAG, "Error updating UUIDs", e);
+            Log.e(Database.TAG, "Error updating UUIDs", e);
             return false;
         }
         return true;
@@ -3358,14 +3358,14 @@ public class CBLDatabase {
                     result = new CBLRevisionInternal(docID, gotRevID, false, this);
                     result.setProperties(properties);
                 } catch (Exception e) {
-                    Log.w(CBLDatabase.TAG, "Error parsing local doc JSON", e);
+                    Log.w(Database.TAG, "Error parsing local doc JSON", e);
                     return null;
                 }
 
             }
             return result;
         } catch (SQLException e) {
-            Log.e(CBLDatabase.TAG, "Error getting local document", e);
+            Log.e(Database.TAG, "Error getting local document", e);
             return null;
         } finally {
             if(cursor != null) {
@@ -3414,17 +3414,17 @@ public class CBLDatabase {
 
     public static class ChangeEvent {
 
-        private CBLDatabase source;
+        private Database source;
         private boolean isExternal;
         private List<DocumentChange> changes;
 
-        public ChangeEvent(CBLDatabase source, boolean isExternal, List<DocumentChange> changes) {
+        public ChangeEvent(Database source, boolean isExternal, List<DocumentChange> changes) {
             this.source = source;
             this.isExternal = isExternal;
             this.changes = changes;
         }
 
-        public CBLDatabase getSource() {
+        public Database getSource() {
             return source;
         }
 
@@ -3447,12 +3447,12 @@ public class CBLDatabase {
 
 class TDValidationContextImpl implements CBLValidationContext {
 
-    private CBLDatabase database;
+    private Database database;
     private CBLRevisionInternal currentRevision;
     private CBLStatus errorType;
     private String errorMessage;
 
-    public TDValidationContextImpl(CBLDatabase database, CBLRevisionInternal currentRevision) {
+    public TDValidationContextImpl(Database database, CBLRevisionInternal currentRevision) {
         this.database = database;
         this.currentRevision = currentRevision;
         this.errorType = new CBLStatus(CBLStatus.FORBIDDEN);

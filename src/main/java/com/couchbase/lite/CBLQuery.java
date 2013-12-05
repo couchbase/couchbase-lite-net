@@ -18,7 +18,7 @@ public class CBLQuery {
     /**
      * The database that contains this view.
      */
-    private CBLDatabase database;
+    private Database database;
 
     /**
      * The view object associated with this query
@@ -116,7 +116,7 @@ public class CBLQuery {
      * Constructor
      */
     @InterfaceAudience.Private
-    CBLQuery(CBLDatabase database, CBLView view) {
+    CBLQuery(Database database, CBLView view) {
         this.database = database;
         this.view = view;
         limit = Integer.MAX_VALUE;
@@ -128,7 +128,7 @@ public class CBLQuery {
      * Constructor
      */
     @InterfaceAudience.Private
-    CBLQuery(CBLDatabase database, CBLMapper mapFunction) {
+    CBLQuery(Database database, CBLMapper mapFunction) {
         this(database, database.makeAnonymousView());
         temporaryView = true;
         view.setMap(mapFunction, "");
@@ -138,7 +138,7 @@ public class CBLQuery {
      * Constructor
      */
     @InterfaceAudience.Private
-    CBLQuery(CBLDatabase database, CBLQuery query) {
+    CBLQuery(Database database, CBLQuery query) {
         this(database, query.getView());
         limit = query.limit;
         skip = query.skip;
@@ -158,7 +158,7 @@ public class CBLQuery {
      * The database this query is associated with
      */
     @InterfaceAudience.Public
-    public CBLDatabase getDatabase() {
+    public Database getDatabase() {
         return database;
     }
 

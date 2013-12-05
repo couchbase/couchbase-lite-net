@@ -51,7 +51,7 @@ public class CBLSavedRevision extends CBLRevision {
      * Constructor
      */
     @InterfaceAudience.Private
-    CBLSavedRevision(CBLDatabase database, CBLRevisionInternal revision) {
+    CBLSavedRevision(Database database, CBLRevisionInternal revision) {
         this(database.getDocument(revision.getDocId()), revision);
     }
 
@@ -169,9 +169,9 @@ public class CBLSavedRevision extends CBLRevision {
         try {
             HashMap<String, Object> emptyProperties = new HashMap<String, Object>();
             CBLRevisionInternal loadRevision = new CBLRevisionInternal(emptyProperties, database);
-            database.loadRevisionBody(loadRevision, EnumSet.noneOf(CBLDatabase.TDContentOptions.class));
+            database.loadRevisionBody(loadRevision, EnumSet.noneOf(Database.TDContentOptions.class));
             if (loadRevision == null) {
-                Log.w(CBLDatabase.TAG, "Couldn't load body/sequence of %s" + this);
+                Log.w(Database.TAG, "Couldn't load body/sequence of %s" + this);
                 return false;
             }
             revisionInternal = loadRevision;

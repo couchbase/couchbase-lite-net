@@ -3,7 +3,7 @@ package com.couchbase.lite.replicator.changetracker;
 
 import android.net.Uri;
 
-import com.couchbase.lite.CBLDatabase;
+import com.couchbase.lite.Database;
 import com.couchbase.lite.Manager;
 import com.couchbase.lite.util.Log;
 
@@ -139,7 +139,7 @@ public class CBLChangeTracker implements Runnable {
         try {
             result = new URL(dbURLString);
         } catch(MalformedURLException e) {
-            Log.e(CBLDatabase.TAG, "Changes feed ULR is malformed", e);
+            Log.e(Database.TAG, "Changes feed ULR is malformed", e);
         }
         return result;
     }
@@ -154,7 +154,7 @@ public class CBLChangeTracker implements Runnable {
             // This is a race condition that can be reproduced by calling cbpuller.start() and cbpuller.stop()
             // directly afterwards.  What happens is that by the time the Changetracker thread fires up,
             // the cbpuller has already set this.client to null.  See issue #109
-            Log.w(CBLDatabase.TAG, "ChangeTracker run() loop aborting because client == null");
+            Log.w(Database.TAG, "ChangeTracker run() loop aborting because client == null");
             return;
         }
 
@@ -169,7 +169,7 @@ public class CBLChangeTracker implements Runnable {
             // if the URL contains user info AND if this a DefaultHttpClient
             // then preemptively set the auth credentials
             if (url.getUserInfo() != null) {
-                Log.v(CBLDatabase.TAG, "url.getUserInfo(): " + url.getUserInfo());
+                Log.v(Database.TAG, "url.getUserInfo(): " + url.getUserInfo());
                 if (url.getUserInfo().contains(":") && !url.getUserInfo().trim().equals(":")) {
                     String[] userInfoSplit = url.getUserInfo().split(":");
                     final Credentials creds = new UsernamePasswordCredentials(
@@ -199,18 +199,18 @@ public class CBLChangeTracker implements Runnable {
                         dhc.addRequestInterceptor(preemptiveAuth, 0);
                     }
                 } else {
-                    Log.w(CBLDatabase.TAG, "ChangeTracker Unable to parse user info, not setting credentials");
+                    Log.w(Database.TAG, "ChangeTracker Unable to parse user info, not setting credentials");
                 }
             }
 
             try {
                 String maskedRemoteWithoutCredentials = getChangesFeedURL().toString();
                 maskedRemoteWithoutCredentials = maskedRemoteWithoutCredentials.replaceAll("://.*:.*@", "://---:---@");
-                Log.v(CBLDatabase.TAG, "Making request to " + maskedRemoteWithoutCredentials);
+                Log.v(Database.TAG, "Making request to " + maskedRemoteWithoutCredentials);
                 HttpResponse response = httpClient.execute(request);
                 StatusLine status = response.getStatusLine();
                 if (status.getStatusCode() >= 300) {
-                    Log.e(CBLDatabase.TAG, "Change tracker got error " + Integer.toString(status.getStatusCode()));
+                    Log.e(Database.TAG, "Change tracker got error " + Integer.toString(status.getStatusCode()));
                     stop();
                 }
                 HttpEntity entity = response.getEntity();
@@ -222,10 +222,10 @@ public class CBLChangeTracker implements Runnable {
                         Map<String, Object> fullBody = Manager.getObjectMapper().readValue(input, Map.class);
                         boolean responseOK = receivedPollResponse(fullBody);
                         if (mode == TDChangeTrackerMode.LongPoll && responseOK) {
-                            Log.v(CBLDatabase.TAG, "Starting new longpoll");
+                            Log.v(Database.TAG, "Starting new longpoll");
                             continue;
                         } else {
-                            Log.w(CBLDatabase.TAG, "Change tracker calling stop");
+                            Log.w(Database.TAG, "Change tracker calling stop");
                             stop();
                         }
                     } else {
@@ -240,7 +240,7 @@ public class CBLChangeTracker implements Runnable {
                         while (jp.nextToken() == JsonToken.START_OBJECT) {
                             Map<String, Object> change = (Map) Manager.getObjectMapper().readValue(jp, Map.class);
                             if (!receivedChange(change)) {
-                                Log.w(CBLDatabase.TAG, String.format("Received unparseable change line from server: %s", change));
+                                Log.w(Database.TAG, String.format("Received unparseable change line from server: %s", change));
                             }
 
                         }
@@ -260,14 +260,14 @@ public class CBLChangeTracker implements Runnable {
                     // frequently happens when we're shutting down and have to
                     // close the socket underneath our read.
                 } else {
-                    Log.e(CBLDatabase.TAG, "Exception in change tracker", e);
+                    Log.e(Database.TAG, "Exception in change tracker", e);
                 }
 
                 backoff.sleepAppropriateAmountOfTime();
 
             }
         }
-        Log.v(CBLDatabase.TAG, "Change tracker run loop exiting");
+        Log.v(Database.TAG, "Change tracker run loop exiting");
     }
 
     public boolean receivedChange(final Map<String,Object> change) {
@@ -297,7 +297,7 @@ public class CBLChangeTracker implements Runnable {
     }
 
     public void setUpstreamError(String message) {
-        Log.w(CBLDatabase.TAG, String.format("Server error: %s", message));
+        Log.w(Database.TAG, String.format("Server error: %s", message));
         this.error = new Throwable(message);
     }
 
@@ -311,7 +311,7 @@ public class CBLChangeTracker implements Runnable {
     }
 
     public void stop() {
-        Log.d(CBLDatabase.TAG, "changed tracker asked to stop");
+        Log.d(Database.TAG, "changed tracker asked to stop");
         running = false;
         thread.interrupt();
         if(request != null) {
@@ -322,13 +322,13 @@ public class CBLChangeTracker implements Runnable {
     }
 
     public void stopped() {
-        Log.d(CBLDatabase.TAG, "change tracker in stopped");
+        Log.d(Database.TAG, "change tracker in stopped");
         if (client != null) {
-            Log.d(CBLDatabase.TAG, "posting stopped");
+            Log.d(Database.TAG, "posting stopped");
             client.changeTrackerStopped(CBLChangeTracker.this);
         }
         client = null;
-        Log.d(CBLDatabase.TAG, "change tracker client should be null now");
+        Log.d(Database.TAG, "change tracker client should be null now");
     }
 
     public boolean isRunning() {

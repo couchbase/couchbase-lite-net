@@ -19,7 +19,7 @@ public class CBLDocument {
     /**
      * The document's owning database.
      */
-    private CBLDatabase database;
+    private Database database;
 
     /**
      * The document's ID.
@@ -48,7 +48,7 @@ public class CBLDocument {
      * @param documentId The document's ID
      */
     @InterfaceAudience.Private
-    public CBLDocument(CBLDatabase database, String documentId) {
+    public CBLDocument(Database database, String documentId) {
         this.database = database;
         this.documentId = documentId;
     }
@@ -57,7 +57,7 @@ public class CBLDocument {
      * Get the document's owning database.
      */
     @InterfaceAudience.Public
-    public CBLDatabase getDatabase() {
+    public Database getDatabase() {
         return database;
     }
 
@@ -106,7 +106,7 @@ public class CBLDocument {
     @InterfaceAudience.Public
     public List<CBLSavedRevision> getRevisionHistory() throws CBLiteException {
         if (getCurrentRevision() == null) {
-            Log.w(CBLDatabase.TAG, "getRevisionHistory() called but no currentRevision");
+            Log.w(Database.TAG, "getRevisionHistory() called but no currentRevision");
             return null;
         }
         return getCurrentRevision().getRevisionHistory();
@@ -202,7 +202,7 @@ public class CBLDocument {
         if (id.equals(currentRevision.getId())) {
             return currentRevision;
         }
-        EnumSet<CBLDatabase.TDContentOptions> contentOptions = EnumSet.noneOf(CBLDatabase.TDContentOptions.class);
+        EnumSet<Database.TDContentOptions> contentOptions = EnumSet.noneOf(Database.TDContentOptions.class);
         CBLRevisionInternal revisionInternal = database.getDocumentWithIDAndRev(getId(), id, contentOptions);
         CBLSavedRevision revision = null;
         revision = getRevisionFromRev(revisionInternal);
@@ -345,7 +345,7 @@ public class CBLDocument {
         }
 
         if (newId != null && !newId.equalsIgnoreCase(getId())) {
-            Log.w(CBLDatabase.TAG, String.format("Trying to put wrong _id to this: %s properties: %s", this, properties));
+            Log.w(Database.TAG, String.format("Trying to put wrong _id to this: %s properties: %s", this, properties));
         }
 
         // Process _attachments dict, converting CBLAttachments to dicts:
@@ -396,7 +396,7 @@ public class CBLDocument {
         return getRevisionFromRev(
                 database.getDocumentWithIDAndRev(getId(),
                 revId,
-                EnumSet.noneOf(CBLDatabase.TDContentOptions.class))
+                EnumSet.noneOf(Database.TDContentOptions.class))
         );
     }
 

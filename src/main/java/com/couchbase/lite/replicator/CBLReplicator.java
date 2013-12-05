@@ -1,6 +1,6 @@
 package com.couchbase.lite.replicator;
 
-import com.couchbase.lite.CBLDatabase;
+import com.couchbase.lite.Database;
 import com.couchbase.lite.CBLMisc;
 import com.couchbase.lite.internal.CBLRevisionInternal;
 import com.couchbase.lite.CBLRevisionList;
@@ -41,7 +41,7 @@ public abstract class CBLReplicator {
     protected boolean continuous;
     protected String filterName;
     protected ScheduledExecutorService workExecutor;
-    protected CBLDatabase db;
+    protected Database db;
     protected URL remote;
     protected String lastSequence;
     protected boolean lastSequenceChanged;
@@ -82,7 +82,7 @@ public abstract class CBLReplicator {
      * Private Constructor
      */
     @InterfaceAudience.Private
-    public CBLReplicator(CBLDatabase db, URL remote, boolean continuous, ScheduledExecutorService workExecutor) {
+    public CBLReplicator(Database db, URL remote, boolean continuous, ScheduledExecutorService workExecutor) {
         this(db, remote, continuous, null, workExecutor);
     }
 
@@ -90,7 +90,7 @@ public abstract class CBLReplicator {
      * Private Constructor
      */
     @InterfaceAudience.Private
-    public CBLReplicator(CBLDatabase db, URL remote, boolean continuous, HttpClientFactory clientFactory, ScheduledExecutorService workExecutor) {
+    public CBLReplicator(Database db, URL remote, boolean continuous, HttpClientFactory clientFactory, ScheduledExecutorService workExecutor) {
 
         this.db = db;
         this.continuous = continuous;
@@ -137,9 +137,9 @@ public abstract class CBLReplicator {
         batcher = new CBLBatcher<CBLRevisionInternal>(workExecutor, INBOX_CAPACITY, PROCESSOR_DELAY, new CBLBatchProcessor<CBLRevisionInternal>() {
             @Override
             public void process(List<CBLRevisionInternal> inbox) {
-                Log.v(CBLDatabase.TAG, "*** " + toString() + ": BEGIN processInbox (" + inbox.size() + " sequences)");
+                Log.v(Database.TAG, "*** " + toString() + ": BEGIN processInbox (" + inbox.size() + " sequences)");
                 processInbox(new CBLRevisionList(inbox));
-                Log.v(CBLDatabase.TAG, "*** " + toString() + ": END processInbox (lastSequence=" + lastSequence);
+                Log.v(Database.TAG, "*** " + toString() + ": END processInbox (lastSequence=" + lastSequence);
                 active = false;
             }
         });
@@ -152,7 +152,7 @@ public abstract class CBLReplicator {
      * Get the local database which is the source or target of this replication
      */
     @InterfaceAudience.Public
-    public CBLDatabase getLocalDatabase() {
+    public Database getLocalDatabase() {
         return db;
     }
 
@@ -207,7 +207,7 @@ public abstract class CBLReplicator {
      * which the function returns true are replicated.
      *
      * For a pull replication, the name looks like "designdocname/filtername".
-     * For a push replication, use the name under which you registered the filter with the CBLDatabase.
+     * For a push replication, use the name under which you registered the filter with the Database.
      */
     @InterfaceAudience.Public
     public String getFilter() {
@@ -342,7 +342,7 @@ public abstract class CBLReplicator {
             return;
         }
         this.sessionID = String.format("repl%03d", ++lastSessionID);
-        Log.v(CBLDatabase.TAG, toString() + " STARTING ...");
+        Log.v(Database.TAG, toString() + " STARTING ...");
         running = true;
         lastSequence = null;
 
@@ -357,7 +357,7 @@ public abstract class CBLReplicator {
         if (!running) {
             return;
         }
-        Log.v(CBLDatabase.TAG, toString() + " STOPPING...");
+        Log.v(Database.TAG, toString() + " STOPPING...");
         batcher.flush();
         continuous = false;
         if (asyncTaskCount == 0) {
@@ -416,7 +416,7 @@ public abstract class CBLReplicator {
 
     public void setLastSequence(String lastSequenceIn) {
         if (lastSequenceIn != null && !lastSequenceIn.equals(lastSequence)) {
-            Log.v(CBLDatabase.TAG, toString() + ": Setting lastSequence to " + lastSequenceIn + " from( " + lastSequence + ")");
+            Log.v(Database.TAG, toString() + ": Setting lastSequence to " + lastSequenceIn + " from( " + lastSequence + ")");
             lastSequence = lastSequenceIn;
             if (!lastSequenceChanged) {
                 lastSequenceChanged = true;
@@ -473,10 +473,10 @@ public abstract class CBLReplicator {
                     Map<String, Object> userCtx = (Map<String, Object>) response.get("userCtx");
                     String username = (String) userCtx.get("name");
                     if (username != null && username.length() > 0) {
-                        Log.d(CBLDatabase.TAG, String.format("%s Active session, logged in as %s", this, username));
+                        Log.d(Database.TAG, String.format("%s Active session, logged in as %s", this, username));
                         fetchRemoteCheckpointDoc();
                     } else {
-                        Log.d(CBLDatabase.TAG, String.format("%s No active session, going to login", this));
+                        Log.d(Database.TAG, String.format("%s No active session, going to login", this));
                         login();
                     }
 
@@ -491,7 +491,7 @@ public abstract class CBLReplicator {
 
 
     public void stopped() {
-        Log.v(CBLDatabase.TAG, toString() + " STOPPED");
+        Log.v(Database.TAG, toString() + " STOPPED");
         running = false;
         this.completedChangesCount = this.changesCount = 0;
 
@@ -512,25 +512,25 @@ public abstract class CBLReplicator {
     protected void login() {
         Map<String, String> loginParameters = getAuthorizer().loginParametersForSite(remote);
         if (loginParameters == null) {
-            Log.d(CBLDatabase.TAG, String.format("%s: %s has no login parameters, so skipping login", this, getAuthorizer()));
+            Log.d(Database.TAG, String.format("%s: %s has no login parameters, so skipping login", this, getAuthorizer()));
             fetchRemoteCheckpointDoc();
             return;
         }
 
         final String loginPath = getAuthorizer().loginPathForSite(remote);
 
-        Log.d(CBLDatabase.TAG, String.format("%s: Doing login with %s at %s", this, getAuthorizer().getClass(), loginPath));
+        Log.d(Database.TAG, String.format("%s: Doing login with %s at %s", this, getAuthorizer().getClass(), loginPath));
         asyncTaskStarted();
         sendAsyncRequest("POST", loginPath, loginParameters, new CBLRemoteRequestCompletionBlock() {
 
             @Override
             public void onCompletion(Object result, Throwable e) {
                 if (e != null) {
-                    Log.d(CBLDatabase.TAG, String.format("%s: Login failed for path: %s", this, loginPath));
+                    Log.d(Database.TAG, String.format("%s: Login failed for path: %s", this, loginPath));
                     error = e;
                 }
                 else {
-                    Log.d(CBLDatabase.TAG, String.format("%s: Successfully logged in!", this));
+                    Log.d(Database.TAG, String.format("%s: Successfully logged in!", this));
                     fetchRemoteCheckpointDoc();
                 }
                 asyncTaskFinished(1);
@@ -570,7 +570,7 @@ public abstract class CBLReplicator {
             URL url = new URL(urlStr);
             sendAsyncRequest(method, url, body, onCompletion);
         } catch (MalformedURLException e) {
-            Log.e(CBLDatabase.TAG, "Malformed URL for async request", e);
+            Log.e(Database.TAG, "Malformed URL for async request", e);
         }
     }
 
@@ -593,7 +593,7 @@ public abstract class CBLReplicator {
         remoteRequestExecutor.execute(request);
     }
 
-    public void sendAsyncMultipartDownloaderRequest(String method, String relativePath, Object body, CBLDatabase db, CBLRemoteRequestCompletionBlock onCompletion) {
+    public void sendAsyncMultipartDownloaderRequest(String method, String relativePath, Object body, Database db, CBLRemoteRequestCompletionBlock onCompletion) {
         try {
 
             String urlStr = buildRelativeURLString(relativePath);
@@ -602,7 +602,7 @@ public abstract class CBLReplicator {
             CBLRemoteMultipartDownloaderRequest request = new CBLRemoteMultipartDownloaderRequest(workExecutor, clientFactory, method, url, body, db, onCompletion);
             remoteRequestExecutor.execute(request);
         } catch (MalformedURLException e) {
-            Log.e(CBLDatabase.TAG, "Malformed URL for async request", e);
+            Log.e(Database.TAG, "Malformed URL for async request", e);
         }
     }
 
@@ -661,11 +661,11 @@ public abstract class CBLReplicator {
             @Override
             public void onCompletion(Object result, Throwable e) {
                 if (e != null && !is404(e)) {
-                    Log.d(CBLDatabase.TAG, this + " error getting remote checkpoint: " + e);
+                    Log.d(Database.TAG, this + " error getting remote checkpoint: " + e);
                     error = e;
                 } else {
                     if (e != null && is404(e)) {
-                        Log.d(CBLDatabase.TAG, this + " 404 error getting remote checkpoint " + remoteCheckpointDocID() + ", calling maybeCreateRemoteDB");
+                        Log.d(Database.TAG, this + " 404 error getting remote checkpoint " + remoteCheckpointDocID() + ", calling maybeCreateRemoteDB");
                         maybeCreateRemoteDB();
                     }
                     Map<String, Object> response = (Map<String, Object>) result;
@@ -676,9 +676,9 @@ public abstract class CBLReplicator {
                     }
                     if (remoteLastSequence != null && remoteLastSequence.equals(localLastSequence)) {
                         lastSequence = localLastSequence;
-                        Log.v(CBLDatabase.TAG, this + ": Replicating from lastSequence=" + lastSequence);
+                        Log.v(Database.TAG, this + ": Replicating from lastSequence=" + lastSequence);
                     } else {
-                        Log.v(CBLDatabase.TAG, this + ": lastSequence mismatch: I had " + localLastSequence + ", remote had " + remoteLastSequence);
+                        Log.v(Database.TAG, this + ": lastSequence mismatch: I had " + localLastSequence + ", remote had " + remoteLastSequence);
                     }
                     beginReplicating();
                 }
@@ -702,7 +702,7 @@ public abstract class CBLReplicator {
         lastSequenceChanged = false;
         overdueForSave = false;
 
-        Log.v(CBLDatabase.TAG, this + " checkpointing sequence=" + lastSequence);
+        Log.v(Database.TAG, this + " checkpointing sequence=" + lastSequence);
         final Map<String, Object> body = new HashMap<String, Object>();
         if (remoteCheckpoint != null) {
             body.putAll(remoteCheckpoint);
@@ -720,7 +720,7 @@ public abstract class CBLReplicator {
             public void onCompletion(Object result, Throwable e) {
                 savingCheckpoint = false;
                 if (e != null) {
-                    Log.v(CBLDatabase.TAG, this + ": Unable to save remote checkpoint", e);
+                    Log.v(Database.TAG, this + ": Unable to save remote checkpoint", e);
                     // TODO: If error is 401 or 403, and this is a pull, remember that remote is read-only and don't attempt to read its checkpoint next time.
                 } else {
                     Map<String, Object> response = (Map<String, Object>) result;

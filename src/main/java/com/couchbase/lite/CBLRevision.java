@@ -22,7 +22,7 @@ public abstract class CBLRevision {
     /**
      * The revisions's owning database.
      */
-    protected CBLDatabase database;
+    protected Database database;
 
     /**
      * The document this is a revision of
@@ -59,7 +59,7 @@ public abstract class CBLRevision {
      * Get the revision's owning database.
      */
     @InterfaceAudience.Public
-    public CBLDatabase getDatabase() {
+    public Database getDatabase() {
         return database;
     }
 

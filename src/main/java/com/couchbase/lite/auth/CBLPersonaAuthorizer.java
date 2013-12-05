@@ -1,6 +1,6 @@
 package com.couchbase.lite.auth;
 
-import com.couchbase.lite.CBLDatabase;
+import com.couchbase.lite.Database;
 import com.couchbase.lite.util.Base64;
 import com.couchbase.lite.util.Log;
 
@@ -57,7 +57,7 @@ public class CBLPersonaAuthorizer extends CBLAuthorizer {
         exp = (Date) parsedAssertion.get(ASSERTION_FIELD_EXPIRATION);
         Date now = new Date();
         if (exp.before(now)) {
-            Log.w(CBLDatabase.TAG, String.format("%s assertion for %s expired: %s",
+            Log.w(Database.TAG, String.format("%s assertion for %s expired: %s",
                     this.getClass(), this.emailAddress, exp));
             return true;
         }
@@ -68,7 +68,7 @@ public class CBLPersonaAuthorizer extends CBLAuthorizer {
     public String assertionForSite(URL site) {
         String assertion = assertionForEmailAndSite(this.emailAddress, site);
         if (assertion == null) {
-            Log.w(CBLDatabase.TAG, String.format("%s %s no assertion found for: %s",
+            Log.w(Database.TAG, String.format("%s %s no assertion found for: %s",
                     this.getClass(), this.emailAddress, site));
             return null;
         }
@@ -117,7 +117,7 @@ public class CBLPersonaAuthorizer extends CBLAuthorizer {
             origin = originURL.toExternalForm().toLowerCase();
         } catch (MalformedURLException e) {
             String message = "Error registering assertion: " + assertion;
-            Log.e(CBLDatabase.TAG, message, e);
+            Log.e(Database.TAG, message, e);
             throw new IllegalArgumentException(message, e);
         }
 
@@ -138,7 +138,7 @@ public class CBLPersonaAuthorizer extends CBLAuthorizer {
         if (assertions == null) {
             assertions = new HashMap<List<String>, String>();
         }
-        Log.d(CBLDatabase.TAG, "CBLPersonaAuthorizer registering key: " + key);
+        Log.d(Database.TAG, "CBLPersonaAuthorizer registering key: " + key);
         assertions.put(key, assertion);
 
         return email;
@@ -171,14 +171,14 @@ public class CBLPersonaAuthorizer extends CBLAuthorizer {
             result.put(ASSERTION_FIELD_ORIGIN, component3Json.get("aud"));
 
             Long expObject = (Long) component3Json.get("exp");
-            Log.d(CBLDatabase.TAG, "CBLPersonaAuthorizer exp: " + expObject + " class: " + expObject.getClass());
+            Log.d(Database.TAG, "CBLPersonaAuthorizer exp: " + expObject + " class: " + expObject.getClass());
             Date expDate = new Date(expObject.longValue());
             result.put(ASSERTION_FIELD_EXPIRATION, expDate);
 
 
         } catch (IOException e) {
             String message = "Error parsing assertion: " + assertion;
-            Log.e(CBLDatabase.TAG, message, e);
+            Log.e(Database.TAG, message, e);
             throw new IllegalArgumentException(message, e);
         }
 
@@ -189,7 +189,7 @@ public class CBLPersonaAuthorizer extends CBLAuthorizer {
         List<String> key = new ArrayList<String>();
         key.add(email);
         key.add(site.toExternalForm().toLowerCase());
-        Log.d(CBLDatabase.TAG, "CBLPersonaAuthorizer looking up key: " + key + " from list of assertions");
+        Log.d(Database.TAG, "CBLPersonaAuthorizer looking up key: " + key + " from list of assertions");
         return assertions.get(key);
     }
 

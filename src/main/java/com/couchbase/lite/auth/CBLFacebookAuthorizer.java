@@ -1,6 +1,6 @@
 package com.couchbase.lite.auth;
 
-import com.couchbase.lite.CBLDatabase;
+import com.couchbase.lite.Database;
 import com.couchbase.lite.util.Log;
 
 import java.net.URL;
@@ -53,7 +53,7 @@ public class CBLFacebookAuthorizer extends CBLAuthorizer {
         if (accessTokens == null) {
             accessTokens = new HashMap<List<String>, String>();
         }
-        Log.d(CBLDatabase.TAG, "CBLFacebookAuthorizer registering key: " + key);
+        Log.d(Database.TAG, "CBLFacebookAuthorizer registering key: " + key);
         accessTokens.put(key, accessToken);
 
         return email;
@@ -65,7 +65,7 @@ public class CBLFacebookAuthorizer extends CBLAuthorizer {
         List<String> key = new ArrayList<String>();
         key.add(email);
         key.add(site.toExternalForm().toLowerCase());
-        Log.d(CBLDatabase.TAG, "CBLFacebookAuthorizer looking up key: " + key + " from list of access tokens");
+        Log.d(Database.TAG, "CBLFacebookAuthorizer looking up key: " + key + " from list of access tokens");
         return accessTokens.get(key);
     }
 

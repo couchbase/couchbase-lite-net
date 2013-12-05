@@ -1,6 +1,6 @@
 package com.couchbase.lite.replicator;
 
-import com.couchbase.lite.CBLDatabase;
+import com.couchbase.lite.Database;
 import com.couchbase.lite.Manager;
 import com.couchbase.lite.CBLMisc;
 import com.couchbase.lite.CBLRevisionList;
@@ -48,7 +48,7 @@ public class CBLPuller extends CBLReplicator implements CBLChangeTrackerClient {
      * Constructor
      */
     @InterfaceAudience.Private
-    public CBLPuller(CBLDatabase db, URL remote, boolean continuous, ScheduledExecutorService workExecutor) {
+    public CBLPuller(Database db, URL remote, boolean continuous, ScheduledExecutorService workExecutor) {
         this(db, remote, continuous, null, workExecutor);
     }
 
@@ -56,7 +56,7 @@ public class CBLPuller extends CBLReplicator implements CBLChangeTrackerClient {
      * Constructor
      */
     @InterfaceAudience.Private
-    public CBLPuller(CBLDatabase db, URL remote, boolean continuous, HttpClientFactory clientFactory, ScheduledExecutorService workExecutor) {
+    public CBLPuller(Database db, URL remote, boolean continuous, HttpClientFactory clientFactory, ScheduledExecutorService workExecutor) {
         super(db, remote, continuous, clientFactory, workExecutor);
     }
 
@@ -89,7 +89,7 @@ public class CBLPuller extends CBLReplicator implements CBLChangeTrackerClient {
             });
         }
         pendingSequences = new CBLSequenceMap();
-        Log.w(CBLDatabase.TAG, this + " starting ChangeTracker with since=" + lastSequence);
+        Log.w(Database.TAG, this + " starting ChangeTracker with since=" + lastSequence);
         changeTracker = new CBLChangeTracker(remote, continuous ? TDChangeTrackerMode.LongPoll : TDChangeTrackerMode.OneShot, lastSequence, this);
         if(filterName != null) {
             changeTracker.setFilterName(filterName);
@@ -144,8 +144,8 @@ public class CBLPuller extends CBLReplicator implements CBLChangeTrackerClient {
         if(docID == null) {
             return;
         }
-        if(!CBLDatabase.isValidDocumentId(docID)) {
-            Log.w(CBLDatabase.TAG, String.format("%s: Received invalid doc ID from _changes: %s", this, change));
+        if(!Database.isValidDocumentId(docID)) {
+            Log.w(Database.TAG, String.format("%s: Received invalid doc ID from _changes: %s", this, change));
             return;
         }
         boolean deleted = (change.containsKey("deleted") && ((Boolean)change.get("deleted")).equals(Boolean.TRUE));
@@ -171,7 +171,7 @@ public class CBLPuller extends CBLReplicator implements CBLChangeTrackerClient {
 
     @Override
     public void changeTrackerStopped(CBLChangeTracker tracker) {
-        Log.w(CBLDatabase.TAG, this + ": ChangeTracker stopped");
+        Log.w(Database.TAG, this + ": ChangeTracker stopped");
         //FIXME tracker doesnt have error right now
 //        if(error == null && tracker.getLastError() != null) {
 //            error = tracker.getLastError();
@@ -197,11 +197,11 @@ public class CBLPuller extends CBLReplicator implements CBLChangeTrackerClient {
     @Override
     public void processInbox(CBLRevisionList inbox) {
         // Ask the local database which of the revs are not known to it:
-        //Log.w(CBLDatabase.TAG, String.format("%s: Looking up %s", this, inbox));
+        //Log.w(Database.TAG, String.format("%s: Looking up %s", this, inbox));
         String lastInboxSequence = ((TDPulledRevision)inbox.get(inbox.size()-1)).getRemoteSequenceID();
         int total = getChangesCount() - inbox.size();
         if(!db.findMissingRevisions(inbox)) {
-            Log.w(CBLDatabase.TAG, String.format("%s failed to look up local revs", this));
+            Log.w(Database.TAG, String.format("%s failed to look up local revs", this));
             inbox = null;
         }
         //introducing this to java version since inbox may now be null everywhere
@@ -215,15 +215,15 @@ public class CBLPuller extends CBLReplicator implements CBLChangeTrackerClient {
 
         if(inboxCount == 0) {
             // Nothing to do. Just bump the lastSequence.
-            Log.w(CBLDatabase.TAG, String.format("%s no new remote revisions to fetch", this));
+            Log.w(Database.TAG, String.format("%s no new remote revisions to fetch", this));
             long seq = pendingSequences.addValue(lastInboxSequence);
             pendingSequences.removeSequence(seq);
             setLastSequence(pendingSequences.getCheckpointedValue());
             return;
         }
 
-        Log.v(CBLDatabase.TAG, this + " fetching " + inboxCount + " remote revisions...");
-        //Log.v(CBLDatabase.TAG, String.format("%s fetching remote revisions %s", this, inbox));
+        Log.v(Database.TAG, this + " fetching " + inboxCount + " remote revisions...");
+        //Log.v(Database.TAG, String.format("%s fetching remote revisions %s", this, inbox));
 
         // Dump the revs into the queue of revs to pull from the remote db:
         synchronized (this) {
@@ -308,12 +308,12 @@ public class CBLPuller extends CBLReplicator implements CBLChangeTrackerClient {
                         downloadsToInsert.queueObject(toInsert);
                         asyncTaskStarted();
                     } else {
-                        Log.w(CBLDatabase.TAG, this + ": Missing revision history in response from " + pathInside);
+                        Log.w(Database.TAG, this + ": Missing revision history in response from " + pathInside);
                         setCompletedChangesCount(getCompletedChangesCount() + 1);
                     }
                 } else {
                     if(e != null) {
-                        Log.e(CBLDatabase.TAG, "Error pulling remote revision", e);
+                        Log.e(Database.TAG, "Error pulling remote revision", e);
                         error = e;
                     }
                     setCompletedChangesCount(getCompletedChangesCount() + 1);
@@ -333,8 +333,8 @@ public class CBLPuller extends CBLReplicator implements CBLChangeTrackerClient {
      * This will be called when _revsToInsert fills up:
      */
     public void insertRevisions(List<List<Object>> revs) {
-        Log.i(CBLDatabase.TAG, this + " inserting " + revs.size() + " revisions...");
-        //Log.v(CBLDatabase.TAG, String.format("%s inserting %s", this, revs));
+        Log.i(Database.TAG, this + " inserting " + revs.size() + " revisions...");
+        //Log.v(Database.TAG, String.format("%s inserting %s", this, revs));
 
         /* Updating self.lastSequence is tricky. It needs to be the received sequence ID of
         the revision for which we've successfully received and inserted (or rejected) it and
@@ -373,9 +373,9 @@ public class CBLPuller extends CBLReplicator implements CBLChangeTrackerClient {
                     db.forceInsert(rev, history, remote);
                 } catch (CBLiteException e) {
                     if(e.getCBLStatus().getCode() == CBLStatus.FORBIDDEN) {
-                        Log.i(CBLDatabase.TAG, this + ": Remote rev failed validation: " + rev);
+                        Log.i(Database.TAG, this + ": Remote rev failed validation: " + rev);
                     } else {
-                        Log.w(CBLDatabase.TAG, this + " failed to write " + rev + ": status=" + e.getCBLStatus().getCode());
+                        Log.w(Database.TAG, this + " failed to write " + rev + ": status=" + e.getCBLStatus().getCode());
                         error = new HttpResponseException(e.getCBLStatus().getCode(), null);
                         continue;
                     }
@@ -384,13 +384,13 @@ public class CBLPuller extends CBLReplicator implements CBLChangeTrackerClient {
                 pendingSequences.removeSequence(fakeSequence);
             }
 
-            Log.w(CBLDatabase.TAG, this + " finished inserting " + revs.size() + " revisions");
+            Log.w(Database.TAG, this + " finished inserting " + revs.size() + " revisions");
 
             setLastSequence(pendingSequences.getCheckpointedValue());
 
             success = true;
         } catch(SQLException e) {
-            Log.e(CBLDatabase.TAG, this + ": Exception inserting revisions", e);
+            Log.e(Database.TAG, this + ": Exception inserting revisions", e);
         } finally {
             db.endTransaction(success);
             asyncTaskFinished(revs.size());
@@ -414,7 +414,7 @@ public class CBLPuller extends CBLReplicator implements CBLChangeTrackerClient {
         try {
             json = Manager.getObjectMapper().writeValueAsBytes(strings);
         } catch (Exception e) {
-            Log.w(CBLDatabase.TAG, "Unable to serialize json", e);
+            Log.w(Database.TAG, "Unable to serialize json", e);
         }
         return URLEncoder.encode(new String(json));
     }
@@ -426,15 +426,15 @@ public class CBLPuller extends CBLReplicator implements CBLChangeTrackerClient {
  */
 class TDPulledRevision extends CBLRevisionInternal {
 
-    public TDPulledRevision(CBLBody body, CBLDatabase database) {
+    public TDPulledRevision(CBLBody body, Database database) {
         super(body, database);
     }
 
-    public TDPulledRevision(String docId, String revId, boolean deleted, CBLDatabase database) {
+    public TDPulledRevision(String docId, String revId, boolean deleted, Database database) {
         super(docId, revId, deleted, database);
     }
 
-    public TDPulledRevision(Map<String, Object> properties, CBLDatabase database) {
+    public TDPulledRevision(Map<String, Object> properties, Database database) {
         super(properties, database);
     }
 

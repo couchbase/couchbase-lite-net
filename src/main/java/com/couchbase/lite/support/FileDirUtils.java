@@ -17,7 +17,7 @@
 
 package com.couchbase.lite.support;
 
-import com.couchbase.lite.CBLDatabase;
+import com.couchbase.lite.Database;
 import com.couchbase.lite.util.Log;
 
 import java.io.File;
@@ -48,7 +48,7 @@ public class FileDirUtils {
         int lastSlashPos = path.lastIndexOf("/");
         int extensionPos = path.lastIndexOf(".");
         if(lastSlashPos < 0 || extensionPos < 0 || extensionPos < lastSlashPos) {
-            Log.e(CBLDatabase.TAG, "Unable to determine database name from path");
+            Log.e(Database.TAG, "Unable to determine database name from path");
             return null;
         }
         return path.substring(lastSlashPos + 1, extensionPos);

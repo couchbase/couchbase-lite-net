@@ -2,7 +2,7 @@ package com.couchbase.lite.replicator;
 
 import com.couchbase.lite.CBLBlobKey;
 import com.couchbase.lite.CBLBlobStore;
-import com.couchbase.lite.CBLDatabase;
+import com.couchbase.lite.Database;
 import com.couchbase.lite.DocumentChange;
 import com.couchbase.lite.Manager;
 import com.couchbase.lite.ReplicationFilter;
@@ -31,7 +31,7 @@ import java.util.Map;
 import java.util.concurrent.ScheduledExecutorService;
 
 @InterfaceAudience.Private
-public class CBLPusher extends CBLReplicator implements CBLDatabase.ChangeListener {
+public class CBLPusher extends CBLReplicator implements Database.ChangeListener {
 
     private boolean shouldCreateTarget;
     private boolean observing;
@@ -41,7 +41,7 @@ public class CBLPusher extends CBLReplicator implements CBLDatabase.ChangeListen
      * Constructor
      */
     @InterfaceAudience.Private
-    public CBLPusher(CBLDatabase db, URL remote, boolean continuous, ScheduledExecutorService workExecutor) {
+    public CBLPusher(Database db, URL remote, boolean continuous, ScheduledExecutorService workExecutor) {
         this(db, remote, continuous, null, workExecutor);
     }
 
@@ -49,7 +49,7 @@ public class CBLPusher extends CBLReplicator implements CBLDatabase.ChangeListen
      * Constructor
      */
     @InterfaceAudience.Private
-    public CBLPusher(CBLDatabase db, URL remote, boolean continuous, HttpClientFactory clientFactory, ScheduledExecutorService workExecutor) {
+    public CBLPusher(Database db, URL remote, boolean continuous, HttpClientFactory clientFactory, ScheduledExecutorService workExecutor) {
         super(db, remote, continuous, clientFactory, workExecutor);
         shouldCreateTarget = false;
         observing = false;
@@ -78,15 +78,15 @@ public class CBLPusher extends CBLReplicator implements CBLDatabase.ChangeListen
         if(!shouldCreateTarget) {
             return;
         }
-        Log.v(CBLDatabase.TAG, "Remote db might not exist; creating it...");
+        Log.v(Database.TAG, "Remote db might not exist; creating it...");
         sendAsyncRequest("PUT", "", null, new CBLRemoteRequestCompletionBlock() {
 
             @Override
             public void onCompletion(Object result, Throwable e) {
                 if(e != null && e instanceof HttpResponseException && ((HttpResponseException)e).getStatusCode() != 412) {
-                    Log.v(CBLDatabase.TAG, "Unable to create remote db (normal if using sync gateway)");
+                    Log.v(Database.TAG, "Unable to create remote db (normal if using sync gateway)");
                 } else {
-                    Log.v(CBLDatabase.TAG, "Created remote db");
+                    Log.v(Database.TAG, "Created remote db");
 
                 }
                 shouldCreateTarget = false;
@@ -108,7 +108,7 @@ public class CBLPusher extends CBLReplicator implements CBLDatabase.ChangeListen
             filter = db.getFilter(filterName);
         }
         if(filterName != null && filter == null) {
-            Log.w(CBLDatabase.TAG, String.format("%s: No ReplicationFilter registered for filter '%s'; ignoring", this, filterName));;
+            Log.w(Database.TAG, String.format("%s: No ReplicationFilter registered for filter '%s'; ignoring", this, filterName));;
         }
 
         // Process existing changes since the last push:
@@ -145,7 +145,7 @@ public class CBLPusher extends CBLReplicator implements CBLDatabase.ChangeListen
 
 
     @Override
-    public void changed(CBLDatabase.ChangeEvent event) {
+    public void changed(Database.ChangeEvent event) {
         List<DocumentChange> changes = event.getChanges();
         for (DocumentChange change : changes) {
             // Skip revisions that originally came from the database I'm syncing to:
@@ -206,9 +206,9 @@ public class CBLPusher extends CBLReplicator implements CBLDatabase.ChangeListen
                                     properties.put("_deleted", true);
                                 } else {
                                     // OPT: Shouldn't include all attachment bodies, just ones that have changed
-                                    EnumSet<CBLDatabase.TDContentOptions> contentOptions = EnumSet.of(
-                                            CBLDatabase.TDContentOptions.TDIncludeAttachments,
-                                            CBLDatabase.TDContentOptions.TDBigAttachmentsFollow
+                                    EnumSet<Database.TDContentOptions> contentOptions = EnumSet.of(
+                                            Database.TDContentOptions.TDIncludeAttachments,
+                                            Database.TDContentOptions.TDBigAttachmentsFollow
                                     );
 
                                     try {
@@ -240,8 +240,8 @@ public class CBLPusher extends CBLReplicator implements CBLDatabase.ChangeListen
                     Map<String,Object> bulkDocsBody = new HashMap<String,Object>();
                     bulkDocsBody.put("docs", docsToSend);
                     bulkDocsBody.put("new_edits", false);
-                    Log.i(CBLDatabase.TAG, String.format("%s: Sending %d revisions", this, numDocsToSend));
-                    Log.v(CBLDatabase.TAG, String.format("%s: Sending %s", this, inbox));
+                    Log.i(Database.TAG, String.format("%s: Sending %d revisions", this, numDocsToSend));
+                    Log.v(Database.TAG, String.format("%s: Sending %s", this, inbox));
                     setChangesCount(getChangesCount() + numDocsToSend);
                     asyncTaskStarted();
                     sendAsyncRequest("POST", "/_bulk_docs", bulkDocsBody, new CBLRemoteRequestCompletionBlock() {
@@ -251,7 +251,7 @@ public class CBLPusher extends CBLReplicator implements CBLDatabase.ChangeListen
                             if(e != null) {
                                 error = e;
                             } else {
-                                Log.v(CBLDatabase.TAG, String.format("%s: Sent %s", this, inbox));
+                                Log.v(Database.TAG, String.format("%s: Sent %s", this, inbox));
                                 setLastSequence(String.format("%d", lastInboxSequence));
                             }
                             setCompletedChangesCount(getCompletedChangesCount() + numDocsToSend);
@@ -301,7 +301,7 @@ public class CBLPusher extends CBLReplicator implements CBLDatabase.ChangeListen
                 CBLBlobKey blobKey = new CBLBlobKey(base64Digest);
                 InputStream inputStream = blobStore.blobStreamForKey(blobKey);
                 if (inputStream == null) {
-                    Log.w(CBLDatabase.TAG, "Unable to find blob file for blobKey: " + blobKey + " - Skipping upload of multipart revision.");
+                    Log.w(Database.TAG, "Unable to find blob file for blobKey: " + blobKey + " - Skipping upload of multipart revision.");
                     multiPart = null;
                 }
                 else {
@@ -313,7 +313,7 @@ public class CBLPusher extends CBLReplicator implements CBLDatabase.ChangeListen
                         String message = String.format("Found attachment that uses content-type" +
                                 " field name instead of content_type (see couchbase-lite-android" +
                                 " issue #80): " + attachment);
-                        Log.w(CBLDatabase.TAG, message);
+                        Log.w(Database.TAG, message);
                     }
                     multiPart.addPart(attachmentKey, new InputStreamBody(inputStream, contentType, attachmentKey));
                 }
@@ -328,16 +328,16 @@ public class CBLPusher extends CBLReplicator implements CBLDatabase.ChangeListen
         String path = String.format("/%s?new_edits=false", revision.getDocId());
 
         // TODO: need to throttle these requests
-        Log.d(CBLDatabase.TAG, "Uploadeding multipart request.  Revision: " + revision);
+        Log.d(Database.TAG, "Uploadeding multipart request.  Revision: " + revision);
         asyncTaskStarted();
         sendAsyncMultipartRequest("PUT", path, multiPart, new CBLRemoteRequestCompletionBlock() {
             @Override
             public void onCompletion(Object result, Throwable e) {
                 if(e != null) {
-                    Log.e(CBLDatabase.TAG, "Exception uploading multipart request", e);
+                    Log.e(Database.TAG, "Exception uploading multipart request", e);
                     error = e;
                 } else {
-                    Log.d(CBLDatabase.TAG, "Uploaded multipart request.  Result: " + result);
+                    Log.d(Database.TAG, "Uploaded multipart request.  Result: " + result);
                 }
                 asyncTaskFinished(1);
             }

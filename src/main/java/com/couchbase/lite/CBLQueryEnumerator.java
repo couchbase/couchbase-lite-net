@@ -11,7 +11,7 @@ import java.util.List;
  */
 public class CBLQueryEnumerator implements Iterator<CBLQueryRow> {
 
-    private CBLDatabase database;
+    private Database database;
     private List<CBLQueryRow> rows;
     private int nextRow;
     private long sequenceNumber;
@@ -20,7 +20,7 @@ public class CBLQueryEnumerator implements Iterator<CBLQueryRow> {
      * Constructor
      */
     @InterfaceAudience.Private
-    CBLQueryEnumerator(CBLDatabase database, List<CBLQueryRow> rows, long sequenceNumber) {
+    CBLQueryEnumerator(Database database, List<CBLQueryRow> rows, long sequenceNumber) {
         this.database = database;
         this.rows = rows;
         this.sequenceNumber = sequenceNumber;

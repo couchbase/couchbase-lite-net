@@ -65,7 +65,7 @@ public class CBLBlobStore {
         try {
             md = MessageDigest.getInstance("SHA-1");
         } catch (NoSuchAlgorithmException e) {
-            Log.e(CBLDatabase.TAG, "Error, SHA-1 digest is unavailable.");
+            Log.e(Database.TAG, "Error, SHA-1 digest is unavailable.");
             return null;
         }
         byte[] sha1hash = new byte[40];
@@ -80,7 +80,7 @@ public class CBLBlobStore {
         try {
             md = MessageDigest.getInstance("SHA-1");
         } catch (NoSuchAlgorithmException e) {
-            Log.e(CBLDatabase.TAG, "Error, SHA-1 digest is unavailable.");
+            Log.e(Database.TAG, "Error, SHA-1 digest is unavailable.");
             return null;
         }
         byte[] sha1hash = new byte[40];
@@ -95,7 +95,7 @@ public class CBLBlobStore {
             }
             fis.close();
         } catch (IOException e) {
-            Log.e(CBLDatabase.TAG, "Error readin tmp file to compute key");
+            Log.e(Database.TAG, "Error readin tmp file to compute key");
         }
 
         sha1hash = md.digest();
@@ -132,7 +132,7 @@ public class CBLBlobStore {
         try {
             result = getBytesFromFile(file);
         } catch (IOException e) {
-            Log.e(CBLDatabase.TAG, "Error reading file", e);
+            Log.e(Database.TAG, "Error reading file", e);
         }
         return result;
     }
@@ -144,7 +144,7 @@ public class CBLBlobStore {
             try {
                 return new FileInputStream(file);
             } catch (FileNotFoundException e) {
-                Log.e(CBLDatabase.TAG, "Unexpected file not found in blob store", e);
+                Log.e(Database.TAG, "Unexpected file not found in blob store", e);
                 return null;
             }
         }
@@ -166,7 +166,7 @@ public class CBLBlobStore {
             inputStream.close();
             fos.close();
         } catch (IOException e) {
-            Log.e(CBLDatabase.TAG, "Error writing blog to tmp file", e);
+            Log.e(Database.TAG, "Error writing blog to tmp file", e);
             return false;
         }
 
@@ -200,10 +200,10 @@ public class CBLBlobStore {
             fos = new FileOutputStream(file);
             fos.write(data);
         } catch (FileNotFoundException e) {
-            Log.e(CBLDatabase.TAG, "Error opening file for output", e);
+            Log.e(Database.TAG, "Error opening file for output", e);
             return false;
         } catch(IOException ioe) {
-            Log.e(CBLDatabase.TAG, "Error writing to file", ioe);
+            Log.e(Database.TAG, "Error writing to file", ioe);
             return false;
         } finally {
             if(fos != null) {
@@ -289,7 +289,7 @@ public class CBLBlobStore {
                     ++numDeleted;
                 }
                 else {
-                    Log.e(CBLDatabase.TAG, "Error deleting attachmetn");
+                    Log.e(Database.TAG, "Error deleting attachmetn");
                 }
             }
         }

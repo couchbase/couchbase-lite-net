@@ -18,7 +18,7 @@
 package com.couchbase.lite;
 
 
-import com.couchbase.lite.CBLDatabase.TDContentOptions;
+import com.couchbase.lite.Database.TDContentOptions;
 import com.couchbase.lite.internal.CBLRevisionInternal;
 import com.couchbase.lite.internal.InterfaceAudience;
 import com.couchbase.lite.storage.ContentValues;
@@ -44,7 +44,7 @@ public class CBLView {
         TDViewCollationUnicode, TDViewCollationRaw, TDViewCollationASCII
     }
 
-    private CBLDatabase database;
+    private Database database;
     private String name;
     private int viewId;
     private CBLMapper mapBlock;
@@ -73,7 +73,7 @@ public class CBLView {
      * Constructor
      */
     @InterfaceAudience.Private
-    CBLView(CBLDatabase database, String name) {
+    CBLView(Database database, String name) {
         this.database = database;
         this.name = name;
         this.viewId = -1; // means 'unknown'
@@ -84,7 +84,7 @@ public class CBLView {
      * Get the database that owns this view.
      */
     @InterfaceAudience.Public
-    public CBLDatabase getDatabase() {
+    public Database getDatabase() {
         return database;
     };
 
@@ -130,14 +130,14 @@ public class CBLView {
         Cursor cursor = null;
         long result = -1;
         try {
-            Log.d(CBLDatabase.TAG_SQL, Thread.currentThread().getName() + " start running query: " + sql);
+            Log.d(Database.TAG_SQL, Thread.currentThread().getName() + " start running query: " + sql);
             cursor = database.getDatabase().rawQuery(sql, args);
-            Log.d(CBLDatabase.TAG_SQL, Thread.currentThread().getName() + " finish running query: " + sql);
+            Log.d(Database.TAG_SQL, Thread.currentThread().getName() + " finish running query: " + sql);
             if (cursor.moveToNext()) {
                 result = cursor.getLong(0);
             }
         } catch (Exception e) {
-            Log.e(CBLDatabase.TAG, "Error getting last sequence indexed");
+            Log.e(Database.TAG, "Error getting last sequence indexed");
         } finally {
             if (cursor != null) {
                 cursor.close();
@@ -225,7 +225,7 @@ public class CBLView {
 
             return (rowsAffected > 0);
         } catch (SQLException e) {
-            Log.e(CBLDatabase.TAG, "Error setting map block", e);
+            Log.e(Database.TAG, "Error setting map block", e);
             return false;
         } finally {
             if (cursor != null) {
@@ -259,7 +259,7 @@ public class CBLView {
 
             success = true;
         } catch (SQLException e) {
-            Log.e(CBLDatabase.TAG, "Error removing index", e);
+            Log.e(Database.TAG, "Error removing index", e);
         } finally {
             database.endTransaction(success);
         }
@@ -295,7 +295,7 @@ public class CBLView {
                     viewId = 0;
                 }
             } catch (SQLException e) {
-                Log.e(CBLDatabase.TAG, "Error getting view id", e);
+                Log.e(Database.TAG, "Error getting view id", e);
                 viewId = 0;
             } finally {
                 if (cursor != null) {
@@ -325,7 +325,7 @@ public class CBLView {
         try {
             result = Manager.getObjectMapper().writeValueAsString(object);
         } catch (Exception e) {
-            Log.w(CBLDatabase.TAG, "Exception serializing object to json: " + object, e);
+            Log.w(Database.TAG, "Exception serializing object to json: " + object, e);
         }
         return result;
     }
@@ -338,7 +338,7 @@ public class CBLView {
         try {
             result = Manager.getObjectMapper().readValue(json, Object.class);
         } catch (Exception e) {
-            Log.w(CBLDatabase.TAG, "Exception parsing json", e);
+            Log.w(Database.TAG, "Exception parsing json", e);
         }
         return result;
     }
@@ -357,7 +357,7 @@ public class CBLView {
      */
     @SuppressWarnings("unchecked")
     public void updateIndex() throws CBLiteException {
-        Log.v(CBLDatabase.TAG, "Re-indexing view " + name + " ...");
+        Log.v(Database.TAG, "Re-indexing view " + name + " ...");
         assert (mapBlock != null);
 
         if (getViewId() < 0) {
@@ -377,7 +377,7 @@ public class CBLView {
                 // nothing to do (eg,  kCBLStatusNotModified)
                 String msg = String.format("lastSequence (%d) == dbMaxSequence (%d), nothing to do",
                         lastSequence, dbMaxSequence);
-                Log.d(CBLDatabase.TAG, msg);
+                Log.d(Database.TAG, msg);
                 return;
             }
 
@@ -422,7 +422,7 @@ public class CBLView {
                     try {
                         String keyJson = Manager.getObjectMapper().writeValueAsString(key);
                         String valueJson = Manager.getObjectMapper().writeValueAsString(value);
-                        Log.v(CBLDatabase.TAG, "    emit(" + keyJson + ", "
+                        Log.v(Database.TAG, "    emit(" + keyJson + ", "
                                 + valueJson + ")");
 
                         ContentValues insertValues = new ContentValues();
@@ -432,7 +432,7 @@ public class CBLView {
                         insertValues.put("value", valueJson);
                         database.getDatabase().insert("maps", null, insertValues);
                     } catch (Exception e) {
-                        Log.e(CBLDatabase.TAG, "Error emitting", e);
+                        Log.e(Database.TAG, "Error emitting", e);
                         // find a better way to propagate this back
                     }
                 }
@@ -475,13 +475,13 @@ public class CBLView {
                             revId,
                             false,
                             sequence,
-                            EnumSet.noneOf(CBLDatabase.TDContentOptions.class)
+                            EnumSet.noneOf(Database.TDContentOptions.class)
                     );
 
                     if (properties != null) {
                         // Call the user-defined map() to emit new key/value
                         // pairs from this revision:
-                        Log.v(CBLDatabase.TAG,
+                        Log.v(Database.TAG,
                                 "  call map for sequence="
                                         + Long.toString(sequence));
                         emitBlock.setSequence(sequence);
@@ -502,7 +502,7 @@ public class CBLView {
                     whereArgs);
 
             // FIXME actually count number added :)
-            Log.v(CBLDatabase.TAG, "...Finished re-indexing view " + name
+            Log.v(Database.TAG, "...Finished re-indexing view " + name
                     + " up to sequence " + Long.toString(dbMaxSequence)
                     + " (deleted " + deleted + " added " + "?" + ")");
             result.setCode(CBLStatus.OK);
@@ -514,7 +514,7 @@ public class CBLView {
                 cursor.close();
             }
             if (!result.isSuccessful()) {
-                Log.w(CBLDatabase.TAG, "Failed to rebuild view " + name + ": "
+                Log.w(Database.TAG, "Failed to rebuild view " + name + ": "
                         + result.getCode());
             }
             if(database != null) {
@@ -602,7 +602,7 @@ public class CBLView {
         argsList.add(Integer.toString(options.getLimit()));
         argsList.add(Integer.toString(options.getSkip()));
 
-        Log.v(CBLDatabase.TAG, "Query " + name + ": " + sql);
+        Log.v(Database.TAG, "Query " + name + ": " + sql);
 
         Cursor cursor = database.getDatabase().rawQuery(sql,
                 argsList.toArray(new String[argsList.size()]));
@@ -666,7 +666,7 @@ public class CBLView {
                 cursor.moveToNext();
             }
         } catch (SQLException e) {
-            Log.e(CBLDatabase.TAG, "Error dumping view", e);
+            Log.e(Database.TAG, "Error dumping view", e);
             return null;
         } finally {
             if (cursor != null) {
@@ -752,7 +752,7 @@ public class CBLView {
 
             if (reduce && (reduceBlock == null) && !group) {
                 String msg = "Cannot use reduce option in view " + name + " which has no reduce block defined";
-                Log.w(CBLDatabase.TAG, msg);
+                Log.w(Database.TAG, msg);
                 throw new CBLiteException(new CBLStatus(CBLStatus.BAD_REQUEST));
             }
 
@@ -798,7 +798,7 @@ public class CBLView {
 
         } catch (SQLException e) {
             String errMsg = String.format("Error querying view: %s", this);
-            Log.e(CBLDatabase.TAG, errMsg, e);
+            Log.e(Database.TAG, errMsg, e);
             throw new CBLiteException(errMsg, e, new CBLStatus(CBLStatus.DB_ERROR));
         } finally {
             if (cursor != null) {
@@ -821,7 +821,7 @@ public class CBLView {
                 Number number = (Number)object;
                 total += number.doubleValue();
             } else {
-                Log.w(CBLDatabase.TAG, "Warning non-numeric value found in totalValues: " + object);
+                Log.w(Database.TAG, "Warning non-numeric value found in totalValues: " + object);
             }
         }
         return total;

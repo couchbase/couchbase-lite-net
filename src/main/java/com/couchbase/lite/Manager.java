@@ -47,7 +47,7 @@ public class Manager {
 
     private CBLManagerOptions options;
     private File directoryFile;
-    private Map<String, CBLDatabase> databases;
+    private Map<String, Database> databases;
     private List<CBLReplicator> replications;
     private ScheduledExecutorService workExecutor;
     private HttpClientFactory defaultHttpClientFactory;
@@ -74,7 +74,7 @@ public class Manager {
     public Manager(File directoryFile, CBLManagerOptions options) {
         this.directoryFile = directoryFile;
         this.options = (options != null) ? options : DEFAULT_OPTIONS;
-        this.databases = new HashMap<String, CBLDatabase>();
+        this.databases = new HashMap<String, Database>();
         this.replications = new ArrayList<CBLReplicator>();
 
         //create the directory, but don't fail if it already exists
@@ -153,8 +153,8 @@ public class Manager {
      */
     @InterfaceAudience.Public
     public void close() {
-        Log.i(CBLDatabase.TAG, "Closing " + this);
-        for (CBLDatabase database : databases.values()) {
+        Log.i(Database.TAG, "Closing " + this);
+        for (Database database : databases.values()) {
             List<CBLReplicator> replicators = database.getAllReplications();
             if (replicators != null) {
                 for (CBLReplicator replicator : replicators) {
@@ -164,17 +164,17 @@ public class Manager {
             database.close();
         }
         databases.clear();
-        Log.i(CBLDatabase.TAG, "Closed " + this);
+        Log.i(Database.TAG, "Closed " + this);
     }
 
 
     /**
      * Returns the database with the given name, or creates it if it doesn't exist.
-     * Multiple calls with the same name will return the same CBLDatabase instance.
+     * Multiple calls with the same name will return the same Database instance.
      */
     @InterfaceAudience.Public
-    public CBLDatabase getDatabase(String name) {
-        CBLDatabase db = databases.get(name);
+    public Database getDatabase(String name) {
+        Database db = databases.get(name);
         if(db == null) {
             if (!isValidDatabaseName(name)) {
                 throw new IllegalArgumentException("Invalid database name: " + name);
@@ -183,7 +183,7 @@ public class Manager {
             if(path == null) {
                 return null;
             }
-            db = new CBLDatabase(path, this);
+            db = new Database(path, this);
             db.setName(name);
             databases.put(name, db);
         }
@@ -192,10 +192,10 @@ public class Manager {
 
     /**
      * Returns the database with the given name, or null if it doesn't exist.
-     * Multiple calls with the same name will return the same CBLDatabase instance.
+     * Multiple calls with the same name will return the same Database instance.
      */
     @InterfaceAudience.Public
-    public CBLDatabase getExistingDatabase(String name) {
+    public Database getExistingDatabase(String name) {
         return databases.get(name);
     }
 
@@ -212,7 +212,7 @@ public class Manager {
      **/
     @InterfaceAudience.Public
     public void replaceDatabase(String databaseName, String databasePath, String attachmentsPath) throws IOException {
-        CBLDatabase database = getDatabase(databaseName);
+        Database database = getDatabase(databaseName);
         String dstAttachmentsPath = database.getAttachmentStorePath();
         File sourceFile = new File(databasePath);
         File destFile = new File(database.getPath());
@@ -246,7 +246,7 @@ public class Manager {
             File newFile = new File(directory, newFilename);
             if (newFile.exists()) {
                 String msg = String.format("Cannot rename %s to %s, %s already exists", oldFilename, newFilename, newFilename);
-                Log.w(CBLDatabase.TAG, msg);
+                Log.w(Database.TAG, msg);
                 continue;
             }
             boolean ok = file.renameTo(newFile);
@@ -268,7 +268,7 @@ public class Manager {
 
 
 
-    public Collection<CBLDatabase> allOpenDatabases() {
+    public Collection<Database> allOpenDatabases() {
         return databases.values();
     }
 
@@ -276,12 +276,12 @@ public class Manager {
 
     /**
      * Asynchronously dispatches a callback to run on a background thread. The callback will be passed
-     * CBLDatabase instance.  There is not currently a known reason to use it, it may not make
+     * Database instance.  There is not currently a known reason to use it, it may not make
      * sense on the Android API, but it was added for the purpose of having a consistent API with iOS.
      */
     public Future runAsync(String databaseName, final AsyncTask function) {
 
-        final CBLDatabase database = getDatabase(databaseName);
+        final Database database = getDatabase(databaseName);
         return runAsync(new Runnable() {
             @Override
             public void run() {
@@ -321,7 +321,7 @@ public class Manager {
 
 
     @InterfaceAudience.Private
-    CBLReplicator replicationWithDatabase(CBLDatabase db, URL remote, boolean push, boolean create, boolean start) {
+    CBLReplicator replicationWithDatabase(Database db, URL remote, boolean push, boolean create, boolean start) {
         for (CBLReplicator replicator : replications) {
             if (replicator.getLocalDatabase() == db && replicator.getRemoteUrl().equals(remote) && replicator.isPull() == !push) {
                 return replicator;
@@ -381,7 +381,7 @@ public class Manager {
 
         boolean push = false;
 
-        CBLDatabase db = getExistingDatabase(source);
+        Database db = getExistingDatabase(source);
         String remoteStr = null;
         if(db != null) {
             remoteStr = target;

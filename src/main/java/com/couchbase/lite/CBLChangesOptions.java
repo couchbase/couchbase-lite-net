@@ -2,7 +2,7 @@ package com.couchbase.lite;
 
 import java.util.EnumSet;
 
-import com.couchbase.lite.CBLDatabase.TDContentOptions;
+import com.couchbase.lite.Database.TDContentOptions;
 
 /**
  * Options for _changes feed
@@ -10,7 +10,7 @@ import com.couchbase.lite.CBLDatabase.TDContentOptions;
 public class CBLChangesOptions {
 
     private int limit = Integer.MAX_VALUE;
-    private EnumSet<TDContentOptions> contentOptions = EnumSet.noneOf(CBLDatabase.TDContentOptions.class);
+    private EnumSet<TDContentOptions> contentOptions = EnumSet.noneOf(Database.TDContentOptions.class);
     private boolean includeDocs = false;
     private boolean includeConflicts = false;
     private boolean sortBySequence = true;

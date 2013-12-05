@@ -1,6 +1,6 @@
 package com.couchbase.lite.support;
 
-import com.couchbase.lite.CBLDatabase;
+import com.couchbase.lite.Database;
 import com.couchbase.lite.util.Log;
 
 import java.util.ArrayList;
@@ -31,7 +31,7 @@ public class CBLBatcher<T> {
                 processNow();
             } catch(Exception e) {
                 // we don't want this to crash the batcher
-                com.couchbase.lite.util.Log.e(CBLDatabase.TAG, "CBLBatchProcessor throw exception", e);
+                com.couchbase.lite.util.Log.e(Database.TAG, "CBLBatchProcessor throw exception", e);
             }
         }
     };
@@ -84,7 +84,7 @@ public class CBLBatcher<T> {
                 if(didcancel) {
                     processNow();
                 } else {
-                    Log.v(CBLDatabase.TAG, "skipping process now because didcancel false");
+                    Log.v(Database.TAG, "skipping process now because didcancel false");
                 }
             }
         }

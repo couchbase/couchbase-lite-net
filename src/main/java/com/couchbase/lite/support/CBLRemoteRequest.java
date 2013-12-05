@@ -2,7 +2,7 @@ package com.couchbase.lite.support;
 
 import android.net.Uri;
 
-import com.couchbase.lite.CBLDatabase;
+import com.couchbase.lite.Database;
 import com.couchbase.lite.Manager;
 import com.couchbase.lite.util.Log;
 
@@ -98,7 +98,7 @@ public class CBLRemoteRequest implements Runnable {
             try {
                 bodyBytes = Manager.getObjectMapper().writeValueAsBytes(body);
             } catch (Exception e) {
-                Log.e(CBLDatabase.TAG, "Error serializing body of request", e);
+                Log.e(Database.TAG, "Error serializing body of request", e);
             }
             ByteArrayEntity entity = new ByteArrayEntity(bodyBytes);
             entity.setContentType("application/json");
@@ -120,10 +120,10 @@ public class CBLRemoteRequest implements Runnable {
 
             StatusLine status = response.getStatusLine();
             if (status.getStatusCode() >= 300) {
-                Log.e(CBLDatabase.TAG,
+                Log.e(Database.TAG,
                         "Got error " + Integer.toString(status.getStatusCode()));
-                Log.e(CBLDatabase.TAG, "Request was for: " + request.toString());
-                Log.e(CBLDatabase.TAG,
+                Log.e(Database.TAG, "Request was for: " + request.toString());
+                Log.e(Database.TAG,
                         "Status reason: " + status.getReasonPhrase());
                 error = new HttpResponseException(status.getStatusCode(),
                         status.getReasonPhrase());
@@ -144,10 +144,10 @@ public class CBLRemoteRequest implements Runnable {
                 }
             }
         } catch (ClientProtocolException e) {
-            Log.e(CBLDatabase.TAG, "client protocol exception", e);
+            Log.e(Database.TAG, "client protocol exception", e);
             error = e;
         } catch (IOException e) {
-            Log.e(CBLDatabase.TAG, "io exception", e);
+            Log.e(Database.TAG, "io exception", e);
             error = e;
         }
         respondWithResult(fullBody, error);
@@ -190,7 +190,7 @@ public class CBLRemoteRequest implements Runnable {
                     dhc.addRequestInterceptor(preemptiveAuth, 0);
                 }
             } else {
-                Log.w(CBLDatabase.TAG,
+                Log.w(Database.TAG,
                         "CBLRemoteRequest Unable to parse user info, not setting credentials");
             }
         }
@@ -206,14 +206,14 @@ public class CBLRemoteRequest implements Runnable {
                         onCompletion.onCompletion(result, error);
                     } catch (Exception e) {
                         // don't let this crash the thread
-                        Log.e(CBLDatabase.TAG,
+                        Log.e(Database.TAG,
                                 "CBLRemoteRequestCompletionBlock throw Exception",
                                 e);
                     }
                 }
             });
         } else {
-            Log.e(CBLDatabase.TAG, "work executor was null!!!");
+            Log.e(Database.TAG, "work executor was null!!!");
         }
     }
 

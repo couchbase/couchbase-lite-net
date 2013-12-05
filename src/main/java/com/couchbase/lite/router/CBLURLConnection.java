@@ -1,7 +1,7 @@
 package com.couchbase.lite.router;
 
 
-import com.couchbase.lite.CBLDatabase;
+import com.couchbase.lite.Database;
 import com.couchbase.lite.internal.CBLBody;
 import com.couchbase.lite.util.Log;
 
@@ -51,7 +51,7 @@ public class CBLURLConnection extends HttpURLConnection {
         try {
             responseOutputStream = new PipedOutputStream((PipedInputStream)responseInputStream);
         } catch (IOException e) {
-            Log.e(CBLDatabase.TAG, "Exception creating piped output stream", e);
+            Log.e(Database.TAG, "Exception creating piped output stream", e);
         }
     }
 

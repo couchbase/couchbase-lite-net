@@ -17,7 +17,7 @@ public class CBLQueryRow {
     private long sequence;
     private String sourceDocumentId;
     private Map<String, Object> documentProperties;
-    private CBLDatabase database;
+    private Database database;
 
     /**
      * Constructor
@@ -37,7 +37,7 @@ public class CBLQueryRow {
      * Gets the Database that owns the Query's View.
      */
     @InterfaceAudience.Public
-    public CBLDatabase getDatabase() {
+    public Database getDatabase() {
         return database;
     }
 
@@ -184,7 +184,7 @@ public class CBLQueryRow {
 
 
     @InterfaceAudience.Private
-    void setDatabase(CBLDatabase database) {
+    void setDatabase(Database database) {
         this.database = database;
     }
 
