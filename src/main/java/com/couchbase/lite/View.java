@@ -50,13 +50,13 @@ public class View {
     private CBLMapper mapBlock;
     private CBLReducer reduceBlock;
     private TDViewCollation collation;
-    private static CBLViewCompiler compiler;
+    private static ViewCompiler compiler;
 
     /**
      * The registered object, if any, that can compile map/reduce functions from source code.
      */
     @InterfaceAudience.Public
-    public static CBLViewCompiler getCompiler() {
+    public static ViewCompiler getCompiler() {
         return compiler;
     }
 
@@ -64,7 +64,7 @@ public class View {
      * Registers an object that can compile map/reduce functions from source code.
      */
     @InterfaceAudience.Public
-    public static void setCompiler(CBLViewCompiler compiler) {
+    public static void setCompiler(ViewCompiler compiler) {
         View.compiler = compiler;
     }
 
