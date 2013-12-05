@@ -13,7 +13,7 @@ import com.couchbase.lite.ReplicationFilter;
 import com.couchbase.lite.CBLMapper;
 import com.couchbase.lite.CBLMisc;
 import com.couchbase.lite.CBLReducer;
-import com.couchbase.lite.CBLRevisionList;
+import com.couchbase.lite.RevisionList;
 import com.couchbase.lite.Status;
 import com.couchbase.lite.View;
 import com.couchbase.lite.View.TDViewCollation;
@@ -909,7 +909,7 @@ public class CBLRouter implements Database.ChangeListener {
     public Status do_POST_Document_revs_diff(Database _db, String _docID, String _attachmentName) {
         // http://wiki.apache.org/couchdb/HttpPostRevsDiff
         // Collect all of the input doc/revision IDs as TDRevisions:
-        CBLRevisionList revs = new CBLRevisionList();
+        RevisionList revs = new RevisionList();
         Map<String, Object> body = getBodyAsDictionary();
         if(body == null) {
             return new Status(Status.BAD_JSON);
@@ -1126,7 +1126,7 @@ public class CBLRouter implements Database.ChangeListener {
             }
         }
 
-        CBLRevisionList changes = db.changesSince(since, options, changesFilter);
+        RevisionList changes = db.changesSince(since, options, changesFilter);
 
         if(changes == null) {
             return new Status(Status.INTERNAL_SERVER_ERROR);
@@ -1218,7 +1218,7 @@ public class CBLRouter implements Database.ChangeListener {
                 List<Map<String,Object>> result = null;
                 if(openRevsParam.equals("all")) {
                     // Get all conflicting revisions:
-                    CBLRevisionList allRevs = db.getAllRevisionsOfDocumentID(docID, true);
+                    RevisionList allRevs = db.getAllRevisionsOfDocumentID(docID, true);
                     result = new ArrayList<Map<String,Object>>(allRevs.size());
                     for (CBLRevisionInternal rev : allRevs) {
 

@@ -2,8 +2,8 @@ package com.couchbase.lite.replicator;
 
 import com.couchbase.lite.Database;
 import com.couchbase.lite.CBLMisc;
+import com.couchbase.lite.RevisionList;
 import com.couchbase.lite.internal.CBLRevisionInternal;
-import com.couchbase.lite.CBLRevisionList;
 import com.couchbase.lite.auth.CBLAuthorizer;
 import com.couchbase.lite.auth.CBLFacebookAuthorizer;
 import com.couchbase.lite.auth.CBLPersonaAuthorizer;
@@ -138,7 +138,7 @@ public abstract class CBLReplicator {
             @Override
             public void process(List<CBLRevisionInternal> inbox) {
                 Log.v(Database.TAG, "*** " + toString() + ": BEGIN processInbox (" + inbox.size() + " sequences)");
-                processInbox(new CBLRevisionList(inbox));
+                processInbox(new RevisionList(inbox));
                 Log.v(Database.TAG, "*** " + toString() + ": END processInbox (lastSequence=" + lastSequence);
                 active = false;
             }
@@ -560,7 +560,7 @@ public abstract class CBLReplicator {
         batcher.queueObject(rev);
     }
 
-    public void processInbox(CBLRevisionList inbox) {
+    public void processInbox(RevisionList inbox) {
 
     }
 

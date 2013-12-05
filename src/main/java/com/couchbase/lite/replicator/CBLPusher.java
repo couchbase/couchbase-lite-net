@@ -6,7 +6,7 @@ import com.couchbase.lite.Database;
 import com.couchbase.lite.DocumentChange;
 import com.couchbase.lite.Manager;
 import com.couchbase.lite.ReplicationFilter;
-import com.couchbase.lite.CBLRevisionList;
+import com.couchbase.lite.RevisionList;
 import com.couchbase.lite.CBLiteException;
 import com.couchbase.lite.internal.CBLRevisionInternal;
 import com.couchbase.lite.internal.InterfaceAudience;
@@ -116,7 +116,7 @@ public class CBLPusher extends CBLReplicator implements Database.ChangeListener 
         if(lastSequence != null) {
             lastSequenceLong = Long.parseLong(lastSequence);
         }
-        CBLRevisionList changes = db.changesSince(lastSequenceLong, null, filter);
+        RevisionList changes = db.changesSince(lastSequenceLong, null, filter);
         if(changes.size() > 0) {
             processInbox(changes);
         }
@@ -162,7 +162,7 @@ public class CBLPusher extends CBLReplicator implements Database.ChangeListener 
     }
 
     @Override
-    public void processInbox(final CBLRevisionList inbox) {
+    public void processInbox(final RevisionList inbox) {
         final long lastInboxSequence = inbox.get(inbox.size()-1).getSequence();
         // Generate a set of doc/rev IDs in the JSON format that _revs_diff wants:
         Map<String,List<String>> diffs = new HashMap<String,List<String>>();

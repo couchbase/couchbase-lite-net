@@ -323,7 +323,7 @@ public class Document {
     List<SavedRevision> getLeafRevisions(boolean includeDeleted) throws CBLiteException {
 
         List<SavedRevision> result = new ArrayList<SavedRevision>();
-        CBLRevisionList revs = database.getAllRevisionsOfDocumentID(documentId, true);
+        RevisionList revs = database.getAllRevisionsOfDocumentID(documentId, true);
         for (CBLRevisionInternal rev : revs) {
             // add it to result, unless we are not supposed to include deleted and it's deleted
             if (!includeDeleted && rev.isDeleted()) {

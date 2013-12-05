@@ -1010,7 +1010,7 @@ public class Database {
 
         List<String> conflicts = null;
         if(contentOptions.contains(TDContentOptions.TDIncludeConflicts)) {
-            CBLRevisionList revs = getAllRevisionsOfDocumentID(docId, true);
+            RevisionList revs = getAllRevisionsOfDocumentID(docId, true);
             if(revs.size() > 1) {
                 conflicts = new ArrayList<String>();
                 for (CBLRevisionInternal historicalRev : revs) {
@@ -1188,7 +1188,7 @@ public class Database {
     /**
      * Returns all the known revisions (or all current/conflicting revisions) of a document.
      */
-    public CBLRevisionList getAllRevisionsOfDocumentID(String docId, long docNumericID, boolean onlyCurrent) {
+    public RevisionList getAllRevisionsOfDocumentID(String docId, long docNumericID, boolean onlyCurrent) {
 
         String sql = null;
         if(onlyCurrent) {
@@ -1205,10 +1205,10 @@ public class Database {
 
         cursor = database.rawQuery(sql, args);
 
-        CBLRevisionList result;
+        RevisionList result;
         try {
             cursor.moveToNext();
-            result = new CBLRevisionList();
+            result = new RevisionList();
             while(!cursor.isAfterLast()) {
                 CBLRevisionInternal rev = new CBLRevisionInternal(docId, cursor.getString(1), (cursor.getInt(2) > 0), this);
                 rev.setSequence(cursor.getLong(0));
@@ -1227,13 +1227,13 @@ public class Database {
         return result;
     }
 
-    public CBLRevisionList getAllRevisionsOfDocumentID(String docId, boolean onlyCurrent) {
+    public RevisionList getAllRevisionsOfDocumentID(String docId, boolean onlyCurrent) {
         long docNumericId = getDocNumericID(docId);
         if(docNumericId < 0) {
             return null;
         }
         else if(docNumericId == 0) {
-            return new CBLRevisionList();
+            return new RevisionList();
         }
         else {
             return getAllRevisionsOfDocumentID(docId, docNumericId, onlyCurrent);
@@ -1442,7 +1442,7 @@ public class Database {
         return makeRevisionHistoryDict(getRevisionHistory(rev));
     }
 
-    public CBLRevisionList changesSince(long lastSeq, CBLChangesOptions options, ReplicationFilter filter) {
+    public RevisionList changesSince(long lastSeq, CBLChangesOptions options, ReplicationFilter filter) {
         // http://wiki.apache.org/couchdb/HTTP_database_API#Changes
         if(options == null) {
             options = new CBLChangesOptions();
@@ -1460,12 +1460,12 @@ public class Database {
                         + "ORDER BY revs.doc_id, revid DESC";
         String[] args = {Long.toString(lastSeq)};
         Cursor cursor = null;
-        CBLRevisionList changes = null;
+        RevisionList changes = null;
 
         try {
             cursor = database.rawQuery(sql, args);
             cursor.moveToNext();
-            changes = new CBLRevisionList();
+            changes = new RevisionList();
             long lastDocId = 0;
             while(!cursor.isAfterLast()) {
                 if(!options.isIncludeConflicts()) {
@@ -2830,7 +2830,7 @@ public class Database {
         try {
             // First look up all locally-known revisions of this document:
             long docNumericID = getOrInsertDocNumericID(docId);
-            CBLRevisionList localRevs = getAllRevisionsOfDocumentID(docId, docNumericID, false);
+            RevisionList localRevs = getAllRevisionsOfDocumentID(docId, docNumericID, false);
             if(localRevs == null) {
                 throw new CBLiteException(Status.INTERNAL_SERVER_ERROR);
             }
@@ -3040,7 +3040,7 @@ public class Database {
         return result;
     }
 
-    public boolean findMissingRevisions(CBLRevisionList touchRevs) {
+    public boolean findMissingRevisions(RevisionList touchRevs) {
         if(touchRevs.size() == 0) {
             return true;
         }

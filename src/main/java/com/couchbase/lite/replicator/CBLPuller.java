@@ -3,7 +3,7 @@ package com.couchbase.lite.replicator;
 import com.couchbase.lite.Database;
 import com.couchbase.lite.Manager;
 import com.couchbase.lite.CBLMisc;
-import com.couchbase.lite.CBLRevisionList;
+import com.couchbase.lite.RevisionList;
 import com.couchbase.lite.Status;
 import com.couchbase.lite.CBLiteException;
 import com.couchbase.lite.internal.CBLBody;
@@ -195,7 +195,7 @@ public class CBLPuller extends CBLReplicator implements CBLChangeTrackerClient {
      * Process a bunch of remote revisions from the _changes feed at once
      */
     @Override
-    public void processInbox(CBLRevisionList inbox) {
+    public void processInbox(RevisionList inbox) {
         // Ask the local database which of the revs are not known to it:
         //Log.w(Database.TAG, String.format("%s: Looking up %s", this, inbox));
         String lastInboxSequence = ((TDPulledRevision)inbox.get(inbox.size()-1)).getRemoteSequenceID();

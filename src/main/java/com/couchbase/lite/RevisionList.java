@@ -29,17 +29,17 @@ import java.util.List;
  * An ordered list of TDRevisions
  */
 @SuppressWarnings("serial")
-public class CBLRevisionList extends ArrayList<CBLRevisionInternal> {
+public class RevisionList extends ArrayList<CBLRevisionInternal> {
 
-    public CBLRevisionList() {
+    public RevisionList() {
         super();
     }
 
     /**
-     * Allow converting to CBLRevisionList from List<CBLRevisionInternal>
+     * Allow converting to RevisionList from List<CBLRevisionInternal>
      * @param list
      */
-    public CBLRevisionList(List<CBLRevisionInternal> list) {
+    public RevisionList(List<CBLRevisionInternal> list) {
         super(list);
     }
 
