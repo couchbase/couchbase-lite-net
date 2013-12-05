@@ -73,12 +73,6 @@ public class CBLPusher extends CBLReplicator implements CBLDatabase.ChangeListen
         this.shouldCreateTarget = createTarget;
     }
 
-    @InterfaceAudience.Public
-    public void setFilter(ReplicationFilter filter) {
-        this.filter = filter;
-    }
-
-
     @Override
     void maybeCreateRemoteDB() {
         if(!shouldCreateTarget) {
