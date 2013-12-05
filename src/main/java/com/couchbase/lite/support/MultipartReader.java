@@ -10,7 +10,7 @@ import java.util.StringTokenizer;
 
 public class MultipartReader {
 
-    private static enum CBLMultipartReaderState {
+    private static enum MultipartReaderState {
         kUninitialized,
         kAtStart,
         kInPrologue,
@@ -22,7 +22,7 @@ public class MultipartReader {
     private static Charset utf8 = Charset.forName("UTF-8");
     private static byte[] kCRLFCRLF = new String("\r\n\r\n").getBytes(utf8);
 
-    private CBLMultipartReaderState state;
+    private MultipartReaderState state;
     private ByteArrayBuffer buffer;
     private String contentType;
     private byte[] boundary;
@@ -34,7 +34,7 @@ public class MultipartReader {
         this.contentType = contentType;
         this.delegate = delegate;
         this.buffer = new ByteArrayBuffer(1024);
-        this.state = CBLMultipartReaderState.kAtStart;
+        this.state = MultipartReaderState.kAtStart;
 
         parseContentType();
 
@@ -51,7 +51,7 @@ public class MultipartReader {
     }
 
     public boolean finished() {
-        return state == CBLMultipartReaderState.kAtEnd;
+        return state == MultipartReaderState.kAtEnd;
     }
 
     private byte[] eomBytes() {
@@ -135,9 +135,9 @@ public class MultipartReader {
         }
         buffer.append(data, 0, data.length);
 
-        CBLMultipartReaderState nextState;
+        MultipartReaderState nextState;
         do {
-            nextState = CBLMultipartReaderState.kUninitialized;
+            nextState = MultipartReaderState.kUninitialized;
             int bufLen = buffer.length();
             // Log.d(Database.TAG, "appendData.  bufLen: " + bufLen);
             switch (state) {
@@ -148,9 +148,9 @@ public class MultipartReader {
                         // if (Arrays.equals(buffer.toByteArray(), boundaryWithoutLeadingCRLF)) {
                         if (memcmp(buffer.toByteArray(), boundaryWithoutLeadingCRLF, boundaryWithoutLeadingCRLF.length)) {
                             deleteUpThrough(boundaryWithoutLeadingCRLF.length);
-                            nextState = CBLMultipartReaderState.kInHeaders;
+                            nextState = MultipartReaderState.kInHeaders;
                         } else {
-                            nextState = CBLMultipartReaderState.kInPrologue;
+                            nextState = MultipartReaderState.kInPrologue;
                         }
                     }
                     break;
@@ -165,13 +165,13 @@ public class MultipartReader {
                     int start = Math.max(0, bufLen - data.length - boundary.length);
                     Range r = searchFor(boundary, start);
                     if (r.getLength() > 0) {
-                        if (state == CBLMultipartReaderState.kInBody) {
+                        if (state == MultipartReaderState.kInBody) {
                             byte[] dataToAppend = Arrays.copyOfRange(buffer.toByteArray(), 0, r.getLocation());
                             delegate.appendToPart(dataToAppend);
                             delegate.finishedPart();
                         }
                         deleteUpThrough(r.getLocation() + r.getLength());
-                        nextState = CBLMultipartReaderState.kInHeaders;
+                        nextState = MultipartReaderState.kInHeaders;
                     } else {
                         trimBuffer();
                     }
@@ -181,7 +181,7 @@ public class MultipartReader {
                     // First check for the end-of-message string ("--" after separator):
                     if (bufLen >= 2 &&
                             memcmp(buffer.toByteArray(), eomBytes(), 2)) {
-                        state = CBLMultipartReaderState.kAtEnd;
+                        state = MultipartReaderState.kAtEnd;
                         close();
                         return;
                     }
@@ -195,7 +195,7 @@ public class MultipartReader {
                         parseHeaders(headersString);
                         deleteUpThrough(r.getLocation() + r.getLength());
                         delegate.startedPart(headers);
-                        nextState = CBLMultipartReaderState.kInBody;
+                        nextState = MultipartReaderState.kInBody;
 
                     }
                     break;
@@ -206,11 +206,11 @@ public class MultipartReader {
                 }
             }
 
-            if (nextState != CBLMultipartReaderState.kUninitialized) {
+            if (nextState != MultipartReaderState.kUninitialized) {
                 state = nextState;
             }
 
-        } while (nextState != CBLMultipartReaderState.kUninitialized && buffer.length() > 0);
+        } while (nextState != MultipartReaderState.kUninitialized && buffer.length() > 0);
 
 
     }
