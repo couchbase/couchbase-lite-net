@@ -8,7 +8,7 @@ import com.couchbase.lite.Manager;
  * Helper class to make it easier to share a Couchbase Lite Manager
  * among different activities
  */
-public class Application extends android.app.Application {
+public class CouchbaseLiteApplication extends Application {
 
     private Manager manager;
 
