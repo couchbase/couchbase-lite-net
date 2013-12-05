@@ -96,7 +96,7 @@ public class CBLRevisionInternal {
                     continue;
                 }
 
-                CBLStatus status = database.installPendingAttachment(attachment);
+                Status status = database.installPendingAttachment(attachment);
                 if (status.isSuccessful() == false) {
                     String msg = String.format("Unable to install pending attachment: %s.  Status: %d", attachment.toString(), status.getCode());
                     throw new IllegalStateException(msg);

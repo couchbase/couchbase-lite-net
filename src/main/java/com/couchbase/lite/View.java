@@ -362,11 +362,11 @@ public class View {
 
         if (getViewId() < 0) {
             String msg = String.format("getViewId() < 0");
-            throw new CBLiteException(msg, new CBLStatus(CBLStatus.NOT_FOUND));
+            throw new CBLiteException(msg, new Status(Status.NOT_FOUND));
         }
 
         database.beginTransaction();
-        CBLStatus result = new CBLStatus(CBLStatus.INTERNAL_SERVER_ERROR);
+        Status result = new Status(Status.INTERNAL_SERVER_ERROR);
         Cursor cursor = null;
 
         try {
@@ -385,7 +385,7 @@ public class View {
             long sequence = lastSequence;
             if (lastSequence < 0) {
                 String msg = String.format("lastSequence < 0 (%s)", lastSequence);
-                throw new CBLiteException(msg, new CBLStatus(CBLStatus.INTERNAL_SERVER_ERROR));
+                throw new CBLiteException(msg, new Status(Status.INTERNAL_SERVER_ERROR));
             }
 
             if (lastSequence == 0) {
@@ -505,10 +505,10 @@ public class View {
             Log.v(Database.TAG, "...Finished re-indexing view " + name
                     + " up to sequence " + Long.toString(dbMaxSequence)
                     + " (deleted " + deleted + " added " + "?" + ")");
-            result.setCode(CBLStatus.OK);
+            result.setCode(Status.OK);
 
         } catch (SQLException e) {
-            throw new CBLiteException(e, new CBLStatus(CBLStatus.DB_ERROR));
+            throw new CBLiteException(e, new Status(Status.DB_ERROR));
         } finally {
             if (cursor != null) {
                 cursor.close();
@@ -753,7 +753,7 @@ public class View {
             if (reduce && (reduceBlock == null) && !group) {
                 String msg = "Cannot use reduce option in view " + name + " which has no reduce block defined";
                 Log.w(Database.TAG, msg);
-                throw new CBLiteException(new CBLStatus(CBLStatus.BAD_REQUEST));
+                throw new CBLiteException(new Status(Status.BAD_REQUEST));
             }
 
             if (reduce || group) {
@@ -799,7 +799,7 @@ public class View {
         } catch (SQLException e) {
             String errMsg = String.format("Error querying view: %s", this);
             Log.e(Database.TAG, errMsg, e);
-            throw new CBLiteException(errMsg, e, new CBLStatus(CBLStatus.DB_ERROR));
+            throw new CBLiteException(errMsg, e, new Status(Status.DB_ERROR));
         } finally {
             if (cursor != null) {
                 cursor.close();

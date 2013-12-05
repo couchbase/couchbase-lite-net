@@ -376,7 +376,7 @@ public class Manager {
 
         // Map the 'source' and 'target' JSON params to a local database and remote URL:
         if(source == null || target == null) {
-            throw new CBLiteException("source and target are both null", new CBLStatus(CBLStatus.BAD_REQUEST));
+            throw new CBLiteException("source and target are both null", new Status(Status.BAD_REQUEST));
         }
 
         boolean push = false;
@@ -392,13 +392,13 @@ public class Manager {
             if(createTarget && !cancel) {
                 db = getDatabase(target);
                 if(!db.open()) {
-                    throw new CBLiteException("cannot open database: " + db, new CBLStatus(CBLStatus.INTERNAL_SERVER_ERROR));
+                    throw new CBLiteException("cannot open database: " + db, new Status(Status.INTERNAL_SERVER_ERROR));
                 }
             } else {
                 db = getExistingDatabase(target);
             }
             if(db == null) {
-                throw new CBLiteException("database is null", new CBLStatus(CBLStatus.NOT_FOUND));
+                throw new CBLiteException("database is null", new Status(Status.NOT_FOUND));
             }
             remoteMap = sourceMap;
         }
@@ -423,17 +423,17 @@ public class Manager {
         try {
             remote = new URL(remoteStr);
         } catch (MalformedURLException e) {
-            throw new CBLiteException("malformed remote url: " + remoteStr, new CBLStatus(CBLStatus.BAD_REQUEST));
+            throw new CBLiteException("malformed remote url: " + remoteStr, new Status(Status.BAD_REQUEST));
         }
         if(remote == null || !remote.getProtocol().startsWith("http")) {
-            throw new CBLiteException("remote URL is null or non-http: " + remoteStr, new CBLStatus(CBLStatus.BAD_REQUEST));
+            throw new CBLiteException("remote URL is null or non-http: " + remoteStr, new Status(Status.BAD_REQUEST));
         }
 
 
         if(!cancel) {
             repl = db.getReplicator(remote, getDefaultHttpClientFactory(), push, continuous, getWorkExecutor());
             if(repl == null) {
-                throw new CBLiteException("unable to create replicator with remote: " + remote, new CBLStatus(CBLStatus.INTERNAL_SERVER_ERROR));
+                throw new CBLiteException("unable to create replicator with remote: " + remote, new Status(Status.INTERNAL_SERVER_ERROR));
             }
 
             if (authorizer != null) {
@@ -458,7 +458,7 @@ public class Manager {
             // Cancel replication:
             repl = db.getActiveReplicator(remote, push);
             if(repl == null) {
-                throw new CBLiteException("unable to lookup replicator with remote: " + remote, new CBLStatus(CBLStatus.NOT_FOUND));
+                throw new CBLiteException("unable to lookup replicator with remote: " + remote, new Status(Status.NOT_FOUND));
             }
         }
 

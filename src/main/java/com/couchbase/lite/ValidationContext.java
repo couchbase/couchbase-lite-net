@@ -16,8 +16,8 @@ public interface ValidationContext {
      * The type of HTTP status to report, if the validate block returns NO.
      * The default value is 403 ("Forbidden").
      */
-    CBLStatus getErrorType();
-    void setErrorType(CBLStatus status);
+    Status getErrorType();
+    void setErrorType(Status status);
 
     /**
      * The error message to return in the HTTP response, if the validate block returns NO.

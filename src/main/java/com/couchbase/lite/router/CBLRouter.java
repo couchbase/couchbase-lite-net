@@ -14,7 +14,7 @@ import com.couchbase.lite.CBLMapper;
 import com.couchbase.lite.CBLMisc;
 import com.couchbase.lite.CBLReducer;
 import com.couchbase.lite.CBLRevisionList;
-import com.couchbase.lite.CBLStatus;
+import com.couchbase.lite.Status;
 import com.couchbase.lite.View;
 import com.couchbase.lite.View.TDViewCollation;
 import com.couchbase.lite.CBLiteException;
@@ -225,17 +225,17 @@ public class CBLRouter implements Database.ChangeListener {
         return null;
     }
 
-    public CBLStatus openDB() {
+    public Status openDB() {
         if(db == null) {
-            return new CBLStatus(CBLStatus.INTERNAL_SERVER_ERROR);
+            return new Status(Status.INTERNAL_SERVER_ERROR);
         }
         if(!db.exists()) {
-            return new CBLStatus(CBLStatus.NOT_FOUND);
+            return new Status(Status.NOT_FOUND);
         }
         if(!db.open()) {
-            return new CBLStatus(CBLStatus.INTERNAL_SERVER_ERROR);
+            return new Status(Status.INTERNAL_SERVER_ERROR);
         }
-        return new CBLStatus(CBLStatus.OK);
+        return new Status(Status.OK);
     }
 
     public static List<String> splitPath(URL url) {
@@ -277,7 +277,7 @@ public class CBLRouter implements Database.ChangeListener {
         // First interpret the components of the request:
         List<String> path = splitPath(connection.getURL());
         if(path == null) {
-            connection.setResponseCode(CBLStatus.BAD_REQUEST);
+            connection.setResponseCode(Status.BAD_REQUEST);
             try {
                 connection.getResponseOutputStream().close();
             } catch (IOException e) {
@@ -295,13 +295,13 @@ public class CBLRouter implements Database.ChangeListener {
             } else {
                 message += "_Database";
                 if (!Manager.isValidDatabaseName(dbName)) {
-                    connection.setResponseCode(CBLStatus.NOT_FOUND);
+                    connection.setResponseCode(Status.NOT_FOUND);
                     return;
                 }
                 else {
                     db = manager.getDatabase(dbName);
                     if(db == null) {
-                        connection.setResponseCode(CBLStatus.BAD_REQUEST);
+                        connection.setResponseCode(Status.BAD_REQUEST);
                         try {
                             connection.getResponseOutputStream().close();
                         } catch (IOException e) {
@@ -321,7 +321,7 @@ public class CBLRouter implements Database.ChangeListener {
         if(db != null && pathLen > 1) {
             message = message.replaceFirst("_Database", "_Document");
             // Make sure database exists, then interpret doc name:
-            CBLStatus status = openDB();
+            Status status = openDB();
             if(!status.isSuccessful()) {
                 connection.setResponseCode(status.getCode());
                 try {
@@ -336,7 +336,7 @@ public class CBLRouter implements Database.ChangeListener {
             if(!name.startsWith("_")) {
                 // Regular document
                 if(!Database.isValidDocumentId(name)) {
-                    connection.setResponseCode(CBLStatus.BAD_REQUEST);
+                    connection.setResponseCode(Status.BAD_REQUEST);
                     try {
                         connection.getResponseOutputStream().close();
                     } catch (IOException e) {
@@ -349,7 +349,7 @@ public class CBLRouter implements Database.ChangeListener {
             } else if("_design".equals(name) || "_local".equals(name)) {
                 // "_design/____" and "_local/____" are document names
                 if(pathLen <= 2) {
-                    connection.setResponseCode(CBLStatus.NOT_FOUND);
+                    connection.setResponseCode(Status.NOT_FOUND);
                     try {
                         connection.getResponseOutputStream().close();
                     } catch (IOException e) {
@@ -413,11 +413,11 @@ public class CBLRouter implements Database.ChangeListener {
         //Log.d(TAG, "path: " + path + " message: " + message + " docID: " + docID + " attachmentName: " + attachmentName);
 
         // Send myself a message based on the components:
-        CBLStatus status = null;
+        Status status = null;
         try {
 
             Method m = CBLRouter.class.getMethod(message, Database.class, String.class, String.class);
-            status = (CBLStatus)m.invoke(this, db, docID, attachmentName);
+            status = (Status)m.invoke(this, db, docID, attachmentName);
 
         } catch (NoSuchMethodException msme) {
             try {
@@ -428,7 +428,7 @@ public class CBLRouter implements Database.ChangeListener {
                 result.put("reason", errorMessage);
                 connection.setResponseBody(new CBLBody(result));
                 Method m = CBLRouter.class.getMethod("do_UNKNOWN", Database.class, String.class, String.class);
-                status = (CBLStatus)m.invoke(this, db, docID, attachmentName);
+                status = (Status)m.invoke(this, db, docID, attachmentName);
             } catch (Exception e) {
                 //default status is internal server error
                 Log.e(Database.TAG, "CBLRouter attempted do_UNKNWON fallback, but that threw an exception", e);
@@ -436,7 +436,7 @@ public class CBLRouter implements Database.ChangeListener {
                 result.put("error", "not_found");
                 result.put("reason", "CBLRouter unable to route request");
                 connection.setResponseBody(new CBLBody(result));
-                status = new CBLStatus(CBLStatus.NOT_FOUND);
+                status = new Status(Status.NOT_FOUND);
             }
         } catch (Exception e) {
             String errorMessage = "CBLRouter unable to route request to " + message;
@@ -449,7 +449,7 @@ public class CBLRouter implements Database.ChangeListener {
                 status = ((CBLiteException)e).getCBLStatus();
             }
             else {
-                status = new CBLStatus(CBLStatus.NOT_FOUND);
+                status = new Status(Status.NOT_FOUND);
             }
         }
 
@@ -474,7 +474,7 @@ public class CBLRouter implements Database.ChangeListener {
             String responseType = connection.getBaseContentType();
             if(responseType != null && accept.indexOf(responseType) < 0) {
                 Log.e(Database.TAG, String.format("Error 406: Can't satisfy request Accept: %s", accept));
-                status = new CBLStatus(CBLStatus.NOT_ACCEPTABLE);
+                status = new Status(Status.NOT_ACCEPTABLE);
             }
         }
 
@@ -506,8 +506,8 @@ public class CBLRouter implements Database.ChangeListener {
         }
     }
 
-    public CBLStatus do_UNKNOWN(Database db, String docID, String attachmentName) {
-        return new CBLStatus(CBLStatus.BAD_REQUEST);
+    public Status do_UNKNOWN(Database db, String docID, String attachmentName) {
+        return new Status(Status.BAD_REQUEST);
     }
 
     /*************************************************************************************************/
@@ -528,22 +528,22 @@ public class CBLRouter implements Database.ChangeListener {
 
     /** SERVER REQUESTS: **/
 
-    public CBLStatus do_GETRoot(Database _db, String _docID, String _attachmentName) {
+    public Status do_GETRoot(Database _db, String _docID, String _attachmentName) {
         Map<String,Object> info = new HashMap<String,Object>();
         info.put("CBLite", "Welcome");
         info.put("couchdb", "Welcome"); // for compatibility
         info.put("version", getVersionString());
         connection.setResponseBody(new CBLBody(info));
-        return new CBLStatus(CBLStatus.OK);
+        return new Status(Status.OK);
     }
 
-    public CBLStatus do_GET_all_dbs(Database _db, String _docID, String _attachmentName) {
+    public Status do_GET_all_dbs(Database _db, String _docID, String _attachmentName) {
         List<String> dbs = manager.getAllDatabaseNames();
         connection.setResponseBody(new CBLBody(dbs));
-        return new CBLStatus(CBLStatus.OK);
+        return new Status(Status.OK);
     }
 
-    public CBLStatus do_GET_session(Database _db, String _docID, String _attachmentName) {
+    public Status do_GET_session(Database _db, String _docID, String _attachmentName) {
         // Send back an "Admin Party"-like response
         Map<String,Object> session= new HashMap<String,Object>();
         Map<String,Object> userCtx = new HashMap<String,Object>();
@@ -553,10 +553,10 @@ public class CBLRouter implements Database.ChangeListener {
         userCtx.put("roles", roles);
         session.put("userCtx", userCtx);
         connection.setResponseBody(new CBLBody(session));
-        return new CBLStatus(CBLStatus.OK);
+        return new Status(Status.OK);
     }
 
-    public CBLStatus do_POST_replicate(Database _db, String _docID, String _attachmentName) {
+    public Status do_POST_replicate(Database _db, String _docID, String _attachmentName) {
 
         CBLReplicator replicator;
 
@@ -564,7 +564,7 @@ public class CBLRouter implements Database.ChangeListener {
         // http://wiki.apache.org/couchdb/Replication
         Map<String,Object> body = getBodyAsDictionary();
         if(body == null) {
-            return new CBLStatus(CBLStatus.BAD_REQUEST);
+            return new Status(Status.BAD_REQUEST);
         }
 
         try {
@@ -588,11 +588,11 @@ public class CBLRouter implements Database.ChangeListener {
             // Cancel replication:
             replicator.stop();
         }
-        return new CBLStatus(CBLStatus.OK);
+        return new Status(Status.OK);
 
     }
 
-    public CBLStatus do_GET_uuids(Database _db, String _docID, String _attachmentName) {
+    public Status do_GET_uuids(Database _db, String _docID, String _attachmentName) {
         int count = Math.min(1000, getIntQuery("count", 1));
         List<String> uuids = new ArrayList<String>(count);
         for(int i=0; i<count; i++) {
@@ -601,10 +601,10 @@ public class CBLRouter implements Database.ChangeListener {
         Map<String,Object> result = new HashMap<String,Object>();
         result.put("uuids", uuids);
         connection.setResponseBody(new CBLBody(result));
-        return new CBLStatus(CBLStatus.OK);
+        return new Status(Status.OK);
     }
 
-    public CBLStatus do_GET_active_tasks(Database _db, String _docID, String _attachmentName) {
+    public Status do_GET_active_tasks(Database _db, String _docID, String _attachmentName) {
         // http://wiki.apache.org/couchdb/HttpGetActiveTasks
         List<Map<String,Object>> activities = new ArrayList<Map<String,Object>>();
         for (Database db : manager.allOpenDatabases()) {
@@ -648,14 +648,14 @@ public class CBLRouter implements Database.ChangeListener {
             }
         }
         connection.setResponseBody(new CBLBody(activities));
-        return new CBLStatus(CBLStatus.OK);
+        return new Status(Status.OK);
     }
 
     /** DATABASE REQUESTS: **/
 
-    public CBLStatus do_GET_Database(Database _db, String _docID, String _attachmentName) {
+    public Status do_GET_Database(Database _db, String _docID, String _attachmentName) {
         // http://wiki.apache.org/couchdb/HTTP_database_API#Database_Information
-        CBLStatus status = openDB();
+        Status status = openDB();
         if(!status.isSuccessful()) {
             return status;
         }
@@ -668,26 +668,26 @@ public class CBLRouter implements Database.ChangeListener {
         result.put("update_seq", update_seq);
         result.put("disk_size", db.totalDataSize());
         connection.setResponseBody(new CBLBody(result));
-        return new CBLStatus(CBLStatus.OK);
+        return new Status(Status.OK);
     }
 
-    public CBLStatus do_PUT_Database(Database _db, String _docID, String _attachmentName) {
+    public Status do_PUT_Database(Database _db, String _docID, String _attachmentName) {
         if(db.exists()) {
-            return new CBLStatus(CBLStatus.PRECONDITION_FAILED);
+            return new Status(Status.PRECONDITION_FAILED);
         }
         if(!db.open()) {
-            return new CBLStatus(CBLStatus.INTERNAL_SERVER_ERROR);
+            return new Status(Status.INTERNAL_SERVER_ERROR);
         }
         setResponseLocation(connection.getURL());
-        return new CBLStatus(CBLStatus.CREATED);
+        return new Status(Status.CREATED);
     }
 
-    public CBLStatus do_DELETE_Database(Database _db, String _docID, String _attachmentName) throws CBLiteException {
+    public Status do_DELETE_Database(Database _db, String _docID, String _attachmentName) throws CBLiteException {
         if(getQuery("rev") != null) {
-            return new CBLStatus(CBLStatus.BAD_REQUEST);  // CouchDB checks for this; probably meant to be a document deletion
+            return new Status(Status.BAD_REQUEST);  // CouchDB checks for this; probably meant to be a document deletion
         }
         db.delete();
-        return new CBLStatus(CBLStatus.OK);
+        return new Status(Status.OK);
     }
 
     /**
@@ -703,37 +703,37 @@ public class CBLRouter implements Database.ChangeListener {
         allDocsResult.put("rows", rowsAsMaps);
     }
 
-    public CBLStatus do_POST_Database(Database _db, String _docID, String _attachmentName) {
-        CBLStatus status = openDB();
+    public Status do_POST_Database(Database _db, String _docID, String _attachmentName) {
+        Status status = openDB();
         if(!status.isSuccessful()) {
             return status;
         }
         return update(db, null, getBodyAsDictionary(), false);
     }
 
-    public CBLStatus do_GET_Document_all_docs(Database _db, String _docID, String _attachmentName) throws CBLiteException {
+    public Status do_GET_Document_all_docs(Database _db, String _docID, String _attachmentName) throws CBLiteException {
         QueryOptions options = new QueryOptions();
         if(!getQueryOptions(options)) {
-            return new CBLStatus(CBLStatus.BAD_REQUEST);
+            return new Status(Status.BAD_REQUEST);
         }
         Map<String,Object> result = db.getAllDocs(options);
         convertCBLQueryRowsToMaps(result);
         if(result == null) {
-            return new CBLStatus(CBLStatus.INTERNAL_SERVER_ERROR);
+            return new Status(Status.INTERNAL_SERVER_ERROR);
         }
         connection.setResponseBody(new CBLBody(result));
-        return new CBLStatus(CBLStatus.OK);
+        return new Status(Status.OK);
     }
 
-    public CBLStatus do_POST_Document_all_docs(Database _db, String _docID, String _attachmentName) throws CBLiteException {
+    public Status do_POST_Document_all_docs(Database _db, String _docID, String _attachmentName) throws CBLiteException {
         QueryOptions options = new QueryOptions();
         if (!getQueryOptions(options)) {
-            return new CBLStatus(CBLStatus.BAD_REQUEST);
+            return new Status(Status.BAD_REQUEST);
         }
 
         Map<String, Object> body = getBodyAsDictionary();
         if (body == null) {
-            return new CBLStatus(CBLStatus.BAD_REQUEST);
+            return new Status(Status.BAD_REQUEST);
         }
 
         Map<String, Object> result = null;
@@ -741,17 +741,17 @@ public class CBLRouter implements Database.ChangeListener {
         convertCBLQueryRowsToMaps(result);
 
         if (result == null) {
-            return new CBLStatus(CBLStatus.INTERNAL_SERVER_ERROR);
+            return new Status(Status.INTERNAL_SERVER_ERROR);
         }
         connection.setResponseBody(new CBLBody(result));
-        return new CBLStatus(CBLStatus.OK);
+        return new Status(Status.OK);
     }
 
-    public CBLStatus do_POST_facebook_token(Database _db, String _docID, String _attachmentName) {
+    public Status do_POST_facebook_token(Database _db, String _docID, String _attachmentName) {
 
         Map<String, Object> body = getBodyAsDictionary();
         if (body == null) {
-            return new CBLStatus(CBLStatus.BAD_REQUEST);
+            return new Status(Status.BAD_REQUEST);
         }
 
         String email = (String) body.get("email");
@@ -764,7 +764,7 @@ public class CBLRouter implements Database.ChangeListener {
                 Map<String, Object> result = new HashMap<String, Object>();
                 result.put("error", "invalid remote_url: " + e.getLocalizedMessage());
                 connection.setResponseBody(new CBLBody(result));
-                return new CBLStatus(CBLStatus.BAD_REQUEST);
+                return new Status(Status.BAD_REQUEST);
             }
 
             try {
@@ -773,13 +773,13 @@ public class CBLRouter implements Database.ChangeListener {
                 Map<String, Object> result = new HashMap<String, Object>();
                 result.put("error", "error registering access token: " + e.getLocalizedMessage());
                 connection.setResponseBody(new CBLBody(result));
-                return new CBLStatus(CBLStatus.BAD_REQUEST);
+                return new Status(Status.BAD_REQUEST);
             }
 
             Map<String, Object> result = new HashMap<String, Object>();
             result.put("ok", "registered");
             connection.setResponseBody(new CBLBody(result));
-            return new CBLStatus(CBLStatus.OK);
+            return new Status(Status.OK);
 
 
         }
@@ -787,17 +787,17 @@ public class CBLRouter implements Database.ChangeListener {
             Map<String, Object> result = new HashMap<String, Object>();
             result.put("error", "required fields: access_token, email, remote_url");
             connection.setResponseBody(new CBLBody(result));
-            return new CBLStatus(CBLStatus.BAD_REQUEST);
+            return new Status(Status.BAD_REQUEST);
         }
 
 
     }
 
-    public CBLStatus do_POST_persona_assertion(Database _db, String _docID, String _attachmentName) {
+    public Status do_POST_persona_assertion(Database _db, String _docID, String _attachmentName) {
 
         Map<String, Object> body = getBodyAsDictionary();
         if (body == null) {
-            return new CBLStatus(CBLStatus.BAD_REQUEST);
+            return new Status(Status.BAD_REQUEST);
         }
 
         String assertion = (String) body.get("assertion");
@@ -806,7 +806,7 @@ public class CBLRouter implements Database.ChangeListener {
             Map<String, Object> result = new HashMap<String, Object>();
             result.put("error", "required fields: assertion");
             connection.setResponseBody(new CBLBody(result));
-            return new CBLStatus(CBLStatus.BAD_REQUEST);
+            return new Status(Status.BAD_REQUEST);
         }
 
         try {
@@ -817,23 +817,23 @@ public class CBLRouter implements Database.ChangeListener {
             result.put("email", email);
 
             connection.setResponseBody(new CBLBody(result));
-            return new CBLStatus(CBLStatus.OK);
+            return new Status(Status.OK);
 
         } catch (Exception e) {
             Map<String, Object> result = new HashMap<String, Object>();
             result.put("error", "error registering persona assertion: " + e.getLocalizedMessage());
             connection.setResponseBody(new CBLBody(result));
-            return new CBLStatus(CBLStatus.BAD_REQUEST);
+            return new Status(Status.BAD_REQUEST);
         }
 
 
 
     }
 
-    public CBLStatus do_POST_Document_bulk_docs(Database _db, String _docID, String _attachmentName) {
+    public Status do_POST_Document_bulk_docs(Database _db, String _docID, String _attachmentName) {
     	Map<String,Object> bodyDict = getBodyAsDictionary();
         if(bodyDict == null) {
-            return new CBLStatus(CBLStatus.BAD_REQUEST);
+            return new Status(Status.BAD_REQUEST);
         }
         List<Map<String,Object>> docs = (List<Map<String, Object>>) bodyDict.get("docs");
 
@@ -854,18 +854,18 @@ public class CBLRouter implements Database.ChangeListener {
             for (Map<String, Object> doc : docs) {
                 String docID = (String) doc.get("_id");
                 CBLRevisionInternal rev = null;
-                CBLStatus status = new CBLStatus(CBLStatus.BAD_REQUEST);
+                Status status = new Status(Status.BAD_REQUEST);
                 CBLBody docBody = new CBLBody(doc);
                 if (noNewEdits) {
                     rev = new CBLRevisionInternal(docBody, db);
                     if(rev.getRevId() == null || rev.getDocId() == null || !rev.getDocId().equals(docID)) {
-                        status =  new CBLStatus(CBLStatus.BAD_REQUEST);
+                        status =  new Status(Status.BAD_REQUEST);
                     } else {
                         List<String> history = Database.parseCouchDBRevisionHistory(doc);
                         db.forceInsert(rev, history, null);
                     }
                 } else {
-                    CBLStatus outStatus = new CBLStatus();
+                    Status outStatus = new Status();
                     rev = update(db, docID, docBody, false, allOrNothing, outStatus);
                     status.setCode(outStatus.getCode());
                 }
@@ -879,11 +879,11 @@ public class CBLRouter implements Database.ChangeListener {
                     }
                 } else if(allOrNothing) {
                     return status;  // all_or_nothing backs out if there's any error
-                } else if(status.getCode() == CBLStatus.FORBIDDEN) {
+                } else if(status.getCode() == Status.FORBIDDEN) {
                     result = new HashMap<String, Object>();
                     result.put("error", "validation failed");
                     result.put("id", docID);
-                } else if(status.getCode() == CBLStatus.CONFLICT) {
+                } else if(status.getCode() == Status.CONFLICT) {
                     result = new HashMap<String, Object>();
                     result.put("error", "conflict");
                     result.put("id", docID);
@@ -903,16 +903,16 @@ public class CBLRouter implements Database.ChangeListener {
         }
         Log.d(Database.TAG, "results: " + results.toString());
         connection.setResponseBody(new CBLBody(results));
-        return new CBLStatus(CBLStatus.CREATED);
+        return new Status(Status.CREATED);
     }
 
-    public CBLStatus do_POST_Document_revs_diff(Database _db, String _docID, String _attachmentName) {
+    public Status do_POST_Document_revs_diff(Database _db, String _docID, String _attachmentName) {
         // http://wiki.apache.org/couchdb/HttpPostRevsDiff
         // Collect all of the input doc/revision IDs as TDRevisions:
         CBLRevisionList revs = new CBLRevisionList();
         Map<String, Object> body = getBodyAsDictionary();
         if(body == null) {
-            return new CBLStatus(CBLStatus.BAD_JSON);
+            return new Status(Status.BAD_JSON);
         }
         for (String docID : body.keySet()) {
             List<String> revIDs = (List<String>)body.get(docID);
@@ -924,7 +924,7 @@ public class CBLRouter implements Database.ChangeListener {
 
         // Look them up, removing the existing ones from revs:
         if(!db.findMissingRevisions(revs)) {
-            return new CBLStatus(CBLStatus.DB_ERROR);
+            return new Status(Status.DB_ERROR);
         }
 
         // Return the missing revs in a somewhat different format:
@@ -951,13 +951,13 @@ public class CBLRouter implements Database.ChangeListener {
         // FIXME add support for possible_ancestors
 
         connection.setResponseBody(new CBLBody(diffs));
-        return new CBLStatus(CBLStatus.OK);
+        return new Status(Status.OK);
     }
 
-    public CBLStatus do_POST_Document_compact(Database _db, String _docID, String _attachmentName) {
-    	CBLStatus status = _db.compact();
+    public Status do_POST_Document_compact(Database _db, String _docID, String _attachmentName) {
+    	Status status = _db.compact();
     	if (status.getCode() < 300) {
-    		CBLStatus outStatus = new CBLStatus();
+    		Status outStatus = new Status();
     		outStatus.setCode(202);	// CouchDB returns 202 'cause it's an async operation
             return outStatus;
     	} else {
@@ -965,8 +965,8 @@ public class CBLRouter implements Database.ChangeListener {
     	}
     }
 
-    public CBLStatus do_POST_Document_ensure_full_commit(Database _db, String _docID, String _attachmentName) {
-        return new CBLStatus(CBLStatus.OK);
+    public Status do_POST_Document_ensure_full_commit(Database _db, String _docID, String _attachmentName) {
+        return new Status(Status.OK);
     }
 
     /** CHANGES: **/
@@ -1103,7 +1103,7 @@ public class CBLRouter implements Database.ChangeListener {
 
     }
 
-    public CBLStatus do_GET_Document_changes(Database _db, String docID, String _attachmentName) {
+    public Status do_GET_Document_changes(Database _db, String docID, String _attachmentName) {
         // http://wiki.apache.org/couchdb/HTTP_database_API#Changes
         CBLChangesOptions options = new CBLChangesOptions();
         changesIncludesDocs = getBooleanQuery("include_docs");
@@ -1122,14 +1122,14 @@ public class CBLRouter implements Database.ChangeListener {
         if(filterName != null) {
             changesFilter = db.getFilter(filterName);
             if(changesFilter == null) {
-                return new CBLStatus(CBLStatus.NOT_FOUND);
+                return new Status(Status.NOT_FOUND);
             }
         }
 
         CBLRevisionList changes = db.changesSince(since, options, changesFilter);
 
         if(changes == null) {
-            return new CBLStatus(CBLStatus.INTERNAL_SERVER_ERROR);
+            return new Status(Status.INTERNAL_SERVER_ERROR);
         }
 
         String feed = getQuery("feed");
@@ -1138,7 +1138,7 @@ public class CBLRouter implements Database.ChangeListener {
 
         if(continuous || (longpoll && changes.size() == 0)) {
             connection.setChunked(true);
-            connection.setResponseCode(CBLStatus.OK);
+            connection.setResponseCode(Status.OK);
             sendResponse();
             if(continuous) {
                 for (CBLRevisionInternal rev : changes) {
@@ -1147,14 +1147,14 @@ public class CBLRouter implements Database.ChangeListener {
             }
             db.addChangeListener(this);
          // Don't close connection; more data to come
-            return new CBLStatus(0);
+            return new Status(0);
         } else {
             if(options.isIncludeConflicts()) {
                 connection.setResponseBody(new CBLBody(responseBodyForChangesWithConflicts(changes, since)));
             } else {
                 connection.setResponseBody(new CBLBody(responseBodyForChanges(changes, since)));
             }
-            return new CBLStatus(CBLStatus.OK);
+            return new Status(Status.OK);
         }
     }
 
@@ -1179,7 +1179,7 @@ public class CBLRouter implements Database.ChangeListener {
         return eTag;
     }
 
-    public CBLStatus do_GET_Document(Database _db, String docID, String _attachmentName) {
+    public Status do_GET_Document(Database _db, String docID, String _attachmentName) {
         try {
             // http://wiki.apache.org/couchdb/HTTP_Document_API#GET
             boolean isLocalDoc = docID.startsWith("_local");
@@ -1207,10 +1207,10 @@ public class CBLRouter implements Database.ChangeListener {
                     }
                 }
                 if(rev == null) {
-                    return new CBLStatus(CBLStatus.NOT_FOUND);
+                    return new Status(Status.NOT_FOUND);
                 }
                 if(cacheWithEtag(rev.getRevId())) {
-                    return new CBLStatus(CBLStatus.NOT_MODIFIED);  // set ETag and check conditional GET
+                    return new Status(Status.NOT_MODIFIED);  // set ETag and check conditional GET
                 }
 
                 connection.setResponseBody(rev.getBody());
@@ -1225,7 +1225,7 @@ public class CBLRouter implements Database.ChangeListener {
                         try {
                             db.loadRevisionBody(rev, options);
                         } catch (CBLiteException e) {
-                            if (e.getCBLStatus().getCode() != CBLStatus.INTERNAL_SERVER_ERROR) {
+                            if (e.getCBLStatus().getCode() != Status.INTERNAL_SERVER_ERROR) {
                                 Map<String, Object> dict = new HashMap<String,Object>();
                                 dict.put("missing", rev.getRevId());
                                 result.add(dict);
@@ -1244,7 +1244,7 @@ public class CBLRouter implements Database.ChangeListener {
                     // ?open_revs=[...] returns an array of revisions of the document:
                     List<String> openRevs = (List<String>)getJSONQuery("open_revs");
                     if(openRevs == null) {
-                        return new CBLStatus(CBLStatus.BAD_REQUEST);
+                        return new Status(Status.BAD_REQUEST);
                     }
                     result = new ArrayList<Map<String,Object>>(openRevs.size());
                     for (String revID : openRevs) {
@@ -1268,13 +1268,13 @@ public class CBLRouter implements Database.ChangeListener {
                     connection.setResponseBody(new CBLBody(result));
                 }
             }
-            return new CBLStatus(CBLStatus.OK);
+            return new Status(Status.OK);
         } catch (CBLiteException e) {
             return e.getCBLStatus();
         }
     }
 
-    public CBLStatus do_GET_Attachment(Database _db, String docID, String _attachmentName) {
+    public Status do_GET_Attachment(Database _db, String docID, String _attachmentName) {
         try {
             // http://wiki.apache.org/couchdb/HTTP_Document_API#GET
             EnumSet<TDContentOptions> options = getContentOptions();
@@ -1282,10 +1282,10 @@ public class CBLRouter implements Database.ChangeListener {
             String revID = getQuery("rev");  // often null
             CBLRevisionInternal rev = db.getDocumentWithIDAndRev(docID, revID, options);
             if(rev == null) {
-                return new CBLStatus(CBLStatus.NOT_FOUND);
+                return new Status(Status.NOT_FOUND);
             }
             if(cacheWithEtag(rev.getRevId())) {
-                return new CBLStatus(CBLStatus.NOT_MODIFIED);  // set ETag and check conditional GET
+                return new Status(Status.NOT_MODIFIED);  // set ETag and check conditional GET
             }
 
             String type = null;
@@ -1293,7 +1293,7 @@ public class CBLRouter implements Database.ChangeListener {
             Attachment contents = db.getAttachmentForSequence(rev.getSequence(), _attachmentName);
 
             if (contents == null) {
-                return new CBLStatus(CBLStatus.NOT_FOUND);
+                return new Status(Status.NOT_FOUND);
             }
             type = contents.getContentType();
             if (type != null) {
@@ -1304,7 +1304,7 @@ public class CBLRouter implements Database.ChangeListener {
             }
 
             connection.setResponseInputStream(contents.getContent());
-            return new CBLStatus(CBLStatus.OK);
+            return new Status(Status.OK);
 
         } catch (CBLiteException e) {
             return e.getCBLStatus();
@@ -1314,7 +1314,7 @@ public class CBLRouter implements Database.ChangeListener {
     /**
      * NOTE this departs from the iOS version, returning revision, passing status back by reference
      */
-    public CBLRevisionInternal update(Database _db, String docID, CBLBody body, boolean deleting, boolean allowConflict, CBLStatus outStatus) {
+    public CBLRevisionInternal update(Database _db, String docID, CBLBody body, boolean deleting, boolean allowConflict, Status outStatus) {
         boolean isLocalDoc = docID != null && docID.startsWith(("_local"));
         String prevRevID = null;
 
@@ -1323,14 +1323,14 @@ public class CBLRouter implements Database.ChangeListener {
             deleting = (deletingBoolean != null && deletingBoolean.booleanValue());
             if(docID == null) {
                 if(isLocalDoc) {
-                    outStatus.setCode(CBLStatus.METHOD_NOT_ALLOWED);
+                    outStatus.setCode(Status.METHOD_NOT_ALLOWED);
                     return null;
                 }
                 // POST's doc ID may come from the _id field of the JSON body, else generate a random one.
                 docID = (String)body.getPropertyForKey("_id");
                 if(docID == null) {
                     if(deleting) {
-                        outStatus.setCode(CBLStatus.BAD_REQUEST);
+                        outStatus.setCode(Status.BAD_REQUEST);
                         return null;
                     }
                     docID = Database.generateDocumentId();
@@ -1359,9 +1359,9 @@ public class CBLRouter implements Database.ChangeListener {
                 result = _db.putRevision(rev, prevRevID, allowConflict);
             }
             if(deleting){
-                outStatus.setCode(CBLStatus.OK);
+                outStatus.setCode(Status.OK);
             } else{
-                outStatus.setCode(CBLStatus.CREATED);
+                outStatus.setCode(Status.CREATED);
             }
 
         } catch (CBLiteException e) {
@@ -1373,9 +1373,9 @@ public class CBLRouter implements Database.ChangeListener {
         return result;
     }
 
-    public CBLStatus update(Database _db, String docID, Map<String,Object> bodyDict, boolean deleting) {
+    public Status update(Database _db, String docID, Map<String,Object> bodyDict, boolean deleting) {
         CBLBody body = new CBLBody(bodyDict);
-        CBLStatus status = new CBLStatus();
+        Status status = new Status();
         CBLRevisionInternal rev = update(_db, docID, body, deleting, false, status);
         if(status.isSuccessful()) {
             cacheWithEtag(rev.getRevId());  // set ETag
@@ -1401,10 +1401,10 @@ public class CBLRouter implements Database.ChangeListener {
         return status;
     }
 
-    public CBLStatus do_PUT_Document(Database _db, String docID, String _attachmentName) throws CBLiteException {
+    public Status do_PUT_Document(Database _db, String docID, String _attachmentName) throws CBLiteException {
         Map<String,Object> bodyDict = getBodyAsDictionary();
         if(bodyDict == null) {
-            throw new CBLiteException(CBLStatus.BAD_REQUEST);
+            throw new CBLiteException(Status.BAD_REQUEST);
         }
 
         if(getQuery("new_edits") == null || (getQuery("new_edits") != null && (new Boolean(getQuery("new_edits"))))) {
@@ -1415,15 +1415,15 @@ public class CBLRouter implements Database.ChangeListener {
             CBLBody body = new CBLBody(bodyDict);
             CBLRevisionInternal rev = new CBLRevisionInternal(body, _db);
             if(rev.getRevId() == null || rev.getDocId() == null || !rev.getDocId().equals(docID)) {
-                throw new CBLiteException(CBLStatus.BAD_REQUEST);
+                throw new CBLiteException(Status.BAD_REQUEST);
             }
             List<String> history = Database.parseCouchDBRevisionHistory(body.getProperties());
             db.forceInsert(rev, history, null);
         }
-        return new CBLStatus(CBLStatus.CREATED);
+        return new Status(Status.CREATED);
     }
 
-    public CBLStatus do_DELETE_Document(Database _db, String docID, String _attachmentName) {
+    public Status do_DELETE_Document(Database _db, String docID, String _attachmentName) {
         return update(_db, docID, null, true);
     }
 
@@ -1488,7 +1488,7 @@ public class CBLRouter implements Database.ChangeListener {
         return view;
     }
 
-    public CBLStatus queryDesignDoc(String designDoc, String viewName, List<Object> keys) throws CBLiteException {
+    public Status queryDesignDoc(String designDoc, String viewName, List<Object> keys) throws CBLiteException {
         String tdViewName = String.format("%s/%s", designDoc, viewName);
         View view = db.getExistingView(tdViewName);
         if(view == null || view.getMap() == null) {
@@ -1496,17 +1496,17 @@ public class CBLRouter implements Database.ChangeListener {
             // see if there's a CouchDB view definition we can compile:
             CBLRevisionInternal rev = db.getDocumentWithIDAndRev(String.format("_design/%s", designDoc), null, EnumSet.noneOf(TDContentOptions.class));
             if(rev == null) {
-                return new CBLStatus(CBLStatus.NOT_FOUND);
+                return new Status(Status.NOT_FOUND);
             }
             Map<String,Object> views = (Map<String,Object>)rev.getProperties().get("views");
             Map<String,Object> viewProps = (Map<String,Object>)views.get(viewName);
             if(viewProps == null) {
-                return new CBLStatus(CBLStatus.NOT_FOUND);
+                return new Status(Status.NOT_FOUND);
             }
             // If there is a CouchDB view, see if it can be compiled from source:
             view = compileView(tdViewName, viewProps);
             if(view == null) {
-                return new CBLStatus(CBLStatus.INTERNAL_SERVER_ERROR);
+                return new Status(Status.INTERNAL_SERVER_ERROR);
             }
         }
 
@@ -1518,7 +1518,7 @@ public class CBLRouter implements Database.ChangeListener {
         }
 
         if(!getQueryOptions(options)) {
-            return new CBLStatus(CBLStatus.BAD_REQUEST);
+            return new Status(Status.BAD_REQUEST);
         }
         if(keys != null) {
             options.setKeys(keys);
@@ -1532,7 +1532,7 @@ public class CBLRouter implements Database.ChangeListener {
         if(keys == null) {
             long eTag = options.isIncludeDocs() ? db.getLastSequenceNumber() : lastSequenceIndexed;
             if(cacheWithEtag(String.format("%d", eTag))) {
-                return new CBLStatus(CBLStatus.NOT_MODIFIED);
+                return new Status(Status.NOT_MODIFIED);
             }
         }
 
@@ -1551,17 +1551,17 @@ public class CBLRouter implements Database.ChangeListener {
             responseBody.put("update_seq", lastSequenceIndexed);
         }
         connection.setResponseBody(new CBLBody(responseBody));
-        return new CBLStatus(CBLStatus.OK);
+        return new Status(Status.OK);
     }
 
-    public CBLStatus do_GET_DesignDocument(Database _db, String designDocID, String viewName) throws CBLiteException {
+    public Status do_GET_DesignDocument(Database _db, String designDocID, String viewName) throws CBLiteException {
         return queryDesignDoc(designDocID, viewName, null);
     }
 
-    public CBLStatus do_POST_DesignDocument(Database _db, String designDocID, String viewName) throws CBLiteException {
+    public Status do_POST_DesignDocument(Database _db, String designDocID, String viewName) throws CBLiteException {
     	Map<String,Object> bodyDict = getBodyAsDictionary();
     	if(bodyDict == null) {
-    		return new CBLStatus(CBLStatus.BAD_REQUEST);
+    		return new Status(Status.BAD_REQUEST);
     	}
     	List<Object> keys = (List<Object>) bodyDict.get("keys");
     	return queryDesignDoc(designDocID, viewName, keys);

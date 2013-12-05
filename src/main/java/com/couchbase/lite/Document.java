@@ -259,7 +259,7 @@ public class Document {
     @InterfaceAudience.Public
     public SavedRevision update(DocumentUpdater updater) throws CBLiteException {
 
-        int lastErrorCode = CBLStatus.UNKNOWN;
+        int lastErrorCode = Status.UNKNOWN;
         do {
             UnsavedRevision newRev = createRevision();
             if (updater.update(newRev) == false) {
@@ -274,7 +274,7 @@ public class Document {
                 lastErrorCode = e.getCBLStatus().getCode();
             }
 
-        } while (lastErrorCode == CBLStatus.CONFLICT);
+        } while (lastErrorCode == Status.CONFLICT);
         return null;
 
     }

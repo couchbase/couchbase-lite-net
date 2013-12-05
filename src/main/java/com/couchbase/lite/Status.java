@@ -20,7 +20,7 @@ package com.couchbase.lite;
 /**
  * Same interpretation as HTTP status codes, esp. 200, 201, 404, 409, 500.
  */
-public class CBLStatus {
+public class Status {
 
     public static final int UNKNOWN = -1;
     public static final int OK = 200;
@@ -43,11 +43,11 @@ public class CBLStatus {
 
     private int code;
 
-    public CBLStatus() {
+    public Status() {
         this.code = UNKNOWN;
     }
 
-    public CBLStatus(int code) {
+    public Status(int code) {
         this.code = code;
     }
 
