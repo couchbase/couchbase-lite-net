@@ -9,7 +9,7 @@ import com.couchbase.lite.auth.CBLFacebookAuthorizer;
 import com.couchbase.lite.auth.CBLPersonaAuthorizer;
 import com.couchbase.lite.internal.InterfaceAudience;
 import com.couchbase.lite.support.BatchProcessor;
-import com.couchbase.lite.support.CBLBatcher;
+import com.couchbase.lite.support.Batcher;
 import com.couchbase.lite.support.CouchbaseLiteHttpClientFactory;
 import com.couchbase.lite.support.RemoteMultipartDownloaderRequest;
 import com.couchbase.lite.support.RemoteMultipartRequest;
@@ -52,7 +52,7 @@ public abstract class CBLReplicator {
     protected boolean active;
     protected Throwable error;
     protected String sessionID;
-    protected CBLBatcher<CBLRevisionInternal> batcher;
+    protected Batcher<CBLRevisionInternal> batcher;
     protected int asyncTaskCount;
     private int completedChangesCount;
     private int changesCount;
@@ -134,7 +134,7 @@ public abstract class CBLReplicator {
 
         }
 
-        batcher = new CBLBatcher<CBLRevisionInternal>(workExecutor, INBOX_CAPACITY, PROCESSOR_DELAY, new BatchProcessor<CBLRevisionInternal>() {
+        batcher = new Batcher<CBLRevisionInternal>(workExecutor, INBOX_CAPACITY, PROCESSOR_DELAY, new BatchProcessor<CBLRevisionInternal>() {
             @Override
             public void process(List<CBLRevisionInternal> inbox) {
                 Log.v(Database.TAG, "*** " + toString() + ": BEGIN processInbox (" + inbox.size() + " sequences)");

@@ -13,7 +13,7 @@ import java.util.concurrent.TimeUnit;
  * Utility that queues up objects until the queue fills up or a time interval elapses,
  * then passes all the objects at once to a client-supplied processor block.
  */
-public class CBLBatcher<T> {
+public class Batcher<T> {
 
     private ScheduledExecutorService workExecutor;
     private ScheduledFuture<?> flushFuture;
@@ -36,7 +36,7 @@ public class CBLBatcher<T> {
         }
     };
 
-    public CBLBatcher(ScheduledExecutorService workExecutor, int capacity, int delay, BatchProcessor<T> processor) {
+    public Batcher(ScheduledExecutorService workExecutor, int capacity, int delay, BatchProcessor<T> processor) {
         this.workExecutor = workExecutor;
         this.capacity = capacity;
         this.delay = delay;

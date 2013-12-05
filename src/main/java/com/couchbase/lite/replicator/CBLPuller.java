@@ -14,7 +14,7 @@ import com.couchbase.lite.replicator.changetracker.CBLChangeTracker.TDChangeTrac
 import com.couchbase.lite.replicator.changetracker.CBLChangeTrackerClient;
 import com.couchbase.lite.storage.SQLException;
 import com.couchbase.lite.support.BatchProcessor;
-import com.couchbase.lite.support.CBLBatcher;
+import com.couchbase.lite.support.Batcher;
 import com.couchbase.lite.support.RemoteRequestCompletionBlock;
 import com.couchbase.lite.support.SequenceMap;
 import com.couchbase.lite.support.HttpClientFactory;
@@ -38,7 +38,7 @@ public class CBLPuller extends CBLReplicator implements CBLChangeTrackerClient {
 
     private static final int MAX_OPEN_HTTP_CONNECTIONS = 16;
 
-    protected CBLBatcher<List<Object>> downloadsToInsert;
+    protected Batcher<List<Object>> downloadsToInsert;
     protected List<CBLRevisionInternal> revsToPull;
     protected CBLChangeTracker changeTracker;
     protected SequenceMap pendingSequences;
@@ -81,7 +81,7 @@ public class CBLPuller extends CBLReplicator implements CBLChangeTrackerClient {
         if(downloadsToInsert == null) {
             int capacity = 200;
             int delay = 1000;
-            downloadsToInsert = new CBLBatcher<List<Object>>(workExecutor, capacity, delay, new BatchProcessor<List<Object>>() {
+            downloadsToInsert = new Batcher<List<Object>>(workExecutor, capacity, delay, new BatchProcessor<List<Object>>() {
                 @Override
                 public void process(List<List<Object>> inbox) {
                     insertRevisions(inbox);
