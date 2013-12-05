@@ -47,7 +47,7 @@ public class View {
     private Database database;
     private String name;
     private int viewId;
-    private CBLMapper mapBlock;
+    private Mapper mapBlock;
     private Reducer reduceBlock;
     private TDViewCollation collation;
     private static ViewCompiler compiler;
@@ -100,7 +100,7 @@ public class View {
      * The map function that controls how index rows are created from documents.
      */
     @InterfaceAudience.Public
-    public CBLMapper getMap() {
+    public Mapper getMap() {
         return mapBlock;
     }
 
@@ -151,14 +151,14 @@ public class View {
      * See setMapAndReduce() for more information.
      */
     @InterfaceAudience.Public
-    public boolean setMap(CBLMapper mapBlock, String version) {
+    public boolean setMap(Mapper mapBlock, String version) {
         return setMapAndReduce(mapBlock, null, version);
     }
 
     /**
      * Defines a view's functions.
      *
-     * The view's definition is given as a class that conforms to the CBLMapper or
+     * The view's definition is given as a class that conforms to the Mapper or
      * Reducer interface (or null to delete the view). The body of the block
      * should call the 'emit' object (passed in as a paramter) for every key/value pair
      * it wants to write to the view.
@@ -178,7 +178,7 @@ public class View {
      *
      */
     @InterfaceAudience.Public
-    public boolean setMapAndReduce(CBLMapper mapBlock,
+    public boolean setMapAndReduce(Mapper mapBlock,
                                    Reducer reduceBlock, String version) {
         assert (mapBlock != null);
         assert (version != null);

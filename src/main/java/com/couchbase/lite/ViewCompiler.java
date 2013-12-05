@@ -5,7 +5,7 @@ package com.couchbase.lite;
  */
 public interface ViewCompiler {
 
-    CBLMapper compileMap(String mapSource, String language);
+    Mapper compileMap(String mapSource, String language);
 
     Reducer compileReduce(String reduceSource, String language);
 

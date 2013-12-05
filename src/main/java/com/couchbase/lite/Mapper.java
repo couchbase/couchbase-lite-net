@@ -22,7 +22,7 @@ import java.util.Map;
 /**
  * Block container for the map callback function
  */
-public interface CBLMapper {
+public interface Mapper {
 
     /**
      * A "map" function called when a document is to be added to a view.

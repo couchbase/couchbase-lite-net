@@ -12,7 +12,7 @@ import com.couchbase.lite.QueryOptions;
 import com.couchbase.lite.QueryRow;
 import com.couchbase.lite.Reducer;
 import com.couchbase.lite.ReplicationFilter;
-import com.couchbase.lite.CBLMapper;
+import com.couchbase.lite.Mapper;
 import com.couchbase.lite.RevisionList;
 import com.couchbase.lite.Status;
 import com.couchbase.lite.View;
@@ -1464,7 +1464,7 @@ public class CBLRouter implements Database.ChangeListener {
         if(mapSource == null) {
             return null;
         }
-        CBLMapper mapBlock = View.getCompiler().compileMap(mapSource, language);
+        Mapper mapBlock = View.getCompiler().compileMap(mapSource, language);
         if(mapBlock == null) {
             Log.w(Database.TAG, String.format("View %s has unknown map function: %s", viewName, mapSource));
             return null;

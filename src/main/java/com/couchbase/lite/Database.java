@@ -3145,7 +3145,7 @@ public class Database {
      * development, but in general this is inefficient if this map will be used more than once,
      * because the entire view has to be regenerated from scratch every time.
      */
-    public Query slowQuery(CBLMapper map) {
+    public Query slowQuery(Mapper map) {
         return new Query(this, map);
     }
 

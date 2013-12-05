@@ -128,7 +128,7 @@ public class Query {
      * Constructor
      */
     @InterfaceAudience.Private
-    Query(Database database, CBLMapper mapFunction) {
+    Query(Database database, Mapper mapFunction) {
         this(database, database.makeAnonymousView());
         temporaryView = true;
         view.setMap(mapFunction, "");
