@@ -38,7 +38,7 @@ import com.couchbase.lite.util.Log;
  * A persistent content-addressable store for arbitrary-size data blobs.
  * Each blob is stored as a file named by its SHA-1 digest.
  */
-public class CBLBlobStore {
+public class BlobStore {
 
     public static String FILE_EXTENSION = ".blob";
     public static String TMP_FILE_EXTENSION = ".blobtmp";
@@ -46,7 +46,7 @@ public class CBLBlobStore {
 
     private String path;
 
-    public CBLBlobStore(String path) {
+    public BlobStore(String path) {
         this.path = path;
         File directory = new File(path);
         if(!directory.exists()) {

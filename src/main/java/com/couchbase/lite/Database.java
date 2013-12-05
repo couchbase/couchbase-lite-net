@@ -77,7 +77,7 @@ public class Database {
 
     private Map<String, BlobStoreWriter> pendingAttachmentsByDigest;
     private List<Replication> activeReplicators;
-    private CBLBlobStore attachments;
+    private BlobStore attachments;
     private Manager manager;
     private List<ChangeListener> changeListeners;
     private LruCache<String, Document> docCache;
@@ -788,7 +788,7 @@ public class Database {
         }
 
         try {
-            attachments = new CBLBlobStore(getAttachmentStorePath());
+            attachments = new BlobStore(getAttachmentStorePath());
         } catch (IllegalArgumentException e) {
             Log.e(Database.TAG, "Could not initialize attachment store", e);
             database.close();
@@ -839,7 +839,7 @@ public class Database {
         return database;
     }
 
-    public CBLBlobStore getAttachments() {
+    public BlobStore getAttachments() {
         return attachments;
     }
 

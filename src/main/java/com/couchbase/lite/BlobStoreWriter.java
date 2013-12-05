@@ -12,11 +12,11 @@ import java.io.InputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
-/** Lets you stream a large attachment to a CBLBlobStore asynchronously, e.g. from a network download. */
+/** Lets you stream a large attachment to a BlobStore asynchronously, e.g. from a network download. */
 public class BlobStoreWriter {
 
     /** The underlying blob store where it should be stored. */
-    private CBLBlobStore store;
+    private BlobStore store;
 
     /** The number of bytes in the blob. */
     private int length;
@@ -34,7 +34,7 @@ public class BlobStoreWriter {
     private BufferedOutputStream outStream;
     private File tempFile;
 
-    public BlobStoreWriter(CBLBlobStore store) {
+    public BlobStoreWriter(BlobStore store) {
         this.store = store;
 
         try {

@@ -1,7 +1,7 @@
 package com.couchbase.lite.replicator;
 
 import com.couchbase.lite.BlobKey;
-import com.couchbase.lite.CBLBlobStore;
+import com.couchbase.lite.BlobStore;
 import com.couchbase.lite.CouchbaseLiteException;
 import com.couchbase.lite.Database;
 import com.couchbase.lite.DocumentChange;
@@ -296,7 +296,7 @@ public class Pusher extends Replication implements Database.ChangeListener {
 
                 }
 
-                CBLBlobStore blobStore = this.db.getAttachments();
+                BlobStore blobStore = this.db.getAttachments();
                 String base64Digest = (String) attachment.get("digest");
                 BlobKey blobKey = new BlobKey(base64Digest);
                 InputStream inputStream = blobStore.blobStreamForKey(blobKey);
