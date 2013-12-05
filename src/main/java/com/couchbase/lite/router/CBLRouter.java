@@ -49,7 +49,7 @@ public class CBLRouter implements Database.ChangeListener {
 
     private Manager manager;
     private Database db;
-    private CBLURLConnection connection;
+    private URLConnection connection;
     private Map<String,String> queries;
     private boolean changesIncludesDocs = false;
     private CBLRouterCallbackBlock callbackBlock;
@@ -62,7 +62,7 @@ public class CBLRouter implements Database.ChangeListener {
         return Manager.VERSION_STRING;
     }
 
-    public CBLRouter(Manager manager, CBLURLConnection connection) {
+    public CBLRouter(Manager manager, URLConnection connection) {
         this.manager = manager;
         this.connection = connection;
     }

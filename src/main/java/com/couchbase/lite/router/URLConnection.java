@@ -25,7 +25,7 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 
 
-public class CBLURLConnection extends HttpURLConnection {
+public class URLConnection extends HttpURLConnection {
 
     private Header resHeader;
     private boolean sentRequest = false;
@@ -45,7 +45,7 @@ public class CBLURLConnection extends HttpURLConnection {
 
     private InputStream requestInputStream;
 
-    public CBLURLConnection(URL url) {
+    public URLConnection(URL url) {
         super(url);
         responseInputStream = new PipedInputStream();
         try {
