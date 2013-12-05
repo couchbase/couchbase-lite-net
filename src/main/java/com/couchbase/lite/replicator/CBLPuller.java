@@ -34,7 +34,7 @@ import java.util.concurrent.ScheduledExecutorService;
 
 
 @InterfaceAudience.Private
-public class CBLPuller extends CBLReplicator implements CBLChangeTrackerClient {
+public class CBLPuller extends Replication implements CBLChangeTrackerClient {
 
     private static final int MAX_OPEN_HTTP_CONNECTIONS = 16;
 

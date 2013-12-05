@@ -6,7 +6,7 @@ import com.couchbase.lite.auth.CBLPersonaAuthorizer;
 import com.couchbase.lite.internal.InterfaceAudience;
 import com.couchbase.lite.replicator.CBLPuller;
 import com.couchbase.lite.replicator.CBLPusher;
-import com.couchbase.lite.replicator.CBLReplicator;
+import com.couchbase.lite.replicator.Replication;
 import com.couchbase.lite.support.FileDirUtils;
 import com.couchbase.lite.support.HttpClientFactory;
 import com.couchbase.lite.util.Log;
@@ -48,7 +48,7 @@ public class Manager {
     private ManagerOptions options;
     private File directoryFile;
     private Map<String, Database> databases;
-    private List<CBLReplicator> replications;
+    private List<Replication> replications;
     private ScheduledExecutorService workExecutor;
     private HttpClientFactory defaultHttpClientFactory;
 
@@ -75,7 +75,7 @@ public class Manager {
         this.directoryFile = directoryFile;
         this.options = (options != null) ? options : DEFAULT_OPTIONS;
         this.databases = new HashMap<String, Database>();
-        this.replications = new ArrayList<CBLReplicator>();
+        this.replications = new ArrayList<Replication>();
 
         //create the directory, but don't fail if it already exists
         if(!directoryFile.exists()) {
@@ -112,7 +112,7 @@ public class Manager {
                 Character.isLowerCase(databaseName.charAt(0))) {
             return true;
         }
-        return databaseName.equals(CBLReplicator.REPLICATOR_DATABASE_NAME);
+        return databaseName.equals(Replication.REPLICATOR_DATABASE_NAME);
     }
 
     /**
@@ -155,9 +155,9 @@ public class Manager {
     public void close() {
         Log.i(Database.TAG, "Closing " + this);
         for (Database database : databases.values()) {
-            List<CBLReplicator> replicators = database.getAllReplications();
+            List<Replication> replicators = database.getAllReplications();
             if (replicators != null) {
-                for (CBLReplicator replicator : replicators) {
+                for (Replication replicator : replicators) {
                     replicator.stop();
                 }
             }
@@ -321,8 +321,8 @@ public class Manager {
 
 
     @InterfaceAudience.Private
-    CBLReplicator replicationWithDatabase(Database db, URL remote, boolean push, boolean create, boolean start) {
-        for (CBLReplicator replicator : replications) {
+    Replication replicationWithDatabase(Database db, URL remote, boolean push, boolean create, boolean start) {
+        for (Replication replicator : replications) {
             if (replicator.getLocalDatabase() == db && replicator.getRemoteUrl().equals(remote) && replicator.isPull() == !push) {
                 return replicator;
             }
@@ -332,7 +332,7 @@ public class Manager {
             return null;
         }
 
-        CBLReplicator replicator = null;
+        Replication replicator = null;
         if (push) {
             replicator = new CBLPusher(db, remote, true, getWorkExecutor());
         }
@@ -351,10 +351,10 @@ public class Manager {
 
 
     @InterfaceAudience.Private
-    public CBLReplicator getReplicator(Map<String,Object> properties) throws CouchbaseLiteException {
+    public Replication getReplicator(Map<String,Object> properties) throws CouchbaseLiteException {
 
         CBLAuthorizer authorizer = null;
-        CBLReplicator repl = null;
+        Replication repl = null;
         URL remote = null;
 
         Map<String, Object> remoteMap;

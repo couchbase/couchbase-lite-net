@@ -31,7 +31,7 @@ import java.util.Map;
 import java.util.concurrent.ScheduledExecutorService;
 
 @InterfaceAudience.Private
-public class CBLPusher extends CBLReplicator implements Database.ChangeListener {
+public class CBLPusher extends Replication implements Database.ChangeListener {
 
     private boolean shouldCreateTarget;
     private boolean observing;

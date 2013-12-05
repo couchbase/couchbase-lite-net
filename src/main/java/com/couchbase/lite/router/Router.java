@@ -22,7 +22,7 @@ import com.couchbase.lite.auth.CBLFacebookAuthorizer;
 import com.couchbase.lite.auth.CBLPersonaAuthorizer;
 import com.couchbase.lite.internal.CBLBody;
 import com.couchbase.lite.internal.CBLRevisionInternal;
-import com.couchbase.lite.replicator.CBLReplicator;
+import com.couchbase.lite.replicator.Replication;
 import com.couchbase.lite.util.Log;
 
 import org.apache.http.client.HttpResponseException;
@@ -558,7 +558,7 @@ public class Router implements Database.ChangeListener {
 
     public Status do_POST_replicate(Database _db, String _docID, String _attachmentName) {
 
-        CBLReplicator replicator;
+        Replication replicator;
 
         // Extract the parameters from the JSON request body:
         // http://wiki.apache.org/couchdb/Replication
@@ -608,9 +608,9 @@ public class Router implements Database.ChangeListener {
         // http://wiki.apache.org/couchdb/HttpGetActiveTasks
         List<Map<String,Object>> activities = new ArrayList<Map<String,Object>>();
         for (Database db : manager.allOpenDatabases()) {
-            List<CBLReplicator> activeReplicators = db.getAllReplications();
+            List<Replication> activeReplicators = db.getAllReplications();
             if(activeReplicators != null) {
-                for (CBLReplicator replicator : activeReplicators) {
+                for (Replication replicator : activeReplicators) {
                     String source = replicator.getRemoteUrl().toExternalForm();
                     String target = db.getName();
                     if(!replicator.isPull()) {

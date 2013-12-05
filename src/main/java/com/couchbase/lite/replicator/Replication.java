@@ -34,7 +34,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-public abstract class CBLReplicator {
+public abstract class Replication {
 
     private static int lastSessionID = 0;
 
@@ -82,7 +82,7 @@ public abstract class CBLReplicator {
      * Private Constructor
      */
     @InterfaceAudience.Private
-    public CBLReplicator(Database db, URL remote, boolean continuous, ScheduledExecutorService workExecutor) {
+    public Replication(Database db, URL remote, boolean continuous, ScheduledExecutorService workExecutor) {
         this(db, remote, continuous, null, workExecutor);
     }
 
@@ -90,7 +90,7 @@ public abstract class CBLReplicator {
      * Private Constructor
      */
     @InterfaceAudience.Private
-    public CBLReplicator(Database db, URL remote, boolean continuous, HttpClientFactory clientFactory, ScheduledExecutorService workExecutor) {
+    public Replication(Database db, URL remote, boolean continuous, HttpClientFactory clientFactory, ScheduledExecutorService workExecutor) {
 
         this.db = db;
         this.continuous = continuous;
@@ -743,13 +743,13 @@ public abstract class CBLReplicator {
     @InterfaceAudience.Public
     public static class ChangeEvent {
 
-        private CBLReplicator source;
+        private Replication source;
 
-        public ChangeEvent(CBLReplicator source) {
+        public ChangeEvent(Replication source) {
             this.source = source;
         }
 
-        public CBLReplicator getSource() {
+        public Replication getSource() {
             return source;
         }
 

@@ -28,7 +28,7 @@ import com.couchbase.lite.internal.CBLRevisionInternal;
 import com.couchbase.lite.internal.InterfaceAudience;
 import com.couchbase.lite.replicator.CBLPuller;
 import com.couchbase.lite.replicator.CBLPusher;
-import com.couchbase.lite.replicator.CBLReplicator;
+import com.couchbase.lite.replicator.Replication;
 import com.couchbase.lite.storage.ContentValues;
 import com.couchbase.lite.storage.Cursor;
 import com.couchbase.lite.storage.SQLException;
@@ -76,7 +76,7 @@ public class Database {
     private Map<String, ValidationBlock> validations;
 
     private Map<String, BlobStoreWriter> pendingAttachmentsByDigest;
-    private List<CBLReplicator> activeReplicators;
+    private List<Replication> activeReplicators;
     private CBLBlobStore attachments;
     private Manager manager;
     private List<ChangeListener> changeListeners;
@@ -253,7 +253,7 @@ public class Database {
      * Get all the replicators associated with this database.
      */
     @InterfaceAudience.Public
-    public List<CBLReplicator> getAllReplications() {
+    public List<Replication> getAllReplications() {
         return activeReplicators;
     }
 
@@ -580,7 +580,7 @@ public class Database {
      * @return
      */
     @InterfaceAudience.Public
-    public CBLReplicator getPushReplication(URL remote) {
+    public Replication getPushReplication(URL remote) {
         return manager.replicationWithDatabase(this, remote, true, true, false);
     }
 
@@ -592,7 +592,7 @@ public class Database {
      * @return
      */
     @InterfaceAudience.Public
-    public CBLReplicator getPullReplication(URL remote) {
+    public Replication getPullReplication(URL remote) {
         return manager.replicationWithDatabase(this, remote, false, true, false);
     }
 
@@ -605,13 +605,13 @@ public class Database {
      * @return An array whose first element is the "pull" replication and second is the "push".
      */
     @InterfaceAudience.Public
-    public List<CBLReplicator> getReplications(URL remote) {
-        CBLReplicator pull;
-        CBLReplicator push;
+    public List<Replication> getReplications(URL remote) {
+        Replication pull;
+        Replication push;
         if (remote != null) {
             pull = getPullReplication(remote);
             push = getPushReplication(remote);
-            ArrayList<CBLReplicator> result = new ArrayList<CBLReplicator>();
+            ArrayList<Replication> result = new ArrayList<Replication>();
             result.add(pull);
             result.add(push);
             return result;
@@ -812,7 +812,7 @@ public class Database {
         views = null;
 
         if(activeReplicators != null) {
-            for(CBLReplicator replicator : activeReplicators) {
+            for(Replication replicator : activeReplicators) {
                 replicator.databaseClosing();
             }
             activeReplicators = null;
@@ -2935,9 +2935,9 @@ public class Database {
     /*************************************************************************************************/
 
 
-    public CBLReplicator getActiveReplicator(URL remote, boolean push) {
+    public Replication getActiveReplicator(URL remote, boolean push) {
         if(activeReplicators != null) {
-            for (CBLReplicator replicator : activeReplicators) {
+            for (Replication replicator : activeReplicators) {
                 if(replicator.getRemoteUrl().equals(remote) && replicator.isPull() == !push && replicator.isRunning()) {
                     return replicator;
                 }
@@ -2946,15 +2946,15 @@ public class Database {
         return null;
     }
 
-    public CBLReplicator getReplicator(URL remote, boolean push, boolean continuous, ScheduledExecutorService workExecutor) {
-        CBLReplicator replicator = getReplicator(remote, null, push, continuous, workExecutor);
+    public Replication getReplicator(URL remote, boolean push, boolean continuous, ScheduledExecutorService workExecutor) {
+        Replication replicator = getReplicator(remote, null, push, continuous, workExecutor);
 
     	return replicator;
     }
     
-    public CBLReplicator getReplicator(String sessionId) {
+    public Replication getReplicator(String sessionId) {
     	if(activeReplicators != null) {
-            for (CBLReplicator replicator : activeReplicators) {
+            for (Replication replicator : activeReplicators) {
                 if(replicator.getSessionID().equals(sessionId)) {
                     return replicator;
                 }
@@ -2964,15 +2964,15 @@ public class Database {
     }
 
     @InterfaceAudience.Private
-    public CBLReplicator getReplicator(URL remote, HttpClientFactory httpClientFactory, boolean push, boolean continuous, ScheduledExecutorService workExecutor) {
-        CBLReplicator result = getActiveReplicator(remote, push);
+    public Replication getReplicator(URL remote, HttpClientFactory httpClientFactory, boolean push, boolean continuous, ScheduledExecutorService workExecutor) {
+        Replication result = getActiveReplicator(remote, push);
         if(result != null) {
             return result;
         }
         result = push ? new CBLPusher(this, remote, continuous, httpClientFactory, workExecutor) : new CBLPuller(this, remote, continuous, httpClientFactory, workExecutor);
 
         if(activeReplicators == null) {
-            activeReplicators = new ArrayList<CBLReplicator>();
+            activeReplicators = new ArrayList<Replication>();
         }
         activeReplicators.add(result);
         return result;
