@@ -56,7 +56,7 @@ public class RemoteMultipartDownloaderRequest extends RemoteRequest {
 
             // add in cookies to global store
             DefaultHttpClient defaultHttpClient = (DefaultHttpClient)httpClient;
-            CBLHttpClientFactory.INSTANCE.addCookies(defaultHttpClient.getCookieStore().getCookies());
+            CouchbaseLiteHttpClientFactory.INSTANCE.addCookies(defaultHttpClient.getCookieStore().getCookies());
 
 
             StatusLine status = response.getStatusLine();

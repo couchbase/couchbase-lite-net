@@ -15,7 +15,7 @@ import org.apache.http.params.BasicHttpParams;
 
 import java.util.List;
 
-public enum CBLHttpClientFactory implements HttpClientFactory {
+public enum CouchbaseLiteHttpClientFactory implements HttpClientFactory {
 
     INSTANCE;
 

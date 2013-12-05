@@ -10,7 +10,7 @@ import com.couchbase.lite.auth.CBLPersonaAuthorizer;
 import com.couchbase.lite.internal.InterfaceAudience;
 import com.couchbase.lite.support.CBLBatchProcessor;
 import com.couchbase.lite.support.CBLBatcher;
-import com.couchbase.lite.support.CBLHttpClientFactory;
+import com.couchbase.lite.support.CouchbaseLiteHttpClientFactory;
 import com.couchbase.lite.support.RemoteMultipartDownloaderRequest;
 import com.couchbase.lite.support.RemoteMultipartRequest;
 import com.couchbase.lite.support.RemoteRequest;
@@ -144,7 +144,7 @@ public abstract class CBLReplicator {
             }
         });
 
-        this.clientFactory = clientFactory != null ? clientFactory : CBLHttpClientFactory.INSTANCE;
+        this.clientFactory = clientFactory != null ? clientFactory : CouchbaseLiteHttpClientFactory.INSTANCE;
 
     }
 
