@@ -7,7 +7,7 @@ import com.couchbase.lite.Database.TDContentOptions;
 /**
  * Options for _changes feed
  */
-public class CBLChangesOptions {
+public class ChangesOptions {
 
     private int limit = Integer.MAX_VALUE;
     private EnumSet<TDContentOptions> contentOptions = EnumSet.noneOf(Database.TDContentOptions.class);

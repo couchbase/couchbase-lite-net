@@ -1442,10 +1442,10 @@ public class Database {
         return makeRevisionHistoryDict(getRevisionHistory(rev));
     }
 
-    public RevisionList changesSince(long lastSeq, CBLChangesOptions options, ReplicationFilter filter) {
+    public RevisionList changesSince(long lastSeq, ChangesOptions options, ReplicationFilter filter) {
         // http://wiki.apache.org/couchdb/HTTP_database_API#Changes
         if(options == null) {
-            options = new CBLChangesOptions();
+            options = new ChangesOptions();
         }
 
         boolean includeDocs = options.isIncludeDocs() || (filter != null);

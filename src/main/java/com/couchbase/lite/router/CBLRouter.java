@@ -2,7 +2,7 @@ package com.couchbase.lite.router;
 
 
 import com.couchbase.lite.Attachment;
-import com.couchbase.lite.CBLChangesOptions;
+import com.couchbase.lite.ChangesOptions;
 import com.couchbase.lite.CouchbaseLiteException;
 import com.couchbase.lite.Database;
 import com.couchbase.lite.Database.TDContentOptions;
@@ -1105,7 +1105,7 @@ public class CBLRouter implements Database.ChangeListener {
 
     public Status do_GET_Document_changes(Database _db, String docID, String _attachmentName) {
         // http://wiki.apache.org/couchdb/HTTP_database_API#Changes
-        CBLChangesOptions options = new CBLChangesOptions();
+        ChangesOptions options = new ChangesOptions();
         changesIncludesDocs = getBooleanQuery("include_docs");
         options.setIncludeDocs(changesIncludesDocs);
         String style = getQuery("style");
