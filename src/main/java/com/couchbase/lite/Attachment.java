@@ -25,7 +25,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-public class CBLAttachment {
+public class Attachment {
 
     /**
      * The owning document revision.
@@ -60,7 +60,7 @@ public class CBLAttachment {
     /**
      * Constructor
      */
-    CBLAttachment(InputStream contentStream, String contentType) {
+    Attachment(InputStream contentStream, String contentType) {
         this.body = contentStream;
         metadata = new HashMap<String, Object>();
         metadata.put("content_type", contentType);
@@ -71,7 +71,7 @@ public class CBLAttachment {
     /**
      * Constructor
      */
-    CBLAttachment(Revision revision, String name, Map<String, Object> metadata) {
+    Attachment(Revision revision, String name, Map<String, Object> metadata) {
         this.revision = revision;
         this.name = name;
         this.metadata = metadata;
@@ -124,7 +124,7 @@ public class CBLAttachment {
         }
         else {
             Database db = revision.getDatabase();
-            CBLAttachment attachment = db.getAttachmentForSequence(revision.getSequence(), this.name);
+            Attachment attachment = db.getAttachmentForSequence(revision.getSequence(), this.name);
             body = attachment.getContent();
             return body;
         }
@@ -165,7 +165,7 @@ public class CBLAttachment {
     }
 
     /**
-     * Goes through an _attachments dictionary and replaces any values that are CBLAttachment objects
+     * Goes through an _attachments dictionary and replaces any values that are Attachment objects
      * with proper JSON metadata dicts. It registers the attachment bodies with the blob store and sets
      * the metadata 'digest' and 'follows' properties accordingly.
      */
@@ -174,8 +174,8 @@ public class CBLAttachment {
         Map<String, Object> updatedAttachments = new HashMap<String, Object>();
         for (String name : attachments.keySet()) {
             Object value = attachments.get(name);
-            if (value instanceof CBLAttachment) {
-                CBLAttachment attachment = (CBLAttachment) value;
+            if (value instanceof Attachment) {
+                Attachment attachment = (Attachment) value;
                 Map<String, Object> metadata = attachment.getMetadata();
                 InputStream body = attachment.getBodyIfNew();
                 if (body != null) {

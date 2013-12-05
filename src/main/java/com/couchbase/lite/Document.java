@@ -354,7 +354,7 @@ public class Document {
             attachments = (Map<String, Object>) properties.get("_attachments");
         }
         if (attachments != null && attachments.size() > 0) {
-            Map<String, Object> updatedAttachments = CBLAttachment.installAttachmentBodies(attachments, database);
+            Map<String, Object> updatedAttachments = Attachment.installAttachmentBodies(attachments, database);
             properties.put("_attachments", updatedAttachments);
         }
 

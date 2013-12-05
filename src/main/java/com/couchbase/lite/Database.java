@@ -1971,7 +1971,7 @@ public class Database {
     /**
      * Returns the content and MIME type of an attachment
      */
-    public CBLAttachment getAttachmentForSequence(long sequence, String filename) throws CBLiteException {
+    public Attachment getAttachmentForSequence(long sequence, String filename) throws CBLiteException {
         assert(sequence > 0);
         assert(filename != null);
 
@@ -1994,7 +1994,7 @@ public class Database {
                 throw new CBLiteException(CBLStatus.INTERNAL_SERVER_ERROR);
             }
             else {
-                CBLAttachment result = new CBLAttachment(contentStream, cursor.getString(1));
+                Attachment result = new Attachment(contentStream, cursor.getString(1));
                 result.setGZipped(attachments.isGZipped(key));
                 return result;
             }

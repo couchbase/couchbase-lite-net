@@ -1,7 +1,7 @@
 package com.couchbase.lite.router;
 
 
-import com.couchbase.lite.CBLAttachment;
+import com.couchbase.lite.Attachment;
 import com.couchbase.lite.CBLChangesOptions;
 import com.couchbase.lite.Database;
 import com.couchbase.lite.Database.TDContentOptions;
@@ -1290,7 +1290,7 @@ public class CBLRouter implements Database.ChangeListener {
 
             String type = null;
             String acceptEncoding = connection.getRequestProperty("accept-encoding");
-            CBLAttachment contents = db.getAttachmentForSequence(rev.getSequence(), _attachmentName);
+            Attachment contents = db.getAttachmentForSequence(rev.getSequence(), _attachmentName);
 
             if (contents == null) {
                 return new CBLStatus(CBLStatus.NOT_FOUND);

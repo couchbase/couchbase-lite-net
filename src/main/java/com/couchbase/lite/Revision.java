@@ -136,11 +136,11 @@ public abstract class Revision {
     }
 
     /**
-     * All attachments, as CBLAttachment objects.
+     * All attachments, as Attachment objects.
      */
     @InterfaceAudience.Public
-    public List<CBLAttachment> getAttachments() {
-        List<CBLAttachment> result = new ArrayList<CBLAttachment>();
+    public List<Attachment> getAttachments() {
+        List<Attachment> result = new ArrayList<Attachment>();
         List<String> attachmentNames = getAttachmentNames();
         for (String attachmentName : attachmentNames) {
             result.add(getAttachment(attachmentName));
@@ -160,12 +160,12 @@ public abstract class Revision {
      * Looks up the attachment with the given name (without fetching its contents yet).
      */
     @InterfaceAudience.Public
-    public CBLAttachment getAttachment(String name) {
+    public Attachment getAttachment(String name) {
         Map<String, Object> attachmentMetadata = getAttachmentMetadata();
         if (attachmentMetadata == null) {
             return null;
         }
-        return new CBLAttachment(this, name, attachmentMetadata);
+        return new Attachment(this, name, attachmentMetadata);
     }
 
     @InterfaceAudience.Public

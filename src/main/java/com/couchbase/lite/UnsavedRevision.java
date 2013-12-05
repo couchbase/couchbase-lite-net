@@ -91,11 +91,11 @@ public class UnsavedRevision extends Revision {
     /**
      * Creates or updates an attachment.
      * The attachment data will be written to the database when the revision is saved.
-     * @param attachment A newly-created CBLAttachment (not yet associated with any revision)
+     * @param attachment A newly-created Attachment (not yet associated with any revision)
      * @param name The attachment name.
      */
     @InterfaceAudience.Public
-    public void addAttachment(CBLAttachment attachment, String name) {
+    public void addAttachment(Attachment attachment, String name) {
         Map<String, Object> attachments =  (Map<String, Object>) properties.get("_attachments");
         attachments.put(name, attachment);
         properties.put("_attachments", attachments);
@@ -138,7 +138,7 @@ public class UnsavedRevision extends Revision {
      */
     @InterfaceAudience.Public
     public void setAttachment(String name, String contentType, InputStream contentStream) {
-        CBLAttachment attachment = new CBLAttachment(contentStream, contentType);
+        Attachment attachment = new Attachment(contentStream, contentType);
         addAttachment(attachment, name);
     }
 
