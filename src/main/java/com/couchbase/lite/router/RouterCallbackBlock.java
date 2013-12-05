@@ -1,6 +1,6 @@
 package com.couchbase.lite.router;
 
-public interface CBLRouterCallbackBlock {
+public interface RouterCallbackBlock {
 
     void onResponseReady();
 

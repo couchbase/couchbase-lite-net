@@ -52,7 +52,7 @@ public class CBLRouter implements Database.ChangeListener {
     private URLConnection connection;
     private Map<String,String> queries;
     private boolean changesIncludesDocs = false;
-    private CBLRouterCallbackBlock callbackBlock;
+    private RouterCallbackBlock callbackBlock;
     private boolean responseSent = false;
     private boolean waiting = false;
     private ReplicationFilter changesFilter;
@@ -67,7 +67,7 @@ public class CBLRouter implements Database.ChangeListener {
         this.connection = connection;
     }
 
-    public void setCallbackBlock(CBLRouterCallbackBlock callbackBlock) {
+    public void setCallbackBlock(RouterCallbackBlock callbackBlock) {
         this.callbackBlock = callbackBlock;
     }
 
