@@ -9,10 +9,10 @@ import com.couchbase.lite.DocumentChange;
 import com.couchbase.lite.Manager;
 import com.couchbase.lite.QueryOptions;
 import com.couchbase.lite.QueryRow;
+import com.couchbase.lite.Reducer;
 import com.couchbase.lite.ReplicationFilter;
 import com.couchbase.lite.CBLMapper;
 import com.couchbase.lite.CBLMisc;
-import com.couchbase.lite.CBLReducer;
 import com.couchbase.lite.RevisionList;
 import com.couchbase.lite.Status;
 import com.couchbase.lite.View;
@@ -1470,7 +1470,7 @@ public class CBLRouter implements Database.ChangeListener {
             return null;
         }
         String reduceSource = (String)viewProps.get("reduce");
-        CBLReducer reduceBlock = null;
+        Reducer reduceBlock = null;
         if(reduceSource != null) {
             reduceBlock = View.getCompiler().compileReduce(reduceSource, language);
             if(reduceBlock == null) {

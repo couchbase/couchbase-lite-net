@@ -48,7 +48,7 @@ public class View {
     private String name;
     private int viewId;
     private CBLMapper mapBlock;
-    private CBLReducer reduceBlock;
+    private Reducer reduceBlock;
     private TDViewCollation collation;
     private static ViewCompiler compiler;
 
@@ -108,7 +108,7 @@ public class View {
      * The optional reduce function, which aggregates together multiple rows.
      */
     @InterfaceAudience.Public
-    public CBLReducer getReduce() {
+    public Reducer getReduce() {
         return reduceBlock;
     }
 
@@ -159,7 +159,7 @@ public class View {
      * Defines a view's functions.
      *
      * The view's definition is given as a class that conforms to the CBLMapper or
-     * CBLReducer interface (or null to delete the view). The body of the block
+     * Reducer interface (or null to delete the view). The body of the block
      * should call the 'emit' object (passed in as a paramter) for every key/value pair
      * it wants to write to the view.
      *
@@ -179,7 +179,7 @@ public class View {
      */
     @InterfaceAudience.Public
     public boolean setMapAndReduce(CBLMapper mapBlock,
-                                   CBLReducer reduceBlock, String version) {
+                                   Reducer reduceBlock, String version) {
         assert (mapBlock != null);
         assert (version != null);
 

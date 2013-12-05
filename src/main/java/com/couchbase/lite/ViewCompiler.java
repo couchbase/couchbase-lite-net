@@ -7,6 +7,6 @@ public interface ViewCompiler {
 
     CBLMapper compileMap(String mapSource, String language);
 
-    CBLReducer compileReduce(String reduceSource, String language);
+    Reducer compileReduce(String reduceSource, String language);
 
 }
