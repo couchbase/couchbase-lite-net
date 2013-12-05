@@ -41,11 +41,11 @@ public class Manager {
     private static final ObjectMapper mapper = new ObjectMapper();
     public static final String DATABASE_SUFFIX_OLD = ".touchdb";
     public static final String DATABASE_SUFFIX = ".cblite";
-    public static final CBLManagerOptions DEFAULT_OPTIONS = new CBLManagerOptions(false, false);
+    public static final ManagerOptions DEFAULT_OPTIONS = new ManagerOptions(false, false);
     public static final String LEGAL_CHARACTERS = "[^a-z]{1,}[^a-z0-9_$()/+-]*$";
 
 
-    private CBLManagerOptions options;
+    private ManagerOptions options;
     private File directoryFile;
     private Map<String, Database> databases;
     private List<CBLReplicator> replications;
@@ -71,7 +71,7 @@ public class Manager {
      * Constructor
      */
     @InterfaceAudience.Public
-    public Manager(File directoryFile, CBLManagerOptions options) {
+    public Manager(File directoryFile, ManagerOptions options) {
         this.directoryFile = directoryFile;
         this.options = (options != null) ? options : DEFAULT_OPTIONS;
         this.databases = new HashMap<String, Database>();

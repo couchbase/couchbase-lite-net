@@ -1,6 +1,6 @@
 package com.couchbase.lite;
 
-public class CBLManagerOptions {
+public class ManagerOptions {
 
     /**
      *  No modifications to databases are allowed.
@@ -12,7 +12,7 @@ public class CBLManagerOptions {
      */
     private boolean noReplicator;
 
-    public CBLManagerOptions(boolean readOnly, boolean noReplicator) {
+    public ManagerOptions(boolean readOnly, boolean noReplicator) {
         this.readOnly = readOnly;
         this.noReplicator = noReplicator;
     }
