@@ -45,7 +45,7 @@ import java.util.List;
 import java.util.Map;
 
 
-public class CBLRouter implements Database.ChangeListener {
+public class Router implements Database.ChangeListener {
 
     private Manager manager;
     private Database db;
@@ -62,7 +62,7 @@ public class CBLRouter implements Database.ChangeListener {
         return Manager.VERSION_STRING;
     }
 
-    public CBLRouter(Manager manager, URLConnection connection) {
+    public Router(Manager manager, URLConnection connection) {
         this.manager = manager;
         this.connection = connection;
     }
@@ -416,30 +416,30 @@ public class CBLRouter implements Database.ChangeListener {
         Status status = null;
         try {
 
-            Method m = CBLRouter.class.getMethod(message, Database.class, String.class, String.class);
+            Method m = Router.class.getMethod(message, Database.class, String.class, String.class);
             status = (Status)m.invoke(this, db, docID, attachmentName);
 
         } catch (NoSuchMethodException msme) {
             try {
-                String errorMessage = "CBLRouter unable to route request to " + message;
+                String errorMessage = "Router unable to route request to " + message;
                 Log.e(Database.TAG, errorMessage);
                 Map<String, Object> result = new HashMap<String, Object>();
                 result.put("error", "not_found");
                 result.put("reason", errorMessage);
                 connection.setResponseBody(new CBLBody(result));
-                Method m = CBLRouter.class.getMethod("do_UNKNOWN", Database.class, String.class, String.class);
+                Method m = Router.class.getMethod("do_UNKNOWN", Database.class, String.class, String.class);
                 status = (Status)m.invoke(this, db, docID, attachmentName);
             } catch (Exception e) {
                 //default status is internal server error
-                Log.e(Database.TAG, "CBLRouter attempted do_UNKNWON fallback, but that threw an exception", e);
+                Log.e(Database.TAG, "Router attempted do_UNKNWON fallback, but that threw an exception", e);
                 Map<String, Object> result = new HashMap<String, Object>();
                 result.put("error", "not_found");
-                result.put("reason", "CBLRouter unable to route request");
+                result.put("reason", "Router unable to route request");
                 connection.setResponseBody(new CBLBody(result));
                 status = new Status(Status.NOT_FOUND);
             }
         } catch (Exception e) {
-            String errorMessage = "CBLRouter unable to route request to " + message;
+            String errorMessage = "Router unable to route request to " + message;
             Log.e(Database.TAG, errorMessage, e);
             Map<String, Object> result = new HashMap<String, Object>();
             result.put("error", "not_found");
@@ -511,7 +511,7 @@ public class CBLRouter implements Database.ChangeListener {
     }
 
     /*************************************************************************************************/
-    /*** CBLRouter+Handlers                                                                         ***/
+    /*** Router+Handlers                                                                         ***/
     /*************************************************************************************************/
 
     public void setResponseLocation(URL url) {
@@ -1074,7 +1074,7 @@ public class CBLRouter implements Database.ChangeListener {
             }
 
             if(longpoll) {
-                Log.w(Database.TAG, "CBLRouter: Sending longpoll response");
+                Log.w(Database.TAG, "Router: Sending longpoll response");
                 sendResponse();
                 List<CBLRevisionInternal> revs = new ArrayList<CBLRevisionInternal>();
                 revs.add(rev);
@@ -1095,7 +1095,7 @@ public class CBLRouter implements Database.ChangeListener {
                     }
                 }
             } else {
-                Log.w(Database.TAG, "CBLRouter: Sending continous change chunk");
+                Log.w(Database.TAG, "Router: Sending continous change chunk");
                 sendContinuousChange(rev);
             }
 
@@ -1573,6 +1573,6 @@ public class CBLRouter implements Database.ChangeListener {
         if(connection != null && connection.getURL() != null) {
             url = connection.getURL().toExternalForm();
         }
-        return String.format("CBLRouter [%s]", url);
+        return String.format("Router [%s]", url);
     }
 }
