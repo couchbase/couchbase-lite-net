@@ -1402,6 +1402,8 @@ public class Router implements Database.ChangeListener {
     }
 
     public Status do_PUT_Document(Database _db, String docID, String _attachmentName) throws CouchbaseLiteException {
+
+        Status status = new Status(Status.CREATED);
         Map<String,Object> bodyDict = getBodyAsDictionary();
         if(bodyDict == null) {
             throw new CouchbaseLiteException(Status.BAD_REQUEST);
@@ -1409,7 +1411,7 @@ public class Router implements Database.ChangeListener {
 
         if(getQuery("new_edits") == null || (getQuery("new_edits") != null && (new Boolean(getQuery("new_edits"))))) {
             // Regular PUT
-            update(_db, docID, bodyDict, false);
+            status = update(_db, docID, bodyDict, false);
         } else {
             // PUT with new_edits=false -- forcible insertion of existing revision:
             Body body = new Body(bodyDict);
@@ -1420,7 +1422,7 @@ public class Router implements Database.ChangeListener {
             List<String> history = Database.parseCouchDBRevisionHistory(body.getProperties());
             db.forceInsert(rev, history, null);
         }
-        return new Status(Status.CREATED);
+        return status;
     }
 
     public Status do_DELETE_Document(Database _db, String docID, String _attachmentName) {
