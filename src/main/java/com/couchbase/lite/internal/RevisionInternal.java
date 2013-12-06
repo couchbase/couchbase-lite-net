@@ -56,16 +56,16 @@ public class RevisionInternal {
         this(new Body(properties), database);
     }
 
-    public Map<String,Object> getProperties() {
-        Map<String,Object> result = new HashMap<String, Object>();
-        if(body != null) {
+    public Map<String, Object> getProperties() {
+        Map<String, Object> result = new HashMap<String, Object>();
+        if (body != null) {
             Map<String, Object> prop;
-            try{
+            try {
                 prop = body.getProperties();
-            }  catch (IllegalStateException e){
+            } catch (IllegalStateException e) {
                 // handle when both object and json are null for this body
                 return result;
-                }
+            }
             result.putAll(prop);
         }
         return result;
