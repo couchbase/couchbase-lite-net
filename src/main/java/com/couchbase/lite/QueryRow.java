@@ -12,11 +12,43 @@ import java.util.Map;
  */
 public class QueryRow {
 
+    /**
+     * The row's key: this is the first parameter passed to the emit() call that generated the row.
+     */
     private Object key;
+
+    /**
+     * The row's value: this is the second parameter passed to the emit() call that generated the row.
+     */
     private Object value;
+
+    /**
+     * The database sequence number of the associated doc/revision.
+     */
     private long sequence;
+
+    /**
+     * The ID of the document that caused this view row to be emitted.
+     * This is the value of the "id" property of the JSON view row.
+     * It will be the same as the .documentID property, unless the map function caused a
+     * related document to be linked by adding an "_id" key to the emitted value; in this
+     * case .documentID will refer to the linked document, while sourceDocumentID always
+     * refers to the original document.
+     * In a reduced or grouped query the value will be nil, since the rows don't correspond
+     * to individual documents.
+     */
     private String sourceDocumentId;
+
+    /**
+     * The properties of the document this row was mapped from.
+     * To get this, you must have set the .prefetch property on the query; else this will be nil.
+     * (You can still get the document properties via the .document property, of course. But it
+     * takes a separate call to the database. So if you're doing it for every row, using
+     * .prefetch and .documentProperties is faster.)
+     */
     private Map<String, Object> documentProperties;
+
+
     private Database database;
 
     /**
