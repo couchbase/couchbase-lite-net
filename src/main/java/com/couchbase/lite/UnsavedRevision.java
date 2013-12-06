@@ -109,7 +109,7 @@ public class UnsavedRevision extends Revision {
      * @param name The attachment name.
      */
     @InterfaceAudience.Public
-    public void deleteAttachment(String name) {
+    public void removeAttachment(String name) {
         addAttachment(null, name);
     }
 
