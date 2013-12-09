@@ -179,8 +179,11 @@ public class Manager {
             if (!isValidDatabaseName(name)) {
                 throw new IllegalArgumentException("Invalid database name: " + name);
             }
+            if (options.isReadOnly()) {
+                return null;
+            }
             String path = pathForName(name);
-            if(path == null) {
+            if (path == null) {
                 return null;
             }
             db = new Database(path, this);
