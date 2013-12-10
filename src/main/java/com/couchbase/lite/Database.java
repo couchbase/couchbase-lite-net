@@ -178,7 +178,7 @@ public class Database {
         this.name = FileDirUtils.getDatabaseNameFromPath(path);
         this.manager = manager;
         this.changeListeners = new ArrayList<ChangeListener>();
-        docCache = new LruCache<String, Document>(MAX_DOC_CACHE_SIZE);
+        this.docCache = new LruCache<String, Document>(MAX_DOC_CACHE_SIZE);
     }
 
     /**
