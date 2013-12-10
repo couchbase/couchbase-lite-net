@@ -57,14 +57,17 @@ public class RevisionInternal {
     }
 
     public Map<String, Object> getProperties() {
-        Map<String, Object> result = new HashMap<String, Object>();
-        if (body != null) {
+        Map<String, Object> result = null;
+        if(body != null) {
             Map<String, Object> prop;
             try {
                 prop = body.getProperties();
             } catch (IllegalStateException e) {
                 // handle when both object and json are null for this body
-                return result;
+                return null;
+            }
+            if (result == null){
+                result = new HashMap<String, Object>();
             }
             result.putAll(prop);
         }
@@ -72,6 +75,10 @@ public class RevisionInternal {
     }
 
     public Object getPropertyForKey(String key) {
+        Map<String,Object> prop = getProperties();
+        if (prop == null) {
+            return null;
+        }
         return getProperties().get(key);
     }
 
@@ -177,7 +184,9 @@ public class RevisionInternal {
         RevisionInternal result = new RevisionInternal(docId, revId, deleted, database);
         Map<String, Object> unmodifiableProperties = getProperties();
         Map<String, Object> properties = new HashMap<String, Object>();
-        properties.putAll(unmodifiableProperties);
+        if(unmodifiableProperties !=null) {
+            properties.putAll(unmodifiableProperties);
+        }
         properties.put("_id", docId);
         properties.put("_rev", revId);
         result.setProperties(properties);

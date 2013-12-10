@@ -1131,9 +1131,9 @@ public class Database {
         return getDocumentWithIDAndRev(docId, revId, EnumSet.of(TDContentOptions.TDNoBody)) != null;
     }
 
-    public void loadRevisionBody(RevisionInternal rev, EnumSet<TDContentOptions> contentOptions) throws CouchbaseLiteException {
+    public RevisionInternal loadRevisionBody(RevisionInternal rev, EnumSet<TDContentOptions> contentOptions) throws CouchbaseLiteException {
         if(rev.getBody() != null) {
-            return;
+            return rev;
         }
         assert((rev.getDocId() != null) && (rev.getRevId() != null));
 
@@ -1156,6 +1156,7 @@ public class Database {
                 cursor.close();
             }
         }
+        return rev;
     }
 
     public long getDocNumericID(String docId) {

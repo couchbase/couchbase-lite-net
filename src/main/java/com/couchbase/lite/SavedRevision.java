@@ -17,14 +17,13 @@
 
 package com.couchbase.lite;
 
-import com.couchbase.lite.internal.RevisionInternal;
 import com.couchbase.lite.internal.InterfaceAudience;
+import com.couchbase.lite.internal.RevisionInternal;
 import com.couchbase.lite.util.Log;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumSet;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -181,9 +180,7 @@ public class SavedRevision extends Revision {
 
     boolean loadProperties() {
         try {
-            HashMap<String, Object> emptyProperties = new HashMap<String, Object>();
-            RevisionInternal loadRevision = new RevisionInternal(emptyProperties, getDatabase());
-            getDatabase().loadRevisionBody(loadRevision, EnumSet.noneOf(Database.TDContentOptions.class));
+            RevisionInternal loadRevision = getDatabase().loadRevisionBody(revisionInternal, EnumSet.noneOf(Database.TDContentOptions.class));
             if (loadRevision == null) {
                 Log.w(Database.TAG, "Couldn't load body/sequence of %s" + this);
                 return false;
