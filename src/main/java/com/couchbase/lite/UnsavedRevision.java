@@ -23,14 +23,26 @@ public class UnsavedRevision extends Revision {
 
         super(document);
 
-        parentRevID = parentRevision.getId();
+        if (parentRevision == null) {
+            parentRevID = null;
+        } else {
+            parentRevID = parentRevision.getId();
+        }
 
-        Map<String, Object> parentRevisionProperties = parentRevision.getProperties();
+        Map<String, Object> parentRevisionProperties;
+
+        if (parentRevision == null) {
+            parentRevisionProperties = null;
+        } else {
+            parentRevisionProperties = parentRevision.getProperties();
+        }
 
         if (parentRevisionProperties == null) {
             properties = new HashMap<String, Object>();
             properties.put("_id", document.getId());
-            properties.put("_rev", parentRevID);
+            if (parentRevID != null) {
+                properties.put("_rev", parentRevID);
+            }
         }
         else {
             properties = new HashMap<String, Object>(parentRevisionProperties);
