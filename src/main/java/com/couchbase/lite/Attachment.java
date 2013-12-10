@@ -93,7 +93,7 @@ public class Attachment {
      */
     @InterfaceAudience.Public
     public Document getDocument() {
-        return document;
+        return revision.getDocument();
     }
 
     /**
