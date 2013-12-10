@@ -55,6 +55,7 @@ import java.util.concurrent.ScheduledExecutorService;
  * A CouchbaseLite database.
  */
 public class Database {
+
     private static final int MAX_DOC_CACHE_SIZE = 50;
     private static ReplicationFilterCompiler filterCompiler;
 
