@@ -25,8 +25,6 @@ import java.nio.charset.Charset;
 // COPY: Partially copied from android.net.Uri
 // COPY: Partially copied from libcore.net.UriCodec
 public class URIUtils {
-    private static final String TAG = "URIUtils";
-
     /** Index of a component which was not found. */
     private final static int NOT_FOUND = -1;
 
