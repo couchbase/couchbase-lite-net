@@ -17,10 +17,6 @@
 
 package com.couchbase.lite;
 
-
-import android.text.TextUtils;
-import android.util.LruCache;
-
 import com.couchbase.lite.Database.TDContentOptions;
 import com.couchbase.lite.internal.AttachmentInternal;
 import com.couchbase.lite.internal.Body;
@@ -38,6 +34,8 @@ import com.couchbase.lite.support.Base64;
 import com.couchbase.lite.support.FileDirUtils;
 import com.couchbase.lite.support.HttpClientFactory;
 import com.couchbase.lite.util.Log;
+import com.couchbase.lite.util.LruCache;
+import com.couchbase.lite.util.TextUtils;
 
 import java.io.File;
 import java.io.IOException;

@@ -19,6 +19,7 @@ package com.couchbase.lite.util;
 import java.io.ByteArrayOutputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
+import java.net.URLDecoder;
 import java.nio.charset.Charset;
 
 // COPY: Partially copied from android.net.Uri
@@ -28,13 +29,24 @@ public class URIUtils {
     private final static int NOT_FOUND = -1;
 
     /** Default encoding. */
-    private static final String DEFAULT_ENCODING = "UTF-8";
+    private static final String UTF_8_ENCODING = "UTF-8";
 
     /**
      * Error message presented when a user tries to treat an opaque URI as
      * hierarchical.
      */
     private static final String NOT_HIERARCHICAL = "This isn't a hierarchical URI.";
+
+    public static String decode(String s) {
+        if (s == null) return null;
+
+        try {
+            return URLDecoder.decode(s, UTF_8_ENCODING);
+        } catch (UnsupportedEncodingException e) {
+            // This is highly unlikely since we always use UTF-8 encoding.
+            throw new RuntimeException(e);
+        }
+    }
 
     /**
      * Searches the query string for the first value with the given key.
@@ -75,7 +87,7 @@ public class URIUtils {
                     return "";
                 } else {
                     String encodedValue = query.substring(separator + 1, end);
-                    return decode(encodedValue, true, Charset.forName(DEFAULT_ENCODING));
+                    return decode(encodedValue, true, Charset.forName(UTF_8_ENCODING));
                 }
             }
 
@@ -179,7 +191,7 @@ public class URIUtils {
             // '%'-escaped octets.
             String toEncode = s.substring(current, nextAllowed);
             try {
-                byte[] bytes = toEncode.getBytes(DEFAULT_ENCODING);
+                byte[] bytes = toEncode.getBytes(UTF_8_ENCODING);
                 int bytesLength = bytes.length;
                 for (int i = 0; i < bytesLength; i++) {
                     encoded.append('%');
