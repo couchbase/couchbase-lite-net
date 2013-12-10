@@ -1,12 +1,9 @@
 using System;
 
-namespace Couchbase.Lite
+namespace Org.Apache.Http.Client
 {
-    public class HttpClient
+    public interface HttpClient
     {
-        public HttpClient ()
-        {
-        }
     }
 }
 

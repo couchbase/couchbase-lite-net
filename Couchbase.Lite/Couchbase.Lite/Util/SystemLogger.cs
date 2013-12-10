@@ -23,67 +23,65 @@ using System;
 using System.IO;
 using Couchbase.Util;
 using Sharpen;
-using Sharpen.Logging;
+using System.Diagnostics;
 
 namespace Couchbase.Util
 {
 	public class SystemLogger : Logger
 	{
-		private static readonly Logger logger = Logger.GetLogger("com.couchbase.cblite");
-
 		public virtual void V(string tag, string msg)
 		{
-			logger.Finer(tag + ": " + msg);
+            Trace.TraceInformation(tag + ": " + msg);
 		}
 
 		public virtual void V(string tag, string msg, Exception tr)
 		{
-			logger.Finer(tag + ": " + msg + "\n" + GetStackTraceString(tr));
+            Trace.TraceInformation(tag + ": " + msg + "\n" + GetStackTraceString(tr));
 		}
 
 		public virtual void D(string tag, string msg)
 		{
-			logger.Fine(tag + ": " + msg);
+            Debug.WriteLine(tag + ": " + msg);
 		}
 
 		public virtual void D(string tag, string msg, Exception tr)
 		{
-			logger.Fine(tag + ": " + msg + "\n" + GetStackTraceString(tr));
+            Debug.WriteLine(tag + ": " + msg + "\n" + GetStackTraceString(tr));
 		}
 
 		public virtual void I(string tag, string msg)
 		{
-			logger.Info(tag + ": " + msg);
+            Trace.TraceInformation(tag + ": " + msg);
 		}
 
 		public virtual void I(string tag, string msg, Exception tr)
 		{
-			logger.Info(tag + ": " + msg + "\n" + GetStackTraceString(tr));
+            Trace.TraceInformation(tag + ": " + msg + "\n" + GetStackTraceString(tr));
 		}
 
 		public virtual void W(string tag, string msg)
 		{
-			logger.Warning(tag + ": " + msg);
+			Trace.TraceWarning(tag + ": " + msg);
 		}
 
 		public virtual void W(string tag, Exception tr)
 		{
-			logger.Warning(tag + ": " + "\n" + GetStackTraceString(tr));
+			Trace.TraceWarning(tag + ": " + "\n" + GetStackTraceString(tr));
 		}
 
 		public virtual void W(string tag, string msg, Exception tr)
 		{
-			logger.Warning(tag + ": " + msg + "\n" + GetStackTraceString(tr));
+			Trace.TraceWarning(tag + ": " + msg + "\n" + GetStackTraceString(tr));
 		}
 
 		public virtual void E(string tag, string msg)
 		{
-			logger.Severe(tag + ": " + msg);
+            Trace.TraceError(tag + ": " + msg);
 		}
 
 		public virtual void E(string tag, string msg, Exception tr)
 		{
-			logger.Severe(tag + ": " + msg + "\n" + GetStackTraceString(tr));
+            Trace.TraceError(tag + ": " + msg + "\n" + GetStackTraceString(tr));
 		}
 
 		private static string GetStackTraceString(Exception tr)

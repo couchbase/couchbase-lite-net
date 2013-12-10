@@ -21,6 +21,7 @@
 
 using Couchbase.Util;
 using Sharpen;
+using log4net;
 
 namespace Couchbase.Util
 {
@@ -28,21 +29,8 @@ namespace Couchbase.Util
 	{
 		public static Logger CreateLogger()
 		{
-			// Attempt to load a Logger service.
-			foreach (Logger logger in ServiceLoader.Load<Logger>())
-			{
-				return logger;
-			}
-			// Choose Logger based on runtime.
-			Properties properties = Runtime.GetProperties();
-			string runtime = properties.GetProperty("java.runtime.name");
-			if (runtime != null)
-			{
-				if (runtime.ToLower().Contains("android"))
-				{
-					return new AndroidLogger();
-				}
-			}
+            // TODO: Support more logger options.
+
 			// Return default System logger.
 			return new SystemLogger();
 		}

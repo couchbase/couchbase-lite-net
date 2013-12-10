@@ -1,6 +1,22 @@
 ﻿<Properties>
-  <MonoDevelop.Ide.Workspace ActiveConfiguration="Debug" />
-  <MonoDevelop.Ide.Workbench />
+  <MonoDevelop.Ide.Workspace ActiveConfiguration="Debug|iPhoneSimulator" PreferredExecutionTarget="MonoDevelop.IPhone.IPhoneSimulatorTarget.IPhoneRetina.7.0" />
+  <MonoDevelop.Ide.Workbench ActiveDocument="Couchbase.Lite/Replicator/CBLPusher.cs">
+    <Files>
+      <File FileName="Couchbase.Lite/Support/Base64.cs" Line="186" Column="23" />
+      <File FileName="Couchbase.Lite/Threading/BackgroundTask.cs" Line="72" Column="5" />
+      <File FileName="Couchbase.Lite/Replicator/CBLPuller.cs" Line="200" Column="35" />
+      <File FileName="Couchbase.Lite/Replicator/CBLReplicator.cs" Line="72" Column="42" />
+      <File FileName="Couchbase.Lite/Support/HttpClientFactory.cs" Line="23" Column="17" />
+      <File FileName="Couchbase.Lite/Sharpen/HttpClient.cs" Line="7" Column="1" />
+      <File FileName="Couchbase.Lite/Replicator/Changetracker/CBLChangeTracker.cs" Line="202" Column="8" />
+      <File FileName="Couchbase.Lite/Util/Log.cs" Line="30" Column="51" />
+      <File FileName="Couchbase.Lite/Util/LoggerFactory.cs" Line="35" Column="19" />
+      <File FileName="Couchbase.Lite/Util/SystemLogger.cs" Line="26" Column="1" />
+      <File FileName="Couchbase.Lite/Sharpen/Runtime.cs" Line="169" Column="3" />
+      <File FileName="Couchbase.Lite/Replicator/CBLPusher.cs" Line="33" Column="15" />
+      <File FileName="Couchbase.Lite/Replicator/ScheduledExecutorService.cs" Line="31" Column="31" />
+    </Files>
+  </MonoDevelop.Ide.Workbench>
   <MonoDevelop.Ide.DebuggingService.Breakpoints>
     <BreakpointStore />
   </MonoDevelop.Ide.DebuggingService.Breakpoints>

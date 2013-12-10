@@ -23,7 +23,6 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
-using Android.Net;
 using Couchbase;
 using Couchbase.Replicator.Changetracker;
 using Couchbase.Util;
@@ -57,7 +56,7 @@ namespace Couchbase.Replicator.Changetracker
 
 		private bool running = false;
 
-		private IHttpUriRequest request;
+		private HttpUriRequest request;
 
 		private string filterName;
 

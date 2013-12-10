@@ -60,63 +60,6 @@ namespace Couchbase.Threading
 
 		private static volatile Executor sDefaultExecutor = SerialExecutor;
 
-		private class SerialExecutor : Executor
-		{
-			internal readonly ArrayDeque<Runnable> mTasks = new ArrayDeque<Runnable>();
-
-			internal Runnable mActive;
-
-			// An Executor that can be used to execute tasks in parallel.
-			// An Executor that executes tasks one at a time in serial order.  This
-			// serialization is global to a particular process.
-			public virtual void Execute(Runnable r)
-			{
-				lock (this)
-				{
-					mTasks.Offer(new _Runnable_58(this, r));
-					if (mActive == null)
-					{
-						ScheduleNext();
-					}
-				}
-			}
-
-			private sealed class _Runnable_58 : Runnable
-			{
-				public _Runnable_58(SerialExecutor _enclosing, Runnable r)
-				{
-					this._enclosing = _enclosing;
-					this.r = r;
-				}
-
-				public void Run()
-				{
-					try
-					{
-						r.Run();
-					}
-					finally
-					{
-						this._enclosing.ScheduleNext();
-					}
-				}
-
-				private readonly SerialExecutor _enclosing;
-
-				private readonly Runnable r;
-			}
-
-			protected internal virtual void ScheduleNext()
-			{
-				lock (this)
-				{
-					if ((mActive = mTasks.Poll()) != null)
-					{
-						ThreadPoolExecutor.Execute(mActive);
-					}
-				}
-			}
-		}
 
 		public void Execute()
 		{
@@ -125,4 +68,63 @@ namespace Couchbase.Threading
 
 		public abstract void Run();
 	}
+
+     class SerialExecutor : Executor
+    {
+        internal readonly ArrayDeque<Runnable> mTasks = new ArrayDeque<Runnable>();
+
+        internal Runnable mActive;
+
+        // An Executor that can be used to execute tasks in parallel.
+        // An Executor that executes tasks one at a time in serial order.  This
+        // serialization is global to a particular process.
+        public virtual void Execute(Runnable r)
+        {
+            lock (this)
+            {
+                mTasks.Offer(new _Runnable_58(this, r));
+                if (mActive == null)
+                {
+                    ScheduleNext();
+                }
+            }
+        }
+
+        private sealed class _Runnable_58 : Runnable
+        {
+            public _Runnable_58(SerialExecutor _enclosing, Runnable r)
+            {
+                this._enclosing = _enclosing;
+                this.r = r;
+            }
+
+            public void Run()
+            {
+                try
+                {
+                    r.Run();
+                }
+                finally
+                {
+                    this._enclosing.ScheduleNext();
+                }
+            }
+
+            private readonly SerialExecutor _enclosing;
+
+            private readonly Runnable r;
+        }
+
+        protected internal virtual void ScheduleNext()
+        {
+            lock (this)
+            {
+                if ((mActive = mTasks.Poll()) != null)
+                {
+                    ThreadPoolExecutor.Execute(mActive);
+                }
+            }
+        }
+    }
 }
+

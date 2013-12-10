@@ -187,11 +187,11 @@ namespace Couchbase.Support
 
 		/// <summary>Specify encoding in first bit.</summary>
 		/// <remarks>Specify encoding in first bit. Value is one.</remarks>
-		public const int Encode = 1;
+        public const int encode = 1;
 
 		/// <summary>Specify decoding in first bit.</summary>
 		/// <remarks>Specify decoding in first bit. Value is zero.</remarks>
-		public const int Decode = 0;
+        public const int decode = 0;
 
 		/// <summary>Specify that data should be gzip-compressed in second bit.</summary>
 		/// <remarks>Specify that data should be gzip-compressed in second bit. Value is two.
