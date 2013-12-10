@@ -371,7 +371,11 @@ public class Database {
      */
     @InterfaceAudience.Public
     public Map<String, Object> getExistingLocalDocument(String documentId) {
-        return getLocalDocument(makeLocalDocumentId(documentId), null).getProperties();
+        RevisionInternal revInt = getLocalDocument(makeLocalDocumentId(documentId), null);
+        if (revInt == null) {
+            return null;
+        }
+        return revInt.getProperties();
     }
 
     /**
