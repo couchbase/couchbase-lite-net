@@ -3263,6 +3263,7 @@ public class Database {
                             Log.e(Database.TAG, "Error deleting revisions", e);
                             return false;
                         }
+                        revsPurged = new ArrayList<String>();
                         revsPurged.add("*");
                     } else {
                         // Iterate over all the revisions of the doc, in reverse sequence order.
