@@ -60,7 +60,7 @@ public abstract class Revision {
      */
     @InterfaceAudience.Public
     public Database getDatabase() {
-        return database;
+        return document.getDatabase();
     }
 
     /**
