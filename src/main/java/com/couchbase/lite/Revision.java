@@ -131,7 +131,9 @@ public abstract class Revision {
     public List<String> getAttachmentNames() {
         Map<String, Object> attachmentMetadata = getAttachmentMetadata();
         ArrayList<String> result = new ArrayList<String>();
-        result.addAll(attachmentMetadata.keySet());
+        if (attachmentMetadata != null) {
+            result.addAll(attachmentMetadata.keySet());
+        }
         return result;
     }
 
