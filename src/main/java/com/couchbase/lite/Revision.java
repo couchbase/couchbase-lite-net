@@ -20,11 +20,6 @@ public abstract class Revision {
     protected long sequence;
 
     /**
-     * The revisions's owning database.
-     */
-    protected Database database;
-
-    /**
      * The document this is a revision of
      */
     protected Document document;

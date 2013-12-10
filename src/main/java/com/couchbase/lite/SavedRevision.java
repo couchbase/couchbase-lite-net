@@ -75,7 +75,7 @@ public class SavedRevision extends Revision {
     @InterfaceAudience.Public
     public List<SavedRevision> getRevisionHistory() throws CouchbaseLiteException {
         List<SavedRevision> revisions = new ArrayList<SavedRevision>();
-        List<RevisionInternal> internalRevisions = database.getRevisionHistory(revisionInternal);
+        List<RevisionInternal> internalRevisions = getDatabase().getRevisionHistory(revisionInternal);
         for (RevisionInternal internalRevision : internalRevisions) {
             if (internalRevision.getRevId().equals(getId())) {
                 revisions.add(this);
@@ -182,8 +182,8 @@ public class SavedRevision extends Revision {
     boolean loadProperties() {
         try {
             HashMap<String, Object> emptyProperties = new HashMap<String, Object>();
-            RevisionInternal loadRevision = new RevisionInternal(emptyProperties, database);
-            database.loadRevisionBody(loadRevision, EnumSet.noneOf(Database.TDContentOptions.class));
+            RevisionInternal loadRevision = new RevisionInternal(emptyProperties, getDatabase());
+            getDatabase().loadRevisionBody(loadRevision, EnumSet.noneOf(Database.TDContentOptions.class));
             if (loadRevision == null) {
                 Log.w(Database.TAG, "Couldn't load body/sequence of %s" + this);
                 return false;
