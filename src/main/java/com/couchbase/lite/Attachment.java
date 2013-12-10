@@ -176,17 +176,18 @@ public class Attachment {
             Object value = attachments.get(name);
             if (value instanceof Attachment) {
                 Attachment attachment = (Attachment) value;
-                Map<String, Object> metadata = attachment.getMetadata();
+                Map<String, Object> metadataMutable = new HashMap<String, Object>();
+                metadataMutable.putAll(attachment.getMetadata());
                 InputStream body = attachment.getBodyIfNew();
                 if (body != null) {
                     // Copy attachment body into the database's blob store:
                     BlobStoreWriter writer = blobStoreWriterForBody(body, database);
-                    metadata.put("length", writer.getLength());
-                    metadata.put("digest", writer.mD5DigestString());
-                    metadata.put("follows", true);
+                    metadataMutable.put("length", writer.getLength());
+                    metadataMutable.put("digest", writer.mD5DigestString());
+                    metadataMutable.put("follows", true);
                     database.rememberAttachmentWriter(writer);
                 }
-                updatedAttachments.put(name, metadata);
+                updatedAttachments.put(name, metadataMutable);
             }
             else if (value instanceof AttachmentInternal) {
                 throw new IllegalArgumentException("AttachmentInternal objects not expected here.  Could indicate a bug");
