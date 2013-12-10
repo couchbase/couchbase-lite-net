@@ -1927,7 +1927,8 @@ public class Database {
             }
             args.put("type", contentType);
             args.put("revpos", revpos);
-            database.insert("attachments", null, args);
+            database.insert("attachments", null, args);  // TODO: this needs to look at the result code
+
         } catch (SQLException e) {
             Log.e(Database.TAG, "Error inserting attachment", e);
             throw new CouchbaseLiteException(Status.INTERNAL_SERVER_ERROR);
