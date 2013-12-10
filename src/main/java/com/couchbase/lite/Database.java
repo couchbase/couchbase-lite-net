@@ -2302,7 +2302,11 @@ public class Database {
                     }
                 }
 
-                Map<String,Object> attachments = (Map<String, Object>) oldRev.getProperties().get("_attachments");
+                Map<String, Object> oldRevProps = oldRev.getProperties();
+                Map<String,Object> attachments = null;
+                if (oldRevProps != null) {
+                    attachments = (Map<String, Object>) oldRevProps.get("_attachments");
+                }
                 if(contentStream == null && attachments != null && !attachments.containsKey(filename)) {
                     throw new CouchbaseLiteException(Status.NOT_FOUND);
                 }
