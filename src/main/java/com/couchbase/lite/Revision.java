@@ -158,10 +158,11 @@ public abstract class Revision {
      */
     @InterfaceAudience.Public
     public Attachment getAttachment(String name) {
-        Map<String, Object> attachmentMetadata = getAttachmentMetadata();
-        if (attachmentMetadata == null) {
+        Map<String, Object> attachmentsMetadata = getAttachmentMetadata();
+        if (attachmentsMetadata == null) {
             return null;
         }
+        Map<String, Object> attachmentMetadata = (Map<String, Object>) attachmentsMetadata.get(name);
         return new Attachment(this, name, attachmentMetadata);
     }
 
