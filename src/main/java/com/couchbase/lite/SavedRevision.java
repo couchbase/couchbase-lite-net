@@ -162,7 +162,11 @@ public class SavedRevision extends Revision {
     @Override
     @InterfaceAudience.Public
     public String getParentRevisionId() {
-        return getDocument().getDatabase().getParentRevision(revisionInternal).getRevId();
+        RevisionInternal parRev= getDocument().getDatabase().getParentRevision(revisionInternal);
+        if ( parRev == null){
+            return null;
+        }
+        return parRev.getRevId();
     }
 
     @Override
