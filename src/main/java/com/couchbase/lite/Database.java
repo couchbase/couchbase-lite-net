@@ -385,12 +385,27 @@ public class Database {
      */
     @InterfaceAudience.Public
     public boolean putLocalDocument(Map<String, Object> properties, String id) throws CouchbaseLiteException {
-        // TODO: there was some code in the iOS implementation equivalent that I did not know if needed
+        // TODO: the iOS implementation wraps this in a transaction, this should do the same.
+        id = makeLocalDocumentId(id);
         RevisionInternal prevRev = getLocalDocument(id, null);
         if (prevRev == null && properties == null) {
             return false;
         }
-        return putLocalRevision(prevRev, prevRev.getRevId()) != null;
+        boolean deleted = false;
+        if (properties == null) {
+            deleted = true;
+        }
+        RevisionInternal rev = new RevisionInternal(id, null, deleted, this);
+
+        if (properties != null) {
+            rev.setProperties(properties);
+        }
+
+        if (prevRev == null) {
+            return putLocalRevision(rev, null) != null;
+        } else {
+            return putLocalRevision(rev, prevRev.getRevId()) != null;
+        }
     }
 
     /**
@@ -398,6 +413,7 @@ public class Database {
      */
     @InterfaceAudience.Public
     public boolean deleteLocalDocument(String id) throws CouchbaseLiteException {
+        id = makeLocalDocumentId(id);
         RevisionInternal prevRev = getLocalDocument(id, null);
         if (prevRev == null) {
             return false;
@@ -3346,7 +3362,7 @@ public class Database {
 
     @InterfaceAudience.Private
     public RevisionInternal getLocalDocument(String docID, String revID) {
-
+        // docID already should contain "_local/" prefix
         RevisionInternal result = null;
         Cursor cursor = null;
         try {
