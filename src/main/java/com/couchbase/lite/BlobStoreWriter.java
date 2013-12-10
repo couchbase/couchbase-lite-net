@@ -79,11 +79,13 @@ public class BlobStoreWriter {
     void read(InputStream inputStream) {
         byte[] buffer = new byte[1024];
         int len;
+        length = 0;
         try {
             while ((len = inputStream.read(buffer)) != -1) {
                 outStream.write(buffer, 0, len);
                 sha1Digest.update(buffer);
                 md5Digest.update(buffer);
+                length += len;
             }
         } catch (IOException e) {
             throw new RuntimeException("Unable to read from stream.", e);
