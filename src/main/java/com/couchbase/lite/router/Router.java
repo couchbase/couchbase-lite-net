@@ -1069,7 +1069,9 @@ public class Router implements Database.ChangeListener {
 
             RevisionInternal rev = change.getRevisionInternal();
 
-            if(changesFilter != null && !changesFilter.filter(rev, null)) {
+            Map<String, Object> paramsFixMe = null;  // TODO: these should not be null
+            final boolean allowRevision = event.getSource().runFilter(changesFilter, paramsFixMe, rev);
+            if (!allowRevision) {
                 return;
             }
 

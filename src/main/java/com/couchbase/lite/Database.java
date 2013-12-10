@@ -1502,7 +1502,8 @@ public class Database {
                 if(includeDocs) {
                     expandStoredJSONIntoRevisionWithAttachments(cursor.getBlob(5), rev, options.getContentOptions());
                 }
-                if((filter == null) || (filter.filter(rev, null))) {
+                Map<String, Object> paramsFixMe = null;  // TODO: these should not be null
+                if (runFilter(filter, paramsFixMe, rev)) {
                     changes.add(rev);
                 }
                 cursor.moveToNext();
@@ -1522,6 +1523,14 @@ public class Database {
         return changes;
     }
 
+    @InterfaceAudience.Private
+    public boolean runFilter(ReplicationFilter filter, Map<String, Object> paramsIgnored, RevisionInternal rev) {
+        if (filter == null) {
+            return true;
+        }
+        SavedRevision publicRev = new SavedRevision(this, rev);
+        return filter.filter(publicRev, null);
+    }
 
     public String getDesignDocFunction(String fnName, String key, List<String>outLanguageList) {
         String[] path = fnName.split("/");

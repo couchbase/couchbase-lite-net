@@ -154,9 +154,11 @@ public class Pusher extends Replication implements Database.ChangeListener {
                 return;
             }
             RevisionInternal rev = change.getRevisionInternal();
-            if(rev != null && ((filter == null) || filter.filter(rev, null))) {
+            Map<String, Object> paramsFixMe = null;  // TODO: these should not be null
+            if (getLocalDatabase().runFilter(filter, paramsFixMe, rev)) {
                 addToInbox(rev);
             }
+
         }
 
     }
