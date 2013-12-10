@@ -34,6 +34,7 @@ import com.couchbase.lite.support.Base64;
 import com.couchbase.lite.support.FileDirUtils;
 import com.couchbase.lite.support.HttpClientFactory;
 import com.couchbase.lite.util.Log;
+import com.couchbase.lite.util.LruCache;
 import com.couchbase.lite.util.TextUtils;
 
 import java.io.File;
@@ -44,7 +45,6 @@ import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -55,6 +55,7 @@ import java.util.concurrent.ScheduledExecutorService;
  * A CouchbaseLite database.
  */
 public class Database {
+    private static final int MAX_DOC_CACHE_SIZE = 50;
     private static ReplicationFilterCompiler filterCompiler;
 
     private String path;
@@ -76,14 +77,7 @@ public class Database {
     private BlobStore attachments;
     private Manager manager;
     private List<ChangeListener> changeListeners;
-
-    private LinkedHashMap<String, Document> docCache = new LinkedHashMap<String, Document>() {
-        private static final int MAX_SIZE = 50;
-
-        protected boolean removeEldestEntry(Map.Entry<String, Document> eldest) {
-            return (this.size() > MAX_SIZE);
-        }
-    };
+    private LruCache<String, Document> docCache;
 
     // Length that constitutes a 'big' attachment
     public static int kBigAttachmentLength = (16*1024);
@@ -184,6 +178,7 @@ public class Database {
         this.name = FileDirUtils.getDatabaseNameFromPath(path);
         this.manager = manager;
         this.changeListeners = new ArrayList<ChangeListener>();
+        docCache = new LruCache<String, Document>(MAX_DOC_CACHE_SIZE);
     }
 
     /**
@@ -656,7 +651,7 @@ public class Database {
      * API calls will now instantiate and return new instances.
      */
     public void clearDocumentCache() {
-        docCache.clear();
+        docCache.evictAll();
     }
 
     void removeDocumentFromCache(Document document) {
