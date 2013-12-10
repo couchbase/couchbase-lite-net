@@ -1,11 +1,9 @@
 package com.couchbase.lite.replicator.changetracker;
 
-
-import android.net.Uri;
-
 import com.couchbase.lite.Database;
 import com.couchbase.lite.Manager;
 import com.couchbase.lite.util.Log;
+import com.couchbase.lite.util.URIUtils;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpException;
@@ -173,7 +171,7 @@ public class ChangeTracker implements Runnable {
                 if (url.getUserInfo().contains(":") && !url.getUserInfo().trim().equals(":")) {
                     String[] userInfoSplit = url.getUserInfo().split(":");
                     final Credentials creds = new UsernamePasswordCredentials(
-                            Uri.decode(userInfoSplit[0]), Uri.decode(userInfoSplit[1]));
+                            URIUtils.decode(userInfoSplit[0]), URIUtils.decode(userInfoSplit[1]));
                     if (httpClient instanceof DefaultHttpClient) {
                         DefaultHttpClient dhc = (DefaultHttpClient) httpClient;
 
