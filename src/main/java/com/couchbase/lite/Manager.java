@@ -209,22 +209,21 @@ public class Manager {
      * you should first check .exists to avoid replacing the database if it exists already. The
      * canned database would have been copied into your app bundle at build time.
      *
-     * @param databaseName  The name of the database to replace.
-     * @param databasePath  Path of the database file that should replace it.
-     * @param attachmentsPath  Path of the associated attachments directory, or nil if there are no attachments.
+     * @param databaseName  The name of the target Database to replace or create.
+     * @param databaseFile  Path of the source Database file.
+     * @param attachmentsDirectory  Path of the associated Attachments directory, or null if there are no attachments.
      **/
     @InterfaceAudience.Public
-    public void replaceDatabase(String databaseName, String databasePath, String attachmentsPath) throws IOException {
+    public void replaceDatabase(String databaseName, File databaseFile, File attachmentsDirectory) throws IOException {
         Database database = getDatabase(databaseName);
         String dstAttachmentsPath = database.getAttachmentStorePath();
-        File sourceFile = new File(databasePath);
         File destFile = new File(database.getPath());
-        FileDirUtils.copyFile(sourceFile, destFile);
+        FileDirUtils.copyFile(databaseFile, destFile);
         File attachmentsFile = new File(dstAttachmentsPath);
         FileDirUtils.deleteRecursive(attachmentsFile);
         attachmentsFile.mkdirs();
-        if(attachmentsPath != null) {
-            FileDirUtils.copyFolder(new File(attachmentsPath), attachmentsFile);
+        if(attachmentsDirectory != null) {
+            FileDirUtils.copyFolder(attachmentsDirectory, attachmentsFile);
         }
         database.replaceUUIDs();
     }
