@@ -83,7 +83,11 @@ public class Document {
      */
     @InterfaceAudience.Public
     public String getCurrentRevisionId() {
-        return getCurrentRevision().getId();
+        SavedRevision rev = getCurrentRevision();
+        if(rev == null){
+            return null;
+        }
+        return rev.getId();
     }
 
     /**
