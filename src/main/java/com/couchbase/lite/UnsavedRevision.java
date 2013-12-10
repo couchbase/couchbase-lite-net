@@ -70,9 +70,6 @@ public class UnsavedRevision extends Revision {
     @Override
     @InterfaceAudience.Public
     public String getId() {
-        if (properties != null) {
-            return (String) properties.get("_id");
-        }
         return null;
     }
 
