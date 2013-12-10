@@ -165,6 +165,16 @@ public class SavedRevision extends Revision {
         return getDocument().getDatabase().getParentRevision(revisionInternal).getRevId();
     }
 
+    @Override
+    @InterfaceAudience.Public
+    public long getSequence() {
+        long sequence = revisionInternal.getSequence();
+        if (sequence == 0 && loadProperties()) {
+            sequence = revisionInternal.getSequence();
+        }
+        return sequence;
+    }
+
     boolean loadProperties() {
         try {
             HashMap<String, Object> emptyProperties = new HashMap<String, Object>();
