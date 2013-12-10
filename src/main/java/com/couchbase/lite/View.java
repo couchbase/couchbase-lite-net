@@ -539,9 +539,9 @@ public class View {
             collationStr += " COLLATE JSON_RAW";
         }
 
-        String sql = "SELECT key, value, docid";
+        String sql = "SELECT key, value, docid, revs.sequence";
         if (options.isIncludeDocs()) {
-            sql = sql + ", revid, json, revs.sequence";
+            sql = sql + ", revid, json";
         }
         sql = sql + " FROM maps, revs, docs WHERE maps.view_id=?";
 
@@ -766,6 +766,7 @@ public class View {
                     Object keyData = fromJSON(cursor.getBlob(0));  // TODO: delay parsing this for increased efficiency
                     Object value = fromJSON(cursor.getBlob(1));    // TODO: ditto
                     String docId = cursor.getString(2);
+                    int sequence =  Integer.valueOf(cursor.getString(3));
                     Map<String, Object> docContents = null;
                     if (options.isIncludeDocs()) {
                         // http://wiki.apache.org/couchdb/Introduction_to_CouchDB_views#Linked_documents
@@ -779,16 +780,16 @@ public class View {
                             docContents = linkedDoc.getProperties();
                         } else {
                             docContents = database.documentPropertiesFromJSON(
-                                    cursor.getBlob(4),
+                                    cursor.getBlob(5),
                                     docId,
-                                    cursor.getString(3),
+                                    cursor.getString(4),
                                     false,
-                                    cursor.getLong(5),
+                                    cursor.getLong(3),
                                     options.getContentOptions()
                             );
                         }
                     }
-                    QueryRow row = new QueryRow(docId, 0, keyData, value, docContents);
+                    QueryRow row = new QueryRow(docId, sequence, keyData, value, docContents);
                     row.setDatabase(database);
                     rows.add(row);
                     cursor.moveToNext();
