@@ -5,8 +5,8 @@ import com.couchbase.lite.internal.RevisionInternal;
 /**
  * Validation block, used to approve revisions being added to the database.
  */
-public interface ValidationBlock {
+public interface Validator {  // TODO: rename this according to spec
 
-    boolean validate(RevisionInternal newRevision, ValidationContext context);
+    boolean validate(Revision newRevision, ValidationContext context);
 
 }

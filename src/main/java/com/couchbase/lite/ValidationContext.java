@@ -2,28 +2,40 @@ package com.couchbase.lite;
 
 import com.couchbase.lite.internal.RevisionInternal;
 
+import java.util.List;
+
 /**
- * Context passed into a ValidationBlock.
+ * Context passed into a Validator.
  */
 public interface ValidationContext {
 
     /**
      * The contents of the current revision of the document, or nil if this is a new document.
      */
-    RevisionInternal getCurrentRevision() throws CouchbaseLiteException;
+    SavedRevision getCurrentRevision() throws CouchbaseLiteException;
 
     /**
-     * The type of HTTP status to report, if the validate block returns NO.
-     * The default value is 403 ("Forbidden").
+     * Gets the keys whose values have changed between the current and new Revisions
      */
-    Status getErrorType();
-    void setErrorType(Status status);
+    public List<String> getChangedKeys();
+
 
     /**
-     * The error message to return in the HTTP response, if the validate block returns NO.
-     * The default value is "invalid document".
+     * Rejects the new Revision.
      */
-    String getErrorMessage();
-    void setErrorMessage(String message);
+    public void reject();
+
+    /**
+     * Rejects the new Revision. The specified message will be included with the resulting error.
+     */
+    public void reject(String message);
+
+    /**
+     * Calls the ChangeValidator for each key/value that has changed, passing both the old
+     * and new values. If any delegate call returns false, the enumeration stops and false is
+     * returned, otherwise true is returned.
+     */
+    public boolean validateChanges(ChangeValidator changeValidator);
+
 
 }

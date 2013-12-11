@@ -17,7 +17,6 @@
 
 package com.couchbase.lite;
 
-import com.couchbase.lite.Database.TDContentOptions;
 import com.couchbase.lite.internal.AttachmentInternal;
 import com.couchbase.lite.internal.Body;
 import com.couchbase.lite.internal.RevisionInternal;
@@ -71,7 +70,7 @@ public class Database {
 
     private Map<String, View> views;
     private Map<String, ReplicationFilter> filters;
-    private Map<String, ValidationBlock> validations;
+    private Map<String, Validator> validations;
 
     private Map<String, BlobStoreWriter> pendingAttachmentsByDigest;
     private List<Replication> activeReplicators;
@@ -471,8 +470,8 @@ public class Database {
      * Note that validations are not persistent -- you have to re-register them on every launch.
      */
     @InterfaceAudience.Public
-    public ValidationBlock getValidation(String name) {
-        ValidationBlock result = null;
+    public Validator getValidation(String name) {
+        Validator result = null;
         if(validations != null) {
             result = validations.get(name);
         }
@@ -485,12 +484,12 @@ public class Database {
      * chance to reject it. (This includes incoming changes from a pull replication.)
      */
     @InterfaceAudience.Public
-    public void setValidation(String name, ValidationBlock validationBlock) {
+    public void setValidation(String name, Validator validator) {
         if(validations == null) {
-            validations = new HashMap<String, ValidationBlock>();
+            validations = new HashMap<String, Validator>();
         }
-        if (validationBlock != null) {
-            validations.put(name, validationBlock);
+        if (validator != null) {
+            validations.put(name, validator);
         }
         else {
             validations.remove(name);
@@ -2951,17 +2950,16 @@ public class Database {
 
     /** VALIDATION **/
 
-
-
     public void validateRevision(RevisionInternal newRev, RevisionInternal oldRev) throws CouchbaseLiteException {
         if(validations == null || validations.size() == 0) {
             return;
         }
-        TDValidationContextImpl context = new TDValidationContextImpl(this, oldRev);
+        ValidationContextImpl context = new ValidationContextImpl(this, oldRev);
+        SavedRevision publicRev = new SavedRevision(this, newRev);
         for (String validationName : validations.keySet()) {
-            ValidationBlock validation = getValidation(validationName);
-            if(!validation.validate(newRev, context)) {
-                throw new CouchbaseLiteException(context.getErrorType().getCode());
+            Validator validation = getValidation(validationName);
+            if(!validation.validate(publicRev, context)) {
+                throw new CouchbaseLiteException(context.getRejectMessage(), Status.FORBIDDEN);
             }
         }
     }
@@ -3482,48 +3480,45 @@ public class Database {
 
 }
 
-class TDValidationContextImpl implements ValidationContext {
+class ValidationContextImpl implements ValidationContext {
 
     private Database database;
-    private RevisionInternal currentRevision;
-    private Status errorType;
-    private String errorMessage;
+    private RevisionInternal oldRev;
+    private String rejectMessage;
 
-    public TDValidationContextImpl(Database database, RevisionInternal currentRevision) {
+
+    public ValidationContextImpl(Database database, RevisionInternal oldRev) {
         this.database = database;
-        this.currentRevision = currentRevision;
-        this.errorType = new Status(Status.FORBIDDEN);
-        this.errorMessage = "invalid document";
+        this.oldRev = oldRev;
     }
 
     @Override
-    public RevisionInternal getCurrentRevision() throws CouchbaseLiteException {
-        if(currentRevision != null) {
-            database.loadRevisionBody(currentRevision, EnumSet.noneOf(TDContentOptions.class));
-        }
-        return currentRevision;
+    public SavedRevision getCurrentRevision() throws CouchbaseLiteException {
+        SavedRevision currentSavedRevision = new SavedRevision(database, oldRev);
+        return currentSavedRevision;
     }
 
     @Override
-    public Status getErrorType() {
-        return errorType;
+    public List<String> getChangedKeys() {
+        return null;
     }
 
     @Override
-    public void setErrorType(Status status) {
-        this.errorType = status;
+    public void reject() {
+        rejectMessage = "reject() called";
     }
 
     @Override
-    public String getErrorMessage() {
-        return errorMessage;
+    public void reject(String message) {
+        rejectMessage = message;
     }
 
     @Override
-    public void setErrorMessage(String message) {
-        this.errorMessage = message;
+    public boolean validateChanges(ChangeValidator changeValidator) {
+        return false;
     }
 
-
-
+    String getRejectMessage() {
+        return rejectMessage;
+    }
 }
