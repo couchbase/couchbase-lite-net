@@ -1,7 +1,5 @@
 package com.couchbase.lite;
 
-import com.couchbase.lite.internal.RevisionInternal;
-
 import java.util.List;
 
 /**
@@ -12,7 +10,7 @@ public interface ValidationContext {
     /**
      * The contents of the current revision of the document, or nil if this is a new document.
      */
-    SavedRevision getCurrentRevision() throws CouchbaseLiteException;
+    SavedRevision getCurrentRevision();
 
     /**
      * Gets the keys whose values have changed between the current and new Revisions

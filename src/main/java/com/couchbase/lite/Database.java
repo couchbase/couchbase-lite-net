@@ -2954,7 +2954,7 @@ public class Database {
         if(validations == null || validations.size() == 0) {
             return;
         }
-        ValidationContextImpl context = new ValidationContextImpl(this, oldRev);
+        ValidationContextImpl context = new ValidationContextImpl(this, oldRev, newRev);
         SavedRevision publicRev = new SavedRevision(this, newRev);
         for (String validationName : validations.keySet()) {
             Validator validation = getValidation(validationName);
@@ -3483,39 +3483,79 @@ public class Database {
 class ValidationContextImpl implements ValidationContext {
 
     private Database database;
-    private RevisionInternal oldRev;
+    private RevisionInternal currentRevision;
+    private RevisionInternal newRev;
     private String rejectMessage;
+    private List<String> changedKeys;
 
-
-    public ValidationContextImpl(Database database, RevisionInternal oldRev) {
+    ValidationContextImpl(Database database, RevisionInternal currentRevision, RevisionInternal newRev) {
         this.database = database;
-        this.oldRev = oldRev;
+        this.currentRevision = currentRevision;
+        this.newRev = newRev;
+    }
+
+    RevisionInternal getCurrentRevisionInternal() {
+        if (currentRevision != null) {
+            try {
+                currentRevision = database.loadRevisionBody(currentRevision, EnumSet.noneOf(Database.TDContentOptions.class));
+            } catch (CouchbaseLiteException e) {
+                throw new RuntimeException(e);
+            }
+        }
+        return currentRevision;
     }
 
     @Override
-    public SavedRevision getCurrentRevision() throws CouchbaseLiteException {
-        SavedRevision currentSavedRevision = new SavedRevision(database, oldRev);
-        return currentSavedRevision;
+    public SavedRevision getCurrentRevision() {
+        final RevisionInternal cur = getCurrentRevisionInternal();
+        return cur != null ? new SavedRevision(database, cur) : null;
     }
 
     @Override
     public List<String> getChangedKeys() {
-        return null;
+        if (changedKeys == null) {
+            changedKeys = new ArrayList<String>();
+            Map<String, Object> cur = getCurrentRevision().getProperties();
+            Map<String, Object> nuu = newRev.getProperties();
+            for (String key : cur.keySet()) {
+                if (!cur.get(key).equals(nuu.get(key)) && !key.equals("_rev")) {
+                    changedKeys.add(key);
+                }
+            }
+            for (String key : nuu.keySet()) {
+                if (cur.get(key) == null && !key.equals("_rev") && !key.equals("_id")) {
+                    changedKeys.add(key);
+                }
+            }
+        }
+        return changedKeys;
     }
 
     @Override
     public void reject() {
-        rejectMessage = "reject() called";
+        if (rejectMessage == null) {
+            rejectMessage = "invalid document";
+        }
     }
 
     @Override
     public void reject(String message) {
-        rejectMessage = message;
+        if (rejectMessage == null) {
+            rejectMessage = message;
+        }
     }
 
     @Override
     public boolean validateChanges(ChangeValidator changeValidator) {
-        return false;
+        Map<String, Object> cur = getCurrentRevision().getProperties();
+        Map<String, Object> nuu = newRev.getProperties();
+        for (String key : getChangedKeys()) {
+            if (!changeValidator.validateChange(key, cur.get(key), nuu.get(key))) {
+                reject(String.format("Illegal change to '%s' property", key));
+                return false;
+            }
+        }
+        return true;
     }
 
     String getRejectMessage() {
