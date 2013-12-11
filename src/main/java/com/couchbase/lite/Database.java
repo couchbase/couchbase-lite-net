@@ -2219,7 +2219,7 @@ public class Database {
                             attachmentFromProps.put("digest", attachmentObject.getBlobKey().base64Digest());
                         }
                     }
-                    attachmentFromProps.put(attachmentKey, attachmentFromProps);
+                    attachmentsFromProps.put(attachmentKey, attachmentFromProps);
                 }
             }
         }
