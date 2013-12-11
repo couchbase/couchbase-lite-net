@@ -19,8 +19,8 @@ package com.couchbase.lite;
 
 
 import com.couchbase.lite.Database.TDContentOptions;
-import com.couchbase.lite.internal.RevisionInternal;
 import com.couchbase.lite.internal.InterfaceAudience;
+import com.couchbase.lite.internal.RevisionInternal;
 import com.couchbase.lite.storage.ContentValues;
 import com.couchbase.lite.storage.Cursor;
 import com.couchbase.lite.storage.SQLException;
@@ -420,8 +420,13 @@ public class View {
                 public void emit(Object key, Object value) {
 
                     try {
+                        String valueJson;
                         String keyJson = Manager.getObjectMapper().writeValueAsString(key);
-                        String valueJson = Manager.getObjectMapper().writeValueAsString(value);
+                        if (value==null) {
+                            valueJson = null;
+                        } else{
+                            valueJson = Manager.getObjectMapper().writeValueAsString(value);
+                        }
                         Log.v(Database.TAG, "    emit(" + keyJson + ", "
                                 + valueJson + ")");
 
