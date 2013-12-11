@@ -79,7 +79,7 @@ public class RevisionInternal {
         if (prop == null) {
             return null;
         }
-        return getProperties().get(key);
+        return prop.get(key);
     }
 
     public void setProperties(Map<String,Object> properties) {
