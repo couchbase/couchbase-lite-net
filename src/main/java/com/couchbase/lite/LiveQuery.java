@@ -133,15 +133,15 @@ public class LiveQuery extends Query implements Database.ChangeListener {
         setWillUpdate(false);
         updateQueryFuture = runAsyncInternal(new QueryCompleteListener() {
             @Override
-            public void completed(QueryEnumerator rows, Throwable error) {
+            public void completed(QueryEnumerator rowsParam, Throwable error) {
                 if (error != null) {
                     for (ChangeListener observer : observers) {
                         observer.changed(new ChangeEvent(error));
                     }
                     lastError = error;
                 } else {
-                    if (rows != null && !rows.equals(rows)) {
-                        setRows(rows);
+                    if (rowsParam != null && !rowsParam.equals(rows)) {
+                        setRows(rowsParam);
                         for (ChangeListener observer : observers) {
                             observer.changed(new ChangeEvent(LiveQuery.this, rows));
                         }
