@@ -169,6 +169,7 @@ public class Query {
         startKeyDocId = query.startKeyDocId;
         endKeyDocId = query.endKeyDocId;
         indexUpdateMode = query.indexUpdateMode;
+        allDocsMode = query.allDocsMode;
     }
 
     /**
@@ -312,12 +313,12 @@ public class Query {
 
     @InterfaceAudience.Public
     public boolean shouldIncludeDeleted() {
-        return includeDeleted;
+        return allDocsMode == AllDocsMode.INCLUDE_DELETED;
     }
 
     @InterfaceAudience.Public
-    public void setIncludeDeleted(boolean includeDeleted) {
-        this.includeDeleted = includeDeleted;
+    public void setIncludeDeleted(boolean includeDeletedParam) {
+        allDocsMode = (includeDeletedParam == true) ? AllDocsMode.INCLUDE_DELETED : AllDocsMode.ALL_DOCS;
     }
 
     /**
@@ -397,8 +398,8 @@ public class Query {
         queryOptions.setIncludeDocs(shouldPrefetch());
         queryOptions.setUpdateSeq(true);
         queryOptions.setInclusiveEnd(true);
-        queryOptions.setIncludeDeletedDocs(shouldIncludeDeleted());
         queryOptions.setStale(getIndexUpdateMode());
+        queryOptions.setAllDocsMode(getAllDocsMode());
         return queryOptions;
     }
 

@@ -1567,7 +1567,6 @@ public class Database {
     }
 
 
-
     public List<QueryRow> queryViewNamed(String viewName, QueryOptions options, List<Long> outLastSequence) throws CouchbaseLiteException {
 
         long before = System.currentTimeMillis();
@@ -1617,9 +1616,6 @@ public class Database {
         return rows;
 
     }
-
-
-
 
     View makeAnonymousView() {
         for (int i=0; true; ++i) {
@@ -1695,6 +1691,7 @@ public class Database {
         if(options == null) {
             options = new QueryOptions();
         }
+        boolean includeDeletedDocs = (options.getAllDocsMode() == Query.AllDocsMode.INCLUDE_DELETED);
 
         long updateSeq = 0;
         if(options.isUpdateSeq()) {
@@ -1705,7 +1702,7 @@ public class Database {
         if (options.isIncludeDocs()) {
             sql.append(", json");
         }
-        if (options.isIncludeDeletedDocs()) {
+        if (includeDeletedDocs) {
             sql.append(", deleted");
         }
         sql.append(" FROM revs, docs WHERE");
@@ -1717,7 +1714,7 @@ public class Database {
             sql.append(String.format(" revs.doc_id IN (SELECT doc_id FROM docs WHERE docid IN (%s)) AND", commaSeperatedIds));
         }
         sql.append(" docs.doc_id = revs.doc_id AND current=1");
-        if (!options.isIncludeDeletedDocs()) {
+        if (!includeDeletedDocs) {
             sql.append(" AND deleted=0");
         }
         List<String> args = new ArrayList<String>();
@@ -1746,7 +1743,7 @@ public class Database {
                 String.format(
                         " ORDER BY docid %s, %s revid DESC LIMIT ? OFFSET ?",
                         (options.isDescending() ? "DESC" : "ASC"),
-                        (options.isIncludeDeletedDocs() ? "deleted ASC," : "")
+                        (includeDeletedDocs ? "deleted ASC," : "")
                 )
         );
 
@@ -1762,9 +1759,9 @@ public class Database {
         try {
             cursor = database.rawQuery(sql.toString(), args.toArray(new String[args.size()]));
 
-            cursor.moveToNext();
+            boolean keepGoing = cursor.moveToNext();
 
-            while(!cursor.isAfterLast()) {
+            while(keepGoing) {
 
                 totalRows++;
                 long docNumericID = cursor.getLong(0);
@@ -1777,15 +1774,29 @@ public class Database {
                 String docId = cursor.getString(1);
                 String revId = cursor.getString(2);
                 long sequenceNumber = cursor.getLong(3);
-                boolean deleted = options.isIncludeDeletedDocs() && cursor.getInt(getDeletedColumnIndex(options))>0;
+                boolean deleted = includeDeletedDocs && cursor.getInt(getDeletedColumnIndex(options))>0;
                 Map<String, Object> docContents = null;
                 if (options.isIncludeDocs()) {
                     byte[] json = cursor.getBlob(4);
                     docContents = documentPropertiesFromJSON(json, docId, revId, deleted, sequenceNumber, options.getContentOptions());
                 }
+
+                // Iterate over following rows with the same doc_id -- these are conflicts.
+                // Skip them, but collect their revIDs if the 'conflicts' option is set:
+                List<String> conflicts = new ArrayList<String>();
+                while (((keepGoing = cursor.moveToNext()) == true) && cursor.getLong(0) == docNumericID) {
+                    if (options.getAllDocsMode() == Query.AllDocsMode.SHOW_CONFLICTS || options.getAllDocsMode() == Query.AllDocsMode.ONLY_CONFLICTS) {
+                        conflicts.add(cursor.getString(2));
+                    }
+                }
+
+                if (options.getAllDocsMode() == Query.AllDocsMode.ONLY_CONFLICTS && conflicts.isEmpty()) {
+                    continue;
+                }
+
                 Map<String, Object> value = new HashMap<String, Object>();
                 value.put("rev", revId);
-                if (options.isIncludeDeletedDocs()){
+                if (includeDeletedDocs){
                     value.put("deleted", (deleted ? true : null));
                 }
                 QueryRow change = new QueryRow(docId, sequenceNumber, docId, value, docContents);
