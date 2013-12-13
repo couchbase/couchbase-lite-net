@@ -186,8 +186,15 @@ public class QueryRow {
      */
     @InterfaceAudience.Public
     public List<SavedRevision> getConflictingRevisions() {
-        // TODO: port iOS code
-        return new ArrayList<SavedRevision>();
+        Document doc = database.getDocument(sourceDocumentId);
+        Map<String, Object> valueTmp = (Map<String, Object>) value;
+        List<String> conflicts = (List<String>) valueTmp.get("_conflicts");
+        List<SavedRevision> conflictingRevisions = new ArrayList<SavedRevision>();
+        for (String conflictRevisionId : conflicts) {
+            SavedRevision revision = doc.getRevision(conflictRevisionId);
+            conflictingRevisions.add(revision);
+        }
+        return conflictingRevisions;
     }
 
     /**
