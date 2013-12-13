@@ -40,11 +40,20 @@ public class LiveQuery extends Query implements Database.ChangeListener {
     }
 
     /**
-     * In LiveQuery the rows accessor is a non-blocking property.
-     * Its value will be nil until the initial query finishes.
+     * Sends the query to the server and returns an enumerator over the result rows (Synchronous).
+     * Note: In a CBLLiveQuery you should add a ChangeListener and call start() instead.
      */
     @InterfaceAudience.Public
+    @Override
     public QueryEnumerator run() throws CouchbaseLiteException {
+
+        try {
+            waitForRows();
+        } catch (Exception e) {
+            lastError = e;
+            throw new CouchbaseLiteException(e, Status.INTERNAL_SERVER_ERROR);
+        }
+
         if (rows == null) {
             return null;
         }
