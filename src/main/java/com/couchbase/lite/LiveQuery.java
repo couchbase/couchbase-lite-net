@@ -64,16 +64,15 @@ public class LiveQuery extends Query implements Database.ChangeListener {
 
     /**
      * Starts observing database changes. The .rows property will now update automatically. (You
-     * usually don't need to call this yourself, since calling rows()
-     * call start for you.)
+     * usually don't need to call this yourself, since calling getRows() will start it for you
      */
     @InterfaceAudience.Public
     public void start() {
         if (!observing) {
             observing = true;
             getDatabase().addChangeListener(this);
+            update();
         }
-        update();
     }
 
     /**
