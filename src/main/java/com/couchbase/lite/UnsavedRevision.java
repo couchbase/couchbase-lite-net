@@ -98,6 +98,19 @@ public class UnsavedRevision extends Revision {
     }
 
     /**
+     * A special variant of -save: that always adds the revision, even if its parent is not the
+     * current revision of the document.
+     *
+     * This can be used to resolve conflicts, or to create them. If you're not certain that's what you
+     * want to do, you should use the regular -save: method instead.
+     */
+    @InterfaceAudience.Public
+    public SavedRevision saveAllowingConflict() throws CouchbaseLiteException {
+        // TODO: port iOS Code
+        return save();
+    }
+
+    /**
      * Creates or updates an attachment.
      * The attachment data will be written to the database when the revision is saved.
      * @param attachment A newly-created Attachment (not yet associated with any revision)
