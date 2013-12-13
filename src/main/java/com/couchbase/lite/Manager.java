@@ -69,20 +69,19 @@ public class Manager {
 
     /**
      * Constructor
+     *
+     * @throws java.lang.SecurityException - Runtime exception that can be thrown by File.mkdirs()
      */
     @InterfaceAudience.Public
-    public Manager(File directoryFile, ManagerOptions options) {
+    public Manager(File directoryFile, ManagerOptions options) throws IOException {
         this.directoryFile = directoryFile;
         this.options = (options != null) ? options : DEFAULT_OPTIONS;
         this.databases = new HashMap<String, Database>();
         this.replications = new ArrayList<Replication>();
 
-        //create the directory, but don't fail if it already exists
-        if(!directoryFile.exists()) {
-            boolean result = directoryFile.mkdir();
-            if(!result) {
-                throw new RuntimeException("Unable to create directory " + directoryFile);
-            }
+        directoryFile.mkdirs();
+        if (!directoryFile.isDirectory()) {
+            throw new IOException(String.format("Unable to create directory for: %s", directoryFile));
         }
 
         upgradeOldDatabaseFiles(directoryFile);
