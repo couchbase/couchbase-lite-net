@@ -1751,8 +1751,6 @@ public class Database {
         args.add(Integer.toString(options.getSkip()));
 
         Cursor cursor = null;
-        long lastDocID = 0;
-        int totalRows = 0;
         Map<String, QueryRow> docs = new HashMap<String, QueryRow>();
 
 
@@ -1763,14 +1761,7 @@ public class Database {
 
             while(keepGoing) {
 
-                totalRows++;
                 long docNumericID = cursor.getLong(0);
-                if(docNumericID == lastDocID) {
-                    cursor.moveToNext();
-                    continue;
-                }
-                lastDocID = docNumericID;
-
                 String docId = cursor.getString(1);
                 String revId = cursor.getString(2);
                 long sequenceNumber = cursor.getLong(3);
@@ -1807,7 +1798,6 @@ public class Database {
                     rows.add(change);
                 }
 
-                cursor.moveToNext();
 
             }
 
@@ -1852,7 +1842,7 @@ public class Database {
         }
 
         result.put("rows", rows);
-        result.put("total_rows", totalRows);
+        result.put("total_rows", rows.size());
         result.put("offset", options.getSkip());
         if(updateSeq != 0) {
             result.put("update_seq", updateSeq);
