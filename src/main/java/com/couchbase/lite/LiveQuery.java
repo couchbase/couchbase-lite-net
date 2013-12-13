@@ -118,6 +118,21 @@ public class LiveQuery extends Query implements Database.ChangeListener {
     }
 
     /**
+     * Gets the results of the Query. The value will be null until the initial Query completes.
+     */
+    @InterfaceAudience.Public
+    public QueryEnumerator getRows() {
+        start();
+        if (rows == null) {
+            return null;
+        }
+        else {
+            // Have to return a copy because the enumeration has to start at item #0 every time
+            return new QueryEnumerator(rows);
+        }
+    }
+
+    /**
      * Add a change listener to be notified when the live query result
      * set changes.
      */
