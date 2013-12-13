@@ -139,6 +139,7 @@ public class Query {
         limit = Integer.MAX_VALUE;
         mapOnly = (view != null && view.getReduce() == null);
         indexUpdateMode = IndexUpdateMode.NEVER;
+        allDocsMode = AllDocsMode.ALL_DOCS;
     }
 
     /**
