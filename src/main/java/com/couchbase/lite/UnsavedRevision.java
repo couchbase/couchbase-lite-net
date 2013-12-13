@@ -94,7 +94,8 @@ public class UnsavedRevision extends Revision {
      */
     @InterfaceAudience.Public
     public SavedRevision save() throws CouchbaseLiteException {
-        return document.putProperties(properties, parentRevID);
+        boolean allowConflict = false;
+        return document.putProperties(properties, parentRevID, allowConflict);
     }
 
     /**
@@ -106,8 +107,8 @@ public class UnsavedRevision extends Revision {
      */
     @InterfaceAudience.Public
     public SavedRevision saveAllowingConflict() throws CouchbaseLiteException {
-        // TODO: port iOS Code
-        return save();
+        boolean allowConflict = true;
+        return document.putProperties(properties, parentRevID, allowConflict);
     }
 
     /**

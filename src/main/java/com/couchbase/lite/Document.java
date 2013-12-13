@@ -245,7 +245,8 @@ public class Document {
     @InterfaceAudience.Public
     public SavedRevision putProperties(Map<String,Object> properties) throws CouchbaseLiteException {
         String prevID = (String) properties.get("_rev");
-        return putProperties(properties, prevID);
+        boolean allowConflict = false;
+        return putProperties(properties, prevID, allowConflict);
     }
 
     /**
@@ -342,7 +343,7 @@ public class Document {
 
 
 
-    SavedRevision putProperties(Map<String,Object> properties, String prevID) throws CouchbaseLiteException {
+    SavedRevision putProperties(Map<String, Object> properties, String prevID, boolean allowConflict) throws CouchbaseLiteException {
         String newId = null;
         if (properties != null && properties.containsKey("_id")) {
             newId = (String) properties.get("_id");
@@ -371,7 +372,7 @@ public class Document {
         if (properties != null) {
             rev.setProperties(properties);
         }
-        RevisionInternal newRev = database.putRevision(rev, prevID, false);
+        RevisionInternal newRev = database.putRevision(rev, prevID, allowConflict);
         if (newRev == null) {
             return null;
         }

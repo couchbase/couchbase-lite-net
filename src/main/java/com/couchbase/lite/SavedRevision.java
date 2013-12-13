@@ -107,7 +107,8 @@ public class SavedRevision extends Revision {
      */
     @InterfaceAudience.Public
     public SavedRevision createRevision(Map<String, Object> properties) throws CouchbaseLiteException {
-        return document.putProperties(properties, revisionInternal.getRevId());
+        boolean allowConflict = false;
+        return document.putProperties(properties, revisionInternal.getRevId(), allowConflict);
     }
 
     @Override
