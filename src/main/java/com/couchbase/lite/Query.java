@@ -15,6 +15,10 @@ public class Query {
         NEVER, BEFORE, AFTER
     }
 
+    public enum AllDocsMode {
+        ALL_DOCS, INCLUDE_DELETED, SHOW_CONFLICTS, ONLY_CONFLICTS
+    }
+
     /**
      * The database that contains this view.
      */
@@ -68,6 +72,19 @@ public class Query {
      * This allows faster results at the expense of returning possibly out-of-date data.
      */
     private IndexUpdateMode indexUpdateMode;
+
+    /**
+     * Changes the behavior of a query created by -queryAllDocuments.
+     *
+     * - In mode kCBLAllDocs (the default), the query simply returns all non-deleted documents.
+     * - In mode kCBLIncludeDeleted, it also returns deleted documents.
+     * - In mode kCBLShowConflicts, the .conflictingRevisions property of each row will return the
+     *   conflicting revisions, if any, of that document.
+     * - In mode kCBLOnlyConflicts, _only_ documents in conflict will be returned.
+     *   (This mode is especially useful for use with a CBLLiveQuery, so you can be notified of
+     *   conflicts as they happen, i.e. when they're pulled in by a replication.)
+     */
+    private AllDocsMode allDocsMode;
 
     /**
      * Should the rows be returned in descending key order? Default value is NO.
@@ -241,6 +258,16 @@ public class Query {
     @InterfaceAudience.Public
     public void setIndexUpdateMode(IndexUpdateMode indexUpdateMode) {
         this.indexUpdateMode = indexUpdateMode;
+    }
+
+    @InterfaceAudience.Public
+    public AllDocsMode getAllDocsMode() {
+        return allDocsMode;
+    }
+
+    @InterfaceAudience.Public
+    public void setAllDocsMode(AllDocsMode allDocsMode) {
+        this.allDocsMode = allDocsMode;
     }
 
     @InterfaceAudience.Public
