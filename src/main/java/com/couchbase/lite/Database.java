@@ -2614,7 +2614,8 @@ public class Database {
             if(prevRevId != null) {
                 // Replacing: make sure given prevRevID is current & find its sequence number:
                 if(docNumericID <= 0) {
-                    throw new CouchbaseLiteException(Status.NOT_FOUND);
+                    String msg = String.format("No existing revision found with doc id: %s", docId);
+                    throw new CouchbaseLiteException(msg ,Status.NOT_FOUND);
                 }
 
                 String[] args = {Long.toString(docNumericID), prevRevId};
@@ -2632,10 +2633,12 @@ public class Database {
                 if(parentSequence == 0) {
                     // Not found: either a 404 or a 409, depending on whether there is any current revision
                     if(!allowConflict && existsDocumentWithIDAndRev(docId, null)) {
-                        throw new CouchbaseLiteException(Status.CONFLICT);
+                        String msg = String.format("Conflicts not allowed and there is already an existing doc with id: %s", docId);
+                        throw new CouchbaseLiteException(msg, Status.CONFLICT);
                     }
                     else {
-                        throw new CouchbaseLiteException(Status.NOT_FOUND);
+                        String msg = String.format("No existing revision found with doc id: %s", docId);
+                        throw new CouchbaseLiteException(msg, Status.NOT_FOUND);
                     }
                 }
 
