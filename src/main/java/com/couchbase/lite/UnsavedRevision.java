@@ -125,8 +125,10 @@ public class UnsavedRevision extends Revision {
         }
         attachments.put(name, attachment);
         properties.put("_attachments", attachments);
-        attachment.setName(name);
-        attachment.setRevision(this);
+        if (attachment != null) {
+            attachment.setName(name);
+            attachment.setRevision(this);
+        }
     }
 
     /**
