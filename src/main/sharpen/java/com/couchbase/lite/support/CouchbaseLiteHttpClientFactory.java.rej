@@ -1,0 +1,21 @@
+***************
+*** 15,23 ****
+  
+  import java.util.List;
+  
+- public enum CouchbaseLiteHttpClientFactory implements HttpClientFactory {
+  
+-     INSTANCE;
+  
+      private CookieStore cookieStore;
+  
+--- 15,23 ----
+  
+  import java.util.List;
+  
++ public class CouchbaseLiteHttpClientFactory implements HttpClientFactory {
+  
++ //    INSTANCE;
+  
+      private CookieStore cookieStore;
+  

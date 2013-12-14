@@ -22,10 +22,11 @@
 using System;
 using System.IO;
 using System.Text;
-using Couchbase.Util;
+using Com.Couchbase.Lite.Util;
 using Sharpen;
+using System.Web;
 
-namespace Couchbase.Util
+namespace Com.Couchbase.Lite.Util
 {
 	public class URIUtils
 	{
@@ -35,7 +36,7 @@ namespace Couchbase.Util
 
 		/// <summary>Default encoding.</summary>
 		/// <remarks>Default encoding.</remarks>
-		private const string DefaultEncoding = "UTF-8";
+		private const string Utf8Encoding = "UTF-8";
 
 		/// <summary>
 		/// Error message presented when a user tries to treat an opaque URI as
@@ -49,15 +50,32 @@ namespace Couchbase.Util
 
 		// COPY: Partially copied from android.net.Uri
 		// COPY: Partially copied from libcore.net.UriCodec
+		public static string Decode(string s)
+		{
+			if (s == null)
+			{
+				return null;
+			}
+			try
+			{
+                return HttpUtility.UrlDecode(s, Encoding.UTF8);
+			}
+			catch (UnsupportedEncodingException e)
+			{
+				// This is highly unlikely since we always use UTF-8 encoding.
+				throw new RuntimeException(e);
+			}
+		}
+
 		/// <summary>Searches the query string for the first value with the given key.</summary>
 		/// <remarks>Searches the query string for the first value with the given key.</remarks>
 		/// <param name="key">which will be encoded</param>
 		/// <exception cref="System.NotSupportedException">if this isn't a hierarchical URI</exception>
 		/// <exception cref="System.ArgumentNullException">if key is null</exception>
 		/// <returns>the decoded value or null if no parameter is found</returns>
-		public static string GetQueryParameter(URI uri, string key)
+        public static string GetQueryParameter(Uri uri, string key)
 		{
-			if (uri.IsOpaque())
+            if (uri.IsAbsoluteUri)
 			{
 				throw new NotSupportedException(NotHierarchical);
 			}
@@ -65,7 +83,7 @@ namespace Couchbase.Util
 			{
 				throw new ArgumentNullException("key");
 			}
-			string query = uri.GetRawQuery();
+			string query = uri.GetQuery();
 			if (query == null)
 			{
 				return null;
@@ -82,7 +100,7 @@ namespace Couchbase.Util
 				{
 					separator = end;
 				}
-				if (separator - start == encodedKey.Length && query.RegionMatches(start, encodedKey
+                if (separator - start == encodedKey.Length && query.RegionMatches(true, start, encodedKey
 					, 0, encodedKey.Length))
 				{
 					if (separator == end)
@@ -92,8 +110,7 @@ namespace Couchbase.Util
 					else
 					{
 						string encodedValue = Sharpen.Runtime.Substring(query, separator + 1, end);
-						return Decode(encodedValue, true, Sharpen.Extensions.GetEncoding(DefaultEncoding)
-							);
+						return Decode(encodedValue, true, Sharpen.Extensions.GetEncoding(Utf8Encoding));
 					}
 				}
 				// Move start to end of name.
@@ -210,20 +227,13 @@ namespace Couchbase.Util
 				// Convert the substring to bytes and encode the bytes as
 				// '%'-escaped octets.
 				string toEncode = Sharpen.Runtime.Substring(s, current, nextAllowed);
-				try
+				byte[] bytes = Sharpen.Runtime.GetBytesForString(toEncode, Utf8Encoding);
+				int bytesLength = bytes.Length;
+				for (int i = 0; i < bytesLength; i++)
 				{
-					byte[] bytes = Sharpen.Runtime.GetBytesForString(toEncode, DefaultEncoding);
-					int bytesLength = bytes.Length;
-					for (int i = 0; i < bytesLength; i++)
-					{
-						encoded.Append('%');
-						encoded.Append(HexDigits[(bytes[i] & unchecked((int)(0xf0))) >> 4]);
-						encoded.Append(HexDigits[bytes[i] & unchecked((int)(0xf))]);
-					}
-				}
-				catch (UnsupportedEncodingException e)
-				{
-					throw new Exception(e);
+					encoded.Append('%');
+					encoded.Append(HexDigits[(bytes[i] & unchecked((int)(0xf0))) >> 4]);
+					encoded.Append(HexDigits[bytes[i] & unchecked((int)(0xf))]);
 				}
 				current = nextAllowed;
 			}
@@ -278,8 +288,8 @@ namespace Couchbase.Util
 						i += 3;
 					}
 					while (i < s.Length && s[i] == '%');
-					result.Append(new string(@out.ToByteArray(), charset));
-					@out.Reset();
+                    result.Append(charset.GetString(@out.ToByteArray()));
+                    @out.Reset();
 				}
 				else
 				{
@@ -301,7 +311,7 @@ namespace Couchbase.Util
 		/// , but without support for non-ASCII
 		/// characters.
 		/// </summary>
-		private static int HexToInt(char c)
+        internal static int HexToInt(char c)
 		{
 			if ('0' <= c && c <= '9')
 			{

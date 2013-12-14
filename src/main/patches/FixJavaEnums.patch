@@ -1,0 +1,51 @@
+diff -rupN -x .DS_Store -x .classpath -x .metadata -x .project main/java/com/couchbase/lite/replicator/Replicator.java sharpen/java/com/couchbase/lite/replicator/Replicator.java
+--- main/java/com/couchbase/lite/replicator/Replicator.java	2013-10-14 17:37:49.000000000 -0700
++++ sharpen/java/com/couchbase/lite/replicator/Replicator.java	2013-10-14 17:37:21.000000000 -0700
+@@ -147,7 +147,7 @@ public abstract class Replicator exte
+             }
+         });
+ 
+-        this.clientFactory = clientFactory != null ? clientFactory : CouchbaseLiteHttpClientFactory.INSTANCE;
++        this.clientFactory = clientFactory != null ? clientFactory : new CouchbaseLiteHttpClientFactory();
+ 
+ 
+     }
+diff -rupN -x .DS_Store -x .classpath -x .metadata -x .project main/java/com/couchbase/lite/support/CouchbaseLiteHttpClientFactory.java sharpen/java/com/couchbase/lite/support/CouchbaseLiteHttpClientFactory.java
+--- main/java/com/couchbase/lite/support/CouchbaseLiteHttpClientFactory.java	2013-10-14 17:37:49.000000000 -0700
++++ sharpen/java/com/couchbase/lite/support/CouchbaseLiteHttpClientFactory.java	2013-10-14 17:37:21.000000000 -0700
+@@ -15,9 +15,9 @@ import org.apache.http.params.BasicHttpP
+ 
+ import java.util.List;
+ 
+-public enum CouchbaseLiteHttpClientFactory implements HttpClientFactory {
++public class CouchbaseLiteHttpClientFactory implements HttpClientFactory {
+ 
+-    INSTANCE;
++//    INSTANCE;
+ 
+     private CookieStore cookieStore;
+ 
+diff -rupN -x .DS_Store -x .classpath -x .metadata -x .project main/java/com/couchbase/lite/support/RemoteMultipartDownloaderRequest.java sharpen/java/com/couchbase/lite/support/RemoteMultipartDownloaderRequest.java
+--- main/java/com/couchbase/lite/support/RemoteMultipartDownloaderRequest.java	2013-10-14 17:37:49.000000000 -0700
++++ sharpen/java/com/couchbase/lite/support/RemoteMultipartDownloaderRequest.java	2013-10-14 17:37:21.000000000 -0700
+@@ -57,7 +57,7 @@ public class RemoteMultipartDownloade
+ 
+             // add in cookies to global store
+             DefaultHttpClient defaultHttpClient = (DefaultHttpClient)httpClient;
+-            CouchbaseLiteHttpClientFactory.INSTANCE.addCookies(defaultHttpClient.getCookieStore().getCookies());
++            new CouchbaseLiteHttpClientFactory().addCookies(defaultHttpClient.getCookieStore().getCookies());
+ 
+ 
+             StatusLine status = response.getStatusLine();
+diff -rupN -x .DS_Store -x .classpath -x .metadata -x .project main/java/com/couchbase/lite/support/RemoteRequest.java sharpen/java/com/couchbase/lite/support/RemoteRequest.java
+--- main/java/com/couchbase/lite/support/RemoteRequest.java	2013-10-14 17:37:49.000000000 -0700
++++ sharpen/java/com/couchbase/lite/support/RemoteRequest.java	2013-10-14 17:37:21.000000000 -0700
+@@ -114,7 +114,7 @@ public class RemoteRequest implements
+ 
+             // add in cookies to global store
+             DefaultHttpClient defaultHttpClient = (DefaultHttpClient)httpClient;
+-            CouchbaseLiteHttpClientFactory.INSTANCE.addCookies(defaultHttpClient.getCookieStore().getCookies());
++            new CouchbaseLiteHttpClientFactory().addCookies(defaultHttpClient.getCookieStore().getCookies());
+ 
+             StatusLine status = response.getStatusLine();
+             if (status.getStatusCode() >= 300) {

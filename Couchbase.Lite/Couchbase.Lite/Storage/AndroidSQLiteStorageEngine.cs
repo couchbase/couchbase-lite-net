@@ -18,17 +18,17 @@
  * either express or implied. See the License for the specific language governing permissions
  * and limitations under the License.
  */
-
+#if __ANDROID__
 using System.Collections.Generic;
 using Android.Content;
 using Android.Database;
 using Android.Database.Sqlite;
+using Com.Couchbase.Lite.Storage;
+using Com.Couchbase.Lite.Util;
 using Couchbase;
-using Couchbase.Storage;
-using Couchbase.Util;
 using Sharpen;
 
-namespace Couchbase.Storage
+namespace Com.Couchbase.Lite.Storage
 {
 	public class AndroidSQLiteStorageEngine : SQLiteStorageEngine
 	{
@@ -90,7 +90,7 @@ namespace Couchbase.Storage
 			database.SetTransactionSuccessful();
 		}
 
-		/// <exception cref="Couchbase.Storage.SQLException"></exception>
+		/// <exception cref="Com.Couchbase.Lite.Storage.SQLException"></exception>
 		public override void ExecSQL(string sql)
 		{
 			try
@@ -103,7 +103,7 @@ namespace Couchbase.Storage
 			}
 		}
 
-		/// <exception cref="Couchbase.Storage.SQLException"></exception>
+		/// <exception cref="Com.Couchbase.Lite.Storage.SQLException"></exception>
 		public override void ExecSQL(string sql, object[] bindArgs)
 		{
 			try
@@ -250,3 +250,4 @@ namespace Couchbase.Storage
 		}
 	}
 }
+#endif

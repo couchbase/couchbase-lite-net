@@ -1,0 +1,598 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">x86</Platform>
+    <ProductVersion>12.0.0</ProductVersion>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{A8AD6859-7139-4A3D-8354-A93674AB8BB5}</ProjectGuid>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>Apache.HttpCore</RootNamespace>
+    <AssemblyName>Apache.HttpCore</AssemblyName>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|x86' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug</OutputPath>
+    <DefineConstants>DEBUG;</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <ConsolePause>false</ConsolePause>
+    <PlatformTarget>x86</PlatformTarget>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|x86' ">
+    <DebugType>full</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release</OutputPath>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <ConsolePause>false</ConsolePause>
+    <PlatformTarget>x86</PlatformTarget>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
+  <ItemGroup>
+    <Compile Include="ConnectionClosedException.cs" />
+    <Compile Include="ConnectionReuseStrategy.cs" />
+    <Compile Include="Consts.cs" />
+    <Compile Include="ContentTooLongException.cs" />
+    <Compile Include="FormattedHeader.cs" />
+    <Compile Include="Header.cs" />
+    <Compile Include="HeaderElement.cs" />
+    <Compile Include="HeaderElementIterator.cs" />
+    <Compile Include="HeaderIterator.cs" />
+    <Compile Include="HttpClientConnection.cs" />
+    <Compile Include="HttpConnection.cs" />
+    <Compile Include="HttpConnectionFactory.cs" />
+    <Compile Include="HttpConnectionMetrics.cs" />
+    <Compile Include="HttpEntity.cs" />
+    <Compile Include="HttpEntityEnclosingRequest.cs" />
+    <Compile Include="HttpException.cs" />
+    <Compile Include="HttpHeaders.cs" />
+    <Compile Include="HttpHost.cs" />
+    <Compile Include="HttpInetConnection.cs" />
+    <Compile Include="HttpMessage.cs" />
+    <Compile Include="HttpRequestFactory.cs" />
+    <Compile Include="HttpResponse.cs" />
+    <Compile Include="HttpResponseFactory.cs" />
+    <Compile Include="HttpResponseInterceptor.cs" />
+    <Compile Include="HttpServerConnection.cs" />
+    <Compile Include="HttpStatus.cs" />
+    <Compile Include="HttpVersion.cs" />
+    <Compile Include="IHttpRequest.cs" />
+    <Compile Include="IHttpRequestInterceptor.cs" />
+    <Compile Include="MalformedChunkCodingException.cs" />
+    <Compile Include="MessageConstraintException.cs" />
+    <Compile Include="MethodNotSupportedException.cs" />
+    <Compile Include="NameValuePair.cs" />
+    <Compile Include="NoHttpResponseException.cs" />
+    <Compile Include="ParseException.cs" />
+    <Compile Include="ProtocolException.cs" />
+    <Compile Include="ProtocolVersion.cs" />
+    <Compile Include="ReasonPhraseCatalog.cs" />
+    <Compile Include="RequestLine.cs" />
+    <Compile Include="StatusLine.cs" />
+    <Compile Include="TokenIterator.cs" />
+    <Compile Include="TruncatedChunkException.cs" />
+    <Compile Include="UnsupportedHttpVersionException.cs" />
+    <Compile Include="Concurrent\BasicFuture.cs" />
+    <Compile Include="Concurrent\Cancellable.cs" />
+    <Compile Include="Concurrent\FutureCallback.cs" />
+    <Compile Include="Config\ConnectionConfig.cs" />
+    <Compile Include="Config\Lookup.cs" />
+    <Compile Include="Config\MessageConstraints.cs" />
+    <Compile Include="Config\Registry.cs" />
+    <Compile Include="Config\RegistryBuilder.cs" />
+    <Compile Include="Config\SocketConfig.cs" />
+    <Compile Include="Entity\AbstractHttpEntity.cs" />
+    <Compile Include="Entity\BasicHttpEntity.cs" />
+    <Compile Include="Entity\BufferedHttpEntity.cs" />
+    <Compile Include="Entity\ByteArrayEntity.cs" />
+    <Compile Include="Entity\ContentLengthStrategy.cs" />
+    <Compile Include="Entity\ContentProducer.cs" />
+    <Compile Include="Entity\ContentType.cs" />
+    <Compile Include="Entity\EntityTemplate.cs" />
+    <Compile Include="Entity\FileEntity.cs" />
+    <Compile Include="Entity\HttpEntityWrapper.cs" />
+    <Compile Include="Entity\InputStreamEntity.cs" />
+    <Compile Include="Entity\SerializableEntity.cs" />
+    <Compile Include="Entity\StringEntity.cs" />
+    <Compile Include="IO\BufferInfo.cs" />
+    <Compile Include="IO\EofSensor.cs" />
+    <Compile Include="IO\HttpMessageParser.cs" />
+    <Compile Include="IO\HttpMessageParserFactory.cs" />
+    <Compile Include="IO\HttpMessageWriter.cs" />
+    <Compile Include="IO\HttpMessageWriterFactory.cs" />
+    <Compile Include="IO\HttpTransportMetrics.cs" />
+    <Compile Include="IO\SessionInputBuffer.cs" />
+    <Compile Include="IO\SessionOutputBuffer.cs" />
+    <Compile Include="Impl\BHttpConnectionBase.cs" />
+    <Compile Include="Impl\ConnSupport.cs" />
+    <Compile Include="Impl\DefaultBHttpClientConnection.cs" />
+    <Compile Include="Impl\DefaultBHttpClientConnectionFactory.cs" />
+    <Compile Include="Impl\DefaultBHttpServerConnection.cs" />
+    <Compile Include="Impl\DefaultBHttpServerConnectionFactory.cs" />
+    <Compile Include="Impl\DefaultConnectionReuseStrategy.cs" />
+    <Compile Include="Impl\DefaultHttpRequestFactory.cs" />
+    <Compile Include="Impl\DefaultHttpResponseFactory.cs" />
+    <Compile Include="Impl\EnglishReasonPhraseCatalog.cs" />
+    <Compile Include="Impl\HttpConnectionMetricsImpl.cs" />
+    <Compile Include="Impl\NoConnectionReuseStrategy.cs" />
+    <Compile Include="Impl\Entity\DisallowIdentityContentLengthStrategy.cs" />
+    <Compile Include="Impl\Entity\LaxContentLengthStrategy.cs" />
+    <Compile Include="Impl\Entity\StrictContentLengthStrategy.cs" />
+    <Compile Include="Impl\IO\AbstractMessageParser.cs" />
+    <Compile Include="Impl\IO\AbstractMessageWriter.cs" />
+    <Compile Include="Impl\IO\ChunkedInputStream.cs" />
+    <Compile Include="Impl\IO\ChunkedOutputStream.cs" />
+    <Compile Include="Impl\IO\ContentLengthInputStream.cs" />
+    <Compile Include="Impl\IO\ContentLengthOutputStream.cs" />
+    <Compile Include="Impl\IO\DefaultHttpRequestParser.cs" />
+    <Compile Include="Impl\IO\DefaultHttpRequestParserFactory.cs" />
+    <Compile Include="Impl\IO\DefaultHttpRequestWriter.cs" />
+    <Compile Include="Impl\IO\DefaultHttpRequestWriterFactory.cs" />
+    <Compile Include="Impl\IO\DefaultHttpResponseParser.cs" />
+    <Compile Include="Impl\IO\DefaultHttpResponseParserFactory.cs" />
+    <Compile Include="Impl\IO\DefaultHttpResponseWriter.cs" />
+    <Compile Include="Impl\IO\DefaultHttpResponseWriterFactory.cs" />
+    <Compile Include="Impl\IO\HttpTransportMetricsImpl.cs" />
+    <Compile Include="Impl\IO\IdentityInputStream.cs" />
+    <Compile Include="Impl\IO\IdentityOutputStream.cs" />
+    <Compile Include="Impl\IO\SessionInputBufferImpl.cs" />
+    <Compile Include="Impl\IO\SessionOutputBufferImpl.cs" />
+    <Compile Include="Impl\Pool\BasicConnFactory.cs" />
+    <Compile Include="Impl\Pool\BasicConnPool.cs" />
+    <Compile Include="Impl\Pool\BasicPoolEntry.cs" />
+    <Compile Include="Message\AbstractHttpMessage.cs" />
+    <Compile Include="Message\BasicHeader.cs" />
+    <Compile Include="Message\BasicHeaderElement.cs" />
+    <Compile Include="Message\BasicHeaderElementIterator.cs" />
+    <Compile Include="Message\BasicHeaderIterator.cs" />
+    <Compile Include="Message\BasicHeaderValueFormatter.cs" />
+    <Compile Include="Message\BasicHeaderValueParser.cs" />
+    <Compile Include="Message\BasicHttpEntityEnclosingRequest.cs" />
+    <Compile Include="Message\BasicHttpRequest.cs" />
+    <Compile Include="Message\BasicHttpResponse.cs" />
+    <Compile Include="Message\BasicLineFormatter.cs" />
+    <Compile Include="Message\BasicLineParser.cs" />
+    <Compile Include="Message\BasicListHeaderIterator.cs" />
+    <Compile Include="Message\BasicNameValuePair.cs" />
+    <Compile Include="Message\BasicRequestLine.cs" />
+    <Compile Include="Message\BasicStatusLine.cs" />
+    <Compile Include="Message\BasicTokenIterator.cs" />
+    <Compile Include="Message\BufferedHeader.cs" />
+    <Compile Include="Message\HeaderGroup.cs" />
+    <Compile Include="Message\HeaderValueFormatter.cs" />
+    <Compile Include="Message\HeaderValueParser.cs" />
+    <Compile Include="Message\LineFormatter.cs" />
+    <Compile Include="Message\LineParser.cs" />
+    <Compile Include="Message\ParserCursor.cs" />
+    <Compile Include="Params\AbstractHttpParams.cs" />
+    <Compile Include="Params\BasicHttpParams.cs" />
+    <Compile Include="Params\CoreConnectionPNames.cs" />
+    <Compile Include="Params\CoreProtocolPNames.cs" />
+    <Compile Include="Params\HttpParamConfig.cs" />
+    <Compile Include="Params\HttpParams.cs" />
+    <Compile Include="Params\HttpParamsNames.cs" />
+    <Compile Include="Pool\AbstractConnPool.cs" />
+    <Compile Include="Pool\ConnFactory.cs" />
+    <Compile Include="Pool\ConnPool.cs" />
+    <Compile Include="Pool\ConnPoolControl.cs" />
+    <Compile Include="Pool\PoolEntry.cs" />
+    <Compile Include="Pool\PoolEntryCallback.cs" />
+    <Compile Include="Pool\PoolEntryFuture.cs" />
+    <Compile Include="Pool\PoolStats.cs" />
+    <Compile Include="Pool\RouteSpecificPool.cs" />
+    <Compile Include="Protocol\BasicHttpContext.cs" />
+    <Compile Include="Protocol\ChainBuilder.cs" />
+    <Compile Include="Protocol\HTTP.cs" />
+    <Compile Include="Protocol\HttpContext.cs" />
+    <Compile Include="Protocol\HttpCoreContext.cs" />
+    <Compile Include="Protocol\HttpDateGenerator.cs" />
+    <Compile Include="Protocol\HttpExpectationVerifier.cs" />
+    <Compile Include="Protocol\HttpProcessor.cs" />
+    <Compile Include="Protocol\HttpProcessorBuilder.cs" />
+    <Compile Include="Protocol\HttpRequestExecutor.cs" />
+    <Compile Include="Protocol\HttpRequestHandler.cs" />
+    <Compile Include="Protocol\HttpRequestHandlerMapper.cs" />
+    <Compile Include="Protocol\HttpRequestHandlerResolver.cs" />
+    <Compile Include="Protocol\HttpService.cs" />
+    <Compile Include="Protocol\ImmutableHttpProcessor.cs" />
+    <Compile Include="Protocol\RequestConnControl.cs" />
+    <Compile Include="Protocol\RequestContent.cs" />
+    <Compile Include="Protocol\RequestDate.cs" />
+    <Compile Include="Protocol\RequestExpectContinue.cs" />
+    <Compile Include="Protocol\RequestTargetHost.cs" />
+    <Compile Include="Protocol\RequestUserAgent.cs" />
+    <Compile Include="Protocol\ResponseConnControl.cs" />
+    <Compile Include="Protocol\ResponseContent.cs" />
+    <Compile Include="Protocol\ResponseDate.cs" />
+    <Compile Include="Protocol\ResponseServer.cs" />
+    <Compile Include="Protocol\UriHttpRequestHandlerMapper.cs" />
+    <Compile Include="Protocol\UriPatternMatcher.cs" />
+    <Compile Include="Util\Args.cs" />
+    <Compile Include="Util\Asserts.cs" />
+    <Compile Include="Util\ByteArrayBuffer.cs" />
+    <Compile Include="Util\CharArrayBuffer.cs" />
+    <Compile Include="Util\CharsetUtils.cs" />
+    <Compile Include="Util\EncodingUtils.cs" />
+    <Compile Include="Util\EntityUtils.cs" />
+    <Compile Include="Util\LangUtils.cs" />
+    <Compile Include="Util\NetUtils.cs" />
+    <Compile Include="Util\TextUtils.cs" />
+    <Compile Include="Util\VersionInfo.cs" />
+    <Compile Include="..\Couchbase.Lite\Sharpen\AList.cs">
+      <Link>Sharpen\AList.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.Lite\Sharpen\AbstractCollection.cs">
+      <Link>Sharpen\AbstractCollection.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.Lite\Sharpen\AbstractList.cs">
+      <Link>Sharpen\AbstractList.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.Lite\Sharpen\AbstractMap.cs">
+      <Link>Sharpen\AbstractMap.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.Lite\Sharpen\AbstractSet.cs">
+      <Link>Sharpen\AbstractSet.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.Lite\Sharpen\AccessController.cs">
+      <Link>Sharpen\AccessController.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.Lite\Sharpen\Arrays.cs">
+      <Link>Sharpen\Arrays.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.Lite\Sharpen\AtomicBoolean.cs">
+      <Link>Sharpen\AtomicBoolean.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.Lite\Sharpen\AtomicInteger.cs">
+      <Link>Sharpen\AtomicInteger.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.Lite\Sharpen\AtomicLong.cs">
+      <Link>Sharpen\AtomicLong.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.Lite\Sharpen\AtomicReference.cs">
+      <Link>Sharpen\AtomicReference.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.Lite\Sharpen\AtomicReferenceArray.cs">
+      <Link>Sharpen\AtomicReferenceArray.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.Lite\Sharpen\Authenticator.cs">
+      <Link>Sharpen\Authenticator.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.Lite\Sharpen\BitSet.cs">
+      <Link>Sharpen\BitSet.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.Lite\Sharpen\BufferedInputStream.cs">
+      <Link>Sharpen\BufferedInputStream.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.Lite\Sharpen\BufferedOutputStream.cs">
+      <Link>Sharpen\BufferedOutputStream.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.Lite\Sharpen\BufferedReader.cs">
+      <Link>Sharpen\BufferedReader.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.Lite\Sharpen\BufferedWriter.cs">
+      <Link>Sharpen\BufferedWriter.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.Lite\Sharpen\ByteArrayInputStream.cs">
+      <Link>Sharpen\ByteArrayInputStream.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.Lite\Sharpen\ByteArrayOutputStream.cs">
+      <Link>Sharpen\ByteArrayOutputStream.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.Lite\Sharpen\ByteBuffer.cs">
+      <Link>Sharpen\ByteBuffer.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.Lite\Sharpen\ByteOrder.cs">
+      <Link>Sharpen\ByteOrder.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.Lite\Sharpen\CRC32.cs">
+      <Link>Sharpen\CRC32.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.Lite\Sharpen\Callable.cs">
+      <Link>Sharpen\Callable.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.Lite\Sharpen\Channels.cs">
+      <Link>Sharpen\Channels.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.Lite\Sharpen\CharBuffer.cs">
+      <Link>Sharpen\CharBuffer.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.Lite\Sharpen\CharSequence.cs">
+      <Link>Sharpen\CharSequence.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.Lite\Sharpen\CharsetDecoder.cs">
+      <Link>Sharpen\CharsetDecoder.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.Lite\Sharpen\CharsetEncoder.cs">
+      <Link>Sharpen\CharsetEncoder.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.Lite\Sharpen\CodingErrorAction.cs">
+      <Link>Sharpen\CodingErrorAction.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.Lite\Sharpen\Collections.cs">
+      <Link>Sharpen\Collections.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.Lite\Sharpen\ConcurrentHashMap.cs">
+      <Link>Sharpen\ConcurrentHashMap.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.Lite\Sharpen\ConcurrentMap.cs">
+      <Link>Sharpen\ConcurrentMap.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.Lite\Sharpen\CopyOnWriteArrayList.cs">
+      <Link>Sharpen\CopyOnWriteArrayList.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.Lite\Sharpen\CountDownLatch.cs">
+      <Link>Sharpen\CountDownLatch.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.Lite\Sharpen\CyclicBarrier.cs">
+      <Link>Sharpen\CyclicBarrier.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.Lite\Sharpen\DataConverter.cs">
+      <Link>Sharpen\DataConverter.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.Lite\Sharpen\DateFormat.cs">
+      <Link>Sharpen\DateFormat.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.Lite\Sharpen\DeflaterOutputStream.cs">
+      <Link>Sharpen\DeflaterOutputStream.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.Lite\Sharpen\DigestInputStream.cs">
+      <Link>Sharpen\DigestInputStream.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.Lite\Sharpen\DigestOutputStream.cs">
+      <Link>Sharpen\DigestOutputStream.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.Lite\Sharpen\EnumSet.cs">
+      <Link>Sharpen\EnumSet.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.Lite\Sharpen\EnumerableWrapper.cs">
+      <Link>Sharpen\EnumerableWrapper.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.Lite\Sharpen\EnumeratorWrapper.cs">
+      <Link>Sharpen\EnumeratorWrapper.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.Lite\Sharpen\Exceptions.cs">
+      <Link>Sharpen\Exceptions.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.Lite\Sharpen\Executor.cs">
+      <Link>Sharpen\Executor.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.Lite\Sharpen\ExecutorService.cs">
+      <Link>Sharpen\ExecutorService.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.Lite\Sharpen\Executors.cs">
+      <Link>Sharpen\Executors.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.Lite\Sharpen\Extensions.cs">
+      <Link>Sharpen\Extensions.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.Lite\Sharpen\FileChannel.cs">
+      <Link>Sharpen\FileChannel.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.Lite\Sharpen\FileHelper.cs">
+      <Link>Sharpen\FileHelper.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.Lite\Sharpen\FileInputStream.cs">
+      <Link>Sharpen\FileInputStream.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.Lite\Sharpen\FileLock.cs">
+      <Link>Sharpen\FileLock.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.Lite\Sharpen\FileOutputStream.cs">
+      <Link>Sharpen\FileOutputStream.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.Lite\Sharpen\FilePath.cs">
+      <Link>Sharpen\FilePath.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.Lite\Sharpen\FileReader.cs">
+      <Link>Sharpen\FileReader.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.Lite\Sharpen\FileWriter.cs">
+      <Link>Sharpen\FileWriter.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.Lite\Sharpen\FilenameFilter.cs">
+      <Link>Sharpen\FilenameFilter.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.Lite\Sharpen\FilterInputStream.cs">
+      <Link>Sharpen\FilterInputStream.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.Lite\Sharpen\FilterOutputStream.cs">
+      <Link>Sharpen\FilterOutputStream.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.Lite\Sharpen\Future.cs">
+      <Link>Sharpen\Future.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.Lite\Sharpen\GZIPInputStream.cs">
+      <Link>Sharpen\GZIPInputStream.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.Lite\Sharpen\GZIPOutputStream.cs">
+      <Link>Sharpen\GZIPOutputStream.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.Lite\Sharpen\HttpURLConnection.cs">
+      <Link>Sharpen\HttpURLConnection.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.Lite\Sharpen\InflaterInputStream.cs">
+      <Link>Sharpen\InflaterInputStream.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.Lite\Sharpen\InheritableThreadLocal.cs">
+      <Link>Sharpen\InheritableThreadLocal.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.Lite\Sharpen\InputStream.cs">
+      <Link>Sharpen\InputStream.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.Lite\Sharpen\InputStreamReader.cs">
+      <Link>Sharpen\InputStreamReader.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.Lite\Sharpen\Iterable.cs">
+      <Link>Sharpen\Iterable.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.Lite\Sharpen\Iterator.cs">
+      <Link>Sharpen\Iterator.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.Lite\Sharpen\JavaCalendar.cs">
+      <Link>Sharpen\JavaCalendar.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.Lite\Sharpen\LinkageError.cs">
+      <Link>Sharpen\LinkageError.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.Lite\Sharpen\LinkedHashMap.cs">
+      <Link>Sharpen\LinkedHashMap.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.Lite\Sharpen\LinkedHashSet.cs">
+      <Link>Sharpen\LinkedHashSet.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.Lite\Sharpen\ListIterator.cs">
+      <Link>Sharpen\ListIterator.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.Lite\Sharpen\MappedByteBuffer.cs">
+      <Link>Sharpen\MappedByteBuffer.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.Lite\Sharpen\Matcher.cs">
+      <Link>Sharpen\Matcher.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.Lite\Sharpen\MessageDigest.cs">
+      <Link>Sharpen\MessageDigest.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.Lite\Sharpen\MessageFormat.cs">
+      <Link>Sharpen\MessageFormat.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.Lite\Sharpen\ObjectInputStream.cs">
+      <Link>Sharpen\ObjectInputStream.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.Lite\Sharpen\ObjectOutputStream.cs">
+      <Link>Sharpen\ObjectOutputStream.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.Lite\Sharpen\Observable.cs">
+      <Link>Sharpen\Observable.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.Lite\Sharpen\OutputStream.cs">
+      <Link>Sharpen\OutputStream.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.Lite\Sharpen\OutputStreamWriter.cs">
+      <Link>Sharpen\OutputStreamWriter.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.Lite\Sharpen\PasswordAuthentication.cs">
+      <Link>Sharpen\PasswordAuthentication.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.Lite\Sharpen\Pattern.cs">
+      <Link>Sharpen\Pattern.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.Lite\Sharpen\PipedInputStream.cs">
+      <Link>Sharpen\PipedInputStream.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.Lite\Sharpen\PipedOutputStream.cs">
+      <Link>Sharpen\PipedOutputStream.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.Lite\Sharpen\PrintWriter.cs">
+      <Link>Sharpen\PrintWriter.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.Lite\Sharpen\PrivilegedAction.cs">
+      <Link>Sharpen\PrivilegedAction.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.Lite\Sharpen\Process.cs">
+      <Link>Sharpen\Process.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.Lite\Sharpen\Proxy.cs">
+      <Link>Sharpen\Proxy.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.Lite\Sharpen\ProxySelector.cs">
+      <Link>Sharpen\ProxySelector.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.Lite\Sharpen\RandomAccessFile.cs">
+      <Link>Sharpen\RandomAccessFile.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.Lite\Sharpen\ReentrantLock.cs">
+      <Link>Sharpen\ReentrantLock.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.Lite\Sharpen\Reference.cs">
+      <Link>Sharpen\Reference.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.Lite\Sharpen\ReferenceQueue.cs">
+      <Link>Sharpen\ReferenceQueue.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.Lite\Sharpen\ResourceBundle.cs">
+      <Link>Sharpen\ResourceBundle.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.Lite\Sharpen\Runnable.cs">
+      <Link>Sharpen\Runnable.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.Lite\Sharpen\Runtime.cs">
+      <Link>Sharpen\Runtime.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.Lite\Sharpen\SSLContext.cs">
+      <Link>Sharpen\SSLContext.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.Lite\Sharpen\ScheduledThreadPoolExecutor.cs">
+      <Link>Sharpen\ScheduledThreadPoolExecutor.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.Lite\Sharpen\SimpleDateFormat.cs">
+      <Link>Sharpen\SimpleDateFormat.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.Lite\Sharpen\SingletonList.cs">
+      <Link>Sharpen\SingletonList.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.Lite\Sharpen\SoftReference.cs">
+      <Link>Sharpen\SoftReference.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.Lite\Sharpen\StackOverflowError.cs">
+      <Link>Sharpen\StackOverflowError.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.Lite\Sharpen\SynchronizedList.cs">
+      <Link>Sharpen\SynchronizedList.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.Lite\Sharpen\Thread.cs">
+      <Link>Sharpen\Thread.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.Lite\Sharpen\ThreadFactory.cs">
+      <Link>Sharpen\ThreadFactory.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.Lite\Sharpen\ThreadPoolExecutor.cs">
+      <Link>Sharpen\ThreadPoolExecutor.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.Lite\Sharpen\TimeUnit.cs">
+      <Link>Sharpen\TimeUnit.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.Lite\Sharpen\TreeSet.cs">
+      <Link>Sharpen\TreeSet.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.Lite\Sharpen\TrustManager.cs">
+      <Link>Sharpen\TrustManager.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.Lite\Sharpen\URLEncoder.cs">
+      <Link>Sharpen\URLEncoder.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.Lite\Sharpen\Uri.cs">
+      <Link>Sharpen\Uri.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.Lite\Sharpen\WeakReference.cs">
+      <Link>Sharpen\WeakReference.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.Lite\Sharpen\WrappedSystemStream.cs">
+      <Link>Sharpen\WrappedSystemStream.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.Lite\Sharpen\X509Certificate.cs">
+      <Link>Sharpen\X509Certificate.cs</Link>
+    </Compile>
+    <Compile Include="..\Couchbase.Lite\Sharpen\X509TrustManager.cs">
+      <Link>Sharpen\X509TrustManager.cs</Link>
+    </Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Sharpen\" />
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="System.Net" />
+    <Reference Include="ICSharpCode.SharpZipLib">
+      <HintPath>..\Couchbase.Lite\packages\ICSharpCode.SharpZipLib.dll.0.85.4.369\lib\net20\ICSharpCode.SharpZipLib.dll</HintPath>
+    </Reference>
+    <Reference Include="Mono.CSharp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
+  </ItemGroup>
+</Project>

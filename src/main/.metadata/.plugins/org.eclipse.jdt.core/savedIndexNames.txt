@@ -1,0 +1,1 @@
+INDEX VERSION 1.126+/Users/zgramana/Xamarin/Projects/couchbase-lite-net/src/main/.metadata/.plugins/org.eclipse.jdt.core

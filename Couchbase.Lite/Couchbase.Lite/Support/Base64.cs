@@ -21,10 +21,11 @@
 
 using System;
 using System.IO;
-using Couchbase.Support;
+using Com.Couchbase.Lite.Support;
 using Sharpen;
+using System.Runtime.Serialization;
 
-namespace Couchbase.Support
+namespace Com.Couchbase.Lite.Support
 {
 	/// <summary>
 	/// <p>Encodes and decodes to and from Base64 notation.</p>
@@ -187,11 +188,11 @@ namespace Couchbase.Support
 
 		/// <summary>Specify encoding in first bit.</summary>
 		/// <remarks>Specify encoding in first bit. Value is one.</remarks>
-        public const int encode = 1;
+        public const int FirstBitEncoding = 1;
 
 		/// <summary>Specify decoding in first bit.</summary>
 		/// <remarks>Specify decoding in first bit. Value is zero.</remarks>
-        public const int decode = 0;
+        public const int FirstBitDecoding = 0;
 
 		/// <summary>Specify that data should be gzip-compressed in second bit.</summary>
 		/// <remarks>Specify that data should be gzip-compressed in second bit. Value is two.
@@ -849,8 +850,8 @@ namespace Couchbase.Support
 			{
 				int rem = Math.Min(3, raw.Remaining());
 				raw.Get(raw3, 0, rem);
-				Couchbase.Support.Base64.Encode3to4(enc4, raw3, rem, Couchbase.Support.Base64.NoOptions
-					);
+				Com.Couchbase.Lite.Support.Base64.Encode3to4(enc4, raw3, rem, Com.Couchbase.Lite.Support.Base64
+					.NoOptions);
 				encoded.Put(enc4);
 			}
 		}
@@ -881,8 +882,8 @@ namespace Couchbase.Support
 			{
 				int rem = Math.Min(3, raw.Remaining());
 				raw.Get(raw3, 0, rem);
-				Couchbase.Support.Base64.Encode3to4(enc4, raw3, rem, Couchbase.Support.Base64.NoOptions
-					);
+				Com.Couchbase.Lite.Support.Base64.Encode3to4(enc4, raw3, rem, Com.Couchbase.Lite.Support.Base64
+					.NoOptions);
 				for (int i = 0; i < 4; i++)
 				{
 					encoded.Put((char)(enc4[i] & unchecked((int)(0xFF))));
@@ -946,7 +947,7 @@ namespace Couchbase.Support
 		/// <seealso cref="DoBreakLines">DoBreakLines</seealso>
 		/// <exception cref="System.IO.IOException">if there is an error</exception>
 		/// <since>2.0</since>
-		public static string EncodeObject(Serializable serializableObject, int options)
+        public static string EncodeObject(ISerializable serializableObject, int options)
 		{
 			if (serializableObject == null)
 			{
@@ -974,7 +975,7 @@ namespace Couchbase.Support
 					// Not gzipped
 					oos = new ObjectOutputStream(b64os);
 				}
-				oos.WriteObject(serializableObject);
+                oos.WriteObject(serializableObject);
 			}
 			catch (IOException e)
 			{
@@ -1192,8 +1193,8 @@ namespace Couchbase.Support
 			byte[] encoded = null;
 			try
 			{
-				encoded = EncodeBytesToBytes(source, 0, source.Length, Couchbase.Support.Base64.NoOptions
-					);
+				encoded = EncodeBytesToBytes(source, 0, source.Length, Com.Couchbase.Lite.Support.Base64
+					.NoOptions);
 			}
 			catch (IOException ex)
 			{
@@ -1493,7 +1494,8 @@ namespace Couchbase.Support
 		{
 			byte[] decoded = null;
 			//        try {
-			decoded = Decode(source, 0, source.Length, Couchbase.Support.Base64.NoOptions);
+			decoded = Decode(source, 0, source.Length, Com.Couchbase.Lite.Support.Base64.NoOptions
+				);
 			//        } catch( java.io.IOException ex ) {
 			//            assert false : "IOExceptions only come from GZipping, which is turned off: " + ex.getMessage();
 			//        }
@@ -1883,7 +1885,7 @@ namespace Couchbase.Support
 			Base64.OutputStream bos = null;
 			try
 			{
-				bos = new Base64.OutputStream(new FileOutputStream(filename), Couchbase.Support.Base64
+				bos = new Base64.OutputStream(new FileOutputStream(filename), Com.Couchbase.Lite.Support.Base64
 					.Encode);
 				bos.Write(dataToEncode);
 			}
@@ -1925,7 +1927,7 @@ namespace Couchbase.Support
 			Base64.OutputStream bos = null;
 			try
 			{
-				bos = new Base64.OutputStream(new FileOutputStream(filename), Couchbase.Support.Base64
+				bos = new Base64.OutputStream(new FileOutputStream(filename), Com.Couchbase.Lite.Support.Base64
 					.Decode);
 				bos.Write(Sharpen.Runtime.GetBytesForString(dataToDecode, PreferredEncoding));
 			}
@@ -1987,7 +1989,7 @@ namespace Couchbase.Support
 				buffer = new byte[(int)file.Length()];
 				// Open a stream
 				bis = new Base64.InputStream(new BufferedInputStream(new FileInputStream(file)), 
-					Couchbase.Support.Base64.Decode);
+					Com.Couchbase.Lite.Support.Base64.Decode);
 				// Read until done
 				while ((numBytes = bis.Read(buffer, length, 4096)) >= 0)
 				{
@@ -2050,7 +2052,7 @@ namespace Couchbase.Support
 				int numBytes = 0;
 				// Open a stream
 				bis = new Base64.InputStream(new BufferedInputStream(new FileInputStream(file)), 
-					Couchbase.Support.Base64.Encode);
+					Com.Couchbase.Lite.Support.Base64.Encode);
 				// Read until done
 				while ((numBytes = bis.Read(buffer, length, 4096)) >= 0)
 				{
@@ -2058,7 +2060,7 @@ namespace Couchbase.Support
 				}
 				// end while
 				// Save in a variable to return
-				encodedData = Sharpen.Runtime.GetStringForBytes(buffer, 0, length, Couchbase.Support.Base64
+				encodedData = Sharpen.Runtime.GetStringForBytes(buffer, 0, length, Com.Couchbase.Lite.Support.Base64
 					.PreferredEncoding);
 			}
 			catch (IOException e)
@@ -2091,7 +2093,7 @@ namespace Couchbase.Support
 		/// <since>2.2</since>
 		public static void EncodeFileToFile(string infile, string outfile)
 		{
-			string encoded = Couchbase.Support.Base64.EncodeFromFile(infile);
+			string encoded = Com.Couchbase.Lite.Support.Base64.EncodeFromFile(infile);
 			OutputStream @out = null;
 			try
 			{
@@ -2128,7 +2130,7 @@ namespace Couchbase.Support
 		/// <since>2.2</since>
 		public static void DecodeFileToFile(string infile, string outfile)
 		{
-			byte[] decoded = Couchbase.Support.Base64.DecodeFromFile(infile);
+			byte[] decoded = Com.Couchbase.Lite.Support.Base64.DecodeFromFile(infile);
 			OutputStream @out = null;
 			try
 			{

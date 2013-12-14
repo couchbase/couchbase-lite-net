@@ -19,10 +19,10 @@
  * and limitations under the License.
  */
 
-using Couchbase.Threading;
+using Com.Couchbase.Lite.Threading;
 using Sharpen;
 
-namespace Couchbase.Threading
+namespace Com.Couchbase.Lite.Threading
 {
 	public abstract class BackgroundTask : Runnable
 	{
@@ -60,7 +60,6 @@ namespace Couchbase.Threading
 
 		private static volatile Executor sDefaultExecutor = SerialExecutor;
 
-
 		public void Execute()
 		{
 			sDefaultExecutor.Execute(this);
@@ -69,7 +68,7 @@ namespace Couchbase.Threading
 		public abstract void Run();
 	}
 
-     class SerialExecutor : Executor
+    class SerialExecutor : Executor
     {
         internal readonly ArrayDeque<Runnable> mTasks = new ArrayDeque<Runnable>();
 
@@ -127,4 +126,3 @@ namespace Couchbase.Threading
         }
     }
 }
-

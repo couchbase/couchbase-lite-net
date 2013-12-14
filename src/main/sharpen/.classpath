@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
+	<classpathentry kind="lib" path="/Users/zgramana/Library/Developer/Xamarin/android-sdk-mac_x86/platforms/android-18/android.jar"/>
+	<classpathentry kind="lib" path="/Users/zgramana/Xamarin/Projects/couchbase-lite-net/libs/android-support-v4.jar"/>
+	<classpathentry kind="lib" path="/Users/zgramana/Xamarin/Projects/couchbase-lite-net/libs/td_collator_so.jar"/>
+	<classpathentry kind="lib" path="/Users/zgramana/Xamarin/Projects/couchbase-lite-net/libs/jackson-core-asl-1.9.13.jar"/>
+	<classpathentry kind="lib" path="/Users/zgramana/Xamarin/Projects/couchbase-lite-net/libs/jackson-mapper-asl-1.9.13.jar"/>
+	<classpathentry kind="src" path="java"/>
+	<classpathentry kind="output" path="bin"/>
+</classpath>

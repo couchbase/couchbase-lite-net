@@ -19,12 +19,13 @@
  * and limitations under the License.
  */
 
+#if __ANDROID__
 using System;
 using Android.Util;
-using Couchbase.Util;
+using Com.Couchbase.Lite.Util;
 using Sharpen;
 
-namespace Couchbase.Util
+namespace Com.Couchbase.Lite.Util
 {
 	public class AndroidLogger : Logger
 	{
@@ -84,3 +85,4 @@ namespace Couchbase.Util
 		}
 	}
 }
+#endif
