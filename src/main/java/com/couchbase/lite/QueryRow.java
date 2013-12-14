@@ -189,6 +189,9 @@ public class QueryRow {
         Document doc = database.getDocument(sourceDocumentId);
         Map<String, Object> valueTmp = (Map<String, Object>) value;
         List<String> conflicts = (List<String>) valueTmp.get("_conflicts");
+        if (conflicts == null) {
+            conflicts = new ArrayList<String>();
+        }
         List<SavedRevision> conflictingRevisions = new ArrayList<SavedRevision>();
         for (String conflictRevisionId : conflicts) {
             SavedRevision revision = doc.getRevision(conflictRevisionId);

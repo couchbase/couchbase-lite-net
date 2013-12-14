@@ -430,14 +430,16 @@ public class Document {
 
     void revisionAdded(DocumentChange documentChange) {
 
-        // TODO: in the iOS code, it calls CBL_Revision* rev = change.winningRevision;
-        RevisionInternal rev = documentChange.getRevisionInternal();
+        RevisionInternal rev = documentChange.getWinningRevision();
+        if (rev == null) {
+            return;  // current revision didn't change
+        }
         if (currentRevision != null && !rev.getRevId().equals(currentRevision.getId())) {
             currentRevision = new SavedRevision(this, rev);
         }
-        DocumentChange change = DocumentChange.tempFactory(rev, null);
+
         for (ChangeListener listener : changeListeners) {
-            listener.changed(new ChangeEvent(this, change));
+            listener.changed(new ChangeEvent(this, documentChange));
         }
 
     }

@@ -1787,6 +1787,7 @@ public class Database {
 
                 Map<String, Object> value = new HashMap<String, Object>();
                 value.put("rev", revId);
+                value.put("_conflicts", conflicts);
                 if (includeDeletedDocs){
                     value.put("deleted", (deleted ? true : null));
                 }
@@ -1877,10 +1878,12 @@ public class Database {
                 }
                 // The document is in conflict if there are two+ result rows that are not deletions.
                 boolean hasNextResult = cursor.moveToNext();
-                boolean isNextDeleted = cursor.getInt(1)>0;
-                boolean isInConflict = !deleted && hasNextResult && isNextDeleted;
-                if (isInConflict) {
-                    outIsConflict.add(true);
+                if (hasNextResult) {
+                    boolean isNextDeleted = cursor.getInt(1)>0;
+                    boolean isInConflict = !deleted && hasNextResult && isNextDeleted;
+                    if (isInConflict) {
+                        outIsConflict.add(true);
+                    }
                 }
             }
 
@@ -2520,13 +2523,18 @@ public class Database {
         return json;
     }
 
-    public void notifyChange(RevisionInternal rev, URL source) {
+    public void notifyChange(RevisionInternal rev, RevisionInternal winningRev, URL source, boolean inConflict) {
 
         // TODO: it is currently sending one change at a time rather than batching them up
 
         boolean isExternalFixMe = false; // TODO: fix this to have a real value
 
-        DocumentChange change = DocumentChange.tempFactory(rev, source);
+        DocumentChange change = new DocumentChange(
+                rev,
+                winningRev,
+                inConflict,
+                source);
+
         List<DocumentChange> changes = new ArrayList<DocumentChange>();
         changes.add(change);
         ChangeEvent changeEvent = new ChangeEvent(this, isExternalFixMe, changes);
@@ -2588,30 +2596,56 @@ public class Database {
      *
      * This is what's invoked by a PUT or POST. As with those, the previous revision ID must be supplied when necessary and the call will fail if it doesn't match.
      *
-     * @param rev The revision to add. If the docID is null, a new UUID will be assigned. Its revID must be null. It must have a JSON body.
+     * @param oldRev The revision to add. If the docID is null, a new UUID will be assigned. Its revID must be null. It must have a JSON body.
      * @param prevRevId The ID of the revision to replace (same as the "?rev=" parameter to a PUT), or null if this is a new document.
      * @param allowConflict If false, an error status 409 will be returned if the insertion would create a conflict, i.e. if the previous revision already has a child.
      * @param resultStatus On return, an HTTP status code indicating success or failure.
      * @return A new RevisionInternal with the docID, revID and sequence filled in (but no body).
      */
     @SuppressWarnings("unchecked")
-    public RevisionInternal putRevision(RevisionInternal rev, String prevRevId, boolean allowConflict, Status resultStatus) throws CouchbaseLiteException {
+    public RevisionInternal putRevision(RevisionInternal oldRev, String prevRevId, boolean allowConflict, Status resultStatus) throws CouchbaseLiteException {
         // prevRevId is the rev ID being replaced, or nil if an insert
-        String docId = rev.getDocId();
-        boolean deleted = rev.isDeleted();
-        if((rev == null) || ((prevRevId != null) && (docId == null)) || (deleted && (docId == null))
+        String docId = oldRev.getDocId();
+        boolean deleted = oldRev.isDeleted();
+        if((oldRev == null) || ((prevRevId != null) && (docId == null)) || (deleted && (docId == null))
                 || ((docId != null) && !isValidDocumentId(docId))) {
             throw new CouchbaseLiteException(Status.BAD_REQUEST);
         }
 
         beginTransaction();
         Cursor cursor = null;
+        boolean inConflict = false;
+        RevisionInternal winningRev = null;
+        RevisionInternal newRev = null;
 
         //// PART I: In which are performed lookups and validations prior to the insert...
 
         long docNumericID = (docId != null) ? getDocNumericID(docId) : 0;
         long parentSequence = 0;
+        String oldWinningRevID = null;
+
         try {
+
+            boolean oldWinnerWasDeletion = false;
+            boolean wasConflicted = false;
+            if (docNumericID > 0) {
+                List<Boolean> outIsDeleted = new ArrayList<Boolean>();
+                List<Boolean> outIsConflict = new ArrayList<Boolean>();
+                try {
+                    oldWinningRevID = winningRevIDOfDoc(docNumericID, outIsDeleted, outIsConflict);
+                    if (outIsDeleted.size() > 0) {
+                        oldWinnerWasDeletion = true;
+                    }
+                    if (outIsConflict.size() > 0) {
+                        wasConflicted = true;
+                    }
+
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+
+            }
+
             if(prevRevId != null) {
                 // Replacing: make sure given prevRevID is current & find its sequence number:
                 if(docNumericID <= 0) {
@@ -2646,7 +2680,7 @@ public class Database {
                 if(validations != null && validations.size() > 0) {
                     // Fetch the previous revision and validate the new one against it:
                     RevisionInternal prevRev = new RevisionInternal(docId, prevRevId, false, this);
-                    validateRevision(rev, prevRev);
+                    validateRevision(oldRev, prevRev);
                 }
 
                 // Make replaced rev non-current:
@@ -2667,7 +2701,7 @@ public class Database {
                 }
 
                 // Validate:
-                validateRevision(rev, null);
+                validateRevision(oldRev, null);
 
                 if(docId != null) {
                     // Inserting first revision, with docID given (PUT):
@@ -2709,35 +2743,47 @@ public class Database {
                 }
             }
 
+            // There may be a conflict if (a) the document was already in conflict, or
+            // (b) a conflict is created by adding a non-deletion child of a non-winning rev.
+            inConflict = wasConflicted ||
+                    (!deleted &&
+                            prevRevId != null &&
+                            oldWinningRevID != null &&
+                            !prevRevId.equals(oldWinningRevID));
+
+
             //// PART II: In which insertion occurs...
 
             // Get the attachments:
-            Map<String, AttachmentInternal> attachments = getAttachmentsFromRevision(rev);
+            Map<String, AttachmentInternal> attachments = getAttachmentsFromRevision(oldRev);
 
             // Bump the revID and update the JSON:
             String newRevId = generateNextRevisionID(prevRevId);
             byte[] data = null;
-            if(!rev.isDeleted()) {
-                data = encodeDocumentJSON(rev);
+            if(!oldRev.isDeleted()) {
+                data = encodeDocumentJSON(oldRev);
                 if(data == null) {
                     // bad or missing json
                     throw new CouchbaseLiteException(Status.BAD_REQUEST);
                 }
             }
 
-            rev = rev.copyWithDocID(docId, newRevId);
-            stubOutAttachmentsInRevision(attachments, rev);
+            newRev = oldRev.copyWithDocID(docId, newRevId);
+            stubOutAttachmentsInRevision(attachments, newRev);
 
             // Now insert the rev itself:
-            long newSequence = insertRevision(rev, docNumericID, parentSequence, true, data);
+            long newSequence = insertRevision(newRev, docNumericID, parentSequence, true, data);
             if(newSequence == 0) {
                 return null;
             }
 
             // Store any attachments:
             if(attachments != null) {
-                processAttachmentsForRevision(attachments, rev, parentSequence);
+                processAttachmentsForRevision(attachments, newRev, parentSequence);
             }
+
+            // Figure out what the new winning rev ID is:
+            winningRev = winner(docNumericID, oldWinningRevID, oldWinnerWasDeletion, newRev);
 
             // Success!
             if(deleted) {
@@ -2758,8 +2804,46 @@ public class Database {
         }
 
         //// EPILOGUE: A change notification is sent...
-        notifyChange(rev, null);
-        return rev;
+        notifyChange(newRev, winningRev, null, inConflict);
+        return newRev;
+    }
+
+    RevisionInternal winner(long docNumericID,
+                            String oldWinningRevID,
+                            boolean oldWinnerWasDeletion,
+                            RevisionInternal newRev) throws CouchbaseLiteException {
+
+
+        if (oldWinningRevID == null) {
+            return newRev;
+        }
+        String newRevID = newRev.getRevId();
+        if (!newRev.isDeleted()) {
+            if (oldWinnerWasDeletion ||
+                    RevisionInternal.CBLCompareRevIDs(newRevID, oldWinningRevID) > 0) {
+                return newRev; // this is now the winning live revision
+            }
+        } else if (oldWinnerWasDeletion) {
+            if (RevisionInternal.CBLCompareRevIDs(newRevID, oldWinningRevID) > 0) {
+                return newRev;  // doc still deleted, but this beats previous deletion rev
+            }
+        } else {
+            // Doc was alive. How does this deletion affect the winning rev ID?
+            List<Boolean> outIsDeleted = new ArrayList<Boolean>();
+            List<Boolean> outIsConflict = new ArrayList<Boolean>();
+            String winningRevID = winningRevIDOfDoc(docNumericID, outIsDeleted, outIsConflict);
+            if (!winningRevID.equals(oldWinningRevID)) {
+                if (winningRevID.equals(newRev.getRevId())) {
+                    return newRev;
+                } else {
+                    boolean deleted = false;
+                    RevisionInternal winningRev = new RevisionInternal(newRev.getDocId(), winningRevID, deleted, this);
+                    return winningRev;
+                }
+            }
+        }
+        return null; // no change
+
     }
 
     /**
@@ -2949,7 +3033,9 @@ public class Database {
         }
 
         // Notify and return:
-        notifyChange(rev, source);
+        boolean inConflict = false;  // TODO: can we be in conflict here?
+        RevisionInternal winningRev = null;  // TODO: what should we do here?
+        notifyChange(rev, winningRev, source, inConflict);
     }
 
     /** VALIDATION **/

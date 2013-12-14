@@ -1067,7 +1067,7 @@ public class Router implements Database.ChangeListener {
         List<DocumentChange> changes = event.getChanges();
         for (DocumentChange change : changes) {
 
-            RevisionInternal rev = change.getRevisionInternal();
+            RevisionInternal rev = change.getAddedRevision();
 
             Map<String, Object> paramsFixMe = null;  // TODO: these should not be null
             final boolean allowRevision = event.getSource().runFilter(changesFilter, paramsFixMe, rev);

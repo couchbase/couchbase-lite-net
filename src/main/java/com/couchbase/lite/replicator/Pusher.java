@@ -153,7 +153,7 @@ public class Pusher extends Replication implements Database.ChangeListener {
             if(source != null && source.equals(remote)) {
                 return;
             }
-            RevisionInternal rev = change.getRevisionInternal();
+            RevisionInternal rev = change.getAddedRevision();
             Map<String, Object> paramsFixMe = null;  // TODO: these should not be null
             if (getLocalDatabase().runFilter(filter, paramsFixMe, rev)) {
                 addToInbox(rev);
