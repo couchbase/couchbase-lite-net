@@ -1777,6 +1777,9 @@ public class Database {
                 List<String> conflicts = new ArrayList<String>();
                 while (((keepGoing = cursor.moveToNext()) == true) && cursor.getLong(0) == docNumericID) {
                     if (options.getAllDocsMode() == Query.AllDocsMode.SHOW_CONFLICTS || options.getAllDocsMode() == Query.AllDocsMode.ONLY_CONFLICTS) {
+                        if (conflicts.isEmpty()) {
+                            conflicts.add(revId);
+                        }
                         conflicts.add(cursor.getString(2));
                     }
                 }
