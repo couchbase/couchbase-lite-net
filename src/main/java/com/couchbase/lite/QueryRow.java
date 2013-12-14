@@ -265,6 +265,8 @@ public class QueryRow {
         return result;
     }
 
-
-
+    @Override
+    public String toString() {
+        return asJSONDictionary().toString();
+    }
 }
