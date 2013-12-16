@@ -70,7 +70,7 @@ public abstract class Replication {
     /**
      * Options for what metadata to include in document bodies
      */
-    public enum ReplicationMode {
+    public enum ReplicationStatus {
         REPLICATION_STOPPED,  /**< The replication is finished or hit a fatal error. */
         REPLICATION_OFFLINE,  /**< The remote host is currently unreachable. */
         REPLICATION_IDLE,     /**< Continuous replication is caught up and waiting for more changes.*/
@@ -294,7 +294,7 @@ public abstract class Replication {
      * The replication's current state, one of {stopped, offline, idle, active}.
      */
     @InterfaceAudience.Public
-    public ReplicationMode getMode() {
+    public ReplicationStatus getStatus() {
         throw new UnsupportedOperationException();
     }
 
