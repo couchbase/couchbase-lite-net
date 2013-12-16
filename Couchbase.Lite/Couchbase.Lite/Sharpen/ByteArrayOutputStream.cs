@@ -29,6 +29,11 @@ namespace Sharpen
 		{
 			// Closing a ByteArrayOutputStream has no effect.
 		}
+
+        public void Reset ()
+        {
+            GetWrappedStream().Seek(0, SeekOrigin.Begin);
+        }
 		
 		public override string ToString ()
 		{

@@ -32,7 +32,7 @@ namespace Sharpen
 	{
 		public static string Encode (string str, string encoding)
 		{
-			return HttpUtility.UrlEncode (str, Extensions.GetEncoding (encoding));
+            return HttpUtility.UrlEncode (str, Extensions.GetEncoding (encoding));
 		}
 	}
 }

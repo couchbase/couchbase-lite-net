@@ -19,9 +19,9 @@
     <DefineConstants>DEBUG;</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <ConsolePause>false</ConsolePause>
     <PlatformTarget>x86</PlatformTarget>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <ConsolePause>false</ConsolePause>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|x86' ">
     <DebugType>full</DebugType>
@@ -30,12 +30,13 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <ConsolePause>false</ConsolePause>
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <PlatformTarget>x86</PlatformTarget>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
+  <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>
     <Folder Include="Sharpen\" />
-    <Folder Include="API\" />
+    <Folder Include="Util\" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Sharpen\AList.cs" />
@@ -159,17 +160,15 @@
     <Compile Include="Sharpen\Uri.cs" />
     <Compile Include="Sharpen\HttpClient.cs" />
     <Compile Include="Sharpen\CharUtils.cs" />
-    <Compile Include="Util\URIUtils.cs">
-      <Link>Sharpen\URIUtils.cs</Link>
-    </Compile>
-    <Compile Include="API\Attachment.cs" />
-    <Compile Include="API\Database.cs" />
-    <Compile Include="API\Document.cs" />
-    <Compile Include="API\Manager.cs" />
-    <Compile Include="API\Query.cs" />
-    <Compile Include="API\Replication.cs" />
-    <Compile Include="API\Revision.cs" />
-    <Compile Include="API\View.cs" />
+    <Compile Include="Util\URIUtils.cs" />
+    <Compile Include="Attachment.cs" />
+    <Compile Include="Database.cs" />
+    <Compile Include="Document.cs" />
+    <Compile Include="Manager.cs" />
+    <Compile Include="Query.cs" />
+    <Compile Include="Replication.cs" />
+    <Compile Include="Revision.cs" />
+    <Compile Include="View.cs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="System" />
@@ -185,8 +184,4 @@
     </Reference>
     <Reference Include="System.Web" />
   </ItemGroup>
-  <ItemGroup>
-    <None Include="packages.config" />
-  </ItemGroup>
-  <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
 </Project>
