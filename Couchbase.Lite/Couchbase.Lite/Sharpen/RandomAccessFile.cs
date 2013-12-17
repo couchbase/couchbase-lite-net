@@ -5,7 +5,7 @@ namespace Sharpen
 
 	internal class RandomAccessFile
 	{
-		private FileStream stream;
+		private readonly FileStream stream;
 
 		public RandomAccessFile (FilePath file, string mode) : this(file.GetPath (), mode)
 		{
@@ -38,6 +38,11 @@ namespace Sharpen
 		{
 			return stream.Length;
 		}
+
+        public int Read()
+        {
+            return stream.ReadByte ();
+        }
 
 		public int Read (byte[] buffer)
 		{

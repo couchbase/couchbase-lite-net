@@ -24,6 +24,7 @@ using System.Text;
 using System.Web;
 
 using Sharpen;
+using System.Linq;
 
 namespace Couchbase.Lite.Util
 {
@@ -226,7 +227,7 @@ namespace Couchbase.Lite.Util
 				// Convert the substring to bytes and encode the bytes as
 				// '%'-escaped octets.
 				string toEncode = Sharpen.Runtime.Substring(s, current, nextAllowed);
-				byte[] bytes = Sharpen.Runtime.GetBytesForString(toEncode, Utf8Encoding);
+                byte[] bytes = Sharpen.Runtime.GetBytesForString(toEncode, Utf8Encoding).ToArray();
 				int bytesLength = bytes.Length;
 				for (int i = 0; i < bytesLength; i++)
 				{

@@ -5,7 +5,7 @@ namespace Sharpen
 
 	internal class GZIPInputStream : InputStream
 	{
-		public const int GZIP_MAGIC = 0;
+        public static readonly int GzipMagic = 0;
 
 		public GZIPInputStream (InputStream s)
 		{

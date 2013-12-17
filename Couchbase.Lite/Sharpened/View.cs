@@ -341,20 +341,20 @@ namespace Couchbase.Lite
 		}
 
 		/// <summary>Indexing</summary>
-		public virtual string ToJSONString(object @object)
+		public virtual string ToJSONString(object obj)
 		{
-			if (@object == null)
+			if (obj == null)
 			{
 				return null;
 			}
 			string result = null;
 			try
 			{
-				result = Manager.GetObjectMapper().WriteValueAsString(@object);
+				result = Manager.GetObjectMapper().WriteValueAsString(obj);
 			}
 			catch (Exception e)
 			{
-				Log.W(Database.Tag, "Exception serializing object to json: " + @object, e);
+				Log.W(Database.Tag, "Exception serializing object to json: " + obj, e);
 			}
 			return result;
 		}
@@ -863,16 +863,16 @@ namespace Couchbase.Lite
 		public static double TotalValues(IList<object> values)
 		{
 			double total = 0;
-			foreach (object @object in values)
+			foreach (object obj in values)
 			{
-				if (@object is Number)
+				if (obj is Number)
 				{
-					Number number = (Number)@object;
+					Number number = (Number)obj;
 					total += number;
 				}
 				else
 				{
-					Log.W(Database.Tag, "Warning non-numeric value found in totalValues: " + @object);
+					Log.W(Database.Tag, "Warning non-numeric value found in totalValues: " + obj);
 				}
 			}
 			return total;

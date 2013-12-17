@@ -8,6 +8,7 @@ using System.Reflection;
 using System.Text;
 using System.Threading;
 using ProcessStartInfo = System.Diagnostics.ProcessStartInfo;
+using System.Linq;
 
 namespace Sharpen
 {
@@ -141,12 +142,12 @@ namespace Sharpen
 			sb.Remove (index, 1);
 		}
 		
-		internal static byte[] GetBytesForString (string str)
+		internal static IEnumerable<Byte> GetBytesForString (string str)
 		{
 			return Encoding.UTF8.GetBytes (str);
 		}
 
-		internal static byte[] GetBytesForString (string str, string encoding)
+		internal static IEnumerable<Byte> GetBytesForString (string str, string encoding)
 		{
 			return Encoding.GetEncoding (encoding).GetBytes (str);
 		}
@@ -163,7 +164,7 @@ namespace Sharpen
 
 		internal static void PrintStackTrace (Exception ex)
 		{
-			Console.WriteLine (ex);
+            Console.WriteLine (ex); // TODO: Replace these Console calls with Logger.
 		}
 
 		internal static void PrintStackTrace (Exception ex, TextWriter tw)
@@ -221,24 +222,24 @@ namespace Sharpen
 			return string.CompareOrdinal (s1, s2);
 		}
 
-		internal static string GetStringForBytes (byte[] chars)
+		internal static string GetStringForBytes (IEnumerable<Byte> chars)
 		{
-			return Encoding.UTF8.GetString (chars);
+            return Encoding.UTF8.GetString (chars.ToArray());
 		}
 
-		internal static string GetStringForBytes (byte[] chars, string encoding)
+		internal static string GetStringForBytes (IEnumerable<Byte> chars, string encoding)
 		{
-			return GetEncoding (encoding).GetString (chars);
+            return GetEncoding (encoding).GetString (chars.ToArray());
 		}
 
-		internal static string GetStringForBytes (byte[] chars, int start, int len)
+		internal static string GetStringForBytes (IEnumerable<Byte> chars, int start, int len)
 		{
-			return Encoding.UTF8.GetString (chars, start, len);
+            return Encoding.UTF8.GetString (chars.ToArray(), start, len);
 		}
 
-		internal static string GetStringForBytes (byte[] chars, int start, int len, string encoding)
+		internal static string GetStringForBytes (IEnumerable<Byte> chars, int start, int len, string encoding)
 		{
-			return GetEncoding (encoding).Decode (chars, start, len);
+            return GetEncoding (encoding).Decode (chars.ToArray(), start, len);
 		}
 		
 		internal static Encoding GetEncoding (string name)

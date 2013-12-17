@@ -35,6 +35,12 @@ namespace Couchbase.Lite {
 
     #endregion
     
+        #region Non-public Members
+        public static ObjectWriter GetObjectMapper ()
+        {
+            throw new NotImplementedException ();
+        }
+        #endregion
     }
 
 }

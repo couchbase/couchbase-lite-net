@@ -1,30 +1,17 @@
 using System;
 using System.IO;
 using System.Reflection;
+using System.Security.AccessControl;
 
 namespace Sharpen
 {
 	class FileHelper
 	{
-		public static FileHelper Instance {
-			get; set;
-		}
+        public static FileHelper Instance { get; set; }
 		
 		static FileHelper ()
 		{
-			if (Environment.OSVersion.Platform.ToString ().StartsWith ("Win"))
-				Instance = new FileHelper ();
-			else {
-				var ufh = Type.GetType("Sharpen.Unix.UnixFileHelper, Sharpen.Unix");
-				if (ufh == null) {
-					var path = ((FilePath) typeof (FileHelper).Assembly.Location).GetParent();
-					var assembly = Assembly.LoadFile(Path.Combine(path, "Sharpen.Unix.dll"));
-					if (assembly == null)
-						throw new Exception("Sharpen.Unix.dll is required when running on a Unix based system");
-					ufh = assembly.GetType("Sharpen.Unix.UnixFileHelper");
-				}
-				Instance = (FileHelper)Activator.CreateInstance (ufh);
-			}
+            Instance = new FileHelper ();
 		}
 
 		public virtual bool CanExecute (FilePath path)
@@ -37,6 +24,11 @@ namespace Sharpen
 			return ((File.GetAttributes (path) & FileAttributes.ReadOnly) == 0);
 		}
 		
+        public virtual bool CanRead (FilePath path)
+        {
+            return Exists(path) && ((File.GetAttributes (path) & FileAttributes.Offline) == 0);
+        }
+
 		public virtual bool Delete (FilePath path)
 		{
 			if (Directory.Exists (path)) {

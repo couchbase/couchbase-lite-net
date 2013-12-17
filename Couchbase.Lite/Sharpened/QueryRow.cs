@@ -231,17 +231,17 @@ namespace Couchbase.Lite
 		/// won't get notified of changes.
 		/// </remarks>
 		[InterfaceAudience.Public]
-		public override bool Equals(object @object)
+		public override bool Equals(object obj)
 		{
-			if (@object == this)
+			if (obj == this)
 			{
 				return true;
 			}
-			if (!(@object is Couchbase.Lite.QueryRow))
+			if (!(obj is Couchbase.Lite.QueryRow))
 			{
 				return false;
 			}
-			Couchbase.Lite.QueryRow other = (Couchbase.Lite.QueryRow)@object;
+			Couchbase.Lite.QueryRow other = (Couchbase.Lite.QueryRow)obj;
 			bool documentPropertiesBothNull = (documentProperties == null && other.GetDocumentProperties
 				() == null);
 			bool documentPropertiesEqual = documentPropertiesBothNull || documentProperties.Equals

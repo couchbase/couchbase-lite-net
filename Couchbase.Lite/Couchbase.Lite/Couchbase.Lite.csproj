@@ -37,6 +37,9 @@
   <ItemGroup>
     <Folder Include="Sharpen\" />
     <Folder Include="Util\" />
+    <Folder Include="Extensions\" />
+    <Folder Include="Exceptions\" />
+    <Folder Include="Internal\" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Sharpen\AList.cs" />
@@ -169,6 +172,22 @@
     <Compile Include="Replication.cs" />
     <Compile Include="Revision.cs" />
     <Compile Include="View.cs" />
+    <Compile Include="Extensions\StreamExtensions.cs" />
+    <Compile Include="BlobKey.cs" />
+    <Compile Include="BlobStore.cs" />
+    <Compile Include="BlobStoreWriter.cs" />
+    <Compile Include="Internal\AttachmentInternal.cs" />
+    <Compile Include="Internal\Body.cs" />
+    <Compile Include="Internal\RevisionInternal.cs" />
+    <Compile Include="Exceptions\CouchbaseLiteException.cs" />
+    <Compile Include="Sharpen\String.cs" />
+    <Compile Include="Sharpen\StringTokenizer.cs" />
+    <Compile Include="Util\ObjectWriter.cs" />
+    <Compile Include="Util\Log.cs" />
+    <Compile Include="Util\LoggerFactory.cs" />
+    <Compile Include="Util\SystemLogger.cs" />
+    <Compile Include="Util\ILogger.cs" />
+    <Compile Include="Util\Misc.cs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="System" />
@@ -179,9 +198,23 @@
     <Reference Include="ICSharpCode.SharpZipLib">
       <HintPath>..\packages\ICSharpCode.SharpZipLib.dll.0.85.4.369\lib\net20\ICSharpCode.SharpZipLib.dll</HintPath>
     </Reference>
-    <Reference Include="Newtonsoft.Json">
-      <HintPath>..\packages\Newtonsoft.Json.5.0.8\lib\net45\Newtonsoft.Json.dll</HintPath>
-    </Reference>
     <Reference Include="System.Web" />
+    <Reference Include="ServiceStack.Text">
+      <HintPath>packages\ServiceStack.Text.4.0.5\lib\net40\ServiceStack.Text.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+  <ProjectExtensions>
+    <MonoDevelop>
+      <Properties>
+        <Policies>
+          <TextStylePolicy FileWidth="120" NoTabsAfterNonTabs="True" inheritsSet="VisualStudio" inheritsScope="text/plain" scope="text/plain" />
+          <CSharpFormattingPolicy IndentSwitchBody="True" IndentPreprocessorDirectives="False" NamespaceBraceStyle="EndOfLine" ClassBraceStyle="EndOfLine" AfterDelegateDeclarationParameterComma="True" inheritsSet="Mono" inheritsScope="text/x-csharp" scope="text/x-csharp" />
+          <TextStylePolicy inheritsSet="null" scope="text/x-csharp" />
+        </Policies>
+      </Properties>
+    </MonoDevelop>
+  </ProjectExtensions>
+  <ItemGroup>
+    <None Include="packages.config" />
   </ItemGroup>
 </Project>

@@ -7,7 +7,7 @@ namespace Sharpen
 
 	public class FilePath
 	{
-		private string path;
+        private readonly string path;
 		private static long tempCounter;
 
 		public FilePath ()
@@ -63,6 +63,11 @@ namespace Sharpen
 		{
 			return path.GetHashCode ();
 		}
+
+        public bool CanRead ()
+        {
+            return FileHelper.Instance.CanRead (this);
+        }
 
 		public bool CanWrite ()
 		{

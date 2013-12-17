@@ -69,6 +69,94 @@ namespace Couchbase.Lite {
         public event EventHandler<DatabaseChangeEventArgs> Change;
 
     #endregion
+       
+    #region Constants
+        public const string Tag = "Database";
+
+        public const string TagSql = "CBLSQL";
+       
+    #endregion
+
+    #region Non-Public Instance Members
+
+        internal BlobStoreWriter AttachmentWriter { get; set; }
+
+        private  BlobStore Attachments { get; set; }
+
+        public BlobStore GetAttachments()
+        {
+            return Attachments;
+        }
+
+        public virtual BlobStoreWriter GetAttachmentWriter()
+        {
+            return new BlobStoreWriter(GetAttachments());
+        }
+
+
+
+        internal Attachment GetAttachmentForSequence (long sequence, string filename)
+        {
+            System.Diagnostics.Debug.Assert((sequence > 0));
+            System.Diagnostics.Debug.Assert((filename != null));
+
+            throw new NotImplementedException();
+//            Cursor cursor = null;
+//            string[] args = new string[] { System.Convert.ToString(sequence), filename };
+//            try
+//            {
+//                cursor = database.RawQuery("SELECT key, type FROM attachments WHERE sequence=? AND filename=?"
+//                    , args);
+//                if (!cursor.MoveToNext())
+//                {
+//                    throw new CouchbaseLiteException(Status.NotFound);
+//                }
+//                byte[] keyData = cursor.GetBlob(0);
+//                //TODO add checks on key here? (ios version)
+//                BlobKey key = new BlobKey(keyData);
+//                InputStream contentStream = attachments.BlobStreamForKey(key);
+//                if (contentStream == null)
+//                {
+//                    Log.E(Couchbase.Lite.Database.Tag, "Failed to load attachment");
+//                    throw new CouchbaseLiteException(Status.InternalServerError);
+//                }
+//                else
+//                {
+//                    Attachment result = new Attachment(contentStream, cursor.GetString(1));
+//                    result.SetGZipped(attachments.IsGZipped(key));
+//                    return result;
+//                }
+//            }
+//            catch (SQLException)
+//            {
+//                throw new CouchbaseLiteException(Status.InternalServerError);
+//            }
+//            finally
+//            {
+//                if (cursor != null)
+//                {
+//                    cursor.Close();
+//                }
+//            }
+        }
+
+        internal void RememberAttachmentWriter (BlobStoreWriter writer)
+        {
+            var digest = writer.MD5DigestString();
+            PendingAttachmentsByDigest[digest] = writer;
+        }
+
+        IDictionary<String, BlobStoreWriter> _pendingAttachmentsByDigest;
+        IDictionary<String, BlobStoreWriter> PendingAttachmentsByDigest {
+            get {
+                return _pendingAttachmentsByDigest ?? (_pendingAttachmentsByDigest = new Dictionary<String, BlobStoreWriter>());
+            }
+            set {
+                _pendingAttachmentsByDigest = value;
+            }
+        }
+
+    #endregion
     
     #region Delegates
         public delegate void RunAsyncDelegate(Database database);
@@ -77,7 +165,7 @@ namespace Couchbase.Lite {
 
         
 
-        public delegate void ValidateDelegate(Revision newRevision, ValidationContext context);
+        public delegate void ValidateDelegate(Revision newRevision, IValidationContext context);
 
         public delegate Boolean FilterDelegate(SavedRevision revision, Dictionary<String, Object> filterParams);
 
@@ -101,7 +189,7 @@ namespace Couchbase.Lite {
     
     }
 
-    public partial interface ValidationContext {
+    public partial interface IValidationContext {
 
     #region Instance Members
         //Properties

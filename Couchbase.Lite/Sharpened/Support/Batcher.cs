@@ -106,7 +106,7 @@ namespace Couchbase.Lite.Support
 			}
 		}
 
-		public virtual void QueueObject(T @object)
+		public virtual void QueueObject(T obj)
 		{
 			lock (this)
 			{
@@ -123,7 +123,7 @@ namespace Couchbase.Lite.Support
 							);
 					}
 				}
-				inbox.AddItem(@object);
+				inbox.AddItem(obj);
 			}
 		}
 

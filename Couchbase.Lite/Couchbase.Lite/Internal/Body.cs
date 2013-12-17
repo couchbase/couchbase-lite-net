@@ -24,7 +24,6 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using Couchbase.Lite;
-using Newtonsoft.Json;
 using Sharpen;
 
 namespace Couchbase.Lite.Internal
@@ -33,11 +32,11 @@ namespace Couchbase.Lite.Internal
 	/// 	</summary>
 	public class Body
 	{
-		private byte[] json;
+        private IEnumerable<Byte> json;
 
 		private object obj;
 
-		public Body(byte[] json)
+		public Body(IEnumerable<Byte> json)
 		{
 			this.json = json;
 		}
@@ -52,22 +51,20 @@ namespace Couchbase.Lite.Internal
 			this.obj = array;
 		}
 
-		public static Couchbase.Lite.Internal.Body BodyWithProperties(IDictionary<string
+		public static Body BodyWithProperties(IDictionary<string
 			, object> properties)
 		{
-			Couchbase.Lite.Internal.Body result = new Couchbase.Lite.Internal.Body(properties
-				);
+            var result = new Body(properties);
 			return result;
 		}
 
-		public static Couchbase.Lite.Internal.Body BodyWithJSON(byte[] json)
+		public static Body BodyWithJSON(IEnumerable<Byte> json)
 		{
-			Couchbase.Lite.Internal.Body result = new Couchbase.Lite.Internal.Body(json
-				);
+            var result = new Body(json);
 			return result;
 		}
 
-		public virtual byte[] GetJson()
+		public IEnumerable<Byte> GetJson()
 		{
 			if (json == null)
 			{
@@ -80,8 +77,7 @@ namespace Couchbase.Lite.Internal
 		{
 			if (obj == null)
 			{
-				throw new InvalidOperationException("Both json and object are null for this body: "
-					 + this);
+                throw new InvalidOperationException("Both json and object are null for this body: " + this);
 			}
 			try
 			{
@@ -93,7 +89,7 @@ namespace Couchbase.Lite.Internal
 			}
 		}
 
-		public virtual object GetObject()
+		public object GetObject()
 		{
 			if (obj == null)
 			{
@@ -119,15 +115,13 @@ namespace Couchbase.Lite.Internal
 			}
 		}
 
-		public virtual bool IsValidJSON()
+		public bool IsValidJSON()
 		{
 			if (obj == null)
 			{
-				bool gotException = false;
 				if (json == null)
 				{
-					throw new InvalidOperationException("Both object and json are null for this body: "
-						 + this);
+                    throw new InvalidOperationException("Both object and json are null for this body: " + this);
 				}
 				try
 				{
@@ -140,7 +134,7 @@ namespace Couchbase.Lite.Internal
 			return obj != null;
 		}
 
-		public virtual byte[] GetPrettyJson()
+		public IEnumerable<Byte> GetPrettyJson()
 		{
 			object properties = GetObject();
 			if (properties != null)
@@ -158,23 +152,28 @@ namespace Couchbase.Lite.Internal
 			return GetJson();
 		}
 
-		public virtual string GetJSONString()
+		public string GetJSONString()
 		{
-			return Sharpen.Runtime.GetStringForBytes(GetJson());
+			return Runtime.GetStringForBytes(GetJson());
 		}
 
-		public virtual IDictionary<string, object> GetProperties()
+		public IDictionary<string, object> GetProperties()
 		{
-			object obj = GetObject();
-			if (obj is IDictionary)
+            var currentObj = GetObject();
+            if (currentObj is IDictionary)
 			{
-				IDictionary<string, object> map = (IDictionary<string, object>)obj;
+                IDictionary<string, object> map = (IDictionary<string, object>)currentObj;
 				return Sharpen.Collections.UnmodifiableMap(map);
 			}
 			return null;
 		}
 
-		public virtual object GetPropertyForKey(string key)
+        public Boolean HasValueForKey(string key)
+        {
+            return GetProperties().ContainsKey(key);
+        }
+
+		public object GetPropertyForKey(string key)
 		{
 			IDictionary<string, object> theProperties = GetProperties();
 			return theProperties.Get(key);

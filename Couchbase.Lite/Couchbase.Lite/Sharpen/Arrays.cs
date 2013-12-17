@@ -1,3 +1,5 @@
+using System.Threading.Tasks;
+
 namespace Sharpen
 {
 	using System;
@@ -60,5 +62,13 @@ namespace Sharpen
 		{
 			Array.Sort<T> (array, start, count, c);
 		}
+
+        public static int HashCode<T> (T[] array) {
+            var hashCode = 1;
+            foreach(T item in array) {
+                hashCode = 31 * hashCode + ((item == null) ? 0 : item.GetHashCode());
+            }
+            return hashCode;
+        }
 	}
 }

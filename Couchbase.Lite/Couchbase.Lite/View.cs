@@ -11,7 +11,7 @@ namespace Couchbase.Lite {
 
     #region Static Members
         //Properties
-        public static ViewCompiler Compiler { get; set; }
+        public static IViewCompiler Compiler { get; set; }
 
     #endregion
     
@@ -53,7 +53,7 @@ namespace Couchbase.Lite {
     
     }
 
-    public partial interface ViewCompiler {
+    public partial interface IViewCompiler {
 
     #region Instance Members
         //Methods

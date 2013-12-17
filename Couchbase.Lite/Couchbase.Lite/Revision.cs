@@ -8,6 +8,8 @@ using System.IO;
 namespace Couchbase.Lite {
 
     public partial class Revision {
+    
+        internal Int64 Sequence { get; private set; }
 
     #region Instance Members
         //Properties
@@ -63,11 +65,11 @@ namespace Couchbase.Lite {
 
     #region Instance Members
         //Properties
-        public Boolean IsDeletion { get; set; }
-
-        public Dictionary<String, Object> Properties { get; set; }
-
-        public Dictionary<String, Object> UserProperties { get; set; }
+//        public Boolean IsDeletion { get; set; }
+//
+//        public Dictionary<String, Object> Properties { get; set; }
+//
+//        public Dictionary<String, Object> UserProperties { get; set; }
 
         //Methods
         public SavedRevision Save() { throw new NotImplementedException(); }
