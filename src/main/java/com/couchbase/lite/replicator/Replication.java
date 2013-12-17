@@ -546,6 +546,7 @@ public abstract class Replication {
 
     public synchronized void asyncTaskFinished(int numTasks) {
         this.asyncTaskCount -= numTasks;
+        assert(asyncTaskCount >= 0);
         if (asyncTaskCount == 0) {
             if (!continuous) {
                 stopped();
