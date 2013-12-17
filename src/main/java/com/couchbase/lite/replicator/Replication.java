@@ -255,8 +255,11 @@ public abstract class Replication {
      */
     @InterfaceAudience.Public
     public List<String> getChannels() {
-        String params = (String) getFilterParams().get(CHANNELS_QUERY_PARAM);
-        if (!isPull() || !getFilter().equals(BY_CHANNEL_FILTER_NAME) || params == null || params.isEmpty()) {
+        if (filterParams == null || filterParams.isEmpty()) {
+            return new ArrayList<String>();
+        }
+        String params = (String) filterParams.get(CHANNELS_QUERY_PARAM);
+        if (!isPull() || getFilter() == null || !getFilter().equals(BY_CHANNEL_FILTER_NAME) || params == null || params.isEmpty()) {
             return new ArrayList<String>();
         }
         String[] paramsArray = params.split(",");
@@ -277,6 +280,9 @@ public abstract class Replication {
             Map<String, Object> filterParams = new HashMap<String, Object>();
             filterParams.put(CHANNELS_QUERY_PARAM, TextUtils.join(",", channels));
             setFilterParams(filterParams);
+        } else if (getFilter().equals(BY_CHANNEL_FILTER_NAME)) {
+            setFilter(null);
+            setFilterParams(null);
         }
     }
 
