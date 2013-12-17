@@ -172,15 +172,13 @@ public class Puller extends Replication implements ChangeTrackerClient {
     @Override
     public void changeTrackerStopped(ChangeTracker tracker) {
         Log.w(Database.TAG, this + ": ChangeTracker stopped");
-        //FIXME tracker doesnt have error right now
-//        if(error == null && tracker.getLastError() != null) {
-//            error = tracker.getLastError();
-//        }
+        if (error == null && tracker.getLastError() != null) {
+            error = tracker.getLastError();
+        }
         changeTracker = null;
         if(batcher != null) {
             batcher.flush();
         }
-
         if (!isContinuous()) {
             asyncTaskFinished(1);  // balances -asyncTaskStarted in -startChangeTracker
         }

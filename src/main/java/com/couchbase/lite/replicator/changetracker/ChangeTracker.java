@@ -1,7 +1,9 @@
 package com.couchbase.lite.replicator.changetracker;
 
+import com.couchbase.lite.CouchbaseLiteException;
 import com.couchbase.lite.Database;
 import com.couchbase.lite.Manager;
+import com.couchbase.lite.Status;
 import com.couchbase.lite.util.Log;
 import com.couchbase.lite.util.URIUtils;
 
@@ -209,6 +211,8 @@ public class ChangeTracker implements Runnable {
                 StatusLine status = response.getStatusLine();
                 if (status.getStatusCode() >= 300) {
                     Log.e(Database.TAG, "Change tracker got error " + Integer.toString(status.getStatusCode()));
+                    String msg = String.format(status.toString());
+                    this.error = new CouchbaseLiteException(msg, new Status(status.getStatusCode()));
                     stop();
                 }
                 HttpEntity entity = response.getEntity();
@@ -327,6 +331,10 @@ public class ChangeTracker implements Runnable {
         }
         client = null;
         Log.d(Database.TAG, "change tracker client should be null now");
+    }
+
+    public Throwable getLastError() {
+        return error;
     }
 
     public boolean isRunning() {
