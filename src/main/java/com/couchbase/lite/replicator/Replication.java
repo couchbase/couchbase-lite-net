@@ -59,6 +59,7 @@ public abstract class Replication {
     protected boolean online;
     protected final HttpClientFactory clientFactory;
     private List<ChangeListener> changeListeners;
+    protected List<String> documentIDs;
 
     protected Map<String, Object> filterParams;
     protected ExecutorService remoteRequestExecutor;
@@ -282,7 +283,7 @@ public abstract class Replication {
      */
     @InterfaceAudience.Public
     public List<String> getDocsIds() {
-        throw new UnsupportedOperationException();
+        return documentIDs;
     }
 
     /**
@@ -290,7 +291,7 @@ public abstract class Replication {
      */
     @InterfaceAudience.Public
     public void setDocIds(List<String> docIds) {
-        throw new UnsupportedOperationException();
+        documentIDs = docIds;
     }
 
     /**
