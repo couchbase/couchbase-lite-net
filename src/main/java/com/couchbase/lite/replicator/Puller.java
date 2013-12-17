@@ -181,7 +181,10 @@ public class Puller extends Replication implements ChangeTrackerClient {
             batcher.flush();
         }
 
-        asyncTaskFinished(1);
+        if (!isContinuous()) {
+            asyncTaskFinished(1);  // balances -asyncTaskStarted in -startChangeTracker
+        }
+
     }
 
     @Override
