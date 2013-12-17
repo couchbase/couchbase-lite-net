@@ -67,6 +67,7 @@ public abstract class Replication {
     protected ExecutorService remoteRequestExecutor;
     protected Authorizer authorizer;
     private ReplicationStatus status = ReplicationStatus.REPLICATION_STOPPED;
+    protected Map<String, Object> requestHeaders;
 
     protected static final int PROCESSOR_DELAY = 500;
     protected static final int INBOX_CAPACITY = 100;
@@ -107,6 +108,7 @@ public abstract class Replication {
         this.remoteRequestExecutor = Executors.newCachedThreadPool();
         this.changeListeners = new ArrayList<ChangeListener>();
         this.online = true;
+        this.requestHeaders = new HashMap<String, Object>();
 
         if (remote.getQuery() != null && !remote.getQuery().isEmpty()) {
 
@@ -291,16 +293,18 @@ public abstract class Replication {
      * Should map strings (header names) to strings.
      */
     @InterfaceAudience.Public
-    public Map<String, String> getHeaders() {
-        throw new UnsupportedOperationException();
+    public Map<String, Object> getHeaders() {
+        return requestHeaders;
     }
 
     /**
      * Set Extra HTTP headers to be sent in all requests to the remote server.
      */
     @InterfaceAudience.Public
-    public void setHeaders(Map<String, String> headers) {
-        throw new UnsupportedOperationException();
+    public void setHeaders(Map<String, Object> requestHeaders) {
+        if (!requestHeaders.equals(requestHeaders)) {
+            this.requestHeaders = requestHeaders;
+        }
     }
 
     /**
@@ -624,7 +628,7 @@ public abstract class Replication {
     }
 
     public void sendAsyncRequest(String method, URL url, Object body, RemoteRequestCompletionBlock onCompletion) {
-        RemoteRequest request = new RemoteRequest(workExecutor, clientFactory, method, url, body, onCompletion);
+        RemoteRequest request = new RemoteRequest(workExecutor, clientFactory, method, url, body, getHeaders(), onCompletion);
         remoteRequestExecutor.execute(request);
     }
 
@@ -634,7 +638,15 @@ public abstract class Replication {
             String urlStr = buildRelativeURLString(relativePath);
             URL url = new URL(urlStr);
 
-            RemoteMultipartDownloaderRequest request = new RemoteMultipartDownloaderRequest(workExecutor, clientFactory, method, url, body, db, onCompletion);
+            RemoteMultipartDownloaderRequest request = new RemoteMultipartDownloaderRequest(
+                    workExecutor,
+                    clientFactory,
+                    method,
+                    url,
+                    body,
+                    db,
+                    getHeaders(),
+                    onCompletion);
             remoteRequestExecutor.execute(request);
         } catch (MalformedURLException e) {
             Log.e(Database.TAG, "Malformed URL for async request", e);
@@ -649,7 +661,14 @@ public abstract class Replication {
         } catch (MalformedURLException e) {
             throw new IllegalArgumentException(e);
         }
-        RemoteMultipartRequest request = new RemoteMultipartRequest(workExecutor, clientFactory, method, url, multiPartEntity, onCompletion);
+        RemoteMultipartRequest request = new RemoteMultipartRequest(
+                workExecutor,
+                clientFactory,
+                method,
+                url,
+                multiPartEntity,
+                getHeaders(),
+                onCompletion);
         remoteRequestExecutor.execute(request);
     }
 

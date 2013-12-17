@@ -357,6 +357,7 @@ public class Manager {
     public Replication getReplicator(Map<String,Object> properties) throws CouchbaseLiteException {
 
         // TODO: in the iOS equivalent of this code, there is: {@"doc_ids", _documentIDs}) - write unit test that detects this bug
+        // TODO: ditto for "headers"
 
         Authorizer authorizer = null;
         Replication repl = null;
