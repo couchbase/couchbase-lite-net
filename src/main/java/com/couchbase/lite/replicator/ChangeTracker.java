@@ -36,6 +36,7 @@ import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLEncoder;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -118,11 +119,28 @@ public class ChangeTracker implements Runnable {
         if(lastSequenceID != null) {
             path += "&since=" + URLEncoder.encode(lastSequenceID.toString());
         }
+
+        if (docIDs != null && docIDs.size() > 0) {
+            filterName = "_doc_ids";
+            filterParams = new HashMap<String, Object>();
+            filterParams.put("doc_ids", docIDs);
+        }
+
         if(filterName != null) {
             path += "&filter=" + URLEncoder.encode(filterName);
             if(filterParams != null) {
                 for (String filterParamKey : filterParams.keySet()) {
-                    path += "&" + URLEncoder.encode(filterParamKey) + "=" + URLEncoder.encode(filterParams.get(filterParamKey).toString());
+
+                    Object value = filterParams.get(filterParamKey);
+                    if (!(value instanceof String)) {
+                        try {
+                            value = Manager.getObjectMapper().writeValueAsString(value);
+                        } catch (IOException e) {
+                            throw new IllegalArgumentException(e);
+                        }
+                    }
+                    path += "&" + URLEncoder.encode(filterParamKey) + "=" + URLEncoder.encode(value.toString());
+
                 }
             }
         }
