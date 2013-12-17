@@ -56,6 +56,7 @@ public abstract class Replication {
     protected int asyncTaskCount;
     private int completedChangesCount;
     private int changesCount;
+    protected boolean online;
     protected final HttpClientFactory clientFactory;
     private List<ChangeListener> changeListeners;
 
@@ -99,6 +100,7 @@ public abstract class Replication {
         this.remote = remote;
         this.remoteRequestExecutor = Executors.newCachedThreadPool();
         this.changeListeners = new ArrayList<ChangeListener>();
+        this.online = true;
 
         if (remote.getQuery() != null && !remote.getQuery().isEmpty()) {
 
@@ -339,6 +341,7 @@ public abstract class Replication {
      */
     @InterfaceAudience.Public
     public void start() {
+
         if (running) {
             return;
         }
@@ -348,6 +351,7 @@ public abstract class Replication {
         lastSequence = null;
 
         checkSession();
+
     }
 
     /**
@@ -736,6 +740,32 @@ public abstract class Replication {
 
         });
         db.setLastSequence(lastSequence, remote, !isPull());
+    }
+
+    @InterfaceAudience.Private
+    boolean goOffline() {
+        if (!online) {
+            return false;
+        }
+        online = false;
+        // TODO: [self stopRemoteRequests]; - remoteRequestExecutor.shutdown(); or remoteRequestExecutor.shutdownNow();
+        updateProgress();
+        return true;
+    }
+
+    @InterfaceAudience.Private
+    void updateProgress() {
+        if (!isRunning()) {
+            status = ReplicationStatus.REPLICATION_STOPPED;
+        } else if (!online) {
+            status = ReplicationStatus.REPLICATION_OFFLINE;
+        } else {
+            if (active) {
+                status = ReplicationStatus.REPLICATION_ACTIVE;
+            } else {
+                status = ReplicationStatus.REPLICATION_IDLE;
+            }
+        }
     }
 
     /**

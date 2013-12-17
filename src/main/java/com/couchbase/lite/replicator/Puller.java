@@ -420,6 +420,15 @@ public class Puller extends Replication implements ChangeTrackerClient {
         return URLEncoder.encode(new String(json));
     }
 
+    @InterfaceAudience.Private
+    boolean goOffline() {
+        if (!super.goOffline()) {
+            return false;
+        }
+        changeTracker.stop();
+        return true;
+    }
+
 }
 
 /**
