@@ -508,6 +508,7 @@ public abstract class Replication {
     }
 
     private void notifyChangeListeners() {
+        updateProgress();
         for (ChangeListener listener : changeListeners) {
             ChangeEvent changeEvent = new ChangeEvent(this);
             listener.changed(changeEvent);
