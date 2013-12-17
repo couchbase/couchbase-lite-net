@@ -9,8 +9,6 @@ import com.couchbase.lite.Status;
 import com.couchbase.lite.internal.Body;
 import com.couchbase.lite.internal.RevisionInternal;
 import com.couchbase.lite.internal.InterfaceAudience;
-import com.couchbase.lite.replicator.changetracker.ChangeTracker;
-import com.couchbase.lite.replicator.changetracker.ChangeTrackerClient;
 import com.couchbase.lite.storage.SQLException;
 import com.couchbase.lite.support.BatchProcessor;
 import com.couchbase.lite.support.Batcher;

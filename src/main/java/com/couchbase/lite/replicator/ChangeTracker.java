@@ -1,4 +1,4 @@
-package com.couchbase.lite.replicator.changetracker;
+package com.couchbase.lite.replicator;
 
 import com.couchbase.lite.CouchbaseLiteException;
 import com.couchbase.lite.Database;
