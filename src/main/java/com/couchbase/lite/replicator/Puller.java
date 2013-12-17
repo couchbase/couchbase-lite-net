@@ -10,7 +10,6 @@ import com.couchbase.lite.internal.Body;
 import com.couchbase.lite.internal.RevisionInternal;
 import com.couchbase.lite.internal.InterfaceAudience;
 import com.couchbase.lite.replicator.changetracker.ChangeTracker;
-import com.couchbase.lite.replicator.changetracker.ChangeTracker.TDChangeTrackerMode;
 import com.couchbase.lite.replicator.changetracker.ChangeTrackerClient;
 import com.couchbase.lite.storage.SQLException;
 import com.couchbase.lite.support.BatchProcessor;
@@ -90,7 +89,7 @@ public class Puller extends Replication implements ChangeTrackerClient {
         }
         pendingSequences = new SequenceMap();
         Log.w(Database.TAG, this + " starting ChangeTracker with since=" + lastSequence);
-        changeTracker = new ChangeTracker(remote, continuous ? TDChangeTrackerMode.LongPoll : TDChangeTrackerMode.OneShot, lastSequence, this);
+        changeTracker = new ChangeTracker(remote, continuous ? ChangeTracker.ChangeTrackerMode.LongPoll : ChangeTracker.ChangeTrackerMode.OneShot, lastSequence, this);
         if(filterName != null) {
             changeTracker.setFilterName(filterName);
             if(filterParams != null) {

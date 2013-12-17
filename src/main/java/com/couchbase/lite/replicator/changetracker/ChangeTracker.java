@@ -48,7 +48,7 @@ public class ChangeTracker implements Runnable {
 
     private URL databaseURL;
     private ChangeTrackerClient client;
-    private TDChangeTrackerMode mode;
+    private ChangeTrackerMode mode;
     private Object lastSequenceID;
 
     private Thread thread;
@@ -57,15 +57,16 @@ public class ChangeTracker implements Runnable {
 
     private String filterName;
     private Map<String, Object> filterParams;
+    private List<String> docIDs;
 
     private Throwable error;
 
 
-    public enum TDChangeTrackerMode {
+    public enum ChangeTrackerMode {
         OneShot, LongPoll, Continuous
     }
 
-    public ChangeTracker(URL databaseURL, TDChangeTrackerMode mode,
+    public ChangeTracker(URL databaseURL, ChangeTrackerMode mode,
                          Object lastSequenceID, ChangeTrackerClient client) {
         this.databaseURL = databaseURL;
         this.mode = mode;
@@ -220,10 +221,10 @@ public class ChangeTracker implements Runnable {
                 if (entity != null) {
 
                     input = entity.getContent();
-                    if (mode == TDChangeTrackerMode.LongPoll) {
+                    if (mode == ChangeTrackerMode.LongPoll) {
                         Map<String, Object> fullBody = Manager.getObjectMapper().readValue(input, Map.class);
                         boolean responseOK = receivedPollResponse(fullBody);
-                        if (mode == TDChangeTrackerMode.LongPoll && responseOK) {
+                        if (mode == ChangeTrackerMode.LongPoll && responseOK) {
                             Log.v(Database.TAG, "Starting new longpoll");
                             continue;
                         } else {
@@ -339,6 +340,10 @@ public class ChangeTracker implements Runnable {
 
     public boolean isRunning() {
         return running;
+    }
+
+    public void setDocIDs(List<String> docIDs) {
+        this.docIDs = docIDs;
     }
 
 }
