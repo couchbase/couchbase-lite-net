@@ -375,7 +375,9 @@ public abstract class Replication {
      */
     @InterfaceAudience.Public
     public void restart() {
-        throw new UnsupportedOperationException();
+        // TODO: add the "started" flag and check it here
+        stop();
+        start();
     }
 
     /**
