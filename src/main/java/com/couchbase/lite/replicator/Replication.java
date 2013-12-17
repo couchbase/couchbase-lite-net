@@ -62,6 +62,7 @@ public abstract class Replication {
     protected Map<String, Object> filterParams;
     protected ExecutorService remoteRequestExecutor;
     protected Authorizer authorizer;
+    private ReplicationStatus status = ReplicationStatus.REPLICATION_STOPPED;
 
     protected static final int PROCESSOR_DELAY = 500;
     protected static final int INBOX_CAPACITY = 100;
@@ -295,7 +296,7 @@ public abstract class Replication {
      */
     @InterfaceAudience.Public
     public ReplicationStatus getStatus() {
-        throw new UnsupportedOperationException();
+        return status;
     }
 
     /**
