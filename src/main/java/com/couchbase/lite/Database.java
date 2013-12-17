@@ -598,7 +598,8 @@ public class Database {
      */
     @InterfaceAudience.Public
     public Replication getPushReplication(URL remote) {
-        return manager.replicationWithDatabase(this, remote, true, true, false);
+        final boolean continuous = false;
+        return new Pusher(this, remote, continuous, manager.getWorkExecutor());
     }
 
     /**
@@ -610,7 +611,8 @@ public class Database {
      */
     @InterfaceAudience.Public
     public Replication getPullReplication(URL remote) {
-        return manager.replicationWithDatabase(this, remote, false, true, false);
+        final boolean continuous = false;
+        return new Puller(this, remote, continuous, manager.getWorkExecutor());
     }
 
 

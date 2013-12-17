@@ -334,11 +334,13 @@ public class Manager {
         }
 
         Replication replicator = null;
+        final boolean continuous = false;
+
         if (push) {
-            replicator = new Pusher(db, remote, true, getWorkExecutor());
+            replicator = new Pusher(db, remote, continuous, getWorkExecutor());
         }
         else {
-            replicator = new Puller(db, remote, true, getWorkExecutor());
+            replicator = new Puller(db, remote, continuous, getWorkExecutor());
         }
 
         replications.add(replicator);
