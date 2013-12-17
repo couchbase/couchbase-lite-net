@@ -16,6 +16,7 @@ import com.couchbase.lite.support.RemoteMultipartRequest;
 import com.couchbase.lite.support.RemoteRequest;
 import com.couchbase.lite.support.RemoteRequestCompletionBlock;
 import com.couchbase.lite.support.HttpClientFactory;
+import com.couchbase.lite.util.TextUtils;
 import com.couchbase.lite.util.URIUtils;
 import com.couchbase.lite.util.Log;
 
@@ -26,6 +27,7 @@ import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -68,6 +70,9 @@ public abstract class Replication {
 
     protected static final int PROCESSOR_DELAY = 500;
     protected static final int INBOX_CAPACITY = 100;
+
+    public static final String BY_CHANNEL_FILTER_NAME = "sync_gateway/bychannel";
+    public static final String CHANNELS_QUERY_PARAM = "channels";
     public static final String REPLICATOR_DATABASE_NAME = "_replicator";
 
     /**
@@ -250,7 +255,12 @@ public abstract class Replication {
      */
     @InterfaceAudience.Public
     public List<String> getChannels() {
-        throw new UnsupportedOperationException();
+        String params = (String) getFilterParams().get(CHANNELS_QUERY_PARAM);
+        if (!isPull() || !getFilter().equals(BY_CHANNEL_FILTER_NAME) || params == null || params.isEmpty()) {
+            return new ArrayList<String>();
+        }
+        String[] paramsArray = params.split(",");
+        return new ArrayList<String>(Arrays.asList(paramsArray));
     }
 
     /**
@@ -258,7 +268,16 @@ public abstract class Replication {
      */
     @InterfaceAudience.Public
     public void setChannels(List<String> channels) {
-        throw new UnsupportedOperationException();
+        if (channels != null && !channels.isEmpty()) {
+            if (!isPull()) {
+                Log.w(Database.TAG, "filterChannels can only be set in pull replications");
+                return;
+            }
+            setFilter(BY_CHANNEL_FILTER_NAME);
+            Map<String, Object> filterParams = new HashMap<String, Object>();
+            filterParams.put(CHANNELS_QUERY_PARAM, TextUtils.join(",", channels));
+            setFilterParams(filterParams);
+        }
     }
 
     /**
