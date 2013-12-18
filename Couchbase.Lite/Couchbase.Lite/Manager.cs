@@ -10,21 +10,21 @@ namespace Couchbase.Lite {
     public partial class Manager {
 
     #region Static Members
-        //Properties
+        //Properties
         public static Manager SharedInstance { get { throw new NotImplementedException(); } }
 
-        //Methods
+        //Methods
         public static Boolean IsValidDatabaseName(String name) { throw new NotImplementedException(); }
 
     #endregion
     
     #region Instance Members
-        //Properties
+        //Properties
         public String Directory { get { throw new NotImplementedException(); } }
 
         public IEnumerable<String> AllDatabaseNames { get { throw new NotImplementedException(); } }
 
-        //Methods
+        //Methods
         public void Close() { throw new NotImplementedException(); }
 
         public Database GetDatabase(String name) { throw new NotImplementedException(); }

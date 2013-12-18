@@ -29,7 +29,7 @@ namespace Couchbase.Lite
 	{
 		private int limit = int.MaxValue;
 
-		private EnumSet<Database.TDContentOptions> contentOptions = EnumSet.NoneOf<Database.TDContentOptions
+		private EnumSet<TDContentOptions> contentOptions = EnumSet.NoneOf<TDContentOptions
 			>();
 
 		private bool includeDocs = false;
@@ -78,12 +78,12 @@ namespace Couchbase.Lite
 			this.sortBySequence = sortBySequence;
 		}
 
-		public virtual EnumSet<Database.TDContentOptions> GetContentOptions()
+		public virtual EnumSet<TDContentOptions> GetContentOptions()
 		{
 			return contentOptions;
 		}
 
-		public virtual void SetContentOptions(EnumSet<Database.TDContentOptions> contentOptions
+		public virtual void SetContentOptions(EnumSet<TDContentOptions> contentOptions
 			)
 		{
 			this.contentOptions = contentOptions;

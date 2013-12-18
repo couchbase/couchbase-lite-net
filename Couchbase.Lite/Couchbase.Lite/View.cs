@@ -10,13 +10,13 @@ namespace Couchbase.Lite {
     public partial class View {
 
     #region Static Members
-        //Properties
+        //Properties
         public static IViewCompiler Compiler { get; set; }
 
     #endregion
     
     #region Instance Members
-        //Properties
+        //Properties
         public Database Database { get { throw new NotImplementedException(); } }
 
         public String Name { get { throw new NotImplementedException(); } }
@@ -29,7 +29,7 @@ namespace Couchbase.Lite {
 
         public long LastSequenceIndexed { get { throw new NotImplementedException(); } }
 
-        //Methods
+        //Methods
         public Boolean SetMap(MapDelegate map, String version) { throw new NotImplementedException(); }
 
         public Boolean SetMapReduce(MapDelegate map, ReduceDelegate reduce, String version) { throw new NotImplementedException(); }
@@ -43,9 +43,9 @@ namespace Couchbase.Lite {
     #endregion
     
     #region Delegates
-        
+        
 
-        
+        
 
         public delegate Object ReduceDelegate(IEnumerable<Object> keys, IEnumerable<Object> values, Boolean rereduce);
 
@@ -56,7 +56,7 @@ namespace Couchbase.Lite {
     public partial interface IViewCompiler {
 
     #region Instance Members
-        //Methods
+        //Methods
         MapDelegate CompileMap(String source, String language);
 
         ReduceDelegate CompileReduce(String source, String language);

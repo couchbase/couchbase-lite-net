@@ -178,29 +178,29 @@ namespace Couchbase.Lite.Router
 			}
 		}
 
-		public virtual EnumSet<Database.TDContentOptions> GetContentOptions()
+		public virtual EnumSet<TDContentOptions> GetContentOptions()
 		{
-			EnumSet<Database.TDContentOptions> result = EnumSet.NoneOf<Database.TDContentOptions
+			EnumSet<TDContentOptions> result = EnumSet.NoneOf<TDContentOptions
 				>();
 			if (GetBooleanQuery("attachments"))
 			{
-				result.AddItem(Database.TDContentOptions.TDIncludeAttachments);
+				result.AddItem(TDContentOptions.TDIncludeAttachments);
 			}
 			if (GetBooleanQuery("local_seq"))
 			{
-				result.AddItem(Database.TDContentOptions.TDIncludeLocalSeq);
+				result.AddItem(TDContentOptions.TDIncludeLocalSeq);
 			}
 			if (GetBooleanQuery("conflicts"))
 			{
-				result.AddItem(Database.TDContentOptions.TDIncludeConflicts);
+				result.AddItem(TDContentOptions.TDIncludeConflicts);
 			}
 			if (GetBooleanQuery("revs"))
 			{
-				result.AddItem(Database.TDContentOptions.TDIncludeRevs);
+				result.AddItem(TDContentOptions.TDIncludeRevs);
 			}
 			if (GetBooleanQuery("revs_info"))
 			{
-				result.AddItem(Database.TDContentOptions.TDIncludeRevsInfo);
+				result.AddItem(TDContentOptions.TDIncludeRevsInfo);
 			}
 			return result;
 		}
@@ -1472,7 +1472,7 @@ namespace Couchbase.Lite.Router
 			{
 				// http://wiki.apache.org/couchdb/HTTP_Document_API#GET
 				bool isLocalDoc = docID.StartsWith("_local");
-				EnumSet<Database.TDContentOptions> options = GetContentOptions();
+				EnumSet<TDContentOptions> options = GetContentOptions();
 				string openRevsParam = GetQuery("open_revs");
 				if (openRevsParam == null || isLocalDoc)
 				{
@@ -1596,8 +1596,8 @@ namespace Couchbase.Lite.Router
 			try
 			{
 				// http://wiki.apache.org/couchdb/HTTP_Document_API#GET
-				EnumSet<Database.TDContentOptions> options = GetContentOptions();
-				options.AddItem(Database.TDContentOptions.TDNoBody);
+				EnumSet<TDContentOptions> options = GetContentOptions();
+				options.AddItem(TDContentOptions.TDNoBody);
 				string revID = GetQuery("rev");
 				// often null
 				RevisionInternal rev = db.GetDocumentWithIDAndRev(docID, revID, options);
@@ -1878,7 +1878,7 @@ namespace Couchbase.Lite.Router
 				// No TouchDB view is defined, or it hasn't had a map block assigned;
 				// see if there's a CouchDB view definition we can compile:
 				RevisionInternal rev = db.GetDocumentWithIDAndRev(string.Format("_design/%s", designDoc
-					), null, EnumSet.NoneOf<Database.TDContentOptions>());
+					), null, EnumSet.NoneOf<TDContentOptions>());
 				if (rev == null)
 				{
 					return new Status(Status.NotFound);

@@ -41,16 +41,16 @@ namespace Couchbase.Lite
 
 		/// <summary>Constructor</summary>
 		[InterfaceAudience.Private]
-		internal SavedRevision(Document document, RevisionInternal revision) : base(document
-			)
+		internal SavedRevision(Document document, RevisionInternal revision)
+        : base(document)
 		{
 			this.revisionInternal = revision;
 		}
 
 		/// <summary>Constructor</summary>
 		[InterfaceAudience.Private]
-		internal SavedRevision(Database database, RevisionInternal revision) : this(database
-			.GetDocument(revision.GetDocId()), revision)
+		internal SavedRevision(Database database, RevisionInternal revision)
+        : this(database.GetDocument(revision.GetDocId()), revision)
 		{
 		}
 
@@ -201,7 +201,7 @@ namespace Couchbase.Lite
 			try
 			{
 				RevisionInternal loadRevision = GetDatabase().LoadRevisionBody(revisionInternal, 
-					EnumSet.NoneOf<Database.TDContentOptions>());
+					EnumSet.NoneOf<TDContentOptions>());
 				if (loadRevision == null)
 				{
 					Log.W(Database.Tag, "Couldn't load body/sequence of %s" + this);

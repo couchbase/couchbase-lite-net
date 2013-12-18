@@ -1,36 +1,50 @@
+
 namespace Sharpen
 {
 	using System;
 	using System.Collections.Generic;
 	using System.Linq;
-	using System.Runtime.CompilerServices;
 
 	internal class LinkedHashMap<T, U> : AbstractMap<T, U>
 	{
-		private List<KeyValuePair<T, U>> list;
-		private Dictionary<T, U> table;
+        internal List<KeyValuePair<T, U>> List { get; private set; }
+        internal Dictionary<T, U> Table { get; private set; }
 
-		public LinkedHashMap ()
-		{
-			this.table = new Dictionary<T, U> ();
-			this.list = new List<KeyValuePair<T, U>> ();
-		}
+        public LinkedHashMap ()
+        {
+            this.Table = new Dictionary<T, U> ();
+            this.List = new List<KeyValuePair<T, U>> ();
+        }
+
+        public LinkedHashMap (Int32 initialCapacity)
+        {
+            this.Table = new Dictionary<T, U> ();
+            this.List = new List<KeyValuePair<T, U>> (initialCapacity);
+        }
+
+        public LinkedHashMap (Int32 initialCapacity, Single loadFactor, Boolean accessOrder) : this(initialCapacity) { }
+
+        public LinkedHashMap (LinkedHashMap<T, U> map)
+        {
+            this.Table = map.Table;
+            this.List = map.List;
+        }
 
 		public override void Clear ()
 		{
-			table.Clear ();
-			list.Clear ();
+			Table.Clear ();
+			List.Clear ();
 		}
 		
 		public override int Count {
 			get {
-				return list.Count;
+				return List.Count;
 			}
 		}
 		
 		public override bool ContainsKey (object name)
 		{
-			return table.ContainsKey ((T)name);
+			return Table.ContainsKey ((T)name);
 		}
 
 		public override ICollection<KeyValuePair<T, U>> EntrySet ()
@@ -41,51 +55,51 @@ namespace Sharpen
 		public override U Get (object key)
 		{
 			U local;
-			table.TryGetValue ((T)key, out local);
+			Table.TryGetValue ((T)key, out local);
 			return local;
 		}
 
 		protected override IEnumerator<KeyValuePair<T, U>> InternalGetEnumerator ()
 		{
-			return list.GetEnumerator ();
+			return List.GetEnumerator ();
 		}
 
 		public override bool IsEmpty ()
 		{
-			return (table.Count == 0);
+			return (Table.Count == 0);
 		}
 
 		public override U Put (T key, U value)
 		{
 			U old;
-			if (table.TryGetValue (key, out old)) {
-				int index = list.FindIndex (p => p.Key.Equals (key));
+			if (Table.TryGetValue (key, out old)) {
+				int index = List.FindIndex (p => p.Key.Equals (key));
 				if (index != -1)
-					list.RemoveAt (index);
+					List.RemoveAt (index);
 			}
-			table[key] = value;
-			list.Add (new KeyValuePair<T, U> (key, value));
+			Table[key] = value;
+			List.Add (new KeyValuePair<T, U> (key, value));
 			return old;
 		}
 
 		public override U Remove (object key)
 		{
 			U local = default(U);
-			if (table.TryGetValue ((T)key, out local)) {
-				int index = list.FindIndex (p => p.Key.Equals (key));
+			if (Table.TryGetValue ((T)key, out local)) {
+				int index = List.FindIndex (p => p.Key.Equals (key));
 				if (index != -1)
-					list.RemoveAt (index);
-				table.Remove ((T)key);
+					List.RemoveAt (index);
+				Table.Remove ((T)key);
 			}
 			return local;
 		}
 
 		public override IEnumerable<T> Keys {
-			get { return list.Select (p => p.Key); }
+			get { return List.Select (p => p.Key); }
 		}
 
 		public override IEnumerable<U> Values {
-			get { return list.Select (p => p.Value); }
+			get { return List.Select (p => p.Value); }
 		}
 	}
 }

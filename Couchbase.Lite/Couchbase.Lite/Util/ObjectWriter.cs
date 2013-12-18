@@ -18,7 +18,7 @@ namespace Couchbase.Lite {
             throw new NotImplementedException ();
         }
 
-        public IEnumerable<Byte> WriteValueAsBytes (object properties)
+        public IEnumerable<Byte> WriteValueAsBytes (Object properties)
         {
             throw new NotImplementedException ();
         }

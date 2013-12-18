@@ -39,7 +39,9 @@
     <Folder Include="Util\" />
     <Folder Include="Extensions\" />
     <Folder Include="Exceptions\" />
-    <Folder Include="Internal\" />
+    <Folder Include="Store\" />
+    <Folder Include="Revisions\" />
+    <Folder Include="Documents\" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Sharpen\AList.cs" />
@@ -173,12 +175,6 @@
     <Compile Include="Revision.cs" />
     <Compile Include="View.cs" />
     <Compile Include="Extensions\StreamExtensions.cs" />
-    <Compile Include="BlobKey.cs" />
-    <Compile Include="BlobStore.cs" />
-    <Compile Include="BlobStoreWriter.cs" />
-    <Compile Include="Internal\AttachmentInternal.cs" />
-    <Compile Include="Internal\Body.cs" />
-    <Compile Include="Internal\RevisionInternal.cs" />
     <Compile Include="Exceptions\CouchbaseLiteException.cs" />
     <Compile Include="Sharpen\String.cs" />
     <Compile Include="Sharpen\StringTokenizer.cs" />
@@ -188,6 +184,28 @@
     <Compile Include="Util\SystemLogger.cs" />
     <Compile Include="Util\ILogger.cs" />
     <Compile Include="Util\Misc.cs" />
+    <Compile Include="Store\BlobKey.cs" />
+    <Compile Include="Store\BlobStore.cs" />
+    <Compile Include="Store\BlobStoreWriter.cs" />
+    <Compile Include="Revisions\RevisionList.cs" />
+    <Compile Include="Revisions\SavedRevision.cs" />
+    <Compile Include="Revisions\UnsavedRevision.cs" />
+    <Compile Include="Revisions\RevisionInternal.cs" />
+    <Compile Include="Documents\AttachmentInternal.cs" />
+    <Compile Include="Documents\Body.cs" />
+    <Compile Include="Store\SQLException.cs" />
+    <Compile Include="Store\SQLiteStorageEngine.cs" />
+    <Compile Include="Store\SQLiteStorageEngineFactory.cs" />
+    <Compile Include="Store\Cursor.cs" />
+    <Compile Include="Store\MonoSQLiteStorageEngine.cs" />
+    <Compile Include="Store\ContentValues.cs" />
+    <Compile Include="Store\Status.cs" />
+    <Compile Include="Util\LruCache.cs" />
+    <Compile Include="Util\FileDirUtils.cs" />
+    <Compile Include="Documents\TDContentOptions.cs" />
+    <Compile Include="Documents\IValidationContext.cs" />
+    <Compile Include="Documents\ValidationContext.cs" />
+    <Compile Include="Documents\DocumentChange.cs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="System" />
@@ -208,8 +226,6 @@
       <Properties>
         <Policies>
           <TextStylePolicy FileWidth="120" NoTabsAfterNonTabs="True" inheritsSet="VisualStudio" inheritsScope="text/plain" scope="text/plain" />
-          <CSharpFormattingPolicy IndentSwitchBody="True" IndentPreprocessorDirectives="False" NamespaceBraceStyle="EndOfLine" ClassBraceStyle="EndOfLine" AfterDelegateDeclarationParameterComma="True" inheritsSet="Mono" inheritsScope="text/x-csharp" scope="text/x-csharp" />
-          <TextStylePolicy inheritsSet="null" scope="text/x-csharp" />
         </Policies>
       </Properties>
     </MonoDevelop>

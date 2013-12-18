@@ -1,10 +1,7 @@
 using System;
 using System.Linq;
-using System.Collections;
 using System.Collections.Generic;
-using System.Net;
 using System.IO;
-using System.Runtime.InteropServices.ComTypes;
 using Couchbase.Lite.Internal;
 
 namespace Couchbase.Lite {
@@ -36,7 +33,7 @@ namespace Couchbase.Lite {
             Body = contentStream;
         }
 
-        internal Attachment(Revision revision, string name, IDictionary<String, Object> metadata)
+        internal Attachment(Revision revision, String name, IDictionary<String, Object> metadata)
         {
             Revision = revision;
             Name = name;
@@ -51,7 +48,7 @@ namespace Couchbase.Lite {
         /// Content stream is gzip encoded.
         /// </summary>
         /// <value><c>true</c> if compressed; otherwise, <c>false</c>.</value>
-        bool Compressed { get; set; }
+        internal bool Compressed { get; set; }
 
         protected Stream Body { get; set; }
 
@@ -74,7 +71,7 @@ namespace Couchbase.Lite {
 
                 if (value is Attachment)
                 {
-                    Couchbase.Lite.Attachment attachment = (Couchbase.Lite.Attachment)value;
+                    var attachment = (Attachment)value;
                     var metadataMutable = new Dictionary<string, object>();
                     metadataMutable.Concat(attachment.Metadata);
                     var body = attachment.Body;

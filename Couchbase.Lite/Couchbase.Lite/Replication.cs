@@ -21,7 +21,7 @@ namespace Couchbase.Lite {
     #endregion
     
     #region Instance Members
-        //Properties
+        //Properties
         public Database LocalDatabase { get { throw new NotImplementedException(); } }
 
         public Uri RemoteUrl { get { throw new NotImplementedException(); } }
@@ -52,7 +52,7 @@ namespace Couchbase.Lite {
 
         public int ChangesCount { get { throw new NotImplementedException(); } }
 
-        //Methods
+        //Methods
         public void Start() { throw new NotImplementedException(); }
 
         public void Stop() { throw new NotImplementedException(); }
@@ -64,17 +64,17 @@ namespace Couchbase.Lite {
     #endregion
     
     #region Delegates
-        
+        
 
     #endregion
     
     #region EventArgs Subclasses
         public class ReplicationChangeEventArgs : EventArgs {
 
-            //Properties
-            public Replication Source { get { throw new NotImplementedException(); } }
+            //Properties
+            public Replication Source { get { throw new NotImplementedException(); } }
 
-        }
+        }
 
     #endregion
     

@@ -24,7 +24,15 @@ namespace Sharpen
 				@set.AddItem (e);
 			return @set;
 		}
-	}
+	    
+        public static EnumSet<T> NoneOf<T> (T es) {
+            return new EnumSet<T>();
+        }
+
+        public static EnumSet<T> NoneOf<T> () {
+            return EnumSet.NoneOf<T>(default(T));
+        }
+    }
 
 	public class EnumSet<T> : AbstractSet<T>
 	{

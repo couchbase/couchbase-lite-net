@@ -33,7 +33,7 @@ namespace Couchbase.Lite.Internal
 	/// Stores information about a revision -- its docID, revID, and whether it's deleted.
 	/// It can also store the sequence number and document contents (they can be added after creation).
 	/// </remarks>
-	public class RevisionInternal
+    internal class RevisionInternal
 	{
 		private string docId;
 
@@ -47,8 +47,7 @@ namespace Couchbase.Lite.Internal
 
 		private Database database;
 
-		public RevisionInternal(string docId, string revId, bool deleted, Database database
-			)
+        public RevisionInternal(String docId, String revId, Boolean deleted, Database database)
 		{
 			// TODO: get rid of this field!
 			this.docId = docId;
@@ -68,7 +67,7 @@ namespace Couchbase.Lite.Internal
 		{
 		}
 
-		public virtual IDictionary<string, object> GetProperties()
+		public IDictionary<string, object> GetProperties()
 		{
 			IDictionary<string, object> result = null;
 			if (body != null)
@@ -92,7 +91,7 @@ namespace Couchbase.Lite.Internal
 			return result;
 		}
 
-		public virtual object GetPropertyForKey(string key)
+		public object GetPropertyForKey(string key)
 		{
 			IDictionary<string, object> prop = GetProperties();
 			if (prop == null)
@@ -102,9 +101,9 @@ namespace Couchbase.Lite.Internal
 			return GetProperties().Get(key);
 		}
 
-		public virtual void SetProperties(IDictionary<string, object> properties)
+		public void SetProperties(IDictionary<string, object> properties)
 		{
-			this.body = new Body(properties);
+			body = new Body(properties);
 		}
 
 		public IEnumerable<Byte> GetJson()
@@ -117,18 +116,17 @@ namespace Couchbase.Lite.Internal
 			return result;
 		}
 
-		public virtual void SetJson(IEnumerable<Byte> json)
+		public void SetJson(IEnumerable<Byte> json)
 		{
-			this.body = new Body(json);
+			body = new Body(json);
 		}
 
 		public override bool Equals(object o)
 		{
 			bool result = false;
-			if (o is Couchbase.Lite.Internal.RevisionInternal)
+			if (o is RevisionInternal)
 			{
-				Couchbase.Lite.Internal.RevisionInternal other = (Couchbase.Lite.Internal.RevisionInternal
-					)o;
+				RevisionInternal other = (RevisionInternal)o;
 				if (docId.Equals(other.docId) && revId.Equals(other.revId))
 				{
 					result = true;
@@ -142,54 +140,52 @@ namespace Couchbase.Lite.Internal
 			return docId.GetHashCode() ^ revId.GetHashCode();
 		}
 
-		public virtual string GetDocId()
+		public string GetDocId()
 		{
 			return docId;
 		}
 
-		public virtual void SetDocId(string docId)
+		public void SetDocId(string docId)
 		{
 			this.docId = docId;
 		}
 
-		public virtual string GetRevId()
+		public string GetRevId()
 		{
 			return revId;
 		}
 
-		public virtual void SetRevId(string revId)
+		public void SetRevId(string revId)
 		{
 			this.revId = revId;
 		}
 
-		public virtual bool IsDeleted()
+		public bool IsDeleted()
 		{
 			return deleted;
 		}
 
-		public virtual void SetDeleted(bool deleted)
+		public void SetDeleted(bool deleted)
 		{
 			this.deleted = deleted;
 		}
 
-		public virtual Body GetBody()
+		public Body GetBody()
 		{
 			return body;
 		}
 
-		public virtual void SetBody(Body body)
+		public void SetBody(Body body)
 		{
 			this.body = body;
 		}
 
-		public virtual Couchbase.Lite.Internal.RevisionInternal CopyWithDocID(string 
-			docId, string revId)
+        public RevisionInternal CopyWithDocID(String docId, String revId)
 		{
 			System.Diagnostics.Debug.Assert(((docId != null) && (revId != null)));
 			System.Diagnostics.Debug.Assert(((this.docId == null) || (this.docId.Equals(docId
 				))));
-			Couchbase.Lite.Internal.RevisionInternal result = new Couchbase.Lite.Internal.RevisionInternal
-				(docId, revId, deleted, database);
+            RevisionInternal result = new RevisionInternal(docId, revId, deleted, database);
 			IDictionary<string, object> unmodifiableProperties = GetProperties();
 			IDictionary<string, object> properties = new Dictionary<string, object>();
 			if (unmodifiableProperties != null)
@@ -202,20 +198,19 @@ namespace Couchbase.Lite.Internal
 			return result;
 		}
 
-		public virtual void SetSequence(long sequence)
+		public void SetSequence(long sequence)
 		{
 			this.sequence = sequence;
 		}
 
-		public virtual long GetSequence()
+		public long GetSequence()
 		{
 			return sequence;
 		}
 
 		public override string ToString()
 		{
-			return "{" + this.docId + " #" + this.revId + (deleted ? "DEL" : string.Empty) + 
-				"}";
+			return "{" + this.docId + " #" + this.revId + (deleted ? "DEL" : string.Empty) + "}";
 		}
 
 		/// <summary>Generation number: 1 for a new document, 2 for the 2nd revision, ...</summary>
@@ -223,7 +218,7 @@ namespace Couchbase.Lite.Internal
 		/// Generation number: 1 for a new document, 2 for the 2nd revision, ...
 		/// Extracted from the numeric prefix of the revID.
 		/// </remarks>
-		public virtual int GetGeneration()
+		public int GetGeneration()
 		{
 			return GenerationFromRevID(revId);
 		}

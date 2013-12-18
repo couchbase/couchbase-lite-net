@@ -26,6 +26,10 @@ Global
 		$2.NamespaceBraceStyle = EndOfLine
 		$2.ClassBraceStyle = EndOfLine
 		$2.AfterDelegateDeclarationParameterComma = True
+		$2.BlankLinesBeforeFirstDeclaration = 1
+		$2.BlankLinesBetweenEventFields = 1
+		$2.AlignToFirstMethodCallArgument = True
+		$2.AlignToFirstIndexerDeclarationParameter = False
 		$2.inheritsSet = Mono
 		$2.inheritsScope = text/x-csharp
 		$2.scope = text/x-csharp

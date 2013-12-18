@@ -20,7 +20,7 @@ namespace Couchbase.Lite {
     #endregion
     
     #region Instance Members
-        //Properties
+        //Properties
         public Database Database { get { throw new NotImplementedException(); } }
 
         public int Limit { get; set; }
@@ -49,7 +49,7 @@ namespace Couchbase.Lite {
 
         public Boolean IncludeDeleted { get; set; }
 
-        //Methods
+        //Methods
         public QueryEnumerator Run() { throw new NotImplementedException(); }
 
         public void RunAsync(QueryCompleteDelegate onComplete) { throw new NotImplementedException(); }
@@ -68,12 +68,12 @@ namespace Couchbase.Lite {
     public partial class LiveQuery : Query {
 
     #region Instance Members
-        //Properties
+        //Properties
         public QueryEnumerator Rows { get { throw new NotImplementedException(); } }
 
         public Exception LastError { get { throw new NotImplementedException(); } }
 
-        //Methods
+        //Methods
         public void Start() { throw new NotImplementedException(); }
 
         public void Stop() { throw new NotImplementedException(); }
@@ -85,21 +85,21 @@ namespace Couchbase.Lite {
     #endregion
     
     #region Delegates
-        
+        
 
     #endregion
     
     #region EventArgs Subclasses
         public class QueryChangeEventArgs : EventArgs {
 
-            //Properties
-            public LiveQuery Source { get { throw new NotImplementedException(); } }
+            //Properties
+            public LiveQuery Source { get { throw new NotImplementedException(); } }
 
-            public QueryEnumerator Rows { get { throw new NotImplementedException(); } }
+            public QueryEnumerator Rows { get { throw new NotImplementedException(); } }
 
-            public Exception Error { get { throw new NotImplementedException(); } }
+            public Exception Error { get { throw new NotImplementedException(); } }
 
-        }
+        }
 
     #endregion
     
@@ -108,14 +108,14 @@ namespace Couchbase.Lite {
     public partial class QueryEnumerator {
 
     #region Instance Members
-        //Properties
+        //Properties
         public int Count { get { throw new NotImplementedException(); } }
 
         public long SequenceNumber { get { throw new NotImplementedException(); } }
 
         public Boolean Stale { get { throw new NotImplementedException(); } }
 
-        //Methods
+        //Methods
         public QueryRow Next() { throw new NotImplementedException(); }
 
         public QueryRow GetRow(int index) { throw new NotImplementedException(); }
@@ -129,7 +129,7 @@ namespace Couchbase.Lite {
     public partial class QueryRow {
 
     #region Instance Members
-        //Properties
+        //Properties
         public Database Database { get { throw new NotImplementedException(); } }
 
         public Document Document { get { throw new NotImplementedException(); } }

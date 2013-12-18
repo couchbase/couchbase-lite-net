@@ -74,7 +74,7 @@ namespace Couchbase.Lite
 
 		private LruCache<string, Document> docCache;
 
-		public static int kBigAttachmentLength = (16 * 1024);
+		public static int BigAttachmentLength = (16 * 1024);
 
 		/// <summary>Options for what metadata to include in document bodies</summary>
 		public enum TDContentOptions
@@ -354,7 +354,7 @@ namespace Couchbase.Lite
 				return null;
 			}
 			RevisionInternal revisionInternal = GetDocumentWithIDAndRev(documentId, null, EnumSet
-				.NoneOf<Database.TDContentOptions>());
+				.NoneOf<TDContentOptions>());
 			if (revisionInternal == null)
 			{
 				return null;
@@ -1139,7 +1139,7 @@ namespace Couchbase.Lite
 		/// Rev must already have its revID and sequence properties set.
 		/// </remarks>
 		public virtual IDictionary<string, object> ExtraPropertiesForRevision(RevisionInternal
-			 rev, EnumSet<Database.TDContentOptions> contentOptions)
+			 rev, EnumSet<TDContentOptions> contentOptions)
 		{
 			string docId = rev.GetDocId();
 			string revId = rev.GetRevId();
@@ -1152,17 +1152,17 @@ namespace Couchbase.Lite
 			// Get more optional stuff to put in the properties:
 			//OPT: This probably ends up making redundant SQL queries if multiple options are enabled.
 			long localSeq = null;
-			if (contentOptions.Contains(Database.TDContentOptions.TDIncludeLocalSeq))
+			if (contentOptions.Contains(TDContentOptions.TDIncludeLocalSeq))
 			{
 				localSeq = sequenceNumber;
 			}
 			IDictionary<string, object> revHistory = null;
-			if (contentOptions.Contains(Database.TDContentOptions.TDIncludeRevs))
+			if (contentOptions.Contains(TDContentOptions.TDIncludeRevs))
 			{
 				revHistory = GetRevisionHistoryDict(rev);
 			}
 			IList<object> revsInfo = null;
-			if (contentOptions.Contains(Database.TDContentOptions.TDIncludeRevsInfo))
+			if (contentOptions.Contains(TDContentOptions.TDIncludeRevsInfo))
 			{
 				revsInfo = new AList<object>();
 				IList<RevisionInternal> revHistoryFull = GetRevisionHistory(rev);
@@ -1181,7 +1181,7 @@ namespace Couchbase.Lite
 				}
 			}
 			IList<string> conflicts = null;
-			if (contentOptions.Contains(Database.TDContentOptions.TDIncludeConflicts))
+			if (contentOptions.Contains(TDContentOptions.TDIncludeConflicts))
 			{
 				RevisionList revs = GetAllRevisionsOfDocumentID(docId, true);
 				if (revs.Count > 1)
@@ -1233,7 +1233,7 @@ namespace Couchbase.Lite
 		/// Rev must already have its revID and sequence properties set.
 		/// </remarks>
 		public virtual void ExpandStoredJSONIntoRevisionWithAttachments(byte[] json, RevisionInternal
-			 rev, EnumSet<Database.TDContentOptions> contentOptions)
+			 rev, EnumSet<TDContentOptions> contentOptions)
 		{
 			IDictionary<string, object> extra = ExtraPropertiesForRevision(rev, contentOptions
 				);
@@ -1248,7 +1248,7 @@ namespace Couchbase.Lite
 		}
 
 		public virtual IDictionary<string, object> DocumentPropertiesFromJSON(byte[] json
-			, string docId, string revId, bool deleted, long sequence, EnumSet<Database.TDContentOptions
+			, string docId, string revId, bool deleted, long sequence, EnumSet<TDContentOptions
 			> contentOptions)
 		{
 			RevisionInternal rev = new RevisionInternal(docId, revId, deleted, this);
@@ -1274,7 +1274,7 @@ namespace Couchbase.Lite
 		}
 
 		public virtual RevisionInternal GetDocumentWithIDAndRev(string id, string rev, EnumSet
-			<Database.TDContentOptions> contentOptions)
+			<TDContentOptions> contentOptions)
 		{
 			RevisionInternal result = null;
 			string sql;
@@ -1283,7 +1283,7 @@ namespace Couchbase.Lite
 			{
 				cursor = null;
 				string cols = "revid, deleted, sequence";
-				if (!contentOptions.Contains(Database.TDContentOptions.TDNoBody))
+				if (!contentOptions.Contains(TDContentOptions.TDNoBody))
 				{
 					cols += ", json";
 				}
@@ -1308,10 +1308,10 @@ namespace Couchbase.Lite
 					bool deleted = (cursor.GetInt(1) > 0);
 					result = new RevisionInternal(id, rev, deleted, this);
 					result.SetSequence(cursor.GetLong(2));
-					if (!contentOptions.Equals(EnumSet.Of(Database.TDContentOptions.TDNoBody)))
+					if (!contentOptions.Equals(EnumSet.Of(TDContentOptions.TDNoBody)))
 					{
 						byte[] json = null;
-						if (!contentOptions.Contains(Database.TDContentOptions.TDNoBody))
+						if (!contentOptions.Contains(TDContentOptions.TDNoBody))
 						{
 							json = cursor.GetBlob(3);
 						}
@@ -1336,13 +1336,12 @@ namespace Couchbase.Lite
 
 		public virtual bool ExistsDocumentWithIDAndRev(string docId, string revId)
 		{
-			return GetDocumentWithIDAndRev(docId, revId, EnumSet.Of(Database.TDContentOptions
+			return GetDocumentWithIDAndRev(docId, revId, EnumSet.Of(TDContentOptions
 				.TDNoBody)) != null;
 		}
 
 		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
-		public virtual RevisionInternal LoadRevisionBody(RevisionInternal rev, EnumSet<Database.TDContentOptions
-			> contentOptions)
+		public virtual RevisionInternal LoadRevisionBody(RevisionInternal rev, EnumSet<TDContentOptions> contentOptions)
 		{
 			if (rev.GetBody() != null)
 			{
@@ -1666,8 +1665,7 @@ namespace Couchbase.Lite
 			return result;
 		}
 
-		public static IDictionary<string, object> MakeRevisionHistoryDict(IList<RevisionInternal
-			> history)
+		public static IDictionary<string, object> MakeRevisionHistoryDict(IList<RevisionInternal> history)
 		{
 			if (history == null)
 			{
@@ -1814,7 +1812,7 @@ namespace Couchbase.Lite
 				return null;
 			}
 			string docId = string.Format("_design/%s", path[0]);
-			RevisionInternal rev = GetDocumentWithIDAndRev(docId, null, EnumSet.NoneOf<Database.TDContentOptions
+			RevisionInternal rev = GetDocumentWithIDAndRev(docId, null, EnumSet.NoneOf<TDContentOptions
 				>());
 			if (rev == null)
 			{
@@ -2451,7 +2449,7 @@ namespace Couchbase.Lite
 		/// <remarks>Constructs an "_attachments" dictionary for a revision, to be inserted in its JSON body.
 		/// 	</remarks>
 		public virtual IDictionary<string, object> GetAttachmentsDictForSequenceWithContent
-			(long sequence, EnumSet<Database.TDContentOptions> contentOptions)
+			(long sequence, EnumSet<TDContentOptions> contentOptions)
 		{
 			System.Diagnostics.Debug.Assert((sequence > 0));
 			Cursor cursor = null;
@@ -2473,10 +2471,10 @@ namespace Couchbase.Lite
 					BlobKey key = new BlobKey(keyData);
 					string digestString = "sha1-" + Base64.EncodeBytes(keyData);
 					string dataBase64 = null;
-					if (contentOptions.Contains(Database.TDContentOptions.TDIncludeAttachments))
+					if (contentOptions.Contains(TDContentOptions.TDIncludeAttachments))
 					{
-						if (contentOptions.Contains(Database.TDContentOptions.TDBigAttachmentsFollow) && 
-							length >= Couchbase.Lite.Database.kBigAttachmentLength)
+						if (contentOptions.Contains(TDContentOptions.TDBigAttachmentsFollow) && 
+							length >= Couchbase.Lite.Database.BigAttachmentLength)
 						{
 							dataSuppressed = true;
 						}
@@ -2711,7 +2709,7 @@ namespace Couchbase.Lite
 					// Load existing revision if this is a replacement:
 					try
 					{
-						LoadRevisionBody(oldRev, EnumSet.NoneOf<Database.TDContentOptions>());
+						LoadRevisionBody(oldRev, EnumSet.NoneOf<TDContentOptions>());
 					}
 					catch (CouchbaseLiteException e)
 					{
@@ -4154,8 +4152,7 @@ namespace Couchbase.Lite
 
 		private string errorMessage;
 
-		public TDValidationContextImpl(Database database, RevisionInternal currentRevision
-			)
+		public TDValidationContextImpl(Database database, RevisionInternal currentRevision)
 		{
 			this.database = database;
 			this.currentRevision = currentRevision;
@@ -4168,8 +4165,7 @@ namespace Couchbase.Lite
 		{
 			if (currentRevision != null)
 			{
-				database.LoadRevisionBody(currentRevision, EnumSet.NoneOf<Database.TDContentOptions
-					>());
+				database.LoadRevisionBody(currentRevision, EnumSet.NoneOf<TDContentOptions>());
 			}
 			return currentRevision;
 		}

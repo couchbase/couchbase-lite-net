@@ -46,7 +46,7 @@ namespace Couchbase.Lite
 				Log.E(Database.Tag, "Error, SHA-1 digest is unavailable.");
 				return null;
 			}
-			byte[] sha1hash = new byte[40];
+            byte[] sha1hash;
 			md.Update(input, 0, input.Length);
 			sha1hash = md.Digest();
 			return ConvertToHex(sha1hash);
@@ -57,7 +57,7 @@ namespace Couchbase.Lite
 			StringBuilder buf = new StringBuilder();
 			for (int i = 0; i < data.Length; i++)
 			{
-				int halfbyte = (data[i] >> 4) & unchecked((int)(0x0F));
+				int halfbyte = (data[i] >> 4) & unchecked((0x0F));
 				int two_halfs = 0;
 				do
 				{
@@ -69,7 +69,7 @@ namespace Couchbase.Lite
 					{
 						buf.Append((char)('a' + (halfbyte - 10)));
 					}
-					halfbyte = data[i] & unchecked((int)(0x0F));
+					halfbyte = data[i] & unchecked((0x0F));
 				}
 				while (two_halfs++ < 1);
 			}

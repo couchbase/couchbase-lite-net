@@ -23,7 +23,7 @@ namespace Sharpen
 			return true;
 		}
 
-		public static V Remove<K, V> (IDictionary<K, V> map, K toRemove) where K : class
+		public static V Remove<K, V> (IDictionary<K, V> map, K toRemove)
 		{
 			V local;
 			if (map.TryGetValue (toRemove, out local)) {

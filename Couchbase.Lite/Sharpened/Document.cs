@@ -226,7 +226,7 @@ namespace Couchbase.Lite
 			{
 				return currentRevision;
 			}
-			EnumSet<Database.TDContentOptions> contentOptions = EnumSet.NoneOf<Database.TDContentOptions
+			EnumSet<TDContentOptions> contentOptions = EnumSet.NoneOf<TDContentOptions
 				>();
 			RevisionInternal revisionInternal = database.GetDocumentWithIDAndRev(GetId(), id, 
 				contentOptions);
@@ -461,7 +461,7 @@ namespace Couchbase.Lite
 				return currentRevision;
 			}
 			return GetRevisionFromRev(database.GetDocumentWithIDAndRev(GetId(), revId, EnumSet
-				.NoneOf<Database.TDContentOptions>()));
+				.NoneOf<TDContentOptions>()));
 		}
 
 		public interface DocumentUpdater

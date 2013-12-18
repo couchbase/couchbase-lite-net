@@ -479,7 +479,7 @@ namespace Couchbase.Lite
 						string revId = cursor.GetString(3);
 						byte[] json = cursor.GetBlob(4);
 						IDictionary<string, object> properties = database.DocumentPropertiesFromJSON(json
-							, docId, revId, false, sequence, EnumSet.NoneOf<Database.TDContentOptions>());
+							, docId, revId, false, sequence, EnumSet.NoneOf<TDContentOptions>());
 						if (properties != null)
 						{
 							// Call the user-defined map() to emit new key/value
@@ -826,7 +826,7 @@ namespace Couchbase.Lite
 							{
 								string linkedDocId = (string)((IDictionary)value).Get("_id");
 								RevisionInternal linkedDoc = database.GetDocumentWithIDAndRev(linkedDocId, null, 
-									EnumSet.NoneOf<Database.TDContentOptions>());
+									EnumSet.NoneOf<TDContentOptions>());
 								docContents = linkedDoc.GetProperties();
 							}
 							else

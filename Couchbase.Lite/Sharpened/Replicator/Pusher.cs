@@ -257,8 +257,8 @@ namespace Couchbase.Lite.Replicator
 									else
 									{
 										// OPT: Shouldn't include all attachment bodies, just ones that have changed
-										EnumSet<Database.TDContentOptions> contentOptions = EnumSet.Of(Database.TDContentOptions
-											.TDIncludeAttachments, Database.TDContentOptions.TDBigAttachmentsFollow);
+										EnumSet<TDContentOptions> contentOptions = EnumSet.Of(TDContentOptions
+											.TDIncludeAttachments, TDContentOptions.TDBigAttachmentsFollow);
 										try
 										{
 											this._enclosing.db.LoadRevisionBody(rev, contentOptions);
