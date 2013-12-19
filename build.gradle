@@ -8,6 +8,7 @@ buildscript {
 }
 apply plugin: 'android-library'
 apply plugin: 'maven'
+apply plugin: 'eclipse'
 
 repositories {
     mavenCentral()
