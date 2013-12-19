@@ -301,9 +301,9 @@ public abstract class Replication {
      * Set Extra HTTP headers to be sent in all requests to the remote server.
      */
     @InterfaceAudience.Public
-    public void setHeaders(Map<String, Object> requestHeaders) {
-        if (!requestHeaders.equals(requestHeaders)) {
-            this.requestHeaders = requestHeaders;
+    public void setHeaders(Map<String, Object> requestHeadersParam) {
+        if (requestHeadersParam != null && !requestHeaders.equals(requestHeadersParam)) {
+            requestHeaders = requestHeadersParam;
         }
     }
 

@@ -61,6 +61,7 @@ public class ChangeTracker implements Runnable {
     private List<String> docIDs;
 
     private Throwable error;
+    protected Map<String, Object> requestHeaders;
 
 
     public enum ChangeTrackerMode {
@@ -73,6 +74,7 @@ public class ChangeTracker implements Runnable {
         this.mode = mode;
         this.lastSequenceID = lastSequenceID;
         this.client = client;
+        this.requestHeaders = new HashMap<String, Object>();
     }
 
     public void setFilterName(String filterName) {
@@ -184,6 +186,8 @@ public class ChangeTracker implements Runnable {
 
             URL url = getChangesFeedURL();
             request = new HttpGet(url.toString());
+
+            addRequestHeaders(request);
 
             // if the URL contains user info AND if this a DefaultHttpClient
             // then preemptively set the auth credentials
@@ -350,6 +354,16 @@ public class ChangeTracker implements Runnable {
         }
         client = null;
         Log.d(Database.TAG, "change tracker client should be null now");
+    }
+
+    void setRequestHeaders(Map<String, Object> requestHeaders) {
+        this.requestHeaders = requestHeaders;
+    }
+
+    private void addRequestHeaders(HttpUriRequest request) {
+        for (String requestHeaderKey : requestHeaders.keySet()) {
+            request.addHeader(requestHeaderKey, requestHeaders.get(requestHeaderKey).toString());
+        }
     }
 
     public Throwable getLastError() {

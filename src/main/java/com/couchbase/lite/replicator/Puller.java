@@ -95,6 +95,7 @@ public class Puller extends Replication implements ChangeTrackerClient {
             }
         }
         changeTracker.setDocIDs(documentIDs);
+        changeTracker.setRequestHeaders(requestHeaders);
         if(!continuous) {
             asyncTaskStarted();
         }
