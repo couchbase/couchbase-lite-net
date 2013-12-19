@@ -21,6 +21,7 @@
 
 using Couchbase.Lite.Storage;
 using Sharpen;
+using System.Collections.Generic;
 
 namespace Couchbase.Lite.Storage
 {
@@ -73,7 +74,7 @@ namespace Couchbase.Lite.Storage
             throw new System.NotImplementedException ();
         }
 
-        public override Cursor RawQuery (string sql, string[] selectionArgs)
+        public override Cursor RawQuery (string sql, IEnumerable<string> selectionArgs)
         {
             throw new System.NotImplementedException ();
         }

@@ -234,6 +234,78 @@ namespace Couchbase.Lite {
             }
         }
 
+        internal RevisionInternal GetParentRevision(RevisionInternal rev)
+        {
+            // First get the parent's sequence:
+            var seq = rev.GetSequence();
+            if (seq > 0)
+            {
+                seq = LongForQuery("SELECT parent FROM revs WHERE sequence=?", new string[] { Convert.ToString(seq) }); // TODO: Convert to ADO parameters
+            }
+            else
+            {
+                var docNumericID = GetDocNumericID(rev.GetDocId());
+                if (docNumericID <= 0)
+                {
+                    return null;
+                }
+                var args = new [] { Convert.ToString(docNumericID), rev.GetRevId() };
+                seq = LongForQuery("SELECT parent FROM revs WHERE doc_id=? and revid=?", args); // TODO: Convert to ADO parameters
+            }
+            if (seq == 0)
+            {
+                return null;
+            }
+
+            // Now get its revID and deletion status:
+            RevisionInternal result = null;
+            var args_1 = new [] { Convert.ToString(seq) };
+            var queryString = "SELECT revid, deleted FROM revs WHERE sequence=?"; // TODO: Convert to ADO parameters
+
+            Cursor cursor = null;
+            try
+            {
+                cursor = StorageEngine.RawQuery(queryString, args_1);
+                if (cursor.MoveToNext())
+                {
+                    string revId = cursor.GetString(0);
+                    bool deleted = (cursor.GetInt(1) > 0);
+                    result = new RevisionInternal(rev.GetDocId(), revId, deleted, this);
+                    result.SetSequence(seq);
+                }
+            }
+            finally
+            {
+                cursor.Close();
+            }
+            return result;
+        }
+
+        /// <exception cref="Couchbase.Lite.Storage.SQLException"></exception>
+        internal Int64 LongForQuery(string sqlQuery, IEnumerable<string> args)
+        {
+            Cursor cursor = null;
+            var result = 0L;
+            try
+            {
+                cursor = StorageEngine.RawQuery(sqlQuery, args);
+                if (cursor.MoveToNext())
+                {
+                    result = cursor.GetLong(0);
+                }
+            }
+            finally
+            {
+                if (cursor != null)
+                {
+                    cursor.Close();
+                }
+            }
+            return result;
+        }
+
+
+
         /// <summary>Purges specific revisions, which deletes them completely from the local database _without_ adding a "tombstone" revision.
         ///     </summary>
         /// <remarks>

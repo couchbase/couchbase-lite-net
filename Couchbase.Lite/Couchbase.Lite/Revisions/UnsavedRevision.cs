@@ -4,6 +4,8 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Net;
 using System.IO;
+using Sharpen;
+using Couchbase.Lite.Util;
 
 namespace Couchbase.Lite {
 
@@ -12,7 +14,31 @@ namespace Couchbase.Lite {
     public partial class UnsavedRevision : Revision {
 
     #region Non-public Members
+        IDictionary<String, Object> properties;
+
         String ParentRevisionID { get; set; }
+
+        /// <summary>Creates or updates an attachment.</summary>
+        /// <remarks>
+        /// Creates or updates an attachment.
+        /// The attachment data will be written to the database when the revision is saved.
+        /// </remarks>
+        /// <param name="attachment">A newly-created Attachment (not yet associated with any revision)</param>
+        /// <param name="name">The attachment name.</param>
+        internal void AddAttachment(Attachment attachment, string name)
+        {
+            var attachments = (IDictionary<String, Object>)Properties.Get("_attachments");
+            if (attachments == null)
+            {
+                attachments = new Dictionary<String, Object>();
+            }
+            attachments.Put(name, attachment);
+            Properties.Put("_attachments", attachments);
+            attachment.Name = name;
+            attachment.Revision = this;
+        }
+
+
     #endregion
 
     #region Constructors
@@ -23,7 +49,7 @@ namespace Couchbase.Lite {
             else
                 ParentRevisionID = parentRevision.Id;
 
-            IDictionary<string, object> parentRevisionProperties;
+            IDictionary<String, Object> parentRevisionProperties;
             if (parentRevision == null)
             {
                 parentRevisionProperties = null;
@@ -35,7 +61,7 @@ namespace Couchbase.Lite {
             }
             if (parentRevisionProperties == null)
             {
-                properties = new Dictionary<string, object>();
+                properties = new Dictionary<String, Object>();
                 properties["_id"] = document.Id;
                 if (ParentRevisionID != null)
                 {
@@ -52,33 +78,88 @@ namespace Couchbase.Lite {
     #endregion
 
     #region Instance Members
-        //Properties
-        public override Boolean IsDeletion { get { throw new NotImplementedException(); } }
 
-        readonly Dictionary<String, Object> properties;
-        public override Dictionary<String, Object> Properties {
+        public override SavedRevision Parent {
             get {
-                throw new NotImplementedException();
+                if (String.IsNullOrEmpty (ParentId)) {
+                    return null;
+                }
+                return Document.GetRevision(ParentId);
+            }
+        }
+
+        public override string ParentId {
+            get {
+                return ParentRevisionID;
+            }
+        }
+
+        public override IEnumerable<SavedRevision> RevisionHistory {
+            get {
+                // (Don't include self in the array, because this revision doesn't really exist yet)
+                return Parent != null ? Parent.RevisionHistory : new AList<SavedRevision>();
+            }
+        }
+
+        public override String Id {
+            get {
+                return null; // Once a revision is saved, it gets an id, but also becomes a new SavedRevision instance.
+            }
+        }
+
+        public override IDictionary<String, Object> Properties {
+            get {
                 return properties;
             }
         }
 
-        readonly Dictionary<String, Object> userProperties;
-        public override Dictionary<String, Object> UserProperties {
-            get {
-                throw new NotImplementedException();
-                return userProperties;
-            }
+        public void SetUserProperties(IDictionary<String, Object> userProperties) 
+        {
+            var newProps = new Dictionary<String, Object>();
+            newProps.PutAll(userProperties);
+
+            foreach (string key in Properties.Keys)
+                {
+                    if (key.StartsWith("_", StringComparison.InvariantCultureIgnoreCase))
+                    {
+                        newProps.Put(key, properties.Get(key));
+                    }
+                }
+                // Preserve metadata properties
+                properties = newProps;
         }
 
         //Methods
-        public SavedRevision Save() { throw new NotImplementedException(); }
+        public SavedRevision Save() { return Document.PutProperties(Properties, ParentId); }
 
-        public void SetAttachment(String name, String contentType, Object content) { throw new NotImplementedException(); }
+        public void SetAttachment(String name, String contentType, IEnumerable<Byte> content) {
+            var attachment = new Attachment(new MemoryStream(content.ToArray()), contentType);
+            AddAttachment(attachment, name);        
+        }
 
-        public void SetAttachment(String name, String contentType, Uri contentUrl) { throw new NotImplementedException(); }
+        public void SetAttachment(String name, String contentType, Uri contentUrl) {
+            try
+            {
+                var inputStream = contentUrl.OpenConnection(new Proxy()).GetInputStream();
+                var length = inputStream.GetWrappedStream().Length;
+                var inputBytes = new byte[length];
+                inputStream.Read(inputBytes);
+                SetAttachment(name, contentType, inputBytes);
+            }
+            catch (IOException e)
+            {
+                Log.E(Database.Tag, "Error opening stream for url: " + contentUrl);
+                throw new RuntimeException(e);
+            }
+        }
 
-        public void RemoveAttachment(String name) { throw new NotImplementedException(); }
+        /// <summary>Deletes any existing attachment with the given name.</summary>
+        /// <remarks>
+        /// Deletes any existing attachment with the given name.
+        /// The attachment will be deleted from the database when the revision is saved.
+        /// </remarks>
+        /// <param name="name">The attachment name.</param>
+        public void RemoveAttachment(String name) { AddAttachment(null, name); }
 
     #endregion
     

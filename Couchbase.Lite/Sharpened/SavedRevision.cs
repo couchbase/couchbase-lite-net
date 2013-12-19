@@ -169,8 +169,7 @@ namespace Couchbase.Lite
 		[InterfaceAudience.Public]
 		public override Couchbase.Lite.SavedRevision GetParentRevision()
 		{
-			return GetDocument().GetRevisionFromRev(GetDatabase().GetParentRevision(revisionInternal
-				));
+			return GetDocument().GetRevisionFromRev(GetDatabase().GetParentRevision(revisionInternal));
 		}
 
 		[InterfaceAudience.Public]

@@ -62,12 +62,10 @@ namespace Couchbase.Lite.Internal
 			this.body = body;
 		}
 
-		public RevisionInternal(IDictionary<string, object> properties, Database database
-			) : this(new Body(properties), database)
-		{
-		}
+        public RevisionInternal(IDictionary<String, Object> properties, Database database)
+            : this(new Body(properties), database) { }
 
-		public IDictionary<string, object> GetProperties()
+        public IDictionary<String, Object> GetProperties()
 		{
 			IDictionary<string, object> result = null;
 			if (body != null)

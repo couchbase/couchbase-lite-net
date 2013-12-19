@@ -90,7 +90,7 @@ namespace Couchbase.Lite {
         /// Any keys in the dictionary that begin with "_", such as "_id" and "_rev", contain CouchbaseLite metadata.
         /// </remarks>
         /// <returns>contents of the current revision of the document.</returns>
-        public Dictionary<String, Object> Properties { get { return CurrentRevision.Properties; } }
+        public IDictionary<String, Object> Properties { get { return CurrentRevision.Properties; } }
 
         /// <summary>The user-defined properties, without the ones reserved by CouchDB.</summary>
         /// <remarks>
@@ -98,7 +98,7 @@ namespace Couchbase.Lite {
         /// This is based on -properties, with every key whose name starts with "_" removed.
         /// </remarks>
         /// <returns>user-defined properties, without the ones reserved by CouchDB.</returns>
-        public Dictionary<String, Object> UserProperties { get { return CurrentRevision.UserProperties; } }
+        public IDictionary<String, Object> UserProperties { get { return CurrentRevision.UserProperties; } }
 
         /// <summary>Deletes this document by adding a deletion revision.</summary>
         /// <remarks>

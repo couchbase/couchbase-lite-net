@@ -21,6 +21,7 @@
 
 using Couchbase.Lite.Storage;
 using Sharpen;
+using System.Collections.Generic;
 
 namespace Couchbase.Lite.Storage
 {
@@ -52,7 +53,7 @@ namespace Couchbase.Lite.Storage
 		/// <exception cref="Couchbase.Lite.Storage.SQLException"></exception>
 		public abstract void ExecSQL(string sql, object[] bindArgs);
 
-		public abstract Cursor RawQuery(string sql, string[] selectionArgs);
+        public abstract Cursor RawQuery(string sql, IEnumerable<string> selectionArgs);
 
 		public abstract long Insert(string table, string nullColumnHack, ContentValues values
 			);

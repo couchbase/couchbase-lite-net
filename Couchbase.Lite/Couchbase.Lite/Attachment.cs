@@ -124,7 +124,7 @@ namespace Couchbase.Lite {
         }
 
         /// <summary>Get the filename.</summary>
-        public String Name { get ; private set; }
+        public String Name { get ; internal set; }
 
         /// <summary>Get the MIME type of the contents.</summary>
         public String ContentType {
