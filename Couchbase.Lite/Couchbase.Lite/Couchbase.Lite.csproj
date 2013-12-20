@@ -42,6 +42,7 @@
     <Folder Include="Store\" />
     <Folder Include="Revisions\" />
     <Folder Include="Documents\" />
+    <Folder Include="Query\" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Sharpen\AList.cs" />
@@ -206,6 +207,11 @@
     <Compile Include="Documents\IValidationContext.cs" />
     <Compile Include="Documents\ValidationContext.cs" />
     <Compile Include="Documents\DocumentChange.cs" />
+    <Compile Include="Sharpen\ScheduledExecutorService.cs" />
+    <Compile Include="Sharpen\HttpClientFactory.cs" />
+    <Compile Include="Query\LiveQuery.cs" />
+    <Compile Include="Query\QueryEnumerator.cs" />
+    <Compile Include="Query\QueryRow.cs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="System" />

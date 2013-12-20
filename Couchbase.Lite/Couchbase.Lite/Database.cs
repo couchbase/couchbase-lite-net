@@ -89,9 +89,44 @@ namespace Couchbase.Lite {
 
         public Query CreateAllDocumentsQuery() { throw new NotImplementedException(); }
 
-        public View GetView(String name) { throw new NotImplementedException(); }
+        public View GetView(String name) {
+            View view = null;
 
-        public View GetExistingView(String name) { throw new NotImplementedException(); }
+            if (views != null)
+            {
+                view = views.Get(name);
+            }
+
+            if (view != null)
+            {
+                return view;
+            }
+
+            return RegisterView(new View(this, name));
+        }
+
+        public View GetExistingView(String name) 
+        {
+            View view = null;
+            if (views != null)
+            {
+                view = views.Get(name);
+            }
+
+            if (view != null)
+            {
+                return view;
+            }
+
+            view = new View(this, name);
+
+            if (view.Id == 0)
+            {
+                return null;
+            }
+
+            return RegisterView(view);
+        }
 
         /// <summary>
         /// Gets the validation.
@@ -211,9 +246,17 @@ namespace Couchbase.Lite {
 
     #region Non-Public Instance Members
 
+        private Boolean open;
+        private IDictionary<String, ValidateDelegate> Validations;
+        private IDictionary<String, BlobStoreWriter> _pendingAttachmentsByDigest;
+        private IDictionary<String, View> views;
+        private Int32 transactionLevel;
+
         private String Path { get; set; }
 
-        protected SQLiteStorageEngine StorageEngine { get; set; }
+        internal IList<Replication> ActiveReplicators { get; set; }
+
+        internal SQLiteStorageEngine StorageEngine { get; set; }
 
         internal LruCache<String, Document> DocumentCache { get; set; }
 
@@ -222,9 +265,6 @@ namespace Couchbase.Lite {
             throw new NotImplementedException ();
         }
 
-        private IDictionary<String, ValidateDelegate> Validations;
-
-        IDictionary<String, BlobStoreWriter> _pendingAttachmentsByDigest;
         IDictionary<String, BlobStoreWriter> PendingAttachmentsByDigest {
             get {
                 return _pendingAttachmentsByDigest ?? (_pendingAttachmentsByDigest = new Dictionary<String, BlobStoreWriter>());
@@ -232,6 +272,58 @@ namespace Couchbase.Lite {
             set {
                 _pendingAttachmentsByDigest = value;
             }
+        }
+
+        internal View RegisterView(View view)
+        {
+            if (view == null)
+            {
+                return null;
+            }
+            if (views == null)
+            {
+                views = new Dictionary<string, View>();
+            }
+            views.Put(view.Name, view);
+            return view;
+        }
+
+        internal View MakeAnonymousView()
+        {
+            for (var i = 0; true; ++i)
+            {
+                var name = String.Format("anon%d", i);
+                var existing = GetExistingView(name);
+                if (existing == null)
+                {
+                    // this name has not been used yet, so let's use it
+                    return GetView(name);
+                }
+            }
+        }
+
+        internal Status DeleteViewNamed(String name)
+        {
+            var result = new Status(StatusCode.InternalServerError);
+            try
+            {
+                var whereArgs = new [] { name };
+                var rowsAffected = StorageEngine.Delete("views", "name=?", whereArgs);
+
+                if (rowsAffected > 0)
+                {
+                    result.SetCode(StatusCode.Ok);
+                }
+                else
+                {
+                    result.SetCode(StatusCode.NotFound);
+                }
+            }
+            catch (SQLException e)
+            {
+                Log.E(Database.Tag, "Error deleting view", e);
+            }
+            return result;
         }
 
         internal RevisionInternal GetParentRevision(RevisionInternal rev)
@@ -281,6 +373,39 @@ namespace Couchbase.Lite {
             return result;
         }
 
+        /// <summary>The latest sequence number used.</summary>
+        /// <remarks>
+        /// The latest sequence number used.  Every new revision is assigned a new sequence number,
+        /// so this property increases monotonically as changes are made to the database. It can be
+        /// used to check whether the database has changed between two points in time.
+        /// </remarks>
+        internal Int64 GetLastSequenceNumber()
+        {
+            string sql = "SELECT MAX(sequence) FROM revs";
+            Cursor cursor = null;
+            long result = 0;
+            try
+            {
+                cursor = StorageEngine.RawQuery(sql, null);
+                if (cursor.MoveToNext())
+                {
+                    result = cursor.GetLong(0);
+                }
+            }
+            catch (SQLException e)
+            {
+                Log.E(Database.Tag, "Error getting last sequence", e);
+            }
+            finally
+            {
+                if (cursor != null)
+                {
+                    cursor.Close();
+                }
+            }
+            return result;
+        }
+               
         /// <exception cref="Couchbase.Lite.Storage.SQLException"></exception>
         internal Int64 LongForQuery(string sqlQuery, IEnumerable<string> args)
         {
@@ -304,8 +429,6 @@ namespace Couchbase.Lite {
             return result;
         }
 
-
-
         /// <summary>Purges specific revisions, which deletes them completely from the local database _without_ adding a "tombstone" revision.
         ///     </summary>
         /// <remarks>
@@ -316,7 +439,7 @@ namespace Couchbase.Lite {
         ///     </param>
         /// <resultOn>success will point to an NSDictionary with the same form as docsToRev, containing the doc/revision IDs that were actually removed.
         ///     </resultOn>
-        internal virtual IDictionary<String, Object> PurgeRevisions(IDictionary<String, IList<String>> docsToRevs)
+        internal IDictionary<String, Object> PurgeRevisions(IDictionary<String, IList<String>> docsToRevs)
         {
             var result = new Dictionary<String, Object>();
             RunInTransaction(() => PurgeRevisionsTask(this, docsToRevs, result));
@@ -331,7 +454,7 @@ namespace Couchbase.Lite {
             return result;
         }
 
-        internal virtual void RemoveDocumentFromCache(Document document)
+        internal void RemoveDocumentFromCache(Document document)
         {
             DocumentCache.Remove(document.Id);
         }
@@ -340,12 +463,64 @@ namespace Couchbase.Lite {
 
         private  BlobStore Attachments { get; set; }
 
+        internal String PrivateUUID ()
+        {
+            string result = null;
+            Cursor cursor = null;
+            try
+            {
+                cursor = StorageEngine.RawQuery("SELECT value FROM info WHERE key='privateUUID'", null);
+                if (cursor.MoveToNext())
+                {
+                    result = cursor.GetString(0);
+                }
+            }
+            catch (SQLException e)
+            {
+                Log.E(Tag, "Error querying privateUUID", e);
+            }
+            finally
+            {
+                if (cursor != null)
+                {
+                    cursor.Close();
+                }
+            }
+            return result;
+        }
+
+        internal String PublicUUID()
+        {
+            string result = null;
+            Cursor cursor = null;
+            try
+            {
+                cursor = StorageEngine.RawQuery("SELECT value FROM info WHERE key='publicUUID'", null);
+                if (cursor.MoveToNext())
+                {
+                    result = cursor.GetString(0);
+                }
+            }
+            catch (SQLException e)
+            {
+                Log.E(Tag, "Error querying privateUUID", e);
+            }
+            finally
+            {
+                if (cursor != null)
+                {
+                    cursor.Close();
+                }
+            }
+            return result;
+        }
+
         internal BlobStore GetAttachments()
         {
             return Attachments;
         }
 
-        internal virtual BlobStoreWriter GetAttachmentWriter()
+        internal BlobStoreWriter GetAttachmentWriter()
         {
             return new BlobStoreWriter(GetAttachments());
         }
@@ -400,7 +575,7 @@ namespace Couchbase.Lite {
             PendingAttachmentsByDigest[digest] = writer;
         }
 
-        internal long GetDocNumericID(string docId)
+        internal Int64 GetDocNumericID(string docId)
         {
             Cursor cursor = null;
             string[] args = new string[] { docId };
@@ -430,7 +605,6 @@ namespace Couchbase.Lite {
             }
             return result;
         }
-
 
         /// <summary>Begins a database transaction.</summary>
         /// <remarks>
@@ -871,7 +1045,7 @@ namespace Couchbase.Lite {
             return MakeRevisionHistoryDict(GetRevisionHistory(rev));
         }
 
-        static IDictionary<string, object> MakeRevisionHistoryDict(IList<RevisionInternal> history)
+        private static IDictionary<string, object> MakeRevisionHistoryDict(IList<RevisionInternal> history)
         {
             if (history == null)
                 return null;
@@ -929,7 +1103,7 @@ namespace Couchbase.Lite {
         }
 
         // Splits a revision ID into its generation number and opaque suffix string
-        static int ParseRevIDNumber(string rev)
+        private static int ParseRevIDNumber(string rev)
         {
             var result = -1;
             var dashPos = rev.IndexOf("-", StringComparison.InvariantCultureIgnoreCase);
@@ -949,7 +1123,7 @@ namespace Couchbase.Lite {
         }
 
         // Splits a revision ID into its generation number and opaque suffix string
-        static string ParseRevIDSuffix(string rev)
+        private static string ParseRevIDSuffix(string rev)
         {
             var result = String.Empty;
             int dashPos = rev.IndexOf("-", StringComparison.InvariantCultureIgnoreCase);
@@ -1508,7 +1682,7 @@ namespace Couchbase.Lite {
             }
         }
 
-        internal long InsertRevision(RevisionInternal rev, long docNumericID, long parentSequence, Boolean current, IEnumerable<byte> data)
+        internal Int64 InsertRevision(RevisionInternal rev, long docNumericID, long parentSequence, Boolean current, IEnumerable<byte> data)
         {
             long rowId = 0;
             try
@@ -1570,7 +1744,7 @@ namespace Couchbase.Lite {
         }
 
         /// <summary>INSERTION:</summary>
-        internal IEnumerable<byte> EncodeDocumentJSON(RevisionInternal rev)
+        internal IEnumerable<Byte> EncodeDocumentJSON(RevisionInternal rev)
         {
             var origProps = rev.GetProperties();
             if (origProps == null)
@@ -1617,7 +1791,7 @@ namespace Couchbase.Lite {
         /// AttachmentInternal object, and return a dictionary mapping names-&gt;CBL_Attachments.
         /// </remarks>
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
-        internal IDictionary<string, AttachmentInternal> GetAttachmentsFromRevision(RevisionInternal rev)
+        internal IDictionary<String, AttachmentInternal> GetAttachmentsFromRevision(RevisionInternal rev)
         {
             IDictionary<string, object> revAttachments = (IDictionary<string, object>)rev.GetPropertyForKey
                                                          ("_attachments");
@@ -1767,7 +1941,7 @@ namespace Couchbase.Lite {
             return rev;
         }
 
-        internal long InsertDocumentID(String docId)
+        internal Int64 InsertDocumentID(String docId)
         {
             long rowId = -1;
             try
@@ -1822,6 +1996,156 @@ namespace Couchbase.Lite {
             }
         }
 
+        internal Boolean Initialize(String statements)
+        {
+            try
+            {
+                foreach (string statement in statements.Split(";"))
+                {
+                    StorageEngine.ExecSQL(statement);
+                }
+            }
+            catch (SQLException)
+            {
+                Close();
+                return false;
+            }
+            return true;
+        }
+
+        internal String AttachmentStorePath {
+            get {
+                var attachmentStorePath = Path;
+                int lastDotPosition = attachmentStorePath.LastIndexOf(".", StringComparison.InvariantCultureIgnoreCase);
+                if (lastDotPosition > 0)
+                {
+                    attachmentStorePath = Runtime.Substring(attachmentStorePath, 0, lastDotPosition);
+                }
+                attachmentStorePath = attachmentStorePath + FilePath.separator + "attachments";
+                return attachmentStorePath;
+            }
+        }
+
+        internal Boolean Open()
+        {
+            if (open)
+            {
+                return true;
+            }
+            // Create the storage engine.
+            StorageEngine = SQLiteStorageEngineFactory.CreateStorageEngine();
+            // Try to open the storage engine and stop if we fail.
+            if (StorageEngine == null || !StorageEngine.Open(Path))
+            {
+                return false;
+            }
+            // Stuff we need to initialize every time the sqliteDb opens:
+            if (!Initialize("PRAGMA foreign_keys = ON;"))
+            {
+                Log.E(Database.Tag, "Error turning on foreign keys");
+                return false;
+            }
+            // Check the user_version number we last stored in the sqliteDb:
+            var dbVersion = StorageEngine.GetVersion();
+            // Incompatible version changes increment the hundreds' place:
+            if (dbVersion >= 100)
+            {
+                Log.W(Database.Tag, "Database: Database version (" + dbVersion + ") is newer than I know how to work with");
+                StorageEngine.Close();
+                return false;
+            }
+            if (dbVersion < 1)
+            {
+                // First-time initialization:
+                // (Note: Declaring revs.sequence as AUTOINCREMENT means the values will always be
+                // monotonically increasing, never reused. See <http://www.sqlite.org/autoinc.html>)
+                if (!Initialize(Schema))
+                {
+                    StorageEngine.Close();
+                    return false;
+                }
+                dbVersion = 3;
+            }
+            if (dbVersion < 2)
+            {
+                // Version 2: added attachments.revpos
+                var upgradeSql = "ALTER TABLE attachments ADD COLUMN revpos INTEGER DEFAULT 0; PRAGMA user_version = 2";
+                if (!Initialize(upgradeSql))
+                {
+                    StorageEngine.Close();
+                    return false;
+                }
+                dbVersion = 2;
+            }
+            if (dbVersion < 3)
+            {
+                var upgradeSql = "CREATE TABLE localdocs ( " + "docid TEXT UNIQUE NOT NULL, " 
+                                    + "revid TEXT NOT NULL, " + "json BLOB); " + "CREATE INDEX localdocs_by_docid ON localdocs(docid); "
+                                    + "PRAGMA user_version = 3";
+                if (!Initialize(upgradeSql))
+                {
+                    StorageEngine.Close();
+                    return false;
+                }
+                dbVersion = 3;
+            }
+            if (dbVersion < 4)
+            {
+                var upgradeSql = "CREATE TABLE info ( " + "key TEXT PRIMARY KEY, " + "value TEXT); "
+                                    + "INSERT INTO INFO (key, value) VALUES ('privateUUID', '" + Misc.TDCreateUUID(
+                                       ) + "'); " + "INSERT INTO INFO (key, value) VALUES ('publicUUID',  '" + Misc.TDCreateUUID
+                                    () + "'); " + "PRAGMA user_version = 4";
+                if (!Initialize(upgradeSql))
+                {
+                    StorageEngine.Close();
+                    return false;
+                }
+            }
+            try
+            {
+                Attachments = new BlobStore(AttachmentStorePath);
+            }
+            catch (ArgumentException e)
+            {
+                Log.E(Database.Tag, "Could not initialize attachment store", e);
+                StorageEngine.Close();
+                return false;
+            }
+            open = true;
+            return true;
+        }
+
+        internal Boolean Close()
+        {
+            if (!open)
+            {
+                return false;
+            }
+            if (views != null)
+            {
+                foreach (View view in views.Values)
+                {
+                    view.DatabaseClosing();
+                }
+            }
+            views = null;
+            if (ActiveReplicators != null)
+            {
+                foreach (Replication replicator in ActiveReplicators)
+                {
+                    replicator.DatabaseClosing();
+                }
+                ActiveReplicators = null;
+            }
+            if (StorageEngine != null && StorageEngine.IsOpen())
+            {
+                StorageEngine.Close();
+            }
+            open = false;
+            transactionLevel = 0;
+            return true;
+        }
+
 
     #endregion
     
@@ -1854,6 +2178,10 @@ namespace Couchbase.Lite {
     
     }
 
+    #region Global Delegates
+
     public delegate Boolean ValidateChangeDelegate(String key, Object oldValue, Object newValue);
+
+    #endregion
 }
 

@@ -53,12 +53,20 @@ namespace Couchbase.Lite {
 
     #region Instance Members
 
+        /// <summary>
+        /// Gets the parent <see cref="Couchbase.Lite.Revision"/>.
+        /// </summary>
+        /// <value>The parent.</value>
         public override SavedRevision Parent {
             get {
                 return Document.GetRevisionFromRev(Database.GetParentRevision(RevisionInternal));
             }
         }
 
+        /// <summary>
+        /// Gets the parent <see cref="Couchbase.Lite.Revision"/>'s Id.
+        /// </summary>
+        /// <value>The parent.</value>
         public override String ParentId {
             get {
                 var parRev = Document.Database.GetParentRevision(RevisionInternal);
@@ -70,6 +78,12 @@ namespace Couchbase.Lite {
             }
         }
 
+        /// <summary>Returns the history of this document as an array of <see cref="Couchbase.Lite.Revision"/>s, in forward order.</summary>
+        /// <remarks>
+        /// Returns the history of this document as an array of <see cref="Couchbase.Lite.Revision"/>s, in forward order.
+        /// Older, ancestor, revisions are not guaranteed to have their properties available.
+        /// </remarks>
+        /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
         public override IEnumerable<SavedRevision> RevisionHistory {
             get {
                 var revisions = new AList<SavedRevision>();
@@ -92,6 +106,7 @@ namespace Couchbase.Lite {
             }
         }
 
+        /// <summary>Gets the Revision's id.</summary>
         public override String Id {
             get {
                 return RevisionInternal.GetRevId();
@@ -112,6 +127,12 @@ namespace Couchbase.Lite {
             }
         }
 
+        /// <summary>The contents of this revision of the document.</summary>
+        /// <remarks>
+        /// The contents of this revision of the document.
+        /// Any keys in the dictionary that begin with "_", such as "_id" and "_rev", contain CouchbaseLite metadata.
+        /// </remarks>
+        /// <returns>contents of this revision of the document.</returns>
         public override IDictionary<String, Object> Properties {
             get {
                 IDictionary<string, object> properties = RevisionInternal.GetProperties();
@@ -127,6 +148,13 @@ namespace Couchbase.Lite {
             }
         }
 
+        /// <summary>
+        /// Gets whether this <see cref="Couchbase.Lite.SavedRevision"/>'s properties are available.
+        /// </summary>
+        /// <remarks>
+        /// Older, ancestor, <see cref="Couchbase.Lite.SavedRevision"/>s are not guaranteed to have their properties available.
+        /// </remarks>
+        /// <value><c>true</c> if properties available; otherwise, <c>false</c>.</value>
         public Boolean PropertiesAvailable { get { return RevisionInternal.GetProperties() != null; } }
 
         /// <summary>

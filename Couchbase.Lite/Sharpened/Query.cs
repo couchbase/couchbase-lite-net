@@ -168,8 +168,7 @@ namespace Couchbase.Lite
 
 		/// <summary>Constructor</summary>
 		[InterfaceAudience.Private]
-		internal Query(Database database, Couchbase.Lite.Query query) : this(database
-			, query.GetView())
+		internal Query(Database database, Couchbase.Lite.Query query) : this(database, query.GetView())
 		{
 			limit = query.limit;
 			skip = query.skip;
