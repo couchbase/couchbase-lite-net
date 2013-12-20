@@ -179,6 +179,13 @@ public class ChangeTracker implements Runnable {
             return;
         }
 
+        if (mode == ChangeTrackerMode.Continuous) {
+            // there is a failing unit test for this, and from looking at the code the Replication
+            // object will never use Continuous mode anyway.  Explicitly prevent its use until
+            // it is demonstrated to actually work.
+            throw new RuntimeException("ChangeTracker does not correctly support continuous mode");
+        }
+
         httpClient = client.getHttpClient();
         ChangeTrackerBackoff backoff = new ChangeTrackerBackoff();
 
