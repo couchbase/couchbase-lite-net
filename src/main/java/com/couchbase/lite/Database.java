@@ -1151,7 +1151,7 @@ public class Database {
     }
 
     public RevisionInternal loadRevisionBody(RevisionInternal rev, EnumSet<TDContentOptions> contentOptions) throws CouchbaseLiteException {
-        if(rev.getBody() != null) {
+        if(rev.getBody() != null && contentOptions == EnumSet.noneOf(Database.TDContentOptions.class) && rev.getSequence() != 0) {
             return rev;
         }
         assert((rev.getDocId() != null) && (rev.getRevId() != null));
@@ -1159,6 +1159,8 @@ public class Database {
         Cursor cursor = null;
         Status result = new Status(Status.NOT_FOUND);
         try {
+            // TODO: on ios this query is:
+            // TODO: "SELECT sequence, json FROM revs WHERE doc_id=? AND revid=? LIMIT 1"
             String sql = "SELECT sequence, json FROM revs, docs WHERE revid=? AND docs.docid=? AND revs.doc_id=docs.doc_id LIMIT 1";
             String[] args = { rev.getRevId(), rev.getDocId()};
             cursor = database.rawQuery(sql, args);
