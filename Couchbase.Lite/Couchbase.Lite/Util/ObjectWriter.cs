@@ -23,6 +23,11 @@ namespace Couchbase.Lite {
             throw new NotImplementedException ();
         }
 
+        public string WriteValueAsString (object key)
+        {
+            throw new NotImplementedException ();
+        }
+
         public T ReadValue<T> (IEnumerable<byte> json)
         {
             using (var jsonStream = new MemoryStream(json.ToArray())) {

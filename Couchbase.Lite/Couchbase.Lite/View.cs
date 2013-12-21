@@ -3,6 +3,8 @@ using System.Collections.Generic;
 
 using Couchbase.Lite.Util;
 using Couchbase.Lite.Storage;
+using Sharpen;
+using Couchbase.Lite.Internal;
 
 namespace Couchbase.Lite {
 
@@ -38,6 +40,12 @@ namespace Couchbase.Lite {
 
     #endregion
     
+    #region Constants
+
+        const Int32 ReduceBatchSize = 100;
+
+    #endregion
+
     #region Non-public Members
 
         private Int32 _id;
@@ -84,6 +92,482 @@ namespace Couchbase.Lite {
         {
             Database = null;
             _id = 0;
+        }
+
+        internal void UpdateIndex()
+        {
+            Log.V(Database.Tag, "Re-indexing view " + Name + " ...");
+            System.Diagnostics.Debug.Assert((Map != null));
+
+            if (Id < 0)
+            {
+                var msg = string.Format("View.Id < 0");
+                throw new CouchbaseLiteException(msg, new Status(StatusCode.NotFound));
+            }
+
+            Database.BeginTransaction();
+
+            var result = new Status(StatusCode.InternalServerError);
+            Cursor cursor = null;
+            try
+            {
+                var lastSequence = LastSequenceIndexed;
+                var dbMaxSequence = Database.LastSequenceNumber;
+
+                if (lastSequence == dbMaxSequence)
+                {
+                    // nothing to do (eg,  kCBLStatusNotModified)
+                    var msg = String.Format("lastSequence ({0}) == dbMaxSequence ({1}), nothing to do", lastSequence, dbMaxSequence);
+                    Log.D(Database.Tag, msg);
+                    return;
+                }
+
+                // First remove obsolete emitted results from the 'maps' table:
+                var sequence = lastSequence;
+                if (lastSequence < 0)
+                {
+                    var msg = string.Format("lastSequence < 0 ({0})", lastSequence);
+                    throw new CouchbaseLiteException(msg, new Status(StatusCode.InternalServerError));
+                }
+                if (lastSequence == 0)
+                {
+                    // If the lastSequence has been reset to 0, make sure to remove
+                    // any leftover rows:
+                    var whereArgs = new string[] { Sharpen.Extensions.ToString(Id) };
+                    Database.StorageEngine.Delete("maps", "view_id=?", whereArgs); // TODO: Convert to ADO params.
+                }
+                else
+                {
+                    // Delete all obsolete map results (ones from since-replaced
+                    // revisions):
+                    var args = new [] {
+                        Id.ToString(),
+                        lastSequence.ToString(),
+                        lastSequence.ToString()
+                    };
+
+                    Database.StorageEngine.ExecSQL(
+                        "DELETE FROM maps WHERE view_id=? AND sequence IN ("
+                        + "SELECT parent FROM revs WHERE sequence>? " + "AND parent>0 AND parent<=?)", 
+                            args); // TODO: Convert to ADO params.
+                }
+                var deleted = 0;
+                cursor = Database.StorageEngine.RawQuery("SELECT changes()", null); // TODO: Convert to ADO params.
+                cursor.MoveToNext();
+                deleted = cursor.GetInt(0);
+                cursor.Close();
+
+                // find a better way to propagate this back
+                // Now scan every revision added since the last time the view was
+                // indexed:
+                var selectArgs = new string[] { System.Convert.ToString(lastSequence) };
+                cursor = Database.StorageEngine.RawQuery("SELECT revs.doc_id, sequence, docid, revid, json FROM revs, docs "
+                    + "WHERE sequence>? AND current!=0 AND deleted=0 " + "AND revs.doc_id = docs.doc_id "
+                    + "ORDER BY revs.doc_id, revid DESC", selectArgs);
+                cursor.MoveToNext();
+                var lastDocID = 0L;
+                while (!cursor.IsAfterLast())
+                {
+                    long docID = cursor.GetLong(0);
+                    if (docID != lastDocID)
+                    {
+                        // Only look at the first-iterated revision of any document,
+                        // because this is the
+                        // one with the highest revid, hence the "winning" revision
+                        // of a conflict.
+                        lastDocID = docID;
+                        // Reconstitute the document as a dictionary:
+                        sequence = cursor.GetLong(1);
+                        string docId = cursor.GetString(2);
+                        if (docId.StartsWith("_design/", StringComparison.InvariantCultureIgnoreCase))
+                        {
+                            // design docs don't get indexed!
+                            cursor.MoveToNext();
+                            continue;
+                        }
+                        var revId = cursor.GetString(3);
+                        var json = cursor.GetBlob(4);
+                        var properties = Database.DocumentPropertiesFromJSON(
+                            json, docId, revId, false, sequence, EnumSet.NoneOf<TDContentOptions>()
+                        );
+                        if (properties != null)
+                        {
+                            // Call the user-defined map() to emit new key/value
+                            // pairs from this revision:
+                            Log.V(Database.Tag, "  call map for sequence=" + System.Convert.ToString(sequence
+                            ));
+                            // This is the emit() block, which gets called from within the
+                            // user-defined map() block
+                            // that's called down below.
+
+                            var enclosingView = this;
+                            var thisSequence = sequence;
+                            var map = Map;
+
+                            if (map == null)
+                                throw new CouchbaseLiteException("Map function is missing.");
+
+                            EmitDelegate emitBlock = (key, value) =>
+                            {
+                                // TODO: Do we need to do any null checks on key or value?
+                                try
+                                {
+                                    var keyJson = Manager.GetObjectMapper().WriteValueAsString(key);
+                                    var valueJson = Manager.GetObjectMapper().WriteValueAsString(value);
+
+                                    Log.V(Database.Tag, String.Format("    emit({0}, {1})", keyJson, valueJson));
+
+                                    var insertValues = new ContentValues();
+                                    insertValues.Put("view_id", enclosingView.Id);
+                                    insertValues.Put("sequence", thisSequence);
+                                    insertValues.Put("key", keyJson);
+                                    insertValues.Put("value", valueJson);
+
+                                    enclosingView.Database.StorageEngine.Insert("maps", null, insertValues);
+                                }
+                                catch (Exception e)
+                                {
+                                    Log.E(Database.Tag, "Error emitting", e);
+                                }
+                            };
+
+                            map(properties, emitBlock);
+                        }
+                    }
+                    cursor.MoveToNext();
+                }
+                // Finally, record the last revision sequence number that was
+                // indexed:
+                ContentValues updateValues = new ContentValues();
+                updateValues.Put("lastSequence", dbMaxSequence);
+                var whereArgs_1 = new string[] { Sharpen.Extensions.ToString(Id) };
+                Database.StorageEngine.Update("views", updateValues, "view_id=?", whereArgs_1);
+                // FIXME actually count number added :)
+                        Log.V(Database.Tag, "...Finished re-indexing view " + Name + " up to sequence " +
+                    System.Convert.ToString(dbMaxSequence) + " (deleted " + deleted + " added " + "?"
+                    + ")");
+                        result.SetCode(StatusCode.Ok);
+            }
+            catch (SQLException e)
+            {
+                throw new CouchbaseLiteException(e, new Status(StatusCode.DbError));
+            }
+            finally
+            {
+                if (cursor != null)
+                {
+                    cursor.Close();
+                }
+                if (!result.IsSuccessful())
+                {
+                    Log.W(Database.Tag, "Failed to rebuild view " + Name + ": " + result.GetCode());
+                }
+                if (Database != null)
+                {
+                    Database.EndTransaction(result.IsSuccessful());
+                }
+            }
+        }
+
+        /// <summary>Queries the view.</summary>
+        /// <remarks>Queries the view. Does NOT first update the index.</remarks>
+        /// <param name="options">The options to use.</param>
+        /// <returns>An array of QueryRow objects.</returns>
+        /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
+        internal IEnumerable<QueryRow> QueryWithOptions(QueryOptions options)
+        {
+            if (options == null)
+                options = new QueryOptions();
+
+            Cursor cursor = null;
+            IList<QueryRow> rows = new AList<QueryRow>();
+            try
+            {
+                cursor = ResultSetWithOptions(options);
+                int groupLevel = options.GetGroupLevel();
+                var group = options.IsGroup() || (groupLevel > 0);
+                var reduce = options.IsReduce() || group;
+                var reduceBlock = Reduce;
+
+                if (reduce && (reduceBlock == null) && !group)
+                {
+                    var msg = "Cannot use reduce option in view " + Name + " which has no reduce block defined";
+                    Log.W(Database.Tag, msg);
+                    throw new CouchbaseLiteException(StatusCode.BadRequest);
+                }
+
+                if (reduce || group)
+                {
+                    // Reduced or grouped query:
+                    rows = ReducedQuery(cursor, group, groupLevel);
+                }
+                else
+                {
+                    // regular query
+                    cursor.MoveToNext();
+                    while (!cursor.IsAfterLast())
+                    {
+                        var keyData = FromJSON(cursor.GetBlob(0));
+                        // TODO: delay parsing this for increased efficiency
+                        var value = FromJSON(cursor.GetBlob(1));
+                        // TODO: ditto
+                        var docId = cursor.GetString(2);
+                        var sequence = Extensions.ValueOf(cursor.GetInt(3));
+                        IDictionary<string, object> docContents = null;
+                        if (options.IsIncludeDocs())
+                        {
+                            // http://wiki.apache.org/couchdb/Introduction_to_CouchDB_views#Linked_documents
+                            if (value is IDictionary<string,object> && ((IDictionary<string,object>)value).ContainsKey("_id"))
+                            {
+                                string linkedDocId = (string)((IDictionary<string,object>)value).Get("_id");
+                                RevisionInternal linkedDoc = Database.GetDocumentWithIDAndRev(linkedDocId, null, 
+                                    EnumSet.NoneOf<TDContentOptions>());
+                                docContents = linkedDoc.GetProperties();
+                            }
+                            else
+                            {
+                                docContents = Database.DocumentPropertiesFromJSON(cursor.GetBlob(5), docId, cursor.GetString(4), false, cursor.GetLong(3), options.GetContentOptions());
+                            }
+                        }
+                        var row = new QueryRow(docId, sequence, keyData, value, docContents);
+                        row.Database = Database;
+                        rows.AddItem<QueryRow>(row);
+                        cursor.MoveToNext();
+                    }
+                }
+            }
+            catch (SQLException e)
+            {
+                var errMsg = string.Format("Error querying view: %s", this);
+                Log.E(Database.Tag, errMsg, e);
+                throw new CouchbaseLiteException(errMsg, e, new Status(StatusCode.DbError));
+            }
+            finally
+            {
+                if (cursor != null)
+                {
+                    cursor.Close();
+                }
+            }
+            return rows;
+        }
+
+        /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
+        internal IList<QueryRow> ReducedQuery(Cursor cursor, Boolean group, Int32 groupLevel)
+        {
+            IList<object> keysToReduce = null;
+            IList<object> valuesToReduce = null;
+            object lastKey = null;
+
+            var reduce = Reduce;
+            if (reduce != null)
+            {
+                keysToReduce = new AList<Object>(ReduceBatchSize);
+                valuesToReduce = new AList<Object>(ReduceBatchSize);
+            }
+
+            var rows = new AList<QueryRow>();
+            cursor.MoveToNext();
+
+            while (!cursor.IsAfterLast())
+            {
+                object keyData = FromJSON(cursor.GetBlob(0));
+                object value = FromJSON(cursor.GetBlob(1));
+                System.Diagnostics.Debug.Assert((keyData != null));
+                if (group && !GroupTogether(keyData, lastKey, groupLevel))
+                {
+                    if (lastKey != null)
+                    {
+                        // This pair starts a new group, so reduce & record the last one:
+                        var reduced = (reduce != null) ? reduce(keysToReduce, valuesToReduce, false) : null;
+
+                        var key = GroupKey(lastKey, groupLevel);
+                        var row = new QueryRow(null, 0, key, reduced, null);
+                        row.Database = Database;
+                        rows.AddItem(row);
+
+                        keysToReduce.Clear();
+                        valuesToReduce.Clear();
+                    }
+                    lastKey = keyData;
+                }
+                keysToReduce.AddItem(keyData);
+                valuesToReduce.AddItem(value);
+                cursor.MoveToNext();
+            }
+            if (keysToReduce.Count > 0)
+            {
+                // Finish the last group (or the entire list, if no grouping):
+                var key = group ? GroupKey(lastKey, groupLevel) : null;
+                var reduced = (reduce != null) ? reduce(keysToReduce, valuesToReduce, false) : null;
+                var row = new QueryRow(null, 0, key, reduced, null);
+                row.Database = Database;
+                rows.AddItem(row);
+            }
+            return rows;
+        }
+
+        // Are key1 and key2 grouped together at this groupLevel?
+        public static bool GroupTogether(object key1, object key2, int groupLevel)
+        {
+            if (groupLevel == 0 || !(key1 is IList<object>) || !(key2 is IList<object>))
+            {
+                return key1.Equals(key2);
+            }
+            var key1List = (IList<object>)key1;
+            var key2List = (IList<object>)key2;
+            var end = Math.Min(groupLevel, Math.Min(key1List.Count, key2List.Count));
+            for (int i = 0; i < end; ++i)
+            {
+                if (!key1List[i].Equals(key2List[i]))
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        // Returns the prefix of the key to use in the result row, at this groupLevel
+        public static object GroupKey(object key, int groupLevel)
+        {
+            if (groupLevel > 0 && (key is IList<object>) && (((IList<object>)key).Count > groupLevel))
+            {
+                return ((IList<object>)key).SubList(0, groupLevel);
+            }
+            else
+            {
+                return key;
+            }
+        }
+
+        internal Cursor ResultSetWithOptions(QueryOptions options)
+        {
+            if (options == null)
+            {
+                options = new QueryOptions();
+            }
+            // OPT: It would be faster to use separate tables for raw-or ascii-collated views so that
+            // they could be indexed with the right Collation, instead of having to specify it here.
+            string collationStr = string.Empty;
+            if (Collation == ViewCollation.ASCII)
+            {
+                collationStr += " COLLATE JSON_ASCII";
+            }
+            else
+            {
+                if (Collation == ViewCollation.Raw)
+                {
+                    collationStr += " COLLATE JSON_RAW";
+                }
+            }
+            string sql = "SELECT key, value, docid, revs.sequence";
+            if (options.IsIncludeDocs())
+            {
+                sql = sql + ", revid, json";
+            }
+            sql = sql + " FROM maps, revs, docs WHERE maps.view_id=?";
+            IList<string> argsList = new AList<string>();
+            argsList.AddItem(Sharpen.Extensions.ToString(Id));
+            if (options.GetKeys() != null)
+            {
+                sql += " AND key in (";
+                string item = "?";
+                foreach (object key in options.GetKeys())
+                {
+                    sql += item;
+                    item = ", ?";
+                    argsList.AddItem(ToJSONString(key));
+                }
+                sql += ")";
+            }
+            object minKey = options.GetStartKey();
+            object maxKey = options.GetEndKey();
+            bool inclusiveMin = true;
+            bool inclusiveMax = options.IsInclusiveEnd();
+            if (options.IsDescending())
+            {
+                minKey = maxKey;
+                maxKey = options.GetStartKey();
+                inclusiveMin = inclusiveMax;
+                inclusiveMax = true;
+            }
+            if (minKey != null)
+            {
+                System.Diagnostics.Debug.Assert((minKey is string));
+                if (inclusiveMin)
+                {
+                    sql += " AND key >= ?";
+                }
+                else
+                {
+                    sql += " AND key > ?";
+                }
+                sql += collationStr;
+                argsList.AddItem(ToJSONString(minKey));
+            }
+            if (maxKey != null)
+            {
+                System.Diagnostics.Debug.Assert((maxKey is string));
+                if (inclusiveMax)
+                {
+                    sql += " AND key <= ?";
+                }
+                else
+                {
+                    sql += " AND key < ?";
+                }
+                sql += collationStr;
+                argsList.AddItem(ToJSONString(maxKey));
+            }
+            sql = sql + " AND revs.sequence = maps.sequence AND docs.doc_id = revs.doc_id ORDER BY key";
+            sql += collationStr;
+            if (options.IsDescending())
+            {
+                sql = sql + " DESC";
+            }
+            sql = sql + " LIMIT ? OFFSET ?";
+            argsList.AddItem(Sharpen.Extensions.ToString(options.GetLimit()));
+            argsList.AddItem(Sharpen.Extensions.ToString(options.GetSkip()));
+            Log.V(Database.Tag, "Query " + Name + ": " + sql);
+            Cursor cursor = Database.StorageEngine.RawQuery(sql, Sharpen.Collections.ToArray(
+                argsList, new string[argsList.Count]));
+            return cursor;
+        }
+
+        /// <summary>Indexing</summary>
+        internal string ToJSONString(Object obj)
+        {
+            if (obj == null)
+                return null;
+
+            String result = null;
+            try
+            {
+                result = Manager.GetObjectMapper().WriteValueAsString(obj);
+            }
+            catch (Exception e)
+            {
+                Log.W(Database.Tag, "Exception serializing object to json: " + obj, e);
+            }
+            return result;
+        }
+
+        internal Object FromJSON(IEnumerable<Byte> json)
+        {
+            if (json == null)
+            {
+                return null;
+            }
+            object result = null;
+            try
+            {
+                result = Manager.GetObjectMapper().ReadValue<Object>(json);
+            }
+            catch (Exception e)
+            {
+                Log.W(Database.Tag, "Exception parsing json", e);
+            }
+            return result;
         }
 
     #endregion
@@ -317,7 +801,7 @@ namespace Couchbase.Lite {
 
     #region Global Delegates
 
-    public delegate void MapDelegate(Dictionary<String, Object> document, EmitDelegate emit);
+        public delegate void MapDelegate(IDictionary<String, Object> document, EmitDelegate emit);
         
     public delegate void EmitDelegate(Object key, Object value);
         

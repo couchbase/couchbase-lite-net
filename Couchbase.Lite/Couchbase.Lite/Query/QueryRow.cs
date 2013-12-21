@@ -7,29 +7,40 @@ using System.IO;
 
 namespace Couchbase.Lite {
 
-    
-
     public partial class QueryRow {
 
+    #region Constructors
+
+        internal QueryRow(string documentId, long sequence, object key, object value, IDictionary<String, Object> documentProperties)
+        {
+            SourceDocumentId = documentId;
+            SequenceNumber = sequence;
+            Key = key;
+            Value = value;
+            DocumentProperties = documentProperties;
+        }
+
+    #endregion
+
     #region Instance Members
-        //Properties
-        public Database Database { get { throw new NotImplementedException(); } }
 
-        public Document Document { get { throw new NotImplementedException(); } }
+        public Database Database { get; internal set; }
 
-        public Object Key { get { throw new NotImplementedException(); } }
+        public Document Document { get; private set; }
 
-        public Object Value { get { throw new NotImplementedException(); } }
+        public Object Key { get; private set; }
 
-        public String DocumentId { get { throw new NotImplementedException(); } }
+        public Object Value { get; private set; }
 
-        public String SourceDocumentID { get { throw new NotImplementedException(); } }
+        public String DocumentId { get; private set; }
 
-        public String DocumentRevisionId { get { throw new NotImplementedException(); } }
+        public String SourceDocumentId { get; private set; }
 
-        public Dictionary<String, Object> DocumentProperties { get { throw new NotImplementedException(); } }
+        public String DocumentRevisionId { get; private set; }
 
-        public long SequenceNumber { get { throw new NotImplementedException(); } }
+        public IDictionary<String, Object> DocumentProperties { get; private set; }
+
+        public Int64 SequenceNumber { get; private set; }
 
     #endregion
     

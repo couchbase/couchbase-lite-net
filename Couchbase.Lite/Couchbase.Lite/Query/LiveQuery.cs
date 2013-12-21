@@ -7,8 +7,6 @@ using System.IO;
 
 namespace Couchbase.Lite {
 
-    
-
     public partial class LiveQuery : Query {
 
     #region Constructors

@@ -4,58 +4,55 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Net;
 using System.IO;
+using Sharpen;
+using System.Threading.Tasks;
 
 namespace Couchbase.Lite {
 
-    public partial class Query {
-
-    #region Enums
-    
-    public enum IndexUpdateMode {
-        Before,
-        Never,
-        After
-    }
-                        
-    #endregion
-
+    public enum IndexUpdateMode {
+            Before,
+            Never,
+            After
+    }
+                            
+        public partial class Query : IDisposable
+    {
 
     #region Constructors
         internal Query(Database database, View view)
         {
-            throw new NotImplementedException();
-//            // null for _all_docs query
-//            Database = database;
-//            View = view;
-//            limit = int.MaxValue;
-//            mapOnly = (view != null && view.GetReduce() == null);
-//            indexUpdateMode = Query.IndexUpdateMode.Never;
+            // null for _all_docs query
+            Database = database;
+            View = view;
+            Limit = Int32.MaxValue;
+            MapOnly = (view != null && view.Reduce == null);
+            IndexUpdateMode = IndexUpdateMode.Never;
         }
 
         /// <summary>Constructor</summary>
-        internal Query(Database database, MapDelegate mapFunction) : this(database, database.MakeAnonymousView())
+        internal Query(Database database, MapDelegate mapFunction)
+        : this(database, database.MakeAnonymousView())
         {
-            throw new NotImplementedException();
-//            temporaryView = true;
-//            view.SetMap(mapFunction, string.Empty);
+            TemporaryView = true;
+            View.SetMap(mapFunction, string.Empty);
         }
 
         /// <summary>Constructor</summary>
-        internal Query(Database database, Couchbase.Lite.Query query) : this(database, query.View)
+        internal Query(Database database, Query query) 
+        : this(database, query.View)
         {
-            throw new NotImplementedException();
-//            limit = query.limit;
-//            skip = query.skip;
-//            startKey = query.startKey;
-//            endKey = query.endKey;
-//            descending = query.descending;
-//            prefetch = query.prefetch;
-//            keys = query.keys;
-//            groupLevel = query.groupLevel;
-//            mapOnly = query.mapOnly;
-//            startKeyDocId = query.startKeyDocId;
-//            endKeyDocId = query.endKeyDocId;
-//            indexUpdateMode = query.indexUpdateMode;
+            Limit = query.Limit;
+            Skip = query.Skip;
+            StartKey = query.StartKey;
+            EndKey = query.EndKey;
+            Descending = query.Descending;
+            Prefetch = query.Prefetch;
+            Keys = query.Keys;
+            GroupLevel = query.GroupLevel;
+            MapOnly = query.MapOnly;
+            StartKeyDocId = query.StartKeyDocId;
+            EndKeyDocId = query.EndKeyDocId;
+            IndexUpdateMode = query.IndexUpdateMode;
         }
 
 
@@ -65,15 +62,43 @@ namespace Couchbase.Lite {
 
         internal View View { get; private set; }
 
+        private  bool TemporaryView { get; set; }
+
+        private Int64 LastSequence { get; set; }
+
+        private QueryOptions QueryOptions
+        {
+            get {
+                var queryOptions = new QueryOptions();
+                queryOptions.SetStartKey(StartKey);
+                queryOptions.SetEndKey(EndKey);
+                queryOptions.SetStartKey(StartKey);
+                queryOptions.SetKeys(Keys);
+                queryOptions.SetSkip(Skip);
+                queryOptions.SetLimit(Limit);
+                queryOptions.SetReduce(!MapOnly);
+                queryOptions.SetReduceSpecified(true);
+                queryOptions.SetGroupLevel(GroupLevel);
+                queryOptions.SetDescending(Descending);
+                queryOptions.SetIncludeDocs(Prefetch);
+                queryOptions.SetUpdateSeq(true);
+                queryOptions.SetInclusiveEnd(true);
+                queryOptions.SetIncludeDeletedDocs(IncludeDeleted);
+                queryOptions.SetStale(IndexUpdateMode);
+                return queryOptions;
+            }
+        }
+
+
     #endregion
 
     #region Instance Members
         //Properties
-        public Database Database { get { throw new NotImplementedException(); } }
+        public Database Database { get; private set; }
 
-        public int Limit { get; set; }
+        public Int32 Limit { get; set; }
 
-        public int Skip { get; set; }
+        public Int32 Skip { get; set; }
 
         public Boolean Descending { get; set; }
 
@@ -85,25 +110,64 @@ namespace Couchbase.Lite {
 
         public String EndKeyDocId { get; set; }
 
-        public IndexUpdateMode UpdateMode { get; set; }
+        public IndexUpdateMode IndexUpdateMode { get; set; }
 
         public IEnumerable<Object> Keys { get; set; }
 
         public Boolean MapOnly { get; set; }
 
-        public int GroupLevel { get; set; }
+        public Int32 GroupLevel { get; set; }
 
         public Boolean Prefetch { get; set; }
 
         public Boolean IncludeDeleted { get; set; }
 
+        public event EventHandler<QueryCompletedEventArgs> Completed;
+
         //Methods
-        public QueryEnumerator Run() { throw new NotImplementedException(); }
+        public QueryEnumerator Run() 
+        {
+            var outSequence = new AList<long>();
+            var viewName = (View != null) ? View.Name : null;
 
-        public void RunAsync(QueryCompleteDelegate onComplete) { throw new NotImplementedException(); }
+            IEnumerable<QueryRow> rows = null;
+            Exception error = null;
+            try {
+                rows = Database.QueryViewNamed (viewName, QueryOptions, outSequence);
+            } catch (Exception ex) {
+                error = ex;
+            }
 
-        public LiveQuery ToLiveQuery() { throw new NotImplementedException(); }
+            LastSequence = outSequence[0];
 
+            var completed = Completed;
+            if (completed != null)
+            {
+                var enumerator = new QueryEnumerator(Database, rows, LastSequence);
+                var args = new QueryCompletedEventArgs(enumerator, error);
+                completed(this, args);
+            }
+            return new QueryEnumerator(Database, rows, LastSequence);
+        }
+
+        public Task<QueryEnumerator> RunAsync() {
+            return Task.Factory.StartNew<QueryEnumerator>(Run);
+        }
+
+        public LiveQuery ToLiveQuery() 
+        {
+            if (View == null)
+            {
+                throw new CouchbaseLiteException("Cannot convert a Query to LiveQuery if the view is null");
+            }
+            return new LiveQuery(this);
+        }
+
+        public void Dispose()
+        {
+            if (TemporaryView)
+                View.Delete();
+        }
     #endregion
     
     #region Delegates

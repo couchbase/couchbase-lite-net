@@ -6,6 +6,8 @@ namespace Couchbase.Lite {
 
         public CouchbaseLiteException (Exception innerException, StatusCode code) : base(String.Format("Database error: {0}", code), innerException) { }
 
+        public CouchbaseLiteException (Exception innerException, Status code) : this(innerException, code.GetCode()) { }
+
         public CouchbaseLiteException (StatusCode code) : base(String.Format("Database error: {0}", code)) { }
 
         public CouchbaseLiteException (string message) : base(message) {  }

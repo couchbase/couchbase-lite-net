@@ -1909,8 +1909,7 @@ namespace Couchbase.Lite
 				}
 				catch (CouchbaseLiteException e)
 				{
-					Log.E(Couchbase.Lite.Database.Tag, "Error updating view index on background thread"
-						, e);
+					Log.E(Couchbase.Lite.Database.Tag, "Error updating view index on background thread", e);
 				}
 			}
 

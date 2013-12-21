@@ -532,7 +532,7 @@ namespace Couchbase.Lite
 				this._enclosing = _enclosing;
 			}
 
-			public override void Emit(object key, object value)
+            internal void DefaultEmit(object key, object value)
 			{
 				try
 				{
@@ -724,8 +724,7 @@ namespace Couchbase.Lite
 		}
 
 		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
-		internal virtual IList<QueryRow> ReducedQuery(Cursor cursor, bool group, int groupLevel
-			)
+		internal virtual IList<QueryRow> ReducedQuery(Cursor cursor, bool group, int groupLevel)
 		{
 			IList<object> keysToReduce = null;
 			IList<object> valuesToReduce = null;

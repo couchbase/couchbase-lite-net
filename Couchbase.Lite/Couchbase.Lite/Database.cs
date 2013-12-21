@@ -8,6 +8,8 @@ using Sharpen;
 using Couchbase.Lite.Util;
 using Couchbase.Lite.Storage;
 using Couchbase.Lite.Internal;
+using System.Threading.Tasks;
+using System.Text;
 
 namespace Couchbase.Lite {
 
@@ -252,7 +254,7 @@ namespace Couchbase.Lite {
         private IDictionary<String, View> views;
         private Int32 transactionLevel;
 
-        private String Path { get; set; }
+        internal String Path { get; private set; }
 
         internal IList<Replication> ActiveReplicators { get; set; }
 
@@ -265,13 +267,368 @@ namespace Couchbase.Lite {
             throw new NotImplementedException ();
         }
 
-        IDictionary<String, BlobStoreWriter> PendingAttachmentsByDigest {
+        private IDictionary<String, BlobStoreWriter> PendingAttachmentsByDigest
+        {
             get {
                 return _pendingAttachmentsByDigest ?? (_pendingAttachmentsByDigest = new Dictionary<String, BlobStoreWriter>());
             }
             set {
                 _pendingAttachmentsByDigest = value;
             }
+        }
+
+        /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
+        internal IEnumerable<QueryRow> QueryViewNamed(String viewName, QueryOptions options, IList<Int64> outLastSequence)
+        {
+            var before = Runtime.CurrentTimeMillis();
+            var lastSequence = 0L;
+            IEnumerable<QueryRow> rows;
+
+            if (!String.IsNullOrEmpty (viewName)) {
+                var view = GetView (viewName);
+                if (view == null)
+                    throw new CouchbaseLiteException (StatusCode.NotFound);
+
+                lastSequence = view.LastSequenceIndexed;
+                if (options.GetStale () == IndexUpdateMode.Never || lastSequence <= 0) {
+                    view.UpdateIndex ();
+                    lastSequence = view.LastSequenceIndexed;
+                } else {
+                    if (options.GetStale () == IndexUpdateMode.After 
+                        && lastSequence < GetLastSequenceNumber())
+                        // NOTE: The exception is handled inside the thread.
+                        // TODO: Consider using the async keyword instead.
+                        Task.Factory.StartNew(()=>{
+                            try
+                            {
+                                view.UpdateIndex();
+                            }
+                            catch (CouchbaseLiteException e)
+                            {
+                                Log.E(Database.Tag, "Error updating view index on background thread", e);
+                            }
+                        });
+
+                }
+                rows = view.QueryWithOptions (options);
+            } else {
+                // nil view means query _all_docs
+                // note: this is a little kludgy, but we have to pull out the "rows" field from the
+                // result dictionary because that's what we want.  should be refactored, but
+                // it's a little tricky, so postponing.
+                var allDocsResult = GetAllDocs (options);
+                rows = (IList<QueryRow>)allDocsResult.Get ("rows");
+                lastSequence = GetLastSequenceNumber ();
+            }
+            outLastSequence.AddItem(lastSequence);
+            var delta = Runtime.CurrentTimeMillis() - before;
+            Log.D(Database.Tag, String.Format("Query view {0} completed in {1} milliseconds", viewName, delta));
+            return rows;
+        }
+
+        /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
+        internal IDictionary<String, Object> GetAllDocs(QueryOptions options)
+        {
+            var result = new Dictionary<String, Object>();
+            var rows = new AList<QueryRow>();
+            if (options == null)
+                options = new QueryOptions();
+
+            var updateSeq = 0L;
+            if (options.IsUpdateSeq())
+            {
+                updateSeq = GetLastSequenceNumber();
+            }
+
+            // TODO: needs to be atomic with the following SELECT
+            var sql = new StringBuilder("SELECT revs.doc_id, docid, revid, sequence");
+            if (options.IsIncludeDocs())
+            {
+                sql.Append(", json");
+            }
+            if (options.IsIncludeDeletedDocs())
+            {
+                sql.Append(", deleted");
+            }
+            sql.Append(" FROM revs, docs WHERE");
+
+            if (options.GetKeys() != null)
+            {
+                if (options.GetKeys().Count() == 0)
+                {
+                    return result;
+                }
+                var commaSeperatedIds = JoinQuotedObjects(options.GetKeys());
+                sql.Append(String.Format(" revs.doc_id IN (SELECT doc_id FROM docs WHERE docid IN ({0})) AND", commaSeperatedIds));
+            }
+            sql.Append(" docs.doc_id = revs.doc_id AND current=1"); // TODO: Convert to ADO params.
+
+            if (!options.IsIncludeDeletedDocs())
+            {
+                sql.Append(" AND deleted=0"); // TODO: Convert to ADO params.
+            }
+
+            var args = new AList<String>();
+            var minKey = options.GetStartKey();
+            var maxKey = options.GetEndKey();
+            var inclusiveMin = true;
+            var inclusiveMax = options.IsInclusiveEnd();
+
+            if (options.IsDescending())
+            {
+                minKey = maxKey;
+                maxKey = options.GetStartKey();
+                inclusiveMin = inclusiveMax;
+                inclusiveMax = true;
+            }
+            if (minKey != null)
+            {
+                System.Diagnostics.Debug.Assert((minKey is String));
+                sql.Append((inclusiveMin ? " AND docid >= ?" : " AND docid > ?")); // TODO: Convert to ADO params.
+                args.AddItem((string)minKey);
+            }
+            if (maxKey != null)
+            {
+                System.Diagnostics.Debug.Assert((maxKey is string));
+                sql.Append((inclusiveMax ? " AND docid <= ?" : " AND docid < ?")); // TODO: Convert to ADO params.
+                args.AddItem((string)maxKey);
+            }
+            sql.Append(String.Format(" ORDER BY docid {0}, {1} revid DESC LIMIT ? OFFSET ?", 
+                options.IsDescending() ? "DESC" : "ASC", 
+                options.IsIncludeDeletedDocs() ? "deleted ASC," : String.Empty)); // TODO: Convert to ADO params.
+            args.AddItem(options.GetLimit().ToString());
+            args.AddItem(options.GetSkip().ToString());
+            Cursor cursor = null;
+            var lastDocID = 0L;
+            var totalRows = 0;
+            var docs = new Dictionary<String, QueryRow>();
+            try
+            {
+                cursor = StorageEngine.RawQuery(
+                    sql.ToString(),
+                    Collections.ToArray(args, new string[args.Count])
+                );
+
+                cursor.MoveToNext();
+
+                while (!cursor.IsAfterLast())
+                {
+                    totalRows++;
+                    var docNumericID = cursor.GetLong(0);
+                    if (docNumericID == lastDocID)
+                    {
+                        cursor.MoveToNext();
+                        continue;
+                    }
+
+                    lastDocID = docNumericID;
+                    var docId = cursor.GetString(1);
+                    var revId = cursor.GetString(2);
+                    var sequenceNumber = cursor.GetLong(3);
+                    var deleted = options.IsIncludeDeletedDocs() && cursor.GetInt(GetDeletedColumnIndex(options)) > 0;
+                    IDictionary<string, object> docContents = null;
+                    if (options.IsIncludeDocs())
+                    {
+                        var json = cursor.GetBlob(4);
+                        docContents = DocumentPropertiesFromJSON(json, docId, revId, deleted, sequenceNumber, options.GetContentOptions());
+                    }
+                    var value = new Dictionary<string, object>();
+                    value.Put("rev", revId);
+                    if (options.IsIncludeDeletedDocs())
+                    {
+                        value.Put("deleted", deleted);
+                    }
+                    var change = new QueryRow(docId, sequenceNumber, docId, value, docContents);
+                    change.Database = this;
+
+                    if (options.GetKeys() != null)
+                    {
+                        docs.Put(docId, change);
+                    }
+                    else
+                    {
+                        rows.AddItem(change);
+                    }
+                    cursor.MoveToNext();
+                }
+                if (options.GetKeys() != null)
+                {
+                    foreach (var docIdObject in options.GetKeys())
+                    {
+                        if (docIdObject is string)
+                        {
+                            var docId = (string)docIdObject;
+                            var change = docs.Get(docId);
+                            if (change == null)
+                            {
+                                var value = new Dictionary<string, object>();
+                                var docNumericID = GetDocNumericID(docId);
+                                if (docNumericID > 0)
+                                {
+                                    bool deleted;
+                                    var outIsDeleted = new AList<bool>();
+                                    var outIsConflict = new AList<bool>();
+                                    var revId = WinningRevIDOfDoc(docNumericID, outIsDeleted, outIsConflict);
+                                    if (outIsDeleted.Count > 0)
+                                    {
+                                        deleted = true;
+                                    }
+                                    if (revId != null)
+                                    {
+                                        value.Put("rev", revId);
+                                        value.Put("deleted", true);
+                                    }
+                                }
+                                change = new QueryRow((value != null ? docId : null), 0, docId, value, null);
+                                change.Database = this;
+                            }
+                            rows.AddItem(change);
+                        }
+                    }
+                }
+            }
+            catch (SQLException e)
+            {
+                Log.E(Database.Tag, "Error getting all docs", e);
+                throw new CouchbaseLiteException("Error getting all docs", e, new Status(StatusCode.InternalServerError));
+            }
+            finally
+            {
+                if (cursor != null)
+                    cursor.Close();
+            }
+            result.Put("rows", rows);
+            result.Put("total_rows", totalRows);
+            result.Put("offset", options.GetSkip());
+            if (updateSeq != 0)
+            {
+                result.Put("update_seq", updateSeq);
+            }
+            return result;
+        }
+
+        /// <summary>Returns the rev ID of the 'winning' revision of this document, and whether it's deleted.</summary>
+        /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
+        internal String WinningRevIDOfDoc(Int64 docNumericId, IList<Boolean> outIsDeleted, IList<Boolean> outIsConflict)
+        {
+            Cursor cursor = null;
+            var args = new [] { Convert.ToString(docNumericId) };
+            String revId = null;
+            var sql = "SELECT revid, deleted FROM revs" + " WHERE doc_id=? and current=1" 
+                      + " ORDER BY deleted asc, revid desc LIMIT 2"; // TODO: Convert to ADO params.
+
+            try
+            {
+                cursor = StorageEngine.RawQuery(sql, args);
+                cursor.MoveToNext();
+
+                if (!cursor.IsAfterLast())
+                {
+                    revId = cursor.GetString(0);
+                    var deleted = cursor.GetInt(1) > 0;
+                    if (deleted)
+                    {
+                        outIsDeleted.AddItem(true);
+                    }
+
+                    // The document is in conflict if there are two+ result rows that are not deletions.
+                    var hasNextResult = cursor.MoveToNext();
+                    var isNextDeleted = cursor.GetInt(1) > 0;
+                    var isInConflict = !deleted && hasNextResult && isNextDeleted;
+
+                    if (isInConflict)
+                    {
+                        outIsConflict.AddItem(true);
+                    }
+                }
+            }
+            catch (SQLException e)
+            {
+                Log.E(Database.Tag, "Error", e);
+                throw new CouchbaseLiteException("Error", e, new Status(StatusCode.InternalServerError));
+            }
+            finally
+            {
+                if (cursor != null)
+                {
+                    cursor.Close();
+                }
+            }
+            return revId;
+        }
+
+        internal IDictionary<String, Object> DocumentPropertiesFromJSON(IEnumerable<Byte> json, String docId, String revId, Boolean deleted, Int64 sequence, EnumSet<TDContentOptions> contentOptions)
+        {
+            var rev = new RevisionInternal(docId, revId, deleted, this);
+            rev.SetSequence(sequence);
+
+            IDictionary<String, Object> extra = ExtraPropertiesForRevision(rev, contentOptions);
+            if (json == null)
+            {
+                return extra;
+            }
+
+            IDictionary<String, Object> docProperties = null;
+            try
+            {
+                docProperties = Manager.GetObjectMapper().ReadValue<IDictionary<string, object>>(json);
+                docProperties.PutAll(extra);
+            }
+            catch (Exception e)
+            {
+                Log.E(Database.Tag, "Error serializing properties to JSON", e);
+            }
+            return docProperties;
+        }
+
+
+        /// <summary>Hack because cursor interface does not support cursor.getColumnIndex("deleted") yet.
+        ///     </summary>
+        internal Int32 GetDeletedColumnIndex(QueryOptions options)
+        {
+            System.Diagnostics.Debug.Assert(options != null);
+
+            return options.IsIncludeDocs() ? 5 : 4;
+        }
+
+        internal static String JoinQuotedObjects(IEnumerable<Object> objects)
+        {
+            var strings = new AList<String>();
+            foreach (var obj in objects)
+            {
+                strings.AddItem(obj != null ? obj.ToString() : null);
+            }
+            return JoinQuoted(strings);
+        }
+
+        internal static String JoinQuoted(IList<String> strings)
+        {
+            if (strings.Count == 0)
+            {
+                return String.Empty;
+            }
+
+            var result = "'";
+            var first = true;
+
+            foreach (string str in strings)
+            {
+                if (first)
+                    first = false;
+                else
+                    result = result + "','";
+
+                result = result + Quote(str);
+            }
+
+            result = result + "'";
+
+            return result;
+        }
+
+        internal static string Quote(string str)
+        {
+            return str.Replace("'", "''");
         }
 
         internal View RegisterView(View view)
