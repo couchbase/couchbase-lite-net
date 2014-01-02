@@ -728,6 +728,7 @@ public class Database {
         return true;
     }
 
+    @InterfaceAudience.Private
     public boolean open() {
         if(open) {
             return true;

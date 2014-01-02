@@ -173,21 +173,10 @@ public class Manager {
      */
     @InterfaceAudience.Public
     public Database getDatabase(String name) {
-        Database db = databases.get(name);
-        if(db == null) {
-            if (!isValidDatabaseName(name)) {
-                throw new IllegalArgumentException("Invalid database name: " + name);
-            }
-            if (options.isReadOnly()) {
-                return null;
-            }
-            String path = pathForName(name);
-            if (path == null) {
-                return null;
-            }
-            db = new Database(path, this);
-            db.setName(name);
-            databases.put(name, db);
+        boolean mustExist = false;
+        Database db = getDatabaseWithoutOpening(name, mustExist);
+        if (db != null) {
+            db.open();
         }
         return db;
     }
@@ -198,8 +187,14 @@ public class Manager {
      */
     @InterfaceAudience.Public
     public Database getExistingDatabase(String name) {
-        return databases.get(name);
+        boolean mustExist = false;
+        Database db = getDatabaseWithoutOpening(name, mustExist);
+        if (db != null) {
+            db.open();
+        }
+        return db;
     }
+
 
     /**
      * Replaces or installs a database from a file.
@@ -352,6 +347,32 @@ public class Manager {
     }
 
 
+    @InterfaceAudience.Private
+    public Database getDatabaseWithoutOpening(String name, boolean mustExist) {
+        Database db = databases.get(name);
+        if(db == null) {
+            if (!isValidDatabaseName(name)) {
+                throw new IllegalArgumentException("Invalid database name: " + name);
+            }
+            if (options.isReadOnly()) {
+                mustExist = true;
+            }
+            String path = pathForName(name);
+            if (path == null) {
+                return null;
+            }
+            db = new Database(path, this);
+            if (mustExist && !db.exists()) {
+                String msg = String.format("mustExist is true and db (%s) does not exist", name);
+                Log.w(Database.TAG, msg);
+                return null;
+            }
+            db.setName(name);
+            databases.put(name, db);
+        }
+        return db;
+    }
+
 
     @InterfaceAudience.Private
     public Replication getReplicator(Map<String,Object> properties) throws CouchbaseLiteException {
@@ -386,17 +407,19 @@ public class Manager {
         }
 
         boolean push = false;
-
-        Database db = getExistingDatabase(source);
+        Database db = null;
         String remoteStr = null;
-        if(db != null) {
+
+        if (Manager.isValidDatabaseName(source)) {
+            db = getExistingDatabase(source);
             remoteStr = target;
             push = true;
             remoteMap = targetMap;
         } else {
             remoteStr = source;
             if(createTarget && !cancel) {
-                db = getDatabase(target);
+                boolean mustExist = false;
+                db = getDatabaseWithoutOpening(target, mustExist);
                 if(!db.open()) {
                     throw new CouchbaseLiteException("cannot open database: " + db, new Status(Status.INTERNAL_SERVER_ERROR));
                 }
@@ -407,6 +430,7 @@ public class Manager {
                 throw new CouchbaseLiteException("database is null", new Status(Status.NOT_FOUND));
             }
             remoteMap = sourceMap;
+
         }
 
 

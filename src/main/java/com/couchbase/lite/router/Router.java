@@ -299,7 +299,8 @@ public class Router implements Database.ChangeListener {
                     return;
                 }
                 else {
-                    db = manager.getDatabase(dbName);
+                    boolean mustExist = false;
+                    db = manager.getDatabaseWithoutOpening(dbName, mustExist);
                     if(db == null) {
                         connection.setResponseCode(Status.BAD_REQUEST);
                         try {
