@@ -106,8 +106,7 @@ public class UnsavedRevision extends Revision {
      * want to do, you should use the regular -save: method instead.
      */
     @InterfaceAudience.Public
-    public SavedRevision saveAllowingConflict() throws CouchbaseLiteException {
-        boolean allowConflict = true;
+    public SavedRevision save(boolean allowConflict) throws CouchbaseLiteException {
         return document.putProperties(properties, parentRevID, allowConflict);
     }
 
