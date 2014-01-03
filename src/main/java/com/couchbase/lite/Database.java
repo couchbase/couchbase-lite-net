@@ -1938,11 +1938,16 @@ public class Database {
             }
             args.put("type", contentType);
             args.put("revpos", revpos);
-            database.insert("attachments", null, args);  // TODO: this needs to look at the result code
+            long result = database.insert("attachments", null, args);  // TODO: this needs to look at the result code
+            if (result == -1) {
+                String msg = "Insert attachment failed (returned -1)";
+                Log.e(Database.TAG, msg);
+                throw new CouchbaseLiteException(msg, Status.INTERNAL_SERVER_ERROR);
+            }
 
         } catch (SQLException e) {
             Log.e(Database.TAG, "Error inserting attachment", e);
-            throw new CouchbaseLiteException(Status.INTERNAL_SERVER_ERROR);
+            throw new CouchbaseLiteException(e, Status.INTERNAL_SERVER_ERROR);
         }
     }
 
