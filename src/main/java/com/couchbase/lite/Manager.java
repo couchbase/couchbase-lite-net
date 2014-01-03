@@ -51,6 +51,7 @@ public class Manager {
     private ScheduledExecutorService workExecutor;
     private HttpClientFactory defaultHttpClientFactory;
 
+    @InterfaceAudience.Private
     public static ObjectMapper getObjectMapper() {
         return mapper;
     }
