@@ -182,7 +182,7 @@ public class Attachment {
                 if (body != null) {
                     // Copy attachment body into the database's blob store:
                     BlobStoreWriter writer = blobStoreWriterForBody(body, database);
-                    metadataMutable.put("length", writer.getLength());
+                    metadataMutable.put("length", (long)writer.getLength());
                     metadataMutable.put("digest", writer.mD5DigestString());
                     metadataMutable.put("follows", true);
                     database.rememberAttachmentWriter(writer);
