@@ -41,7 +41,7 @@ public class Manager {
     private static final ObjectMapper mapper = new ObjectMapper();
     public static final String DATABASE_SUFFIX_OLD = ".touchdb";
     public static final String DATABASE_SUFFIX = ".cblite";
-    public static final ManagerOptions DEFAULT_OPTIONS = new ManagerOptions(false, false);
+    public static final ManagerOptions DEFAULT_OPTIONS = new ManagerOptions(false);
     public static final String LEGAL_CHARACTERS = "[^a-z]{1,}[^a-z0-9_$()/+-]*$";
 
 
