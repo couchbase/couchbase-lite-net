@@ -7,8 +7,7 @@ public class ManagerOptions {
      */
     private boolean readOnly;
 
-    public ManagerOptions(boolean readOnly) {
-        this.readOnly = readOnly;
+    public ManagerOptions() {
     }
 
     public boolean isReadOnly() {
