@@ -19,7 +19,7 @@ public class UnsavedRevision extends Revision {
      * Constructor
      */
     @InterfaceAudience.Private
-    protected UnsavedRevision(Document document, SavedRevision parentRevision) {
+    /* package */ protected UnsavedRevision(Document document, SavedRevision parentRevision) {
 
         super(document);
 
