@@ -59,7 +59,7 @@ public class Router implements Database.ChangeListener {
     private boolean longpoll = false;
 
     public static String getVersionString() {
-        return Manager.VERSION_STRING;
+        return Manager.VERSION;
     }
 
     public Router(Manager manager, URLConnection connection) {

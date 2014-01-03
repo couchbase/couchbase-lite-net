@@ -35,7 +35,7 @@ import java.util.regex.Pattern;
  */
 public class Manager {
 
-    public static final String VERSION_STRING =  "1.0.0-beta";
+    public static final String VERSION =  "1.0.0-beta";
     public static final String HTTP_ERROR_DOMAIN =  "CBLHTTP";
 
     private static final ObjectMapper mapper = new ObjectMapper();
