@@ -44,7 +44,6 @@ public class Manager {
     public static final ManagerOptions DEFAULT_OPTIONS = new ManagerOptions();
     public static final String LEGAL_CHARACTERS = "[^a-z]{1,}[^a-z0-9_$()/+-]*$";
 
-
     private ManagerOptions options;
     private File directoryFile;
     private Map<String, Database> databases;
@@ -222,12 +221,25 @@ public class Manager {
         database.replaceUUIDs();
     }
 
+    @InterfaceAudience.Public
+    public HttpClientFactory getDefaultHttpClientFactory() {
+        return defaultHttpClientFactory;
+    }
+
+    @InterfaceAudience.Public
+    public void setDefaultHttpClientFactory(
+            HttpClientFactory defaultHttpClientFactory) {
+        this.defaultHttpClientFactory = defaultHttpClientFactory;
+    }
+
+    @InterfaceAudience.Private
     private static boolean containsOnlyLegalCharacters(String databaseName) {
         Pattern p = Pattern.compile("^[abcdefghijklmnopqrstuvwxyz0123456789_$()+-/]+$");
         Matcher matcher = p.matcher(databaseName);
         return matcher.matches();
     }
 
+    @InterfaceAudience.Private
     private void upgradeOldDatabaseFiles(File directory) {
         File[] files = directory.listFiles(new FilenameFilter() {
             @Override
@@ -253,21 +265,16 @@ public class Manager {
         }
     }
 
+    @InterfaceAudience.Private
     private String filenameWithNewExtension(String oldFilename, String oldExtension, String newExtension) {
         String oldExtensionRegex = String.format("%s$",oldExtension);
         return oldFilename.replaceAll(oldExtensionRegex, newExtension);
     }
 
-
-
-
-
-
-
+    @InterfaceAudience.Private
     public Collection<Database> allOpenDatabases() {
         return databases.values();
     }
-
 
 
     /**
@@ -275,6 +282,7 @@ public class Manager {
      * Database instance.  There is not currently a known reason to use it, it may not make
      * sense on the Android API, but it was added for the purpose of having a consistent API with iOS.
      */
+    @InterfaceAudience.Private
     public Future runAsync(String databaseName, final AsyncTask function) {
 
         final Database database = getDatabase(databaseName);
@@ -287,10 +295,12 @@ public class Manager {
 
     }
 
+    @InterfaceAudience.Private
     Future runAsync(Runnable runnable) {
         return workExecutor.submit(runnable);
     }
 
+    @InterfaceAudience.Private
     private String pathForName(String name) {
         if((name == null) || (name.length() == 0) || Pattern.matches(LEGAL_CHARACTERS, name)) {
             return null;
@@ -300,6 +310,7 @@ public class Manager {
         return result;
     }
 
+    @InterfaceAudience.Private
     private Map<String, Object> parseSourceOrTarget(Map<String,Object> properties, String key) {
         Map<String, Object> result = new HashMap<String, Object>();
 
@@ -314,7 +325,6 @@ public class Manager {
         return result;
 
     }
-
 
     @InterfaceAudience.Private
     Replication replicationWithDatabase(Database db, URL remote, boolean push, boolean create, boolean start) {
@@ -495,17 +505,11 @@ public class Manager {
         return repl;
     }
 
+    @InterfaceAudience.Private
     public ScheduledExecutorService getWorkExecutor() {
         return workExecutor;
     }
 
-    public HttpClientFactory getDefaultHttpClientFactory() {
-        return defaultHttpClientFactory;
-    }
 
-    public void setDefaultHttpClientFactory(
-            HttpClientFactory defaultHttpClientFactory) {
-        this.defaultHttpClientFactory = defaultHttpClientFactory;
-    }
 }
 
