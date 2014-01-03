@@ -1913,7 +1913,12 @@ public class Database {
     /*************************************************************************************************/
 
     void insertAttachmentForSequence(AttachmentInternal attachment, long sequence) throws CouchbaseLiteException {
-        insertAttachmentForSequenceWithNameAndType(sequence, attachment.getName(), attachment.getContentType(), attachment.getRevpos(), attachment.getBlobKey());
+        insertAttachmentForSequenceWithNameAndType(
+                sequence,
+                attachment.getName(),
+                attachment.getContentType(),
+                attachment.getRevpos(),
+                attachment.getBlobKey());
     }
 
     public void insertAttachmentForSequenceWithNameAndType(InputStream contentStream, long sequence, String name, String contentType, int revpos) throws CouchbaseLiteException {
@@ -1924,7 +1929,12 @@ public class Database {
         if(!attachments.storeBlobStream(contentStream, key)) {
             throw new CouchbaseLiteException(Status.INTERNAL_SERVER_ERROR);
         }
-        insertAttachmentForSequenceWithNameAndType(sequence, name, contentType, revpos, key);
+        insertAttachmentForSequenceWithNameAndType(
+                sequence,
+                name,
+                contentType,
+                revpos,
+                key);
     }
 
     public void insertAttachmentForSequenceWithNameAndType(long sequence, String name, String contentType, int revpos, BlobKey key) throws CouchbaseLiteException {
@@ -1938,7 +1948,7 @@ public class Database {
             }
             args.put("type", contentType);
             args.put("revpos", revpos);
-            long result = database.insert("attachments", null, args);  // TODO: this needs to look at the result code
+            long result = database.insert("attachments", null, args);
             if (result == -1) {
                 String msg = "Insert attachment failed (returned -1)";
                 Log.e(Database.TAG, msg);
