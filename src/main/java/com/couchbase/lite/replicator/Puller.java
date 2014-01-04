@@ -74,6 +74,35 @@ public class Puller extends Replication implements ChangeTrackerClient {
     public void setCreateTarget(boolean createTarget) { }
 
     @Override
+    @InterfaceAudience.Public
+    public void stop() {
+
+        if(!running) {
+            return;
+        }
+
+        if(changeTracker != null) {
+            changeTracker.setClient(null);  // stop it from calling my changeTrackerStopped()
+            changeTracker.stop();
+            changeTracker = null;
+            if(!continuous) {
+                asyncTaskFinished(1);  // balances asyncTaskStarted() in beginReplicating()
+            }
+        }
+
+        synchronized(this) {
+            revsToPull = null;
+        }
+
+        super.stop();
+
+        if(downloadsToInsert != null) {
+            downloadsToInsert.flush();
+        }
+    }
+
+
+    @Override
     @InterfaceAudience.Private
     public void beginReplicating() {
         if(downloadsToInsert == null) {
@@ -103,37 +132,10 @@ public class Puller extends Replication implements ChangeTrackerClient {
         changeTracker.start();
     }
 
-    @Override
-    @InterfaceAudience.Private
-    public void stop() {
-
-        if(!running) {
-            return;
-        }
-
-        if(changeTracker != null) {
-	        changeTracker.setClient(null);  // stop it from calling my changeTrackerStopped()
-	        changeTracker.stop();
-	        changeTracker = null;
-	        if(!continuous) {
-	            asyncTaskFinished(1);  // balances asyncTaskStarted() in beginReplicating()
-	        }
-        }
-
-        synchronized(this) {
-            revsToPull = null;
-        }
-
-        super.stop();
-
-        if(downloadsToInsert != null) {
-            downloadsToInsert.flush();
-        }
-    }
 
     @Override
     @InterfaceAudience.Private
-    public void stopped() {
+    protected void stopped() {
         downloadsToInsert = null;
         super.stopped();
     }
@@ -202,7 +204,7 @@ public class Puller extends Replication implements ChangeTrackerClient {
      */
     @Override
     @InterfaceAudience.Private
-    public void processInbox(RevisionList inbox) {
+    protected void processInbox(RevisionList inbox) {
         // Ask the local database which of the revs are not known to it:
         //Log.w(Database.TAG, String.format("%s: Looking up %s", this, inbox));
         String lastInboxSequence = ((PulledRevision)inbox.get(inbox.size()-1)).getRemoteSequenceID();

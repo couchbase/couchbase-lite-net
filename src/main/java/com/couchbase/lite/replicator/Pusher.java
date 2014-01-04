@@ -73,6 +73,14 @@ public class Pusher extends Replication implements Database.ChangeListener {
         this.shouldCreateTarget = createTarget;
     }
 
+
+    @Override
+    @InterfaceAudience.Public
+    public void stop() {
+        stopObserving();
+        super.stop();
+    }
+
     @Override
     @InterfaceAudience.Private
     void maybeCreateRemoteDB() {
@@ -131,12 +139,6 @@ public class Pusher extends Replication implements Database.ChangeListener {
         }
     }
 
-    @Override
-    @InterfaceAudience.Private
-    public void stop() {
-        stopObserving();
-        super.stop();
-    }
 
     @InterfaceAudience.Private
     private void stopObserving() {
@@ -170,7 +172,7 @@ public class Pusher extends Replication implements Database.ChangeListener {
 
     @Override
     @InterfaceAudience.Private
-    public void processInbox(final RevisionList inbox) {
+    protected void processInbox(final RevisionList inbox) {
         final long lastInboxSequence = inbox.get(inbox.size()-1).getSequence();
         // Generate a set of doc/rev IDs in the JSON format that _revs_diff wants:
         Map<String,List<String>> diffs = new HashMap<String,List<String>>();

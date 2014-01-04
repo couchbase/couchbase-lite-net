@@ -567,7 +567,7 @@ public abstract class Replication {
     public abstract void beginReplicating();
 
     @InterfaceAudience.Private
-    public void stopped() {
+    protected void stopped() {
         Log.v(Database.TAG, toString() + " STOPPED");
         running = false;
         this.completedChangesCount = this.changesCount = 0;
@@ -645,7 +645,7 @@ public abstract class Replication {
     }
 
     @InterfaceAudience.Private
-    public void processInbox(RevisionList inbox) {
+    protected void processInbox(RevisionList inbox) {
 
     }
 

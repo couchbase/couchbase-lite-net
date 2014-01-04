@@ -4,6 +4,7 @@ import com.couchbase.lite.CouchbaseLiteException;
 import com.couchbase.lite.Database;
 import com.couchbase.lite.Manager;
 import com.couchbase.lite.Status;
+import com.couchbase.lite.internal.InterfaceAudience;
 import com.couchbase.lite.util.Log;
 import com.couchbase.lite.util.URIUtils;
 
@@ -45,6 +46,7 @@ import java.util.Map;
  * Reads the continuous-mode _changes feed of a database, and sends the
  * individual change entries to its client's changeTrackerReceivedChange()
  */
+@InterfaceAudience.Private
 public class ChangeTracker implements Runnable {
 
     private URL databaseURL;
