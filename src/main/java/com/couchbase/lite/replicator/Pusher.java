@@ -41,7 +41,7 @@ public class Pusher extends Replication implements Database.ChangeListener {
      * Constructor
      */
     @InterfaceAudience.Private
-    public Pusher(Database db, URL remote, boolean continuous, ScheduledExecutorService workExecutor) {
+    /* package */ public Pusher(Database db, URL remote, boolean continuous, ScheduledExecutorService workExecutor) {
         this(db, remote, continuous, null, workExecutor);
     }
 
@@ -49,7 +49,7 @@ public class Pusher extends Replication implements Database.ChangeListener {
      * Constructor
      */
     @InterfaceAudience.Private
-    public Pusher(Database db, URL remote, boolean continuous, HttpClientFactory clientFactory, ScheduledExecutorService workExecutor) {
+    /* package */ public Pusher(Database db, URL remote, boolean continuous, HttpClientFactory clientFactory, ScheduledExecutorService workExecutor) {
         super(db, remote, continuous, clientFactory, workExecutor);
         shouldCreateTarget = false;
         observing = false;
@@ -74,6 +74,7 @@ public class Pusher extends Replication implements Database.ChangeListener {
     }
 
     @Override
+    @InterfaceAudience.Private
     void maybeCreateRemoteDB() {
         if(!shouldCreateTarget) {
             return;
@@ -97,6 +98,7 @@ public class Pusher extends Replication implements Database.ChangeListener {
     }
 
     @Override
+    @InterfaceAudience.Private
     public void beginReplicating() {
         // If we're still waiting to create the remote db, do nothing now. (This method will be
         // re-invoked after that request finishes; see maybeCreateRemoteDB() above.)
@@ -130,11 +132,13 @@ public class Pusher extends Replication implements Database.ChangeListener {
     }
 
     @Override
+    @InterfaceAudience.Private
     public void stop() {
         stopObserving();
         super.stop();
     }
 
+    @InterfaceAudience.Private
     private void stopObserving() {
         if(observing) {
             observing = false;
@@ -145,6 +149,7 @@ public class Pusher extends Replication implements Database.ChangeListener {
 
 
     @Override
+    @InterfaceAudience.Private
     public void changed(Database.ChangeEvent event) {
         List<DocumentChange> changes = event.getChanges();
         for (DocumentChange change : changes) {
@@ -164,6 +169,7 @@ public class Pusher extends Replication implements Database.ChangeListener {
     }
 
     @Override
+    @InterfaceAudience.Private
     public void processInbox(final RevisionList inbox) {
         final long lastInboxSequence = inbox.get(inbox.size()-1).getSequence();
         // Generate a set of doc/rev IDs in the JSON format that _revs_diff wants:
@@ -271,6 +277,7 @@ public class Pusher extends Replication implements Database.ChangeListener {
         });
     }
 
+    @InterfaceAudience.Private
     private boolean uploadMultipartRevision(RevisionInternal revision) {
 
         MultipartEntity multiPart = null;

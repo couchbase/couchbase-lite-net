@@ -91,7 +91,7 @@ public abstract class Replication {
      * Private Constructor
      */
     @InterfaceAudience.Private
-    public Replication(Database db, URL remote, boolean continuous, ScheduledExecutorService workExecutor) {
+    /* package */ public Replication(Database db, URL remote, boolean continuous, ScheduledExecutorService workExecutor) {
         this(db, remote, continuous, null, workExecutor);
     }
 
@@ -99,7 +99,7 @@ public abstract class Replication {
      * Private Constructor
      */
     @InterfaceAudience.Private
-    public Replication(Database db, URL remote, boolean continuous, HttpClientFactory clientFactory, ScheduledExecutorService workExecutor) {
+    /* package */ public Replication(Database db, URL remote, boolean continuous, HttpClientFactory clientFactory, ScheduledExecutorService workExecutor) {
 
         this.db = db;
         this.continuous = continuous;
@@ -418,6 +418,42 @@ public abstract class Replication {
         changeListeners.add(changeListener);
     }
 
+    @Override
+    @InterfaceAudience.Public
+    public String toString() {
+        String maskedRemoteWithoutCredentials = (remote != null ? remote.toExternalForm() : "");
+        maskedRemoteWithoutCredentials = maskedRemoteWithoutCredentials.replaceAll("://.*:.*@", "://---:---@");
+        String name = getClass().getSimpleName() + "[" + maskedRemoteWithoutCredentials + "]";
+        return name;
+    }
+
+    /**
+     * The type of event raised by a Replication when any of the following
+     * properties change: mode, running, error, completed, total.
+     */
+    @InterfaceAudience.Public
+    public static class ChangeEvent {
+
+        private Replication source;
+
+        public ChangeEvent(Replication source) {
+            this.source = source;
+        }
+
+        public Replication getSource() {
+            return source;
+        }
+
+    }
+
+    /**
+     * A delegate that can be used to listen for Replication changes.
+     */
+    @InterfaceAudience.Public
+    public static interface ChangeListener {
+        public void changed(ChangeEvent event);
+    }
+
     /**
      * Removes the specified delegate as a listener for the Replication change event.
      */
@@ -426,31 +462,29 @@ public abstract class Replication {
         changeListeners.remove(changeListener);
     }
 
+    @InterfaceAudience.Private
     public void setAuthorizer(Authorizer authorizer) {
         this.authorizer = authorizer;
     }
 
+    @InterfaceAudience.Private
     public Authorizer getAuthorizer() {
         return authorizer;
     }
 
+    @InterfaceAudience.Private
     public void databaseClosing() {
         saveLastSequence();
         stop();
         db = null;
     }
 
-    public String toString() {
-        String maskedRemoteWithoutCredentials = (remote != null ? remote.toExternalForm() : "");
-        maskedRemoteWithoutCredentials = maskedRemoteWithoutCredentials.replaceAll("://.*:.*@", "://---:---@");
-        String name = getClass().getSimpleName() + "[" + maskedRemoteWithoutCredentials + "]";
-        return name;
-    }
-
+    @InterfaceAudience.Private
     public String getLastSequence() {
         return lastSequence;
     }
 
+    @InterfaceAudience.Private
     public void setLastSequence(String lastSequenceIn) {
         if (lastSequenceIn != null && !lastSequenceIn.equals(lastSequence)) {
             Log.v(Database.TAG, toString() + ": Setting lastSequence to " + lastSequenceIn + " from( " + lastSequence + ")");
@@ -468,20 +502,24 @@ public abstract class Replication {
         }
     }
 
-    void setCompletedChangesCount(int processed) {
+    @InterfaceAudience.Private
+    /* package */ void setCompletedChangesCount(int processed) {
         this.completedChangesCount = processed;
         notifyChangeListeners();
     }
 
-    void setChangesCount(int total) {
+    @InterfaceAudience.Private
+    /* package */ void setChangesCount(int total) {
         this.changesCount = total;
         notifyChangeListeners();
     }
 
+    @InterfaceAudience.Private
     public String getSessionID() {
         return sessionID;
     }
 
+    @InterfaceAudience.Private
     protected void checkSession() {
         if (getAuthorizer() != null && getAuthorizer().usesCookieBasedLogin()) {
             checkSessionAtPath("/_session");
@@ -490,6 +528,7 @@ public abstract class Replication {
         }
     }
 
+    @InterfaceAudience.Private
     protected void checkSessionAtPath(final String sessionPath) {
 
         asyncTaskStarted();
@@ -524,9 +563,10 @@ public abstract class Replication {
         });
     }
 
+    @InterfaceAudience.Private
     public abstract void beginReplicating();
 
-
+    @InterfaceAudience.Private
     public void stopped() {
         Log.v(Database.TAG, toString() + " STOPPED");
         running = false;
@@ -539,6 +579,7 @@ public abstract class Replication {
         db = null;
     }
 
+    @InterfaceAudience.Private
     private void notifyChangeListeners() {
         updateProgress();
         for (ChangeListener listener : changeListeners) {
@@ -547,6 +588,7 @@ public abstract class Replication {
         }
     }
 
+    @InterfaceAudience.Private
     protected void login() {
         Map<String, String> loginParameters = getAuthorizer().loginParametersForSite(remote);
         if (loginParameters == null) {
@@ -578,10 +620,12 @@ public abstract class Replication {
 
     }
 
+    @InterfaceAudience.Private
     public synchronized void asyncTaskStarted() {
         ++asyncTaskCount;
     }
 
+    @InterfaceAudience.Private
     public synchronized void asyncTaskFinished(int numTasks) {
         this.asyncTaskCount -= numTasks;
         assert(asyncTaskCount >= 0);
@@ -592,6 +636,7 @@ public abstract class Replication {
         }
     }
 
+    @InterfaceAudience.Private
     public void addToInbox(RevisionInternal rev) {
         if (batcher.count() == 0) {
             active = true;
@@ -599,10 +644,12 @@ public abstract class Replication {
         batcher.queueObject(rev);
     }
 
+    @InterfaceAudience.Private
     public void processInbox(RevisionList inbox) {
 
     }
 
+    @InterfaceAudience.Private
     public void sendAsyncRequest(String method, String relativePath, Object body, RemoteRequestCompletionBlock onCompletion) {
         try {
             String urlStr = buildRelativeURLString(relativePath);
@@ -613,7 +660,8 @@ public abstract class Replication {
         }
     }
 
-    String buildRelativeURLString(String relativePath) {
+    @InterfaceAudience.Private
+    /* package */ String buildRelativeURLString(String relativePath) {
 
         // the following code is a band-aid for a system problem in the codebase
         // where it is appending "relative paths" that start with a slash, eg:
@@ -627,11 +675,13 @@ public abstract class Replication {
         return remoteUrlString + relativePath;
     }
 
+    @InterfaceAudience.Private
     public void sendAsyncRequest(String method, URL url, Object body, RemoteRequestCompletionBlock onCompletion) {
         RemoteRequest request = new RemoteRequest(workExecutor, clientFactory, method, url, body, getHeaders(), onCompletion);
         remoteRequestExecutor.execute(request);
     }
 
+    @InterfaceAudience.Private
     public void sendAsyncMultipartDownloaderRequest(String method, String relativePath, Object body, Database db, RemoteRequestCompletionBlock onCompletion) {
         try {
 
@@ -653,6 +703,7 @@ public abstract class Replication {
         }
     }
 
+    @InterfaceAudience.Private
     public void sendAsyncMultipartRequest(String method, String relativePath, MultipartEntity multiPartEntity, RemoteRequestCompletionBlock onCompletion) {
         URL url = null;
         try {
@@ -676,7 +727,8 @@ public abstract class Replication {
      * CHECKPOINT STORAGE: *
      */
 
-     void maybeCreateRemoteDB() {
+    @InterfaceAudience.Private
+    /* package */ void maybeCreateRemoteDB() {
         // Pusher overrides this to implement the .createTarget option
     }
 
@@ -685,6 +737,7 @@ public abstract class Replication {
      * Its ID is based on the local database ID (the private one, to make the result unguessable)
      * and the remote database's URL.
      */
+    @InterfaceAudience.Private
     public String remoteCheckpointDocID() {
         if (db == null) {
             return null;
@@ -693,6 +746,7 @@ public abstract class Replication {
         return Misc.TDHexSHA1Digest(input.getBytes());
     }
 
+    @InterfaceAudience.Private
     private boolean is404(Throwable e) {
         if (e instanceof HttpResponseException) {
             return ((HttpResponseException) e).getStatusCode() == 404;
@@ -700,6 +754,7 @@ public abstract class Replication {
         return false;
     }
 
+    @InterfaceAudience.Private
     public void fetchRemoteCheckpointDoc() {
         lastSequenceChanged = false;
         final String localLastSequence = db.lastSequenceWithRemoteURL(remote, !isPull());
@@ -742,6 +797,7 @@ public abstract class Replication {
         });
     }
 
+    @InterfaceAudience.Private
     public void saveLastSequence() {
         if (!lastSequenceChanged) {
             return;
@@ -816,32 +872,7 @@ public abstract class Replication {
         }
     }
 
-    /**
-     * The type of event raised by a Replication when any of the following
-     * properties change: mode, running, error, completed, total.
-     */
-    @InterfaceAudience.Public
-    public static class ChangeEvent {
 
-        private Replication source;
-
-        public ChangeEvent(Replication source) {
-            this.source = source;
-        }
-
-        public Replication getSource() {
-            return source;
-        }
-
-    }
-
-    /**
-     * A delegate that can be used to listen for Replication changes.
-     */
-    @InterfaceAudience.Public
-    public static interface ChangeListener {
-        public void changed(ChangeEvent event);
-    }
 
 
 }

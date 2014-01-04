@@ -133,7 +133,7 @@ public class Query {
      * Constructor
      */
     @InterfaceAudience.Private
-    Query(Database database, View view) {
+    /* package */ Query(Database database, View view) {
         this.database = database;
         this.view = view;
         limit = Integer.MAX_VALUE;
@@ -146,7 +146,7 @@ public class Query {
      * Constructor
      */
     @InterfaceAudience.Private
-    Query(Database database, Mapper mapFunction) {
+    /* package */ Query(Database database, Mapper mapFunction) {
         this(database, database.makeAnonymousView());
         temporaryView = true;
         view.setMap(mapFunction, "");
@@ -156,7 +156,7 @@ public class Query {
      * Constructor
      */
     @InterfaceAudience.Private
-    Query(Database database, Query query) {
+    /* package */ Query(Database database, Query query) {
         this(database, query.getView());
         limit = query.limit;
         skip = query.skip;
@@ -357,6 +357,11 @@ public class Query {
         return runAsyncInternal(onComplete);
     }
 
+    @InterfaceAudience.Public
+    public static interface QueryCompleteListener {
+        public void completed(QueryEnumerator rows, Throwable error);
+    }
+
     @InterfaceAudience.Private
     Future runAsyncInternal(final QueryCompleteListener onComplete) {
 
@@ -380,10 +385,12 @@ public class Query {
 
     }
 
+    @InterfaceAudience.Private
     public View getView() {
         return view;
     }
 
+    @InterfaceAudience.Private
     private QueryOptions getQueryOptions() {
         QueryOptions queryOptions = new QueryOptions();
         queryOptions.setStartKey(getStartKey());
@@ -405,6 +412,7 @@ public class Query {
     }
 
     @Override
+    @InterfaceAudience.Private
     protected void finalize() throws Throwable {
         super.finalize();
         if (temporaryView) {
@@ -412,9 +420,6 @@ public class Query {
         }
     }
 
-    public static interface QueryCompleteListener {
-        public void completed(QueryEnumerator rows, Throwable error);
-    }
 
 
 

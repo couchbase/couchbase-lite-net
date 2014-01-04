@@ -20,7 +20,7 @@ public class QueryEnumerator implements Iterator<QueryRow> {
      * Constructor
      */
     @InterfaceAudience.Private
-    QueryEnumerator(Database database, List<QueryRow> rows, long sequenceNumber) {
+    /* package */ QueryEnumerator(Database database, List<QueryRow> rows, long sequenceNumber) {
         this.database = database;
         this.rows = rows;
         this.sequenceNumber = sequenceNumber;
@@ -35,7 +35,7 @@ public class QueryEnumerator implements Iterator<QueryRow> {
      * Constructor
      */
     @InterfaceAudience.Private
-    QueryEnumerator(QueryEnumerator other) {
+    /* package */ QueryEnumerator(QueryEnumerator other) {
         this.database = other.database;
         this.rows = other.rows;
         this.sequenceNumber = other.sequenceNumber;

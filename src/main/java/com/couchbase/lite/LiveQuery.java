@@ -23,7 +23,7 @@ public class LiveQuery extends Query implements Database.ChangeListener {
      * Constructor
      */
     @InterfaceAudience.Private
-    LiveQuery(Query query) {
+    /* package */ LiveQuery(Query query) {
         super(query.getDatabase(), query.getView());
         setLimit(query.getLimit());
         setSkip(query.getSkip());
@@ -43,8 +43,8 @@ public class LiveQuery extends Query implements Database.ChangeListener {
      * Sends the query to the server and returns an enumerator over the result rows (Synchronous).
      * Note: In a CBLLiveQuery you should add a ChangeListener and call start() instead.
      */
-    @InterfaceAudience.Public
     @Override
+    @InterfaceAudience.Public
     public QueryEnumerator run() throws CouchbaseLiteException {
 
         try {
@@ -149,48 +149,10 @@ public class LiveQuery extends Query implements Database.ChangeListener {
         observers.remove(changeListener);
     }
 
-    void update() {
-        if (getView() == null) {
-            throw new IllegalStateException("Cannot start LiveQuery when view is null");
-        }
-        setWillUpdate(false);
-        updateQueryFuture = runAsyncInternal(new QueryCompleteListener() {
-            @Override
-            public void completed(QueryEnumerator rowsParam, Throwable error) {
-                if (error != null) {
-                    for (ChangeListener observer : observers) {
-                        observer.changed(new ChangeEvent(error));
-                    }
-                    lastError = error;
-                } else {
-                    if (rowsParam != null && !rowsParam.equals(rows)) {
-                        setRows(rowsParam);
-                        for (ChangeListener observer : observers) {
-                            observer.changed(new ChangeEvent(LiveQuery.this, rows));
-                        }
-                    }
-                    lastError = null;
-                }
-            }
-        });
-    }
-
-    @Override
-    public void changed(Database.ChangeEvent event) {
-        if (!willUpdate) {
-            setWillUpdate(true);
-            update();
-        }
-    }
-
-    private synchronized void setRows(QueryEnumerator queryEnumerator) {
-        rows = queryEnumerator;
-    }
-
-    private synchronized void setWillUpdate(boolean willUpdateParam) {
-        willUpdate = willUpdateParam;
-    }
-
+    /**
+     * The type of event raised when a LiveQuery result set changes.
+     */
+    @InterfaceAudience.Public
     public static class ChangeEvent {
 
         private LiveQuery source;
@@ -223,8 +185,58 @@ public class LiveQuery extends Query implements Database.ChangeListener {
 
     }
 
+    /**
+     * A delegate that can be used to listen for LiveQuery result set changes.
+     */
+    @InterfaceAudience.Public
     public static interface ChangeListener {
         public void changed(ChangeEvent event);
+    }
+
+    @InterfaceAudience.Private
+    /* package */ void update() {
+        if (getView() == null) {
+            throw new IllegalStateException("Cannot start LiveQuery when view is null");
+        }
+        setWillUpdate(false);
+        updateQueryFuture = runAsyncInternal(new QueryCompleteListener() {
+            @Override
+            public void completed(QueryEnumerator rowsParam, Throwable error) {
+                if (error != null) {
+                    for (ChangeListener observer : observers) {
+                        observer.changed(new ChangeEvent(error));
+                    }
+                    lastError = error;
+                } else {
+                    if (rowsParam != null && !rowsParam.equals(rows)) {
+                        setRows(rowsParam);
+                        for (ChangeListener observer : observers) {
+                            observer.changed(new ChangeEvent(LiveQuery.this, rows));
+                        }
+                    }
+                    lastError = null;
+                }
+            }
+        });
+    }
+
+    @Override
+    @InterfaceAudience.Private
+    public void changed(Database.ChangeEvent event) {
+        if (!willUpdate) {
+            setWillUpdate(true);
+            update();
+        }
+    }
+
+    @InterfaceAudience.Private
+    private synchronized void setRows(QueryEnumerator queryEnumerator) {
+        rows = queryEnumerator;
+    }
+
+    @InterfaceAudience.Private
+    private synchronized void setWillUpdate(boolean willUpdateParam) {
+        willUpdate = willUpdateParam;
     }
 
 
