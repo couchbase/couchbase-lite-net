@@ -1,6 +1,7 @@
 package com.couchbase.lite.replicator;
 
 import com.couchbase.lite.Database;
+import com.couchbase.lite.Manager;
 import com.couchbase.lite.Misc;
 import com.couchbase.lite.RevisionList;
 import com.couchbase.lite.auth.Authorizer;
@@ -59,7 +60,7 @@ public abstract class Replication {
     private int completedChangesCount;
     private int changesCount;
     protected boolean online;
-    protected final HttpClientFactory clientFactory;
+    protected HttpClientFactory clientFactory;
     private List<ChangeListener> changeListeners;
     protected List<String> documentIDs;
 
@@ -155,8 +156,34 @@ public abstract class Replication {
             }
         });
 
-        this.clientFactory = clientFactory != null ? clientFactory : CouchbaseLiteHttpClientFactory.INSTANCE;
+        setClientFactory(clientFactory);
+        // this.clientFactory = clientFactory != null ? clientFactory : CouchbaseLiteHttpClientFactory.INSTANCE;
 
+    }
+
+    /**
+     * Set the HTTP client factory if one was passed in, or use the default
+     * set in the manager if available.
+     * @param clientFactory
+     */
+    protected void setClientFactory(HttpClientFactory clientFactory) {
+        Manager manager = null;
+        if (this.db != null) {
+            manager = this.db.getManager();
+        }
+        HttpClientFactory managerClientFactory = null;
+        if (manager != null) {
+            managerClientFactory = manager.getDefaultHttpClientFactory();
+        }
+        if (clientFactory != null) {
+            this.clientFactory = clientFactory;
+        } else {
+            if (managerClientFactory != null) {
+                this.clientFactory = managerClientFactory;
+            } else {
+                this.clientFactory = CouchbaseLiteHttpClientFactory.INSTANCE;
+            }
+        }
     }
 
     /**
