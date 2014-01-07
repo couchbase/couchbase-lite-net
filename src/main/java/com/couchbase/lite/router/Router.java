@@ -760,6 +760,9 @@ public class Router implements Database.ChangeListener {
             return new Status(Status.BAD_REQUEST);
         }
 
+        List<Object> keys = (List<Object>) body.get("keys");
+        options.setKeys(keys);
+
         Map<String, Object> result = null;
         result = db.getAllDocs(options);
         convertCBLQueryRowsToMaps(result);
