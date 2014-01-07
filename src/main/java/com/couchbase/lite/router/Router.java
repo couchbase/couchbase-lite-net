@@ -295,7 +295,24 @@ public class Router implements Database.ChangeListener {
             } else {
                 message += "_Database";
                 if (!Manager.isValidDatabaseName(dbName)) {
-                    connection.setResponseCode(Status.NOT_FOUND);
+                    Header resHeader = connection.getResHeader();
+                    if (resHeader != null) {
+                        resHeader.add("Content-Type", "application/json");
+                    }
+                    Map<String, Object> result = new HashMap<String, Object>();
+                    result.put("error", "Invalid database");
+                    result.put("status", Status.BAD_REQUEST );
+                    connection.setResponseBody(new Body(result));
+                    ByteArrayInputStream bais = new ByteArrayInputStream(connection.getResponseBody().getJson());
+                    connection.setResponseInputStream(bais);
+
+                    connection.setResponseCode(Status.BAD_REQUEST);
+                    try {
+                        connection.getResponseOutputStream().close();
+                    } catch (IOException e) {
+                        Log.e(Database.TAG, "Error closing empty output stream");
+                    }
+                    sendResponse();
                     return;
                 }
                 else {
