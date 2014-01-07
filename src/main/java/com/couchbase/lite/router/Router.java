@@ -476,6 +476,12 @@ public class Router implements Database.ChangeListener {
             connection.setResponseBody(new Body("{\"ok\":true}".getBytes()));
         }
 
+        if (status.isSuccessful() == false && connection.getResponseBody() == null) {
+            Map<String, Object> result = new HashMap<String, Object>();
+            result.put("status", status.getCode());
+            connection.setResponseBody(new Body(result));
+        }
+
         if(connection.getResponseBody() != null && connection.getResponseBody().isValidJSON()) {
             Header resHeader = connection.getResHeader();
             if (resHeader != null) {
