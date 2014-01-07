@@ -1448,7 +1448,8 @@ public class Router implements Database.ChangeListener {
         return update(_db, docID, null, true);
     }
 
-    public void updateAttachment(String attachment, String docID, InputStream contentStream) throws CouchbaseLiteException {
+    public Status updateAttachment(String attachment, String docID, InputStream contentStream) throws CouchbaseLiteException {
+        Status status = new Status(Status.OK);
         String revID = getQuery("rev");
         if(revID == null) {
             revID = getRevIDFromIfMatchHeader();
@@ -1464,14 +1465,15 @@ public class Router implements Database.ChangeListener {
         if(contentStream != null) {
             setResponseLocation(connection.getURL());
         }
+        return status;
     }
 
-    public void do_PUT_Attachment(Database _db, String docID, String _attachmentName) throws CouchbaseLiteException {
-        updateAttachment(_attachmentName, docID, connection.getRequestInputStream());
+    public Status do_PUT_Attachment(Database _db, String docID, String _attachmentName) throws CouchbaseLiteException {
+        return updateAttachment(_attachmentName, docID, connection.getRequestInputStream());
     }
 
-    public void do_DELETE_Attachment(Database _db, String docID, String _attachmentName) throws CouchbaseLiteException {
-        updateAttachment(_attachmentName, docID, null);
+    public Status do_DELETE_Attachment(Database _db, String docID, String _attachmentName) throws CouchbaseLiteException {
+        return updateAttachment(_attachmentName, docID, null);
     }
 
     /** VIEW QUERIES: **/
