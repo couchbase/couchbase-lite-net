@@ -1379,6 +1379,22 @@ public class Router implements Database.ChangeListener {
     public Status update(Database _db, String docID, Map<String,Object> bodyDict, boolean deleting) {
         Body body = new Body(bodyDict);
         Status status = new Status();
+
+        if (docID != null && docID.isEmpty() == false) {
+            // On PUT/DELETE, get revision ID from either ?rev= query or doc body:
+            String revParam = getQuery("rev");
+            if (revParam != null && bodyDict != null && bodyDict.size() > 0) {
+                String revProp = (String) bodyDict.get("_rev");
+                if (revProp == null) {
+                    // No _rev property in body, so use ?rev= query param instead:
+                    bodyDict.put("_rev", revParam);
+                    body = new Body(bodyDict);
+                } else if (!revParam.equals(revProp)) {
+                    throw new IllegalArgumentException("Mismatch between _rev and rev");
+                }
+            }
+        }
+
         RevisionInternal rev = update(_db, docID, body, deleting, false, status);
         if(status.isSuccessful()) {
             cacheWithEtag(rev.getRevId());  // set ETag
