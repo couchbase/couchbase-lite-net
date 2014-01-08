@@ -208,7 +208,7 @@ namespace Couchbase.Lite {
 
         public Replication GetPullReplication(Uri url) { throw new NotImplementedException(); }
 
-        public event EventHandler<DatabaseChangeEventArgs> Change;
+        public event EventHandler<DatabaseChangeEventArgs> Changed;
 
     #endregion
        
@@ -1849,7 +1849,7 @@ namespace Couchbase.Lite {
                                     Source = this
                                 } ;
 
-            var changeEvent = Change;
+            var changeEvent = Changed;
             if (changeEvent != null)
                 changeEvent(this, args);
 

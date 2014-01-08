@@ -15,7 +15,7 @@ namespace Couchbase.Lite {
             After
     }
                             
-        public partial class Query : IDisposable
+    public partial class Query : IDisposable
     {
 
     #region Constructors
@@ -136,6 +136,7 @@ namespace Couchbase.Lite {
                 rows = Database.QueryViewNamed (viewName, QueryOptions, outSequence);
             } catch (Exception ex) {
                 error = ex;
+                // TODO: Return null? Rethrow?
             }
 
             LastSequence = outSequence[0];
@@ -150,7 +151,8 @@ namespace Couchbase.Lite {
             return new QueryEnumerator(Database, rows, LastSequence);
         }
 
-        public Task<QueryEnumerator> RunAsync() {
+        public Task<QueryEnumerator> RunAsync() 
+        {
             return Task.Factory.StartNew<QueryEnumerator>(Run);
         }
 

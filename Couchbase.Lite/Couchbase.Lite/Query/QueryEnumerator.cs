@@ -12,6 +12,13 @@ namespace Couchbase.Lite {
 
     #region Constructors
 
+        internal QueryEnumerator (QueryEnumerator rows)
+        {
+            Database = rows.Database;
+            Rows = rows.Rows;
+            SequenceNumber = rows.SequenceNumber;
+        }
+
         internal QueryEnumerator (Database database, IEnumerable<QueryRow> rows, Int64 lastSequence)
         {
             Database = database;

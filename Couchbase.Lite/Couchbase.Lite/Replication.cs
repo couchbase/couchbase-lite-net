@@ -241,7 +241,7 @@ namespace Couchbase.Lite {
 
         public void Retart() { throw new NotImplementedException(); }
 
-        public event EventHandler<ReplicationChangeEventArgs> Change;
+        public event EventHandler<ReplicationChangeEventArgs> Changed;
 
     #endregion
     
