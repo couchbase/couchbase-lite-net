@@ -33,6 +33,7 @@ public class RevisionInternal {
     private String docId;
     private String revId;
     private boolean deleted;
+    private boolean missing;
     private Body body;
     private long sequence;
     private Database database;  // TODO: get rid of this field!
@@ -145,6 +146,14 @@ public class RevisionInternal {
 
     public void setBody(Body body) {
         this.body = body;
+    }
+
+    public boolean isMissing() {
+        return missing;
+    }
+
+    public void setMissing(boolean missing) {
+        this.missing = missing;
     }
 
     public RevisionInternal copyWithDocID(String docId, String revId) {

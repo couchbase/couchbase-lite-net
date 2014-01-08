@@ -1065,7 +1065,9 @@ public class Database {
                 if(historicalRev.isDeleted()) {
                     status = "deleted";
                 }
-                // TODO: Detect missing revisions, set status="missing"
+                if (historicalRev.isMissing()) {
+                    status = "missing";
+                }
                 revHistoryItem.put("rev", historicalRev.getRevId());
                 revHistoryItem.put("status", status);
                 revsInfo.add(revHistoryItem);
@@ -1398,7 +1400,7 @@ public class Database {
             return new ArrayList<RevisionInternal>();
         }
 
-        String sql = "SELECT sequence, parent, revid, deleted FROM revs " +
+        String sql = "SELECT sequence, parent, revid, deleted, json isnull FROM revs " +
                     "WHERE doc_id=? ORDER BY sequence DESC";
         String[] args = { Long.toString(docNumericId) };
         Cursor cursor = null;
@@ -1422,7 +1424,9 @@ public class Database {
                 if(matches) {
                     revId = cursor.getString(2);
                     boolean deleted = (cursor.getInt(3) > 0);
+                    boolean missing = (cursor.getInt(4) > 0);
                     RevisionInternal aRev = new RevisionInternal(docId, revId, deleted, this);
+                    aRev.setMissing(missing);
                     aRev.setSequence(cursor.getLong(0));
                     result.add(aRev);
                     lastSequence = cursor.getLong(1);
