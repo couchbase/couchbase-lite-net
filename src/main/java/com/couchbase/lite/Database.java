@@ -3489,7 +3489,7 @@ public class Database {
      * @resultOn success will point to an NSDictionary with the same form as docsToRev, containing the doc/revision IDs that were actually removed.
      */
     @InterfaceAudience.Private
-    Map<String, Object> purgeRevisions(final Map<String, List<String>> docsToRevs) {
+    public Map<String, Object> purgeRevisions(final Map<String, List<String>> docsToRevs) {
 
         final Map<String, Object> result = new HashMap<String, Object>();
         runInTransaction(new TransactionTask() {
