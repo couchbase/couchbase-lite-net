@@ -2830,25 +2830,17 @@ public class Database {
                             return null;
                         }
                     } else {
-                        // Doc exists; check whether current winning revision is deleted:
-                        String[] args = { Long.toString(docNumericID) };
-                        cursor = database.rawQuery("SELECT sequence, deleted FROM revs WHERE doc_id=? and current=1 ORDER BY revid DESC LIMIT 1", args);
 
-                        if(cursor.moveToNext()) {
-                            boolean wasAlreadyDeleted = (cursor.getInt(1) > 0);
-                            if(wasAlreadyDeleted) {
-                                // Make the deleted revision no longer current:
-                                ContentValues updateContent = new ContentValues();
-                                updateContent.put("current", 0);
-                                database.update("revs", updateContent, "sequence=" + cursor.getLong(0), null);
-                            }
-                            else if (!allowConflict) {
-                                String msg = String.format("docId (%s) already exists, current not " +
-                                        "deleted, so conflict.  Did you forget to pass in a previous " +
-                                        "revision ID in the properties being saved?", docId);
-                                throw new CouchbaseLiteException(msg, Status.CONFLICT);
-                            }
+                        // Doc ID exists; check whether current winning revision is deleted:
+                        if (oldWinnerWasDeletion == true) {
+                            prevRevId = oldWinningRevID;
+                            parentSequence = getSequenceOfDocument(docNumericID, prevRevId, false);
+
+                        } else if (oldWinningRevID != null) {
+                            // The current winning revision is not deleted, so this is a conflict
+                            throw new CouchbaseLiteException(Status.CONFLICT);
                         }
+
                     }
                 }
                 else {
@@ -2963,6 +2955,33 @@ public class Database {
         }
         return null; // no change
 
+    }
+
+    @InterfaceAudience.Private
+    private long getSequenceOfDocument(long docNumericId, String revId, boolean onlyCurrent) {
+
+        long result = -1;
+        Cursor cursor = null;
+        try {
+            String extraSql = (onlyCurrent ? "AND current=1" : "");
+            String sql = String.format("SELECT sequence FROM revs WHERE doc_id=? AND revid=? %s LIMIT 1", extraSql);
+            String[] args = { ""+docNumericId, revId };
+            cursor = database.rawQuery(sql, args);
+
+            if(cursor.moveToNext()) {
+                result = cursor.getLong(0);
+            }
+            else {
+                result = 0;
+            }
+        } catch (Exception e) {
+            Log.e(Database.TAG, "Error getting getSequenceOfDocument", e);
+        } finally {
+            if(cursor != null) {
+                cursor.close();
+            }
+        }
+        return result;
     }
 
     /**
