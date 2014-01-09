@@ -618,28 +618,6 @@ public class Database {
 
 
     /**
-     * Creates a pair of replications to both pull and push to database at the given URL, or
-     * returns existing replications if there are any.
-     *
-     * @param remote
-     * @return An array whose first element is the "pull" replication and second is the "push".
-     */
-    @InterfaceAudience.Public
-    public List<Replication> getReplications(URL remote) {
-        Replication pull;
-        Replication push;
-        if (remote != null) {
-            pull = createPullReplication(remote);
-            push = createPushReplication(remote);
-            ArrayList<Replication> result = new ArrayList<Replication>();
-            result.add(pull);
-            result.add(push);
-            return result;
-        }
-        return null;
-    }
-
-    /**
      * Adds a Database change delegate that will be called whenever a Document within the Database changes.
      * @param listener
      */
