@@ -598,7 +598,7 @@ public class Database {
      * @return
      */
     @InterfaceAudience.Public
-    public Replication getPushReplication(URL remote) {
+    public Replication createPushReplication(URL remote) {
         final boolean continuous = false;
         return new Pusher(this, remote, continuous, manager.getWorkExecutor());
     }
@@ -611,7 +611,7 @@ public class Database {
      * @return
      */
     @InterfaceAudience.Public
-    public Replication getPullReplication(URL remote) {
+    public Replication createPullReplication(URL remote) {
         final boolean continuous = false;
         return new Puller(this, remote, continuous, manager.getWorkExecutor());
     }
@@ -629,8 +629,8 @@ public class Database {
         Replication pull;
         Replication push;
         if (remote != null) {
-            pull = getPullReplication(remote);
-            push = getPushReplication(remote);
+            pull = createPullReplication(remote);
+            push = createPushReplication(remote);
             ArrayList<Replication> result = new ArrayList<Replication>();
             result.add(pull);
             result.add(push);
