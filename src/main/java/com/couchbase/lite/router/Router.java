@@ -992,6 +992,29 @@ public class Router implements Database.ChangeListener {
     	}
     }
 
+    public Status do_POST_Document_purge(Database _db, String ignored1, String ignored2) {
+
+        Map<String,Object> body = getBodyAsDictionary();
+        if(body == null) {
+            return new Status(Status.BAD_REQUEST);
+        }
+
+        // convert from Map<String,Object> -> Map<String, List<String>> - is there a cleaner way?
+        Map<String, List<String>> docsToRevs = new HashMap<String, List<String>>();
+        for (String key : body.keySet()) {
+            Object val = body.get(key);
+            if (val instanceof List) {
+                docsToRevs.put(key, (List<String>)val);
+            }
+        }
+        Map<String, Object> purgedRevisions = db.purgeRevisions(docsToRevs);
+        Map<String, Object> responseMap = new HashMap<String, Object>();
+        responseMap.put("purged", purgedRevisions);
+        Body responseBody = new Body(responseMap);
+        connection.setResponseBody(responseBody);
+        return new Status(Status.OK);
+    }
+
     public Status do_POST_Document_ensure_full_commit(Database _db, String _docID, String _attachmentName) {
         return new Status(Status.OK);
     }
