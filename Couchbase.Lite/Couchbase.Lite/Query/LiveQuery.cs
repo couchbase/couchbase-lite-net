@@ -42,6 +42,9 @@ namespace Couchbase.Lite
             }
         }
 
+        /// <summary>
+        /// Implements the updating of the <see cref="Rows"/> collection.
+        /// </summary>
         private void Update()
         {
             if (View == null)
@@ -53,10 +56,15 @@ namespace Couchbase.Lite
 
             UpdateQueryTokenSource = new CancellationTokenSource();
 
-            UpdateQueryTask = Task.Factory.StartNew<QueryEnumerator>(Run, UpdateQueryTokenSource.Token)
+            UpdateQueryTask = RunAsync(Run, UpdateQueryTokenSource.Token)
                 .ContinueWith(runTask =>
                     {
-                        rows = runTask.Result;
+                        if (runTask.Status != TaskStatus.RanToCompletion) {
+                            Log.W(String.Format("Query Updated task did not run to completion ({0})", runTask.Status), runTask.Exception);
+                            return; // NOTE: Assuming that we don't want to lose rows we already retrieved.
+                        }
+
+                        rows = runTask.Result; // NOTE: Should this be 'append' instead of 'replace' semantics? If append, use a concurrent collection.
 
                         var evt = Changed;
                         if (evt == null)

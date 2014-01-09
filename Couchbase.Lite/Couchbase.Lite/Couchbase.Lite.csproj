@@ -43,6 +43,7 @@
     <Folder Include="Revisions\" />
     <Folder Include="Documents\" />
     <Folder Include="Query\" />
+    <Folder Include="Manager\" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Sharpen\AList.cs" />
@@ -209,11 +210,12 @@
     <Compile Include="Documents\DocumentChange.cs" />
     <Compile Include="Sharpen\ScheduledExecutorService.cs" />
     <Compile Include="Sharpen\HttpClientFactory.cs" />
-    <Compile Include="Query\LiveQuery.cs" />
     <Compile Include="Query\QueryEnumerator.cs" />
     <Compile Include="Query\QueryRow.cs" />
     <Compile Include="Query\QueryOptions.cs" />
     <Compile Include="Query\QueryCompletedEventArgs.cs" />
+    <Compile Include="Query\LiveQuery.cs" />
+    <Compile Include="Manager\ManagerOptions.cs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="System" />

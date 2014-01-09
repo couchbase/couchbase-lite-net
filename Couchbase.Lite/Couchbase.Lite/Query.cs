@@ -6,6 +6,7 @@ using System.Net;
 using System.IO;
 using Sharpen;
 using System.Threading.Tasks;
+using System.Threading;
 
 namespace Couchbase.Lite {
 
@@ -151,9 +152,9 @@ namespace Couchbase.Lite {
             return new QueryEnumerator(Database, rows, LastSequence);
         }
 
-        public Task<QueryEnumerator> RunAsync() 
+        public Task<QueryEnumerator> RunAsync(Func<QueryEnumerator> action, CancellationToken token) 
         {
-            return Task.Factory.StartNew<QueryEnumerator>(Run);
+            return Database.Manager.RunAsync(action, token);
         }
 
         public LiveQuery ToLiveQuery() 

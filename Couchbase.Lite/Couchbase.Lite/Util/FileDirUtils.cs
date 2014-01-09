@@ -28,89 +28,61 @@ namespace Couchbase.Lite.Util
 {
 	public class FileDirUtils
 	{
+        public static string GetDatabaseNameFromPath(string path)
+        {
+            int lastSlashPos = path.LastIndexOf("/");
+            int extensionPos = path.LastIndexOf(".");
+            if (lastSlashPos < 0 || extensionPos < 0 || extensionPos < lastSlashPos)
+            {
+                Log.E(Database.Tag, "Unable to determine database name from path");
+                return null;
+            }
+            return Sharpen.Runtime.Substring(path, lastSlashPos + 1, extensionPos);
+        }
+
 		public static bool RemoveItemIfExists(string path)
 		{
 			FilePath f = new FilePath(path);
 			return f.Delete() || !f.Exists();
 		}
 
-		public static bool DeleteRecursive(FilePath fileOrDirectory)
+		/// <exception cref="System.IO.IOException"></exception>
+        public static void CopyFile(FileInfo sourceFile, FileInfo destFile)
 		{
-			if (fileOrDirectory.IsDirectory())
+            if (!File.Exists(destFile.FullName))
 			{
-				foreach (FilePath child in fileOrDirectory.ListFiles())
-				{
-					DeleteRecursive(child);
-				}
+                File.Open (destFile.FullName, FileMode.CreateNew).Close ();
 			}
-			bool result = fileOrDirectory.Delete() || !fileOrDirectory.Exists();
-			return result;
-		}
 
-		public static string GetDatabaseNameFromPath(string path)
-		{
-			int lastSlashPos = path.LastIndexOf("/");
-			int extensionPos = path.LastIndexOf(".");
-			if (lastSlashPos < 0 || extensionPos < 0 || extensionPos < lastSlashPos)
-			{
-				Log.E(Database.Tag, "Unable to determine database name from path");
-				return null;
-			}
-			return Sharpen.Runtime.Substring(path, lastSlashPos + 1, extensionPos);
+            sourceFile.CopyTo(destFile.FullName);
 		}
 
 		/// <exception cref="System.IO.IOException"></exception>
-		public static void CopyFile(FilePath sourceFile, FilePath destFile)
+        public static void CopyFolder(FileSystemInfo sourcePath, FileSystemInfo destinationPath)
 		{
-			if (!destFile.Exists())
+            var sourceDirectory = sourcePath as DirectoryInfo;
+            if (sourceDirectory != null)
 			{
-				destFile.CreateNewFile();
-			}
-			FileChannel source = null;
-			FileChannel destination = null;
-			try
-			{
-				source = new FileInputStream(sourceFile).GetChannel();
-				destination = new FileOutputStream(destFile).GetChannel();
-				destination.TransferFrom(source, 0, source.Size());
-			}
-			finally
-			{
-				if (source != null)
-				{
-					source.Close();
-				}
-				if (destination != null)
-				{
-					destination.Close();
-				}
-			}
-		}
+                var destPath = Path.Combine(Path.GetDirectoryName(destinationPath.FullName), Path.GetFileName(sourceDirectory.Name));
+                var destinationDirectory = new DirectoryInfo(destPath);
 
-		/// <exception cref="System.IO.IOException"></exception>
-		public static void CopyFolder(FilePath src, FilePath dest)
-		{
-			if (src.IsDirectory())
-			{
 				//if directory not exists, create it
-				if (!dest.Exists())
+                if (!destinationDirectory.Exists)
 				{
-					dest.Mkdir();
+                    destinationDirectory.Create();
 				}
 				//list all the directory contents
-				string[] files = src.List();
-				foreach (string file in files)
+                var fileInfos = sourceDirectory.EnumerateFileSystemInfos();
+                foreach (var fileInfo in fileInfos)
 				{
 					//construct the src and dest file structure
-					FilePath srcFile = new FilePath(src, file);
-					FilePath destFile = new FilePath(dest, file);
 					//recursive copy
-					CopyFolder(srcFile, destFile);
+                    CopyFolder(fileInfo, destinationDirectory);
 				}
 			}
 			else
 			{
-				CopyFile(src, dest);
+                CopyFile((FileInfo)sourcePath, (FileInfo)destinationPath);
 			}
 		}
 	}

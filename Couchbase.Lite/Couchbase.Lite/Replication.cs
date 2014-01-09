@@ -11,6 +11,12 @@ namespace Couchbase.Lite {
 
     public partial class Replication {
 
+    #region Constants
+
+        internal static readonly String ReplicatorDatabaseName = "_replicator";
+
+    #endregion
+
     #region Enums
     
     public enum ReplicationStatus {

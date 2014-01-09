@@ -11,9 +11,11 @@ using Couchbase.Lite.Internal;
 using System.Threading.Tasks;
 using System.Text;
 
-namespace Couchbase.Lite {
+namespace Couchbase.Lite 
+{
 
-    public partial class Database {
+    public partial class Database 
+    {
     
     #region Constructors
 
@@ -62,7 +64,7 @@ namespace Couchbase.Lite {
     
     #region Instance Members
         //Properties
-        public String Name { get; private set; }
+        public String Name { get; internal set; }
 
         public Manager Manager { get; private set; }
 
@@ -172,7 +174,10 @@ namespace Couchbase.Lite {
 
         public void SetFilter(String name, FilterDelegate filterDelegate) { throw new NotImplementedException(); }
 
-        public void RunAsync(RunAsyncDelegate runAsyncDelegate) { throw new NotImplementedException(); }
+        public void RunAsync(RunAsyncDelegate runAsyncDelegate) 
+        {
+            Manager.RunAsync(runAsyncDelegate, this);
+        }
 
         /// <summary>Runs the block within a transaction.</summary>
         /// <remarks>
@@ -298,7 +303,7 @@ namespace Couchbase.Lite {
                         && lastSequence < GetLastSequenceNumber())
                         // NOTE: The exception is handled inside the thread.
                         // TODO: Consider using the async keyword instead.
-                        Task.Factory.StartNew(()=>{
+                        Manager.RunAsync(()=>{
                             try
                             {
                                 view.UpdateIndex();
@@ -880,6 +885,35 @@ namespace Couchbase.Lite {
         internal BlobStoreWriter GetAttachmentWriter()
         {
             return new BlobStoreWriter(GetAttachments());
+        }
+
+        internal Boolean ReplaceUUIDs()
+        {
+            var query = "UPDATE INFO SET value='" + Misc.TDCreateUUID() + "' where key = 'privateUUID';";
+
+            try
+            {
+                StorageEngine.ExecSQL(query);
+            }
+            catch (SQLException e)
+            {
+                Log.E(Database.Tag, "Error updating UUIDs", e);
+                return false;
+            }
+
+            query = "UPDATE INFO SET value='" + Misc.TDCreateUUID() + "' where key = 'publicUUID';";
+
+            try
+            {
+                StorageEngine.ExecSQL(query);
+            }
+            catch (SQLException e)
+            {
+                Log.E(Database.Tag, "Error updating UUIDs", e);
+                return false;
+            }
+
+            return true;
         }
 
         internal Attachment GetAttachmentForSequence (long sequence, string filename)
@@ -2507,8 +2541,6 @@ namespace Couchbase.Lite {
     #endregion
     
     #region Delegates
-        public delegate void RunAsyncDelegate(Database database);
-
         public delegate Boolean RunInTransactionDelegate();
 
         public delegate void ValidateDelegate(Revision newRevision, IValidationContext context);
@@ -2538,6 +2570,7 @@ namespace Couchbase.Lite {
     #region Global Delegates
 
     public delegate Boolean ValidateChangeDelegate(String key, Object oldValue, Object newValue);
+    public delegate void RunAsyncDelegate(Database database);
 
     #endregion
 }
