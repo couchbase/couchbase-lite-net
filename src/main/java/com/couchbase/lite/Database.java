@@ -3500,7 +3500,7 @@ public class Database {
                     if (docNumericID == -1) {
                         continue; // no such document, skip it
                     }
-                    List<String> revsPurged = null;
+                    List<String> revsPurged = new ArrayList<String>();
                     List<String> revIDs = (List<String>) docsToRevs.get(docID);
                     if (revIDs == null) {
                         return false;
