@@ -44,6 +44,8 @@
     <Folder Include="Documents\" />
     <Folder Include="Query\" />
     <Folder Include="Manager\" />
+    <Folder Include="Replication\" />
+    <Folder Include="Auth\" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Sharpen\AList.cs" />
@@ -165,7 +167,6 @@
     <Compile Include="Sharpen\X509TrustManager.cs" />
     <Compile Include="Sharpen\Observable.cs" />
     <Compile Include="Sharpen\Uri.cs" />
-    <Compile Include="Sharpen\HttpClient.cs" />
     <Compile Include="Sharpen\CharUtils.cs" />
     <Compile Include="Util\URIUtils.cs" />
     <Compile Include="Attachment.cs" />
@@ -209,13 +210,23 @@
     <Compile Include="Documents\ValidationContext.cs" />
     <Compile Include="Documents\DocumentChange.cs" />
     <Compile Include="Sharpen\ScheduledExecutorService.cs" />
-    <Compile Include="Sharpen\HttpClientFactory.cs" />
     <Compile Include="Query\QueryEnumerator.cs" />
     <Compile Include="Query\QueryRow.cs" />
     <Compile Include="Query\QueryOptions.cs" />
     <Compile Include="Query\QueryCompletedEventArgs.cs" />
     <Compile Include="Query\LiveQuery.cs" />
     <Compile Include="Manager\ManagerOptions.cs" />
+    <Compile Include="Auth\Authorizer.cs" />
+    <Compile Include="Auth\FacebookAuthorizer.cs" />
+    <Compile Include="Auth\PersonaAuthorizer.cs" />
+    <Compile Include="Replication\Batcher.cs" />
+    <Compile Include="Replication\BatchProcessor.cs" />
+    <Compile Include="Replication\ScheduledFuture.cs" />
+    <Compile Include="Replication\CouchbaseLiteHttpClientFactory.cs" />
+    <Compile Include="Util\RemoteRequestCompletionBlock.cs" />
+    <Compile Include="Replication\MultipartReaderDelegate.cs" />
+    <Compile Include="Util\Range.cs" />
+    <Compile Include="Util\IHttpClientFactory.cs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="System" />
@@ -226,10 +237,18 @@
     <Reference Include="ICSharpCode.SharpZipLib">
       <HintPath>..\packages\ICSharpCode.SharpZipLib.dll.0.85.4.369\lib\net20\ICSharpCode.SharpZipLib.dll</HintPath>
     </Reference>
-    <Reference Include="System.Web" />
     <Reference Include="ServiceStack.Text">
       <HintPath>packages\ServiceStack.Text.4.0.5\lib\net40\ServiceStack.Text.dll</HintPath>
     </Reference>
+    <Reference Include="System.Net.Http.WebRequest" />
+    <Reference Include="System.Net" />
+    <Reference Include="System.Net.Http.Formatting">
+      <HintPath>..\lib\System.Net.Http.Formatting.dll</HintPath>
+    </Reference>
+    <Reference Include="Newtonsoft.Json">
+      <HintPath>..\lib\Newtonsoft.Json.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Web" />
   </ItemGroup>
   <ProjectExtensions>
     <MonoDevelop>

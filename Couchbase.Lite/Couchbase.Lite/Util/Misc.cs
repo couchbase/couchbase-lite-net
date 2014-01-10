@@ -24,6 +24,8 @@ using Couchbase.Lite;
 using Couchbase.Lite.Util;
 using Sharpen;
 using System;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace Couchbase.Lite
 {
@@ -34,7 +36,7 @@ namespace Couchbase.Lite
             return Guid.NewGuid().ToString();
 		}
 
-		public static string TDHexSHA1Digest(byte[] input)
+        public static string TDHexSHA1Digest(IEnumerable<Byte> input)
 		{
 			MessageDigest md;
 			try
@@ -47,7 +49,8 @@ namespace Couchbase.Lite
 				return null;
 			}
             byte[] sha1hash;
-			md.Update(input, 0, input.Length);
+            var inputArray = input.ToArray();
+            md.Update(inputArray, 0, inputArray.Length);
 			sha1hash = md.Digest();
 			return ConvertToHex(sha1hash);
 		}

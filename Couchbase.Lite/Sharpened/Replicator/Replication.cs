@@ -552,7 +552,7 @@ namespace Couchbase.Lite.Replicator
 				this, sessionPath));
 		}
 
-		private sealed class _RemoteRequestCompletionBlock_459 : RemoteRequestCompletionBlock
+        private sealed class _RemoteRequestCompletionBlock_459 : RemoteRequestCompletionBlock
 		{
 			public _RemoteRequestCompletionBlock_459(Replication _enclosing, string sessionPath
 				)
@@ -561,7 +561,7 @@ namespace Couchbase.Lite.Replicator
 				this.sessionPath = sessionPath;
 			}
 
-			public void OnCompletion(object result, Exception e)
+            public void OnCompletion(Object result, Exception e)
 			{
 				if (e is HttpResponseException && ((HttpResponseException)e).GetStatusCode() == 404
 					 && Sharpen.Runtime.EqualsIgnoreCase(sessionPath, "/_session"))

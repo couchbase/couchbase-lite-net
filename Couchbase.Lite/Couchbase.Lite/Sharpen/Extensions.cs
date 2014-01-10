@@ -300,7 +300,7 @@ namespace Sharpen
 		{
 			Console.WriteLine (cause);
 		}
-		
+
 		public static bool IsEmpty<T> (this ICollection<T> col)
 		{
 			return (col.Count == 0);

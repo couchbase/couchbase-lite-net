@@ -272,6 +272,46 @@ namespace Couchbase.Lite
             throw new NotImplementedException ();
         }
 
+        internal Boolean SetLastSequence(String lastSequence, Uri url, Boolean push)
+        {
+            var values = new ContentValues();
+            values.Put("remote", url.ToString());
+            values.Put("push", push);
+            values.Put("last_sequence", lastSequence);
+            var newId = StorageEngine.InsertWithOnConflict("replicators", null, values, SQLiteStorageEngine.ConflictReplace);
+            return (newId == -1);
+        }
+
+
+        internal String LastSequenceWithRemoteURL(Uri url, Boolean push)
+        {
+            Cursor cursor = null;
+            string result = null;
+            try
+            {
+                var args = new [] { url.ToString(), (push ? 1 : 0).ToString() };
+                cursor = StorageEngine.RawQuery("SELECT last_sequence FROM replicators WHERE remote=? AND push=?"
+                    , args);
+                if (cursor.MoveToNext())
+                {
+                    result = cursor.GetString(0);
+                }
+            }
+            catch (SQLException e)
+            {
+                Log.E(Couchbase.Lite.Database.Tag, "Error getting last sequence", e);
+                return null;
+            }
+            finally
+            {
+                if (cursor != null)
+                {
+                    cursor.Close();
+                }
+            }
+            return result;
+        }
+
         private IDictionary<String, BlobStoreWriter> PendingAttachmentsByDigest
         {
             get {
