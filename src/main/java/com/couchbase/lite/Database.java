@@ -2999,7 +2999,7 @@ public class Database {
                     throw new CouchbaseLiteException(Status.STATUS_ATTACHMENT_ERROR);
                 }
             }
-            else if (((Boolean)attachInfo.get("follows")).booleanValue() == true) {
+            else if (attachInfo.containsKey("follows") && ((Boolean)attachInfo.get("follows")).booleanValue() == true) {
                 // "follows" means the uploader provided the attachment in a separate MIME part.
                 // This means it's already been registered in _pendingAttachmentsByDigest;
                 // I just need to look it up by its "digest" property and install it into the store:
