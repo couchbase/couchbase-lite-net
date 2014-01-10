@@ -12,7 +12,9 @@ import java.util.concurrent.Future;
 public class Query {
 
     public enum IndexUpdateMode {
-        NEVER, BEFORE, AFTER
+        BEFORE,  // Always update index if needed before querying (default)
+        NEVER,   // Don't update the index; results may be out of date
+        AFTER    // Update index _after_ querying (results may still be out of date)
     }
 
     public enum AllDocsMode {

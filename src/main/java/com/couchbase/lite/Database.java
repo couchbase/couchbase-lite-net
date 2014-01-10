@@ -1628,7 +1628,7 @@ public class Database {
                 throw new CouchbaseLiteException(new Status(Status.NOT_FOUND));
             }
             lastSequence = view.getLastSequenceIndexed();
-            if (options.getStale() == Query.IndexUpdateMode.NEVER || lastSequence <= 0) {
+            if (options.getStale() == Query.IndexUpdateMode.BEFORE || lastSequence <= 0) {
                 view.updateIndex();
                 lastSequence = view.getLastSequenceIndexed();
             } else if (options.getStale() == Query.IndexUpdateMode.AFTER && lastSequence < getLastSequenceNumber()) {
