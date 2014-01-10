@@ -685,12 +685,15 @@ public class Router implements Database.ChangeListener {
         }
         int num_docs = db.getDocumentCount();
         long update_seq = db.getLastSequenceNumber();
+        long instanceStartTimeMicroseconds = db.getStartTime() * 1000;
         Map<String, Object> result = new HashMap<String,Object>();
         result.put("db_name", db.getName());
         result.put("db_uuid", db.publicUUID());
         result.put("doc_count", num_docs);
         result.put("update_seq", update_seq);
         result.put("disk_size", db.totalDataSize());
+        result.put("instance_start_time", instanceStartTimeMicroseconds);
+
         connection.setResponseBody(new Body(result));
         return new Status(Status.OK);
     }

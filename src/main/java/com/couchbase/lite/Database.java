@@ -79,6 +79,8 @@ public class Database {
     private List<ChangeListener> changeListeners;
     private LruCache<String, Document> docCache;
 
+    private long startTime;
+
     // Length that constitutes a 'big' attachment
     public static int kBigAttachmentLength = (16*1024);
 
@@ -179,6 +181,7 @@ public class Database {
         this.manager = manager;
         this.changeListeners = new ArrayList<ChangeListener>();
         this.docCache = new LruCache<String, Document>(MAX_DOC_CACHE_SIZE);
+        this.startTime = System.currentTimeMillis();
     }
 
     /**
@@ -3629,6 +3632,11 @@ public class Database {
             }
         }
 
+    }
+
+    @InterfaceAudience.Private
+    public long getStartTime() {
+        return this.startTime;
     }
 
     @InterfaceAudience.Private
