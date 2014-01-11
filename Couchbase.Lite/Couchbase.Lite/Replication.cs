@@ -121,7 +121,7 @@ namespace Couchbase.Lite {
         private static Int32 lastSessionID = 0;
 
         readonly private TaskFactory WorkExecutor; // FIXME: Remove this.
-        readonly private HttpClient client;
+        readonly protected HttpClient client;
 
         protected internal String  sessionID;
         protected internal String  lastSequence;
@@ -194,7 +194,7 @@ namespace Couchbase.Lite {
                         Log.D (Database.Tag, string.Format ("{0} Active session, logged in as {1}", this, username));
                         FetchRemoteCheckpointDoc ();
                     } else {
-                        Log.D (Database.Tag, string.Format ("%s No active session, going to login", this));
+                        Log.D (Database.Tag, string.Format ("{0} No active session, going to login", this));
                         Login ();
                     }
                 }
@@ -276,10 +276,10 @@ namespace Couchbase.Lite {
         internal abstract void BeginReplicating();
 
         /// <summary>CHECKPOINT STORAGE:</summary>
-        internal void MaybeCreateRemoteDB() { }
+        internal virtual void MaybeCreateRemoteDB() { }
 
         // FIXME: No-op.
-        internal void ProcessInbox(RevisionList inbox) { }
+        internal virtual void ProcessInbox(RevisionList inbox) { }
 
         internal void AsyncTaskStarted()
         {
@@ -301,7 +301,7 @@ namespace Couchbase.Lite {
             }
         }
 
-        internal void Stopped()
+        internal virtual void Stopped()
         {
             Log.V(Database.Tag, ToString() + " STOPPED");
 
@@ -456,7 +456,7 @@ namespace Couchbase.Lite {
 
         }
 
-        public virtual void SendAsyncMultipartRequest(HttpMethod method, String relativePath, MultipartContent multiPartEntity, RemoteRequestCompletionBlock completionHandler)
+        internal void SendAsyncMultipartRequest(HttpMethod method, String relativePath, MultipartContent multiPartEntity, RemoteRequestCompletionBlock completionHandler)
         {
             Uri url = null;
             try
@@ -590,19 +590,19 @@ namespace Couchbase.Lite {
         public abstract ReplicationStatus Status { get; }
 
         /// <summary>
-        /// Gets whether the %Replication% is running.  Continuous %Replications% never actually stop, instead they go 
+        /// Gets whether the <see cref="Couchbase.Lite.Replication"/> is running.  Continuous <see cref="Couchbase.Lite.Replication"/> never actually stop, instead they go 
         /// idle waiting for new data to appear.
         /// </summary>
         /// <value><c>true</c> if this instance is running; otherwise, <c>false</c>.</value>
         public Boolean IsRunning { get; private set; }
 
         /// <summary>
-        /// Gets the last error, if any, that occurred since the %Replication% was started.
+        /// Gets the last error, if any, that occurred since the <see cref="Couchbase.Lite.Replication"/> was started.
         /// </summary>
         public Exception LastError { get; private set; }
 
         /// <summary>
-        /// If the %Replication% is active, gets the number of completed changes that have been processed, otherwise 0.
+        /// If the <see cref="Couchbase.Lite.Replication"/> is active, gets the number of completed changes that have been processed, otherwise 0.
         /// </summary>
         /// <value>The completed changes count.</value>
         public Int32 CompletedChangesCount {
@@ -614,7 +614,7 @@ namespace Couchbase.Lite {
         }
 
         /// <summary>
-        /// If the %Replication% is active, gets the number of changes to be processed, otherwise 0.
+        /// If the <see cref="Couchbase.Lite.Replication"/> is active, gets the number of changes to be processed, otherwise 0.
         /// </summary>
         /// <value>The changes count.</value>
         public Int32 ChangesCount {
@@ -628,7 +628,7 @@ namespace Couchbase.Lite {
         //Methods
 
         /// <summary>
-        /// Starts the %Replication%.
+        /// Starts the <see cref="Couchbase.Lite.Replication"/>.
         /// </summary>
         public void Start()
         {
@@ -644,9 +644,9 @@ namespace Couchbase.Lite {
         }
 
         /// <summary>
-        /// Stops the %Replication%.
+        /// Stops the <see cref="Couchbase.Lite.Replication"/>.
         /// </summary>
-        public void Stop() 
+        public virtual void Stop() 
         {
             if (!IsRunning)
             {

@@ -64,36 +64,315 @@ namespace Couchbase.Lite
     
     #region Instance Members
         //Properties
+
+        /// <summary>
+        /// Gets the %Database% name.
+        /// </summary>
         public String Name { get; internal set; }
 
+        /// <summary>
+        /// Gets the %Manager% that owns this %Database%.
+        /// </summary>
         public Manager Manager { get; private set; }
 
-        public int DocumentCount { get { throw new NotImplementedException(); } }
+        /// <summary>
+        /// Gets the number of %Documents% in the %Database%.
+        /// </summary>
+        // TODO: Convert this to a standard method call.
+        public Int32 DocumentCount 
+        {
+            get 
+            {
+                var sql = "SELECT COUNT(DISTINCT doc_id) FROM revs WHERE current=1 AND deleted=0";
+                Cursor cursor = null;
+                int result = 0;
+                try
+                {
+                    cursor = StorageEngine.RawQuery(sql, null);
+                    if (cursor.MoveToNext())
+                    {
+                        result = cursor.GetInt(0);
+                    }
+                }
+                catch (SQLException e)
+                {
+                    Log.E(Database.Tag, "Error getting document count", e);
+                }
+                finally
+                {
+                    if (cursor != null)
+                    {
+                        cursor.Close();
+                    }
+                }
+                return result;
+            }
+        }
 
-        public long LastSequenceNumber { get { throw new NotImplementedException(); } }
+        /// <summary>
+        /// Gets the latest sequence number used by the %Database%.  Every new %Revision% is assigned a new sequence 
+        /// number, so this property increases monotonically as changes are made to the %Database%. This can be used to 
+        /// check whether the %Database% has changed between two points in time.
+        /// </summary>
+        public Int64 LastSequenceNumber 
+        {
+            get
+            {
+                var sql = "SELECT MAX(sequence) FROM revs";
+                Cursor cursor = null;
+                long result = 0;
+                try
+                {
+                    cursor = StorageEngine.RawQuery(sql, null);
+                    if (cursor.MoveToNext())
+                    {
+                        result = cursor.GetLong(0);
+                    }
+                }
+                catch (SQLException e)
+                {
+                    Log.E(Database.Tag, "Error getting last sequence", e);
+                }
+                finally
+                {
+                    if (cursor != null)
+                    {
+                        cursor.Close();
+                    }
+                }
+                return result;
+            }
+        }
 
-        public IEnumerable<Replication> AllReplications { get { throw new NotImplementedException(); } }
+        /// <summary>
+        /// Gets all the running %Replications% for this %Database%.  This includes all continuous %Replications% and 
+        /// any non-continuous %Replications% that has been started and are still running.
+        /// </summary>
+        /// <value>All replications.</value>
+        public IEnumerable<Replication> AllReplications { get { return ActiveReplicators; } }
 
         //Methods
-        public void Compact() { throw new NotImplementedException(); }
 
-        public void Delete() { throw new NotImplementedException(); }
+        /// <summary>
+        /// Compacts the %Database% file by purging non-current %Revisions% and deleting unused %Attachments%.
+        /// </summary>
+        /// <exception cref="Couchbase.Lite.CouchbaseLiteException"/>
+        public void Compact()
+        {
+            // Can't delete any rows because that would lose revision tree history.
+            // But we can remove the JSON of non-current revisions, which is most of the space.
+            try
+            {
+                Log.V(Database.Tag, "Deleting JSON of old revisions...");
+                ContentValues args = new ContentValues();
+                args.Put("json", (string)null);
+                StorageEngine.Update("revs", args, "current=0", null);
+            }
+            catch (SQLException e)
+            {
+                Log.E(Database.Tag, "Error compacting", e);
+                return;
+            }
 
-        public Document GetDocument(String id) { throw new NotImplementedException(); }
+            Log.V(Database.Tag, "Deleting old attachments...");
+            var result = GarbageCollectAttachments();
+            Log.V(Database.Tag, "Vacuuming SQLite sqliteDb..." + result.ToString());
 
-        public Document GetExistingDocument(String id) { throw new NotImplementedException(); }
+            try
+            {
+                StorageEngine.ExecSQL("VACUUM");
+            }
+            catch (SQLException e)
+            {
+                Log.E(Couchbase.Lite.Database.Tag, "Error vacuuming sqliteDb", e);
+                return;
+            }
+            return;
+        }
 
-        public Document CreateDocument() { throw new NotImplementedException(); }
+        /// <summary>
+        /// Deletes the %Database%.
+        /// </summary>
+        /// <exception cref="Couchbase.Lite.CouchbaseLiteException"/>
+        public void Delete()
+        {
+            if (open)
+            {
+                if (!Close())
+                {
+                    return;
+                }
+            }
+            else
+            {
+                if (!Exists())
+                {
+                    return;
+                }
+            }
+            var file = new FilePath(Path);
+            var attachmentsFile = new FilePath(AttachmentStorePath);
 
-        public Dictionary<String, Object> GetExistingLocalDocument(String id) { throw new NotImplementedException(); }
+            var deleteStatus = file.Delete();
+            if (!deleteStatus)
+                Log.V(Database.Tag, String.Format("Error deleting the SQLite database file at {0}", file.GetAbsolutePath()));
 
-        public void PutLocalDocument(String id, Dictionary<String, Object> properties) { throw new NotImplementedException(); }
+            //recursively delete attachments path
+            var deletedAttachmentsPath = true;
+            try {
+                Directory.Delete (attachmentsFile.GetPath (), true);
+            } catch (Exception ex) {
+                Log.V(Database.Tag, "Error deleting the attachments directory.", ex);
+                deletedAttachmentsPath = false;
+            }
 
-        public Boolean DeleteLocalDocument(String id) { throw new NotImplementedException(); }
+            if (!(deleteStatus && deletedAttachmentsPath))
+                throw new CouchbaseLiteException("Could not the SQLite file and/or the attachments folder. See log for additional details.");
+        }
 
-        public Query CreateAllDocumentsQuery() { throw new NotImplementedException(); }
+        /// <summary>
+        /// Gets or creates the %Document% with the given id.
+        /// </summary>
+        /// <returns>The %Document%.</returns>
+        /// <param name="id">Identifier.</param>
+        public Document GetDocument(String id) 
+        { 
+            if (String.IsNullOrWhiteSpace (id)) {
+                return null;
+            }
 
-        public View GetView(String name) {
+            var doc = DocumentCache.Get(id);
+            if (doc == null)
+            {
+                doc = new Document(this, id);
+                if (doc == null)
+                {
+                    return null;
+                }
+                DocumentCache.Put(id, doc);
+            }
+
+            return doc;
+        }
+
+        /// <summary>
+        /// Gets the %Document% with the given id, or null if it does not exist.
+        /// </summary>
+        /// <returns>The existing document.</returns>
+        /// <param name="id">Identifier.</param>
+        public Document GetExistingDocument(String id) 
+        { 
+            if (String.IsNullOrWhiteSpace (id)) {
+                return null;
+            }
+            var revisionInternal = GetDocumentWithIDAndRev(id, null, EnumSet.NoneOf<TDContentOptions>());
+            return revisionInternal == null ? null : GetDocument (id);
+        }
+
+        /// <summary>
+        /// Creates a %Document% with a unique id.
+        /// </summary>
+        /// <returns>The document.</returns>
+        public Document CreateDocument()
+        { 
+            return GetDocument(Misc.TDCreateUUID());
+        }
+
+        /// <summary>
+        /// Gets the local document with the given id, or null if it does not exist.
+        /// </summary>
+        /// <returns>The existing local document.</returns>
+        /// <param name="id">Identifier.</param>
+        public IDictionary<String, Object> GetExistingLocalDocument(String id) 
+        {
+            var revInt = GetLocalDocument(MakeLocalDocumentId(id), null);
+            if (revInt == null)
+            {
+                return null;
+            }
+            return revInt.GetProperties();
+        }
+
+        /// <summary>
+        /// Sets the contents of the local %Document% with the given id.  If <param name="properties"/> is null, the 
+        /// %Document% is deleted.
+        /// </summary>
+        /// <param name="id">Identifier.</param>
+        /// <param name="properties">Properties.</param>
+        /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
+        public void PutLocalDocument(String id, Dictionary<String, Object> properties) 
+        { 
+            // TODO: the iOS implementation wraps this in a transaction, this should do the same.
+            id = MakeLocalDocumentId(id);
+            var prevRev = GetLocalDocument(id, null);
+
+            if (prevRev == null && properties == null)
+            {
+                return;
+            }
+
+            var deleted = false || properties == null;
+            var rev = new RevisionInternal(id, null, deleted, this);
+
+            if (properties != null)
+            {
+                rev.SetProperties(properties);
+            }
+
+            var success = false;
+
+            if (prevRev == null)
+            {
+                success = PutLocalRevision(rev, null) != null;
+            }
+            else
+            {
+                success = PutLocalRevision(rev, prevRev.GetRevId()) != null;
+            }
+
+            if (!success) 
+            {
+                throw new CouchbaseLiteException("Unable to put local revision with id " + id);
+            }
+        }
+
+        /// <summary>
+        /// Deletes the local %Document% with the given id.
+        /// </summary>
+        /// <returns><c>true</c>, if local %Document% was deleted, <c>false</c> otherwise.</returns>
+        /// <param name="id">Identifier.</param>
+        /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
+        public Boolean DeleteLocalDocument(String id) 
+        {
+            id = MakeLocalDocumentId(id);
+
+            var prevRev = GetLocalDocument(id, null);
+            if (prevRev == null)
+            {
+                return false;
+            }
+
+            DeleteLocalDocument(id, prevRev.GetRevId());
+            return true;
+        } 
+
+        /// <summary>
+        /// Creates a %Query% that matches all %Documents% in the %Database%.
+        /// </summary>
+        /// <returns>All documents query.</returns>
+        public Query CreateAllDocumentsQuery() 
+        {
+            return new Query(this, (View)null);
+        }
+
+        /// <summary>
+        /// Gets or creates the %View% with the given name.  New %View%s won't be added to the %Database% until a 
+        /// map function is assigned.
+        /// </summary>
+        /// <returns>The view.</returns>
+        /// <param name="name">Name.</param>
+        public View GetView(String name) 
+        {
             View view = null;
 
             if (views != null)
@@ -109,6 +388,11 @@ namespace Couchbase.Lite
             return RegisterView(new View(this, name));
         }
 
+        /// <summary>
+        /// Gets the %View% with the given name, or null if it does not exist.
+        /// </summary>
+        /// <returns>The existing view.</returns>
+        /// <param name="name">Name.</param>
         public View GetExistingView(String name) 
         {
             View view = null;
@@ -170,13 +454,83 @@ namespace Couchbase.Lite
                 Validations.Remove(name);
         }
 
-        public FilterDelegate GetFilter(String name) { throw new NotImplementedException(); }
+        /// <summary>
+        /// Returns the %FilterDelegate$ for the given name, or null if it does not exist.
+        /// </summary>
+        /// <returns>The filter.</returns>
+        /// <param name="name">Name.</param>
+        public FilterDelegate GetFilter(String name) 
+        { 
+            FilterDelegate result = null;
+            if (Filters != null)
+            {
+                result = Filters.Get(name);
+            }
+            if (result == null)
+            {
+                var filterCompiler = FilterCompiler;
+                if (filterCompiler == null)
+                {
+                    return null;
+                }
 
-        public void SetFilter(String name, FilterDelegate filterDelegate) { throw new NotImplementedException(); }
+                var outLanguageList = new AList<string>();
+                var sourceCode = GetDesignDocFunction(name, "filters", outLanguageList);
 
+                if (sourceCode == null)
+                {
+                    return null;
+                }
+
+                var language = outLanguageList[0];
+
+                var filter = filterCompiler(sourceCode, language);
+                if (filter == null)
+                {
+                    Log.W(Database.Tag, string.Format("Filter {0} failed to compile", name));
+                    return null;
+                }
+
+                SetFilter(name, filter);
+                return filter;
+            }
+            return result;
+        }
+
+        /// <summary>
+        /// Sets the %FilterDelegate% for the given name.  If <param name="filterDelegate"/> is null, the filter 
+        /// with the given name is deleted. Before a %Revision% is replicated via a 
+        /// push %Replication%, its filter delegate is called and given a chance to exclude it from the %Replication%.
+        /// </summary>
+        /// <param name="name">name.</param>
+        /// <param name="filterDelegate">Filter delegate.</param>
+        public void SetFilter(String name, FilterDelegate filterDelegate) 
+        { 
+            if (Filters == null)
+            {
+                Filters = new Dictionary<String, FilterDelegate>();
+            }
+            if (filterDelegate != null)
+            {
+                Filters.Put(name, filterDelegate);
+            }
+            else
+            {
+                Collections.Remove(Filters, name);
+            }
+        }
+
+        /// <summary>
+        /// Runs the <see cref="Couchbase.Lite.RunAsyncDelegate"/>  asynchronously.
+        /// </summary>
+        /// <param name="runAsyncDelegate">Run async delegate.</param>
         public void RunAsync(RunAsyncDelegate runAsyncDelegate) 
         {
-            Manager.RunAsync(runAsyncDelegate, this);
+            Manager.RunAsync(runAsyncDelegate, this)
+                .ContinueWith(task=>{
+                if (task.Status != TaskStatus.RanToCompletion)
+                    throw new CouchbaseLiteException(Tag, task.Exception);
+                }, TaskScheduler.Current);
         }
 
         /// <summary>Runs the block within a transaction.</summary>
@@ -190,8 +544,10 @@ namespace Couchbase.Lite
         /// <param name="transactionDelegate"></param>
         public Boolean RunInTransaction(RunInTransactionDelegate transactionDelegate)
         {
-            bool shouldCommit = true;
+            var shouldCommit = true;
+
             BeginTransaction();
+
             try
             {
                 shouldCommit = transactionDelegate();
@@ -199,19 +555,26 @@ namespace Couchbase.Lite
             catch (Exception e)
             {
                 shouldCommit = false;
-                Log.E(Couchbase.Lite.Database.Tag, e.ToString(), e);
+                Log.E(Database.Tag, e.ToString(), e);
                 throw new RuntimeException(e);
             }
             finally
             {
                 EndTransaction(shouldCommit);
             }
+
             return shouldCommit;
         }
 
-        public Replication GetPushReplication(Uri url) { throw new NotImplementedException(); }
+        public Replication GetPushReplication(Uri url) 
+        { 
+            return Manager.ReplicationWithDatabase(this, url, true, true, false);
+        }
 
-        public Replication GetPullReplication(Uri url) { throw new NotImplementedException(); }
+        public Replication GetPullReplication(Uri url) 
+        {
+            return Manager.ReplicationWithDatabase(this, url, false, true, false);
+        }
 
         public event EventHandler<DatabaseChangeEventArgs> Changed;
 
@@ -267,9 +630,265 @@ namespace Couchbase.Lite
 
         internal LruCache<String, Document> DocumentCache { get; set; }
 
+        private IDictionary<String, FilterDelegate> Filters { get; set; }
+
         internal RevisionList GetAllRevisionsOfDocumentID (string id, bool b)
         {
             throw new NotImplementedException ();
+        }
+
+        private String GetDesignDocFunction(string fnName, string key, ICollection<string> outLanguageList)
+        {
+            var path = fnName.Split("/");
+            if (path.Length != 2)
+            {
+                return null;
+            }
+
+            var docId = string.Format("_design/%s", path[0]);
+            var rev = GetDocumentWithIDAndRev(docId, null, EnumSet.NoneOf<TDContentOptions>());
+            if (rev == null)
+            {
+                return null;
+            }
+
+            var outLanguage = (string)rev.GetPropertyForKey("language");
+            if (outLanguage != null)
+            {
+                outLanguageList.AddItem(outLanguage);
+            }
+            else
+            {
+                outLanguageList.AddItem("javascript");
+            }
+
+            var container = (IDictionary<String, Object>)rev.GetPropertyForKey(key);
+            return (string)container.Get(path[1]);
+        }
+
+        internal Boolean Exists()
+        {
+            return new FilePath(Path).Exists();
+        }
+
+        internal static string MakeLocalDocumentId(string documentId)
+        {
+            return string.Format("_local/{0}", documentId);
+        }
+
+        private RevisionInternal PutLocalRevision(RevisionInternal revision, string prevRevID)
+        {
+            var docID = revision.GetDocId();
+            if (!docID.StartsWith ("_local/", StringComparison.InvariantCultureIgnoreCase))
+            {
+                throw new CouchbaseLiteException(StatusCode.BadRequest);
+            }
+
+            if (!revision.IsDeleted())
+            {
+                // PUT:
+                string newRevID;
+                var json = EncodeDocumentJSON(revision);
+
+                if (prevRevID != null)
+                {
+                    int generation = RevisionInternal.GenerationFromRevID(prevRevID);
+                    if (generation == 0)
+                    {
+                        throw new CouchbaseLiteException(StatusCode.BadRequest);
+                    }
+                    newRevID = Extensions.ToString(++generation) + "-local";
+
+                    var values = new ContentValues();
+                    values.Put("revid", newRevID);
+                    values.Put("json", json);
+
+                    var whereArgs = new [] { docID, prevRevID };
+                    try
+                    {
+                        var rowsUpdated = StorageEngine.Update("localdocs", values, "docid=? AND revid=?", whereArgs);
+                        if (rowsUpdated == 0)
+                        {
+                            throw new CouchbaseLiteException(StatusCode.Conflict);
+                        }
+                    }
+                    catch (SQLException e)
+                    {
+                        throw new CouchbaseLiteException(e, StatusCode.InternalServerError);
+                    }
+                }
+                else
+                {
+                    newRevID = "1-local";
+
+                    var values = new ContentValues();
+                    values.Put("docid", docID);
+                    values.Put("revid", newRevID);
+                    values.Put("json", json);
+
+                    try
+                    {
+                        StorageEngine.InsertWithOnConflict("localdocs", null, values, SQLiteStorageEngine.ConflictIgnore);
+                    }
+                    catch (SQLException e)
+                    {
+                        throw new CouchbaseLiteException(e, StatusCode.InternalServerError);
+                    }
+                }
+                return revision.CopyWithDocID(docID, newRevID);
+            }
+            else
+            {
+                // DELETE:
+                DeleteLocalDocument(docID, prevRevID);
+                return revision;
+            }
+        }
+
+        /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
+        internal void DeleteLocalDocument(string docID, string revID)
+        {
+            if (docID == null)
+            {
+                throw new CouchbaseLiteException(StatusCode.BadRequest);
+            }
+
+            if (revID == null)
+            {
+                // Didn't specify a revision to delete: 404 or a 409, depending
+                if (GetLocalDocument(docID, null) != null)
+                {
+                    throw new CouchbaseLiteException(StatusCode.Conflict);
+                }
+                else
+                {
+                    throw new CouchbaseLiteException(StatusCode.NotFound);
+                }
+            }
+
+            var whereArgs = new [] { docID, revID };
+            try
+            {
+                int rowsDeleted = StorageEngine.Delete("localdocs", "docid=? AND revid=?", whereArgs);
+                if (rowsDeleted == 0)
+                {
+                    if (GetLocalDocument(docID, null) != null)
+                    {
+                        throw new CouchbaseLiteException(StatusCode.Conflict);
+                    }
+                    else
+                    {
+                        throw new CouchbaseLiteException(StatusCode.NotFound);
+                    }
+                }
+            }
+            catch (SQLException e)
+            {
+                throw new CouchbaseLiteException(e, StatusCode.InternalServerError);
+            }
+        }
+
+        internal RevisionInternal GetLocalDocument(string docID, string revID)
+        {
+            // docID already should contain "_local/" prefix
+            RevisionInternal result = null;
+            Cursor cursor = null;
+            try
+            {
+                var args = new [] { docID };
+                cursor = StorageEngine.RawQuery("SELECT revid, json FROM localdocs WHERE docid=?", args); // TODO: Convert to ADO params.
+
+                if (cursor.MoveToNext())
+                {
+                    var gotRevID = cursor.GetString(0);
+                    if (revID != null && (!revID.Equals(gotRevID)))
+                    {
+                        return null;
+                    }
+
+                    var json = cursor.GetBlob(1);
+                    IDictionary<string, object> properties = null;
+                    try
+                    {
+                        properties = Manager.GetObjectMapper().ReadValue<IDictionary<String, Object>>(json);
+                        properties.Put("_id", docID);
+                        properties.Put("_rev", gotRevID);
+                        result = new RevisionInternal(docID, gotRevID, false, this);
+                        result.SetProperties(properties);
+                    }
+                    catch (Exception e)
+                    {
+                        Log.W(Database.Tag, "Error parsing local doc JSON", e);
+                        return null;
+                    }
+                }
+                return result;
+            }
+            catch (SQLException e)
+            {
+                Log.E(Database.Tag, "Error getting local document", e);
+                return null;
+            }
+            finally
+            {
+                if (cursor != null)
+                {
+                    cursor.Close();
+                }
+            }
+        }
+
+        /// <summary>Deletes obsolete attachments from the sqliteDb and blob store.</summary>
+        private Status GarbageCollectAttachments()
+        {
+            // First delete attachment rows for already-cleared revisions:
+            // OPT: Could start after last sequence# we GC'd up to
+            try
+            {
+                StorageEngine.ExecSQL("DELETE FROM attachments WHERE sequence IN " + "(SELECT sequence from revs WHERE json IS null)"
+                );
+            }
+            catch (SQLException e)
+            {
+                Log.E(Couchbase.Lite.Database.Tag, "Error deleting attachments", e);
+            }
+            // Now collect all remaining attachment IDs and tell the store to delete all but these:
+            Cursor cursor = null;
+            try
+            {
+                cursor = StorageEngine.RawQuery("SELECT DISTINCT key FROM attachments", null);
+                cursor.MoveToNext();
+
+                var allKeys = new AList<BlobKey>();
+                while (!cursor.IsAfterLast())
+                {
+                    var key = new BlobKey(cursor.GetBlob(0));
+                    allKeys.AddItem(key);
+                    cursor.MoveToNext();
+                }
+
+                var numDeleted = Attachments.DeleteBlobsExceptWithKeys(allKeys);
+                if (numDeleted < 0)
+                {
+                    return new Status(StatusCode.InternalServerError);
+                }
+
+                Log.V(Database.Tag, "Deleted " + numDeleted + " attachments");
+
+                return new Status(StatusCode.Ok);
+            }
+            catch (SQLException e)
+            {
+                Log.E(Database.Tag, "Error finding attachment keys in use", e);
+                return new Status(StatusCode.InternalServerError);
+            }
+            finally
+            {
+                if (cursor != null)
+                {
+                    cursor.Close();
+                }
+            }
         }
 
         internal Boolean SetLastSequence(String lastSequence, Uri url, Boolean push)
@@ -1298,7 +1917,7 @@ namespace Couchbase.Lite
         /// Inserts the _id, _rev and _attachments properties into the JSON data and stores it in rev.
         /// Rev must already have its revID and sequence properties set.
         /// </remarks>
-        internal IDictionary<string, object> ExtraPropertiesForRevision(RevisionInternal rev, EnumSet<TDContentOptions> contentOptions)
+        internal IDictionary<String, Object> ExtraPropertiesForRevision(RevisionInternal rev, EnumSet<TDContentOptions> contentOptions)
         {
             string docId = rev.GetDocId();
             string revId = rev.GetRevId();
@@ -2207,8 +2826,7 @@ namespace Couchbase.Lite
             }
             catch (Exception e)
             {
-                Log.E(Couchbase.Lite.Database.Tag, "Error serializing " + rev + " to JSON", e
-                     );
+                Log.E(Database.Tag, "Error serializing " + rev + " to JSON", e);
             }
             return json;
         }

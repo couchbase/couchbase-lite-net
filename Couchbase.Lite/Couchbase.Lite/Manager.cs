@@ -11,6 +11,7 @@ using System.Threading;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Collections.ObjectModel;
+using Couchbase.Lite.Replicator;
 
 namespace Couchbase.Lite
 {
@@ -302,6 +303,33 @@ namespace Couchbase.Lite
                     throw error;
                 }
             }
+        }
+
+        internal Replication ReplicationWithDatabase (Database database, Uri url, bool push, bool create, bool start)
+        {
+            foreach (var replicator in replications)
+            {
+                if (replicator.LocalDatabase == database 
+                    && replicator.RemoteUrl.Equals(url) 
+                    && replicator.IsPull == !push)
+                {
+                    return replicator;
+                }
+            }
+            if (!create)
+            {
+                return null;
+            }
+            Replication replicator_1 = null;
+            replicator_1 = push 
+                           ? (Replication)new Pusher (database, url, true, workExecutor) 
+                           : (Replication)new Puller (database, url, true, workExecutor);
+            replications.AddItem(replicator_1);
+            if (start)
+            {
+                replicator_1.Start();
+            }
+            return replicator_1;
         }
 
         private string PathForName(string name)

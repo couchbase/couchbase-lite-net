@@ -394,8 +394,7 @@ namespace Couchbase.Lite
 		}
 
 		[InterfaceAudience.Private]
-		internal virtual Replication ReplicationWithDatabase(Database db, Uri remote, bool
-			 push, bool create, bool start)
+        internal virtual Replication ReplicationWithDatabase(Database db, Uri remote, bool push, bool create, bool start)
 		{
 			foreach (Replication replicator in replications)
 			{

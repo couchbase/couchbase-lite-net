@@ -46,6 +46,7 @@
     <Folder Include="Manager\" />
     <Folder Include="Replication\" />
     <Folder Include="Auth\" />
+    <Folder Include="Replication\Changetracker\" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Sharpen\AList.cs" />
@@ -227,6 +228,11 @@
     <Compile Include="Replication\MultipartReaderDelegate.cs" />
     <Compile Include="Util\Range.cs" />
     <Compile Include="Util\IHttpClientFactory.cs" />
+    <Compile Include="Replication\Puller.cs" />
+    <Compile Include="Replication\Pusher.cs" />
+    <Compile Include="Replication\Changetracker\ChangeTracker.cs" />
+    <Compile Include="Replication\Changetracker\ChangeTrackerBackoff.cs" />
+    <Compile Include="Replication\Changetracker\ChangeTrackerClient.cs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="System" />

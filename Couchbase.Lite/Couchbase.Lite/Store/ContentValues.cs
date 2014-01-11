@@ -155,7 +155,7 @@ namespace Couchbase.Lite.Storage
 		/// <remarks>Adds a value to the set.</remarks>
 		/// <param name="key">the name of the value to put</param>
 		/// <param name="value">the data for the value to put</param>
-		public void Put(string key, byte[] value)
+        public void Put(string key, IEnumerable<Byte> value)
 		{
 			mValues.Put(key, value);
 		}

@@ -3671,8 +3671,7 @@ namespace Couchbase.Lite
 		}
 
 		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
-		public virtual RevisionInternal PutLocalRevision(RevisionInternal revision, string
-			 prevRevID)
+        public virtual RevisionInternal PutLocalRevision(RevisionInternal revision, string prevRevID)
 		{
 			string docID = revision.GetDocId();
 			if (!docID.StartsWith("_local/"))
