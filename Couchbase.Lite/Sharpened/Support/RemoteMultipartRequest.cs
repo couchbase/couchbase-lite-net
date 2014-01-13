@@ -20,6 +20,7 @@
  */
 
 using System;
+using System.Collections.Generic;
 using Couchbase.Lite.Support;
 using Org.Apache.Http.Client;
 using Org.Apache.Http.Client.Methods;
@@ -33,9 +34,9 @@ namespace Couchbase.Lite.Support
 		private MultipartEntity multiPart;
 
 		public RemoteMultipartRequest(ScheduledExecutorService workExecutor, HttpClientFactory
-			 clientFactory, string method, Uri url, MultipartEntity multiPart, RemoteRequestCompletionBlock
-			 onCompletion) : base(workExecutor, clientFactory, method, url, null, onCompletion
-			)
+			 clientFactory, string method, Uri url, MultipartEntity multiPart, IDictionary<string
+			, object> requestHeaders, RemoteRequestCompletionBlock onCompletion) : base(workExecutor
+			, clientFactory, method, url, null, requestHeaders, onCompletion)
 		{
 			this.multiPart = multiPart;
 		}

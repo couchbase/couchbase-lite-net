@@ -19,22 +19,17 @@
  * and limitations under the License.
  */
 
-using Couchbase.Lite;
-using Couchbase.Lite.Internal;
+using System.Collections.Generic;
+using Couchbase.Lite.Replicator;
+using Couchbase.Lite.Support;
 using Sharpen;
 
-namespace Couchbase.Lite
+namespace Couchbase.Lite.Replicator
 {
-	/// <summary>An external object that knows how to map source code of some sort into executable functions.
-	/// 	</summary>
-	/// <remarks>An external object that knows how to map source code of some sort into executable functions.
-	/// 	</remarks>
-	public interface ViewCompiler
+	public interface ChangeTrackerClient : HttpClientFactory
 	{
-		[InterfaceAudience.Public]
-		Mapper CompileMap(string mapSource, string language);
+		void ChangeTrackerReceivedChange(IDictionary<string, object> change);
 
-		[InterfaceAudience.Public]
-		Reducer CompileReduce(string reduceSource, string language);
+		void ChangeTrackerStopped(ChangeTracker tracker);
 	}
 }

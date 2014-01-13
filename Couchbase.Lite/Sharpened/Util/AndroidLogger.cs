@@ -19,7 +19,6 @@
  * and limitations under the License.
  */
 
-#if __ANDROID__
 using System;
 using Android.Util;
 using Couchbase.Lite.Util;
@@ -85,4 +84,3 @@ namespace Couchbase.Lite.Util
 		}
 	}
 }
-#endif

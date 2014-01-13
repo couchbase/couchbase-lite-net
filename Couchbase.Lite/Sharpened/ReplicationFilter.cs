@@ -21,7 +21,6 @@
 
 using System.Collections.Generic;
 using Couchbase.Lite;
-using Couchbase.Lite.Internal;
 using Sharpen;
 
 namespace Couchbase.Lite
@@ -30,7 +29,10 @@ namespace Couchbase.Lite
 	/// <remarks>Filter block, used in changes feeds and replication.</remarks>
 	public interface ReplicationFilter
 	{
-		// TODO: this needs to take a SavedRevision as a parameter, however
-		bool Filter(RevisionInternal revision, IDictionary<string, object> @params);
+		/// <summary>True if the Revision should be included in the pushed replication, otherwise false.
+		/// 	</summary>
+		/// <remarks>True if the Revision should be included in the pushed replication, otherwise false.
+		/// 	</remarks>
+		bool Filter(SavedRevision revision, IDictionary<string, object> @params);
 	}
 }

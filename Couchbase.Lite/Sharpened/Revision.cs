@@ -198,11 +198,7 @@ namespace Couchbase.Lite
 		[InterfaceAudience.Public]
 		public abstract IList<SavedRevision> GetRevisionHistory();
 
-		internal virtual IDictionary<string, object> GetAttachmentMetadata()
-		{
-			return (IDictionary<string, object>)GetProperty("_attachments");
-		}
-
+		[InterfaceAudience.Public]
 		public override bool Equals(object o)
 		{
 			bool result = false;
@@ -218,25 +214,35 @@ namespace Couchbase.Lite
 			return result;
 		}
 
+		[InterfaceAudience.Public]
 		public override int GetHashCode()
 		{
 			return document.GetId().GetHashCode() ^ GetId().GetHashCode();
 		}
 
+		[InterfaceAudience.Public]
+		public override string ToString()
+		{
+			return "{" + this.document.GetId() + " #" + this.GetId() + (IsDeletion() ? "DEL" : 
+				string.Empty) + "}";
+		}
+
+		[InterfaceAudience.Private]
+		internal virtual IDictionary<string, object> GetAttachmentMetadata()
+		{
+			return (IDictionary<string, object>)GetProperty("_attachments");
+		}
+
+		[InterfaceAudience.Private]
 		internal virtual void SetSequence(long sequence)
 		{
 			this.sequence = sequence;
 		}
 
+		[InterfaceAudience.Private]
 		internal virtual long GetSequence()
 		{
 			return sequence;
-		}
-
-		public override string ToString()
-		{
-			return "{" + this.document.GetId() + " #" + this.GetId() + (IsDeletion() ? "DEL" : 
-				string.Empty) + "}";
 		}
 
 		/// <summary>Generation number: 1 for a new document, 2 for the 2nd revision, ...</summary>
@@ -244,11 +250,13 @@ namespace Couchbase.Lite
 		/// Generation number: 1 for a new document, 2 for the 2nd revision, ...
 		/// Extracted from the numeric prefix of the revID.
 		/// </remarks>
+		[InterfaceAudience.Private]
 		internal virtual int GetGeneration()
 		{
 			return GenerationFromRevID(GetId());
 		}
 
+		[InterfaceAudience.Private]
 		internal static int GenerationFromRevID(string revID)
 		{
 			int generation = 0;

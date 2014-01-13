@@ -24,7 +24,6 @@ using System.IO;
 using System.Text;
 using Couchbase.Lite.Util;
 using Sharpen;
-using System.Web;
 
 namespace Couchbase.Lite.Util
 {
@@ -58,7 +57,7 @@ namespace Couchbase.Lite.Util
 			}
 			try
 			{
-                return HttpUtility.UrlDecode(s, Encoding.UTF8);
+				return URLDecoder.Decode(s, Utf8Encoding);
 			}
 			catch (UnsupportedEncodingException e)
 			{
@@ -73,9 +72,9 @@ namespace Couchbase.Lite.Util
 		/// <exception cref="System.NotSupportedException">if this isn't a hierarchical URI</exception>
 		/// <exception cref="System.ArgumentNullException">if key is null</exception>
 		/// <returns>the decoded value or null if no parameter is found</returns>
-        public static string GetQueryParameter(Uri uri, string key)
+		public static string GetQueryParameter(URI uri, string key)
 		{
-            if (uri.IsAbsoluteUri)
+			if (uri.IsOpaque())
 			{
 				throw new NotSupportedException(NotHierarchical);
 			}
@@ -83,7 +82,7 @@ namespace Couchbase.Lite.Util
 			{
 				throw new ArgumentNullException("key");
 			}
-			string query = uri.GetQuery();
+			string query = uri.GetRawQuery();
 			if (query == null)
 			{
 				return null;
@@ -100,7 +99,7 @@ namespace Couchbase.Lite.Util
 				{
 					separator = end;
 				}
-                if (separator - start == encodedKey.Length && query.RegionMatches(true, start, encodedKey
+				if (separator - start == encodedKey.Length && query.RegionMatches(start, encodedKey
 					, 0, encodedKey.Length))
 				{
 					if (separator == end)
@@ -227,13 +226,20 @@ namespace Couchbase.Lite.Util
 				// Convert the substring to bytes and encode the bytes as
 				// '%'-escaped octets.
 				string toEncode = Sharpen.Runtime.Substring(s, current, nextAllowed);
-				byte[] bytes = Sharpen.Runtime.GetBytesForString(toEncode, Utf8Encoding);
-				int bytesLength = bytes.Length;
-				for (int i = 0; i < bytesLength; i++)
+				try
 				{
-					encoded.Append('%');
-					encoded.Append(HexDigits[(bytes[i] & unchecked((int)(0xf0))) >> 4]);
-					encoded.Append(HexDigits[bytes[i] & unchecked((int)(0xf))]);
+					byte[] bytes = Sharpen.Runtime.GetBytesForString(toEncode, Utf8Encoding);
+					int bytesLength = bytes.Length;
+					for (int i = 0; i < bytesLength; i++)
+					{
+						encoded.Append('%');
+						encoded.Append(HexDigits[(bytes[i] & unchecked((int)(0xf0))) >> 4]);
+						encoded.Append(HexDigits[bytes[i] & unchecked((int)(0xf))]);
+					}
+				}
+				catch (UnsupportedEncodingException e)
+				{
+					throw new Exception(e);
 				}
 				current = nextAllowed;
 			}
@@ -288,8 +294,8 @@ namespace Couchbase.Lite.Util
 						i += 3;
 					}
 					while (i < s.Length && s[i] == '%');
-                    result.Append(charset.GetString(@out.ToByteArray()));
-                    @out.Reset();
+					result.Append(new string(@out.ToByteArray(), charset));
+					@out.Reset();
 				}
 				else
 				{
@@ -311,7 +317,7 @@ namespace Couchbase.Lite.Util
 		/// , but without support for non-ASCII
 		/// characters.
 		/// </summary>
-        internal static int HexToInt(char c)
+		private static int HexToInt(char c)
 		{
 			if ('0' <= c && c <= '9')
 			{

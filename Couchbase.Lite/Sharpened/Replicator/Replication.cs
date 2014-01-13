@@ -73,9 +73,13 @@ namespace Couchbase.Lite.Replicator
 
 		private int changesCount;
 
-		protected internal readonly HttpClientFactory clientFactory;
+		protected internal bool online;
+
+		protected internal HttpClientFactory clientFactory;
 
 		private IList<Replication.ChangeListener> changeListeners;
+
+		protected internal IList<string> documentIDs;
 
 		protected internal IDictionary<string, object> filterParams;
 
@@ -83,14 +87,22 @@ namespace Couchbase.Lite.Replicator
 
 		protected internal Authorizer authorizer;
 
+		private Replication.ReplicationStatus status = Replication.ReplicationStatus.ReplicationStopped;
+
+		protected internal IDictionary<string, object> requestHeaders;
+
 		protected internal const int ProcessorDelay = 500;
 
 		protected internal const int InboxCapacity = 100;
 
+		public const string ByChannelFilterName = "sync_gateway/bychannel";
+
+		public const string ChannelsQueryParam = "channels";
+
 		public const string ReplicatorDatabaseName = "_replicator";
 
 		/// <summary>Options for what metadata to include in document bodies</summary>
-		public enum ReplicationMode
+		public enum ReplicationStatus
 		{
 			ReplicationStopped,
 			ReplicationOffline,
@@ -116,6 +128,8 @@ namespace Couchbase.Lite.Replicator
 			this.remote = remote;
 			this.remoteRequestExecutor = Executors.NewCachedThreadPool();
 			this.changeListeners = new AList<Replication.ChangeListener>();
+			this.online = true;
+			this.requestHeaders = new Dictionary<string, object>();
 			if (remote.GetQuery() != null && !remote.GetQuery().IsEmpty())
 			{
 				URI uri = URI.Create(remote.ToExternalForm());
@@ -161,14 +175,13 @@ namespace Couchbase.Lite.Replicator
 				}
 			}
 			batcher = new Batcher<RevisionInternal>(workExecutor, InboxCapacity, ProcessorDelay
-				, new _BatchProcessor_137(this));
-			this.clientFactory = clientFactory != null ? clientFactory : CouchbaseLiteHttpClientFactory
-				.Instance;
+				, new _BatchProcessor_149(this));
+			SetClientFactory(clientFactory);
 		}
 
-		private sealed class _BatchProcessor_137 : BatchProcessor<RevisionInternal>
+		private sealed class _BatchProcessor_149 : BatchProcessor<RevisionInternal>
 		{
-			public _BatchProcessor_137(Replication _enclosing)
+			public _BatchProcessor_149(Replication _enclosing)
 			{
 				this._enclosing = _enclosing;
 			}
@@ -184,6 +197,45 @@ namespace Couchbase.Lite.Replicator
 			}
 
 			private readonly Replication _enclosing;
+		}
+
+		// this.clientFactory = clientFactory != null ? clientFactory : CouchbaseLiteHttpClientFactory.INSTANCE;
+		/// <summary>
+		/// Set the HTTP client factory if one was passed in, or use the default
+		/// set in the manager if available.
+		/// </summary>
+		/// <remarks>
+		/// Set the HTTP client factory if one was passed in, or use the default
+		/// set in the manager if available.
+		/// </remarks>
+		/// <param name="clientFactory"></param>
+		protected internal virtual void SetClientFactory(HttpClientFactory clientFactory)
+		{
+			Manager manager = null;
+			if (this.db != null)
+			{
+				manager = this.db.GetManager();
+			}
+			HttpClientFactory managerClientFactory = null;
+			if (manager != null)
+			{
+				managerClientFactory = manager.GetDefaultHttpClientFactory();
+			}
+			if (clientFactory != null)
+			{
+				this.clientFactory = clientFactory;
+			}
+			else
+			{
+				if (managerClientFactory != null)
+				{
+					this.clientFactory = managerClientFactory;
+				}
+				else
+				{
+					this.clientFactory = CouchbaseLiteHttpClientFactory.Instance;
+				}
+			}
 		}
 
 		/// <summary>Get the local database which is the source or target of this replication
@@ -290,14 +342,44 @@ namespace Couchbase.Lite.Replicator
 		[InterfaceAudience.Public]
 		public virtual IList<string> GetChannels()
 		{
-			throw new NotSupportedException();
+			if (filterParams == null || filterParams.IsEmpty())
+			{
+				return new AList<string>();
+			}
+			string @params = (string)filterParams.Get(ChannelsQueryParam);
+			if (!IsPull() || GetFilter() == null || !GetFilter().Equals(ByChannelFilterName) 
+				|| @params == null || @params.IsEmpty())
+			{
+				return new AList<string>();
+			}
+			string[] paramsArray = @params.Split(",");
+			return new AList<string>(Arrays.AsList(paramsArray));
 		}
 
 		/// <summary>Set the list of Sync Gateway channel names</summary>
 		[InterfaceAudience.Public]
 		public virtual void SetChannels(IList<string> channels)
 		{
-			throw new NotSupportedException();
+			if (channels != null && !channels.IsEmpty())
+			{
+				if (!IsPull())
+				{
+					Log.W(Database.Tag, "filterChannels can only be set in pull replications");
+					return;
+				}
+				SetFilter(ByChannelFilterName);
+				IDictionary<string, object> filterParams = new Dictionary<string, object>();
+				filterParams.Put(ChannelsQueryParam, TextUtils.Join(",", channels));
+				SetFilterParams(filterParams);
+			}
+			else
+			{
+				if (GetFilter().Equals(ByChannelFilterName))
+				{
+					SetFilter(null);
+					SetFilterParams(null);
+				}
+			}
 		}
 
 		/// <summary>Extra HTTP headers to send in all requests to the remote server.</summary>
@@ -306,17 +388,20 @@ namespace Couchbase.Lite.Replicator
 		/// Should map strings (header names) to strings.
 		/// </remarks>
 		[InterfaceAudience.Public]
-		public virtual IDictionary<string, string> GetHeaders()
+		public virtual IDictionary<string, object> GetHeaders()
 		{
-			throw new NotSupportedException();
+			return requestHeaders;
 		}
 
 		/// <summary>Set Extra HTTP headers to be sent in all requests to the remote server.</summary>
 		/// <remarks>Set Extra HTTP headers to be sent in all requests to the remote server.</remarks>
 		[InterfaceAudience.Public]
-		public virtual void SetHeaders(IDictionary<string, string> headers)
+		public virtual void SetHeaders(IDictionary<string, object> requestHeadersParam)
 		{
-			throw new NotSupportedException();
+			if (requestHeadersParam != null && !requestHeaders.Equals(requestHeadersParam))
+			{
+				requestHeaders = requestHeadersParam;
+			}
 		}
 
 		/// <summary>Gets the documents to specify as part of the replication.</summary>
@@ -324,7 +409,7 @@ namespace Couchbase.Lite.Replicator
 		[InterfaceAudience.Public]
 		public virtual IList<string> GetDocsIds()
 		{
-			throw new NotSupportedException();
+			return documentIDs;
 		}
 
 		/// <summary>Sets the documents to specify as part of the replication.</summary>
@@ -332,7 +417,7 @@ namespace Couchbase.Lite.Replicator
 		[InterfaceAudience.Public]
 		public virtual void SetDocIds(IList<string> docIds)
 		{
-			throw new NotSupportedException();
+			documentIDs = docIds;
 		}
 
 		/// <summary>The replication's current state, one of {stopped, offline, idle, active}.
@@ -340,9 +425,9 @@ namespace Couchbase.Lite.Replicator
 		/// <remarks>The replication's current state, one of {stopped, offline, idle, active}.
 		/// 	</remarks>
 		[InterfaceAudience.Public]
-		public virtual Replication.ReplicationMode GetMode()
+		public virtual Replication.ReplicationStatus GetStatus()
 		{
-			throw new NotSupportedException();
+			return status;
 		}
 
 		/// <summary>The number of completed changes processed, if the task is active, else 0 (observable).
@@ -430,7 +515,9 @@ namespace Couchbase.Lite.Replicator
 		[InterfaceAudience.Public]
 		public virtual void Restart()
 		{
-			throw new NotSupportedException();
+			// TODO: add the "started" flag and check it here
+			Stop();
+			Start();
 		}
 
 		/// <summary>Adds a change delegate that will be called whenever the Replication changes.
@@ -441,6 +528,47 @@ namespace Couchbase.Lite.Replicator
 		public virtual void AddChangeListener(Replication.ChangeListener changeListener)
 		{
 			changeListeners.AddItem(changeListener);
+		}
+
+		[InterfaceAudience.Public]
+		public override string ToString()
+		{
+			string maskedRemoteWithoutCredentials = (remote != null ? remote.ToExternalForm()
+				 : string.Empty);
+			maskedRemoteWithoutCredentials = maskedRemoteWithoutCredentials.ReplaceAll("://.*:.*@"
+				, "://---:---@");
+			string name = GetType().Name + "[" + maskedRemoteWithoutCredentials + "]";
+			return name;
+		}
+
+		/// <summary>
+		/// The type of event raised by a Replication when any of the following
+		/// properties change: mode, running, error, completed, total.
+		/// </summary>
+		/// <remarks>
+		/// The type of event raised by a Replication when any of the following
+		/// properties change: mode, running, error, completed, total.
+		/// </remarks>
+		public class ChangeEvent
+		{
+			private Replication source;
+
+			public ChangeEvent(Replication source)
+			{
+				this.source = source;
+			}
+
+			public virtual Replication GetSource()
+			{
+				return source;
+			}
+		}
+
+		/// <summary>A delegate that can be used to listen for Replication changes.</summary>
+		/// <remarks>A delegate that can be used to listen for Replication changes.</remarks>
+		public interface ChangeListener
+		{
+			void Changed(Replication.ChangeEvent @event);
 		}
 
 		/// <summary>Removes the specified delegate as a listener for the Replication change event.
@@ -454,16 +582,19 @@ namespace Couchbase.Lite.Replicator
 			changeListeners.Remove(changeListener);
 		}
 
+		[InterfaceAudience.Private]
 		public virtual void SetAuthorizer(Authorizer authorizer)
 		{
 			this.authorizer = authorizer;
 		}
 
+		[InterfaceAudience.Private]
 		public virtual Authorizer GetAuthorizer()
 		{
 			return authorizer;
 		}
 
+		[InterfaceAudience.Private]
 		public virtual void DatabaseClosing()
 		{
 			SaveLastSequence();
@@ -471,21 +602,13 @@ namespace Couchbase.Lite.Replicator
 			db = null;
 		}
 
-		public override string ToString()
-		{
-			string maskedRemoteWithoutCredentials = (remote != null ? remote.ToExternalForm()
-				 : string.Empty);
-			maskedRemoteWithoutCredentials = maskedRemoteWithoutCredentials.ReplaceAll("://.*:.*@"
-				, "://---:---@");
-			string name = GetType().Name + "[" + maskedRemoteWithoutCredentials + "]";
-			return name;
-		}
-
+		[InterfaceAudience.Private]
 		public virtual string GetLastSequence()
 		{
 			return lastSequence;
 		}
 
+		[InterfaceAudience.Private]
 		public virtual void SetLastSequence(string lastSequenceIn)
 		{
 			if (lastSequenceIn != null && !lastSequenceIn.Equals(lastSequence))
@@ -496,14 +619,14 @@ namespace Couchbase.Lite.Replicator
 				if (!lastSequenceChanged)
 				{
 					lastSequenceChanged = true;
-					workExecutor.Schedule(new _Runnable_423(this), 2 * 1000, TimeUnit.Milliseconds);
+					workExecutor.Schedule(new _Runnable_521(this), 2 * 1000, TimeUnit.Milliseconds);
 				}
 			}
 		}
 
-		private sealed class _Runnable_423 : Runnable
+		private sealed class _Runnable_521 : Runnable
 		{
-			public _Runnable_423(Replication _enclosing)
+			public _Runnable_521(Replication _enclosing)
 			{
 				this._enclosing = _enclosing;
 			}
@@ -516,23 +639,27 @@ namespace Couchbase.Lite.Replicator
 			private readonly Replication _enclosing;
 		}
 
+		[InterfaceAudience.Private]
 		internal virtual void SetCompletedChangesCount(int processed)
 		{
 			this.completedChangesCount = processed;
 			NotifyChangeListeners();
 		}
 
+		[InterfaceAudience.Private]
 		internal virtual void SetChangesCount(int total)
 		{
 			this.changesCount = total;
 			NotifyChangeListeners();
 		}
 
+		[InterfaceAudience.Private]
 		public virtual string GetSessionID()
 		{
 			return sessionID;
 		}
 
+		[InterfaceAudience.Private]
 		protected internal virtual void CheckSession()
 		{
 			if (GetAuthorizer() != null && GetAuthorizer().UsesCookieBasedLogin())
@@ -545,23 +672,24 @@ namespace Couchbase.Lite.Replicator
 			}
 		}
 
+		[InterfaceAudience.Private]
 		protected internal virtual void CheckSessionAtPath(string sessionPath)
 		{
 			AsyncTaskStarted();
-			SendAsyncRequest("GET", sessionPath, null, new _RemoteRequestCompletionBlock_459(
+			SendAsyncRequest("GET", sessionPath, null, new _RemoteRequestCompletionBlock_562(
 				this, sessionPath));
 		}
 
-        private sealed class _RemoteRequestCompletionBlock_459 : RemoteRequestCompletionBlock
+		private sealed class _RemoteRequestCompletionBlock_562 : RemoteRequestCompletionBlock
 		{
-			public _RemoteRequestCompletionBlock_459(Replication _enclosing, string sessionPath
+			public _RemoteRequestCompletionBlock_562(Replication _enclosing, string sessionPath
 				)
 			{
 				this._enclosing = _enclosing;
 				this.sessionPath = sessionPath;
 			}
 
-            public void OnCompletion(Object result, Exception e)
+			public void OnCompletion(object result, Exception e)
 			{
 				if (e is HttpResponseException && ((HttpResponseException)e).GetStatusCode() == 404
 					 && Sharpen.Runtime.EqualsIgnoreCase(sessionPath, "/_session"))
@@ -595,9 +723,11 @@ namespace Couchbase.Lite.Replicator
 			private readonly string sessionPath;
 		}
 
+		[InterfaceAudience.Private]
 		public abstract void BeginReplicating();
 
-		public virtual void Stopped()
+		[InterfaceAudience.Private]
+		protected internal virtual void Stopped()
 		{
 			Log.V(Database.Tag, ToString() + " STOPPED");
 			running = false;
@@ -608,8 +738,10 @@ namespace Couchbase.Lite.Replicator
 			db = null;
 		}
 
+		[InterfaceAudience.Private]
 		private void NotifyChangeListeners()
 		{
+			UpdateProgress();
 			foreach (Replication.ChangeListener listener in changeListeners)
 			{
 				Replication.ChangeEvent changeEvent = new Replication.ChangeEvent(this);
@@ -617,6 +749,7 @@ namespace Couchbase.Lite.Replicator
 			}
 		}
 
+		[InterfaceAudience.Private]
 		protected internal virtual void Login()
 		{
 			IDictionary<string, string> loginParameters = GetAuthorizer().LoginParametersForSite
@@ -632,13 +765,13 @@ namespace Couchbase.Lite.Replicator
 			Log.D(Database.Tag, string.Format("%s: Doing login with %s at %s", this, GetAuthorizer
 				().GetType(), loginPath));
 			AsyncTaskStarted();
-			SendAsyncRequest("POST", loginPath, loginParameters, new _RemoteRequestCompletionBlock_524
+			SendAsyncRequest("POST", loginPath, loginParameters, new _RemoteRequestCompletionBlock_631
 				(this, loginPath));
 		}
 
-		private sealed class _RemoteRequestCompletionBlock_524 : RemoteRequestCompletionBlock
+		private sealed class _RemoteRequestCompletionBlock_631 : RemoteRequestCompletionBlock
 		{
-			public _RemoteRequestCompletionBlock_524(Replication _enclosing, string loginPath
+			public _RemoteRequestCompletionBlock_631(Replication _enclosing, string loginPath
 				)
 			{
 				this._enclosing = _enclosing;
@@ -666,6 +799,7 @@ namespace Couchbase.Lite.Replicator
 			private readonly string loginPath;
 		}
 
+		[InterfaceAudience.Private]
 		public virtual void AsyncTaskStarted()
 		{
 			lock (this)
@@ -674,11 +808,13 @@ namespace Couchbase.Lite.Replicator
 			}
 		}
 
+		[InterfaceAudience.Private]
 		public virtual void AsyncTaskFinished(int numTasks)
 		{
 			lock (this)
 			{
 				this.asyncTaskCount -= numTasks;
+				System.Diagnostics.Debug.Assert((asyncTaskCount >= 0));
 				if (asyncTaskCount == 0)
 				{
 					if (!continuous)
@@ -689,6 +825,7 @@ namespace Couchbase.Lite.Replicator
 			}
 		}
 
+		[InterfaceAudience.Private]
 		public virtual void AddToInbox(RevisionInternal rev)
 		{
 			if (batcher.Count() == 0)
@@ -698,10 +835,12 @@ namespace Couchbase.Lite.Replicator
 			batcher.QueueObject(rev);
 		}
 
-		public virtual void ProcessInbox(RevisionList inbox)
+		[InterfaceAudience.Private]
+		protected internal virtual void ProcessInbox(RevisionList inbox)
 		{
 		}
 
+		[InterfaceAudience.Private]
 		public virtual void SendAsyncRequest(string method, string relativePath, object body
 			, RemoteRequestCompletionBlock onCompletion)
 		{
@@ -717,6 +856,7 @@ namespace Couchbase.Lite.Replicator
 			}
 		}
 
+		[InterfaceAudience.Private]
 		internal virtual string BuildRelativeURLString(string relativePath)
 		{
 			// the following code is a band-aid for a system problem in the codebase
@@ -732,14 +872,16 @@ namespace Couchbase.Lite.Replicator
 			return remoteUrlString + relativePath;
 		}
 
+		[InterfaceAudience.Private]
 		public virtual void SendAsyncRequest(string method, Uri url, object body, RemoteRequestCompletionBlock
 			 onCompletion)
 		{
 			RemoteRequest request = new RemoteRequest(workExecutor, clientFactory, method, url
-				, body, onCompletion);
+				, body, GetHeaders(), onCompletion);
 			remoteRequestExecutor.Execute(request);
 		}
 
+		[InterfaceAudience.Private]
 		public virtual void SendAsyncMultipartDownloaderRequest(string method, string relativePath
 			, object body, Database db, RemoteRequestCompletionBlock onCompletion)
 		{
@@ -748,7 +890,7 @@ namespace Couchbase.Lite.Replicator
 				string urlStr = BuildRelativeURLString(relativePath);
 				Uri url = new Uri(urlStr);
 				RemoteMultipartDownloaderRequest request = new RemoteMultipartDownloaderRequest(workExecutor
-					, clientFactory, method, url, body, db, onCompletion);
+					, clientFactory, method, url, body, db, GetHeaders(), onCompletion);
 				remoteRequestExecutor.Execute(request);
 			}
 			catch (UriFormatException e)
@@ -757,6 +899,7 @@ namespace Couchbase.Lite.Replicator
 			}
 		}
 
+		[InterfaceAudience.Private]
 		public virtual void SendAsyncMultipartRequest(string method, string relativePath, 
 			MultipartEntity multiPartEntity, RemoteRequestCompletionBlock onCompletion)
 		{
@@ -771,11 +914,12 @@ namespace Couchbase.Lite.Replicator
 				throw new ArgumentException(e);
 			}
 			RemoteMultipartRequest request = new RemoteMultipartRequest(workExecutor, clientFactory
-				, method, url, multiPartEntity, onCompletion);
+				, method, url, multiPartEntity, GetHeaders(), onCompletion);
 			remoteRequestExecutor.Execute(request);
 		}
 
 		/// <summary>CHECKPOINT STORAGE:</summary>
+		[InterfaceAudience.Private]
 		internal virtual void MaybeCreateRemoteDB()
 		{
 		}
@@ -788,6 +932,7 @@ namespace Couchbase.Lite.Replicator
 		/// Its ID is based on the local database ID (the private one, to make the result unguessable)
 		/// and the remote database's URL.
 		/// </remarks>
+		[InterfaceAudience.Private]
 		public virtual string RemoteCheckpointDocID()
 		{
 			if (db == null)
@@ -799,6 +944,7 @@ namespace Couchbase.Lite.Replicator
 			return Misc.TDHexSHA1Digest(Sharpen.Runtime.GetBytesForString(input));
 		}
 
+		[InterfaceAudience.Private]
 		private bool Is404(Exception e)
 		{
 			if (e is HttpResponseException)
@@ -808,6 +954,7 @@ namespace Couchbase.Lite.Replicator
 			return false;
 		}
 
+		[InterfaceAudience.Private]
 		public virtual void FetchRemoteCheckpointDoc()
 		{
 			lastSequenceChanged = false;
@@ -819,13 +966,13 @@ namespace Couchbase.Lite.Replicator
 				return;
 			}
 			AsyncTaskStarted();
-			SendAsyncRequest("GET", "/_local/" + RemoteCheckpointDocID(), null, new _RemoteRequestCompletionBlock_659
+			SendAsyncRequest("GET", "/_local/" + RemoteCheckpointDocID(), null, new _RemoteRequestCompletionBlock_795
 				(this, localLastSequence));
 		}
 
-		private sealed class _RemoteRequestCompletionBlock_659 : RemoteRequestCompletionBlock
+		private sealed class _RemoteRequestCompletionBlock_795 : RemoteRequestCompletionBlock
 		{
-			public _RemoteRequestCompletionBlock_659(Replication _enclosing, string localLastSequence
+			public _RemoteRequestCompletionBlock_795(Replication _enclosing, string localLastSequence
 				)
 			{
 				this._enclosing = _enclosing;
@@ -875,6 +1022,7 @@ namespace Couchbase.Lite.Replicator
 			private readonly string localLastSequence;
 		}
 
+		[InterfaceAudience.Private]
 		public virtual void SaveLastSequence()
 		{
 			if (!lastSequenceChanged)
@@ -903,15 +1051,15 @@ namespace Couchbase.Lite.Replicator
 				return;
 			}
 			savingCheckpoint = true;
-			SendAsyncRequest("PUT", "/_local/" + remoteCheckpointDocID, body, new _RemoteRequestCompletionBlock_717
+			SendAsyncRequest("PUT", "/_local/" + remoteCheckpointDocID, body, new _RemoteRequestCompletionBlock_854
 				(this, body));
 			// TODO: If error is 401 or 403, and this is a pull, remember that remote is read-only and don't attempt to read its checkpoint next time.
 			db.SetLastSequence(lastSequence, remote, !IsPull());
 		}
 
-		private sealed class _RemoteRequestCompletionBlock_717 : RemoteRequestCompletionBlock
+		private sealed class _RemoteRequestCompletionBlock_854 : RemoteRequestCompletionBlock
 		{
-			public _RemoteRequestCompletionBlock_717(Replication _enclosing, IDictionary<string
+			public _RemoteRequestCompletionBlock_854(Replication _enclosing, IDictionary<string
 				, object> body)
 			{
 				this._enclosing = _enclosing;
@@ -942,34 +1090,44 @@ namespace Couchbase.Lite.Replicator
 			private readonly IDictionary<string, object> body;
 		}
 
-		/// <summary>
-		/// The type of event raised by a Replication when any of the following
-		/// properties change: mode, running, error, completed, total.
-		/// </summary>
-		/// <remarks>
-		/// The type of event raised by a Replication when any of the following
-		/// properties change: mode, running, error, completed, total.
-		/// </remarks>
-		public class ChangeEvent
+		[InterfaceAudience.Private]
+		internal virtual bool GoOffline()
 		{
-			private Replication source;
-
-			public ChangeEvent(Replication source)
+			if (!online)
 			{
-				this.source = source;
+				return false;
 			}
-
-			public virtual Replication GetSource()
-			{
-				return source;
-			}
+			online = false;
+			// TODO: [self stopRemoteRequests]; - remoteRequestExecutor.shutdown(); or remoteRequestExecutor.shutdownNow();
+			UpdateProgress();
+			return true;
 		}
 
-		/// <summary>A delegate that can be used to listen for Replication changes.</summary>
-		/// <remarks>A delegate that can be used to listen for Replication changes.</remarks>
-		public interface ChangeListener
+		[InterfaceAudience.Private]
+		internal virtual void UpdateProgress()
 		{
-			void Changed(Replication.ChangeEvent @event);
+			if (!IsRunning())
+			{
+				status = Replication.ReplicationStatus.ReplicationStopped;
+			}
+			else
+			{
+				if (!online)
+				{
+					status = Replication.ReplicationStatus.ReplicationOffline;
+				}
+				else
+				{
+					if (active)
+					{
+						status = Replication.ReplicationStatus.ReplicationActive;
+					}
+					else
+					{
+						status = Replication.ReplicationStatus.ReplicationIdle;
+					}
+				}
+			}
 		}
 	}
 }

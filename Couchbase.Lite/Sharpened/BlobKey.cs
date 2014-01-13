@@ -24,7 +24,6 @@ using System.IO;
 using System.Text;
 using Couchbase.Lite.Support;
 using Sharpen;
-using Couchbase.Lite;
 
 namespace Couchbase.Lite
 {
@@ -67,21 +66,21 @@ namespace Couchbase.Lite
 		/// <returns>a byte[] blob key</returns>
 		private static byte[] DecodeBase64Digest(string base64Digest)
 		{
-            const string expectedPrefix = "sha1-";
-			if (!base64Digest.StartsWith (expectedPrefix, StringComparison.Ordinal))
+			string expectedPrefix = "sha1-";
+			if (!base64Digest.StartsWith(expectedPrefix))
 			{
 				throw new ArgumentException(base64Digest + " did not start with " + expectedPrefix
 					);
 			}
-            base64Digest = base64Digest.Remove(0, expectedPrefix.Length);
+			base64Digest = base64Digest.ReplaceFirst(expectedPrefix, string.Empty);
 			byte[] bytes = new byte[0];
 			try
 			{
-                bytes = Convert.FromBase64String(base64Digest); //Base64.Decode(base64Digest);
+				bytes = Base64.Decode(base64Digest);
 			}
 			catch (IOException e)
 			{
-                throw new ArgumentException(e);
+				new ArgumentException(e);
 			}
 			return bytes;
 		}
@@ -126,7 +125,8 @@ namespace Couchbase.Lite
 			byte[] data = new byte[len / 2];
 			for (int i = 0; i < len; i += 2)
 			{
-                data[i / 2] = unchecked((byte)((CharUtils.Digit(s[i], 16) << 4) + CharUtils.Digit(s[i + 1],	16)));
+				data[i / 2] = unchecked((byte)((char.Digit(s[i], 16) << 4) + char.Digit(s[i + 1], 
+					16)));
 			}
 			return data;
 		}

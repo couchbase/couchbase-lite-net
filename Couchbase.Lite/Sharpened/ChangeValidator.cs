@@ -20,21 +20,19 @@
  */
 
 using Couchbase.Lite;
-using Couchbase.Lite.Internal;
 using Sharpen;
 
 namespace Couchbase.Lite
 {
-	/// <summary>An external object that knows how to map source code of some sort into executable functions.
-	/// 	</summary>
-	/// <remarks>An external object that knows how to map source code of some sort into executable functions.
-	/// 	</remarks>
-	public interface ViewCompiler
+	/// <summary>A delegate that can validate a key/value change.</summary>
+	/// <remarks>A delegate that can validate a key/value change.</remarks>
+	public interface ChangeValidator
 	{
-		[InterfaceAudience.Public]
-		Mapper CompileMap(string mapSource, string language);
-
-		[InterfaceAudience.Public]
-		Reducer CompileReduce(string reduceSource, string language);
+		/// <summary>Validate a change</summary>
+		/// <param name="key">The key of the value being changed.</param>
+		/// <param name="oldValue">The old value.</param>
+		/// <param name="newValue">The new value.</param>
+		/// <returns>true if the change is valid, false otherwise</returns>
+		bool ValidateChange(string key, object oldValue, object newValue);
 	}
 }

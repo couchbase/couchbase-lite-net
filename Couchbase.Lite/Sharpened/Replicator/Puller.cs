@@ -25,7 +25,6 @@ using System.Text;
 using Couchbase.Lite;
 using Couchbase.Lite.Internal;
 using Couchbase.Lite.Replicator;
-using Couchbase.Lite.Replicator.Changetracker;
 using Couchbase.Lite.Storage;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
@@ -80,49 +79,7 @@ namespace Couchbase.Lite.Replicator
 		{
 		}
 
-		public override void BeginReplicating()
-		{
-			if (downloadsToInsert == null)
-			{
-				int capacity = 200;
-				int delay = 1000;
-				downloadsToInsert = new Batcher<IList<object>>(workExecutor, capacity, delay, new 
-					_BatchProcessor_84(this));
-			}
-			pendingSequences = new SequenceMap();
-			Log.W(Database.Tag, this + " starting ChangeTracker with since=" + lastSequence);
-			changeTracker = new ChangeTracker(remote, continuous ? ChangeTracker.TDChangeTrackerMode
-				.LongPoll : ChangeTracker.TDChangeTrackerMode.OneShot, lastSequence, this);
-			if (filterName != null)
-			{
-				changeTracker.SetFilterName(filterName);
-				if (filterParams != null)
-				{
-					changeTracker.SetFilterParams(filterParams);
-				}
-			}
-			if (!continuous)
-			{
-				AsyncTaskStarted();
-			}
-			changeTracker.Start();
-		}
-
-		private sealed class _BatchProcessor_84 : BatchProcessor<IList<object>>
-		{
-			public _BatchProcessor_84(Puller _enclosing)
-			{
-				this._enclosing = _enclosing;
-			}
-
-			public void Process(IList<IList<object>> inbox)
-			{
-				this._enclosing.InsertRevisions(inbox);
-			}
-
-			private readonly Puller _enclosing;
-		}
-
+		[InterfaceAudience.Public]
 		public override void Stop()
 		{
 			if (!running)
@@ -152,13 +109,61 @@ namespace Couchbase.Lite.Replicator
 			}
 		}
 
-		public override void Stopped()
+		[InterfaceAudience.Private]
+		public override void BeginReplicating()
+		{
+			if (downloadsToInsert == null)
+			{
+				int capacity = 200;
+				int delay = 1000;
+				downloadsToInsert = new Batcher<IList<object>>(workExecutor, capacity, delay, new 
+					_BatchProcessor_111(this));
+			}
+			pendingSequences = new SequenceMap();
+			Log.W(Database.Tag, this + " starting ChangeTracker with since=" + lastSequence);
+			changeTracker = new ChangeTracker(remote, continuous ? ChangeTracker.ChangeTrackerMode
+				.LongPoll : ChangeTracker.ChangeTrackerMode.OneShot, lastSequence, this);
+			if (filterName != null)
+			{
+				changeTracker.SetFilterName(filterName);
+				if (filterParams != null)
+				{
+					changeTracker.SetFilterParams(filterParams);
+				}
+			}
+			changeTracker.SetDocIDs(documentIDs);
+			changeTracker.SetRequestHeaders(requestHeaders);
+			if (!continuous)
+			{
+				AsyncTaskStarted();
+			}
+			changeTracker.Start();
+		}
+
+		private sealed class _BatchProcessor_111 : BatchProcessor<IList<object>>
+		{
+			public _BatchProcessor_111(Puller _enclosing)
+			{
+				this._enclosing = _enclosing;
+			}
+
+			public void Process(IList<IList<object>> inbox)
+			{
+				this._enclosing.InsertRevisions(inbox);
+			}
+
+			private readonly Puller _enclosing;
+		}
+
+		[InterfaceAudience.Private]
+		protected internal override void Stopped()
 		{
 			downloadsToInsert = null;
 			base.Stopped();
 		}
 
 		// Got a _changes feed entry from the ChangeTracker.
+		[InterfaceAudience.Private]
 		public virtual void ChangeTrackerReceivedChange(IDictionary<string, object> change
 			)
 		{
@@ -203,21 +208,27 @@ namespace Couchbase.Lite.Replicator
 		}
 
 		// <-- TODO: why is this here?
+		[InterfaceAudience.Private]
 		public virtual void ChangeTrackerStopped(ChangeTracker tracker)
 		{
 			Log.W(Database.Tag, this + ": ChangeTracker stopped");
-			//FIXME tracker doesnt have error right now
-			//        if(error == null && tracker.getLastError() != null) {
-			//            error = tracker.getLastError();
-			//        }
+			if (error == null && tracker.GetLastError() != null)
+			{
+				error = tracker.GetLastError();
+			}
 			changeTracker = null;
 			if (batcher != null)
 			{
 				batcher.Flush();
 			}
-			AsyncTaskFinished(1);
+			if (!IsContinuous())
+			{
+				AsyncTaskFinished(1);
+			}
 		}
 
+		// balances -asyncTaskStarted in -startChangeTracker
+		[InterfaceAudience.Private]
 		public virtual HttpClient GetHttpClient()
 		{
 			HttpClient httpClient = this.clientFactory.GetHttpClient();
@@ -225,7 +236,8 @@ namespace Couchbase.Lite.Replicator
 		}
 
 		/// <summary>Process a bunch of remote revisions from the _changes feed at once</summary>
-		public override void ProcessInbox(RevisionList inbox)
+		[InterfaceAudience.Private]
+		protected internal override void ProcessInbox(RevisionList inbox)
 		{
 			// Ask the local database which of the revs are not known to it:
 			//Log.w(Database.TAG, String.format("%s: Looking up %s", this, inbox));
@@ -281,6 +293,7 @@ namespace Couchbase.Lite.Replicator
 		/// The entire method is not synchronized, only the portion pulling work off the list
 		/// Important to not hold the synchronized block while we do network access
 		/// </summary>
+		[InterfaceAudience.Private]
 		public virtual void PullRemoteRevisions()
 		{
 			//find the work to be done in a synchronized block
@@ -307,6 +320,7 @@ namespace Couchbase.Lite.Replicator
 		/// Fetches the contents of a revision from the remote db, including its parent revision ID.
 		/// The contents are stored into rev.properties.
 		/// </remarks>
+		[InterfaceAudience.Private]
 		public virtual void PullRemoteRevision(RevisionInternal rev)
 		{
 			AsyncTaskStarted();
@@ -332,13 +346,13 @@ namespace Couchbase.Lite.Replicator
 			//create a final version of this variable for the log statement inside
 			//FIXME find a way to avoid this
 			string pathInside = path.ToString();
-			SendAsyncMultipartDownloaderRequest("GET", pathInside, null, db, new _RemoteRequestCompletionBlock_294
+			SendAsyncMultipartDownloaderRequest("GET", pathInside, null, db, new _RemoteRequestCompletionBlock_305
 				(this, rev, pathInside));
 		}
 
-		private sealed class _RemoteRequestCompletionBlock_294 : RemoteRequestCompletionBlock
+		private sealed class _RemoteRequestCompletionBlock_305 : RemoteRequestCompletionBlock
 		{
-			public _RemoteRequestCompletionBlock_294(Puller _enclosing, RevisionInternal rev, 
+			public _RemoteRequestCompletionBlock_305(Puller _enclosing, RevisionInternal rev, 
 				string pathInside)
 			{
 				this._enclosing = _enclosing;
@@ -396,11 +410,12 @@ namespace Couchbase.Lite.Replicator
 		}
 
 		/// <summary>This will be called when _revsToInsert fills up:</summary>
+		[InterfaceAudience.Private]
 		public virtual void InsertRevisions(IList<IList<object>> revs)
 		{
 			Log.I(Database.Tag, this + " inserting " + revs.Count + " revisions...");
 			//Log.v(Database.TAG, String.format("%s inserting %s", this, revs));
-			revs.Sort(new _IComparer_349());
+			revs.Sort(new _IComparer_361());
 			if (db == null)
 			{
 				AsyncTaskFinished(revs.Count);
@@ -452,9 +467,9 @@ namespace Couchbase.Lite.Replicator
 			SetCompletedChangesCount(GetCompletedChangesCount() + revs.Count);
 		}
 
-		private sealed class _IComparer_349 : IComparer<IList<object>>
+		private sealed class _IComparer_361 : IComparer<IList<object>>
 		{
-			public _IComparer_349()
+			public _IComparer_361()
 			{
 			}
 
@@ -466,6 +481,7 @@ namespace Couchbase.Lite.Replicator
 			}
 		}
 
+		[InterfaceAudience.Private]
 		internal virtual IList<string> KnownCurrentRevIDs(RevisionInternal rev)
 		{
 			if (db != null)
@@ -475,6 +491,7 @@ namespace Couchbase.Lite.Replicator
 			return null;
 		}
 
+		[InterfaceAudience.Private]
 		public virtual string JoinQuotedEscaped(IList<string> strings)
 		{
 			if (strings.Count == 0)
@@ -491,6 +508,17 @@ namespace Couchbase.Lite.Replicator
 				Log.W(Database.Tag, "Unable to serialize json", e);
 			}
 			return URLEncoder.Encode(Sharpen.Runtime.GetStringForBytes(json));
+		}
+
+		[InterfaceAudience.Private]
+		internal override bool GoOffline()
+		{
+			if (!base.GoOffline())
+			{
+				return false;
+			}
+			changeTracker.Stop();
+			return true;
 		}
 	}
 

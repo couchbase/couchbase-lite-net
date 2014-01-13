@@ -78,6 +78,14 @@ namespace Couchbase.Lite.Replicator
 			this.shouldCreateTarget = createTarget;
 		}
 
+		[InterfaceAudience.Public]
+		public override void Stop()
+		{
+			StopObserving();
+			base.Stop();
+		}
+
+		[InterfaceAudience.Private]
 		internal override void MaybeCreateRemoteDB()
 		{
 			if (!shouldCreateTarget)
@@ -85,13 +93,13 @@ namespace Couchbase.Lite.Replicator
 				return;
 			}
 			Log.V(Database.Tag, "Remote db might not exist; creating it...");
-			SendAsyncRequest("PUT", string.Empty, null, new _RemoteRequestCompletionBlock_82(
+			SendAsyncRequest("PUT", string.Empty, null, new _RemoteRequestCompletionBlock_91(
 				this));
 		}
 
-		private sealed class _RemoteRequestCompletionBlock_82 : RemoteRequestCompletionBlock
+		private sealed class _RemoteRequestCompletionBlock_91 : RemoteRequestCompletionBlock
 		{
-			public _RemoteRequestCompletionBlock_82(Pusher _enclosing)
+			public _RemoteRequestCompletionBlock_91(Pusher _enclosing)
 			{
 				this._enclosing = _enclosing;
 			}
@@ -114,6 +122,7 @@ namespace Couchbase.Lite.Replicator
 			private readonly Pusher _enclosing;
 		}
 
+		[InterfaceAudience.Private]
 		public override void BeginReplicating()
 		{
 			// If we're still waiting to create the remote db, do nothing now. (This method will be
@@ -152,12 +161,7 @@ namespace Couchbase.Lite.Replicator
 		}
 
 		// prevents stopped() from being called when other tasks finish
-		public override void Stop()
-		{
-			StopObserving();
-			base.Stop();
-		}
-
+		[InterfaceAudience.Private]
 		private void StopObserving()
 		{
 			if (observing)
@@ -168,6 +172,7 @@ namespace Couchbase.Lite.Replicator
 			}
 		}
 
+		[InterfaceAudience.Private]
 		public virtual void Changed(Database.ChangeEvent @event)
 		{
 			IList<DocumentChange> changes = @event.GetChanges();
@@ -179,15 +184,18 @@ namespace Couchbase.Lite.Replicator
 				{
 					return;
 				}
-				RevisionInternal rev = change.GetRevisionInternal();
-				if (rev != null && ((filter == null) || filter.Filter(rev, null)))
+				RevisionInternal rev = change.GetAddedRevision();
+				IDictionary<string, object> paramsFixMe = null;
+				// TODO: these should not be null
+				if (GetLocalDatabase().RunFilter(filter, paramsFixMe, rev))
 				{
 					AddToInbox(rev);
 				}
 			}
 		}
 
-		public override void ProcessInbox(RevisionList inbox)
+		[InterfaceAudience.Private]
+		protected internal override void ProcessInbox(RevisionList inbox)
 		{
 			long lastInboxSequence = inbox[inbox.Count - 1].GetSequence();
 			// Generate a set of doc/rev IDs in the JSON format that _revs_diff wants:
@@ -206,13 +214,13 @@ namespace Couchbase.Lite.Replicator
 			}
 			// Call _revs_diff on the target db:
 			AsyncTaskStarted();
-			SendAsyncRequest("POST", "/_revs_diff", diffs, new _RemoteRequestCompletionBlock_181
+			SendAsyncRequest("POST", "/_revs_diff", diffs, new _RemoteRequestCompletionBlock_191
 				(this, inbox, lastInboxSequence));
 		}
 
-		private sealed class _RemoteRequestCompletionBlock_181 : RemoteRequestCompletionBlock
+		private sealed class _RemoteRequestCompletionBlock_191 : RemoteRequestCompletionBlock
 		{
-			public _RemoteRequestCompletionBlock_181(Pusher _enclosing, RevisionList inbox, long
+			public _RemoteRequestCompletionBlock_191(Pusher _enclosing, RevisionList inbox, long
 				 lastInboxSequence)
 			{
 				this._enclosing = _enclosing;
@@ -257,8 +265,8 @@ namespace Couchbase.Lite.Replicator
 									else
 									{
 										// OPT: Shouldn't include all attachment bodies, just ones that have changed
-										EnumSet<TDContentOptions> contentOptions = EnumSet.Of(TDContentOptions
-											.TDIncludeAttachments, TDContentOptions.TDBigAttachmentsFollow);
+										EnumSet<Database.TDContentOptions> contentOptions = EnumSet.Of(Database.TDContentOptions
+											.TDIncludeAttachments, Database.TDContentOptions.TDBigAttachmentsFollow);
 										try
 										{
 											this._enclosing.db.LoadRevisionBody(rev, contentOptions);
@@ -298,7 +306,7 @@ namespace Couchbase.Lite.Replicator
 						this._enclosing.SetChangesCount(this._enclosing.GetChangesCount() + numDocsToSend
 							);
 						this._enclosing.AsyncTaskStarted();
-						this._enclosing.SendAsyncRequest("POST", "/_bulk_docs", bulkDocsBody, new _RemoteRequestCompletionBlock_247
+						this._enclosing.SendAsyncRequest("POST", "/_bulk_docs", bulkDocsBody, new _RemoteRequestCompletionBlock_257
 							(this, inbox, lastInboxSequence, numDocsToSend));
 					}
 					else
@@ -310,9 +318,9 @@ namespace Couchbase.Lite.Replicator
 				this._enclosing.AsyncTaskFinished(1);
 			}
 
-			private sealed class _RemoteRequestCompletionBlock_247 : RemoteRequestCompletionBlock
+			private sealed class _RemoteRequestCompletionBlock_257 : RemoteRequestCompletionBlock
 			{
-				public _RemoteRequestCompletionBlock_247(_RemoteRequestCompletionBlock_181 _enclosing
+				public _RemoteRequestCompletionBlock_257(_RemoteRequestCompletionBlock_191 _enclosing
 					, RevisionList inbox, long lastInboxSequence, int numDocsToSend)
 				{
 					this._enclosing = _enclosing;
@@ -338,7 +346,7 @@ namespace Couchbase.Lite.Replicator
 					this._enclosing._enclosing.AsyncTaskFinished(1);
 				}
 
-				private readonly _RemoteRequestCompletionBlock_181 _enclosing;
+				private readonly _RemoteRequestCompletionBlock_191 _enclosing;
 
 				private readonly RevisionList inbox;
 
@@ -354,6 +362,7 @@ namespace Couchbase.Lite.Replicator
 			private readonly long lastInboxSequence;
 		}
 
+		[InterfaceAudience.Private]
 		private bool UploadMultipartRevision(RevisionInternal revision)
 		{
 			MultipartEntity multiPart = null;
@@ -421,14 +430,14 @@ namespace Couchbase.Lite.Replicator
 			// TODO: need to throttle these requests
 			Log.D(Database.Tag, "Uploadeding multipart request.  Revision: " + revision);
 			AsyncTaskStarted();
-			SendAsyncMultipartRequest("PUT", path, multiPart, new _RemoteRequestCompletionBlock_333
+			SendAsyncMultipartRequest("PUT", path, multiPart, new _RemoteRequestCompletionBlock_344
 				(this));
 			return true;
 		}
 
-		private sealed class _RemoteRequestCompletionBlock_333 : RemoteRequestCompletionBlock
+		private sealed class _RemoteRequestCompletionBlock_344 : RemoteRequestCompletionBlock
 		{
-			public _RemoteRequestCompletionBlock_333(Pusher _enclosing)
+			public _RemoteRequestCompletionBlock_344(Pusher _enclosing)
 			{
 				this._enclosing = _enclosing;
 			}

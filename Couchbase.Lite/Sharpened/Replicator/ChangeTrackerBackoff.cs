@@ -21,11 +21,11 @@
 
 using System;
 using Couchbase.Lite;
-using Couchbase.Lite.Replicator.Changetracker;
+using Couchbase.Lite.Replicator;
 using Couchbase.Lite.Util;
 using Sharpen;
 
-namespace Couchbase.Lite.Replicator.Changetracker
+namespace Couchbase.Lite.Replicator
 {
 	public class ChangeTrackerBackoff
 	{

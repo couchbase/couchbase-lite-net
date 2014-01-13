@@ -57,14 +57,13 @@ namespace Couchbase.Lite.Storage
 			mValues = new Dictionary<string, object>(from.mValues);
 		}
 
-		public override bool Equals(object obj)
+		public override bool Equals(object @object)
 		{
-			if (!(obj is Couchbase.Lite.Storage.ContentValues))
+			if (!(@object is Couchbase.Lite.Storage.ContentValues))
 			{
 				return false;
 			}
-			return mValues.Equals(((Couchbase.Lite.Storage.ContentValues)obj).mValues
-				);
+			return mValues.Equals(((Couchbase.Lite.Storage.ContentValues)@object).mValues);
 		}
 
 		public override int GetHashCode()

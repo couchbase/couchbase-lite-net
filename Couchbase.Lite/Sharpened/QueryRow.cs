@@ -222,6 +222,36 @@ namespace Couchbase.Lite
 		}
 
 		/// <summary>
+		/// Returns all conflicting revisions of the document, or nil if the
+		/// document is not in conflict.
+		/// </summary>
+		/// <remarks>
+		/// Returns all conflicting revisions of the document, or nil if the
+		/// document is not in conflict.
+		/// The first object in the array will be the default "winning" revision that shadows the others.
+		/// This is only valid in an allDocuments query whose allDocsMode is set to Query.AllDocsMode.SHOW_CONFLICTS
+		/// or Query.AllDocsMode.ONLY_CONFLICTS; otherwise it returns an empty list.
+		/// </remarks>
+		[InterfaceAudience.Public]
+		public virtual IList<SavedRevision> GetConflictingRevisions()
+		{
+			Document doc = database.GetDocument(sourceDocumentId);
+			IDictionary<string, object> valueTmp = (IDictionary<string, object>)value;
+			IList<string> conflicts = (IList<string>)valueTmp.Get("_conflicts");
+			if (conflicts == null)
+			{
+				conflicts = new AList<string>();
+			}
+			IList<SavedRevision> conflictingRevisions = new AList<SavedRevision>();
+			foreach (string conflictRevisionId in conflicts)
+			{
+				SavedRevision revision = doc.GetRevision(conflictRevisionId);
+				conflictingRevisions.AddItem(revision);
+			}
+			return conflictingRevisions;
+		}
+
+		/// <summary>
 		/// This is used implicitly by -[LiveQuery update] to decide whether the query result has changed
 		/// enough to notify the client.
 		/// </summary>
@@ -231,17 +261,17 @@ namespace Couchbase.Lite
 		/// won't get notified of changes.
 		/// </remarks>
 		[InterfaceAudience.Public]
-		public override bool Equals(object obj)
+		public override bool Equals(object @object)
 		{
-			if (obj == this)
+			if (@object == this)
 			{
 				return true;
 			}
-			if (!(obj is Couchbase.Lite.QueryRow))
+			if (!(@object is Couchbase.Lite.QueryRow))
 			{
 				return false;
 			}
-			Couchbase.Lite.QueryRow other = (Couchbase.Lite.QueryRow)obj;
+			Couchbase.Lite.QueryRow other = (Couchbase.Lite.QueryRow)@object;
 			bool documentPropertiesBothNull = (documentProperties == null && other.GetDocumentProperties
 				() == null);
 			bool documentPropertiesEqual = documentPropertiesBothNull || documentProperties.Equals
@@ -261,6 +291,12 @@ namespace Couchbase.Lite
 				}
 			}
 			return false;
+		}
+
+		[InterfaceAudience.Public]
+		public override string ToString()
+		{
+			return AsJSONDictionary().ToString();
 		}
 
 		[InterfaceAudience.Private]

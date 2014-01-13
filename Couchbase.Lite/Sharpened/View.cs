@@ -299,6 +299,7 @@ namespace Couchbase.Lite
 			return new Query(GetDatabase(), this);
 		}
 
+		[InterfaceAudience.Private]
 		public virtual int GetViewId()
 		{
 			if (viewId < 0)
@@ -334,6 +335,7 @@ namespace Couchbase.Lite
 			return viewId;
 		}
 
+		[InterfaceAudience.Private]
 		public virtual void DatabaseClosing()
 		{
 			database = null;
@@ -341,24 +343,26 @@ namespace Couchbase.Lite
 		}
 
 		/// <summary>Indexing</summary>
-		public virtual string ToJSONString(object obj)
+		[InterfaceAudience.Private]
+		public virtual string ToJSONString(object @object)
 		{
-			if (obj == null)
+			if (@object == null)
 			{
 				return null;
 			}
 			string result = null;
 			try
 			{
-				result = Manager.GetObjectMapper().WriteValueAsString(obj);
+				result = Manager.GetObjectMapper().WriteValueAsString(@object);
 			}
 			catch (Exception e)
 			{
-				Log.W(Database.Tag, "Exception serializing object to json: " + obj, e);
+				Log.W(Database.Tag, "Exception serializing object to json: " + @object, e);
 			}
 			return result;
 		}
 
+		[InterfaceAudience.Private]
 		public virtual object FromJSON(byte[] json)
 		{
 			if (json == null)
@@ -377,11 +381,13 @@ namespace Couchbase.Lite
 			return result;
 		}
 
+		[InterfaceAudience.Private]
 		public virtual View.TDViewCollation GetCollation()
 		{
 			return collation;
 		}
 
+		[InterfaceAudience.Private]
 		public virtual void SetCollation(View.TDViewCollation collation)
 		{
 			this.collation = collation;
@@ -391,6 +397,7 @@ namespace Couchbase.Lite
 		/// <remarks>Updates the view's index (incrementally) if necessary.</remarks>
 		/// <returns>200 if updated, 304 if already up-to-date, else an error code</returns>
 		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
+		[InterfaceAudience.Private]
 		public virtual void UpdateIndex()
 		{
 			Log.V(Database.Tag, "Re-indexing view " + name + " ...");
@@ -447,7 +454,7 @@ namespace Couchbase.Lite
 				// This is the emit() block, which gets called from within the
 				// user-defined map() block
 				// that's called down below.
-				AbstractTouchMapEmitBlock emitBlock = new _AbstractTouchMapEmitBlock_417(this);
+				AbstractTouchMapEmitBlock emitBlock = new _AbstractTouchMapEmitBlock_421(this);
 				// find a better way to propagate this back
 				// Now scan every revision added since the last time the view was
 				// indexed:
@@ -479,7 +486,7 @@ namespace Couchbase.Lite
 						string revId = cursor.GetString(3);
 						byte[] json = cursor.GetBlob(4);
 						IDictionary<string, object> properties = database.DocumentPropertiesFromJSON(json
-							, docId, revId, false, sequence, EnumSet.NoneOf<TDContentOptions>());
+							, docId, revId, false, sequence, EnumSet.NoneOf<Database.TDContentOptions>());
 						if (properties != null)
 						{
 							// Call the user-defined map() to emit new key/value
@@ -525,19 +532,27 @@ namespace Couchbase.Lite
 			}
 		}
 
-		private sealed class _AbstractTouchMapEmitBlock_417 : AbstractTouchMapEmitBlock
+		private sealed class _AbstractTouchMapEmitBlock_421 : AbstractTouchMapEmitBlock
 		{
-			public _AbstractTouchMapEmitBlock_417(View _enclosing)
+			public _AbstractTouchMapEmitBlock_421(View _enclosing)
 			{
 				this._enclosing = _enclosing;
 			}
 
-            internal void DefaultEmit(object key, object value)
+			public override void Emit(object key, object value)
 			{
 				try
 				{
+					string valueJson;
 					string keyJson = Manager.GetObjectMapper().WriteValueAsString(key);
-					string valueJson = Manager.GetObjectMapper().WriteValueAsString(value);
+					if (value == null)
+					{
+						valueJson = null;
+					}
+					else
+					{
+						valueJson = Manager.GetObjectMapper().WriteValueAsString(value);
+					}
 					Log.V(Database.Tag, "    emit(" + keyJson + ", " + valueJson + ")");
 					ContentValues insertValues = new ContentValues();
 					insertValues.Put("view_id", this._enclosing.GetViewId());
@@ -555,6 +570,7 @@ namespace Couchbase.Lite
 			private readonly View _enclosing;
 		}
 
+		[InterfaceAudience.Private]
 		public virtual Cursor ResultSetWithOptions(QueryOptions options)
 		{
 			if (options == null)
@@ -650,6 +666,7 @@ namespace Couchbase.Lite
 		}
 
 		// Are key1 and key2 grouped together at this groupLevel?
+		[InterfaceAudience.Private]
 		public static bool GroupTogether(object key1, object key2, int groupLevel)
 		{
 			if (groupLevel == 0 || !(key1 is IList) || !(key2 is IList))
@@ -670,6 +687,7 @@ namespace Couchbase.Lite
 		}
 
 		// Returns the prefix of the key to use in the result row, at this groupLevel
+		[InterfaceAudience.Private]
 		public static object GroupKey(object key, int groupLevel)
 		{
 			if (groupLevel > 0 && (key is IList) && (((IList<object>)key).Count > groupLevel))
@@ -683,6 +701,7 @@ namespace Couchbase.Lite
 		}
 
 		/// <summary>Querying</summary>
+		[InterfaceAudience.Private]
 		public virtual IList<IDictionary<string, object>> Dump()
 		{
 			if (GetViewId() < 0)
@@ -724,7 +743,9 @@ namespace Couchbase.Lite
 		}
 
 		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
-		internal virtual IList<QueryRow> ReducedQuery(Cursor cursor, bool group, int groupLevel)
+		[InterfaceAudience.Private]
+		internal virtual IList<QueryRow> ReducedQuery(Cursor cursor, bool group, int groupLevel
+			)
 		{
 			IList<object> keysToReduce = null;
 			IList<object> valuesToReduce = null;
@@ -825,7 +846,7 @@ namespace Couchbase.Lite
 							{
 								string linkedDocId = (string)((IDictionary)value).Get("_id");
 								RevisionInternal linkedDoc = database.GetDocumentWithIDAndRev(linkedDocId, null, 
-									EnumSet.NoneOf<TDContentOptions>());
+									EnumSet.NoneOf<Database.TDContentOptions>());
 								docContents = linkedDoc.GetProperties();
 							}
 							else
@@ -859,19 +880,20 @@ namespace Couchbase.Lite
 
 		/// <summary>Utility function to use in reduce blocks.</summary>
 		/// <remarks>Utility function to use in reduce blocks. Totals an array of Numbers.</remarks>
+		[InterfaceAudience.Private]
 		public static double TotalValues(IList<object> values)
 		{
 			double total = 0;
-			foreach (object obj in values)
+			foreach (object @object in values)
 			{
-				if (obj is Number)
+				if (@object is Number)
 				{
-					Number number = (Number)obj;
+					Number number = (Number)@object;
 					total += number;
 				}
 				else
 				{
-					Log.W(Database.Tag, "Warning non-numeric value found in totalValues: " + obj);
+					Log.W(Database.Tag, "Warning non-numeric value found in totalValues: " + @object);
 				}
 			}
 			return total;

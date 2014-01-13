@@ -41,14 +41,12 @@ namespace Couchbase.Lite
 
 		private int groupLevel = 0;
 
-		private EnumSet<TDContentOptions> contentOptions = EnumSet.NoneOf<TDContentOptions
+		private EnumSet<Database.TDContentOptions> contentOptions = EnumSet.NoneOf<Database.TDContentOptions
 			>();
 
 		private bool descending = false;
 
 		private bool includeDocs = false;
-
-		private bool includeDeletedDocs = false;
 
 		private bool updateSeq = false;
 
@@ -62,7 +60,8 @@ namespace Couchbase.Lite
 
 		private Query.IndexUpdateMode stale;
 
-		// only works with _all_docs, not regular views
+		private Query.AllDocsMode allDocsMode;
+
 		public virtual object GetStartKey()
 		{
 			return startKey;
@@ -173,12 +172,12 @@ namespace Couchbase.Lite
 			this.group = group;
 		}
 
-		public virtual EnumSet<TDContentOptions> GetContentOptions()
+		public virtual EnumSet<Database.TDContentOptions> GetContentOptions()
 		{
 			return contentOptions;
 		}
 
-		public virtual void SetContentOptions(EnumSet<TDContentOptions> contentOptions
+		public virtual void SetContentOptions(EnumSet<Database.TDContentOptions> contentOptions
 			)
 		{
 			this.contentOptions = contentOptions;
@@ -199,16 +198,6 @@ namespace Couchbase.Lite
 			return stale;
 		}
 
-		public virtual bool IsIncludeDeletedDocs()
-		{
-			return includeDeletedDocs;
-		}
-
-		public virtual void SetIncludeDeletedDocs(bool includeDeletedDocs)
-		{
-			this.includeDeletedDocs = includeDeletedDocs;
-		}
-
 		public virtual void SetStale(Query.IndexUpdateMode stale)
 		{
 			this.stale = stale;
@@ -222,6 +211,16 @@ namespace Couchbase.Lite
 		public virtual void SetReduceSpecified(bool reduceSpecified)
 		{
 			this.reduceSpecified = reduceSpecified;
+		}
+
+		public virtual Query.AllDocsMode GetAllDocsMode()
+		{
+			return allDocsMode;
+		}
+
+		public virtual void SetAllDocsMode(Query.AllDocsMode allDocsMode)
+		{
+			this.allDocsMode = allDocsMode;
 		}
 	}
 }

@@ -35,9 +35,17 @@ namespace Couchbase.Lite
 	{
 		public enum IndexUpdateMode
 		{
-			Never,
 			Before,
+			Never,
 			After
+		}
+
+		public enum AllDocsMode
+		{
+			AllDocs,
+			IncludeDeleted,
+			ShowConflicts,
+			OnlyConflicts
 		}
 
 		/// <summary>The database that contains this view.</summary>
@@ -91,6 +99,19 @@ namespace Couchbase.Lite
 		/// This allows faster results at the expense of returning possibly out-of-date data.
 		/// </remarks>
 		private Query.IndexUpdateMode indexUpdateMode;
+
+		/// <summary>Changes the behavior of a query created by -queryAllDocuments.</summary>
+		/// <remarks>
+		/// Changes the behavior of a query created by -queryAllDocuments.
+		/// - In mode kCBLAllDocs (the default), the query simply returns all non-deleted documents.
+		/// - In mode kCBLIncludeDeleted, it also returns deleted documents.
+		/// - In mode kCBLShowConflicts, the .conflictingRevisions property of each row will return the
+		/// conflicting revisions, if any, of that document.
+		/// - In mode kCBLOnlyConflicts, _only_ documents in conflict will be returned.
+		/// (This mode is especially useful for use with a CBLLiveQuery, so you can be notified of
+		/// conflicts as they happen, i.e. when they're pulled in by a replication.)
+		/// </remarks>
+		private Query.AllDocsMode allDocsMode;
 
 		/// <summary>Should the rows be returned in descending key order? Default value is NO.
 		/// 	</summary>
@@ -149,12 +170,16 @@ namespace Couchbase.Lite
 		[InterfaceAudience.Private]
 		internal Query(Database database, View view)
 		{
+			// Always update index if needed before querying (default)
+			// Don't update the index; results may be out of date
+			// Update index _after_ querying (results may still be out of date)
 			// null for _all_docs query
 			this.database = database;
 			this.view = view;
 			limit = int.MaxValue;
 			mapOnly = (view != null && view.GetReduce() == null);
 			indexUpdateMode = Query.IndexUpdateMode.Never;
+			allDocsMode = Query.AllDocsMode.AllDocs;
 		}
 
 		/// <summary>Constructor</summary>
@@ -168,7 +193,8 @@ namespace Couchbase.Lite
 
 		/// <summary>Constructor</summary>
 		[InterfaceAudience.Private]
-		internal Query(Database database, Couchbase.Lite.Query query) : this(database, query.GetView())
+		internal Query(Database database, Couchbase.Lite.Query query) : this(database, query
+			.GetView())
 		{
 			limit = query.limit;
 			skip = query.skip;
@@ -182,6 +208,7 @@ namespace Couchbase.Lite
 			startKeyDocId = query.startKeyDocId;
 			endKeyDocId = query.endKeyDocId;
 			indexUpdateMode = query.indexUpdateMode;
+			allDocsMode = query.allDocsMode;
 		}
 
 		/// <summary>The database this query is associated with</summary>
@@ -288,6 +315,18 @@ namespace Couchbase.Lite
 		}
 
 		[InterfaceAudience.Public]
+		public virtual Query.AllDocsMode GetAllDocsMode()
+		{
+			return allDocsMode;
+		}
+
+		[InterfaceAudience.Public]
+		public virtual void SetAllDocsMode(Query.AllDocsMode allDocsMode)
+		{
+			this.allDocsMode = allDocsMode;
+		}
+
+		[InterfaceAudience.Public]
 		public virtual IList<object> GetKeys()
 		{
 			return keys;
@@ -338,13 +377,14 @@ namespace Couchbase.Lite
 		[InterfaceAudience.Public]
 		public virtual bool ShouldIncludeDeleted()
 		{
-			return includeDeleted;
+			return allDocsMode == Query.AllDocsMode.IncludeDeleted;
 		}
 
 		[InterfaceAudience.Public]
-		public virtual void SetIncludeDeleted(bool includeDeleted)
+		public virtual void SetIncludeDeleted(bool includeDeletedParam)
 		{
-			this.includeDeleted = includeDeleted;
+			allDocsMode = (includeDeletedParam == true) ? Query.AllDocsMode.IncludeDeleted : 
+				Query.AllDocsMode.AllDocs;
 		}
 
 		/// <summary>Sends the query to the server and returns an enumerator over the result rows (Synchronous).
@@ -391,15 +431,20 @@ namespace Couchbase.Lite
 			return RunAsyncInternal(onComplete);
 		}
 
+		public interface QueryCompleteListener
+		{
+			void Completed(QueryEnumerator rows, Exception error);
+		}
+
 		[InterfaceAudience.Private]
 		internal virtual Future RunAsyncInternal(Query.QueryCompleteListener onComplete)
 		{
-			return database.GetManager().RunAsync(new _Runnable_334(this, onComplete));
+			return database.GetManager().RunAsync(new _Runnable_370(this, onComplete));
 		}
 
-		private sealed class _Runnable_334 : Runnable
+		private sealed class _Runnable_370 : Runnable
 		{
-			public _Runnable_334(Query _enclosing, Query.QueryCompleteListener onComplete)
+			public _Runnable_370(Query _enclosing, Query.QueryCompleteListener onComplete)
 			{
 				this._enclosing = _enclosing;
 				this.onComplete = onComplete;
@@ -430,11 +475,13 @@ namespace Couchbase.Lite
 			private readonly Query.QueryCompleteListener onComplete;
 		}
 
+		[InterfaceAudience.Private]
 		public virtual View GetView()
 		{
 			return view;
 		}
 
+		[InterfaceAudience.Private]
 		private QueryOptions GetQueryOptions()
 		{
 			QueryOptions queryOptions = new QueryOptions();
@@ -451,8 +498,8 @@ namespace Couchbase.Lite
 			queryOptions.SetIncludeDocs(ShouldPrefetch());
 			queryOptions.SetUpdateSeq(true);
 			queryOptions.SetInclusiveEnd(true);
-			queryOptions.SetIncludeDeletedDocs(ShouldIncludeDeleted());
 			queryOptions.SetStale(GetIndexUpdateMode());
+			queryOptions.SetAllDocsMode(GetAllDocsMode());
 			return queryOptions;
 		}
 
@@ -463,11 +510,6 @@ namespace Couchbase.Lite
 			{
 				view.Delete();
 			}
-		}
-
-		public interface QueryCompleteListener
-		{
-			void Completed(QueryEnumerator rows, Exception error);
 		}
 	}
 }

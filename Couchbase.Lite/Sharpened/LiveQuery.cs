@@ -65,15 +65,25 @@ namespace Couchbase.Lite
 			SetIndexUpdateMode(query.GetIndexUpdateMode());
 		}
 
-		/// <summary>In LiveQuery the rows accessor is a non-blocking property.</summary>
+		/// <summary>Sends the query to the server and returns an enumerator over the result rows (Synchronous).
+		/// 	</summary>
 		/// <remarks>
-		/// In LiveQuery the rows accessor is a non-blocking property.
-		/// Its value will be nil until the initial query finishes.
+		/// Sends the query to the server and returns an enumerator over the result rows (Synchronous).
+		/// Note: In a CBLLiveQuery you should add a ChangeListener and call start() instead.
 		/// </remarks>
 		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
 		[InterfaceAudience.Public]
 		public override QueryEnumerator Run()
 		{
+			try
+			{
+				WaitForRows();
+			}
+			catch (Exception e)
+			{
+				lastError = e;
+				throw new CouchbaseLiteException(e, Status.InternalServerError);
+			}
 			if (rows == null)
 			{
 				return null;
@@ -98,8 +108,7 @@ namespace Couchbase.Lite
 		/// <summary>Starts observing database changes.</summary>
 		/// <remarks>
 		/// Starts observing database changes. The .rows property will now update automatically. (You
-		/// usually don't need to call this yourself, since calling rows()
-		/// call start for you.)
+		/// usually don't need to call this yourself, since calling getRows() will start it for you
 		/// </remarks>
 		[InterfaceAudience.Public]
 		public virtual void Start()
@@ -108,8 +117,8 @@ namespace Couchbase.Lite
 			{
 				observing = true;
 				GetDatabase().AddChangeListener(this);
+				Update();
 			}
-			Update();
 		}
 
 		/// <summary>Stops observing database changes.</summary>
@@ -155,6 +164,24 @@ namespace Couchbase.Lite
 			}
 		}
 
+		/// <summary>Gets the results of the Query.</summary>
+		/// <remarks>Gets the results of the Query. The value will be null until the initial Query completes.
+		/// 	</remarks>
+		[InterfaceAudience.Public]
+		public virtual QueryEnumerator GetRows()
+		{
+			Start();
+			if (rows == null)
+			{
+				return null;
+			}
+			else
+			{
+				// Have to return a copy because the enumeration has to start at item #0 every time
+				return new QueryEnumerator(rows);
+			}
+		}
+
 		/// <summary>
 		/// Add a change listener to be notified when the live query result
 		/// set changes.
@@ -176,75 +203,8 @@ namespace Couchbase.Lite
 			observers.Remove(changeListener);
 		}
 
-		internal virtual void Update()
-		{
-			if (GetView() == null)
-			{
-				throw new InvalidOperationException("Cannot start LiveQuery when view is null");
-			}
-			SetWillUpdate(false);
-			updateQueryFuture = RunAsyncInternal(new _QueryCompleteListener_134(this));
-		}
-
-		private sealed class _QueryCompleteListener_134 : Query.QueryCompleteListener
-		{
-			public _QueryCompleteListener_134(LiveQuery _enclosing)
-			{
-				this._enclosing = _enclosing;
-			}
-
-			public void Completed(QueryEnumerator rows, Exception error)
-			{
-				if (error != null)
-				{
-					foreach (LiveQuery.ChangeListener observer in this._enclosing.observers)
-					{
-						observer.Changed(new LiveQuery.ChangeEvent(error));
-					}
-					this._enclosing.lastError = error;
-				}
-				else
-				{
-					if (rows != null && !rows.Equals(rows))
-					{
-						this._enclosing.SetRows(rows);
-						foreach (LiveQuery.ChangeListener observer in this._enclosing.observers)
-						{
-							observer.Changed(new LiveQuery.ChangeEvent(this._enclosing, rows));
-						}
-					}
-					this._enclosing.lastError = null;
-				}
-			}
-
-			private readonly LiveQuery _enclosing;
-		}
-
-		public virtual void Changed(Database.ChangeEvent @event)
-		{
-			if (!willUpdate)
-			{
-				SetWillUpdate(true);
-				Update();
-			}
-		}
-
-		private void SetRows(QueryEnumerator queryEnumerator)
-		{
-			lock (this)
-			{
-				rows = queryEnumerator;
-			}
-		}
-
-		private void SetWillUpdate(bool willUpdateParam)
-		{
-			lock (this)
-			{
-				willUpdate = willUpdateParam;
-			}
-		}
-
+		/// <summary>The type of event raised when a LiveQuery result set changes.</summary>
+		/// <remarks>The type of event raised when a LiveQuery result set changes.</remarks>
 		public class ChangeEvent
 		{
 			private LiveQuery source;
@@ -284,9 +244,85 @@ namespace Couchbase.Lite
 			}
 		}
 
+		/// <summary>A delegate that can be used to listen for LiveQuery result set changes.</summary>
+		/// <remarks>A delegate that can be used to listen for LiveQuery result set changes.</remarks>
 		public interface ChangeListener
 		{
 			void Changed(LiveQuery.ChangeEvent @event);
+		}
+
+		[InterfaceAudience.Private]
+		internal virtual void Update()
+		{
+			if (GetView() == null)
+			{
+				throw new InvalidOperationException("Cannot start LiveQuery when view is null");
+			}
+			SetWillUpdate(false);
+			updateQueryFuture = RunAsyncInternal(new _QueryCompleteListener_202(this));
+		}
+
+		private sealed class _QueryCompleteListener_202 : Query.QueryCompleteListener
+		{
+			public _QueryCompleteListener_202(LiveQuery _enclosing)
+			{
+				this._enclosing = _enclosing;
+			}
+
+			public void Completed(QueryEnumerator rowsParam, Exception error)
+			{
+				if (error != null)
+				{
+					foreach (LiveQuery.ChangeListener observer in this._enclosing.observers)
+					{
+						observer.Changed(new LiveQuery.ChangeEvent(error));
+					}
+					this._enclosing.lastError = error;
+				}
+				else
+				{
+					if (rowsParam != null && !rowsParam.Equals(this._enclosing.rows))
+					{
+						this._enclosing.SetRows(rowsParam);
+						foreach (LiveQuery.ChangeListener observer in this._enclosing.observers)
+						{
+							observer.Changed(new LiveQuery.ChangeEvent(this._enclosing, this._enclosing.rows)
+								);
+						}
+					}
+					this._enclosing.lastError = null;
+				}
+			}
+
+			private readonly LiveQuery _enclosing;
+		}
+
+		[InterfaceAudience.Private]
+		public virtual void Changed(Database.ChangeEvent @event)
+		{
+			if (!willUpdate)
+			{
+				SetWillUpdate(true);
+				Update();
+			}
+		}
+
+		[InterfaceAudience.Private]
+		private void SetRows(QueryEnumerator queryEnumerator)
+		{
+			lock (this)
+			{
+				rows = queryEnumerator;
+			}
+		}
+
+		[InterfaceAudience.Private]
+		private void SetWillUpdate(bool willUpdateParam)
+		{
+			lock (this)
+			{
+				willUpdate = willUpdateParam;
+			}
 		}
 	}
 }

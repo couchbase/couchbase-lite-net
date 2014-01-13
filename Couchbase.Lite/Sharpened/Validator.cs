@@ -20,21 +20,16 @@
  */
 
 using Couchbase.Lite;
-using Couchbase.Lite.Internal;
 using Sharpen;
 
 namespace Couchbase.Lite
 {
-	/// <summary>An external object that knows how to map source code of some sort into executable functions.
+	/// <summary>Validation block, used to approve revisions being added to the database.
 	/// 	</summary>
-	/// <remarks>An external object that knows how to map source code of some sort into executable functions.
+	/// <remarks>Validation block, used to approve revisions being added to the database.
 	/// 	</remarks>
-	public interface ViewCompiler
+	public interface Validator
 	{
-		[InterfaceAudience.Public]
-		Mapper CompileMap(string mapSource, string language);
-
-		[InterfaceAudience.Public]
-		Reducer CompileReduce(string reduceSource, string language);
+		bool Validate(Revision newRevision, ValidationContext context);
 	}
 }

@@ -21,7 +21,6 @@
 
 using Couchbase.Lite.Internal;
 using Sharpen;
-using System;
 
 namespace Couchbase.Lite.Internal
 {
@@ -33,10 +32,7 @@ namespace Couchbase.Lite.Internal
 	/// friends or sub-package-private like C++
 	/// Motivated by http://hadoop.apache.org/docs/current/hadoop-project-dist/hadoop-common/InterfaceClassification.html
 	/// </remarks>
-    public class InterfaceAudience
+	public class InterfaceAudience
 	{
-        public class PublicAttribute : Attribute {
-
-        }
 	}
 }

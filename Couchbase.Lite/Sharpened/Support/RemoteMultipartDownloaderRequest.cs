@@ -20,6 +20,7 @@
  */
 
 using System;
+using System.Collections.Generic;
 using System.IO;
 using Couchbase.Lite;
 using Couchbase.Lite.Support;
@@ -37,9 +38,9 @@ namespace Couchbase.Lite.Support
 		private Database db;
 
 		public RemoteMultipartDownloaderRequest(ScheduledExecutorService workExecutor, HttpClientFactory
-			 clientFactory, string method, Uri url, object body, Database db, RemoteRequestCompletionBlock
-			 onCompletion) : base(workExecutor, clientFactory, method, url, body, onCompletion
-			)
+			 clientFactory, string method, Uri url, object body, Database db, IDictionary<string
+			, object> requestHeaders, RemoteRequestCompletionBlock onCompletion) : base(workExecutor
+			, clientFactory, method, url, body, requestHeaders, onCompletion)
 		{
 			this.db = db;
 		}
@@ -50,6 +51,7 @@ namespace Couchbase.Lite.Support
 			PreemptivelySetAuthCredentials(httpClient);
 			IHttpUriRequest request = CreateConcreteRequest();
 			request.AddHeader("Accept", "*/*");
+			AddRequestHeaders(request);
 			ExecuteRequest(httpClient, request);
 		}
 

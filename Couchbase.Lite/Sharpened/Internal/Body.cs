@@ -35,7 +35,7 @@ namespace Couchbase.Lite.Internal
 	{
 		private byte[] json;
 
-		private object obj;
+		private object @object;
 
 		public Body(byte[] json)
 		{
@@ -44,16 +44,16 @@ namespace Couchbase.Lite.Internal
 
 		public Body(IDictionary<string, object> properties)
 		{
-			this.obj = properties;
+			this.@object = properties;
 		}
 
 		public Body(IList<object> array)
 		{
-			this.obj = array;
+			this.@object = array;
 		}
 
-		public static Couchbase.Lite.Internal.Body BodyWithProperties(IDictionary<string
-			, object> properties)
+		public static Couchbase.Lite.Internal.Body BodyWithProperties(IDictionary<string, 
+			object> properties)
 		{
 			Couchbase.Lite.Internal.Body result = new Couchbase.Lite.Internal.Body(properties
 				);
@@ -62,8 +62,7 @@ namespace Couchbase.Lite.Internal
 
 		public static Couchbase.Lite.Internal.Body BodyWithJSON(byte[] json)
 		{
-			Couchbase.Lite.Internal.Body result = new Couchbase.Lite.Internal.Body(json
-				);
+			Couchbase.Lite.Internal.Body result = new Couchbase.Lite.Internal.Body(json);
 			return result;
 		}
 
@@ -78,14 +77,14 @@ namespace Couchbase.Lite.Internal
 
 		private void LazyLoadJsonFromObject()
 		{
-			if (obj == null)
+			if (@object == null)
 			{
 				throw new InvalidOperationException("Both json and object are null for this body: "
 					 + this);
 			}
 			try
 			{
-				json = Manager.GetObjectMapper().WriteValueAsBytes(obj);
+				json = Manager.GetObjectMapper().WriteValueAsBytes(@object);
 			}
 			catch (IOException e)
 			{
@@ -95,11 +94,11 @@ namespace Couchbase.Lite.Internal
 
 		public virtual object GetObject()
 		{
-			if (obj == null)
+			if (@object == null)
 			{
 				LazyLoadObjectFromJson();
 			}
-			return obj;
+			return @object;
 		}
 
 		private void LazyLoadObjectFromJson()
@@ -111,7 +110,7 @@ namespace Couchbase.Lite.Internal
 			}
 			try
 			{
-				obj = Manager.GetObjectMapper().ReadValue<object>(json);
+				@object = Manager.GetObjectMapper().ReadValue<object>(json);
 			}
 			catch (IOException e)
 			{
@@ -121,7 +120,7 @@ namespace Couchbase.Lite.Internal
 
 		public virtual bool IsValidJSON()
 		{
-			if (obj == null)
+			if (@object == null)
 			{
 				bool gotException = false;
 				if (json == null)
@@ -131,13 +130,13 @@ namespace Couchbase.Lite.Internal
 				}
 				try
 				{
-					obj = Manager.GetObjectMapper().ReadValue<object>(json);
+					@object = Manager.GetObjectMapper().ReadValue<object>(json);
 				}
 				catch (IOException)
 				{
 				}
 			}
-			return obj != null;
+			return @object != null;
 		}
 
 		public virtual byte[] GetPrettyJson()
@@ -165,10 +164,10 @@ namespace Couchbase.Lite.Internal
 
 		public virtual IDictionary<string, object> GetProperties()
 		{
-			object obj = GetObject();
-			if (obj is IDictionary)
+			object @object = GetObject();
+			if (@object is IDictionary)
 			{
-				IDictionary<string, object> map = (IDictionary<string, object>)obj;
+				IDictionary<string, object> map = (IDictionary<string, object>)@object;
 				return Sharpen.Collections.UnmodifiableMap(map);
 			}
 			return null;

@@ -21,10 +21,10 @@
 
 using Android.Database.Sqlite;
 using Android.OS;
-using Couchbase;
+using Couchbase.Lite;
 using Sharpen;
 
-namespace Couchbase
+namespace Couchbase.Lite
 {
 	public class TDCollateJSON
 	{

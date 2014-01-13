@@ -115,7 +115,25 @@ namespace Couchbase.Lite
 		[InterfaceAudience.Public]
 		public virtual SavedRevision Save()
 		{
-			return document.PutProperties(properties, parentRevID);
+			bool allowConflict = false;
+			return document.PutProperties(properties, parentRevID, allowConflict);
+		}
+
+		/// <summary>
+		/// A special variant of -save: that always adds the revision, even if its parent is not the
+		/// current revision of the document.
+		/// </summary>
+		/// <remarks>
+		/// A special variant of -save: that always adds the revision, even if its parent is not the
+		/// current revision of the document.
+		/// This can be used to resolve conflicts, or to create them. If you're not certain that's what you
+		/// want to do, you should use the regular -save: method instead.
+		/// </remarks>
+		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
+		[InterfaceAudience.Public]
+		public virtual SavedRevision Save(bool allowConflict)
+		{
+			return document.PutProperties(properties, parentRevID, allowConflict);
 		}
 
 		/// <summary>Creates or updates an attachment.</summary>
@@ -137,8 +155,11 @@ namespace Couchbase.Lite
 			}
 			attachments.Put(name, attachment);
 			properties.Put("_attachments", attachments);
-			attachment.SetName(name);
-			attachment.SetRevision(this);
+			if (attachment != null)
+			{
+				attachment.SetName(name);
+				attachment.SetRevision(this);
+			}
 		}
 
 		/// <summary>Deletes any existing attachment with the given name.</summary>

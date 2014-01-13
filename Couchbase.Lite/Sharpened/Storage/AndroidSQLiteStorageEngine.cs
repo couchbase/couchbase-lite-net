@@ -18,14 +18,14 @@
  * either express or implied. See the License for the specific language governing permissions
  * and limitations under the License.
  */
-#if __ANDROID__
+
 using System.Collections.Generic;
 using Android.Content;
 using Android.Database;
 using Android.Database.Sqlite;
+using Couchbase.Lite;
 using Couchbase.Lite.Storage;
 using Couchbase.Lite.Util;
-using Couchbase;
 using Sharpen;
 
 namespace Couchbase.Lite.Storage
@@ -250,4 +250,3 @@ namespace Couchbase.Lite.Storage
 		}
 	}
 }
-#endif

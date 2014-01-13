@@ -41,6 +41,8 @@ namespace Couchbase.Lite.Internal
 
 		private bool deleted;
 
+		private bool missing;
+
 		private Body body;
 
 		private long sequence;
@@ -101,7 +103,7 @@ namespace Couchbase.Lite.Internal
 			{
 				return null;
 			}
-			return GetProperties().Get(key);
+			return prop.Get(key);
 		}
 
 		public virtual void SetProperties(IDictionary<string, object> properties)
@@ -184,8 +186,18 @@ namespace Couchbase.Lite.Internal
 			this.body = body;
 		}
 
-		public virtual Couchbase.Lite.Internal.RevisionInternal CopyWithDocID(string 
-			docId, string revId)
+		public virtual bool IsMissing()
+		{
+			return missing;
+		}
+
+		public virtual void SetMissing(bool missing)
+		{
+			this.missing = missing;
+		}
+
+		public virtual Couchbase.Lite.Internal.RevisionInternal CopyWithDocID(string docId
+			, string revId)
 		{
 			System.Diagnostics.Debug.Assert(((docId != null) && (revId != null)));
 			System.Diagnostics.Debug.Assert(((this.docId == null) || (this.docId.Equals(docId

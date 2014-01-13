@@ -19,17 +19,13 @@
  * and limitations under the License.
  */
 
-using System.Collections.Generic;
-using Couchbase.Lite.Replicator.Changetracker;
-using Couchbase.Lite.Support;
+using Couchbase.Lite;
 using Sharpen;
 
-namespace Couchbase.Lite.Replicator.Changetracker
+namespace Couchbase.Lite
 {
-	public interface ChangeTrackerClient : HttpClientFactory
+	public sealed class BuildConfig
 	{
-		void ChangeTrackerReceivedChange(IDictionary<string, object> change);
-
-		void ChangeTrackerStopped(ChangeTracker tracker);
+		public const bool Debug = true;
 	}
 }

@@ -20,8 +20,10 @@
  */
 
 using System.Collections;
+using System.IO;
 using System.Text;
 using Couchbase.Lite.Util;
+using Org.Apache.Http.Util;
 using Sharpen;
 
 namespace Couchbase.Lite.Util
@@ -52,6 +54,22 @@ namespace Couchbase.Lite.Util
 				sb.Append(token);
 			}
 			return sb.ToString();
+		}
+
+		/// <exception cref="System.IO.IOException"></exception>
+		public static byte[] Read(InputStream @is)
+		{
+			int initialCapacity = 1024;
+			ByteArrayBuffer byteArrayBuffer = new ByteArrayBuffer(initialCapacity);
+			byte[] bytes = new byte[512];
+			int offset = 0;
+			int numRead = 0;
+			while ((numRead = @is.Read(bytes, offset, bytes.Length - offset)) >= 0)
+			{
+				byteArrayBuffer.Append(bytes, 0, numRead);
+				offset += numRead;
+			}
+			return byteArrayBuffer.ToByteArray();
 		}
 	}
 }

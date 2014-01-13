@@ -41,16 +41,16 @@ namespace Couchbase.Lite
 
 		/// <summary>Constructor</summary>
 		[InterfaceAudience.Private]
-		internal SavedRevision(Document document, RevisionInternal revision)
-        : base(document)
+		internal SavedRevision(Document document, RevisionInternal revision) : base(document
+			)
 		{
 			this.revisionInternal = revision;
 		}
 
 		/// <summary>Constructor</summary>
 		[InterfaceAudience.Private]
-		internal SavedRevision(Database database, RevisionInternal revision)
-        : this(database.GetDocument(revision.GetDocId()), revision)
+		internal SavedRevision(Database database, RevisionInternal revision) : this(database
+			.GetDocument(revision.GetDocId()), revision)
 		{
 		}
 
@@ -116,10 +116,12 @@ namespace Couchbase.Lite
 		/// </remarks>
 		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
 		[InterfaceAudience.Public]
-		public virtual Couchbase.Lite.SavedRevision CreateRevision(IDictionary<string
-			, object> properties)
+		public virtual Couchbase.Lite.SavedRevision CreateRevision(IDictionary<string, object
+			> properties)
 		{
-			return document.PutProperties(properties, revisionInternal.GetRevId());
+			bool allowConflict = false;
+			return document.PutProperties(properties, revisionInternal.GetRevId(), allowConflict
+				);
 		}
 
 		[InterfaceAudience.Public]
@@ -169,7 +171,8 @@ namespace Couchbase.Lite
 		[InterfaceAudience.Public]
 		public override Couchbase.Lite.SavedRevision GetParentRevision()
 		{
-			return GetDocument().GetRevisionFromRev(GetDatabase().GetParentRevision(revisionInternal));
+			return GetDocument().GetRevisionFromRev(GetDatabase().GetParentRevision(revisionInternal
+				));
 		}
 
 		[InterfaceAudience.Public]
@@ -195,12 +198,13 @@ namespace Couchbase.Lite
 			return sequence;
 		}
 
+		[InterfaceAudience.Private]
 		internal virtual bool LoadProperties()
 		{
 			try
 			{
 				RevisionInternal loadRevision = GetDatabase().LoadRevisionBody(revisionInternal, 
-					EnumSet.NoneOf<TDContentOptions>());
+					EnumSet.NoneOf<Database.TDContentOptions>());
 				if (loadRevision == null)
 				{
 					Log.W(Database.Tag, "Couldn't load body/sequence of %s" + this);

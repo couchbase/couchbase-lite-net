@@ -20,6 +20,7 @@
  */
 
 using System;
+using System.Collections.Generic;
 using System.IO;
 using Couchbase.Lite;
 using Couchbase.Lite.Support;
@@ -51,9 +52,11 @@ namespace Couchbase.Lite.Support
 
 		protected internal RemoteRequestCompletionBlock onCompletion;
 
+		protected internal IDictionary<string, object> requestHeaders;
+
 		public RemoteRequest(ScheduledExecutorService workExecutor, HttpClientFactory clientFactory
-			, string method, Uri url, object body, RemoteRequestCompletionBlock onCompletion
-			)
+			, string method, Uri url, object body, IDictionary<string, object> requestHeaders
+			, RemoteRequestCompletionBlock onCompletion)
 		{
 			this.clientFactory = clientFactory;
 			this.method = method;
@@ -61,6 +64,7 @@ namespace Couchbase.Lite.Support
 			this.body = body;
 			this.onCompletion = onCompletion;
 			this.workExecutor = workExecutor;
+			this.requestHeaders = requestHeaders;
 		}
 
 		public virtual void Run()
@@ -70,8 +74,18 @@ namespace Couchbase.Lite.Support
 			IHttpUriRequest request = CreateConcreteRequest();
 			PreemptivelySetAuthCredentials(httpClient);
 			request.AddHeader("Accept", "multipart/related, application/json");
+			AddRequestHeaders(request);
 			SetBody(request);
 			ExecuteRequest(httpClient, request);
+		}
+
+		protected internal virtual void AddRequestHeaders(IHttpUriRequest request)
+		{
+			foreach (string requestHeaderKey in requestHeaders.Keys)
+			{
+				request.AddHeader(requestHeaderKey, requestHeaders.Get(requestHeaderKey).ToString
+					());
+			}
 		}
 
 		protected internal virtual IHttpUriRequest CreateConcreteRequest()
@@ -192,7 +206,7 @@ namespace Couchbase.Lite.Support
 					if (httpClient is DefaultHttpClient)
 					{
 						DefaultHttpClient dhc = (DefaultHttpClient)httpClient;
-						IHttpRequestInterceptor preemptiveAuth = new _IHttpRequestInterceptor_167(creds);
+						IHttpRequestInterceptor preemptiveAuth = new _IHttpRequestInterceptor_179(creds);
 						dhc.AddRequestInterceptor(preemptiveAuth, 0);
 					}
 				}
@@ -204,9 +218,9 @@ namespace Couchbase.Lite.Support
 			}
 		}
 
-		private sealed class _IHttpRequestInterceptor_167 : IHttpRequestInterceptor
+		private sealed class _IHttpRequestInterceptor_179 : IHttpRequestInterceptor
 		{
-			public _IHttpRequestInterceptor_167(Credentials creds)
+			public _IHttpRequestInterceptor_179(Credentials creds)
 			{
 				this.creds = creds;
 			}
@@ -237,7 +251,7 @@ namespace Couchbase.Lite.Support
 		{
 			if (workExecutor != null)
 			{
-				workExecutor.Submit(new _Runnable_201(this, result, error));
+				workExecutor.Submit(new _Runnable_213(this, result, error));
 			}
 			else
 			{
@@ -246,9 +260,9 @@ namespace Couchbase.Lite.Support
 			}
 		}
 
-		private sealed class _Runnable_201 : Runnable
+		private sealed class _Runnable_213 : Runnable
 		{
-			public _Runnable_201(RemoteRequest _enclosing, object result, Exception error)
+			public _Runnable_213(RemoteRequest _enclosing, object result, Exception error)
 			{
 				this._enclosing = _enclosing;
 				this.result = result;

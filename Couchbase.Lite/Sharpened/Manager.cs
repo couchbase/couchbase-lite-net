@@ -30,7 +30,6 @@ using Couchbase.Lite.Replicator;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
 using Sharpen;
-using Newtonsoft.Json;
 
 namespace Couchbase.Lite
 {
@@ -40,7 +39,7 @@ namespace Couchbase.Lite
 	/// 	</remarks>
 	public class Manager
 	{
-		public const string VersionString = "1.0.0-beta";
+		public const string Version = "1.0.0-beta";
 
 		public const string HttpErrorDomain = "CBLHTTP";
 
@@ -50,8 +49,7 @@ namespace Couchbase.Lite
 
 		public const string DatabaseSuffix = ".cblite";
 
-		public static readonly ManagerOptions DefaultOptions = new ManagerOptions(false, 
-			false);
+		public static readonly ManagerOptions DefaultOptions = new ManagerOptions();
 
 		public const string LegalCharacters = "[^a-z]{1,}[^a-z0-9_$()/+-]*$";
 
@@ -67,6 +65,7 @@ namespace Couchbase.Lite
 
 		private HttpClientFactory defaultHttpClientFactory;
 
+		[InterfaceAudience.Private]
 		public static JsonConvert GetObjectMapper()
 		{
 			return mapper;
@@ -83,6 +82,9 @@ namespace Couchbase.Lite
 		}
 
 		/// <summary>Constructor</summary>
+		/// <exception cref="System.Security.SecurityException">- Runtime exception that can be thrown by File.mkdirs()
+		/// 	</exception>
+		/// <exception cref="System.IO.IOException"></exception>
 		[InterfaceAudience.Public]
 		public Manager(FilePath directoryFile, ManagerOptions options)
 		{
@@ -90,14 +92,11 @@ namespace Couchbase.Lite
 			this.options = (options != null) ? options : DefaultOptions;
 			this.databases = new Dictionary<string, Database>();
 			this.replications = new AList<Replication>();
-			//create the directory, but don't fail if it already exists
-			if (!directoryFile.Exists())
+			directoryFile.Mkdirs();
+			if (!directoryFile.IsDirectory())
 			{
-				bool result = directoryFile.Mkdir();
-				if (!result)
-				{
-					throw new RuntimeException("Unable to create directory " + directoryFile);
-				}
+				throw new IOException(string.Format("Unable to create directory for: %s", directoryFile
+					));
 			}
 			UpgradeOldDatabaseFiles(directoryFile);
 			workExecutor = Executors.NewSingleThreadScheduledExecutor();
@@ -142,7 +141,7 @@ namespace Couchbase.Lite
 		[InterfaceAudience.Public]
 		public virtual IList<string> GetAllDatabaseNames()
 		{
-			string[] databaseFiles = directoryFile.List(new _FilenameFilter_131());
+			string[] databaseFiles = directoryFile.List(new _FilenameFilter_130());
 			IList<string> result = new AList<string>();
 			foreach (string databaseFile in databaseFiles)
 			{
@@ -155,9 +154,9 @@ namespace Couchbase.Lite
 			return Sharpen.Collections.UnmodifiableList(result);
 		}
 
-		private sealed class _FilenameFilter_131 : FilenameFilter
+		private sealed class _FilenameFilter_130 : FilenameFilter
 		{
-			public _FilenameFilter_131()
+			public _FilenameFilter_130()
 			{
 			}
 
@@ -204,25 +203,11 @@ namespace Couchbase.Lite
 		[InterfaceAudience.Public]
 		public virtual Database GetDatabase(string name)
 		{
-			Database db = databases.Get(name);
-			if (db == null)
+			bool mustExist = false;
+			Database db = GetDatabaseWithoutOpening(name, mustExist);
+			if (db != null)
 			{
-				if (!IsValidDatabaseName(name))
-				{
-					throw new ArgumentException("Invalid database name: " + name);
-				}
-				if (options.IsReadOnly())
-				{
-					return null;
-				}
-				string path = PathForName(name);
-				if (path == null)
-				{
-					return null;
-				}
-				db = new Database(path, this);
-				db.SetName(name);
-				databases.Put(name, db);
+				db.Open();
 			}
 			return db;
 		}
@@ -235,7 +220,13 @@ namespace Couchbase.Lite
 		[InterfaceAudience.Public]
 		public virtual Database GetExistingDatabase(string name)
 		{
-			return databases.Get(name);
+			bool mustExist = false;
+			Database db = GetDatabaseWithoutOpening(name, mustExist);
+			if (db != null)
+			{
+				db.Open();
+			}
+			return db;
 		}
 
 		/// <summary>Replaces or installs a database from a file.</summary>
@@ -245,30 +236,43 @@ namespace Couchbase.Lite
 		/// you should first check .exists to avoid replacing the database if it exists already. The
 		/// canned database would have been copied into your app bundle at build time.
 		/// </remarks>
-		/// <param name="databaseName">The name of the database to replace.</param>
-		/// <param name="databasePath">Path of the database file that should replace it.</param>
-		/// <param name="attachmentsPath">Path of the associated attachments directory, or nil if there are no attachments.
+		/// <param name="databaseName">The name of the target Database to replace or create.</param>
+		/// <param name="databaseFile">Path of the source Database file.</param>
+		/// <param name="attachmentsDirectory">Path of the associated Attachments directory, or null if there are no attachments.
 		/// 	</param>
 		/// <exception cref="System.IO.IOException"></exception>
 		[InterfaceAudience.Public]
-		public virtual void ReplaceDatabase(string databaseName, string databasePath, string
-			 attachmentsPath)
+		public virtual void ReplaceDatabase(string databaseName, FilePath databaseFile, FilePath
+			 attachmentsDirectory)
 		{
 			Database database = GetDatabase(databaseName);
 			string dstAttachmentsPath = database.GetAttachmentStorePath();
-			FilePath sourceFile = new FilePath(databasePath);
 			FilePath destFile = new FilePath(database.GetPath());
-			FileDirUtils.CopyFile(sourceFile, destFile);
+			FileDirUtils.CopyFile(databaseFile, destFile);
 			FilePath attachmentsFile = new FilePath(dstAttachmentsPath);
 			FileDirUtils.DeleteRecursive(attachmentsFile);
 			attachmentsFile.Mkdirs();
-			if (attachmentsPath != null)
+			if (attachmentsDirectory != null)
 			{
-				FileDirUtils.CopyFolder(new FilePath(attachmentsPath), attachmentsFile);
+				FileDirUtils.CopyFolder(attachmentsDirectory, attachmentsFile);
 			}
 			database.ReplaceUUIDs();
 		}
 
+		[InterfaceAudience.Public]
+		public virtual HttpClientFactory GetDefaultHttpClientFactory()
+		{
+			return defaultHttpClientFactory;
+		}
+
+		[InterfaceAudience.Public]
+		public virtual void SetDefaultHttpClientFactory(HttpClientFactory defaultHttpClientFactory
+			)
+		{
+			this.defaultHttpClientFactory = defaultHttpClientFactory;
+		}
+
+		[InterfaceAudience.Private]
 		private static bool ContainsOnlyLegalCharacters(string databaseName)
 		{
 			Sharpen.Pattern p = Sharpen.Pattern.Compile("^[abcdefghijklmnopqrstuvwxyz0123456789_$()+-/]+$"
@@ -277,9 +281,10 @@ namespace Couchbase.Lite
 			return matcher.Matches();
 		}
 
+		[InterfaceAudience.Private]
 		private void UpgradeOldDatabaseFiles(FilePath directory)
 		{
-			FilePath[] files = directory.ListFiles(new _FilenameFilter_239());
+			FilePath[] files = directory.ListFiles(new _FilenameFilter_245());
 			foreach (FilePath file in files)
 			{
 				string oldFilename = file.GetName();
@@ -302,9 +307,9 @@ namespace Couchbase.Lite
 			}
 		}
 
-		private sealed class _FilenameFilter_239 : FilenameFilter
+		private sealed class _FilenameFilter_245 : FilenameFilter
 		{
-			public _FilenameFilter_239()
+			public _FilenameFilter_245()
 			{
 			}
 
@@ -314,6 +319,7 @@ namespace Couchbase.Lite
 			}
 		}
 
+		[InterfaceAudience.Private]
 		private string FilenameWithNewExtension(string oldFilename, string oldExtension, 
 			string newExtension)
 		{
@@ -321,6 +327,7 @@ namespace Couchbase.Lite
 			return oldFilename.ReplaceAll(oldExtensionRegex, newExtension);
 		}
 
+		[InterfaceAudience.Private]
 		public virtual ICollection<Database> AllOpenDatabases()
 		{
 			return databases.Values;
@@ -332,15 +339,16 @@ namespace Couchbase.Lite
 		/// Database instance.  There is not currently a known reason to use it, it may not make
 		/// sense on the Android API, but it was added for the purpose of having a consistent API with iOS.
 		/// </remarks>
+		[InterfaceAudience.Private]
 		public virtual Future RunAsync(string databaseName, AsyncTask function)
 		{
 			Database database = GetDatabase(databaseName);
-			return RunAsync(new _Runnable_288(function, database));
+			return RunAsync(new _Runnable_290(function, database));
 		}
 
-		private sealed class _Runnable_288 : Runnable
+		private sealed class _Runnable_290 : Runnable
 		{
-			public _Runnable_288(AsyncTask function, Database database)
+			public _Runnable_290(AsyncTask function, Database database)
 			{
 				this.function = function;
 				this.database = database;
@@ -356,11 +364,13 @@ namespace Couchbase.Lite
 			private readonly Database database;
 		}
 
+		[InterfaceAudience.Private]
 		internal virtual Future RunAsync(Runnable runnable)
 		{
 			return workExecutor.Submit(runnable);
 		}
 
+		[InterfaceAudience.Private]
 		private string PathForName(string name)
 		{
 			if ((name == null) || (name.Length == 0) || Sharpen.Pattern.Matches(LegalCharacters
@@ -374,6 +384,7 @@ namespace Couchbase.Lite
 			return result;
 		}
 
+		[InterfaceAudience.Private]
 		private IDictionary<string, object> ParseSourceOrTarget(IDictionary<string, object
 			> properties, string key)
 		{
@@ -394,7 +405,8 @@ namespace Couchbase.Lite
 		}
 
 		[InterfaceAudience.Private]
-        internal virtual Replication ReplicationWithDatabase(Database db, Uri remote, bool push, bool create, bool start)
+		internal virtual Replication ReplicationWithDatabase(Database db, Uri remote, bool
+			 push, bool create, bool start)
 		{
 			foreach (Replication replicator in replications)
 			{
@@ -409,13 +421,14 @@ namespace Couchbase.Lite
 				return null;
 			}
 			Replication replicator_1 = null;
+			bool continuous = false;
 			if (push)
 			{
-				replicator_1 = new Pusher(db, remote, true, GetWorkExecutor());
+				replicator_1 = new Pusher(db, remote, continuous, GetWorkExecutor());
 			}
 			else
 			{
-				replicator_1 = new Puller(db, remote, true, GetWorkExecutor());
+				replicator_1 = new Puller(db, remote, continuous, GetWorkExecutor());
 			}
 			replications.AddItem(replicator_1);
 			if (start)
@@ -425,10 +438,44 @@ namespace Couchbase.Lite
 			return replicator_1;
 		}
 
+		[InterfaceAudience.Private]
+		public virtual Database GetDatabaseWithoutOpening(string name, bool mustExist)
+		{
+			Database db = databases.Get(name);
+			if (db == null)
+			{
+				if (!IsValidDatabaseName(name))
+				{
+					throw new ArgumentException("Invalid database name: " + name);
+				}
+				if (options.IsReadOnly())
+				{
+					mustExist = true;
+				}
+				string path = PathForName(name);
+				if (path == null)
+				{
+					return null;
+				}
+				db = new Database(path, this);
+				if (mustExist && !db.Exists())
+				{
+					string msg = string.Format("mustExist is true and db (%s) does not exist", name);
+					Log.W(Database.Tag, msg);
+					return null;
+				}
+				db.SetName(name);
+				databases.Put(name, db);
+			}
+			return db;
+		}
+
 		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
 		[InterfaceAudience.Private]
 		public virtual Replication GetReplicator(IDictionary<string, object> properties)
 		{
+			// TODO: in the iOS equivalent of this code, there is: {@"doc_ids", _documentIDs}) - write unit test that detects this bug
+			// TODO: ditto for "headers"
 			Authorizer authorizer = null;
 			Replication repl = null;
 			Uri remote = null;
@@ -450,10 +497,11 @@ namespace Couchbase.Lite
 					.BadRequest));
 			}
 			bool push = false;
-			Database db = GetExistingDatabase(source);
+			Database db = null;
 			string remoteStr = null;
-			if (db != null)
+			if (Couchbase.Lite.Manager.IsValidDatabaseName(source))
 			{
+				db = GetExistingDatabase(source);
 				remoteStr = target;
 				push = true;
 				remoteMap = targetMap;
@@ -463,7 +511,8 @@ namespace Couchbase.Lite
 				remoteStr = source;
 				if (createTarget && !cancel)
 				{
-					db = GetDatabase(target);
+					bool mustExist = false;
+					db = GetDatabaseWithoutOpening(target, mustExist);
 					if (!db.Open())
 					{
 						throw new CouchbaseLiteException("cannot open database: " + db, new Status(Status
@@ -555,20 +604,10 @@ namespace Couchbase.Lite
 			return repl;
 		}
 
+		[InterfaceAudience.Private]
 		public virtual ScheduledExecutorService GetWorkExecutor()
 		{
 			return workExecutor;
-		}
-
-		public virtual HttpClientFactory GetDefaultHttpClientFactory()
-		{
-			return defaultHttpClientFactory;
-		}
-
-		public virtual void SetDefaultHttpClientFactory(HttpClientFactory defaultHttpClientFactory
-			)
-		{
-			this.defaultHttpClientFactory = defaultHttpClientFactory;
 		}
 	}
 }

@@ -27,18 +27,19 @@ namespace Couchbase.Lite
 {
 	public class DocumentChange
 	{
-		internal DocumentChange(RevisionInternal revisionInternal, bool isCurrentRevision
+		[InterfaceAudience.Private]
+		internal DocumentChange(RevisionInternal addedRevision, RevisionInternal winningRevision
 			, bool isConflict, Uri sourceUrl)
 		{
-			this.revisionInternal = revisionInternal;
-			this.isCurrentRevision = isCurrentRevision;
+			this.addedRevision = addedRevision;
+			this.winningRevision = winningRevision;
 			this.isConflict = isConflict;
 			this.sourceUrl = sourceUrl;
 		}
 
-		private RevisionInternal revisionInternal;
+		private RevisionInternal addedRevision;
 
-		private bool isCurrentRevision;
+		private RevisionInternal winningRevision;
 
 		private bool isConflict;
 
@@ -46,17 +47,18 @@ namespace Couchbase.Lite
 
 		public virtual string GetDocumentId()
 		{
-			return revisionInternal.GetDocId();
+			return addedRevision.GetDocId();
 		}
 
 		public virtual string GetRevisionId()
 		{
-			return revisionInternal.GetRevId();
+			return addedRevision.GetRevId();
 		}
 
 		public virtual bool IsCurrentRevision()
 		{
-			return isCurrentRevision;
+			return winningRevision != null && addedRevision.GetRevId().Equals(winningRevision
+				.GetRevId());
 		}
 
 		public virtual bool IsConflict()
@@ -70,20 +72,23 @@ namespace Couchbase.Lite
 		}
 
 		[InterfaceAudience.Private]
-		public virtual RevisionInternal GetRevisionInternal()
+		public virtual RevisionInternal GetAddedRevision()
 		{
-			return revisionInternal;
+			return addedRevision;
+		}
+
+		[InterfaceAudience.Private]
+		internal virtual RevisionInternal GetWinningRevision()
+		{
+			return winningRevision;
 		}
 
 		public static Couchbase.Lite.DocumentChange TempFactory(RevisionInternal revisionInternal
-			, Uri sourceUrl)
+			, Uri sourceUrl, bool inConflict)
 		{
-			bool isCurrentRevFixMe = false;
-			// TODO: fix this to have a real value
-			bool isConflictRevFixMe = false;
-			// TODO: fix this to have a real value
-			Couchbase.Lite.DocumentChange change = new Couchbase.Lite.DocumentChange(
-				revisionInternal, isCurrentRevFixMe, isConflictRevFixMe, sourceUrl);
+			Couchbase.Lite.DocumentChange change = new Couchbase.Lite.DocumentChange(revisionInternal
+				, null, inConflict, sourceUrl);
+			// TODO: fix winning revision here
 			return change;
 		}
 	}

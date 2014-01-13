@@ -29,14 +29,8 @@ namespace Couchbase.Lite
 		/// <remarks>No modifications to databases are allowed.</remarks>
 		private bool readOnly;
 
-		/// <summary>Persistent replications will not run (until/unless startPersistentReplications is called.)
-		/// 	</summary>
-		private bool noReplicator;
-
-		public ManagerOptions(bool readOnly, bool noReplicator)
+		public ManagerOptions()
 		{
-			this.readOnly = readOnly;
-			this.noReplicator = noReplicator;
 		}
 
 		public virtual bool IsReadOnly()
@@ -47,16 +41,6 @@ namespace Couchbase.Lite
 		public virtual void SetReadOnly(bool readOnly)
 		{
 			this.readOnly = readOnly;
-		}
-
-		public virtual bool IsNoReplicator()
-		{
-			return noReplicator;
-		}
-
-		public virtual void SetNoReplicator(bool noReplicator)
-		{
-			this.noReplicator = noReplicator;
 		}
 	}
 }

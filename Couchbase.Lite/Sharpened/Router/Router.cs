@@ -60,7 +60,7 @@ namespace Couchbase.Lite.Router
 
 		public static string GetVersionString()
 		{
-			return Manager.VersionString;
+			return Manager.Version;
 		}
 
 		public Router(Manager manager, URLConnection connection)
@@ -178,29 +178,29 @@ namespace Couchbase.Lite.Router
 			}
 		}
 
-		public virtual EnumSet<TDContentOptions> GetContentOptions()
+		public virtual EnumSet<Database.TDContentOptions> GetContentOptions()
 		{
-			EnumSet<TDContentOptions> result = EnumSet.NoneOf<TDContentOptions
+			EnumSet<Database.TDContentOptions> result = EnumSet.NoneOf<Database.TDContentOptions
 				>();
 			if (GetBooleanQuery("attachments"))
 			{
-				result.AddItem(TDContentOptions.TDIncludeAttachments);
+				result.AddItem(Database.TDContentOptions.TDIncludeAttachments);
 			}
 			if (GetBooleanQuery("local_seq"))
 			{
-				result.AddItem(TDContentOptions.TDIncludeLocalSeq);
+				result.AddItem(Database.TDContentOptions.TDIncludeLocalSeq);
 			}
 			if (GetBooleanQuery("conflicts"))
 			{
-				result.AddItem(TDContentOptions.TDIncludeConflicts);
+				result.AddItem(Database.TDContentOptions.TDIncludeConflicts);
 			}
 			if (GetBooleanQuery("revs"))
 			{
-				result.AddItem(TDContentOptions.TDIncludeRevs);
+				result.AddItem(Database.TDContentOptions.TDIncludeRevs);
 			}
 			if (GetBooleanQuery("revs_info"))
 			{
-				result.AddItem(TDContentOptions.TDIncludeRevsInfo);
+				result.AddItem(Database.TDContentOptions.TDIncludeRevsInfo);
 			}
 			return result;
 		}
@@ -355,12 +355,34 @@ namespace Couchbase.Lite.Router
 					message += "_Database";
 					if (!Manager.IsValidDatabaseName(dbName))
 					{
-						connection.SetResponseCode(Status.NotFound);
+						Header resHeader = connection.GetResHeader();
+						if (resHeader != null)
+						{
+							resHeader.Add("Content-Type", "application/json");
+						}
+						IDictionary<string, object> result = new Dictionary<string, object>();
+						result.Put("error", "Invalid database");
+						result.Put("status", Status.BadRequest);
+						connection.SetResponseBody(new Body(result));
+						ByteArrayInputStream bais = new ByteArrayInputStream(connection.GetResponseBody()
+							.GetJson());
+						connection.SetResponseInputStream(bais);
+						connection.SetResponseCode(Status.BadRequest);
+						try
+						{
+							connection.GetResponseOutputStream().Close();
+						}
+						catch (IOException)
+						{
+							Log.E(Database.Tag, "Error closing empty output stream");
+						}
+						SendResponse();
 						return;
 					}
 					else
 					{
-						db = manager.GetDatabase(dbName);
+						bool mustExist = false;
+						db = manager.GetDatabaseWithoutOpening(dbName, mustExist);
 						if (db == null)
 						{
 							connection.SetResponseCode(Status.BadRequest);
@@ -515,8 +537,8 @@ namespace Couchbase.Lite.Router
 			Status status_1 = null;
 			try
 			{
-				MethodInfo m = typeof(Couchbase.Lite.Router.Router).GetMethod(message, typeof(
-					Database), typeof(string), typeof(string));
+				MethodInfo m = typeof(Couchbase.Lite.Router.Router).GetMethod(message, typeof(Database
+					), typeof(string), typeof(string));
 				status_1 = (Status)m.Invoke(this, db, docID, attachmentName);
 			}
 			catch (NoSuchMethodException)
@@ -568,6 +590,12 @@ namespace Couchbase.Lite.Router
 			{
 				connection.SetResponseBody(new Body(Sharpen.Runtime.GetBytesForString("{\"ok\":true}"
 					)));
+			}
+			if (status_1.IsSuccessful() == false && connection.GetResponseBody() == null)
+			{
+				IDictionary<string, object> result = new Dictionary<string, object>();
+				result.Put("status", status_1.GetCode());
+				connection.SetResponseBody(new Body(result));
 			}
 			if (connection.GetResponseBody() != null && connection.GetResponseBody().IsValidJSON
 				())
@@ -809,12 +837,14 @@ namespace Couchbase.Lite.Router
 			}
 			int num_docs = db.GetDocumentCount();
 			long update_seq = db.GetLastSequenceNumber();
+			long instanceStartTimeMicroseconds = db.GetStartTime() * 1000;
 			IDictionary<string, object> result = new Dictionary<string, object>();
 			result.Put("db_name", db.GetName());
 			result.Put("db_uuid", db.PublicUUID());
 			result.Put("doc_count", num_docs);
 			result.Put("update_seq", update_seq);
 			result.Put("disk_size", db.TotalDataSize());
+			result.Put("instance_start_time", instanceStartTimeMicroseconds);
 			connection.SetResponseBody(new Body(result));
 			return new Status(Status.Ok);
 		}
@@ -911,6 +941,8 @@ namespace Couchbase.Lite.Router
 			{
 				return new Status(Status.BadRequest);
 			}
+			IList<object> keys = (IList<object>)body.Get("keys");
+			options.SetKeys(keys);
 			IDictionary<string, object> result = null;
 			result = db.GetAllDocs(options);
 			ConvertCBLQueryRowsToMaps(result);
@@ -1198,6 +1230,33 @@ namespace Couchbase.Lite.Router
 			}
 		}
 
+		public virtual Status Do_POST_Document_purge(Database _db, string ignored1, string
+			 ignored2)
+		{
+			IDictionary<string, object> body = GetBodyAsDictionary();
+			if (body == null)
+			{
+				return new Status(Status.BadRequest);
+			}
+			// convert from Map<String,Object> -> Map<String, List<String>> - is there a cleaner way?
+			IDictionary<string, IList<string>> docsToRevs = new Dictionary<string, IList<string
+				>>();
+			foreach (string key in body.Keys)
+			{
+				object val = body.Get(key);
+				if (val is IList)
+				{
+					docsToRevs.Put(key, (IList<string>)val);
+				}
+			}
+			IDictionary<string, object> purgedRevisions = db.PurgeRevisions(docsToRevs);
+			IDictionary<string, object> responseMap = new Dictionary<string, object>();
+			responseMap.Put("purged", purgedRevisions);
+			Body responseBody = new Body(responseMap);
+			connection.SetResponseBody(responseBody);
+			return new Status(Status.Ok);
+		}
+
 		public virtual Status Do_POST_Document_ensure_full_commit(Database _db, string _docID
 			, string _attachmentName)
 		{
@@ -1275,7 +1334,7 @@ namespace Couchbase.Lite.Router
 				}
 			}
 			// After collecting revisions, sort by sequence:
-			entries.Sort(new _IComparer_1028());
+			entries.Sort(new _IComparer_1081());
 			long lastSeq = (long)entries[entries.Count - 1].Get("seq");
 			if (lastSeq == null)
 			{
@@ -1287,9 +1346,9 @@ namespace Couchbase.Lite.Router
 			return result;
 		}
 
-		private sealed class _IComparer_1028 : IComparer<IDictionary<string, object>>
+		private sealed class _IComparer_1081 : IComparer<IDictionary<string, object>>
 		{
-			public _IComparer_1028()
+			public _IComparer_1081()
 			{
 			}
 
@@ -1332,8 +1391,12 @@ namespace Couchbase.Lite.Router
 			IList<DocumentChange> changes = @event.GetChanges();
 			foreach (DocumentChange change in changes)
 			{
-				RevisionInternal rev = change.GetRevisionInternal();
-				if (changesFilter != null && !changesFilter.Filter(rev, null))
+				RevisionInternal rev = change.GetAddedRevision();
+				IDictionary<string, object> paramsFixMe = null;
+				// TODO: these should not be null
+				bool allowRevision = @event.GetSource().RunFilter(changesFilter, paramsFixMe, rev
+					);
+				if (!allowRevision)
 				{
 					return;
 				}
@@ -1472,7 +1535,7 @@ namespace Couchbase.Lite.Router
 			{
 				// http://wiki.apache.org/couchdb/HTTP_Document_API#GET
 				bool isLocalDoc = docID.StartsWith("_local");
-				EnumSet<TDContentOptions> options = GetContentOptions();
+				EnumSet<Database.TDContentOptions> options = GetContentOptions();
 				string openRevsParam = GetQuery("open_revs");
 				if (openRevsParam == null || isLocalDoc)
 				{
@@ -1596,8 +1659,8 @@ namespace Couchbase.Lite.Router
 			try
 			{
 				// http://wiki.apache.org/couchdb/HTTP_Document_API#GET
-				EnumSet<TDContentOptions> options = GetContentOptions();
-				options.AddItem(TDContentOptions.TDNoBody);
+				EnumSet<Database.TDContentOptions> options = GetContentOptions();
+				options.AddItem(Database.TDContentOptions.TDNoBody);
 				string revID = GetQuery("rev");
 				// often null
 				RevisionInternal rev = db.GetDocumentWithIDAndRev(docID, revID, options);
@@ -1716,6 +1779,28 @@ namespace Couchbase.Lite.Router
 		{
 			Body body = new Body(bodyDict);
 			Status status = new Status();
+			if (docID != null && docID.IsEmpty() == false)
+			{
+				// On PUT/DELETE, get revision ID from either ?rev= query or doc body:
+				string revParam = GetQuery("rev");
+				if (revParam != null && bodyDict != null && bodyDict.Count > 0)
+				{
+					string revProp = (string)bodyDict.Get("_rev");
+					if (revProp == null)
+					{
+						// No _rev property in body, so use ?rev= query param instead:
+						bodyDict.Put("_rev", revParam);
+						body = new Body(bodyDict);
+					}
+					else
+					{
+						if (!revParam.Equals(revProp))
+						{
+							throw new ArgumentException("Mismatch between _rev and rev");
+						}
+					}
+				}
+			}
 			RevisionInternal rev = Update(_db, docID, body, deleting, false, status);
 			if (status.IsSuccessful())
 			{
@@ -1788,9 +1873,10 @@ namespace Couchbase.Lite.Router
 		}
 
 		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
-		public virtual void UpdateAttachment(string attachment, string docID, InputStream
+		public virtual Status UpdateAttachment(string attachment, string docID, InputStream
 			 contentStream)
 		{
+			Status status = new Status(Status.Ok);
 			string revID = GetQuery("rev");
 			if (revID == null)
 			{
@@ -1808,20 +1894,22 @@ namespace Couchbase.Lite.Router
 			{
 				SetResponseLocation(connection.GetURL());
 			}
+			return status;
 		}
 
 		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
-		public virtual void Do_PUT_Attachment(Database _db, string docID, string _attachmentName
+		public virtual Status Do_PUT_Attachment(Database _db, string docID, string _attachmentName
 			)
 		{
-			UpdateAttachment(_attachmentName, docID, connection.GetRequestInputStream());
+			return UpdateAttachment(_attachmentName, docID, connection.GetRequestInputStream(
+				));
 		}
 
 		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
-		public virtual void Do_DELETE_Attachment(Database _db, string docID, string _attachmentName
+		public virtual Status Do_DELETE_Attachment(Database _db, string docID, string _attachmentName
 			)
 		{
-			UpdateAttachment(_attachmentName, docID, null);
+			return UpdateAttachment(_attachmentName, docID, null);
 		}
 
 		/// <summary>VIEW QUERIES:</summary>
@@ -1878,7 +1966,7 @@ namespace Couchbase.Lite.Router
 				// No TouchDB view is defined, or it hasn't had a map block assigned;
 				// see if there's a CouchDB view definition we can compile:
 				RevisionInternal rev = db.GetDocumentWithIDAndRev(string.Format("_design/%s", designDoc
-					), null, EnumSet.NoneOf<TDContentOptions>());
+					), null, EnumSet.NoneOf<Database.TDContentOptions>());
 				if (rev == null)
 				{
 					return new Status(Status.NotFound);

@@ -23,7 +23,6 @@ using System;
 using System.IO;
 using Couchbase.Lite.Support;
 using Sharpen;
-using System.Runtime.Serialization;
 
 namespace Couchbase.Lite.Support
 {
@@ -188,11 +187,11 @@ namespace Couchbase.Lite.Support
 
 		/// <summary>Specify encoding in first bit.</summary>
 		/// <remarks>Specify encoding in first bit. Value is one.</remarks>
-        public const int FirstBitEncoding = 1;
+		public const int Encode = 1;
 
 		/// <summary>Specify decoding in first bit.</summary>
 		/// <remarks>Specify decoding in first bit. Value is zero.</remarks>
-        public const int FirstBitDecoding = 0;
+		public const int Decode = 0;
 
 		/// <summary>Specify that data should be gzip-compressed in second bit.</summary>
 		/// <remarks>Specify that data should be gzip-compressed in second bit. Value is two.
@@ -947,7 +946,7 @@ namespace Couchbase.Lite.Support
 		/// <seealso cref="DoBreakLines">DoBreakLines</seealso>
 		/// <exception cref="System.IO.IOException">if there is an error</exception>
 		/// <since>2.0</since>
-        public static string EncodeObject(ISerializable serializableObject, int options)
+		public static string EncodeObject(Serializable serializableObject, int options)
 		{
 			if (serializableObject == null)
 			{
@@ -975,7 +974,7 @@ namespace Couchbase.Lite.Support
 					// Not gzipped
 					oos = new ObjectOutputStream(b64os);
 				}
-                oos.WriteObject(serializableObject);
+				oos.WriteObject(serializableObject);
 			}
 			catch (IOException e)
 			{

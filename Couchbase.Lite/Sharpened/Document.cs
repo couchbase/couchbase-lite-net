@@ -226,7 +226,7 @@ namespace Couchbase.Lite
 			{
 				return currentRevision;
 			}
-			EnumSet<TDContentOptions> contentOptions = EnumSet.NoneOf<TDContentOptions
+			EnumSet<Database.TDContentOptions> contentOptions = EnumSet.NoneOf<Database.TDContentOptions
 				>();
 			RevisionInternal revisionInternal = database.GetDocumentWithIDAndRev(GetId(), id, 
 				contentOptions);
@@ -273,7 +273,8 @@ namespace Couchbase.Lite
 			)
 		{
 			string prevID = (string)properties.Get("_rev");
-			return PutProperties(properties, prevID);
+			bool allowConflict = false;
+			return PutProperties(properties, prevID, allowConflict);
 		}
 
 		/// <summary>Saves a new revision by letting the caller update the existing properties.
@@ -352,7 +353,50 @@ namespace Couchbase.Lite
 			this.model = model;
 		}
 
+		/// <summary>A delegate that can be used to update a Document.</summary>
+		/// <remarks>A delegate that can be used to update a Document.</remarks>
+		public interface DocumentUpdater
+		{
+			bool Update(UnsavedRevision newRevision);
+		}
+
+		/// <summary>The type of event raised when a Document changes.</summary>
+		/// <remarks>
+		/// The type of event raised when a Document changes. This event is not raised in response
+		/// to local Document changes.
+		/// </remarks>
+		public class ChangeEvent
+		{
+			private Document source;
+
+			private DocumentChange change;
+
+			public ChangeEvent(Document source, DocumentChange documentChange)
+			{
+				this.source = source;
+				this.change = documentChange;
+			}
+
+			public virtual Document GetSource()
+			{
+				return source;
+			}
+
+			public virtual DocumentChange GetChange()
+			{
+				return change;
+			}
+		}
+
+		/// <summary>A delegate that can be used to listen for Document changes.</summary>
+		/// <remarks>A delegate that can be used to listen for Document changes.</remarks>
+		public interface ChangeListener
+		{
+			void Changed(Document.ChangeEvent @event);
+		}
+
 		/// <summary>Get the document's abbreviated ID</summary>
+		[InterfaceAudience.Private]
 		public virtual string GetAbbreviatedId()
 		{
 			string abbreviated = documentId;
@@ -367,6 +411,7 @@ namespace Couchbase.Lite
 		}
 
 		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
+		[InterfaceAudience.Private]
 		internal virtual IList<SavedRevision> GetLeafRevisions(bool includeDeleted)
 		{
 			IList<SavedRevision> result = new AList<SavedRevision>();
@@ -387,8 +432,9 @@ namespace Couchbase.Lite
 		}
 
 		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
+		[InterfaceAudience.Private]
 		internal virtual SavedRevision PutProperties(IDictionary<string, object> properties
-			, string prevID)
+			, string prevID, bool allowConflict)
 		{
 			string newId = null;
 			if (properties != null && properties.ContainsKey("_id"))
@@ -424,7 +470,7 @@ namespace Couchbase.Lite
 			{
 				rev.SetProperties(properties);
 			}
-			RevisionInternal newRev = database.PutRevision(rev, prevID, false);
+			RevisionInternal newRev = database.PutRevision(rev, prevID, allowConflict);
 			if (newRev == null)
 			{
 				return null;
@@ -432,6 +478,7 @@ namespace Couchbase.Lite
 			return new SavedRevision(this, newRev);
 		}
 
+		[InterfaceAudience.Private]
 		internal virtual SavedRevision GetRevisionFromRev(RevisionInternal internalRevision
 			)
 		{
@@ -453,6 +500,7 @@ namespace Couchbase.Lite
 			}
 		}
 
+		[InterfaceAudience.Private]
 		internal virtual SavedRevision GetRevisionWithId(string revId)
 		{
 			if (revId != null && currentRevision != null && revId.Equals(currentRevision.GetId
@@ -461,14 +509,10 @@ namespace Couchbase.Lite
 				return currentRevision;
 			}
 			return GetRevisionFromRev(database.GetDocumentWithIDAndRev(GetId(), revId, EnumSet
-				.NoneOf<TDContentOptions>()));
+				.NoneOf<Database.TDContentOptions>()));
 		}
 
-		public interface DocumentUpdater
-		{
-			bool Update(UnsavedRevision newRevision);
-		}
-
+		[InterfaceAudience.Private]
 		internal virtual void LoadCurrentRevisionFrom(QueryRow row)
 		{
 			if (row.GetDocumentRevisionId() == null)
@@ -487,52 +531,29 @@ namespace Couchbase.Lite
 			}
 		}
 
+		[InterfaceAudience.Private]
 		private bool RevIdGreaterThanCurrent(string revId)
 		{
 			return (RevisionInternal.CBLCompareRevIDs(revId, currentRevision.GetId()) > 0);
 		}
 
+		[InterfaceAudience.Private]
 		internal virtual void RevisionAdded(DocumentChange documentChange)
 		{
-			// TODO: in the iOS code, it calls CBL_Revision* rev = change.winningRevision;
-			RevisionInternal rev = documentChange.GetRevisionInternal();
+			RevisionInternal rev = documentChange.GetWinningRevision();
+			if (rev == null)
+			{
+				return;
+			}
+			// current revision didn't change
 			if (currentRevision != null && !rev.GetRevId().Equals(currentRevision.GetId()))
 			{
 				currentRevision = new SavedRevision(this, rev);
 			}
-			DocumentChange change = DocumentChange.TempFactory(rev, null);
 			foreach (Document.ChangeListener listener in changeListeners)
 			{
-				listener.Changed(new Document.ChangeEvent(this, change));
+				listener.Changed(new Document.ChangeEvent(this, documentChange));
 			}
-		}
-
-		public class ChangeEvent
-		{
-			private Document source;
-
-			private DocumentChange change;
-
-			public ChangeEvent(Document source, DocumentChange documentChange)
-			{
-				this.source = source;
-				this.change = documentChange;
-			}
-
-			public virtual Document GetSource()
-			{
-				return source;
-			}
-
-			public virtual DocumentChange GetChange()
-			{
-				return change;
-			}
-		}
-
-		public interface ChangeListener
-		{
-			void Changed(Document.ChangeEvent @event);
 		}
 	}
 }

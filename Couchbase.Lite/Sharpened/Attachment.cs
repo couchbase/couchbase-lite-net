@@ -28,6 +28,8 @@ using Sharpen;
 
 namespace Couchbase.Lite
 {
+	/// <summary>A Couchbase Lite Document Attachment.</summary>
+	/// <remarks>A Couchbase Lite Document Attachment.</remarks>
 	public class Attachment
 	{
 		/// <summary>The owning document revision.</summary>
@@ -56,6 +58,7 @@ namespace Couchbase.Lite
 		private InputStream body;
 
 		/// <summary>Constructor</summary>
+		[InterfaceAudience.Private]
 		internal Attachment(InputStream contentStream, string contentType)
 		{
 			this.body = contentStream;
@@ -66,6 +69,7 @@ namespace Couchbase.Lite
 		}
 
 		/// <summary>Constructor</summary>
+		[InterfaceAudience.Private]
 		internal Attachment(Revision revision, string name, IDictionary<string, object> metadata
 			)
 		{
@@ -154,16 +158,19 @@ namespace Couchbase.Lite
 			return Sharpen.Collections.UnmodifiableMap(metadata);
 		}
 
+		[InterfaceAudience.Private]
 		internal virtual void SetName(string name)
 		{
 			this.name = name;
 		}
 
+		[InterfaceAudience.Private]
 		internal virtual void SetRevision(Revision revision)
 		{
 			this.revision = revision;
 		}
 
+		[InterfaceAudience.Private]
 		internal virtual InputStream GetBodyIfNew()
 		{
 			return body;
@@ -178,6 +185,7 @@ namespace Couchbase.Lite
 		/// with proper JSON metadata dicts. It registers the attachment bodies with the blob store and sets
 		/// the metadata 'digest' and 'follows' properties accordingly.
 		/// </remarks>
+		[InterfaceAudience.Private]
 		internal static IDictionary<string, object> InstallAttachmentBodies(IDictionary<string
 			, object> attachments, Database database)
 		{
@@ -195,7 +203,7 @@ namespace Couchbase.Lite
 					{
 						// Copy attachment body into the database's blob store:
 						BlobStoreWriter writer = BlobStoreWriterForBody(body, database);
-						metadataMutable.Put("length", writer.GetLength());
+						metadataMutable.Put("length", (long)writer.GetLength());
 						metadataMutable.Put("digest", writer.MD5DigestString());
 						metadataMutable.Put("follows", true);
 						database.RememberAttachmentWriter(writer);
@@ -214,6 +222,7 @@ namespace Couchbase.Lite
 			return updatedAttachments;
 		}
 
+		[InterfaceAudience.Private]
 		internal static BlobStoreWriter BlobStoreWriterForBody(InputStream body, Database
 			 database)
 		{
@@ -223,11 +232,13 @@ namespace Couchbase.Lite
 			return writer;
 		}
 
+		[InterfaceAudience.Private]
 		public virtual bool GetGZipped()
 		{
 			return gzipped;
 		}
 
+		[InterfaceAudience.Private]
 		public virtual void SetGZipped(bool gzipped)
 		{
 			this.gzipped = gzipped;

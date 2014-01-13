@@ -24,7 +24,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using Couchbase.Lite;
-using Couchbase.Lite.Replicator.Changetracker;
+using Couchbase.Lite.Replicator;
 using Couchbase.Lite.Util;
 using Org.Apache.Http;
 using Org.Apache.Http.Auth;
@@ -35,9 +35,8 @@ using Org.Apache.Http.Impl.Client;
 using Org.Apache.Http.Protocol;
 using Org.Codehaus.Jackson;
 using Sharpen;
-using System.Net;
 
-namespace Couchbase.Lite.Replicator.Changetracker
+namespace Couchbase.Lite.Replicator
 {
 	/// <summary>
 	/// Reads the continuous-mode _changes feed of a database, and sends the
@@ -49,7 +48,7 @@ namespace Couchbase.Lite.Replicator.Changetracker
 
 		private ChangeTrackerClient client;
 
-		private ChangeTracker.TDChangeTrackerMode mode;
+		private ChangeTracker.ChangeTrackerMode mode;
 
 		private object lastSequenceID;
 
@@ -57,28 +56,33 @@ namespace Couchbase.Lite.Replicator.Changetracker
 
 		private bool running = false;
 
-        private HttpWebRequest request;
+		private IHttpUriRequest request;
 
 		private string filterName;
 
 		private IDictionary<string, object> filterParams;
 
+		private IList<string> docIDs;
+
 		private Exception error;
 
-		public enum TDChangeTrackerMode
+		protected internal IDictionary<string, object> requestHeaders;
+
+		public enum ChangeTrackerMode
 		{
 			OneShot,
 			LongPoll,
 			Continuous
 		}
 
-		public ChangeTracker(Uri databaseURL, ChangeTracker.TDChangeTrackerMode mode, object
+		public ChangeTracker(Uri databaseURL, ChangeTracker.ChangeTrackerMode mode, object
 			 lastSequenceID, ChangeTrackerClient client)
 		{
 			this.databaseURL = databaseURL;
 			this.mode = mode;
 			this.lastSequenceID = lastSequenceID;
 			this.client = client;
+			this.requestHeaders = new Dictionary<string, object>();
 		}
 
 		public virtual void SetFilterName(string filterName)
@@ -119,19 +123,19 @@ namespace Couchbase.Lite.Replicator.Changetracker
 			string path = "_changes?feed=";
 			switch (mode)
 			{
-				case ChangeTracker.TDChangeTrackerMode.OneShot:
+				case ChangeTracker.ChangeTrackerMode.OneShot:
 				{
 					path += "normal";
 					break;
 				}
 
-				case ChangeTracker.TDChangeTrackerMode.LongPoll:
+				case ChangeTracker.ChangeTrackerMode.LongPoll:
 				{
 					path += "longpoll&limit=50";
 					break;
 				}
 
-				case ChangeTracker.TDChangeTrackerMode.Continuous:
+				case ChangeTracker.ChangeTrackerMode.Continuous:
 				{
 					path += "continuous";
 					break;
@@ -142,6 +146,12 @@ namespace Couchbase.Lite.Replicator.Changetracker
 			{
 				path += "&since=" + URLEncoder.Encode(lastSequenceID.ToString());
 			}
+			if (docIDs != null && docIDs.Count > 0)
+			{
+				filterName = "_doc_ids";
+				filterParams = new Dictionary<string, object>();
+				filterParams.Put("doc_ids", docIDs);
+			}
 			if (filterName != null)
 			{
 				path += "&filter=" + URLEncoder.Encode(filterName);
@@ -149,8 +159,20 @@ namespace Couchbase.Lite.Replicator.Changetracker
 				{
 					foreach (string filterParamKey in filterParams.Keys)
 					{
-						path += "&" + URLEncoder.Encode(filterParamKey) + "=" + URLEncoder.Encode(filterParams
-							.Get(filterParamKey).ToString());
+						object value = filterParams.Get(filterParamKey);
+						if (!(value is string))
+						{
+							try
+							{
+								value = Manager.GetObjectMapper().WriteValueAsString(value);
+							}
+							catch (IOException e)
+							{
+								throw new ArgumentException(e);
+							}
+						}
+						path += "&" + URLEncoder.Encode(filterParamKey) + "=" + URLEncoder.Encode(value.ToString
+							());
 					}
 				}
 			}
@@ -189,12 +211,21 @@ namespace Couchbase.Lite.Replicator.Changetracker
 				Log.W(Database.Tag, "ChangeTracker run() loop aborting because client == null");
 				return;
 			}
+			if (mode == ChangeTracker.ChangeTrackerMode.Continuous)
+			{
+				// there is a failing unit test for this, and from looking at the code the Replication
+				// object will never use Continuous mode anyway.  Explicitly prevent its use until
+				// it is demonstrated to actually work.
+				throw new RuntimeException("ChangeTracker does not correctly support continuous mode"
+					);
+			}
 			httpClient = client.GetHttpClient();
 			ChangeTrackerBackoff backoff = new ChangeTrackerBackoff();
 			while (running)
 			{
 				Uri url = GetChangesFeedURL();
 				request = new HttpGet(url.ToString());
+				AddRequestHeaders(request);
 				// if the URL contains user info AND if this a DefaultHttpClient
 				// then preemptively set the auth credentials
 				if (url.GetUserInfo() != null)
@@ -208,7 +239,7 @@ namespace Couchbase.Lite.Replicator.Changetracker
 						if (httpClient is DefaultHttpClient)
 						{
 							DefaultHttpClient dhc = (DefaultHttpClient)httpClient;
-							IHttpRequestInterceptor preemptiveAuth = new _IHttpRequestInterceptor_178(creds);
+							IHttpRequestInterceptor preemptiveAuth = new _IHttpRequestInterceptor_212(creds);
 							dhc.AddRequestInterceptor(preemptiveAuth, 0);
 						}
 					}
@@ -230,6 +261,8 @@ namespace Couchbase.Lite.Replicator.Changetracker
 					{
 						Log.E(Database.Tag, "Change tracker got error " + Sharpen.Extensions.ToString(status
 							.GetStatusCode()));
+						string msg = string.Format(status.ToString());
+						this.error = new CouchbaseLiteException(msg, new Status(status.GetStatusCode()));
 						Stop();
 					}
 					HttpEntity entity = response.GetEntity();
@@ -237,12 +270,12 @@ namespace Couchbase.Lite.Replicator.Changetracker
 					if (entity != null)
 					{
 						input = entity.GetContent();
-						if (mode == ChangeTracker.TDChangeTrackerMode.LongPoll)
+						if (mode == ChangeTracker.ChangeTrackerMode.LongPoll)
 						{
 							IDictionary<string, object> fullBody = Manager.GetObjectMapper().ReadValue<IDictionary
 								>(input);
 							bool responseOK = ReceivedPollResponse(fullBody);
-							if (mode == ChangeTracker.TDChangeTrackerMode.LongPoll && responseOK)
+							if (mode == ChangeTracker.ChangeTrackerMode.LongPoll && responseOK)
 							{
 								Log.V(Database.Tag, "Starting new longpoll");
 								continue;
@@ -295,9 +328,9 @@ namespace Couchbase.Lite.Replicator.Changetracker
 			Log.V(Database.Tag, "Change tracker run loop exiting");
 		}
 
-		private sealed class _IHttpRequestInterceptor_178 : IHttpRequestInterceptor
+		private sealed class _IHttpRequestInterceptor_212 : IHttpRequestInterceptor
 		{
-			public _IHttpRequestInterceptor_178(Credentials creds)
+			public _IHttpRequestInterceptor_212(Credentials creds)
 			{
 				this.creds = creds;
 			}
@@ -399,9 +432,34 @@ namespace Couchbase.Lite.Replicator.Changetracker
 			Log.D(Database.Tag, "change tracker client should be null now");
 		}
 
+		internal virtual void SetRequestHeaders(IDictionary<string, object> requestHeaders
+			)
+		{
+			this.requestHeaders = requestHeaders;
+		}
+
+		private void AddRequestHeaders(IHttpUriRequest request)
+		{
+			foreach (string requestHeaderKey in requestHeaders.Keys)
+			{
+				request.AddHeader(requestHeaderKey, requestHeaders.Get(requestHeaderKey).ToString
+					());
+			}
+		}
+
+		public virtual Exception GetLastError()
+		{
+			return error;
+		}
+
 		public virtual bool IsRunning()
 		{
 			return running;
+		}
+
+		public virtual void SetDocIDs(IList<string> docIDs)
+		{
+			this.docIDs = docIDs;
 		}
 	}
 }
