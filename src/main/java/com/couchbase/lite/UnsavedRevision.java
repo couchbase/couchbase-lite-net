@@ -19,7 +19,7 @@ public class UnsavedRevision extends Revision {
      * Constructor
      */
     @InterfaceAudience.Private
-    protected UnsavedRevision(Document document, SavedRevision parentRevision) {
+    /* package */ protected UnsavedRevision(Document document, SavedRevision parentRevision) {
 
         super(document);
 
@@ -94,7 +94,20 @@ public class UnsavedRevision extends Revision {
      */
     @InterfaceAudience.Public
     public SavedRevision save() throws CouchbaseLiteException {
-        return document.putProperties(properties, parentRevID);
+        boolean allowConflict = false;
+        return document.putProperties(properties, parentRevID, allowConflict);
+    }
+
+    /**
+     * A special variant of -save: that always adds the revision, even if its parent is not the
+     * current revision of the document.
+     *
+     * This can be used to resolve conflicts, or to create them. If you're not certain that's what you
+     * want to do, you should use the regular -save: method instead.
+     */
+    @InterfaceAudience.Public
+    public SavedRevision save(boolean allowConflict) throws CouchbaseLiteException {
+        return document.putProperties(properties, parentRevID, allowConflict);
     }
 
     /**
@@ -111,8 +124,10 @@ public class UnsavedRevision extends Revision {
         }
         attachments.put(name, attachment);
         properties.put("_attachments", attachments);
-        attachment.setName(name);
-        attachment.setRevision(this);
+        if (attachment != null) {
+            attachment.setName(name);
+            attachment.setRevision(this);
+        }
     }
 
     /**

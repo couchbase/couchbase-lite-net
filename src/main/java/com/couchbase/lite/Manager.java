@@ -35,15 +35,14 @@ import java.util.regex.Pattern;
  */
 public class Manager {
 
-    public static final String VERSION_STRING =  "1.0.0-beta";
+    public static final String VERSION =  "1.0.0-beta";
     public static final String HTTP_ERROR_DOMAIN =  "CBLHTTP";
 
     private static final ObjectMapper mapper = new ObjectMapper();
     public static final String DATABASE_SUFFIX_OLD = ".touchdb";
     public static final String DATABASE_SUFFIX = ".cblite";
-    public static final ManagerOptions DEFAULT_OPTIONS = new ManagerOptions(false, false);
+    public static final ManagerOptions DEFAULT_OPTIONS = new ManagerOptions();
     public static final String LEGAL_CHARACTERS = "[^a-z]{1,}[^a-z0-9_$()/+-]*$";
-
 
     private ManagerOptions options;
     private File directoryFile;
@@ -52,6 +51,7 @@ public class Manager {
     private ScheduledExecutorService workExecutor;
     private HttpClientFactory defaultHttpClientFactory;
 
+    @InterfaceAudience.Private
     public static ObjectMapper getObjectMapper() {
         return mapper;
     }
@@ -69,20 +69,19 @@ public class Manager {
 
     /**
      * Constructor
+     *
+     * @throws java.lang.SecurityException - Runtime exception that can be thrown by File.mkdirs()
      */
     @InterfaceAudience.Public
-    public Manager(File directoryFile, ManagerOptions options) {
+    public Manager(File directoryFile, ManagerOptions options) throws IOException {
         this.directoryFile = directoryFile;
         this.options = (options != null) ? options : DEFAULT_OPTIONS;
         this.databases = new HashMap<String, Database>();
         this.replications = new ArrayList<Replication>();
 
-        //create the directory, but don't fail if it already exists
-        if(!directoryFile.exists()) {
-            boolean result = directoryFile.mkdir();
-            if(!result) {
-                throw new RuntimeException("Unable to create directory " + directoryFile);
-            }
+        directoryFile.mkdirs();
+        if (!directoryFile.isDirectory()) {
+            throw new IOException(String.format("Unable to create directory for: %s", directoryFile));
         }
 
         upgradeOldDatabaseFiles(directoryFile);
@@ -174,21 +173,10 @@ public class Manager {
      */
     @InterfaceAudience.Public
     public Database getDatabase(String name) {
-        Database db = databases.get(name);
-        if(db == null) {
-            if (!isValidDatabaseName(name)) {
-                throw new IllegalArgumentException("Invalid database name: " + name);
-            }
-            if (options.isReadOnly()) {
-                return null;
-            }
-            String path = pathForName(name);
-            if (path == null) {
-                return null;
-            }
-            db = new Database(path, this);
-            db.setName(name);
-            databases.put(name, db);
+        boolean mustExist = false;
+        Database db = getDatabaseWithoutOpening(name, mustExist);
+        if (db != null) {
+            db.open();
         }
         return db;
     }
@@ -199,8 +187,14 @@ public class Manager {
      */
     @InterfaceAudience.Public
     public Database getExistingDatabase(String name) {
-        return databases.get(name);
+        boolean mustExist = false;
+        Database db = getDatabaseWithoutOpening(name, mustExist);
+        if (db != null) {
+            db.open();
+        }
+        return db;
     }
+
 
     /**
      * Replaces or installs a database from a file.
@@ -209,32 +203,44 @@ public class Manager {
      * you should first check .exists to avoid replacing the database if it exists already. The
      * canned database would have been copied into your app bundle at build time.
      *
-     * @param databaseName  The name of the database to replace.
-     * @param databasePath  Path of the database file that should replace it.
-     * @param attachmentsPath  Path of the associated attachments directory, or nil if there are no attachments.
+     * @param databaseName  The name of the target Database to replace or create.
+     * @param databaseFile  Path of the source Database file.
+     * @param attachmentsDirectory  Path of the associated Attachments directory, or null if there are no attachments.
      **/
     @InterfaceAudience.Public
-    public void replaceDatabase(String databaseName, String databasePath, String attachmentsPath) throws IOException {
+    public void replaceDatabase(String databaseName, File databaseFile, File attachmentsDirectory) throws IOException {
         Database database = getDatabase(databaseName);
         String dstAttachmentsPath = database.getAttachmentStorePath();
-        File sourceFile = new File(databasePath);
         File destFile = new File(database.getPath());
-        FileDirUtils.copyFile(sourceFile, destFile);
+        FileDirUtils.copyFile(databaseFile, destFile);
         File attachmentsFile = new File(dstAttachmentsPath);
         FileDirUtils.deleteRecursive(attachmentsFile);
         attachmentsFile.mkdirs();
-        if(attachmentsPath != null) {
-            FileDirUtils.copyFolder(new File(attachmentsPath), attachmentsFile);
+        if(attachmentsDirectory != null) {
+            FileDirUtils.copyFolder(attachmentsDirectory, attachmentsFile);
         }
         database.replaceUUIDs();
     }
 
+    @InterfaceAudience.Public
+    public HttpClientFactory getDefaultHttpClientFactory() {
+        return defaultHttpClientFactory;
+    }
+
+    @InterfaceAudience.Public
+    public void setDefaultHttpClientFactory(
+            HttpClientFactory defaultHttpClientFactory) {
+        this.defaultHttpClientFactory = defaultHttpClientFactory;
+    }
+
+    @InterfaceAudience.Private
     private static boolean containsOnlyLegalCharacters(String databaseName) {
         Pattern p = Pattern.compile("^[abcdefghijklmnopqrstuvwxyz0123456789_$()+-/]+$");
         Matcher matcher = p.matcher(databaseName);
         return matcher.matches();
     }
 
+    @InterfaceAudience.Private
     private void upgradeOldDatabaseFiles(File directory) {
         File[] files = directory.listFiles(new FilenameFilter() {
             @Override
@@ -260,21 +266,16 @@ public class Manager {
         }
     }
 
+    @InterfaceAudience.Private
     private String filenameWithNewExtension(String oldFilename, String oldExtension, String newExtension) {
         String oldExtensionRegex = String.format("%s$",oldExtension);
         return oldFilename.replaceAll(oldExtensionRegex, newExtension);
     }
 
-
-
-
-
-
-
+    @InterfaceAudience.Private
     public Collection<Database> allOpenDatabases() {
         return databases.values();
     }
-
 
 
     /**
@@ -282,6 +283,7 @@ public class Manager {
      * Database instance.  There is not currently a known reason to use it, it may not make
      * sense on the Android API, but it was added for the purpose of having a consistent API with iOS.
      */
+    @InterfaceAudience.Private
     public Future runAsync(String databaseName, final AsyncTask function) {
 
         final Database database = getDatabase(databaseName);
@@ -294,10 +296,12 @@ public class Manager {
 
     }
 
+    @InterfaceAudience.Private
     Future runAsync(Runnable runnable) {
         return workExecutor.submit(runnable);
     }
 
+    @InterfaceAudience.Private
     private String pathForName(String name) {
         if((name == null) || (name.length() == 0) || Pattern.matches(LEGAL_CHARACTERS, name)) {
             return null;
@@ -307,6 +311,7 @@ public class Manager {
         return result;
     }
 
+    @InterfaceAudience.Private
     private Map<String, Object> parseSourceOrTarget(Map<String,Object> properties, String key) {
         Map<String, Object> result = new HashMap<String, Object>();
 
@@ -322,7 +327,6 @@ public class Manager {
 
     }
 
-
     @InterfaceAudience.Private
     Replication replicationWithDatabase(Database db, URL remote, boolean push, boolean create, boolean start) {
         for (Replication replicator : replications) {
@@ -336,11 +340,13 @@ public class Manager {
         }
 
         Replication replicator = null;
+        final boolean continuous = false;
+
         if (push) {
-            replicator = new Pusher(db, remote, true, getWorkExecutor());
+            replicator = new Pusher(db, remote, continuous, getWorkExecutor());
         }
         else {
-            replicator = new Puller(db, remote, true, getWorkExecutor());
+            replicator = new Puller(db, remote, continuous, getWorkExecutor());
         }
 
         replications.add(replicator);
@@ -352,9 +358,38 @@ public class Manager {
     }
 
 
+    @InterfaceAudience.Private
+    public Database getDatabaseWithoutOpening(String name, boolean mustExist) {
+        Database db = databases.get(name);
+        if(db == null) {
+            if (!isValidDatabaseName(name)) {
+                throw new IllegalArgumentException("Invalid database name: " + name);
+            }
+            if (options.isReadOnly()) {
+                mustExist = true;
+            }
+            String path = pathForName(name);
+            if (path == null) {
+                return null;
+            }
+            db = new Database(path, this);
+            if (mustExist && !db.exists()) {
+                String msg = String.format("mustExist is true and db (%s) does not exist", name);
+                Log.w(Database.TAG, msg);
+                return null;
+            }
+            db.setName(name);
+            databases.put(name, db);
+        }
+        return db;
+    }
+
 
     @InterfaceAudience.Private
     public Replication getReplicator(Map<String,Object> properties) throws CouchbaseLiteException {
+
+        // TODO: in the iOS equivalent of this code, there is: {@"doc_ids", _documentIDs}) - write unit test that detects this bug
+        // TODO: ditto for "headers"
 
         Authorizer authorizer = null;
         Replication repl = null;
@@ -383,17 +418,19 @@ public class Manager {
         }
 
         boolean push = false;
-
-        Database db = getExistingDatabase(source);
+        Database db = null;
         String remoteStr = null;
-        if(db != null) {
+
+        if (Manager.isValidDatabaseName(source)) {
+            db = getExistingDatabase(source);
             remoteStr = target;
             push = true;
             remoteMap = targetMap;
         } else {
             remoteStr = source;
             if(createTarget && !cancel) {
-                db = getDatabase(target);
+                boolean mustExist = false;
+                db = getDatabaseWithoutOpening(target, mustExist);
                 if(!db.open()) {
                     throw new CouchbaseLiteException("cannot open database: " + db, new Status(Status.INTERNAL_SERVER_ERROR));
                 }
@@ -404,6 +441,7 @@ public class Manager {
                 throw new CouchbaseLiteException("database is null", new Status(Status.NOT_FOUND));
             }
             remoteMap = sourceMap;
+
         }
 
 
@@ -468,17 +506,11 @@ public class Manager {
         return repl;
     }
 
+    @InterfaceAudience.Private
     public ScheduledExecutorService getWorkExecutor() {
         return workExecutor;
     }
 
-    public HttpClientFactory getDefaultHttpClientFactory() {
-        return defaultHttpClientFactory;
-    }
 
-    public void setDefaultHttpClientFactory(
-            HttpClientFactory defaultHttpClientFactory) {
-        this.defaultHttpClientFactory = defaultHttpClientFactory;
-    }
 }
 

@@ -7,28 +7,29 @@ import java.net.URL;
 
 public class DocumentChange {
 
-    DocumentChange(RevisionInternal revisionInternal, boolean isCurrentRevision, boolean isConflict, URL sourceUrl) {
-        this.revisionInternal = revisionInternal;
-        this.isCurrentRevision = isCurrentRevision;
+    @InterfaceAudience.Private
+    DocumentChange(RevisionInternal addedRevision, RevisionInternal winningRevision, boolean isConflict, URL sourceUrl) {
+        this.addedRevision = addedRevision;
+        this.winningRevision = winningRevision;
         this.isConflict = isConflict;
         this.sourceUrl = sourceUrl;
     }
 
-    private RevisionInternal revisionInternal;
-    private boolean isCurrentRevision;
+    private RevisionInternal addedRevision;
+    private RevisionInternal winningRevision;
     private boolean isConflict;
     private URL sourceUrl;
 
     public String getDocumentId() {
-        return revisionInternal.getDocId();
+        return addedRevision.getDocId();
     }
 
     public String getRevisionId() {
-        return revisionInternal.getRevId();
+        return addedRevision.getRevId();
     }
 
     public boolean isCurrentRevision() {
-        return isCurrentRevision;
+        return winningRevision != null && addedRevision.getRevId().equals(winningRevision.getRevId());
     }
 
     public boolean isConflict() {
@@ -40,19 +41,21 @@ public class DocumentChange {
     }
 
     @InterfaceAudience.Private
-    public RevisionInternal getRevisionInternal() {
-        return revisionInternal;
+    public RevisionInternal getAddedRevision() {
+        return addedRevision;
     }
 
-    public static DocumentChange tempFactory(RevisionInternal revisionInternal, URL sourceUrl) {
+    @InterfaceAudience.Private
+    RevisionInternal getWinningRevision() {
+        return winningRevision;
+    }
 
-        boolean isCurrentRevFixMe = false; // TODO: fix this to have a real value
-        boolean isConflictRevFixMe = false; // TODO: fix this to have a real value
+    public static DocumentChange tempFactory(RevisionInternal revisionInternal, URL sourceUrl, boolean inConflict) {
 
         DocumentChange change = new DocumentChange(
                 revisionInternal,
-                isCurrentRevFixMe,
-                isConflictRevFixMe,
+                null,  // TODO: fix winning revision here
+                inConflict,
                 sourceUrl);
 
         return change;

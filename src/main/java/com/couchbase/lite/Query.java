@@ -12,7 +12,13 @@ import java.util.concurrent.Future;
 public class Query {
 
     public enum IndexUpdateMode {
-        NEVER, BEFORE, AFTER
+        BEFORE,  // Always update index if needed before querying (default)
+        NEVER,   // Don't update the index; results may be out of date
+        AFTER    // Update index _after_ querying (results may still be out of date)
+    }
+
+    public enum AllDocsMode {
+        ALL_DOCS, INCLUDE_DELETED, SHOW_CONFLICTS, ONLY_CONFLICTS
     }
 
     /**
@@ -70,6 +76,19 @@ public class Query {
     private IndexUpdateMode indexUpdateMode;
 
     /**
+     * Changes the behavior of a query created by -queryAllDocuments.
+     *
+     * - In mode kCBLAllDocs (the default), the query simply returns all non-deleted documents.
+     * - In mode kCBLIncludeDeleted, it also returns deleted documents.
+     * - In mode kCBLShowConflicts, the .conflictingRevisions property of each row will return the
+     *   conflicting revisions, if any, of that document.
+     * - In mode kCBLOnlyConflicts, _only_ documents in conflict will be returned.
+     *   (This mode is especially useful for use with a CBLLiveQuery, so you can be notified of
+     *   conflicts as they happen, i.e. when they're pulled in by a replication.)
+     */
+    private AllDocsMode allDocsMode;
+
+    /**
      * Should the rows be returned in descending key order? Default value is NO.
      */
     private boolean descending;
@@ -116,19 +135,20 @@ public class Query {
      * Constructor
      */
     @InterfaceAudience.Private
-    Query(Database database, View view) {
+    /* package */ Query(Database database, View view) {
         this.database = database;
         this.view = view;
         limit = Integer.MAX_VALUE;
         mapOnly = (view != null && view.getReduce() == null);
         indexUpdateMode = IndexUpdateMode.NEVER;
+        allDocsMode = AllDocsMode.ALL_DOCS;
     }
 
     /**
      * Constructor
      */
     @InterfaceAudience.Private
-    Query(Database database, Mapper mapFunction) {
+    /* package */ Query(Database database, Mapper mapFunction) {
         this(database, database.makeAnonymousView());
         temporaryView = true;
         view.setMap(mapFunction, "");
@@ -138,7 +158,7 @@ public class Query {
      * Constructor
      */
     @InterfaceAudience.Private
-    Query(Database database, Query query) {
+    /* package */ Query(Database database, Query query) {
         this(database, query.getView());
         limit = query.limit;
         skip = query.skip;
@@ -152,6 +172,7 @@ public class Query {
         startKeyDocId = query.startKeyDocId;
         endKeyDocId = query.endKeyDocId;
         indexUpdateMode = query.indexUpdateMode;
+        allDocsMode = query.allDocsMode;
     }
 
     /**
@@ -244,6 +265,16 @@ public class Query {
     }
 
     @InterfaceAudience.Public
+    public AllDocsMode getAllDocsMode() {
+        return allDocsMode;
+    }
+
+    @InterfaceAudience.Public
+    public void setAllDocsMode(AllDocsMode allDocsMode) {
+        this.allDocsMode = allDocsMode;
+    }
+
+    @InterfaceAudience.Public
     public List<Object> getKeys() {
         return keys;
     }
@@ -285,12 +316,12 @@ public class Query {
 
     @InterfaceAudience.Public
     public boolean shouldIncludeDeleted() {
-        return includeDeleted;
+        return allDocsMode == AllDocsMode.INCLUDE_DELETED;
     }
 
     @InterfaceAudience.Public
-    public void setIncludeDeleted(boolean includeDeleted) {
-        this.includeDeleted = includeDeleted;
+    public void setIncludeDeleted(boolean includeDeletedParam) {
+        allDocsMode = (includeDeletedParam == true) ? AllDocsMode.INCLUDE_DELETED : AllDocsMode.ALL_DOCS;
     }
 
     /**
@@ -328,6 +359,11 @@ public class Query {
         return runAsyncInternal(onComplete);
     }
 
+    @InterfaceAudience.Public
+    public static interface QueryCompleteListener {
+        public void completed(QueryEnumerator rows, Throwable error);
+    }
+
     @InterfaceAudience.Private
     Future runAsyncInternal(final QueryCompleteListener onComplete) {
 
@@ -351,10 +387,12 @@ public class Query {
 
     }
 
+    @InterfaceAudience.Private
     public View getView() {
         return view;
     }
 
+    @InterfaceAudience.Private
     private QueryOptions getQueryOptions() {
         QueryOptions queryOptions = new QueryOptions();
         queryOptions.setStartKey(getStartKey());
@@ -370,12 +408,13 @@ public class Query {
         queryOptions.setIncludeDocs(shouldPrefetch());
         queryOptions.setUpdateSeq(true);
         queryOptions.setInclusiveEnd(true);
-        queryOptions.setIncludeDeletedDocs(shouldIncludeDeleted());
         queryOptions.setStale(getIndexUpdateMode());
+        queryOptions.setAllDocsMode(getAllDocsMode());
         return queryOptions;
     }
 
     @Override
+    @InterfaceAudience.Private
     protected void finalize() throws Throwable {
         super.finalize();
         if (temporaryView) {
@@ -383,9 +422,6 @@ public class Query {
         }
     }
 
-    public static interface QueryCompleteListener {
-        public void completed(QueryEnumerator rows, Throwable error);
-    }
 
 
 

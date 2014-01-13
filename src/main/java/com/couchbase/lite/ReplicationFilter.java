@@ -9,8 +9,10 @@ import java.util.Map;
  */
 public interface ReplicationFilter {
 
-    // TODO: this needs to take a SavedRevision as a parameter, however
-    boolean filter(RevisionInternal revision, Map<String, Object> params);
+    /**
+     * True if the Revision should be included in the pushed replication, otherwise false.
+     */
+    boolean filter(SavedRevision revision, Map<String, Object> params);
 
 
 }

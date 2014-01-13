@@ -16,6 +16,11 @@
 
 package com.couchbase.lite.util;
 
+import org.apache.http.util.ByteArrayBuffer;
+
+import java.io.IOException;
+import java.io.InputStream;
+
 // COPY: Partially copied from android.text.TextUtils
 public class TextUtils {
     /**
@@ -36,4 +41,19 @@ public class TextUtils {
         }
         return sb.toString();
     }
+
+    public static byte[] read(InputStream is) throws IOException {
+        final int initialCapacity = 1024;
+        ByteArrayBuffer byteArrayBuffer = new ByteArrayBuffer(initialCapacity);
+        byte[] bytes = new byte[512];
+        int offset = 0;
+        int numRead = 0;
+
+        while ((numRead = is.read(bytes, offset, bytes.length-offset)) >= 0) {
+            byteArrayBuffer.append(bytes, 0, numRead);
+            offset += numRead;
+        }
+        return byteArrayBuffer.toByteArray();
+    }
+
 }

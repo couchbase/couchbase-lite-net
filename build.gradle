@@ -8,6 +8,7 @@ buildscript {
 }
 apply plugin: 'android-library'
 apply plugin: 'maven'
+apply plugin: 'eclipse'
 
 repositories {
     mavenCentral()
@@ -38,7 +39,7 @@ android {
     buildToolsVersion "17.0.0"
 
     defaultConfig {
-        minSdkVersion 7
+        minSdkVersion 9
         targetSdkVersion 16
     }
 

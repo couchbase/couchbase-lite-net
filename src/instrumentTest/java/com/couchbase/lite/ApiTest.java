@@ -1,6 +1,5 @@
 package com.couchbase.lite;
 
-import com.couchbase.lite.internal.RevisionInternal;
 import com.couchbase.lite.util.Log;
 
 import junit.framework.Assert;
@@ -12,10 +11,14 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 
 /**
@@ -23,7 +26,22 @@ import java.util.concurrent.Future;
  */
 public class ApiTest extends LiteTestCase {
 
-    static void createDocuments(Database db, int n) {
+    private int changeCount = 0;
+
+    static void createDocumentsAsync(final Database db, final int n) {
+        db.runAsync(new AsyncTask() {
+            @Override
+            public boolean run(Database database) {
+                db.beginTransaction();
+                createDocuments(db, n);
+                db.endTransaction(true);
+                return true;
+            }
+        });
+
+    };
+
+    static void createDocuments(final Database db, final int n) {
         //TODO should be changed to use db.runInTransaction
         for (int i=0; i<n; i++) {
             Map<String,Object> properties = new HashMap<String,Object>();
@@ -42,7 +60,8 @@ public class ApiTest extends LiteTestCase {
         try{
             doc.putProperties(properties);
         } catch( Exception e){
-            assertTrue("can't create new document in db:"+db.getName() + " with properties:"+ properties.toString(), false);
+            Log.e(TAG, "Error creating document", e);
+            assertTrue("can't create new document in db:" + db.getName() + " with properties:" + properties.toString(), false);
         }
         Assert.assertNotNull(doc.getId());
         Assert.assertNotNull(doc.getCurrentRevisionId());
@@ -54,14 +73,15 @@ public class ApiTest extends LiteTestCase {
 
     //SERVER & DOCUMENTS
 
-    public void testAPIManager() {
+    public void testAPIManager() throws IOException {
         Manager manager = this.manager;
-        Assert.assertTrue(manager!=null);
+        Assert.assertTrue(manager != null);
         for(String dbName : manager.getAllDatabaseNames()){
             Database db = manager.getDatabase(dbName);
             Log.i(TAG, "Database '" + dbName + "':" + db.getDocumentCount() + " documents");
         }
-        ManagerOptions options= new ManagerOptions(true, false);
+        ManagerOptions options= new ManagerOptions();
+        options.setReadOnly(true);
 
         Manager roManager=new Manager(new File(manager.getDirectory()), options);
         Assert.assertTrue(roManager!=null);
@@ -96,6 +116,35 @@ public class ApiTest extends LiteTestCase {
         assertNull(db.getExistingDocument("b0gus"));
     }
 
+
+    public void testDatabaseCompaction() throws Exception{
+
+        Map<String,Object> properties = new HashMap<String,Object>();
+        properties.put("testName", "testDatabaseCompaction");
+        properties.put("tag", 1337);
+
+
+        Document doc=createDocumentWithProperties(database, properties);
+        SavedRevision rev1 = doc.getCurrentRevision();
+
+        Map<String,Object> properties2 = new HashMap<String,Object>(properties);
+        properties2.put("tag", 4567);
+
+        SavedRevision rev2 = rev1.createRevision(properties2);
+        database.compact();
+
+        Document fetchedDoc = database.getDocument(doc.getId());
+        List<SavedRevision> revisions = fetchedDoc.getRevisionHistory();
+        for (SavedRevision revision : revisions) {
+            if (revision.getId().equals(rev1)) {
+                assertFalse(revision.arePropertiesAvailable());
+            }
+            if (revision.getId().equals(rev2)) {
+                assertTrue(revision.arePropertiesAvailable());
+            }
+        }
+
+    }
 
     public void testCreateRevisions() throws Exception{
         Map<String,Object> properties = new HashMap<String,Object>();
@@ -232,9 +281,9 @@ public class ApiTest extends LiteTestCase {
 
         assertTrue(doc.isDeleted());
         db.getDocumentCount();
-        Document doc2 = db.getExistingDocument(doc.getId());
-        // BUG ON IOS!
-        assertNull(doc2);
+        Document doc2 = db.getDocument(doc.getId());
+        assertEquals(doc, doc2);
+        assertNull(db.getExistingDocument(doc.getId()));
 
     }
 
@@ -279,7 +328,7 @@ public class ApiTest extends LiteTestCase {
 
         // clear the cache so all documents/revisions will be re-fetched:
         db.clearDocumentCache();
-        Log.i(TAG,"----- all documents -----");
+        Log.i(TAG, "----- all documents -----");
 
         Query query = db.createAllDocumentsQuery();
         //query.prefetch = YES;
@@ -379,7 +428,7 @@ public class ApiTest extends LiteTestCase {
 
     }
 
-    /* TODO conflict is not supported now?
+
     public void testConflict() throws Exception{
         Map<String,Object> prop = new HashMap<String, Object>();
         prop.put("foo", "bar");
@@ -388,16 +437,18 @@ public class ApiTest extends LiteTestCase {
         Document doc = createDocumentWithProperties(db, prop);
         SavedRevision rev1 = doc.getCurrentRevision();
 
-        Map<String,Object> properties = doc.getProperties();
+        Map<String,Object> properties = new HashMap<String, Object>();
+        properties.putAll(doc.getProperties());
         properties.put("tag", 2);
         SavedRevision rev2a = doc.putProperties(properties);
 
-        properties = rev1.getProperties();
+        properties = new HashMap<String, Object>();
+        properties.putAll(rev1.getProperties());
         properties.put("tag", 3);
         UnsavedRevision newRev = rev1.createRevision();
         newRev.setProperties(properties);
-        //TODO ? saveAllowingConflict not found, see ios
-        SavedRevision rev2b = newRev.save();
+        boolean allowConflict = true;
+        SavedRevision rev2b = newRev.save(allowConflict);
         assertNotNull("Failed to create a a conflict", rev2b);
 
         List<SavedRevision> confRevs = new ArrayList<SavedRevision>();
@@ -416,19 +467,17 @@ public class ApiTest extends LiteTestCase {
         assertEquals(doc.getCurrentRevision(), defaultRev);
 
         Query query = db.createAllDocumentsQuery();
-        // TODO allDocsMode?
-        query.allDocsMode = kCBLShowConflicts;
-        QueryEnumerator rows = query.getRows();
+        query.setAllDocsMode(Query.AllDocsMode.SHOW_CONFLICTS);
+        QueryEnumerator rows = query.run();
         assertEquals(rows.getCount(), 1);
         QueryRow row = rows.getRow(0);
-        // TODO conflictingRevisions?
-        List<SavedRevision>  revs = row.conflictingRevisions;
+
+        List<SavedRevision> revs = row.getConflictingRevisions();
         assertEquals(revs.size(), 2);
         assertEquals(revs.get(0), defaultRev);
         assertEquals(revs.get(1), otherRev);
-    }
-    */
 
+    }
 
     //ATTACHMENTS
 
@@ -467,48 +516,38 @@ public class ApiTest extends LiteTestCase {
         assertEquals("text/plain; charset=utf-8", attach.getContentType());
         assertEquals(IOUtils.toString(attach.getContent(), "UTF-8"), content);
         assertEquals(content.getBytes().length, attach.getLength());
-        // TODO getcontentURL was not implemented?
-//        NSURL* bodyURL = attach.getcontentURL;
-//        assertNotNull(bodyURL.isFileURL);
-//        assertEquals([NSData dataWithContentsOfURL: bodyURL], body);
-//
-//        UnsavedRevision *newRev = [rev3 createRevision];
-//        [newRev removeAttachmentNamed: attach.name];
-//        CBLRevision* rev4 = [newRev save: &error];
-//        assertNotNull(!error);
-//        assertNotNull(rev4);
-//        assertEquals([rev4.attachmentNames count], (NSUInteger)0);
+
+        UnsavedRevision newRev = rev3.createRevision();
+        newRev.removeAttachment(attach.getName());
+        SavedRevision rev4 = newRev.save();
+        assertNotNull(rev4);
+        assertEquals(0, rev4.getAttachmentNames().size());
 
     }
-
-
 
     //CHANGE TRACKING
 
-/*
+    public void testChangeTracking() throws Exception{
 
-    public void testAttachments() throws Exception{
+        final CountDownLatch doneSignal = new CountDownLatch(1);
 
         Database db = startDatabase();
-        __block int changeCount = 0;
-        [[NSNotificationCenter defaultCenter] addObserverForName: kDatabaseChangeNotification
-        object: db
-        queue: nil
-        usingBlock: ^(NSNotification *n) {
-            ++changeCount;
-        }];
+        db.addChangeListener(new Database.ChangeListener() {
+            @Override
+            public void changed(Database.ChangeEvent event) {
+                doneSignal.countDown();
+            }
+        });
 
-        createDocuments(db,5);
-
-        [[NSRunLoop currentRunLoop] runUntilDate: [NSDate dateWithTimeIntervalSinceNow: 1.0]];
+        createDocumentsAsync(db, 5);
         // We expect that the changes reported by the server won't be notified, because those revisions
         // are already cached in memory.
-        assertEquals(changeCount, 1);
-
-        assertEquals(db.lastSequenceNumber, 5);
+        boolean success = doneSignal.await(300, TimeUnit.SECONDS);
+        assertTrue(success);
+        assertEquals(5, db.getLastSequenceNumber());
 
     }
-*/
+
 
     //VIEWS
 
@@ -557,12 +596,12 @@ public class ApiTest extends LiteTestCase {
 
     public void testValidation() throws Exception{
         Database db = startDatabase();
-        db.setValidation("uncool", new ValidationBlock() {
+        db.setValidation("uncool", new Validator() {
             @Override
-            public boolean validate(RevisionInternal newRevision, ValidationContext context) {
+            public boolean validate(Revision newRevision, ValidationContext context) {
                 {
-                    if (newRevision.getPropertyForKey("groovy") ==null) {
-                        context.setErrorMessage("uncool");
+                    if (newRevision.getProperty("groovy") ==null) {
+                        context.reject("uncool");
                         return false;
                     }
                     return true;
@@ -637,57 +676,82 @@ public class ApiTest extends LiteTestCase {
     }
 
 
-    public void failingTestLiveQuery() throws Exception {
-        final Database db = startDatabase();
-        View view = db.getView("vu");
+    public void testLiveQueryRun() throws Exception {
+        runLiveQuery("run");
+    }
 
+    public void testLiveQueryStart() throws Exception {
+        runLiveQuery("start");
+    }
+
+    public void runLiveQuery(String methodNameToCall) throws Exception {
+
+        final Database db = startDatabase();
+        final CountDownLatch doneSignal = new CountDownLatch(11);  // 11 corresponds to startKey=23; endKey=33
+
+        // run a live query
+        View view = db.getView("vu");
         view.setMap(new Mapper() {
             @Override
             public void map(Map<String, Object> document, Emitter emitter) {
                 emitter.emit(document.get("sequence"), null);
             }
         }, "1");
-
-        int kNDocs = 50;
-        createDocuments(db, kNDocs);
-
         final LiveQuery query = view.createQuery().toLiveQuery();
-        ;
         query.setStartKey(23);
         query.setEndKey(33);
         Log.i(TAG, "Created  " + query);
-        assertNull(query.run());
 
-        Log.i(TAG, "Waiting for live query to update...");
-        boolean finished = false;
-        query.start();
-        //TODO temp solution for infinite loop
-        int i = 0;
-        while (!finished && i < 100) {
-            QueryEnumerator rows = query.run();
-            Log.i(TAG, "Live query rows = " + rows);
-            i++;
-            if (rows != null) {
-                assertEquals(rows.getCount(), 11);
-
-                int expectedKey = 23;
-                for (Iterator<QueryRow> it = rows; it.hasNext(); ) {
-                    QueryRow row = it.next();
-                    assertEquals(row.getDocument().getDatabase(), db);
-                    assertEquals(row.getKey(), expectedKey);
-                    ++expectedKey;
-                }
-                finished = true;
-            }
+        // these are the keys that we expect to see in the livequery change listener callback
+        final Set<Integer> expectedKeys = new HashSet<Integer>();
+        for (int i=23; i<34; i++) {
+            expectedKeys.add(i);
         }
 
+        // install a change listener which decrements countdown latch when it sees a new
+        // key from the list of expected keys
+        final LiveQuery.ChangeListener changeListener = new LiveQuery.ChangeListener() {
+            @Override
+            public void changed(LiveQuery.ChangeEvent event) {
+                QueryEnumerator rows = event.getRows();
+                for (Iterator<QueryRow> it = rows; it.hasNext(); ) {
+                    QueryRow row = it.next();
+                    if (expectedKeys.contains(row.getKey())) {
+                        expectedKeys.remove(row.getKey());
+                        doneSignal.countDown();
+                    }
+
+                }
+            }
+        };
+        query.addChangeListener(changeListener);
+
+        // create the docs that will cause the above change listener to decrement countdown latch
+        int kNDocs = 50;
+        createDocumentsAsync(db, kNDocs);
+
+        if (methodNameToCall.equals("start")) {
+            // start the livequery running asynchronously
+            query.start();
+        } else {
+            assertNull(query.getRows());
+            query.run();  // this will block until the query completes
+            assertNotNull(query.getRows());
+        }
+
+        // wait for the doneSignal to be finished
+        boolean success = doneSignal.await(300, TimeUnit.SECONDS);
+        assertTrue("Done signal timed out, live query never ran", success);
+
+        // stop the livequery since we are done with it
+        query.removeChangeListener(changeListener);
         query.stop();
-        assertTrue("Live query timed out!", finished);
 
     }
 
+    public void testAsyncViewQuery() throws Exception {
 
-    public void failingTestAsyncViewQuery() throws Exception, InterruptedException {
+        final CountDownLatch doneSignal = new CountDownLatch(1);
         final Database db = startDatabase();
         View view = db.getView("vu");
         view.setMap(new Mapper() {
@@ -704,14 +768,10 @@ public class ApiTest extends LiteTestCase {
         query.setStartKey(23);
         query.setEndKey(33);
 
-        final boolean[] finished = {false};
-        final Thread curThread = Thread.currentThread();
         query.runAsync(new Query.QueryCompleteListener() {
             @Override
             public void completed(QueryEnumerator rows, Throwable error) {
                 Log.i(TAG, "Async query finished!");
-                //TODO Failed!
-                assertEquals(Thread.currentThread().getId(), curThread.getId());
                 assertNotNull(rows);
                 assertNull(error);
                 assertEquals(rows.getCount(), 11);
@@ -723,31 +783,35 @@ public class ApiTest extends LiteTestCase {
                     assertEquals(row.getKey(), expectedKey);
                     ++expectedKey;
                 }
-                finished[0] = true;
+                doneSignal.countDown();
 
             }
         });
+
         Log.i(TAG, "Waiting for async query to finish...");
-        assertTrue("Async query timed out!", finished[0]);
+        boolean success = doneSignal.await(300, TimeUnit.SECONDS);
+        assertTrue("Done signal timed out, async query never ran", success);
+
     }
 
-
-    // Make sure that a database's map/reduce functions are shared with the shadow database instance
-    // running in the background server.
-    public void failingTestSharedMapBlocks() throws Exception {
-        Manager mgr = new Manager(new File(getInstrumentation().getContext().getFilesDir(), "API_SharedMapBlocks"), Manager.DEFAULT_OPTIONS);
+    /**
+     * Make sure that a database's map/reduce functions are shared with the shadow database instance
+     * running in the background server.
+     */
+    public void testSharedMapBlocks() throws Exception {
+        Manager mgr = new Manager(new File(getRootDirectory(), "API_SharedMapBlocks"), Manager.DEFAULT_OPTIONS);
         Database db = mgr.getDatabase("db");
         db.open();
         db.setFilter("phil", new ReplicationFilter() {
             @Override
-            public boolean filter(RevisionInternal revision, Map<String, Object> params) {
+            public boolean filter(SavedRevision revision, Map<String, Object> params) {
                 return true;
             }
         });
 
-        db.setValidation("val", new ValidationBlock() {
+        db.setValidation("val", new Validator() {
             @Override
-            public boolean validate(RevisionInternal newRevision, ValidationContext context) {
+            public boolean validate(Revision newRevision, ValidationContext context) {
                 return true;
             }
         });
@@ -771,7 +835,7 @@ public class ApiTest extends LiteTestCase {
         final Mapper map = view.getMap();
         final Reducer reduce = view.getReduce();
         final ReplicationFilter filter = db.getFilter("phil");
-        final ValidationBlock validation = db.getValidation("val");
+        final Validator validation = db.getValidation("val");
 
         Future result = mgr.runAsync("db", new AsyncTask() {
             @Override
@@ -787,15 +851,15 @@ public class ApiTest extends LiteTestCase {
 
             }
         });
-        Thread.sleep(20000);
-        assertEquals(result.get(), true);
+        result.get();  // blocks until async task has run
         db.close();
         mgr.close();
+
     }
 
 
     public void testChangeUUID() throws Exception{
-        Manager mgr = new Manager(new File(getInstrumentation().getContext().getFilesDir(), "ChangeUUID"), Manager.DEFAULT_OPTIONS);
+        Manager mgr = new Manager(new File(getRootDirectory(), "ChangeUUID"), Manager.DEFAULT_OPTIONS);
         Database db = mgr.getDatabase("db");
         db.open();
         String pub = db.publicUUID();

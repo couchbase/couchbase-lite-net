@@ -181,11 +181,8 @@ public abstract class Revision {
     @InterfaceAudience.Public
     public abstract List<SavedRevision> getRevisionHistory() throws CouchbaseLiteException;
 
-    Map<String, Object> getAttachmentMetadata() {
-        return (Map<String, Object>) getProperty("_attachments");
-    }
-
     @Override
+    @InterfaceAudience.Public
     public boolean equals(Object o) {
         boolean result = false;
         if(o instanceof SavedRevision) {
@@ -198,32 +195,43 @@ public abstract class Revision {
     }
 
     @Override
+    @InterfaceAudience.Public
     public int hashCode() {
         return document.getId().hashCode() ^ getId().hashCode();
     }
 
-    void setSequence(long sequence) {
+    @Override
+    @InterfaceAudience.Public
+    public String toString() {
+        return "{" + this.document.getId() + " #" + this.getId() + (isDeletion() ? "DEL" : "") + "}";
+    }
+
+    @InterfaceAudience.Private
+    /* package */ Map<String, Object> getAttachmentMetadata() {
+        return (Map<String, Object>) getProperty("_attachments");
+    }
+
+    @InterfaceAudience.Private
+    /* package */ void setSequence(long sequence) {
         this.sequence = sequence;
     }
 
-    long getSequence() {
+    @InterfaceAudience.Private
+    /* package */ long getSequence() {
         return sequence;
-    }
-
-    @Override
-    public String toString() {
-        return "{" + this.document.getId() + " #" + this.getId() + (isDeletion() ? "DEL" : "") + "}";
     }
 
     /**
      * Generation number: 1 for a new document, 2 for the 2nd revision, ...
      * Extracted from the numeric prefix of the revID.
      */
-    int getGeneration() {
+    @InterfaceAudience.Private
+    /* package */ int getGeneration() {
         return generationFromRevID(getId());
     }
 
-    static int generationFromRevID(String revID) {
+    @InterfaceAudience.Private
+    /* package */ static int generationFromRevID(String revID) {
         int generation = 0;
         int dashPos = revID.indexOf("-");
         if(dashPos > 0) {

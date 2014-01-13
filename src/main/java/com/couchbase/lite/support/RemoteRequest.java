@@ -36,6 +36,7 @@ import org.apache.http.protocol.HttpContext;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
+import java.util.Map;
 import java.util.concurrent.ScheduledExecutorService;
 
 
@@ -47,16 +48,19 @@ public class RemoteRequest implements Runnable {
     protected URL url;
     protected Object body;
     protected RemoteRequestCompletionBlock onCompletion;
+    protected Map<String, Object> requestHeaders;
 
     public RemoteRequest(ScheduledExecutorService workExecutor,
                          HttpClientFactory clientFactory, String method, URL url,
-                         Object body, RemoteRequestCompletionBlock onCompletion) {
+                         Object body, Map<String, Object> requestHeaders, RemoteRequestCompletionBlock onCompletion) {
         this.clientFactory = clientFactory;
         this.method = method;
         this.url = url;
         this.body = body;
         this.onCompletion = onCompletion;
         this.workExecutor = workExecutor;
+        this.requestHeaders = requestHeaders;
+
     }
 
     @Override
@@ -72,10 +76,18 @@ public class RemoteRequest implements Runnable {
 
         request.addHeader("Accept", "multipart/related, application/json");
 
+        addRequestHeaders(request);
+
         setBody(request);
 
         executeRequest(httpClient, request);
 
+    }
+
+    protected void addRequestHeaders(HttpUriRequest request) {
+        for (String requestHeaderKey : requestHeaders.keySet()) {
+            request.addHeader(requestHeaderKey, requestHeaders.get(requestHeaderKey).toString());
+        }
     }
 
     protected HttpUriRequest createConcreteRequest() {

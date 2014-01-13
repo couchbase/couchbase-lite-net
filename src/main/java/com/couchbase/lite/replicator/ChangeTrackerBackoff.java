@@ -1,8 +1,10 @@
-package com.couchbase.lite.replicator.changetracker;
+package com.couchbase.lite.replicator;
 
 import com.couchbase.lite.Database;
+import com.couchbase.lite.internal.InterfaceAudience;
 import com.couchbase.lite.util.Log;
 
+@InterfaceAudience.Private
 public class ChangeTrackerBackoff {
 
     private static int MAX_SLEEP_MILLISECONDS = 5 * 60 * 1000;  // 5 mins

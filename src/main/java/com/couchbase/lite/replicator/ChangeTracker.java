@@ -1,7 +1,10 @@
-package com.couchbase.lite.replicator.changetracker;
+package com.couchbase.lite.replicator;
 
+import com.couchbase.lite.CouchbaseLiteException;
 import com.couchbase.lite.Database;
 import com.couchbase.lite.Manager;
+import com.couchbase.lite.Status;
+import com.couchbase.lite.internal.InterfaceAudience;
 import com.couchbase.lite.util.Log;
 import com.couchbase.lite.util.URIUtils;
 
@@ -34,6 +37,7 @@ import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLEncoder;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -42,11 +46,12 @@ import java.util.Map;
  * Reads the continuous-mode _changes feed of a database, and sends the
  * individual change entries to its client's changeTrackerReceivedChange()
  */
+@InterfaceAudience.Private
 public class ChangeTracker implements Runnable {
 
     private URL databaseURL;
     private ChangeTrackerClient client;
-    private TDChangeTrackerMode mode;
+    private ChangeTrackerMode mode;
     private Object lastSequenceID;
 
     private Thread thread;
@@ -55,20 +60,23 @@ public class ChangeTracker implements Runnable {
 
     private String filterName;
     private Map<String, Object> filterParams;
+    private List<String> docIDs;
 
     private Throwable error;
+    protected Map<String, Object> requestHeaders;
 
 
-    public enum TDChangeTrackerMode {
+    public enum ChangeTrackerMode {
         OneShot, LongPoll, Continuous
     }
 
-    public ChangeTracker(URL databaseURL, TDChangeTrackerMode mode,
+    public ChangeTracker(URL databaseURL, ChangeTrackerMode mode,
                          Object lastSequenceID, ChangeTrackerClient client) {
         this.databaseURL = databaseURL;
         this.mode = mode;
         this.lastSequenceID = lastSequenceID;
         this.client = client;
+        this.requestHeaders = new HashMap<String, Object>();
     }
 
     public void setFilterName(String filterName) {
@@ -115,11 +123,28 @@ public class ChangeTracker implements Runnable {
         if(lastSequenceID != null) {
             path += "&since=" + URLEncoder.encode(lastSequenceID.toString());
         }
+
+        if (docIDs != null && docIDs.size() > 0) {
+            filterName = "_doc_ids";
+            filterParams = new HashMap<String, Object>();
+            filterParams.put("doc_ids", docIDs);
+        }
+
         if(filterName != null) {
             path += "&filter=" + URLEncoder.encode(filterName);
             if(filterParams != null) {
                 for (String filterParamKey : filterParams.keySet()) {
-                    path += "&" + URLEncoder.encode(filterParamKey) + "=" + URLEncoder.encode(filterParams.get(filterParamKey).toString());
+
+                    Object value = filterParams.get(filterParamKey);
+                    if (!(value instanceof String)) {
+                        try {
+                            value = Manager.getObjectMapper().writeValueAsString(value);
+                        } catch (IOException e) {
+                            throw new IllegalArgumentException(e);
+                        }
+                    }
+                    path += "&" + URLEncoder.encode(filterParamKey) + "=" + URLEncoder.encode(value.toString());
+
                 }
             }
         }
@@ -156,6 +181,13 @@ public class ChangeTracker implements Runnable {
             return;
         }
 
+        if (mode == ChangeTrackerMode.Continuous) {
+            // there is a failing unit test for this, and from looking at the code the Replication
+            // object will never use Continuous mode anyway.  Explicitly prevent its use until
+            // it is demonstrated to actually work.
+            throw new RuntimeException("ChangeTracker does not correctly support continuous mode");
+        }
+
         httpClient = client.getHttpClient();
         ChangeTrackerBackoff backoff = new ChangeTrackerBackoff();
 
@@ -163,6 +195,8 @@ public class ChangeTracker implements Runnable {
 
             URL url = getChangesFeedURL();
             request = new HttpGet(url.toString());
+
+            addRequestHeaders(request);
 
             // if the URL contains user info AND if this a DefaultHttpClient
             // then preemptively set the auth credentials
@@ -209,6 +243,8 @@ public class ChangeTracker implements Runnable {
                 StatusLine status = response.getStatusLine();
                 if (status.getStatusCode() >= 300) {
                     Log.e(Database.TAG, "Change tracker got error " + Integer.toString(status.getStatusCode()));
+                    String msg = String.format(status.toString());
+                    this.error = new CouchbaseLiteException(msg, new Status(status.getStatusCode()));
                     stop();
                 }
                 HttpEntity entity = response.getEntity();
@@ -216,10 +252,10 @@ public class ChangeTracker implements Runnable {
                 if (entity != null) {
 
                     input = entity.getContent();
-                    if (mode == TDChangeTrackerMode.LongPoll) {
+                    if (mode == ChangeTrackerMode.LongPoll) {
                         Map<String, Object> fullBody = Manager.getObjectMapper().readValue(input, Map.class);
                         boolean responseOK = receivedPollResponse(fullBody);
-                        if (mode == TDChangeTrackerMode.LongPoll && responseOK) {
+                        if (mode == ChangeTrackerMode.LongPoll && responseOK) {
                             Log.v(Database.TAG, "Starting new longpoll");
                             continue;
                         } else {
@@ -329,8 +365,26 @@ public class ChangeTracker implements Runnable {
         Log.d(Database.TAG, "change tracker client should be null now");
     }
 
+    void setRequestHeaders(Map<String, Object> requestHeaders) {
+        this.requestHeaders = requestHeaders;
+    }
+
+    private void addRequestHeaders(HttpUriRequest request) {
+        for (String requestHeaderKey : requestHeaders.keySet()) {
+            request.addHeader(requestHeaderKey, requestHeaders.get(requestHeaderKey).toString());
+        }
+    }
+
+    public Throwable getLastError() {
+        return error;
+    }
+
     public boolean isRunning() {
         return running;
+    }
+
+    public void setDocIDs(List<String> docIDs) {
+        this.docIDs = docIDs;
     }
 
 }

@@ -9,9 +9,6 @@ import com.couchbase.lite.Status;
 import com.couchbase.lite.internal.Body;
 import com.couchbase.lite.internal.RevisionInternal;
 import com.couchbase.lite.internal.InterfaceAudience;
-import com.couchbase.lite.replicator.changetracker.ChangeTracker;
-import com.couchbase.lite.replicator.changetracker.ChangeTracker.TDChangeTrackerMode;
-import com.couchbase.lite.replicator.changetracker.ChangeTrackerClient;
 import com.couchbase.lite.storage.SQLException;
 import com.couchbase.lite.support.BatchProcessor;
 import com.couchbase.lite.support.Batcher;
@@ -48,7 +45,7 @@ public class Puller extends Replication implements ChangeTrackerClient {
      * Constructor
      */
     @InterfaceAudience.Private
-    public Puller(Database db, URL remote, boolean continuous, ScheduledExecutorService workExecutor) {
+    /* package */ public Puller(Database db, URL remote, boolean continuous, ScheduledExecutorService workExecutor) {
         this(db, remote, continuous, null, workExecutor);
     }
 
@@ -56,7 +53,7 @@ public class Puller extends Replication implements ChangeTrackerClient {
      * Constructor
      */
     @InterfaceAudience.Private
-    public Puller(Database db, URL remote, boolean continuous, HttpClientFactory clientFactory, ScheduledExecutorService workExecutor) {
+    /* package */ public Puller(Database db, URL remote, boolean continuous, HttpClientFactory clientFactory, ScheduledExecutorService workExecutor) {
         super(db, remote, continuous, clientFactory, workExecutor);
     }
 
@@ -77,33 +74,7 @@ public class Puller extends Replication implements ChangeTrackerClient {
     public void setCreateTarget(boolean createTarget) { }
 
     @Override
-    public void beginReplicating() {
-        if(downloadsToInsert == null) {
-            int capacity = 200;
-            int delay = 1000;
-            downloadsToInsert = new Batcher<List<Object>>(workExecutor, capacity, delay, new BatchProcessor<List<Object>>() {
-                @Override
-                public void process(List<List<Object>> inbox) {
-                    insertRevisions(inbox);
-                }
-            });
-        }
-        pendingSequences = new SequenceMap();
-        Log.w(Database.TAG, this + " starting ChangeTracker with since=" + lastSequence);
-        changeTracker = new ChangeTracker(remote, continuous ? TDChangeTrackerMode.LongPoll : TDChangeTrackerMode.OneShot, lastSequence, this);
-        if(filterName != null) {
-            changeTracker.setFilterName(filterName);
-            if(filterParams != null) {
-                changeTracker.setFilterParams(filterParams);
-            }
-        }
-        if(!continuous) {
-            asyncTaskStarted();
-        }
-        changeTracker.start();
-    }
-
-    @Override
+    @InterfaceAudience.Public
     public void stop() {
 
         if(!running) {
@@ -111,12 +82,12 @@ public class Puller extends Replication implements ChangeTrackerClient {
         }
 
         if(changeTracker != null) {
-	        changeTracker.setClient(null);  // stop it from calling my changeTrackerStopped()
-	        changeTracker.stop();
-	        changeTracker = null;
-	        if(!continuous) {
-	            asyncTaskFinished(1);  // balances asyncTaskStarted() in beginReplicating()
-	        }
+            changeTracker.setClient(null);  // stop it from calling my changeTrackerStopped()
+            changeTracker.stop();
+            changeTracker = null;
+            if(!continuous) {
+                asyncTaskFinished(1);  // balances asyncTaskStarted() in beginReplicating()
+            }
         }
 
         synchronized(this) {
@@ -130,14 +101,48 @@ public class Puller extends Replication implements ChangeTrackerClient {
         }
     }
 
+
     @Override
-    public void stopped() {
+    @InterfaceAudience.Private
+    public void beginReplicating() {
+        if(downloadsToInsert == null) {
+            int capacity = 200;
+            int delay = 1000;
+            downloadsToInsert = new Batcher<List<Object>>(workExecutor, capacity, delay, new BatchProcessor<List<Object>>() {
+                @Override
+                public void process(List<List<Object>> inbox) {
+                    insertRevisions(inbox);
+                }
+            });
+        }
+        pendingSequences = new SequenceMap();
+        Log.w(Database.TAG, this + " starting ChangeTracker with since=" + lastSequence);
+        changeTracker = new ChangeTracker(remote, continuous ? ChangeTracker.ChangeTrackerMode.LongPoll : ChangeTracker.ChangeTrackerMode.OneShot, lastSequence, this);
+        if(filterName != null) {
+            changeTracker.setFilterName(filterName);
+            if(filterParams != null) {
+                changeTracker.setFilterParams(filterParams);
+            }
+        }
+        changeTracker.setDocIDs(documentIDs);
+        changeTracker.setRequestHeaders(requestHeaders);
+        if(!continuous) {
+            asyncTaskStarted();
+        }
+        changeTracker.start();
+    }
+
+
+    @Override
+    @InterfaceAudience.Private
+    protected void stopped() {
         downloadsToInsert = null;
         super.stopped();
     }
 
     // Got a _changes feed entry from the ChangeTracker.
     @Override
+    @InterfaceAudience.Private
     public void changeTrackerReceivedChange(Map<String, Object> change) {
         String lastSequence = change.get("seq").toString();
         String docID = (String)change.get("id");
@@ -170,21 +175,24 @@ public class Puller extends Replication implements ChangeTrackerClient {
     }
 
     @Override
+    @InterfaceAudience.Private
     public void changeTrackerStopped(ChangeTracker tracker) {
         Log.w(Database.TAG, this + ": ChangeTracker stopped");
-        //FIXME tracker doesnt have error right now
-//        if(error == null && tracker.getLastError() != null) {
-//            error = tracker.getLastError();
-//        }
+        if (error == null && tracker.getLastError() != null) {
+            error = tracker.getLastError();
+        }
         changeTracker = null;
         if(batcher != null) {
             batcher.flush();
         }
+        if (!isContinuous()) {
+            asyncTaskFinished(1);  // balances -asyncTaskStarted in -startChangeTracker
+        }
 
-        asyncTaskFinished(1);
     }
 
     @Override
+    @InterfaceAudience.Private
     public HttpClient getHttpClient() {
     	HttpClient httpClient = this.clientFactory.getHttpClient();
 
@@ -195,7 +203,8 @@ public class Puller extends Replication implements ChangeTrackerClient {
      * Process a bunch of remote revisions from the _changes feed at once
      */
     @Override
-    public void processInbox(RevisionList inbox) {
+    @InterfaceAudience.Private
+    protected void processInbox(RevisionList inbox) {
         // Ask the local database which of the revs are not known to it:
         //Log.w(Database.TAG, String.format("%s: Looking up %s", this, inbox));
         String lastInboxSequence = ((PulledRevision)inbox.get(inbox.size()-1)).getRemoteSequenceID();
@@ -248,6 +257,7 @@ public class Puller extends Replication implements ChangeTrackerClient {
      * The entire method is not synchronized, only the portion pulling work off the list
      * Important to not hold the synchronized block while we do network access
      */
+    @InterfaceAudience.Private
     public void pullRemoteRevisions() {
         //find the work to be done in a synchronized block
         List<RevisionInternal> workToStartNow = new ArrayList<RevisionInternal>();
@@ -268,6 +278,7 @@ public class Puller extends Replication implements ChangeTrackerClient {
      * Fetches the contents of a revision from the remote db, including its parent revision ID.
      * The contents are stored into rev.properties.
      */
+    @InterfaceAudience.Private
     public void pullRemoteRevision(final RevisionInternal rev) {
         asyncTaskStarted();
         ++httpConnectionCount;
@@ -332,6 +343,7 @@ public class Puller extends Replication implements ChangeTrackerClient {
     /**
      * This will be called when _revsToInsert fills up:
      */
+    @InterfaceAudience.Private
     public void insertRevisions(List<List<Object>> revs) {
         Log.i(Database.TAG, this + " inserting " + revs.size() + " revisions...");
         //Log.v(Database.TAG, String.format("%s inserting %s", this, revs));
@@ -399,13 +411,15 @@ public class Puller extends Replication implements ChangeTrackerClient {
         setCompletedChangesCount(getCompletedChangesCount() + revs.size());
     }
 
-    List<String> knownCurrentRevIDs(RevisionInternal rev) {
+    @InterfaceAudience.Private
+    /* package */ List<String> knownCurrentRevIDs(RevisionInternal rev) {
         if(db != null) {
             return db.getAllRevisionsOfDocumentID(rev.getDocId(), true).getAllRevIds();
         }
         return null;
     }
 
+    @InterfaceAudience.Private
     public String joinQuotedEscaped(List<String> strings) {
         if(strings.size() == 0) {
             return "[]";
@@ -419,11 +433,21 @@ public class Puller extends Replication implements ChangeTrackerClient {
         return URLEncoder.encode(new String(json));
     }
 
+    @InterfaceAudience.Private
+    boolean goOffline() {
+        if (!super.goOffline()) {
+            return false;
+        }
+        changeTracker.stop();
+        return true;
+    }
+
 }
 
 /**
  * A revision received from a remote server during a pull. Tracks the opaque remote sequence ID.
  */
+@InterfaceAudience.Private
 class PulledRevision extends RevisionInternal {
 
     public PulledRevision(Body body, Database database) {

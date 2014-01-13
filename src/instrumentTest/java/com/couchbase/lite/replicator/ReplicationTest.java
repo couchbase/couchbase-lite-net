@@ -1,11 +1,10 @@
 package com.couchbase.lite.replicator;
 
-import com.couchbase.lite.LiteTestCase;
 import com.couchbase.lite.Database;
 import com.couchbase.lite.Emitter;
+import com.couchbase.lite.LiteTestCase;
 import com.couchbase.lite.LiveQuery;
 import com.couchbase.lite.Mapper;
-import com.couchbase.lite.MockHttpClient;
 import com.couchbase.lite.Status;
 import com.couchbase.lite.View;
 import com.couchbase.lite.auth.FacebookAuthorizer;
@@ -20,6 +19,8 @@ import junit.framework.Assert;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.output.ByteArrayOutputStream;
+import org.apache.http.Header;
+import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
 import org.apache.http.StatusLine;
@@ -33,12 +34,15 @@ import org.apache.http.message.BasicHeader;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 public class ReplicationTest extends LiteTestCase {
 
@@ -81,32 +85,32 @@ public class ReplicationTest extends LiteTestCase {
         database.putRevision(new RevisionInternal(documentProperties, database), null, false, status);
         assertEquals(Status.CREATED, status.getCode());
 
-        final Replication repl = database.getReplicator(remote, true, false, manager.getWorkExecutor());
-        ((Pusher)repl).setCreateTarget(true);
+        final boolean continuous = false;
+        final Replication repl = database.createPushReplication(remote);
+        repl.setContinuous(continuous);
 
-        BackgroundTask replicationTask = new BackgroundTask() {
+        repl.setCreateTarget(true);
 
-            @Override
-            public void run() {
-                // Push them to the remote:
-                repl.start();
-                assertTrue(repl.isRunning());
-            }
+        // Check the replication's properties:
+        Assert.assertEquals(database, repl.getLocalDatabase());
+        Assert.assertEquals(remote, repl.getRemoteUrl());
+        Assert.assertFalse(repl.isPull());
+        Assert.assertFalse(repl.isContinuous());
+        Assert.assertTrue(repl.shouldCreateTarget());
+        Assert.assertNull(repl.getFilter());
+        Assert.assertNull(repl.getFilterParams());
+        // TODO: CAssertNil(r1.doc_ids);
+        // TODO: CAssertNil(r1.headers);
 
-        };
-        replicationTask.execute();
+        // Check that the replication hasn't started running:
+        Assert.assertFalse(repl.isRunning());
+        Assert.assertEquals(Replication.ReplicationStatus.REPLICATION_STOPPED, repl.getStatus());
+        Assert.assertEquals(0, repl.getCompletedChangesCount());
+        Assert.assertEquals(0, repl.getChangesCount());
+        Assert.assertNull(repl.getLastError());
 
+        runReplication(repl);
 
-        ReplicationObserver replicationObserver = new ReplicationObserver(replicationDoneSignal);
-        repl.addChangeListener(replicationObserver);
-
-        Log.d(TAG, "Waiting for replicator to finish");
-        try {
-            replicationDoneSignal.await();
-            Log.d(TAG, "replicator finished");
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
 
         // make sure doc1 is there
         // TODO: make sure doc2 is there (refactoring needed)
@@ -157,7 +161,7 @@ public class ReplicationTest extends LiteTestCase {
 
         Log.d(TAG, "Waiting for http request to finish");
         try {
-            httpRequestDoneSignal.await();
+            httpRequestDoneSignal.await(300, TimeUnit.SECONDS);
             Log.d(TAG, "http request finished");
         } catch (InterruptedException e) {
             e.printStackTrace();
@@ -197,32 +201,11 @@ public class ReplicationTest extends LiteTestCase {
         RevisionInternal rev2 = database.putRevision(new RevisionInternal(documentProperties, database), rev1.getRevId(), false, status);
         assertTrue(status.getCode() >= 200 && status.getCode() < 300);
 
-        final Replication repl = database.getReplicator(remote, true, false, manager.getWorkExecutor());
+        final Replication repl = database.createPushReplication(remote);
         ((Pusher)repl).setCreateTarget(true);
 
-        BackgroundTask replicationTask = new BackgroundTask() {
+        runReplication(repl);
 
-            @Override
-            public void run() {
-                // Push them to the remote:
-                repl.start();
-                assertTrue(repl.isRunning());
-            }
-
-        };
-        replicationTask.execute();
-
-
-        ReplicationObserver replicationObserver = new ReplicationObserver(replicationDoneSignal);
-        repl.addChangeListener(replicationObserver);
-
-        Log.d(TAG, "Waiting for replicator to finish");
-        try {
-            replicationDoneSignal.await();
-            Log.d(TAG, "replicator finished");
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
 
         // make sure doc1 is deleted
         URL replicationUrlTrailing = new URL(String.format("%s/", remote.toExternalForm()));
@@ -259,7 +242,7 @@ public class ReplicationTest extends LiteTestCase {
 
         Log.d(TAG, "Waiting for http request to finish");
         try {
-            httpRequestDoneSignal.await();
+            httpRequestDoneSignal.await(300, TimeUnit.SECONDS);
             Log.d(TAG, "http request finished");
         } catch (InterruptedException e) {
             e.printStackTrace();
@@ -361,20 +344,11 @@ public class ReplicationTest extends LiteTestCase {
 
         CountDownLatch replicationDoneSignal = new CountDownLatch(1);
 
-        final Replication repl = database.getReplicator(remote, false, false, manager.getWorkExecutor());
+        final Replication repl = (Replication) database.createPullReplication(remote);
+        repl.setContinuous(false);
 
-        repl.start();
+        runReplication(repl);
 
-        ReplicationObserver replicationObserver = new ReplicationObserver(replicationDoneSignal);
-        repl.addChangeListener(replicationObserver);
-
-        Log.d(TAG, "Waiting for replicator to finish");
-        try {
-            replicationDoneSignal.await();
-            Log.d(TAG, "replicator finished");
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
     }
 
     private void addDocWithId(String docId, String attachmentName) throws IOException {
@@ -383,7 +357,7 @@ public class ReplicationTest extends LiteTestCase {
 
         if (attachmentName != null) {
             // add attachment to document
-            InputStream attachmentStream = getInstrumentation().getContext().getAssets().open(attachmentName);
+            InputStream attachmentStream = getAsset(attachmentName);
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
             IOUtils.copy(attachmentStream, baos);
             String attachmentBase64 = Base64.encodeBytes(baos.toByteArray());
@@ -432,7 +406,7 @@ public class ReplicationTest extends LiteTestCase {
 
         Log.d(TAG, "Waiting for http request to finish");
         try {
-            httpRequestDoneSignal.await();
+            httpRequestDoneSignal.await(300, TimeUnit.SECONDS);
             Log.d(TAG, "http request finished");
         } catch (InterruptedException e) {
             e.printStackTrace();
@@ -471,6 +445,97 @@ public class ReplicationTest extends LiteTestCase {
         assertNotNull(replicator);
         assertNotNull(replicator.getAuthorizer());
         assertTrue(replicator.getAuthorizer() instanceof FacebookAuthorizer);
+
+    }
+
+    private void runReplication(Replication replication) {
+
+        CountDownLatch replicationDoneSignal = new CountDownLatch(1);
+
+        ReplicationObserver replicationObserver = new ReplicationObserver(replicationDoneSignal);
+        replication.addChangeListener(replicationObserver);
+
+        replication.start();
+
+        CountDownLatch replicationDoneSignalPolling = replicationWatcherThread(replication);
+
+        Log.d(TAG, "Waiting for replicator to finish");
+        try {
+            boolean success = replicationDoneSignal.await(300, TimeUnit.SECONDS);
+            assertTrue(success);
+
+            success = replicationDoneSignalPolling.await(300, TimeUnit.SECONDS);
+            assertTrue(success);
+
+            Log.d(TAG, "replicator finished");
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+
+    }
+
+    private CountDownLatch replicationWatcherThread(final Replication replication) {
+
+        final CountDownLatch doneSignal = new CountDownLatch(1);
+
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                boolean started = false;
+                boolean done = false;
+                while (!done) {
+
+                    if (replication.isRunning()) {
+                        started = true;
+                    }
+                    final boolean statusIsDone = (replication.getStatus() == Replication.ReplicationStatus.REPLICATION_STOPPED ||
+                            replication.getStatus() == Replication.ReplicationStatus.REPLICATION_IDLE);
+                    if (started && statusIsDone) {
+                        done = true;
+                    }
+
+                    try {
+                        Thread.sleep(500);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+
+                }
+
+                doneSignal.countDown();
+
+            }
+        }).start();
+        return doneSignal;
+
+    }
+
+    public void testRunReplicationWithError() throws Exception {
+
+        HttpClientFactory mockHttpClientFactory = new HttpClientFactory() {
+            @Override
+            public HttpClient getHttpClient() {
+                CustomizableMockHttpClient mockHttpClient = new CustomizableMockHttpClient();
+                int statusCode = 500;
+                mockHttpClient.addResponderFailAllRequests(statusCode);
+                return mockHttpClient;
+            }
+        };
+
+        String dbUrlString = "http://fake.test-url.com:4984/fake/";
+        URL remote = new URL(dbUrlString);
+        final boolean continuous = false;
+        Replication r1 = new Puller(database, remote, continuous, mockHttpClientFactory, manager.getWorkExecutor());
+        Assert.assertFalse(r1.isContinuous());
+        runReplication(r1);
+
+        // It should have failed with a 404:
+        Assert.assertEquals(Replication.ReplicationStatus.REPLICATION_STOPPED, r1.getStatus());
+        Assert.assertEquals(0, r1.getCompletedChangesCount());
+        Assert.assertEquals(0, r1.getChangesCount());
+        Assert.assertNotNull(r1.getLastError());
+
 
     }
 
@@ -518,7 +583,9 @@ public class ReplicationTest extends LiteTestCase {
         HttpClientFactory mockHttpClientFactory = new HttpClientFactory() {
             @Override
             public HttpClient getHttpClient() {
-                return new MockHttpClient();
+                CustomizableMockHttpClient mockHttpClient = new CustomizableMockHttpClient();
+                mockHttpClient.addResponderThrowExceptionAllRequests();
+                return mockHttpClient;
             }
         };
 
@@ -527,15 +594,17 @@ public class ReplicationTest extends LiteTestCase {
         URL remote = new URL(dbUrlString);
         database.setLastSequence("1", remote, true);  // otherwise fetchRemoteCheckpoint won't contact remote
         Replication replicator = new Pusher(database, remote, false, mockHttpClientFactory, manager.getWorkExecutor());
-        replicator.fetchRemoteCheckpointDoc();
 
         CountDownLatch doneSignal = new CountDownLatch(1);
         ReplicationObserver replicationObserver = new ReplicationObserver(doneSignal);
         replicator.addChangeListener(replicationObserver);
 
+        replicator.fetchRemoteCheckpointDoc();
+
         Log.d(TAG, "testFetchRemoteCheckpointDoc() Waiting for replicator to finish");
         try {
-            doneSignal.await();
+            boolean succeeded = doneSignal.await(300, TimeUnit.SECONDS);
+            assertTrue(succeeded);
             Log.d(TAG, "testFetchRemoteCheckpointDoc() replicator finished");
         } catch (InterruptedException e) {
             e.printStackTrace();
@@ -547,6 +616,21 @@ public class ReplicationTest extends LiteTestCase {
 
     }
 
+    public void testGoOffline() throws Exception {
+
+        URL remote = getReplicationURL();
+
+        CountDownLatch replicationDoneSignal = new CountDownLatch(1);
+
+        Replication repl = database.createPullReplication(remote);
+        repl.setContinuous(true);
+        repl.start();
+
+        repl.goOffline();
+        Assert.assertTrue(repl.getStatus() == Replication.ReplicationStatus.REPLICATION_OFFLINE);
+
+
+    }
 
     class ReplicationObserver implements Replication.ChangeListener {
 
@@ -600,4 +684,95 @@ public class ReplicationTest extends LiteTestCase {
 
     }
 
+    public void testChannels() throws Exception {
+
+        URL remote = getReplicationURL();
+        Replication replicator = database.createPullReplication(remote);
+        List<String> channels = new ArrayList<String>();
+        channels.add("chan1");
+        channels.add("chan2");
+        replicator.setChannels(channels);
+        Assert.assertEquals(channels, replicator.getChannels());
+        replicator.setChannels(null);
+        Assert.assertTrue(replicator.getChannels().isEmpty());
+
+    }
+
+    public void testChannelsMore() throws MalformedURLException {
+
+        Database  db = startDatabase();
+        URL fakeRemoteURL = new URL("http://couchbase.com/no_such_db");
+        Replication r1 = db.createPullReplication(fakeRemoteURL);
+
+        assertTrue(r1.getChannels().isEmpty());
+        r1.setFilter("foo/bar");
+        assertTrue(r1.getChannels().isEmpty());
+        Map<String, Object> filterParams= new HashMap<String, Object>();
+        filterParams.put("a", "b");
+        r1.setFilterParams(filterParams);
+        assertTrue(r1.getChannels().isEmpty());
+
+        r1.setChannels(null);
+        assertEquals("foo/bar", r1.getFilter());
+        assertEquals(filterParams, r1.getFilterParams());
+
+        List<String> channels = new ArrayList<String>();
+        channels.add("NBC");
+        channels.add("MTV");
+        r1.setChannels(channels);
+        assertEquals(channels, r1.getChannels());
+        assertEquals("sync_gateway/bychannel", r1.getFilter());
+        filterParams= new HashMap<String, Object>();
+        filterParams.put("channels", "NBC,MTV");
+        assertEquals(filterParams, r1.getFilterParams());
+
+        r1.setChannels(null);
+        assertEquals(r1.getFilter(), null);
+        assertEquals(null ,r1.getFilterParams());
+
+    }
+
+
+    public void testHeaders() throws Exception {
+
+        final CustomizableMockHttpClient mockHttpClient = new CustomizableMockHttpClient();
+        mockHttpClient.addResponderThrowExceptionAllRequests();
+
+        HttpClientFactory mockHttpClientFactory = new HttpClientFactory() {
+            @Override
+            public HttpClient getHttpClient() {
+                return mockHttpClient;
+            }
+        };
+
+        URL remote = getReplicationURL();
+
+        manager.setDefaultHttpClientFactory(mockHttpClientFactory);
+        Replication puller = database.createPullReplication(remote);
+
+        Map<String, Object> headers = new HashMap<String, Object>();
+        headers.put("foo", "bar");
+        puller.setHeaders(headers);
+        puller.start();
+
+        Thread.sleep(2000);
+        puller.stop();
+
+        boolean foundFooHeader = false;
+        List<HttpRequest> requests = mockHttpClient.getCapturedRequests();
+        for (HttpRequest request : requests) {
+            Header[] requestHeaders = request.getHeaders("foo");
+            for (Header requestHeader : requestHeaders) {
+                foundFooHeader = true;
+                Assert.assertEquals("bar", requestHeader.getValue());
+            }
+        }
+
+        Assert.assertTrue(foundFooHeader);
+        manager.setDefaultHttpClientFactory(null);
+
+    }
+
+
 }
+

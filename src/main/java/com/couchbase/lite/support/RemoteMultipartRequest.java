@@ -7,6 +7,7 @@ import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.entity.mime.MultipartEntity;
 
 import java.net.URL;
+import java.util.Map;
 import java.util.concurrent.ScheduledExecutorService;
 
 public class RemoteMultipartRequest extends RemoteRequest {
@@ -15,8 +16,8 @@ public class RemoteMultipartRequest extends RemoteRequest {
 
     public RemoteMultipartRequest(ScheduledExecutorService workExecutor,
                                   HttpClientFactory clientFactory, String method, URL url,
-                                  MultipartEntity multiPart, RemoteRequestCompletionBlock onCompletion) {
-        super(workExecutor, clientFactory, method, url, null, onCompletion);
+                                  MultipartEntity multiPart, Map<String, Object> requestHeaders, RemoteRequestCompletionBlock onCompletion) {
+        super(workExecutor, clientFactory, method, url, null, requestHeaders, onCompletion);
         this.multiPart = multiPart;
     }
 
