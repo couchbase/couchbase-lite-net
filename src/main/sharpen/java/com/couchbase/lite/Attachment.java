@@ -25,6 +25,9 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * A Couchbase Lite Document Attachment.
+ */
 public class Attachment {
 
     /**
@@ -60,7 +63,8 @@ public class Attachment {
     /**
      * Constructor
      */
-    Attachment(InputStream contentStream, String contentType) {
+    @InterfaceAudience.Private
+    /* package */ Attachment(InputStream contentStream, String contentType) {
         this.body = contentStream;
         metadata = new HashMap<String, Object>();
         metadata.put("content_type", contentType);
@@ -71,7 +75,8 @@ public class Attachment {
     /**
      * Constructor
      */
-    Attachment(Revision revision, String name, Map<String, Object> metadata) {
+    @InterfaceAudience.Private
+    /* package */ Attachment(Revision revision, String name, Map<String, Object> metadata) {
         this.revision = revision;
         this.name = name;
         this.metadata = metadata;
@@ -152,15 +157,18 @@ public class Attachment {
         return Collections.unmodifiableMap(metadata);
     }
 
-    void setName(String name) {
+    @InterfaceAudience.Private
+    /* package */ void setName(String name) {
         this.name = name;
     }
 
-    void setRevision(Revision revision) {
+    @InterfaceAudience.Private
+    /* package */ void setRevision(Revision revision) {
         this.revision = revision;
     }
 
-    InputStream getBodyIfNew() {
+    @InterfaceAudience.Private
+    /* package */ InputStream getBodyIfNew() {
         return body;
     }
 
@@ -169,7 +177,8 @@ public class Attachment {
      * with proper JSON metadata dicts. It registers the attachment bodies with the blob store and sets
      * the metadata 'digest' and 'follows' properties accordingly.
      */
-    static Map<String, Object> installAttachmentBodies(Map<String, Object> attachments, Database database) {
+    @InterfaceAudience.Private
+    /* package */ static Map<String, Object> installAttachmentBodies(Map<String, Object> attachments, Database database) {
 
         Map<String, Object> updatedAttachments = new HashMap<String, Object>();
         for (String name : attachments.keySet()) {
@@ -182,7 +191,7 @@ public class Attachment {
                 if (body != null) {
                     // Copy attachment body into the database's blob store:
                     BlobStoreWriter writer = blobStoreWriterForBody(body, database);
-                    metadataMutable.put("length", writer.getLength());
+                    metadataMutable.put("length", (long)writer.getLength());
                     metadataMutable.put("digest", writer.mD5DigestString());
                     metadataMutable.put("follows", true);
                     database.rememberAttachmentWriter(writer);
@@ -196,7 +205,8 @@ public class Attachment {
         return updatedAttachments;
     }
 
-    static BlobStoreWriter blobStoreWriterForBody(InputStream body, Database database) {
+    @InterfaceAudience.Private
+    /* package */ static BlobStoreWriter blobStoreWriterForBody(InputStream body, Database database) {
         BlobStoreWriter writer = database.getAttachmentWriter();
         writer.read(body);
         writer.finish();
@@ -204,10 +214,12 @@ public class Attachment {
 
     }
 
+    @InterfaceAudience.Private
     public boolean getGZipped() {
         return gzipped;
     }
 
+    @InterfaceAudience.Private
     public void setGZipped(boolean gzipped) {
         this.gzipped = gzipped;
     }

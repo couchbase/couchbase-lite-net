@@ -59,7 +59,7 @@ public class Router implements Database.ChangeListener {
     private boolean longpoll = false;
 
     public static String getVersionString() {
-        return Manager.VERSION_STRING;
+        return Manager.VERSION;
     }
 
     public Router(Manager manager, URLConnection connection) {
@@ -295,11 +295,29 @@ public class Router implements Database.ChangeListener {
             } else {
                 message += "_Database";
                 if (!Manager.isValidDatabaseName(dbName)) {
-                    connection.setResponseCode(Status.NOT_FOUND);
+                    Header resHeader = connection.getResHeader();
+                    if (resHeader != null) {
+                        resHeader.add("Content-Type", "application/json");
+                    }
+                    Map<String, Object> result = new HashMap<String, Object>();
+                    result.put("error", "Invalid database");
+                    result.put("status", Status.BAD_REQUEST );
+                    connection.setResponseBody(new Body(result));
+                    ByteArrayInputStream bais = new ByteArrayInputStream(connection.getResponseBody().getJson());
+                    connection.setResponseInputStream(bais);
+
+                    connection.setResponseCode(Status.BAD_REQUEST);
+                    try {
+                        connection.getResponseOutputStream().close();
+                    } catch (IOException e) {
+                        Log.e(Database.TAG, "Error closing empty output stream");
+                    }
+                    sendResponse();
                     return;
                 }
                 else {
-                    db = manager.getDatabase(dbName);
+                    boolean mustExist = false;
+                    db = manager.getDatabaseWithoutOpening(dbName, mustExist);
                     if(db == null) {
                         connection.setResponseCode(Status.BAD_REQUEST);
                         try {
@@ -456,6 +474,12 @@ public class Router implements Database.ChangeListener {
         // Configure response headers:
         if(status.isSuccessful() && connection.getResponseBody() == null && connection.getHeaderField("Content-Type") == null) {
             connection.setResponseBody(new Body("{\"ok\":true}".getBytes()));
+        }
+
+        if (status.isSuccessful() == false && connection.getResponseBody() == null) {
+            Map<String, Object> result = new HashMap<String, Object>();
+            result.put("status", status.getCode());
+            connection.setResponseBody(new Body(result));
         }
 
         if(connection.getResponseBody() != null && connection.getResponseBody().isValidJSON()) {
@@ -661,12 +685,15 @@ public class Router implements Database.ChangeListener {
         }
         int num_docs = db.getDocumentCount();
         long update_seq = db.getLastSequenceNumber();
+        long instanceStartTimeMicroseconds = db.getStartTime() * 1000;
         Map<String, Object> result = new HashMap<String,Object>();
         result.put("db_name", db.getName());
         result.put("db_uuid", db.publicUUID());
         result.put("doc_count", num_docs);
         result.put("update_seq", update_seq);
         result.put("disk_size", db.totalDataSize());
+        result.put("instance_start_time", instanceStartTimeMicroseconds);
+
         connection.setResponseBody(new Body(result));
         return new Status(Status.OK);
     }
@@ -735,6 +762,9 @@ public class Router implements Database.ChangeListener {
         if (body == null) {
             return new Status(Status.BAD_REQUEST);
         }
+
+        List<Object> keys = (List<Object>) body.get("keys");
+        options.setKeys(keys);
 
         Map<String, Object> result = null;
         result = db.getAllDocs(options);
@@ -965,6 +995,29 @@ public class Router implements Database.ChangeListener {
     	}
     }
 
+    public Status do_POST_Document_purge(Database _db, String ignored1, String ignored2) {
+
+        Map<String,Object> body = getBodyAsDictionary();
+        if(body == null) {
+            return new Status(Status.BAD_REQUEST);
+        }
+
+        // convert from Map<String,Object> -> Map<String, List<String>> - is there a cleaner way?
+        Map<String, List<String>> docsToRevs = new HashMap<String, List<String>>();
+        for (String key : body.keySet()) {
+            Object val = body.get(key);
+            if (val instanceof List) {
+                docsToRevs.put(key, (List<String>)val);
+            }
+        }
+        Map<String, Object> purgedRevisions = db.purgeRevisions(docsToRevs);
+        Map<String, Object> responseMap = new HashMap<String, Object>();
+        responseMap.put("purged", purgedRevisions);
+        Body responseBody = new Body(responseMap);
+        connection.setResponseBody(responseBody);
+        return new Status(Status.OK);
+    }
+
     public Status do_POST_Document_ensure_full_commit(Database _db, String _docID, String _attachmentName) {
         return new Status(Status.OK);
     }
@@ -1067,9 +1120,11 @@ public class Router implements Database.ChangeListener {
         List<DocumentChange> changes = event.getChanges();
         for (DocumentChange change : changes) {
 
-            RevisionInternal rev = change.getRevisionInternal();
+            RevisionInternal rev = change.getAddedRevision();
 
-            if(changesFilter != null && !changesFilter.filter(rev, null)) {
+            Map<String, Object> paramsFixMe = null;  // TODO: these should not be null
+            final boolean allowRevision = event.getSource().runFilter(changesFilter, paramsFixMe, rev);
+            if (!allowRevision) {
                 return;
             }
 
@@ -1376,6 +1431,22 @@ public class Router implements Database.ChangeListener {
     public Status update(Database _db, String docID, Map<String,Object> bodyDict, boolean deleting) {
         Body body = new Body(bodyDict);
         Status status = new Status();
+
+        if (docID != null && docID.isEmpty() == false) {
+            // On PUT/DELETE, get revision ID from either ?rev= query or doc body:
+            String revParam = getQuery("rev");
+            if (revParam != null && bodyDict != null && bodyDict.size() > 0) {
+                String revProp = (String) bodyDict.get("_rev");
+                if (revProp == null) {
+                    // No _rev property in body, so use ?rev= query param instead:
+                    bodyDict.put("_rev", revParam);
+                    body = new Body(bodyDict);
+                } else if (!revParam.equals(revProp)) {
+                    throw new IllegalArgumentException("Mismatch between _rev and rev");
+                }
+            }
+        }
+
         RevisionInternal rev = update(_db, docID, body, deleting, false, status);
         if(status.isSuccessful()) {
             cacheWithEtag(rev.getRevId());  // set ETag
@@ -1429,7 +1500,8 @@ public class Router implements Database.ChangeListener {
         return update(_db, docID, null, true);
     }
 
-    public void updateAttachment(String attachment, String docID, InputStream contentStream) throws CouchbaseLiteException {
+    public Status updateAttachment(String attachment, String docID, InputStream contentStream) throws CouchbaseLiteException {
+        Status status = new Status(Status.OK);
         String revID = getQuery("rev");
         if(revID == null) {
             revID = getRevIDFromIfMatchHeader();
@@ -1445,14 +1517,15 @@ public class Router implements Database.ChangeListener {
         if(contentStream != null) {
             setResponseLocation(connection.getURL());
         }
+        return status;
     }
 
-    public void do_PUT_Attachment(Database _db, String docID, String _attachmentName) throws CouchbaseLiteException {
-        updateAttachment(_attachmentName, docID, connection.getRequestInputStream());
+    public Status do_PUT_Attachment(Database _db, String docID, String _attachmentName) throws CouchbaseLiteException {
+        return updateAttachment(_attachmentName, docID, connection.getRequestInputStream());
     }
 
-    public void do_DELETE_Attachment(Database _db, String docID, String _attachmentName) throws CouchbaseLiteException {
-        updateAttachment(_attachmentName, docID, null);
+    public Status do_DELETE_Attachment(Database _db, String docID, String _attachmentName) throws CouchbaseLiteException {
+        return updateAttachment(_attachmentName, docID, null);
     }
 
     /** VIEW QUERIES: **/

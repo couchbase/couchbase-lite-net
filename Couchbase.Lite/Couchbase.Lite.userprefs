@@ -1,39 +1,17 @@
 ﻿<Properties>
   <MonoDevelop.Ide.Workspace ActiveConfiguration="Debug|x86" />
-  <MonoDevelop.Ide.Workbench ActiveDocument="../../../../Source/couchbase-lite-api/csharp/Document.cs">
+  <MonoDevelop.Ide.Workbench ActiveDocument="../src/main/sharpen.net/java/Couchbase/Lite/AsyncTask.cs">
     <Files>
-      <File FileName="Couchbase.Lite/Database.cs" Line="289" Column="32" />
-      <File FileName="Couchbase.Lite/ValidationContext.cs" Line="36" Column="25" />
-      <File FileName="Couchbase.Lite/ValidationBlock.cs" Line="37" Column="1" />
-      <File FileName="Couchbase.Lite/Replicator/Changetracker/ChangeTracker.cs" Line="210" Column="14" />
-      <File FileName="Couchbase.Lite/Internal/InterfaceAudience.cs" Line="39" Column="13" />
-      <File FileName="Couchbase.Lite/Sharpen/CharUtils.cs" Line="14" Column="2" />
-      <File FileName="Couchbase.Lite/Util/URIUtils.cs" Line="239" Column="1" />
-      <File FileName="Couchbase.Lite/Sharpen/URLEncoder.cs" Line="33" Column="41" />
-      <File FileName="Couchbase.Lite/Sharpen/Extensions.cs" Line="458" Column="117" />
-      <File FileName="../../../../Source/couchbase-lite-api/csharp/Database.cs" Line="67" Column="31" />
-      <File FileName="../../../../Source/couchbase-lite-api/csharp/Replication.cs" Line="59" Column="39" />
-      <File FileName="../../../../Source/couchbase-lite-api/csharp/Attachment.cs" Line="20" Column="22" />
-      <File FileName="../../../../Source/couchbase-lite-api/csharp/View.cs" Line="1" Column="1" />
-      <File FileName="../../../../Source/couchbase-lite-api/csharp/Manager.cs" Line="32" Column="18" />
-      <File FileName="../../../../Source/couchbase-lite-api/csharp/Revision.cs" Line="14" Column="55" />
-      <File FileName="../../../../Source/couchbase-lite-api/csharp/Document.cs" Line="34" Column="16" />
-      <File FileName="../../../../Source/couchbase-lite-api/csharp/Query.cs" Line="21" Column="11" />
+      <File FileName="Couchbase.Lite/View.cs" Line="1" Column="1" />
+      <File FileName="Couchbase.Lite/Database.cs" Line="571" Column="30" />
+      <File FileName="Couchbase.Lite/Query.cs" Line="1" Column="1" />
+      <File FileName="../src/main/sharpen.net/java/Couchbase/Lite/AsyncTask.cs" Line="1" Column="1" />
     </Files>
-    <Pads>
-      <Pad Id="ProjectPad">
-        <State expanded="True">
-          <Node name="Couchbase.Lite" expanded="True">
-            <Node name="API" expanded="True" selected="True" />
-          </Node>
-        </State>
-      </Pad>
-    </Pads>
   </MonoDevelop.Ide.Workbench>
   <MonoDevelop.Ide.DebuggingService.Breakpoints>
     <BreakpointStore />
   </MonoDevelop.Ide.DebuggingService.Breakpoints>
   <MonoDevelop.Ide.DebuggingService.PinnedWatches>
-    <Watch file="../../../../Source/SalesforceSDK/Salesforce.Core/SalesforceClient.cs" line="389" offsetX="764" offsetY="5820" expression="refreshTask" liveUpdate="False" />
+    <Watch file="../../../Source/SalesforceSDK/Salesforce.Core/SalesforceClient.cs" line="389" offsetX="764" offsetY="5820" expression="refreshTask" liveUpdate="False" />
   </MonoDevelop.Ide.DebuggingService.PinnedWatches>
 </Properties>

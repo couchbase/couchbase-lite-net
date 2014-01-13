@@ -18,6 +18,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.util.Arrays;
+import java.util.Map;
 import java.util.concurrent.ScheduledExecutorService;
 
 public class RemoteMultipartDownloaderRequest extends RemoteRequest {
@@ -26,8 +27,8 @@ public class RemoteMultipartDownloaderRequest extends RemoteRequest {
 
     public RemoteMultipartDownloaderRequest(ScheduledExecutorService workExecutor,
                                             HttpClientFactory clientFactory, String method, URL url,
-                                            Object body, Database db, RemoteRequestCompletionBlock onCompletion) {
-        super(workExecutor, clientFactory, method, url, body, onCompletion);
+                                            Object body, Database db, Map<String, Object> requestHeaders, RemoteRequestCompletionBlock onCompletion) {
+        super(workExecutor, clientFactory, method, url, body, requestHeaders, onCompletion);
         this.db = db;
     }
 
@@ -41,6 +42,8 @@ public class RemoteMultipartDownloaderRequest extends RemoteRequest {
         HttpUriRequest request = createConcreteRequest();
 
         request.addHeader("Accept", "*/*");
+
+        addRequestHeaders(request);
 
         executeRequest(httpClient, request);
 

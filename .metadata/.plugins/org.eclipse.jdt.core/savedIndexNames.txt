@@ -1,3 +1,2 @@
 INDEX VERSION 1.126+/Users/zgramana/Xamarin/Projects/couchbase-lite-net/.metadata/.plugins/org.eclipse.jdt.core
-467623344.index
 2483025037.index

@@ -245,7 +245,8 @@ public class Document {
     @InterfaceAudience.Public
     public SavedRevision putProperties(Map<String,Object> properties) throws CouchbaseLiteException {
         String prevID = (String) properties.get("_rev");
-        return putProperties(properties, prevID);
+        boolean allowConflict = false;
+        return putProperties(properties, prevID, allowConflict);
     }
 
     /**
@@ -311,8 +312,48 @@ public class Document {
     }
 
     /**
+     * A delegate that can be used to update a Document.
+     */
+    @InterfaceAudience.Public
+    public static interface DocumentUpdater {
+        public boolean update(UnsavedRevision newRevision);
+    }
+
+    /**
+     * The type of event raised when a Document changes. This event is not raised in response
+     * to local Document changes.
+     */
+    @InterfaceAudience.Public
+    public static class ChangeEvent {
+        private Document source;
+        private DocumentChange change;
+
+        public ChangeEvent(Document source, DocumentChange documentChange) {
+            this.source = source;
+            this.change = documentChange;
+        }
+
+        public Document getSource() {
+            return source;
+        }
+
+        public DocumentChange getChange() {
+            return change;
+        }
+    }
+
+    /**
+     * A delegate that can be used to listen for Document changes.
+     */
+    @InterfaceAudience.Public
+    public static interface ChangeListener {
+        public void changed(ChangeEvent event);
+    }
+
+    /**
      * Get the document's abbreviated ID
      */
+    @InterfaceAudience.Private
     public String getAbbreviatedId() {
         String abbreviated = documentId;
         if (documentId.length() > 10) {
@@ -323,8 +364,8 @@ public class Document {
         return documentId;
     }
 
-
-    List<SavedRevision> getLeafRevisions(boolean includeDeleted) throws CouchbaseLiteException {
+    @InterfaceAudience.Private
+    /* package */ List<SavedRevision> getLeafRevisions(boolean includeDeleted) throws CouchbaseLiteException {
 
         List<SavedRevision> result = new ArrayList<SavedRevision>();
         RevisionList revs = database.getAllRevisionsOfDocumentID(documentId, true);
@@ -341,8 +382,8 @@ public class Document {
     }
 
 
-
-    SavedRevision putProperties(Map<String,Object> properties, String prevID) throws CouchbaseLiteException {
+    @InterfaceAudience.Private
+    /* package */ SavedRevision putProperties(Map<String, Object> properties, String prevID, boolean allowConflict) throws CouchbaseLiteException {
         String newId = null;
         if (properties != null && properties.containsKey("_id")) {
             newId = (String) properties.get("_id");
@@ -371,7 +412,7 @@ public class Document {
         if (properties != null) {
             rev.setProperties(properties);
         }
-        RevisionInternal newRev = database.putRevision(rev, prevID, false);
+        RevisionInternal newRev = database.putRevision(rev, prevID, allowConflict);
         if (newRev == null) {
             return null;
         }
@@ -379,8 +420,8 @@ public class Document {
 
     }
 
-
-    SavedRevision getRevisionFromRev(RevisionInternal internalRevision) {
+    @InterfaceAudience.Private
+    /* package */ SavedRevision getRevisionFromRev(RevisionInternal internalRevision) {
         if (internalRevision == null) {
             return null;
         }
@@ -393,7 +434,8 @@ public class Document {
 
     }
 
-    SavedRevision getRevisionWithId(String revId) {
+    @InterfaceAudience.Private
+    /* package */ SavedRevision getRevisionWithId(String revId) {
         if (revId != null && currentRevision != null && revId.equals(currentRevision.getId())) {
             return currentRevision;
         }
@@ -405,11 +447,8 @@ public class Document {
     }
 
 
-    public static interface DocumentUpdater {
-        public boolean update(UnsavedRevision newRevision);
-    }
-
-    void loadCurrentRevisionFrom(QueryRow row) {
+    @InterfaceAudience.Private
+    /* package */ void loadCurrentRevisionFrom(QueryRow row) {
         if (row.getDocumentRevisionId() == null) {
             return;
         }
@@ -423,44 +462,28 @@ public class Document {
         }
      }
 
+    @InterfaceAudience.Private
     private boolean revIdGreaterThanCurrent(String revId) {
         return (RevisionInternal.CBLCompareRevIDs(revId, currentRevision.getId()) > 0);
     }
 
-    void revisionAdded(DocumentChange documentChange) {
+    @InterfaceAudience.Private
+    /* package */ void revisionAdded(DocumentChange documentChange) {
 
-        // TODO: in the iOS code, it calls CBL_Revision* rev = change.winningRevision;
-        RevisionInternal rev = documentChange.getRevisionInternal();
+        RevisionInternal rev = documentChange.getWinningRevision();
+        if (rev == null) {
+            return;  // current revision didn't change
+        }
         if (currentRevision != null && !rev.getRevId().equals(currentRevision.getId())) {
             currentRevision = new SavedRevision(this, rev);
         }
-        DocumentChange change = DocumentChange.tempFactory(rev, null);
+
         for (ChangeListener listener : changeListeners) {
-            listener.changed(new ChangeEvent(this, change));
+            listener.changed(new ChangeEvent(this, documentChange));
         }
 
     }
 
-    public static class ChangeEvent {
-        private Document source;
-        private DocumentChange change;
 
-        public ChangeEvent(Document source, DocumentChange documentChange) {
-            this.source = source;
-            this.change = documentChange;
-        }
-
-        public Document getSource() {
-            return source;
-        }
-
-        public DocumentChange getChange() {
-            return change;
-        }
-    }
-
-    public static interface ChangeListener {
-        public void changed(ChangeEvent event);
-    }
 
 }

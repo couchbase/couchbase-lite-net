@@ -41,7 +41,7 @@ public class SavedRevision extends Revision {
      * Constructor
      */
     @InterfaceAudience.Private
-    SavedRevision(Document document, RevisionInternal revision) {
+    /* package */ SavedRevision(Document document, RevisionInternal revision) {
         super(document);
         this.revisionInternal = revision;
     }
@@ -50,7 +50,7 @@ public class SavedRevision extends Revision {
      * Constructor
      */
     @InterfaceAudience.Private
-    SavedRevision(Database database, RevisionInternal revision) {
+    /* package */ SavedRevision(Database database, RevisionInternal revision) {
         this(database.getDocument(revision.getDocId()), revision);
     }
 
@@ -107,7 +107,8 @@ public class SavedRevision extends Revision {
      */
     @InterfaceAudience.Public
     public SavedRevision createRevision(Map<String, Object> properties) throws CouchbaseLiteException {
-        return document.putProperties(properties, revisionInternal.getRevId());
+        boolean allowConflict = false;
+        return document.putProperties(properties, revisionInternal.getRevId(), allowConflict);
     }
 
     @Override
@@ -178,7 +179,8 @@ public class SavedRevision extends Revision {
         return sequence;
     }
 
-    boolean loadProperties() {
+    @InterfaceAudience.Private
+    /* package */ boolean loadProperties() {
         try {
             RevisionInternal loadRevision = getDatabase().loadRevisionBody(revisionInternal, EnumSet.noneOf(Database.TDContentOptions.class));
             if (loadRevision == null) {

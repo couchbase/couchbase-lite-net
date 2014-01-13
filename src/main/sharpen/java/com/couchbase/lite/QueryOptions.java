@@ -36,7 +36,6 @@ public class QueryOptions {
     private EnumSet<TDContentOptions> contentOptions = EnumSet.noneOf(Database.TDContentOptions.class);
     private boolean descending = false;
     private boolean includeDocs = false;
-    private boolean includeDeletedDocs = false; // only works with _all_docs, not regular views
 
     private boolean updateSeq = false;
     private boolean inclusiveEnd = true;
@@ -44,6 +43,7 @@ public class QueryOptions {
     private boolean reduceSpecified = false;
     private boolean group = false;
     private Query.IndexUpdateMode stale;
+    private Query.AllDocsMode allDocsMode;
 
 
     public Object getStartKey() {
@@ -154,14 +154,6 @@ public class QueryOptions {
         return stale;
     }
 
-    public boolean isIncludeDeletedDocs() {
-        return includeDeletedDocs;
-    }
-
-    public void setIncludeDeletedDocs(boolean includeDeletedDocs) {
-        this.includeDeletedDocs = includeDeletedDocs;
-    }
-
     public void setStale(Query.IndexUpdateMode stale) {
         this.stale = stale;
     }
@@ -174,4 +166,11 @@ public class QueryOptions {
         this.reduceSpecified = reduceSpecified;
     }
 
+    public Query.AllDocsMode getAllDocsMode() {
+        return allDocsMode;
+    }
+
+    public void setAllDocsMode(Query.AllDocsMode allDocsMode) {
+        this.allDocsMode = allDocsMode;
+    }
 }

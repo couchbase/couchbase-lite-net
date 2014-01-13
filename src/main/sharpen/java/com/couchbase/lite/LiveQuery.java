@@ -23,7 +23,7 @@ public class LiveQuery extends Query implements Database.ChangeListener {
      * Constructor
      */
     @InterfaceAudience.Private
-    LiveQuery(Query query) {
+    /* package */ LiveQuery(Query query) {
         super(query.getDatabase(), query.getView());
         setLimit(query.getLimit());
         setSkip(query.getSkip());
@@ -40,11 +40,20 @@ public class LiveQuery extends Query implements Database.ChangeListener {
     }
 
     /**
-     * In LiveQuery the rows accessor is a non-blocking property.
-     * Its value will be nil until the initial query finishes.
+     * Sends the query to the server and returns an enumerator over the result rows (Synchronous).
+     * Note: In a CBLLiveQuery you should add a ChangeListener and call start() instead.
      */
+    @Override
     @InterfaceAudience.Public
     public QueryEnumerator run() throws CouchbaseLiteException {
+
+        try {
+            waitForRows();
+        } catch (Exception e) {
+            lastError = e;
+            throw new CouchbaseLiteException(e, Status.INTERNAL_SERVER_ERROR);
+        }
+
         if (rows == null) {
             return null;
         }
@@ -64,16 +73,15 @@ public class LiveQuery extends Query implements Database.ChangeListener {
 
     /**
      * Starts observing database changes. The .rows property will now update automatically. (You
-     * usually don't need to call this yourself, since calling rows()
-     * call start for you.)
+     * usually don't need to call this yourself, since calling getRows() will start it for you
      */
     @InterfaceAudience.Public
     public void start() {
         if (!observing) {
             observing = true;
             getDatabase().addChangeListener(this);
+            update();
         }
-        update();
     }
 
     /**
@@ -110,6 +118,21 @@ public class LiveQuery extends Query implements Database.ChangeListener {
     }
 
     /**
+     * Gets the results of the Query. The value will be null until the initial Query completes.
+     */
+    @InterfaceAudience.Public
+    public QueryEnumerator getRows() {
+        start();
+        if (rows == null) {
+            return null;
+        }
+        else {
+            // Have to return a copy because the enumeration has to start at item #0 every time
+            return new QueryEnumerator(rows);
+        }
+    }
+
+    /**
      * Add a change listener to be notified when the live query result
      * set changes.
      */
@@ -126,48 +149,10 @@ public class LiveQuery extends Query implements Database.ChangeListener {
         observers.remove(changeListener);
     }
 
-    void update() {
-        if (getView() == null) {
-            throw new IllegalStateException("Cannot start LiveQuery when view is null");
-        }
-        setWillUpdate(false);
-        updateQueryFuture = runAsyncInternal(new QueryCompleteListener() {
-            @Override
-            public void completed(QueryEnumerator rows, Throwable error) {
-                if (error != null) {
-                    for (ChangeListener observer : observers) {
-                        observer.changed(new ChangeEvent(error));
-                    }
-                    lastError = error;
-                } else {
-                    if (rows != null && !rows.equals(rows)) {
-                        setRows(rows);
-                        for (ChangeListener observer : observers) {
-                            observer.changed(new ChangeEvent(LiveQuery.this, rows));
-                        }
-                    }
-                    lastError = null;
-                }
-            }
-        });
-    }
-
-    @Override
-    public void changed(Database.ChangeEvent event) {
-        if (!willUpdate) {
-            setWillUpdate(true);
-            update();
-        }
-    }
-
-    private synchronized void setRows(QueryEnumerator queryEnumerator) {
-        rows = queryEnumerator;
-    }
-
-    private synchronized void setWillUpdate(boolean willUpdateParam) {
-        willUpdate = willUpdateParam;
-    }
-
+    /**
+     * The type of event raised when a LiveQuery result set changes.
+     */
+    @InterfaceAudience.Public
     public static class ChangeEvent {
 
         private LiveQuery source;
@@ -200,8 +185,58 @@ public class LiveQuery extends Query implements Database.ChangeListener {
 
     }
 
+    /**
+     * A delegate that can be used to listen for LiveQuery result set changes.
+     */
+    @InterfaceAudience.Public
     public static interface ChangeListener {
         public void changed(ChangeEvent event);
+    }
+
+    @InterfaceAudience.Private
+    /* package */ void update() {
+        if (getView() == null) {
+            throw new IllegalStateException("Cannot start LiveQuery when view is null");
+        }
+        setWillUpdate(false);
+        updateQueryFuture = runAsyncInternal(new QueryCompleteListener() {
+            @Override
+            public void completed(QueryEnumerator rowsParam, Throwable error) {
+                if (error != null) {
+                    for (ChangeListener observer : observers) {
+                        observer.changed(new ChangeEvent(error));
+                    }
+                    lastError = error;
+                } else {
+                    if (rowsParam != null && !rowsParam.equals(rows)) {
+                        setRows(rowsParam);
+                        for (ChangeListener observer : observers) {
+                            observer.changed(new ChangeEvent(LiveQuery.this, rows));
+                        }
+                    }
+                    lastError = null;
+                }
+            }
+        });
+    }
+
+    @Override
+    @InterfaceAudience.Private
+    public void changed(Database.ChangeEvent event) {
+        if (!willUpdate) {
+            setWillUpdate(true);
+            update();
+        }
+    }
+
+    @InterfaceAudience.Private
+    private synchronized void setRows(QueryEnumerator queryEnumerator) {
+        rows = queryEnumerator;
+    }
+
+    @InterfaceAudience.Private
+    private synchronized void setWillUpdate(boolean willUpdateParam) {
+        willUpdate = willUpdateParam;
     }
 
 

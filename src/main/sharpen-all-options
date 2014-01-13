@@ -4,8 +4,9 @@
 
 -methodMapping System.out.println System.Console.WriteLine
 
--namespaceMapping com.couchbase.cblite Couchbase
--namespaceMapping com.couchbase.touchdb Couchbase
+-namespaceMapping com.couchbase.cblite Couchbase.Lite
+-namespaceMapping com.couchbase.lite Couchbase.Lite
+-namespaceMapping com.couchbase.touchdb Couchbase.Lite
 -namespaceMapping org.apache.http.authentication Org.Apache.Http.Authentication
 -namespaceMapping org.apache.http.impl.auth Org.Apache.Http.Impl.Client
 -namespaceMapping org.apache.http.util Org.Apache.Http.Util

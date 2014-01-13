@@ -33,6 +33,7 @@ public class RevisionInternal {
     private String docId;
     private String revId;
     private boolean deleted;
+    private boolean missing;
     private Body body;
     private long sequence;
     private Database database;  // TODO: get rid of this field!
@@ -79,43 +80,12 @@ public class RevisionInternal {
         if (prop == null) {
             return null;
         }
-        return getProperties().get(key);
+        return prop.get(key);
     }
 
     public void setProperties(Map<String,Object> properties) {
         this.body = new Body(properties);
-
-        /*
-
-        native_api branch: commenting this out to match ios code.  the expectation
-                           is that this attachment handling will happen else
-
-        // this is a much more simplified version that what happens on the iOS.  it was
-        // done this way due to time constraints, so at some point this needs to be
-        // revisited to port the remaining functionality.
-        Map<String, Object> attachments = (Map<String, Object>) properties.get("_attachments");
-        if (attachments != null && attachments.size() > 0) {
-            for (String attachmentName : attachments.keySet()) {
-                Map<String, Object> attachment = (Map<String, Object>) attachments.get(attachmentName);
-
-                // if there is actual data in this attachment, no need to try to install it
-                if (attachment.containsKey("data")) {
-                    continue;
-                }
-
-                Status status = database.installPendingAttachment(attachment);
-                if (status.isSuccessful() == false) {
-                    String msg = String.format("Unable to install pending attachment: %s.  Status: %d", attachment.toString(), status.getCode());
-                    throw new IllegalStateException(msg);
-                }
-            }
-
-        }
-        */
-
     }
-
-
 
     public byte[] getJson() {
         byte[] result = null;
@@ -176,6 +146,14 @@ public class RevisionInternal {
 
     public void setBody(Body body) {
         this.body = body;
+    }
+
+    public boolean isMissing() {
+        return missing;
+    }
+
+    public void setMissing(boolean missing) {
+        this.missing = missing;
     }
 
     public RevisionInternal copyWithDocID(String docId, String revId) {
