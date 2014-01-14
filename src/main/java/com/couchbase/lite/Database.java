@@ -19,8 +19,8 @@ package com.couchbase.lite;
 
 import com.couchbase.lite.internal.AttachmentInternal;
 import com.couchbase.lite.internal.Body;
-import com.couchbase.lite.internal.InterfaceAudience;
 import com.couchbase.lite.internal.RevisionInternal;
+import com.couchbase.lite.internal.InterfaceAudience;
 import com.couchbase.lite.replicator.Puller;
 import com.couchbase.lite.replicator.Pusher;
 import com.couchbase.lite.replicator.Replication;
@@ -33,6 +33,7 @@ import com.couchbase.lite.support.Base64;
 import com.couchbase.lite.support.FileDirUtils;
 import com.couchbase.lite.support.HttpClientFactory;
 import com.couchbase.lite.util.Log;
+import com.couchbase.lite.util.LruCache;
 import com.couchbase.lite.util.TextUtils;
 
 import java.io.File;
@@ -76,6 +77,7 @@ public class Database {
     private BlobStore attachments;
     private Manager manager;
     private List<ChangeListener> changeListeners;
+    private LruCache<String, Document> docCache;
 
     private long startTime;
 
@@ -178,6 +180,7 @@ public class Database {
         this.name = FileDirUtils.getDatabaseNameFromPath(path);
         this.manager = manager;
         this.changeListeners = new ArrayList<ChangeListener>();
+        this.docCache = new LruCache<String, Document>(MAX_DOC_CACHE_SIZE);
         this.startTime = System.currentTimeMillis();
     }
 
@@ -328,7 +331,15 @@ public class Database {
         if (documentId == null || documentId.length() == 0) {
             return null;
         }
-        return new Document(this, documentId);
+        Document doc = docCache.get(documentId);
+        if (doc == null) {
+            doc = new Document(this, documentId);
+            if (doc == null) {
+                return null;
+            }
+            docCache.put(documentId, doc);
+        }
+        return doc;
     }
 
     /**
@@ -671,7 +682,7 @@ public class Database {
      */
     @InterfaceAudience.Private
     protected Document getCachedDocument(String documentID) {
-        return null;
+        return docCache.get(documentID);
     }
 
     /**
@@ -680,10 +691,12 @@ public class Database {
      */
     @InterfaceAudience.Private
     protected void clearDocumentCache() {
+        docCache.evictAll();
     }
 
     @InterfaceAudience.Private
     protected void removeDocumentFromCache(Document document) {
+        docCache.remove(document.getId());
     }
 
     @InterfaceAudience.Private
