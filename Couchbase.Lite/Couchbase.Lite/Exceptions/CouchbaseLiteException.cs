@@ -4,11 +4,13 @@ namespace Couchbase.Lite {
 
     public class CouchbaseLiteException : ApplicationException {
 
-        public CouchbaseLiteException (Exception innerException, StatusCode code) : base(String.Format("Database error: {0}", code), innerException) { }
+        internal StatusCode Code { get; set; }
 
-        public CouchbaseLiteException (Exception innerException, Status code) : this(innerException, code.GetCode()) { }
+        public CouchbaseLiteException (Exception innerException, StatusCode code) : base(String.Format("Database error: {0}", code), innerException) { Code = code; }
 
-        public CouchbaseLiteException (StatusCode code) : base(String.Format("Database error: {0}", code)) { }
+        public CouchbaseLiteException (Exception innerException, Status status) : this(innerException, status.GetCode()) { Code = status.GetCode(); }
+
+        public CouchbaseLiteException (StatusCode code) : base(String.Format("Database error: {0}", code)) { Code = code; }
 
         public CouchbaseLiteException (string message) : base(message) {  }
 
@@ -17,7 +19,7 @@ namespace Couchbase.Lite {
 
         public Status GetCBLStatus ()
         {
-            throw new NotImplementedException ();
+            return new Status(Code);
         }
     }
 

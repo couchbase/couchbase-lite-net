@@ -14,23 +14,23 @@ namespace Couchbase.Lite {
 
     public partial class DocumentChange
     {
-        internal RevisionInternal RevisionInternal { get; private set; }
+        internal RevisionInternal AddedRevision { get; private set; }
 
-        internal DocumentChange(RevisionInternal revisionInternal, bool isCurrentRevision, bool isConflict, Uri sourceUrl)
+        internal DocumentChange(RevisionInternal addedRevision, RevisionInternal winningRevision, bool isConflict, Uri sourceUrl)
         {
-            RevisionInternal = revisionInternal;
-            IsCurrentRevision = isCurrentRevision;
+            AddedRevision = addedRevision;
+            WinningRevision = winningRevision;
             IsConflict = isConflict;
             SourceUrl = sourceUrl;
         }
     
     #region Instance Members
         //Properties
-        public String DocumentId { get { throw new NotImplementedException(); } }
+        public String DocumentId { get { return AddedRevision.GetDocId(); } }
 
-        public String RevisionId { get { throw new NotImplementedException(); } }
+        public String RevisionId { get { return AddedRevision.GetDocId(); } }
 
-        public Boolean IsCurrentRevision { get; private set; }
+        public RevisionInternal WinningRevision { get; private set; }
 
         public Boolean IsConflict { get; private set; }
 
@@ -40,13 +40,11 @@ namespace Couchbase.Lite {
     
     #region Static Members
 
-        internal static DocumentChange TempFactory(RevisionInternal revisionInternal, Uri sourceUrl)
+        internal static DocumentChange TempFactory(RevisionInternal revisionInternal
+            , Uri sourceUrl, bool inConflict)
         {
-            const bool isCurrentRevFixMe = false;
-            // TODO: fix this to have a real value
-            const bool isConflictRevFixMe = false;
-            // TODO: fix this to have a real value
-            var change = new DocumentChange(revisionInternal, isCurrentRevFixMe, isConflictRevFixMe, sourceUrl);
+            var change = new DocumentChange(revisionInternal, null, inConflict, sourceUrl);
+            // TODO: fix winning revision here
             return change;
         }
 

@@ -25,8 +25,8 @@ using Sharpen;
 
 namespace Couchbase.Lite.Support
 {
-	public interface BatchProcessor<T>
+	public interface IBatchProcessor<T>
 	{
-		void Process(IList<T> inbox);
+        void Process(IEnumerable<T> inbox);
 	}
 }

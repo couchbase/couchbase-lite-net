@@ -234,6 +234,8 @@
     <Compile Include="Replication\ChangeTrackerClient.cs" />
     <Compile Include="Util\ExtensionMethods.cs" />
     <Compile Include="Util\DefaultAuthHandler.cs" />
+    <Compile Include="Util\SequenceMap.cs" />
+    <Compile Include="Replication\PulledRevision.cs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="System" />

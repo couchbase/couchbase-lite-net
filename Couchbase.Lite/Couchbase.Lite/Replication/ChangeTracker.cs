@@ -61,7 +61,7 @@ namespace Couchbase.Lite.Replicator
 
         private String filterName;
 
-		private IDictionary<string, object> filterParams;
+        private IDictionary<String, Object> filterParams;
 
         private IList<String> docIDs;
 
@@ -95,7 +95,7 @@ namespace Couchbase.Lite.Replicator
 			this.filterName = filterName;
 		}
 
-		public void SetFilterParams(IDictionary<string, object> filterParams)
+        public void SetFilterParams(IDictionary<String, Object> filterParams)
 		{
 			this.filterParams = filterParams;
 		}
@@ -149,13 +149,13 @@ namespace Couchbase.Lite.Replicator
 			path += "&heartbeat=300000";
 			if (lastSequenceID != null)
 			{
-            path += "&since=" + HttpUtility.UrlEncode(lastSequenceID.ToString());
+                path += "&since=" + HttpUtility.UrlEncode(lastSequenceID.ToString());
 			}
 			if (docIDs != null && docIDs.Count > 0)
 			{
 				filterName = "_doc_ids";
-				filterParams = new Dictionary<string, object>();
-				filterParams.Put("doc_ids", docIDs);
+                filterParams = new Dictionary<String, Object>();
+                filterParams.Put("doc_ids", docIDs);
 			}
 			if (filterName != null)
 			{
@@ -164,7 +164,7 @@ namespace Couchbase.Lite.Replicator
 				{
 					foreach (string filterParamKey in filterParams.Keys)
 					{
-						object value = filterParams.Get(filterParamKey);
+                        var value = filterParams.Get(filterParamKey);
 						if (!(value is string))
 						{
 							try
@@ -176,8 +176,7 @@ namespace Couchbase.Lite.Replicator
                                 throw new ArgumentException(Tag, e);
 							}
 						}
-						path += "&" + HttpUtility.UrlEncode(filterParamKey) + "=" + HttpUtility.UrlEncode(value.ToString
-							());
+						path += "&" + HttpUtility.UrlEncode(filterParamKey) + "=" + HttpUtility.UrlEncode(value.ToString());
 					}
 				}
 			}

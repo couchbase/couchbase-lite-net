@@ -11,6 +11,7 @@ using System.Threading.Tasks;
 using System.Net.Http;
 using System.Threading;
 using ServiceStack;
+using System.IO;
 
 namespace Couchbase.Lite {
 
@@ -23,16 +24,16 @@ namespace Couchbase.Lite {
 
     #endregion
 
-    #region Enums
-    
-    public enum ReplicationStatus {
-        Stopped,
-        Offline,
-        Idle,
-        Active
-    }
-                        
-    #endregion
+    #region Enums
+    
+    public enum ReplicationStatus {
+        Stopped,
+        Offline,
+        Idle,
+        Active
+    }
+                        
+    #endregion
 
     #region Constructors
 
@@ -47,6 +48,7 @@ namespace Couchbase.Lite {
             WorkExecutor = workExecutor;
             CancellationTokenSource = tokenSource ?? new CancellationTokenSource();
             RemoteUrl = remote;
+            Status = Replication.ReplicationStatus.Stopped;
 
             if (RemoteUrl.GetQuery() != null && !RemoteUrl.GetQuery().IsEmpty())
             {
@@ -98,12 +100,12 @@ namespace Couchbase.Lite {
                 {
                     Log.V (Database.Tag, "*** " + this + ": BEGIN processInbox (" + inbox.Count + " sequences)");
                     ProcessInbox (new RevisionList (inbox));
-                    Log.V (Database.Tag, "*** " + this.ToString () + ": END processInbox (lastSequence=" + lastSequence);
+                    Log.V (Database.Tag, "*** " + this.ToString () + ": END processInbox (lastSequence=" + LastSequence);
 
                     active = false;
                 }, CancellationTokenSource);
             this.clientFactory = clientFactory ?? CouchbaseLiteHttpClientFactory.Instance;
-            client = this.clientFactory.GetHttpClient();
+//            client = this.clientFactory.GetHttpClient();
         }
 
     #endregion
@@ -120,13 +122,12 @@ namespace Couchbase.Lite {
 
         private static Int32 lastSessionID = 0;
 
-        readonly private TaskFactory WorkExecutor; // FIXME: Remove this.
+        readonly protected TaskFactory WorkExecutor; // FIXME: Remove this.
 
-        readonly protected HttpClient client;
         readonly protected IHttpClientFactory clientFactory;
 
         protected internal String  sessionID;
-        protected internal String  lastSequence;
+        protected internal String  LastSequence;
         protected internal Boolean lastSequenceChanged;
         protected internal Boolean savingCheckpoint;
         protected internal Boolean overdueForSave;
@@ -142,6 +143,8 @@ namespace Couchbase.Lite {
         private  Authorizer Authorizer { get; set; }
         internal Batcher<RevisionInternal> Batcher { get; set; }
         private CancellationTokenSource CancellationTokenSource { get; set; }
+
+        protected internal IDictionary<String, Object> RequestHeaders { get; set; }
 
         readonly object asyncTaskLocker = new object ();
 
@@ -259,8 +262,8 @@ namespace Couchbase.Lite {
                         remoteLastSequence = (string)response.Get ("lastSequence");
                     }
                     if (remoteLastSequence != null && remoteLastSequence.Equals (localLastSequence)) {
-                        lastSequence = localLastSequence;
-                        Log.V (Database.Tag, this + ": Replicating from lastSequence=" + lastSequence);
+                        LastSequence = localLastSequence;
+                        Log.V (Database.Tag, this + ": Replicating from lastSequence=" + LastSequence);
                     } else {
                         Log.V (Database.Tag, this + ": lastSequence mismatch: I had " + localLastSequence + ", remote had " + remoteLastSequence);
                     }
@@ -335,14 +338,14 @@ namespace Couchbase.Lite {
             lastSequenceChanged = false;
             overdueForSave = false;
 
-            Log.V(Database.Tag, this + " checkpointing sequence=" + lastSequence);
+            Log.V(Database.Tag, this + " checkpointing sequence=" + LastSequence);
 
             var body = new Dictionary<String, Object>();
             if (remoteCheckpoint != null)
             {
                 body.PutAll(remoteCheckpoint);
             }
-            body.Put("lastSequence", lastSequence);
+            body.Put("lastSequence", LastSequence);
             var remoteCheckpointDocID = RemoteCheckpointDocID();
             if (String.IsNullOrEmpty(remoteCheckpointDocID))
             {
@@ -363,7 +366,7 @@ namespace Couchbase.Lite {
                 }
             });
             // TODO: If error is 401 or 403, and this is a pull, remember that remote is read-only and don't attempt to read its checkpoint next time.
-            LocalDatabase.SetLastSequence(lastSequence, RemoteUrl, !IsPull);
+            LocalDatabase.SetLastSequence(LastSequence, RemoteUrl, !IsPull);
         }
 
         internal void SendAsyncRequest(HttpMethod method, string relativePath, object body, Action<Object, Exception> completionHandler)
@@ -404,7 +407,7 @@ namespace Couchbase.Lite {
             message.Headers.Add("Accept", "multipart/related, application/json");
 
             PreemptivelySetAuthCredentials(message);
-
+            var client = clientFactory.GetHttpClient();
             client.CancelPendingRequests();
             client.SendAsync(message, HttpCompletionOption.ResponseHeadersRead, CancellationTokenSource.Token)
                 .ContinueWith(response=> {
@@ -458,6 +461,137 @@ namespace Couchbase.Lite {
 
         }
 
+        private void AddRequestHeaders(HttpRequestMessage request)
+        {
+            foreach (string requestHeaderKey in RequestHeaders.Keys)
+            {
+                request.Headers.Add(requestHeaderKey, RequestHeaders.Get(requestHeaderKey).ToString());
+            }
+        }
+
+        internal void SendAsyncMultipartDownloaderRequest(HttpMethod method, string relativePath, object body, Database db, RemoteRequestCompletionBlock onCompletion)
+        {
+            try
+            {
+                var urlStr = BuildRelativeURLString(relativePath);
+                var url = new Uri(urlStr);
+
+                var message = new HttpRequestMessage(method, url);
+                message.Headers.Add("Accept", "*/*");
+                AddRequestHeaders(message);
+
+                var httpClient = clientFactory.GetHttpClient();
+                httpClient.SendAsync(message, HttpCompletionOption.ResponseHeadersRead, CancellationTokenSource.Token)
+                    .ContinueWith(new Action<Task<HttpResponseMessage>>(responseMessage=> {
+                        object fullBody = null;
+                        Exception error = null;
+                        try
+                        {
+                            var response = responseMessage.Result;
+                            // add in cookies to global store
+                            CouchbaseLiteHttpClientFactory.Instance.AddCookies(clientFactory.HttpHandler.CookieContainer.GetCookies(url));
+                               
+                            var status = response.StatusCode;
+                            if ((Int32)status.GetStatusCode() >= 300)
+                            {
+                                Log.E(Database.Tag, "Got error " + Sharpen.Extensions.ToString(status.GetStatusCode
+                                    ()));
+                                Log.E(Database.Tag, "Request was for: " + message);
+                                Log.E(Database.Tag, "Status reason: " + response.ReasonPhrase);
+                                error = new HttpException((Int32)status.GetStatusCode(), response.ReasonPhrase);
+                            }
+                        else
+                        {
+                            var entity = response.Content;
+                            var contentTypeHeader = response.Content.Headers.ContentType;
+                            InputStream inputStream = null;
+                            if (contentTypeHeader != null && contentTypeHeader.ToString().Contains("multipart/related"))
+                            {
+                                try
+                                {
+//                                    var reader = new MultipartDocumentReader(response, db);
+//                                    reader.SetContentType(contentTypeHeader.GetValue());
+//                                    inputStream = entity.GetContent();
+//                                    int bufLen = 1024;
+//                                    byte[] buffer = new byte[bufLen];
+//                                    int numBytesRead = 0;
+//                                    while ((numBytesRead = inputStream.Read(buffer)) != -1)
+//                                    {
+//                                        if (numBytesRead != bufLen)
+//                                        {
+//                                            byte[] bufferToAppend = Arrays.CopyOfRange(buffer, 0, numBytesRead);
+//                                            reader.AppendData(bufferToAppend);
+//                                        }
+//                                        else
+//                                        {
+//                                            reader.AppendData(buffer);
+//                                        }
+//                                    }
+//                                    reader.Finish();
+//                                    fullBody = reader.GetDocumentProperties();
+                                        var reader = responseMessage.Result.Content.ReadAsMultipartAsync();
+                                        if (onCompletion != null)
+                                            onCompletion(fullBody, error);
+                                }
+                                finally
+                                {
+                                    try
+                                    {
+                                        inputStream.Close();
+                                    }
+                                    catch (IOException)
+                                    {
+                                            // NOTE: swallow?
+                                    }
+                                }
+                            }
+                            else
+                            {
+                                if (entity != null)
+                                {
+                                    try
+                                    {
+                                        var readTask = entity.ReadAsStreamAsync();
+                                        readTask.Wait();
+                                        inputStream = readTask.Result;
+                                        fullBody = Manager.GetObjectMapper().ReadValue<object>(inputStream);
+                                        if (onCompletion != null)
+                                            onCompletion(fullBody, error);
+                                    }
+                                    finally
+                                    {
+                                        try
+                                        {
+                                            inputStream.Close();
+                                        }
+                                        catch (IOException)
+                                        {
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    catch (ProtocolViolationException e)
+                    {
+                        Log.E(Database.Tag, "client protocol exception", e);
+                        error = e;
+                    }
+                    catch (IOException e)
+                    {
+                        Log.E(Database.Tag, "io exception", e);
+                        error = e;
+                    }
+                    }));
+            }
+            catch (UriFormatException e)
+            {
+                Log.E(Database.Tag, "Malformed URL for async request", e);
+            }
+        }
+
+
+
         internal void SendAsyncMultipartRequest(HttpMethod method, String relativePath, MultipartContent multiPartEntity, RemoteRequestCompletionBlock completionHandler)
         {
             Uri url = null;
@@ -476,7 +610,7 @@ namespace Couchbase.Lite {
             message.Headers.Add("Accept", "*/*");
 
             PreemptivelySetAuthCredentials(message);
-
+            var client = clientFactory.GetHttpClient();
             client.CancelPendingRequests();
             client.SendAsync(message, HttpCompletionOption.ResponseHeadersRead, CancellationTokenSource.Token)
                 .ContinueWith(response=> {
@@ -521,8 +655,8 @@ namespace Couchbase.Lite {
 
 
     #endregion
-    
-    #region Instance Members
+    
+    #region Instance Members
 
         /// <summary>
         /// Gets the local <see cref="Couchbase.Lite.Database"/> being replicated to\from.
@@ -589,19 +723,19 @@ namespace Couchbase.Lite {
         /// <summary>
         /// Gets the <see cref="Couchbase.Lite.Replication"/>'s current status.
         /// </summary>
-        public abstract ReplicationStatus Status { get; }
+        public ReplicationStatus Status { get; set; }
 
         /// <summary>
         /// Gets whether the <see cref="Couchbase.Lite.Replication"/> is running.  Continuous <see cref="Couchbase.Lite.Replication"/> never actually stop, instead they go 
         /// idle waiting for new data to appear.
         /// </summary>
         /// <value><c>true</c> if this instance is running; otherwise, <c>false</c>.</value>
-        public Boolean IsRunning { get; private set; }
+        public Boolean IsRunning { get; protected set; }
 
         /// <summary>
         /// Gets the last error, if any, that occurred since the <see cref="Couchbase.Lite.Replication"/> was started.
         /// </summary>
-        public Exception LastError { get; private set; }
+        public Exception LastError { get; protected set; }
 
         /// <summary>
         /// If the <see cref="Couchbase.Lite.Replication"/> is active, gets the number of completed changes that have been processed, otherwise 0.
@@ -609,7 +743,7 @@ namespace Couchbase.Lite {
         /// <value>The completed changes count.</value>
         public Int32 CompletedChangesCount {
             get { return completedChangesCount; }
-            private set {
+            protected set {
                 completedChangesCount = value;
                 NotifyChangeListeners();
             }
@@ -621,7 +755,7 @@ namespace Couchbase.Lite {
         /// <value>The changes count.</value>
         public Int32 ChangesCount {
             get { return changesCount; }
-            private set {
+            protected set {
                 changesCount = value;
                 NotifyChangeListeners();
             }
@@ -641,7 +775,7 @@ namespace Couchbase.Lite {
             sessionID = string.Format("repl{0:000}", ++lastSessionID);
             Log.V(Database.Tag, ToString() + " STARTING ...");
             IsRunning = true;
-            lastSequence = null;
+            LastSequence = null;
             CheckSession();
         }
 
@@ -666,17 +800,22 @@ namespace Couchbase.Lite {
             }
         }
 
-        public abstract void Restart();
+        public void Restart()
+        {
+            // TODO: add the "started" flag and check it here
+            Stop();
+            Start();
+        }
 
         public event EventHandler<ReplicationChangeEventArgs> Changed;
 
-    #endregion
-    
-    #region EventArgs Subclasses
+    #endregion
+    
+    #region EventArgs Subclasses
         public class ReplicationChangeEventArgs : EventArgs 
         {
-            //Properties
-            public Replication Source { get; private set; }
+            //Properties
+            public Replication Source { get; private set; }
 
 
             public ReplicationChangeEventArgs (Replication sender)
@@ -685,9 +824,9 @@ namespace Couchbase.Lite {
             }
         }
 
-    #endregion
-    
-    }
+    #endregion
+    
+    }
 
 }
 

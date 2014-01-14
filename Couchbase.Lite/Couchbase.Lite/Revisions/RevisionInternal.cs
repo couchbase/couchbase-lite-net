@@ -33,7 +33,7 @@ namespace Couchbase.Lite.Internal
 	/// Stores information about a revision -- its docID, revID, and whether it's deleted.
 	/// It can also store the sequence number and document contents (they can be added after creation).
 	/// </remarks>
-    internal class RevisionInternal
+    public class RevisionInternal
 	{
 		private string docId;
 

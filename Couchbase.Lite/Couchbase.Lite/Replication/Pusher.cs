@@ -33,7 +33,7 @@ using System.Threading.Tasks;
 
 namespace Couchbase.Lite.Replicator
 {
-    internal class Pusher : Replication
+    internal class Pusher : Replication, IChangeTrackerClient
 	{
 		private bool shouldCreateTarget;
 
@@ -57,10 +57,34 @@ namespace Couchbase.Lite.Replicator
 
         #region implemented abstract members of Replication
 
-        public override void Restart ()
+        #region IChangeTrackerClient implementation
+
+        public void ChangeTrackerReceivedChange (IDictionary<string, object> change)
         {
             throw new NotImplementedException ();
         }
+
+        public void ChangeTrackerStopped (ChangeTracker tracker)
+        {
+            throw new NotImplementedException ();
+        }
+
+        #endregion
+
+        #region IHttpClientFactory implementation
+
+        public System.Net.Http.HttpClient GetHttpClient ()
+        {
+            throw new NotImplementedException ();
+        }
+
+        public System.Net.Http.HttpClientHandler HttpHandler {
+            get {
+                throw new NotImplementedException ();
+            }
+        }
+
+        #endregion
 
         public override bool CreateTarget {
             get {
@@ -94,12 +118,6 @@ namespace Couchbase.Lite.Replicator
                 throw new NotImplementedException ();
             }
             set {
-                throw new NotImplementedException ();
-            }
-        }
-
-        public override ReplicationStatus Status {
-            get {
                 throw new NotImplementedException ();
             }
         }

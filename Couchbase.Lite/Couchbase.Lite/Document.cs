@@ -330,16 +330,19 @@ namespace Couchbase.Lite {
 
         internal void RevisionAdded(DocumentChange documentChange)
         {
-            // TODO: in the iOS code, it calls CBL_Revision* rev = change.winningRevision;
-            var rev = documentChange.RevisionInternal;
+            var rev = documentChange.WinningRevision;
+            if (rev == null)
+            {
+                return;
+            }
+            // current revision didn't change
             if (currentRevision != null && !rev.GetRevId().Equals(currentRevision.Id))
             {
                 currentRevision = new SavedRevision(this, rev);
             }
-            var change = DocumentChange.TempFactory(rev, null);
 
             var args = new DocumentChangeEventArgs {
-                Change = change,
+                Change = documentChange,
                 Source = this
             } ;
 

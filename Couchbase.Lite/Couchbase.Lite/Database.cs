@@ -632,9 +632,61 @@ namespace Couchbase.Lite
 
         private IDictionary<String, FilterDelegate> Filters { get; set; }
 
-        internal RevisionList GetAllRevisionsOfDocumentID (string id, bool b)
+        internal RevisionList GetAllRevisionsOfDocumentID (string id, bool onlyCurrent)
         {
-            throw new NotImplementedException ();
+            var docNumericId = GetDocNumericID(id);
+            if (docNumericId < 0)
+            {
+                return null;
+            }
+            else
+            {
+                if (docNumericId == 0)
+                {
+                    return new RevisionList();
+                }
+                else
+                {
+                    return GetAllRevisionsOfDocumentID(id, docNumericId, onlyCurrent);
+                }
+            }
+        }
+
+        private RevisionList GetAllRevisionsOfDocumentID(string docId, long docNumericID, bool onlyCurrent)
+        {
+            var sql = onlyCurrent 
+                      ? "SELECT sequence, revid, deleted FROM revs " + "WHERE doc_id=? AND current ORDER BY sequence DESC"
+                      : "SELECT sequence, revid, deleted FROM revs " + "WHERE doc_id=? ORDER BY sequence DESC";
+
+            var args = new [] { Convert.ToString (docNumericID) };
+            var cursor = StorageEngine.RawQuery(sql, args);
+
+            RevisionList result;
+            try
+            {
+                cursor.MoveToNext();
+                result = new RevisionList();
+                while (!cursor.IsAfterLast())
+                {
+                    var rev = new RevisionInternal(docId, cursor.GetString(1), (cursor.GetInt(2) > 0), this);
+                    rev.SetSequence(cursor.GetLong(0));
+                    result.AddItem(rev);
+                    cursor.MoveToNext();
+                }
+            }
+            catch (SQLException e)
+            {
+                Log.E(Database.Tag, "Error getting all revisions of document", e);
+                return null;
+            }
+            finally
+            {
+                if (cursor != null)
+                {
+                    cursor.Close();
+                }
+            }
+            return result;
         }
 
         private String GetDesignDocFunction(string fnName, string key, ICollection<string> outLanguageList)
@@ -836,6 +888,153 @@ namespace Couchbase.Lite
                     cursor.Close();
                 }
             }
+        }
+
+        /// <summary>Inserts an already-existing revision replicated from a remote sqliteDb.</summary>
+        /// <remarks>
+        /// Inserts an already-existing revision replicated from a remote sqliteDb.
+        /// It must already have a revision ID. This may create a conflict! The revision's history must be given; ancestor revision IDs that don't already exist locally will create phantom revisions with no content.
+        /// </remarks>
+        /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
+        internal void ForceInsert(RevisionInternal rev, IList<string> revHistory, Uri source)
+        {
+            var docId = rev.GetDocId();
+            var revId = rev.GetRevId();
+            if (!IsValidDocumentId(docId) || (revId == null))
+            {
+                throw new CouchbaseLiteException(StatusCode.BadRequest);
+            }
+            int historyCount = 0;
+            if (revHistory != null)
+            {
+                historyCount = revHistory.Count;
+            }
+            if (historyCount == 0)
+            {
+                revHistory = new AList<string>();
+                revHistory.AddItem(revId);
+                historyCount = 1;
+            }
+            else
+            {
+                if (!revHistory[0].Equals(rev.GetRevId()))
+                {
+                    throw new CouchbaseLiteException(StatusCode.BadRequest);
+                }
+            }
+            bool success = false;
+            BeginTransaction();
+            try
+            {
+                // First look up all locally-known revisions of this document:
+                long docNumericID = GetOrInsertDocNumericID(docId);
+                RevisionList localRevs = GetAllRevisionsOfDocumentID(docId, docNumericID, false);
+                if (localRevs == null)
+                {
+                    throw new CouchbaseLiteException(StatusCode.InternalServerError);
+                }
+                // Walk through the remote history in chronological order, matching each revision ID to
+                // a local revision. When the list diverges, start creating blank local revisions to fill
+                // in the local history:
+                long sequence = 0;
+                long localParentSequence = 0;
+                for (int i = revHistory.Count - 1; i >= 0; --i)
+                {
+                    revId = revHistory[i];
+                    RevisionInternal localRev = localRevs.RevWithDocIdAndRevId(docId, revId);
+                    if (localRev != null)
+                    {
+                        // This revision is known locally. Remember its sequence as the parent of the next one:
+                        sequence = localRev.GetSequence();
+                        System.Diagnostics.Debug.Assert((sequence > 0));
+                        localParentSequence = sequence;
+                    }
+                    else
+                    {
+                        // This revision isn't known, so add it:
+                        RevisionInternal newRev;
+                        IEnumerable<Byte> data = null;
+                        bool current = false;
+                        if (i == 0)
+                        {
+                            // Hey, this is the leaf revision we're inserting:
+                            newRev = rev;
+                            if (!rev.IsDeleted())
+                            {
+                                data = EncodeDocumentJSON(rev);
+                                if (data == null)
+                                {
+                                    throw new CouchbaseLiteException(StatusCode.BadRequest);
+                                }
+                            }
+                            current = true;
+                        }
+                        else
+                        {
+                            // It's an intermediate parent, so insert a stub:
+                            newRev = new RevisionInternal(docId, revId, false, this);
+                        }
+                        // Insert it:
+                        sequence = InsertRevision(newRev, docNumericID, sequence, current, data);
+                        if (sequence <= 0)
+                        {
+                            throw new CouchbaseLiteException(StatusCode.InternalServerError);
+                        }
+                        if (i == 0)
+                        {
+                            // Write any changed attachments for the new revision. As the parent sequence use
+                            // the latest local revision (this is to copy attachments from):
+                            IDictionary<string, AttachmentInternal> attachments = GetAttachmentsFromRevision(
+                                rev);
+                            if (attachments != null)
+                            {
+                                ProcessAttachmentsForRevision(attachments, rev, localParentSequence);
+                                StubOutAttachmentsInRevision(attachments, rev);
+                            }
+                        }
+                    }
+                }
+                // Mark the latest local rev as no longer current:
+                if (localParentSequence > 0 && localParentSequence != sequence)
+                {
+                    ContentValues args = new ContentValues();
+                    args.Put("current", 0);
+                    string[] whereArgs = new string[] { System.Convert.ToString(localParentSequence) };
+                    try
+                    {
+                        StorageEngine.Update("revs", args, "sequence=?", whereArgs); // TODO: Convert to ADO Params.
+                    }
+                    catch (SQLException)
+                    {
+                        throw new CouchbaseLiteException(StatusCode.InternalServerError);
+                    }
+                }
+                success = true;
+            }
+            catch (SQLException)
+            {
+                throw new CouchbaseLiteException(StatusCode.InternalServerError);
+            }
+            finally
+            {
+                EndTransaction(success);
+            }
+            // Notify and return:
+            const bool inConflict = false; // NOTE.ZJG: Not sure that is right, but it's what came over via sharpen.
+            // TODO: can we be in conflict here?
+            RevisionInternal winningRev = null;
+            // TODO: what should we do here?
+            NotifyChange(rev, winningRev, source, inConflict);
+        }
+
+        private Int64 GetOrInsertDocNumericID(String docId)
+        {
+            var docNumericId = GetDocNumericID(docId);
+            if (docNumericId == 0)
+            {
+                docNumericId = InsertDocumentID(docId);
+            }
+            return docNumericId;
         }
 
         /// <summary>Deletes obsolete attachments from the sqliteDb and blob store.</summary>
@@ -2152,6 +2351,24 @@ namespace Couchbase.Lite
             return result;
         }
 
+        /// <summary>Parses the _revisions dict from a document into an array of revision ID strings.</summary>
+        internal static IList<String> ParseCouchDBRevisionHistory(IDictionary<String, Object> docProperties)
+        {
+            var revisions = (IDictionary<String, Object>)docProperties.Get("_revisions");
+            if (revisions == null)
+            {
+                return null;
+            }
+            var revIDs = (IList<string>)revisions.Get("ids");
+            int start = (int)revisions.Get("start");
+            for (var i = 0; i < revIDs.Count; i++)
+            {
+                var revID = revIDs[i];
+                revIDs.Set(i, Extensions.ToString(start--) + "-" + revID);
+            }
+            return revIDs;
+        }
+
         // Splits a revision ID into its generation number and opaque suffix string
         private static int ParseRevIDNumber(string rev)
         {
@@ -2337,18 +2554,21 @@ namespace Couchbase.Lite
         /// <returns>A new RevisionInternal with the docID, revID and sequence filled in (but no body).
         ///     </returns>
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
-        internal RevisionInternal PutRevision(RevisionInternal rev, String prevRevId, Boolean allowConflict, Status resultStatus)
+        internal RevisionInternal PutRevision(RevisionInternal oldRev, String prevRevId, Boolean allowConflict, Status resultStatus)
         {
             // prevRevId is the rev ID being replaced, or nil if an insert
-            var docId = rev.GetDocId();
-            var deleted = rev.IsDeleted();
+            var docId = oldRev.GetDocId();
+            var deleted = oldRev.IsDeleted();
 
-            if ((rev == null) || ((prevRevId != null) && (docId == null)) || (deleted && (docId == null)) || ((docId != null) && !IsValidDocumentId(docId)))
+            if ((oldRev == null) || ((prevRevId != null) && (docId == null)) || (deleted && (docId == null)) || ((docId != null) && !IsValidDocumentId(docId)))
             {
                 throw new CouchbaseLiteException(StatusCode.BadRequest);
             }
             BeginTransaction();
             Cursor cursor = null;
+            var inConflict = false;
+            RevisionInternal winningRev = null;
+            RevisionInternal newRev = null;
 
             // PART I: In which are performed lookups and validations prior to the insert...
             var docNumericID = (docId != null) ? GetDocNumericID(docId) : 0;
@@ -2393,7 +2613,7 @@ namespace Couchbase.Lite
                     {
                         // Fetch the previous revision and validate the new one against it:
                         var prevRev = new RevisionInternal(docId, prevRevId, false, this);
-                        ValidateRevision(rev, prevRev);
+                        ValidateRevision(oldRev, prevRev);
                     }
                     // Make replaced rev non-current:
                     var updateContent = new ContentValues();
@@ -2417,7 +2637,7 @@ namespace Couchbase.Lite
                         }
                     }
                     // Validate:
-                    ValidateRevision(rev, null);
+                    ValidateRevision(oldRev, null);
                     if (docId != null)
                     {
                         // Inserting first revision, with docID given (PUT):
@@ -2471,24 +2691,23 @@ namespace Couchbase.Lite
                 }
                 // PART II: In which insertion occurs...
                 // Get the attachments:
-                IDictionary<string, AttachmentInternal> attachments = GetAttachmentsFromRevision(
-                    rev);
+                var attachments = GetAttachmentsFromRevision(oldRev);
                 // Bump the revID and update the JSON:
-                string newRevId = GenerateNextRevisionID(prevRevId);
+                var newRevId = GenerateNextRevisionID(prevRevId);
                 IEnumerable<byte> data = null;
-                if (!rev.IsDeleted())
+                if (!oldRev.IsDeleted())
                 {
-                    data = EncodeDocumentJSON(rev);
+                    data = EncodeDocumentJSON(oldRev);
                     if (data == null)
                     {
                         // bad or missing json
                         throw new CouchbaseLiteException(StatusCode.BadRequest);
                     }
                 }
-                rev = rev.CopyWithDocID(docId, newRevId);
-                StubOutAttachmentsInRevision(attachments, rev);
+                newRev = oldRev.CopyWithDocID(docId, newRevId);
+                StubOutAttachmentsInRevision(attachments, oldRev);
                 // Now insert the rev itself:
-                long newSequence = InsertRevision(rev, docNumericID, parentSequence, true, data);
+                long newSequence = InsertRevision(oldRev, docNumericID, parentSequence, true, data);
                 if (newSequence == 0)
                 {
                     return null;
@@ -2496,7 +2715,7 @@ namespace Couchbase.Lite
                 // Store any attachments:
                 if (attachments != null)
                 {
-                    ProcessAttachmentsForRevision(attachments, rev, parentSequence);
+                    ProcessAttachmentsForRevision(attachments, oldRev, parentSequence);
                 }
                 // Success!
                 if (deleted)
@@ -2522,18 +2741,18 @@ namespace Couchbase.Lite
                 EndTransaction(resultStatus.IsSuccessful());
             }
             // EPILOGUE: A change notification is sent...
-            NotifyChange(rev, null);
-            return rev;
+            NotifyChange(newRev, winningRev, null, inConflict);
+            return oldRev;
         }
 
-        internal void NotifyChange(RevisionInternal rev, Uri source)
+        internal void NotifyChange(RevisionInternal rev, RevisionInternal winningRev, Uri source, bool inConflict)
         {
             // TODO: it is currently sending one change at a time rather than batching them up
             const bool isExternalFixMe = false;
             // TODO: fix this to have a real value
-            var change = DocumentChange.TempFactory(rev, source);
+            var change = new DocumentChange(rev, winningRev, inConflict, source);
 
-            var changes = new AList<DocumentChange>();
+            var changes = new AList<DocumentChange>() { change };
             changes.AddItem(change);
 
             var args = new DatabaseChangeEventArgs { 
@@ -3009,6 +3228,46 @@ namespace Couchbase.Lite
         internal Boolean ExistsDocumentWithIDAndRev(String docId, String revId)
         {
             return GetDocumentWithIDAndRev(docId, revId, EnumSet.Of(TDContentOptions.TDNoBody)) != null;
+        }
+
+        internal bool FindMissingRevisions(RevisionList touchRevs)
+        {
+            if (touchRevs.Count == 0)
+            {
+                return true;
+            }
+            var quotedDocIds = JoinQuoted(touchRevs.GetAllDocIds());
+            var quotedRevIds = JoinQuoted(touchRevs.GetAllRevIds());
+            var sql = "SELECT docid, revid FROM revs, docs " + "WHERE docid IN (" + quotedDocIds
+                         + ") AND revid in (" + quotedRevIds + ")" + " AND revs.doc_id == docs.doc_id";
+            Cursor cursor = null;
+            try
+            {
+                cursor = StorageEngine.RawQuery(sql, null);
+                cursor.MoveToNext();
+                while (!cursor.IsAfterLast())
+                {
+                    var rev = touchRevs.RevWithDocIdAndRevId(cursor.GetString(0), cursor.GetString(1));
+                    if (rev != null)
+                    {
+                        touchRevs.Remove(rev);
+                    }
+                    cursor.MoveToNext();
+                }
+            }
+            catch (SQLException e)
+            {
+                Log.E(Database.Tag, "Error finding missing revisions", e);
+                return false;
+            }
+            finally
+            {
+                if (cursor != null)
+                {
+                    cursor.Close();
+                }
+            }
+            return true;
         }
 
         /// <summary>DOCUMENT & REV IDS:</summary>
