@@ -23,6 +23,7 @@ using Couchbase.Lite.Support;
 using System.Net.Http;
 using System.Net;
 using System;
+using Couchbase.Lite.Replicator;
 
 namespace Couchbase.Lite.Support
 {
@@ -37,6 +38,7 @@ namespace Couchbase.Lite.Support
 
         private readonly CookieContainer cookieStore;
         private readonly Object locker = new Object ();
+        private HttpClientHandler handler;
 
         public CouchbaseLiteHttpClientFactory()
         {
@@ -46,18 +48,24 @@ namespace Couchbase.Lite.Support
 		public HttpClient GetHttpClient()
 		{
             // Build a pipeline of HttpMessageHandlers.
-            var httpHandler = new HttpClientHandler 
+            handler = new HttpClientHandler 
             {
                 CookieContainer = cookieStore
             };
 
             // NOTE: Probably could set httpHandler.MaxRequestContentBufferSize to Couchbase Lite 
             // max doc size (~16 MB) plus some overhead.
-            var client = HttpClientFactory.Create(httpHandler);
+            var client = HttpClientFactory.Create(handler, new DefaultAuthHandler(handler));
             return client;
 		}
 
-        public virtual void AddCookies(CookieCollection cookies)
+        public HttpClientHandler HttpHandler {
+            get {
+                return handler;
+            }
+        }
+
+        public void AddCookies(CookieCollection cookies)
 		{
             lock (locker) {
                 cookieStore.Add(cookies);

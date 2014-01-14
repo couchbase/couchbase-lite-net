@@ -6,6 +6,7 @@ namespace Couchbase.Lite.Support
     public interface IHttpClientFactory
     {
         HttpClient GetHttpClient();
+        HttpClientHandler HttpHandler { get; }
     }
 }
 

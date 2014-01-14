@@ -21,28 +21,29 @@
 
 using System;
 using Couchbase.Lite;
-using Couchbase.Lite.Replicator.Changetracker;
+using Couchbase.Lite.Replicator;
 using Couchbase.Lite.Util;
 using Sharpen;
 
-namespace Couchbase.Lite.Replicator.Changetracker
+namespace Couchbase.Lite.Replicator
 {
-	public class ChangeTrackerBackoff
+    internal class ChangeTrackerBackoff
 	{
-		private static int MaxSleepMilliseconds = 5 * 60 * 1000;
+        public const int MaxSleepMilliseconds = 5 * 60 * 1000;
 
 		private int numAttempts = 0;
 
 		// 5 mins
-		public virtual void ResetBackoff()
+		public void ResetBackoff()
 		{
 			numAttempts = 0;
 		}
 
-		public virtual int GetSleepMilliseconds()
+		public int GetSleepMilliseconds()
 		{
-			int result = (int)(Math.Pow(numAttempts, 2) - 1) / 2;
+            var result = (int)(Math.Pow(numAttempts, 2) - 1) / 2;
 			result *= 100;
+
 			if (result < MaxSleepMilliseconds)
 			{
 				IncreaseBackoff();
@@ -51,7 +52,7 @@ namespace Couchbase.Lite.Replicator.Changetracker
 			return result;
 		}
 
-		public virtual void SleepAppropriateAmountOfTime()
+		public void SleepAppropriateAmountOfTime()
 		{
 			try
 			{
@@ -59,7 +60,7 @@ namespace Couchbase.Lite.Replicator.Changetracker
 				if (sleepMilliseconds > 0)
 				{
 					Log.D(Database.Tag, this.GetType().Name + " sleeping for " + sleepMilliseconds);
-					Sharpen.Thread.Sleep(sleepMilliseconds);
+					Thread.Sleep(sleepMilliseconds);
 				}
 			}
 			catch (Exception)

@@ -102,8 +102,8 @@ namespace Couchbase.Lite {
 
                     active = false;
                 }, CancellationTokenSource);
-
-            client = (clientFactory ?? CouchbaseLiteHttpClientFactory.Instance).GetHttpClient();
+            this.clientFactory = clientFactory ?? CouchbaseLiteHttpClientFactory.Instance;
+            client = this.clientFactory.GetHttpClient();
         }
 
     #endregion
@@ -121,7 +121,9 @@ namespace Couchbase.Lite {
         private static Int32 lastSessionID = 0;
 
         readonly private TaskFactory WorkExecutor; // FIXME: Remove this.
+
         readonly protected HttpClient client;
+        readonly protected IHttpClientFactory clientFactory;
 
         protected internal String  sessionID;
         protected internal String  lastSequence;

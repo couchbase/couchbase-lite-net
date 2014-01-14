@@ -25,7 +25,6 @@ using System.Text;
 using Couchbase.Lite;
 using Couchbase.Lite.Internal;
 using Couchbase.Lite.Replicator;
-using Couchbase.Lite.Replicator.Changetracker;
 using Couchbase.Lite.Storage;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
@@ -35,7 +34,7 @@ using System.Net.Http;
 
 namespace Couchbase.Lite.Replicator
 {
-	public class Puller : Replication, ChangeTrackerClient
+    internal class Puller : Replication, IChangeTrackerClient
 	{
 //		private const int MaxOpenHttpConnections = 16;
 //
@@ -58,6 +57,12 @@ namespace Couchbase.Lite.Replicator
             : base(db, remote, continuous, clientFactory, workExecutor) {  }
 
         #region implemented abstract members of Replication
+
+        public HttpClientHandler HttpHandler {
+            get {
+                return clientFactory.HttpHandler;
+            }
+        }
 
         public override void Restart ()
         {
@@ -232,7 +237,7 @@ namespace Couchbase.Lite.Replicator
 		}
 
 		// <-- TODO: why is this here?
-		public virtual void ChangeTrackerStopped(ChangeTracker tracker)
+		public void ChangeTrackerStopped(ChangeTracker tracker)
 		{
 			Log.W(Database.Tag, this + ": ChangeTracker stopped");
 			//FIXME tracker doesnt have error right now
@@ -343,8 +348,8 @@ namespace Couchbase.Lite.Replicator
 //			// Construct a query. We want the revision history, and the bodies of attachments that have
 //			// been added since the latest revisions we have locally.
 //			// See: http://wiki.apache.org/couchdb/HTTP_Document_API#Getting_Attachments_With_a_Document
-//			StringBuilder path = new StringBuilder("/" + URLEncoder.Encode(rev.GetDocId()) + 
-//				"?rev=" + URLEncoder.Encode(rev.GetRevId()) + "&revs=true&attachments=true");
+//			StringBuilder path = new StringBuilder("/" + HttpUtility.UrlEncode(rev.GetDocId()) + 
+//				"?rev=" + HttpUtility.UrlEncode(rev.GetRevId()) + "&revs=true&attachments=true");
 //			IList<string> knownRevs = KnownCurrentRevIDs(rev);
 //			if (knownRevs == null)
 //			{
@@ -522,7 +527,7 @@ namespace Couchbase.Lite.Replicator
 //			{
 //				Log.W(Database.Tag, "Unable to serialize json", e);
 //			}
-//			return URLEncoder.Encode(Sharpen.Runtime.GetStringForBytes(json));
+//			return HttpUtility.UrlEncode(Sharpen.Runtime.GetStringForBytes(json));
 		}
 	}
 

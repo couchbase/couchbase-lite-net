@@ -144,7 +144,7 @@ namespace Couchbase.Lite.Replicator
 			path += "&heartbeat=300000";
 			if (lastSequenceID != null)
 			{
-				path += "&since=" + URLEncoder.Encode(lastSequenceID.ToString());
+				path += "&since=" + HttpUtility.UrlEncode(lastSequenceID.ToString());
 			}
 			if (docIDs != null && docIDs.Count > 0)
 			{
@@ -154,7 +154,7 @@ namespace Couchbase.Lite.Replicator
 			}
 			if (filterName != null)
 			{
-				path += "&filter=" + URLEncoder.Encode(filterName);
+				path += "&filter=" + HttpUtility.UrlEncode(filterName);
 				if (filterParams != null)
 				{
 					foreach (string filterParamKey in filterParams.Keys)
@@ -171,7 +171,7 @@ namespace Couchbase.Lite.Replicator
 								throw new ArgumentException(e);
 							}
 						}
-						path += "&" + URLEncoder.Encode(filterParamKey) + "=" + URLEncoder.Encode(value.ToString
+						path += "&" + HttpUtility.UrlEncode(filterParamKey) + "=" + HttpUtility.UrlEncode(value.ToString
 							());
 					}
 				}

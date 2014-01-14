@@ -28,11 +28,16 @@ namespace Couchbase.Lite {
             throw new NotImplementedException ();
         }
 
-        public T ReadValue<T> (IEnumerable<byte> json)
+        public T ReadValue<T> (IEnumerable<Byte> json)
         {
             using (var jsonStream = new MemoryStream(json.ToArray())) {
                 return JsonSerializer.DeserializeFromStream<T>(jsonStream);
             }
+        }
+
+        public T ReadValue<T> (Stream jsonStream)
+        {
+            return JsonSerializer.DeserializeFromStream<T>(jsonStream);
         }
     }
 }

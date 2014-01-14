@@ -20,16 +20,15 @@
  */
 
 using System.Collections.Generic;
-using Couchbase.Lite.Replicator.Changetracker;
+using Couchbase.Lite.Replicator;
 using Couchbase.Lite.Support;
 using Sharpen;
 
-namespace Couchbase.Lite.Replicator.Changetracker
+namespace Couchbase.Lite.Replicator
 {
-    public interface ChangeTrackerClient : IHttpClientFactory
+    internal interface IChangeTrackerClient : IHttpClientFactory
 	{
 		void ChangeTrackerReceivedChange(IDictionary<string, object> change);
-
 		void ChangeTrackerStopped(ChangeTracker tracker);
 	}
 }
