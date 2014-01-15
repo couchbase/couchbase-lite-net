@@ -63,26 +63,13 @@ namespace Couchbase.Lite.Replicator
 
         #region implemented abstract members of Replication
 
-        public HttpClientHandler HttpHandler {
-            get {
-                return clientFactory.HttpHandler;
-            }
-        }
+        public HttpClientHandler HttpHandler { get { return clientFactory.HttpHandler; } }
 
-        public override IEnumerable<string> Channels {
-            get;
-            set;
-        }
+        public override IEnumerable<string> Channels { get; set; }
 
-        public override IEnumerable<string> DocIds {
-            get;
-            set;
-        }
+        public override IEnumerable<string> DocIds { get; set; }
 
-        public override Dictionary<string, string> Headers {
-            get;
-            set;
-        }
+        public override Dictionary<string, string> Headers { get; set; }
 
         #endregion
 
@@ -376,10 +363,11 @@ namespace Couchbase.Lite.Replicator
 
 
 		/// <summary>This will be called when _revsToInsert fills up:</summary>
-		public void InsertRevisions(IList<IList<object>> revs)
+        public void InsertRevisions(IList<IList<Object>> revs)
 		{
             Log.I(Database.Tag, this + " inserting " + revs.Count + " revisions...");
             //Log.v(Database.TAG, String.format("%s inserting %s", this, revs));
+
             revs.Sort(new RevisionComparer());
 
             if (LocalDatabase == null)
@@ -393,11 +381,12 @@ namespace Couchbase.Lite.Replicator
             var success = false;
             try
             {
-                foreach (IList<object> revAndHistory in revs)
+                foreach (var revAndHistory in revs)
                 {
                     var rev = (PulledRevision)revAndHistory[0];
                     var fakeSequence = rev.GetSequence();
-                    IList<string> history = (IList<string>)revAndHistory[1];
+                    var history = (IList<String>)revAndHistory[1];
+
                     // Insert the revision:
                     try
                     {
@@ -418,7 +407,9 @@ namespace Couchbase.Lite.Replicator
                     }
                     pendingSequences.RemoveSequence(fakeSequence);
                 }
+
                 Log.W(Database.Tag, this + " finished inserting " + revs.Count + " revisions");
+
                 LastSequence = pendingSequences.GetCheckpointedValue();
                 success = true;
             }
@@ -440,7 +431,7 @@ namespace Couchbase.Lite.Replicator
 			{
 			}
 
-			public int Compare(IList<object> list1, IList<object> list2)
+            public int Compare(IList<Object> list1, IList<Object> list2)
 			{
                 var reva = (RevisionInternal)list1[0];
                 var revb = (RevisionInternal)list2[0];
@@ -463,7 +454,9 @@ namespace Couchbase.Lite.Replicator
 			{
 				return "[]";
 			}
-            IEnumerable<byte> json = null;
+
+            IEnumerable<Byte> json = null;
+
 			try
 			{
                 json = Manager.GetObjectMapper().WriteValueAsBytes(strings);
@@ -472,6 +465,7 @@ namespace Couchbase.Lite.Replicator
 			{
 				Log.W(Database.Tag, "Unable to serialize json", e);
 			}
+
 			return HttpUtility.UrlEncode(Runtime.GetStringForBytes(json));
 		}
 	}

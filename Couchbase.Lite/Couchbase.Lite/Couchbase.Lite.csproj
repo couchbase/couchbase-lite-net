@@ -236,6 +236,7 @@
     <Compile Include="Util\DefaultAuthHandler.cs" />
     <Compile Include="Util\SequenceMap.cs" />
     <Compile Include="Replication\PulledRevision.cs" />
+    <Compile Include="Revisions\ChangesOptions.cs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="System" />

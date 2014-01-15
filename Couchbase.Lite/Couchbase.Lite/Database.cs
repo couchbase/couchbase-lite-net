@@ -1189,6 +1189,98 @@ namespace Couchbase.Lite
             return rows;
         }
 
+        internal RevisionList ChangesSince(long lastSeq, ChangesOptions options, FilterDelegate filter)
+        {
+            // http://wiki.apache.org/couchdb/HTTP_database_API#Changes
+            if (options == null)
+            {
+                options = new ChangesOptions();
+            }
+
+            var includeDocs = options.IsIncludeDocs() || (filter != null);
+            var additionalSelectColumns = string.Empty;
+
+            if (includeDocs)
+            {
+                additionalSelectColumns = ", json";
+            }
+
+            // TODO: Convert to ADO params.
+            var sql = "SELECT sequence, revs.doc_id, docid, revid, deleted" + additionalSelectColumns
+                      + " FROM revs, docs " + "WHERE sequence > ? AND current=1 " + "AND revs.doc_id = docs.doc_id "
+                      + "ORDER BY revs.doc_id, revid DESC";
+            var args = new [] { Convert.ToString(lastSeq) };
+
+            Cursor cursor = null;
+            RevisionList changes = null;
+
+            try
+            {
+                cursor = StorageEngine.RawQuery(sql, args);
+                cursor.MoveToNext();
+
+                changes = new RevisionList();
+                long lastDocId = 0;
+
+                while (!cursor.IsAfterLast())
+                {
+                    if (!options.IsIncludeConflicts())
+                    {
+                        // Only count the first rev for a given doc (the rest will be losing conflicts):
+                        var docNumericId = cursor.GetLong(1);
+                        if (docNumericId == lastDocId)
+                        {
+                            cursor.MoveToNext();
+                            continue;
+                        }
+                        lastDocId = docNumericId;
+                    }
+
+                    var rev = new RevisionInternal(cursor.GetString(2), cursor.GetString(3), (cursor.GetInt(4) > 0), this);
+                    rev.SetSequence(cursor.GetLong(0));
+
+                    if (includeDocs)
+                    {
+                        ExpandStoredJSONIntoRevisionWithAttachments(cursor.GetBlob(5), rev, options.GetContentOptions());
+                    }
+                    IDictionary<string, object> paramsFixMe = null;
+                    // TODO: these should not be null
+                    if (RunFilter(filter, paramsFixMe, rev))
+                    {
+                        changes.AddItem(rev);
+                    }
+                    cursor.MoveToNext();
+                }
+            }
+            catch (SQLException e)
+            {
+                Log.E(Database.Tag, "Error looking for changes", e);
+            }
+            finally
+            {
+                if (cursor != null)
+                {
+                    cursor.Close();
+                }
+            }
+            if (options.IsSortBySequence())
+            {
+                changes.SortBySequence();
+            }
+            changes.Limit(options.GetLimit());
+            return changes;
+        }
+
+        internal bool RunFilter(FilterDelegate filter, IDictionary<string, object> paramsIgnored, RevisionInternal rev)
+        {
+            if (filter == null)
+            {
+                return true;
+            }
+            var publicRev = new SavedRevision(this, rev);
+            return filter(publicRev, null);
+        }
+
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
         internal IDictionary<String, Object> GetAllDocs(QueryOptions options)
         {
@@ -2118,14 +2210,17 @@ namespace Couchbase.Lite
         /// </remarks>
         internal IDictionary<String, Object> ExtraPropertiesForRevision(RevisionInternal rev, EnumSet<TDContentOptions> contentOptions)
         {
-            string docId = rev.GetDocId();
-            string revId = rev.GetRevId();
-            long sequenceNumber = rev.GetSequence();
+            var docId = rev.GetDocId();
+            var revId = rev.GetRevId();
+
+            var sequenceNumber = rev.GetSequence();
+
             System.Diagnostics.Debug.Assert((revId != null));
             System.Diagnostics.Debug.Assert((sequenceNumber > 0));
+
             // Get attachment metadata, and optionally the contents:
-            IDictionary<string, object> attachmentsDict = GetAttachmentsDictForSequenceWithContent
-                                                          (sequenceNumber, contentOptions);
+            var attachmentsDict = GetAttachmentsDictForSequenceWithContent(sequenceNumber, contentOptions);
+
             // Get more optional stuff to put in the properties:
             //OPT: This probably ends up making redundant SQL queries if multiple options are enabled.
             var localSeq = 0L;
@@ -2142,7 +2237,7 @@ namespace Couchbase.Lite
             if (contentOptions.Contains(TDContentOptions.TDIncludeRevsInfo))
             {
                 revsInfo = new AList<object>();
-                IList<RevisionInternal> revHistoryFull = GetRevisionHistory(rev);
+                var revHistoryFull = GetRevisionHistory(rev);
                 foreach (RevisionInternal historicalRev in revHistoryFull)
                 {
                     IDictionary<string, object> revHistoryItem = new Dictionary<string, object>();
@@ -2160,7 +2255,7 @@ namespace Couchbase.Lite
             IList<string> conflicts = null;
             if (contentOptions.Contains(TDContentOptions.TDIncludeConflicts))
             {
-                RevisionList revs = GetAllRevisionsOfDocumentID(docId, true);
+                var revs = GetAllRevisionsOfDocumentID(docId, true);
                 if (revs.Count > 1)
                 {
                     conflicts = new AList<string>();
@@ -2186,7 +2281,7 @@ namespace Couchbase.Lite
             {
                 result["_attachments"] = attachmentsDict;
             }
-            if (localSeq != null)
+            if (localSeq != null) // TODO: Either compare to default(), or convert to nullable.
             {
                 result["_local_seq"] = localSeq;
             }
