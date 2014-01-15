@@ -203,7 +203,7 @@ public class Document {
      */
     @InterfaceAudience.Public
     public SavedRevision getRevision(String id) {
-        if (id.equals(currentRevision.getId())) {
+        if (currentRevision != null && id.equals(currentRevision.getId())) {
             return currentRevision;
         }
         EnumSet<Database.TDContentOptions> contentOptions = EnumSet.noneOf(Database.TDContentOptions.class);
