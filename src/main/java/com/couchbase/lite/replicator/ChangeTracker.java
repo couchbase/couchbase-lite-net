@@ -64,6 +64,7 @@ public class ChangeTracker implements Runnable {
 
     private Throwable error;
     protected Map<String, Object> requestHeaders;
+    protected ChangeTrackerBackoff backoff;
 
 
     public enum ChangeTrackerMode {
@@ -189,7 +190,7 @@ public class ChangeTracker implements Runnable {
         }
 
         httpClient = client.getHttpClient();
-        ChangeTrackerBackoff backoff = new ChangeTrackerBackoff();
+        backoff = new ChangeTrackerBackoff();
 
         while (running) {
 

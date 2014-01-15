@@ -45,4 +45,8 @@ public class ChangeTrackerBackoff {
         numAttempts += 1;
     }
 
+    public int getNumAttempts() {
+        return numAttempts;
+    }
+
 }
