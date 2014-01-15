@@ -258,6 +258,7 @@ public class ChangeTracker implements Runnable {
                         boolean responseOK = receivedPollResponse(fullBody);
                         if (mode == ChangeTrackerMode.LongPoll && responseOK) {
                             Log.v(Database.TAG, "Starting new longpoll");
+                            backoff.resetBackoff();
                             continue;
                         } else {
                             Log.w(Database.TAG, "Change tracker calling stop");
