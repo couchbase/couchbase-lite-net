@@ -3052,6 +3052,8 @@ public class Database {
     public void forceInsert(RevisionInternal rev, List<String> revHistory, URL source) throws CouchbaseLiteException {
 
         RevisionInternal winningRev = null;
+        boolean inConflict = false;
+
         String docId = rev.getDocId();
         String revId = rev.getRevId();
         if(!isValidDocumentId(docId) || (revId == null)) {
@@ -3087,12 +3089,16 @@ public class Database {
             if (outIsDeleted.size() > 0) {
                 oldWinnerWasDeletion = true;
             }
+            if (outIsConflict.size() > 0) {
+               inConflict = true;
+            }
 
             // Walk through the remote history in chronological order, matching each revision ID to
             // a local revision. When the list diverges, start creating blank local revisions to fill
             // in the local history:
             long sequence = 0;
             long localParentSequence = 0;
+            String localParentRevID = null;
             for(int i = revHistory.size() - 1; i >= 0; --i) {
                 revId = revHistory.get(i);
                 RevisionInternal localRev = localRevs.revWithDocIdAndRevId(docId, revId);
@@ -3101,9 +3107,17 @@ public class Database {
                     sequence = localRev.getSequence();
                     assert(sequence > 0);
                     localParentSequence = sequence;
+                    localParentRevID = revId;
                 }
                 else {
                     // This revision isn't known, so add it:
+
+                    if (sequence == localParentSequence) {
+                        // This is the point where we branch off of the existing rev tree.
+                        // If the branch wasn't from the single existing leaf, this creates a conflict.
+                        inConflict = inConflict || (!rev.isDeleted() && !revId.equals(localParentRevID));
+                    }
+
                     RevisionInternal newRev;
                     byte[] data = null;
                     boolean current = false;
@@ -3159,15 +3173,17 @@ public class Database {
 
             success = true;
 
+            // Notify and return:
+            notifyChange(rev, winningRev, source, inConflict);
+
+
         } catch(SQLException e) {
             throw new CouchbaseLiteException(Status.INTERNAL_SERVER_ERROR);
         } finally {
             endTransaction(success);
         }
 
-        // Notify and return:
-        boolean inConflict = false;  // TODO: can we be in conflict here?
-        notifyChange(rev, winningRev, source, inConflict);
+
 
     }
 
