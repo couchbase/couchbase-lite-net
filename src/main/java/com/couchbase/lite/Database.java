@@ -3051,6 +3051,7 @@ public class Database {
     @InterfaceAudience.Private
     public void forceInsert(RevisionInternal rev, List<String> revHistory, URL source) throws CouchbaseLiteException {
 
+        RevisionInternal winningRev = null;
         String docId = rev.getDocId();
         String revId = rev.getRevId();
         if(!isValidDocumentId(docId) || (revId == null)) {
@@ -3077,6 +3078,14 @@ public class Database {
             RevisionList localRevs = getAllRevisionsOfDocumentID(docId, docNumericID, false);
             if(localRevs == null) {
                 throw new CouchbaseLiteException(Status.INTERNAL_SERVER_ERROR);
+            }
+
+            List<Boolean> outIsDeleted = new ArrayList<Boolean>();
+            List<Boolean> outIsConflict = new ArrayList<Boolean>();
+            boolean oldWinnerWasDeletion = false;
+            String oldWinningRevID = winningRevIDOfDoc(docNumericID, outIsDeleted, outIsConflict);
+            if (outIsDeleted.size() > 0) {
+                oldWinnerWasDeletion = true;
             }
 
             // Walk through the remote history in chronological order, matching each revision ID to
@@ -3146,7 +3155,10 @@ public class Database {
                 }
             }
 
+            winningRev = winner(docNumericID, oldWinningRevID, oldWinnerWasDeletion, rev);
+
             success = true;
+
         } catch(SQLException e) {
             throw new CouchbaseLiteException(Status.INTERNAL_SERVER_ERROR);
         } finally {
@@ -3155,8 +3167,8 @@ public class Database {
 
         // Notify and return:
         boolean inConflict = false;  // TODO: can we be in conflict here?
-        RevisionInternal winningRev = null;  // TODO: what should we do here?
         notifyChange(rev, winningRev, source, inConflict);
+
     }
 
     /** VALIDATION **/
