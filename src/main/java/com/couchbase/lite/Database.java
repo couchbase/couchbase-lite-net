@@ -19,8 +19,8 @@ package com.couchbase.lite;
 
 import com.couchbase.lite.internal.AttachmentInternal;
 import com.couchbase.lite.internal.Body;
-import com.couchbase.lite.internal.RevisionInternal;
 import com.couchbase.lite.internal.InterfaceAudience;
+import com.couchbase.lite.internal.RevisionInternal;
 import com.couchbase.lite.replicator.Puller;
 import com.couchbase.lite.replicator.Pusher;
 import com.couchbase.lite.replicator.Replication;
@@ -41,6 +41,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -76,7 +77,7 @@ public class Database {
     private List<Replication> activeReplicators;
     private BlobStore attachments;
     private Manager manager;
-    private List<ChangeListener> changeListeners;
+    final private List<ChangeListener> changeListeners;
     private LruCache<String, Document> docCache;
 
     private long startTime;
@@ -179,7 +180,7 @@ public class Database {
         this.path = path;
         this.name = FileDirUtils.getDatabaseNameFromPath(path);
         this.manager = manager;
-        this.changeListeners = new ArrayList<ChangeListener>();
+        this.changeListeners = Collections.synchronizedList(new ArrayList<ChangeListener>());
         this.docCache = new LruCache<String, Document>(MAX_DOC_CACHE_SIZE);
         this.startTime = System.currentTimeMillis();
     }
@@ -2636,8 +2637,10 @@ public class Database {
         changes.add(change);
         ChangeEvent changeEvent = new ChangeEvent(this, isExternalFixMe, changes);
 
-        for (ChangeListener changeListener : changeListeners) {
-            changeListener.changed(changeEvent);
+        synchronized (changeListeners) {
+            for (ChangeListener changeListener : changeListeners) {
+                changeListener.changed(changeEvent);
+            }
         }
 
         // TODO: this is expensive, it should be using a WeakHashMap
