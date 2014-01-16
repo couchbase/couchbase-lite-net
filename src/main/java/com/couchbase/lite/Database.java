@@ -300,7 +300,8 @@ public class Database {
                 return false;
             }
         }
-        else if(!exists()) {
+        manager.forgetDatabase(this);
+        if(!exists()) {
             return true;
         }
         File file = new File(path);
