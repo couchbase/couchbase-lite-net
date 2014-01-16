@@ -301,6 +301,11 @@ namespace Sharpen
 			Console.WriteLine (cause);
 		}
 
+        public static bool IsEmpty (this String str)
+        {
+            return String.IsNullOrWhiteSpace(str);
+        }
+
 		public static bool IsEmpty<T> (this ICollection<T> col)
 		{
 			return (col.Count == 0);
@@ -519,12 +524,12 @@ namespace Sharpen
 			}
 		}
 
-		public static string[] Split (this string str, string regex)
+		public static string[] RegexSplit (this string str, string regex)
 		{
-			return str.Split (regex, 0);
+			return str.RegexSplit (regex, 0);
 		}
 		
-		public static string[] Split (this string str, string regex, int limit)
+		public static string[] RegexSplit (this string str, string regex, int limit)
 		{
 			Regex rgx = new Regex (regex);
 			List<string> list = new List<string> ();

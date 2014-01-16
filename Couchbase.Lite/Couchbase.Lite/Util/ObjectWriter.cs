@@ -1,31 +1,42 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
-using ServiceStack.Text;
 using System.IO;
 using System.Linq;
+using ServiceStack.Text;
+using System.Text;
 
-namespace Couchbase.Lite {
+namespace Couchbase.Lite 
+{
 
-    public class ObjectWriter {
+    public class ObjectWriter 
+    {
+        readonly Boolean prettyPrintJson;
 
-        public ObjectWriter ()
+        public ObjectWriter() : this(false) { }
+
+        public ObjectWriter(Boolean prettyPrintJson)
         {
-            throw new NotImplementedException ();
+            this.prettyPrintJson = prettyPrintJson;
         }
 
-        public ObjectWriter WriterWithDefaultPrettyPrinter() {
-            throw new NotImplementedException ();
+        public ObjectWriter WriterWithDefaultPrettyPrinter()
+        {
+            return new ObjectWriter(true); // Currently doesn't do anything, but could use something like http://www.limilabs.com/blog/json-net-formatter in the future.
         }
 
-        public IEnumerable<Byte> WriteValueAsBytes (Object properties)
+        public IEnumerable<Byte> WriteValueAsBytes<T> (T item)
         {
-            throw new NotImplementedException ();
+            return Encoding.UTF8.GetBytes(WriteValueAsString<T>(item));
         }
 
-        public string WriteValueAsString (object key)
+        public string WriteValueAsString<T> (T item)
         {
-            throw new NotImplementedException ();
+            return JsonSerializer.SerializeToString(item);
+        }
+
+        public T ReadValue<T> (String json)
+        {
+           return JsonSerializer.DeserializeFromString<T>(json);
         }
 
         public T ReadValue<T> (IEnumerable<Byte> json)

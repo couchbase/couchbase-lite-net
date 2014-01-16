@@ -28,7 +28,6 @@ using Couchbase.Lite.Auth;
 using Couchbase.Lite.Util;
 using Sharpen;
 using System.Text;
-using ServiceStack.Text;
 
 namespace Couchbase.Lite.Auth
 {
@@ -187,7 +186,7 @@ namespace Couchbase.Lite.Auth
 			// https://github.com/mozilla/id-specs/blob/prod/browserid/index.md
 			// http://self-issued.info/docs/draft-jones-json-web-token-04.html
             var result = new Dictionary<string, object>();
-            var components = assertion.Split("\\.");
+            var components = assertion.Split('.');
 			// split on "."
 			if (components.Length < 4)
 			{
@@ -199,12 +198,14 @@ namespace Couchbase.Lite.Auth
             var component3Decoded = Encoding.UTF8.GetString(Convert.FromBase64String(components[3]));
 			try
 			{
-                var component1Json = JsonSerializer.DeserializeFromString<IDictionary<Object, Object>>(component1Decoded);
+                var mapper = Manager.GetObjectMapper();
+
+                var component1Json = mapper.ReadValue<IDictionary<Object, Object>>(component1Decoded);
                 var principal = (IDictionary<Object, Object>)component1Json.Get("principal");
 
 				result.Put(AssertionFieldEmail, principal.Get("email"));
 
-                var component3Json = JsonSerializer.DeserializeFromString<IDictionary<Object, Object>>(component3Decoded);
+                var component3Json = mapper.ReadValue<IDictionary<Object, Object>>(component3Decoded);
 				result.Put(AssertionFieldOrigin, component3Json.Get("aud"));
 
                 var expObject = (long)component3Json.Get("exp");

@@ -10,8 +10,8 @@ using System.Web;
 using System.Threading.Tasks;
 using System.Net.Http;
 using System.Threading;
-using ServiceStack;
 using System.IO;
+using System.Linq;
 
 namespace Couchbase.Lite {
 
@@ -400,13 +400,17 @@ namespace Couchbase.Lite {
         internal void SendAsyncRequest(HttpMethod method, Uri url, Object body, RemoteRequestCompletionBlock completionHandler)
         {
             var message = new HttpRequestMessage(method, url);
+            var mapper = Manager.GetObjectMapper();
             if (body != null)
             {
-                message.Content = new StringContent(body.ToJson());
+                var bytes = mapper.WriteValueAsBytes(body).ToArray();
+                var byteContent = new ByteArrayContent(bytes);
+                message.Content = byteContent;
             }
             message.Headers.Add("Accept", "multipart/related, application/json");
 
             PreemptivelySetAuthCredentials(message);
+
             var client = clientFactory.GetHttpClient();
             client.CancelPendingRequests();
             client.SendAsync(message, HttpCompletionOption.ResponseHeadersRead, CancellationTokenSource.Token)
@@ -416,25 +420,26 @@ namespace Couchbase.Lite {
                         Log.E(Tag, "SendAsyncRequest did not run to completion.", response.Exception);
                         return null;
                     }
-                    return response.Result.Content.ReadAsStringAsync();
+                    return response.Result.Content.ReadAsStreamAsync();
                 }, CancellationTokenSource.Token)
                 .ContinueWith(response=> {
                     if (response.Status != TaskStatus.RanToCompletion)
                     {
                         Log.E(Tag, "SendAsyncRequest did not run to completion.", response.Exception);
-                    } else if (String.IsNullOrWhiteSpace(response.Result.Result))
+                    } else if (response.Result.Result == null || response.Result.Result.Length == 0)
                     {
                         Log.E(Tag, "Server returned an empty response.", response.Exception);
                     }
                     if (completionHandler != null) {
-                        completionHandler (response.Result.Result.FromJson<Object> (), response.Exception);
+                        var fullBody = mapper.ReadValue<Object>(response.Result.Result);
+                       completionHandler (fullBody, response.Exception);
                     }
                 });
         }
 
         void PreemptivelySetAuthCredentials (HttpRequestMessage message)
         {
-            // FIXME Not sure we actually need this. Will find out in tests.
+            // FIXME Not sure we actually need this, since our handler should do it.. Will find out in tests.
 
             // if the URL contains user info AND if this a DefaultHttpClient
             // then preemptively set the auth credentials
@@ -509,29 +514,34 @@ namespace Couchbase.Lite {
                             {
                                 try
                                 {
-//                                    var reader = new MultipartDocumentReader(response, db);
-//                                    reader.SetContentType(contentTypeHeader.GetValue());
-//                                    inputStream = entity.GetContent();
-//                                    int bufLen = 1024;
-//                                    byte[] buffer = new byte[bufLen];
-//                                    int numBytesRead = 0;
-//                                    while ((numBytesRead = inputStream.Read(buffer)) != -1)
-//                                    {
-//                                        if (numBytesRead != bufLen)
-//                                        {
-//                                            byte[] bufferToAppend = Arrays.CopyOfRange(buffer, 0, numBytesRead);
-//                                            reader.AppendData(bufferToAppend);
-//                                        }
-//                                        else
-//                                        {
-//                                            reader.AppendData(buffer);
-//                                        }
-//                                    }
-//                                    reader.Finish();
-//                                    fullBody = reader.GetDocumentProperties();
-                                        var reader = responseMessage.Result.Content.ReadAsMultipartAsync();
-                                        if (onCompletion != null)
-                                            onCompletion(fullBody, error);
+                                    var reader = new MultipartDocumentReader(responseMessage.Result, LocalDatabase);
+                                    reader.SetContentType(contentTypeHeader.MediaType);
+
+                                    var inputStreamTask = entity.ReadAsStreamAsync();
+                                    inputStreamTask.Wait(90000, CancellationTokenSource.Token);
+                                    
+                                    const int bufLen = 1024;
+                                    var buffer = new byte[bufLen];
+                                    
+                                    int numBytesRead = 0;
+                                    while ((numBytesRead = inputStream.Read(buffer)) != -1)
+                                    {
+                                        if (numBytesRead != bufLen)
+                                        {
+                                            var bufferToAppend = new ArraySegment<Byte>(buffer, 0, numBytesRead).Array;
+                                            reader.AppendData(bufferToAppend);
+                                        }
+                                        else
+                                        {
+                                            reader.AppendData(buffer);
+                                        }
+                                    }
+
+                                    reader.Finish();
+                                    fullBody = reader.GetDocumentProperties();
+
+                                    if (onCompletion != null)
+                                        onCompletion(fullBody, error);
                                 }
                                 finally
                                 {
@@ -610,8 +620,9 @@ namespace Couchbase.Lite {
             message.Headers.Add("Accept", "*/*");
 
             PreemptivelySetAuthCredentials(message);
+
             var client = clientFactory.GetHttpClient();
-            client.CancelPendingRequests();
+
             client.SendAsync(message, HttpCompletionOption.ResponseHeadersRead, CancellationTokenSource.Token)
                 .ContinueWith(response=> {
                     if (response.Status != TaskStatus.RanToCompletion)
@@ -619,18 +630,20 @@ namespace Couchbase.Lite {
                         Log.E(Tag, "SendAsyncRequest did not run to completion.", response.Exception);
                         return null;
                     }
-                    return response.Result.Content.ReadAsStringAsync();
+                    return response.Result.Content.ReadAsStreamAsync();
                 }, CancellationTokenSource.Token)
                 .ContinueWith(response=> {
                     if (response.Status != TaskStatus.RanToCompletion)
                     {
                         Log.E(Tag, "SendAsyncRequest did not run to completion.", response.Exception);
-                    } else if (String.IsNullOrWhiteSpace(response.Result.Result))
+                    } else if (response.Result.Result == null || response.Result.Result.Length == 0)
                     {
                         Log.E(Tag, "Server returned an empty response.", response.Exception);
                     }
                     if (completionHandler != null) {
-                        completionHandler (response.Result.Result.FromJson<Object> (), response.Exception);
+                        var mapper = Manager.GetObjectMapper();
+                        var fullBody = mapper.ReadValue<Object>(response.Result.Result);
+                        completionHandler (fullBody, response.Exception);
                     }
                 }, CancellationTokenSource.Token);
         }

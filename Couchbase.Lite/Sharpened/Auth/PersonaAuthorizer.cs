@@ -190,7 +190,7 @@ namespace Couchbase.Lite.Auth
 		{
 			// https://github.com/mozilla/id-specs/blob/prod/browserid/index.md
 			// http://self-issued.info/docs/draft-jones-json-web-token-04.html
-			IDictionary<string, object> result = new Dictionary<string, object>();
+            var result = new Dictionary<string, object>();
 			string[] components = assertion.Split("\\.");
 			// split on "."
 			if (components.Length < 4)
@@ -198,10 +198,8 @@ namespace Couchbase.Lite.Auth
 				throw new ArgumentException("Invalid assertion given, only " + components.Length 
 					+ " found.  Expected 4+");
 			}
-			string component1Decoded = Sharpen.Runtime.GetStringForBytes(Base64.Decode(components
-				[1], Base64.Default));
-			string component3Decoded = Sharpen.Runtime.GetStringForBytes(Base64.Decode(components
-				[3], Base64.Default));
+            var component1Decoded = Sharpen.Runtime.GetStringForBytes(Base64.Decode(components[1], Base64.Default));
+            var component3Decoded = Sharpen.Runtime.GetStringForBytes(Base64.Decode(components[3], Base64.Default));
 			try
 			{
 				JsonConvert mapper = new JsonConvert();
@@ -210,8 +208,7 @@ namespace Couchbase.Lite.Auth
 				IDictionary<object, object> principal = (IDictionary<object, object>)component1Json
 					.Get("principal");
 				result.Put(AssertionFieldEmail, principal.Get("email"));
-				IDictionary<object, object> component3Json = mapper.ReadValue<IDictionary>(component3Decoded
-					);
+				IDictionary<object, object> component3Json = mapper.ReadValue<IDictionary>(component3Decoded);
 				result.Put(AssertionFieldOrigin, component3Json.Get("aud"));
 				long expObject = (long)component3Json.Get("exp");
 				Log.D(Database.Tag, "PersonaAuthorizer exp: " + expObject + " class: " + expObject

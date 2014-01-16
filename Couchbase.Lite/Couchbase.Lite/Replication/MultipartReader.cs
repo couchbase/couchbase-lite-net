@@ -24,6 +24,7 @@ using System.Collections.Generic;
 using System.Text;
 using Couchbase.Lite.Support;
 using Sharpen;
+using System.Collections.ObjectModel;
 
 namespace Couchbase.Lite.Support
 {
@@ -40,49 +41,56 @@ namespace Couchbase.Lite.Support
 			kFailed
 		}
 
-        private static readonly IEnumerable<Byte> kCRLFCRLF = Encoding.UTF8.GetBytes("\r\n\r\n");
+		private static readonly Encoding utf8 = Extensions.GetEncoding("UTF-8");
+
+        private static readonly Byte[] kCRLFCRLF;
+
+        static MultipartReader()
+        {
+            kCRLFCRLF = utf8.GetBytes("\r\n\r\n");
+        }
 
 		private MultipartReader.MultipartReaderState state;
 
-		private ByteBuffer buffer;
+        private List<Byte> buffer;
 
-		private string contentType;
+        private readonly String contentType;
 
 		private byte[] boundary;
 
-		private IMultipartReaderDelegate delegate_;
+        private IMultipartReaderDelegate readerDelegate;
 
-		public IDictionary<string, string> headers;
+        public IDictionary<String, String> headers;
 
-		public MultipartReader(string contentType, IMultipartReaderDelegate delegate_)
+        public MultipartReader(string contentType, IMultipartReaderDelegate readerDelegate)
 		{
-			this.contentType = contentType;
-			this.delegate_ = delegate_;
-            this.buffer = ByteBuffer.Allocate(1024);
+            this.contentType = contentType;
+            this.readerDelegate = readerDelegate;
+            this.buffer = new List<Byte>(1024);
 			this.state = MultipartReader.MultipartReaderState.kAtStart;
 			ParseContentType();
 		}
 
-		public virtual byte[] GetBoundary()
+		public byte[] GetBoundary()
 		{
 			return boundary;
 		}
 
-		public virtual byte[] GetBoundaryWithoutLeadingCRLF()
+		public byte[] GetBoundaryWithoutLeadingCRLF()
 		{
-			byte[] rawBoundary = GetBoundary();
-            byte[] result = Arrays.CopyOfRange(rawBoundary, 2, rawBoundary.Length);
-			return result;
+            var rawBoundary = GetBoundary();
+            var result = new ArraySegment<Byte>(rawBoundary, 2, rawBoundary.Length);
+            return result.Array;
 		}
 
-		public virtual bool Finished()
+		public bool Finished()
 		{
 			return state == MultipartReader.MultipartReaderState.kAtEnd;
 		}
 
-		private byte[] EomBytes()
+        private static Byte[] EOMBytes()
 		{
-            return Sharpen.Runtime.GetBytesForString(new string("--"), Encoding.UTF8);
+            return Encoding.UTF8.GetBytes("--");
 		}
 
 		private bool Memcmp(byte[] array1, byte[] array2, int len)
@@ -98,93 +106,85 @@ namespace Couchbase.Lite.Support
 			return equals;
 		}
 
-		public virtual Range SearchFor(byte[] pattern, int start)
+		public Range SearchFor(byte[] pattern, int start)
 		{
-			KMPMatch searcher = new KMPMatch();
-			int matchIndex = searcher.IndexOf(buffer.ToByteArray(), pattern, start);
-			if (matchIndex != -1)
-			{
-				return new Range(matchIndex, pattern.Length);
-			}
-			else
-			{
-				return new Range(matchIndex, 0);
-			}
+            var searcher = new KMPMatch();
+            var matchIndex = searcher.IndexOf(buffer.ToArray(), pattern, start);
+			return matchIndex != -1 
+                ? new Range (matchIndex, pattern.Length) 
+                    : new Range (matchIndex, 0);
 		}
 
-		public virtual void ParseHeaders(string headersStr)
+		public void ParseHeaders(string headersStr)
 		{
-			headers = new Dictionary<string, string>();
-			if (headersStr != null && headersStr.Length > 0)
-			{
-				headersStr = headersStr.Trim();
-				StringTokenizer tokenizer = new StringTokenizer(headersStr, "\r\n");
-				while (tokenizer.HasMoreTokens())
-				{
-					string header = tokenizer.NextToken();
-					if (!header.Contains(":"))
-					{
-						throw new ArgumentException("Missing ':' in header line: " + header);
-					}
-					StringTokenizer headerTokenizer = new StringTokenizer(header, ":");
-					string key = headerTokenizer.NextToken().Trim();
-					string value = headerTokenizer.NextToken().Trim();
-					headers.Put(key, value);
-				}
-			}
+            headers = new Dictionary<String, String>();
+            if (!string.IsNullOrEmpty (headersStr)) {
+                headersStr = headersStr.Trim ();
+                var tokenizer = headersStr.Split(new[] { "\r\n" }, StringSplitOptions.None);
+                foreach (var header in tokenizer) {
+                    if (!header.Contains (":")) {
+                        throw new ArgumentException ("Missing ':' in header line: " + header);
+                    }
+                    var headerTokenizer = header.Split(':');
+                    var key = headerTokenizer[0].Trim ();
+                    var value = headerTokenizer[1].Trim ();
+                    headers.Put (key, value);
+                }
+            }
 		}
 
 		private void DeleteUpThrough(int location)
 		{
 			// int start = location + 1;  // start at the first byte after the location
-			byte[] newBuffer = Arrays.CopyOfRange(buffer.ToByteArray(), location, buffer.Length
-				());
+            var newBuffer = new ArraySegment<Byte>(buffer.ToArray(), location, buffer.Count);
 			buffer.Clear();
-			buffer.Append(newBuffer, 0, newBuffer.Length);
+            buffer.AddRange(newBuffer);
 		}
 
 		private void TrimBuffer()
 		{
-			int bufLen = buffer.Length();
+            int bufLen = buffer.Count;
 			int boundaryLen = GetBoundary().Length;
 			if (bufLen > boundaryLen)
 			{
 				// Leave enough bytes in _buffer that we can find an incomplete boundary string
-				byte[] dataToAppend = Arrays.CopyOfRange(buffer.ToByteArray(), 0, bufLen - boundaryLen
-					);
-				delegate_.AppendToPart(dataToAppend);
+                var dataToAppend = new ArraySegment<Byte>(buffer.ToArray(), 0,  bufLen - boundaryLen).Array;
+                buffer.Clear();
+				readerDelegate.AppendToPart(dataToAppend);
 				DeleteUpThrough(bufLen - boundaryLen);
 			}
 		}
 
-		public virtual void AppendData(byte[] data)
+		public void AppendData(byte[] data)
 		{
 			if (buffer == null)
 			{
 				return;
 			}
-			if (data.Length == 0)
+			
+            if (data.Length == 0)
 			{
 				return;
 			}
-			buffer.Append(data, 0, data.Length);
+
+            buffer.AddRange(data);
+
 			MultipartReader.MultipartReaderState nextState;
 			do
 			{
 				nextState = MultipartReader.MultipartReaderState.kUninitialized;
-				int bufLen = buffer.Length();
+                var bufLen = buffer.Count;
 				switch (state)
 				{
 					case MultipartReader.MultipartReaderState.kAtStart:
 					{
 						// Log.d(Database.TAG, "appendData.  bufLen: " + bufLen);
 						// The entire message might start with a boundary without a leading CRLF.
-						byte[] boundaryWithoutLeadingCRLF = GetBoundaryWithoutLeadingCRLF();
+                        var boundaryWithoutLeadingCRLF = GetBoundaryWithoutLeadingCRLF();
 						if (bufLen >= boundaryWithoutLeadingCRLF.Length)
 						{
 							// if (Arrays.equals(buffer.toByteArray(), boundaryWithoutLeadingCRLF)) {
-							if (Memcmp(buffer.ToByteArray(), boundaryWithoutLeadingCRLF, boundaryWithoutLeadingCRLF
-								.Length))
+							if (Memcmp(buffer.ToArray(), boundaryWithoutLeadingCRLF, boundaryWithoutLeadingCRLF.Length))
 							{
 								DeleteUpThrough(boundaryWithoutLeadingCRLF.Length);
 								nextState = MultipartReader.MultipartReaderState.kInHeaders;
@@ -196,7 +196,6 @@ namespace Couchbase.Lite.Support
 						}
 						break;
 					}
-
 					case MultipartReader.MultipartReaderState.kInPrologue:
 					case MultipartReader.MultipartReaderState.kInBody:
 					{
@@ -206,16 +205,17 @@ namespace Couchbase.Lite.Support
 						{
 							break;
 						}
-						int start = Math.Max(0, bufLen - data.Length - boundary.Length);
-						Range r = SearchFor(boundary, start);
+
+                        var start = Math.Max(0, bufLen - data.Length - boundary.Length);
+                        var r = SearchFor(boundary, start);
+
 						if (r.GetLength() > 0)
 						{
 							if (state == MultipartReader.MultipartReaderState.kInBody)
 							{
-								byte[] dataToAppend = Arrays.CopyOfRange(buffer.ToByteArray(), 0, r.GetLocation()
-									);
-								delegate_.AppendToPart(dataToAppend);
-								delegate_.FinishedPart();
+                                var dataToAppend = new ArraySegment<Byte>(buffer.ToArray(), 0, r.GetLocation());
+								readerDelegate.AppendToPart(dataToAppend);
+								readerDelegate.FinishedPart();
 							}
 							DeleteUpThrough(r.GetLocation() + r.GetLength());
 							nextState = MultipartReader.MultipartReaderState.kInHeaders;
@@ -230,22 +230,22 @@ namespace Couchbase.Lite.Support
 					case MultipartReader.MultipartReaderState.kInHeaders:
 					{
 						// First check for the end-of-message string ("--" after separator):
-						if (bufLen >= 2 && Memcmp(buffer.ToByteArray(), EomBytes(), 2))
+						if (bufLen >= 2 && Memcmp(buffer.ToArray(), EOMBytes(), 2))
 						{
 							state = MultipartReader.MultipartReaderState.kAtEnd;
 							Close();
 							return;
 						}
 						// Otherwise look for two CRLFs that delimit the end of the headers:
-						Range r = SearchFor(kCRLFCRLF, 0);
+                        var r = SearchFor(kCRLFCRLF, 0);
 						if (r.GetLength() > 0)
 						{
-							byte[] headersBytes = Arrays.CopyOf(buffer.ToByteArray(), r.GetLocation());
-							// byte[] headersBytes = Arrays.copyOfRange(buffer.toByteArray(), 0, r.getLocation())  <-- better?
-                            string headersString = new string(headersBytes, Encoding.UTF8);
+                            var headersBytes = Arrays.CopyTo(buffer.ToArray(), r.GetLocation()); // 
+                            // var headersBytes = new ArraySegment<Byte>(buffer.ToArray(), 0, r.GetLocation()); // <-- better?
+                            var headersString = utf8.GetString(headersBytes);
 							ParseHeaders(headersString);
 							DeleteUpThrough(r.GetLocation() + r.GetLength());
-							delegate_.StartedPart(headers);
+							readerDelegate.StartedPart(headers);
 							nextState = MultipartReader.MultipartReaderState.kInBody;
 						}
 						break;
@@ -261,8 +261,7 @@ namespace Couchbase.Lite.Support
 					state = nextState;
 				}
 			}
-			while (nextState != MultipartReader.MultipartReaderState.kUninitialized && buffer
-				.Length() > 0);
+            while (nextState != MultipartReader.MultipartReaderState.kUninitialized && buffer.Count > 0);
 		}
 
 		private void Close()
@@ -273,14 +272,14 @@ namespace Couchbase.Lite.Support
 
 		private void ParseContentType()
 		{
-			StringTokenizer tokenizer = new StringTokenizer(contentType, ";");
+            var tokenizer = contentType.Split(';');
 			bool first = true;
-			while (tokenizer.HasMoreTokens())
+            foreach (var token in tokenizer)
 			{
-				string param = tokenizer.NextToken().Trim();
-				if (first == true)
+				string param = token.Trim();
+				if (first)
 				{
-					if (!param.StartsWith("multipart/"))
+                    if (!param.StartsWith("multipart/", StringComparison.InvariantCultureIgnoreCase))
 					{
 						throw new ArgumentException(contentType + " does not start with multipart/");
 					}
@@ -288,25 +287,22 @@ namespace Couchbase.Lite.Support
 				}
 				else
 				{
-					if (param.StartsWith("boundary="))
+                    if (param.StartsWith("boundary=", StringComparison.InvariantCultureIgnoreCase))
 					{
-						string tempBoundary = Sharpen.Runtime.Substring(param, 9);
-						if (tempBoundary.StartsWith("\""))
-						{
-							if (tempBoundary.Length < 2 || !tempBoundary.EndsWith("\""))
-							{
-								throw new ArgumentException(contentType + " is not valid");
-							}
-							tempBoundary = Sharpen.Runtime.Substring(tempBoundary, 1, tempBoundary.Length - 1
-								);
-						}
+                        var tempBoundary = param.Substring(9);
+                        if (tempBoundary.StartsWith ("\"", StringComparison.InvariantCultureIgnoreCase)) 
+                        {
+                            if (tempBoundary.Length < 2 || !tempBoundary.EndsWith ("\"", StringComparison.InvariantCultureIgnoreCase)) {
+                                throw new ArgumentException (contentType + " is not valid");
+                            }
+                            tempBoundary = tempBoundary.Substring(1, tempBoundary.Length - 1);
+                        }
 						if (tempBoundary.Length < 1)
 						{
 							throw new ArgumentException(contentType + " has zero-length boundary");
 						}
-						tempBoundary = string.Format("\r\n--%s", tempBoundary);
-						boundary = Sharpen.Runtime.GetBytesForString(tempBoundary, Sharpen.Extensions.GetEncoding
-							("UTF-8"));
+                        tempBoundary = string.Format("\r\n--{0}", tempBoundary);
+                        boundary = Encoding.UTF8.GetBytes(tempBoundary);
 						break;
 					}
 				}
@@ -319,7 +315,7 @@ namespace Couchbase.Lite.Support
 	{
 		/// <summary>Finds the first occurrence of the pattern in the text.</summary>
 		/// <remarks>Finds the first occurrence of the pattern in the text.</remarks>
-		public virtual int IndexOf(byte[] data, byte[] pattern, int dataOffset)
+		public int IndexOf(byte[] data, byte[] pattern, int dataOffset)
 		{
 			int[] failure = ComputeFailure(pattern);
 			int j = 0;

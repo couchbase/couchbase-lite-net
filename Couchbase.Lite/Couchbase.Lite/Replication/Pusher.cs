@@ -336,10 +336,12 @@ namespace Couchbase.Lite.Replicator
             }
 
             var path = string.Format("/{0}?new_edits=false", revision.GetDocId());
+
             // TODO: need to throttle these requests
             Log.D(Database.Tag, "Uploadeding multipart request.  Revision: " + revision);
 
             AsyncTaskStarted();
+
             SendAsyncMultipartRequest(HttpMethod.Put, path, multiPart, (result, e) => {
                 if (e != null) {
                     Log.E (Database.Tag, "Exception uploading multipart request", e);

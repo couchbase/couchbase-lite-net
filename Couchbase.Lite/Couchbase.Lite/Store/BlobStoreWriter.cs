@@ -24,6 +24,8 @@ using System.IO;
 using Couchbase.Lite;
 using Couchbase.Lite.Util;
 using Sharpen;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace Couchbase.Lite
 {
@@ -94,22 +96,23 @@ namespace Couchbase.Lite
 
 		/// <summary>Appends data to the blob.</summary>
 		/// <remarks>Appends data to the blob. Call this when new data is available.</remarks>
-		public virtual void AppendData(byte[] data)
+        public void AppendData(IEnumerable<Byte> data)
 		{
+            var dataVector = data.ToArray();
 			try
 			{
-				outStream.Write(data);
+                outStream.Write(dataVector);
 			}
 			catch (IOException e)
 			{
 				throw new RuntimeException("Unable to write to stream.", e);
 			}
-			length += data.Length;
-			sha1Digest.Update(data);
-			md5Digest.Update(data);
+			length += dataVector.Length;
+			sha1Digest.Update(dataVector);
+			md5Digest.Update(dataVector);
 		}
 
-		internal virtual void Read(InputStream inputStream)
+		internal void Read(InputStream inputStream)
 		{
 			byte[] buffer = new byte[1024];
 			int len;

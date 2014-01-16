@@ -53,8 +53,6 @@ namespace Couchbase.Lite {
         /// Advances to the next QueryRow in the results, or false
         /// if there are no more results.
         /// </summary>
-//        public QueryRow Next() { throw new NotImplementedException(); }
-
         public QueryRow GetRow(Int32 index) {
             var row = Rows.ElementAt(index);
             row.Database = Database; // Avoid multiple enumerations by doing this here instead of the constructor.

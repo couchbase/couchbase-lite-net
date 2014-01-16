@@ -689,9 +689,9 @@ namespace Couchbase.Lite
             return result;
         }
 
-        private String GetDesignDocFunction(string fnName, string key, ICollection<string> outLanguageList)
+        private String GetDesignDocFunction(String fnName, String key, ICollection<String> outLanguageList)
         {
-            var path = fnName.Split("/");
+            var path = fnName.Split('/');
             if (path.Length != 2)
             {
                 return null;
@@ -1910,6 +1910,11 @@ namespace Couchbase.Lite
             }
         }
 
+        internal void RememberAttachmentWritersForDigests(IDictionary<String, BlobStoreWriter> blobsByDigest)
+        {
+            PendingAttachmentsByDigest.PutAll(blobsByDigest);
+        }
+
         internal void RememberAttachmentWriter (BlobStoreWriter writer)
         {
             var digest = writer.MD5DigestString();
@@ -1954,23 +1959,21 @@ namespace Couchbase.Lite
         /// </remarks>
         internal Boolean BeginTransaction()
         {
-            // TODO: Implement Database.BeginTransaction.
-            throw new NotImplementedException();
-//            try
-//            {
-//                StorageEngine.BeginTransaction();
-//                ++transactionLevel;
-//                Log.I(Couchbase.Lite.Database.TagSql, Sharpen.Thread.CurrentThread().GetName(
-//                ) + " Begin transaction (level " + Sharpen.Extensions.ToString(transactionLevel)
-//                      + ")");
-//            }
-//            catch (SQLException e)
-//            {
-//                Log.E(Couchbase.Lite.Database.Tag, Sharpen.Thread.CurrentThread().GetName() +
-//                      " Error calling beginTransaction()", e);
-//                return false;
-//            }
-//            return true;
+            try
+            {
+                StorageEngine.BeginTransaction();
+
+                ++transactionLevel;
+
+                Log.I(Database.TagSql, System.Threading.Thread.CurrentThread.Name + " Begin transaction (level " + transactionLevel + ")");
+            }
+            catch (SQLException e)
+            {
+                Log.E(Database.Tag,System.Threading.Thread.CurrentThread.Name + " Error calling beginTransaction()" , e);
+
+                return false;
+            }
+            return true;
         }
 
         /// <summary>Commits or aborts (rolls back) a transaction.</summary>
@@ -1978,34 +1981,33 @@ namespace Couchbase.Lite
         ///     </param>
         internal Boolean EndTransaction(bool commit)
         {
-            // TODO: Implement Database.BeginTransaction.
-            throw new NotImplementedException();
-//            System.Diagnostics.Debug.Assert((transactionLevel > 0));
-//            if (commit)
-//            {
-//                Log.I(Couchbase.Lite.Database.TagSql, Sharpen.Thread.CurrentThread().GetName(
-//                ) + " Committing transaction (level " + Sharpen.Extensions.ToString(transactionLevel
-//                                                                                       ) + ")");
-//                StorageEngine.SetTransactionSuccessful();
-//                StorageEngine.EndTransaction();
-//            }
-//            else
-//            {
-//                Log.I(TagSql, Sharpen.Thread.CurrentThread().GetName() + " CANCEL transaction (level "
-//                      + Sharpen.Extensions.ToString(transactionLevel) + ")");
-//                try
-//                {
-//                    StorageEngine.EndTransaction();
-//                }
-//                catch (SQLException e)
-//                {
-//                    Log.E(Couchbase.Lite.Database.Tag, Sharpen.Thread.CurrentThread().GetName() +
-//                          " Error calling endTransaction()", e);
-//                    return false;
-//                }
-//            }
-//            --transactionLevel;
-//            return true;
+            System.Diagnostics.Debug.Assert((transactionLevel > 0));
+
+            if (commit)
+            {
+                Log.I(Database.TagSql,System.Threading.Thread.CurrentThread.Name + " Committing transaction (level " + transactionLevel + ")");
+
+                StorageEngine.SetTransactionSuccessful();
+                StorageEngine.EndTransaction();
+            }
+            else
+            {
+                Log.I(TagSql,System.Threading.Thread.CurrentThread.Name + " CANCEL transaction (level " + transactionLevel + ")");
+                try
+                {
+                    StorageEngine.EndTransaction();
+                }
+                catch (SQLException e)
+                {
+                    Log.E(Database.Tag,System.Threading.Thread.CurrentThread.Name + " Error calling endTransaction()", e);
+
+                    return false;
+                }
+            }
+
+            --transactionLevel;
+
+            return true;
         }
 
         internal static Boolean PurgeRevisionsTask(Database enclosingDatabase, IDictionary<String, IList<String>> docsToRevs, IDictionary<String, Object> result)
@@ -3265,11 +3267,10 @@ namespace Couchbase.Lite
             return Sharpen.Extensions.ToString(generation + 1) + "-" + digest;
         }
 
-
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
         internal RevisionInternal LoadRevisionBody(RevisionInternal rev, EnumSet<TDContentOptions> contentOptions)
         {
-            if (rev.GetBody() != null)
+            if (rev.GetBody() != null && contentOptions == EnumSet.NoneOf<TDContentOptions>() && rev.GetSequence() != 0)
             {
                 return rev;
             }
@@ -3278,6 +3279,8 @@ namespace Couchbase.Lite
             Status result = new Status(StatusCode.NotFound);
             try
             {
+                // TODO: on ios this query is:
+                // TODO: "SELECT sequence, json FROM revs WHERE doc_id=? AND revid=? LIMIT 1"
                 var sql = "SELECT sequence, json FROM revs, docs WHERE revid=? AND docs.docid=? AND revs.doc_id=docs.doc_id LIMIT 1"; // FIX: Replace with ADO parameters.
                 var args = new [] { rev.GetRevId(), rev.GetDocId() };
 
@@ -3291,7 +3294,7 @@ namespace Couchbase.Lite
             }
             catch (SQLException e)
             {
-                Log.E(Couchbase.Lite.Database.Tag, "Error loading revision body", e);
+                Log.E(Database.Tag, "Error loading revision body", e);
                 throw new CouchbaseLiteException(StatusCode.InternalServerError);
             }
             finally
@@ -3385,17 +3388,16 @@ namespace Couchbase.Lite
                 return;
             }
 
-            var context = new ValidationContext(this, oldRev);
+            var context = new ValidationContext(this, oldRev, newRev);
 
-            foreach (string validationName in Validations.Keys)
+            var publicRev = new SavedRevision(this, newRev);
+            foreach (var validationName in Validations.Keys)
             {
                 var validation = GetValidation(validationName);
-                if (validation == null) continue;
-                throw new NotImplementedException();
-//                if (validation(/*newRev*/null, context))
-//                {
-//                    throw new CouchbaseLiteException(context.ErrorType.GetCode());
-//                }
+                if (!validation(publicRev, context))
+                {
+                    throw new CouchbaseLiteException(context.RejectMessage, StatusCode.Forbidden);
+                }
             }
         }
 
@@ -3403,7 +3405,7 @@ namespace Couchbase.Lite
         {
             try
             {
-                foreach (string statement in statements.Split(";"))
+                foreach (string statement in statements.Split(';'))
                 {
                     StorageEngine.ExecSQL(statement);
                 }
@@ -3555,7 +3557,7 @@ namespace Couchbase.Lite
     #region Delegates
         public delegate Boolean RunInTransactionDelegate();
 
-        public delegate void ValidateDelegate(Revision newRevision, IValidationContext context);
+        public delegate Boolean ValidateDelegate(Revision newRevision, IValidationContext context);
 
         public delegate Boolean FilterDelegate(SavedRevision revision, Dictionary<String, Object> filterParams);
 

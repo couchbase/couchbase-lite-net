@@ -10,54 +10,75 @@ using Couchbase.Lite.Storage;
 using Couchbase.Lite.Internal;
 using Couchbase.Lite;
 
-namespace Couchbase.Lite {
+namespace Couchbase.Lite
+{
 
-    public class ValidationContext : IValidationContext {
+    public class ValidationContext : IValidationContext
+    {
+        IList<String> changedKeys;
 
-        RevisionInternal InternalRevision { get; set; }
-        Database Database { get; set; }
+        private RevisionInternal InternalRevision { get; set; }
+        private RevisionInternal NewRevision { get; set; }
 
-        internal Status ErrorType { get; set; }
-        internal String ErrorMessage { get; set; }
+        private Database Database { get; set; }
 
-        internal ValidationContext(Database database, RevisionInternal currentRevision)
+        internal String RejectMessage { get; set; }
+
+        internal ValidationContext(Database database, RevisionInternal currentRevision, RevisionInternal newRevision)
         {
             Database = database;
             InternalRevision = currentRevision;
-            ErrorType = new Status(StatusCode.Forbidden);
-            ErrorMessage = "invalid document";
+            NewRevision = newRevision;
         }
 
         #region IValidationContext implementation
 
         public void Reject ()
         {
-            throw new NotImplementedException ();
+            if (RejectMessage == null)
+            {
+                Reject("invalid document");
+            }
         }
 
-        public void Reject (string message)
+        public void Reject (String message)
         {
-            throw new NotImplementedException ();
+            if (RejectMessage == null)
+            {
+                RejectMessage = message;
+            }
         }
 
         public bool ValidateChanges (ValidateChangeDelegate changeValidator)
         {
-            throw new NotImplementedException ();
-            var isValid = true;
-            foreach(var key in ChangedKeys) {
-                var newValue = CurrentRevision.GetProperty(key);
-                var oldValue = CurrentRevision.Parent.GetProperty(key);
-                isValid &= changeValidator(key, newValue, oldValue);
+            var cur = CurrentRevision.Properties;
+            var nuu = NewRevision.GetProperties();
+
+            foreach (var key in ChangedKeys)
+            {
+                if (!changeValidator(key, cur.Get(key), nuu.Get(key)))
+                {
+                    Reject(String.Format("Illegal change to '{0}' property", key));
+                    return false;
+                }
             }
+            return true;
         }
 
         public SavedRevision CurrentRevision {
             get {
                 if (InternalRevision != null)
                 {
-                    Database.LoadRevisionBody(InternalRevision, EnumSet.NoneOf<TDContentOptions>());
+                    try
+                    {
+                        InternalRevision = Database.LoadRevisionBody(InternalRevision, EnumSet.NoneOf<TDContentOptions>());
+                        return new SavedRevision(Database, InternalRevision);
+                    }
+                    catch (CouchbaseLiteException e)
+                    {
+                        throw new RuntimeException(e);
+                    }
                 }
-                throw new NotImplementedException();
                 return null;
 
             }
@@ -65,11 +86,32 @@ namespace Couchbase.Lite {
 
         public IEnumerable<String> ChangedKeys {
             get {
-                throw new NotImplementedException ();
+                if (changedKeys == null)
+                {
+                    changedKeys = new AList<String>();
+                    var cur = CurrentRevision.Properties;
+                    var nuu = NewRevision.GetProperties();
+
+                    foreach (var key in cur.Keys)
+                    {
+                        if (!cur.Get(key).Equals(nuu.Get(key)) && !key.Equals("_rev"))
+                        {
+                            changedKeys.AddItem(key);
+                        }
+                    }
+
+                    foreach (var key in nuu.Keys)
+                    {
+                        if (cur.Get(key) == null && !key.Equals("_rev") && !key.Equals("_id"))
+                        {
+                            changedKeys.AddItem(key);
+                        }
+                    }
+                }
+                return changedKeys;
             }
         }
 
         #endregion
-
     }
 }

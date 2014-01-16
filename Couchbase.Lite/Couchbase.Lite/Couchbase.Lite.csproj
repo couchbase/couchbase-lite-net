@@ -237,6 +237,8 @@
     <Compile Include="Util\SequenceMap.cs" />
     <Compile Include="Replication\PulledRevision.cs" />
     <Compile Include="Revisions\ChangesOptions.cs" />
+    <Compile Include="Replication\MultipartDocumentReader.cs" />
+    <Compile Include="Replication\MultipartReader.cs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="System" />
@@ -247,9 +249,6 @@
     <Reference Include="ICSharpCode.SharpZipLib">
       <HintPath>..\packages\ICSharpCode.SharpZipLib.dll.0.85.4.369\lib\net20\ICSharpCode.SharpZipLib.dll</HintPath>
     </Reference>
-    <Reference Include="ServiceStack.Text">
-      <HintPath>packages\ServiceStack.Text.4.0.5\lib\net40\ServiceStack.Text.dll</HintPath>
-    </Reference>
     <Reference Include="System.Net.Http.WebRequest" />
     <Reference Include="System.Net" />
     <Reference Include="System.Net.Http.Formatting">
@@ -259,6 +258,9 @@
       <HintPath>..\lib\Newtonsoft.Json.dll</HintPath>
     </Reference>
     <Reference Include="System.Web" />
+    <Reference Include="ServiceStack.Text">
+      <HintPath>packages\ServiceStack.Text.4.0.5\lib\net40\ServiceStack.Text.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <ProjectExtensions>
     <MonoDevelop>

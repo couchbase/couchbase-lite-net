@@ -70,5 +70,19 @@ namespace Sharpen
             }
             return hashCode;
         }
+
+        public static T[] CopyTo<T> (T[] original, Int32 length)
+        {
+            var copy = new T[length];
+            Array.Copy(original, copy, length < original.Length ? length : original.Length);
+            return copy;
+        }
+
+        public static T[] CopyTo<T> (T[] original, Int64 length)
+        {
+            var copy = new T[length];
+            Array.Copy(original, copy, length < original.Length ? length : original.LongLength);
+            return copy;
+        }
 	}
 }
