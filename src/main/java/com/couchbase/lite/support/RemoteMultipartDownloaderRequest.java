@@ -57,10 +57,15 @@ public class RemoteMultipartDownloaderRequest extends RemoteRequest {
 
             HttpResponse response = httpClient.execute(request);
 
-            // add in cookies to global store
-            DefaultHttpClient defaultHttpClient = (DefaultHttpClient)httpClient;
-            CouchbaseLiteHttpClientFactory.INSTANCE.addCookies(defaultHttpClient.getCookieStore().getCookies());
-
+            try {
+                // add in cookies to global store
+                if (httpClient instanceof DefaultHttpClient) {
+                    DefaultHttpClient defaultHttpClient = (DefaultHttpClient)httpClient;
+                    CouchbaseLiteHttpClientFactory.INSTANCE.addCookies(defaultHttpClient.getCookieStore().getCookies());
+                }
+            } catch (Exception e) {
+                Log.e(Database.TAG, "Unable to add in cookies to global store", e);
+            }
 
             StatusLine status = response.getStatusLine();
             if (status.getStatusCode() >= 300) {
