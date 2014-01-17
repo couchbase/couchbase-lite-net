@@ -10,6 +10,8 @@ using Couchbase.Lite.Storage;
 using Couchbase.Lite.Internal;
 using System.Threading.Tasks;
 using System.Text;
+using System.Diagnostics;
+using System.Data;
 
 namespace Couchbase.Lite 
 {
@@ -22,7 +24,7 @@ namespace Couchbase.Lite
         /// <summary>Constructor</summary>
         internal Database(String path, Manager manager)
         {
-            System.Diagnostics.Debug.Assert((path.StartsWith("/", StringComparison.InvariantCultureIgnoreCase)));
+            Debug.Assert((path.StartsWith("/", StringComparison.InvariantCultureIgnoreCase)));
 
             //path must be absolute
             Path = path;
@@ -184,7 +186,7 @@ namespace Couchbase.Lite
             }
             catch (SQLException e)
             {
-                Log.E(Couchbase.Lite.Database.Tag, "Error vacuuming sqliteDb", e);
+                Log.E(Database.Tag, "Error vacuuming sqliteDb", e);
                 return;
             }
             return;
@@ -655,8 +657,8 @@ namespace Couchbase.Lite
         private RevisionList GetAllRevisionsOfDocumentID(string docId, long docNumericID, bool onlyCurrent)
         {
             var sql = onlyCurrent 
-                      ? "SELECT sequence, revid, deleted FROM revs " + "WHERE doc_id=? AND current ORDER BY sequence DESC"
-                      : "SELECT sequence, revid, deleted FROM revs " + "WHERE doc_id=? ORDER BY sequence DESC";
+                      ? "SELECT sequence, revid, deleted FROM revs " + "WHERE doc_id=@ AND current ORDER BY sequence DESC"
+                      : "SELECT sequence, revid, deleted FROM revs " + "WHERE doc_id=@ ORDER BY sequence DESC";
 
             var args = new [] { Convert.ToString (docNumericID) };
             var cursor = StorageEngine.RawQuery(sql, args);
@@ -697,7 +699,7 @@ namespace Couchbase.Lite
                 return null;
             }
 
-            var docId = string.Format("_design/%s", path[0]);
+            var docId = string.Format("_design/{0}", path[0]);
             var rev = GetDocumentWithIDAndRev(docId, null, EnumSet.NoneOf<TDContentOptions>());
             if (rev == null)
             {
@@ -758,7 +760,7 @@ namespace Couchbase.Lite
                     var whereArgs = new [] { docID, prevRevID };
                     try
                     {
-                        var rowsUpdated = StorageEngine.Update("localdocs", values, "docid=? AND revid=?", whereArgs);
+                        var rowsUpdated = StorageEngine.Update("localdocs", values, "docid=@ AND revid=@", whereArgs);
                         if (rowsUpdated == 0)
                         {
                             throw new CouchbaseLiteException(StatusCode.Conflict);
@@ -780,7 +782,7 @@ namespace Couchbase.Lite
 
                     try
                     {
-                        StorageEngine.InsertWithOnConflict("localdocs", null, values, SQLiteStorageEngine.ConflictIgnore);
+                        StorageEngine.InsertWithOnConflict("localdocs", null, values, ConflictResolutionStrategy.Ignore);
                     }
                     catch (SQLException e)
                     {
@@ -821,7 +823,7 @@ namespace Couchbase.Lite
             var whereArgs = new [] { docID, revID };
             try
             {
-                int rowsDeleted = StorageEngine.Delete("localdocs", "docid=? AND revid=?", whereArgs);
+                int rowsDeleted = StorageEngine.Delete("localdocs", "docid=@ AND revid=@", whereArgs);
                 if (rowsDeleted == 0)
                 {
                     if (GetLocalDocument(docID, null) != null)
@@ -848,7 +850,7 @@ namespace Couchbase.Lite
             try
             {
                 var args = new [] { docID };
-                cursor = StorageEngine.RawQuery("SELECT revid, json FROM localdocs WHERE docid=?", args); // TODO: Convert to ADO params.
+                cursor = StorageEngine.RawQuery("SELECT revid, json FROM localdocs WHERE docid=@", CommandBehavior.SequentialAccess, args);
 
                 if (cursor.MoveToNext())
                 {
@@ -865,6 +867,7 @@ namespace Couchbase.Lite
                         properties = Manager.GetObjectMapper().ReadValue<IDictionary<String, Object>>(json);
                         properties.Put("_id", docID);
                         properties.Put("_rev", gotRevID);
+
                         result = new RevisionInternal(docID, gotRevID, false, this);
                         result.SetProperties(properties);
                     }
@@ -946,7 +949,7 @@ namespace Couchbase.Lite
                     {
                         // This revision is known locally. Remember its sequence as the parent of the next one:
                         sequence = localRev.GetSequence();
-                        System.Diagnostics.Debug.Assert((sequence > 0));
+                        Debug.Assert((sequence > 0));
                         localParentSequence = sequence;
                     }
                     else
@@ -999,10 +1002,10 @@ namespace Couchbase.Lite
                 {
                     ContentValues args = new ContentValues();
                     args.Put("current", 0);
-                    string[] whereArgs = new string[] { System.Convert.ToString(localParentSequence) };
+                    string[] whereArgs = new string[] { Convert.ToString(localParentSequence) };
                     try
                     {
-                        StorageEngine.Update("revs", args, "sequence=?", whereArgs); // TODO: Convert to ADO Params.
+                        StorageEngine.Update("revs", args, "sequence=@", whereArgs);
                     }
                     catch (SQLException)
                     {
@@ -1049,13 +1052,14 @@ namespace Couchbase.Lite
             }
             catch (SQLException e)
             {
-                Log.E(Couchbase.Lite.Database.Tag, "Error deleting attachments", e);
+                Log.E(Database.Tag, "Error deleting attachments", e);
             }
+
             // Now collect all remaining attachment IDs and tell the store to delete all but these:
             Cursor cursor = null;
             try
             {
-                cursor = StorageEngine.RawQuery("SELECT DISTINCT key FROM attachments", null);
+                cursor = StorageEngine.RawQuery("SELECT DISTINCT key FROM attachments", CommandBehavior.SequentialAccess, null);
                 cursor.MoveToNext();
 
                 var allKeys = new AList<BlobKey>();
@@ -1096,7 +1100,7 @@ namespace Couchbase.Lite
             values.Put("remote", url.ToString());
             values.Put("push", push);
             values.Put("last_sequence", lastSequence);
-            var newId = StorageEngine.InsertWithOnConflict("replicators", null, values, SQLiteStorageEngine.ConflictReplace);
+            var newId = StorageEngine.InsertWithOnConflict("replicators", null, values, ConflictResolutionStrategy.Replace);
             return (newId == -1);
         }
 
@@ -1108,8 +1112,7 @@ namespace Couchbase.Lite
             try
             {
                 var args = new [] { url.ToString(), (push ? 1 : 0).ToString() };
-                cursor = StorageEngine.RawQuery("SELECT last_sequence FROM replicators WHERE remote=? AND push=?"
-                    , args);
+                cursor = StorageEngine.RawQuery("SELECT last_sequence FROM replicators WHERE remote=@ AND push=@", args);
                 if (cursor.MoveToNext())
                 {
                     result = cursor.GetString(0);
@@ -1117,7 +1120,7 @@ namespace Couchbase.Lite
             }
             catch (SQLException e)
             {
-                Log.E(Couchbase.Lite.Database.Tag, "Error getting last sequence", e);
+                Log.E(Database.Tag, "Error getting last sequence", e);
                 return null;
             }
             finally
@@ -1205,9 +1208,8 @@ namespace Couchbase.Lite
                 additionalSelectColumns = ", json";
             }
 
-            // TODO: Convert to ADO params.
             var sql = "SELECT sequence, revs.doc_id, docid, revid, deleted" + additionalSelectColumns
-                      + " FROM revs, docs " + "WHERE sequence > ? AND current=1 " + "AND revs.doc_id = docs.doc_id "
+                      + " FROM revs, docs " + "WHERE sequence > @ AND current=1 " + "AND revs.doc_id = docs.doc_id "
                       + "ORDER BY revs.doc_id, revid DESC";
             var args = new [] { Convert.ToString(lastSeq) };
 
@@ -1216,7 +1218,7 @@ namespace Couchbase.Lite
 
             try
             {
-                cursor = StorageEngine.RawQuery(sql, args);
+                cursor = StorageEngine.RawQuery(sql, CommandBehavior.SequentialAccess, args);
                 cursor.MoveToNext();
 
                 changes = new RevisionList();
@@ -1236,8 +1238,9 @@ namespace Couchbase.Lite
                         lastDocId = docNumericId;
                     }
 
+                    var sequence = cursor.GetLong(0);
                     var rev = new RevisionInternal(cursor.GetString(2), cursor.GetString(3), (cursor.GetInt(4) > 0), this);
-                    rev.SetSequence(cursor.GetLong(0));
+                    rev.SetSequence(sequence);
 
                     if (includeDocs)
                     {
@@ -1316,11 +1319,11 @@ namespace Couchbase.Lite
                 var commaSeperatedIds = JoinQuotedObjects(options.GetKeys());
                 sql.Append(String.Format(" revs.doc_id IN (SELECT doc_id FROM docs WHERE docid IN ({0})) AND", commaSeperatedIds));
             }
-            sql.Append(" docs.doc_id = revs.doc_id AND current=1"); // TODO: Convert to ADO params.
+            sql.Append(" docs.doc_id = revs.doc_id AND current=1");
 
             if (!options.IsIncludeDeletedDocs())
             {
-                sql.Append(" AND deleted=0"); // TODO: Convert to ADO params.
+                sql.Append(" AND deleted=0");
             }
 
             var args = new AList<String>();
@@ -1338,19 +1341,19 @@ namespace Couchbase.Lite
             }
             if (minKey != null)
             {
-                System.Diagnostics.Debug.Assert((minKey is String));
-                sql.Append((inclusiveMin ? " AND docid >= ?" : " AND docid > ?")); // TODO: Convert to ADO params.
+                Debug.Assert((minKey is String));
+                sql.Append((inclusiveMin ? " AND docid >= @" : " AND docid > @"));
                 args.AddItem((string)minKey);
             }
             if (maxKey != null)
             {
-                System.Diagnostics.Debug.Assert((maxKey is string));
-                sql.Append((inclusiveMax ? " AND docid <= ?" : " AND docid < ?")); // TODO: Convert to ADO params.
+                Debug.Assert((maxKey is string));
+                sql.Append((inclusiveMax ? " AND docid <= @" : " AND docid < @"));
                 args.AddItem((string)maxKey);
             }
-            sql.Append(String.Format(" ORDER BY docid {0}, {1} revid DESC LIMIT ? OFFSET ?", 
+            sql.Append(String.Format(" ORDER BY docid {0}, {1} revid DESC LIMIT @ OFFSET @", 
                 options.IsDescending() ? "DESC" : "ASC", 
-                options.IsIncludeDeletedDocs() ? "deleted ASC," : String.Empty)); // TODO: Convert to ADO params.
+                options.IsIncludeDeletedDocs() ? "deleted ASC," : String.Empty));
             args.AddItem(options.GetLimit().ToString());
             args.AddItem(options.GetSkip().ToString());
             Cursor cursor = null;
@@ -1361,7 +1364,8 @@ namespace Couchbase.Lite
             {
                 cursor = StorageEngine.RawQuery(
                     sql.ToString(),
-                    Collections.ToArray(args, new string[args.Count])
+                    CommandBehavior.SequentialAccess,
+                    args.ToArray()
                 );
 
                 cursor.MoveToNext();
@@ -1377,14 +1381,23 @@ namespace Couchbase.Lite
                     }
 
                     lastDocID = docNumericID;
+
+                    var includeDocs = options.IsIncludeDocs();
+
                     var docId = cursor.GetString(1);
                     var revId = cursor.GetString(2);
                     var sequenceNumber = cursor.GetLong(3);
-                    var deleted = options.IsIncludeDeletedDocs() && cursor.GetInt(GetDeletedColumnIndex(options)) > 0;
-                    IDictionary<string, object> docContents = null;
-                    if (options.IsIncludeDocs())
+                    byte[] json = null;
+                    if (includeDocs)
                     {
-                        var json = cursor.GetBlob(4);
+                        json = cursor.GetBlob(4);
+                    }
+                    var deleted = options.IsIncludeDeletedDocs() && cursor.GetInt(GetDeletedColumnIndex(options)) > 0;
+
+                    IDictionary<String, Object> docContents = null;
+
+                    if (includeDocs)
+                    {
                         docContents = DocumentPropertiesFromJSON(json, docId, revId, deleted, sequenceNumber, options.GetContentOptions());
                     }
                     var value = new Dictionary<string, object>();
@@ -1431,7 +1444,7 @@ namespace Couchbase.Lite
                                     if (revId != null)
                                     {
                                         value.Put("rev", revId);
-                                        value.Put("deleted", true);
+                                        value.Put("deleted", true); // FIXME: SHould this be set the value of `deleted`?
                                     }
                                 }
                                 change = new QueryRow((value != null ? docId : null), 0, docId, value, null);
@@ -1469,8 +1482,8 @@ namespace Couchbase.Lite
             Cursor cursor = null;
             var args = new [] { Convert.ToString(docNumericId) };
             String revId = null;
-            var sql = "SELECT revid, deleted FROM revs" + " WHERE doc_id=? and current=1" 
-                      + " ORDER BY deleted asc, revid desc LIMIT 2"; // TODO: Convert to ADO params.
+            var sql = "SELECT revid, deleted FROM revs" + " WHERE doc_id=@ and current=1" 
+                      + " ORDER BY deleted asc, revid desc LIMIT 2";
 
             try
             {
@@ -1541,7 +1554,7 @@ namespace Couchbase.Lite
         ///     </summary>
         internal Int32 GetDeletedColumnIndex(QueryOptions options)
         {
-            System.Diagnostics.Debug.Assert(options != null);
+            Debug.Assert(options != null);
 
             return options.IsIncludeDocs() ? 5 : 4;
         }
@@ -1620,7 +1633,7 @@ namespace Couchbase.Lite
             try
             {
                 var whereArgs = new [] { name };
-                var rowsAffected = StorageEngine.Delete("views", "name=?", whereArgs);
+                var rowsAffected = StorageEngine.Delete("views", "name=@", whereArgs);
 
                 if (rowsAffected > 0)
                 {
@@ -1644,7 +1657,7 @@ namespace Couchbase.Lite
             var seq = rev.GetSequence();
             if (seq > 0)
             {
-                seq = LongForQuery("SELECT parent FROM revs WHERE sequence=?", new string[] { Convert.ToString(seq) }); // TODO: Convert to ADO parameters
+                seq = LongForQuery("SELECT parent FROM revs WHERE sequence=@", new [] { Convert.ToString(seq) });
             }
             else
             {
@@ -1654,7 +1667,7 @@ namespace Couchbase.Lite
                     return null;
                 }
                 var args = new [] { Convert.ToString(docNumericID), rev.GetRevId() };
-                seq = LongForQuery("SELECT parent FROM revs WHERE doc_id=? and revid=?", args); // TODO: Convert to ADO parameters
+                seq = LongForQuery("SELECT parent FROM revs WHERE doc_id=@ and revid=@", args);
             }
             if (seq == 0)
             {
@@ -1664,7 +1677,7 @@ namespace Couchbase.Lite
             // Now get its revID and deletion status:
             RevisionInternal result = null;
             var args_1 = new [] { Convert.ToString(seq) };
-            var queryString = "SELECT revid, deleted FROM revs WHERE sequence=?"; // TODO: Convert to ADO parameters
+            var queryString = "SELECT revid, deleted FROM revs WHERE sequence=@";
 
             Cursor cursor = null;
             try
@@ -1725,7 +1738,7 @@ namespace Couchbase.Lite
             var result = 0L;
             try
             {
-                cursor = StorageEngine.RawQuery(sqlQuery, args);
+                cursor = StorageEngine.RawQuery(sqlQuery, args.ToArray());
                 if (cursor.MoveToNext())
                 {
                     result = cursor.GetLong(0);
@@ -1868,26 +1881,28 @@ namespace Couchbase.Lite
 
         internal Attachment GetAttachmentForSequence (long sequence, string filename)
         {
-            System.Diagnostics.Debug.Assert((sequence > 0));
-            System.Diagnostics.Debug.Assert((filename != null));
+            Debug.Assert((sequence > 0));
+            Debug.Assert((filename != null));
 
             Cursor cursor = null;
-            string[] args = new string[] { System.Convert.ToString(sequence), filename };
+            var args = new [] { Convert.ToString(sequence), filename };
             try
             {
-                cursor = StorageEngine.RawQuery("SELECT key, type FROM attachments WHERE sequence=? AND filename=?", args);
+                cursor = StorageEngine.RawQuery("SELECT key, type FROM attachments WHERE sequence=@ AND filename=@", args);
 
                 if (!cursor.MoveToNext())
                 {
                     throw new CouchbaseLiteException(StatusCode.NotFound);
                 }
-                byte[] keyData = cursor.GetBlob(0);
+
+                var keyData = cursor.GetBlob(0);
+
                 //TODO add checks on key here? (ios version)
-                BlobKey key = new BlobKey(keyData);
-                InputStream contentStream = Attachments.BlobStreamForKey(key);
+                var key = new BlobKey(keyData);
+                var contentStream = Attachments.BlobStreamForKey(key);
                 if (contentStream == null)
                 {
-                    Log.E(Couchbase.Lite.Database.Tag, "Failed to load attachment");
+                    Log.E(Database.Tag, "Failed to load attachment");
                     throw new CouchbaseLiteException(StatusCode.InternalServerError);
                 }
                 else
@@ -1928,7 +1943,7 @@ namespace Couchbase.Lite
             long result = -1;
             try
             {
-                cursor = StorageEngine.RawQuery("SELECT doc_id FROM docs WHERE docid=?", args);
+                cursor = StorageEngine.RawQuery("SELECT doc_id FROM docs WHERE docid=@", args);
                 if (cursor.MoveToNext())
                 {
                     result = cursor.GetLong(0);
@@ -1981,7 +1996,7 @@ namespace Couchbase.Lite
         ///     </param>
         internal Boolean EndTransaction(bool commit)
         {
-            System.Diagnostics.Debug.Assert((transactionLevel > 0));
+            Debug.Assert((transactionLevel > 0));
 
             if (commit)
             {
@@ -2037,8 +2052,8 @@ namespace Couchbase.Lite
                         {
                             try
                             {
-                                string[] args = new string[] { System.Convert.ToString(docNumericID) };
-                                enclosingDatabase.StorageEngine.ExecSQL("DELETE FROM revs WHERE doc_id=?", args);
+                                var args = new[] { Convert.ToString(docNumericID) };
+                                enclosingDatabase.StorageEngine.ExecSQL("DELETE FROM revs WHERE doc_id=@", args);
                             }
                             catch (SQLException e)
                             {
@@ -2053,8 +2068,8 @@ namespace Couchbase.Lite
                             Cursor cursor = null;
                             try
                             {
-                                string[] args = new string[] { System.Convert.ToString(docNumericID) };
-                                string queryString = "SELECT revid, sequence, parent FROM revs WHERE doc_id=? ORDER BY sequence DESC";
+                                var args = new [] { Convert.ToString(docNumericID) };
+                                var queryString = "SELECT revid, sequence, parent FROM revs WHERE doc_id=@ ORDER BY sequence DESC";
                                 cursor = enclosingDatabase.StorageEngine.RawQuery(queryString, args);
                                 if (!cursor.MoveToNext())
                                 {
@@ -2140,15 +2155,15 @@ namespace Couchbase.Lite
                 }
                 if (rev != null)
                 {
-                    sql = "SELECT " + cols + " FROM revs, docs WHERE docs.docid=? AND revs.doc_id=docs.doc_id AND revid=? LIMIT 1";
+                    sql = "SELECT " + cols + " FROM revs, docs WHERE docs.docid=@ AND revs.doc_id=docs.doc_id AND revid=@ LIMIT 1";
                     string[] args = new string[] { id, rev };
                     cursor = StorageEngine.RawQuery(sql, args);
                 }
                 else
                 {
-                    sql = "SELECT " + cols + " FROM revs, docs WHERE docs.docid=? AND revs.doc_id=docs.doc_id and current=1 and deleted=0 ORDER BY revid DESC LIMIT 1";
+                    sql = "SELECT " + cols + " FROM revs, docs WHERE docs.docid=@ AND revs.doc_id=docs.doc_id and current=1 and deleted=0 ORDER BY revid DESC LIMIT 1";
                     string[] args = new string[] { id };
-                    cursor = StorageEngine.RawQuery(sql, args);
+                    cursor = StorageEngine.RawQuery(sql, CommandBehavior.SequentialAccess, args);
                 }
                 if (cursor.MoveToNext())
                 {
@@ -2217,8 +2232,8 @@ namespace Couchbase.Lite
 
             var sequenceNumber = rev.GetSequence();
 
-            System.Diagnostics.Debug.Assert((revId != null));
-            System.Diagnostics.Debug.Assert((sequenceNumber > 0));
+            Debug.Assert((revId != null));
+            Debug.Assert((sequenceNumber > 0));
 
             // Get attachment metadata, and optionally the contents:
             var attachmentsDict = GetAttachmentsDictForSequenceWithContent(sequenceNumber, contentOptions);
@@ -2311,7 +2326,7 @@ namespace Couchbase.Lite
             string docId = rev.GetDocId();
             string revId = rev.GetRevId();
 
-            System.Diagnostics.Debug.Assert(((docId != null) && (revId != null)));
+            Debug.Assert(((docId != null) && (revId != null)));
 
             long docNumericId = GetDocNumericID(docId);
             if (docNumericId < 0)
@@ -2329,7 +2344,7 @@ namespace Couchbase.Lite
             Cursor cursor = null;
             IList<RevisionInternal> result;
             var args = new [] { Convert.ToString(docNumericId) };
-            var sql = "SELECT sequence, parent, revid, deleted FROM revs WHERE doc_id=? ORDER BY sequence DESC";
+            var sql = "SELECT sequence, parent, revid, deleted FROM revs WHERE doc_id=@ ORDER BY sequence DESC";
 
             try
             {
@@ -2476,7 +2491,7 @@ namespace Couchbase.Lite
             {
                 try
                 {
-                    result = System.Convert.ToInt32(Sharpen.Runtime.Substring(rev, 0, dashPos));
+                    result = Convert.ToInt32(Runtime.Substring(rev, 0, dashPos));
                 }
                 catch (FormatException)
                 {
@@ -2501,26 +2516,33 @@ namespace Couchbase.Lite
         /// <summary>Constructs an "_attachments" dictionary for a revision, to be inserted in its JSON body.</summary>
         internal IDictionary<String, Object> GetAttachmentsDictForSequenceWithContent(long sequence, EnumSet<TDContentOptions> contentOptions)
         {
-            System.Diagnostics.Debug.Assert((sequence > 0));
+            Debug.Assert((sequence > 0));
 
             Cursor cursor = null;
             var args = new [] { Convert.ToString(sequence) };
 
             try
             {
-                cursor = StorageEngine.RawQuery("SELECT filename, key, type, length, revpos FROM attachments WHERE sequence=?", args); // TODO: Convert to ADO parameters.
+                cursor = StorageEngine.RawQuery("SELECT filename, key, type, length, revpos FROM attachments WHERE sequence=@", CommandBehavior.SequentialAccess, args);
                 if (!cursor.MoveToNext())
                 {
                     return null;
                 }
-                IDictionary<string, object> result = new Dictionary<string, object>();
+
+                var result = new Dictionary<String, Object>();
+
                 while (!cursor.IsAfterLast())
                 {
                     var dataSuppressed = false;
-                    var length = cursor.GetInt(3);
+                    var filename = cursor.GetString(0);
                     var keyData = cursor.GetBlob(1);
+                    var contentType = cursor.GetString(2);
+                    var length = cursor.GetInt(3);
+                    var revpos = cursor.GetInt(4);
+
                     var key = new BlobKey(keyData);
                     var digestString = "sha1-" + Convert.ToBase64String(keyData);
+
                     var dataBase64 = String.Empty;
                     if (contentOptions.Contains(TDContentOptions.TDIncludeAttachments))
                     {
@@ -2557,12 +2579,10 @@ namespace Couchbase.Lite
                     }
                     attachment.Put("digest", digestString);
 
-                    var contentType = cursor.GetString(2);
                     attachment.Put("content_type", contentType);
                     attachment.Put("length", length);
-                    attachment.Put("revpos", cursor.GetInt(4));
+                    attachment.Put("revpos", revpos);
 
-                    var filename = cursor.GetString(0);
                     result.Put(filename, attachment);
 
                     cursor.MoveToNext();
@@ -2686,8 +2706,8 @@ namespace Couchbase.Lite
                         additionalWhereClause = "AND current=1";
                     }
                     cursor = StorageEngine.RawQuery(
-                                                "SELECT sequence FROM revs WHERE doc_id=? AND revid=? "
-                                               + additionalWhereClause + " LIMIT 1", args);
+                        "SELECT sequence FROM revs WHERE doc_id=@ AND revid=@ "
+                        + additionalWhereClause + " LIMIT 1", args);
                     if (cursor.MoveToNext())
                     {
                         parentSequence = cursor.GetLong(0);
@@ -2750,16 +2770,15 @@ namespace Couchbase.Lite
                         else
                         {
                             // Doc exists; check whether current winning revision is deleted:
-                            string[] args = new string[] { System.Convert.ToString(docNumericID) };
-                            cursor = StorageEngine.RawQuery("SELECT sequence, deleted FROM revs WHERE doc_id=? and current=1 ORDER BY revid DESC LIMIT 1"
-                                                       , args);
+                            var args = new[] { Convert.ToString(docNumericID) };
+                            cursor = StorageEngine.RawQuery("SELECT sequence, deleted FROM revs WHERE doc_id=@ and current=1 ORDER BY revid DESC LIMIT 1", args);
                             if (cursor.MoveToNext())
                             {
-                                bool wasAlreadyDeleted = (cursor.GetInt(1) > 0);
+                                var wasAlreadyDeleted = (cursor.GetInt(1) > 0);
                                 if (wasAlreadyDeleted)
                                 {
                                     // Make the deleted revision no longer current:
-                                    ContentValues updateContent = new ContentValues();
+                                    var updateContent = new ContentValues();
                                     updateContent.Put("current", 0);
                                     StorageEngine.Update("revs", updateContent, "sequence=" + cursor.GetLong(0), null);
                                 }
@@ -2767,7 +2786,7 @@ namespace Couchbase.Lite
                                 {
                                     if (!allowConflict)
                                     {
-                                        string msg = string.Format("docId (%s) already exists, current not " + "deleted, so conflict.  Did you forget to pass in a previous "
+                                        var msg = string.Format("docId ({0}) already exists, current not " + "deleted, so conflict.  Did you forget to pass in a previous "
                                                                    + "revision ID in the properties being saved?", docId);
                                         throw new CouchbaseLiteException(msg, StatusCode.Conflict);
                                     }
@@ -2826,7 +2845,7 @@ namespace Couchbase.Lite
             }
             catch (SQLException e1)
             {
-                Log.E(Couchbase.Lite.Database.Tag, "Error putting revision", e1);
+                Log.E(Database.Tag, "Error putting revision", e1);
                 return null;
             }
             finally
@@ -2879,11 +2898,11 @@ namespace Couchbase.Lite
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
         internal void ProcessAttachmentsForRevision(IDictionary<string, AttachmentInternal> attachments, RevisionInternal rev, long parentSequence)
         {
-            System.Diagnostics.Debug.Assert((rev != null));
+            Debug.Assert((rev != null));
             var newSequence = rev.GetSequence();
-            System.Diagnostics.Debug.Assert((newSequence > parentSequence));
+            Debug.Assert((newSequence > parentSequence));
             var generation = rev.GetGeneration();
-            System.Diagnostics.Debug.Assert((generation > 0));
+            Debug.Assert((generation > 0));
 
             // If there are no attachments in the new rev, there's nothing to do:
             IDictionary<string, object> revAttachments = null;
@@ -2912,8 +2931,7 @@ namespace Couchbase.Lite
                     {
                         if (attachment.GetRevpos() > generation)
                         {
-                            Log.W(Couchbase.Lite.Database.Tag, string.Format("Attachment %s %s has unexpected revpos %s, setting to %s"
-                                                                             , rev, name, attachment.GetRevpos(), generation));
+                            Log.W(Database.Tag, string.Format("Attachment {0} {1} has unexpected revpos {2}, setting to {3}", rev, name, attachment.GetRevpos(), generation));
                             attachment.SetRevpos(generation);
                         }
                     }
@@ -2932,8 +2950,8 @@ namespace Couchbase.Lite
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
         internal void CopyAttachmentNamedFromSequenceToSequence(string name, long fromSeq, long toSeq)
         {
-            System.Diagnostics.Debug.Assert((name != null));
-            System.Diagnostics.Debug.Assert((toSeq > 0));
+            Debug.Assert((name != null));
+            Debug.Assert((toSeq > 0));
 
             if (fromSeq < 0)
             {
@@ -2946,7 +2964,7 @@ namespace Couchbase.Lite
             try
             {
                 StorageEngine.ExecSQL("INSERT INTO attachments (sequence, filename, key, type, length, revpos) "
-                                      + "SELECT ?, ?, key, type, length, revpos FROM attachments " + "WHERE sequence=? AND filename=?", args); // FIX: Convert to ADO parameters;
+                    + "SELECT @, @, key, type, length, revpos FROM attachments " + "WHERE sequence=@ AND filename=@", args);
                 cursor = StorageEngine.RawQuery("SELECT changes()", null);
                 cursor.MoveToNext();
 
@@ -2987,8 +3005,8 @@ namespace Couchbase.Lite
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
         internal void InsertAttachmentForSequenceWithNameAndType(InputStream contentStream, long sequence, string name, string contentType, int revpos)
         {
-            System.Diagnostics.Debug.Assert((sequence > 0));
-            System.Diagnostics.Debug.Assert((name != null));
+            Debug.Assert((sequence > 0));
+            Debug.Assert((name != null));
 
             var key = new BlobKey();
             if (!Attachments.StoreBlobStream(contentStream, key))
@@ -3224,7 +3242,7 @@ namespace Couchbase.Lite
                 string encodingStr = (string)attachInfo.Get("encoding");
                 if (encodingStr != null && encodingStr.Length > 0)
                 {
-                    if (Sharpen.Runtime.EqualsIgnoreCase(encodingStr, "gzip"))
+                    if (Runtime.EqualsIgnoreCase(encodingStr, "gzip"))
                     {
                         attachment.SetEncoding(AttachmentInternal.AttachmentEncoding.AttachmentEncodingGZIP
                                               );
@@ -3264,7 +3282,7 @@ namespace Couchbase.Lite
             }
             string digest = Misc.TDCreateUUID();
             // TODO: Generate canonical digest of body
-            return Sharpen.Extensions.ToString(generation + 1) + "-" + digest;
+            return Extensions.ToString(generation + 1) + "-" + digest;
         }
 
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
@@ -3274,17 +3292,17 @@ namespace Couchbase.Lite
             {
                 return rev;
             }
-            System.Diagnostics.Debug.Assert(((rev.GetDocId() != null) && (rev.GetRevId() != null)));
+            Debug.Assert(((rev.GetDocId() != null) && (rev.GetRevId() != null)));
             Cursor cursor = null;
-            Status result = new Status(StatusCode.NotFound);
+            var result = new Status(StatusCode.NotFound);
             try
             {
                 // TODO: on ios this query is:
-                // TODO: "SELECT sequence, json FROM revs WHERE doc_id=? AND revid=? LIMIT 1"
-                var sql = "SELECT sequence, json FROM revs, docs WHERE revid=? AND docs.docid=? AND revs.doc_id=docs.doc_id LIMIT 1"; // FIX: Replace with ADO parameters.
+                // TODO: "SELECT sequence, json FROM revs WHERE doc_id=@ AND revid=@ LIMIT 1"
+                var sql = "SELECT sequence, json FROM revs, docs WHERE revid=@ AND docs.docid=@ AND revs.doc_id=docs.doc_id LIMIT 1";
                 var args = new [] { rev.GetRevId(), rev.GetDocId() };
 
-                cursor = StorageEngine.RawQuery(sql, args);
+                cursor = StorageEngine.RawQuery(sql, CommandBehavior.SequentialAccess, args);
                 if (cursor.MoveToNext())
                 {
                     result.SetCode(StatusCode.Ok);
@@ -3437,21 +3455,26 @@ namespace Couchbase.Lite
             {
                 return true;
             }
+
             // Create the storage engine.
             StorageEngine = SQLiteStorageEngineFactory.CreateStorageEngine();
+
             // Try to open the storage engine and stop if we fail.
             if (StorageEngine == null || !StorageEngine.Open(Path))
             {
                 return false;
             }
+
             // Stuff we need to initialize every time the sqliteDb opens:
             if (!Initialize("PRAGMA foreign_keys = ON;"))
             {
                 Log.E(Database.Tag, "Error turning on foreign keys");
                 return false;
             }
+
             // Check the user_version number we last stored in the sqliteDb:
             var dbVersion = StorageEngine.GetVersion();
+
             // Incompatible version changes increment the hundreds' place:
             if (dbVersion >= 100)
             {
@@ -3459,6 +3482,7 @@ namespace Couchbase.Lite
                 StorageEngine.Close();
                 return false;
             }
+
             if (dbVersion < 1)
             {
                 // First-time initialization:
@@ -3469,12 +3493,15 @@ namespace Couchbase.Lite
                     StorageEngine.Close();
                     return false;
                 }
+
                 dbVersion = 3;
             }
+
             if (dbVersion < 2)
             {
                 // Version 2: added attachments.revpos
                 var upgradeSql = "ALTER TABLE attachments ADD COLUMN revpos INTEGER DEFAULT 0; PRAGMA user_version = 2";
+
                 if (!Initialize(upgradeSql))
                 {
                     StorageEngine.Close();
@@ -3482,6 +3509,7 @@ namespace Couchbase.Lite
                 }
                 dbVersion = 2;
             }
+
             if (dbVersion < 3)
             {
                 var upgradeSql = "CREATE TABLE localdocs ( " + "docid TEXT UNIQUE NOT NULL, " 
@@ -3494,6 +3522,7 @@ namespace Couchbase.Lite
                 }
                 dbVersion = 3;
             }
+
             if (dbVersion < 4)
             {
                 var upgradeSql = "CREATE TABLE info ( " + "key TEXT PRIMARY KEY, " + "value TEXT); "
@@ -3506,6 +3535,7 @@ namespace Couchbase.Lite
                     return false;
                 }
             }
+
             try
             {
                 Attachments = new BlobStore(AttachmentStorePath);
@@ -3516,7 +3546,9 @@ namespace Couchbase.Lite
                 StorageEngine.Close();
                 return false;
             }
+
             open = true;
+
             return true;
         }
 
@@ -3542,7 +3574,7 @@ namespace Couchbase.Lite
                 }
                 ActiveReplicators = null;
             }
-            if (StorageEngine != null && StorageEngine.IsOpen())
+            if (StorageEngine != null && StorageEngine.IsOpen)
             {
                 StorageEngine.Close();
             }

@@ -60,7 +60,6 @@
     <Compile Include="Sharpen\AtomicLong.cs" />
     <Compile Include="Sharpen\AtomicReference.cs" />
     <Compile Include="Sharpen\AtomicReferenceArray.cs" />
-    <Compile Include="Sharpen\Authenticator.cs" />
     <Compile Include="Sharpen\BitSet.cs" />
     <Compile Include="Sharpen\BufferedInputStream.cs" />
     <Compile Include="Sharpen\BufferedOutputStream.cs" />
@@ -165,7 +164,6 @@
     <Compile Include="Sharpen\WrappedSystemStream.cs" />
     <Compile Include="Sharpen\X509Certificate.cs" />
     <Compile Include="Sharpen\X509TrustManager.cs" />
-    <Compile Include="Sharpen\Observable.cs" />
     <Compile Include="Sharpen\Uri.cs" />
     <Compile Include="Sharpen\CharUtils.cs" />
     <Compile Include="Util\URIUtils.cs" />
@@ -239,6 +237,8 @@
     <Compile Include="Revisions\ChangesOptions.cs" />
     <Compile Include="Replication\MultipartDocumentReader.cs" />
     <Compile Include="Replication\MultipartReader.cs" />
+    <Compile Include="Store\ConflictResolutionStrategy.cs" />
+    <Compile Include="Store\CouchbaseSqliteCollationFunction.cs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="System" />

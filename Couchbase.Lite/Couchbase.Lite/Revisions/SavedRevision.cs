@@ -37,7 +37,7 @@ namespace Couchbase.Lite {
                 var loadRevision = Database.LoadRevisionBody(RevisionInternal, EnumSet.NoneOf<TDContentOptions>());
                 if (loadRevision == null)
                 {
-                    Log.W(Database.Tag, "Couldn't load body/sequence of %s" + this);
+                    Log.W(Database.Tag, "Couldn't load body/sequence of {0}" + this);
                     return false;
                 }
                 RevisionInternal = loadRevision;

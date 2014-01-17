@@ -103,7 +103,7 @@ namespace Couchbase.Lite.Replicator
             }
             if (Filter != null && filter == null)
             {
-                Log.W(Database.Tag, string.Format("%s: No ReplicationFilter registered for filter '%s'; ignoring"
+                Log.W(Database.Tag, string.Format("{0}: No ReplicationFilter registered for filter '{1}'; ignoring"
                     , this, Filter));
             }
             // Process existing changes since the last push:
@@ -250,7 +250,7 @@ namespace Couchbase.Lite.Replicator
                             if (e != null) {
                                 LastError = e;
                             } else {
-                                Log.V (Database.Tag, string.Format ("%s: Sent %s", this, inbox));
+                                Log.V (Database.Tag, string.Format ("{0}: Sent {1}", this, inbox));
                                 LastSequence = string.Format ("{0}", lastInboxSequence);
                             }
                             CompletedChangesCount  += numDocsToSend;

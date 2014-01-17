@@ -5,6 +5,8 @@ using Couchbase.Lite.Util;
 using Couchbase.Lite.Storage;
 using Sharpen;
 using Couchbase.Lite.Internal;
+using System.Data;
+using System.Linq;
 
 namespace Couchbase.Lite {
 
@@ -160,11 +162,12 @@ namespace Couchbase.Lite {
                 // find a better way to propagate this back
                 // Now scan every revision added since the last time the view was
                 // indexed:
-                var selectArgs = new string[] { System.Convert.ToString(lastSequence) };
+                var selectArgs = new[] { Convert.ToString(lastSequence) };
                 cursor = Database.StorageEngine.RawQuery("SELECT revs.doc_id, sequence, docid, revid, json FROM revs, docs "
                     + "WHERE sequence>? AND current!=0 AND deleted=0 " + "AND revs.doc_id = docs.doc_id "
-                    + "ORDER BY revs.doc_id, revid DESC", selectArgs);
+                    + "ORDER BY revs.doc_id, revid DESC", CommandBehavior.SequentialAccess, selectArgs);
                 cursor.MoveToNext();
+
                 var lastDocID = 0L;
                 while (!cursor.IsAfterLast())
                 {
@@ -312,7 +315,9 @@ namespace Couchbase.Lite {
                         var value = FromJSON(cursor.GetBlob(1));
                         // TODO: ditto
                         var docId = cursor.GetString(2);
-                        var sequence = Extensions.ValueOf(cursor.GetInt(3));
+                        var sequenceLong = cursor.GetLong(3);
+                        var sequence = Convert.ToInt32(sequenceLong);
+
                         IDictionary<string, object> docContents = null;
                         if (options.IsIncludeDocs())
                         {
@@ -326,7 +331,8 @@ namespace Couchbase.Lite {
                             }
                             else
                             {
-                                docContents = Database.DocumentPropertiesFromJSON(cursor.GetBlob(5), docId, cursor.GetString(4), false, cursor.GetLong(3), options.GetContentOptions());
+                                var revId = cursor.GetString(4);
+                                docContents = Database.DocumentPropertiesFromJSON(cursor.GetBlob(5), docId, revId, false, sequenceLong, options.GetContentOptions());
                             }
                         }
                         var row = new QueryRow(docId, sequence, keyData, value, docContents);
@@ -338,7 +344,7 @@ namespace Couchbase.Lite {
             }
             catch (SQLException e)
             {
-                var errMsg = string.Format("Error querying view: %s", this);
+                var errMsg = string.Format("Error querying view: {0}", this);
                 Log.E(Database.Tag, errMsg, e);
                 throw new CouchbaseLiteException(errMsg, e, new Status(StatusCode.DbError));
             }
@@ -360,6 +366,7 @@ namespace Couchbase.Lite {
             object lastKey = null;
 
             var reduce = Reduce;
+            // FIXME: If reduce is null, then so are keysToReduce and ValuesToReduce, which can throw an NRE below.
             if (reduce != null)
             {
                 keysToReduce = new AList<Object>(ReduceBatchSize);
@@ -371,8 +378,8 @@ namespace Couchbase.Lite {
 
             while (!cursor.IsAfterLast())
             {
-                object keyData = FromJSON(cursor.GetBlob(0));
-                object value = FromJSON(cursor.GetBlob(1));
+                var keyData = FromJSON(cursor.GetBlob(0));
+                var value = FromJSON(cursor.GetBlob(1));
                 System.Diagnostics.Debug.Assert((keyData != null));
                 if (group && !GroupTogether(keyData, lastKey, groupLevel))
                 {
@@ -465,25 +472,25 @@ namespace Couchbase.Lite {
             {
                 sql = sql + ", revid, json";
             }
-            sql = sql + " FROM maps, revs, docs WHERE maps.view_id=?";
+            sql = sql + " FROM maps, revs, docs WHERE maps.view_id=?"; // FIXME: Convert to ADO params
             IList<string> argsList = new AList<string>();
             argsList.AddItem(Sharpen.Extensions.ToString(Id));
             if (options.GetKeys() != null)
             {
                 sql += " AND key in (";
-                string item = "?";
+                string item = "?"; // FIXME: Convert to ADO params
                 foreach (object key in options.GetKeys())
                 {
                     sql += item;
-                    item = ", ?";
+                    item = ", ?"; // FIXME: Convert to ADO params
                     argsList.AddItem(ToJSONString(key));
                 }
                 sql += ")";
             }
-            object minKey = options.GetStartKey();
-            object maxKey = options.GetEndKey();
-            bool inclusiveMin = true;
-            bool inclusiveMax = options.IsInclusiveEnd();
+            var minKey = options.GetStartKey();
+            var maxKey = options.GetEndKey();
+            var inclusiveMin = true;
+            var inclusiveMax = options.IsInclusiveEnd();
             if (options.IsDescending())
             {
                 minKey = maxKey;
@@ -496,11 +503,11 @@ namespace Couchbase.Lite {
                 System.Diagnostics.Debug.Assert((minKey is string));
                 if (inclusiveMin)
                 {
-                    sql += " AND key >= ?";
+                    sql += " AND key >= ?"; // FIXME: Convert to ADO params
                 }
                 else
                 {
-                    sql += " AND key > ?";
+                    sql += " AND key > ?"; // FIXME: Convert to ADO params
                 }
                 sql += collationStr;
                 argsList.AddItem(ToJSONString(minKey));
@@ -510,11 +517,11 @@ namespace Couchbase.Lite {
                 System.Diagnostics.Debug.Assert((maxKey is string));
                 if (inclusiveMax)
                 {
-                    sql += " AND key <= ?";
+                    sql += " AND key <= ?"; // FIXME: Convert to ADO params
                 }
                 else
                 {
-                    sql += " AND key < ?";
+                    sql += " AND key < ?"; // FIXME: Convert to ADO params
                 }
                 sql += collationStr;
                 argsList.AddItem(ToJSONString(maxKey));
@@ -525,12 +532,11 @@ namespace Couchbase.Lite {
             {
                 sql = sql + " DESC";
             }
-            sql = sql + " LIMIT ? OFFSET ?";
-            argsList.AddItem(Sharpen.Extensions.ToString(options.GetLimit()));
-            argsList.AddItem(Sharpen.Extensions.ToString(options.GetSkip()));
+            sql = sql + " LIMIT ? OFFSET ?"; // FIXME: Convert to ADO params
+            argsList.AddItem(options.GetLimit().ToString());
+            argsList.AddItem(options.GetSkip().ToString());
             Log.V(Database.Tag, "Query " + Name + ": " + sql);
-            Cursor cursor = Database.StorageEngine.RawQuery(sql, Sharpen.Collections.ToArray(
-                argsList, new string[argsList.Count]));
+            var cursor = Database.StorageEngine.RawQuery(sql, CommandBehavior.SequentialAccess, argsList.ToArray());
             return cursor;
         }
 

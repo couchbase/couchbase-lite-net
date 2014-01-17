@@ -88,7 +88,7 @@ namespace Couchbase.Lite
 		private void OpenTempFile()
 		{
 			string uuid = Misc.TDCreateUUID();
-			string filename = string.Format("%s.blobtmp", uuid);
+            string filename = string.Format("{0}.blobtmp", uuid);
 			FilePath tempDir = store.TempDir();
 			tempFile = new FilePath(tempDir, filename);
 			outStream = new BufferedOutputStream(new FileOutputStream(tempFile));
@@ -200,13 +200,13 @@ namespace Couchbase.Lite
 		public virtual string MD5DigestString()
 		{
             string base64Md5Digest = Convert.ToBase64String(md5DigestResult);
-			return string.Format("md5-%s", base64Md5Digest);
+            return string.Format("md5-{0}", base64Md5Digest);
 		}
 
 		public virtual string SHA1DigestString()
 		{
             string base64Sha1Digest = Convert.ToBase64String(blobKey.GetBytes());
-			return string.Format("sha1-%s", base64Sha1Digest);
+            return string.Format("sha1-{0}", base64Sha1Digest);
 		}
 
 		public virtual int GetLength()

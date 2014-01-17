@@ -22,49 +22,43 @@
 using Couchbase.Lite.Storage;
 using Sharpen;
 using System.Collections.Generic;
+using System;
+using System.Data;
 
 namespace Couchbase.Lite.Storage
 {
 	public abstract class SQLiteStorageEngine
 	{
-		public const int ConflictNone = 0;
+        public abstract bool Open(String path);
 
-		public const int ConflictIgnore = 4;
+        public abstract Int32 GetVersion();
 
-		public const int ConflictReplace = 5;
+        public abstract void SetVersion(Int32 version);
 
-		public abstract bool Open(string path);
-
-		public abstract int GetVersion();
-
-		public abstract void SetVersion(int version);
-
-		public abstract bool IsOpen();
+        public abstract bool IsOpen { get; }
 
 		public abstract void BeginTransaction();
+
+        public abstract void BeginTransaction(IsolationLevel isolationLevel);
 
 		public abstract void EndTransaction();
 
 		public abstract void SetTransactionSuccessful();
 
 		/// <exception cref="Couchbase.Lite.Storage.SQLException"></exception>
-		public abstract void ExecSQL(string sql);
+        public abstract void ExecSQL(string sql, params Object[] bindArgs);
 
-		/// <exception cref="Couchbase.Lite.Storage.SQLException"></exception>
-		public abstract void ExecSQL(string sql, object[] bindArgs);
+        public abstract Cursor RawQuery(string sql, params String[] selectionArgs);
 
-        public abstract Cursor RawQuery(string sql, IEnumerable<string> selectionArgs);
+        public abstract Cursor RawQuery(string sql, CommandBehavior behavior, params String[] selectionArgs);
 
-		public abstract long Insert(string table, string nullColumnHack, ContentValues values
-			);
+		public abstract long Insert(string table, string nullColumnHack, ContentValues values);
 
-		public abstract long InsertWithOnConflict(string table, string nullColumnHack, ContentValues
-			 initialValues, int conflictAlgorithm);
+        public abstract long InsertWithOnConflict(string table, string nullColumnHack, ContentValues initialValues, ConflictResolutionStrategy conflictResolutionStrategy);
 
-		public abstract int Update(string table, ContentValues values, string whereClause
-			, string[] whereArgs);
+        public abstract int Update(string table, ContentValues values, string whereClause, params String[] whereArgs);
 
-		public abstract int Delete(string table, string whereClause, string[] whereArgs);
+        public abstract int Delete(string table, string whereClause, params String[] whereArgs);
 
 		public abstract void Close();
 	}
