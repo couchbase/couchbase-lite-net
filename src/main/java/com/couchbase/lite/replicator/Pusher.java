@@ -175,6 +175,7 @@ public class Pusher extends Replication implements Database.ChangeListener {
     protected void processInbox(final RevisionList inbox) {
         final long lastInboxSequence = inbox.get(inbox.size()-1).getSequence();
         // Generate a set of doc/rev IDs in the JSON format that _revs_diff wants:
+        // <http://wiki.apache.org/couchdb/HttpPostRevsDiff>
         Map<String,List<String>> diffs = new HashMap<String,List<String>>();
         for (RevisionInternal rev : inbox) {
             String docID = rev.getDocId();
