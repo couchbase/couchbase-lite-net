@@ -1,6 +1,7 @@
 package com.couchbase.lite.router;
 
 
+import com.couchbase.lite.AsyncTask;
 import com.couchbase.lite.Attachment;
 import com.couchbase.lite.ChangesOptions;
 import com.couchbase.lite.CouchbaseLiteException;
@@ -43,6 +44,10 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 
 public class Router implements Database.ChangeListener {
@@ -1003,14 +1008,43 @@ public class Router implements Database.ChangeListener {
         }
 
         // convert from Map<String,Object> -> Map<String, List<String>> - is there a cleaner way?
-        Map<String, List<String>> docsToRevs = new HashMap<String, List<String>>();
+        final Map<String, List<String>> docsToRevs = new HashMap<String, List<String>>();
         for (String key : body.keySet()) {
             Object val = body.get(key);
             if (val instanceof List) {
                 docsToRevs.put(key, (List<String>)val);
             }
         }
-        Map<String, Object> purgedRevisions = db.purgeRevisions(docsToRevs);
+
+        final List<Map<String, Object>> asyncApiCallResponse = new ArrayList<Map<String, Object>>();
+
+        // this is run in an async db task to fix the following race condition
+        // found in issue #167 (https://github.com/couchbase/couchbase-lite-android/issues/167)
+        // replicator thread: call db.loadRevisionBody for doc1
+        // liteserv thread: call db.purge on doc1
+        // replicator thread: call db.getRevisionHistory for doc1, which returns empty history since it was purged
+        Future future = db.runAsync(new AsyncTask() {
+            @Override
+            public boolean run(Database database) {
+                Map<String, Object> purgedRevisions = db.purgeRevisions(docsToRevs);
+                asyncApiCallResponse.add(purgedRevisions);
+                return true;
+            }
+        });
+        try {
+            future.get(60, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            Log.e(Database.TAG, "Exception waiting for future", e);
+            return new Status(Status.INTERNAL_SERVER_ERROR);
+        } catch (ExecutionException e) {
+            Log.e(Database.TAG, "Exception waiting for future", e);
+            return new Status(Status.INTERNAL_SERVER_ERROR);
+        } catch (TimeoutException e) {
+            Log.e(Database.TAG, "Exception waiting for future", e);
+            return new Status(Status.INTERNAL_SERVER_ERROR);
+        }
+
+        Map<String, Object> purgedRevisions = asyncApiCallResponse.get(0);
         Map<String, Object> responseMap = new HashMap<String, Object>();
         responseMap.put("purged", purgedRevisions);
         Body responseBody = new Body(responseMap);
