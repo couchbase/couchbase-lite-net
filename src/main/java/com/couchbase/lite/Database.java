@@ -2642,12 +2642,6 @@ public class Database {
         changes.add(change);
         ChangeEvent changeEvent = new ChangeEvent(this, isExternalFixMe, changes);
 
-        synchronized (changeListeners) {
-            for (ChangeListener changeListener : changeListeners) {
-                changeListener.changed(changeEvent);
-            }
-        }
-
         // TODO: this is expensive, it should be using a WeakHashMap
         // TODO: instead of loading from the DB.  iOS code below.
         /*
@@ -2661,6 +2655,12 @@ public class Database {
          */
         Document document = getDocument(change.getDocumentId());
         document.revisionAdded(change);
+
+        synchronized (changeListeners) {
+            for (ChangeListener changeListener : changeListeners) {
+                changeListener.changed(changeEvent);
+            }
+        }
 
     }
 
