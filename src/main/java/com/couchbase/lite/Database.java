@@ -1212,6 +1212,11 @@ public class Database {
                 cursor.close();
             }
         }
+
+        if (result.getCode() == Status.NOT_FOUND) {
+            throw new CouchbaseLiteException(result);
+        }
+
         return rev;
     }
 
