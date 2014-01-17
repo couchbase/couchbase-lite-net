@@ -1,5 +1,7 @@
 package com.couchbase.lite;
 
+import android.provider.ContactsContract;
+
 import com.couchbase.lite.auth.Authorizer;
 import com.couchbase.lite.auth.FacebookAuthorizer;
 import com.couchbase.lite.auth.PersonaAuthorizer;
@@ -22,6 +24,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executors;
@@ -187,7 +190,7 @@ public class Manager {
      */
     @InterfaceAudience.Public
     public Database getExistingDatabase(String name) {
-        boolean mustExist = false;
+        boolean mustExist = true;
         Database db = getDatabaseWithoutOpening(name, mustExist);
         if (db != null) {
             db.open();
@@ -384,6 +387,22 @@ public class Manager {
         return db;
     }
 
+    @InterfaceAudience.Private
+    /* package */ void forgetDatabase(Database db) {
+
+        // remove from cached list of dbs
+        databases.remove(db.getName());
+
+        // remove from list of replications
+        // TODO: should there be something that actually stops the replication(s) first?
+        Iterator<Replication> replicationIterator = this.replications.iterator();
+        while (replicationIterator.hasNext()) {
+            Replication replication = replicationIterator.next();
+            if (replication.getLocalDatabase().getName().equals(db.getName())) {
+                replicationIterator.remove();
+            }
+        }
+    }
 
     @InterfaceAudience.Private
     public Replication getReplicator(Map<String,Object> properties) throws CouchbaseLiteException {

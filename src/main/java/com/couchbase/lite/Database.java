@@ -301,7 +301,8 @@ public class Database {
                 return false;
             }
         }
-        else if(!exists()) {
+        manager.forgetDatabase(this);
+        if(!exists()) {
             return true;
         }
         File file = new File(path);
@@ -1211,6 +1212,11 @@ public class Database {
                 cursor.close();
             }
         }
+
+        if (result.getCode() == Status.NOT_FOUND) {
+            throw new CouchbaseLiteException(result);
+        }
+
         return rev;
     }
 
