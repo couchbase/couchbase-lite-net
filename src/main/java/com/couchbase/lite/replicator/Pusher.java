@@ -225,7 +225,9 @@ public class Pusher extends Replication implements Database.ChangeListener {
                                     try {
                                         db.loadRevisionBody(rev, contentOptions);
                                     } catch (CouchbaseLiteException e1) {
-                                        throw new RuntimeException(e1);
+                                        String msg = String.format("%s Couldn't get local contents of %s", rev, this);
+                                        Log.w(Database.TAG, msg);
+                                        continue;
                                     }
                                     properties = new HashMap<String,Object>(rev.getProperties());
 
@@ -248,27 +250,30 @@ public class Pusher extends Replication implements Database.ChangeListener {
                     // Post the revisions to the destination. "new_edits":false means that the server should
                     // use the given _rev IDs instead of making up new ones.
                     final int numDocsToSend = docsToSend.size();
-                    Map<String,Object> bulkDocsBody = new HashMap<String,Object>();
-                    bulkDocsBody.put("docs", docsToSend);
-                    bulkDocsBody.put("new_edits", false);
-                    Log.i(Database.TAG, String.format("%s: Sending %d revisions", this, numDocsToSend));
-                    Log.v(Database.TAG, String.format("%s: Sending %s", this, inbox));
-                    setChangesCount(getChangesCount() + numDocsToSend);
-                    asyncTaskStarted();
-                    sendAsyncRequest("POST", "/_bulk_docs", bulkDocsBody, new RemoteRequestCompletionBlock() {
+                    if (numDocsToSend > 0 ) {
+                        Map<String,Object> bulkDocsBody = new HashMap<String,Object>();
+                        bulkDocsBody.put("docs", docsToSend);
+                        bulkDocsBody.put("new_edits", false);
+                        Log.i(Database.TAG, String.format("%s: Sending %d revisions", this, numDocsToSend));
+                        Log.v(Database.TAG, String.format("%s: Sending %s", this, inbox));
+                        setChangesCount(getChangesCount() + numDocsToSend);
+                        asyncTaskStarted();
+                        sendAsyncRequest("POST", "/_bulk_docs", bulkDocsBody, new RemoteRequestCompletionBlock() {
 
-                        @Override
-                        public void onCompletion(Object result, Throwable e) {
-                            if(e != null) {
-                                error = e;
-                            } else {
-                                Log.v(Database.TAG, String.format("%s: Sent %s", this, inbox));
-                                setLastSequence(String.format("%d", lastInboxSequence));
+                            @Override
+                            public void onCompletion(Object result, Throwable e) {
+                                if(e != null) {
+                                    error = e;
+                                } else {
+                                    Log.v(Database.TAG, String.format("%s: Sent %s", this, inbox));
+                                    setLastSequence(String.format("%d", lastInboxSequence));
+                                }
+                                setCompletedChangesCount(getCompletedChangesCount() + numDocsToSend);
+                                asyncTaskFinished(1);
                             }
-                            setCompletedChangesCount(getCompletedChangesCount() + numDocsToSend);
-                            asyncTaskFinished(1);
-                        }
-                    });
+                        });
+                    }
+
 
                 } else {
                     // If none of the revisions are new to the remote, just bump the lastSequence:
