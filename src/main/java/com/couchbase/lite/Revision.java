@@ -79,7 +79,7 @@ public abstract class Revision {
      * (In other words, does it have a "_deleted" property?)
      */
     @InterfaceAudience.Public
-    boolean isDeletion() {
+    public boolean isDeletion() {
         Object deleted = getProperty("_deleted");
         if (deleted == null) {
             return false;

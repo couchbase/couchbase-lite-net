@@ -119,7 +119,7 @@ public class SavedRevision extends Revision {
 
     @Override
     @InterfaceAudience.Public
-    boolean isDeletion() {
+    public boolean isDeletion() {
         return revisionInternal.isDeleted();
     }
 
