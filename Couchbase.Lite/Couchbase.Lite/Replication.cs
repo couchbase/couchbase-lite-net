@@ -345,7 +345,7 @@ namespace Couchbase.Lite {
             {
                 body.PutAll(remoteCheckpoint);
             }
-            body.Put("lastSequence", LastSequence);
+            body["lastSequence"] = LastSequence;
             var remoteCheckpointDocID = RemoteCheckpointDocID();
             if (String.IsNullOrEmpty(remoteCheckpointDocID))
             {

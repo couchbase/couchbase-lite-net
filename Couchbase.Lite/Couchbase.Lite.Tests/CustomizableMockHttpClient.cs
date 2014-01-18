@@ -58,7 +58,7 @@ namespace Couchbase.Lite.Replicator
 		public virtual void SetResponder(string urlPattern, CustomizableMockHttpClient.Responder
 			 responder)
 		{
-			responders.Put(urlPattern, responder);
+			responders[urlPattern] = responder;
 		}
 
 		public virtual void AddDefaultResponders()
@@ -221,8 +221,8 @@ namespace Couchbase.Lite.Replicator
 			{
 				ArrayList value = (ArrayList)jsonMap.Get(key);
 				IDictionary<string, object> missingMap = new Dictionary<string, object>();
-				missingMap.Put("missing", value);
-				responseMap.Put(key, missingMap);
+				missingMap["missing"] = value;
+				responseMap[key] = missingMap;
 			}
 			HttpResponse response = GenerateHttpResponseObject(responseMap);
 			return response;

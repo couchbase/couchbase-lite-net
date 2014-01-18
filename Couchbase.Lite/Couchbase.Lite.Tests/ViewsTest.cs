@@ -77,24 +77,24 @@ namespace Couchbase.Lite
 		{
 			IList<RevisionInternal> result = new AList<RevisionInternal>();
 			IDictionary<string, object> dict2 = new Dictionary<string, object>();
-			dict2.Put("_id", "22222");
-			dict2.Put("key", "two");
+			dict2["_id"] = "22222";
+			dict2["key"] = "two";
 			result.AddItem(PutDoc(db, dict2));
 			IDictionary<string, object> dict4 = new Dictionary<string, object>();
-			dict4.Put("_id", "44444");
-			dict4.Put("key", "four");
+			dict4["_id"] = "44444";
+			dict4["key"] = "four";
 			result.AddItem(PutDoc(db, dict4));
 			IDictionary<string, object> dict1 = new Dictionary<string, object>();
-			dict1.Put("_id", "11111");
-			dict1.Put("key", "one");
+			dict1["_id"] = "11111";
+			dict1["key"] = "one";
 			result.AddItem(PutDoc(db, dict1));
 			IDictionary<string, object> dict3 = new Dictionary<string, object>();
-			dict3.Put("_id", "33333");
-			dict3.Put("key", "three");
+			dict3["_id"] = "33333";
+			dict3["key"] = "three";
 			result.AddItem(PutDoc(db, dict3));
 			IDictionary<string, object> dict5 = new Dictionary<string, object>();
-			dict5.Put("_id", "55555");
-			dict5.Put("key", "five");
+			dict5["_id"] = "55555";
+			dict5["key"] = "five";
 			result.AddItem(PutDoc(db, dict5));
 			return result;
 		}
@@ -105,16 +105,16 @@ namespace Couchbase.Lite
 		{
 			IList<RevisionInternal> result = new AList<RevisionInternal>();
 			IDictionary<string, object> dict1 = new Dictionary<string, object>();
-			dict1.Put("_id", "11111");
+			dict1["_id"] = "11111";
 			result.AddItem(PutDoc(db, dict1));
 			IDictionary<string, object> dict2 = new Dictionary<string, object>();
-			dict2.Put("_id", "22222");
-			dict2.Put("value", "hello");
+			dict2["_id"] = "22222";
+			dict2["value"] = "hello";
 			dict2.Put("ancestors", new string[] { "11111" });
 			result.AddItem(PutDoc(db, dict2));
 			IDictionary<string, object> dict3 = new Dictionary<string, object>();
-			dict3.Put("_id", "33333");
-			dict3.Put("value", "world");
+			dict3["_id"] = "33333";
+			dict3["value"] = "world";
 			dict3.Put("ancestors", new string[] { "22222", "11111" });
 			result.AddItem(PutDoc(db, dict3));
 			return result;
@@ -133,7 +133,7 @@ namespace Couchbase.Lite
 					key.AddItem("key");
 				}
 				key.AddItem(string.Format("key-%d", i));
-				doc.Put("key", key);
+				doc["key"] = key;
 				PutDocViaUntitledDoc(db, doc);
 			}
 		}
@@ -158,13 +158,13 @@ namespace Couchbase.Lite
 		{
 			int numTimesMapFunctionInvoked = 0;
 			IDictionary<string, object> dict1 = new Dictionary<string, object>();
-			dict1.Put("key", "one");
+			dict1["key"] = "one";
 			IDictionary<string, object> dict2 = new Dictionary<string, object>();
-			dict2.Put("key", "two");
+			dict2["key"] = "two";
 			IDictionary<string, object> dict3 = new Dictionary<string, object>();
-			dict3.Put("key", "three");
+			dict3["key"] = "three";
 			IDictionary<string, object> dictX = new Dictionary<string, object>();
-			dictX.Put("clef", "quatre");
+			dictX["clef"] = "quatre";
 			RevisionInternal rev1 = PutDoc(database, dict1);
 			RevisionInternal rev2 = PutDoc(database, dict2);
 			RevisionInternal rev3 = PutDoc(database, dict3);
@@ -203,7 +203,7 @@ namespace Couchbase.Lite
 				(), false, database);
 			numTimesMapFunctionInvoked = mapBlock.GetNumTimesInvoked();
 			IDictionary<string, object> newdict3 = new Dictionary<string, object>();
-			newdict3.Put("key", "3hree");
+			newdict3["key"] = "3hree";
 			threeUpdated.SetProperties(newdict3);
 			Status status = new Status();
 			rev3 = database.PutRevision(threeUpdated, rev3.GetRevId(), false, status);
@@ -215,7 +215,7 @@ namespace Couchbase.Lite
 			NUnit.Framework.Assert.AreEqual(mapBlock.GetNumTimesInvoked(), numTimesMapFunctionInvoked
 				 + 1);
 			IDictionary<string, object> dict4 = new Dictionary<string, object>();
-			dict4.Put("key", "four");
+			dict4["key"] = "four";
 			RevisionInternal rev4 = PutDoc(database, dict4);
 			RevisionInternal twoDeleted = new RevisionInternal(rev2.GetDocId(), rev2.GetRevId
 				(), true, database);
@@ -256,24 +256,24 @@ namespace Couchbase.Lite
 			IList<QueryRow> rows = view.QueryWithOptions(options);
 			IList<object> expectedRows = new AList<object>();
 			IDictionary<string, object> dict5 = new Dictionary<string, object>();
-			dict5.Put("id", "55555");
-			dict5.Put("key", "five");
+			dict5["id"] = "55555";
+			dict5["key"] = "five";
 			expectedRows.AddItem(dict5);
 			IDictionary<string, object> dict4 = new Dictionary<string, object>();
-			dict4.Put("id", "44444");
-			dict4.Put("key", "four");
+			dict4["id"] = "44444";
+			dict4["key"] = "four";
 			expectedRows.AddItem(dict4);
 			IDictionary<string, object> dict1 = new Dictionary<string, object>();
-			dict1.Put("id", "11111");
-			dict1.Put("key", "one");
+			dict1["id"] = "11111";
+			dict1["key"] = "one";
 			expectedRows.AddItem(dict1);
 			IDictionary<string, object> dict3 = new Dictionary<string, object>();
-			dict3.Put("id", "33333");
-			dict3.Put("key", "three");
+			dict3["id"] = "33333";
+			dict3["key"] = "three";
 			expectedRows.AddItem(dict3);
 			IDictionary<string, object> dict2 = new Dictionary<string, object>();
-			dict2.Put("id", "22222");
-			dict2.Put("key", "two");
+			dict2["id"] = "22222";
+			dict2["key"] = "two";
 			expectedRows.AddItem(dict2);
 			NUnit.Framework.Assert.AreEqual(5, rows.Count);
 			NUnit.Framework.Assert.AreEqual(dict5.Get("key"), rows[0].GetKey());
@@ -424,9 +424,9 @@ namespace Couchbase.Lite
 			, int offset)
 		{
 			IDictionary<string, object> result = new Dictionary<string, object>();
-			result.Put("rows", rows);
+			result["rows"] = rows;
 			result.Put("total_rows", rows.Count);
-			result.Put("offset", offset);
+			result["offset"] = offset;
 			return result;
 		}
 
@@ -434,15 +434,15 @@ namespace Couchbase.Lite
 		public virtual void TestViewReduce()
 		{
 			IDictionary<string, object> docProperties1 = new Dictionary<string, object>();
-			docProperties1.Put("_id", "CD");
+			docProperties1["_id"] = "CD";
 			docProperties1.Put("cost", 8.99);
 			PutDoc(database, docProperties1);
 			IDictionary<string, object> docProperties2 = new Dictionary<string, object>();
-			docProperties2.Put("_id", "App");
+			docProperties2["_id"] = "App";
 			docProperties2.Put("cost", 1.95);
 			PutDoc(database, docProperties2);
 			IDictionary<string, object> docProperties3 = new Dictionary<string, object>();
-			docProperties3.Put("_id", "Dessert");
+			docProperties3["_id"] = "Dessert";
 			docProperties3.Put("cost", 6.50);
 			PutDoc(database, docProperties3);
 			View view = database.GetView("totaler");
@@ -517,39 +517,39 @@ namespace Couchbase.Lite
 		public virtual void TestViewGrouped()
 		{
 			IDictionary<string, object> docProperties1 = new Dictionary<string, object>();
-			docProperties1.Put("_id", "1");
+			docProperties1["_id"] = "1";
 			docProperties1.Put("artist", "Gang Of Four");
 			docProperties1.Put("album", "Entertainment!");
-			docProperties1.Put("track", "Ether");
-			docProperties1.Put("time", 231);
+			docProperties1["track"] = "Ether";
+			docProperties1["time"] = 231;
 			PutDoc(database, docProperties1);
 			IDictionary<string, object> docProperties2 = new Dictionary<string, object>();
-			docProperties2.Put("_id", "2");
+			docProperties2["_id"] = "2";
 			docProperties2.Put("artist", "Gang Of Four");
 			docProperties2.Put("album", "Songs Of The Free");
 			docProperties2.Put("track", "I Love A Man In Uniform");
-			docProperties2.Put("time", 248);
+			docProperties2["time"] = 248;
 			PutDoc(database, docProperties2);
 			IDictionary<string, object> docProperties3 = new Dictionary<string, object>();
-			docProperties3.Put("_id", "3");
+			docProperties3["_id"] = "3";
 			docProperties3.Put("artist", "Gang Of Four");
 			docProperties3.Put("album", "Entertainment!");
 			docProperties3.Put("track", "Natural's Not In It");
-			docProperties3.Put("time", 187);
+			docProperties3["time"] = 187;
 			PutDoc(database, docProperties3);
 			IDictionary<string, object> docProperties4 = new Dictionary<string, object>();
-			docProperties4.Put("_id", "4");
-			docProperties4.Put("artist", "PiL");
+			docProperties4["_id"] = "4";
+			docProperties4["artist"] = "PiL";
 			docProperties4.Put("album", "Metal Box");
-			docProperties4.Put("track", "Memories");
-			docProperties4.Put("time", 309);
+			docProperties4["track"] = "Memories";
+			docProperties4["time"] = 309;
 			PutDoc(database, docProperties4);
 			IDictionary<string, object> docProperties5 = new Dictionary<string, object>();
-			docProperties5.Put("_id", "5");
+			docProperties5["_id"] = "5";
 			docProperties5.Put("artist", "Gang Of Four");
 			docProperties5.Put("album", "Entertainment!");
 			docProperties5.Put("track", "Not Great Men");
-			docProperties5.Put("time", 187);
+			docProperties5["time"] = 187;
 			PutDoc(database, docProperties5);
 			View view = database.GetView("grouper");
             view.SetMapReduce((IDictionary<string, object> document, EmitDelegate emitter)=>
@@ -571,7 +571,7 @@ namespace Couchbase.Lite
 			IList<IDictionary<string, object>> expectedRows = new AList<IDictionary<string, object
 				>>();
 			IDictionary<string, object> row1 = new Dictionary<string, object>();
-			row1.Put("key", null);
+			row1["key"] = null;
 			row1.Put("value", 1162.0);
 			expectedRows.AddItem(row1);
 			NUnit.Framework.Assert.AreEqual(row1.Get("key"), rows[0].GetKey());
@@ -586,7 +586,7 @@ namespace Couchbase.Lite
 			key1.AddItem("Gang Of Four");
 			key1.AddItem("Entertainment!");
 			key1.AddItem("Ether");
-			row1.Put("key", key1);
+			row1["key"] = key1;
 			row1.Put("value", 231.0);
 			expectedRows.AddItem(row1);
 			IDictionary<string, object> row2 = new Dictionary<string, object>();
@@ -594,7 +594,7 @@ namespace Couchbase.Lite
 			key2.AddItem("Gang Of Four");
 			key2.AddItem("Entertainment!");
 			key2.AddItem("Natural's Not In It");
-			row2.Put("key", key2);
+			row2["key"] = key2;
 			row2.Put("value", 187.0);
 			expectedRows.AddItem(row2);
 			IDictionary<string, object> row3 = new Dictionary<string, object>();
@@ -602,7 +602,7 @@ namespace Couchbase.Lite
 			key3.AddItem("Gang Of Four");
 			key3.AddItem("Entertainment!");
 			key3.AddItem("Not Great Men");
-			row3.Put("key", key3);
+			row3["key"] = key3;
 			row3.Put("value", 187.0);
 			expectedRows.AddItem(row3);
 			IDictionary<string, object> row4 = new Dictionary<string, object>();
@@ -610,7 +610,7 @@ namespace Couchbase.Lite
 			key4.AddItem("Gang Of Four");
 			key4.AddItem("Songs Of The Free");
 			key4.AddItem("I Love A Man In Uniform");
-			row4.Put("key", key4);
+			row4["key"] = key4;
 			row4.Put("value", 248.0);
 			expectedRows.AddItem(row4);
 			IDictionary<string, object> row5 = new Dictionary<string, object>();
@@ -618,7 +618,7 @@ namespace Couchbase.Lite
 			key5.AddItem("PiL");
 			key5.AddItem("Metal Box");
 			key5.AddItem("Memories");
-			row5.Put("key", key5);
+			row5["key"] = key5;
 			row5.Put("value", 309.0);
 			expectedRows.AddItem(row5);
 			NUnit.Framework.Assert.AreEqual(row1.Get("key"), rows[0].GetKey());
@@ -639,13 +639,13 @@ namespace Couchbase.Lite
 			row1 = new Dictionary<string, object>();
 			key1 = new AList<string>();
 			key1.AddItem("Gang Of Four");
-			row1.Put("key", key1);
+			row1["key"] = key1;
 			row1.Put("value", 853.0);
 			expectedRows.AddItem(row1);
 			row2 = new Dictionary<string, object>();
 			key2 = new AList<string>();
 			key2.AddItem("PiL");
-			row2.Put("key", key2);
+			row2["key"] = key2;
 			row2.Put("value", 309.0);
 			expectedRows.AddItem(row2);
 			NUnit.Framework.Assert.AreEqual(row1.Get("key"), rows[0].GetKey());
@@ -661,21 +661,21 @@ namespace Couchbase.Lite
 			key1 = new AList<string>();
 			key1.AddItem("Gang Of Four");
 			key1.AddItem("Entertainment!");
-			row1.Put("key", key1);
+			row1["key"] = key1;
 			row1.Put("value", 605.0);
 			expectedRows.AddItem(row1);
 			row2 = new Dictionary<string, object>();
 			key2 = new AList<string>();
 			key2.AddItem("Gang Of Four");
 			key2.AddItem("Songs Of The Free");
-			row2.Put("key", key2);
+			row2["key"] = key2;
 			row2.Put("value", 248.0);
 			expectedRows.AddItem(row2);
 			row3 = new Dictionary<string, object>();
 			key3 = new AList<string>();
 			key3.AddItem("PiL");
 			key3.AddItem("Metal Box");
-			row3.Put("key", key3);
+			row3["key"] = key3;
 			row3.Put("value", 309.0);
 			expectedRows.AddItem(row3);
 			NUnit.Framework.Assert.AreEqual(row1.Get("key"), rows[0].GetKey());
@@ -690,19 +690,19 @@ namespace Couchbase.Lite
 		public virtual void TestViewGroupedStrings()
 		{
 			IDictionary<string, object> docProperties1 = new Dictionary<string, object>();
-			docProperties1.Put("name", "Alice");
+			docProperties1["name"] = "Alice";
 			PutDoc(database, docProperties1);
 			IDictionary<string, object> docProperties2 = new Dictionary<string, object>();
-			docProperties2.Put("name", "Albert");
+			docProperties2["name"] = "Albert";
 			PutDoc(database, docProperties2);
 			IDictionary<string, object> docProperties3 = new Dictionary<string, object>();
-			docProperties3.Put("name", "Naomi");
+			docProperties3["name"] = "Naomi";
 			PutDoc(database, docProperties3);
 			IDictionary<string, object> docProperties4 = new Dictionary<string, object>();
-			docProperties4.Put("name", "Jens");
+			docProperties4["name"] = "Jens";
 			PutDoc(database, docProperties4);
 			IDictionary<string, object> docProperties5 = new Dictionary<string, object>();
-			docProperties5.Put("name", "Jed");
+			docProperties5["name"] = "Jed";
 			PutDoc(database, docProperties5);
 			View view = database.GetView("default/names");
 			view.SetMapReduce(new _Mapper_852(), new _Reducer_862(), "1.0");
@@ -713,16 +713,16 @@ namespace Couchbase.Lite
 			IList<IDictionary<string, object>> expectedRows = new AList<IDictionary<string, object
 				>>();
 			IDictionary<string, object> row1 = new Dictionary<string, object>();
-			row1.Put("key", "A");
-			row1.Put("value", 2);
+			row1["key"] = "A";
+			row1["value"] = 2;
 			expectedRows.AddItem(row1);
 			IDictionary<string, object> row2 = new Dictionary<string, object>();
-			row2.Put("key", "J");
-			row2.Put("value", 2);
+			row2["key"] = "J";
+			row2["value"] = 2;
 			expectedRows.AddItem(row2);
 			IDictionary<string, object> row3 = new Dictionary<string, object>();
-			row3.Put("key", "N");
-			row3.Put("value", 1);
+			row3["key"] = "N";
+			row3["value"] = 1;
 			expectedRows.AddItem(row3);
 			NUnit.Framework.Assert.AreEqual(row1.Get("key"), rows[0].GetKey());
 			NUnit.Framework.Assert.AreEqual(row1.Get("value"), rows[0].GetValue());
@@ -810,7 +810,7 @@ namespace Couchbase.Lite
 			{
 				IDictionary<string, object> docProperties = new Dictionary<string, object>();
 				docProperties.Put("_id", Sharpen.Extensions.ToString(i++));
-				docProperties.Put("name", key);
+				docProperties["name"] = key;
 				PutDoc(database, docProperties);
 			}
 			View view = database.GetView("default/names");
@@ -886,7 +886,7 @@ namespace Couchbase.Lite
 			{
 				IDictionary<string, object> docProperties = new Dictionary<string, object>();
 				docProperties.Put("_id", Sharpen.Extensions.ToString(i++));
-				docProperties.Put("name", key);
+				docProperties["name"] = key;
 				PutDoc(database, docProperties);
 			}
 			View view = database.GetView("default/names");

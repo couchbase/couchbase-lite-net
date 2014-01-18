@@ -30,8 +30,8 @@ namespace Couchbase.Lite
             {
                 attachments = new Dictionary<String, Object>();
             }
-            attachments.Put(name, attachment);
-            Properties.Put("_attachments", attachments);
+            attachments[name] = attachment;
+            Properties["_attachments"] = attachments;
             attachment.Name = name;
             attachment.Revision = this;
         }

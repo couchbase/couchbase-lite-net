@@ -117,7 +117,7 @@ namespace Couchbase.Lite.Auth
 			string assertion = AssertionForSite(site);
 			if (assertion != null)
 			{
-				loginParameters.Put(LoginParameterAssertion, assertion);
+				loginParameters[LoginParameterAssertion] = assertion;
 				return loginParameters;
 			}
 			else
@@ -181,7 +181,7 @@ namespace Couchbase.Lite.Auth
 					assertions = new Dictionary<IList<string>, string>();
 				}
 				Log.D(Database.Tag, "PersonaAuthorizer registering key: " + key);
-				assertions.Put(key, assertion);
+				assertions[key] = assertion;
 				return email;
 			}
 		}
@@ -217,7 +217,7 @@ namespace Couchbase.Lite.Auth
 				Log.D(Database.Tag, "PersonaAuthorizer exp: " + expObject + " class: " + expObject
 					.GetType());
 				DateTime expDate = Sharpen.Extensions.CreateDate(expObject);
-				result.Put(AssertionFieldExpiration, expDate);
+				result[AssertionFieldExpiration] = expDate;
 			}
 			catch (IOException e)
 			{

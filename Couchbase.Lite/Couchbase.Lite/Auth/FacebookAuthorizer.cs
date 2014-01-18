@@ -55,7 +55,7 @@ namespace Couchbase.Lite.Auth
 			string accessToken = AccessTokenForEmailAndSite(this.emailAddress, site);
 			if (accessToken != null)
 			{
-				loginParameters.Put(LoginParameterAccessToken, accessToken);
+				loginParameters[LoginParameterAccessToken] = accessToken;
 				return loginParameters;
 			}
 			else
@@ -82,7 +82,7 @@ namespace Couchbase.Lite.Auth
 					accessTokens = new Dictionary<IList<string>, string>();
 				}
 				Log.D(Database.Tag, "FacebookAuthorizer registering key: " + key);
-				accessTokens.Put(key, accessToken);
+				accessTokens[key] = accessToken;
 				return email;
 			}
 		}

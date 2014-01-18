@@ -191,7 +191,7 @@ namespace Couchbase.Lite
 
                 db = new Database(path, this);
                 db.Name = name;
-                databases.Put(name, db);
+                databases[name] = db;
             }
             return db;
         }

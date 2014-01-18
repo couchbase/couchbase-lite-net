@@ -152,7 +152,7 @@ namespace Couchbase.Lite.Replicator
 			{
 				filterName = "_doc_ids";
 				filterParams = new Dictionary<string, object>();
-				filterParams.Put("doc_ids", docIDs);
+				filterParams["doc_ids"] = docIDs;
 			}
 			if (filterName != null)
 			{

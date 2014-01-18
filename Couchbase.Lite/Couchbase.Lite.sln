@@ -21,6 +21,6 @@ Global
 		{810AD241-3FB1-4689-BF3B-A83B90DEB9E9}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(MonoDevelopProperties) = preSolution
-		StartupItem = Couchbase.Lite\Couchbase.Lite.csproj
+		StartupItem = Couchbase.Lite.Tests\Couchbase.Lite.Tests.csproj
 	EndGlobalSection
 EndGlobal

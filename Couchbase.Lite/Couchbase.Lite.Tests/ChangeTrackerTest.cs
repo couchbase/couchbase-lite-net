@@ -247,7 +247,7 @@ namespace Couchbase.Lite.Replicator
 			changeTracker.SetFilterName("filter");
 			// build filter map
 			IDictionary<string, object> filterMap = new Dictionary<string, object>();
-			filterMap.Put("param", "value");
+			filterMap["param"] = "value";
 			// set filter map
 			changeTracker.SetFilterParams(filterMap);
 			NUnit.Framework.Assert.AreEqual("_changes?feed=longpoll&limit=50&heartbeat=300000&since=0&filter=filter&param=value"

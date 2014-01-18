@@ -34,18 +34,18 @@ namespace Couchbase.Lite
 		public virtual void TestServer()
 		{
 			IDictionary<string, object> responseBody = new Dictionary<string, object>();
-			responseBody.Put("CBLite", "Welcome");
-			responseBody.Put("couchdb", "Welcome");
+			responseBody["CBLite"] = "Welcome";
+			responseBody["couchdb"] = "Welcome";
 			responseBody.Put("version", Couchbase.Lite.Router.Router.GetVersionString());
 			Send("GET", "/", Status.Ok, responseBody);
 			IDictionary<string, object> session = new Dictionary<string, object>();
 			IDictionary<string, object> userCtx = new Dictionary<string, object>();
 			IList<string> roles = new AList<string>();
 			roles.AddItem("_admin");
-			session.Put("ok", true);
-			userCtx.Put("name", null);
-			userCtx.Put("roles", roles);
-			session.Put("userCtx", userCtx);
+			session["ok"] = true;
+			userCtx["name"] = null;
+			userCtx["roles"] = roles;
+			session["userCtx"] = userCtx;
 			Send("GET", "/_session", Status.Ok, session);
 			IList<string> allDbs = new AList<string>();
 			allDbs.AddItem("cblite-test");
@@ -94,9 +94,9 @@ namespace Couchbase.Lite
 			IDictionary<string, object> attachments = new Dictionary<string, object>();
 			attachments.Put("inline.txt", attachment);
 			IDictionary<string, object> docWithAttachment = new Dictionary<string, object>();
-			docWithAttachment.Put("_id", "docWithAttachment");
-			docWithAttachment.Put("text", inlineTextString);
-			docWithAttachment.Put("_attachments", attachments);
+			docWithAttachment["_id"] = "docWithAttachment";
+			docWithAttachment["text"] = inlineTextString;
+			docWithAttachment["_attachments"] = attachments;
 			IDictionary<string, object> result = (IDictionary<string, object>)SendBody("PUT", 
 				"/db/docWithAttachment", docWithAttachment, Status.Created, null);
 			result = (IDictionary<string, object>)Send("GET", "/db/docWithAttachment", Status
@@ -132,7 +132,7 @@ namespace Couchbase.Lite
 		private IDictionary<string, object> ValueMapWithRevNoConflictArray(string revId)
 		{
 			IDictionary<string, object> value = new Dictionary<string, object>();
-			value.Put("rev", revId);
+			value["rev"] = revId;
 			return value;
 		}
 
@@ -141,25 +141,25 @@ namespace Couchbase.Lite
 			Send("PUT", "/db", Status.Created, null);
 			// PUT:
 			IDictionary<string, object> doc1 = new Dictionary<string, object>();
-			doc1.Put("message", "hello");
+			doc1["message"] = "hello";
 			IDictionary<string, object> result = (IDictionary<string, object>)SendBody("PUT", 
 				"/db/doc1", doc1, Status.Created, null);
 			string revID = (string)result.Get("rev");
 			NUnit.Framework.Assert.IsTrue(revID.StartsWith("1-"));
 			// PUT to update:
-			doc1.Put("message", "goodbye");
-			doc1.Put("_rev", revID);
+			doc1["message"] = "goodbye";
+			doc1["_rev"] = revID;
 			result = (IDictionary<string, object>)SendBody("PUT", "/db/doc1", doc1, Status.Created
 				, null);
 			Log.V(Tag, string.Format("PUT returned %s", result));
 			revID = (string)result.Get("rev");
 			NUnit.Framework.Assert.IsTrue(revID.StartsWith("2-"));
-			doc1.Put("_id", "doc1");
-			doc1.Put("_rev", revID);
+			doc1["_id"] = "doc1";
+			doc1["_rev"] = revID;
 			result = (IDictionary<string, object>)Send("GET", "/db/doc1", Status.Ok, doc1);
 			// Add more docs:
 			IDictionary<string, object> docX = new Dictionary<string, object>();
-			docX.Put("message", "hello");
+			docX["message"] = "hello";
 			result = (IDictionary<string, object>)SendBody("PUT", "/db/doc3", docX, Status.Created
 				, null);
 			string revID3 = (string)result.Get("rev");
@@ -175,17 +175,17 @@ namespace Couchbase.Lite
 			IDictionary<string, object> value2 = ValueMapWithRev(revID2);
 			IDictionary<string, object> value3 = ValueMapWithRev(revID3);
 			IDictionary<string, object> row1 = new Dictionary<string, object>();
-			row1.Put("id", "doc1");
-			row1.Put("key", "doc1");
-			row1.Put("value", value1);
+			row1["id"] = "doc1";
+			row1["key"] = "doc1";
+			row1["value"] = value1;
 			IDictionary<string, object> row2 = new Dictionary<string, object>();
-			row2.Put("id", "doc2");
-			row2.Put("key", "doc2");
-			row2.Put("value", value2);
+			row2["id"] = "doc2";
+			row2["key"] = "doc2";
+			row2["value"] = value2;
 			IDictionary<string, object> row3 = new Dictionary<string, object>();
-			row3.Put("id", "doc3");
-			row3.Put("key", "doc3");
-			row3.Put("value", value3);
+			row3["id"] = "doc3";
+			row3["key"] = "doc3";
+			row3["value"] = value3;
 			IList<IDictionary<string, object>> expectedRows = new AList<IDictionary<string, object
 				>>();
 			expectedRows.AddItem(row1);
@@ -208,46 +208,46 @@ namespace Couchbase.Lite
 			IList<object> changes3 = new AList<object>();
 			changes3.AddItem(ValueMapWithRevNoConflictArray(revID3));
 			IDictionary<string, object> result1 = new Dictionary<string, object>();
-			result1.Put("id", "doc1");
-			result1.Put("seq", 5);
-			result1.Put("deleted", true);
-			result1.Put("changes", changes1);
+			result1["id"] = "doc1";
+			result1["seq"] = 5;
+			result1["deleted"] = true;
+			result1["changes"] = changes1;
 			IDictionary<string, object> result2 = new Dictionary<string, object>();
-			result2.Put("id", "doc2");
-			result2.Put("seq", 4);
-			result2.Put("changes", changes2);
+			result2["id"] = "doc2";
+			result2["seq"] = 4;
+			result2["changes"] = changes2;
 			IDictionary<string, object> result3 = new Dictionary<string, object>();
-			result3.Put("id", "doc3");
-			result3.Put("seq", 3);
-			result3.Put("changes", changes3);
+			result3["id"] = "doc3";
+			result3["seq"] = 3;
+			result3["changes"] = changes3;
 			IList<object> results = new AList<object>();
 			results.AddItem(result3);
 			results.AddItem(result2);
 			results.AddItem(result1);
 			IDictionary<string, object> expectedChanges = new Dictionary<string, object>();
-			expectedChanges.Put("last_seq", 5);
-			expectedChanges.Put("results", results);
+			expectedChanges["last_seq"] = 5;
+			expectedChanges["results"] = results;
 			Send("GET", "/db/_changes", Status.Ok, expectedChanges);
 			// _changes with ?since:
 			results.Remove(result3);
 			results.Remove(result2);
-			expectedChanges.Put("results", results);
+			expectedChanges["results"] = results;
 			Send("GET", "/db/_changes?since=4", Status.Ok, expectedChanges);
 			results.Remove(result1);
-			expectedChanges.Put("results", results);
+			expectedChanges["results"] = results;
 			Send("GET", "/db/_changes?since=5", Status.Ok, expectedChanges);
 			// Put with _deleted to delete a doc:
 			Log.D(Tag, "Put with _deleted to delete a doc");
 			Send("GET", "/db/doc5", Status.NotFound, null);
 			IDictionary<string, object> doc5 = new Dictionary<string, object>();
-			doc5.Put("message", "hello5");
+			doc5["message"] = "hello5";
 			IDictionary<string, object> resultDoc5 = (IDictionary<string, object>)SendBody("PUT"
 				, "/db/doc5", doc5, Status.Created, null);
 			string revIdDoc5 = (string)resultDoc5.Get("rev");
 			NUnit.Framework.Assert.IsTrue(revIdDoc5.StartsWith("1-"));
-			doc5.Put("_deleted", true);
-			doc5.Put("_rev", revIdDoc5);
-			doc5.Put("_id", "doc5");
+			doc5["_deleted"] = true;
+			doc5["_rev"] = revIdDoc5;
+			doc5["_id"] = "doc5";
 			result = (IDictionary<string, object>)SendBody("PUT", "/db/doc5", doc5, Status.Ok
 				, null);
 			Send("GET", "/db/doc5", Status.NotFound, null);
@@ -259,19 +259,19 @@ namespace Couchbase.Lite
 			Send("PUT", "/db", Status.Created, null);
 			// PUT a local doc:
 			IDictionary<string, object> doc1 = new Dictionary<string, object>();
-			doc1.Put("message", "hello");
+			doc1["message"] = "hello";
 			IDictionary<string, object> result = (IDictionary<string, object>)SendBody("PUT", 
 				"/db/_local/doc1", doc1, Status.Created, null);
 			string revID = (string)result.Get("rev");
 			NUnit.Framework.Assert.IsTrue(revID.StartsWith("1-"));
 			// GET it:
 			doc1.Put("_id", "_local/doc1");
-			doc1.Put("_rev", revID);
+			doc1["_rev"] = revID;
 			result = (IDictionary<string, object>)Send("GET", "/db/_local/doc1", Status.Ok, doc1
 				);
 			// Local doc should not appear in _changes feed:
 			IDictionary<string, object> expectedChanges = new Dictionary<string, object>();
-			expectedChanges.Put("last_seq", 0);
+			expectedChanges["last_seq"] = 0;
 			expectedChanges.Put("results", new AList<object>());
 			Send("GET", "/db/_changes", Status.Ok, expectedChanges);
 		}
@@ -281,12 +281,12 @@ namespace Couchbase.Lite
 			Send("PUT", "/db", Status.Created, null);
 			IDictionary<string, object> result;
 			IDictionary<string, object> doc1 = new Dictionary<string, object>();
-			doc1.Put("message", "hello");
+			doc1["message"] = "hello";
 			result = (IDictionary<string, object>)SendBody("PUT", "/db/doc1", doc1, Status.Created
 				, null);
 			string revID = (string)result.Get("rev");
 			IDictionary<string, object> doc3 = new Dictionary<string, object>();
-			doc3.Put("message", "bonjour");
+			doc3["message"] = "bonjour";
 			result = (IDictionary<string, object>)SendBody("PUT", "/db/doc3", doc3, Status.Created
 				, null);
 			string revID3 = (string)result.Get("rev");
@@ -304,17 +304,17 @@ namespace Couchbase.Lite
 			IDictionary<string, object> value2 = ValueMapWithRev(revID2);
 			IDictionary<string, object> value3 = ValueMapWithRev(revID3);
 			IDictionary<string, object> row1 = new Dictionary<string, object>();
-			row1.Put("id", "doc1");
-			row1.Put("key", "doc1");
-			row1.Put("value", value1);
+			row1["id"] = "doc1";
+			row1["key"] = "doc1";
+			row1["value"] = value1;
 			IDictionary<string, object> row2 = new Dictionary<string, object>();
-			row2.Put("id", "doc2");
-			row2.Put("key", "doc2");
-			row2.Put("value", value2);
+			row2["id"] = "doc2";
+			row2["key"] = "doc2";
+			row2["value"] = value2;
 			IDictionary<string, object> row3 = new Dictionary<string, object>();
-			row3.Put("id", "doc3");
-			row3.Put("key", "doc3");
-			row3.Put("value", value3);
+			row3["id"] = "doc3";
+			row3["key"] = "doc3";
+			row3["value"] = value3;
 			IList<IDictionary<string, object>> expectedRows = new AList<IDictionary<string, object
 				>>();
 			expectedRows.AddItem(row1);
@@ -328,15 +328,15 @@ namespace Couchbase.Lite
 				, Status.Ok, null);
 			NUnit.Framework.Assert.AreEqual(3, result.Get("total_rows"));
 			NUnit.Framework.Assert.AreEqual(0, result.Get("offset"));
-			doc1.Put("_id", "doc1");
-			doc1.Put("_rev", revID);
-			row1.Put("doc", doc1);
-			doc2.Put("_id", "doc2");
-			doc2.Put("_rev", revID2);
-			row2.Put("doc", doc2);
-			doc3.Put("_id", "doc3");
-			doc3.Put("_rev", revID3);
-			row3.Put("doc", doc3);
+			doc1["_id"] = "doc1";
+			doc1["_rev"] = revID;
+			row1["doc"] = doc1;
+			doc2["_id"] = "doc2";
+			doc2["_rev"] = revID2;
+			row2["doc"] = doc2;
+			doc3["_id"] = "doc3";
+			doc3["_rev"] = revID3;
+			row3["doc"] = doc3;
 			IList<IDictionary<string, object>> expectedRowsWithDocs = new AList<IDictionary<string
 				, object>>();
 			expectedRowsWithDocs.AddItem(row1);
@@ -351,12 +351,12 @@ namespace Couchbase.Lite
 			Send("PUT", "/db", Status.Created, null);
 			IDictionary<string, object> result;
 			IDictionary<string, object> doc1 = new Dictionary<string, object>();
-			doc1.Put("message", "hello");
+			doc1["message"] = "hello";
 			result = (IDictionary<string, object>)SendBody("PUT", "/db/doc1", doc1, Status.Created
 				, null);
 			string revID = (string)result.Get("rev");
 			IDictionary<string, object> doc3 = new Dictionary<string, object>();
-			doc3.Put("message", "bonjour");
+			doc3["message"] = "bonjour";
 			result = (IDictionary<string, object>)SendBody("PUT", "/db/doc3", doc3, Status.Created
 				, null);
 			string revID3 = (string)result.Get("rev");
@@ -370,23 +370,23 @@ namespace Couchbase.Lite
 			view.SetMapAndReduce(new _Mapper_372(), null, "1");
 			// Build up our expected result
 			IDictionary<string, object> row1 = new Dictionary<string, object>();
-			row1.Put("id", "doc1");
-			row1.Put("key", "hello");
+			row1["id"] = "doc1";
+			row1["key"] = "hello";
 			IDictionary<string, object> row2 = new Dictionary<string, object>();
-			row2.Put("id", "doc2");
+			row2["id"] = "doc2";
 			row2.Put("key", "guten tag");
 			IDictionary<string, object> row3 = new Dictionary<string, object>();
-			row3.Put("id", "doc3");
-			row3.Put("key", "bonjour");
+			row3["id"] = "doc3";
+			row3["key"] = "bonjour";
 			IList<IDictionary<string, object>> expectedRows = new AList<IDictionary<string, object
 				>>();
 			expectedRows.AddItem(row3);
 			expectedRows.AddItem(row2);
 			expectedRows.AddItem(row1);
 			IDictionary<string, object> expectedResult = new Dictionary<string, object>();
-			expectedResult.Put("offset", 0);
-			expectedResult.Put("total_rows", 3);
-			expectedResult.Put("rows", expectedRows);
+			expectedResult["offset"] = 0;
+			expectedResult["total_rows"] = 3;
+			expectedResult["rows"] = expectedRows;
 			// Query the view and check the result:
 			Send("GET", "/db/_design/design/_view/view", Status.Ok, expectedResult);
 			// Check the ETag:
@@ -402,7 +402,7 @@ namespace Couchbase.Lite
 			NUnit.Framework.Assert.AreEqual(Status.NotModified, conn.GetResponseCode());
 			// Update the database:
 			IDictionary<string, object> doc4 = new Dictionary<string, object>();
-			doc4.Put("message", "aloha");
+			doc4["message"] = "aloha";
 			result = (IDictionary<string, object>)SendBody("PUT", "/db/doc4", doc4, Status.Created
 				, null);
 			// Try a conditional GET:
@@ -428,17 +428,17 @@ namespace Couchbase.Lite
 		{
 			Send("PUT", "/db", Status.Created, null);
 			IDictionary<string, object> bulk_doc1 = new Dictionary<string, object>();
-			bulk_doc1.Put("_id", "bulk_message1");
-			bulk_doc1.Put("baz", "hello");
+			bulk_doc1["_id"] = "bulk_message1";
+			bulk_doc1["baz"] = "hello";
 			IDictionary<string, object> bulk_doc2 = new Dictionary<string, object>();
-			bulk_doc2.Put("_id", "bulk_message2");
-			bulk_doc2.Put("baz", "hi");
+			bulk_doc2["_id"] = "bulk_message2";
+			bulk_doc2["baz"] = "hi";
 			IList<IDictionary<string, object>> list = new AList<IDictionary<string, object>>(
 				);
 			list.AddItem(bulk_doc1);
 			list.AddItem(bulk_doc2);
 			IDictionary<string, object> bodyObj = new Dictionary<string, object>();
-			bodyObj.Put("docs", list);
+			bodyObj["docs"] = list;
 			IList<IDictionary<string, object>> bulk_result = (AList<IDictionary<string, object
 				>>)SendBody("POST", "/db/_bulk_docs", bodyObj, Status.Created, null);
 			NUnit.Framework.Assert.AreEqual(2, bulk_result.Count);
@@ -456,7 +456,7 @@ namespace Couchbase.Lite
 			View view = db.GetView("design/view");
 			view.SetMapAndReduce(new _Mapper_463(), null, "1");
 			IDictionary<string, object> key_doc1 = new Dictionary<string, object>();
-			key_doc1.Put("parentId", "12345");
+			key_doc1["parentId"] = "12345";
 			result = (IDictionary<string, object>)SendBody("PUT", "/db/key_doc1", key_doc1, Status
 				.Created, null);
 			view = db.GetView("design/view");
@@ -464,7 +464,7 @@ namespace Couchbase.Lite
 			IList<object> keys = new AList<object>();
 			keys.AddItem("12345");
 			IDictionary<string, object> bodyObj = new Dictionary<string, object>();
-			bodyObj.Put("keys", keys);
+			bodyObj["keys"] = keys;
 			URLConnection conn = SendRequest("POST", "/db/_design/design/_view/view", null, bodyObj
 				);
 			result = (IDictionary<string, object>)ParseJSONResponse(conn);
@@ -512,15 +512,15 @@ namespace Couchbase.Lite
 				"/db/33333", doc, Status.Created, null);
 			string doc3r1ID = (string)doc3r1.Get("rev");
 			IDictionary<string, object> doc1v2 = new Dictionary<string, object>();
-			doc1v2.Put("_rev", doc1r1ID);
+			doc1v2["_rev"] = doc1r1ID;
 			IDictionary<string, object> doc1r2 = (IDictionary<string, object>)SendBody("PUT", 
 				"/db/11111", doc1v2, Status.Created, null);
 			string doc1r2ID = (string)doc1r2.Get("rev");
 			IDictionary<string, object> doc2v2 = new Dictionary<string, object>();
-			doc2v2.Put("_rev", doc2r1ID);
+			doc2v2["_rev"] = doc2r1ID;
 			SendBody("PUT", "/db/22222", doc2v2, Status.Created, null);
 			IDictionary<string, object> doc1v3 = new Dictionary<string, object>();
-			doc1v3.Put("_rev", doc1r2ID);
+			doc1v3["_rev"] = doc1r2ID;
 			IDictionary<string, object> doc1r3 = (IDictionary<string, object>)SendBody("PUT", 
 				"/db/11111", doc1v3, Status.Created, null);
 			string doc1r3ID = (string)doc1r1.Get("rev");
@@ -535,10 +535,10 @@ namespace Couchbase.Lite
 			IList<string> doc9Revs = new AList<string>();
 			doc9Revs.AddItem("6-six");
 			IDictionary<string, object> revsDiffRequest = new Dictionary<string, object>();
-			revsDiffRequest.Put("11111", doc1Revs);
-			revsDiffRequest.Put("22222", doc2Revs);
-			revsDiffRequest.Put("33333", doc3Revs);
-			revsDiffRequest.Put("99999", doc9Revs);
+			revsDiffRequest["11111"] = doc1Revs;
+			revsDiffRequest["22222"] = doc2Revs;
+			revsDiffRequest["33333"] = doc3Revs;
+			revsDiffRequest["99999"] = doc9Revs;
 			//now build up the expected response
 			IList<string> doc1missing = new AList<string>();
 			doc1missing.AddItem("3-foo");
@@ -547,15 +547,15 @@ namespace Couchbase.Lite
 			IList<string> doc9missing = new AList<string>();
 			doc9missing.AddItem("6-six");
 			IDictionary<string, object> doc1missingMap = new Dictionary<string, object>();
-			doc1missingMap.Put("missing", doc1missing);
+			doc1missingMap["missing"] = doc1missing;
 			IDictionary<string, object> doc3missingMap = new Dictionary<string, object>();
-			doc3missingMap.Put("missing", doc3missing);
+			doc3missingMap["missing"] = doc3missing;
 			IDictionary<string, object> doc9missingMap = new Dictionary<string, object>();
-			doc9missingMap.Put("missing", doc9missing);
+			doc9missingMap["missing"] = doc9missing;
 			IDictionary<string, object> revsDiffResponse = new Dictionary<string, object>();
-			revsDiffResponse.Put("11111", doc1missingMap);
-			revsDiffResponse.Put("33333", doc3missingMap);
-			revsDiffResponse.Put("99999", doc9missingMap);
+			revsDiffResponse["11111"] = doc1missingMap;
+			revsDiffResponse["33333"] = doc3missingMap;
+			revsDiffResponse["99999"] = doc9missingMap;
 			SendBody("POST", "/db/_revs_diff", revsDiffRequest, Status.Ok, revsDiffResponse);
 		}
 
@@ -565,7 +565,7 @@ namespace Couchbase.Lite
 			IDictionary<string, object> doc1 = new Dictionary<string, object>();
 			doc1.Put("email", "foo@bar.com");
 			doc1.Put("remote_url", GetReplicationURL().ToExternalForm());
-			doc1.Put("access_token", "fake_access_token");
+			doc1["access_token"] = "fake_access_token";
 			IDictionary<string, object> result = (IDictionary<string, object>)SendBody("POST"
 				, "/_facebook_token", doc1, Status.Ok, null);
 			Log.V(Tag, string.Format("result %s", result));
@@ -576,7 +576,7 @@ namespace Couchbase.Lite
 			Send("PUT", "/db", Status.Created, null);
 			IDictionary<string, object> doc1 = new Dictionary<string, object>();
 			string sampleAssertion = "eyJhbGciOiJSUzI1NiJ9.eyJwdWJsaWMta2V5Ijp7ImFsZ29yaXRobSI6IkRTIiwieSI6ImNhNWJiYTYzZmI4MDQ2OGE0MjFjZjgxYTIzN2VlMDcwYTJlOTM4NTY0ODhiYTYzNTM0ZTU4NzJjZjllMGUwMDk0ZWQ2NDBlOGNhYmEwMjNkYjc5ODU3YjkxMzBlZGNmZGZiNmJiNTUwMWNjNTk3MTI1Y2NiMWQ1ZWQzOTVjZTMyNThlYjEwN2FjZTM1ODRiOWIwN2I4MWU5MDQ4NzhhYzBhMjFlOWZkYmRjYzNhNzNjOTg3MDAwYjk4YWUwMmZmMDQ4ODFiZDNiOTBmNzllYzVlNDU1YzliZjM3NzFkYjEzMTcxYjNkMTA2ZjM1ZDQyZmZmZjQ2ZWZiZDcwNjgyNWQiLCJwIjoiZmY2MDA0ODNkYjZhYmZjNWI0NWVhYjc4NTk0YjM1MzNkNTUwZDlmMWJmMmE5OTJhN2E4ZGFhNmRjMzRmODA0NWFkNGU2ZTBjNDI5ZDMzNGVlZWFhZWZkN2UyM2Q0ODEwYmUwMGU0Y2MxNDkyY2JhMzI1YmE4MWZmMmQ1YTViMzA1YThkMTdlYjNiZjRhMDZhMzQ5ZDM5MmUwMGQzMjk3NDRhNTE3OTM4MDM0NGU4MmExOGM0NzkzMzQzOGY4OTFlMjJhZWVmODEyZDY5YzhmNzVlMzI2Y2I3MGVhMDAwYzNmNzc2ZGZkYmQ2MDQ2MzhjMmVmNzE3ZmMyNmQwMmUxNyIsInEiOiJlMjFlMDRmOTExZDFlZDc5OTEwMDhlY2FhYjNiZjc3NTk4NDMwOWMzIiwiZyI6ImM1MmE0YTBmZjNiN2U2MWZkZjE4NjdjZTg0MTM4MzY5YTYxNTRmNGFmYTkyOTY2ZTNjODI3ZTI1Y2ZhNmNmNTA4YjkwZTVkZTQxOWUxMzM3ZTA3YTJlOWUyYTNjZDVkZWE3MDRkMTc1ZjhlYmY2YWYzOTdkNjllMTEwYjk2YWZiMTdjN2EwMzI1OTMyOWU0ODI5YjBkMDNiYmM3ODk2YjE1YjRhZGU1M2UxMzA4NThjYzM0ZDk2MjY5YWE4OTA0MWY0MDkxMzZjNzI0MmEzODg5NWM5ZDViY2NhZDRmMzg5YWYxZDdhNGJkMTM5OGJkMDcyZGZmYTg5NjIzMzM5N2EifSwicHJpbmNpcGFsIjp7ImVtYWlsIjoiamVuc0Btb29zZXlhcmQuY29tIn0sImlhdCI6MTM1ODI5NjIzNzU3NywiZXhwIjoxMzU4MzgyNjM3NTc3LCJpc3MiOiJsb2dpbi5wZXJzb25hLm9yZyJ9.RnDK118nqL2wzpLCVRzw1MI4IThgeWpul9jPl6ypyyxRMMTurlJbjFfs-BXoPaOem878G8-4D2eGWS6wd307k7xlPysevYPogfFWxK_eDHwkTq3Ts91qEDqrdV_JtgULC8c1LvX65E0TwW_GL_TM94g3CvqoQnGVxxoaMVye4ggvR7eOZjimWMzUuu4Lo9Z-VBHBj7XM0UMBie57CpGwH4_Wkv0V_LHZRRHKdnl9ISp_aGwfBObTcHG9v0P3BW9vRrCjihIn0SqOJQ9obl52rMf84GD4Lcy9NIktzfyka70xR9Sh7ALotW7rWywsTzMTu3t8AzMz2MJgGjvQmx49QA~eyJhbGciOiJEUzEyOCJ9.eyJleHAiOjEzNTgyOTY0Mzg0OTUsImF1ZCI6Imh0dHA6Ly9sb2NhbGhvc3Q6NDk4NC8ifQ.4FV2TrUQffDya0MOxOQlzJQbDNvCPF2sfTIJN7KOLvvlSFPknuIo5g";
-			doc1.Put("assertion", sampleAssertion);
+			doc1["assertion"] = sampleAssertion;
 			IDictionary<string, object> result = (IDictionary<string, object>)SendBody("POST"
 				, "/_persona_assertion", doc1, Status.Ok, null);
 			Log.V(Tag, string.Format("result %s", result));

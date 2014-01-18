@@ -33,8 +33,8 @@ namespace Couchbase.Lite
 		{
 			Document document = database.CreateDocument();
 			IDictionary<string, object> properties = new Dictionary<string, object>();
-			properties.Put("foo", "foo");
-			properties.Put("bar", false);
+			properties["foo"] = "foo";
+			properties["bar"] = false;
 			document.PutProperties(properties);
 			NUnit.Framework.Assert.IsNotNull(document.CurrentRevisionId());
 			NUnit.Framework.Assert.IsNotNull(document.CurrentRevision);
@@ -45,8 +45,8 @@ namespace Couchbase.Lite
 		{
 			Document document = database.CreateDocument();
 			IDictionary<string, object> properties = new Dictionary<string, object>();
-			properties.Put("foo", "foo");
-			properties.Put("bar", false);
+			properties["foo"] = "foo";
+			properties["bar"] = false;
 			document.PutProperties(properties);
 			NUnit.Framework.Assert.IsNotNull(document.CurrentRevision);
 			string docId = document.Id;

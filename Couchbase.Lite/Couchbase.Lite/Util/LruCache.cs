@@ -84,6 +84,7 @@ namespace Couchbase.Lite.Util
 	public class LruCache<K, V>
 	{
 		private readonly LinkedHashMap<K, V> map;
+        private readonly Object locker = new Object ();
 
 		/// <summary>Size of this cache in units.</summary>
 		/// <remarks>Size of this cache in units. Not necessarily the number of elements.</remarks>
@@ -130,7 +131,7 @@ namespace Couchbase.Lite.Util
 			{
 				throw new ArgumentException("maxSize <= 0");
 			}
-			lock (this)
+			lock (locker)
 			{
 				this.maxSize = maxSize;
 			}
@@ -154,7 +155,7 @@ namespace Couchbase.Lite.Util
 				throw new ArgumentNullException("key == null");
 			}
 			V mapValue;
-			lock (this)
+			lock (locker)
 			{
 				mapValue = map.Get(key);
 				if (mapValue != null)
@@ -169,14 +170,14 @@ namespace Couchbase.Lite.Util
 			{
                 return default(V);
 			}
-			lock (this)
+			lock (locker)
 			{
 				createCount++;
-				mapValue = map.Put(key, createdValue);
+				mapValue = map[key] = createdValue;
 				if (mapValue != null)
 				{
 					// There was a conflict so undo that last put
-					map.Put(key, mapValue);
+					map[key] = mapValue;
 				}
 				else
 				{
@@ -194,6 +195,11 @@ namespace Couchbase.Lite.Util
 				return createdValue;
 			}
 		}
+
+        public V this[K key] {
+            get { return Get (key); }
+            set { Put (key, value); }
+        }
 
 		/// <summary>
 		/// Caches
@@ -215,11 +221,11 @@ namespace Couchbase.Lite.Util
 				throw new ArgumentNullException("key == null || value == null");
 			}
 			V previous;
-			lock (this)
+			lock (locker)
 			{
 				putCount++;
 				size += SafeSizeOf(key, value);
-				previous = map.Put(key, value);
+				previous = map[key] = value;
 				if (previous != null)
 				{
 					size -= SafeSizeOf(key, previous);
@@ -243,7 +249,7 @@ namespace Couchbase.Lite.Util
 			{
 				K key;
 				V value;
-				lock (this)
+				lock (locker)
 				{
 					if (size < 0 || (map.IsEmpty() && size != 0))
 					{
@@ -295,7 +301,7 @@ namespace Couchbase.Lite.Util
 				throw new ArgumentNullException("key == null");
 			}
 			V previous;
-			lock (this)
+			lock (locker)
 			{
 				previous = Sharpen.Collections.Remove(map, key);
 				if (previous != null)
@@ -421,7 +427,7 @@ namespace Couchbase.Lite.Util
 		/// </summary>
 		public int Size()
 		{
-			lock (this)
+			lock (locker)
 			{
 				return size;
 			}
@@ -437,7 +443,7 @@ namespace Couchbase.Lite.Util
 		/// </summary>
 		public int MaxSize()
 		{
-			lock (this)
+			lock (locker)
 			{
 				return maxSize;
 			}
@@ -451,7 +457,7 @@ namespace Couchbase.Lite.Util
 		/// </summary>
 		public int HitCount()
 		{
-			lock (this)
+			lock (locker)
 			{
 				return hitCount;
 			}
@@ -465,7 +471,7 @@ namespace Couchbase.Lite.Util
 		/// </summary>
 		public int MissCount()
 		{
-			lock (this)
+			lock (locker)
 			{
 				return missCount;
 			}
@@ -478,7 +484,7 @@ namespace Couchbase.Lite.Util
 		/// </summary>
 		public int CreateCount()
 		{
-			lock (this)
+			lock (locker)
 			{
 				return createCount;
 			}
@@ -492,7 +498,7 @@ namespace Couchbase.Lite.Util
 		/// </summary>
 		public int PutCount()
 		{
-			lock (this)
+			lock (locker)
 			{
 				return putCount;
 			}
@@ -502,7 +508,7 @@ namespace Couchbase.Lite.Util
 		/// <remarks>Returns the number of values that have been evicted.</remarks>
 		public int EvictionCount()
 		{
-			lock (this)
+			lock (locker)
 			{
 				return evictionCount;
 			}
@@ -518,7 +524,7 @@ namespace Couchbase.Lite.Util
 		/// </remarks>
 		public IDictionary<K, V> Snapshot()
 		{
-			lock (this)
+			lock (locker)
 			{
 				return new LinkedHashMap<K, V>(map);
 			}
@@ -526,13 +532,12 @@ namespace Couchbase.Lite.Util
 
 		public sealed override string ToString()
 		{
-			lock (this)
-			{
-				int accesses = hitCount + missCount;
-				int hitPercent = accesses != 0 ? (100 * hitCount / accesses) : 0;
-				return string.Format("LruCache[maxSize=%d,hits=%d,misses=%d,hitRate=%d%%]", maxSize
+            lock (locker) {
+                int accesses = hitCount + missCount;
+                int hitPercent = accesses != 0 ? (100 * hitCount / accesses) : 0;
+                return string.Format ("LruCache[maxSize=%d,hits=%d,misses=%d,hitRate=%d%%]", maxSize
 					, hitCount, missCount, hitPercent);
-			}
+            }
 		}
 	}
 }

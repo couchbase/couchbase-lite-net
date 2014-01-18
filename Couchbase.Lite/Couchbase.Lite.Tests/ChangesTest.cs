@@ -37,9 +37,9 @@ namespace Couchbase.Lite
             database.Changed += (sender, e) => changeNotifications++;
 			// create a document
 			IDictionary<string, object> documentProperties = new Dictionary<string, object>();
-			documentProperties.Put("foo", 1);
-			documentProperties.Put("bar", false);
-			documentProperties.Put("baz", "touch");
+			documentProperties["foo"] = 1;
+			documentProperties["bar"] = false;
+			documentProperties["baz"] = "touch";
 			Body body = new Body(documentProperties);
 			RevisionInternal rev1 = new RevisionInternal(body, database);
 			Status status = new Status();

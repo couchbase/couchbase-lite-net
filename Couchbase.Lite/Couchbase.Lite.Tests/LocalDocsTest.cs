@@ -37,8 +37,8 @@ namespace Couchbase.Lite
 			//create a document
 			IDictionary<string, object> documentProperties = new Dictionary<string, object>();
 			documentProperties.Put("_id", "_local/doc1");
-			documentProperties.Put("foo", 1);
-			documentProperties.Put("bar", false);
+			documentProperties["foo"] = 1;
+			documentProperties["bar"] = false;
 			Body body = new Body(documentProperties);
 			RevisionInternal rev1 = new RevisionInternal(body, database);
 			Status status = new Status();

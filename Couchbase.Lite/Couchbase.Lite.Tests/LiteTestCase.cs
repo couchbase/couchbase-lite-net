@@ -250,10 +250,10 @@ namespace Couchbase.Lite
 			IDictionary<string, object> authProperties = GetReplicationAuthParsedJson();
 			IDictionary<string, object> targetProperties = new Dictionary<string, object>();
 			targetProperties.Put("url", GetReplicationURL().ToString());
-			targetProperties.Put("auth", authProperties);
+			targetProperties["auth"] = authProperties;
 			IDictionary<string, object> properties = new Dictionary<string, object>();
-			properties.Put("source", DefaultTestDb);
-			properties.Put("target", targetProperties);
+			properties["source"] = DefaultTestDb;
+			properties["target"] = targetProperties;
 			return properties;
 		}
 
@@ -263,10 +263,10 @@ namespace Couchbase.Lite
 			IDictionary<string, object> authProperties = GetReplicationAuthParsedJson();
 			IDictionary<string, object> sourceProperties = new Dictionary<string, object>();
 			sourceProperties.Put("url", GetReplicationURL().ToString());
-			sourceProperties.Put("auth", authProperties);
+			sourceProperties["auth"] = authProperties;
 			IDictionary<string, object> properties = new Dictionary<string, object>();
-			properties.Put("source", sourceProperties);
-			properties.Put("target", DefaultTestDb);
+			properties["source"] = sourceProperties;
+			properties["target"] = DefaultTestDb;
 			return properties;
 		}
 

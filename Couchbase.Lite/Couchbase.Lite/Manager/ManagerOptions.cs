@@ -38,6 +38,8 @@ namespace Couchbase.Lite
 		/// <summary>Persistent replications will not run (until/unless startPersistentReplications is called.)</summary>
         public Boolean NoReplicator { get; set; }
 
+        internal ManagerOptions() : this (false, false) { } // For unit tests.
+
         public ManagerOptions(Boolean readOnly, Boolean noReplicator)
 		{
             this.ReadOnly = readOnly;

@@ -253,7 +253,7 @@ namespace Couchbase.Lite
                 {
                     return null;
                 }
-                DocumentCache.Put(id, doc);
+                DocumentCache[id] = doc;
             }
 
             return doc;
@@ -516,7 +516,7 @@ namespace Couchbase.Lite
             }
             if (filterDelegate != null)
             {
-                Filters.Put(name, filterDelegate);
+                Filters[name] = filterDelegate;
             }
             else
             {
@@ -786,8 +786,8 @@ namespace Couchbase.Lite
                     newRevID = Extensions.ToString(++generation) + "-local";
 
                     var values = new ContentValues();
-                    values.Put("revid", newRevID);
-                    values.Put("json", json);
+                    values["revid"] = newRevID;
+                    values["json"] = json;
 
                     var whereArgs = new [] { docID, prevRevID };
                     try
@@ -808,9 +808,9 @@ namespace Couchbase.Lite
                     newRevID = "1-local";
 
                     var values = new ContentValues();
-                    values.Put("docid", docID);
-                    values.Put("revid", newRevID);
-                    values.Put("json", json);
+                    values["docid"] = docID;
+                    values["revid"] = newRevID;
+                    values["json"] = json;
 
                     try
                     {
@@ -897,8 +897,8 @@ namespace Couchbase.Lite
                     try
                     {
                         properties = Manager.GetObjectMapper().ReadValue<IDictionary<String, Object>>(json);
-                        properties.Put("_id", docID);
-                        properties.Put("_rev", gotRevID);
+                        properties["_id"] = docID;
+                        properties["_rev"] = gotRevID;
 
                         result = new RevisionInternal(docID, gotRevID, false, this);
                         result.SetProperties(properties);
@@ -1033,7 +1033,7 @@ namespace Couchbase.Lite
                 if (localParentSequence > 0 && localParentSequence != sequence)
                 {
                     ContentValues args = new ContentValues();
-                    args.Put("current", 0);
+                    args["current"] = 0;
                     string[] whereArgs = new string[] { Convert.ToString(localParentSequence) };
                     try
                     {
@@ -1130,8 +1130,8 @@ namespace Couchbase.Lite
         {
             var values = new ContentValues();
             values.Put("remote", url.ToString());
-            values.Put("push", push);
-            values.Put("last_sequence", lastSequence);
+            values["push"] = push;
+            values["last_sequence"] = lastSequence;
             var newId = StorageEngine.InsertWithOnConflict("replicators", null, values, ConflictResolutionStrategy.Replace);
             return (newId == -1);
         }
@@ -1433,17 +1433,17 @@ namespace Couchbase.Lite
                         docContents = DocumentPropertiesFromJSON(json, docId, revId, deleted, sequenceNumber, options.GetContentOptions());
                     }
                     var value = new Dictionary<string, object>();
-                    value.Put("rev", revId);
+                    value["rev"] = revId;
                     if (options.IsIncludeDeletedDocs())
                     {
-                        value.Put("deleted", deleted);
+                        value["deleted"] = deleted;
                     }
                     var change = new QueryRow(docId, sequenceNumber, docId, value, docContents);
                     change.Database = this;
 
                     if (options.GetKeys() != null)
                     {
-                        docs.Put(docId, change);
+                        docs[docId] = change;
                     }
                     else
                     {
@@ -1475,8 +1475,8 @@ namespace Couchbase.Lite
                                     }
                                     if (revId != null)
                                     {
-                                        value.Put("rev", revId);
-                                        value.Put("deleted", true); // FIXME: SHould this be set the value of `deleted`?
+                                        value["rev"] = revId;
+                                        value["deleted"] = true; // FIXME: SHould this be set the value of `deleted`?
                                     }
                                 }
                                 change = new QueryRow((value != null ? docId : null), 0, docId, value, null);
@@ -1497,12 +1497,12 @@ namespace Couchbase.Lite
                 if (cursor != null)
                     cursor.Close();
             }
-            result.Put("rows", rows);
-            result.Put("total_rows", totalRows);
+            result["rows"] = rows;
+            result["total_rows"] = totalRows;
             result.Put("offset", options.GetSkip());
             if (updateSeq != 0)
             {
-                result.Put("update_seq", updateSeq);
+                result["update_seq"] = updateSeq;
             }
             return result;
         }
@@ -2180,7 +2180,7 @@ namespace Couchbase.Lite
                         }
                     }
                 }
-                result.Put(docID, revsPurged);
+                result[docID] = revsPurged;
             }
             return true;
         }
@@ -2310,7 +2310,7 @@ namespace Couchbase.Lite
                     }
                     // TODO: Detect missing revisions, set status="missing"
                     revHistoryItem.Put("rev", historicalRev.GetRevId());
-                    revHistoryItem.Put("status", status);
+                    revHistoryItem["status"] = status;
                     revsInfo.AddItem(revHistoryItem);
                 }
             }
@@ -2613,22 +2613,22 @@ namespace Couchbase.Lite
                     var attachment = new Dictionary<string, object>();
                     if (dataBase64 == null || dataSuppressed)
                     {
-                        attachment.Put("stub", true);
+                        attachment["stub"] = true;
                     }
                     if (dataBase64 != null)
                     {
-                        attachment.Put("data", dataBase64);
+                        attachment["data"] = dataBase64;
                     }
                     if (dataSuppressed) {
                         attachment.Put ("follows", true);
                     }
-                    attachment.Put("digest", digestString);
+                    attachment["digest"] = digestString;
 
-                    attachment.Put("content_type", contentType);
-                    attachment.Put("length", length);
-                    attachment.Put("revpos", revpos);
+                    attachment["content_type"] = contentType;
+                    attachment["length"] = length;
+                    attachment["revpos"] = revpos;
 
-                    result.Put(filename, attachment);
+                    result[filename] = attachment;
 
                     cursor.MoveToNext();
                 }
@@ -2779,7 +2779,7 @@ namespace Couchbase.Lite
                     }
                     // Make replaced rev non-current:
                     var updateContent = new ContentValues();
-                    updateContent.Put("current", 0);
+                    updateContent["current"] = 0;
 
                     StorageEngine.Update("revs", updateContent, "sequence=" + parentSequence, null);
                 }
@@ -2824,7 +2824,7 @@ namespace Couchbase.Lite
                                 {
                                     // Make the deleted revision no longer current:
                                     var updateContent = new ContentValues();
-                                    updateContent.Put("current", 0);
+                                    updateContent["current"] = 0;
                                     StorageEngine.Update("revs", updateContent, "sequence=" + cursor.GetLong(0), null);
                                 }
                                 else
@@ -3067,15 +3067,15 @@ namespace Couchbase.Lite
             try
             {
                 var args = new ContentValues();
-                args.Put("sequence", sequence);
-                args.Put("filename", name);
+                args["sequence"] = sequence;
+                args["filename"] = name;
                 if (key != null)
                 {
                     args.Put("key", key.GetBytes());
                     args.Put("length", Attachments.GetSizeOfBlob(key));
                 }
-                args.Put("type", contentType);
-                args.Put("revpos", revpos);
+                args["type"] = contentType;
+                args["revpos"] = revpos;
                 StorageEngine.Insert("attachments", null, args);
             }
             catch (SQLException e)
@@ -3117,13 +3117,13 @@ namespace Couchbase.Lite
             try
             {
                 ContentValues args = new ContentValues();
-                args.Put("doc_id", docNumericID);
+                args["doc_id"] = docNumericID;
                 args.Put("revid", rev.GetRevId());
                 if (parentSequence != 0)
                 {
-                    args.Put("parent", parentSequence);
+                    args["parent"] = parentSequence;
                 }
-                args.Put("current", current);
+                args["current"] = current;
                 args.Put("deleted", rev.IsDeleted());
                 args.Put("json", data.ToArray());
                 rowId = StorageEngine.Insert("revs", null, args);
@@ -3151,7 +3151,7 @@ namespace Couchbase.Lite
                         Collections.Remove(attachmentFromProps, "follows");
                         Collections.Remove(attachmentFromProps, "data");
 
-                        attachmentFromProps.Put("stub", true);
+                        attachmentFromProps["stub"] = true;
                         if (attachmentFromProps.Get("revpos") == null)
                         {
                             attachmentFromProps.Put("revpos", rev.GetGeneration());
@@ -3166,7 +3166,7 @@ namespace Couchbase.Lite
                                 attachmentFromProps.Put("digest", attachmentObject.GetBlobKey().Base64Digest());
                             }
                         }
-                        attachmentFromProps.Put(attachmentKey, attachmentFromProps);
+                        attachmentFromProps[attachmentKey] = attachmentFromProps;
                     }
                 }
             }
@@ -3308,7 +3308,7 @@ namespace Couchbase.Lite
                 {
                     attachment.SetRevpos(1);
                 }
-                attachments.Put(name, attachment);
+                attachments[name] = attachment;
             }
             return attachments;
         }
@@ -3376,7 +3376,7 @@ namespace Couchbase.Lite
             try
             {
                 ContentValues args = new ContentValues();
-                args.Put("docid", docId);
+                args["docid"] = docId;
                 rowId = StorageEngine.Insert("docs", null, args);
             }
             catch (Exception e)

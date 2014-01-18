@@ -71,13 +71,18 @@ namespace Couchbase.Lite.Storage
 			return mValues.GetHashCode();
 		}
 
-		/// <summary>Adds a value to the set.</summary>
+        internal Object this[String key] {
+            get { return mValues[key]; }
+            set { mValues[key] = value; }
+        }
+		
+        /// <summary>Adds a value to the set.</summary>
 		/// <remarks>Adds a value to the set.</remarks>
 		/// <param name="key">the name of the value to put</param>
 		/// <param name="value">the data for the value to put</param>
 		public void Put(string key, string value)
 		{
-			mValues.Put(key, value);
+			mValues[key] = value;
 		}
 
 		/// <summary>Adds all values from the passed in ContentValues.</summary>
@@ -94,7 +99,7 @@ namespace Couchbase.Lite.Storage
 		/// <param name="value">the data for the value to put</param>
 		public void Put(string key, byte value)
 		{
-			mValues.Put(key, value);
+			mValues[key] = value;
 		}
 
 		/// <summary>Adds a value to the set.</summary>
@@ -103,7 +108,7 @@ namespace Couchbase.Lite.Storage
 		/// <param name="value">the data for the value to put</param>
 		public void Put(string key, short value)
 		{
-			mValues.Put(key, value);
+			mValues[key] = value;
 		}
 
 		/// <summary>Adds a value to the set.</summary>
@@ -112,7 +117,7 @@ namespace Couchbase.Lite.Storage
 		/// <param name="value">the data for the value to put</param>
 		public void Put(string key, int value)
 		{
-			mValues.Put(key, value);
+			mValues[key] = value;
 		}
 
 		/// <summary>Adds a value to the set.</summary>
@@ -121,7 +126,7 @@ namespace Couchbase.Lite.Storage
 		/// <param name="value">the data for the value to put</param>
 		public void Put(string key, long value)
 		{
-			mValues.Put(key, value);
+			mValues[key] = value;
 		}
 
 		/// <summary>Adds a value to the set.</summary>
@@ -130,7 +135,7 @@ namespace Couchbase.Lite.Storage
 		/// <param name="value">the data for the value to put</param>
 		public void Put(string key, float value)
 		{
-			mValues.Put(key, value);
+			mValues[key] = value;
 		}
 
 		/// <summary>Adds a value to the set.</summary>
@@ -139,7 +144,7 @@ namespace Couchbase.Lite.Storage
 		/// <param name="value">the data for the value to put</param>
 		public void Put(string key, double value)
 		{
-			mValues.Put(key, value);
+			mValues[key] = value;
 		}
 
 		/// <summary>Adds a value to the set.</summary>
@@ -148,7 +153,7 @@ namespace Couchbase.Lite.Storage
 		/// <param name="value">the data for the value to put</param>
 		public void Put(string key, bool value)
 		{
-			mValues.Put(key, value);
+			mValues[key] = value;
 		}
 
 		/// <summary>Adds a value to the set.</summary>
@@ -157,7 +162,7 @@ namespace Couchbase.Lite.Storage
 		/// <param name="value">the data for the value to put</param>
         public void Put(string key, IEnumerable<Byte> value)
 		{
-			mValues.Put(key, value);
+			mValues[key] = value;
 		}
 
 		/// <summary>Adds a null value to the set.</summary>
@@ -165,7 +170,7 @@ namespace Couchbase.Lite.Storage
 		/// <param name="key">the name of the value to make null</param>
 		public void PutNull(string key)
 		{
-			mValues.Put(key, null);
+			mValues[key] = null;
 		}
 
 		/// <summary>Returns the number of values.</summary>

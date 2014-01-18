@@ -44,8 +44,8 @@ namespace Couchbase.Lite
 			NUnit.Framework.Assert.AreEqual(new HashSet<object>(), attachments.AllKeys());
 			Status status = new Status();
 			IDictionary<string, object> rev1Properties = new Dictionary<string, object>();
-			rev1Properties.Put("foo", 1);
-			rev1Properties.Put("bar", false);
+			rev1Properties["foo"] = 1;
+			rev1Properties["bar"] = false;
 			RevisionInternal rev1 = database.PutRevision(new RevisionInternal(rev1Properties, 
 				database), null, false, status);
 			NUnit.Framework.Assert.AreEqual(StatusCode.Created, status.GetCode());
@@ -61,11 +61,11 @@ namespace Couchbase.Lite
 			IDictionary<string, object> innerDict = new Dictionary<string, object>();
 			innerDict.Put("content_type", "text/plain");
 			innerDict.Put("digest", "sha1-gOHUOBmIMoDCrMuGyaLWzf1hQTE=");
-			innerDict.Put("length", 27);
-			innerDict.Put("stub", true);
-			innerDict.Put("revpos", 1);
+			innerDict["length"] = 27;
+			innerDict["stub"] = true;
+			innerDict["revpos"] = 1;
 			IDictionary<string, object> attachmentDict = new Dictionary<string, object>();
-			attachmentDict.Put(testAttachmentName, innerDict);
+			attachmentDict[testAttachmentName] = innerDict;
 			IDictionary<string, object> attachmentDictForSequence = database.GetAttachmentsDictForSequenceWithContent
 				(rev1.GetSequence(), EnumSet.NoneOf<TDContentOptions>());
 			NUnit.Framework.Assert.AreEqual(attachmentDict, attachmentDictForSequence);
@@ -88,8 +88,8 @@ namespace Couchbase.Lite
 			// Add a second revision that doesn't update the attachment:
 			IDictionary<string, object> rev2Properties = new Dictionary<string, object>();
 			rev2Properties.Put("_id", rev1.GetDocId());
-			rev2Properties.Put("foo", 2);
-			rev2Properties.Put("bazz", false);
+			rev2Properties["foo"] = 2;
+			rev2Properties["bazz"] = false;
 			RevisionInternal rev2 = database.PutRevision(new RevisionInternal(rev2Properties, 
 				database), rev1.GetRevId(), false, status);
 			NUnit.Framework.Assert.AreEqual(StatusCode.Created, status.GetCode());
@@ -98,8 +98,8 @@ namespace Couchbase.Lite
 			// Add a third revision of the same document:
 			IDictionary<string, object> rev3Properties = new Dictionary<string, object>();
 			rev3Properties.Put("_id", rev2.GetDocId());
-			rev3Properties.Put("foo", 2);
-			rev3Properties.Put("bazz", false);
+			rev3Properties["foo"] = 2;
+			rev3Properties["bazz"] = false;
 			RevisionInternal rev3 = database.PutRevision(new RevisionInternal(rev3Properties, 
 				database), rev2.GetRevId(), false, status);
 			NUnit.Framework.Assert.AreEqual(StatusCode.Created, status.GetCode());
@@ -143,8 +143,8 @@ namespace Couchbase.Lite
 			NUnit.Framework.Assert.AreEqual(0, attachments.Count());
 			Status status = new Status();
 			IDictionary<string, object> rev1Properties = new Dictionary<string, object>();
-			rev1Properties.Put("foo", 1);
-			rev1Properties.Put("bar", false);
+			rev1Properties["foo"] = 1;
+			rev1Properties["bar"] = false;
 			RevisionInternal rev1 = database.PutRevision(new RevisionInternal(rev1Properties, 
 				database), null, false, status);
 			NUnit.Framework.Assert.AreEqual(StatusCode.Created, status.GetCode());
@@ -187,7 +187,7 @@ namespace Couchbase.Lite
 				();
 			IDictionary<string, object> rev2Properties = new Dictionary<string, object>();
 			rev2Properties.Put("_id", rev1WithAttachmentsProperties.Get("_id"));
-			rev2Properties.Put("foo", 2);
+			rev2Properties["foo"] = 2;
 			RevisionInternal newRev = new RevisionInternal(rev2Properties, database);
 			RevisionInternal rev2 = database.PutRevision(newRev, rev1WithAttachments.GetRevId
 				(), false, status);
@@ -206,8 +206,8 @@ namespace Couchbase.Lite
 			// Add a third revision of the same document:
 			IDictionary<string, object> rev3Properties = new Dictionary<string, object>();
 			rev3Properties.Put("_id", rev2.Properties.Get("_id"));
-			rev3Properties.Put("foo", 3);
-			rev3Properties.Put("baz", false);
+			rev3Properties["foo"] = 3;
+			rev3Properties["baz"] = false;
 			RevisionInternal rev3 = new RevisionInternal(rev3Properties, database);
 			rev3 = database.PutRevision(rev3, rev2.GetRevId(), false, status);
 			NUnit.Framework.Assert.AreEqual(StatusCode.Created, status.GetCode());
@@ -243,13 +243,13 @@ namespace Couchbase.Lite
 			string base64 = Base64.EncodeBytes(attach1);
 			IDictionary<string, object> attachment = new Dictionary<string, object>();
 			attachment.Put("content_type", "text/plain");
-			attachment.Put("data", base64);
+			attachment["data"] = base64;
 			IDictionary<string, object> attachmentDict = new Dictionary<string, object>();
-			attachmentDict.Put(testAttachmentName, attachment);
+			attachmentDict[testAttachmentName] = attachment;
 			IDictionary<string, object> properties = new Dictionary<string, object>();
-			properties.Put("foo", 1);
-			properties.Put("bar", false);
-			properties.Put("_attachments", attachmentDict);
+			properties["foo"] = 1;
+			properties["bar"] = false;
+			properties["_attachments"] = attachmentDict;
 			RevisionInternal rev1 = database.PutRevision(new RevisionInternal(properties, database
 				), null, false);
 			// Examine the attachment store:
@@ -262,12 +262,12 @@ namespace Couchbase.Lite
 			IDictionary<string, object> innerDict = new Dictionary<string, object>();
 			innerDict.Put("content_type", "text/plain");
 			innerDict.Put("digest", "sha1-gOHUOBmIMoDCrMuGyaLWzf1hQTE=");
-			innerDict.Put("length", 27);
-			innerDict.Put("stub", true);
-			innerDict.Put("revpos", 1);
+			innerDict["length"] = 27;
+			innerDict["stub"] = true;
+			innerDict["revpos"] = 1;
 			IDictionary<string, object> expectAttachmentDict = new Dictionary<string, object>
 				();
-			expectAttachmentDict.Put(testAttachmentName, innerDict);
+			expectAttachmentDict[testAttachmentName] = innerDict;
 			NUnit.Framework.Assert.AreEqual(expectAttachmentDict, gotAttachmentDict);
 			// Update the attachment directly:
 			byte[] attachv2 = Sharpen.Runtime.GetBytesForString("Replaced body of attach");
@@ -315,10 +315,10 @@ namespace Couchbase.Lite
 			innerDict = new Dictionary<string, object>();
 			innerDict.Put("content_type", "application/foo");
 			innerDict.Put("digest", "sha1-mbT3208HI3PZgbG4zYWbDW2HsPk=");
-			innerDict.Put("length", 23);
-			innerDict.Put("stub", true);
-			innerDict.Put("revpos", 2);
-			expectAttachmentDict.Put(testAttachmentName, innerDict);
+			innerDict["length"] = 23;
+			innerDict["stub"] = true;
+			innerDict["revpos"] = 2;
+			expectAttachmentDict[testAttachmentName] = innerDict;
 			NUnit.Framework.Assert.AreEqual(expectAttachmentDict, attachmentDict);
 			// Delete the attachment:
 			gotExpectedErrorCode = false;
@@ -384,7 +384,7 @@ namespace Couchbase.Lite
 			Document doc = database.CreateDocument();
 			UnsavedRevision rev = doc.CreateRevision();
 			IDictionary<string, object> properties = new Dictionary<string, object>();
-			properties.Put("foo", "bar");
+			properties["foo"] = "bar";
 			rev.SetUserProperties(properties);
 			byte[] attachBodyBytes = Sharpen.Runtime.GetBytesForString("attach body");
 			Attachment attachment = new Attachment(new ByteArrayInputStream(attachBodyBytes), 

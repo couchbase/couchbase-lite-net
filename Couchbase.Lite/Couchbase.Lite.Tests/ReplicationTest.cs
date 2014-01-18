@@ -57,24 +57,24 @@ namespace Couchbase.Lite.Replicator
 			// Create some documents:
 			IDictionary<string, object> documentProperties = new Dictionary<string, object>();
 			string doc1Id = string.Format("doc1-%s", docIdTimestamp);
-			documentProperties.Put("_id", doc1Id);
-			documentProperties.Put("foo", 1);
-			documentProperties.Put("bar", false);
+			documentProperties["_id"] = doc1Id;
+			documentProperties["foo"] = 1;
+			documentProperties["bar"] = false;
 			Body body = new Body(documentProperties);
 			RevisionInternal rev1 = new RevisionInternal(body, database);
 			Status status = new Status();
 			rev1 = database.PutRevision(rev1, null, false, status);
             NUnit.Framework.Assert.AreEqual(StatusCode.Created, status.GetCode());
 			documentProperties.Put("_rev", rev1.GetRevId());
-			documentProperties.Put("UPDATED", true);
+			documentProperties["UPDATED"] = true;
 			RevisionInternal rev2 = database.PutRevision(new RevisionInternal(documentProperties
 				, database), rev1.GetRevId(), false, status);
             NUnit.Framework.Assert.AreEqual(StatusCode.Created, status.GetCode());
 			documentProperties = new Dictionary<string, object>();
 			string doc2Id = string.Format("doc2-%s", docIdTimestamp);
-			documentProperties.Put("_id", doc2Id);
-			documentProperties.Put("baz", 666);
-			documentProperties.Put("fnord", true);
+			documentProperties["_id"] = doc2Id;
+			documentProperties["baz"] = 666;
+			documentProperties["fnord"] = true;
 			database.PutRevision(new RevisionInternal(documentProperties, database), null, false
 				, status);
             NUnit.Framework.Assert.AreEqual(StatusCode.Created, status.GetCode());
@@ -167,17 +167,17 @@ namespace Couchbase.Lite.Replicator
 			// Create some documents:
 			IDictionary<string, object> documentProperties = new Dictionary<string, object>();
 			string doc1Id = string.Format("doc1-%s", docIdTimestamp);
-			documentProperties.Put("_id", doc1Id);
-			documentProperties.Put("foo", 1);
-			documentProperties.Put("bar", false);
+			documentProperties["_id"] = doc1Id;
+			documentProperties["foo"] = 1;
+			documentProperties["bar"] = false;
 			Body body = new Body(documentProperties);
 			RevisionInternal rev1 = new RevisionInternal(body, database);
 			Status status = new Status();
 			rev1 = database.PutRevision(rev1, null, false, status);
             NUnit.Framework.Assert.AreEqual(StatusCode.Created, status.GetCode());
 			documentProperties.Put("_rev", rev1.GetRevId());
-			documentProperties.Put("UPDATED", true);
-			documentProperties.Put("_deleted", true);
+			documentProperties["UPDATED"] = true;
+			documentProperties["_deleted"] = true;
 			RevisionInternal rev2 = database.PutRevision(new RevisionInternal(documentProperties
 				, database), rev1.GetRevId(), false, status);
 			NUnit.Framework.Assert.IsTrue(status.GetCode() >= 200 && status.GetCode() < 300);
@@ -374,7 +374,7 @@ namespace Couchbase.Lite.Replicator
 		public virtual void TestGetReplicator()
 		{
 			IDictionary<string, object> properties = new Dictionary<string, object>();
-			properties.Put("source", DefaultTestDb);
+			properties["source"] = DefaultTestDb;
 			properties.Put("target", GetReplicationURL().ToString());
 			Replication replicator = manager.GetReplicator(properties);
 			NUnit.Framework.Assert.IsNotNull(replicator);
@@ -386,7 +386,7 @@ namespace Couchbase.Lite.Replicator
 			// start the replicator
 			replicator.Start();
 			// now lets lookup existing replicator and stop it
-			properties.Put("cancel", true);
+			properties["cancel"] = true;
 			Replication activeReplicator = manager.GetReplicator(properties);
 			activeReplicator.Stop();
 			NUnit.Framework.Assert.IsFalse(activeReplicator.IsRunning());
@@ -500,7 +500,7 @@ namespace Couchbase.Lite.Replicator
 			IDictionary<string, object> facebookTokenInfo = new Dictionary<string, object>();
 			facebookTokenInfo.Put("email", "jchris@couchbase.com");
 			facebookTokenInfo.Put("remote_url", GetReplicationURL().ToString());
-			facebookTokenInfo.Put("access_token", "fake_access_token");
+			facebookTokenInfo["access_token"] = "fake_access_token";
 			string destUrl = string.Format("/_facebook_token", DefaultTestDb);
 			IDictionary<string, object> result = (IDictionary<string, object>)SendBody("POST"
                 , destUrl, facebookTokenInfo, (int)StatusCode.Ok, null);
@@ -659,7 +659,7 @@ namespace Couchbase.Lite.Replicator
 			r1.SetFilter("foo/bar");
 			NUnit.Framework.Assert.IsTrue(r1.GetChannels().IsEmpty());
 			IDictionary<string, object> filterParams = new Dictionary<string, object>();
-			filterParams.Put("a", "b");
+			filterParams["a"] = "b";
 			r1.SetFilterParams(filterParams);
 			NUnit.Framework.Assert.IsTrue(r1.GetChannels().IsEmpty());
 			r1.SetChannels(null);
@@ -690,7 +690,7 @@ namespace Couchbase.Lite.Replicator
 			manager.SetDefaultHttpClientFactory(mockHttpClientFactory);
 			Replication puller = database.CreatePullReplication(remote);
 			IDictionary<string, object> headers = new Dictionary<string, object>();
-			headers.Put("foo", "bar");
+			headers["foo"] = "bar";
 			puller.SetHeaders(headers);
 			puller.Start();
 			Sharpen.Thread.Sleep(2000);

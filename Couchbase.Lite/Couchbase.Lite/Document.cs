@@ -259,7 +259,7 @@ namespace Couchbase.Lite {
             {
                 IDictionary<string, object> updatedAttachments = Attachment.InstallAttachmentBodies
                                                                  (attachments, Database);
-                properties.Put("_attachments", updatedAttachments);
+                properties["_attachments"] = updatedAttachments;
             }
 
             var hasTrueDeletedProperty = false;

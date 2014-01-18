@@ -39,7 +39,7 @@ namespace Couchbase.Lite
 			IDictionary<string, object> revProperties = new Dictionary<string, object>();
 			revProperties.Put("_id", rev.GetDocId());
 			revProperties.Put("_rev", rev.GetRevId());
-			revProperties.Put("message", "hi");
+			revProperties["message"] = "hi";
 			rev.SetProperties(revProperties);
 			database.ForceInsert(rev, revHistory, null);
 		}
@@ -51,7 +51,7 @@ namespace Couchbase.Lite
 			IDictionary<string, object> revProperties = new Dictionary<string, object>();
 			revProperties.Put("_id", rev.GetDocId());
 			revProperties.Put("_rev", rev.GetRevId());
-			revProperties.Put("message", "hi");
+			revProperties["message"] = "hi";
 			rev.SetProperties(revProperties);
 			IList<string> revHistory = new AList<string>();
 			revHistory.AddItem(rev.GetRevId());
@@ -66,7 +66,7 @@ namespace Couchbase.Lite
 			IDictionary<string, object> conflictProperties = new Dictionary<string, object>();
 			conflictProperties.Put("_id", conflict.GetDocId());
 			conflictProperties.Put("_rev", conflict.GetRevId());
-			conflictProperties.Put("message", "yo");
+			conflictProperties["message"] = "yo";
 			conflict.SetProperties(conflictProperties);
 			IList<string> conflictHistory = new AList<string>();
 			conflictHistory.AddItem(conflict.GetRevId());
@@ -81,7 +81,7 @@ namespace Couchbase.Lite
 			RevisionInternal other = new RevisionInternal("AnotherDocID", "1-ichi", false, database
 				);
 			IDictionary<string, object> otherProperties = new Dictionary<string, object>();
-			otherProperties.Put("language", "jp");
+			otherProperties["language"] = "jp";
 			other.SetProperties(otherProperties);
 			IList<string> otherHistory = new AList<string>();
 			otherHistory.AddItem(other.GetRevId());

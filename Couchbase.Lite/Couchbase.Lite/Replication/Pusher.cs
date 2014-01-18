@@ -179,7 +179,7 @@ namespace Couchbase.Lite.Replicator
                 if (revs == null)
                 {
                     revs = new AList<String>();
-                    diffs.Put(docID, revs);
+                    diffs[docID] = revs;
                 }
                 revs.AddItem(rev.GetRevId());
             }

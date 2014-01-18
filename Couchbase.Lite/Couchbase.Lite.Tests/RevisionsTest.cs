@@ -123,8 +123,8 @@ namespace Couchbase.Lite
 			expectedSuffixes.AddItem("def");
 			IDictionary<string, object> expectedHistoryDict = new Dictionary<string, object>(
 				);
-			expectedHistoryDict.Put("start", 4);
-			expectedHistoryDict.Put("ids", expectedSuffixes);
+			expectedHistoryDict["start"] = 4;
+			expectedHistoryDict["ids"] = expectedSuffixes;
 			IDictionary<string, object> historyDict = Database.MakeRevisionHistoryDict(revs);
 			NUnit.Framework.Assert.AreEqual(expectedHistoryDict, historyDict);
 			revs = new AList<RevisionInternal>();
@@ -134,7 +134,7 @@ namespace Couchbase.Lite
 			expectedSuffixes.AddItem("4-jkl");
 			expectedSuffixes.AddItem("2-def");
 			expectedHistoryDict = new Dictionary<string, object>();
-			expectedHistoryDict.Put("ids", expectedSuffixes);
+			expectedHistoryDict["ids"] = expectedSuffixes;
 			historyDict = Database.MakeRevisionHistoryDict(revs);
 			NUnit.Framework.Assert.AreEqual(expectedHistoryDict, historyDict);
 			revs = new AList<RevisionInternal>();
@@ -144,7 +144,7 @@ namespace Couchbase.Lite
 			expectedSuffixes.AddItem("12345");
 			expectedSuffixes.AddItem("6789");
 			expectedHistoryDict = new Dictionary<string, object>();
-			expectedHistoryDict.Put("ids", expectedSuffixes);
+			expectedHistoryDict["ids"] = expectedSuffixes;
 			historyDict = Database.MakeRevisionHistoryDict(revs);
 			NUnit.Framework.Assert.AreEqual(expectedHistoryDict, historyDict);
 		}

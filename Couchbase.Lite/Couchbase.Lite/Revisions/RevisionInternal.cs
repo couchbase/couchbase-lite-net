@@ -190,8 +190,8 @@ namespace Couchbase.Lite.Internal
 			{
 				properties.PutAll(unmodifiableProperties);
 			}
-			properties.Put("_id", docId);
-			properties.Put("_rev", revId);
+			properties["_id"] = docId;
+			properties["_rev"] = revId;
 			result.SetProperties(properties);
 			return result;
 		}

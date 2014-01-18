@@ -24,6 +24,8 @@ using System.Collections.Generic;
 using Couchbase.Lite;
 using Sharpen;
 using Couchbase.Lite.Util;
+using System.IO;
+using System.Linq;
 
 namespace Couchbase.Lite
 {
@@ -94,20 +96,20 @@ namespace Couchbase.Lite
 			}
 			ManagerOptions options = new ManagerOptions();
 			options.ReadOnly = true;
-			Manager roManager = new Manager(new FilePath(manager.Directory), options);
+            Manager roManager = new Manager(new DirectoryInfo(manager.Directory), options);
 			NUnit.Framework.Assert.IsTrue(roManager != null);
 			Database db_1 = roManager.GetDatabase("foo");
 			NUnit.Framework.Assert.IsNull(db_1);
             var dbNames = manager.AllDatabaseNames;
-			NUnit.Framework.Assert.IsFalse(dbNames.Contains("foo"));
+            NUnit.Framework.Assert.IsFalse(dbNames.Contains<String>("foo"));
 			NUnit.Framework.Assert.IsTrue(dbNames.Contains(DefaultTestDb));
 		}
 
 		public virtual void TestCreateDocument()
 		{
 			IDictionary<string, object> properties = new Dictionary<string, object>();
-			properties.Put("testName", "testCreateDocument");
-			properties.Put("tag", 1337);
+			properties["testName"] = "testCreateDocument";
+			properties["tag"] = 1337;
 			Database db = StartDatabase();
 			Document doc = CreateDocumentWithProperties(db, properties);
 			string docID = doc.Id;
@@ -129,13 +131,13 @@ namespace Couchbase.Lite
 		public virtual void TestDatabaseCompaction()
 		{
 			IDictionary<string, object> properties = new Dictionary<string, object>();
-			properties.Put("testName", "testDatabaseCompaction");
-			properties.Put("tag", 1337);
+			properties["testName"] = "testDatabaseCompaction";
+			properties["tag"] = 1337;
 			Document doc = CreateDocumentWithProperties(database, properties);
 			SavedRevision rev1 = doc.CurrentRevision;
 			IDictionary<string, object> properties2 = new Dictionary<string, object>(properties
 				);
-			properties2.Put("tag", 4567);
+			properties2["tag"] = 4567;
 			SavedRevision rev2 = rev1.CreateRevision(properties2);
 			database.Compact();
 			Document fetchedDoc = database.GetDocument(doc.Id);
@@ -157,8 +159,8 @@ namespace Couchbase.Lite
 		public virtual void TestCreateRevisions()
 		{
 			IDictionary<string, object> properties = new Dictionary<string, object>();
-			properties.Put("testName", "testCreateRevisions");
-			properties.Put("tag", 1337);
+			properties["testName"] = "testCreateRevisions";
+			properties["tag"] = 1337;
 			Database db = StartDatabase();
 			Document doc = CreateDocumentWithProperties(db, properties);
 			SavedRevision rev1 = doc.CurrentRevision;
@@ -168,7 +170,7 @@ namespace Couchbase.Lite
 			// Test -createRevisionWithProperties:
 			IDictionary<string, object> properties2 = new Dictionary<string, object>(properties
 				);
-			properties2.Put("tag", 4567);
+			properties2["tag"] = 4567;
 			SavedRevision rev2 = rev1.CreateRevision(properties2);
 			NUnit.Framework.Assert.IsNotNull("Put failed", rev2);
 			NUnit.Framework.Assert.IsTrue("Document revision ID is still " + doc.GetCurrentRevisionId
@@ -192,11 +194,11 @@ namespace Couchbase.Lite
 			NUnit.Framework.Assert.AreEqual(newRev.UserProperties, rev2.GetUserProperties
 				());
 			IDictionary<string, object> userProperties = new Dictionary<string, object>();
-			userProperties.Put("because", "NoSQL");
+			userProperties["because"] = "NoSQL";
 			newRev.SetUserProperties(userProperties);
 			NUnit.Framework.Assert.AreEqual(newRev.UserProperties, userProperties);
 			IDictionary<string, object> expectProperties = new Dictionary<string, object>();
-			expectProperties.Put("because", "NoSQL");
+			expectProperties["because"] = "NoSQL";
 			expectProperties.Put("_id", doc.Id);
 			expectProperties.Put("_rev", rev2.Id);
 			NUnit.Framework.Assert.AreEqual(newRev.Properties, expectProperties);
@@ -210,8 +212,8 @@ namespace Couchbase.Lite
 		public virtual void TestCreateNewRevisions()
 		{
 			IDictionary<string, object> properties = new Dictionary<string, object>();
-			properties.Put("testName", "testCreateRevisions");
-			properties.Put("tag", 1337);
+			properties["testName"] = "testCreateRevisions";
+			properties["tag"] = 1337;
 			Database db = StartDatabase();
 			Document doc = db.CreateDocument();
 			UnsavedRevision newRev = doc.CreateRevision();
@@ -249,7 +251,7 @@ namespace Couchbase.Lite
 			NUnit.Framework.Assert.IsNotNull(!newRev.IsDeletion());
 			// we can't add/modify one property as on ios. need  to add separate method?
 			// newRev[@"tag"] = @4567;
-			properties.Put("tag", 4567);
+			properties["tag"] = 4567;
 			newRev.SetUserProperties(properties);
 			SavedRevision rev2 = newRev.Save();
 			NUnit.Framework.Assert.IsNotNull("Save 2 failed", rev2);
@@ -286,7 +288,7 @@ namespace Couchbase.Lite
 		public virtual void TestDeleteDocument()
 		{
 			IDictionary<string, object> properties = new Dictionary<string, object>();
-			properties.Put("testName", "testDeleteDocument");
+			properties["testName"] = "testDeleteDocument";
 			Database db = StartDatabase();
 			Document doc = CreateDocumentWithProperties(db, properties);
 			NUnit.Framework.Assert.IsTrue(!doc.IsDeleted());
@@ -300,7 +302,7 @@ namespace Couchbase.Lite
 		public virtual void TestPurgeDocument()
 		{
 			IDictionary<string, object> properties = new Dictionary<string, object>();
-			properties.Put("testName", "testPurgeDocument");
+			properties["testName"] = "testPurgeDocument";
 			Database db = StartDatabase();
 			Document doc = CreateDocumentWithProperties(db, properties);
 			NUnit.Framework.Assert.IsNotNull(doc);
@@ -345,7 +347,7 @@ namespace Couchbase.Lite
 		public virtual void TestLocalDocs()
 		{
 			IDictionary<string, object> properties = new Dictionary<string, object>();
-			properties.Put("foo", "bar");
+			properties["foo"] = "bar";
 			Database db = StartDatabase();
 			IDictionary<string, object> props = db.GetExistingLocalDocument("dock");
 			NUnit.Framework.Assert.IsNull(props);
@@ -354,7 +356,7 @@ namespace Couchbase.Lite
 			props = db.GetExistingLocalDocument("dock");
 			NUnit.Framework.Assert.AreEqual(props.Get("foo"), "bar");
 			IDictionary<string, object> newProperties = new Dictionary<string, object>();
-			newProperties.Put("FOOO", "BARRR");
+			newProperties["FOOO"] = "BARRR";
 			NUnit.Framework.Assert.IsNotNull("Couldn't update local doc", db.PutLocalDocument
 				(newProperties, "dock"));
 			props = db.GetExistingLocalDocument("dock");
@@ -374,8 +376,8 @@ namespace Couchbase.Lite
 		public virtual void TestHistory()
 		{
 			IDictionary<string, object> properties = new Dictionary<string, object>();
-			properties.Put("testName", "test06_History");
-			properties.Put("tag", 1);
+			properties["testName"] = "test06_History";
+			properties["tag"] = 1;
 			Database db = StartDatabase();
 			Document doc = CreateDocumentWithProperties(db, properties);
 			string rev1ID = doc.CurrentRevisionId;
@@ -385,7 +387,7 @@ namespace Couchbase.Lite
 			NUnit.Framework.Assert.AreEqual(doc.UserProperties, properties);
 			properties = new Dictionary<string, object>();
 			properties.PutAll(doc.Properties);
-			properties.Put("tag", 2);
+			properties["tag"] = 2;
 			NUnit.Framework.Assert.IsNotNull(!properties.Equals(doc.Properties));
 			NUnit.Framework.Assert.IsNotNull(doc.PutProperties(properties));
 			string rev2ID = doc.CurrentRevisionId;
@@ -414,17 +416,17 @@ namespace Couchbase.Lite
 		public virtual void TestConflict()
 		{
 			IDictionary<string, object> prop = new Dictionary<string, object>();
-			prop.Put("foo", "bar");
+			prop["foo"] = "bar";
 			Database db = StartDatabase();
 			Document doc = CreateDocumentWithProperties(db, prop);
 			SavedRevision rev1 = doc.CurrentRevision;
 			IDictionary<string, object> properties = new Dictionary<string, object>();
 			properties.PutAll(doc.Properties);
-			properties.Put("tag", 2);
+			properties["tag"] = 2;
 			SavedRevision rev2a = doc.PutProperties(properties);
 			properties = new Dictionary<string, object>();
 			properties.PutAll(rev1.Properties);
-			properties.Put("tag", 3);
+			properties["tag"] = 3;
 			UnsavedRevision newRev = rev1.CreateRevision();
 			newRev.SetProperties(properties);
 			bool allowConflict = true;
@@ -465,7 +467,7 @@ namespace Couchbase.Lite
 		public virtual void TestAttachments()
 		{
 			IDictionary<string, object> properties = new Dictionary<string, object>();
-			properties.Put("testName", "testAttachments");
+			properties["testName"] = "testAttachments";
 			Database db = StartDatabase();
 			Document doc = CreateDocumentWithProperties(db, properties);
 			SavedRevision rev = doc.CurrentRevision;
@@ -566,11 +568,11 @@ namespace Couchbase.Lite
                 });
 			IDictionary<string, object> properties = new Dictionary<string, object>();
 			properties.Put("groovy", "right on");
-			properties.Put("foo", "bar");
+			properties["foo"] = "bar";
 			Document doc = db.CreateDocument();
 			NUnit.Framework.Assert.IsNotNull(doc.PutProperties(properties));
 			properties = new Dictionary<string, object>();
-			properties.Put("foo", "bar");
+			properties["foo"] = "bar";
 			doc = db.CreateDocument();
 			try
 			{
@@ -594,8 +596,8 @@ namespace Couchbase.Lite
 			for (int i = 0; i < kNDocs; i++)
 			{
 				IDictionary<string, object> properties = new Dictionary<string, object>();
-				properties.Put("sequence", i);
-				properties.Put("prev", lastDocID);
+				properties["sequence"] = i;
+				properties["prev"] = lastDocID;
                 Document doc = CreateDocumentWithProperties(db, properties);
 				docs[i] = doc;
 				lastDocID = doc.Id;

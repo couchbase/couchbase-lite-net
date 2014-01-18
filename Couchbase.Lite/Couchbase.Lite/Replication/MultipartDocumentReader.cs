@@ -153,7 +153,7 @@ namespace Couchbase.Lite.Support
                             var errMsg = String.Format("Attachment '{0}' has incorrect MD5 digest ({1}; should be {2})", attachmentName, digest, actualDigest);
 							throw new InvalidOperationException(errMsg);
 						}
-						attachment.Put("digest", actualDigest);
+						attachment["digest"] = actualDigest;
 					}
 					else
 					{
@@ -230,7 +230,7 @@ namespace Couchbase.Lite.Support
                     var name = contentDispositionUnquoted.Substring(21);
 					if (name != null)
 					{
-						attachmentsByName.Put(name, curAttachment);
+						attachmentsByName[name] = curAttachment;
 					}
 				}
 			}
@@ -258,7 +258,7 @@ namespace Couchbase.Lite.Support
 			{
 				curAttachment.Finish();
 				String md5String = curAttachment.MD5DigestString();
-				attachmentsByMd5Digest.Put(md5String, curAttachment);
+				attachmentsByMd5Digest[md5String] = curAttachment;
 				curAttachment = null;
 			}
 		}

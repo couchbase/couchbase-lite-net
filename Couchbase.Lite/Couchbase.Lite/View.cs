@@ -222,9 +222,9 @@ namespace Couchbase.Lite {
 
                                     var insertValues = new ContentValues();
                                     insertValues.Put("view_id", enclosingView.Id);
-                                    insertValues.Put("sequence", thisSequence);
-                                    insertValues.Put("key", keyJson);
-                                    insertValues.Put("value", valueJson);
+                                    insertValues["sequence"] = thisSequence;
+                                    insertValues["key"] = keyJson;
+                                    insertValues["value"] = valueJson;
 
                                     enclosingView.Database.StorageEngine.Insert("maps", null, insertValues);
                                 }
@@ -242,7 +242,7 @@ namespace Couchbase.Lite {
                 // Finally, record the last revision sequence number that was
                 // indexed:
                 ContentValues updateValues = new ContentValues();
-                updateValues.Put("lastSequence", dbMaxSequence);
+                updateValues["lastSequence"] = dbMaxSequence;
                 var whereArgs_1 = new string[] { Sharpen.Extensions.ToString(Id) };
                 Database.StorageEngine.Update("views", updateValues, "view_id=?", whereArgs_1);
                 // FIXME actually count number added :)
@@ -704,15 +704,15 @@ namespace Couchbase.Lite {
                 {
                     // no such record, so insert
                     var insertValues = new ContentValues();
-                    insertValues.Put("name", Name);
-                    insertValues.Put("version", version);
+                    insertValues["name"] = Name;
+                    insertValues["version"] = version;
                     storageEngine.Insert("views", null, insertValues);
                     return true;
                 }
 
                 var updateValues = new ContentValues();
-                updateValues.Put("version", version);
-                updateValues.Put("lastSequence", 0);
+                updateValues["version"] = version;
+                updateValues["lastSequence"] = 0;
 
                 var whereArgs = new [] { Name, version };
                 var rowsAffected = storageEngine.Update("views", updateValues, "name=? AND version!=?", whereArgs);
@@ -751,7 +751,7 @@ namespace Couchbase.Lite {
                 Database.StorageEngine.Delete("maps", "view_id=?", whereArgs);
 
                 var updateValues = new ContentValues();
-                updateValues.Put("lastSequence", 0);
+                updateValues["lastSequence"] = 0;
 
                 Database.StorageEngine.Update("views", updateValues, "view_id=?", whereArgs); // TODO: Convert to ADO params.
 

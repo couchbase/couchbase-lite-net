@@ -58,7 +58,7 @@ namespace Couchbase.Lite
 			// POST a valid new document:
 			IDictionary<string, object> props = new Dictionary<string, object>();
 			props.Put("name", "Zaphod Beeblebrox");
-			props.Put("towel", "velvet");
+			props["towel"] = "velvet";
 			RevisionInternal rev = new RevisionInternal(props, database);
 			Status status = new Status();
 			validationCalled = false;
@@ -66,7 +66,7 @@ namespace Couchbase.Lite
 			NUnit.Framework.Assert.IsTrue(validationCalled);
             NUnit.Framework.Assert.AreEqual(StatusCode.Created, status.GetCode());
 			// PUT a valid update:
-			props.Put("head_count", 3);
+			props["head_count"] = 3;
 			rev.SetProperties(props);
 			validationCalled = false;
 			rev = database.PutRevision(rev, rev.GetRevId(), false, status);
@@ -89,8 +89,8 @@ namespace Couchbase.Lite
 			NUnit.Framework.Assert.IsTrue(gotExpectedError);
 			// POST an invalid new document:
 			props = new Dictionary<string, object>();
-			props.Put("name", "Vogon");
-			props.Put("poetry", true);
+			props["name"] = "Vogon";
+			props["poetry"] = true;
 			rev = new RevisionInternal(props, database);
 			validationCalled = false;
 			gotExpectedError = false;
@@ -106,9 +106,9 @@ namespace Couchbase.Lite
 			NUnit.Framework.Assert.IsTrue(gotExpectedError);
 			// PUT a valid new document with an ID:
 			props = new Dictionary<string, object>();
-			props.Put("_id", "ford");
+			props["_id"] = "ford";
 			props.Put("name", "Ford Prefect");
-			props.Put("towel", "terrycloth");
+			props["towel"] = "terrycloth";
 			rev = new RevisionInternal(props, database);
 			validationCalled = false;
 			rev = database.PutRevision(rev, null, false, status);
@@ -122,7 +122,7 @@ namespace Couchbase.Lite
 			NUnit.Framework.Assert.IsTrue(validationCalled);
 			// PUT an invalid new document:
 			props = new Dictionary<string, object>();
-			props.Put("_id", "petunias");
+			props["_id"] = "petunias";
 			props.Put("name", "Pot of Petunias");
 			rev = new RevisionInternal(props, database);
 			validationCalled = false;
