@@ -18,7 +18,7 @@ namespace Sharpen
 		public virtual void Clear ()
 		{
 			Iterator iterator = Iterator ();
-			while (iterator.MoveNext ()) {
+			while (iterator.HasNext ()) {
 				iterator.Next ();
 				iterator.Remove ();
 			}
@@ -58,7 +58,7 @@ namespace Sharpen
 		public virtual bool Remove (object element)
 		{
 			Iterator iterator = Iterator ();
-			while (iterator.MoveNext ()) {
+			while (iterator.HasNext ()) {
 				if (iterator.Next ().Equals (element)) {
 					iterator.Remove ();
 					return true;

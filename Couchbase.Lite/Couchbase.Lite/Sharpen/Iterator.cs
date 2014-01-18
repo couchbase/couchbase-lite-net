@@ -6,7 +6,7 @@ namespace Sharpen
 
 	public interface Iterator
 	{
-		bool MoveNext ();
+        bool HasNext ();
 		object Next ();
 		void Remove ();
 	}
@@ -24,13 +24,13 @@ namespace Sharpen
 			return Next ();
 		}
 
-		public abstract bool MoveNext ();
+        public abstract bool HasNext ();
 		public abstract T Next ();
 		public abstract void Remove ();
 
 		bool IEnumerator.MoveNext ()
 		{
-			if (MoveNext ()) {
+            if (HasNext ()) {
 				lastValue = Next ();
 				return true;
 			}
