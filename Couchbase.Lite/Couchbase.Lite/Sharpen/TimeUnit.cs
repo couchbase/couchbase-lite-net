@@ -4,8 +4,8 @@ namespace Sharpen
 
 	public enum TimeUnit : long
 	{
-		MILLISECONDS = 1,
-		SECONDS = 1000
+        Milliseconds = 1,
+        Seconds = 1000
 	}
 
 	internal static class TimeUnitExtensions

@@ -23,7 +23,7 @@ namespace Sharpen
 
 		public bool Await (long timeout, Sharpen.TimeUnit unit)
 		{
-			return done.WaitOne ((int) unit.Convert (timeout, TimeUnit.MILLISECONDS));
+			return done.WaitOne ((int) unit.Convert (timeout, TimeUnit.Milliseconds));
 		}
 
 		public void CountDown ()

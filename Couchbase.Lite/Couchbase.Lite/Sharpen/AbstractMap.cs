@@ -52,7 +52,7 @@ namespace Sharpen
 			if (iterator == null) {
 				throw new NotSupportedException ();
 			}
-			while (iterator.HasNext ()) {
+			while (iterator.MoveNext ()) {
 				U local = iterator.Next ();
 				if (local.Equals ((T)key)) {
 					iterator.Remove ();

@@ -34,7 +34,7 @@ namespace Sharpen
 					return true;
 				handles = tasks.ToArray ();
 			}
-			return WaitHandle.WaitAll (handles, (int) unit.Convert (n, TimeUnit.MILLISECONDS));
+			return WaitHandle.WaitAll (handles, (int) unit.Convert (n, TimeUnit.Milliseconds));
 		}
 	
 		public void ShutdownNow ()

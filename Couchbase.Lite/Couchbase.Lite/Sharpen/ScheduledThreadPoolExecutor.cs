@@ -126,7 +126,7 @@ namespace Sharpen
 				Task<T> t = new Task<T> () {
 					Executor = this,
 					Action = r,
-					DueTime = now + TimeSpan.FromMilliseconds (unit.Convert (delay, TimeUnit.MILLISECONDS))
+					DueTime = now + TimeSpan.FromMilliseconds (unit.Convert (delay, TimeUnit.Milliseconds))
 				};
 				Scheduler.Instance.AddTask (t);
 				return t;

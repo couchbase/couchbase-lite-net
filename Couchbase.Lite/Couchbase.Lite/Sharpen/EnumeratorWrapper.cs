@@ -18,7 +18,7 @@ namespace Sharpen
 			this.more = e.MoveNext ();
 		}
 
-		public override bool HasNext ()
+		public override bool MoveNext ()
 		{
 			return this.more;
 		}

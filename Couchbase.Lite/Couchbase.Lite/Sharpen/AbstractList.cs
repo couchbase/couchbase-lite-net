@@ -50,7 +50,7 @@ namespace Sharpen
 			object item = null;
 			Sharpen.Iterator iterator = this.Iterator ();
 			while (num <= index) {
-				if (!iterator.HasNext ()) {
+				if (!iterator.MoveNext ()) {
 					throw new IndexOutOfRangeException ();
 				}
 				item = iterator.Next ();
@@ -65,7 +65,7 @@ namespace Sharpen
 			int num = 0;
 			Sharpen.Iterator iterator = this.Iterator ();
 			while (num <= index) {
-				if (!iterator.HasNext ()) {
+				if (!iterator.MoveNext ()) {
 					throw new IndexOutOfRangeException ();
 				}
 				iterator.Next ();
@@ -75,7 +75,7 @@ namespace Sharpen
 				iterator.Remove ();
 			}
 			for (num = index + 1; num < toIndex; num++) {
-				if (!iterator.HasNext ()) {
+				if (!iterator.MoveNext ()) {
 					throw new IndexOutOfRangeException ();
 				}
 				iterator.Next ();
@@ -150,7 +150,7 @@ namespace Sharpen
 				this.list = list;
 			}
 
-			public override bool HasNext ()
+			public override bool MoveNext ()
 			{
 				return (current < list.Count);
 			}

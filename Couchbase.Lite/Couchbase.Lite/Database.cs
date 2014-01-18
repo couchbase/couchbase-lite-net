@@ -12,6 +12,8 @@ using System.Threading.Tasks;
 using System.Text;
 using System.Diagnostics;
 using System.Data;
+using Couchbase.Lite.Replicator;
+using Couchbase.Lite.Support;
 
 namespace Couchbase.Lite 
 {
@@ -633,6 +635,36 @@ namespace Couchbase.Lite
         internal LruCache<String, Document> DocumentCache { get; set; }
 
         private IDictionary<String, FilterDelegate> Filters { get; set; }
+
+        /// <summary>
+        /// Creates a replication that will 'push' to a database at the given URL, or returns an existing
+        /// such replication if there already is one.
+        /// </summary>
+        /// <remarks>
+        /// Creates a replication that will 'push' to a database at the given URL, or returns an existing
+        /// such replication if there already is one.
+        /// </remarks>
+        /// <param name="remote"></param>
+        /// <returns></returns>
+        internal Replication CreatePushReplication(Uri remote)
+        {
+            return new Pusher(this, remote, false, CouchbaseLiteHttpClientFactory.Instance, Task.Factory);
+        }
+
+        /// <summary>
+        /// Creates a replication that will 'pull' from a database at the given URL, or returns an existing
+        /// such replication if there already is one.
+        /// </summary>
+        /// <remarks>
+        /// Creates a replication that will 'pull' from a database at the given URL, or returns an existing
+        /// such replication if there already is one.
+        /// </remarks>
+        /// <param name="remote"></param>
+        /// <returns></returns>
+        internal Replication CreatePullReplication(Uri remote)
+        {
+            return new Puller(this, remote, false, Task.Factory);
+        }
 
         internal RevisionList GetAllRevisionsOfDocumentID (string id, bool onlyCurrent)
         {
@@ -1649,6 +1681,19 @@ namespace Couchbase.Lite
                 Log.E(Database.Tag, "Error deleting view", e);
             }
             return result;
+        }
+
+        /// <summary>
+        /// Creates a one-shot query with the given map function. This is equivalent to creating an
+        /// anonymous View and then deleting it immediately after querying it. It may be useful during
+        /// development, but in general this is inefficient if this map will be used more than once,
+        /// because the entire view has to be regenerated from scratch every time.
+        /// </summary>
+        /// <returns>The query.</returns>
+        /// <param name="map">Map.</param>
+        internal Query SlowQuery(MapDelegate map) 
+        {
+            return new Query(this, map);
         }
 
         internal RevisionInternal GetParentRevision(RevisionInternal rev)
