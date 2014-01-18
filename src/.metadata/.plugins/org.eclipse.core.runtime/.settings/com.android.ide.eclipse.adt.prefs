@@ -1,0 +1,4 @@
+com.android.ide.eclipse.adt.fixLegacyEditors=1
+com.android.ide.eclipse.adt.sdk=/Users/zgramana/Library/Developer/Xamarin/android-sdk-mac_x86
+com.android.ide.eclipse.adt.xmlEditor=true
+eclipse.preferences.version=1

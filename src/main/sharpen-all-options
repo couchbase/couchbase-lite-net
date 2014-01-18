@@ -7,22 +7,24 @@
 -namespaceMapping com.couchbase.cblite Couchbase.Lite
 -namespaceMapping com.couchbase.lite Couchbase.Lite
 -namespaceMapping com.couchbase.touchdb Couchbase.Lite
--namespaceMapping org.apache.http.authentication Org.Apache.Http.Authentication
--namespaceMapping org.apache.http.impl.auth Org.Apache.Http.Impl.Client
--namespaceMapping org.apache.http.util Org.Apache.Http.Util
--namespaceMapping org.apache.http Org.Apache.Http
--namespaceMapping org.codehaus.jackson.map Newtonsoft.Json
--namespaceMapping org.apache.http.entity.mime Org.Apache.Http.Entity.Mime
+-namespaceMapping org.apache.http Apache.Http
+-namespaceMapping org.apache.http.authentication Apache.Http.Authentication
+-namespaceMapping org.apache.http.entity.mime Apache.Http.Entity.Mime
+-namespaceMapping org.apache.http.impl.auth Apache.Http.Impl.Client
+-namespaceMapping org.apache.http.util Apache.Http.Util
+-namespaceMapping org.codehaus.jackson.map Couchbase.Lite
+-namespaceMapping org.codehaus.jackson.type Couchbase.Lite.Util
 
 -methodMapping java.util.Iterator.hasNext HasNext
 -methodMapping java.util.Iterator.next Next
 
 -typeMapping java.util.Comparator System.Collections.IEnumerator   
 -typeMapping java.util.ArrayList System.Collections.ArrayList 
--typeMapping org.codehaus.jackson.map.ObjectMapper JsonConvert
--typeMapping org.apache.http.client.methods.HttpUriRequest Org.Apache.Http.Client.Methods.IHttpUriRequest
--typeMapping org.apache.http.HttpRequestInterceptor Org.Apache.Http.IHttpRequestInterceptor
--typeMapping org.apache.http.HttpRequest Org.Apache.Http.IHttpRequest
+-typeMapping org.codehaus.jackson.map.ObjectMapper Couchbase.Lite.ObjectWriter
+-typeMapping org.codehaus.jackson.type.TypeReference Couchbase.Lite.Util.JavaGenericTypeReference
+-typeMapping org.apache.http.client.methods.HttpUriRequest System.Net.HttpRequestMessage
+-typeMapping org.apache.http.HttpRequestInterceptor System.Net.MessageProcessingHandler
+-typeMapping org.apache.http.HttpRequest System.Net.HttpWebRequest
 
 -methodMapping java.util.List.addAll AddRange 
 -methodMapping java.util.AbstractList.addAll AddRange 

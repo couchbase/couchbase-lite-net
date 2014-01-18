@@ -5,8 +5,8 @@
  * Android Port by Marty Schoch, Traun Leyden
  * C# Port by Zack Gramana
  *
- * Copyright (c) 2012, 2013 Couchbase, Inc. All rights reserved.
- * Portions (c) 2013 Xamarin, Inc. All rights reserved.
+ * Copyright (c) 2012, 2013, 2014 Couchbase, Inc. All rights reserved.
+ * Portions (c) 2013, 2014 Xamarin, Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file
  * except in compliance with the License. You may obtain a copy of the License at
@@ -23,16 +23,18 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Net;
+using Apache.Http;
+using Apache.Http.Auth;
+using Apache.Http.Client;
+using Apache.Http.Client.Methods;
+using Apache.Http.Client.Protocol;
+using Apache.Http.Impl.Auth;
+using Apache.Http.Impl.Client;
+using Apache.Http.Protocol;
 using Couchbase.Lite;
 using Couchbase.Lite.Replicator;
 using Couchbase.Lite.Util;
-using Org.Apache.Http;
-using Org.Apache.Http.Auth;
-using Org.Apache.Http.Client;
-using Org.Apache.Http.Client.Methods;
-using Org.Apache.Http.Client.Protocol;
-using Org.Apache.Http.Impl.Client;
-using Org.Apache.Http.Protocol;
 using Org.Codehaus.Jackson;
 using Sharpen;
 
@@ -56,7 +58,7 @@ namespace Couchbase.Lite.Replicator
 
 		private bool running = false;
 
-		private IHttpUriRequest request;
+		private HttpRequestMessage request;
 
 		private string filterName;
 
@@ -239,7 +241,8 @@ namespace Couchbase.Lite.Replicator
 						if (httpClient is DefaultHttpClient)
 						{
 							DefaultHttpClient dhc = (DefaultHttpClient)httpClient;
-							IHttpRequestInterceptor preemptiveAuth = new _IHttpRequestInterceptor_212(creds);
+							MessageProcessingHandler preemptiveAuth = new _MessageProcessingHandler_212(creds
+								);
 							dhc.AddRequestInterceptor(preemptiveAuth, 0);
 						}
 					}
@@ -328,16 +331,16 @@ namespace Couchbase.Lite.Replicator
 			Log.V(Database.Tag, "Change tracker run loop exiting");
 		}
 
-		private sealed class _IHttpRequestInterceptor_212 : IHttpRequestInterceptor
+		private sealed class _MessageProcessingHandler_212 : MessageProcessingHandler
 		{
-			public _IHttpRequestInterceptor_212(Credentials creds)
+			public _MessageProcessingHandler_212(Credentials creds)
 			{
 				this.creds = creds;
 			}
 
-			/// <exception cref="Org.Apache.Http.HttpException"></exception>
+			/// <exception cref="Apache.Http.HttpException"></exception>
 			/// <exception cref="System.IO.IOException"></exception>
-			public void Process(IHttpRequest request, HttpContext context)
+			public void Process(HttpWebRequest request, HttpContext context)
 			{
 				AuthState authState = (AuthState)context.GetAttribute(ClientContext.TargetAuthState
 					);
@@ -438,7 +441,7 @@ namespace Couchbase.Lite.Replicator
 			this.requestHeaders = requestHeaders;
 		}
 
-		private void AddRequestHeaders(IHttpUriRequest request)
+		private void AddRequestHeaders(HttpRequestMessage request)
 		{
 			foreach (string requestHeaderKey in requestHeaders.Keys)
 			{

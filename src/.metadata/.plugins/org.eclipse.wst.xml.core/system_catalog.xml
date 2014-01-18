@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<catalog xmlns="urn:oasis:names:tc:entity:xmlns:xml:catalog">
+  <system systemId="http://maven.apache.org/maven-v4_0_0.xsd" uri="jar:file:/Users/zgramana/Downloads/eclipse/plugins/org.eclipse.m2e.model.edit_1.4.0.20130601-0317.jar!/xsd/maven-v4_0_0.xsd"/>
+  <system systemId="http://maven.apache.org/xsd/maven-4.0.0.xsd" uri="jar:file:/Users/zgramana/Downloads/eclipse/plugins/org.eclipse.m2e.model.edit_1.4.0.20130601-0317.jar!/xsd/maven-v4_0_0.xsd"/>
+  <system systemId="http://maven.apache.org/xsd/settings-1.0.0.xsd" uri="jar:file:/Users/zgramana/Downloads/eclipse/plugins/org.eclipse.m2e.model.edit_1.4.0.20130601-0317.jar!/xsd/settings-v1_0_0.xsd"/>
+  <system systemId="http://maven.apache.org/xsd/profiles-1.0.0.xsd" uri="jar:file:/Users/zgramana/Downloads/eclipse/plugins/org.eclipse.m2e.model.edit_1.4.0.20130601-0317.jar!/xsd/profiles-v1_0_0.xsd"/>
+  <system systemId="http://maven.apache.org/xsd/archetype-1.0.0.xsd" uri="jar:file:/Users/zgramana/Downloads/eclipse/plugins/org.eclipse.m2e.model.edit_1.4.0.20130601-0317.jar!/xsd/archetype-1.0.0.xsd"/>
+  <system systemId="http://maven.apache.org/xsd/archetype-catalog-1.0.0.xsd" uri="jar:file:/Users/zgramana/Downloads/eclipse/plugins/org.eclipse.m2e.model.edit_1.4.0.20130601-0317.jar!/xsd/archetype-catalog-1.0.0.xsd"/>
+  <system systemId="http://maven.apache.org/xsd/archetype-descriptor-1.0.0.xsd" uri="jar:file:/Users/zgramana/Downloads/eclipse/plugins/org.eclipse.m2e.model.edit_1.4.0.20130601-0317.jar!/xsd/archetype-descriptor-1.0.0.xsd"/>
+  <system systemId="http://www.w3.org/2001/xml.xsd" uri="jar:file:/Users/zgramana/Downloads/eclipse/plugins/org.eclipse.xsd_2.9.1.v20130902-0605.jar!/cache/www.w3.org/2001/xml.xsd"/>
+  <uri name="http://www.w3.org/2001/XMLSchema" uri="jar:file:/Users/zgramana/Downloads/eclipse/plugins/org.eclipse.xsd_2.9.1.v20130902-0605.jar!/cache/www.w3.org/2001/XMLSchema.xsd"/>
+</catalog>

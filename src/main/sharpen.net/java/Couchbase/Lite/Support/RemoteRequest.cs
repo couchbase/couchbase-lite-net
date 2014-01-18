@@ -5,8 +5,8 @@
  * Android Port by Marty Schoch, Traun Leyden
  * C# Port by Zack Gramana
  *
- * Copyright (c) 2012, 2013 Couchbase, Inc. All rights reserved.
- * Portions (c) 2013 Xamarin, Inc. All rights reserved.
+ * Copyright (c) 2012, 2013, 2014 Couchbase, Inc. All rights reserved.
+ * Portions (c) 2013, 2014 Xamarin, Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file
  * except in compliance with the License. You may obtain a copy of the License at
@@ -22,18 +22,20 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Net;
+using Apache.Http;
+using Apache.Http.Auth;
+using Apache.Http.Client;
+using Apache.Http.Client.Methods;
+using Apache.Http.Client.Protocol;
+using Apache.Http.Conn;
+using Apache.Http.Entity;
+using Apache.Http.Impl.Auth;
+using Apache.Http.Impl.Client;
+using Apache.Http.Protocol;
 using Couchbase.Lite;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
-using Org.Apache.Http;
-using Org.Apache.Http.Auth;
-using Org.Apache.Http.Client;
-using Org.Apache.Http.Client.Methods;
-using Org.Apache.Http.Client.Protocol;
-using Org.Apache.Http.Conn;
-using Org.Apache.Http.Entity;
-using Org.Apache.Http.Impl.Client;
-using Org.Apache.Http.Protocol;
 using Sharpen;
 
 namespace Couchbase.Lite.Support
@@ -71,7 +73,7 @@ namespace Couchbase.Lite.Support
 		{
 			HttpClient httpClient = clientFactory.GetHttpClient();
 			ClientConnectionManager manager = httpClient.GetConnectionManager();
-			IHttpUriRequest request = CreateConcreteRequest();
+			HttpRequestMessage request = CreateConcreteRequest();
 			PreemptivelySetAuthCredentials(httpClient);
 			request.AddHeader("Accept", "multipart/related, application/json");
 			AddRequestHeaders(request);
@@ -79,7 +81,7 @@ namespace Couchbase.Lite.Support
 			ExecuteRequest(httpClient, request);
 		}
 
-		protected internal virtual void AddRequestHeaders(IHttpUriRequest request)
+		protected internal virtual void AddRequestHeaders(HttpRequestMessage request)
 		{
 			foreach (string requestHeaderKey in requestHeaders.Keys)
 			{
@@ -88,9 +90,9 @@ namespace Couchbase.Lite.Support
 			}
 		}
 
-		protected internal virtual IHttpUriRequest CreateConcreteRequest()
+		protected internal virtual HttpRequestMessage CreateConcreteRequest()
 		{
-			IHttpUriRequest request = null;
+			HttpRequestMessage request = null;
 			if (Sharpen.Runtime.EqualsIgnoreCase(method, "GET"))
 			{
 				request = new HttpGet(url.ToExternalForm());
@@ -112,7 +114,7 @@ namespace Couchbase.Lite.Support
 			return request;
 		}
 
-		private void SetBody(IHttpUriRequest request)
+		private void SetBody(HttpRequestMessage request)
 		{
 			// set body if appropriate
 			if (body != null && request is HttpEntityEnclosingRequestBase)
@@ -132,7 +134,7 @@ namespace Couchbase.Lite.Support
 			}
 		}
 
-		protected internal virtual void ExecuteRequest(HttpClient httpClient, IHttpUriRequest
+		protected internal virtual void ExecuteRequest(HttpClient httpClient, HttpRequestMessage
 			 request)
 		{
 			object fullBody = null;
@@ -206,7 +208,8 @@ namespace Couchbase.Lite.Support
 					if (httpClient is DefaultHttpClient)
 					{
 						DefaultHttpClient dhc = (DefaultHttpClient)httpClient;
-						IHttpRequestInterceptor preemptiveAuth = new _IHttpRequestInterceptor_179(creds);
+						MessageProcessingHandler preemptiveAuth = new _MessageProcessingHandler_179(creds
+							);
 						dhc.AddRequestInterceptor(preemptiveAuth, 0);
 					}
 				}
@@ -218,16 +221,16 @@ namespace Couchbase.Lite.Support
 			}
 		}
 
-		private sealed class _IHttpRequestInterceptor_179 : IHttpRequestInterceptor
+		private sealed class _MessageProcessingHandler_179 : MessageProcessingHandler
 		{
-			public _IHttpRequestInterceptor_179(Credentials creds)
+			public _MessageProcessingHandler_179(Credentials creds)
 			{
 				this.creds = creds;
 			}
 
-			/// <exception cref="Org.Apache.Http.HttpException"></exception>
+			/// <exception cref="Apache.Http.HttpException"></exception>
 			/// <exception cref="System.IO.IOException"></exception>
-			public void Process(IHttpRequest request, HttpContext context)
+			public void Process(HttpWebRequest request, HttpContext context)
 			{
 				AuthState authState = (AuthState)context.GetAttribute(ClientContext.TargetAuthState
 					);

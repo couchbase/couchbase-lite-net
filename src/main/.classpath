@@ -2,8 +2,17 @@
 <classpath>
 	<classpathentry kind="src" path="src"/>
 	<classpathentry kind="src" path="gen"/>
-	<classpathentry kind="con" path="com.android.ide.eclipse.adt.ANDROID_FRAMEWORK"/>
+	<classpathentry exported="true" kind="con" path="com.android.ide.eclipse.adt.ANDROID_FRAMEWORK"/>
 	<classpathentry exported="true" kind="con" path="com.android.ide.eclipse.adt.LIBRARIES"/>
 	<classpathentry exported="true" kind="con" path="com.android.ide.eclipse.adt.DEPENDENCIES"/>
+	<classpathentry exported="true" kind="con" path="org.eclipse.jdt.junit.JUNIT_CONTAINER/3"/>
+	<classpathentry exported="true" kind="lib" path="/Users/zgramana/Xamarin/Projects/couchbase-lite-net/libs/android-support-v4.jar"/>
+	<classpathentry exported="true" kind="lib" path="/Users/zgramana/Xamarin/Projects/couchbase-lite-net/libs/jackson-core-asl-1.9.13.jar" sourcepath="/Users/zgramana/Xamarin/Projects/couchbase-lite-net/libs/jackson-core-asl-1.8.3-sources.jar"/>
+	<classpathentry exported="true" kind="lib" path="/Users/zgramana/Xamarin/Projects/couchbase-lite-net/libs/jackson-mapper-asl-1.9.13.jar"/>
+	<classpathentry exported="true" kind="lib" path="/Users/zgramana/Xamarin/Projects/couchbase-lite-net/libs/commons-io-2.4/commons-io-2.4-javadoc.jar"/>
+	<classpathentry exported="true" kind="lib" path="/Users/zgramana/Xamarin/Projects/couchbase-lite-net/libs/commons-io-2.4/commons-io-2.4-sources.jar"/>
+	<classpathentry exported="true" kind="lib" path="/Users/zgramana/Xamarin/Projects/couchbase-lite-net/libs/commons-io-2.4/commons-io-2.4-test-sources.jar"/>
+	<classpathentry exported="true" kind="lib" path="/Users/zgramana/Xamarin/Projects/couchbase-lite-net/libs/commons-io-2.4/commons-io-2.4-tests.jar"/>
+	<classpathentry exported="true" kind="lib" path="/Users/zgramana/Xamarin/Projects/couchbase-lite-net/libs/commons-io-2.4/commons-io-2.4.jar"/>
 	<classpathentry kind="output" path="bin/classes"/>
 </classpath>

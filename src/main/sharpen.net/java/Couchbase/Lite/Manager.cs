@@ -5,8 +5,8 @@
  * Android Port by Marty Schoch, Traun Leyden
  * C# Port by Zack Gramana
  *
- * Copyright (c) 2012, 2013 Couchbase, Inc. All rights reserved.
- * Portions (c) 2013 Xamarin, Inc. All rights reserved.
+ * Copyright (c) 2012, 2013, 2014 Couchbase, Inc. All rights reserved.
+ * Portions (c) 2013, 2014 Xamarin, Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file
  * except in compliance with the License. You may obtain a copy of the License at
@@ -43,7 +43,7 @@ namespace Couchbase.Lite
 
 		public const string HttpErrorDomain = "CBLHTTP";
 
-		private static readonly JsonConvert mapper = new JsonConvert();
+		private static readonly ObjectWriter mapper = new ObjectWriter();
 
 		public const string DatabaseSuffixOld = ".touchdb";
 
@@ -66,7 +66,7 @@ namespace Couchbase.Lite
 		private HttpClientFactory defaultHttpClientFactory;
 
 		[InterfaceAudience.Private]
-		public static JsonConvert GetObjectMapper()
+		public static ObjectWriter GetObjectMapper()
 		{
 			return mapper;
 		}
