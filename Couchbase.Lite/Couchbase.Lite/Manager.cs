@@ -334,7 +334,7 @@ namespace Couchbase.Lite
 
         private string PathForName(string name)
         {
-            if (String.IsNullOrEmpty (name) || pattern.IsMatch (name))
+            if (String.IsNullOrEmpty (name) || !pattern.IsMatch (name))
             {
                 return null;
             }
