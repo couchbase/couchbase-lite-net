@@ -42,9 +42,9 @@ namespace Couchbase.Lite
                 NUnit.Framework.Assert.IsNotNull(newRevision);
                 NUnit.Framework.Assert.IsNotNull(context);
                 NUnit.Framework.Assert.IsTrue(newRevision.Properties != null || newRevision.
-                    IsDeletion());
+                    IsDeletion);
                 this._enclosing.validationCalled = true;
-                bool hoopy = newRevision.IsDeletion() || (newRevision.Properties.Get("towel"
+                bool hoopy = newRevision.IsDeletion || (newRevision.Properties.Get("towel"
                 ) != null);
                 Log.V(ValidationsTest.Tag, string.Format("--- Validating %s --> %b", newRevision.
                     Properties, hoopy));
@@ -57,7 +57,7 @@ namespace Couchbase.Lite
 			database.SetValidation("hoopy", validator);
 			// POST a valid new document:
 			IDictionary<string, object> props = new Dictionary<string, object>();
-			props.Put("name", "Zaphod Beeblebrox");
+			props["name"] = "Zaphod Beeblebrox";
 			props["towel"] = "velvet";
 			RevisionInternal rev = new RevisionInternal(props, database);
 			Status status = new Status();
@@ -107,7 +107,7 @@ namespace Couchbase.Lite
 			// PUT a valid new document with an ID:
 			props = new Dictionary<string, object>();
 			props["_id"] = "ford";
-			props.Put("name", "Ford Prefect");
+			props["name"] = "Ford Prefect";
 			props["towel"] = "terrycloth";
 			rev = new RevisionInternal(props, database);
 			validationCalled = false;
@@ -123,7 +123,7 @@ namespace Couchbase.Lite
 			// PUT an invalid new document:
 			props = new Dictionary<string, object>();
 			props["_id"] = "petunias";
-			props.Put("name", "Pot of Petunias");
+			props["name"] = "Pot of Petunias";
 			rev = new RevisionInternal(props, database);
 			validationCalled = false;
 			gotExpectedError = false;

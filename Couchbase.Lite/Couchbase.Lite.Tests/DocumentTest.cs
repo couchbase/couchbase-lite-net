@@ -60,8 +60,8 @@ namespace Couchbase.Lite
 			QueryEnumerator queryEnumerator = queryAllDocs.Run();
 			for (IEnumerator<QueryRow> it = queryEnumerator; it.MoveNext(); )
 			{
-				QueryRow row = it.Current();
-				NUnit.Framework.Assert.IsFalse(row.GetDocument().Id.Equals(docId));
+				QueryRow row = it.Current;
+				NUnit.Framework.Assert.IsFalse(row.Document.Id.Equals(docId));
 			}
 		}
 	}

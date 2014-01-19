@@ -304,7 +304,7 @@ namespace Couchbase.Lite
         /// <param name="id">Identifier.</param>
         /// <param name="properties">Properties.</param>
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
-        public void PutLocalDocument(String id, Dictionary<String, Object> properties) 
+        public void PutLocalDocument(String id, IDictionary<String, Object> properties) 
         { 
             // TODO: the iOS implementation wraps this in a transaction, this should do the same.
             id = MakeLocalDocumentId(id);
@@ -402,22 +402,15 @@ namespace Couchbase.Lite
             View view = null;
             if (views != null)
             {
-                view = views.Get(name);
+                views.TryGetValue(name, out view);
             }
-
             if (view != null)
             {
                 return view;
             }
-
             view = new View(this, name);
 
-            if (view.Id == 0)
-            {
-                return null;
-            }
-
-            return RegisterView(view);
+            return view.Id == 0 ? null : RegisterView(view);
         }
 
         /// <summary>
@@ -3634,12 +3627,6 @@ namespace Couchbase.Lite
     #region Delegates
         public delegate Boolean RunInTransactionDelegate();
 
-        public delegate Boolean ValidateDelegate(Revision newRevision, IValidationContext context);
-
-        public delegate Boolean FilterDelegate(SavedRevision revision, Dictionary<String, Object> filterParams);
-
-        public delegate FilterDelegate CompileFilterDelegate(String source, String language);
-
     #endregion
     
     #region EventArgs Subclasses
@@ -3661,7 +3648,16 @@ namespace Couchbase.Lite
     #region Global Delegates
 
     public delegate Boolean ValidateChangeDelegate(String key, Object oldValue, Object newValue);
+
     public delegate void RunAsyncDelegate(Database database);
+
+    public delegate Boolean ValidateDelegate(Revision newRevision, IValidationContext context);
+
+    public delegate Boolean FilterDelegate(SavedRevision revision, Dictionary<String, Object> filterParams);
+
+    public delegate FilterDelegate CompileFilterDelegate(String source, String language);
+
+
 
     #endregion
 }

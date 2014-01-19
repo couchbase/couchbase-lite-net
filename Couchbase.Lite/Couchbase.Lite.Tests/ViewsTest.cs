@@ -110,12 +110,12 @@ namespace Couchbase.Lite
 			IDictionary<string, object> dict2 = new Dictionary<string, object>();
 			dict2["_id"] = "22222";
 			dict2["value"] = "hello";
-			dict2.Put("ancestors", new string[] { "11111" });
+			dict2["ancestors"] = new string[] { "11111" };
 			result.AddItem(PutDoc(db, dict2));
 			IDictionary<string, object> dict3 = new Dictionary<string, object>();
 			dict3["_id"] = "33333";
 			dict3["value"] = "world";
-			dict3.Put("ancestors", new string[] { "22222", "11111" });
+			dict3["ancestors"] = new string[] { "22222", "11111" };
 			result.AddItem(PutDoc(db, dict3));
 			return result;
 		}
@@ -143,11 +143,11 @@ namespace Couchbase.Lite
 			View view = db.GetView("aview");
             view.SetMapReduce((IDictionary<string, object> document, EmitDelegate emitter)=>
                 {
-                    NUnit.Framework.Assert.IsNotNull(document.Get("_id"));
-                    NUnit.Framework.Assert.IsNotNull(document.Get("_rev"));
-                    if (document.Get("key") != null)
+                    NUnit.Framework.Assert.IsNotNull(document["_id"]);
+                    NUnit.Framework.Assert.IsNotNull(document["_rev"]);
+                    if (document["key"] != null)
                     {
-                        emitter.Emit(document.Get("key"), null);
+                        emitter.Emit(document["key"], null);
                     }
                 }, null, "1");
 			return view;
@@ -175,11 +175,11 @@ namespace Couchbase.Lite
             MapDelegate mapBlock = (IDictionary<string, object> document, EmitDelegate emitter)=>
             {
                 numTimesInvoked += 1;
-                NUnit.Framework.Assert.IsNotNull(document.Get("_id"));
-                NUnit.Framework.Assert.IsNotNull(document.Get("_rev"));
-                if (document.Get("key") != null)
+                NUnit.Framework.Assert.IsNotNull(document["_id"]);
+                NUnit.Framework.Assert.IsNotNull(document["_rev"]);
+                if (document["key"] != null)
                 {
-                    emitter(document.Get("key"), null);
+                    emitter(document["key"], null);
                 }
             };
 			view.SetMap(mapBlock, "1");
@@ -189,12 +189,12 @@ namespace Couchbase.Lite
 			IList<IDictionary<string, object>> dumpResult = view.Dump();
 			Log.V(Tag, "View dump: " + dumpResult);
 			NUnit.Framework.Assert.AreEqual(3, dumpResult.Count);
-			NUnit.Framework.Assert.AreEqual("\"one\"", dumpResult[0].Get("key"));
-			NUnit.Framework.Assert.AreEqual(1, dumpResult[0].Get("seq"));
-			NUnit.Framework.Assert.AreEqual("\"two\"", dumpResult[2].Get("key"));
-			NUnit.Framework.Assert.AreEqual(2, dumpResult[2].Get("seq"));
-			NUnit.Framework.Assert.AreEqual("\"three\"", dumpResult[1].Get("key"));
-			NUnit.Framework.Assert.AreEqual(3, dumpResult[1].Get("seq"));
+			NUnit.Framework.Assert.AreEqual("\"one\"", dumpResult[0]["key"]);
+			NUnit.Framework.Assert.AreEqual(1, dumpResult[0]["seq"]);
+			NUnit.Framework.Assert.AreEqual("\"two\"", dumpResult[2]["key"]);
+			NUnit.Framework.Assert.AreEqual(2, dumpResult[2]["seq"]);
+			NUnit.Framework.Assert.AreEqual("\"three\"", dumpResult[1]["key"]);
+			NUnit.Framework.Assert.AreEqual(3, dumpResult[1]["seq"]);
 			//no-op reindex
 			NUnit.Framework.Assert.IsFalse(view.IsStale());
 			view.UpdateIndex();
@@ -227,21 +227,21 @@ namespace Couchbase.Lite
 			dumpResult = view.Dump();
 			Log.V(Tag, "View dump: " + dumpResult);
 			NUnit.Framework.Assert.AreEqual(3, dumpResult.Count);
-			NUnit.Framework.Assert.AreEqual("\"one\"", dumpResult[2].Get("key"));
-			NUnit.Framework.Assert.AreEqual(1, dumpResult[2].Get("seq"));
-			NUnit.Framework.Assert.AreEqual("\"3hree\"", dumpResult[0].Get("key"));
-			NUnit.Framework.Assert.AreEqual(5, dumpResult[0].Get("seq"));
-			NUnit.Framework.Assert.AreEqual("\"four\"", dumpResult[1].Get("key"));
-			NUnit.Framework.Assert.AreEqual(6, dumpResult[1].Get("seq"));
+			NUnit.Framework.Assert.AreEqual("\"one\"", dumpResult[2]["key"]);
+			NUnit.Framework.Assert.AreEqual(1, dumpResult[2]["seq"]);
+			NUnit.Framework.Assert.AreEqual("\"3hree\"", dumpResult[0]["key"]);
+			NUnit.Framework.Assert.AreEqual(5, dumpResult[0]["seq"]);
+			NUnit.Framework.Assert.AreEqual("\"four\"", dumpResult[1]["key"]);
+			NUnit.Framework.Assert.AreEqual(6, dumpResult[1]["seq"]);
 			// Now do a real query:
 			IList<QueryRow> rows = view.QueryWithOptions(null);
 			NUnit.Framework.Assert.AreEqual(3, rows.Count);
-			NUnit.Framework.Assert.AreEqual("one", rows[2].GetKey());
-			NUnit.Framework.Assert.AreEqual(rev1.GetDocId(), rows[2].GetDocumentId());
-			NUnit.Framework.Assert.AreEqual("3hree", rows[0].GetKey());
-			NUnit.Framework.Assert.AreEqual(rev3.GetDocId(), rows[0].GetDocumentId());
-			NUnit.Framework.Assert.AreEqual("four", rows[1].GetKey());
-			NUnit.Framework.Assert.AreEqual(rev4.GetDocId(), rows[1].GetDocumentId());
+			NUnit.Framework.Assert.AreEqual("one", rows[2].Key);
+			NUnit.Framework.Assert.AreEqual(rev1.GetDocId(), rows[2].DocumentId);
+			NUnit.Framework.Assert.AreEqual("3hree", rows[0].Key);
+			NUnit.Framework.Assert.AreEqual(rev3.GetDocId(), rows[0].DocumentId);
+			NUnit.Framework.Assert.AreEqual("four", rows[1].Key);
+			NUnit.Framework.Assert.AreEqual(rev4.GetDocId(), rows[1].DocumentId);
 			view.DeleteIndex();
 		}
 
@@ -276,16 +276,16 @@ namespace Couchbase.Lite
 			dict2["key"] = "two";
 			expectedRows.AddItem(dict2);
 			NUnit.Framework.Assert.AreEqual(5, rows.Count);
-			NUnit.Framework.Assert.AreEqual(dict5.Get("key"), rows[0].GetKey());
-			NUnit.Framework.Assert.AreEqual(dict5.Get("value"), rows[0].GetValue());
-			NUnit.Framework.Assert.AreEqual(dict4.Get("key"), rows[1].GetKey());
-			NUnit.Framework.Assert.AreEqual(dict4.Get("value"), rows[1].GetValue());
-			NUnit.Framework.Assert.AreEqual(dict1.Get("key"), rows[2].GetKey());
-			NUnit.Framework.Assert.AreEqual(dict1.Get("value"), rows[2].GetValue());
-			NUnit.Framework.Assert.AreEqual(dict3.Get("key"), rows[3].GetKey());
-			NUnit.Framework.Assert.AreEqual(dict3.Get("value"), rows[3].GetValue());
-			NUnit.Framework.Assert.AreEqual(dict2.Get("key"), rows[4].GetKey());
-			NUnit.Framework.Assert.AreEqual(dict2.Get("value"), rows[4].GetValue());
+			NUnit.Framework.Assert.AreEqual(dict5["key"], rows[0].Key);
+			NUnit.Framework.Assert.AreEqual(dict5["value"], rows[0].GetValue());
+			NUnit.Framework.Assert.AreEqual(dict4["key"], rows[1].Key);
+			NUnit.Framework.Assert.AreEqual(dict4["value"], rows[1].GetValue());
+			NUnit.Framework.Assert.AreEqual(dict1["key"], rows[2].Key);
+			NUnit.Framework.Assert.AreEqual(dict1["value"], rows[2].GetValue());
+			NUnit.Framework.Assert.AreEqual(dict3["key"], rows[3].Key);
+			NUnit.Framework.Assert.AreEqual(dict3["value"], rows[3].GetValue());
+			NUnit.Framework.Assert.AreEqual(dict2["key"], rows[4].Key);
+			NUnit.Framework.Assert.AreEqual(dict2["value"], rows[4].GetValue());
 			// Start/end key query:
 			options = new QueryOptions();
 			options.StartKey="a";
@@ -296,12 +296,12 @@ namespace Couchbase.Lite
 			expectedRows.AddItem(dict4);
 			expectedRows.AddItem(dict1);
 			NUnit.Framework.Assert.AreEqual(3, rows.Count);
-			NUnit.Framework.Assert.AreEqual(dict5.Get("key"), rows[0].GetKey());
-			NUnit.Framework.Assert.AreEqual(dict5.Get("value"), rows[0].GetValue());
-			NUnit.Framework.Assert.AreEqual(dict4.Get("key"), rows[1].GetKey());
-			NUnit.Framework.Assert.AreEqual(dict4.Get("value"), rows[1].GetValue());
-			NUnit.Framework.Assert.AreEqual(dict1.Get("key"), rows[2].GetKey());
-			NUnit.Framework.Assert.AreEqual(dict1.Get("value"), rows[2].GetValue());
+			NUnit.Framework.Assert.AreEqual(dict5["key"], rows[0].Key);
+			NUnit.Framework.Assert.AreEqual(dict5["value"], rows[0].GetValue());
+			NUnit.Framework.Assert.AreEqual(dict4["key"], rows[1].Key);
+			NUnit.Framework.Assert.AreEqual(dict4["value"], rows[1].GetValue());
+			NUnit.Framework.Assert.AreEqual(dict1["key"], rows[2].Key);
+			NUnit.Framework.Assert.AreEqual(dict1["value"], rows[2].GetValue());
 			// Start/end query without inclusive end:
 			options.SetInclusiveEnd(false);
 			rows = view.QueryWithOptions(options);
@@ -309,10 +309,10 @@ namespace Couchbase.Lite
 			expectedRows.AddItem(dict5);
 			expectedRows.AddItem(dict4);
 			NUnit.Framework.Assert.AreEqual(2, rows.Count);
-			NUnit.Framework.Assert.AreEqual(dict5.Get("key"), rows[0].GetKey());
-			NUnit.Framework.Assert.AreEqual(dict5.Get("value"), rows[0].GetValue());
-			NUnit.Framework.Assert.AreEqual(dict4.Get("key"), rows[1].GetKey());
-			NUnit.Framework.Assert.AreEqual(dict4.Get("value"), rows[1].GetValue());
+			NUnit.Framework.Assert.AreEqual(dict5["key"], rows[0].Key);
+			NUnit.Framework.Assert.AreEqual(dict5["value"], rows[0].GetValue());
+			NUnit.Framework.Assert.AreEqual(dict4["key"], rows[1].Key);
+			NUnit.Framework.Assert.AreEqual(dict4["value"], rows[1].GetValue());
 			// Reversed:
 			options.SetDescending(true);
 			options.StartKey="o";
@@ -323,18 +323,18 @@ namespace Couchbase.Lite
 			expectedRows.AddItem(dict4);
 			expectedRows.AddItem(dict5);
 			NUnit.Framework.Assert.AreEqual(2, rows.Count);
-			NUnit.Framework.Assert.AreEqual(dict4.Get("key"), rows[0].GetKey());
-			NUnit.Framework.Assert.AreEqual(dict4.Get("value"), rows[0].GetValue());
-			NUnit.Framework.Assert.AreEqual(dict5.Get("key"), rows[1].GetKey());
-			NUnit.Framework.Assert.AreEqual(dict5.Get("value"), rows[1].GetValue());
+			NUnit.Framework.Assert.AreEqual(dict4["key"], rows[0].Key);
+			NUnit.Framework.Assert.AreEqual(dict4["value"], rows[0].GetValue());
+			NUnit.Framework.Assert.AreEqual(dict5["key"], rows[1].Key);
+			NUnit.Framework.Assert.AreEqual(dict5["value"], rows[1].GetValue());
 			// Reversed, no inclusive end:
 			options.SetInclusiveEnd(false);
 			rows = view.QueryWithOptions(options);
 			expectedRows = new AList<object>();
 			expectedRows.AddItem(dict4);
 			NUnit.Framework.Assert.AreEqual(1, rows.Count);
-			NUnit.Framework.Assert.AreEqual(dict4.Get("key"), rows[0].GetKey());
-			NUnit.Framework.Assert.AreEqual(dict4.Get("value"), rows[0].GetValue());
+			NUnit.Framework.Assert.AreEqual(dict4["key"], rows[0].Key);
+			NUnit.Framework.Assert.AreEqual(dict4["value"], rows[0].GetValue());
 			// Specific keys:
 			options = new QueryOptions();
 			IList<object> keys = new AList<object>();
@@ -346,10 +346,10 @@ namespace Couchbase.Lite
 			expectedRows.AddItem(dict4);
 			expectedRows.AddItem(dict2);
 			NUnit.Framework.Assert.AreEqual(2, rows.Count);
-			NUnit.Framework.Assert.AreEqual(dict4.Get("key"), rows[0].GetKey());
-			NUnit.Framework.Assert.AreEqual(dict4.Get("value"), rows[0].GetValue());
-			NUnit.Framework.Assert.AreEqual(dict2.Get("key"), rows[1].GetKey());
-			NUnit.Framework.Assert.AreEqual(dict2.Get("value"), rows[1].GetValue());
+			NUnit.Framework.Assert.AreEqual(dict4["key"], rows[0].Key);
+			NUnit.Framework.Assert.AreEqual(dict4["value"], rows[0].GetValue());
+			NUnit.Framework.Assert.AreEqual(dict2["key"], rows[1].Key);
+			NUnit.Framework.Assert.AreEqual(dict2["value"], rows[1].GetValue());
 		}
 
 		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
@@ -411,7 +411,7 @@ namespace Couchbase.Lite
 			options = new QueryOptions();
 			IList<object> docIds = new AList<object>();
 			QueryRow expected2 = expectedRow[2];
-			docIds.AddItem(expected2.GetDocument().Id);
+			docIds.AddItem(expected2.Document.Id);
 			options.SetKeys(docIds);
 			allDocs = database.GetAllDocs(options);
 			expectedRows = new AList<QueryRow>();
@@ -425,7 +425,7 @@ namespace Couchbase.Lite
 		{
 			IDictionary<string, object> result = new Dictionary<string, object>();
 			result["rows"] = rows;
-			result.Put("total_rows", rows.Count);
+			result["total_rows"] = rows.Count;
 			result["offset"] = offset;
 			return result;
 		}
@@ -435,15 +435,15 @@ namespace Couchbase.Lite
 		{
 			IDictionary<string, object> docProperties1 = new Dictionary<string, object>();
 			docProperties1["_id"] = "CD";
-			docProperties1.Put("cost", 8.99);
+			docProperties1["cost"] = 8.99;
 			PutDoc(database, docProperties1);
 			IDictionary<string, object> docProperties2 = new Dictionary<string, object>();
 			docProperties2["_id"] = "App";
-			docProperties2.Put("cost", 1.95);
+			docProperties2["cost"] = 1.95;
 			PutDoc(database, docProperties2);
 			IDictionary<string, object> docProperties3 = new Dictionary<string, object>();
 			docProperties3["_id"] = "Dessert";
-			docProperties3.Put("cost", 6.50);
+			docProperties3["cost"] = 6.50;
 			PutDoc(database, docProperties3);
 			View view = database.GetView("totaler");
             view.SetMapReduce((document, emitter) => {
@@ -460,15 +460,15 @@ namespace Couchbase.Lite
 			IList<IDictionary<string, object>> dumpResult = view.Dump();
 			Log.V(Tag, "View dump: " + dumpResult);
 			NUnit.Framework.Assert.AreEqual(3, dumpResult.Count);
-			NUnit.Framework.Assert.AreEqual("\"App\"", dumpResult[0].Get("key"));
-			NUnit.Framework.Assert.AreEqual("1.95", dumpResult[0].Get("value"));
-			NUnit.Framework.Assert.AreEqual(2, dumpResult[0].Get("seq"));
-			NUnit.Framework.Assert.AreEqual("\"CD\"", dumpResult[1].Get("key"));
-			NUnit.Framework.Assert.AreEqual("8.99", dumpResult[1].Get("value"));
-			NUnit.Framework.Assert.AreEqual(1, dumpResult[1].Get("seq"));
-			NUnit.Framework.Assert.AreEqual("\"Dessert\"", dumpResult[2].Get("key"));
-			NUnit.Framework.Assert.AreEqual("6.5", dumpResult[2].Get("value"));
-			NUnit.Framework.Assert.AreEqual(3, dumpResult[2].Get("seq"));
+			NUnit.Framework.Assert.AreEqual("\"App\"", dumpResult[0]["key"]);
+			NUnit.Framework.Assert.AreEqual("1.95", dumpResult[0]["value"]);
+			NUnit.Framework.Assert.AreEqual(2, dumpResult[0]["seq"]);
+			NUnit.Framework.Assert.AreEqual("\"CD\"", dumpResult[1]["key"]);
+			NUnit.Framework.Assert.AreEqual("8.99", dumpResult[1]["value"]);
+			NUnit.Framework.Assert.AreEqual(1, dumpResult[1]["seq"]);
+			NUnit.Framework.Assert.AreEqual("\"Dessert\"", dumpResult[2]["key"]);
+			NUnit.Framework.Assert.AreEqual("6.5", dumpResult[2]["value"]);
+			NUnit.Framework.Assert.AreEqual(3, dumpResult[2]["seq"]);
 			QueryOptions options = new QueryOptions();
 			options.SetReduce(true);
 			IList<QueryRow> reduced = view.QueryWithOptions(options);
@@ -518,47 +518,47 @@ namespace Couchbase.Lite
 		{
 			IDictionary<string, object> docProperties1 = new Dictionary<string, object>();
 			docProperties1["_id"] = "1";
-			docProperties1.Put("artist", "Gang Of Four");
-			docProperties1.Put("album", "Entertainment!");
+			docProperties1["artist"] = "Gang Of Four";
+			docProperties1["album"] = "Entertainment!";
 			docProperties1["track"] = "Ether";
 			docProperties1["time"] = 231;
 			PutDoc(database, docProperties1);
 			IDictionary<string, object> docProperties2 = new Dictionary<string, object>();
 			docProperties2["_id"] = "2";
-			docProperties2.Put("artist", "Gang Of Four");
-			docProperties2.Put("album", "Songs Of The Free");
-			docProperties2.Put("track", "I Love A Man In Uniform");
+			docProperties2["artist"] = "Gang Of Four";
+			docProperties2["album"] = "Songs Of The Free";
+			docProperties2["track"] = "I Love A Man In Uniform";
 			docProperties2["time"] = 248;
 			PutDoc(database, docProperties2);
 			IDictionary<string, object> docProperties3 = new Dictionary<string, object>();
 			docProperties3["_id"] = "3";
-			docProperties3.Put("artist", "Gang Of Four");
-			docProperties3.Put("album", "Entertainment!");
-			docProperties3.Put("track", "Natural's Not In It");
+			docProperties3["artist"] = "Gang Of Four";
+			docProperties3["album"] = "Entertainment!";
+			docProperties3["track"] = "Natural's Not In It";
 			docProperties3["time"] = 187;
 			PutDoc(database, docProperties3);
 			IDictionary<string, object> docProperties4 = new Dictionary<string, object>();
 			docProperties4["_id"] = "4";
 			docProperties4["artist"] = "PiL";
-			docProperties4.Put("album", "Metal Box");
+			docProperties4["album"] = "Metal Box";
 			docProperties4["track"] = "Memories";
 			docProperties4["time"] = 309;
 			PutDoc(database, docProperties4);
 			IDictionary<string, object> docProperties5 = new Dictionary<string, object>();
 			docProperties5["_id"] = "5";
-			docProperties5.Put("artist", "Gang Of Four");
-			docProperties5.Put("album", "Entertainment!");
-			docProperties5.Put("track", "Not Great Men");
+			docProperties5["artist"] = "Gang Of Four";
+			docProperties5["album"] = "Entertainment!";
+			docProperties5["track"] = "Not Great Men";
 			docProperties5["time"] = 187;
 			PutDoc(database, docProperties5);
 			View view = database.GetView("grouper");
             view.SetMapReduce((IDictionary<string, object> document, EmitDelegate emitter)=>
                 {
                     IList<object> key = new AList<object>();
-                    key.AddItem(document.Get("artist"));
-                    key.AddItem(document.Get("album"));
-                    key.AddItem(document.Get("track"));
-                    emitter(key, document.Get("time"));
+                    key.AddItem(document["artist"]);
+                    key.AddItem(document["album"]);
+                    key.AddItem(document["track"]);
+                    emitter(key, document["time"]);
                 }, (IList<object> keys, IList<object> values, bool rereduce)=>
                 {
                     return View.TotalValues(values);
@@ -572,10 +572,10 @@ namespace Couchbase.Lite
 				>>();
 			IDictionary<string, object> row1 = new Dictionary<string, object>();
 			row1["key"] = null;
-			row1.Put("value", 1162.0);
+			row1["value"] = 1162.0;
 			expectedRows.AddItem(row1);
-			NUnit.Framework.Assert.AreEqual(row1.Get("key"), rows[0].GetKey());
-			NUnit.Framework.Assert.AreEqual(row1.Get("value"), rows[0].GetValue());
+			NUnit.Framework.Assert.AreEqual(row1["key"], rows[0].Key);
+			NUnit.Framework.Assert.AreEqual(row1["value"], rows[0].GetValue());
 			//now group
 			options.SetGroup(true);
 			status = new Status();
@@ -587,7 +587,7 @@ namespace Couchbase.Lite
 			key1.AddItem("Entertainment!");
 			key1.AddItem("Ether");
 			row1["key"] = key1;
-			row1.Put("value", 231.0);
+			row1["value"] = 231.0;
 			expectedRows.AddItem(row1);
 			IDictionary<string, object> row2 = new Dictionary<string, object>();
 			IList<string> key2 = new AList<string>();
@@ -595,7 +595,7 @@ namespace Couchbase.Lite
 			key2.AddItem("Entertainment!");
 			key2.AddItem("Natural's Not In It");
 			row2["key"] = key2;
-			row2.Put("value", 187.0);
+			row2["value"] = 187.0;
 			expectedRows.AddItem(row2);
 			IDictionary<string, object> row3 = new Dictionary<string, object>();
 			IList<string> key3 = new AList<string>();
@@ -603,7 +603,7 @@ namespace Couchbase.Lite
 			key3.AddItem("Entertainment!");
 			key3.AddItem("Not Great Men");
 			row3["key"] = key3;
-			row3.Put("value", 187.0);
+			row3["value"] = 187.0;
 			expectedRows.AddItem(row3);
 			IDictionary<string, object> row4 = new Dictionary<string, object>();
 			IList<string> key4 = new AList<string>();
@@ -611,7 +611,7 @@ namespace Couchbase.Lite
 			key4.AddItem("Songs Of The Free");
 			key4.AddItem("I Love A Man In Uniform");
 			row4["key"] = key4;
-			row4.Put("value", 248.0);
+			row4["value"] = 248.0;
 			expectedRows.AddItem(row4);
 			IDictionary<string, object> row5 = new Dictionary<string, object>();
 			IList<string> key5 = new AList<string>();
@@ -619,18 +619,18 @@ namespace Couchbase.Lite
 			key5.AddItem("Metal Box");
 			key5.AddItem("Memories");
 			row5["key"] = key5;
-			row5.Put("value", 309.0);
+			row5["value"] = 309.0;
 			expectedRows.AddItem(row5);
-			NUnit.Framework.Assert.AreEqual(row1.Get("key"), rows[0].GetKey());
-			NUnit.Framework.Assert.AreEqual(row1.Get("value"), rows[0].GetValue());
-			NUnit.Framework.Assert.AreEqual(row2.Get("key"), rows[1].GetKey());
-			NUnit.Framework.Assert.AreEqual(row2.Get("value"), rows[1].GetValue());
-			NUnit.Framework.Assert.AreEqual(row3.Get("key"), rows[2].GetKey());
-			NUnit.Framework.Assert.AreEqual(row3.Get("value"), rows[2].GetValue());
-			NUnit.Framework.Assert.AreEqual(row4.Get("key"), rows[3].GetKey());
-			NUnit.Framework.Assert.AreEqual(row4.Get("value"), rows[3].GetValue());
-			NUnit.Framework.Assert.AreEqual(row5.Get("key"), rows[4].GetKey());
-			NUnit.Framework.Assert.AreEqual(row5.Get("value"), rows[4].GetValue());
+			NUnit.Framework.Assert.AreEqual(row1["key"], rows[0].Key);
+			NUnit.Framework.Assert.AreEqual(row1["value"], rows[0].GetValue());
+			NUnit.Framework.Assert.AreEqual(row2["key"], rows[1].Key);
+			NUnit.Framework.Assert.AreEqual(row2["value"], rows[1].GetValue());
+			NUnit.Framework.Assert.AreEqual(row3["key"], rows[2].Key);
+			NUnit.Framework.Assert.AreEqual(row3["value"], rows[2].GetValue());
+			NUnit.Framework.Assert.AreEqual(row4["key"], rows[3].Key);
+			NUnit.Framework.Assert.AreEqual(row4["value"], rows[3].GetValue());
+			NUnit.Framework.Assert.AreEqual(row5["key"], rows[4].Key);
+			NUnit.Framework.Assert.AreEqual(row5["value"], rows[4].GetValue());
 			//group level 1
 			options.SetGroupLevel(1);
 			status = new Status();
@@ -640,18 +640,18 @@ namespace Couchbase.Lite
 			key1 = new AList<string>();
 			key1.AddItem("Gang Of Four");
 			row1["key"] = key1;
-			row1.Put("value", 853.0);
+			row1["value"] = 853.0;
 			expectedRows.AddItem(row1);
 			row2 = new Dictionary<string, object>();
 			key2 = new AList<string>();
 			key2.AddItem("PiL");
 			row2["key"] = key2;
-			row2.Put("value", 309.0);
+			row2["value"] = 309.0;
 			expectedRows.AddItem(row2);
-			NUnit.Framework.Assert.AreEqual(row1.Get("key"), rows[0].GetKey());
-			NUnit.Framework.Assert.AreEqual(row1.Get("value"), rows[0].GetValue());
-			NUnit.Framework.Assert.AreEqual(row2.Get("key"), rows[1].GetKey());
-			NUnit.Framework.Assert.AreEqual(row2.Get("value"), rows[1].GetValue());
+			NUnit.Framework.Assert.AreEqual(row1["key"], rows[0].Key);
+			NUnit.Framework.Assert.AreEqual(row1["value"], rows[0].GetValue());
+			NUnit.Framework.Assert.AreEqual(row2["key"], rows[1].Key);
+			NUnit.Framework.Assert.AreEqual(row2["value"], rows[1].GetValue());
 			//group level 2
 			options.SetGroupLevel(2);
 			status = new Status();
@@ -662,28 +662,28 @@ namespace Couchbase.Lite
 			key1.AddItem("Gang Of Four");
 			key1.AddItem("Entertainment!");
 			row1["key"] = key1;
-			row1.Put("value", 605.0);
+			row1["value"] = 605.0;
 			expectedRows.AddItem(row1);
 			row2 = new Dictionary<string, object>();
 			key2 = new AList<string>();
 			key2.AddItem("Gang Of Four");
 			key2.AddItem("Songs Of The Free");
 			row2["key"] = key2;
-			row2.Put("value", 248.0);
+			row2["value"] = 248.0;
 			expectedRows.AddItem(row2);
 			row3 = new Dictionary<string, object>();
 			key3 = new AList<string>();
 			key3.AddItem("PiL");
 			key3.AddItem("Metal Box");
 			row3["key"] = key3;
-			row3.Put("value", 309.0);
+			row3["value"] = 309.0;
 			expectedRows.AddItem(row3);
-			NUnit.Framework.Assert.AreEqual(row1.Get("key"), rows[0].GetKey());
-			NUnit.Framework.Assert.AreEqual(row1.Get("value"), rows[0].GetValue());
-			NUnit.Framework.Assert.AreEqual(row2.Get("key"), rows[1].GetKey());
-			NUnit.Framework.Assert.AreEqual(row2.Get("value"), rows[1].GetValue());
-			NUnit.Framework.Assert.AreEqual(row3.Get("key"), rows[2].GetKey());
-			NUnit.Framework.Assert.AreEqual(row3.Get("value"), rows[2].GetValue());
+			NUnit.Framework.Assert.AreEqual(row1["key"], rows[0].Key);
+			NUnit.Framework.Assert.AreEqual(row1["value"], rows[0].GetValue());
+			NUnit.Framework.Assert.AreEqual(row2["key"], rows[1].Key);
+			NUnit.Framework.Assert.AreEqual(row2["value"], rows[1].GetValue());
+			NUnit.Framework.Assert.AreEqual(row3["key"], rows[2].Key);
+			NUnit.Framework.Assert.AreEqual(row3["value"], rows[2].GetValue());
 		}
 
 		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
@@ -724,12 +724,12 @@ namespace Couchbase.Lite
 			row3["key"] = "N";
 			row3["value"] = 1;
 			expectedRows.AddItem(row3);
-			NUnit.Framework.Assert.AreEqual(row1.Get("key"), rows[0].GetKey());
-			NUnit.Framework.Assert.AreEqual(row1.Get("value"), rows[0].GetValue());
-			NUnit.Framework.Assert.AreEqual(row2.Get("key"), rows[1].GetKey());
-			NUnit.Framework.Assert.AreEqual(row2.Get("value"), rows[1].GetValue());
-			NUnit.Framework.Assert.AreEqual(row3.Get("key"), rows[2].GetKey());
-			NUnit.Framework.Assert.AreEqual(row3.Get("value"), rows[2].GetValue());
+			NUnit.Framework.Assert.AreEqual(row1["key"], rows[0].Key);
+			NUnit.Framework.Assert.AreEqual(row1["value"], rows[0].GetValue());
+			NUnit.Framework.Assert.AreEqual(row2["key"], rows[1].Key);
+			NUnit.Framework.Assert.AreEqual(row2["value"], rows[1].GetValue());
+			NUnit.Framework.Assert.AreEqual(row3["key"], rows[2].Key);
+			NUnit.Framework.Assert.AreEqual(row3["value"], rows[2].GetValue());
 		}
 
 		private sealed class _Mapper_852 : Mapper
@@ -740,7 +740,7 @@ namespace Couchbase.Lite
 
 			public void Map(IDictionary<string, object> document, Emitter emitter)
 			{
-				string name = (string)document.Get("name");
+				string name = (string)document["name"];
 				if (name != null)
 				{
 					emitter.Emit(Sharpen.Runtime.Substring(name, 0, 1), 1);
@@ -820,7 +820,7 @@ namespace Couchbase.Lite
 			i = 0;
 			foreach (QueryRow row in rows)
 			{
-				NUnit.Framework.Assert.AreEqual(testKeys[i++], row.GetKey());
+				NUnit.Framework.Assert.AreEqual(testKeys[i++], row.Key);
 			}
 		}
 
@@ -832,7 +832,7 @@ namespace Couchbase.Lite
 
 			public void Map(IDictionary<string, object> document, Emitter emitter)
 			{
-				emitter.Emit(document.Get("name"), null);
+				emitter.Emit(document["name"], null);
 			}
 		}
 
@@ -897,7 +897,7 @@ namespace Couchbase.Lite
 			i = 0;
 			foreach (QueryRow row in rows)
 			{
-				NUnit.Framework.Assert.AreEqual(testKeys[i++], row.GetKey());
+				NUnit.Framework.Assert.AreEqual(testKeys[i++], row.Key);
 			}
 			database.Close();
 		}
@@ -910,7 +910,7 @@ namespace Couchbase.Lite
 
 			public void Map(IDictionary<string, object> document, Emitter emitter)
 			{
-				emitter.Emit(document.Get("name"), null);
+				emitter.Emit(document["name"], null);
 			}
 		}
 
@@ -948,10 +948,10 @@ namespace Couchbase.Lite
 				QueryRow row = rows[i];
 				IDictionary<string, object> rowAsJson = row.AsJSONDictionary();
 				Log.D(Tag, string.Empty + rowAsJson);
-				IList<object> key = (IList<object>)rowAsJson.Get("key");
+				IList<object> key = (IList<object>)rowAsJson["key"];
 				IDictionary<string, object> doc = (IDictionary<string, object>)rowAsJson.Get("doc"
 					);
-				string id = (string)rowAsJson.Get("id");
+				string id = (string)rowAsJson["id"];
 				NUnit.Framework.Assert.AreEqual(expected[i][0], id);
 				NUnit.Framework.Assert.AreEqual(2, key.Count);
 				NUnit.Framework.Assert.AreEqual(expected[i][1], key[0]);
@@ -963,9 +963,9 @@ namespace Couchbase.Lite
 				else
 				{
 					NUnit.Framework.Assert.AreEqual(expected[i][3], ((IDictionary<string, object>)row
-						.GetValue()).Get("_id"));
+						.GetValue())["_id"]);
 				}
-				NUnit.Framework.Assert.AreEqual(expected[i][4], doc.Get("_id"));
+				NUnit.Framework.Assert.AreEqual(expected[i][4], doc["_id"]);
 			}
 		}
 
@@ -979,16 +979,16 @@ namespace Couchbase.Lite
 			{
 				if (document.ContainsKey("value"))
 				{
-					emitter.Emit(new object[] { document.Get("value"), 0 }, null);
+					emitter.Emit(new object[] { document["value"], 0 }, null);
 				}
 				if (document.ContainsKey("ancestors"))
 				{
-					IList<object> ancestors = (IList<object>)document.Get("ancestors");
+					IList<object> ancestors = (IList<object>)document["ancestors"];
 					for (int i = 0; i < ancestors.Count; i++)
 					{
 						IDictionary<string, object> value = new Dictionary<string, object>();
-						value.Put("_id", ancestors[i]);
-						emitter.Emit(new object[] { document.Get("value"), i + 1 }, value);
+						value["_id"] = ancestors[i];
+						emitter.Emit(new object[] { document["value"], i + 1 }, value);
 					}
 				}
 			}

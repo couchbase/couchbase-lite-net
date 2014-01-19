@@ -77,6 +77,22 @@ namespace Couchbase.Lite
 
     #region Instance Members
 
+        public new bool IsDeletion {
+            get {
+                return base.IsDeletion;
+            }
+            set {
+                if (value)
+                {
+                    properties["_deleted"] = true;
+                }
+                else
+                {
+                    properties.Remove("_deleted");
+                }
+            }
+        }
+
         /// <summary>
         /// Gets the parent <see cref="Couchbase.Lite.Revision"/>.
         /// </summary>
@@ -129,6 +145,11 @@ namespace Couchbase.Lite
             get {
                 return properties;
             }
+        }
+
+        public void SetProperties(IDictionary<String, Object> newProperties)
+        {
+            properties = newProperties;
         }
 
         /// <summary>The user-defined properties, without the ones reserved by CouchDB.</summary>
@@ -185,6 +206,21 @@ namespace Couchbase.Lite
         /// </remarks>
         /// <param name="name">Name.</param>
         /// <param name="contentType">Content type.</param>
+        /// <param name="content">Content stream.</param>
+        public void SetAttachment(String name, String contentType, Stream content) {
+            var attachment = new Attachment(content, contentType);
+            AddAttachment(attachment, name);
+        }
+
+        /// <summary>
+        /// Sets the attachment.
+        /// </summary>
+        /// <remarks>
+        /// Sets the attachment with the given name.  The <see cref="Couchbase.Lite.Attachment"/> data will be 
+        /// written to the <see cref="Couchbase.Lite.Database"/> when the <see cref="Couchbase.Lite.Revision"/> is saved.
+        /// </remarks>
+        /// <param name="name">Name.</param>
+        /// <param name="contentType">Content type.</param>
         /// <param name="contentUrl">Content URL.</param>
         public void SetAttachment(String name, String contentType, Uri contentUrl) {
             try
@@ -193,6 +229,7 @@ namespace Couchbase.Lite
                 var length = inputStream.GetWrappedStream().Length;
                 var inputBytes = new byte[length];
                 inputStream.Read(inputBytes);
+                inputStream.Close();
                 SetAttachment(name, contentType, inputBytes);
             }
             catch (IOException e)

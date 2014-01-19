@@ -248,13 +248,13 @@ namespace Couchbase.Lite.Replicator
 				<TDContentOptions>());
 			NUnit.Framework.Assert.IsNotNull(doc1);
 			NUnit.Framework.Assert.IsTrue(doc1.GetRevId().StartsWith("1-"));
-			NUnit.Framework.Assert.AreEqual(1, doc1.Properties.Get("foo"));
+			NUnit.Framework.Assert.AreEqual(1, doc1.Properties["foo"]);
 			Log.D(Tag, "Fetching doc2 via id: " + doc2Id);
 			RevisionInternal doc2 = database.GetDocumentWithIDAndRev(doc2Id, null, EnumSet.NoneOf
 				<TDContentOptions>());
 			NUnit.Framework.Assert.IsNotNull(doc2);
 			NUnit.Framework.Assert.IsTrue(doc2.GetRevId().StartsWith("1-"));
-			NUnit.Framework.Assert.AreEqual(1, doc2.Properties.Get("foo"));
+			NUnit.Framework.Assert.AreEqual(1, doc2.Properties["foo"]);
 			Log.D(Tag, "testPuller() finished");
 		}
 
@@ -498,7 +498,7 @@ namespace Couchbase.Lite.Replicator
 		{
 			// register bogus fb token
 			IDictionary<string, object> facebookTokenInfo = new Dictionary<string, object>();
-			facebookTokenInfo.Put("email", "jchris@couchbase.com");
+			facebookTokenInfo["email"] = "jchris@couchbase.com";
 			facebookTokenInfo.Put("remote_url", GetReplicationURL().ToString());
 			facebookTokenInfo["access_token"] = "fake_access_token";
 			string destUrl = string.Format("/_facebook_token", DefaultTestDb);
@@ -521,7 +521,7 @@ namespace Couchbase.Lite.Replicator
 				Log.D(Tag, "activeTasks: " + activeTasks);
 				IDictionary<string, object> activeTaskReplication = (IDictionary<string, object>)
 					activeTasks[0];
-				foundError = (activeTaskReplication.Get("error") != null);
+				foundError = (activeTaskReplication["error"] != null);
 				if (foundError == true)
 				{
 					break;
@@ -672,7 +672,7 @@ namespace Couchbase.Lite.Replicator
 			NUnit.Framework.Assert.AreEqual(channels, r1.GetChannels());
 			NUnit.Framework.Assert.AreEqual("sync_gateway/bychannel", r1.GetFilter());
 			filterParams = new Dictionary<string, object>();
-			filterParams.Put("channels", "NBC,MTV");
+			filterParams["channels"] = "NBC,MTV";
 			NUnit.Framework.Assert.AreEqual(filterParams, r1.GetFilterParams());
 			r1.SetChannels(null);
 			NUnit.Framework.Assert.AreEqual(r1.GetFilter(), null);

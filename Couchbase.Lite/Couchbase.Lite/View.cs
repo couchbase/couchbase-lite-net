@@ -58,7 +58,7 @@ namespace Couchbase.Lite {
             get {
                 if (_id < 0)
                 {
-                    string sql = "SELECT view_id FROM views WHERE name=?";
+                    string sql = "SELECT view_id FROM views WHERE name=@";
                     var args = new [] { Name };
                     Cursor cursor = null;
                     try
@@ -136,7 +136,7 @@ namespace Couchbase.Lite {
                     // If the lastSequence has been reset to 0, make sure to remove
                     // any leftover rows:
                     var whereArgs = new string[] { Sharpen.Extensions.ToString(Id) };
-                    Database.StorageEngine.Delete("maps", "view_id=?", whereArgs); // TODO: Convert to ADO params.
+                    Database.StorageEngine.Delete("maps", "view_id=@", whereArgs);
                 }
                 else
                 {
@@ -149,9 +149,9 @@ namespace Couchbase.Lite {
                     };
 
                     Database.StorageEngine.ExecSQL(
-                        "DELETE FROM maps WHERE view_id=? AND sequence IN ("
-                        + "SELECT parent FROM revs WHERE sequence>? " + "AND parent>0 AND parent<=?)", 
-                            args); // TODO: Convert to ADO params.
+                        "DELETE FROM maps WHERE view_id=@ AND sequence IN ("
+                        + "SELECT parent FROM revs WHERE sequence>@ " + "AND parent>0 AND parent<=@)", 
+                            args);
                 }
                 var deleted = 0;
                 cursor = Database.StorageEngine.RawQuery("SELECT changes()", null); // TODO: Convert to ADO params.
@@ -164,7 +164,7 @@ namespace Couchbase.Lite {
                 // indexed:
                 var selectArgs = new[] { Convert.ToString(lastSequence) };
                 cursor = Database.StorageEngine.RawQuery("SELECT revs.doc_id, sequence, docid, revid, json FROM revs, docs "
-                    + "WHERE sequence>? AND current!=0 AND deleted=0 " + "AND revs.doc_id = docs.doc_id "
+                    + "WHERE sequence>@ AND current!=0 AND deleted=0 " + "AND revs.doc_id = docs.doc_id "
                     + "ORDER BY revs.doc_id, revid DESC", CommandBehavior.SequentialAccess, selectArgs);
                 cursor.MoveToNext();
 
@@ -244,11 +244,10 @@ namespace Couchbase.Lite {
                 ContentValues updateValues = new ContentValues();
                 updateValues["lastSequence"] = dbMaxSequence;
                 var whereArgs_1 = new string[] { Sharpen.Extensions.ToString(Id) };
-                Database.StorageEngine.Update("views", updateValues, "view_id=?", whereArgs_1);
+                Database.StorageEngine.Update("views", updateValues, "view_id=@", whereArgs_1);
                 // FIXME actually count number added :)
                         Log.V(Database.Tag, "...Finished re-indexing view " + Name + " up to sequence " +
-                    System.Convert.ToString(dbMaxSequence) + " (deleted " + deleted + " added " + "?"
-                    + ")");
+                    System.Convert.ToString(dbMaxSequence) + " (deleted " + deleted + " added " + "?" + ")");
                         result.SetCode(StatusCode.Ok);
             }
             catch (SQLException e)
@@ -472,17 +471,17 @@ namespace Couchbase.Lite {
             {
                 sql = sql + ", revid, json";
             }
-            sql = sql + " FROM maps, revs, docs WHERE maps.view_id=?"; // FIXME: Convert to ADO params
+            sql = sql + " FROM maps, revs, docs WHERE maps.view_id=@";
             IList<string> argsList = new AList<string>();
             argsList.AddItem(Sharpen.Extensions.ToString(Id));
             if (options.GetKeys() != null)
             {
                 sql += " AND key in (";
-                string item = "?"; // FIXME: Convert to ADO params
+                string item = "@";
                 foreach (object key in options.GetKeys())
                 {
                     sql += item;
-                    item = ", ?"; // FIXME: Convert to ADO params
+                    item = ", @";
                     argsList.AddItem(ToJSONString(key));
                 }
                 sql += ")";
@@ -503,11 +502,11 @@ namespace Couchbase.Lite {
                 System.Diagnostics.Debug.Assert((minKey is string));
                 if (inclusiveMin)
                 {
-                    sql += " AND key >= ?"; // FIXME: Convert to ADO params
+                    sql += " AND key >= @";
                 }
                 else
                 {
-                    sql += " AND key > ?"; // FIXME: Convert to ADO params
+                    sql += " AND key > @";
                 }
                 sql += collationStr;
                 argsList.AddItem(ToJSONString(minKey));
@@ -517,11 +516,11 @@ namespace Couchbase.Lite {
                 System.Diagnostics.Debug.Assert((maxKey is string));
                 if (inclusiveMax)
                 {
-                    sql += " AND key <= ?"; // FIXME: Convert to ADO params
+                    sql += " AND key <= @";
                 }
                 else
                 {
-                    sql += " AND key < ?"; // FIXME: Convert to ADO params
+                    sql += " AND key < @";
                 }
                 sql += collationStr;
                 argsList.AddItem(ToJSONString(maxKey));
@@ -532,7 +531,7 @@ namespace Couchbase.Lite {
             {
                 sql = sql + " DESC";
             }
-            sql = sql + " LIMIT ? OFFSET ?"; // FIXME: Convert to ADO params
+            sql = sql + " LIMIT @ OFFSET @";
             argsList.AddItem(options.GetLimit().ToString());
             argsList.AddItem(options.GetSkip().ToString());
             Log.V(Database.Tag, "Query " + Name + ": " + sql);
@@ -612,7 +611,7 @@ namespace Couchbase.Lite {
         /// <value>The last sequence indexed.</value>
         public Int64 LastSequenceIndexed { 
             get {
-                var sql = "SELECT lastSequence FROM views WHERE name=?"; // TODO: Convert to ADO string params.
+                var sql = "SELECT lastSequence FROM views WHERE name=@";
                 var args = new[] { Name };
                 Cursor cursor = null;
                 var result = -1L;
@@ -692,7 +691,7 @@ namespace Couchbase.Lite {
 
             // Older Android doesnt have reliable insert or ignore, will to 2 step
             // FIXME review need for change to execSQL, manual call to changes()
-            var sql = "SELECT name, version FROM views WHERE name=?"; // TODO: Convert to ADO params.
+            var sql = "SELECT name, version FROM views WHERE name=@"; // TODO: Convert to ADO params.
             var args = new [] { Name };
             Cursor cursor = null;
 
@@ -715,7 +714,7 @@ namespace Couchbase.Lite {
                 updateValues["lastSequence"] = 0;
 
                 var whereArgs = new [] { Name, version };
-                var rowsAffected = storageEngine.Update("views", updateValues, "name=? AND version!=?", whereArgs);
+                var rowsAffected = storageEngine.Update("views", updateValues, "name=@ AND version!=@", whereArgs);
 
                 return (rowsAffected > 0);
             }
@@ -748,12 +747,12 @@ namespace Couchbase.Lite {
                 Database.BeginTransaction();
 
                 var whereArgs = new string[] { Sharpen.Extensions.ToString(Id) };
-                Database.StorageEngine.Delete("maps", "view_id=?", whereArgs);
+                Database.StorageEngine.Delete("maps", "view_id=@", whereArgs);
 
                 var updateValues = new ContentValues();
                 updateValues["lastSequence"] = 0;
 
-                Database.StorageEngine.Update("views", updateValues, "view_id=?", whereArgs); // TODO: Convert to ADO params.
+                Database.StorageEngine.Update("views", updateValues, "view_id=@", whereArgs); // TODO: Convert to ADO params.
 
                 success = true;
             }

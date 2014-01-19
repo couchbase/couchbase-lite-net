@@ -61,6 +61,8 @@ namespace Couchbase.Lite
 
 		private IndexUpdateMode stale;
 
+        private AllDocsMode allDocsMode;
+
 		// only works with _all_docs, not regular views
 		public virtual object GetStartKey()
 		{
@@ -121,6 +123,17 @@ namespace Couchbase.Lite
 		{
 			this.includeDocs = includeDocs;
 		}
+
+
+        public virtual AllDocsMode GetAllDocsMode()
+        {
+            return allDocsMode;
+        }
+
+        public virtual void SetAllDocsMode(AllDocsMode allDocsMode)
+        {
+            this.allDocsMode = allDocsMode;
+        }
 
 		public virtual bool IsUpdateSeq()
 		{

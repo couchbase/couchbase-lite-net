@@ -4,10 +4,13 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Net;
 using System.IO;
+using Sharpen;
 
-namespace Couchbase.Lite {
+namespace Couchbase.Lite 
+{
 
-    public partial class QueryRow {
+    public partial class QueryRow 
+    {
 
     #region Constructors
 
@@ -41,6 +44,27 @@ namespace Couchbase.Lite {
         public IDictionary<String, Object> DocumentProperties { get; private set; }
 
         public Int64 SequenceNumber { get; private set; }
+
+        public virtual IEnumerable<SavedRevision> GetConflictingRevisions()
+        {
+            var doc = Database.GetDocument(SourceDocumentId);
+            var valueTmp = (IDictionary<string, object>)Value;
+
+            var conflicts = (IList<string>)valueTmp["_conflicts"];
+            if (conflicts == null)
+            {
+                conflicts = new AList<string>();
+            }
+
+            var conflictingRevisions = new AList<SavedRevision>();
+            foreach (var conflictRevisionId in conflicts)
+            {
+                var revision = doc.GetRevision(conflictRevisionId);
+                conflictingRevisions.AddItem(revision);
+            }
+            return conflictingRevisions;
+        }
+
 
     #endregion
     

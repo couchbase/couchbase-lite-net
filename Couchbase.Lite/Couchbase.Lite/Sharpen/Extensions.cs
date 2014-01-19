@@ -164,11 +164,11 @@ namespace Sharpen
 		{
 		}
 		
-		public static bool AddItem<T> (this IList<T> list, T item)
-		{
-			list.Add (item);
-			return true;
-		}
+//		public static bool AddItem<T> (this IList<T> list, T item)
+//		{
+//			list.Add (item);
+//			return true;
+//		}
 
 		public static bool AddItem<T> (this ICollection<T> list, T item)
 		{

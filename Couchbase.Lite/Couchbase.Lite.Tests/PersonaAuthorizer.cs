@@ -78,7 +78,7 @@ namespace Couchbase.Lite.Auth
 				return false;
 			}
 			DateTime exp;
-			exp = (DateTime)parsedAssertion.Get(AssertionFieldExpiration);
+			exp = (DateTime)parsedAssertion[AssertionFieldExpiration];
 			DateTime now = new DateTime();
 			if (exp.Before(now))
 			{
@@ -138,8 +138,8 @@ namespace Couchbase.Lite.Auth
 				string email;
 				string origin;
 				IDictionary<string, object> result = ParseAssertion(assertion);
-				email = (string)result.Get(AssertionFieldEmail);
-				origin = (string)result.Get(AssertionFieldOrigin);
+				email = (string)result[AssertionFieldEmail];
+				origin = (string)result[AssertionFieldOrigin];
 				// Normalize the origin URL string:
 				try
 				{
@@ -208,12 +208,12 @@ namespace Couchbase.Lite.Auth
 				IDictionary<object, object> component1Json = mapper.ReadValue<IDictionary>(component1Decoded
 					);
 				IDictionary<object, object> principal = (IDictionary<object, object>)component1Json
-					.Get("principal");
-				result.Put(AssertionFieldEmail, principal.Get("email"));
+					["principal"];
+				result.Put(AssertionFieldEmail, principal["email"]);
 				IDictionary<object, object> component3Json = mapper.ReadValue<IDictionary>(component3Decoded
 					);
-				result.Put(AssertionFieldOrigin, component3Json.Get("aud"));
-				long expObject = (long)component3Json.Get("exp");
+				result.Put(AssertionFieldOrigin, component3Json["aud"]);
+				long expObject = (long)component3Json["exp"];
 				Log.D(Database.Tag, "PersonaAuthorizer exp: " + expObject + " class: " + expObject
 					.GetType());
 				DateTime expDate = Sharpen.Extensions.CreateDate(expObject);
@@ -235,7 +235,7 @@ namespace Couchbase.Lite.Auth
 			key.AddItem(site.ToString().ToLower());
 			Log.D(Database.Tag, "PersonaAuthorizer looking up key: " + key + " from list of assertions"
 				);
-			return assertions.Get(key);
+			return assertions[key];
 		}
 	}
 }

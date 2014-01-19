@@ -61,9 +61,9 @@ namespace Couchbase.Lite
 			Send("PUT", "/database", Status.Created, null);
 			IDictionary<string, object> dbInfo = (IDictionary<string, object>)Send("GET", "/database"
 				, Status.Ok, null);
-			NUnit.Framework.Assert.AreEqual(0, dbInfo.Get("doc_count"));
-			NUnit.Framework.Assert.AreEqual(0, dbInfo.Get("update_seq"));
-			NUnit.Framework.Assert.IsTrue((int)dbInfo.Get("disk_size") > 8000);
+			NUnit.Framework.Assert.AreEqual(0, dbInfo["doc_count"]);
+			NUnit.Framework.Assert.AreEqual(0, dbInfo["update_seq"]);
+			NUnit.Framework.Assert.IsTrue((int)dbInfo["disk_size"] > 8000);
 			Send("PUT", "/database", Status.PreconditionFailed, null);
 			Send("PUT", "/database2", Status.Created, null);
 			IList<string> allDbs = new AList<string>();
@@ -72,14 +72,14 @@ namespace Couchbase.Lite
 			allDbs.AddItem("database2");
 			Send("GET", "/_all_dbs", Status.Ok, allDbs);
 			dbInfo = (IDictionary<string, object>)Send("GET", "/database2", Status.Ok, null);
-			NUnit.Framework.Assert.AreEqual("database2", dbInfo.Get("db_name"));
+			NUnit.Framework.Assert.AreEqual("database2", dbInfo["db_name"]);
 			Send("DELETE", "/database2", Status.Ok, null);
 			allDbs.Remove("database2");
 			Send("GET", "/_all_dbs", Status.Ok, allDbs);
 			Send("PUT", "/database%2Fwith%2Fslashes", Status.Created, null);
 			dbInfo = (IDictionary<string, object>)Send("GET", "/database%2Fwith%2Fslashes", Status
 				.Ok, null);
-			NUnit.Framework.Assert.AreEqual("database/with/slashes", dbInfo.Get("db_name"));
+			NUnit.Framework.Assert.AreEqual("database/with/slashes", dbInfo["db_name"]);
 		}
 
 		/// <exception cref="System.IO.IOException"></exception>
@@ -88,11 +88,11 @@ namespace Couchbase.Lite
 			string inlineTextString = "Inline text string created by cblite functional test";
 			Send("PUT", "/db", Status.Created, null);
 			IDictionary<string, object> attachment = new Dictionary<string, object>();
-			attachment.Put("content_type", "text/plain");
-			attachment.Put("data", "SW5saW5lIHRleHQgc3RyaW5nIGNyZWF0ZWQgYnkgY2JsaXRlIGZ1bmN0aW9uYWwgdGVzdA=="
-				);
+			attachment["content_type"] = "text/plain";
+			attachment["data"] = "SW5saW5lIHRleHQgc3RyaW5nIGNyZWF0ZWQgYnkgY2JsaXRlIGZ1bmN0aW9uYWwgdGVzdA=="
+				;
 			IDictionary<string, object> attachments = new Dictionary<string, object>();
-			attachments.Put("inline.txt", attachment);
+			attachments["inline.txt"] = attachment;
 			IDictionary<string, object> docWithAttachment = new Dictionary<string, object>();
 			docWithAttachment["_id"] = "docWithAttachment";
 			docWithAttachment["text"] = inlineTextString;
@@ -102,13 +102,13 @@ namespace Couchbase.Lite
 			result = (IDictionary<string, object>)Send("GET", "/db/docWithAttachment", Status
 				.Ok, null);
 			IDictionary<string, object> attachmentsResult = (IDictionary<string, object>)result
-				.Get("_attachments");
+				["_attachments"];
 			IDictionary<string, object> attachmentResult = (IDictionary<string, object>)attachmentsResult
 				.Get("inline.txt");
 			// there should be either a content_type or content-type field.
 			//https://github.com/couchbase/couchbase-lite-android-core/issues/12
 			//content_type becomes null for attachments in responses, should be as set in Content-Type
-			string contentTypeField = (string)attachmentResult.Get("content_type");
+			string contentTypeField = (string)attachmentResult["content_type"];
 			NUnit.Framework.Assert.IsTrue(attachmentResult.ContainsKey("content_type"));
 			NUnit.Framework.Assert.IsNotNull(contentTypeField);
 			URLConnection conn = SendRequest("GET", "/db/docWithAttachment/inline.txt", null, 
@@ -144,7 +144,7 @@ namespace Couchbase.Lite
 			doc1["message"] = "hello";
 			IDictionary<string, object> result = (IDictionary<string, object>)SendBody("PUT", 
 				"/db/doc1", doc1, Status.Created, null);
-			string revID = (string)result.Get("rev");
+			string revID = (string)result["rev"];
 			NUnit.Framework.Assert.IsTrue(revID.StartsWith("1-"));
 			// PUT to update:
 			doc1["message"] = "goodbye";
@@ -152,7 +152,7 @@ namespace Couchbase.Lite
 			result = (IDictionary<string, object>)SendBody("PUT", "/db/doc1", doc1, Status.Created
 				, null);
 			Log.V(Tag, string.Format("PUT returned %s", result));
-			revID = (string)result.Get("rev");
+			revID = (string)result["rev"];
 			NUnit.Framework.Assert.IsTrue(revID.StartsWith("2-"));
 			doc1["_id"] = "doc1";
 			doc1["_rev"] = revID;
@@ -162,15 +162,15 @@ namespace Couchbase.Lite
 			docX["message"] = "hello";
 			result = (IDictionary<string, object>)SendBody("PUT", "/db/doc3", docX, Status.Created
 				, null);
-			string revID3 = (string)result.Get("rev");
+			string revID3 = (string)result["rev"];
 			result = (IDictionary<string, object>)SendBody("PUT", "/db/doc2", docX, Status.Created
 				, null);
-			string revID2 = (string)result.Get("rev");
+			string revID2 = (string)result["rev"];
 			// _all_docs:
 			result = (IDictionary<string, object>)Send("GET", "/db/_all_docs", Status.Ok, null
 				);
-			NUnit.Framework.Assert.AreEqual(3, result.Get("total_rows"));
-			NUnit.Framework.Assert.AreEqual(0, result.Get("offset"));
+			NUnit.Framework.Assert.AreEqual(3, result["total_rows"]);
+			NUnit.Framework.Assert.AreEqual(0, result["offset"]);
 			IDictionary<string, object> value1 = ValueMapWithRev(revID);
 			IDictionary<string, object> value2 = ValueMapWithRev(revID2);
 			IDictionary<string, object> value3 = ValueMapWithRev(revID3);
@@ -192,12 +192,12 @@ namespace Couchbase.Lite
 			expectedRows.AddItem(row2);
 			expectedRows.AddItem(row3);
 			IList<IDictionary<string, object>> rows = (IList<IDictionary<string, object>>)result
-				.Get("rows");
+				["rows"];
 			NUnit.Framework.Assert.AreEqual(expectedRows, rows);
 			// DELETE:
 			result = (IDictionary<string, object>)Send("DELETE", string.Format("/db/doc1?rev=%s"
 				, revID), Status.Ok, null);
-			revID = (string)result.Get("rev");
+			revID = (string)result["rev"];
 			NUnit.Framework.Assert.IsTrue(revID.StartsWith("3-"));
 			Send("GET", "/db/doc1", Status.NotFound, null);
 			// _changes:
@@ -243,7 +243,7 @@ namespace Couchbase.Lite
 			doc5["message"] = "hello5";
 			IDictionary<string, object> resultDoc5 = (IDictionary<string, object>)SendBody("PUT"
 				, "/db/doc5", doc5, Status.Created, null);
-			string revIdDoc5 = (string)resultDoc5.Get("rev");
+			string revIdDoc5 = (string)resultDoc5["rev"];
 			NUnit.Framework.Assert.IsTrue(revIdDoc5.StartsWith("1-"));
 			doc5["_deleted"] = true;
 			doc5["_rev"] = revIdDoc5;
@@ -262,10 +262,10 @@ namespace Couchbase.Lite
 			doc1["message"] = "hello";
 			IDictionary<string, object> result = (IDictionary<string, object>)SendBody("PUT", 
 				"/db/_local/doc1", doc1, Status.Created, null);
-			string revID = (string)result.Get("rev");
+			string revID = (string)result["rev"];
 			NUnit.Framework.Assert.IsTrue(revID.StartsWith("1-"));
 			// GET it:
-			doc1.Put("_id", "_local/doc1");
+			doc1["_id"] = "_local/doc1";
 			doc1["_rev"] = revID;
 			result = (IDictionary<string, object>)Send("GET", "/db/_local/doc1", Status.Ok, doc1
 				);
@@ -284,22 +284,22 @@ namespace Couchbase.Lite
 			doc1["message"] = "hello";
 			result = (IDictionary<string, object>)SendBody("PUT", "/db/doc1", doc1, Status.Created
 				, null);
-			string revID = (string)result.Get("rev");
+			string revID = (string)result["rev"];
 			IDictionary<string, object> doc3 = new Dictionary<string, object>();
 			doc3["message"] = "bonjour";
 			result = (IDictionary<string, object>)SendBody("PUT", "/db/doc3", doc3, Status.Created
 				, null);
-			string revID3 = (string)result.Get("rev");
+			string revID3 = (string)result["rev"];
 			IDictionary<string, object> doc2 = new Dictionary<string, object>();
-			doc2.Put("message", "guten tag");
+			doc2["message"] = "guten tag";
 			result = (IDictionary<string, object>)SendBody("PUT", "/db/doc2", doc2, Status.Created
 				, null);
-			string revID2 = (string)result.Get("rev");
+			string revID2 = (string)result["rev"];
 			// _all_docs:
 			result = (IDictionary<string, object>)Send("GET", "/db/_all_docs", Status.Ok, null
 				);
-			NUnit.Framework.Assert.AreEqual(3, result.Get("total_rows"));
-			NUnit.Framework.Assert.AreEqual(0, result.Get("offset"));
+			NUnit.Framework.Assert.AreEqual(3, result["total_rows"]);
+			NUnit.Framework.Assert.AreEqual(0, result["offset"]);
 			IDictionary<string, object> value1 = ValueMapWithRev(revID);
 			IDictionary<string, object> value2 = ValueMapWithRev(revID2);
 			IDictionary<string, object> value3 = ValueMapWithRev(revID3);
@@ -321,13 +321,13 @@ namespace Couchbase.Lite
 			expectedRows.AddItem(row2);
 			expectedRows.AddItem(row3);
 			IList<IDictionary<string, object>> rows = (IList<IDictionary<string, object>>)result
-				.Get("rows");
+				["rows"];
 			NUnit.Framework.Assert.AreEqual(expectedRows, rows);
 			// ?include_docs:
 			result = (IDictionary<string, object>)Send("GET", "/db/_all_docs?include_docs=true"
 				, Status.Ok, null);
-			NUnit.Framework.Assert.AreEqual(3, result.Get("total_rows"));
-			NUnit.Framework.Assert.AreEqual(0, result.Get("offset"));
+			NUnit.Framework.Assert.AreEqual(3, result["total_rows"]);
+			NUnit.Framework.Assert.AreEqual(0, result["offset"]);
 			doc1["_id"] = "doc1";
 			doc1["_rev"] = revID;
 			row1["doc"] = doc1;
@@ -342,7 +342,7 @@ namespace Couchbase.Lite
 			expectedRowsWithDocs.AddItem(row1);
 			expectedRowsWithDocs.AddItem(row2);
 			expectedRowsWithDocs.AddItem(row3);
-			rows = (IList<IDictionary<string, object>>)result.Get("rows");
+			rows = (IList<IDictionary<string, object>>)result["rows"];
 			NUnit.Framework.Assert.AreEqual(expectedRowsWithDocs, rows);
 		}
 
@@ -354,17 +354,17 @@ namespace Couchbase.Lite
 			doc1["message"] = "hello";
 			result = (IDictionary<string, object>)SendBody("PUT", "/db/doc1", doc1, Status.Created
 				, null);
-			string revID = (string)result.Get("rev");
+			string revID = (string)result["rev"];
 			IDictionary<string, object> doc3 = new Dictionary<string, object>();
 			doc3["message"] = "bonjour";
 			result = (IDictionary<string, object>)SendBody("PUT", "/db/doc3", doc3, Status.Created
 				, null);
-			string revID3 = (string)result.Get("rev");
+			string revID3 = (string)result["rev"];
 			IDictionary<string, object> doc2 = new Dictionary<string, object>();
-			doc2.Put("message", "guten tag");
+			doc2["message"] = "guten tag";
 			result = (IDictionary<string, object>)SendBody("PUT", "/db/doc2", doc2, Status.Created
 				, null);
-			string revID2 = (string)result.Get("rev");
+			string revID2 = (string)result["rev"];
 			Database db = manager.GetDatabase("db");
 			View view = db.GetView("design/view");
 			view.SetMapAndReduce(new _Mapper_372(), null, "1");
@@ -374,7 +374,7 @@ namespace Couchbase.Lite
 			row1["key"] = "hello";
 			IDictionary<string, object> row2 = new Dictionary<string, object>();
 			row2["id"] = "doc2";
-			row2.Put("key", "guten tag");
+			row2["key"] = "guten tag";
 			IDictionary<string, object> row3 = new Dictionary<string, object>();
 			row3["id"] = "doc3";
 			row3["key"] = "bonjour";
@@ -397,7 +397,7 @@ namespace Couchbase.Lite
 				()), etag);
 			// Try a conditional GET:
 			IDictionary<string, string> headers = new Dictionary<string, string>();
-			headers.Put("If-None-Match", etag);
+			headers["If-None-Match"] = etag;
 			conn = SendRequest("GET", "/db/_design/design/_view/view", headers, null);
 			NUnit.Framework.Assert.AreEqual(Status.NotModified, conn.GetResponseCode());
 			// Update the database:
@@ -409,7 +409,7 @@ namespace Couchbase.Lite
 			conn = SendRequest("GET", "/db/_design/design/_view/view", headers, null);
 			NUnit.Framework.Assert.AreEqual(Status.Ok, conn.GetResponseCode());
 			result = (IDictionary<string, object>)ParseJSONResponse(conn);
-			NUnit.Framework.Assert.AreEqual(4, result.Get("total_rows"));
+			NUnit.Framework.Assert.AreEqual(4, result["total_rows"]);
 		}
 
 		private sealed class _Mapper_372 : Mapper
@@ -420,7 +420,7 @@ namespace Couchbase.Lite
 
 			public void Map(IDictionary<string, object> document, Emitter emitter)
 			{
-				emitter.Emit(document.Get("message"), null);
+				emitter.Emit(document["message"], null);
 			}
 		}
 
@@ -442,10 +442,10 @@ namespace Couchbase.Lite
 			IList<IDictionary<string, object>> bulk_result = (AList<IDictionary<string, object
 				>>)SendBody("POST", "/db/_bulk_docs", bodyObj, Status.Created, null);
 			NUnit.Framework.Assert.AreEqual(2, bulk_result.Count);
-			NUnit.Framework.Assert.AreEqual(bulk_result[0].Get("id"), bulk_doc1.Get("_id"));
-			NUnit.Framework.Assert.IsNotNull(bulk_result[0].Get("rev"));
-			NUnit.Framework.Assert.AreEqual(bulk_result[1].Get("id"), bulk_doc2.Get("_id"));
-			NUnit.Framework.Assert.IsNotNull(bulk_result[1].Get("rev"));
+			NUnit.Framework.Assert.AreEqual(bulk_result[0]["id"], bulk_doc1["_id"]);
+			NUnit.Framework.Assert.IsNotNull(bulk_result[0]["rev"]);
+			NUnit.Framework.Assert.AreEqual(bulk_result[1]["id"], bulk_doc2["_id"]);
+			NUnit.Framework.Assert.IsNotNull(bulk_result[1]["rev"]);
 		}
 
 		public virtual void TestPostKeysView()
@@ -468,7 +468,7 @@ namespace Couchbase.Lite
 			URLConnection conn = SendRequest("POST", "/db/_design/design/_view/view", null, bodyObj
 				);
 			result = (IDictionary<string, object>)ParseJSONResponse(conn);
-			NUnit.Framework.Assert.AreEqual(1, result.Get("total_rows"));
+			NUnit.Framework.Assert.AreEqual(1, result["total_rows"]);
 		}
 
 		private sealed class _Mapper_463 : Mapper
@@ -479,7 +479,7 @@ namespace Couchbase.Lite
 
 			public void Map(IDictionary<string, object> document, Emitter emitter)
 			{
-				emitter.Emit(document.Get("message"), null);
+				emitter.Emit(document["message"], null);
 			}
 		}
 
@@ -491,9 +491,9 @@ namespace Couchbase.Lite
 
 			public void Map(IDictionary<string, object> document, Emitter emitter)
 			{
-				if (document.Get("parentId").Equals("12345"))
+				if (document["parentId"].Equals("12345"))
 				{
-					emitter.Emit(document.Get("parentId"), document);
+					emitter.Emit(document["parentId"], document);
 				}
 			}
 		}
@@ -504,18 +504,18 @@ namespace Couchbase.Lite
 			IDictionary<string, object> doc = new Dictionary<string, object>();
 			IDictionary<string, object> doc1r1 = (IDictionary<string, object>)SendBody("PUT", 
 				"/db/11111", doc, Status.Created, null);
-			string doc1r1ID = (string)doc1r1.Get("rev");
+			string doc1r1ID = (string)doc1r1["rev"];
 			IDictionary<string, object> doc2r1 = (IDictionary<string, object>)SendBody("PUT", 
 				"/db/22222", doc, Status.Created, null);
-			string doc2r1ID = (string)doc2r1.Get("rev");
+			string doc2r1ID = (string)doc2r1["rev"];
 			IDictionary<string, object> doc3r1 = (IDictionary<string, object>)SendBody("PUT", 
 				"/db/33333", doc, Status.Created, null);
-			string doc3r1ID = (string)doc3r1.Get("rev");
+			string doc3r1ID = (string)doc3r1["rev"];
 			IDictionary<string, object> doc1v2 = new Dictionary<string, object>();
 			doc1v2["_rev"] = doc1r1ID;
 			IDictionary<string, object> doc1r2 = (IDictionary<string, object>)SendBody("PUT", 
 				"/db/11111", doc1v2, Status.Created, null);
-			string doc1r2ID = (string)doc1r2.Get("rev");
+			string doc1r2ID = (string)doc1r2["rev"];
 			IDictionary<string, object> doc2v2 = new Dictionary<string, object>();
 			doc2v2["_rev"] = doc2r1ID;
 			SendBody("PUT", "/db/22222", doc2v2, Status.Created, null);
@@ -523,7 +523,7 @@ namespace Couchbase.Lite
 			doc1v3["_rev"] = doc1r2ID;
 			IDictionary<string, object> doc1r3 = (IDictionary<string, object>)SendBody("PUT", 
 				"/db/11111", doc1v3, Status.Created, null);
-			string doc1r3ID = (string)doc1r1.Get("rev");
+			string doc1r3ID = (string)doc1r1["rev"];
 			//now build up the request
 			IList<string> doc1Revs = new AList<string>();
 			doc1Revs.AddItem(doc1r2ID);
@@ -563,7 +563,7 @@ namespace Couchbase.Lite
 		{
 			Send("PUT", "/db", Status.Created, null);
 			IDictionary<string, object> doc1 = new Dictionary<string, object>();
-			doc1.Put("email", "foo@bar.com");
+			doc1["email"] = "foo@bar.com";
 			doc1.Put("remote_url", GetReplicationURL().ToExternalForm());
 			doc1["access_token"] = "fake_access_token";
 			IDictionary<string, object> result = (IDictionary<string, object>)SendBody("POST"
@@ -580,7 +580,7 @@ namespace Couchbase.Lite
 			IDictionary<string, object> result = (IDictionary<string, object>)SendBody("POST"
 				, "/_persona_assertion", doc1, Status.Ok, null);
 			Log.V(Tag, string.Format("result %s", result));
-			string email = (string)result.Get("email");
+			string email = (string)result["email"];
 			NUnit.Framework.Assert.AreEqual(email, "jens@mooseyard.com");
 		}
 
@@ -593,7 +593,7 @@ namespace Couchbase.Lite
 			IDictionary<string, object> result = (IDictionary<string, object>)SendBody("POST"
 				, "/_replicate", replicateJsonMap, Status.Ok, null);
 			Log.V(Tag, "result: " + result);
-			NUnit.Framework.Assert.IsNotNull(result.Get("session_id"));
+			NUnit.Framework.Assert.IsNotNull(result["session_id"]);
 		}
 
 		/// <exception cref="System.Exception"></exception>
@@ -605,7 +605,7 @@ namespace Couchbase.Lite
 			IDictionary<string, object> result = (IDictionary<string, object>)SendBody("POST"
 				, "/_replicate", replicateJsonMap, Status.Ok, null);
 			Log.V(Tag, "result: " + result);
-			NUnit.Framework.Assert.IsNotNull(result.Get("session_id"));
+			NUnit.Framework.Assert.IsNotNull(result["session_id"]);
 		}
 	}
 }

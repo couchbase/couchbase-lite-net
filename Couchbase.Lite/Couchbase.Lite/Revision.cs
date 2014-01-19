@@ -6,9 +6,11 @@ using System.Net;
 using System.IO;
 using Sharpen;
 
-namespace Couchbase.Lite {
+namespace Couchbase.Lite 
+{
 
-    public abstract partial class Revision {
+    public abstract partial class Revision 
+    {
     
     #region Constructors
 

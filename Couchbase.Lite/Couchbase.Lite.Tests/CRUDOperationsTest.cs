@@ -62,7 +62,7 @@ namespace Couchbase.Lite
 				.Properties));
 			//now update it
 			documentProperties = readRev.Properties;
-			documentProperties.Put("status", "updated!");
+			documentProperties["status"] = "updated!";
 			body = new Body(documentProperties);
 			RevisionInternal rev2 = new RevisionInternal(body, database);
 			RevisionInternal rev2input = rev2;
@@ -148,8 +148,8 @@ namespace Couchbase.Lite
 				NUnit.Framework.Assert.IsNotNull(rev);
 				NUnit.Framework.Assert.IsNotNull(rev.GetDocId());
 				NUnit.Framework.Assert.IsNotNull(rev.GetRevId());
-				NUnit.Framework.Assert.AreEqual(rev.GetDocId(), rev.Properties.Get("_id"));
-				NUnit.Framework.Assert.AreEqual(rev.GetRevId(), rev.Properties.Get("_rev"));
+				NUnit.Framework.Assert.AreEqual(rev.GetDocId(), rev.Properties["_id"]);
+				NUnit.Framework.Assert.AreEqual(rev.GetRevId(), rev.Properties["_rev"]);
 			}
 		}
 	}

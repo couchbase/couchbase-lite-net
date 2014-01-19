@@ -37,6 +37,7 @@ namespace Couchbase.Lite
 
     #region Static Members
         //Properties
+        public static ManagerOptions DefaultOptions { get; private set; }
 
         /// <summary>
         /// Gets a shared, per-process, instance of <see cref="Couchbase.Lite.Manager"/>.
@@ -70,7 +71,7 @@ namespace Couchbase.Lite
         {
             pattern = new Regex("^[abcdefghijklmnopqrstuvwxyz0123456789_$()+-/]+$");
             mapper = new ObjectWriter();
-            defaultOptions = new ManagerOptions(false, false);
+            DefaultOptions = new ManagerOptions(false, false);
             defaultDirectory = new DirectoryInfo(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData));
             sharedManager = new Manager(defaultDirectory, ManagerOptions.Default);
         }
@@ -80,7 +81,7 @@ namespace Couchbase.Lite
         public Manager(DirectoryInfo directoryFile, ManagerOptions options)
         {
             this.directoryFile = directoryFile;
-            this.options = options ?? defaultOptions;
+            this.options = options ?? DefaultOptions;
             this.databases = new Dictionary<string, Database>();
             this.replications = new AList<Replication>();
 
@@ -252,7 +253,6 @@ namespace Couchbase.Lite
 
         // Static Fields
         private static readonly ObjectWriter mapper;
-        private static readonly ManagerOptions defaultOptions;
         private static readonly Manager sharedManager;
         private static readonly DirectoryInfo defaultDirectory;
         private static readonly Regex pattern;
@@ -352,11 +352,19 @@ namespace Couchbase.Lite
             return RunAsync(action, CancellationToken.None);
         }
 
+        internal Task<Boolean> RunAsync(String databaseName, Func<Database, Boolean> action) 
+        {
+            var db = GetDatabase(databaseName);
+            return RunAsync<Boolean>(()=>{ return action(db); });
+        }
+
         internal Task<QueryEnumerator> RunAsync(Func<QueryEnumerator> action, CancellationToken token) 
         {
-            return token == CancellationToken.None 
-                ? workExecutor.StartNew<QueryEnumerator>(action) 
+            var task = token == CancellationToken.None 
+                   ? workExecutor.StartNew<QueryEnumerator>(action) 
                     : workExecutor.StartNew<QueryEnumerator>(action, token);
+
+            return task;
         }
 
         internal Task RunAsync(RunAsyncDelegate action, Database database)
@@ -365,6 +373,11 @@ namespace Couchbase.Lite
         }
 
         internal Task RunAsync(Action action)
+        {
+            return workExecutor.StartNew(action);
+        }
+
+        internal Task<T> RunAsync<T>(Func<T> action)
         {
             return workExecutor.StartNew(action);
         }

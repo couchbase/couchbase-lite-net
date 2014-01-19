@@ -40,7 +40,7 @@ namespace Couchbase.Lite.Replicator
 	{
 		private bool observing;
 
-		private Couchbase.Lite.Database.FilterDelegate filter;
+		private FilterDelegate filter;
 
 		/// <summary>Constructor</summary>
         public Pusher(Database db, Uri remote, bool continuous, TaskFactory workExecutor) : this(db, remote, continuous, null, workExecutor)

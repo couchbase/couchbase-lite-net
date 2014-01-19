@@ -7,6 +7,7 @@ using System.IO;
 using System.Threading.Tasks;
 using System.Threading;
 using Couchbase.Lite.Util;
+using Sharpen;
 
 namespace Couchbase.Lite
 {
@@ -42,6 +43,29 @@ namespace Couchbase.Lite
             }
         }
 
+        /// <summary>Sends the query to the server and returns an enumerator over the result rows (Synchronous).
+        ///     </summary>
+        /// <remarks>
+        /// Sends the query to the server and returns an enumerator over the result rows (Synchronous).
+        /// Note: In a CBLLiveQuery you should add a ChangeListener and call start() instead.
+        /// </remarks>
+        /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
+        public override QueryEnumerator Run()
+        {
+            try
+            {
+                WaitForRows();
+            }
+            catch (Exception e)
+            {
+                LastError = e;
+                throw new CouchbaseLiteException(e, StatusCode.InternalServerError);
+            }
+            return rows == null ? null : new QueryEnumerator (rows);
+        }
+
+
+
         /// <summary>
         /// Implements the updating of the <see cref="Rows"/> collection.
         /// </summary>
@@ -56,7 +80,7 @@ namespace Couchbase.Lite
 
             UpdateQueryTokenSource = new CancellationTokenSource();
 
-            UpdateQueryTask = RunAsync(Run, UpdateQueryTokenSource.Token)
+            UpdateQueryTask = RunAsync(UpdateQueryTokenSource.Token)
                 .ContinueWith(runTask =>
                     {
                         if (runTask.Status != TaskStatus.RanToCompletion) {
@@ -89,8 +113,11 @@ namespace Couchbase.Lite
         { 
             get
             {
+                Start();
                 // Have to return a copy because the enumeration has to start at item #0 every time
-                return new QueryEnumerator(rows);
+                return rows == null 
+                    ? null 
+                    : new QueryEnumerator(rows);
             }
         }
 
@@ -103,8 +130,8 @@ namespace Couchbase.Lite
         /// Starts the <see cref="Couchbase.Lite.LiveQuery"/> and begins observing <see cref="Couchbase.Lite.Database"/> 
         /// changes. When the <see cref="Couchbase.Lite.Database"/> changes in a way that would affect the results of 
         /// the <see cref="Couchbase.Lite.Query"/>, the <see cref="Rows"/> property will be updated and any 
-        /// <see cref="Change"/> delegates will be notified.  Accessing the <see cref="Rows"/>  property or adding a
-        /// <see cref="Change"/> delegate will automatically start the <see cref="Couchbase.Lite.LiveQuery"/>.
+        /// <see cref="Changed"/> delegates will be notified.  Accessing the <see cref="Rows"/>  property or adding a
+        /// <see cref="Changed"/> delegate will automatically start the <see cref="Couchbase.Lite.LiveQuery"/>.
         /// </remarks>
         public void Start()
         {
@@ -147,6 +174,11 @@ namespace Couchbase.Lite
                 UpdateQueryTask.Wait(DefaultQueryTimeout, UpdateQueryTokenSource.Token);
                 LastError = UpdateQueryTask.Exception;
             }
+            catch (ExecutionException ex)
+            {
+                Log.E(Database.Tag, "Got execution exception waiting for rows", ex);
+                throw;
+            }
             catch (Exception e)
             {
                 Log.E(Database.Tag, "Got interrupted exception waiting for rows", e);
@@ -162,30 +194,26 @@ namespace Couchbase.Lite
 
     #endregion
     
-    #region EventArgs Subclasses
-        public class QueryChangeEventArgs : EventArgs 
-        {
-            internal QueryChangeEventArgs (LiveQuery liveQuery, QueryEnumerator enumerator, Exception error)
-            {
-                Source = liveQuery;
-                Rows = enumerator;
-                Error = error;
-            }
-
-            //Properties
-            public LiveQuery Source { get; private set; }
-
-            public QueryEnumerator Rows { get; private set; }
-
-            public Exception Error { get; private set; }
-        }
-
-    #endregion
-    
     }
 
-    
+    #region EventArgs Subclasses
+    public class QueryChangeEventArgs : EventArgs 
+    {
+        internal QueryChangeEventArgs (LiveQuery liveQuery, QueryEnumerator enumerator, Exception error)
+        {
+            Source = liveQuery;
+            Rows = enumerator;
+            Error = error;
+        }
 
-    
+            //Properties
+            public LiveQuery Source { get; private set; }
 
+            public QueryEnumerator Rows { get; private set; }
+
+            public Exception Error { get; private set; }
+    }
+
+        #endregion
+        
 }

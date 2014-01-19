@@ -31,7 +31,7 @@ namespace Sharpen
 			if (other == null) {
 				this.path = child;
 			} else {
-				while (child != null && child.Length > 0 && (child[0] == Path.DirectorySeparatorChar || child[0] == Path.AltDirectorySeparatorChar))
+                while (!String.IsNullOrEmpty (child) && (child [0] == Path.DirectorySeparatorChar || child [0] == Path.AltDirectorySeparatorChar))
 					child = child.Substring (1);
 
 				if (!string.IsNullOrEmpty(other) && other[other.Length - 1] == Path.VolumeSeparatorChar)

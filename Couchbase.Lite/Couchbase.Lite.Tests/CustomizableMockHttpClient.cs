@@ -174,7 +174,7 @@ namespace Couchbase.Lite.Replicator
 				if (urlPattern.Equals("*") || httpUriRequest.GetURI().GetPath().Contains(urlPattern
 					))
 				{
-					CustomizableMockHttpClient.Responder responder = responders.Get(urlPattern);
+					CustomizableMockHttpClient.Responder responder = responders[urlPattern];
 					return responder.Execute(httpUriRequest);
 				}
 			}
@@ -199,12 +199,12 @@ namespace Couchbase.Lite.Replicator
 				);
 			IList<IDictionary<string, object>> responseList = new AList<IDictionary<string, object
 				>>();
-			AList<IDictionary<string, object>> docs = (ArrayList)jsonMap.Get("docs");
+			AList<IDictionary<string, object>> docs = (ArrayList)jsonMap["docs"];
 			foreach (IDictionary<string, object> doc in docs)
 			{
 				IDictionary<string, object> responseListItem = new Dictionary<string, object>();
-				responseListItem.Put("id", doc.Get("_id"));
-				responseListItem.Put("rev", doc.Get("_rev"));
+				responseListItem.Put("id", doc["_id"]);
+				responseListItem.Put("rev", doc["_rev"]);
 				responseList.AddItem(responseListItem);
 			}
 			HttpResponse response = GenerateHttpResponseObject(responseList);
@@ -219,7 +219,7 @@ namespace Couchbase.Lite.Replicator
 			IDictionary<string, object> responseMap = new Dictionary<string, object>();
 			foreach (string key in jsonMap.Keys)
 			{
-				ArrayList value = (ArrayList)jsonMap.Get(key);
+				ArrayList value = (ArrayList)jsonMap[key];
 				IDictionary<string, object> missingMap = new Dictionary<string, object>();
 				missingMap["missing"] = value;
 				responseMap[key] = missingMap;

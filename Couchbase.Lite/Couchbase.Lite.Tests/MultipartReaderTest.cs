@@ -91,7 +91,7 @@ namespace Couchbase.Lite
 			{
 				MultipartReaderDelegate delegate_ = null;
 				MultipartReader reader = new MultipartReader(contentType, delegate_);
-				byte[] expectedBoundary = (byte[])contentTypes.Get(contentType);
+				byte[] expectedBoundary = (byte[])contentTypes[contentType];
 				byte[] boundary = reader.GetBoundary();
 				NUnit.Framework.Assert.IsTrue(Arrays.Equals(boundary, expectedBoundary));
 			}
@@ -202,9 +202,9 @@ namespace Couchbase.Lite
 				NUnit.Framework.Assert.IsTrue(Arrays.Equals(part2.ToByteArray(), part2Expected));
 				IDictionary<string, string> headers1 = delegate_.headersList[0];
 				NUnit.Framework.Assert.IsTrue(headers1.ContainsKey("Foo"));
-				NUnit.Framework.Assert.AreEqual(headers1.Get("Foo"), "Bar");
+				NUnit.Framework.Assert.AreEqual(headers1["Foo"], "Bar");
 				NUnit.Framework.Assert.IsTrue(headers1.ContainsKey("Header"));
-				NUnit.Framework.Assert.AreEqual(headers1.Get("Header"), "Val ue");
+				NUnit.Framework.Assert.AreEqual(headers1["Header"], "Val ue");
 			}
 		}
 	}

@@ -161,7 +161,7 @@ namespace Couchbase.Lite.Replicator
 				{
 					foreach (string filterParamKey in filterParams.Keys)
 					{
-						object value = filterParams.Get(filterParamKey);
+						object value = filterParams[filterParamKey];
 						if (!(value is string))
 						{
 							try
@@ -349,7 +349,7 @@ namespace Couchbase.Lite.Replicator
 
 		public virtual bool ReceivedChange(IDictionary<string, object> change)
 		{
-			object seq = change.Get("seq");
+			object seq = change["seq"];
 			if (seq == null)
 			{
 				return false;
@@ -365,7 +365,7 @@ namespace Couchbase.Lite.Replicator
 
 		public virtual bool ReceivedPollResponse(IDictionary<string, object> response)
 		{
-			IList<IDictionary<string, object>> changes = (IList)response.Get("results");
+			IList<IDictionary<string, object>> changes = (IList)response["results"];
 			if (changes == null)
 			{
 				return false;
@@ -432,7 +432,7 @@ namespace Couchbase.Lite.Replicator
 		{
 			foreach (string requestHeaderKey in requestHeaders.Keys)
 			{
-				request.AddHeader(requestHeaderKey, requestHeaders.Get(requestHeaderKey).ToString
+				request.AddHeader(requestHeaderKey, requestHeaders[requestHeaderKey].ToString
 					());
 			}
 		}

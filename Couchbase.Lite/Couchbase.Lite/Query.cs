@@ -16,6 +16,14 @@ namespace Couchbase.Lite {
             After
     }
                             
+    public enum AllDocsMode
+    {
+        AllDocs,
+        IncludeDeleted,
+        ShowConflicts,
+        OnlyConflicts
+    }
+
     public partial class Query : IDisposable
     {
 
@@ -28,6 +36,7 @@ namespace Couchbase.Lite {
             Limit = Int32.MaxValue;
             MapOnly = (view != null && view.Reduce == null);
             IndexUpdateMode = IndexUpdateMode.Never;
+            AllDocsMode = AllDocsMode.AllDocs;
         }
 
         /// <summary>Constructor</summary>
@@ -54,6 +63,7 @@ namespace Couchbase.Lite {
             StartKeyDocId = query.StartKeyDocId;
             EndKeyDocId = query.EndKeyDocId;
             IndexUpdateMode = query.IndexUpdateMode;
+            AllDocsMode = query.AllDocsMode;
         }
 
 
@@ -113,6 +123,19 @@ namespace Couchbase.Lite {
 
         public IndexUpdateMode IndexUpdateMode { get; set; }
 
+        /// <summary>Changes the behavior of a query created by -queryAllDocuments.</summary>
+        /// <remarks>
+        /// Changes the behavior of a query created by -queryAllDocuments.
+        /// - In mode kCBLAllDocs (the default), the query simply returns all non-deleted documents.
+        /// - In mode kCBLIncludeDeleted, it also returns deleted documents.
+        /// - In mode kCBLShowConflicts, the .conflictingRevisions property of each row will return the
+        /// conflicting revisions, if any, of that document.
+        /// - In mode kCBLOnlyConflicts, _only_ documents in conflict will be returned.
+        /// (This mode is especially useful for use with a CBLLiveQuery, so you can be notified of
+        /// conflicts as they happen, i.e. when they're pulled in by a replication.)
+        /// </remarks>
+        public AllDocsMode AllDocsMode { get; set; }
+
         public IEnumerable<Object> Keys { get; set; }
 
         public Boolean MapOnly { get; set; }
@@ -121,41 +144,79 @@ namespace Couchbase.Lite {
 
         public Boolean Prefetch { get; set; }
 
-        public Boolean IncludeDeleted { get; set; }
+        public Boolean IncludeDeleted 
+        {
+            get { return AllDocsMode == AllDocsMode.IncludeDeleted; }
+            set 
+            {
+                   AllDocsMode = (value)
+                                 ? AllDocsMode.IncludeDeleted
+                                 : AllDocsMode.AllDocs;
+            } 
+        }
 
         public event EventHandler<QueryCompletedEventArgs> Completed;
 
         //Methods
-        public QueryEnumerator Run() 
+        public virtual QueryEnumerator Run() 
         {
             var outSequence = new AList<long>();
             var viewName = (View != null) ? View.Name : null;
+            var queryOptions = QueryOptions;
 
-            IEnumerable<QueryRow> rows = null;
-            Exception error = null;
-            try {
-                rows = Database.QueryViewNamed (viewName, QueryOptions, outSequence);
-            } catch (Exception ex) {
-                error = ex;
-                // TODO: Return null? Rethrow?
-            }
+            var rows = Database.QueryViewNamed (viewName, queryOptions, outSequence);
 
-            LastSequence = outSequence[0];
+            LastSequence = outSequence[0]; // potential concurrency issue?
 
-            var completed = Completed;
-            if (completed != null)
-            {
-                var enumerator = new QueryEnumerator(Database, rows, LastSequence);
-                var args = new QueryCompletedEventArgs(enumerator, error);
-                completed(this, args);
-            }
-            return new QueryEnumerator(Database, rows, LastSequence);
+            return new QueryEnumerator(Database, rows, outSequence[0]);
         }
 
-        public Task<QueryEnumerator> RunAsync(Func<QueryEnumerator> action, CancellationToken token) 
+        public Task<QueryEnumerator> RunAsync(CancellationToken token) 
         {
-            return Database.Manager.RunAsync(action, token);
+            return Database.Manager.RunAsync(Run, token)
+                    .ContinueWith(runTask=> // Raise the query's Completed event.
+                        {
+                            var error = runTask.Exception;
+
+                            var completed = Completed;
+                            if (completed != null)
+                            {
+                                var args = new QueryCompletedEventArgs(runTask.Result, error);
+                                completed(this, args);
+                            }
+
+                            if (runTask.Status != TaskStatus.RanToCompletion)
+                                throw runTask.Exception; // Rethrow innner exceptions.
+
+                            return runTask.Result; // Give additional continuation functions access to the results task.
+                    });
         }
+
+        public Task<QueryEnumerator> RunAsync() 
+        {
+            return RunAsync(CancellationToken.None);
+        }
+
+//        internal Task<QueryEnumerator> RunAsync(Func<QueryEnumerator> action) 
+//        {
+//            return Database.Manager.RunAsync(action, CancellationToken.None)
+//                .ContinueWith(runTask=> // Raise the query's Completed event.
+//                    {
+//                        var error = runTask.Exception;
+//
+//                        var completed = Completed;
+//                        if (completed != null)
+//                        {
+//                            var args = new QueryCompletedEventArgs(runTask.Result, error);
+//                            completed(this, args);
+//                        }
+//
+//                        if (runTask.Status != TaskStatus.RanToCompletion)
+//                            throw runTask.Exception; // Rethrow innner exceptions.
+//
+//                        return runTask.Result; // Give additional continuation functions access to the results task.
+//                    });
+//        }
 
         public LiveQuery ToLiveQuery() 
         {
@@ -171,14 +232,14 @@ namespace Couchbase.Lite {
             if (TemporaryView)
                 View.Delete();
         }
-    #endregion
-    
-    #region Delegates
-
-        public delegate void QueryCompleteDelegate(QueryEnumerator rows, Exception error);
-
-    #endregion
-    
+    #endregion    
     }
+
+    #region Delegates
+
+    public delegate void QueryCompleteDelegate(QueryEnumerator rows, Exception error);
+
+    #endregion
+        
 }
 

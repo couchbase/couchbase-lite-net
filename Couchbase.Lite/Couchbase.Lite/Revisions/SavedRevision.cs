@@ -179,7 +179,7 @@ namespace Couchbase.Lite {
         /// The new <see cref="Couchbase.Lite.SavedRevision"/>.
         /// </returns>
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
-        public SavedRevision CreateRevision(Dictionary<String, Object> properties) {
+        public SavedRevision CreateRevision(IDictionary<String, Object> properties) {
             return Document.PutProperties(properties, RevisionInternal.GetRevId());           
         }
 

@@ -36,7 +36,7 @@ namespace Couchbase.Lite
 		{
 			//create a document
 			IDictionary<string, object> documentProperties = new Dictionary<string, object>();
-			documentProperties.Put("_id", "_local/doc1");
+			documentProperties["_id"] = "_local/doc1";
 			documentProperties["foo"] = 1;
 			documentProperties["bar"] = false;
 			Body body = new Body(documentProperties);
@@ -58,7 +58,7 @@ namespace Couchbase.Lite
 				.Properties));
 			//now update it
             documentProperties = readRev.Properties;
-			documentProperties.Put("status", "updated!");
+			documentProperties["status"] = "updated!";
 			body = new Body(documentProperties);
 			RevisionInternal rev2 = new RevisionInternal(body, database);
 			RevisionInternal rev2input = rev2;

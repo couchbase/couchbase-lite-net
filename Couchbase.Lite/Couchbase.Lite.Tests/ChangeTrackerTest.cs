@@ -78,7 +78,7 @@ namespace Couchbase.Lite.Replicator
 
 			public void ChangeTrackerReceivedChange(IDictionary<string, object> change)
 			{
-				object seq = change.Get("seq");
+				object seq = change["seq"];
 			}
 
 			public HttpClient GetHttpClient()
@@ -143,7 +143,7 @@ namespace Couchbase.Lite.Replicator
 
 			public void ChangeTrackerReceivedChange(IDictionary<string, object> change)
 			{
-				object seq = change.Get("seq");
+				object seq = change["seq"];
 				changeReceivedSignal.CountDown();
 			}
 
@@ -205,7 +205,7 @@ namespace Couchbase.Lite.Replicator
 
 			public void ChangeTrackerReceivedChange(IDictionary<string, object> change)
 			{
-				object seq = change.Get("seq");
+				object seq = change["seq"];
 				NUnit.Framework.Assert.AreEqual("*:1", seq.ToString());
 				changeReceivedSignal.CountDown();
 			}
@@ -331,7 +331,7 @@ namespace Couchbase.Lite.Replicator
 
 			public void ChangeTrackerReceivedChange(IDictionary<string, object> change)
 			{
-				object seq = change.Get("seq");
+				object seq = change["seq"];
 				Log.V(ChangeTrackerTest.Tag, "changeTrackerReceivedChange: " + seq.ToString());
 			}
 
@@ -428,7 +428,7 @@ namespace Couchbase.Lite.Replicator
 
 			public void ChangeTrackerReceivedChange(IDictionary<string, object> change)
 			{
-				object seq = change.Get("seq");
+				object seq = change["seq"];
 				Log.V(ChangeTrackerTest.Tag, "changeTrackerReceivedChange: " + seq.ToString());
 			}
 

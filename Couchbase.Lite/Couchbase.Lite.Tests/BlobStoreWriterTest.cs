@@ -31,7 +31,7 @@ namespace Couchbase.Lite
 		/// <exception cref="System.Exception"></exception>
 		public virtual void TestBasicOperation()
 		{
-			BlobStore attachments = database.GetAttachments();
+			BlobStore attachments = database.Attachments;
 			InputStream attachmentStream = GetAsset("attachment.png");
 			byte[] bytes = IOUtils.ToByteArray(attachmentStream);
 			BlobStoreWriter blobStoreWriter = new BlobStoreWriter(attachments);

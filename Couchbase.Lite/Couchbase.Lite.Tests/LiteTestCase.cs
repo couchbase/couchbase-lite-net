@@ -67,18 +67,16 @@ namespace Couchbase.Lite
 			return this.GetType().GetResourceAsStream("/assets/" + name);
 		}
 
-		protected internal virtual FilePath GetRootDirectory()
+        protected internal virtual DirectoryInfo GetRootDirectory()
 		{
-			string rootDirectoryPath = Runtime.GetProperty("user.dir");
-			FilePath rootDirectory = new FilePath(rootDirectoryPath);
-			rootDirectory = new FilePath(rootDirectory, "data/data/com.couchbase.cblite.test/files"
-				);
+            var rootDirectoryPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+            var rootDirectory = new DirectoryInfo(Path.Combine(rootDirectoryPath, "data/data/com.couchbase.cblite.test/files"));
 			return rootDirectory;
 		}
 
 		protected internal virtual string GetServerPath()
 		{
-			string filesDir = GetRootDirectory().GetAbsolutePath();
+            var filesDir = GetRootDirectory().FullName;
 			return filesDir;
 		}
 
@@ -86,11 +84,10 @@ namespace Couchbase.Lite
 		protected internal virtual void StartCBLite()
 		{
 			string serverPath = GetServerPath();
-			FilePath serverPathFile = new FilePath(serverPath);
-			FileDirUtils.DeleteRecursive(serverPathFile);
-			serverPathFile.Mkdir();
-			manager = new Manager(new FilePath(GetRootDirectory(), "test"), Manager.DefaultOptions
-				);
+            var path = new DirectoryInfo(serverPath);
+            path.Delete(true);
+            path.Create();
+            manager = new Manager(new DirectoryInfo(Path.Combine(GetRootDirectory().FullName, "test")), Manager.DefaultOptions);
 		}
 
 		protected internal virtual void StopCBLite()
@@ -228,7 +225,7 @@ namespace Couchbase.Lite
 			{
 				if (!key.StartsWith("_"))
 				{
-					result.Put(key, properties.Get(key));
+					result.Put(key, properties[key]);
 				}
 			}
 			return result;
@@ -283,7 +280,7 @@ namespace Couchbase.Lite
 				{
 					foreach (string header in headers.Keys)
 					{
-						conn.SetRequestProperty(header, headers.Get(header));
+						conn.SetRequestProperty(header, headers[header]);
 					}
 				}
 				IDictionary<string, IList<string>> allProperties = conn.GetRequestProperties();
