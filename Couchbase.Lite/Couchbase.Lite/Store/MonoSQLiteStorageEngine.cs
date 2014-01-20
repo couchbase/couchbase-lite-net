@@ -30,7 +30,6 @@ using System;
 using System.Data;
 using System.Linq;
 using System.Text;
-using System.Data.SqlClient;
 using System.Diagnostics;
 using System.Threading;
 
@@ -307,7 +306,7 @@ namespace Couchbase.Lite.Storage
             var valueSet = values.ValueSet();
             var valueSetLength = valueSet.LongCount();
 
-            var sqlParams = new SqlParameter[valueSetLength + whereArgs.LongLength];
+            var sqlParams = new SqliteParameter[valueSetLength + whereArgs.LongLength];
             var index = 0L;
 
             foreach(var column in valueSet)
@@ -316,7 +315,7 @@ namespace Couchbase.Lite.Storage
                     builder.Append(",");
                 }
                 builder.AppendFormat( "{0} = @{0}", column.Key);
-                sqlParams[index++] = new SqlParameter(column.Key, column.Value);
+                sqlParams[index++] = new SqliteParameter(column.Key, column.Value);
             }
 
             if (!whereClause.IsEmpty()) {
@@ -325,7 +324,7 @@ namespace Couchbase.Lite.Storage
             }
 
             for(; index < sqlParams.LongLength; index++) {
-                sqlParams[index] = new SqlParameter(String.Empty, whereArgs[index - valueSetLength]);
+                sqlParams[index] = new SqliteParameter(String.Empty, whereArgs[index - valueSetLength]);
             }
 
             var command = new SqliteCommand(builder.ToString(), Connection, currentTransaction);
@@ -364,7 +363,7 @@ namespace Couchbase.Lite.Storage
 
             // Append our content column names and create our SQL parameters.
             var valueSet = values.ValueSet();
-            var sqlParams = new SqlParameter[valueSet.LongCount()];
+            var sqlParams = new SqliteParameter[valueSet.LongCount()];
             var valueBuilder = new StringBuilder();
             var index = 0L;
 
@@ -378,7 +377,7 @@ namespace Couchbase.Lite.Storage
                      builder.AppendFormat( "{0}", column.Key);
                 valueBuilder.AppendFormat("@{0}", column.Key);
 
-                sqlParams[index++] = new SqlParameter(column.Key, column.Value);
+                sqlParams[index++] = new SqliteParameter(column.Key, column.Value);
             }
 
             builder.Append(") VALUES (");
