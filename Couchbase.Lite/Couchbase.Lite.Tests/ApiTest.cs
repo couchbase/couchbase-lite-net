@@ -28,15 +28,17 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading;
+using NUnit.Framework;
 
 namespace Couchbase.Lite
 {
 	/// <summary>Created by andrey on 12/3/13.</summary>
 	/// <remarks>Created by andrey on 12/3/13.</remarks>
-	public class ApiTest : LiteTestCase
+    public class ApiTest : LiteTestCase
 	{
 		private int changeCount = 0;
 
+        [Test]
 		internal static void CreateDocumentsAsync(Database db, int n)
 		{
             db.RunAsync((database)=>
@@ -47,6 +49,7 @@ namespace Couchbase.Lite
                 });
 		}
 
+        [Test]
 		internal static void CreateDocuments(Database db, int n)
 		{
 			//TODO should be changed to use db.runInTransaction
@@ -59,8 +62,8 @@ namespace Couchbase.Lite
 			}
 		}
 
-		internal static Document CreateDocumentWithProperties(Database db, IDictionary<string
-			, object> properties)
+        [Test]
+		internal static Document CreateDocumentWithProperties(Database db, IDictionary<string, object> properties)
 		{
 			Document doc = db.CreateDocument();
 			NUnit.Framework.Assert.IsNotNull(doc);
@@ -87,7 +90,8 @@ namespace Couchbase.Lite
 
 		//SERVER & DOCUMENTS
 		/// <exception cref="System.IO.IOException"></exception>
-		public virtual void TestAPIManager()
+        [Test]
+        public void TestAPIManager()
 		{
 			Manager manager = this.manager;
 			NUnit.Framework.Assert.IsTrue(manager != null);
@@ -107,7 +111,8 @@ namespace Couchbase.Lite
 			NUnit.Framework.Assert.IsTrue(dbNames.Contains(DefaultTestDb));
 		}
 
-		public virtual void TestCreateDocument()
+        [Test]
+        public void TestCreateDocument()
 		{
 			IDictionary<string, object> properties = new Dictionary<string, object>();
 			properties["testName"] = "testCreateDocument";
@@ -130,7 +135,8 @@ namespace Couchbase.Lite
 		}
 
 		/// <exception cref="System.Exception"></exception>
-		public virtual void TestDatabaseCompaction()
+        [Test]
+        public void TestDatabaseCompaction()
 		{
 			IDictionary<string, object> properties = new Dictionary<string, object>();
 			properties["testName"] = "testDatabaseCompaction";
@@ -158,7 +164,8 @@ namespace Couchbase.Lite
 		}
 
 		/// <exception cref="System.Exception"></exception>
-		public virtual void TestCreateRevisions()
+        [Test]
+        public void TestCreateRevisions()
 		{
 			IDictionary<string, object> properties = new Dictionary<string, object>();
 			properties["testName"] = "testCreateRevisions";
@@ -207,7 +214,8 @@ namespace Couchbase.Lite
 		}
 
 		/// <exception cref="System.Exception"></exception>
-		public virtual void TestCreateNewRevisions()
+        [Test]
+        public void TestCreateNewRevisions()
 		{
 			IDictionary<string, object> properties = new Dictionary<string, object>();
 			properties["testName"] = "testCreateRevisions";
@@ -280,7 +288,8 @@ namespace Couchbase.Lite
 		//API_SaveMultipleUnsavedDocuments on IOS
 		//API_DeleteMultipleDocuments commented on IOS
 		/// <exception cref="System.Exception"></exception>
-		public virtual void TestDeleteDocument()
+        [Test]
+        public void TestDeleteDocument()
 		{
 			IDictionary<string, object> properties = new Dictionary<string, object>();
 			properties["testName"] = "testDeleteDocument";
@@ -294,7 +303,8 @@ namespace Couchbase.Lite
 		}
 
 		/// <exception cref="System.Exception"></exception>
-		public virtual void TestPurgeDocument()
+        [Test]
+        public void TestPurgeDocument()
 		{
 			IDictionary<string, object> properties = new Dictionary<string, object>();
 			properties["testName"] = "testPurgeDocument";
@@ -307,7 +317,8 @@ namespace Couchbase.Lite
 		}
 
 		/// <exception cref="System.Exception"></exception>
-		public virtual void TestAllDocuments()
+        [Test]
+        public void TestAllDocuments()
 		{
 			Database db = StartDatabase();
 			int kNDocs = 5;
@@ -338,7 +349,8 @@ namespace Couchbase.Lite
 		}
 
 		/// <exception cref="System.Exception"></exception>
-		public virtual void TestLocalDocs()
+        [Test]
+        public void TestLocalDocs()
 		{
 			IDictionary<string, object> properties = new Dictionary<string, object>();
 			properties["foo"] = "bar";
@@ -363,7 +375,8 @@ namespace Couchbase.Lite
 		//TODO issue: deleteLocalDocument should return error.code( see ios)
 		// HISTORY
 		/// <exception cref="System.Exception"></exception>
-		public virtual void TestHistory()
+        [Test]
+        public void TestHistory()
 		{
 			IDictionary<string, object> properties = new Dictionary<string, object>();
 			properties["testName"] = "test06_History";
@@ -400,7 +413,8 @@ namespace Couchbase.Lite
 		}
 
 		/// <exception cref="System.Exception"></exception>
-		public virtual void TestConflict()
+        [Test]
+        public void TestConflict()
 		{
 			IDictionary<string, object> prop = new Dictionary<string, object>();
 			prop["foo"] = "bar";
@@ -449,7 +463,8 @@ namespace Couchbase.Lite
 		//ATTACHMENTS
 		/// <exception cref="System.Exception"></exception>
 		/// <exception cref="System.IO.IOException"></exception>
-		public virtual void TestAttachments()
+        [Test]
+        public void TestAttachments()
 		{
 			IDictionary<string, object> properties = new Dictionary<string, object>();
 			properties["testName"] = "testAttachments";
@@ -487,7 +502,8 @@ namespace Couchbase.Lite
 
 		//CHANGE TRACKING
 		/// <exception cref="System.Exception"></exception>
-		public virtual void TestChangeTracking()
+        [Test]
+        public void TestChangeTracking()
 		{
 			var doneSignal = new CountDownLatch(1);
 			Database db = StartDatabase();
@@ -502,7 +518,8 @@ namespace Couchbase.Lite
 
 		//VIEWS
 		/// <exception cref="System.Exception"></exception>
-		public virtual void TestCreateView()
+        [Test]
+        public void TestCreateView()
 		{
 			Database db = StartDatabase();
 			View view = db.GetView("vu");
@@ -534,7 +551,8 @@ namespace Couchbase.Lite
 
 		//API_RunSlowView commented on IOS
 		/// <exception cref="System.Exception"></exception>
-		public virtual void TestValidation()
+        [Test]
+        public void TestValidation()
 		{
 			Database db = StartDatabase();
             db.SetValidation("uncool", (newRevision, context)=>
@@ -569,7 +587,8 @@ namespace Couchbase.Lite
 
 		//            assertEquals(e.getLocalizedMessage(), "forbidden: uncool"); //TODO: Not hooked up yet
 		/// <exception cref="System.Exception"></exception>
-		public virtual void TestViewWithLinkedDocs()
+        [Test]
+        public void TestViewWithLinkedDocs()
 		{
 			Database db = StartDatabase();
 			int kNDocs = 50;
@@ -607,19 +626,22 @@ namespace Couchbase.Lite
 		}
 
 		/// <exception cref="System.Exception"></exception>
-		public virtual void TestLiveQueryRun()
+        [Test]
+        public void TestLiveQueryRun()
 		{
 			RunLiveQuery("run");
 		}
 
 		/// <exception cref="System.Exception"></exception>
-		public virtual void TestLiveQueryStart()
+        [Test]
+        public void TestLiveQueryStart()
 		{
 			RunLiveQuery("start");
 		}
 
 		/// <exception cref="System.Exception"></exception>
-		public virtual void RunLiveQuery(string methodNameToCall)
+        [Test]
+        public void RunLiveQuery(string methodNameToCall)
 		{
 			Database db = StartDatabase();
 			var doneSignal = new CountDownLatch(11);
@@ -680,7 +702,8 @@ namespace Couchbase.Lite
 		}
 
 		/// <exception cref="System.Exception"></exception>
-		public virtual void TestAsyncViewQuery()
+        [Test]
+        public void TestAsyncViewQuery()
 		{
 			var doneSignal = new CountDownLatch(1);
 			Database db = StartDatabase();
@@ -727,7 +750,8 @@ namespace Couchbase.Lite
 		/// running in the background server.
 		/// </remarks>
 		/// <exception cref="System.Exception"></exception>
-		public virtual void TestSharedMapBlocks()
+        [Test]
+        public void TestSharedMapBlocks()
 		{
             var path = new DirectoryInfo(Path.Combine(GetRootDirectory().FullName, "API_SharedMapBlocks"));
             var mgr = new Manager(path, Manager.DefaultOptions);
@@ -764,7 +788,8 @@ namespace Couchbase.Lite
 		}
 
 		/// <exception cref="System.Exception"></exception>
-		public virtual void TestChangeUUID()
+        [Test]
+        public void TestChangeUUID()
 		{
             var mgr = new Manager(new DirectoryInfo(Path.Combine(GetRootDirectory().FullName, "ChangeUUID")), Manager.DefaultOptions);
             var db = mgr.GetDatabase("db");

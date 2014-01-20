@@ -225,7 +225,7 @@ namespace Couchbase.Lite
         public void SetAttachment(String name, String contentType, Uri contentUrl) {
             try
             {
-                var inputStream = contentUrl.OpenConnection(new Proxy()).GetInputStream();
+                var inputStream = contentUrl.OpenConnection().GetInputStream();
                 var length = inputStream.GetWrappedStream().Length;
                 var inputBytes = new byte[length];
                 inputStream.Read(inputBytes);

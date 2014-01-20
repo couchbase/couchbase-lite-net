@@ -29,14 +29,14 @@ using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
 using NUnit.Framework;
 using Sharpen;
+using Couchbase.Lite.Tests;
 
 namespace Couchbase.Lite
 {
-	public abstract class LiteTestCase : TestCase
+    [TestFixture]
+	public abstract class LiteTestCase
 	{
 		public const string Tag = "LiteTestCase";
-
-		private static bool initializedUrlHandler = false;
 
 		protected internal ObjectWriter mapper = new ObjectWriter();
 
@@ -47,16 +47,10 @@ namespace Couchbase.Lite
 		protected internal string DefaultTestDb = "cblite-test";
 
 		/// <exception cref="System.Exception"></exception>
-		protected override void SetUp()
+        [TestFixtureSetUp]
+		protected void SetUp()
 		{
 			Log.V(Tag, "setUp");
-			base.SetUp();
-			//for some reason a traditional static initializer causes junit to die
-			if (!initializedUrlHandler)
-			{
-				URLStreamHandlerFactory.RegisterSelfIgnoreError();
-				initializedUrlHandler = true;
-			}
 			LoadCustomProperties();
 			StartCBLite();
 			StartDatabase();
@@ -70,7 +64,7 @@ namespace Couchbase.Lite
         protected internal virtual DirectoryInfo GetRootDirectory()
 		{
             var rootDirectoryPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-            var rootDirectory = new DirectoryInfo(Path.Combine(rootDirectoryPath, "data/data/com.couchbase.cblite.test/files"));
+            var rootDirectory = new DirectoryInfo(Path.Combine(rootDirectoryPath, "couchbase/tests/files"));
 			return rootDirectory;
 		}
 
@@ -117,7 +111,13 @@ namespace Couchbase.Lite
 			Database db = manager.GetExistingDatabase(dbName);
 			if (db != null)
 			{
-				bool status = db.Delete();
+                var status = false;;
+
+                try {
+                    db.Delete ();
+                    status = true;
+                } catch (Exception ex) { }
+
 				NUnit.Framework.Assert.IsTrue(status);
 			}
 			db = manager.GetDatabase(dbName);
@@ -127,24 +127,23 @@ namespace Couchbase.Lite
 		/// <exception cref="System.IO.IOException"></exception>
 		protected internal virtual void LoadCustomProperties()
 		{
-            Properties systemProperties = Runtime.Properties;
+            var systemProperties = Runtime.Properties;
 			InputStream mainProperties = GetAsset("test.properties");
 			if (mainProperties != null)
 			{
-				systemProperties.Load(mainProperties);
+                systemProperties.Load(mainProperties);
 			}
 			try
 			{
-				InputStream localProperties = GetAsset("local-test.properties");
+                InputStream localProperties = GetAsset("local-test.properties");
 				if (localProperties != null)
 				{
-					systemProperties.Load(localProperties);
+                    systemProperties.Load(localProperties);
 				}
 			}
 			catch (IOException)
 			{
-				Log.W(Tag, "Error trying to read from local-test.properties, does this file exist?"
-					);
+				Log.W(Tag, "Error trying to read from local-test.properties, does this file exist?");
 			}
 		}
 
@@ -180,39 +179,41 @@ namespace Couchbase.Lite
 
 		protected internal virtual Uri GetReplicationURL()
 		{
+            String path = null;
 			try
 			{
-				if (GetReplicationAdminUser() != null && GetReplicationAdminUser().Trim().Length 
-					> 0)
+                if (GetReplicationAdminUser() != null && GetReplicationAdminUser().Trim().Length > 0)
 				{
-					return new Uri(string.Format("%s://%s:%s@%s:%d/%s", GetReplicationProtocol(), GetReplicationAdminUser
-						(), GetReplicationAdminPassword(), GetReplicationServer(), GetReplicationPort(), 
-						GetReplicationDatabase()));
+                    path = string.Format("{0}://{1}:{2}@{3}:{4}/{5}", GetReplicationProtocol(), GetReplicationAdminUser
+                        (), GetReplicationAdminPassword(), GetReplicationServer(), GetReplicationPort(), 
+                        GetReplicationDatabase());
+                    return new Uri(path);
 				}
 				else
 				{
-					return new Uri(string.Format("%s://%s:%d/%s", GetReplicationProtocol(), GetReplicationServer
-						(), GetReplicationPort(), GetReplicationDatabase()));
+                    path = string.Format("{0}://{1}:{2}/{3}", GetReplicationProtocol(), GetReplicationServer
+                        (), GetReplicationPort(), GetReplicationDatabase());
+                    return new Uri(path);
 				}
 			}
 			catch (UriFormatException e)
 			{
-				throw new ArgumentException(e);
+                throw new ArgumentException(String.Format("Invalid replication URL: {0}", path), e);
 			}
 		}
 
 		/// <exception cref="System.UriFormatException"></exception>
 		protected internal virtual Uri GetReplicationURLWithoutCredentials()
 		{
-			return new Uri(string.Format("%s://%s:%d/%s", GetReplicationProtocol(), GetReplicationServer
+            return new Uri(string.Format("{0}://{1}:{2}/{3}", GetReplicationProtocol(), GetReplicationServer
 				(), GetReplicationPort(), GetReplicationDatabase()));
 		}
 
 		/// <exception cref="System.Exception"></exception>
-		protected override void TearDown()
+        [TestFixtureTearDown]
+        protected void TearDown()
 		{
 			Log.V(Tag, "tearDown");
-			base.TearDown();
 			StopDatabse();
 			StopCBLite();
 		}
@@ -223,7 +224,7 @@ namespace Couchbase.Lite
 			IDictionary<string, object> result = new Dictionary<string, object>();
 			foreach (string key in properties.Keys)
 			{
-				if (!key.StartsWith("_"))
+				if (!key.StartsWith ("_", StringComparison.Ordinal))
 				{
 					result.Put(key, properties[key]);
 				}
@@ -267,88 +268,88 @@ namespace Couchbase.Lite
 			return properties;
 		}
 
-		protected internal virtual URLConnection SendRequest(string method, string path, 
-			IDictionary<string, string> headers, object bodyObj)
-		{
-			try
-			{
-				Uri url = new Uri("cblite://" + path);
-				URLConnection conn = (URLConnection)url.OpenConnection();
-				conn.SetDoOutput(true);
-				conn.SetRequestMethod(method);
-				if (headers != null)
-				{
-					foreach (string header in headers.Keys)
-					{
-						conn.SetRequestProperty(header, headers[header]);
-					}
-				}
-				IDictionary<string, IList<string>> allProperties = conn.GetRequestProperties();
-				if (bodyObj != null)
-				{
-					conn.SetDoInput(true);
-					ByteArrayInputStream bais = new ByteArrayInputStream(mapper.WriteValueAsBytes(bodyObj
-						));
-					conn.SetRequestInputStream(bais);
-				}
-				Couchbase.Lite.Router.Router router = new Couchbase.Lite.Router.Router(manager, conn
-					);
-				router.Start();
-				return conn;
-			}
-			catch (UriFormatException)
-			{
-				Fail();
-			}
-			catch (IOException)
-			{
-				Fail();
-			}
-			return null;
-		}
-
-		protected internal virtual object ParseJSONResponse(URLConnection conn)
-		{
-			object result = null;
-			Body responseBody = conn.GetResponseBody();
-			if (responseBody != null)
-			{
-				byte[] json = responseBody.GetJson();
-				string jsonString = null;
-				if (json != null)
-				{
-					jsonString = Sharpen.Runtime.GetStringForBytes(json);
-					try
-					{
-						result = mapper.ReadValue<object>(jsonString);
-					}
-					catch (Exception)
-					{
-						Fail();
-					}
-				}
-			}
-			return result;
-		}
-
-		protected internal virtual object SendBody(string method, string path, object bodyObj
-			, int expectedStatus, object expectedResult)
-		{
-			URLConnection conn = SendRequest(method, path, null, bodyObj);
-			object result = ParseJSONResponse(conn);
-			Log.V(Tag, string.Format("%s %s --> %d", method, path, conn.GetResponseCode()));
-			NUnit.Framework.Assert.AreEqual(expectedStatus, conn.GetResponseCode());
-			if (expectedResult != null)
-			{
-				NUnit.Framework.Assert.AreEqual(expectedResult, result);
-			}
-			return result;
-		}
-
-		protected internal virtual object Send(string method, string path, int expectedStatus
-			, object expectedResult)
-		{
-			return SendBody(method, path, null, expectedStatus, expectedResult);
-		}
+//		protected internal virtual URLConnection SendRequest(string method, string path, 
+//			IDictionary<string, string> headers, object bodyObj)
+//		{
+//			try
+//			{
+//                var url = new Uri("cblite://" + path);
+//                var conn = url.OpenConnection();
+//				conn.SetDoOutput(true);
+//				conn.SetRequestMethod(method);
+//				if (headers != null)
+//				{
+//					foreach (string header in headers.Keys)
+//					{
+//						conn.SetRequestProperty(header, headers[header]);
+//					}
+//				}
+//                //IDictionary<string, IList<string>> allProperties = conn.GetRequestProperties();
+//				if (bodyObj != null)
+//				{
+//                    //conn.SetDoInput(true);
+//					ByteArrayInputStream bais = new ByteArrayInputStream(mapper.WriteValueAsBytes(bodyObj
+//						));
+//                    conn.SetRequestInputStream(bais);
+//				}
+//				Couchbase.Lite.Router.Router router = new Couchbase.Lite.Router.Router(manager, conn
+//					);
+//				router.Start();
+//				return conn;
+//			}
+//			catch (UriFormatException)
+//			{
+//				Fail();
+//			}
+//			catch (IOException)
+//			{
+//				Fail();
+//			}
+//			return null;
+//		}
+//
+//		protected internal virtual object ParseJSONResponse(URLConnection conn)
+//		{
+//			object result = null;
+//			Body responseBody = conn.GetResponseBody();
+//			if (responseBody != null)
+//			{
+//				byte[] json = responseBody.GetJson();
+//				string jsonString = null;
+//				if (json != null)
+//				{
+//					jsonString = Sharpen.Runtime.GetStringForBytes(json);
+//					try
+//					{
+//						result = mapper.ReadValue<object>(jsonString);
+//					}
+//					catch (Exception)
+//					{
+//						Fail();
+//					}
+//				}
+//			}
+//			return result;
+//		}
+//
+//		protected internal virtual object SendBody(string method, string path, object bodyObj
+//			, int expectedStatus, object expectedResult)
+//		{
+//			URLConnection conn = SendRequest(method, path, null, bodyObj);
+//			object result = ParseJSONResponse(conn);
+//			Log.V(Tag, string.Format("%s %s --> %d", method, path, conn.GetResponseCode()));
+//			NUnit.Framework.Assert.AreEqual(expectedStatus, conn.GetResponseCode());
+//			if (expectedResult != null)
+//			{
+//				NUnit.Framework.Assert.AreEqual(expectedResult, result);
+//			}
+//			return result;
+//		}
+//
+//		protected internal virtual object Send(string method, string path, int expectedStatus
+//			, object expectedResult)
+//		{
+//			return SendBody(method, path, null, expectedStatus, expectedResult);
+//		}
 	}
 }

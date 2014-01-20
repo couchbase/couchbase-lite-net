@@ -80,6 +80,8 @@ namespace Sharpen
 		}
 		
 		static Hashtable properties;
+
+        public static Hashtable Properties { get { return properties; } }
 		
 		public static Hashtable GetProperties ()
 		{

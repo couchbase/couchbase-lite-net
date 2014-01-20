@@ -25,6 +25,8 @@
 // THE SOFTWARE.
 using System;
 using System.Net;
+using System.Collections;
+using System.Collections.Generic;
 
 namespace Sharpen
 {
@@ -134,6 +136,27 @@ namespace Sharpen
 			default: request.Headers.Set (key, value); break;
 			}
 		}
+
+        public IDictionary<String, Object> GetRequestProperties()
+        {
+            var props = new Dictionary<String, Object>()
+            {
+                { "user-agent", request.UserAgent },
+                { "content-length", request.ContentLength },
+                { "content-type", request.ContentType },
+                { "expect", request.Expect },
+                { "referer", request.Referer },
+                { "transfer-encoding", request.TransferEncoding },
+                { "accept", request.Accept }
+            };
+
+            for(var i = 0; i < request.Headers.Count; i++)
+            {
+                props.Add(request.Headers.GetKey(i), request.Headers.Get(i));
+            }
+
+            return props;
+        }
 		
 		public string GetResponseMessage ()
 		{

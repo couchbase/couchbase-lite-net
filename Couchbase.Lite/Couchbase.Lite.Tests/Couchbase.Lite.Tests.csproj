@@ -65,5 +65,16 @@
     <Compile Include="LiteTestCase.cs" />
     <Compile Include="AlwaysFailingClientFactory.cs" />
     <Compile Include="FailEveryRequestHandler.cs" />
+    <Compile Include="Util\ExtensionMethods.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Assets\" />
+    <Folder Include="Util\" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Assets\attachment.png" />
+    <EmbeddedResource Include="Assets\attachment2.png" />
+    <EmbeddedResource Include="Assets\test.properties" />
+    <EmbeddedResource Include="Assets\local-test.properties" />
   </ItemGroup>
 </Project>

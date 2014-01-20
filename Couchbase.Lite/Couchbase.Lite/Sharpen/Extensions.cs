@@ -703,9 +703,9 @@ namespace Sharpen
 			return string.IsNullOrEmpty (uri.Query) ? null : uri.Query;
 		}
 		
-		public static HttpURLConnection OpenConnection (this Uri uri, Proxy p)
+		public static HttpURLConnection OpenConnection (this Uri uri)
 		{
-			return new HttpsURLConnection (uri, p);
+            return new HttpURLConnection (uri, null);
 		}
 		
 		public static Uri ToURI (this Uri uri)
