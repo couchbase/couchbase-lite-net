@@ -38,8 +38,7 @@ namespace Couchbase.Lite
 	{
 		private int changeCount = 0;
 
-        [Test]
-		internal static void CreateDocumentsAsync(Database db, int n)
+		public static void CreateDocumentsAsync(Database db, int n)
 		{
             db.RunAsync((database)=>
                 {
@@ -49,8 +48,7 @@ namespace Couchbase.Lite
                 });
 		}
 
-        [Test]
-		internal static void CreateDocuments(Database db, int n)
+  		public static void CreateDocuments(Database db, int n)
 		{
 			//TODO should be changed to use db.runInTransaction
 			for (int i = 0; i < n; i++)
@@ -62,8 +60,7 @@ namespace Couchbase.Lite
 			}
 		}
 
-        [Test]
-		internal static Document CreateDocumentWithProperties(Database db, IDictionary<string, object> properties)
+ 		public static Document CreateDocumentWithProperties(Database db, IDictionary<string, object> properties)
 		{
 			Document doc = db.CreateDocument();
 			NUnit.Framework.Assert.IsNotNull(doc);

@@ -44,14 +44,14 @@ namespace Couchbase.Lite
 
 		protected internal Database database = null;
 
-		protected internal string DefaultTestDb = "cblite-test";
+		protected internal string DefaultTestDb = "cblitetest";
 
 		/// <exception cref="System.Exception"></exception>
         [TestFixtureSetUp]
 		protected void SetUp()
 		{
 			Log.V(Tag, "setUp");
-			LoadCustomProperties();
+            //LoadCustomProperties();
 			StartCBLite();
 			StartDatabase();
 		}
@@ -79,9 +79,14 @@ namespace Couchbase.Lite
 		{
 			string serverPath = GetServerPath();
             var path = new DirectoryInfo(serverPath);
-            path.Delete(true);
+
+            if (path.Exists)
+                path.Delete(true);
+
             path.Create();
-            manager = new Manager(new DirectoryInfo(Path.Combine(GetRootDirectory().FullName, "test")), Manager.DefaultOptions);
+
+            var testPath = path.CreateSubdirectory("tests");
+            manager = new Manager(testPath, Manager.DefaultOptions);
 		}
 
 		protected internal virtual void StopCBLite()
@@ -119,8 +124,10 @@ namespace Couchbase.Lite
                 } catch (Exception ex) { }
 
 				NUnit.Framework.Assert.IsTrue(status);
-			}
-			db = manager.GetDatabase(dbName);
+            } else {
+                db = manager.GetDatabase(dbName);
+                db.Open(); // Ensure sqlite file is actually created.
+            }
 			return db;
 		}
 

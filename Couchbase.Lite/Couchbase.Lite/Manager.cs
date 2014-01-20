@@ -31,7 +31,7 @@ namespace Couchbase.Lite
 
         const string DatabaseSuffix = ".cblite";
 
-        const string LegalCharacters = "[^a-z]{1,}[^a-z0-9_$()/+-]*$";
+        const string IllegalCharacters = "[^a-z]{1,}[^a-z0-9_$()/+-]*$";
 
     #endregion
 
@@ -69,7 +69,8 @@ namespace Couchbase.Lite
 
         static Manager()
         {
-            pattern = new Regex("^[abcdefghijklmnopqrstuvwxyz0123456789_$()+-/]+$");
+            illegalCharactersPattern = new Regex(IllegalCharacters);
+            legalCharactersPattern = new Regex("^[abcdefghijklmnopqrstuvwxyz0123456789_$()+-/]+$");
             mapper = new ObjectWriter();
             DefaultOptions = new ManagerOptions(false, false);
             defaultDirectory = new DirectoryInfo(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData));
@@ -125,9 +126,8 @@ namespace Couchbase.Lite
                 var result = new AList<String>();
                 foreach (var databaseFile in databaseFiles)
                 {
-                    var path = databaseFile.FullName;
-                    var trimmed = path.Substring(0, path.Length - Manager.DatabaseSuffix.Length);
-                    var replaced = trimmed.Replace(':', '/');
+                    var path = Path.GetFileNameWithoutExtension(databaseFile.FullName);
+                    var replaced = path.Replace(':', '/');
                     result.AddItem(replaced);
                 }
                 result.Sort();
@@ -255,7 +255,8 @@ namespace Couchbase.Lite
         private static readonly ObjectWriter mapper;
         private static readonly Manager sharedManager;
         private static readonly DirectoryInfo defaultDirectory;
-        private static readonly Regex pattern;
+        private static readonly Regex legalCharactersPattern;
+        private static readonly Regex illegalCharactersPattern;
 
         // Static Methods
         internal static ObjectWriter GetObjectMapper ()
@@ -265,7 +266,7 @@ namespace Couchbase.Lite
 
         private static bool ContainsOnlyLegalCharacters(string databaseName)
         {
-            return pattern.IsMatch(databaseName);
+            return !illegalCharactersPattern.IsMatch(databaseName);
         }
 
         // Instance Fields
@@ -334,7 +335,7 @@ namespace Couchbase.Lite
 
         private string PathForName(string name)
         {
-            if (String.IsNullOrEmpty (name) || pattern.IsMatch (name))
+            if (String.IsNullOrEmpty (name) || illegalCharactersPattern.IsMatch (name))
             {
                 return null;
             }

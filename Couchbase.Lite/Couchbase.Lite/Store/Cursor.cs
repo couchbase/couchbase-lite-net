@@ -17,6 +17,7 @@ namespace Couchbase.Lite
         public Cursor (IDataReader reader)
         {
             this.reader = reader;
+            currentRow = -1;
         }
 
         public bool MoveToNext ()

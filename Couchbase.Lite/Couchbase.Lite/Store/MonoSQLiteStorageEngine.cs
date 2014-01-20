@@ -61,14 +61,15 @@ namespace Couchbase.Lite.Storage
             var connectionString = new SqliteConnectionStringBuilder
             {
                 DataSource = path,
-                Version = 3
+                Version = 3,
+                SyncMode = SynchronizationModes.Full
             };
 
             var result = true;
             try {
                 shouldCommit = false;
                 Connection = new SqliteConnection (connectionString.ToString ());
-
+                Connection.Open();
             } catch (Exception ex) {
                 Log.E(Tag, "Error opening the Sqlite connection using connection String: {0}".Fmt(connectionString.ToString()), ex);
                 result = false;    
@@ -180,7 +181,7 @@ namespace Couchbase.Lite.Storage
             return RawQuery(sql, CommandBehavior.Default, selectionArgs);
         }
 
-        public override Cursor RawQuery (String sql, CommandBehavior behavior, params String[] selectionArgs)
+        public override Cursor RawQuery (String sql, CommandBehavior behavior, params String[] queryArgs)
         {
             var command = Connection.CreateCommand();
             command.CommandText = sql;
@@ -189,7 +190,7 @@ namespace Couchbase.Lite.Storage
                 command.Transaction = currentTransaction;
 
             var expectedCount = command.Parameters.Count;
-            var foundCount = selectionArgs.Length;
+            var foundCount = queryArgs != null ? queryArgs.Length : 0;
 
             if (foundCount != expectedCount){
                 var message = "Incorrect number of SQL parameters: expected {0}, found {1}.".Fmt(foundCount, expectedCount);
@@ -201,7 +202,7 @@ namespace Couchbase.Lite.Storage
             for (int i = 0; i < expectedCount; i++) 
             {
                 var param = command.Parameters [i];
-                param.Value = selectionArgs[i];
+                param.Value = queryArgs[i];
             }
 
             Cursor cursor = null;
