@@ -63,10 +63,10 @@ namespace Couchbase.Lite
  		public static Document CreateDocumentWithProperties(Database db, IDictionary<string, object> properties)
 		{
 			Document doc = db.CreateDocument();
-			NUnit.Framework.Assert.IsNotNull(doc);
-			NUnit.Framework.Assert.IsNull(doc.CurrentRevisionId);
-			NUnit.Framework.Assert.IsNull(doc.CurrentRevision);
-			NUnit.Framework.Assert.IsNotNull("Document has no ID", doc.Id);
+			Assert.IsNotNull(doc);
+			Assert.IsNull(doc.CurrentRevisionId);
+			Assert.IsNull(doc.CurrentRevision);
+			Assert.IsNotNull("Document has no ID", doc.Id);
 			// 'untitled' docs are no longer untitled (8/10/12)
 			try
 			{
@@ -75,13 +75,13 @@ namespace Couchbase.Lite
 			catch (Exception e)
 			{
 				Log.E(Tag, "Error creating document", e);
-                NUnit.Framework.Assert.IsTrue( false, "can't create new document in db:" + db.Name +
+                Assert.IsTrue( false, "can't create new document in db:" + db.Name +
                     " with properties:" + properties.ToString());
 			}
-			NUnit.Framework.Assert.IsNotNull(doc.Id);
-			NUnit.Framework.Assert.IsNotNull(doc.CurrentRevisionId);
-			NUnit.Framework.Assert.IsNotNull(doc.UserProperties);
-			NUnit.Framework.Assert.AreEqual(db.GetDocument(doc.Id), doc);
+			Assert.IsNotNull(doc.Id);
+			Assert.IsNotNull(doc.CurrentRevisionId);
+			Assert.IsNotNull(doc.UserProperties);
+			Assert.AreEqual(db.GetDocument(doc.Id), doc);
 			return doc;
 		}
 
@@ -91,21 +91,26 @@ namespace Couchbase.Lite
         public void TestAPIManager()
 		{
 			Manager manager = this.manager;
-			NUnit.Framework.Assert.IsTrue(manager != null);
+			Assert.IsTrue(manager != null);
+
             foreach (string dbName in manager.AllDatabaseNames)
 			{
 				Database db = manager.GetDatabase(dbName);
 				Log.I(Tag, "Database '" + dbName + "':" + db.DocumentCount + " documents");
 			}
+
 			var options = new ManagerOptions();
 			options.ReadOnly = true;
+
             var roManager = new Manager(new DirectoryInfo(manager.Directory), options);
-			NUnit.Framework.Assert.IsTrue(roManager != null);
-			Database db_1 = roManager.GetDatabase("foo");
-			NUnit.Framework.Assert.IsNull(db_1);
+			Assert.IsTrue(roManager != null);
+
+            var nonExistantDatabase = roManager.GetDatabase("foo");
+			Assert.IsNull(nonExistantDatabase);
+
             var dbNames = manager.AllDatabaseNames;
-            NUnit.Framework.Assert.IsFalse(dbNames.Contains<String>("foo"));
-			NUnit.Framework.Assert.IsTrue(dbNames.Contains(DefaultTestDb));
+            Assert.IsFalse(dbNames.Contains<String>("foo"));
+			Assert.IsTrue(dbNames.Contains(DefaultTestDb));
 		}
 
         [Test]
@@ -117,18 +122,18 @@ namespace Couchbase.Lite
 			Database db = StartDatabase();
 			Document doc = CreateDocumentWithProperties(db, properties);
 			string docID = doc.Id;
-			NUnit.Framework.Assert.IsTrue(docID.Length > 10, "Invalid doc ID: " + docID);
+			Assert.IsTrue(docID.Length > 10, "Invalid doc ID: " + docID);
 			string currentRevisionID = doc.CurrentRevisionId;
-			NUnit.Framework.Assert.IsTrue(currentRevisionID
+			Assert.IsTrue(currentRevisionID
                 .Length > 10, "Invalid doc revision: " + docID);
-			NUnit.Framework.Assert.AreEqual(doc.UserProperties, properties);
-			NUnit.Framework.Assert.AreEqual(db.GetDocument(docID), doc);
+			Assert.AreEqual(doc.UserProperties, properties);
+			Assert.AreEqual(db.GetDocument(docID), doc);
             db.DocumentCache.EvictAll();
 			// so we can load fresh copies
 			Document doc2 = db.GetExistingDocument(docID);
-			NUnit.Framework.Assert.AreEqual(doc2.Id, docID);
-			NUnit.Framework.Assert.AreEqual(doc2.CurrentRevisionId, currentRevisionID);
-			NUnit.Framework.Assert.IsNull(db.GetExistingDocument("b0gus"));
+			Assert.AreEqual(doc2.Id, docID);
+			Assert.AreEqual(doc2.CurrentRevisionId, currentRevisionID);
+			Assert.IsNull(db.GetExistingDocument("b0gus"));
 		}
 
 		/// <exception cref="System.Exception"></exception>
@@ -151,11 +156,11 @@ namespace Couchbase.Lite
 			{
 				if (revision.Id.Equals(rev1))
 				{
-                    NUnit.Framework.Assert.IsFalse(revision.PropertiesAvailable);
+                    Assert.IsFalse(revision.PropertiesAvailable);
 				}
 				if (revision.Id.Equals(rev2))
 				{
-					NUnit.Framework.Assert.IsTrue(revision.PropertiesAvailable);
+					Assert.IsTrue(revision.PropertiesAvailable);
 				}
 			}
 		}
@@ -170,44 +175,44 @@ namespace Couchbase.Lite
 			Database db = StartDatabase();
 			Document doc = CreateDocumentWithProperties(db, properties);
 			SavedRevision rev1 = doc.CurrentRevision;
-			NUnit.Framework.Assert.IsTrue(rev1.Id.StartsWith("1-"));
-			NUnit.Framework.Assert.AreEqual(1, rev1.Sequence);
-            NUnit.Framework.Assert.AreEqual(0, rev1.Attachments.Count());
+			Assert.IsTrue(rev1.Id.StartsWith("1-"));
+			Assert.AreEqual(1, rev1.Sequence);
+            Assert.AreEqual(0, rev1.Attachments.Count());
 			// Test -createRevisionWithProperties:
             var properties2 = new Dictionary<string, object>(properties);
 			properties2["tag"] = 4567;
             var rev2 = rev1.CreateRevision(properties2);
-			NUnit.Framework.Assert.IsNotNull(rev2, "Put failed");
-            NUnit.Framework.Assert.IsTrue(doc.CurrentRevisionId.StartsWith("2-"), "Document revision ID is still " + doc.CurrentRevisionId);
-			NUnit.Framework.Assert.AreEqual(rev2.Id, doc.CurrentRevisionId);
-            NUnit.Framework.Assert.IsNotNull(properties2);
-            NUnit.Framework.Assert.AreEqual(rev2.PropertiesAvailable, rev2.UserProperties);
-			NUnit.Framework.Assert.AreEqual(rev2.Document, doc);
-			NUnit.Framework.Assert.AreEqual(rev2.GetProperty("_id"), doc.Id);
-			NUnit.Framework.Assert.AreEqual(rev2.GetProperty("_rev"), rev2.Id);
+			Assert.IsNotNull(rev2, "Put failed");
+            Assert.IsTrue(doc.CurrentRevisionId.StartsWith("2-"), "Document revision ID is still " + doc.CurrentRevisionId);
+			Assert.AreEqual(rev2.Id, doc.CurrentRevisionId);
+            Assert.IsNotNull(properties2);
+            Assert.AreEqual(rev2.PropertiesAvailable, rev2.UserProperties);
+			Assert.AreEqual(rev2.Document, doc);
+			Assert.AreEqual(rev2.GetProperty("_id"), doc.Id);
+			Assert.AreEqual(rev2.GetProperty("_rev"), rev2.Id);
 			// Test -createRevision:
             var newRev = rev2.CreateRevision();
-			NUnit.Framework.Assert.IsNull(newRev.Id);
-			NUnit.Framework.Assert.AreEqual(newRev.Parent, rev2);
-			NUnit.Framework.Assert.AreEqual(newRev.ParentId, rev2.Id);
+			Assert.IsNull(newRev.Id);
+			Assert.AreEqual(newRev.Parent, rev2);
+			Assert.AreEqual(newRev.ParentId, rev2.Id);
             var listRevs = new AList<SavedRevision>();
             listRevs.Add(rev1);
             listRevs.Add(rev2);
-			NUnit.Framework.Assert.AreEqual(newRev.RevisionHistory, listRevs);
-			NUnit.Framework.Assert.AreEqual(newRev.Properties, rev2.Properties);
-			NUnit.Framework.Assert.AreEqual(newRev.UserProperties, rev2.UserProperties);
+			Assert.AreEqual(newRev.RevisionHistory, listRevs);
+			Assert.AreEqual(newRev.Properties, rev2.Properties);
+			Assert.AreEqual(newRev.UserProperties, rev2.UserProperties);
 			IDictionary<string, object> userProperties = new Dictionary<string, object>();
 			userProperties["because"] = "NoSQL";
 			newRev.SetUserProperties(userProperties);
-			NUnit.Framework.Assert.AreEqual(newRev.UserProperties, userProperties);
+			Assert.AreEqual(newRev.UserProperties, userProperties);
 			IDictionary<string, object> expectProperties = new Dictionary<string, object>();
 			expectProperties["because"] = "NoSQL";
 			expectProperties["_id"] = doc.Id;
 			expectProperties["_rev"] = rev2.Id;
-			NUnit.Framework.Assert.AreEqual(newRev.Properties, expectProperties);
+			Assert.AreEqual(newRev.Properties, expectProperties);
 			SavedRevision rev3 = newRev.Save();
-			NUnit.Framework.Assert.IsNotNull(rev3);
-			NUnit.Framework.Assert.AreEqual(rev3.UserProperties, newRev.UserProperties);
+			Assert.IsNotNull(rev3);
+			Assert.AreEqual(rev3.UserProperties, newRev.UserProperties);
 		}
 
 		/// <exception cref="System.Exception"></exception>
@@ -221,64 +226,64 @@ namespace Couchbase.Lite
 			Document doc = db.CreateDocument();
             var newRev = doc.CreateRevision();
             var newRevDocument = newRev.Document;
-			NUnit.Framework.Assert.AreEqual(doc, newRevDocument);
-			NUnit.Framework.Assert.AreEqual(db, newRev.Database);
-			NUnit.Framework.Assert.IsNull(newRev.ParentId);
-			NUnit.Framework.Assert.IsNull(newRev.Parent);
+			Assert.AreEqual(doc, newRevDocument);
+			Assert.AreEqual(db, newRev.Database);
+			Assert.IsNull(newRev.ParentId);
+			Assert.IsNull(newRev.Parent);
 			IDictionary<string, object> expectProperties = new Dictionary<string, object>();
 			expectProperties["_id"] = doc.Id;
-			NUnit.Framework.Assert.AreEqual(expectProperties, newRev.Properties);
-			NUnit.Framework.Assert.IsTrue(!newRev.IsDeletion);
-			NUnit.Framework.Assert.AreEqual(newRev.Sequence, 0);
+			Assert.AreEqual(expectProperties, newRev.Properties);
+			Assert.IsTrue(!newRev.IsDeletion);
+			Assert.AreEqual(newRev.Sequence, 0);
 			//ios support another approach to set properties::
 			//newRev.([@"testName"] = @"testCreateRevisions";
 			//newRev[@"tag"] = @1337;
 			newRev.SetUserProperties(properties);
-			NUnit.Framework.Assert.AreEqual(newRev.UserProperties, properties);
+			Assert.AreEqual(newRev.UserProperties, properties);
 			SavedRevision rev1 = newRev.Save();
-			NUnit.Framework.Assert.IsNotNull(rev1, "Save 1 failed");
-			NUnit.Framework.Assert.AreEqual(doc.CurrentRevision, rev1);
-			NUnit.Framework.Assert.IsNotNull(rev1.Id.StartsWith("1-"));
-            NUnit.Framework.Assert.AreEqual(1, rev1.Sequence);
-			NUnit.Framework.Assert.IsNull(rev1.ParentId);
-			NUnit.Framework.Assert.IsNull(rev1.Parent);
+			Assert.IsNotNull(rev1, "Save 1 failed");
+			Assert.AreEqual(doc.CurrentRevision, rev1);
+			Assert.IsNotNull(rev1.Id.StartsWith("1-"));
+            Assert.AreEqual(1, rev1.Sequence);
+			Assert.IsNull(rev1.ParentId);
+			Assert.IsNull(rev1.Parent);
 			newRev = rev1.CreateRevision();
 			newRevDocument = newRev.Document;
-			NUnit.Framework.Assert.AreEqual(doc, newRevDocument);
-			NUnit.Framework.Assert.AreEqual(db, newRev.Database);
-			NUnit.Framework.Assert.AreEqual(rev1.Id, newRev.ParentId);
-			NUnit.Framework.Assert.AreEqual(rev1, newRev.Parent);
-			NUnit.Framework.Assert.AreEqual(rev1.Properties, newRev.Properties);
-			NUnit.Framework.Assert.AreEqual(rev1.UserProperties, newRev.UserProperties);
-            NUnit.Framework.Assert.IsTrue(!newRev.IsDeletion);
+			Assert.AreEqual(doc, newRevDocument);
+			Assert.AreEqual(db, newRev.Database);
+			Assert.AreEqual(rev1.Id, newRev.ParentId);
+			Assert.AreEqual(rev1, newRev.Parent);
+			Assert.AreEqual(rev1.Properties, newRev.Properties);
+			Assert.AreEqual(rev1.UserProperties, newRev.UserProperties);
+            Assert.IsTrue(!newRev.IsDeletion);
 			// we can't add/modify one property as on ios. need  to add separate method?
 			// newRev[@"tag"] = @4567;
 			properties["tag"] = 4567;
 			newRev.SetUserProperties(properties);
 			SavedRevision rev2 = newRev.Save();
-			NUnit.Framework.Assert.IsNotNull(rev2, "Save 2 failed");
-			NUnit.Framework.Assert.AreEqual(doc.CurrentRevision, rev2);
-            NUnit.Framework.Assert.IsTrue(rev2.Id.StartsWith("2-"));
-			NUnit.Framework.Assert.AreEqual(2, rev2.Sequence);
-			NUnit.Framework.Assert.AreEqual(rev1.Id, rev2.ParentId);
-			NUnit.Framework.Assert.AreEqual(rev1, rev2.Parent);
-            NUnit.Framework.Assert.IsTrue(doc.CurrentRevisionId.StartsWith("2-"), "Document revision ID is still " + doc.CurrentRevisionId);
+			Assert.IsNotNull(rev2, "Save 2 failed");
+			Assert.AreEqual(doc.CurrentRevision, rev2);
+            Assert.IsTrue(rev2.Id.StartsWith("2-"));
+			Assert.AreEqual(2, rev2.Sequence);
+			Assert.AreEqual(rev1.Id, rev2.ParentId);
+			Assert.AreEqual(rev1, rev2.Parent);
+            Assert.IsTrue(doc.CurrentRevisionId.StartsWith("2-"), "Document revision ID is still " + doc.CurrentRevisionId);
 			// Add a deletion/tombstone revision:
 			newRev = doc.CreateRevision();
-			NUnit.Framework.Assert.AreEqual(rev2.Id, newRev.ParentId);
-			NUnit.Framework.Assert.AreEqual(rev2, newRev.Parent);
+			Assert.AreEqual(rev2.Id, newRev.ParentId);
+			Assert.AreEqual(rev2, newRev.Parent);
             newRev.IsDeletion = true;
 			SavedRevision rev3 = newRev.Save();
-			NUnit.Framework.Assert.IsNotNull(rev3, "Save 3 failed");
-			NUnit.Framework.Assert.AreEqual(doc.CurrentRevision, rev3);
-            NUnit.Framework.Assert.IsTrue (rev3.Id.StartsWith ("3-", StringComparison.Ordinal), "Unexpected revID " + rev3.Id);
-			NUnit.Framework.Assert.AreEqual(3, rev3.Sequence);
-			NUnit.Framework.Assert.IsTrue(rev3.IsDeletion);
-            NUnit.Framework.Assert.IsTrue(doc.Deleted);
+			Assert.IsNotNull(rev3, "Save 3 failed");
+			Assert.AreEqual(doc.CurrentRevision, rev3);
+            Assert.IsTrue (rev3.Id.StartsWith ("3-", StringComparison.Ordinal), "Unexpected revID " + rev3.Id);
+			Assert.AreEqual(3, rev3.Sequence);
+			Assert.IsTrue(rev3.IsDeletion);
+            Assert.IsTrue(doc.Deleted);
 
             Document doc2 = db.GetDocument(doc.Id);
-			NUnit.Framework.Assert.AreEqual(doc, doc2);
-			NUnit.Framework.Assert.IsNull(db.GetExistingDocument(doc.Id));
+			Assert.AreEqual(doc, doc2);
+			Assert.IsNull(db.GetExistingDocument(doc.Id));
 		}
 
 		//API_SaveMultipleDocuments on IOS
@@ -292,11 +297,11 @@ namespace Couchbase.Lite
 			properties["testName"] = "testDeleteDocument";
 			Database db = StartDatabase();
 			Document doc = CreateDocumentWithProperties(db, properties);
-			NUnit.Framework.Assert.IsTrue(!doc.Deleted);
-			NUnit.Framework.Assert.IsTrue(!doc.CurrentRevision.IsDeletion);
+			Assert.IsTrue(!doc.Deleted);
+			Assert.IsTrue(!doc.CurrentRevision.IsDeletion);
             doc.Delete();
-            NUnit.Framework.Assert.IsTrue(doc.Deleted);
-			NUnit.Framework.Assert.IsNotNull(doc.CurrentRevision.IsDeletion);
+            Assert.IsTrue(doc.Deleted);
+			Assert.IsNotNull(doc.CurrentRevision.IsDeletion);
 		}
 
 		/// <exception cref="System.Exception"></exception>
@@ -307,10 +312,10 @@ namespace Couchbase.Lite
 			properties["testName"] = "testPurgeDocument";
 			Database db = StartDatabase();
 			Document doc = CreateDocumentWithProperties(db, properties);
-			NUnit.Framework.Assert.IsNotNull(doc);
+			Assert.IsNotNull(doc);
 			doc.Purge();
             Document redoc = db.DocumentCache[doc.Id];
-			NUnit.Framework.Assert.IsNull(redoc);
+			Assert.IsNull(redoc);
 		}
 
 		/// <exception cref="System.Exception"></exception>
@@ -327,22 +332,22 @@ namespace Couchbase.Lite
 			//query.prefetch = YES;
 			Log.I(Tag, "Getting all documents: " + query);
 			QueryEnumerator rows = query.Run();
-			NUnit.Framework.Assert.AreEqual(rows.Count, kNDocs);
+			Assert.AreEqual(rows.Count, kNDocs);
 			int n = 0;
 			for (IEnumerator<QueryRow> it = rows; it.MoveNext(); )
 			{
 				QueryRow row = it.Current;
 				Log.I(Tag, "    --> " + row);
 				Document doc = row.Document;
-				NUnit.Framework.Assert.IsNotNull(doc, "Couldn't get doc from query");
-				NUnit.Framework.Assert.IsNotNull(doc.CurrentRevision.PropertiesAvailable, "QueryRow should have preloaded revision contents"
+				Assert.IsNotNull(doc, "Couldn't get doc from query");
+				Assert.IsNotNull(doc.CurrentRevision.PropertiesAvailable, "QueryRow should have preloaded revision contents"
                     );
 				Log.I(Tag, "        Properties =" + doc.Properties);
-                NUnit.Framework.Assert.IsNotNull(doc.Properties, "Couldn't get doc properties");
-				NUnit.Framework.Assert.AreEqual(doc.GetProperty("testName"), "testDatabase");
+                Assert.IsNotNull(doc.Properties, "Couldn't get doc properties");
+				Assert.AreEqual(doc.GetProperty("testName"), "testDatabase");
 				n++;
 			}
-			NUnit.Framework.Assert.AreEqual(n, kNDocs);
+			Assert.AreEqual(n, kNDocs);
 		}
 
 		/// <exception cref="System.Exception"></exception>
@@ -353,20 +358,20 @@ namespace Couchbase.Lite
 			properties["foo"] = "bar";
 			Database db = StartDatabase();
 			IDictionary<string, object> props = db.GetExistingLocalDocument("dock");
-            NUnit.Framework.Assert.IsNull(props);
+            Assert.IsNull(props);
             db.PutLocalDocument("dock" , properties);
 			props = db.GetExistingLocalDocument("dock");
-			NUnit.Framework.Assert.AreEqual(props["foo"], "bar");
+			Assert.AreEqual(props["foo"], "bar");
 			IDictionary<string, object> newProperties = new Dictionary<string, object>();
 			newProperties["FOOO"] = "BARRR";
             db.PutLocalDocument("dock", newProperties);
 			props = db.GetExistingLocalDocument("dock");
-			NUnit.Framework.Assert.IsNull(props["foo"]);
-			NUnit.Framework.Assert.AreEqual(props["FOOO"], "BARRR");
-            NUnit.Framework.Assert.IsNotNull(db.DeleteLocalDocument("dock"), "Couldn't delete local doc");
+			Assert.IsNull(props["foo"]);
+			Assert.AreEqual(props["FOOO"], "BARRR");
+            Assert.IsNotNull(db.DeleteLocalDocument("dock"), "Couldn't delete local doc");
 			props = db.GetExistingLocalDocument("dock");
-			NUnit.Framework.Assert.IsNull(props);
-			NUnit.Framework.Assert.IsNotNull(!db.DeleteLocalDocument("dock"),"Second delete should have failed");
+			Assert.IsNull(props);
+			Assert.IsNotNull(!db.DeleteLocalDocument("dock"),"Second delete should have failed");
 		}
 
 		//TODO issue: deleteLocalDocument should return error.code( see ios)
@@ -382,31 +387,31 @@ namespace Couchbase.Lite
 			Document doc = CreateDocumentWithProperties(db, properties);
 			string rev1ID = doc.CurrentRevisionId;
 			Log.I(Tag, "1st revision: " + rev1ID);
-            NUnit.Framework.Assert.IsTrue (rev1ID.StartsWith ("1-", StringComparison.Ordinal), "1st revision looks wrong: " + rev1ID);
-			NUnit.Framework.Assert.AreEqual(doc.UserProperties, properties);
+            Assert.IsTrue (rev1ID.StartsWith ("1-", StringComparison.Ordinal), "1st revision looks wrong: " + rev1ID);
+			Assert.AreEqual(doc.UserProperties, properties);
             properties = new Dictionary<string, object>(doc.Properties);
 			properties["tag"] = 2;
-			NUnit.Framework.Assert.IsNotNull(!properties.Equals(doc.Properties));
-			NUnit.Framework.Assert.IsNotNull(doc.PutProperties(properties));
+			Assert.IsNotNull(!properties.Equals(doc.Properties));
+			Assert.IsNotNull(doc.PutProperties(properties));
 			string rev2ID = doc.CurrentRevisionId;
 			Log.I(Tag, "rev2ID" + rev2ID);
-                NUnit.Framework.Assert.IsTrue(rev2ID.StartsWith("2-", StringComparison.Ordinal), "2nd revision looks wrong:" + rev2ID);
+                Assert.IsTrue(rev2ID.StartsWith("2-", StringComparison.Ordinal), "2nd revision looks wrong:" + rev2ID);
             var revisions = doc.RevisionHistory.ToList();
             Log.I(Tag, "Revisions = " + revisions);
-            NUnit.Framework.Assert.AreEqual(revisions.Count, 2);
+            Assert.AreEqual(revisions.Count, 2);
 			SavedRevision rev1 = revisions[0];
-			NUnit.Framework.Assert.AreEqual(rev1.Id, rev1ID);
+			Assert.AreEqual(rev1.Id, rev1ID);
 			IDictionary<string, object> gotProperties = rev1.Properties;
-			NUnit.Framework.Assert.AreEqual(1, gotProperties["tag"]);
+			Assert.AreEqual(1, gotProperties["tag"]);
 			SavedRevision rev2 = revisions[1];
-			NUnit.Framework.Assert.AreEqual(rev2.Id, rev2ID);
-			NUnit.Framework.Assert.AreEqual(rev2, doc.CurrentRevision);
+			Assert.AreEqual(rev2.Id, rev2ID);
+			Assert.AreEqual(rev2, doc.CurrentRevision);
 			gotProperties = rev2.Properties;
-			NUnit.Framework.Assert.AreEqual(2, gotProperties["tag"]);
+			Assert.AreEqual(2, gotProperties["tag"]);
             var tmp = new AList<SavedRevision>();
 			tmp.Add(rev2);
-			NUnit.Framework.Assert.AreEqual(doc.ConflictingRevisions, tmp);
-			NUnit.Framework.Assert.AreEqual(doc.LeafRevisions, tmp);
+			Assert.AreEqual(doc.ConflictingRevisions, tmp);
+			Assert.AreEqual(doc.LeafRevisions, tmp);
 		}
 
 		/// <exception cref="System.Exception"></exception>
@@ -427,15 +432,15 @@ namespace Couchbase.Lite
             newRev.SetProperties(properties);
 			bool allowConflict = true;
             SavedRevision rev2b = newRev.Save();
-			NUnit.Framework.Assert.IsNotNull(rev2b, "Failed to create a a conflict");
+			Assert.IsNotNull(rev2b, "Failed to create a a conflict");
             var confRevs = new AList<SavedRevision>();
 			confRevs.AddItem(rev2b);
 			confRevs.AddItem(rev2a);
-			NUnit.Framework.Assert.AreEqual(doc.ConflictingRevisions, confRevs);
-			NUnit.Framework.Assert.AreEqual(doc.LeafRevisions, confRevs);
+			Assert.AreEqual(doc.ConflictingRevisions, confRevs);
+			Assert.AreEqual(doc.LeafRevisions, confRevs);
 			SavedRevision defaultRev;
 			SavedRevision otherRev;
-			if (Sharpen.Runtime.CompareOrdinal(rev2a.Id, rev2b.Id) > 0)
+			if (Runtime.CompareOrdinal(rev2a.Id, rev2b.Id) > 0)
 			{
 				defaultRev = rev2a;
 				otherRev = rev2b;
@@ -445,16 +450,16 @@ namespace Couchbase.Lite
 				defaultRev = rev2b;
 				otherRev = rev2a;
 			}
-			NUnit.Framework.Assert.AreEqual(doc.CurrentRevision, defaultRev);
+			Assert.AreEqual(doc.CurrentRevision, defaultRev);
 			Query query = db.CreateAllDocumentsQuery();
             query.AllDocsMode = AllDocsMode.ShowConflicts;
 			QueryEnumerator rows = query.Run();
-			NUnit.Framework.Assert.AreEqual(rows.Count, 1);
+			Assert.AreEqual(rows.Count, 1);
 			QueryRow row = rows.GetRow(0);
             IList<SavedRevision> revs = row.GetConflictingRevisions().ToList();
-			NUnit.Framework.Assert.AreEqual(revs.Count, 2);
-			NUnit.Framework.Assert.AreEqual(revs[0], defaultRev);
-			NUnit.Framework.Assert.AreEqual(revs[1], otherRev);
+			Assert.AreEqual(revs.Count, 2);
+			Assert.AreEqual(revs[0], defaultRev);
+			Assert.AreEqual(revs[1], otherRev);
 		}
 
 		//ATTACHMENTS
@@ -468,33 +473,33 @@ namespace Couchbase.Lite
 			Database db = StartDatabase();
 			Document doc = CreateDocumentWithProperties(db, properties);
 			SavedRevision rev = doc.CurrentRevision;
-			NUnit.Framework.Assert.AreEqual(rev.Attachments.Count(), 0);
-            NUnit.Framework.Assert.AreEqual(rev.AttachmentNames.Count(), 0);
-            NUnit.Framework.Assert.IsNull(rev.GetAttachment("index.html"));
+			Assert.AreEqual(rev.Attachments.Count(), 0);
+            Assert.AreEqual(rev.AttachmentNames.Count(), 0);
+            Assert.IsNull(rev.GetAttachment("index.html"));
 			string content = "This is a test attachment!";
-            var body = new ByteArrayInputStream(Sharpen.Runtime.GetBytesForString(content).ToArray());
+            var body = new ByteArrayInputStream(Runtime.GetBytesForString(content).ToArray());
 			UnsavedRevision rev2 = doc.CreateRevision();
             rev2.SetAttachment("index.html", "text/plain; charset=utf-8", body);
 			SavedRevision rev3 = rev2.Save();
-			NUnit.Framework.Assert.IsNotNull(rev3);
-			NUnit.Framework.Assert.AreEqual(rev3.Attachments.Count(), 1);
-            NUnit.Framework.Assert.AreEqual(rev3.AttachmentNames.Count(), 1);
+			Assert.IsNotNull(rev3);
+			Assert.AreEqual(rev3.Attachments.Count(), 1);
+            Assert.AreEqual(rev3.AttachmentNames.Count(), 1);
             Attachment attach = rev3.GetAttachment("index.html");
-			NUnit.Framework.Assert.IsNotNull(attach);
-			NUnit.Framework.Assert.AreEqual(doc, attach.Document);
-			NUnit.Framework.Assert.AreEqual("index.html", attach.Name);
+			Assert.IsNotNull(attach);
+			Assert.AreEqual(doc, attach.Document);
+			Assert.AreEqual("index.html", attach.Name);
 			IList<string> attNames = new AList<string>();
 			attNames.AddItem("index.html");
-			NUnit.Framework.Assert.AreEqual(rev3.AttachmentNames, attNames);
-			NUnit.Framework.Assert.AreEqual("text/plain; charset=utf-8", attach.ContentType);
-            NUnit.Framework.Assert.AreEqual(Encoding.UTF8.GetString(attach.Content.ToArray()), content);
-            NUnit.Framework.Assert.AreEqual(Sharpen.Runtime.GetBytesForString(content).ToArray().Length
+			Assert.AreEqual(rev3.AttachmentNames, attNames);
+			Assert.AreEqual("text/plain; charset=utf-8", attach.ContentType);
+            Assert.AreEqual(Encoding.UTF8.GetString(attach.Content.ToArray()), content);
+            Assert.AreEqual(Runtime.GetBytesForString(content).ToArray().Length
                 , attach.Length);
 			UnsavedRevision newRev = rev3.CreateRevision();
 			newRev.RemoveAttachment(attach.Name);
 			SavedRevision rev4 = newRev.Save();
-			NUnit.Framework.Assert.IsNotNull(rev4);
-            NUnit.Framework.Assert.AreEqual(0, rev4.AttachmentNames.Count());
+			Assert.IsNotNull(rev4);
+            Assert.AreEqual(0, rev4.AttachmentNames.Count());
 		}
 
 		//CHANGE TRACKING
@@ -509,8 +514,8 @@ namespace Couchbase.Lite
 			// We expect that the changes reported by the server won't be notified, because those revisions
 			// are already cached in memory.
 			bool success = doneSignal.Await(300, TimeUnit.Seconds);
-			NUnit.Framework.Assert.IsTrue(success);
-			NUnit.Framework.Assert.AreEqual(5, db.GetLastSequenceNumber());
+			Assert.IsTrue(success);
+			Assert.AreEqual(5, db.GetLastSequenceNumber());
 		}
 
 		//VIEWS
@@ -520,28 +525,28 @@ namespace Couchbase.Lite
 		{
 			Database db = StartDatabase();
 			View view = db.GetView("vu");
-			NUnit.Framework.Assert.IsNotNull(view);
-			NUnit.Framework.Assert.AreEqual(db, view.Database);
-			NUnit.Framework.Assert.AreEqual("vu", view.Name);
-			NUnit.Framework.Assert.IsNull(view.Map);
-			NUnit.Framework.Assert.IsNull(view.Reduce);
+			Assert.IsNotNull(view);
+			Assert.AreEqual(db, view.Database);
+			Assert.AreEqual("vu", view.Name);
+			Assert.IsNull(view.Map);
+			Assert.IsNull(view.Reduce);
             view.SetMap((document, emitter) => emitter (document.Get ("sequence"), null), "1");
-			NUnit.Framework.Assert.IsNotNull(view.Map != null);
+			Assert.IsNotNull(view.Map != null);
 			int kNDocs = 50;
 			CreateDocuments(db, kNDocs);
             Query query = view.CreateQuery();
 			query.StartKey=23;
 			query.EndKey=33;
-            NUnit.Framework.Assert.AreEqual(db, query.Database);
+            Assert.AreEqual(db, query.Database);
 			QueryEnumerator rows = query.Run();
-			NUnit.Framework.Assert.IsNotNull(rows);
-            NUnit.Framework.Assert.AreEqual(11, rows.Count);
+			Assert.IsNotNull(rows);
+            Assert.AreEqual(11, rows.Count);
         	int expectedKey = 23;
 			for (IEnumerator<QueryRow> it = rows; it.MoveNext(); )
 			{
 				QueryRow row = it.Current;
-				NUnit.Framework.Assert.AreEqual(expectedKey, row.Key);
-				NUnit.Framework.Assert.AreEqual(expectedKey + 1, row.SequenceNumber);
+				Assert.AreEqual(expectedKey, row.Key);
+				Assert.AreEqual(expectedKey + 1, row.SequenceNumber);
 				++expectedKey;
 			}
 		}
@@ -567,18 +572,18 @@ namespace Couchbase.Lite
 			properties["groovy"] = "right on";
 			properties["foo"] = "bar";
 			Document doc = db.CreateDocument();
-			NUnit.Framework.Assert.IsNotNull(doc.PutProperties(properties));
+			Assert.IsNotNull(doc.PutProperties(properties));
 			properties = new Dictionary<string, object>();
 			properties["foo"] = "bar";
 			doc = db.CreateDocument();
 			try
 			{
-				NUnit.Framework.Assert.IsNull(doc.PutProperties(properties));
+				Assert.IsNull(doc.PutProperties(properties));
 			}
 			catch (CouchbaseLiteException e)
 			{
 				//TODO
-				NUnit.Framework.Assert.AreEqual(e.GetCBLStatus().GetCode(), StatusCode.Forbidden);
+				Assert.AreEqual(e.GetCBLStatus().GetCode(), StatusCode.Forbidden);
 			}
 		}
 
@@ -608,16 +613,16 @@ namespace Couchbase.Lite
 			query.EndKey=33;
 			query.Prefetch=true;
 			QueryEnumerator rows = query.Run();
-			NUnit.Framework.Assert.IsNotNull(rows);
-			NUnit.Framework.Assert.AreEqual(rows.Count, 11);
+			Assert.IsNotNull(rows);
+			Assert.AreEqual(rows.Count, 11);
 			int rowNumber = 23;
 			for (IEnumerator<QueryRow> it = rows; it.MoveNext(); )
 			{
 				QueryRow row = it.Current;
-				NUnit.Framework.Assert.AreEqual(row.Key, rowNumber);
+				Assert.AreEqual(row.Key, rowNumber);
 				Document prevDoc = docs[rowNumber];
-				NUnit.Framework.Assert.AreEqual(row.DocumentId, prevDoc.Id);
-				NUnit.Framework.Assert.AreEqual(row.Document, prevDoc);
+				Assert.AreEqual(row.DocumentId, prevDoc.Id);
+				Assert.AreEqual(row.Document, prevDoc);
 				++rowNumber;
 			}
 		}
@@ -685,14 +690,14 @@ namespace Couchbase.Lite
 			}
 			else
 			{
-				NUnit.Framework.Assert.IsNull(query.Rows);
+				Assert.IsNull(query.Rows);
 				query.Run();
 				// this will block until the query completes
-				NUnit.Framework.Assert.IsNotNull(query.Rows);
+				Assert.IsNotNull(query.Rows);
 			}
 			// wait for the doneSignal to be finished
 			bool success = doneSignal.Await(300, TimeUnit.Seconds);
-            NUnit.Framework.Assert.IsTrue(success, "Done signal timed out live query never ran");
+            Assert.IsTrue(success, "Done signal timed out live query never ran");
 			// stop the livequery since we are done with it
             query.Changed -= handler;
 			query.Stop();
@@ -719,14 +724,14 @@ namespace Couchbase.Lite
                 Log.I (LiteTestCase.Tag, "Async query finished!");
                 var rows = resultTask.Result;
 
-                NUnit.Framework.Assert.IsNotNull (rows);
-                NUnit.Framework.Assert.AreEqual (rows.Count, 11);
+                Assert.IsNotNull (rows);
+                Assert.AreEqual (rows.Count, 11);
 
                 int expectedKey = 23;
                 for (IEnumerator<QueryRow> it = rows; it.MoveNext ();) {
                     QueryRow row = it.Current;
-                    NUnit.Framework.Assert.AreEqual (row.Document.Database, db);
-                    NUnit.Framework.Assert.AreEqual (row.Key, expectedKey);
+                    Assert.AreEqual (row.Document.Database, db);
+                    Assert.AreEqual (row.Key, expectedKey);
                     ++expectedKey;
                 }
                 doneSignal.CountDown ();
@@ -735,7 +740,7 @@ namespace Couchbase.Lite
 			Log.I(Tag, "Waiting for async query to finish...");
 
             var success = task.Wait(300000);
-			NUnit.Framework.Assert.IsTrue(success, "Done signal timed out..StartKey=ry never ran");
+			Assert.IsTrue(success, "Done signal timed out..StartKey=ry never ran");
 		}
 
 		/// <summary>
@@ -761,7 +766,7 @@ namespace Couchbase.Lite
             var view = db.GetView("view");
             var ok = view.SetMapReduce((p1, p2)=>{ return; }, (a, b, c) => { return null; }, null);
 
-            NUnit.Framework.Assert.IsNotNull(ok, "Couldn't set map/reduce");
+            Assert.IsNotNull(ok, "Couldn't set map/reduce");
 
             var map = view.Map;
             var reduce = view.Reduce;
@@ -769,13 +774,13 @@ namespace Couchbase.Lite
             var validation = db.GetValidation("val");
             var result = mgr.RunAsync("db", (database)=>
                 {
-                    NUnit.Framework.Assert.IsNotNull(database);
+                    Assert.IsNotNull(database);
                     View serverView = database.GetExistingView("view");
-                    NUnit.Framework.Assert.IsNotNull(serverView);
-                    NUnit.Framework.Assert.AreEqual(database.GetFilter("phil"), filter);
-                    NUnit.Framework.Assert.AreEqual(database.GetValidation("val"), validation);
-                    NUnit.Framework.Assert.AreEqual(serverView.Map, map);
-                    NUnit.Framework.Assert.AreEqual(serverView.Reduce, reduce);
+                    Assert.IsNotNull(serverView);
+                    Assert.AreEqual(database.GetFilter("phil"), filter);
+                    Assert.AreEqual(database.GetValidation("val"), validation);
+                    Assert.AreEqual(serverView.Map, map);
+                    Assert.AreEqual(serverView.Reduce, reduce);
                     return true;
                 });
             result.RunSynchronously();
@@ -795,11 +800,11 @@ namespace Couchbase.Lite
 
             var pub = db.PublicUUID();
             var priv = db.PrivateUUID();
-			NUnit.Framework.Assert.IsTrue(pub.Length > 10);
-			NUnit.Framework.Assert.IsTrue(priv.Length > 10);
-            NUnit.Framework.Assert.IsTrue(db.ReplaceUUIDs(), "replaceUUIDs failed");
-			NUnit.Framework.Assert.IsFalse(pub.Equals(db.PublicUUID()));
-			NUnit.Framework.Assert.IsFalse(priv.Equals(db.PrivateUUID()));
+			Assert.IsTrue(pub.Length > 10);
+			Assert.IsTrue(priv.Length > 10);
+            Assert.IsTrue(db.ReplaceUUIDs(), "replaceUUIDs failed");
+			Assert.IsFalse(pub.Equals(db.PublicUUID()));
+			Assert.IsFalse(priv.Equals(db.PrivateUUID()));
 			mgr.Close();
 		}
 	}
