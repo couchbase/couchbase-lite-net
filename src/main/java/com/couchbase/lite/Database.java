@@ -293,25 +293,36 @@ public class Database {
 
     /**
      * Deletes the database.
+     *
+     * @throws java.lang.RuntimeException
      */
     @InterfaceAudience.Public
-    public boolean delete() {
+    public void delete() {
         if(open) {
             if(!close()) {
-                return false;
+                throw new RuntimeException("The database was open, and could not be closed");
             }
         }
         manager.forgetDatabase(this);
         if(!exists()) {
-            return true;
+            return;
         }
         File file = new File(path);
         File attachmentsFile = new File(getAttachmentStorePath());
 
         boolean deleteStatus = file.delete();
+
         //recursively delete attachments path
         boolean deleteAttachmentStatus = FileDirUtils.deleteRecursive(attachmentsFile);
-        return deleteStatus && deleteAttachmentStatus;
+
+        if (!deleteStatus) {
+            throw new RuntimeException("Was not able to delete the database file");
+        }
+
+        if (!deleteAttachmentStatus) {
+            throw new RuntimeException("Was not able to delete the attachments files");
+        }
+
     }
 
 
