@@ -3207,7 +3207,8 @@ public class Database {
         SavedRevision publicRev = new SavedRevision(this, newRev);
         for (String validationName : validations.keySet()) {
             Validator validation = getValidation(validationName);
-            if(!validation.validate(publicRev, context)) {
+            validation.validate(publicRev, context);
+            if(context.getRejectMessage() != null) {
                 throw new CouchbaseLiteException(context.getRejectMessage(), Status.FORBIDDEN);
             }
         }
