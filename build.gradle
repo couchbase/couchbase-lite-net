@@ -95,6 +95,6 @@ task generateJavadocs(type: Javadoc) {
     options.docletpath = pathList
     options.doclet = "ExcludeDoclet"
     options.showFromPublic()
-    exclude "org/apache/http/**"
+    exclude "org/apache/http/**", "com/couchbase/touchdb/**"
 
 }
