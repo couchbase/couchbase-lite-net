@@ -39,14 +39,33 @@ import java.util.regex.Pattern;
 public class Manager {
 
     public static final String VERSION =  "1.0.0-beta";
+
+    /**
+     * @exclude
+     */
     public static final String HTTP_ERROR_DOMAIN =  "CBLHTTP";
 
-    private static final ObjectMapper mapper = new ObjectMapper();
+    /**
+     * @exclude
+     */
     public static final String DATABASE_SUFFIX_OLD = ".touchdb";
+
+    /**
+     * @exclude
+     */
     public static final String DATABASE_SUFFIX = ".cblite";
+
+    /**
+     * @exclude
+     */
     public static final ManagerOptions DEFAULT_OPTIONS = new ManagerOptions();
+
+    /**
+     * @exclude
+     */
     public static final String LEGAL_CHARACTERS = "[^a-z]{1,}[^a-z0-9_$()/+-]*$";
 
+    private static final ObjectMapper mapper = new ObjectMapper();
     private ManagerOptions options;
     private File directoryFile;
     private Map<String, Database> databases;
@@ -54,6 +73,9 @@ public class Manager {
     private ScheduledExecutorService workExecutor;
     private HttpClientFactory defaultHttpClientFactory;
 
+    /**
+     * @exclude
+     */
     @InterfaceAudience.Private
     public static ObjectMapper getObjectMapper() {
         return mapper;
@@ -62,6 +84,7 @@ public class Manager {
     /**
      * Constructor
      * @throws UnsupportedOperationException - not currently supported
+     * @exclude
      */
     @InterfaceAudience.Public
     public Manager() {
@@ -95,6 +118,7 @@ public class Manager {
     /**
      * Get shared instance
      * @throws UnsupportedOperationException - not currently supported
+     * @exclude
      */
     @InterfaceAudience.Public
     public static Manager getSharedInstance() {
@@ -225,17 +249,26 @@ public class Manager {
         database.replaceUUIDs();
     }
 
-    @InterfaceAudience.Public
+    /**
+     * @exclude
+     */
+    @InterfaceAudience.Private
     public HttpClientFactory getDefaultHttpClientFactory() {
         return defaultHttpClientFactory;
     }
 
-    @InterfaceAudience.Public
+    /**
+     * @exclude
+     */
+    @InterfaceAudience.Private
     public void setDefaultHttpClientFactory(
             HttpClientFactory defaultHttpClientFactory) {
         this.defaultHttpClientFactory = defaultHttpClientFactory;
     }
 
+    /**
+     * @exclude
+     */
     @InterfaceAudience.Private
     private static boolean containsOnlyLegalCharacters(String databaseName) {
         Pattern p = Pattern.compile("^[abcdefghijklmnopqrstuvwxyz0123456789_$()+-/]+$");
@@ -243,6 +276,9 @@ public class Manager {
         return matcher.matches();
     }
 
+    /**
+     * @exclude
+     */
     @InterfaceAudience.Private
     private void upgradeOldDatabaseFiles(File directory) {
         File[] files = directory.listFiles(new FilenameFilter() {
@@ -269,12 +305,18 @@ public class Manager {
         }
     }
 
+    /**
+     * @exclude
+     */
     @InterfaceAudience.Private
     private String filenameWithNewExtension(String oldFilename, String oldExtension, String newExtension) {
         String oldExtensionRegex = String.format("%s$",oldExtension);
         return oldFilename.replaceAll(oldExtensionRegex, newExtension);
     }
 
+    /**
+     * @exclude
+     */
     @InterfaceAudience.Private
     public Collection<Database> allOpenDatabases() {
         return databases.values();
@@ -285,6 +327,7 @@ public class Manager {
      * Asynchronously dispatches a callback to run on a background thread. The callback will be passed
      * Database instance.  There is not currently a known reason to use it, it may not make
      * sense on the Android API, but it was added for the purpose of having a consistent API with iOS.
+     * @exclude
      */
     @InterfaceAudience.Private
     public Future runAsync(String databaseName, final AsyncTask function) {
@@ -299,11 +342,17 @@ public class Manager {
 
     }
 
+    /**
+     * @exclude
+     */
     @InterfaceAudience.Private
     Future runAsync(Runnable runnable) {
         return workExecutor.submit(runnable);
     }
 
+    /**
+     * @exclude
+     */
     @InterfaceAudience.Private
     private String pathForName(String name) {
         if((name == null) || (name.length() == 0) || Pattern.matches(LEGAL_CHARACTERS, name)) {
@@ -314,6 +363,9 @@ public class Manager {
         return result;
     }
 
+    /**
+     * @exclude
+     */
     @InterfaceAudience.Private
     private Map<String, Object> parseSourceOrTarget(Map<String,Object> properties, String key) {
         Map<String, Object> result = new HashMap<String, Object>();
@@ -330,6 +382,9 @@ public class Manager {
 
     }
 
+    /**
+     * @exclude
+     */
     @InterfaceAudience.Private
     Replication replicationWithDatabase(Database db, URL remote, boolean push, boolean create, boolean start) {
         for (Replication replicator : replications) {
@@ -360,7 +415,9 @@ public class Manager {
         return replicator;
     }
 
-
+    /**
+     * @exclude
+     */
     @InterfaceAudience.Private
     public Database getDatabaseWithoutOpening(String name, boolean mustExist) {
         Database db = databases.get(name);
@@ -387,6 +444,9 @@ public class Manager {
         return db;
     }
 
+    /**
+     * @exclude
+     */
     @InterfaceAudience.Private
     /* package */ void forgetDatabase(Database db) {
 
@@ -404,6 +464,9 @@ public class Manager {
         }
     }
 
+    /**
+     * @exclude
+     */
     @InterfaceAudience.Private
     public Replication getReplicator(Map<String,Object> properties) throws CouchbaseLiteException {
 
@@ -525,6 +588,9 @@ public class Manager {
         return repl;
     }
 
+    /**
+     * @exclude
+     */
     @InterfaceAudience.Private
     public ScheduledExecutorService getWorkExecutor() {
         return workExecutor;
