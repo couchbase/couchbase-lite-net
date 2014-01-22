@@ -12,7 +12,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * A CouchbaseLite document (as opposed to any specific revision of it.)
+ * A CouchbaseLite document.
  */
 public class Document {
 
@@ -46,6 +46,7 @@ public class Document {
      *
      * @param database   The document's owning database
      * @param documentId The document's ID
+     * @exclude
      */
     @InterfaceAudience.Private
     public Document(Database database, String documentId) {
@@ -352,6 +353,7 @@ public class Document {
 
     /**
      * Get the document's abbreviated ID
+     * @exclude
      */
     @InterfaceAudience.Private
     public String getAbbreviatedId() {
@@ -364,6 +366,9 @@ public class Document {
         return documentId;
     }
 
+    /**
+     * @exclude
+     */
     @InterfaceAudience.Private
     /* package */ List<SavedRevision> getLeafRevisions(boolean includeDeleted) throws CouchbaseLiteException {
 
@@ -381,7 +386,9 @@ public class Document {
         return Collections.unmodifiableList(result);
     }
 
-
+    /**
+     * @exclude
+     */
     @InterfaceAudience.Private
     /* package */ SavedRevision putProperties(Map<String, Object> properties, String prevID, boolean allowConflict) throws CouchbaseLiteException {
         String newId = null;
@@ -420,6 +427,9 @@ public class Document {
 
     }
 
+    /**
+     * @exclude
+     */
     @InterfaceAudience.Private
     /* package */ SavedRevision getRevisionFromRev(RevisionInternal internalRevision) {
         if (internalRevision == null) {
@@ -434,6 +444,9 @@ public class Document {
 
     }
 
+    /**
+     * @exclude
+     */
     @InterfaceAudience.Private
     /* package */ SavedRevision getRevisionWithId(String revId) {
         if (revId != null && currentRevision != null && revId.equals(currentRevision.getId())) {
@@ -446,7 +459,9 @@ public class Document {
         );
     }
 
-
+    /**
+     * @exclude
+     */
     @InterfaceAudience.Private
     /* package */ void loadCurrentRevisionFrom(QueryRow row) {
         if (row.getDocumentRevisionId() == null) {
@@ -462,11 +477,17 @@ public class Document {
         }
      }
 
+    /**
+     * @exclude
+     */
     @InterfaceAudience.Private
     private boolean revIdGreaterThanCurrent(String revId) {
         return (RevisionInternal.CBLCompareRevIDs(revId, currentRevision.getId()) > 0);
     }
 
+    /**
+     * @exclude
+     */
     @InterfaceAudience.Private
     /* package */ void revisionAdded(DocumentChange documentChange) {
 
@@ -483,7 +504,6 @@ public class Document {
         }
 
     }
-
 
 
 }
