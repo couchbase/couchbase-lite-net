@@ -39,6 +39,7 @@ public class SavedRevision extends Revision {
 
     /**
      * Constructor
+     * @exclude
      */
     @InterfaceAudience.Private
     /* package */ SavedRevision(Document document, RevisionInternal revision) {
@@ -48,6 +49,7 @@ public class SavedRevision extends Revision {
 
     /**
      * Constructor
+     * @exclude
      */
     @InterfaceAudience.Private
     /* package */ SavedRevision(Database database, RevisionInternal revision) {
@@ -179,6 +181,9 @@ public class SavedRevision extends Revision {
         return sequence;
     }
 
+    /**
+     * @exclude
+     */
     @InterfaceAudience.Private
     /* package */ boolean loadProperties() {
         try {

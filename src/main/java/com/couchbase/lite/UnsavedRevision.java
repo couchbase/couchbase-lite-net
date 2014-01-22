@@ -17,6 +17,7 @@ public class UnsavedRevision extends Revision {
 
     /**
      * Constructor
+     * @exclude
      */
     @InterfaceAudience.Private
     /* package */ protected UnsavedRevision(Document document, SavedRevision parentRevision) {
