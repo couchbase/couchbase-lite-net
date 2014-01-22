@@ -382,6 +382,7 @@ public class View {
                 String msg = String.format("lastSequence (%d) == dbMaxSequence (%d), nothing to do",
                         lastSequence, dbMaxSequence);
                 Log.d(Database.TAG, msg);
+                result.setCode(Status.OK);
                 return;
             }
 
