@@ -48,9 +48,9 @@ namespace Couchbase.Lite.Storage
 		/// <exception cref="Couchbase.Lite.Storage.SQLException"></exception>
         public abstract void ExecSQL(string sql, params Object[] bindArgs);
 
-        public abstract Cursor RawQuery(string sql, params String[] selectionArgs);
+        public abstract Cursor RawQuery(string sql, params Object[] paramArgs);
 
-        public abstract Cursor RawQuery(string sql, CommandBehavior behavior, params String[] selectionArgs);
+        public abstract Cursor RawQuery(string sql, CommandBehavior behavior, params Object[] paramArgs);
 
 		public abstract long Insert(string table, string nullColumnHack, ContentValues values);
 

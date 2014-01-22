@@ -1072,8 +1072,7 @@ namespace Couchbase.Lite
             // OPT: Could start after last sequence# we GC'd up to
             try
             {
-                StorageEngine.ExecSQL("DELETE FROM attachments WHERE sequence IN " + "(SELECT sequence from revs WHERE json IS null)"
-                );
+                StorageEngine.ExecSQL("DELETE FROM attachments WHERE sequence IN (SELECT sequence from revs WHERE json IS null)");
             }
             catch (SQLException e)
             {
@@ -1236,7 +1235,7 @@ namespace Couchbase.Lite
             var sql = "SELECT sequence, revs.doc_id, docid, revid, deleted" + additionalSelectColumns
                       + " FROM revs, docs " + "WHERE sequence > @ AND current=1 " + "AND revs.doc_id = docs.doc_id "
                       + "ORDER BY revs.doc_id, revid DESC";
-            var args = new [] { Convert.ToString(lastSeq) };
+            var args = new [] { lastSeq };
 
             Cursor cursor = null;
             RevisionList changes = null;
@@ -1513,7 +1512,7 @@ namespace Couchbase.Lite
             try
             {
                 cursor = StorageEngine.RawQuery(sql, args);
-                cursor.MoveToNext();
+                //cursor.MoveToNext();
 
                 if (!cursor.IsAfterLast())
                 {
@@ -2186,7 +2185,7 @@ namespace Couchbase.Lite
             try
             {
                 cursor = null;
-                string cols = "revid, deleted, sequence";
+                var cols = "revid, deleted, sequence";
                 if (!contentOptions.Contains(TDContentOptions.TDNoBody))
                 {
                     cols += ", json";
@@ -2194,13 +2193,13 @@ namespace Couchbase.Lite
                 if (rev != null)
                 {
                     sql = "SELECT " + cols + " FROM revs, docs WHERE docs.docid=@ AND revs.doc_id=docs.doc_id AND revid=@ LIMIT 1";
-                    string[] args = new string[] { id, rev };
+                    var args = new[] { id, rev };
                     cursor = StorageEngine.RawQuery(sql, args);
                 }
                 else
                 {
                     sql = "SELECT " + cols + " FROM revs, docs WHERE docs.docid=@ AND revs.doc_id=docs.doc_id and current=1 and deleted=0 ORDER BY revid DESC LIMIT 1";
-                    string[] args = new string[] { id };
+                    var args = new[] { id };
                     cursor = StorageEngine.RawQuery(sql, CommandBehavior.SequentialAccess, args);
                 }
                 if (cursor.MoveToNext())
@@ -2394,7 +2393,9 @@ namespace Couchbase.Lite
 
                 while (!cursor.IsAfterLast())
                 {
-                    long sequence = cursor.GetLong(0);
+                    var sequence = cursor.GetLong(0);
+                    var parent = cursor.GetLong(1);
+
                     bool matches = false;
                     if (lastSequence == 0)
                     {
@@ -2409,11 +2410,13 @@ namespace Couchbase.Lite
                         revId = cursor.GetString(2);
                         var deleted = (cursor.GetInt(3) > 0);
 
-                        RevisionInternal aRev = new RevisionInternal(docId, revId, deleted, this);
-                        aRev.SetSequence(cursor.GetLong(0));
+                        var aRev = new RevisionInternal(docId, revId, deleted, this);
+                        aRev.SetSequence(sequence);
                         result.AddItem(aRev);
 
-                        lastSequence = cursor.GetLong(1);
+                        if (parent > -1)
+                            lastSequence = parent;
+
                         if (lastSequence == 0)
                         {
                             break;
@@ -2557,7 +2560,7 @@ namespace Couchbase.Lite
             Debug.Assert((sequence > 0));
 
             Cursor cursor = null;
-            var args = new [] { Convert.ToString(sequence) };
+            var args = new Object[] { sequence };
 
             try
             {
@@ -2728,14 +2731,33 @@ namespace Couchbase.Lite
             // PART I: In which are performed lookups and validations prior to the insert...
             var docNumericID = (docId != null) ? GetDocNumericID(docId) : 0;
             var parentSequence = 0L;
+            string oldWinningRevID = null;
             try
             {
+                var oldWinnerWasDeletion = false;
+                var wasConflicted = false;
+                if (docNumericID > 0)
+                {
+                    var outIsDeleted = new AList<bool>();
+                    var outIsConflict = new AList<bool>();
+                    try
+                    {
+                        oldWinningRevID = WinningRevIDOfDoc(docNumericID, outIsDeleted, outIsConflict);
+                        oldWinnerWasDeletion |= outIsDeleted.Count > 0;
+                        wasConflicted |= outIsConflict.Count > 0;
+                    }
+                    catch (Exception e)
+                    {
+                        Sharpen.Runtime.PrintStackTrace(e);
+                    }
+                }
                 if (prevRevId != null)
                 {
                     // Replacing: make sure given prevRevID is current & find its sequence number:
                     if (docNumericID <= 0)
                     {
-                        throw new CouchbaseLiteException(StatusCode.NotFound);
+                        var msg = string.Format("No existing revision found with doc id: {0}", docId);
+                        throw new CouchbaseLiteException(msg, StatusCode.NotFound);
                     }
                     var args = new [] { Convert.ToString(docNumericID), prevRevId };
                     var additionalWhereClause = String.Empty;
@@ -2755,16 +2777,17 @@ namespace Couchbase.Lite
                         // Not found: either a 404 or a 409, depending on whether there is any current revision
                         if (!allowConflict && ExistsDocumentWithIDAndRev(docId, null))
                         {
-                            throw new CouchbaseLiteException(StatusCode.Conflict);
+                            var msg = string.Format("Conflicts not allowed and there is already an existing doc with id: {0}", docId);
+                            throw new CouchbaseLiteException(msg, StatusCode.Conflict);
                         }
                         else
                         {
-                            throw new CouchbaseLiteException(StatusCode.NotFound);
+                            var msg = string.Format("No existing revision found with doc id: {0}", docId);
+                            throw new CouchbaseLiteException(msg, StatusCode.NotFound);
                         }
                     }
 
-                    var validate = Validations;
-                    if (validate != null)
+                    if (Validations != null && Validations.Count > 0)
                     {
                         // Fetch the previous revision and validate the new one against it:
                         var prevRev = new RevisionInternal(docId, prevRevId, false, this);
@@ -2807,27 +2830,18 @@ namespace Couchbase.Lite
                         }
                         else
                         {
-                            // Doc exists; check whether current winning revision is deleted:
-                            var args = new[] { Convert.ToString(docNumericID) };
-                            cursor = StorageEngine.RawQuery("SELECT sequence, deleted FROM revs WHERE doc_id=@ and current=1 ORDER BY revid DESC LIMIT 1", args);
-                            if (cursor.MoveToNext())
+                            // Doc ID exists; check whether current winning revision is deleted:
+                            if (oldWinnerWasDeletion)
                             {
-                                var wasAlreadyDeleted = (cursor.GetInt(1) > 0);
-                                if (wasAlreadyDeleted)
+                                prevRevId = oldWinningRevID;
+                                parentSequence = GetSequenceOfDocument(docNumericID, prevRevId, false);
+                            }
+                            else
+                            {
+                                if (oldWinningRevID != null)
                                 {
-                                    // Make the deleted revision no longer current:
-                                    var updateContent = new ContentValues();
-                                    updateContent["current"] = 0;
-                                    StorageEngine.Update("revs", updateContent, "sequence=" + cursor.GetLong(0), null);
-                                }
-                                else
-                                {
-                                    if (!allowConflict)
-                                    {
-                                        var msg = string.Format("docId ({0}) already exists, current not " + "deleted, so conflict.  Did you forget to pass in a previous "
-                                                                   + "revision ID in the properties being saved?", docId);
-                                        throw new CouchbaseLiteException(msg, StatusCode.Conflict);
-                                    }
+                                    // The current winning revision is not deleted, so this is a conflict
+                                    throw new CouchbaseLiteException(StatusCode.Conflict);
                                 }
                             }
                         }
@@ -2861,7 +2875,7 @@ namespace Couchbase.Lite
                 newRev = oldRev.CopyWithDocID(docId, newRevId);
                 StubOutAttachmentsInRevision(attachments, oldRev);
                 // Now insert the rev itself:
-                long newSequence = InsertRevision(oldRev, docNumericID, parentSequence, true, data);
+                long newSequence = InsertRevision(newRev, docNumericID, parentSequence, true, data);
                 if (newSequence == 0)
                 {
                     return null;
@@ -2869,9 +2883,13 @@ namespace Couchbase.Lite
                 // Store any attachments:
                 if (attachments != null)
                 {
-                    ProcessAttachmentsForRevision(attachments, oldRev, parentSequence);
+                    ProcessAttachmentsForRevision(attachments, newRev, parentSequence);
                 }
-                // Success!
+
+                // Figure out what the new winning rev ID is:
+                winningRev = Winner(docNumericID, oldWinningRevID, oldWinnerWasDeletion, newRev);
+
+                                // Success!
                 if (deleted)
                 {
                     resultStatus.SetCode(StatusCode.Ok);
@@ -2897,6 +2915,84 @@ namespace Couchbase.Lite
             // EPILOGUE: A change notification is sent...
             NotifyChange(newRev, winningRev, null, inConflict);
             return oldRev;
+        }
+
+        internal RevisionInternal Winner(Int64 docNumericID, String oldWinningRevID, Boolean oldWinnerWasDeletion, RevisionInternal newRev)
+        {
+            if (oldWinningRevID == null)
+            {
+                return newRev;
+            }
+            var newRevID = newRev.GetRevId();
+            if (!newRev.IsDeleted())
+            {
+                if (oldWinnerWasDeletion || RevisionInternal.CBLCompareRevIDs(newRevID, oldWinningRevID) > 0)
+                {
+                    return newRev;
+                }
+            }
+            else
+            {
+                // this is now the winning live revision
+                if (oldWinnerWasDeletion)
+                {
+                    if (RevisionInternal.CBLCompareRevIDs(newRevID, oldWinningRevID) > 0)
+                    {
+                        return newRev;
+                    }
+                }
+                else
+                {
+                    // doc still deleted, but this beats previous deletion rev
+                    // Doc was alive. How does this deletion affect the winning rev ID?
+                    var outIsDeleted = new AList<bool>();
+                    var outIsConflict = new AList<bool>();
+                    var winningRevID = WinningRevIDOfDoc(docNumericID, outIsDeleted, outIsConflict);
+
+                    if (!winningRevID.Equals(oldWinningRevID))
+                    {
+                        if (winningRevID.Equals(newRev.GetRevId()))
+                        {
+                            return newRev;
+                        }
+                        else
+                        {
+                            var deleted = false;
+                            var winningRev = new RevisionInternal(newRev.GetDocId(), winningRevID, deleted, this);
+                            return winningRev;
+                        }
+                    }
+                }
+            }
+            return null;
+        }
+
+        private Int64 GetSequenceOfDocument(Int64 docNumericId, String revId, Boolean onlyCurrent)
+        {
+            var result = -1L;
+            Cursor cursor = null;
+            try
+            {
+                var extraSql = (onlyCurrent ? "AND current=1" : string.Empty);
+                var sql = string.Format("SELECT sequence FROM revs WHERE doc_id=@ AND revid=@ %s LIMIT 1", extraSql);
+                var args = new [] { string.Empty + docNumericId, revId };
+                cursor = StorageEngine.RawQuery(sql, args);
+                result = cursor.MoveToNext()
+                             ? cursor.GetLong(0)
+                             : 0;
+            }
+            catch (Exception e)
+            {
+                Log.E(Database.Tag, "Error getting getSequenceOfDocument", e);
+            }
+            finally
+            {
+                if (cursor != null)
+                {
+                    cursor.Close();
+                }
+            }
+            return result;
         }
 
         internal void NotifyChange(RevisionInternal rev, RevisionInternal winningRev, Uri source, bool inConflict)

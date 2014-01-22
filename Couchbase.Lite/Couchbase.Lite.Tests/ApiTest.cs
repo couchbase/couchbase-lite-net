@@ -29,6 +29,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using NUnit.Framework;
+using System.Security.Permissions;
 
 namespace Couchbase.Lite
 {
@@ -76,7 +77,7 @@ namespace Couchbase.Lite
 			{
 				Log.E(Tag, "Error creating document", e);
                 Assert.IsTrue( false, "can't create new document in db:" + db.Name +
-                    " with properties:" + properties.ToString());
+                    " with properties:" + properties.Aggregate(new StringBuilder(" >>> "), (str, kvp)=> { str.AppendFormat("'{0}:{1}' ", kvp.Key, kvp.Value); return str; }, str=>str.ToString()));
 			}
 			Assert.IsNotNull(doc.Id);
 			Assert.IsNotNull(doc.CurrentRevisionId);
@@ -90,6 +91,7 @@ namespace Couchbase.Lite
         [Test]
         public void TestAPIManager()
 		{
+            StartDatabase();
 			Manager manager = this.manager;
 			Assert.IsTrue(manager != null);
 
@@ -116,21 +118,24 @@ namespace Couchbase.Lite
         [Test]
         public void TestCreateDocument()
 		{
-			IDictionary<string, object> properties = new Dictionary<string, object>();
+            var properties = new Dictionary<string, object>();
 			properties["testName"] = "testCreateDocument";
-			properties["tag"] = 1337;
-			Database db = StartDatabase();
-			Document doc = CreateDocumentWithProperties(db, properties);
-			string docID = doc.Id;
+            properties["tag"] = 1337L;
+
+			var db = StartDatabase();
+			var doc = CreateDocumentWithProperties(db, properties);
+            var docID = doc.Id;
 			Assert.IsTrue(docID.Length > 10, "Invalid doc ID: " + docID);
-			string currentRevisionID = doc.CurrentRevisionId;
-			Assert.IsTrue(currentRevisionID
-                .Length > 10, "Invalid doc revision: " + docID);
+
+            var currentRevisionID = doc.CurrentRevisionId;
+			Assert.IsTrue(currentRevisionID.Length > 10, "Invalid doc revision: " + docID);
 			Assert.AreEqual(doc.UserProperties, properties);
 			Assert.AreEqual(db.GetDocument(docID), doc);
+
             db.DocumentCache.EvictAll();
-			// so we can load fresh copies
-			Document doc2 = db.GetExistingDocument(docID);
+			
+            // so we can load fresh copies
+            var doc2 = db.GetExistingDocument(docID);
 			Assert.AreEqual(doc2.Id, docID);
 			Assert.AreEqual(doc2.CurrentRevisionId, currentRevisionID);
 			Assert.IsNull(db.GetExistingDocument("b0gus"));
@@ -140,18 +145,23 @@ namespace Couchbase.Lite
         [Test]
         public void TestDatabaseCompaction()
 		{
-			IDictionary<string, object> properties = new Dictionary<string, object>();
+            var properties = new Dictionary<string, object>();
 			properties["testName"] = "testDatabaseCompaction";
 			properties["tag"] = 1337;
-			Document doc = CreateDocumentWithProperties(database, properties);
-			SavedRevision rev1 = doc.CurrentRevision;
-			IDictionary<string, object> properties2 = new Dictionary<string, object>(properties
-				);
+
+            var db = StartDatabase();
+            var doc = CreateDocumentWithProperties(db, properties);
+            var rev1 = doc.CurrentRevision;
+            var properties2 = new Dictionary<string, object>(properties);
 			properties2["tag"] = 4567;
-			SavedRevision rev2 = rev1.CreateRevision(properties2);
-			database.Compact();
-			Document fetchedDoc = database.GetDocument(doc.Id);
+
+            var rev2 = rev1.CreateRevision(properties2);
+
+            db.Compact();
+
+            var fetchedDoc = database.GetDocument(doc.Id);
             var revisions = fetchedDoc.RevisionHistory;
+
 			foreach (SavedRevision revision in revisions)
 			{
 				if (revision.Id.Equals(rev1))

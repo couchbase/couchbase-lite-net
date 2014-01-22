@@ -30,6 +30,7 @@ using Couchbase.Lite.Util;
 using NUnit.Framework;
 using Sharpen;
 using Couchbase.Lite.Tests;
+using System.Diagnostics;
 
 namespace Couchbase.Lite
 {
@@ -50,10 +51,10 @@ namespace Couchbase.Lite
         [TestFixtureSetUp]
 		protected void SetUp()
 		{
+            Trace.Listeners.Add(new ConsoleTraceListener());
 			Log.V(Tag, "setUp");
             //LoadCustomProperties();
 			StartCBLite();
-			StartDatabase();
 		}
 
 		protected internal virtual InputStream GetAsset(string name)

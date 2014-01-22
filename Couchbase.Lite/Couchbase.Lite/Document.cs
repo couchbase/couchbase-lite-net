@@ -44,15 +44,16 @@ namespace Couchbase.Lite {
         /// <summary>Get the ID of the current revision</summary>
         public String CurrentRevisionId {
             get {
-                return CurrentRevision == null 
+                var cr = CurrentRevision;
+                return cr == null 
                     ? null
-                    : CurrentRevision.Id;
+                    : cr.Id;
             }
         }
 
         /// <summary>Get the current revision</summary>
         public SavedRevision CurrentRevision { get {
-                return currentRevision ?? (currentRevision = GetRevision(null));
+                return currentRevision ?? (currentRevision = GetRevisionWithId(null));
             }
         }
 
@@ -235,6 +236,15 @@ namespace Couchbase.Lite {
 
 
     #region Non-public Members
+
+        private SavedRevision GetRevisionWithId(String revId)
+        {
+            if (!String.IsNullOrWhiteSpace(revId) && revId.Equals(currentRevision.Id))
+            {
+                return currentRevision;
+            }
+            return GetRevisionFromRev(Database.GetDocumentWithIDAndRev(Id, revId, EnumSet.NoneOf<TDContentOptions>()));
+        }
 
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>       
         internal SavedRevision PutProperties(IDictionary<String, Object> properties, String prevID)

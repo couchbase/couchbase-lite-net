@@ -33,6 +33,7 @@ using System.Text;
 using System.Data.SqlClient;
 using System.Diagnostics;
 using System.Threading;
+using System.Web.UI;
 
 namespace Couchbase.Lite.Storage
 {
@@ -85,7 +86,10 @@ namespace Couchbase.Lite.Storage
 
             var result = -1;
             try {
-                result = (Int32)command.ExecuteScalar();
+                var commandResult = command.ExecuteScalar();
+                if (commandResult is Int32) {
+                    result = (Int32)commandResult;
+                }
             } catch (Exception e) {
                 Log.E(Tag, "Error getting user version", e);
             } finally {
@@ -119,7 +123,7 @@ namespace Couchbase.Lite.Storage
 
         public override void BeginTransaction ()
         {
-            Connection.BeginTransaction(DefaultIsolationLevel);
+            currentTransaction = Connection.BeginTransaction(DefaultIsolationLevel);
         }
 
         public override void BeginTransaction (IsolationLevel isolationLevel)
@@ -129,6 +133,14 @@ namespace Couchbase.Lite.Storage
 
         public override void EndTransaction ()
         {
+            if (Connection.State != ConnectionState.Open)
+                throw new InvalidOperationException("Database is not open.");
+
+            if (currentTransaction == null) {
+                if (shouldCommit)
+                    throw new InvalidOperationException ("Transaction missing.");
+                return;
+            }
             if (shouldCommit) {
                 currentTransaction.Commit();
                 shouldCommit = false;
@@ -136,6 +148,7 @@ namespace Couchbase.Lite.Storage
                 currentTransaction.Rollback();
             }
             currentTransaction.Dispose();
+            currentTransaction = null;
         }
 
         public override void SetTransactionSuccessful ()
@@ -176,33 +189,31 @@ namespace Couchbase.Lite.Storage
             }
         }
 
-        public override Cursor RawQuery (String sql, params String[] selectionArgs)
+        public override Cursor RawQuery (String sql, params Object[] paramArgs)
         {
-            return RawQuery(sql, CommandBehavior.Default, selectionArgs);
+            return RawQuery(sql, CommandBehavior.Default, paramArgs);
         }
 
-        public override Cursor RawQuery (String sql, CommandBehavior behavior, params String[] queryArgs)
+        public override Cursor RawQuery (String sql, CommandBehavior behavior, params Object[] paramArgs)
         {
             var command = Connection.CreateCommand();
-            command.CommandText = sql;
+            command.CommandText = sql.ReplacePositionalParams();
 
             if (currentTransaction != null)
                 command.Transaction = currentTransaction;
 
+            if (paramArgs != null && paramArgs.Length > 0) {
+                command.Parameters.AddRange(paramArgs.ToSqliteParameters());
+            }
+
             var expectedCount = command.Parameters.Count;
-            var foundCount = queryArgs != null ? queryArgs.Length : 0;
+            var foundCount = paramArgs != null ? paramArgs.Length : 0;
 
             if (foundCount != expectedCount){
                 var message = "Incorrect number of SQL parameters: expected {0}, found {1}.".Fmt(foundCount, expectedCount);
                 var err = new CouchbaseLiteException(message);
                 Log.E(Tag, message, err);
                 throw err;
-            }
-
-            for (int i = 0; i < expectedCount; i++) 
-            {
-                var param = command.Parameters [i];
-                param.Value = queryArgs[i];
             }
 
             Cursor cursor = null;
@@ -235,7 +246,7 @@ namespace Couchbase.Lite.Storage
 
             var resultCount = -1L;
             try {
-                resultCount = (Int64)command.ExecuteScalar ();
+                resultCount = command.ExecuteNonQuery();
             } catch (Exception ex) {
                 Log.E(Tag, "Error inserting into table " + table, ex);
             }
@@ -254,7 +265,7 @@ namespace Couchbase.Lite.Storage
 
             var resultCount = -1;
             try {
-                resultCount = (Int32)command.ExecuteScalar ();
+                resultCount = (Int32)command.ExecuteNonQuery ();
             } catch (Exception ex) {
                 Log.E(Tag, "Error updating table " + table, ex);
             }
@@ -307,7 +318,7 @@ namespace Couchbase.Lite.Storage
             var valueSet = values.ValueSet();
             var valueSetLength = valueSet.LongCount();
 
-            var sqlParams = new SqlParameter[valueSetLength + whereArgs.LongLength];
+            var sqlParams = new SqliteParameter[valueSetLength + (whereArgs != null ? whereArgs.LongLength : 0L)];
             var index = 0L;
 
             foreach(var column in valueSet)
@@ -316,7 +327,7 @@ namespace Couchbase.Lite.Storage
                     builder.Append(",");
                 }
                 builder.AppendFormat( "{0} = @{0}", column.Key);
-                sqlParams[index++] = new SqlParameter(column.Key, column.Value);
+                sqlParams[index++] = new SqliteParameter(column.Key, column.Value);
             }
 
             if (!whereClause.IsEmpty()) {
@@ -325,16 +336,10 @@ namespace Couchbase.Lite.Storage
             }
 
             for(; index < sqlParams.LongLength; index++) {
-                sqlParams[index] = new SqlParameter(String.Empty, whereArgs[index - valueSetLength]);
+                sqlParams[index] = new SqliteParameter(String.Empty, whereArgs[index - valueSetLength]);
             }
 
             var command = new SqliteCommand(builder.ToString(), Connection, currentTransaction);
-
-            if (command.Parameters.Count != sqlParams.Length) {
-                var e = new CouchbaseLiteException("{0} does not support the 'nullColumnHack'.".Fmt(Tag));
-                Log.E(Tag, "SQL parameter count does not match the count of parameters provided.", e);
-                throw e;
-            }
 
             command.Parameters.Clear();
             command.Parameters.AddRange(sqlParams);
@@ -364,7 +369,7 @@ namespace Couchbase.Lite.Storage
 
             // Append our content column names and create our SQL parameters.
             var valueSet = values.ValueSet();
-            var sqlParams = new SqlParameter[valueSet.LongCount()];
+            var sqlParams = new SqliteParameter[valueSet.LongCount()];
             var valueBuilder = new StringBuilder();
             var index = 0L;
 
@@ -378,7 +383,7 @@ namespace Couchbase.Lite.Storage
                      builder.AppendFormat( "{0}", column.Key);
                 valueBuilder.AppendFormat("@{0}", column.Key);
 
-                sqlParams[index++] = new SqlParameter(column.Key, column.Value);
+                sqlParams[index++] = new SqliteParameter(column.Key, column.Value);
             }
 
             builder.Append(") VALUES (");

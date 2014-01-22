@@ -16,7 +16,7 @@
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
     <OutputPath>bin\Debug</OutputPath>
-    <DefineConstants>DEBUG;</DefineConstants>
+    <DefineConstants>DEBUG;TRACE;</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <ConsolePause>false</ConsolePause>
@@ -240,6 +240,7 @@
     <Compile Include="Store\ConflictResolutionStrategy.cs" />
     <Compile Include="Store\CouchbaseSqliteCollationFunction.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Extensions\SqliteExtensions.cs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="System" />
@@ -259,9 +260,6 @@
       <HintPath>..\lib\Newtonsoft.Json.dll</HintPath>
     </Reference>
     <Reference Include="System.Web" />
-    <Reference Include="ServiceStack.Text">
-      <HintPath>packages\ServiceStack.Text.4.0.5\lib\net40\ServiceStack.Text.dll</HintPath>
-    </Reference>
   </ItemGroup>
   <ProjectExtensions>
     <MonoDevelop>

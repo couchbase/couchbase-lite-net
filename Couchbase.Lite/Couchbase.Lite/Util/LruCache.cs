@@ -239,11 +239,11 @@ namespace Couchbase.Lite.Util
 			return previous;
 		}
 
-		/// <param name="maxSize">
+        /// <param name="customSize">
 		/// the maximum size of the cache before returning. May be -1
 		/// to evict even 0-sized elements.
 		/// </param>
-		private void TrimToSize(int maxSize)
+        private void TrimToSize(int customSize)
 		{
 			while (true)
 			{
@@ -256,7 +256,7 @@ namespace Couchbase.Lite.Util
 						throw new InvalidOperationException(GetType().FullName + ".sizeOf() is reporting inconsistent results!"
 							);
 					}
-					if (size <= maxSize)
+                    if (size <= maxSize)
 					{
 						break;
 					}

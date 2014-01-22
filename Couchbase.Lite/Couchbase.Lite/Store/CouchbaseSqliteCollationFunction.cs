@@ -21,12 +21,11 @@
 
 using Mono.Data.Sqlite;
 using System;
-using ServiceStack.Text;
 using System.Text;
 
 namespace Couchbase.Lite.Storage
 {
-    [SqliteFunction(Name = "compare", FuncType = FunctionType.Collation, Arguments = 2)]
+    [SqliteFunction(Name = "JSON", FuncType = FunctionType.Collation, Arguments = 2)]
     internal class CouchbaseSqliteCollationFunction : SqliteFunction
     {
         public override Int32 Compare (String param1, String param2)

@@ -107,7 +107,7 @@ namespace Couchbase.Lite.Internal
 			}
 			try
 			{
-				obj = Manager.GetObjectMapper().ReadValue<object>(json);
+                obj = Manager.GetObjectMapper().ReadValue<IDictionary<string,object>>(json);
 			}
 			catch (IOException e)
 			{
