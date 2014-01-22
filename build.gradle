@@ -94,4 +94,5 @@ task generateJavadocs(type: Javadoc) {
     pathList.add(file('extra/doclet/doclet.jar'))
     options.docletpath = pathList
     options.doclet = "ExcludeDoclet"
+    options.showFromPublic()
 }
