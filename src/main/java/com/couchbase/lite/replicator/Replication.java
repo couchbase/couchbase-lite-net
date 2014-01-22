@@ -73,8 +73,19 @@ public abstract class Replication {
     protected static final int PROCESSOR_DELAY = 500;
     protected static final int INBOX_CAPACITY = 100;
 
+    /**
+     * @exclude
+     */
     public static final String BY_CHANNEL_FILTER_NAME = "sync_gateway/bychannel";
+
+    /**
+     * @exclude
+     */
     public static final String CHANNELS_QUERY_PARAM = "channels";
+
+    /**
+     * @exclude
+     */
     public static final String REPLICATOR_DATABASE_NAME = "_replicator";
 
     /**
@@ -90,6 +101,7 @@ public abstract class Replication {
 
     /**
      * Private Constructor
+     * @exclude
      */
     @InterfaceAudience.Private
     /* package */ public Replication(Database db, URL remote, boolean continuous, ScheduledExecutorService workExecutor) {
@@ -98,6 +110,7 @@ public abstract class Replication {
 
     /**
      * Private Constructor
+     * @exclude
      */
     @InterfaceAudience.Private
     /* package */ public Replication(Database db, URL remote, boolean continuous, HttpClientFactory clientFactory, ScheduledExecutorService workExecutor) {
@@ -166,6 +179,7 @@ public abstract class Replication {
      * set in the manager if available.
      * @param clientFactory
      */
+    @InterfaceAudience.Private
     protected void setClientFactory(HttpClientFactory clientFactory) {
         Manager manager = null;
         if (this.db != null) {
@@ -489,16 +503,25 @@ public abstract class Replication {
         changeListeners.remove(changeListener);
     }
 
+    /**
+     * @exclude
+     */
     @InterfaceAudience.Private
     public void setAuthorizer(Authorizer authorizer) {
         this.authorizer = authorizer;
     }
 
+    /**
+     * @exclude
+     */
     @InterfaceAudience.Private
     public Authorizer getAuthorizer() {
         return authorizer;
     }
 
+    /**
+     * @exclude
+     */
     @InterfaceAudience.Private
     public void databaseClosing() {
         saveLastSequence();
@@ -506,11 +529,17 @@ public abstract class Replication {
         db = null;
     }
 
+    /**
+     * @exclude
+     */
     @InterfaceAudience.Private
     public String getLastSequence() {
         return lastSequence;
     }
 
+    /**
+     * @exclude
+     */
     @InterfaceAudience.Private
     public void setLastSequence(String lastSequenceIn) {
         if (lastSequenceIn != null && !lastSequenceIn.equals(lastSequence)) {
@@ -529,6 +558,7 @@ public abstract class Replication {
         }
     }
 
+
     @InterfaceAudience.Private
     /* package */ void setCompletedChangesCount(int processed) {
         this.completedChangesCount = processed;
@@ -541,6 +571,9 @@ public abstract class Replication {
         notifyChangeListeners();
     }
 
+    /**
+     * @exclude
+     */
     @InterfaceAudience.Private
     public String getSessionID() {
         return sessionID;
@@ -590,6 +623,9 @@ public abstract class Replication {
         });
     }
 
+    /**
+     * @exclude
+     */
     @InterfaceAudience.Private
     public abstract void beginReplicating();
 
@@ -647,11 +683,17 @@ public abstract class Replication {
 
     }
 
+    /**
+     * @exclude
+     */
     @InterfaceAudience.Private
     public synchronized void asyncTaskStarted() {
         ++asyncTaskCount;
     }
 
+    /**
+     * @exclude
+     */
     @InterfaceAudience.Private
     public synchronized void asyncTaskFinished(int numTasks) {
         this.asyncTaskCount -= numTasks;
@@ -663,6 +705,9 @@ public abstract class Replication {
         }
     }
 
+    /**
+     * @exclude
+     */
     @InterfaceAudience.Private
     public void addToInbox(RevisionInternal rev) {
         if (batcher.count() == 0) {
@@ -676,6 +721,9 @@ public abstract class Replication {
 
     }
 
+    /**
+     * @exclude
+     */
     @InterfaceAudience.Private
     public void sendAsyncRequest(String method, String relativePath, Object body, RemoteRequestCompletionBlock onCompletion) {
         try {
@@ -702,12 +750,18 @@ public abstract class Replication {
         return remoteUrlString + relativePath;
     }
 
+    /**
+     * @exclude
+     */
     @InterfaceAudience.Private
     public void sendAsyncRequest(String method, URL url, Object body, RemoteRequestCompletionBlock onCompletion) {
         RemoteRequest request = new RemoteRequest(workExecutor, clientFactory, method, url, body, getHeaders(), onCompletion);
         remoteRequestExecutor.execute(request);
     }
 
+    /**
+     * @exclude
+     */
     @InterfaceAudience.Private
     public void sendAsyncMultipartDownloaderRequest(String method, String relativePath, Object body, Database db, RemoteRequestCompletionBlock onCompletion) {
         try {
@@ -730,6 +784,9 @@ public abstract class Replication {
         }
     }
 
+    /**
+     * @exclude
+     */
     @InterfaceAudience.Private
     public void sendAsyncMultipartRequest(String method, String relativePath, MultipartEntity multiPartEntity, RemoteRequestCompletionBlock onCompletion) {
         URL url = null;
@@ -763,6 +820,7 @@ public abstract class Replication {
      * This is the _local document ID stored on the remote server to keep track of state.
      * Its ID is based on the local database ID (the private one, to make the result unguessable)
      * and the remote database's URL.
+     * @exclude
      */
     @InterfaceAudience.Private
     public String remoteCheckpointDocID() {
@@ -781,6 +839,9 @@ public abstract class Replication {
         return false;
     }
 
+    /**
+     * @exclude
+     */
     @InterfaceAudience.Private
     public void fetchRemoteCheckpointDoc() {
         lastSequenceChanged = false;
@@ -824,6 +885,9 @@ public abstract class Replication {
         });
     }
 
+    /**
+     * @exclude
+     */
     @InterfaceAudience.Private
     public void saveLastSequence() {
         if (!lastSequenceChanged) {
@@ -874,7 +938,7 @@ public abstract class Replication {
     }
 
     @InterfaceAudience.Private
-    boolean goOffline() {
+    /* package */ boolean goOffline() {
         if (!online) {
             return false;
         }
@@ -885,7 +949,7 @@ public abstract class Replication {
     }
 
     @InterfaceAudience.Private
-    void updateProgress() {
+    /* package */ void updateProgress() {
         if (!isRunning()) {
             status = ReplicationStatus.REPLICATION_STOPPED;
         } else if (!online) {
@@ -898,8 +962,6 @@ public abstract class Replication {
             }
         }
     }
-
-
 
 
 }

@@ -6,8 +6,7 @@ import java.util.Iterator;
 import java.util.List;
 
 /**
- * Enumerator on a Query's result rows.
- * The objects returned are instances of QueryRow.
+ * An enumerator for Couchbase Lite View Query results.
  */
 public class QueryEnumerator implements Iterator<QueryRow> {
 

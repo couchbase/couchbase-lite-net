@@ -364,6 +364,9 @@ public class Query {
         public void completed(QueryEnumerator rows, Throwable error);
     }
 
+    /**
+     * @exclude
+     */
     @InterfaceAudience.Private
     Future runAsyncInternal(final QueryCompleteListener onComplete) {
 
@@ -387,6 +390,9 @@ public class Query {
 
     }
 
+    /**
+     * @exclude
+     */
     @InterfaceAudience.Private
     public View getView() {
         return view;

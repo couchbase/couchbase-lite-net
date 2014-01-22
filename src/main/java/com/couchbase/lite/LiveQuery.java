@@ -220,6 +220,10 @@ public class LiveQuery extends Query implements Database.ChangeListener {
         });
     }
 
+
+    /**
+     * @exclude
+     */
     @Override
     @InterfaceAudience.Private
     public void changed(Database.ChangeEvent event) {
