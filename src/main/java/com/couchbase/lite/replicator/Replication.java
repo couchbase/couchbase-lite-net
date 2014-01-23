@@ -104,7 +104,7 @@ public abstract class Replication {
      * @exclude
      */
     @InterfaceAudience.Private
-    /* package */ public Replication(Database db, URL remote, boolean continuous, ScheduledExecutorService workExecutor) {
+    /* package */ Replication(Database db, URL remote, boolean continuous, ScheduledExecutorService workExecutor) {
         this(db, remote, continuous, null, workExecutor);
     }
 
@@ -113,7 +113,7 @@ public abstract class Replication {
      * @exclude
      */
     @InterfaceAudience.Private
-    /* package */ public Replication(Database db, URL remote, boolean continuous, HttpClientFactory clientFactory, ScheduledExecutorService workExecutor) {
+    /* package */ Replication(Database db, URL remote, boolean continuous, HttpClientFactory clientFactory, ScheduledExecutorService workExecutor) {
 
         this.db = db;
         this.continuous = continuous;
