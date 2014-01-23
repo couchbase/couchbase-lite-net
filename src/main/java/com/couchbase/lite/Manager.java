@@ -199,7 +199,7 @@ public class Manager {
      * Multiple calls with the same name will return the same Database instance.
      */
     @InterfaceAudience.Public
-    public Database getDatabase(String name) {
+    public Database getDatabase(String name) throws CouchbaseLiteException {
         boolean mustExist = false;
         Database db = getDatabaseWithoutOpening(name, mustExist);
         if (db != null) {
@@ -235,18 +235,23 @@ public class Manager {
      * @param attachmentsDirectory  Path of the associated Attachments directory, or null if there are no attachments.
      **/
     @InterfaceAudience.Public
-    public void replaceDatabase(String databaseName, File databaseFile, File attachmentsDirectory) throws IOException {
-        Database database = getDatabase(databaseName);
-        String dstAttachmentsPath = database.getAttachmentStorePath();
-        File destFile = new File(database.getPath());
-        FileDirUtils.copyFile(databaseFile, destFile);
-        File attachmentsFile = new File(dstAttachmentsPath);
-        FileDirUtils.deleteRecursive(attachmentsFile);
-        attachmentsFile.mkdirs();
-        if(attachmentsDirectory != null) {
-            FileDirUtils.copyFolder(attachmentsDirectory, attachmentsFile);
+    public void replaceDatabase(String databaseName, File databaseFile, File attachmentsDirectory) throws CouchbaseLiteException {
+        try {
+            Database database = getDatabase(databaseName);
+            String dstAttachmentsPath = database.getAttachmentStorePath();
+            File destFile = new File(database.getPath());
+            FileDirUtils.copyFile(databaseFile, destFile);
+            File attachmentsFile = new File(dstAttachmentsPath);
+            FileDirUtils.deleteRecursive(attachmentsFile);
+            attachmentsFile.mkdirs();
+            if(attachmentsDirectory != null) {
+                FileDirUtils.copyFolder(attachmentsDirectory, attachmentsFile);
+            }
+            database.replaceUUIDs();
+        } catch (IOException e) {
+            Log.e(Database.TAG, "", e);
+            throw new CouchbaseLiteException(Status.INTERNAL_SERVER_ERROR);
         }
-        database.replaceUUIDs();
     }
 
     /**
@@ -330,7 +335,7 @@ public class Manager {
      * @exclude
      */
     @InterfaceAudience.Private
-    public Future runAsync(String databaseName, final AsyncTask function) {
+    public Future runAsync(String databaseName, final AsyncTask function) throws CouchbaseLiteException {
 
         final Database database = getDatabase(databaseName);
         return runAsync(new Runnable() {
