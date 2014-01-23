@@ -1025,10 +1025,9 @@ public class Router implements Database.ChangeListener {
         // replicator thread: call db.getRevisionHistory for doc1, which returns empty history since it was purged
         Future future = db.runAsync(new AsyncTask() {
             @Override
-            public boolean run(Database database) {
+            public void run(Database database) {
                 Map<String, Object> purgedRevisions = db.purgeRevisions(docsToRevs);
                 asyncApiCallResponse.add(purgedRevisions);
-                return true;
             }
         });
         try {

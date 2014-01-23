@@ -5,7 +5,7 @@ package com.couchbase.lite;
  */
 public interface AsyncTask {
 
-    boolean run(Database database);
+    void run(Database database);
 
 }
 
