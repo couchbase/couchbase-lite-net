@@ -98,7 +98,7 @@ public class SavedRevision extends Revision {
      * @return
      */
     @InterfaceAudience.Public
-    public UnsavedRevision createRevision() {
+    public UnsavedRevision createRevision() throws CouchbaseLiteException {
         UnsavedRevision newRevision = new UnsavedRevision(document, this);
         return newRevision;
     }
