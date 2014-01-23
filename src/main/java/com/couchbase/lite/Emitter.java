@@ -17,6 +17,9 @@
 
 package com.couchbase.lite;
 
+/**
+ * A delegate that can be invoked to add key/values to a View during a MapDelegate call.
+ */
 public interface Emitter {
 
     void emit(Object key, Object value);

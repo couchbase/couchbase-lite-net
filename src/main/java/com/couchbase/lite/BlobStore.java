@@ -37,6 +37,7 @@ import com.couchbase.lite.util.Log;
 /**
  * A persistent content-addressable store for arbitrary-size data blobs.
  * Each blob is stored as a file named by its SHA-1 digest.
+ * @exclude
  */
 public class BlobStore {
 

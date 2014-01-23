@@ -671,6 +671,9 @@ public class Database {
         return this.getClass().getName() + "[" + path + "]";
     }
 
+    /**
+     * The type of event raised when a Database changes.
+     */
     @InterfaceAudience.Public
     public static class ChangeEvent {
 
@@ -698,6 +701,9 @@ public class Database {
 
     }
 
+    /**
+     * A delegate that can be used to listen for Database changes.
+     */
     @InterfaceAudience.Public
     public static interface ChangeListener {
         public void changed(ChangeEvent event);
