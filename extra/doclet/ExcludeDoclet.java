@@ -33,8 +33,14 @@ public class ExcludeDoclet
     private static boolean exclude(Doc doc)
     {
         if (doc instanceof ProgramElementDoc) {
-            if (((ProgramElementDoc)doc).containingPackage().tags("exclude").length > 0)
+            ProgramElementDoc programElementDoc = (ProgramElementDoc) doc;
+
+            if (programElementDoc.containingPackage().tags("exclude").length > 0)
                 return true;
+
+            if (programElementDoc.containingClass() != null && programElementDoc.containingClass().tags("exclude").length > 0)
+                return true;
+
         }
         return doc.tags("exclude").length > 0;
     }
