@@ -213,7 +213,7 @@ public class Manager {
      * Multiple calls with the same name will return the same Database instance.
      */
     @InterfaceAudience.Public
-    public Database getExistingDatabase(String name) {
+    public Database getExistingDatabase(String name) throws CouchbaseLiteException {
         boolean mustExist = true;
         Database db = getDatabaseWithoutOpening(name, mustExist);
         if (db != null) {
