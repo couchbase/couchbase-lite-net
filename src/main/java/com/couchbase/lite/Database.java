@@ -315,10 +315,10 @@ public class Database {
      * @throws java.lang.RuntimeException
      */
     @InterfaceAudience.Public
-    public void delete() {
+    public void delete() throws CouchbaseLiteException {
         if(open) {
             if(!close()) {
-                throw new RuntimeException("The database was open, and could not be closed");
+                throw new CouchbaseLiteException("The database was open, and could not be closed", Status.INTERNAL_SERVER_ERROR);
             }
         }
         manager.forgetDatabase(this);
@@ -334,11 +334,11 @@ public class Database {
         boolean deleteAttachmentStatus = FileDirUtils.deleteRecursive(attachmentsFile);
 
         if (!deleteStatus) {
-            throw new RuntimeException("Was not able to delete the database file");
+            throw new CouchbaseLiteException("Was not able to delete the database file", Status.INTERNAL_SERVER_ERROR);
         }
 
         if (!deleteAttachmentStatus) {
-            throw new RuntimeException("Was not able to delete the attachments files");
+            throw new CouchbaseLiteException("Was not able to delete the attachments files", Status.INTERNAL_SERVER_ERROR);
         }
 
     }
