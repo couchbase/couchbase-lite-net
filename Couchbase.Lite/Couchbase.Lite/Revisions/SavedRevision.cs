@@ -180,7 +180,7 @@ namespace Couchbase.Lite {
         /// </returns>
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
         public SavedRevision CreateRevision(IDictionary<String, Object> properties) {
-            return Document.PutProperties(properties, RevisionInternal.GetRevId());           
+            return Document.PutProperties(properties, RevisionInternal.GetRevId(), allowConflict: false);           
         }
 
         /// <summary>Deletes the document by creating a new deletion-marker revision.</summary>

@@ -79,7 +79,7 @@ namespace Couchbase.Lite {
                     {
                         // Copy attachment body into the database's blob store:
                         var writer = BlobStoreWriterForBody(body, database);
-                        metadataMutable["length"] = writer.GetLength();
+                        metadataMutable["length"] = (long)writer.GetLength();
                         metadataMutable["digest"] = writer.MD5DigestString();
                         metadataMutable["follows"] = true;
                         database.RememberAttachmentWriter(writer);

@@ -33,6 +33,7 @@ namespace Couchbase.Lite
             Name = FileDirUtils.GetDatabaseNameFromPath(path);
             Manager = manager;
             DocumentCache = new LruCache<string, Document>(MaxDocCacheSize);
+            StartTime = DateTime.UtcNow.ToMillisecondsSinceEpoch ();
         }
 
 
@@ -207,12 +208,10 @@ namespace Couchbase.Lite
                     return;
                 }
             }
-            else
+            Manager.ForgetDatabase(this);
+            if (!Exists())
             {
-                if (!Exists())
-                {
-                    return;
-                }
+                return;
             }
             var file = new FilePath(Path);
             var attachmentsFile = new FilePath(AttachmentStorePath);
@@ -573,6 +572,11 @@ namespace Couchbase.Lite
             return Manager.ReplicationWithDatabase(this, url, false, true, false);
         }
 
+        public override string ToString()
+        {
+            return GetType().FullName + "[" + Path + "]";
+        }
+
         public event EventHandler<DatabaseChangeEventArgs> Changed;
 
     #endregion
@@ -613,20 +617,18 @@ namespace Couchbase.Lite
 
     #region Non-Public Instance Members
 
-        private Boolean open;
-        private IDictionary<String, ValidateDelegate> Validations;
-        private IDictionary<String, BlobStoreWriter> _pendingAttachmentsByDigest;
-        private IDictionary<String, View> views;
-        private Int32 transactionLevel;
+        private Boolean                                 open;
+        private IDictionary<String, ValidateDelegate>   Validations;
+        private IDictionary<String, BlobStoreWriter>    _pendingAttachmentsByDigest;
+        private IDictionary<String, View>               views;
+        private Int32                                   transactionLevel;
 
-        internal String Path { get; private set; }
-
-        internal IList<Replication> ActiveReplicators { get; set; }
-
-        internal SQLiteStorageEngine StorageEngine { get; set; }
-
+        internal String                     Path { get; private set; }
+        internal IList<Replication>         ActiveReplicators { get; set; }
+        internal SQLiteStorageEngine        StorageEngine { get; set; }
         internal LruCache<String, Document> DocumentCache { get; set; }
 
+        private Int64                               StartTime { get; set; }
         private IDictionary<String, FilterDelegate> Filters { get; set; }
 
         /// <summary>
@@ -1012,8 +1014,7 @@ namespace Couchbase.Lite
                         {
                             // Write any changed attachments for the new revision. As the parent sequence use
                             // the latest local revision (this is to copy attachments from):
-                            IDictionary<string, AttachmentInternal> attachments = GetAttachmentsFromRevision(
-                                rev);
+                            var attachments = GetAttachmentsFromRevision(rev);
                             if (attachments != null)
                             {
                                 ProcessAttachmentsForRevision(attachments, rev, localParentSequence);
@@ -1316,6 +1317,7 @@ namespace Couchbase.Lite
             if (options == null)
                 options = new QueryOptions();
 
+            var includeDeletedDocs = (options.GetAllDocsMode() == AllDocsMode.IncludeDeleted);
             var updateSeq = 0L;
             if (options.IsUpdateSeq())
             {
@@ -1328,7 +1330,7 @@ namespace Couchbase.Lite
             {
                 sql.Append(", json");
             }
-            if (options.IsIncludeDeletedDocs())
+            if (includeDeletedDocs)
             {
                 sql.Append(", deleted");
             }
@@ -1345,7 +1347,7 @@ namespace Couchbase.Lite
             }
             sql.Append(" docs.doc_id = revs.doc_id AND current=1");
 
-            if (!options.IsIncludeDeletedDocs())
+            if (!includeDeletedDocs)
             {
                 sql.Append(" AND deleted=0");
             }
@@ -1375,14 +1377,16 @@ namespace Couchbase.Lite
                 sql.Append((inclusiveMax ? " AND docid <= @" : " AND docid < @"));
                 args.AddItem((string)maxKey);
             }
-            sql.Append(String.Format(" ORDER BY docid {0}, {1} revid DESC LIMIT @ OFFSET @", 
-                options.IsDescending() ? "DESC" : "ASC", 
-                options.IsIncludeDeletedDocs() ? "deleted ASC," : String.Empty));
+            sql.Append(
+                String.Format(" ORDER BY docid {0}, {1} revid DESC LIMIT @ OFFSET @", 
+                    options.IsDescending() ? "DESC" : "ASC", 
+                    includeDeletedDocs ? "deleted ASC," : String.Empty
+                )
+            );
             args.AddItem(options.GetLimit().ToString());
             args.AddItem(options.GetSkip().ToString());
+
             Cursor cursor = null;
-            var lastDocID = 0L;
-            var totalRows = 0;
             var docs = new Dictionary<String, QueryRow>();
             try
             {
@@ -1394,17 +1398,10 @@ namespace Couchbase.Lite
 
                 cursor.MoveToNext();
 
-                while (!cursor.IsAfterLast())
+                var keepGoing = cursor.MoveToNext();
+                while (keepGoing)
                 {
-                    totalRows++;
                     var docNumericID = cursor.GetLong(0);
-                    if (docNumericID == lastDocID)
-                    {
-                        cursor.MoveToNext();
-                        continue;
-                    }
-
-                    lastDocID = docNumericID;
 
                     var includeDocs = options.IsIncludeDocs();
 
@@ -1416,7 +1413,7 @@ namespace Couchbase.Lite
                     {
                         json = cursor.GetBlob(4);
                     }
-                    var deleted = options.IsIncludeDeletedDocs() && cursor.GetInt(GetDeletedColumnIndex(options)) > 0;
+                    var deleted = includeDeletedDocs && cursor.GetInt(GetDeletedColumnIndex(options)) > 0;
 
                     IDictionary<String, Object> docContents = null;
 
@@ -1424,9 +1421,28 @@ namespace Couchbase.Lite
                     {
                         docContents = DocumentPropertiesFromJSON(json, docId, revId, deleted, sequenceNumber, options.GetContentOptions());
                     }
+                    // Iterate over following rows with the same doc_id -- these are conflicts.
+                    // Skip them, but collect their revIDs if the 'conflicts' option is set:
+                    var conflicts = new List<string>();
+                    while (((keepGoing = cursor.MoveToNext())) && cursor.GetLong(0) == docNumericID)
+                    {
+                       if (options.GetAllDocsMode() == AllDocsMode.ShowConflicts || options.GetAllDocsMode() == AllDocsMode.OnlyConflicts)
+                       {
+                           if (conflicts.IsEmpty())
+                           {
+                               conflicts.AddItem(revId);
+                           }
+                           conflicts.AddItem(cursor.GetString(2));
+                       }
+                    }
+                    if (options.GetAllDocsMode() == AllDocsMode.OnlyConflicts && conflicts.IsEmpty())
+                    {
+                       continue;
+                    }
                     var value = new Dictionary<string, object>();
                     value["rev"] = revId;
-                    if (options.IsIncludeDeletedDocs())
+                    value["_conflicts"] = conflicts;
+                    if (includeDeletedDocs)
                     {
                         value["deleted"] = deleted;
                     }
@@ -1441,7 +1457,6 @@ namespace Couchbase.Lite
                     {
                         rows.AddItem(change);
                     }
-                    cursor.MoveToNext();
                 }
                 if (options.GetKeys() != null)
                 {
@@ -1490,7 +1505,7 @@ namespace Couchbase.Lite
                     cursor.Close();
             }
             result["rows"] = rows;
-            result["total_rows"] = totalRows;
+            result["total_rows"] = rows.Count;
             result.Put("offset", options.GetSkip());
             if (updateSeq != 0)
             {
@@ -1525,12 +1540,14 @@ namespace Couchbase.Lite
 
                     // The document is in conflict if there are two+ result rows that are not deletions.
                     var hasNextResult = cursor.MoveToNext();
-                    var isNextDeleted = cursor.GetInt(1) > 0;
-                    var isInConflict = !deleted && hasNextResult && isNextDeleted;
-
-                    if (isInConflict)
+                    if (hasNextResult)
                     {
-                        outIsConflict.AddItem(true);
+                        var isNextDeleted = cursor.GetInt(1) > 0;
+                        var isInConflict = !deleted && hasNextResult && isNextDeleted;
+                        if (isInConflict)
+                        {
+                            outIsConflict.AddItem(true);
+                        }
                     }
                 }
             }
@@ -2071,7 +2088,7 @@ namespace Couchbase.Lite
                 {
                     continue;
                 }
-                IList<string> revsPurged = null;
+                var revsPurged = new AList<string>();
                 var revIDs = docsToRevs [docID];
                 if (revIDs == null)
                 {
@@ -2301,6 +2318,10 @@ namespace Couchbase.Lite
                         status = "deleted";
                     }
                     // TODO: Detect missing revisions, set status="missing"
+                    if (historicalRev.IsMissing())
+                    {
+                        status = "missing";
+                    }
                     revHistoryItem.Put("rev", historicalRev.GetRevId());
                     revHistoryItem["status"] = status;
                     revsInfo.AddItem(revHistoryItem);
@@ -2381,7 +2402,7 @@ namespace Couchbase.Lite
             Cursor cursor = null;
             IList<RevisionInternal> result;
             var args = new [] { Convert.ToString(docNumericId) };
-            var sql = "SELECT sequence, parent, revid, deleted FROM revs WHERE doc_id=@ ORDER BY sequence DESC";
+            var sql = "SELECT sequence, parent, revid, deleted, json isnull  FROM revs WHERE doc_id=@ ORDER BY sequence DESC";
 
             try
             {
@@ -2409,9 +2430,11 @@ namespace Couchbase.Lite
                     {
                         revId = cursor.GetString(2);
                         var deleted = (cursor.GetInt(3) > 0);
+                        var missing = (cursor.GetInt(4) > 0);
 
                         var aRev = new RevisionInternal(docId, revId, deleted, this);
                         aRev.SetSequence(sequence);
+                        aRev.SetMissing(missing);
                         result.AddItem(aRev);
 
                         if (parent > -1)
@@ -2701,7 +2724,7 @@ namespace Couchbase.Lite
         /// Stores a new (or initial) revision of a document.
         /// This is what's invoked by a PUT or POST. As with those, the previous revision ID must be supplied when necessary and the call will fail if it doesn't match.
         /// </remarks>
-        /// <param name="rev">The revision to add. If the docID is null, a new UUID will be assigned. Its revID must be null. It must have a JSON body.
+        /// <param name="oldRev">The revision to add. If the docID is null, a new UUID will be assigned. Its revID must be null. It must have a JSON body.
         ///     </param>
         /// <param name="prevRevId">The ID of the revision to replace (same as the "?rev=" parameter to a PUT), or null if this is a new document.
         ///     </param>
@@ -2857,6 +2880,10 @@ namespace Couchbase.Lite
                         }
                     }
                 }
+                // There may be a conflict if (a) the document was already in conflict, or
+                // (b) a conflict is created by adding a non-deletion child of a non-winning rev.
+                inConflict = wasConflicted 
+                          || (!deleted && prevRevId != null && oldWinningRevID != null && !prevRevId.Equals(oldWinningRevID));
                 // PART II: In which insertion occurs...
                 // Get the attachments:
                 var attachments = GetAttachmentsFromRevision(oldRev);
@@ -2872,10 +2899,15 @@ namespace Couchbase.Lite
                         throw new CouchbaseLiteException(StatusCode.BadRequest);
                     }
                 }
+                else 
+                {
+                    data = Encoding.UTF8.GetBytes("{}"); // NOTE.ZJG: Confirm w/ Traun. This prevents a null reference exception in call to InsertRevision below.
+                }
+
                 newRev = oldRev.CopyWithDocID(docId, newRevId);
-                StubOutAttachmentsInRevision(attachments, oldRev);
+                StubOutAttachmentsInRevision(attachments, newRev);
                 // Now insert the rev itself:
-                long newSequence = InsertRevision(newRev, docNumericID, parentSequence, true, data);
+                var newSequence = InsertRevision(newRev, docNumericID, parentSequence, true, data);
                 if (newSequence == 0)
                 {
                     return null;
@@ -2889,7 +2921,7 @@ namespace Couchbase.Lite
                 // Figure out what the new winning rev ID is:
                 winningRev = Winner(docNumericID, oldWinningRevID, oldWinnerWasDeletion, newRev);
 
-                                // Success!
+                 // Success!
                 if (deleted)
                 {
                     resultStatus.SetCode(StatusCode.Ok);
@@ -3165,7 +3197,13 @@ namespace Couchbase.Lite
                 }
                 args["type"] = contentType;
                 args["revpos"] = revpos;
-                StorageEngine.Insert("attachments", null, args);
+                var result = StorageEngine.Insert("attachments", null, args);
+                if (result == -1)
+                {
+                    var msg = "Insert attachment failed (returned -1)";
+                    Log.E(Database.Tag, msg);
+                    throw new CouchbaseLiteException(msg, StatusCode.InternalServerError);
+                }
             }
             catch (SQLException e)
             {
@@ -3228,6 +3266,7 @@ namespace Couchbase.Lite
         internal void StubOutAttachmentsInRevision(IDictionary<String, AttachmentInternal> attachments, RevisionInternal rev)
         {
             var properties = rev.GetProperties();
+
             var attachmentsFromProps = (IDictionary<String, Object>)properties.Get("_attachments");
             if (attachmentsFromProps != null)
             {
@@ -3270,9 +3309,8 @@ namespace Couchbase.Lite
                 return null;
             }
             // Don't allow any "_"-prefixed keys. Known ones we'll ignore, unknown ones are an error.
-            IDictionary<string, object> properties = new Dictionary<string, object>(origProps
-                                                                                    .Count);
-            foreach (string key in origProps.Keys)
+            var properties = new Dictionary<String, Object>(origProps.Count);
+            foreach (var key in origProps.Keys)
             {
                 if (key.StartsWith("_", StringComparison.InvariantCultureIgnoreCase))
                 {
@@ -3310,21 +3348,19 @@ namespace Couchbase.Lite
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
         internal IDictionary<String, AttachmentInternal> GetAttachmentsFromRevision(RevisionInternal rev)
         {
-            IDictionary<string, object> revAttachments = (IDictionary<string, object>)rev.GetPropertyForKey
-                                                         ("_attachments");
+            var revAttachments = (IDictionary<string, object>)rev.GetPropertyForKey("_attachments");
             if (revAttachments == null || revAttachments.Count == 0 || rev.IsDeleted())
             {
                 return new Dictionary<string, AttachmentInternal>();
             }
-            IDictionary<string, AttachmentInternal> attachments = new Dictionary<string, AttachmentInternal
-            >();
-            foreach (string name in revAttachments.Keys)
+
+            var attachments = new Dictionary<string, AttachmentInternal>();
+            foreach (var name in revAttachments.Keys)
             {
-                IDictionary<string, object> attachInfo = (IDictionary<string, object>)revAttachments
-                    .Get(name);
-                string contentType = (string)attachInfo.Get("content_type");
-                AttachmentInternal attachment = new AttachmentInternal(name, contentType);
-                string newContentBase64 = (string)attachInfo.Get("data");
+                var attachInfo = (IDictionary<string, object>)revAttachments.Get(name);
+                var contentType = (string)attachInfo.Get("content_type");
+                var attachment = new AttachmentInternal(name, contentType);
+                var newContentBase64 = (string)attachInfo.Get("data");
                 if (newContentBase64 != null)
                 {
                     // If there's inline attachment data, decode and store it:
@@ -3338,8 +3374,8 @@ namespace Couchbase.Lite
                         throw new CouchbaseLiteException(e, StatusCode.BadEncoding);
                     }
                     attachment.SetLength(newContents.Length);
-                    BlobKey outBlobKey = new BlobKey();
-                    bool storedBlob = GetAttachments().StoreBlob(newContents, outBlobKey);
+                    var outBlobKey = new BlobKey();
+                    var storedBlob = GetAttachments().StoreBlob(newContents, outBlobKey);
                     attachment.SetBlobKey(outBlobKey);
                     if (!storedBlob)
                     {
@@ -3348,7 +3384,7 @@ namespace Couchbase.Lite
                 }
                 else
                 {
-                    if (((bool)attachInfo.Get("follows")) == true)
+                    if (attachInfo.ContainsKey("follows") && ((bool)attachInfo.Get("follows")))
                     {
                         // "follows" means the uploader provided the attachment in a separate MIME part.
                         // This means it's already been registered in _pendingAttachmentsByDigest;
@@ -3541,7 +3577,6 @@ namespace Couchbase.Lite
             }
 
             var context = new ValidationContext(this, oldRev, newRev);
-
             var publicRev = new SavedRevision(this, newRev);
             foreach (var validationName in Validations.Keys)
             {

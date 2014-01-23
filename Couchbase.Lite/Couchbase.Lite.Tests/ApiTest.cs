@@ -91,7 +91,7 @@ namespace Couchbase.Lite
         [Test]
         public void TestAPIManager()
 		{
-            StartDatabase();
+            //StartDatabase();
 			Manager manager = this.manager;
 			Assert.IsTrue(manager != null);
 
@@ -303,13 +303,17 @@ namespace Couchbase.Lite
         [Test]
         public void TestDeleteDocument()
 		{
-			IDictionary<string, object> properties = new Dictionary<string, object>();
+            var properties = new Dictionary<string, object>();
 			properties["testName"] = "testDeleteDocument";
-			Database db = StartDatabase();
-			Document doc = CreateDocumentWithProperties(db, properties);
-			Assert.IsTrue(!doc.Deleted);
+
+            var db = StartDatabase();
+            var doc = CreateDocumentWithProperties(db, properties);
+			
+            Assert.IsTrue(!doc.Deleted);
 			Assert.IsTrue(!doc.CurrentRevision.IsDeletion);
+
             doc.Delete();
+
             Assert.IsTrue(doc.Deleted);
 			Assert.IsNotNull(doc.CurrentRevision.IsDeletion);
 		}

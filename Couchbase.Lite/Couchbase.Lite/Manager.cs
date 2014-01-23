@@ -72,7 +72,7 @@ namespace Couchbase.Lite
             illegalCharactersPattern = new Regex(IllegalCharacters);
             legalCharactersPattern = new Regex("^[abcdefghijklmnopqrstuvwxyz0123456789_$()+-/]+$");
             mapper = new ObjectWriter();
-            DefaultOptions = new ManagerOptions(false, false);
+            DefaultOptions = ManagerOptions.Default;
             defaultDirectory = new DirectoryInfo(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData));
             sharedManager = new Manager(defaultDirectory, ManagerOptions.Default);
         }
@@ -122,7 +122,7 @@ namespace Couchbase.Lite
         { 
             get 
             { 
-                var databaseFiles = directoryFile.EnumerateFiles("*" + Manager.DatabaseSuffix);
+                var databaseFiles = directoryFile.EnumerateFiles("*" + Manager.DatabaseSuffix, SearchOption.AllDirectories);
                 var result = new AList<String>();
                 foreach (var databaseFile in databaseFiles)
                 {
@@ -171,28 +171,10 @@ namespace Couchbase.Lite
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
         public Database GetDatabase(String name) 
         {
-            var db = databases.Get(name);
-            if (db == null)
+            var db = GetDatabaseWithoutOpening(name, false);
+            if (db != null)
             {
-                if (!IsValidDatabaseName(name))
-                {
-                    throw new ArgumentException("Invalid database name: " + name);
-                }
-
-                if (options.ReadOnly)
-                {
-                    return null;
-                }
-
-                var path = PathForName(name);
-                if (path == null)
-                {
-                    return null;
-                }
-
-                db = new Database(path, this);
-                db.Name = name;
-                databases[name] = db;
+                db.Open();
             }
             return db;
         }
@@ -205,7 +187,12 @@ namespace Couchbase.Lite
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
         public Database GetExistingDatabase(String name)
         {
-            return databases.Get(name);
+            var db = GetDatabaseWithoutOpening(name, mustExist: false);
+            if (db != null)
+            {
+                db.Open();
+            }
+            return db;
         }
 
         /// <summary>
@@ -273,10 +260,63 @@ namespace Couchbase.Lite
         private readonly ManagerOptions options;
         private readonly DirectoryInfo directoryFile;
         private readonly IDictionary<String, Database> databases;
-        private IList<Replication> replications;
+        private List<Replication> replications;
         private readonly TaskFactory workExecutor;
 
         // Instance Methods
+        internal Database GetDatabaseWithoutOpening(String name, Boolean mustExist)
+        {
+            var db = databases.Get(name);
+            if (db == null)
+            {
+                if (!IsValidDatabaseName(name))
+                {
+                    throw new ArgumentException("Invalid database name: " + name);
+                }
+
+                if (options.ReadOnly)
+                {
+                    mustExist = true;
+                }
+                var path = PathForName(name);
+                if (path == null)
+                {
+                    return null;
+                }
+                db = new Database(path, this);
+                if (mustExist && !db.Exists())
+                {
+                    var msg = string.Format("mustExist is true and db ({0}) does not exist", name);
+                    Log.W(Database.Tag, msg);
+                    return null;
+                }
+                db.Name = name;
+                databases.Put(name, db);
+            }
+            return db;
+        }
+
+        public void ForgetDatabase (Database database)
+        {
+            // remove from cached list of dbs
+            databases.Remove(database.Name);
+
+            // remove from list of replications
+            // TODO: should there be something that actually stops the replication(s) first?
+            var i = 0;
+            var matched = false;;
+            for (; i < replications.Count; i++) {
+                var replication = replications [i];
+                if (replication.LocalDatabase == database) {
+                    matched = true;
+                    break;
+                }
+            }
+
+            if (matched)
+                replications.RemoveAt(i);
+        }
+
         private void UpgradeOldDatabaseFiles(DirectoryInfo directory)
         {
             var files = directory.EnumerateFiles("*" + DatabaseSuffixOld, SearchOption.TopDirectoryOnly);

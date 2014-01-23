@@ -8,6 +8,7 @@ using Couchbase.Lite.Util;
 using Couchbase.Lite.Internal;
 using Sharpen;
 using System.Diagnostics;
+using System.Text;
 
 namespace Couchbase.Lite {
 
@@ -181,7 +182,7 @@ namespace Couchbase.Lite {
         public SavedRevision PutProperties(IDictionary<String, Object> properties)
         {
             var prevID = (string)properties.Get("_rev");
-            return PutProperties(properties, prevID);
+            return PutProperties(properties, prevID, allowConflict: false);
         }
 
         /// <summary>Saves a new revision by letting the caller update the existing properties.
@@ -246,8 +247,10 @@ namespace Couchbase.Lite {
             return GetRevisionFromRev(Database.GetDocumentWithIDAndRev(Id, revId, EnumSet.NoneOf<TDContentOptions>()));
         }
 
+
+
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>       
-        internal SavedRevision PutProperties(IDictionary<String, Object> properties, String prevID)
+        internal SavedRevision PutProperties(IDictionary<String, Object> properties, String prevID, Boolean allowConflict)
         {
             string newId = null;
             if (properties != null && properties.ContainsKey("_id"))
@@ -281,13 +284,14 @@ namespace Couchbase.Lite {
 
             var deleted = (properties == null) || hasTrueDeletedProperty;
             var rev = new RevisionInternal(Id, null, deleted, Database);
-
+            if (deleted)
+                rev.SetJson(Encoding.UTF8.GetBytes("{}"));
             if (properties != null)
             {
                 rev.SetProperties(properties);
             }
 
-            var newRev = Database.PutRevision(rev, prevID, false);
+            var newRev = Database.PutRevision(rev, prevID, allowConflict);
             if (newRev == null)
             {
                 return null;

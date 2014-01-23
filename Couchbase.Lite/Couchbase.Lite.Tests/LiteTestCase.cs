@@ -55,6 +55,7 @@ namespace Couchbase.Lite
 			Log.V(Tag, "setUp");
             //LoadCustomProperties();
 			StartCBLite();
+            StartDatabase();
 		}
 
 		protected internal virtual InputStream GetAsset(string name)
@@ -125,10 +126,8 @@ namespace Couchbase.Lite
                 } catch (Exception ex) { }
 
 				NUnit.Framework.Assert.IsTrue(status);
-            } else {
-                db = manager.GetDatabase(dbName);
-                db.Open(); // Ensure sqlite file is actually created.
             }
+            db = manager.GetDatabase(dbName);
 			return db;
 		}
 

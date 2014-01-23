@@ -132,6 +132,8 @@ namespace Couchbase.Lite {
         protected internal Boolean savingCheckpoint;
         protected internal Boolean overdueForSave;
         protected internal IDictionary<String, Object> remoteCheckpoint;
+        protected internal Boolean online;
+
 
         protected internal Boolean continuous;
 
@@ -157,6 +159,43 @@ namespace Couchbase.Lite {
             evt(this, args);
         }
 
+        internal bool GoOffline()
+        {
+            if (!online)
+            {
+                return false;
+            }
+            online = false;
+            // TODO: [self stopRemoteRequests]; - remoteRequestExecutor.shutdown(); or remoteRequestExecutor.shutdownNow();
+            UpdateProgress();
+            return true;
+        }
+
+        internal void UpdateProgress()
+        {
+            if (!IsRunning)
+            {
+                Status = Replication.ReplicationStatus.Stopped;
+            }
+            else
+            {
+                if (!online)
+                {
+                    Status = Replication.ReplicationStatus.Offline;
+                }
+                else
+                {
+                    if (active)
+                    {
+                        Status = Replication.ReplicationStatus.Active;
+                    }
+                    else
+                    {
+                        Status = Replication.ReplicationStatus.Idle;
+                    }
+                }
+            }
+        }
         internal void DatabaseClosing()
         {
             SaveLastSequence();

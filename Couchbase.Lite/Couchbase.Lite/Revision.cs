@@ -176,7 +176,7 @@ namespace Couchbase.Lite
             var result = false;
             if (obj is SavedRevision)
             {
-                SavedRevision other = (SavedRevision)obj;
+                var other = (SavedRevision)obj;
                 if (Document.Id.Equals(other.Document.Id) && Id.Equals(other.Id))
                 {
                     result = true;
@@ -188,6 +188,11 @@ namespace Couchbase.Lite
         public override int GetHashCode()
         {
             return Document.Id.GetHashCode() ^ Id.GetHashCode();
+        }
+
+        public override string ToString()
+        {
+            return "{" + Document.Id + " #" + Id + (IsDeletion ? "DEL" : String.Empty) + "}";
         }
 
     #endregion

@@ -41,6 +41,8 @@ namespace Couchbase.Lite.Internal
 
 		private bool deleted;
 
+        private bool missing;
+
 		private Body body;
 
 		private long sequence;
@@ -177,6 +179,16 @@ namespace Couchbase.Lite.Internal
 		{
 			this.body = body;
 		}
+
+        public Boolean IsMissing()
+        {
+            return missing;
+        }
+
+        public void SetMissing(Boolean isMissing)
+        {
+            missing = isMissing;
+        }
 
         public RevisionInternal CopyWithDocID(String docId, String revId)
 		{

@@ -216,8 +216,7 @@ namespace Couchbase.Lite {
                                 try
                                 {
                                     var keyJson = Manager.GetObjectMapper().WriteValueAsString(key);
-                                    var valueJson = Manager.GetObjectMapper().WriteValueAsString(value);
-
+                                    var valueJson = value == null ? null : Manager.GetObjectMapper().WriteValueAsString(value) ;
                                     Log.V(Database.Tag, String.Format("    emit({0}, {1})", keyJson, valueJson));
 
                                     var insertValues = new ContentValues();

@@ -180,7 +180,15 @@ namespace Couchbase.Lite
         /// <see cref="Couchbase.Lite.Revision"/> of the associated <see cref="Couchbase.Lite.Document"/>.
         /// </summary>
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
-        public SavedRevision Save() { return Document.PutProperties(Properties, ParentId); }
+        public SavedRevision Save() { return Document.PutProperties(Properties, ParentId, allowConflict: false); }
+
+        /// <summary>
+        /// Saves the <see cref="Couchbase.Lite.UnsavedRevision"/>.  This will fail if its parent is not the current 
+        /// <see cref="Couchbase.Lite.Revision"/> of the associated <see cref="Couchbase.Lite.Document"/>.
+        /// </summary>
+        /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
+        /// <param name="allowConflict">Allow In Conflict</param>
+        public SavedRevision Save(Boolean allowConflict) { return Document.PutProperties(Properties, ParentId, allowConflict); }
 
         /// <summary>
         /// Sets the attachment.
