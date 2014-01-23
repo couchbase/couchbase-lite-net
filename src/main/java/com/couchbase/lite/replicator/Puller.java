@@ -30,6 +30,9 @@ import java.util.Map;
 import java.util.concurrent.ScheduledExecutorService;
 
 
+/**
+ * @exclude
+ */
 @InterfaceAudience.Private
 public class Puller extends Replication implements ChangeTrackerClient {
 

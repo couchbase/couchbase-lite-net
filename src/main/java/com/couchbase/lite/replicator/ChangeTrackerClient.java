@@ -5,6 +5,9 @@ import com.couchbase.lite.support.HttpClientFactory;
 
 import java.util.Map;
 
+/**
+ * @exclude
+ */
 @InterfaceAudience.Private
 public interface ChangeTrackerClient extends HttpClientFactory {
 

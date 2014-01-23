@@ -4,6 +4,9 @@ import com.couchbase.lite.Database;
 import com.couchbase.lite.internal.InterfaceAudience;
 import com.couchbase.lite.util.Log;
 
+/**
+ * @exclude
+ */
 @InterfaceAudience.Private
 public class ChangeTrackerBackoff {
 

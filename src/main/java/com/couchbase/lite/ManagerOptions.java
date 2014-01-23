@@ -1,5 +1,8 @@
 package com.couchbase.lite;
 
+/**
+ * Option flags for Manager initialization.
+ */
 public class ManagerOptions {
 
     /**

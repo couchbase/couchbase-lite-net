@@ -6,6 +6,7 @@ import com.couchbase.lite.Database.TDContentOptions;
 
 /**
  * Options for _changes feed
+ * @exclude
  */
 public class ChangesOptions {
 

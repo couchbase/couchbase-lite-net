@@ -214,11 +214,17 @@ public class Attachment {
 
     }
 
+    /**
+     * @exclude
+     */
     @InterfaceAudience.Private
     public boolean getGZipped() {
         return gzipped;
     }
 
+    /**
+     * @exclude
+     */
     @InterfaceAudience.Private
     public void setGZipped(boolean gzipped) {
         this.gzipped = gzipped;

@@ -247,10 +247,13 @@ public class QueryRow {
     }
 
     @InterfaceAudience.Private
-    void setDatabase(Database database) {
+    /* package */ void setDatabase(Database database) {
         this.database = database;
     }
 
+    /**
+     * @exclude
+     */
     @InterfaceAudience.Private
     public Map<String, Object> asJSONDictionary() {
         Map<String, Object> result = new HashMap<String, Object>();

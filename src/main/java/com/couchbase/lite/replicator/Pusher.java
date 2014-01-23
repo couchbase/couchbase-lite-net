@@ -30,6 +30,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ScheduledExecutorService;
 
+/**
+ * @exclude
+ */
 @InterfaceAudience.Private
 public class Pusher extends Replication implements Database.ChangeListener {
 

@@ -38,8 +38,14 @@ import java.util.Map;
  */
 public class View {
 
+    /**
+     * @exclude
+     */
     public static final int REDUCE_BATCH_SIZE = 100;
 
+    /**
+     * @exclude
+     */
     public enum TDViewCollation {
         TDViewCollationUnicode, TDViewCollationRaw, TDViewCollationASCII
     }
@@ -282,6 +288,9 @@ public class View {
         return new Query(getDatabase(), this);
     }
 
+    /**
+     * @exclude
+     */
     @InterfaceAudience.Private
     public int getViewId() {
         if (viewId < 0) {
@@ -307,7 +316,9 @@ public class View {
         return viewId;
     }
 
-
+    /**
+     * @exclude
+     */
     @InterfaceAudience.Private
     public void databaseClosing() {
         database = null;
@@ -316,6 +327,9 @@ public class View {
 
     /*** Indexing ***/
 
+    /**
+     * @exclude
+     */
     @InterfaceAudience.Private
     public String toJSONString(Object object) {
         if (object == null) {
@@ -330,6 +344,9 @@ public class View {
         return result;
     }
 
+    /**
+     * @exclude
+     */
     @InterfaceAudience.Private
     public Object fromJSON(byte[] json) {
         if (json == null) {
@@ -344,11 +361,17 @@ public class View {
         return result;
     }
 
+    /**
+     * @exclude
+     */
     @InterfaceAudience.Private
     public TDViewCollation getCollation() {
         return collation;
     }
 
+    /**
+     * @exclude
+     */
     @InterfaceAudience.Private
     public void setCollation(TDViewCollation collation) {
         this.collation = collation;
@@ -357,6 +380,7 @@ public class View {
     /**
      * Updates the view's index (incrementally) if necessary.
      * @return 200 if updated, 304 if already up-to-date, else an error code
+     * @exclude
      */
     @SuppressWarnings("unchecked")
     @InterfaceAudience.Private
@@ -534,6 +558,9 @@ public class View {
 
     }
 
+    /**
+     * @exclude
+     */
     @InterfaceAudience.Private
     public Cursor resultSetWithOptions(QueryOptions options) {
         if (options == null) {
@@ -620,7 +647,10 @@ public class View {
         return cursor;
     }
 
-    // Are key1 and key2 grouped together at this groupLevel?
+    /**
+     * Are key1 and key2 grouped together at this groupLevel?
+     * @exclude
+     */
     @InterfaceAudience.Private
     public static boolean groupTogether(Object key1, Object key2, int groupLevel) {
         if(groupLevel == 0 || !(key1 instanceof List) || !(key2 instanceof List)) {
@@ -639,7 +669,10 @@ public class View {
         return true;
     }
 
-    // Returns the prefix of the key to use in the result row, at this groupLevel
+    /**
+     * Returns the prefix of the key to use in the result row, at this groupLevel
+     * @exclude
+     */
     @SuppressWarnings("unchecked")
     @InterfaceAudience.Private
     public static Object groupKey(Object key, int groupLevel) {
@@ -652,6 +685,10 @@ public class View {
     }
 
     /*** Querying ***/
+
+    /**
+     * @exclude
+     */
     @InterfaceAudience.Private
     public List<Map<String, Object>> dump() {
         if (getViewId() < 0) {
@@ -691,6 +728,9 @@ public class View {
         return result;
     }
 
+    /**
+     * @exclude
+     */
     @InterfaceAudience.Private
     List<QueryRow> reducedQuery(Cursor cursor, boolean group, int groupLevel) throws CouchbaseLiteException {
 
@@ -748,6 +788,7 @@ public class View {
      *
      * @param options The options to use.
      * @return An array of QueryRow objects.
+     * @exclude
      */
     @InterfaceAudience.Private
     public List<QueryRow> queryWithOptions(QueryOptions options) throws CouchbaseLiteException {
@@ -829,6 +870,7 @@ public class View {
 
     /**
      * Utility function to use in reduce blocks. Totals an array of Numbers.
+     * @exclude
      */
     @InterfaceAudience.Private
     public static double totalValues(List<Object>values) {

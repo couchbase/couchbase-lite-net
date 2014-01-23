@@ -90,4 +90,11 @@ task sourcesJar(type: Jar) {
 
 task generateJavadocs(type: Javadoc) {
     source = android.sourceSets.main.java.srcDirs
+    List<File> pathList = new ArrayList<File>();
+    pathList.add(file('extra/doclet/doclet.jar'))
+    options.docletpath = pathList
+    options.doclet = "ExcludeDoclet"
+    options.showFromPublic()
+    exclude "org/apache/http/**", "com/couchbase/touchdb/**"
+
 }

@@ -11,12 +11,16 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * An unsaved Couchbase Lite Document Revision.
+ */
 public class UnsavedRevision extends Revision {
 
     private Map<String, Object> properties;
 
     /**
      * Constructor
+     * @exclude
      */
     @InterfaceAudience.Private
     /* package */ protected UnsavedRevision(Document document, SavedRevision parentRevision) {

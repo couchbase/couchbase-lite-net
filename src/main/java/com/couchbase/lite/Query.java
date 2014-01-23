@@ -11,14 +11,24 @@ import java.util.concurrent.Future;
  */
 public class Query {
 
+    /**
+     * Determines whether or when the view index is updated. By default, the index will be updated
+     * if necessary before the query runs -- this guarantees up-to-date results but can cause a delay.
+     */
     public enum IndexUpdateMode {
         BEFORE,  // Always update index if needed before querying (default)
         NEVER,   // Don't update the index; results may be out of date
         AFTER    // Update index _after_ querying (results may still be out of date)
     }
 
+    /**
+     * Changes the behavior of a query created by queryAllDocuments.
+     */
     public enum AllDocsMode {
-        ALL_DOCS, INCLUDE_DELETED, SHOW_CONFLICTS, ONLY_CONFLICTS
+        ALL_DOCS,          // (the default), the query simply returns all non-deleted documents.
+        INCLUDE_DELETED,   // in this mode it also returns deleted documents.
+        SHOW_CONFLICTS,    // the .conflictingRevisions property of each row will return the conflicting revisions, if any, of that document.
+        ONLY_CONFLICTS     // _only_ documents in conflict will be returned. (This mode is especially useful for use with a CBLLiveQuery, so you can be notified of conflicts as they happen, i.e. when they're pulled in by a replication.)
     }
 
     /**
@@ -359,11 +369,17 @@ public class Query {
         return runAsyncInternal(onComplete);
     }
 
+    /**
+     * A delegate that can be called to signal the completion of a Query.
+     */
     @InterfaceAudience.Public
     public static interface QueryCompleteListener {
         public void completed(QueryEnumerator rows, Throwable error);
     }
 
+    /**
+     * @exclude
+     */
     @InterfaceAudience.Private
     Future runAsyncInternal(final QueryCompleteListener onComplete) {
 
@@ -387,6 +403,9 @@ public class Query {
 
     }
 
+    /**
+     * @exclude
+     */
     @InterfaceAudience.Private
     public View getView() {
         return view;

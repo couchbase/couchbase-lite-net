@@ -990,7 +990,13 @@ public class Router implements Database.ChangeListener {
     }
 
     public Status do_POST_Document_compact(Database _db, String _docID, String _attachmentName) {
-    	Status status = _db.compact();
+        Status status = new Status(Status.OK);
+        try {
+            _db.compact();
+        } catch (CouchbaseLiteException e) {
+            status = e.getCBLStatus();
+        }
+
     	if (status.getCode() < 300) {
     		Status outStatus = new Status();
     		outStatus.setCode(202);	// CouchDB returns 202 'cause it's an async operation
@@ -1025,10 +1031,9 @@ public class Router implements Database.ChangeListener {
         // replicator thread: call db.getRevisionHistory for doc1, which returns empty history since it was purged
         Future future = db.runAsync(new AsyncTask() {
             @Override
-            public boolean run(Database database) {
+            public void run(Database database) {
                 Map<String, Object> purgedRevisions = db.purgeRevisions(docsToRevs);
                 asyncApiCallResponse.add(purgedRevisions);
-                return true;
             }
         });
         try {
