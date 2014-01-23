@@ -37,6 +37,9 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+/**
+ * A Couchbase Lite pull or push Replication between a local and a remote Database.
+ */
 public abstract class Replication {
 
     private static int lastSessionID = 0;

@@ -27,6 +27,7 @@ import java.util.List;
 
 /**
  * An ordered list of TDRevisions
+ * @exclude
  */
 @SuppressWarnings("serial")
 public class RevisionList extends ArrayList<RevisionInternal> {

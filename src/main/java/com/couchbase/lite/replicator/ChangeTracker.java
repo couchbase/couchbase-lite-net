@@ -45,6 +45,8 @@ import java.util.Map;
 /**
  * Reads the continuous-mode _changes feed of a database, and sends the
  * individual change entries to its client's changeTrackerReceivedChange()
+ *
+ * @exclude
  */
 @InterfaceAudience.Private
 public class ChangeTracker implements Runnable {
