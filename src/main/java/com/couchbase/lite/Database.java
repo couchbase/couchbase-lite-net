@@ -278,7 +278,7 @@ public class Database {
      * and running a SQLite "VACUUM" command.
      */
     @InterfaceAudience.Public
-    public Status compact() {
+    public void compact() throws CouchbaseLiteException {
         // Can't delete any rows because that would lose revision tree history.
         // But we can remove the JSON of non-current revisions, which is most of the space.
         try {
@@ -288,21 +288,24 @@ public class Database {
             database.update("revs", args, "current=0", null);
         } catch (SQLException e) {
             Log.e(Database.TAG, "Error compacting", e);
-            return new Status(Status.INTERNAL_SERVER_ERROR);
+            throw new CouchbaseLiteException(Status.INTERNAL_SERVER_ERROR);
         }
 
         Log.v(Database.TAG, "Deleting old attachments...");
         Status result = garbageCollectAttachments();
+        if (!result.isSuccessful()) {
+            throw new CouchbaseLiteException(result);
+        }
 
         Log.v(Database.TAG, "Vacuuming SQLite sqliteDb...");
         try {
             database.execSQL("VACUUM");
         } catch (SQLException e) {
             Log.e(Database.TAG, "Error vacuuming sqliteDb", e);
-            return new Status(Status.INTERNAL_SERVER_ERROR);
+            throw new CouchbaseLiteException(Status.INTERNAL_SERVER_ERROR);
         }
 
-        return result;
+
     }
 
 
