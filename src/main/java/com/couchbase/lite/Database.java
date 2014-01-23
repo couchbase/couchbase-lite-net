@@ -415,7 +415,7 @@ public class Database {
      * will be deleted.
      */
     @InterfaceAudience.Public
-    public boolean putLocalDocument(Map<String, Object> properties, String id) throws CouchbaseLiteException {
+    public boolean putLocalDocument(String id, Map<String, Object> properties) throws CouchbaseLiteException {
         // TODO: the iOS implementation wraps this in a transaction, this should do the same.
         id = makeLocalDocumentId(id);
         RevisionInternal prevRev = getLocalDocument(id, null);
