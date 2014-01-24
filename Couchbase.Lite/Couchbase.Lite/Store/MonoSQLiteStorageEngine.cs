@@ -156,29 +156,9 @@ namespace Couchbase.Lite.Storage
             shouldCommit = true;
         }
 
-        public override void ExecSQL (String sql, params Object[] bindArgs)
+        public override void ExecSQL (String sql, params Object[] paramArgs)
         {
-            var command = Connection.CreateCommand();
-            command.CommandText = sql;
-
-            if (currentTransaction != null)
-                command.Transaction = currentTransaction;
-
-            var expectedCount = command.Parameters.Count;
-            var foundCount = bindArgs.Length;
-
-            if (foundCount != expectedCount){
-                var message = "Incorrect number of SQL parameters: expected {0}, found {1}.".Fmt(foundCount, expectedCount);
-                var err = new CouchbaseLiteException(message);
-                Log.E(Tag, message, err);
-                throw err;
-            }
-
-            for (int i = 0; i < expectedCount; i++) 
-            {
-                var param = command.Parameters [i];
-                param.Value = bindArgs[i];
-            }
+            var command = BuildCommand (sql, paramArgs);
 
             try {
                 command.ExecuteNonQuery();
@@ -196,25 +176,7 @@ namespace Couchbase.Lite.Storage
 
         public override Cursor RawQuery (String sql, CommandBehavior behavior, params Object[] paramArgs)
         {
-            var command = Connection.CreateCommand();
-            command.CommandText = sql.ReplacePositionalParams();
-
-            if (currentTransaction != null)
-                command.Transaction = currentTransaction;
-
-            if (paramArgs != null && paramArgs.Length > 0) {
-                command.Parameters.AddRange(paramArgs.ToSqliteParameters());
-            }
-
-            var expectedCount = command.Parameters.Count;
-            var foundCount = paramArgs != null ? paramArgs.Length : 0;
-
-            if (foundCount != expectedCount){
-                var message = "Incorrect number of SQL parameters: expected {0}, found {1}.".Fmt(foundCount, expectedCount);
-                var err = new CouchbaseLiteException(message);
-                Log.E(Tag, message, err);
-                throw err;
-            }
+            var command = BuildCommand (sql, paramArgs);
 
             Cursor cursor = null;
             try {
@@ -246,7 +208,7 @@ namespace Couchbase.Lite.Storage
 
             var lastInsertedId = -1L;
             try {
-                var rowCount = command.ExecuteNonQuery(); // FIXME.ZJG: Should this return sequence instead of count of rows affected?!
+                var rowCount = command.ExecuteNonQuery();
                 var lastInsertedIndexCommand = new SqliteCommand("select last_insert_rowid()", Connection, currentTransaction);
                 lastInsertedId = (Int64)lastInsertedIndexCommand.ExecuteScalar();
                 lastInsertedIndexCommand.Dispose();
@@ -311,6 +273,26 @@ namespace Couchbase.Lite.Storage
         #endregion
 
         #region Non-public Members
+
+        SqliteCommand BuildCommand (string sql, object[] paramArgs)
+        {
+            var command = Connection.CreateCommand ();
+            command.CommandText = sql.ReplacePositionalParams ();
+            if (currentTransaction != null)
+                command.Transaction = currentTransaction;
+            if (paramArgs != null && paramArgs.Length > 0) {
+                command.Parameters.AddRange (paramArgs.ToSqliteParameters ());
+            }
+            var expectedCount = command.Parameters.Count;
+            var foundCount = paramArgs != null ? paramArgs.Length : 0;
+            if (foundCount != expectedCount) {
+                var message = "Incorrect number of SQL parameters: expected {0}, found {1}.".Fmt (foundCount, expectedCount);
+                var err = new CouchbaseLiteException (message);
+                Log.E (Tag, message, err);
+                throw err;
+            }
+            return command;
+        }
 
         /// <summary>
         /// Avoids the additional database trip that using SqliteCommandBuilder requires.

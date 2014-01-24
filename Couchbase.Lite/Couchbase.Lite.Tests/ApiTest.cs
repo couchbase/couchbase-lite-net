@@ -323,16 +323,19 @@ namespace Couchbase.Lite
 		}
 
 		/// <exception cref="System.Exception"></exception>
-//        [Test]
+        [Test]
         public void TestPurgeDocument()
 		{
-			IDictionary<string, object> properties = new Dictionary<string, object>();
+            var properties = new Dictionary<String, Object>();
 			properties["testName"] = "testPurgeDocument";
-			Database db = StartDatabase();
-			Document doc = CreateDocumentWithProperties(db, properties);
+
+            var db = StartDatabase();
+            var doc = CreateDocumentWithProperties(db, properties);
 			Assert.IsNotNull(doc);
+
 			doc.Purge();
-            Document redoc = db.DocumentCache[doc.Id];
+
+            var redoc = db.DocumentCache[doc.Id];
 			Assert.IsNull(redoc);
 		}
 

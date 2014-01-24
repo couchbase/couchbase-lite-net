@@ -46,7 +46,7 @@ namespace Couchbase.Lite.Storage
 		public abstract void SetTransactionSuccessful();
 
 		/// <exception cref="Couchbase.Lite.Storage.SQLException"></exception>
-        public abstract void ExecSQL(string sql, params Object[] bindArgs);
+        public abstract void ExecSQL(string sql, params Object[] paramArgs);
 
         public abstract Cursor RawQuery(string sql, params Object[] paramArgs);
 
