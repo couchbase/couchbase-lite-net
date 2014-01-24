@@ -34,7 +34,7 @@ public class Document {
     /**
      * Application-defined model object representing this document
      */
-    private Object model;
+    private DocumentModel model;
 
     /**
      * Change Listeners
@@ -300,7 +300,7 @@ public class Document {
      * Gets a reference to an optional application-defined model object representing this Document.
      */
     @InterfaceAudience.Public
-    public Object getModel() {
+    public DocumentModel getModel() {
         return model;
     }
 
@@ -308,7 +308,7 @@ public class Document {
      * Sets a reference to an optional application-defined model object representing this Document.
      */
     @InterfaceAudience.Public
-    public void setModel(Object model) {
+    public void setModel(DocumentModel model) {
         this.model = model;
     }
 
@@ -497,6 +497,10 @@ public class Document {
         }
         if (currentRevision != null && !rev.getRevId().equals(currentRevision.getId())) {
             currentRevision = new SavedRevision(this, rev);
+        }
+
+        if (model != null) {
+            model.documentChanged(this, documentChange);
         }
 
         for (ChangeListener listener : changeListeners) {
