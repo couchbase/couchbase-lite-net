@@ -24,6 +24,7 @@ import com.couchbase.lite.Database.TDContentOptions;
 
 /**
  * Standard query options for views.
+ * @exclude
  */
 public class QueryOptions {
 
