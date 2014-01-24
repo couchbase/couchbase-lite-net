@@ -115,26 +115,6 @@ public class UnsavedRevision extends Revision {
     }
 
     /**
-     * Creates or updates an attachment.
-     * The attachment data will be written to the database when the revision is saved.
-     * @param attachment A newly-created Attachment (not yet associated with any revision)
-     * @param name The attachment name.
-     */
-    @InterfaceAudience.Public
-    public void addAttachment(Attachment attachment, String name) {
-        Map<String, Object> attachments =  (Map<String, Object>) properties.get("_attachments");
-        if (attachments == null) {
-            attachments = new HashMap<String, Object>();
-        }
-        attachments.put(name, attachment);
-        properties.put("_attachments", attachments);
-        if (attachment != null) {
-            attachment.setName(name);
-            attachment.setRevision(this);
-        }
-    }
-
-    /**
      * Deletes any existing attachment with the given name.
      * The attachment will be deleted from the database when the revision is saved.
      * @param name The attachment name.
@@ -221,6 +201,25 @@ public class UnsavedRevision extends Revision {
         return parent != null ? parent.getRevisionHistory() : new ArrayList<SavedRevision>();
     }
 
+    /**
+     * Creates or updates an attachment.
+     * The attachment data will be written to the database when the revision is saved.
+     * @param attachment A newly-created Attachment (not yet associated with any revision)
+     * @param name The attachment name.
+     */
+    @InterfaceAudience.Private
+    /* package */ void addAttachment(Attachment attachment, String name) {
+        Map<String, Object> attachments =  (Map<String, Object>) properties.get("_attachments");
+        if (attachments == null) {
+            attachments = new HashMap<String, Object>();
+        }
+        attachments.put(name, attachment);
+        properties.put("_attachments", attachments);
+        if (attachment != null) {
+            attachment.setName(name);
+            attachment.setRevision(this);
+        }
+    }
 
 
 }
