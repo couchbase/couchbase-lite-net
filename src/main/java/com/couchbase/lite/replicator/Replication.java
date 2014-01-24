@@ -355,7 +355,7 @@ public abstract class Replication {
      * Gets the documents to specify as part of the replication.
      */
     @InterfaceAudience.Public
-    public List<String> getDocsIds() {
+    public List<String> getDocIds() {
         return documentIDs;
     }
 
