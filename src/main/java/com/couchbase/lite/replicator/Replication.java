@@ -462,6 +462,11 @@ public abstract class Replication {
         changeListeners.add(changeListener);
     }
 
+    /**
+     * Return a string representation of this replication.
+     *
+     * The credentials will be masked in order to avoid passwords leaking into logs.
+     */
     @Override
     @InterfaceAudience.Public
     public String toString() {
