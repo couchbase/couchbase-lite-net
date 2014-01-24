@@ -1594,7 +1594,7 @@ public class Router implements Database.ChangeListener {
         }
 
         View view = db.getView(viewName);
-        view.setMapAndReduce(mapBlock, reduceBlock, "1");
+        view.setMapReduce(mapBlock, reduceBlock, "1");
         String collation = (String)viewProps.get("collation");
         if("raw".equals(collation)) {
             view.setCollation(TDViewCollation.TDViewCollationRaw);
