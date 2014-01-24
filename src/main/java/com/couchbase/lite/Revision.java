@@ -171,10 +171,10 @@ public abstract class Revision {
     }
 
     @InterfaceAudience.Public
-    public abstract SavedRevision getParentRevision();
+    public abstract SavedRevision getParent();
 
     @InterfaceAudience.Public
-    public abstract String getParentRevisionId();
+    public abstract String getParentId();
 
     /**
      * Returns the history of this document as an array of CBLRevisions, in forward order.

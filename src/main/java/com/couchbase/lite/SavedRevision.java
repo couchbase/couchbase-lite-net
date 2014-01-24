@@ -157,13 +157,13 @@ public class SavedRevision extends Revision {
 
     @Override
     @InterfaceAudience.Public
-    public SavedRevision getParentRevision() {
+    public SavedRevision getParent() {
         return getDocument().getRevisionFromRev(getDatabase().getParentRevision(revisionInternal));
     }
 
     @Override
     @InterfaceAudience.Public
-    public String getParentRevisionId() {
+    public String getParentId() {
         RevisionInternal parRev= getDocument().getDatabase().getParentRevision(revisionInternal);
         if ( parRev == null){
             return null;

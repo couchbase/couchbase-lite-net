@@ -200,7 +200,7 @@ public class UnsavedRevision extends Revision {
 
     @Override
     @InterfaceAudience.Public
-    public SavedRevision getParentRevision() {
+    public SavedRevision getParent() {
         if (parentRevID == null || parentRevID.length() == 0) {
             return null;
         }
@@ -209,7 +209,7 @@ public class UnsavedRevision extends Revision {
 
     @Override
     @InterfaceAudience.Public
-    public String getParentRevisionId() {
+    public String getParentId() {
         return parentRevID;
     }
 
@@ -217,7 +217,7 @@ public class UnsavedRevision extends Revision {
     @InterfaceAudience.Public
     public List<SavedRevision> getRevisionHistory() throws CouchbaseLiteException {
         // (Don't include self in the array, because this revision doesn't really exist yet)
-        SavedRevision parent = getParentRevision();
+        SavedRevision parent = getParent();
         return parent != null ? parent.getRevisionHistory() : new ArrayList<SavedRevision>();
     }
 
