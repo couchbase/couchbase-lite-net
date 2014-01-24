@@ -669,6 +669,9 @@ public class Database {
         changeListeners.remove(listener);
     }
 
+    /**
+     * Returns a string representation of this database.
+     */
     @InterfaceAudience.Public
     public String toString() {
         return this.getClass().getName() + "[" + path + "]";
