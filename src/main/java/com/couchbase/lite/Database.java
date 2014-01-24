@@ -593,7 +593,7 @@ public class Database {
      * @param databaseFunction
      */
     @InterfaceAudience.Public
-    public boolean runInTransaction(TransactionTask databaseFunction) {
+    public boolean runInTransaction(TransactionalTask databaseFunction) {
 
         boolean shouldCommit = true;
 
@@ -3784,7 +3784,7 @@ public class Database {
     public Map<String, Object> purgeRevisions(final Map<String, List<String>> docsToRevs) {
 
         final Map<String, Object> result = new HashMap<String, Object>();
-        runInTransaction(new TransactionTask() {
+        runInTransaction(new TransactionalTask() {
             @Override
             public boolean run() {
                 for (String docID : docsToRevs.keySet()) {
