@@ -1396,7 +1396,7 @@ namespace Couchbase.Lite
                     args.ToArray()
                 );
 
-                cursor.MoveToNext();
+//                cursor.MoveToNext();
 
                 var keepGoing = cursor.MoveToNext();
                 while (keepGoing)
@@ -2225,7 +2225,7 @@ namespace Couchbase.Lite
                     {
                         rev = cursor.GetString(0);
                     }
-                    bool deleted = (cursor.GetInt(1) > 0);
+                    var deleted = cursor.GetInt(1) > 0;
                     result = new RevisionInternal(id, rev, deleted, this);
                     result.SetSequence(cursor.GetLong(2));
                     if (!contentOptions.Equals(EnumSet.Of(TDContentOptions.TDNoBody)))
@@ -3240,10 +3240,10 @@ namespace Couchbase.Lite
 
         internal Int64 InsertRevision(RevisionInternal rev, long docNumericID, long parentSequence, Boolean current, IEnumerable<byte> data)
         {
-            long rowId = 0;
+            var rowId = 0L;
             try
             {
-                ContentValues args = new ContentValues();
+                var args = new ContentValues();
                 args["doc_id"] = docNumericID;
                 args.Put("revid", rev.GetRevId());
                 if (parentSequence != 0)
@@ -3497,7 +3497,7 @@ namespace Couchbase.Lite
 
         internal Int64 InsertDocumentID(String docId)
         {
-            long rowId = -1;
+            var rowId = -1L;
             try
             {
                 ContentValues args = new ContentValues();

@@ -53,8 +53,13 @@ namespace Couchbase.Lite {
         }
 
         /// <summary>Get the current revision</summary>
-        public SavedRevision CurrentRevision { get {
-                return currentRevision ?? (currentRevision = GetRevisionWithId(null));
+        public SavedRevision CurrentRevision { 
+            get {
+                if (currentRevision == null) 
+                {
+                    currentRevision = GetRevisionWithId(null);
+                }
+                return currentRevision;
             }
         }
 
@@ -247,7 +252,28 @@ namespace Couchbase.Lite {
             return GetRevisionFromRev(Database.GetDocumentWithIDAndRev(Id, revId, EnumSet.NoneOf<TDContentOptions>()));
         }
 
+        internal void LoadCurrentRevisionFrom(QueryRow row)
+        {
+            if (row.DocumentRevisionId == null)
+            {
+                return;
+            }
+            var revId = row.DocumentRevisionId;
+            if (currentRevision == null || RevIdGreaterThanCurrent(revId))
+            {
+                var properties = row.DocumentProperties;
+                if (properties != null)
+                {
+                    var rev = new RevisionInternal(properties, row.Database);
+                    currentRevision = new SavedRevision(this, rev);
+                }
+            }
+        }
 
+        private bool RevIdGreaterThanCurrent(string revId)
+        {
+            return (RevisionInternal.CBLCompareRevIDs(revId, currentRevision.Id) > 0);
+        }
 
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>       
         internal SavedRevision PutProperties(IDictionary<String, Object> properties, String prevID, Boolean allowConflict)
@@ -278,8 +304,7 @@ namespace Couchbase.Lite {
             var hasTrueDeletedProperty = false;
             if (properties != null)
             {
-                hasTrueDeletedProperty = properties.Get("_deleted") != null && ((bool)properties.
-                                                                                Get("_deleted"));
+                hasTrueDeletedProperty = properties.Get("_deleted") != null && ((bool)properties.Get("_deleted"));
             }
 
             var deleted = (properties == null) || hasTrueDeletedProperty;

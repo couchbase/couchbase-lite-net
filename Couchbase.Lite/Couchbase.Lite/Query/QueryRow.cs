@@ -29,17 +29,64 @@ namespace Couchbase.Lite
 
         public Database Database { get; internal set; }
 
-        public Document Document { get; private set; }
+        public Document Document { 
+            get         {
+                if (DocumentId == null)
+                {
+                    return null;
+                }
+                var document = Database.GetDocument(DocumentId);
+                document.LoadCurrentRevisionFrom(this);
+                return document;
+            }
+
+        }
 
         public Object Key { get; private set; }
 
         public Object Value { get; private set; }
 
-        public String DocumentId { get; private set; }
+        public String DocumentId {
+            get {
+                // _documentProperties may have been 'redirected' from a different document
+                if (DocumentProperties == null) return SourceDocumentId;
+
+                var id = DocumentProperties.Get("_id");
+                if (id != null && id is string)
+                {
+                    return (string)id;
+                }
+                else
+                {
+                    return SourceDocumentId;
+                }
+            }
+        }
 
         public String SourceDocumentId { get; private set; }
 
-        public String DocumentRevisionId { get; private set; }
+        public String DocumentRevisionId {
+            get {
+                string rev = null;
+                if (DocumentProperties != null && DocumentProperties.ContainsKey("_rev"))
+                {
+                    rev = (string)DocumentProperties.Get("_rev");
+                }
+                if (rev == null)
+                {
+                    if (Value is IDictionary)
+                    {
+                        var mapValue = (IDictionary<string, object>)Value;
+                        rev = (string)mapValue.Get("_rev");
+                        if (rev == null)
+                        {
+                            rev = (string)mapValue.Get("rev");
+                        }
+                    }
+                }
+                return rev;
+            }
+        }
 
         public IDictionary<String, Object> DocumentProperties { get; private set; }
 

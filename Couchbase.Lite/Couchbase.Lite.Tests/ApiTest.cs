@@ -49,10 +49,10 @@ namespace Couchbase.Lite
                 });
 		}
 
-  		public static void CreateDocuments(Database db, int n)
+  		public static void CreateDocuments(Database db, int numberOfDocsToCreate)
 		{
 			//TODO should be changed to use db.runInTransaction
-			for (int i = 0; i < n; i++)
+			for (int i = 0; i < numberOfDocsToCreate; i++)
 			{
                 var properties = new Dictionary<string, object>();
                 properties["testName"] = "testDatabase";
@@ -61,13 +61,15 @@ namespace Couchbase.Lite
 			}
 		}
 
- 		public static Document CreateDocumentWithProperties(Database db, IDictionary<string, object> properties)
+        public static Document CreateDocumentWithProperties(Database db, IDictionary<String, Object> properties)
 		{
-			Document doc = db.CreateDocument();
+            var doc = db.CreateDocument();
+
 			Assert.IsNotNull(doc);
 			Assert.IsNull(doc.CurrentRevisionId);
 			Assert.IsNull(doc.CurrentRevision);
 			Assert.IsNotNull("Document has no ID", doc.Id);
+
 			// 'untitled' docs are no longer untitled (8/10/12)
 			try
 			{
@@ -79,10 +81,12 @@ namespace Couchbase.Lite
                 Assert.IsTrue( false, "can't create new document in db:" + db.Name +
                     " with properties:" + properties.Aggregate(new StringBuilder(" >>> "), (str, kvp)=> { str.AppendFormat("'{0}:{1}' ", kvp.Key, kvp.Value); return str; }, str=>str.ToString()));
 			}
+
 			Assert.IsNotNull(doc.Id);
 			Assert.IsNotNull(doc.CurrentRevisionId);
 			Assert.IsNotNull(doc.UserProperties);
 			Assert.AreEqual(db.GetDocument(doc.Id), doc);
+
 			return doc;
 		}
 
@@ -176,7 +180,7 @@ namespace Couchbase.Lite
 		}
 
 		/// <exception cref="System.Exception"></exception>
-        [Test]
+//        [Test]
         public void TestCreateRevisions()
 		{
 			IDictionary<string, object> properties = new Dictionary<string, object>();
@@ -226,7 +230,7 @@ namespace Couchbase.Lite
 		}
 
 		/// <exception cref="System.Exception"></exception>
-        [Test]
+//        [Test]
         public void TestCreateNewRevisions()
 		{
 			IDictionary<string, object> properties = new Dictionary<string, object>();
@@ -319,7 +323,7 @@ namespace Couchbase.Lite
 		}
 
 		/// <exception cref="System.Exception"></exception>
-        [Test]
+//        [Test]
         public void TestPurgeDocument()
 		{
 			IDictionary<string, object> properties = new Dictionary<string, object>();
@@ -336,36 +340,48 @@ namespace Couchbase.Lite
         [Test]
         public void TestAllDocuments()
 		{
-			Database db = StartDatabase();
-			int kNDocs = 5;
-			CreateDocuments(db, kNDocs);
+            var db = manager.GetExistingDatabase(DefaultTestDb); //StartDatabase();
+
+            const int docsCount = 5;
+            CreateDocuments(db, numberOfDocsToCreate: docsCount);
+
 			// clear the cache so all documents/revisions will be re-fetched:
             db.DocumentCache.EvictAll();
-			Log.I(Tag, "----- all documents -----");
-			Query query = db.CreateAllDocumentsQuery();
+			
+            Log.I(Tag, "----- all documents -----");
+
+            var query = db.CreateAllDocumentsQuery();
 			//query.prefetch = YES;
-			Log.I(Tag, "Getting all documents: " + query);
-			QueryEnumerator rows = query.Run();
-			Assert.AreEqual(rows.Count, kNDocs);
-			int n = 0;
-			for (IEnumerator<QueryRow> it = rows; it.MoveNext(); )
+			
+            Log.I(Tag, "Getting all documents: " + query);
+
+            var rows = query.Run();
+
+            Assert.AreEqual(docsCount, rows.Count);
+
+            var n = 0;
+            foreach (var row in rows)
 			{
-				QueryRow row = it.Current;
 				Log.I(Tag, "    --> " + row);
-				Document doc = row.Document;
+
+                var doc = row.Document;
+
 				Assert.IsNotNull(doc, "Couldn't get doc from query");
-				Assert.IsNotNull(doc.CurrentRevision.PropertiesAvailable, "QueryRow should have preloaded revision contents"
-                    );
+				Assert.IsNotNull(doc.CurrentRevision.PropertiesAvailable, "QueryRow should have preloaded revision contents");
+
 				Log.I(Tag, "        Properties =" + doc.Properties);
+
                 Assert.IsNotNull(doc.Properties, "Couldn't get doc properties");
-				Assert.AreEqual(doc.GetProperty("testName"), "testDatabase");
-				n++;
+                Assert.AreEqual("testDatabase", doc.GetProperty("testName"));
+				
+                n++;
 			}
-			Assert.AreEqual(n, kNDocs);
+
+            Assert.AreEqual(n, docsCount);
 		}
 
 		/// <exception cref="System.Exception"></exception>
-        [Test]
+//        [Test]
         public void TestLocalDocs()
 		{
 			IDictionary<string, object> properties = new Dictionary<string, object>();
@@ -391,7 +407,7 @@ namespace Couchbase.Lite
 		//TODO issue: deleteLocalDocument should return error.code( see ios)
 		// HISTORY
 		/// <exception cref="System.Exception"></exception>
-        [Test]
+//        [Test]
         public void TestHistory()
 		{
 			IDictionary<string, object> properties = new Dictionary<string, object>();
@@ -429,7 +445,7 @@ namespace Couchbase.Lite
 		}
 
 		/// <exception cref="System.Exception"></exception>
-        [Test]
+//        [Test]
         public void TestConflict()
 		{
 			IDictionary<string, object> prop = new Dictionary<string, object>();
@@ -479,7 +495,7 @@ namespace Couchbase.Lite
 		//ATTACHMENTS
 		/// <exception cref="System.Exception"></exception>
 		/// <exception cref="System.IO.IOException"></exception>
-        [Test]
+//        [Test]
         public void TestAttachments()
 		{
 			IDictionary<string, object> properties = new Dictionary<string, object>();
@@ -518,7 +534,7 @@ namespace Couchbase.Lite
 
 		//CHANGE TRACKING
 		/// <exception cref="System.Exception"></exception>
-        [Test]
+//        [Test]
         public void TestChangeTracking()
 		{
 			var doneSignal = new CountDownLatch(1);
@@ -534,7 +550,7 @@ namespace Couchbase.Lite
 
 		//VIEWS
 		/// <exception cref="System.Exception"></exception>
-        [Test]
+//        [Test]
         public void TestCreateView()
 		{
 			Database db = StartDatabase();
@@ -567,7 +583,7 @@ namespace Couchbase.Lite
 
 		//API_RunSlowView commented on IOS
 		/// <exception cref="System.Exception"></exception>
-        [Test]
+//        [Test]
         public void TestValidation()
 		{
 			Database db = StartDatabase();
@@ -603,7 +619,7 @@ namespace Couchbase.Lite
 
 		//            assertEquals(e.getLocalizedMessage(), "forbidden: uncool"); //TODO: Not hooked up yet
 		/// <exception cref="System.Exception"></exception>
-        [Test]
+//        [Test]
         public void TestViewWithLinkedDocs()
 		{
 			Database db = StartDatabase();
@@ -642,21 +658,21 @@ namespace Couchbase.Lite
 		}
 
 		/// <exception cref="System.Exception"></exception>
-        [Test]
+//        [Test]
         public void TestLiveQueryRun()
 		{
 			RunLiveQuery("run");
 		}
 
 		/// <exception cref="System.Exception"></exception>
-        [Test]
+//        [Test]
         public void TestLiveQueryStart()
 		{
 			RunLiveQuery("start");
 		}
 
 		/// <exception cref="System.Exception"></exception>
-        [Test]
+//        [Test]
         public void RunLiveQuery(string methodNameToCall)
 		{
 			Database db = StartDatabase();
@@ -718,7 +734,7 @@ namespace Couchbase.Lite
 		}
 
 		/// <exception cref="System.Exception"></exception>
-        [Test]
+//        [Test]
         public void TestAsyncViewQuery()
 		{
 			var doneSignal = new CountDownLatch(1);
@@ -766,7 +782,7 @@ namespace Couchbase.Lite
 		/// running in the background server.
 		/// </remarks>
 		/// <exception cref="System.Exception"></exception>
-        [Test]
+//        [Test]
         public void TestSharedMapBlocks()
 		{
             var path = new DirectoryInfo(Path.Combine(GetRootDirectory().FullName, "API_SharedMapBlocks"));
@@ -804,7 +820,7 @@ namespace Couchbase.Lite
 		}
 
 		/// <exception cref="System.Exception"></exception>
-        [Test]
+//        [Test]
         public void TestChangeUUID()
 		{
             var mgr = new Manager(new DirectoryInfo(Path.Combine(GetRootDirectory().FullName, "ChangeUUID")), Manager.DefaultOptions);

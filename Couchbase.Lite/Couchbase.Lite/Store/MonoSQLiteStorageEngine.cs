@@ -244,13 +244,24 @@ namespace Couchbase.Lite.Storage
 
             var command = GetInsertCommand(table, initialValues, conflictResolutionStrategy);
 
-            var resultCount = -1L;
+            var lastInsertedId = -1L;
             try {
-                resultCount = command.ExecuteNonQuery();
+                var rowCount = command.ExecuteNonQuery(); // FIXME.ZJG: Should this return sequence instead of count of rows affected?!
+                var lastInsertedIndexCommand = new SqliteCommand("select last_insert_rowid()", Connection, currentTransaction);
+                lastInsertedId = (Int64)lastInsertedIndexCommand.ExecuteScalar();
+                lastInsertedIndexCommand.Dispose();
+
+                if (lastInsertedId == -1L) {
+                    Log.E(Tag, "Error inserting " + initialValues + " using " + command.CommandText);
+                } else {
+                    Log.V(Tag, "Inserting row " + lastInsertedId + " from " + initialValues + " using " + command.CommandText);
+                }
             } catch (Exception ex) {
                 Log.E(Tag, "Error inserting into table " + table, ex);
+            } finally {
+                command.Dispose();
             }
-            return resultCount;
+            return lastInsertedId;
         }
 
         public override int Update (String table, ContentValues values, String whereClause, params String[] whereArgs)
@@ -283,9 +294,11 @@ namespace Couchbase.Lite.Storage
 
             var resultCount = -1;
             try {
-                resultCount = (Int32)command.ExecuteScalar ();
+                resultCount = (Int32)command.ExecuteNonQuery ();
             } catch (Exception ex) {
                 Log.E(Tag, "Error deleting from table " + table, ex);
+            } finally {
+                command.Dispose();
             }
             return resultCount;
         }

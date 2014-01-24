@@ -7,7 +7,7 @@ using System.IO;
 
 namespace Couchbase.Lite {
     
-    public partial class QueryEnumerator : IEnumerator<QueryRow>
+    public partial class QueryEnumerator : IEnumerator<QueryRow>, IEnumerable<QueryRow>
     {
 
     #region Constructors
@@ -96,7 +96,7 @@ namespace Couchbase.Lite {
 
         public Boolean MoveNext ()
         {
-            if (CurrentRow++ >= Count)
+            if (++CurrentRow >= Count)
                 return false;
 
             Current = GetRow(CurrentRow);
@@ -113,6 +113,24 @@ namespace Couchbase.Lite {
         Object IEnumerator.Current { get { return Current; } }
 
     #endregion
+
+    #region IEnumerable implementation
+
+        public IEnumerator<QueryRow> GetEnumerator ()
+        {
+            return this;
+        }
+
+        #endregion
+
+        #region IEnumerable implementation
+
+        IEnumerator IEnumerable.GetEnumerator ()
+        {
+            return this;
+        }
+
+    #endregion
 
     }
 
