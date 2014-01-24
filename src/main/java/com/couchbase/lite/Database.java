@@ -590,16 +590,16 @@ public class Database {
      *
      * TODO: the iOS version has a retry loop, so there should be one here too
      *
-     * @param databaseFunction
+     * @param transactionalTask
      */
     @InterfaceAudience.Public
-    public boolean runInTransaction(TransactionalTask databaseFunction) {
+    public boolean runInTransaction(TransactionalTask transactionalTask) {
 
         boolean shouldCommit = true;
 
         beginTransaction();
         try {
-            shouldCommit = databaseFunction.run();
+            shouldCommit = transactionalTask.run();
         } catch (Exception e) {
             shouldCommit = false;
             Log.e(Database.TAG, e.toString(), e);
@@ -615,11 +615,11 @@ public class Database {
      * Runs the delegate asynchronously.
      */
     @InterfaceAudience.Public
-    public Future runAsync(final AsyncTask function) {
+    public Future runAsync(final AsyncTask asyncTask) {
         return getManager().runAsync(new Runnable() {
             @Override
             public void run() {
-                function.run(Database.this);
+                asyncTask.run(Database.this);
             }
         });
     }
