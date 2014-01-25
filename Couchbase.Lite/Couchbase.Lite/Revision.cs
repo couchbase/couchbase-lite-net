@@ -26,7 +26,7 @@ namespace Couchbase.Lite
 
     #region Non-public Members
 
-        internal Int64 Sequence { get; private set; }
+        internal virtual Int64 Sequence { get; private set; }
 
         internal IDictionary<String, Object> GetAttachmentMetadata()
         {

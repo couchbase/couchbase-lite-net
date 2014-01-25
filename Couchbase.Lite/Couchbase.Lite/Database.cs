@@ -2946,7 +2946,7 @@ namespace Couchbase.Lite
             }
             // EPILOGUE: A change notification is sent...
             NotifyChange(newRev, winningRev, null, inConflict);
-            return oldRev;
+            return newRev;
         }
 
         internal RevisionInternal Winner(Int64 docNumericID, String oldWinningRevID, Boolean oldWinnerWasDeletion, RevisionInternal newRev)

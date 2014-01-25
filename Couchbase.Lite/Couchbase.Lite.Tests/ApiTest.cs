@@ -180,19 +180,20 @@ namespace Couchbase.Lite
 		}
 
 		/// <exception cref="System.Exception"></exception>
-//        [Test]
+        [Test]
         public void TestCreateRevisions()
 		{
-			IDictionary<String, Object> properties = new Dictionary<String, Object>();
+			var properties = new Dictionary<String, Object>();
 			properties["testName"] = "testCreateRevisions";
 			properties["tag"] = 1337;
-			var db = manager.GetExistingDatabase(DefaultTestDb);
+            var db = StartDatabase();
 
-			Document doc = CreateDocumentWithProperties(db, properties);
-			SavedRevision rev1 = doc.CurrentRevision;
+			var doc = CreateDocumentWithProperties(db, properties);
+			var rev1 = doc.CurrentRevision;
 			Assert.IsTrue(rev1.Id.StartsWith("1-"));
 			Assert.AreEqual(1, rev1.Sequence);
             Assert.AreEqual(0, rev1.Attachments.Count());
+
 			// Test -createRevisionWithProperties:
             var properties2 = new Dictionary<String, Object>(properties);
 			properties2["tag"] = 4567;
@@ -200,32 +201,37 @@ namespace Couchbase.Lite
 			Assert.IsNotNull(rev2, "Put failed");
             Assert.IsTrue(doc.CurrentRevisionId.StartsWith("2-"), "Document revision ID is still " + doc.CurrentRevisionId);
 			Assert.AreEqual(rev2.Id, doc.CurrentRevisionId);
-            Assert.IsNotNull(properties2);
-            Assert.AreEqual(rev2.PropertiesAvailable, rev2.UserProperties);
+            Assert.IsNotNull(rev2.PropertiesAvailable);
+            Assert.AreEqual(rev2.UserProperties, properties2);
 			Assert.AreEqual(rev2.Document, doc);
 			Assert.AreEqual(rev2.GetProperty("_id"), doc.Id);
 			Assert.AreEqual(rev2.GetProperty("_rev"), rev2.Id);
-			// Test -createRevision:
+			
+            // Test -createRevision:
             var newRev = rev2.CreateRevision();
 			Assert.IsNull(newRev.Id);
 			Assert.AreEqual(newRev.Parent, rev2);
 			Assert.AreEqual(newRev.ParentId, rev2.Id);
+
             var listRevs = new AList<SavedRevision>();
             listRevs.Add(rev1);
             listRevs.Add(rev2);
 			Assert.AreEqual(newRev.RevisionHistory, listRevs);
 			Assert.AreEqual(newRev.Properties, rev2.Properties);
 			Assert.AreEqual(newRev.UserProperties, rev2.UserProperties);
-			IDictionary<String, Object> userProperties = new Dictionary<String, Object>();
+
+			var userProperties = new Dictionary<String, Object>();
 			userProperties["because"] = "NoSQL";
 			newRev.SetUserProperties(userProperties);
 			Assert.AreEqual(newRev.UserProperties, userProperties);
-			IDictionary<String, Object> expectProperties = new Dictionary<String, Object>();
+
+			var expectProperties = new Dictionary<String, Object>();
 			expectProperties["because"] = "NoSQL";
 			expectProperties["_id"] = doc.Id;
 			expectProperties["_rev"] = rev2.Id;
 			Assert.AreEqual(newRev.Properties, expectProperties);
-			SavedRevision rev3 = newRev.Save();
+
+			var rev3 = newRev.Save();
 			Assert.IsNotNull(rev3);
 			Assert.AreEqual(rev3.UserProperties, newRev.UserProperties);
 		}

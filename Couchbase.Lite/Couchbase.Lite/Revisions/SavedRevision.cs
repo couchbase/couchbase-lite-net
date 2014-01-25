@@ -7,6 +7,7 @@ using System.IO;
 using Couchbase.Lite.Internal;
 using Sharpen;
 using Couchbase.Lite.Util;
+using System.Dynamic;
 
 namespace Couchbase.Lite {
 
@@ -29,6 +30,17 @@ namespace Couchbase.Lite {
         internal RevisionInternal RevisionInternal { get; private set; }
 
         private  Boolean CheckedProperties { get; set; }
+
+        internal override Int64 Sequence {
+            get {
+                var sequence = RevisionInternal.GetSequence();
+                if (sequence == 0 && LoadProperties())
+                {
+                    sequence = RevisionInternal.GetSequence();
+                }
+                return sequence;
+            }
+        }
 
         internal Boolean LoadProperties()
         {
