@@ -63,6 +63,7 @@ namespace Couchbase.Lite
             KnownSpecialKeys.Add("_revs_info");
             KnownSpecialKeys.Add("_conflicts");
             KnownSpecialKeys.Add("_deleted_conflicts");
+            KnownSpecialKeys.Add("_local_seq");
         }
 
     #endregion

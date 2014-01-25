@@ -432,38 +432,46 @@ namespace Couchbase.Lite
 		//TODO issue: deleteLocalDocument should return error.code( see ios)
 		// HISTORY
 		/// <exception cref="System.Exception"></exception>
-//        [Test]
+        [Test]
         public void TestHistory()
 		{
-			IDictionary<String, Object> properties = new Dictionary<String, Object>();
+			var properties = new Dictionary<String, Object>();
 			properties["testName"] = "test06_History";
-			properties["tag"] = 1;
-			var db = manager.GetExistingDatabase(DefaultTestDb);
+            properties["tag"] = 1L;
+            var db = StartDatabase();
 
-			Document doc = CreateDocumentWithProperties(db, properties);
-			string rev1ID = doc.CurrentRevisionId;
+			var doc = CreateDocumentWithProperties(db, properties);
+			var rev1ID = doc.CurrentRevisionId;
 			Log.I(Tag, "1st revision: " + rev1ID);
             Assert.IsTrue (rev1ID.StartsWith ("1-", StringComparison.Ordinal), "1st revision looks wrong: " + rev1ID);
 			Assert.AreEqual(doc.UserProperties, properties);
+
             properties = new Dictionary<String, Object>(doc.Properties);
 			properties["tag"] = 2;
 			Assert.IsNotNull(!properties.Equals(doc.Properties));
 			Assert.IsNotNull(doc.PutProperties(properties));
-			string rev2ID = doc.CurrentRevisionId;
+
+			var rev2ID = doc.CurrentRevisionId;
 			Log.I(Tag, "rev2ID" + rev2ID);
-                Assert.IsTrue(rev2ID.StartsWith("2-", StringComparison.Ordinal), "2nd revision looks wrong:" + rev2ID);
+            Assert.IsTrue(rev2ID.StartsWith("2-", StringComparison.Ordinal), "2nd revision looks wrong:" + rev2ID);
+
             var revisions = doc.RevisionHistory.ToList();
             Log.I(Tag, "Revisions = " + revisions);
             Assert.AreEqual(revisions.Count, 2);
-			SavedRevision rev1 = revisions[0];
+
+			var rev1 = revisions[0];
 			Assert.AreEqual(rev1.Id, rev1ID);
-			IDictionary<String, Object> gotProperties = rev1.Properties;
+
+			var gotProperties = rev1.Properties;
 			Assert.AreEqual(1, gotProperties["tag"]);
-			SavedRevision rev2 = revisions[1];
+
+			var rev2 = revisions[1];
 			Assert.AreEqual(rev2.Id, rev2ID);
 			Assert.AreEqual(rev2, doc.CurrentRevision);
+
 			gotProperties = rev2.Properties;
 			Assert.AreEqual(2, gotProperties["tag"]);
+
             var tmp = new AList<SavedRevision>();
 			tmp.Add(rev2);
 			Assert.AreEqual(doc.ConflictingRevisions, tmp);
