@@ -773,7 +773,7 @@ namespace Couchbase.Lite
 
                 if (prevRevID != null)
                 {
-                    int generation = RevisionInternal.GenerationFromRevID(prevRevID);
+                    var generation = RevisionInternal.GenerationFromRevID(prevRevID);
                     if (generation == 0)
                     {
                         throw new CouchbaseLiteException(StatusCode.BadRequest);

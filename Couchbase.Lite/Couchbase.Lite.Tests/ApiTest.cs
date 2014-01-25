@@ -54,7 +54,7 @@ namespace Couchbase.Lite
 			//TODO should be changed to use db.runInTransaction
 			for (int i = 0; i < numberOfDocsToCreate; i++)
 			{
-                var properties = new Dictionary<string, object>();
+                var properties = new Dictionary<String, Object>();
                 properties["testName"] = "testDatabase";
                 properties["sequence"] = i;
 				CreateDocumentWithProperties(db, properties);
@@ -122,11 +122,11 @@ namespace Couchbase.Lite
         [Test]
         public void TestCreateDocument()
 		{
-            var properties = new Dictionary<string, object>();
+            var properties = new Dictionary<String, Object>();
 			properties["testName"] = "testCreateDocument";
             properties["tag"] = 1337L;
 
-			var db = StartDatabase();
+            var db = manager.GetExistingDatabase(DefaultTestDb);
 			var doc = CreateDocumentWithProperties(db, properties);
             var docID = doc.Id;
 			Assert.IsTrue(docID.Length > 10, "Invalid doc ID: " + docID);
@@ -149,14 +149,14 @@ namespace Couchbase.Lite
         [Test]
         public void TestDatabaseCompaction()
 		{
-            var properties = new Dictionary<string, object>();
+            var properties = new Dictionary<String, Object>();
 			properties["testName"] = "testDatabaseCompaction";
 			properties["tag"] = 1337;
 
-            var db = StartDatabase();
+            var db = manager.GetExistingDatabase(DefaultTestDb);
             var doc = CreateDocumentWithProperties(db, properties);
             var rev1 = doc.CurrentRevision;
-            var properties2 = new Dictionary<string, object>(properties);
+            var properties2 = new Dictionary<String, Object>(properties);
 			properties2["tag"] = 4567;
 
             var rev2 = rev1.CreateRevision(properties2);
@@ -183,17 +183,18 @@ namespace Couchbase.Lite
 //        [Test]
         public void TestCreateRevisions()
 		{
-			IDictionary<string, object> properties = new Dictionary<string, object>();
+			IDictionary<String, Object> properties = new Dictionary<String, Object>();
 			properties["testName"] = "testCreateRevisions";
 			properties["tag"] = 1337;
-			Database db = StartDatabase();
+			var db = manager.GetExistingDatabase(DefaultTestDb);
+
 			Document doc = CreateDocumentWithProperties(db, properties);
 			SavedRevision rev1 = doc.CurrentRevision;
 			Assert.IsTrue(rev1.Id.StartsWith("1-"));
 			Assert.AreEqual(1, rev1.Sequence);
             Assert.AreEqual(0, rev1.Attachments.Count());
 			// Test -createRevisionWithProperties:
-            var properties2 = new Dictionary<string, object>(properties);
+            var properties2 = new Dictionary<String, Object>(properties);
 			properties2["tag"] = 4567;
             var rev2 = rev1.CreateRevision(properties2);
 			Assert.IsNotNull(rev2, "Put failed");
@@ -215,11 +216,11 @@ namespace Couchbase.Lite
 			Assert.AreEqual(newRev.RevisionHistory, listRevs);
 			Assert.AreEqual(newRev.Properties, rev2.Properties);
 			Assert.AreEqual(newRev.UserProperties, rev2.UserProperties);
-			IDictionary<string, object> userProperties = new Dictionary<string, object>();
+			IDictionary<String, Object> userProperties = new Dictionary<String, Object>();
 			userProperties["because"] = "NoSQL";
 			newRev.SetUserProperties(userProperties);
 			Assert.AreEqual(newRev.UserProperties, userProperties);
-			IDictionary<string, object> expectProperties = new Dictionary<string, object>();
+			IDictionary<String, Object> expectProperties = new Dictionary<String, Object>();
 			expectProperties["because"] = "NoSQL";
 			expectProperties["_id"] = doc.Id;
 			expectProperties["_rev"] = rev2.Id;
@@ -233,10 +234,11 @@ namespace Couchbase.Lite
 //        [Test]
         public void TestCreateNewRevisions()
 		{
-			IDictionary<string, object> properties = new Dictionary<string, object>();
+			IDictionary<String, Object> properties = new Dictionary<String, Object>();
 			properties["testName"] = "testCreateRevisions";
 			properties["tag"] = 1337;
-			Database db = StartDatabase();
+			var db = manager.GetExistingDatabase(DefaultTestDb);
+
 			Document doc = db.CreateDocument();
             var newRev = doc.CreateRevision();
             var newRevDocument = newRev.Document;
@@ -244,7 +246,7 @@ namespace Couchbase.Lite
 			Assert.AreEqual(db, newRev.Database);
 			Assert.IsNull(newRev.ParentId);
 			Assert.IsNull(newRev.Parent);
-			IDictionary<string, object> expectProperties = new Dictionary<string, object>();
+			IDictionary<String, Object> expectProperties = new Dictionary<String, Object>();
 			expectProperties["_id"] = doc.Id;
 			Assert.AreEqual(expectProperties, newRev.Properties);
 			Assert.IsTrue(!newRev.IsDeletion);
@@ -307,10 +309,10 @@ namespace Couchbase.Lite
         [Test]
         public void TestDeleteDocument()
 		{
-            var properties = new Dictionary<string, object>();
+            var properties = new Dictionary<String, Object>();
 			properties["testName"] = "testDeleteDocument";
 
-            var db = StartDatabase();
+            var db = manager.GetExistingDatabase(DefaultTestDb);
             var doc = CreateDocumentWithProperties(db, properties);
 			
             Assert.IsTrue(!doc.Deleted);
@@ -329,7 +331,7 @@ namespace Couchbase.Lite
             var properties = new Dictionary<String, Object>();
 			properties["testName"] = "testPurgeDocument";
 
-            var db = StartDatabase();
+            var db = manager.GetExistingDatabase(DefaultTestDb);
             var doc = CreateDocumentWithProperties(db, properties);
 			Assert.IsNotNull(doc);
 
@@ -384,25 +386,32 @@ namespace Couchbase.Lite
 		}
 
 		/// <exception cref="System.Exception"></exception>
-//        [Test]
+        [Test]
         public void TestLocalDocs()
 		{
-			IDictionary<string, object> properties = new Dictionary<string, object>();
+            var db = manager.GetExistingDatabase(DefaultTestDb);
+
+            var properties = new Dictionary<String, Object>();
 			properties["foo"] = "bar";
-			Database db = StartDatabase();
-			IDictionary<string, object> props = db.GetExistingLocalDocument("dock");
+
+			var props = db.GetExistingLocalDocument("dock");
             Assert.IsNull(props);
+
             db.PutLocalDocument("dock" , properties);
-			props = db.GetExistingLocalDocument("dock");
+			
+            props = db.GetExistingLocalDocument("dock");
 			Assert.AreEqual(props["foo"], "bar");
-			IDictionary<string, object> newProperties = new Dictionary<string, object>();
+			
+            var newProperties = new Dictionary<String, Object>();
 			newProperties["FOOO"] = "BARRR";
             db.PutLocalDocument("dock", newProperties);
-			props = db.GetExistingLocalDocument("dock");
-			Assert.IsNull(props["foo"]);
+			
+            props = db.GetExistingLocalDocument("dock");
+            Assert.IsFalse(props.ContainsKey("foo"));
 			Assert.AreEqual(props["FOOO"], "BARRR");
             Assert.IsNotNull(db.DeleteLocalDocument("dock"), "Couldn't delete local doc");
-			props = db.GetExistingLocalDocument("dock");
+			
+            props = db.GetExistingLocalDocument("dock");
 			Assert.IsNull(props);
 			Assert.IsNotNull(!db.DeleteLocalDocument("dock"),"Second delete should have failed");
 		}
@@ -413,16 +422,17 @@ namespace Couchbase.Lite
 //        [Test]
         public void TestHistory()
 		{
-			IDictionary<string, object> properties = new Dictionary<string, object>();
+			IDictionary<String, Object> properties = new Dictionary<String, Object>();
 			properties["testName"] = "test06_History";
 			properties["tag"] = 1;
-			Database db = StartDatabase();
+			var db = manager.GetExistingDatabase(DefaultTestDb);
+
 			Document doc = CreateDocumentWithProperties(db, properties);
 			string rev1ID = doc.CurrentRevisionId;
 			Log.I(Tag, "1st revision: " + rev1ID);
             Assert.IsTrue (rev1ID.StartsWith ("1-", StringComparison.Ordinal), "1st revision looks wrong: " + rev1ID);
 			Assert.AreEqual(doc.UserProperties, properties);
-            properties = new Dictionary<string, object>(doc.Properties);
+            properties = new Dictionary<String, Object>(doc.Properties);
 			properties["tag"] = 2;
 			Assert.IsNotNull(!properties.Equals(doc.Properties));
 			Assert.IsNotNull(doc.PutProperties(properties));
@@ -434,7 +444,7 @@ namespace Couchbase.Lite
             Assert.AreEqual(revisions.Count, 2);
 			SavedRevision rev1 = revisions[0];
 			Assert.AreEqual(rev1.Id, rev1ID);
-			IDictionary<string, object> gotProperties = rev1.Properties;
+			IDictionary<String, Object> gotProperties = rev1.Properties;
 			Assert.AreEqual(1, gotProperties["tag"]);
 			SavedRevision rev2 = revisions[1];
 			Assert.AreEqual(rev2.Id, rev2ID);
@@ -451,15 +461,16 @@ namespace Couchbase.Lite
 //        [Test]
         public void TestConflict()
 		{
-			IDictionary<string, object> prop = new Dictionary<string, object>();
+			IDictionary<String, Object> prop = new Dictionary<String, Object>();
 			prop["foo"] = "bar";
-			Database db = StartDatabase();
+			var db = manager.GetExistingDatabase(DefaultTestDb);
+
 			Document doc = CreateDocumentWithProperties(db, prop);
 			SavedRevision rev1 = doc.CurrentRevision;
-            var properties = new Dictionary<string, object>(doc.Properties);
+            var properties = new Dictionary<String, Object>(doc.Properties);
 			properties["tag"] = 2;
 			SavedRevision rev2a = doc.PutProperties(properties);
-            properties = new Dictionary<string, object>(rev1.Properties);
+            properties = new Dictionary<String, Object>(rev1.Properties);
 			properties["tag"] = 3;
 			UnsavedRevision newRev = rev1.CreateRevision();
             newRev.SetProperties(properties);
@@ -501,9 +512,10 @@ namespace Couchbase.Lite
 //        [Test]
         public void TestAttachments()
 		{
-			IDictionary<string, object> properties = new Dictionary<string, object>();
+			IDictionary<String, Object> properties = new Dictionary<String, Object>();
 			properties["testName"] = "testAttachments";
-			Database db = StartDatabase();
+			var db = manager.GetExistingDatabase(DefaultTestDb);
+
 			Document doc = CreateDocumentWithProperties(db, properties);
 			SavedRevision rev = doc.CurrentRevision;
 			Assert.AreEqual(rev.Attachments.Count(), 0);
@@ -541,7 +553,8 @@ namespace Couchbase.Lite
         public void TestChangeTracking()
 		{
 			var doneSignal = new CountDownLatch(1);
-			Database db = StartDatabase();
+			var db = manager.GetExistingDatabase(DefaultTestDb);
+
             db.Changed += (sender, e) => doneSignal.CountDown();
 			CreateDocumentsAsync(db, 5);
 			// We expect that the changes reported by the server won't be notified, because those revisions
@@ -556,7 +569,8 @@ namespace Couchbase.Lite
 //        [Test]
         public void TestCreateView()
 		{
-			Database db = StartDatabase();
+			var db = manager.GetExistingDatabase(DefaultTestDb);
+
 			View view = db.GetView("vu");
 			Assert.IsNotNull(view);
 			Assert.AreEqual(db, view.Database);
@@ -589,7 +603,8 @@ namespace Couchbase.Lite
 //        [Test]
         public void TestValidation()
 		{
-			Database db = StartDatabase();
+			var db = manager.GetExistingDatabase(DefaultTestDb);
+
             db.SetValidation("uncool", (newRevision, context)=>
                 {
                     {
@@ -601,12 +616,12 @@ namespace Couchbase.Lite
                         return true;
                     }
                 });
-			IDictionary<string, object> properties = new Dictionary<string, object>();
+			IDictionary<String, Object> properties = new Dictionary<String, Object>();
 			properties["groovy"] = "right on";
 			properties["foo"] = "bar";
 			Document doc = db.CreateDocument();
 			Assert.IsNotNull(doc.PutProperties(properties));
-			properties = new Dictionary<string, object>();
+			properties = new Dictionary<String, Object>();
 			properties["foo"] = "bar";
 			doc = db.CreateDocument();
 			try
@@ -625,13 +640,14 @@ namespace Couchbase.Lite
 //        [Test]
         public void TestViewWithLinkedDocs()
 		{
-			Database db = StartDatabase();
+			var db = manager.GetExistingDatabase(DefaultTestDb);
+
 			int kNDocs = 50;
 			var docs = new Document[50];
 			string lastDocID = string.Empty;
 			for (int i = 0; i < kNDocs; i++)
 			{
-				IDictionary<string, object> properties = new Dictionary<string, object>();
+				IDictionary<String, Object> properties = new Dictionary<String, Object>();
 				properties["sequence"] = i;
 				properties["prev"] = lastDocID;
                 Document doc = CreateDocumentWithProperties(db, properties);
@@ -678,12 +694,13 @@ namespace Couchbase.Lite
 //        [Test]
         public void RunLiveQuery(string methodNameToCall)
 		{
-			Database db = StartDatabase();
+			var db = manager.GetExistingDatabase(DefaultTestDb);
+
 			var doneSignal = new CountDownLatch(11);
 			// 11 corresponds to startKey=23; endKey=33
 			// run a live query
 			View view = db.GetView("vu");
-            view.SetMap((IDictionary<string, object> document, EmitDelegate emitter)=> 
+            view.SetMap((IDictionary<String, Object> document, EmitDelegate emitter)=> 
                 {
                     emitter(document["sequence"], 1);
                 }, "1");
@@ -741,7 +758,8 @@ namespace Couchbase.Lite
         public void TestAsyncViewQuery()
 		{
 			var doneSignal = new CountDownLatch(1);
-			Database db = StartDatabase();
+			var db = manager.GetExistingDatabase(DefaultTestDb);
+
 			View view = db.GetView("vu");
             view.SetMap((document, emitter) => emitter (document ["sequence"], null), "1");
 

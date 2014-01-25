@@ -34,6 +34,7 @@ using System.Data.SqlClient;
 using System.Diagnostics;
 using System.Threading;
 using System.Web.UI;
+using System.Runtime.InteropServices;
 
 namespace Couchbase.Lite.Storage
 {
@@ -208,11 +209,13 @@ namespace Couchbase.Lite.Storage
 
             var lastInsertedId = -1L;
             try {
-                var rowCount = command.ExecuteNonQuery();
+                command.ExecuteNonQuery();
+
+                // Get the new row's id.
+                // TODO.ZJG: This query should ultimately be replaced with a call to sqlite3_last_insert_rowid.
                 var lastInsertedIndexCommand = new SqliteCommand("select last_insert_rowid()", Connection, currentTransaction);
                 lastInsertedId = (Int64)lastInsertedIndexCommand.ExecuteScalar();
                 lastInsertedIndexCommand.Dispose();
-
                 if (lastInsertedId == -1L) {
                     Log.E(Tag, "Error inserting " + initialValues + " using " + command.CommandText);
                 } else {
@@ -249,14 +252,11 @@ namespace Couchbase.Lite.Storage
         {
             Debug.Assert(!table.IsEmpty());
 
-            var builder = new SqliteCommandBuilder();
-            builder.SetAllValues = false;
-
             var command = GetDeleteCommand(table, whereClause, whereArgs);
 
             var resultCount = -1;
             try {
-                resultCount = (Int32)command.ExecuteNonQuery ();
+                resultCount = command.ExecuteNonQuery ();
             } catch (Exception ex) {
                 Log.E(Tag, "Error deleting from table " + table, ex);
             } finally {
@@ -278,19 +278,13 @@ namespace Couchbase.Lite.Storage
         {
             var command = Connection.CreateCommand ();
             command.CommandText = sql.ReplacePositionalParams ();
+
             if (currentTransaction != null)
                 command.Transaction = currentTransaction;
-            if (paramArgs != null && paramArgs.Length > 0) {
+
+            if (paramArgs != null && paramArgs.Length > 0)
                 command.Parameters.AddRange (paramArgs.ToSqliteParameters ());
-            }
-            var expectedCount = command.Parameters.Count;
-            var foundCount = paramArgs != null ? paramArgs.Length : 0;
-            if (foundCount != expectedCount) {
-                var message = "Incorrect number of SQL parameters: expected {0}, found {1}.".Fmt (foundCount, expectedCount);
-                var err = new CouchbaseLiteException (message);
-                Log.E (Tag, message, err);
-                throw err;
-            }
+            
             return command;
         }
 
@@ -311,33 +305,32 @@ namespace Couchbase.Lite.Storage
 
             // Append our content column names and create our SQL parameters.
             var valueSet = values.ValueSet();
-            var valueSetLength = valueSet.LongCount();
+            var valueSetLength = valueSet.Count();
 
-            var sqlParams = new SqliteParameter[valueSetLength + (whereArgs != null ? whereArgs.LongLength : 0L)];
-            var index = 0L;
+            var whereArgsLength = (whereArgs != null ? whereArgs.Length : 0);
+            var sqlParams = new List<SqliteParameter>(valueSetLength + whereArgsLength);
 
             foreach(var column in valueSet)
             {
-                if (index > 0) {
+                if (sqlParams.Count > 0) {
                     builder.Append(",");
                 }
                 builder.AppendFormat( "{0} = @{0}", column.Key);
-                sqlParams[index++] = new SqliteParameter(column.Key, column.Value);
+                sqlParams.Add(new SqliteParameter(column.Key, column.Value));
             }
 
             if (!whereClause.IsEmpty()) {
                 builder.Append(" WHERE ");
-                builder.Append(whereClause);
+                builder.Append(whereClause.ReplacePositionalParams());
             }
 
-            for(; index < sqlParams.LongLength; index++) {
-                sqlParams[index] = new SqliteParameter(String.Empty, whereArgs[index - valueSetLength]);
-            }
+            if (whereArgsLength > 0)
+                sqlParams.AddRange(whereArgs.ToSqliteParameters());
 
-            var command = new SqliteCommand(builder.ToString(), Connection, currentTransaction);
-
+            var sql = builder.ToString();
+            var command = new SqliteCommand(sql, Connection, currentTransaction);
             command.Parameters.Clear();
-            command.Parameters.AddRange(sqlParams);
+            command.Parameters.AddRange(sqlParams.ToArray());
 
             return command;
         }
@@ -385,7 +378,8 @@ namespace Couchbase.Lite.Storage
             builder.Append(valueBuilder);
             builder.Append(")");
 
-            var command = new SqliteCommand(builder.ToString(), Connection, currentTransaction);
+            var sql = builder.ToString();
+            var command = new SqliteCommand(sql, Connection, currentTransaction);
             command.Parameters.Clear();
             command.Parameters.AddRange(sqlParams);
 
@@ -405,22 +399,15 @@ namespace Couchbase.Lite.Storage
 
             builder.Append(table);
 
+            var command = new SqliteCommand(builder.ToString(), Connection, currentTransaction);
+            command.Parameters.Clear();
+
             if (!whereClause.IsEmpty()) {
                 builder.Append(" WHERE ");
-                builder.Append(whereClause);
+                builder.Append(whereClause.ReplacePositionalParams());
+                command.Parameters.AddRange(whereArgs.ToSqliteParameters());
             }
 
-            var sqlParams = whereArgs.Select(arg=>new SqliteParameter(String.Empty, arg)).ToArray();
-            var command = new SqliteCommand(builder.ToString(), Connection, currentTransaction);
-
-            if (command.Parameters.Count != sqlParams.Length) {
-                var e = new CouchbaseLiteException("{0} does not support the 'nullColumnHack'.".Fmt(Tag));
-                Log.E(Tag, "SQL parameter count does not match the count of parameters provided.", e);
-                throw e;
-            }
-
-            command.Parameters.Clear();
-            command.Parameters.AddRange(sqlParams);
 
             return command;
         }

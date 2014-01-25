@@ -93,7 +93,7 @@ namespace Couchbase.Lite.Internal
 
 		public object GetPropertyForKey(string key)
 		{
-			IDictionary<string, object> prop = GetProperties();
+            var prop = GetProperties();
 			if (prop == null)
 			{
 				return null;
@@ -123,7 +123,7 @@ namespace Couchbase.Lite.Internal
 
 		public override bool Equals(object o)
 		{
-			bool result = false;
+            var result = false;
 			if (o is RevisionInternal)
 			{
 				RevisionInternal other = (RevisionInternal)o;
@@ -239,7 +239,7 @@ namespace Couchbase.Lite.Internal
             int dashPos = revID.IndexOf("-", StringComparison.InvariantCultureIgnoreCase);
 			if (dashPos > 0)
 			{
-				generation = System.Convert.ToInt32(Sharpen.Runtime.Substring(revID, 0, dashPos));
+                generation = Convert.ToInt32(revID.Substring(0, dashPos));
 			}
 			return generation;
 		}
