@@ -237,38 +237,42 @@ namespace Couchbase.Lite
 		}
 
 		/// <exception cref="System.Exception"></exception>
-//        [Test]
+        [Test]
         public void TestCreateNewRevisions()
 		{
-			IDictionary<String, Object> properties = new Dictionary<String, Object>();
+			var properties = new Dictionary<String, Object>();
 			properties["testName"] = "testCreateRevisions";
 			properties["tag"] = 1337;
-			var db = manager.GetExistingDatabase(DefaultTestDb);
+            var db = StartDatabase();
 
-			Document doc = db.CreateDocument();
+			var doc = db.CreateDocument();
             var newRev = doc.CreateRevision();
             var newRevDocument = newRev.Document;
 			Assert.AreEqual(doc, newRevDocument);
 			Assert.AreEqual(db, newRev.Database);
 			Assert.IsNull(newRev.ParentId);
 			Assert.IsNull(newRev.Parent);
-			IDictionary<String, Object> expectProperties = new Dictionary<String, Object>();
+
+			var expectProperties = new Dictionary<String, Object>();
 			expectProperties["_id"] = doc.Id;
 			Assert.AreEqual(expectProperties, newRev.Properties);
 			Assert.IsTrue(!newRev.IsDeletion);
 			Assert.AreEqual(newRev.Sequence, 0);
+
 			//ios support another approach to set properties::
 			//newRev.([@"testName"] = @"testCreateRevisions";
 			//newRev[@"tag"] = @1337;
 			newRev.SetUserProperties(properties);
 			Assert.AreEqual(newRev.UserProperties, properties);
-			SavedRevision rev1 = newRev.Save();
+
+			var rev1 = newRev.Save();
 			Assert.IsNotNull(rev1, "Save 1 failed");
 			Assert.AreEqual(doc.CurrentRevision, rev1);
 			Assert.IsNotNull(rev1.Id.StartsWith("1-"));
             Assert.AreEqual(1, rev1.Sequence);
 			Assert.IsNull(rev1.ParentId);
 			Assert.IsNull(rev1.Parent);
+
 			newRev = rev1.CreateRevision();
 			newRevDocument = newRev.Document;
 			Assert.AreEqual(doc, newRevDocument);
@@ -278,11 +282,12 @@ namespace Couchbase.Lite
 			Assert.AreEqual(rev1.Properties, newRev.Properties);
 			Assert.AreEqual(rev1.UserProperties, newRev.UserProperties);
             Assert.IsTrue(!newRev.IsDeletion);
+
 			// we can't add/modify one property as on ios. need  to add separate method?
 			// newRev[@"tag"] = @4567;
 			properties["tag"] = 4567;
 			newRev.SetUserProperties(properties);
-			SavedRevision rev2 = newRev.Save();
+			var rev2 = newRev.Save();
 			Assert.IsNotNull(rev2, "Save 2 failed");
 			Assert.AreEqual(doc.CurrentRevision, rev2);
             Assert.IsTrue(rev2.Id.StartsWith("2-"));
@@ -290,12 +295,14 @@ namespace Couchbase.Lite
 			Assert.AreEqual(rev1.Id, rev2.ParentId);
 			Assert.AreEqual(rev1, rev2.Parent);
             Assert.IsTrue(doc.CurrentRevisionId.StartsWith("2-"), "Document revision ID is still " + doc.CurrentRevisionId);
+
 			// Add a deletion/tombstone revision:
 			newRev = doc.CreateRevision();
 			Assert.AreEqual(rev2.Id, newRev.ParentId);
 			Assert.AreEqual(rev2, newRev.Parent);
+
             newRev.IsDeletion = true;
-			SavedRevision rev3 = newRev.Save();
+			var rev3 = newRev.Save();
 			Assert.IsNotNull(rev3, "Save 3 failed");
 			Assert.AreEqual(doc.CurrentRevision, rev3);
             Assert.IsTrue (rev3.Id.StartsWith ("3-", StringComparison.Ordinal), "Unexpected revID " + rev3.Id);
@@ -303,7 +310,7 @@ namespace Couchbase.Lite
 			Assert.IsTrue(rev3.IsDeletion);
             Assert.IsTrue(doc.Deleted);
 
-            Document doc2 = db.GetDocument(doc.Id);
+            var doc2 = db.GetDocument(doc.Id);
 			Assert.AreEqual(doc, doc2);
 			Assert.IsNull(db.GetExistingDocument(doc.Id));
 		}
