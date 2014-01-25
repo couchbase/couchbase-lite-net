@@ -32,11 +32,6 @@ public class Document {
     private SavedRevision currentRevision;
 
     /**
-     * Application-defined model object representing this document
-     */
-    private Object model;
-
-    /**
      * Change Listeners
      */
     private List<ChangeListener> changeListeners = new ArrayList<ChangeListener>();
@@ -296,21 +291,6 @@ public class Document {
         changeListeners.remove(changeListener);
     }
 
-    /**
-     * Gets a reference to an optional application-defined model object representing this Document.
-     */
-    @InterfaceAudience.Public
-    public Object getModel() {
-        return model;
-    }
-
-    /**
-     * Sets a reference to an optional application-defined model object representing this Document.
-     */
-    @InterfaceAudience.Public
-    public void setModel(Object model) {
-        this.model = model;
-    }
 
     /**
      * A delegate that can be used to update a Document.

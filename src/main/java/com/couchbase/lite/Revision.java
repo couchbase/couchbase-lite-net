@@ -170,11 +170,17 @@ public abstract class Revision {
         return new Attachment(this, name, attachmentMetadata);
     }
 
+    /**
+     * Gets the parent Revision.
+     */
     @InterfaceAudience.Public
-    public abstract SavedRevision getParentRevision();
+    public abstract SavedRevision getParent();
 
+    /**
+     * Gets the parent Revision's id.
+     */
     @InterfaceAudience.Public
-    public abstract String getParentRevisionId();
+    public abstract String getParentId();
 
     /**
      * Returns the history of this document as an array of CBLRevisions, in forward order.
@@ -185,6 +191,13 @@ public abstract class Revision {
     @InterfaceAudience.Public
     public abstract List<SavedRevision> getRevisionHistory() throws CouchbaseLiteException;
 
+    /**
+     * Compare this revision to the given revision to check for equality.
+     * The comparison makes sure that both revisions have the same revision ID.
+     *
+     * @param the revision to check for equality against
+     * @return true if equal, false otherwise
+     */
     @Override
     @InterfaceAudience.Public
     public boolean equals(Object o) {
@@ -198,12 +211,19 @@ public abstract class Revision {
         return result;
     }
 
+    /**
+     * Custom hashCode based on the hash code of the Document Id and the Revision Id
+     */
     @Override
     @InterfaceAudience.Public
     public int hashCode() {
         return document.getId().hashCode() ^ getId().hashCode();
     }
 
+    /**
+     * Returns a string representation of this Revision, including the Document Id, the Revision Id
+     * and whether or not this Revision is a deletion.
+     */
     @Override
     @InterfaceAudience.Public
     public String toString() {

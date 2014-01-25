@@ -154,11 +154,11 @@ public class View {
 
     /**
      * Defines a view that has no reduce function.
-     * See setMapAndReduce() for more information.
+     * See setMapReduce() for more information.
      */
     @InterfaceAudience.Public
     public boolean setMap(Mapper mapBlock, String version) {
-        return setMapAndReduce(mapBlock, null, version);
+        return setMapReduce(mapBlock, null, version);
     }
 
     /**
@@ -184,8 +184,8 @@ public class View {
      *
      */
     @InterfaceAudience.Public
-    public boolean setMapAndReduce(Mapper mapBlock,
-                                   Reducer reduceBlock, String version) {
+    public boolean setMapReduce(Mapper mapBlock,
+                                Reducer reduceBlock, String version) {
         assert (mapBlock != null);
         assert (version != null);
 
