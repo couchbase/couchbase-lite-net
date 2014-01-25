@@ -3038,6 +3038,12 @@ namespace Couchbase.Lite
             var changes = new AList<DocumentChange>() { change };
             changes.AddItem(change);
 
+            // TODO: this is expensive, it should be using a WeakHashMap
+            // TODO: instead of loading from the DB.  iOS code below.
+            var document = GetDocument(change.DocumentId);
+            document.RevisionAdded(change);
+
+
             var args = new DatabaseChangeEventArgs { 
                                     Changes = changes,
                                     IsExternal = isExternalFixMe,
@@ -3047,11 +3053,6 @@ namespace Couchbase.Lite
             var changeEvent = Changed;
             if (changeEvent != null)
                 changeEvent(this, args);
-
-            // TODO: this is expensive, it should be using a WeakHashMap
-            // TODO: instead of loading from the DB.  iOS code below.
-            var document = GetDocument(change.DocumentId);
-            document.RevisionAdded(change);
         }
 
         /// <summary>
@@ -3442,7 +3443,7 @@ namespace Couchbase.Lite
         internal String GenerateNextRevisionID(string revisionId)
         {
             // Revision IDs have a generation count, a hyphen, and a UUID.
-            int generation = 0;
+            var generation = 0;
             if (revisionId != null)
             {
                 generation = RevisionInternal.GenerationFromRevID(revisionId);
@@ -3451,7 +3452,7 @@ namespace Couchbase.Lite
                     return null;
                 }
             }
-            string digest = Misc.TDCreateUUID();
+            var digest = Misc.TDCreateUUID();
             // TODO: Generate canonical digest of body
             return Extensions.ToString(generation + 1) + "-" + digest;
         }

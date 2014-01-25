@@ -193,11 +193,11 @@ namespace Couchbase.Lite.Internal
         public RevisionInternal CopyWithDocID(String docId, String revId)
 		{
 			System.Diagnostics.Debug.Assert(((docId != null) && (revId != null)));
-			System.Diagnostics.Debug.Assert(((this.docId == null) || (this.docId.Equals(docId
-				))));
-            RevisionInternal result = new RevisionInternal(docId, revId, deleted, database);
-			IDictionary<string, object> unmodifiableProperties = GetProperties();
-			IDictionary<string, object> properties = new Dictionary<string, object>();
+			System.Diagnostics.Debug.Assert(((this.docId == null) || (this.docId.Equals(docId))));
+
+            var result = new RevisionInternal(docId, revId, deleted, database);
+			var unmodifiableProperties = GetProperties();
+			var properties = new Dictionary<string, object>();
 			if (unmodifiableProperties != null)
 			{
 				properties.PutAll(unmodifiableProperties);
@@ -235,8 +235,8 @@ namespace Couchbase.Lite.Internal
 
 		public static int GenerationFromRevID(string revID)
 		{
-			int generation = 0;
-            int dashPos = revID.IndexOf("-", StringComparison.InvariantCultureIgnoreCase);
+			var generation = 0;
+            var dashPos = revID.IndexOf("-", StringComparison.InvariantCultureIgnoreCase);
 			if (dashPos > 0)
 			{
                 generation = Convert.ToInt32(revID.Substring(0, dashPos));

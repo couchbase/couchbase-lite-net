@@ -479,24 +479,25 @@ namespace Couchbase.Lite
 		}
 
 		/// <exception cref="System.Exception"></exception>
-//        [Test]
+        [Test]
         public void TestConflict()
 		{
 			IDictionary<String, Object> prop = new Dictionary<String, Object>();
 			prop["foo"] = "bar";
-			var db = manager.GetExistingDatabase(DefaultTestDb);
+            var db = StartDatabase();
 
 			Document doc = CreateDocumentWithProperties(db, prop);
 			SavedRevision rev1 = doc.CurrentRevision;
             var properties = new Dictionary<String, Object>(doc.Properties);
-			properties["tag"] = 2;
+            properties.PutAll(doc.Properties);
+            properties["tag"] = 2;
 			SavedRevision rev2a = doc.PutProperties(properties);
             properties = new Dictionary<String, Object>(rev1.Properties);
-			properties["tag"] = 3;
+            properties.PutAll(rev1.Properties);
+            properties["tag"] = 3;
 			UnsavedRevision newRev = rev1.CreateRevision();
             newRev.SetProperties(properties);
-			bool allowConflict = true;
-            SavedRevision rev2b = newRev.Save();
+            SavedRevision rev2b = newRev.Save(allowConflict: true);
 			Assert.IsNotNull(rev2b, "Failed to create a a conflict");
             var confRevs = new AList<SavedRevision>();
 			confRevs.AddItem(rev2b);
@@ -505,8 +506,8 @@ namespace Couchbase.Lite
 			Assert.AreEqual(doc.LeafRevisions, confRevs);
 			SavedRevision defaultRev;
 			SavedRevision otherRev;
-			if (Runtime.CompareOrdinal(rev2a.Id, rev2b.Id) > 0)
-			{
+            if (String.CompareOrdinal (rev2a.Id, rev2b.Id) > 0)
+            {
 				defaultRev = rev2a;
 				otherRev = rev2b;
 			}
@@ -515,14 +516,15 @@ namespace Couchbase.Lite
 				defaultRev = rev2b;
 				otherRev = rev2a;
 			}
-			Assert.AreEqual(doc.CurrentRevision, defaultRev);
+            Log.I(Tag, "\r\n\r\ndefaultRev: {0}\r\notherRev: {1}\r\ndoc.Current:{2}".Fmt(defaultRev.ToString(), otherRev.ToString(), doc.CurrentRevision.ToString()));
+            Assert.AreEqual(defaultRev, doc.CurrentRevision);
 			Query query = db.CreateAllDocumentsQuery();
             query.AllDocsMode = AllDocsMode.ShowConflicts;
 			QueryEnumerator rows = query.Run();
 			Assert.AreEqual(rows.Count, 1);
 			QueryRow row = rows.GetRow(0);
-            IList<SavedRevision> revs = row.GetConflictingRevisions().ToList();
-			Assert.AreEqual(revs.Count, 2);
+            var revs = row.GetConflictingRevisions().ToList();
+            Assert.AreEqual(2, revs.Count);
 			Assert.AreEqual(revs[0], defaultRev);
 			Assert.AreEqual(revs[1], otherRev);
 		}
