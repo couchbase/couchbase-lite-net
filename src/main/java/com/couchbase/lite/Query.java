@@ -150,7 +150,7 @@ public class Query {
         this.view = view;
         limit = Integer.MAX_VALUE;
         mapOnly = (view != null && view.getReduce() == null);
-        indexUpdateMode = IndexUpdateMode.NEVER;
+        indexUpdateMode = IndexUpdateMode.BEFORE;
         allDocsMode = AllDocsMode.ALL_DOCS;
     }
 

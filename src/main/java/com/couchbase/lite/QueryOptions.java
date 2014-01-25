@@ -43,7 +43,7 @@ public class QueryOptions {
     private boolean reduce = false;
     private boolean reduceSpecified = false;
     private boolean group = false;
-    private Query.IndexUpdateMode stale;
+    private Query.IndexUpdateMode stale = Query.IndexUpdateMode.BEFORE;
     private Query.AllDocsMode allDocsMode;
 
 
