@@ -625,11 +625,10 @@ public class Database {
     }
 
     /**
-     * Creates a replication that will 'push' to a database at the given URL, or returns an existing
-     * such replication if there already is one.
+     * Creates a new Replication that will push to the target Database at the given url.
      *
-     * @param remote
-     * @return
+     * @param remote the remote URL to push to
+     * @return A new Replication that will push to the target Database at the given url.
      */
     @InterfaceAudience.Public
     public Replication createPushReplication(URL remote) {
@@ -638,11 +637,10 @@ public class Database {
     }
 
     /**
-     * Creates a replication that will 'pull' from a database at the given URL, or returns an existing
-     * such replication if there already is one.
+     * Creates a new Replication that will pull from the source Database at the given url.
      *
-     * @param remote
-     * @return
+     * @param remote the remote URL to pull from
+     * @return A new Replication that will pull from the source Database at the given url.
      */
     @InterfaceAudience.Public
     public Replication createPullReplication(URL remote) {
