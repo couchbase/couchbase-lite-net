@@ -2,6 +2,7 @@ package com.couchbase.lite.replicator;
 
 import com.couchbase.lite.BlobKey;
 import com.couchbase.lite.BlobStore;
+import com.couchbase.lite.ChangesOptions;
 import com.couchbase.lite.CouchbaseLiteException;
 import com.couchbase.lite.Database;
 import com.couchbase.lite.DocumentChange;
@@ -129,7 +130,9 @@ public class Pusher extends Replication implements Database.ChangeListener {
         if(lastSequence != null) {
             lastSequenceLong = Long.parseLong(lastSequence);
         }
-        RevisionList changes = db.changesSince(lastSequenceLong, null, filter);
+        ChangesOptions options = new ChangesOptions();
+        options.setIncludeConflicts(true);
+        RevisionList changes = db.changesSince(lastSequenceLong, options, filter);
         if(changes.size() > 0) {
             processInbox(changes);
         }
