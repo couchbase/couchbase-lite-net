@@ -253,42 +253,48 @@ public class ChangeTracker implements Runnable {
                 HttpEntity entity = response.getEntity();
                 InputStream input = null;
                 if (entity != null) {
-
-                    input = entity.getContent();
-                    if (mode == ChangeTrackerMode.LongPoll) {
-                        Map<String, Object> fullBody = Manager.getObjectMapper().readValue(input, Map.class);
-                        boolean responseOK = receivedPollResponse(fullBody);
-                        if (mode == ChangeTrackerMode.LongPoll && responseOK) {
-                            Log.v(Database.TAG, "Starting new longpoll");
-                            backoff.resetBackoff();
-                            continue;
+                    try {
+                        input = entity.getContent();
+                        if (mode == ChangeTrackerMode.LongPoll) {
+                            Map<String, Object> fullBody = Manager.getObjectMapper().readValue(input, Map.class);
+                            boolean responseOK = receivedPollResponse(fullBody);
+                            if (mode == ChangeTrackerMode.LongPoll && responseOK) {
+                                Log.v(Database.TAG, "Starting new longpoll");
+                                backoff.resetBackoff();
+                                continue;
+                            } else {
+                                Log.w(Database.TAG, "Change tracker calling stop");
+                                stop();
+                            }
                         } else {
-                            Log.w(Database.TAG, "Change tracker calling stop");
-                            stop();
-                        }
-                    } else {
 
-                        JsonFactory jsonFactory = Manager.getObjectMapper().getJsonFactory();
-                        JsonParser jp = jsonFactory.createJsonParser(input);
+                            JsonFactory jsonFactory = Manager.getObjectMapper().getJsonFactory();
+                            JsonParser jp = jsonFactory.createJsonParser(input);
 
-                        while (jp.nextToken() != JsonToken.START_ARRAY) {
-                            // ignore these tokens
-                        }
-
-                        while (jp.nextToken() == JsonToken.START_OBJECT) {
-                            Map<String, Object> change = (Map) Manager.getObjectMapper().readValue(jp, Map.class);
-                            if (!receivedChange(change)) {
-                                Log.w(Database.TAG, String.format("Received unparseable change line from server: %s", change));
+                            while (jp.nextToken() != JsonToken.START_ARRAY) {
+                                // ignore these tokens
                             }
 
+                            while (jp.nextToken() == JsonToken.START_OBJECT) {
+                                Map<String, Object> change = (Map) Manager.getObjectMapper().readValue(jp, Map.class);
+                                if (!receivedChange(change)) {
+                                    Log.w(Database.TAG, String.format("Received unparseable change line from server: %s", change));
+                                }
+
+                            }
+
+                            stop();
+                            break;
+
                         }
 
-                        stop();
-                        break;
-
+                        backoff.resetBackoff();
+                    } finally {
+                        try {
+                            entity.consumeContent();
+                        } catch (IOException ex) {
+                        }
                     }
-
-                    backoff.resetBackoff();
 
                 }
             } catch (Exception e) {
