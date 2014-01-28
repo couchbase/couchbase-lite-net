@@ -201,11 +201,6 @@ public class URLConnection extends HttpURLConnection {
             return os;
         }
 
-        // they are requesting a stream to write to. This implies a POST method
-        if (method == GET) {
-            method = POST;
-        }
-
         // If the request method is neither PUT or POST, then you're not writing
         if (method != PUT && method != POST) {
             throw new ProtocolException("Can only write to PUT or POST");
