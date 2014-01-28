@@ -3352,7 +3352,9 @@ public class Database {
                     if (sequence == localParentSequence) {
                         // This is the point where we branch off of the existing rev tree.
                         // If the branch wasn't from the single existing leaf, this creates a conflict.
-                        inConflict = inConflict || (!rev.isDeleted() && !revId.equals(localParentRevID));
+                        if (localRevs.size() != 0 && !rev.isDeleted() && !revId.equals(localParentRevID)) {
+                            inConflict = true;
+                        }
                     }
 
                     RevisionInternal newRev;
