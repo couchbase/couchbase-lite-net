@@ -844,7 +844,7 @@ namespace Couchbase.Lite
 		/// running in the background server.
 		/// </remarks>
 		/// <exception cref="System.Exception"></exception>
-//        [Test]
+        [Test]
         public void TestSharedMapBlocks()
 		{
             var path = new DirectoryInfo(Path.Combine(GetRootDirectory().FullName, "API_SharedMapBlocks"));
@@ -875,7 +875,7 @@ namespace Couchbase.Lite
                     Assert.AreEqual(serverView.Reduce, reduce);
                     return true;
                 });
-            result.RunSynchronously();
+            result.Wait(TimeSpan.FromSeconds(5));
 			// blocks until async task has run
 			db.Close();
 			mgr.Close();
