@@ -57,6 +57,7 @@ namespace Couchbase.Lite
         public byte[] GetBlob (int columnIndex, int chunkSize)
         {
             if (reader.IsDBNull (columnIndex)) return new byte[2]; // NOTE.ZJG: Database.AppendDictToJSON assumes an empty json doc has a for a length of two.
+            var r = reader;
 
             var chunkBuffer = new byte[chunkSize];
             var blob = new List<Byte>(chunkSize); // We know we'll be reading at least 1 chunk, so pre-allocate now to avoid an immediate resize.
@@ -65,7 +66,7 @@ namespace Couchbase.Lite
             do
             {
                 chunkBuffer.Initialize(); // Resets all values back to zero.
-                bytesRead = reader.GetBytes(columnIndex, blob.Count, chunkBuffer, 0, chunkSize);
+                bytesRead = r.GetBytes(columnIndex, blob.Count, chunkBuffer, 0, chunkSize);
                 blob.AddRange(chunkBuffer.Take(Convert.ToInt32(bytesRead)));
             } while (bytesRead > 0);
 

@@ -1839,9 +1839,9 @@ namespace Couchbase.Lite
             DocumentCache.Remove(document.Id);
         }
 
-        internal BlobStoreWriter AttachmentWriter { get; set; }
+        internal BlobStoreWriter AttachmentWriter { get { return new BlobStoreWriter(Attachments); } }
 
-        private  BlobStore Attachments { get; set; }
+        internal BlobStore Attachments { get; set; }
 
         internal String PrivateUUID ()
         {
@@ -1895,14 +1895,9 @@ namespace Couchbase.Lite
             return result;
         }
 
-        internal BlobStore GetAttachments()
-        {
-            return Attachments;
-        }
-
         internal BlobStoreWriter GetAttachmentWriter()
         {
-            return new BlobStoreWriter(GetAttachments());
+            return new BlobStoreWriter(Attachments);
         }
 
         internal Boolean ReplaceUUIDs()
@@ -3377,7 +3372,7 @@ namespace Couchbase.Lite
                     }
                     attachment.SetLength(newContents.Length);
                     var outBlobKey = new BlobKey();
-                    var storedBlob = GetAttachments().StoreBlob(newContents, outBlobKey);
+                    var storedBlob = Attachments.StoreBlob(newContents, outBlobKey);
                     attachment.SetBlobKey(outBlobKey);
                     if (!storedBlob)
                     {

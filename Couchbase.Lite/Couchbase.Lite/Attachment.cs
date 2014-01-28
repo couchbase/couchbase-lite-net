@@ -3,6 +3,7 @@ using System.Linq;
 using System.Collections.Generic;
 using System.IO;
 using Couchbase.Lite.Internal;
+using Sharpen;
 
 namespace Couchbase.Lite {
 
@@ -72,8 +73,7 @@ namespace Couchbase.Lite {
                 if (value is Attachment)
                 {
                     var attachment = (Attachment)value;
-                    var metadataMutable = new Dictionary<string, object>();
-                    metadataMutable.Concat(attachment.Metadata);
+                    var metadataMutable = new Dictionary<string, object>(attachment.Metadata);
                     var body = attachment.Body;
                     if (body != null)
                     {
@@ -129,15 +129,16 @@ namespace Couchbase.Lite {
         /// <summary>Get the MIME type of the contents.</summary>
         public String ContentType {
             get {
-                Object contentType;
-
-                if (!Metadata.TryGetValue(AttachmentMetadataKeys.ContentType, out contentType))
-                    throw new CouchbaseLiteException("Metadata must contain a key-value pair for {0}.", AttachmentMetadataKeys.ContentType);
-
-                if (!(contentType is String))
-                    throw new CouchbaseLiteException("The {0} key in Metadata must contain a string value.", AttachmentMetadataKeys.ContentType);
-
-                return (String)contentType; 
+//                Object contentType;
+//
+//                if (!Metadata.TryGetValue(AttachmentMetadataKeys.ContentType, out contentType))
+//                    throw new CouchbaseLiteException("Metadata must contain a key-value pair for {0}.", AttachmentMetadataKeys.ContentType);
+//
+//                if (!(contentType is String))
+//                    throw new CouchbaseLiteException("The {0} key in Metadata must contain a string value.", AttachmentMetadataKeys.ContentType);
+//
+//                return (String)contentType; 
+                return Metadata.Get(AttachmentMetadataKeys.ContentType) as String;
             }
         }
 
@@ -176,15 +177,23 @@ namespace Couchbase.Lite {
         public IEnumerable<Byte> Content { 
             get {
                 var stream = ContentStream;
-                var bytes = new byte[stream.Length];
 
                 ContentStream.Reset();
 
-                for(var i = 0; i < stream.Length; i++) {
-                    stream.Read(bytes, i, DefaultStreamChunkSize);
-                }
+                var chunkBuffer = new byte[DefaultStreamChunkSize];
+                // We know we'll be reading at least 1 chunk, so pre-allocate now to avoid an immediate resize.
+                var blob = new List<Byte> (DefaultStreamChunkSize);
 
-                return bytes;
+                int bytesRead;
+                do {
+                    chunkBuffer.Initialize ();
+                    // Resets all values back to zero.
+                    bytesRead = stream.Read (chunkBuffer, blob.Count, DefaultStreamChunkSize);
+                    blob.AddRange (chunkBuffer.Take (bytesRead));
+                }
+                while (bytesRead < stream.Length);
+
+                return blob.ToArray();
             }
         }
 

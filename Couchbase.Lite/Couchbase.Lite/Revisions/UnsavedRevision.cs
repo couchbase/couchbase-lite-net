@@ -32,8 +32,11 @@ namespace Couchbase.Lite
             }
             attachments[name] = attachment;
             Properties["_attachments"] = attachments;
-            attachment.Name = name;
-            attachment.Revision = this;
+            if (attachment != null)
+            {
+                attachment.Name = name;
+                attachment.Revision = this;
+            }
         }
 
 

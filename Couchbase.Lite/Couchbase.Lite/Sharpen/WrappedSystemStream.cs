@@ -103,7 +103,7 @@ namespace Sharpen
 
 		public override long Length {
 			get {
-				throw new NotSupportedException ();
+                return ist.Wrapped.Length;
 			}
 		}
 		

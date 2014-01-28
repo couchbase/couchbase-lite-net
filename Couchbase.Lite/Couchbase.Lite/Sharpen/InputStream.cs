@@ -6,7 +6,7 @@ namespace Sharpen
 	public class InputStream : IDisposable
 	{
 		private long mark;
-		protected Stream Wrapped;
+        internal Stream Wrapped;
 		protected Stream BaseStream;
 
 		public static implicit operator InputStream (Stream s)

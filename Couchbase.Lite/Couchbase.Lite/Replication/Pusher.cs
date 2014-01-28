@@ -293,7 +293,7 @@ namespace Couchbase.Lite.Replicator
                         }
                     }
 
-                    var blobStore = LocalDatabase.GetAttachments();
+                    var blobStore = LocalDatabase.Attachments;
                     var base64Digest = (string)attachment.Get("digest");
 
                     var blobKey = new BlobKey(base64Digest);

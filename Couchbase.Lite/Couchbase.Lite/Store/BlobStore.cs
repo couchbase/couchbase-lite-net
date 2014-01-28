@@ -158,15 +158,15 @@ namespace Couchbase.Lite
 			return result;
 		}
 
-		public InputStream BlobStreamForKey(BlobKey key)
+		public Stream BlobStreamForKey(BlobKey key)
 		{
-			string path = PathForKey(key);
-			FilePath file = new FilePath(path);
+			var path = PathForKey(key);
+			var file = new FilePath(path);
             if (file.CanRead())
 			{
 				try
 				{
-					return new FileInputStream(file);
+                    return new FileStream(file, FileMode.Open);
 				}
 				catch (FileNotFoundException e)
 				{
