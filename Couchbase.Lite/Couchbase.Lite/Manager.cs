@@ -90,9 +90,10 @@ namespace Couchbase.Lite
             if (!directoryFile.Exists)
             {
                 directoryFile.Create();
+                directoryFile.Refresh();
                 if (!directoryFile.Exists)
                 {
-                    throw new RuntimeException("Unable to create directory " + directoryFile);
+                    throw new  DirectoryNotFoundException("Unable to create directory " + directoryFile);
                 }
             }
 
