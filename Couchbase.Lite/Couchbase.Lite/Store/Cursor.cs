@@ -11,24 +11,27 @@ namespace Couchbase.Lite
     {
         const Int32 DefaultChunkSize = 8192;
 
-        readonly IDataReader reader;
+        readonly SqliteDataReader reader;
 
-        Boolean HasRows;
+        Boolean HasRows {
+            get {
+                 return reader.HasRows; 
+            }
+        }
 
         Int64 currentRow;
 
-        public Cursor (IDataReader reader)
+        public Cursor (SqliteDataReader reader)
         {
             this.reader = reader;
             currentRow = -1;
-            HasRows = false;
         }
 
         public bool MoveToNext ()
         {
             currentRow++;
-            HasRows = reader.Read();
-            return HasRows;
+            var moreRecords = reader.Read();
+            return moreRecords;
         }
 
         public int GetInt (int columnIndex)

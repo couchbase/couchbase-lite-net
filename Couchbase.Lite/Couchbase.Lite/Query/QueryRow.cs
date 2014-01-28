@@ -103,7 +103,7 @@ namespace Couchbase.Lite
         /// This is only valid in an allDocuments query whose allDocsMode is set to Query.AllDocsMode.SHOW_CONFLICTS
         /// or Query.AllDocsMode.ONLY_CONFLICTS; otherwise it returns an empty list.
         /// </remarks>
-        public virtual IEnumerable<SavedRevision> GetConflictingRevisions()
+        public IEnumerable<SavedRevision> GetConflictingRevisions()
         {
             var doc = Database.GetDocument(SourceDocumentId);
             var valueTmp = (IDictionary<string, object>)Value;

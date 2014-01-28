@@ -1522,13 +1522,13 @@ namespace Couchbase.Lite
             Cursor cursor = null;
             var args = new [] { Convert.ToString(docNumericId) };
             String revId = null;
-            var sql = "SELECT revid, deleted FROM revs" + " WHERE doc_id=@ and current=1" 
+            var sql = "SELECT revid, deleted FROM revs WHERE doc_id=@ and current=1" 
                       + " ORDER BY deleted asc, revid desc LIMIT 2";
 
             try
             {
                 cursor = StorageEngine.RawQuery(sql, args);
-                //cursor.MoveToNext();
+                cursor.MoveToNext();
 
                 if (!cursor.IsAfterLast())
                 {
@@ -2295,7 +2295,7 @@ namespace Couchbase.Lite
 
             // Get more optional stuff to put in the properties:
             //OPT: This probably ends up making redundant SQL queries if multiple options are enabled.
-            var localSeq = 0L;
+            var localSeq = -1L;
             if (contentOptions.Contains(TDContentOptions.TDIncludeLocalSeq))
             {
                 localSeq = sequenceNumber;
@@ -2312,8 +2312,8 @@ namespace Couchbase.Lite
                 var revHistoryFull = GetRevisionHistory(rev);
                 foreach (RevisionInternal historicalRev in revHistoryFull)
                 {
-                    IDictionary<string, object> revHistoryItem = new Dictionary<string, object>();
-                    string status = "available";
+                    var revHistoryItem = new Dictionary<string, object>();
+                    var status = "available";
                     if (historicalRev.IsDeleted())
                     {
                         status = "deleted";
@@ -2357,7 +2357,7 @@ namespace Couchbase.Lite
             {
                 result["_attachments"] = attachmentsDict;
             }
-            if (localSeq != null) // TODO: Either compare to default(), or convert to nullable.
+            if (localSeq > -1)
             {
                 result["_local_seq"] = localSeq;
             }
