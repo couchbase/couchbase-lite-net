@@ -30,6 +30,7 @@ using System.Text;
 using System.Threading;
 using NUnit.Framework;
 using System.Security.Permissions;
+using System.Threading.Tasks;
 
 namespace Couchbase.Lite
 {
@@ -39,9 +40,9 @@ namespace Couchbase.Lite
 	{
 		private int changeCount = 0;
 
-		public static void CreateDocumentsAsync(Database db, int n)
+        public static Task CreateDocumentsAsync(Database db, int n)
 		{
-            db.RunAsync((database)=>
+            return db.RunAsync((database)=>
                 {
                     database.BeginTransaction();
                     ApiTest.CreateDocuments(database, n);
@@ -582,19 +583,26 @@ namespace Couchbase.Lite
 
 		//CHANGE TRACKING
 		/// <exception cref="System.Exception"></exception>
-//        [Test]
+        [Test]
         public void TestChangeTracking()
 		{
-			var doneSignal = new CountDownLatch(1);
-			var db = manager.GetExistingDatabase(DefaultTestDb);
+            var doneSignal = new CountDownLatch(5);
+            var db = StartDatabase();
 
-            db.Changed += (sender, e) => doneSignal.CountDown();
-			CreateDocumentsAsync(db, 5);
+            db.Changed += (sender, e) => 
+                          doneSignal.CountDown();
+
+            var task = CreateDocumentsAsync(db, 5);
+
 			// We expect that the changes reported by the server won't be notified, because those revisions
 			// are already cached in memory.
-			bool success = doneSignal.Await(300, TimeUnit.Seconds);
+            var success = doneSignal.Await(TimeSpan.FromSeconds(10));
 			Assert.IsTrue(success);
 			Assert.AreEqual(5, db.GetLastSequenceNumber());
+
+            // Give transaction time to complete.
+            System.Threading.Thread.Sleep(500);
+            Assert.IsTrue(task.Status.HasFlag(TaskStatus.RanToCompletion));
 		}
 
 		//VIEWS
@@ -779,7 +787,7 @@ namespace Couchbase.Lite
 				Assert.IsNotNull(query.Rows);
 			}
 			// wait for the doneSignal to be finished
-			bool success = doneSignal.Await(300, TimeUnit.Seconds);
+            bool success = doneSignal.Await(TimeSpan.FromSeconds(10));
             Assert.IsTrue(success, "Done signal timed out live query never ran");
 			// stop the livequery since we are done with it
             query.Changed -= handler;

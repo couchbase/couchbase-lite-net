@@ -5,19 +5,21 @@ namespace Sharpen
 
 	internal class ReentrantLock
 	{
+        readonly Object lockObject = new Object();
+
 		public void Lock ()
 		{
-			Monitor.Enter (this);
+            Monitor.Enter (lockObject);
 		}
 
 		public bool TryLock ()
 		{
-			return Monitor.TryEnter (this);
+            return Monitor.TryEnter (lockObject);
 		}
 
 		public void Unlock ()
 		{
-			Monitor.Exit (this);
+            Monitor.Exit (lockObject);
 		}
 	}
 }

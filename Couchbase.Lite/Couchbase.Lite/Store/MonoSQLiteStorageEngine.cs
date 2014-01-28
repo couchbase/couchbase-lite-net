@@ -124,11 +124,17 @@ namespace Couchbase.Lite.Storage
 
         public override void BeginTransaction ()
         {
-            currentTransaction = Connection.BeginTransaction(DefaultIsolationLevel);
+            BeginTransaction(DefaultIsolationLevel);
         }
+
+        int transactionCount = 0;
 
         public override void BeginTransaction (IsolationLevel isolationLevel)
         {
+            // NOTE.ZJG: Seems like we should really be using TO SAVEPOINT
+            //           but this is how Android SqliteDatabase does it,
+            //           so I'm matching that for now.
+            Interlocked.Increment(ref transactionCount);
             currentTransaction = Connection.BeginTransaction(isolationLevel);
         }
 
@@ -136,6 +142,9 @@ namespace Couchbase.Lite.Storage
         {
             if (Connection.State != ConnectionState.Open)
                 throw new InvalidOperationException("Database is not open.");
+
+            if (Interlocked.Decrement(ref transactionCount) > 0)
+                return;
 
             if (currentTransaction == null) {
                 if (shouldCommit)

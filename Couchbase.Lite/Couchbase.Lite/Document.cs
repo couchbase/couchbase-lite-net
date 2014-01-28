@@ -296,8 +296,7 @@ namespace Couchbase.Lite {
             }
             if (attachments != null && attachments.Count > 0)
             {
-                IDictionary<string, object> updatedAttachments = Attachment.InstallAttachmentBodies
-                                                                 (attachments, Database);
+                var updatedAttachments = Attachment.InstallAttachmentBodies(attachments, Database);
                 properties["_attachments"] = updatedAttachments;
             }
 

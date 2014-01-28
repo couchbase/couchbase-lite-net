@@ -521,13 +521,15 @@ namespace Couchbase.Lite
         /// Runs the <see cref="Couchbase.Lite.RunAsyncDelegate"/>  asynchronously.
         /// </summary>
         /// <param name="runAsyncDelegate">Run async delegate.</param>
-        public void RunAsync(RunAsyncDelegate runAsyncDelegate) 
+        public Task RunAsync(RunAsyncDelegate runAsyncDelegate) 
         {
-            Manager.RunAsync(runAsyncDelegate, this)
-                .ContinueWith(task=>{
-                if (task.Status != TaskStatus.RanToCompletion)
-                    throw new CouchbaseLiteException(Tag, task.Exception);
-                }, TaskScheduler.Current);
+            return Manager
+                .RunAsync(runAsyncDelegate, this)
+//                .ContinueWith(task=>{
+//                    if (task.Status != TaskStatus.RanToCompletion)
+//                    throw new CouchbaseLiteException(Tag, task.Exception);
+//                }, TaskScheduler.Current); // Dispatch to original scheduler.
+                    ;
         }
 
         /// <summary>Runs the block within a transaction.</summary>

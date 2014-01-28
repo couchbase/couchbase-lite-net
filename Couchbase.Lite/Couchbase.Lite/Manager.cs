@@ -99,9 +99,8 @@ namespace Couchbase.Lite
 
             UpgradeOldDatabaseFiles(directoryFile);
 
-            var scheduler = new ConcurrentExclusiveSchedulerPair();
-            var factory = new TaskFactory(scheduler.ExclusiveScheduler);
-            workExecutor = factory;
+            scheduler = TaskScheduler.Current; //new ConcurrentExclusiveSchedulerPair();
+            workExecutor = new TaskFactory(scheduler/*.ExclusiveScheduler*/);
         }
 
 
@@ -261,8 +260,9 @@ namespace Couchbase.Lite
         private readonly ManagerOptions options;
         private readonly DirectoryInfo directoryFile;
         private readonly IDictionary<String, Database> databases;
-        private List<Replication> replications;
+        private readonly List<Replication> replications;
         private readonly TaskFactory workExecutor;
+        private readonly TaskScheduler scheduler;
 
         // Instance Methods
         internal Database GetDatabaseWithoutOpening(String name, Boolean mustExist)
@@ -416,7 +416,8 @@ namespace Couchbase.Lite
 
         internal Task RunAsync(Action action)
         {
-            return workExecutor.StartNew(action);
+            var task = workExecutor.StartNew(action);
+            return task;
         }
 
         internal Task<T> RunAsync<T>(Func<T> action)

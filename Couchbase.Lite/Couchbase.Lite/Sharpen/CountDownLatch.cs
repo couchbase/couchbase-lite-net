@@ -21,9 +21,9 @@ namespace Sharpen
 			done.WaitOne ();
 		}
 
-		public bool Await (long timeout, Sharpen.TimeUnit unit)
+        public bool Await (TimeSpan timeout)
 		{
-			return done.WaitOne ((int) unit.Convert (timeout, TimeUnit.Milliseconds));
+            return done.WaitOne (Convert.ToInt32(timeout.TotalMilliseconds));
 		}
 
 		public void CountDown ()
