@@ -12,9 +12,11 @@ namespace Couchbase.Lite {
 
         public CouchbaseLiteException (StatusCode code) : base(String.Format("Database error: {0}", code)) { Code = code; }
 
-        public CouchbaseLiteException (string message) : base(message) {  }
+        public CouchbaseLiteException (String message, StatusCode code) : base(message) { Code = code; }
 
-        public CouchbaseLiteException (string messageFormat, params Object[] values)
+        public CouchbaseLiteException (String message) : base(message) {  }
+
+        public CouchbaseLiteException (String messageFormat, params Object[] values)
             : base(String.Format(messageFormat, values)) {  }
 
         public Status GetCBLStatus ()

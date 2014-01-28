@@ -641,10 +641,10 @@ namespace Couchbase.Lite
 
 		//API_RunSlowView commented on IOS
 		/// <exception cref="System.Exception"></exception>
-//        [Test]
+        [Test]
         public void TestValidation()
 		{
-			var db = manager.GetExistingDatabase(DefaultTestDb);
+            var db = StartDatabase();
 
             db.SetValidation("uncool", (newRevision, context)=>
                 {
@@ -672,7 +672,7 @@ namespace Couchbase.Lite
 			catch (CouchbaseLiteException e)
 			{
 				//TODO
-				Assert.AreEqual(e.GetCBLStatus().GetCode(), StatusCode.Forbidden);
+                Assert.AreEqual(StatusCode.Forbidden, e.GetCBLStatus().GetCode());
 			}
 		}
 
