@@ -159,7 +159,7 @@ namespace Couchbase.Lite
 		[InterfaceAudience.Public]
 		public virtual void Reset()
 		{
-			nextRow = 0;
+            nextRow = -1;
 		}
 	}
 }

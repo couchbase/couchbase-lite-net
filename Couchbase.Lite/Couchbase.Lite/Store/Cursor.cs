@@ -4,6 +4,7 @@ using System.ComponentModel.Design;
 using System.Collections.Generic;
 using Mono.Data.Sqlite;
 using System.Linq;
+using System.Text;
 
 namespace Couchbase.Lite
 {
@@ -59,6 +60,11 @@ namespace Couchbase.Lite
             if (reader.IsDBNull (columnIndex)) return new byte[2]; // NOTE.ZJG: Database.AppendDictToJSON assumes an empty json doc has a for a length of two.
             var r = reader;
 
+            var fieldType = reader.GetFieldType(columnIndex);
+            if (fieldType == typeof(String)) {
+                return Encoding.UTF8.GetBytes(reader.GetString(columnIndex));
+            }
+
             var chunkBuffer = new byte[chunkSize];
             var blob = new List<Byte>(chunkSize); // We know we'll be reading at least 1 chunk, so pre-allocate now to avoid an immediate resize.
 
@@ -82,7 +88,7 @@ namespace Couchbase.Lite
 
         public bool IsAfterLast ()
         {
-            return !HasRows; //currentRow > reader.RecordsAffected;
+            return !HasRows;
         }
 
         #region IDisposable implementation

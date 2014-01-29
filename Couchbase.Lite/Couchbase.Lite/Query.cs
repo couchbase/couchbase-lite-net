@@ -83,7 +83,6 @@ namespace Couchbase.Lite {
                 var queryOptions = new QueryOptions();
                 queryOptions.SetStartKey(StartKey);
                 queryOptions.SetEndKey(EndKey);
-                queryOptions.SetStartKey(StartKey);
                 queryOptions.SetKeys(Keys);
                 queryOptions.SetSkip(Skip);
                 queryOptions.SetLimit(Limit);

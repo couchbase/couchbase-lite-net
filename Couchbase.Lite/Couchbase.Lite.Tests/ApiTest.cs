@@ -607,32 +607,35 @@ namespace Couchbase.Lite
 
 		//VIEWS
 		/// <exception cref="System.Exception"></exception>
-//        [Test]
+        [Test]
         public void TestCreateView()
 		{
-			var db = manager.GetExistingDatabase(DefaultTestDb);
+            var db = StartDatabase();
 
-			View view = db.GetView("vu");
+			var view = db.GetView("vu");
 			Assert.IsNotNull(view);
 			Assert.AreEqual(db, view.Database);
 			Assert.AreEqual("vu", view.Name);
 			Assert.IsNull(view.Map);
 			Assert.IsNull(view.Reduce);
+
             view.SetMap((document, emitter) => emitter (document.Get ("sequence"), null), "1");
 			Assert.IsNotNull(view.Map != null);
-			int kNDocs = 50;
-			CreateDocuments(db, kNDocs);
-            Query query = view.CreateQuery();
+
+            CreateDocuments(db, numberOfDocsToCreate: 50);
+
+            var query = view.CreateQuery();
 			query.StartKey=23;
 			query.EndKey=33;
             Assert.AreEqual(db, query.Database);
-			QueryEnumerator rows = query.Run();
+
+			var rows = query.Run();
 			Assert.IsNotNull(rows);
             Assert.AreEqual(11, rows.Count);
-        	int expectedKey = 23;
-			for (IEnumerator<QueryRow> it = rows; it.MoveNext(); )
+
+        	var expectedKey = 23;
+            foreach (var row in rows)
 			{
-				QueryRow row = it.Current;
 				Assert.AreEqual(expectedKey, row.Key);
 				Assert.AreEqual(expectedKey + 1, row.SequenceNumber);
 				++expectedKey;

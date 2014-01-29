@@ -28,14 +28,28 @@ namespace Couchbase.Lite.Storage
     [SqliteFunction(Name = "JSON", FuncType = FunctionType.Collation, Arguments = 2)]
     internal class CouchbaseSqliteCollationFunction : SqliteFunction
     {
+        /// <Docs>Implements the custom collection for JSON strings.</Docs>
+        /// <summary>
+        /// Couchbase custom JSON collation algorithm.
+        /// </summary>
+        /// <remarks>
+        /// This is woefully incomplete.
+        /// For full details, see https://github.com/couchbase/couchbase-lite-ios/blob/580c5f65ebda159ce5d0ce1f75adc16955a2a6ff/Source/CBLCollateJSON.m.
+        /// </remarks>
+        /// <param name="param1">Param1.</param>
+        /// <param name="param2">Param2.</param>
         public override Int32 Compare (String param1, String param2)
         {
+            // HACK.ZJG: This is woefully incomplete.
             Int32 result;
 
-            var raw1 = StripJson(param1);
-            var raw2 = StripJson(param2);
+            var isNumeric = true;
+            var raw1 = StripJson(param1, ref isNumeric);
+            var raw2 = StripJson(param2, ref isNumeric);
 
-            result = String.CompareOrdinal(raw1, raw2);
+            result = isNumeric 
+                     ? Convert.ToInt64(raw1).CompareTo(Convert.ToInt64(raw2))
+                     : String.CompareOrdinal(raw1, raw2);
 
             return result;
         }
@@ -46,7 +60,8 @@ namespace Couchbase.Lite.Storage
         /// </summary>
         /// <returns>The json.</returns>
         /// <param name="jsonString">Json string.</param>
-        private String StripJson (string jsonString)
+        /// <param name = "isNumeric"></param>
+        private String StripJson (string jsonString, ref Boolean isNumeric)
         {
             var rawString = new StringBuilder();
 
@@ -70,7 +85,9 @@ namespace Couchbase.Lite.Storage
                 case '\"':
                 case '\'':
                 case ':':
-                    break;
+                    {
+                        break;
+                    }
                 case 't':
                 case 'n':
                 case 'r':
@@ -80,7 +97,7 @@ namespace Couchbase.Lite.Storage
                         if (previousChar != '\\') {
                             rawString.Append(character);
                         } else if (previousChar == '\\' && character == 'u') {
-                            skipChars = 4;
+                            skipChars = 4; // NOTE.ZJG: Doesn't support escaped unicode characters yet.
                         }
                         break;
                     }
@@ -90,6 +107,7 @@ namespace Couchbase.Lite.Storage
                         break;
                     }
                 }
+                isNumeric = isNumeric & Char.IsDigit(character);
                 previousChar = character;
             }
             return rawString.ToString();

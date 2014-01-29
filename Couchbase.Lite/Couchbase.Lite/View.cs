@@ -335,7 +335,7 @@ namespace Couchbase.Lite {
                         }
                         var row = new QueryRow(docId, sequence, keyData, value, docContents);
                         row.Database = Database;
-                        rows.AddItem<QueryRow>(row);
+                        rows.AddItem<QueryRow>(row);  // NOTE.ZJG: Change to `yield return row` to convert to a generator.
                         cursor.MoveToNext();
                     }
                 }
@@ -389,7 +389,7 @@ namespace Couchbase.Lite {
                         var key = GroupKey(lastKey, groupLevel);
                         var row = new QueryRow(null, 0, key, reduced, null);
                         row.Database = Database;
-                        rows.AddItem(row);
+                        rows.AddItem(row); // NOTE.ZJG: Change to `yield return row` to convert to a generator.
 
                         keysToReduce.Clear();
                         valuesToReduce.Clear();
@@ -400,6 +400,7 @@ namespace Couchbase.Lite {
                 valuesToReduce.AddItem(value);
                 cursor.MoveToNext();
             }
+            // NOTE.ZJG: Need to handle grouping differently if switching this to a generator.
             if (keysToReduce.Count > 0)
             {
                 // Finish the last group (or the entire list, if no grouping):
@@ -453,7 +454,7 @@ namespace Couchbase.Lite {
             }
             // OPT: It would be faster to use separate tables for raw-or ascii-collated views so that
             // they could be indexed with the right Collation, instead of having to specify it here.
-            string collationStr = string.Empty;
+            var collationStr = string.Empty;
             if (Collation == ViewCollation.ASCII)
             {
                 collationStr += " COLLATE JSON_ASCII";
@@ -465,18 +466,18 @@ namespace Couchbase.Lite {
                     collationStr += " COLLATE JSON_RAW";
                 }
             }
-            string sql = "SELECT key, value, docid, revs.sequence";
+            var sql = "SELECT key, value, docid, revs.sequence";
             if (options.IsIncludeDocs())
             {
                 sql = sql + ", revid, json";
             }
             sql = sql + " FROM maps, revs, docs WHERE maps.view_id=@";
-            IList<string> argsList = new AList<string>();
+            var argsList = new AList<string>();
             argsList.AddItem(Sharpen.Extensions.ToString(Id));
             if (options.GetKeys() != null)
             {
                 sql += " AND key in (";
-                string item = "@";
+                var item = "@";
                 foreach (object key in options.GetKeys())
                 {
                     sql += item;
@@ -499,14 +500,7 @@ namespace Couchbase.Lite {
             if (minKey != null)
             {
                 System.Diagnostics.Debug.Assert((minKey is string));
-                if (inclusiveMin)
-                {
-                    sql += " AND key >= @";
-                }
-                else
-                {
-                    sql += " AND key > @";
-                }
+                sql += inclusiveMin ? " AND key >= @" : " AND key > @";
                 sql += collationStr;
                 argsList.AddItem(ToJSONString(minKey));
             }
