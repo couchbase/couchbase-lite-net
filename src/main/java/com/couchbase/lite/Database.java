@@ -3349,14 +3349,6 @@ public class Database {
                 else {
                     // This revision isn't known, so add it:
 
-                    if (sequence == localParentSequence) {
-                        // This is the point where we branch off of the existing rev tree.
-                        // If the branch wasn't from the single existing leaf, this creates a conflict.
-                        if (localRevs.size() != 0 && !rev.isDeleted() && !revId.equals(localParentRevID)) {
-                            inConflict = true;
-                        }
-                    }
-
                     RevisionInternal newRev;
                     byte[] data = null;
                     boolean current = false;
@@ -3401,8 +3393,12 @@ public class Database {
                 ContentValues args = new ContentValues();
                 args.put("current", 0);
                 String[] whereArgs = { Long.toString(localParentSequence) };
+                int numRowsChanged = 0;
                 try {
-                    database.update("revs", args, "sequence=?", whereArgs);
+                    numRowsChanged = database.update("revs", args, "sequence=? AND current!=0", whereArgs);
+                    if (numRowsChanged == 0) {
+                        inConflict = true;  // local parent wasn't a leaf, ergo we just created a branch
+                    }
                 } catch (SQLException e) {
                     throw new CouchbaseLiteException(Status.INTERNAL_SERVER_ERROR);
                 }
