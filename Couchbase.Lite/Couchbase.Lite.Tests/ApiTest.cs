@@ -681,41 +681,44 @@ namespace Couchbase.Lite
 
 		//            assertEquals(e.getLocalizedMessage(), "forbidden: uncool"); //TODO: Not hooked up yet
 		/// <exception cref="System.Exception"></exception>
-//        [Test]
+        [Test]
         public void TestViewWithLinkedDocs()
 		{
 			var db = manager.GetExistingDatabase(DefaultTestDb);
 
-			int kNDocs = 50;
+            const int numberOfDocs = 50;
 			var docs = new Document[50];
-			string lastDocID = string.Empty;
-			for (int i = 0; i < kNDocs; i++)
+            var lastDocID = String.Empty;
+
+            for (var i = 0; i < numberOfDocs; i++)
 			{
-				IDictionary<String, Object> properties = new Dictionary<String, Object>();
+				var properties = new Dictionary<String, Object>();
 				properties["sequence"] = i;
 				properties["prev"] = lastDocID;
-                Document doc = CreateDocumentWithProperties(db, properties);
+
+                var doc = CreateDocumentWithProperties(db, properties);
 				docs[i] = doc;
 				lastDocID = doc.Id;
 			}
-            var query=db.SlowQuery((document, emitter)=>
-                {
-                            emitter(document["sequence"], new object[] { "_id", document["prev"]});
-                 });
-			query.StartKey=23;
-			query.EndKey=33;
-			query.Prefetch=true;
-			QueryEnumerator rows = query.Run();
+
+            var query = db.SlowQuery((document, emitter)=> emitter (document ["sequence"], new object[] { "_id", document ["prev"] }));
+            query.StartKey = 23;
+            query.EndKey = 33;
+            query.Prefetch = true;
+
+			var rows = query.Run();
 			Assert.IsNotNull(rows);
 			Assert.AreEqual(rows.Count, 11);
-			int rowNumber = 23;
-			for (IEnumerator<QueryRow> it = rows; it.MoveNext(); )
+
+			var rowNumber = 23;
+            foreach (var row in rows)
 			{
-				QueryRow row = it.Current;
 				Assert.AreEqual(row.Key, rowNumber);
-				Document prevDoc = docs[rowNumber];
+
+				var prevDoc = docs[rowNumber];
 				Assert.AreEqual(row.DocumentId, prevDoc.Id);
 				Assert.AreEqual(row.Document, prevDoc);
+
 				++rowNumber;
 			}
 		}
