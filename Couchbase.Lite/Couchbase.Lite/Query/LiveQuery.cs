@@ -80,7 +80,7 @@ namespace Couchbase.Lite
 
             UpdateQueryTokenSource = new CancellationTokenSource();
 
-            UpdateQueryTask = RunAsync(UpdateQueryTokenSource.Token)
+            UpdateQueryTask = RunAsync(base.Run, UpdateQueryTokenSource.Token)
                 .ContinueWith(runTask =>
                     {
                         if (runTask.Status != TaskStatus.RanToCompletion) {

@@ -194,6 +194,7 @@ namespace Couchbase.Lite.Storage
                 cursor = new Cursor(reader);
             } catch (Exception e) {
                 Log.E(Tag, "Error executing raw query '{0}'".Fmt(sql), e);
+                throw;
             } finally {
                 command.Dispose();
             }

@@ -499,13 +499,6 @@ namespace Sharpen
 			return true;
 		}
 
-		public static bool Contains<T> (this ICollection<T> col, object item)
-		{
-			if (!(item is T))
-				return false;
-			return col.Any (n => (object.ReferenceEquals (n, item)) || n.Equals (item));
-		}
-
 		public static void Sort<T> (this IList<T> list)
 		{
 			List<T> sorted = new List<T> (list);

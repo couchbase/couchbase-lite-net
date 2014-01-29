@@ -171,9 +171,9 @@ namespace Couchbase.Lite {
             return new QueryEnumerator(Database, rows, outSequence[0]);
         }
 
-        public Task<QueryEnumerator> RunAsync(CancellationToken token) 
+        public Task<QueryEnumerator> RunAsync(Func<QueryEnumerator> run, CancellationToken token) 
         {
-            return Database.Manager.RunAsync(Run, token)
+            return Database.Manager.RunAsync(run, token)
                     .ContinueWith(runTask=> // Raise the query's Completed event.
                         {
                             var error = runTask.Exception;
@@ -194,7 +194,7 @@ namespace Couchbase.Lite {
 
         public Task<QueryEnumerator> RunAsync() 
         {
-            return RunAsync(CancellationToken.None);
+            return RunAsync(Run, CancellationToken.None);
         }
 
 //        internal Task<QueryEnumerator> RunAsync(Func<QueryEnumerator> action) 
