@@ -684,7 +684,7 @@ namespace Couchbase.Lite
         [Test]
         public void TestViewWithLinkedDocs()
 		{
-			var db = manager.GetExistingDatabase(DefaultTestDb);
+            var db = StartDatabase();
 
             const int numberOfDocs = 50;
 			var docs = new Document[50];
