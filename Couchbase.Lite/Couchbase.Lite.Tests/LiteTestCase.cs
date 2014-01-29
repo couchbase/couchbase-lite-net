@@ -123,7 +123,7 @@ namespace Couchbase.Lite
                 try {
                     db.Delete ();
                     status = true;
-                } catch (Exception ex) { }
+                } catch (Exception) { }
 
 				NUnit.Framework.Assert.IsTrue(status);
             }

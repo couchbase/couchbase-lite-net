@@ -38,8 +38,6 @@ namespace Couchbase.Lite
 	/// <remarks>Created by andrey on 12/3/13.</remarks>
     public class ApiTest : LiteTestCase
 	{
-		private int changeCount = 0;
-
         public static Task CreateDocumentsAsync(Database db, int n)
 		{
             return db.RunAsync((database)=>
@@ -90,6 +88,73 @@ namespace Couchbase.Lite
 
 			return doc;
 		}
+
+        /// <exception cref="System.Exception"></exception>
+        public void RunLiveQuery(String methodNameToCall)
+        {
+            var db = StartDatabase();
+
+            var doneSignal = new CountDownLatch(11);
+
+            // 11 corresponds to startKey = 23; endKey = 33
+            // run a live query
+            var view = db.GetView("vu");
+            view.SetMap((document, emitter) => emitter (document ["sequence"], 1), "1");
+
+            var query = view.CreateQuery().ToLiveQuery();
+            query.StartKey = 23;
+            query.EndKey = 33;
+
+            Log.I(Tag, "Created  " + query);
+
+            // these are the keys that we expect to see in the livequery change listener callback
+            var expectedKeys = new HashSet<Int64>();
+            for (var i = 23; i < 34; i++)
+            {
+                expectedKeys.AddItem(i);
+            }
+
+            // install a change listener which decrements countdown latch when it sees a new
+            // key from the list of expected keys
+            EventHandler<QueryChangeEventArgs> handler = (sender, e) => {
+                var rows = e.Rows;
+                foreach(var row in rows)
+                {
+                    if (expectedKeys.Contains((Int64)row.Key))
+                    {
+                        doneSignal.CountDown();
+                    }
+                }
+            };
+
+            query.Changed += handler;
+
+            // create the docs that will cause the above change listener to decrement countdown latch
+            var createTask = CreateDocumentsAsync(db, n: 50);
+            createTask.Wait(TimeSpan.FromSeconds(5));
+            if (methodNameToCall.Equals("start"))
+            {
+                // start the livequery running asynchronously
+                query.Start();
+            }
+            else
+            {
+                Assert.IsNull(query.Rows);
+
+                query.Run();
+
+                // this will block until the query completes
+                Assert.IsNotNull(query.Rows);
+            }
+
+            // wait for the doneSignal to be finished
+            var success = doneSignal.Await(TimeSpan.FromSeconds(10));
+            Assert.IsTrue(success, "Done signal timed out live query never ran");
+
+            // stop the livequery since we are done with it
+            query.Changed -= handler;
+            query.Stop();
+        }
 
 		//SERVER & DOCUMENTS
 		/// <exception cref="System.IO.IOException"></exception>
@@ -738,78 +803,11 @@ namespace Couchbase.Lite
 		}
 
 		/// <exception cref="System.Exception"></exception>
-        public void RunLiveQuery(String methodNameToCall)
-		{
-            var db = StartDatabase();
-
-			var doneSignal = new CountDownLatch(11);
-
-            // 11 corresponds to startKey = 23; endKey = 33
-			// run a live query
-			var view = db.GetView("vu");
-            view.SetMap((document, emitter) => emitter (document ["sequence"], 1), "1");
-
-			var query = view.CreateQuery().ToLiveQuery();
-            query.StartKey = 23;
-            query.EndKey = 33;
-
-			Log.I(Tag, "Created  " + query);
-
-			// these are the keys that we expect to see in the livequery change listener callback
-            var expectedKeys = new HashSet<Int64>();
-			for (var i = 23; i < 34; i++)
-			{
-				expectedKeys.AddItem(i);
-			}
-
-			// install a change listener which decrements countdown latch when it sees a new
-			// key from the list of expected keys
-            EventHandler<QueryChangeEventArgs> handler = (sender, e) => {
-                var rows = e.Rows;
-                foreach(var row in rows)
-                {
-                    if (expectedKeys.Contains((Int64)row.Key))
-                    {
-                        doneSignal.CountDown();
-                    }
-                }
-            };
-
-            query.Changed += handler;
-
-			// create the docs that will cause the above change listener to decrement countdown latch
-            var createTask = CreateDocumentsAsync(db, n: 50);
-            createTask.Wait(TimeSpan.FromSeconds(5));
-			if (methodNameToCall.Equals("start"))
-			{
-				// start the livequery running asynchronously
-				query.Start();
-			}
-			else
-			{
-				Assert.IsNull(query.Rows);
-
-				query.Run();
-
-				// this will block until the query completes
-				Assert.IsNotNull(query.Rows);
-			}
-
-			// wait for the doneSignal to be finished
-            var success = doneSignal.Await(TimeSpan.FromSeconds(10));
-            Assert.IsTrue(success, "Done signal timed out live query never ran");
-
-			// stop the livequery since we are done with it
-            query.Changed -= handler;
-			query.Stop();
-		}
-
-		/// <exception cref="System.Exception"></exception>
-//        [Test]
+        [Test]
         public void TestAsyncViewQuery()
 		{
 			var doneSignal = new CountDownLatch(1);
-			var db = manager.GetExistingDatabase(DefaultTestDb);
+            var db = StartDatabase();
 
 			View view = db.GetView("vu");
             view.SetMap((document, emitter) => emitter (document ["sequence"], null), "1");
@@ -817,7 +815,7 @@ namespace Couchbase.Lite
             const int kNDocs = 50;
 			CreateDocuments(db, kNDocs);
 
-			Query query = view.CreateQuery();
+			var query = view.CreateQuery();
 			query.StartKey=23;
 			query.EndKey=33;
 
@@ -829,9 +827,9 @@ namespace Couchbase.Lite
                 Assert.IsNotNull (rows);
                 Assert.AreEqual (rows.Count, 11);
 
-                int expectedKey = 23;
+                var expectedKey = 23;
                 for (IEnumerator<QueryRow> it = rows; it.MoveNext ();) {
-                    QueryRow row = it.Current;
+                    var row = it.Current;
                     Assert.AreEqual (row.Document.Database, db);
                     Assert.AreEqual (row.Key, expectedKey);
                     ++expectedKey;
@@ -841,7 +839,7 @@ namespace Couchbase.Lite
 
 			Log.I(Tag, "Waiting for async query to finish...");
 
-            var success = task.Wait(300000);
+            var success = task.Wait(TimeSpan.FromSeconds(5));
 			Assert.IsTrue(success, "Done signal timed out..StartKey=ry never ran");
 		}
 
