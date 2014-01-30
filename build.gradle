@@ -43,6 +43,10 @@ android {
         targetSdkVersion 19
     }
 
+    lintOptions {
+        abortOnError false
+    }
+
     // workaround for "duplicate files during packaging of APK" issue
     // see https://groups.google.com/d/msg/adt-dev/bl5Rc4Szpzg/wC8cylTWuIEJ
     packagingOptions {
