@@ -1,7 +1,5 @@
 package com.couchbase.lite;
 
-import android.provider.ContactsContract;
-
 import com.couchbase.lite.auth.Authorizer;
 import com.couchbase.lite.auth.FacebookAuthorizer;
 import com.couchbase.lite.auth.PersonaAuthorizer;
