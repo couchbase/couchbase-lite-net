@@ -110,5 +110,8 @@ task generateJavadocs(type: Javadoc) {
     options.doclet = "ExcludeDoclet"
     options.showFromPublic()
     exclude "org/apache/http/**", "com/couchbase/touchdb/**"
+}
 
+task wrapper(type: Wrapper) {
+	gradleVersion = '1.10'
 }
