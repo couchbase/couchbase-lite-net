@@ -60,9 +60,10 @@
   <ItemGroup>
     <Compile Include="ApiTest.cs" />
     <Compile Include="LiteTestCase.cs" />
-    <Compile Include="AlwaysFailingClientFactory.cs" />
-    <Compile Include="FailEveryRequestHandler.cs" />
     <Compile Include="Util\ExtensionMethods.cs" />
+    <Compile Include="Util\AlwaysFailingClientFactory.cs" />
+    <Compile Include="Util\FailEveryRequestHandler.cs" />
+    <Compile Include="ReplicationTest.cs" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Assets\" />

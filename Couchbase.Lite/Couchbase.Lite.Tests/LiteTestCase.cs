@@ -31,6 +31,7 @@ using NUnit.Framework;
 using Sharpen;
 using Couchbase.Lite.Tests;
 using System.Diagnostics;
+using System.Net;
 
 namespace Couchbase.Lite
 {
@@ -212,8 +213,7 @@ namespace Couchbase.Lite
 		/// <exception cref="System.UriFormatException"></exception>
 		protected internal virtual Uri GetReplicationURLWithoutCredentials()
 		{
-            return new Uri(string.Format("{0}://{1}:{2}/{3}", GetReplicationProtocol(), GetReplicationServer
-				(), GetReplicationPort(), GetReplicationDatabase()));
+            return new Uri(string.Format("{0}://{1}:{2}/{3}", GetReplicationProtocol(), GetReplicationServer(), GetReplicationPort(), GetReplicationDatabase()));
 		}
 
 		/// <exception cref="System.Exception"></exception>
@@ -242,10 +242,10 @@ namespace Couchbase.Lite
 		/// <exception cref="System.IO.IOException"></exception>
 		public virtual IDictionary<string, object> GetReplicationAuthParsedJson()
 		{
-			string authJson = "{\n" + "    \"facebook\" : {\n" + "        \"email\" : \"jchris@couchbase.com\"\n"
+			var authJson = "{\n" + "    \"facebook\" : {\n" + "        \"email\" : \"jchris@couchbase.com\"\n"
 				 + "     }\n" + "   }\n";
-            var mapper = new ObjectWriter();
-            IDictionary<string, object> authProperties = mapper.ReadValue<Dictionary<string, object>>(authJson);
+            mapper = new ObjectWriter();
+            var authProperties = mapper.ReadValue<Dictionary<string, object>>(authJson);
 			return authProperties;
 		}
 
@@ -275,88 +275,92 @@ namespace Couchbase.Lite
 			return properties;
 		}
 
-//		protected internal virtual URLConnection SendRequest(string method, string path, 
-//			IDictionary<string, string> headers, object bodyObj)
-//		{
-//			try
-//			{
-//                var url = new Uri("cblite://" + path);
-//                var conn = url.OpenConnection();
-//				conn.SetDoOutput(true);
-//				conn.SetRequestMethod(method);
-//				if (headers != null)
-//				{
-//					foreach (string header in headers.Keys)
-//					{
-//						conn.SetRequestProperty(header, headers[header]);
-//					}
-//				}
-//                //IDictionary<string, IList<string>> allProperties = conn.GetRequestProperties();
-//				if (bodyObj != null)
-//				{
-//                    //conn.SetDoInput(true);
-//					ByteArrayInputStream bais = new ByteArrayInputStream(mapper.WriteValueAsBytes(bodyObj
-//						));
-//                    conn.SetRequestInputStream(bais);
-//				}
-//				Couchbase.Lite.Router.Router router = new Couchbase.Lite.Router.Router(manager, conn
-//					);
-//				router.Start();
-//				return conn;
-//			}
-//			catch (UriFormatException)
-//			{
-//				Fail();
-//			}
-//			catch (IOException)
-//			{
-//				Fail();
-//			}
-//			return null;
-//		}
-//
-//		protected internal virtual object ParseJSONResponse(URLConnection conn)
-//		{
-//			object result = null;
-//			Body responseBody = conn.GetResponseBody();
-//			if (responseBody != null)
-//			{
-//				byte[] json = responseBody.GetJson();
-//				string jsonString = null;
-//				if (json != null)
-//				{
-//					jsonString = Sharpen.Runtime.GetStringForBytes(json);
-//					try
-//					{
-//						result = mapper.ReadValue<object>(jsonString);
-//					}
-//					catch (Exception)
-//					{
-//						Fail();
-//					}
-//				}
-//			}
-//			return result;
-//		}
-//
-//		protected internal virtual object SendBody(string method, string path, object bodyObj
-//			, int expectedStatus, object expectedResult)
-//		{
-//			URLConnection conn = SendRequest(method, path, null, bodyObj);
-//			object result = ParseJSONResponse(conn);
-//			Log.V(Tag, string.Format("%s %s --> %d", method, path, conn.GetResponseCode()));
-//			NUnit.Framework.Assert.AreEqual(expectedStatus, conn.GetResponseCode());
-//			if (expectedResult != null)
-//			{
-//				NUnit.Framework.Assert.AreEqual(expectedResult, result);
-//			}
-//			return result;
-//		}
-//
-//		protected internal virtual object Send(string method, string path, int expectedStatus
-//			, object expectedResult)
-//		{
-//			return SendBody(method, path, null, expectedStatus, expectedResult);
-//		}
+        protected internal virtual HttpURLConnection SendRequest(string method, string path, 
+			IDictionary<string, string> headers, object bodyObj)
+		{
+			try
+			{
+                var url = new Uri("cblite://" + path);
+                var conn = url.OpenConnection();
+				conn.SetDoOutput(true);
+				conn.SetRequestMethod(method);
+				if (headers != null)
+				{
+					foreach (string header in headers.Keys)
+					{
+						conn.SetRequestProperty(header, headers[header]);
+					}
+				}
+                var allProperties = conn.GetRequestProperties();
+				if (bodyObj != null)
+				{
+                    //conn.SetDoInput(true);
+					var bais = mapper.WriteValueAsBytes(bodyObj);
+                    conn.SetRequestInputStream(bais);
+				}
+/*                var router = new Couchbase.Lite.Router.Router(manager, conn);
+				router.Start();
+*/				return conn;
+			}
+			catch (UriFormatException)
+			{
+                Assert.Fail();
+			}
+			catch (IOException)
+			{
+                Assert.Fail();
+			}
+			return null;
+		}
+
+        protected internal virtual object ParseJSONResponse(HttpURLConnection conn)
+		{
+            Object result = null;
+            var stream = conn.GetOutputStream();
+            var bytesRead = 0L;
+            const Int32 chunkSize = 8192;
+             
+            var bytes = stream.ReadAllBytes();
+
+            var responseBody = new Body(bytes);
+			if (responseBody != null)
+			{
+                var json = responseBody.GetJson();
+                String jsonString = null;
+				if (json != null)
+				{
+					jsonString = Sharpen.Runtime.GetStringForBytes(json);
+					try
+					{
+						result = mapper.ReadValue<object>(jsonString);
+					}
+					catch (Exception)
+					{
+                        Assert.Fail();
+					}
+				}
+			}
+			return result;
+		}
+
+		protected internal virtual object SendBody(string method, string path, object bodyObj
+			, int expectedStatus, object expectedResult)
+		{
+            var conn = SendRequest(method, path, null, bodyObj);
+			object result = ParseJSONResponse(conn);
+			Log.V(Tag, string.Format("%s %s --> %d", method, path, conn.GetResponseCode()));
+			NUnit.Framework.Assert.AreEqual(expectedStatus, conn.GetResponseCode());
+			if (expectedResult != null)
+			{
+				NUnit.Framework.Assert.AreEqual(expectedResult, result);
+			}
+			return result;
+		}
+
+        protected internal virtual object Send(string method, string path, HttpStatusCode expectedStatus
+			, object expectedResult)
+		{
+            return SendBody(method, path, null, (int)expectedStatus, expectedResult);
+		}
 	}
 }

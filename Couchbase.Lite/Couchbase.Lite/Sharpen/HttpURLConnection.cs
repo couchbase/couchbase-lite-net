@@ -27,6 +27,8 @@ using System;
 using System.Net;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
+using System.IO;
 
 namespace Sharpen
 {
@@ -69,7 +71,7 @@ namespace Sharpen
 				{
 					try
 					{
-						reqResponse = (HttpWebResponse) request.GetResponse ();
+                        reqResponse = (HttpWebResponse) request.GetResponse ();
 					}
 					catch (WebException ex)
 					{
@@ -84,6 +86,22 @@ namespace Sharpen
 				return reqResponse;
 			}
 		}
+
+        public void SetRequestInputStream (IEnumerable<byte> bais)
+        {
+            var bytes = bais.ToArray();
+            using (var stream = request.GetRequestStream())
+            {
+                var bytesWritten = 0;
+                while (bytesWritten < bytes.Length)
+                {
+                    // stream.Write doesn't support a length of Int64,
+                    // we need to write in chunk of up to Int32.MaxValue.
+                    stream.Write(bytes, 0, bytes.Length);
+                    bytesWritten += bytes.Length;
+                }
+            }
+        }
 		
 		public void SetUseCaches (bool u)
 		{
@@ -175,12 +193,12 @@ namespace Sharpen
 			// Not available
 		}
 		
-		public InputStream GetInputStream ()
+		public Stream GetInputStream ()
 		{
 			return Response.GetResponseStream ();
 		}
 		
-		public OutputStream GetOutputStream ()
+		public Stream GetOutputStream ()
 		{
 			return request.GetRequestStream ();
 		}

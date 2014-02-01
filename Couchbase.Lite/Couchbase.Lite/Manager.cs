@@ -261,8 +261,8 @@ namespace Couchbase.Lite
         private readonly DirectoryInfo directoryFile;
         private readonly IDictionary<String, Database> databases;
         private readonly List<Replication> replications;
-        private readonly TaskFactory workExecutor;
         private readonly TaskScheduler scheduler;
+        internal readonly TaskFactory workExecutor; // Internal for unit test access.
 
         // Instance Methods
         internal Database GetDatabaseWithoutOpening(String name, Boolean mustExist)
@@ -349,29 +349,30 @@ namespace Couchbase.Lite
 
         internal Replication ReplicationWithDatabase (Database database, Uri url, bool push, bool create, bool start)
         {
-            foreach (var replicator in replications)
+            foreach (var replication in replications)
             {
-                if (replicator.LocalDatabase == database 
-                    && replicator.RemoteUrl.Equals(url) 
-                    && replicator.IsPull == !push)
+                if (replication.LocalDatabase == database 
+                    && replication.RemoteUrl.Equals(url) 
+                    && replication.IsPull == !push)
                 {
-                    return replicator;
+                    return replication;
                 }
             }
             if (!create)
             {
                 return null;
             }
-            Replication replicator_1 = null;
-            replicator_1 = push 
+
+            var replicator = push 
                            ? (Replication)new Pusher (database, url, true, workExecutor) 
                            : (Replication)new Puller (database, url, true, workExecutor);
-            replications.AddItem(replicator_1);
+
+            replications.AddItem(replicator);
             if (start)
             {
-                replicator_1.Start();
+                replicator.Start();
             }
-            return replicator_1;
+            return replicator;
         }
 
         private string PathForName(string name)

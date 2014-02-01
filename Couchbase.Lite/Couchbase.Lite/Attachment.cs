@@ -18,7 +18,7 @@ namespace Couchbase.Lite {
 
         #region Constants
 
-        const int DefaultStreamChunkSize = 8192;
+        internal const int DefaultStreamChunkSize = 8192;
 
         #endregion
 

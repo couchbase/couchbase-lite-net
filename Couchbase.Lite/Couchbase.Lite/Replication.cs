@@ -13,7 +13,19 @@ using System.Threading;
 using System.IO;
 using System.Linq;
 
-namespace Couchbase.Lite {
+namespace Couchbase.Lite
+{
+
+    #region Enums
+
+    public enum ReplicationStatus {
+        Stopped,
+        Offline,
+        Idle,
+        Active
+    }
+
+    #endregion
 
     public abstract partial class Replication 
     {
@@ -22,17 +34,6 @@ namespace Couchbase.Lite {
 
         internal static readonly String ReplicatorDatabaseName = "_replicator";
 
-    #endregion
-
-    #region Enums
-    
-    public enum ReplicationStatus {
-        Stopped,
-        Offline,
-        Idle,
-        Active
-    }
-                        
     #endregion
 
     #region Constructors
@@ -48,7 +49,7 @@ namespace Couchbase.Lite {
             WorkExecutor = workExecutor;
             CancellationTokenSource = tokenSource ?? new CancellationTokenSource();
             RemoteUrl = remote;
-            Status = Replication.ReplicationStatus.Stopped;
+            Status = ReplicationStatus.Stopped;
 
             if (RemoteUrl.GetQuery() != null && !RemoteUrl.GetQuery().IsEmpty())
             {
@@ -57,8 +58,8 @@ namespace Couchbase.Lite {
 
                 if (personaAssertion != null && !personaAssertion.IsEmpty())
                 {
-                    string email = PersonaAuthorizer.RegisterAssertion(personaAssertion);
-                    PersonaAuthorizer authorizer = new PersonaAuthorizer(email);
+                    var email = PersonaAuthorizer.RegisterAssertion(personaAssertion);
+                    var authorizer = new PersonaAuthorizer(email);
                     Authorizer = authorizer;
                 }
 
@@ -104,8 +105,8 @@ namespace Couchbase.Lite {
 
                     active = false;
                 }, CancellationTokenSource);
+
             this.clientFactory = clientFactory ?? CouchbaseLiteHttpClientFactory.Instance;
-//            client = this.clientFactory.GetHttpClient();
         }
 
     #endregion
@@ -142,7 +143,7 @@ namespace Couchbase.Lite {
         protected internal Int32 asyncTaskCount;
         protected internal Boolean active;
 
-        private  Authorizer Authorizer { get; set; }
+        internal  Authorizer Authorizer { get; set; }
         internal Batcher<RevisionInternal> Batcher { get; set; }
         private CancellationTokenSource CancellationTokenSource { get; set; }
 
@@ -175,23 +176,23 @@ namespace Couchbase.Lite {
         {
             if (!IsRunning)
             {
-                Status = Replication.ReplicationStatus.Stopped;
+                Status = ReplicationStatus.Stopped;
             }
             else
             {
                 if (!online)
                 {
-                    Status = Replication.ReplicationStatus.Offline;
+                    Status = ReplicationStatus.Offline;
                 }
                 else
                 {
                     if (active)
                     {
-                        Status = Replication.ReplicationStatus.Active;
+                        Status = ReplicationStatus.Active;
                     }
                     else
                     {
-                        Status = Replication.ReplicationStatus.Idle;
+                        Status = ReplicationStatus.Idle;
                     }
                 }
             }

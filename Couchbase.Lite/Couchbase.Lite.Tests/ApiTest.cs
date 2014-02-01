@@ -123,6 +123,7 @@ namespace Couchbase.Lite
                     if (expectedKeys.Contains((Int64)row.Key))
                     {
                         doneSignal.CountDown();
+                        break;
                     }
                 }
             };
@@ -618,9 +619,12 @@ namespace Couchbase.Lite
 
 			var content = "This is a test attachment!";
             var body = new ByteArrayInputStream(Runtime.GetBytesForString(content).ToArray());
+
 			var rev2 = doc.CreateRevision();
             rev2.SetAttachment("index.html", "text/plain; charset=utf-8", body);
+
 			var rev3 = rev2.Save();
+
 			Assert.IsNotNull(rev3);
 			Assert.AreEqual(rev3.Attachments.Count(), 1);
             Assert.AreEqual(rev3.AttachmentNames.Count(), 1);
@@ -654,8 +658,7 @@ namespace Couchbase.Lite
             var doneSignal = new CountDownLatch(5);
             var db = StartDatabase();
 
-            db.Changed += (sender, e) => 
-                          doneSignal.CountDown();
+            db.Changed += (sender, e) => doneSignal.CountDown ();
 
             var task = CreateDocumentsAsync(db, 5);
 
@@ -725,14 +728,17 @@ namespace Couchbase.Lite
                         return true;
                     }
                 });
-			IDictionary<String, Object> properties = new Dictionary<String, Object>();
+			var properties = new Dictionary<String, Object>();
 			properties["groovy"] = "right on";
 			properties["foo"] = "bar";
-			Document doc = db.CreateDocument();
+
+			var doc = db.CreateDocument();
 			Assert.IsNotNull(doc.PutProperties(properties));
+
 			properties = new Dictionary<String, Object>();
 			properties["foo"] = "bar";
 			doc = db.CreateDocument();
+
 			try
 			{
 				Assert.IsNull(doc.PutProperties(properties));
