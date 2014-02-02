@@ -124,7 +124,6 @@ namespace Couchbase.Lite
                     {
                         Console.WriteLine(Tag + " doneSignal decremented " + doneSignal.Count);
                         doneSignal.CountDown();
-                        break;
                     }
                 }
             };
