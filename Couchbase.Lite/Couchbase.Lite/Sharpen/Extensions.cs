@@ -239,10 +239,7 @@ namespace Sharpen
 
 		public static InputStream GetResourceAsStream (this Type type, string name)
 		{
-			string str2 = type.Assembly.GetName ().Name + ".resources";
-			string[] textArray1 = new string[] { str2, ".", type.Namespace, ".", name };
-			string str = string.Concat (textArray1);
-			Stream manifestResourceStream = type.Assembly.GetManifestResourceStream (str);
+            Stream manifestResourceStream = type.Assembly.GetManifestResourceStream (name);
 			if (manifestResourceStream == null) {
 				return null;
 			}

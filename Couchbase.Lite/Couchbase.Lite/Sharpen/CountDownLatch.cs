@@ -32,5 +32,7 @@ namespace Sharpen
 				done.Set ();
 			}
 		}
+
+        public int Count { get { return count; } }
 	}
 }

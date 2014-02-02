@@ -55,7 +55,7 @@ namespace Couchbase.Lite.Replicator
 			string docIdTimestamp = Convert.ToString(Runtime.CurrentTimeMillis());
 			// Create some documents:
 			IDictionary<string, object> documentProperties = new Dictionary<string, object>();
-			string doc1Id = string.Format("doc1-%s", docIdTimestamp);
+			string doc1Id = string.Format("doc1-{0}", docIdTimestamp);
 			documentProperties["_id"] = doc1Id;
 			documentProperties["foo"] = 1;
 			documentProperties["bar"] = false;
@@ -70,7 +70,7 @@ namespace Couchbase.Lite.Replicator
 				, database), rev1.GetRevId(), false, status);
             Assert.AreEqual(StatusCode.Created, status.GetCode());
 			documentProperties = new Dictionary<string, object>();
-			string doc2Id = string.Format("doc2-%s", docIdTimestamp);
+			string doc2Id = string.Format("doc2-{0}", docIdTimestamp);
 			documentProperties["_id"] = doc2Id;
 			documentProperties["baz"] = 666;
 			documentProperties["fnord"] = true;
@@ -100,7 +100,7 @@ namespace Couchbase.Lite.Replicator
             RunReplication(repl);
 			// make sure doc1 is there
 			// TODO: make sure doc2 is there (refactoring needed)
-			Uri replicationUrlTrailing = new Uri(string.Format("%s/", remote.ToString()
+			Uri replicationUrlTrailing = new Uri(string.Format("{0}/", remote.ToString()
 				));
 			Uri pathToDoc = new Uri(replicationUrlTrailing, doc1Id);
 			Log.D(Tag, "Send http request to " + pathToDoc);
@@ -161,12 +161,14 @@ namespace Couchbase.Lite.Replicator
         [Test]
 		public virtual void TestPusherDeletedDoc()
 		{
+            Assert.Fail(); // TODO.ZJG: Needs debugging, overflows stack.
+
 			CountDownLatch replicationDoneSignal = new CountDownLatch(1);
 			Uri remote = GetReplicationURL();
 			string docIdTimestamp = System.Convert.ToString(Runtime.CurrentTimeMillis());
 			// Create some documentsConvert
 			IDictionary<string, object> documentProperties = new Dictionary<string, object>();
-			string doc1Id = string.Format("doc1-%s", docIdTimestamp);
+			string doc1Id = string.Format("doc1-{0}", docIdTimestamp);
 			documentProperties["_id"] = doc1Id;
 			documentProperties["foo"] = 1;
 			documentProperties["bar"] = false;
@@ -185,7 +187,7 @@ namespace Couchbase.Lite.Replicator
             ((Pusher)repl).CreateTarget = true;
 			RunReplication(repl);
 			// make sure doc1 is deleted
-			Uri replicationUrlTrailing = new Uri(string.Format("%s/", remote.ToString()
+			Uri replicationUrlTrailing = new Uri(string.Format("{0}/", remote.ToString()
 				));
 			Uri pathToDoc = new Uri(replicationUrlTrailing, doc1Id);
 			Log.D(Tag, "Send http request to " + pathToDoc);
@@ -235,9 +237,11 @@ namespace Couchbase.Lite.Replicator
         [Test]
 		public virtual void TestPuller()
 		{
+            Assert.Fail(); // TODO.ZJG: Needs debugging.
+
 			string docIdTimestamp = System.Convert.ToString(Runtime.CurrentTimeMillis());
-            string doc1Id = string.Format("doc1-%s", docIdTimestamp);
-            string doc2Id = string.Format("doc2-%s", docIdTimestamp);
+            string doc1Id = string.Format("doc1-{0}", docIdTimestamp);
+            string doc2Id = string.Format("doc2-{0}", docIdTimestamp);
             AddDocWithId(doc1Id, "attachment.png");
             AddDocWithId(doc2Id, "attachment2.png");
 			// workaround for https://github.com/couchbase/sync_gateway/issues/228
@@ -261,6 +265,8 @@ namespace Couchbase.Lite.Replicator
         [Test]
 		public virtual void TestPullerWithLiveQuery()
 		{
+            Assert.Fail(); // TODO.ZJG: Needs debugging.
+
 			// This is essentially a regression test for a deadlock
 			// that was happening when the LiveQuery#onDatabaseChanged()
 			// was calling waitForUpdateThread(), but that thread was
@@ -269,8 +275,8 @@ namespace Couchbase.Lite.Replicator
 			// this test would trigger the deadlock and never finish.
 			Log.D(Database.Tag, "testPullerWithLiveQuery");
 			string docIdTimestamp = System.Convert.ToString(Runtime.CurrentTimeMillis());
-            string doc1Id = string.Format("doc1-%s", docIdTimestamp);
-            string doc2Id = string.Format("doc2-%s", docIdTimestamp);
+            string doc1Id = string.Format("doc1-{0}", docIdTimestamp);
+            string doc2Id = string.Format("doc2-{0}", docIdTimestamp);
 			AddDocWithId(doc1Id, "attachment2.png");
 			AddDocWithId(doc2Id, "attachment2.png");
 			int numDocsBeforePull = database.DocumentCount;
@@ -327,7 +333,7 @@ namespace Couchbase.Lite.Replicator
 				docJson = "{\"foo\":1,\"bar\":false}";
 			}
 			// push a document to server
-			Uri replicationUrlTrailingDoc1 = new Uri(string.Format("%s/%s", GetReplicationURL
+            Uri replicationUrlTrailingDoc1 = new Uri(string.Format("{0}/{0}", GetReplicationURL
 				().ToString(), docId));
 			Uri pathToDoc1 = new Uri(replicationUrlTrailingDoc1, docId);
 			Log.D(Tag, "Send http request to " + pathToDoc1);
@@ -356,7 +362,7 @@ namespace Couchbase.Lite.Replicator
                     }
                     httpRequestDoneSignal.CountDown();
                 });
-            getDocTask.Start();
+            //getDocTask.Start();
 			Log.D(Tag, "Waiting for http request to finish");
 			try
 			{
@@ -492,15 +498,17 @@ namespace Couchbase.Lite.Replicator
         [Test]
 		public virtual void TestReplicatorErrorStatus()
 		{
+            Assert.Fail(); // TODO.ZJG: Needs FB login stuff removed.
+
 			// register bogus fb token
 			IDictionary<string, object> facebookTokenInfo = new Dictionary<string, object>();
 			facebookTokenInfo["email"] = "jchris@couchbase.com";
 			facebookTokenInfo.Put("remote_url", GetReplicationURL().ToString());
 			facebookTokenInfo["access_token"] = "fake_access_token";
-			string destUrl = string.Format("/_facebook_token", DefaultTestDb);
-			IDictionary<string, object> result = (IDictionary<string, object>)SendBody("POST"
-                , destUrl, facebookTokenInfo, (int)StatusCode.Ok, null);
-			Log.V(Tag, string.Format("result %s", result));
+
+            var destUrl = string.Format("{0}/_facebook_token", DefaultTestDb);
+			var result = (IDictionary<string, object>)SendBody("POST", destUrl, facebookTokenInfo, (int)StatusCode.Ok, null);
+			Log.V(Tag, string.Format("result {0}", result));
 			// start a replicator
 			IDictionary<string, object> properties = GetPullReplicationParsedJson();
             Replication replicator = manager.GetExistingDatabase(DefaultTestDb).CreatePushReplication(new Uri(destUrl));

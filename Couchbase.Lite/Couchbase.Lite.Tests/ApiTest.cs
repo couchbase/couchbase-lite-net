@@ -94,7 +94,7 @@ namespace Couchbase.Lite
         {
             var db = StartDatabase();
 
-            var doneSignal = new CountDownLatch(11);
+            var doneSignal = new CountDownLatch(11); // FIXME.ZJG: Not sure why, but now Changed is only called once.
 
             // 11 corresponds to startKey = 23; endKey = 33
             // run a live query
@@ -122,6 +122,7 @@ namespace Couchbase.Lite
                 {
                     if (expectedKeys.Contains((Int64)row.Key))
                     {
+                        Console.WriteLine(Tag + " doneSignal decremented " + doneSignal.Count);
                         doneSignal.CountDown();
                         break;
                     }
@@ -149,7 +150,7 @@ namespace Couchbase.Lite
             }
 
             // wait for the doneSignal to be finished
-            var success = doneSignal.Await(TimeSpan.FromSeconds(10));
+            var success = doneSignal.Await(TimeSpan.FromSeconds(5));
             Assert.IsTrue(success, "Done signal timed out live query never ran");
 
             // stop the livequery since we are done with it
@@ -845,7 +846,7 @@ namespace Couchbase.Lite
 
 			Log.I(Tag, "Waiting for async query to finish...");
 
-            var success = task.Wait(TimeSpan.FromSeconds(5));
+            var success = task.Wait(TimeSpan.FromSeconds(10));
 			Assert.IsTrue(success, "Done signal timed out..StartKey=ry never ran");
 		}
 

@@ -54,14 +54,14 @@ namespace Couchbase.Lite
 		{
             Trace.Listeners.Add(new ConsoleTraceListener());
 			Log.V(Tag, "setUp");
-            //LoadCustomProperties();
+            LoadCustomProperties();
 			StartCBLite();
             StartDatabase();
 		}
 
 		protected internal virtual InputStream GetAsset(string name)
 		{
-			return this.GetType().GetResourceAsStream("/assets/" + name);
+            return this.GetType().GetResourceAsStream("Couchbase.Lite.Tests.Assets." + name);
 		}
 
         protected internal virtual DirectoryInfo GetRootDirectory()
@@ -276,11 +276,11 @@ namespace Couchbase.Lite
 		}
 
         protected internal virtual HttpURLConnection SendRequest(string method, string path, 
-			IDictionary<string, string> headers, object bodyObj)
+            IDictionary<string, string> headers, IDictionary<string, object> bodyObj)
 		{
 			try
 			{
-                var url = new Uri("cblite://" + path);
+                var url = new Uri(new Uri((string)bodyObj["remote_url"]), path);
                 var conn = url.OpenConnection();
 				conn.SetDoOutput(true);
 				conn.SetRequestMethod(method);
@@ -343,7 +343,7 @@ namespace Couchbase.Lite
 			return result;
 		}
 
-		protected internal virtual object SendBody(string method, string path, object bodyObj
+        protected internal virtual object SendBody(string method, string path, IDictionary<string, object> bodyObj
 			, int expectedStatus, object expectedResult)
 		{
             var conn = SendRequest(method, path, null, bodyObj);

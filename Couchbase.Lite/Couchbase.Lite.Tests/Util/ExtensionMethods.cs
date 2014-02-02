@@ -14,13 +14,16 @@ namespace Couchbase.Lite.Tests
                 while (!reader.EndOfStream)
                 {
                     var line = reader.ReadLine();
-                    if (!String.IsNullOrWhiteSpace(line))
+                    if (!String.IsNullOrWhiteSpace(line) && !line.StartsWith("#"))
                     {
                         var parts = line.Split('=');
                         if (parts.Length != 2)
                             throw new InvalidOperationException("Properties must be key value pairs separated by an '='.");
 
-                        props.Add(parts[0], parts[1]);
+                        if (!props.ContainsKey(parts[0]))
+                            props.Add(parts[0], parts[1]);
+                        else
+                            props[parts[0]] = parts[1];
                     }
                 }
             }

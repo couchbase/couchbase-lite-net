@@ -592,6 +592,8 @@ namespace Couchbase.Lite.Replicator
 		/// <exception cref="System.Exception"></exception>
 		public virtual void TestReplicatorErrorStatus()
 		{
+            Assert.Fail(); // NOTE.ZJG: Need to remove FB & Persona login stuff.
+
 			// register bogus fb token
 			IDictionary<string, object> facebookTokenInfo = new Dictionary<string, object>();
 			facebookTokenInfo.Put("email", "jchris@couchbase.com");
