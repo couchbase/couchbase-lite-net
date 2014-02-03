@@ -566,6 +566,11 @@ public class Manager {
                 repl.setAuthorizer(authorizer);
             }
 
+            Map<String, Object> headers = (Map) properties.get("headers");
+            if (headers != null && !headers.isEmpty()) {
+                repl.setHeaders(headers);
+            }
+
             String filterName = (String)properties.get("filter");
             if(filterName != null) {
                 repl.setFilter(filterName);
