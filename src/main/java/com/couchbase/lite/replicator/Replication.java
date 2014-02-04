@@ -95,10 +95,14 @@ public abstract class Replication {
      * Options for what metadata to include in document bodies
      */
     public enum ReplicationStatus {
-        REPLICATION_STOPPED,  /**< The replication is finished or hit a fatal error. */
-        REPLICATION_OFFLINE,  /**< The remote host is currently unreachable. */
-        REPLICATION_IDLE,     /**< Continuous replication is caught up and waiting for more changes.*/
-        REPLICATION_ACTIVE    /**< The replication is actively transferring data. */
+        /** The replication is finished or hit a fatal error. */
+        REPLICATION_STOPPED,
+        /** The remote host is currently unreachable. */
+        REPLICATION_OFFLINE,
+        /** Continuous replication is caught up and waiting for more changes.*/
+        REPLICATION_IDLE,
+        /** The replication is actively transferring data. */
+        REPLICATION_ACTIVE
     }
 
 
