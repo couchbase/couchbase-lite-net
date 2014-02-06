@@ -14,11 +14,15 @@
  * and limitations under the License.
  */
 
-package com.couchbase.lite.storage;
+package com.couchbase.lite.android;
 
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteException;
 
+import com.couchbase.lite.storage.ContentValues;
+import com.couchbase.lite.storage.Cursor;
+import com.couchbase.lite.storage.SQLException;
+import com.couchbase.lite.storage.SQLiteStorageEngine;
 import com.couchbase.lite.util.Log;
 import com.couchbase.touchdb.TDCollateJSON;
 

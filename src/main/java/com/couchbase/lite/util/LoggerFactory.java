@@ -16,6 +16,8 @@
 
 package com.couchbase.lite.util;
 
+import com.couchbase.lite.android.AndroidLogger;
+
 import java.util.Properties;
 import java.util.ServiceLoader;
 

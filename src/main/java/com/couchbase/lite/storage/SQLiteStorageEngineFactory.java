@@ -16,6 +16,8 @@
 
 package com.couchbase.lite.storage;
 
+import com.couchbase.lite.android.AndroidSQLiteStorageEngine;
+
 import java.util.Properties;
 import java.util.ServiceLoader;
 
