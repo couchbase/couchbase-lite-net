@@ -16,9 +16,7 @@
 
 package com.couchbase.lite.storage;
 
-import com.couchbase.lite.android.AndroidSQLiteStorageEngine;
 
-import java.util.Properties;
 import java.util.ServiceLoader;
 
 public class SQLiteStorageEngineFactory {
@@ -26,15 +24,6 @@ public class SQLiteStorageEngineFactory {
         // Attempt to load a Storage Engine service.
         for (SQLiteStorageEngine storageEngine : ServiceLoader.load(SQLiteStorageEngine.class)) {
             return storageEngine;
-        }
-
-        // Attempt to load a Storage Engine based on runtime.
-        Properties properties = System.getProperties();
-        String runtime = properties.getProperty("java.runtime.name");
-        if (runtime != null) {
-            if (runtime.toLowerCase().contains("android")) {
-                return new AndroidSQLiteStorageEngine();
-            }
         }
 
         // No Storage Engine found so return null.
