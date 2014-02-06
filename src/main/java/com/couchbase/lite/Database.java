@@ -2841,7 +2841,10 @@ public class Database {
 
         // TODO: it is currently sending one change at a time rather than batching them up
 
-        boolean isExternalFixMe = false; // TODO: fix this to have a real value
+        boolean isExternal = false;
+        if (source != null) {
+            isExternal = true;
+        }
 
         DocumentChange change = new DocumentChange(
                 rev,
@@ -2851,7 +2854,7 @@ public class Database {
 
         List<DocumentChange> changes = new ArrayList<DocumentChange>();
         changes.add(change);
-        ChangeEvent changeEvent = new ChangeEvent(this, isExternalFixMe, changes);
+        ChangeEvent changeEvent = new ChangeEvent(this, isExternal, changes);
 
         // TODO: this is expensive, it should be using a WeakHashMap
         // TODO: instead of loading from the DB.  iOS code below.
