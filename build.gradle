@@ -19,9 +19,18 @@ repositories {
 }
 
 dependencies {
+
     testCompile group: 'junit', name: 'junit', version: '4.11'
     compile 'org.codehaus.jackson:jackson-core-asl:1.9.2'
     compile 'org.codehaus.jackson:jackson-mapper-asl:1.9.2'
+
+    // Using this version of apache http client based on: http://bit.ly/1kiET7V
+    // Decided to use jars instead so this wasn't accidentally included in android version
+    // compile 'org.apache.httpcomponents:httpcore:4.0-beta2'  
+    // compile 'org.apache.httpcomponents:httpclient:4.0-beta1'  
+
+    compile fileTree(dir: 'libs', include: '*.jar')
+
 }
 
 
