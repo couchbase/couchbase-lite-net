@@ -6,46 +6,24 @@ buildscript {
         classpath 'com.android.tools.build:gradle:0.8.+'
     }
 }
-apply plugin: 'android-library'
+
+apply plugin: 'java'
 apply plugin: 'maven'
 apply plugin: 'eclipse'
+
+sourceCompatibility = 1.6
+version = '1.0-beta2'
 
 repositories {
     mavenCentral()
 }
 
 dependencies {
-
-    compile 'com.android.support:support-v4:13.0.+'
-
+    testCompile group: 'junit', name: 'junit', version: '4.11'
     compile 'org.codehaus.jackson:jackson-core-asl:1.9.2'
     compile 'org.codehaus.jackson:jackson-mapper-asl:1.9.2'
-
-
 }
 
-android {
-    compileSdkVersion 19
-    buildToolsVersion "19.0.0"
-
-    defaultConfig {
-        minSdkVersion 9
-        targetSdkVersion 19
-    }
-
-    lintOptions {
-        abortOnError false
-    }
-
-    // workaround for "duplicate files during packaging of APK" issue
-    // see https://groups.google.com/d/msg/adt-dev/bl5Rc4Szpzg/wC8cylTWuIEJ
-    packagingOptions {
-        exclude 'META-INF/ASL2.0'
-        exclude 'META-INF/LICENSE'
-        exclude 'META-INF/NOTICE'
-    }
-
-}
 
 task createMavenDirectory(type: Exec) {
 
@@ -85,23 +63,4 @@ uploadArchives {
             }
         }
     }
-}
-
-task sourcesJar(type: Jar) {
-    classifier = 'sources'
-    from android.sourceSets.main.java.srcDirs
-}
-
-task generateJavadocs(type: Javadoc) {
-    source = android.sourceSets.main.java.srcDirs
-    List<File> pathList = new ArrayList<File>();
-    pathList.add(file('extra/doclet/doclet.jar'))
-    options.docletpath = pathList
-    options.doclet = "ExcludeDoclet"
-    options.showFromPublic()
-    exclude "org/apache/http/**", "com/couchbase/touchdb/**"
-}
-
-task wrapper(type: Wrapper) {
-	gradleVersion = '1.10'
 }
