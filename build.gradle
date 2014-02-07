@@ -18,10 +18,6 @@ dependencies {
 
     compile 'com.android.support:support-v4:13.0.+'
 
-    // this library is only needed by test code (95% certain), and therefore
-    // instrumentTestCompile is used rather than compile.
-    instrumentTestCompile 'commons-io:commons-io:2.0.1'
-
     compile 'org.codehaus.jackson:jackson-core-asl:1.9.2'
     compile 'org.codehaus.jackson:jackson-mapper-asl:1.9.2'
 
