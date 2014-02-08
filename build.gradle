@@ -38,7 +38,7 @@ task createMavenDirectory(type: Exec) {
 
     ext {
         uploadUser = System.getenv("UPLOAD_USERNAME") + ":" + System.getenv("UPLOAD_PASSWORD")
-        mkcolPath = System.getenv("UPLOAD_MAVEN_REPO_URL") + "com/couchbase/cblite/CBLite/" + System.getenv("UPLOAD_VERSION_CBLITE") + "/"
+        mkcolPath = System.getenv("UPLOAD_MAVEN_REPO_URL") + "com/couchbase/lite/java-core/" + System.getenv("UPLOAD_VERSION_CBLITE") + "/"
     }
     commandLine "curl", "--user", uploadUser, "-X", "MKCOL", mkcolPath
 }
@@ -59,8 +59,8 @@ uploadArchives {
                 authentication(userName: System.getenv("UPLOAD_USERNAME"), password: System.getenv("UPLOAD_PASSWORD"))
             }
             pom.version = System.getenv("UPLOAD_VERSION_CBLITE")
-            pom.groupId = 'com.couchbase.cblite'
-            pom.artifactId = 'CBLite'
+            pom.groupId = 'com.couchbase.lite'
+            pom.artifactId = 'java-core'
             pom.project {
                 licenses {
                     license {
