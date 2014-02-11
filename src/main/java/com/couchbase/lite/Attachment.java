@@ -140,7 +140,7 @@ public class Attachment {
      */
     @InterfaceAudience.Public
     public long getLength() {
-        Long length = (Long) metadata.get("length");
+        Number length = (Number) metadata.get("length");
         if (length != null) {
             return length.longValue();
         }
