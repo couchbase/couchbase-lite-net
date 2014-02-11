@@ -120,7 +120,7 @@ public class Puller extends Replication implements ChangeTrackerClient {
         }
         pendingSequences = new SequenceMap();
         Log.w(Database.TAG, this + " starting ChangeTracker with since=" + lastSequence);
-        changeTracker = new ChangeTracker(remote, continuous ? ChangeTracker.ChangeTrackerMode.LongPoll : ChangeTracker.ChangeTrackerMode.OneShot, lastSequence, this);
+        changeTracker = new ChangeTracker(remote, continuous ? ChangeTracker.ChangeTrackerMode.LongPoll : ChangeTracker.ChangeTrackerMode.OneShot, true, lastSequence, this);
         if(filterName != null) {
             changeTracker.setFilterName(filterName);
             if(filterParams != null) {

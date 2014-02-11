@@ -55,6 +55,7 @@ public class ChangeTracker implements Runnable {
     private ChangeTrackerClient client;
     private ChangeTrackerMode mode;
     private Object lastSequenceID;
+    private boolean includeConflicts;
 
     private Thread thread;
     private boolean running = false;
@@ -73,10 +74,11 @@ public class ChangeTracker implements Runnable {
         OneShot, LongPoll, Continuous
     }
 
-    public ChangeTracker(URL databaseURL, ChangeTrackerMode mode,
+    public ChangeTracker(URL databaseURL, ChangeTrackerMode mode, boolean includeConflicts,
                          Object lastSequenceID, ChangeTrackerClient client) {
         this.databaseURL = databaseURL;
         this.mode = mode;
+        this.includeConflicts = includeConflicts;
         this.lastSequenceID = lastSequenceID;
         this.client = client;
         this.requestHeaders = new HashMap<String, Object>();
@@ -122,6 +124,10 @@ public class ChangeTracker implements Runnable {
             break;
         }
         path += "&heartbeat=300000";
+
+        if (includeConflicts) {
+            path += "&style=all_docs";
+        }
 
         if(lastSequenceID != null) {
             path += "&since=" + URLEncoder.encode(lastSequenceID.toString());
