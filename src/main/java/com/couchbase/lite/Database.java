@@ -3267,7 +3267,10 @@ public class Database {
                     throw new CouchbaseLiteException("Unnkown encoding: " + encodingStr, Status.BAD_ENCODING);
                 }
                 attachment.setEncodedLength(attachment.getLength());
-                attachment.setLength((Long)attachInfo.get("length"));
+                if (attachInfo.containsKey("length")) {
+                    Number attachmentLength = (Number) attachInfo.get("length");
+                    attachment.setLength(attachmentLength.longValue());
+                }
             }
             if (attachInfo.containsKey("revpos")) {
                 attachment.setRevpos((Integer)attachInfo.get("revpos"));
