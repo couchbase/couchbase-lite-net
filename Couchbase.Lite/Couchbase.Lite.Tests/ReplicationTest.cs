@@ -50,37 +50,42 @@ namespace Couchbase.Lite.Replicator
         [Test]
 		public virtual void TestPusher()
 		{
-			CountDownLatch replicationDoneSignal = new CountDownLatch(1);
-			Uri remote = GetReplicationURL();
-			string docIdTimestamp = Convert.ToString(Runtime.CurrentTimeMillis());
+			var replicationDoneSignal = new CountDownLatch(1);
+			var remote = GetReplicationURL();
+			var docIdTimestamp = Convert.ToString(Runtime.CurrentTimeMillis());
+
 			// Create some documents:
-			IDictionary<string, object> documentProperties = new Dictionary<string, object>();
-			string doc1Id = string.Format("doc1-{0}", docIdTimestamp);
+			var documentProperties = new Dictionary<string, object>();
+			var doc1Id = string.Format("doc1-{0}", docIdTimestamp);
 			documentProperties["_id"] = doc1Id;
 			documentProperties["foo"] = 1;
 			documentProperties["bar"] = false;
-			Body body = new Body(documentProperties);
-			RevisionInternal rev1 = new RevisionInternal(body, database);
-			Status status = new Status();
+
+			var body = new Body(documentProperties);
+			var rev1 = new RevisionInternal(body, database);
+			var status = new Status();
 			rev1 = database.PutRevision(rev1, null, false, status);
             Assert.AreEqual(StatusCode.Created, status.GetCode());
+
 			documentProperties.Put("_rev", rev1.GetRevId());
 			documentProperties["UPDATED"] = true;
-			RevisionInternal rev2 = database.PutRevision(new RevisionInternal(documentProperties
-				, database), rev1.GetRevId(), false, status);
+			var rev2 = database.PutRevision(new RevisionInternal(documentProperties, database), rev1.GetRevId(), false, status);
             Assert.AreEqual(StatusCode.Created, status.GetCode());
+
 			documentProperties = new Dictionary<string, object>();
-			string doc2Id = string.Format("doc2-{0}", docIdTimestamp);
+			var doc2Id = string.Format("doc2-{0}", docIdTimestamp);
 			documentProperties["_id"] = doc2Id;
 			documentProperties["baz"] = 666;
 			documentProperties["fnord"] = true;
-			database.PutRevision(new RevisionInternal(documentProperties, database), null, false
-				, status);
+
+			database.PutRevision(new RevisionInternal(documentProperties, database), null, false, status);
             Assert.AreEqual(StatusCode.Created, status.GetCode());
-			bool continuous = false;
-			Replication repl = database.CreatePushReplication(remote);
+
+			var continuous = false;
+			var repl = database.CreatePushReplication(remote);
             repl.Continuous = continuous;
 			repl.CreateTarget = true; 
+
 			// Check the replication's properties:
 			Assert.AreEqual(database, repl.LocalDatabase);
 			Assert.AreEqual(remote, repl.RemoteUrl);
@@ -93,18 +98,17 @@ namespace Couchbase.Lite.Replicator
 			// TODO: CAssertNil(r1.headers);
 			// Check that the replication hasn't started running:
 			Assert.IsFalse(repl.IsRunning);
-            Assert.AreEqual((int)ReplicationStatus.Stopped, repl.Status);
+            Assert.AreEqual((int)repl.Status, (int)ReplicationStatus.Stopped);
 			Assert.AreEqual(0, repl.CompletedChangesCount);
 			Assert.AreEqual(0, repl.ChangesCount);
 			Assert.IsNull(repl.LastError);
             RunReplication(repl);
 			// make sure doc1 is there
 			// TODO: make sure doc2 is there (refactoring needed)
-			Uri replicationUrlTrailing = new Uri(string.Format("{0}/", remote.ToString()
-				));
-			Uri pathToDoc = new Uri(replicationUrlTrailing, doc1Id);
+            var replicationUrlTrailing = new Uri(string.Format("{0}/", remote));
+			var pathToDoc = new Uri(replicationUrlTrailing, doc1Id);
 			Log.D(Tag, "Send http request to " + pathToDoc);
-			CountDownLatch httpRequestDoneSignal = new CountDownLatch(1);
+			var httpRequestDoneSignal = new CountDownLatch(1);
             var getDocTask = Task.Factory.StartNew(()=>
                 {
                     var httpclient = new HttpClient();
