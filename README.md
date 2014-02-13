@@ -15,7 +15,10 @@ idiomatic C#.
 
 The upstream Java project is:
 
-    https://github.com/couchbase/couchbase-lite-android
+    https://github.com/couchbase/couchbase-lite-java-core
+
+The last time the code was merged was:
+	0d3ca4de5a0674ae52a9674a41f8c1b3fad0432e
 
 
 
