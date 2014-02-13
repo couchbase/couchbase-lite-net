@@ -201,6 +201,9 @@ public class Attachment {
             else if (value instanceof AttachmentInternal) {
                 throw new IllegalArgumentException("AttachmentInternal objects not expected here.  Could indicate a bug");
             }
+            else {
+                updatedAttachments.put(name, value);
+            }
         }
         return updatedAttachments;
     }
