@@ -314,10 +314,10 @@ public class Puller extends Replication implements ChangeTrackerClient {
                     Map<String,Object> properties = (Map<String,Object>)result;
                     List<String> history = db.parseCouchDBRevisionHistory(properties);
                     if(history != null) {
-                        rev.setProperties(properties);
+                        PulledRevision gotRev = new PulledRevision(properties, db);
                         // Add to batcher ... eventually it will be fed to -insertRevisions:.
                         List<Object> toInsert = new ArrayList<Object>();
-                        toInsert.add(rev);
+                        toInsert.add(gotRev);
                         toInsert.add(history);
                         downloadsToInsert.queueObject(toInsert);
                         asyncTaskStarted();
