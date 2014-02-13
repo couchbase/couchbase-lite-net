@@ -143,7 +143,7 @@ public class View {
                 result = cursor.getLong(0);
             }
         } catch (Exception e) {
-            Log.e(Database.TAG, "Error getting last sequence indexed");
+            Log.e(Database.TAG, "Error getting last sequence indexed", e);
         } finally {
             if (cursor != null) {
                 cursor.close();
