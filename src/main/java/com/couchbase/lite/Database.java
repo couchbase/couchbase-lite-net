@@ -4047,6 +4047,7 @@ public class Database {
      *
      * @throws CouchbaseLiteException
      */
+    @InterfaceAudience.Private
     /* package */ int pruneRevsToMaxDepth(int maxDepth) throws CouchbaseLiteException {
 
         int outPruned = 0;
