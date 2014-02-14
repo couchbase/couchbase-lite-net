@@ -45,6 +45,7 @@ import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -57,6 +58,10 @@ import java.util.concurrent.ScheduledExecutorService;
 public class Database {
 
     private static final int MAX_DOC_CACHE_SIZE = 50;
+
+    // Default value for maxRevTreeDepth, the max rev depth to preserve in a prune operation
+    private static final int DEFAULT_MAX_REVS = Integer.MAX_VALUE;
+
     private static ReplicationFilterCompiler filterCompiler;
 
     private String path;
@@ -86,6 +91,8 @@ public class Database {
     private Manager manager;
     final private List<ChangeListener> changeListeners;
     private LruCache<String, Document> docCache;
+
+    private int maxRevTreeDepth = DEFAULT_MAX_REVS;
 
     private long startTime;
 
@@ -274,8 +281,8 @@ public class Database {
     }
 
     /**
-     * Compacts the database file by purging non-current revisions, deleting unused attachment files,
-     * and running a SQLite "VACUUM" command.
+     * Compacts the database file by purging non-current JSON bodies, pruning revisions older than
+     * the maxRevTreeDepth, deleting unused attachment files, and vacuuming the SQLite database.
      */
     @InterfaceAudience.Public
     public void compact() throws CouchbaseLiteException {
@@ -712,6 +719,27 @@ public class Database {
     public static interface ChangeListener {
         public void changed(ChangeEvent event);
     }
+
+    /**
+     * Get the maximum depth of a document's revision tree (or, max length of its revision history.)
+     * Revisions older than this limit will be deleted during a -compact: operation.
+     * Smaller values save space, at the expense of making document conflicts somewhat more likely.
+     */
+    @InterfaceAudience.Public
+    public int getMaxRevTreeDepth() {
+        return maxRevTreeDepth;
+    }
+
+    /**
+     * Set the maximum depth of a document's revision tree (or, max length of its revision history.)
+     * Revisions older than this limit will be deleted during a -compact: operation.
+     * Smaller values save space, at the expense of making document conflicts somewhat more likely.
+     */
+    @InterfaceAudience.Public
+    public void setMaxRevTreeDepth(int maxRevTreeDepth) {
+        this.maxRevTreeDepth = maxRevTreeDepth;
+    }
+
 
     /** PRIVATE METHODS **/
 
@@ -4006,7 +4034,79 @@ public class Database {
         this.name = name;
     }
 
+    /**
+     * Prune revisions to the given max depth.  Eg, remove revisions older than that max depth,
+     * which will reduce storage requirements.
+     *
+     * TODO: This implementation is a bit simplistic. It won't do quite the right thing in
+     * histories with branches, if one branch stops much earlier than another. The shorter branch
+     * will be deleted entirely except for its leaf revision. A more accurate pruning
+     * would require an expensive full tree traversal. Hopefully this way is good enough.
+     *
+     * @throws CouchbaseLiteException
+     */
+    /* package */ int pruneRevsToMaxDepth(int maxDepth) throws CouchbaseLiteException {
 
+        int outPruned = 0;
+        boolean shouldCommit = false;
+        Map<Long, Integer> toPrune = new HashMap<Long, Integer>();
+
+        if (maxDepth == 0) {
+            maxDepth = DEFAULT_MAX_REVS;
+        }
+
+        // First find which docs need pruning, and by how much:
+
+        Cursor cursor = null;
+        String[] args = { };
+
+        long docNumericID = -1;
+        int minGen = 0;
+        int maxGen = 0;
+
+        try {
+
+            cursor = database.rawQuery("SELECT doc_id, MIN(revid), MAX(revid) FROM revs GROUP BY doc_id", args);
+
+            while(cursor.moveToNext()) {
+                docNumericID = cursor.getLong(0);
+                String minGenRevId = cursor.getString(1);
+                String maxGenRevId = cursor.getString(2);
+                minGen = Revision.generationFromRevID(minGenRevId);
+                maxGen = Revision.generationFromRevID(maxGenRevId);
+                if ((maxGen - minGen + 1) > maxDepth) {
+                    toPrune.put(docNumericID, (maxGen - minGen));
+                }
+
+            }
+
+            beginTransaction();
+
+            if (toPrune.size() == 0) {
+                return 0;
+            }
+
+            for (Long docNumericIDLong : toPrune.keySet()) {
+                String minIDToKeep = String.format("%d-", toPrune.get(docNumericIDLong).intValue() + 1);
+                String[] deleteArgs = { Long.toString(docNumericID), minIDToKeep};
+                int rowsDeleted = database.delete("revs", "doc_id=? AND revid < ? AND current=0", deleteArgs);
+                outPruned += rowsDeleted;
+            }
+
+            shouldCommit = true;
+
+        } catch (Exception e) {
+            throw new CouchbaseLiteException(e, Status.INTERNAL_SERVER_ERROR);
+        } finally {
+            endTransaction(shouldCommit);
+            if(cursor != null) {
+                cursor.close();
+            }
+        }
+
+        return outPruned;
+
+    }
 
 
 }
