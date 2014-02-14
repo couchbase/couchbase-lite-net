@@ -289,6 +289,8 @@ public class Database {
         // Can't delete any rows because that would lose revision tree history.
         // But we can remove the JSON of non-current revisions, which is most of the space.
         try {
+            Log.v(Database.TAG, "Pruning old revisions...");
+            pruneRevsToMaxDepth(0);
             Log.v(Database.TAG, "Deleting JSON of old revisions...");
             ContentValues args = new ContentValues();
             args.put("json", (String)null);
