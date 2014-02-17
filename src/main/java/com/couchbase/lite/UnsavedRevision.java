@@ -14,7 +14,7 @@ import java.util.Map;
 /**
  * An unsaved Couchbase Lite Document Revision.
  */
-public class UnsavedRevision extends Revision {
+public final class UnsavedRevision extends Revision {
 
     private Map<String, Object> properties;
 

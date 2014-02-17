@@ -36,7 +36,7 @@ import java.util.Map;
 /**
  * Represents a view available in a database.
  */
-public class View {
+public final class View {
 
     /**
      * @exclude

@@ -35,7 +35,7 @@ import java.util.concurrent.ScheduledExecutorService;
  * @exclude
  */
 @InterfaceAudience.Private
-public class Pusher extends Replication implements Database.ChangeListener {
+public final class Pusher extends Replication implements Database.ChangeListener {
 
     private boolean shouldCreateTarget;
     private boolean observing;

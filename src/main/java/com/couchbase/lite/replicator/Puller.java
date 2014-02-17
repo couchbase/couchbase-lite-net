@@ -34,7 +34,7 @@ import java.util.concurrent.ScheduledExecutorService;
  * @exclude
  */
 @InterfaceAudience.Private
-public class Puller extends Replication implements ChangeTrackerClient {
+public final class Puller extends Replication implements ChangeTrackerClient {
 
     private static final int MAX_OPEN_HTTP_CONNECTIONS = 16;
 

@@ -14,7 +14,7 @@ import java.util.Map;
 /**
  * A CouchbaseLite document.
  */
-public class Document {
+public final class Document {
 
     /**
      * The document's owning database.

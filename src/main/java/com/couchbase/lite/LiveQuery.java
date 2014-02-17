@@ -11,7 +11,7 @@ import java.util.concurrent.ExecutionException;
  * A Query subclass that automatically refreshes the result rows every time the database changes.
  * All you need to do is use add a listener to observe changes.
  */
-public class LiveQuery extends Query implements Database.ChangeListener {
+public final class LiveQuery extends Query implements Database.ChangeListener {
 
     private boolean observing;
     private boolean willUpdate;

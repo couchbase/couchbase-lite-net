@@ -32,7 +32,7 @@ import java.util.Map;
  *
  * It can also store the sequence number and document contents (they can be added after creation).
  */
-public class SavedRevision extends Revision {
+public final class SavedRevision extends Revision {
 
     private RevisionInternal revisionInternal;
     private boolean checkedProperties;

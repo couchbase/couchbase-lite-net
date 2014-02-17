@@ -28,7 +28,7 @@ import java.util.Map;
 /**
  * A Couchbase Lite Document Attachment.
  */
-public class Attachment {
+public final class Attachment {
 
     /**
      * The owning document revision.
