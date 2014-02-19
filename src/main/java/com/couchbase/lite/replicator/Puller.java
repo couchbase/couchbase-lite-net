@@ -441,7 +441,11 @@ public final class Puller extends Replication implements ChangeTrackerClient {
         if (!super.goOffline()) {
             return false;
         }
-        changeTracker.stop();
+
+        if (changeTracker != null) {
+            changeTracker.stop();
+        }
+
         return true;
     }
 
