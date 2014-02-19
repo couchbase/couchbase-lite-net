@@ -3569,9 +3569,9 @@ public final class Database {
      * @exclude
      */
     @InterfaceAudience.Private
-    public boolean setLastSequence(String lastSequence, URL url, boolean push) {
+    public boolean setLastSequence(String lastSequence, String checkpointId, boolean push) {
         ContentValues values = new ContentValues();
-        values.put("remote", url.toExternalForm());
+        values.put("remote", checkpointId);
         values.put("push", push);
         values.put("last_sequence", lastSequence);
         long newId = database.insertWithOnConflict("replicators", null, values, SQLiteStorageEngine.CONFLICT_REPLACE);

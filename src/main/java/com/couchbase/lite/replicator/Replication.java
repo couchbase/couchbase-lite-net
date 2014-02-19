@@ -946,7 +946,7 @@ public abstract class Replication {
             }
 
         });
-        db.setLastSequence(lastSequence, remote, !isPull());
+        db.setLastSequence(lastSequence, remoteCheckpointDocID, !isPull());
     }
 
     @InterfaceAudience.Private
