@@ -3545,12 +3545,14 @@ public final class Database {
      * @exclude
      */
     @InterfaceAudience.Private
-    public String lastSequenceWithRemoteURL(URL url, boolean push) {
+    public String lastSequenceWithCheckpointId(String checkpointId) {
         Cursor cursor = null;
         String result = null;
         try {
-            String[] args = { url.toExternalForm(), Integer.toString(push ? 1 : 0) };
-            cursor = database.rawQuery("SELECT last_sequence FROM replicators WHERE remote=? AND push=?", args);
+            // This table schema is out of date but I'm keeping it the way it is for compatibility.
+            // The 'remote' column now stores the opaque checkpoint IDs, and 'push' is ignored.
+            String[] args = { checkpointId };
+            cursor = database.rawQuery("SELECT last_sequence FROM replicators WHERE remote=?", args);
             if(cursor.moveToNext()) {
                 result = cursor.getString(0);
             }

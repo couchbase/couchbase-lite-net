@@ -538,7 +538,21 @@ public abstract class Replication {
     public void databaseClosing() {
         saveLastSequence();
         stop();
-        db = null;
+        clearDbRef();
+    }
+
+    /**
+     * If we're in the middle of saving the checkpoint and waiting for a response, by the time the
+     * response arrives _db will be nil, so there won't be any way to save the checkpoint locally.
+     * To avoid that, pre-emptively save the local checkpoint now.
+     *
+     * @exclude
+     */
+    private void clearDbRef() {
+        if (savingCheckpoint && lastSequence != null) {
+            db.setLastSequence(lastSequence, remoteCheckpointDocID(), !isPull());
+            db = null;
+        }
     }
 
     /**
@@ -675,6 +689,7 @@ public abstract class Replication {
         final String loginPath = getAuthorizer().loginPathForSite(remote);
 
         Log.d(Database.TAG, String.format("%s: Doing login with %s at %s", this, getAuthorizer().getClass(), loginPath));
+
         asyncTaskStarted();
         sendAsyncRequest("POST", loginPath, loginParameters, new RemoteRequestCompletionBlock() {
 
@@ -832,10 +847,23 @@ public abstract class Replication {
      * This is the _local document ID stored on the remote server to keep track of state.
      * Its ID is based on the local database ID (the private one, to make the result unguessable)
      * and the remote database's URL.
+     *
      * @exclude
      */
     @InterfaceAudience.Private
     public String remoteCheckpointDocID() {
+
+        /*  TODO: enhance to match iOS version
+            NSMutableDictionary* spec = $mdict({@"localUUID", _db.privateUUID},
+                                       {@"remoteURL", _remote.absoluteString},
+                                       {@"push", @(self.isPush)},
+                                       {@"continuous", (self.continuous ? nil : $false)},
+                                       {@"filter", _filterName},
+                                       {@"filterParams", _filterParameters},
+                                     //{@"headers", _requestHeaders}, (removed; see #143)
+                                       {@"docids", _docIDs});
+         */
+
         if (db == null) {
             return null;
         }
@@ -857,15 +885,11 @@ public abstract class Replication {
     @InterfaceAudience.Private
     public void fetchRemoteCheckpointDoc() {
         lastSequenceChanged = false;
-        final String localLastSequence = db.lastSequenceWithRemoteURL(remote, !isPull());
-        if (localLastSequence == null) {
-            maybeCreateRemoteDB();
-            beginReplicating();
-            return;
-        }
+        String checkpointId = remoteCheckpointDocID();
+        final String localLastSequence = db.lastSequenceWithCheckpointId(checkpointId);
 
         asyncTaskStarted();
-        sendAsyncRequest("GET", "/_local/" + remoteCheckpointDocID(), null, new RemoteRequestCompletionBlock() {
+        sendAsyncRequest("GET", "/_local/" + checkpointId, null, new RemoteRequestCompletionBlock() {
 
             @Override
             public void onCompletion(Object result, Throwable e) {
