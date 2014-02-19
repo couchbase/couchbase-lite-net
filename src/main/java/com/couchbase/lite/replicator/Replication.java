@@ -172,7 +172,7 @@ public abstract class Replication {
                 Log.v(Database.TAG, "*** " + toString() + ": BEGIN processInbox (" + inbox.size() + " sequences)");
                 processInbox(new RevisionList(inbox));
                 Log.v(Database.TAG, "*** " + toString() + ": END processInbox (lastSequence=" + lastSequence);
-                active = false;
+                updateActive();
             }
         });
 
@@ -441,9 +441,9 @@ public abstract class Replication {
             return;
         }
         Log.v(Database.TAG, toString() + " STOPPING...");
-        batcher.flush();
+        batcher.clear();  // no sense processing any pending changes
         continuous = false;
-        if (asyncTaskCount == 0) {
+        if (running && asyncTaskCount == 0) {
             stopped();
         }
     }
@@ -661,11 +661,13 @@ public abstract class Replication {
         running = false;
         this.completedChangesCount = this.changesCount = 0;
 
-        saveLastSequence();
         notifyChangeListeners();
 
+        saveLastSequence();
+
         batcher = null;
-        db = null;
+
+        clearDbRef();  // db no longer tracks me so it won't notify me when it closes; clear ref now
     }
 
     @InterfaceAudience.Private
@@ -697,7 +699,7 @@ public abstract class Replication {
             public void onCompletion(Object result, Throwable e) {
                 if (e != null) {
                     Log.d(Database.TAG, String.format("%s: Login failed for path: %s", this, loginPath));
-                    error = e;
+                    setError(e);
                 }
                 else {
                     Log.d(Database.TAG, String.format("%s: Successfully logged in!", this));
@@ -715,7 +717,9 @@ public abstract class Replication {
      */
     @InterfaceAudience.Private
     public synchronized void asyncTaskStarted() {
-        ++asyncTaskCount;
+        if (asyncTaskCount++ == 0) {
+            updateActive();
+        }
     }
 
     /**
@@ -726,9 +730,40 @@ public abstract class Replication {
         this.asyncTaskCount -= numTasks;
         assert(asyncTaskCount >= 0);
         if (asyncTaskCount == 0) {
-            if (!continuous) {
-                stopped();
+            updateActive();
+        }
+    }
+
+    /**
+     * @exclude
+     */
+    @InterfaceAudience.Private
+    public void updateActive() {
+        boolean newActive = batcher.count() > 0 || asyncTaskCount > 0;
+        if (active != newActive) {
+            Log.d(Database.TAG, this + " Progress: set active = " + newActive);
+            active = newActive;
+            notifyChangeListeners();
+
+            if (!active) {
+                if (!continuous) {
+                    stopped();
+                }
+
+                // TODO: port this from iOS
+                /*
+                else if (_error) // eg, (_revisionsFailed > 0) {
+                LogTo(Sync, @"%@: Failed to xfer %u revisions; will retry in %g sec",
+                        self, _revisionsFailed, kRetryDelay);
+                [NSObject cancelPreviousPerformRequestsWithTarget: self
+                selector: @selector(retryIfReady)
+                object: nil];
+                [self performSelector: @selector(retryIfReady)
+                withObject: nil afterDelay: kRetryDelay];
+
+                 */
             }
+
         }
     }
 
@@ -737,10 +772,8 @@ public abstract class Replication {
      */
     @InterfaceAudience.Private
     public void addToInbox(RevisionInternal rev) {
-        if (batcher.count() == 0) {
-            active = true;
-        }
         batcher.queueObject(rev);
+        updateActive();
     }
 
     @InterfaceAudience.Private
@@ -895,7 +928,7 @@ public abstract class Replication {
             public void onCompletion(Object result, Throwable e) {
                 if (e != null && !is404(e)) {
                     Log.d(Database.TAG, this + " error getting remote checkpoint: " + e);
-                    error = e;
+                    setError(e);
                 } else {
                     if (e != null && is404(e)) {
                         Log.d(Database.TAG, this + " 404 error getting remote checkpoint " + remoteCheckpointDocID() + ", calling maybeCreateRemoteDB");
@@ -997,6 +1030,22 @@ public abstract class Replication {
                 status = ReplicationStatus.REPLICATION_IDLE;
             }
         }
+    }
+
+    @InterfaceAudience.Private
+    protected void setError(Throwable throwable) {
+        // TODO
+        /*
+        if (error.code == NSURLErrorCancelled && $equal(error.domain, NSURLErrorDomain))
+            return;
+         */
+
+        if (throwable != error) {
+            Log.e(Database.TAG, this + " Progress: set error = " + throwable);
+            error = throwable;
+            notifyChangeListeners();
+        }
+
     }
 
 

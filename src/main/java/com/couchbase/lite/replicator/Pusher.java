@@ -203,7 +203,7 @@ public final class Pusher extends Replication implements Database.ChangeListener
 
                 Map<String,Object> results = (Map<String,Object>)response;
                 if(e != null) {
-                    error = e;
+                    setError(e);
                     stop();
                 } else if(results.size() != 0) {
                     // Go through the list of local changes again, selecting the ones the destination server
@@ -270,7 +270,7 @@ public final class Pusher extends Replication implements Database.ChangeListener
                             @Override
                             public void onCompletion(Object result, Throwable e) {
                                 if(e != null) {
-                                    error = e;
+                                    setError(e);
                                 } else {
                                     Log.v(Database.TAG, String.format("%s: Sent %s", this, inbox));
                                     setLastSequence(String.format("%d", lastInboxSequence));
@@ -359,7 +359,7 @@ public final class Pusher extends Replication implements Database.ChangeListener
             public void onCompletion(Object result, Throwable e) {
                 if(e != null) {
                     Log.e(Database.TAG, "Exception uploading multipart request", e);
-                    error = e;
+                    setError(e);
                 } else {
                     Log.d(Database.TAG, "Uploaded multipart request.  Result: " + result);
                 }
