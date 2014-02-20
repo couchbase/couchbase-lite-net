@@ -45,7 +45,6 @@ import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -4113,5 +4112,14 @@ public final class Database {
 
     }
 
+
+    /**
+     * Is the database open?
+     * @exclude
+     */
+    @InterfaceAudience.Private
+    public boolean isOpen() {
+        return open;
+    }
 
 }
