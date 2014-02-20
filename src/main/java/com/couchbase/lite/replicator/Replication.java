@@ -447,6 +447,7 @@ public abstract class Replication {
         Log.v(Database.TAG, toString() + " STOPPING...");
         batcher.clear();  // no sense processing any pending changes
         continuous = false;
+        stopRemoteRequests();
         if (running && asyncTaskCount == 0) {
             stopped();
         }
@@ -1016,9 +1017,15 @@ public abstract class Replication {
             return false;
         }
         online = false;
-        // TODO: [self stopRemoteRequests]; - remoteRequestExecutor.shutdown(); or remoteRequestExecutor.shutdownNow();
+        stopRemoteRequests();
         updateProgress();
         return true;
+    }
+
+    @InterfaceAudience.Private
+    private void stopRemoteRequests() {
+        List<Runnable> inProgress = remoteRequestExecutor.shutdownNow();
+        Log.d(Database.TAG, this + " stopped " + inProgress.size() + " remote requests in progress");
     }
 
     @InterfaceAudience.Private
