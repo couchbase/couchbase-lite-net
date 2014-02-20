@@ -92,6 +92,7 @@ public final class Pusher extends Replication implements Database.ChangeListener
             return;
         }
         Log.v(Database.TAG, "Remote db might not exist; creating it...");
+        asyncTaskStarted();
         sendAsyncRequest("PUT", "", null, new RemoteRequestCompletionBlock() {
 
             @Override
@@ -104,6 +105,7 @@ public final class Pusher extends Replication implements Database.ChangeListener
                 }
                 shouldCreateTarget = false;
                 beginReplicating();
+                asyncTaskFinished(1);
             }
 
         });
