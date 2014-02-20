@@ -2,6 +2,7 @@ package com.couchbase.lite;
 
 import com.couchbase.lite.internal.RevisionInternal;
 import com.couchbase.lite.internal.InterfaceAudience;
+import com.couchbase.lite.util.Log;
 
 import java.net.URL;
 
@@ -67,19 +68,20 @@ public class DocumentChange {
         return winningRevision;
     }
 
-    /**
-     * @exclude
-     */
-    @InterfaceAudience.Private
-    public static DocumentChange tempFactory(RevisionInternal revisionInternal, URL sourceUrl, boolean inConflict) {
-
-        DocumentChange change = new DocumentChange(
-                revisionInternal,
-                null,  // TODO: fix winning revision here
-                inConflict,
-                sourceUrl);
-
-        return change;
+    @InterfaceAudience.Public
+    public String toString() {
+        try {
+            return String.format(
+                    "docId: %s rev: %s isConflict: %s sourceUrl: %s",
+                    getDocumentId(),
+                    getRevisionId(),
+                    isConflict(),
+                    getSourceUrl()
+            );
+        } catch (Exception e) {
+            Log.e(Database.TAG, "Error in DocumentChange.toString()", e);
+            return super.toString();
+        }
     }
 
 }
