@@ -420,6 +420,10 @@ public abstract class Replication {
     @InterfaceAudience.Public
     public void start() {
 
+        if (!db.isOpen()) { // Race condition: db closed before replication starts
+            return;
+        }
+
         if (running) {
             return;
         }
