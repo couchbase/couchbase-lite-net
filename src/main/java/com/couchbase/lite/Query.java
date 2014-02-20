@@ -387,6 +387,11 @@ public class Query {
             @Override
             public void run() {
                 try {
+
+                    if (!getDatabase().isOpen()) {
+                        throw new IllegalStateException("The database has been closed.");
+                    }
+
                     String viewName = view.getName();
                     QueryOptions options = getQueryOptions();
                     List<Long> outSequence = new ArrayList<Long>();
