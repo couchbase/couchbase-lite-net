@@ -3,21 +3,41 @@ couchbase-lite-net
 
 Native API port of Couchbase Lite for Android to C#.
 
+Running Tests
+=============
+
+The replication unit tests currently require a running
+instance of `sync_gateway`. Prior to running the
+replication tests, start `sync_gateway` with the following
+command:
+
+*nix:
+   /path/to/sync_gateway -bucket db  -url=walrus: -bucket=db -pretty
+
+Windows:
+   {TBD}
+
 Porting Code
 ============
 
-This project is a port of the Couchbase Lite for Android codebase
+This project is a port of the Couchbase Lite portable Java codebase,
 ported to C#.  The port was done with the assistance of Sharpen,
-a tool that helps port Java code to C#.  
+a tool that converts Java code to C#. An idiomatic C# public API
+was defined in XML, and we used an XSLT stylesheet to generate
+stubs for all C# types and members.
 
-Once the bulk of the code was ported, we manually turned it into
-idiomatic C#.
+Once the Java source was bulk converted to C#, and the public API
+stubs generated, we replaced the stubs one-by-one with the coverted
+source, which we also refactored into idiomatic C#. We used temporary 
+shims in some cases to simulate key Java classes/types that don't 
+directly map to .NET Framework classes/types. Those shims that 
+haven't yet been removed will disappear eventually.
 
 The upstream Java project is:
 
     https://github.com/couchbase/couchbase-lite-java-core
 
-The last time the code was merged was:
+The current codebase is based on commit:
 	0d3ca4de5a0674ae52a9674a41f8c1b3fad0432e
 
 

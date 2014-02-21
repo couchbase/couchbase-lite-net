@@ -5,6 +5,11 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Couchbase.Lite", "Couchbase
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Couchbase.Lite.Tests", "Couchbase.Lite.Tests\Couchbase.Lite.Tests.csproj", "{810AD241-3FB1-4689-BF3B-A83B90DEB9E9}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Docs", "Docs", "{751921E0-F01B-4253-A973-74EA7B3DB146}"
+	ProjectSection(SolutionItems) = preProject
+		..\README.md = ..\README.md
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x86 = Debug|x86
@@ -19,6 +24,8 @@ Global
 		{810AD241-3FB1-4689-BF3B-A83B90DEB9E9}.Debug|x86.Build.0 = Debug|Any CPU
 		{810AD241-3FB1-4689-BF3B-A83B90DEB9E9}.Release|x86.ActiveCfg = Release|Any CPU
 		{810AD241-3FB1-4689-BF3B-A83B90DEB9E9}.Release|x86.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
 	EndGlobalSection
 	GlobalSection(MonoDevelopProperties) = preSolution
 		StartupItem = Couchbase.Lite.Tests\Couchbase.Lite.Tests.csproj
