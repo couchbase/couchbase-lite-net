@@ -229,7 +229,12 @@ public final class LiveQuery extends Query implements Database.ChangeListener {
     public void changed(Database.ChangeEvent event) {
         if (!willUpdate) {
             setWillUpdate(true);
-            update();
+            updateQueryFuture = getDatabase().runAsync(new AsyncTask() {
+                @Override
+                public void run(Database database) {
+                    update();
+                }
+            });
         }
     }
 
