@@ -627,28 +627,29 @@ public abstract class Replication {
 
             @Override
             public void onCompletion(Object result, Throwable e) {
+                try {
+                    if (e instanceof HttpResponseException &&
+                            ((HttpResponseException) e).getStatusCode() == 404 &&
+                            sessionPath.equalsIgnoreCase("/_session")) {
 
-
-                if (e instanceof HttpResponseException &&
-                        ((HttpResponseException) e).getStatusCode() == 404 &&
-                        sessionPath.equalsIgnoreCase("/_session")) {
-
-                    checkSessionAtPath("_session");
-                    return;
-                } else {
-                    Map<String, Object> response = (Map<String, Object>) result;
-                    Map<String, Object> userCtx = (Map<String, Object>) response.get("userCtx");
-                    String username = (String) userCtx.get("name");
-                    if (username != null && username.length() > 0) {
-                        Log.d(Database.TAG, String.format("%s Active session, logged in as %s", this, username));
-                        fetchRemoteCheckpointDoc();
+                        checkSessionAtPath("_session");
+                        return;
                     } else {
-                        Log.d(Database.TAG, String.format("%s No active session, going to login", this));
-                        login();
-                    }
+                        Map<String, Object> response = (Map<String, Object>) result;
+                        Map<String, Object> userCtx = (Map<String, Object>) response.get("userCtx");
+                        String username = (String) userCtx.get("name");
+                        if (username != null && username.length() > 0) {
+                            Log.d(Database.TAG, String.format("%s Active session, logged in as %s", this, username));
+                            fetchRemoteCheckpointDoc();
+                        } else {
+                            Log.d(Database.TAG, String.format("%s No active session, going to login", this));
+                            login();
+                        }
 
+                    }
+                } finally {
+                    asyncTaskFinished(1);
                 }
-                asyncTaskFinished(1);
             }
 
         });
@@ -702,15 +703,18 @@ public abstract class Replication {
 
             @Override
             public void onCompletion(Object result, Throwable e) {
-                if (e != null) {
-                    Log.d(Database.TAG, String.format("%s: Login failed for path: %s", this, loginPath));
-                    setError(e);
+                try {
+                    if (e != null) {
+                        Log.d(Database.TAG, String.format("%s: Login failed for path: %s", this, loginPath));
+                        setError(e);
+                    }
+                    else {
+                        Log.d(Database.TAG, String.format("%s: Successfully logged in!", this));
+                        fetchRemoteCheckpointDoc();
+                    }
+                } finally {
+                    asyncTaskFinished(1);
                 }
-                else {
-                    Log.d(Database.TAG, String.format("%s: Successfully logged in!", this));
-                    fetchRemoteCheckpointDoc();
-                }
-                asyncTaskFinished(1);
             }
 
         });
@@ -931,29 +935,32 @@ public abstract class Replication {
 
             @Override
             public void onCompletion(Object result, Throwable e) {
-                if (e != null && !is404(e)) {
-                    Log.d(Database.TAG, this + " error getting remote checkpoint: " + e);
-                    setError(e);
-                } else {
-                    if (e != null && is404(e)) {
-                        Log.d(Database.TAG, this + " 404 error getting remote checkpoint " + remoteCheckpointDocID() + ", calling maybeCreateRemoteDB");
-                        maybeCreateRemoteDB();
-                    }
-                    Map<String, Object> response = (Map<String, Object>) result;
-                    remoteCheckpoint = response;
-                    String remoteLastSequence = null;
-                    if (response != null) {
-                        remoteLastSequence = (String) response.get("lastSequence");
-                    }
-                    if (remoteLastSequence != null && remoteLastSequence.equals(localLastSequence)) {
-                        lastSequence = localLastSequence;
-                        Log.v(Database.TAG, this + ": Replicating from lastSequence=" + lastSequence);
+                try {
+                    if (e != null && !is404(e)) {
+                        Log.d(Database.TAG, this + " error getting remote checkpoint: " + e);
+                        setError(e);
                     } else {
-                        Log.v(Database.TAG, this + ": lastSequence mismatch: I had " + localLastSequence + ", remote had " + remoteLastSequence);
+                        if (e != null && is404(e)) {
+                            Log.d(Database.TAG, this + " 404 error getting remote checkpoint " + remoteCheckpointDocID() + ", calling maybeCreateRemoteDB");
+                            maybeCreateRemoteDB();
+                        }
+                        Map<String, Object> response = (Map<String, Object>) result;
+                        remoteCheckpoint = response;
+                        String remoteLastSequence = null;
+                        if (response != null) {
+                            remoteLastSequence = (String) response.get("lastSequence");
+                        }
+                        if (remoteLastSequence != null && remoteLastSequence.equals(localLastSequence)) {
+                            lastSequence = localLastSequence;
+                            Log.v(Database.TAG, this + ": Replicating from lastSequence=" + lastSequence);
+                        } else {
+                            Log.v(Database.TAG, this + ": lastSequence mismatch: I had " + localLastSequence + ", remote had " + remoteLastSequence);
+                        }
+                        beginReplicating();
                     }
-                    beginReplicating();
+                } finally {
+                    asyncTaskFinished(1);
                 }
-                asyncTaskFinished(1);
             }
 
         });
