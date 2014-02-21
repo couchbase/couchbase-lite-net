@@ -452,13 +452,13 @@ namespace Couchbase.Lite
             LocalDatabase.SetLastSequence(LastSequence, RemoteUrl, !IsPull);
         }
 
-        internal void SendAsyncRequest(HttpMethod method, string relativePath, object body, Action<Object, Exception> completionHandler)
+        internal void SendAsyncRequest(HttpMethod method, string relativePath, object body, RemoteRequestCompletionBlock completionHandler)
         {
             try
             {
-                string urlStr = BuildRelativeURLString(relativePath);
-                Uri url = new Uri(urlStr);
-                SendAsyncRequest(method, url.PathAndQuery, body, completionHandler);
+                var urlStr = BuildRelativeURLString(relativePath);
+                var url = new Uri(urlStr);
+                SendAsyncRequest(method, url, body, completionHandler);
             }
             catch (UriFormatException e)
             {
@@ -490,7 +490,7 @@ namespace Couchbase.Lite
                 var byteContent = new ByteArrayContent(bytes);
                 message.Content = byteContent;
             }
-            message.Headers.Add("Accept", "multipart/related, application/json");
+            message.Headers.Add("Accept", new[] { "multipart/related", "application/json" });
 
             PreemptivelySetAuthCredentials(message);
 

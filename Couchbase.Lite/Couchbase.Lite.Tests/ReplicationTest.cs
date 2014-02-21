@@ -170,7 +170,6 @@ namespace Couchbase.Lite.Replicator
                     httpRequestDoneSignal.CountDown();
                 });
 			//Closes the connection.
-            getDocTask.Start();
 			Log.D(Tag, "Waiting for http request to finish");
 			try
 			{
@@ -433,72 +432,58 @@ namespace Couchbase.Lite.Replicator
 
 		private void RunReplication(Replication replication)
 		{
-			CountDownLatch replicationDoneSignal = new CountDownLatch(1);
+			var replicationDoneSignal = new CountDownLatch(1);
             replication.Changed += (sender, e) => replicationDoneSignal.CountDown ();
 			replication.Start();
-			CountDownLatch replicationDoneSignalPolling = ReplicationWatcherThread(replication
-				);
+
+			var replicationDoneSignalPolling = ReplicationWatcherThread(replication);
 			Log.D(Tag, "Waiting for replicator to finish");
+
 			try
 			{
-				bool success = replicationDoneSignal.Await(TimeSpan.FromSeconds(10));
-				NUnit.Framework.Assert.IsTrue(success);
+				var success = replicationDoneSignal.Await(TimeSpan.FromSeconds(10));
+				Assert.IsTrue(success);
                 replicationDoneSignal.Await(TimeSpan.FromSeconds(10));
-				NUnit.Framework.Assert.IsTrue(success);
+				Assert.IsTrue(success);
                 Log.D(Tag, "replicator finished");
 			}
 			catch (Exception e)
 			{
-				Sharpen.Runtime.PrintStackTrace(e);
+				Runtime.PrintStackTrace(e);
 			}
 		}
 
 		private CountDownLatch ReplicationWatcherThread(Replication replication)
 		{
-			CountDownLatch doneSignal = new CountDownLatch(1);
-			new Sharpen.Thread(new _Runnable_482(replication, doneSignal)).Start();
+			var doneSignal = new CountDownLatch(1);
+            Task.Factory.StartNew(()=>
+                {
+                    var started = false;
+                    var done = false;
+
+                    while (!done)
+                    {
+                        started |= replication.IsRunning;
+                        var statusIsDone = (
+                            replication.Status == ReplicationStatus.Stopped 
+                            || replication.Status == ReplicationStatus.Idle
+                        );
+                        if (started && statusIsDone)
+                        {
+                            done = true;
+                        }
+                        try
+                        {
+                            Thread.Sleep(500);
+                        }
+                        catch (Exception e)
+                        {
+                            Runtime.PrintStackTrace(e);
+                        }
+                    }
+                    doneSignal.CountDown();
+                });
             return doneSignal;
-		}
-
-		private sealed class _Runnable_482 : Runnable
-		{
-			public _Runnable_482(Replication replication, CountDownLatch doneSignal)
-			{
-				this.replication = replication;
-				this.doneSignal = doneSignal;
-			}
-
-			public void Run()
-			{
-				bool started = false;
-				bool done = false;
-				while (!done)
-				{
-					if (replication.IsRunning)
-					{
-						started = true;
-					}
-					bool statusIsDone = (replication.Status == ReplicationStatus.Stopped
-						 || replication.Status == ReplicationStatus.Idle);
-					if (started && statusIsDone)
-					{
-						done = true;
-					}
-					try
-					{
-						Sharpen.Thread.Sleep(500);
-					}
-					catch (Exception e)
-					{
-						Sharpen.Runtime.PrintStackTrace(e);
-					}
-				}
-				doneSignal.CountDown();
-			}
-
-			private readonly Replication replication;
-
-			private readonly CountDownLatch doneSignal;
 		}
 
 		/// <exception cref="System.Exception"></exception>
