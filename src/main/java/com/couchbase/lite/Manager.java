@@ -98,6 +98,9 @@ public final class Manager {
      */
     @InterfaceAudience.Public
     public Manager(File directoryFile, ManagerOptions options) throws IOException {
+
+        Log.v(Database.TAG, "Starting Manager version: " + VERSION);
+
         this.directoryFile = directoryFile;
         this.options = (options != null) ? options : DEFAULT_OPTIONS;
         this.databases = new HashMap<String, Database>();
