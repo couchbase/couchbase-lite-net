@@ -29,15 +29,18 @@ public class FacebookAuthorizer extends Authorizer {
 
     public Map<String, String> loginParametersForSite(URL site) {
         Map<String, String> loginParameters = new HashMap<String, String>();
-
-        String accessToken = accessTokenForEmailAndSite(this.emailAddress, site);
-        if (accessToken != null) {
-            loginParameters.put(LOGIN_PARAMETER_ACCESS_TOKEN, accessToken);
-            return loginParameters;
-        } else {
-            return null;
+        try {
+            String accessToken = accessTokenForEmailAndSite(this.emailAddress, site);
+            if (accessToken != null) {
+                loginParameters.put(LOGIN_PARAMETER_ACCESS_TOKEN, accessToken);
+                return loginParameters;
+            } else {
+                return null;
+            }
+        } catch (Exception e) {
+            Log.e(Database.TAG, "Error looking login parameters for site", e);
         }
-
+        return null;
     }
 
     public String loginPathForSite(URL site) {
@@ -62,11 +65,16 @@ public class FacebookAuthorizer extends Authorizer {
 
 
     public static String accessTokenForEmailAndSite(String email, URL site) {
-        List<String> key = new ArrayList<String>();
-        key.add(email);
-        key.add(site.toExternalForm().toLowerCase());
-        Log.d(Database.TAG, "FacebookAuthorizer looking up key: " + key + " from list of access tokens");
-        return accessTokens.get(key);
+        try {
+            List<String> key = new ArrayList<String>();
+            key.add(email);
+            key.add(site.toExternalForm().toLowerCase());
+            Log.d(Database.TAG, "FacebookAuthorizer looking up key: " + key + " from list of access tokens");
+            return accessTokens.get(key);
+        } catch (Exception e) {
+            Log.e(Database.TAG, "Error looking up access token", e);
+        }
+        return null;
     }
 
 }
