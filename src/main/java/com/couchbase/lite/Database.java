@@ -39,6 +39,7 @@ import com.couchbase.lite.util.TextUtils;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.reflect.Array;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -90,6 +91,8 @@ public final class Database {
     private Manager manager;
     final private List<ChangeListener> changeListeners;
     private LruCache<String, Document> docCache;
+    private List<DocumentChange> changesToNotify;
+    private boolean postingChangeNotifications;
 
     private int maxRevTreeDepth = DEFAULT_MAX_REVS;
 
@@ -204,6 +207,7 @@ public final class Database {
         this.changeListeners = Collections.synchronizedList(new ArrayList<ChangeListener>());
         this.docCache = new LruCache<String, Document>(MAX_DOC_CACHE_SIZE);
         this.startTime = System.currentTimeMillis();
+        this.changesToNotify = new ArrayList<DocumentChange>();
     }
 
     /**
@@ -1045,6 +1049,9 @@ public final class Database {
         }
 
         --transactionLevel;
+        postChangeNotifications();
+
+
         return true;
     }
 
@@ -2862,18 +2869,84 @@ public final class Database {
         return json;
     }
 
+
+    @InterfaceAudience.Private
+    private void postChangeNotifications() {
+        // This is a 'while' instead of an 'if' because when we finish posting notifications, there
+        // might be new ones that have arrived as a result of notification handlers making document
+        // changes of their own (the replicator manager will do this.) So we need to check again.
+        while (transactionLevel == 0 && isOpen() && !postingChangeNotifications
+                && changesToNotify.size() > 0)
+        {
+
+            try {
+                postingChangeNotifications = true; // Disallow re-entrant calls
+
+                List<DocumentChange> outgoingChanges = new ArrayList<DocumentChange>();
+                outgoingChanges.addAll(changesToNotify);
+                changesToNotify.clear();
+
+
+                /*
+                BOOL external = NO;
+    for (CBLDatabaseChange* change in changes) {
+        // Notify the corresponding instantiated CBLDocument object (if any):
+        [[self _cachedDocumentWithID: change.documentID] revisionAdded: change];
+        if (change.source != nil)
+            external = YES;
+    }
+
+                 */
+                boolean isExternal = false;
+                for (DocumentChange change: outgoingChanges) {
+                    Document document = getDocument(change.getDocumentId());
+                    document.revisionAdded(change);
+                    if (change.getSourceUrl() != null) {
+                        isExternal = true;
+                    }
+                }
+
+                ChangeEvent changeEvent = new ChangeEvent(this, isExternal, outgoingChanges);
+
+                synchronized (changeListeners) {
+                    for (ChangeListener changeListener : changeListeners) {
+                        changeListener.changed(changeEvent);
+                    }
+                }
+
+            } catch (Exception e) {
+                Log.e(Database.TAG, this + " got exception posting change notifications", e);
+            } finally {
+                postingChangeNotifications = false;
+            }
+
+        }
+
+
+    }
+
+    private void notifyChange(DocumentChange documentChange) {
+        if (changesToNotify == null) {
+            changesToNotify = new ArrayList<DocumentChange>();
+        }
+        changesToNotify.add(documentChange);
+
+        postChangeNotifications();
+    }
+
+    private void notifyChanges(List<DocumentChange> documentChanges) {
+        if (changesToNotify == null) {
+            changesToNotify = new ArrayList<DocumentChange>();
+        }
+        changesToNotify.addAll(documentChanges);
+        postChangeNotifications();
+    }
+
     /**
      * @exclude
      */
     @InterfaceAudience.Private
     public void notifyChange(RevisionInternal rev, RevisionInternal winningRev, URL source, boolean inConflict) {
-
-        // TODO: it is currently sending one change at a time rather than batching them up
-
-        boolean isExternal = false;
-        if (source != null) {
-            isExternal = true;
-        }
 
         DocumentChange change = new DocumentChange(
                 rev,
@@ -2881,29 +2954,8 @@ public final class Database {
                 inConflict,
                 source);
 
-        List<DocumentChange> changes = new ArrayList<DocumentChange>();
-        changes.add(change);
-        ChangeEvent changeEvent = new ChangeEvent(this, isExternal, changes);
+        notifyChange(change);
 
-        // TODO: this is expensive, it should be using a WeakHashMap
-        // TODO: instead of loading from the DB.  iOS code below.
-        /*
-            ios code:
-            for (CBLDatabaseChange* change in changes) {
-            // Notify the corresponding instantiated Document object (if any):
-            [[self _cachedDocumentWithID: change.documentID] revisionAdded: change];
-            if (change.source != nil)
-                external = YES;
-            }
-         */
-        Document document = getDocument(change.getDocumentId());
-        document.revisionAdded(change);
-
-        synchronized (changeListeners) {
-            for (ChangeListener changeListener : changeListeners) {
-                changeListener.changed(changeEvent);
-            }
-        }
 
     }
 
