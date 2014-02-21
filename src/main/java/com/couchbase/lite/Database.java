@@ -4108,7 +4108,7 @@ public final class Database {
         Map<Long, Integer> toPrune = new HashMap<Long, Integer>();
 
         if (maxDepth == 0) {
-            maxDepth = DEFAULT_MAX_REVS;
+            maxDepth = getMaxRevTreeDepth();
         }
 
         // First find which docs need pruning, and by how much:
