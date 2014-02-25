@@ -86,7 +86,9 @@ public final class Database {
     private Map<String, Validator> validations;
 
     private Map<String, BlobStoreWriter> pendingAttachmentsByDigest;
-    private List<Replication> activeReplicators;
+    private Set<Replication> activeReplicators;
+    private Set<Replication> allReplicators;
+
     private BlobStore attachments;
     private Manager manager;
     final private List<ChangeListener> changeListeners;
@@ -208,6 +210,8 @@ public final class Database {
         this.docCache = new LruCache<String, Document>(MAX_DOC_CACHE_SIZE);
         this.startTime = System.currentTimeMillis();
         this.changesToNotify = new ArrayList<DocumentChange>();
+        this.activeReplicators = Collections.synchronizedSet(new HashSet<Replication>());
+        this.allReplicators = Collections.synchronizedSet(new HashSet<Replication>());
     }
 
     /**
@@ -280,7 +284,11 @@ public final class Database {
      */
     @InterfaceAudience.Public
     public List<Replication> getAllReplications() {
-        return activeReplicators;
+        List<Replication> allReplicatorsList =  new ArrayList<Replication>();
+        if (allReplicators != null) {
+            allReplicatorsList.addAll(allReplicators);
+        }
+        return allReplicatorsList;
     }
 
     /**
@@ -768,6 +776,18 @@ public final class Database {
     }
 
     /**
+     * Get all the active replicators associated with this database.
+     */
+    @InterfaceAudience.Private
+    public List<Replication> getActiveReplications() {
+        List<Replication> activeReplicatorsList =  new ArrayList<Replication>();
+        if (activeReplicators != null) {
+            activeReplicatorsList.addAll(activeReplicators);
+        }
+        return activeReplicatorsList;
+    }
+
+    /**
      * @exclude
      */
     @InterfaceAudience.Private
@@ -949,6 +969,8 @@ public final class Database {
             }
             activeReplicators = null;
         }
+
+        allReplicators = null;
 
         if(database != null && database.isOpen()) {
             database.close();
@@ -3565,7 +3587,7 @@ public final class Database {
     @InterfaceAudience.Private
     public Replication getReplicator(String sessionId) {
     	if(activeReplicators != null) {
-            for (Replication replicator : activeReplicators) {
+            for (Replication replicator : allReplicators) {
                 if(replicator.getSessionID().equals(sessionId)) {
                     return replicator;
                 }
@@ -3585,10 +3607,6 @@ public final class Database {
         }
         result = push ? new Pusher(this, remote, continuous, httpClientFactory, workExecutor) : new Puller(this, remote, continuous, httpClientFactory, workExecutor);
 
-        if(activeReplicators == null) {
-            activeReplicators = new ArrayList<Replication>();
-        }
-        activeReplicators.add(result);
         return result;
     }
 
@@ -4173,5 +4191,48 @@ public final class Database {
     public boolean isOpen() {
         return open;
     }
+
+    /**
+     * @exclude
+     */
+    @InterfaceAudience.Private
+    public void addReplication(Replication replication) {
+        if (allReplicators != null) {
+            allReplicators.add(replication);
+        }
+    }
+
+    /**
+     * @exclude
+     */
+    @InterfaceAudience.Private
+    public void forgetReplication(Replication replication) {
+        allReplicators.remove(replication);
+    }
+
+    /**
+     * @exclude
+     */
+    @InterfaceAudience.Private
+    public void addActiveReplication(Replication replication) {
+        if (activeReplicators != null) {
+            activeReplicators.add(replication);
+        }
+
+        replication.addChangeListener(new Replication.ChangeListener() {
+            @Override
+            public void changed(Replication.ChangeEvent event) {
+                if (event.getSource().isRunning() == false) {
+                    if (activeReplicators != null) {
+                        activeReplicators.remove(event.getSource());
+                    }
+                }
+            }
+        });
+
+    }
+
+
+
 
 }

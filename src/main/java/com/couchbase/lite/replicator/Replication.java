@@ -427,6 +427,11 @@ public abstract class Replication {
         if (running) {
             return;
         }
+
+        db.addReplication(this);
+        db.addActiveReplication(this);
+
+
         this.sessionID = String.format("repl%03d", ++lastSessionID);
         Log.v(Database.TAG, toString() + " STARTING ...");
         running = true;
@@ -448,6 +453,7 @@ public abstract class Replication {
         batcher.clear();  // no sense processing any pending changes
         continuous = false;
         stopRemoteRequests();
+        db.forgetReplication(this);
         if (running && asyncTaskCount == 0) {
             stopped();
         }

@@ -637,7 +637,7 @@ public class Router implements Database.ChangeListener {
         // http://wiki.apache.org/couchdb/HttpGetActiveTasks
         List<Map<String,Object>> activities = new ArrayList<Map<String,Object>>();
         for (Database db : manager.allOpenDatabases()) {
-            List<Replication> activeReplicators = db.getAllReplications();
+            List<Replication> activeReplicators = db.getActiveReplications();
             if(activeReplicators != null) {
                 for (Replication replicator : activeReplicators) {
                     String source = replicator.getRemoteUrl().toExternalForm();
