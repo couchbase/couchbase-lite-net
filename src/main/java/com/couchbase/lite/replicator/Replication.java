@@ -421,6 +421,7 @@ public abstract class Replication {
     public void start() {
 
         if (!db.isOpen()) { // Race condition: db closed before replication starts
+            Log.w(Database.TAG, "Not starting replication because db.isOpen() returned false.");
             return;
         }
 
