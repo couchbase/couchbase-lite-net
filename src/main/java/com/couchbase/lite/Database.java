@@ -867,7 +867,9 @@ public final class Database {
 
         // Try to open the storage engine and stop if we fail.
         if (database == null || !database.open(path)) {
-            return false;
+            String msg = "Unable to create a storage engine, fatal error";
+            Log.e(Database.TAG, msg);
+            throw new IllegalStateException(msg);
         }
 
         // Stuff we need to initialize every time the sqliteDb opens:
