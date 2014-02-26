@@ -206,7 +206,7 @@ public final class Pusher extends Replication implements Database.ChangeListener
                 Map<String,Object> results = (Map<String,Object>)response;
                 if(e != null) {
                     setError(e);
-                    stop();
+                    revisionFailed();
                 } else if(results.size() != 0) {
                     // Go through the list of local changes again, selecting the ones the destination server
                     // said were missing and mapping them to a JSON dictionary in the form _bulk_docs wants:
@@ -236,6 +236,7 @@ public final class Pusher extends Replication implements Database.ChangeListener
                                     } catch (CouchbaseLiteException e1) {
                                         String msg = String.format("%s Couldn't get local contents of %s", rev, this);
                                         Log.w(Database.TAG, msg);
+                                        revisionFailed();
                                         continue;
                                     }
                                     properties = new HashMap<String,Object>(rev.getProperties());
@@ -273,6 +274,7 @@ public final class Pusher extends Replication implements Database.ChangeListener
                             public void onCompletion(Object result, Throwable e) {
                                 if(e != null) {
                                     setError(e);
+                                    revisionFailed();
                                 } else {
                                     Log.v(Database.TAG, String.format("%s: Sent %s", this, inbox));
                                     setLastSequence(String.format("%d", lastInboxSequence));
@@ -302,6 +304,16 @@ public final class Pusher extends Replication implements Database.ChangeListener
         Map<String, Object> revProps = revision.getProperties();
         revProps.put("_revisions", db.getRevisionHistoryDict(revision));
 
+        // TODO: refactor this to
+        /*
+            // Get the revision's properties:
+            NSError* error;
+            if (![_db inlineFollowingAttachmentsIn: rev error: &error]) {
+                self.error = error;
+                [self revisionFailed];
+                return;
+            }
+         */
         Map<String, Object> attachments = (Map<String, Object>) revProps.get("_attachments");
         for (String attachmentKey : attachments.keySet()) {
             Map<String, Object> attachment = (Map<String, Object>) attachments.get(attachmentKey);
@@ -360,8 +372,18 @@ public final class Pusher extends Replication implements Database.ChangeListener
             @Override
             public void onCompletion(Object result, Throwable e) {
                 if(e != null) {
+                    // TODO:
+                    /*
+                    if ($equal(error.domain, CBLHTTPErrorDomain)
+                                && error.code == kCBLStatusUnsupportedType) {
+                          // Server doesn't like multipart, eh? Fall back to JSON.
+                          _dontSendMultipart = YES;
+                          [self uploadJSONRevision: rev];
+                      }
+                     */
                     Log.e(Database.TAG, "Exception uploading multipart request", e);
                     setError(e);
+                    revisionFailed();
                 } else {
                     Log.d(Database.TAG, "Uploaded multipart request.  Result: " + result);
                 }
@@ -373,4 +395,6 @@ public final class Pusher extends Replication implements Database.ChangeListener
 
     }
 
+
 }
+
