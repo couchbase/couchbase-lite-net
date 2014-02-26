@@ -176,7 +176,7 @@ public abstract class Replication {
             public void process(List<RevisionInternal> inbox) {
                 Log.v(Database.TAG, "*** " + toString() + ": BEGIN processInbox (" + inbox.size() + " sequences)");
                 processInbox(new RevisionList(inbox));
-                Log.v(Database.TAG, "*** " + toString() + ": END processInbox (lastSequence=" + lastSequence);
+                Log.v(Database.TAG, "*** " + toString() + ": END processInbox (lastSequence=" + lastSequence + ")");
                 updateActive();
             }
         });
@@ -1041,6 +1041,7 @@ public abstract class Replication {
         online = false;
         stopRemoteRequests();
         updateProgress();
+        notifyChangeListeners();
         return true;
     }
 
@@ -1050,6 +1051,8 @@ public abstract class Replication {
             return false;
         }
         Log.d(Database.TAG, this + ": Going online");
+        online = true;
+
         if (running) {
             lastSequence = null;
             setError(null);
