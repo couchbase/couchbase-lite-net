@@ -80,6 +80,7 @@ public final class LiveQuery extends Query implements Database.ChangeListener {
         if (!observing) {
             observing = true;
             getDatabase().addChangeListener(this);
+            Log.d(Database.TAG, this + ": start() is calling update()");
             update();
         }
     }
@@ -89,6 +90,8 @@ public final class LiveQuery extends Query implements Database.ChangeListener {
      */
     @InterfaceAudience.Public
     public void stop() {
+
+        Log.d(Database.TAG, this + ": stop() called");
 
         if (observing) {
             observing = false;
@@ -204,7 +207,7 @@ public final class LiveQuery extends Query implements Database.ChangeListener {
 
     @InterfaceAudience.Private
     /* package */ void update() {
-        Log.d(Database.TAG, "update() called");
+        Log.d(Database.TAG, "update() called.  updateQueryFuture currently: " + updateQueryFuture);
 
         if (getView() == null) {
             throw new IllegalStateException("Cannot start LiveQuery when view is null");
@@ -230,6 +233,9 @@ public final class LiveQuery extends Query implements Database.ChangeListener {
                 }
             }
         });
+        Log.d(Database.TAG, "update() created updateQueryFuture: " + updateQueryFuture);
+
+
     }
 
 
@@ -241,9 +247,12 @@ public final class LiveQuery extends Query implements Database.ChangeListener {
     public void changed(Database.ChangeEvent event) {
         if (!willUpdate) {
             setWillUpdate(true);
+            Log.d(Database.TAG, "changed() called, currently updateQueryFuture: " + updateQueryFuture);
+
             updateQueryFuture = getDatabase().runAsync(new AsyncTask() {
                 @Override
                 public void run(Database database) {
+                    Log.d(Database.TAG, this + ": changed() is calling update() via runAsync");
                     update();
                 }
             });
