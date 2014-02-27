@@ -89,6 +89,7 @@ public final class LiveQuery extends Query implements Database.ChangeListener {
      */
     @InterfaceAudience.Public
     public void stop() {
+
         if (observing) {
             observing = false;
             getDatabase().removeChangeListener(this);
@@ -96,8 +97,16 @@ public final class LiveQuery extends Query implements Database.ChangeListener {
 
         if (willUpdate) {
             setWillUpdate(false);
-            updateQueryFuture.cancel(true);
         }
+
+        // slight diversion from iOS version -- cancel the updateQueryFuture
+        // regardless of the willUpdate value, since there can be an update in flight
+        // with willUpdate set to false.  was needed to make testLiveQueryStop() unit test pass.
+        if (updateQueryFuture != null) {
+            boolean cancelled = updateQueryFuture.cancel(true);
+            Log.d(Database.TAG, this + ": cancelled updateQueryFuture " + updateQueryFuture + ", returned: " + cancelled);
+        }
+
     }
 
     /**
@@ -195,6 +204,8 @@ public final class LiveQuery extends Query implements Database.ChangeListener {
 
     @InterfaceAudience.Private
     /* package */ void update() {
+        Log.d(Database.TAG, "update() called");
+
         if (getView() == null) {
             throw new IllegalStateException("Cannot start LiveQuery when view is null");
         }
@@ -211,6 +222,7 @@ public final class LiveQuery extends Query implements Database.ChangeListener {
                     if (rowsParam != null && !rowsParam.equals(rows)) {
                         setRows(rowsParam);
                         for (ChangeListener observer : observers) {
+                            Log.d(Database.TAG, "update() calling back observer with rows");
                             observer.changed(new ChangeEvent(LiveQuery.this, rows));
                         }
                     }
@@ -235,6 +247,8 @@ public final class LiveQuery extends Query implements Database.ChangeListener {
                     update();
                 }
             });
+            Log.d(Database.TAG, "changed() called, created updateQueryFuture: " + updateQueryFuture);
+
         }
     }
 
