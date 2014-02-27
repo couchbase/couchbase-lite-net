@@ -762,31 +762,35 @@ public abstract class Replication {
      */
     @InterfaceAudience.Private
     public void updateActive() {
-        boolean newActive = batcher.count() > 0 || asyncTaskCount > 0;
-        if (active != newActive) {
-            Log.d(Database.TAG, this + " Progress: set active = " + newActive);
-            active = newActive;
-            notifyChangeListeners();
+        try {
+            boolean newActive = batcher.count() > 0 || asyncTaskCount > 0;
+            if (active != newActive) {
+                Log.d(Database.TAG, this + " Progress: set active = " + newActive);
+                active = newActive;
+                notifyChangeListeners();
 
-            if (!active) {
-                if (!continuous) {
-                    stopped();
+                if (!active) {
+                    if (!continuous) {
+                        stopped();
+                    }
+
+                    // TODO: port this from iOS
+                    /*
+                    else if (_error) // eg, (_revisionsFailed > 0) {
+                    LogTo(Sync, @"%@: Failed to xfer %u revisions; will retry in %g sec",
+                            self, _revisionsFailed, kRetryDelay);
+                    [NSObject cancelPreviousPerformRequestsWithTarget: self
+                    selector: @selector(retryIfReady)
+                    object: nil];
+                    [self performSelector: @selector(retryIfReady)
+                    withObject: nil afterDelay: kRetryDelay];
+
+                     */
                 }
 
-                // TODO: port this from iOS
-                /*
-                else if (_error) // eg, (_revisionsFailed > 0) {
-                LogTo(Sync, @"%@: Failed to xfer %u revisions; will retry in %g sec",
-                        self, _revisionsFailed, kRetryDelay);
-                [NSObject cancelPreviousPerformRequestsWithTarget: self
-                selector: @selector(retryIfReady)
-                object: nil];
-                [self performSelector: @selector(retryIfReady)
-                withObject: nil afterDelay: kRetryDelay];
-
-                 */
             }
-
+        } catch (Exception e) {
+            Log.e(Database.TAG, "Exception in updateAcive()", e);
         }
     }
 
