@@ -247,11 +247,11 @@ public class ChangeTracker implements Runnable {
             try {
                 String maskedRemoteWithoutCredentials = getChangesFeedURL().toString();
                 maskedRemoteWithoutCredentials = maskedRemoteWithoutCredentials.replaceAll("://.*:.*@", "://---:---@");
-                Log.v(Database.TAG, "Making request to " + maskedRemoteWithoutCredentials);
+                Log.v(Database.TAG, this + ": Making request to " + maskedRemoteWithoutCredentials);
                 HttpResponse response = httpClient.execute(request);
                 StatusLine status = response.getStatusLine();
                 if (status.getStatusCode() >= 300) {
-                    Log.e(Database.TAG, "Change tracker got error " + Integer.toString(status.getStatusCode()));
+                    Log.e(Database.TAG, this + ": Change tracker got error " + Integer.toString(status.getStatusCode()));
                     String msg = String.format(status.toString());
                     this.error = new CouchbaseLiteException(msg, new Status(status.getStatusCode()));
                     stop();
@@ -265,7 +265,7 @@ public class ChangeTracker implements Runnable {
                             Map<String, Object> fullBody = Manager.getObjectMapper().readValue(input, Map.class);
                             boolean responseOK = receivedPollResponse(fullBody);
                             if (mode == ChangeTrackerMode.LongPoll && responseOK) {
-                                Log.v(Database.TAG, "Starting new longpoll");
+                                Log.v(Database.TAG, this + ": Starting new longpoll");
                                 backoff.resetBackoff();
                                 continue;
                             } else {
@@ -310,14 +310,14 @@ public class ChangeTracker implements Runnable {
                     // frequently happens when we're shutting down and have to
                     // close the socket underneath our read.
                 } else {
-                    Log.e(Database.TAG, "Exception in change tracker", e);
+                    Log.e(Database.TAG, this + ": Exception in change tracker", e);
                 }
 
                 backoff.sleepAppropriateAmountOfTime();
 
             }
         }
-        Log.v(Database.TAG, "Change tracker run loop exiting");
+        Log.v(Database.TAG, this + ": Change tracker run loop exiting");
     }
 
     public boolean receivedChange(final Map<String,Object> change) {
@@ -361,7 +361,7 @@ public class ChangeTracker implements Runnable {
     }
 
     public void stop() {
-        Log.d(Database.TAG, "changed tracker asked to stop");
+        Log.d(Database.TAG, this + ": Changed tracker asked to stop");
         running = false;
         thread.interrupt();
         if(request != null) {
@@ -372,13 +372,13 @@ public class ChangeTracker implements Runnable {
     }
 
     public void stopped() {
-        Log.d(Database.TAG, "change tracker in stopped");
+        Log.d(Database.TAG, this + ": Change tracker in stopped");
         if (client != null) {
-            Log.d(Database.TAG, "posting stopped");
+            Log.d(Database.TAG, this + ": posting stopped");
             client.changeTrackerStopped(ChangeTracker.this);
         }
         client = null;
-        Log.d(Database.TAG, "change tracker client should be null now");
+        Log.d(Database.TAG, this + ": Change tracker client should be null now");
     }
 
     void setRequestHeaders(Map<String, Object> requestHeaders) {

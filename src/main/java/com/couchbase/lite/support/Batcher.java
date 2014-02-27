@@ -34,7 +34,7 @@ public class Batcher<T> {
                 processNow();
             } catch (Exception e) {
                 // we don't want this to crash the batcher
-                com.couchbase.lite.util.Log.e(Database.TAG, "BatchProcessor throw exception", e);
+                com.couchbase.lite.util.Log.e(Database.TAG, this + ": BatchProcessor throw exception", e);
             }
         }
     };
