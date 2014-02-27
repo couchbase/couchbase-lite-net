@@ -488,7 +488,7 @@ public abstract class Replication {
     public String toString() {
         String maskedRemoteWithoutCredentials = (remote != null ? remote.toExternalForm() : "");
         maskedRemoteWithoutCredentials = maskedRemoteWithoutCredentials.replaceAll("://.*:.*@", "://---:---@");
-        String name = getClass().getSimpleName() + "[" + maskedRemoteWithoutCredentials + "]";
+        String name = getClass().getSimpleName() + "@" + Integer.toHexString(hashCode()) + "[" + maskedRemoteWithoutCredentials + "]";
         return name;
     }
 
