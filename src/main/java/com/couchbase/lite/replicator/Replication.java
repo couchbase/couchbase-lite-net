@@ -633,14 +633,21 @@ public abstract class Replication {
         sendAsyncRequest("GET", sessionPath, null, new RemoteRequestCompletionBlock() {
 
             @Override
-            public void onCompletion(Object result, Throwable e) {
-                try {
-                    if (e instanceof HttpResponseException &&
-                            ((HttpResponseException) e).getStatusCode() == 404 &&
-                            sessionPath.equalsIgnoreCase("/_session")) {
+            public void onCompletion(Object result, Throwable error) {
 
-                        checkSessionAtPath("_session");
-                        return;
+                try {
+                    if (error != null) {
+                        // If not at /db/_session, try CouchDB location /_session
+                        if (error instanceof HttpResponseException &&
+                                ((HttpResponseException) error).getStatusCode() == 404 &&
+                                sessionPath.equalsIgnoreCase("/_session")) {
+
+                            checkSessionAtPath("_session");
+                            return;
+                        }
+                        Log.e(Database.TAG, this + ": Session check failed", error);
+                        setError(error);
+
                     } else {
                         Map<String, Object> response = (Map<String, Object>) result;
                         Map<String, Object> userCtx = (Map<String, Object>) response.get("userCtx");
@@ -652,8 +659,8 @@ public abstract class Replication {
                             Log.d(Database.TAG, String.format("%s No active session, going to login", this));
                             login();
                         }
-
                     }
+
                 } finally {
                     asyncTaskFinished(1);
                 }
