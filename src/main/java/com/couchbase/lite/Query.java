@@ -133,11 +133,7 @@ public class Query {
      */
     private int groupLevel;
 
-    /**
-     * If a query is running and the user calls stop() on this query, the future
-     * will be used in order to cancel the query in progress.
-     */
-    protected Future updateQueryFuture;
+
 
     private long lastSequence;
 
