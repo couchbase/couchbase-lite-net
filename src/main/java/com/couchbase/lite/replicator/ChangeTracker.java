@@ -171,7 +171,7 @@ public class ChangeTracker implements Runnable {
         try {
             result = new URL(dbURLString);
         } catch(MalformedURLException e) {
-            Log.e(Database.TAG, "Changes feed ULR is malformed", e);
+            Log.e(Database.TAG, this + ": Changes feed ULR is malformed", e);
         }
         return result;
     }
@@ -186,7 +186,7 @@ public class ChangeTracker implements Runnable {
             // This is a race condition that can be reproduced by calling cbpuller.start() and cbpuller.stop()
             // directly afterwards.  What happens is that by the time the Changetracker thread fires up,
             // the cbpuller has already set this.client to null.  See issue #109
-            Log.w(Database.TAG, "ChangeTracker run() loop aborting because client == null");
+            Log.w(Database.TAG, this + ": ChangeTracker run() loop aborting because client == null");
             return;
         }
 
@@ -210,7 +210,7 @@ public class ChangeTracker implements Runnable {
             // if the URL contains user info AND if this a DefaultHttpClient
             // then preemptively set the auth credentials
             if (url.getUserInfo() != null) {
-                Log.v(Database.TAG, "url.getUserInfo(): " + url.getUserInfo());
+                Log.v(Database.TAG, this + ": url.getUserInfo(): " + url.getUserInfo());
                 if (url.getUserInfo().contains(":") && !url.getUserInfo().trim().equals(":")) {
                     String[] userInfoSplit = url.getUserInfo().split(":");
                     final Credentials creds = new UsernamePasswordCredentials(
@@ -240,7 +240,7 @@ public class ChangeTracker implements Runnable {
                         dhc.addRequestInterceptor(preemptiveAuth, 0);
                     }
                 } else {
-                    Log.w(Database.TAG, "ChangeTracker Unable to parse user info, not setting credentials");
+                    Log.w(Database.TAG, this + ": ChangeTracker Unable to parse user info, not setting credentials");
                 }
             }
 
@@ -261,7 +261,7 @@ public class ChangeTracker implements Runnable {
                 if (entity != null) {
                     try {
                         input = entity.getContent();
-                        if (mode == ChangeTrackerMode.LongPoll) {
+                        if (mode == ChangeTrackerMode.LongPoll) {  // continuous replications
                             Map<String, Object> fullBody = Manager.getObjectMapper().readValue(input, Map.class);
                             boolean responseOK = receivedPollResponse(fullBody);
                             if (mode == ChangeTrackerMode.LongPoll && responseOK) {
@@ -269,10 +269,10 @@ public class ChangeTracker implements Runnable {
                                 backoff.resetBackoff();
                                 continue;
                             } else {
-                                Log.w(Database.TAG, "Change tracker calling stop");
+                                Log.w(Database.TAG, this + ": Change tracker calling stop (LongPoll)");
                                 stop();
                             }
-                        } else {
+                        } else {  // one-shot replications
 
                             JsonFactory jsonFactory = Manager.getObjectMapper().getJsonFactory();
                             JsonParser jp = jsonFactory.createJsonParser(input);
@@ -289,6 +289,7 @@ public class ChangeTracker implements Runnable {
 
                             }
 
+                            Log.w(Database.TAG, this + ": Change tracker calling stop (OneShot)");
                             stop();
                             break;
 

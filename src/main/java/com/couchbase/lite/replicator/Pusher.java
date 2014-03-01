@@ -92,20 +92,25 @@ public final class Pusher extends Replication implements Database.ChangeListener
             return;
         }
         Log.v(Database.TAG, "Remote db might not exist; creating it...");
+        Log.d(Database.TAG, this + "|" + Thread.currentThread() + ": maybeCreateRemoteDB() calling asyncTaskStarted()");
+
         asyncTaskStarted();
         sendAsyncRequest("PUT", "", null, new RemoteRequestCompletionBlock() {
 
             @Override
             public void onCompletion(Object result, Throwable e) {
-                if(e != null && e instanceof HttpResponseException && ((HttpResponseException)e).getStatusCode() != 412) {
-                    Log.v(Database.TAG, "Unable to create remote db (normal if using sync gateway)");
-                } else {
-                    Log.v(Database.TAG, "Created remote db");
-
+                try {
+                    if(e != null && e instanceof HttpResponseException && ((HttpResponseException)e).getStatusCode() != 412) {
+                        Log.v(Database.TAG, "Unable to create remote db (normal if using sync gateway)");
+                    } else {
+                        Log.v(Database.TAG, "Created remote db");
+                    }
+                    shouldCreateTarget = false;
+                    beginReplicating();
+                } finally {
+                    Log.d(Database.TAG, this + "|" + Thread.currentThread() + ": maybeCreateRemoteDB.onComplete() calling asyncTaskFinished()");
+                    asyncTaskFinished(1);
                 }
-                shouldCreateTarget = false;
-                beginReplicating();
-                asyncTaskFinished(1);
             }
 
         });
@@ -144,6 +149,8 @@ public final class Pusher extends Replication implements Database.ChangeListener
         if(continuous) {
             observing = true;
             db.addChangeListener(this);
+            Log.d(Database.TAG, this + "|" + Thread.currentThread() + ": pusher.beginReplicating() calling asyncTaskStarted()");
+
             asyncTaskStarted();  // prevents stopped() from being called when other tasks finish
         }
     }
@@ -154,6 +161,8 @@ public final class Pusher extends Replication implements Database.ChangeListener
         if(observing) {
             observing = false;
             db.removeChangeListener(this);
+            Log.d(Database.TAG, this + "|" + Thread.currentThread() + ": stopObserving() calling asyncTaskFinished()");
+
             asyncTaskFinished(1);
         }
     }
@@ -197,6 +206,8 @@ public final class Pusher extends Replication implements Database.ChangeListener
         }
 
         // Call _revs_diff on the target db:
+        Log.d(Database.TAG, this + "|" + Thread.currentThread() + ": processInbox() calling asyncTaskStarted()");
+
         asyncTaskStarted();
         sendAsyncRequest("POST", "/_revs_diff", diffs, new RemoteRequestCompletionBlock() {
 
@@ -266,19 +277,26 @@ public final class Pusher extends Replication implements Database.ChangeListener
                         Log.i(Database.TAG, String.format("%s: Sending %d revisions", this, numDocsToSend));
                         Log.v(Database.TAG, String.format("%s: Sending %s", this, inbox));
                         setChangesCount(getChangesCount() + numDocsToSend);
+                        Log.d(Database.TAG, this + "|" + Thread.currentThread() + ": processInbox-before_bulk_docs() calling asyncTaskStarted()");
+
                         asyncTaskStarted();
                         sendAsyncRequest("POST", "/_bulk_docs", bulkDocsBody, new RemoteRequestCompletionBlock() {
 
                             @Override
                             public void onCompletion(Object result, Throwable e) {
-                                if(e != null) {
-                                    setError(e);
-                                } else {
-                                    Log.v(Database.TAG, String.format("%s: Sent %s", this, inbox));
-                                    setLastSequence(String.format("%d", lastInboxSequence));
+                                try {
+                                    if(e != null) {
+                                        setError(e);
+                                    } else {
+                                        Log.v(Database.TAG, String.format("%s: Sent %s", this, inbox));
+                                        setLastSequence(String.format("%d", lastInboxSequence));
+                                    }
+                                    setCompletedChangesCount(getCompletedChangesCount() + numDocsToSend);
+                                } finally {
+                                    Log.d(Database.TAG, this + "|" + Thread.currentThread() + ": processInbox-after_bulk_docs() calling asyncTaskFinished()");
+                                    asyncTaskFinished(1);
                                 }
-                                setCompletedChangesCount(getCompletedChangesCount() + numDocsToSend);
-                                asyncTaskFinished(1);
+
                             }
                         });
                     }
@@ -288,6 +306,8 @@ public final class Pusher extends Replication implements Database.ChangeListener
                     // If none of the revisions are new to the remote, just bump the lastSequence:
                     setLastSequence(String.format("%d", lastInboxSequence));
                 }
+
+                Log.d(Database.TAG, this + "|" + Thread.currentThread() + ": processInbox() calling asyncTaskFinished()");
                 asyncTaskFinished(1);
             }
 
@@ -355,17 +375,24 @@ public final class Pusher extends Replication implements Database.ChangeListener
 
         // TODO: need to throttle these requests
         Log.d(Database.TAG, "Uploadeding multipart request.  Revision: " + revision);
+        Log.d(Database.TAG, this + "|" + Thread.currentThread() + ": uploadMultipartRevision() calling asyncTaskStarted()");
+
         asyncTaskStarted();
         sendAsyncMultipartRequest("PUT", path, multiPart, new RemoteRequestCompletionBlock() {
             @Override
             public void onCompletion(Object result, Throwable e) {
-                if(e != null) {
-                    Log.e(Database.TAG, "Exception uploading multipart request", e);
-                    setError(e);
-                } else {
-                    Log.d(Database.TAG, "Uploaded multipart request.  Result: " + result);
+                try {
+                    if(e != null) {
+                        Log.e(Database.TAG, "Exception uploading multipart request", e);
+                        setError(e);
+                    } else {
+                        Log.d(Database.TAG, "Uploaded multipart request.  Result: " + result);
+                    }
+                } finally {
+                    Log.d(Database.TAG, this + "|" + Thread.currentThread() + ": uploadMultipartRevision() calling asyncTaskFinished()");
+                    asyncTaskFinished(1);
                 }
-                asyncTaskFinished(1);
+
             }
         });
 

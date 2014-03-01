@@ -629,6 +629,8 @@ public abstract class Replication {
     @InterfaceAudience.Private
     protected void checkSessionAtPath(final String sessionPath) {
 
+        Log.d(Database.TAG, this + "|" + Thread.currentThread() + ": checkSessionAtPath() calling asyncTaskStarted()");
+
         asyncTaskStarted();
         sendAsyncRequest("GET", sessionPath, null, new RemoteRequestCompletionBlock() {
 
@@ -662,6 +664,8 @@ public abstract class Replication {
                     }
 
                 } finally {
+                    Log.d(Database.TAG, this + "|" + Thread.currentThread() + ": checkSessionAtPath() calling asyncTaskFinished()");
+
                     asyncTaskFinished(1);
                 }
             }
@@ -677,13 +681,15 @@ public abstract class Replication {
 
     @InterfaceAudience.Private
     protected void stopped() {
-        Log.v(Database.TAG, toString() + " STOPPED");
+        Log.v(Database.TAG, this + ": STOPPED");
         running = false;
         this.completedChangesCount = this.changesCount = 0;
 
         notifyChangeListeners();
 
         saveLastSequence();
+
+        Log.v(Database.TAG, this + " set batcher to null");
 
         batcher = null;
 
@@ -712,6 +718,8 @@ public abstract class Replication {
 
         Log.d(Database.TAG, String.format("%s: Doing login with %s at %s", this, getAuthorizer().getClass(), loginPath));
 
+        Log.d(Database.TAG, this + "|" + Thread.currentThread() + ": login() calling asyncTaskStarted()");
+
         asyncTaskStarted();
         sendAsyncRequest("POST", loginPath, loginParameters, new RemoteRequestCompletionBlock() {
 
@@ -727,6 +735,8 @@ public abstract class Replication {
                         fetchRemoteCheckpointDoc();
                     }
                 } finally {
+                    Log.d(Database.TAG, this + "|" + Thread.currentThread() + ": login() calling asyncTaskFinished()");
+
                     asyncTaskFinished(1);
                 }
             }
@@ -740,9 +750,11 @@ public abstract class Replication {
      */
     @InterfaceAudience.Private
     public synchronized void asyncTaskStarted() {
+        Log.d(Database.TAG, this + "|" + Thread.currentThread().toString() + ": asyncTaskStarted() called, asyncTaskCount: " + asyncTaskCount);
         if (asyncTaskCount++ == 0) {
             updateActive();
         }
+        Log.d(Database.TAG, "asyncTaskStarted() updated asyncTaskCount to " + asyncTaskCount);
     }
 
     /**
@@ -750,11 +762,13 @@ public abstract class Replication {
      */
     @InterfaceAudience.Private
     public synchronized void asyncTaskFinished(int numTasks) {
+        Log.d(Database.TAG, this + "|" + Thread.currentThread().toString() + ": asyncTaskFinished() called, asyncTaskCount: " + asyncTaskCount + " numTasks: " + numTasks);
         this.asyncTaskCount -= numTasks;
         assert(asyncTaskCount >= 0);
         if (asyncTaskCount == 0) {
             updateActive();
         }
+        Log.d(Database.TAG, "asyncTaskFinished() updated asyncTaskCount to: " + asyncTaskCount);
     }
 
     /**
@@ -763,7 +777,14 @@ public abstract class Replication {
     @InterfaceAudience.Private
     public void updateActive() {
         try {
-            boolean newActive = batcher.count() > 0 || asyncTaskCount > 0;
+            int batcherCount = 0;
+            if (batcher != null) {
+                batcherCount = batcher.count();
+            } else {
+                Log.w(Database.TAG, this + ": batcher object is null.  dumpStack()");
+                Thread.dumpStack();
+            }
+            boolean newActive = batcherCount > 0 || asyncTaskCount > 0;
             if (active != newActive) {
                 Log.d(Database.TAG, this + " Progress: set active = " + newActive);
                 active = newActive;
@@ -771,6 +792,7 @@ public abstract class Replication {
 
                 if (!active) {
                     if (!continuous) {
+                        Log.d(Database.TAG, this + " since !continuous, calling stopped()");
                         stopped();
                     }
 
@@ -790,7 +812,7 @@ public abstract class Replication {
 
             }
         } catch (Exception e) {
-            Log.e(Database.TAG, "Exception in updateAcive()", e);
+            Log.e(Database.TAG, "Exception in updateActive()", e);
         }
     }
 
@@ -948,6 +970,8 @@ public abstract class Replication {
         String checkpointId = remoteCheckpointDocID();
         final String localLastSequence = db.lastSequenceWithCheckpointId(checkpointId);
 
+        Log.d(Database.TAG, this + "|" + Thread.currentThread() + ": fetchRemoteCheckpointDoc() calling asyncTaskStarted()");
+
         asyncTaskStarted();
         sendAsyncRequest("GET", "/_local/" + checkpointId, null, new RemoteRequestCompletionBlock() {
 
@@ -977,6 +1001,8 @@ public abstract class Replication {
                         beginReplicating();
                     }
                 } finally {
+                    Log.d(Database.TAG, this + "|" + Thread.currentThread() + ": fetchRemoteCheckpointDoc() calling asyncTaskFinished()");
+
                     asyncTaskFinished(1);
                 }
             }
