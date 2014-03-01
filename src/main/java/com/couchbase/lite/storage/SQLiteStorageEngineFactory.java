@@ -31,18 +31,18 @@ public class SQLiteStorageEngineFactory {
     public static SQLiteStorageEngine createStorageEngine() {
 
         String classname = "";
+        String resource = "services/com.couchbase.lite.storage.SQLiteStorageEngine";
 
         try {
-            InputStream inputStream = Thread.currentThread().getContextClassLoader().getResourceAsStream("services/com.couchbase.lite.storage.SQLiteStorageEngine");
+            InputStream inputStream = Thread.currentThread().getContextClassLoader().getResourceAsStream(resource);
             byte[] bytes = TextUtils.read(inputStream);
             classname = new String(bytes);
             Log.d(Database.TAG, "Loading storage engine: " + classname);
             Class clazz = Class.forName(classname);
             SQLiteStorageEngine storageEngine = (SQLiteStorageEngine) clazz.newInstance();
             return storageEngine;
-
         } catch (Exception e) {
-            throw new RuntimeException("Failed to load storage engine from: " + classname, e);
+            throw new RuntimeException("Failed to load storage.  Resource: " + resource + " classname: " + classname, e);
         }
 
     }
