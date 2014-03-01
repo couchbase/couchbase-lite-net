@@ -17,16 +17,33 @@
 package com.couchbase.lite.storage;
 
 
+import com.couchbase.lite.Database;
+import com.couchbase.lite.util.Log;
+import com.couchbase.lite.util.TextUtils;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URL;
 import java.util.ServiceLoader;
 
 public class SQLiteStorageEngineFactory {
+
     public static SQLiteStorageEngine createStorageEngine() {
-        // Attempt to load a Storage Engine service.
-        for (SQLiteStorageEngine storageEngine : ServiceLoader.load(SQLiteStorageEngine.class)) {
+
+        String classname = "";
+
+        try {
+            InputStream inputStream = Thread.currentThread().getContextClassLoader().getResourceAsStream("services/com.couchbase.lite.storage.SQLiteStorageEngine");
+            byte[] bytes = TextUtils.read(inputStream);
+            classname = new String(bytes);
+            Log.d(Database.TAG, "Loading storage engine: " + classname);
+            Class clazz = Class.forName(classname);
+            SQLiteStorageEngine storageEngine = (SQLiteStorageEngine) clazz.newInstance();
             return storageEngine;
+
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to load storage engine from: " + classname, e);
         }
 
-        // No Storage Engine found so return null.
-        return null;
     }
 }
