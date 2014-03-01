@@ -665,7 +665,6 @@ public abstract class Replication {
 
                 } finally {
                     Log.d(Database.TAG, this + "|" + Thread.currentThread() + ": checkSessionAtPath() calling asyncTaskFinished()");
-
                     asyncTaskFinished(1);
                 }
             }
@@ -736,7 +735,6 @@ public abstract class Replication {
                     }
                 } finally {
                     Log.d(Database.TAG, this + "|" + Thread.currentThread() + ": login() calling asyncTaskFinished()");
-
                     asyncTaskFinished(1);
                 }
             }
@@ -1002,7 +1000,6 @@ public abstract class Replication {
                     }
                 } finally {
                     Log.d(Database.TAG, this + "|" + Thread.currentThread() + ": fetchRemoteCheckpointDoc() calling asyncTaskFinished()");
-
                     asyncTaskFinished(1);
                 }
             }

@@ -159,11 +159,14 @@ public final class Pusher extends Replication implements Database.ChangeListener
     @InterfaceAudience.Private
     private void stopObserving() {
         if(observing) {
-            observing = false;
-            db.removeChangeListener(this);
-            Log.d(Database.TAG, this + "|" + Thread.currentThread() + ": stopObserving() calling asyncTaskFinished()");
+            try {
+                observing = false;
+                db.removeChangeListener(this);
+            } finally {
+                Log.d(Database.TAG, this + "|" + Thread.currentThread() + ": stopObserving() calling asyncTaskFinished()");
+                asyncTaskFinished(1);
+            }
 
-            asyncTaskFinished(1);
         }
     }
 
@@ -214,101 +217,103 @@ public final class Pusher extends Replication implements Database.ChangeListener
             @Override
             public void onCompletion(Object response, Throwable e) {
 
-                Map<String,Object> results = (Map<String,Object>)response;
-                if(e != null) {
-                    setError(e);
-                    stop();
-                } else if(results.size() != 0) {
-                    // Go through the list of local changes again, selecting the ones the destination server
-                    // said were missing and mapping them to a JSON dictionary in the form _bulk_docs wants:
-                    List<Object> docsToSend = new ArrayList<Object>();
-                    for(RevisionInternal rev : inbox) {
-                        Map<String,Object> properties = null;
-                        Map<String,Object> resultDoc = (Map<String,Object>)results.get(rev.getDocId());
-                        if(resultDoc != null) {
-                            List<String> revs = (List<String>)resultDoc.get("missing");
-                            if(revs != null && revs.contains(rev.getRevId())) {
-                                //remote server needs this revision
-                                // Get the revision's properties
-                                if(rev.isDeleted()) {
-                                    properties = new HashMap<String,Object>();
-                                    properties.put("_id", rev.getDocId());
-                                    properties.put("_rev", rev.getRevId());
-                                    properties.put("_deleted", true);
-                                } else {
-                                    // OPT: Shouldn't include all attachment bodies, just ones that have changed
-                                    EnumSet<Database.TDContentOptions> contentOptions = EnumSet.of(
-                                            Database.TDContentOptions.TDIncludeAttachments,
-                                            Database.TDContentOptions.TDBigAttachmentsFollow
-                                    );
+                try {
+                    Map<String,Object> results = (Map<String,Object>)response;
+                    if(e != null) {
+                        setError(e);
+                        stop();
+                    } else if(results.size() != 0) {
+                        // Go through the list of local changes again, selecting the ones the destination server
+                        // said were missing and mapping them to a JSON dictionary in the form _bulk_docs wants:
+                        List<Object> docsToSend = new ArrayList<Object>();
+                        for(RevisionInternal rev : inbox) {
+                            Map<String,Object> properties = null;
+                            Map<String,Object> resultDoc = (Map<String,Object>)results.get(rev.getDocId());
+                            if(resultDoc != null) {
+                                List<String> revs = (List<String>)resultDoc.get("missing");
+                                if(revs != null && revs.contains(rev.getRevId())) {
+                                    //remote server needs this revision
+                                    // Get the revision's properties
+                                    if(rev.isDeleted()) {
+                                        properties = new HashMap<String,Object>();
+                                        properties.put("_id", rev.getDocId());
+                                        properties.put("_rev", rev.getRevId());
+                                        properties.put("_deleted", true);
+                                    } else {
+                                        // OPT: Shouldn't include all attachment bodies, just ones that have changed
+                                        EnumSet<Database.TDContentOptions> contentOptions = EnumSet.of(
+                                                Database.TDContentOptions.TDIncludeAttachments,
+                                                Database.TDContentOptions.TDBigAttachmentsFollow
+                                        );
 
-                                    try {
-                                        db.loadRevisionBody(rev, contentOptions);
-                                    } catch (CouchbaseLiteException e1) {
-                                        String msg = String.format("%s Couldn't get local contents of %s", rev, this);
-                                        Log.w(Database.TAG, msg);
-                                        continue;
-                                    }
-                                    properties = new HashMap<String,Object>(rev.getProperties());
+                                        try {
+                                            db.loadRevisionBody(rev, contentOptions);
+                                        } catch (CouchbaseLiteException e1) {
+                                            String msg = String.format("%s Couldn't get local contents of %s", rev, this);
+                                            Log.w(Database.TAG, msg);
+                                            continue;
+                                        }
+                                        properties = new HashMap<String,Object>(rev.getProperties());
 
-                                }
-                                if (properties.containsKey("_attachments")) {
-                                    if (uploadMultipartRevision(rev)) {
-                                        continue;
                                     }
-                                }
-                                if(properties != null) {
-                                    // Add the _revisions list:
-                                    properties.put("_revisions", db.getRevisionHistoryDict(rev));
-                                    //now add it to the docs to send
-                                    docsToSend.add(properties);
+                                    if (properties.containsKey("_attachments")) {
+                                        if (uploadMultipartRevision(rev)) {
+                                            continue;
+                                        }
+                                    }
+                                    if(properties != null) {
+                                        // Add the _revisions list:
+                                        properties.put("_revisions", db.getRevisionHistoryDict(rev));
+                                        //now add it to the docs to send
+                                        docsToSend.add(properties);
+                                    }
                                 }
                             }
                         }
-                    }
 
-                    // Post the revisions to the destination. "new_edits":false means that the server should
-                    // use the given _rev IDs instead of making up new ones.
-                    final int numDocsToSend = docsToSend.size();
-                    if (numDocsToSend > 0 ) {
-                        Map<String,Object> bulkDocsBody = new HashMap<String,Object>();
-                        bulkDocsBody.put("docs", docsToSend);
-                        bulkDocsBody.put("new_edits", false);
-                        Log.i(Database.TAG, String.format("%s: Sending %d revisions", this, numDocsToSend));
-                        Log.v(Database.TAG, String.format("%s: Sending %s", this, inbox));
-                        setChangesCount(getChangesCount() + numDocsToSend);
-                        Log.d(Database.TAG, this + "|" + Thread.currentThread() + ": processInbox-before_bulk_docs() calling asyncTaskStarted()");
+                        // Post the revisions to the destination. "new_edits":false means that the server should
+                        // use the given _rev IDs instead of making up new ones.
+                        final int numDocsToSend = docsToSend.size();
+                        if (numDocsToSend > 0 ) {
+                            Map<String,Object> bulkDocsBody = new HashMap<String,Object>();
+                            bulkDocsBody.put("docs", docsToSend);
+                            bulkDocsBody.put("new_edits", false);
+                            Log.i(Database.TAG, String.format("%s: Sending %d revisions", this, numDocsToSend));
+                            Log.v(Database.TAG, String.format("%s: Sending %s", this, inbox));
+                            setChangesCount(getChangesCount() + numDocsToSend);
+                            Log.d(Database.TAG, this + "|" + Thread.currentThread() + ": processInbox-before_bulk_docs() calling asyncTaskStarted()");
 
-                        asyncTaskStarted();
-                        sendAsyncRequest("POST", "/_bulk_docs", bulkDocsBody, new RemoteRequestCompletionBlock() {
+                            asyncTaskStarted();
+                            sendAsyncRequest("POST", "/_bulk_docs", bulkDocsBody, new RemoteRequestCompletionBlock() {
 
-                            @Override
-                            public void onCompletion(Object result, Throwable e) {
-                                try {
-                                    if(e != null) {
-                                        setError(e);
-                                    } else {
-                                        Log.v(Database.TAG, String.format("%s: Sent %s", this, inbox));
-                                        setLastSequence(String.format("%d", lastInboxSequence));
+                                @Override
+                                public void onCompletion(Object result, Throwable e) {
+                                    try {
+                                        if(e != null) {
+                                            setError(e);
+                                        } else {
+                                            Log.v(Database.TAG, String.format("%s: Sent %s", this, inbox));
+                                            setLastSequence(String.format("%d", lastInboxSequence));
+                                        }
+                                        setCompletedChangesCount(getCompletedChangesCount() + numDocsToSend);
+                                    } finally {
+                                        Log.d(Database.TAG, this + "|" + Thread.currentThread() + ": processInbox-after_bulk_docs() calling asyncTaskFinished()");
+                                        asyncTaskFinished(1);
                                     }
-                                    setCompletedChangesCount(getCompletedChangesCount() + numDocsToSend);
-                                } finally {
-                                    Log.d(Database.TAG, this + "|" + Thread.currentThread() + ": processInbox-after_bulk_docs() calling asyncTaskFinished()");
-                                    asyncTaskFinished(1);
+
                                 }
+                            });
+                        }
 
-                            }
-                        });
+
+                    } else {
+                        // If none of the revisions are new to the remote, just bump the lastSequence:
+                        setLastSequence(String.format("%d", lastInboxSequence));
                     }
-
-
-                } else {
-                    // If none of the revisions are new to the remote, just bump the lastSequence:
-                    setLastSequence(String.format("%d", lastInboxSequence));
+                } finally {
+                    Log.d(Database.TAG, this + "|" + Thread.currentThread() + ": processInbox() calling asyncTaskFinished()");
+                    asyncTaskFinished(1);
                 }
-
-                Log.d(Database.TAG, this + "|" + Thread.currentThread() + ": processInbox() calling asyncTaskFinished()");
-                asyncTaskFinished(1);
             }
 
         });
