@@ -191,7 +191,7 @@ public final class Puller extends Replication implements ChangeTrackerClient {
     public void changeTrackerStopped(ChangeTracker tracker) {
         Log.w(Database.TAG, this + ": ChangeTracker " + tracker + " stopped");
         if (error == null && tracker.getLastError() != null) {
-            error = tracker.getLastError();
+            setError(tracker.getLastError());
         }
         changeTracker = null;
         if(batcher != null) {
@@ -361,8 +361,9 @@ public final class Puller extends Replication implements ChangeTrackerClient {
                     } else {
                         if(e != null) {
                             Log.e(Database.TAG, "Error pulling remote revision", e);
-                            error = e;
+                            setError(e);
                         }
+                        revisionFailed();
                         setCompletedChangesCount(getCompletedChangesCount() + 1);
                     }
                 } finally {
@@ -431,7 +432,8 @@ public final class Puller extends Replication implements ChangeTrackerClient {
                         Log.i(Database.TAG, this + ": Remote rev failed validation: " + rev);
                     } else {
                         Log.w(Database.TAG, this + " failed to write " + rev + ": status=" + e.getCBLStatus().getCode());
-                        error = new HttpResponseException(e.getCBLStatus().getCode(), null);
+                        revisionFailed();
+                        setError(new HttpResponseException(e.getCBLStatus().getCode(), null));
                         continue;
                     }
                 }
@@ -477,10 +479,10 @@ public final class Puller extends Replication implements ChangeTrackerClient {
         return URLEncoder.encode(new String(json));
     }
 
-    @InterfaceAudience.Private
-    boolean goOffline() {
-        Log.d(Database.TAG, this + " goOffline() called, stopping changeTracker: " + changeTracker);
 
+    @InterfaceAudience.Public
+    public boolean goOffline() {
+        Log.d(Database.TAG, this + " goOffline() called, stopping changeTracker: " + changeTracker);
         if (!super.goOffline()) {
             return false;
         }
@@ -491,6 +493,8 @@ public final class Puller extends Replication implements ChangeTrackerClient {
 
         return true;
     }
+
+
 
 }
 

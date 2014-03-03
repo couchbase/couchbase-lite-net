@@ -35,6 +35,7 @@ import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -72,9 +73,13 @@ public abstract class Replication {
     protected Authorizer authorizer;
     private ReplicationStatus status = ReplicationStatus.REPLICATION_STOPPED;
     protected Map<String, Object> requestHeaders;
+    private int revisionsFailed;
+    private ScheduledFuture retryIfReadyFuture;
 
     protected static final int PROCESSOR_DELAY = 500;
     protected static final int INBOX_CAPACITY = 100;
+    protected static final int RETRY_DELAY = 60;
+
 
     /**
      * @exclude
@@ -171,7 +176,7 @@ public abstract class Replication {
             public void process(List<RevisionInternal> inbox) {
                 Log.v(Database.TAG, "*** " + toString() + ": BEGIN processInbox (" + inbox.size() + " sequences)");
                 processInbox(new RevisionList(inbox));
-                Log.v(Database.TAG, "*** " + toString() + ": END processInbox (lastSequence=" + lastSequence);
+                Log.v(Database.TAG, "*** " + toString() + ": END processInbox (lastSequence=" + lastSequence + ")");
                 updateActive();
             }
         });
@@ -454,6 +459,7 @@ public abstract class Replication {
         batcher.clear();  // no sense processing any pending changes
         continuous = false;
         stopRemoteRequests();
+        cancelPendingRetryIfReady();
         db.forgetReplication(this);
         if (running && asyncTaskCount == 0) {
             stopped();
@@ -792,20 +798,17 @@ public abstract class Replication {
                     if (!continuous) {
                         Log.d(Database.TAG, this + " since !continuous, calling stopped()");
                         stopped();
+                    } else if (error != null) /*(revisionsFailed > 0)*/ {
+                        String msg = String.format(
+                                "%s: Failed to xfer %d revisions, will retry in %d sec",
+                                this,
+                                revisionsFailed,
+                                RETRY_DELAY);
+                        Log.d(Database.TAG, msg);
+                        cancelPendingRetryIfReady();
+                        scheduleRetryIfReady();
                     }
 
-                    // TODO: port this from iOS
-                    /*
-                    else if (_error) // eg, (_revisionsFailed > 0) {
-                    LogTo(Sync, @"%@: Failed to xfer %u revisions; will retry in %g sec",
-                            self, _revisionsFailed, kRetryDelay);
-                    [NSObject cancelPreviousPerformRequestsWithTarget: self
-                    selector: @selector(retryIfReady)
-                    object: nil];
-                    [self performSelector: @selector(retryIfReady)
-                    withObject: nil afterDelay: kRetryDelay];
-
-                     */
                 }
 
             }
@@ -863,6 +866,10 @@ public abstract class Replication {
     @InterfaceAudience.Private
     public void sendAsyncRequest(String method, URL url, Object body, RemoteRequestCompletionBlock onCompletion) {
         RemoteRequest request = new RemoteRequest(workExecutor, clientFactory, method, url, body, getHeaders(), onCompletion);
+        if (remoteRequestExecutor.isTerminated()) {
+            String msg = "sendAsyncRequest called, but remoteRequestExecutor has been terminated";
+            throw new IllegalStateException(msg);
+        }
         remoteRequestExecutor.execute(request);
     }
 
@@ -1059,21 +1066,41 @@ public abstract class Replication {
         db.setLastSequence(lastSequence, remoteCheckpointDocID, !isPull());
     }
 
-    @InterfaceAudience.Private
-    /* package */ boolean goOffline() {
+    @InterfaceAudience.Public
+    public boolean goOffline() {
         if (!online) {
             return false;
         }
+        Log.d(Database.TAG, this + ": Going offline");
         online = false;
         stopRemoteRequests();
         updateProgress();
+        notifyChangeListeners();
+        return true;
+    }
+
+    @InterfaceAudience.Public
+    public boolean goOnline() {
+        if (online) {
+            return false;
+        }
+        Log.d(Database.TAG, this + ": Going online");
+        online = true;
+
+        if (running) {
+            lastSequence = null;
+            setError(null);
+        }
+        remoteRequestExecutor = Executors.newCachedThreadPool();
+        checkSession();
+        notifyChangeListeners();
         return true;
     }
 
     @InterfaceAudience.Private
     private void stopRemoteRequests() {
         List<Runnable> inProgress = remoteRequestExecutor.shutdownNow();
-        Log.d(Database.TAG, this + " stopped " + inProgress.size() + " remote requests in progress");
+        Log.d(Database.TAG, this + " stopped remoteRequestExecutor. " + inProgress.size() + " remote requests in progress");
     }
 
     @InterfaceAudience.Private
@@ -1106,6 +1133,55 @@ public abstract class Replication {
         }
 
     }
+
+    @InterfaceAudience.Private
+    protected void revisionFailed() {
+        // Remember that some revisions failed to transfer, so we can later retry.
+        ++revisionsFailed;
+    }
+
+    /**
+     * Called after a continuous replication has gone idle, but it failed to transfer some revisions
+     * and so wants to try again in a minute. Should be overridden by subclasses.
+     */
+    @InterfaceAudience.Private
+    protected void retry() {
+        setError(null);
+    }
+
+    @InterfaceAudience.Private
+    protected void retryIfReady() {
+        if (!running) {
+            return;
+        }
+        if (online) {
+            Log.d(Database.TAG, this + " RETRYING, to transfer missed revisions...");
+            revisionsFailed = 0;
+            cancelPendingRetryIfReady();
+            retry();
+        } else {
+            scheduleRetryIfReady();
+        }
+    }
+
+    @InterfaceAudience.Private
+    protected void cancelPendingRetryIfReady() {
+        if (retryIfReadyFuture != null && retryIfReadyFuture.isCancelled() == false) {
+            retryIfReadyFuture.cancel(true);
+        }
+    }
+
+    @InterfaceAudience.Private
+    protected void scheduleRetryIfReady() {
+        retryIfReadyFuture = workExecutor.schedule(new Runnable() {
+            @Override
+            public void run() {
+                retryIfReady();
+            }
+        }, RETRY_DELAY, TimeUnit.SECONDS);
+    }
+
+
 
 
 }

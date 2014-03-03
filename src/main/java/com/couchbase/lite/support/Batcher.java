@@ -5,6 +5,7 @@ import com.couchbase.lite.util.Log;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -21,7 +22,7 @@ public class Batcher<T> {
     private int capacity;
     private int delay;
     private int scheduledDelay;
-    private List<T> inbox;
+    private LinkedHashSet<T> inbox;
     private BatchProcessor<T> processor;
     private boolean scheduled = false;
     private long lastProcessedTime;
@@ -65,16 +66,18 @@ public class Batcher<T> {
             return;
         }
         if (inbox == null) {
-            inbox = new ArrayList<T>();
+            inbox = new LinkedHashSet<T>();
         }
 
         Log.d(Database.TAG, "inbox size before adding objects: " + inbox.size());
+
         inbox.addAll(objects);
         Log.d(Database.TAG, objects.size() + " objects added to inbox.  inbox size: " + inbox.size());
 
         if (inbox.size() < capacity) {
             // Schedule the processing. To improve latency, if we haven't processed anything
             // in at least our delay time, rush these object(s) through ASAP:
+            Log.d(Database.TAG, "inbox.size() < capacity, schedule processing");
             int delayToUse = delay;
             long delta = (System.currentTimeMillis() - lastProcessedTime);
             if (delta >= delay) {
@@ -159,9 +162,13 @@ public class Batcher<T> {
                 inbox = null;
             } else {
                 Log.d(Database.TAG, this + ": processNow() called, inbox size: " + inbox.size());
-                for (int i=0; i<capacity; i++) {
-                    T item = inbox.get(i);
+                int i = 0;
+                for (T item: inbox) {
                     toProcess.add(item);
+                    i += 1;
+                    if (i >= capacity) {
+                        break;
+                    }
                 }
 
                 for (T item : toProcess) {
