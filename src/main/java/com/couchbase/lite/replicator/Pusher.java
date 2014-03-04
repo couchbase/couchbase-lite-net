@@ -121,8 +121,13 @@ public final class Pusher extends Replication implements Database.ChangeListener
     public void beginReplicating() {
         // If we're still waiting to create the remote db, do nothing now. (This method will be
         // re-invoked after that request finishes; see maybeCreateRemoteDB() above.)
+        Log.d(Database.TAG, this + "|" + Thread.currentThread() + ": beginReplicating() called");
+
         if(shouldCreateTarget) {
+            Log.d(Database.TAG, this + "|" + Thread.currentThread() + ": shouldCreateTarget == true, doing nothing");
             return;
+        } else {
+            Log.d(Database.TAG, this + "|" + Thread.currentThread() + ": shouldCreateTarget != true, continuing");
         }
 
         if(filterName != null) {
