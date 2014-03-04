@@ -95,6 +95,14 @@ public class Router implements Database.ChangeListener {
         return queries;
     }
 
+    public boolean getBooleanValueFromBody(String paramName, Map<String, Object> bodyDict, boolean defaultVal) {
+        boolean value = defaultVal;
+        if (bodyDict.containsKey(paramName)) {
+            value = Boolean.TRUE.equals(bodyDict.get(paramName));
+        }
+        return value;
+    }
+
     public String getQuery(String param) {
         Map<String,String> queries = getQueries();
         if(queries != null) {
@@ -872,16 +880,9 @@ public class Router implements Database.ChangeListener {
         }
         List<Map<String,Object>> docs = (List<Map<String, Object>>) bodyDict.get("docs");
 
-        boolean allObj = false;
-        if(getQuery("all_or_nothing") == null || (getQuery("all_or_nothing") != null && (new Boolean(getQuery("all_or_nothing"))))) {
-        	allObj = true;
-        }
-        //   allowConflict If false, an error status 409 will be returned if the insertion would create a conflict, i.e. if the previous revision already has a child.
-        boolean allOrNothing = (allObj && allObj != false);
-        boolean noNewEdits = true;
-        if(getQuery("new_edits") == null || (getQuery("new_edits") != null && (new Boolean(getQuery("new_edits"))))) {
-        	noNewEdits = false;
-        }
+        boolean noNewEdits = getBooleanValueFromBody("new_edits", bodyDict, true) == false;
+        boolean allOrNothing = getBooleanValueFromBody("all_or_nothing", bodyDict, false);
+
         boolean ok = false;
         db.beginTransaction();
         List<Map<String,Object>> results = new ArrayList<Map<String,Object>>();
