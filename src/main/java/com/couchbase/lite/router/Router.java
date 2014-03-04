@@ -890,7 +890,7 @@ public class Router implements Database.ChangeListener {
             for (Map<String, Object> doc : docs) {
                 String docID = (String) doc.get("_id");
                 RevisionInternal rev = null;
-                Status status = new Status(Status.BAD_REQUEST);
+                Status status = new Status(Status.OK);
                 Body docBody = new Body(doc);
                 if (noNewEdits) {
                     rev = new RevisionInternal(docBody, db);
@@ -933,7 +933,7 @@ public class Router implements Database.ChangeListener {
             Log.w(Database.TAG, String.format("%s finished inserting %d revisions in bulk", this, docs.size()));
             ok = true;
         } catch (Exception e) {
-            Log.w(Database.TAG, String.format("%s: Exception inserting revisions in bulk", this), e);
+            Log.e(Database.TAG, String.format("%s: Exception inserting revisions in bulk", this), e);
         } finally {
             db.endTransaction(ok);
         }
