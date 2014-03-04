@@ -57,6 +57,7 @@ using System.Web;
 using System.Threading;
 using System.Web.UI;
 using System.Threading.Tasks;
+//using Newtonsoft.Json.Linq;
 
 namespace Couchbase.Lite.Replicator
 {
@@ -281,10 +282,14 @@ namespace Couchbase.Lite.Replicator
 
 				try
 				{
+                    if (CurrentRequest != null && (CurrentRequest.Status == TaskStatus.Running || CurrentRequest.Status == TaskStatus.WaitingForActivation)) 
+                    {
+                        //System.Threading.Thread.Sleep(5000);
+                        continue;
+                    }
                     var maskedRemoteWithoutCredentials = GetChangesFeedURL().ToString();
-					maskedRemoteWithoutCredentials = maskedRemoteWithoutCredentials.ReplaceAll("://.*:.*@", "://---:---@");
-					Log.V(Database.Tag, "Making request to " + maskedRemoteWithoutCredentials);
-
+                    maskedRemoteWithoutCredentials = maskedRemoteWithoutCredentials.ReplaceAll("://.*:.*@", "://---:---@");
+                    Log.V(Database.Tag, "Making request to " + maskedRemoteWithoutCredentials);
                     CurrentRequest = httpClient.SendAsync(Request)
                         .ContinueWith<HttpResponseMessage>(request=>
                         {
@@ -334,9 +339,17 @@ namespace Couchbase.Lite.Replicator
                             }
                             else
                             {
-                                var changes = Manager.GetObjectMapper ().ReadValue<IDictionary<String, Object>[]> (response.Result.Result.AsEnumerable());;
-                                foreach (var change in changes)
+                                var result = response.Result.Result;
+                                var results = Manager.GetObjectMapper ().ReadValue<IDictionary<String, Object>> (result.AsEnumerable());
+                                var resultsValue = results["results"] as Newtonsoft.Json.Linq.JArray;
+                                foreach (var item in resultsValue)
                                 {
+                                        IDictionary<String, Object> change = null;
+                                    try {
+                                        change = item.ToObject<IDictionary<String, Object>>();
+                                    } catch (Exception) {
+                                        Log.E(Database.Tag, string.Format("Received unparseable change line from server: {0}", change));
+                                    }
                                     if (!ReceivedChange(change))
                                     {
                                         Log.W(Database.Tag, string.Format("Received unparseable change line from server: {0}", change));
@@ -366,7 +379,8 @@ namespace Couchbase.Lite.Replicator
 				}
                 if (shouldBreak) break;
 			}
-            CurrentRequest.Wait(tokenSource.Token);
+            if (!tokenSource.Token.IsCancellationRequested)
+                CurrentRequest.Wait(tokenSource.Token);
 
 			Log.V(Database.Tag, "Change tracker run loop exiting");
 		}

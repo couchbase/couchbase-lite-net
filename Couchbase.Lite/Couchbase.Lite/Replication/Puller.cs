@@ -57,6 +57,7 @@ using System.Net.Http;
 using System.Diagnostics;
 using System.Web;
 using System.Linq;
+using Newtonsoft.Json.Linq;
 
 namespace Couchbase.Lite.Replicator
 {
@@ -187,9 +188,11 @@ namespace Couchbase.Lite.Replicator
 
             var deleted = (change.ContainsKey("deleted") && ((bool)change.Get("deleted")).Equals(true));
 
-            var changes = (IList<IDictionary<string, object>>)change.Get("changes");
-            foreach (var changeDict in changes)
+            var changesContainer = change.Get("changes") as JContainer;
+            var changes = changesContainer.ToArray();
+            foreach (var changeObj in changes)
             {
+                var changeDict = changeObj.ToObject<IDictionary<string, object>>();
                 var revID = (string)changeDict.Get("rev");
                 if (revID == null)
                 {
@@ -199,7 +202,7 @@ namespace Couchbase.Lite.Replicator
                 rev.SetRemoteSequenceID(lastSequence);
                 AddToInbox(rev);
             }
-            ChangesCount = ChangesCount + changes.Count;
+            ChangesCount = ChangesCount + changes.Count();
             while (revsToPull != null && revsToPull.Count > 1000)
             {
                 try

@@ -47,6 +47,7 @@ using System.IO;
 using Couchbase.Lite.Util;
 using Sharpen;
 using System.Diagnostics;
+using System.Threading;
 
 namespace Couchbase.Lite.Util
 {
@@ -54,7 +55,11 @@ namespace Couchbase.Lite.Util
 	{
 		public virtual void V(string tag, string msg)
 		{
-			Trace.WriteLine(tag + ": " + msg);
+			try {
+                Trace.WriteLine(tag + ": " + msg);
+            } catch (ThreadInterruptedException ex) {
+                // swallow.
+            }
 		}
 
 		public virtual void V(string tag, string msg, Exception tr)

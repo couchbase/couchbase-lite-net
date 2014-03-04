@@ -73,4 +73,7 @@
     <EmbeddedResource Include="Assets\test.properties" />
     <EmbeddedResource Include="Assets\local-test.properties" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="Assets\GatewayConfig.json" />
+  </ItemGroup>
 </Project>

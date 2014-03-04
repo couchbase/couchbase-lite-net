@@ -62,6 +62,9 @@ using System.Net.Http;
 using System.Configuration;
 using System.Web;
 using Couchbase.Lite.Tests;
+using System.Web.UI;
+using System.Text;
+using System.Net.Mime;
 
 namespace Couchbase.Lite.Replicator
 {
@@ -263,26 +266,29 @@ namespace Couchbase.Lite.Replicator
         [Test]
 		public virtual void TestPuller()
 		{
-            Assert.Fail(); // TODO.ZJG: Needs debugging.
+            //Assert.Fail(); // TODO.ZJG: Needs debugging.
 
-			string docIdTimestamp = System.Convert.ToString(Runtime.CurrentTimeMillis());
-            string doc1Id = string.Format("doc1-{0}", docIdTimestamp);
-            string doc2Id = string.Format("doc2-{0}", docIdTimestamp);
+			var docIdTimestamp = System.Convert.ToString(Runtime.CurrentTimeMillis());
+            var doc1Id = string.Format("doc1-{0}", docIdTimestamp);
+            var doc2Id = string.Format("doc2-{0}", docIdTimestamp);
             AddDocWithId(doc1Id, "attachment.png");
             AddDocWithId(doc2Id, "attachment2.png");
+
 			// workaround for https://github.com/couchbase/sync_gateway/issues/228
 			Sharpen.Thread.Sleep(1000);
             DoPullReplication();
+
+            Sharpen.Thread.Sleep(5000);
 			Log.D(Tag, "Fetching doc1 via id: " + doc1Id);
-			RevisionInternal doc1 = database.GetDocumentWithIDAndRev(doc1Id, null, EnumSet.NoneOf
-				<TDContentOptions>());
-			NUnit.Framework.Assert.IsNotNull(doc1);
+			var doc1 = database.GetDocumentWithIDAndRev(doc1Id, null, EnumSet.NoneOf<TDContentOptions>());
+			Assert.IsNotNull(doc1);
 			Assert.IsTrue(doc1.GetRevId().StartsWith("1-"));
             Assert.AreEqual(1, doc1.GetPropertyForKey("foo"));
+
             Log.D(Tag, "Fetching doc2 via id: " + doc2Id);
             var doc2 = database.GetDocumentWithIDAndRev(doc2Id, null, EnumSet.NoneOf<TDContentOptions>());
-			NUnit.Framework.Assert.IsNotNull(doc2);
-			Assert.IsTrue(doc2.GetRevId().StartsWith("1-"));
+			Assert.IsNotNull(doc2);
+            Assert.IsTrue(doc2.GetRevId().StartsWith("1-"));
             Assert.AreEqual(1, doc2.GetPropertyForKey("foo"));
             Log.D(Tag, "testPuller() finished");
 		}
@@ -335,7 +341,7 @@ namespace Couchbase.Lite.Replicator
 		private void DoPullReplication()
 		{
             var remote = GetReplicationURL();
-			CountDownLatch replicationDoneSignal = new CountDownLatch(1);
+			var replicationDoneSignal = new CountDownLatch(1);
             var repl = database.CreatePullReplication(remote);
 			repl.Continuous = false;
 			RunReplication(repl);
@@ -345,7 +351,7 @@ namespace Couchbase.Lite.Replicator
 		private void AddDocWithId(string docId, string attachmentName)
 		{
 			string docJson;
-			if (attachmentName != null)
+            if (attachmentName == null)
 			{
 				// add attachment to document
                 var attachmentStream = GetAsset(attachmentName);
@@ -356,22 +362,24 @@ namespace Couchbase.Lite.Replicator
 			}
 			else
 			{
-				docJson = "{\"foo\":1,\"bar\":false}";
+                docJson = @"{""foo"":1,""bar"":false}";
 			}
 			// push a document to server
-            Uri replicationUrlTrailingDoc1 = new Uri(string.Format("{0}/{0}", GetReplicationURL
-				().ToString(), docId));
-			Uri pathToDoc1 = new Uri(replicationUrlTrailingDoc1, docId);
+            var replicationUrlTrailingDoc1 = new Uri(string.Format("{0}/{1}", GetReplicationURL(), docId));
+			var pathToDoc1 = new Uri(replicationUrlTrailingDoc1, docId);
 			Log.D(Tag, "Send http request to " + pathToDoc1);
 			CountDownLatch httpRequestDoneSignal = new CountDownLatch(1);
             var getDocTask = Task.Factory.StartNew(()=>
                 {
-                    HttpClient httpclient = new HttpClient();
+                    var httpclient = new HttpClient(); //CouchbaseLiteHttpClientFactory.Instance.GetHttpClient();
                     HttpResponseMessage response;
-                    string responseString = null;
                     try
                     {
-                        var postTask = httpclient.PostAsJsonAsync(pathToDoc1.AbsoluteUri, docJson);
+                        var request = new HttpRequestMessage();
+                        request.Headers.Add("Accept", "*/*");
+                        //request.Headers..Add("Content-Type", "application/json");
+                        var postTask = httpclient.PutAsync(pathToDoc1.AbsoluteUri, new StringContent(docJson, Encoding.UTF8, "application/json"));
+                        //var postTask = httpclient.PutAsJsonAsync(pathToDoc1.AbsoluteUri, docJson);
                         postTask.Wait();
                         response = postTask.Result;
                         var statusLine = response.StatusCode;
@@ -432,18 +440,17 @@ namespace Couchbase.Lite.Replicator
 
 		private void RunReplication(Replication replication)
 		{
-			var replicationDoneSignal = new CountDownLatch(1);
-            replication.Changed += (sender, e) => replicationDoneSignal.CountDown ();
+//			var replicationDoneSignal = new CountDownLatch(1);
+            var replicationDoneSignalPolling = ReplicationWatcherThread(replication);
+            replication.Changed += (sender, e) => 
+                replicationDoneSignalPolling.CountDown ();
 			replication.Start();
 
-			var replicationDoneSignalPolling = ReplicationWatcherThread(replication);
 			Log.D(Tag, "Waiting for replicator to finish");
 
 			try
 			{
-				var success = replicationDoneSignal.Await(TimeSpan.FromSeconds(10));
-				Assert.IsTrue(success);
-                replicationDoneSignal.Await(TimeSpan.FromSeconds(10));
+                var success = replicationDoneSignalPolling.Await(TimeSpan.FromSeconds(15));
 				Assert.IsTrue(success);
                 Log.D(Tag, "replicator finished");
 			}
@@ -474,7 +481,7 @@ namespace Couchbase.Lite.Replicator
                         }
                         try
                         {
-                            Thread.Sleep(500);
+                            Thread.Sleep(10000);
                         }
                         catch (Exception e)
                         {

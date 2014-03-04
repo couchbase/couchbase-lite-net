@@ -93,6 +93,7 @@ namespace Couchbase.Lite
             CancellationTokenSource = tokenSource ?? new CancellationTokenSource();
             RemoteUrl = remote;
             Status = ReplicationStatus.Stopped;
+            RequestHeaders = new Dictionary<String, Object>();
 
             if (RemoteUrl.GetQuery() != null && !RemoteUrl.GetQuery().IsEmpty())
             {
@@ -367,7 +368,9 @@ namespace Couchbase.Lite
         internal virtual void MaybeCreateRemoteDB() { }
 
         // FIXME: No-op.
-        internal virtual void ProcessInbox(RevisionList inbox) { }
+        internal virtual void ProcessInbox(RevisionList inbox)
+        {
+        }
 
         internal void AsyncTaskStarted()
         {

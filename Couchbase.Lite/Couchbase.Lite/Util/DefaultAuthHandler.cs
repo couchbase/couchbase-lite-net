@@ -103,7 +103,10 @@ namespace Couchbase.Lite.Replicator
 
         #endregion
 
-        private IEnumerator GetEnumerator() { return AuthenticationManager.RegisteredModules; }
+        private IEnumerator GetEnumerator() 
+        {
+            return AuthenticationManager.RegisteredModules; 
+        }
 
         private readonly HttpClientHandler context;
     }
