@@ -37,7 +37,8 @@ import java.util.concurrent.ScheduledExecutorService;
 @InterfaceAudience.Private
 public final class Pusher extends Replication implements Database.ChangeListener {
 
-    private boolean shouldCreateTarget;
+    private boolean createTarget;
+    private boolean creatingTarget;
     private boolean observing;
     private ReplicationFilter filter;
 
@@ -55,7 +56,7 @@ public final class Pusher extends Replication implements Database.ChangeListener
     @InterfaceAudience.Private
     /* package */ public Pusher(Database db, URL remote, boolean continuous, HttpClientFactory clientFactory, ScheduledExecutorService workExecutor) {
         super(db, remote, continuous, clientFactory, workExecutor);
-        shouldCreateTarget = false;
+        createTarget = false;
         observing = false;
     }
 
@@ -68,13 +69,13 @@ public final class Pusher extends Replication implements Database.ChangeListener
     @Override
     @InterfaceAudience.Public
     public boolean shouldCreateTarget() {
-        return shouldCreateTarget;
+        return createTarget;
     }
 
     @Override
     @InterfaceAudience.Public
     public void setCreateTarget(boolean createTarget) {
-        this.shouldCreateTarget = createTarget;
+        this.createTarget = createTarget;
     }
 
 
@@ -88,9 +89,10 @@ public final class Pusher extends Replication implements Database.ChangeListener
     @Override
     @InterfaceAudience.Private
     void maybeCreateRemoteDB() {
-        if(!shouldCreateTarget) {
+        if(!createTarget) {
             return;
         }
+        creatingTarget = true;
         Log.v(Database.TAG, "Remote db might not exist; creating it...");
         Log.d(Database.TAG, this + "|" + Thread.currentThread() + ": maybeCreateRemoteDB() calling asyncTaskStarted()");
 
@@ -100,12 +102,14 @@ public final class Pusher extends Replication implements Database.ChangeListener
             @Override
             public void onCompletion(Object result, Throwable e) {
                 try {
+                    // TODO: this should be the same as on iOS
+                    creatingTarget = false;
                     if(e != null && e instanceof HttpResponseException && ((HttpResponseException)e).getStatusCode() != 412) {
-                        Log.v(Database.TAG, "Unable to create remote db (normal if using sync gateway)");
+                        Log.e(Database.TAG, this + ": Failed to create remote db", e);
                     } else {
-                        Log.v(Database.TAG, "Created remote db");
+                        Log.v(Database.TAG, this + ": Created remote db");
                     }
-                    shouldCreateTarget = false;
+                    createTarget = false;
                     beginReplicating();
                 } finally {
                     Log.d(Database.TAG, this + "|" + Thread.currentThread() + ": maybeCreateRemoteDB.onComplete() calling asyncTaskFinished()");
@@ -123,11 +127,11 @@ public final class Pusher extends Replication implements Database.ChangeListener
         // re-invoked after that request finishes; see maybeCreateRemoteDB() above.)
         Log.d(Database.TAG, this + "|" + Thread.currentThread() + ": beginReplicating() called");
 
-        if(shouldCreateTarget) {
-            Log.d(Database.TAG, this + "|" + Thread.currentThread() + ": shouldCreateTarget == true, doing nothing");
+        if(creatingTarget) {
+            Log.d(Database.TAG, this + "|" + Thread.currentThread() + ": creatingTarget == true, doing nothing");
             return;
         } else {
-            Log.d(Database.TAG, this + "|" + Thread.currentThread() + ": shouldCreateTarget != true, continuing");
+            Log.d(Database.TAG, this + "|" + Thread.currentThread() + ": creatingTarget != true, continuing");
         }
 
         if(filterName != null) {
