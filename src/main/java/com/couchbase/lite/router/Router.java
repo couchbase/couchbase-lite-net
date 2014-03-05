@@ -1414,6 +1414,9 @@ public class Router implements Database.ChangeListener {
      * NOTE this departs from the iOS version, returning revision, passing status back by reference
      */
     public RevisionInternal update(Database _db, String docID, Body body, boolean deleting, boolean allowConflict, Status outStatus) {
+
+        assert body != null;
+
         boolean isLocalDoc = docID != null && docID.startsWith(("_local"));
         String prevRevID = null;
 
