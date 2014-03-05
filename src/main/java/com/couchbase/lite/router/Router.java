@@ -748,7 +748,11 @@ public class Router implements Database.ChangeListener {
         if(!status.isSuccessful()) {
             return status;
         }
-        return update(db, null, getBodyAsDictionary(), false);
+        Map<String,Object> body = getBodyAsDictionary();
+        if(body == null) {
+            return new Status(Status.BAD_REQUEST);
+        }
+        return update(db, null, body, false);
     }
 
     public Status do_GET_Document_all_docs(Database _db, String _docID, String _attachmentName) throws CouchbaseLiteException {
