@@ -102,15 +102,16 @@ public final class Pusher extends Replication implements Database.ChangeListener
             @Override
             public void onCompletion(Object result, Throwable e) {
                 try {
-                    // TODO: this should be the same as on iOS
                     creatingTarget = false;
                     if(e != null && e instanceof HttpResponseException && ((HttpResponseException)e).getStatusCode() != 412) {
                         Log.e(Database.TAG, this + ": Failed to create remote db", e);
+                        setError(e);
+                        stop();  // this is fatal: no db to push to!
                     } else {
                         Log.v(Database.TAG, this + ": Created remote db");
+                        createTarget = false;
+                        beginReplicating();
                     }
-                    createTarget = false;
-                    beginReplicating();
                 } finally {
                     Log.d(Database.TAG, this + "|" + Thread.currentThread() + ": maybeCreateRemoteDB.onComplete() calling asyncTaskFinished()");
                     asyncTaskFinished(1);
