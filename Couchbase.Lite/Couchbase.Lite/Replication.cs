@@ -159,7 +159,7 @@ namespace Couchbase.Lite
 
         const int ProcessorDelay = 500;
         const int InboxCapacity = 100;
-        const string Tag = "Replication";
+        readonly string Tag = "Replication";
 
     #endregion
 
@@ -365,15 +365,13 @@ namespace Couchbase.Lite
         internal abstract void BeginReplicating();
 
         /// <summary>CHECKPOINT STORAGE:</summary>
-        internal virtual void MaybeCreateRemoteDB() { }
+        protected internal virtual void MaybeCreateRemoteDB() { }
 
         // FIXME: No-op.
-        internal virtual void ProcessInbox(RevisionList inbox)
-        {
-        }
+        abstract internal void ProcessInbox(RevisionList inbox);
 
         internal void AsyncTaskStarted()
-        {
+        {   // TODO.ZJG: Replace lock with Interlocked.CompareExchange.
             lock (asyncTaskLocker)
             {
                 ++asyncTaskCount;
@@ -381,7 +379,7 @@ namespace Couchbase.Lite
         }
 
         internal void AsyncTaskFinished(Int32 numTasks)
-        {
+        {   // TODO.ZJG: Replace lock with Interlocked.CompareExchange.
             lock (asyncTaskLocker) {
                 asyncTaskCount -= numTasks;
                 if (asyncTaskCount == 0) {
@@ -394,17 +392,16 @@ namespace Couchbase.Lite
 
         internal virtual void Stopped()
         {
-            Log.V(Database.Tag, ToString() + " STOPPED");
+            Log.V(Database.Tag, ToString() + " STOPPING");
 
             IsRunning = false;
             completedChangesCount = changesCount = 0;
 
             SaveLastSequence();
             NotifyChangeListeners();
-
-            Batcher.Close();
             Batcher = null;
-            LocalDatabase = null;
+            //LocalDatabase = null;
+            Log.V(Database.Tag, ToString() + " STOPPED");
         }
 
         internal void SaveLastSequence()
@@ -648,11 +645,15 @@ namespace Couchbase.Lite
                                     try
                                     {
                                         var readTask = entity.ReadAsStreamAsync();
-                                        readTask.Wait();
+                                        readTask.Wait(); // TODO: This should be scaled based on content length.
                                         inputStream = readTask.Result;
-                                        fullBody = Manager.GetObjectMapper().ReadValue<object>(inputStream);
+                                        fullBody = Manager.GetObjectMapper().ReadValue<Object>(inputStream);
                                         if (onCompletion != null)
                                             onCompletion(fullBody, error);
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        Log.E(Tag, ex.Message);
                                     }
                                     finally
                                     {
@@ -891,12 +892,13 @@ namespace Couchbase.Lite
             Log.V(Database.Tag, ToString() + " STOPPING...");
 
             Batcher.Flush();
+            Batcher.Close();
             continuous = false;
 
-            if (asyncTaskCount == 0)
-            {
+//            if (asyncTaskCount == 0)
+//            {
                 Stopped();
-            }
+//            }
         }
 
         public void Restart()

@@ -64,6 +64,8 @@ namespace Couchbase.Lite.Support
 	/// </remarks>
     internal class Batcher<T>
 	{
+        private readonly static string Tag = "Batcher";
+
         private readonly TaskFactory workExecutor;
 
         private Task flushFuture;
@@ -86,12 +88,13 @@ namespace Couchbase.Lite.Support
             {
                 try
                 {
-                  ProcessNow();
+                        if (tokenSource != null && tokenSource.IsCancellationRequested) return;
+                        ProcessNow();
                 }
                 catch (Exception e)
                 {
                   // we don't want this to crash the batcher
-                  Log.E(Database.Tag, "BatchProcessor throw exception", e);
+                  Log.E(Tag, "BatchProcessor throw exception", e);
                 }
             });
             this.locker = new Object ();
@@ -137,7 +140,12 @@ namespace Couchbase.Lite.Support
 					if (workExecutor != null)
 					{
                         cancellationSource = new CancellationTokenSource();
-                        flushFuture = Task.Delay(delay).ContinueWith(task => { processNowRunnable (); }, cancellationSource.Token);
+                        flushFuture = Task.Delay(delay)
+                            .ContinueWith(task => 
+                            {
+//                                if (!(task.IsCanceled && cancellationSource.IsCancellationRequested))
+                                    processNowRunnable ();
+                            }, cancellationSource.Token);
 					}
 				}
 				inbox.AddItem(obj);
@@ -165,7 +173,7 @@ namespace Couchbase.Lite.Support
 					}
 					else
 					{
-						Log.V(Database.Tag, "skipping process now because didcancel false");
+						Log.V(Tag, "skipping process now because didcancel false");
 					}
 				}
 			}
@@ -183,6 +191,7 @@ namespace Couchbase.Lite.Support
 
 		public void Close()
 		{
+//            cancellationSource.Cancel();
 		}
 	}
 }

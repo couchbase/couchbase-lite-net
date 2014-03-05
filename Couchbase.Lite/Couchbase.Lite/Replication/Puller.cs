@@ -65,6 +65,8 @@ namespace Couchbase.Lite.Replicator
 	{
 		private const int MaxOpenHttpConnections = 16;
 
+        readonly string Tag = "Puller";
+
         protected internal Batcher<IList<Object>> downloadsToInsert;
 
 		protected internal IList<RevisionInternal> revsToPull;
@@ -112,7 +114,7 @@ namespace Couchbase.Lite.Replicator
 
 			pendingSequences = new SequenceMap();
 
-            Log.W(Database.Tag, this + " starting ChangeTracker with since=" + LastSequence);
+            Log.W(Tag, this + " starting ChangeTracker with since=" + LastSequence);
 
             var mode = Continuous 
                        ? ChangeTracker.ChangeTrackerMode.LongPoll 
@@ -157,16 +159,16 @@ namespace Couchbase.Lite.Replicator
 			{
 				revsToPull = null;
 			}
-			base.Stop();
-			if (downloadsToInsert != null)
-			{
-				downloadsToInsert.Flush();
-			}
+            base.Stop();
 		}
 
         internal override void Stopped()
 		{
-			downloadsToInsert = null;
+            if (downloadsToInsert != null)
+            {
+                downloadsToInsert.Flush();
+                //downloadsToInsert = null;
+            }
 			base.Stopped();
 		}
 
@@ -182,7 +184,7 @@ namespace Couchbase.Lite.Replicator
 
             if (!LocalDatabase.IsValidDocumentId(docID))
             {
-                Log.W(Database.Tag, string.Format("{0}: Received invalid doc ID from _changes: {1}", this, change));
+                Log.W(Tag, string.Format("{0}: Received invalid doc ID from _changes: {1}", this, change));
                 return;
             }
 
@@ -202,7 +204,7 @@ namespace Couchbase.Lite.Replicator
                 rev.SetRemoteSequenceID(lastSequence);
                 AddToInbox(rev);
             }
-            ChangesCount = ChangesCount + changes.Count();
+            ChangesCount = ChangesCount + changes.Length;
             while (revsToPull != null && revsToPull.Count > 1000)
             {
                 try
@@ -219,7 +221,7 @@ namespace Couchbase.Lite.Replicator
 		// <-- TODO: why is this here?
 		public void ChangeTrackerStopped(ChangeTracker tracker)
 		{
-            Log.W(Database.Tag, this + ": ChangeTracker stopped");
+            Log.W(Tag, this + ": ChangeTracker stopped");
             if (LastError == null && tracker.GetLastError() != null)
             {
                 LastError = tracker.GetLastError();
@@ -252,7 +254,7 @@ namespace Couchbase.Lite.Replicator
             var total = ChangesCount - inbox.Count;
             if (!LocalDatabase.FindMissingRevisions(inbox))
             {
-                Log.W(Database.Tag, string.Format("{0} failed to look up local revs", this));
+                Log.W(Tag, string.Format("{0} failed to look up local revs", this));
                 inbox = null;
             }
 
@@ -267,7 +269,7 @@ namespace Couchbase.Lite.Replicator
             if (inboxCount == 0)
             {
                 // Nothing to do. Just bump the lastSequence.
-                Log.W(Database.Tag, string.Format("{0} no new remote revisions to fetch", this));
+                Log.W(Tag, string.Format("{0} no new remote revisions to fetch", this));
 
                 var seq = pendingSequences.AddValue(lastInboxSequence);
                 pendingSequences.RemoveSequence(seq);
@@ -275,7 +277,7 @@ namespace Couchbase.Lite.Replicator
                 return;
             }
 
-            Log.V(Database.Tag, this + " fetching " + inboxCount + " remote revisions...");
+            Log.V(Tag, this + " fetching " + inboxCount + " remote revisions...");
             //Log.v(Database.TAG, String.format("%s fetching remote revisions %s", this, inbox));
             // Dump the revs into the queue of revs to pull from the remote db:
             lock (locker) {
@@ -355,7 +357,7 @@ namespace Couchbase.Lite.Replicator
                     // OK, now we've got the response revision:
                     if (result != null)
                     {
-                        var properties = (IDictionary<string, object>)result;
+                        var properties = ((JObject)result).ToObject<IDictionary<string, object>>();
                         var history = Database.ParseCouchDBRevisionHistory (properties);
 
                         if (history != null) 
@@ -368,13 +370,13 @@ namespace Couchbase.Lite.Replicator
                             downloadsToInsert.QueueObject (toInsert);
                             AsyncTaskStarted ();
                         } else {
-                            Log.W (Database.Tag, this + ": Missing revision history in response from " + pathInside
+                            Log.W (Tag, this + ": Missing revision history in response from " + pathInside
                             );
                             CompletedChangesCount += 1;
                         }
                     } else {
                         if (e != null) {
-                            Log.E (Database.Tag, "Error pulling remote revision", e);
+                            Log.E (Tag, "Error pulling remote revision", e);
                             LastError = e;
                         }
                         CompletedChangesCount += 1;
@@ -391,7 +393,7 @@ namespace Couchbase.Lite.Replicator
 		/// <summary>This will be called when _revsToInsert fills up:</summary>
         public void InsertRevisions(IList<IList<Object>> revs)
 		{
-            Log.I(Database.Tag, this + " inserting " + revs.Count + " revisions...");
+            Log.I(Tag, this + " inserting " + revs.Count + " revisions...");
             //Log.v(Database.TAG, String.format("%s inserting %s", this, revs));
 
             revs.Sort(new RevisionComparer());
@@ -422,11 +424,11 @@ namespace Couchbase.Lite.Replicator
                     {
                         if (e.GetCBLStatus().GetCode() == StatusCode.Forbidden)
                         {
-                            Log.I(Database.Tag, this + ": Remote rev failed validation: " + rev);
+                            Log.I(Tag, this + ": Remote rev failed validation: " + rev);
                         }
                         else
                         {
-                            Log.W(Database.Tag, this + " failed to write " + rev + ": status=" + e.GetCBLStatus().GetCode());
+                            Log.W(Tag, this + " failed to write " + rev + ": status=" + e.GetCBLStatus().GetCode());
                             LastError = new HttpException((Int32)e.GetCBLStatus().GetCode(), null);
                             continue;
                         }
@@ -434,14 +436,14 @@ namespace Couchbase.Lite.Replicator
                     pendingSequences.RemoveSequence(fakeSequence);
                 }
 
-                Log.W(Database.Tag, this + " finished inserting " + revs.Count + " revisions");
+                Log.W(Tag, this + " finished inserting " + revs.Count + " revisions");
 
                 LastSequence = pendingSequences.GetCheckpointedValue();
                 success = true;
             }
             catch (SQLException e)
             {
-                Log.E(Database.Tag, this + ": Exception inserting revisions", e);
+                Log.E(Tag, this + ": Exception inserting revisions", e);
             }
             finally
             {
@@ -489,7 +491,7 @@ namespace Couchbase.Lite.Replicator
 			}
 			catch (Exception e)
 			{
-				Log.W(Database.Tag, "Unable to serialize json", e);
+				Log.W(Tag, "Unable to serialize json", e);
 			}
 
 			return HttpUtility.UrlEncode(Runtime.GetStringForBytes(json));

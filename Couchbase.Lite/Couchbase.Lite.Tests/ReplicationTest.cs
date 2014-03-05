@@ -70,7 +70,7 @@ namespace Couchbase.Lite.Replicator
 {
 	public class ReplicationTest : LiteTestCase
 	{
-		public const string Tag = "Replicator";
+        public const string Tag = "ReplicationTest";
 
 		/// <exception cref="System.Exception"></exception>
         [Test]
@@ -341,7 +341,6 @@ namespace Couchbase.Lite.Replicator
 		private void DoPullReplication()
 		{
             var remote = GetReplicationURL();
-			var replicationDoneSignal = new CountDownLatch(1);
             var repl = database.CreatePullReplication(remote);
 			repl.Continuous = false;
 			RunReplication(repl);
@@ -452,6 +451,8 @@ namespace Couchbase.Lite.Replicator
 			{
                 var success = replicationDoneSignalPolling.Await(TimeSpan.FromSeconds(15));
 				Assert.IsTrue(success);
+                Sharpen.Thread.Sleep(5000);
+                replication.Stop();
                 Log.D(Tag, "replicator finished");
 			}
 			catch (Exception e)
@@ -462,7 +463,7 @@ namespace Couchbase.Lite.Replicator
 
 		private CountDownLatch ReplicationWatcherThread(Replication replication)
 		{
-			var doneSignal = new CountDownLatch(1);
+            var doneSignal = new CountDownLatch(2);
             Task.Factory.StartNew(()=>
                 {
                     var started = false;

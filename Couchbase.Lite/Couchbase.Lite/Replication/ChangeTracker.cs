@@ -223,7 +223,7 @@ namespace Couchbase.Lite.Replicator
 			}
 			catch (UriFormatException e)
 			{
-				Log.E(Database.Tag, "Changes feed ULR is malformed", e);
+				Log.E(Tag, "Changes feed ULR is malformed", e);
 			}
 			return result;
 		}
@@ -239,7 +239,7 @@ namespace Couchbase.Lite.Replicator
 				// This is a race condition that can be reproduced by calling cbpuller.start() and cbpuller.stop()
 				// directly afterwards.  What happens is that by the time the Changetracker thread fires up,
 				// the cbpuller has already set this.client to null.  See issue #109
-				Log.W(Database.Tag, "ChangeTracker run() loop aborting because client == null");
+				Log.W(Tag, "ChangeTracker run() loop aborting because client == null");
 				return;
 			}
 			if (mode == ChangeTracker.ChangeTrackerMode.Continuous)
@@ -256,6 +256,9 @@ namespace Couchbase.Lite.Replicator
             var shouldBreak = false;
 			while (running)
 			{
+                if (tokenSource.Token.IsCancellationRequested)
+                    break;
+
                 var url = GetChangesFeedURL();
                 Request = new HttpRequestMessage(HttpMethod.Get, url);
 
@@ -265,7 +268,7 @@ namespace Couchbase.Lite.Replicator
                 // then preemptively set/update the auth credentials
 				if (url.UserInfo != null)
 				{
-					Log.V(Database.Tag, "url.getUserInfo(): " + url.GetUserInfo());
+					Log.V(Tag, "url.getUserInfo(): " + url.GetUserInfo());
 
                     var credentials = Request.ToCredentialsFromUri();
                     if (credentials != null)
@@ -276,26 +279,34 @@ namespace Couchbase.Lite.Replicator
 					}
 					else
 					{
-						Log.W(Database.Tag, "ChangeTracker Unable to parse user info, not setting credentials");
+						Log.W(Tag, "ChangeTracker Unable to parse user info, not setting credentials");
 					}
 				}
 
 				try
 				{
-                    if (CurrentRequest != null && (CurrentRequest.Status == TaskStatus.Running || CurrentRequest.Status == TaskStatus.WaitingForActivation)) 
+                    var requestStatus = CurrentRequest == null 
+                        ? TaskStatus.Canceled 
+                        : CurrentRequest.Status;
+
+                    Log.V(Tag, "Current Request Status: " + requestStatus);
+
+                    if (requestStatus == TaskStatus.Running || requestStatus == TaskStatus.WaitingForActivation) 
                     {
                         //System.Threading.Thread.Sleep(5000);
                         continue;
                     }
                     var maskedRemoteWithoutCredentials = GetChangesFeedURL().ToString();
                     maskedRemoteWithoutCredentials = maskedRemoteWithoutCredentials.ReplaceAll("://.*:.*@", "://---:---@");
-                    Log.V(Database.Tag, "Making request to " + maskedRemoteWithoutCredentials);
+                    Log.V(Tag, "Making request to " + maskedRemoteWithoutCredentials);
+                    if (tokenSource.Token.IsCancellationRequested)
+                        break;
                     CurrentRequest = httpClient.SendAsync(Request)
                         .ContinueWith<HttpResponseMessage>(request=>
                         {
                             if (request.Status != System.Threading.Tasks.TaskStatus.RanToCompletion && request.IsFaulted)
                             {
-                                Log.E(Database.Tag, "Change tracker got error " + Extensions.ToString(request.Status));
+                                Log.E(Tag, "Change tracker got error " + Extensions.ToString(request.Status));
                                 throw request.Exception;
                             }
                             return request.Result;
@@ -306,7 +317,7 @@ namespace Couchbase.Lite.Replicator
                             if ((Int32)status >= 300)
                             {
                                 var msg = String.Format("Change tracker got error: {0}", status);
-                                Log.E(Database.Tag, msg);
+                                Log.E(Tag, msg);
                                 Error = new CouchbaseLiteException (msg, new Status (status.GetStatusCode ()));
                                 Stop();
                             }
@@ -328,12 +339,12 @@ namespace Couchbase.Lite.Replicator
                                 var responseOK = ReceivedPollResponse(fullBody);
                                 if (mode == ChangeTracker.ChangeTrackerMode.LongPoll && responseOK)
                                 {
-                                    Log.V(Database.Tag, "Starting new longpoll");
+                                    Log.V(Tag, "Starting new longpoll");
                                     return;
                                 }
                                 else
                                 {
-                                    Log.W(Database.Tag, "Change tracker calling stop");
+                                    Log.W(Tag, "Change tracker calling stop");
                                     Stop();
                                 }
                             }
@@ -348,11 +359,11 @@ namespace Couchbase.Lite.Replicator
                                     try {
                                         change = item.ToObject<IDictionary<String, Object>>();
                                     } catch (Exception) {
-                                        Log.E(Database.Tag, string.Format("Received unparseable change line from server: {0}", change));
+                                        Log.E(Tag, string.Format("Received unparseable change line from server: {0}", change));
                                     }
                                     if (!ReceivedChange(change))
                                     {
-                                        Log.W(Database.Tag, string.Format("Received unparseable change line from server: {0}", change));
+                                        Log.W(Tag, string.Format("Received unparseable change line from server: {0}", change));
                                     }
                                 }
                                 Stop();
@@ -373,16 +384,22 @@ namespace Couchbase.Lite.Replicator
 						// in this case, just silently absorb the exception because it
 						// frequently happens when we're shutting down and have to
 						// close the socket underneath our read.
-						Log.E(Database.Tag, "Exception in change tracker", e);
+						Log.E(Tag, "Exception in change tracker", e);
 					}
 					backoff.SleepAppropriateAmountOfTime();
 				}
                 if (shouldBreak) break;
 			}
             if (!tokenSource.Token.IsCancellationRequested)
-                CurrentRequest.Wait(tokenSource.Token);
-
-			Log.V(Database.Tag, "Change tracker run loop exiting");
+            {   // Handle cancellation requests while we are waiting.
+                // e.g. when Stop() is called from another thread.
+                try {
+                    CurrentRequest.Wait (tokenSource.Token);
+                } catch (Exception) {
+                    Log.V(Tag, "Run loop was cancelled.");
+                }
+            }
+			Log.V(Tag, "Change tracker run loop exiting");
 		}
 
 		public bool ReceivedChange(IDictionary<string, object> change)
@@ -420,7 +437,7 @@ namespace Couchbase.Lite.Replicator
 
 		public void SetUpstreamError(string message)
 		{
-            Log.W(Database.Tag, string.Format("Server error: {0}", message));
+            Log.W(Tag, string.Format("Server error: {0}", message));
 			this.Error = new Exception(message);
 		}
 
@@ -437,7 +454,7 @@ namespace Couchbase.Lite.Replicator
 
 		public void Stop()
 		{
-			Log.D(Database.Tag, "changed tracker asked to stop");
+			Log.D(Tag, "changed tracker asked to stop");
 			running = false;
 			thread.Interrupt();
 			if (Request != null)
@@ -449,14 +466,14 @@ namespace Couchbase.Lite.Replicator
 
 		public void Stopped()
 		{
-			Log.D(Database.Tag, "change tracker in stopped");
+			Log.D(Tag, "change tracker in stopped");
 			if (client != null)
 			{
-				Log.D(Database.Tag, "posting stopped");
+				Log.D(Tag, "posting stopped");
 				client.ChangeTrackerStopped(this);
 			}
 			client = null;
-			Log.D(Database.Tag, "change tracker client should be null now");
+			Log.D(Tag, "change tracker client should be null now");
 		}
 
         internal virtual void SetRequestHeaders(IDictionary<String, Object> requestHeaders)

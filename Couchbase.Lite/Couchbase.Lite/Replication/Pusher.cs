@@ -61,6 +61,8 @@ namespace Couchbase.Lite.Replicator
 {
     internal class Pusher : Replication
 	{
+        readonly string Tag = "Pusher";
+
 		private bool observing;
 
 		private FilterDelegate filter;
@@ -93,19 +95,19 @@ namespace Couchbase.Lite.Replicator
 
         #endregion
 
-		internal override void MaybeCreateRemoteDB()
+        protected internal override void MaybeCreateRemoteDB()
 		{
             if (!CreateTarget)
             {
                 return;
             }
-            Log.V(Database.Tag, "Remote db might not exist; creating it...");
+            Log.V(Tag, "Remote db might not exist; creating it...");
             SendAsyncRequest(HttpMethod.Put, String.Empty, null, (result, e) => 
                 {
                     if (e is HttpException && ((HttpException)e).ErrorCode != 412) {
-                        Log.V (Database.Tag, "Unable to create remote db (normal if using sync gateway)");
+                        Log.V (Tag, "Unable to create remote db (normal if using sync gateway)");
                     } else {
-                        Log.V (Database.Tag, "Created remote db");
+                        Log.V (Tag, "Created remote db");
                     }
                     CreateTarget = false;
                     BeginReplicating ();
@@ -126,7 +128,7 @@ namespace Couchbase.Lite.Replicator
             }
             if (Filter != null && filter == null)
             {
-                Log.W(Database.Tag, string.Format("{0}: No ReplicationFilter registered for filter '{1}'; ignoring"
+                Log.W(Tag, string.Format("{0}: No ReplicationFilter registered for filter '{1}'; ignoring"
                     , this, Filter));
             }
             // Process existing changes since the last push:
@@ -264,8 +266,8 @@ namespace Couchbase.Lite.Replicator
                         bulkDocsBody.Put ("docs", docsToSend);
                         bulkDocsBody.Put ("new_edits", false);
 
-                        Log.I (Database.Tag, string.Format ("{0}: Sending {1} revisions", this, numDocsToSend));
-                        Log.V (Database.Tag, string.Format ("{0}: Sending {1}", this, inbox));
+                        Log.I (Tag, string.Format ("{0}: Sending {1} revisions", this, numDocsToSend));
+                        Log.V (Tag, string.Format ("{0}: Sending {1}", this, inbox));
                         ChangesCount += numDocsToSend;
 
                         AsyncTaskStarted ();
@@ -273,7 +275,7 @@ namespace Couchbase.Lite.Replicator
                             if (e != null) {
                                 LastError = e;
                             } else {
-                                Log.V (Database.Tag, string.Format ("{0}: Sent {1}", this, inbox));
+                                Log.V (Tag, string.Format ("{0}: Sent {1}", this, inbox));
                                 LastSequence = string.Format ("{0}", lastInboxSequence);
                             }
                             CompletedChangesCount  += numDocsToSend;
@@ -324,7 +326,7 @@ namespace Couchbase.Lite.Replicator
 
                     if (inputStream == null)
                     {
-                        Log.W(Database.Tag, "Unable to find blob file for blobKey: " + blobKey + " - Skipping upload of multipart revision.");
+                        Log.W(Tag, "Unable to find blob file for blobKey: " + blobKey + " - Skipping upload of multipart revision.");
                         multiPart = null;
                     }
                     else
@@ -341,7 +343,7 @@ namespace Couchbase.Lite.Replicator
                                 var message = string.Format("Found attachment that uses content-type" 
                                     + " field name instead of content_type (see couchbase-lite-android"
                                     + " issue #80): " + attachment);
-                                Log.W(Database.Tag, message);
+                                Log.W(Tag, message);
                             }
                         }
 
@@ -361,16 +363,16 @@ namespace Couchbase.Lite.Replicator
             var path = string.Format("/{0}?new_edits=false", revision.GetDocId());
 
             // TODO: need to throttle these requests
-            Log.D(Database.Tag, "Uploadeding multipart request.  Revision: " + revision);
+            Log.D(Tag, "Uploadeding multipart request.  Revision: " + revision);
 
             AsyncTaskStarted();
 
             SendAsyncMultipartRequest(HttpMethod.Put, path, multiPart, (result, e) => {
                 if (e != null) {
-                    Log.E (Database.Tag, "Exception uploading multipart request", e);
+                    Log.E (Tag, "Exception uploading multipart request", e);
                     LastError = e;
                 } else {
-                    Log.D (Database.Tag, "Uploaded multipart request.  Result: " + result);
+                    Log.D (Tag, "Uploaded multipart request.  Result: " + result);
                 }
                 AsyncTaskFinished (1);
             });

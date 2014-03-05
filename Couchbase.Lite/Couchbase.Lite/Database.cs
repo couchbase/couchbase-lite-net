@@ -57,6 +57,7 @@ using System.Diagnostics;
 using System.Data;
 using Couchbase.Lite.Replicator;
 using Couchbase.Lite.Support;
+using Newtonsoft.Json.Linq;
 
 namespace Couchbase.Lite 
 {
@@ -849,7 +850,7 @@ PRAGMA user_version = 3;";
                     {
                         throw new CouchbaseLiteException(StatusCode.BadRequest);
                     }
-                    newRevID = Extensions.ToString(++generation) + "-local";
+                    newRevID = Sharpen.Extensions.ToString(++generation) + "-local";
 
                     var values = new ContentValues();
                     values["revid"] = newRevID;
@@ -2596,17 +2597,19 @@ PRAGMA user_version = 3;";
         /// <summary>Parses the _revisions dict from a document into an array of revision ID strings.</summary>
         internal static IList<String> ParseCouchDBRevisionHistory(IDictionary<String, Object> docProperties)
         {
-            var revisions = (IDictionary<String, Object>)docProperties.Get("_revisions");
+            var revs = (JObject)docProperties.Get("_revisions");
+            var revisions = revs.ToObject<Dictionary<String, Object>>();
             if (revisions == null)
             {
                 return null;
             }
-            var revIDs = (IList<string>)revisions.Get("ids");
-            int start = (int)revisions.Get("start");
+            var ids = (JArray)revisions["ids"];
+            var revIDs = ids.Values<String>().ToList();
+            var start = (Int64)revisions.Get("start");
             for (var i = 0; i < revIDs.Count; i++)
             {
                 var revID = revIDs[i];
-                revIDs.Set(i, Extensions.ToString(start--) + "-" + revID);
+                revIDs.Set(i, Sharpen.Extensions.ToString(start--) + "-" + revID);
             }
             return revIDs;
         }
@@ -3519,7 +3522,7 @@ PRAGMA user_version = 3;";
             }
             var digest = Misc.TDCreateUUID();
             // TODO: Generate canonical digest of body
-            return Extensions.ToString(generation + 1) + "-" + digest;
+            return Sharpen.Extensions.ToString(generation + 1) + "-" + digest;
         }
 
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>

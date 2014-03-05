@@ -55,7 +55,7 @@ namespace Couchbase.Lite.Util
 	{
 		public virtual void V(string tag, string msg)
 		{
-			try {
+            try {
                 Trace.WriteLine(tag + ": " + msg);
             } catch (ThreadInterruptedException ex) {
                 // swallow.
@@ -89,17 +89,17 @@ namespace Couchbase.Lite.Util
 
 		public virtual void W(string tag, string msg)
 		{
-			Trace.TraceWarning(tag + ": " + msg);
+            Debug.WriteLine("Warning:" + tag + ": " + msg);
 		}
 
 		public virtual void W(string tag, Exception tr)
 		{
-			Trace.TraceWarning(tag + ": " + "\n" + GetStackTraceString(tr));
+            Debug.WriteLine("Warning:" + tag + ": " + "\n" + GetStackTraceString(tr));
 		}
 
 		public virtual void W(string tag, string msg, Exception tr)
 		{
-			Trace.TraceWarning(tag + ": " + msg + "\n" + GetStackTraceString(tr));
+            Debug.WriteLine("Warning:" + tag + ": " + msg + "\n" + GetStackTraceString(tr));
 		}
 
 		public virtual void E(string tag, string msg)
@@ -116,11 +116,11 @@ namespace Couchbase.Lite.Util
 		{
 			if (tr == null)
 			{
-				return string.Empty;
+                return Environment.StackTrace;
 			}
 			StringWriter stringWriter = new StringWriter();
 			PrintWriter printWriter = new PrintWriter(stringWriter);
-			Runtime.PrintStackTrace(tr, printWriter);
+            Runtime.PrintStackTrace(tr, printWriter);
 			return stringWriter.ToString();
 		}
 	}
