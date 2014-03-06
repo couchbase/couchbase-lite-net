@@ -1308,7 +1308,7 @@ PRAGMA user_version = 3;";
             var sql = "SELECT sequence, revs.doc_id, docid, revid, deleted" + additionalSelectColumns
                       + " FROM revs, docs " + "WHERE sequence > @ AND current=1 " + "AND revs.doc_id = docs.doc_id "
                       + "ORDER BY revs.doc_id, revid DESC";
-            var args = new [] { lastSeq };
+            var args = lastSeq;
 
             Cursor cursor = null;
             RevisionList changes = null;

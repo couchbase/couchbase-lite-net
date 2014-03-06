@@ -110,14 +110,15 @@ namespace Couchbase.Lite.Replicator
 			var continuous = false;
 			var repl = database.CreatePushReplication(remote);
             repl.Continuous = continuous;
-			repl.CreateTarget = true; 
+
+            //repl.CreateTarget = false; 
 
 			// Check the replication's properties:
 			Assert.AreEqual(database, repl.LocalDatabase);
 			Assert.AreEqual(remote, repl.RemoteUrl);
 			Assert.IsFalse(repl.IsPull);
             Assert.IsFalse(repl.Continuous);
-			Assert.IsTrue(repl.CreateTarget);
+            //Assert.IsTrue(repl.CreateTarget);
 			Assert.IsNull(repl.Filter);
 			Assert.IsNull(repl.FilterParams);
 			// TODO: CAssertNil(r1.doc_ids);
@@ -176,7 +177,8 @@ namespace Couchbase.Lite.Replicator
 			Log.D(Tag, "Waiting for http request to finish");
 			try
 			{
-				httpRequestDoneSignal.Await(TimeSpan.FromSeconds(10));
+                var result = httpRequestDoneSignal.Await(TimeSpan.FromSeconds(10));
+                Assert.IsTrue(result, "Could not retrieve the new doc from the sync gateway.");
 				Log.D(Tag, "http request finished");
 			}
 			catch (Exception e)

@@ -73,8 +73,7 @@ namespace Couchbase.Lite
 		{
 			//TODO : How to test private methods.
 			int endPos;
-			JsonCollator collator = new JsonCollator();
-			char result = collator.ConvertEscape (input, 0, out endPos);
+            char result = JsonCollator.ConvertEscape (input, 0, out endPos);
 
 			Assert.AreEqual(decoded, result);
 			Assert.AreEqual(input.Length - 1, endPos);
@@ -92,8 +91,7 @@ namespace Couchbase.Lite
 
 		private static void TestCollateEquals(JsonCollationMode mode, String input1, String input2, int arrayLimit, int expectedValue) 
 		{
-			JsonCollator collator = new JsonCollator();
-			int result = collator.Compare(mode, input1, input2, arrayLimit);
+            int result = JsonCollator.Compare(mode, input1, input2, arrayLimit);
 			Assert.AreEqual(expectedValue, result);
 		} 
 

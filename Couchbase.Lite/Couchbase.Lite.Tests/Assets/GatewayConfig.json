@@ -5,8 +5,8 @@
               "databases":{
                       "db":{
                                  "server":"walrus:",
-                                          "bucket":"db",
-                                                   "sync":`function(doc) { channel (["public"]); access(["GUEST"], null); }`
+                                 "users": {"GUEST": {"disabled": false, "all_channels": ["*"], "admin_channels": ["*"]}},
+                                          "bucket":"db"
                                                          }
                                                             }
 }

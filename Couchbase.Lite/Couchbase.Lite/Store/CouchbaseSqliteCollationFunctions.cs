@@ -63,7 +63,7 @@ namespace Couchbase.Lite.Storage
         /// <param name="param2">Param2.</param>
         public override Int32 Compare (String param1, String param2)
         {
-            return JsonCollation.Compare(JsonCollationMode.Unicode, param1, param2);
+            return JsonCollator.Compare(JsonCollationMode.Unicode, param1, param2, Int32.MaxValue);
         }
     }
     [SqliteFunction(Name = "JSON_ASCII", FuncType = FunctionType.Collation, Arguments = 2)]
@@ -81,7 +81,7 @@ namespace Couchbase.Lite.Storage
         /// <param name="param2">Param2.</param>
         public override Int32 Compare (String param1, String param2)
         {
-            return JsonCollation.Compare(JsonCollationMode.Ascii, param1, param2);
+            return JsonCollator.Compare(JsonCollationMode.Ascii, param1, param2, Int32.MaxValue);
         }
     }
 
@@ -100,7 +100,7 @@ namespace Couchbase.Lite.Storage
         /// <param name="param2">Param2.</param>
         public override Int32 Compare (String param1, String param2)
         {
-            return JsonCollation.Compare(JsonCollationMode.Raw, param1, param2);
+            return JsonCollator.Compare(JsonCollationMode.Raw, param1, param2, Int32.MaxValue);
         }
     }
 }

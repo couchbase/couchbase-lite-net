@@ -79,8 +79,7 @@ namespace Couchbase.Lite
             Illegal = 11
         }
 
-        private int[] rawOrderOfValueType = new int[] 
-        {
+        private static readonly int[] rawOrderOfValueType = {
             -4, -3, -2, -1, 2, 1, 3, 0, 6, 5, 4, 7
         };
 
@@ -125,7 +124,7 @@ namespace Couchbase.Lite
             }
         }
 
-        private int RawOrderOfValueType(ValueType type) 
+        private static int RawOrderOfValueType(ValueType type) 
         {
             return rawOrderOfValueType[(int)type];
         }
@@ -163,9 +162,8 @@ namespace Couchbase.Lite
 
             return -1;
         }
-
-        // TODO: Change back to private method.
-        public char ConvertEscape(String str, int start, out int endPos) 
+            
+        internal static char ConvertEscape(String str, int start, out int endPos) 
         {
             int index = start + 1;
 
@@ -212,7 +210,7 @@ namespace Couchbase.Lite
             }
         }
 
-        private String CreateStringFromJSON(String str, int start, out int endPos) 
+        private static String CreateStringFromJSON(String str, int start, out int endPos) 
         {
             StringBuilder sb = new StringBuilder();
 
@@ -238,7 +236,7 @@ namespace Couchbase.Lite
             return sb.ToString();
         }
 
-        private int CompareStringsAscii(String str1, int start1, out int endPos1, 
+        private static int CompareStringsAscii(String str1, int start1, out int endPos1, 
             String str2, int start2, out int endPos2) {
 
             var result = 0;
@@ -308,7 +306,7 @@ namespace Couchbase.Lite
             return result;
         }
 
-        private int CompareStringsUnicode(String str1, int start1, out int endPos1, 
+        private static int CompareStringsUnicode(String str1, int start1, out int endPos1, 
             String str2, int start2, out int endPos2) 
         {
             var s1 = CreateStringFromJSON(str1, start1, out endPos1);
@@ -346,7 +344,7 @@ namespace Couchbase.Lite
         ///     a value 1 if this string is greater than the string argument.
         /// </returns>
         /// 
-        public int Compare(JsonCollationMode mode, String param1, String param2, int arrayLimit)
+        public static int Compare(JsonCollationMode mode, String param1, String param2, int arrayLimit)
         {
             int index1 = 0;
             int index2 = 0;

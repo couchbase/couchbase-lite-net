@@ -56,6 +56,8 @@ using System.Threading.Tasks;
 using System.Net.Http;
 using System.Web;
 using System.Net.Http.Headers;
+using Newtonsoft.Json.Linq;
+using System.Linq;
 
 namespace Couchbase.Lite.Replicator
 {
@@ -210,8 +212,11 @@ namespace Couchbase.Lite.Replicator
             }
             // Call _revs_diff on the target db:
             AsyncTaskStarted();
-            SendAsyncRequest(HttpMethod.Post, "/_revs_diff", diffs, (response, e) => {
-                IDictionary<string, object> results = (IDictionary<string, object>)response;
+            SendAsyncRequest(HttpMethod.Post, "/_revs_diff", diffs, (response, e) => 
+            {
+                var responseData = (JObject)response;
+                var results = responseData.ToObject<IDictionary<string, object>>();
+
                 if (e != null) {
                     LastError = e;
                     Stop ();
@@ -223,9 +228,10 @@ namespace Couchbase.Lite.Replicator
 
                         foreach (var rev in inbox) {
                             IDictionary<string, object> properties = null;
-                            var resultDoc = (IDictionary<String, Object>)results.Get (rev.GetDocId ());
+                            var resultDocData = (JObject)results.Get (rev.GetDocId ());
+                            var resultDoc = resultDocData.ToObject<IDictionary<String, Object>>();
                             if (resultDoc != null) {
-                                var revs = (IList<String>)resultDoc.Get ("missing");
+                                var revs = ((JArray)resultDoc.Get ("missing")).Values<String>().ToList();
                                 if (revs != null && revs.Contains (rev.GetRevId ())) {
                                     //remote server needs this revision
                                     // Get the revision's properties
@@ -272,8 +278,8 @@ namespace Couchbase.Lite.Replicator
 
                         AsyncTaskStarted ();
                         SendAsyncRequest (HttpMethod.Post, "/_bulk_docs", bulkDocsBody, (result, ex) => {
-                            if (e != null) {
-                                LastError = e;
+                            if (ex != null) {
+                                LastError = ex;
                             } else {
                                 Log.V (Tag, string.Format ("{0}: Sent {1}", this, inbox));
                                 LastSequence = string.Format ("{0}", lastInboxSequence);

@@ -67,6 +67,7 @@
   <ItemGroup>
     <Folder Include="Assets\" />
     <Folder Include="Util\" />
+    <Folder Include="Properties\" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Assets\attachment.png" />
