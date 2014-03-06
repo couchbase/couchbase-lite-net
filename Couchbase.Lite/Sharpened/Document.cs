@@ -1,46 +1,23 @@
-//
-// Document.cs
-//
-// Author:
-//	Zachary Gramana  <zack@xamarin.com>
-//
-// Copyright (c) 2013, 2014 Xamarin Inc (http://www.xamarin.com)
-//
-// Permission is hereby granted, free of charge, to any person obtaining
-// a copy of this software and associated documentation files (the
-// "Software"), to deal in the Software without restriction, including
-// without limitation the rights to use, copy, modify, merge, publish,
-// distribute, sublicense, and/or sell copies of the Software, and to
-// permit persons to whom the Software is furnished to do so, subject to
-// the following conditions:
-// 
-// The above copyright notice and this permission notice shall be
-// included in all copies or substantial portions of the Software.
-// 
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-// EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-// MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
-// NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
-// LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
-// OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
-// WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-//
 /**
-* Original iOS version by Jens Alfke
-* Ported to Android by Marty Schoch, Traun Leyden
-*
-* Copyright (c) 2012, 2013, 2014 Couchbase, Inc. All rights reserved.
-*
-* Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file
-* except in compliance with the License. You may obtain a copy of the License at
-*
-* http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software distributed under the
-* License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
-* either express or implied. See the License for the specific language governing permissions
-* and limitations under the License.
-*/
+ * Couchbase Lite for .NET
+ *
+ * Original iOS version by Jens Alfke
+ * Android Port by Marty Schoch, Traun Leyden
+ * C# Port by Zack Gramana
+ *
+ * Copyright (c) 2012, 2013, 2014 Couchbase, Inc. All rights reserved.
+ * Portions (c) 2013, 2014 Xamarin, Inc. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file
+ * except in compliance with the License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the
+ * License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
+ * either express or implied. See the License for the specific language governing permissions
+ * and limitations under the License.
+ */
 
 using System.Collections.Generic;
 using Couchbase.Lite;
@@ -50,8 +27,9 @@ using Sharpen;
 
 namespace Couchbase.Lite
 {
-	/// <summary>A CouchbaseLite document (as opposed to any specific revision of it.)</summary>
-	public class Document
+	/// <summary>A CouchbaseLite document.</summary>
+	/// <remarks>A CouchbaseLite document.</remarks>
+	public sealed class Document
 	{
 		/// <summary>The document's owning database.</summary>
 		/// <remarks>The document's owning database.</remarks>
@@ -65,9 +43,6 @@ namespace Couchbase.Lite
 		/// <remarks>The current/latest revision. This object is cached.</remarks>
 		private SavedRevision currentRevision;
 
-		/// <summary>Application-defined model object representing this document</summary>
-		private object model;
-
 		/// <summary>Change Listeners</summary>
 		private IList<Document.ChangeListener> changeListeners = new AList<Document.ChangeListener
 			>();
@@ -75,6 +50,7 @@ namespace Couchbase.Lite
 		/// <summary>Constructor</summary>
 		/// <param name="database">The document's owning database</param>
 		/// <param name="documentId">The document's ID</param>
+		/// <exclude></exclude>
 		[InterfaceAudience.Private]
 		public Document(Database database, string documentId)
 		{
@@ -85,14 +61,14 @@ namespace Couchbase.Lite
 		/// <summary>Get the document's owning database.</summary>
 		/// <remarks>Get the document's owning database.</remarks>
 		[InterfaceAudience.Public]
-		public virtual Database GetDatabase()
+		public Database GetDatabase()
 		{
 			return database;
 		}
 
 		/// <summary>Get the document's ID</summary>
 		[InterfaceAudience.Public]
-		public virtual string GetId()
+		public string GetId()
 		{
 			return documentId;
 		}
@@ -101,14 +77,14 @@ namespace Couchbase.Lite
 		/// 	</summary>
 		/// <returns>boolean to indicate whether deleted or not</returns>
 		[InterfaceAudience.Public]
-		public virtual bool IsDeleted()
+		public bool IsDeleted()
 		{
 			return GetCurrentRevision().IsDeletion();
 		}
 
 		/// <summary>Get the ID of the current revision</summary>
 		[InterfaceAudience.Public]
-		public virtual string GetCurrentRevisionId()
+		public string GetCurrentRevisionId()
 		{
 			SavedRevision rev = GetCurrentRevision();
 			if (rev == null)
@@ -120,7 +96,7 @@ namespace Couchbase.Lite
 
 		/// <summary>Get the current revision</summary>
 		[InterfaceAudience.Public]
-		public virtual SavedRevision GetCurrentRevision()
+		public SavedRevision GetCurrentRevision()
 		{
 			if (currentRevision == null)
 			{
@@ -136,7 +112,7 @@ namespace Couchbase.Lite
 		/// <exception cref="CouchbaseLiteException">CouchbaseLiteException</exception>
 		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
 		[InterfaceAudience.Public]
-		public virtual IList<SavedRevision> GetRevisionHistory()
+		public IList<SavedRevision> GetRevisionHistory()
 		{
 			if (GetCurrentRevision() == null)
 			{
@@ -155,7 +131,7 @@ namespace Couchbase.Lite
 		/// <exception cref="CouchbaseLiteException">CouchbaseLiteException</exception>
 		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
 		[InterfaceAudience.Public]
-		public virtual IList<SavedRevision> GetConflictingRevisions()
+		public IList<SavedRevision> GetConflictingRevisions()
 		{
 			return GetLeafRevisions(false);
 		}
@@ -172,7 +148,7 @@ namespace Couchbase.Lite
 		/// <exception cref="CouchbaseLiteException">CouchbaseLiteException</exception>
 		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
 		[InterfaceAudience.Public]
-		public virtual IList<SavedRevision> GetLeafRevisions()
+		public IList<SavedRevision> GetLeafRevisions()
 		{
 			return GetLeafRevisions(true);
 		}
@@ -185,7 +161,7 @@ namespace Couchbase.Lite
 		/// </remarks>
 		/// <returns>contents of the current revision of the document.</returns>
 		[InterfaceAudience.Public]
-		public virtual IDictionary<string, object> GetProperties()
+		public IDictionary<string, object> GetProperties()
 		{
 			return GetCurrentRevision().GetProperties();
 		}
@@ -197,7 +173,7 @@ namespace Couchbase.Lite
 		/// </remarks>
 		/// <returns>user-defined properties, without the ones reserved by CouchDB.</returns>
 		[InterfaceAudience.Public]
-		public virtual IDictionary<string, object> GetUserProperties()
+		public IDictionary<string, object> GetUserProperties()
 		{
 			return GetCurrentRevision().GetUserProperties();
 		}
@@ -211,7 +187,7 @@ namespace Couchbase.Lite
 		/// <exception cref="CouchbaseLiteException">CouchbaseLiteException</exception>
 		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
 		[InterfaceAudience.Public]
-		public virtual bool Delete()
+		public bool Delete()
 		{
 			return GetCurrentRevision().DeleteDocument() != null;
 		}
@@ -226,7 +202,7 @@ namespace Couchbase.Lite
 		/// <exception cref="CouchbaseLiteException">CouchbaseLiteException</exception>
 		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
 		[InterfaceAudience.Public]
-		public virtual bool Purge()
+		public bool Purge()
 		{
 			IDictionary<string, IList<string>> docsToRevs = new Dictionary<string, IList<string
 				>>();
@@ -243,9 +219,9 @@ namespace Couchbase.Lite
 		/// <param name="id">the revision ID</param>
 		/// <returns>the SavedRevision object</returns>
 		[InterfaceAudience.Public]
-		public virtual SavedRevision GetRevision(string id)
+		public SavedRevision GetRevision(string id)
 		{
-			if (id.Equals(currentRevision.GetId()))
+			if (currentRevision != null && id.Equals(currentRevision.GetId()))
 			{
 				return currentRevision;
 			}
@@ -270,14 +246,14 @@ namespace Couchbase.Lite
 		/// </remarks>
 		/// <returns>the newly created revision</returns>
 		[InterfaceAudience.Public]
-		public virtual UnsavedRevision CreateRevision()
+		public UnsavedRevision CreateRevision()
 		{
 			return new UnsavedRevision(this, GetCurrentRevision());
 		}
 
 		/// <summary>Shorthand for getProperties().get(key)</summary>
 		[InterfaceAudience.Public]
-		public virtual object GetProperty(string key)
+		public object GetProperty(string key)
 		{
 			return GetCurrentRevision().GetProperties().Get(key);
 		}
@@ -292,8 +268,7 @@ namespace Couchbase.Lite
 		/// <returns>a new SavedRevision</returns>
 		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
 		[InterfaceAudience.Public]
-		public virtual SavedRevision PutProperties(IDictionary<string, object> properties
-			)
+		public SavedRevision PutProperties(IDictionary<string, object> properties)
 		{
 			string prevID = (string)properties.Get("_rev");
 			bool allowConflict = false;
@@ -317,7 +292,7 @@ namespace Couchbase.Lite
 		/// <exception cref="CouchbaseLiteException">CouchbaseLiteException</exception>
 		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
 		[InterfaceAudience.Public]
-		public virtual SavedRevision Update(Document.DocumentUpdater updater)
+		public SavedRevision Update(Document.DocumentUpdater updater)
 		{
 			int lastErrorCode = Status.Unknown;
 			do
@@ -345,35 +320,15 @@ namespace Couchbase.Lite
 		}
 
 		[InterfaceAudience.Public]
-		public virtual void AddChangeListener(Document.ChangeListener changeListener)
+		public void AddChangeListener(Document.ChangeListener changeListener)
 		{
 			changeListeners.AddItem(changeListener);
 		}
 
 		[InterfaceAudience.Public]
-		public virtual void RemoveChangeListener(Document.ChangeListener changeListener)
+		public void RemoveChangeListener(Document.ChangeListener changeListener)
 		{
 			changeListeners.Remove(changeListener);
-		}
-
-		/// <summary>Gets a reference to an optional application-defined model object representing this Document.
-		/// 	</summary>
-		/// <remarks>Gets a reference to an optional application-defined model object representing this Document.
-		/// 	</remarks>
-		[InterfaceAudience.Public]
-		public virtual object GetModel()
-		{
-			return model;
-		}
-
-		/// <summary>Sets a reference to an optional application-defined model object representing this Document.
-		/// 	</summary>
-		/// <remarks>Sets a reference to an optional application-defined model object representing this Document.
-		/// 	</remarks>
-		[InterfaceAudience.Public]
-		public virtual void SetModel(object model)
-		{
-			this.model = model;
 		}
 
 		/// <summary>A delegate that can be used to update a Document.</summary>
@@ -419,8 +374,9 @@ namespace Couchbase.Lite
 		}
 
 		/// <summary>Get the document's abbreviated ID</summary>
+		/// <exclude></exclude>
 		[InterfaceAudience.Private]
-		public virtual string GetAbbreviatedId()
+		public string GetAbbreviatedId()
 		{
 			string abbreviated = documentId;
 			if (documentId.Length > 10)
@@ -433,9 +389,10 @@ namespace Couchbase.Lite
 			return documentId;
 		}
 
+		/// <exclude></exclude>
 		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
 		[InterfaceAudience.Private]
-		internal virtual IList<SavedRevision> GetLeafRevisions(bool includeDeleted)
+		internal IList<SavedRevision> GetLeafRevisions(bool includeDeleted)
 		{
 			IList<SavedRevision> result = new AList<SavedRevision>();
 			RevisionList revs = database.GetAllRevisionsOfDocumentID(documentId, true);
@@ -454,10 +411,11 @@ namespace Couchbase.Lite
 			return Sharpen.Collections.UnmodifiableList(result);
 		}
 
+		/// <exclude></exclude>
 		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
 		[InterfaceAudience.Private]
-		internal virtual SavedRevision PutProperties(IDictionary<string, object> properties
-			, string prevID, bool allowConflict)
+		internal SavedRevision PutProperties(IDictionary<string, object> properties, string
+			 prevID, bool allowConflict)
 		{
 			string newId = null;
 			if (properties != null && properties.ContainsKey("_id"))
@@ -501,9 +459,9 @@ namespace Couchbase.Lite
 			return new SavedRevision(this, newRev);
 		}
 
+		/// <exclude></exclude>
 		[InterfaceAudience.Private]
-		internal virtual SavedRevision GetRevisionFromRev(RevisionInternal internalRevision
-			)
+		internal SavedRevision GetRevisionFromRev(RevisionInternal internalRevision)
 		{
 			if (internalRevision == null)
 			{
@@ -523,8 +481,9 @@ namespace Couchbase.Lite
 			}
 		}
 
+		/// <exclude></exclude>
 		[InterfaceAudience.Private]
-		internal virtual SavedRevision GetRevisionWithId(string revId)
+		internal SavedRevision GetRevisionWithId(string revId)
 		{
 			if (revId != null && currentRevision != null && revId.Equals(currentRevision.GetId
 				()))
@@ -535,8 +494,9 @@ namespace Couchbase.Lite
 				.NoneOf<Database.TDContentOptions>()));
 		}
 
+		/// <exclude></exclude>
 		[InterfaceAudience.Private]
-		internal virtual void LoadCurrentRevisionFrom(QueryRow row)
+		internal void LoadCurrentRevisionFrom(QueryRow row)
 		{
 			if (row.GetDocumentRevisionId() == null)
 			{
@@ -554,14 +514,16 @@ namespace Couchbase.Lite
 			}
 		}
 
+		/// <exclude></exclude>
 		[InterfaceAudience.Private]
 		private bool RevIdGreaterThanCurrent(string revId)
 		{
 			return (RevisionInternal.CBLCompareRevIDs(revId, currentRevision.GetId()) > 0);
 		}
 
+		/// <exclude></exclude>
 		[InterfaceAudience.Private]
-		internal virtual void RevisionAdded(DocumentChange documentChange)
+		internal void RevisionAdded(DocumentChange documentChange)
 		{
 			RevisionInternal rev = documentChange.GetWinningRevision();
 			if (rev == null)

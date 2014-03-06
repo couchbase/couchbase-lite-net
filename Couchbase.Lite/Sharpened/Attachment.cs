@@ -1,46 +1,23 @@
-//
-// Attachment.cs
-//
-// Author:
-//	Zachary Gramana  <zack@xamarin.com>
-//
-// Copyright (c) 2013, 2014 Xamarin Inc (http://www.xamarin.com)
-//
-// Permission is hereby granted, free of charge, to any person obtaining
-// a copy of this software and associated documentation files (the
-// "Software"), to deal in the Software without restriction, including
-// without limitation the rights to use, copy, modify, merge, publish,
-// distribute, sublicense, and/or sell copies of the Software, and to
-// permit persons to whom the Software is furnished to do so, subject to
-// the following conditions:
-// 
-// The above copyright notice and this permission notice shall be
-// included in all copies or substantial portions of the Software.
-// 
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-// EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-// MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
-// NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
-// LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
-// OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
-// WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-//
 /**
-* Original iOS version by Jens Alfke
-* Ported to Android by Marty Schoch, Traun Leyden
-*
-* Copyright (c) 2012, 2013, 2014 Couchbase, Inc. All rights reserved.
-*
-* Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file
-* except in compliance with the License. You may obtain a copy of the License at
-*
-* http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software distributed under the
-* License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
-* either express or implied. See the License for the specific language governing permissions
-* and limitations under the License.
-*/
+ * Couchbase Lite for .NET
+ *
+ * Original iOS version by Jens Alfke
+ * Android Port by Marty Schoch, Traun Leyden
+ * C# Port by Zack Gramana
+ *
+ * Copyright (c) 2012, 2013, 2014 Couchbase, Inc. All rights reserved.
+ * Portions (c) 2013, 2014 Xamarin, Inc. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file
+ * except in compliance with the License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the
+ * License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
+ * either express or implied. See the License for the specific language governing permissions
+ * and limitations under the License.
+ */
 
 using System;
 using System.Collections.Generic;
@@ -53,7 +30,7 @@ namespace Couchbase.Lite
 {
 	/// <summary>A Couchbase Lite Document Attachment.</summary>
 	/// <remarks>A Couchbase Lite Document Attachment.</remarks>
-	public class Attachment
+	public sealed class Attachment
 	{
 		/// <summary>The owning document revision.</summary>
 		/// <remarks>The owning document revision.</remarks>
@@ -105,7 +82,7 @@ namespace Couchbase.Lite
 		/// <summary>Get the owning document revision.</summary>
 		/// <remarks>Get the owning document revision.</remarks>
 		[InterfaceAudience.Public]
-		public virtual Revision GetRevision()
+		public Revision GetRevision()
 		{
 			return revision;
 		}
@@ -113,7 +90,7 @@ namespace Couchbase.Lite
 		/// <summary>Get the owning document.</summary>
 		/// <remarks>Get the owning document.</remarks>
 		[InterfaceAudience.Public]
-		public virtual Document GetDocument()
+		public Document GetDocument()
 		{
 			return revision.GetDocument();
 		}
@@ -121,7 +98,7 @@ namespace Couchbase.Lite
 		/// <summary>Get the filename.</summary>
 		/// <remarks>Get the filename.</remarks>
 		[InterfaceAudience.Public]
-		public virtual string GetName()
+		public string GetName()
 		{
 			return name;
 		}
@@ -129,7 +106,7 @@ namespace Couchbase.Lite
 		/// <summary>Get the MIME type of the contents.</summary>
 		/// <remarks>Get the MIME type of the contents.</remarks>
 		[InterfaceAudience.Public]
-		public virtual string GetContentType()
+		public string GetContentType()
 		{
 			return (string)metadata.Get("content_type");
 		}
@@ -139,7 +116,7 @@ namespace Couchbase.Lite
 		/// <exception cref="CouchbaseLiteException">CouchbaseLiteException</exception>
 		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
 		[InterfaceAudience.Public]
-		public virtual InputStream GetContent()
+		public InputStream GetContent()
 		{
 			if (body != null)
 			{
@@ -158,9 +135,9 @@ namespace Couchbase.Lite
 		/// <summary>Get the length in bytes of the contents.</summary>
 		/// <remarks>Get the length in bytes of the contents.</remarks>
 		[InterfaceAudience.Public]
-		public virtual long GetLength()
+		public long GetLength()
 		{
-			long length = (long)metadata.Get("length");
+			Number length = (Number)metadata.Get("length");
 			if (length != null)
 			{
 				return length;
@@ -176,25 +153,25 @@ namespace Couchbase.Lite
 		/// <remarks>The CouchbaseLite metadata about the attachment, that lives in the document.
 		/// 	</remarks>
 		[InterfaceAudience.Public]
-		public virtual IDictionary<string, object> GetMetadata()
+		public IDictionary<string, object> GetMetadata()
 		{
 			return Sharpen.Collections.UnmodifiableMap(metadata);
 		}
 
 		[InterfaceAudience.Private]
-		internal virtual void SetName(string name)
+		internal void SetName(string name)
 		{
 			this.name = name;
 		}
 
 		[InterfaceAudience.Private]
-		internal virtual void SetRevision(Revision revision)
+		internal void SetRevision(Revision revision)
 		{
 			this.revision = revision;
 		}
 
 		[InterfaceAudience.Private]
-		internal virtual InputStream GetBodyIfNew()
+		internal InputStream GetBodyIfNew()
 		{
 			return body;
 		}
@@ -240,6 +217,13 @@ namespace Couchbase.Lite
 						throw new ArgumentException("AttachmentInternal objects not expected here.  Could indicate a bug"
 							);
 					}
+					else
+					{
+						if (value != null)
+						{
+							updatedAttachments.Put(name, value);
+						}
+					}
 				}
 			}
 			return updatedAttachments;
@@ -255,14 +239,16 @@ namespace Couchbase.Lite
 			return writer;
 		}
 
+		/// <exclude></exclude>
 		[InterfaceAudience.Private]
-		public virtual bool GetGZipped()
+		public bool GetGZipped()
 		{
 			return gzipped;
 		}
 
+		/// <exclude></exclude>
 		[InterfaceAudience.Private]
-		public virtual void SetGZipped(bool gzipped)
+		public void SetGZipped(bool gzipped)
 		{
 			this.gzipped = gzipped;
 		}

@@ -1,47 +1,25 @@
-//
-// AttachmentsTest.cs
-//
-// Author:
-//	Zachary Gramana  <zack@xamarin.com>
-//
-// Copyright (c) 2013, 2014 Xamarin Inc (http://www.xamarin.com)
-//
-// Permission is hereby granted, free of charge, to any person obtaining
-// a copy of this software and associated documentation files (the
-// "Software"), to deal in the Software without restriction, including
-// without limitation the rights to use, copy, modify, merge, publish,
-// distribute, sublicense, and/or sell copies of the Software, and to
-// permit persons to whom the Software is furnished to do so, subject to
-// the following conditions:
-// 
-// The above copyright notice and this permission notice shall be
-// included in all copies or substantial portions of the Software.
-// 
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-// EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-// MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
-// NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
-// LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
-// OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
-// WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-//
 /**
-* Original iOS version by Jens Alfke
-* Ported to Android by Marty Schoch, Traun Leyden
-*
-* Copyright (c) 2012, 2013, 2014 Couchbase, Inc. All rights reserved.
-*
-* Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file
-* except in compliance with the License. You may obtain a copy of the License at
-*
-* http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software distributed under the
-* License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
-* either express or implied. See the License for the specific language governing permissions
-* and limitations under the License.
-*/
+ * Couchbase Lite for .NET
+ *
+ * Original iOS version by Jens Alfke
+ * Android Port by Marty Schoch, Traun Leyden
+ * C# Port by Zack Gramana
+ *
+ * Copyright (c) 2012, 2013, 2014 Couchbase, Inc. All rights reserved.
+ * Portions (c) 2013, 2014 Xamarin, Inc. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file
+ * except in compliance with the License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the
+ * License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
+ * either express or implied. See the License for the specific language governing permissions
+ * and limitations under the License.
+ */
 
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
@@ -149,9 +127,8 @@ namespace Couchbase.Lite
 			expected.AddItem(BlobStore.KeyForBlob(attach1));
 			expected.AddItem(BlobStore.KeyForBlob(attach2));
 			NUnit.Framework.Assert.AreEqual(expected, attachments.AllKeys());
-			status = database.Compact();
+			database.Compact();
 			// This clears the body of the first revision
-			NUnit.Framework.Assert.AreEqual(Status.Ok, status.GetCode());
 			NUnit.Framework.Assert.AreEqual(1, attachments.Count());
 			ICollection<BlobKey> expected2 = new HashSet<BlobKey>();
 			expected2.AddItem(BlobStore.KeyForBlob(attach2));
@@ -418,7 +395,7 @@ namespace Couchbase.Lite
 			rev.Save();
 			// do query that finds that doc with prefetch
 			View view = database.GetView("aview");
-			view.SetMapAndReduce(new _Mapper_434(), null, "1");
+			view.SetMapReduce(new _Mapper_432(), null, "1");
 			// try to get the attachment
 			Query query = view.CreateQuery();
 			query.SetPrefetch(true);
@@ -446,9 +423,9 @@ namespace Couchbase.Lite
 			}
 		}
 
-		private sealed class _Mapper_434 : Mapper
+		private sealed class _Mapper_432 : Mapper
 		{
-			public _Mapper_434()
+			public _Mapper_432()
 			{
 			}
 
@@ -457,6 +434,57 @@ namespace Couchbase.Lite
 				string id = (string)document.Get("_id");
 				emitter.Emit(id, null);
 			}
+		}
+
+		/// <summary>Regression test for https://github.com/couchbase/couchbase-lite-android-core/issues/70
+		/// 	</summary>
+		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
+		/// <exception cref="System.IO.IOException"></exception>
+		public virtual void TestAttachmentDisappearsAfterSave()
+		{
+			// create a doc with an attachment
+			Document doc = database.CreateDocument();
+			string content = "This is a test attachment!";
+			ByteArrayInputStream body = new ByteArrayInputStream(Sharpen.Runtime.GetBytesForString
+				(content));
+			UnsavedRevision rev = doc.CreateRevision();
+			rev.SetAttachment("index.html", "text/plain; charset=utf-8", body);
+			rev.Save();
+			// make sure the doc's latest revision has the attachment
+			IDictionary<string, object> attachments = (IDictionary)doc.GetCurrentRevision().GetProperty
+				("_attachments");
+			NUnit.Framework.Assert.IsNotNull(attachments);
+			NUnit.Framework.Assert.AreEqual(1, attachments.Count);
+			// make sure the rev has the attachment
+			attachments = (IDictionary)rev.GetProperty("_attachments");
+			NUnit.Framework.Assert.IsNotNull(attachments);
+			NUnit.Framework.Assert.AreEqual(1, attachments.Count);
+			// create new properties to add
+			IDictionary<string, object> properties = new Dictionary<string, object>();
+			properties.Put("foo", "bar");
+			// make sure the new rev still has the attachment
+			UnsavedRevision rev2 = doc.CreateRevision();
+			rev2.GetProperties().PutAll(properties);
+			rev2.Save();
+			attachments = (IDictionary)rev2.GetProperty("_attachments");
+			NUnit.Framework.Assert.IsNotNull(attachments);
+			NUnit.Framework.Assert.AreEqual(1, attachments.Count);
+		}
+
+		/// <summary>Regression test for https://github.com/couchbase/couchbase-lite-android-core/issues/70
+		/// 	</summary>
+		/// <exception cref="System.Exception"></exception>
+		public virtual void TestAttachmentInstallBodies()
+		{
+			IDictionary<string, object> attachmentsMap = new Dictionary<string, object>();
+			IDictionary<string, object> attachmentMap = new Dictionary<string, object>();
+			attachmentMap.Put("length", 25);
+			string attachmentName = "index.html";
+			attachmentsMap.Put(attachmentName, attachmentMap);
+			IDictionary<string, object> updatedAttachments = Attachment.InstallAttachmentBodies
+				(attachmentsMap, database);
+			NUnit.Framework.Assert.IsTrue(updatedAttachments.Count > 0);
+			NUnit.Framework.Assert.IsTrue(updatedAttachments.ContainsKey(attachmentName));
 		}
 	}
 }

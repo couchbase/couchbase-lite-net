@@ -19,18 +19,17 @@
  * and limitations under the License.
  */
 
-using System;
-using Couchbase.Lite.Router;
+using Couchbase.Lite;
 using Sharpen;
 
-namespace Couchbase.Lite.Router
+namespace Couchbase.Lite
 {
-	public class URLHandler : URLStreamHandler
+	/// <summary>A delegate that can be run in a transaction on a Database.</summary>
+	/// <remarks>A delegate that can be run in a transaction on a Database.</remarks>
+	public interface TransactionalTask
 	{
-		/// <exception cref="System.IO.IOException"></exception>
-		protected override URLConnection OpenConnection(Uri u)
-		{
-			return new URLConnection(u);
-		}
+		/// <summary>Run in a transaction</summary>
+		/// <returns>true if the transaction should be committed, otherwise false.</returns>
+		bool Run();
 	}
 }

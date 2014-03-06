@@ -1,46 +1,23 @@
-//
-// Database.cs
-//
-// Author:
-//	Zachary Gramana  <zack@xamarin.com>
-//
-// Copyright (c) 2013, 2014 Xamarin Inc (http://www.xamarin.com)
-//
-// Permission is hereby granted, free of charge, to any person obtaining
-// a copy of this software and associated documentation files (the
-// "Software"), to deal in the Software without restriction, including
-// without limitation the rights to use, copy, modify, merge, publish,
-// distribute, sublicense, and/or sell copies of the Software, and to
-// permit persons to whom the Software is furnished to do so, subject to
-// the following conditions:
-// 
-// The above copyright notice and this permission notice shall be
-// included in all copies or substantial portions of the Software.
-// 
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-// EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-// MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
-// NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
-// LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
-// OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
-// WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-//
 /**
-* Original iOS version by Jens Alfke
-* Ported to Android by Marty Schoch, Traun Leyden
-*
-* Copyright (c) 2012, 2013, 2014 Couchbase, Inc. All rights reserved.
-*
-* Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file
-* except in compliance with the License. You may obtain a copy of the License at
-*
-* http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software distributed under the
-* License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
-* either express or implied. See the License for the specific language governing permissions
-* and limitations under the License.
-*/
+ * Couchbase Lite for .NET
+ *
+ * Original iOS version by Jens Alfke
+ * Android Port by Marty Schoch, Traun Leyden
+ * C# Port by Zack Gramana
+ *
+ * Copyright (c) 2012, 2013, 2014 Couchbase, Inc. All rights reserved.
+ * Portions (c) 2013, 2014 Xamarin, Inc. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file
+ * except in compliance with the License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the
+ * License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
+ * either express or implied. See the License for the specific language governing permissions
+ * and limitations under the License.
+ */
 
 using System;
 using System.Collections;
@@ -59,9 +36,11 @@ namespace Couchbase.Lite
 {
 	/// <summary>A CouchbaseLite database.</summary>
 	/// <remarks>A CouchbaseLite database.</remarks>
-	public class Database
+	public sealed class Database
 	{
 		private const int MaxDocCacheSize = 50;
+
+		private const int DefaultMaxRevs = int.MaxValue;
 
 		private static ReplicationFilterCompiler filterCompiler;
 
@@ -75,8 +54,10 @@ namespace Couchbase.Lite
 
 		private int transactionLevel = 0;
 
+		/// <exclude></exclude>
 		public const string Tag = "Database";
 
+		/// <exclude></exclude>
 		public const string TagSql = "CBLSQL";
 
 		private IDictionary<string, View> views;
@@ -87,21 +68,32 @@ namespace Couchbase.Lite
 
 		private IDictionary<string, BlobStoreWriter> pendingAttachmentsByDigest;
 
-		private IList<Replication> activeReplicators;
+		private ICollection<Replication> activeReplicators;
+
+		private ICollection<Replication> allReplicators;
 
 		private BlobStore attachments;
 
 		private Manager manager;
 
-		private IList<Database.ChangeListener> changeListeners;
+		private readonly IList<Database.ChangeListener> changeListeners;
 
 		private LruCache<string, Document> docCache;
 
+		private IList<DocumentChange> changesToNotify;
+
+		private bool postingChangeNotifications;
+
+		private int maxRevTreeDepth = DefaultMaxRevs;
+
 		private long startTime;
 
+		/// <summary>Length that constitutes a 'big' attachment</summary>
+		/// <exclude></exclude>
 		public static int kBigAttachmentLength = (16 * 1024);
 
 		/// <summary>Options for what metadata to include in document bodies</summary>
+		/// <exclude></exclude>
 		public enum TDContentOptions
 		{
 			TDIncludeAttachments,
@@ -117,7 +109,7 @@ namespace Couchbase.Lite
 
 		static Database()
 		{
-			// Length that constitutes a 'big' attachment
+			// Default value for maxRevTreeDepth, the max rev depth to preserve in a prune operation
 			KnownSpecialKeys = new HashSet<string>();
 			KnownSpecialKeys.AddItem("_id");
 			KnownSpecialKeys.AddItem("_rev");
@@ -129,6 +121,7 @@ namespace Couchbase.Lite
 			KnownSpecialKeys.AddItem("_deleted_conflicts");
 		}
 
+		/// <exclude></exclude>
 		public const string Schema = string.Empty + "CREATE TABLE docs ( " + "        doc_id INTEGER PRIMARY KEY, "
 			 + "        docid TEXT UNIQUE NOT NULL); " + "    CREATE INDEX docs_docid ON docs(docid); "
 			 + "    CREATE TABLE revs ( " + "        sequence INTEGER PRIMARY KEY AUTOINCREMENT, "
@@ -171,6 +164,7 @@ namespace Couchbase.Lite
 		}
 
 		/// <summary>Constructor</summary>
+		/// <exclude></exclude>
 		[InterfaceAudience.Private]
 		public Database(string path, Manager manager)
 		{
@@ -179,15 +173,21 @@ namespace Couchbase.Lite
 			this.path = path;
 			this.name = FileDirUtils.GetDatabaseNameFromPath(path);
 			this.manager = manager;
-			this.changeListeners = new AList<Database.ChangeListener>();
+			this.changeListeners = Sharpen.Collections.SynchronizedList(new AList<Database.ChangeListener
+				>());
 			this.docCache = new LruCache<string, Document>(MaxDocCacheSize);
 			this.startTime = Runtime.CurrentTimeMillis();
+			this.changesToNotify = new AList<DocumentChange>();
+			this.activeReplicators = Sharpen.Collections.SynchronizedSet(new HashSet<Replication
+				>());
+			this.allReplicators = Sharpen.Collections.SynchronizedSet(new HashSet<Replication
+				>());
 		}
 
 		/// <summary>Get the database's name.</summary>
 		/// <remarks>Get the database's name.</remarks>
 		[InterfaceAudience.Public]
-		public virtual string GetName()
+		public string GetName()
 		{
 			return name;
 		}
@@ -195,7 +195,7 @@ namespace Couchbase.Lite
 		/// <summary>The database manager that owns this database.</summary>
 		/// <remarks>The database manager that owns this database.</remarks>
 		[InterfaceAudience.Public]
-		public virtual Manager GetManager()
+		public Manager GetManager()
 		{
 			return manager;
 		}
@@ -203,7 +203,7 @@ namespace Couchbase.Lite
 		/// <summary>The number of documents in the database.</summary>
 		/// <remarks>The number of documents in the database.</remarks>
 		[InterfaceAudience.Public]
-		public virtual int GetDocumentCount()
+		public int GetDocumentCount()
 		{
 			string sql = "SELECT COUNT(DISTINCT doc_id) FROM revs WHERE current=1 AND deleted=0";
 			Cursor cursor = null;
@@ -237,7 +237,7 @@ namespace Couchbase.Lite
 		/// used to check whether the database has changed between two points in time.
 		/// </remarks>
 		[InterfaceAudience.Public]
-		public virtual long GetLastSequenceNumber()
+		public long GetLastSequenceNumber()
 		{
 			string sql = "SELECT MAX(sequence) FROM revs";
 			Cursor cursor = null;
@@ -267,26 +267,34 @@ namespace Couchbase.Lite
 		/// <summary>Get all the replicators associated with this database.</summary>
 		/// <remarks>Get all the replicators associated with this database.</remarks>
 		[InterfaceAudience.Public]
-		public virtual IList<Replication> GetAllReplications()
+		public IList<Replication> GetAllReplications()
 		{
-			return activeReplicators;
+			IList<Replication> allReplicatorsList = new AList<Replication>();
+			if (allReplicators != null)
+			{
+				Sharpen.Collections.AddAll(allReplicatorsList, allReplicators);
+			}
+			return allReplicatorsList;
 		}
 
 		/// <summary>
-		/// Compacts the database file by purging non-current revisions, deleting unused attachment files,
-		/// and running a SQLite "VACUUM" command.
+		/// Compacts the database file by purging non-current JSON bodies, pruning revisions older than
+		/// the maxRevTreeDepth, deleting unused attachment files, and vacuuming the SQLite database.
 		/// </summary>
 		/// <remarks>
-		/// Compacts the database file by purging non-current revisions, deleting unused attachment files,
-		/// and running a SQLite "VACUUM" command.
+		/// Compacts the database file by purging non-current JSON bodies, pruning revisions older than
+		/// the maxRevTreeDepth, deleting unused attachment files, and vacuuming the SQLite database.
 		/// </remarks>
+		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
 		[InterfaceAudience.Public]
-		public virtual Status Compact()
+		public void Compact()
 		{
 			// Can't delete any rows because that would lose revision tree history.
 			// But we can remove the JSON of non-current revisions, which is most of the space.
 			try
 			{
+				Log.V(Couchbase.Lite.Database.Tag, "Pruning old revisions...");
+				PruneRevsToMaxDepth(0);
 				Log.V(Couchbase.Lite.Database.Tag, "Deleting JSON of old revisions...");
 				ContentValues args = new ContentValues();
 				args.Put("json", (string)null);
@@ -295,10 +303,14 @@ namespace Couchbase.Lite
 			catch (SQLException e)
 			{
 				Log.E(Couchbase.Lite.Database.Tag, "Error compacting", e);
-				return new Status(Status.InternalServerError);
+				throw new CouchbaseLiteException(Status.InternalServerError);
 			}
 			Log.V(Couchbase.Lite.Database.Tag, "Deleting old attachments...");
 			Status result = GarbageCollectAttachments();
+			if (!result.IsSuccessful())
+			{
+				throw new CouchbaseLiteException(result);
+			}
 			Log.V(Couchbase.Lite.Database.Tag, "Vacuuming SQLite sqliteDb...");
 			try
 			{
@@ -307,36 +319,45 @@ namespace Couchbase.Lite
 			catch (SQLException e)
 			{
 				Log.E(Couchbase.Lite.Database.Tag, "Error vacuuming sqliteDb", e);
-				return new Status(Status.InternalServerError);
+				throw new CouchbaseLiteException(Status.InternalServerError);
 			}
-			return result;
 		}
 
 		/// <summary>Deletes the database.</summary>
 		/// <remarks>Deletes the database.</remarks>
+		/// <exception cref="Sharpen.RuntimeException">Sharpen.RuntimeException</exception>
+		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
 		[InterfaceAudience.Public]
-		public virtual bool Delete()
+		public void Delete()
 		{
 			if (open)
 			{
 				if (!Close())
 				{
-					return false;
+					throw new CouchbaseLiteException("The database was open, and could not be closed"
+						, Status.InternalServerError);
 				}
 			}
-			else
+			manager.ForgetDatabase(this);
+			if (!Exists())
 			{
-				if (!Exists())
-				{
-					return true;
-				}
+				return;
 			}
 			FilePath file = new FilePath(path);
 			FilePath attachmentsFile = new FilePath(GetAttachmentStorePath());
 			bool deleteStatus = file.Delete();
 			//recursively delete attachments path
 			bool deleteAttachmentStatus = FileDirUtils.DeleteRecursive(attachmentsFile);
-			return deleteStatus && deleteAttachmentStatus;
+			if (!deleteStatus)
+			{
+				throw new CouchbaseLiteException("Was not able to delete the database file", Status
+					.InternalServerError);
+			}
+			if (!deleteAttachmentStatus)
+			{
+				throw new CouchbaseLiteException("Was not able to delete the attachments files", 
+					Status.InternalServerError);
+			}
 		}
 
 		/// <summary>Instantiates a Document object with the given ID.</summary>
@@ -351,7 +372,7 @@ namespace Couchbase.Lite
 		/// <param name="documentId"></param>
 		/// <returns></returns>
 		[InterfaceAudience.Public]
-		public virtual Document GetDocument(string documentId)
+		public Document GetDocument(string documentId)
 		{
 			if (documentId == null || documentId.Length == 0)
 			{
@@ -373,7 +394,7 @@ namespace Couchbase.Lite
 		/// <summary>Gets the Document with the given id, or null if it does not exist.</summary>
 		/// <remarks>Gets the Document with the given id, or null if it does not exist.</remarks>
 		[InterfaceAudience.Public]
-		public virtual Document GetExistingDocument(string documentId)
+		public Document GetExistingDocument(string documentId)
 		{
 			if (documentId == null || documentId.Length == 0)
 			{
@@ -395,7 +416,7 @@ namespace Couchbase.Lite
 		/// The document will be saved to the database when you call -createRevision: on it.
 		/// </remarks>
 		[InterfaceAudience.Public]
-		public virtual Document CreateDocument()
+		public Document CreateDocument()
 		{
 			return GetDocument(Misc.TDCreateUUID());
 		}
@@ -405,8 +426,7 @@ namespace Couchbase.Lite
 		/// <remarks>Returns the contents of the local document with the given ID, or nil if none exists.
 		/// 	</remarks>
 		[InterfaceAudience.Public]
-		public virtual IDictionary<string, object> GetExistingLocalDocument(string documentId
-			)
+		public IDictionary<string, object> GetExistingLocalDocument(string documentId)
 		{
 			RevisionInternal revInt = GetLocalDocument(MakeLocalDocumentId(documentId), null);
 			if (revInt == null)
@@ -424,8 +444,7 @@ namespace Couchbase.Lite
 		/// </remarks>
 		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
 		[InterfaceAudience.Public]
-		public virtual bool PutLocalDocument(IDictionary<string, object> properties, string
-			 id)
+		public bool PutLocalDocument(string id, IDictionary<string, object> properties)
 		{
 			// TODO: the iOS implementation wraps this in a transaction, this should do the same.
 			id = MakeLocalDocumentId(id);
@@ -458,7 +477,7 @@ namespace Couchbase.Lite
 		/// <remarks>Deletes the local document with the given ID.</remarks>
 		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
 		[InterfaceAudience.Public]
-		public virtual bool DeleteLocalDocument(string id)
+		public bool DeleteLocalDocument(string id)
 		{
 			id = MakeLocalDocumentId(id);
 			RevisionInternal prevRev = GetLocalDocument(id, null);
@@ -476,7 +495,7 @@ namespace Couchbase.Lite
 		/// This is like querying an imaginary view that emits every document's ID as a key.
 		/// </remarks>
 		[InterfaceAudience.Public]
-		public virtual Query CreateAllDocumentsQuery()
+		public Query CreateAllDocumentsQuery()
 		{
 			return new Query(this, (View)null);
 		}
@@ -488,7 +507,7 @@ namespace Couchbase.Lite
 		/// the database until the View is assigned a map function.)
 		/// </remarks>
 		[InterfaceAudience.Public]
-		public virtual View GetView(string name)
+		public View GetView(string name)
 		{
 			View view = null;
 			if (views != null)
@@ -505,7 +524,7 @@ namespace Couchbase.Lite
 		/// <summary>Returns the existing View with the given name, or nil if none.</summary>
 		/// <remarks>Returns the existing View with the given name, or nil if none.</remarks>
 		[InterfaceAudience.Public]
-		public virtual View GetExistingView(string name)
+		public View GetExistingView(string name)
 		{
 			View view = null;
 			if (views != null)
@@ -531,7 +550,7 @@ namespace Couchbase.Lite
 		/// Note that validations are not persistent -- you have to re-register them on every launch.
 		/// </remarks>
 		[InterfaceAudience.Public]
-		public virtual Validator GetValidation(string name)
+		public Validator GetValidation(string name)
 		{
 			Validator result = null;
 			if (validations != null)
@@ -548,7 +567,7 @@ namespace Couchbase.Lite
 		/// chance to reject it. (This includes incoming changes from a pull replication.)
 		/// </remarks>
 		[InterfaceAudience.Public]
-		public virtual void SetValidation(string name, Validator validator)
+		public void SetValidation(string name, Validator validator)
 		{
 			if (validations == null)
 			{
@@ -571,7 +590,7 @@ namespace Couchbase.Lite
 		/// Note that filters are not persistent -- you have to re-register them on every launch.
 		/// </remarks>
 		[InterfaceAudience.Public]
-		public virtual ReplicationFilter GetFilter(string filterName)
+		public ReplicationFilter GetFilter(string filterName)
 		{
 			ReplicationFilter result = null;
 			if (filters != null)
@@ -612,7 +631,7 @@ namespace Couchbase.Lite
 		/// Filters are used by push replications to choose which documents to send.
 		/// </remarks>
 		[InterfaceAudience.Public]
-		public virtual void SetFilter(string filterName, ReplicationFilter filter)
+		public void SetFilter(string filterName, ReplicationFilter filter)
 		{
 			if (filters == null)
 			{
@@ -636,15 +655,15 @@ namespace Couchbase.Lite
 		/// Does not commit the transaction if the code throws an Exception.
 		/// TODO: the iOS version has a retry loop, so there should be one here too
 		/// </remarks>
-		/// <param name="databaseFunction"></param>
+		/// <param name="transactionalTask"></param>
 		[InterfaceAudience.Public]
-		public virtual bool RunInTransaction(TransactionTask databaseFunction)
+		public bool RunInTransaction(TransactionalTask transactionalTask)
 		{
 			bool shouldCommit = true;
 			BeginTransaction();
 			try
 			{
-				shouldCommit = databaseFunction.Run();
+				shouldCommit = transactionalTask.Run();
 			}
 			catch (Exception e)
 			{
@@ -662,58 +681,52 @@ namespace Couchbase.Lite
 		/// <summary>Runs the delegate asynchronously.</summary>
 		/// <remarks>Runs the delegate asynchronously.</remarks>
 		[InterfaceAudience.Public]
-		public virtual Future RunAsync(AsyncTask function)
+		public Future RunAsync(AsyncTask asyncTask)
 		{
-			return GetManager().RunAsync(new _Runnable_588(this, function));
+			return GetManager().RunAsync(new _Runnable_639(this, asyncTask));
 		}
 
-		private sealed class _Runnable_588 : Runnable
+		private sealed class _Runnable_639 : Runnable
 		{
-			public _Runnable_588(Database _enclosing, AsyncTask function)
+			public _Runnable_639(Database _enclosing, AsyncTask asyncTask)
 			{
 				this._enclosing = _enclosing;
-				this.function = function;
+				this.asyncTask = asyncTask;
 			}
 
 			public void Run()
 			{
-				function.Run(this._enclosing);
+				asyncTask.Run(this._enclosing);
 			}
 
 			private readonly Database _enclosing;
 
-			private readonly AsyncTask function;
+			private readonly AsyncTask asyncTask;
 		}
 
-		/// <summary>
-		/// Creates a replication that will 'push' to a database at the given URL, or returns an existing
-		/// such replication if there already is one.
-		/// </summary>
-		/// <remarks>
-		/// Creates a replication that will 'push' to a database at the given URL, or returns an existing
-		/// such replication if there already is one.
-		/// </remarks>
-		/// <param name="remote"></param>
-		/// <returns></returns>
+		/// <summary>Creates a new Replication that will push to the target Database at the given url.
+		/// 	</summary>
+		/// <remarks>Creates a new Replication that will push to the target Database at the given url.
+		/// 	</remarks>
+		/// <param name="remote">the remote URL to push to</param>
+		/// <returns>A new Replication that will push to the target Database at the given url.
+		/// 	</returns>
 		[InterfaceAudience.Public]
-		public virtual Replication CreatePushReplication(Uri remote)
+		public Replication CreatePushReplication(Uri remote)
 		{
 			bool continuous = false;
 			return new Pusher(this, remote, continuous, manager.GetWorkExecutor());
 		}
 
-		/// <summary>
-		/// Creates a replication that will 'pull' from a database at the given URL, or returns an existing
-		/// such replication if there already is one.
-		/// </summary>
-		/// <remarks>
-		/// Creates a replication that will 'pull' from a database at the given URL, or returns an existing
-		/// such replication if there already is one.
-		/// </remarks>
-		/// <param name="remote"></param>
-		/// <returns></returns>
+		/// <summary>Creates a new Replication that will pull from the source Database at the given url.
+		/// 	</summary>
+		/// <remarks>Creates a new Replication that will pull from the source Database at the given url.
+		/// 	</remarks>
+		/// <param name="remote">the remote URL to pull from</param>
+		/// <returns>A new Replication that will pull from the source Database at the given url.
+		/// 	</returns>
 		[InterfaceAudience.Public]
-		public virtual Replication CreatePullReplication(Uri remote)
+		public Replication CreatePullReplication(Uri remote)
 		{
 			bool continuous = false;
 			return new Puller(this, remote, continuous, manager.GetWorkExecutor());
@@ -725,7 +738,7 @@ namespace Couchbase.Lite
 		/// 	</remarks>
 		/// <param name="listener"></param>
 		[InterfaceAudience.Public]
-		public virtual void AddChangeListener(Database.ChangeListener listener)
+		public void AddChangeListener(Database.ChangeListener listener)
 		{
 			changeListeners.AddItem(listener);
 		}
@@ -736,17 +749,21 @@ namespace Couchbase.Lite
 		/// 	</remarks>
 		/// <param name="listener"></param>
 		[InterfaceAudience.Public]
-		public virtual void RemoveChangeListener(Database.ChangeListener listener)
+		public void RemoveChangeListener(Database.ChangeListener listener)
 		{
 			changeListeners.Remove(listener);
 		}
 
+		/// <summary>Returns a string representation of this database.</summary>
+		/// <remarks>Returns a string representation of this database.</remarks>
 		[InterfaceAudience.Public]
 		public override string ToString()
 		{
 			return this.GetType().FullName + "[" + path + "]";
 		}
 
+		/// <summary>The type of event raised when a Database changes.</summary>
+		/// <remarks>The type of event raised when a Database changes.</remarks>
 		public class ChangeEvent
 		{
 			private Database source;
@@ -779,17 +796,50 @@ namespace Couchbase.Lite
 			}
 		}
 
+		/// <summary>A delegate that can be used to listen for Database changes.</summary>
+		/// <remarks>A delegate that can be used to listen for Database changes.</remarks>
 		public interface ChangeListener
 		{
 			void Changed(Database.ChangeEvent @event);
+		}
+
+		/// <summary>
+		/// Get the maximum depth of a document's revision tree (or, max length of its revision history.)
+		/// Revisions older than this limit will be deleted during a -compact: operation.
+		/// </summary>
+		/// <remarks>
+		/// Get the maximum depth of a document's revision tree (or, max length of its revision history.)
+		/// Revisions older than this limit will be deleted during a -compact: operation.
+		/// Smaller values save space, at the expense of making document conflicts somewhat more likely.
+		/// </remarks>
+		[InterfaceAudience.Public]
+		public int GetMaxRevTreeDepth()
+		{
+			return maxRevTreeDepth;
+		}
+
+		/// <summary>
+		/// Set the maximum depth of a document's revision tree (or, max length of its revision history.)
+		/// Revisions older than this limit will be deleted during a -compact: operation.
+		/// </summary>
+		/// <remarks>
+		/// Set the maximum depth of a document's revision tree (or, max length of its revision history.)
+		/// Revisions older than this limit will be deleted during a -compact: operation.
+		/// Smaller values save space, at the expense of making document conflicts somewhat more likely.
+		/// </remarks>
+		[InterfaceAudience.Public]
+		public void SetMaxRevTreeDepth(int maxRevTreeDepth)
+		{
+			this.maxRevTreeDepth = maxRevTreeDepth;
 		}
 
 		/// <summary>Returns the already-instantiated cached Document with the given ID, or nil if none is yet cached.
 		/// 	</summary>
 		/// <remarks>Returns the already-instantiated cached Document with the given ID, or nil if none is yet cached.
 		/// 	</remarks>
+		/// <exclude></exclude>
 		[InterfaceAudience.Private]
-		protected internal virtual Document GetCachedDocument(string documentID)
+		protected internal Document GetCachedDocument(string documentID)
 		{
 			return docCache.Get(documentID);
 		}
@@ -799,26 +849,43 @@ namespace Couchbase.Lite
 		/// Empties the cache of recently used Document objects.
 		/// API calls will now instantiate and return new instances.
 		/// </remarks>
+		/// <exclude></exclude>
 		[InterfaceAudience.Private]
-		protected internal virtual void ClearDocumentCache()
+		protected internal void ClearDocumentCache()
 		{
 			docCache.EvictAll();
 		}
 
+		/// <summary>Get all the active replicators associated with this database.</summary>
+		/// <remarks>Get all the active replicators associated with this database.</remarks>
 		[InterfaceAudience.Private]
-		protected internal virtual void RemoveDocumentFromCache(Document document)
+		public IList<Replication> GetActiveReplications()
+		{
+			IList<Replication> activeReplicatorsList = new AList<Replication>();
+			if (activeReplicators != null)
+			{
+				Sharpen.Collections.AddAll(activeReplicatorsList, activeReplicators);
+			}
+			return activeReplicatorsList;
+		}
+
+		/// <exclude></exclude>
+		[InterfaceAudience.Private]
+		protected internal void RemoveDocumentFromCache(Document document)
 		{
 			docCache.Remove(document.GetId());
 		}
 
+		/// <exclude></exclude>
 		[InterfaceAudience.Private]
-		public virtual bool Exists()
+		public bool Exists()
 		{
 			return new FilePath(path).Exists();
 		}
 
+		/// <exclude></exclude>
 		[InterfaceAudience.Private]
-		public virtual string GetAttachmentStorePath()
+		public string GetAttachmentStorePath()
 		{
 			string attachmentStorePath = path;
 			int lastDotPosition = attachmentStorePath.LastIndexOf('.');
@@ -831,6 +898,7 @@ namespace Couchbase.Lite
 			return attachmentStorePath;
 		}
 
+		/// <exclude></exclude>
 		[InterfaceAudience.Private]
 		public static Database CreateEmptyDBAtPath(string path, Manager manager)
 		{
@@ -852,8 +920,9 @@ namespace Couchbase.Lite
 			return result;
 		}
 
+		/// <exclude></exclude>
 		[InterfaceAudience.Private]
-		public virtual bool Initialize(string statements)
+		public bool Initialize(string statements)
 		{
 			try
 			{
@@ -870,8 +939,9 @@ namespace Couchbase.Lite
 			return true;
 		}
 
+		/// <exclude></exclude>
 		[InterfaceAudience.Private]
-		public virtual bool Open()
+		public bool Open()
 		{
 			if (open)
 			{
@@ -882,7 +952,9 @@ namespace Couchbase.Lite
 			// Try to open the storage engine and stop if we fail.
 			if (database == null || !database.Open(path))
 			{
-				return false;
+				string msg = "Unable to create a storage engine, fatal error";
+				Log.E(Database.Tag, msg);
+				throw new InvalidOperationException(msg);
 			}
 			// Stuff we need to initialize every time the sqliteDb opens:
 			if (!Initialize("PRAGMA foreign_keys = ON;"))
@@ -962,8 +1034,9 @@ namespace Couchbase.Lite
 			return true;
 		}
 
+		/// <exclude></exclude>
 		[InterfaceAudience.Private]
-		public virtual bool Close()
+		public bool Close()
 		{
 			if (!open)
 			{
@@ -985,6 +1058,7 @@ namespace Couchbase.Lite
 				}
 				activeReplicators = null;
 			}
+			allReplicators = null;
 			if (database != null && database.IsOpen())
 			{
 				database.Close();
@@ -994,34 +1068,39 @@ namespace Couchbase.Lite
 			return true;
 		}
 
+		/// <exclude></exclude>
 		[InterfaceAudience.Private]
-		public virtual string GetPath()
+		public string GetPath()
 		{
 			return path;
 		}
 
 		// Leave this package protected, so it can only be used
 		// View uses this accessor
+		/// <exclude></exclude>
 		[InterfaceAudience.Private]
-		internal virtual SQLiteStorageEngine GetDatabase()
+		internal SQLiteStorageEngine GetDatabase()
 		{
 			return database;
 		}
 
+		/// <exclude></exclude>
 		[InterfaceAudience.Private]
-		public virtual BlobStore GetAttachments()
+		public BlobStore GetAttachments()
 		{
 			return attachments;
 		}
 
+		/// <exclude></exclude>
 		[InterfaceAudience.Private]
-		public virtual BlobStoreWriter GetAttachmentWriter()
+		public BlobStoreWriter GetAttachmentWriter()
 		{
 			return new BlobStoreWriter(GetAttachments());
 		}
 
+		/// <exclude></exclude>
 		[InterfaceAudience.Private]
-		public virtual long TotalDataSize()
+		public long TotalDataSize()
 		{
 			FilePath f = new FilePath(path);
 			long size = f.Length() + attachments.TotalDataSize();
@@ -1033,8 +1112,9 @@ namespace Couchbase.Lite
 		/// Begins a database transaction. Transactions can nest.
 		/// Every beginTransaction() must be balanced by a later endTransaction()
 		/// </remarks>
+		/// <exclude></exclude>
 		[InterfaceAudience.Private]
-		public virtual bool BeginTransaction()
+		public bool BeginTransaction()
 		{
 			try
 			{
@@ -1056,8 +1136,9 @@ namespace Couchbase.Lite
 		/// <remarks>Commits or aborts (rolls back) a transaction.</remarks>
 		/// <param name="commit">If true, commits; if false, aborts and rolls back, undoing all changes made since the matching -beginTransaction call, *including* any committed nested transactions.
 		/// 	</param>
+		/// <exclude></exclude>
 		[InterfaceAudience.Private]
-		public virtual bool EndTransaction(bool commit)
+		public bool EndTransaction(bool commit)
 		{
 			System.Diagnostics.Debug.Assert((transactionLevel > 0));
 			if (commit)
@@ -1083,11 +1164,13 @@ namespace Couchbase.Lite
 				}
 			}
 			--transactionLevel;
+			PostChangeNotifications();
 			return true;
 		}
 
+		/// <exclude></exclude>
 		[InterfaceAudience.Private]
-		public virtual string PrivateUUID()
+		public string PrivateUUID()
 		{
 			string result = null;
 			Cursor cursor = null;
@@ -1114,8 +1197,9 @@ namespace Couchbase.Lite
 			return result;
 		}
 
+		/// <exclude></exclude>
 		[InterfaceAudience.Private]
-		public virtual string PublicUUID()
+		public string PublicUUID()
 		{
 			string result = null;
 			Cursor cursor = null;
@@ -1145,9 +1229,9 @@ namespace Couchbase.Lite
 		/// 	</summary>
 		/// <remarks>Splices the contents of an NSDictionary into JSON data (that already represents a dict), without parsing the JSON.
 		/// 	</remarks>
+		/// <exclude></exclude>
 		[InterfaceAudience.Private]
-		public virtual byte[] AppendDictToJSON(byte[] json, IDictionary<string, object> dict
-			)
+		public byte[] AppendDictToJSON(byte[] json, IDictionary<string, object> dict)
 		{
 			if (dict.Count == 0)
 			{
@@ -1185,9 +1269,10 @@ namespace Couchbase.Lite
 		/// Inserts the _id, _rev and _attachments properties into the JSON data and stores it in rev.
 		/// Rev must already have its revID and sequence properties set.
 		/// </remarks>
+		/// <exclude></exclude>
 		[InterfaceAudience.Private]
-		public virtual IDictionary<string, object> ExtraPropertiesForRevision(RevisionInternal
-			 rev, EnumSet<Database.TDContentOptions> contentOptions)
+		public IDictionary<string, object> ExtraPropertiesForRevision(RevisionInternal rev
+			, EnumSet<Database.TDContentOptions> contentOptions)
 		{
 			string docId = rev.GetDocId();
 			string revId = rev.GetRevId();
@@ -1283,8 +1368,9 @@ namespace Couchbase.Lite
 		/// Inserts the _id, _rev and _attachments properties into the JSON data and stores it in rev.
 		/// Rev must already have its revID and sequence properties set.
 		/// </remarks>
+		/// <exclude></exclude>
 		[InterfaceAudience.Private]
-		public virtual void ExpandStoredJSONIntoRevisionWithAttachments(byte[] json, RevisionInternal
+		public void ExpandStoredJSONIntoRevisionWithAttachments(byte[] json, RevisionInternal
 			 rev, EnumSet<Database.TDContentOptions> contentOptions)
 		{
 			IDictionary<string, object> extra = ExtraPropertiesForRevision(rev, contentOptions
@@ -1299,9 +1385,10 @@ namespace Couchbase.Lite
 			}
 		}
 
+		/// <exclude></exclude>
 		[InterfaceAudience.Private]
-		public virtual IDictionary<string, object> DocumentPropertiesFromJSON(byte[] json
-			, string docId, string revId, bool deleted, long sequence, EnumSet<Database.TDContentOptions
+		public IDictionary<string, object> DocumentPropertiesFromJSON(byte[] json, string
+			 docId, string revId, bool deleted, long sequence, EnumSet<Database.TDContentOptions
 			> contentOptions)
 		{
 			RevisionInternal rev = new RevisionInternal(docId, revId, deleted, this);
@@ -1326,9 +1413,10 @@ namespace Couchbase.Lite
 			return docProperties;
 		}
 
+		/// <exclude></exclude>
 		[InterfaceAudience.Private]
-		public virtual RevisionInternal GetDocumentWithIDAndRev(string id, string rev, EnumSet
-			<Database.TDContentOptions> contentOptions)
+		public RevisionInternal GetDocumentWithIDAndRev(string id, string rev, EnumSet<Database.TDContentOptions
+			> contentOptions)
 		{
 			RevisionInternal result = null;
 			string sql;
@@ -1387,16 +1475,18 @@ namespace Couchbase.Lite
 			return result;
 		}
 
+		/// <exclude></exclude>
 		[InterfaceAudience.Private]
-		public virtual bool ExistsDocumentWithIDAndRev(string docId, string revId)
+		public bool ExistsDocumentWithIDAndRev(string docId, string revId)
 		{
 			return GetDocumentWithIDAndRev(docId, revId, EnumSet.Of(Database.TDContentOptions
 				.TDNoBody)) != null;
 		}
 
+		/// <exclude></exclude>
 		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
 		[InterfaceAudience.Private]
-		public virtual RevisionInternal LoadRevisionBody(RevisionInternal rev, EnumSet<Database.TDContentOptions
+		public RevisionInternal LoadRevisionBody(RevisionInternal rev, EnumSet<Database.TDContentOptions
 			> contentOptions)
 		{
 			if (rev.GetBody() != null && contentOptions == EnumSet.NoneOf<Database.TDContentOptions
@@ -1435,11 +1525,16 @@ namespace Couchbase.Lite
 					cursor.Close();
 				}
 			}
+			if (result.GetCode() == Status.NotFound)
+			{
+				throw new CouchbaseLiteException(result);
+			}
 			return rev;
 		}
 
+		/// <exclude></exclude>
 		[InterfaceAudience.Private]
-		public virtual long GetDocNumericID(string docId)
+		public long GetDocNumericID(string docId)
 		{
 			Cursor cursor = null;
 			string[] args = new string[] { docId };
@@ -1474,9 +1569,10 @@ namespace Couchbase.Lite
 		/// 	</summary>
 		/// <remarks>Returns all the known revisions (or all current/conflicting revisions) of a document.
 		/// 	</remarks>
+		/// <exclude></exclude>
 		[InterfaceAudience.Private]
-		public virtual RevisionList GetAllRevisionsOfDocumentID(string docId, long docNumericID
-			, bool onlyCurrent)
+		public RevisionList GetAllRevisionsOfDocumentID(string docId, long docNumericID, 
+			bool onlyCurrent)
 		{
 			string sql = null;
 			if (onlyCurrent)
@@ -1519,9 +1615,9 @@ namespace Couchbase.Lite
 			return result;
 		}
 
+		/// <exclude></exclude>
 		[InterfaceAudience.Private]
-		public virtual RevisionList GetAllRevisionsOfDocumentID(string docId, bool onlyCurrent
-			)
+		public RevisionList GetAllRevisionsOfDocumentID(string docId, bool onlyCurrent)
 		{
 			long docNumericId = GetDocNumericID(docId);
 			if (docNumericId < 0)
@@ -1541,8 +1637,9 @@ namespace Couchbase.Lite
 			}
 		}
 
+		/// <exclude></exclude>
 		[InterfaceAudience.Private]
-		public virtual IList<string> GetConflictingRevisionIDsOfDocID(string docID)
+		public IList<string> GetConflictingRevisionIDsOfDocID(string docID)
 		{
 			long docIdNumeric = GetDocNumericID(docID);
 			if (docIdNumeric < 0)
@@ -1578,9 +1675,9 @@ namespace Couchbase.Lite
 			return result;
 		}
 
+		/// <exclude></exclude>
 		[InterfaceAudience.Private]
-		public virtual string FindCommonAncestorOf(RevisionInternal rev, IList<string> revIDs
-			)
+		public string FindCommonAncestorOf(RevisionInternal rev, IList<string> revIDs)
 		{
 			string result = null;
 			if (revIDs.Count == 0)
@@ -1625,8 +1722,9 @@ namespace Couchbase.Lite
 		/// 	</summary>
 		/// <remarks>Returns an array of TDRevs in reverse chronological order, starting with the given revision.
 		/// 	</remarks>
+		/// <exclude></exclude>
 		[InterfaceAudience.Private]
-		public virtual IList<RevisionInternal> GetRevisionHistory(RevisionInternal rev)
+		public IList<RevisionInternal> GetRevisionHistory(RevisionInternal rev)
 		{
 			string docId = rev.GetDocId();
 			string revId = rev.GetRevId();
@@ -1699,7 +1797,9 @@ namespace Couchbase.Lite
 			return result;
 		}
 
-		// Splits a revision ID into its generation number and opaque suffix string
+		/// <summary>Splits a revision ID into its generation number and opaque suffix string
+		/// 	</summary>
+		/// <exclude></exclude>
 		[InterfaceAudience.Private]
 		public static int ParseRevIDNumber(string rev)
 		{
@@ -1719,7 +1819,9 @@ namespace Couchbase.Lite
 			return result;
 		}
 
-		// Splits a revision ID into its generation number and opaque suffix string
+		/// <summary>Splits a revision ID into its generation number and opaque suffix string
+		/// 	</summary>
+		/// <exclude></exclude>
 		[InterfaceAudience.Private]
 		public static string ParseRevIDSuffix(string rev)
 		{
@@ -1732,6 +1834,7 @@ namespace Couchbase.Lite
 			return result;
 		}
 
+		/// <exclude></exclude>
 		[InterfaceAudience.Private]
 		public static IDictionary<string, object> MakeRevisionHistoryDict(IList<RevisionInternal
 			> history)
@@ -1793,15 +1896,16 @@ namespace Couchbase.Lite
 		/// 	</summary>
 		/// <remarks>Returns the revision history as a _revisions dictionary, as returned by the REST API's ?revs=true option.
 		/// 	</remarks>
+		/// <exclude></exclude>
 		[InterfaceAudience.Private]
-		public virtual IDictionary<string, object> GetRevisionHistoryDict(RevisionInternal
-			 rev)
+		public IDictionary<string, object> GetRevisionHistoryDict(RevisionInternal rev)
 		{
 			return MakeRevisionHistoryDict(GetRevisionHistory(rev));
 		}
 
+		/// <exclude></exclude>
 		[InterfaceAudience.Private]
-		public virtual RevisionList ChangesSince(long lastSeq, ChangesOptions options, ReplicationFilter
+		public RevisionList ChangesSince(long lastSeq, ChangesOptions options, ReplicationFilter
 			 filter)
 		{
 			// http://wiki.apache.org/couchdb/HTTP_database_API#Changes
@@ -1876,9 +1980,10 @@ namespace Couchbase.Lite
 			return changes;
 		}
 
+		/// <exclude></exclude>
 		[InterfaceAudience.Private]
-		public virtual bool RunFilter(ReplicationFilter filter, IDictionary<string, object
-			> paramsIgnored, RevisionInternal rev)
+		public bool RunFilter(ReplicationFilter filter, IDictionary<string, object> paramsIgnored
+			, RevisionInternal rev)
 		{
 			if (filter == null)
 			{
@@ -1888,9 +1993,10 @@ namespace Couchbase.Lite
 			return filter.Filter(publicRev, null);
 		}
 
+		/// <exclude></exclude>
 		[InterfaceAudience.Private]
-		public virtual string GetDesignDocFunction(string fnName, string key, IList<string
-			> outLanguageList)
+		public string GetDesignDocFunction(string fnName, string key, IList<string> outLanguageList
+			)
 		{
 			string[] path = fnName.Split("/");
 			if (path.Length != 2)
@@ -1918,9 +2024,9 @@ namespace Couchbase.Lite
 			return (string)container.Get(path[1]);
 		}
 
-		/// <summary>VIEWS:</summary>
+		/// <exclude></exclude>
 		[InterfaceAudience.Private]
-		public virtual View RegisterView(View view)
+		public View RegisterView(View view)
 		{
 			if (view == null)
 			{
@@ -1934,10 +2040,11 @@ namespace Couchbase.Lite
 			return view;
 		}
 
+		/// <exclude></exclude>
 		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
 		[InterfaceAudience.Private]
-		public virtual IList<QueryRow> QueryViewNamed(string viewName, QueryOptions options
-			, IList<long> outLastSequence)
+		public IList<QueryRow> QueryViewNamed(string viewName, QueryOptions options, IList
+			<long> outLastSequence)
 		{
 			long before = Runtime.CurrentTimeMillis();
 			long lastSequence = 0;
@@ -1960,7 +2067,7 @@ namespace Couchbase.Lite
 					if (options.GetStale() == Query.IndexUpdateMode.After && lastSequence < GetLastSequenceNumber
 						())
 					{
-						new Sharpen.Thread(new _Runnable_1639(view)).Start();
+						new Sharpen.Thread(new _Runnable_1847(view)).Start();
 					}
 				}
 				rows = view.QueryWithOptions(options);
@@ -1982,9 +2089,9 @@ namespace Couchbase.Lite
 			return rows;
 		}
 
-		private sealed class _Runnable_1639 : Runnable
+		private sealed class _Runnable_1847 : Runnable
 		{
-			public _Runnable_1639(View view)
+			public _Runnable_1847(View view)
 			{
 				this.view = view;
 			}
@@ -2004,8 +2111,9 @@ namespace Couchbase.Lite
 			private readonly View view;
 		}
 
+		/// <exclude></exclude>
 		[InterfaceAudience.Private]
-		internal virtual View MakeAnonymousView()
+		internal View MakeAnonymousView()
 		{
 			for (int i = 0; true; ++i)
 			{
@@ -2019,8 +2127,9 @@ namespace Couchbase.Lite
 			}
 		}
 
+		/// <exclude></exclude>
 		[InterfaceAudience.Private]
-		public virtual IList<View> GetAllViews()
+		public IList<View> GetAllViews()
 		{
 			Cursor cursor = null;
 			IList<View> result = null;
@@ -2049,8 +2158,9 @@ namespace Couchbase.Lite
 			return result;
 		}
 
+		/// <exclude></exclude>
 		[InterfaceAudience.Private]
-		public virtual Status DeleteViewNamed(string name)
+		public Status DeleteViewNamed(string name)
 		{
 			Status result = new Status(Status.InternalServerError);
 			try
@@ -2077,8 +2187,9 @@ namespace Couchbase.Lite
 		/// 	</summary>
 		/// <remarks>Hack because cursor interface does not support cursor.getColumnIndex("deleted") yet.
 		/// 	</remarks>
+		/// <exclude></exclude>
 		[InterfaceAudience.Private]
-		public virtual int GetDeletedColumnIndex(QueryOptions options)
+		public int GetDeletedColumnIndex(QueryOptions options)
 		{
 			if (options.IsIncludeDocs())
 			{
@@ -2090,9 +2201,10 @@ namespace Couchbase.Lite
 			}
 		}
 
+		/// <exclude></exclude>
 		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
 		[InterfaceAudience.Private]
-		public virtual IDictionary<string, object> GetAllDocs(QueryOptions options)
+		public IDictionary<string, object> GetAllDocs(QueryOptions options)
 		{
 			IDictionary<string, object> result = new Dictionary<string, object>();
 			IList<QueryRow> rows = new AList<QueryRow>();
@@ -2287,10 +2399,11 @@ namespace Couchbase.Lite
 		/// 	</summary>
 		/// <remarks>Returns the rev ID of the 'winning' revision of this document, and whether it's deleted.
 		/// 	</remarks>
+		/// <exclude></exclude>
 		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
 		[InterfaceAudience.Private]
-		internal virtual string WinningRevIDOfDoc(long docNumericId, IList<bool> outIsDeleted
-			, IList<bool> outIsConflict)
+		internal string WinningRevIDOfDoc(long docNumericId, IList<bool> outIsDeleted, IList
+			<bool> outIsConflict)
 		{
 			Cursor cursor = null;
 			string sql = "SELECT revid, deleted FROM revs" + " WHERE doc_id=? and current=1" 
@@ -2338,19 +2451,21 @@ namespace Couchbase.Lite
 			return revId;
 		}
 
+		/// <exclude></exclude>
 		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
 		[InterfaceAudience.Private]
-		internal virtual void InsertAttachmentForSequence(AttachmentInternal attachment, 
-			long sequence)
+		internal void InsertAttachmentForSequence(AttachmentInternal attachment, long sequence
+			)
 		{
 			InsertAttachmentForSequenceWithNameAndType(sequence, attachment.GetName(), attachment
 				.GetContentType(), attachment.GetRevpos(), attachment.GetBlobKey());
 		}
 
+		/// <exclude></exclude>
 		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
 		[InterfaceAudience.Private]
-		public virtual void InsertAttachmentForSequenceWithNameAndType(InputStream contentStream
-			, long sequence, string name, string contentType, int revpos)
+		public void InsertAttachmentForSequenceWithNameAndType(InputStream contentStream, 
+			long sequence, string name, string contentType, int revpos)
 		{
 			System.Diagnostics.Debug.Assert((sequence > 0));
 			System.Diagnostics.Debug.Assert((name != null));
@@ -2363,10 +2478,11 @@ namespace Couchbase.Lite
 				);
 		}
 
+		/// <exclude></exclude>
 		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
 		[InterfaceAudience.Private]
-		public virtual void InsertAttachmentForSequenceWithNameAndType(long sequence, string
-			 name, string contentType, int revpos, BlobKey key)
+		public void InsertAttachmentForSequenceWithNameAndType(long sequence, string name
+			, string contentType, int revpos, BlobKey key)
 		{
 			try
 			{
@@ -2395,10 +2511,11 @@ namespace Couchbase.Lite
 			}
 		}
 
+		/// <exclude></exclude>
 		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
 		[InterfaceAudience.Private]
-		internal virtual void InstallAttachment(AttachmentInternal attachment, IDictionary
-			<string, object> attachInfo)
+		internal void InstallAttachment(AttachmentInternal attachment, IDictionary<string
+			, object> attachInfo)
 		{
 			string digest = (string)attachInfo.Get("digest");
 			if (digest == null)
@@ -2423,6 +2540,7 @@ namespace Couchbase.Lite
 			}
 		}
 
+		/// <exclude></exclude>
 		[InterfaceAudience.Private]
 		private IDictionary<string, BlobStoreWriter> GetPendingAttachmentsByDigest()
 		{
@@ -2433,10 +2551,11 @@ namespace Couchbase.Lite
 			return pendingAttachmentsByDigest;
 		}
 
+		/// <exclude></exclude>
 		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
 		[InterfaceAudience.Private]
-		public virtual void CopyAttachmentNamedFromSequenceToSequence(string name, long fromSeq
-			, long toSeq)
+		public void CopyAttachmentNamedFromSequenceToSequence(string name, long fromSeq, 
+			long toSeq)
 		{
 			System.Diagnostics.Debug.Assert((name != null));
 			System.Diagnostics.Debug.Assert((toSeq > 0));
@@ -2483,10 +2602,10 @@ namespace Couchbase.Lite
 		}
 
 		/// <summary>Returns the content and MIME type of an attachment</summary>
+		/// <exclude></exclude>
 		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
 		[InterfaceAudience.Private]
-		public virtual Attachment GetAttachmentForSequence(long sequence, string filename
-			)
+		public Attachment GetAttachmentForSequence(long sequence, string filename)
 		{
 			System.Diagnostics.Debug.Assert((sequence > 0));
 			System.Diagnostics.Debug.Assert((filename != null));
@@ -2531,10 +2650,10 @@ namespace Couchbase.Lite
 
 		/// <summary>Returns the location of an attachment's file in the blob store.</summary>
 		/// <remarks>Returns the location of an attachment's file in the blob store.</remarks>
+		/// <exclude></exclude>
 		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
 		[InterfaceAudience.Private]
-		internal virtual string GetAttachmentPathForSequence(long sequence, string filename
-			)
+		internal string GetAttachmentPathForSequence(long sequence, string filename)
 		{
 			System.Diagnostics.Debug.Assert((sequence > 0));
 			System.Diagnostics.Debug.Assert((filename != null));
@@ -2571,9 +2690,10 @@ namespace Couchbase.Lite
 		/// 	</summary>
 		/// <remarks>Constructs an "_attachments" dictionary for a revision, to be inserted in its JSON body.
 		/// 	</remarks>
+		/// <exclude></exclude>
 		[InterfaceAudience.Private]
-		public virtual IDictionary<string, object> GetAttachmentsDictForSequenceWithContent
-			(long sequence, EnumSet<Database.TDContentOptions> contentOptions)
+		public IDictionary<string, object> GetAttachmentsDictForSequenceWithContent(long 
+			sequence, EnumSet<Database.TDContentOptions> contentOptions)
 		{
 			System.Diagnostics.Debug.Assert((sequence > 0));
 			Cursor cursor = null;
@@ -2658,10 +2778,11 @@ namespace Couchbase.Lite
 		/// 	</summary>
 		/// <remarks>Modifies a RevisionInternal's body by changing all attachments with revpos &lt; minRevPos into stubs.
 		/// 	</remarks>
+		/// <exclude></exclude>
 		/// <param name="rev"></param>
 		/// <param name="minRevPos"></param>
 		[InterfaceAudience.Private]
-		public virtual void StubOutAttachmentsIn(RevisionInternal rev, int minRevPos)
+		public void StubOutAttachmentsIn(RevisionInternal rev, int minRevPos)
 		{
 			if (minRevPos <= 1)
 			{
@@ -2708,8 +2829,9 @@ namespace Couchbase.Lite
 			}
 		}
 
+		/// <exclude></exclude>
 		[InterfaceAudience.Private]
-		internal virtual void StubOutAttachmentsInRevision(IDictionary<string, AttachmentInternal
+		internal void StubOutAttachmentsInRevision(IDictionary<string, AttachmentInternal
 			> attachments, RevisionInternal rev)
 		{
 			IDictionary<string, object> properties = rev.GetProperties();
@@ -2755,9 +2877,10 @@ namespace Couchbase.Lite
 		/// Given a newly-added revision, adds the necessary attachment rows to the sqliteDb and
 		/// stores inline attachments into the blob store.
 		/// </remarks>
+		/// <exclude></exclude>
 		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
 		[InterfaceAudience.Private]
-		internal virtual void ProcessAttachmentsForRevision(IDictionary<string, AttachmentInternal
+		internal void ProcessAttachmentsForRevision(IDictionary<string, AttachmentInternal
 			> attachments, RevisionInternal rev, long parentSequence)
 		{
 			System.Diagnostics.Debug.Assert((rev != null));
@@ -2815,9 +2938,10 @@ namespace Couchbase.Lite
 		/// Updates or deletes an attachment, creating a new document revision in the process.
 		/// Used by the PUT / DELETE methods called on attachment URLs.
 		/// </remarks>
+		/// <exclude></exclude>
 		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
 		[InterfaceAudience.Private]
-		public virtual RevisionInternal UpdateAttachment(string filename, InputStream contentStream
+		public RevisionInternal UpdateAttachment(string filename, InputStream contentStream
 			, string contentType, string docID, string oldRevID)
 		{
 			bool isSuccessful = false;
@@ -2908,23 +3032,26 @@ namespace Couchbase.Lite
 			}
 		}
 
+		/// <exclude></exclude>
 		[InterfaceAudience.Private]
-		public virtual void RememberAttachmentWritersForDigests(IDictionary<string, BlobStoreWriter
+		public void RememberAttachmentWritersForDigests(IDictionary<string, BlobStoreWriter
 			> blobsByDigest)
 		{
 			GetPendingAttachmentsByDigest().PutAll(blobsByDigest);
 		}
 
+		/// <exclude></exclude>
 		[InterfaceAudience.Private]
-		internal virtual void RememberAttachmentWriter(BlobStoreWriter writer)
+		internal void RememberAttachmentWriter(BlobStoreWriter writer)
 		{
 			GetPendingAttachmentsByDigest().Put(writer.MD5DigestString(), writer);
 		}
 
 		/// <summary>Deletes obsolete attachments from the sqliteDb and blob store.</summary>
 		/// <remarks>Deletes obsolete attachments from the sqliteDb and blob store.</remarks>
+		/// <exclude></exclude>
 		[InterfaceAudience.Private]
-		public virtual Status GarbageCollectAttachments()
+		public Status GarbageCollectAttachments()
 		{
 			// First delete attachment rows for already-cleared revisions:
 			// OPT: Could start after last sequence# we GC'd up to
@@ -2972,7 +3099,7 @@ namespace Couchbase.Lite
 			}
 		}
 
-		/// <summary>DOCUMENT & REV IDS:</summary>
+		/// <exclude></exclude>
 		[InterfaceAudience.Private]
 		public static bool IsValidDocumentId(string id)
 		{
@@ -2989,14 +3116,16 @@ namespace Couchbase.Lite
 		}
 
 		// "_local/*" is not a valid document ID. Local docs have their own API and shouldn't get here.
+		/// <exclude></exclude>
 		[InterfaceAudience.Private]
 		public static string GenerateDocumentId()
 		{
 			return Misc.TDCreateUUID();
 		}
 
+		/// <exclude></exclude>
 		[InterfaceAudience.Private]
-		public virtual string GenerateNextRevisionID(string revisionId)
+		public string GenerateNextRevisionID(string revisionId)
 		{
 			// Revision IDs have a generation count, a hyphen, and a UUID.
 			int generation = 0;
@@ -3013,8 +3142,9 @@ namespace Couchbase.Lite
 			return Sharpen.Extensions.ToString(generation + 1) + "-" + digest;
 		}
 
+		/// <exclude></exclude>
 		[InterfaceAudience.Private]
-		public virtual long InsertDocumentID(string docId)
+		public long InsertDocumentID(string docId)
 		{
 			long rowId = -1;
 			try
@@ -3030,8 +3160,9 @@ namespace Couchbase.Lite
 			return rowId;
 		}
 
+		/// <exclude></exclude>
 		[InterfaceAudience.Private]
-		public virtual long GetOrInsertDocNumericID(string docId)
+		public long GetOrInsertDocNumericID(string docId)
 		{
 			long docNumericId = GetDocNumericID(docId);
 			if (docNumericId == 0)
@@ -3043,6 +3174,7 @@ namespace Couchbase.Lite
 
 		/// <summary>Parses the _revisions dict from a document into an array of revision ID strings
 		/// 	</summary>
+		/// <exclude></exclude>
 		[InterfaceAudience.Private]
 		public static IList<string> ParseCouchDBRevisionHistory(IDictionary<string, object
 			> docProperties)
@@ -3066,9 +3198,9 @@ namespace Couchbase.Lite
 			return revIDs;
 		}
 
-		/// <summary>INSERTION:</summary>
+		/// <exclude></exclude>
 		[InterfaceAudience.Private]
-		public virtual byte[] EncodeDocumentJSON(RevisionInternal rev)
+		public byte[] EncodeDocumentJSON(RevisionInternal rev)
 		{
 			IDictionary<string, object> origProps = rev.GetProperties();
 			if (origProps == null)
@@ -3107,30 +3239,85 @@ namespace Couchbase.Lite
 		}
 
 		[InterfaceAudience.Private]
-		public virtual void NotifyChange(RevisionInternal rev, RevisionInternal winningRev
-			, Uri source, bool inConflict)
+		private void PostChangeNotifications()
 		{
-			// TODO: it is currently sending one change at a time rather than batching them up
-			bool isExternalFixMe = false;
-			// TODO: fix this to have a real value
-			DocumentChange change = new DocumentChange(rev, winningRev, inConflict, source);
-			IList<DocumentChange> changes = new AList<DocumentChange>();
-			changes.AddItem(change);
-			Database.ChangeEvent changeEvent = new Database.ChangeEvent(this, isExternalFixMe
-				, changes);
-			foreach (Database.ChangeListener changeListener in changeListeners)
+			// This is a 'while' instead of an 'if' because when we finish posting notifications, there
+			// might be new ones that have arrived as a result of notification handlers making document
+			// changes of their own (the replicator manager will do this.) So we need to check again.
+			while (transactionLevel == 0 && IsOpen() && !postingChangeNotifications && changesToNotify
+				.Count > 0)
 			{
-				changeListener.Changed(changeEvent);
+				try
+				{
+					postingChangeNotifications = true;
+					// Disallow re-entrant calls
+					IList<DocumentChange> outgoingChanges = new AList<DocumentChange>();
+					Sharpen.Collections.AddAll(outgoingChanges, changesToNotify);
+					changesToNotify.Clear();
+					bool isExternal = false;
+					foreach (DocumentChange change in outgoingChanges)
+					{
+						Document document = GetDocument(change.GetDocumentId());
+						document.RevisionAdded(change);
+						if (change.GetSourceUrl() != null)
+						{
+							isExternal = true;
+						}
+					}
+					Database.ChangeEvent changeEvent = new Database.ChangeEvent(this, isExternal, outgoingChanges
+						);
+					lock (changeListeners)
+					{
+						foreach (Database.ChangeListener changeListener in changeListeners)
+						{
+							changeListener.Changed(changeEvent);
+						}
+					}
+				}
+				catch (Exception e)
+				{
+					Log.E(Database.Tag, this + " got exception posting change notifications", e);
+				}
+				finally
+				{
+					postingChangeNotifications = false;
+				}
 			}
-			// TODO: this is expensive, it should be using a WeakHashMap
-			// TODO: instead of loading from the DB.  iOS code below.
-			Document document = GetDocument(change.GetDocumentId());
-			document.RevisionAdded(change);
 		}
 
+		private void NotifyChange(DocumentChange documentChange)
+		{
+			if (changesToNotify == null)
+			{
+				changesToNotify = new AList<DocumentChange>();
+			}
+			changesToNotify.AddItem(documentChange);
+			PostChangeNotifications();
+		}
+
+		private void NotifyChanges(IList<DocumentChange> documentChanges)
+		{
+			if (changesToNotify == null)
+			{
+				changesToNotify = new AList<DocumentChange>();
+			}
+			Sharpen.Collections.AddAll(changesToNotify, documentChanges);
+			PostChangeNotifications();
+		}
+
+		/// <exclude></exclude>
 		[InterfaceAudience.Private]
-		public virtual long InsertRevision(RevisionInternal rev, long docNumericID, long 
-			parentSequence, bool current, byte[] data)
+		public void NotifyChange(RevisionInternal rev, RevisionInternal winningRev, Uri source
+			, bool inConflict)
+		{
+			DocumentChange change = new DocumentChange(rev, winningRev, inConflict, source);
+			NotifyChange(change);
+		}
+
+		/// <exclude></exclude>
+		[InterfaceAudience.Private]
+		public long InsertRevision(RevisionInternal rev, long docNumericID, long parentSequence
+			, bool current, byte[] data)
 		{
 			long rowId = 0;
 			try
@@ -3155,19 +3342,20 @@ namespace Couchbase.Lite
 			return rowId;
 		}
 
-		// TODO: move this to internal API
+		/// <exclude></exclude>
 		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
 		[InterfaceAudience.Private]
-		public virtual RevisionInternal PutRevision(RevisionInternal rev, string prevRevId
-			, Status resultStatus)
+		public RevisionInternal PutRevision(RevisionInternal rev, string prevRevId, Status
+			 resultStatus)
 		{
 			return PutRevision(rev, prevRevId, false, resultStatus);
 		}
 
+		/// <exclude></exclude>
 		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
 		[InterfaceAudience.Private]
-		public virtual RevisionInternal PutRevision(RevisionInternal rev, string prevRevId
-			, bool allowConflict)
+		public RevisionInternal PutRevision(RevisionInternal rev, string prevRevId, bool 
+			allowConflict)
 		{
 			Status ignoredStatus = new Status();
 			return PutRevision(rev, prevRevId, allowConflict, ignoredStatus);
@@ -3188,10 +3376,11 @@ namespace Couchbase.Lite
 		/// 	</param>
 		/// <returns>A new RevisionInternal with the docID, revID and sequence filled in (but no body).
 		/// 	</returns>
+		/// <exclude></exclude>
 		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
 		[InterfaceAudience.Private]
-		public virtual RevisionInternal PutRevision(RevisionInternal oldRev, string prevRevId
-			, bool allowConflict, Status resultStatus)
+		public RevisionInternal PutRevision(RevisionInternal oldRev, string prevRevId, bool
+			 allowConflict, Status resultStatus)
 		{
 			// prevRevId is the rev ID being replaced, or nil if an insert
 			string docId = oldRev.GetDocId();
@@ -3403,10 +3592,11 @@ namespace Couchbase.Lite
 			return newRev;
 		}
 
+		/// <exclude></exclude>
 		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
 		[InterfaceAudience.Private]
-		internal virtual RevisionInternal Winner(long docNumericID, string oldWinningRevID
-			, bool oldWinnerWasDeletion, RevisionInternal newRev)
+		internal RevisionInternal Winner(long docNumericID, string oldWinningRevID, bool 
+			oldWinnerWasDeletion, RevisionInternal newRev)
 		{
 			if (oldWinningRevID == null)
 			{
@@ -3459,6 +3649,7 @@ namespace Couchbase.Lite
 		}
 
 		// no change
+		/// <exclude></exclude>
 		[InterfaceAudience.Private]
 		private long GetSequenceOfDocument(long docNumericId, string revId, bool onlyCurrent
 			)
@@ -3503,10 +3694,11 @@ namespace Couchbase.Lite
 		/// Given a revision, read its _attachments dictionary (if any), convert each attachment to a
 		/// AttachmentInternal object, and return a dictionary mapping names-&gt;CBL_Attachments.
 		/// </remarks>
+		/// <exclude></exclude>
 		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
 		[InterfaceAudience.Private]
-		internal virtual IDictionary<string, AttachmentInternal> GetAttachmentsFromRevision
-			(RevisionInternal rev)
+		internal IDictionary<string, AttachmentInternal> GetAttachmentsFromRevision(RevisionInternal
+			 rev)
 		{
 			IDictionary<string, object> revAttachments = (IDictionary<string, object>)rev.GetPropertyForKey
 				("_attachments");
@@ -3585,7 +3777,11 @@ namespace Couchbase.Lite
 							);
 					}
 					attachment.SetEncodedLength(attachment.GetLength());
-					attachment.SetLength((long)attachInfo.Get("length"));
+					if (attachInfo.ContainsKey("length"))
+					{
+						Number attachmentLength = (Number)attachInfo.Get("length");
+						attachment.SetLength(attachmentLength);
+					}
 				}
 				if (attachInfo.ContainsKey("revpos"))
 				{
@@ -3605,11 +3801,14 @@ namespace Couchbase.Lite
 		/// Inserts an already-existing revision replicated from a remote sqliteDb.
 		/// It must already have a revision ID. This may create a conflict! The revision's history must be given; ancestor revision IDs that don't already exist locally will create phantom revisions with no content.
 		/// </remarks>
+		/// <exclude></exclude>
 		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
 		[InterfaceAudience.Private]
-		public virtual void ForceInsert(RevisionInternal rev, IList<string> revHistory, Uri
-			 source)
+		public void ForceInsert(RevisionInternal rev, IList<string> revHistory, Uri source
+			)
 		{
+			RevisionInternal winningRev = null;
+			bool inConflict = false;
 			string docId = rev.GetDocId();
 			string revId = rev.GetRevId();
 			if (!IsValidDocumentId(docId) || (revId == null))
@@ -3645,11 +3844,25 @@ namespace Couchbase.Lite
 				{
 					throw new CouchbaseLiteException(Status.InternalServerError);
 				}
+				IList<bool> outIsDeleted = new AList<bool>();
+				IList<bool> outIsConflict = new AList<bool>();
+				bool oldWinnerWasDeletion = false;
+				string oldWinningRevID = WinningRevIDOfDoc(docNumericID, outIsDeleted, outIsConflict
+					);
+				if (outIsDeleted.Count > 0)
+				{
+					oldWinnerWasDeletion = true;
+				}
+				if (outIsConflict.Count > 0)
+				{
+					inConflict = true;
+				}
 				// Walk through the remote history in chronological order, matching each revision ID to
 				// a local revision. When the list diverges, start creating blank local revisions to fill
 				// in the local history:
 				long sequence = 0;
 				long localParentSequence = 0;
+				string localParentRevID = null;
 				for (int i = revHistory.Count - 1; i >= 0; --i)
 				{
 					revId = revHistory[i];
@@ -3660,6 +3873,7 @@ namespace Couchbase.Lite
 						sequence = localRev.GetSequence();
 						System.Diagnostics.Debug.Assert((sequence > 0));
 						localParentSequence = sequence;
+						localParentRevID = revId;
 					}
 					else
 					{
@@ -3712,16 +3926,26 @@ namespace Couchbase.Lite
 					ContentValues args = new ContentValues();
 					args.Put("current", 0);
 					string[] whereArgs = new string[] { System.Convert.ToString(localParentSequence) };
+					int numRowsChanged = 0;
 					try
 					{
-						database.Update("revs", args, "sequence=?", whereArgs);
+						numRowsChanged = database.Update("revs", args, "sequence=? AND current!=0", whereArgs
+							);
+						if (numRowsChanged == 0)
+						{
+							inConflict = true;
+						}
 					}
 					catch (SQLException)
 					{
+						// local parent wasn't a leaf, ergo we just created a branch
 						throw new CouchbaseLiteException(Status.InternalServerError);
 					}
 				}
+				winningRev = Winner(docNumericID, oldWinningRevID, oldWinnerWasDeletion, rev);
 				success = true;
+				// Notify and return:
+				NotifyChange(rev, winningRev, source, inConflict);
 			}
 			catch (SQLException)
 			{
@@ -3731,19 +3955,12 @@ namespace Couchbase.Lite
 			{
 				EndTransaction(success);
 			}
-			// Notify and return:
-			bool inConflict = false;
-			// TODO: can we be in conflict here?
-			RevisionInternal winningRev = null;
-			// TODO: what should we do here?
-			NotifyChange(rev, winningRev, source, inConflict);
 		}
 
-		/// <summary>VALIDATION</summary>
+		/// <exclude></exclude>
 		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
 		[InterfaceAudience.Private]
-		public virtual void ValidateRevision(RevisionInternal newRev, RevisionInternal oldRev
-			)
+		public void ValidateRevision(RevisionInternal newRev, RevisionInternal oldRev)
 		{
 			if (validations == null || validations.Count == 0)
 			{
@@ -3754,15 +3971,17 @@ namespace Couchbase.Lite
 			foreach (string validationName in validations.Keys)
 			{
 				Validator validation = GetValidation(validationName);
-				if (!validation.Validate(publicRev, context))
+				validation.Validate(publicRev, context);
+				if (context.GetRejectMessage() != null)
 				{
 					throw new CouchbaseLiteException(context.GetRejectMessage(), Status.Forbidden);
 				}
 			}
 		}
 
+		/// <exclude></exclude>
 		[InterfaceAudience.Private]
-		public virtual Replication GetActiveReplicator(Uri remote, bool push)
+		public Replication GetActiveReplicator(Uri remote, bool push)
 		{
 			if (activeReplicators != null)
 			{
@@ -3778,21 +3997,23 @@ namespace Couchbase.Lite
 			return null;
 		}
 
+		/// <exclude></exclude>
 		[InterfaceAudience.Private]
-		public virtual Replication GetReplicator(Uri remote, bool push, bool continuous, 
-			ScheduledExecutorService workExecutor)
+		public Replication GetReplicator(Uri remote, bool push, bool continuous, ScheduledExecutorService
+			 workExecutor)
 		{
 			Replication replicator = GetReplicator(remote, null, push, continuous, workExecutor
 				);
 			return replicator;
 		}
 
+		/// <exclude></exclude>
 		[InterfaceAudience.Private]
-		public virtual Replication GetReplicator(string sessionId)
+		public Replication GetReplicator(string sessionId)
 		{
 			if (activeReplicators != null)
 			{
-				foreach (Replication replicator in activeReplicators)
+				foreach (Replication replicator in allReplicators)
 				{
 					if (replicator.GetSessionID().Equals(sessionId))
 					{
@@ -3803,9 +4024,10 @@ namespace Couchbase.Lite
 			return null;
 		}
 
+		/// <exclude></exclude>
 		[InterfaceAudience.Private]
-		public virtual Replication GetReplicator(Uri remote, HttpClientFactory httpClientFactory
-			, bool push, bool continuous, ScheduledExecutorService workExecutor)
+		public Replication GetReplicator(Uri remote, HttpClientFactory httpClientFactory, 
+			bool push, bool continuous, ScheduledExecutorService workExecutor)
 		{
 			Replication result = GetActiveReplicator(remote, push);
 			if (result != null)
@@ -3814,24 +4036,21 @@ namespace Couchbase.Lite
 			}
 			result = push ? new Pusher(this, remote, continuous, httpClientFactory, workExecutor
 				) : new Puller(this, remote, continuous, httpClientFactory, workExecutor);
-			if (activeReplicators == null)
-			{
-				activeReplicators = new AList<Replication>();
-			}
-			activeReplicators.AddItem(result);
 			return result;
 		}
 
+		/// <exclude></exclude>
 		[InterfaceAudience.Private]
-		public virtual string LastSequenceWithRemoteURL(Uri url, bool push)
+		public string LastSequenceWithCheckpointId(string checkpointId)
 		{
 			Cursor cursor = null;
 			string result = null;
 			try
 			{
-				string[] args = new string[] { url.ToExternalForm(), Sharpen.Extensions.ToString(
-					push ? 1 : 0) };
-				cursor = database.RawQuery("SELECT last_sequence FROM replicators WHERE remote=? AND push=?"
+				// This table schema is out of date but I'm keeping it the way it is for compatibility.
+				// The 'remote' column now stores the opaque checkpoint IDs, and 'push' is ignored.
+				string[] args = new string[] { checkpointId };
+				cursor = database.RawQuery("SELECT last_sequence FROM replicators WHERE remote=?"
 					, args);
 				if (cursor.MoveToNext())
 				{
@@ -3853,11 +4072,12 @@ namespace Couchbase.Lite
 			return result;
 		}
 
+		/// <exclude></exclude>
 		[InterfaceAudience.Private]
-		public virtual bool SetLastSequence(string lastSequence, Uri url, bool push)
+		public bool SetLastSequence(string lastSequence, string checkpointId, bool push)
 		{
 			ContentValues values = new ContentValues();
-			values.Put("remote", url.ToExternalForm());
+			values.Put("remote", checkpointId);
 			values.Put("push", push);
 			values.Put("last_sequence", lastSequence);
 			long newId = database.InsertWithOnConflict("replicators", null, values, SQLiteStorageEngine
@@ -3865,12 +4085,14 @@ namespace Couchbase.Lite
 			return (newId == -1);
 		}
 
+		/// <exclude></exclude>
 		[InterfaceAudience.Private]
 		public static string Quote(string @string)
 		{
 			return @string.Replace("'", "''");
 		}
 
+		/// <exclude></exclude>
 		[InterfaceAudience.Private]
 		public static string JoinQuotedObjects(IList<object> objects)
 		{
@@ -3882,6 +4104,7 @@ namespace Couchbase.Lite
 			return JoinQuoted(strings);
 		}
 
+		/// <exclude></exclude>
 		[InterfaceAudience.Private]
 		public static string JoinQuoted(IList<string> strings)
 		{
@@ -3907,8 +4130,9 @@ namespace Couchbase.Lite
 			return result;
 		}
 
+		/// <exclude></exclude>
 		[InterfaceAudience.Private]
-		public virtual bool FindMissingRevisions(RevisionList touchRevs)
+		public bool FindMissingRevisions(RevisionList touchRevs)
 		{
 			if (touchRevs.Count == 0)
 			{
@@ -3949,16 +4173,18 @@ namespace Couchbase.Lite
 			return true;
 		}
 
+		/// <exclude></exclude>
 		[InterfaceAudience.Private]
 		internal static string MakeLocalDocumentId(string documentId)
 		{
 			return string.Format("_local/%s", documentId);
 		}
 
+		/// <exclude></exclude>
 		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
 		[InterfaceAudience.Private]
-		public virtual RevisionInternal PutLocalRevision(RevisionInternal revision, string
-			 prevRevID)
+		public RevisionInternal PutLocalRevision(RevisionInternal revision, string prevRevID
+			)
 		{
 			string docID = revision.GetDocId();
 			if (!docID.StartsWith("_local/"))
@@ -4030,14 +4256,16 @@ namespace Couchbase.Lite
 		/// development, but in general this is inefficient if this map will be used more than once,
 		/// because the entire view has to be regenerated from scratch every time.
 		/// </remarks>
+		/// <exclude></exclude>
 		[InterfaceAudience.Private]
-		public virtual Query SlowQuery(Mapper map)
+		public Query SlowQuery(Mapper map)
 		{
 			return new Query(this, map);
 		}
 
+		/// <exclude></exclude>
 		[InterfaceAudience.Private]
-		internal virtual RevisionInternal GetParentRevision(RevisionInternal rev)
+		internal RevisionInternal GetParentRevision(RevisionInternal rev)
 		{
 			// First get the parent's sequence:
 			long seq = rev.GetSequence();
@@ -4084,9 +4312,10 @@ namespace Couchbase.Lite
 			return result;
 		}
 
+		/// <exclude></exclude>
 		/// <exception cref="Couchbase.Lite.Storage.SQLException"></exception>
 		[InterfaceAudience.Private]
-		internal virtual long LongForQuery(string sqlQuery, string[] args)
+		internal long LongForQuery(string sqlQuery, string[] args)
 		{
 			Cursor cursor = null;
 			long result = 0;
@@ -4118,12 +4347,13 @@ namespace Couchbase.Lite
 		/// 	</param>
 		/// <resultOn>success will point to an NSDictionary with the same form as docsToRev, containing the doc/revision IDs that were actually removed.
 		/// 	</resultOn>
+		/// <exclude></exclude>
 		[InterfaceAudience.Private]
-		public virtual IDictionary<string, object> PurgeRevisions(IDictionary<string, IList
-			<string>> docsToRevs)
+		public IDictionary<string, object> PurgeRevisions(IDictionary<string, IList<string
+			>> docsToRevs)
 		{
 			IDictionary<string, object> result = new Dictionary<string, object>();
-			RunInTransaction(new _TransactionTask_3476(this, docsToRevs, result));
+			RunInTransaction(new _TransactionalTask_3895(this, docsToRevs, result));
 			// no such document, skip it
 			// Delete all revisions if magic "*" revision ID is given:
 			// Iterate over all the revisions of the doc, in reverse sequence order.
@@ -4135,9 +4365,9 @@ namespace Couchbase.Lite
 			return result;
 		}
 
-		private sealed class _TransactionTask_3476 : TransactionTask
+		private sealed class _TransactionalTask_3895 : TransactionalTask
 		{
-			public _TransactionTask_3476(Database _enclosing, IDictionary<string, IList<string
+			public _TransactionalTask_3895(Database _enclosing, IDictionary<string, IList<string
 				>> docsToRevs, IDictionary<string, object> result)
 			{
 				this._enclosing = _enclosing;
@@ -4269,8 +4499,9 @@ namespace Couchbase.Lite
 			private readonly IDictionary<string, object> result;
 		}
 
+		/// <exclude></exclude>
 		[InterfaceAudience.Private]
-		protected internal virtual bool ReplaceUUIDs()
+		protected internal bool ReplaceUUIDs()
 		{
 			string query = "UPDATE INFO SET value='" + Misc.TDCreateUUID() + "' where key = 'privateUUID';";
 			try
@@ -4295,8 +4526,9 @@ namespace Couchbase.Lite
 			return true;
 		}
 
+		/// <exclude></exclude>
 		[InterfaceAudience.Private]
-		public virtual RevisionInternal GetLocalDocument(string docID, string revID)
+		public RevisionInternal GetLocalDocument(string docID, string revID)
 		{
 			// docID already should contain "_local/" prefix
 			RevisionInternal result = null;
@@ -4345,15 +4577,17 @@ namespace Couchbase.Lite
 			}
 		}
 
+		/// <exclude></exclude>
 		[InterfaceAudience.Private]
-		public virtual long GetStartTime()
+		public long GetStartTime()
 		{
 			return this.startTime;
 		}
 
+		/// <exclude></exclude>
 		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
 		[InterfaceAudience.Private]
-		public virtual void DeleteLocalDocument(string docID, string revID)
+		public void DeleteLocalDocument(string docID, string revID)
 		{
 			if (docID == null)
 			{
@@ -4395,10 +4629,142 @@ namespace Couchbase.Lite
 
 		/// <summary>Set the database's name.</summary>
 		/// <remarks>Set the database's name.</remarks>
+		/// <exclude></exclude>
 		[InterfaceAudience.Private]
-		public virtual void SetName(string name)
+		public void SetName(string name)
 		{
 			this.name = name;
+		}
+
+		/// <summary>Prune revisions to the given max depth.</summary>
+		/// <remarks>
+		/// Prune revisions to the given max depth.  Eg, remove revisions older than that max depth,
+		/// which will reduce storage requirements.
+		/// TODO: This implementation is a bit simplistic. It won't do quite the right thing in
+		/// histories with branches, if one branch stops much earlier than another. The shorter branch
+		/// will be deleted entirely except for its leaf revision. A more accurate pruning
+		/// would require an expensive full tree traversal. Hopefully this way is good enough.
+		/// </remarks>
+		/// <exception cref="CouchbaseLiteException">CouchbaseLiteException</exception>
+		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
+		[InterfaceAudience.Private]
+		internal int PruneRevsToMaxDepth(int maxDepth)
+		{
+			int outPruned = 0;
+			bool shouldCommit = false;
+			IDictionary<long, int> toPrune = new Dictionary<long, int>();
+			if (maxDepth == 0)
+			{
+				maxDepth = GetMaxRevTreeDepth();
+			}
+			// First find which docs need pruning, and by how much:
+			Cursor cursor = null;
+			string[] args = new string[] {  };
+			long docNumericID = -1;
+			int minGen = 0;
+			int maxGen = 0;
+			try
+			{
+				cursor = database.RawQuery("SELECT doc_id, MIN(revid), MAX(revid) FROM revs GROUP BY doc_id"
+					, args);
+				while (cursor.MoveToNext())
+				{
+					docNumericID = cursor.GetLong(0);
+					string minGenRevId = cursor.GetString(1);
+					string maxGenRevId = cursor.GetString(2);
+					minGen = Revision.GenerationFromRevID(minGenRevId);
+					maxGen = Revision.GenerationFromRevID(maxGenRevId);
+					if ((maxGen - minGen + 1) > maxDepth)
+					{
+						toPrune.Put(docNumericID, (maxGen - minGen));
+					}
+				}
+				BeginTransaction();
+				if (toPrune.Count == 0)
+				{
+					return 0;
+				}
+				foreach (long docNumericIDLong in toPrune.Keys)
+				{
+					string minIDToKeep = string.Format("%d-", toPrune.Get(docNumericIDLong) + 1);
+					string[] deleteArgs = new string[] { System.Convert.ToString(docNumericID), minIDToKeep
+						 };
+					int rowsDeleted = database.Delete("revs", "doc_id=? AND revid < ? AND current=0", 
+						deleteArgs);
+					outPruned += rowsDeleted;
+				}
+				shouldCommit = true;
+			}
+			catch (Exception e)
+			{
+				throw new CouchbaseLiteException(e, Status.InternalServerError);
+			}
+			finally
+			{
+				EndTransaction(shouldCommit);
+				if (cursor != null)
+				{
+					cursor.Close();
+				}
+			}
+			return outPruned;
+		}
+
+		/// <summary>Is the database open?</summary>
+		/// <exclude></exclude>
+		[InterfaceAudience.Private]
+		public bool IsOpen()
+		{
+			return open;
+		}
+
+		/// <exclude></exclude>
+		[InterfaceAudience.Private]
+		public void AddReplication(Replication replication)
+		{
+			if (allReplicators != null)
+			{
+				allReplicators.AddItem(replication);
+			}
+		}
+
+		/// <exclude></exclude>
+		[InterfaceAudience.Private]
+		public void ForgetReplication(Replication replication)
+		{
+			allReplicators.Remove(replication);
+		}
+
+		/// <exclude></exclude>
+		[InterfaceAudience.Private]
+		public void AddActiveReplication(Replication replication)
+		{
+			if (activeReplicators != null)
+			{
+				activeReplicators.AddItem(replication);
+			}
+			replication.AddChangeListener(new _ChangeListener_4224(this));
+		}
+
+		private sealed class _ChangeListener_4224 : Replication.ChangeListener
+		{
+			public _ChangeListener_4224(Database _enclosing)
+			{
+				this._enclosing = _enclosing;
+			}
+
+			public void Changed(Replication.ChangeEvent @event)
+			{
+				if (@event.GetSource().IsRunning() == false)
+				{
+					if (this._enclosing.activeReplicators != null)
+					{
+						this._enclosing.activeReplicators.Remove(@event.GetSource());
+					}
+				}
+			}
+
+			private readonly Database _enclosing;
 		}
 	}
 }

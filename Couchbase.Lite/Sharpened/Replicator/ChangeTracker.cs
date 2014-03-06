@@ -1,61 +1,40 @@
-//
-// ChangeTracker.cs
-//
-// Author:
-//	Zachary Gramana  <zack@xamarin.com>
-//
-// Copyright (c) 2013, 2014 Xamarin Inc (http://www.xamarin.com)
-//
-// Permission is hereby granted, free of charge, to any person obtaining
-// a copy of this software and associated documentation files (the
-// "Software"), to deal in the Software without restriction, including
-// without limitation the rights to use, copy, modify, merge, publish,
-// distribute, sublicense, and/or sell copies of the Software, and to
-// permit persons to whom the Software is furnished to do so, subject to
-// the following conditions:
-// 
-// The above copyright notice and this permission notice shall be
-// included in all copies or substantial portions of the Software.
-// 
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-// EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-// MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
-// NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
-// LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
-// OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
-// WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-//
 /**
-* Original iOS version by Jens Alfke
-* Ported to Android by Marty Schoch, Traun Leyden
-*
-* Copyright (c) 2012, 2013, 2014 Couchbase, Inc. All rights reserved.
-*
-* Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file
-* except in compliance with the License. You may obtain a copy of the License at
-*
-* http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software distributed under the
-* License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
-* either express or implied. See the License for the specific language governing permissions
-* and limitations under the License.
-*/
+ * Couchbase Lite for .NET
+ *
+ * Original iOS version by Jens Alfke
+ * Android Port by Marty Schoch, Traun Leyden
+ * C# Port by Zack Gramana
+ *
+ * Copyright (c) 2012, 2013, 2014 Couchbase, Inc. All rights reserved.
+ * Portions (c) 2013, 2014 Xamarin, Inc. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file
+ * except in compliance with the License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the
+ * License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
+ * either express or implied. See the License for the specific language governing permissions
+ * and limitations under the License.
+ */
 
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Net;
+using Apache.Http;
+using Apache.Http.Auth;
+using Apache.Http.Client;
+using Apache.Http.Client.Methods;
+using Apache.Http.Client.Protocol;
+using Apache.Http.Impl.Auth;
+using Apache.Http.Impl.Client;
+using Apache.Http.Protocol;
 using Couchbase.Lite;
 using Couchbase.Lite.Replicator;
 using Couchbase.Lite.Util;
-using Org.Apache.Http;
-using Org.Apache.Http.Auth;
-using Org.Apache.Http.Client;
-using Org.Apache.Http.Client.Methods;
-using Org.Apache.Http.Client.Protocol;
-using Org.Apache.Http.Impl.Client;
-using Org.Apache.Http.Protocol;
 using Org.Codehaus.Jackson;
 using Sharpen;
 
@@ -65,6 +44,7 @@ namespace Couchbase.Lite.Replicator
 	/// Reads the continuous-mode _changes feed of a database, and sends the
 	/// individual change entries to its client's changeTrackerReceivedChange()
 	/// </summary>
+	/// <exclude></exclude>
 	public class ChangeTracker : Runnable
 	{
 		private Uri databaseURL;
@@ -75,11 +55,13 @@ namespace Couchbase.Lite.Replicator
 
 		private object lastSequenceID;
 
+		private bool includeConflicts;
+
 		private Sharpen.Thread thread;
 
 		private bool running = false;
 
-		private IHttpUriRequest request;
+		private HttpRequestMessage request;
 
 		private string filterName;
 
@@ -91,6 +73,8 @@ namespace Couchbase.Lite.Replicator
 
 		protected internal IDictionary<string, object> requestHeaders;
 
+		protected internal ChangeTrackerBackoff backoff;
+
 		public enum ChangeTrackerMode
 		{
 			OneShot,
@@ -98,11 +82,12 @@ namespace Couchbase.Lite.Replicator
 			Continuous
 		}
 
-		public ChangeTracker(Uri databaseURL, ChangeTracker.ChangeTrackerMode mode, object
-			 lastSequenceID, ChangeTrackerClient client)
+		public ChangeTracker(Uri databaseURL, ChangeTracker.ChangeTrackerMode mode, bool 
+			includeConflicts, object lastSequenceID, ChangeTrackerClient client)
 		{
 			this.databaseURL = databaseURL;
 			this.mode = mode;
+			this.includeConflicts = includeConflicts;
 			this.lastSequenceID = lastSequenceID;
 			this.client = client;
 			this.requestHeaders = new Dictionary<string, object>();
@@ -165,9 +150,13 @@ namespace Couchbase.Lite.Replicator
 				}
 			}
 			path += "&heartbeat=300000";
+			if (includeConflicts)
+			{
+				path += "&style=all_docs";
+			}
 			if (lastSequenceID != null)
 			{
-				path += "&since=" + HttpUtility.UrlEncode(lastSequenceID.ToString());
+				path += "&since=" + URLEncoder.Encode(lastSequenceID.ToString());
 			}
 			if (docIDs != null && docIDs.Count > 0)
 			{
@@ -177,7 +166,7 @@ namespace Couchbase.Lite.Replicator
 			}
 			if (filterName != null)
 			{
-				path += "&filter=" + HttpUtility.UrlEncode(filterName);
+				path += "&filter=" + URLEncoder.Encode(filterName);
 				if (filterParams != null)
 				{
 					foreach (string filterParamKey in filterParams.Keys)
@@ -194,7 +183,7 @@ namespace Couchbase.Lite.Replicator
 								throw new ArgumentException(e);
 							}
 						}
-						path += "&" + HttpUtility.UrlEncode(filterParamKey) + "=" + HttpUtility.UrlEncode(value.ToString
+						path += "&" + URLEncoder.Encode(filterParamKey) + "=" + URLEncoder.Encode(value.ToString
 							());
 					}
 				}
@@ -217,7 +206,7 @@ namespace Couchbase.Lite.Replicator
 			}
 			catch (UriFormatException e)
 			{
-				Log.E(Database.Tag, "Changes feed ULR is malformed", e);
+				Log.E(Database.Tag, this + ": Changes feed ULR is malformed", e);
 			}
 			return result;
 		}
@@ -231,7 +220,8 @@ namespace Couchbase.Lite.Replicator
 				// This is a race condition that can be reproduced by calling cbpuller.start() and cbpuller.stop()
 				// directly afterwards.  What happens is that by the time the Changetracker thread fires up,
 				// the cbpuller has already set this.client to null.  See issue #109
-				Log.W(Database.Tag, "ChangeTracker run() loop aborting because client == null");
+				Log.W(Database.Tag, this + ": ChangeTracker run() loop aborting because client == null"
+					);
 				return;
 			}
 			if (mode == ChangeTracker.ChangeTrackerMode.Continuous)
@@ -243,7 +233,7 @@ namespace Couchbase.Lite.Replicator
 					);
 			}
 			httpClient = client.GetHttpClient();
-			ChangeTrackerBackoff backoff = new ChangeTrackerBackoff();
+			backoff = new ChangeTrackerBackoff();
 			while (running)
 			{
 				Uri url = GetChangesFeedURL();
@@ -253,7 +243,7 @@ namespace Couchbase.Lite.Replicator
 				// then preemptively set the auth credentials
 				if (url.GetUserInfo() != null)
 				{
-					Log.V(Database.Tag, "url.getUserInfo(): " + url.GetUserInfo());
+					Log.V(Database.Tag, this + ": url.getUserInfo(): " + url.GetUserInfo());
 					if (url.GetUserInfo().Contains(":") && !url.GetUserInfo().Trim().Equals(":"))
 					{
 						string[] userInfoSplit = url.GetUserInfo().Split(":");
@@ -262,13 +252,14 @@ namespace Couchbase.Lite.Replicator
 						if (httpClient is DefaultHttpClient)
 						{
 							DefaultHttpClient dhc = (DefaultHttpClient)httpClient;
-							IHttpRequestInterceptor preemptiveAuth = new _IHttpRequestInterceptor_212(creds);
+							MessageProcessingHandler preemptiveAuth = new _MessageProcessingHandler_221(creds
+								);
 							dhc.AddRequestInterceptor(preemptiveAuth, 0);
 						}
 					}
 					else
 					{
-						Log.W(Database.Tag, "ChangeTracker Unable to parse user info, not setting credentials"
+						Log.W(Database.Tag, this + ": ChangeTracker Unable to parse user info, not setting credentials"
 							);
 					}
 				}
@@ -277,13 +268,14 @@ namespace Couchbase.Lite.Replicator
 					string maskedRemoteWithoutCredentials = GetChangesFeedURL().ToString();
 					maskedRemoteWithoutCredentials = maskedRemoteWithoutCredentials.ReplaceAll("://.*:.*@"
 						, "://---:---@");
-					Log.V(Database.Tag, "Making request to " + maskedRemoteWithoutCredentials);
+					Log.V(Database.Tag, this + ": Making request to " + maskedRemoteWithoutCredentials
+						);
 					HttpResponse response = httpClient.Execute(request);
 					StatusLine status = response.GetStatusLine();
 					if (status.GetStatusCode() >= 300)
 					{
-						Log.E(Database.Tag, "Change tracker got error " + Sharpen.Extensions.ToString(status
-							.GetStatusCode()));
+						Log.E(Database.Tag, this + ": Change tracker got error " + Sharpen.Extensions.ToString
+							(status.GetStatusCode()));
 						string msg = string.Format(status.ToString());
 						this.error = new CouchbaseLiteException(msg, new Status(status.GetStatusCode()));
 						Stop();
@@ -292,45 +284,62 @@ namespace Couchbase.Lite.Replicator
 					InputStream input = null;
 					if (entity != null)
 					{
-						input = entity.GetContent();
-						if (mode == ChangeTracker.ChangeTrackerMode.LongPoll)
+						try
 						{
-							IDictionary<string, object> fullBody = Manager.GetObjectMapper().ReadValue<IDictionary
-								>(input);
-							bool responseOK = ReceivedPollResponse(fullBody);
-							if (mode == ChangeTracker.ChangeTrackerMode.LongPoll && responseOK)
+							input = entity.GetContent();
+							if (mode == ChangeTracker.ChangeTrackerMode.LongPoll)
 							{
-								Log.V(Database.Tag, "Starting new longpoll");
-								continue;
+								// continuous replications
+								IDictionary<string, object> fullBody = Manager.GetObjectMapper().ReadValue<IDictionary
+									>(input);
+								bool responseOK = ReceivedPollResponse(fullBody);
+								if (mode == ChangeTracker.ChangeTrackerMode.LongPoll && responseOK)
+								{
+									Log.V(Database.Tag, this + ": Starting new longpoll");
+									backoff.ResetBackoff();
+									continue;
+								}
+								else
+								{
+									Log.W(Database.Tag, this + ": Change tracker calling stop (LongPoll)");
+									Stop();
+								}
 							}
 							else
 							{
-								Log.W(Database.Tag, "Change tracker calling stop");
-								Stop();
-							}
-						}
-						else
-						{
-							JsonFactory jsonFactory = Manager.GetObjectMapper().GetJsonFactory();
-							JsonParser jp = jsonFactory.CreateJsonParser(input);
-							while (jp.NextToken() != JsonToken.StartArray)
-							{
-							}
-							// ignore these tokens
-							while (jp.NextToken() == JsonToken.StartObject)
-							{
-								IDictionary<string, object> change = (IDictionary)Manager.GetObjectMapper().ReadValue
-									<IDictionary>(jp);
-								if (!ReceivedChange(change))
+								// one-shot replications
+								JsonFactory jsonFactory = Manager.GetObjectMapper().GetJsonFactory();
+								JsonParser jp = jsonFactory.CreateJsonParser(input);
+								while (jp.NextToken() != JsonToken.StartArray)
 								{
-									Log.W(Database.Tag, string.Format("Received unparseable change line from server: %s"
-										, change));
 								}
+								// ignore these tokens
+								while (jp.NextToken() == JsonToken.StartObject)
+								{
+									IDictionary<string, object> change = (IDictionary)Manager.GetObjectMapper().ReadValue
+										<IDictionary>(jp);
+									if (!ReceivedChange(change))
+									{
+										Log.W(Database.Tag, string.Format("Received unparseable change line from server: %s"
+											, change));
+									}
+								}
+								Log.W(Database.Tag, this + ": Change tracker calling stop (OneShot)");
+								Stop();
+								break;
 							}
-							Stop();
-							break;
+							backoff.ResetBackoff();
 						}
-						backoff.ResetBackoff();
+						finally
+						{
+							try
+							{
+								entity.ConsumeContent();
+							}
+							catch (IOException)
+							{
+							}
+						}
 					}
 				}
 				catch (Exception e)
@@ -343,24 +352,24 @@ namespace Couchbase.Lite.Replicator
 						// in this case, just silently absorb the exception because it
 						// frequently happens when we're shutting down and have to
 						// close the socket underneath our read.
-						Log.E(Database.Tag, "Exception in change tracker", e);
+						Log.E(Database.Tag, this + ": Exception in change tracker", e);
 					}
 					backoff.SleepAppropriateAmountOfTime();
 				}
 			}
-			Log.V(Database.Tag, "Change tracker run loop exiting");
+			Log.V(Database.Tag, this + ": Change tracker run loop exiting");
 		}
 
-		private sealed class _IHttpRequestInterceptor_212 : IHttpRequestInterceptor
+		private sealed class _MessageProcessingHandler_221 : MessageProcessingHandler
 		{
-			public _IHttpRequestInterceptor_212(Credentials creds)
+			public _MessageProcessingHandler_221(Credentials creds)
 			{
 				this.creds = creds;
 			}
 
-			/// <exception cref="Org.Apache.Http.HttpException"></exception>
+			/// <exception cref="Apache.Http.HttpException"></exception>
 			/// <exception cref="System.IO.IOException"></exception>
-			public void Process(IHttpRequest request, HttpContext context)
+			public void Process(HttpWebRequest request, HttpContext context)
 			{
 				AuthState authState = (AuthState)context.GetAttribute(ClientContext.TargetAuthState
 					);
@@ -433,7 +442,7 @@ namespace Couchbase.Lite.Replicator
 
 		public virtual void Stop()
 		{
-			Log.D(Database.Tag, "changed tracker asked to stop");
+			Log.D(Database.Tag, this + ": Changed tracker asked to stop");
 			running = false;
 			thread.Interrupt();
 			if (request != null)
@@ -445,14 +454,14 @@ namespace Couchbase.Lite.Replicator
 
 		public virtual void Stopped()
 		{
-			Log.D(Database.Tag, "change tracker in stopped");
+			Log.D(Database.Tag, this + ": Change tracker in stopped");
 			if (client != null)
 			{
-				Log.D(Database.Tag, "posting stopped");
+				Log.D(Database.Tag, this + ": posting stopped");
 				client.ChangeTrackerStopped(this);
 			}
 			client = null;
-			Log.D(Database.Tag, "change tracker client should be null now");
+			Log.D(Database.Tag, this + ": Change tracker client should be null now");
 		}
 
 		internal virtual void SetRequestHeaders(IDictionary<string, object> requestHeaders
@@ -461,7 +470,7 @@ namespace Couchbase.Lite.Replicator
 			this.requestHeaders = requestHeaders;
 		}
 
-		private void AddRequestHeaders(IHttpUriRequest request)
+		private void AddRequestHeaders(HttpRequestMessage request)
 		{
 			foreach (string requestHeaderKey in requestHeaders.Keys)
 			{

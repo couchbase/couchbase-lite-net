@@ -1,46 +1,23 @@
-//
-// RouterTest.cs
-//
-// Author:
-//	Zachary Gramana  <zack@xamarin.com>
-//
-// Copyright (c) 2013, 2014 Xamarin Inc (http://www.xamarin.com)
-//
-// Permission is hereby granted, free of charge, to any person obtaining
-// a copy of this software and associated documentation files (the
-// "Software"), to deal in the Software without restriction, including
-// without limitation the rights to use, copy, modify, merge, publish,
-// distribute, sublicense, and/or sell copies of the Software, and to
-// permit persons to whom the Software is furnished to do so, subject to
-// the following conditions:
-// 
-// The above copyright notice and this permission notice shall be
-// included in all copies or substantial portions of the Software.
-// 
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-// EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-// MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
-// NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
-// LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
-// OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
-// WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-//
 /**
-* Original iOS version by Jens Alfke
-* Ported to Android by Marty Schoch, Traun Leyden
-*
-* Copyright (c) 2012, 2013, 2014 Couchbase, Inc. All rights reserved.
-*
-* Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file
-* except in compliance with the License. You may obtain a copy of the License at
-*
-* http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software distributed under the
-* License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
-* either express or implied. See the License for the specific language governing permissions
-* and limitations under the License.
-*/
+ * Couchbase Lite for .NET
+ *
+ * Original iOS version by Jens Alfke
+ * Android Port by Marty Schoch, Traun Leyden
+ * C# Port by Zack Gramana
+ *
+ * Copyright (c) 2012, 2013, 2014 Couchbase, Inc. All rights reserved.
+ * Portions (c) 2013, 2014 Xamarin, Inc. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file
+ * except in compliance with the License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the
+ * License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
+ * either express or implied. See the License for the specific language governing permissions
+ * and limitations under the License.
+ */
 
 using System.Collections.Generic;
 using System.IO;
@@ -371,6 +348,7 @@ namespace Couchbase.Lite
 			NUnit.Framework.Assert.AreEqual(expectedRowsWithDocs, rows);
 		}
 
+		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
 		public virtual void TestViews()
 		{
 			Send("PUT", "/db", Status.Created, null);
@@ -392,7 +370,7 @@ namespace Couchbase.Lite
 			string revID2 = (string)result.Get("rev");
 			Database db = manager.GetDatabase("db");
 			View view = db.GetView("design/view");
-			view.SetMapAndReduce(new _Mapper_372(), null, "1");
+			view.SetMapReduce(new _Mapper_372(), null, "1");
 			// Build up our expected result
 			IDictionary<string, object> row1 = new Dictionary<string, object>();
 			row1.Put("id", "doc1");
@@ -473,19 +451,20 @@ namespace Couchbase.Lite
 			NUnit.Framework.Assert.IsNotNull(bulk_result[1].Get("rev"));
 		}
 
+		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
 		public virtual void TestPostKeysView()
 		{
 			Send("PUT", "/db", Status.Created, null);
 			IDictionary<string, object> result;
 			Database db = manager.GetDatabase("db");
 			View view = db.GetView("design/view");
-			view.SetMapAndReduce(new _Mapper_463(), null, "1");
+			view.SetMapReduce(new _Mapper_463(), null, "1");
 			IDictionary<string, object> key_doc1 = new Dictionary<string, object>();
 			key_doc1.Put("parentId", "12345");
 			result = (IDictionary<string, object>)SendBody("PUT", "/db/key_doc1", key_doc1, Status
 				.Created, null);
 			view = db.GetView("design/view");
-			view.SetMapAndReduce(new _Mapper_475(), null, "1");
+			view.SetMapReduce(new _Mapper_475(), null, "1");
 			IList<object> keys = new AList<object>();
 			keys.AddItem("12345");
 			IDictionary<string, object> bodyObj = new Dictionary<string, object>();
@@ -619,6 +598,30 @@ namespace Couchbase.Lite
 				, "/_replicate", replicateJsonMap, Status.Ok, null);
 			Log.V(Tag, "result: " + result);
 			NUnit.Framework.Assert.IsNotNull(result.Get("session_id"));
+			bool success = WaitForReplicationToFinish();
+			NUnit.Framework.Assert.IsTrue(success);
+		}
+
+		/// <exception cref="System.Exception"></exception>
+		private bool WaitForReplicationToFinish()
+		{
+			int maxTimeToWaitMs = 60 * 1000;
+			int timeWaited = 0;
+			bool success = true;
+			AList<object> activeTasks = (AList<object>)Send("GET", "/_active_tasks", Status.Ok
+				, null);
+			while (activeTasks.Count > 0 || timeWaited > maxTimeToWaitMs)
+			{
+				int timeToWait = 1000;
+				Sharpen.Thread.Sleep(timeToWait);
+				activeTasks = (AList<object>)Send("GET", "/_active_tasks", Status.Ok, null);
+				timeWaited += timeToWait;
+			}
+			if (timeWaited > maxTimeToWaitMs)
+			{
+				success = false;
+			}
+			return success;
 		}
 
 		/// <exception cref="System.Exception"></exception>
@@ -631,6 +634,8 @@ namespace Couchbase.Lite
 				, "/_replicate", replicateJsonMap, Status.Ok, null);
 			Log.V(Tag, "result: " + result);
 			NUnit.Framework.Assert.IsNotNull(result.Get("session_id"));
+			bool success = WaitForReplicationToFinish();
+			NUnit.Framework.Assert.IsTrue(success);
 		}
 	}
 }

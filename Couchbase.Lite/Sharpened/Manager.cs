@@ -1,46 +1,23 @@
-//
-// Manager.cs
-//
-// Author:
-//	Zachary Gramana  <zack@xamarin.com>
-//
-// Copyright (c) 2013, 2014 Xamarin Inc (http://www.xamarin.com)
-//
-// Permission is hereby granted, free of charge, to any person obtaining
-// a copy of this software and associated documentation files (the
-// "Software"), to deal in the Software without restriction, including
-// without limitation the rights to use, copy, modify, merge, publish,
-// distribute, sublicense, and/or sell copies of the Software, and to
-// permit persons to whom the Software is furnished to do so, subject to
-// the following conditions:
-// 
-// The above copyright notice and this permission notice shall be
-// included in all copies or substantial portions of the Software.
-// 
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-// EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-// MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
-// NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
-// LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
-// OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
-// WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-//
 /**
-* Original iOS version by Jens Alfke
-* Ported to Android by Marty Schoch, Traun Leyden
-*
-* Copyright (c) 2012, 2013, 2014 Couchbase, Inc. All rights reserved.
-*
-* Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file
-* except in compliance with the License. You may obtain a copy of the License at
-*
-* http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software distributed under the
-* License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
-* either express or implied. See the License for the specific language governing permissions
-* and limitations under the License.
-*/
+ * Couchbase Lite for .NET
+ *
+ * Original iOS version by Jens Alfke
+ * Android Port by Marty Schoch, Traun Leyden
+ * C# Port by Zack Gramana
+ *
+ * Copyright (c) 2012, 2013, 2014 Couchbase, Inc. All rights reserved.
+ * Portions (c) 2013, 2014 Xamarin, Inc. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file
+ * except in compliance with the License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the
+ * License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
+ * either express or implied. See the License for the specific language governing permissions
+ * and limitations under the License.
+ */
 
 using System;
 using System.Collections;
@@ -60,21 +37,26 @@ namespace Couchbase.Lite
 	/// 	</summary>
 	/// <remarks>Top-level CouchbaseLite object; manages a collection of databases as a CouchDB server does.
 	/// 	</remarks>
-	public class Manager
+	public sealed class Manager
 	{
-		public const string Version = "1.0.0-beta";
+		public const string Version = "1.0.0-beta2";
 
+		/// <exclude></exclude>
 		public const string HttpErrorDomain = "CBLHTTP";
 
-		private static readonly JsonConvert mapper = new JsonConvert();
-
+		/// <exclude></exclude>
 		public const string DatabaseSuffixOld = ".touchdb";
 
+		/// <exclude></exclude>
 		public const string DatabaseSuffix = ".cblite";
 
+		/// <exclude></exclude>
 		public static readonly ManagerOptions DefaultOptions = new ManagerOptions();
 
+		/// <exclude></exclude>
 		public const string LegalCharacters = "[^a-z]{1,}[^a-z0-9_$()/+-]*$";
+
+		private static readonly ObjectWriter mapper = new ObjectWriter();
 
 		private ManagerOptions options;
 
@@ -88,14 +70,16 @@ namespace Couchbase.Lite
 
 		private HttpClientFactory defaultHttpClientFactory;
 
+		/// <exclude></exclude>
 		[InterfaceAudience.Private]
-		public static JsonConvert GetObjectMapper()
+		public static ObjectWriter GetObjectMapper()
 		{
 			return mapper;
 		}
 
 		/// <summary>Constructor</summary>
 		/// <exception cref="System.NotSupportedException">- not currently supported</exception>
+		/// <exclude></exclude>
 		[InterfaceAudience.Public]
 		public Manager()
 		{
@@ -111,6 +95,7 @@ namespace Couchbase.Lite
 		[InterfaceAudience.Public]
 		public Manager(FilePath directoryFile, ManagerOptions options)
 		{
+			Log.V(Database.Tag, "Starting Manager version: " + Version);
 			this.directoryFile = directoryFile;
 			this.options = (options != null) ? options : DefaultOptions;
 			this.databases = new Dictionary<string, Database>();
@@ -127,6 +112,7 @@ namespace Couchbase.Lite
 
 		/// <summary>Get shared instance</summary>
 		/// <exception cref="System.NotSupportedException">- not currently supported</exception>
+		/// <exclude></exclude>
 		[InterfaceAudience.Public]
 		public static Couchbase.Lite.Manager GetSharedInstance()
 		{
@@ -154,7 +140,7 @@ namespace Couchbase.Lite
 		/// <summary>The root directory of this manager (as specified at initialization time.)
 		/// 	</summary>
 		[InterfaceAudience.Public]
-		public virtual string GetDirectory()
+		public string GetDirectory()
 		{
 			return directoryFile.GetAbsolutePath();
 		}
@@ -162,9 +148,9 @@ namespace Couchbase.Lite
 		/// <summary>An array of the names of all existing databases.</summary>
 		/// <remarks>An array of the names of all existing databases.</remarks>
 		[InterfaceAudience.Public]
-		public virtual IList<string> GetAllDatabaseNames()
+		public IList<string> GetAllDatabaseNames()
 		{
-			string[] databaseFiles = directoryFile.List(new _FilenameFilter_130());
+			string[] databaseFiles = directoryFile.List(new _FilenameFilter_158());
 			IList<string> result = new AList<string>();
 			foreach (string databaseFile in databaseFiles)
 			{
@@ -177,9 +163,9 @@ namespace Couchbase.Lite
 			return Sharpen.Collections.UnmodifiableList(result);
 		}
 
-		private sealed class _FilenameFilter_130 : FilenameFilter
+		private sealed class _FilenameFilter_158 : FilenameFilter
 		{
-			public _FilenameFilter_130()
+			public _FilenameFilter_158()
 			{
 			}
 
@@ -198,7 +184,7 @@ namespace Couchbase.Lite
 		/// <remarks>Releases all resources used by the Manager instance and closes all its databases.
 		/// 	</remarks>
 		[InterfaceAudience.Public]
-		public virtual void Close()
+		public void Close()
 		{
 			Log.I(Database.Tag, "Closing " + this);
 			foreach (Database database in databases.Values)
@@ -223,8 +209,9 @@ namespace Couchbase.Lite
 		/// Returns the database with the given name, or creates it if it doesn't exist.
 		/// Multiple calls with the same name will return the same Database instance.
 		/// </remarks>
+		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
 		[InterfaceAudience.Public]
-		public virtual Database GetDatabase(string name)
+		public Database GetDatabase(string name)
 		{
 			bool mustExist = false;
 			Database db = GetDatabaseWithoutOpening(name, mustExist);
@@ -240,10 +227,11 @@ namespace Couchbase.Lite
 		/// Returns the database with the given name, or null if it doesn't exist.
 		/// Multiple calls with the same name will return the same Database instance.
 		/// </remarks>
+		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
 		[InterfaceAudience.Public]
-		public virtual Database GetExistingDatabase(string name)
+		public Database GetExistingDatabase(string name)
 		{
-			bool mustExist = false;
+			bool mustExist = true;
 			Database db = GetDatabaseWithoutOpening(name, mustExist);
 			if (db != null)
 			{
@@ -263,38 +251,49 @@ namespace Couchbase.Lite
 		/// <param name="databaseFile">Path of the source Database file.</param>
 		/// <param name="attachmentsDirectory">Path of the associated Attachments directory, or null if there are no attachments.
 		/// 	</param>
-		/// <exception cref="System.IO.IOException"></exception>
+		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
 		[InterfaceAudience.Public]
-		public virtual void ReplaceDatabase(string databaseName, FilePath databaseFile, FilePath
-			 attachmentsDirectory)
+		public void ReplaceDatabase(string databaseName, FilePath databaseFile, FilePath 
+			attachmentsDirectory)
 		{
-			Database database = GetDatabase(databaseName);
-			string dstAttachmentsPath = database.GetAttachmentStorePath();
-			FilePath destFile = new FilePath(database.GetPath());
-			FileDirUtils.CopyFile(databaseFile, destFile);
-			FilePath attachmentsFile = new FilePath(dstAttachmentsPath);
-			FileDirUtils.DeleteRecursive(attachmentsFile);
-			attachmentsFile.Mkdirs();
-			if (attachmentsDirectory != null)
+			try
 			{
-				FileDirUtils.CopyFolder(attachmentsDirectory, attachmentsFile);
+				Database database = GetDatabase(databaseName);
+				string dstAttachmentsPath = database.GetAttachmentStorePath();
+				FilePath destFile = new FilePath(database.GetPath());
+				FileDirUtils.CopyFile(databaseFile, destFile);
+				FilePath attachmentsFile = new FilePath(dstAttachmentsPath);
+				FileDirUtils.DeleteRecursive(attachmentsFile);
+				attachmentsFile.Mkdirs();
+				if (attachmentsDirectory != null)
+				{
+					FileDirUtils.CopyFolder(attachmentsDirectory, attachmentsFile);
+				}
+				database.ReplaceUUIDs();
 			}
-			database.ReplaceUUIDs();
+			catch (IOException e)
+			{
+				Log.E(Database.Tag, string.Empty, e);
+				throw new CouchbaseLiteException(Status.InternalServerError);
+			}
 		}
 
-		[InterfaceAudience.Public]
-		public virtual HttpClientFactory GetDefaultHttpClientFactory()
+		/// <exclude></exclude>
+		[InterfaceAudience.Private]
+		public HttpClientFactory GetDefaultHttpClientFactory()
 		{
 			return defaultHttpClientFactory;
 		}
 
-		[InterfaceAudience.Public]
-		public virtual void SetDefaultHttpClientFactory(HttpClientFactory defaultHttpClientFactory
+		/// <exclude></exclude>
+		[InterfaceAudience.Private]
+		public void SetDefaultHttpClientFactory(HttpClientFactory defaultHttpClientFactory
 			)
 		{
 			this.defaultHttpClientFactory = defaultHttpClientFactory;
 		}
 
+		/// <exclude></exclude>
 		[InterfaceAudience.Private]
 		private static bool ContainsOnlyLegalCharacters(string databaseName)
 		{
@@ -304,10 +303,11 @@ namespace Couchbase.Lite
 			return matcher.Matches();
 		}
 
+		/// <exclude></exclude>
 		[InterfaceAudience.Private]
 		private void UpgradeOldDatabaseFiles(FilePath directory)
 		{
-			FilePath[] files = directory.ListFiles(new _FilenameFilter_245());
+			FilePath[] files = directory.ListFiles(new _FilenameFilter_290());
 			foreach (FilePath file in files)
 			{
 				string oldFilename = file.GetName();
@@ -330,9 +330,9 @@ namespace Couchbase.Lite
 			}
 		}
 
-		private sealed class _FilenameFilter_245 : FilenameFilter
+		private sealed class _FilenameFilter_290 : FilenameFilter
 		{
-			public _FilenameFilter_245()
+			public _FilenameFilter_290()
 			{
 			}
 
@@ -342,6 +342,7 @@ namespace Couchbase.Lite
 			}
 		}
 
+		/// <exclude></exclude>
 		[InterfaceAudience.Private]
 		private string FilenameWithNewExtension(string oldFilename, string oldExtension, 
 			string newExtension)
@@ -350,8 +351,9 @@ namespace Couchbase.Lite
 			return oldFilename.ReplaceAll(oldExtensionRegex, newExtension);
 		}
 
+		/// <exclude></exclude>
 		[InterfaceAudience.Private]
-		public virtual ICollection<Database> AllOpenDatabases()
+		public ICollection<Database> AllOpenDatabases()
 		{
 			return databases.Values;
 		}
@@ -362,16 +364,18 @@ namespace Couchbase.Lite
 		/// Database instance.  There is not currently a known reason to use it, it may not make
 		/// sense on the Android API, but it was added for the purpose of having a consistent API with iOS.
 		/// </remarks>
+		/// <exclude></exclude>
+		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
 		[InterfaceAudience.Private]
-		public virtual Future RunAsync(string databaseName, AsyncTask function)
+		public Future RunAsync(string databaseName, AsyncTask function)
 		{
 			Database database = GetDatabase(databaseName);
-			return RunAsync(new _Runnable_290(function, database));
+			return RunAsync(new _Runnable_342(function, database));
 		}
 
-		private sealed class _Runnable_290 : Runnable
+		private sealed class _Runnable_342 : Runnable
 		{
-			public _Runnable_290(AsyncTask function, Database database)
+			public _Runnable_342(AsyncTask function, Database database)
 			{
 				this.function = function;
 				this.database = database;
@@ -387,12 +391,14 @@ namespace Couchbase.Lite
 			private readonly Database database;
 		}
 
+		/// <exclude></exclude>
 		[InterfaceAudience.Private]
-		internal virtual Future RunAsync(Runnable runnable)
+		internal Future RunAsync(Runnable runnable)
 		{
 			return workExecutor.Submit(runnable);
 		}
 
+		/// <exclude></exclude>
 		[InterfaceAudience.Private]
 		private string PathForName(string name)
 		{
@@ -407,6 +413,7 @@ namespace Couchbase.Lite
 			return result;
 		}
 
+		/// <exclude></exclude>
 		[InterfaceAudience.Private]
 		private IDictionary<string, object> ParseSourceOrTarget(IDictionary<string, object
 			> properties, string key)
@@ -427,9 +434,10 @@ namespace Couchbase.Lite
 			return result;
 		}
 
+		/// <exclude></exclude>
 		[InterfaceAudience.Private]
-		internal virtual Replication ReplicationWithDatabase(Database db, Uri remote, bool
-			 push, bool create, bool start)
+		internal Replication ReplicationWithDatabase(Database db, Uri remote, bool push, 
+			bool create, bool start)
 		{
 			foreach (Replication replicator in replications)
 			{
@@ -461,8 +469,9 @@ namespace Couchbase.Lite
 			return replicator_1;
 		}
 
+		/// <exclude></exclude>
 		[InterfaceAudience.Private]
-		public virtual Database GetDatabaseWithoutOpening(string name, bool mustExist)
+		public Database GetDatabaseWithoutOpening(string name, bool mustExist)
 		{
 			Database db = databases.Get(name);
 			if (db == null)
@@ -493,9 +502,29 @@ namespace Couchbase.Lite
 			return db;
 		}
 
+		/// <exclude></exclude>
+		[InterfaceAudience.Private]
+		internal void ForgetDatabase(Database db)
+		{
+			// remove from cached list of dbs
+			Sharpen.Collections.Remove(databases, db.GetName());
+			// remove from list of replications
+			// TODO: should there be something that actually stops the replication(s) first?
+			IEnumerator<Replication> replicationIterator = this.replications.GetEnumerator();
+			while (replicationIterator.HasNext())
+			{
+				Replication replication = replicationIterator.Next();
+				if (replication.GetLocalDatabase().GetName().Equals(db.GetName()))
+				{
+					replicationIterator.Remove();
+				}
+			}
+		}
+
+		/// <exclude></exclude>
 		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
 		[InterfaceAudience.Private]
-		public virtual Replication GetReplicator(IDictionary<string, object> properties)
+		public Replication GetReplicator(IDictionary<string, object> properties)
 		{
 			// TODO: in the iOS equivalent of this code, there is: {@"doc_ids", _documentIDs}) - write unit test that detects this bug
 			// TODO: ditto for "headers"
@@ -598,6 +627,11 @@ namespace Couchbase.Lite
 				{
 					repl.SetAuthorizer(authorizer);
 				}
+				IDictionary<string, object> headers = (IDictionary)properties.Get("headers");
+				if (headers != null && !headers.IsEmpty())
+				{
+					repl.SetHeaders(headers);
+				}
 				string filterName = (string)properties.Get("filter");
 				if (filterName != null)
 				{
@@ -627,8 +661,9 @@ namespace Couchbase.Lite
 			return repl;
 		}
 
+		/// <exclude></exclude>
 		[InterfaceAudience.Private]
-		public virtual ScheduledExecutorService GetWorkExecutor()
+		public ScheduledExecutorService GetWorkExecutor()
 		{
 			return workExecutor;
 		}

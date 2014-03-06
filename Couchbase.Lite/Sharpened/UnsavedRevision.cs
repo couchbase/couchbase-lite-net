@@ -1,46 +1,23 @@
-//
-// UnsavedRevision.cs
-//
-// Author:
-//	Zachary Gramana  <zack@xamarin.com>
-//
-// Copyright (c) 2013, 2014 Xamarin Inc (http://www.xamarin.com)
-//
-// Permission is hereby granted, free of charge, to any person obtaining
-// a copy of this software and associated documentation files (the
-// "Software"), to deal in the Software without restriction, including
-// without limitation the rights to use, copy, modify, merge, publish,
-// distribute, sublicense, and/or sell copies of the Software, and to
-// permit persons to whom the Software is furnished to do so, subject to
-// the following conditions:
-// 
-// The above copyright notice and this permission notice shall be
-// included in all copies or substantial portions of the Software.
-// 
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-// EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-// MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
-// NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
-// LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
-// OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
-// WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-//
 /**
-* Original iOS version by Jens Alfke
-* Ported to Android by Marty Schoch, Traun Leyden
-*
-* Copyright (c) 2012, 2013, 2014 Couchbase, Inc. All rights reserved.
-*
-* Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file
-* except in compliance with the License. You may obtain a copy of the License at
-*
-* http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software distributed under the
-* License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
-* either express or implied. See the License for the specific language governing permissions
-* and limitations under the License.
-*/
+ * Couchbase Lite for .NET
+ *
+ * Original iOS version by Jens Alfke
+ * Android Port by Marty Schoch, Traun Leyden
+ * C# Port by Zack Gramana
+ *
+ * Copyright (c) 2012, 2013, 2014 Couchbase, Inc. All rights reserved.
+ * Portions (c) 2013, 2014 Xamarin, Inc. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file
+ * except in compliance with the License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the
+ * License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
+ * either express or implied. See the License for the specific language governing permissions
+ * and limitations under the License.
+ */
 
 using System;
 using System.Collections.Generic;
@@ -52,11 +29,14 @@ using Sharpen;
 
 namespace Couchbase.Lite
 {
-	public class UnsavedRevision : Revision
+	/// <summary>An unsaved Couchbase Lite Document Revision.</summary>
+	/// <remarks>An unsaved Couchbase Lite Document Revision.</remarks>
+	public sealed class UnsavedRevision : Revision
 	{
 		private IDictionary<string, object> properties;
 
 		/// <summary>Constructor</summary>
+		/// <exclude></exclude>
 		[InterfaceAudience.Private]
 		protected internal UnsavedRevision(Document document, SavedRevision parentRevision
 			) : base(document)
@@ -96,7 +76,7 @@ namespace Couchbase.Lite
 		/// <summary>Set whether this revision is a deletion or not (eg, marks doc as deleted)
 		/// 	</summary>
 		[InterfaceAudience.Public]
-		public virtual void SetIsDeletion(bool isDeletion)
+		public void SetIsDeletion(bool isDeletion)
 		{
 			if (isDeletion == true)
 			{
@@ -120,7 +100,7 @@ namespace Couchbase.Lite
 
 		/// <summary>Set the properties for this revision</summary>
 		[InterfaceAudience.Public]
-		public virtual void SetProperties(IDictionary<string, object> properties)
+		public void SetProperties(IDictionary<string, object> properties)
 		{
 			this.properties = properties;
 		}
@@ -136,7 +116,7 @@ namespace Couchbase.Lite
 		/// <exception cref="CouchbaseLiteException">CouchbaseLiteException</exception>
 		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
 		[InterfaceAudience.Public]
-		public virtual SavedRevision Save()
+		public SavedRevision Save()
 		{
 			bool allowConflict = false;
 			return document.PutProperties(properties, parentRevID, allowConflict);
@@ -154,35 +134,9 @@ namespace Couchbase.Lite
 		/// </remarks>
 		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
 		[InterfaceAudience.Public]
-		public virtual SavedRevision Save(bool allowConflict)
+		public SavedRevision Save(bool allowConflict)
 		{
 			return document.PutProperties(properties, parentRevID, allowConflict);
-		}
-
-		/// <summary>Creates or updates an attachment.</summary>
-		/// <remarks>
-		/// Creates or updates an attachment.
-		/// The attachment data will be written to the database when the revision is saved.
-		/// </remarks>
-		/// <param name="attachment">A newly-created Attachment (not yet associated with any revision)
-		/// 	</param>
-		/// <param name="name">The attachment name.</param>
-		[InterfaceAudience.Public]
-		public virtual void AddAttachment(Attachment attachment, string name)
-		{
-			IDictionary<string, object> attachments = (IDictionary<string, object>)properties
-				.Get("_attachments");
-			if (attachments == null)
-			{
-				attachments = new Dictionary<string, object>();
-			}
-			attachments.Put(name, attachment);
-			properties.Put("_attachments", attachments);
-			if (attachment != null)
-			{
-				attachment.SetName(name);
-				attachment.SetRevision(this);
-			}
 		}
 
 		/// <summary>Deletes any existing attachment with the given name.</summary>
@@ -192,7 +146,7 @@ namespace Couchbase.Lite
 		/// </remarks>
 		/// <param name="name">The attachment name.</param>
 		[InterfaceAudience.Public]
-		public virtual void RemoveAttachment(string name)
+		public void RemoveAttachment(string name)
 		{
 			AddAttachment(null, name);
 		}
@@ -203,7 +157,7 @@ namespace Couchbase.Lite
 		/// Set replaces all properties except for those with keys prefixed with '_'.
 		/// </remarks>
 		[InterfaceAudience.Public]
-		public virtual void SetUserProperties(IDictionary<string, object> userProperties)
+		public void SetUserProperties(IDictionary<string, object> userProperties)
 		{
 			IDictionary<string, object> newProps = new Dictionary<string, object>();
 			newProps.PutAll(userProperties);
@@ -226,7 +180,7 @@ namespace Couchbase.Lite
 		/// <param name="contentStream">The Attachment content.  The InputStream will be closed after it is no longer needed.
 		/// 	</param>
 		[InterfaceAudience.Public]
-		public virtual void SetAttachment(string name, string contentType, InputStream contentStream
+		public void SetAttachment(string name, string contentType, InputStream contentStream
 			)
 		{
 			Attachment attachment = new Attachment(contentStream, contentType);
@@ -240,8 +194,7 @@ namespace Couchbase.Lite
 		/// <param name="contentType">The content-type of the Attachment.</param>
 		/// <param name="contentStreamURL">The URL that contains the Attachment content.</param>
 		[InterfaceAudience.Public]
-		public virtual void SetAttachment(string name, string contentType, Uri contentStreamURL
-			)
+		public void SetAttachment(string name, string contentType, Uri contentStreamURL)
 		{
 			try
 			{
@@ -262,7 +215,7 @@ namespace Couchbase.Lite
 		}
 
 		[InterfaceAudience.Public]
-		public override SavedRevision GetParentRevision()
+		public override SavedRevision GetParent()
 		{
 			if (parentRevID == null || parentRevID.Length == 0)
 			{
@@ -272,7 +225,7 @@ namespace Couchbase.Lite
 		}
 
 		[InterfaceAudience.Public]
-		public override string GetParentRevisionId()
+		public override string GetParentId()
 		{
 			return parentRevID;
 		}
@@ -282,8 +235,34 @@ namespace Couchbase.Lite
 		public override IList<SavedRevision> GetRevisionHistory()
 		{
 			// (Don't include self in the array, because this revision doesn't really exist yet)
-			SavedRevision parent = GetParentRevision();
+			SavedRevision parent = GetParent();
 			return parent != null ? parent.GetRevisionHistory() : new AList<SavedRevision>();
+		}
+
+		/// <summary>Creates or updates an attachment.</summary>
+		/// <remarks>
+		/// Creates or updates an attachment.
+		/// The attachment data will be written to the database when the revision is saved.
+		/// </remarks>
+		/// <param name="attachment">A newly-created Attachment (not yet associated with any revision)
+		/// 	</param>
+		/// <param name="name">The attachment name.</param>
+		[InterfaceAudience.Private]
+		internal void AddAttachment(Attachment attachment, string name)
+		{
+			IDictionary<string, object> attachments = (IDictionary<string, object>)properties
+				.Get("_attachments");
+			if (attachments == null)
+			{
+				attachments = new Dictionary<string, object>();
+			}
+			attachments.Put(name, attachment);
+			properties.Put("_attachments", attachments);
+			if (attachment != null)
+			{
+				attachment.SetName(name);
+				attachment.SetRevision(this);
+			}
 		}
 	}
 }
