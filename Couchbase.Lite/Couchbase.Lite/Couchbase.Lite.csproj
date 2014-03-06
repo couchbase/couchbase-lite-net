@@ -238,9 +238,9 @@
     <Compile Include="Replication\MultipartDocumentReader.cs" />
     <Compile Include="Replication\MultipartReader.cs" />
     <Compile Include="Store\ConflictResolutionStrategy.cs" />
-    <Compile Include="Store\CouchbaseSqliteCollationFunction.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Extensions\SqliteExtensions.cs" />
+    <Compile Include="Store\CouchbaseSqliteCollationFunctions.cs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="System" />
