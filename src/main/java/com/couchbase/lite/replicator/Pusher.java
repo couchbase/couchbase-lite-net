@@ -235,7 +235,7 @@ public final class Pusher extends Replication implements Database.ChangeListener
                     } else if(results.size() != 0) {
                         // Go through the list of local changes again, selecting the ones the destination server
                         // said were missing and mapping them to a JSON dictionary in the form _bulk_docs wants:
-                        List<Object> docsToSend = new ArrayList<Object>();
+                        final List<Object> docsToSend = new ArrayList<Object>();
                         for(RevisionInternal rev : inbox) {
                             Map<String,Object> properties = null;
                             Map<String,Object> resultDoc = (Map<String,Object>)results.get(rev.getDocId());
@@ -290,8 +290,7 @@ public final class Pusher extends Replication implements Database.ChangeListener
                             Map<String,Object> bulkDocsBody = new HashMap<String,Object>();
                             bulkDocsBody.put("docs", docsToSend);
                             bulkDocsBody.put("new_edits", false);
-                            Log.i(Database.TAG, String.format("%s: Sending %d revisions", this, numDocsToSend));
-                            Log.v(Database.TAG, String.format("%s: Sending %s", this, inbox));
+                            Log.v(Database.TAG, String.format("%s: POSTing " + numDocsToSend + " revisions to _bulk_docs: %s", this, docsToSend));
                             setChangesCount(getChangesCount() + numDocsToSend);
                             Log.d(Database.TAG, this + "|" + Thread.currentThread() + ": processInbox-before_bulk_docs() calling asyncTaskStarted()");
 
@@ -305,7 +304,7 @@ public final class Pusher extends Replication implements Database.ChangeListener
                                             setError(e);
                                             revisionFailed();
                                         } else {
-                                            Log.v(Database.TAG, String.format("%s: Sent %s", this, inbox));
+                                            Log.v(Database.TAG, String.format("%s: POSTed to _bulk_docs: %s", this, docsToSend));
                                             setLastSequence(String.format("%d", lastInboxSequence));
                                         }
                                         setCompletedChangesCount(getCompletedChangesCount() + numDocsToSend);
