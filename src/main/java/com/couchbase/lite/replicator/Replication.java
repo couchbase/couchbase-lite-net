@@ -1064,7 +1064,7 @@ public abstract class Replication {
                 }
                 if (e != null) {
                     // Failed to save checkpoint:
-                    switch(getStatusFromError(e)) {
+                    switch (getStatusFromError(e)) {
                         case Status.NOT_FOUND:
                             remoteCheckpoint = null;  // doc deleted or db reset
                             overdueForSave = true; // try saving again
@@ -1125,8 +1125,23 @@ public abstract class Replication {
 
     @InterfaceAudience.Private
     private void stopRemoteRequests() {
+        int timeoutSeconds = 30;
         List<Runnable> inProgress = remoteRequestExecutor.shutdownNow();
-        Log.d(Database.TAG, this + " stopped remoteRequestExecutor. " + inProgress.size() + " remote requests in progress");
+        Log.d(Database.TAG, this + " stopped remoteRequestExecutor. " + inProgress.size() + " remote requests in progress.  Awaiting termination with timeout: " + timeoutSeconds);
+        boolean finishedBeforeTimeout = false;
+        try {
+            finishedBeforeTimeout = remoteRequestExecutor.awaitTermination(timeoutSeconds, TimeUnit.SECONDS);
+            if (finishedBeforeTimeout) {
+                Log.d(Database.TAG, this + " Awaiting termination finished normally");
+            } else {
+                Log.w(Database.TAG, this + " Timed out awaiting termination of remoteRequestExecutor");
+            }
+        } catch (InterruptedException e) {
+            Log.e(Database.TAG, this + "  Exception Awaiting termination", e);
+        } finally {
+            remoteRequestExecutor = null;
+        }
+
     }
 
     @InterfaceAudience.Private
