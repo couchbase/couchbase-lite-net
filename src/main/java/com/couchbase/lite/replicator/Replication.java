@@ -1,9 +1,11 @@
 package com.couchbase.lite.replicator;
 
+import com.couchbase.lite.CouchbaseLiteException;
 import com.couchbase.lite.Database;
 import com.couchbase.lite.Manager;
 import com.couchbase.lite.Misc;
 import com.couchbase.lite.RevisionList;
+import com.couchbase.lite.Status;
 import com.couchbase.lite.auth.Authorizer;
 import com.couchbase.lite.auth.FacebookAuthorizer;
 import com.couchbase.lite.auth.PersonaAuthorizer;
@@ -1032,7 +1034,7 @@ public abstract class Replication {
         lastSequenceChanged = false;
         overdueForSave = false;
 
-        Log.v(Database.TAG, this + " checkpointing sequence=" + lastSequence);
+        Log.d(Database.TAG, this + " saveLastSequence() called. lastSequence: " + lastSequence);
         final Map<String, Object> body = new HashMap<String, Object>();
         if (remoteCheckpoint != null) {
             body.putAll(remoteCheckpoint);
@@ -1041,29 +1043,53 @@ public abstract class Replication {
 
         String remoteCheckpointDocID = remoteCheckpointDocID();
         if (remoteCheckpointDocID == null) {
+            Log.w(Database.TAG, this + ": remoteCheckpointDocID is null, aborting saveLastSequence()");
             return;
         }
+
         savingCheckpoint = true;
-        sendAsyncRequest("PUT", "/_local/" + remoteCheckpointDocID, body, new RemoteRequestCompletionBlock() {
+        final String checkpointID = remoteCheckpointDocID;
+        Log.d(Database.TAG, this + " put remote _local document.  checkpointID: " + checkpointID);
+        sendAsyncRequest("PUT", "/_local/" + checkpointID, body, new RemoteRequestCompletionBlock() {
 
             @Override
             public void onCompletion(Object result, Throwable e) {
                 savingCheckpoint = false;
                 if (e != null) {
-                    Log.v(Database.TAG, this + ": Unable to save remote checkpoint", e);
-                    // TODO: If error is 401 or 403, and this is a pull, remember that remote is read-only and don't attempt to read its checkpoint next time.
+                    Log.w(Database.TAG, this + ": Unable to save remote checkpoint", e);
+                }
+                if (db == null) {
+                    Log.w(Database.TAG, this + ": Database is null, ignoring remote checkpoint response");
+                    return;
+                }
+                if (e != null) {
+                    // Failed to save checkpoint:
+                    switch(getStatusFromError(e)) {
+                        case Status.NOT_FOUND:
+                            remoteCheckpoint = null;  // doc deleted or db reset
+                            overdueForSave = true; // try saving again
+                            break;
+                        case Status.CONFLICT:
+                            refreshRemoteCheckpointDoc();
+                            break;
+                        default:
+                            // TODO: On 401 or 403, and this is a pull, remember that remote
+                            // TODo: is read-only & don't attempt to read its checkpoint next time.
+                            break;
+                    }
                 } else {
+                    // Saved checkpoint:
                     Map<String, Object> response = (Map<String, Object>) result;
                     body.put("_rev", response.get("rev"));
                     remoteCheckpoint = body;
+                    db.setLastSequence(lastSequence, checkpointID, !isPull());
                 }
                 if (overdueForSave) {
                     saveLastSequence();
                 }
-            }
 
+            }
         });
-        db.setLastSequence(lastSequence, remoteCheckpointDocID, !isPull());
     }
 
     @InterfaceAudience.Public
@@ -1181,7 +1207,49 @@ public abstract class Replication {
         }, RETRY_DELAY, TimeUnit.SECONDS);
     }
 
+    @InterfaceAudience.Private
+    private int getStatusFromError(Throwable t) {
+        if (t instanceof CouchbaseLiteException) {
+            CouchbaseLiteException couchbaseLiteException = (CouchbaseLiteException) t;
+            return couchbaseLiteException.getCBLStatus().getCode();
+        }
+        return Status.UNKNOWN;
+    }
 
+    /**
+     * Variant of -fetchRemoveCheckpointDoc that's used while replication is running, to reload the
+     * checkpoint to get its current revision number, if there was an error saving it.
+     */
+    @InterfaceAudience.Private
+    private void refreshRemoteCheckpointDoc() {
+        Log.d(Database.TAG, this + ": Refreshing remote checkpoint to get its _rev...");
+        savingCheckpoint = true;
+        asyncTaskStarted();
+        sendAsyncRequest("GET", "/_local/" + remoteCheckpointDocID(), null, new RemoteRequestCompletionBlock() {
+
+            @Override
+            public void onCompletion(Object result, Throwable e) {
+                try {
+                    if (db == null) {
+                        Log.w(Database.TAG, this + ": db == null while refreshing remote checkpoint.  aborting");
+                        return;
+                    }
+                    savingCheckpoint = false;
+                    if (e != null && getStatusFromError(e) != Status.NOT_FOUND) {
+                        Log.e(Database.TAG, this + ": Error refreshing remote checkpoint", e);
+                    } else {
+                        Log.d(Database.TAG, this + ": Refreshed remote checkpoint: " + result);
+                        remoteCheckpoint = (Map<String, Object>) result;
+                        lastSequenceChanged = true;
+                        saveLastSequence();  // try saving again
+                    }
+                } finally {
+                    asyncTaskFinished(1);
+                }
+            }
+        });
+
+    }
 
 
 }
