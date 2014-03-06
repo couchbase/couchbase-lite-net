@@ -5,6 +5,6 @@ package com.couchbase.lite;
  */
 public interface Validator {
 
-    boolean validate(Revision newRevision, ValidationContext context);
+    void validate(Revision newRevision, ValidationContext context);
 
 }

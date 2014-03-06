@@ -32,10 +32,12 @@ namespace Couchbase.Lite
 {
 	/// <summary>Represents a view available in a database.</summary>
 	/// <remarks>Represents a view available in a database.</remarks>
-	public class View
+	public sealed class View
 	{
+		/// <exclude></exclude>
 		public const int ReduceBatchSize = 100;
 
+		/// <exclude></exclude>
 		public enum TDViewCollation
 		{
 			TDViewCollationUnicode,
@@ -91,7 +93,7 @@ namespace Couchbase.Lite
 		/// <summary>Get the database that owns this view.</summary>
 		/// <remarks>Get the database that owns this view.</remarks>
 		[InterfaceAudience.Public]
-		public virtual Database GetDatabase()
+		public Database GetDatabase()
 		{
 			return database;
 		}
@@ -99,7 +101,7 @@ namespace Couchbase.Lite
 		/// <summary>Get the name of the view.</summary>
 		/// <remarks>Get the name of the view.</remarks>
 		[InterfaceAudience.Public]
-		public virtual string GetName()
+		public string GetName()
 		{
 			return name;
 		}
@@ -109,7 +111,7 @@ namespace Couchbase.Lite
 		/// <remarks>The map function that controls how index rows are created from documents.
 		/// 	</remarks>
 		[InterfaceAudience.Public]
-		public virtual Mapper GetMap()
+		public Mapper GetMap()
 		{
 			return mapBlock;
 		}
@@ -117,14 +119,14 @@ namespace Couchbase.Lite
 		/// <summary>The optional reduce function, which aggregates together multiple rows.</summary>
 		/// <remarks>The optional reduce function, which aggregates together multiple rows.</remarks>
 		[InterfaceAudience.Public]
-		public virtual Reducer GetReduce()
+		public Reducer GetReduce()
 		{
 			return reduceBlock;
 		}
 
 		/// <summary>Is the view's index currently out of date?</summary>
 		[InterfaceAudience.Public]
-		public virtual bool IsStale()
+		public bool IsStale()
 		{
 			return (GetLastSequenceIndexed() < database.GetLastSequenceNumber());
 		}
@@ -132,7 +134,7 @@ namespace Couchbase.Lite
 		/// <summary>Get the last sequence number indexed so far.</summary>
 		/// <remarks>Get the last sequence number indexed so far.</remarks>
 		[InterfaceAudience.Public]
-		public virtual long GetLastSequenceIndexed()
+		public long GetLastSequenceIndexed()
 		{
 			string sql = "SELECT lastSequence FROM views WHERE name=?";
 			string[] args = new string[] { name };
@@ -150,9 +152,9 @@ namespace Couchbase.Lite
 					result = cursor.GetLong(0);
 				}
 			}
-			catch (Exception)
+			catch (Exception e)
 			{
-				Log.E(Database.Tag, "Error getting last sequence indexed");
+				Log.E(Database.Tag, "Error getting last sequence indexed", e);
 			}
 			finally
 			{
@@ -167,12 +169,12 @@ namespace Couchbase.Lite
 		/// <summary>Defines a view that has no reduce function.</summary>
 		/// <remarks>
 		/// Defines a view that has no reduce function.
-		/// See setMapAndReduce() for more information.
+		/// See setMapReduce() for more information.
 		/// </remarks>
 		[InterfaceAudience.Public]
-		public virtual bool SetMap(Mapper mapBlock, string version)
+		public bool SetMap(Mapper mapBlock, string version)
 		{
-			return SetMapAndReduce(mapBlock, null, version);
+			return SetMapReduce(mapBlock, null, version);
 		}
 
 		/// <summary>Defines a view's functions.</summary>
@@ -195,8 +197,7 @@ namespace Couchbase.Lite
 		/// described above, since it will as a consequence also be thread-safe.
 		/// </remarks>
 		[InterfaceAudience.Public]
-		public virtual bool SetMapAndReduce(Mapper mapBlock, Reducer reduceBlock, string 
-			version)
+		public bool SetMapReduce(Mapper mapBlock, Reducer reduceBlock, string version)
 		{
 			System.Diagnostics.Debug.Assert((mapBlock != null));
 			System.Diagnostics.Debug.Assert((version != null));
@@ -254,7 +255,7 @@ namespace Couchbase.Lite
 		/// <remarks>Deletes the view's persistent index. It will be regenerated on the next query.
 		/// 	</remarks>
 		[InterfaceAudience.Public]
-		public virtual void DeleteIndex()
+		public void DeleteIndex()
 		{
 			if (GetViewId() < 0)
 			{
@@ -284,7 +285,7 @@ namespace Couchbase.Lite
 		/// <summary>Deletes the view, persistently.</summary>
 		/// <remarks>Deletes the view, persistently.</remarks>
 		[InterfaceAudience.Public]
-		public virtual void Delete()
+		public void Delete()
 		{
 			database.DeleteViewNamed(name);
 			viewId = 0;
@@ -294,13 +295,14 @@ namespace Couchbase.Lite
 		/// <remarks>Creates a new query object for this view. The query can be customized and then executed.
 		/// 	</remarks>
 		[InterfaceAudience.Public]
-		public virtual Query CreateQuery()
+		public Query CreateQuery()
 		{
 			return new Query(GetDatabase(), this);
 		}
 
+		/// <exclude></exclude>
 		[InterfaceAudience.Private]
-		public virtual int GetViewId()
+		public int GetViewId()
 		{
 			if (viewId < 0)
 			{
@@ -335,16 +337,17 @@ namespace Couchbase.Lite
 			return viewId;
 		}
 
+		/// <exclude></exclude>
 		[InterfaceAudience.Private]
-		public virtual void DatabaseClosing()
+		public void DatabaseClosing()
 		{
 			database = null;
 			viewId = 0;
 		}
 
-		/// <summary>Indexing</summary>
+		/// <exclude></exclude>
 		[InterfaceAudience.Private]
-		public virtual string ToJSONString(object @object)
+		public string ToJSONString(object @object)
 		{
 			if (@object == null)
 			{
@@ -362,8 +365,9 @@ namespace Couchbase.Lite
 			return result;
 		}
 
+		/// <exclude></exclude>
 		[InterfaceAudience.Private]
-		public virtual object FromJSON(byte[] json)
+		public object FromJSON(byte[] json)
 		{
 			if (json == null)
 			{
@@ -381,14 +385,16 @@ namespace Couchbase.Lite
 			return result;
 		}
 
+		/// <exclude></exclude>
 		[InterfaceAudience.Private]
-		public virtual View.TDViewCollation GetCollation()
+		public View.TDViewCollation GetCollation()
 		{
 			return collation;
 		}
 
+		/// <exclude></exclude>
 		[InterfaceAudience.Private]
-		public virtual void SetCollation(View.TDViewCollation collation)
+		public void SetCollation(View.TDViewCollation collation)
 		{
 			this.collation = collation;
 		}
@@ -396,9 +402,10 @@ namespace Couchbase.Lite
 		/// <summary>Updates the view's index (incrementally) if necessary.</summary>
 		/// <remarks>Updates the view's index (incrementally) if necessary.</remarks>
 		/// <returns>200 if updated, 304 if already up-to-date, else an error code</returns>
+		/// <exclude></exclude>
 		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
 		[InterfaceAudience.Private]
-		public virtual void UpdateIndex()
+		public void UpdateIndex()
 		{
 			Log.V(Database.Tag, "Re-indexing view " + name + " ...");
 			System.Diagnostics.Debug.Assert((mapBlock != null));
@@ -420,6 +427,7 @@ namespace Couchbase.Lite
 					string msg = string.Format("lastSequence (%d) == dbMaxSequence (%d), nothing to do"
 						, lastSequence, dbMaxSequence);
 					Log.D(Database.Tag, msg);
+					result.SetCode(Status.Ok);
 					return;
 				}
 				// First remove obsolete emitted results from the 'maps' table:
@@ -454,7 +462,7 @@ namespace Couchbase.Lite
 				// This is the emit() block, which gets called from within the
 				// user-defined map() block
 				// that's called down below.
-				AbstractTouchMapEmitBlock emitBlock = new _AbstractTouchMapEmitBlock_421(this);
+				AbstractTouchMapEmitBlock emitBlock = new _AbstractTouchMapEmitBlock_446(this);
 				// find a better way to propagate this back
 				// Now scan every revision added since the last time the view was
 				// indexed:
@@ -532,9 +540,9 @@ namespace Couchbase.Lite
 			}
 		}
 
-		private sealed class _AbstractTouchMapEmitBlock_421 : AbstractTouchMapEmitBlock
+		private sealed class _AbstractTouchMapEmitBlock_446 : AbstractTouchMapEmitBlock
 		{
-			public _AbstractTouchMapEmitBlock_421(View _enclosing)
+			public _AbstractTouchMapEmitBlock_446(View _enclosing)
 			{
 				this._enclosing = _enclosing;
 			}
@@ -570,8 +578,9 @@ namespace Couchbase.Lite
 			private readonly View _enclosing;
 		}
 
+		/// <exclude></exclude>
 		[InterfaceAudience.Private]
-		public virtual Cursor ResultSetWithOptions(QueryOptions options)
+		public Cursor ResultSetWithOptions(QueryOptions options)
 		{
 			if (options == null)
 			{
@@ -665,7 +674,8 @@ namespace Couchbase.Lite
 			return cursor;
 		}
 
-		// Are key1 and key2 grouped together at this groupLevel?
+		/// <summary>Are key1 and key2 grouped together at this groupLevel?</summary>
+		/// <exclude></exclude>
 		[InterfaceAudience.Private]
 		public static bool GroupTogether(object key1, object key2, int groupLevel)
 		{
@@ -686,7 +696,9 @@ namespace Couchbase.Lite
 			return true;
 		}
 
-		// Returns the prefix of the key to use in the result row, at this groupLevel
+		/// <summary>Returns the prefix of the key to use in the result row, at this groupLevel
+		/// 	</summary>
+		/// <exclude></exclude>
 		[InterfaceAudience.Private]
 		public static object GroupKey(object key, int groupLevel)
 		{
@@ -700,9 +712,9 @@ namespace Couchbase.Lite
 			}
 		}
 
-		/// <summary>Querying</summary>
+		/// <exclude></exclude>
 		[InterfaceAudience.Private]
-		public virtual IList<IDictionary<string, object>> Dump()
+		public IList<IDictionary<string, object>> Dump()
 		{
 			if (GetViewId() < 0)
 			{
@@ -742,10 +754,10 @@ namespace Couchbase.Lite
 			return result;
 		}
 
+		/// <exclude></exclude>
 		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
 		[InterfaceAudience.Private]
-		internal virtual IList<QueryRow> ReducedQuery(Cursor cursor, bool group, int groupLevel
-			)
+		internal IList<QueryRow> ReducedQuery(Cursor cursor, bool group, int groupLevel)
 		{
 			IList<object> keysToReduce = null;
 			IList<object> valuesToReduce = null;
@@ -799,9 +811,10 @@ namespace Couchbase.Lite
 		/// <remarks>Queries the view. Does NOT first update the index.</remarks>
 		/// <param name="options">The options to use.</param>
 		/// <returns>An array of QueryRow objects.</returns>
+		/// <exclude></exclude>
 		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
 		[InterfaceAudience.Private]
-		public virtual IList<QueryRow> QueryWithOptions(QueryOptions options)
+		public IList<QueryRow> QueryWithOptions(QueryOptions options)
 		{
 			if (options == null)
 			{
@@ -880,6 +893,7 @@ namespace Couchbase.Lite
 
 		/// <summary>Utility function to use in reduce blocks.</summary>
 		/// <remarks>Utility function to use in reduce blocks. Totals an array of Numbers.</remarks>
+		/// <exclude></exclude>
 		[InterfaceAudience.Private]
 		public static double TotalValues(IList<object> values)
 		{

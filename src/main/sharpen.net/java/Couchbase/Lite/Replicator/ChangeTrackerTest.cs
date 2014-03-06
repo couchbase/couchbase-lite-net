@@ -27,7 +27,6 @@ using Apache.Http.Client;
 using Apache.Http.Impl.Client;
 using Couchbase.Lite;
 using Couchbase.Lite.Replicator;
-using Couchbase.Lite.Threading;
 using Couchbase.Lite.Util;
 using NUnit.Framework;
 using Sharpen;
@@ -46,7 +45,7 @@ namespace Couchbase.Lite.Replicator
 			ChangeTrackerClient client = new _ChangeTrackerClient_31(changeTrackerFinishedSignal
 				);
 			ChangeTracker changeTracker = new ChangeTracker(testURL, ChangeTracker.ChangeTrackerMode
-				.OneShot, 0, client);
+				.OneShot, false, 0, client);
 			changeTracker.Start();
 			try
 			{
@@ -99,7 +98,7 @@ namespace Couchbase.Lite.Replicator
 			ChangeTrackerClient client = new _ChangeTrackerClient_72(changeTrackerFinishedSignal
 				, changeReceivedSignal);
 			ChangeTracker changeTracker = new ChangeTracker(testURL, ChangeTracker.ChangeTrackerMode
-				.Continuous, 0, client);
+				.Continuous, false, 0, client);
 			changeTracker.Start();
 			try
 			{
@@ -161,7 +160,7 @@ namespace Couchbase.Lite.Replicator
 			Uri testURL = GetReplicationURL();
 			ChangeTrackerClient client = new _ChangeTrackerClient_119(changeTrackerFinishedSignal
 				, changeReceivedSignal);
-			ChangeTracker changeTracker = new ChangeTracker(testURL, mode, 0, client);
+			ChangeTracker changeTracker = new ChangeTracker(testURL, mode, false, 0, client);
 			changeTracker.Start();
 			try
 			{
@@ -232,12 +231,21 @@ namespace Couchbase.Lite.Replicator
 			private readonly CountDownLatch changeReceivedSignal;
 		}
 
+		public virtual void TestChangeTrackerWithConflictsIncluded()
+		{
+			Uri testURL = GetReplicationURL();
+			ChangeTracker changeTracker = new ChangeTracker(testURL, ChangeTracker.ChangeTrackerMode
+				.LongPoll, true, 0, null);
+			NUnit.Framework.Assert.AreEqual("_changes?feed=longpoll&limit=50&heartbeat=300000&style=all_docs&since=0"
+				, changeTracker.GetChangesFeedPath());
+		}
+
 		/// <exception cref="System.Exception"></exception>
 		public virtual void TestChangeTrackerWithFilterURL()
 		{
 			Uri testURL = GetReplicationURL();
 			ChangeTracker changeTracker = new ChangeTracker(testURL, ChangeTracker.ChangeTrackerMode
-				.LongPoll, 0, null);
+				.LongPoll, false, 0, null);
 			// set filter
 			changeTracker.SetFilterName("filter");
 			// build filter map
@@ -253,7 +261,7 @@ namespace Couchbase.Lite.Replicator
 		{
 			Uri testURL = GetReplicationURL();
 			ChangeTracker changeTrackerDocIds = new ChangeTracker(testURL, ChangeTracker.ChangeTrackerMode
-				.LongPoll, 0, null);
+				.LongPoll, false, 0, null);
 			IList<string> docIds = new AList<string>();
 			docIds.AddItem("doc1");
 			docIds.AddItem("doc2");
@@ -266,150 +274,75 @@ namespace Couchbase.Lite.Replicator
 		}
 
 		/// <exception cref="System.Exception"></exception>
-		public virtual void TestChangeTrackerBackoff()
+		public virtual void TestChangeTrackerBackoffExceptions()
 		{
-			Uri testURL = GetReplicationURL();
 			CustomizableMockHttpClient mockHttpClient = new CustomizableMockHttpClient();
 			mockHttpClient.AddResponderThrowExceptionAllRequests();
-			ChangeTrackerClient client = new _ChangeTrackerClient_214(mockHttpClient);
-			ChangeTracker changeTracker = new ChangeTracker(testURL, ChangeTracker.ChangeTrackerMode
-				.LongPoll, 0, client);
-			BackgroundTask task = new _BackgroundTask_235(changeTracker);
-			task.Execute();
-			try
-			{
-				// expected behavior:
-				// when:
-				//    mockHttpClient throws IOExceptions -> it should start high and then back off and numTimesExecute should be low
-				for (int i = 0; i < 30; i++)
-				{
-					int numTimesExectutedAfter10seconds = 0;
-					try
-					{
-						Sharpen.Thread.Sleep(1000);
-						// take a snapshot of num times the http client was called after 10 seconds
-						if (i == 10)
-						{
-							numTimesExectutedAfter10seconds = mockHttpClient.GetCapturedRequests().Count;
-						}
-						// take another snapshot after 20 seconds have passed
-						if (i == 20)
-						{
-							// by now it should have backed off, so the delta between 10s and 20s should be small
-							int delta = mockHttpClient.GetCapturedRequests().Count - numTimesExectutedAfter10seconds;
-							NUnit.Framework.Assert.IsTrue(delta < 25);
-						}
-					}
-					catch (Exception e)
-					{
-						Sharpen.Runtime.PrintStackTrace(e);
-					}
-				}
-			}
-			finally
-			{
-				changeTracker.Stop();
-			}
-		}
-
-		private sealed class _ChangeTrackerClient_214 : ChangeTrackerClient
-		{
-			public _ChangeTrackerClient_214(CustomizableMockHttpClient mockHttpClient)
-			{
-				this.mockHttpClient = mockHttpClient;
-			}
-
-			public void ChangeTrackerStopped(ChangeTracker tracker)
-			{
-				Log.V(ChangeTrackerTest.Tag, "changeTrackerStopped");
-			}
-
-			public void ChangeTrackerReceivedChange(IDictionary<string, object> change)
-			{
-				object seq = change.Get("seq");
-				Log.V(ChangeTrackerTest.Tag, "changeTrackerReceivedChange: " + seq.ToString());
-			}
-
-			public HttpClient GetHttpClient()
-			{
-				return mockHttpClient;
-			}
-
-			private readonly CustomizableMockHttpClient mockHttpClient;
-		}
-
-		private sealed class _BackgroundTask_235 : BackgroundTask
-		{
-			public _BackgroundTask_235(ChangeTracker changeTracker)
-			{
-				this.changeTracker = changeTracker;
-			}
-
-			public override void Run()
-			{
-				changeTracker.Start();
-			}
-
-			private readonly ChangeTracker changeTracker;
+			TestChangeTrackerBackoff(mockHttpClient);
 		}
 
 		/// <exception cref="System.Exception"></exception>
-		public virtual void TestChangeTrackerInvalidJson()
+		public virtual void TestChangeTrackerBackoffInvalidJson()
+		{
+			CustomizableMockHttpClient mockHttpClient = new CustomizableMockHttpClient();
+			mockHttpClient.AddResponderReturnInvalidChangesFeedJson();
+			TestChangeTrackerBackoff(mockHttpClient);
+		}
+
+		/// <exception cref="System.Exception"></exception>
+		private void TestChangeTrackerBackoff(CustomizableMockHttpClient mockHttpClient)
 		{
 			Uri testURL = GetReplicationURL();
-			CustomizableMockHttpClient mockHttpClient = new CustomizableMockHttpClient();
-			mockHttpClient.AddResponderThrowExceptionAllRequests();
-			ChangeTrackerClient client = new _ChangeTrackerClient_290(mockHttpClient);
+			CountDownLatch changeTrackerFinishedSignal = new CountDownLatch(1);
+			ChangeTrackerClient client = new _ChangeTrackerClient_234(changeTrackerFinishedSignal
+				, mockHttpClient);
 			ChangeTracker changeTracker = new ChangeTracker(testURL, ChangeTracker.ChangeTrackerMode
-				.LongPoll, 0, client);
-			BackgroundTask task = new _BackgroundTask_311(changeTracker);
-			task.Execute();
+				.LongPoll, false, 0, client);
+			changeTracker.Start();
+			// sleep for a few seconds
+			Sharpen.Thread.Sleep(5 * 1000);
+			// make sure we got less than 10 requests in those 10 seconds (if it was hammering, we'd get a lot more)
+			NUnit.Framework.Assert.IsTrue(mockHttpClient.GetCapturedRequests().Count < 25);
+			NUnit.Framework.Assert.IsTrue(changeTracker.backoff.GetNumAttempts() > 0);
+			mockHttpClient.ClearResponders();
+			mockHttpClient.AddResponderReturnEmptyChangesFeed();
+			// at this point, the change tracker backoff should cause it to sleep for about 3 seconds
+			// and so lets wait 3 seconds until it wakes up and starts getting valid responses
+			Sharpen.Thread.Sleep(3 * 1000);
+			// now find the delta in requests received in a 2s period
+			int before = mockHttpClient.GetCapturedRequests().Count;
+			Sharpen.Thread.Sleep(2 * 1000);
+			int after = mockHttpClient.GetCapturedRequests().Count;
+			// assert that the delta is high, because at this point the change tracker should
+			// be hammering away
+			NUnit.Framework.Assert.IsTrue((after - before) > 25);
+			// the backoff numAttempts should have been reset to 0
+			NUnit.Framework.Assert.IsTrue(changeTracker.backoff.GetNumAttempts() == 0);
+			changeTracker.Stop();
 			try
 			{
-				// expected behavior:
-				// when:
-				//    mockHttpClient throws IOExceptions -> it should start high and then back off and numTimesExecute should be low
-				for (int i = 0; i < 30; i++)
-				{
-					int numTimesExectutedAfter10seconds = 0;
-					try
-					{
-						Sharpen.Thread.Sleep(1000);
-						// take a snapshot of num times the http client was called after 10 seconds
-						if (i == 10)
-						{
-							numTimesExectutedAfter10seconds = mockHttpClient.GetCapturedRequests().Count;
-						}
-						// take another snapshot after 20 seconds have passed
-						if (i == 20)
-						{
-							// by now it should have backed off, so the delta between 10s and 20s should be small
-							int delta = mockHttpClient.GetCapturedRequests().Count - numTimesExectutedAfter10seconds;
-							NUnit.Framework.Assert.IsTrue(delta < 25);
-						}
-					}
-					catch (Exception e)
-					{
-						Sharpen.Runtime.PrintStackTrace(e);
-					}
-				}
+				bool success = changeTrackerFinishedSignal.Await(300, TimeUnit.Seconds);
+				NUnit.Framework.Assert.IsTrue(success);
 			}
-			finally
+			catch (Exception e)
 			{
-				changeTracker.Stop();
+				Sharpen.Runtime.PrintStackTrace(e);
 			}
 		}
 
-		private sealed class _ChangeTrackerClient_290 : ChangeTrackerClient
+		private sealed class _ChangeTrackerClient_234 : ChangeTrackerClient
 		{
-			public _ChangeTrackerClient_290(CustomizableMockHttpClient mockHttpClient)
+			public _ChangeTrackerClient_234(CountDownLatch changeTrackerFinishedSignal, CustomizableMockHttpClient
+				 mockHttpClient)
 			{
+				this.changeTrackerFinishedSignal = changeTrackerFinishedSignal;
 				this.mockHttpClient = mockHttpClient;
 			}
 
 			public void ChangeTrackerStopped(ChangeTracker tracker)
 			{
 				Log.V(ChangeTrackerTest.Tag, "changeTrackerStopped");
+				changeTrackerFinishedSignal.CountDown();
 			}
 
 			public void ChangeTrackerReceivedChange(IDictionary<string, object> change)
@@ -423,22 +356,9 @@ namespace Couchbase.Lite.Replicator
 				return mockHttpClient;
 			}
 
+			private readonly CountDownLatch changeTrackerFinishedSignal;
+
 			private readonly CustomizableMockHttpClient mockHttpClient;
-		}
-
-		private sealed class _BackgroundTask_311 : BackgroundTask
-		{
-			public _BackgroundTask_311(ChangeTracker changeTracker)
-			{
-				this.changeTracker = changeTracker;
-			}
-
-			public override void Run()
-			{
-				changeTracker.Start();
-			}
-
-			private readonly ChangeTracker changeTracker;
 		}
 	}
 }

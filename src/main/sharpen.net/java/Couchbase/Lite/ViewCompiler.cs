@@ -31,10 +31,20 @@ namespace Couchbase.Lite
 	/// 	</remarks>
 	public interface ViewCompiler
 	{
+		/// <summary>Compiles source code into a MapDelegate.</summary>
+		/// <remarks>Compiles source code into a MapDelegate.</remarks>
+		/// <param name="source">The source code to compile into a Mapper.</param>
+		/// <param name="language">The language of the source.</param>
+		/// <returns>A compiled Mapper.</returns>
 		[InterfaceAudience.Public]
-		Mapper CompileMap(string mapSource, string language);
+		Mapper CompileMap(string source, string language);
 
+		/// <summary>Compiles source code into a ReduceDelegate.</summary>
+		/// <remarks>Compiles source code into a ReduceDelegate.</remarks>
+		/// <param name="source">The source code to compile into a Reducer.</param>
+		/// <param name="language">The language of the source.</param>
+		/// <returns>A compiled Reducer</returns>
 		[InterfaceAudience.Public]
-		Reducer CompileReduce(string reduceSource, string language);
+		Reducer CompileReduce(string source, string language);
 	}
 }

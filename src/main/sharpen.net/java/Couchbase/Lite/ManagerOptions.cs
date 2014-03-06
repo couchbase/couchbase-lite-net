@@ -23,6 +23,8 @@ using Sharpen;
 
 namespace Couchbase.Lite
 {
+	/// <summary>Option flags for Manager initialization.</summary>
+	/// <remarks>Option flags for Manager initialization.</remarks>
 	public class ManagerOptions
 	{
 		/// <summary>No modifications to databases are allowed.</summary>

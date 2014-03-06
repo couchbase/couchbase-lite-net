@@ -27,6 +27,7 @@ namespace Couchbase.Lite
 {
 	/// <summary>Standard query options for views.</summary>
 	/// <remarks>Standard query options for views.</remarks>
+	/// <exclude></exclude>
 	public class QueryOptions
 	{
 		private object startKey = null;
@@ -58,7 +59,7 @@ namespace Couchbase.Lite
 
 		private bool group = false;
 
-		private Query.IndexUpdateMode stale;
+		private Query.IndexUpdateMode stale = Query.IndexUpdateMode.Before;
 
 		private Query.AllDocsMode allDocsMode;
 

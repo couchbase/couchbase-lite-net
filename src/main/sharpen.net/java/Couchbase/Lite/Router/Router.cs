@@ -97,6 +97,17 @@ namespace Couchbase.Lite.Router
 			return queries;
 		}
 
+		public virtual bool GetBooleanValueFromBody(string paramName, IDictionary<string, 
+			object> bodyDict, bool defaultVal)
+		{
+			bool value = defaultVal;
+			if (bodyDict.ContainsKey(paramName))
+			{
+				value = true.Equals(bodyDict.Get(paramName));
+			}
+			return value;
+		}
+
 		public virtual string GetQuery(string param)
 		{
 			IDictionary<string, string> queries = GetQueries();
@@ -778,7 +789,7 @@ namespace Couchbase.Lite.Router
 				>>();
 			foreach (Database db in manager.AllOpenDatabases())
 			{
-				IList<Replication> activeReplicators = db.GetAllReplications();
+				IList<Replication> activeReplicators = db.GetActiveReplications();
 				if (activeReplicators != null)
 				{
 					foreach (Replication replicator in activeReplicators)
@@ -905,7 +916,12 @@ namespace Couchbase.Lite.Router
 			{
 				return status;
 			}
-			return Update(db, null, GetBodyAsDictionary(), false);
+			IDictionary<string, object> body = GetBodyAsDictionary();
+			if (body == null)
+			{
+				return new Status(Status.BadRequest);
+			}
+			return Update(db, null, body, false);
 		}
 
 		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
@@ -1048,20 +1064,8 @@ namespace Couchbase.Lite.Router
 			}
 			IList<IDictionary<string, object>> docs = (IList<IDictionary<string, object>>)bodyDict
 				.Get("docs");
-			bool allObj = false;
-			if (GetQuery("all_or_nothing") == null || (GetQuery("all_or_nothing") != null && 
-				(System.Convert.ToBoolean(GetQuery("all_or_nothing")))))
-			{
-				allObj = true;
-			}
-			//   allowConflict If false, an error status 409 will be returned if the insertion would create a conflict, i.e. if the previous revision already has a child.
-			bool allOrNothing = (allObj && allObj != false);
-			bool noNewEdits = true;
-			if (GetQuery("new_edits") == null || (GetQuery("new_edits") != null && (System.Convert.ToBoolean
-				(GetQuery("new_edits")))))
-			{
-				noNewEdits = false;
-			}
+			bool noNewEdits = GetBooleanValueFromBody("new_edits", bodyDict, true) == false;
+			bool allOrNothing = GetBooleanValueFromBody("all_or_nothing", bodyDict, false);
 			bool ok = false;
 			db.BeginTransaction();
 			IList<IDictionary<string, object>> results = new AList<IDictionary<string, object
@@ -1072,7 +1076,7 @@ namespace Couchbase.Lite.Router
 				{
 					string docID = (string)doc.Get("_id");
 					RevisionInternal rev = null;
-					Status status = new Status(Status.BadRequest);
+					Status status = new Status(Status.Ok);
 					Body docBody = new Body(doc);
 					if (noNewEdits)
 					{
@@ -1147,7 +1151,7 @@ namespace Couchbase.Lite.Router
 			}
 			catch (Exception e)
 			{
-				Log.W(Database.Tag, string.Format("%s: Exception inserting revisions in bulk", this
+				Log.E(Database.Tag, string.Format("%s: Exception inserting revisions in bulk", this
 					), e);
 			}
 			finally
@@ -1216,7 +1220,15 @@ namespace Couchbase.Lite.Router
 		public virtual Status Do_POST_Document_compact(Database _db, string _docID, string
 			 _attachmentName)
 		{
-			Status status = _db.Compact();
+			Status status = new Status(Status.Ok);
+			try
+			{
+				_db.Compact();
+			}
+			catch (CouchbaseLiteException e)
+			{
+				status = e.GetCBLStatus();
+			}
 			if (status.GetCode() < 300)
 			{
 				Status outStatus = new Status();
@@ -1249,12 +1261,64 @@ namespace Couchbase.Lite.Router
 					docsToRevs.Put(key, (IList<string>)val);
 				}
 			}
-			IDictionary<string, object> purgedRevisions = db.PurgeRevisions(docsToRevs);
+			IList<IDictionary<string, object>> asyncApiCallResponse = new AList<IDictionary<string
+				, object>>();
+			// this is run in an async db task to fix the following race condition
+			// found in issue #167 (https://github.com/couchbase/couchbase-lite-android/issues/167)
+			// replicator thread: call db.loadRevisionBody for doc1
+			// liteserv thread: call db.purge on doc1
+			// replicator thread: call db.getRevisionHistory for doc1, which returns empty history since it was purged
+			Future future = db.RunAsync(new _AsyncTask_1037(this, docsToRevs, asyncApiCallResponse
+				));
+			try
+			{
+				future.Get(60, TimeUnit.Seconds);
+			}
+			catch (Exception e)
+			{
+				Log.E(Database.Tag, "Exception waiting for future", e);
+				return new Status(Status.InternalServerError);
+			}
+			catch (ExecutionException e)
+			{
+				Log.E(Database.Tag, "Exception waiting for future", e);
+				return new Status(Status.InternalServerError);
+			}
+			catch (TimeoutException e)
+			{
+				Log.E(Database.Tag, "Exception waiting for future", e);
+				return new Status(Status.InternalServerError);
+			}
+			IDictionary<string, object> purgedRevisions = asyncApiCallResponse[0];
 			IDictionary<string, object> responseMap = new Dictionary<string, object>();
 			responseMap.Put("purged", purgedRevisions);
 			Body responseBody = new Body(responseMap);
 			connection.SetResponseBody(responseBody);
 			return new Status(Status.Ok);
+		}
+
+		private sealed class _AsyncTask_1037 : AsyncTask
+		{
+			public _AsyncTask_1037(Router _enclosing, IDictionary<string, IList<string>> docsToRevs
+				, IList<IDictionary<string, object>> asyncApiCallResponse)
+			{
+				this._enclosing = _enclosing;
+				this.docsToRevs = docsToRevs;
+				this.asyncApiCallResponse = asyncApiCallResponse;
+			}
+
+			public void Run(Database database)
+			{
+				IDictionary<string, object> purgedRevisions = this._enclosing.db.PurgeRevisions(docsToRevs
+					);
+				asyncApiCallResponse.AddItem(purgedRevisions);
+			}
+
+			private readonly Router _enclosing;
+
+			private readonly IDictionary<string, IList<string>> docsToRevs;
+
+			private readonly IList<IDictionary<string, object>> asyncApiCallResponse;
 		}
 
 		public virtual Status Do_POST_Document_ensure_full_commit(Database _db, string _docID
@@ -1334,7 +1398,7 @@ namespace Couchbase.Lite.Router
 				}
 			}
 			// After collecting revisions, sort by sequence:
-			entries.Sort(new _IComparer_1081());
+			entries.Sort(new _IComparer_1125());
 			long lastSeq = (long)entries[entries.Count - 1].Get("seq");
 			if (lastSeq == null)
 			{
@@ -1346,9 +1410,9 @@ namespace Couchbase.Lite.Router
 			return result;
 		}
 
-		private sealed class _IComparer_1081 : IComparer<IDictionary<string, object>>
+		private sealed class _IComparer_1125 : IComparer<IDictionary<string, object>>
 		{
-			public _IComparer_1081()
+			public _IComparer_1125()
 			{
 			}
 
@@ -1705,6 +1769,7 @@ namespace Couchbase.Lite.Router
 		public virtual RevisionInternal Update(Database _db, string docID, Body body, bool
 			 deleting, bool allowConflict, Status outStatus)
 		{
+			System.Diagnostics.Debug.Assert(body != null);
 			bool isLocalDoc = docID != null && docID.StartsWith(("_local"));
 			string prevRevID = null;
 			if (!deleting)
@@ -1946,7 +2011,7 @@ namespace Couchbase.Lite.Router
 				}
 			}
 			View view = db.GetView(viewName);
-			view.SetMapAndReduce(mapBlock, reduceBlock, "1");
+			view.SetMapReduce(mapBlock, reduceBlock, "1");
 			string collation = (string)viewProps.Get("collation");
 			if ("raw".Equals(collation))
 			{

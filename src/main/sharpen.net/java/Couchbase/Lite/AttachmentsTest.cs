@@ -19,6 +19,7 @@
  * and limitations under the License.
  */
 
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
@@ -126,9 +127,8 @@ namespace Couchbase.Lite
 			expected.AddItem(BlobStore.KeyForBlob(attach1));
 			expected.AddItem(BlobStore.KeyForBlob(attach2));
 			NUnit.Framework.Assert.AreEqual(expected, attachments.AllKeys());
-			status = database.Compact();
+			database.Compact();
 			// This clears the body of the first revision
-			NUnit.Framework.Assert.AreEqual(Status.Ok, status.GetCode());
 			NUnit.Framework.Assert.AreEqual(1, attachments.Count());
 			ICollection<BlobKey> expected2 = new HashSet<BlobKey>();
 			expected2.AddItem(BlobStore.KeyForBlob(attach2));
@@ -395,7 +395,7 @@ namespace Couchbase.Lite
 			rev.Save();
 			// do query that finds that doc with prefetch
 			View view = database.GetView("aview");
-			view.SetMapAndReduce(new _Mapper_434(), null, "1");
+			view.SetMapReduce(new _Mapper_432(), null, "1");
 			// try to get the attachment
 			Query query = view.CreateQuery();
 			query.SetPrefetch(true);
@@ -423,9 +423,9 @@ namespace Couchbase.Lite
 			}
 		}
 
-		private sealed class _Mapper_434 : Mapper
+		private sealed class _Mapper_432 : Mapper
 		{
-			public _Mapper_434()
+			public _Mapper_432()
 			{
 			}
 
@@ -434,6 +434,57 @@ namespace Couchbase.Lite
 				string id = (string)document.Get("_id");
 				emitter.Emit(id, null);
 			}
+		}
+
+		/// <summary>Regression test for https://github.com/couchbase/couchbase-lite-android-core/issues/70
+		/// 	</summary>
+		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
+		/// <exception cref="System.IO.IOException"></exception>
+		public virtual void TestAttachmentDisappearsAfterSave()
+		{
+			// create a doc with an attachment
+			Document doc = database.CreateDocument();
+			string content = "This is a test attachment!";
+			ByteArrayInputStream body = new ByteArrayInputStream(Sharpen.Runtime.GetBytesForString
+				(content));
+			UnsavedRevision rev = doc.CreateRevision();
+			rev.SetAttachment("index.html", "text/plain; charset=utf-8", body);
+			rev.Save();
+			// make sure the doc's latest revision has the attachment
+			IDictionary<string, object> attachments = (IDictionary)doc.GetCurrentRevision().GetProperty
+				("_attachments");
+			NUnit.Framework.Assert.IsNotNull(attachments);
+			NUnit.Framework.Assert.AreEqual(1, attachments.Count);
+			// make sure the rev has the attachment
+			attachments = (IDictionary)rev.GetProperty("_attachments");
+			NUnit.Framework.Assert.IsNotNull(attachments);
+			NUnit.Framework.Assert.AreEqual(1, attachments.Count);
+			// create new properties to add
+			IDictionary<string, object> properties = new Dictionary<string, object>();
+			properties.Put("foo", "bar");
+			// make sure the new rev still has the attachment
+			UnsavedRevision rev2 = doc.CreateRevision();
+			rev2.GetProperties().PutAll(properties);
+			rev2.Save();
+			attachments = (IDictionary)rev2.GetProperty("_attachments");
+			NUnit.Framework.Assert.IsNotNull(attachments);
+			NUnit.Framework.Assert.AreEqual(1, attachments.Count);
+		}
+
+		/// <summary>Regression test for https://github.com/couchbase/couchbase-lite-android-core/issues/70
+		/// 	</summary>
+		/// <exception cref="System.Exception"></exception>
+		public virtual void TestAttachmentInstallBodies()
+		{
+			IDictionary<string, object> attachmentsMap = new Dictionary<string, object>();
+			IDictionary<string, object> attachmentMap = new Dictionary<string, object>();
+			attachmentMap.Put("length", 25);
+			string attachmentName = "index.html";
+			attachmentsMap.Put(attachmentName, attachmentMap);
+			IDictionary<string, object> updatedAttachments = Attachment.InstallAttachmentBodies
+				(attachmentsMap, database);
+			NUnit.Framework.Assert.IsTrue(updatedAttachments.Count > 0);
+			NUnit.Framework.Assert.IsTrue(updatedAttachments.ContainsKey(attachmentName));
 		}
 	}
 }

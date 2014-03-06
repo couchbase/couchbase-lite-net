@@ -26,6 +26,7 @@ using Sharpen;
 
 namespace Couchbase.Lite.Replicator
 {
+	/// <exclude></exclude>
 	public interface ChangeTrackerClient : HttpClientFactory
 	{
 		void ChangeTrackerReceivedChange(IDictionary<string, object> change);

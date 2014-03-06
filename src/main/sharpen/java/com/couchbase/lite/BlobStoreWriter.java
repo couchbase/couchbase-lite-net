@@ -12,7 +12,10 @@ import java.io.InputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
-/** Lets you stream a large attachment to a BlobStore asynchronously, e.g. from a network download. */
+/**
+ * Lets you stream a large attachment to a BlobStore asynchronously, e.g. from a network download.
+ * @exclude
+ */
 public class BlobStoreWriter {
 
     /** The underlying blob store where it should be stored. */

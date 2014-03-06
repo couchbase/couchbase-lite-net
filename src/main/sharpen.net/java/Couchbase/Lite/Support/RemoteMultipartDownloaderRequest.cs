@@ -63,10 +63,20 @@ namespace Couchbase.Lite.Support
 			try
 			{
 				HttpResponse response = httpClient.Execute(request);
-				// add in cookies to global store
-				DefaultHttpClient defaultHttpClient = (DefaultHttpClient)httpClient;
-				new CouchbaseLiteHttpClientFactory().AddCookies(defaultHttpClient.GetCookieStore(
-					).GetCookies());
+				try
+				{
+					// add in cookies to global store
+					if (httpClient is DefaultHttpClient)
+					{
+						DefaultHttpClient defaultHttpClient = (DefaultHttpClient)httpClient;
+						CouchbaseLiteHttpClientFactory.Instance.AddCookies(defaultHttpClient.GetCookieStore
+							().GetCookies());
+					}
+				}
+				catch (Exception e)
+				{
+					Log.E(Database.Tag, "Unable to add in cookies to global store", e);
+				}
 				StatusLine status = response.GetStatusLine();
 				if (status.GetStatusCode() >= 300)
 				{

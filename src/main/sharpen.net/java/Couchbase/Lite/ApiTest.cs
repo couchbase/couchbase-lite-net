@@ -36,72 +36,8 @@ namespace Couchbase.Lite
 	{
 		private int changeCount = 0;
 
-		internal static void CreateDocumentsAsync(Database db, int n)
-		{
-			db.RunAsync(new _AsyncTask_32(db, n));
-		}
-
-		private sealed class _AsyncTask_32 : AsyncTask
-		{
-			public _AsyncTask_32(Database db, int n)
-			{
-				this.db = db;
-				this.n = n;
-			}
-
-			public bool Run(Database database)
-			{
-				db.BeginTransaction();
-				ApiTest.CreateDocuments(db, n);
-				db.EndTransaction(true);
-				return true;
-			}
-
-			private readonly Database db;
-
-			private readonly int n;
-		}
-
-		internal static void CreateDocuments(Database db, int n)
-		{
-			//TODO should be changed to use db.runInTransaction
-			for (int i = 0; i < n; i++)
-			{
-				IDictionary<string, object> properties = new Dictionary<string, object>();
-				properties.Put("testName", "testDatabase");
-				properties.Put("sequence", i);
-				CreateDocumentWithProperties(db, properties);
-			}
-		}
-
-		internal static Document CreateDocumentWithProperties(Database db, IDictionary<string
-			, object> properties)
-		{
-			Document doc = db.CreateDocument();
-			NUnit.Framework.Assert.IsNotNull(doc);
-			NUnit.Framework.Assert.IsNull(doc.GetCurrentRevisionId());
-			NUnit.Framework.Assert.IsNull(doc.GetCurrentRevision());
-			NUnit.Framework.Assert.IsNotNull("Document has no ID", doc.GetId());
-			// 'untitled' docs are no longer untitled (8/10/12)
-			try
-			{
-				doc.PutProperties(properties);
-			}
-			catch (Exception e)
-			{
-				Log.E(Tag, "Error creating document", e);
-				NUnit.Framework.Assert.IsTrue("can't create new document in db:" + db.GetName() +
-					 " with properties:" + properties.ToString(), false);
-			}
-			NUnit.Framework.Assert.IsNotNull(doc.GetId());
-			NUnit.Framework.Assert.IsNotNull(doc.GetCurrentRevisionId());
-			NUnit.Framework.Assert.IsNotNull(doc.GetUserProperties());
-			NUnit.Framework.Assert.AreEqual(db.GetDocument(doc.GetId()), doc);
-			return doc;
-		}
-
 		//SERVER & DOCUMENTS
-		/// <exception cref="System.IO.IOException"></exception>
+		/// <exception cref="System.Exception"></exception>
 		public virtual void TestAPIManager()
 		{
 			Manager manager = this.manager;
@@ -122,6 +58,7 @@ namespace Couchbase.Lite
 			NUnit.Framework.Assert.IsTrue(dbNames.Contains(DefaultTestDb));
 		}
 
+		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
 		public virtual void TestCreateDocument()
 		{
 			IDictionary<string, object> properties = new Dictionary<string, object>();
@@ -142,6 +79,19 @@ namespace Couchbase.Lite
 			NUnit.Framework.Assert.AreEqual(doc2.GetId(), docID);
 			NUnit.Framework.Assert.AreEqual(doc2.GetCurrentRevisionId(), currentRevisionID);
 			NUnit.Framework.Assert.IsNull(db.GetExistingDocument("b0gus"));
+		}
+
+		/// <exception cref="System.Exception"></exception>
+		public virtual void TestDeleteDatabase()
+		{
+			Database deleteme = manager.GetDatabase("deleteme");
+			NUnit.Framework.Assert.IsTrue(deleteme.Exists());
+			deleteme.Delete();
+			NUnit.Framework.Assert.IsFalse(deleteme.Exists());
+			deleteme.Delete();
+			// delete again, even though already deleted
+			Database deletemeFetched = manager.GetExistingDatabase("deleteme");
+			NUnit.Framework.Assert.IsNull(deletemeFetched);
 		}
 
 		/// <exception cref="System.Exception"></exception>
@@ -173,6 +123,28 @@ namespace Couchbase.Lite
 		}
 
 		/// <exception cref="System.Exception"></exception>
+		public virtual void TestDocumentCache()
+		{
+			Database db = StartDatabase();
+			Document doc = db.CreateDocument();
+			UnsavedRevision rev1 = doc.CreateRevision();
+			IDictionary<string, object> rev1Properties = new Dictionary<string, object>();
+			rev1Properties.Put("foo", "bar");
+			rev1.SetUserProperties(rev1Properties);
+			SavedRevision savedRev1 = rev1.Save();
+			string documentId = savedRev1.GetDocument().GetId();
+			// getting the document puts it in cache
+			Document docRev1 = db.GetExistingDocument(documentId);
+			UnsavedRevision rev2 = docRev1.CreateRevision();
+			IDictionary<string, object> rev2Properties = rev2.GetProperties();
+			rev2Properties.Put("foo", "baz");
+			rev2.SetUserProperties(rev2Properties);
+			rev2.Save();
+			Document docRev2 = db.GetExistingDocument(documentId);
+			NUnit.Framework.Assert.AreEqual("baz", docRev2.GetProperty("foo"));
+		}
+
+		/// <exception cref="System.Exception"></exception>
 		public virtual void TestCreateRevisions()
 		{
 			IDictionary<string, object> properties = new Dictionary<string, object>();
@@ -201,8 +173,8 @@ namespace Couchbase.Lite
 			// Test -createRevision:
 			UnsavedRevision newRev = rev2.CreateRevision();
 			NUnit.Framework.Assert.IsNull(newRev.GetId());
-			NUnit.Framework.Assert.AreEqual(newRev.GetParentRevision(), rev2);
-			NUnit.Framework.Assert.AreEqual(newRev.GetParentRevisionId(), rev2.GetId());
+			NUnit.Framework.Assert.AreEqual(newRev.GetParent(), rev2);
+			NUnit.Framework.Assert.AreEqual(newRev.GetParentId(), rev2.GetId());
 			IList<SavedRevision> listRevs = new AList<SavedRevision>();
 			listRevs.AddItem(rev1);
 			listRevs.AddItem(rev2);
@@ -237,8 +209,8 @@ namespace Couchbase.Lite
 			Document newRevDocument = newRev.GetDocument();
 			NUnit.Framework.Assert.AreEqual(doc, newRevDocument);
 			NUnit.Framework.Assert.AreEqual(db, newRev.GetDatabase());
-			NUnit.Framework.Assert.IsNull(newRev.GetParentRevisionId());
-			NUnit.Framework.Assert.IsNull(newRev.GetParentRevision());
+			NUnit.Framework.Assert.IsNull(newRev.GetParentId());
+			NUnit.Framework.Assert.IsNull(newRev.GetParent());
 			IDictionary<string, object> expectProperties = new Dictionary<string, object>();
 			expectProperties.Put("_id", doc.GetId());
 			NUnit.Framework.Assert.AreEqual(expectProperties, newRev.GetProperties());
@@ -254,14 +226,14 @@ namespace Couchbase.Lite
 			NUnit.Framework.Assert.AreEqual(doc.GetCurrentRevision(), rev1);
 			NUnit.Framework.Assert.IsNotNull(rev1.GetId().StartsWith("1-"));
 			NUnit.Framework.Assert.AreEqual(1, rev1.GetSequence());
-			NUnit.Framework.Assert.IsNull(rev1.GetParentRevisionId());
-			NUnit.Framework.Assert.IsNull(rev1.GetParentRevision());
+			NUnit.Framework.Assert.IsNull(rev1.GetParentId());
+			NUnit.Framework.Assert.IsNull(rev1.GetParent());
 			newRev = rev1.CreateRevision();
 			newRevDocument = newRev.GetDocument();
 			NUnit.Framework.Assert.AreEqual(doc, newRevDocument);
 			NUnit.Framework.Assert.AreEqual(db, newRev.GetDatabase());
-			NUnit.Framework.Assert.AreEqual(rev1.GetId(), newRev.GetParentRevisionId());
-			NUnit.Framework.Assert.AreEqual(rev1, newRev.GetParentRevision());
+			NUnit.Framework.Assert.AreEqual(rev1.GetId(), newRev.GetParentId());
+			NUnit.Framework.Assert.AreEqual(rev1, newRev.GetParent());
 			NUnit.Framework.Assert.AreEqual(rev1.GetProperties(), newRev.GetProperties());
 			NUnit.Framework.Assert.AreEqual(rev1.GetUserProperties(), newRev.GetUserProperties
 				());
@@ -275,14 +247,14 @@ namespace Couchbase.Lite
 			NUnit.Framework.Assert.AreEqual(doc.GetCurrentRevision(), rev2);
 			NUnit.Framework.Assert.IsNotNull(rev2.GetId().StartsWith("2-"));
 			NUnit.Framework.Assert.AreEqual(2, rev2.GetSequence());
-			NUnit.Framework.Assert.AreEqual(rev1.GetId(), rev2.GetParentRevisionId());
-			NUnit.Framework.Assert.AreEqual(rev1, rev2.GetParentRevision());
+			NUnit.Framework.Assert.AreEqual(rev1.GetId(), rev2.GetParentId());
+			NUnit.Framework.Assert.AreEqual(rev1, rev2.GetParent());
 			NUnit.Framework.Assert.IsNotNull("Document revision ID is still " + doc.GetCurrentRevisionId
 				(), doc.GetCurrentRevisionId().StartsWith("2-"));
 			// Add a deletion/tombstone revision:
 			newRev = doc.CreateRevision();
-			NUnit.Framework.Assert.AreEqual(rev2.GetId(), newRev.GetParentRevisionId());
-			NUnit.Framework.Assert.AreEqual(rev2, newRev.GetParentRevision());
+			NUnit.Framework.Assert.AreEqual(rev2.GetId(), newRev.GetParentId());
+			NUnit.Framework.Assert.AreEqual(rev2, newRev.GetParent());
 			newRev.SetIsDeletion(true);
 			SavedRevision rev3 = newRev.Save();
 			NUnit.Framework.Assert.IsNotNull("Save 3 failed", rev3);
@@ -369,13 +341,13 @@ namespace Couchbase.Lite
 			IDictionary<string, object> props = db.GetExistingLocalDocument("dock");
 			NUnit.Framework.Assert.IsNull(props);
 			NUnit.Framework.Assert.IsNotNull("Couldn't put new local doc", db.PutLocalDocument
-				(properties, "dock"));
+				("dock", properties));
 			props = db.GetExistingLocalDocument("dock");
 			NUnit.Framework.Assert.AreEqual(props.Get("foo"), "bar");
 			IDictionary<string, object> newProperties = new Dictionary<string, object>();
 			newProperties.Put("FOOO", "BARRR");
 			NUnit.Framework.Assert.IsNotNull("Couldn't update local doc", db.PutLocalDocument
-				(newProperties, "dock"));
+				("dock", newProperties));
 			props = db.GetExistingLocalDocument("dock");
 			NUnit.Framework.Assert.IsNull(props.Get("foo"));
 			NUnit.Framework.Assert.AreEqual(props.Get("FOOO"), "BARRR");
@@ -427,6 +399,50 @@ namespace Couchbase.Lite
 			tmp.AddItem(rev2);
 			NUnit.Framework.Assert.AreEqual(doc.GetConflictingRevisions(), tmp);
 			NUnit.Framework.Assert.AreEqual(doc.GetLeafRevisions(), tmp);
+		}
+
+		/// <exception cref="System.Exception"></exception>
+		public virtual void TestHistoryAfterDocDeletion()
+		{
+			IDictionary<string, object> properties = new Dictionary<string, object>();
+			string docId = "testHistoryAfterDocDeletion";
+			properties.Put("tag", 1);
+			Database db = StartDatabase();
+			Document doc = db.GetDocument(docId);
+			NUnit.Framework.Assert.AreEqual(docId, doc.GetId());
+			doc.PutProperties(properties);
+			string revID = doc.GetCurrentRevisionId();
+			for (int i = 2; i < 6; i++)
+			{
+				properties.Put("tag", i);
+				properties.Put("_rev", revID);
+				doc.PutProperties(properties);
+				revID = doc.GetCurrentRevisionId();
+				Log.I(Tag, i + " revision: " + revID);
+				NUnit.Framework.Assert.IsTrue("revision is not correct:" + revID + ", should be with prefix "
+					 + i + "-", revID.StartsWith(i.ToString() + "-"));
+				NUnit.Framework.Assert.AreEqual("Doc Id is not correct ", docId, doc.GetId());
+			}
+			// now delete the doc and clear it from the cache so we
+			// make sure we are reading a fresh copy
+			doc.Delete();
+			database.ClearDocumentCache();
+			// get doc from db with same ID as before, and the current rev should be null since the
+			// last update was a deletion
+			Document docPostDelete = db.GetDocument(docId);
+			NUnit.Framework.Assert.IsNull(docPostDelete.GetCurrentRevision());
+			// save a new revision
+			properties = new Dictionary<string, object>();
+			properties.Put("tag", 6);
+			UnsavedRevision newRevision = docPostDelete.CreateRevision();
+			newRevision.SetProperties(properties);
+			SavedRevision newSavedRevision = newRevision.Save();
+			// make sure the current revision of doc matches the rev we just saved
+			NUnit.Framework.Assert.AreEqual(newSavedRevision, docPostDelete.GetCurrentRevision
+				());
+			// make sure the rev id is 7-
+			NUnit.Framework.Assert.IsTrue(docPostDelete.GetCurrentRevisionId().StartsWith("7-"
+				));
 		}
 
 		/// <exception cref="System.Exception"></exception>
@@ -526,7 +542,7 @@ namespace Couchbase.Lite
 		{
 			CountDownLatch doneSignal = new CountDownLatch(1);
 			Database db = StartDatabase();
-			db.AddChangeListener(new _ChangeListener_535(doneSignal));
+			db.AddChangeListener(new _ChangeListener_579(doneSignal));
 			CreateDocumentsAsync(db, 5);
 			// We expect that the changes reported by the server won't be notified, because those revisions
 			// are already cached in memory.
@@ -535,9 +551,9 @@ namespace Couchbase.Lite
 			NUnit.Framework.Assert.AreEqual(5, db.GetLastSequenceNumber());
 		}
 
-		private sealed class _ChangeListener_535 : Database.ChangeListener
+		private sealed class _ChangeListener_579 : Database.ChangeListener
 		{
-			public _ChangeListener_535(CountDownLatch doneSignal)
+			public _ChangeListener_579(CountDownLatch doneSignal)
 			{
 				this.doneSignal = doneSignal;
 			}
@@ -561,7 +577,7 @@ namespace Couchbase.Lite
 			NUnit.Framework.Assert.AreEqual("vu", view.GetName());
 			NUnit.Framework.Assert.IsNull(view.GetMap());
 			NUnit.Framework.Assert.IsNull(view.GetReduce());
-			view.SetMap(new _Mapper_563(), "1");
+			view.SetMap(new _Mapper_607(), "1");
 			NUnit.Framework.Assert.IsNotNull(view.GetMap() != null);
 			int kNDocs = 50;
 			CreateDocuments(db, kNDocs);
@@ -582,9 +598,9 @@ namespace Couchbase.Lite
 			}
 		}
 
-		private sealed class _Mapper_563 : Mapper
+		private sealed class _Mapper_607 : Mapper
 		{
-			public _Mapper_563()
+			public _Mapper_607()
 			{
 			}
 
@@ -599,7 +615,7 @@ namespace Couchbase.Lite
 		public virtual void TestValidation()
 		{
 			Database db = StartDatabase();
-			db.SetValidation("uncool", new _Validator_599());
+			db.SetValidation("uncool", new _Validator_643());
 			IDictionary<string, object> properties = new Dictionary<string, object>();
 			properties.Put("groovy", "right on");
 			properties.Put("foo", "bar");
@@ -619,21 +635,19 @@ namespace Couchbase.Lite
 			}
 		}
 
-		private sealed class _Validator_599 : Validator
+		private sealed class _Validator_643 : Validator
 		{
-			public _Validator_599()
+			public _Validator_643()
 			{
 			}
 
-			public bool Validate(Revision newRevision, ValidationContext context)
+			public void Validate(Revision newRevision, ValidationContext context)
 			{
 				{
 					if (newRevision.GetProperty("groovy") == null)
 					{
 						context.Reject("uncool");
-						return false;
 					}
-					return true;
 				}
 			}
 		}
@@ -655,7 +669,7 @@ namespace Couchbase.Lite
 				docs[i] = doc;
 				lastDocID = doc.GetId();
 			}
-			Query query = db.SlowQuery(new _Mapper_649());
+			Query query = db.SlowQuery(new _Mapper_691());
 			query.SetStartKey(23);
 			query.SetEndKey(33);
 			query.SetPrefetch(true);
@@ -674,9 +688,9 @@ namespace Couchbase.Lite
 			}
 		}
 
-		private sealed class _Mapper_649 : Mapper
+		private sealed class _Mapper_691 : Mapper
 		{
-			public _Mapper_649()
+			public _Mapper_691()
 			{
 			}
 
@@ -700,6 +714,102 @@ namespace Couchbase.Lite
 		}
 
 		/// <exception cref="System.Exception"></exception>
+		public virtual void TestLiveQueryStartWaitForRows()
+		{
+			RunLiveQuery("startWaitForRows");
+		}
+
+		/// <summary>https://github.com/couchbase/couchbase-lite-java-core/issues/84</summary>
+		/// <exception cref="System.Exception"></exception>
+		public virtual void TestLiveQueryStop()
+		{
+			int kNDocs = 100;
+			CountDownLatch doneSignal = new CountDownLatch(1);
+			Database db = StartDatabase();
+			// run a live query
+			View view = db.GetView("vu");
+			view.SetMap(new _Mapper_746(), "1");
+			LiveQuery query = view.CreateQuery().ToLiveQuery();
+			AtomicInteger atomicInteger = new AtomicInteger(0);
+			// install a change listener which decrements countdown latch when it sees a new
+			// key from the list of expected keys
+			LiveQuery.ChangeListener changeListener = new _ChangeListener_758(atomicInteger, 
+				kNDocs, doneSignal);
+			query.AddChangeListener(changeListener);
+			// create the docs that will cause the above change listener to decrement countdown latch
+			Log.D(Database.Tag, "testLiveQueryStop: createDocumentsAsync()");
+			CreateDocumentsAsync(db, kNDocs);
+			Log.D(Database.Tag, "testLiveQueryStop: calling query.start()");
+			query.Start();
+			// wait until the livequery is called back with kNDocs docs
+			Log.D(Database.Tag, "testLiveQueryStop: waiting for doneSignal");
+			bool success = doneSignal.Await(120, TimeUnit.Seconds);
+			NUnit.Framework.Assert.IsTrue(success);
+			Log.D(Database.Tag, "testLiveQueryStop: waiting for query.stop()");
+			query.Stop();
+			// after stopping the query, we should not get any more livequery callbacks, even
+			// if we add more docs to the database and pause (to give time for potential callbacks)
+			int numTimesCallbackCalled = atomicInteger.Get();
+			Log.D(Database.Tag, "testLiveQueryStop: numTimesCallbackCalled is: " + numTimesCallbackCalled
+				 + ".  Now adding docs");
+			for (int i = 0; i < 10; i++)
+			{
+				CreateDocuments(db, 1);
+				Log.D(Database.Tag, "testLiveQueryStop: add a document.  atomicInteger.get(): " +
+					 atomicInteger.Get());
+				NUnit.Framework.Assert.AreEqual(numTimesCallbackCalled, atomicInteger.Get());
+				Sharpen.Thread.Sleep(200);
+			}
+			NUnit.Framework.Assert.AreEqual(numTimesCallbackCalled, atomicInteger.Get());
+		}
+
+		private sealed class _Mapper_746 : Mapper
+		{
+			public _Mapper_746()
+			{
+			}
+
+			public void Map(IDictionary<string, object> document, Emitter emitter)
+			{
+				emitter.Emit(document.Get("sequence"), null);
+			}
+		}
+
+		private sealed class _ChangeListener_758 : LiveQuery.ChangeListener
+		{
+			public _ChangeListener_758(AtomicInteger atomicInteger, int kNDocs, CountDownLatch
+				 doneSignal)
+			{
+				this.atomicInteger = atomicInteger;
+				this.kNDocs = kNDocs;
+				this.doneSignal = doneSignal;
+			}
+
+			public void Changed(LiveQuery.ChangeEvent @event)
+			{
+				Log.D(LiteTestCase.Tag, "changed called, atomicInteger.incrementAndGet");
+				atomicInteger.IncrementAndGet();
+				NUnit.Framework.Assert.IsNull(@event.GetError());
+				if (@event.GetRows().GetCount() == kNDocs)
+				{
+					doneSignal.CountDown();
+				}
+			}
+
+			private readonly AtomicInteger atomicInteger;
+
+			private readonly int kNDocs;
+
+			private readonly CountDownLatch doneSignal;
+		}
+
+		/// <exception cref="System.Exception"></exception>
+		public virtual void TestLiveQueryRestart()
+		{
+		}
+
+		// kick something off that will s
+		/// <exception cref="System.Exception"></exception>
 		public virtual void RunLiveQuery(string methodNameToCall)
 		{
 			Database db = StartDatabase();
@@ -707,7 +817,7 @@ namespace Couchbase.Lite
 			// 11 corresponds to startKey=23; endKey=33
 			// run a live query
 			View view = db.GetView("vu");
-			view.SetMap(new _Mapper_694(), "1");
+			view.SetMap(new _Mapper_817(), "1");
 			LiveQuery query = view.CreateQuery().ToLiveQuery();
 			query.SetStartKey(23);
 			query.SetEndKey(33);
@@ -720,7 +830,7 @@ namespace Couchbase.Lite
 			}
 			// install a change listener which decrements countdown latch when it sees a new
 			// key from the list of expected keys
-			LiveQuery.ChangeListener changeListener = new _ChangeListener_713(expectedKeys, doneSignal
+			LiveQuery.ChangeListener changeListener = new _ChangeListener_836(expectedKeys, doneSignal
 				);
 			query.AddChangeListener(changeListener);
 			// create the docs that will cause the above change listener to decrement countdown latch
@@ -733,10 +843,18 @@ namespace Couchbase.Lite
 			}
 			else
 			{
-				NUnit.Framework.Assert.IsNull(query.GetRows());
-				query.Run();
-				// this will block until the query completes
-				NUnit.Framework.Assert.IsNotNull(query.GetRows());
+				if (methodNameToCall.Equals("startWaitForRows"))
+				{
+					query.Start();
+					query.WaitForRows();
+				}
+				else
+				{
+					NUnit.Framework.Assert.IsNull(query.GetRows());
+					query.Run();
+					// this will block until the query completes
+					NUnit.Framework.Assert.IsNotNull(query.GetRows());
+				}
 			}
 			// wait for the doneSignal to be finished
 			bool success = doneSignal.Await(300, TimeUnit.Seconds);
@@ -747,9 +865,9 @@ namespace Couchbase.Lite
 			query.Stop();
 		}
 
-		private sealed class _Mapper_694 : Mapper
+		private sealed class _Mapper_817 : Mapper
 		{
-			public _Mapper_694()
+			public _Mapper_817()
 			{
 			}
 
@@ -759,9 +877,9 @@ namespace Couchbase.Lite
 			}
 		}
 
-		private sealed class _ChangeListener_713 : LiveQuery.ChangeListener
+		private sealed class _ChangeListener_836 : LiveQuery.ChangeListener
 		{
-			public _ChangeListener_713(ICollection<int> expectedKeys, CountDownLatch doneSignal
+			public _ChangeListener_836(ICollection<int> expectedKeys, CountDownLatch doneSignal
 				)
 			{
 				this.expectedKeys = expectedKeys;
@@ -793,22 +911,22 @@ namespace Couchbase.Lite
 			CountDownLatch doneSignal = new CountDownLatch(1);
 			Database db = StartDatabase();
 			View view = db.GetView("vu");
-			view.SetMap(new _Mapper_757(), "1");
+			view.SetMap(new _Mapper_883(), "1");
 			int kNDocs = 50;
 			CreateDocuments(db, kNDocs);
 			Query query = view.CreateQuery();
 			query.SetStartKey(23);
 			query.SetEndKey(33);
-			query.RunAsync(new _QueryCompleteListener_771(db, doneSignal));
+			query.RunAsync(new _QueryCompleteListener_897(db, doneSignal));
 			Log.I(Tag, "Waiting for async query to finish...");
 			bool success = doneSignal.Await(300, TimeUnit.Seconds);
 			NUnit.Framework.Assert.IsTrue("Done signal timed out, async query never ran", success
 				);
 		}
 
-		private sealed class _Mapper_757 : Mapper
+		private sealed class _Mapper_883 : Mapper
 		{
-			public _Mapper_757()
+			public _Mapper_883()
 			{
 			}
 
@@ -818,9 +936,9 @@ namespace Couchbase.Lite
 			}
 		}
 
-		private sealed class _QueryCompleteListener_771 : Query.QueryCompleteListener
+		private sealed class _QueryCompleteListener_897 : Query.QueryCompleteListener
 		{
-			public _QueryCompleteListener_771(Database db, CountDownLatch doneSignal)
+			public _QueryCompleteListener_897(Database db, CountDownLatch doneSignal)
 			{
 				this.db = db;
 				this.doneSignal = doneSignal;
@@ -863,16 +981,16 @@ namespace Couchbase.Lite
 				, Manager.DefaultOptions);
 			Database db = mgr.GetDatabase("db");
 			db.Open();
-			db.SetFilter("phil", new _ReplicationFilter_805());
-			db.SetValidation("val", new _Validator_812());
+			db.SetFilter("phil", new _ReplicationFilter_931());
+			db.SetValidation("val", new _Validator_938());
 			View view = db.GetView("view");
-			bool ok = view.SetMapAndReduce(new _Mapper_820(), new _Reducer_825(), "1");
+			bool ok = view.SetMapReduce(new _Mapper_945(), new _Reducer_950(), "1");
 			NUnit.Framework.Assert.IsNotNull("Couldn't set map/reduce", ok);
 			Mapper map = view.GetMap();
 			Reducer reduce = view.GetReduce();
 			ReplicationFilter filter = db.GetFilter("phil");
 			Validator validation = db.GetValidation("val");
-			Future result = mgr.RunAsync("db", new _AsyncTask_840(filter, validation, map, reduce
+			Future result = mgr.RunAsync("db", new _AsyncTask_965(filter, validation, map, reduce
 				));
 			result.Get();
 			// blocks until async task has run
@@ -880,9 +998,9 @@ namespace Couchbase.Lite
 			mgr.Close();
 		}
 
-		private sealed class _ReplicationFilter_805 : ReplicationFilter
+		private sealed class _ReplicationFilter_931 : ReplicationFilter
 		{
-			public _ReplicationFilter_805()
+			public _ReplicationFilter_931()
 			{
 			}
 
@@ -892,21 +1010,20 @@ namespace Couchbase.Lite
 			}
 		}
 
-		private sealed class _Validator_812 : Validator
+		private sealed class _Validator_938 : Validator
 		{
-			public _Validator_812()
+			public _Validator_938()
 			{
 			}
 
-			public bool Validate(Revision newRevision, ValidationContext context)
+			public void Validate(Revision newRevision, ValidationContext context)
 			{
-				return true;
 			}
 		}
 
-		private sealed class _Mapper_820 : Mapper
+		private sealed class _Mapper_945 : Mapper
 		{
-			public _Mapper_820()
+			public _Mapper_945()
 			{
 			}
 
@@ -915,9 +1032,9 @@ namespace Couchbase.Lite
 			}
 		}
 
-		private sealed class _Reducer_825 : Reducer
+		private sealed class _Reducer_950 : Reducer
 		{
-			public _Reducer_825()
+			public _Reducer_950()
 			{
 			}
 
@@ -927,9 +1044,9 @@ namespace Couchbase.Lite
 			}
 		}
 
-		private sealed class _AsyncTask_840 : AsyncTask
+		private sealed class _AsyncTask_965 : AsyncTask
 		{
-			public _AsyncTask_840(ReplicationFilter filter, Validator validation, Mapper map, 
+			public _AsyncTask_965(ReplicationFilter filter, Validator validation, Mapper map, 
 				Reducer reduce)
 			{
 				this.filter = filter;
@@ -938,7 +1055,7 @@ namespace Couchbase.Lite
 				this.reduce = reduce;
 			}
 
-			public bool Run(Database database)
+			public void Run(Database database)
 			{
 				NUnit.Framework.Assert.IsNotNull(database);
 				View serverView = database.GetExistingView("view");
@@ -947,7 +1064,6 @@ namespace Couchbase.Lite
 				NUnit.Framework.Assert.AreEqual(database.GetValidation("val"), validation);
 				NUnit.Framework.Assert.AreEqual(serverView.GetMap(), map);
 				NUnit.Framework.Assert.AreEqual(serverView.GetReduce(), reduce);
-				return true;
 			}
 
 			private readonly ReplicationFilter filter;

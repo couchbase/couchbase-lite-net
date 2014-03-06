@@ -31,6 +31,7 @@ namespace Couchbase.Lite
 	/// <summary>Lets you stream a large attachment to a BlobStore asynchronously, e.g.</summary>
 	/// <remarks>Lets you stream a large attachment to a BlobStore asynchronously, e.g. from a network download.
 	/// 	</remarks>
+	/// <exclude></exclude>
 	public class BlobStoreWriter
 	{
 		/// <summary>The underlying blob store where it should be stored.</summary>

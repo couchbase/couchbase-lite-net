@@ -27,6 +27,7 @@ using Sharpen;
 namespace Couchbase.Lite
 {
 	/// <summary>An ordered list of TDRevisions</summary>
+	/// <exclude></exclude>
 	[System.Serializable]
 	public class RevisionList : AList<RevisionInternal>
 	{
@@ -80,12 +81,12 @@ namespace Couchbase.Lite
 
 		public virtual void SortBySequence()
 		{
-			this.Sort(new _IComparer_82());
+			this.Sort(new _IComparer_83());
 		}
 
-		private sealed class _IComparer_82 : IComparer<RevisionInternal>
+		private sealed class _IComparer_83 : IComparer<RevisionInternal>
 		{
-			public _IComparer_82()
+			public _IComparer_83()
 			{
 			}
 

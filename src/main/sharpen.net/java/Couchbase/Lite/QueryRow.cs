@@ -251,15 +251,15 @@ namespace Couchbase.Lite
 			return conflictingRevisions;
 		}
 
-		/// <summary>
-		/// This is used implicitly by -[LiveQuery update] to decide whether the query result has changed
-		/// enough to notify the client.
-		/// </summary>
+		/// <summary>Compare this against the given QueryRow for equality.</summary>
 		/// <remarks>
-		/// This is used implicitly by -[LiveQuery update] to decide whether the query result has changed
-		/// enough to notify the client. So it's important that it not give false positives, else the app
-		/// won't get notified of changes.
+		/// Compare this against the given QueryRow for equality.
+		/// Implentation Note: This is used implicitly by -[LiveQuery update] to decide whether
+		/// the query result has changed enough to notify the client. So it's important that it
+		/// not give false positives, else the app won't get notified of changes.
 		/// </remarks>
+		/// <param name="o">the QueryRow to compare this instance with.</param>
+		/// <returns>true if equal, false otherwise.</returns>
 		[InterfaceAudience.Public]
 		public override bool Equals(object @object)
 		{
@@ -293,6 +293,12 @@ namespace Couchbase.Lite
 			return false;
 		}
 
+		/// <summary>Return a string representation of this QueryRow.</summary>
+		/// <remarks>
+		/// Return a string representation of this QueryRow.
+		/// The string is returned in JSON format.
+		/// </remarks>
+		/// <returns>the JSON string representing this QueryRow</returns>
 		[InterfaceAudience.Public]
 		public override string ToString()
 		{
@@ -305,6 +311,7 @@ namespace Couchbase.Lite
 			this.database = database;
 		}
 
+		/// <exclude></exclude>
 		[InterfaceAudience.Private]
 		public virtual IDictionary<string, object> AsJSONDictionary()
 		{

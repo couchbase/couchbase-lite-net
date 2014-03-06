@@ -3,6 +3,7 @@ package com.couchbase.lite;
 import junit.framework.TestCase;
 
 import com.couchbase.lite.internal.Body;
+import com.couchbase.lite.replicator.Replication;
 import com.couchbase.lite.router.*;
 import com.couchbase.lite.router.Router;
 import com.couchbase.lite.support.FileDirUtils;
@@ -23,6 +24,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 public abstract class LiteTestCase extends TestCase {
 
@@ -83,7 +86,7 @@ public abstract class LiteTestCase extends TestCase {
         }
     }
 
-    protected Database startDatabase() {
+    protected Database startDatabase() throws CouchbaseLiteException {
         database = ensureEmptyDatabase(DEFAULT_TEST_DB);
         return database;
     }
@@ -94,11 +97,10 @@ public abstract class LiteTestCase extends TestCase {
         }
     }
 
-    protected Database ensureEmptyDatabase(String dbName) {
+    protected Database ensureEmptyDatabase(String dbName) throws CouchbaseLiteException {
         Database db = manager.getExistingDatabase(dbName);
         if(db != null) {
-            boolean status = db.delete();
-            Assert.assertTrue(status);
+            db.delete();
         }
         db = manager.getDatabase(dbName);
         return db;
@@ -284,5 +286,209 @@ public abstract class LiteTestCase extends TestCase {
     protected Object send(String method, String path, int expectedStatus, Object expectedResult) {
         return sendBody(method, path, null, expectedStatus, expectedResult);
     }
+
+    public static void createDocuments(final Database db, final int n) {
+        //TODO should be changed to use db.runInTransaction
+        for (int i=0; i<n; i++) {
+            Map<String,Object> properties = new HashMap<String,Object>();
+            properties.put("testName", "testDatabase");
+            properties.put("sequence", i);
+            createDocumentWithProperties(db, properties);
+        }
+    };
+
+    static void createDocumentsAsync(final Database db, final int n) {
+        db.runAsync(new AsyncTask() {
+            @Override
+            public void run(Database database) {
+                db.beginTransaction();
+                createDocuments(db, n);
+                db.endTransaction(true);
+            }
+        });
+
+    };
+
+
+    public static Document createDocumentWithProperties(Database db, Map<String,Object>  properties) {
+        Document  doc = db.createDocument();
+        Assert.assertNotNull(doc);
+        Assert.assertNull(doc.getCurrentRevisionId());
+        Assert.assertNull(doc.getCurrentRevision());
+        Assert.assertNotNull("Document has no ID", doc.getId()); // 'untitled' docs are no longer untitled (8/10/12)
+        try{
+            doc.putProperties(properties);
+        } catch( Exception e){
+            Log.e(TAG, "Error creating document", e);
+            assertTrue("can't create new document in db:" + db.getName() + " with properties:" + properties.toString(), false);
+        }
+        Assert.assertNotNull(doc.getId());
+        Assert.assertNotNull(doc.getCurrentRevisionId());
+        Assert.assertNotNull(doc.getUserProperties());
+
+        // this won't work until the weakref hashmap is implemented which stores all docs
+        // Assert.assertEquals(db.getDocument(doc.getId()), doc);
+
+        Assert.assertEquals(db.getDocument(doc.getId()).getId(), doc.getId());
+
+        return doc;
+    }
+
+    public void runReplication(Replication replication) {
+
+        CountDownLatch replicationDoneSignal = new CountDownLatch(1);
+
+
+        ReplicationFinishedObserver replicationFinishedObserver = new ReplicationFinishedObserver(replicationDoneSignal);
+        replication.addChangeListener(replicationFinishedObserver);
+
+        replication.start();
+
+        CountDownLatch replicationDoneSignalPolling = replicationWatcherThread(replication);
+
+        Log.d(TAG, "Waiting for replicator to finish");
+        try {
+            boolean success = replicationDoneSignal.await(300, TimeUnit.SECONDS);
+            assertTrue(success);
+
+            success = replicationDoneSignalPolling.await(300, TimeUnit.SECONDS);
+            assertTrue(success);
+
+            Log.d(TAG, "replicator finished");
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        replication.removeChangeListener(replicationFinishedObserver);
+
+
+
+    }
+
+    public CountDownLatch replicationWatcherThread(final Replication replication) {
+
+        final CountDownLatch doneSignal = new CountDownLatch(1);
+
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                boolean started = false;
+                boolean done = false;
+                while (!done) {
+
+                    if (replication.isRunning()) {
+                        started = true;
+                    }
+                    final boolean statusIsDone = (replication.getStatus() == Replication.ReplicationStatus.REPLICATION_STOPPED ||
+                            replication.getStatus() == Replication.ReplicationStatus.REPLICATION_IDLE);
+                    if (started && statusIsDone) {
+                        done = true;
+                    }
+
+                    try {
+                        Thread.sleep(500);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+
+                }
+
+                doneSignal.countDown();
+
+            }
+        }).start();
+        return doneSignal;
+
+    }
+
+    public static class ReplicationFinishedObserver implements Replication.ChangeListener {
+
+        public boolean replicationFinished = false;
+        private CountDownLatch doneSignal;
+
+        public ReplicationFinishedObserver(CountDownLatch doneSignal) {
+            this.doneSignal = doneSignal;
+        }
+
+        @Override
+        public void changed(Replication.ChangeEvent event) {
+            Replication replicator = event.getSource();
+            Log.d(TAG, replicator + " changed.  " + replicator.getCompletedChangesCount() + " / " + replicator.getChangesCount());
+            Assert.assertTrue(replicator.getCompletedChangesCount() <= replicator.getChangesCount());
+            if (replicator.getCompletedChangesCount() > replicator.getChangesCount()) {
+                throw new RuntimeException("replicator.getCompletedChangesCount() > replicator.getChangesCount()");
+            }
+            if (!replicator.isRunning()) {
+                replicationFinished = true;
+                String msg = String.format("ReplicationFinishedObserver.changed called, set replicationFinished to: %b", replicationFinished);
+                Log.d(TAG, msg);
+                doneSignal.countDown();
+            }
+            else {
+                String msg = String.format("ReplicationFinishedObserver.changed called, but replicator still running, so ignore it");
+                Log.d(TAG, msg);
+            }
+        }
+
+        boolean isReplicationFinished() {
+            return replicationFinished;
+        }
+
+    }
+
+    public static class ReplicationRunningObserver implements Replication.ChangeListener {
+
+        private CountDownLatch doneSignal;
+
+        public ReplicationRunningObserver(CountDownLatch doneSignal) {
+            this.doneSignal = doneSignal;
+        }
+
+        @Override
+        public void changed(Replication.ChangeEvent event) {
+            Replication replicator = event.getSource();
+            if (replicator.isRunning()) {
+                doneSignal.countDown();
+            }
+        }
+
+    }
+
+    public static class ReplicationIdleObserver implements Replication.ChangeListener {
+
+        private CountDownLatch doneSignal;
+
+        public ReplicationIdleObserver(CountDownLatch doneSignal) {
+            this.doneSignal = doneSignal;
+        }
+
+        @Override
+        public void changed(Replication.ChangeEvent event) {
+            Replication replicator = event.getSource();
+            if (replicator.getStatus() == Replication.ReplicationStatus.REPLICATION_IDLE) {
+                doneSignal.countDown();
+            }
+        }
+
+    }
+
+    public static class ReplicationErrorObserver implements Replication.ChangeListener {
+
+        private CountDownLatch doneSignal;
+
+        public ReplicationErrorObserver(CountDownLatch doneSignal) {
+            this.doneSignal = doneSignal;
+        }
+
+        @Override
+        public void changed(Replication.ChangeEvent event) {
+            Replication replicator = event.getSource();
+            if (replicator.getLastError() != null) {
+                doneSignal.countDown();
+            }
+        }
+
+    }
+
 
 }

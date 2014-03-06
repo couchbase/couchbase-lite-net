@@ -22,6 +22,7 @@
 using System.Collections.Generic;
 using Couchbase.Lite;
 using Couchbase.Lite.Internal;
+using NUnit.Framework;
 using Sharpen;
 
 namespace Couchbase.Lite
@@ -33,7 +34,7 @@ namespace Couchbase.Lite
 		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
 		public virtual void TestChangeNotification()
 		{
-			Database.ChangeListener changeListener = new _ChangeListener_15(this);
+			Database.ChangeListener changeListener = new _ChangeListener_16(this);
 			// add listener to database
 			database.AddChangeListener(changeListener);
 			// create a document
@@ -48,9 +49,9 @@ namespace Couchbase.Lite
 			NUnit.Framework.Assert.AreEqual(1, changeNotifications);
 		}
 
-		private sealed class _ChangeListener_15 : Database.ChangeListener
+		private sealed class _ChangeListener_16 : Database.ChangeListener
 		{
-			public _ChangeListener_15(ChangesTest _enclosing)
+			public _ChangeListener_16(ChangesTest _enclosing)
 			{
 				this._enclosing = _enclosing;
 			}
@@ -58,6 +59,68 @@ namespace Couchbase.Lite
 			public void Changed(Database.ChangeEvent @event)
 			{
 				this._enclosing.changeNotifications++;
+			}
+
+			private readonly ChangesTest _enclosing;
+		}
+
+		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
+		public virtual void TestLocalChangesAreNotExternal()
+		{
+			changeNotifications = 0;
+			Database.ChangeListener changeListener = new _ChangeListener_43(this);
+			database.AddChangeListener(changeListener);
+			// Insert a document locally.
+			Document document = database.CreateDocument();
+			document.CreateRevision().Save();
+			// Make sure that the assertion in changeListener was called.
+			NUnit.Framework.Assert.AreEqual(1, changeNotifications);
+		}
+
+		private sealed class _ChangeListener_43 : Database.ChangeListener
+		{
+			public _ChangeListener_43(ChangesTest _enclosing)
+			{
+				this._enclosing = _enclosing;
+			}
+
+			public void Changed(Database.ChangeEvent @event)
+			{
+				this._enclosing.changeNotifications++;
+				NUnit.Framework.Assert.IsFalse(@event.IsExternal());
+			}
+
+			private readonly ChangesTest _enclosing;
+		}
+
+		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
+		public virtual void TestPulledChangesAreExternal()
+		{
+			changeNotifications = 0;
+			Database.ChangeListener changeListener = new _ChangeListener_61(this);
+			database.AddChangeListener(changeListener);
+			// Insert a document as if it came from a remote source.
+			RevisionInternal rev = new RevisionInternal("docId", "1-rev", false, database);
+			IDictionary<string, object> properties = new Dictionary<string, object>();
+			properties.Put("_id", rev.GetDocId());
+			properties.Put("_rev", rev.GetRevId());
+			rev.SetProperties(properties);
+			database.ForceInsert(rev, Arrays.AsList(rev.GetRevId()), GetReplicationURL());
+			// Make sure that the assertion in changeListener was called.
+			NUnit.Framework.Assert.AreEqual(1, changeNotifications);
+		}
+
+		private sealed class _ChangeListener_61 : Database.ChangeListener
+		{
+			public _ChangeListener_61(ChangesTest _enclosing)
+			{
+				this._enclosing = _enclosing;
+			}
+
+			public void Changed(Database.ChangeEvent @event)
+			{
+				this._enclosing.changeNotifications++;
+				NUnit.Framework.Assert.IsTrue(@event.IsExternal());
 			}
 
 			private readonly ChangesTest _enclosing;

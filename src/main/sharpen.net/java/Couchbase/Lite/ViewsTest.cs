@@ -33,6 +33,14 @@ namespace Couchbase.Lite
 	{
 		public const string Tag = "Views";
 
+		public virtual void TestQueryDefaultIndexUpdateMode()
+		{
+			View view = database.GetView("aview");
+			Query query = view.CreateQuery();
+			NUnit.Framework.Assert.AreEqual(Query.IndexUpdateMode.Before, query.GetIndexUpdateMode
+				());
+		}
+
 		public virtual void TestViewCreation()
 		{
 			NUnit.Framework.Assert.IsNull(database.GetExistingView("aview"));
@@ -42,22 +50,22 @@ namespace Couchbase.Lite
 			NUnit.Framework.Assert.AreEqual("aview", view.GetName());
 			NUnit.Framework.Assert.IsNull(view.GetMap());
 			NUnit.Framework.Assert.AreEqual(view, database.GetExistingView("aview"));
-			bool changed = view.SetMapAndReduce(new _Mapper_48(), null, "1");
+			bool changed = view.SetMapReduce(new _Mapper_55(), null, "1");
 			//no-op
 			NUnit.Framework.Assert.IsTrue(changed);
 			NUnit.Framework.Assert.AreEqual(1, database.GetAllViews().Count);
 			NUnit.Framework.Assert.AreEqual(view, database.GetAllViews()[0]);
-			changed = view.SetMapAndReduce(new _Mapper_60(), null, "1");
+			changed = view.SetMapReduce(new _Mapper_67(), null, "1");
 			//no-op
 			NUnit.Framework.Assert.IsFalse(changed);
-			changed = view.SetMapAndReduce(new _Mapper_70(), null, "2");
+			changed = view.SetMapReduce(new _Mapper_77(), null, "2");
 			//no-op
 			NUnit.Framework.Assert.IsTrue(changed);
 		}
 
-		private sealed class _Mapper_48 : Mapper
+		private sealed class _Mapper_55 : Mapper
 		{
-			public _Mapper_48()
+			public _Mapper_55()
 			{
 			}
 
@@ -66,9 +74,9 @@ namespace Couchbase.Lite
 			}
 		}
 
-		private sealed class _Mapper_60 : Mapper
+		private sealed class _Mapper_67 : Mapper
 		{
-			public _Mapper_60()
+			public _Mapper_67()
 			{
 			}
 
@@ -77,9 +85,9 @@ namespace Couchbase.Lite
 			}
 		}
 
-		private sealed class _Mapper_70 : Mapper
+		private sealed class _Mapper_77 : Mapper
 		{
-			public _Mapper_70()
+			public _Mapper_77()
 			{
 			}
 
@@ -174,13 +182,13 @@ namespace Couchbase.Lite
 		public static View CreateView(Database db)
 		{
 			View view = db.GetView("aview");
-			view.SetMapAndReduce(new _Mapper_165(), null, "1");
+			view.SetMapReduce(new _Mapper_172(), null, "1");
 			return view;
 		}
 
-		private sealed class _Mapper_165 : Mapper
+		private sealed class _Mapper_172 : Mapper
 		{
-			public _Mapper_165()
+			public _Mapper_172()
 			{
 			}
 
@@ -212,7 +220,7 @@ namespace Couchbase.Lite
 			RevisionInternal rev3 = PutDoc(database, dict3);
 			PutDoc(database, dictX);
 			View view = database.GetView("aview");
-			_T2045237215 mapBlock = new _T2045237215(this);
+			_T1975167965 mapBlock = new _T1975167965(this);
 			view.SetMap(mapBlock, "1");
 			NUnit.Framework.Assert.AreEqual(1, view.GetViewId());
 			NUnit.Framework.Assert.IsTrue(view.IsStale());
@@ -276,7 +284,7 @@ namespace Couchbase.Lite
 			view.DeleteIndex();
 		}
 
-		internal class _T2045237215 : Mapper
+		internal class _T1975167965 : Mapper
 		{
 			internal int numTimesInvoked = 0;
 
@@ -296,7 +304,7 @@ namespace Couchbase.Lite
 				return this.numTimesInvoked;
 			}
 
-			internal _T2045237215(ViewsTest _enclosing)
+			internal _T1975167965(ViewsTest _enclosing)
 			{
 				this._enclosing = _enclosing;
 			}
@@ -505,7 +513,7 @@ namespace Couchbase.Lite
 			docProperties3.Put("cost", 6.50);
 			PutDoc(database, docProperties3);
 			View view = database.GetView("totaler");
-			view.SetMapAndReduce(new _Mapper_537(), new _Reducer_548(), "1");
+			view.SetMapReduce(new _Mapper_544(), new _Reducer_555(), "1");
 			view.UpdateIndex();
 			IList<IDictionary<string, object>> dumpResult = view.Dump();
 			Log.V(Tag, "View dump: " + dumpResult);
@@ -528,9 +536,9 @@ namespace Couchbase.Lite
 			NUnit.Framework.Assert.IsTrue(Math.Abs(numberValue - 17.44) < 0.001);
 		}
 
-		private sealed class _Mapper_537 : Mapper
+		private sealed class _Mapper_544 : Mapper
 		{
-			public _Mapper_537()
+			public _Mapper_544()
 			{
 			}
 
@@ -546,9 +554,9 @@ namespace Couchbase.Lite
 			}
 		}
 
-		private sealed class _Reducer_548 : Reducer
+		private sealed class _Reducer_555 : Reducer
 		{
-			public _Reducer_548()
+			public _Reducer_555()
 			{
 			}
 
@@ -632,7 +640,7 @@ namespace Couchbase.Lite
 			docProperties5.Put("time", 187);
 			PutDoc(database, docProperties5);
 			View view = database.GetView("grouper");
-			view.SetMapAndReduce(new _Mapper_664(), new _Reducer_674(), "1");
+			view.SetMapReduce(new _Mapper_671(), new _Reducer_681(), "1");
 			Status status = new Status();
 			view.UpdateIndex();
 			QueryOptions options = new QueryOptions();
@@ -756,9 +764,9 @@ namespace Couchbase.Lite
 			NUnit.Framework.Assert.AreEqual(row3.Get("value"), rows[2].GetValue());
 		}
 
-		private sealed class _Mapper_664 : Mapper
+		private sealed class _Mapper_671 : Mapper
 		{
-			public _Mapper_664()
+			public _Mapper_671()
 			{
 			}
 
@@ -772,9 +780,9 @@ namespace Couchbase.Lite
 			}
 		}
 
-		private sealed class _Reducer_674 : Reducer
+		private sealed class _Reducer_681 : Reducer
 		{
-			public _Reducer_674()
+			public _Reducer_681()
 			{
 			}
 
@@ -803,7 +811,7 @@ namespace Couchbase.Lite
 			docProperties5.Put("name", "Jed");
 			PutDoc(database, docProperties5);
 			View view = database.GetView("default/names");
-			view.SetMapAndReduce(new _Mapper_852(), new _Reducer_862(), "1.0");
+			view.SetMapReduce(new _Mapper_859(), new _Reducer_869(), "1.0");
 			view.UpdateIndex();
 			QueryOptions options = new QueryOptions();
 			options.SetGroupLevel(1);
@@ -830,9 +838,9 @@ namespace Couchbase.Lite
 			NUnit.Framework.Assert.AreEqual(row3.Get("value"), rows[2].GetValue());
 		}
 
-		private sealed class _Mapper_852 : Mapper
+		private sealed class _Mapper_859 : Mapper
 		{
-			public _Mapper_852()
+			public _Mapper_859()
 			{
 			}
 
@@ -846,9 +854,9 @@ namespace Couchbase.Lite
 			}
 		}
 
-		private sealed class _Reducer_862 : Reducer
+		private sealed class _Reducer_869 : Reducer
 		{
-			public _Reducer_862()
+			public _Reducer_869()
 			{
 			}
 
@@ -912,7 +920,7 @@ namespace Couchbase.Lite
 				PutDoc(database, docProperties);
 			}
 			View view = database.GetView("default/names");
-			view.SetMapAndReduce(new _Mapper_963(), null, "1.0");
+			view.SetMapReduce(new _Mapper_970(), null, "1.0");
 			QueryOptions options = new QueryOptions();
 			IList<QueryRow> rows = view.QueryWithOptions(options);
 			i = 0;
@@ -922,9 +930,9 @@ namespace Couchbase.Lite
 			}
 		}
 
-		private sealed class _Mapper_963 : Mapper
+		private sealed class _Mapper_970 : Mapper
 		{
-			public _Mapper_963()
+			public _Mapper_970()
 			{
 			}
 
@@ -988,7 +996,7 @@ namespace Couchbase.Lite
 				PutDoc(database, docProperties);
 			}
 			View view = database.GetView("default/names");
-			view.SetMapAndReduce(new _Mapper_1041(), null, "1.0");
+			view.SetMapReduce(new _Mapper_1048(), null, "1.0");
 			view.SetCollation(View.TDViewCollation.TDViewCollationRaw);
 			QueryOptions options = new QueryOptions();
 			IList<QueryRow> rows = view.QueryWithOptions(options);
@@ -1000,9 +1008,9 @@ namespace Couchbase.Lite
 			database.Close();
 		}
 
-		private sealed class _Mapper_1041 : Mapper
+		private sealed class _Mapper_1048 : Mapper
 		{
-			public _Mapper_1041()
+			public _Mapper_1048()
 			{
 			}
 
@@ -1029,7 +1037,7 @@ namespace Couchbase.Lite
 		{
 			PutLinkedDocs(database);
 			View view = database.GetView("linked");
-			view.SetMapAndReduce(new _Mapper_1079(), null, "1");
+			view.SetMapReduce(new _Mapper_1086(), null, "1");
 			view.UpdateIndex();
 			QueryOptions options = new QueryOptions();
 			options.SetIncludeDocs(true);
@@ -1067,9 +1075,9 @@ namespace Couchbase.Lite
 			}
 		}
 
-		private sealed class _Mapper_1079 : Mapper
+		private sealed class _Mapper_1086 : Mapper
 		{
-			public _Mapper_1079()
+			public _Mapper_1086()
 			{
 			}
 

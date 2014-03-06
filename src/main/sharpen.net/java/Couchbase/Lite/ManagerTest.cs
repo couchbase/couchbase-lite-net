@@ -28,6 +28,7 @@ namespace Couchbase.Lite
 {
 	public class ManagerTest : LiteTestCase
 	{
+		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
 		public virtual void TestServer()
 		{
 			//to ensure this test is easily repeatable we will explicitly remove

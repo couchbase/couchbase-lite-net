@@ -27,11 +27,8 @@ using Sharpen;
 
 namespace Couchbase.Lite
 {
-	/// <summary>Enumerator on a Query's result rows.</summary>
-	/// <remarks>
-	/// Enumerator on a Query's result rows.
-	/// The objects returned are instances of QueryRow.
-	/// </remarks>
+	/// <summary>An enumerator for Couchbase Lite View Query results.</summary>
+	/// <remarks>An enumerator for Couchbase Lite View Query results.</remarks>
 	public class QueryEnumerator : IEnumerator<QueryRow>
 	{
 		private Database database;
@@ -110,6 +107,13 @@ namespace Couchbase.Lite
 			return rows[index];
 		}
 
+		/// <summary>Compare this to given QueryEnumerator to check if equals.</summary>
+		/// <remarks>
+		/// Compare this to given QueryEnumerator to check if equals.
+		/// This compares the underlying rows of the two QueryEnumerator instances.
+		/// </remarks>
+		/// <param name="o">the QueryEnumerator to compare this instance with.</param>
+		/// <returns>true if equal, false otherwise.</returns>
 		[InterfaceAudience.Public]
 		public override bool Equals(object o)
 		{

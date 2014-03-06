@@ -30,7 +30,7 @@ namespace Couchbase.Lite
 {
 	/// <summary>A Couchbase Lite Document Attachment.</summary>
 	/// <remarks>A Couchbase Lite Document Attachment.</remarks>
-	public class Attachment
+	public sealed class Attachment
 	{
 		/// <summary>The owning document revision.</summary>
 		/// <remarks>The owning document revision.</remarks>
@@ -82,7 +82,7 @@ namespace Couchbase.Lite
 		/// <summary>Get the owning document revision.</summary>
 		/// <remarks>Get the owning document revision.</remarks>
 		[InterfaceAudience.Public]
-		public virtual Revision GetRevision()
+		public Revision GetRevision()
 		{
 			return revision;
 		}
@@ -90,7 +90,7 @@ namespace Couchbase.Lite
 		/// <summary>Get the owning document.</summary>
 		/// <remarks>Get the owning document.</remarks>
 		[InterfaceAudience.Public]
-		public virtual Document GetDocument()
+		public Document GetDocument()
 		{
 			return revision.GetDocument();
 		}
@@ -98,7 +98,7 @@ namespace Couchbase.Lite
 		/// <summary>Get the filename.</summary>
 		/// <remarks>Get the filename.</remarks>
 		[InterfaceAudience.Public]
-		public virtual string GetName()
+		public string GetName()
 		{
 			return name;
 		}
@@ -106,7 +106,7 @@ namespace Couchbase.Lite
 		/// <summary>Get the MIME type of the contents.</summary>
 		/// <remarks>Get the MIME type of the contents.</remarks>
 		[InterfaceAudience.Public]
-		public virtual string GetContentType()
+		public string GetContentType()
 		{
 			return (string)metadata.Get("content_type");
 		}
@@ -116,7 +116,7 @@ namespace Couchbase.Lite
 		/// <exception cref="CouchbaseLiteException">CouchbaseLiteException</exception>
 		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
 		[InterfaceAudience.Public]
-		public virtual InputStream GetContent()
+		public InputStream GetContent()
 		{
 			if (body != null)
 			{
@@ -135,9 +135,9 @@ namespace Couchbase.Lite
 		/// <summary>Get the length in bytes of the contents.</summary>
 		/// <remarks>Get the length in bytes of the contents.</remarks>
 		[InterfaceAudience.Public]
-		public virtual long GetLength()
+		public long GetLength()
 		{
-			long length = (long)metadata.Get("length");
+			Number length = (Number)metadata.Get("length");
 			if (length != null)
 			{
 				return length;
@@ -153,25 +153,25 @@ namespace Couchbase.Lite
 		/// <remarks>The CouchbaseLite metadata about the attachment, that lives in the document.
 		/// 	</remarks>
 		[InterfaceAudience.Public]
-		public virtual IDictionary<string, object> GetMetadata()
+		public IDictionary<string, object> GetMetadata()
 		{
 			return Sharpen.Collections.UnmodifiableMap(metadata);
 		}
 
 		[InterfaceAudience.Private]
-		internal virtual void SetName(string name)
+		internal void SetName(string name)
 		{
 			this.name = name;
 		}
 
 		[InterfaceAudience.Private]
-		internal virtual void SetRevision(Revision revision)
+		internal void SetRevision(Revision revision)
 		{
 			this.revision = revision;
 		}
 
 		[InterfaceAudience.Private]
-		internal virtual InputStream GetBodyIfNew()
+		internal InputStream GetBodyIfNew()
 		{
 			return body;
 		}
@@ -217,6 +217,13 @@ namespace Couchbase.Lite
 						throw new ArgumentException("AttachmentInternal objects not expected here.  Could indicate a bug"
 							);
 					}
+					else
+					{
+						if (value != null)
+						{
+							updatedAttachments.Put(name, value);
+						}
+					}
 				}
 			}
 			return updatedAttachments;
@@ -232,14 +239,16 @@ namespace Couchbase.Lite
 			return writer;
 		}
 
+		/// <exclude></exclude>
 		[InterfaceAudience.Private]
-		public virtual bool GetGZipped()
+		public bool GetGZipped()
 		{
 			return gzipped;
 		}
 
+		/// <exclude></exclude>
 		[InterfaceAudience.Private]
-		public virtual void SetGZipped(bool gzipped)
+		public void SetGZipped(bool gzipped)
 		{
 			this.gzipped = gzipped;
 		}

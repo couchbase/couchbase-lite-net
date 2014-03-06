@@ -33,13 +33,14 @@ namespace Couchbase.Lite
 	/// Stores information about a revision -- its docID, revID, and whether it's deleted.
 	/// It can also store the sequence number and document contents (they can be added after creation).
 	/// </remarks>
-	public class SavedRevision : Revision
+	public sealed class SavedRevision : Revision
 	{
 		private RevisionInternal revisionInternal;
 
 		private bool checkedProperties;
 
 		/// <summary>Constructor</summary>
+		/// <exclude></exclude>
 		[InterfaceAudience.Private]
 		internal SavedRevision(Document document, RevisionInternal revision) : base(document
 			)
@@ -48,6 +49,7 @@ namespace Couchbase.Lite
 		}
 
 		/// <summary>Constructor</summary>
+		/// <exclude></exclude>
 		[InterfaceAudience.Private]
 		internal SavedRevision(Database database, RevisionInternal revision) : this(database
 			.GetDocument(revision.GetDocId()), revision)
@@ -63,7 +65,7 @@ namespace Couchbase.Lite
 
 		/// <summary>Has this object fetched its contents from the database yet?</summary>
 		[InterfaceAudience.Public]
-		public virtual bool ArePropertiesAvailable()
+		public bool ArePropertiesAvailable()
 		{
 			return revisionInternal.GetProperties() != null;
 		}
@@ -102,8 +104,9 @@ namespace Couchbase.Lite
 		/// to this one's, which you can modify and then save.
 		/// </remarks>
 		/// <returns></returns>
+		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
 		[InterfaceAudience.Public]
-		public virtual UnsavedRevision CreateRevision()
+		public UnsavedRevision CreateRevision()
 		{
 			UnsavedRevision newRevision = new UnsavedRevision(document, this);
 			return newRevision;
@@ -116,8 +119,8 @@ namespace Couchbase.Lite
 		/// </remarks>
 		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
 		[InterfaceAudience.Public]
-		public virtual Couchbase.Lite.SavedRevision CreateRevision(IDictionary<string, object
-			> properties)
+		public Couchbase.Lite.SavedRevision CreateRevision(IDictionary<string, object> properties
+			)
 		{
 			bool allowConflict = false;
 			return document.PutProperties(properties, revisionInternal.GetRevId(), allowConflict
@@ -131,7 +134,7 @@ namespace Couchbase.Lite
 		}
 
 		[InterfaceAudience.Public]
-		internal override bool IsDeletion()
+		public override bool IsDeletion()
 		{
 			return revisionInternal.IsDeleted();
 		}
@@ -163,20 +166,20 @@ namespace Couchbase.Lite
 		/// <exception cref="CouchbaseLiteException">CouchbaseLiteException</exception>
 		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
 		[InterfaceAudience.Public]
-		public virtual Couchbase.Lite.SavedRevision DeleteDocument()
+		public Couchbase.Lite.SavedRevision DeleteDocument()
 		{
 			return CreateRevision(null);
 		}
 
 		[InterfaceAudience.Public]
-		public override Couchbase.Lite.SavedRevision GetParentRevision()
+		public override Couchbase.Lite.SavedRevision GetParent()
 		{
 			return GetDocument().GetRevisionFromRev(GetDatabase().GetParentRevision(revisionInternal
 				));
 		}
 
 		[InterfaceAudience.Public]
-		public override string GetParentRevisionId()
+		public override string GetParentId()
 		{
 			RevisionInternal parRev = GetDocument().GetDatabase().GetParentRevision(revisionInternal
 				);
@@ -198,8 +201,9 @@ namespace Couchbase.Lite
 			return sequence;
 		}
 
+		/// <exclude></exclude>
 		[InterfaceAudience.Private]
-		internal virtual bool LoadProperties()
+		internal bool LoadProperties()
 		{
 			try
 			{

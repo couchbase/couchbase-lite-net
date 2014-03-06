@@ -25,6 +25,7 @@ import java.util.Arrays;
 
 /**
  * Key identifying a data blob. This happens to be a SHA-1 digest.
+ * @exclude
  */
 public class BlobKey {
 

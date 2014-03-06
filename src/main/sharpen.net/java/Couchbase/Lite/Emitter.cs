@@ -24,6 +24,10 @@ using Sharpen;
 
 namespace Couchbase.Lite
 {
+	/// <summary>A delegate that can be invoked to add key/values to a View during a MapDelegate call.
+	/// 	</summary>
+	/// <remarks>A delegate that can be invoked to add key/values to a View during a MapDelegate call.
+	/// 	</remarks>
 	public interface Emitter
 	{
 		void Emit(object key, object value);

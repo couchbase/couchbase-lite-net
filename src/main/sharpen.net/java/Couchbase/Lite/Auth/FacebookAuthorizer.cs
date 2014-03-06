@@ -53,16 +53,24 @@ namespace Couchbase.Lite.Auth
 		public override IDictionary<string, string> LoginParametersForSite(Uri site)
 		{
 			IDictionary<string, string> loginParameters = new Dictionary<string, string>();
-			string accessToken = AccessTokenForEmailAndSite(this.emailAddress, site);
-			if (accessToken != null)
+			try
 			{
-				loginParameters.Put(LoginParameterAccessToken, accessToken);
-				return loginParameters;
+				string accessToken = AccessTokenForEmailAndSite(this.emailAddress, site);
+				if (accessToken != null)
+				{
+					loginParameters.Put(LoginParameterAccessToken, accessToken);
+					return loginParameters;
+				}
+				else
+				{
+					return null;
+				}
 			}
-			else
+			catch (Exception e)
 			{
-				return null;
+				Log.E(Database.Tag, "Error looking login parameters for site", e);
 			}
+			return null;
 		}
 
 		public override string LoginPathForSite(Uri site)
@@ -90,12 +98,20 @@ namespace Couchbase.Lite.Auth
 
 		public static string AccessTokenForEmailAndSite(string email, Uri site)
 		{
-			IList<string> key = new AList<string>();
-			key.AddItem(email);
-			key.AddItem(site.ToExternalForm().ToLower());
-			Log.D(Database.Tag, "FacebookAuthorizer looking up key: " + key + " from list of access tokens"
-				);
-			return accessTokens.Get(key);
+			try
+			{
+				IList<string> key = new AList<string>();
+				key.AddItem(email);
+				key.AddItem(site.ToExternalForm().ToLower());
+				Log.D(Database.Tag, "FacebookAuthorizer looking up key: " + key + " from list of access tokens"
+					);
+				return accessTokens.Get(key);
+			}
+			catch (Exception e)
+			{
+				Log.E(Database.Tag, "Error looking up access token", e);
+			}
+			return null;
 		}
 	}
 }

@@ -1,6 +1,7 @@
 package com.couchbase.lite.router;
 
 
+import com.couchbase.lite.AsyncTask;
 import com.couchbase.lite.Attachment;
 import com.couchbase.lite.ChangesOptions;
 import com.couchbase.lite.CouchbaseLiteException;
@@ -43,6 +44,10 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 
 public class Router implements Database.ChangeListener {
@@ -88,6 +93,14 @@ public class Router implements Database.ChangeListener {
             }
         }
         return queries;
+    }
+
+    public boolean getBooleanValueFromBody(String paramName, Map<String, Object> bodyDict, boolean defaultVal) {
+        boolean value = defaultVal;
+        if (bodyDict.containsKey(paramName)) {
+            value = Boolean.TRUE.equals(bodyDict.get(paramName));
+        }
+        return value;
     }
 
     public String getQuery(String param) {
@@ -632,7 +645,7 @@ public class Router implements Database.ChangeListener {
         // http://wiki.apache.org/couchdb/HttpGetActiveTasks
         List<Map<String,Object>> activities = new ArrayList<Map<String,Object>>();
         for (Database db : manager.allOpenDatabases()) {
-            List<Replication> activeReplicators = db.getAllReplications();
+            List<Replication> activeReplicators = db.getActiveReplications();
             if(activeReplicators != null) {
                 for (Replication replicator : activeReplicators) {
                     String source = replicator.getRemoteUrl().toExternalForm();
@@ -735,7 +748,11 @@ public class Router implements Database.ChangeListener {
         if(!status.isSuccessful()) {
             return status;
         }
-        return update(db, null, getBodyAsDictionary(), false);
+        Map<String,Object> body = getBodyAsDictionary();
+        if(body == null) {
+            return new Status(Status.BAD_REQUEST);
+        }
+        return update(db, null, body, false);
     }
 
     public Status do_GET_Document_all_docs(Database _db, String _docID, String _attachmentName) throws CouchbaseLiteException {
@@ -867,16 +884,9 @@ public class Router implements Database.ChangeListener {
         }
         List<Map<String,Object>> docs = (List<Map<String, Object>>) bodyDict.get("docs");
 
-        boolean allObj = false;
-        if(getQuery("all_or_nothing") == null || (getQuery("all_or_nothing") != null && (new Boolean(getQuery("all_or_nothing"))))) {
-        	allObj = true;
-        }
-        //   allowConflict If false, an error status 409 will be returned if the insertion would create a conflict, i.e. if the previous revision already has a child.
-        boolean allOrNothing = (allObj && allObj != false);
-        boolean noNewEdits = true;
-        if(getQuery("new_edits") == null || (getQuery("new_edits") != null && (new Boolean(getQuery("new_edits"))))) {
-        	noNewEdits = false;
-        }
+        boolean noNewEdits = getBooleanValueFromBody("new_edits", bodyDict, true) == false;
+        boolean allOrNothing = getBooleanValueFromBody("all_or_nothing", bodyDict, false);
+
         boolean ok = false;
         db.beginTransaction();
         List<Map<String,Object>> results = new ArrayList<Map<String,Object>>();
@@ -884,7 +894,7 @@ public class Router implements Database.ChangeListener {
             for (Map<String, Object> doc : docs) {
                 String docID = (String) doc.get("_id");
                 RevisionInternal rev = null;
-                Status status = new Status(Status.BAD_REQUEST);
+                Status status = new Status(Status.OK);
                 Body docBody = new Body(doc);
                 if (noNewEdits) {
                     rev = new RevisionInternal(docBody, db);
@@ -927,7 +937,7 @@ public class Router implements Database.ChangeListener {
             Log.w(Database.TAG, String.format("%s finished inserting %d revisions in bulk", this, docs.size()));
             ok = true;
         } catch (Exception e) {
-            Log.w(Database.TAG, String.format("%s: Exception inserting revisions in bulk", this), e);
+            Log.e(Database.TAG, String.format("%s: Exception inserting revisions in bulk", this), e);
         } finally {
             db.endTransaction(ok);
         }
@@ -985,7 +995,13 @@ public class Router implements Database.ChangeListener {
     }
 
     public Status do_POST_Document_compact(Database _db, String _docID, String _attachmentName) {
-    	Status status = _db.compact();
+        Status status = new Status(Status.OK);
+        try {
+            _db.compact();
+        } catch (CouchbaseLiteException e) {
+            status = e.getCBLStatus();
+        }
+
     	if (status.getCode() < 300) {
     		Status outStatus = new Status();
     		outStatus.setCode(202);	// CouchDB returns 202 'cause it's an async operation
@@ -1003,14 +1019,42 @@ public class Router implements Database.ChangeListener {
         }
 
         // convert from Map<String,Object> -> Map<String, List<String>> - is there a cleaner way?
-        Map<String, List<String>> docsToRevs = new HashMap<String, List<String>>();
+        final Map<String, List<String>> docsToRevs = new HashMap<String, List<String>>();
         for (String key : body.keySet()) {
             Object val = body.get(key);
             if (val instanceof List) {
                 docsToRevs.put(key, (List<String>)val);
             }
         }
-        Map<String, Object> purgedRevisions = db.purgeRevisions(docsToRevs);
+
+        final List<Map<String, Object>> asyncApiCallResponse = new ArrayList<Map<String, Object>>();
+
+        // this is run in an async db task to fix the following race condition
+        // found in issue #167 (https://github.com/couchbase/couchbase-lite-android/issues/167)
+        // replicator thread: call db.loadRevisionBody for doc1
+        // liteserv thread: call db.purge on doc1
+        // replicator thread: call db.getRevisionHistory for doc1, which returns empty history since it was purged
+        Future future = db.runAsync(new AsyncTask() {
+            @Override
+            public void run(Database database) {
+                Map<String, Object> purgedRevisions = db.purgeRevisions(docsToRevs);
+                asyncApiCallResponse.add(purgedRevisions);
+            }
+        });
+        try {
+            future.get(60, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            Log.e(Database.TAG, "Exception waiting for future", e);
+            return new Status(Status.INTERNAL_SERVER_ERROR);
+        } catch (ExecutionException e) {
+            Log.e(Database.TAG, "Exception waiting for future", e);
+            return new Status(Status.INTERNAL_SERVER_ERROR);
+        } catch (TimeoutException e) {
+            Log.e(Database.TAG, "Exception waiting for future", e);
+            return new Status(Status.INTERNAL_SERVER_ERROR);
+        }
+
+        Map<String, Object> purgedRevisions = asyncApiCallResponse.get(0);
         Map<String, Object> responseMap = new HashMap<String, Object>();
         responseMap.put("purged", purgedRevisions);
         Body responseBody = new Body(responseMap);
@@ -1370,6 +1414,9 @@ public class Router implements Database.ChangeListener {
      * NOTE this departs from the iOS version, returning revision, passing status back by reference
      */
     public RevisionInternal update(Database _db, String docID, Body body, boolean deleting, boolean allowConflict, Status outStatus) {
+
+        assert body != null;
+
         boolean isLocalDoc = docID != null && docID.startsWith(("_local"));
         String prevRevID = null;
 
@@ -1555,7 +1602,7 @@ public class Router implements Database.ChangeListener {
         }
 
         View view = db.getView(viewName);
-        view.setMapAndReduce(mapBlock, reduceBlock, "1");
+        view.setMapReduce(mapBlock, reduceBlock, "1");
         String collation = (String)viewProps.get("collation");
         if("raw".equals(collation)) {
             view.setCollation(TDViewCollation.TDViewCollationRaw);

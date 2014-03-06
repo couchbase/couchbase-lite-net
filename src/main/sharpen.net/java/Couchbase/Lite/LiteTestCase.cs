@@ -24,6 +24,7 @@ using System.Collections.Generic;
 using System.IO;
 using Couchbase.Lite;
 using Couchbase.Lite.Internal;
+using Couchbase.Lite.Replicator;
 using Couchbase.Lite.Router;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
@@ -101,6 +102,7 @@ namespace Couchbase.Lite
 			}
 		}
 
+		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
 		protected internal virtual Database StartDatabase()
 		{
 			database = EnsureEmptyDatabase(DefaultTestDb);
@@ -115,13 +117,13 @@ namespace Couchbase.Lite
 			}
 		}
 
+		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
 		protected internal virtual Database EnsureEmptyDatabase(string dbName)
 		{
 			Database db = manager.GetExistingDatabase(dbName);
 			if (db != null)
 			{
-				bool status = db.Delete();
-				NUnit.Framework.Assert.IsTrue(status);
+				db.Delete();
 			}
 			db = manager.GetDatabase(dbName);
 			return db;
@@ -240,15 +242,15 @@ namespace Couchbase.Lite
 			string authJson = "{\n" + "    \"facebook\" : {\n" + "        \"email\" : \"jchris@couchbase.com\"\n"
 				 + "     }\n" + "   }\n";
 			ObjectWriter mapper = new ObjectWriter();
-			IDictionary<string, object> authProperties = mapper.ReadValue(authJson, new _TypeReference_192
+			IDictionary<string, object> authProperties = mapper.ReadValue(authJson, new _TypeReference_194
 				());
 			return authProperties;
 		}
 
-		private sealed class _TypeReference_192 : TypeReference<Dictionary<string, object
+		private sealed class _TypeReference_194 : TypeReference<Dictionary<string, object
 			>>
 		{
-			public _TypeReference_192()
+			public _TypeReference_194()
 			{
 			}
 		}
@@ -361,6 +363,246 @@ namespace Couchbase.Lite
 			, object expectedResult)
 		{
 			return SendBody(method, path, null, expectedStatus, expectedResult);
+		}
+
+		public static void CreateDocuments(Database db, int n)
+		{
+			//TODO should be changed to use db.runInTransaction
+			for (int i = 0; i < n; i++)
+			{
+				IDictionary<string, object> properties = new Dictionary<string, object>();
+				properties.Put("testName", "testDatabase");
+				properties.Put("sequence", i);
+				CreateDocumentWithProperties(db, properties);
+			}
+		}
+
+		internal static void CreateDocumentsAsync(Database db, int n)
+		{
+			db.RunAsync(new _AsyncTask_301(db, n));
+		}
+
+		private sealed class _AsyncTask_301 : AsyncTask
+		{
+			public _AsyncTask_301(Database db, int n)
+			{
+				this.db = db;
+				this.n = n;
+			}
+
+			public void Run(Database database)
+			{
+				db.BeginTransaction();
+				LiteTestCase.CreateDocuments(db, n);
+				db.EndTransaction(true);
+			}
+
+			private readonly Database db;
+
+			private readonly int n;
+		}
+
+		public static Document CreateDocumentWithProperties(Database db, IDictionary<string
+			, object> properties)
+		{
+			Document doc = db.CreateDocument();
+			NUnit.Framework.Assert.IsNotNull(doc);
+			NUnit.Framework.Assert.IsNull(doc.GetCurrentRevisionId());
+			NUnit.Framework.Assert.IsNull(doc.GetCurrentRevision());
+			NUnit.Framework.Assert.IsNotNull("Document has no ID", doc.GetId());
+			// 'untitled' docs are no longer untitled (8/10/12)
+			try
+			{
+				doc.PutProperties(properties);
+			}
+			catch (Exception e)
+			{
+				Log.E(Tag, "Error creating document", e);
+				NUnit.Framework.Assert.IsTrue("can't create new document in db:" + db.GetName() +
+					 " with properties:" + properties.ToString(), false);
+			}
+			NUnit.Framework.Assert.IsNotNull(doc.GetId());
+			NUnit.Framework.Assert.IsNotNull(doc.GetCurrentRevisionId());
+			NUnit.Framework.Assert.IsNotNull(doc.GetUserProperties());
+			// this won't work until the weakref hashmap is implemented which stores all docs
+			// Assert.assertEquals(db.getDocument(doc.getId()), doc);
+			NUnit.Framework.Assert.AreEqual(db.GetDocument(doc.GetId()).GetId(), doc.GetId());
+			return doc;
+		}
+
+		public virtual void RunReplication(Replication replication)
+		{
+			CountDownLatch replicationDoneSignal = new CountDownLatch(1);
+			LiteTestCase.ReplicationFinishedObserver replicationFinishedObserver = new LiteTestCase.ReplicationFinishedObserver
+				(replicationDoneSignal);
+			replication.AddChangeListener(replicationFinishedObserver);
+			replication.Start();
+			CountDownLatch replicationDoneSignalPolling = ReplicationWatcherThread(replication
+				);
+			Log.D(Tag, "Waiting for replicator to finish");
+			try
+			{
+				bool success = replicationDoneSignal.Await(300, TimeUnit.Seconds);
+				NUnit.Framework.Assert.IsTrue(success);
+				success = replicationDoneSignalPolling.Await(300, TimeUnit.Seconds);
+				NUnit.Framework.Assert.IsTrue(success);
+				Log.D(Tag, "replicator finished");
+			}
+			catch (Exception e)
+			{
+				Sharpen.Runtime.PrintStackTrace(e);
+			}
+			replication.RemoveChangeListener(replicationFinishedObserver);
+		}
+
+		public virtual CountDownLatch ReplicationWatcherThread(Replication replication)
+		{
+			CountDownLatch doneSignal = new CountDownLatch(1);
+			new Sharpen.Thread(new _Runnable_372(replication, doneSignal)).Start();
+			return doneSignal;
+		}
+
+		private sealed class _Runnable_372 : Runnable
+		{
+			public _Runnable_372(Replication replication, CountDownLatch doneSignal)
+			{
+				this.replication = replication;
+				this.doneSignal = doneSignal;
+			}
+
+			public void Run()
+			{
+				bool started = false;
+				bool done = false;
+				while (!done)
+				{
+					if (replication.IsRunning())
+					{
+						started = true;
+					}
+					bool statusIsDone = (replication.GetStatus() == Replication.ReplicationStatus.ReplicationStopped
+						 || replication.GetStatus() == Replication.ReplicationStatus.ReplicationIdle);
+					if (started && statusIsDone)
+					{
+						done = true;
+					}
+					try
+					{
+						Sharpen.Thread.Sleep(500);
+					}
+					catch (Exception e)
+					{
+						Sharpen.Runtime.PrintStackTrace(e);
+					}
+				}
+				doneSignal.CountDown();
+			}
+
+			private readonly Replication replication;
+
+			private readonly CountDownLatch doneSignal;
+		}
+
+		public class ReplicationFinishedObserver : Replication.ChangeListener
+		{
+			public bool replicationFinished = false;
+
+			private CountDownLatch doneSignal;
+
+			public ReplicationFinishedObserver(CountDownLatch doneSignal)
+			{
+				this.doneSignal = doneSignal;
+			}
+
+			public virtual void Changed(Replication.ChangeEvent @event)
+			{
+				Replication replicator = @event.GetSource();
+				Log.D(Tag, replicator + " changed.  " + replicator.GetCompletedChangesCount() + " / "
+					 + replicator.GetChangesCount());
+				NUnit.Framework.Assert.IsTrue(replicator.GetCompletedChangesCount() <= replicator
+					.GetChangesCount());
+				if (replicator.GetCompletedChangesCount() > replicator.GetChangesCount())
+				{
+					throw new RuntimeException("replicator.getCompletedChangesCount() > replicator.getChangesCount()"
+						);
+				}
+				if (!replicator.IsRunning())
+				{
+					replicationFinished = true;
+					string msg = string.Format("ReplicationFinishedObserver.changed called, set replicationFinished to: %b"
+						, replicationFinished);
+					Log.D(Tag, msg);
+					doneSignal.CountDown();
+				}
+				else
+				{
+					string msg = string.Format("ReplicationFinishedObserver.changed called, but replicator still running, so ignore it"
+						);
+					Log.D(Tag, msg);
+				}
+			}
+
+			internal virtual bool IsReplicationFinished()
+			{
+				return replicationFinished;
+			}
+		}
+
+		public class ReplicationRunningObserver : Replication.ChangeListener
+		{
+			private CountDownLatch doneSignal;
+
+			public ReplicationRunningObserver(CountDownLatch doneSignal)
+			{
+				this.doneSignal = doneSignal;
+			}
+
+			public virtual void Changed(Replication.ChangeEvent @event)
+			{
+				Replication replicator = @event.GetSource();
+				if (replicator.IsRunning())
+				{
+					doneSignal.CountDown();
+				}
+			}
+		}
+
+		public class ReplicationIdleObserver : Replication.ChangeListener
+		{
+			private CountDownLatch doneSignal;
+
+			public ReplicationIdleObserver(CountDownLatch doneSignal)
+			{
+				this.doneSignal = doneSignal;
+			}
+
+			public virtual void Changed(Replication.ChangeEvent @event)
+			{
+				Replication replicator = @event.GetSource();
+				if (replicator.GetStatus() == Replication.ReplicationStatus.ReplicationIdle)
+				{
+					doneSignal.CountDown();
+				}
+			}
+		}
+
+		public class ReplicationErrorObserver : Replication.ChangeListener
+		{
+			private CountDownLatch doneSignal;
+
+			public ReplicationErrorObserver(CountDownLatch doneSignal)
+			{
+				this.doneSignal = doneSignal;
+			}
+
+			public virtual void Changed(Replication.ChangeEvent @event)
+			{
+				Replication replicator = @event.GetSource();
+				if (replicator.GetLastError() != null)
+				{
+					doneSignal.CountDown();
+				}
+			}
 		}
 	}
 }

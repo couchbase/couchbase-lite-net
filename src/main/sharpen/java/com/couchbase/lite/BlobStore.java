@@ -37,6 +37,7 @@ import com.couchbase.lite.util.Log;
 /**
  * A persistent content-addressable store for arbitrary-size data blobs.
  * Each blob is stored as a file named by its SHA-1 digest.
+ * @exclude
  */
 public class BlobStore {
 
@@ -49,15 +50,12 @@ public class BlobStore {
     public BlobStore(String path) {
         this.path = path;
         File directory = new File(path);
-        if(!directory.exists()) {
-            boolean result = directory.mkdirs();
-            if(result == false) {
-                throw new IllegalArgumentException("Unable to create directory for blob store");
-            }
+
+        directory.mkdirs();
+        if (!directory.isDirectory()) {
+            throw new IllegalStateException(String.format("Unable to create directory for: %s", directory));
         }
-        else if(!directory.isDirectory()) {
-            throw new IllegalArgumentException("Directory for blob store is not a directory");
-        }
+
     }
 
     public static BlobKey keyForBlob(byte[] data) {
@@ -321,15 +319,11 @@ public class BlobStore {
         File directory = new File(path);
         File tempDirectory = new File(directory, "temp_attachments");
 
-        if(!tempDirectory.exists()) {
-            boolean result = tempDirectory.mkdirs();
-            if(result == false) {
-                throw new IllegalStateException("Unable to create directory for temporary blob store");
-            }
+        tempDirectory.mkdirs();
+        if (!tempDirectory.isDirectory()) {
+            throw new IllegalStateException(String.format("Unable to create directory for: %s", tempDirectory));
         }
-        else if(!tempDirectory.isDirectory()) {
-            throw new IllegalStateException("Directory for temporary blob store is not a directory");
-        }
+
         return tempDirectory;
 
 

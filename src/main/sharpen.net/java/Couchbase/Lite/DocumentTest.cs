@@ -21,6 +21,7 @@
 
 using System.Collections.Generic;
 using Couchbase.Lite;
+using Couchbase.Lite.Internal;
 using NUnit.Framework;
 using Sharpen;
 
@@ -63,6 +64,40 @@ namespace Couchbase.Lite
 				QueryRow row = it.Next();
 				NUnit.Framework.Assert.IsFalse(row.GetDocument().GetId().Equals(docId));
 			}
+		}
+
+		// Reproduces issue #167
+		// https://github.com/couchbase/couchbase-lite-android/issues/167
+		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
+		public virtual void TestLoadRevisionBody()
+		{
+			Document document = database.CreateDocument();
+			IDictionary<string, object> properties = new Dictionary<string, object>();
+			properties.Put("foo", "foo");
+			properties.Put("bar", false);
+			document.PutProperties(properties);
+			NUnit.Framework.Assert.IsNotNull(document.GetCurrentRevision());
+			bool deleted = false;
+			RevisionInternal revisionInternal = new RevisionInternal(document.GetId(), document
+				.GetCurrentRevisionId(), deleted, database);
+			EnumSet<Database.TDContentOptions> contentOptions = EnumSet.Of(Database.TDContentOptions
+				.TDIncludeAttachments, Database.TDContentOptions.TDBigAttachmentsFollow);
+			database.LoadRevisionBody(revisionInternal, contentOptions);
+			// now lets purge the document, and then try to load the revision body again
+			NUnit.Framework.Assert.IsTrue(document.Purge());
+			bool gotExpectedException = false;
+			try
+			{
+				database.LoadRevisionBody(revisionInternal, contentOptions);
+			}
+			catch (CouchbaseLiteException e)
+			{
+				if (e.GetCBLStatus().GetCode() == Status.NotFound)
+				{
+					gotExpectedException = true;
+				}
+			}
+			NUnit.Framework.Assert.IsTrue(gotExpectedException);
 		}
 	}
 }

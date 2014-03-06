@@ -19,7 +19,6 @@ package com.couchbase.lite;
 
 import com.couchbase.lite.internal.RevisionInternal;
 import com.couchbase.lite.support.Base64;
-import com.couchbase.lite.util.Log;
 import com.couchbase.lite.util.TextUtils;
 
 import junit.framework.Assert;
@@ -138,8 +137,7 @@ public class AttachmentsTest extends LiteTestCase {
 
         Assert.assertEquals(expected, attachments.allKeys());
 
-        status = database.compact();  // This clears the body of the first revision
-        Assert.assertEquals(Status.OK, status.getCode());
+        database.compact();  // This clears the body of the first revision
         Assert.assertEquals(1, attachments.count());
 
         Set<BlobKey> expected2 = new HashSet<BlobKey>();
@@ -431,11 +429,11 @@ public class AttachmentsTest extends LiteTestCase {
 
         // do query that finds that doc with prefetch
         View view = database.getView("aview");
-        view.setMapAndReduce(new Mapper() {
+        view.setMapReduce(new Mapper() {
 
             @Override
             public void map(Map<String, Object> document, Emitter emitter) {
-                String id = (String)document.get("_id");
+                String id = (String) document.get("_id");
                 emitter.emit(id, null);
             }
         }, null, "1");
@@ -474,6 +472,61 @@ public class AttachmentsTest extends LiteTestCase {
             assertEquals(attachBodyString, attachmentDataRetrievedString);
 
         }
+
+    }
+
+    /**
+     * Regression test for https://github.com/couchbase/couchbase-lite-android-core/issues/70
+     */
+    public void testAttachmentDisappearsAfterSave() throws CouchbaseLiteException, IOException {
+
+        // create a doc with an attachment
+        Document doc = database.createDocument();
+        String content  = "This is a test attachment!";
+        ByteArrayInputStream body = new ByteArrayInputStream(content.getBytes());
+        UnsavedRevision rev = doc.createRevision();
+        rev.setAttachment("index.html", "text/plain; charset=utf-8", body);
+        rev.save();
+
+        // make sure the doc's latest revision has the attachment
+        Map<String, Object> attachments = (Map) doc.getCurrentRevision().getProperty("_attachments");
+        assertNotNull(attachments);
+        assertEquals(1, attachments.size());
+
+        // make sure the rev has the attachment
+        attachments = (Map) rev.getProperty("_attachments");
+        assertNotNull(attachments);
+        assertEquals(1, attachments.size());
+
+        // create new properties to add
+        Map<String,Object> properties = new HashMap<String,Object>();
+        properties.put("foo", "bar");
+
+        // make sure the new rev still has the attachment
+        UnsavedRevision rev2 = doc.createRevision();
+        rev2.getProperties().putAll(properties);
+        rev2.save();
+        attachments = (Map) rev2.getProperty("_attachments");
+        assertNotNull(attachments);
+        assertEquals(1, attachments.size());
+
+    }
+
+    /**
+     * Regression test for https://github.com/couchbase/couchbase-lite-android-core/issues/70
+     */
+    public void testAttachmentInstallBodies() throws Exception {
+
+        Map<String, Object> attachmentsMap = new HashMap<String, Object>();
+        Map<String, Object> attachmentMap = new HashMap<String, Object>();
+        attachmentMap.put("length", 25);
+        String attachmentName = "index.html";
+        attachmentsMap.put(attachmentName, attachmentMap);
+
+        Map<String, Object> updatedAttachments = Attachment.installAttachmentBodies(attachmentsMap, database);
+        assertTrue(updatedAttachments.size() > 0);
+        assertTrue(updatedAttachments.containsKey(attachmentName));
+
 
     }
 

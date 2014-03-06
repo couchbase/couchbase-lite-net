@@ -143,9 +143,19 @@ namespace Couchbase.Lite.Support
 			{
 				HttpResponse response = httpClient.Execute(request);
 				// add in cookies to global store
-				DefaultHttpClient defaultHttpClient = (DefaultHttpClient)httpClient;
-				new CouchbaseLiteHttpClientFactory().AddCookies(defaultHttpClient.GetCookieStore(
-					).GetCookies());
+				try
+				{
+					if (httpClient is DefaultHttpClient)
+					{
+						DefaultHttpClient defaultHttpClient = (DefaultHttpClient)httpClient;
+						CouchbaseLiteHttpClientFactory.Instance.AddCookies(defaultHttpClient.GetCookieStore
+							().GetCookies());
+					}
+				}
+				catch (Exception e)
+				{
+					Log.E(Database.Tag, "Unable to add in cookies to global store", e);
+				}
 				StatusLine status = response.GetStatusLine();
 				if (status.GetStatusCode() >= 300)
 				{
@@ -208,7 +218,7 @@ namespace Couchbase.Lite.Support
 					if (httpClient is DefaultHttpClient)
 					{
 						DefaultHttpClient dhc = (DefaultHttpClient)httpClient;
-						MessageProcessingHandler preemptiveAuth = new _MessageProcessingHandler_179(creds
+						MessageProcessingHandler preemptiveAuth = new _MessageProcessingHandler_185(creds
 							);
 						dhc.AddRequestInterceptor(preemptiveAuth, 0);
 					}
@@ -221,9 +231,9 @@ namespace Couchbase.Lite.Support
 			}
 		}
 
-		private sealed class _MessageProcessingHandler_179 : MessageProcessingHandler
+		private sealed class _MessageProcessingHandler_185 : MessageProcessingHandler
 		{
-			public _MessageProcessingHandler_179(Credentials creds)
+			public _MessageProcessingHandler_185(Credentials creds)
 			{
 				this.creds = creds;
 			}
@@ -254,7 +264,7 @@ namespace Couchbase.Lite.Support
 		{
 			if (workExecutor != null)
 			{
-				workExecutor.Submit(new _Runnable_213(this, result, error));
+				workExecutor.Submit(new _Runnable_219(this, result, error));
 			}
 			else
 			{
@@ -263,9 +273,9 @@ namespace Couchbase.Lite.Support
 			}
 		}
 
-		private sealed class _Runnable_213 : Runnable
+		private sealed class _Runnable_219 : Runnable
 		{
-			public _Runnable_213(RemoteRequest _enclosing, object result, Exception error)
+			public _Runnable_219(RemoteRequest _enclosing, object result, Exception error)
 			{
 				this._enclosing = _enclosing;
 				this.result = result;

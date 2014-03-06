@@ -40,4 +40,6 @@ public class CouchbaseLiteException extends Exception {
         return status;
     }
 
+    // TODO: override toString to print out status code
+
 }

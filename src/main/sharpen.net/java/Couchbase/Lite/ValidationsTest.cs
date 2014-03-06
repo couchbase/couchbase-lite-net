@@ -130,7 +130,7 @@ namespace Couchbase.Lite
 				this._enclosing = _enclosing;
 			}
 
-			public bool Validate(Revision newRevision, ValidationContext context)
+			public void Validate(Revision newRevision, ValidationContext context)
 			{
 				NUnit.Framework.Assert.IsNotNull(newRevision);
 				NUnit.Framework.Assert.IsNotNull(context);
@@ -145,7 +145,6 @@ namespace Couchbase.Lite
 				{
 					context.Reject("Where's your towel?");
 				}
-				return hoopy;
 			}
 
 			private readonly ValidationsTest _enclosing;

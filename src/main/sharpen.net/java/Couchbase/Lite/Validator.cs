@@ -30,6 +30,6 @@ namespace Couchbase.Lite
 	/// 	</remarks>
 	public interface Validator
 	{
-		bool Validate(Revision newRevision, ValidationContext context);
+		void Validate(Revision newRevision, ValidationContext context);
 	}
 }

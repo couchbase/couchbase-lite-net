@@ -20,13 +20,18 @@
  */
 
 using System;
+using Couchbase.Lite;
 using Couchbase.Lite.Internal;
+using Couchbase.Lite.Util;
 using Sharpen;
 
 namespace Couchbase.Lite
 {
+	/// <summary>Provides details about a Document change.</summary>
+	/// <remarks>Provides details about a Document change.</remarks>
 	public class DocumentChange
 	{
+		/// <exclude></exclude>
 		[InterfaceAudience.Private]
 		internal DocumentChange(RevisionInternal addedRevision, RevisionInternal winningRevision
 			, bool isConflict, Uri sourceUrl)
@@ -45,51 +50,64 @@ namespace Couchbase.Lite
 
 		private Uri sourceUrl;
 
+		[InterfaceAudience.Public]
 		public virtual string GetDocumentId()
 		{
 			return addedRevision.GetDocId();
 		}
 
+		[InterfaceAudience.Public]
 		public virtual string GetRevisionId()
 		{
 			return addedRevision.GetRevId();
 		}
 
+		[InterfaceAudience.Public]
 		public virtual bool IsCurrentRevision()
 		{
 			return winningRevision != null && addedRevision.GetRevId().Equals(winningRevision
 				.GetRevId());
 		}
 
+		[InterfaceAudience.Public]
 		public virtual bool IsConflict()
 		{
 			return isConflict;
 		}
 
+		[InterfaceAudience.Public]
 		public virtual Uri GetSourceUrl()
 		{
 			return sourceUrl;
 		}
 
+		/// <exclude></exclude>
 		[InterfaceAudience.Private]
 		public virtual RevisionInternal GetAddedRevision()
 		{
 			return addedRevision;
 		}
 
+		/// <exclude></exclude>
 		[InterfaceAudience.Private]
 		internal virtual RevisionInternal GetWinningRevision()
 		{
 			return winningRevision;
 		}
 
-		public static Couchbase.Lite.DocumentChange TempFactory(RevisionInternal revisionInternal
-			, Uri sourceUrl, bool inConflict)
+		[InterfaceAudience.Public]
+		public override string ToString()
 		{
-			Couchbase.Lite.DocumentChange change = new Couchbase.Lite.DocumentChange(revisionInternal
-				, null, inConflict, sourceUrl);
-			// TODO: fix winning revision here
-			return change;
+			try
+			{
+				return string.Format("docId: %s rev: %s isConflict: %s sourceUrl: %s", GetDocumentId
+					(), GetRevisionId(), IsConflict(), GetSourceUrl());
+			}
+			catch (Exception e)
+			{
+				Log.E(Database.Tag, "Error in DocumentChange.toString()", e);
+				return base.ToString();
+			}
 		}
 	}
 }

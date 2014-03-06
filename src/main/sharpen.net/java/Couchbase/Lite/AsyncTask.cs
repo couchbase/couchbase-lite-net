@@ -24,8 +24,10 @@ using Sharpen;
 
 namespace Couchbase.Lite
 {
+	/// <summary>A delegate that can be run in a transaction on a Database.</summary>
+	/// <remarks>A delegate that can be run in a transaction on a Database.</remarks>
 	public interface AsyncTask
 	{
-		bool Run(Database database);
+		void Run(Database database);
 	}
 }

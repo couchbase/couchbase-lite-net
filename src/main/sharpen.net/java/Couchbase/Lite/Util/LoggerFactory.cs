@@ -19,6 +19,9 @@
  * and limitations under the License.
  */
 
+using System;
+using System.IO;
+using Couchbase.Lite;
 using Couchbase.Lite.Util;
 using Sharpen;
 
@@ -28,23 +31,38 @@ namespace Couchbase.Lite.Util
 	{
 		public static Logger CreateLogger()
 		{
-			// Attempt to load a Logger service.
-			foreach (Logger logger in ServiceLoader.Load<Logger>())
+			string classname = string.Empty;
+			string resource = "services/com.couchbase.lite.util.Logger";
+			try
 			{
+				InputStream inputStream = Sharpen.Thread.CurrentThread().GetContextClassLoader().
+					GetResourceAsStream(resource);
+				if (inputStream == null)
+				{
+					// Return default System logger.
+					Log.D(Database.Tag, "Unable to load " + resource + " falling back to SystemLogger"
+						);
+					return new SystemLogger();
+				}
+				byte[] bytes = TextUtils.Read(inputStream);
+				classname = Sharpen.Runtime.GetStringForBytes(bytes);
+				if (classname == null || classname.IsEmpty())
+				{
+					// Return default System logger.
+					Log.D(Database.Tag, "Unable to load " + resource + " falling back to SystemLogger"
+						);
+					return new SystemLogger();
+				}
+				Log.D(Database.Tag, "Loading logger: " + classname);
+				Type clazz = Sharpen.Runtime.GetType(classname);
+				Logger logger = (Logger)System.Activator.CreateInstance(clazz);
 				return logger;
 			}
-			// Choose Logger based on runtime.
-			Properties properties = Runtime.GetProperties();
-			string runtime = properties.GetProperty("java.runtime.name");
-			if (runtime != null)
+			catch (Exception e)
 			{
-				if (runtime.ToLower().Contains("android"))
-				{
-					return new AndroidLogger();
-				}
+				throw new RuntimeException("Failed to logger.  Resource: " + resource + " classname: "
+					 + classname, e);
 			}
-			// Return default System logger.
-			return new SystemLogger();
 		}
 	}
 }

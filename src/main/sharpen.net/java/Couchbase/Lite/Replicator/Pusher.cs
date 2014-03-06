@@ -35,9 +35,12 @@ using Sharpen;
 
 namespace Couchbase.Lite.Replicator
 {
-	public class Pusher : Replication, Database.ChangeListener
+	/// <exclude></exclude>
+	public sealed class Pusher : Replication, Database.ChangeListener
 	{
-		private bool shouldCreateTarget;
+		private bool createTarget;
+
+		private bool creatingTarget;
 
 		private bool observing;
 
@@ -56,7 +59,7 @@ namespace Couchbase.Lite.Replicator
 			, ScheduledExecutorService workExecutor) : base(db, remote, continuous, clientFactory
 			, workExecutor)
 		{
-			shouldCreateTarget = false;
+			createTarget = false;
 			observing = false;
 		}
 
@@ -69,13 +72,13 @@ namespace Couchbase.Lite.Replicator
 		[InterfaceAudience.Public]
 		public override bool ShouldCreateTarget()
 		{
-			return shouldCreateTarget;
+			return createTarget;
 		}
 
 		[InterfaceAudience.Public]
 		public override void SetCreateTarget(bool createTarget)
 		{
-			this.shouldCreateTarget = createTarget;
+			this.createTarget = createTarget;
 		}
 
 		[InterfaceAudience.Public]
@@ -88,35 +91,52 @@ namespace Couchbase.Lite.Replicator
 		[InterfaceAudience.Private]
 		internal override void MaybeCreateRemoteDB()
 		{
-			if (!shouldCreateTarget)
+			if (!createTarget)
 			{
 				return;
 			}
+			creatingTarget = true;
 			Log.V(Database.Tag, "Remote db might not exist; creating it...");
-			SendAsyncRequest("PUT", string.Empty, null, new _RemoteRequestCompletionBlock_91(
-				this));
+			Log.D(Database.Tag, this + "|" + Sharpen.Thread.CurrentThread() + ": maybeCreateRemoteDB() calling asyncTaskStarted()"
+				);
+			AsyncTaskStarted();
+			SendAsyncRequest("PUT", string.Empty, null, new _RemoteRequestCompletionBlock_100
+				(this));
 		}
 
-		private sealed class _RemoteRequestCompletionBlock_91 : RemoteRequestCompletionBlock
+		private sealed class _RemoteRequestCompletionBlock_100 : RemoteRequestCompletionBlock
 		{
-			public _RemoteRequestCompletionBlock_91(Pusher _enclosing)
+			public _RemoteRequestCompletionBlock_100(Pusher _enclosing)
 			{
 				this._enclosing = _enclosing;
 			}
 
 			public void OnCompletion(object result, Exception e)
 			{
-				if (e != null && e is HttpResponseException && ((HttpResponseException)e).GetStatusCode
-					() != 412)
+				try
 				{
-					Log.V(Database.Tag, "Unable to create remote db (normal if using sync gateway)");
+					this._enclosing.creatingTarget = false;
+					if (e != null && e is HttpResponseException && ((HttpResponseException)e).GetStatusCode
+						() != 412)
+					{
+						Log.E(Database.Tag, this + ": Failed to create remote db", e);
+						this._enclosing.SetError(e);
+						this._enclosing.Stop();
+					}
+					else
+					{
+						// this is fatal: no db to push to!
+						Log.V(Database.Tag, this + ": Created remote db");
+						this._enclosing.createTarget = false;
+						this._enclosing.BeginReplicating();
+					}
 				}
-				else
+				finally
 				{
-					Log.V(Database.Tag, "Created remote db");
+					Log.D(Database.Tag, this + "|" + Sharpen.Thread.CurrentThread() + ": maybeCreateRemoteDB.onComplete() calling asyncTaskFinished()"
+						);
+					this._enclosing.AsyncTaskFinished(1);
 				}
-				this._enclosing.shouldCreateTarget = false;
-				this._enclosing.BeginReplicating();
 			}
 
 			private readonly Pusher _enclosing;
@@ -127,9 +147,18 @@ namespace Couchbase.Lite.Replicator
 		{
 			// If we're still waiting to create the remote db, do nothing now. (This method will be
 			// re-invoked after that request finishes; see maybeCreateRemoteDB() above.)
-			if (shouldCreateTarget)
+			Log.D(Database.Tag, this + "|" + Sharpen.Thread.CurrentThread() + ": beginReplicating() called"
+				);
+			if (creatingTarget)
 			{
+				Log.D(Database.Tag, this + "|" + Sharpen.Thread.CurrentThread() + ": creatingTarget == true, doing nothing"
+					);
 				return;
+			}
+			else
+			{
+				Log.D(Database.Tag, this + "|" + Sharpen.Thread.CurrentThread() + ": creatingTarget != true, continuing"
+					);
 			}
 			if (filterName != null)
 			{
@@ -146,16 +175,21 @@ namespace Couchbase.Lite.Replicator
 			{
 				lastSequenceLong = long.Parse(lastSequence);
 			}
-			RevisionList changes = db.ChangesSince(lastSequenceLong, null, filter);
+			ChangesOptions options = new ChangesOptions();
+			options.SetIncludeConflicts(true);
+			RevisionList changes = db.ChangesSince(lastSequenceLong, options, filter);
 			if (changes.Count > 0)
 			{
-				ProcessInbox(changes);
+				batcher.QueueObjects(changes);
+				batcher.Flush();
 			}
 			// Now listen for future changes (in continuous mode):
 			if (continuous)
 			{
 				observing = true;
 				db.AddChangeListener(this);
+				Log.D(Database.Tag, this + "|" + Sharpen.Thread.CurrentThread() + ": pusher.beginReplicating() calling asyncTaskStarted()"
+					);
 				AsyncTaskStarted();
 			}
 		}
@@ -166,14 +200,22 @@ namespace Couchbase.Lite.Replicator
 		{
 			if (observing)
 			{
-				observing = false;
-				db.RemoveChangeListener(this);
-				AsyncTaskFinished(1);
+				try
+				{
+					observing = false;
+					db.RemoveChangeListener(this);
+				}
+				finally
+				{
+					Log.D(Database.Tag, this + "|" + Sharpen.Thread.CurrentThread() + ": stopObserving() calling asyncTaskFinished()"
+						);
+					AsyncTaskFinished(1);
+				}
 			}
 		}
 
 		[InterfaceAudience.Private]
-		public virtual void Changed(Database.ChangeEvent @event)
+		public void Changed(Database.ChangeEvent @event)
 		{
 			IList<DocumentChange> changes = @event.GetChanges();
 			foreach (DocumentChange change in changes)
@@ -199,6 +241,7 @@ namespace Couchbase.Lite.Replicator
 		{
 			long lastInboxSequence = inbox[inbox.Count - 1].GetSequence();
 			// Generate a set of doc/rev IDs in the JSON format that _revs_diff wants:
+			// <http://wiki.apache.org/couchdb/HttpPostRevsDiff>
 			IDictionary<string, IList<string>> diffs = new Dictionary<string, IList<string>>(
 				);
 			foreach (RevisionInternal rev in inbox)
@@ -213,14 +256,18 @@ namespace Couchbase.Lite.Replicator
 				revs.AddItem(rev.GetRevId());
 			}
 			// Call _revs_diff on the target db:
+			Log.D(Database.Tag, this + "|" + Sharpen.Thread.CurrentThread() + ": processInbox() calling asyncTaskStarted()"
+				);
+			Log.D(Database.Tag, this + "|" + Sharpen.Thread.CurrentThread() + ": posting to /_revs_diff: "
+				 + diffs);
 			AsyncTaskStarted();
-			SendAsyncRequest("POST", "/_revs_diff", diffs, new _RemoteRequestCompletionBlock_191
+			SendAsyncRequest("POST", "/_revs_diff", diffs, new _RemoteRequestCompletionBlock_226
 				(this, inbox, lastInboxSequence));
 		}
 
-		private sealed class _RemoteRequestCompletionBlock_191 : RemoteRequestCompletionBlock
+		private sealed class _RemoteRequestCompletionBlock_226 : RemoteRequestCompletionBlock
 		{
-			public _RemoteRequestCompletionBlock_191(Pusher _enclosing, RevisionList inbox, long
+			public _RemoteRequestCompletionBlock_226(Pusher _enclosing, RevisionList inbox, long
 				 lastInboxSequence)
 			{
 				this._enclosing = _enclosing;
@@ -230,125 +277,153 @@ namespace Couchbase.Lite.Replicator
 
 			public void OnCompletion(object response, Exception e)
 			{
-				IDictionary<string, object> results = (IDictionary<string, object>)response;
-				if (e != null)
+				try
 				{
-					this._enclosing.error = e;
-					this._enclosing.Stop();
-				}
-				else
-				{
-					if (results.Count != 0)
+					Log.D(Database.Tag, this + "|" + Sharpen.Thread.CurrentThread() + ": /_revs_diff response: "
+						 + response);
+					IDictionary<string, object> results = (IDictionary<string, object>)response;
+					if (e != null)
 					{
-						// Go through the list of local changes again, selecting the ones the destination server
-						// said were missing and mapping them to a JSON dictionary in the form _bulk_docs wants:
-						IList<object> docsToSend = new AList<object>();
-						foreach (RevisionInternal rev in inbox)
-						{
-							IDictionary<string, object> properties = null;
-							IDictionary<string, object> resultDoc = (IDictionary<string, object>)results.Get(
-								rev.GetDocId());
-							if (resultDoc != null)
-							{
-								IList<string> revs = (IList<string>)resultDoc.Get("missing");
-								if (revs != null && revs.Contains(rev.GetRevId()))
-								{
-									//remote server needs this revision
-									// Get the revision's properties
-									if (rev.IsDeleted())
-									{
-										properties = new Dictionary<string, object>();
-										properties.Put("_id", rev.GetDocId());
-										properties.Put("_rev", rev.GetRevId());
-										properties.Put("_deleted", true);
-									}
-									else
-									{
-										// OPT: Shouldn't include all attachment bodies, just ones that have changed
-										EnumSet<Database.TDContentOptions> contentOptions = EnumSet.Of(Database.TDContentOptions
-											.TDIncludeAttachments, Database.TDContentOptions.TDBigAttachmentsFollow);
-										try
-										{
-											this._enclosing.db.LoadRevisionBody(rev, contentOptions);
-										}
-										catch (CouchbaseLiteException e1)
-										{
-											throw new RuntimeException(e1);
-										}
-										properties = new Dictionary<string, object>(rev.GetProperties());
-									}
-									if (properties.ContainsKey("_attachments"))
-									{
-										if (this._enclosing.UploadMultipartRevision(rev))
-										{
-											continue;
-										}
-									}
-									if (properties != null)
-									{
-										// Add the _revisions list:
-										properties.Put("_revisions", this._enclosing.db.GetRevisionHistoryDict(rev));
-										//now add it to the docs to send
-										docsToSend.AddItem(properties);
-									}
-								}
-							}
-						}
-						// Post the revisions to the destination. "new_edits":false means that the server should
-						// use the given _rev IDs instead of making up new ones.
-						int numDocsToSend = docsToSend.Count;
-						IDictionary<string, object> bulkDocsBody = new Dictionary<string, object>();
-						bulkDocsBody.Put("docs", docsToSend);
-						bulkDocsBody.Put("new_edits", false);
-						Log.I(Database.Tag, string.Format("%s: Sending %d revisions", this, numDocsToSend
-							));
-						Log.V(Database.Tag, string.Format("%s: Sending %s", this, inbox));
-						this._enclosing.SetChangesCount(this._enclosing.GetChangesCount() + numDocsToSend
-							);
-						this._enclosing.AsyncTaskStarted();
-						this._enclosing.SendAsyncRequest("POST", "/_bulk_docs", bulkDocsBody, new _RemoteRequestCompletionBlock_257
-							(this, inbox, lastInboxSequence, numDocsToSend));
+						this._enclosing.SetError(e);
+						this._enclosing.RevisionFailed();
 					}
 					else
 					{
-						// If none of the revisions are new to the remote, just bump the lastSequence:
-						this._enclosing.SetLastSequence(string.Format("%d", lastInboxSequence));
+						if (results.Count != 0)
+						{
+							// Go through the list of local changes again, selecting the ones the destination server
+							// said were missing and mapping them to a JSON dictionary in the form _bulk_docs wants:
+							IList<object> docsToSend = new AList<object>();
+							foreach (RevisionInternal rev in inbox)
+							{
+								IDictionary<string, object> properties = null;
+								IDictionary<string, object> resultDoc = (IDictionary<string, object>)results.Get(
+									rev.GetDocId());
+								if (resultDoc != null)
+								{
+									IList<string> revs = (IList<string>)resultDoc.Get("missing");
+									if (revs != null && revs.Contains(rev.GetRevId()))
+									{
+										//remote server needs this revision
+										// Get the revision's properties
+										if (rev.IsDeleted())
+										{
+											properties = new Dictionary<string, object>();
+											properties.Put("_id", rev.GetDocId());
+											properties.Put("_rev", rev.GetRevId());
+											properties.Put("_deleted", true);
+										}
+										else
+										{
+											// OPT: Shouldn't include all attachment bodies, just ones that have changed
+											EnumSet<Database.TDContentOptions> contentOptions = EnumSet.Of(Database.TDContentOptions
+												.TDIncludeAttachments, Database.TDContentOptions.TDBigAttachmentsFollow);
+											try
+											{
+												this._enclosing.db.LoadRevisionBody(rev, contentOptions);
+											}
+											catch (CouchbaseLiteException)
+											{
+												string msg = string.Format("%s Couldn't get local contents of %s", rev, this._enclosing
+													);
+												Log.W(Database.Tag, msg);
+												this._enclosing.RevisionFailed();
+												continue;
+											}
+											properties = new Dictionary<string, object>(rev.GetProperties());
+										}
+										if (properties.ContainsKey("_attachments"))
+										{
+											if (this._enclosing.UploadMultipartRevision(rev))
+											{
+												continue;
+											}
+										}
+										if (properties != null)
+										{
+											// Add the _revisions list:
+											properties.Put("_revisions", this._enclosing.db.GetRevisionHistoryDict(rev));
+											//now add it to the docs to send
+											docsToSend.AddItem(properties);
+										}
+									}
+								}
+							}
+							// Post the revisions to the destination. "new_edits":false means that the server should
+							// use the given _rev IDs instead of making up new ones.
+							int numDocsToSend = docsToSend.Count;
+							if (numDocsToSend > 0)
+							{
+								IDictionary<string, object> bulkDocsBody = new Dictionary<string, object>();
+								bulkDocsBody.Put("docs", docsToSend);
+								bulkDocsBody.Put("new_edits", false);
+								Log.V(Database.Tag, string.Format("%s: POSTing " + numDocsToSend + " revisions to _bulk_docs: %s"
+									, this._enclosing, docsToSend));
+								this._enclosing.SetChangesCount(this._enclosing.GetChangesCount() + numDocsToSend
+									);
+								Log.D(Database.Tag, this._enclosing + "|" + Sharpen.Thread.CurrentThread() + ": processInbox-before_bulk_docs() calling asyncTaskStarted()"
+									);
+								this._enclosing.AsyncTaskStarted();
+								this._enclosing.SendAsyncRequest("POST", "/_bulk_docs", bulkDocsBody, new _RemoteRequestCompletionBlock_300
+									(this, docsToSend, lastInboxSequence, numDocsToSend));
+							}
+						}
+						else
+						{
+							// If none of the revisions are new to the remote, just bump the lastSequence:
+							this._enclosing.SetLastSequence(string.Format("%d", lastInboxSequence));
+						}
 					}
 				}
-				this._enclosing.AsyncTaskFinished(1);
+				finally
+				{
+					Log.D(Database.Tag, this._enclosing + "|" + Sharpen.Thread.CurrentThread() + ": processInbox() calling asyncTaskFinished()"
+						);
+					this._enclosing.AsyncTaskFinished(1);
+				}
 			}
 
-			private sealed class _RemoteRequestCompletionBlock_257 : RemoteRequestCompletionBlock
+			private sealed class _RemoteRequestCompletionBlock_300 : RemoteRequestCompletionBlock
 			{
-				public _RemoteRequestCompletionBlock_257(_RemoteRequestCompletionBlock_191 _enclosing
-					, RevisionList inbox, long lastInboxSequence, int numDocsToSend)
+				public _RemoteRequestCompletionBlock_300(_RemoteRequestCompletionBlock_226 _enclosing
+					, IList<object> docsToSend, long lastInboxSequence, int numDocsToSend)
 				{
 					this._enclosing = _enclosing;
-					this.inbox = inbox;
+					this.docsToSend = docsToSend;
 					this.lastInboxSequence = lastInboxSequence;
 					this.numDocsToSend = numDocsToSend;
 				}
 
 				public void OnCompletion(object result, Exception e)
 				{
-					if (e != null)
+					try
 					{
-						this._enclosing._enclosing.error = e;
+						if (e != null)
+						{
+							this._enclosing._enclosing.SetError(e);
+							this._enclosing._enclosing.RevisionFailed();
+						}
+						else
+						{
+							Log.V(Database.Tag, string.Format("%s: POSTed to _bulk_docs: %s", this._enclosing
+								._enclosing, docsToSend));
+							this._enclosing._enclosing.SetLastSequence(string.Format("%d", lastInboxSequence)
+								);
+						}
+						this._enclosing._enclosing.SetCompletedChangesCount(this._enclosing._enclosing.GetCompletedChangesCount
+							() + numDocsToSend);
 					}
-					else
+					finally
 					{
-						Log.V(Database.Tag, string.Format("%s: Sent %s", this, inbox));
-						this._enclosing._enclosing.SetLastSequence(string.Format("%d", lastInboxSequence)
-							);
+						Log.D(Database.Tag, this._enclosing._enclosing + "|" + Sharpen.Thread.CurrentThread
+							() + ": processInbox-after_bulk_docs() calling asyncTaskFinished()");
+						this._enclosing._enclosing.AsyncTaskFinished(1);
 					}
-					this._enclosing._enclosing.SetCompletedChangesCount(this._enclosing._enclosing.GetCompletedChangesCount
-						() + numDocsToSend);
-					this._enclosing._enclosing.AsyncTaskFinished(1);
 				}
 
-				private readonly _RemoteRequestCompletionBlock_191 _enclosing;
+				private readonly _RemoteRequestCompletionBlock_226 _enclosing;
 
-				private readonly RevisionList inbox;
+				private readonly IList<object> docsToSend;
 
 				private readonly long lastInboxSequence;
 
@@ -368,6 +443,7 @@ namespace Couchbase.Lite.Replicator
 			MultipartEntity multiPart = null;
 			IDictionary<string, object> revProps = revision.GetProperties();
 			revProps.Put("_revisions", db.GetRevisionHistoryDict(revision));
+			// TODO: refactor this to
 			IDictionary<string, object> attachments = (IDictionary<string, object>)revProps.Get
 				("_attachments");
 			foreach (string attachmentKey in attachments.Keys)
@@ -429,31 +505,43 @@ namespace Couchbase.Lite.Replicator
 			string path = string.Format("/%s?new_edits=false", revision.GetDocId());
 			// TODO: need to throttle these requests
 			Log.D(Database.Tag, "Uploadeding multipart request.  Revision: " + revision);
+			Log.D(Database.Tag, this + "|" + Sharpen.Thread.CurrentThread() + ": uploadMultipartRevision() calling asyncTaskStarted()"
+				);
 			AsyncTaskStarted();
-			SendAsyncMultipartRequest("PUT", path, multiPart, new _RemoteRequestCompletionBlock_344
+			SendAsyncMultipartRequest("PUT", path, multiPart, new _RemoteRequestCompletionBlock_411
 				(this));
+			// TODO:
 			return true;
 		}
 
-		private sealed class _RemoteRequestCompletionBlock_344 : RemoteRequestCompletionBlock
+		private sealed class _RemoteRequestCompletionBlock_411 : RemoteRequestCompletionBlock
 		{
-			public _RemoteRequestCompletionBlock_344(Pusher _enclosing)
+			public _RemoteRequestCompletionBlock_411(Pusher _enclosing)
 			{
 				this._enclosing = _enclosing;
 			}
 
 			public void OnCompletion(object result, Exception e)
 			{
-				if (e != null)
+				try
 				{
-					Log.E(Database.Tag, "Exception uploading multipart request", e);
-					this._enclosing.error = e;
+					if (e != null)
+					{
+						Log.E(Database.Tag, "Exception uploading multipart request", e);
+						this._enclosing.SetError(e);
+						this._enclosing.RevisionFailed();
+					}
+					else
+					{
+						Log.D(Database.Tag, "Uploaded multipart request.  Result: " + result);
+					}
 				}
-				else
+				finally
 				{
-					Log.D(Database.Tag, "Uploaded multipart request.  Result: " + result);
+					Log.D(Database.Tag, this + "|" + Sharpen.Thread.CurrentThread() + ": uploadMultipartRevision() calling asyncTaskFinished()"
+						);
+					this._enclosing.AsyncTaskFinished(1);
 				}
-				this._enclosing.AsyncTaskFinished(1);
 			}
 
 			private readonly Pusher _enclosing;

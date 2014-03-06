@@ -33,6 +33,11 @@ namespace Couchbase.Lite
 	/// 	</remarks>
 	public class Query
 	{
+		/// <summary>Determines whether or when the view index is updated.</summary>
+		/// <remarks>
+		/// Determines whether or when the view index is updated. By default, the index will be updated
+		/// if necessary before the query runs -- this guarantees up-to-date results but can cause a delay.
+		/// </remarks>
 		public enum IndexUpdateMode
 		{
 			Before,
@@ -40,6 +45,8 @@ namespace Couchbase.Lite
 			After
 		}
 
+		/// <summary>Changes the behavior of a query created by queryAllDocuments.</summary>
+		/// <remarks>Changes the behavior of a query created by queryAllDocuments.</remarks>
 		public enum AllDocsMode
 		{
 			AllDocs,
@@ -154,16 +161,6 @@ namespace Couchbase.Lite
 		/// 	</remarks>
 		private int groupLevel;
 
-		/// <summary>
-		/// If a query is running and the user calls stop() on this query, the future
-		/// will be used in order to cancel the query in progress.
-		/// </summary>
-		/// <remarks>
-		/// If a query is running and the user calls stop() on this query, the future
-		/// will be used in order to cancel the query in progress.
-		/// </remarks>
-		protected internal Future updateQueryFuture;
-
 		private long lastSequence;
 
 		/// <summary>Constructor</summary>
@@ -173,12 +170,16 @@ namespace Couchbase.Lite
 			// Always update index if needed before querying (default)
 			// Don't update the index; results may be out of date
 			// Update index _after_ querying (results may still be out of date)
+			// (the default), the query simply returns all non-deleted documents.
+			// in this mode it also returns deleted documents.
+			// the .conflictingRevisions property of each row will return the conflicting revisions, if any, of that document.
+			// _only_ documents in conflict will be returned. (This mode is especially useful for use with a CBLLiveQuery, so you can be notified of conflicts as they happen, i.e. when they're pulled in by a replication.)
 			// null for _all_docs query
 			this.database = database;
 			this.view = view;
 			limit = int.MaxValue;
 			mapOnly = (view != null && view.GetReduce() == null);
-			indexUpdateMode = Query.IndexUpdateMode.Never;
+			indexUpdateMode = Query.IndexUpdateMode.Before;
 			allDocsMode = Query.AllDocsMode.AllDocs;
 		}
 
@@ -431,20 +432,23 @@ namespace Couchbase.Lite
 			return RunAsyncInternal(onComplete);
 		}
 
+		/// <summary>A delegate that can be called to signal the completion of a Query.</summary>
+		/// <remarks>A delegate that can be called to signal the completion of a Query.</remarks>
 		public interface QueryCompleteListener
 		{
 			void Completed(QueryEnumerator rows, Exception error);
 		}
 
+		/// <exclude></exclude>
 		[InterfaceAudience.Private]
 		internal virtual Future RunAsyncInternal(Query.QueryCompleteListener onComplete)
 		{
-			return database.GetManager().RunAsync(new _Runnable_370(this, onComplete));
+			return database.GetManager().RunAsync(new _Runnable_382(this, onComplete));
 		}
 
-		private sealed class _Runnable_370 : Runnable
+		private sealed class _Runnable_382 : Runnable
 		{
-			public _Runnable_370(Query _enclosing, Query.QueryCompleteListener onComplete)
+			public _Runnable_382(Query _enclosing, Query.QueryCompleteListener onComplete)
 			{
 				this._enclosing = _enclosing;
 				this.onComplete = onComplete;
@@ -454,6 +458,10 @@ namespace Couchbase.Lite
 			{
 				try
 				{
+					if (!this._enclosing.GetDatabase().IsOpen())
+					{
+						throw new InvalidOperationException("The database has been closed.");
+					}
 					string viewName = this._enclosing.view.GetName();
 					QueryOptions options = this._enclosing.GetQueryOptions();
 					IList<long> outSequence = new AList<long>();
@@ -475,6 +483,7 @@ namespace Couchbase.Lite
 			private readonly Query.QueryCompleteListener onComplete;
 		}
 
+		/// <exclude></exclude>
 		[InterfaceAudience.Private]
 		public virtual View GetView()
 		{

@@ -25,6 +25,7 @@ using Sharpen;
 namespace Couchbase.Lite
 {
 	/// <summary>Options for _changes feed</summary>
+	/// <exclude></exclude>
 	public class ChangesOptions
 	{
 		private int limit = int.MaxValue;

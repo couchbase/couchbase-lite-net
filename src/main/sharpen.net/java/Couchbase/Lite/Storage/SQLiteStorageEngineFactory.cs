@@ -19,7 +19,11 @@
  * and limitations under the License.
  */
 
+using System;
+using System.IO;
+using Couchbase.Lite;
 using Couchbase.Lite.Storage;
+using Couchbase.Lite.Util;
 using Sharpen;
 
 namespace Couchbase.Lite.Storage
@@ -28,24 +32,25 @@ namespace Couchbase.Lite.Storage
 	{
 		public static SQLiteStorageEngine CreateStorageEngine()
 		{
-			// Attempt to load a Storage Engine service.
-			foreach (SQLiteStorageEngine storageEngine in ServiceLoader.Load<SQLiteStorageEngine
-				>())
+			string classname = string.Empty;
+			string resource = "services/com.couchbase.lite.storage.SQLiteStorageEngine";
+			try
 			{
+				InputStream inputStream = Sharpen.Thread.CurrentThread().GetContextClassLoader().
+					GetResourceAsStream(resource);
+				byte[] bytes = TextUtils.Read(inputStream);
+				classname = Sharpen.Runtime.GetStringForBytes(bytes);
+				Log.D(Database.Tag, "Loading storage engine: " + classname);
+				Type clazz = Sharpen.Runtime.GetType(classname);
+				SQLiteStorageEngine storageEngine = (SQLiteStorageEngine)System.Activator.CreateInstance
+					(clazz);
 				return storageEngine;
 			}
-			// Attempt to load a Storage Engine based on runtime.
-			Properties properties = Runtime.GetProperties();
-			string runtime = properties.GetProperty("java.runtime.name");
-			if (runtime != null)
+			catch (Exception e)
 			{
-				if (runtime.ToLower().Contains("android"))
-				{
-					return new AndroidSQLiteStorageEngine();
-				}
+				throw new RuntimeException("Failed to load storage.  Resource: " + resource + " classname: "
+					 + classname, e);
 			}
-			// No Storage Engine found so return null.
-			return null;
 		}
 	}
 }

@@ -26,6 +26,7 @@ using Sharpen;
 
 namespace Couchbase.Lite
 {
+	/// <exclude></exclude>
 	public class Misc
 	{
 		public static string TDCreateUUID()

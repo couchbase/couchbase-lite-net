@@ -135,6 +135,9 @@ public class Body {
 
     public Object getPropertyForKey(String key) {
         Map<String,Object> theProperties = getProperties();
+        if (theProperties == null) {
+            return null;
+        }
         return theProperties.get(key);
     }
 

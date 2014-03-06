@@ -19,6 +19,7 @@
  * and limitations under the License.
  */
 
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
@@ -34,6 +35,7 @@ using Apache.Http.Params;
 using Apache.Http.Protocol;
 using Couchbase.Lite;
 using Couchbase.Lite.Replicator;
+using Couchbase.Lite.Util;
 using Sharpen;
 
 namespace Couchbase.Lite.Replicator
@@ -45,12 +47,22 @@ namespace Couchbase.Lite.Replicator
 		private IList<HttpWebRequest> capturedRequests = Sharpen.Collections.SynchronizedList
 			(new AList<HttpWebRequest>());
 
+		private long responseDelayMilliseconds;
+
+		private int numberOfEntityConsumeCallbacks;
+
+		private IList<CustomizableMockHttpClient.ResponseListener> responseListeners;
+
 		public CustomizableMockHttpClient()
 		{
 			// tests can register custom responders per url.  the key is the URL pattern to match,
 			// the value is the responder that should handle that request.
 			// capture all request so that the test can verify expected requests were received.
+			// if this is set, it will delay responses by this number of milliseconds
+			// track the number of times consumeContent is called on HttpEntity returned in response (detect resource leaks)
+			// users of this class can subscribe to activity by adding themselves as a response listener
 			responders = new Dictionary<string, CustomizableMockHttpClient.Responder>();
+			responseListeners = new AList<CustomizableMockHttpClient.ResponseListener>();
 			AddDefaultResponders();
 		}
 
@@ -60,63 +72,38 @@ namespace Couchbase.Lite.Replicator
 			responders.Put(urlPattern, responder);
 		}
 
+		public virtual void AddResponseListener(CustomizableMockHttpClient.ResponseListener
+			 listener)
+		{
+			responseListeners.AddItem(listener);
+		}
+
+		public virtual void RemoveResponseListener(CustomizableMockHttpClient.ResponseListener
+			 listener)
+		{
+			responseListeners.Remove(listener);
+		}
+
+		public virtual void SetResponseDelayMilliseconds(long responseDelayMilliseconds)
+		{
+			this.responseDelayMilliseconds = responseDelayMilliseconds;
+		}
+
 		public virtual void AddDefaultResponders()
 		{
-			responders.Put("_revs_diff", new _Responder_49());
-			responders.Put("_bulk_docs", new _Responder_56());
-			responders.Put("_local", new _Responder_63());
-		}
-
-		private sealed class _Responder_49 : CustomizableMockHttpClient.Responder
-		{
-			public _Responder_49()
-			{
-			}
-
-			/// <exception cref="System.IO.IOException"></exception>
-			public HttpResponse Execute(HttpRequestMessage httpUriRequest)
-			{
-				return Couchbase.Lite.Replicator.CustomizableMockHttpClient.FakeRevsDiff(httpUriRequest
-					);
-			}
-		}
-
-		private sealed class _Responder_56 : CustomizableMockHttpClient.Responder
-		{
-			public _Responder_56()
-			{
-			}
-
-			/// <exception cref="System.IO.IOException"></exception>
-			public HttpResponse Execute(HttpRequestMessage httpUriRequest)
-			{
-				return Couchbase.Lite.Replicator.CustomizableMockHttpClient.FakeBulkDocs(httpUriRequest
-					);
-			}
-		}
-
-		private sealed class _Responder_63 : CustomizableMockHttpClient.Responder
-		{
-			public _Responder_63()
-			{
-			}
-
-			/// <exception cref="System.IO.IOException"></exception>
-			public HttpResponse Execute(HttpRequestMessage httpUriRequest)
-			{
-				return Couchbase.Lite.Replicator.CustomizableMockHttpClient.FakeLocalDocumentUpdate
-					(httpUriRequest);
-			}
+			AddResponderRevDiffsAllMissing();
+			AddResponderFakeBulkDocs();
+			AddResponderFakeLocalDocumentUpdateIOException();
 		}
 
 		public virtual void AddResponderFailAllRequests(int statusCode)
 		{
-			SetResponder("*", new _Responder_73(statusCode));
+			SetResponder("*", new _Responder_83(statusCode));
 		}
 
-		private sealed class _Responder_73 : CustomizableMockHttpClient.Responder
+		private sealed class _Responder_83 : CustomizableMockHttpClient.Responder
 		{
-			public _Responder_73(int statusCode)
+			public _Responder_83(int statusCode)
 			{
 				this.statusCode = statusCode;
 			}
@@ -133,12 +120,12 @@ namespace Couchbase.Lite.Replicator
 
 		public virtual void AddResponderThrowExceptionAllRequests()
 		{
-			SetResponder("*", new _Responder_82());
+			SetResponder("*", new _Responder_92());
 		}
 
-		private sealed class _Responder_82 : CustomizableMockHttpClient.Responder
+		private sealed class _Responder_92 : CustomizableMockHttpClient.Responder
 		{
-			public _Responder_82()
+			public _Responder_92()
 			{
 			}
 
@@ -149,9 +136,156 @@ namespace Couchbase.Lite.Replicator
 			}
 		}
 
+		public virtual void AddResponderFakeLocalDocumentUpdate404()
+		{
+			responders.Put("_local", new _Responder_101());
+		}
+
+		private sealed class _Responder_101 : CustomizableMockHttpClient.Responder
+		{
+			public _Responder_101()
+			{
+			}
+
+			/// <exception cref="System.IO.IOException"></exception>
+			public HttpResponse Execute(HttpRequestMessage httpUriRequest)
+			{
+				string json = "{\"error\":\"not_found\",\"reason\":\"missing\"}";
+				return Couchbase.Lite.Replicator.CustomizableMockHttpClient.GenerateHttpResponseObject
+					(404, "NOT FOUND", json);
+			}
+		}
+
+		public virtual void AddResponderFakeLocalDocumentUpdateIOException()
+		{
+			responders.Put("_local", new _Responder_111());
+		}
+
+		private sealed class _Responder_111 : CustomizableMockHttpClient.Responder
+		{
+			public _Responder_111()
+			{
+			}
+
+			/// <exception cref="System.IO.IOException"></exception>
+			public HttpResponse Execute(HttpRequestMessage httpUriRequest)
+			{
+				return Couchbase.Lite.Replicator.CustomizableMockHttpClient.FakeLocalDocumentUpdateIOException
+					(httpUriRequest);
+			}
+		}
+
+		public virtual void AddResponderFakeBulkDocs()
+		{
+			responders.Put("_bulk_docs", new _Responder_120());
+		}
+
+		private sealed class _Responder_120 : CustomizableMockHttpClient.Responder
+		{
+			public _Responder_120()
+			{
+			}
+
+			/// <exception cref="System.IO.IOException"></exception>
+			public HttpResponse Execute(HttpRequestMessage httpUriRequest)
+			{
+				return Couchbase.Lite.Replicator.CustomizableMockHttpClient.FakeBulkDocs(httpUriRequest
+					);
+			}
+		}
+
+		public virtual void AddResponderRevDiffsAllMissing()
+		{
+			responders.Put("_revs_diff", new _Responder_129());
+		}
+
+		private sealed class _Responder_129 : CustomizableMockHttpClient.Responder
+		{
+			public _Responder_129()
+			{
+			}
+
+			/// <exception cref="System.IO.IOException"></exception>
+			public HttpResponse Execute(HttpRequestMessage httpUriRequest)
+			{
+				return Couchbase.Lite.Replicator.CustomizableMockHttpClient.FakeRevsDiff(httpUriRequest
+					);
+			}
+		}
+
+		public virtual void AddResponderRevDiffsSmartResponder()
+		{
+			CustomizableMockHttpClient.SmartRevsDiffResponder smartRevsDiffResponder = new CustomizableMockHttpClient.SmartRevsDiffResponder
+				();
+			this.AddResponseListener(smartRevsDiffResponder);
+			responders.Put("_revs_diff", smartRevsDiffResponder);
+		}
+
+		public virtual void AddResponderReturnInvalidChangesFeedJson()
+		{
+			SetResponder("_changes", new _Responder_146());
+		}
+
+		private sealed class _Responder_146 : CustomizableMockHttpClient.Responder
+		{
+			public _Responder_146()
+			{
+			}
+
+			/// <exception cref="System.IO.IOException"></exception>
+			public HttpResponse Execute(HttpRequestMessage httpUriRequest)
+			{
+				string json = "{\"results\":[";
+				return Couchbase.Lite.Replicator.CustomizableMockHttpClient.GenerateHttpResponseObject
+					(json);
+			}
+		}
+
+		public virtual void ClearResponders()
+		{
+			responders = new Dictionary<string, CustomizableMockHttpClient.Responder>();
+		}
+
+		public virtual void AddResponderReturnEmptyChangesFeed()
+		{
+			SetResponder("_changes", new _Responder_160());
+		}
+
+		private sealed class _Responder_160 : CustomizableMockHttpClient.Responder
+		{
+			public _Responder_160()
+			{
+			}
+
+			/// <exception cref="System.IO.IOException"></exception>
+			public HttpResponse Execute(HttpRequestMessage httpUriRequest)
+			{
+				string json = "{\"results\":[]}";
+				return Couchbase.Lite.Replicator.CustomizableMockHttpClient.GenerateHttpResponseObject
+					(json);
+			}
+		}
+
 		public virtual IList<HttpWebRequest> GetCapturedRequests()
 		{
-			return capturedRequests;
+			IList<HttpWebRequest> snapshot = new AList<HttpWebRequest>();
+			Sharpen.Collections.AddAll(snapshot, capturedRequests);
+			return snapshot;
+		}
+
+		public virtual void ClearCapturedRequests()
+		{
+			capturedRequests.Clear();
+		}
+
+		public virtual void RecordEntityConsumeCallback()
+		{
+			numberOfEntityConsumeCallbacks += 1;
+		}
+
+		public virtual int GetNumberOfEntityConsumeCallbacks()
+		{
+			return numberOfEntityConsumeCallbacks;
 		}
 
 		public virtual HttpParams GetParams()
@@ -167,6 +301,9 @@ namespace Couchbase.Lite.Replicator
 		/// <exception cref="System.IO.IOException"></exception>
 		public virtual HttpResponse Execute(HttpRequestMessage httpUriRequest)
 		{
+			DelayResponseIfNeeded();
+			Log.D(Database.Tag, "execute() called with request: " + httpUriRequest.GetURI().GetPath
+				());
 			capturedRequests.AddItem(httpUriRequest);
 			foreach (string urlPattern in responders.Keys)
 			{
@@ -174,7 +311,9 @@ namespace Couchbase.Lite.Replicator
 					))
 				{
 					CustomizableMockHttpClient.Responder responder = responders.Get(urlPattern);
-					return responder.Execute(httpUriRequest);
+					HttpResponse response = responder.Execute(httpUriRequest);
+					NotifyResponseListeners(httpUriRequest, response);
+					return response;
 				}
 			}
 			throw new RuntimeException("No responders matched for url pattern: " + httpUriRequest
@@ -183,8 +322,8 @@ namespace Couchbase.Lite.Replicator
 
 		/// <exception cref="System.IO.IOException"></exception>
 		/// <exception cref="Apache.Http.Client.ClientProtocolException"></exception>
-		public static HttpResponse FakeLocalDocumentUpdate(HttpRequestMessage httpUriRequest
-			)
+		public static HttpResponse FakeLocalDocumentUpdateIOException(HttpRequestMessage 
+			httpUriRequest)
 		{
 			throw new IOException("Throw exception on purpose for purposes of testSaveRemoteCheckpointNoResponse()"
 				);
@@ -194,6 +333,7 @@ namespace Couchbase.Lite.Replicator
 		/// <exception cref="Apache.Http.Client.ClientProtocolException"></exception>
 		public static HttpResponse FakeBulkDocs(HttpRequestMessage httpUriRequest)
 		{
+			Log.D(Database.Tag, "fakeBulkDocs() called");
 			IDictionary<string, object> jsonMap = GetJsonMapFromRequest((HttpPost)httpUriRequest
 				);
 			IList<IDictionary<string, object>> responseList = new AList<IDictionary<string, object
@@ -204,6 +344,8 @@ namespace Couchbase.Lite.Replicator
 				IDictionary<string, object> responseListItem = new Dictionary<string, object>();
 				responseListItem.Put("id", doc.Get("_id"));
 				responseListItem.Put("rev", doc.Get("_rev"));
+				Log.D(Database.Tag, "id: " + doc.Get("_id"));
+				Log.D(Database.Tag, "rev: " + doc.Get("_rev"));
 				responseList.AddItem(responseListItem);
 			}
 			HttpResponse response = GenerateHttpResponseObject(responseList);
@@ -241,11 +383,29 @@ namespace Couchbase.Lite.Replicator
 		/// <exception cref="System.IO.IOException"></exception>
 		public static HttpResponse GenerateHttpResponseObject(string responseJson)
 		{
+			return GenerateHttpResponseObject(200, "OK", responseJson);
+		}
+
+		/// <exception cref="System.IO.IOException"></exception>
+		public static HttpResponse GenerateHttpResponseObject(int statusCode, string statusString
+			, string responseJson)
+		{
 			DefaultHttpResponseFactory responseFactory = new DefaultHttpResponseFactory();
-			BasicStatusLine statusLine = new BasicStatusLine(HttpVersion.Http11, 200, "OK");
+			BasicStatusLine statusLine = new BasicStatusLine(HttpVersion.Http11, statusCode, 
+				statusString);
 			HttpResponse response = responseFactory.NewHttpResponse(statusLine, null);
 			byte[] responseBytes = Sharpen.Runtime.GetBytesForString(responseJson);
 			response.SetEntity(new ByteArrayEntity(responseBytes));
+			return response;
+		}
+
+		/// <exception cref="System.IO.IOException"></exception>
+		public static HttpResponse GenerateHttpResponseObject(HttpEntity responseEntity)
+		{
+			DefaultHttpResponseFactory responseFactory = new DefaultHttpResponseFactory();
+			BasicStatusLine statusLine = new BasicStatusLine(HttpVersion.Http11, 200, "OK");
+			HttpResponse response = responseFactory.NewHttpResponse(statusLine, null);
+			response.SetEntity(responseEntity);
 			return response;
 		}
 
@@ -259,12 +419,36 @@ namespace Couchbase.Lite.Replicator
 		}
 
 		/// <exception cref="System.IO.IOException"></exception>
-		private static IDictionary<string, object> GetJsonMapFromRequest(HttpPost httpUriRequest
+		public static IDictionary<string, object> GetJsonMapFromRequest(HttpPost httpUriRequest
 			)
 		{
 			HttpPost post = (HttpPost)httpUriRequest;
 			InputStream @is = post.GetEntity().GetContent();
 			return Manager.GetObjectMapper().ReadValue<IDictionary>(@is);
+		}
+
+		private void DelayResponseIfNeeded()
+		{
+			if (responseDelayMilliseconds > 0)
+			{
+				try
+				{
+					Sharpen.Thread.Sleep(responseDelayMilliseconds);
+				}
+				catch (Exception e)
+				{
+					Sharpen.Runtime.PrintStackTrace(e);
+				}
+			}
+		}
+
+		private void NotifyResponseListeners(HttpRequestMessage httpUriRequest, HttpResponse
+			 response)
+		{
+			foreach (CustomizableMockHttpClient.ResponseListener listener in responseListeners)
+			{
+				listener.ResponseSent(httpUriRequest, response);
+			}
 		}
 
 		/// <exception cref="System.IO.IOException"></exception>
@@ -327,6 +511,85 @@ namespace Couchbase.Lite.Replicator
 		{
 			/// <exception cref="System.IO.IOException"></exception>
 			HttpResponse Execute(HttpRequestMessage httpUriRequest);
+		}
+
+		internal interface ResponseListener
+		{
+			void ResponseSent(HttpRequestMessage httpUriRequest, HttpResponse response);
+		}
+
+		public static ArrayList ExtractDocsFromBulkDocsPost(HttpWebRequest capturedRequest
+			)
+		{
+			try
+			{
+				if (capturedRequest is HttpPost)
+				{
+					HttpPost capturedPostRequest = (HttpPost)capturedRequest;
+					if (capturedPostRequest.GetURI().GetPath().EndsWith("_bulk_docs"))
+					{
+						ByteArrayEntity entity = (ByteArrayEntity)capturedPostRequest.GetEntity();
+						InputStream contentStream = entity.GetContent();
+						IDictionary<string, object> body = Manager.GetObjectMapper().ReadValue<IDictionary
+							>(contentStream);
+						ArrayList docs = (ArrayList)body.Get("docs");
+						return docs;
+					}
+				}
+			}
+			catch (IOException e)
+			{
+				throw new RuntimeException(e);
+			}
+			return null;
+		}
+
+		internal class SmartRevsDiffResponder : CustomizableMockHttpClient.Responder, CustomizableMockHttpClient.ResponseListener
+		{
+			private IList<string> docIdsSeen = new AList<string>();
+
+			public virtual void ResponseSent(HttpRequestMessage httpUriRequest, HttpResponse 
+				response)
+			{
+				if (httpUriRequest is HttpPost)
+				{
+					HttpPost capturedPostRequest = (HttpPost)httpUriRequest;
+					if (capturedPostRequest.GetURI().GetPath().EndsWith("_bulk_docs"))
+					{
+						ArrayList docs = ExtractDocsFromBulkDocsPost(capturedPostRequest);
+						foreach (object docObject in docs)
+						{
+							IDictionary<string, object> doc = (IDictionary)docObject;
+							docIdsSeen.AddItem((string)doc.Get("_id"));
+						}
+					}
+				}
+			}
+
+			/// <summary>Fake _revs_diff responder</summary>
+			/// <exception cref="System.IO.IOException"></exception>
+			public virtual HttpResponse Execute(HttpRequestMessage httpUriRequest)
+			{
+				IDictionary<string, object> jsonMap = GetJsonMapFromRequest((HttpPost)httpUriRequest
+					);
+				IDictionary<string, object> responseMap = new Dictionary<string, object>();
+				foreach (string key in jsonMap.Keys)
+				{
+					if (docIdsSeen.Contains(key))
+					{
+						// we were previously pushed this document, so lets not consider it missing
+						// TODO: this only takes into account document id's, not rev-ids.
+						Log.D(Database.Tag, "already saw " + key);
+						continue;
+					}
+					ArrayList value = (ArrayList)jsonMap.Get(key);
+					IDictionary<string, object> missingMap = new Dictionary<string, object>();
+					missingMap.Put("missing", value);
+					responseMap.Put(key, missingMap);
+				}
+				HttpResponse response = GenerateHttpResponseObject(responseMap);
+				return response;
+			}
 		}
 	}
 }

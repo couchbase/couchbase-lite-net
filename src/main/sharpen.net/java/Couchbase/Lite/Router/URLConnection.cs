@@ -245,11 +245,6 @@ namespace Couchbase.Lite.Router
 			{
 				return os;
 			}
-			// they are requesting a stream to write to. This implies a POST method
-			if (method == Get)
-			{
-				method = Post;
-			}
 			// If the request method is neither PUT or POST, then you're not writing
 			if (method != Put && method != Post)
 			{

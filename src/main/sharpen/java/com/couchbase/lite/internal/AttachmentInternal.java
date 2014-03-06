@@ -3,7 +3,7 @@ package com.couchbase.lite.internal;
 import com.couchbase.lite.BlobKey;
 
 /**
- *  A simple container for attachment metadata.
+ * A simple container for attachment metadata.
  */
 public class AttachmentInternal {
 

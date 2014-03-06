@@ -350,7 +350,7 @@ public class RouterTest extends LiteTestCase {
         assertEquals(expectedRowsWithDocs, rows);
     }
 
-    public void testViews() {
+    public void testViews() throws CouchbaseLiteException {
         send("PUT", "/db", Status.CREATED, null);
 
         Map<String,Object> result;
@@ -369,7 +369,7 @@ public class RouterTest extends LiteTestCase {
 
         Database db = manager.getDatabase("db");
         View view = db.getView("design/view");
-        view.setMapAndReduce(new Mapper() {
+        view.setMapReduce(new Mapper() {
 
             @Override
             public void map(Map<String, Object> document, Emitter emitter) {
@@ -453,14 +453,14 @@ public class RouterTest extends LiteTestCase {
         assertNotNull(bulk_result.get(1).get("rev"));
     }
 
-    public void testPostKeysView() {
+    public void testPostKeysView() throws CouchbaseLiteException {
     	send("PUT", "/db", Status.CREATED, null);
 
     	Map<String,Object> result;
 
     	Database db = manager.getDatabase("db");
     	View view = db.getView("design/view");
-    	view.setMapAndReduce(new Mapper() {
+    	view.setMapReduce(new Mapper() {
 
             @Override
             public void map(Map<String, Object> document, Emitter emitter) {
@@ -472,7 +472,7 @@ public class RouterTest extends LiteTestCase {
     	key_doc1.put("parentId", "12345");
     	result = (Map<String,Object>)sendBody("PUT", "/db/key_doc1", key_doc1, Status.CREATED, null);
     	view = db.getView("design/view");
-    	view.setMapAndReduce(new Mapper() {
+    	view.setMapReduce(new Mapper() {
             @Override
             public void map(Map<String, Object> document, Emitter emitter) {
                 if (document.get("parentId").equals("12345")) {
@@ -599,14 +599,38 @@ public class RouterTest extends LiteTestCase {
 
         send("PUT", "/db", Status.CREATED, null);
 
-
         Map<String, Object> replicateJsonMap = getPushReplicationParsedJson();
-
 
         Log.v(TAG, "map: " + replicateJsonMap);
         Map<String,Object> result = (Map<String,Object>)sendBody("POST", "/_replicate", replicateJsonMap, Status.OK, null);
         Log.v(TAG, "result: " + result);
         assertNotNull(result.get("session_id"));
+
+        boolean success = waitForReplicationToFinish();
+        assertTrue(success);
+
+    }
+
+    private boolean waitForReplicationToFinish() throws InterruptedException {
+        int maxTimeToWaitMs = 60 * 1000;
+        int timeWaited = 0;
+        boolean success = true;
+
+        ArrayList<Object> activeTasks = (ArrayList<Object>)send("GET", "/_active_tasks", Status.OK, null);
+        while (activeTasks.size() > 0 || timeWaited > maxTimeToWaitMs) {
+            int timeToWait = 1000;
+            Thread.sleep(timeToWait);
+            activeTasks = (ArrayList<Object>)send("GET", "/_active_tasks", Status.OK, null);
+            timeWaited += timeToWait;
+        }
+
+        if (timeWaited > maxTimeToWaitMs) {
+            success = false;
+        }
+        return success;
+
+
+
 
     }
 
@@ -621,7 +645,8 @@ public class RouterTest extends LiteTestCase {
         Log.v(TAG, "result: " + result);
         assertNotNull(result.get("session_id"));
 
-
+        boolean success = waitForReplicationToFinish();
+        assertTrue(success);
 
     }
 

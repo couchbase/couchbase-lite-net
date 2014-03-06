@@ -348,6 +348,7 @@ namespace Couchbase.Lite
 			NUnit.Framework.Assert.AreEqual(expectedRowsWithDocs, rows);
 		}
 
+		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
 		public virtual void TestViews()
 		{
 			Send("PUT", "/db", Status.Created, null);
@@ -369,7 +370,7 @@ namespace Couchbase.Lite
 			string revID2 = (string)result.Get("rev");
 			Database db = manager.GetDatabase("db");
 			View view = db.GetView("design/view");
-			view.SetMapAndReduce(new _Mapper_372(), null, "1");
+			view.SetMapReduce(new _Mapper_372(), null, "1");
 			// Build up our expected result
 			IDictionary<string, object> row1 = new Dictionary<string, object>();
 			row1.Put("id", "doc1");
@@ -450,19 +451,20 @@ namespace Couchbase.Lite
 			NUnit.Framework.Assert.IsNotNull(bulk_result[1].Get("rev"));
 		}
 
+		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
 		public virtual void TestPostKeysView()
 		{
 			Send("PUT", "/db", Status.Created, null);
 			IDictionary<string, object> result;
 			Database db = manager.GetDatabase("db");
 			View view = db.GetView("design/view");
-			view.SetMapAndReduce(new _Mapper_463(), null, "1");
+			view.SetMapReduce(new _Mapper_463(), null, "1");
 			IDictionary<string, object> key_doc1 = new Dictionary<string, object>();
 			key_doc1.Put("parentId", "12345");
 			result = (IDictionary<string, object>)SendBody("PUT", "/db/key_doc1", key_doc1, Status
 				.Created, null);
 			view = db.GetView("design/view");
-			view.SetMapAndReduce(new _Mapper_475(), null, "1");
+			view.SetMapReduce(new _Mapper_475(), null, "1");
 			IList<object> keys = new AList<object>();
 			keys.AddItem("12345");
 			IDictionary<string, object> bodyObj = new Dictionary<string, object>();
@@ -596,6 +598,30 @@ namespace Couchbase.Lite
 				, "/_replicate", replicateJsonMap, Status.Ok, null);
 			Log.V(Tag, "result: " + result);
 			NUnit.Framework.Assert.IsNotNull(result.Get("session_id"));
+			bool success = WaitForReplicationToFinish();
+			NUnit.Framework.Assert.IsTrue(success);
+		}
+
+		/// <exception cref="System.Exception"></exception>
+		private bool WaitForReplicationToFinish()
+		{
+			int maxTimeToWaitMs = 60 * 1000;
+			int timeWaited = 0;
+			bool success = true;
+			AList<object> activeTasks = (AList<object>)Send("GET", "/_active_tasks", Status.Ok
+				, null);
+			while (activeTasks.Count > 0 || timeWaited > maxTimeToWaitMs)
+			{
+				int timeToWait = 1000;
+				Sharpen.Thread.Sleep(timeToWait);
+				activeTasks = (AList<object>)Send("GET", "/_active_tasks", Status.Ok, null);
+				timeWaited += timeToWait;
+			}
+			if (timeWaited > maxTimeToWaitMs)
+			{
+				success = false;
+			}
+			return success;
 		}
 
 		/// <exception cref="System.Exception"></exception>
@@ -608,6 +634,8 @@ namespace Couchbase.Lite
 				, "/_replicate", replicateJsonMap, Status.Ok, null);
 			Log.V(Tag, "result: " + result);
 			NUnit.Framework.Assert.IsNotNull(result.Get("session_id"));
+			bool success = WaitForReplicationToFinish();
+			NUnit.Framework.Assert.IsTrue(success);
 		}
 	}
 }

@@ -1,7 +1,6 @@
 package com.couchbase.lite;
 
 import com.couchbase.lite.util.Log;
-import com.couchbase.touchdb.TDCollateJSON;
 
 import junit.framework.Assert;
 

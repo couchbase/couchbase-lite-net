@@ -26,16 +26,22 @@ using Sharpen;
 
 namespace Couchbase.Lite
 {
-	/// <summary>Stores information about a revision -- its docID, revID, and whether it's deleted.
-	/// 	</summary>
+	/// <summary>A Couchbase Lite Document Revision.</summary>
 	/// <remarks>
+	/// A Couchbase Lite Document Revision.
 	/// Stores information about a revision -- its docID, revID, and whether it's deleted.
 	/// It can also store the sequence number and document contents (they can be added after creation).
 	/// </remarks>
 	public abstract class Revision
 	{
-		/// <summary>The sequence number of this revision.</summary>
-		/// <remarks>The sequence number of this revision.</remarks>
+		/// <summary>
+		/// re
+		/// The sequence number of this revision.
+		/// </summary>
+		/// <remarks>
+		/// re
+		/// The sequence number of this revision.
+		/// </remarks>
 		protected internal long sequence;
 
 		/// <summary>The document this is a revision of</summary>
@@ -50,12 +56,14 @@ namespace Couchbase.Lite
 		protected internal SavedRevision parentRevision;
 
 		/// <summary>Constructor</summary>
+		/// <exclude></exclude>
 		[InterfaceAudience.Private]
 		internal Revision() : base()
 		{
 		}
 
 		/// <summary>Constructor</summary>
+		/// <exclude></exclude>
 		[InterfaceAudience.Private]
 		protected internal Revision(Document document)
 		{
@@ -88,7 +96,7 @@ namespace Couchbase.Lite
 		/// (In other words, does it have a "_deleted" property?)
 		/// </summary>
 		[InterfaceAudience.Public]
-		internal virtual bool IsDeletion()
+		public virtual bool IsDeletion()
 		{
 			object deleted = GetProperty("_deleted");
 			if (deleted == null)
@@ -181,11 +189,15 @@ namespace Couchbase.Lite
 			return new Attachment(this, name, attachmentMetadata);
 		}
 
+		/// <summary>Gets the parent Revision.</summary>
+		/// <remarks>Gets the parent Revision.</remarks>
 		[InterfaceAudience.Public]
-		public abstract SavedRevision GetParentRevision();
+		public abstract SavedRevision GetParent();
 
+		/// <summary>Gets the parent Revision's id.</summary>
+		/// <remarks>Gets the parent Revision's id.</remarks>
 		[InterfaceAudience.Public]
-		public abstract string GetParentRevisionId();
+		public abstract string GetParentId();
 
 		/// <summary>Returns the history of this document as an array of CBLRevisions, in forward order.
 		/// 	</summary>
@@ -198,6 +210,13 @@ namespace Couchbase.Lite
 		[InterfaceAudience.Public]
 		public abstract IList<SavedRevision> GetRevisionHistory();
 
+		/// <summary>Compare this revision to the given revision to check for equality.</summary>
+		/// <remarks>
+		/// Compare this revision to the given revision to check for equality.
+		/// The comparison makes sure that both revisions have the same revision ID.
+		/// </remarks>
+		/// <param name="the">revision to check for equality against</param>
+		/// <returns>true if equal, false otherwise</returns>
 		[InterfaceAudience.Public]
 		public override bool Equals(object o)
 		{
@@ -214,12 +233,22 @@ namespace Couchbase.Lite
 			return result;
 		}
 
+		/// <summary>Custom hashCode based on the hash code of the Document Id and the Revision Id
+		/// 	</summary>
 		[InterfaceAudience.Public]
 		public override int GetHashCode()
 		{
 			return document.GetId().GetHashCode() ^ GetId().GetHashCode();
 		}
 
+		/// <summary>
+		/// Returns a string representation of this Revision, including the Document Id, the Revision Id
+		/// and whether or not this Revision is a deletion.
+		/// </summary>
+		/// <remarks>
+		/// Returns a string representation of this Revision, including the Document Id, the Revision Id
+		/// and whether or not this Revision is a deletion.
+		/// </remarks>
 		[InterfaceAudience.Public]
 		public override string ToString()
 		{
@@ -227,18 +256,21 @@ namespace Couchbase.Lite
 				string.Empty) + "}";
 		}
 
+		/// <exclude></exclude>
 		[InterfaceAudience.Private]
 		internal virtual IDictionary<string, object> GetAttachmentMetadata()
 		{
 			return (IDictionary<string, object>)GetProperty("_attachments");
 		}
 
+		/// <exclude></exclude>
 		[InterfaceAudience.Private]
 		internal virtual void SetSequence(long sequence)
 		{
 			this.sequence = sequence;
 		}
 
+		/// <exclude></exclude>
 		[InterfaceAudience.Private]
 		internal virtual long GetSequence()
 		{
@@ -250,12 +282,14 @@ namespace Couchbase.Lite
 		/// Generation number: 1 for a new document, 2 for the 2nd revision, ...
 		/// Extracted from the numeric prefix of the revID.
 		/// </remarks>
+		/// <exclude></exclude>
 		[InterfaceAudience.Private]
 		internal virtual int GetGeneration()
 		{
 			return GenerationFromRevID(GetId());
 		}
 
+		/// <exclude></exclude>
 		[InterfaceAudience.Private]
 		internal static int GenerationFromRevID(string revID)
 		{

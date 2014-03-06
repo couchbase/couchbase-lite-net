@@ -1,8 +1,11 @@
 package com.couchbase.lite.replicator;
 
 
+import com.couchbase.lite.Database;
 import com.couchbase.lite.Manager;
+import com.couchbase.lite.util.Log;
 
+import org.apache.http.HttpEntity;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
@@ -35,9 +38,18 @@ public class CustomizableMockHttpClient implements org.apache.http.client.HttpCl
     // capture all request so that the test can verify expected requests were received.
     private List<HttpRequest> capturedRequests = Collections.synchronizedList(new ArrayList<HttpRequest>());
 
+    // if this is set, it will delay responses by this number of milliseconds
+    private long responseDelayMilliseconds;
+
+    // track the number of times consumeContent is called on HttpEntity returned in response (detect resource leaks)
+    private int numberOfEntityConsumeCallbacks;
+
+    // users of this class can subscribe to activity by adding themselves as a response listener
+    private List<ResponseListener> responseListeners;
 
     public CustomizableMockHttpClient() {
         responders = new HashMap<String, Responder>();
+        responseListeners = new ArrayList<ResponseListener>();
         addDefaultResponders();
     }
 
@@ -45,27 +57,25 @@ public class CustomizableMockHttpClient implements org.apache.http.client.HttpCl
         responders.put(urlPattern, responder);
     }
 
+    public void addResponseListener(ResponseListener listener) {
+        responseListeners.add(listener);
+    }
+
+    public void removeResponseListener(ResponseListener listener) {
+        responseListeners.remove(listener);
+    }
+
+    public void setResponseDelayMilliseconds(long responseDelayMilliseconds) {
+        this.responseDelayMilliseconds = responseDelayMilliseconds;
+    }
+
     public void addDefaultResponders() {
-        responders.put("_revs_diff", new Responder() {
-            @Override
-            public HttpResponse execute(HttpUriRequest httpUriRequest) throws IOException {
-                return CustomizableMockHttpClient.fakeRevsDiff(httpUriRequest);
-            }
-        });
 
-        responders.put("_bulk_docs", new Responder() {
-            @Override
-            public HttpResponse execute(HttpUriRequest httpUriRequest) throws IOException {
-                return CustomizableMockHttpClient.fakeBulkDocs(httpUriRequest);
-            }
-        });
+        addResponderRevDiffsAllMissing();
 
-        responders.put("_local", new Responder() {
-            @Override
-            public HttpResponse execute(HttpUriRequest httpUriRequest) throws IOException {
-                return CustomizableMockHttpClient.fakeLocalDocumentUpdate(httpUriRequest);
-            }
-        });
+        addResponderFakeBulkDocs();
+
+        addResponderFakeLocalDocumentUpdateIOException();
 
     }
 
@@ -87,8 +97,92 @@ public class CustomizableMockHttpClient implements org.apache.http.client.HttpCl
         });
     }
 
+    public void addResponderFakeLocalDocumentUpdate404() {
+        responders.put("_local", new CustomizableMockHttpClient.Responder() {
+            @Override
+            public HttpResponse execute(HttpUriRequest httpUriRequest) throws IOException {
+                String json = "{\"error\":\"not_found\",\"reason\":\"missing\"}";
+                return CustomizableMockHttpClient.generateHttpResponseObject(404, "NOT FOUND", json);
+            }
+        });
+    }
+
+    public void addResponderFakeLocalDocumentUpdateIOException() {
+        responders.put("_local", new Responder() {
+            @Override
+            public HttpResponse execute(HttpUriRequest httpUriRequest) throws IOException {
+                return CustomizableMockHttpClient.fakeLocalDocumentUpdateIOException(httpUriRequest);
+            }
+        });
+    }
+
+    public void addResponderFakeBulkDocs() {
+        responders.put("_bulk_docs", new Responder() {
+            @Override
+            public HttpResponse execute(HttpUriRequest httpUriRequest) throws IOException {
+                return CustomizableMockHttpClient.fakeBulkDocs(httpUriRequest);
+            }
+        });
+    }
+
+    public void addResponderRevDiffsAllMissing() {
+        responders.put("_revs_diff", new Responder() {
+            @Override
+            public HttpResponse execute(HttpUriRequest httpUriRequest) throws IOException {
+                return CustomizableMockHttpClient.fakeRevsDiff(httpUriRequest);
+            }
+        });
+
+    }
+
+    public void addResponderRevDiffsSmartResponder() {
+        SmartRevsDiffResponder smartRevsDiffResponder = new SmartRevsDiffResponder();
+        this.addResponseListener(smartRevsDiffResponder);
+        responders.put("_revs_diff", smartRevsDiffResponder);
+    }
+
+
+    public void addResponderReturnInvalidChangesFeedJson() {
+        setResponder("_changes", new CustomizableMockHttpClient.Responder() {
+            @Override
+            public HttpResponse execute(HttpUriRequest httpUriRequest) throws IOException {
+                String json = "{\"results\":[";
+                return CustomizableMockHttpClient.generateHttpResponseObject(json);
+            }
+        });
+    }
+
+    public void clearResponders() {
+        responders = new HashMap<String, Responder>();
+    }
+
+    public void addResponderReturnEmptyChangesFeed() {
+        setResponder("_changes", new CustomizableMockHttpClient.Responder() {
+            @Override
+            public HttpResponse execute(HttpUriRequest httpUriRequest) throws IOException {
+                String json = "{\"results\":[]}";
+                return CustomizableMockHttpClient.generateHttpResponseObject(json);
+            }
+        });
+    }
+
+
     public List<HttpRequest> getCapturedRequests() {
-        return capturedRequests;
+        List<HttpRequest> snapshot = new ArrayList<HttpRequest>();
+        snapshot.addAll(capturedRequests);
+        return snapshot;
+    }
+
+    public void clearCapturedRequests() {
+        capturedRequests.clear();
+    }
+
+    public void recordEntityConsumeCallback() {
+        numberOfEntityConsumeCallbacks += 1;
+    }
+
+    public int getNumberOfEntityConsumeCallbacks() {
+        return numberOfEntityConsumeCallbacks;
     }
 
     @Override
@@ -104,17 +198,21 @@ public class CustomizableMockHttpClient implements org.apache.http.client.HttpCl
     @Override
     public HttpResponse execute(HttpUriRequest httpUriRequest) throws IOException {
 
+        delayResponseIfNeeded();
+
+        Log.d(Database.TAG, "execute() called with request: " + httpUriRequest.getURI().getPath());
         capturedRequests.add(httpUriRequest);
 
         for (String urlPattern : responders.keySet()) {
             if (urlPattern.equals("*") || httpUriRequest.getURI().getPath().contains(urlPattern)) {
                 Responder responder = responders.get(urlPattern);
-                return responder.execute(httpUriRequest);
+                HttpResponse response = responder.execute(httpUriRequest);
+                notifyResponseListeners(httpUriRequest, response);
+                return response;
             }
         }
 
         throw new RuntimeException("No responders matched for url pattern: " + httpUriRequest.getURI().getPath());
-
 
     }
 
@@ -135,7 +233,7 @@ public class CustomizableMockHttpClient implements org.apache.http.client.HttpCl
         }
 
      */
-    public static HttpResponse fakeLocalDocumentUpdate(HttpUriRequest httpUriRequest) throws IOException, ClientProtocolException {
+    public static HttpResponse fakeLocalDocumentUpdateIOException(HttpUriRequest httpUriRequest) throws IOException, ClientProtocolException {
         throw new IOException("Throw exception on purpose for purposes of testSaveRemoteCheckpointNoResponse()");
     }
 
@@ -172,6 +270,8 @@ public class CustomizableMockHttpClient implements org.apache.http.client.HttpCl
      */
     public static HttpResponse fakeBulkDocs(HttpUriRequest httpUriRequest) throws IOException, ClientProtocolException {
 
+        Log.d(Database.TAG, "fakeBulkDocs() called");
+
         Map<String, Object> jsonMap = getJsonMapFromRequest((HttpPost) httpUriRequest);
 
         List<Map<String, Object>> responseList = new ArrayList<Map<String, Object>>();
@@ -181,6 +281,8 @@ public class CustomizableMockHttpClient implements org.apache.http.client.HttpCl
             Map<String, Object> responseListItem = new HashMap<String, Object>();
             responseListItem.put("id", doc.get("_id"));
             responseListItem.put("rev", doc.get("_rev"));
+            Log.d(Database.TAG, "id: " + doc.get("_id"));
+            Log.d(Database.TAG, "rev: " + doc.get("_rev"));
             responseList.add(responseListItem);
         }
 
@@ -237,11 +339,23 @@ public class CustomizableMockHttpClient implements org.apache.http.client.HttpCl
     }
 
     public static HttpResponse generateHttpResponseObject(String responseJson) throws IOException {
+       return generateHttpResponseObject(200, "OK", responseJson);
+    }
+
+    public static HttpResponse generateHttpResponseObject(int statusCode, String statusString, String responseJson) throws IOException {
         DefaultHttpResponseFactory responseFactory = new DefaultHttpResponseFactory();
-        BasicStatusLine statusLine = new BasicStatusLine(HttpVersion.HTTP_1_1, 200, "OK");
+        BasicStatusLine statusLine = new BasicStatusLine(HttpVersion.HTTP_1_1, statusCode, statusString);
         HttpResponse response = responseFactory.newHttpResponse(statusLine, null);
         byte[] responseBytes = responseJson.getBytes();
         response.setEntity(new ByteArrayEntity(responseBytes));
+        return response;
+    }
+
+    public static HttpResponse generateHttpResponseObject(HttpEntity responseEntity) throws IOException {
+        DefaultHttpResponseFactory responseFactory = new DefaultHttpResponseFactory();
+        BasicStatusLine statusLine = new BasicStatusLine(HttpVersion.HTTP_1_1, 200, "OK");
+        HttpResponse response = responseFactory.newHttpResponse(statusLine, null);
+        response.setEntity(responseEntity);
         return response;
     }
 
@@ -252,10 +366,26 @@ public class CustomizableMockHttpClient implements org.apache.http.client.HttpCl
         return response;
     }
 
-    private static Map<String, Object> getJsonMapFromRequest(HttpPost httpUriRequest) throws IOException {
+    public static Map<String, Object> getJsonMapFromRequest(HttpPost httpUriRequest) throws IOException {
         HttpPost post = (HttpPost) httpUriRequest;
         InputStream is =  post.getEntity().getContent();
         return Manager.getObjectMapper().readValue(is, Map.class);
+    }
+
+    private void delayResponseIfNeeded() {
+        if (responseDelayMilliseconds > 0) {
+            try {
+                Thread.sleep(responseDelayMilliseconds);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    private void notifyResponseListeners(HttpUriRequest httpUriRequest, HttpResponse response) {
+        for (ResponseListener listener : responseListeners) {
+            listener.responseSent(httpUriRequest, response);
+        }
     }
 
     @Override
@@ -297,4 +427,75 @@ public class CustomizableMockHttpClient implements org.apache.http.client.HttpCl
         public HttpResponse execute(HttpUriRequest httpUriRequest) throws IOException;
     }
 
+    static interface ResponseListener {
+        public void responseSent(HttpUriRequest httpUriRequest, HttpResponse response);
+    }
+
+    public static ArrayList extractDocsFromBulkDocsPost(HttpRequest capturedRequest) {
+        try {
+            if (capturedRequest instanceof HttpPost) {
+                HttpPost capturedPostRequest = (HttpPost) capturedRequest;
+                if (capturedPostRequest.getURI().getPath().endsWith("_bulk_docs")) {
+                    ByteArrayEntity entity = (ByteArrayEntity) capturedPostRequest.getEntity();
+                    InputStream contentStream = entity.getContent();
+                    Map<String,Object> body = Manager.getObjectMapper().readValue(contentStream, Map.class);
+                    ArrayList docs = (ArrayList) body.get("docs");
+                    return docs;
+                }
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        return null;
+    }
+
+    static class SmartRevsDiffResponder implements Responder, ResponseListener {
+
+        private List<String> docIdsSeen = new ArrayList<String>();
+
+        @Override
+        public void responseSent(HttpUriRequest httpUriRequest, HttpResponse response) {
+            if (httpUriRequest instanceof HttpPost) {
+                HttpPost capturedPostRequest = (HttpPost) httpUriRequest;
+                if (capturedPostRequest.getURI().getPath().endsWith("_bulk_docs")) {
+                    ArrayList docs = extractDocsFromBulkDocsPost(capturedPostRequest);
+                    for (Object docObject : docs) {
+                        Map<String, Object> doc = (Map) docObject;
+                        docIdsSeen.add((String) doc.get("_id"));
+                    }
+                }
+            }
+        }
+
+        /**
+         * Fake _revs_diff responder
+         */
+        @Override
+        public HttpResponse execute(HttpUriRequest httpUriRequest) throws IOException {
+
+            Map<String, Object> jsonMap = getJsonMapFromRequest((HttpPost) httpUriRequest);
+
+            Map<String, Object> responseMap = new HashMap<String, Object>();
+            for (String key : jsonMap.keySet()) {
+                if (docIdsSeen.contains(key)) {
+                    // we were previously pushed this document, so lets not consider it missing
+                    // TODO: this only takes into account document id's, not rev-ids.
+                    Log.d(Database.TAG, "already saw " + key);
+                    continue;
+                }
+                ArrayList value = (ArrayList) jsonMap.get(key);
+                Map<String, Object> missingMap = new HashMap<String, Object>();
+                missingMap.put("missing", value);
+                responseMap.put(key, missingMap);
+            }
+
+            HttpResponse response = generateHttpResponseObject(responseMap);
+            return response;
+        }
+    }
+
+
+
+
 }
+

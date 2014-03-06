@@ -16,26 +16,34 @@
 
 package com.couchbase.lite.storage;
 
-import java.util.Properties;
+
+import com.couchbase.lite.Database;
+import com.couchbase.lite.util.Log;
+import com.couchbase.lite.util.TextUtils;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URL;
 import java.util.ServiceLoader;
 
 public class SQLiteStorageEngineFactory {
+
     public static SQLiteStorageEngine createStorageEngine() {
-        // Attempt to load a Storage Engine service.
-        for (SQLiteStorageEngine storageEngine : ServiceLoader.load(SQLiteStorageEngine.class)) {
+
+        String classname = "";
+        String resource = "services/com.couchbase.lite.storage.SQLiteStorageEngine";
+
+        try {
+            InputStream inputStream = Thread.currentThread().getContextClassLoader().getResourceAsStream(resource);
+            byte[] bytes = TextUtils.read(inputStream);
+            classname = new String(bytes);
+            Log.d(Database.TAG, "Loading storage engine: " + classname);
+            Class clazz = Class.forName(classname);
+            SQLiteStorageEngine storageEngine = (SQLiteStorageEngine) clazz.newInstance();
             return storageEngine;
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to load storage.  Resource: " + resource + " classname: " + classname, e);
         }
 
-        // Attempt to load a Storage Engine based on runtime.
-        Properties properties = System.getProperties();
-        String runtime = properties.getProperty("java.runtime.name");
-        if (runtime != null) {
-            if (runtime.toLowerCase().contains("android")) {
-                return new AndroidSQLiteStorageEngine();
-            }
-        }
-
-        // No Storage Engine found so return null.
-        return null;
     }
 }

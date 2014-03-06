@@ -24,8 +24,16 @@ using Sharpen;
 
 namespace Couchbase.Lite
 {
+	/// <summary>A delegate that can be invoked to compile source code into a ReplicationFilter.
+	/// 	</summary>
+	/// <remarks>A delegate that can be invoked to compile source code into a ReplicationFilter.
+	/// 	</remarks>
 	public interface ReplicationFilterCompiler
 	{
+		/// <summary>Compile Filter Function</summary>
+		/// <param name="source">The source code to compile into a ReplicationFilter.</param>
+		/// <param name="language">The language of the source.</param>
+		/// <returns>A compiled ReplicationFilter.</returns>
 		ReplicationFilter CompileFilterFunction(string source, string language);
 	}
 }

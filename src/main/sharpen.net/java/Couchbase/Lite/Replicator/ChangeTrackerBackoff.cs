@@ -27,6 +27,7 @@ using Sharpen;
 
 namespace Couchbase.Lite.Replicator
 {
+	/// <exclude></exclude>
 	public class ChangeTrackerBackoff
 	{
 		private static int MaxSleepMilliseconds = 5 * 60 * 1000;
@@ -70,6 +71,11 @@ namespace Couchbase.Lite.Replicator
 		private void IncreaseBackoff()
 		{
 			numAttempts += 1;
+		}
+
+		public virtual int GetNumAttempts()
+		{
+			return numAttempts;
 		}
 	}
 }

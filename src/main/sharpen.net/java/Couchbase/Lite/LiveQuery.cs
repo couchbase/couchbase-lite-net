@@ -34,11 +34,9 @@ namespace Couchbase.Lite
 	/// A Query subclass that automatically refreshes the result rows every time the database changes.
 	/// All you need to do is use add a listener to observe changes.
 	/// </remarks>
-	public class LiveQuery : Query, Database.ChangeListener
+	public sealed class LiveQuery : Query, Database.ChangeListener
 	{
 		private bool observing;
-
-		private bool willUpdate;
 
 		private QueryEnumerator rows;
 
@@ -47,10 +45,35 @@ namespace Couchbase.Lite
 
 		private Exception lastError;
 
+		private AtomicBoolean runningState;
+
+		/// <summary>
+		/// If a query is running and the user calls stop() on this query, the future
+		/// will be used in order to cancel the query in progress.
+		/// </summary>
+		/// <remarks>
+		/// If a query is running and the user calls stop() on this query, the future
+		/// will be used in order to cancel the query in progress.
+		/// </remarks>
+		protected internal Future queryFuture;
+
+		/// <summary>
+		/// If the update() method is called while a query is in progress, once it is
+		/// finished it will be scheduled to re-run update().
+		/// </summary>
+		/// <remarks>
+		/// If the update() method is called while a query is in progress, once it is
+		/// finished it will be scheduled to re-run update().  This tracks the future
+		/// related to that scheduled task.
+		/// </remarks>
+		protected internal Future rerunUpdateFuture;
+
 		/// <summary>Constructor</summary>
 		[InterfaceAudience.Private]
 		internal LiveQuery(Query query) : base(query.GetDatabase(), query.GetView())
 		{
+			// true == running, false == stopped
+			runningState = new AtomicBoolean(false);
 			SetLimit(query.GetLimit());
 			SetSkip(query.GetSkip());
 			SetStartKey(query.GetStartKey());
@@ -69,20 +92,31 @@ namespace Couchbase.Lite
 		/// 	</summary>
 		/// <remarks>
 		/// Sends the query to the server and returns an enumerator over the result rows (Synchronous).
-		/// Note: In a CBLLiveQuery you should add a ChangeListener and call start() instead.
+		/// Note: In a LiveQuery you should consider adding a ChangeListener and calling start() instead.
 		/// </remarks>
 		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
 		[InterfaceAudience.Public]
 		public override QueryEnumerator Run()
 		{
-			try
+			while (true)
 			{
-				WaitForRows();
-			}
-			catch (Exception e)
-			{
-				lastError = e;
-				throw new CouchbaseLiteException(e, Status.InternalServerError);
+				try
+				{
+					WaitForRows();
+					break;
+				}
+				catch (Exception e)
+				{
+					if (e is CancellationException)
+					{
+						continue;
+					}
+					else
+					{
+						lastError = e;
+						throw new CouchbaseLiteException(e, Status.InternalServerError);
+					}
+				}
 			}
 			if (rows == null)
 			{
@@ -100,7 +134,7 @@ namespace Couchbase.Lite
 		/// <remarks>Returns the last error, if any, that occured while executing the Query, otherwise null.
 		/// 	</remarks>
 		[InterfaceAudience.Public]
-		public virtual Exception GetLastError()
+		public Exception GetLastError()
 		{
 			return lastError;
 		}
@@ -111,12 +145,24 @@ namespace Couchbase.Lite
 		/// usually don't need to call this yourself, since calling getRows() will start it for you
 		/// </remarks>
 		[InterfaceAudience.Public]
-		public virtual void Start()
+		public void Start()
 		{
+			if (runningState.Get() == true)
+			{
+				Log.D(Database.Tag, this + ": start() called, but runningState is already true.  Ignoring."
+					);
+				return;
+			}
+			else
+			{
+				Log.D(Database.Tag, this + ": start() called");
+				runningState.Set(true);
+			}
 			if (!observing)
 			{
 				observing = true;
 				GetDatabase().AddChangeListener(this);
+				Log.D(Database.Tag, this + ": start() is calling update()");
 				Update();
 			}
 		}
@@ -125,42 +171,77 @@ namespace Couchbase.Lite
 		/// <remarks>Stops observing database changes. Calling start() or rows() will restart it.
 		/// 	</remarks>
 		[InterfaceAudience.Public]
-		public virtual void Stop()
+		public void Stop()
 		{
+			if (runningState.Get() == false)
+			{
+				Log.D(Database.Tag, this + ": stop() called, but runningState is already false.  Ignoring."
+					);
+				return;
+			}
+			else
+			{
+				Log.D(Database.Tag, this + ": stop() called");
+				runningState.Set(false);
+			}
 			if (observing)
 			{
 				observing = false;
 				GetDatabase().RemoveChangeListener(this);
 			}
-			if (willUpdate)
+			// slight diversion from iOS version -- cancel the queryFuture
+			// regardless of the willUpdate value, since there can be an update in flight
+			// with willUpdate set to false.  was needed to make testLiveQueryStop() unit test pass.
+			if (queryFuture != null)
 			{
-				SetWillUpdate(false);
-				updateQueryFuture.Cancel(true);
+				bool cancelled = queryFuture.Cancel(true);
+				Log.D(Database.Tag, this + ": cancelled queryFuture " + queryFuture + ", returned: "
+					 + cancelled);
+			}
+			else
+			{
+				Log.D(Database.Tag, this + ": not cancelling queryFuture, since it is null");
+			}
+			if (rerunUpdateFuture != null)
+			{
+				bool cancelled = rerunUpdateFuture.Cancel(true);
+				Log.D(Database.Tag, this + ": cancelled rerunUpdateFuture " + rerunUpdateFuture +
+					 ", returned: " + cancelled);
+			}
+			else
+			{
+				Log.D(Database.Tag, this + ": not cancelling rerunUpdateFuture, since it is null"
+					);
 			}
 		}
 
 		/// <summary>Blocks until the intial async query finishes.</summary>
 		/// <remarks>Blocks until the intial async query finishes. After this call either .rows or .error will be non-nil.
 		/// 	</remarks>
-		/// <exception cref="System.Exception"></exception>
-		/// <exception cref="Sharpen.ExecutionException"></exception>
+		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
 		[InterfaceAudience.Public]
-		public virtual void WaitForRows()
+		public void WaitForRows()
 		{
 			Start();
-			try
+			while (true)
 			{
-				updateQueryFuture.Get();
-			}
-			catch (Exception e)
-			{
-				Log.E(Database.Tag, "Got interrupted exception waiting for rows", e);
-				throw;
-			}
-			catch (ExecutionException e)
-			{
-				Log.E(Database.Tag, "Got execution exception waiting for rows", e);
-				throw;
+				try
+				{
+					queryFuture.Get();
+					break;
+				}
+				catch (Exception e)
+				{
+					if (e is CancellationException)
+					{
+						continue;
+					}
+					else
+					{
+						lastError = e;
+						throw new CouchbaseLiteException(e, Status.InternalServerError);
+					}
+				}
 			}
 		}
 
@@ -168,7 +249,7 @@ namespace Couchbase.Lite
 		/// <remarks>Gets the results of the Query. The value will be null until the initial Query completes.
 		/// 	</remarks>
 		[InterfaceAudience.Public]
-		public virtual QueryEnumerator GetRows()
+		public QueryEnumerator GetRows()
 		{
 			Start();
 			if (rows == null)
@@ -191,14 +272,14 @@ namespace Couchbase.Lite
 		/// set changes.
 		/// </remarks>
 		[InterfaceAudience.Public]
-		public virtual void AddChangeListener(LiveQuery.ChangeListener changeListener)
+		public void AddChangeListener(LiveQuery.ChangeListener changeListener)
 		{
 			observers.AddItem(changeListener);
 		}
 
 		/// <summary>Remove previously added change listener</summary>
 		[InterfaceAudience.Public]
-		public virtual void RemoveChangeListener(LiveQuery.ChangeListener changeListener)
+		public void RemoveChangeListener(LiveQuery.ChangeListener changeListener)
 		{
 			observers.Remove(changeListener);
 		}
@@ -252,19 +333,45 @@ namespace Couchbase.Lite
 		}
 
 		[InterfaceAudience.Private]
-		internal virtual void Update()
+		internal void Update()
 		{
+			Log.D(Database.Tag, this + ": update() called.");
 			if (GetView() == null)
 			{
 				throw new InvalidOperationException("Cannot start LiveQuery when view is null");
 			}
-			SetWillUpdate(false);
-			updateQueryFuture = RunAsyncInternal(new _QueryCompleteListener_202(this));
+			if (runningState.Get() == false)
+			{
+				Log.D(Database.Tag, this + ": update() called, but running state == false.  Ignoring."
+					);
+				return;
+			}
+			if (queryFuture != null && !queryFuture.IsCancelled() && !queryFuture.IsDone())
+			{
+				// There is a already a query in flight, so leave it alone except to schedule something
+				// to run update() again once it finishes.
+				Log.D(Database.Tag, this + ": already a query in flight, scheduling call to update() once it's done"
+					);
+				if (rerunUpdateFuture != null && !rerunUpdateFuture.IsCancelled() && !rerunUpdateFuture
+					.IsDone())
+				{
+					bool cancelResult = rerunUpdateFuture.Cancel(true);
+					Log.D(Database.Tag, this + ": cancelled " + rerunUpdateFuture + " result: " + cancelResult
+						);
+				}
+				rerunUpdateFuture = RerunUpdateAfterQueryFinishes();
+				Log.D(Database.Tag, this + ": created new rerunUpdateFuture: " + rerunUpdateFuture
+					);
+				return;
+			}
+			// No query in flight, so kick one off
+			queryFuture = RunAsyncInternal(new _QueryCompleteListener_285(this));
+			Log.D(Database.Tag, this + ": update() created queryFuture: " + queryFuture);
 		}
 
-		private sealed class _QueryCompleteListener_202 : Query.QueryCompleteListener
+		private sealed class _QueryCompleteListener_285 : Query.QueryCompleteListener
 		{
-			public _QueryCompleteListener_202(LiveQuery _enclosing)
+			public _QueryCompleteListener_285(LiveQuery _enclosing)
 			{
 				this._enclosing = _enclosing;
 			}
@@ -286,6 +393,8 @@ namespace Couchbase.Lite
 						this._enclosing.SetRows(rowsParam);
 						foreach (LiveQuery.ChangeListener observer in this._enclosing.observers)
 						{
+							Log.D(Database.Tag, this._enclosing + ": update() calling back observer with rows"
+								);
 							observer.Changed(new LiveQuery.ChangeEvent(this._enclosing, this._enclosing.rows)
 								);
 						}
@@ -297,14 +406,66 @@ namespace Couchbase.Lite
 			private readonly LiveQuery _enclosing;
 		}
 
-		[InterfaceAudience.Private]
-		public virtual void Changed(Database.ChangeEvent @event)
+		/// <summary>
+		/// kick off async task that will wait until the query finishes, and after it
+		/// does, it will run upate() again in case the current query in flight misses
+		/// some of the recently added items.
+		/// </summary>
+		/// <remarks>
+		/// kick off async task that will wait until the query finishes, and after it
+		/// does, it will run upate() again in case the current query in flight misses
+		/// some of the recently added items.
+		/// </remarks>
+		private Future RerunUpdateAfterQueryFinishes()
 		{
-			if (!willUpdate)
+			return GetDatabase().GetManager().RunAsync(new _Runnable_315(this));
+		}
+
+		private sealed class _Runnable_315 : Runnable
+		{
+			public _Runnable_315(LiveQuery _enclosing)
 			{
-				SetWillUpdate(true);
-				Update();
+				this._enclosing = _enclosing;
 			}
+
+			public void Run()
+			{
+				if (this._enclosing.runningState.Get() == false)
+				{
+					Log.D(Database.Tag, this + ": rerunUpdateAfterQueryFinishes.run() fired, but running state == false.  Ignoring."
+						);
+					return;
+				}
+				if (this._enclosing.queryFuture != null)
+				{
+					try
+					{
+						this._enclosing.queryFuture.Get();
+						this._enclosing.Update();
+					}
+					catch (Exception e)
+					{
+						if (e is CancellationException)
+						{
+						}
+						else
+						{
+							// can safely ignore these
+							Log.E(Database.Tag, "Got exception waiting for queryFuture to finish", e);
+						}
+					}
+				}
+			}
+
+			private readonly LiveQuery _enclosing;
+		}
+
+		/// <exclude></exclude>
+		[InterfaceAudience.Private]
+		public void Changed(Database.ChangeEvent @event)
+		{
+			Log.D(Database.Tag, this + ": changed() called");
+			Update();
 		}
 
 		[InterfaceAudience.Private]
@@ -313,15 +474,6 @@ namespace Couchbase.Lite
 			lock (this)
 			{
 				rows = queryEnumerator;
-			}
-		}
-
-		[InterfaceAudience.Private]
-		private void SetWillUpdate(bool willUpdateParam)
-		{
-			lock (this)
-			{
-				willUpdate = willUpdateParam;
 			}
 		}
 	}

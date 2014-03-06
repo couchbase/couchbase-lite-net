@@ -175,6 +175,10 @@ namespace Couchbase.Lite.Internal
 		public virtual object GetPropertyForKey(string key)
 		{
 			IDictionary<string, object> theProperties = GetProperties();
+			if (theProperties == null)
+			{
+				return null;
+			}
 			return theProperties.Get(key);
 		}
 	}
