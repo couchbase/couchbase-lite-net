@@ -68,7 +68,9 @@ namespace Couchbase.Lite.Storage
         {
             // Ensure Sqlite provider uses our custom collation function
             // that works directly on JSON encoded functions.
-            SqliteFunction.RegisterFunction(typeof(CouchbaseSqliteCollationFunction));
+            SqliteFunction.RegisterFunction(typeof(CouchbaseSqliteUnicodeCollationFunction));
+            SqliteFunction.RegisterFunction(typeof(CouchbaseSqliteAsciiCollationFunction));
+            SqliteFunction.RegisterFunction(typeof(CouchbaseSqliteRawCollationFunction));
         }
 
         private const String Tag = "MonoSQLiteStorageEngine";
