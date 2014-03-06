@@ -1125,6 +1125,12 @@ public abstract class Replication {
 
     @InterfaceAudience.Private
     private void stopRemoteRequests() {
+
+        if (remoteRequestExecutor == null) {
+            Log.w(Database.TAG, this + " stopRemoteRequests() called, but remoteRequestExecutor == null.  Ignoring.");
+            return;
+        }
+
         int timeoutSeconds = 30;
         List<Runnable> inProgress = remoteRequestExecutor.shutdownNow();
         Log.d(Database.TAG, this + " stopped remoteRequestExecutor. " + inProgress.size() + " remote requests in progress.  Awaiting termination with timeout: " + timeoutSeconds);
