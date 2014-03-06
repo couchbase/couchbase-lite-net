@@ -6,8 +6,7 @@ import java.util.Iterator;
 import java.util.List;
 
 /**
- * Enumerator on a Query's result rows.
- * The objects returned are instances of QueryRow.
+ * An enumerator for Couchbase Lite View Query results.
  */
 public class QueryEnumerator implements Iterator<QueryRow> {
 
@@ -78,7 +77,14 @@ public class QueryEnumerator implements Iterator<QueryRow> {
         return rows.get(index);
     }
 
-
+    /**
+     * Compare this to given QueryEnumerator to check if equals.
+     * This compares the underlying rows of the two QueryEnumerator instances.
+     *
+     * @param o
+     *            the QueryEnumerator to compare this instance with.
+     * @return true if equal, false otherwise.
+     */
     @Override
     @InterfaceAudience.Public
     public boolean equals(Object o) {

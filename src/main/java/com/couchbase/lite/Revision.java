@@ -8,13 +8,16 @@ import java.util.List;
 import java.util.Map;
 
 /**
+ *
+ * A Couchbase Lite Document Revision.
+ *
  * Stores information about a revision -- its docID, revID, and whether it's deleted.
  *
  * It can also store the sequence number and document contents (they can be added after creation).
  */
 public abstract class Revision {
 
-    /**
+    /**re
      * The sequence number of this revision.
      */
     protected long sequence;
@@ -36,6 +39,7 @@ public abstract class Revision {
 
     /**
      * Constructor
+     * @exclude
      */
     @InterfaceAudience.Private
     Revision() {
@@ -44,6 +48,7 @@ public abstract class Revision {
 
     /**
      * Constructor
+     * @exclude
      */
     @InterfaceAudience.Private
     protected Revision(Document document) {
@@ -69,7 +74,6 @@ public abstract class Revision {
     /**
      * Gets the Revision's id.
      */
-
     @InterfaceAudience.Public
     public abstract String getId();
 
@@ -79,7 +83,7 @@ public abstract class Revision {
      * (In other words, does it have a "_deleted" property?)
      */
     @InterfaceAudience.Public
-    boolean isDeletion() {
+    public boolean isDeletion() {
         Object deleted = getProperty("_deleted");
         if (deleted == null) {
             return false;
@@ -166,11 +170,17 @@ public abstract class Revision {
         return new Attachment(this, name, attachmentMetadata);
     }
 
+    /**
+     * Gets the parent Revision.
+     */
     @InterfaceAudience.Public
-    public abstract SavedRevision getParentRevision();
+    public abstract SavedRevision getParent();
 
+    /**
+     * Gets the parent Revision's id.
+     */
     @InterfaceAudience.Public
-    public abstract String getParentRevisionId();
+    public abstract String getParentId();
 
     /**
      * Returns the history of this document as an array of CBLRevisions, in forward order.
@@ -181,6 +191,13 @@ public abstract class Revision {
     @InterfaceAudience.Public
     public abstract List<SavedRevision> getRevisionHistory() throws CouchbaseLiteException;
 
+    /**
+     * Compare this revision to the given revision to check for equality.
+     * The comparison makes sure that both revisions have the same revision ID.
+     *
+     * @param the revision to check for equality against
+     * @return true if equal, false otherwise
+     */
     @Override
     @InterfaceAudience.Public
     public boolean equals(Object o) {
@@ -194,28 +211,44 @@ public abstract class Revision {
         return result;
     }
 
+    /**
+     * Custom hashCode based on the hash code of the Document Id and the Revision Id
+     */
     @Override
     @InterfaceAudience.Public
     public int hashCode() {
         return document.getId().hashCode() ^ getId().hashCode();
     }
 
+    /**
+     * Returns a string representation of this Revision, including the Document Id, the Revision Id
+     * and whether or not this Revision is a deletion.
+     */
     @Override
     @InterfaceAudience.Public
     public String toString() {
         return "{" + this.document.getId() + " #" + this.getId() + (isDeletion() ? "DEL" : "") + "}";
     }
 
+    /**
+     * @exclude
+     */
     @InterfaceAudience.Private
     /* package */ Map<String, Object> getAttachmentMetadata() {
         return (Map<String, Object>) getProperty("_attachments");
     }
 
+    /**
+     * @exclude
+     */
     @InterfaceAudience.Private
     /* package */ void setSequence(long sequence) {
         this.sequence = sequence;
     }
 
+    /**
+     * @exclude
+     */
     @InterfaceAudience.Private
     /* package */ long getSequence() {
         return sequence;
@@ -224,12 +257,16 @@ public abstract class Revision {
     /**
      * Generation number: 1 for a new document, 2 for the 2nd revision, ...
      * Extracted from the numeric prefix of the revID.
+     * @exclude
      */
     @InterfaceAudience.Private
     /* package */ int getGeneration() {
         return generationFromRevID(getId());
     }
 
+    /**
+     * @exclude
+     */
     @InterfaceAudience.Private
     /* package */ static int generationFromRevID(String revID) {
         int generation = 0;

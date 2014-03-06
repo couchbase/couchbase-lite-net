@@ -201,9 +201,15 @@ public class QueryRow {
     }
 
     /**
-     * This is used implicitly by -[LiveQuery update] to decide whether the query result has changed
-     * enough to notify the client. So it's important that it not give false positives, else the app
-     * won't get notified of changes.
+     * Compare this against the given QueryRow for equality.
+     *
+     * Implentation Note: This is used implicitly by -[LiveQuery update] to decide whether
+     * the query result has changed enough to notify the client. So it's important that it
+     * not give false positives, else the app won't get notified of changes.
+     *
+     * @param o
+     *            the QueryRow to compare this instance with.
+     * @return true if equal, false otherwise.
      */
     @Override
     @InterfaceAudience.Public
@@ -240,6 +246,12 @@ public class QueryRow {
         return false;
     }
 
+    /**
+     * Return a string representation of this QueryRow.
+     * The string is returned in JSON format.
+     *
+     * @return the JSON string representing this QueryRow
+     */
     @Override
     @InterfaceAudience.Public
     public String toString() {
@@ -247,10 +259,13 @@ public class QueryRow {
     }
 
     @InterfaceAudience.Private
-    void setDatabase(Database database) {
+    /* package */ void setDatabase(Database database) {
         this.database = database;
     }
 
+    /**
+     * @exclude
+     */
     @InterfaceAudience.Private
     public Map<String, Object> asJSONDictionary() {
         Map<String, Object> result = new HashMap<String, Object>();

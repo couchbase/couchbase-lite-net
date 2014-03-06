@@ -16,26 +16,39 @@
 
 package com.couchbase.lite.util;
 
-import java.util.Properties;
-import java.util.ServiceLoader;
+import com.couchbase.lite.Database;
+
+import java.io.InputStream;
 
 public class LoggerFactory {
+
     public static Logger createLogger() {
-        // Attempt to load a Logger service.
-        for (Logger logger : ServiceLoader.load(Logger.class)) {
-            return logger;
-        }
 
-        // Choose Logger based on runtime.
-        Properties properties = System.getProperties();
-        String runtime = properties.getProperty("java.runtime.name");
-        if (runtime != null) {
-            if (runtime.toLowerCase().contains("android")) {
-                return new AndroidLogger();
+        String classname = "";
+        String resource = "services/com.couchbase.lite.util.Logger";
+
+        try {
+            InputStream inputStream = Thread.currentThread().getContextClassLoader().getResourceAsStream(resource);
+            if (inputStream == null) {
+                // Return default System logger.
+                Log.d(Database.TAG, "Unable to load " + resource + " falling back to SystemLogger");
+                return new SystemLogger();
             }
+            byte[] bytes = TextUtils.read(inputStream);
+            classname = new String(bytes);
+            if (classname == null || classname.isEmpty()) {
+                // Return default System logger.
+                Log.d(Database.TAG, "Unable to load " + resource + " falling back to SystemLogger");
+                return new SystemLogger();
+            }
+            Log.d(Database.TAG, "Loading logger: " + classname);
+            Class clazz = Class.forName(classname);
+            Logger logger = (Logger) clazz.newInstance();
+            return logger;
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to logger.  Resource: " + resource + " classname: " + classname, e);
         }
 
-        // Return default System logger.
-        return new SystemLogger();
+
     }
 }

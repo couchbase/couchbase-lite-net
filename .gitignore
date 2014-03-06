@@ -109,3 +109,16 @@ UpgradeLog*.XML
 /build/
 *.iml
 /src/instrumentTest/assets/local-test.properties
+.DS_Store
+*.class
+local.properties
+/.gradle/
+\#*
+*~
+.#*
+\#*\#
+*.class
+.idea
+.gradle
+
+

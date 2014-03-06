@@ -6,6 +6,9 @@ import java.util.UUID;
 
 import com.couchbase.lite.util.Log;
 
+/**
+ * @exclude
+ */
 public class Misc {
 
     public static String TDCreateUUID() {

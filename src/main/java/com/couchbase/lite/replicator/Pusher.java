@@ -2,6 +2,7 @@ package com.couchbase.lite.replicator;
 
 import com.couchbase.lite.BlobKey;
 import com.couchbase.lite.BlobStore;
+import com.couchbase.lite.ChangesOptions;
 import com.couchbase.lite.CouchbaseLiteException;
 import com.couchbase.lite.Database;
 import com.couchbase.lite.DocumentChange;
@@ -30,10 +31,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ScheduledExecutorService;
 
+/**
+ * @exclude
+ */
 @InterfaceAudience.Private
-public class Pusher extends Replication implements Database.ChangeListener {
+public final class Pusher extends Replication implements Database.ChangeListener {
 
-    private boolean shouldCreateTarget;
+    private boolean createTarget;
+    private boolean creatingTarget;
     private boolean observing;
     private ReplicationFilter filter;
 
@@ -51,7 +56,7 @@ public class Pusher extends Replication implements Database.ChangeListener {
     @InterfaceAudience.Private
     /* package */ public Pusher(Database db, URL remote, boolean continuous, HttpClientFactory clientFactory, ScheduledExecutorService workExecutor) {
         super(db, remote, continuous, clientFactory, workExecutor);
-        shouldCreateTarget = false;
+        createTarget = false;
         observing = false;
     }
 
@@ -64,13 +69,13 @@ public class Pusher extends Replication implements Database.ChangeListener {
     @Override
     @InterfaceAudience.Public
     public boolean shouldCreateTarget() {
-        return shouldCreateTarget;
+        return createTarget;
     }
 
     @Override
     @InterfaceAudience.Public
     public void setCreateTarget(boolean createTarget) {
-        this.shouldCreateTarget = createTarget;
+        this.createTarget = createTarget;
     }
 
 
@@ -84,22 +89,33 @@ public class Pusher extends Replication implements Database.ChangeListener {
     @Override
     @InterfaceAudience.Private
     void maybeCreateRemoteDB() {
-        if(!shouldCreateTarget) {
+        if(!createTarget) {
             return;
         }
+        creatingTarget = true;
         Log.v(Database.TAG, "Remote db might not exist; creating it...");
+        Log.d(Database.TAG, this + "|" + Thread.currentThread() + ": maybeCreateRemoteDB() calling asyncTaskStarted()");
+
+        asyncTaskStarted();
         sendAsyncRequest("PUT", "", null, new RemoteRequestCompletionBlock() {
 
             @Override
             public void onCompletion(Object result, Throwable e) {
-                if(e != null && e instanceof HttpResponseException && ((HttpResponseException)e).getStatusCode() != 412) {
-                    Log.v(Database.TAG, "Unable to create remote db (normal if using sync gateway)");
-                } else {
-                    Log.v(Database.TAG, "Created remote db");
-
+                try {
+                    creatingTarget = false;
+                    if(e != null && e instanceof HttpResponseException && ((HttpResponseException)e).getStatusCode() != 412) {
+                        Log.e(Database.TAG, this + ": Failed to create remote db", e);
+                        setError(e);
+                        stop();  // this is fatal: no db to push to!
+                    } else {
+                        Log.v(Database.TAG, this + ": Created remote db");
+                        createTarget = false;
+                        beginReplicating();
+                    }
+                } finally {
+                    Log.d(Database.TAG, this + "|" + Thread.currentThread() + ": maybeCreateRemoteDB.onComplete() calling asyncTaskFinished()");
+                    asyncTaskFinished(1);
                 }
-                shouldCreateTarget = false;
-                beginReplicating();
             }
 
         });
@@ -110,8 +126,13 @@ public class Pusher extends Replication implements Database.ChangeListener {
     public void beginReplicating() {
         // If we're still waiting to create the remote db, do nothing now. (This method will be
         // re-invoked after that request finishes; see maybeCreateRemoteDB() above.)
-        if(shouldCreateTarget) {
+        Log.d(Database.TAG, this + "|" + Thread.currentThread() + ": beginReplicating() called");
+
+        if(creatingTarget) {
+            Log.d(Database.TAG, this + "|" + Thread.currentThread() + ": creatingTarget == true, doing nothing");
             return;
+        } else {
+            Log.d(Database.TAG, this + "|" + Thread.currentThread() + ": creatingTarget != true, continuing");
         }
 
         if(filterName != null) {
@@ -126,15 +147,20 @@ public class Pusher extends Replication implements Database.ChangeListener {
         if(lastSequence != null) {
             lastSequenceLong = Long.parseLong(lastSequence);
         }
-        RevisionList changes = db.changesSince(lastSequenceLong, null, filter);
+        ChangesOptions options = new ChangesOptions();
+        options.setIncludeConflicts(true);
+        RevisionList changes = db.changesSince(lastSequenceLong, options, filter);
         if(changes.size() > 0) {
-            processInbox(changes);
+            batcher.queueObjects(changes);
+            batcher.flush();
         }
 
         // Now listen for future changes (in continuous mode):
         if(continuous) {
             observing = true;
             db.addChangeListener(this);
+            Log.d(Database.TAG, this + "|" + Thread.currentThread() + ": pusher.beginReplicating() calling asyncTaskStarted()");
+
             asyncTaskStarted();  // prevents stopped() from being called when other tasks finish
         }
     }
@@ -143,9 +169,14 @@ public class Pusher extends Replication implements Database.ChangeListener {
     @InterfaceAudience.Private
     private void stopObserving() {
         if(observing) {
-            observing = false;
-            db.removeChangeListener(this);
-            asyncTaskFinished(1);
+            try {
+                observing = false;
+                db.removeChangeListener(this);
+            } finally {
+                Log.d(Database.TAG, this + "|" + Thread.currentThread() + ": stopObserving() calling asyncTaskFinished()");
+                asyncTaskFinished(1);
+            }
+
         }
     }
 
@@ -175,6 +206,7 @@ public class Pusher extends Replication implements Database.ChangeListener {
     protected void processInbox(final RevisionList inbox) {
         final long lastInboxSequence = inbox.get(inbox.size()-1).getSequence();
         // Generate a set of doc/rev IDs in the JSON format that _revs_diff wants:
+        // <http://wiki.apache.org/couchdb/HttpPostRevsDiff>
         Map<String,List<String>> diffs = new HashMap<String,List<String>>();
         for (RevisionInternal rev : inbox) {
             String docID = rev.getDocId();
@@ -187,93 +219,116 @@ public class Pusher extends Replication implements Database.ChangeListener {
         }
 
         // Call _revs_diff on the target db:
+        Log.d(Database.TAG, this + "|" + Thread.currentThread() + ": processInbox() calling asyncTaskStarted()");
+        Log.d(Database.TAG, this + "|" + Thread.currentThread() + ": posting to /_revs_diff: " + diffs);
+
         asyncTaskStarted();
         sendAsyncRequest("POST", "/_revs_diff", diffs, new RemoteRequestCompletionBlock() {
 
             @Override
             public void onCompletion(Object response, Throwable e) {
 
-                Map<String,Object> results = (Map<String,Object>)response;
-                if(e != null) {
-                    error = e;
-                    stop();
-                } else if(results.size() != 0) {
-                    // Go through the list of local changes again, selecting the ones the destination server
-                    // said were missing and mapping them to a JSON dictionary in the form _bulk_docs wants:
-                    List<Object> docsToSend = new ArrayList<Object>();
-                    for(RevisionInternal rev : inbox) {
-                        Map<String,Object> properties = null;
-                        Map<String,Object> resultDoc = (Map<String,Object>)results.get(rev.getDocId());
-                        if(resultDoc != null) {
-                            List<String> revs = (List<String>)resultDoc.get("missing");
-                            if(revs != null && revs.contains(rev.getRevId())) {
-                                //remote server needs this revision
-                                // Get the revision's properties
-                                if(rev.isDeleted()) {
-                                    properties = new HashMap<String,Object>();
-                                    properties.put("_id", rev.getDocId());
-                                    properties.put("_rev", rev.getRevId());
-                                    properties.put("_deleted", true);
-                                } else {
-                                    // OPT: Shouldn't include all attachment bodies, just ones that have changed
-                                    EnumSet<Database.TDContentOptions> contentOptions = EnumSet.of(
-                                            Database.TDContentOptions.TDIncludeAttachments,
-                                            Database.TDContentOptions.TDBigAttachmentsFollow
-                                    );
+                try {
+                    Log.d(Database.TAG, this + "|" + Thread.currentThread() + ": /_revs_diff response: " + response);
+                    Map<String,Object> results = (Map<String,Object>)response;
+                    if(e != null) {
+                        setError(e);
+                        revisionFailed();
+                    } else if(results.size() != 0) {
+                        // Go through the list of local changes again, selecting the ones the destination server
+                        // said were missing and mapping them to a JSON dictionary in the form _bulk_docs wants:
+                        final List<Object> docsToSend = new ArrayList<Object>();
+                        for(RevisionInternal rev : inbox) {
+                            Map<String,Object> properties = null;
+                            Map<String,Object> resultDoc = (Map<String,Object>)results.get(rev.getDocId());
+                            if(resultDoc != null) {
+                                List<String> revs = (List<String>)resultDoc.get("missing");
+                                if(revs != null && revs.contains(rev.getRevId())) {
+                                    //remote server needs this revision
+                                    // Get the revision's properties
+                                    if(rev.isDeleted()) {
+                                        properties = new HashMap<String,Object>();
+                                        properties.put("_id", rev.getDocId());
+                                        properties.put("_rev", rev.getRevId());
+                                        properties.put("_deleted", true);
+                                    } else {
+                                        // OPT: Shouldn't include all attachment bodies, just ones that have changed
+                                        EnumSet<Database.TDContentOptions> contentOptions = EnumSet.of(
+                                                Database.TDContentOptions.TDIncludeAttachments,
+                                                Database.TDContentOptions.TDBigAttachmentsFollow
+                                        );
 
+                                        try {
+                                            db.loadRevisionBody(rev, contentOptions);
+                                        } catch (CouchbaseLiteException e1) {
+                                            String msg = String.format("%s Couldn't get local contents of %s", rev, Pusher.this);
+                                            Log.w(Database.TAG, msg);
+                                            revisionFailed();
+                                            continue;
+                                        }
+                                        properties = new HashMap<String,Object>(rev.getProperties());
+
+
+                                    }
+                                    if (properties.containsKey("_attachments")) {
+                                        if (uploadMultipartRevision(rev)) {
+                                            continue;
+                                        }
+                                    }
+                                    if(properties != null) {
+                                        // Add the _revisions list:
+                                        properties.put("_revisions", db.getRevisionHistoryDict(rev));
+                                        //now add it to the docs to send
+                                        docsToSend.add(properties);
+                                    }
+                                }
+                            }
+                        }
+
+                        // Post the revisions to the destination. "new_edits":false means that the server should
+                        // use the given _rev IDs instead of making up new ones.
+                        final int numDocsToSend = docsToSend.size();
+                        if (numDocsToSend > 0 ) {
+                            Map<String,Object> bulkDocsBody = new HashMap<String,Object>();
+                            bulkDocsBody.put("docs", docsToSend);
+                            bulkDocsBody.put("new_edits", false);
+                            Log.v(Database.TAG, String.format("%s: POSTing " + numDocsToSend + " revisions to _bulk_docs: %s", Pusher.this, docsToSend));
+                            setChangesCount(getChangesCount() + numDocsToSend);
+                            Log.d(Database.TAG, Pusher.this + "|" + Thread.currentThread() + ": processInbox-before_bulk_docs() calling asyncTaskStarted()");
+
+                            asyncTaskStarted();
+                            sendAsyncRequest("POST", "/_bulk_docs", bulkDocsBody, new RemoteRequestCompletionBlock() {
+
+                                @Override
+                                public void onCompletion(Object result, Throwable e) {
                                     try {
-                                        db.loadRevisionBody(rev, contentOptions);
-                                    } catch (CouchbaseLiteException e1) {
-                                        throw new RuntimeException(e1);
+                                        if(e != null) {
+                                            setError(e);
+                                            revisionFailed();
+                                        } else {
+                                            Log.v(Database.TAG, String.format("%s: POSTed to _bulk_docs: %s", Pusher.this, docsToSend));
+                                            setLastSequence(String.format("%d", lastInboxSequence));
+                                        }
+                                        setCompletedChangesCount(getCompletedChangesCount() + numDocsToSend);
+                                    } finally {
+                                        Log.d(Database.TAG, Pusher.this + "|" + Thread.currentThread() + ": processInbox-after_bulk_docs() calling asyncTaskFinished()");
+                                        asyncTaskFinished(1);
                                     }
-                                    properties = new HashMap<String,Object>(rev.getProperties());
+
 
                                 }
-                                if (properties.containsKey("_attachments")) {
-                                    if (uploadMultipartRevision(rev)) {
-                                        continue;
-                                    }
-                                }
-                                if(properties != null) {
-                                    // Add the _revisions list:
-                                    properties.put("_revisions", db.getRevisionHistoryDict(rev));
-                                    //now add it to the docs to send
-                                    docsToSend.add(properties);
-                                }
-                            }
+                            });
                         }
+
+
+                    } else {
+                        // If none of the revisions are new to the remote, just bump the lastSequence:
+                        setLastSequence(String.format("%d", lastInboxSequence));
                     }
-
-                    // Post the revisions to the destination. "new_edits":false means that the server should
-                    // use the given _rev IDs instead of making up new ones.
-                    final int numDocsToSend = docsToSend.size();
-                    Map<String,Object> bulkDocsBody = new HashMap<String,Object>();
-                    bulkDocsBody.put("docs", docsToSend);
-                    bulkDocsBody.put("new_edits", false);
-                    Log.i(Database.TAG, String.format("%s: Sending %d revisions", this, numDocsToSend));
-                    Log.v(Database.TAG, String.format("%s: Sending %s", this, inbox));
-                    setChangesCount(getChangesCount() + numDocsToSend);
-                    asyncTaskStarted();
-                    sendAsyncRequest("POST", "/_bulk_docs", bulkDocsBody, new RemoteRequestCompletionBlock() {
-
-                        @Override
-                        public void onCompletion(Object result, Throwable e) {
-                            if(e != null) {
-                                error = e;
-                            } else {
-                                Log.v(Database.TAG, String.format("%s: Sent %s", this, inbox));
-                                setLastSequence(String.format("%d", lastInboxSequence));
-                            }
-                            setCompletedChangesCount(getCompletedChangesCount() + numDocsToSend);
-                            asyncTaskFinished(1);
-                        }
-                    });
-
-                } else {
-                    // If none of the revisions are new to the remote, just bump the lastSequence:
-                    setLastSequence(String.format("%d", lastInboxSequence));
+                } finally {
+                    Log.d(Database.TAG, Pusher.this + "|" + Thread.currentThread() + ": processInbox() calling asyncTaskFinished()");
+                    asyncTaskFinished(1);
                 }
-                asyncTaskFinished(1);
             }
 
         });
@@ -287,6 +342,16 @@ public class Pusher extends Replication implements Database.ChangeListener {
         Map<String, Object> revProps = revision.getProperties();
         revProps.put("_revisions", db.getRevisionHistoryDict(revision));
 
+        // TODO: refactor this to
+        /*
+            // Get the revision's properties:
+            NSError* error;
+            if (![_db inlineFollowingAttachmentsIn: rev error: &error]) {
+                self.error = error;
+                [self revisionFailed];
+                return;
+            }
+         */
         Map<String, Object> attachments = (Map<String, Object>) revProps.get("_attachments");
         for (String attachmentKey : attachments.keySet()) {
             Map<String, Object> attachment = (Map<String, Object>) attachments.get(attachmentKey);
@@ -340,17 +405,35 @@ public class Pusher extends Replication implements Database.ChangeListener {
 
         // TODO: need to throttle these requests
         Log.d(Database.TAG, "Uploadeding multipart request.  Revision: " + revision);
+        Log.d(Database.TAG, this + "|" + Thread.currentThread() + ": uploadMultipartRevision() calling asyncTaskStarted()");
+
         asyncTaskStarted();
         sendAsyncMultipartRequest("PUT", path, multiPart, new RemoteRequestCompletionBlock() {
             @Override
             public void onCompletion(Object result, Throwable e) {
-                if(e != null) {
-                    Log.e(Database.TAG, "Exception uploading multipart request", e);
-                    error = e;
-                } else {
-                    Log.d(Database.TAG, "Uploaded multipart request.  Result: " + result);
+                try {
+                    if(e != null) {
+                        // TODO:
+                        /*
+                        if ($equal(error.domain, CBLHTTPErrorDomain)
+                                    && error.code == kCBLStatusUnsupportedType) {
+                              // Server doesn't like multipart, eh? Fall back to JSON.
+                              _dontSendMultipart = YES;
+                              [self uploadJSONRevision: rev];
+                          }
+                         */
+                        Log.e(Database.TAG, "Exception uploading multipart request", e);
+                        setError(e);
+                        revisionFailed();
+                    } else {
+                        Log.d(Database.TAG, "Uploaded multipart request.  Result: " + result);
+                    }
+                } finally {
+                    Log.d(Database.TAG, this + "|" + Thread.currentThread() + ": uploadMultipartRevision() calling asyncTaskFinished()");
+                    asyncTaskFinished(1);
+
                 }
-                asyncTaskFinished(1);
+
             }
         });
 
@@ -358,4 +441,6 @@ public class Pusher extends Replication implements Database.ChangeListener {
 
     }
 
+
 }
+

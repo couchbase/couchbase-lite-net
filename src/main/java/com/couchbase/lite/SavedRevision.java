@@ -32,13 +32,14 @@ import java.util.Map;
  *
  * It can also store the sequence number and document contents (they can be added after creation).
  */
-public class SavedRevision extends Revision {
+public final class SavedRevision extends Revision {
 
     private RevisionInternal revisionInternal;
     private boolean checkedProperties;
 
     /**
      * Constructor
+     * @exclude
      */
     @InterfaceAudience.Private
     /* package */ SavedRevision(Document document, RevisionInternal revision) {
@@ -48,6 +49,7 @@ public class SavedRevision extends Revision {
 
     /**
      * Constructor
+     * @exclude
      */
     @InterfaceAudience.Private
     /* package */ SavedRevision(Database database, RevisionInternal revision) {
@@ -96,7 +98,7 @@ public class SavedRevision extends Revision {
      * @return
      */
     @InterfaceAudience.Public
-    public UnsavedRevision createRevision() {
+    public UnsavedRevision createRevision() throws CouchbaseLiteException {
         UnsavedRevision newRevision = new UnsavedRevision(document, this);
         return newRevision;
     }
@@ -119,7 +121,7 @@ public class SavedRevision extends Revision {
 
     @Override
     @InterfaceAudience.Public
-    boolean isDeletion() {
+    public boolean isDeletion() {
         return revisionInternal.isDeleted();
     }
 
@@ -155,13 +157,13 @@ public class SavedRevision extends Revision {
 
     @Override
     @InterfaceAudience.Public
-    public SavedRevision getParentRevision() {
+    public SavedRevision getParent() {
         return getDocument().getRevisionFromRev(getDatabase().getParentRevision(revisionInternal));
     }
 
     @Override
     @InterfaceAudience.Public
-    public String getParentRevisionId() {
+    public String getParentId() {
         RevisionInternal parRev= getDocument().getDatabase().getParentRevision(revisionInternal);
         if ( parRev == null){
             return null;
@@ -179,6 +181,9 @@ public class SavedRevision extends Revision {
         return sequence;
     }
 
+    /**
+     * @exclude
+     */
     @InterfaceAudience.Private
     /* package */ boolean loadProperties() {
         try {

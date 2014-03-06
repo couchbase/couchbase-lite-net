@@ -1,14 +1,9 @@
-buildscript {
-    repositories {
-        maven { url 'http://repo1.maven.org/maven2' }
-    }
-    dependencies {
-        classpath 'com.android.tools.build:gradle:0.6.+'
-    }
-}
-apply plugin: 'android-library'
+
+apply plugin: 'java'
 apply plugin: 'maven'
 apply plugin: 'eclipse'
+
+sourceCompatibility = 1.6
 
 repositories {
     mavenCentral()
@@ -16,40 +11,25 @@ repositories {
 
 dependencies {
 
-    compile 'com.android.support:support-v4:13.0.+'
-
-    // this library is only needed by test code (95% certain), and therefore
-    // instrumentTestCompile is used rather than compile.
-    instrumentTestCompile 'commons-io:commons-io:2.0.1'
-
-    // as discovered by trial and error, the build will fail if "compile" is
-    // used: Error: duplicate files during packaging of APK.  I guess it is
-    // being implicitly included by being in the libs folder, and then "double included"
-    // because of a "compile" directive to explicitly include the jar.
-    instrumentTestCompile fileTree(dir: 'libs', include: 'td_collator_so.jar')
-
+    testCompile group: 'junit', name: 'junit', version: '4.11'
     compile 'org.codehaus.jackson:jackson-core-asl:1.9.2'
     compile 'org.codehaus.jackson:jackson-mapper-asl:1.9.2'
 
+    // Using this version of apache http client based on: http://bit.ly/1kiET7V
+    // Decided to use jars instead so this wasn't accidentally included in android version
+    // compile 'org.apache.httpcomponents:httpcore:4.0-beta2'  
+    // compile 'org.apache.httpcomponents:httpclient:4.0-beta1'  
+
+    compile fileTree(dir: 'libs', include: '*.jar')
 
 }
 
-android {
-    compileSdkVersion 17
-    buildToolsVersion "17.0.0"
-
-    defaultConfig {
-        minSdkVersion 9
-        targetSdkVersion 16
-    }
-
-}
 
 task createMavenDirectory(type: Exec) {
 
     ext {
         uploadUser = System.getenv("UPLOAD_USERNAME") + ":" + System.getenv("UPLOAD_PASSWORD")
-        mkcolPath = System.getenv("UPLOAD_MAVEN_REPO_URL") + "com/couchbase/cblite/CBLite/" + System.getenv("UPLOAD_VERSION_CBLITE") + "/"
+        mkcolPath = System.getenv("UPLOAD_MAVEN_REPO_URL") + "com/couchbase/lite/java-core/" + System.getenv("UPLOAD_VERSION_CBLITE") + "/"
     }
     commandLine "curl", "--user", uploadUser, "-X", "MKCOL", mkcolPath
 }
@@ -57,10 +37,12 @@ task createMavenDirectory(type: Exec) {
 // this hack is only needed for apache mod_dav based Maven repo's like file.couchbase.com.  otherwise, skip it
 createMavenDirectory.onlyIf { System.getenv("UPLOAD_MAVEN_REPO_URL").contains("files") }
 
+// first create the directory, then do the upload
 task uploadArchivesWrapper(dependsOn: createMavenDirectory) << {
     uploadArchives.execute()
 }
 
+// this will upload, but will not first create a directory (which is needed on some servers)
 uploadArchives {
     repositories {
         mavenDeployer {
@@ -68,8 +50,8 @@ uploadArchives {
                 authentication(userName: System.getenv("UPLOAD_USERNAME"), password: System.getenv("UPLOAD_PASSWORD"))
             }
             pom.version = System.getenv("UPLOAD_VERSION_CBLITE")
-            pom.groupId = 'com.couchbase.cblite'
-            pom.artifactId = 'CBLite'
+            pom.groupId = 'com.couchbase.lite'
+            pom.artifactId = 'java-core'
             pom.project {
                 licenses {
                     license {
@@ -83,11 +65,11 @@ uploadArchives {
     }
 }
 
-task sourcesJar(type: Jar) {
+task sourcesJar(type: Jar, dependsOn: classes) {
     classifier = 'sources'
-    from android.sourceSets.main.java.srcDirs
+    from sourceSets.main.java.srcDirs
 }
 
-task generateJavadocs(type: Javadoc) {
-    source = android.sourceSets.main.java.srcDirs
+artifacts {
+    archives sourcesJar
 }

@@ -28,10 +28,14 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 
+/**
+ * @exclude
+ */
 @InterfaceAudience.Private
-public class Puller extends Replication implements ChangeTrackerClient {
+public final class Puller extends Replication implements ChangeTrackerClient {
 
     private static final int MAX_OPEN_HTTP_CONNECTIONS = 16;
 
@@ -82,10 +86,12 @@ public class Puller extends Replication implements ChangeTrackerClient {
         }
 
         if(changeTracker != null) {
+            Log.d(Database.TAG, this + ": stopping changetracker " + changeTracker);
             changeTracker.setClient(null);  // stop it from calling my changeTrackerStopped()
             changeTracker.stop();
             changeTracker = null;
             if(!continuous) {
+                Log.d(Database.TAG, this + "|" + Thread.currentThread() + ": stop() calling asyncTaskFinished()");
                 asyncTaskFinished(1);  // balances asyncTaskStarted() in beginReplicating()
             }
         }
@@ -116,8 +122,10 @@ public class Puller extends Replication implements ChangeTrackerClient {
             });
         }
         pendingSequences = new SequenceMap();
-        Log.w(Database.TAG, this + " starting ChangeTracker with since=" + lastSequence);
-        changeTracker = new ChangeTracker(remote, continuous ? ChangeTracker.ChangeTrackerMode.LongPoll : ChangeTracker.ChangeTrackerMode.OneShot, lastSequence, this);
+        Log.w(Database.TAG, this + ": starting ChangeTracker with since=" + lastSequence);
+        changeTracker = new ChangeTracker(remote, continuous ? ChangeTracker.ChangeTrackerMode.LongPoll : ChangeTracker.ChangeTrackerMode.OneShot, true, lastSequence, this);
+        Log.w(Database.TAG, this + ": started ChangeTracker " + changeTracker);
+
         if(filterName != null) {
             changeTracker.setFilterName(filterName);
             if(filterParams != null) {
@@ -127,6 +135,7 @@ public class Puller extends Replication implements ChangeTrackerClient {
         changeTracker.setDocIDs(documentIDs);
         changeTracker.setRequestHeaders(requestHeaders);
         if(!continuous) {
+            Log.d(Database.TAG, this + "|" + Thread.currentThread() + ": beginReplicating() calling asyncTaskStarted()");
             asyncTaskStarted();
         }
         changeTracker.start();
@@ -144,6 +153,7 @@ public class Puller extends Replication implements ChangeTrackerClient {
     @Override
     @InterfaceAudience.Private
     public void changeTrackerReceivedChange(Map<String, Object> change) {
+
         String lastSequence = change.get("seq").toString();
         String docID = (String)change.get("id");
         if(docID == null) {
@@ -162,6 +172,8 @@ public class Puller extends Replication implements ChangeTrackerClient {
             }
             PulledRevision rev = new PulledRevision(docID, revID, deleted, db);
             rev.setRemoteSequenceID(lastSequence);
+            Log.d(Database.TAG, this + ": adding rev to inbox " + rev);
+
             addToInbox(rev);
         }
         setChangesCount(getChangesCount() + changes.size());
@@ -177,16 +189,27 @@ public class Puller extends Replication implements ChangeTrackerClient {
     @Override
     @InterfaceAudience.Private
     public void changeTrackerStopped(ChangeTracker tracker) {
-        Log.w(Database.TAG, this + ": ChangeTracker stopped");
+        Log.w(Database.TAG, this + ": ChangeTracker " + tracker + " stopped");
         if (error == null && tracker.getLastError() != null) {
-            error = tracker.getLastError();
+            setError(tracker.getLastError());
         }
         changeTracker = null;
         if(batcher != null) {
+            Log.d(Database.TAG, this + ": calling batcher.flush().  batcher.count() is " + batcher.count());
             batcher.flush();
         }
         if (!isContinuous()) {
-            asyncTaskFinished(1);  // balances -asyncTaskStarted in -startChangeTracker
+            Log.d(Database.TAG, this + "|" + Thread.currentThread() + ": changeTrackerStopped() calling asyncTaskFinished()");
+
+            // the asyncTaskFinished needs to run on the work executor
+            // in order to fix https://github.com/couchbase/couchbase-lite-java-core/issues/91
+            // basically, bad things happen when this runs on ChangeTracker thread.
+            workExecutor.submit(new Runnable() {
+                @Override
+                public void run() {
+                    asyncTaskFinished(1);  // balances -asyncTaskStarted in -startChangeTracker
+                }
+            });
         }
 
     }
@@ -259,12 +282,14 @@ public class Puller extends Replication implements ChangeTrackerClient {
      */
     @InterfaceAudience.Private
     public void pullRemoteRevisions() {
+        Log.d(Database.TAG, this + ": pullRemoteRevisions() with revsToPull size: " + revsToPull.size());
         //find the work to be done in a synchronized block
         List<RevisionInternal> workToStartNow = new ArrayList<RevisionInternal>();
         synchronized (this) {
 			while(httpConnectionCount + workToStartNow.size() < MAX_OPEN_HTTP_CONNECTIONS && revsToPull != null && revsToPull.size() > 0) {
 				RevisionInternal work = revsToPull.remove(0);
-				workToStartNow.add(work);
+                Log.d(Database.TAG, this + ": add " + work + " to workToStartNow");
+                workToStartNow.add(work);
 			}
 		}
 
@@ -280,6 +305,11 @@ public class Puller extends Replication implements ChangeTrackerClient {
      */
     @InterfaceAudience.Private
     public void pullRemoteRevision(final RevisionInternal rev) {
+
+        Log.d(Database.TAG, this + "|" + Thread.currentThread().toString() + ": pullRemoteRevision with rev: " + rev);
+
+        Log.d(Database.TAG, this + "|" + Thread.currentThread() + ": pullRemoteRevision() calling asyncTaskStarted()");
+
         asyncTaskStarted();
         ++httpConnectionCount;
 
@@ -290,6 +320,7 @@ public class Puller extends Replication implements ChangeTrackerClient {
         List<String> knownRevs = knownCurrentRevIDs(rev);
         if(knownRevs == null) {
             //this means something is wrong, possibly the replicator has shut down
+            Log.d(Database.TAG, this + "|" + Thread.currentThread() + ": pullRemoteRevision() calling asyncTaskFinished()");
             asyncTaskFinished(1);
             --httpConnectionCount;
             return;
@@ -306,35 +337,45 @@ public class Puller extends Replication implements ChangeTrackerClient {
 
             @Override
             public void onCompletion(Object result, Throwable e) {
-                // OK, now we've got the response revision:
-                if(result != null) {
-                    Map<String,Object> properties = (Map<String,Object>)result;
-                    List<String> history = db.parseCouchDBRevisionHistory(properties);
-                    if(history != null) {
-                        rev.setProperties(properties);
-                        // Add to batcher ... eventually it will be fed to -insertRevisions:.
-                        List<Object> toInsert = new ArrayList<Object>();
-                        toInsert.add(rev);
-                        toInsert.add(history);
-                        downloadsToInsert.queueObject(toInsert);
-                        asyncTaskStarted();
+                try {
+                    // OK, now we've got the response revision:
+                    Log.d(Database.TAG, this + ": pullRemoteRevision got response for rev: " + rev);
+                    if(result != null) {
+                        Map<String,Object> properties = (Map<String,Object>)result;
+                        List<String> history = db.parseCouchDBRevisionHistory(properties);
+                        if(history != null) {
+                            PulledRevision gotRev = new PulledRevision(properties, db);
+                            // Add to batcher ... eventually it will be fed to -insertRevisions:.
+                            List<Object> toInsert = new ArrayList<Object>();
+                            toInsert.add(gotRev);
+                            toInsert.add(history);
+                            Log.d(Database.TAG, this + ": pullRemoteRevision add rev: " + rev + " to batcher");
+                            downloadsToInsert.queueObject(toInsert);
+                            Log.d(Database.TAG, this + "|" + Thread.currentThread() + ": pullRemoteRevision.onCompletion() calling asyncTaskStarted()");
+
+                            asyncTaskStarted();
+                        } else {
+                            Log.w(Database.TAG, this + ": Missing revision history in response from " + pathInside);
+                            setCompletedChangesCount(getCompletedChangesCount() + 1);
+                        }
                     } else {
-                        Log.w(Database.TAG, this + ": Missing revision history in response from " + pathInside);
+                        if(e != null) {
+                            Log.e(Database.TAG, "Error pulling remote revision", e);
+                            setError(e);
+                        }
+                        revisionFailed();
                         setCompletedChangesCount(getCompletedChangesCount() + 1);
                     }
-                } else {
-                    if(e != null) {
-                        Log.e(Database.TAG, "Error pulling remote revision", e);
-                        error = e;
-                    }
-                    setCompletedChangesCount(getCompletedChangesCount() + 1);
+                } finally {
+                    Log.d(Database.TAG, this + "|" + Thread.currentThread() + ": pullRemoteRevision.onCompletion() calling asyncTaskFinished()");
+                    asyncTaskFinished(1);
                 }
 
                 // Note that we've finished this task; then start another one if there
                 // are still revisions waiting to be pulled:
-                asyncTaskFinished(1);
                 --httpConnectionCount;
                 pullRemoteRevisions();
+
             }
         });
 
@@ -369,6 +410,7 @@ public class Puller extends Replication implements ChangeTrackerClient {
         });
 
         if(db == null) {
+            Log.d(Database.TAG, this + "|" + Thread.currentThread() + ": insertRevisions() calling asyncTaskFinished() since db == null");
             asyncTaskFinished(revs.size());
             return;
         }
@@ -382,13 +424,16 @@ public class Puller extends Replication implements ChangeTrackerClient {
                 // Insert the revision:
 
                 try {
+                    Log.i(Database.TAG, this + ": db.forceInsert " + rev);
                     db.forceInsert(rev, history, remote);
+                    Log.i(Database.TAG, this + ": db.forceInsert succeeded " + rev);
                 } catch (CouchbaseLiteException e) {
                     if(e.getCBLStatus().getCode() == Status.FORBIDDEN) {
                         Log.i(Database.TAG, this + ": Remote rev failed validation: " + rev);
                     } else {
                         Log.w(Database.TAG, this + " failed to write " + rev + ": status=" + e.getCBLStatus().getCode());
-                        error = new HttpResponseException(e.getCBLStatus().getCode(), null);
+                        revisionFailed();
+                        setError(new HttpResponseException(e.getCBLStatus().getCode(), null));
                         continue;
                     }
                 }
@@ -405,6 +450,7 @@ public class Puller extends Replication implements ChangeTrackerClient {
             Log.e(Database.TAG, this + ": Exception inserting revisions", e);
         } finally {
             db.endTransaction(success);
+            Log.d(Database.TAG, this + "|" + Thread.currentThread() + ": insertRevisions() calling asyncTaskFinished()");
             asyncTaskFinished(revs.size());
         }
 
@@ -433,14 +479,22 @@ public class Puller extends Replication implements ChangeTrackerClient {
         return URLEncoder.encode(new String(json));
     }
 
-    @InterfaceAudience.Private
-    boolean goOffline() {
+
+    @InterfaceAudience.Public
+    public boolean goOffline() {
+        Log.d(Database.TAG, this + " goOffline() called, stopping changeTracker: " + changeTracker);
         if (!super.goOffline()) {
             return false;
         }
-        changeTracker.stop();
+
+        if (changeTracker != null) {
+            changeTracker.stop();
+        }
+
         return true;
     }
+
+
 
 }
 

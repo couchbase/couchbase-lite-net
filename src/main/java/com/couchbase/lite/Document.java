@@ -12,9 +12,9 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * A CouchbaseLite document (as opposed to any specific revision of it.)
+ * A CouchbaseLite document.
  */
-public class Document {
+public final class Document {
 
     /**
      * The document's owning database.
@@ -32,11 +32,6 @@ public class Document {
     private SavedRevision currentRevision;
 
     /**
-     * Application-defined model object representing this document
-     */
-    private Object model;
-
-    /**
      * Change Listeners
      */
     private List<ChangeListener> changeListeners = new ArrayList<ChangeListener>();
@@ -46,6 +41,7 @@ public class Document {
      *
      * @param database   The document's owning database
      * @param documentId The document's ID
+     * @exclude
      */
     @InterfaceAudience.Private
     public Document(Database database, String documentId) {
@@ -203,7 +199,7 @@ public class Document {
      */
     @InterfaceAudience.Public
     public SavedRevision getRevision(String id) {
-        if (id.equals(currentRevision.getId())) {
+        if (currentRevision != null && id.equals(currentRevision.getId())) {
             return currentRevision;
         }
         EnumSet<Database.TDContentOptions> contentOptions = EnumSet.noneOf(Database.TDContentOptions.class);
@@ -295,21 +291,6 @@ public class Document {
         changeListeners.remove(changeListener);
     }
 
-    /**
-     * Gets a reference to an optional application-defined model object representing this Document.
-     */
-    @InterfaceAudience.Public
-    public Object getModel() {
-        return model;
-    }
-
-    /**
-     * Sets a reference to an optional application-defined model object representing this Document.
-     */
-    @InterfaceAudience.Public
-    public void setModel(Object model) {
-        this.model = model;
-    }
 
     /**
      * A delegate that can be used to update a Document.
@@ -352,6 +333,7 @@ public class Document {
 
     /**
      * Get the document's abbreviated ID
+     * @exclude
      */
     @InterfaceAudience.Private
     public String getAbbreviatedId() {
@@ -364,6 +346,9 @@ public class Document {
         return documentId;
     }
 
+    /**
+     * @exclude
+     */
     @InterfaceAudience.Private
     /* package */ List<SavedRevision> getLeafRevisions(boolean includeDeleted) throws CouchbaseLiteException {
 
@@ -381,7 +366,9 @@ public class Document {
         return Collections.unmodifiableList(result);
     }
 
-
+    /**
+     * @exclude
+     */
     @InterfaceAudience.Private
     /* package */ SavedRevision putProperties(Map<String, Object> properties, String prevID, boolean allowConflict) throws CouchbaseLiteException {
         String newId = null;
@@ -420,6 +407,9 @@ public class Document {
 
     }
 
+    /**
+     * @exclude
+     */
     @InterfaceAudience.Private
     /* package */ SavedRevision getRevisionFromRev(RevisionInternal internalRevision) {
         if (internalRevision == null) {
@@ -434,6 +424,9 @@ public class Document {
 
     }
 
+    /**
+     * @exclude
+     */
     @InterfaceAudience.Private
     /* package */ SavedRevision getRevisionWithId(String revId) {
         if (revId != null && currentRevision != null && revId.equals(currentRevision.getId())) {
@@ -446,7 +439,9 @@ public class Document {
         );
     }
 
-
+    /**
+     * @exclude
+     */
     @InterfaceAudience.Private
     /* package */ void loadCurrentRevisionFrom(QueryRow row) {
         if (row.getDocumentRevisionId() == null) {
@@ -462,11 +457,17 @@ public class Document {
         }
      }
 
+    /**
+     * @exclude
+     */
     @InterfaceAudience.Private
     private boolean revIdGreaterThanCurrent(String revId) {
         return (RevisionInternal.CBLCompareRevIDs(revId, currentRevision.getId()) > 0);
     }
 
+    /**
+     * @exclude
+     */
     @InterfaceAudience.Private
     /* package */ void revisionAdded(DocumentChange documentChange) {
 
@@ -483,7 +484,6 @@ public class Document {
         }
 
     }
-
 
 
 }
