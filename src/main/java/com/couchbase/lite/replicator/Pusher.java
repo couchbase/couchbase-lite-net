@@ -220,6 +220,7 @@ public final class Pusher extends Replication implements Database.ChangeListener
 
         // Call _revs_diff on the target db:
         Log.d(Database.TAG, this + "|" + Thread.currentThread() + ": processInbox() calling asyncTaskStarted()");
+        Log.d(Database.TAG, this + "|" + Thread.currentThread() + ": posting to /_revs_diff: " + diffs);
 
         asyncTaskStarted();
         sendAsyncRequest("POST", "/_revs_diff", diffs, new RemoteRequestCompletionBlock() {
@@ -228,6 +229,7 @@ public final class Pusher extends Replication implements Database.ChangeListener
             public void onCompletion(Object response, Throwable e) {
 
                 try {
+                    Log.d(Database.TAG, this + "|" + Thread.currentThread() + ": /_revs_diff response: " + response);
                     Map<String,Object> results = (Map<String,Object>)response;
                     if(e != null) {
                         setError(e);
@@ -259,7 +261,7 @@ public final class Pusher extends Replication implements Database.ChangeListener
                                         try {
                                             db.loadRevisionBody(rev, contentOptions);
                                         } catch (CouchbaseLiteException e1) {
-                                            String msg = String.format("%s Couldn't get local contents of %s", rev, this);
+                                            String msg = String.format("%s Couldn't get local contents of %s", rev, Pusher.this);
                                             Log.w(Database.TAG, msg);
                                             revisionFailed();
                                             continue;
@@ -290,9 +292,9 @@ public final class Pusher extends Replication implements Database.ChangeListener
                             Map<String,Object> bulkDocsBody = new HashMap<String,Object>();
                             bulkDocsBody.put("docs", docsToSend);
                             bulkDocsBody.put("new_edits", false);
-                            Log.v(Database.TAG, String.format("%s: POSTing " + numDocsToSend + " revisions to _bulk_docs: %s", this, docsToSend));
+                            Log.v(Database.TAG, String.format("%s: POSTing " + numDocsToSend + " revisions to _bulk_docs: %s", Pusher.this, docsToSend));
                             setChangesCount(getChangesCount() + numDocsToSend);
-                            Log.d(Database.TAG, this + "|" + Thread.currentThread() + ": processInbox-before_bulk_docs() calling asyncTaskStarted()");
+                            Log.d(Database.TAG, Pusher.this + "|" + Thread.currentThread() + ": processInbox-before_bulk_docs() calling asyncTaskStarted()");
 
                             asyncTaskStarted();
                             sendAsyncRequest("POST", "/_bulk_docs", bulkDocsBody, new RemoteRequestCompletionBlock() {
@@ -304,12 +306,12 @@ public final class Pusher extends Replication implements Database.ChangeListener
                                             setError(e);
                                             revisionFailed();
                                         } else {
-                                            Log.v(Database.TAG, String.format("%s: POSTed to _bulk_docs: %s", this, docsToSend));
+                                            Log.v(Database.TAG, String.format("%s: POSTed to _bulk_docs: %s", Pusher.this, docsToSend));
                                             setLastSequence(String.format("%d", lastInboxSequence));
                                         }
                                         setCompletedChangesCount(getCompletedChangesCount() + numDocsToSend);
                                     } finally {
-                                        Log.d(Database.TAG, this + "|" + Thread.currentThread() + ": processInbox-after_bulk_docs() calling asyncTaskFinished()");
+                                        Log.d(Database.TAG, Pusher.this + "|" + Thread.currentThread() + ": processInbox-after_bulk_docs() calling asyncTaskFinished()");
                                         asyncTaskFinished(1);
                                     }
 
@@ -324,7 +326,7 @@ public final class Pusher extends Replication implements Database.ChangeListener
                         setLastSequence(String.format("%d", lastInboxSequence));
                     }
                 } finally {
-                    Log.d(Database.TAG, this + "|" + Thread.currentThread() + ": processInbox() calling asyncTaskFinished()");
+                    Log.d(Database.TAG, Pusher.this + "|" + Thread.currentThread() + ": processInbox() calling asyncTaskFinished()");
                     asyncTaskFinished(1);
                 }
             }
