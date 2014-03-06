@@ -240,7 +240,12 @@
     <Compile Include="Store\ConflictResolutionStrategy.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Extensions\SqliteExtensions.cs" />
+<<<<<<< Upstream, based on origin/master
     <Compile Include="Store\CouchbaseSqliteCollationFunctions.cs" />
+=======
+    <Compile Include="Util\StringUtils.cs" />
+    <Compile Include="Store\JsonCollator.cs" />
+>>>>>>> 8271c8f Ported JsonCollator from iOS's CBLCollateJSON
   </ItemGroup>
   <ItemGroup>
     <Reference Include="System" />
