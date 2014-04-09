@@ -80,17 +80,6 @@ namespace Couchbase.Lite {
         public Uri SourceUrl { get; private set; }
 
     #endregion
-    
-    #region Static Members
-
-        internal static DocumentChange TempFactory(RevisionInternal revisionInternal, Uri sourceUrl, bool inConflict)
-        {
-            var change = new DocumentChange(revisionInternal, null, inConflict, sourceUrl);
-            // TODO: fix winning revision here
-            return change;
-        }
-
-    #endregion
 
     }
 

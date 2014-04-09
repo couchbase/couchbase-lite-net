@@ -112,12 +112,19 @@ namespace Couchbase.Lite.Auth
 
 		public static string AccessTokenForEmailAndSite(string email, Uri site)
 		{
-			IList<string> key = new AList<string>();
-			key.AddItem(email);
-            key.AddItem(site.ToString().ToLower());
-			Log.D(Database.Tag, "FacebookAuthorizer looking up key: " + key + " from list of access tokens"
-				);
-			return accessTokens.Get(key);
+            try
+            {
+                IList<string> key = new AList<string>();
+                key.AddItem(email);
+                key.AddItem(site.ToString().ToLower());
+                Log.D(Database.Tag, "FacebookAuthorizer looking up key: " + key + " from list of access tokens");
+                return accessTokens.Get(key);
+            }
+            catch (Exception e)
+            {
+                Log.E(Database.Tag, "Error looking up access token", e);
+            }
+            return null;
 		}
 	}
 }

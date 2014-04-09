@@ -185,7 +185,7 @@ namespace Couchbase.Lite {
         /// <returns>the SavedRevision object</returns>
         public SavedRevision GetRevision(String id)
         {
-            if (id.Equals(CurrentRevision.Id))
+            if (CurrentRevision != null && id.Equals(CurrentRevision.Id))
                 return CurrentRevision;
 
             var contentOptions = EnumSet.NoneOf<TDContentOptions>();

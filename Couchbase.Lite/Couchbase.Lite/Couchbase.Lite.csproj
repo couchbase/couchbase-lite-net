@@ -243,6 +243,7 @@
     <Compile Include="Store\CouchbaseSqliteCollationFunctions.cs" />
     <Compile Include="Util\StringUtils.cs" />
     <Compile Include="Store\JsonCollator.cs" />
+    <Compile Include="Replication\HttpResponseException.cs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="System" />

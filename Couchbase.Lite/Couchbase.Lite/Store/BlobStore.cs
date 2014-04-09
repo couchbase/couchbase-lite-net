@@ -68,23 +68,13 @@ namespace Couchbase.Lite
 
 		public BlobStore(string path)
 		{
-			this.path = path;
-			FilePath directory = new FilePath(path);
-			if (!directory.Exists())
-			{
-				bool result = directory.Mkdirs();
-				if (result == false)
-				{
-					throw new ArgumentException("Unable to create directory for blob store");
-				}
-			}
-			else
-			{
-				if (!directory.IsDirectory())
-				{
-					throw new ArgumentException("Directory for blob store is not a directory");
-				}
-			}
+            this.path = path;
+            FilePath directory = new FilePath(path);
+            directory.Mkdirs();
+            if (!directory.IsDirectory())
+            {
+                throw new InvalidOperationException(string.Format("Unable to create directory for: %s", directory));
+            }
 		}
 
 		public static BlobKey KeyForBlob(byte[] data)
@@ -400,26 +390,15 @@ namespace Couchbase.Lite
 
 		public FilePath TempDir()
 		{
-			FilePath directory = new FilePath(path);
-			FilePath tempDirectory = new FilePath(directory, "temp_attachments");
-			if (!tempDirectory.Exists())
-			{
-				bool result = tempDirectory.Mkdirs();
-				if (result == false)
-				{
-					throw new InvalidOperationException("Unable to create directory for temporary blob store"
-						);
-				}
-			}
-			else
-			{
-				if (!tempDirectory.IsDirectory())
-				{
-					throw new InvalidOperationException("Directory for temporary blob store is not a directory"
-						);
-				}
-			}
-			return tempDirectory;
+            FilePath directory = new FilePath(path);
+            FilePath tempDirectory = new FilePath(directory, "temp_attachments");
+            tempDirectory.Mkdirs();
+            if (!tempDirectory.IsDirectory())
+            {
+                throw new InvalidOperationException(string.Format("Unable to create directory for: %s"
+                    , tempDirectory));
+            }
+            return tempDirectory;
 		}
 	}
 }

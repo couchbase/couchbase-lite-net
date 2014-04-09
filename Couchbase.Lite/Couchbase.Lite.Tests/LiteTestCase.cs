@@ -147,7 +147,9 @@ namespace Couchbase.Lite
                 try {
                     db.Delete ();
                     status = true;
-                } catch (Exception) { }
+                } catch (Exception e) { 
+                    Log.E(Tag, "Cannot delete database " + e.Message);
+                }
 
 				NUnit.Framework.Assert.IsTrue(status);
             }

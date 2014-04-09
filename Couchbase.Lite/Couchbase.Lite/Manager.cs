@@ -66,7 +66,7 @@ namespace Couchbase.Lite
 
     #region Constants
 
-        const string VersionString = "1.0.0-beta";
+        const string VersionString = "1.0.0-beta2";
 
         const string HttpErrorDomain = "CBLHTTP";
 
@@ -124,6 +124,8 @@ namespace Couchbase.Lite
 
         public Manager(DirectoryInfo directoryFile, ManagerOptions options)
         {
+            Log.V(Database.Tag, "Starting Manager version: " + VersionString);
+
             this.directoryFile = directoryFile;
             this.options = options ?? DefaultOptions;
             this.databases = new Dictionary<string, Database>();
@@ -230,7 +232,7 @@ namespace Couchbase.Lite
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
         public Database GetExistingDatabase(String name)
         {
-            var db = GetDatabaseWithoutOpening(name, mustExist: false);
+            var db = GetDatabaseWithoutOpening(name, mustExist: true);
             if (db != null)
             {
                 db.Open();
@@ -347,18 +349,20 @@ namespace Couchbase.Lite
 
             // remove from list of replications
             // TODO: should there be something that actually stops the replication(s) first?
-            var i = 0;
-            var matched = false;;
-            for (; i < replications.Count; i++) {
-                var replication = replications [i];
-                if (replication.LocalDatabase == database) {
-                    matched = true;
-                    break;
-                }
+            if (replications.Count == 0)
+            {
+                return;
             }
 
-            if (matched)
-                replications.RemoveAt(i);
+            var i = replications.Count;
+            for (; i >= 0; i--) 
+            {
+                var replication = replications[i];
+                if (replication.LocalDatabase == database) 
+                {
+                    replications.RemoveAt(i);
+                }
+            }
         }
 
         private void UpgradeOldDatabaseFiles(DirectoryInfo directory)
@@ -464,9 +468,25 @@ namespace Couchbase.Lite
             return task;
         }
 
+        internal Task RunAsync(Action action, CancellationToken token)
+        {
+            var task = token == CancellationToken.None ?
+                workExecutor.StartNew(action) :
+                    workExecutor.StartNew(action, token);
+            return task;
+        }
+
         internal Task<T> RunAsync<T>(Func<T> action)
         {
             return workExecutor.StartNew(action);
+        }
+
+        internal Task<T> RunAsync<T>(Func<T> action, CancellationToken token)
+        {
+            var task = token == CancellationToken.None 
+                ? workExecutor.StartNew(action) 
+                  : workExecutor.StartNew(action, token);
+            return task;
         }
 
     #endregion

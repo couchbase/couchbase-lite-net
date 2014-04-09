@@ -678,10 +678,9 @@ namespace Couchbase.Lite
         [Test]
         public void TestChangeTracking()
 		{
-            var doneSignal = new CountDownLatch(5);
+            var doneSignal = new CountDownLatch(1);
             var db = StartDatabase();
-
-            db.Changed += (sender, e) => doneSignal.CountDown ();
+            db.Changed += (sender, e) => doneSignal.CountDown();
 
             var task = CreateDocumentsAsync(db, 5);
 
