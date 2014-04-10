@@ -165,7 +165,7 @@ namespace Couchbase.Lite
             
         internal static char ConvertEscape(String str, int start, out int endPos) 
         {
-            int index = start + 1;
+            var index = start + 1;
 
             if (index >= str.Length) 
             {
@@ -173,10 +173,10 @@ namespace Couchbase.Lite
                 return '\0';
             }
 
-            char c = str[index];
+            var c = str[index];
 
             switch (c) {
-            case 'u': 
+            case 'u':
                 // \u is a Unicode escape; 4 hex digits follow.
                 int uIndex = index + 1;
 
@@ -196,31 +196,35 @@ namespace Couchbase.Lite
                     endPos = uIndex + 3;
                     return (char)uc;
                 } 
+                break;
             case 'b': 
                 c = '\b';
+                break;
             case 'n':
                 c = '\n';
+                break;
             case 'r':
                 c = '\r';
+                break;
             case 't':
                 c = '\t';
-            default:
-                endPos = index;
-                return c;
+                break;
             }
+            endPos = index;
+            return c;
         }
 
         private static String CreateStringFromJSON(String str, int start, out int endPos) 
         {
-            StringBuilder sb = new StringBuilder();
+            var sb = new StringBuilder();
 
-            int index = ++start;
+            var index = ++start;
             for (; index < str.Length; ++index) 
             {
-                char c = str [index];
-                if (c == '"') 
+                var c = str [index];
+                if (c == '"')
                     break;
-                else if (c == '\\') 
+                if (c == '\\') 
                 {
                     int endEscapePos;
                     c = ConvertEscape (str, index, out endEscapePos);
@@ -241,16 +245,16 @@ namespace Couchbase.Lite
 
             var result = 0;
 
-            int index1 = start1;
-            int index2 = start2;
+            var index1 = start1;
+            var index2 = start2;
 
             while (true) 
             {
                 ++index1;
                 ++index2;
 
-                char c1 = index1 < str1.Length ? str1 [index1] : '\0';
-                char c2 = index2 < str2.Length ? str2 [index2] : '\0';
+                var c1 = index1 < str1.Length ? str1 [index1] : '\0';
+                var c2 = index2 < str2.Length ? str2 [index2] : '\0';
 
                 // If one string ends, the other is greater; if both end, they're equal:
                 if (c1 == '"') 
@@ -313,9 +317,9 @@ namespace Couchbase.Lite
             var s2 = CreateStringFromJSON(str2, start2, out endPos2);
 
             // TODO: Detect current localization and use the corresponding CompareInfo
-            CompareInfo comp = CultureInfo.InvariantCulture.CompareInfo;
-            SortKey sk1 = comp.GetSortKey(s1);
-            SortKey sk2 = comp.GetSortKey(s2);
+            var comp = CultureInfo.InvariantCulture.CompareInfo;
+            var sk1 = comp.GetSortKey(s1);
+            var sk2 = comp.GetSortKey(s2);
             return SortKey.Compare(sk1, sk2);
         }
 
@@ -354,8 +358,8 @@ namespace Couchbase.Lite
 
             do 
             {
-                ValueType type1 = ValueTypeOf(index1 < param1.Length ? param1[index1] : '\0');
-                ValueType type2 = ValueTypeOf(index2 < param2.Length ? param2[index2] : '\0');
+                var type1 = ValueTypeOf(index1 < param1.Length ? param1[index1] : '\0');
+                var type2 = ValueTypeOf(index2 < param2.Length ? param2[index2] : '\0');
 
                 if (type1 != type2)
                 {
@@ -425,6 +429,9 @@ namespace Couchbase.Lite
                     case ValueType.Comma:
                         if (depth == 1 && (++arrayIndex >= arrayLimit))
                             return 0;
+                        ++index1;
+                        ++index2;
+                        break;
                     case ValueType.Colon:
                         ++index1;
                         ++index2;
