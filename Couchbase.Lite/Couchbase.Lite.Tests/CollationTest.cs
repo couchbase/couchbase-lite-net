@@ -109,7 +109,7 @@ namespace Couchbase.Lite
 		[Test]
 		public void TestCollateScalars() 
 		{
-			JsonCollationMode mode = JsonCollationMode.Unicode;
+			var mode = JsonCollationMode.Unicode;
 			TestCollateEquals(mode, "true", "false", 1);
 			TestCollateEquals(mode, "false", "true", -1);
 			TestCollateEquals(mode, "null", "17", -1);
@@ -134,7 +134,7 @@ namespace Couchbase.Lite
 		[Test]
 		public void TestCollateJsonAscii() 
 		{
-			JsonCollationMode mode = JsonCollationMode.Ascii;
+			var mode = JsonCollationMode.Ascii;
 
 			TestCollateEquals(mode, "true", "false", 1);
 			TestCollateEquals(mode, "false", "true", -1);
@@ -157,7 +157,7 @@ namespace Couchbase.Lite
 		[Test]
 		public void TestCollateJsonRaw()
 		{
-			JsonCollationMode mode = JsonCollationMode.Raw;
+			var mode = JsonCollationMode.Raw;
 			TestCollateEquals(mode, "false", "17", 1);
 			TestCollateEquals(mode, "false", "true", -1);
 			TestCollateEquals(mode, "null", "true", -1);
@@ -169,7 +169,7 @@ namespace Couchbase.Lite
 		[Test]
 		public void TestCollateArrays()
 		{
-			JsonCollationMode mode = JsonCollationMode.Unicode;
+			var mode = JsonCollationMode.Unicode;
 			TestCollateEquals(mode, "[]", "\"foo\"", 1);
 			TestCollateEquals(mode, "[]", "[]", 0);
 			TestCollateEquals(mode, "[true]", "[true]", 0);
@@ -186,7 +186,7 @@ namespace Couchbase.Lite
 		[Test]
 		public void TestCollateNestedArrays()
 		{
-			JsonCollationMode mode = JsonCollationMode.Unicode;
+			var mode = JsonCollationMode.Unicode;
 			TestCollateEquals(mode, "[[]]", "[]", 1);
 			TestCollateEquals(mode, "[1,[2,3],4]", "[1,[2,3.1],4,5,6]", -1);
 		}
@@ -194,7 +194,7 @@ namespace Couchbase.Lite
 		[Test]
 		public void TestCollateJsonUnicode()
 		{
-			JsonCollationMode mode = JsonCollationMode.Unicode;
+			var mode = JsonCollationMode.Unicode;
 			TestCollateEquals(mode, Encode("\"fréd\""), Encode("\"fréd\""), 0);
 			TestCollateEquals(mode, Encode("\"ømø\""), Encode("\"omo\""), 1);
 
@@ -206,7 +206,7 @@ namespace Couchbase.Lite
 		[Test]
 		public void TestCollateJsonLimited()
 		{
-			JsonCollationMode mode = JsonCollationMode.Unicode;
+			var mode = JsonCollationMode.Unicode;
 
 			TestCollateEquals(mode, "[5,\"wow\"]", "[4,\"wow\"]", 1, 1);
 			TestCollateEquals(mode, "[5,\"wow\"]", "[5,\"wow\"]", 1, 0);
