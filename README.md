@@ -12,7 +12,7 @@ replication tests, start `sync_gateway` with the following
 command:
 
 *nix:
-   /path/to/sync_gateway -bucket db  -url=walrus: -bucket=db -pretty
+   /path/to/sync_gateway -pretty -verbose=true Couchbase.Lite/Couchbase.Lite.Tests/Assets/GatewayConfig.json
 
 Windows:
    {TBD}
