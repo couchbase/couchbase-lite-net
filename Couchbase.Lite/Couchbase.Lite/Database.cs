@@ -77,7 +77,16 @@ namespace Couchbase.Lite
             Name = FileDirUtils.GetDatabaseNameFromPath(path);
             Manager = manager;
             DocumentCache = new LruCache<string, Document>(MaxDocCacheSize);
+
+            // TODO: Make Synchronized ICollection
+            ActiveReplicators = new HashSet<Replication>();
+            AllReplicators = new HashSet<Replication>();
+
+            ChangesToNotify = new AList<DocumentChange>();
+
             StartTime = DateTime.UtcNow.ToMillisecondsSinceEpoch ();
+
+            MaxRevTreeDepth = DefaultMaxRevs;
         }
 
 
@@ -199,14 +208,19 @@ namespace Couchbase.Lite
         /// any non-continuous %Replications% that has been started and are still running.
         /// </summary>
         /// <value>All replications.</value>
-        public IEnumerable<Replication> AllReplications { get { return ActiveReplicators; } }
+        public IEnumerable<Replication> AllReplications { get { return AllReplicators; } }
 
         //Methods
 
         /// <summary>
-        /// Compacts the %Database% file by purging non-current %Revisions% and deleting unused %Attachments%.
+        /// Compacts the database file by purging non-current JSON bodies, pruning revisions older than
+        /// the maxRevTreeDepth, deleting unused attachment files, and vacuuming the SQLite database.
         /// </summary>
-        /// <exception cref="Couchbase.Lite.CouchbaseLiteException"/>
+        /// <remarks>
+        /// Compacts the database file by purging non-current JSON bodies, pruning revisions older than
+        /// the maxRevTreeDepth, deleting unused attachment files, and vacuuming the SQLite database.
+        /// </remarks>
+        /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
         public void Compact()
         {
             // Can't delete any rows because that would lose revision tree history.
@@ -214,6 +228,9 @@ namespace Couchbase.Lite
             try
             {
                 Log.V(Database.Tag, "Deleting JSON of old revisions...");
+                PruneRevsToMaxDepth(0);
+                Log.V(Database.Tag, "Deleting JSON of old revisions...");
+
                 ContentValues args = new ContentValues();
                 args.Put("json", (string)null);
                 StorageEngine.Update("revs", args, "current=0", null);
@@ -221,23 +238,26 @@ namespace Couchbase.Lite
             catch (SQLException e)
             {
                 Log.E(Database.Tag, "Error compacting", e);
-                return;
+                throw new CouchbaseLiteException(StatusCode.InternalServerError);
             }
 
             Log.V(Database.Tag, "Deleting old attachments...");
             var result = GarbageCollectAttachments();
-            Log.V(Database.Tag, "Vacuuming SQLite sqliteDb..." + result.ToString());
+            if (!result.IsSuccessful())
+            {
+                throw new CouchbaseLiteException(result.GetCode());
+            }
 
             try
             {
+                Log.V(Database.Tag, "Vacuuming SQLite sqliteDb..." + result.ToString());
                 StorageEngine.ExecSQL("VACUUM");
             }
             catch (SQLException e)
             {
                 Log.E(Database.Tag, "Error vacuuming sqliteDb", e);
-                return;
+                throw new CouchbaseLiteException(StatusCode.InternalServerError);
             }
-            return;
         }
 
         /// <summary>
@@ -250,20 +270,25 @@ namespace Couchbase.Lite
             {
                 if (!Close())
                 {
-                    return;
+                    throw new CouchbaseLiteException("The database was open, and could not be closed", 
+                        StatusCode.InternalServerError);
                 }
             }
+
             Manager.ForgetDatabase(this);
             if (!Exists())
             {
                 return;
             }
+
             var file = new FilePath(Path);
             var attachmentsFile = new FilePath(AttachmentStorePath);
 
             var deleteStatus = file.Delete();
             if (!deleteStatus)
+            {
                 Log.V(Database.Tag, String.Format("Error deleting the SQLite database file at {0}", file.GetAbsolutePath()));
+            }
 
             //recursively delete attachments path
             var deletedAttachmentsPath = true;
@@ -274,8 +299,15 @@ namespace Couchbase.Lite
                 deletedAttachmentsPath = false;
             }
 
-            if (!(deleteStatus && deletedAttachmentsPath))
-                throw new CouchbaseLiteException("Could not the SQLite file and/or the attachments folder. See log for additional details.");
+            if (!deleteStatus)
+            {
+                throw new CouchbaseLiteException("Was not able to delete the database file", StatusCode.InternalServerError);
+            }
+
+            if (!deletedAttachmentsPath)
+            {
+                throw new CouchbaseLiteException("Was not able to delete the attachments files", StatusCode.InternalServerError);
+            }
         }
 
         /// <summary>
@@ -609,6 +641,37 @@ namespace Couchbase.Lite
             return shouldCommit;
         }
 
+        /// <summary>
+        /// Creates a replication that will 'push' to a database at the given URL, or returns an existing
+        /// such replication if there already is one.
+        /// </summary>
+        /// <remarks>
+        /// Creates a replication that will 'push' to a database at the given URL, or returns an existing
+        /// such replication if there already is one.
+        /// </remarks>
+        /// <param name="remote"></param>
+        /// <returns></returns>
+        public Replication CreatePushReplication(Uri remote)
+        {
+            return new Pusher(this, remote, false, CouchbaseLiteHttpClientFactory.Instance, Task.Factory);
+        }
+
+        /// <summary>
+        /// Creates a replication that will 'pull' from a database at the given URL, or returns an existing
+        /// such replication if there already is one.
+        /// </summary>
+        /// <remarks>
+        /// Creates a replication that will 'pull' from a database at the given URL, or returns an existing
+        /// such replication if there already is one.
+        /// </remarks>
+        /// <param name="remote"></param>
+        /// <returns></returns>
+        public Replication CreatePullReplication(Uri remote)
+        {
+            return new Puller(this, remote, false, Task.Factory);
+        }
+
+        /*
         public Replication GetPushReplication(Uri url) 
         { 
             return Manager.ReplicationWithDatabase(this, url, true, true, false);
@@ -618,6 +681,7 @@ namespace Couchbase.Lite
         {
             return Manager.ReplicationWithDatabase(this, url, false, true, false);
         }
+        */
 
         public override string ToString()
         {
@@ -636,6 +700,8 @@ namespace Couchbase.Lite
         const Int32 BigAttachmentLength = 16384;
 
         const Int32 MaxDocCacheSize = 50;
+
+        const Int32 DefaultMaxRevs = Int32.MaxValue;
 
         internal readonly String Schema = @"
 CREATE TABLE docs ( 
@@ -694,44 +760,30 @@ PRAGMA user_version = 3;";
         private IDictionary<String, BlobStoreWriter>    _pendingAttachmentsByDigest;
         private IDictionary<String, View>               views;
         private Int32                                   transactionLevel;
+        private IList<DocumentChange>                   ChangesToNotify;
+        private Boolean                                 PostingChangeNotifications;
 
-        internal String                     Path { get; private set; }
-        internal IList<Replication>         ActiveReplicators { get; set; }
-        internal SQLiteStorageEngine        StorageEngine { get; set; }
-        internal LruCache<String, Document> DocumentCache { get; set; }
+        internal String                                 Path { get; private set; }
+        internal ICollection<Replication>               ActiveReplicators { get; set; }
+        internal ICollection<Replication>               AllReplicators { get; set; }
+        internal SQLiteStorageEngine                    StorageEngine { get; set; }
+        internal LruCache<String, Document>             DocumentCache { get; set; }
 
-        private Int64                               StartTime { get; set; }
-        private IDictionary<String, FilterDelegate> Filters { get; set; }
-
-        /// <summary>
-        /// Creates a replication that will 'push' to a database at the given URL, or returns an existing
-        /// such replication if there already is one.
-        /// </summary>
-        /// <remarks>
-        /// Creates a replication that will 'push' to a database at the given URL, or returns an existing
-        /// such replication if there already is one.
-        /// </remarks>
-        /// <param name="remote"></param>
-        /// <returns></returns>
-        internal Replication CreatePushReplication(Uri remote)
-        {
-            return new Pusher(this, remote, false, CouchbaseLiteHttpClientFactory.Instance, Task.Factory);
-        }
+        //TODO: Should thid be a public member?
 
         /// <summary>
-        /// Creates a replication that will 'pull' from a database at the given URL, or returns an existing
-        /// such replication if there already is one.
+        /// Maximum depth of a document's revision tree (or, max length of its revision history.)
+        /// Revisions older than this limit will be deleted during a -compact: operation.
         /// </summary>
         /// <remarks>
-        /// Creates a replication that will 'pull' from a database at the given URL, or returns an existing
-        /// such replication if there already is one.
+        /// Maximum depth of a document's revision tree (or, max length of its revision history.)
+        /// Revisions older than this limit will be deleted during a -compact: operation.
+        /// Smaller values save space, at the expense of making document conflicts somewhat more likely.
         /// </remarks>
-        /// <param name="remote"></param>
-        /// <returns></returns>
-        internal Replication CreatePullReplication(Uri remote)
-        {
-            return new Puller(this, remote, false, Task.Factory);
-        }
+        internal Int32                                  MaxRevTreeDepth { get; set; }
+
+        private Int64                                   StartTime { get; set; }
+        private IDictionary<String, FilterDelegate>     Filters { get; set; }
 
         internal RevisionList GetAllRevisionsOfDocumentID (string id, bool onlyCurrent)
         {
@@ -1000,6 +1052,7 @@ PRAGMA user_version = 3;";
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
         internal void ForceInsert(RevisionInternal rev, IList<string> revHistory, Uri source)
         {
+            var inConflict = false;
             var docId = rev.GetDocId();
             var revId = rev.GetRevId();
             if (!IsValidDocumentId(docId) || (revId == null))
@@ -1035,11 +1088,27 @@ PRAGMA user_version = 3;";
                 {
                     throw new CouchbaseLiteException(StatusCode.InternalServerError);
                 }
+
+                IList<bool> outIsDeleted = new AList<bool>();
+                IList<bool> outIsConflict = new AList<bool>();
+                bool oldWinnerWasDeletion = false;
+                string oldWinningRevID = WinningRevIDOfDoc(docNumericID, outIsDeleted, outIsConflict
+                );
+                if (outIsDeleted.Count > 0)
+                {
+                    oldWinnerWasDeletion = true;
+                }
+                if (outIsConflict.Count > 0)
+                {
+                    inConflict = true;
+                }
+
                 // Walk through the remote history in chronological order, matching each revision ID to
                 // a local revision. When the list diverges, start creating blank local revisions to fill
                 // in the local history:
                 long sequence = 0;
                 long localParentSequence = 0;
+                string localParentRevID = null;
                 for (int i = revHistory.Count - 1; i >= 0; --i)
                 {
                     revId = revHistory[i];
@@ -1050,6 +1119,7 @@ PRAGMA user_version = 3;";
                         sequence = localRev.GetSequence();
                         Debug.Assert((sequence > 0));
                         localParentSequence = sequence;
+                        localParentRevID = revId;
                     }
                     else
                     {
@@ -1103,14 +1173,22 @@ PRAGMA user_version = 3;";
                     string[] whereArgs = new string[] { Convert.ToString(localParentSequence) };
                     try
                     {
-                        StorageEngine.Update("revs", args, "sequence=@", whereArgs);
+                        Int32 numRowsChanged = StorageEngine.Update("revs", args, "sequence=@", whereArgs);
+                        if (numRowsChanged == 0)
+                        {
+                            inConflict = true;
+                        }
+
                     }
                     catch (SQLException)
                     {
                         throw new CouchbaseLiteException(StatusCode.InternalServerError);
                     }
                 }
+
+                var winningRev = Winner(docNumericID, oldWinningRevID, oldWinnerWasDeletion, rev);
                 success = true;
+                NotifyChange(rev, winningRev, source, inConflict);
             }
             catch (SQLException)
             {
@@ -1120,12 +1198,6 @@ PRAGMA user_version = 3;";
             {
                 EndTransaction(success);
             }
-            // Notify and return:
-            const bool inConflict = false; // NOTE.ZJG: Not sure that is right, but it's what came over via sharpen.
-            // TODO: can we be in conflict here?
-            RevisionInternal winningRev = null;
-            // TODO: what should we do here?
-            NotifyChange(rev, winningRev, source, inConflict);
         }
 
         private Int64 GetOrInsertDocNumericID(String docId)
@@ -1191,10 +1263,10 @@ PRAGMA user_version = 3;";
             }
         }
 
-        internal Boolean SetLastSequence(String lastSequence, Uri url, Boolean push)
+        internal Boolean SetLastSequence(String lastSequence, String checkpointId, Boolean push)
         {
             var values = new ContentValues();
-            values.Put("remote", url.ToString());
+            values.Put("remote", checkpointId);
             values["push"] = push;
             values["last_sequence"] = lastSequence;
             var newId = StorageEngine.InsertWithOnConflict("replicators", null, values, ConflictResolutionStrategy.Replace);
@@ -2142,6 +2214,7 @@ PRAGMA user_version = 3;";
             }
 
             --transactionLevel;
+            PostChangeNotifications();
 
             return true;
         }
@@ -3096,31 +3169,62 @@ PRAGMA user_version = 3;";
             return result;
         }
 
+        internal void PostChangeNotifications()
+        {
+            // This is a 'while' instead of an 'if' because when we finish posting notifications, there
+            // might be new ones that have arrived as a result of notification handlers making document
+            // changes of their own (the replicator manager will do this.) So we need to check again.
+            while (transactionLevel == 0 && open && !PostingChangeNotifications && ChangesToNotify.Count > 0)
+            {
+                try
+                {
+                    PostingChangeNotifications = true;
+
+                    IList<DocumentChange> outgoingChanges = new AList<DocumentChange>();
+                    foreach (var change in ChangesToNotify)
+                    {
+                        outgoingChanges.Add(change);
+                    }
+                    ChangesToNotify.Clear();
+
+                    Boolean isExternal = false;
+                    foreach (var change in outgoingChanges)
+                    {
+                        Document document = GetDocument(change.DocumentId);
+                        document.RevisionAdded(change);
+                        if (change.SourceUrl != null)
+                        {
+                            isExternal = true;
+                        }
+                    }
+
+                    var args = new DatabaseChangeEventArgs { 
+                        Changes = outgoingChanges,
+                        IsExternal = isExternal,
+                        Source = this
+                    } ;
+
+                    var changeEvent = Changed;
+                    if (changeEvent != null)
+                        changeEvent(this, args);
+                }
+                catch (Exception e)
+                {
+                    Log.E(Database.Tag, this + " got exception posting change notifications", e);
+                }
+                finally
+                {
+                    PostingChangeNotifications = false;
+                }
+            }
+        }
+
         internal void NotifyChange(RevisionInternal rev, RevisionInternal winningRev, Uri source, bool inConflict)
         {
-            // TODO: it is currently sending one change at a time rather than batching them up
-            const bool isExternalFixMe = false;
-            // TODO: fix this to have a real value
             var change = new DocumentChange(rev, winningRev, inConflict, source);
+            ChangesToNotify.Add(change);
 
-            var changes = new AList<DocumentChange>() { change };
-            changes.AddItem(change);
-
-            // TODO: this is expensive, it should be using a WeakHashMap
-            // TODO: instead of loading from the DB.  iOS code below.
-            var document = GetDocument(change.DocumentId);
-            document.RevisionAdded(change);
-
-
-            var args = new DatabaseChangeEventArgs { 
-                                    Changes = changes,
-                                    IsExternal = isExternalFixMe,
-                                    Source = this
-                                } ;
-
-            var changeEvent = Changed;
-            if (changeEvent != null)
-                changeEvent(this, args);
+            PostChangeNotifications();
         }
 
         /// <summary>
@@ -3493,7 +3597,10 @@ PRAGMA user_version = 3;";
                                                         );
                     }
                     attachment.SetEncodedLength(attachment.GetLength());
-                    attachment.SetLength((long)attachInfo.Get("length"));
+                    if (attachInfo.ContainsKey("length"))
+                    {
+                        attachment.SetLength((long)attachInfo.Get("length"));
+                    }
                 }
                 if (attachInfo.ContainsKey("revpos"))
                 {
@@ -3532,6 +3639,7 @@ PRAGMA user_version = 3;";
             {
                 return rev;
             }
+
             Debug.Assert(((rev.GetDocId() != null) && (rev.GetRevId() != null)));
             Cursor cursor = null;
             var result = new Status(StatusCode.NotFound);
@@ -3561,6 +3669,10 @@ PRAGMA user_version = 3;";
                 {
                     cursor.Close();
                 }
+            }
+            if (result.GetCode() == StatusCode.NotFound)
+            {
+                throw new CouchbaseLiteException(result.GetCode());
             }
             return rev;
         }
@@ -3651,7 +3763,8 @@ PRAGMA user_version = 3;";
             foreach (var validationName in Validations.Keys)
             {
                 var validation = GetValidation(validationName);
-                if (!validation(publicRev, context))
+                validation(publicRev, context);
+                if (context.RejectMessage != null)
                 {
                     throw new CouchbaseLiteException(context.RejectMessage, StatusCode.Forbidden);
                 }
@@ -3701,7 +3814,9 @@ PRAGMA user_version = 3;";
             // Try to open the storage engine and stop if we fail.
             if (StorageEngine == null || !StorageEngine.Open(Path))
             {
-                return false;
+                string msg = "Unable to create a storage engine, fatal error";
+                Log.E(Database.Tag, msg);
+                throw new CouchbaseLiteException(msg);
             }
 
             // Stuff we need to initialize every time the sqliteDb opens:
@@ -3820,6 +3935,91 @@ PRAGMA user_version = 3;";
             open = false;
             transactionLevel = 0;
             return true;
+        }
+
+        internal void AddReplication(Replication replication)
+        {
+            AllReplicators.AddItem(replication);
+        }
+
+        internal void ForgetReplication(Replication replication)
+        {
+            AllReplicators.Remove(replication);
+        }
+
+        internal void AddActiveReplication(Replication replication)
+        {
+            ActiveReplicators.AddItem(replication);
+            replication.Changed += (sender, e) => 
+            {
+                if (!e.Source.IsRunning)
+                {
+                    ActiveReplicators.Remove(e.Source);
+                }
+            };
+        }
+
+        internal int PruneRevsToMaxDepth(int maxDepth)
+        {
+            int outPruned = 0;
+            bool shouldCommit = false;
+            IDictionary<long, int> toPrune = new Dictionary<long, int>();
+            if (maxDepth == 0)
+            {
+                maxDepth = MaxRevTreeDepth;
+            }
+
+            // First find which docs need pruning, and by how much:
+            Cursor cursor = null;
+            var sql = "SELECT doc_id, MIN(revid), MAX(revid) FROM revs GROUP BY doc_id";
+            long docNumericID = -1;
+            var minGen = 0;
+            var maxGen = 0;
+            try
+            {
+                cursor = StorageEngine.RawQuery(sql, null);
+                while (cursor.MoveToNext())
+                {
+                    docNumericID = cursor.GetLong(0);
+                    var minGenRevId = cursor.GetString(1);
+                    var maxGenRevId = cursor.GetString(2);
+                    minGen = RevisionInternal.GenerationFromRevID(minGenRevId);
+                    maxGen = RevisionInternal.GenerationFromRevID(maxGenRevId);
+                    if ((maxGen - minGen + 1) > maxDepth)
+                    {
+                        toPrune.Put(docNumericID, (maxGen - minGen));
+                    }
+                }
+
+                BeginTransaction();
+
+                if (toPrune.Count == 0)
+                {
+                    return 0;
+                }
+
+                foreach (long id in toPrune.Keys)
+                {
+                    string minIDToKeep = string.Format("%d-", (toPrune.Get(id) + 1));
+                    string[] deleteArgs = new string[] { System.Convert.ToString(docNumericID), minIDToKeep };
+                    int rowsDeleted = StorageEngine.Delete("revs", "doc_id=? AND revid < ? AND current=0", deleteArgs);
+                    outPruned += rowsDeleted;
+                }
+                shouldCommit = true;
+            }
+            catch (Exception e)
+            {
+                throw new CouchbaseLiteException(e, StatusCode.InternalServerError);
+            }
+            finally
+            {
+                EndTransaction(shouldCommit);
+                if (cursor != null)
+                {
+                    cursor.Close();
+                }
+            }
+            return outPruned;
         }
 
 

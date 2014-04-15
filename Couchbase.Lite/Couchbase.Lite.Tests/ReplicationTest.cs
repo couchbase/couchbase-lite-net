@@ -268,8 +268,6 @@ namespace Couchbase.Lite.Replicator
         [Test]
 		public virtual void TestPuller()
 		{
-            //Assert.Fail(); // TODO.ZJG: Needs debugging.
-
 			var docIdTimestamp = System.Convert.ToString(Runtime.CurrentTimeMillis());
             var doc1Id = string.Format("doc1-{0}", docIdTimestamp);
             var doc2Id = string.Format("doc2-{0}", docIdTimestamp);
@@ -279,19 +277,23 @@ namespace Couchbase.Lite.Replicator
 			// workaround for https://github.com/couchbase/sync_gateway/issues/228
 			Sharpen.Thread.Sleep(1000);
             DoPullReplication();
-
             Sharpen.Thread.Sleep(5000);
+
 			Log.D(Tag, "Fetching doc1 via id: " + doc1Id);
-			var doc1 = database.GetDocumentWithIDAndRev(doc1Id, null, EnumSet.NoneOf<TDContentOptions>());
+            var doc1 = database.GetExistingDocument(doc1Id);
 			Assert.IsNotNull(doc1);
-			Assert.IsTrue(doc1.GetRevId().StartsWith("1-"));
-            Assert.AreEqual(1, doc1.GetPropertyForKey("foo"));
+            Assert.IsNotNull(doc1.CurrentRevisionId);
+            Assert.IsTrue(doc1.CurrentRevisionId.StartsWith("1-"));
+            Assert.IsNotNull(doc1.Properties);
+            Assert.AreEqual(1, doc1.GetProperty("foo"));
 
             Log.D(Tag, "Fetching doc2 via id: " + doc2Id);
-            var doc2 = database.GetDocumentWithIDAndRev(doc2Id, null, EnumSet.NoneOf<TDContentOptions>());
+            var doc2 = database.GetExistingDocument(doc2Id);
 			Assert.IsNotNull(doc2);
-            Assert.IsTrue(doc2.GetRevId().StartsWith("1-"));
-            Assert.AreEqual(1, doc2.GetPropertyForKey("foo"));
+            Assert.IsNotNull(doc2.CurrentRevisionId);
+            Assert.IsTrue(doc2.CurrentRevisionId.StartsWith("1-"));
+            Assert.IsNotNull(doc2.Properties);
+            Assert.AreEqual(1, doc2.GetProperty("foo"));
             Log.D(Tag, "testPuller() finished");
 		}
 
@@ -311,8 +313,10 @@ namespace Couchbase.Lite.Replicator
 			string docIdTimestamp = System.Convert.ToString(Runtime.CurrentTimeMillis());
             string doc1Id = string.Format("doc1-{0}", docIdTimestamp);
             string doc2Id = string.Format("doc2-{0}", docIdTimestamp);
+
 			AddDocWithId(doc1Id, "attachment2.png");
 			AddDocWithId(doc2Id, "attachment2.png");
+
 			int numDocsBeforePull = database.DocumentCount;
 			View view = database.GetView("testPullerWithLiveQueryView");
             view.SetMapReduce((document, emitter) => {
@@ -320,6 +324,7 @@ namespace Couchbase.Lite.Replicator
                     emitter (document.Get ("_id"), null);
                 }
             }, null, "1");
+
 			LiveQuery allDocsLiveQuery = view.CreateQuery().ToLiveQuery();
             allDocsLiveQuery.Changed += (sender, e) => {
                 int numTimesCalled = 0;
@@ -565,7 +570,7 @@ namespace Couchbase.Lite.Replicator
 			Log.D("TEST", "testFetchRemoteCheckpointDoc() called");
 			string dbUrlString = "http://fake.test-url.com:4984/fake/";
 			Uri remote = new Uri(dbUrlString);
-			database.SetLastSequence("1", remote, true);
+            database.SetLastSequence("1", dbUrlString, true);
 			// otherwise fetchRemoteCheckpoint won't contact remote
             Assert.Fail();
 			Replication replicator = new Pusher(database, remote, false, mockHttpClientFactory

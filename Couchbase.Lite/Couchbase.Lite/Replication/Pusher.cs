@@ -103,16 +103,32 @@ namespace Couchbase.Lite.Replicator
             {
                 return;
             }
-            Log.V(Tag, "Remote db might not exist; creating it...");
+
+            Log.V(Tag, this + ": Remote db might not exist; creating it...");
+            Log.D(Tag, this + "|" + Thread.CurrentThread() + ": maybeCreateRemoteDB() calling asyncTaskStarted()");
             SendAsyncRequest(HttpMethod.Put, String.Empty, null, (result, e) => 
                 {
-                    if (e is HttpException && ((HttpException)e).ErrorCode != 412) {
-                        Log.V (Tag, "Unable to create remote db (normal if using sync gateway)");
-                    } else {
-                        Log.V (Tag, "Created remote db");
+                    try
+                    {
+                        if (e is HttpException && ((HttpException)e).ErrorCode != 412) 
+                        {
+                            // this is fatal: no db to push to!
+                            Log.E(Tag, this + ": Failed to create remote db", e);
+                            LastError = e;
+                            Stop();
+                        } 
+                        else 
+                        {
+                            Log.V (Tag, this + ": Created remote db");
+                            CreateTarget = false;
+                            BeginReplicating ();
+                        }
+                    } 
+                    finally
+                    {
+                        Log.D(Tag, this + "|" +  Thread.CurrentThread() + ": maybeCreateRemoteDB.onComplete() calling asyncTaskFinished()");
+                        AsyncTaskFinished(1);
                     }
-                    CreateTarget = false;
-                    BeginReplicating ();
                 });
 		}
 
@@ -120,10 +136,18 @@ namespace Couchbase.Lite.Replicator
 		{
             // If we're still waiting to create the remote db, do nothing now. (This method will be
             // re-invoked after that request finishes; see maybeCreateRemoteDB() above.)
+            Log.D(Database.Tag, this + "|" + Sharpen.Thread.CurrentThread() + ": beginReplicating() called");
+
             if (CreateTarget)
             {
+                Log.D(Tag, this + "|" + Sharpen.Thread.CurrentThread() + ": creatingTarget == true, doing nothing");
                 return;
             }
+            else
+            {
+                Log.D(Tag, this + "|" + Sharpen.Thread.CurrentThread() + ": creatingTarget != true, continuing");
+            }
+
             if (Filter != null)
             {
                 filter = LocalDatabase.GetFilter(Filter);
@@ -140,16 +164,20 @@ namespace Couchbase.Lite.Replicator
                 lastSequenceLong = long.Parse(LastSequence);
             }
 
-            var changes = LocalDatabase.ChangesSince(lastSequenceLong, null, filter);
+            var options = new ChangesOptions();
+            options.SetIncludeConflicts(true);
+            var changes = LocalDatabase.ChangesSince(lastSequenceLong, options, filter);
             if (changes.Count > 0)
             {
-                ProcessInbox(changes);
+                Batcher.QueueObjects(changes);
+                Batcher.Flush();
             }
             // Now listen for future changes (in continuous mode):
             if (continuous)
             {
                 observing = true;
                 LocalDatabase.Changed += OnChanged;
+                Log.D(Tag, this + "|" + Thread.CurrentThread() + ": pusher.beginReplicating() calling asyncTaskStarted()");
                 AsyncTaskStarted();
             }
 		}
@@ -165,9 +193,15 @@ namespace Couchbase.Lite.Replicator
 		{
 			if (observing)
 			{
-				observing = false;
-                LocalDatabase.Changed -= OnChanged;
-				AsyncTaskFinished(1);
+                try
+                {
+                    observing = false;
+                    LocalDatabase.Changed -= OnChanged;
+                }
+                finally
+                {
+                    AsyncTaskFinished(1);
+                }
 			}
 		}
 
@@ -198,6 +232,7 @@ namespace Couchbase.Lite.Replicator
 		{
             var lastInboxSequence = inbox[inbox.Count - 1].GetSequence();
             // Generate a set of doc/rev IDs in the JSON format that _revs_diff wants:
+            // <http://wiki.apache.org/couchdb/HttpPostRevsDiff>
             var diffs = new Dictionary<String, IList<String>>();
             foreach (var rev in inbox)
             {
@@ -210,89 +245,115 @@ namespace Couchbase.Lite.Replicator
                 }
                 revs.AddItem(rev.GetRevId());
             }
+
             // Call _revs_diff on the target db:
+            Log.D(Tag, this + "|" + Thread.CurrentThread() + ": processInbox() calling asyncTaskStarted()");
+            Log.D(Tag, this + "|" + Thread.CurrentThread() + ": posting to /_revs_diff: " + diffs);
+
             AsyncTaskStarted();
             SendAsyncRequest(HttpMethod.Post, "/_revs_diff", diffs, (response, e) => 
             {
-                var responseData = (JObject)response;
-                var results = responseData.ToObject<IDictionary<string, object>>();
+                try {
+                    Log.D(Tag, this + "|" + Thread.CurrentThread() + ": /_revs_diff response: " + response);
 
-                if (e != null) {
-                    LastError = e;
-                    Stop ();
-                } else {
-                    if (results.Count != 0) {
-                        // Go through the list of local changes again, selecting the ones the destination server
-                        // said were missing and mapping them to a JSON dictionary in the form _bulk_docs wants:
-                        var docsToSend = new AList<object> ();
+                    var responseData = (JObject)response;
+                    var results = responseData.ToObject<IDictionary<string, object>>();
 
-                        foreach (var rev in inbox) {
-                            IDictionary<string, object> properties = null;
-                            var resultDocData = (JObject)results.Get (rev.GetDocId ());
-                            var resultDoc = resultDocData.ToObject<IDictionary<String, Object>>();
-                            if (resultDoc != null) {
-                                var revs = ((JArray)resultDoc.Get ("missing")).Values<String>().ToList();
-                                if (revs != null && revs.Contains (rev.GetRevId ())) {
-                                    //remote server needs this revision
-                                    // Get the revision's properties
-                                    if (rev.IsDeleted ()) {
-                                        properties = new Dictionary<string, object> ();
-                                        properties.Put ("_id", rev.GetDocId ());
-                                        properties.Put ("_rev", rev.GetRevId ());
-                                        properties.Put ("_deleted", true);
-                                    } else {
-                                        // OPT: Shouldn't include all attachment bodies, just ones that have changed
-                                        var contentOptions = EnumSet.Of (TDContentOptions.TDIncludeAttachments, TDContentOptions.TDBigAttachmentsFollow);
-                                        try {
-                                            LocalDatabase.LoadRevisionBody (rev, contentOptions);
-                                        } catch (CouchbaseLiteException e1) {
-                                            throw new RuntimeException (e1);
+                    if (e != null) {
+                        LastError = e;
+                        RevisionFailed();
+                        //Stop ();
+                    } else {
+                        if (results.Count != 0) {
+                            // Go through the list of local changes again, selecting the ones the destination server
+                            // said were missing and mapping them to a JSON dictionary in the form _bulk_docs wants:
+                            var docsToSend = new AList<object> ();
+
+                            foreach (var rev in inbox) {
+                                IDictionary<string, object> properties = null;
+                                var resultDocData = (JObject)results.Get (rev.GetDocId ());
+                                var resultDoc = resultDocData.ToObject<IDictionary<String, Object>>();
+                                if (resultDoc != null) {
+                                    var revs = ((JArray)resultDoc.Get ("missing")).Values<String>().ToList();
+                                    if (revs != null && revs.Contains (rev.GetRevId ())) {
+                                        //remote server needs this revision
+                                        // Get the revision's properties
+                                        if (rev.IsDeleted ()) {
+                                            properties = new Dictionary<string, object> ();
+                                            properties.Put ("_id", rev.GetDocId ());
+                                            properties.Put ("_rev", rev.GetRevId ());
+                                            properties.Put ("_deleted", true);
+                                        } else {
+                                            // OPT: Shouldn't include all attachment bodies, just ones that have changed
+                                            var contentOptions = EnumSet.Of (TDContentOptions.TDIncludeAttachments, TDContentOptions.TDBigAttachmentsFollow);
+                                            try {
+                                                LocalDatabase.LoadRevisionBody (rev, contentOptions);
+                                            } catch (CouchbaseLiteException e1) {
+                                                Log.W(Tag, string.Format("%s Couldn't get local contents of %s", rev, this));
+                                                RevisionFailed();
+                                                continue;
+                                            }
+                                            properties = new Dictionary<String, Object> (rev.GetProperties ());
                                         }
-                                        properties = new Dictionary<String, Object> (rev.GetProperties ());
-                                    }
-                                    if (properties.ContainsKey ("_attachments")) {
-                                        if (UploadMultipartRevision (rev)) {
-                                            continue;
+                                        if (properties.ContainsKey ("_attachments")) {
+                                            if (UploadMultipartRevision (rev)) {
+                                                continue;
+                                            }
                                         }
-                                    }
-                                    if (properties != null) {
-                                        // Add the _revisions list:
-                                        properties.Put ("_revisions", LocalDatabase.GetRevisionHistoryDict (rev));
-                                        //now add it to the docs to send
-                                        docsToSend.AddItem (properties);
+                                        if (properties != null) {
+                                            // Add the _revisions list:
+                                            properties.Put ("_revisions", LocalDatabase.GetRevisionHistoryDict (rev));
+                                            //now add it to the docs to send
+                                            docsToSend.AddItem (properties);
+                                        }
                                     }
                                 }
                             }
-                        }
-                        // Post the revisions to the destination. "new_edits":false means that the server should
-                        // use the given _rev IDs instead of making up new ones.
-                        var numDocsToSend = docsToSend.Count;
-                        var bulkDocsBody = new Dictionary<String, Object> ();
+                            // Post the revisions to the destination. "new_edits":false means that the server should
+                            // use the given _rev IDs instead of making up new ones.
+                            var numDocsToSend = docsToSend.Count;
+                            if (numDocsToSend > 0)
+                            {
+                                var bulkDocsBody = new Dictionary<String, Object> ();
+                                bulkDocsBody.Put ("docs", docsToSend);
+                                bulkDocsBody.Put ("new_edits", false);
 
-                        bulkDocsBody.Put ("docs", docsToSend);
-                        bulkDocsBody.Put ("new_edits", false);
+                                Log.V(Tag, string.Format("%s: POSTing " + numDocsToSend + " revisions to _bulk_docs: %s", this, docsToSend));
 
-                        Log.I (Tag, string.Format ("{0}: Sending {1} revisions", this, numDocsToSend));
-                        Log.V (Tag, string.Format ("{0}: Sending {1}", this, inbox));
-                        ChangesCount += numDocsToSend;
+                                ChangesCount += numDocsToSend;
 
-                        AsyncTaskStarted ();
-                        SendAsyncRequest (HttpMethod.Post, "/_bulk_docs", bulkDocsBody, (result, ex) => {
-                            if (ex != null) {
-                                LastError = ex;
-                            } else {
-                                Log.V (Tag, string.Format ("{0}: Sent {1}", this, inbox));
-                                LastSequence = string.Format ("{0}", lastInboxSequence);
+                                Log.D(Tag, this + "|" + Thread.CurrentThread() + ": processInbox-before_bulk_docs() calling asyncTaskStarted()");
+
+                                AsyncTaskStarted ();
+                                SendAsyncRequest (HttpMethod.Post, "/_bulk_docs", bulkDocsBody, (result, ex) => {
+                                    try
+                                    {
+                                        if (ex != null) {
+                                            LastError = ex;
+                                            RevisionFailed();
+                                        } else {
+                                            Log.V(Tag, string.Format("%s: POSTed to _bulk_docs: %s", this, docsToSend));
+                                            LastSequence = string.Format ("{0}", lastInboxSequence);
+                                        }
+                                        CompletedChangesCount  += numDocsToSend;
+                                    }
+                                    finally
+                                    {
+                                        AsyncTaskFinished (1);
+                                    }
+                                });
                             }
-                            CompletedChangesCount  += numDocsToSend;
-                            AsyncTaskFinished (1);
-                        });
-                    } else {
-                        // If none of the revisions are new to the remote, just bump the lastSequence:
-                        LastSequence = string.Format ("{0}", lastInboxSequence);
+                        } else {
+                            // If none of the revisions are new to the remote, just bump the lastSequence:
+                            LastSequence = string.Format ("{0}", lastInboxSequence);
+                        }
                     }
                 }
-                AsyncTaskFinished (1);
+                finally
+                {
+                    Log.D(Tag, this + "|" + Thread.CurrentThread() + ": processInbox() calling asyncTaskFinished()");
+                    AsyncTaskFinished (1);
+                }
             });
 		}
 
@@ -370,17 +431,28 @@ namespace Couchbase.Lite.Replicator
 
             // TODO: need to throttle these requests
             Log.D(Tag, "Uploadeding multipart request.  Revision: " + revision);
+            Log.D(Tag, this + "|" + Thread.CurrentThread() + ": uploadMultipartRevision() calling asyncTaskStarted()");
 
             AsyncTaskStarted();
 
             SendAsyncMultipartRequest(HttpMethod.Put, path, multiPart, (result, e) => {
-                if (e != null) {
-                    Log.E (Tag, "Exception uploading multipart request", e);
-                    LastError = e;
-                } else {
-                    Log.D (Tag, "Uploaded multipart request.  Result: " + result);
+                try
+                {
+                    if (e != null) 
+                    {
+                        Log.E (Tag, "Exception uploading multipart request", e);
+                        LastError = e;
+                        RevisionFailed();
+                    }
+                    else
+                    {
+                        Log.D (Tag, "Uploaded multipart request.  Result: " + result);
+                    }
                 }
-                AsyncTaskFinished (1);
+                finally
+                {
+                    AsyncTaskFinished (1);
+                }
             });
             return true;
 		}

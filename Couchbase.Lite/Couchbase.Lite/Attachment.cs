@@ -129,13 +129,14 @@ namespace Couchbase.Lite {
                     }
                     updatedAttachments[name] = metadataMutable;
                 }
-                else
+                else if (value is AttachmentInternal)
                 {
-                    if (value is AttachmentInternal)
-                    {
-                        throw new ArgumentException("AttachmentInternal objects not expected here.  Could indicate a bug"
-                        );
-                    }
+                    throw new ArgumentException("AttachmentInternal objects not expected here.  Could indicate a bug");
+                }
+                else 
+                {
+                    if (value != null)
+                        updatedAttachments[name] = value;
                 }
             }
             return updatedAttachments;

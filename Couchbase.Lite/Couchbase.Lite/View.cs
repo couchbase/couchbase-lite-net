@@ -164,6 +164,7 @@ namespace Couchbase.Lite {
                     // nothing to do (eg,  kCBLStatusNotModified)
                     var msg = String.Format("lastSequence ({0}) == dbMaxSequence ({1}), nothing to do", lastSequence, dbMaxSequence);
                     Log.D(Database.Tag, msg);
+                    result.SetCode(StatusCode.Ok);
                     return;
                 }
 
@@ -842,7 +843,7 @@ namespace Couchbase.Lite {
 
     #region Global Delegates
 
-        public delegate void MapDelegate(IDictionary<String, Object> document, EmitDelegate emit);
+    public delegate void MapDelegate(IDictionary<String, Object> document, EmitDelegate emit);
         
     public delegate void EmitDelegate(Object key, Object value);
         

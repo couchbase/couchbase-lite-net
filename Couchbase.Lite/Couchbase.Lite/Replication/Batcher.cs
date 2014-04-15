@@ -74,9 +74,15 @@ namespace Couchbase.Lite.Support
 
 		private readonly int delay;
 
+        private int scheduledDelay;
+
 		private IList<T> inbox;
 
         private readonly Action<IList<T>> processor;
+
+        private Boolean scheduled;
+
+        private long lastProcessedTime;
 
         private readonly Action processNowRunnable;
 
@@ -93,8 +99,8 @@ namespace Couchbase.Lite.Support
                 }
                 catch (Exception e)
                 {
-                  // we don't want this to crash the batcher
-                  Log.E(Tag, "BatchProcessor throw exception", e);
+                    // we don't want this to crash the batcher
+                    Log.E(Tag, this + ": BatchProcessor throw exception", e);
                 }
             });
             this.locker = new Object ();
@@ -107,77 +113,154 @@ namespace Couchbase.Lite.Support
 
 		public void ProcessNow()
 		{
-			IList<T> toProcess = null;
+            Log.D(Tag, this + ": processNow() called");
+            scheduled = false;
+
+
+            IList<T> toProcess;
 			lock (locker)
 			{
 				if (inbox == null || inbox.Count == 0)
 				{
+                    Log.D(Tag, this + ": processNow() called, but inbox is empty");
 					return;
 				}
-				toProcess = inbox;
-				inbox = null;
-				flushFuture = null;
+                else
+                {
+                    if (inbox.Count <= capacity)
+                    {
+                        toProcess = inbox;
+                        inbox = null;
+                    }
+                    else 
+                    {
+                        toProcess = new AList<T>();
+
+                        int i = 0;
+                        foreach (T item in inbox)
+                        {
+                            toProcess.AddItem(item);
+                            i += 1;
+                            if (i >= capacity)
+                            {
+                                break;
+                            }
+                        }
+
+                        foreach (T item in toProcess)
+                        {
+                            Log.D(Tag, this + ": processNow() removing " + item + " from inbox");
+                            inbox.Remove(item);
+                        }
+
+                        Log.D(Tag, this + ": inbox.size() > capacity, moving " + toProcess.Count + " items from inbox -> toProcess array");
+                        // There are more objects left, so schedule them Real Soon:
+                        ScheduleWithDelay(0);
+                    }
+                }
 			}
-			if (toProcess != null)
+
+            if (toProcess != null && toProcess.Count > 0)
 			{
+                Log.D(Tag, this + ": invoking processor with " + toProcess.Count + " items ");
                 processor(toProcess);
 			}
+            else
+            {
+                Log.D(Tag, this + ": nothing to process");
+            }
+
+            lastProcessedTime = Runtime.CurrentTimeMillis();
 		}
 
         CancellationTokenSource cancellationSource;
 
-		public void QueueObject(T obj)
+        public void QueueObjects(IList<T> objects)
 		{
 			lock (locker)
             {
-				if (inbox != null && inbox.Count >= capacity)
-				{
-					Flush();
-				}
-				if (inbox == null)
-				{
-					inbox = new AList<T>();
-					if (workExecutor != null)
-					{
-                        cancellationSource = new CancellationTokenSource();
-                        flushFuture = Task.Delay(delay)
-                            .ContinueWith(task => 
-                            {
-//                                if (!(task.IsCanceled && cancellationSource.IsCancellationRequested))
-                                    processNowRunnable ();
-                            }, cancellationSource.Token);
-					}
-				}
-				inbox.AddItem(obj);
+                Log.D(Tag, "queuObjects called with " + objects.Count + " objects. ");
+
+                if (objects.Count == 0)
+                {
+                    return;
+                }
+
+                if (inbox == null)
+                {
+                    inbox = new AList<T>();
+                }
+
+                Log.D(Tag, "inbox size before adding objects: " + inbox.Count);
+                foreach (T item in objects)
+                {
+                    inbox.Add(item);
+                }
+                Log.D(Tag, objects.Count + " objects added to inbox.  inbox size: " + inbox.Count);
+
+                if (inbox.Count < capacity)
+                {
+                    // Schedule the processing. To improve latency, if we haven't processed anything
+                    // in at least our delay time, rush these object(s) through ASAP:
+                    Log.D(Tag, "inbox.size() < capacity, schedule processing");
+                    int delayToUse = delay;
+                    long delta = (Runtime.CurrentTimeMillis() - lastProcessedTime);
+                    if (delta >= delay)
+                    {
+                        Log.D(Tag, "delta " + delta + " >= delay " + delay + " --> using delay 0");
+                        delayToUse = 0;
+                    }
+                    else
+                    {
+                        Log.D(Tag, "delta " + delta + " < delay " + delay + " --> using delay " + delayToUse);
+                    }
+                    ScheduleWithDelay(delayToUse);
+                }
+                else
+                {
+                    // If inbox fills up, process it immediately:
+                    Log.D(Tag, "inbox.size() >= capacity, process immediately");
+                    Unschedule();
+                    ProcessNow();
+                }
 			}
 		}
+
+        public void QueueObject(T o)
+        {
+            IList<T> objects = new AList<T>();
+            objects.Add(o);
+            QueueObjects(objects);
+        }
 
 		public void Flush()
 		{
 			lock (locker)
 			{
-				if (inbox != null)
-				{
-                    var didcancel = false;
-					if (flushFuture != null)
-					{
-                        try {
-                            cancellationSource.Cancel(false);
-                            didcancel = true;
-                        } catch (Exception) { } // Swallow it.
-					}
-					//assume if we didn't cancel it was because it was already running
-					if (didcancel)
-					{
-						ProcessNow();
-					}
-					else
-					{
-						Log.V(Tag, "skipping process now because didcancel false");
-					}
-				}
+                Unschedule();
+                ProcessNow();
 			}
 		}
+
+        public void FlushAll()
+        {
+            lock (locker)
+            {
+                while(inbox.Count > 0)
+                {
+                    Unschedule();
+
+                    IList<T> toProcess = new AList<T>();
+                    foreach (T item in inbox)
+                    {
+                        toProcess.Add(item);
+                    }
+
+                    processor(toProcess);
+                    lastProcessedTime = Runtime.CurrentTimeMillis();
+                }
+            }
+        }
 
 		public int Count()
 		{
@@ -189,9 +272,57 @@ namespace Couchbase.Lite.Support
             }
 		}
 
-		public void Close()
+        public void Clear()
 		{
-//            cancellationSource.Cancel();
+            lock (locker) {
+                Unschedule();
+                inbox.Clear();
+                inbox = null;
+            }
 		}
+
+        private void ScheduleWithDelay(Int32 suggestedDelay)
+        {
+            Log.D(Tag, "scheduleWithDelay called with delay: " + suggestedDelay + " ms");
+
+            if (scheduled && (suggestedDelay < scheduledDelay))
+            {
+                Log.D(Tag, "already scheduled and : " + suggestedDelay + " < " + scheduledDelay + " --> unscheduling");
+                Unschedule();
+            }
+
+            if (!scheduled)
+            {
+                Log.D(Database.Tag, "not already scheduled");
+                scheduled = true;
+                scheduledDelay = suggestedDelay;
+                Log.D(Tag, "workExecutor.schedule() with delay: " + suggestedDelay + " ms");
+
+                cancellationSource = new CancellationTokenSource();
+                flushFuture = Task.Delay(scheduledDelay)
+                    .ContinueWith(task => 
+                    {
+                        if(!(task.IsCanceled && cancellationSource.IsCancellationRequested))
+                        {
+                            processNowRunnable();
+                        }
+                    }, cancellationSource.Token);
+            }
+        }
+
+        private void Unschedule()
+        {
+            Log.D(Tag, this + ": unschedule() called");
+            scheduled = false;
+            if (cancellationSource != null && flushFuture != null)
+            {
+                try 
+                {
+                    cancellationSource.Cancel(false);
+                } 
+                catch (Exception) { } // Swallow it.
+                Log.D(Tag, "tried to cancel flushFuture.");
+            }
+        }
 	}
 }

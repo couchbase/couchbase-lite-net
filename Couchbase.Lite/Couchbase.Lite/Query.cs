@@ -78,7 +78,7 @@ namespace Couchbase.Lite {
             View = view;
             Limit = Int32.MaxValue;
             MapOnly = (view != null && view.Reduce == null);
-            IndexUpdateMode = IndexUpdateMode.Never;
+            IndexUpdateMode = IndexUpdateMode.Before;
             AllDocsMode = AllDocsMode.AllDocs;
         }
 
@@ -137,7 +137,7 @@ namespace Couchbase.Lite {
                 queryOptions.SetUpdateSeq(true);
                 queryOptions.SetInclusiveEnd(true);
                 queryOptions.SetIncludeDeletedDocs(IncludeDeleted);
-                queryOptions.SetStale(IndexUpdateMode);
+                queryOptions.SetStale(IndexUpdateMode.Before);
                 queryOptions.SetAllDocsMode(AllDocsMode);
                 return queryOptions;
             }
@@ -203,6 +203,11 @@ namespace Couchbase.Lite {
         //Methods
         public virtual QueryEnumerator Run() 
         {
+            if (!Database.Open())
+            {
+                throw new CouchbaseLiteException("The database has been closed.");
+            }
+
             var outSequence = new AList<long>();
             var viewName = (View != null) ? View.Name : null;
             var queryOptions = QueryOptions;

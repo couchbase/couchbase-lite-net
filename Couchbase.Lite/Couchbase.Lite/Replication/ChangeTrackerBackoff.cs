@@ -54,17 +54,17 @@ namespace Couchbase.Lite.Replicator
 	{
         public const int MaxSleepMilliseconds = 5 * 60 * 1000;
 
-		private int numAttempts = 0;
+        public Int32 NumAttempts { get; private set; }
 
 		// 5 mins
 		public void ResetBackoff()
 		{
-			numAttempts = 0;
+            NumAttempts = 0;
 		}
 
 		public int GetSleepMilliseconds()
 		{
-            var result = (int)(Math.Pow(numAttempts, 2) - 1) / 2;
+            var result = (int)(Math.Pow(NumAttempts, 2) - 1) / 2;
 			result *= 100;
 
 			if (result < MaxSleepMilliseconds)
@@ -93,7 +93,7 @@ namespace Couchbase.Lite.Replicator
 
 		private void IncreaseBackoff()
 		{
-			numAttempts += 1;
+            NumAttempts += 1;
 		}
 	}
 }
