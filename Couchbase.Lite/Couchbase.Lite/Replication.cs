@@ -198,7 +198,7 @@ namespace Couchbase.Lite
                             .ContinueWith(task => 
                             {
                                 SaveLastSequence();
-                            }, null);
+                            });
                     }
                 }
             }
