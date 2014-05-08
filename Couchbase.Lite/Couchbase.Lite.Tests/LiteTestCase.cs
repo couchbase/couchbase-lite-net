@@ -3,6 +3,7 @@
 //
 // Author:
 //	Zachary Gramana  <zack@xamarin.com>
+//  Pasin Suriyentrakorn <pasin@couchbase.com>
 //
 // Copyright (c) 2013, 2014 Xamarin Inc (http://www.xamarin.com)
 //
@@ -253,7 +254,7 @@ namespace Couchbase.Lite
 		protected internal virtual IDictionary<string, object> UserProperties(IDictionary
 			<string, object> properties)
 		{
-			IDictionary<string, object> result = new Dictionary<string, object>();
+            var result = new Dictionary<string, object>();
 			foreach (string key in properties.Keys)
 			{
 				if (!key.StartsWith ("_", StringComparison.Ordinal))
@@ -387,5 +388,43 @@ namespace Couchbase.Lite
 		{
             return SendBody(method, path, null, (int)expectedStatus, expectedResult);
 		}
+
+        protected internal void CreateDocuments(Database db, int n) {
+            for (int i = 0; i < n; i++) {
+                var properties = new Dictionary<string, object>();
+                properties.Add("testName", "testDatabase");
+                properties.Add("sequence", i);
+                CreateDocumentWithProperties(db, properties);
+            }
+        }
+
+        protected internal Document CreateDocumentWithProperties(Database db, IDictionary<string, object> properties) 
+        {
+            var doc = db.CreateDocument();
+
+            Assert.IsNotNull(doc);
+            Assert.IsNull(doc.CurrentRevisionId);
+            Assert.IsNull(doc.CurrentRevision);
+            Assert.IsNotNull(doc.Id, "Document has no ID");
+
+            try
+            {
+                doc.PutProperties(properties);
+            } 
+            catch (Exception e)
+            {
+                Log.E(Tag, "Error creating document", e);
+                Assert.IsTrue(false, "can't create new document in db:" + db.Name + " with properties:" + properties.ToString());
+            }
+
+            Assert.IsNotNull(doc.Id);
+            Assert.IsNotNull(doc.CurrentRevisionId);
+            Assert.IsNotNull(doc.CurrentRevision);
+
+            Assert.AreEqual(db.GetDocument(doc.Id), doc);
+            Assert.AreEqual(db.GetDocument(doc.Id).Id, doc.Id);
+
+            return doc;
+        }
 	}
 }

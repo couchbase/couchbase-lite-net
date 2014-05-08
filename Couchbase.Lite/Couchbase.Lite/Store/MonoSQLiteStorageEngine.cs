@@ -431,18 +431,15 @@ namespace Couchbase.Lite.Storage
         SqliteCommand GetDeleteCommand (string table, string whereClause, string[] whereArgs)
         {
             var builder = new StringBuilder("DELETE FROM ");
-
             builder.Append(table);
-
-            var command = new SqliteCommand(builder.ToString(), Connection, currentTransaction);
-            command.Parameters.Clear();
-
             if (!whereClause.IsEmpty()) {
                 builder.Append(" WHERE ");
                 builder.Append(whereClause.ReplacePositionalParams());
-                command.Parameters.AddRange(whereArgs.ToSqliteParameters());
             }
 
+            var command = new SqliteCommand(builder.ToString(), Connection, currentTransaction);
+            command.Parameters.Clear();
+            command.Parameters.AddRange(whereArgs.ToSqliteParameters());
 
             return command;
         }

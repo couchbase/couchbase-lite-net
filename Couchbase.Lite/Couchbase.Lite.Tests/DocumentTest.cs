@@ -3,6 +3,7 @@
 //
 // Author:
 //	Zachary Gramana  <zack@xamarin.com>
+//  Pasin Suriyentrakorn <pasin@couchbase.com>
 //
 // Copyright (c) 2013, 2014 Xamarin Inc (http://www.xamarin.com)
 //
@@ -46,46 +47,86 @@ using System.Collections.Generic;
 using Couchbase.Lite;
 using NUnit.Framework;
 using Sharpen;
+using Couchbase.Lite.Internal;
 
 namespace Couchbase.Lite
 {
 	public class DocumentTest : LiteTestCase
 	{
 		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
-		public virtual void TestNewDocumentHasCurrentRevision()
+        [Test]
+        public void TestNewDocumentHasCurrentRevision()
 		{
-			Document document = database.CreateDocument();
-			IDictionary<string, object> properties = new Dictionary<string, object>();
+            var document = database.CreateDocument();
+            var properties = new Dictionary<string, object>();
 			properties["foo"] = "foo";
 			properties["bar"] = false;
 			document.PutProperties(properties);
-			NUnit.Framework.Assert.IsNotNull(document.CurrentRevisionId());
-			NUnit.Framework.Assert.IsNotNull(document.CurrentRevision);
+            Assert.IsNotNull(document.CurrentRevisionId);
+			Assert.IsNotNull(document.CurrentRevision);
 		}
 
 		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
-		public virtual void TestDeleteDocument()
+        [Test]
+        public void TestDeleteDocument()
 		{
-			Document document = database.CreateDocument();
-			IDictionary<string, object> properties = new Dictionary<string, object>();
+            var document = database.CreateDocument();
+            var properties = new Dictionary<string, object>();
 			properties["foo"] = "foo";
 			properties["bar"] = false;
 			document.PutProperties(properties);
-			NUnit.Framework.Assert.IsNotNull(document.CurrentRevision);
-			string docId = document.Id;
+			Assert.IsNotNull(document.CurrentRevision);
+
+            var docId = document.Id;
 			document.Delete();
-			NUnit.Framework.Assert.IsTrue(document.IsDeleted());
+            Assert.IsTrue(document.Deleted);
 			Document fetchedDoc = database.GetExistingDocument(docId);
-			NUnit.Framework.Assert.IsNull(fetchedDoc);
+			Assert.IsNull(fetchedDoc);
+
 			// query all docs and make sure we don't see that document
 			database.GetAllDocs(new QueryOptions());
 			Query queryAllDocs = database.CreateAllDocumentsQuery();
 			QueryEnumerator queryEnumerator = queryAllDocs.Run();
-			for (IEnumerator<QueryRow> it = queryEnumerator; it.MoveNext(); )
+			for (IEnumerator<QueryRow> it = queryEnumerator; it.MoveNext();)
 			{
 				QueryRow row = it.Current;
-				NUnit.Framework.Assert.IsFalse(row.Document.Id.Equals(docId));
+                Assert.IsFalse(row.Document.Id.Equals(docId));
 			}
 		}
+
+        [Test]
+        public void TestLoadRevisionBody()
+        {
+            var document = database.CreateDocument();
+            var properties = new Dictionary<string, object>();
+            properties["foo"] = "foo";
+            properties["bar"] = false;
+            document.PutProperties(properties);
+            Assert.IsNotNull(document.CurrentRevision);
+
+            var deleted = false;
+
+            var revisionInternal = new RevisionInternal(
+                document.Id, document.CurrentRevisionId, deleted, database);
+
+            var contentOptions = EnumSet.Of (TDContentOptions.TDIncludeAttachments, 
+                TDContentOptions.TDBigAttachmentsFollow);
+
+            database.LoadRevisionBody(revisionInternal, contentOptions);
+
+            // now lets purge the document, and then try to load the revision body again
+            document.Purge();
+
+            var gotExpectedException = false;
+            try {
+                database.LoadRevisionBody(revisionInternal, contentOptions);
+            } catch (CouchbaseLiteException e) {
+                gotExpectedException |= 
+                    e.GetCBLStatus().GetCode() == StatusCode.NotFound;
+            }
+
+            Assert.IsTrue(gotExpectedException);
+        }
+
 	}
 }

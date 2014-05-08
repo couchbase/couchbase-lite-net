@@ -276,7 +276,7 @@ namespace Couchbase.Lite.Replicator
 
 				// if the URL contains user info AND if this a DefaultHttpClient
                 // then preemptively set/update the auth credentials
-				if (url.UserInfo != null)
+                if (!String.IsNullOrEmpty(url.UserInfo))
 				{
 					Log.V(Tag, "url.getUserInfo(): " + url.GetUserInfo());
 
