@@ -2610,7 +2610,7 @@ PRAGMA user_version = 3;";
             return MakeRevisionHistoryDict(GetRevisionHistory(rev));
         }
 
-        private static IDictionary<string, object> MakeRevisionHistoryDict(IList<RevisionInternal> history)
+        internal static IDictionary<string, object> MakeRevisionHistoryDict(IList<RevisionInternal> history)
         {
             if (history == null)
                 return null;
@@ -2688,7 +2688,7 @@ PRAGMA user_version = 3;";
         }
 
         // Splits a revision ID into its generation number and opaque suffix string
-        private static int ParseRevIDNumber(string rev)
+        internal static int ParseRevIDNumber(string rev)
         {
             var result = -1;
             var dashPos = rev.IndexOf("-", StringComparison.InvariantCultureIgnoreCase);
@@ -2697,10 +2697,21 @@ PRAGMA user_version = 3;";
             {
                 try
                 {
-                    result = Convert.ToInt32(Runtime.Substring(rev, 0, dashPos));
+                    var revIdStr = rev.Substring(0, dashPos);
+
+                    // Should return -1 when the string has WC at the beginning or at the end.
+                    if (revIdStr.Length > 0 && 
+                        (char.IsWhiteSpace(revIdStr[0]) || 
+                            char.IsWhiteSpace(revIdStr[revIdStr.Length - 1])))
+                    {
+                        return result;
+                    }
+
+                    result = Int32.Parse(revIdStr);
                 }
                 catch (FormatException)
                 {
+
                 }
             }
             // ignore, let it return -1
@@ -2708,7 +2719,7 @@ PRAGMA user_version = 3;";
         }
 
         // Splits a revision ID into its generation number and opaque suffix string
-        private static string ParseRevIDSuffix(string rev)
+        internal static string ParseRevIDSuffix(string rev)
         {
             var result = String.Empty;
             int dashPos = rev.IndexOf("-", StringComparison.InvariantCultureIgnoreCase);
@@ -3424,9 +3435,15 @@ PRAGMA user_version = 3;";
                 {
                     args["parent"] = parentSequence;
                 }
+
                 args["current"] = current;
                 args.Put("deleted", rev.IsDeleted());
-                args.Put("json", data.ToArray());
+
+                if (data != null)
+                {
+                    args.Put("json", data.ToArray());
+                }
+
                 rowId = StorageEngine.Insert("revs", null, args);
                 rev.SetSequence(rowId);
             }
@@ -4000,7 +4017,7 @@ PRAGMA user_version = 3;";
 
                 foreach (long id in toPrune.Keys)
                 {
-                    string minIDToKeep = string.Format("%d-", (toPrune.Get(id) + 1));
+                    string minIDToKeep = String.Format("{0}-", (toPrune.Get(id) + 1));
                     string[] deleteArgs = new string[] { System.Convert.ToString(docNumericID), minIDToKeep };
                     int rowsDeleted = StorageEngine.Delete("revs", "doc_id=? AND revid < ? AND current=0", deleteArgs);
                     outPruned += rowsDeleted;
@@ -4024,11 +4041,6 @@ PRAGMA user_version = 3;";
 
 
     #endregion
-    
-    #region Delegates
-        public delegate Boolean RunInTransactionDelegate();
-
-    #endregion
     
     #region EventArgs Subclasses
         public class DatabaseChangeEventArgs : EventArgs {
@@ -4058,7 +4070,7 @@ PRAGMA user_version = 3;";
 
     public delegate FilterDelegate CompileFilterDelegate(String source, String language);
 
-
+    public delegate Boolean RunInTransactionDelegate();
 
     #endregion
 }

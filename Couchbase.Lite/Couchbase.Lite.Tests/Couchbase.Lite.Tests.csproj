@@ -63,6 +63,11 @@
     <Compile Include="Util\FailEveryRequestHandler.cs" />
     <Compile Include="ReplicationTest.cs" />
     <Compile Include="CollationTest.cs" />
+    <Compile Include="ManagerTest.cs" />
+    <Compile Include="DatabaseTest.cs" />
+    <Compile Include="DocumentTest.cs" />
+    <Compile Include="RevisionsTest.cs" />
+    <Compile Include="CRUDOperationsTest.cs" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Assets\" />

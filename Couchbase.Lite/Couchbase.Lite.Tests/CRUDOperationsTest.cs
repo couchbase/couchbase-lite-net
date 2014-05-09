@@ -3,6 +3,7 @@
 //
 // Author:
 //	Zachary Gramana  <zack@xamarin.com>
+//  Pasin Suriyentrakorn <pasin@couchbase.com>
 //
 // Copyright (c) 2013, 2014 Xamarin Inc (http://www.xamarin.com)
 //
@@ -43,6 +44,8 @@
 */
 
 using System.Collections.Generic;
+using System.Linq;
+using NUnit.Framework;
 using Couchbase.Lite;
 using Couchbase.Lite.Internal;
 using Couchbase.Lite.Util;
@@ -55,52 +58,77 @@ namespace Couchbase.Lite
 		public const string Tag = "CRUDOperations";
 
 		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
-		public virtual void TestCRUDOperations()
+        [Test]
+		public void TestCRUDOperations()
 		{
-			database.AddChangeListener(this);
-			string privateUUID = database.PrivateUUID();
-			string publicUUID = database.PublicUUID();
-			Log.V(Tag, "DB private UUID = '" + privateUUID + "', public UUID = '" + publicUUID
-				 + "'");
-			NUnit.Framework.Assert.IsTrue(privateUUID.Length >= 20);
-			NUnit.Framework.Assert.IsTrue(publicUUID.Length >= 20);
+            database.Changed += (sender, e) => {
+                var changes = e.Changes.ToList();
+                foreach (DocumentChange change in changes)
+                {
+                    var rev = change.AddedRevision;
+                    Assert.IsNotNull(rev);
+                    Assert.IsNotNull(rev.GetDocId());
+                    Assert.IsNotNull(rev.GetRevId());
+                    Assert.AreEqual(rev.GetDocId(), rev.GetProperties()["_id"]);
+                    Assert.AreEqual(rev.GetDocId(), rev.GetProperties()["_rev"]);
+                }
+            };
+
+            var privateUUID = database.PrivateUUID();
+            var publicUUID = database.PublicUUID();
+			Log.V(Tag, "DB private UUID = '" + privateUUID + "', public UUID = '" + 
+                publicUUID + "'");
+			Assert.IsTrue(privateUUID.Length >= 20);
+			Assert.IsTrue(publicUUID.Length >= 20);
+
 			//create a document
-			IDictionary<string, object> documentProperties = new Dictionary<string, object>();
+            var documentProperties = new Dictionary<string, object>();
 			documentProperties["foo"] = 1;
 			documentProperties["bar"] = false;
 			documentProperties["baz"] = "touch";
-			Body body = new Body(documentProperties);
-			RevisionInternal rev1 = new RevisionInternal(body, database);
-			Status status = new Status();
+
+            var body = new Body(documentProperties);
+            var rev1 = new RevisionInternal(body, database);
+
+            var status = new Status();
 			rev1 = database.PutRevision(rev1, null, false, status);
 			Log.V(Tag, "Created " + rev1);
-			NUnit.Framework.Assert.IsTrue(rev1.GetDocId().Length >= 10);
-			NUnit.Framework.Assert.IsTrue(rev1.GetRevId().StartsWith("1-"));
+			Assert.IsTrue(rev1.GetDocId().Length >= 10);
+			Assert.IsTrue(rev1.GetRevId().StartsWith("1-"));
+
 			//read it back
-			RevisionInternal readRev = database.GetDocumentWithIDAndRev(rev1.GetDocId(), null
-				, EnumSet.NoneOf<TDContentOptions>());
-			NUnit.Framework.Assert.IsNotNull(readRev);
-			IDictionary<string, object> readRevProps = readRev.Properties;
-			NUnit.Framework.Assert.AreEqual(UserProperties(readRevProps), UserProperties(body
-				.Properties));
+            var readRev = database.GetDocumentWithIDAndRev(rev1.GetDocId(), null, 
+                EnumSet.NoneOf<TDContentOptions>());
+			Assert.IsNotNull(readRev);
+
+            var userReadRevProps = UserProperties(readRev.GetProperties());
+            var userBodyProps = UserProperties(body.GetProperties());
+            Assert.AreEqual(userReadRevProps.Count, userBodyProps.Count);
+            foreach(var key in userReadRevProps.Keys) 
+            {
+                Assert.AreEqual(userReadRevProps[key], userBodyProps[key]);
+            }
+
 			//now update it
-			documentProperties = readRev.Properties;
+            documentProperties = (Dictionary<string, object>)readRev.GetProperties();
 			documentProperties["status"] = "updated!";
 			body = new Body(documentProperties);
-			RevisionInternal rev2 = new RevisionInternal(body, database);
-			RevisionInternal rev2input = rev2;
+            var rev2 = new RevisionInternal(body, database);
+            var rev2input = rev2;
 			rev2 = database.PutRevision(rev2, rev1.GetRevId(), false, status);
 			Log.V(Tag, "Updated " + rev1);
-			NUnit.Framework.Assert.AreEqual(rev1.GetDocId(), rev2.GetDocId());
-			NUnit.Framework.Assert.IsTrue(rev2.GetRevId().StartsWith("2-"));
+			Assert.AreEqual(rev1.GetDocId(), rev2.GetDocId());
+			Assert.IsTrue(rev2.GetRevId().StartsWith("2-"));
+
 			//read it back
-			readRev = database.GetDocumentWithIDAndRev(rev2.GetDocId(), null, EnumSet.NoneOf<
-				TDContentOptions>());
-			NUnit.Framework.Assert.IsNotNull(readRev);
-			NUnit.Framework.Assert.AreEqual(UserProperties(readRev.Properties), UserProperties
-				(body.Properties));
+			readRev = database.GetDocumentWithIDAndRev(rev2.GetDocId(), null, 
+                EnumSet.NoneOf<TDContentOptions>());
+			Assert.IsNotNull(readRev);
+            Assert.AreEqual(UserProperties(readRev.GetProperties()), UserProperties
+                (body.GetProperties()));
+
 			// Try to update the first rev, which should fail:
-			bool gotExpectedError = false;
+            var gotExpectedError = false;
 			try
 			{
 				database.PutRevision(rev2input, rev1.GetRevId(), false, status);
@@ -109,18 +137,24 @@ namespace Couchbase.Lite
 			{
 				gotExpectedError = e.GetCBLStatus().GetCode() == StatusCode.Conflict;
 			}
-			NUnit.Framework.Assert.IsTrue(gotExpectedError);
+			Assert.IsTrue(gotExpectedError);
+
 			// Check the changes feed, with and without filters:
-			RevisionList changes = database.ChangesSince(0, null, null);
-			Log.V(Tag, "Changes = " + changes);
-			NUnit.Framework.Assert.AreEqual(1, changes.Count);
-            changes = database.ChangesSince(0, null, (revision, items) => "updated!".Equals (revision.Properties.Get ("status")));
-			NUnit.Framework.Assert.AreEqual(1, changes.Count);
-            changes = database.ChangesSince(0, null, (revision, items) => "not updated!".Equals (revision.Properties.Get ("status")));
-			NUnit.Framework.Assert.AreEqual(0, changes.Count);
+            var changeRevisions = database.ChangesSince(0, null, null);
+
+            Log.V(Tag, "Changes = " + changeRevisions);
+            Assert.AreEqual(1, changeRevisions.Count);
+
+            changeRevisions = database.ChangesSince(0, null, 
+                (revision, items) => "updated!".Equals (revision.Properties.Get("status")));
+            Assert.AreEqual(1, changeRevisions.Count);
+
+            changeRevisions = database.ChangesSince(0, null, 
+                (revision, items) => "not updated!".Equals (revision.Properties.Get("status")));
+            Assert.AreEqual(0, changeRevisions.Count);
+
 			// Delete it:
-			RevisionInternal revD = new RevisionInternal(rev2.GetDocId(), null, true, database
-				);
+            var revD = new RevisionInternal(rev2.GetDocId(), null, true, database);
 			RevisionInternal revResult = null;
 			gotExpectedError = false;
 			try
@@ -131,14 +165,16 @@ namespace Couchbase.Lite
 			{
 				gotExpectedError = e.GetCBLStatus().GetCode() == StatusCode.Conflict;
 			}
-			NUnit.Framework.Assert.IsTrue(gotExpectedError);
-			NUnit.Framework.Assert.IsNull(revResult);
+			Assert.IsTrue(gotExpectedError);
+			Assert.IsNull(revResult);
+
 			revD = database.PutRevision(revD, rev2.GetRevId(), false, status);
-			NUnit.Framework.Assert.AreEqual(StatusCode.Ok, status.GetCode());
-			NUnit.Framework.Assert.AreEqual(revD.GetDocId(), rev2.GetDocId());
-			NUnit.Framework.Assert.IsTrue(revD.GetRevId().StartsWith("3-"));
-			// Delete nonexistent doc:
-			RevisionInternal revFake = new RevisionInternal("fake", null, true, database);
+			Assert.AreEqual(StatusCode.Ok, status.GetCode());
+			Assert.AreEqual(revD.GetDocId(), rev2.GetDocId());
+			Assert.IsTrue(revD.GetRevId().StartsWith("3-"));
+			
+            // Delete nonexistent doc:
+            var revFake = new RevisionInternal("fake", null, true, database);
 			gotExpectedError = false;
 			try
 			{
@@ -148,32 +184,22 @@ namespace Couchbase.Lite
 			{
 				gotExpectedError = e.GetCBLStatus().GetCode() == StatusCode.NotFound;
 			}
-			NUnit.Framework.Assert.IsTrue(gotExpectedError);
-			// Read it back (should fail):
-			readRev = database.GetDocumentWithIDAndRev(revD.GetDocId(), null, EnumSet.NoneOf<TDContentOptions>());
-			NUnit.Framework.Assert.IsNull(readRev);
-			// Get Changes feed
-			changes = database.ChangesSince(0, null, null);
-			NUnit.Framework.Assert.IsTrue(changes.Count == 1);
-			// Get Revision History
-			IList<RevisionInternal> history = database.GetRevisionHistory(revD);
-			NUnit.Framework.Assert.AreEqual(revD, history[0]);
-			NUnit.Framework.Assert.AreEqual(rev2, history[1]);
-			NUnit.Framework.Assert.AreEqual(rev1, history[2]);
-		}
+			Assert.IsTrue(gotExpectedError);
 
-		public virtual void Changed(Database.ChangeEvent @event)
-		{
-			IList<DocumentChange> changes = @event.GetChanges();
-			foreach (DocumentChange change in changes)
-			{
-				RevisionInternal rev = change.GetAddedRevision();
-				NUnit.Framework.Assert.IsNotNull(rev);
-				NUnit.Framework.Assert.IsNotNull(rev.GetDocId());
-				NUnit.Framework.Assert.IsNotNull(rev.GetRevId());
-				NUnit.Framework.Assert.AreEqual(rev.GetDocId(), rev.Properties["_id"]);
-				NUnit.Framework.Assert.AreEqual(rev.GetRevId(), rev.Properties["_rev"]);
-			}
+			// Read it back (should fail):
+			readRev = database.GetDocumentWithIDAndRev(revD.GetDocId(), null, 
+                EnumSet.NoneOf<TDContentOptions>());
+			Assert.IsNull(readRev);
+
+            // Get Changes feed:
+            changeRevisions = database.ChangesSince(0, null, null);
+            Assert.IsTrue(changeRevisions.Count == 1);
+
+            // Get Revision History:
+			IList<RevisionInternal> history = database.GetRevisionHistory(revD);
+			Assert.AreEqual(revD, history[0]);
+			Assert.AreEqual(rev2, history[1]);
+			Assert.AreEqual(rev1, history[2]);
 		}
 	}
 }

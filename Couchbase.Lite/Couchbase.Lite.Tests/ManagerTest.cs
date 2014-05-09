@@ -3,6 +3,7 @@
 //
 // Author:
 //	Zachary Gramana  <zack@xamarin.com>
+//  Pasin Suriyentrakorn <pasin@couchbase.com>
 //
 // Copyright (c) 2013, 2014 Xamarin Inc (http://www.xamarin.com)
 //
@@ -44,83 +45,92 @@
 
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using Couchbase.Lite;
+using NUnit.Framework;
 using Sharpen;
 
 namespace Couchbase.Lite
 {
 	public class ManagerTest : LiteTestCase
 	{
-		public virtual void TestServer()
+        [Test]
+		public void TestServer()
 		{
 			//to ensure this test is easily repeatable we will explicitly remove
 			//any stale foo.cblite
-			bool mustExist = true;
+            var mustExist = true;
 			Database old = manager.GetDatabaseWithoutOpening("foo", mustExist);
 			if (old != null)
 			{
 				old.Delete();
 			}
+
 			mustExist = false;
-			Database db = manager.GetDatabaseWithoutOpening("foo", mustExist);
-			NUnit.Framework.Assert.IsNotNull(db);
-			NUnit.Framework.Assert.AreEqual("foo", db.Name);
-			NUnit.Framework.Assert.IsTrue(db.GetPath().StartsWith(GetServerPath()));
-			NUnit.Framework.Assert.IsFalse(db.Exists());
+            var db = manager.GetDatabaseWithoutOpening("foo", mustExist);
+			Assert.IsNotNull(db);
+			Assert.AreEqual("foo", db.Name);
+            Assert.IsTrue(db.Path.StartsWith(GetServerPath()));
+			Assert.IsFalse(db.Exists());
+
 			// because foo doesn't exist yet
-			IList<string> databaseNames = manager.GetAllDatabaseNames();
-			NUnit.Framework.Assert.IsTrue(!databaseNames.Contains("foo"));
-			NUnit.Framework.Assert.IsTrue(db.Open());
-			NUnit.Framework.Assert.IsTrue(db.Exists());
-			databaseNames = manager.GetAllDatabaseNames();
-			NUnit.Framework.Assert.IsTrue(databaseNames.Contains("foo"));
+            List<string> databaseNames = manager.AllDatabaseNames.ToList();
+
+			Assert.IsTrue(!databaseNames.Contains("foo"));
+			Assert.IsTrue(db.Open());
+			Assert.IsTrue(db.Exists());
+			
+            databaseNames = manager.AllDatabaseNames.ToList();
+			Assert.IsTrue(databaseNames.Contains("foo"));
 			db.Close();
 			db.Delete();
 		}
 
 		/// <exception cref="System.Exception"></exception>
-		public virtual void TestUpgradeOldDatabaseFiles()
+        [Test]
+        public void TestUpgradeOldDatabaseFiles()
 		{
-			string directoryName = "test-directory-" + Runtime.CurrentTimeMillis();
-			string normalFilesDir = GetRootDirectory().GetAbsolutePath();
-			string fakeFilesDir = string.Format("%s/%s", normalFilesDir, directoryName);
-			FilePath directory = new FilePath(fakeFilesDir);
-			if (!directory.Exists())
-			{
-				bool result = directory.Mkdir();
-				if (!result)
-				{
-					throw new IOException("Unable to create directory " + directory);
-				}
-			}
-			FilePath oldTouchDbFile = new FilePath(directory, string.Format("old%s", Manager.
-				DatabaseSuffixOld));
-			oldTouchDbFile.CreateNewFile();
-			FilePath newCbLiteFile = new FilePath(directory, string.Format("new%s", Manager.DatabaseSuffix
-				));
-			newCbLiteFile.CreateNewFile();
-			FilePath migratedOldFile = new FilePath(directory, string.Format("old%s", Manager
-				.DatabaseSuffix));
-			migratedOldFile.CreateNewFile();
-			base.StopCBLite();
-			manager = new Manager(new FilePath(GetRootDirectory(), directoryName), Manager.DefaultOptions
-				);
-			NUnit.Framework.Assert.IsTrue(migratedOldFile.Exists());
+            var testDirName = "test-directory-" + Runtime.CurrentTimeMillis();
+            var rootDirPath = GetRootDirectory().FullName;
+            var testDirPath = Path.Combine(rootDirPath, testDirName);
+
+            var testDirInfo = Directory.CreateDirectory(testDirPath);
+
+            var oldTouchDb = Path.Combine(testDirPath, "old" + Manager.DatabaseSuffixOld);
+            File.Create(oldTouchDb);
+
+            var newCbLiteDb = Path.Combine(testDirPath, "new" + Manager.DatabaseSuffix);
+            File.Create(newCbLiteDb);
+
+            var migratedOldFile = Path.Combine(testDirPath, "old" + Manager.DatabaseSuffix);
+            File.Create(migratedOldFile);
+
+			StopCBLite();
+            manager = new Manager(testDirInfo, Manager.DefaultOptions);
+
+            var oldTouchDbInfo = new FileInfo(oldTouchDb);
+            var newCbLiteDbInfo = new FileInfo(newCbLiteDb);
+            var migratedOldInfo = new FileInfo(migratedOldFile);
+
+            Assert.IsTrue(migratedOldInfo.Exists);
 			//cannot rename old.touchdb in old.cblite, old.cblite already exists
-			NUnit.Framework.Assert.IsTrue(oldTouchDbFile.Exists());
-			NUnit.Framework.Assert.IsTrue(newCbLiteFile.Exists());
-			FilePath dir = new FilePath(GetRootDirectory(), directoryName);
-			NUnit.Framework.Assert.AreEqual(3, dir.ListFiles().Length);
-			base.StopCBLite();
-			migratedOldFile.Delete();
-			manager = new Manager(new FilePath(GetRootDirectory(), directoryName), Manager.DefaultOptions
-				);
+            Assert.IsTrue(oldTouchDbInfo.Exists);
+            Assert.IsTrue(newCbLiteDbInfo.Exists);
+            Assert.AreEqual(3, testDirInfo.GetFiles().Length);
+
+			StopCBLite();
+            migratedOldInfo.Delete();
+            manager = new Manager(testDirInfo, Manager.DefaultOptions);
+
+            oldTouchDbInfo = new FileInfo(oldTouchDb);
+            newCbLiteDbInfo = new FileInfo(newCbLiteDb);
+            migratedOldInfo = new FileInfo(migratedOldFile);
+
 			//rename old.touchdb in old.cblite, previous old.cblite already doesn't exist
-			NUnit.Framework.Assert.IsTrue(migratedOldFile.Exists());
-			NUnit.Framework.Assert.IsTrue(oldTouchDbFile.Exists() == false);
-			NUnit.Framework.Assert.IsTrue(newCbLiteFile.Exists());
-			dir = new FilePath(GetRootDirectory(), directoryName);
-			NUnit.Framework.Assert.AreEqual(2, dir.ListFiles().Length);
+            Assert.IsTrue(migratedOldInfo.Exists);
+            Assert.IsFalse(oldTouchDbInfo.Exists);
+            Assert.IsTrue(newCbLiteDbInfo.Exists);    
+            Assert.AreEqual(2, testDirInfo.GetFiles().Length); 
 		}
 	}
 }

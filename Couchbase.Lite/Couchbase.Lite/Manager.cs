@@ -70,9 +70,9 @@ namespace Couchbase.Lite
 
         const string HttpErrorDomain = "CBLHTTP";
 
-        const string DatabaseSuffixOld = ".touchdb";
+        internal const string DatabaseSuffixOld = ".touchdb";
 
-        const string DatabaseSuffix = ".cblite";
+        internal const string DatabaseSuffix = ".cblite";
 
         const string IllegalCharacters = "[^a-z]{1,}[^a-z0-9_$()/+-]*$";
 
@@ -365,15 +365,14 @@ namespace Couchbase.Lite
             }
         }
 
-        private void UpgradeOldDatabaseFiles(DirectoryInfo directory)
+        private void UpgradeOldDatabaseFiles(DirectoryInfo dirInfo)
         {
-            var files = directory.EnumerateFiles("*" + DatabaseSuffixOld, SearchOption.TopDirectoryOnly);
-
+            var files = dirInfo.EnumerateFiles("*" + DatabaseSuffixOld, SearchOption.TopDirectoryOnly);
             foreach (var file in files)
             {
                 var oldFilename = file.Name;
                 var newFilename = String.Concat(Path.GetFileNameWithoutExtension(oldFilename), DatabaseSuffix);
-                var newFile = new FileInfo(Path.Combine (directory.FullName, newFilename));
+                var newFile = new FileInfo(Path.Combine (dirInfo.FullName, newFilename));
 
                 if (newFile.Exists)
                 {
@@ -384,7 +383,10 @@ namespace Couchbase.Lite
 
                 try
                 {
-                    file.MoveTo (newFile.FullName);
+                    // Workaround : using CopyTo() and Delete() as file.MoveTo throws IOException with Sharing Violation Error.
+                    //file.MoveTo (newFile.FullName);
+                    file.CopyTo(newFile.FullName);
+                    file.Delete();
                 } catch (Exception ex) {
                     var msg = string.Format("Unable to rename {0} to {1}", oldFilename, newFilename);
                     var error = new InvalidOperationException(msg, ex);
