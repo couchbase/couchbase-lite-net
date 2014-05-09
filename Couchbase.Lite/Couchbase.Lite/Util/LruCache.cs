@@ -196,7 +196,7 @@ namespace Couchbase.Lite.Util
 			lock (locker)
 			{
 				createCount++;
-				mapValue = map[key] = createdValue;
+                mapValue = map.Put(key, createdValue);
 				if (mapValue != null)
 				{
 					// There was a conflict so undo that last put
@@ -248,7 +248,7 @@ namespace Couchbase.Lite.Util
 			{
 				putCount++;
 				size += SafeSizeOf(key, value);
-				previous = map[key] = value;
+                previous = map.Put(key,value);
 				if (previous != null)
 				{
 					size -= SafeSizeOf(key, previous);
@@ -276,8 +276,7 @@ namespace Couchbase.Lite.Util
 				{
 					if (size < 0 || (map.IsEmpty() && size != 0))
 					{
-						throw new InvalidOperationException(GetType().FullName + ".sizeOf() is reporting inconsistent results!"
-							);
+						throw new InvalidOperationException(GetType().FullName + ".sizeOf() is reporting inconsistent results!");
 					}
                     if (size <= maxSize)
 					{
