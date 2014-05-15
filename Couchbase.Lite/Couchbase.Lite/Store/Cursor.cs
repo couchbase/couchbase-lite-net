@@ -90,7 +90,7 @@ namespace Couchbase.Lite
 
         public string GetString (int columnIndex)
         {
-            return reader.GetString(columnIndex);
+            return reader.IsDBNull (columnIndex) ? null : reader.GetString(columnIndex);
         }
 
         public byte[] GetBlob (int columnIndex)

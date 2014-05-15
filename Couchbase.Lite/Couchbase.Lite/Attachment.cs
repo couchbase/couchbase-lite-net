@@ -224,20 +224,9 @@ namespace Couchbase.Lite {
 
                 ContentStream.Reset();
 
-                var chunkBuffer = new byte[DefaultStreamChunkSize];
-                // We know we'll be reading at least 1 chunk, so pre-allocate now to avoid an immediate resize.
-                var blob = new List<Byte> (DefaultStreamChunkSize);
-
-                int bytesRead;
-                do {
-                    chunkBuffer.Initialize ();
-                    // Resets all values back to zero.
-                    bytesRead = stream.Read (chunkBuffer, blob.Count, DefaultStreamChunkSize);
-                    blob.AddRange (chunkBuffer.Take (bytesRead));
-                }
-                while (bytesRead < stream.Length);
-
-                return blob.ToArray();
+                MemoryStream ms = new MemoryStream();
+                stream.CopyTo(ms);
+                return ms.ToArray();
             }
         }
 

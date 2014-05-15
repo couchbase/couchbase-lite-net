@@ -52,19 +52,24 @@ namespace Couchbase.Lite
 	public class BlobStoreWriterTest : LiteTestCase
 	{
 		/// <exception cref="System.Exception"></exception>
-		public virtual void TestBasicOperation()
+        [Test]
+        public void TestBasicOperation()
 		{
-			BlobStore attachments = database.Attachments;
 			InputStream attachmentStream = GetAsset("attachment.png");
-			byte[] bytes = IOUtils.ToByteArray(attachmentStream);
+            var memoryStream = new MemoryStream();
+            attachmentStream.Wrapped.CopyTo(memoryStream);
+            byte[] bytes = memoryStream.ToArray();
+
+            BlobStore attachments = database.Attachments;
 			BlobStoreWriter blobStoreWriter = new BlobStoreWriter(attachments);
-			blobStoreWriter.AppendData(bytes);
+            blobStoreWriter.AppendData(bytes);
 			blobStoreWriter.Finish();
 			blobStoreWriter.Install();
 			string sha1DigestKey = blobStoreWriter.SHA1DigestString();
 			BlobKey keyFromSha1 = new BlobKey(sha1DigestKey);
-			NUnit.Framework.Assert.IsTrue(attachments.GetSizeOfBlob(keyFromSha1) == bytes.Length
-				);
+			Assert.IsTrue(attachments.GetSizeOfBlob(keyFromSha1) == bytes.Length);
 		}
+
+
 	}
 }

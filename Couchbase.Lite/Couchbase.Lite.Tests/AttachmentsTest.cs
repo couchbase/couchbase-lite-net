@@ -43,14 +43,14 @@
 */
 
 using System.Collections.Generic;
-using System.IO;
+using System;
 using System.Text;
+using System.Linq;
+using NUnit.Framework;
 using Couchbase.Lite;
 using Couchbase.Lite.Internal;
-using Couchbase.Lite.Support;
-using Couchbase.Lite.Util;
-using NUnit.Framework;
 using Sharpen;
+using Newtonsoft.Json.Linq;
 
 namespace Couchbase.Lite
 {
@@ -59,137 +59,195 @@ namespace Couchbase.Lite
 		public const string Tag = "Attachments";
 
 		/// <exception cref="System.Exception"></exception>
-		public virtual void TestAttachments()
+        [Test]
+        public void TestAttachments()
 		{
-			string testAttachmentName = "test_attachment";
-			BlobStore attachments = database.Attachments;
-			NUnit.Framework.Assert.AreEqual(0, attachments.Count());
-			NUnit.Framework.Assert.AreEqual(new HashSet<object>(), attachments.AllKeys());
-			Status status = new Status();
-			IDictionary<string, object> rev1Properties = new Dictionary<string, object>();
+            var testAttachmentName = "test_attachment";
+            var attachments = database.Attachments;
+			Assert.AreEqual(0, attachments.Count());
+            Assert.AreEqual(0, attachments.AllKeys().Count());
+			
+            var rev1Properties = new Dictionary<string, object>();
 			rev1Properties["foo"] = 1;
 			rev1Properties["bar"] = false;
-			RevisionInternal rev1 = database.PutRevision(new RevisionInternal(rev1Properties, 
-				database), null, false, status);
-			NUnit.Framework.Assert.AreEqual(StatusCode.Created, status.GetCode());
-			byte[] attach1 = Sharpen.Runtime.GetBytesForString("This is the body of attach1");
-			database.InsertAttachmentForSequenceWithNameAndType(new ByteArrayInputStream(attach1
-				), rev1.Sequence, testAttachmentName, "text/plain", rev1.GetGeneration());
-			NUnit.Framework.Assert.AreEqual(StatusCode.Created, status.GetCode());
-			Attachment attachment = database.GetAttachmentForSequence(rev1.Sequence, testAttachmentName
-				);
-			NUnit.Framework.Assert.AreEqual("text/plain", attachment.GetContentType());
-			byte[] data = IOUtils.ToByteArray(attachment.GetContent());
-			NUnit.Framework.Assert.IsTrue(Arrays.Equals(attach1, data));
-			IDictionary<string, object> innerDict = new Dictionary<string, object>();
+
+            var status = new Status();
+            var rev1 = database.PutRevision(
+                new RevisionInternal(rev1Properties, database), null, false, status);
+			Assert.AreEqual(StatusCode.Created, status.GetCode());
+
+            var attach1 = Runtime.GetBytesForString(
+                "This is the body of attach1").ToArray();
+			database.InsertAttachmentForSequenceWithNameAndType(
+                new ByteArrayInputStream(attach1), 
+                rev1.GetSequence(), 
+                testAttachmentName, 
+                "text/plain", 
+                rev1.GetGeneration());
+
+            var attachment = database.GetAttachmentForSequence(
+                rev1.GetSequence(), testAttachmentName);
+            Assert.AreEqual("text/plain", attachment.ContentType);
+            var data = attachment.Content.ToArray();
+			Assert.IsTrue(Arrays.Equals(attach1, data));
+
+            // Workaround :
+            // Not closing the content stream will cause Sharing Violation
+            // Exception when trying to get the same attachment going forward.
+            attachment.ContentStream.Close();
+
+            var innerDict = new Dictionary<string, object>();
 			innerDict["content_type"] = "text/plain";
 			innerDict["digest"] = "sha1-gOHUOBmIMoDCrMuGyaLWzf1hQTE=";
-			innerDict["length"] = 27;
+            innerDict["length"] = 27;
 			innerDict["stub"] = true;
 			innerDict["revpos"] = 1;
-			IDictionary<string, object> attachmentDict = new Dictionary<string, object>();
+
+            var attachmentDict = new Dictionary<string, object>();
 			attachmentDict[testAttachmentName] = innerDict;
-			IDictionary<string, object> attachmentDictForSequence = database.GetAttachmentsDictForSequenceWithContent
-				(rev1.Sequence, EnumSet.NoneOf<TDContentOptions>());
-			NUnit.Framework.Assert.AreEqual(attachmentDict, attachmentDictForSequence);
-			RevisionInternal gotRev1 = database.GetDocumentWithIDAndRev(rev1.GetDocId(), rev1
-				.GetRevId(), EnumSet.NoneOf<TDContentOptions>());
-			IDictionary<string, object> gotAttachmentDict = (IDictionary<string, object>)gotRev1
-				.Properties["_attachments"];
-			NUnit.Framework.Assert.AreEqual(attachmentDict, gotAttachmentDict);
+            var attachmentDictForSequence = database.GetAttachmentsDictForSequenceWithContent
+                (rev1.GetSequence(), EnumSet.NoneOf<TDContentOptions>());
+            Assert.AreEqual(1, attachmentDictForSequence.Count);
+            AssertPropertiesAreEqual(
+                (IDictionary<string, object>)attachmentDict.Get(testAttachmentName), 
+                (IDictionary<string, object>)attachmentDictForSequence.Get(testAttachmentName));
+
+            var gotRev1 = database.GetDocumentWithIDAndRev(rev1.GetDocId(), 
+                rev1.GetRevId(), EnumSet.NoneOf<TDContentOptions>());
+            var gotRev1Properties = (IDictionary<string, object>)gotRev1.GetProperties();
+            var gotRev1AttachmentDict = ((JObject)gotRev1Properties.Get("_attachments"))
+                .ToObject<Dictionary<string, object>>();
+            Assert.AreEqual(1, gotRev1AttachmentDict.Count);
+            AssertPropertiesAreEqual(
+                (IDictionary<string, object>)attachmentDict.Get(testAttachmentName), 
+                ((JObject)gotRev1AttachmentDict.Get(testAttachmentName))
+                .ToObject<IDictionary<string, object>>());
+
 			// Check the attachment dict, with attachments included:
-			Sharpen.Collections.Remove(innerDict, "stub");
-			innerDict.Put("data", Base64.EncodeBytes(attach1));
-			attachmentDictForSequence = database.GetAttachmentsDictForSequenceWithContent(rev1
-				.Sequence, EnumSet.Of(TDContentOptions.TDIncludeAttachments));
-			NUnit.Framework.Assert.AreEqual(attachmentDict, attachmentDictForSequence);
-			gotRev1 = database.GetDocumentWithIDAndRev(rev1.GetDocId(), rev1.GetRevId(), EnumSet
-				.Of(TDContentOptions.TDIncludeAttachments));
-			gotAttachmentDict = (IDictionary<string, object>)gotRev1.Properties.Get("_attachments"
-				);
-			NUnit.Framework.Assert.AreEqual(attachmentDict, gotAttachmentDict);
+			Collections.Remove(innerDict, "stub");
+            innerDict.Put("data", Convert.ToBase64String(attach1));
+			attachmentDictForSequence = database.GetAttachmentsDictForSequenceWithContent(
+                rev1.GetSequence(), EnumSet.Of(TDContentOptions.TDIncludeAttachments));
+            Assert.AreEqual(1, attachmentDictForSequence.Count);
+            AssertPropertiesAreEqual(
+                (IDictionary<string, object>)attachmentDict.Get(testAttachmentName), 
+                (IDictionary<string, object>)attachmentDictForSequence.Get(testAttachmentName));
+
+			gotRev1 = database.GetDocumentWithIDAndRev(
+                rev1.GetDocId(), rev1.GetRevId(), EnumSet.Of(TDContentOptions.TDIncludeAttachments));
+            gotRev1Properties = (IDictionary<string, object>)gotRev1.GetProperties();
+            gotRev1AttachmentDict = ((JObject)gotRev1Properties.Get("_attachments"))
+                .ToObject<Dictionary<String, Object>>();
+            AssertPropertiesAreEqual(
+                (IDictionary<string, object>)attachmentDict.Get(testAttachmentName), 
+                ((JObject)gotRev1AttachmentDict.Get(testAttachmentName))
+                .ToObject<IDictionary<string, object>>());
+
 			// Add a second revision that doesn't update the attachment:
-			IDictionary<string, object> rev2Properties = new Dictionary<string, object>();
+            var rev2Properties = new Dictionary<string, object>();
 			rev2Properties.Put("_id", rev1.GetDocId());
 			rev2Properties["foo"] = 2;
 			rev2Properties["bazz"] = false;
-			RevisionInternal rev2 = database.PutRevision(new RevisionInternal(rev2Properties, 
+            var rev2 = database.PutRevision(new RevisionInternal(rev2Properties, 
 				database), rev1.GetRevId(), false, status);
-			NUnit.Framework.Assert.AreEqual(StatusCode.Created, status.GetCode());
-			database.CopyAttachmentNamedFromSequenceToSequence(testAttachmentName, rev1.GetSequence
-				(), rev2.Sequence);
+			Assert.AreEqual(StatusCode.Created, status.GetCode());
+			database.CopyAttachmentNamedFromSequenceToSequence(
+                testAttachmentName, rev1.GetSequence(), rev2.GetSequence());
+
 			// Add a third revision of the same document:
-			IDictionary<string, object> rev3Properties = new Dictionary<string, object>();
+            var rev3Properties = new Dictionary<string, object>();
 			rev3Properties.Put("_id", rev2.GetDocId());
 			rev3Properties["foo"] = 2;
 			rev3Properties["bazz"] = false;
-			RevisionInternal rev3 = database.PutRevision(new RevisionInternal(rev3Properties, 
-				database), rev2.GetRevId(), false, status);
-			NUnit.Framework.Assert.AreEqual(StatusCode.Created, status.GetCode());
-			byte[] attach2 = Sharpen.Runtime.GetBytesForString("<html>And this is attach2</html>"
-				);
-			database.InsertAttachmentForSequenceWithNameAndType(new ByteArrayInputStream(attach2
-				), rev3.Sequence, testAttachmentName, "text/html", rev2.GetGeneration());
+            var rev3 = database.PutRevision(new RevisionInternal(
+                rev3Properties, database), rev2.GetRevId(), false, status);
+			Assert.AreEqual(StatusCode.Created, status.GetCode());
+
+            var attach2 = Runtime.GetBytesForString("<html>And this is attach2</html>").ToArray();
+            database.InsertAttachmentForSequenceWithNameAndType(
+                new ByteArrayInputStream(attach2), rev3.GetSequence(), 
+                testAttachmentName, "text/html", rev2.GetGeneration());
+
 			// Check the 2nd revision's attachment:
-			Attachment attachment2 = database.GetAttachmentForSequence(rev2.Sequence, testAttachmentName
-				);
-			NUnit.Framework.Assert.AreEqual("text/plain", attachment2.GetContentType());
-			data = IOUtils.ToByteArray(attachment2.GetContent());
-			NUnit.Framework.Assert.IsTrue(Arrays.Equals(attach1, data));
+            var attachment2 = database.GetAttachmentForSequence(rev2.GetSequence(), testAttachmentName);
+            Assert.AreEqual("text/plain", attachment2.ContentType);
+            data = attachment2.Content.ToArray();
+            Assert.IsTrue(Arrays.Equals(attach1, data));
+
+            // Workaround :
+            // Not closing the content stream will cause Sharing Violation
+            // Exception when trying to get the same attachment going forward.
+            attachment2.ContentStream.Close();
+
 			// Check the 3rd revision's attachment:
-			Attachment attachment3 = database.GetAttachmentForSequence(rev3.Sequence, testAttachmentName
-				);
-			NUnit.Framework.Assert.AreEqual("text/html", attachment3.GetContentType());
-			data = IOUtils.ToByteArray(attachment3.GetContent());
-			NUnit.Framework.Assert.IsTrue(Arrays.Equals(attach2, data));
+            Attachment attachment3 = database.GetAttachmentForSequence(rev3.GetSequence(), testAttachmentName);
+            Assert.AreEqual("text/html", attachment3.ContentType);
+            data = attachment3.Content.ToArray();
+            Assert.IsTrue(Arrays.Equals(attach2, data));
+
+            // Workaround :
+            // Not closing the content stream will cause Sharing Violation
+            // Exception when trying to get the same attachment going forward.
+            attachment3.ContentStream.Close();
+
 			// Examine the attachment store:
-			NUnit.Framework.Assert.AreEqual(2, attachments.Count());
-			ICollection<BlobKey> expected = new HashSet<BlobKey>();
+			Assert.AreEqual(2, attachments.Count());
+            var expected = new HashSet<BlobKey>();
 			expected.AddItem(BlobStore.KeyForBlob(attach1));
 			expected.AddItem(BlobStore.KeyForBlob(attach2));
-			NUnit.Framework.Assert.AreEqual(expected, attachments.AllKeys());
-			status = database.Compact();
+            Assert.AreEqual(expected.Count, attachments.AllKeys().Count());
+            foreach(var key in attachments.AllKeys()) {
+                Assert.IsTrue(expected.Contains(key));
+            }
+
+            database.Compact();
+
 			// This clears the body of the first revision
-			NUnit.Framework.Assert.AreEqual(StatusCode.Ok, status.GetCode());
-			NUnit.Framework.Assert.AreEqual(1, attachments.Count());
-			ICollection<BlobKey> expected2 = new HashSet<BlobKey>();
+			Assert.AreEqual(1, attachments.Count());
+            var expected2 = new HashSet<BlobKey>();
 			expected2.AddItem(BlobStore.KeyForBlob(attach2));
-			NUnit.Framework.Assert.AreEqual(expected2, attachments.AllKeys());
+            Assert.AreEqual(expected2.Count, attachments.AllKeys().Count());
+            foreach(var key in attachments.AllKeys()) {
+                Assert.IsTrue(expected2.Contains(key));
+            }
 		}
 
 		/// <exception cref="System.Exception"></exception>
-		public virtual void TestPutLargeAttachment()
+        [Test]
+		public void TestPutLargeAttachment()
 		{
-			string testAttachmentName = "test_attachment";
-			BlobStore attachments = database.Attachments;
+            var testAttachmentName = "test_attachment";
+            var attachments = database.Attachments;
 			attachments.DeleteBlobs();
-			NUnit.Framework.Assert.AreEqual(0, attachments.Count());
-			Status status = new Status();
-			IDictionary<string, object> rev1Properties = new Dictionary<string, object>();
+			Assert.AreEqual(0, attachments.Count());
+
+            var status = new Status();
+            var rev1Properties = new Dictionary<string, object>();
 			rev1Properties["foo"] = 1;
 			rev1Properties["bar"] = false;
-			RevisionInternal rev1 = database.PutRevision(new RevisionInternal(rev1Properties, 
+            var rev1 = database.PutRevision(new RevisionInternal(rev1Properties, 
 				database), null, false, status);
-			NUnit.Framework.Assert.AreEqual(StatusCode.Created, status.GetCode());
-			StringBuilder largeAttachment = new StringBuilder();
-			for (int i = 0; i < Database.kBigAttachmentLength; i++)
+			Assert.AreEqual(StatusCode.Created, status.GetCode());
+            var largeAttachment = new StringBuilder();
+            for (int i = 0; i < Database.BigAttachmentLength; i++)
 			{
 				largeAttachment.Append("big attachment!");
 			}
-			byte[] attach1 = Sharpen.Runtime.GetBytesForString(largeAttachment.ToString());
-			database.InsertAttachmentForSequenceWithNameAndType(new ByteArrayInputStream(attach1
-				), rev1.Sequence, testAttachmentName, "text/plain", rev1.GetGeneration());
-			Attachment attachment = database.GetAttachmentForSequence(rev1.Sequence, testAttachmentName
-				);
-			NUnit.Framework.Assert.AreEqual("text/plain", attachment.GetContentType());
-			byte[] data = IOUtils.ToByteArray(attachment.GetContent());
-			NUnit.Framework.Assert.IsTrue(Arrays.Equals(attach1, data));
-			EnumSet<TDContentOptions> contentOptions = EnumSet.Of(TDContentOptions
+
+            var attach1 = Runtime.GetBytesForString(largeAttachment.ToString()).ToArray();
+			database.InsertAttachmentForSequenceWithNameAndType(
+                new ByteArrayInputStream(attach1), rev1.GetSequence(), 
+                testAttachmentName, "text/plain", rev1.GetGeneration());
+            var attachment = database.GetAttachmentForSequence(rev1.GetSequence(), testAttachmentName);
+            Assert.AreEqual("text/plain", attachment.ContentType);
+            var data = attachment.Content.ToArray();
+			Assert.IsTrue(Arrays.Equals(attach1, data));
+
+            var contentOptions = EnumSet.Of(TDContentOptions
 				.TDIncludeAttachments, TDContentOptions.TDBigAttachmentsFollow);
-			IDictionary<string, object> attachmentDictForSequence = database.GetAttachmentsDictForSequenceWithContent
-				(rev1.Sequence, contentOptions);
-			IDictionary<string, object> innerDict = (IDictionary<string, object>)attachmentDictForSequence
-				[testAttachmentName];
+            var attachmentDictForSequence = database.GetAttachmentsDictForSequenceWithContent
+                (rev1.GetSequence(), contentOptions);
+            var innerDict = (IDictionary<string, object>)attachmentDictForSequence[testAttachmentName];
 			if (!innerDict.ContainsKey("stub"))
 			{
 				throw new RuntimeException("Expected attachment dict to have 'stub' key");
@@ -202,99 +260,108 @@ namespace Couchbase.Lite
 			{
 				throw new RuntimeException("Expected attachment dict to have 'follows' key");
 			}
-			RevisionInternal rev1WithAttachments = database.GetDocumentWithIDAndRev(rev1.GetDocId
-				(), rev1.GetRevId(), contentOptions);
-			// Map<String,Object> rev1PropertiesPrime = rev1WithAttachments.Properties;
-			// rev1PropertiesPrime.put("foo", 2);
-			IDictionary<string, object> rev1WithAttachmentsProperties = rev1WithAttachments.GetProperties
-				();
-			IDictionary<string, object> rev2Properties = new Dictionary<string, object>();
+
+            // Workaround :
+            // Not closing the content stream will cause Sharing Violation
+            // Exception when trying to get the same attachment going forward.
+            attachment.ContentStream.Close();
+
+            var rev1WithAttachments = database.GetDocumentWithIDAndRev(
+                rev1.GetDocId(), rev1.GetRevId(), contentOptions);
+			
+            var rev1WithAttachmentsProperties = rev1WithAttachments.GetProperties();
+            var rev2Properties = new Dictionary<string, object>();
 			rev2Properties.Put("_id", rev1WithAttachmentsProperties["_id"]);
 			rev2Properties["foo"] = 2;
-			RevisionInternal newRev = new RevisionInternal(rev2Properties, database);
-			RevisionInternal rev2 = database.PutRevision(newRev, rev1WithAttachments.GetRevId
-				(), false, status);
-			NUnit.Framework.Assert.AreEqual(StatusCode.Created, status.GetCode());
-			database.CopyAttachmentNamedFromSequenceToSequence(testAttachmentName, rev1WithAttachments
-				.Sequence, rev2.Sequence);
+            var newRev = new RevisionInternal(rev2Properties, database);
+            var rev2 = database.PutRevision(newRev, rev1WithAttachments.GetRevId(), false, status);
+			Assert.AreEqual(StatusCode.Created, status.GetCode());
+
+            database.CopyAttachmentNamedFromSequenceToSequence(
+                testAttachmentName, rev1WithAttachments.GetSequence(), rev2.GetSequence());
+
 			// Check the 2nd revision's attachment:
-			Attachment rev2FetchedAttachment = database.GetAttachmentForSequence(rev2.GetSequence
-				(), testAttachmentName);
-			NUnit.Framework.Assert.AreEqual(attachment.GetLength(), rev2FetchedAttachment.GetLength
-				());
-			NUnit.Framework.Assert.AreEqual(attachment.GetMetadata(), rev2FetchedAttachment.GetMetadata
-				());
-			NUnit.Framework.Assert.AreEqual(attachment.GetContentType(), rev2FetchedAttachment
-				.GetContentType());
+            var rev2FetchedAttachment = database.GetAttachmentForSequence(rev2.GetSequence(), testAttachmentName);
+            Assert.AreEqual(attachment.Length, rev2FetchedAttachment.Length);
+            AssertPropertiesAreEqual(attachment.Metadata, rev2FetchedAttachment.Metadata);
+            Assert.AreEqual(attachment.ContentType, rev2FetchedAttachment.ContentType);
+
 			// Add a third revision of the same document:
-			IDictionary<string, object> rev3Properties = new Dictionary<string, object>();
-			rev3Properties.Put("_id", rev2.Properties["_id"]);
+            var rev3Properties = new Dictionary<string, object>();
+            rev3Properties.Put("_id", rev2.GetProperties().Get("_id"));
 			rev3Properties["foo"] = 3;
 			rev3Properties["baz"] = false;
-			RevisionInternal rev3 = new RevisionInternal(rev3Properties, database);
+            var rev3 = new RevisionInternal(rev3Properties, database);
 			rev3 = database.PutRevision(rev3, rev2.GetRevId(), false, status);
-			NUnit.Framework.Assert.AreEqual(StatusCode.Created, status.GetCode());
-			byte[] attach3 = Sharpen.Runtime.GetBytesForString("<html><blink>attach3</blink></html>"
-				);
-			database.InsertAttachmentForSequenceWithNameAndType(new ByteArrayInputStream(attach3
-				), rev3.Sequence, testAttachmentName, "text/html", rev3.GetGeneration());
+
+			Assert.AreEqual(StatusCode.Created, status.GetCode());
+            var attach3 = Runtime.GetBytesForString("<html><blink>attach3</blink></html>").ToArray();
+			database.InsertAttachmentForSequenceWithNameAndType(
+                new ByteArrayInputStream(attach3), rev3.GetSequence(), 
+                testAttachmentName, "text/html", rev3.GetGeneration());
+
 			// Check the 3rd revision's attachment:
-			Attachment rev3FetchedAttachment = database.GetAttachmentForSequence(rev3.GetSequence
-				(), testAttachmentName);
-			data = IOUtils.ToByteArray(rev3FetchedAttachment.GetContent());
-			NUnit.Framework.Assert.IsTrue(Arrays.Equals(attach3, data));
-			NUnit.Framework.Assert.AreEqual("text/html", rev3FetchedAttachment.GetContentType
-				());
+            var rev3FetchedAttachment = database.GetAttachmentForSequence(
+                rev3.GetSequence(), testAttachmentName);
+            data = rev3FetchedAttachment.Content.ToArray();
+			Assert.IsTrue(Arrays.Equals(attach3, data));
+            Assert.AreEqual("text/html", rev3FetchedAttachment.ContentType);
+
 			// TODO: why doesn't this work?
 			// Assert.assertEquals(attach3.length, rev3FetchedAttachment.getLength());
 			ICollection<BlobKey> blobKeys = database.Attachments.AllKeys();
-			NUnit.Framework.Assert.AreEqual(2, blobKeys.Count);
+			Assert.AreEqual(2, blobKeys.Count);
 			database.Compact();
 			blobKeys = database.Attachments.AllKeys();
-			NUnit.Framework.Assert.AreEqual(1, blobKeys.Count);
+			Assert.AreEqual(1, blobKeys.Count);
 		}
 
 		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
-		public virtual void TestPutAttachment()
+        /*
+        public virtual void TestPutAttachment()
 		{
-			string testAttachmentName = "test_attachment";
-			BlobStore attachments = database.Attachments;
+            var testAttachmentName = "test_attachment";
+            var attachments = database.Attachments;
 			attachments.DeleteBlobs();
-			NUnit.Framework.Assert.AreEqual(0, attachments.Count());
+			Assert.AreEqual(0, attachments.Count());
+
 			// Put a revision that includes an _attachments dict:
-			byte[] attach1 = Sharpen.Runtime.GetBytesForString("This is the body of attach1");
-			string base64 = Base64.EncodeBytes(attach1);
-			IDictionary<string, object> attachment = new Dictionary<string, object>();
+            var attach1 = Runtime.GetBytesForString("This is the body of attach1").ToArray();
+            var base64 = Convert.ToBase64String(attach1);
+            var attachment = new Dictionary<string, object>();
 			attachment["content_type"] = "text/plain";
 			attachment["data"] = base64;
-			IDictionary<string, object> attachmentDict = new Dictionary<string, object>();
+
+            var attachmentDict = new Dictionary<string, object>();
 			attachmentDict[testAttachmentName] = attachment;
-			IDictionary<string, object> properties = new Dictionary<string, object>();
+            var properties = new Dictionary<string, object>();
 			properties["foo"] = 1;
 			properties["bar"] = false;
 			properties["_attachments"] = attachmentDict;
-			RevisionInternal rev1 = database.PutRevision(new RevisionInternal(properties, database
-				), null, false);
+
+            var rev1 = database.PutRevision(new RevisionInternal(properties, database), null, false);
+
 			// Examine the attachment store:
-			NUnit.Framework.Assert.AreEqual(1, attachments.Count());
-			// Get the revision:
-			RevisionInternal gotRev1 = database.GetDocumentWithIDAndRev(rev1.GetDocId(), rev1
-				.GetRevId(), EnumSet.NoneOf<TDContentOptions>());
-			IDictionary<string, object> gotAttachmentDict = (IDictionary<string, object>)gotRev1
-				.Properties["_attachments"];
-			IDictionary<string, object> innerDict = new Dictionary<string, object>();
+			Assert.AreEqual(1, attachments.Count());
+			
+            // Get the revision:
+            var gotRev1 = database.GetDocumentWithIDAndRev(rev1.GetDocId(), 
+                rev1.GetRevId(), EnumSet.NoneOf<TDContentOptions>());
+            var gotAttachmentDict = (IDictionary<string, object>)gotRev1.
+                GetProperties().Get("_attachments");
+            var innerDict = new Dictionary<string, object>();
 			innerDict["content_type"] = "text/plain";
 			innerDict["digest"] = "sha1-gOHUOBmIMoDCrMuGyaLWzf1hQTE=";
 			innerDict["length"] = 27;
 			innerDict["stub"] = true;
 			innerDict["revpos"] = 1;
-			IDictionary<string, object> expectAttachmentDict = new Dictionary<string, object>
-				();
+            var expectAttachmentDict = new Dictionary<string, object>();
 			expectAttachmentDict[testAttachmentName] = innerDict;
-			NUnit.Framework.Assert.AreEqual(expectAttachmentDict, gotAttachmentDict);
+			Assert.AreEqual(expectAttachmentDict, gotAttachmentDict);
+
 			// Update the attachment directly:
-			byte[] attachv2 = Sharpen.Runtime.GetBytesForString("Replaced body of attach");
-			bool gotExpectedErrorCode = false;
+            var attachv2 = Runtime.GetBytesForString("Replaced body of attach").ToArray();
+            var gotExpectedErrorCode = false;
 			try
 			{
 				database.UpdateAttachment(testAttachmentName, new ByteArrayInputStream(attachv2), 
@@ -304,9 +371,10 @@ namespace Couchbase.Lite
 			{
 				gotExpectedErrorCode = (e.GetCBLStatus().GetCode() == StatusCode.Conflict);
 			}
-			NUnit.Framework.Assert.IsTrue(gotExpectedErrorCode);
+			Assert.IsTrue(gotExpectedErrorCode);
 			gotExpectedErrorCode = false;
-			try
+			
+            try
 			{
 				database.UpdateAttachment(testAttachmentName, new ByteArrayInputStream(attachv2), 
 					"application/foo", rev1.GetDocId(), "1-bogus");
@@ -315,7 +383,8 @@ namespace Couchbase.Lite
 			{
 				gotExpectedErrorCode = (e.GetCBLStatus().GetCode() == StatusCode.Conflict);
 			}
-			NUnit.Framework.Assert.IsTrue(gotExpectedErrorCode);
+
+			Assert.IsTrue(gotExpectedErrorCode);
 			gotExpectedErrorCode = false;
 			RevisionInternal rev2 = null;
 			try
@@ -327,9 +396,9 @@ namespace Couchbase.Lite
 			{
 				gotExpectedErrorCode = true;
 			}
-			NUnit.Framework.Assert.IsFalse(gotExpectedErrorCode);
-			NUnit.Framework.Assert.AreEqual(rev1.GetDocId(), rev2.GetDocId());
-			NUnit.Framework.Assert.AreEqual(2, rev2.GetGeneration());
+			Assert.IsFalse(gotExpectedErrorCode);
+			Assert.AreEqual(rev1.GetDocId(), rev2.GetDocId());
+			Assert.AreEqual(2, rev2.GetGeneration());
 			// Get the updated revision:
 			RevisionInternal gotRev2 = database.GetDocumentWithIDAndRev(rev2.GetDocId(), rev2
 				.GetRevId(), EnumSet.NoneOf<TDContentOptions>());
@@ -342,7 +411,7 @@ namespace Couchbase.Lite
 			innerDict["stub"] = true;
 			innerDict["revpos"] = 2;
 			expectAttachmentDict[testAttachmentName] = innerDict;
-			NUnit.Framework.Assert.AreEqual(expectAttachmentDict, attachmentDict);
+			Assert.AreEqual(expectAttachmentDict, attachmentDict);
 			// Delete the attachment:
 			gotExpectedErrorCode = false;
 			try
@@ -354,7 +423,7 @@ namespace Couchbase.Lite
 			{
 				gotExpectedErrorCode = (e.GetCBLStatus().GetCode() == StatusCode.NotFound);
 			}
-			NUnit.Framework.Assert.IsTrue(gotExpectedErrorCode);
+			Assert.IsTrue(gotExpectedErrorCode);
 			gotExpectedErrorCode = false;
 			try
 			{
@@ -364,88 +433,93 @@ namespace Couchbase.Lite
 			{
 				gotExpectedErrorCode = (e.GetCBLStatus().GetCode() == StatusCode.NotFound);
 			}
-			NUnit.Framework.Assert.IsTrue(gotExpectedErrorCode);
+			Assert.IsTrue(gotExpectedErrorCode);
 			RevisionInternal rev3 = database.UpdateAttachment(testAttachmentName, null, null, 
 				rev2.GetDocId(), rev2.GetRevId());
-			NUnit.Framework.Assert.AreEqual(rev2.GetDocId(), rev3.GetDocId());
-			NUnit.Framework.Assert.AreEqual(3, rev3.GetGeneration());
+			Assert.AreEqual(rev2.GetDocId(), rev3.GetDocId());
+			Assert.AreEqual(3, rev3.GetGeneration());
 			// Get the updated revision:
 			RevisionInternal gotRev3 = database.GetDocumentWithIDAndRev(rev3.GetDocId(), rev3
 				.GetRevId(), EnumSet.NoneOf<TDContentOptions>());
 			attachmentDict = (IDictionary<string, object>)gotRev3.Properties.Get("_attachments"
 				);
-			NUnit.Framework.Assert.IsNull(attachmentDict);
+			Assert.IsNull(attachmentDict);
 			database.Close();
-		}
+        }*/
 
-		public virtual void TestStreamAttachmentBlobStoreWriter()
+        [Test]
+		public void TestStreamAttachmentBlobStoreWriter()
 		{
-			BlobStore attachments = database.Attachments;
-			BlobStoreWriter blobWriter = new BlobStoreWriter(attachments);
-			string testBlob = "foo";
-			blobWriter.AppendData(Sharpen.Runtime.GetBytesForString(new string(testBlob)));
+            var attachments = database.Attachments;
+            var blobWriter = new BlobStoreWriter(attachments);
+            var testBlob = "foo";
+            blobWriter.AppendData(Runtime.GetBytesForString(testBlob));
 			blobWriter.Finish();
-			string sha1Base64Digest = "sha1-C+7Hteo/D9vJXQ3UfzxbwnXaijM=";
-			NUnit.Framework.Assert.AreEqual(blobWriter.SHA1DigestString(), sha1Base64Digest);
-			NUnit.Framework.Assert.AreEqual(blobWriter.MD5DigestString(), "md5-rL0Y20zC+Fzt72VPzMSk2A=="
-				);
+
+            var sha1Base64Digest = "sha1-C+7Hteo/D9vJXQ3UfzxbwnXaijM=";
+			Assert.AreEqual(blobWriter.SHA1DigestString(), sha1Base64Digest);
+			Assert.AreEqual(blobWriter.MD5DigestString(), "md5-rL0Y20zC+Fzt72VPzMSk2A==");
+
 			// install it
 			blobWriter.Install();
 			// look it up in blob store and make sure it's there
-			BlobKey blobKey = new BlobKey(sha1Base64Digest);
-			byte[] blob = attachments.BlobForKey(blobKey);
-			NUnit.Framework.Assert.IsTrue(Arrays.Equals(Sharpen.Runtime.GetBytesForString(testBlob
-				, Sharpen.Extensions.GetEncoding("UTF-8")), blob));
+            var blobKey = new BlobKey(sha1Base64Digest);
+            var blob = attachments.BlobForKey(blobKey);
+			Assert.IsTrue(Arrays.Equals(Runtime.GetBytesForString(testBlob).ToArray(), blob));
 		}
 
 		/// <summary>https://github.com/couchbase/couchbase-lite-android/issues/134</summary>
 		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
 		/// <exception cref="System.IO.IOException"></exception>
-		public virtual void TestGetAttachmentBodyUsingPrefetch()
+        [Test]
+		public void TestGetAttachmentBodyUsingPrefetch()
 		{
 			// add a doc with an attachment
-			Document doc = database.CreateDocument();
-			UnsavedRevision rev = doc.CreateRevision();
-			IDictionary<string, object> properties = new Dictionary<string, object>();
+            var doc = database.CreateDocument();
+            var rev = doc.CreateRevision();
+
+            var properties = new Dictionary<string, object>();
 			properties["foo"] = "bar";
 			rev.SetUserProperties(properties);
-			byte[] attachBodyBytes = Sharpen.Runtime.GetBytesForString("attach body");
-			Attachment attachment = new Attachment(new ByteArrayInputStream(attachBodyBytes), 
-				"text/plain");
+
+            var attachBodyBytes = Runtime.GetBytesForString("attach body").ToArray();
+            var attachment = new Attachment(new ByteArrayInputStream(attachBodyBytes), "text/plain");
 			string attachmentName = "test_attachment.txt";
 			rev.AddAttachment(attachment, attachmentName);
-			rev.Save();
+            rev.Save();
+
 			// do query that finds that doc with prefetch
-			View view = database.GetView("aview");
+
+            var view = database.GetView("aview");
             view.SetMapReduce((IDictionary<string, object> document, EmitDelegate emitter)=>
                 {
-                    string id = (string)document["_id"];
-                    emitter.Emit(id, null);
+                    var id = (string)document["_id"];
+                    emitter(id, null);
                 }, null, "1");
+
 			// try to get the attachment
-			Query query = view.CreateQuery();
+            var query = view.CreateQuery();
 			query.Prefetch=true;
-			QueryEnumerator results = query.Run();
+            var results = query.Run();
             while (results.MoveNext())
 			{
-				QueryRow row = results.Current;
+                var row = results.Current;
 				// This returns the revision just fine, but the sequence number
 				// is set to 0.
-				SavedRevision revision = row.Document.CurrentRevision;
-				IList<string> attachments = revision.AttachmentNames;
+                var revision = row.Document.CurrentRevision;
+                //var attachments = revision.AttachmentNames.ToList();
+
 				// This returns an Attachment object which looks ok, except again
 				// its sequence number is 0. The metadata property knows about
 				// the length and mime type of the attachment. It also says
 				// "stub" -> "true".
-				Attachment attachmentRetrieved = revision.GetAttachment(attachmentName);
-				// This throws a CouchbaseLiteException with StatusCode.NOT_FOUND.
-				InputStream @is = attachmentRetrieved.GetContent();
-				NUnit.Framework.Assert.IsNotNull(@is);
-				byte[] attachmentDataRetrieved = TextUtils.Read(@is);
-				string attachmentDataRetrievedString = Sharpen.Runtime.GetStringForBytes(attachmentDataRetrieved
-					);
-				string attachBodyString = Sharpen.Runtime.GetStringForBytes(attachBodyBytes);
-				NUnit.Framework.Assert.AreEqual(attachBodyString, attachmentDataRetrievedString);
+                var attachmentRetrieved = revision.GetAttachment(attachmentName);
+                var inputStream = attachmentRetrieved.ContentStream;
+                Assert.IsNotNull(inputStream);
+                var attachmentDataRetrieved = attachmentRetrieved.Content.ToArray();
+                var attachmentDataRetrievedString = Runtime.GetStringForBytes(attachmentDataRetrieved);
+                var attachBodyString = Sharpen.Runtime.GetStringForBytes(attachBodyBytes);
+				Assert.AreEqual(attachBodyString, attachmentDataRetrievedString);
 			}
 		}
 	}

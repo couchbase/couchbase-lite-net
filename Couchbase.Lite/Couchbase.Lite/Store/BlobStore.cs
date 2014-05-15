@@ -174,6 +174,7 @@ namespace Couchbase.Lite
 		public Stream BlobStreamForKey(BlobKey key)
 		{
 			var path = PathForKey(key);
+            Log.I(Database.Tag, "Blob Path : " + path);
 			var file = new FilePath(path);
             if (file.CanRead())
 			{
@@ -186,6 +187,10 @@ namespace Couchbase.Lite
 					Log.E(Database.Tag, "Unexpected file not found in blob store", e);
 					return null;
 				}
+                catch (Exception e)
+                {
+                    Log.E(Database.Tag, "Cannot new FileStream", e);
+                }
 			}
 			return null;
 		}
@@ -195,8 +200,7 @@ namespace Couchbase.Lite
 			FilePath tmp = null;
 			try
 			{
-                tmp = FilePath.CreateTempFile(TmpFilePrefix, TmpFileExtension, new FilePath(this.path)
-					);
+                tmp = FilePath.CreateTempFile(TmpFilePrefix, TmpFileExtension, new FilePath(this.path));
 				FileOutputStream fos = new FileOutputStream(tmp);
 				byte[] buffer = new byte[65536];
 				int lenRead = inputStream.Read(buffer);
@@ -213,6 +217,7 @@ namespace Couchbase.Lite
 				Log.E(Database.Tag, "Error writing blog to tmp file", e);
 				return false;
 			}
+
 			BlobKey newKey = KeyForBlobFromFile(tmp);
 			outKey.SetBytes(newKey.GetBytes());
 			string path = PathForKey(outKey);
@@ -221,13 +226,13 @@ namespace Couchbase.Lite
 			{
 				// object with this hash already exists, we should delete tmp file and return true
 				tmp.Delete();
-				return true;
 			}
 			else
 			{
 				// does not exist, we should rename tmp file to this name
-				tmp.RenameTo(file);
+                tmp.RenameTo(file);
 			}
+
 			return true;
 		}
 

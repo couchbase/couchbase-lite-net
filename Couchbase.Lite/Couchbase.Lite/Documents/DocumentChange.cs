@@ -53,8 +53,6 @@ using Sharpen;
 
 namespace Couchbase.Lite {
 
-    
-
     public partial class DocumentChange
     {
         internal RevisionInternal AddedRevision { get; private set; }
@@ -71,7 +69,9 @@ namespace Couchbase.Lite {
         //Properties
         public String DocumentId { get { return AddedRevision.GetDocId(); } }
 
-        public String RevisionId { get { return AddedRevision.GetDocId(); } }
+        public String RevisionId { get { return AddedRevision.GetRevId(); } }
+
+        public Boolean IsCurrentRevision { get { return WinningRevision != null && WinningRevision.GetRevId().Equals(AddedRevision.GetRevId()); } }
 
         public RevisionInternal WinningRevision { get; private set; }
 

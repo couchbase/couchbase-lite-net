@@ -50,6 +50,8 @@ using Sharpen;
 using Couchbase.Lite.Internal;
 using System.Data;
 using System.Linq;
+using Newtonsoft.Json.Linq;
+using System.Collections;
 
 namespace Couchbase.Lite {
 
@@ -87,6 +89,8 @@ namespace Couchbase.Lite {
     
     #region Constants
 
+        internal const String Tag = "View";
+
         const Int32 ReduceBatchSize = 100;
 
     #endregion
@@ -95,7 +99,7 @@ namespace Couchbase.Lite {
 
         private Int32 _id;
 
-        private ViewCollation Collation { get; set; }
+        internal ViewCollation Collation { get; set; }
 
         internal Int32 Id {
             get {
@@ -179,7 +183,7 @@ namespace Couchbase.Lite {
                 {
                     // If the lastSequence has been reset to 0, make sure to remove
                     // any leftover rows:
-                    var whereArgs = new string[] { Sharpen.Extensions.ToString(Id) };
+                    var whereArgs = new string[] { Id.ToString() };
                     Database.StorageEngine.Delete("maps", "view_id=@", whereArgs);
                 }
                 else
@@ -206,9 +210,10 @@ namespace Couchbase.Lite {
                 // find a better way to propagate this back
                 // Now scan every revision added since the last time the view was
                 // indexed:
-                var selectArgs = new[] { Convert.ToString(lastSequence) };
+                var selectArgs = new[] { lastSequence.ToString() };
                 cursor = Database.StorageEngine.RawQuery("SELECT revs.doc_id, sequence, docid, revid, json FROM revs, docs "
-                    + "WHERE sequence>@ AND current!=0 AND deleted=0 " + "AND revs.doc_id = docs.doc_id "
+                    + "WHERE sequence>@ AND current!=0 AND deleted=0 " 
+                    + "AND revs.doc_id = docs.doc_id "
                     + "ORDER BY revs.doc_id, revid DESC", CommandBehavior.SequentialAccess, selectArgs);
                 cursor.MoveToNext();
 
@@ -241,8 +246,8 @@ namespace Couchbase.Lite {
                         {
                             // Call the user-defined map() to emit new key/value
                             // pairs from this revision:
-                            Log.V(Database.Tag, "  call map for sequence=" + System.Convert.ToString(sequence
-                            ));
+                            Log.V(Database.Tag, "  call map for sequence=" + System.Convert.ToString(sequence));
+
                             // This is the emit() block, which gets called from within the
                             // user-defined map() block
                             // that's called down below.
@@ -282,14 +287,16 @@ namespace Couchbase.Lite {
                     }
                     cursor.MoveToNext();
                 }
+
                 // Finally, record the last revision sequence number that was
                 // indexed:
                 ContentValues updateValues = new ContentValues();
                 updateValues["lastSequence"] = dbMaxSequence;
-                var whereArgs_1 = new string[] { Sharpen.Extensions.ToString(Id) };
+                var whereArgs_1 = new string[] { Id.ToString() };
                 Database.StorageEngine.Update("views", updateValues, "view_id=@", whereArgs_1);
+
                 // FIXME actually count number added :)
-                        Log.V(Database.Tag, "...Finished re-indexing view " + Name + " up to sequence " +
+                Log.V(Database.Tag, "...Finished re-indexing view " + Name + " up to sequence " +
                     System.Convert.ToString(dbMaxSequence) + " (deleted " + deleted + " added " + "?" + ")");
                         result.SetCode(StatusCode.Ok);
             }
@@ -400,6 +407,92 @@ namespace Couchbase.Lite {
             return rows;
         }
 
+        internal IList<IDictionary<string, object>> dump() 
+        {
+            if (Id < 0)
+            {
+                return null;
+            }
+                
+            var selectArgs  = new[] { Id.ToString() };
+
+            Cursor cursor = null;
+
+            var result = new AList<IDictionary<string, object>>();
+
+            try
+            {
+                cursor = Database.StorageEngine.
+                    RawQuery("SELECT sequence, key, value FROM map WHERE view_id=@ ORDER BY key", selectArgs);
+
+                while(cursor.MoveToNext())
+                {
+                    var row = new Dictionary<string, object>();
+                    row["seq"] = cursor.GetInt(0);
+                    row["key"] = cursor.GetString(1);
+                    row["value"] = cursor.GetString(2);
+                    result.Add(row);
+                }
+            }
+            catch (Exception e)
+            {
+                Log.E(Tag, "Error dumping view", e);
+                result = null;
+            }
+            finally
+            {
+                if (cursor != null)
+                {
+                    cursor.Close();
+                }
+            }
+
+            return result;
+        }
+
+        internal IList<IDictionary<string, object>> Dump()
+        {
+            if (Id < 0)
+            {
+                return null;
+            }
+
+            var result = new AList<IDictionary<string, object>>();
+
+            var selectArgs = new string[] { Id.ToString() };
+
+            Cursor cursor = null;
+            try
+            {
+                cursor = Database.StorageEngine.RawQuery(
+                    "SELECT sequence, key, value FROM maps WHERE view_id=? ORDER BY key", selectArgs);
+
+                while (cursor.MoveToNext()) 
+                {
+                    var row = new Dictionary<string, object>();
+                    row.Put("seq", cursor.GetInt(0));
+                    row.Put("key", cursor.GetString(1));
+                    row.Put("value", cursor.GetString(2));
+                    result.AddItem(row);
+                }
+
+            }
+            catch (SQLException e)
+            {
+                Log.E(Tag, "Error dumping view", e);
+                result = null;
+            }
+            finally
+            {
+                if (cursor != null)
+                {
+                    cursor.Close();
+                }
+            }
+
+            return result;
+        }
+
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
         internal IList<QueryRow> ReducedQuery(Cursor cursor, Boolean group, Int32 groupLevel)
         {
@@ -422,6 +515,7 @@ namespace Couchbase.Lite {
             {
                 var keyData = FromJSON(cursor.GetBlob(0));
                 var value = FromJSON(cursor.GetBlob(1));
+
                 System.Diagnostics.Debug.Assert((keyData != null));
                 if (group && !GroupTogether(keyData, lastKey, groupLevel))
                 {
@@ -460,12 +554,13 @@ namespace Couchbase.Lite {
         // Are key1 and key2 grouped together at this groupLevel?
         public static bool GroupTogether(object key1, object key2, int groupLevel)
         {
-            if (groupLevel == 0 || !(key1 is IList<object>) || !(key2 is IList<object>))
+            if (groupLevel == 0 || !(key1 is IList) || !(key2 is IList))
             {
                 return key1.Equals(key2);
             }
-            var key1List = (IList<object>)key1;
-            var key2List = (IList<object>)key2;
+            var key1List = (IList)key1;
+            var key2List = (IList)key2;
+
             var end = Math.Min(groupLevel, Math.Min(key1List.Count, key2List.Count));
             for (int i = 0; i < end; ++i)
             {
@@ -480,9 +575,18 @@ namespace Couchbase.Lite {
         // Returns the prefix of the key to use in the result row, at this groupLevel
         public static object GroupKey(object key, int groupLevel)
         {
-            if (groupLevel > 0 && (key is IList<object>) && (((IList<object>)key).Count > groupLevel))
+            if (groupLevel > 0 && (key is IList) && (((IList)key).Count > groupLevel))
             {
-                return ((IList<object>)key).SubList(0, groupLevel);
+                if (key is JArray) {
+                    JArray subArray = new JArray();
+                    for(var i = 0; i < groupLevel; i++)
+                    {
+                        subArray.Add(((JArray)key)[i]);
+                    }
+                    return subArray;
+                } else {
+                    return ((IList<object>)key).SubList(0, groupLevel);
+                }
             }
             else
             {
@@ -612,6 +716,25 @@ namespace Couchbase.Lite {
             return result;
         }
 
+        internal static double TotalValues(IList<object> values)
+        {
+            double total = 0;
+            foreach (object o in values)
+            {
+                try {
+                    double number = Convert.ToDouble(o);
+                    total += number;
+                } 
+                catch (Exception e)
+                {
+                    Log.E(Database.Tag, "Warning non-numeric value found in totalValues: " + o, e);
+                }
+            }
+            return total;
+        }
+
+
+
     #endregion
 
     #region Instance Members
@@ -654,10 +777,7 @@ namespace Couchbase.Lite {
                 var result = -1L;
                 try
                 {
-                    Log.D(Database.TagSql, Sharpen.Thread.CurrentThread().GetName() + " start running query: " + sql);
                     cursor = Database.StorageEngine.RawQuery(sql, args);
-                    Log.D(Database.TagSql, Sharpen.Thread.CurrentThread().GetName() + " finish running query: " + sql);
-
                     if (cursor.MoveToNext())
                     {
                         result = cursor.GetLong(0);
