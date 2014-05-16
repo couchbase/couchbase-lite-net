@@ -49,7 +49,7 @@ using System.Text;
 namespace Couchbase.Lite.Storage
 {
     [SqliteFunction(Name = "JSON", FuncType = FunctionType.Collation, Arguments = 2)]
-    internal class CouchbaseSqliteUnicodeCollationFunction : SqliteFunction
+    internal class CouchbaseSqliteJsonUnicodeCollationFunction : SqliteFunction
     {
         /// <Docs>Implements the custom collection for JSON strings.</Docs>
         /// <summary>
@@ -67,7 +67,7 @@ namespace Couchbase.Lite.Storage
         }
     }
     [SqliteFunction(Name = "JSON_ASCII", FuncType = FunctionType.Collation, Arguments = 2)]
-    internal class CouchbaseSqliteAsciiCollationFunction : SqliteFunction
+    internal class CouchbaseSqliteJsonAsciiCollationFunction : SqliteFunction
     {
         /// <Docs>Implements the custom collection for JSON strings.</Docs>
         /// <summary>
@@ -86,7 +86,7 @@ namespace Couchbase.Lite.Storage
     }
 
     [SqliteFunction(Name = "JSON_RAW", FuncType = FunctionType.Collation, Arguments = 2)]
-    internal class CouchbaseSqliteRawCollationFunction : SqliteFunction
+    internal class CouchbaseSqliteJsonRawCollationFunction : SqliteFunction
     {
         /// <Docs>Implements the custom collection for JSON strings.</Docs>
         /// <summary>
@@ -101,6 +101,24 @@ namespace Couchbase.Lite.Storage
         public override Int32 Compare (String param1, String param2)
         {
             return JsonCollator.Compare(JsonCollationMode.Raw, param1, param2, Int32.MaxValue);
+        }
+    }
+
+    [SqliteFunction(Name = "REVID", FuncType = FunctionType.Collation, Arguments = 2)]
+    internal class CouchbaseSqliteRevIdCollationFunction : SqliteFunction
+    {
+        /// <Docs>Implements a custom collation for Revision ID strings.</Docs>
+        /// <summary>
+        /// Couchbase custom Revision ID collation algorithm.
+        /// </summary>
+        /// <remarks>
+        /// For full details, see https://github.com/couchbase/couchbase-lite-ios/blob/master/Source/CBL_Revision.m
+        /// </remarks>
+        /// <param name="param1">Param1.</param>
+        /// <param name="param2">Param2.</param>
+        public override Int32 Compare (String param1, String param2)
+        {
+            return RevIdCollator.Compare(param1, param2);
         }
     }
 }

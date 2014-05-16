@@ -711,7 +711,7 @@ CREATE INDEX docs_docid ON docs(docid);
 CREATE TABLE revs ( 
   sequence INTEGER PRIMARY KEY AUTOINCREMENT, 
   doc_id INTEGER NOT NULL REFERENCES docs(doc_id) ON DELETE CASCADE, 
-  revid TEXT NOT NULL, 
+  revid TEXT NOT NULL COLLATE REVID, 
   parent INTEGER REFERENCES revs(sequence) ON DELETE SET NULL, 
   current BOOLEAN, 
   deleted BOOLEAN DEFAULT 0, 
@@ -721,7 +721,7 @@ CREATE INDEX revs_current ON revs(doc_id, current);
 CREATE INDEX revs_parent ON revs(parent); 
 CREATE TABLE localdocs ( 
   docid TEXT UNIQUE NOT NULL, 
-  revid TEXT NOT NULL, 
+  revid TEXT NOT NULL COLLATE REVID, 
   json BLOB); 
 CREATE INDEX localdocs_by_docid ON localdocs(docid); 
 CREATE TABLE views ( 
