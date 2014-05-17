@@ -2,9 +2,10 @@
 // CollationTest.cs
 //
 // Author:
-//  Pasin Suriyentrakorn <pasin@couchbase.com>
+// Pasin Suriyentrakorn <pasin@couchbase.com>
 //
-// Copyright (c) 2014 Couchbase Inc (http://www.couchbase.com)
+// Copyright (c) 2014 Xamarin Inc
+// Copyright (c) 2014 .NET Foundation
 //
 // Permission is hereby granted, free of charge, to any person obtaining
 // a copy of this software and associated documentation files (the
@@ -25,13 +26,8 @@
 // OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //
-// Original iOS version by Jens Alfke
-// Ported to Android by Marty Schoch, Traun Leyden
 //
-// With the current implementation, JsonCollator assumes that the input JSON string parameters do not
-// include any whitespace characters between each part of the JSON components.
-//
-// Copyright (c) 2012, 2013, 2014 Couchbase, Inc. All rights reserved.
+// Copyright (c) 2014 Couchbase, Inc. All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file
 // except in compliance with the License. You may obtain a copy of the License at
