@@ -2,7 +2,7 @@
 // Attachment.cs
 //
 // Author:
-// Zachary Gramana  <zack@xamarin.com>
+//     Zachary Gramana  <zack@xamarin.com>
 //
 // Copyright (c) 2014 Xamarin Inc
 // Copyright (c) 2014 .NET Foundation
