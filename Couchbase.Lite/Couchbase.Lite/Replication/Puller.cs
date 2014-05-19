@@ -89,8 +89,6 @@ namespace Couchbase.Lite.Replicator
 
         public HttpClientHandler HttpHandler { get { return clientFactory.HttpHandler; } }
 
-        public override IEnumerable<string> Channels { get; set; }
-
         public override IEnumerable<string> DocIds { get; set; }
 
         public override Dictionary<string, string> Headers { get; set; }

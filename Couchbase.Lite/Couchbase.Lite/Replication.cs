@@ -76,7 +76,9 @@ namespace Couchbase.Lite
 
     #region Constants
 
-        internal static readonly String ReplicatorDatabaseName = "_replicator";
+        internal static readonly string ChannelsQueryParam = "channels";
+        internal static readonly string ByChannelFilterName = "sync_gateway/bychannel";
+        internal static readonly string ReplicatorDatabaseName = "_replicator";
 
     #endregion
 
@@ -96,6 +98,8 @@ namespace Couchbase.Lite
             Status = ReplicationStatus.Stopped;
             online = true;
             RequestHeaders = new Dictionary<String, Object>();
+
+            requests = new HashSet<HttpClient>();
 
             if (RemoteUrl.GetQuery() != null && !RemoteUrl.GetQuery().IsEmpty())
             {
@@ -223,13 +227,16 @@ namespace Couchbase.Lite
 
         protected internal IDictionary<String, Object> RequestHeaders { get; set; }
 
-        private Int32 revisionsFailed;
+        protected internal ICollection<HttpClient> requests;
 
+        private Int32 revisionsFailed;
 
         readonly object asyncTaskLocker = new object ();
 
         void NotifyChangeListeners ()
         {
+            UpdateProgress();
+
             var evt = Changed;
             if (evt == null) return;
 
@@ -280,7 +287,15 @@ namespace Couchbase.Lite
 
         internal void StopRemoteRequests()
         {
-            // TODO:
+            foreach(var client in requests)
+            {
+                client.CancelPendingRequests();
+            }
+
+            while(requests.Count > 0)
+            {
+                System.Threading.Thread.Sleep(100);
+            }
         }
 
         internal void UpdateProgress()
@@ -362,8 +377,8 @@ namespace Couchbase.Lite
                     }
                     else
                     {
-                        var response = (IDictionary<String, Object>)result;
-                        var userCtx = (IDictionary<String, Object>)response.Get ("userCtx");
+                        var response = ((JObject)result).ToObject<IDictionary<string, object>>();
+                        var userCtx = ((JObject)response.Get("userCtx")).ToObject<IDictionary<string, object>>();
                         var username = (string)userCtx.Get ("name");
 
                         if (!string.IsNullOrEmpty (username)) {
@@ -431,28 +446,35 @@ namespace Couchbase.Lite
                 {
                     if (e != null && !Is404 (e)) {
                         Log.D (Tag, this + " error getting remote checkpoint: " + e);
-                        LastError = e;
+                        SetLastError(e);
                     } else {
                         if (e != null && Is404 (e)) {
                             Log.D (Tag, this + " 404 error getting remote checkpoint " + RemoteCheckpointDocID () + ", calling maybeCreateRemoteDB");
                             MaybeCreateRemoteDB ();
                         }
 
-                        var responseData = (JObject)response;
-                        var result = responseData.ToObject<IDictionary<string, object>>();
+                        IDictionary<string, object> result = null;
 
+                        if (response != null) {
+                            var responseData = (JObject)response;
+                            result = responseData.ToObject<IDictionary<string, object>>();
+                            remoteCheckpoint = result;
+                        } 
                         remoteCheckpoint = result;
-                        var remoteLastSequence = String.Empty;
+                        string remoteLastSequence = null;
 
                         if (result != null) {
                             remoteLastSequence = (string)result.Get ("lastSequence");
+                            remoteLastSequence = (string)result.Get("lastSequence");
                         }
+
                         if (remoteLastSequence != null && remoteLastSequence.Equals (localLastSequence)) {
                             LastSequence = localLastSequence;
                             Log.V (Tag, this + ": Replicating from lastSequence=" + LastSequence);
                         } else {
                             Log.V (Tag, this + ": lastSequence mismatch: I had " + localLastSequence + ", remote had " + remoteLastSequence);
                         }
+
                         BeginReplicating ();
                     }
                 }
@@ -469,7 +491,7 @@ namespace Couchbase.Lite
 
         private static bool Is404(Exception e)
         {
-            return e is HttpException && ((HttpException)e).GetHttpCode () == 404;
+            return (e is HttpResponseException) && ((HttpResponseException)e).StatusCode == HttpStatusCode.NotFound;
         }
 
         internal abstract void BeginReplicating();
@@ -697,27 +719,47 @@ namespace Couchbase.Lite
             var client = clientFactory.GetHttpClient();
             client.CancelPendingRequests();
             client.SendAsync(message, HttpCompletionOption.ResponseHeadersRead, CancellationTokenSource.Token)
-                .ContinueWith(response => {
-                    if (response.Status != TaskStatus.RanToCompletion)
+                .ContinueWith(response =>
+                {
+                    requests.Remove(client);
+                    if (completionHandler != null)
                     {
-                        Log.E(Tag, "SendAsyncRequest did not run to completion.", response.Exception);
-                        return null;
-                    }
-                    return response.Result;
-                }, CancellationTokenSource.Token)
-                .ContinueWith(response => {
-                    if (completionHandler != null) {
-                        var fullBody = mapper.ReadValue<Object>(response.Result.Content.ReadAsStreamAsync().Result);
+                        Exception error = null;
+                        object fullBody = null;
 
-                        Exception error = response.Exception;
-                        if (error == null && !response.Result.IsSuccessStatusCode)
+                        try 
                         {
-                            error = new HttpResponseException(response.Result.StatusCode); 
-                        }
+                            if (response.Status != TaskStatus.RanToCompletion) {
+                                Log.D(Tag, "SendAsyncRequest did not run to completion.", response.Exception);
+                            }
 
-                        completionHandler (fullBody, response.Exception);
+                            error = response.Exception;
+                            if (error == null && !response.Result.IsSuccessStatusCode)
+                            {
+                                error = new HttpResponseException(response.Result.StatusCode); 
+                            }
+
+                            if (error == null)
+                            {
+                                var content = response.Result.Content;
+                                if (content != null)
+                                {
+                                    fullBody = mapper.ReadValue<object>(content.ReadAsStreamAsync().Result);
+                                }
+                            }
+                        }
+                        catch (Exception e)
+                        {
+                            error = e;
+                            Log.E(Tag, "SendAsyncRequest has an error occurred.", e);
+                        }
+                        completionHandler(fullBody, error);
                     }
-                });
+
+                    return response.Result;
+                }, CancellationTokenSource.Token);
+
+            requests.Add(client);
         }
 
         void PreemptivelySetAuthCredentials (HttpRequestMessage message)
@@ -1110,7 +1152,45 @@ namespace Couchbase.Lite
         /// replications whose source database is on a Couchbase Sync Gateway server. This is a convenience property 
         /// that just sets the values of filter and filterParams.
         /// </remarks>
-        public abstract IEnumerable<String> Channels { get; set; }
+        public IEnumerable<String> Channels { 
+            get 
+            { 
+                if (FilterParams == null || FilterParams.IsEmpty())
+                {
+                    return new List<string>();
+                }
+
+                var p = FilterParams.ContainsKey(ChannelsQueryParam) ? FilterParams[ChannelsQueryParam] : null;
+                if (!IsPull || Filter == null || !Filter.Equals(ByChannelFilterName) || p == null || p.IsEmpty())
+                {
+                    return new List<string>();
+                }
+
+                var pArray = p.Split(new Char[] {','});
+                return pArray.ToList<string>();
+            }
+            set 
+            {  
+                if (value != null && value.Any())
+                {
+                    if (!IsPull)
+                    {
+                        Log.W(Tag, "filterChannels can only be set in pull replications");
+                        return;
+                    }
+
+                    Filter = ByChannelFilterName;
+                    var filterParams = new Dictionary<string, string>();
+                    filterParams.Put(ChannelsQueryParam, String.Join(",", value));
+                    FilterParams = filterParams;
+                }
+                else if (Filter != null && Filter.Equals(ByChannelFilterName))
+                {
+                    Filter = null;
+                    FilterParams = null;
+                }
+            } 
+        }
 
         /// <summary>
         /// Gets or sets the ids of the <see cref="Couchbase.Lite.Document"/>s to replicate.
