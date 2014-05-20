@@ -50,12 +50,13 @@ namespace Couchbase.Lite
 {
 	public class MiscTest : LiteTestCase
 	{
-		public virtual void TestUnquoteString()
+        [Test]
+		public void TestUnquoteString()
 		{
 			string testString = "attachment; filename=\"attach\"";
 			string expected = "attachment; filename=attach";
 			string result = Misc.UnquoteString(testString);
-			NUnit.Framework.Assert.AreEqual(expected, result);
+			Assert.AreEqual(expected, result);
 		}
 	}
 }

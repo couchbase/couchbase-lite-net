@@ -42,9 +42,7 @@
 
 using System;
 using System.Linq;
-using System.Collections;
 using System.Collections.Generic;
-using System.Net;
 using System.IO;
 using Sharpen;
 using Couchbase.Lite.Util;
@@ -63,6 +61,8 @@ namespace Couchbase.Lite
 
     public partial class Database 
     {
+
+        Document debugDoc;
     
     #region Constructors
 
@@ -185,6 +185,10 @@ namespace Couchbase.Lite
                     if (cursor.MoveToNext())
                     {
                         result = cursor.GetLong(0);
+
+                        // When there is no rows in revs table, the result is -1 which is different
+                        // from the Android platform.
+                        if (result < 0) result = 0;
                     }
                 }
                 catch (SQLException e)
@@ -696,7 +700,7 @@ namespace Couchbase.Lite
 
         internal const String TagSql = "CBLSQL";
        
-        const Int32 BigAttachmentLength = 16384;
+        internal const Int32 BigAttachmentLength = 16384;
 
         const Int32 MaxDocCacheSize = 50;
 
@@ -880,7 +884,7 @@ PRAGMA user_version = 3;";
             return string.Format("_local/{0}", documentId);
         }
 
-        private RevisionInternal PutLocalRevision(RevisionInternal revision, string prevRevID)
+        internal RevisionInternal PutLocalRevision(RevisionInternal revision, string prevRevID)
         {
             var docID = revision.GetDocId();
             if (!docID.StartsWith ("_local/", StringComparison.InvariantCultureIgnoreCase))
@@ -1321,10 +1325,12 @@ PRAGMA user_version = 3;";
             if (!String.IsNullOrEmpty (viewName)) {
                 var view = GetView (viewName);
                 if (view == null)
+                {
                     throw new CouchbaseLiteException (StatusCode.NotFound);
-
+                }
+                    
                 lastSequence = view.LastSequenceIndexed;
-                if (options.GetStale () == IndexUpdateMode.Never || lastSequence <= 0) {
+                if (options.GetStale () == IndexUpdateMode.Before || lastSequence <= 0) {
                     view.UpdateIndex ();
                     lastSequence = view.LastSequenceIndexed;
                 } else {
@@ -1355,8 +1361,10 @@ PRAGMA user_version = 3;";
                 lastSequence = GetLastSequenceNumber ();
             }
             outLastSequence.AddItem(lastSequence);
+
             var delta = Runtime.CurrentTimeMillis() - before;
             Log.D(Database.Tag, String.Format("Query view {0} completed in {1} milliseconds", viewName, delta));
+
             return rows;
         }
 
@@ -1809,6 +1817,35 @@ PRAGMA user_version = 3;";
                     return GetView(name);
                 }
             }
+        }
+
+        internal IList<View> GetAllViews()
+        {
+            Cursor cursor = null;
+            IList<View> result = null;
+            try
+            {
+                cursor = StorageEngine.RawQuery("SELECT name FROM views", null);
+                result = new AList<View>();
+                if (cursor.MoveToNext())
+                {
+                    var name = cursor.GetString(0);
+                    var view = GetView(name);
+                    result.Add(view);
+                }
+            }
+            catch (Exception e)
+            {
+                Log.E(Tag, "Error getting all views", e);
+            }
+            finally
+            {
+                if (cursor != null)
+                {
+                    cursor.Close();
+                }
+            }
+            return result;
         }
 
         internal Status DeleteViewNamed(String name)
@@ -2759,7 +2796,7 @@ PRAGMA user_version = 3;";
                     var key = new BlobKey(keyData);
                     var digestString = "sha1-" + Convert.ToBase64String(keyData);
 
-                    var dataBase64 = String.Empty;
+                    var dataBase64 = (string) null;
                     if (contentOptions.Contains(TDContentOptions.TDIncludeAttachments))
                     {
                         if (contentOptions.Contains(TDContentOptions.TDBigAttachmentsFollow) && 
@@ -3557,7 +3594,7 @@ PRAGMA user_version = 3;";
                     byte[] newContents;
                     try
                     {
-                        newContents = Convert.FromBase64String(newContentBase64);
+                        newContents = StringUtils.ConvertFromUnpaddedBase64String (newContentBase64);
                     }
                     catch (IOException e)
                     {

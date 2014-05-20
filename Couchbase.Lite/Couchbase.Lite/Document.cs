@@ -316,7 +316,7 @@ namespace Couchbase.Lite {
         {
             return (RevisionInternal.CBLCompareRevIDs(revId, currentRevision.Id) > 0);
         }
-
+            
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>       
         internal SavedRevision PutProperties(IDictionary<String, Object> properties, String prevID, Boolean allowConflict)
         {
@@ -415,6 +415,7 @@ namespace Couchbase.Lite {
             {
                 return;
             }
+
             // current revision didn't change
             if (currentRevision != null && !rev.GetRevId().Equals(currentRevision.Id))
             {

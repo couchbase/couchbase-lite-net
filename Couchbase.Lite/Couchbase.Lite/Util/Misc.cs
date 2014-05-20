@@ -110,5 +110,45 @@ namespace Couchbase.Lite
 		{
 			return param.Replace("\"", string.Empty);
 		}
+
+        public static bool PropertiesEqual(IDictionary<string, object> prop1, IDictionary<string, object> prop2)
+        {
+            if (prop1 == null || prop2 == null)
+            {
+                return prop1 == prop2;
+            }
+
+            if (prop1.Count != prop2.Count)
+            {
+                return false;
+            }
+
+            foreach(var key in prop1.Keys)
+            {
+                if (!prop2.ContainsKey(key))
+                {
+                    return false;
+                }
+
+                object obj1 = prop1[key];
+                object obj2 = prop2[key];
+
+                bool isValueEqual;
+                if (obj1 is IDictionary<string, object> && obj2 is IDictionary<string, object>) {
+                    isValueEqual = PropertiesEqual((IDictionary<string, object>)obj1, (IDictionary<string, object>)obj2);
+                } 
+                else 
+                {
+                    isValueEqual = obj1.Equals(obj2);
+                }
+
+                if (!isValueEqual)
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
 	}
 }

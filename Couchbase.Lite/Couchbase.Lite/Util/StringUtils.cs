@@ -281,5 +281,21 @@ namespace Couchbase.Lite.Util
             endPosition = p;
             return sign == 1 ? -fraction : fraction;  
         }
+
+        /// <summary>
+        /// Converts an un-padded base64 encoded string into a byte array.
+        /// </summary>
+        /// <returns>The from unpadded base64 string.</returns>
+        /// <remarks>
+        /// Ensures that Base64 encoded strings from other platforms have the padding that .NET expects.
+        /// </remarks>
+        /// <param name="base64String">Base64 string.</param>
+        internal static byte[] ConvertFromUnpaddedBase64String (string base64String)
+        {
+            var strLength = base64String.Length;
+            var paddedNewContentBase64 = base64String.PadRight (strLength + strLength % 4, '=');
+            var newContents = Convert.FromBase64String (paddedNewContentBase64);
+            return newContents;
+        }
     }
 }

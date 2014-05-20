@@ -51,38 +51,39 @@ namespace Couchbase.Lite
 {
 	public class SequenceMapTest : LiteTestCase
 	{
-		public virtual void TestSequenceMap()
+        [Test]
+		public void TestSequenceMap()
 		{
-			SequenceMap map = new SequenceMap();
-			NUnit.Framework.Assert.AreEqual(0, map.GetCheckpointedSequence());
-			NUnit.Framework.Assert.AreEqual(null, map.GetCheckpointedValue());
-			NUnit.Framework.Assert.IsTrue(map.IsEmpty());
-			NUnit.Framework.Assert.AreEqual(1, map.AddValue("one"));
-			NUnit.Framework.Assert.AreEqual(0, map.GetCheckpointedSequence());
-			NUnit.Framework.Assert.AreEqual(null, map.GetCheckpointedValue());
-			NUnit.Framework.Assert.IsTrue(!map.IsEmpty());
-			NUnit.Framework.Assert.AreEqual(2, map.AddValue("two"));
-			NUnit.Framework.Assert.AreEqual(0, map.GetCheckpointedSequence());
-			NUnit.Framework.Assert.AreEqual(null, map.GetCheckpointedValue());
-			NUnit.Framework.Assert.AreEqual(3, map.AddValue("three"));
-			NUnit.Framework.Assert.AreEqual(0, map.GetCheckpointedSequence());
-			NUnit.Framework.Assert.AreEqual(null, map.GetCheckpointedValue());
+            var map = new SequenceMap();
+			Assert.AreEqual(0, map.GetCheckpointedSequence());
+			Assert.AreEqual(null, map.GetCheckpointedValue());
+			Assert.IsTrue(map.IsEmpty());
+			Assert.AreEqual(1, map.AddValue("one"));
+			Assert.AreEqual(0, map.GetCheckpointedSequence());
+			Assert.AreEqual(null, map.GetCheckpointedValue());
+			Assert.IsTrue(!map.IsEmpty());
+			Assert.AreEqual(2, map.AddValue("two"));
+			Assert.AreEqual(0, map.GetCheckpointedSequence());
+			Assert.AreEqual(null, map.GetCheckpointedValue());
+			Assert.AreEqual(3, map.AddValue("three"));
+			Assert.AreEqual(0, map.GetCheckpointedSequence());
+			Assert.AreEqual(null, map.GetCheckpointedValue());
 			map.RemoveSequence(2);
-			NUnit.Framework.Assert.AreEqual(0, map.GetCheckpointedSequence());
-			NUnit.Framework.Assert.AreEqual(null, map.GetCheckpointedValue());
+			Assert.AreEqual(0, map.GetCheckpointedSequence());
+			Assert.AreEqual(null, map.GetCheckpointedValue());
 			map.RemoveSequence(1);
-			NUnit.Framework.Assert.AreEqual(2, map.GetCheckpointedSequence());
-			NUnit.Framework.Assert.AreEqual("two", map.GetCheckpointedValue());
-			NUnit.Framework.Assert.AreEqual(4, map.AddValue("four"));
-			NUnit.Framework.Assert.AreEqual(2, map.GetCheckpointedSequence());
-			NUnit.Framework.Assert.AreEqual("two", map.GetCheckpointedValue());
+			Assert.AreEqual(2, map.GetCheckpointedSequence());
+			Assert.AreEqual("two", map.GetCheckpointedValue());
+			Assert.AreEqual(4, map.AddValue("four"));
+			Assert.AreEqual(2, map.GetCheckpointedSequence());
+			Assert.AreEqual("two", map.GetCheckpointedValue());
 			map.RemoveSequence(3);
-			NUnit.Framework.Assert.AreEqual(3, map.GetCheckpointedSequence());
-			NUnit.Framework.Assert.AreEqual("three", map.GetCheckpointedValue());
+			Assert.AreEqual(3, map.GetCheckpointedSequence());
+			Assert.AreEqual("three", map.GetCheckpointedValue());
 			map.RemoveSequence(4);
-			NUnit.Framework.Assert.AreEqual(4, map.GetCheckpointedSequence());
-			NUnit.Framework.Assert.AreEqual("four", map.GetCheckpointedValue());
-			NUnit.Framework.Assert.IsTrue(map.IsEmpty());
+			Assert.AreEqual(4, map.GetCheckpointedSequence());
+			Assert.AreEqual("four", map.GetCheckpointedValue());
+			Assert.IsTrue(map.IsEmpty());
 		}
 	}
 }

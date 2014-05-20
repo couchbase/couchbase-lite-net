@@ -215,8 +215,8 @@ namespace Couchbase.Lite.Auth
 					+ " found.  Expected 4+");
 			}
 
-            var component1Decoded = Encoding.UTF8.GetString(Convert.FromBase64String(components[1]));
-            var component3Decoded = Encoding.UTF8.GetString(Convert.FromBase64String(components[3]));
+            var component1Decoded = Encoding.UTF8.GetString(StringUtils.ConvertFromUnpaddedBase64String(components[1]));
+            var component3Decoded = Encoding.UTF8.GetString(StringUtils.ConvertFromUnpaddedBase64String(components[3]));
 			try
 			{
                 var mapper = Manager.GetObjectMapper();

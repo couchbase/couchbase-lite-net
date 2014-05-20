@@ -66,7 +66,7 @@ namespace Couchbase.Lite.Internal
 
 		private Body body;
 
-        private long sequence = -1;
+        private long sequence;
 
 		private Database database;
 

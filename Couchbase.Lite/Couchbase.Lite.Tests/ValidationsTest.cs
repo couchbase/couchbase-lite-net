@@ -58,17 +58,18 @@ namespace Couchbase.Lite
 		internal bool validationCalled = false;
 
 		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
-		public virtual void TestValidations()
+        [Test]
+		public void TestValidations()
 		{
-            Database.ValidateDelegate validator = (Revision newRevision, ValidationContext context)=>
+            ValidateDelegate validator = (newRevision, context)=>
             {
-                NUnit.Framework.Assert.IsNotNull(newRevision);
-                NUnit.Framework.Assert.IsNotNull(context);
-                NUnit.Framework.Assert.IsTrue(newRevision.Properties != null || newRevision.
-                    IsDeletion);
-                this._enclosing.validationCalled = true;
-                bool hoopy = newRevision.IsDeletion || (newRevision.Properties.Get("towel"
-                ) != null);
+                Assert.IsNotNull(newRevision);
+                Assert.IsNotNull(context);
+                Assert.IsTrue(newRevision.Properties != null || newRevision.IsDeletion);
+
+                validationCalled = true;
+
+                bool hoopy = newRevision.IsDeletion || (newRevision.Properties.Get("towel") != null);
                 Log.V(ValidationsTest.Tag, string.Format("--- Validating %s --> %b", newRevision.
                     Properties, hoopy));
                 if (!hoopy)
@@ -77,7 +78,9 @@ namespace Couchbase.Lite
                 }
                 return hoopy;
             };
+
 			database.SetValidation("hoopy", validator);
+
 			// POST a valid new document:
 			IDictionary<string, object> props = new Dictionary<string, object>();
 			props["name"] = "Zaphod Beeblebrox";
@@ -86,15 +89,17 @@ namespace Couchbase.Lite
 			Status status = new Status();
 			validationCalled = false;
 			rev = database.PutRevision(rev, null, false, status);
-			NUnit.Framework.Assert.IsTrue(validationCalled);
-            NUnit.Framework.Assert.AreEqual(StatusCode.Created, status.GetCode());
+			Assert.IsTrue(validationCalled);
+            Assert.AreEqual(StatusCode.Created, status.GetCode());
+
 			// PUT a valid update:
 			props["head_count"] = 3;
 			rev.SetProperties(props);
 			validationCalled = false;
 			rev = database.PutRevision(rev, rev.GetRevId(), false, status);
-			NUnit.Framework.Assert.IsTrue(validationCalled);
-            NUnit.Framework.Assert.AreEqual(StatusCode.Created, status.GetCode());
+			Assert.IsTrue(validationCalled);
+            Assert.AreEqual(StatusCode.Created, status.GetCode());
+
 			// PUT an invalid update:
 			Sharpen.Collections.Remove(props, "towel");
 			rev.SetProperties(props);
@@ -108,8 +113,9 @@ namespace Couchbase.Lite
 			{
                 gotExpectedError = (e.GetCBLStatus().GetCode() == StatusCode.Forbidden);
 			}
-			NUnit.Framework.Assert.IsTrue(validationCalled);
-			NUnit.Framework.Assert.IsTrue(gotExpectedError);
+			Assert.IsTrue(validationCalled);
+			Assert.IsTrue(gotExpectedError);
+
 			// POST an invalid new document:
 			props = new Dictionary<string, object>();
 			props["name"] = "Vogon";
@@ -125,8 +131,9 @@ namespace Couchbase.Lite
 			{
                 gotExpectedError = (e.GetCBLStatus().GetCode() == StatusCode.Forbidden);
 			}
-			NUnit.Framework.Assert.IsTrue(validationCalled);
-			NUnit.Framework.Assert.IsTrue(gotExpectedError);
+			Assert.IsTrue(validationCalled);
+			Assert.IsTrue(gotExpectedError);
+
 			// PUT a valid new document with an ID:
 			props = new Dictionary<string, object>();
 			props["_id"] = "ford";
@@ -135,14 +142,16 @@ namespace Couchbase.Lite
 			rev = new RevisionInternal(props, database);
 			validationCalled = false;
 			rev = database.PutRevision(rev, null, false, status);
-			NUnit.Framework.Assert.IsTrue(validationCalled);
-			NUnit.Framework.Assert.AreEqual("ford", rev.GetDocId());
+			Assert.IsTrue(validationCalled);
+			Assert.AreEqual("ford", rev.GetDocId());
+
 			// DELETE a document:
 			rev = new RevisionInternal(rev.GetDocId(), rev.GetRevId(), true, database);
-			NUnit.Framework.Assert.IsTrue(rev.IsDeleted());
+			Assert.IsTrue(rev.IsDeleted());
 			validationCalled = false;
 			rev = database.PutRevision(rev, rev.GetRevId(), false, status);
-			NUnit.Framework.Assert.IsTrue(validationCalled);
+			Assert.IsTrue(validationCalled);
+
 			// PUT an invalid new document:
 			props = new Dictionary<string, object>();
 			props["_id"] = "petunias";
@@ -158,8 +167,8 @@ namespace Couchbase.Lite
 			{
                 gotExpectedError = (e.GetCBLStatus().GetCode() == StatusCode.Forbidden);
 			}
-			NUnit.Framework.Assert.IsTrue(validationCalled);
-			NUnit.Framework.Assert.IsTrue(gotExpectedError);
+			Assert.IsTrue(validationCalled);
+			Assert.IsTrue(gotExpectedError);
 		}
 	}
 }

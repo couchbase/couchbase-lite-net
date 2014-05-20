@@ -195,7 +195,15 @@ namespace Couchbase.Lite
                 // if _anything_ about the doc has changed (i.e. the sequences are different.)
                 if (Value != null || other.Value != null)
                 {
-                    return Value.Equals(other.Value);
+                    bool isEqual;
+                    if (Value is IDictionary<string, object> && other.Value is IDictionary<string, object>)
+                    {
+                        return Misc.PropertiesEqual((IDictionary<string, object>)Value, (IDictionary<string, object>)other.Value);
+                    }
+                    else
+                    {
+                        return Value.Equals(other.Value);
+                    }
                 }
                 else
                 {

@@ -190,65 +190,57 @@ namespace Couchbase.Lite.Replicator
         [Test]
 		public virtual void TestPusherDeletedDoc()
 		{
-            Assert.Fail(); // TODO.ZJG: Needs debugging, overflows stack.
-
-			CountDownLatch replicationDoneSignal = new CountDownLatch(1);
-			Uri remote = GetReplicationURL();
-			string docIdTimestamp = System.Convert.ToString(Runtime.CurrentTimeMillis());
+			var remote = GetReplicationURL();
+			var docIdTimestamp = Convert.ToString(Runtime.CurrentTimeMillis());
 			// Create some documentsConvert
-			IDictionary<string, object> documentProperties = new Dictionary<string, object>();
-			string doc1Id = string.Format("doc1-{0}", docIdTimestamp);
+			var documentProperties = new Dictionary<string, object>();
+			var doc1Id = string.Format("doc1-{0}", docIdTimestamp);
 			documentProperties["_id"] = doc1Id;
 			documentProperties["foo"] = 1;
 			documentProperties["bar"] = false;
-			Body body = new Body(documentProperties);
-			RevisionInternal rev1 = new RevisionInternal(body, database);
-			Status status = new Status();
+			var body = new Body(documentProperties);
+			var rev1 = new RevisionInternal(body, database);
+			var status = new Status();
 			rev1 = database.PutRevision(rev1, null, false, status);
-            NUnit.Framework.Assert.AreEqual(StatusCode.Created, status.GetCode());
+            Assert.AreEqual(StatusCode.Created, status.GetCode());
+
             documentProperties["_rev"] = rev1.GetRevId();
 			documentProperties["UPDATED"] = true;
 			documentProperties["_deleted"] = true;
-			RevisionInternal rev2 = database.PutRevision(new RevisionInternal(documentProperties
-				, database), rev1.GetRevId(), false, status);
-            NUnit.Framework.Assert.IsTrue((int)status.GetCode() >= 200 && (int)status.GetCode() < 300);
+			database.PutRevision(new RevisionInternal(documentProperties, database), rev1.GetRevId(), false, status);
+            Assert.IsTrue((int)status.GetCode() >= 200 && (int)status.GetCode() < 300);
+
             var repl = database.CreatePushReplication(remote);
             ((Pusher)repl).CreateTarget = true;
 			RunReplication(repl);
 			// make sure doc1 is deleted
-			Uri replicationUrlTrailing = new Uri(string.Format("{0}/", remote.ToString()
-				));
-			Uri pathToDoc = new Uri(replicationUrlTrailing, doc1Id);
+			var replicationUrlTrailing = new Uri(string.Format ("{0}/", remote));
+			var pathToDoc = new Uri(replicationUrlTrailing, doc1Id);
 			Log.D(Tag, "Send http request to " + pathToDoc);
-			CountDownLatch httpRequestDoneSignal = new CountDownLatch(1);
-            var getDocTask = Task.Factory.StartNew(()=>
+			var httpRequestDoneSignal = new CountDownLatch(1);
+			Task.Factory.StartNew(async ()=>
                 {
                     var httpclient = new HttpClient();
-                    HttpResponseMessage response;
-                    string responseString = null;
                     try
                     {
-                        var responseTask = httpclient.GetAsync(pathToDoc.ToString());
-                        responseTask.Wait();
-                        response = responseTask.Result;
-                        var statusLine = response.StatusCode;
+						var getDocResponse = await httpclient.GetAsync(pathToDoc.ToString());
+                        var statusLine = getDocResponse.StatusCode;
                         Log.D(ReplicationTest.Tag, "statusLine " + statusLine);
                         Assert.AreEqual(HttpStatusCode.NotFound, statusLine.GetStatusCode());                        
                     }
                     catch (ProtocolViolationException e)
                     {
-                        NUnit.Framework.Assert.IsNull(e, "Got ClientProtocolException: " + e.Message);
+                        Assert.IsNull(e, "Got ClientProtocolException: " + e.Message);
                     }
                     catch (IOException e)
                     {
-                        NUnit.Framework.Assert.IsNull(e, "Got IOException: " + e.Message);
+                        Assert.IsNull(e, "Got IOException: " + e.Message);
                     }
                     finally
                     {
                         httpRequestDoneSignal.CountDown();
                     }
                 });
-            getDocTask.Start();
 			Log.D(Tag, "Waiting for http request to finish");
 			try
 			{
@@ -257,7 +249,7 @@ namespace Couchbase.Lite.Replicator
 			}
 			catch (Exception e)
 			{
-				Sharpen.Runtime.PrintStackTrace(e);
+				Runtime.PrintStackTrace(e);
 			}
 			Log.D(Tag, "testPusherDeletedDoc() finished");
 		}

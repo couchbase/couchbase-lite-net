@@ -45,6 +45,7 @@ using System.IO;
 using System.Text;
 using Sharpen;
 using Couchbase.Lite;
+using Couchbase.Lite.Util;
 
 namespace Couchbase.Lite
 {
@@ -96,7 +97,7 @@ namespace Couchbase.Lite
             byte[] bytes;
 			try
 			{
-                bytes = Convert.FromBase64String(base64Digest); //Base64.Decode(base64Digest);
+                bytes = StringUtils.ConvertFromUnpaddedBase64String(base64Digest);
 			}
 			catch (IOException e)
 			{

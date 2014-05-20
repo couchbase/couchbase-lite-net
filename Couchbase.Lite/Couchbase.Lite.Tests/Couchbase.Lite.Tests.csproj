@@ -47,6 +47,9 @@
       <HintPath>..\lib\System.Net.Http.Formatting.dll</HintPath>
     </Reference>
     <Reference Include="System" />
+    <Reference Include="Newtonsoft.Json">
+      <HintPath>..\lib\Newtonsoft.Json.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>
@@ -68,6 +71,16 @@
     <Compile Include="DocumentTest.cs" />
     <Compile Include="RevisionsTest.cs" />
     <Compile Include="CRUDOperationsTest.cs" />
+    <Compile Include="ChangesTest.cs" />
+    <Compile Include="LocalDocsTest.cs" />
+    <Compile Include="RevTreeTest.cs" />
+    <Compile Include="AttachmentsTest.cs" />
+    <Compile Include="ViewsTest.cs" />
+    <Compile Include="BlobStoreWriterTest.cs" />
+    <Compile Include="ValidationsTest.cs" />
+    <Compile Include="MiscTest.cs" />
+    <Compile Include="Base64Test.cs" />
+    <Compile Include="SequenceMapTest.cs" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Assets\" />

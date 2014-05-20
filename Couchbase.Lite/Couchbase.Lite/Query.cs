@@ -136,7 +136,7 @@ namespace Couchbase.Lite {
                 queryOptions.SetUpdateSeq(true);
                 queryOptions.SetInclusiveEnd(true);
                 queryOptions.SetIncludeDeletedDocs(IncludeDeleted);
-                queryOptions.SetStale(IndexUpdateMode.Before);
+                queryOptions.SetStale(IndexUpdateMode);
                 queryOptions.SetAllDocsMode(AllDocsMode);
                 return queryOptions;
             }
