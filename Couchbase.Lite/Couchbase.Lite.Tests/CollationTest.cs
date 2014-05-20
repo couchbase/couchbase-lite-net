@@ -256,6 +256,37 @@ namespace Couchbase.Lite
 			TestCollateEquals(mode, "[5,\"wow\"]", "[5]", 1, 0);
 			TestCollateEquals(mode, "[5,\"wow\"]", "[5,\"MOM\"]", 2, 1);
 		}
+
+        [Test]
+        public void TestCollateRevId()
+        {
+            // Single-digit:
+            Assert.AreEqual(RevIdCollator.Compare("1-foo", "1-foo"), 0);
+            Assert.AreEqual(RevIdCollator.Compare("2-bar", "1-foo"), 1);
+            Assert.AreEqual(RevIdCollator.Compare("1-foo", "2-bar"), -1);
+
+            // Multi-digit:
+            Assert.AreEqual(RevIdCollator.Compare("123-bar", "456-foo"), -1);
+            Assert.AreEqual(RevIdCollator.Compare("456-foo", "123-bar"), 1);
+            Assert.AreEqual(RevIdCollator.Compare("456-foo", "456-foo"), 0);
+            Assert.AreEqual(RevIdCollator.Compare("456-foo", "456-foofoo"), -1);
+
+            // Different numbers of digits:
+            Assert.AreEqual(RevIdCollator.Compare("89-foo", "123-bar"), -1);
+            Assert.AreEqual(RevIdCollator.Compare("123-bar", "89-foo"), 1);
+
+            // Edge cases:
+            Assert.AreEqual(RevIdCollator.Compare("123-", "89-"), 1);
+            Assert.AreEqual(RevIdCollator.Compare("123-a", "123-a"), 0);
+
+            // Invalid rev IDs:
+            Assert.AreEqual(RevIdCollator.Compare("-a", "-b"), -1);
+            Assert.AreEqual(RevIdCollator.Compare("-", "-"), 0);
+            Assert.AreEqual(RevIdCollator.Compare("", ""), 0);
+            Assert.AreEqual(RevIdCollator.Compare("", "-b"), -1);
+            Assert.AreEqual(RevIdCollator.Compare("bogus", "yo"), -1);
+            Assert.AreEqual(RevIdCollator.Compare("bogus-x", "yo-y"), -1);
+        }
 	}
 }
 
