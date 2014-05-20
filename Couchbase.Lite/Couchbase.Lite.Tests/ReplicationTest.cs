@@ -412,14 +412,17 @@ namespace Couchbase.Lite.Replicator
             replicator.Start();
             Assert.IsTrue(replicator.IsRunning);
 
-            var activeReplicators = database.ActiveReplicators;
-            Assert.AreEqual(1, activeReplicators.Count);
-            Assert.AreEqual(replicator, activeReplicators.First());
+			var activeReplicators = new Replication[database.ActiveReplicators.Count];
+			database.ActiveReplicators.CopyTo(activeReplicators, 0);
+			Assert.AreEqual(1, activeReplicators.Length);
+			Assert.AreEqual(replicator, activeReplicators [0]);
 
             replicator.Stop();
+			Log.D(Tag, "Called replication.Stop()");
             Assert.IsFalse(replicator.IsRunning);
-            activeReplicators = database.ActiveReplicators;
-            Assert.AreEqual(0, activeReplicators.Count);
+			activeReplicators = new Replication[database.ActiveReplicators.Count];
+			database.ActiveReplicators.CopyTo(activeReplicators, 0);
+			Assert.AreEqual(0, activeReplicators.Length);
 		}
 
 		/// <exception cref="System.Exception"></exception>
@@ -546,8 +549,8 @@ namespace Couchbase.Lite.Replicator
         [Test]
 		public void TestGoOffline()
 		{
-			Uri remote = GetReplicationURL();
-			Replication repl = database.CreatePullReplication(remote);
+			var remote = GetReplicationURL();
+			var repl = database.CreatePullReplication(remote);
 			repl.Continuous = true;
             repl.Start();
 			repl.GoOffline();
@@ -691,33 +694,34 @@ namespace Couchbase.Lite.Replicator
         [Test]
 		public void TestHeaders()
 		{
-            Assert.Fail();
-//			CustomizableMockHttpClient mockHttpClient = new CustomizableMockHttpClient();
+//			var mockHttpClient = new CustomizableMockHttpClient();
 //			mockHttpClient.AddResponderThrowExceptionAllRequests();
 //			HttpClientFactory mockHttpClientFactory = new _HttpClientFactory_741(mockHttpClient
 //				);
-//			Uri remote = GetReplicationURL();
-//			manager.SetDefaultHttpClientFactory(mockHttpClientFactory);
-//			Replication puller = database.CreatePullReplication(remote);
-//			IDictionary<string, object> headers = new Dictionary<string, object>();
-//			headers["foo"] = "bar";
-//			puller.SetHeaders(headers);
-//			puller.Start();
-//			Sharpen.Thread.Sleep(2000);
-//            puller.Stop();
-//            bool foundFooHeader = false;
-//			IList<HttpWebRequest> requests = mockHttpClient.GetCapturedRequests();
-//			foreach (HttpWebRequest request in requests)
-//			{
-//				Header[] requestHeaders = request.GetHeaders("foo");
-//				foreach (Header requestHeader in requestHeaders)
-//				{
-//					foundFooHeader = true;
-//					NUnit.Framework.Assert.AreEqual("bar", requestHeader.GetValue());
-//				}
-//			}
-//			NUnit.Framework.Assert.IsTrue(foundFooHeader);
-//			AssertClientFactory(null);
+			Uri remote = GetReplicationURL();
+			var mockHttpClientFactory = new CustomizableMockHttpClientFactory();
+			manager.DefaultHttpClientFactory = mockHttpClientFactory;
+			var mockHttpClient = (CustomizableMockHttpClientHandler)mockHttpClientFactory.HttpHandler;
+			Replication puller = database.CreatePullReplication(remote);
+			var headers = new Dictionary<string, string>();
+			headers["foo"] = "bar";
+			puller.Headers = headers;
+			puller.Start();
+			Thread.Sleep(2000);
+            puller.Stop();
+            var foundFooHeader = false;
+			var requests = mockHttpClient.GetCapturedRequests();
+			foreach (var request in requests)
+			{
+				var requestHeaders = request.Headers.GetValues("foo");
+				foreach (var requestHeader in requestHeaders)
+				{
+					foundFooHeader = true;
+					Assert.AreEqual("bar", requestHeader);
+				}
+			}
+			Assert.IsTrue(foundFooHeader);
+			//AssertClientFactory(null);
 		}
 	}
 }

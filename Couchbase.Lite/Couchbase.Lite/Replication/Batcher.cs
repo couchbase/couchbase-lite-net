@@ -318,7 +318,7 @@ namespace Couchbase.Lite.Support
             {
                 try 
                 {
-                    cancellationSource.Cancel(false);
+                    cancellationSource.Cancel(true);
                 } 
                 catch (Exception) { } // Swallow it.
                 Log.D(Tag, "tried to cancel flushFuture.");

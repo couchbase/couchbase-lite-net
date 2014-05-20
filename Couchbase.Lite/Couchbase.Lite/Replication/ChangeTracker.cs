@@ -483,7 +483,7 @@ namespace Couchbase.Lite.Replicator
             Log.D(Tag, this + ": change tracker client should be null now");
 		}
 
-        internal virtual void SetRequestHeaders(IDictionary<String, Object> requestHeaders)
+        internal void SetRequestHeaders(IDictionary<String, Object> requestHeaders)
 		{
 			RequestHeaders = requestHeaders;
 		}

@@ -287,7 +287,8 @@ namespace Couchbase.Lite
 
         internal void StopRemoteRequests()
         {
-            foreach(var client in requests)
+            var remoteRequests = new List<HttpClient>(requests);
+            foreach(var client in remoteRequests)
             {
                 client.CancelPendingRequests();
             }
@@ -819,7 +820,7 @@ namespace Couchbase.Lite
                         {
                             var response = responseMessage.Result;
                             // add in cookies to global store
-                            CouchbaseLiteHttpClientFactory.Instance.AddCookies(clientFactory.HttpHandler.CookieContainer.GetCookies(url));
+                            //CouchbaseLiteHttpClientFactory.Instance.AddCookies(clientFactory.HttpHandler.CookieContainer.GetCookies(url));
                                
                             var status = response.StatusCode;
                             if ((Int32)status.GetStatusCode() >= 300)
@@ -1201,7 +1202,7 @@ namespace Couchbase.Lite
         /// Gets or sets the extra HTTP headers to send in <see cref="Couchbase.Lite.Replication"/> requests to the 
         /// remote <see cref="Couchbase.Lite.Database"/>.
         /// </summary>
-        public abstract Dictionary<String, String> Headers { get; set; }
+        public abstract IDictionary<String, String> Headers { get; set; }
 
         /// <summary>
         /// Gets the <see cref="Couchbase.Lite.Replication"/>'s current status.

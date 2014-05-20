@@ -54,6 +54,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Collections.ObjectModel;
 using Couchbase.Lite.Replicator;
+using Couchbase.Lite.Support;
 
 namespace Couchbase.Lite
 {
@@ -145,6 +146,7 @@ namespace Couchbase.Lite
 
             scheduler = TaskScheduler.Current; //new ConcurrentExclusiveSchedulerPair();
             workExecutor = new TaskFactory(scheduler/*.ExclusiveScheduler*/);
+            DefaultHttpClientFactory = CouchbaseLiteHttpClientFactory.Instance;
         }
 
 
@@ -282,6 +284,10 @@ namespace Couchbase.Lite
     
     #region Non-public Members
 
+        // Static Properties
+        /// <exclude>Only used for unit testing.</exclude>
+        internal IHttpClientFactory DefaultHttpClientFactory { get; set; }
+
         // Static Fields
         private static readonly ObjectWriter mapper;
         private static readonly Manager sharedManager;
@@ -307,6 +313,7 @@ namespace Couchbase.Lite
         private readonly List<Replication> replications;
         private readonly TaskScheduler scheduler;
         internal readonly TaskFactory workExecutor; // Internal for unit test access.
+
 
         // Instance Methods
         internal Database GetDatabaseWithoutOpening(String name, Boolean mustExist)
