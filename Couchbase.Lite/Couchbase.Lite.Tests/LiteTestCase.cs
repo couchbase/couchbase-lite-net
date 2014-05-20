@@ -79,7 +79,8 @@ namespace Couchbase.Lite
 		protected void SetUp()
 		{
             Log.V(Tag, "SetUp");
-			Trace.Listeners.Add(new ConsoleTraceListener());
+            Trace.Listeners.Clear();
+            Trace.Listeners.Add(new ConsoleTraceListener());
             LoadCustomProperties();
 			StartCBLite();
             StartDatabase();
