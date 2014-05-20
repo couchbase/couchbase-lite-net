@@ -59,7 +59,7 @@ using Newtonsoft.Json.Linq;
 namespace Couchbase.Lite 
 {
 
-    public partial class Database 
+    public partial class Database 
     {
 
         Document debugDoc;
@@ -91,7 +91,7 @@ namespace Couchbase.Lite
 
     #endregion
 
-    #region Static Members
+    #region Static Members
         //Properties
         public static CompileFilterDelegate FilterCompiler { get; set; }
 
@@ -118,9 +118,9 @@ namespace Couchbase.Lite
             KnownSpecialKeys.Add("_local_seq");
         }
 
-    #endregion
-    
-    #region Instance Members
+    #endregion
+    
+    #region Instance Members
         //Properties
 
         /// <summary>
@@ -693,7 +693,7 @@ namespace Couchbase.Lite
 
         public event EventHandler<DatabaseChangeEventArgs> Changed;
 
-    #endregion
+    #endregion
        
     #region Constants
         internal const String Tag = "Database";
@@ -4058,7 +4058,7 @@ PRAGMA user_version = 3;";
                 {
                     string minIDToKeep = String.Format("{0}-", (toPrune.Get(id) + 1));
                     string[] deleteArgs = new string[] { System.Convert.ToString(docNumericID), minIDToKeep };
-                    int rowsDeleted = StorageEngine.Delete("revs", "doc_id=? AND revid < ? AND current=0", deleteArgs);
+                    int rowsDeleted = StorageEngine.Delete("revs", "doc_id=@ AND revid < @ AND current=0", deleteArgs);
                     outPruned += rowsDeleted;
                 }
                 shouldCommit = true;
@@ -4080,26 +4080,26 @@ PRAGMA user_version = 3;";
 
 
     #endregion
-    
-    #region EventArgs Subclasses
+    
+    #region EventArgs Subclasses
         public class DatabaseChangeEventArgs : EventArgs {
 
-            //Properties
-            public Database Source { get; internal set; }
+            //Properties
+            public Database Source { get; internal set; }
 
-            public Boolean IsExternal { get; internal set; }
+            public Boolean IsExternal { get; internal set; }
 
-            public IEnumerable<DocumentChange> Changes { get; internal set; }
+            public IEnumerable<DocumentChange> Changes { get; internal set; }
 
         }
 
-    #endregion
-    
-    }
+    #endregion
+    
+    }
 
     #region Global Delegates
 
-    public delegate Boolean ValidateChangeDelegate(String key, Object oldValue, Object newValue);
+    public delegate Boolean ValidateChangeDelegate(String key, Object oldValue, Object newValue);
 
     public delegate void RunAsyncDelegate(Database database);
 

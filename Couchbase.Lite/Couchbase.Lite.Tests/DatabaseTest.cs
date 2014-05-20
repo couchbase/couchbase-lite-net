@@ -69,7 +69,7 @@ namespace Couchbase.Lite
             }
 
             var numPruned = database.PruneRevsToMaxDepth(1);
-            Assert.AreEqual(9, numPruned);
+            Assert.AreEqual(10, numPruned);
 
             var fetchedDoc = database.GetDocument(doc.Id);
             var revisions = fetchedDoc.RevisionHistory.ToList();
