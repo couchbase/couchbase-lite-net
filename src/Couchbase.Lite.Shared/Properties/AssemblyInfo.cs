@@ -60,3 +60,4 @@ using System.Runtime.CompilerServices;
 //[assembly: AssemblyDelaySign(false)]
 //[assembly: AssemblyKeyFile("")]
 [assembly: InternalsVisibleTo("Couchbase.Lite.Tests")]
+[assembly: InternalsVisibleTo("Couchbase.Lite.Android.Tests")]

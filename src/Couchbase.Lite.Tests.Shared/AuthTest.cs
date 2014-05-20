@@ -52,7 +52,7 @@ using Sharpen;
 
 namespace Couchbase.Lite
 {
-	public class AuthTest : TestCase
+    public class AuthTest : LiteTestCase
 	{
 		public virtual void TestParsePersonaAssertion()
 		{

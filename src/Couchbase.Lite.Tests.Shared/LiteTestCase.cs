@@ -80,15 +80,17 @@ namespace Couchbase.Lite
 		{
             Log.V(Tag, "SetUp");
             Trace.Listeners.Clear();
-            Trace.Listeners.Add(new ConsoleTraceListener());
+            Trace.Listeners.Add(new DefaultTraceListener());
             LoadCustomProperties();
 			StartCBLite();
             StartDatabase();
 		}
 
-		protected internal virtual InputStream GetAsset(string name)
+		protected internal virtual Stream GetAsset(string name)
 		{
-            return this.GetType().GetResourceAsStream("Couchbase.Lite.Tests.Assets." + name);
+            var assetPath = System.Reflection.Assembly.GetExecutingAssembly().GetName().Name + ".Assets." + name;
+            Log.D(Tag, "Fetching assembly resource: " + assetPath);
+            return this.GetType().GetResourceAsStream(assetPath);
 		}
 
         protected internal virtual DirectoryInfo GetRootDirectory()
@@ -303,7 +305,7 @@ namespace Couchbase.Lite
 			return properties;
 		}
 
-        protected internal virtual HttpURLConnection SendRequest(string method, string path, 
+        internal virtual HttpURLConnection SendRequest(string method, string path, 
             IDictionary<string, string> headers, IDictionary<string, object> bodyObj)
 		{
 			try
@@ -341,7 +343,7 @@ namespace Couchbase.Lite
 			return null;
 		}
 
-        protected internal virtual object ParseJSONResponse(HttpURLConnection conn)
+        internal virtual object ParseJSONResponse(HttpURLConnection conn)
 		{
             Object result = null;
             var stream = conn.GetOutputStream();

@@ -340,7 +340,7 @@ namespace Couchbase.Lite.Replicator
             if (attachmentName == null)
 			{
 				// add attachment to document
-                var attachmentStream = GetAsset(attachmentName);
+                var attachmentStream = (InputStream)GetAsset(attachmentName);
                 var baos = new MemoryStream();
                 attachmentStream.Wrapped.CopyTo(baos);
                 var attachmentBase64 = Convert.ToBase64String(baos.ToArray());
@@ -648,7 +648,7 @@ namespace Couchbase.Lite.Replicator
             channels.AddItem("chan1");
             channels.AddItem("chan2");
             replicator.Channels = channels;
-            CollectionAssert.AreEqual(channels, replicator.Channels);
+            Assert.AreEqual(channels, replicator.Channels);
 
             replicator.Channels = null;
             Assert.IsTrue(replicator.Channels.ToList().Count == 0);

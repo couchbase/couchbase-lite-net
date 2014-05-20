@@ -49,9 +49,9 @@ namespace Couchbase.Lite.Tests
 {
     public static class ExtensionMethods
     {
-        public static void Load(this Hashtable props, InputStream stream)
+        public static void Load(this Hashtable props, System.IO.Stream stream)
         {
-            using (var reader = new InputStreamReader(stream, Encoding.UTF8))
+            using (var reader = new InputStreamReader((InputStream)stream, Encoding.UTF8))
             {
                 while (!reader.EndOfStream)
                 {

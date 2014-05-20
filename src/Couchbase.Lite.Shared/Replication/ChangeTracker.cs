@@ -97,7 +97,7 @@ namespace Couchbase.Lite.Replicator
 
         System.Threading.Tasks.Task CurrentRequest;
 
-		public enum ChangeTrackerMode
+        internal enum ChangeTrackerMode
 		{
 			OneShot,
 			LongPoll,

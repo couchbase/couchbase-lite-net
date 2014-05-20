@@ -103,7 +103,7 @@ namespace Couchbase.Lite.Auth
 			DateTime exp;
 			exp = (DateTime)parsedAssertion[AssertionFieldExpiration];
 			DateTime now = new DateTime();
-			if (exp.Before(now))
+            if (exp < now)
 			{
 				Log.W(Database.Tag, string.Format("%s assertion for %s expired: %s", this.GetType
 					(), this.emailAddress, exp));
@@ -129,9 +129,9 @@ namespace Couchbase.Lite.Auth
 			return assertion;
 		}
 
-		public override bool UsesCookieBasedLogin()
+		public override bool UsesCookieBasedLogin
 		{
-			return true;
+            get {return true;}
 		}
 
 		public override IDictionary<string, string> LoginParametersForSite(Uri site)

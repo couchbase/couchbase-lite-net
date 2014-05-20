@@ -119,7 +119,7 @@ namespace Couchbase.Lite.Replicator
 		}
 
 		/// <exception cref="System.Exception"></exception>
-		public virtual void FailingTestChangeTrackerContinuous()
+        internal virtual void FailingTestChangeTrackerContinuous()
 		{
 			CountDownLatch changeTrackerFinishedSignal = new CountDownLatch(1);
 			CountDownLatch changeReceivedSignal = new CountDownLatch(1);
@@ -181,7 +181,7 @@ namespace Couchbase.Lite.Replicator
 		}
 
 		/// <exception cref="System.Exception"></exception>
-		public virtual void ChangeTrackerTestWithMode(ChangeTracker.ChangeTrackerMode mode
+        internal virtual void ChangeTrackerTestWithMode(ChangeTracker.ChangeTrackerMode mode
 			)
 		{
 			CountDownLatch changeTrackerFinishedSignal = new CountDownLatch(1);
@@ -240,18 +240,18 @@ namespace Couchbase.Lite.Replicator
 				return mockHttpClient;
 			}
 
-			private sealed class _Responder_136 : CustomizableMockHttpClient.Responder
+            private sealed class _Responder_136 : CustomizableMockHttpClientHandler.Responder
 			{
 				public _Responder_136()
 				{
 				}
 
 				/// <exception cref="System.IO.IOException"></exception>
-				public HttpResponse Execute(HttpRequestMessage httpUriRequest)
+                internal HttpResponseMessage Execute(HttpRequestMessage httpUriRequest)
 				{
 					string json = "{\"results\":[\n" + "{\"seq\":\"*:1\",\"id\":\"doc1-138\",\"changes\":[{\"rev\":\"1-82d\"}]}],\n"
 						 + "\"last_seq\":\"*:50\"}";
-					return CustomizableMockHttpClient.GenerateHttpResponseObject(json);
+                    return CustomizableMockHttpClientFactory.GenerateHttpResponseObject(json);
 				}
 			}
 
@@ -342,7 +342,7 @@ namespace Couchbase.Lite.Replicator
 
 		private sealed class _ChangeTrackerClient_214 : IChangeTrackerClient
 		{
-			public _ChangeTrackerClient_214(CustomizableMockHttpClient mockHttpClient)
+            public _ChangeTrackerClient_214(CustomizableMockHttpClientHandler mockHttpClient)
 			{
 				this.mockHttpClient = mockHttpClient;
 			}
@@ -363,7 +363,7 @@ namespace Couchbase.Lite.Replicator
 				return mockHttpClient;
 			}
 
-			private readonly CustomizableMockHttpClient mockHttpClient;
+            private readonly CustomizableMockHttpClientHandler mockHttpClient;
 		}
 
         private sealed class _BackgroundTask_235 : Runnable
@@ -372,8 +372,8 @@ namespace Couchbase.Lite.Replicator
 			{
 				this.changeTracker = changeTracker;
 			}
-
-			public override void Run()
+                
+            internal void Run()
 			{
 				changeTracker.Start();
 			}
@@ -433,7 +433,7 @@ namespace Couchbase.Lite.Replicator
 
 		private sealed class _ChangeTrackerClient_290 : IChangeTrackerClient
 		{
-			public _ChangeTrackerClient_290(CustomizableMockHttpClient mockHttpClient)
+            public _ChangeTrackerClient_290(CustomizableMockHttpClientHandler mockHttpClient)
 			{
 				this.mockHttpClient = mockHttpClient;
 			}
@@ -460,7 +460,7 @@ namespace Couchbase.Lite.Replicator
 				return mockHttpClient;
 			}
 
-			private readonly CustomizableMockHttpClient mockHttpClient;
+            private readonly CustomizableMockHttpClientHandler mockHttpClient;
 		}
 	}
 }
