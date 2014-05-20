@@ -59,7 +59,7 @@ namespace Sharpen
 			if (mode.IndexOf ('w') != -1)
 				stream = new FileStream (file, System.IO.FileMode.OpenOrCreate, FileAccess.ReadWrite);
 			else
-				stream = new FileStream (file, System.IO.FileMode.Open, FileAccess.Read);
+                stream = new FileStream (file, System.IO.FileMode.Open, FileAccess.Read, FileShare.Read);
 		}
 
 		public void Close ()
