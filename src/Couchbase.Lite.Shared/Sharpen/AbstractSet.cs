@@ -46,7 +46,7 @@ namespace Sharpen
 {
 	using System;
 
-	public abstract class AbstractSet<T> : AbstractCollection<T>
+    internal abstract class AbstractSet<T> : AbstractCollection<T>
 	{
 		protected AbstractSet ()
 		{

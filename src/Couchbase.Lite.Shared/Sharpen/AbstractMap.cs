@@ -50,7 +50,7 @@ namespace Sharpen
 	using System.Runtime.CompilerServices;
 	using System.Runtime.InteropServices;
 
-	public abstract class AbstractMap<T, U> : IEnumerable, ICollection<KeyValuePair<T, U>>, IEnumerable<KeyValuePair<T, U>>, IDictionary<T, U>
+    internal abstract class AbstractMap<T, U> : IEnumerable, ICollection<KeyValuePair<T, U>>, IEnumerable<KeyValuePair<T, U>>, IDictionary<T, U>
 	{
 		protected AbstractMap ()
 		{

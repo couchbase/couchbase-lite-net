@@ -10,6 +10,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Docs", "Docs", "{751921E0-F
 		..\README.md = ..\README.md
 	EndProjectSection
 EndProject
+Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "Couchbase.Lite.Shared", "Couchbase.Lite.Shared\Couchbase.Lite.Shared.shproj", "{0A88C2A7-7AD8-46F9-9D31-869E3466B791}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Couchbase.Lite.Android", "Couchbase.Lite.Android\Couchbase.Lite.Android.csproj", "{5615E423-D0FD-4F99-A99C-061679615CEE}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x86 = Debug|x86
@@ -20,6 +24,10 @@ Global
 		{18AE9E93-AF27-47A0-921C-1846941643B6}.Debug|x86.Build.0 = Debug|x86
 		{18AE9E93-AF27-47A0-921C-1846941643B6}.Release|x86.ActiveCfg = Release|x86
 		{18AE9E93-AF27-47A0-921C-1846941643B6}.Release|x86.Build.0 = Release|x86
+		{5615E423-D0FD-4F99-A99C-061679615CEE}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{5615E423-D0FD-4F99-A99C-061679615CEE}.Debug|x86.Build.0 = Debug|Any CPU
+		{5615E423-D0FD-4F99-A99C-061679615CEE}.Release|x86.ActiveCfg = Release|Any CPU
+		{5615E423-D0FD-4F99-A99C-061679615CEE}.Release|x86.Build.0 = Release|Any CPU
 		{810AD241-3FB1-4689-BF3B-A83B90DEB9E9}.Debug|x86.ActiveCfg = Debug|Any CPU
 		{810AD241-3FB1-4689-BF3B-A83B90DEB9E9}.Debug|x86.Build.0 = Debug|Any CPU
 		{810AD241-3FB1-4689-BF3B-A83B90DEB9E9}.Release|x86.ActiveCfg = Release|Any CPU

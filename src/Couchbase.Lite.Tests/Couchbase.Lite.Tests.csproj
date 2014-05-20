@@ -51,12 +51,6 @@
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>
-    <ProjectReference Include="..\Couchbase.Lite\Couchbase.Lite.csproj">
-      <Project>{18AE9E93-AF27-47A0-921C-1846941643B6}</Project>
-      <Name>Couchbase.Lite</Name>
-    </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
     <Compile Include="ApiTest.cs" />
     <Compile Include="LiteTestCase.cs" />
     <Compile Include="Util\ExtensionMethods.cs" />
