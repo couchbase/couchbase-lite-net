@@ -2,10 +2,9 @@
 // Extensions.cs
 //
 // Author:
-//     Zachary Gramana  <zack@xamarin.com>
+//	Zachary Gramana  <zack@xamarin.com>
 //
-// Copyright (c) 2014 Xamarin Inc
-// Copyright (c) 2014 .NET Foundation
+// Copyright (c) 2013, 2014 Xamarin Inc (http://www.xamarin.com)
 //
 // Permission is hereby granted, free of charge, to any person obtaining
 // a copy of this software and associated documentation files (the
@@ -26,20 +25,22 @@
 // OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //
-//
-// Copyright (c) 2014 Couchbase, Inc. All rights reserved.
-//
-// Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file
-// except in compliance with the License. You may obtain a copy of the License at
-//
-// http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software distributed under the
-// License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
-// either express or implied. See the License for the specific language governing permissions
-// and limitations under the License.
-//
-
+/**
+* Original iOS version by Jens Alfke
+* Ported to Android by Marty Schoch, Traun Leyden
+*
+* Copyright (c) 2012, 2013, 2014 Couchbase, Inc. All rights reserved.
+*
+* Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file
+* except in compliance with the License. You may obtain a copy of the License at
+*
+* http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing, software distributed under the
+* License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
+* either express or implied. See the License for the specific language governing permissions
+* and limitations under the License.
+*/
 using System.Reflection;
 using System.Net;
 using System.Linq;
@@ -49,7 +50,6 @@ using System.Collections.Specialized;
 
 namespace Sharpen
 {
-	using ICSharpCode.SharpZipLib.Zip.Compression;
 	using System;
 	using System.Collections;
 	using System.Collections.Generic;
@@ -168,20 +168,20 @@ namespace Sharpen
 			}
 		}
 		
-		public static string Decode (this Encoding e, ByteBuffer buffer)
-		{
-			return e.Decode (buffer.Array (), buffer.ArrayOffset () + buffer.Position (), buffer.Limit () - buffer.Position ());
-		}
-
-		public static ByteBuffer Encode (this Encoding e, CharSequence str)
-		{
-			return ByteBuffer.Wrap (e.GetBytes (str.ToString ()));
-		}
-
-		public static ByteBuffer Encode (this Encoding e, string str)
-		{
-			return ByteBuffer.Wrap (e.GetBytes (str));
-		}
+//		public static string Decode (this Encoding e, ByteBuffer buffer)
+//		{
+//			return e.Decode (buffer.Array (), buffer.ArrayOffset () + buffer.Position (), buffer.Limit () - buffer.Position ());
+//		}
+//
+//		public static ByteBuffer Encode (this Encoding e, CharSequence str)
+//		{
+//			return ByteBuffer.Wrap (e.GetBytes (str.ToString ()));
+//		}
+//
+//		public static ByteBuffer Encode (this Encoding e, string str)
+//		{
+//			return ByteBuffer.Wrap (e.GetBytes (str));
+//		}
 		
 		static UTF8Encoding UTF8Encoder = new UTF8Encoding (false, true);
 		public static Encoding GetEncoding (string name)
@@ -202,9 +202,9 @@ namespace Sharpen
 			return s;
 		}
 
-		public static void Finish (this Inflater i)
-		{
-		}
+//		public static void Finish (this Inflater i)
+//		{
+//		}
 		
 //		public static bool AddItem<T> (this IList<T> list, T item)
 //		{
@@ -413,15 +413,15 @@ namespace Sharpen
 			return new DateTimeOffset (num + offset.Ticks, offset);
 		}
 
-		public static CharsetDecoder NewDecoder (this Encoding enc)
-		{
-			return new CharsetDecoder (enc);
-		}
-
-		public static CharsetEncoder NewEncoder (this Encoding enc)
-		{
-			return new CharsetEncoder (enc);
-		}
+//		public static CharsetDecoder NewDecoder (this Encoding enc)
+//		{
+//			return new CharsetDecoder (enc);
+//		}
+//
+//		public static CharsetEncoder NewEncoder (this Encoding enc)
+//		{
+//			return new CharsetEncoder (enc);
+//		}
 
 		public static int NumberOfLeadingZeros (int val)
 		{
@@ -660,21 +660,21 @@ namespace Sharpen
 			return val;
 		}
 
-		public static int GetTotalInFixed (this Inflater inf)
-		{
-			if (inf.TotalIn > 0)
-				return Convert.ToInt32( inf.TotalIn ) + 4;
-			else
-				return 0;
-		}
-		
-		public static int GetRemainingInputFixed (this Inflater inf)
-		{
-			if (inf.RemainingInput >= 4)
-				return inf.RemainingInput - 4;
-			else
-				return 0;
-		}
+//		public static int GetTotalInFixed (this Inflater inf)
+//		{
+//			if (inf.TotalIn > 0)
+//				return Convert.ToInt32( inf.TotalIn ) + 4;
+//			else
+//				return 0;
+//		}
+//		
+//		public static int GetRemainingInputFixed (this Inflater inf)
+//		{
+//			if (inf.RemainingInput >= 4)
+//				return inf.RemainingInput - 4;
+//			else
+//				return 0;
+//		}
 		
 		public static string GetTestName (object obj)
 		{

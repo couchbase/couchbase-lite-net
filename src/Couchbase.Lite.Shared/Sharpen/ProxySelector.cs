@@ -70,7 +70,7 @@ using System;
 
 namespace Sharpen
 {
-	public class ProxySelector
+	internal class ProxySelector
 	{
 		public ProxySelector ()
 		{

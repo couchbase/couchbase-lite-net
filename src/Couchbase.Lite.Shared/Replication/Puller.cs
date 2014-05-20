@@ -467,7 +467,7 @@ namespace Couchbase.Lite.Replicator
                         else
                         {
                             Log.W(Tag, this + " failed to write " + rev + ": status=" + e.GetCBLStatus().GetCode());
-                            LastError = new HttpException((Int32)e.GetCBLStatus().GetCode(), null);
+                            LastError = e;
                             continue;
                         }
                     }

@@ -46,7 +46,7 @@ using Sharpen;
 namespace Couchbase.Lite.Storage
 {
 	[System.Serializable]
-	public class SQLException : RuntimeException
+    public class SQLException : Exception
 	{
 		public SQLException()
 		{
@@ -60,7 +60,7 @@ namespace Couchbase.Lite.Storage
 		{
 		}
 
-		public SQLException(Exception cause) : base(cause)
+        public SQLException(Exception cause) : base("SQLException", cause)
 		{
 		}
 	}

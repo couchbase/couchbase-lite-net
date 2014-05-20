@@ -54,7 +54,6 @@ using System.Text;
 using System.Data.SqlClient;
 using System.Diagnostics;
 using System.Threading;
-using System.Web.UI;
 using System.Runtime.InteropServices;
 
 namespace Couchbase.Lite.Storage

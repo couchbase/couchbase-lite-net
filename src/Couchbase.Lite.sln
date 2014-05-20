@@ -14,6 +14,12 @@ Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "Couchbase.Lite.Shared", "Co
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Couchbase.Lite.Android", "Couchbase.Lite.Android\Couchbase.Lite.Android.csproj", "{5615E423-D0FD-4F99-A99C-061679615CEE}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Unused Java Helpers", "Unused Java Helpers", "{F3710BBA-A0DD-42DC-88DB-3AF4F692D972}"
+	ProjectSection(SolutionItems) = preProject
+		DeflaterOutputStream.cs = DeflaterOutputStream.cs
+		InflaterInputStream.cs = InflaterInputStream.cs
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x86 = Debug|x86

@@ -53,7 +53,6 @@ using System.Net;
 using System.Net.Http;
 using System.Web;
 using System.Threading;
-using System.Web.UI;
 
 namespace Couchbase.Lite.Replicator
 {

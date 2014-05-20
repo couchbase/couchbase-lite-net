@@ -93,7 +93,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)Sharpen\CyclicBarrier.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Sharpen\DataConverter.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Sharpen\DateFormat.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Sharpen\DeflaterOutputStream.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Sharpen\DigestInputStream.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Sharpen\DigestOutputStream.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Sharpen\EnumSet.cs" />
@@ -119,7 +118,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)Sharpen\GZIPInputStream.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Sharpen\GZIPOutputStream.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Sharpen\HttpURLConnection.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Sharpen\InflaterInputStream.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Sharpen\InheritableThreadLocal.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Sharpen\InputStream.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Sharpen\InputStreamReader.cs" />

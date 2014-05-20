@@ -368,7 +368,7 @@ namespace Couchbase.Lite
                 {
                     if (e != null)
                     {
-                        if (e is HttpException && ((HttpException)e).GetHttpCode() == 404
+                        if (e is WebException && ((WebException)e).Status == WebExceptionStatus.ProtocolError && ((HttpWebResponse)((WebException)e).Response).StatusCode == HttpStatusCode.NotFound
                             && sessionPath.Equals("/_session", StringComparison.InvariantCultureIgnoreCase)) {
                             CheckSessionAtPath ("_session");
                             return;
@@ -829,7 +829,7 @@ namespace Couchbase.Lite
                                     ()));
                                 Log.E(Database.Tag, "Request was for: " + message);
                                 Log.E(Database.Tag, "Status reason: " + response.ReasonPhrase);
-                                error = new HttpException((Int32)status.GetStatusCode(), response.ReasonPhrase);
+                                error = new WebException(response.ReasonPhrase);
                             }
                         else
                         {

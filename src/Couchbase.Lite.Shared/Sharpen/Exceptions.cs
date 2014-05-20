@@ -2,10 +2,9 @@
 // Exceptions.cs
 //
 // Author:
-//     Zachary Gramana  <zack@xamarin.com>
+//	Zachary Gramana  <zack@xamarin.com>
 //
-// Copyright (c) 2014 Xamarin Inc
-// Copyright (c) 2014 .NET Foundation
+// Copyright (c) 2013, 2014 Xamarin Inc (http://www.xamarin.com)
 //
 // Permission is hereby granted, free of charge, to any person obtaining
 // a copy of this software and associated documentation files (the
@@ -26,19 +25,22 @@
 // OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //
-//
-// Copyright (c) 2014 Couchbase, Inc. All rights reserved.
-//
-// Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file
-// except in compliance with the License. You may obtain a copy of the License at
-//
-// http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software distributed under the
-// License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
-// either express or implied. See the License for the specific language governing permissions
-// and limitations under the License.
-//
+/**
+* Original iOS version by Jens Alfke
+* Ported to Android by Marty Schoch, Traun Leyden
+*
+* Copyright (c) 2012, 2013, 2014 Couchbase, Inc. All rights reserved.
+*
+* Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file
+* except in compliance with the License. You may obtain a copy of the License at
+*
+* http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing, software distributed under the
+* License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
+* either express or implied. See the License for the specific language governing permissions
+* and limitations under the License.
+*/
 // 
 // Exceptions.cs
 //  
@@ -69,18 +71,18 @@ using System;
 
 namespace Sharpen
 {
-	public class VirtualMachineError : Error
+	internal class VirtualMachineError : Error
 	{
 	}
 
-	public class StackOverflowError : VirtualMachineError
+	internal class StackOverflowError : VirtualMachineError
 	{
 		public StackOverflowError ()
 		{
 		}
 	}
 
-	public class BrokenBarrierException : Exception
+	internal class BrokenBarrierException : Exception
 	{
 	}
 
@@ -88,15 +90,15 @@ namespace Sharpen
 	{
 	}
 
-	public class CharacterCodingException : Exception
+	internal class CharacterCodingException : Exception
 	{
 	}
 
-	public class DataFormatException : Exception
+	internal class DataFormatException : Exception
 	{
 	}
 
-	public class EOFException : Exception
+	internal class EOFException : Exception
 	{
 		public EOFException ()
 		{
@@ -107,7 +109,7 @@ namespace Sharpen
 		}
 	}
 
-	public class Error : Exception
+	internal class Error : Exception
 	{
 		public Error ()
 		{
@@ -126,33 +128,33 @@ namespace Sharpen
 		}
 	}
 
-	public class ExecutionException : Exception
+	internal class ExecutionException : Exception
 	{
 		public ExecutionException (Exception inner): base ("Execution failed", inner)
 		{
 		}
 	}
 
-	public class InstantiationException : Exception
+	internal class InstantiationException : Exception
 	{
 	}
 
-	public class InterruptedIOException : Exception
+	internal class InterruptedIOException : Exception
 	{
 		public InterruptedIOException (string msg) : base(msg)
 		{
 		}
 	}
 
-	public class MissingResourceException : Exception
+	internal class MissingResourceException : Exception
 	{
 	}
 
-	public class NoSuchAlgorithmException : Exception
+	internal class NoSuchAlgorithmException : Exception
 	{
 	}
 
-	public class NoSuchElementException : Exception
+	internal class NoSuchElementException : Exception
 	{
 	}
 
@@ -164,7 +166,7 @@ namespace Sharpen
 	{
 	}
 
-	public class ParseException : Exception
+	internal class ParseException : Exception
 	{
 		public ParseException ()
 		{
@@ -175,7 +177,7 @@ namespace Sharpen
 		}
 	}
 
-	public class RuntimeException : Exception
+	internal class RuntimeException : Exception
 	{
 		public RuntimeException ()
 		{
@@ -217,7 +219,7 @@ namespace Sharpen
 	{
 	}
 
-	public class GitException : Exception
+	internal class GitException : Exception
 	{
 	}
 	

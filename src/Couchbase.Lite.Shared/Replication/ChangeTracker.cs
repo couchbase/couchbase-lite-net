@@ -312,7 +312,7 @@ namespace Couchbase.Lite.Replicator
                         {
                             if (request.Status != System.Threading.Tasks.TaskStatus.RanToCompletion && request.IsFaulted)
                             {
-                                Log.E(Tag, this + ": Change tracker got error " + Extensions.ToString(request.Status));
+                                    Log.E(Tag, this + ": Change tracker got error " + Sharpen.Extensions.ToString(request.Status));
                                 throw request.Exception;
                             }
                             return request.Result;

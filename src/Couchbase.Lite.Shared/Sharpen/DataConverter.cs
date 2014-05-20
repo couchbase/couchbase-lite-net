@@ -86,7 +86,7 @@ using System.Text;
 namespace Sharpen {
 
 #if MONO_DATACONVERTER_PUBLIC
-	unsafe public abstract class DataConverter {
+	unsafe internal abstract class DataConverter {
 #else
 	unsafe internal abstract class DataConverter {
 

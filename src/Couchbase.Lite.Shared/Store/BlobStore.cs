@@ -94,7 +94,7 @@ namespace Couchbase.Lite
 			return result;
 		}
 
-		public static BlobKey KeyForBlobFromFile(FilePath file)
+        public static BlobKey KeyForBlobFromFile(FileInfo file)
 		{
 			MessageDigest md;
 			try
@@ -109,7 +109,7 @@ namespace Couchbase.Lite
 			byte[] sha1hash = new byte[40];
 			try
 			{
-				FileInputStream fis = new FileInputStream(file);
+                var fis = new FileInputStream(file);
 				byte[] buffer = new byte[65536];
 				int lenRead = fis.Read(buffer);
 				while (lenRead > 0)
@@ -193,7 +193,7 @@ namespace Couchbase.Lite
 			return null;
 		}
 
-		public bool StoreBlobStream(InputStream inputStream, BlobKey outKey)
+		public bool StoreBlobStream(Stream inputStream, BlobKey outKey)
 		{
 			FilePath tmp = null;
 			try
@@ -201,11 +201,11 @@ namespace Couchbase.Lite
                 tmp = FilePath.CreateTempFile(TmpFilePrefix, TmpFileExtension, new FilePath(this.path));
 				FileOutputStream fos = new FileOutputStream(tmp);
 				byte[] buffer = new byte[65536];
-				int lenRead = inputStream.Read(buffer);
+                int lenRead = ((InputStream)inputStream).Read(buffer);
 				while (lenRead > 0)
 				{
 					fos.Write(buffer, 0, lenRead);
-					lenRead = inputStream.Read(buffer);
+                    lenRead = ((InputStream)inputStream).Read(buffer);
 				}
 				inputStream.Close();
 				fos.Close();
@@ -391,7 +391,7 @@ namespace Couchbase.Lite
             return magic == GZIPInputStream.GzipMagic;
 		}
 
-		public FilePath TempDir()
+        public FileInfo TempDir()
 		{
             FilePath directory = new FilePath(path);
             FilePath tempDirectory = new FilePath(directory, "temp_attachments");

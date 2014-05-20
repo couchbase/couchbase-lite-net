@@ -106,7 +106,7 @@ namespace Couchbase.Lite.Replicator
                 {
                     try
                     {
-                        if (e is HttpException && ((HttpException)e).ErrorCode != 412) 
+                        if (e is HttpResponseException && ((HttpResponseException)e).StatusCode.GetStatusCode() != StatusCode.PreconditionFailed) 
                         {
                             // this is fatal: no db to push to!
                             Log.E(Tag, this + ": Failed to create remote db", e);

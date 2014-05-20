@@ -2,10 +2,9 @@
 // FileChannel.cs
 //
 // Author:
-//     Zachary Gramana  <zack@xamarin.com>
+//	Zachary Gramana  <zack@xamarin.com>
 //
-// Copyright (c) 2014 Xamarin Inc
-// Copyright (c) 2014 .NET Foundation
+// Copyright (c) 2013, 2014 Xamarin Inc (http://www.xamarin.com)
 //
 // Permission is hereby granted, free of charge, to any person obtaining
 // a copy of this software and associated documentation files (the
@@ -26,20 +25,22 @@
 // OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //
-//
-// Copyright (c) 2014 Couchbase, Inc. All rights reserved.
-//
-// Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file
-// except in compliance with the License. You may obtain a copy of the License at
-//
-// http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software distributed under the
-// License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
-// either express or implied. See the License for the specific language governing permissions
-// and limitations under the License.
-//
-
+/**
+* Original iOS version by Jens Alfke
+* Ported to Android by Marty Schoch, Traun Leyden
+*
+* Copyright (c) 2012, 2013, 2014 Couchbase, Inc. All rights reserved.
+*
+* Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file
+* except in compliance with the License. You may obtain a copy of the License at
+*
+* http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing, software distributed under the
+* License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
+* either express or implied. See the License for the specific language governing permissions
+* and limitations under the License.
+*/
 namespace Sharpen
 {
 	using System;
@@ -77,28 +78,28 @@ namespace Sharpen
 			s.Flush ();
 		}
 
-		public MappedByteBuffer Map ()
-		{
-			throw new NotImplementedException ();
-		}
+//		public MappedByteBuffer Map ()
+//		{
+//			throw new NotImplementedException ();
+//		}
+//
+//		public MappedByteBuffer Map (MapMode mode, long pos, int size)
+//		{
+//			throw new NotImplementedException ();
+//		}
 
-		public MappedByteBuffer Map (MapMode mode, long pos, int size)
-		{
-			throw new NotImplementedException ();
-		}
-
-		public int Read (byte[] buffer)
-		{
-			return s.Read (buffer, 0, buffer.Length);
-		}
-
-		public int Read (ByteBuffer buffer)
-		{
-			int offset = buffer.Position () + buffer.ArrayOffset ();
-			int num2 = s.Read (buffer.Array (), offset, (buffer.Limit () + buffer.ArrayOffset ()) - offset);
-			buffer.Position (buffer.Position () + num2);
-			return num2;
-		}
+//		public int Read (byte[] buffer)
+//		{
+//			return s.Read (buffer, 0, buffer.Length);
+//		}
+//
+//		public int Read (ByteBuffer buffer)
+//		{
+//			int offset = buffer.Position () + buffer.ArrayOffset ();
+//			int num2 = s.Read (buffer.Array (), offset, (buffer.Limit () + buffer.ArrayOffset ()) - offset);
+//			buffer.Position (buffer.Position () + num2);
+//			return num2;
+//		}
 
 		public long Size ()
 		{
@@ -115,20 +116,20 @@ namespace Sharpen
 			}
 		}
 
-		public int Write (byte[] buffer)
-		{
-			s.Write (buffer, 0, buffer.Length);
-			return buffer.Length;
-		}
-
-		public int Write (ByteBuffer buffer)
-		{
-			int offset = buffer.Position () + buffer.ArrayOffset ();
-			int count = (buffer.Limit () + buffer.ArrayOffset ()) - offset;
-			s.Write (buffer.Array (), offset, count);
-			buffer.Position (buffer.Position () + count);
-			return count;
-		}
+//		public int Write (byte[] buffer)
+//		{
+//			s.Write (buffer, 0, buffer.Length);
+//			return buffer.Length;
+//		}
+//
+//		public int Write (ByteBuffer buffer)
+//		{
+//			int offset = buffer.Position () + buffer.ArrayOffset ();
+//			int count = (buffer.Limit () + buffer.ArrayOffset ()) - offset;
+//			s.Write (buffer.Array (), offset, count);
+//			buffer.Position (buffer.Position () + count);
+//			return count;
+//		}
 		
 		public long TransferFrom (FileChannel src, long pos, long count)
 		{
