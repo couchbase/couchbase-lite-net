@@ -178,7 +178,7 @@ namespace Couchbase.Lite
 			{
 				try
 				{
-                    return new FileStream(file, FileMode.Open);
+                    return new FileStream(file, FileMode.Open, FileAccess.Read);
 				}
 				catch (FileNotFoundException e)
 				{
