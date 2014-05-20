@@ -3595,7 +3595,7 @@ PRAGMA user_version = 3;";
                     byte[] newContents;
                     try
                     {
-                        newContents = Convert.FromBase64String(newContentBase64);
+                        newContents = StringUtils.ConvertFromUnpaddedBase64String (newContentBase64);
                     }
                     catch (IOException e)
                     {
