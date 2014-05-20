@@ -44,15 +44,19 @@ using System;
 using System.Net.Http;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Replicator;
+using System.Collections.Generic;
 
 namespace Couchbase.Lite.Tests
 {
-    public class AlwaysFailingClientFactory : IHttpClientFactory
+	public class AlwaysFailingClientFactory : IHttpClientFactory
     {
+		public IDictionary<string, string> Headers { get; set; }
+
         public HttpClientHandler HttpHandler { get ; set; }
 
         public AlwaysFailingClientFactory()
         {
+			Headers = new Dictionary<string,string>();
             HttpHandler = new FailEveryRequestHandler();
         }
 

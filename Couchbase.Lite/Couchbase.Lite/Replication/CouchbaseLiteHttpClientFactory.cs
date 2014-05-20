@@ -92,5 +92,14 @@ namespace Couchbase.Lite.Support
                 cookieStore.Add(cookies);
             }
 		}
+
+        public System.Collections.Generic.IDictionary<string, string> Headers {
+            get {
+                throw new NotImplementedException ();
+            }
+            set {
+                throw new NotImplementedException ();
+            }
+        }
 	}
 }

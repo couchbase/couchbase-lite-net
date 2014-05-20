@@ -274,8 +274,10 @@ namespace Couchbase.Lite.Support
 		{
             lock (locker) {
                 Unschedule();
-                inbox.Clear();
-                inbox = null;
+                if (inbox != null) {
+                    inbox.Clear();
+                    inbox = null;
+                }
             }
 		}
 
@@ -316,7 +318,7 @@ namespace Couchbase.Lite.Support
             {
                 try 
                 {
-                    cancellationSource.Cancel(false);
+                    cancellationSource.Cancel(true);
                 } 
                 catch (Exception) { } // Swallow it.
                 Log.D(Tag, "tried to cancel flushFuture.");

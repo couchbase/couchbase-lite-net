@@ -3,8 +3,6 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProductVersion>12.0.0</ProductVersion>
-    <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>{810AD241-3FB1-4689-BF3B-A83B90DEB9E9}</ProjectGuid>
     <OutputType>Library</OutputType>
     <RootNamespace>Couchbase.Lite.Tests</RootNamespace>
@@ -81,6 +79,8 @@
     <Compile Include="MiscTest.cs" />
     <Compile Include="Base64Test.cs" />
     <Compile Include="SequenceMapTest.cs" />
+    <Compile Include="CustomizableMockHttpClientHandler.cs" />
+    <Compile Include="FakeHttpWebResponse.cs" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Assets\" />

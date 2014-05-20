@@ -44,25 +44,22 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Net;
+using System.Linq;
+using System.Threading.Tasks;
+using System.Net.Http;
+using System.Text;
+
+using NUnit.Framework;
+
+using Sharpen;
 
 using Couchbase.Lite;
 using Couchbase.Lite.Auth;
 using Couchbase.Lite.Internal;
 using Couchbase.Lite.Replicator;
-using Couchbase.Lite.Support;
-
 using Couchbase.Lite.Util;
-using NUnit.Framework;
-
-using Sharpen;
-using System.Threading.Tasks;
-using System.Net.Http;
-using System.Configuration;
-using System.Web;
 using Couchbase.Lite.Tests;
-using System.Web.UI;
-using System.Text;
-using System.Net.Mime;
+
 
 namespace Couchbase.Lite.Replicator
 {
@@ -72,9 +69,8 @@ namespace Couchbase.Lite.Replicator
 
 		/// <exception cref="System.Exception"></exception>
         [Test]
-		public virtual void TestPusher()
+		public void TestPusher()
 		{
-			var replicationDoneSignal = new CountDownLatch(1);
 			var remote = GetReplicationURL();
 			var docIdTimestamp = Convert.ToString(Runtime.CurrentTimeMillis());
 
@@ -93,7 +89,7 @@ namespace Couchbase.Lite.Replicator
 
 			documentProperties.Put("_rev", rev1.GetRevId());
 			documentProperties["UPDATED"] = true;
-			var rev2 = database.PutRevision(new RevisionInternal(documentProperties, database), rev1.GetRevId(), false, status);
+			database.PutRevision(new RevisionInternal(documentProperties, database), rev1.GetRevId(), false, status);
             Assert.AreEqual(StatusCode.Created, status.GetCode());
 
 			documentProperties = new Dictionary<string, object>();
@@ -105,11 +101,9 @@ namespace Couchbase.Lite.Replicator
 			database.PutRevision(new RevisionInternal(documentProperties, database), null, false, status);
             Assert.AreEqual(StatusCode.Created, status.GetCode());
 
-			var continuous = false;
+			const bool continuous = false;
 			var repl = database.CreatePushReplication(remote);
             repl.Continuous = continuous;
-
-            //repl.CreateTarget = false; 
 
 			// Check the replication's properties:
 			Assert.AreEqual(database, repl.LocalDatabase);
@@ -134,61 +128,62 @@ namespace Couchbase.Lite.Replicator
 			var pathToDoc = new Uri(replicationUrlTrailing, doc1Id);
 			Log.D(Tag, "Send http request to " + pathToDoc);
 			var httpRequestDoneSignal = new CountDownLatch(1);
-            var getDocTask = Task.Factory.StartNew(()=>
+            Task.Factory.StartNew(() =>
+            {
+                var httpclient = new HttpClient();
+                HttpResponseMessage response;
+                string responseString = null;
+                try
                 {
-                    var httpclient = new HttpClient();
-                    HttpResponseMessage response;
-                    string responseString = null;
-                    try
+                    var responseTask = httpclient.GetAsync(pathToDoc.ToString());
+                    responseTask.Wait(TimeSpan.FromSeconds(10));
+                    response = responseTask.Result;
+                    var statusLine = response.StatusCode;
+                    Assert.IsTrue(statusLine == HttpStatusCode.OK);
+                    if (statusLine == HttpStatusCode.OK)
                     {
-                        var responseTask = httpclient.GetAsync(pathToDoc.ToString());
-                        responseTask.Wait(TimeSpan.FromSeconds(10));
-                        response = responseTask.Result;
-                        var statusLine = response.StatusCode;
-                        NUnit.Framework.Assert.IsTrue(statusLine == HttpStatusCode.OK);
-                        if (statusLine == HttpStatusCode.OK)
-                        {
-                            var responseStringTask = response.Content.ReadAsStringAsync();
-                            responseStringTask.Wait(TimeSpan.FromSeconds(10));
-                            responseString = responseStringTask.Result;
-                            NUnit.Framework.Assert.IsTrue(responseString.Contains(doc1Id));
-                            Log.D(ReplicationTest.Tag, "result: " + responseString);
-                        }
-                        else
-                        {
-                            var statusReason = response.ReasonPhrase;
-                            response.Dispose();
-                            throw new IOException(statusReason);
-                        }
+                        var responseStringTask = response.Content.ReadAsStringAsync();
+                        responseStringTask.Wait(TimeSpan.FromSeconds(10));
+                        responseString = responseStringTask.Result;
+                        Assert.IsTrue(responseString.Contains(doc1Id));
+                        Log.D(ReplicationTest.Tag, "result: " + responseString);
                     }
-                    catch (ProtocolViolationException e)
+                    else
                     {
-                        NUnit.Framework.Assert.IsNull(e, "Got ClientProtocolException: " + e.Message);
+                        var statusReason = response.ReasonPhrase;
+                        response.Dispose();
+                        throw new IOException(statusReason);
                     }
-                    catch (IOException e)
-                    {
-                        NUnit.Framework.Assert.IsNull(e, "Got IOException: " + e.Message);
-                    }
-                    httpRequestDoneSignal.CountDown();
-                });
-			//Closes the connection.
-			Log.D(Tag, "Waiting for http request to finish");
-			try
-			{
+                }
+                catch (ProtocolViolationException e)
+                {
+                    Assert.IsNull(e, "Got ClientProtocolException: " + e.Message);
+                }
+                catch (IOException e)
+                {
+                    Assert.IsNull(e, "Got IOException: " + e.Message);
+                }
+                httpRequestDoneSignal.CountDown();
+            });
+
+            //Closes the connection.
+            Log.D(Tag, "Waiting for http request to finish");
+            try
+            {
                 var result = httpRequestDoneSignal.Await(TimeSpan.FromSeconds(10));
                 Assert.IsTrue(result, "Could not retrieve the new doc from the sync gateway.");
-				Log.D(Tag, "http request finished");
-			}
-			catch (Exception e)
-			{
-				Sharpen.Runtime.PrintStackTrace(e);
-			}
-			Log.D(Tag, "testPusher() finished");
-		}
+                Log.D(Tag, "http request finished");
+            }
+            catch (Exception e)
+            {
+                Sharpen.Runtime.PrintStackTrace(e);
+            }
+            Log.D(Tag, "testPusher() finished");
+        }
 
 		/// <exception cref="System.Exception"></exception>
         [Test]
-		public virtual void TestPusherDeletedDoc()
+        public void TestPusherDeletedDoc()
 		{
 			var remote = GetReplicationURL();
 			var docIdTimestamp = Convert.ToString(Runtime.CurrentTimeMillis());
@@ -256,7 +251,7 @@ namespace Couchbase.Lite.Replicator
 
 		/// <exception cref="System.Exception"></exception>
         [Test]
-		public virtual void TestPuller()
+		public void TestPuller()
 		{
 			var docIdTimestamp = System.Convert.ToString(Runtime.CurrentTimeMillis());
             var doc1Id = string.Format("doc1-{0}", docIdTimestamp);
@@ -289,33 +284,28 @@ namespace Couchbase.Lite.Replicator
 
 		/// <exception cref="System.Exception"></exception>
         [Test]
-		public virtual void TestPullerWithLiveQuery()
+		public void TestPullerWithLiveQuery()
 		{
-            Assert.Fail(); // TODO.ZJG: Needs debugging.
-
-			// This is essentially a regression test for a deadlock
-			// that was happening when the LiveQuery#onDatabaseChanged()
-			// was calling waitForUpdateThread(), but that thread was
-			// waiting on connection to be released by the thread calling
-			// waitForUpdateThread().  When the deadlock bug was present,
-			// this test would trigger the deadlock and never finish.
-			Log.D(Database.Tag, "testPullerWithLiveQuery");
-			string docIdTimestamp = System.Convert.ToString(Runtime.CurrentTimeMillis());
+            // Even though this test is passed, there is a runtime exception
+            // thrown regarding the replication's number of changes count versus
+            // number of completed changes count. Investigation is required.
+            Log.D(Database.Tag, "testPullerWithLiveQuery");
+            string docIdTimestamp = System.Convert.ToString(Runtime.CurrentTimeMillis());
             string doc1Id = string.Format("doc1-{0}", docIdTimestamp);
             string doc2Id = string.Format("doc2-{0}", docIdTimestamp);
 
-			AddDocWithId(doc1Id, "attachment2.png");
-			AddDocWithId(doc2Id, "attachment2.png");
+            AddDocWithId(doc1Id, "attachment2.png");
+            AddDocWithId(doc2Id, "attachment2.png");
 
-			int numDocsBeforePull = database.DocumentCount;
-			View view = database.GetView("testPullerWithLiveQueryView");
+            int numDocsBeforePull = database.DocumentCount;
+            View view = database.GetView("testPullerWithLiveQueryView");
             view.SetMapReduce((document, emitter) => {
                 if (document.Get ("_id") != null) {
                     emitter (document.Get ("_id"), null);
                 }
             }, null, "1");
 
-			LiveQuery allDocsLiveQuery = view.CreateQuery().ToLiveQuery();
+            LiveQuery allDocsLiveQuery = view.CreateQuery().ToLiveQuery();
             allDocsLiveQuery.Changed += (sender, e) => {
                 int numTimesCalled = 0;
                 if (e.Error != null)
@@ -328,11 +318,11 @@ namespace Couchbase.Lite.Replicator
                 }
                 Log.D(Database.Tag, "rows " + e.Rows);
             };
-			// the first time this is called back, the rows will be empty.
-			// but on subsequent times we should expect to get a non empty
-			// row set.
-			allDocsLiveQuery.Start();
-			DoPullReplication();
+            // the first time this is called back, the rows will be empty.
+            // but on subsequent times we should expect to get a non empty
+            // row set.
+            allDocsLiveQuery.Start();
+            DoPullReplication();
 		}
 
 		private void DoPullReplication()
@@ -360,39 +350,42 @@ namespace Couchbase.Lite.Replicator
 			{
                 docJson = @"{""foo"":1,""bar"":false}";
 			}
+
 			// push a document to server
             var replicationUrlTrailingDoc1 = new Uri(string.Format("{0}/{1}", GetReplicationURL(), docId));
 			var pathToDoc1 = new Uri(replicationUrlTrailingDoc1, docId);
 			Log.D(Tag, "Send http request to " + pathToDoc1);
 			CountDownLatch httpRequestDoneSignal = new CountDownLatch(1);
-            var getDocTask = Task.Factory.StartNew(()=>
+            Task.Factory.StartNew(() =>
+            {
+                var httpclient = new HttpClient(); //CouchbaseLiteHttpClientFactory.Instance.GetHttpClient();
+                HttpResponseMessage response;
+
+                try
                 {
-                    var httpclient = new HttpClient(); //CouchbaseLiteHttpClientFactory.Instance.GetHttpClient();
-                    HttpResponseMessage response;
-                    try
-                    {
-                        var request = new HttpRequestMessage();
-                        request.Headers.Add("Accept", "*/*");
-                        //request.Headers..Add("Content-Type", "application/json");
-                        var postTask = httpclient.PutAsync(pathToDoc1.AbsoluteUri, new StringContent(docJson, Encoding.UTF8, "application/json"));
-                        //var postTask = httpclient.PutAsJsonAsync(pathToDoc1.AbsoluteUri, docJson);
-                        postTask.Wait();
-                        response = postTask.Result;
-                        var statusLine = response.StatusCode;
-                        Log.D(ReplicationTest.Tag, "Got response: " + statusLine);
-                        NUnit.Framework.Assert.IsTrue(statusLine == HttpStatusCode.Created);
-                    }
-                    catch (ProtocolViolationException e)
-                    {
-                        NUnit.Framework.Assert.IsNull(e, "Got ClientProtocolException: " + e.Message);
-                    }
-                    catch (IOException e)
-                    {
-                        NUnit.Framework.Assert.IsNull(e, "Got IOException: " + e.Message);
-                    }
-                    httpRequestDoneSignal.CountDown();
-                });
-            //getDocTask.Start();
+                    var request = new HttpRequestMessage();
+                    request.Headers.Add("Accept", "*/*");
+
+                    var postTask = httpclient.PutAsync(pathToDoc1.AbsoluteUri, new StringContent(docJson, Encoding.UTF8, "application/json"));
+                    postTask.Wait();
+
+                    response = postTask.Result;
+                    var statusLine = response.StatusCode;
+                    Log.D(ReplicationTest.Tag, "Got response: " + statusLine);
+                    Assert.IsTrue(statusLine == HttpStatusCode.Created);
+                }
+                catch (ProtocolViolationException e)
+                {
+                    Assert.IsNull(e, "Got ClientProtocolException: " + e.Message);
+                }
+                catch (IOException e)
+                {
+                    Assert.IsNull(e, "Got IOException: " + e.Message);
+                }
+
+                httpRequestDoneSignal.CountDown();
+            });
+
 			Log.D(Tag, "Waiting for http request to finish");
 			try
 			{
@@ -407,93 +400,117 @@ namespace Couchbase.Lite.Replicator
 
 		/// <exception cref="System.Exception"></exception>
         [Test]
-		public virtual void TestGetReplicator()
+		public void TestGetReplicator()
 		{
             var replicationUrl = GetReplicationURL();
-            var db = StartDatabase();
-
-            var replicator = db.CreatePullReplication(replicationUrl);
+            var replicator = database.CreatePullReplication(replicationUrl);
             Assert.IsNotNull(replicator);
-            Assert.IsTrue(!replicator.IsPull);
+            Assert.IsTrue(replicator.IsPull);
             Assert.IsFalse(replicator.Continuous);
             Assert.IsFalse(replicator.IsRunning);
-            // start the replicator
+
             replicator.Start();
+            Assert.IsTrue(replicator.IsRunning);
+
+			var activeReplicators = new Replication[database.ActiveReplicators.Count];
+			database.ActiveReplicators.CopyTo(activeReplicators, 0);
+			Assert.AreEqual(1, activeReplicators.Length);
+			Assert.AreEqual(replicator, activeReplicators [0]);
+
+            replicator.Stop();
+			Log.D(Tag, "Called replication.Stop()");
             Assert.IsFalse(replicator.IsRunning);
+			activeReplicators = new Replication[database.ActiveReplicators.Count];
+			database.ActiveReplicators.CopyTo(activeReplicators, 0);
+			Assert.AreEqual(0, activeReplicators.Length);
 		}
 
 		/// <exception cref="System.Exception"></exception>
         [Test]
-		public virtual void TestGetReplicatorWithAuth()
+		public void TestGetReplicatorWithAuth()
 		{
-            var db = StartDatabase();
+            var email = "jchris@couchbase.com";
+            var accessToken = "fake_access_token";
+            var remoteUrl = GetReplicationURL().ToString();
+            FacebookAuthorizer.RegisterAccessToken(accessToken, email, remoteUrl);
+
             var url = GetReplicationURLWithoutCredentials();
-            Replication replicator = db.CreatePushReplication(url);
-			NUnit.Framework.Assert.IsNotNull(replicator);
+            Replication replicator = database.CreatePushReplication(url);
+            replicator.Authorizer = new FacebookAuthorizer(email);
+
+			Assert.IsNotNull(replicator);
             Assert.IsNotNull(replicator.Authorizer);
             Assert.IsTrue(replicator.Authorizer is FacebookAuthorizer);
 		}
 
 		private void RunReplication(Replication replication)
 		{
-//			var replicationDoneSignal = new CountDownLatch(1);
+            var replicationDoneSignal = new CountDownLatch(1);
+            var observer = new ReplicationObserver(replicationDoneSignal);
+            replication.Changed += observer.Changed;
+            replication.Start();
+
             var replicationDoneSignalPolling = ReplicationWatcherThread(replication);
-            replication.Changed += (sender, e) => 
-                replicationDoneSignalPolling.CountDown ();
-			replication.Start();
 
-			Log.D(Tag, "Waiting for replicator to finish");
+            Log.D(Tag, "Waiting for replicator to finish.");
 
-			try
-			{
-                var success = replicationDoneSignalPolling.Await(TimeSpan.FromSeconds(15));
-				Assert.IsTrue(success);
-                Sharpen.Thread.Sleep(5000);
-                replication.Stop();
+            try
+            {
+                var success = replicationDoneSignalPolling.Await(TimeSpan.FromSeconds(120));
+                Assert.IsTrue(success);
+                success = replicationDoneSignalPolling.Await(TimeSpan.FromSeconds(120));
+                Assert.IsTrue(success);
+
                 Log.D(Tag, "replicator finished");
-			}
-			catch (Exception e)
-			{
-				Runtime.PrintStackTrace(e);
-			}
+            }
+            catch (Exception e)
+            {
+                Runtime.PrintStackTrace(e);
+            }
+
+            replication.Changed -= observer.Changed;
 		}
 
 		private CountDownLatch ReplicationWatcherThread(Replication replication)
 		{
-            var doneSignal = new CountDownLatch(2);
+            var doneSignal = new CountDownLatch(1);
             Task.Factory.StartNew(()=>
-                {
-                    var started = false;
-                    var done = false;
+            {
+                var started = false;
+                var done = false;
 
-                    while (!done)
+                while (!done)
+                {
+                    started |= replication.IsRunning;
+
+                    var statusIsDone = (
+                        replication.Status == ReplicationStatus.Stopped 
+                        || replication.Status == ReplicationStatus.Idle
+                    );
+
+                    if (started && statusIsDone)
                     {
-                        started |= replication.IsRunning;
-                        var statusIsDone = (
-                            replication.Status == ReplicationStatus.Stopped 
-                            || replication.Status == ReplicationStatus.Idle
-                        );
-                        if (started && statusIsDone)
-                        {
-                            done = true;
-                        }
-                        try
-                        {
-                            Thread.Sleep(10000);
-                        }
-                        catch (Exception e)
-                        {
-                            Runtime.PrintStackTrace(e);
-                        }
+                        done = true;
                     }
-                    doneSignal.CountDown();
-                });
+
+                    try
+                    {
+                        Thread.Sleep(1000);
+                    }
+                    catch (Exception e)
+                    {
+                        Runtime.PrintStackTrace(e);
+                    }
+                }
+                doneSignal.CountDown();
+            });
+
             return doneSignal;
 		}
 
 		/// <exception cref="System.Exception"></exception>
         [Test]
-		public virtual void TestRunReplicationWithError()
+		public void TestRunReplicationWithError()
 		{
             var mockHttpClientFactory = new AlwaysFailingClientFactory();
 			var dbUrlString = "http://fake.test-url.com:4984/fake/";
@@ -513,130 +530,89 @@ namespace Couchbase.Lite.Replicator
 
 		/// <exception cref="System.Exception"></exception>
         [Test]
-		public virtual void TestReplicatorErrorStatus()
+		public void TestReplicatorErrorStatus()
 		{
-            Assert.Fail(); // TODO.ZJG: Needs FB login stuff removed.
+            var email = "jchris@couchbase.com";
+            var accessToken = "fake_access_token";
+            var remoteUrl = GetReplicationURL().ToString();
+            FacebookAuthorizer.RegisterAccessToken(accessToken, email, remoteUrl);
 
-			// register bogus fb token
-			IDictionary<string, object> facebookTokenInfo = new Dictionary<string, object>();
-			facebookTokenInfo["email"] = "jchris@couchbase.com";
-			facebookTokenInfo.Put("remote_url", GetReplicationURL().ToString());
-			facebookTokenInfo["access_token"] = "fake_access_token";
+            var replicator = database.CreatePullReplication(GetReplicationURL());
+            replicator.Authorizer = new FacebookAuthorizer(email);
 
-            var destUrl = string.Format("{0}/_facebook_token", DefaultTestDb);
-			var result = (IDictionary<string, object>)SendBody("POST", destUrl, facebookTokenInfo, (int)StatusCode.Ok, null);
-			Log.V(Tag, string.Format("result {0}", result));
-			// start a replicator
-			IDictionary<string, object> properties = GetPullReplicationParsedJson();
-            Replication replicator = manager.GetExistingDatabase(DefaultTestDb).CreatePushReplication(new Uri(destUrl));
-			replicator.Start();
-			bool foundError = false;
-			for (int i = 0; i < 10; i++)
-			{
-				// wait a few seconds
-				Sharpen.Thread.Sleep(5 * 1000);
-                // expect an error since it will try to contact the sync gateway with this bogus login,
-                // and the sync gateway will reject it.
-                var activeTasks = (AList<object>)Send("GET", "/_active_tasks", HttpStatusCode.OK, null);
-				Log.D(Tag, "activeTasks: " + activeTasks);
-				IDictionary<string, object> activeTaskReplication = (IDictionary<string, object>)
-					activeTasks[0];
-				foundError = (activeTaskReplication["error"] != null);
-				if (foundError == true)
-				{
-					break;
-				}
-			}
-			NUnit.Framework.Assert.IsTrue(foundError);
+            RunReplication(replicator);
+
+            Assert.IsNotNull(replicator.LastError);
 		}
 
 		/// <exception cref="System.Exception"></exception>
         [Test]
-		public virtual void TestFetchRemoteCheckpointDoc()
+		public void TestGoOffline()
 		{
-            var mockHttpClientFactory = new AlwaysFailingClientFactory();
-            mockHttpClientFactory.GetHttpClient();
-
-			Log.D("TEST", "testFetchRemoteCheckpointDoc() called");
-			string dbUrlString = "http://fake.test-url.com:4984/fake/";
-			Uri remote = new Uri(dbUrlString);
-            database.SetLastSequence("1", dbUrlString, true);
-			// otherwise fetchRemoteCheckpoint won't contact remote
-            Assert.Fail();
-			Replication replicator = new Pusher(database, remote, false, mockHttpClientFactory
-                , manager.workExecutor);
-			CountDownLatch doneSignal = new CountDownLatch(1);
-			ReplicationTest.ReplicationObserver replicationObserver = new ReplicationTest.ReplicationObserver
-				(this, doneSignal);
-            replicator.Changed += replicationObserver.Changed;
-			replicator.FetchRemoteCheckpointDoc();
-			Log.D(Tag, "testFetchRemoteCheckpointDoc() Waiting for replicator to finish");
-			try
-			{
-                bool succeeded = doneSignal.Await(TimeSpan.FromSeconds(3));
-                NUnit.Framework.Assert.IsTrue(succeeded);
-                Log.D(Tag, "testFetchRemoteCheckpointDoc() replicator finished");
-			}
-			catch (Exception e)
-			{
-				Sharpen.Runtime.PrintStackTrace(e);
-			}
-			string errorMessage = "Since we are passing in a mock http client that always throws "
-				 + "errors, we expect the replicator to be in an error state";
-            NUnit.Framework.Assert.IsNotNull(replicator.LastError, errorMessage);
-		}
-
-		/// <exception cref="System.Exception"></exception>
-        [Test]
-		public virtual void TestGoOffline()
-		{
-			Uri remote = GetReplicationURL();
-			CountDownLatch replicationDoneSignal = new CountDownLatch(1);
-			Replication repl = database.CreatePullReplication(remote);
+			var remote = GetReplicationURL();
+			var repl = database.CreatePullReplication(remote);
 			repl.Continuous = true;
             repl.Start();
 			repl.GoOffline();
-            NUnit.Framework.Assert.IsTrue(repl.Status == ReplicationStatus.Offline);
+            Assert.IsTrue(repl.Status == ReplicationStatus.Offline);
 		}
 
 		internal class ReplicationObserver 
 		{
-			public bool replicationFinished = false;
+            private bool replicationFinished = false;
 
-			private CountDownLatch doneSignal;
+            private readonly CountDownLatch doneSignal;
 
-			internal ReplicationObserver(ReplicationTest _enclosing, CountDownLatch doneSignal
-				)
-			{
-				this._enclosing = _enclosing;
-				this.doneSignal = doneSignal;
-			}
+            internal ReplicationObserver(CountDownLatch doneSignal)
+            {
+                this.doneSignal = doneSignal;
+            }
 
-            public virtual void Changed(object sender, Replication.ReplicationChangeEventArgs args)
-			{
+            public void Changed(object sender, Replication.ReplicationChangeEventArgs args)
+            {
                 Replication replicator = args.Source;
-				if (!replicator.IsRunning)
-				{
-					this.replicationFinished = true;
-					string msg = string.Format("myobserver.update called, set replicationFinished to: %b"
-						, this.replicationFinished);
-					Log.D(ReplicationTest.Tag, msg);
-					this.doneSignal.CountDown();
-				}
-				else
-				{
-					string msg = string.Format("myobserver.update called, but replicator still running, so ignore it"
-						);
-					Log.D(ReplicationTest.Tag, msg);
-				}
-			}
+                Log.D(Tag, replicator + " changed." + replicator.CompletedChangesCount + " / " + replicator.ChangesCount);
 
-			internal virtual bool IsReplicationFinished()
-			{
-				return this.replicationFinished;
-			}
+                if (replicator.CompletedChangesCount < 0)
+                {
+                    var msg = replicator + ": replicator.CompletedChangesCount < 0";
+                    Log.D(Tag, msg);
+                    throw new RuntimeException(msg);
+                }
 
-			private readonly ReplicationTest _enclosing;
+                if (replicator.ChangesCount < 0)
+                {
+                    var msg = replicator + ": replicator.ChangesCount < 0";
+                    Log.D(Tag, msg);
+                    throw new RuntimeException(msg);
+                }
+
+                if (replicator.CompletedChangesCount > replicator.ChangesCount)
+                {
+                    var msg = "replicator.CompletedChangesCount - " + replicator.CompletedChangesCount +
+                        " > replicator.ChangesCount - " + replicator.ChangesCount;
+                    Log.D(Tag, msg);
+                    throw new RuntimeException(msg);
+                }
+
+                if (!replicator.IsRunning)
+                {
+                    this.replicationFinished = true;
+                    string msg = "ReplicationFinishedObserver.changed called, set replicationFinished to true";
+                    Log.D(Tag, msg);
+                    this.doneSignal.CountDown();
+                }
+                else
+                {
+                    string msg = string.Format("ReplicationFinishedObserver.changed called, but replicator still running, so ignore it");
+                    Log.D(ReplicationTest.Tag, msg);
+                }
+            }
+
+            internal virtual bool IsReplicationFinished()
+            {
+                return this.replicationFinished;
+            }
 		}
 
 		/// <exception cref="System.Exception"></exception>
@@ -663,83 +639,89 @@ namespace Couchbase.Lite.Replicator
 
 		/// <exception cref="System.Exception"></exception>
         [Test]
-		public virtual void TestChannels()
+		public void TestChannels()
 		{
-			Uri remote = GetReplicationURL();
-			Replication replicator = database.CreatePullReplication(remote);
-			IList<string> channels = new AList<string>();
-			channels.AddItem("chan1");
-			channels.AddItem("chan2");
-            Assert.Fail();
-//            replicator.Channels(channels);
-//			NUnit.Framework.Assert.AreEqual(channels, replicator.GetChannels());
-//			Assert(null);
-//			NUnit.Framework.Assert.IsTrue(replicator.GetChannels().IsEmpty());
+            Uri remote = GetReplicationURL();
+            Replication replicator = database.CreatePullReplication(remote);
+
+            var channels = new List<string>();
+            channels.AddItem("chan1");
+            channels.AddItem("chan2");
+            replicator.Channels = channels;
+            CollectionAssert.AreEqual(channels, replicator.Channels);
+
+            replicator.Channels = null;
+            Assert.IsTrue(replicator.Channels.ToList().Count == 0);
 		}
 
 		/// <exception cref="System.UriFormatException"></exception>
         [Test]
 		public virtual void TestChannelsMore()
 		{
-            Database db = StartDatabase();
             Uri fakeRemoteURL = new Uri("http://couchbase.com/no_such_db");
-            Replication r1 = db.CreatePullReplication(fakeRemoteURL);
-            Assert.Fail();
-//            NUnit.Framework.Assert.IsTrue(r1.GetChannels().IsEmpty());
-//            r1.SetFilter("foo/bar");
-//            NUnit.Framework.Assert.IsTrue(r1.GetChannels().IsEmpty());
-//            IDictionary<string, object> filterParams = new Dictionary<string, object>();
-//            filterParams.Put("a", "b");
-//            r1.SetFilterParams(filterParams);
-//            NUnit.Framework.Assert.IsTrue(r1.GetChannels().IsEmpty());
-//            r1.SetChannels(null);
-//            NUnit.Framework.Assert.AreEqual("foo/bar", r1.GetFilter());
-//            NUnit.Framework.Assert.AreEqual(filterParams, r1.GetFilterParams());
-//            IList<string> channels = new AList<string>();
-//            channels.AddItem("NBC");
-//            channels.AddItem("MTV");
-//            r1.SetChannels(channels);
-//            NUnit.Framework.Assert.AreEqual(channels, r1.GetChannels());
-//            NUnit.Framework.Assert.AreEqual("sync_gateway/bychannel", r1.GetFilter());
-//            filterParams = new Dictionary<string, object>();
-//            filterParams.Put("channels", "NBC,MTV");
-//            NUnit.Framework.Assert.AreEqual(filterParams, r1.GetFilterParams());
-//            r1.SetChannels(null);
-//            NUnit.Framework.Assert.AreEqual(r1.GetFilter(), null);
-//            NUnit.Framework.Assert.AreEqual(null, r1.GetFilterParams());
+            Replication r1 = database.CreatePullReplication(fakeRemoteURL);
+
+            Assert.IsTrue(!r1.Channels.Any());
+            r1.Filter = "foo/bar";
+            Assert.IsTrue(!r1.Channels.Any());
+
+            var filterParams = new Dictionary<string, string>();
+            filterParams.Put("a", "b");
+            r1.FilterParams = filterParams;
+            Assert.IsTrue(!r1.Channels.Any());
+
+            r1.Channels = null;
+            Assert.AreEqual("foo/bar", r1.Filter);
+            Assert.AreEqual(filterParams, r1.FilterParams);
+
+            var channels = new List<string>();
+            channels.Add("NBC");
+            channels.Add("MTV");
+            r1.Channels = channels;
+            Assert.AreEqual(channels, r1.Channels);
+            Assert.AreEqual("sync_gateway/bychannel", r1.Filter);
+
+            filterParams = new Dictionary<string, string>();
+            filterParams.Put("channels", "NBC,MTV");
+            Assert.AreEqual(filterParams, r1.FilterParams);
+                        
+            r1.Channels = null;
+            Assert.AreEqual(r1.Filter, null);
+            Assert.AreEqual(null, r1.FilterParams);
 		}
 
 		/// <exception cref="System.Exception"></exception>
         [Test]
-		public virtual void TestHeaders()
+		public void TestHeaders()
 		{
-            Assert.Fail();
-//			CustomizableMockHttpClient mockHttpClient = new CustomizableMockHttpClient();
+//			var mockHttpClient = new CustomizableMockHttpClient();
 //			mockHttpClient.AddResponderThrowExceptionAllRequests();
 //			HttpClientFactory mockHttpClientFactory = new _HttpClientFactory_741(mockHttpClient
 //				);
-//			Uri remote = GetReplicationURL();
-//			manager.SetDefaultHttpClientFactory(mockHttpClientFactory);
-//			Replication puller = database.CreatePullReplication(remote);
-//			IDictionary<string, object> headers = new Dictionary<string, object>();
-//			headers["foo"] = "bar";
-//			puller.SetHeaders(headers);
-//			puller.Start();
-//			Sharpen.Thread.Sleep(2000);
-//            puller.Stop();
-//            bool foundFooHeader = false;
-//			IList<HttpWebRequest> requests = mockHttpClient.GetCapturedRequests();
-//			foreach (HttpWebRequest request in requests)
-//			{
-//				Header[] requestHeaders = request.GetHeaders("foo");
-//				foreach (Header requestHeader in requestHeaders)
-//				{
-//					foundFooHeader = true;
-//					NUnit.Framework.Assert.AreEqual("bar", requestHeader.GetValue());
-//				}
-//			}
-//			NUnit.Framework.Assert.IsTrue(foundFooHeader);
-//			AssertClientFactory(null);
+			Uri remote = GetReplicationURL();
+			var mockHttpClientFactory = new CustomizableMockHttpClientFactory();
+			manager.DefaultHttpClientFactory = mockHttpClientFactory;
+			var mockHttpClient = (CustomizableMockHttpClientHandler)mockHttpClientFactory.HttpHandler;
+			Replication puller = database.CreatePullReplication(remote);
+			var headers = new Dictionary<string, string>();
+			headers["foo"] = "bar";
+			puller.Headers = headers;
+			puller.Start();
+			Thread.Sleep(2000);
+            puller.Stop();
+            var foundFooHeader = false;
+			var requests = mockHttpClient.GetCapturedRequests();
+			foreach (var request in requests)
+			{
+				var requestHeaders = request.Headers.GetValues("foo");
+				foreach (var requestHeader in requestHeaders)
+				{
+					foundFooHeader = true;
+					Assert.AreEqual("bar", requestHeader);
+				}
+			}
+			Assert.IsTrue(foundFooHeader);
+			//AssertClientFactory(null);
 		}
 	}
 }

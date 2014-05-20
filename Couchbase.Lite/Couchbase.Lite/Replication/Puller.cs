@@ -89,11 +89,13 @@ namespace Couchbase.Lite.Replicator
 
         public HttpClientHandler HttpHandler { get { return clientFactory.HttpHandler; } }
 
-        public override IEnumerable<string> Channels { get; set; }
-
         public override IEnumerable<string> DocIds { get; set; }
 
-        public override Dictionary<string, string> Headers { get; set; }
+        public override IDictionary<string, string> Headers 
+        {
+            get { return clientFactory.Headers; } 
+            set { clientFactory.Headers = value; } 
+        }
 
         #endregion
 
@@ -252,7 +254,7 @@ namespace Couchbase.Lite.Replicator
             }
 		}
 
-		public HttpClient GetHttpClient()
+        public HttpClient GetHttpClient()
 		{
             return clientFactory.GetHttpClient();
 		}

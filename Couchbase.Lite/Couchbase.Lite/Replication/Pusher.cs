@@ -83,11 +83,9 @@ namespace Couchbase.Lite.Replicator
 
         #region implemented abstract members of Replication
 
-        public override IEnumerable<String> Channels { get; set; }
-
         public override IEnumerable<String> DocIds { get; set; }
 
-        public override Dictionary<String, String> Headers { get; set; }
+        public override IDictionary<String, String> Headers { get; set; }
 
         public override Boolean CreateTarget { get; set; }
 

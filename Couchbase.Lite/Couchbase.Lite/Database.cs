@@ -656,7 +656,7 @@ namespace Couchbase.Lite
         /// <returns></returns>
         public Replication CreatePushReplication(Uri remote)
         {
-            return new Pusher(this, remote, false, CouchbaseLiteHttpClientFactory.Instance, Task.Factory);
+            return new Pusher(this, remote, false, Manager.DefaultHttpClientFactory, Task.Factory);
         }
 
         /// <summary>
@@ -671,7 +671,7 @@ namespace Couchbase.Lite
         /// <returns></returns>
         public Replication CreatePullReplication(Uri remote)
         {
-            return new Puller(this, remote, false, Task.Factory);
+            return new Puller(this, remote, false, Manager.DefaultHttpClientFactory, Task.Factory);
         }
 
         /*
@@ -3975,7 +3975,10 @@ PRAGMA user_version = 3;";
             views = null;
             if (ActiveReplicators != null)
             {
-                foreach (Replication replicator in ActiveReplicators)
+                // 
+                var activeReplicators = new Replication[ActiveReplicators.Count];
+                ActiveReplicators.CopyTo(activeReplicators, 0);
+                foreach (Replication replicator in activeReplicators)
                 {
                     replicator.DatabaseClosing();
                 }

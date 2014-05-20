@@ -73,13 +73,13 @@ namespace Couchbase.Lite
         [TestFixtureSetUp]
         protected void Init()
         {
-            Trace.Listeners.Add(new ConsoleTraceListener());
         }
 
         [SetUp]
 		protected void SetUp()
 		{
             Log.V(Tag, "SetUp");
+			Trace.Listeners.Add(new ConsoleTraceListener());
             LoadCustomProperties();
 			StartCBLite();
             StartDatabase();
@@ -132,7 +132,7 @@ namespace Couchbase.Lite
 			return database;
 		}
 
-		protected internal virtual void StopDatabse()
+		protected internal virtual void StopDatabase()
 		{
 			if (database != null)
 			{
@@ -248,7 +248,7 @@ namespace Couchbase.Lite
         protected void TearDown()
 		{
 			Log.V(Tag, "tearDown");
-			StopDatabse();
+			StopDatabase();
 			StopCBLite();
 		}
 
