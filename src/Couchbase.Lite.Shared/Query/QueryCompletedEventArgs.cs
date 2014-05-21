@@ -51,11 +51,28 @@ using Couchbase.Lite;
 
 namespace Couchbase.Lite
 {
+    /// <summary>
+    /// Query completed event arguments.
+    /// </summary>
 	public class QueryCompletedEventArgs : EventArgs
 	{
+        /// <summary>
+        /// The result rows from the Query.
+        /// </summary>
+        /// <value>he result rows.</value>
         public QueryEnumerator Rows { get; private set; }
+
+        /// <summary>
+        /// The error, if any, that occured during the execution of the Query
+        /// </summary>
+        /// <value>The error info if any.</value>
         public Exception ErrorInfo { get; private set; }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Couchbase.Lite.QueryCompletedEventArgs"/> class.
+        /// </summary>
+        /// <param name="rows">Rows.</param>
+        /// <param name="errorInfo">Error info.</param>
         public QueryCompletedEventArgs(QueryEnumerator rows, Exception errorInfo) {
             Rows = rows;
             ErrorInfo = errorInfo;

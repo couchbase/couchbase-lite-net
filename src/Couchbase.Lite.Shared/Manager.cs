@@ -68,6 +68,9 @@ namespace Couchbase.Lite
 
         const string VersionString = "1.0.0-beta2";
 
+        /// <summary>
+        /// The error domain used for HTTP status codes.
+        /// </summary>
         const string HttpErrorDomain = "CBLHTTP";
 
         internal const string DatabaseSuffixOld = ".touchdb";
@@ -96,7 +99,7 @@ namespace Couchbase.Lite
         /// Only the following characters are valid: abcdefghijklmnopqrstuvwxyz0123456789_$()+-/
         /// </summary>
         /// <returns><c>true</c> if the given name is a valid <see cref="Couchbase.Lite.Database"/> name, otherwise <c>false</c>.</returns>
-        /// <param name="name">Name.</param>
+        /// <param name="name">The Database name to validate.</param>
         public static Boolean IsValidDatabaseName(String name) 
         {
             if (name.Length > 0 && name.Length < 240 && ContainsOnlyLegalCharacters(name) && Char.IsLower(name[0]))
@@ -120,8 +123,17 @@ namespace Couchbase.Lite
             sharedManager = new Manager(defaultDirectory, ManagerOptions.Default);
         }
 
+        /// <summary>
+        ///  Initializes a Manager that stores Databases in the default directory.
+        /// </summary>
         public Manager() : this(defaultDirectory, ManagerOptions.Default) { }
 
+        /// <summary>
+        /// Initializes a Manager that stores Databases in the given directory.
+        /// </summary>
+        /// <param name="directoryFile">The directory to use for storing <see cref="Couchbase.Lite.Database"/>s.</param>
+        /// <param name="options">Option flags for initialization.</param>
+        /// <exception cref="T:System.IO.DirectoryNotFoundException">Thrown when there is an error while accessing or creating the given directory.</exception>
         public Manager(DirectoryInfo directoryFile, ManagerOptions options)
         {
             Log.V(Database.Tag, "Starting Manager version: " + VersionString);
@@ -214,7 +226,7 @@ namespace Couchbase.Lite
         /// </summary>
         /// <returns>The database.</returns>
         /// <param name="name">Name.</param>
-        /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
+        /// <exception cref="Couchbase.Lite.CouchbaseLiteException">Thrown if an issue occurs while gettings or createing the <see cref="Couchbase.Lite.Database"/>.</exception>
         public Database GetDatabase(String name) 
         {
             var db = GetDatabaseWithoutOpening(name, false);
@@ -229,8 +241,8 @@ namespace Couchbase.Lite
         /// Returns the <see cref="Couchbase.Lite.Database"/> with the given name if it exists, otherwise null.
         /// </summary>
         /// <returns>The <see cref="Couchbase.Lite.Database"/> with the given name if it exists, otherwise null.</returns>
-        /// <param name="name">Name.</param>
-        /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
+        /// <param name="name">The name of the Database to get.</param>
+        /// <exception cref="Couchbase.Lite.CouchbaseLiteException">Thrown if an issue occurs while getting the <see cref="Couchbase.Lite.Database"/>.</exception>
         public Database GetExistingDatabase(String name)
         {
             var db = GetDatabaseWithoutOpening(name, mustExist: true);
@@ -245,10 +257,9 @@ namespace Couchbase.Lite
         /// Replaces or creates a <see cref="Couchbase.Lite.Database"/> from local files.
         /// </summary>
         /// <returns><c>true</c>, if database was replaced, <c>false</c> otherwise.</returns>
-        /// <param name="name">Name.</param>
+        /// <param name="name">The name of the target Database to replace or create.</param>
         /// <param name="databaseFile">Database file.</param>
         /// <param name="attachmentsDirectory">Attachments directory.</param>
-        /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
         public Boolean ReplaceDatabase(String name, FileInfo databaseFile, DirectoryInfo attachmentsDirectory)
         {
             var result = true;

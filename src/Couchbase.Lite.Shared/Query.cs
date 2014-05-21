@@ -52,6 +52,39 @@ using System.Threading;
 
 namespace Couchbase.Lite {
 
+    /// <summary>
+    /// Used to specify when a <see cref="Couchbase.Lite.View"/> index is updated 
+    /// when running a <see cref="Couchbase.Lite.Query"/>.
+    /// 
+    /// <list type="table">
+    /// <listheader>
+    /// <term>Name</term>
+    /// <description>Description</description>
+    /// </listheader>
+    /// <item>
+    /// <term>Before</term>
+    /// <description>
+    /// If needed, update the index before running the <see cref="Couchbase.Lite.Query"/> (default). 
+    /// This guarantees up-to-date results at the expense of a potential delay in receiving results.
+    /// </description>
+    /// </item>
+    /// <item>
+    /// <term>Never</term>
+    /// <description>
+    /// Never update the index when running a <see cref="Couchbase.Lite.Query"/>. 
+    /// This guarantees receiving results the fastest at the expense of potentially out-of-date results.
+    /// </description>
+    /// </item>
+    /// <item>
+    /// <term>After</term>
+    /// <description>
+    /// If needed, update the index asynchronously after running the <see cref="Couchbase.Lite.Query"/>. 
+    /// This guarantees receiving results the fastest, at the expense of potentially out-of-date results, 
+    /// and that subsequent Queries will return more accurate results.
+    /// </description>
+    /// </item>    
+    /// </list>
+    /// </summary>
     public enum IndexUpdateMode {
             Before,
             Never,
@@ -66,6 +99,9 @@ namespace Couchbase.Lite {
         OnlyConflicts
     }
 
+    /// <summary>
+    /// A Couchbase Lite <see cref="Couchbase.Lite.View"/> <see cref="Couchbase.Lite.Query"/>.
+    /// </summary>
     public partial class Query : IDisposable
     {
 
@@ -147,22 +183,75 @@ namespace Couchbase.Lite {
 
     #region Instance Members
         //Properties
+        /// <summary>
+        /// Gets the <see cref="Couchbase.Lite.Database"/> that owns 
+        /// the <see cref="Couchbase.Lite.Query"/>'s <see cref="Couchbase.Lite.View"/>.
+        /// </summary>
+        /// <value>
+        /// The <see cref="Couchbase.Lite.Database"/> that owns 
+        /// the <see cref="Couchbase.Lite.Query"/>'s <see cref="Couchbase.Lite.View"/>.
+        /// </value>
         public Database Database { get; private set; }
 
+        /// <summary>
+        /// Gets or sets the maximum number of rows to return. 
+        /// The default value is 0, meaning 'unlimited'.
+        /// </summary>
+        /// <value>
+        /// The maximum number of rows to return. 
+        /// The default value is 0, meaning 'unlimited'
+        /// </value>
         public Int32 Limit { get; set; }
 
+        /// <summary>
+        /// Gets or sets the number of initial rows to skip. Default value is 0.
+        /// </summary>
+        /// <value>
+        /// The number of initial rows to skip. Default value is 0
+        /// </value>
         public Int32 Skip { get; set; }
 
+        /// <summary>
+        /// Gets or sets whether the rows be returned in descending key order. 
+        /// Default value is <c>false</c>.
+        /// </summary>
+        /// <value><c>true</c> if descending; otherwise, <c>false</c>.</value>
         public Boolean Descending { get; set; }
 
+        /// <summary>
+        /// Gets or sets the key of the first value to return. 
+        /// A null value has no effect.
+        /// </summary>
+        /// <value>The start key.</value>
         public Object StartKey { get; set; }
 
+        /// <summary>
+        /// Gets or sets the key of the last value to return. 
+        /// A null value has no effect.
+        /// </summary>
+        /// <value>The end key.</value>
         public Object EndKey { get; set; }
 
+        /// <summary>
+        /// Gets or sets the <see cref="Couchbase.Lite.Document"/> id of the first value to return. 
+        /// A null value has no effect. This is useful if the view contains 
+        /// multiple identical keys, making startKey ambiguous.
+        /// </summary>
+        /// <value>The Document id of the first value to return.</value>
         public String StartKeyDocId { get; set; }
 
+        /// <summary>
+        /// Gets or sets the <see cref="Couchbase.Lite.Document"/> id of the last value to return. 
+        /// A null value has no effect. This is useful if the view contains 
+        /// multiple identical keys, making endKey ambiguous.
+        /// </summary>
+        /// <value>The Document id of the last value to return.</value>
         public String EndKeyDocId { get; set; }
 
+        /// <summary>
+        /// Gets or sets when a <see cref="Couchbase.Lite.View"/> index is updated when running a Query.
+        /// </summary>
+        /// <value>The index update mode.</value>
         public IndexUpdateMode IndexUpdateMode { get; set; }
 
         /// <summary>Changes the behavior of a query created by -queryAllDocuments.</summary>
@@ -178,14 +267,39 @@ namespace Couchbase.Lite {
         /// </remarks>
         public AllDocsMode AllDocsMode { get; set; }
 
+        /// <summary>
+        /// Gets or sets the keys of the values to return. 
+        /// A null value has no effect.
+        /// </summary>
+        /// <value>The keys of the values to return.</value>
         public IEnumerable<Object> Keys { get; set; }
 
+        /// <summary>
+        /// Gets or sets whether to only use the map function without using the reduce function.
+        /// </summary>
+        /// <value><c>true</c> if map only; otherwise, <c>false</c>.</value>
         public Boolean MapOnly { get; set; }
 
+        /// <summary>
+        /// Gets or sets whether results will be grouped in <see cref="Couchbase.Lite.View"/>s that have reduce functions.
+        /// </summary>
+        /// <value>The group level.</value>
         public Int32 GroupLevel { get; set; }
 
+        /// <summary>
+        /// Gets or sets whether to include the entire <see cref="Couchbase.Lite.Document"/> content with the results. 
+        /// The <see cref="Couchbase.Lite.Document"/>s can be accessed via the <see cref="Couchbase.Lite.QueryRow"/>'s 
+        /// documentProperties property.
+        /// </summary>
+        /// <value><c>true</c> if prefetch; otherwise, <c>false</c>.</value>
         public Boolean Prefetch { get; set; }
 
+        /// <summary>
+        /// Gets or sets whether Queries created via the <see cref="Couchbase.Lite.Database"/> createAllDocumentsQuery method 
+        /// will include deleted <see cref="Couchbase.Lite.Document"/>s. 
+        /// This property has no effect in other types of Queries.
+        /// </summary>
+        /// <value><c>true</c> if include deleted; otherwise, <c>false</c>.</value>
         public Boolean IncludeDeleted 
         {
             get { return AllDocsMode == AllDocsMode.IncludeDeleted; }
@@ -200,6 +314,12 @@ namespace Couchbase.Lite {
         public event EventHandler<QueryCompletedEventArgs> Completed;
 
         //Methods
+        /// <summary>
+        /// Runs the <see cref="Couchbase.Lite.Query"/> and returns an enumerator over the result rows.
+        /// </summary>
+        /// <exception cref="T:Couchbase.Lite.CouchbaseLiteException">
+        /// Thrown if an issue occurs while executing the <see cref="Couchbase.Lite.Query"/>.
+        /// </exception>
         public virtual QueryEnumerator Run() 
         {
             if (!Database.Open())
@@ -218,6 +338,13 @@ namespace Couchbase.Lite {
             return new QueryEnumerator(Database, rows, outSequence[0]);
         }
 
+        /// <summary>
+        /// Runs <see cref="Couchbase.Lite.Query"/> function asynchronously and 
+        /// will notified <see cref="Completed"/> event handlers on completion.
+        /// </summary>
+        /// <returns>The async task.</returns>
+        /// <param name="run">Query's Run function</param>
+        /// <param name="token">CancellationToken token.</param>
         public Task<QueryEnumerator> RunAsync(Func<QueryEnumerator> run, CancellationToken token) 
         {
             return Database.Manager.RunAsync(run, token)
@@ -239,32 +366,20 @@ namespace Couchbase.Lite {
                     });
         }
 
+        /// <summary>
+        /// Runs the Query asynchronously and 
+        /// will notified <see cref="Completed"/> event handlers on completion.
+        /// </summary>
+        /// <returns>The async task.</returns>
         public Task<QueryEnumerator> RunAsync() 
         {
             return RunAsync(Run, CancellationToken.None);
         }
 
-//        internal Task<QueryEnumerator> RunAsync(Func<QueryEnumerator> action) 
-//        {
-//            return Database.Manager.RunAsync(action, CancellationToken.None)
-//                .ContinueWith(runTask=> // Raise the query's Completed event.
-//                    {
-//                        var error = runTask.Exception;
-//
-//                        var completed = Completed;
-//                        if (completed != null)
-//                        {
-//                            var args = new QueryCompletedEventArgs(runTask.Result, error);
-//                            completed(this, args);
-//                        }
-//
-//                        if (runTask.Status != TaskStatus.RanToCompletion)
-//                            throw runTask.Exception; // Rethrow innner exceptions.
-//
-//                        return runTask.Result; // Give additional continuation functions access to the results task.
-//                    });
-//        }
-
+        /// <summary>
+        /// Returns a new LiveQuery with identical properties to the the Query.
+        /// </summary>
+        /// <returns>The live query.</returns>
         public LiveQuery ToLiveQuery() 
         {
             if (View == null)
@@ -281,12 +396,5 @@ namespace Couchbase.Lite {
         }
     #endregion    
     }
-
-    #region Delegates
-
-    public delegate void QueryCompleteDelegate(QueryEnumerator rows, Exception error);
-
-    #endregion
-        
 }
 

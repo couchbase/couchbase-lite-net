@@ -55,6 +55,9 @@ namespace Couchbase.Lite {
         internal static readonly String Digest = "digest";
     }
 
+    /// <summary>
+    /// A Couchbase Lite Document Attachment.
+    /// </summary>
     public partial class Attachment {
 
         #region Constants
@@ -152,10 +155,16 @@ namespace Couchbase.Lite {
 
         #region Instance Members
 
-        /// <summary>Get the owning document revision.</summary>
+        /// <summary>
+        /// Gets the owning <see cref="Couchbase.Lite.Revision"/>.
+        /// </summary>
+        /// <value>the owning <see cref="Couchbase.Lite.Revision"/>.</value>
         public Revision Revision { get; internal set; }
 
-        /// <summary>Get the owning document.</summary>
+        /// <summary>
+        /// Gets the owning <see cref="Couchbase.Lite.Document"/>.
+        /// </summary>
+        /// <value>The owning <see cref="Couchbase.Lite.Document"/></value>
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
         public Document Document {
             get {
@@ -165,10 +174,16 @@ namespace Couchbase.Lite {
             } 
         }
 
-        /// <summary>Get the filename.</summary>
+        /// <summary>
+        /// Gets the name of the <see cref="Couchbase.Lite.Attachment"/>.
+        /// </summary>
+        /// <value>The name of the <see cref="Couchbase.Lite.Attachment"/>.</value>
         public String Name { get ; internal set; }
 
-        /// <summary>Get the MIME type of the contents.</summary>
+        /// <summary>
+        /// Gets the content-type.
+        /// </summary>
+        /// <value>The content-type.</value>
         public String ContentType {
             get {
 //                Object contentType;
@@ -184,8 +199,13 @@ namespace Couchbase.Lite {
             }
         }
 
-        /// <summary>Get the content (aka 'body') data.</summary>
-        /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
+        /// <summary>
+        /// Get the <see cref="Couchbase.Lite.Attachment"/> content stream.
+        /// </summary>
+        /// <value>The <see cref="Couchbase.Lite.Attachment"/> content stream.</value>
+        /// <exception cref="Couchbase.Lite.CouchbaseLiteException">
+        /// Thrown if an error occurs when getting the content stream.
+        /// </exception>
         public Stream ContentStream { 
             get {
                 if (Body != null) {
@@ -214,8 +234,11 @@ namespace Couchbase.Lite {
             }
         }
 
-        /// <summary>Get the content (aka 'body') data.</summary>
-        /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
+        /// <summary>Gets the <see cref="Couchbase.Lite.Attachment"/> content.</summary>
+        /// <value>The <see cref="Couchbase.Lite.Attachment"/> content</value>
+        /// <exception cref="Couchbase.Lite.CouchbaseLiteException">
+        /// Thrown if an error occurs when getting the content.
+        /// </exception>
         public IEnumerable<Byte> Content { 
             get {
                 var stream = ContentStream;
@@ -228,7 +251,10 @@ namespace Couchbase.Lite {
             }
         }
 
-        /// <summary>Get the length in bytes of the contents.</summary>
+        /// <summary>
+        /// Gets the length in bytes of the content.
+        /// </summary>
+        /// <value>The length in bytes of the content.</value>
         public Int64 Length {
             get {
                 Object length;

@@ -62,6 +62,40 @@ namespace Couchbase.Lite
 
     #region Enums
 
+    /// <summary>
+    /// Describes the status of a <see cref="Couchbase.Lite.Replication"/>.
+    /// <list type="table">
+    /// <listheader>
+    /// <term>Name</term>
+    /// <description>Description</description>
+    /// </listheader>
+    /// <item>
+    /// <term>Stopped</term>
+    /// <description>
+    /// The <see cref="Couchbase.Lite.Replication"/> is finished or hit a fatal error.
+    /// </description>
+    /// </item>
+    /// <item>
+    /// <term>Offline</term>
+    /// <description>
+    /// The remote host is currently unreachable.
+    /// </description>
+    /// </item>
+    /// <item>
+    /// <term>Idle</term>
+    /// <description>
+    /// The continuous <see cref="Couchbase.Lite.Replication"/> is caught up and 
+    /// waiting for more changes.
+    /// </description>
+    /// </item>
+    /// <item>
+    /// <term>Active</term>
+    /// <description>
+    /// The <see cref="Couchbase.Lite.Replication"/> is actively transferring data.
+    /// </description>
+    /// </item>    
+    /// </list>
+    /// </summary>
     public enum ReplicationStatus {
         Stopped,
         Offline,
@@ -71,6 +105,10 @@ namespace Couchbase.Lite
 
     #endregion
 
+    /// <summary>
+    /// A Couchbase Lite pull or push <see cref="Couchbase.Lite.Replication"/> 
+    /// between a local and a remote <see cref="Couchbase.Lite.Database"/>.
+    /// </summary>
     public abstract partial class Replication 
     {
 
@@ -1105,29 +1143,40 @@ namespace Couchbase.Lite
     #region Instance Members
 
         /// <summary>
-        /// Gets the local <see cref="Couchbase.Lite.Database"/> being replicated to\from.
+        /// Gets the local <see cref="Couchbase.Lite.Database"/> being replicated to/from.
         /// </summary>
+        /// <value>The local <see cref="Couchbase.Lite.Database"/> being replicated to/from.</value>
         public Database LocalDatabase { get; private set; }
 
         /// <summary>
         /// Gets the remote URL being replicated to/from.
         /// </summary>
+        /// <value>The remote URL being replicated to/from.</value>
         public Uri RemoteUrl { get; private set; }
 
         /// <summary>
-        /// Gets whether the <see cref="Couchbase.Lite.Replication"/>  pulls from, as opposed to pushes to, the target.
+        /// Gets whether the <see cref="Couchbase.Lite.Replication"/> pulls from, 
+        /// as opposed to pushes to, the target.
         /// </summary>
+        /// <value>
+        /// <c>true</c> if the <see cref="Couchbase.Lite.Replication"/> 
+        /// is pull; otherwise, <c>false</c>.
+        /// </value>
         public abstract Boolean IsPull { get; }
 
         /// <summary>
-        /// Gets or sets whether the target <see cref="Couchbase.Lite.Database"/> will be created if it doesn't already exist.
+        /// Gets or sets whether the target <see cref="Couchbase.Lite.Database"/> should be created 
+        /// if it doesn't already exist. This only has an effect if the target supports it.
         /// </summary>
+        /// <value><c>true</c> if the target <see cref="Couchbase.Lite.Database"/> should be created if 
+        /// it doesn't already exist; otherwise, <c>false</c>.</value>
         public abstract Boolean CreateTarget { get; set; }
 
         /// <summary>
-        /// Gets or sets whether the <see cref="Couchbase.Lite.Replication"/> operates continuously, replicating 
-        /// changes as the source <see cref="Couchbase.Lite.Database"/> is modified.
+        /// Gets or sets whether the <see cref="Couchbase.Lite.Replication"/> operates continuously, 
+        /// replicating changes as the source <see cref="Couchbase.Lite.Database"/> is modified.
         /// </summary>
+        /// <value><c>true</c> if continuous; otherwise, <c>false</c>.</value>
         public Boolean Continuous 
         { 
             get { return continuous; }
@@ -1136,23 +1185,31 @@ namespace Couchbase.Lite
 
         /// <summary>
         /// Gets or sets the name of an optional filter function to run on the source 
-        /// <see cref="Couchbase.Lite.Database"/>. Only documents for which the function returns <c>true</c> are replicated.
+        /// <see cref="Couchbase.Lite.Database"/>. Only documents for which the function 
+        /// returns true are replicated.
         /// </summary>
+        /// <value>
+        /// The name of an optional filter function to run on the source 
+        /// <see cref="Couchbase.Lite.Database"/>.
+        /// </value>
         public String Filter { get; set; }
 
         /// <summary>
         /// Gets or sets the parameters to pass to the filter function.
         /// </summary>
+        /// <value>The parameters to pass to the filter function.</value>
         public IDictionary<String, String> FilterParams { get; set; }
 
         /// <summary>
         /// Gets or sets the list of Sync Gateway channel names to filter by for pull <see cref="Couchbase.Lite.Replication"/>.
         /// </summary>
         /// <remarks>
-        /// A null value means no filtering, and all available channels will be replicated.  Only valid for pull 
-        /// replications whose source database is on a Couchbase Sync Gateway server. This is a convenience property 
-        /// that just sets the values of filter and filterParams.
+        /// Gets or sets the list of Sync Gateway channel names to filter by for pull <see cref="Couchbase.Lite.Replication"/>. 
+        /// A null value means no filtering, and all available channels will be replicated. 
+        /// Only valid for pull replications whose source database is on a Couchbase Sync Gateway server. 
+        /// This is a convenience property that just sets the values of filter and filterParams.
         /// </remarks>
+        /// <value>The list of Sync Gateway channel names to filter by for pull <see cref="Couchbase.Lite.Replication"/>.</value>
         public IEnumerable<String> Channels { 
             get 
             { 
@@ -1196,24 +1253,33 @@ namespace Couchbase.Lite
         /// <summary>
         /// Gets or sets the ids of the <see cref="Couchbase.Lite.Document"/>s to replicate.
         /// </summary>
+        /// <value>The ids of the <see cref="Couchbase.Lite.Document"/>s to replicate.</value>
         public abstract IEnumerable<String> DocIds { get; set; }
 
         /// <summary>
-        /// Gets or sets the extra HTTP headers to send in <see cref="Couchbase.Lite.Replication"/> requests to the 
-        /// remote <see cref="Couchbase.Lite.Database"/>.
+        /// Gets or sets the extra HTTP headers to send in <see cref="Couchbase.Lite.Replication"/> 
+        /// requests to the remote <see cref="Couchbase.Lite.Database"/>.
         /// </summary>
+        /// <value>
+        /// the extra HTTP headers to send in <see cref="Couchbase.Lite.Replication"/> requests 
+        /// to the remote <see cref="Couchbase.Lite.Database"/>.
+        /// </value>
         public abstract IDictionary<String, String> Headers { get; set; }
 
         /// <summary>
         /// Gets the <see cref="Couchbase.Lite.Replication"/>'s current status.
         /// </summary>
+        /// <value>The <see cref="Couchbase.Lite.Replication"/>'s current status.</value>
         public ReplicationStatus Status { get; set; }
 
         /// <summary>
-        /// Gets whether the <see cref="Couchbase.Lite.Replication"/> is running.  Continuous <see cref="Couchbase.Lite.Replication"/> never actually stop, instead they go 
-        /// idle waiting for new data to appear.
+        /// Gets whether the <see cref="Couchbase.Lite.Replication"/> is running. 
+        /// Continuous <see cref="Couchbase.Lite.Replication"/>s never actually stop, 
+        /// instead they go idle waiting for new data to appear.
         /// </summary>
-        /// <value><c>true</c> if this instance is running; otherwise, <c>false</c>.</value>
+        /// <value>
+        /// <c>true</c> if <see cref="Couchbase.Lite.Replication"/> is running; otherwise, <c>false</c>.
+        /// </value>
         public Boolean IsRunning { get; protected set; }
 
         /// <summary>
@@ -1306,6 +1372,9 @@ namespace Couchbase.Lite
             }
         }
 
+        /// <summary>
+        /// Restarts the <see cref="Couchbase.Lite.Replication"/>.
+        /// </summary>
         public void Restart()
         {
             // TODO: add the "started" flag and check it here
@@ -1313,21 +1382,41 @@ namespace Couchbase.Lite
             Start();
         }
 
+        /// <summary>
+        /// Adds or Removed a <see cref="Couchbase.Lite.Database"/> change delegate 
+        /// that will be called whenever the <see cref="Couchbase.Lite.Replication"/> 
+        /// changes.
+        /// </summary>
         public event EventHandler<ReplicationChangeEventArgs> Changed;
+    }
+    #endregion
+    
+    #region EventArgs Subclasses
+
+        ///
+        /// <see cref="Couchbase.Lite.Replication"/> Change Event Arguments.
+        ///
+        public class ReplicationChangeEventArgs : EventArgs 
+        {
+            //Properties
+            /// <summary>
+            /// Gets the <see cref="Couchbase.Lite.Replication"/> that raised the event.
+            /// </summary>
+            /// <value>The <see cref="Couchbase.Lite.Replication"/> that raised the event.</value>
+            public Replication Source { get; private set; }
+
+            /// <summary>
+            /// Initializes a new instance of the <see cref="Couchbase.Lite.Replication+ReplicationChangeEventArgs"/> class.
+            /// </summary>
+            /// <param name="sender">The <see cref="Couchbase.Lite.Replication"/> that raised the event.</param>
+            public ReplicationChangeEventArgs (Replication sender)
+            {
+                Source = sender;
+            }
+        }
 
     #endregion
-    }
-
-    public class ReplicationChangeEventArgs : EventArgs 
-    {
-        //Properties
-        public Replication Source { get; private set; }
 
 
-        public ReplicationChangeEventArgs (Replication sender)
-        {
-            Source = sender;
-        }
-    }
 }
 

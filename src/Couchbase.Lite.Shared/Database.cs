@@ -59,6 +59,9 @@ using Newtonsoft.Json.Linq;
 namespace Couchbase.Lite 
 {
 
+    /// <summary>
+    /// A Couchbase Lite Database.
+    /// </summary>
     public partial class Database 
     {
 
@@ -66,7 +69,11 @@ namespace Couchbase.Lite
     
     #region Constructors
 
-        /// <summary>Constructor</summary>
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Couchbase.Lite.Database"/> class.
+        /// </summary>
+        /// <param name="path">Path.</param>
+        /// <param name="manager">Manager.</param>
         internal Database(String path, Manager manager)
         {
             Debug.Assert((path.StartsWith("/", StringComparison.InvariantCultureIgnoreCase)));
@@ -93,6 +100,11 @@ namespace Couchbase.Lite
 
     #region Static Members
         //Properties
+
+        /// <summary>
+        /// Gets or sets an object that can compile source code into <see cref="FilterDelegate"/>.
+        /// </summary>
+        /// <value>The filter compiler object.</value>
         public static CompileFilterDelegate FilterCompiler { get; set; }
 
         // "_local/*" is not a valid document ID. Local docs have their own API and shouldn't get here.
@@ -124,19 +136,22 @@ namespace Couchbase.Lite
         //Properties
 
         /// <summary>
-        /// Gets the %Database% name.
+        /// Gets the <see cref="Couchbase.Lite.Database"/> name.
         /// </summary>
+        /// <value>The database name.</value>
         public String Name { get; internal set; }
 
         /// <summary>
-        /// Gets the %Manager% that owns this %Database%.
+        /// Gets the <see cref="Couchbase.Lite.Manager"> that owns this <see cref="Couchbase.Lite.Database"/>.
         /// </summary>
+        /// <value>The manager object.</value>
         public Manager Manager { get; private set; }
 
         /// <summary>
-        /// Gets the number of %Documents% in the %Database%.
+        /// Gets the number of <see cref="Couchbase.Lite.Document"> in the <see cref="Couchbase.Lite.Database"/>.
         /// </summary>
-        // TODO: Convert this to a standard method call.
+        /// <value>The document count.</value>
+        /// TODO: Convert this to a standard method call.
         public Int32 DocumentCount 
         {
             get 
@@ -166,12 +181,13 @@ namespace Couchbase.Lite
                 return result;
             }
         }
-
+            
         /// <summary>
-        /// Gets the latest sequence number used by the %Database%.  Every new %Revision% is assigned a new sequence 
-        /// number, so this property increases monotonically as changes are made to the %Database%. This can be used to 
-        /// check whether the %Database% has changed between two points in time.
+        /// Gets the latest sequence number used by the <see cref="Couchbase.Lite.Database" />.  Every new <see cref="Couchbase.Lite.Revision" /> is assigned a new sequence 
+        /// number, so this property increases monotonically as changes are made to the <see cref="Couchbase.Lite.Database" />. This can be used to 
+        /// check whether the <see cref="Couchbase.Lite.Database" /> has changed between two points in time.
         /// </summary>
+        /// <value>The last sequence number.</value>
         public Int64 LastSequenceNumber 
         {
             get
@@ -207,8 +223,11 @@ namespace Couchbase.Lite
         }
 
         /// <summary>
-        /// Gets all the running %Replications% for this %Database%.  This includes all continuous %Replications% and 
-        /// any non-continuous %Replications% that has been started and are still running.
+        /// Gets all the running <see cref="Couchbase.Lite.Replication" />s 
+        /// for this <see cref="Couchbase.Lite.Database" />.  
+        /// This includes all continuous <see cref="Couchbase.Lite.Replication" />s and 
+        /// any non-continuous <see cref="Couchbase.Lite.Replication" />s that has been started 
+        /// and are still running.
         /// </summary>
         /// <value>All replications.</value>
         public IEnumerable<Replication> AllReplications { get { return AllReplicators; } }
@@ -216,14 +235,11 @@ namespace Couchbase.Lite
         //Methods
 
         /// <summary>
-        /// Compacts the database file by purging non-current JSON bodies, pruning revisions older than
-        /// the maxRevTreeDepth, deleting unused attachment files, and vacuuming the SQLite database.
+        /// Compacts the <see cref="Couchbase.Lite.Database" /> file by purging non-current 
+        /// <see cref="Couchbase.Lite.Revision" />s and deleting unused <see cref="Couchbase.Lite.Attachment" />s.
         /// </summary>
-        /// <remarks>
-        /// Compacts the database file by purging non-current JSON bodies, pruning revisions older than
-        /// the maxRevTreeDepth, deleting unused attachment files, and vacuuming the SQLite database.
-        /// </remarks>
-        /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
+        /// <exception cref="Couchbase.Lite.CouchbaseLiteException">thrown if an issue occurs while 
+        /// compacting the <see cref="Couchbase.Lite.Database" /></exception>
         public void Compact()
         {
             // Can't delete any rows because that would lose revision tree history.
@@ -264,9 +280,10 @@ namespace Couchbase.Lite
         }
 
         /// <summary>
-        /// Deletes the %Database%.
+        /// Deletes the <see cref="Couchbase.Lite.Database" />.
         /// </summary>
-        /// <exception cref="Couchbase.Lite.CouchbaseLiteException"/>
+        /// <exception cref="Couchbase.Lite.CouchbaseLiteException">
+        /// Thrown if an issue occurs while deleting the <see cref="Couchbase.Lite.Database" /></exception>
         public void Delete()
         {
             if (open)
@@ -314,10 +331,10 @@ namespace Couchbase.Lite
         }
 
         /// <summary>
-        /// Gets or creates the %Document% with the given id.
+        /// Gets or creates the <see cref="Couchbase.Lite.Document" /> with the given id.
         /// </summary>
-        /// <returns>The %Document%.</returns>
-        /// <param name="id">Identifier.</param>
+        /// <returns>The <see cref="Couchbase.Lite.Document" />.</returns>
+        /// <param name="id">The id of the Document to get or create.</param>
         public Document GetDocument(String id) 
         { 
             if (String.IsNullOrWhiteSpace (id)) {
@@ -339,10 +356,10 @@ namespace Couchbase.Lite
         }
 
         /// <summary>
-        /// Gets the %Document% with the given id, or null if it does not exist.
+        /// Gets the <see cref="Couchbase.Lite.Document" /> with the given id, or null if it does not exist.
         /// </summary>
-        /// <returns>The existing document.</returns>
-        /// <param name="id">Identifier.</param>
+        /// <returns>The <see cref="Couchbase.Lite.Document" /> with the given id, or null if it does not exist.</returns>
+        /// <param name="id">The id of the Document to get.</param>
         public Document GetExistingDocument(String id) 
         { 
             if (String.IsNullOrWhiteSpace (id)) {
@@ -353,9 +370,9 @@ namespace Couchbase.Lite
         }
 
         /// <summary>
-        /// Creates a %Document% with a unique id.
+        /// Creates a <see cref="Couchbase.Lite.Document" /> with a unique id.
         /// </summary>
-        /// <returns>The document.</returns>
+        /// <returns>A document with a unique id.</returns>
         public Document CreateDocument()
         { 
             return GetDocument(Misc.TDCreateUUID());
@@ -377,12 +394,13 @@ namespace Couchbase.Lite
         }
 
         /// <summary>
-        /// Sets the contents of the local %Document% with the given id.  If <param name="properties"/> is null, the 
-        /// %Document% is deleted.
+        /// Sets the contents of the local <see cref="Couchbase.Lite.Document" /> with the given id.  If <param name="properties"/> is null, the 
+        /// <see cref="Couchbase.Lite.Document" /> is deleted.
         /// </summary>
-        /// <param name="id">Identifier.</param>
-        /// <param name="properties">Properties.</param>
-        /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
+        /// <param name="id">The id of the local document whos contents to set.</param>
+        /// <param name="properties">The contents to set for the local document.</param>
+        /// <exception cref="Couchbase.Lite.CouchbaseLiteException">Thrown if an issue occurs 
+        /// while setting the contents of the local document.</exception>
         public void PutLocalDocument(String id, IDictionary<String, Object> properties) 
         { 
             // TODO: the iOS implementation wraps this in a transaction, this should do the same.
@@ -420,11 +438,11 @@ namespace Couchbase.Lite
         }
 
         /// <summary>
-        /// Deletes the local %Document% with the given id.
+        /// Deletes the local <see cref="Couchbase.Lite.Document" /> with the given id.
         /// </summary>
-        /// <returns><c>true</c>, if local %Document% was deleted, <c>false</c> otherwise.</returns>
+        /// <returns><c>true</c>, if local <see cref="Couchbase.Lite.Document" /> was deleted, <c>false</c> otherwise.</returns>
         /// <param name="id">Identifier.</param>
-        /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
+        /// <exception cref="Couchbase.Lite.CouchbaseLiteException">Thrown if there is an issue occurs while deleting the local document.</exception>
         public Boolean DeleteLocalDocument(String id) 
         {
             id = MakeLocalDocumentId(id);
@@ -440,20 +458,21 @@ namespace Couchbase.Lite
         } 
 
         /// <summary>
-        /// Creates a %Query% that matches all %Documents% in the %Database%.
+        /// Creates a <see cref="Couchbase.Lite.Query" /> that matches all <see cref="Couchbase.Lite.Document" />s in the <see cref="Couchbase.Lite.Database" />.
         /// </summary>
-        /// <returns>All documents query.</returns>
+        /// <returns>Returns a <see cref="Couchbase.Lite.Query" /> that matches all <see cref="Couchbase.Lite.Document" />s in the <see cref="Couchbase.Lite.Database" />s.</returns>
         public Query CreateAllDocumentsQuery() 
         {
             return new Query(this, (View)null);
         }
 
         /// <summary>
-        /// Gets or creates the %View% with the given name.  New %View%s won't be added to the %Database% until a 
-        /// map function is assigned.
+        /// Gets or creates the <see cref="Couchbase.Lite.View" /> with the given name.  
+        /// New <see cref="Couchbase.Lite.View" />s won't be added to the <see cref="Couchbase.Lite.Database" /> 
+        /// until a map function is assigned.
         /// </summary>
-        /// <returns>The view.</returns>
-        /// <param name="name">Name.</param>
+        /// <returns>The <see cref="Couchbase.Lite.View" /> with the given name.</returns>
+        /// <param name="name">The name of the <see cref="Couchbase.Lite.View" /> to get or create.</param>
         public View GetView(String name) 
         {
             View view = null;
@@ -472,10 +491,10 @@ namespace Couchbase.Lite
         }
 
         /// <summary>
-        /// Gets the %View% with the given name, or null if it does not exist.
+        /// Gets the <see cref="Couchbase.Lite.View" /> with the given name, or null if it does not exist.
         /// </summary>
-        /// <returns>The existing view.</returns>
-        /// <param name="name">Name.</param>
+        /// <returns>The <see cref="Couchbase.Lite.View" /> with the given name, or null if it does not exist.</returns>
+        /// <param name="name">The name of the View to get.</param>
         public View GetExistingView(String name) 
         {
             View view = null;
@@ -493,10 +512,10 @@ namespace Couchbase.Lite
         }
 
         /// <summary>
-        /// Gets the validation.
+        /// Gets the <see cref="ValidateDelegate" /> for the given name, or null if it does not exist.
         /// </summary>
-        /// <returns>The validation delegate for the given name, or null if it does not exist.</returns>
-        /// <param name="name">Name.</param>
+        /// <returns>the <see cref="ValidateDelegate" /> for the given name, or null if it does not exist.</returns>
+        /// <param name="name">The name of the validation delegate to get.</param>
         public ValidateDelegate GetValidation(String name) 
         {
             ValidateDelegate result = null;
@@ -508,17 +527,14 @@ namespace Couchbase.Lite
         }
 
         /// <summary>
-        /// Sets the validation.
-        /// </summary>
-        /// <remarks>
-        /// Sets the validation delegate for the given name.  If delegate is null, 
-        /// the validation with the given name is deleted.  Before any change 
+        /// Sets the validation delegate for the given name. If delegate is null, 
+        /// the validation with the given name is deleted. Before any change 
         /// to the <see cref="Couchbase.Lite.Database"/> is committed, including incoming changes from a pull 
         /// <see cref="Couchbase.Lite.Replication"/>, all of its validation delegates are called and given 
         /// a chance to reject it.
-        /// </remarks>
-        /// <param name="name">Name.</param>
-        /// <param name="validationDelegate">Validation delegate.</param>
+        /// </summary>
+        /// <param name="name">The name of the validation delegate to set.</param>
+        /// <param name="validationDelegate">The validation delegate to set.</param>
         public void SetValidation(String name, ValidateDelegate validationDelegate)
         {
             if (Validations == null)
@@ -531,10 +547,10 @@ namespace Couchbase.Lite
         }
 
         /// <summary>
-        /// Returns the %FilterDelegate$ for the given name, or null if it does not exist.
+        /// Returns the <see cref="ValidateDelegate" /> for the given name, or null if it does not exist.
         /// </summary>
-        /// <returns>The filter.</returns>
-        /// <param name="name">Name.</param>
+        /// <returns>The <see cref="ValidateDelegate" /> for the given name, or null if it does not exist.</returns>
+        /// <param name="name">The name of the validation delegate to get.</param>
         public FilterDelegate GetFilter(String name) 
         { 
             FilterDelegate result = null;
@@ -574,12 +590,13 @@ namespace Couchbase.Lite
         }
 
         /// <summary>
-        /// Sets the %FilterDelegate% for the given name.  If <param name="filterDelegate"/> is null, the filter 
-        /// with the given name is deleted. Before a %Revision% is replicated via a 
-        /// push %Replication%, its filter delegate is called and given a chance to exclude it from the %Replication%.
+        /// Sets the <see cref="ValidateDelegate" /> for the given name. If delegate is null, the filter 
+        /// with the given name is deleted. Before a <see cref="Couchbase.Lite.Revision" /> is replicated via a 
+        /// push <see cref="Couchbase.Lite.Replication" />, its filter delegate is called and 
+        /// given a chance to exclude it from the <see cref="Couchbase.Lite.Replication" />.
         /// </summary>
-        /// <param name="name">name.</param>
-        /// <param name="filterDelegate">Filter delegate.</param>
+        /// <param name="name">The name of the filter delegate to set.</param>
+        /// <param name="filterDelegate">The filter delegate to set.</param>
         public void SetFilter(String name, FilterDelegate filterDelegate) 
         { 
             if (Filters == null)
@@ -597,9 +614,10 @@ namespace Couchbase.Lite
         }
 
         /// <summary>
-        /// Runs the <see cref="Couchbase.Lite.RunAsyncDelegate"/>  asynchronously.
+        /// Runs the <see cref="Couchbase.Lite.RunAsyncDelegate"/> asynchronously.
         /// </summary>
-        /// <param name="runAsyncDelegate">Run async delegate.</param>
+        /// <returns>The async task.</returns>
+        /// <param name="runAsyncDelegate">The delegate to run asynchronously.</param>
         public Task RunAsync(RunAsyncDelegate runAsyncDelegate) 
         {
             return Manager
@@ -611,15 +629,12 @@ namespace Couchbase.Lite
                     ;
         }
 
-        /// <summary>Runs the block within a transaction.</summary>
-        /// <remarks>
-        /// Runs the block within a transaction. If the block returns NO, the transaction is rolled back.
-        /// Use this when performing bulk write operations like multiple inserts/updates;
-        /// it saves the overhead of multiple SQLite commits, greatly improving performance.
-        /// Does not commit the transaction if the code throws an Exception.
-        /// TODO: the iOS version has a retry loop, so there should be one here too
-        /// </remarks>
-        /// <param name="transactionDelegate"></param>
+        /// <summary>
+        /// Runs the delegate within a transaction. If the delegate returns false, 
+        /// the transaction is rolled back.
+        /// </summary>
+        /// <returns>True if the transaction was committed, otherwise false.</returns>
+        /// <param name="transactionDelegate">The delegate to run within a transaction.</param>
         public Boolean RunInTransaction(RunInTransactionDelegate transactionDelegate)
         {
             var shouldCommit = true;
@@ -644,53 +659,35 @@ namespace Couchbase.Lite
             return shouldCommit;
         }
 
+            
         /// <summary>
-        /// Creates a replication that will 'push' to a database at the given URL, or returns an existing
-        /// such replication if there already is one.
+        /// Creates a new <see cref="Couchbase.Lite.Replication"/> that will push to the target <see cref="Couchbase.Lite.Database"/> at the given url.
         /// </summary>
-        /// <remarks>
-        /// Creates a replication that will 'push' to a database at the given URL, or returns an existing
-        /// such replication if there already is one.
-        /// </remarks>
-        /// <param name="remote"></param>
-        /// <returns></returns>
-        public Replication CreatePushReplication(Uri remote)
+        /// <returns>A new <see cref="Couchbase.Lite.Replication"/> that will push to the target <see cref="Couchbase.Lite.Database"/> at the given url.</returns>
+        /// <param name="url">The url of the target Database.</param>
+        public Replication CreatePushReplication(Uri url)
         {
-            return new Pusher(this, remote, false, Manager.DefaultHttpClientFactory, Task.Factory);
+            return new Pusher(this, url, false, CouchbaseLiteHttpClientFactory.Instance, Task.Factory);
         }
 
         /// <summary>
-        /// Creates a replication that will 'pull' from a database at the given URL, or returns an existing
-        /// such replication if there already is one.
+        /// Creates a new <see cref="Couchbase.Lite.Replication"/> that will pull from the source <see cref="Couchbase.Lite.Database"/> at the given url.
         /// </summary>
-        /// <remarks>
-        /// Creates a replication that will 'pull' from a database at the given URL, or returns an existing
-        /// such replication if there already is one.
-        /// </remarks>
-        /// <param name="remote"></param>
-        /// <returns></returns>
-        public Replication CreatePullReplication(Uri remote)
+        /// <returns>A new <see cref="Couchbase.Lite.Replication"/> that will pull from the source Database at the given url.</returns>
+        /// <param name="url">The url of the source Database.</param>
+        public Replication CreatePullReplication(Uri url)
         {
-            return new Puller(this, remote, false, Manager.DefaultHttpClientFactory, Task.Factory);
+            return new Puller(this, url, false, Task.Factory);
         }
-
-        /*
-        public Replication GetPushReplication(Uri url) 
-        { 
-            return Manager.ReplicationWithDatabase(this, url, true, true, false);
-        }
-
-        public Replication GetPullReplication(Uri url) 
-        {
-            return Manager.ReplicationWithDatabase(this, url, false, true, false);
-        }
-        */
 
         public override string ToString()
         {
             return GetType().FullName + "[" + Path + "]";
         }
 
+        /// <summary>
+        /// Event handler delegate that will be called whenever a <see cref="Couchbase.Lite.Document"/> within the <see cref="Couchbase.Lite.Database"/> changes.
+        /// </summary>
         public event EventHandler<DatabaseChangeEventArgs> Changed;
 
     #endregion
@@ -4080,17 +4077,33 @@ PRAGMA user_version = 3;";
 
 
     #endregion
-    
-    #region EventArgs Subclasses
+    
+    #region EventArgs Subclasses
+
+        ///
+        /// <summary>The event raised when a <see cref="Couchbase.Lite.Database"/> changes</summary>
+        ///
         public class DatabaseChangeEventArgs : EventArgs {
+            //Properties
+            /// <summary>
+            /// Gets the <see cref="Couchbase.Lite.Database"/> that raised the event.
+            /// </summary>
+            /// <value>The <see cref="Couchbase.Lite.Database"/> that raised the event.</value>
+            public Database Source { get; internal set; }
 
-            //Properties
-            public Database Source { get; internal set; }
+            /// <summary>
+            /// Returns true if the change was not made by a Document belonging to this Database 
+            /// (e.g. it came from another process or from a pull Replication), otherwise false.
+            /// </summary>
+            /// <value>true if the change was not made by a Document belonging to this Database 
+            /// (e.g. it came from another process or from a pull Replication), otherwise false</value>
+            public Boolean IsExternal { get; internal set; }
 
-            public Boolean IsExternal { get; internal set; }
-
-            public IEnumerable<DocumentChange> Changes { get; internal set; }
-
+            /// <summary>
+            /// Gets the DocumentChange details for the Documents that caused the Database change.
+            /// </summary>
+            /// <value>The DocumentChange details for the Documents that caused the Database change.</value>
+            public IEnumerable<DocumentChange> Changes { get; internal set; }
         }
 
     #endregion
@@ -4099,16 +4112,34 @@ PRAGMA user_version = 3;";
 
     #region Global Delegates
 
-    public delegate Boolean ValidateChangeDelegate(String key, Object oldValue, Object newValue);
+    /// <summary>
+    /// A delegate that can validate a key/value change.
+    /// </summary>
+    public delegate Boolean ValidateChangeDelegate(String key, Object oldValue, Object newValue);
 
+    /// <summary>
+    /// A delegate that can be run asynchronously on a <see cref="Couchbase.Lite.Database"/>.
+    /// </summary>
     public delegate void RunAsyncDelegate(Database database);
 
+    /// <summary>
+    /// A delegate that can be used to accept/reject new <see cref="Couchbase.Lite.Revision"/>s being added to a <see cref="Couchbase.Lite.Database"/>.
+    /// </summary>
     public delegate Boolean ValidateDelegate(Revision newRevision, IValidationContext context);
 
+    /// <summary>
+    /// A delegate that can be used to include/exclude <see cref="Couchbase.Lite.Revision"/>s during push <see cref="Couchbase.Lite.Replication"/>.
+    /// </summary>
     public delegate Boolean FilterDelegate(SavedRevision revision, Dictionary<String, Object> filterParams);
 
+    /// <summary>
+    /// A delegate that can be invoked to compile source code into a <see cref="FilterDelegate"/>.
+    /// </summary>
     public delegate FilterDelegate CompileFilterDelegate(String source, String language);
 
+    /// <summary>
+    /// A delegate that can be run in a transaction on a <see cref="Couchbase.Lite.Database"/>.
+    /// </summary>
     public delegate Boolean RunInTransactionDelegate();
 
     #endregion

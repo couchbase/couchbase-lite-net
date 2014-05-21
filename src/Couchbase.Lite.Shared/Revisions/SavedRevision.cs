@@ -52,7 +52,9 @@ using Couchbase.Lite.Util;
 using System.Dynamic;
 
 namespace Couchbase.Lite {
-
+    /// <summary>
+    /// A saved Couchbase Lite <see cref="Couchbase.Lite.Document"/> <see cref="Couchbase.Lite.Revision"/>.
+    /// </summary>
     public partial class SavedRevision : Revision {
 
     #region Constructors
@@ -203,11 +205,9 @@ namespace Couchbase.Lite {
         }
 
         /// <summary>
-        /// Gets whether this <see cref="Couchbase.Lite.SavedRevision"/>'s properties are available.
+        /// Gets whether the <see cref="Couchbase.Lite.Revision"/>'s properties are available. 
+        /// Older, ancestor, <see cref="Couchbase.Lite.Revision"/>s are not guaranteed to have their properties available.
         /// </summary>
-        /// <remarks>
-        /// Older, ancestor, <see cref="Couchbase.Lite.SavedRevision"/>s are not guaranteed to have their properties available.
-        /// </remarks>
         /// <value><c>true</c> if properties available; otherwise, <c>false</c>.</value>
         public Boolean PropertiesAvailable { get { return RevisionInternal.GetProperties() != null; } }
 
@@ -218,30 +218,42 @@ namespace Couchbase.Lite {
         /// Creates a new mutable child revision whose properties and attachments are initially identical
         /// to this one's, which you can modify and then save.
         /// </remarks>
-        /// <returns>The revision.</returns>
+        /// <returns>
+        /// A new child <see cref="Couchbase.Lite.UnsavedRevision"/> whose properties and attachments 
+        /// are initially identical to this one.
+        /// </returns>
         public UnsavedRevision CreateRevision() {
             var newRevision = new UnsavedRevision(Document, this);
             return newRevision;
         }
 
-        /// <summary>Creates and saves a new revision with the given properties.</summary>
-        /// <remarks>
-        /// Creates and saves a new <see cref="Couchbase.Lite.Revision"/> with the specified properties. To succeed the specified properties must include a '_rev' property whose value maches the current %Revision's% id.
-        /// This will fail with a 412 error if the receiver is not the current revision of the document.
-        /// </remarks>
+        /// <summary>
+        /// Creates and saves a new <see cref="Couchbase.Lite.Revision"/> with the specified properties. 
+        /// To succeed the specified properties must include a '_rev' property whose value maches the current Revision's id.
+        /// </summary>
         /// <returns>
         /// The new <see cref="Couchbase.Lite.SavedRevision"/>.
         /// </returns>
-        /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
+        /// <param name="properties">
+        /// The properties to set on the new Revision.
+        /// </param>
+        /// <exception cref="Couchbase.Lite.CouchbaseLiteException">
+        /// Thrown if an error occurs while creating or saving the new <see cref="Couchbase.Lite.Revision"/>.
+        /// </exception>
         public SavedRevision CreateRevision(IDictionary<String, Object> properties) {
             return Document.PutProperties(properties, RevisionInternal.GetRevId(), allowConflict: false);           
         }
 
-        /// <summary>Deletes the document by creating a new deletion-marker revision.</summary>
-        /// <remarks>
-        /// Creates and saves a new deletion <see cref="Couchbase.Lite.Revision"/> for the associated <see cref="Couchbase.Lite.Document"/>.
-        /// </remarks>
-        /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
+        /// <summary>
+        /// Creates and saves a new deletion <see cref="Couchbase.Lite.Revision"/> 
+        /// for the associated <see cref="Couchbase.Lite.Document"/>.
+        /// </summary>
+        /// <returns>
+        /// A new deletion Revision for the associated <see cref="Couchbase.Lite.Document"/>
+        /// </returns>
+        /// <exception cref="Couchbase.Lite.CouchbaseLiteException">
+        /// Throws if an issue occurs while creating a new deletion <see cref="Couchbase.Lite.Revision"/>.
+        /// </exception>
         public SavedRevision DeleteDocument() { return CreateRevision(null); }
 
     #endregion

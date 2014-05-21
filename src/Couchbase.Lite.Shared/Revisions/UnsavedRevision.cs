@@ -51,6 +51,9 @@ using Couchbase.Lite.Util;
 
 namespace Couchbase.Lite
 {
+    /// <summary>
+    /// An unsaved Couchbase Lite Document Revision.
+    /// </summary>
     public partial class UnsavedRevision : Revision {
 
     #region Non-public Members
@@ -121,7 +124,13 @@ namespace Couchbase.Lite
     #endregion
 
     #region Instance Members
-
+        /// <summary>
+        /// Gets or sets if the <see cref="Couchbase.Lite.Revision"/> marks the deletion of its <see cref="Couchbase.Lite.Document"/>.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> if tthe <see cref="Couchbase.Lite.Revision"/> marks the deletion of its <see cref="Couchbase.Lite.Document"/>; 
+        /// otherwise, <c>false</c>.
+        /// </value>
         public new bool IsDeletion {
             get {
                 return base.IsDeletion;
@@ -180,12 +189,9 @@ namespace Couchbase.Lite
                 return null; // Once a revision is saved, it gets an id, but also becomes a new SavedRevision instance.
             }
         }
-        /// <summary>The contents of this <see cref="Couchbase.Lite.Revision"/> of the <see cref="Couchbase.Lite.Document"/>.</summary>
-        /// <remarks>
-        /// The contents of this revision of the document.
-        /// Any keys in the dictionary that begin with "_", such as "_id" and "_rev", contain CouchbaseLite metadata.
-        /// </remarks>
-        /// <returns>contents of this revision of the document.</returns>
+        /// <summary>
+        /// Gets the properties of the <see cref="Couchbase.Lite.Revision"/>.
+        /// <value>the properties of the <see cref="Couchbase.Lite.Revision"/>.</value>
         public override IDictionary<String, Object> Properties {
             get {
                 return properties;
@@ -197,13 +203,16 @@ namespace Couchbase.Lite
             properties = newProperties;
         }
 
-        /// <summary>The user-defined properties, without the ones reserved by CouchDB.</summary>
+        /// <summary>
+        /// Gets or sets the userProperties of the <see cref="Couchbase.Lite.Revision"/>.
+        /// </summary>
         /// <remarks>
-        /// Gets or sets the userProperties of the <see cref="Couchbase.Lite.Revision"/>.  Get, returns the properties 
-        /// of the <see cref="Couchbase.Lite.Revision"/> without any properties with keys prefixed with '_' (which 
-        /// contain Couchbase Lite data).  Set, replaces all properties except for those with keys prefixed with '_'.
+        /// Gets or sets the userProperties of the <see cref="Couchbase.Lite.Revision"/>. 
+        /// Get, returns the properties of the <see cref="Couchbase.Lite.Revision"/> 
+        /// without any properties with keys prefixed with '_' (which contain Couchbase Lite data). 
+        /// Set, replaces all properties except for those with keys prefixed with '_'.
         /// </remarks>
-        /// <returns>user-defined properties, without the ones reserved by CouchDB.</returns>
+        /// <value>The userProperties of the <see cref="Couchbase.Lite.Revision"/>.</value>
         public void SetUserProperties(IDictionary<String, Object> userProperties) 
         {
             var newProps = new Dictionary<String, Object>();
@@ -221,62 +230,75 @@ namespace Couchbase.Lite
         }
 
         /// <summary>
-        /// Saves the <see cref="Couchbase.Lite.UnsavedRevision"/>.  This will fail if its parent is not the current 
-        /// <see cref="Couchbase.Lite.Revision"/> of the associated <see cref="Couchbase.Lite.Document"/>.
+        /// Saves the <see cref="Couchbase.Lite.UnsavedRevision"/>. 
+        /// This will fail if its parent is not the current <see cref="Couchbase.Lite.Revision"/> 
+        /// of the associated <see cref="Couchbase.Lite.Document"/>.
         /// </summary>
-        /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
+        /// <exception cref="Couchbase.Lite.CouchbaseLiteException">
+        /// Thrown if an issue occurs while saving the <see cref="Couchbase.Lite.UnsavedRevision"/>.
+        /// </exception>
         public SavedRevision Save() { 
             return Document.PutProperties(Properties, ParentId, allowConflict: false); 
         }
 
         /// <summary>
-        /// Saves the <see cref="Couchbase.Lite.UnsavedRevision"/>.  This will fail if its parent is not the current 
-        /// <see cref="Couchbase.Lite.Revision"/> of the associated <see cref="Couchbase.Lite.Document"/>.
+        /// Saves the <see cref="Couchbase.Lite.UnsavedRevision"/>, optionally allowing 
+        /// the save when there is a conflict.
         /// </summary>
-        /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
-        /// <param name="allowConflict">Allow In Conflict</param>
+        /// <param name="allowConflict">
+        /// Whether or not to allow saving when there is a conflict.
+        /// </param>
+        /// <exception cref="Couchbase.Lite.CouchbaseLiteException">
+        /// Thrown if an issue occurs while saving the <see cref="Couchbase.Lite.UnsavedRevision"/>.
+        /// </exception>
         public SavedRevision Save(Boolean allowConflict) { return Document.PutProperties(Properties, ParentId, allowConflict); }
 
         /// <summary>
-        /// Sets the attachment.
+        /// Sets the attachment with the given name.
         /// </summary>
         /// <remarks>
-        /// Sets the attachment with the given name.  The <see cref="Couchbase.Lite.Attachment"/> data will be 
-        /// written to the <see cref="Couchbase.Lite.Database"/> when the <see cref="Couchbase.Lite.Revision"/> is saved.
+        /// Sets the <see cref="Couchbase.Lite.Attachment"/> with the given name. 
+        /// The <see cref="Couchbase.Lite.Attachment"/> data will be written to 
+        /// the <see cref="Couchbase.Lite.Database"/> when the 
+        /// <see cref="Couchbase.Lite.Revision"/> is saved.
         /// </remarks>
-        /// <param name="name">Name.</param>
-        /// <param name="contentType">Content type.</param>
-        /// <param name="content">Content URL.</param>
+        /// <param name="name">The name of the <see cref="Couchbase.Lite.Attachment"/> to set.</param>
+        /// <param name="contentType">The content-type of the <see cref="Couchbase.Lite.Attachment"/>.</param>
+        /// <param name="content">The <see cref="Couchbase.Lite.Attachment"/> content.</param>
         public void SetAttachment(String name, String contentType, IEnumerable<Byte> content) {
             var attachment = new Attachment(new MemoryStream(content.ToArray()), contentType);
             AddAttachment(attachment, name);
         }
 
         /// <summary>
-        /// Sets the attachment.
+        /// Sets the attachment with the given name.
         /// </summary>
         /// <remarks>
-        /// Sets the attachment with the given name.  The <see cref="Couchbase.Lite.Attachment"/> data will be 
-        /// written to the <see cref="Couchbase.Lite.Database"/> when the <see cref="Couchbase.Lite.Revision"/> is saved.
+        /// Sets the <see cref="Couchbase.Lite.Attachment"/> with the given name. 
+        /// The <see cref="Couchbase.Lite.Attachment"/> data will be written to 
+        /// the <see cref="Couchbase.Lite.Database"/> when the 
+        /// <see cref="Couchbase.Lite.Revision"/> is saved.
         /// </remarks>
-        /// <param name="name">Name.</param>
-        /// <param name="contentType">Content type.</param>
-        /// <param name="content">Content stream.</param>
+        /// <param name="name">The name of the <see cref="Couchbase.Lite.Attachment"/> to set.</param>
+        /// <param name="contentType">The content-type of the <see cref="Couchbase.Lite.Attachment"/>.</param>
+        /// <param name="content">The <see cref="Couchbase.Lite.Attachment"/> content.</param>
         public void SetAttachment(String name, String contentType, Stream content) {
             var attachment = new Attachment(content, contentType);
             AddAttachment(attachment, name);
         }
 
         /// <summary>
-        /// Sets the attachment.
+        /// Sets the attachment with the given name.
         /// </summary>
         /// <remarks>
-        /// Sets the attachment with the given name.  The <see cref="Couchbase.Lite.Attachment"/> data will be 
-        /// written to the <see cref="Couchbase.Lite.Database"/> when the <see cref="Couchbase.Lite.Revision"/> is saved.
+        /// Sets the <see cref="Couchbase.Lite.Attachment"/> with the given name. 
+        /// The <see cref="Couchbase.Lite.Attachment"/> data will be written to 
+        /// the <see cref="Couchbase.Lite.Database"/> when the 
+        /// <see cref="Couchbase.Lite.Revision"/> is saved.
         /// </remarks>
-        /// <param name="name">Name.</param>
-        /// <param name="contentType">Content type.</param>
-        /// <param name="contentUrl">Content URL.</param>
+        /// <param name="name">The name of the <see cref="Couchbase.Lite.Attachment"/> to set.</param>
+        /// <param name="contentType">The content-type of the <see cref="Couchbase.Lite.Attachment"/>.</param>
+        /// <param name="contentUrl">The URL of the <see cref="Couchbase.Lite.Attachment"/> content.</param>
         public void SetAttachment(String name, String contentType, Uri contentUrl) {
             try
             {
@@ -293,12 +315,18 @@ namespace Couchbase.Lite
             }
         }
 
-        /// <summary>Deletes any existing attachment with the given name.</summary>
+        /// <summary>
+        /// Removes the <see cref="Couchbase.Lite.Attachment"/> 
+        /// with the given name.
+        /// </summary>
         /// <remarks>
-        /// Deletes any existing attachment with the given name.
-        /// The attachment will be deleted from the database when the revision is saved.
+        /// Removes the <see cref="Couchbase.Lite.Attachment"/> with the given name. 
+        /// The <see cref="Couchbase.Lite.Attachment"/> will be deleted from the 
+        /// Database when the Revision is saved.
         /// </remarks>
-        /// <param name="name">The attachment name.</param>
+        /// <param name="name">
+        /// The name of the <see cref="Couchbase.Lite.Attachment"/> to delete.
+        /// </param>
         public void RemoveAttachment(String name) { AddAttachment(null, name); }
 
     #endregion

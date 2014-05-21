@@ -44,8 +44,15 @@ using System;
 
 namespace Couchbase.Lite
 {
+    /// <summary>
+    /// Option flags for Manager initialization.
+    /// </summary>
     public class ManagerOptions
 	{
+        /// <summary>
+        /// Gets the default option flags.
+        /// </summary>
+        /// <value>The default option flags.</value>
         public static ManagerOptions Default { get; private set; }
 
         static ManagerOptions()
@@ -53,7 +60,7 @@ namespace Couchbase.Lite
             Default = new ManagerOptions();
         }
 
-		/// <summary>No modifications to databases are allowed.</summary>
+        /// <summary>Gets or sets, whether changes to the database are disallowed.</summary>
         public Boolean ReadOnly { get; set; }
 	}
 }

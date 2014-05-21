@@ -49,6 +49,9 @@ using System.IO;
 
 namespace Couchbase.Lite {
     
+    /// <summary>
+    /// An enumerator for Couchbase Lite <see cref="Couchbase.Lite.View"/> <see cref="Couchbase.Lite.Query"/> results.
+    /// </summary>
     public partial class QueryEnumerator : IEnumerator<QueryRow>, IEnumerable<QueryRow>
     {
 
@@ -84,17 +87,32 @@ namespace Couchbase.Lite {
 
     #region Instance Members
         //Properties
-        public Int32 Count { get { return Rows.Count(); } }
-
-        public Int64 SequenceNumber { get; private set; }
-
-        /// <summary>True if the database has changed since the view was generated.</summary>
-        public Boolean Stale { get { return SequenceNumber < Database.GetLastSequenceNumber(); } }
 
         /// <summary>
-        /// Advances to the next QueryRow in the results, or false
-        /// if there are no more results.
+        /// Gets the number of rows in the <see cref="Couchbase.Lite.QueryEnumerator"/>.
         /// </summary>
+        /// <value>The number of rows in the <see cref="Couchbase.Lite.QueryEnumerator"/>.</value>
+        public Int32 Count { get { return Rows.Count(); } }
+
+        /// <summary>
+        /// Gets the <see cref="Couchbase.Lite.Database"/>'s sequence number at the time the View results were generated.
+        /// </summary>
+        /// <value>The sequence number.</value>
+        public Int64 SequenceNumber { get; private set; }
+
+        /// <summary>
+        /// Gets whether the <see cref="Couchbase.Lite.Database"/> has changed since 
+        /// the <see cref="Couchbase.Lite.View"/> results were generated.
+        /// </summary>
+        /// <value><c>true</c> if stale; otherwise, <c>false</c>.</value>
+        public Boolean Stale { get { return SequenceNumber < Database.GetLastSequenceNumber(); } }
+
+
+        /// <summary>
+        /// Gets the <see cref="Couchbase.Lite.QueryRow"/> at the specified index in the results.
+        /// </summary>
+        /// <returns>The <see cref="Couchbase.Lite.QueryRow"/> at the specified index in the results.</returns>
+        /// <param name="index">Index.</param>
         public QueryRow GetRow(Int32 index) {
             var row = Rows.ElementAt(index);
             row.Database = Database; // Avoid multiple enumerations by doing this here instead of the constructor.
@@ -129,13 +147,30 @@ namespace Couchbase.Lite {
 
     #region IEnumerator Implementation
 
+        /// <Docs>The collection was modified after the enumerator was instantiated.</Docs>
+        /// <attribution license="cc4" from="Microsoft" modified="false"></attribution>
+        /// <see cref="M:System.Collections.IEnumerator.MoveNext"></see>
+        /// <see cref="M:System.Collections.IEnumerator.Reset"></see>
+        /// <see cref="T:System.InvalidOperationException"></see>
+        /// <summary>
+        /// Resets the <see cref="Couchbase.Lite.QueryEnumerator"/>'s cursor position 
+        /// so that the next call to next() will return the first row.
+        /// </summary>
         public void Reset() {
             CurrentRow = -1; 
             Current = null;
         }
 
+        /// <summary>
+        /// Gets the current <see cref="Couchbase.Lite.QueryRow"/> from the results.
+        /// </summary>
+        /// <value>The current QueryRow.</value>
         public QueryRow Current { get; private set; }
 
+        /// <summary>
+        /// Gets the next <see cref="Couchbase.Lite.QueryRow"/> from the results.
+        /// </summary>
+        /// <returns><c>true</c>, if next was moved, <c>false</c> otherwise.</returns>
         public Boolean MoveNext ()
         {
             if (++CurrentRow >= Count)
@@ -146,18 +181,34 @@ namespace Couchbase.Lite {
             return true;
         }
 
+        /// <summary>
+        /// Releases all resource used by the <see cref="Couchbase.Lite.QueryEnumerator"/> object.
+        /// </summary>
+        /// <remarks>Call <see cref="Dispose"/> when you are finished using the <see cref="Couchbase.Lite.QueryEnumerator"/>. The
+        /// <see cref="Dispose"/> method leaves the <see cref="Couchbase.Lite.QueryEnumerator"/> in an unusable state.
+        /// After calling <see cref="Dispose"/>, you must release all references to the
+        /// <see cref="Couchbase.Lite.QueryEnumerator"/> so the garbage collector can reclaim the memory that the
+        /// <see cref="Couchbase.Lite.QueryEnumerator"/> was occupying.</remarks>
         public void Dispose ()
         {
             Database = null;
             Rows = null;
         }
 
+        /// <summary>
+        /// Gets the <see cref="Couchbase.Lite.QueryRow"/> from the results.
+        /// </summary>
+        /// <value>The current QueryRow.</value>
         Object IEnumerator.Current { get { return Current; } }
 
     #endregion
 
     #region IEnumerable implementation
 
+        /// <summary>
+        /// Gets the enumerator.
+        /// </summary>
+        /// <returns>The enumerator.</returns>
         public IEnumerator<QueryRow> GetEnumerator ()
         {
             return new QueryEnumerator(this);
@@ -166,7 +217,10 @@ namespace Couchbase.Lite {
         #endregion
 
         #region IEnumerable implementation
-
+        /// <summary>
+        /// Gets the enumerator.
+        /// </summary>
+        /// <returns>The enumerator.</returns>
         IEnumerator IEnumerable.GetEnumerator ()
         {
             return new QueryEnumerator(this);
