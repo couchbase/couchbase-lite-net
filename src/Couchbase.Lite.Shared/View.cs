@@ -941,11 +941,6 @@ namespace Couchbase.Lite {
 
     #endregion
     
-    #region Delegates
-        public delegate Object ReduceDelegate(IEnumerable<Object> keys, IEnumerable<Object> values, Boolean rereduce);
-
-    #endregion
-    
     }
 
     public partial interface IViewCompiler {

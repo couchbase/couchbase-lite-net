@@ -574,7 +574,7 @@ namespace Couchbase.Lite.Replicator
                 this.doneSignal = doneSignal;
             }
 
-            public void Changed(object sender, Replication.ReplicationChangeEventArgs args)
+            public void Changed(object sender, ReplicationChangeEventArgs args)
             {
                 Replication replicator = args.Source;
                 Log.D(Tag, replicator + " changed." + replicator.CompletedChangesCount + " / " + replicator.ChangesCount);

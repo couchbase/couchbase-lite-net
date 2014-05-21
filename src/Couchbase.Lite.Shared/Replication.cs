@@ -1316,23 +1316,18 @@ namespace Couchbase.Lite
         public event EventHandler<ReplicationChangeEventArgs> Changed;
 
     #endregion
-    
-    #region EventArgs Subclasses
-        public class ReplicationChangeEventArgs : EventArgs 
-        {
-            //Properties
-            public Replication Source { get; private set; }
-
-
-            public ReplicationChangeEventArgs (Replication sender)
-            {
-                Source = sender;
-            }
-        }
-
-    #endregion
-    
     }
 
+    public class ReplicationChangeEventArgs : EventArgs 
+    {
+        //Properties
+        public Replication Source { get; private set; }
+
+
+        public ReplicationChangeEventArgs (Replication sender)
+        {
+            Source = sender;
+        }
+    }
 }
 
