@@ -50,7 +50,9 @@ using Sharpen;
 
 namespace Couchbase.Lite 
 {
-
+    /// <summary>
+    /// A result row for a Couchbase Lite <see cref="Couchbase.Lite.View"/> <see cref="Couchbase.Lite.Query"/>.
+    /// </summary>
     public partial class QueryRow 
     {
 
@@ -69,8 +71,16 @@ namespace Couchbase.Lite
 
     #region Instance Members
 
+        /// <summary>
+        /// Gets the <see cref="Couchbase.Lite.Database"/> that owns the <see cref="Couchbase.Lite.QueryRow"/>'s <see cref="Couchbase.Lite.View"/>.
+        /// </summary>
+        /// <value>The <see cref="Couchbase.Lite.Database"/> that owns the <see cref="Couchbase.Lite.QueryRow"/>'s <see cref="Couchbase.Lite.View"/>.</value>
         public Database Database { get; internal set; }
 
+        /// <summary>
+        /// Gets the associated <see cref="Couchbase.Lite.Document"/>.
+        /// </summary>
+        /// <value>The <see cref="Couchbase.Lite.Document"/> associated with the <see cref="Couchbase.Lite.QueryRow"/>'s <see cref="Couchbase.Lite.View"/>.</value>
         public Document Document { 
             get         {
                 if (DocumentId == null)
@@ -84,10 +94,22 @@ namespace Couchbase.Lite
 
         }
 
+        /// <summary>
+        /// Gets the <see cref="Couchbase.Lite.QueryRow"/>'s key.
+        /// </summary>
+        /// <value>The <see cref="Couchbase.Lite.QueryRow"/>'s key.</value>
         public Object Key { get; private set; }
 
+        /// <summary>
+        /// Gets the <see cref="Couchbase.Lite.QueryRow"/>'s value.
+        /// </summary>
+        /// <value>Rhe <see cref="Couchbase.Lite.QueryRow"/>'s value.</value>
         public Object Value { get; private set; }
 
+        /// <summary>
+        /// Gets the Id of the associated <see cref="Couchbase.Lite.Document"/>.
+        /// </summary>
+        /// <value>The Id of the associated <see cref="Couchbase.Lite.Document"/>.</value>
         public String DocumentId {
             get {
                 // _documentProperties may have been 'redirected' from a different document
@@ -105,8 +127,24 @@ namespace Couchbase.Lite
             }
         }
 
+        /// <summary>
+        /// Gets the Id of the <see cref="Couchbase.Lite.Document"/> that caused the 
+        /// <see cref="Couchbase.Lite.QueryRow"/> to be emitted into the View. 
+        /// This will be the same as the documentId property, unless the map function 
+        /// caused a related <see cref="Couchbase.Lite.Document"/> to be linked by adding 
+        /// an '_id' key to the emmitted value. In this case, documentId will refer to 
+        /// the linked <see cref="Couchbase.Lite.Document"/>, while sourceDocumentId always 
+        /// refers to the original <see cref="Couchbase.Lite.Document"/>. In a reduced or grouped 
+        /// <see cref="Couchbase.Lite.Query"/>, sourceDocumentId will be null because the rows 
+        /// don't correspond to individual <see cref="Couchbase.Lite.Document"/>.
+        /// </summary>
+        /// <value>The source document identifier.</value>
         public String SourceDocumentId { get; private set; }
 
+        /// <summary>
+        /// Gets the Id of the associated <see cref="Couchbase.Lite.Revision"/>.
+        /// </summary>
+        /// <value>The Id of the associated <see cref="Couchbase.Lite.Revision"/>.</value>
         public String DocumentRevisionId {
             get {
                 string rev = null;
@@ -130,21 +168,28 @@ namespace Couchbase.Lite
             }
         }
 
+        /// <summary>
+        /// Gets the properties of the associated <see cref="Couchbase.Lite.Document"/>.
+        /// </summary>
+        /// <value>The properties of the associated <see cref="Couchbase.Lite.Document"/>.</value>
         public IDictionary<String, Object> DocumentProperties { get; private set; }
 
+        /// <summary>
+        /// Gets the sequence number of the associated <see cref="Couchbase.Lite.Revision"/>.
+        /// </summary>
+        /// <value>The sequence number.</value>
         public Int64 SequenceNumber { get; private set; }
 
         /// <summary>
-        /// Returns all conflicting revisions of the document, or nil if the
-        /// document is not in conflict.
+        /// Gets the conflicting <see cref="Couchbase.Lite.Revision"/>s of the associated <see cref="Couchbase.Lite.Document"/>. 
         /// </summary>
         /// <remarks>
-        /// Returns all conflicting revisions of the document, or nil if the
-        /// document is not in conflict.
-        /// The first object in the array will be the default "winning" revision that shadows the others.
-        /// This is only valid in an allDocuments query whose allDocsMode is set to Query.AllDocsMode.SHOW_CONFLICTS
-        /// or Query.AllDocsMode.ONLY_CONFLICTS; otherwise it returns an empty list.
+        /// Gets the conflicting <see cref="Couchbase.Lite.Revision"/>s of the associated <see cref="Couchbase.Lite.Document"/>. 
+        /// The first <see cref="Couchbase.Lite.Revision"/> in the array will be the default 'winning' <see cref="Couchbase.Lite.Revision"/> 
+        /// that shadows the <see cref="Couchbase.Lite.Revision"/>s. This is only valid in an all-documents <see cref="Couchbase.Lite.Query"/> 
+        /// whose allDocsMode is set to ShowConflicts or OnlyConflicts, otherwise it returns null.
         /// </remarks>
+        /// <returns>The conflicting <see cref="Couchbase.Lite.Revision"/>s of the associated <see cref="Couchbase.Lite.Document"/></returns>
         public IEnumerable<SavedRevision> GetConflictingRevisions()
         {
             var doc = Database.GetDocument(SourceDocumentId);

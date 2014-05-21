@@ -52,6 +52,9 @@ using Sharpen;
 
 namespace Couchbase.Lite {
 
+    /// <summary>
+    /// Provides details about a Document change.
+    /// </summary>
     public partial class DocumentChange
     {
         internal RevisionInternal AddedRevision { get; private set; }
@@ -66,16 +69,40 @@ namespace Couchbase.Lite {
     
     #region Instance Members
         //Properties
+        /// <summary>
+        /// Gets the Id of the <see cref="Couchbase.Lite.Document"/> that changed.
+        /// </summary>
+        /// <value>The Id of the <see cref="Couchbase.Lite.Document"/> that changed.</value>
         public String DocumentId { get { return AddedRevision.GetDocId(); } }
 
+        /// <summary>
+        /// Gets the Id of the new Revision.
+        /// </summary>
+        /// <value>The Id of the new Revision.</value>
         public String RevisionId { get { return AddedRevision.GetRevId(); } }
 
+        /// <summary>
+        /// Gets a value indicating whether this instance is current revision.
+        /// </summary>
+        /// <value><c>true</c> if this instance is current revision; otherwise, <c>false</c>.</value>
         public Boolean IsCurrentRevision { get { return WinningRevision != null && WinningRevision.GetRevId().Equals(AddedRevision.GetRevId()); } }
 
+        /// <summary>
+        /// Gets the winning revision.
+        /// </summary>
+        /// <value>The winning revision.</value>
         public RevisionInternal WinningRevision { get; private set; }
 
+        /// <summary>
+        /// Gets a value indicating whether this instance is conflict.
+        /// </summary>
+        /// <value><c>true</c> if this instance is conflict; otherwise, <c>false</c>.</value>
         public Boolean IsConflict { get; private set; }
 
+        /// <summary>
+        /// Gets the remote URL of the source Database from which this change was replicated.
+        /// </summary>
+        /// <value>The remote URL of the source Database from which this change was replicated.</value>
         public Uri SourceUrl { get; private set; }
 
     #endregion

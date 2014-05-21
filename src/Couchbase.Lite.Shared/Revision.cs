@@ -50,7 +50,9 @@ using Sharpen;
 
 namespace Couchbase.Lite 
 {
-
+    /// <summary>
+    /// A Couchbase Lite Document Revision.
+    /// </summary>
     public abstract partial class Revision 
     {
     
@@ -79,19 +81,30 @@ namespace Couchbase.Lite
     #endregion
 
     #region Instance Members
-        /// <summary>Get the document this is a revision of.</summary>
+        /// <summary>
+        /// Gets the <see cref="Couchbase.Lite.Document"/> that this <see cref="Couchbase.Lite.Revision"/> belongs to.
+        /// </summary>
+        /// <value>The <see cref="Couchbase.Lite.Document"/> that this <see cref="Couchbase.Lite.Revision"/> belongs to</value>
         public virtual Document Document { get; protected set; }
 
-        /// <summary>Get the revision's owning database.</summary>
+        /// <summary>
+        /// Gets the <see cref="Couchbase.Lite.Database"/> that owns the <see cref="Couchbase.Lite.Revision"/>'s 
+        /// <see cref="Couchbase.Lite.Document"/>.
+        /// </summary>
+        /// <value>The <see cref="Couchbase.Lite.Database"/> that owns the <see cref="Couchbase.Lite.Revision"/>'s 
+        /// <see cref="Couchbase.Lite.Document"/>.</value>
         public Database Database { get { return Document.Database; } }
 
-        /// <summary>Gets the Revision's id.</summary>
+        /// <summary>
+        /// Gets the <see cref="Couchbase.Lite.Revision"/>'s id.
+        /// </summary>
+        /// <value>The <see cref="Couchbase.Lite.Revision"/>'s id.</value>
         public abstract String Id { get; }
 
         /// <summary>
-        /// Does this revision mark the deletion of its document?
-        /// (In other words, does it have a "_deleted" property?)
+        /// Gets if the <see cref="Couchbase.Lite.Revision"/> marks the deletion of its <see cref="Couchbase.Lite.Document"/>.
         /// </summary>
+        /// <value><c>true</c> if the <see cref="Couchbase.Lite.Revision"/> marks the deletion; otherwise, <c>false</c>.</value>
         public virtual Boolean IsDeletion {
             get {
                 var deleted = GetProperty("_deleted");
@@ -104,20 +117,19 @@ namespace Couchbase.Lite
             }
         }
 
-        /// <summary>The contents of this revision of the document.</summary>
+        /// <summary>Gets the properties of the <see cref="Couchbase.Lite.Revision"/>.</summary>
         /// <remarks>
         /// The contents of this revision of the document.
         /// Any keys in the dictionary that begin with "_", such as "_id" and "_rev", contain CouchbaseLite metadata.
         /// </remarks>
-        /// <returns>contents of this revision of the document.</returns>
+        /// <value>The properties of the <see cref="Couchbase.Lite.Revision"/>.</value>
         public abstract IDictionary<String, Object> Properties { get; }
 
-        /// <summary>The user-defined properties, without the ones reserved by CouchDB.</summary>
-        /// <remarks>
-        /// The user-defined properties, without the ones reserved by CouchDB.
-        /// This is based on -properties, with every key whose name starts with "_" removed.
-        /// </remarks>
-        /// <returns>user-defined properties, without the ones reserved by CouchDB.</returns>
+        /// <summary>
+        /// Gets the properties of the <see cref="Couchbase.Lite.Revision"/>. 
+        /// without any properties with keys prefixed with '_' (which contain Couchbase Lite data).
+        /// </summary>
+        /// <value>The properties of the <see cref="Couchbase.Lite.Revision"/>.</value>
         public virtual IDictionary<String, Object> UserProperties { 
             get {
                 var result = new Dictionary<String, Object>();
@@ -135,13 +147,13 @@ namespace Couchbase.Lite
         /// <summary>
         /// Gets the parent <see cref="Couchbase.Lite.Revision"/>.
         /// </summary>
-        /// <value>The parent.</value>
+        /// <value>The parent <see cref="Couchbase.Lite.Revision"/>.</value>
         public abstract SavedRevision Parent { get; }
 
         /// <summary>
-        /// Gets the parent <see cref="Couchbase.Lite.Revision"/>'s Id.
+        /// Gets the parent <see cref="Couchbase.Lite.Revision"/>'s id.
         /// </summary>
-        /// <value>The parent.</value>
+        /// <value>The parent <see cref="Couchbase.Lite.Revision"/>'s id.</value>
         public abstract String ParentId { get; }
 
         /// <summary>Returns the history of this document as an array of CBLRevisions, in forward order.</summary>
@@ -149,13 +161,15 @@ namespace Couchbase.Lite
         /// Returns the history of this document as an array of CBLRevisions, in forward order.
         /// Older revisions are NOT guaranteed to have their properties available.
         /// </remarks>
-        /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
+        /// <value>The history of this document as an array of CBLRevisions, in forward order</value>
         public abstract IEnumerable<SavedRevision> RevisionHistory { get; }
 
         /// <summary>
         /// Gets the names of all the <see cref="Couchbase.Lite.Attachment"/>s.
         /// </summary>
-        /// <value>The attachment names.</value>
+        /// <value>
+        /// the names of all the <see cref="Couchbase.Lite.Attachment"/>s.
+        /// </value>
         public IEnumerable<String> AttachmentNames {
             get {
                 var attachmentMetadata = GetAttachmentMetadata();
@@ -172,7 +186,7 @@ namespace Couchbase.Lite
         /// <summary>
         /// Gets all the <see cref="Couchbase.Lite.Attachment"/>s.
         /// </summary>
-        /// <value>The attachments.</value>
+        /// <value>All the <see cref="Couchbase.Lite.Attachment"/>s.</value>
         public IEnumerable<Attachment> Attachments {
             get {
                 var result = new AList<Attachment>();
@@ -186,10 +200,10 @@ namespace Couchbase.Lite
         }
 
         /// <summary>
-        /// Gets the value of the property with the specified key.
+        /// Returns the value of the property with the specified key.
         /// </summary>
-        /// <returns>The value for the named property.</returns>
-        /// <param name="key">The name of the desired property.</param>
+        /// <returns>The value of the property with the specified key.</returns>
+        /// <param name="key">The key of the property value to return.</param>
         public Object GetProperty(String key) {
             return Properties.Get(key);
         }
@@ -197,8 +211,8 @@ namespace Couchbase.Lite
         /// <summary>
         /// Returns the <see cref="Couchbase.Lite.Attachment"/> with the specified name if it exists, otherwise null.
         /// </summary>
-        /// <returns>The attachment.</returns>
-        /// <param name="name">Name.</param>
+        /// <returns>The <see cref="Couchbase.Lite.Attachment"/> with the specified name if it exists, otherwise null.</returns>
+        /// <param name="name">The name of the <see cref="Couchbase.Lite.Attachment"/> to return.</param>
         public Attachment GetAttachment(String name) {
             var attachmentsMetadata = GetAttachmentMetadata();
             if (attachmentsMetadata == null)

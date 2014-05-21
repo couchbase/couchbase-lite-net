@@ -41,35 +41,53 @@
 //
 
 using System;
-using System.Linq;
-using System.Collections;
 using System.Collections.Generic;
-using System.Net;
-using System.IO;
-using Sharpen;
-using Couchbase.Lite.Util;
-using Couchbase.Lite.Storage;
-using Couchbase.Lite.Internal;
 using Couchbase.Lite;
 
 namespace Couchbase.Lite {
 
+    /// <summary>
+    /// Context passed to a <see cref="Couchbase.Lite.ValidateDelegate"/>.
+    /// </summary>
     public partial interface IValidationContext {
 
     #region Instance Members
         //Properties
+        /// <summary>
+        /// Gets the current <see cref="Couchbase.Lite.Revision"/> of the <see cref="Couchbase.Lite.Document"/>, 
+        /// or null if this is a new <see cref="Couchbase.Lite.Document"/>.
+        /// </summary>
+        /// <value>The current revision.</value>
         SavedRevision CurrentRevision { get; }
 
+        /// <summary>
+        /// Gets the keys whose values have changed between the current and new <see cref="Couchbase.Lite.Revision"/>s.
+        /// </summary>
+        /// <value>The changed keys.</value>
         IEnumerable<String> ChangedKeys { get; }
 
         //Methods
+        /// <summary>
+        /// Rejects the new <see cref="Couchbase.Lite.Revision"/>.
+        /// </summary>
         void Reject();
 
+        /// <summary>
+        /// Rejects the new <see cref="Couchbase.Lite.Revision"/>. The specified message will be included with 
+        /// the resulting error.
+        /// </summary>
+        /// <param name="message">The message to include with the resulting error.</param>
         void Reject(String message);
 
+        /// <summary>
+        /// Calls the ValidateChangeDelegate for each key/value that has changed, passing both the old and new values. 
+        /// If any delegate call returns false, the enumeration stops and false is returned, otherwise true is returned.
+        /// </summary>
+        /// <returns><c>false</c> if any call to the ValidateChangeDelegate, otherwise <c>true</c>.</returns>
+        /// <param name="changeValidator">The delegate to use to validate each change.</param>
         Boolean ValidateChanges(ValidateChangeDelegate changeValidator);
-
     #endregion
+
     }
 
 }

@@ -62,6 +62,10 @@ namespace Couchbase.Lite {
         ASCII
     }
 
+    /// <summary>
+    /// A Couchbase Lite <see cref="Couchbase.Lite.View"/>. 
+    /// A <see cref="Couchbase.Lite.View"/> defines a persistent index managed by map/reduce.
+    /// </summary>
     public partial class View {
 
     #region Constructors
@@ -81,7 +85,7 @@ namespace Couchbase.Lite {
         /// <summary>
         /// Gets or sets an object that can compile source code into map and reduce delegates.
         /// </summary>
-        /// <value>The compiler.</value>
+        /// <value>The compiler object.</value>
         public static IViewCompiler Compiler { get; set; }
 
     #endregion
@@ -737,13 +741,18 @@ namespace Couchbase.Lite {
     #endregion
 
     #region Instance Members
-        /// <summary>Get the <see cref="Couchbase.Lite.Database"/> that owns this <see cref="Couchbase.Lite.View"/>.</summary>
+        /// <summary>
+        /// Get the <see cref="Couchbase.Lite.Database"/> that owns the <see cref="Couchbase.Lite.View"/>.
+        /// </summary>
+        /// <value>
+        /// The <see cref="Couchbase.Lite.Database"/> that owns the <see cref="Couchbase.Lite.View"/>.
+        /// </value>
         public Database Database { get; private set; }
 
         /// <summary>
         /// Gets the <see cref="Couchbase.Lite.View"/>'s name.
         /// </summary>
-        /// <value>The name.</value>
+        /// <value>the <see cref="Couchbase.Lite.View"/>'s name.</value>
         public String Name { get; private set; }
 
         /// <summary>
@@ -767,7 +776,7 @@ namespace Couchbase.Lite {
         /// <summary>
         /// Gets the last sequence number indexed so far.
         /// </summary>
-        /// <value>The last sequence indexed.</value>
+        /// <value>The last sequence number indexed.</value>
         public Int64 LastSequenceIndexed { 
             get {
                 var sql = "SELECT lastSequence FROM views WHERE name=@";
@@ -797,19 +806,30 @@ namespace Couchbase.Lite {
             }
         }
 
-        /// <summary>Defines the <see cref="Couchbase.Lite.View"/>'s <see cref="Couchbase.Lite.MapDelegate"/> and sets 
-        /// its <see cref="Couchbase.Lite.ReduceDelegate"/> to null.</summary>
+        /// <summary>
+        /// Defines the <see cref="Couchbase.Lite.View"/>'s <see cref="Couchbase.Lite.MapDelegate"/> and sets 
+        /// its <see cref="Couchbase.Lite.ReduceDelegate"/> to null.
+        /// </summary>
         /// <returns>
-        /// True if the <see cref="Couchbase.Lite.MapDelegate"/> was set, otherwise false.  If the values provided are 
+        /// True if the <see cref="Couchbase.Lite.MapDelegate"/> was set, otherwise false. If the values provided are 
         /// identical to the values that are already set, then the values will not be updated and false will be returned.  
         /// In addition, if true is returned, the index was deleted and will be rebuilt on the next 
         /// <see cref="Couchbase.Lite.Query"/> execution.
         /// </returns>
+        /// <param name="mapDelegate">The <see cref="Couchbase.Lite.MapDelegate"/> to set</param>
+        /// <param name="version">
+        /// The key of the property value to return. The value of this parameter must change when 
+        /// the <see cref="Couchbase.Lite.MapDelegate"/> is changed in a way that will cause it to 
+        /// produce different results.
+        /// </param>
         public Boolean SetMap(MapDelegate mapDelegate, String version) {
             return SetMapReduce(mapDelegate, null, version);
         }
 
-        /// <summary>Defines a view's functions.</summary>
+        /// <summary>
+        /// Defines the View's <see cref="Couchbase.Lite.MapDelegate"/> 
+        /// and <see cref="Couchbase.Lite.ReduceDelegate"/>.
+        /// </summary>
         /// <remarks>
         /// Defines a view's functions.
         /// The view's definition is given as a class that conforms to the Mapper or
@@ -828,6 +848,21 @@ namespace Couchbase.Lite {
         /// multiple threads simultaneously. This won't be a problem if the code is "pure" as
         /// described above, since it will as a consequence also be thread-safe.
         /// </remarks>
+        /// <returns>
+        /// <c>true</c> if the <see cref="Couchbase.Lite.MapDelegate"/> 
+        /// and <see cref="Couchbase.Lite.ReduceDelegate"/> were set, otherwise <c>false</c>.
+        /// If the values provided are identical to the values that are already set, 
+        /// then the values will not be updated and <c>false</c> will be returned. 
+        /// In addition, if <c>true</c> is returned, the index was deleted and 
+        /// will be rebuilt on the next <see cref="Couchbase.Lite.Query"/> execution.
+        /// </returns>
+        /// <param name="map">The <see cref="Couchbase.Lite.MapDelegate"/> to set.</param>
+        /// <param name="reduce">The <see cref="Couchbase.Lite.ReduceDelegate"/> to set.</param>
+        /// <param name="version">
+        /// The key of the property value to return. The value of this parameter must change 
+        /// when the <see cref="Couchbase.Lite.MapDelegate"/> and/or <see cref="Couchbase.Lite.ReduceDelegate"/> 
+        /// are changed in a way that will cause them to produce different results.
+        /// </param>
         public Boolean SetMapReduce(MapDelegate map, ReduceDelegate reduce, String version) { 
             System.Diagnostics.Debug.Assert(map != null);
             System.Diagnostics.Debug.Assert(version != null); // String.Empty is valid.
@@ -889,7 +924,8 @@ namespace Couchbase.Lite {
         }
 
         /// <summary>
-        /// Deletes the <see cref="Couchbase.Lite.View"/>'s persistent index.  The index is regenerated on the next <see cref="Couchbase.Lite.Query"/> execution.
+        /// Deletes the <see cref="Couchbase.Lite.View"/>'s persistent index. 
+        /// The index is regenerated on the next <see cref="Couchbase.Lite.Query"/> execution.
         /// </summary>
         public void DeleteIndex()
         {
@@ -934,7 +970,7 @@ namespace Couchbase.Lite {
         /// <summary>
         /// Creates a new <see cref="Couchbase.Lite.Query"/> for this view.
         /// </summary>
-        /// <returns>The query.</returns>
+        /// <returns>A new <see cref="Couchbase.Lite.Query"/> for this view.</returns>
         public Query CreateQuery() {
             return new Query(Database, this);
         }
@@ -943,12 +979,27 @@ namespace Couchbase.Lite {
     
     }
 
+    /// <summary>
+    /// An object that can be used to compile source code into map and reduce delegates.
+    /// </summary>
     public partial interface IViewCompiler {
 
     #region Instance Members
         //Methods
+        /// <summary>
+        /// Compiles source code into a <see cref="Couchbase.Lite.MapDelegate"/>.
+        /// </summary>
+        /// <returns>A compiled <see cref="Couchbase.Lite.MapDelegate"/>.</returns>
+        /// <param name="source">The source code to compile into a <see cref="Couchbase.Lite.MapDelegate"/>.</param>
+        /// <param name="language">The language of the source.</param>
         MapDelegate CompileMap(String source, String language);
 
+        /// <summary>
+        /// Compiles source code into a <see cref="Couchbase.Lite.ReduceDelegate"/>.
+        /// </summary>
+        /// <returns>A compiled <see cref="Couchbase.Lite.ReduceDelegate"/>.</returns>
+        /// <param name="source">The source code to compile into a <see cref="Couchbase.Lite.ReduceDelegate"/>.</param>
+        /// <param name="language">The language of the source.</param>
         ReduceDelegate CompileReduce(String source, String language);
 
     #endregion
@@ -957,10 +1008,28 @@ namespace Couchbase.Lite {
 
     #region Global Delegates
 
+    /// <summary>
+    /// A delegate that is invoked when a <see cref="Couchbase.Lite.Document"/> 
+    /// is being added to a <see cref="Couchbase.Lite.View"/>.
+    /// </summary>
+    /// <param name="document">The <see cref="Couchbase.Lite.Document"/> being mapped.</param>
+    /// <param name="emit">The delegate to use to add key/values to the <see cref="Couchbase.Lite.View"/>.</param>
     public delegate void MapDelegate(IDictionary<String, Object> document, EmitDelegate emit);
         
+    /// <summary>
+    /// A delegate that can be invoked to add key/values to a <see cref="Couchbase.Lite.View"/> 
+    /// during a <see cref="Couchbase.Lite.MapDelegate"/> call.
+    /// </summary>
+    /// <param name="key">The key.</param>
+    /// <param name="value">The value.</param>
     public delegate void EmitDelegate(Object key, Object value);
         
+    /// <summary>
+    /// A delegate that can be invoked to summarize the results of a <see cref="Couchbase.Lite.View"/>.
+    /// </summary>
+    /// <param name="keys">A list of keys to be reduced, or null if this is a rereduce.</param>
+    /// <param name="values">A parallel array of values to be reduced, corresponding 1-to-1 with the keys.</param>
+    /// <param name="reduce"><c>true</c> if the input values are the results of previous reductions, otherwise <c>false</c>.</param>
     public delegate Object ReduceDelegate(IEnumerable<Object> keys, IEnumerable<Object> values, Boolean rereduce);
 
     #endregion
