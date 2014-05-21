@@ -131,10 +131,6 @@ namespace Couchbase.Lite.iOS
                 throw new CouchbaseLiteException("Could not delete one or more docuements.");
 
             var paths = indexPaths.ToArray();
-           
-            // TODO: Should we update Rows here or let ReloadFromQuery() does when getting LiveQueryUpdate
-            //var indexSet = paths.Select(ip => ip.Row);
-            //Rows = (QueryEnumerator)Rows.Where((qr, index) => !indexSet.Contains(index));
 
             TableView.DeleteRows(paths, UITableViewRowAnimation.Fade);
 

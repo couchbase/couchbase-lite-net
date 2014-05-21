@@ -216,21 +216,21 @@ namespace CouchbaseSample
     #endregion
     #region CRUD Operations
 
-    IEnumerable<Document> CheckedDocuments {
-            get {
-                var docs = new List<Document> ();
-                var q = Datasource.Rows;
-                foreach (var row in Datasource.Rows) {
-                        var doc = row.Document;
-                        object val;
-                   
-                        if (doc.Properties.TryGetValue (CheckboxPropertyName, out val) && ((bool)val))
-                            docs.Add (doc);            
-                   
-                }
-                return docs;
+    IEnumerable<Document> CheckedDocuments 
+    {
+        get 
+        {
+            var docs = new List<Document> ();
+            foreach (var row in Datasource.Rows) 
+            {
+                var doc = row.Document;
+                object val;
+           
+                if (doc.Properties.TryGetValue (CheckboxPropertyName, out val) && ((bool)val))
+                    docs.Add (doc);
             }
-
+            return docs;
+        }
     }
 
     void AddNewItem (object sender, EventArgs args)
