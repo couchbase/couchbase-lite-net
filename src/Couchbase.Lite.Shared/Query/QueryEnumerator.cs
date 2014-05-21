@@ -59,6 +59,8 @@ namespace Couchbase.Lite {
             Database = rows.Database;
             Rows = rows.Rows;
             SequenceNumber = rows.SequenceNumber;
+
+            Reset();
         }
 
         internal QueryEnumerator (Database database, IEnumerable<QueryRow> rows, Int64 lastSequence)
