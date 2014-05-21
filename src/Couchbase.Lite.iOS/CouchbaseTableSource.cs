@@ -13,7 +13,16 @@ namespace Couchbase.Lite.iOS
         public event EventHandler<ReloadEventArgs> WillReload;
         public event EventHandler<ReloadEventArgs> Reload;
 
-        public virtual LiveQuery Query { get; set; }
+        LiveQuery query;
+        public virtual LiveQuery Query {
+            get { return query; }
+            set {
+                if (query == value) return;
+
+                query = value;
+                query.Changed += async (sender, e) => ReloadFromQuery();
+            }
+        }
 
         public virtual Boolean DeletionAllowed { get; set; }
 
@@ -171,13 +180,13 @@ namespace Couchbase.Lite.iOS
             if (tableDelegate != null)
                 cell = tableDelegate.CellForRowAtIndexPath(this, indexPath);
 
-            if (cell != null) {
+            if (cell == null) {
                 // ...if it doesn't, create a cell for it:
-                cell = TableView.DequeueReusableCell(identifier: @"CBLUITableDelegate");
-                if (cell != null)
+                cell = TableView.DequeueReusableCell(identifier: @"CouchBaseTableDelegate");
+                if (cell == null)
                     cell = new UITableViewCell(
                         style: UITableViewCellStyle.Default,
-                        reuseIdentifier: @"CBLUITableDelegate"
+                        reuseIdentifier: @"CouchBaseTableDelegate"
                     );
 
                 var row = RowAtIndex(indexPath.Row);

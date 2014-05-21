@@ -160,7 +160,7 @@ namespace Couchbase.Lite {
 
         public IEnumerator<QueryRow> GetEnumerator ()
         {
-            return this;
+            return new QueryEnumerator(this);
         }
 
         #endregion
@@ -169,7 +169,7 @@ namespace Couchbase.Lite {
 
         IEnumerator IEnumerable.GetEnumerator ()
         {
-            return this;
+            return new QueryEnumerator(this);
         }
 
     #endregion

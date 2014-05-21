@@ -8,6 +8,7 @@ using System.Diagnostics;
 using MonoTouch.CoreGraphics;
 using System.Drawing;
 using Couchbase.Lite;
+using Newtonsoft.Json.Linq;
 
 namespace CouchbaseSample
 {
@@ -17,8 +18,8 @@ namespace CouchbaseSample
     private  const string DefaultViewName = "byDate";
     private  const string DocumentDisplayPropertyName = "text";
     internal const string CheckboxPropertyName = "check";
-    internal static readonly String CreationDatePropertyName = (NSString)"created_at";
-    internal static readonly String DeletedKey = (NSString)"_deleted";
+    internal const String CreationDatePropertyName = "created_at";
+    internal const String DeletedKey = "_deleted";
     Boolean showingSyncButton;
     Replication pull;
     Replication push;
@@ -150,7 +151,7 @@ namespace CouchbaseSample
     void InitializeCouchbaseSummaryView ()
     {
 
-        var view = Database.GetView ("Done");
+        var view = Database.GetExistingView ("Done");
 
         var mapBlock = new MapDelegate ((doc, emit) => 
                 {
@@ -167,7 +168,9 @@ namespace CouchbaseSample
 
         var reduceBlock = new ReduceDelegate ((keys, values, rereduce) => 
                 {
-                    var key = keys.Sum(data => 1 - (int)keys.ElementAt(0));
+                    var key = keys.Sum(data => 
+                        1 - (int)(((JArray)data)[0])
+                    );
 
                     var result = new Dictionary<string,string>
                     {
@@ -183,15 +186,17 @@ namespace CouchbaseSample
 
     void InitializeDatasource ()
     {
-            var view = Database.GetView (DefaultViewName);
+            var view = Database.GetExistingView(DefaultViewName) ?? Database.GetView (DefaultViewName);
 
             var query = view.CreateQuery().ToLiveQuery();
             query.Descending = true;
 
             Datasource.Query = query;
             Datasource.LabelProperty = DocumentDisplayPropertyName; // Document property to display in the cell label
+            Datasource.Query.Start();
 
-            DoneQuery = Database.GetView ("Done").CreateQuery().ToLiveQuery();
+            var doneView = Database.GetExistingView("Done") ?? Database.GetView ("Done");
+            DoneQuery = doneView.CreateQuery().ToLiveQuery();
             DoneQuery.Changed += (sender, e) => {
                     String val;
                     var label = TableView.TableHeaderView as UILabel;
@@ -206,6 +211,7 @@ namespace CouchbaseSample
                     }
                     label.Text = val;
                 };
+            DoneQuery.Start();
     }
     #endregion
     #region CRUD Operations
@@ -241,10 +247,8 @@ namespace CouchbaseSample
         var result = doc.PutProperties (vals);
         if (result == null)
             throw new ApplicationException ("failed to save a new document");
-
-        var docContent = doc.Properties;
-        docContent["check"] = false;
-
+        
+       
         EntryField.Text = null;
     }
 
