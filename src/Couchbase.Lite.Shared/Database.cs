@@ -2136,7 +2136,7 @@ PRAGMA user_version = 3;";
                 }
                 else
                 {
-                    Attachment result = new Attachment(contentStream, cursor.GetString(1));
+                    var result = new Attachment(contentStream, cursor.GetString(1));
                     result.Compressed = Attachments.IsGZipped(key);
                     return result;
                 }

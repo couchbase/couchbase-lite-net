@@ -890,7 +890,7 @@ namespace Couchbase.Lite
             db.SetValidation("val", (p1, p2) => true);
 
             var view = db.GetView("view");
-            var ok = view.SetMapReduce((p1, p2)=>{ return; }, (a, b, c) => { return null; }, null);
+            var ok = view.SetMapReduce((p1, p2)=>{ return; }, (a, b, c) => { return null; }, "1");
 
             Assert.IsNotNull(ok, "Couldn't set map/reduce");
 

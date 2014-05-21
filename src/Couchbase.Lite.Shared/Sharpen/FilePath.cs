@@ -130,7 +130,7 @@ namespace Sharpen
 		public bool CreateNewFile ()
 		{
 			try {
-				File.Open (path, FileMode.CreateNew).Close ();
+                File.Open (path, FileMode.CreateNew).Close ();
 				return true;
 			} catch {
 				return false;

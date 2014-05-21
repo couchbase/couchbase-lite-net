@@ -64,9 +64,9 @@ namespace Sharpen
 		{
 			try {
 				if (append) {
-					base.Wrapped = File.Open (file, System.IO.FileMode.Append, FileAccess.Write);
+                    base.Wrapped = File.Open (file, System.IO.FileMode.Append, FileAccess.Write, FileShare.Write);
 				} else {
-					base.Wrapped = File.Open (file, System.IO.FileMode.Create, FileAccess.Write);
+                    base.Wrapped = File.Open (file, System.IO.FileMode.Create, FileAccess.ReadWrite, FileShare.ReadWrite);
 				}
 			} catch (DirectoryNotFoundException) {
 				throw new FileNotFoundException ("File not found: " + file);
