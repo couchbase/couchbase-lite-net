@@ -70,10 +70,10 @@ namespace Couchbase.Lite
 
 		protected internal string DefaultTestDb = "cblitetest";
 
-        [TestFixtureSetUp]
-        protected void Init()
-        {
-        }
+//        [TestFixtureSetUp]
+//        protected void Init()
+//        {
+//        }
 
         [SetUp]
 		protected void SetUp()

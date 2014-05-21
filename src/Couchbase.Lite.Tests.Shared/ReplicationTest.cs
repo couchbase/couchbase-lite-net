@@ -67,6 +67,12 @@ namespace Couchbase.Lite.Replicator
 	{
         public const string Tag = "ReplicationTest";
 
+        [SetUp]
+        public void Setup()
+        {
+            Log.V(Tag, "------");
+        }
+
 		/// <exception cref="System.Exception"></exception>
         [Test]
 		public void TestPusher()

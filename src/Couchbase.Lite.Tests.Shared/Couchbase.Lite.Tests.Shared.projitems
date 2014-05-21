@@ -11,7 +11,6 @@
   <ItemGroup>
     <Compile Include="$(MSBuildThisFileDirectory)ApiTest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)AttachmentsTest.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)AuthTest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Base64Test.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)BlobStoreWriterTest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)CRUDOperationsTest.cs" />

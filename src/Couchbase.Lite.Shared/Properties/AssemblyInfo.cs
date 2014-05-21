@@ -61,3 +61,4 @@ using System.Runtime.CompilerServices;
 //[assembly: AssemblyKeyFile("")]
 [assembly: InternalsVisibleTo("Couchbase.Lite.Tests")]
 [assembly: InternalsVisibleTo("Couchbase.Lite.Android.Tests")]
+[assembly: InternalsVisibleTo("CouchbaseLiteiOSTests")]
