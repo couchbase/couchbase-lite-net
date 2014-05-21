@@ -178,7 +178,7 @@ namespace Couchbase.Lite
 			{
 				try
 				{
-                    return new FileStream(file, FileMode.Open, FileAccess.Read);
+                    return new FileStream(file, FileMode.Open, FileAccess.ReadWrite, FileShare.ReadWrite);
 				}
 				catch (FileNotFoundException e)
 				{
@@ -372,9 +372,9 @@ namespace Couchbase.Lite
 
 		public bool IsGZipped(BlobKey key)
 		{
-			int magic = 0;
-			string path = PathForKey(key);
-			FilePath file = new FilePath(path);
+			var magic = 0;
+			var path = PathForKey(key);
+			var file = new FilePath(path);
 			if (file.CanRead())
 			{
 				try

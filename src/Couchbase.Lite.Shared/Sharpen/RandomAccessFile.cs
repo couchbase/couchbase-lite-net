@@ -57,9 +57,9 @@ namespace Sharpen
 		public RandomAccessFile (string file, string mode)
 		{
 			if (mode.IndexOf ('w') != -1)
-				stream = new FileStream (file, System.IO.FileMode.OpenOrCreate, FileAccess.ReadWrite);
+                stream = new FileStream (file, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.ReadWrite);
 			else
-                stream = new FileStream (file, System.IO.FileMode.Open, FileAccess.Read, FileShare.Read);
+                stream = new FileStream (file, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
 		}
 
 		public void Close ()
