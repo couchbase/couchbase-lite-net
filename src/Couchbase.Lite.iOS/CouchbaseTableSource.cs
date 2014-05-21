@@ -66,13 +66,16 @@ namespace Couchbase.Lite.iOS
                 var args = new ReloadEventArgs(Query, oldRows);
                 evt(this, args);
             } else {
-                TableView.ReloadData();
+                UIApplication.SharedApplication.InvokeOnMainThread(
+                    new NSAction(() => {
+                        TableView.ReloadData();
+                    }));
             }
         }
 
         public virtual QueryRow RowAtIndex (int index)
         {
-            return Rows.ElementAt(index);
+            return Rows.GetRow(index);
         }
 
         public virtual NSIndexPath IndexPathForDocument (Document document)
@@ -91,7 +94,9 @@ namespace Couchbase.Lite.iOS
         public virtual QueryRow RowAtIndexPath (NSIndexPath path)
         {
             if (path.Section == 0)
-                return Rows.ElementAt(path.Row);
+            {
+                return Rows.GetRow(path.Row);
+            }
             return null;
         }
 
@@ -116,7 +121,7 @@ namespace Couchbase.Lite.iOS
         {
             var result = Query.Database.RunInTransaction(()=>{
                 foreach(var doc in documents) {
-                    if (doc.CurrentRevision.DeleteDocument() != null)
+                    if (doc.CurrentRevision.DeleteDocument() == null)
                         return false;
                 }
                 return true;
@@ -126,9 +131,10 @@ namespace Couchbase.Lite.iOS
                 throw new CouchbaseLiteException("Could not delete one or more docuements.");
 
             var paths = indexPaths.ToArray();
-            var indexSet = paths.Select(ip => ip.Row);
-
-            Rows = (QueryEnumerator)Rows.Where((qr, index) => !indexSet.Contains(index));
+           
+            // TODO: Should we update Rows here or let ReloadFromQuery() does when getting LiveQueryUpdate
+            //var indexSet = paths.Select(ip => ip.Row);
+            //Rows = (QueryEnumerator)Rows.Where((qr, index) => !indexSet.Contains(index));
 
             TableView.DeleteRows(paths, UITableViewRowAnimation.Fade);
 
@@ -202,7 +208,8 @@ namespace Couchbase.Lite.iOS
 
         public override int RowsInSection (UITableView tableView, int section)
         {
-            return Rows != null ? Rows.Count() : 0;
+            var rows = Rows != null ? Rows.Count : 0;
+            return rows;
         }
 
         public virtual string LabelProperty { get; set; }

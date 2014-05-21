@@ -45,8 +45,8 @@ namespace CouchbaseSample
     {
       base.ViewDidLoad ();
 
-      var addButton = new UIBarButtonItem ("Clean", UIBarButtonItemStyle.Plain, DeleteCheckedItems);
-      NavigationItem.RightBarButtonItem = addButton;
+      var cleanButton = new UIBarButtonItem ("Clean", UIBarButtonItemStyle.Plain, DeleteCheckedItems);
+      NavigationItem.RightBarButtonItem = cleanButton;
 
       ShowSyncButton ();
 
@@ -150,10 +150,9 @@ namespace CouchbaseSample
 
     void InitializeCouchbaseSummaryView ()
     {
-
-        var view = Database.GetExistingView ("Done");
-
-        var mapBlock = new MapDelegate ((doc, emit) => 
+            var view = Database.GetExistingView("Done") ?? Database.GetView ("Done");
+                
+            var mapBlock = new MapDelegate ((doc, emit) => 
                 {
                     object date;
                     doc.TryGetValue (CreationDatePropertyName, out date);
@@ -166,7 +165,8 @@ namespace CouchbaseSample
                     }
                 });
 
-        var reduceBlock = new ReduceDelegate ((keys, values, rereduce) => 
+        
+            var reduceBlock = new ReduceDelegate ((keys, values, rereduce) => 
                 {
                     var key = keys.Sum(data => 
                         1 - (int)(((JArray)data)[0])
@@ -215,19 +215,22 @@ namespace CouchbaseSample
     }
     #endregion
     #region CRUD Operations
+
     IEnumerable<Document> CheckedDocuments {
-      get {
-
-        var docs = new List<Document> ();
-            foreach (var row in Datasource.Rows) {
-                var doc = row.Document;
-                object val;
-
-                if (doc.Properties.TryGetValue (CheckboxPropertyName, out val) && ((bool)val))
-                    docs.Add (doc);            
+            get {
+                var docs = new List<Document> ();
+                var q = Datasource.Rows;
+                foreach (var row in Datasource.Rows) {
+                        var doc = row.Document;
+                        object val;
+                   
+                        if (doc.Properties.TryGetValue (CheckboxPropertyName, out val) && ((bool)val))
+                            docs.Add (doc);            
+                   
+                }
+                return docs;
             }
-        return docs;
-      }
+
     }
 
     void AddNewItem (object sender, EventArgs args)
@@ -254,7 +257,7 @@ namespace CouchbaseSample
 
     void DeleteCheckedItems (object sender, EventArgs args)
     {
-      var numChecked = CheckedDocuments.Count ();
+      var numChecked = CheckedDocuments.Count();
       if (numChecked == 0)
         return;
 
