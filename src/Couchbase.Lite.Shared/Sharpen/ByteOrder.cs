@@ -45,7 +45,7 @@ namespace Sharpen
 {
 	using System;
 
-	public enum ByteOrder
+    internal enum ByteOrder
 	{
 		BIG_ENDIAN,
 		LITTLE_ENDIAN

@@ -45,7 +45,7 @@ namespace Sharpen
 {
 	using System;
 
-	public enum TimeUnit : long
+    internal enum TimeUnit : long
 	{
         Milliseconds = 1,
         Seconds = 1000
