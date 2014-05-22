@@ -1,5 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="hello">Hello World, Click Me!</string>
     <string name="app_name">SimpleAndroidSync</string>
+    <string name="config_header">Simple Android Sync is powered by Couchbase Lite. Your item list can be synchronized with any compatible sync server. Multiple devices can be synchronized with the same server database, keeping them in constant sync.</string>
+    <string name="config_instruction1">SyncGateway Url:</string>
+    <string name="config_instruction2">Leave blank for no synchronization.</string>
 </resources>

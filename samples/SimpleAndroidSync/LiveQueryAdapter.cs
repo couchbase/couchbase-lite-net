@@ -21,6 +21,7 @@
 
 using Android.App;
 using Android.Content;
+using Android.Views;
 using Android.Widget;
 using Couchbase.Lite;
 using Sharpen;
@@ -30,44 +31,42 @@ using JObject = Java.Lang.Object;
 using CBDocument = Couchbase.Lite.Document;
 using Java.Lang.Annotation;
 
-
-using Android.Views;
-
 namespace CouchbaseSample.Android.Helper
 {
-    public class LiveQueryAdapter : BaseAdapter<CBDocument>
+    public class LiveQueryAdapter : BaseAdapter <CBDocument>
 	{
 		private LiveQuery query;
 
 		private QueryEnumerator enumerator;
 
-		private Context context;
+        protected Context Context;
 
         public event EventHandler<QueryChangeEventArgs> DataSetChanged;
 
 		public LiveQueryAdapter(Context context, LiveQuery query)
 		{
-			this.context = context;
+            this.Context = context;
 			this.query = query;
             query.Changed += (sender, e) => {
                 enumerator = e.Rows;
-                var evt = DataSetChanged;
-                if (evt == null) return;
-                ((Activity)context).RunOnUiThread(new Action(()=>evt(this, e)));
+                ((Activity)context).RunOnUiThread(new Action(()=>{
+                    NotifyDataSetChanged();
+                }));
             };
+
 			//TODO: Revise
 			query.Start();
 		}
 
 		public override int Count
 		{
-            get { return enumerator != null ? enumerator.Count() : 0; }
+            get { return enumerator != null ? enumerator.Count : 0; }
 		}
 
         public override CBDocument this[int i]
 		{
             get {
-                var val = enumerator != null ? enumerator.ElementAt(i).Document : null;
+                var val = enumerator != null ? enumerator.GetRow(i).Document : null;
                 return val;
             }
         }

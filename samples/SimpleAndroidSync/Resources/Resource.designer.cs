@@ -61,8 +61,11 @@ namespace SimpleAndroidSync
 		public partial class Id
 		{
 			
+			// aapt resource value: 0x7f050001
+			public const int check = 2131034113;
+			
 			// aapt resource value: 0x7f050000
-			public const int myButton = 2131034112;
+			public const int text = 2131034112;
 			
 			static Id()
 			{
@@ -78,7 +81,13 @@ namespace SimpleAndroidSync
 		{
 			
 			// aapt resource value: 0x7f030000
-			public const int Main = 2130903040;
+			public const int Config = 2130903040;
+			
+			// aapt resource value: 0x7f030001
+			public const int ListItemView = 2130903041;
+			
+			// aapt resource value: 0x7f030002
+			public const int Main = 2130903042;
 			
 			static Layout()
 			{
@@ -93,11 +102,17 @@ namespace SimpleAndroidSync
 		public partial class String
 		{
 			
-			// aapt resource value: 0x7f040002
-			public const int app_name = 2130968578;
-			
 			// aapt resource value: 0x7f040001
-			public const int hello = 2130968577;
+			public const int app_name = 2130968577;
+			
+			// aapt resource value: 0x7f040002
+			public const int config_header = 2130968578;
+			
+			// aapt resource value: 0x7f040003
+			public const int config_instruction1 = 2130968579;
+			
+			// aapt resource value: 0x7f040004
+			public const int config_instruction2 = 2130968580;
 			
 			// aapt resource value: 0x7f040000
 			public const int library_name = 2130968576;
