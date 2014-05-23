@@ -11,6 +11,7 @@ using Couchbase.Lite;
 using CouchbaseSample.Android.Document;
 using Java.Util;
 using System.Collections.Generic;
+using Android.Preferences;
 
 namespace SimpleAndroidSync
 {
@@ -19,13 +20,19 @@ namespace SimpleAndroidSync
     {
         static readonly string Tag = "SimpleAndroidSync";
 
+        private string currentSyncUrl = null;
+
         Query Query { get; set; }
         LiveQuery LiveQuery { get; set; }
         Database Database { get; set; }
+        Replication Pull { get; set; }
+        Replication Push { get; set; }
 
         protected override void OnCreate (Bundle bundle)
         {
             base.OnCreate (bundle);
+
+            RequestWindowFeature(WindowFeatures.IndeterminateProgress);
 
             Database = Manager.SharedInstance.GetDatabase(Tag.ToLower());
 
@@ -69,9 +76,17 @@ namespace SimpleAndroidSync
             SetContentView (layout);
         }
 
+        protected override void OnResume()
+        {
+            base.OnResume(); // Always call the superclass first.
+
+            UpdateSync();
+        }
+
         public override bool OnCreateOptionsMenu(IMenu menu)
         {
             var addMenu = menu.Add("Config");
+            addMenu.SetShowAsAction(ShowAsAction.Always);
             addMenu.SetOnMenuItemClickListener(new DelegatedMenuItemListener(OnConfigClicked));
 
             return true;
@@ -79,11 +94,12 @@ namespace SimpleAndroidSync
 
         private bool OnConfigClicked(IMenuItem menuItem)
         {
-            //Intent intent = new Intent()
+            var activity = new Intent (this, typeof(ConfigActivity));
+            StartActivity(activity);
             return true;
         }
 
-        void AddItem (string text)
+        private void AddItem(string text)
         {
             var doc = Database.CreateDocument();
             var props = new Dictionary<string, object>
@@ -93,6 +109,68 @@ namespace SimpleAndroidSync
                 { "checked", false}
             };
             doc.PutProperties(props);
+        }
+
+        private void UpdateSync()
+        {
+            if (Database == null)
+                return;
+
+            var preferences = PreferenceManager.GetDefaultSharedPreferences(this);
+            var syncUrl = preferences.GetString("sync-gateway-url", null);
+
+            ForgetSync ();
+
+            if (!String.IsNullOrEmpty(syncUrl))
+            {
+                try 
+                {
+                    var uri = new Uri(syncUrl);
+                    Pull = Database.CreatePullReplication(uri);
+                    Pull.Continuous = true;
+                    Pull.Changed += ReplicationChanged;
+
+                    Push = Database.CreatePushReplication(uri);
+                    Push.Continuous = true;
+                    Push.Changed += ReplicationChanged;
+
+                    Pull.Start();
+                    Push.Start();
+                } 
+                catch (Exception e)
+                {
+                    // TODO: Show alert
+                }
+            }
+        }
+
+        private void ForgetSync()
+        {
+            if (Pull != null) {
+                Pull.Changed -= ReplicationChanged;
+                Pull.Stop();
+                Pull = null;
+            }
+
+            if (Push != null) {
+                Push.Changed -= ReplicationChanged;
+                Push.Stop();
+                Push = null;
+            }
+        }
+
+        public void ReplicationChanged(object sender, ReplicationChangeEventArgs args)
+        {
+            Replication replicator = args.Source;
+
+            var totalCount = replicator.ChangesCount;
+            var completedCount = replicator.CompletedChangesCount;
+
+            if (totalCount > 0 && completedCount < totalCount) {
+                SetProgressBarIndeterminateVisibility(true);
+            } else {
+                SetProgressBarIndeterminateVisibility(false);
+            }
         }
 
         private class ListLiveQueryAdapter : LiveQueryAdapter
