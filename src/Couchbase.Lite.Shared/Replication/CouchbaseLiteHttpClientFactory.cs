@@ -45,11 +45,15 @@ using System.Net.Http;
 using System.Net;
 using System;
 using Couchbase.Lite.Replicator;
+using System.Collections.Generic;
+using System.Collections.Concurrent;
 
 namespace Couchbase.Lite.Support
 {
     public class CouchbaseLiteHttpClientFactory : IHttpClientFactory
 	{
+        const string Tag = "CouchbaseLiteHttpClientFactory";
+
         public static CouchbaseLiteHttpClientFactory Instance;
 
         static CouchbaseLiteHttpClientFactory()
@@ -64,21 +68,28 @@ namespace Couchbase.Lite.Support
         public CouchbaseLiteHttpClientFactory()
         {
             cookieStore = new CookieContainer ();
+            Headers = new ConcurrentDictionary<string,string>();
         }
 
 		public HttpClient GetHttpClient()
 		{
             // Build a pipeline of HttpMessageHandlers.
-            handler = new HttpClientHandler 
+            var clientHandler = new HttpClientHandler 
             {
-                CookieContainer = cookieStore
+                CookieContainer = cookieStore,
+                UseDefaultCredentials = true,               
             };
 
             // NOTE: Probably could set httpHandler.MaxRequestContentBufferSize to Couchbase Lite 
             // max doc size (~16 MB) plus some overhead.
-            var authHandler = new DefaultAuthHandler(handler) { InnerHandler = handler };
+            var authHandler = new DefaultAuthHandler(clientHandler);
             var client =  new HttpClient(authHandler);
-
+            foreach(var header in Headers)
+            {
+                var success = client.DefaultRequestHeaders.TryAddWithoutValidation(header.Key, header.Value);
+                if (!success)
+                    Util.Log.W(Tag, "Unabled to add header to request: {0}: {1}".Fmt(header.Key, header.Value));
+            }
             return client;
 		}
 
@@ -95,13 +106,6 @@ namespace Couchbase.Lite.Support
             }
 		}
 
-        public System.Collections.Generic.IDictionary<string, string> Headers {
-            get {
-                throw new NotImplementedException ();
-            }
-            set {
-                throw new NotImplementedException ();
-            }
-        }
+        public IDictionary<string, string> Headers { get; set; }
 	}
 }

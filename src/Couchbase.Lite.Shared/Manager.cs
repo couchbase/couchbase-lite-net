@@ -156,8 +156,10 @@ namespace Couchbase.Lite
 
             UpgradeOldDatabaseFiles(directoryFile);
 
-            scheduler = TaskScheduler.Current; //new ConcurrentExclusiveSchedulerPair();
+//            scheduler = TaskScheduler.Current; //new ConcurrentExclusiveSchedulerPair();
+            scheduler = TaskScheduler.FromCurrentSynchronizationContext();
             workExecutor = new TaskFactory(scheduler/*.ExclusiveScheduler*/);
+            Log.D("Manager", "New replication uses a scheduler with a max concurrency level of {0}".Fmt(workExecutor.Scheduler.MaximumConcurrencyLevel));
             DefaultHttpClientFactory = CouchbaseLiteHttpClientFactory.Instance;
         }
 

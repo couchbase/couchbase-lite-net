@@ -62,6 +62,7 @@ namespace Couchbase.Lite.Replicator
         public DefaultAuthHandler(HttpClientHandler context) : base()
         {
             this.context = context;
+            InnerHandler = this.context;
         }
 
         #region implemented abstract members of MessageProcessingHandler

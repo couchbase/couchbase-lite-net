@@ -4,6 +4,7 @@ using MonoTouch.Foundation;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace Couchbase.Lite.iOS
 {
@@ -32,17 +33,25 @@ namespace Couchbase.Lite.iOS
 
         public CouchbaseTableSource ()
         {
-            DeletionAllowed = true;
+            Initialize ();
         }
 
         public CouchbaseTableSource(NSCoder coder) : base(coder)
         {
-            DeletionAllowed = true;
+            Initialize ();
         }
 
         public CouchbaseTableSource(IntPtr ptr) : base(ptr)
         {
+            Initialize ();
+        }
+
+        TaskFactory Factory;
+
+        void Initialize ()
+        {
             DeletionAllowed = true;
+            Factory = new TaskFactory(TaskScheduler.FromCurrentSynchronizationContext());
         }
 
         #region implemented abstract members of UITableViewDataSource
@@ -58,18 +67,19 @@ namespace Couchbase.Lite.iOS
             if (evt != null)
             {
                 var args = new ReloadEventArgs(Query);
+//                UIApplication.SharedApplication.InvokeOnMainThread(new NSAction(()=> evt(this, args)));
                 evt(this, args);
             }
 
-            evt = Reload;
+            var reloadEvt = Reload;
             if (evt != null) {
                 var args = new ReloadEventArgs(Query, oldRows);
-                evt(this, args);
+                reloadEvt(this, args);
+//                UIApplication.SharedApplication.InvokeOnMainThread(new NSAction(()=> reloadEvt(this, args)));
             } else {
-                UIApplication.SharedApplication.InvokeOnMainThread(
-                    new NSAction(() => {
-                        TableView.ReloadData();
-                    }));
+//                UIApplication.SharedApplication.InvokeOnMainThread(
+//                    new NSAction (TableView.ReloadData));
+                TableView.ReloadData();
             }
         }
 

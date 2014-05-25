@@ -304,9 +304,9 @@ namespace Couchbase.Lite.Support
                     {
                         if(!(task.IsCanceled && cancellationSource.IsCancellationRequested))
                         {
-                            processNowRunnable();
+                                workExecutor.StartNew(processNowRunnable);
                         }
-                    }, cancellationSource.Token);
+                        }, cancellationSource.Token);
             }
         }
 

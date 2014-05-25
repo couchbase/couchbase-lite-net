@@ -120,7 +120,7 @@ namespace Couchbase.Lite.Replicator
                        ? ChangeTracker.ChangeTrackerMode.LongPoll 
                        : ChangeTracker.ChangeTrackerMode.OneShot;
 
-            changeTracker = new ChangeTracker(RemoteUrl, mode, LastSequence, true, this);
+            changeTracker = new ChangeTracker(RemoteUrl, mode, LastSequence, true, this, WorkExecutor);
 
             Log.W(Tag, this + ": started ChangeTracker " + changeTracker);
 
@@ -425,11 +425,11 @@ namespace Couchbase.Lite.Replicator
                     // are still revisions waiting to be pulled:
                     --httpConnectionCount;
                     PullRemoteRevisions ();
-            });
+                });
 		}
 
 		/// <summary>This will be called when _revsToInsert fills up:</summary>
-        public void InsertRevisions(IList<IList<Object>> revs)
+        public async void InsertRevisions(IList<IList<Object>> revs)
 		{
             Log.I(Tag, this + " inserting " + revs.Count + " revisions...");
             //Log.v(Database.TAG, String.format("%s inserting %s", this, revs));
@@ -456,7 +456,7 @@ namespace Couchbase.Lite.Replicator
                     // Insert the revision:
                     try
                     {
-                        LocalDatabase.ForceInsert(rev, history, RemoteUrl);
+                        await WorkExecutor.StartNew(()=>LocalDatabase.ForceInsert(rev, history, RemoteUrl));
                     }
                     catch (CouchbaseLiteException e)
                     {

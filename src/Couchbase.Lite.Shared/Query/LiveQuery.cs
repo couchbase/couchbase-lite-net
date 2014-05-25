@@ -62,6 +62,7 @@ namespace Couchbase.Lite
     {
     #region Non-public Members
 
+        const string Tag = "LiveQuery";
         const Int32 DefaultQueryTimeout = 90000; // milliseconds.
 
         QueryEnumerator rows;
@@ -83,7 +84,7 @@ namespace Couchbase.Lite
 
         private void OnDatabaseChanged (object sender, Database.DatabaseChangeEventArgs e)
         {
-            Log.D(Database.Tag, this + ": OnDatabaseChanged() called");
+            Log.D(Tag, this + ": OnDatabaseChanged() called");
             Update();
         }
 
@@ -120,7 +121,7 @@ namespace Couchbase.Lite
         private void RunUpdateAfterQueryFinishes() {
             if (!runningState) 
             {
-                Log.D(Database.Tag, this + ": ReRunUpdateAfterQueryFinishes() fired, but running state == false. Ignoring.");
+                Log.D(Tag, this + ": ReRunUpdateAfterQueryFinishes() fired, but running state == false. Ignoring.");
                 return; // NOTE: Assuming that we don't want to lose rows we already retrieved.
             }
 
@@ -135,7 +136,7 @@ namespace Couchbase.Lite
                 }
                 catch (Exception e)
                 {
-                    Log.E(Database.Tag, "Got an exception waiting for Update Query Task to finish", e);
+                    Log.E(Tag, "Got an exception waiting for Update Query Task to finish", e);
                 }
             }
         }
@@ -145,7 +146,7 @@ namespace Couchbase.Lite
         /// </summary>
         private void Update()
         {
-            Log.D(Database.Tag, this + ": update() called.");
+            Log.D(Tag, this + ": update() called.");
 
             if (View == null)
             {
@@ -154,7 +155,7 @@ namespace Couchbase.Lite
 
             if (!runningState)
             {
-                Log.D(Database.Tag, this + ": update() called, but running state == false.  Ignoring.");
+                Log.D(Tag, this + ": update() called, but running state == false.  Ignoring.");
                 return;
             }
 
@@ -162,19 +163,19 @@ namespace Couchbase.Lite
                 UpdateQueryTask.Status != TaskStatus.Canceled && 
                 UpdateQueryTask.Status != TaskStatus.RanToCompletion)
             {
-                Log.D(Database.Tag, this + ": already a query in flight, scheduling call to update() once it's done");
+                Log.D(Tag, this + ": already a query in flight, scheduling call to update() once it's done");
                 if (ReRunUpdateQueryTask != null &&
                     ReRunUpdateQueryTask.Status != TaskStatus.Canceled && 
                     ReRunUpdateQueryTask.Status != TaskStatus.RanToCompletion)
                 {
                     ReRunUpdateQueryTokenSource.Cancel();
-                    Log.D(Database.Tag, this + ": cancelled rerun update query token source.");
+                    Log.D(Tag, this + ": cancelled rerun update query token source.");
                 }
 
                 ReRunUpdateQueryTokenSource = new CancellationTokenSource();
                 Database.Manager.RunAsync(() => { RunUpdateAfterQueryFinishes(); }, ReRunUpdateQueryTokenSource.Token);
 
-                Log.D(Database.Tag, this + ": RunUpdateAfterQueryFinishes() is fired.");
+                Log.D(Tag, this + ": RunUpdateAfterQueryFinishes() is fired.");
 
                 return;
             }
@@ -198,7 +199,7 @@ namespace Couchbase.Lite
 
                         var args = new QueryChangeEventArgs (this, rows, LastError);
                         evt (this, args);
-                    });
+                    }, Database.Manager.workExecutor.Scheduler);
         }
 
     #endregion
@@ -249,12 +250,12 @@ namespace Couchbase.Lite
         {
             if (runningState)
             {
-                Log.D(Database.Tag, this + ": start() called, but runningState is already true.  Ignoring.");
+                Log.D(Tag, this + ": start() called, but runningState is already true.  Ignoring.");
                 return;
             }
             else
             {
-                Log.D(Database.Tag, this + ": start() called");
+                Log.D(Tag, this + ": start() called");
                 runningState = true;
             }
 
@@ -274,12 +275,12 @@ namespace Couchbase.Lite
         {
             if (!runningState)
             {
-                Log.D(Database.Tag, this + ": stop() called, but runningState is already false.  Ignoring.");
+                Log.D(Tag, this + ": stop() called, but runningState is already false.  Ignoring.");
                 return;
             }
             else
             {
-                Log.D(Database.Tag, this + ": stop() called");
+                Log.D(Tag, this + ": stop() called");
                 runningState = false;
             }
 
@@ -295,21 +296,21 @@ namespace Couchbase.Lite
             if (UpdateQueryTokenSource != null && UpdateQueryTokenSource.Token.CanBeCanceled)
             {
                 UpdateQueryTokenSource.Cancel();
-                Log.D(Database.Tag, this + ": canceled update query token Source");
+                Log.D(Tag, this + ": canceled update query token Source");
             }
             else
             {
-                Log.D(Database.Tag, this + ": not cancelling update query token source.");
+                Log.D(Tag, this + ": not cancelling update query token source.");
             }
 
             if (ReRunUpdateQueryTokenSource != null && ReRunUpdateQueryTokenSource.Token.CanBeCanceled)
             {
                 ReRunUpdateQueryTokenSource.Cancel();
-                Log.D(Database.Tag, this + ": canceled rerun update query token Source");
+                Log.D(Tag, this + ": canceled rerun update query token Source");
             }
             else
             {
-                Log.D(Database.Tag, this + ": not cancelling rerun update query token source.");
+                Log.D(Tag, this + ": not cancelling rerun update query token source.");
             }
         }
 
@@ -333,12 +334,12 @@ namespace Couchbase.Lite
                 }
                 catch (OperationCanceledException e) //TODO: Review
                 {
-                    Log.D(Database.Tag, "Got operation cancel exception waiting for rows", e);
+                    Log.D(Tag, "Got operation cancel exception waiting for rows", e);
                     continue;
                 }
                 catch (Exception e)
                 {
-                    Log.E(Database.Tag, "Got interrupted exception waiting for rows", e);
+                    Log.E(Tag, "Got interrupted exception waiting for rows", e);
                     LastError = e;
                 }
             }

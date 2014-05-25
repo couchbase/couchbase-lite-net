@@ -58,9 +58,8 @@ namespace CouchbaseSample
       EntryField.EditingDidEndOnExit += AddNewItem;
 
       // Custom initialization
-      InitializeDatabase ();
-      InitializeCouchbaseView ();
-      InitializeCouchbaseSummaryView ();
+      InitializeDatabase ();      
+//      InitializeCouchbaseSummaryView ();
       InitializeDatasource ();
 
       Datasource.TableView = TableView;
@@ -117,7 +116,7 @@ namespace CouchbaseSample
         Database = db;
     }
 
-    void InitializeCouchbaseView ()
+    View InitializeCouchbaseView ()
     {
         var view = Database.GetView (DefaultViewName);
 
@@ -146,6 +145,8 @@ namespace CouchbaseSample
                 });
 
         Database.SetValidation(CreationDatePropertyName, validationBlock);
+
+        return view;
     }
 
     void InitializeCouchbaseSummaryView ()
@@ -186,7 +187,8 @@ namespace CouchbaseSample
 
     void InitializeDatasource ()
     {
-            var view = Database.GetExistingView(DefaultViewName) ?? Database.GetView (DefaultViewName);
+
+            var view = InitializeCouchbaseView ();
 
             var query = view.CreateQuery().ToLiveQuery();
             query.Descending = true;
@@ -195,23 +197,23 @@ namespace CouchbaseSample
             Datasource.LabelProperty = DocumentDisplayPropertyName; // Document property to display in the cell label
             Datasource.Query.Start();
 
-            var doneView = Database.GetExistingView("Done") ?? Database.GetView ("Done");
-            DoneQuery = doneView.CreateQuery().ToLiveQuery();
-            DoneQuery.Changed += (sender, e) => {
-                    String val;
-                    var label = TableView.TableHeaderView as UILabel;
-
-                    if (DoneQuery.Rows.Count == 0) {
-                        val = String.Empty;
-                    } else {
-                        var row = DoneQuery.Rows.ElementAt(0);
-                        var doc = row.Value as IDictionary<object,object>;
-
-                        val = String.Format ("{0}: {1}\t", doc["Label"], doc["Count"]);
-                    }
-                    label.Text = val;
-                };
-            DoneQuery.Start();
+//            var doneView = Database.GetExistingView("Done") ?? Database.GetView ("Done");
+//            DoneQuery = doneView.CreateQuery().ToLiveQuery();
+//            DoneQuery.Changed += (sender, e) => {
+//                    String val;
+//                    var label = TableView.TableHeaderView as UILabel;
+//
+//                    if (DoneQuery.Rows.Count == 0) {
+//                        val = String.Empty;
+//                    } else {
+//                        var row = DoneQuery.Rows.ElementAt(0);
+//                        var doc = row.Value as IDictionary<object,object>;
+//
+//                        val = String.Format ("{0}: {1}\t", doc["Label"], doc["Count"]);
+//                    }
+//                    label.Text = val;
+//                };
+//            DoneQuery.Start();
     }
     #endregion
     #region CRUD Operations
@@ -373,7 +375,7 @@ namespace CouchbaseSample
         ShowSyncStatus ();
       }
 
-      Debug.WriteLine (String.Format ("({0})", progress));
+            Debug.WriteLine (String.Format ("({0:F})", progress));
 
       if (active == pull) {
         if (AppDelegate.CurrentSystemVersion >= AppDelegate.iOS7) Progress.TintColor = UIColor.White;
@@ -387,12 +389,13 @@ namespace CouchbaseSample
         Progress.SetProgress (progress, false);
       else
         Progress.SetProgress (progress, false);
-
-            if (!(pull.Status != ReplicationStatus.Active && push.Status != ReplicationStatus.Active))
-        return;
+       
+       if (!(pull.Status != ReplicationStatus.Active && push.Status != ReplicationStatus.Active))
+            if (progress < 1f)
+                return;
       if (active == null)
         return;
-      var initiatorName = _leader.IsPull ? "Pull" : "Push";
+     var initiatorName = active.IsPull ? "Pull" : "Push";
 
       _lastPushCompleted = push.ChangesCount;
       _lastPullCompleted = pull.ChangesCount;

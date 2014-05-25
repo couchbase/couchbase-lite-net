@@ -244,7 +244,7 @@ namespace Couchbase.Lite.Replicator
 
             // Call _revs_diff on the target db:
             Log.D(Tag, this + "|" + Thread.CurrentThread() + ": processInbox() calling asyncTaskStarted()");
-            Log.D(Tag, this + "|" + Thread.CurrentThread() + ": posting to /_revs_diff: " + diffs);
+            Log.D(Tag, this + "|" + Thread.CurrentThread() + ": posting to /_revs_diff: " + string.Join(Environment.NewLine, diffs));
 
             AsyncTaskStarted();
             SendAsyncRequest(HttpMethod.Post, "/_revs_diff", diffs, (response, e) => 
@@ -344,6 +344,10 @@ namespace Couchbase.Lite.Replicator
                             LastSequence = string.Format ("{0}", lastInboxSequence);
                         }
                     }
+                }
+                catch (Exception ex)
+                {
+                    Log.E(Tag, "Unhandled exception in Pusher.ProcessInbox", ex);
                 }
                 finally
                 {

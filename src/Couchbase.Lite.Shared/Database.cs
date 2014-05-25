@@ -667,7 +667,8 @@ namespace Couchbase.Lite
         /// <param name="url">The url of the target Database.</param>
         public Replication CreatePushReplication(Uri url)
         {
-            return new Pusher(this, url, false, CouchbaseLiteHttpClientFactory.Instance, Task.Factory);
+            var scheduler = TaskScheduler.FromCurrentSynchronizationContext();
+            return new Pusher(this, url, false, CouchbaseLiteHttpClientFactory.Instance, new TaskFactory(scheduler));
         }
 
         /// <summary>
@@ -677,7 +678,8 @@ namespace Couchbase.Lite
         /// <param name="url">The url of the source Database.</param>
         public Replication CreatePullReplication(Uri url)
         {
-            return new Puller(this, url, false, Task.Factory);
+            var scheduler = TaskScheduler.FromCurrentSynchronizationContext();
+            return new Puller(this, url, false, new TaskFactory(scheduler));
         }
 
         public override string ToString()
