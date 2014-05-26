@@ -116,11 +116,11 @@
     <Compile Include="RootViewController.designer.cs">
       <DependentUpon>RootViewController.cs</DependentUpon>
     </Compile>
-    <Compile Include="CouchtableDelegate.cs" />
     <Compile Include="ConfigViewController.cs" />
     <Compile Include="ConfigViewController.designer.cs">
       <DependentUpon>ConfigViewController.cs</DependentUpon>
     </Compile>
+    <Compile Include="CouchtableDelegate.cs" />
   </ItemGroup>
   <ItemGroup>
     <InterfaceDefinition Include="RootViewController.xib" />
@@ -146,12 +146,6 @@
     <BundleResource Include="Resources\textfield___inactive~ipad.png" />
     <BundleResource Include="Resources\Default%402x.png" />
   </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\..\src\Couchbase.Lite.iOS\Couchbase.Lite.iOS.csproj">
-      <Project>{443E1BEE-43B3-45A1-ACEA-F7BA71BDAAB1}</Project>
-      <Name>Couchbase.Lite.iOS</Name>
-    </ProjectReference>
-  </ItemGroup>
   <ProjectExtensions>
     <MonoDevelop>
       <Properties>
@@ -162,4 +156,10 @@
       </Properties>
     </MonoDevelop>
   </ProjectExtensions>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Couchbase.Lite.iOS\Couchbase.Lite.iOS.csproj">
+      <Project>{443E1BEE-43B3-45A1-ACEA-F7BA71BDAAB1}</Project>
+      <Name>Couchbase.Lite.iOS</Name>
+    </ProjectReference>
+  </ItemGroup>
 </Project>
