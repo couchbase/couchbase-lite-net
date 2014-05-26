@@ -1052,7 +1052,7 @@ PRAGMA user_version = 3;";
         /// It must already have a revision ID. This may create a conflict! The revision's history must be given; ancestor revision IDs that don't already exist locally will create phantom revisions with no content.
         /// </remarks>
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
-        internal void ForceInsert(RevisionInternal rev, IList<string> revHistory, Uri source)
+        internal async void ForceInsert(RevisionInternal rev, IList<string> revHistory, Uri source)
         {
             var inConflict = false;
             var docId = rev.GetDocId();
@@ -1149,7 +1149,7 @@ PRAGMA user_version = 3;";
                             newRev = new RevisionInternal(docId, revId, false, this);
                         }
                         // Insert it:
-                        sequence = InsertRevision(newRev, docNumericID, sequence, current, data);
+                        sequence = await Manager.CapturedContext.StartNew(()=>InsertRevision(newRev, docNumericID, sequence, current, data));
                         if (sequence <= 0)
                         {
                             throw new CouchbaseLiteException(StatusCode.InternalServerError);

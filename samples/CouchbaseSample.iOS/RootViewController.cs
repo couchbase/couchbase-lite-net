@@ -59,7 +59,7 @@ namespace CouchbaseSample
 
       // Custom initialization
       InitializeDatabase ();      
-//      InitializeCouchbaseSummaryView ();
+      InitializeCouchbaseSummaryView ();
       InitializeDatasource ();
 
       Datasource.TableView = TableView;
@@ -175,8 +175,8 @@ namespace CouchbaseSample
 
                     var result = new Dictionary<string,string>
                     {
-                        {"Items Remaining", "Label"},
-                        {key.ToString (), "Count"}
+                        {"Label", "Items Remaining"},
+                        {"Count", key.ToString ()}
                     };
 
                     return result;
@@ -197,23 +197,23 @@ namespace CouchbaseSample
             Datasource.LabelProperty = DocumentDisplayPropertyName; // Document property to display in the cell label
             Datasource.Query.Start();
 
-//            var doneView = Database.GetExistingView("Done") ?? Database.GetView ("Done");
-//            DoneQuery = doneView.CreateQuery().ToLiveQuery();
-//            DoneQuery.Changed += (sender, e) => {
-//                    String val;
-//                    var label = TableView.TableHeaderView as UILabel;
-//
-//                    if (DoneQuery.Rows.Count == 0) {
-//                        val = String.Empty;
-//                    } else {
-//                        var row = DoneQuery.Rows.ElementAt(0);
-//                        var doc = row.Value as IDictionary<object,object>;
-//
-//                        val = String.Format ("{0}: {1}\t", doc["Label"], doc["Count"]);
-//                    }
-//                    label.Text = val;
-//                };
-//            DoneQuery.Start();
+            var doneView = Database.GetExistingView("Done") ?? Database.GetView ("Done");
+            DoneQuery = doneView.CreateQuery().ToLiveQuery();
+            DoneQuery.Changed += (sender, e) => {
+                    String val;
+                    var label = TableView.TableHeaderView as UILabel;
+
+                    if (DoneQuery.Rows.Count == 0) {
+                        val = String.Empty;
+                    } else {
+                        var row = DoneQuery.Rows.ElementAt(0);
+                            var doc = (IDictionary<string,string>)row.Value;
+
+                        val = String.Format ("{0}: {1}\t", doc["Label"], doc["Count"]);
+                    }
+                    label.Text = val;
+                };
+            DoneQuery.Start();
     }
     #endregion
     #region CRUD Operations

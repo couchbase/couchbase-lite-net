@@ -59,7 +59,7 @@ using System.Runtime.InteropServices;
 namespace Couchbase.Lite.Storage
 {
 
-    internal class MonoSQLiteStorageEngine : SQLiteStorageEngine, IDisposable
+    internal sealed class MonoSQLiteStorageEngine : SQLiteStorageEngine, IDisposable
     {
         static MonoSQLiteStorageEngine()
         {
@@ -213,6 +213,7 @@ namespace Couchbase.Lite.Storage
 
             Cursor cursor = null;
             try {
+                Log.V(Tag, "RawQuery sql: {0}".Fmt(sql));
                 var reader = command.ExecuteReader(behavior);
                 cursor = new Cursor(reader);
             } catch (Exception e) {

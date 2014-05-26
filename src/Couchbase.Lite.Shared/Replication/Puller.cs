@@ -431,7 +431,7 @@ namespace Couchbase.Lite.Replicator
 		}
 
 		/// <summary>This will be called when _revsToInsert fills up:</summary>
-        public async void InsertRevisions(IList<IList<Object>> revs)
+        public void InsertRevisions(IList<IList<Object>> revs)
 		{
             Log.I(Tag, this + " inserting " + revs.Count + " revisions...");
             //Log.v(Database.TAG, String.format("%s inserting %s", this, revs));
@@ -458,7 +458,7 @@ namespace Couchbase.Lite.Replicator
                     // Insert the revision:
                     try
                     {
-                        await WorkExecutor.StartNew(()=>LocalDatabase.ForceInsert(rev, history, RemoteUrl));
+                        LocalDatabase.ForceInsert(rev, history, RemoteUrl);
                     }
                     catch (CouchbaseLiteException e)
                     {
