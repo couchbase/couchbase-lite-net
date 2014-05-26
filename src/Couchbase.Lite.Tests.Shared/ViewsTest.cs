@@ -173,14 +173,14 @@ namespace Couchbase.Lite
             for (int i = 0; i < n; i++)
             {
                 var doc = new Dictionary<string, object>();
-                doc.Put("_id", string.Format("%d", i));
+                doc.Put("_id", string.Format("{0}", i));
 
                 var key = new AList<string>();
                 for (int j = 0; j < 256; j++)
                 {
                     key.AddItem("key");
                 }
-                key.AddItem(string.Format("key-%d", i));
+                key.AddItem(string.Format("key-{0}", i));
                 doc["key"] = key;
 
                 PutDocViaUntitledDoc(db, doc);

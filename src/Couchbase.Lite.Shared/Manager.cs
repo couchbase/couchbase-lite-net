@@ -156,9 +156,10 @@ namespace Couchbase.Lite
 
             UpgradeOldDatabaseFiles(directoryFile);
 
-//            scheduler = TaskScheduler.Current; //new ConcurrentExclusiveSchedulerPair();
-            scheduler = TaskScheduler.FromCurrentSynchronizationContext();
-            workExecutor = new TaskFactory(scheduler/*.ExclusiveScheduler*/);
+//          var  scheduler = new ConcurrentExclusiveSchedulerPair();
+            var scheduler = TaskScheduler.FromCurrentSynchronizationContext();
+            CapturedContext = new TaskFactory(scheduler);
+            workExecutor = new TaskFactory(new SingleThreadTaskScheduler());
             Log.D("Manager", "New replication uses a scheduler with a max concurrency level of {0}".Fmt(workExecutor.Scheduler.MaximumConcurrencyLevel));
             DefaultHttpClientFactory = CouchbaseLiteHttpClientFactory.Instance;
         }
@@ -324,9 +325,8 @@ namespace Couchbase.Lite
         private readonly DirectoryInfo directoryFile;
         private readonly IDictionary<String, Database> databases;
         private readonly List<Replication> replications;
-        private readonly TaskScheduler scheduler;
-        internal readonly TaskFactory workExecutor; // Internal for unit test access.
-
+        internal readonly TaskFactory workExecutor;
+        internal TaskFactory CapturedContext { get; private set; }
 
         // Instance Methods
         internal Database GetDatabaseWithoutOpening(String name, Boolean mustExist)
@@ -432,8 +432,8 @@ namespace Couchbase.Lite
             }
 
             var replicator = push 
-                           ? (Replication)new Pusher (database, url, true, workExecutor) 
-                           : (Replication)new Puller (database, url, true, workExecutor);
+                ? (Replication)new Pusher (database, url, true, new TaskFactory(new SingleThreadTaskScheduler()))
+                : (Replication)new Puller (database, url, true, new TaskFactory(new SingleThreadTaskScheduler()));
 
             replications.AddItem(replicator);
             if (start)
@@ -466,7 +466,7 @@ namespace Couchbase.Lite
         internal Task<Boolean> RunAsync(String databaseName, Func<Database, Boolean> action) 
         {
             var db = GetDatabase(databaseName);
-            return RunAsync<Boolean>(()=>{ return action(db); });
+            return RunAsync<Boolean>(() => action (db));
         }
 
         internal Task<QueryEnumerator> RunAsync(Func<QueryEnumerator> action, CancellationToken token) 

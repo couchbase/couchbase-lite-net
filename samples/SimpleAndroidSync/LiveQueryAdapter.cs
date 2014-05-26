@@ -60,7 +60,9 @@ namespace CouchbaseSample.Android.Helper
 
 		public override int Count
 		{
-            get { return enumerator != null ? enumerator.Count : 0; }
+            get { 
+                return enumerator != null ? enumerator.Count : 0; 
+            }
 		}
 
         public override CBDocument this[int i]

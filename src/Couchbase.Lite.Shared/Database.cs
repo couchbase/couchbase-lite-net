@@ -667,7 +667,7 @@ namespace Couchbase.Lite
         /// <param name="url">The url of the target Database.</param>
         public Replication CreatePushReplication(Uri url)
         {
-            var scheduler = TaskScheduler.FromCurrentSynchronizationContext();
+            var scheduler = new SingleThreadTaskScheduler(); //TaskScheduler.FromCurrentSynchronizationContext();
             return new Pusher(this, url, false, CouchbaseLiteHttpClientFactory.Instance, new TaskFactory(scheduler));
         }
 
@@ -678,7 +678,7 @@ namespace Couchbase.Lite
         /// <param name="url">The url of the source Database.</param>
         public Replication CreatePullReplication(Uri url)
         {
-            var scheduler = TaskScheduler.FromCurrentSynchronizationContext();
+            var scheduler = new SingleThreadTaskScheduler(); //TaskScheduler.FromCurrentSynchronizationContext();
             return new Puller(this, url, false, new TaskFactory(scheduler));
         }
 
@@ -1808,7 +1808,7 @@ PRAGMA user_version = 3;";
         {
             for (var i = 0; true; ++i)
             {
-                var name = String.Format("anon%d", i);
+                var name = String.Format("anon{0}", i);
                 var existing = GetExistingView(name);
                 if (existing == null)
                 {
@@ -3194,7 +3194,7 @@ PRAGMA user_version = 3;";
             try
             {
                 var extraSql = (onlyCurrent ? "AND current=1" : string.Empty);
-                var sql = string.Format("SELECT sequence FROM revs WHERE doc_id=@ AND revid=@ %s LIMIT 1", extraSql);
+                var sql = string.Format("SELECT sequence FROM revs WHERE doc_id=@ AND revid=@ {0} LIMIT 1", extraSql);
                 var args = new [] { string.Empty + docNumericId, revId };
                 cursor = StorageEngine.RawQuery(sql, args);
                 result = cursor.MoveToNext()

@@ -901,7 +901,7 @@ namespace Couchbase.Lite
             var result = mgr.RunAsync("db", (database)=>
                 {
                     Assert.IsNotNull(database);
-                    View serverView = database.GetExistingView("view");
+                    var serverView = database.GetExistingView("view");
                     Assert.IsNotNull(serverView);
                     Assert.AreEqual(database.GetFilter("phil"), filter);
                     Assert.AreEqual(database.GetValidation("val"), validation);

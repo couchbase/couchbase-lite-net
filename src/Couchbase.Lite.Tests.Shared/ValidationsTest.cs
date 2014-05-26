@@ -70,8 +70,7 @@ namespace Couchbase.Lite
                 validationCalled = true;
 
                 bool hoopy = newRevision.IsDeletion || (newRevision.Properties.Get("towel") != null);
-                Log.V(ValidationsTest.Tag, string.Format("--- Validating %s --> %b", newRevision.
-                    Properties, hoopy));
+                Log.V(ValidationsTest.Tag, string.Format("--- Validating {0} --> {1}", newRevision.Properties, hoopy));
                 if (!hoopy)
                 {
                     context.Reject("Where's your towel?");

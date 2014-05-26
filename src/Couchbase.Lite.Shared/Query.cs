@@ -363,7 +363,7 @@ namespace Couchbase.Lite {
                                 throw runTask.Exception; // Rethrow innner exceptions.
 
                             return runTask.Result; // Give additional continuation functions access to the results task.
-                    }, this.Database.Manager.workExecutor.Scheduler);
+                    }, Database.Manager.CapturedContext.Scheduler);
         }
 
         /// <summary>

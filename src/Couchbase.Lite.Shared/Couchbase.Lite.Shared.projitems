@@ -204,5 +204,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)Util\StringUtils.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\SystemLogger.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\URIUtils.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Util\SingleThreadTaskScheduler.cs" />
   </ItemGroup>
 </Project>

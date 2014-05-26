@@ -555,8 +555,7 @@ namespace Couchbase.Lite.Util
             lock (locker) {
                 int accesses = hitCount + missCount;
                 int hitPercent = accesses != 0 ? (100 * hitCount / accesses) : 0;
-                return string.Format ("LruCache[maxSize=%d,hits=%d,misses=%d,hitRate=%d%%]", maxSize
-					, hitCount, missCount, hitPercent);
+                return string.Format ("LruCache[maxSize={0},hits={1},misses={2},hitRate={3:P}%]", maxSize, hitCount, missCount, hitPercent);
             }
 		}
 	}

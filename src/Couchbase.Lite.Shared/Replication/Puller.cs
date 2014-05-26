@@ -210,15 +210,17 @@ namespace Couchbase.Lite.Replicator
                 Log.D(Tag, this + ": adding rev to inbox " + rev);
                 AddToInbox(rev);
             }
-            ChangesCount = ChangesCount + changes.Length;
+            ChangesCount += changes.Length;
             while (revsToPull != null && revsToPull.Count > 1000)
             {
                 try
                 {
+                    // Presumably we are letting 1 or more other threads do something while we wait.
                     Sharpen.Thread.Sleep(500);
                 }
-                catch (Exception)
+                catch (Exception e)
                 {
+                    Log.W(Tag, "Swalling exception while sleeping after receiving changetracker changes.", e);
                     // swallow
                 }
             }

@@ -468,7 +468,7 @@ namespace Couchbase.Lite {
             try
             {
                 cursor = Database.StorageEngine.RawQuery(
-                    "SELECT sequence, key, value FROM maps WHERE view_id=? ORDER BY key", selectArgs);
+                    "SELECT sequence, key, value FROM maps WHERE view_id=@ ORDER BY key", selectArgs);
 
                 while (cursor.MoveToNext()) 
                 {

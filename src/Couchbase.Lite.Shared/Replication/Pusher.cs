@@ -285,7 +285,7 @@ namespace Couchbase.Lite.Replicator
                                             try {
                                                 LocalDatabase.LoadRevisionBody (rev, contentOptions);
                                             } catch (CouchbaseLiteException e1) {
-                                                Log.W(Tag, string.Format("%s Couldn't get local contents of %s", rev, this));
+                                                    Log.W(Tag, string.Format("{0} Couldn't get local contents of {1}", rev, this));
                                                 RevisionFailed();
                                                 continue;
                                             }
@@ -314,7 +314,7 @@ namespace Couchbase.Lite.Replicator
                                 bulkDocsBody.Put ("docs", docsToSend);
                                 bulkDocsBody.Put ("new_edits", false);
 
-                                Log.V(Tag, string.Format("%s: POSTing " + numDocsToSend + " revisions to _bulk_docs: %s", this, docsToSend));
+                                    Log.V(Tag, string.Format("{0}: POSTing " + numDocsToSend + " revisions to _bulk_docs: {1}", this, docsToSend));
 
                                 ChangesCount += numDocsToSend;
 
@@ -328,7 +328,7 @@ namespace Couchbase.Lite.Replicator
                                             LastError = ex;
                                             RevisionFailed();
                                         } else {
-                                            Log.V(Tag, string.Format("%s: POSTed to _bulk_docs: %s", this, docsToSend));
+                                                Log.V(Tag, string.Format("{0}: POSTed to _bulk_docs: {1}", this, docsToSend));
                                             LastSequence = string.Format ("{0}", lastInboxSequence);
                                         }
                                         CompletedChangesCount  += numDocsToSend;

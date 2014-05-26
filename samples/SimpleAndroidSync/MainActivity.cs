@@ -12,6 +12,7 @@ using CouchbaseSample.Android.Document;
 using Java.Util;
 using System.Collections.Generic;
 using Android.Preferences;
+using Android.Util;
 
 namespace SimpleAndroidSync
 {
@@ -37,6 +38,8 @@ namespace SimpleAndroidSync
             Database = Manager.SharedInstance.GetDatabase(Tag.ToLower());
 
             Query = List.GetQuery(Database);
+            Query.Completed += (sender, e) => 
+                Log.Verbose("MainActivity", e.ErrorInfo.ToString() ?? e.Rows.ToString());
             LiveQuery = Query.ToLiveQuery();
 
             var layout = new LinearLayout(this);

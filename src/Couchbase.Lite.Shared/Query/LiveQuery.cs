@@ -199,7 +199,7 @@ namespace Couchbase.Lite
 
                         var args = new QueryChangeEventArgs (this, rows, LastError);
                         evt (this, args);
-                    }, Database.Manager.workExecutor.Scheduler);
+                    }, Database.Manager.CapturedContext.Scheduler);
         }
 
     #endregion

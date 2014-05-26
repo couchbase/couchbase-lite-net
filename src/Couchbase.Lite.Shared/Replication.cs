@@ -279,7 +279,8 @@ namespace Couchbase.Lite
             if (evt == null) return;
 
             var args = new ReplicationChangeEventArgs(this);
-            WorkExecutor.StartNew(()=>evt(this, args));
+            // Ensure callback runs on captured context, which should be the UI thread.
+            LocalDatabase.Manager.CapturedContext.StartNew(()=>evt(this, args));
         }
 
         //TODO: Do we need this method? It's not in the API Spec.
@@ -604,7 +605,7 @@ namespace Couchbase.Lite
                         } 
                         else if (LastError != null) /*(revisionsFailed > 0)*/ 
                         {
-                            string msg = string.Format("%s: Failed to xfer %d revisions, will retry in %d sec", this, revisionsFailed, RetryDelay);
+                            string msg = string.Format("{0}: Failed to xfer {1} revisions, will retry in {2} sec", this, revisionsFailed, RetryDelay);
                             Log.D(Tag, msg);
                             CancelPendingRetryIfReady();
                             ScheduleRetryIfReady();
@@ -805,7 +806,7 @@ namespace Couchbase.Lite
                     }
 
                     return response.Result;
-                    }, CancellationTokenSource.Token, TaskContinuationOptions.AttachedToParent, WorkExecutor.Scheduler);
+                    }, CancellationTokenSource.Token, TaskContinuationOptions.None, WorkExecutor.Scheduler);
 
             requests.Add(client);
         }

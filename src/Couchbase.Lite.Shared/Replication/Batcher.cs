@@ -64,6 +64,8 @@ namespace Couchbase.Lite.Support
 	{
         private readonly static string Tag = "Batcher";
 
+        private SpinLock spinLock;
+
         private readonly TaskFactory workExecutor;
 
         private Task flushFuture;
@@ -88,6 +90,7 @@ namespace Couchbase.Lite.Support
 
         public Batcher(TaskFactory workExecutor, int capacity, int delay, Action<IList<T>> processor, CancellationTokenSource tokenSource = null)
 		{
+            spinLock = new SpinLock(true);
             processNowRunnable = new Action(()=>
             {
                 try
@@ -175,8 +178,10 @@ namespace Couchbase.Lite.Support
 
         public void QueueObjects(IList<T> objects)
 		{
-			lock (locker)
-            {
+            var isLocked = false;
+
+            try {
+                spinLock.TryEnter (ref isLocked);
                 Log.D(Tag, "queuObjects called with " + objects.Count + " objects. ");
 
                 if (objects.Count == 0)
@@ -221,7 +226,10 @@ namespace Couchbase.Lite.Support
                     Unschedule();
                     ProcessNow();
                 }
-			}
+            } finally {
+                if (isLocked)
+                    spinLock.Exit(true);
+            }
 		}
 
         public void QueueObject(T o)

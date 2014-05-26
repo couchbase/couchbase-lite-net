@@ -343,7 +343,7 @@ namespace Couchbase.Lite.Replicator
 		private void AddDocWithId(string docId, string attachmentName)
 		{
 			string docJson;
-            if (attachmentName == null)
+            if (attachmentName != null)
 			{
 				// add attachment to document
                 var attachmentStream = (InputStream)GetAsset(attachmentName);
@@ -522,7 +522,7 @@ namespace Couchbase.Lite.Replicator
 			var dbUrlString = "http://fake.test-url.com:4984/fake/";
             var remote = new Uri(dbUrlString);
             var continuous = false;
-            var r1 = new Puller(database, remote, continuous, mockHttpClientFactory, manager.workExecutor);
+            var r1 = new Puller(database, remote, continuous, mockHttpClientFactory, new TaskFactory(manager.CapturedContext.Scheduler));
 			Assert.IsFalse(r1.Continuous);
 
             RunReplication(r1);

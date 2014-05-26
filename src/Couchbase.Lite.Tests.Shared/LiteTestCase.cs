@@ -378,7 +378,7 @@ namespace Couchbase.Lite
 		{
             var conn = SendRequest(method, path, null, bodyObj);
 			object result = ParseJSONResponse(conn);
-			Log.V(Tag, string.Format("%s %s --> %d", method, path, conn.GetResponseCode()));
+            Log.V(Tag, string.Format("{0} {1} --> {2}", method, path, conn.GetResponseCode()));
 			NUnit.Framework.Assert.AreEqual(expectedStatus, conn.GetResponseCode());
 			if (expectedResult != null)
 			{
