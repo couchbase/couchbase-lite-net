@@ -1,6 +1,6 @@
 The Xamarin component can be build from the command line.
 
- 1. Download the `xamarin-component.exe` tool.
+ 1. Download the [xamarin-component.exe](https://components.xamarin.com/submit/xpkg) tool.
  2. Change your working path to the `packaging/component/` folder.
  3. Run `mono ~/Xamarin/Tools/xamarin-component.exe package`.
  4. You will now have `couchbase-lite-net-1.x.y.z.xam` in your folder.
