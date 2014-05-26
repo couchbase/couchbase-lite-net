@@ -58,8 +58,7 @@ namespace CouchbaseSample
       EntryField.EditingDidEndOnExit += AddNewItem;
 
       // Custom initialization
-      InitializeDatabase ();
-      InitializeCouchbaseView ();
+      InitializeDatabase ();      
       InitializeCouchbaseSummaryView ();
       InitializeDatasource ();
 
@@ -117,7 +116,7 @@ namespace CouchbaseSample
         Database = db;
     }
 
-    void InitializeCouchbaseView ()
+    View InitializeCouchbaseView ()
     {
         var view = Database.GetView (DefaultViewName);
 
@@ -146,6 +145,8 @@ namespace CouchbaseSample
                 });
 
         Database.SetValidation(CreationDatePropertyName, validationBlock);
+
+        return view;
     }
 
     void InitializeCouchbaseSummaryView ()
@@ -174,8 +175,8 @@ namespace CouchbaseSample
 
                     var result = new Dictionary<string,string>
                     {
-                        {"Items Remaining", "Label"},
-                        {key.ToString (), "Count"}
+                        {"Label", "Items Remaining"},
+                        {"Count", key.ToString ()}
                     };
 
                     return result;
@@ -186,7 +187,8 @@ namespace CouchbaseSample
 
     void InitializeDatasource ()
     {
-            var view = Database.GetExistingView(DefaultViewName) ?? Database.GetView (DefaultViewName);
+
+            var view = InitializeCouchbaseView ();
 
             var query = view.CreateQuery().ToLiveQuery();
             query.Descending = true;
@@ -205,7 +207,7 @@ namespace CouchbaseSample
                         val = String.Empty;
                     } else {
                         var row = DoneQuery.Rows.ElementAt(0);
-                        var doc = row.Value as IDictionary<object,object>;
+                            var doc = (IDictionary<string,string>)row.Value;
 
                         val = String.Format ("{0}: {1}\t", doc["Label"], doc["Count"]);
                     }
@@ -373,7 +375,7 @@ namespace CouchbaseSample
         ShowSyncStatus ();
       }
 
-      Debug.WriteLine (String.Format ("({0})", progress));
+            Debug.WriteLine (String.Format ("({0:F})", progress));
 
       if (active == pull) {
         if (AppDelegate.CurrentSystemVersion >= AppDelegate.iOS7) Progress.TintColor = UIColor.White;
@@ -387,12 +389,13 @@ namespace CouchbaseSample
         Progress.SetProgress (progress, false);
       else
         Progress.SetProgress (progress, false);
-
-            if (!(pull.Status != ReplicationStatus.Active && push.Status != ReplicationStatus.Active))
-        return;
+       
+       if (!(pull.Status != ReplicationStatus.Active && push.Status != ReplicationStatus.Active))
+            if (progress < 1f)
+                return;
       if (active == null)
         return;
-      var initiatorName = _leader.IsPull ? "Pull" : "Push";
+     var initiatorName = active.IsPull ? "Pull" : "Push";
 
       _lastPushCompleted = push.ChangesCount;
       _lastPullCompleted = pull.ChangesCount;

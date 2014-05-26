@@ -667,7 +667,8 @@ namespace Couchbase.Lite
         /// <param name="url">The url of the target Database.</param>
         public Replication CreatePushReplication(Uri url)
         {
-            return new Pusher(this, url, false, CouchbaseLiteHttpClientFactory.Instance, Task.Factory);
+            var scheduler = new SingleThreadTaskScheduler(); //TaskScheduler.FromCurrentSynchronizationContext();
+            return new Pusher(this, url, false, CouchbaseLiteHttpClientFactory.Instance, new TaskFactory(scheduler));
         }
 
         /// <summary>
@@ -677,7 +678,8 @@ namespace Couchbase.Lite
         /// <param name="url">The url of the source Database.</param>
         public Replication CreatePullReplication(Uri url)
         {
-            return new Puller(this, url, false, Task.Factory);
+            var scheduler = new SingleThreadTaskScheduler(); //TaskScheduler.FromCurrentSynchronizationContext();
+            return new Puller(this, url, false, new TaskFactory(scheduler));
         }
 
         public override string ToString()
@@ -1050,7 +1052,7 @@ PRAGMA user_version = 3;";
         /// It must already have a revision ID. This may create a conflict! The revision's history must be given; ancestor revision IDs that don't already exist locally will create phantom revisions with no content.
         /// </remarks>
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
-        internal void ForceInsert(RevisionInternal rev, IList<string> revHistory, Uri source)
+        internal async void ForceInsert(RevisionInternal rev, IList<string> revHistory, Uri source)
         {
             var inConflict = false;
             var docId = rev.GetDocId();
@@ -1147,7 +1149,7 @@ PRAGMA user_version = 3;";
                             newRev = new RevisionInternal(docId, revId, false, this);
                         }
                         // Insert it:
-                        sequence = InsertRevision(newRev, docNumericID, sequence, current, data);
+                        sequence = await Manager.CapturedContext.StartNew(()=>InsertRevision(newRev, docNumericID, sequence, current, data));
                         if (sequence <= 0)
                         {
                             throw new CouchbaseLiteException(StatusCode.InternalServerError);
@@ -1806,7 +1808,7 @@ PRAGMA user_version = 3;";
         {
             for (var i = 0; true; ++i)
             {
-                var name = String.Format("anon%d", i);
+                var name = String.Format("anon{0}", i);
                 var existing = GetExistingView(name);
                 if (existing == null)
                 {
@@ -3192,7 +3194,7 @@ PRAGMA user_version = 3;";
             try
             {
                 var extraSql = (onlyCurrent ? "AND current=1" : string.Empty);
-                var sql = string.Format("SELECT sequence FROM revs WHERE doc_id=@ AND revid=@ %s LIMIT 1", extraSql);
+                var sql = string.Format("SELECT sequence FROM revs WHERE doc_id=@ AND revid=@ {0} LIMIT 1", extraSql);
                 var args = new [] { string.Empty + docNumericId, revId };
                 cursor = StorageEngine.RawQuery(sql, args);
                 result = cursor.MoveToNext()

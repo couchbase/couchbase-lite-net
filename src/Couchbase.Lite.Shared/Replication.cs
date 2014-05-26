@@ -136,7 +136,7 @@ namespace Couchbase.Lite
             Status = ReplicationStatus.Stopped;
             online = true;
             RequestHeaders = new Dictionary<String, Object>();
-
+            Log.D(Tag, "New replication uses a scheduler with a max concurrency level of {0}".Fmt(workExecutor.Scheduler == null ? TaskScheduler.Default.MaximumConcurrencyLevel : workExecutor.Scheduler.MaximumConcurrencyLevel));
             requests = new HashSet<HttpClient>();
 
             if (RemoteUrl.GetQuery() != null && !RemoteUrl.GetQuery().IsEmpty())
@@ -279,7 +279,8 @@ namespace Couchbase.Lite
             if (evt == null) return;
 
             var args = new ReplicationChangeEventArgs(this);
-            evt(this, args);
+            // Ensure callback runs on captured context, which should be the UI thread.
+            LocalDatabase.Manager.CapturedContext.StartNew(()=>evt(this, args));
         }
 
         //TODO: Do we need this method? It's not in the API Spec.
@@ -530,6 +531,9 @@ namespace Couchbase.Lite
 
         private static bool Is404(Exception e)
         {
+            var result = false;
+            if (e is Couchbase.Lite.HttpResponseException)
+                return ((HttpResponseException)e).StatusCode == HttpStatusCode.NotFound;
             return (e is HttpResponseException) && ((HttpResponseException)e).StatusCode == HttpStatusCode.NotFound;
         }
 
@@ -585,7 +589,7 @@ namespace Couchbase.Lite
                     Log.W(Tag, this + ": batcher object is null");
                 }
 
-                Boolean newActive = batcherCount > 0 || asyncTaskCount > 0;
+                var newActive = batcherCount > 0 || asyncTaskCount > 0;
                 if (active != newActive) 
                 {
                     Log.D(Tag, this + " Progress: set active = " + newActive + " asyncTaskCount: " + asyncTaskCount + " batcherCount: " + batcherCount );
@@ -601,7 +605,7 @@ namespace Couchbase.Lite
                         } 
                         else if (LastError != null) /*(revisionsFailed > 0)*/ 
                         {
-                            string msg = string.Format("%s: Failed to xfer %d revisions, will retry in %d sec", this, revisionsFailed, RetryDelay);
+                            string msg = string.Format("{0}: Failed to xfer {1} revisions, will retry in {2} sec", this, revisionsFailed, RetryDelay);
                             Log.D(Tag, msg);
                             CancelPendingRetryIfReady();
                             ScheduleRetryIfReady();
@@ -662,7 +666,7 @@ namespace Couchbase.Lite
             }
 
             savingCheckpoint = true;
-            Log.D(Tag, this + " put remote _local document.  checkpointID: " + remoteCheckpointDocID);
+            //Log.D(Tag, this + " put remote _local document.  checkpointID: " + remoteCheckpointDocID);
             SendAsyncRequest(HttpMethod.Put, "/_local/" + remoteCheckpointDocID, body, (result, e) => {
                 savingCheckpoint = false;
                 if (e != null) 
@@ -701,7 +705,7 @@ namespace Couchbase.Lite
                 }
                 else 
                 {
-                    var response = (IDictionary<String, Object>)result;
+                    var response = ((JObject)result).ToObject<IDictionary<string, object>>();
                     body.Put ("_rev", response.Get ("rev"));
                     remoteCheckpoint = body;
                     LocalDatabase.SetLastSequence(LastSequence, RemoteCheckpointDocID(), IsPull);
@@ -724,6 +728,12 @@ namespace Couchbase.Lite
             catch (UriFormatException e)
             {
                 Log.E(Tag, "Malformed URL for async request", e);
+                throw;
+            }
+            catch (Exception e)
+            {
+                Log.E(Tag, "Unhandled exception", e);
+                throw;
             }
         }
 
@@ -756,7 +766,7 @@ namespace Couchbase.Lite
             PreemptivelySetAuthCredentials(message);
 
             var client = clientFactory.GetHttpClient();
-            client.CancelPendingRequests();
+            //client.CancelPendingRequests();
             client.SendAsync(message, HttpCompletionOption.ResponseHeadersRead, CancellationTokenSource.Token)
                 .ContinueWith(response =>
                 {
@@ -777,7 +787,7 @@ namespace Couchbase.Lite
                             {
                                 error = new HttpResponseException(response.Result.StatusCode); 
                             }
-
+                            
                             if (error == null)
                             {
                                 var content = response.Result.Content;
@@ -796,7 +806,7 @@ namespace Couchbase.Lite
                     }
 
                     return response.Result;
-                }, CancellationTokenSource.Token);
+                    }, CancellationTokenSource.Token, TaskContinuationOptions.None, WorkExecutor.Scheduler);
 
             requests.Add(client);
         }
@@ -960,7 +970,7 @@ namespace Couchbase.Lite
                         Log.E(Database.Tag, "io exception", e);
                         error = e;
                     }
-                    }));
+                    }), WorkExecutor.Scheduler);
             }
             catch (UriFormatException e)
             {

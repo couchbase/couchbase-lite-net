@@ -468,7 +468,7 @@ namespace Couchbase.Lite {
             try
             {
                 cursor = Database.StorageEngine.RawQuery(
-                    "SELECT sequence, key, value FROM maps WHERE view_id=? ORDER BY key", selectArgs);
+                    "SELECT sequence, key, value FROM maps WHERE view_id=@ ORDER BY key", selectArgs);
 
                 while (cursor.MoveToNext()) 
                 {
@@ -765,7 +765,7 @@ namespace Couchbase.Lite {
         /// Gets the <see cref="Couchbase.Lite.View"/>'s <see cref="Couchbase.Lite.ReduceDelegate"/>.
         /// </summary>
         /// <value>The reduce function.</value>
-        public ReduceDelegate Reduce { get; private set; }
+        public ReduceDelegate Reduce { get; set; }
 
         /// <summary>
         /// Gets if the <see cref="Couchbase.Lite.View"/>'s indices are currently out of date.

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="actionbar_background">#ffdce1e3</color>
+    <color name="main_background">#ffdce1e3</color>
+    <color name="drawer_background">#fff2f2f2</color>
+    <color name="primary_text_color">#ff626262</color>
+    <color name="highlighted_text_color">#ffffffff</color>
+    <color name="image_view_background">#ff000000</color>
+</resources>

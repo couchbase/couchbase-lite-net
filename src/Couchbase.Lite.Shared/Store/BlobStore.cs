@@ -71,7 +71,7 @@ namespace Couchbase.Lite
             directory.Mkdirs();
             if (!directory.IsDirectory())
             {
-                throw new InvalidOperationException(string.Format("Unable to create directory for: %s", directory));
+                throw new InvalidOperationException(string.Format("Unable to create directory for: {0}", directory));
             }
 		}
 
@@ -398,7 +398,7 @@ namespace Couchbase.Lite
             tempDirectory.Mkdirs();
             if (!tempDirectory.IsDirectory())
             {
-                throw new InvalidOperationException(string.Format("Unable to create directory for: %s"
+                throw new InvalidOperationException(string.Format("Unable to create directory for: {0}"
                     , tempDirectory));
             }
             return tempDirectory;
