@@ -4,6 +4,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Docs", "Docs", "{751921E0-F01B-4253-A973-74EA7B3DB146}"
 	ProjectSection(SolutionItems) = preProject
 		..\README.md = ..\README.md
+		..\packaging\component\Details.md = ..\packaging\component\Details.md
+		..\packaging\component\GettingStarted.md = ..\packaging\component\GettingStarted.md
+		..\packaging\component\License.md = ..\packaging\component\License.md
 	EndProjectSection
 EndProject
 Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "Couchbase.Lite.Shared", "Couchbase.Lite.Shared\Couchbase.Lite.Shared.shproj", "{0A88C2A7-7AD8-46F9-9D31-869E3466B791}"
