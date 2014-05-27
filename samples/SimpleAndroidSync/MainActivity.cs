@@ -1,18 +1,15 @@
 ﻿using System;
-
+using System.Collections.Generic;
 using Android.App;
 using Android.Content;
-using Android.Runtime;
 using Android.Views;
 using Android.Widget;
 using Android.OS;
+using Android.Preferences;
+using Android.Util;
 using CouchbaseSample.Android.Helper;
 using Couchbase.Lite;
 using CouchbaseSample.Android.Document;
-using Java.Util;
-using System.Collections.Generic;
-using Android.Preferences;
-using Android.Util;
 
 namespace SimpleAndroidSync
 {
@@ -20,8 +17,6 @@ namespace SimpleAndroidSync
     public class MainActivity : Activity
     {
         static readonly string Tag = "SimpleAndroidSync";
-
-        private string currentSyncUrl = null;
 
         Query Query { get; set; }
         LiveQuery LiveQuery { get; set; }
@@ -140,9 +135,9 @@ namespace SimpleAndroidSync
                     Pull.Start();
                     Push.Start();
                 } 
-                catch (Exception e)
+                catch (Java.Lang.Throwable th)
                 {
-                    // TODO: Show alert
+                    Log.Debug(Tag, th, "UpdateSync Error");
                 }
             }
         }
@@ -164,16 +159,18 @@ namespace SimpleAndroidSync
 
         public void ReplicationChanged(object sender, ReplicationChangeEventArgs args)
         {
-            Replication replicator = args.Source;
+            RunOnUiThread(new Action(()=>{
+                Replication replicator = args.Source;
 
-            var totalCount = replicator.ChangesCount;
-            var completedCount = replicator.CompletedChangesCount;
+                var totalCount = replicator.ChangesCount;
+                var completedCount = replicator.CompletedChangesCount;
 
-            if (totalCount > 0 && completedCount < totalCount) {
-                SetProgressBarIndeterminateVisibility(true);
-            } else {
-                SetProgressBarIndeterminateVisibility(false);
-            }
+                if (totalCount > 0 && completedCount < totalCount) {
+                    SetProgressBarIndeterminateVisibility(true);
+                } else {
+                    SetProgressBarIndeterminateVisibility(false);
+                }
+            }));
         }
 
         private class ListLiveQueryAdapter : LiveQueryAdapter
