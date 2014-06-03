@@ -21,7 +21,10 @@ namespace Couchbase.Lite.iOS
                 if (query == value) return;
 
                 query = value;
-                query.Changed += async (sender, e) => ReloadFromQuery();
+                query.Changed += (sender, e) => InvokeOnMainThread(() =>
+                {
+                    ReloadFromQuery();
+                });
             }
         }
 

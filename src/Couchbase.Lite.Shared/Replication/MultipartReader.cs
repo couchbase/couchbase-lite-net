@@ -100,8 +100,11 @@ namespace Couchbase.Lite.Support
 		public byte[] GetBoundaryWithoutLeadingCRLF()
 		{
             var rawBoundary = GetBoundary();
-            var result = new ArraySegment<Byte>(rawBoundary, 2, rawBoundary.Length);
-            return result.Array;
+
+            var result = new byte[rawBoundary.Length - 2];
+            Array.Copy(rawBoundary, 2, result, 0, rawBoundary.Length - 2);
+
+            return result;
 		}
 
 		public bool Finished()
@@ -156,8 +159,10 @@ namespace Couchbase.Lite.Support
 
 		private void DeleteUpThrough(int location)
 		{
-			// int start = location + 1;  // start at the first byte after the location
-            var newBuffer = new ArraySegment<Byte>(buffer.ToArray(), location, buffer.Count);
+            var srcBuffer = buffer.ToArray();
+            var newBuffer = new byte[srcBuffer.Length - location];
+            Array.Copy(srcBuffer, location, newBuffer, 0, newBuffer.Length);
+
 			buffer.Clear();
             buffer.AddRange(newBuffer);
 		}
@@ -169,8 +174,8 @@ namespace Couchbase.Lite.Support
 			if (bufLen > boundaryLen)
 			{
 				// Leave enough bytes in _buffer that we can find an incomplete boundary string
-                var dataToAppend = new ArraySegment<Byte>(buffer.ToArray(), 0,  bufLen - boundaryLen).Array;
-                buffer.Clear();
+                var dataToAppend = new byte[bufLen - boundaryLen];
+                Array.Copy(buffer.ToArray(), 0, dataToAppend, 0, dataToAppend.Length);
 				readerDelegate.AppendToPart(dataToAppend);
 				DeleteUpThrough(bufLen - boundaryLen);
 			}
@@ -234,7 +239,8 @@ namespace Couchbase.Lite.Support
 						{
 							if (state == MultipartReader.MultipartReaderState.kInBody)
 							{
-                                var dataToAppend = new ArraySegment<Byte>(buffer.ToArray(), 0, r.GetLocation());
+                                var dataToAppend = new byte[r.GetLocation()];
+                                Array.Copy(buffer.ToArray(), 0, dataToAppend, 0, dataToAppend.Length);
 								readerDelegate.AppendToPart(dataToAppend);
 								readerDelegate.FinishedPart();
 							}
@@ -316,7 +322,7 @@ namespace Couchbase.Lite.Support
                             if (tempBoundary.Length < 2 || !tempBoundary.EndsWith ("\"", StringComparison.InvariantCultureIgnoreCase)) {
                                 throw new ArgumentException (contentType + " is not valid");
                             }
-                            tempBoundary = tempBoundary.Substring(1, tempBoundary.Length - 1);
+                            tempBoundary = tempBoundary.Substring(1, tempBoundary.Length - 2);
                         }
 						if (tempBoundary.Length < 1)
 						{

@@ -136,7 +136,7 @@ namespace Couchbase.Lite
             Status = ReplicationStatus.Stopped;
             online = true;
             RequestHeaders = new Dictionary<String, Object>();
-            Log.D(Tag, "New replication uses a scheduler with a max concurrency level of {0}".Fmt(workExecutor.Scheduler == null ? TaskScheduler.Default.MaximumConcurrencyLevel : workExecutor.Scheduler.MaximumConcurrencyLevel));
+
             requests = new HashSet<HttpClient>();
 
             if (RemoteUrl.GetQuery() != null && !RemoteUrl.GetQuery().IsEmpty())
@@ -279,8 +279,7 @@ namespace Couchbase.Lite
             if (evt == null) return;
 
             var args = new ReplicationChangeEventArgs(this);
-            // Ensure callback runs on captured context, which should be the UI thread.
-            LocalDatabase.Manager.CapturedContext.StartNew(()=>evt(this, args));
+            evt(this, args);
         }
 
         //TODO: Do we need this method? It's not in the API Spec.
@@ -504,7 +503,6 @@ namespace Couchbase.Lite
                         string remoteLastSequence = null;
 
                         if (result != null) {
-                            remoteLastSequence = (string)result.Get ("lastSequence");
                             remoteLastSequence = (string)result.Get("lastSequence");
                         }
 
@@ -623,13 +621,20 @@ namespace Couchbase.Lite
         internal virtual void Stopped()
         {
             Log.V(Tag, ToString() + " STOPPING");
+
             IsRunning = false;
+
             completedChangesCount = changesCount = 0;
+
             NotifyChangeListeners();
+
             SaveLastSequence();
+
             Log.V(Tag, this + " set batcher to null");
             Batcher = null;
+
             ClearDbRef();
+
             Log.V(Database.Tag, ToString() + " STOPPED");
         }
 
@@ -806,7 +811,7 @@ namespace Couchbase.Lite
                     }
 
                     return response.Result;
-                    }, CancellationTokenSource.Token, TaskContinuationOptions.None, WorkExecutor.Scheduler);
+            }, CancellationTokenSource.Token, TaskContinuationOptions.None, WorkExecutor.Scheduler);
 
             requests.Add(client);
         }
@@ -889,10 +894,12 @@ namespace Couchbase.Lite
                                 try
                                 {
                                     var reader = new MultipartDocumentReader(responseMessage.Result, LocalDatabase);
-                                    reader.SetContentType(contentTypeHeader.MediaType);
+                                    var contentType = contentTypeHeader.ToString();
+                                    reader.SetContentType(contentType);
 
                                     var inputStreamTask = entity.ReadAsStreamAsync();
                                     inputStreamTask.Wait(90000, CancellationTokenSource.Token);
+                                    inputStream = inputStreamTask.Result;
                                     
                                     const int bufLen = 1024;
                                     var buffer = new byte[bufLen];
@@ -902,7 +909,8 @@ namespace Couchbase.Lite
                                     {
                                         if (numBytesRead != bufLen)
                                         {
-                                            var bufferToAppend = new ArraySegment<Byte>(buffer, 0, numBytesRead).Array;
+                                            var bufferToAppend = new byte[numBytesRead];
+                                            Array.Copy(buffer, bufferToAppend, numBytesRead);
                                             reader.AppendData(bufferToAppend);
                                         }
                                         else
@@ -917,6 +925,10 @@ namespace Couchbase.Lite
                                     if (onCompletion != null)
                                         onCompletion(fullBody, error);
                                 }
+                                catch (Exception e)
+                                {
+                                        Log.E(Tag, "SendAsyncMultipartDownloaderRequest has an error occurred.", e);
+                                }   
                                 finally
                                 {
                                     try
@@ -1370,13 +1382,26 @@ namespace Couchbase.Lite
 
             Log.V(Database.Tag, ToString() + " STOPPING...");
             Batcher.Clear();
+
             // no sense processing any pending changes
             continuous = false;
             StopRemoteRequests();
             CancelPendingRetryIfReady();
             LocalDatabase.ForgetReplication(this);
+
+            while (true)
+            {
+                lock (asyncTaskLocker)
+                {
+                    if (asyncTaskCount <= 0)
+                    {
+                        break;
+                    }
+                }
+                System.Threading.Thread.Sleep(100);
+            }
                 
-            if (IsRunning && asyncTaskCount == 0)
+            if (IsRunning)
             {
                 Stopped();
             }

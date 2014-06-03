@@ -159,16 +159,18 @@ namespace SimpleAndroidSync
 
         public void ReplicationChanged(object sender, ReplicationChangeEventArgs args)
         {
-            Replication replicator = args.Source;
+            RunOnUiThread(new Action(()=>{
+                Replication replicator = args.Source;
 
-            var totalCount = replicator.ChangesCount;
-            var completedCount = replicator.CompletedChangesCount;
+                var totalCount = replicator.ChangesCount;
+                var completedCount = replicator.CompletedChangesCount;
 
-            if (totalCount > 0 && completedCount < totalCount) {
-                SetProgressBarIndeterminateVisibility(true);
-            } else {
-                SetProgressBarIndeterminateVisibility(false);
-            }
+                if (totalCount > 0 && completedCount < totalCount) {
+                    SetProgressBarIndeterminateVisibility(true);
+                } else {
+                    SetProgressBarIndeterminateVisibility(false);
+                }
+            }));
         }
 
         private class ListLiveQueryAdapter : LiveQueryAdapter

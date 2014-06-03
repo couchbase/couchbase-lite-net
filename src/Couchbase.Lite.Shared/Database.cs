@@ -1148,8 +1148,18 @@ PRAGMA user_version = 3;";
                             // It's an intermediate parent, so insert a stub:
                             newRev = new RevisionInternal(docId, revId, false, this);
                         }
+
                         // Insert it:
-                        sequence = await Manager.CapturedContext.StartNew(()=>InsertRevision(newRev, docNumericID, sequence, current, data));
+                        // sequence = await Manager.CapturedContext.StartNew(()=>InsertRevision(newRev, docNumericID, sequence, current, data));
+                        //
+                        // 1) There is no need to run InsertRevision in a CapturedContext mode which is now a Single-Thread-Executor as the MonoSQLiteStorageEngine
+                        //    is now thread-safe with a connection pool with 1-connection and supports threaded-nested transaction (provent multithread to steal and close
+                        //    a transaction began by another thread.
+                        // 2) await is causing an issue that the the InsertRevision will continue running in the background while 
+                        //    Replication has already finished and closed in non-continuous mode. 
+                        //
+                        sequence = InsertRevision(newRev, docNumericID, sequence, current, data);
+
                         if (sequence <= 0)
                         {
                             throw new CouchbaseLiteException(StatusCode.InternalServerError);
@@ -1175,12 +1185,11 @@ PRAGMA user_version = 3;";
                     string[] whereArgs = new string[] { Convert.ToString(localParentSequence) };
                     try
                     {
-                        Int32 numRowsChanged = StorageEngine.Update("revs", args, "sequence=@", whereArgs);
+                        var numRowsChanged = StorageEngine.Update("revs", args, "sequence=@", whereArgs);
                         if (numRowsChanged == 0)
                         {
                             inConflict = true;
                         }
-
                     }
                     catch (SQLException)
                     {
@@ -1192,7 +1201,7 @@ PRAGMA user_version = 3;";
                 success = true;
                 NotifyChange(rev, winningRev, source, inConflict);
             }
-            catch (SQLException)
+            catch (Exception e)
             {
                 throw new CouchbaseLiteException(StatusCode.InternalServerError);
             }
@@ -3295,13 +3304,25 @@ PRAGMA user_version = 3;";
             var properties = rev.GetProperties ();
             if (properties != null)
             {
-                revAttachments = (IDictionary<string, object>)properties.Get("_attachments");
+                var revAttachmentsValue = properties.Get("_attachments");
+                if (revAttachmentsValue != null)
+                {
+                    if (revAttachmentsValue is JObject)
+                    {
+                        revAttachments = ((JObject)revAttachmentsValue).ToObject<IDictionary<string, object>>();
+                    }
+                    else
+                    {
+                        revAttachments = (IDictionary<string, object>)revAttachmentsValue;
+                    }
+                }
             }
 
             if (revAttachments == null || revAttachments.Count == 0 || rev.IsDeleted())
             {
                 return;
             }
+
             foreach (string name in revAttachments.Keys)
             {
                 var attachment = attachments.Get(name);
@@ -3493,31 +3514,82 @@ PRAGMA user_version = 3;";
         {
             var properties = rev.GetProperties();
 
-            var attachmentsFromProps = (IDictionary<String, Object>)properties.Get("_attachments");
+            var attachmentsFromPropsValue = properties.Get("_attachments");
+
+            if (attachmentsFromPropsValue is JObject) 
+            {
+                StubOutJObjectAttachmentsInRevision(attachments, rev);
+                return;
+            }
+
+            var attachmentsFromProps = (IDictionary<String, object>)attachmentsFromPropsValue;
+
             if (attachmentsFromProps != null)
             {
-                foreach (string attachmentKey in attachmentsFromProps.Keys)
+                foreach(var attmt in attachmentsFromProps)
                 {
-                    var attachmentFromProps = (IDictionary<string, object>)attachmentsFromProps.Get(attachmentKey);
-                    if (attachmentFromProps.Get("follows") != null || attachmentFromProps.Get("data")
-                        != null)
+                    var attachmentKey = attmt.Key;
+                    var attachmentFromProps = (IDictionary<String, object>)attmt.Value;
+
+                    if (attachmentFromProps.Get("follows") != null || attachmentFromProps.Get("data") != null)
                     {
-                        Collections.Remove(attachmentFromProps, "follows");
-                        Collections.Remove(attachmentFromProps, "data");
+                        attachmentFromProps.Remove("follows");
+                        attachmentFromProps.Remove("data");
 
                         attachmentFromProps["stub"] = true;
                         if (attachmentFromProps.Get("revpos") == null)
                         {
-                            attachmentFromProps.Put("revpos", rev.GetGeneration());
+                            attachmentFromProps["revpos"] = rev.GetGeneration();
                         }
+
                         var attachmentObject = attachments.Get(attachmentKey);
                         if (attachmentObject != null)
                         {
-                            attachmentFromProps.Put("length", attachmentObject.GetLength());
+                            attachmentFromProps["length"] = attachmentObject.GetLength();
                             if (attachmentObject.GetBlobKey() != null)
                             {
                                 // case with Large Attachment
-                                attachmentFromProps.Put("digest", attachmentObject.GetBlobKey().Base64Digest());
+                                attachmentFromProps["digest"] = attachmentObject.GetBlobKey().Base64Digest();
+                            }
+                        }
+                        attachmentFromProps[attachmentKey] = attachmentFromProps;
+                    }
+                }
+            }
+        }
+
+        internal void StubOutJObjectAttachmentsInRevision(IDictionary<String, AttachmentInternal> attachments, RevisionInternal rev)
+        {
+            var properties = rev.GetProperties();
+
+            var attachmentsFromProps = (JObject)properties.Get("_attachments");
+
+            if (attachmentsFromProps != null)
+            {
+                foreach(var attmt in attachmentsFromProps)
+                {
+                    var attachmentKey = attmt.Key;
+                    var attachmentFromProps = (JObject)attmt.Value;
+
+                    if (attachmentFromProps["follows"] != null || attachmentFromProps["data"] != null)
+                    {
+                        attachmentFromProps.Remove("follows");
+                        attachmentFromProps.Remove("data");
+
+                        attachmentFromProps["stub"] = true;
+                        if (attachmentFromProps["revpos"] == null)
+                        {
+                            attachmentFromProps["revpos"] = rev.GetGeneration();
+                        }
+
+                        var attachmentObject = attachments.Get(attachmentKey);
+                        if (attachmentObject != null)
+                        {
+                            attachmentFromProps["length"] = attachmentObject.GetLength();
+                            if (attachmentObject.GetBlobKey() != null)
+                            {
+                                // case with Large Attachment
+                                attachmentFromProps["digest"] = attachmentObject.GetBlobKey().Base64Digest();
                             }
                         }
                         attachmentFromProps[attachmentKey] = attachmentFromProps;
@@ -3563,6 +3635,7 @@ PRAGMA user_version = 3;";
             return json;
         }
 
+
         /// <summary>
         /// Given a revision, read its _attachments dictionary (if any), convert each attachment to a
         /// AttachmentInternal object, and return a dictionary mapping names-&gt;CBL_Attachments.
@@ -3574,16 +3647,39 @@ PRAGMA user_version = 3;";
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
         internal IDictionary<String, AttachmentInternal> GetAttachmentsFromRevision(RevisionInternal rev)
         {
-            var revAttachments = (IDictionary<string, object>)rev.GetPropertyForKey("_attachments");
+            IDictionary<string, object> revAttachments = null;
+            var revAttachmentsValue = rev.GetPropertyForKey("_attachments");
+            if (revAttachmentsValue != null)
+            {
+                if (revAttachmentsValue is JObject)
+                {
+                    revAttachments = ((JObject)revAttachmentsValue).ToObject<IDictionary<string, object>>();
+                }
+                else
+                {
+                    revAttachments = (IDictionary<string, object>)revAttachmentsValue;
+                }
+            }
+
             if (revAttachments == null || revAttachments.Count == 0 || rev.IsDeleted())
             {
                 return new Dictionary<string, AttachmentInternal>();
             }
-
+                
             var attachments = new Dictionary<string, AttachmentInternal>();
             foreach (var name in revAttachments.Keys)
             {
-                var attachInfo = (IDictionary<string, object>)revAttachments.Get(name);
+                IDictionary<string, object> attachInfo = null;
+                var attachInfoValue = revAttachments.Get(name);
+                if (attachInfoValue is JObject)
+                {
+                    attachInfo = ((JObject)attachInfoValue).ToObject<IDictionary<string, object>>();
+                }
+                else
+                {
+                    attachInfo = (IDictionary<string, object>)attachInfoValue;
+                }
+
                 var contentType = (string)attachInfo.Get("content_type");
                 var attachment = new AttachmentInternal(name, contentType);
                 var newContentBase64 = (string)attachInfo.Get("data");
@@ -3625,7 +3721,8 @@ PRAGMA user_version = 3;";
                             throw new CouchbaseLiteException("Expected this attachment to be a stub", StatusCode.
                                                              BadAttachment);
                         }
-                        int revPos = ((int)attachInfo.Get("revpos"));
+
+                        var revPos = ((long)attachInfo.Get("revpos"));
                         if (revPos <= 0)
                         {
                             throw new CouchbaseLiteException("Invalid revpos: " + revPos, StatusCode.BadAttachment
@@ -3656,7 +3753,7 @@ PRAGMA user_version = 3;";
                 }
                 if (attachInfo.ContainsKey("revpos"))
                 {
-                    attachment.SetRevpos((int)attachInfo.Get("revpos"));
+                    attachment.SetRevpos((int)((long)attachInfo.Get("revpos")));
                 }
                 else
                 {

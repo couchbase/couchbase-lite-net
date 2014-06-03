@@ -418,8 +418,14 @@ namespace Couchbase.Lite.Replicator
                             Log.W(Tag, this + string.Format(": Received unparseable change line from server: {0}", change));
                         }
                     }
-                    Stop();
+                    
+                        // As ReceivedChange() dispatches the change event to its client via WorkExecutor,
+                        // to avoid the Stop() to be called before the client is done handling the change event,
+                        // we need to setup the Stop() call with the WorkExecutor as well 
+                        // (Assuming that the WorkExecutor is a single thread executor).
+                    WorkExecutor.StartNew(() => Stop());
                     this.shouldBreak = true;
+
                     return;
                 }
             }
@@ -435,11 +441,11 @@ namespace Couchbase.Lite.Replicator
 			{
 				return false;
 			}
+
 			//pass the change to the client on the thread that created this change tracker
 			if (client != null)
 			{
-                WorkExecutor.StartNew(()=> 
-                    client.ChangeTrackerReceivedChange(change), tokenSource.Token);
+                WorkExecutor.StartNew(() => client.ChangeTrackerReceivedChange(change), tokenSource.Token);
 			}
 			lastSequenceID = seq;
 			return true;

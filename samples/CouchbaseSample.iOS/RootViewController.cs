@@ -3,9 +3,7 @@ using System.Collections.Generic;
 using MonoTouch.UIKit;
 using MonoTouch.Foundation;
 using System.Linq;
-using Couchbase;
 using System.Diagnostics;
-using MonoTouch.CoreGraphics;
 using System.Drawing;
 using Couchbase.Lite;
 using Newtonsoft.Json.Linq;
@@ -199,20 +197,22 @@ namespace CouchbaseSample
 
             var doneView = Database.GetExistingView("Done") ?? Database.GetView ("Done");
             DoneQuery = doneView.CreateQuery().ToLiveQuery();
-            DoneQuery.Changed += (sender, e) => {
+            DoneQuery.Changed += (sender, e) => InvokeOnMainThread(() =>
+                {
                     String val;
                     var label = TableView.TableHeaderView as UILabel;
-
-                    if (DoneQuery.Rows.Count == 0) {
+                    if (DoneQuery.Rows.Count == 0)
+                    {
                         val = String.Empty;
-                    } else {
+                    }
+                    else
+                    {
                         var row = DoneQuery.Rows.ElementAt(0);
-                            var doc = (IDictionary<string,string>)row.Value;
-
-                        val = String.Format ("{0}: {1}\t", doc["Label"], doc["Count"]);
+                        var doc = (IDictionary<string, string>)row.Value;
+                        val = String.Format("{0}: {1}\t", doc["Label"], doc["Count"]);
                     }
                     label.Text = val;
-                };
+                });
             DoneQuery.Start();
     }
     #endregion

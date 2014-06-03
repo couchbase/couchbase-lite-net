@@ -44,23 +44,143 @@ using Couchbase.Lite.Storage;
 using Sharpen;
 using System.Collections.Generic;
 using Mono.Data.Sqlite;
-using System.Data.Common;
-using System.IO;
 using Couchbase.Lite.Util;
 using System;
 using System.Data;
 using System.Linq;
 using System.Text;
-using System.Data.SqlClient;
 using System.Diagnostics;
 using System.Threading;
-using System.Runtime.InteropServices;
 
 namespace Couchbase.Lite.Storage
 {
 
     internal sealed class MonoSQLiteStorageEngine : SQLiteStorageEngine, IDisposable
     {
+
+        private class ConnectionContext
+        {
+            private readonly SqliteConnection connection;
+            public SqliteConnection Connection  {  get { return connection; } }
+
+            public Int32 UsageCount { get; set; }
+
+            public SqliteTransaction OpenedTransaction { get; set; }
+
+            public Int32 TransactionCounter { get; set; }
+
+            public bool TransactionSuccessful { get; set; }
+
+            public bool InnerTransactionIsSuccessful { get; set; }
+
+            public ConnectionContext(string connStr)
+            {
+                connection = new SqliteConnection(connStr);
+                connection.Open();
+            }
+        }
+
+        private class ConnectionPool
+        {
+            private readonly Semaphore sem = new Semaphore(1, 1);
+            private readonly ThreadLocal<ConnectionContext> threadLocal = new ThreadLocal<ConnectionContext>();
+            private string connStr;
+            private ConnectionContext primaryContext;
+            private bool isStart = false;
+
+            public ConnectionPool(string connStr)
+            {
+                this.connStr = connStr;
+            }
+
+            public void Start()
+            {
+                if (!isStart)
+                {
+                    primaryContext = new ConnectionContext(connStr);
+                    isStart = true;
+                }
+            }
+
+            public void Stop()
+            {
+                if (isStart)
+                {
+                    primaryContext.Connection.Close();
+                    primaryContext = null;
+                    isStart = false;
+                }
+            }
+
+            private ConnectionContext Acquire()
+            {
+                sem.WaitOne();
+
+                if (primaryContext == null)
+                {
+                    sem.Release();
+                }
+
+                return primaryContext;
+            }
+
+            private void Release(ConnectionContext context)
+            {
+                if (primaryContext == context)
+                {
+                    sem.Release();
+                }
+            }
+
+            public ConnectionContext GetConnection(bool markUsage)
+            {
+                if (!isStart)
+                {
+                    throw new InvalidOperationException("Cannot use the pool without starting the pool.");
+                }
+
+                var context = threadLocal.Value;
+                if (context == null)
+                {
+                    context = Acquire();
+                    threadLocal.Value = context;
+                }
+
+                if (markUsage)
+                {
+                    context.UsageCount++;
+                }
+
+                return context;
+            }
+
+            public ConnectionContext GetConnection()
+            {
+                return GetConnection(true);
+            }
+
+            public void ReleaseConnection(ConnectionContext context)
+            {
+                if (!isStart)
+                {
+                    throw new InvalidOperationException("Cannot use the pool without starting the pool.");
+                }
+
+                if (context == null) 
+                {
+                    return;
+                }
+
+                context.UsageCount--;
+
+                if (context.UsageCount == 0)
+                {
+                    threadLocal.Value = null;
+                    Release(context);
+                }
+            }
+        }
+
         static MonoSQLiteStorageEngine()
         {
             // Ensure Sqlite provider uses our custom collation function
@@ -75,14 +195,17 @@ namespace Couchbase.Lite.Storage
 
         static readonly IsolationLevel DefaultIsolationLevel = IsolationLevel.ReadCommitted;
 
-        private SqliteConnection Connection;
-        private SqliteTransaction currentTransaction;
-        private Boolean shouldCommit;
+        //private SqliteConnection Connection;
+        //private SqliteTransaction currentTransaction;
+        //private Boolean shouldCommit;
+
+        private ConnectionPool connectionPool;
 
         #region implemented abstract members of SQLiteStorageEngine
 
         public override bool Open (String path)
         {
+            //TODO: synchronized this method
             var connectionString = new SqliteConnectionStringBuilder
             {
                 DataSource = path,
@@ -90,11 +213,14 @@ namespace Couchbase.Lite.Storage
                 SyncMode = SynchronizationModes.Full
             };
 
-            var result = true;
+            if (connectionPool == null)
+            {
+                connectionPool = new ConnectionPool(connectionString.ToString());
+            }
+
+            bool result = true;
             try {
-                shouldCommit = false;
-                Connection = new SqliteConnection (connectionString.ToString ());
-                Connection.Open();
+                connectionPool.Start();
             } catch (Exception ex) {
                 Log.E(Tag, "Error opening the Sqlite connection using connection String: {0}".Fmt(connectionString.ToString()), ex);
                 result = false;    
@@ -103,13 +229,23 @@ namespace Couchbase.Lite.Storage
             return result;
         }
 
+        private ConnectionPool getConnectionPool()
+        {
+            if (connectionPool == null) throw new InvalidOperationException("Cannot use the engine without openning");
+
+            return connectionPool;
+        }
+
         public override Int32 GetVersion()
         {
-            var command = Connection.CreateCommand();
-            command.CommandText = "PRAGMA user_version;";
+            var context = getConnectionPool().GetConnection();
 
+            SqliteCommand command = null;
             var result = -1;
             try {
+                command = context.Connection.CreateCommand();
+                command.CommandText = "PRAGMA user_version;";
+
                 var commandResult = command.ExecuteScalar();
                 if (commandResult is Int32) {
                     result = (Int32)commandResult;
@@ -117,23 +253,27 @@ namespace Couchbase.Lite.Storage
             } catch (Exception e) {
                 Log.E(Tag, "Error getting user version", e);
             } finally {
-                command.Dispose();
+                if (command != null) command.Dispose();
+                getConnectionPool().ReleaseConnection(context);
             }
             return result;
         }
 
         public override void SetVersion(Int32 version)
         {
-            var command = Connection.CreateCommand();
-            command.CommandText = "PRAGMA user_version = @";
-            command.Parameters[0].Value = version;
+            var context = getConnectionPool().GetConnection();
 
+            SqliteCommand command = null;
             try {
+                command = context.Connection.CreateCommand();
+                command.CommandText = "PRAGMA user_version = @";
+                command.Parameters[0].Value = version;
                 command.ExecuteNonQuery();
             } catch (Exception e) {
                 Log.E(Tag, "Error getting user version", e);
             } finally {
-                command.Dispose();
+                if (command != null) command.Dispose();
+                getConnectionPool().ReleaseConnection(context);
             }
             return;
         }
@@ -141,7 +281,17 @@ namespace Couchbase.Lite.Storage
         public override bool IsOpen
         {
             get { 
-                return Connection.State == ConnectionState.Open; 
+                var context = getConnectionPool().GetConnection();
+
+                try {
+                    return (context.Connection != null && context.Connection.State == ConnectionState.Open);
+                } catch (Exception e) {
+                    Log.E(Tag, "Error getting user version", e);
+                } finally {
+                    getConnectionPool().ReleaseConnection(context);
+                }
+
+                return false;
             }
         }
 
@@ -154,51 +304,110 @@ namespace Couchbase.Lite.Storage
 
         public override void BeginTransaction (IsolationLevel isolationLevel)
         {
-            // NOTE.ZJG: Seems like we should really be using TO SAVEPOINT
-            //           but this is how Android SqliteDatabase does it,
-            //           so I'm matching that for now.
-            Interlocked.Increment(ref transactionCount);
-            currentTransaction = Connection.BeginTransaction(isolationLevel);
+            var context = getConnectionPool().GetConnection();
+
+            context.TransactionCounter++;
+
+            bool ok = false;
+
+            try 
+            {
+                if (context.TransactionCounter > 1)
+                {
+                    ok = true;
+                    return;
+                }
+
+                context.TransactionSuccessful = true;
+                context.InnerTransactionIsSuccessful = false;
+                //context.Connection.BeginTransaction(isolationLevel);
+                context.OpenedTransaction = context.Connection.BeginTransaction();
+            }
+            finally
+            {
+                if (!ok)
+                {
+                    context.TransactionCounter--;
+                }
+            }
         }
 
         public override void EndTransaction ()
         {
-            if (Connection.State != ConnectionState.Open)
-                throw new InvalidOperationException("Database is not open.");
+            // Getting a connection without marking a usage count
+            var context = getConnectionPool().GetConnection(false);
 
-            if (Interlocked.Decrement(ref transactionCount) > 0)
-                return;
+            try
+            {
+                if (context.InnerTransactionIsSuccessful)
+                {
+                    context.InnerTransactionIsSuccessful = false;
+                }
+                else
+                {
+                    context.TransactionSuccessful = false;
+                }
 
-            if (currentTransaction == null) {
-                if (shouldCommit)
-                    throw new InvalidOperationException ("Transaction missing.");
-                return;
+                if (context.TransactionCounter != 1)
+                {
+                    return;
+                }
+
+                if (context.OpenedTransaction == null)
+                {
+                    return;
+                }
+
+                if (context.TransactionSuccessful)
+                {
+                    context.OpenedTransaction.Commit();
+                }
+                else
+                {
+                    context.OpenedTransaction.Rollback();
+                }
+
+                context.OpenedTransaction = null;
             }
-            if (shouldCommit) {
-                currentTransaction.Commit();
-                shouldCommit = false;
-            } else {
-                currentTransaction.Rollback();
+            finally
+            {
+                context.TransactionCounter--;
+                getConnectionPool().ReleaseConnection(context);
             }
-            currentTransaction.Dispose();
-            currentTransaction = null;
         }
 
         public override void SetTransactionSuccessful ()
         {
-            shouldCommit = true;
+            var context = getConnectionPool().GetConnection();
+
+            try
+            {
+                if (context.InnerTransactionIsSuccessful)
+                {
+                    throw new InvalidOperationException("SetTransactionSuccessful() should only be called once per beginTransaction().");
+                }
+
+                context.InnerTransactionIsSuccessful = true;
+            }
+            finally
+            {
+                getConnectionPool().ReleaseConnection(context);
+            }
         }
 
         public override void ExecSQL (String sql, params Object[] paramArgs)
         {
-            var command = BuildCommand (sql, paramArgs);
+            var context = getConnectionPool().GetConnection();
 
+            SqliteCommand command = null;
             try {
+                command = BuildCommand (context, sql, paramArgs);
                 command.ExecuteNonQuery();
             } catch (Exception e) {
                 Log.E(Tag, "Error executing sql'{0}'".Fmt(sql), e);
             } finally {
-                command.Dispose();
+                if (command != null) command.Dispose();
+                getConnectionPool().ReleaseConnection(context);
             }
         }
 
@@ -209,10 +418,13 @@ namespace Couchbase.Lite.Storage
 
         public override Cursor RawQuery (String sql, CommandBehavior behavior, params Object[] paramArgs)
         {
-            var command = BuildCommand (sql, paramArgs);
+            var context = getConnectionPool().GetConnection();
+
+            SqliteCommand command = null;
 
             Cursor cursor = null;
             try {
+                command = BuildCommand (context, sql, paramArgs);
                 Log.V(Tag, "RawQuery sql: {0}".Fmt(sql));
                 var reader = command.ExecuteReader(behavior);
                 cursor = new Cursor(reader);
@@ -220,7 +432,8 @@ namespace Couchbase.Lite.Storage
                 Log.E(Tag, "Error executing raw query '{0}'".Fmt(sql), e);
                 throw;
             } finally {
-                command.Dispose();
+                if (command != null) command.Dispose();
+                getConnectionPool().ReleaseConnection(context);
             }
 
             return cursor;
@@ -239,15 +452,19 @@ namespace Couchbase.Lite.Storage
                 throw e;
             }
 
-            var command = GetInsertCommand(table, initialValues, conflictResolutionStrategy);
+            var context = getConnectionPool().GetConnection();
+
+            SqliteCommand command = null;
 
             var lastInsertedId = -1L;
             try {
+
+                command = GetInsertCommand(context, table, initialValues, conflictResolutionStrategy);
                 command.ExecuteNonQuery();
 
                 // Get the new row's id.
                 // TODO.ZJG: This query should ultimately be replaced with a call to sqlite3_last_insert_rowid.
-                var lastInsertedIndexCommand = new SqliteCommand("select last_insert_rowid()", Connection, currentTransaction);
+                var lastInsertedIndexCommand = new SqliteCommand("select last_insert_rowid()", context.Connection, context.OpenedTransaction);
                 lastInsertedId = (Int64)lastInsertedIndexCommand.ExecuteScalar();
                 lastInsertedIndexCommand.Dispose();
                 if (lastInsertedId == -1L) {
@@ -258,8 +475,10 @@ namespace Couchbase.Lite.Storage
             } catch (Exception ex) {
                 Log.E(Tag, "Error inserting into table " + table, ex);
             } finally {
-                command.Dispose();
+                if (command != null) command.Dispose();
+                getConnectionPool().ReleaseConnection(context);
             }
+
             return lastInsertedId;
         }
 
@@ -268,17 +487,21 @@ namespace Couchbase.Lite.Storage
             Debug.Assert(!table.IsEmpty());
             Debug.Assert(values != null);
 
-            var builder = new SqliteCommandBuilder();
-            builder.SetAllValues = false;
+            var context = getConnectionPool().GetConnection();
 
-            var command = GetUpdateCommand(table, values, whereClause, whereArgs);
+            SqliteCommand command = null;
 
             var resultCount = -1;
             try {
+                command = GetUpdateCommand(context, table, values, whereClause, whereArgs);
                 resultCount = (Int32)command.ExecuteNonQuery ();
             } catch (Exception ex) {
                 Log.E(Tag, "Error updating table " + table, ex);
+            } finally {
+                if (command != null) command.Dispose();
+                getConnectionPool().ReleaseConnection(context);
             }
+
             return resultCount;
         }
 
@@ -286,35 +509,40 @@ namespace Couchbase.Lite.Storage
         {
             Debug.Assert(!table.IsEmpty());
 
-            var command = GetDeleteCommand(table, whereClause, whereArgs);
+            var context = getConnectionPool().GetConnection();
+
+            SqliteCommand command = null;
 
             var resultCount = -1;
             try {
+                command = GetDeleteCommand(context, table, whereClause, whereArgs);
                 resultCount = command.ExecuteNonQuery ();
             } catch (Exception ex) {
                 Log.E(Tag, "Error deleting from table " + table, ex);
             } finally {
-                command.Dispose();
+                if (command != null) command.Dispose();
+                getConnectionPool().ReleaseConnection(context);
             }
+
             return resultCount;
         }
 
         public override void Close ()
         {
-            Connection.Close();
+            getConnectionPool().Stop();
         }
 
         #endregion
 
         #region Non-public Members
 
-        SqliteCommand BuildCommand (string sql, object[] paramArgs)
+        SqliteCommand BuildCommand (ConnectionContext context, string sql, object[] paramArgs)
         {
-            var command = Connection.CreateCommand ();
+            var command = context.Connection.CreateCommand ();
             command.CommandText = sql.ReplacePositionalParams ();
 
-            if (currentTransaction != null)
-                command.Transaction = currentTransaction;
+            if (context.OpenedTransaction != null)
+                command.Transaction = context.OpenedTransaction;
 
             if (paramArgs != null && paramArgs.Length > 0)
                 command.Parameters.AddRange (paramArgs.ToSqliteParameters ());
@@ -326,11 +554,12 @@ namespace Couchbase.Lite.Storage
         /// Avoids the additional database trip that using SqliteCommandBuilder requires.
         /// </summary>
         /// <returns>The update command.</returns>
+        /// <param name = "context">Connection Context</param>
         /// <param name="table">Table.</param>
         /// <param name="values">Values.</param>
         /// <param name="whereClause">Where clause.</param>
         /// <param name="whereArgs">Where arguments.</param>
-        SqliteCommand GetUpdateCommand (string table, ContentValues values, string whereClause, string[] whereArgs)
+        SqliteCommand GetUpdateCommand (ConnectionContext context, string table, ContentValues values, string whereClause, string[] whereArgs)
         {
             var builder = new StringBuilder("UPDATE ");
 
@@ -362,7 +591,7 @@ namespace Couchbase.Lite.Storage
                 sqlParams.AddRange(whereArgs.ToSqliteParameters());
 
             var sql = builder.ToString();
-            var command = new SqliteCommand(sql, Connection, currentTransaction);
+            var command = new SqliteCommand(sql, context.Connection, context.OpenedTransaction);
             command.Parameters.Clear();
             command.Parameters.AddRange(sqlParams.ToArray());
 
@@ -373,10 +602,11 @@ namespace Couchbase.Lite.Storage
         /// Avoids the additional database trip that using SqliteCommandBuilder requires.
         /// </summary>
         /// <returns>The insert command.</returns>
+        /// <param name = "context">Connection Context</param>
         /// <param name="table">Table.</param>
         /// <param name="values">Values.</param>
         /// <param name="conflictResolutionStrategy">Conflict resolution strategy.</param>
-        SqliteCommand GetInsertCommand (String table, ContentValues values, ConflictResolutionStrategy conflictResolutionStrategy)
+        SqliteCommand GetInsertCommand (ConnectionContext context, String table, ContentValues values, ConflictResolutionStrategy conflictResolutionStrategy)
         {
             var builder = new StringBuilder("INSERT");
 
@@ -413,7 +643,7 @@ namespace Couchbase.Lite.Storage
             builder.Append(")");
 
             var sql = builder.ToString();
-            var command = new SqliteCommand(sql, Connection, currentTransaction);
+            var command = new SqliteCommand(sql, context.Connection, context.OpenedTransaction);
             command.Parameters.Clear();
             command.Parameters.AddRange(sqlParams);
 
@@ -427,7 +657,7 @@ namespace Couchbase.Lite.Storage
         /// <param name="table">Table.</param>
         /// <param name="whereClause">Where clause.</param>
         /// <param name="whereArgs">Where arguments.</param>
-        SqliteCommand GetDeleteCommand (string table, string whereClause, string[] whereArgs)
+        SqliteCommand GetDeleteCommand (ConnectionContext context, string table, string whereClause, string[] whereArgs)
         {
             var builder = new StringBuilder("DELETE FROM ");
             builder.Append(table);
@@ -436,7 +666,7 @@ namespace Couchbase.Lite.Storage
                 builder.Append(whereClause.ReplacePositionalParams());
             }
 
-            var command = new SqliteCommand(builder.ToString(), Connection, currentTransaction);
+            var command = new SqliteCommand(builder.ToString(), context.Connection, context.OpenedTransaction);
             command.Parameters.Clear();
             command.Parameters.AddRange(whereArgs.ToSqliteParameters());
 
@@ -449,8 +679,7 @@ namespace Couchbase.Lite.Storage
 
         public void Dispose ()
         {
-            if (Connection != null && Connection.State != ConnectionState.Closed)
-                Connection.Close();
+            getConnectionPool().Stop();
         }
 
         #endregion

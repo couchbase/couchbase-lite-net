@@ -145,6 +145,7 @@ namespace Couchbase.Lite.Replicator
 			{
 				return;
 			}
+
 			if (changeTracker != null)
 			{
                 Log.D(Tag, this + ": stopping changetracker " + changeTracker);
@@ -164,6 +165,7 @@ namespace Couchbase.Lite.Replicator
 			{
 				revsToPull = null;
 			}
+
             base.Stop();
 		}
 
@@ -174,6 +176,7 @@ namespace Couchbase.Lite.Replicator
                 downloadsToInsert.Flush();
                 //downloadsToInsert = null;
             }
+
 			base.Stopped();
 		}
 
@@ -243,12 +246,6 @@ namespace Couchbase.Lite.Replicator
             }
             if (!Continuous)
             {
-                var t = Task.Factory.StartNew(() => 
-                { 
-                    Task inner =Task.Factory.StartNew(() => {}); 
-                    return inner; 
-                });
-
                 WorkExecutor.StartNew(() =>
                 {
                     AsyncTaskFinished(1);
@@ -386,20 +383,23 @@ namespace Couchbase.Lite.Replicator
                         Log.D (Tag, this + ": pullRemoteRevision got response for rev: " + rev);
                         if (result != null)
                         {
-                            var properties = ((JObject)result).ToObject<IDictionary<string, object>>();
+                            var properties = (IDictionary<string, object>)result;
                             var history = Database.ParseCouchDBRevisionHistory (properties);
 
                             if (history != null) 
                             {
                                 rev.SetProperties (properties);
+
                                 // Add to batcher ... eventually it will be fed to -insertRevisions:.
                                 var toInsert = new AList<object> ();
                                 toInsert.AddItem (rev);
                                 toInsert.AddItem (history);
-                                Log.D (Tag, this + ": pullRemoteRevision add rev: " + rev + " to batcher");
-                                downloadsToInsert.QueueObject (toInsert);
+
                                 Log.D (Tag, this + "|" + Thread.CurrentThread() + ": pullRemoteRevision.onCompletion() calling asyncTaskStarted()");
                                 AsyncTaskStarted ();
+
+                                Log.D (Tag, this + ": pullRemoteRevision add rev: " + rev + " to batcher");
+                                downloadsToInsert.QueueObject (toInsert);
                             } 
                             else 
                             {
