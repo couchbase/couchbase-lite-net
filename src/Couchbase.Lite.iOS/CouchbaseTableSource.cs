@@ -140,10 +140,6 @@ namespace Couchbase.Lite.iOS
             if (!result)
                 throw new CouchbaseLiteException("Could not delete one or more docuements.");
 
-            var paths = indexPaths.ToArray();
-
-            TableView.DeleteRows(paths, UITableViewRowAnimation.Fade);
-
             return true;
         }
 
