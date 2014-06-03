@@ -1,4 +1,4 @@
-**Couchbase Lite ** is the world’s first and only full featured, flexible, mobile JSON database that runs locally on the device and is built from the ground up for mobile devices. We have native support for Objective-C, Java and now we are in Beta for .NET.
+**Couchbase Lite** is the world’s first and only full featured, flexible, mobile JSON database that runs locally on the device and is built from the ground up for mobile devices. We have native support for Objective-C, Java and now we are in Beta for .NET.
 
 # Couchbase Mobile
 
