@@ -38,6 +38,9 @@ x64/
 *.vssscc
 .builds
 
+# Package
+*.xam
+
 # Visual C++ cache files
 ipch/
 *.aps
