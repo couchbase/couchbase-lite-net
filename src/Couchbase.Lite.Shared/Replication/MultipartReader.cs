@@ -46,6 +46,7 @@ using System.Text;
 using Couchbase.Lite.Support;
 using Sharpen;
 using System.Collections.ObjectModel;
+using System.Linq;
 
 namespace Couchbase.Lite.Support
 {
@@ -53,22 +54,20 @@ namespace Couchbase.Lite.Support
 	{
 		private enum MultipartReaderState
 		{
-			kUninitialized,
-			kAtStart,
-			kInPrologue,
-			kInBody,
-			kInHeaders,
-			kAtEnd,
+			Uninitialized,
+			AtStart,
+			InPrologue,
+			InBody,
+			InHeaders,
+			AtEnd,
 			kFailed
 		}
-
-		private static readonly Encoding utf8 = Extensions.GetEncoding("UTF-8");
 
         private static readonly Byte[] kCRLFCRLF;
 
         static MultipartReader()
         {
-            kCRLFCRLF = utf8.GetBytes("\r\n\r\n");
+            kCRLFCRLF = Encoding.UTF8.GetBytes("\r\n\r\n");
         }
 
 		private MultipartReader.MultipartReaderState state;
@@ -88,7 +87,7 @@ namespace Couchbase.Lite.Support
             this.contentType = contentType;
             this.readerDelegate = readerDelegate;
             this.buffer = new List<Byte>(1024);
-			this.state = MultipartReader.MultipartReaderState.kAtStart;
+			this.state = MultipartReader.MultipartReaderState.AtStart;
 			ParseContentType();
 		}
 
@@ -97,19 +96,16 @@ namespace Couchbase.Lite.Support
 			return boundary;
 		}
 
-		public byte[] GetBoundaryWithoutLeadingCRLF()
+        public IEnumerable<byte> GetBoundaryWithoutLeadingCRLF()
 		{
             var rawBoundary = GetBoundary();
-
-            var result = new byte[rawBoundary.Length - 2];
-            Array.Copy(rawBoundary, 2, result, 0, rawBoundary.Length - 2);
-
+            var result = new ArraySegment<Byte>(rawBoundary, 2, rawBoundary.Length);
             return result;
 		}
 
 		public bool Finished()
 		{
-			return state == MultipartReader.MultipartReaderState.kAtEnd;
+			return state == MultipartReader.MultipartReaderState.AtEnd;
 		}
 
         private static Byte[] EOMBytes()
@@ -198,32 +194,32 @@ namespace Couchbase.Lite.Support
 			MultipartReader.MultipartReaderState nextState;
 			do
 			{
-				nextState = MultipartReader.MultipartReaderState.kUninitialized;
+				nextState = MultipartReader.MultipartReaderState.Uninitialized;
                 var bufLen = buffer.Count;
 				switch (state)
 				{
-					case MultipartReader.MultipartReaderState.kAtStart:
+					case MultipartReader.MultipartReaderState.AtStart:
 					{
 						// Log.d(Database.TAG, "appendData.  bufLen: " + bufLen);
 						// The entire message might start with a boundary without a leading CRLF.
-                        var boundaryWithoutLeadingCRLF = GetBoundaryWithoutLeadingCRLF();
+                        var boundaryWithoutLeadingCRLF = GetBoundaryWithoutLeadingCRLF().ToArray();
 						if (bufLen >= boundaryWithoutLeadingCRLF.Length)
 						{
 							// if (Arrays.equals(buffer.toByteArray(), boundaryWithoutLeadingCRLF)) {
 							if (Memcmp(buffer.ToArray(), boundaryWithoutLeadingCRLF, boundaryWithoutLeadingCRLF.Length))
 							{
 								DeleteUpThrough(boundaryWithoutLeadingCRLF.Length);
-								nextState = MultipartReader.MultipartReaderState.kInHeaders;
+								nextState = MultipartReader.MultipartReaderState.InHeaders;
 							}
 							else
 							{
-								nextState = MultipartReader.MultipartReaderState.kInPrologue;
+								nextState = MultipartReader.MultipartReaderState.InPrologue;
 							}
 						}
 						break;
 					}
-					case MultipartReader.MultipartReaderState.kInPrologue:
-					case MultipartReader.MultipartReaderState.kInBody:
+					case MultipartReader.MultipartReaderState.InPrologue:
+					case MultipartReader.MultipartReaderState.InBody:
 					{
 						// Look for the next part boundary in the data we just added and the ending bytes of
 						// the previous data (in case the boundary string is split across calls)
@@ -237,7 +233,7 @@ namespace Couchbase.Lite.Support
 
 						if (r.GetLength() > 0)
 						{
-							if (state == MultipartReader.MultipartReaderState.kInBody)
+							if (state == MultipartReader.MultipartReaderState.InBody)
 							{
                                 var dataToAppend = new byte[r.GetLocation()];
                                 Array.Copy(buffer.ToArray(), 0, dataToAppend, 0, dataToAppend.Length);
@@ -245,7 +241,7 @@ namespace Couchbase.Lite.Support
 								readerDelegate.FinishedPart();
 							}
 							DeleteUpThrough(r.GetLocation() + r.GetLength());
-							nextState = MultipartReader.MultipartReaderState.kInHeaders;
+							nextState = MultipartReader.MultipartReaderState.InHeaders;
 						}
 						else
 						{
@@ -254,12 +250,12 @@ namespace Couchbase.Lite.Support
 						break;
 					}
 
-					case MultipartReader.MultipartReaderState.kInHeaders:
+					case MultipartReader.MultipartReaderState.InHeaders:
 					{
 						// First check for the end-of-message string ("--" after separator):
 						if (bufLen >= 2 && Memcmp(buffer.ToArray(), EOMBytes(), 2))
 						{
-							state = MultipartReader.MultipartReaderState.kAtEnd;
+							state = MultipartReader.MultipartReaderState.AtEnd;
 							Close();
 							return;
 						}
@@ -267,13 +263,12 @@ namespace Couchbase.Lite.Support
                         var r = SearchFor(kCRLFCRLF, 0);
 						if (r.GetLength() > 0)
 						{
-                            var headersBytes = Arrays.CopyTo(buffer.ToArray(), r.GetLocation()); // 
-                            // var headersBytes = new ArraySegment<Byte>(buffer.ToArray(), 0, r.GetLocation()); // <-- better?
-                            var headersString = utf8.GetString(headersBytes);
+                            var headersBytes = new ArraySegment<Byte>(buffer.ToArray(), 0, r.GetLocation()); // <-- better?
+                            var headersString = Encoding.UTF8.GetString(headersBytes.ToArray());
 							ParseHeaders(headersString);
 							DeleteUpThrough(r.GetLocation() + r.GetLength());
 							readerDelegate.StartedPart(headers);
-							nextState = MultipartReader.MultipartReaderState.kInBody;
+							nextState = MultipartReader.MultipartReaderState.InBody;
 						}
 						break;
 					}
@@ -283,12 +278,12 @@ namespace Couchbase.Lite.Support
 						throw new InvalidOperationException("Unexpected data after end of MIME body");
 					}
 				}
-				if (nextState != MultipartReader.MultipartReaderState.kUninitialized)
+				if (nextState != MultipartReader.MultipartReaderState.Uninitialized)
 				{
 					state = nextState;
 				}
 			}
-            while (nextState != MultipartReader.MultipartReaderState.kUninitialized && buffer.Count > 0);
+            while (nextState != MultipartReader.MultipartReaderState.Uninitialized && buffer.Count > 0);
 		}
 
 		private void Close()
