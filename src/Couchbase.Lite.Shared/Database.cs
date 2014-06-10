@@ -1052,7 +1052,7 @@ PRAGMA user_version = 3;";
         /// It must already have a revision ID. This may create a conflict! The revision's history must be given; ancestor revision IDs that don't already exist locally will create phantom revisions with no content.
         /// </remarks>
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
-        internal async void ForceInsert(RevisionInternal rev, IList<string> revHistory, Uri source)
+        internal async Task ForceInsert(RevisionInternal rev, IList<string> revHistory, Uri source)
         {
             var inConflict = false;
             var docId = rev.GetDocId();
@@ -3513,49 +3513,39 @@ PRAGMA user_version = 3;";
         internal void StubOutAttachmentsInRevision(IDictionary<String, AttachmentInternal> attachments, RevisionInternal rev)
         {
             var properties = rev.GetProperties();
-
-            var attachmentsFromPropsValue = properties.Get("_attachments");
-
-            if (attachmentsFromPropsValue is JObject) 
-            {
-                StubOutJObjectAttachmentsInRevision(attachments, rev);
-                return;
-            }
-
-            var attachmentsFromProps = (IDictionary<String, object>)attachmentsFromPropsValue;
-
+            var attachmentProps = properties.Get("_attachments");
+            var attachmentsFromProps = attachmentProps.AsDictionary<string,object>();
             if (attachmentsFromProps != null)
             {
-                foreach(var attmt in attachmentsFromProps)
+                foreach (string attachmentKey in attachmentsFromProps.Keys)
                 {
-                    var attachmentKey = attmt.Key;
-                    var attachmentFromProps = (IDictionary<String, object>)attmt.Value;
-
-                    if (attachmentFromProps.Get("follows") != null || attachmentFromProps.Get("data") != null)
+                    var attachmentFromProps = attachmentsFromProps.Get(attachmentKey).AsDictionary<string,object>();
+                    if (attachmentFromProps.Get("follows") != null || attachmentFromProps.Get("data")
+                        != null)
                     {
-                        attachmentFromProps.Remove("follows");
-                        attachmentFromProps.Remove("data");
+                        Collections.Remove(attachmentFromProps, "follows");
+                        Collections.Remove(attachmentFromProps, "data");
 
                         attachmentFromProps["stub"] = true;
                         if (attachmentFromProps.Get("revpos") == null)
                         {
-                            attachmentFromProps["revpos"] = rev.GetGeneration();
+                            attachmentFromProps.Put("revpos", rev.GetGeneration());
                         }
-
                         var attachmentObject = attachments.Get(attachmentKey);
                         if (attachmentObject != null)
                         {
-                            attachmentFromProps["length"] = attachmentObject.GetLength();
+                            attachmentFromProps.Put("length", attachmentObject.GetLength());
                             if (attachmentObject.GetBlobKey() != null)
                             {
                                 // case with Large Attachment
-                                attachmentFromProps["digest"] = attachmentObject.GetBlobKey().Base64Digest();
+                                attachmentFromProps.Put("digest", attachmentObject.GetBlobKey().Base64Digest());
                             }
                         }
                         attachmentFromProps[attachmentKey] = attachmentFromProps;
                     }
                 }
             }
+            properties["_attachments"] = attachmentsFromProps;        
         }
 
         internal void StubOutJObjectAttachmentsInRevision(IDictionary<String, AttachmentInternal> attachments, RevisionInternal rev)

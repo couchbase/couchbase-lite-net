@@ -86,9 +86,9 @@ namespace Couchbase.Lite.Replicator
 
             try
             {
-                var success = replicationDoneSignalPolling.Await(TimeSpan.FromSeconds(120));
+                var success = replicationDoneSignalPolling.Await(TimeSpan.FromMinutes(10));
                 Assert.IsTrue(success);
-                success = replicationDoneSignalPolling.Await(TimeSpan.FromSeconds(120));
+                success = replicationDoneSignal.Await(TimeSpan.FromMinutes(3));
                 Assert.IsTrue(success);
 
                 Log.D(Tag, "replicator finished");

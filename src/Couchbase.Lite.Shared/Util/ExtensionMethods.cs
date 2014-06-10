@@ -48,11 +48,21 @@ using System.Diagnostics;
 using System.Net.Http;
 using System.IO;
 using System.Collections.Generic;
+using Newtonsoft.Json.Linq;
 
 namespace Couchbase.Lite
 {
     public static class ExtensionMethods
     {
+        internal static IDictionary<TKey,TValue> AsDictionary<TKey, TValue>(this object attachmentProps)
+        {
+            if (attachmentProps == null)
+                return null;
+            return attachmentProps is JObject
+                ? ((JObject)attachmentProps).ToObject<IDictionary<TKey, TValue>>()
+                : (IDictionary<TKey, TValue>)attachmentProps;
+        }
+
         public static IEnumerable ToEnumerable(this IEnumerator enumerator)
         {
             while(enumerator.MoveNext()) {

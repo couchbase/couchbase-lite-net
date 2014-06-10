@@ -134,7 +134,7 @@ namespace Couchbase.Lite
         /// <param name="directoryFile">The directory to use for storing <see cref="Couchbase.Lite.Database"/>s.</param>
         /// <param name="options">Option flags for initialization.</param>
         /// <exception cref="T:System.IO.DirectoryNotFoundException">Thrown when there is an error while accessing or creating the given directory.</exception>
-        public Manager(DirectoryInfo directoryFile, ManagerOptions options)
+        public Manager(DirectoryInfo directoryFile, ManagerOptions options, bool dispatchOnBackgroundThread = false)
         {
             Log.V(Database.Tag, "Starting Manager version: " + VersionString);
 
@@ -157,7 +157,9 @@ namespace Couchbase.Lite
             UpgradeOldDatabaseFiles(directoryFile);
 
 //          var  scheduler = new ConcurrentExclusiveSchedulerPair();
-            var scheduler = TaskScheduler.FromCurrentSynchronizationContext();
+            var scheduler = dispatchOnBackgroundThread
+                ? TaskScheduler.Default
+                : TaskScheduler.FromCurrentSynchronizationContext();
             CapturedContext = new TaskFactory(scheduler);
             workExecutor = new TaskFactory(new SingleThreadTaskScheduler());
             Log.D("Manager", "New replication uses a scheduler with a max concurrency level of {0}".Fmt(workExecutor.Scheduler.MaximumConcurrencyLevel));

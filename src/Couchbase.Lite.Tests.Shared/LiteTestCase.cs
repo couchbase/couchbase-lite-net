@@ -118,7 +118,7 @@ namespace Couchbase.Lite
             path.Create();
 
             var testPath = path.CreateSubdirectory("tests");
-            manager = new Manager(testPath, Manager.DefaultOptions);
+            manager = new Manager(testPath, Manager.DefaultOptions, true);
 		}
 
 		protected internal virtual void StopCBLite()
