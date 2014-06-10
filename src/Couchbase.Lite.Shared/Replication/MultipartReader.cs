@@ -177,8 +177,9 @@ namespace Couchbase.Lite.Support
 			}
 		}
 
-		public void AppendData(byte[] data)
+        public void AppendData(IEnumerable<byte> newData)
 		{
+            var data = newData.ToArray();
 			if (buffer == null)
 			{
 				return;

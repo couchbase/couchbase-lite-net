@@ -56,9 +56,6 @@ namespace Couchbase.Lite.Support
 {
     internal class MultipartDocumentReader : IMultipartReaderDelegate
 	{
-		/// <summary>The response which contains the input stream we need to read from</summary>
-        private HttpResponseMessage response;
-
 		private MultipartReader multipartReader;
 
 		private BlobStoreWriter curAttachment;
@@ -73,9 +70,8 @@ namespace Couchbase.Lite.Support
 
 		private IDictionary<String, BlobStoreWriter> attachmentsByMd5Digest;
 
-        public MultipartDocumentReader(HttpResponseMessage response, Database database)
+        public MultipartDocumentReader(Database database)
 		{
-			this.response = response;
 			this.database = database;
 		}
 
@@ -108,7 +104,7 @@ namespace Couchbase.Lite.Support
             attachmentsByMd5Digest = new Dictionary<String, BlobStoreWriter>();
 		}
 
-		public void AppendData(byte[] data)
+        public void AppendData(IEnumerable<byte> data)
 		{
 			if (multipartReader != null)
 			{

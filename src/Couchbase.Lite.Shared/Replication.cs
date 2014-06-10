@@ -279,7 +279,8 @@ namespace Couchbase.Lite
             if (evt == null) return;
 
             var args = new ReplicationChangeEventArgs(this);
-            evt(this, args);
+            // Ensure callback runs on captured context, which should be the UI thread.
+            LocalDatabase.Manager.CapturedContext.StartNew(()=>evt(this, args));
         }
 
         //TODO: Do we need this method? It's not in the API Spec.
@@ -548,8 +549,10 @@ namespace Couchbase.Lite
             lock (asyncTaskLocker)
             {
                 Log.D(Tag, this + "|" + Sharpen.Thread.CurrentThread() + ": asyncTaskStarted() called, asyncTaskCount: " + asyncTaskCount);
-                if (asyncTaskCount++ == 0)
+
+                if (asyncTaskCount == 0)
                 {
+                    Interlocked.Increment(ref asyncTaskCount);
                     UpdateActive();
                 }
                 Log.D(Database.Tag, "asyncTaskStarted() updated asyncTaskCount to " + asyncTaskCount);
@@ -557,21 +560,26 @@ namespace Couchbase.Lite
         }
 
         internal void AsyncTaskFinished(Int32 numTasks)
-        {   // TODO.ZJG: Replace lock with Interlocked.CompareExchange.
-            lock (asyncTaskLocker) {
-                Log.D(Tag, this + "|" + Sharpen.Thread.CurrentThread() + ": asyncTaskFinished() called, asyncTaskCount: "
-                    + asyncTaskCount + " numTasks: " + numTasks);
+        {
+            Log.D(Tag, this + "|" + Sharpen.Thread.CurrentThread() + ": asyncTaskFinished() called, asyncTaskCount: "
+                + asyncTaskCount + " numTasks: " + numTasks);
 
-                asyncTaskCount -= numTasks;
-                if (asyncTaskCount == 0) 
+            int result, initial, final;
+            do
+            {
+                initial = asyncTaskCount;
+                final = initial - numTasks;
+                result = Interlocked.CompareExchange(ref asyncTaskCount, final, initial);
+            } while (initial != result);
+
+            if (asyncTaskCount == 0) 
+            {
+                if (!continuous)
                 {
-                    if (!continuous)
-                    {
-                        UpdateActive();
-                    }
+                    UpdateActive();
                 }
-                Log.D(Tag, "asyncTaskFinished() updated asyncTaskCount to: " + asyncTaskCount);
             }
+            Log.D(Tag, "asyncTaskFinished() updated asyncTaskCount to: " + asyncTaskCount);
         }
 
         internal void UpdateActive()
@@ -621,20 +629,13 @@ namespace Couchbase.Lite
         internal virtual void Stopped()
         {
             Log.V(Tag, ToString() + " STOPPING");
-
             IsRunning = false;
-
             completedChangesCount = changesCount = 0;
-
             NotifyChangeListeners();
-
             SaveLastSequence();
-
             Log.V(Tag, this + " set batcher to null");
             Batcher = null;
-
             ClearDbRef();
-
             Log.V(Database.Tag, ToString() + " STOPPED");
         }
 
@@ -893,7 +894,7 @@ namespace Couchbase.Lite
                             {
                                 try
                                 {
-                                    var reader = new MultipartDocumentReader(responseMessage.Result, LocalDatabase);
+                                    var reader = new MultipartDocumentReader(LocalDatabase);
                                     var contentType = contentTypeHeader.ToString();
                                     reader.SetContentType(contentType);
 
@@ -909,8 +910,7 @@ namespace Couchbase.Lite
                                     {
                                         if (numBytesRead != bufLen)
                                         {
-                                            var bufferToAppend = new byte[numBytesRead];
-                                            Array.Copy(buffer, bufferToAppend, numBytesRead);
+                                            var bufferToAppend = new ArraySegment<Byte>(buffer, 0, numBytesRead).Array;
                                             reader.AppendData(bufferToAppend);
                                         }
                                         else
@@ -1389,22 +1389,29 @@ namespace Couchbase.Lite
             CancelPendingRetryIfReady();
             LocalDatabase.ForgetReplication(this);
 
-            while (true)
+            if (asyncTaskCount > 0)
             {
-                lock (asyncTaskLocker)
+                var timeout = DateTime.UtcNow + TimeSpan.FromSeconds(90);
+                var spinWait = new SpinWait();
+                const int maxSpins = 10000000;
+                var shouldExit = false;
+                do
                 {
-                    if (asyncTaskCount <= 0)
+                    spinWait.Reset();
+                    while (spinWait.Count < maxSpins)
                     {
-                        break;
+                        if (asyncTaskCount <= 0) {
+                            shouldExit = true;
+                            break;
+                        }
+                        spinWait.SpinOnce();
                     }
-                }
-                System.Threading.Thread.Sleep(100);
+                } while(!shouldExit && DateTime.UtcNow < timeout);
+
+                if (asyncTaskCount > 0)
+                    throw new InvalidOperationException("Could not stop due to too many outstanding async tasks");
             }
-                
-            if (IsRunning)
-            {
-                Stopped();
-            }
+            Stopped();
         }
 
         /// <summary>
