@@ -248,7 +248,12 @@ namespace Couchbase.Lite.Shared
                 if (result == SQLiteResult.ERROR)
                     throw new CouchbaseLiteException(raw.sqlite3_errmsg(db), StatusCode.DbError);
 
-                lastInsertedId = db.last_insert_rowid();
+                int changes = db.changes();
+                if (changes > 0) 
+                {
+                    lastInsertedId = db.last_insert_rowid();
+                }
+
                 if (lastInsertedId == -1L) {
                     Log.E(Tag, "Error inserting " + initialValues + " using " + command);
                     throw new CouchbaseLiteException("Error inserting " + initialValues + " using " + command, StatusCode.DbError);
@@ -278,8 +283,14 @@ namespace Couchbase.Lite.Shared
                 if (result == SQLiteResult.ERROR)
                     throw new CouchbaseLiteException(raw.sqlite3_errmsg(db), StatusCode.DbError);
 
-                resultCount = db.last_insert_rowid();
-                if (resultCount == -1) {
+                int changes = db.changes();
+                if (changes > 0) 
+                {
+                    resultCount = db.last_insert_rowid();
+                }
+
+                if (resultCount == -1) 
+                {
                     Log.E(Tag, "Error updating " + values + " using " + command);
                     throw new CouchbaseLiteException("Failed to update any records.", StatusCode.DbError);
                 }
