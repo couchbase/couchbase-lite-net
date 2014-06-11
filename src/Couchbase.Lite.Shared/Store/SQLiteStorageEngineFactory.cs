@@ -50,7 +50,7 @@ namespace Couchbase.Lite.Storage
 	{
         internal static ISQLiteStorageEngine CreateStorageEngine()
 		{
-            return new SqlitePclStorageEngine(); //MonoSQLiteStorageEngine();
+            return new SqlitePCLRawStorageEngine(); //MonoSQLiteStorageEngine();
 		}
 	}
 }

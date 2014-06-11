@@ -75,7 +75,7 @@ namespace Couchbase.Lite.Storage
 
          long InsertWithOnConflict(string table, string nullColumnHack, ContentValues initialValues, ConflictResolutionStrategy conflictResolutionStrategy);
 
-         int Update(string table, ContentValues values, string whereClause, params String[] whereArgs);
+         long Update(string table, ContentValues values, string whereClause, params String[] whereArgs);
 
          int Delete(string table, string whereClause, params String[] whereArgs);
 

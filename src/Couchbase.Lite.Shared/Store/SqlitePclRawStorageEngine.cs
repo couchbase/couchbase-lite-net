@@ -65,18 +65,26 @@ namespace Couchbase.Lite.Shared
 
         public bool Open (String path)
         {
+            var errMessage = "Cannot open Sqlite Database at pth {0}".Fmt(path);
+
             var result = true;
             try {
                 shouldCommit = false;
                 const int flags = 0x00200000; // #define SQLITE_OPEN_FILEPROTECTION_COMPLETEUNLESSOPEN 0x00200000
-                var status = raw.sqlite3_open_v2(path, out db, flags, null);
+                //var status = raw.sqlite3_open_v2(path, out db, flags, null);
+                var status = raw.sqlite3_open(path, out db);
+                if (status != raw.SQLITE_OK)
+                {
+                    throw new CouchbaseLiteException(errMessage, StatusCode.DbError);
+                }
+
                 raw.sqlite3_create_collation(db, "JSON", null, CouchbaseSqliteJsonUnicodeCollationFunction.Compare);
                 raw.sqlite3_create_collation(db, "JSON_ASCII", null, CouchbaseSqliteJsonAsciiCollationFunction.Compare);
                 raw.sqlite3_create_collation(db, "JSON_RAW", null, CouchbaseSqliteJsonRawCollationFunction.Compare);
                 raw.sqlite3_create_collation(db, "REVID", null, CouchbaseSqliteRevIdCollationFunction.Compare);
             } catch (Exception ex) {
                 Log.E(Tag, "Error opening the Sqlite connection using connection String: {0}".Fmt(path), ex);
-                result = false;    
+                result = false;
             }
 
             return result;
@@ -85,8 +93,7 @@ namespace Couchbase.Lite.Shared
         public Int32 GetVersion()
         {
             var commandText = "PRAGMA user_version;";
-            sqlite3_stmt statement;
-            var status = raw.sqlite3_prepare_v2(db, commandText, out statement);
+            sqlite3_stmt statement = db.prepare(commandText);
 
             var result = -1;
             try {
@@ -105,23 +112,22 @@ namespace Couchbase.Lite.Shared
         public void SetVersion(Int32 version)
         {
             var errMessage = "Unable to set version to {0}".Fmt(version);
-            var commandText = "PRAGMA user_version = @";
-            sqlite3_stmt statement;
-            var command = raw.sqlite3_prepare_v2(db, commandText, out statement);
+            var commandText = "PRAGMA user_version = ?";
+
+            sqlite3_stmt statement = db.prepare(commandText);
 
             if (raw.sqlite3_bind_int(statement, 1, version) == raw.SQLITE_ERROR)
                 throw new CouchbaseLiteException(errMessage, StatusCode.DbError);
 
-
             int result;
             try {
-                result = raw.step(db, command);
+                result = statement.step();
                 if (result != SQLiteResult.OK)
                     throw new CouchbaseLiteException(errMessage, StatusCode.DbError);
             } catch (Exception e) {
                 Log.E(Tag, "Error getting user version", e);
             } finally {
-                command.Dispose();
+                statement.Dispose();
             }
             return;
         }
@@ -143,10 +149,9 @@ namespace Couchbase.Lite.Shared
             var value = Interlocked.Increment(ref transactionCount);
 
             if (value == 1){
-                using (var result = db.prepare("BEGIN TRANSACTION"))
+                using (var statement = db.prepare("BEGIN TRANSACTION"))
                 {
-                    if (result.step_done() != SQLiteResult.DONE)
-                        throw new CouchbaseLiteException("Could not begin a new transaction", StatusCode.DbError);
+                    statement.step_done();
                 }
             }
         }
@@ -209,16 +214,15 @@ namespace Couchbase.Lite.Shared
             Cursor cursor = null;
             try {
                 Log.V(Tag, "RawQuery sql: {0}".Fmt(sql));
-                var result = command.step();
-                if (result == SQLiteResult.ERROR)
-                    throw new CouchbaseLiteException(raw.sqlite3_errmsg(db), StatusCode.DbError);
                 cursor = new Cursor(command);
             } catch (Exception e) {
+                if (command != null) {
+                    command.Dispose();
+                }
+
                 Log.E(Tag, "Error executing raw query '{0}'".Fmt(sql), e);
                 throw;
-            } finally {
-                command.Dispose();
-            }
+            } 
 
             return cursor;
         }
@@ -241,20 +245,17 @@ namespace Couchbase.Lite.Shared
             var lastInsertedId = -1L;
             try {
                 var result = command.step();
+                if (result == SQLiteResult.ERROR)
+                    throw new CouchbaseLiteException(raw.sqlite3_errmsg(db), StatusCode.DbError);
 
-                // Get the new row's id.
-                // TODO.ZJG: This query should ultimately be replaced with a call to sqlite3_last_insert_rowid.
-                var lastInsertedIndexCommand = db.prepare("select last_insert_rowid()");
-                var rowidResult =  lastInsertedIndexCommand.step();
-                if (rowidResult != SQLiteResult.ERROR)
-                    throw new CouchbaseLiteException(lastInsertedIndexCommand.Connection.ErrorMessage(), StatusCode.DbError);
-                lastInsertedId = Convert.ToInt64(lastInsertedIndexCommand[0]);
-                lastInsertedIndexCommand.Dispose();
+                lastInsertedId = db.last_insert_rowid();
                 if (lastInsertedId == -1L) {
                     Log.E(Tag, "Error inserting " + initialValues + " using " + command);
+                    throw new CouchbaseLiteException("Error inserting " + initialValues + " using " + command, StatusCode.DbError);
                 } else {
                     Log.V(Tag, "Inserting row " + lastInsertedId + " from " + initialValues + " using " + command);
                 }
+
             } catch (Exception ex) {
                 Log.E(Tag, "Error inserting into table " + table, ex);
             } finally {
@@ -263,7 +264,7 @@ namespace Couchbase.Lite.Shared
             return lastInsertedId;
         }
 
-        public int Update (String table, ContentValues values, String whereClause, params String[] whereArgs)
+        public long Update (String table, ContentValues values, String whereClause, params String[] whereArgs)
         {
             Debug.Assert(!String.IsNullOrWhiteSpace(table));
             Debug.Assert(values != null);
@@ -271,19 +272,15 @@ namespace Couchbase.Lite.Shared
             var command = GetUpdateCommand(table, values, whereClause, whereArgs);
             sqlite3_stmt lastInsertedIndexCommand = null;
 
-            var resultCount = -1;
+            var resultCount = -1L;
             try {
                 var result = command.step();
                 if (result == SQLiteResult.ERROR)
                     throw new CouchbaseLiteException(raw.sqlite3_errmsg(db), StatusCode.DbError);
-                // Get the new row's id.
-                // TODO.ZJG: This query should ultimately be replaced with a call to sqlite3_last_insert_rowid.
-                lastInsertedIndexCommand = db.prepare("select changes()");
-                result = lastInsertedIndexCommand.step();
-                if (result != SQLiteResult.ERROR)
-                    throw new CouchbaseLiteException(lastInsertedIndexCommand.Connection.ErrorMessage(), StatusCode.DbError);
-                resultCount = Convert.ToInt32(lastInsertedIndexCommand[0]);
+
+                resultCount = db.last_insert_rowid();
                 if (resultCount == -1) {
+                    Log.E(Tag, "Error updating " + values + " using " + command);
                     throw new CouchbaseLiteException("Failed to update any records.", StatusCode.DbError);
                 }
             } catch (Exception ex) {
@@ -301,13 +298,12 @@ namespace Couchbase.Lite.Shared
             Debug.Assert(!String.IsNullOrWhiteSpace(table));
 
             var command = GetDeleteCommand(table, whereClause, whereArgs);
-
             var resultCount = -1;
             try {
-                var result = command.Step ();
+                var result = command.step();
                 if (result == SQLiteResult.ERROR)
                     throw new CouchbaseLiteException("Error deleting from table " + table, StatusCode.DbError);
-                resultCount = Convert.ToInt32(command[0]);
+                resultCount = command.column_int(0);
             } catch (Exception ex) {
                 Log.E(Tag, "Error deleting from table " + table, ex);
             } finally {
@@ -327,17 +323,14 @@ namespace Couchbase.Lite.Shared
 
         sqlite3_stmt BuildCommand (string sql, object[] paramArgs)
         {
-            var command = db.prepare(sql);
-
-            // Bind() uses 1-based indexes instead of zero based.
-            if (paramArgs != null && paramArgs.Length > 0) {
-                for (int i = 1; i <= paramArgs.Length; i++) {
-                    var arg = paramArgs [i];
-                    command.Bind(i, arg);
-                }
+            sqlite3_stmt command = null;
+            try {
+                command = db.prepare(sql);
+                ugly.bind(command, paramArgs);
+            } catch (Exception e) {
+                Log.E(Tag, "Error when build a sql " + sql + " with params " + paramArgs, e);
+                throw;
             }
-
-
             return command;
         }
 
@@ -368,7 +361,7 @@ namespace Couchbase.Lite.Shared
                 if (index++ > 0) {
                     builder.Append(",");
                 }
-                builder.AppendFormat("{0} = @", column.Key);
+                builder.AppendFormat("{0} = ?", column.Key);
             }
 
             if (!String.IsNullOrWhiteSpace(whereClause)) {
@@ -378,10 +371,8 @@ namespace Couchbase.Lite.Shared
 
             var sql = builder.ToString();
             var command = db.prepare(sql);
-            for(var i = 1; i <= whereArgs.Length; i++)
-            {
-                command.Bind(i, whereArgs[i - 1]);
-            }
+            ugly.bind(command, whereArgs);
+
             return command;
         }
 
@@ -410,6 +401,8 @@ namespace Couchbase.Lite.Shared
             var valueBuilder = new StringBuilder();
             var index = 0;
 
+            var args = new object[valueSet.Count];
+
             foreach(var column in valueSet)
             {
                 if (index > 0) {
@@ -418,7 +411,10 @@ namespace Couchbase.Lite.Shared
                 }
 
                 builder.AppendFormat( "{0}", column.Key);
-                valueBuilder.Append("@");
+                valueBuilder.Append("?");
+
+                args[index] = column.Value;
+
                 index++;
             }
 
@@ -428,13 +424,7 @@ namespace Couchbase.Lite.Shared
 
             var sql = builder.ToString();
             var command = db.prepare(sql);
-
-            index = 1;
-            foreach(var val in valueSet)
-            {
-                var key = val.Key;
-                command.Bind(index++, values[key]);
-            }
+            ugly.bind(command, args);
 
             return command;
         }
@@ -456,9 +446,8 @@ namespace Couchbase.Lite.Shared
             }
 
             var command = db.prepare(builder.ToString());
-            for (int i = 1; i <= whereArgs.Length; i++) {
-                command.Bind(i, whereArgs[i - 1]);
-            }
+            ugly.bind(command, whereArgs);
+
             return command;
         }
 

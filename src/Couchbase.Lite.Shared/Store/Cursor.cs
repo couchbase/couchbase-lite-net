@@ -69,9 +69,9 @@ namespace Couchbase.Lite
 
         Int64 currentRow;
 
-        public Cursor (sqlite3_stmt reader)
+        public Cursor (sqlite3_stmt stmt)
         {
-            this.statement = reader;
+            this.statement = stmt;
             currentRow = -1;
         }
 
@@ -84,23 +84,23 @@ namespace Couchbase.Lite
 
         public int GetInt (int columnIndex)
         {
-            return Convert.ToInt32(statement.column_int(columnIndex));
+            return statement.column_int(columnIndex);
         }
 
         public long GetLong (int columnIndex)
         {
-            return Convert.ToInt64(statement[columnIndex]);
+            return statement.column_int64(columnIndex);
         }
 
         public string GetString (int columnIndex)
         {
-            return Convert.ToString(statement[columnIndex]);
+            return statement.column_text(columnIndex);
         }
 
         // TODO: Refactor this to return IEnumerable<byte>.
         public byte[] GetBlob (int columnIndex)
         {
-            return (byte[])statement[columnIndex];
+            return statement.column_blob(columnIndex);
         }
 
 //        public byte[] GetBlob (int columnIndex, int chunkSize)
@@ -128,7 +128,9 @@ namespace Couchbase.Lite
         public void Close ()
         {
             if (statement == null) return;
-            statement.Dispose();
+
+            try { statement.Dispose(); } catch (Exception e){ };
+
             statement = null;
         }
 
