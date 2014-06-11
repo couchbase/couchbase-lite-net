@@ -48,40 +48,38 @@ using System.Data;
 
 namespace Couchbase.Lite.Storage
 {
-	public abstract class SQLiteStorageEngine
+    public interface ISQLiteStorageEngine
 	{
-        public abstract bool Open(String path);
+         bool Open(String path);
 
-        public abstract Int32 GetVersion();
+         Int32 GetVersion();
 
-        public abstract void SetVersion(Int32 version);
+         void SetVersion(Int32 version);
 
-        public abstract bool IsOpen { get; }
+         bool IsOpen { get; }
 
-		public abstract void BeginTransaction();
+		 void BeginTransaction();
 
-        public abstract void BeginTransaction(IsolationLevel isolationLevel);
+		 void EndTransaction();
 
-		public abstract void EndTransaction();
-
-		public abstract void SetTransactionSuccessful();
+		 void SetTransactionSuccessful();
 
 		/// <exception cref="Couchbase.Lite.Storage.SQLException"></exception>
-        public abstract void ExecSQL(string sql, params Object[] paramArgs);
+         void ExecSQL(string sql, params Object[] paramArgs);
 
-        public abstract Cursor RawQuery(string sql, params Object[] paramArgs);
+         Cursor RawQuery(string sql, params Object[] paramArgs);
 
-        public abstract Cursor RawQuery(string sql, CommandBehavior behavior, params Object[] paramArgs);
+         Cursor RawQuery(string sql, CommandBehavior behavior, params Object[] paramArgs);
 
-		public abstract long Insert(string table, string nullColumnHack, ContentValues values);
+		 long Insert(string table, string nullColumnHack, ContentValues values);
 
-        public abstract long InsertWithOnConflict(string table, string nullColumnHack, ContentValues initialValues, ConflictResolutionStrategy conflictResolutionStrategy);
+         long InsertWithOnConflict(string table, string nullColumnHack, ContentValues initialValues, ConflictResolutionStrategy conflictResolutionStrategy);
 
-        public abstract int Update(string table, ContentValues values, string whereClause, params String[] whereArgs);
+         int Update(string table, ContentValues values, string whereClause, params String[] whereArgs);
 
-        public abstract int Delete(string table, string whereClause, params String[] whereArgs);
+         int Delete(string table, string whereClause, params String[] whereArgs);
 
-		public abstract void Close();
+		 void Close();
 	}
 
 }

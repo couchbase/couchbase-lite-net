@@ -15,7 +15,7 @@
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
     <OutputPath>bin\Debug</OutputPath>
-    <DefineConstants>DEBUG;</DefineConstants>
+    <DefineConstants>DEBUG;__IOS__</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <ConsolePause>false</ConsolePause>
@@ -43,7 +43,12 @@
     <Reference Include="System.Data" />
     <Reference Include="System.Net.Http" />
     <Reference Include="System.Web.Services" />
-    <Reference Include="Mono.Data.Sqlite" />
+    <Reference Include="SQLitePCL">
+      <HintPath>..\packages\SQLitePCL.raw_basic.0.2.0-alpha\lib\MonoTouch\SQLitePCL.dll</HintPath>
+    </Reference>
+    <Reference Include="SQLitePCL.ugly">
+      <HintPath>..\packages\SQLitePCL.ugly.0.2.0-alpha\lib\portable-net45+netcore45+wp8+MonoAndroid+MonoTouch\SQLitePCL.ugly.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Resources\" />

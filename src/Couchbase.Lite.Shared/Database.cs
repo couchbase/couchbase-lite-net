@@ -768,7 +768,7 @@ PRAGMA user_version = 3;";
         internal String                                 Path { get; private set; }
         internal ICollection<Replication>               ActiveReplicators { get; set; }
         internal ICollection<Replication>               AllReplicators { get; set; }
-        internal SQLiteStorageEngine                    StorageEngine { get; set; }
+        internal ISQLiteStorageEngine                    StorageEngine { get; set; }
         internal LruCache<String, Document>             DocumentCache { get; set; }
 
         //TODO: Should thid be a public member?
@@ -3827,7 +3827,7 @@ PRAGMA user_version = 3;";
         {
             try
             {
-                foreach (string statement in statements.Split(';'))
+                foreach (string statement in statements.Split(new[] { ";" }, StringSplitOptions.RemoveEmptyEntries))
                 {
                     StorageEngine.ExecSQL(statement);
                 }
