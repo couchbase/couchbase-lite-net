@@ -863,10 +863,9 @@ namespace Couchbase.Lite
                 doneSignal.CountDown ();
             });
 
-			Log.I(Tag, "Waiting for async query to finish...");
-
+            Log.I(Tag, "Waiting for async query to finish...");
             var success = task.Wait(TimeSpan.FromSeconds(10));
-			Assert.IsTrue(success, "Done signal timed out..StartKey=ry never ran");
+            Assert.IsTrue(success, "Done signal timed out. Query.RunAsync() has never run or returned the result.");
 		}
 
 		/// <summary>

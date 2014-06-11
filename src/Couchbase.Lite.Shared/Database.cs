@@ -453,7 +453,16 @@ namespace Couchbase.Lite
                 return false;
             }
 
-            DeleteLocalDocument(id, prevRev.GetRevId());
+            try 
+            {
+                DeleteLocalDocument(id, prevRev.GetRevId());
+            }
+            catch (Exception ex)
+            {
+                Log.D(Database.Tag, "Cannot delete a local document id " + id, ex);
+                return false;
+            }
+
             return true;
         } 
 
@@ -1052,7 +1061,7 @@ PRAGMA user_version = 3;";
         /// It must already have a revision ID. This may create a conflict! The revision's history must be given; ancestor revision IDs that don't already exist locally will create phantom revisions with no content.
         /// </remarks>
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
-        internal async void ForceInsert(RevisionInternal rev, IList<string> revHistory, Uri source)
+        internal void ForceInsert(RevisionInternal rev, IList<string> revHistory, Uri source)
         {
             var inConflict = false;
             var docId = rev.GetDocId();
@@ -1148,8 +1157,9 @@ PRAGMA user_version = 3;";
                             // It's an intermediate parent, so insert a stub:
                             newRev = new RevisionInternal(docId, revId, false, this);
                         }
+
                         // Insert it:
-                        sequence = await Manager.CapturedContext.StartNew(()=>InsertRevision(newRev, docNumericID, sequence, current, data));
+                        sequence = InsertRevision(newRev, docNumericID, sequence, current, data);
                         if (sequence <= 0)
                         {
                             throw new CouchbaseLiteException(StatusCode.InternalServerError);

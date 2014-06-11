@@ -73,12 +73,17 @@ namespace Couchbase.Lite
         {
             this.statement = stmt;
             currentRow = -1;
+            currentStep = statement.step();
         }
 
         public bool MoveToNext ()
         {
-            currentRow++;
-            currentStep = statement.step();
+            if (currentRow >= 0)
+            {
+                currentStep = statement.step();
+            }
+
+            if (HasRows) currentRow++;
             return HasRows;
         }
 

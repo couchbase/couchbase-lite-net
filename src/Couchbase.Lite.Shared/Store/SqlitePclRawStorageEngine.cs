@@ -325,6 +325,7 @@ namespace Couchbase.Lite.Shared
         {
             sqlite3_stmt command = null;
             try {
+                //Log.D(Tag, "Build Command : " + sql + " with params " + paramArgs);
                 command = db.prepare(sql);
                 ugly.bind(command, paramArgs);
             } catch (Exception e) {
@@ -355,6 +356,8 @@ namespace Couchbase.Lite.Shared
 
             var whereArgsLength = (whereArgs != null ? whereArgs.Length : 0);
 
+            var paramList = new List<object>();
+
             var index = 0;
             foreach(var column in valueSet)
             {
@@ -362,6 +365,7 @@ namespace Couchbase.Lite.Shared
                     builder.Append(",");
                 }
                 builder.AppendFormat("{0} = ?", column.Key);
+                paramList.Add(column.Value);
             }
 
             if (!String.IsNullOrWhiteSpace(whereClause)) {
@@ -369,9 +373,17 @@ namespace Couchbase.Lite.Shared
                 builder.Append(whereClause);
             }
 
+            if (whereArgs != null)
+            {
+                foreach(var arg in whereArgs)
+                {
+                    paramList.Add(arg);
+                }
+            }
+
             var sql = builder.ToString();
             var command = db.prepare(sql);
-            ugly.bind(command, whereArgs);
+            ugly.bind(command, paramList.ToArray<object>());
 
             return command;
         }
