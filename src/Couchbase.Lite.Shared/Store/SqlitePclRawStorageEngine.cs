@@ -269,27 +269,20 @@ namespace Couchbase.Lite.Shared
             return lastInsertedId;
         }
 
-        public long Update (String table, ContentValues values, String whereClause, params String[] whereArgs)
+        public int Update (String table, ContentValues values, String whereClause, params String[] whereArgs)
         {
             Debug.Assert(!String.IsNullOrWhiteSpace(table));
             Debug.Assert(values != null);
 
             var command = GetUpdateCommand(table, values, whereClause, whereArgs);
-            sqlite3_stmt lastInsertedIndexCommand = null;
-
-            var resultCount = -1L;
+            var resultCount = 0;
             try {
                 var result = command.step();
                 if (result == SQLiteResult.ERROR)
                     throw new CouchbaseLiteException(raw.sqlite3_errmsg(db), StatusCode.DbError);
 
-                int changes = db.changes();
-                if (changes > 0) 
-                {
-                    resultCount = db.last_insert_rowid();
-                }
-
-                if (resultCount == -1) 
+                resultCount = db.changes();
+                if (resultCount == 0) 
                 {
                     Log.E(Tag, "Error updating " + values + " using " + command);
                     throw new CouchbaseLiteException("Failed to update any records.", StatusCode.DbError);
@@ -298,8 +291,6 @@ namespace Couchbase.Lite.Shared
                 Log.E(Tag, "Error updating table " + table, ex);
             } finally {
                 command.Dispose();
-                if (lastInsertedIndexCommand != null)
-                    lastInsertedIndexCommand.Dispose();
             }
             return resultCount;
         }
@@ -309,12 +300,19 @@ namespace Couchbase.Lite.Shared
             Debug.Assert(!String.IsNullOrWhiteSpace(table));
 
             var command = GetDeleteCommand(table, whereClause, whereArgs);
-            var resultCount = -1;
+            var resultCount = 0;
             try {
                 var result = command.step();
                 if (result == SQLiteResult.ERROR)
                     throw new CouchbaseLiteException("Error deleting from table " + table, StatusCode.DbError);
-                resultCount = command.column_int(0);
+
+                resultCount = db.changes();
+                if (resultCount == 0) 
+                {
+                    Log.E(Tag, "Error updating " + values + " using " + command);
+                    throw new CouchbaseLiteException("Failed to update any records.", StatusCode.DbError);
+                }
+
             } catch (Exception ex) {
                 Log.E(Tag, "Error deleting from table " + table, ex);
             } finally {

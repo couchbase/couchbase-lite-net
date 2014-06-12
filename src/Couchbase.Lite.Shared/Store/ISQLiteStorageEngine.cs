@@ -49,37 +49,35 @@ using System.Data;
 namespace Couchbase.Lite.Storage
 {
     public interface ISQLiteStorageEngine
-	{
-         bool Open(String path);
+    {
+        bool Open(String path);
 
-         Int32 GetVersion();
+        Int32 GetVersion();
 
-         void SetVersion(Int32 version);
+        void SetVersion(Int32 version);
 
-         bool IsOpen { get; }
+        bool IsOpen { get; }
 
-		 void BeginTransaction();
+        void BeginTransaction();
 
-		 void EndTransaction();
+        void EndTransaction();
 
-		 void SetTransactionSuccessful();
+        void SetTransactionSuccessful();
 
-		/// <exception cref="Couchbase.Lite.Storage.SQLException"></exception>
-         void ExecSQL(string sql, params Object[] paramArgs);
+        void ExecSQL(string sql, params Object[] paramArgs);
 
-         Cursor RawQuery(string sql, params Object[] paramArgs);
+        Cursor RawQuery(string sql, params Object[] paramArgs);
 
-         Cursor RawQuery(string sql, CommandBehavior behavior, params Object[] paramArgs);
+        Cursor RawQuery(string sql, CommandBehavior behavior, params Object[] paramArgs);
 
-		 long Insert(string table, string nullColumnHack, ContentValues values);
+        long Insert(string table, string nullColumnHack, ContentValues values);
 
-         long InsertWithOnConflict(string table, string nullColumnHack, ContentValues initialValues, ConflictResolutionStrategy conflictResolutionStrategy);
+        long InsertWithOnConflict(string table, string nullColumnHack, ContentValues initialValues, ConflictResolutionStrategy conflictResolutionStrategy);
 
-         long Update(string table, ContentValues values, string whereClause, params String[] whereArgs);
+        int Update(string table, ContentValues values, string whereClause, params String[] whereArgs);
 
-         int Delete(string table, string whereClause, params String[] whereArgs);
+        int Delete(string table, string whereClause, params String[] whereArgs);
 
-		 void Close();
-	}
-
+        void Close();
+    }
 }
