@@ -280,11 +280,7 @@ namespace Couchbase.Lite
             var args = new ReplicationChangeEventArgs(this);
 
             // Ensure callback runs on captured context, which should be the UI thread.
-            try {
-                LocalDatabase.Manager.CapturedContext.StartNew(()=>evt(this, args));
-            } catch (Exception ex) {
-                Log.E(Tag, "Error when notifying change listeners." , ex);
-            }
+            LocalDatabase.Manager.CapturedContext.StartNew(()=>evt(this, args));
         }
 
         //TODO: Do we need this method? It's not in the API Spec.
