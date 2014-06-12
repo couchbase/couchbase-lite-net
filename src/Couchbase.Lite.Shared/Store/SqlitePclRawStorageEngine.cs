@@ -309,8 +309,7 @@ namespace Couchbase.Lite.Shared
                 resultCount = db.changes();
                 if (resultCount == 0) 
                 {
-                    Log.E(Tag, "Error updating " + values + " using " + command);
-                    throw new CouchbaseLiteException("Failed to update any records.", StatusCode.DbError);
+                    throw new CouchbaseLiteException("Failed to delete the records.", StatusCode.DbError);
                 }
 
             } catch (Exception ex) {
