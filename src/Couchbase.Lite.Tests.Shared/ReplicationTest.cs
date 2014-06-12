@@ -59,6 +59,7 @@ using Couchbase.Lite.Internal;
 using Couchbase.Lite.Replicator;
 using Couchbase.Lite.Util;
 using Couchbase.Lite.Tests;
+using Newtonsoft.Json.Linq;
 
 
 namespace Couchbase.Lite.Replicator
@@ -732,6 +733,51 @@ namespace Couchbase.Lite.Replicator
                 }
             }
             Assert.IsTrue(foundFooHeader);
+        }
+
+        /// <exception cref="System.Exception"></exception>
+        [Test]
+        public void TestAllLeafRevisionsArePushed()
+        {
+            var httpClientFactory = new MockHttpClientFactory();
+            var httpHandler = (MockHttpRequestHandler) httpClientFactory.HttpHandler; 
+            httpHandler.AddResponderRevDiffsAllMissing();
+            httpHandler.AddResponderFakeLocalDocumentUpdate404();
+            httpHandler.ResponseDelayMilliseconds = 250;
+            manager.DefaultHttpClientFactory = httpClientFactory;
+
+            var doc = database.CreateDocument();
+            var rev1a = doc.CreateRevision().Save();
+            var rev2a = rev1a.CreateRevision().Save();
+            var rev3a = rev2a.CreateRevision().Save();
+
+            // delete the branch we've been using, then create a new one to replace it
+            var rev4a = rev3a.DeleteDocument();
+            var rev2b = rev1a.CreateRevision().Save(true);
+
+            Assert.AreEqual(rev2b.Id, doc.CurrentRevisionId);
+
+            // sync with remote DB -- should push both leaf revisions
+            var pusher = database.CreatePushReplication(GetReplicationURL());
+            RunReplication(pusher);
+
+            var foundRevsDiff = false;
+            var capturedRequests = httpHandler.GetCapturedRequests();
+            foreach (var httpRequest in capturedRequests) 
+            {
+                var uriString = httpRequest.RequestUri.ToString();
+                if (uriString.EndsWith("_revs_diff"))
+                {
+                    foundRevsDiff = true;
+                    var jsonMap = MockHttpRequestHandler.GetJsonMapFromRequest(httpRequest);
+                    var revisionIds = ((JArray)jsonMap.Get(doc.Id)).Values<string>().ToList();
+                    Assert.AreEqual(2, revisionIds.Count);
+                    Assert.IsTrue(revisionIds.Contains(rev4a.Id));
+                    Assert.IsTrue(revisionIds.Contains(rev2b.Id));
+                }
+            }
+
+            Assert.IsTrue(foundRevsDiff);
         }
 	}
 }

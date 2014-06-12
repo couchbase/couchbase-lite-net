@@ -677,7 +677,7 @@ namespace Couchbase.Lite
         public Replication CreatePushReplication(Uri url)
         {
             var scheduler = new SingleThreadTaskScheduler(); //TaskScheduler.FromCurrentSynchronizationContext();
-            return new Pusher(this, url, false, CouchbaseLiteHttpClientFactory.Instance, new TaskFactory(scheduler));
+            return new Pusher(this, url, false, new TaskFactory(scheduler));
         }
 
         /// <summary>
