@@ -67,6 +67,132 @@ namespace Couchbase.Lite.Replicator
 	{
         public const string Tag = "ReplicationTest";
 
+        private CountDownLatch ReplicationWatcherThread(Replication replication)
+        {
+            var started = replication.IsRunning;
+            var doneSignal = new CountDownLatch(1);
+
+            Task.Factory.StartNew(()=>
+            {
+                var done = false;
+                while (!done)
+                {
+                    if (!started) {
+                        started = replication.IsRunning;
+                    }
+
+                    var statusIsDone = (
+                        replication.Status == ReplicationStatus.Stopped 
+                        || replication.Status == ReplicationStatus.Idle
+                    );
+
+                    if (started && statusIsDone)
+                    {
+                        done = true;
+                    }
+
+                    try
+                    {
+                        Thread.Sleep(1000);
+                    }
+                    catch (Exception e)
+                    {
+                        Runtime.PrintStackTrace(e);
+                    }
+                }
+                doneSignal.CountDown();
+            });
+
+            return doneSignal;
+        }
+
+        private class ReplicationObserver 
+        {
+            private bool replicationFinished = false;
+
+            private readonly CountDownLatch doneSignal;
+
+            internal ReplicationObserver(CountDownLatch doneSignal)
+            {
+                this.doneSignal = doneSignal;
+            }
+
+            public void Changed(object sender, ReplicationChangeEventArgs args)
+            {
+                Replication replicator = args.Source;
+                Log.D(Tag, replicator + " changed: " + replicator.CompletedChangesCount + " / " + replicator.ChangesCount);
+
+                if (replicator.CompletedChangesCount < 0)
+                {
+                    var msg = replicator + ": replicator.CompletedChangesCount < 0";
+                    Log.D(Tag, msg);
+                    // throw new RuntimeException(msg);
+                }
+
+                if (replicator.ChangesCount < 0)
+                {
+                    var msg = replicator + ": replicator.ChangesCount < 0";
+                    Log.D(Tag, msg);
+                    throw new RuntimeException(msg);
+                }
+
+                if (replicator.CompletedChangesCount > replicator.ChangesCount)
+                {
+                    var msg = "replicator.CompletedChangesCount : " + replicator.CompletedChangesCount +
+                        " > replicator.ChangesCount : " + replicator.ChangesCount;
+                    Log.D(Tag, msg);
+                    // throw new RuntimeException(msg);
+                }
+
+                if (!replicator.IsRunning)
+                {
+                    this.replicationFinished = true;
+                    string msg = "ReplicationFinishedObserver.changed called, set replicationFinished to true";
+                    Log.D(Tag, msg);
+                    this.doneSignal.CountDown();
+                }
+                else
+                {
+                    string msg = string.Format("ReplicationFinishedObserver.changed called, but replicator still running, so ignore it");
+                    Log.D(ReplicationTest.Tag, msg);
+                }
+            }
+
+            internal virtual bool IsReplicationFinished()
+            {
+                return this.replicationFinished;
+            }
+        }
+
+
+        private void RunReplication(Replication replication)
+        {
+            var replicationDoneSignal = new CountDownLatch(1);
+            var observer = new ReplicationObserver(replicationDoneSignal);
+            replication.Changed += observer.Changed;
+            replication.Start();
+
+            var replicationDoneSignalPolling = ReplicationWatcherThread(replication);
+
+            Log.D(Tag, "Waiting for replicator to finish.");
+
+            try
+            {
+                var success = replicationDoneSignalPolling.Await(TimeSpan.FromSeconds(120));
+                Assert.IsTrue(success);
+                success = replicationDoneSignalPolling.Await(TimeSpan.FromSeconds(120));
+                Assert.IsTrue(success);
+
+                Log.D(Tag, "replicator finished");
+            }
+            catch (Exception e)
+            {
+                Runtime.PrintStackTrace(e);
+            }
+
+            replication.Changed -= observer.Changed;
+        }
+
         [SetUp]
         public void Setup()
         {
@@ -451,71 +577,6 @@ namespace Couchbase.Lite.Replicator
             Assert.IsTrue(replicator.Authorizer is FacebookAuthorizer);
 		}
 
-		private void RunReplication(Replication replication)
-		{
-            var replicationDoneSignal = new CountDownLatch(1);
-            var observer = new ReplicationObserver(replicationDoneSignal);
-            replication.Changed += observer.Changed;
-            replication.Start();
-
-            var replicationDoneSignalPolling = ReplicationWatcherThread(replication);
-
-            Log.D(Tag, "Waiting for replicator to finish.");
-
-            try
-            {
-                var success = replicationDoneSignalPolling.Await(TimeSpan.FromSeconds(120));
-                Assert.IsTrue(success);
-                success = replicationDoneSignalPolling.Await(TimeSpan.FromSeconds(120));
-                Assert.IsTrue(success);
-
-                Log.D(Tag, "replicator finished");
-            }
-            catch (Exception e)
-            {
-                Runtime.PrintStackTrace(e);
-            }
-
-            replication.Changed -= observer.Changed;
-		}
-
-		private CountDownLatch ReplicationWatcherThread(Replication replication)
-		{
-            var doneSignal = new CountDownLatch(1);
-            Task.Factory.StartNew(()=>
-            {
-                var started = false;
-                var done = false;
-
-                while (!done)
-                {
-                    started |= replication.IsRunning;
-
-                    var statusIsDone = (
-                        replication.Status == ReplicationStatus.Stopped 
-                        || replication.Status == ReplicationStatus.Idle
-                    );
-
-                    if (started && statusIsDone)
-                    {
-                        done = true;
-                    }
-
-                    try
-                    {
-                        Thread.Sleep(1000);
-                    }
-                    catch (Exception e)
-                    {
-                        Runtime.PrintStackTrace(e);
-                    }
-                }
-                doneSignal.CountDown();
-            });
-
-            return doneSignal;
-		}
-
 		/// <exception cref="System.Exception"></exception>
         [Test]
 		public void TestRunReplicationWithError()
@@ -564,63 +625,6 @@ namespace Couchbase.Lite.Replicator
             Assert.IsTrue(repl.Status == ReplicationStatus.Offline);
 		}
 
-		internal class ReplicationObserver 
-		{
-            private bool replicationFinished = false;
-
-            private readonly CountDownLatch doneSignal;
-
-            internal ReplicationObserver(CountDownLatch doneSignal)
-            {
-                this.doneSignal = doneSignal;
-            }
-
-            public void Changed(object sender, ReplicationChangeEventArgs args)
-            {
-                Replication replicator = args.Source;
-                Log.D(Tag, replicator + " changed." + replicator.CompletedChangesCount + " / " + replicator.ChangesCount);
-
-                if (replicator.CompletedChangesCount < 0)
-                {
-                    var msg = replicator + ": replicator.CompletedChangesCount < 0";
-                    Log.D(Tag, msg);
-                    throw new RuntimeException(msg);
-                }
-
-                if (replicator.ChangesCount < 0)
-                {
-                    var msg = replicator + ": replicator.ChangesCount < 0";
-                    Log.D(Tag, msg);
-                    throw new RuntimeException(msg);
-                }
-
-                if (replicator.CompletedChangesCount > replicator.ChangesCount)
-                {
-                    var msg = "replicator.CompletedChangesCount - " + replicator.CompletedChangesCount +
-                        " > replicator.ChangesCount - " + replicator.ChangesCount;
-                    Log.D(Tag, msg);
-                    throw new RuntimeException(msg);
-                }
-
-                if (!replicator.IsRunning)
-                {
-                    this.replicationFinished = true;
-                    string msg = "ReplicationFinishedObserver.changed called, set replicationFinished to true";
-                    Log.D(Tag, msg);
-                    this.doneSignal.CountDown();
-                }
-                else
-                {
-                    string msg = string.Format("ReplicationFinishedObserver.changed called, but replicator still running, so ignore it");
-                    Log.D(ReplicationTest.Tag, msg);
-                }
-            }
-
-            internal virtual bool IsReplicationFinished()
-            {
-                return this.replicationFinished;
-            }
-		}
 
 		/// <exception cref="System.Exception"></exception>
         [Test]
@@ -701,34 +705,33 @@ namespace Couchbase.Lite.Replicator
         [Test]
 		public void TestHeaders()
 		{
-//			var mockHttpClient = new CustomizableMockHttpClient();
-//			mockHttpClient.AddResponderThrowExceptionAllRequests();
-//			HttpClientFactory mockHttpClientFactory = new _HttpClientFactory_741(mockHttpClient
-//				);
-			Uri remote = GetReplicationURL();
-			var mockHttpClientFactory = new CustomizableMockHttpClientFactory();
-			manager.DefaultHttpClientFactory = mockHttpClientFactory;
-			var mockHttpClient = (CustomizableMockHttpClientHandler)mockHttpClientFactory.HttpHandler;
-			Replication puller = database.CreatePullReplication(remote);
-			var headers = new Dictionary<string, string>();
-			headers["foo"] = "bar";
-			puller.Headers = headers;
-			puller.Start();
-			Thread.Sleep(2000);
-            puller.Stop();
+            var mockHttpClientFactory = new MockHttpClientFactory();
+            manager.DefaultHttpClientFactory = mockHttpClientFactory;
+
+            var mockHttpHandler = (MockHttpRequestHandler)mockHttpClientFactory.HttpHandler;
+            mockHttpHandler.AddResponderThrowExceptionAllRequests();
+
+            Uri remote = GetReplicationURL();
+            Replication puller = database.CreatePullReplication(remote);
+            var headers = new Dictionary<string, string>();
+            headers["foo"] = "bar";
+            puller.Headers = headers;
+            RunReplication(puller);
+            Assert.IsNotNull(puller.LastError);
+
             var foundFooHeader = false;
-			var requests = mockHttpClient.GetCapturedRequests();
-			foreach (var request in requests)
-			{
-				var requestHeaders = request.Headers.GetValues("foo");
-				foreach (var requestHeader in requestHeaders)
-				{
-					foundFooHeader = true;
-					Assert.AreEqual("bar", requestHeader);
-				}
-			}
-			Assert.IsTrue(foundFooHeader);
-			//AssertClientFactory(null);
-		}
+            var requests = mockHttpHandler.GetCapturedRequests();
+
+            foreach (var request in requests)
+            {
+                var requestHeaders = request.Headers.GetValues("foo");
+                foreach (var requestHeader in requestHeaders)
+                {
+                    foundFooHeader = true;
+                    Assert.AreEqual("bar", requestHeader);
+                }
+            }
+            Assert.IsTrue(foundFooHeader);
+        }
 	}
 }

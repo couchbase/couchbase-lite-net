@@ -192,7 +192,8 @@ namespace Couchbase.Lite
                     UpdateActive();
                 }, CancellationTokenSource);
 
-            this.clientFactory = clientFactory ?? CouchbaseLiteHttpClientFactory.Instance;
+            //this.clientFactory = clientFactory ?? CouchbaseLiteHttpClientFactory.Instance;
+            SetClientFactory(clientFactory);
         }
 
     #endregion
@@ -214,7 +215,7 @@ namespace Couchbase.Lite
 
         readonly protected TaskFactory WorkExecutor; // FIXME: Remove this.
 
-        readonly protected IHttpClientFactory clientFactory;
+        protected IHttpClientFactory clientFactory;
 
         protected internal String  sessionID;
 
@@ -269,6 +270,38 @@ namespace Couchbase.Lite
         private Int32 revisionsFailed;
 
         readonly object asyncTaskLocker = new object ();
+
+        protected void SetClientFactory(IHttpClientFactory clientFactory)
+        {
+            if (clientFactory != null)
+            {
+                this.clientFactory = clientFactory;
+            }
+            else
+            {
+                Manager manager = null;
+                if (LocalDatabase != null) 
+                {
+                    manager = LocalDatabase.Manager;
+                }
+
+                IHttpClientFactory managerClientFactory = null;
+                if (manager != null) 
+                {
+                    managerClientFactory = manager.DefaultHttpClientFactory;
+                }
+
+                if (managerClientFactory != null) 
+                {
+                    this.clientFactory = managerClientFactory;
+                } 
+                else 
+                {
+                    this.clientFactory = new CouchbaseLiteHttpClientFactory();
+                }
+            }
+        }
+
 
         void NotifyChangeListeners ()
         {
