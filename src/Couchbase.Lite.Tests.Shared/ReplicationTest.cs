@@ -266,9 +266,9 @@ namespace Couchbase.Lite.Replicator
             AddDocWithId(doc2Id, "attachment2.png");
 
 			// workaround for https://github.com/couchbase/sync_gateway/issues/228
-			Sharpen.Thread.Sleep(1000);
+            Sharpen.Thread.Sleep(3000);
             DoPullReplication();
-            Sharpen.Thread.Sleep(5000);
+            Sharpen.Thread.Sleep(3000);
 
 			Log.D(Tag, "Fetching doc1 via id: " + doc1Id);
             var doc1 = database.GetExistingDocument(doc1Id);
@@ -324,11 +324,13 @@ namespace Couchbase.Lite.Replicator
                 }
                 Log.D(Database.Tag, "rows " + e.Rows);
             };
+
             // the first time this is called back, the rows will be empty.
             // but on subsequent times we should expect to get a non empty
             // row set.
             allDocsLiveQuery.Start();
             DoPullReplication();
+            allDocsLiveQuery.Stop();
 		}
 
 		private void DoPullReplication()
@@ -522,9 +524,8 @@ namespace Couchbase.Lite.Replicator
 			var dbUrlString = "http://fake.test-url.com:4984/fake/";
             var remote = new Uri(dbUrlString);
             var continuous = false;
-            var r1 = new Puller(database, remote, continuous, mockHttpClientFactory, new TaskFactory(manager.CapturedContext.Scheduler));
-			Assert.IsFalse(r1.Continuous);
-
+            var r1 = new Pusher(database, remote, continuous, mockHttpClientFactory, new TaskFactory(new SingleThreadTaskScheduler()));
+            Assert.IsFalse(r1.Continuous);
             RunReplication(r1);
 
 			// It should have failed with a 404:

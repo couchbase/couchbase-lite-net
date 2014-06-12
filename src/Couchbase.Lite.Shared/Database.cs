@@ -1191,7 +1191,7 @@ PRAGMA user_version = 3;";
                             inConflict = true;
                         }
                     }
-                    catch (SQLException)
+                    catch (Exception)
                     {
                         throw new CouchbaseLiteException(StatusCode.InternalServerError);
                     }
@@ -3304,13 +3304,14 @@ PRAGMA user_version = 3;";
             var properties = rev.GetProperties ();
             if (properties != null)
             {
-                revAttachments = (IDictionary<string, object>)properties.Get("_attachments");
+                revAttachments = properties.Get("_attachments").AsDictionary<string, object>();
             }
 
             if (revAttachments == null || revAttachments.Count == 0 || rev.IsDeleted())
             {
                 return;
             }
+
             foreach (string name in revAttachments.Keys)
             {
                 var attachment = attachments.Get(name);
@@ -3501,13 +3502,13 @@ PRAGMA user_version = 3;";
         internal void StubOutAttachmentsInRevision(IDictionary<String, AttachmentInternal> attachments, RevisionInternal rev)
         {
             var properties = rev.GetProperties();
-
-            var attachmentsFromProps = (IDictionary<String, Object>)properties.Get("_attachments");
+            var attachmentProps = properties.Get("_attachments");
+            var attachmentsFromProps = attachmentProps.AsDictionary<string,object>();
             if (attachmentsFromProps != null)
             {
                 foreach (string attachmentKey in attachmentsFromProps.Keys)
                 {
-                    var attachmentFromProps = (IDictionary<string, object>)attachmentsFromProps.Get(attachmentKey);
+                    var attachmentFromProps = attachmentsFromProps.Get(attachmentKey).AsDictionary<string,object>();
                     if (attachmentFromProps.Get("follows") != null || attachmentFromProps.Get("data")
                         != null)
                     {
@@ -3533,6 +3534,7 @@ PRAGMA user_version = 3;";
                     }
                 }
             }
+            properties["_attachments"] = attachmentsFromProps;  
         }
 
         /// <summary>INSERTION:</summary>
@@ -3583,7 +3585,7 @@ PRAGMA user_version = 3;";
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
         internal IDictionary<String, AttachmentInternal> GetAttachmentsFromRevision(RevisionInternal rev)
         {
-            var revAttachments = (IDictionary<string, object>)rev.GetPropertyForKey("_attachments");
+            var revAttachments = rev.GetPropertyForKey("_attachments").AsDictionary<string, object>();
             if (revAttachments == null || revAttachments.Count == 0 || rev.IsDeleted())
             {
                 return new Dictionary<string, AttachmentInternal>();
@@ -3592,7 +3594,7 @@ PRAGMA user_version = 3;";
             var attachments = new Dictionary<string, AttachmentInternal>();
             foreach (var name in revAttachments.Keys)
             {
-                var attachInfo = (IDictionary<string, object>)revAttachments.Get(name);
+                var attachInfo = revAttachments.Get(name).AsDictionary<string, object>();
                 var contentType = (string)attachInfo.Get("content_type");
                 var attachment = new AttachmentInternal(name, contentType);
                 var newContentBase64 = (string)attachInfo.Get("data");
@@ -3634,12 +3636,14 @@ PRAGMA user_version = 3;";
                             throw new CouchbaseLiteException("Expected this attachment to be a stub", StatusCode.
                                                              BadAttachment);
                         }
-                        int revPos = ((int)attachInfo.Get("revpos"));
+
+                        var revPos = ((long)attachInfo.Get("revpos"));
                         if (revPos <= 0)
                         {
                             throw new CouchbaseLiteException("Invalid revpos: " + revPos, StatusCode.BadAttachment
                                                             );
                         }
+
                         continue;
                     }
                 }
@@ -3665,7 +3669,8 @@ PRAGMA user_version = 3;";
                 }
                 if (attachInfo.ContainsKey("revpos"))
                 {
-                    attachment.SetRevpos((int)attachInfo.Get("revpos"));
+                    var revpos = (long)attachInfo.Get("revpos");
+                    attachment.SetRevpos((int)revpos);
                 }
                 else
                 {

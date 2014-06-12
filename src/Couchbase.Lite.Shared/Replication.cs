@@ -278,8 +278,13 @@ namespace Couchbase.Lite
             if (evt == null) return;
 
             var args = new ReplicationChangeEventArgs(this);
+
             // Ensure callback runs on captured context, which should be the UI thread.
-            LocalDatabase.Manager.CapturedContext.StartNew(()=>evt(this, args));
+            try {
+                LocalDatabase.Manager.CapturedContext.StartNew(()=>evt(this, args));
+            } catch (Exception ex) {
+                Log.E(Tag, "Error when notifying change listeners." , ex);
+            }
         }
 
         //TODO: Do we need this method? It's not in the API Spec.
@@ -290,7 +295,7 @@ namespace Couchbase.Lite
                 return false;
             }
 
-            Log.D(Database.Tag, this + ": Going offline");
+            Log.D(Tag, this + ": Going offline");
             online = false;
 
             StopRemoteRequests();
@@ -309,7 +314,7 @@ namespace Couchbase.Lite
                 return false;
             }
 
-            Log.D(Database.Tag, this + ": Going online");
+            Log.D(Tag, this + ": Going online");
             online = true;
             if (IsRunning)
             {
@@ -503,7 +508,6 @@ namespace Couchbase.Lite
                         string remoteLastSequence = null;
 
                         if (result != null) {
-                            remoteLastSequence = (string)result.Get ("lastSequence");
                             remoteLastSequence = (string)result.Get("lastSequence");
                         }
 
@@ -549,7 +553,8 @@ namespace Couchbase.Lite
             lock (asyncTaskLocker)
             {
                 Log.D(Tag, this + "|" + Sharpen.Thread.CurrentThread() + ": asyncTaskStarted() called, asyncTaskCount: " + asyncTaskCount);
-                if (asyncTaskCount++ == 0)
+                Interlocked.Increment(ref asyncTaskCount);
+                if (asyncTaskCount == 1)
                 {
                     UpdateActive();
                 }
@@ -558,13 +563,18 @@ namespace Couchbase.Lite
         }
 
         internal void AsyncTaskFinished(Int32 numTasks)
-        {   // TODO.ZJG: Replace lock with Interlocked.CompareExchange.
-            lock (asyncTaskLocker) {
-                Log.D(Tag, this + "|" + Sharpen.Thread.CurrentThread() + ": asyncTaskFinished() called, asyncTaskCount: "
-                    + asyncTaskCount + " numTasks: " + numTasks);
+        {   
+            lock (asyncTaskLocker)
+            {
+                int result, initial, final;
+                do
+                {
+                    initial = asyncTaskCount;
+                    final = initial - numTasks;
+                    result = Interlocked.CompareExchange(ref asyncTaskCount, final, initial);
+                } while (initial != result);
 
-                asyncTaskCount -= numTasks;
-                if (asyncTaskCount == 0) 
+                if (asyncTaskCount == 0)
                 {
                     if (!continuous)
                     {
@@ -805,7 +815,7 @@ namespace Couchbase.Lite
                     }
 
                     return response.Result;
-                    }, CancellationTokenSource.Token, TaskContinuationOptions.None, WorkExecutor.Scheduler);
+                }, CancellationTokenSource.Token, TaskContinuationOptions.None, WorkExecutor.Scheduler);
 
             requests.Add(client);
         }
@@ -859,25 +869,25 @@ namespace Couchbase.Lite
                 AddRequestHeaders(message);
 
                 var httpClient = clientFactory.GetHttpClient();
-                httpClient.SendAsync(message, HttpCompletionOption.ResponseHeadersRead, CancellationTokenSource.Token)
-                    .ContinueWith(new Action<Task<HttpResponseMessage>>(responseMessage=> {
-                        object fullBody = null;
-                        Exception error = null;
-                        try
-                        {
-                            var response = responseMessage.Result;
-                            // add in cookies to global store
-                            //CouchbaseLiteHttpClientFactory.Instance.AddCookies(clientFactory.HttpHandler.CookieContainer.GetCookies(url));
+                httpClient.SendAsync(message, HttpCompletionOption.ResponseHeadersRead, CancellationTokenSource.Token).ContinueWith(new Action<Task<HttpResponseMessage>>(responseMessage => 
+                {
+                    object fullBody = null;
+                    Exception error = null;
+                    try
+                    {
+                        var response = responseMessage.Result;
+                        // add in cookies to global store
+                        //CouchbaseLiteHttpClientFactory.Instance.AddCookies(clientFactory.HttpHandler.CookieContainer.GetCookies(url));
                                
-                            var status = response.StatusCode;
-                            if ((Int32)status.GetStatusCode() >= 300)
-                            {
-                                Log.E(Database.Tag, "Got error " + Sharpen.Extensions.ToString(status.GetStatusCode
+                        var status = response.StatusCode;
+                        if ((Int32)status.GetStatusCode() >= 300)
+                        {
+                            Log.E(Database.Tag, "Got error " + Sharpen.Extensions.ToString(status.GetStatusCode
                                     ()));
-                                Log.E(Database.Tag, "Request was for: " + message);
-                                Log.E(Database.Tag, "Status reason: " + response.ReasonPhrase);
-                                error = new WebException(response.ReasonPhrase);
-                            }
+                            Log.E(Database.Tag, "Request was for: " + message);
+                            Log.E(Database.Tag, "Status reason: " + response.ReasonPhrase);
+                            error = new WebException(response.ReasonPhrase);
+                        }
                         else
                         {
                             var entity = response.Content;
@@ -887,11 +897,13 @@ namespace Couchbase.Lite
                             {
                                 try
                                 {
-                                    var reader = new MultipartDocumentReader(responseMessage.Result, LocalDatabase);
-                                    reader.SetContentType(contentTypeHeader.MediaType);
+                                    var reader = new MultipartDocumentReader(LocalDatabase);
+                                    var contentType = contentTypeHeader.ToString();
+                                    reader.SetContentType(contentType);
 
                                     var inputStreamTask = entity.ReadAsStreamAsync();
-                                    inputStreamTask.Wait(90000, CancellationTokenSource.Token);
+                                    inputStreamTask.Wait(90000, CancellationTokenSource.Token);    
+                                    inputStream = inputStreamTask.Result;
                                     
                                     const int bufLen = 1024;
                                     var buffer = new byte[bufLen];
@@ -916,16 +928,17 @@ namespace Couchbase.Lite
                                     if (onCompletion != null)
                                         onCompletion(fullBody, error);
                                 }
+                                catch (Exception ex)
+                                {
+                                    Log.E(Tag, "SendAsyncMultipartDownloaderRequest has an error occurred.", ex);
+                                }   
                                 finally
                                 {
                                     try
-                                    {
-                                        inputStream.Close();
-                                    }
-                                    catch (IOException)
-                                    {
-                                            // NOTE: swallow?
-                                    }
+                                    { 
+                                        inputStream.Close(); 
+                                    } 
+                                    catch (Exception) { }
                                 }
                             }
                             else
@@ -943,7 +956,7 @@ namespace Couchbase.Lite
                                     }
                                     catch (Exception ex)
                                     {
-                                        Log.E(Tag, ex.Message);
+                                        Log.E(Tag, "SendAsyncMultipartDownloaderRequest has an error occurred.", ex);
                                     }
                                     finally
                                     {
@@ -951,9 +964,7 @@ namespace Couchbase.Lite
                                         {
                                             inputStream.Close();
                                         }
-                                        catch (IOException)
-                                        {
-                                        }
+                                        catch (Exception) { }
                                     }
                                 }
                             }
@@ -969,7 +980,7 @@ namespace Couchbase.Lite
                         Log.E(Database.Tag, "io exception", e);
                         error = e;
                     }
-                    }), WorkExecutor.Scheduler);
+                }), WorkExecutor.Scheduler);
             }
             catch (UriFormatException e)
             {
@@ -1375,10 +1386,29 @@ namespace Couchbase.Lite
             CancelPendingRetryIfReady();
             LocalDatabase.ForgetReplication(this);
                 
-            if (IsRunning && asyncTaskCount == 0)
+            if (asyncTaskCount > 0)
             {
-                Stopped();
+                var timeout = DateTime.UtcNow + TimeSpan.FromSeconds(90);
+                var spinWait = new SpinWait();
+                const int maxSpins = 10000000;
+                var shouldExit = false;
+                do
+                {
+                    spinWait.Reset();
+                    while (spinWait.Count < maxSpins)
+                    {
+                        if (asyncTaskCount <= 0) {
+                            shouldExit = true;
+                            break;
+                        }
+                        spinWait.SpinOnce();
+                    }
+                } while(!shouldExit && DateTime.UtcNow < timeout);
+
+                if (asyncTaskCount > 0)
+                    throw new InvalidOperationException("Could not stop due to too many outstanding async tasks");
             }
+            Stopped();
         }
 
         /// <summary>
