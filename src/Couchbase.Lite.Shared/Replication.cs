@@ -136,7 +136,6 @@ namespace Couchbase.Lite
             Status = ReplicationStatus.Stopped;
             online = true;
             RequestHeaders = new Dictionary<String, Object>();
-            Log.D(Tag, "New replication uses a scheduler with a max concurrency level of {0}".Fmt(workExecutor.Scheduler == null ? TaskScheduler.Default.MaximumConcurrencyLevel : workExecutor.Scheduler.MaximumConcurrencyLevel));
             requests = new HashSet<HttpClient>();
 
             if (RemoteUrl.GetQuery() != null && !RemoteUrl.GetQuery().IsEmpty())
