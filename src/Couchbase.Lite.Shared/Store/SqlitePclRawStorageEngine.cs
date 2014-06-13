@@ -57,7 +57,7 @@ namespace Couchbase.Lite.Shared
 {
     internal class SqlitePCLRawStorageEngine : ISQLiteStorageEngine, IDisposable
     {
-        private const String Tag = "MonoSQLiteStorageEngine";
+        private const String Tag = "SqlitePCLRawStorageEngine";
         private sqlite3 db;
         private Boolean shouldCommit;
 

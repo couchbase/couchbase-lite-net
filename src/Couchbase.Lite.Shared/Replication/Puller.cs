@@ -243,12 +243,6 @@ namespace Couchbase.Lite.Replicator
             }
             if (!Continuous)
             {
-                var t = Task.Factory.StartNew(() => 
-                { 
-                    Task inner =Task.Factory.StartNew(() => {}); 
-                    return inner; 
-                });
-
                 WorkExecutor.StartNew(() =>
                 {
                     AsyncTaskFinished(1);
@@ -386,7 +380,7 @@ namespace Couchbase.Lite.Replicator
                         Log.D (Tag, this + ": pullRemoteRevision got response for rev: " + rev);
                         if (result != null)
                         {
-                            var properties = ((JObject)result).ToObject<IDictionary<string, object>>();
+                            var properties = result.AsDictionary<string, object>();
                             var history = Database.ParseCouchDBRevisionHistory (properties);
 
                             if (history != null) 
@@ -396,10 +390,11 @@ namespace Couchbase.Lite.Replicator
                                 var toInsert = new AList<object> ();
                                 toInsert.AddItem (rev);
                                 toInsert.AddItem (history);
-                                Log.D (Tag, this + ": pullRemoteRevision add rev: " + rev + " to batcher");
-                                downloadsToInsert.QueueObject (toInsert);
+
                                 Log.D (Tag, this + "|" + Thread.CurrentThread() + ": pullRemoteRevision.onCompletion() calling asyncTaskStarted()");
                                 AsyncTaskStarted ();
+
+                                downloadsToInsert.QueueObject (toInsert);
                             } 
                             else 
                             {
@@ -488,10 +483,10 @@ namespace Couchbase.Lite.Replicator
             finally
             {
                 LocalDatabase.EndTransaction(success);
-                Log.D(Tag, this + "|" + Thread.CurrentThread() + ": insertRevisions() calling asyncTaskFinished()");
+                CompletedChangesCount += revs.Count;
                 AsyncTaskFinished(revs.Count);
+                Log.D(Tag, this + "|" + Thread.CurrentThread() + ": insertRevisions() calling asyncTaskFinished()");
             }
-            CompletedChangesCount += revs.Count;
 		}
 
         private sealed class RevisionComparer : IComparer<IList<Object>>
