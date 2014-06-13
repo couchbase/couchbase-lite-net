@@ -1130,7 +1130,7 @@ namespace Couchbase.Lite
             );
         }
 
-        internal void RevisionFailed()
+        protected void RevisionFailed()
         {
             revisionsFailed++;
         }
