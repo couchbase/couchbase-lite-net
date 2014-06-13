@@ -42,14 +42,15 @@
 
 using Couchbase.Lite.Storage;
 using Sharpen;
+using Couchbase.Lite.Shared;
 
 namespace Couchbase.Lite.Storage
 {
-	public static class SQLiteStorageEngineFactory
+    internal static class SQLiteStorageEngineFactory
 	{
-		public static SQLiteStorageEngine CreateStorageEngine()
+        internal static ISQLiteStorageEngine CreateStorageEngine()
 		{
-            return new MonoSQLiteStorageEngine();
+            return new SqlitePCLRawStorageEngine(); //MonoSQLiteStorageEngine();
 		}
 	}
 }

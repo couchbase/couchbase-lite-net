@@ -44,9 +44,12 @@ using System;
 using System.Data;
 using System.ComponentModel.Design;
 using System.Collections.Generic;
-using Mono.Data.Sqlite;
+
 using System.Linq;
 using System.Text;
+using SQLitePCL;
+using Couchbase.Lite.Store;
+using SQLitePCL.Ugly;
 
 namespace Couchbase.Lite
 {
@@ -54,78 +57,86 @@ namespace Couchbase.Lite
     {
         const Int32 DefaultChunkSize = 8192;
 
-        readonly SqliteDataReader reader;
+        private sqlite3_stmt statement;
+
+        private Int32 currentStep = -1;
 
         Boolean HasRows {
             get {
-                 return reader.HasRows; 
+                return currentStep == SQLiteResult.ROW; 
             }
         }
 
         Int64 currentRow;
 
-        public Cursor (SqliteDataReader reader)
+        public Cursor (sqlite3_stmt stmt)
         {
-            this.reader = reader;
+            this.statement = stmt;
             currentRow = -1;
+            currentStep = statement.step();
         }
 
         public bool MoveToNext ()
         {
-            currentRow++;
-            var moreRecords = reader.Read();
-            return moreRecords;
+            if (currentRow >= 0)
+            {
+                currentStep = statement.step();
+            }
+
+            if (HasRows) currentRow++;
+            return HasRows;
         }
 
         public int GetInt (int columnIndex)
         {
-            return reader.IsDBNull (columnIndex) ? -1 : reader.GetInt32(columnIndex);
+            return statement.column_int(columnIndex);
         }
 
         public long GetLong (int columnIndex)
         {
-            return reader.IsDBNull (columnIndex) ? -1 : reader.GetInt64(columnIndex);
+            return statement.column_int64(columnIndex);
         }
 
         public string GetString (int columnIndex)
         {
-            return reader.IsDBNull (columnIndex) ? null : reader.GetString(columnIndex);
+            return statement.column_text(columnIndex);
         }
 
+        // TODO: Refactor this to return IEnumerable<byte>.
         public byte[] GetBlob (int columnIndex)
         {
-            return GetBlob(columnIndex, DefaultChunkSize);
+            return statement.column_blob(columnIndex);
         }
 
-        public byte[] GetBlob (int columnIndex, int chunkSize)
-        {
-            if (reader.IsDBNull (columnIndex)) return new byte[2]; // NOTE.ZJG: Database.AppendDictToJSON assumes an empty json doc has a for a length of two.
-            var r = reader;
-
-            var fieldType = reader.GetFieldType(columnIndex);
-            if (fieldType == typeof(String)) {
-                return Encoding.UTF8.GetBytes(reader.GetString(columnIndex));
-            }
-
-            var chunkBuffer = new byte[chunkSize];
-            var blob = new List<Byte>(chunkSize); // We know we'll be reading at least 1 chunk, so pre-allocate now to avoid an immediate resize.
-
-            long bytesRead;
-            do
-            {
-                chunkBuffer.Initialize(); // Resets all values back to zero.
-                bytesRead = r.GetBytes(columnIndex, blob.Count, chunkBuffer, 0, chunkSize);
-                blob.AddRange(chunkBuffer.Take(Convert.ToInt32(bytesRead)));
-            } while (bytesRead > 0);
-
-            return blob.ToArray();
-        }
+//        public byte[] GetBlob (int columnIndex, int chunkSize)
+//        {
+//            SQLitePCL.SQLiteConnection
+//
+//            var result = statement[columnIndex];
+//            if (result == null) return new byte[2]; // NOTE.ZJG: Database.AppendDictToJSON assumes an empty json doc has a for a length of two.
+//            var r = statement;
+//
+//            var chunkBuffer = new byte[chunkSize];
+//            var blob = new List<Byte>(chunkSize); // We know we'll be reading at least 1 chunk, so pre-allocate now to avoid an immediate resize.
+//
+//            long bytesRead;
+//            do
+//            {
+//                chunkBuffer.Initialize(); // Resets all values back to zero.
+//                bytesRead = r[columnIndex](columnIndex, blob.Count, chunkBuffer, 0, chunkSize);
+//                blob.AddRange(chunkBuffer.Take(Convert.ToInt32(bytesRead)));
+//            } while (bytesRead > 0);
+//
+//            return blob.ToArray();
+//        }
 
         public void Close ()
         {
-            if (!reader.IsClosed) {
-                reader.Close();
-            }
+            if (statement == null) return;
+
+            try { statement.Dispose(); } catch (Exception e){ };
+
+            statement = null;
         }
 
         public bool IsAfterLast ()
@@ -137,9 +148,9 @@ namespace Couchbase.Lite
 
         public void Dispose ()
         {
-            if (reader != null && !reader.IsClosed)
+            if (statement != null)
             {
-                reader.Close();
+                Close();
             }
         }
 

@@ -41,7 +41,7 @@
 //
 
 using System;
-using Mono.Data.Sqlite;
+
 using System.Linq;
 using System.Data;
 using System.Collections;
@@ -54,7 +54,7 @@ using System.Text.RegularExpressions;
 
 namespace Couchbase.Lite
 {
-    public static class SqliteExtensions
+    internal static class SqliteExtensions
     {
         static readonly IDictionary<Type, DbType> TypeMap;
 
@@ -90,16 +90,16 @@ namespace Couchbase.Lite
             return newSql.ToString();
         }
 
-        public static SqliteParameter[] ToSqliteParameters(this Object[] args)
-        {
-            var paramArgs = new SqliteParameter[args.LongLength];
-            for(var i = 0L; i < args.LongLength; i++)
-            {
-                var a = args[i];
-                paramArgs[i] = new SqliteParameter(a.GetType().ToDbType(), a) { ParameterName = "@" + i };
-            }
-            return paramArgs;
-        }
+//        public static SQLiteParameter[] ToSqliteParameters(this Object[] args)
+//        {
+//            var paramArgs = new SqliteParameter[args.LongLength];
+//            for(var i = 0L; i < args.LongLength; i++)
+//            {
+//                var a = args[i];
+//                paramArgs[i] = new SqliteParameter(a.GetType().ToDbType(), a) { ParameterName = "@" + i };
+//            }
+//            return paramArgs;
+//        }
 
         public static DbType ToDbType(this Type type)
         {

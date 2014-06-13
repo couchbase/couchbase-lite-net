@@ -453,7 +453,16 @@ namespace Couchbase.Lite
                 return false;
             }
 
-            DeleteLocalDocument(id, prevRev.GetRevId());
+            try 
+            {
+                DeleteLocalDocument(id, prevRev.GetRevId());
+            }
+            catch (Exception ex)
+            {
+                Log.D(Database.Tag, "Cannot delete a local document id " + id, ex);
+                return false;
+            }
+
             return true;
         } 
 
@@ -668,7 +677,7 @@ namespace Couchbase.Lite
         public Replication CreatePushReplication(Uri url)
         {
             var scheduler = new SingleThreadTaskScheduler(); //TaskScheduler.FromCurrentSynchronizationContext();
-            return new Pusher(this, url, false, CouchbaseLiteHttpClientFactory.Instance, new TaskFactory(scheduler));
+            return new Pusher(this, url, false, new TaskFactory(scheduler));
         }
 
         /// <summary>
@@ -768,7 +777,7 @@ PRAGMA user_version = 3;";
         internal String                                 Path { get; private set; }
         internal ICollection<Replication>               ActiveReplicators { get; set; }
         internal ICollection<Replication>               AllReplicators { get; set; }
-        internal SQLiteStorageEngine                    StorageEngine { get; set; }
+        internal ISQLiteStorageEngine                    StorageEngine { get; set; }
         internal LruCache<String, Document>             DocumentCache { get; set; }
 
         //TODO: Should thid be a public member?
@@ -810,8 +819,8 @@ PRAGMA user_version = 3;";
         private RevisionList GetAllRevisionsOfDocumentID(string docId, long docNumericID, bool onlyCurrent)
         {
             var sql = onlyCurrent 
-                      ? "SELECT sequence, revid, deleted FROM revs " + "WHERE doc_id=@ AND current ORDER BY sequence DESC"
-                      : "SELECT sequence, revid, deleted FROM revs " + "WHERE doc_id=@ ORDER BY sequence DESC";
+                ? "SELECT sequence, revid, deleted FROM revs " + "WHERE doc_id=? AND current ORDER BY sequence DESC"
+                : "SELECT sequence, revid, deleted FROM revs " + "WHERE doc_id=? ORDER BY sequence DESC";
 
             var args = new [] { Convert.ToString (docNumericID) };
             var cursor = StorageEngine.RawQuery(sql, args);
@@ -913,7 +922,7 @@ PRAGMA user_version = 3;";
                     var whereArgs = new [] { docID, prevRevID };
                     try
                     {
-                        var rowsUpdated = StorageEngine.Update("localdocs", values, "docid=@ AND revid=@", whereArgs);
+                        var rowsUpdated = StorageEngine.Update("localdocs", values, "docid=? AND revid=?", whereArgs);
                         if (rowsUpdated == 0)
                         {
                             throw new CouchbaseLiteException(StatusCode.Conflict);
@@ -976,7 +985,7 @@ PRAGMA user_version = 3;";
             var whereArgs = new [] { docID, revID };
             try
             {
-                int rowsDeleted = StorageEngine.Delete("localdocs", "docid=@ AND revid=@", whereArgs);
+                int rowsDeleted = StorageEngine.Delete("localdocs", "docid=? AND revid=?", whereArgs);
                 if (rowsDeleted == 0)
                 {
                     if (GetLocalDocument(docID, null) != null)
@@ -1003,7 +1012,7 @@ PRAGMA user_version = 3;";
             try
             {
                 var args = new [] { docID };
-                cursor = StorageEngine.RawQuery("SELECT revid, json FROM localdocs WHERE docid=@", CommandBehavior.SequentialAccess, args);
+                cursor = StorageEngine.RawQuery("SELECT revid, json FROM localdocs WHERE docid=?", CommandBehavior.SequentialAccess, args);
 
                 if (cursor.MoveToNext())
                 {
@@ -1052,7 +1061,7 @@ PRAGMA user_version = 3;";
         /// It must already have a revision ID. This may create a conflict! The revision's history must be given; ancestor revision IDs that don't already exist locally will create phantom revisions with no content.
         /// </remarks>
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
-        internal async void ForceInsert(RevisionInternal rev, IList<string> revHistory, Uri source)
+        internal void ForceInsert(RevisionInternal rev, IList<string> revHistory, Uri source)
         {
             var inConflict = false;
             var docId = rev.GetDocId();
@@ -1148,8 +1157,9 @@ PRAGMA user_version = 3;";
                             // It's an intermediate parent, so insert a stub:
                             newRev = new RevisionInternal(docId, revId, false, this);
                         }
+
                         // Insert it:
-                        sequence = await Manager.CapturedContext.StartNew(()=>InsertRevision(newRev, docNumericID, sequence, current, data));
+                        sequence = InsertRevision(newRev, docNumericID, sequence, current, data);
                         if (sequence <= 0)
                         {
                             throw new CouchbaseLiteException(StatusCode.InternalServerError);
@@ -1175,14 +1185,13 @@ PRAGMA user_version = 3;";
                     string[] whereArgs = new string[] { Convert.ToString(localParentSequence) };
                     try
                     {
-                        Int32 numRowsChanged = StorageEngine.Update("revs", args, "sequence=@", whereArgs);
+                        var numRowsChanged = StorageEngine.Update("revs", args, "sequence=?", whereArgs);
                         if (numRowsChanged == 0)
                         {
                             inConflict = true;
                         }
-
                     }
-                    catch (SQLException)
+                    catch (Exception)
                     {
                         throw new CouchbaseLiteException(StatusCode.InternalServerError);
                     }
@@ -1283,7 +1292,7 @@ PRAGMA user_version = 3;";
             try
             {
                 var args = new [] { url.ToString(), (push ? 1 : 0).ToString() };
-                cursor = StorageEngine.RawQuery("SELECT last_sequence FROM replicators WHERE remote=@ AND push=@", args);
+                                cursor = StorageEngine.RawQuery("SELECT last_sequence FROM replicators WHERE remote=? AND push=?", args);
                 if (cursor.MoveToNext())
                 {
                     result = cursor.GetString(0);
@@ -1384,7 +1393,7 @@ PRAGMA user_version = 3;";
             }
 
             var sql = "SELECT sequence, revs.doc_id, docid, revid, deleted" + additionalSelectColumns
-                      + " FROM revs, docs " + "WHERE sequence > @ AND current=1 " + "AND revs.doc_id = docs.doc_id "
+                      + " FROM revs, docs " + "WHERE sequence > ? AND current=1 " + "AND revs.doc_id = docs.doc_id "
                       + "ORDER BY revs.doc_id, revid DESC";
             var args = lastSeq;
 
@@ -1518,17 +1527,17 @@ PRAGMA user_version = 3;";
             if (minKey != null)
             {
                 Debug.Assert((minKey is String));
-                sql.Append((inclusiveMin ? " AND docid >= @" : " AND docid > @"));
+                sql.Append((inclusiveMin ? " AND docid >= ?" : " AND docid > ?"));
                 args.AddItem((string)minKey);
             }
             if (maxKey != null)
             {
                 Debug.Assert((maxKey is string));
-                sql.Append((inclusiveMax ? " AND docid <= @" : " AND docid < @"));
+                sql.Append((inclusiveMax ? " AND docid <= ?" : " AND docid < ?"));
                 args.AddItem((string)maxKey);
             }
             sql.Append(
-                String.Format(" ORDER BY docid {0}, {1} revid DESC LIMIT @ OFFSET @", 
+                String.Format(" ORDER BY docid {0}, {1} revid DESC LIMIT ? OFFSET ?", 
                     options.IsDescending() ? "DESC" : "ASC", 
                     includeDeletedDocs ? "deleted ASC," : String.Empty
                 )
@@ -1671,7 +1680,7 @@ PRAGMA user_version = 3;";
             Cursor cursor = null;
             var args = new [] { Convert.ToString(docNumericId) };
             String revId = null;
-            var sql = "SELECT revid, deleted FROM revs WHERE doc_id=@ and current=1" 
+            var sql = "SELECT revid, deleted FROM revs WHERE doc_id=? and current=1" 
                       + " ORDER BY deleted asc, revid desc LIMIT 2";
 
             try
@@ -1853,7 +1862,7 @@ PRAGMA user_version = 3;";
             try
             {
                 var whereArgs = new [] { name };
-                var rowsAffected = StorageEngine.Delete("views", "name=@", whereArgs);
+                var rowsAffected = StorageEngine.Delete("views", "name=?", whereArgs);
 
                 if (rowsAffected > 0)
                 {
@@ -1890,7 +1899,7 @@ PRAGMA user_version = 3;";
             var seq = rev.GetSequence();
             if (seq > 0)
             {
-                seq = LongForQuery("SELECT parent FROM revs WHERE sequence=@", new [] { Convert.ToString(seq) });
+                seq = LongForQuery("SELECT parent FROM revs WHERE sequence=?", new [] { Convert.ToString(seq) });
             }
             else
             {
@@ -1900,7 +1909,7 @@ PRAGMA user_version = 3;";
                     return null;
                 }
                 var args = new [] { Convert.ToString(docNumericID), rev.GetRevId() };
-                seq = LongForQuery("SELECT parent FROM revs WHERE doc_id=@ and revid=@", args);
+                seq = LongForQuery("SELECT parent FROM revs WHERE doc_id=? and revid=?", args);
             }
             if (seq == 0)
             {
@@ -1910,7 +1919,7 @@ PRAGMA user_version = 3;";
             // Now get its revID and deletion status:
             RevisionInternal result = null;
             var args_1 = new [] { Convert.ToString(seq) };
-            var queryString = "SELECT revid, deleted FROM revs WHERE sequence=@";
+            var queryString = "SELECT revid, deleted FROM revs WHERE sequence=?";
 
             Cursor cursor = null;
             try
@@ -2116,7 +2125,7 @@ PRAGMA user_version = 3;";
             var args = new [] { Convert.ToString(sequence), filename };
             try
             {
-                cursor = StorageEngine.RawQuery("SELECT key, type FROM attachments WHERE sequence=@ AND filename=@", args);
+                cursor = StorageEngine.RawQuery("SELECT key, type FROM attachments WHERE sequence=? AND filename=?", args);
 
                 if (!cursor.MoveToNext())
                 {
@@ -2171,7 +2180,7 @@ PRAGMA user_version = 3;";
             long result = -1;
             try
             {
-                cursor = StorageEngine.RawQuery("SELECT doc_id FROM docs WHERE docid=@", args);
+                cursor = StorageEngine.RawQuery("SELECT doc_id FROM docs WHERE docid=?", args);
                 if (cursor.MoveToNext())
                 {
                     result = cursor.GetLong(0);
@@ -2282,7 +2291,7 @@ PRAGMA user_version = 3;";
                             try
                             {
                                 var args = new[] { Convert.ToString(docNumericID) };
-                                enclosingDatabase.StorageEngine.ExecSQL("DELETE FROM revs WHERE doc_id=@", args);
+                                enclosingDatabase.StorageEngine.ExecSQL("DELETE FROM revs WHERE doc_id=?", args);
                             }
                             catch (SQLException e)
                             {
@@ -2298,7 +2307,7 @@ PRAGMA user_version = 3;";
                             try
                             {
                                 var args = new [] { Convert.ToString(docNumericID) };
-                                var queryString = "SELECT revid, sequence, parent FROM revs WHERE doc_id=@ ORDER BY sequence DESC";
+                                var queryString = "SELECT revid, sequence, parent FROM revs WHERE doc_id=? ORDER BY sequence DESC";
                                 cursor = enclosingDatabase.StorageEngine.RawQuery(queryString, args);
                                 if (!cursor.MoveToNext())
                                 {
@@ -2384,13 +2393,13 @@ PRAGMA user_version = 3;";
                 }
                 if (rev != null)
                 {
-                    sql = "SELECT " + cols + " FROM revs, docs WHERE docs.docid=@ AND revs.doc_id=docs.doc_id AND revid=@ LIMIT 1";
+                    sql = "SELECT " + cols + " FROM revs, docs WHERE docs.docid=? AND revs.doc_id=docs.doc_id AND revid=? LIMIT 1";
                     var args = new[] { id, rev };
                     cursor = StorageEngine.RawQuery(sql, args);
                 }
                 else
                 {
-                    sql = "SELECT " + cols + " FROM revs, docs WHERE docs.docid=@ AND revs.doc_id=docs.doc_id and current=1 and deleted=0 ORDER BY revid DESC LIMIT 1";
+                    sql = "SELECT " + cols + " FROM revs, docs WHERE docs.docid=? AND revs.doc_id=docs.doc_id and current=1 and deleted=0 ORDER BY revid DESC LIMIT 1";
                     var args = new[] { id };
                     cursor = StorageEngine.RawQuery(sql, CommandBehavior.SequentialAccess, args);
                 }
@@ -2414,7 +2423,7 @@ PRAGMA user_version = 3;";
                     }
                 }
             }
-            catch (SQLException e)
+            catch (Exception e)
             {
                 Log.E(Database.Tag, "Error getting document with id and rev", e);
             }
@@ -2577,7 +2586,7 @@ PRAGMA user_version = 3;";
             Cursor cursor = null;
             IList<RevisionInternal> result;
             var args = new [] { Convert.ToString(docNumericId) };
-            var sql = "SELECT sequence, parent, revid, deleted, json isnull  FROM revs WHERE doc_id=@ ORDER BY sequence DESC";
+            var sql = "SELECT sequence, parent, revid, deleted, json isnull  FROM revs WHERE doc_id=? ORDER BY sequence DESC";
 
             try
             {
@@ -2775,7 +2784,7 @@ PRAGMA user_version = 3;";
 
             try
             {
-                cursor = StorageEngine.RawQuery("SELECT filename, key, type, length, revpos FROM attachments WHERE sequence=@", CommandBehavior.SequentialAccess, args);
+                cursor = StorageEngine.RawQuery("SELECT filename, key, type, length, revpos FROM attachments WHERE sequence=?", CommandBehavior.SequentialAccess, args);
                 if (!cursor.MoveToNext())
                 {
                     return null;
@@ -2977,7 +2986,7 @@ PRAGMA user_version = 3;";
                         additionalWhereClause = "AND current=1";
                     }
                     cursor = StorageEngine.RawQuery(
-                        "SELECT sequence FROM revs WHERE doc_id=@ AND revid=@ "
+                        "SELECT sequence FROM revs WHERE doc_id=? AND revid=? "
                         + additionalWhereClause + " LIMIT 1", args);
                     if (cursor.MoveToNext())
                     {
@@ -3194,7 +3203,7 @@ PRAGMA user_version = 3;";
             try
             {
                 var extraSql = (onlyCurrent ? "AND current=1" : string.Empty);
-                var sql = string.Format("SELECT sequence FROM revs WHERE doc_id=@ AND revid=@ {0} LIMIT 1", extraSql);
+                var sql = string.Format("SELECT sequence FROM revs WHERE doc_id=? AND revid=? {0} LIMIT 1", extraSql);
                 var args = new [] { string.Empty + docNumericId, revId };
                 cursor = StorageEngine.RawQuery(sql, args);
                 result = cursor.MoveToNext()
@@ -3295,13 +3304,14 @@ PRAGMA user_version = 3;";
             var properties = rev.GetProperties ();
             if (properties != null)
             {
-                revAttachments = (IDictionary<string, object>)properties.Get("_attachments");
+                revAttachments = properties.Get("_attachments").AsDictionary<string, object>();
             }
 
             if (revAttachments == null || revAttachments.Count == 0 || rev.IsDeleted())
             {
                 return;
             }
+
             foreach (string name in revAttachments.Keys)
             {
                 var attachment = attachments.Get(name);
@@ -3350,7 +3360,7 @@ PRAGMA user_version = 3;";
             try
             {
                 StorageEngine.ExecSQL("INSERT INTO attachments (sequence, filename, key, type, length, revpos) "
-                    + "SELECT @, @, key, type, length, revpos FROM attachments " + "WHERE sequence=@ AND filename=@", args);
+                    + "SELECT ?, ?, key, type, length, revpos FROM attachments " + "WHERE sequence=? AND filename=?", args);
                 cursor = StorageEngine.RawQuery("SELECT changes()", null);
                 cursor.MoveToNext();
 
@@ -3492,13 +3502,13 @@ PRAGMA user_version = 3;";
         internal void StubOutAttachmentsInRevision(IDictionary<String, AttachmentInternal> attachments, RevisionInternal rev)
         {
             var properties = rev.GetProperties();
-
-            var attachmentsFromProps = (IDictionary<String, Object>)properties.Get("_attachments");
+            var attachmentProps = properties.Get("_attachments");
+            var attachmentsFromProps = attachmentProps.AsDictionary<string,object>();
             if (attachmentsFromProps != null)
             {
                 foreach (string attachmentKey in attachmentsFromProps.Keys)
                 {
-                    var attachmentFromProps = (IDictionary<string, object>)attachmentsFromProps.Get(attachmentKey);
+                    var attachmentFromProps = attachmentsFromProps.Get(attachmentKey).AsDictionary<string,object>();
                     if (attachmentFromProps.Get("follows") != null || attachmentFromProps.Get("data")
                         != null)
                     {
@@ -3524,6 +3534,7 @@ PRAGMA user_version = 3;";
                     }
                 }
             }
+            properties["_attachments"] = attachmentsFromProps;  
         }
 
         /// <summary>INSERTION:</summary>
@@ -3574,7 +3585,7 @@ PRAGMA user_version = 3;";
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
         internal IDictionary<String, AttachmentInternal> GetAttachmentsFromRevision(RevisionInternal rev)
         {
-            var revAttachments = (IDictionary<string, object>)rev.GetPropertyForKey("_attachments");
+            var revAttachments = rev.GetPropertyForKey("_attachments").AsDictionary<string, object>();
             if (revAttachments == null || revAttachments.Count == 0 || rev.IsDeleted())
             {
                 return new Dictionary<string, AttachmentInternal>();
@@ -3583,7 +3594,7 @@ PRAGMA user_version = 3;";
             var attachments = new Dictionary<string, AttachmentInternal>();
             foreach (var name in revAttachments.Keys)
             {
-                var attachInfo = (IDictionary<string, object>)revAttachments.Get(name);
+                var attachInfo = revAttachments.Get(name).AsDictionary<string, object>();
                 var contentType = (string)attachInfo.Get("content_type");
                 var attachment = new AttachmentInternal(name, contentType);
                 var newContentBase64 = (string)attachInfo.Get("data");
@@ -3625,12 +3636,14 @@ PRAGMA user_version = 3;";
                             throw new CouchbaseLiteException("Expected this attachment to be a stub", StatusCode.
                                                              BadAttachment);
                         }
-                        int revPos = ((int)attachInfo.Get("revpos"));
+
+                        var revPos = ((long)attachInfo.Get("revpos"));
                         if (revPos <= 0)
                         {
                             throw new CouchbaseLiteException("Invalid revpos: " + revPos, StatusCode.BadAttachment
                                                             );
                         }
+
                         continue;
                     }
                 }
@@ -3656,7 +3669,8 @@ PRAGMA user_version = 3;";
                 }
                 if (attachInfo.ContainsKey("revpos"))
                 {
-                    attachment.SetRevpos((int)attachInfo.Get("revpos"));
+                    var revpos = (long)attachInfo.Get("revpos");
+                    attachment.SetRevpos((int)revpos);
                 }
                 else
                 {
@@ -3699,7 +3713,7 @@ PRAGMA user_version = 3;";
             {
                 // TODO: on ios this query is:
                 // TODO: "SELECT sequence, json FROM revs WHERE doc_id=@ AND revid=@ LIMIT 1"
-                var sql = "SELECT sequence, json FROM revs, docs WHERE revid=@ AND docs.docid=@ AND revs.doc_id=docs.doc_id LIMIT 1";
+                var sql = "SELECT sequence, json FROM revs, docs WHERE revid=? AND docs.docid=? AND revs.doc_id=docs.doc_id LIMIT 1";
                 var args = new [] { rev.GetRevId(), rev.GetDocId() };
 
                 cursor = StorageEngine.RawQuery(sql, CommandBehavior.SequentialAccess, args);
@@ -3827,7 +3841,7 @@ PRAGMA user_version = 3;";
         {
             try
             {
-                foreach (string statement in statements.Split(';'))
+                foreach (string statement in statements.Split(new[] { ";" }, StringSplitOptions.RemoveEmptyEntries))
                 {
                     StorageEngine.ExecSQL(statement);
                 }
@@ -4057,7 +4071,7 @@ PRAGMA user_version = 3;";
                 {
                     string minIDToKeep = String.Format("{0}-", (toPrune.Get(id) + 1));
                     string[] deleteArgs = new string[] { System.Convert.ToString(docNumericID), minIDToKeep };
-                    int rowsDeleted = StorageEngine.Delete("revs", "doc_id=@ AND revid < @ AND current=0", deleteArgs);
+                    int rowsDeleted = StorageEngine.Delete("revs", "doc_id=? AND revid < ? AND current=0", deleteArgs);
                     outPruned += rowsDeleted;
                 }
                 shouldCommit = true;

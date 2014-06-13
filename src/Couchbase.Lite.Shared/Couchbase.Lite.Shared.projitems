@@ -179,13 +179,10 @@
     <Compile Include="$(MSBuildThisFileDirectory)Store\BlobStoreWriter.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Store\ConflictResolutionStrategy.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Store\ContentValues.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Store\CouchbaseSqliteCollationFunctions.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Store\Cursor.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Store\JsonCollator.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Store\MonoSQLiteStorageEngine.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Store\RevIdCollator.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Store\SQLException.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Store\SQLiteStorageEngine.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Store\SQLiteStorageEngineFactory.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Store\Status.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\DefaultAuthHandler.cs" />
@@ -205,5 +202,13 @@
     <Compile Include="$(MSBuildThisFileDirectory)Util\SystemLogger.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\URIUtils.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\SingleThreadTaskScheduler.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Store\ISQLiteStorageEngine.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Store\CouchbaseSqliteCollationFunctions.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Store\SqlitePclRawStorageEngine.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Store\SQLiteResult.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="$(MSBuildThisFileDirectory)Store\MonoSQLiteStorageEngine.cs" />
+    <None Include="$(MSBuildThisFileDirectory)Store\SqlitePclStorageEngine.cs" />
   </ItemGroup>
 </Project>
