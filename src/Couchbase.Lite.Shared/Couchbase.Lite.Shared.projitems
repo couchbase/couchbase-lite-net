@@ -206,6 +206,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Store\CouchbaseSqliteCollationFunctions.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Store\SqlitePclRawStorageEngine.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Store\SQLiteResult.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Util\Utils.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="$(MSBuildThisFileDirectory)Store\MonoSQLiteStorageEngine.cs" />

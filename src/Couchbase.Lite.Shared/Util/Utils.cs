@@ -1,10 +1,10 @@
-//
-// ChangeTrackerBackoff.cs
+﻿//
+// Utils.cs
 //
 // Author:
-//     Zachary Gramana  <zack@xamarin.com>
+//     Pasin Suriyentrakorn  <pasin@couchbase.com>
 //
-// Copyright (c) 2014 Xamarin Inc
+// Copyright (c) 2014 Couchbase Inc
 // Copyright (c) 2014 .NET Foundation
 //
 // Permission is hereby granted, free of charge, to any person obtaining
@@ -40,56 +40,23 @@
 // and limitations under the License.
 //
 
-using System;
-using Couchbase.Lite;
-using Couchbase.Lite.Replicator;
-using Couchbase.Lite.Util;
-using Sharpen;
+using System.Net;
 
-namespace Couchbase.Lite.Replicator
+namespace Couchbase.Lite.Util
 {
-    internal class ChangeTrackerBackoff
-	{
-        public const int MaxSleepMilliseconds = 5 * 60 * 1000; // 5 Mins
-
-        public Int32 NumAttempts { get; private set; }
-
-		public void ResetBackoff()
-		{
-            NumAttempts = 0;
-		}
-
-        public long GetSleepMilliseconds()
-		{
-            var result = (long)(Math.Pow(NumAttempts, 2) - 1) / 2;
-			result *= 100;
-
-			if (result < MaxSleepMilliseconds)
-			{
-				IncreaseBackoff();
-			}
-
-			result = Math.Abs(result);
-
-			return result;
-		}
-
-		public void SleepAppropriateAmountOfTime()
-		{
-			try
-			{
-                long sleepMilliseconds = GetSleepMilliseconds();
-				if (sleepMilliseconds > 0)
-				{
-					Thread.Sleep(sleepMilliseconds);
-				}
-			}
-            catch (Exception) { }
-		}
-
-		private void IncreaseBackoff()
-		{
-            NumAttempts += 1;
-		}
-	}
+    public class Utils
+    {
+        public static bool IsTransientError(HttpStatusCode status)
+        {
+            if (status == HttpStatusCode.InternalServerError || 
+                status == HttpStatusCode.BadGateway || 
+                status == HttpStatusCode.ServiceUnavailable || 
+                status == HttpStatusCode.GatewayTimeout)
+            {
+                return true;
+            }
+            return false;
+        }
+    }
 }
+
