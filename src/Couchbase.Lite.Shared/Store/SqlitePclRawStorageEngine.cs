@@ -300,14 +300,14 @@ namespace Couchbase.Lite.Shared
             Debug.Assert(!String.IsNullOrWhiteSpace(table));
 
             var command = GetDeleteCommand(table, whereClause, whereArgs);
-            var resultCount = 0;
+            var resultCount = -1;
             try {
                 var result = command.step();
                 if (result == SQLiteResult.ERROR)
                     throw new CouchbaseLiteException("Error deleting from table " + table, StatusCode.DbError);
 
                 resultCount = db.changes();
-                if (resultCount == 0) 
+                if (resultCount < 0)
                 {
                     throw new CouchbaseLiteException("Failed to delete the records.", StatusCode.DbError);
                 }
@@ -335,7 +335,7 @@ namespace Couchbase.Lite.Shared
             try {
                 //Log.D(Tag, "Build Command : " + sql + " with params " + paramArgs);
                 command = db.prepare(sql);
-                ugly.bind(command, paramArgs);
+                command.bind (paramArgs);
             } catch (Exception e) {
                 Log.E(Tag, "Error when build a sql " + sql + " with params " + paramArgs, e);
                 throw;
@@ -391,7 +391,7 @@ namespace Couchbase.Lite.Shared
 
             var sql = builder.ToString();
             var command = db.prepare(sql);
-            ugly.bind(command, paramList.ToArray<object>());
+            command.bind (paramList.ToArray<object> ());
 
             return command;
         }
@@ -444,7 +444,7 @@ namespace Couchbase.Lite.Shared
 
             var sql = builder.ToString();
             var command = db.prepare(sql);
-            ugly.bind(command, args);
+            command.bind (args);
 
             return command;
         }
@@ -466,7 +466,7 @@ namespace Couchbase.Lite.Shared
             }
 
             var command = db.prepare(builder.ToString());
-            ugly.bind(command, whereArgs);
+            command.bind (whereArgs);
 
             return command;
         }
