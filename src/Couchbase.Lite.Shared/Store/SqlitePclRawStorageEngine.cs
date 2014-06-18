@@ -282,7 +282,7 @@ namespace Couchbase.Lite.Shared
                     throw new CouchbaseLiteException(raw.sqlite3_errmsg(db), StatusCode.DbError);
 
                 resultCount = db.changes();
-                if (resultCount == 0) 
+                if (resultCount < 0) 
                 {
                     Log.E(Tag, "Error updating " + values + " using " + command);
                     throw new CouchbaseLiteException("Failed to update any records.", StatusCode.DbError);
