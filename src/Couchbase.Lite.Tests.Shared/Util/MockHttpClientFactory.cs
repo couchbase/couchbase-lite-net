@@ -39,26 +39,6 @@
 // either express or implied. See the License for the specific language governing permissions
 // and limitations under the License.
 //
-
-using System.Net;
-
-namespace Couchbase.Lite.Util
-{
-    public class Utils
-    {
-        public static bool IsTransientError(HttpStatusCode status)
-        {
-            if (status == HttpStatusCode.InternalServerError || 
-                status == HttpStatusCode.BadGateway || 
-                status == HttpStatusCode.ServiceUnavailable || 
-                status == HttpStatusCode.GatewayTimeout)
-            {
-                return true;
-            }
-            return false;
-        }
-    }
-}
     
 using System;
 using System.Net.Http;

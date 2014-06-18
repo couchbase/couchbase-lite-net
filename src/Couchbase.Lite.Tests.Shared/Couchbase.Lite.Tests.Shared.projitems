@@ -16,7 +16,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)CRUDOperationsTest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)ChangesTest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)CollationTest.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)CustomizableMockHttpClientHandler.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)DatabaseTest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)DocumentTest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)FakeHttpWebResponse.cs" />
