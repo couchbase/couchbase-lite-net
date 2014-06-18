@@ -95,8 +95,11 @@ namespace Couchbase.Lite.Support
             {
                 try
                 {
-                        if (tokenSource != null && tokenSource.IsCancellationRequested) return;
-                        ProcessNow();
+                    if (tokenSource != null && tokenSource.IsCancellationRequested) 
+                    {
+                        return;
+                    }
+                    ProcessNow();
                 }
                 catch (Exception e)
                 {
@@ -104,6 +107,7 @@ namespace Couchbase.Lite.Support
                     Log.E(Tag, this + ": BatchProcessor throw exception", e);
                 }
             });
+
             this.locker = new Object ();
 			this.workExecutor = workExecutor;
             this.cancellationSource = tokenSource;
@@ -115,10 +119,10 @@ namespace Couchbase.Lite.Support
 		public void ProcessNow()
 		{
             Log.D(Tag, this + ": processNow() called");
+
             scheduled = false;
 
-
-            IList<T> toProcess;
+            var toProcess = new List<T>();
 			lock (locker)
 			{
 				if (inbox == null || inbox.Count == 0)
@@ -126,38 +130,36 @@ namespace Couchbase.Lite.Support
                     Log.D(Tag, this + ": processNow() called, but inbox is empty");
 					return;
 				}
-                else
+                else if (inbox.Count <= capacity)
                 {
-                    if (inbox.Count <= capacity)
+                    toProcess.AddRange(inbox);
+                    inbox = null;
+                }
+                else 
+                {
+                    Log.V(Tag, this + ": processNow() called, inbox size: " + inbox.Count);
+
+                    int i = 0;
+                    foreach (T item in inbox)
                     {
-                        toProcess = inbox;
-                        inbox = null;
+                        toProcess.AddItem(item);
+                        i += 1;
+                        if (i >= capacity)
+                        {
+                            break;
+                        }
                     }
-                    else 
+
+                    foreach (T item in toProcess)
                     {
-                        toProcess = new AList<T>();
-
-                        int i = 0;
-                        foreach (T item in inbox)
-                        {
-                            toProcess.AddItem(item);
-                            i += 1;
-                            if (i >= capacity)
-                            {
-                                break;
-                            }
-                        }
-
-                        foreach (T item in toProcess)
-                        {
-                            Log.D(Tag, this + ": processNow() removing " + item + " from inbox");
-                            inbox.Remove(item);
-                        }
-
-                        Log.D(Tag, this + ": inbox.size() > capacity, moving " + toProcess.Count + " items from inbox -> toProcess array");
-                        // There are more objects left, so schedule them Real Soon:
-                        ScheduleWithDelay(0);
+                        Log.D(Tag, this + ": processNow() removing " + item + " from inbox");
+                        inbox.Remove(item);
                     }
+
+                    Log.D(Tag, this + ": inbox.size() > capacity, moving " + toProcess.Count + " items from inbox -> toProcess array");
+
+                    // There are more objects left, so schedule them Real Soon:
+                    ScheduleWithDelay(DelayToUse());
                 }
 			}
 
@@ -178,20 +180,18 @@ namespace Couchbase.Lite.Support
 
         public void QueueObjects(IList<T> objects)
 		{
-            var isLocked = false;
-
-            try {
-                spinLock.TryEnter (ref isLocked);
+            lock (locker)
+            {
                 Log.D(Tag, "queuObjects called with " + objects.Count + " objects. ");
 
-                if (objects.Count == 0)
+                if (objects == null || objects.Count == 0)
                 {
                     return;
                 }
 
                 if (inbox == null)
                 {
-                    inbox = new AList<T>();
+                    inbox = new List<T>();
                 }
 
                 Log.D(Tag, "inbox size before adding objects: " + inbox.Count);
@@ -199,36 +199,8 @@ namespace Couchbase.Lite.Support
                 {
                     inbox.Add(item);
                 }
-                Log.D(Tag, objects.Count + " objects added to inbox.  inbox size: " + inbox.Count);
 
-                if (inbox.Count < capacity)
-                {
-                    // Schedule the processing. To improve latency, if we haven't processed anything
-                    // in at least our delay time, rush these object(s) through ASAP:
-                    Log.D(Tag, "inbox.size() < capacity, schedule processing");
-                    int delayToUse = delay;
-                    long delta = (Runtime.CurrentTimeMillis() - lastProcessedTime);
-                    if (delta >= delay)
-                    {
-                        Log.D(Tag, "delta " + delta + " >= delay " + delay + " --> using delay 0");
-                        delayToUse = 0;
-                    }
-                    else
-                    {
-                        Log.D(Tag, "delta " + delta + " < delay " + delay + " --> using delay " + delayToUse);
-                    }
-                    ScheduleWithDelay(delayToUse);
-                }
-                else
-                {
-                    // If inbox fills up, process it immediately:
-                    Log.D(Tag, "inbox.size() >= capacity, process immediately");
-                    Unschedule();
-                    ProcessNow();
-                }
-            } finally {
-                if (isLocked)
-                    spinLock.Exit(true);
+                ScheduleWithDelay(DelayToUse());
             }
 		}
 
@@ -243,8 +215,7 @@ namespace Couchbase.Lite.Support
 		{
 			lock (locker)
 			{
-                Unschedule();
-                ProcessNow();
+                ScheduleWithDelay(DelayToUse());
 			}
 		}
 
@@ -256,7 +227,7 @@ namespace Couchbase.Lite.Support
                 {
                     Unschedule();
 
-                    IList<T> toProcess = new AList<T>();
+                    var toProcess = new List<T>();
                     foreach (T item in inbox)
                     {
                         toProcess.Add(item);
@@ -291,7 +262,7 @@ namespace Couchbase.Lite.Support
 
         private void ScheduleWithDelay(Int32 suggestedDelay)
         {
-            Log.D(Tag, "scheduleWithDelay called with delay: " + suggestedDelay + " ms");
+            Log.V(Tag, "scheduleWithDelay called with delay: " + suggestedDelay + " ms");
 
             if (scheduled && (suggestedDelay < scheduledDelay))
             {
@@ -302,8 +273,10 @@ namespace Couchbase.Lite.Support
             if (!scheduled)
             {
                 Log.D(Database.Tag, "not already scheduled");
+
                 scheduled = true;
                 scheduledDelay = suggestedDelay;
+
                 Log.D(Tag, "workExecutor.schedule() with delay: " + suggestedDelay + " ms");
 
                 cancellationSource = new CancellationTokenSource();
@@ -312,9 +285,9 @@ namespace Couchbase.Lite.Support
                     {
                         if(!(task.IsCanceled && cancellationSource.IsCancellationRequested))
                         {
-                                workExecutor.StartNew(processNowRunnable);
+                            workExecutor.StartNew(processNowRunnable);
                         }
-                        }, cancellationSource.Token);
+                    }, cancellationSource.Token);
             }
         }
 
@@ -331,6 +304,22 @@ namespace Couchbase.Lite.Support
                 catch (Exception) { } // Swallow it.
                 Log.D(Tag, "tried to cancel flushFuture.");
             }
+        }
+
+        private Int32 DelayToUse()
+        {
+            int delayToUse = delay;
+
+            long delta = Runtime.CurrentTimeMillis() - lastProcessedTime;
+
+            if (delta >= delay)
+            {
+                delayToUse = 0;
+            }
+
+            Log.V(Tag, this + ": delayToUse() delta: " + delta + ", delayToUse: " + delayToUse + ", delay: " + delay);
+
+            return delayToUse;
         }
 	}
 }

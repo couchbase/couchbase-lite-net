@@ -36,6 +36,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Util\FailEveryRequestHandler.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\MockHttpClientFactory.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\MockHttpRequestHandler.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)BatcherTest.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="$(MSBuildThisFileDirectory)Assets\GatewayConfig.json" />
