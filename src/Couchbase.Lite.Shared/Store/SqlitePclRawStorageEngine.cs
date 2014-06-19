@@ -223,7 +223,7 @@ namespace Couchbase.Lite.Shared
                 try {
                     Log.V(Tag, "RawQuery sql: {0}".Fmt(sql));
                     lock (dbLock) {
-                        cursor = new Cursor(command);
+                    cursor = new Cursor(command, dbLock);
                     }
                 } catch (Exception e) {
                     if (command != null) {

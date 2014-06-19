@@ -1417,9 +1417,9 @@ namespace Couchbase.Lite
                 
             if (asyncTaskCount > 0)
             {
-                var timeout = DateTime.UtcNow + TimeSpan.FromSeconds(90);
+                var timeout = DateTime.UtcNow + TimeSpan.FromSeconds(10);
                 var spinWait = new SpinWait();
-                const int maxSpins = 10000000;
+                const int maxSpins = 100;
                 var shouldExit = false;
                 do
                 {
