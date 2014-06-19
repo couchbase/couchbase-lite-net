@@ -186,6 +186,6 @@ Global
 		{F970485C-CE53-457A-AAF6-7896C40F8243} = {5D187322-B6C6-4B74-A097-179F97B61B75}
 	EndGlobalSection
 	GlobalSection(MonoDevelopProperties) = preSolution
-		StartupItem = Couchbase.Lite.iOS.Tests\Couchbase.Lite.iOS.Tests.csproj
+		StartupItem = ..\samples\CouchbaseSample.iOS\CouchbaseSample.iOS.csproj
 	EndGlobalSection
 EndGlobal
