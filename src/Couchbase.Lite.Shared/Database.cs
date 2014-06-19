@@ -1346,17 +1346,14 @@ PRAGMA user_version = 3;";
                         && lastSequence < GetLastSequenceNumber())
                         // NOTE: The exception is handled inside the thread.
                         // TODO: Consider using the async keyword instead.
-                        Manager.RunAsync(()=>{
-                            try
-                            {
-                                view.UpdateIndex();
-                            }
-                            catch (CouchbaseLiteException e)
-                            {
-                                Log.E(Database.Tag, "Error updating view index on background thread", e);
-                            }
-                        });
-
+                        try
+                        {
+                            view.UpdateIndex();
+                        }
+                        catch (CouchbaseLiteException e)
+                        {
+                            Log.E(Database.Tag, "Error updating view index on background thread", e);
+                        }
                 }
                 rows = view.QueryWithOptions (options);
             } else {

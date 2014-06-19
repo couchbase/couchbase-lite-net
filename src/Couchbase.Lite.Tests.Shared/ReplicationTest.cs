@@ -165,7 +165,6 @@ namespace Couchbase.Lite.Replicator
             }
         }
 
-
         private void RunReplication(Replication replication)
         {
             var replicationDoneSignal = new CountDownLatch(1);
@@ -192,6 +191,10 @@ namespace Couchbase.Lite.Replicator
             }
 
             replication.Changed -= observer.Changed;
+        }
+
+        private void WorkaroundSyncGatewayRaceCondition() {
+            Thread.Sleep(5 * 1000);
         }
 
         [SetUp]
@@ -779,5 +782,65 @@ namespace Couchbase.Lite.Replicator
 
             Assert.IsTrue(foundRevsDiff);
         }
+
+        /// <exception cref="System.Exception"></exception>
+        [Test]
+        public void TestRemoteConflictResolution()
+        {
+            // Create a document with two conflicting edits.
+            var doc = database.CreateDocument();
+            var rev1 = doc.CreateRevision().Save();
+            var rev2a = rev1.CreateRevision().Save();
+            var rev2b = rev1.CreateRevision().Save(true);
+
+            // Push the conflicts to the remote DB.
+            var pusher = database.CreatePushReplication(GetReplicationURL());
+            RunReplication(pusher);
+
+            var rev3aBody = new JObject();
+            rev3aBody.Put("_id", doc.Id);
+            rev3aBody.Put("_rev", rev2a.Id);
+
+            // Then, delete rev 2b.
+            var rev3bBody = new JObject();
+            rev3bBody.Put("_id", doc.Id);
+            rev3bBody.Put("_rev", rev2b.Id);
+            rev3bBody.Put("_deleted", true);
+
+            // Combine into one _bulk_docs request.
+            var requestBody = new JObject();
+            var docs = new JArray();
+            docs.Add(rev3aBody);
+            docs.Add(rev3bBody);
+            requestBody.Put("docs", docs);
+
+            // Make the _bulk_docs request.
+            var client = new HttpClient();
+            var bulkDocsUrl = GetReplicationURL().ToString() + "/_bulk_docs";
+            var request = new HttpRequestMessage(HttpMethod.Post, bulkDocsUrl);
+            request.Headers.Add("Accept", "*/*");
+            request.Content = new StringContent(requestBody.ToString(), Encoding.UTF8, "application/json");
+            var response = client.SendAsync(request).Result;
+
+            // Check the response to make sure everything worked as it should.
+            Assert.AreEqual(HttpStatusCode.Created, response.StatusCode);
+            var rawResponse = response.Content.ReadAsStringAsync().Result;
+            var resultArray = Manager.GetObjectMapper().ReadValue<JArray>(rawResponse);
+            Assert.AreEqual(2, resultArray.Count);
+            foreach (var value in resultArray.Values<JObject>())
+            {
+                Assert.IsNull(value["error"]);
+            }
+
+            WorkaroundSyncGatewayRaceCondition();
+
+            // Pull the remote changes.
+            Replication puller = database.CreatePullReplication(GetReplicationURL());
+            RunReplication(puller);
+
+            // Make sure the conflict was resolved locally.
+            Assert.AreEqual(1, doc.ConflictingRevisions.Count());
+        }
+
 	}
 }

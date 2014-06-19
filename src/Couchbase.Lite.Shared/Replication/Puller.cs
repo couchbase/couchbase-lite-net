@@ -65,7 +65,7 @@ namespace Couchbase.Lite.Replicator
 
         readonly string Tag = "Puller";
 
-        protected internal Batcher<IList<Object>> downloadsToInsert;
+        protected internal Batcher<RevisionInternal> downloadsToInsert;
 
 		protected internal IList<RevisionInternal> revsToPull;
 
@@ -109,7 +109,7 @@ namespace Couchbase.Lite.Replicator
 			{
 				const int capacity = 200;
 				const int delay = 1000;
-                downloadsToInsert = new Batcher<IList<Object>> (WorkExecutor, capacity, delay, InsertRevisions);
+                downloadsToInsert = new Batcher<RevisionInternal> (WorkExecutor, capacity, delay, InsertDownloads);
 			}
 
 			pendingSequences = new SequenceMap();
@@ -232,7 +232,7 @@ namespace Couchbase.Lite.Replicator
             Log.W(Tag, this + ": ChangeTracker " + tracker + " stopped");
             if (LastError == null && tracker.GetLastError() != null)
             {
-                LastError = tracker.GetLastError();
+                SetLastError(tracker.GetLastError());
             }
             changeTracker = null;
             if (Batcher != null)
@@ -373,69 +373,53 @@ namespace Couchbase.Lite.Replicator
             //FIXME find a way to avoid this
             var pathInside = path.ToString();
             SendAsyncMultipartDownloaderRequest(HttpMethod.Get, pathInside, null, LocalDatabase, (result, e) => 
+            {
+                try 
                 {
-                    try 
+                    // OK, now we've got the response revision:
+                    Log.D (Tag, this + ": pullRemoteRevision got response for rev: " + rev);
+                    if (result != null)
                     {
-                        // OK, now we've got the response revision:
-                        Log.D (Tag, this + ": pullRemoteRevision got response for rev: " + rev);
-                        if (result != null)
+                        var properties = result.AsDictionary<string, object>();
+                        PulledRevision gotRev = new PulledRevision(properties, LocalDatabase);
+                        gotRev.SetSequence(rev.GetSequence());
+                        AsyncTaskStarted ();
+                        downloadsToInsert.QueueObject(gotRev);
+                    } 
+                    else 
+                    {
+                        if (e != null) 
                         {
-                            var properties = result.AsDictionary<string, object>();
-                            var history = Database.ParseCouchDBRevisionHistory (properties);
-
-                            if (history != null) 
-                            {
-                                rev.SetProperties (properties);
-                                // Add to batcher ... eventually it will be fed to -insertRevisions:.
-                                var toInsert = new AList<object> ();
-                                toInsert.AddItem (rev);
-                                toInsert.AddItem (history);
-
-                                Log.D (Tag, this + "|" + Thread.CurrentThread() + ": pullRemoteRevision.onCompletion() calling asyncTaskStarted()");
-                                AsyncTaskStarted ();
-
-                                downloadsToInsert.QueueObject (toInsert);
-                            } 
-                            else 
-                            {
-                                Log.W (Tag, this + ": Missing revision history in response from " + pathInside);
-                                CompletedChangesCount += 1;
-                            }
-                        } 
-                        else 
-                        {
-                            if (e != null) 
-                            {
-                                Log.E (Tag, "Error pulling remote revision", e);
-                                LastError = e;
-                            }
-                            CompletedChangesCount += 1;
+                            Log.E (Tag, "Error pulling remote revision", e);
+                            SetLastError(e);
+                            RevisionFailed();
                         }
+                        CompletedChangesCount += 1;
                     }
-                    finally
-                    {
-                        Log.D (Tag, this + "|" + Thread.CurrentThread() + ": pullRemoteRevision.onCompletion() calling asyncTaskFinished()");
-                        AsyncTaskFinished (1);
-                    }
-                    
-                    // Note that we've finished this task; then start another one if there
-                    // are still revisions waiting to be pulled:
-                    --httpConnectionCount;
-                    PullRemoteRevisions ();
-                });
+                }
+                finally
+                {
+                    Log.D (Tag, this + "|" + Thread.CurrentThread() + ": pullRemoteRevision.onCompletion() calling asyncTaskFinished()");
+                    AsyncTaskFinished (1);
+                }
+
+                // Note that we've finished this task; then start another one if there
+                // are still revisions waiting to be pulled:
+                --httpConnectionCount;
+                PullRemoteRevisions ();
+            });
 		}
 
 		/// <summary>This will be called when _revsToInsert fills up:</summary>
-        public void InsertRevisions(IList<IList<Object>> revs)
+        public void InsertDownloads(IList<RevisionInternal> downloads)
 		{
-            Log.I(Tag, this + " inserting " + revs.Count + " revisions...");
-            //Log.v(Database.TAG, String.format("%s inserting %s", this, revs));
+            Log.I(Tag, this + " inserting " + downloads.Count + " revisions...");
 
-            revs.Sort(new RevisionComparer());
+            downloads.Sort(new RevisionComparer());
 
             if (LocalDatabase == null)
             {
-                AsyncTaskFinished(revs.Count);
+                AsyncTaskFinished(downloads.Count);
                 return;
             }
 
@@ -444,11 +428,19 @@ namespace Couchbase.Lite.Replicator
             var success = false;
             try
             {
-                foreach (var revAndHistory in revs)
+                foreach (RevisionInternal rev in downloads)
                 {
-                    var rev = (PulledRevision)revAndHistory[0];
                     var fakeSequence = rev.GetSequence();
-                    var history = (IList<String>)revAndHistory[1];
+                    var history = Database.ParseCouchDBRevisionHistory(rev.GetProperties());
+                    if (history.Count == 0 && rev.GetGeneration() > 1) {
+                        Log.W(Tag, String.Format("{0}: Missing revision history in response for: {1}", this, rev));
+                        // TODO: Use StatusCode.UpstreamError instead
+                        SetLastError(new CouchbaseLiteException(StatusCode.Unknown));
+                        RevisionFailed();
+                        continue;
+                    }
+
+                    Log.V(Tag, String.Format("{0}: inserting {1} {2}", this, rev.GetDocId(), history));
 
                     // Insert the revision:
                     try
@@ -464,41 +456,40 @@ namespace Couchbase.Lite.Replicator
                         else
                         {
                             Log.W(Tag, this + " failed to write " + rev + ": status=" + e.GetCBLStatus().GetCode());
-                            LastError = e;
+                            RevisionFailed();
+                            SetLastError(e);
                             continue;
                         }
                     }
                     pendingSequences.RemoveSequence(fakeSequence);
                 }
 
-                Log.W(Tag, this + " finished inserting " + revs.Count + " revisions");
+                Log.W(Tag, this + " finished inserting " + downloads.Count + " revisions");
 
                 LastSequence = pendingSequences.GetCheckpointedValue();
                 success = true;
             }
-            catch (SQLException e)
+            catch (Exception e)
             {
                 Log.E(Tag, this + ": Exception inserting revisions", e);
             }
             finally
             {
                 LocalDatabase.EndTransaction(success);
-                CompletedChangesCount += revs.Count;
-                AsyncTaskFinished(revs.Count);
+                CompletedChangesCount += downloads.Count;
+                AsyncTaskFinished(downloads.Count);
                 Log.D(Tag, this + "|" + Thread.CurrentThread() + ": insertRevisions() calling asyncTaskFinished()");
             }
 		}
 
-        private sealed class RevisionComparer : IComparer<IList<Object>>
+        private sealed class RevisionComparer : IComparer<RevisionInternal>
 		{
             public RevisionComparer()
 			{
 			}
 
-            public int Compare(IList<Object> list1, IList<Object> list2)
+            public int Compare(RevisionInternal reva, RevisionInternal revb)
 			{
-                var reva = (RevisionInternal)list1[0];
-                var revb = (RevisionInternal)list2[0];
 				return Misc.TDSequenceCompare(reva.GetSequence(), revb.GetSequence());
 			}
 		}
