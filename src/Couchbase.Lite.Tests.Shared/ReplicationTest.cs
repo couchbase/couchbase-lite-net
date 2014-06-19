@@ -145,7 +145,7 @@ namespace Couchbase.Lite.Replicator
                     // throw new RuntimeException(msg);
                 }
 
-                if (!replicator.IsRunning)
+                if (replicator.IsRunning)
                 {
                     this.replicationFinished = true;
                     string msg = "ReplicationFinishedObserver.changed called, set replicationFinished to true";
@@ -178,9 +178,9 @@ namespace Couchbase.Lite.Replicator
 
             try
             {
-                var success = replicationDoneSignalPolling.Await(TimeSpan.FromSeconds(120));
+                var success = replicationDoneSignal.Await(TimeSpan.FromSeconds(30));
                 Assert.IsTrue(success);
-                success = replicationDoneSignalPolling.Await(TimeSpan.FromSeconds(120));
+                success = replicationDoneSignalPolling.Await(TimeSpan.FromSeconds(30));
                 Assert.IsTrue(success);
 
                 Log.D(Tag, "replicator finished");
