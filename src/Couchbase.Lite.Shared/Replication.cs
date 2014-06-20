@@ -191,8 +191,7 @@ namespace Couchbase.Lite
                     Log.V (Database.Tag, "*** " + this.ToString () + ": END processInbox (lastSequence=" + LastSequence);
                     UpdateActive();
                 }, CancellationTokenSource);
-
-            //this.clientFactory = clientFactory ?? CouchbaseLiteHttpClientFactory.Instance;
+                
             SetClientFactory(clientFactory);
         }
 
@@ -582,10 +581,7 @@ namespace Couchbase.Lite
             lock (asyncTaskLocker)
             {
                 Log.D(Tag, this + "|" + Sharpen.Thread.CurrentThread() + ": asyncTaskStarted() called, asyncTaskCount: " + asyncTaskCount);
-//                Interlocked.Increment(ref asyncTaskCount);
-                asyncTaskCount++;
-//                if (asyncTaskCount == 1)
-                if (asyncTaskCount == 0)
+                if (asyncTaskCount++ == 0)
                 {
                     UpdateActive();
                 }
@@ -595,7 +591,7 @@ namespace Couchbase.Lite
 
         internal void AsyncTaskFinished(Int32 numTasks)
         {
-            // TODO: Check to see if retry policy isn't throwing this number off.
+//            TODO: Check to see if retry policy isn't throwing this number off.
 //            lock (asyncTaskLocker)
 //            {
 //                int result, initial, final;
@@ -605,17 +601,17 @@ namespace Couchbase.Lite
 //                    final = initial - numTasks;
 //                    result = Interlocked.CompareExchange(ref asyncTaskCount, final, initial);
 //                } while (initial != result);
+//            }
+            lock (asyncTaskLocker)
+            {
                 asyncTaskCount -= numTasks;
-            System.Diagnostics.Debug.Assert(asyncTaskCount >= 0);
+                System.Diagnostics.Debug.Assert(asyncTaskCount >= 0);
                 if (asyncTaskCount == 0)
                 {
-                    if (!continuous)
-                    {
-                        UpdateActive();
-                    }
+                    UpdateActive();
                 }
                 Log.D(Tag, "asyncTaskFinished() updated asyncTaskCount to: " + asyncTaskCount);
-//            }
+            }
         }
 
         internal void UpdateActive()
@@ -846,9 +842,14 @@ namespace Couchbase.Lite
                             error = e;
                             Log.E(Tag, "SendAsyncRequest has an error occurred.", e);
                         }
-                        if (response.Status != TaskStatus.Canceled) {
-                            completionHandler(fullBody, error);
+
+                        if (response.Status == TaskStatus.Canceled)
+                        {
+                            fullBody = null;
+                            error = new Exception("SendAsyncRequest Task has been canceled.");
                         }
+
+                        completionHandler(fullBody, error);
                     }
 
                     return response.Result;
