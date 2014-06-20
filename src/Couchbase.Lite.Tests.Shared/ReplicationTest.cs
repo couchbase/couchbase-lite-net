@@ -145,7 +145,7 @@ namespace Couchbase.Lite.Replicator
                     // throw new RuntimeException(msg);
                 }
 
-                if (replicator.IsRunning)
+                if (!replicator.IsRunning)
                 {
                     this.replicationFinished = true;
                     string msg = "ReplicationFinishedObserver.changed called, set replicationFinished to true";
@@ -557,7 +557,13 @@ namespace Couchbase.Lite.Replicator
 			Assert.AreEqual(replicator, activeReplicators [0]);
 
             replicator.Stop();
-			Log.D(Tag, "Called replication.Stop()");
+
+            // Wait for a second to ensure that the replicator finishes
+            // updating all status (esp Database.ActiveReplicator that will
+            // be updated when receiving a Replication.Changed event which
+            // is distached asynchronously when running tests.
+            Thread.Sleep(1000);
+
             Assert.IsFalse(replicator.IsRunning);
 			activeReplicators = new Replication[database.ActiveReplicators.Count];
 			database.ActiveReplicators.CopyTo(activeReplicators, 0);
@@ -586,7 +592,12 @@ namespace Couchbase.Lite.Replicator
         [Test]
 		public void TestRunReplicationWithError()
 		{
-            var mockHttpClientFactory = new AlwaysFailingClientFactory();
+            var mockHttpClientFactory = new MockHttpClientFactory();
+            manager.DefaultHttpClientFactory = mockHttpClientFactory;
+
+            var mockHttpHandler = (MockHttpRequestHandler)mockHttpClientFactory.HttpHandler;
+            mockHttpHandler.AddResponderFailAllRequests(HttpStatusCode.InternalServerError);
+
 			var dbUrlString = "http://fake.test-url.com:4984/fake/";
             var remote = new Uri(dbUrlString);
             var continuous = false;
@@ -594,7 +605,6 @@ namespace Couchbase.Lite.Replicator
             Assert.IsFalse(r1.Continuous);
             RunReplication(r1);
 
-			// It should have failed with a 404:
             Assert.AreEqual(ReplicationStatus.Stopped, r1.Status);
 			Assert.AreEqual(0, r1.CompletedChangesCount);
 			Assert.AreEqual(0, r1.ChangesCount);
