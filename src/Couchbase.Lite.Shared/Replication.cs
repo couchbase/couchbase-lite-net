@@ -582,8 +582,10 @@ namespace Couchbase.Lite
             lock (asyncTaskLocker)
             {
                 Log.D(Tag, this + "|" + Sharpen.Thread.CurrentThread() + ": asyncTaskStarted() called, asyncTaskCount: " + asyncTaskCount);
-                Interlocked.Increment(ref asyncTaskCount);
-                if (asyncTaskCount == 1)
+//                Interlocked.Increment(ref asyncTaskCount);
+                asyncTaskCount++;
+//                if (asyncTaskCount == 1)
+                if (asyncTaskCount == 0)
                 {
                     UpdateActive();
                 }
@@ -592,17 +594,19 @@ namespace Couchbase.Lite
         }
 
         internal void AsyncTaskFinished(Int32 numTasks)
-        {   
-            lock (asyncTaskLocker)
-            {
-                int result, initial, final;
-                do
-                {
-                    initial = asyncTaskCount;
-                    final = initial - numTasks;
-                    result = Interlocked.CompareExchange(ref asyncTaskCount, final, initial);
-                } while (initial != result);
-
+        {
+            // TODO: Check to see if retry policy isn't throwing this number off.
+//            lock (asyncTaskLocker)
+//            {
+//                int result, initial, final;
+//                do
+//                {
+//                    initial = asyncTaskCount;
+//                    final = initial - numTasks;
+//                    result = Interlocked.CompareExchange(ref asyncTaskCount, final, initial);
+//                } while (initial != result);
+                asyncTaskCount -= numTasks;
+            System.Diagnostics.Debug.Assert(asyncTaskCount >= 0);
                 if (asyncTaskCount == 0)
                 {
                     if (!continuous)
@@ -611,7 +615,7 @@ namespace Couchbase.Lite
                     }
                 }
                 Log.D(Tag, "asyncTaskFinished() updated asyncTaskCount to: " + asyncTaskCount);
-            }
+//            }
         }
 
         internal void UpdateActive()
@@ -804,7 +808,6 @@ namespace Couchbase.Lite
             PreemptivelySetAuthCredentials(message);
 
             var client = clientFactory.GetHttpClient();
-            //client.CancelPendingRequests();
             client.SendAsync(message, HttpCompletionOption.ResponseHeadersRead, CancellationTokenSource.Token)
                 .ContinueWith(response =>
                 {
@@ -820,7 +823,10 @@ namespace Couchbase.Lite
                                 Log.D(Tag, "SendAsyncRequest did not run to completion.", response.Exception);
                             }
 
-                            error = response.Exception;
+                            error = error is AggregateException
+                                ? response.Exception.Flatten()
+                                : response.Exception;
+                            
                             if (error == null && !response.Result.IsSuccessStatusCode)
                             {
                                 error = new HttpResponseException(response.Result.StatusCode); 
@@ -840,7 +846,9 @@ namespace Couchbase.Lite
                             error = e;
                             Log.E(Tag, "SendAsyncRequest has an error occurred.", e);
                         }
-                        completionHandler(fullBody, error);
+                        if (response.Status != TaskStatus.Canceled) {
+                            completionHandler(fullBody, error);
+                        }
                     }
 
                     return response.Result;
@@ -1072,13 +1080,60 @@ namespace Couchbase.Lite
         /// Its ID is based on the local database ID (the private one, to make the result unguessable)
         /// and the remote database's URL.
         /// </remarks>
+        private string remoteCheckpointDocID = null;
         internal String RemoteCheckpointDocID()
         {
-            if (LocalDatabase == null)
-                return null;
 
-            var input = LocalDatabase.PrivateUUID () + "\n" + RemoteUrl + "\n" + (!IsPull ? "1" : "0");
-            return Misc.TDHexSHA1Digest(Runtime.GetBytesForString(input));
+            if (remoteCheckpointDocID != null) {
+                return remoteCheckpointDocID;
+            } else {
+
+                // TODO: Needs to be consistent with -hasSameSettingsAs: --
+                // TODO: If a.remoteCheckpointID == b.remoteCheckpointID then [a hasSameSettingsAs: b]
+
+                if (LocalDatabase == null) {
+                    return null;
+                }
+
+                // canonicalization: make sure it produces the same checkpoint id regardless of
+                // ordering of filterparams / docids
+                IDictionary<String, Object> filterParamsCanonical = null;
+                if (FilterParams != null) {
+                    filterParamsCanonical = new SortedDictionary<String, Object>(FilterParams);
+                }
+
+                List<String> docIdsSorted = null;
+                if (DocIds != null) {
+                    docIdsSorted = new List<String>(DocIds);
+                    docIdsSorted.Sort();
+                }
+
+                // use a treemap rather than a dictionary for purposes of canonicalization
+                var spec = new SortedDictionary<String, Object>();
+                spec.Put("localUUID", LocalDatabase.PrivateUUID());
+                spec.Put("remoteURL", RemoteUrl.AbsoluteUri);
+                spec.Put("push", !IsPull);
+                spec.Put("continuous", Continuous);
+                if (Filter != null) {
+                    spec.Put("filter", Filter);
+                }
+                if (filterParamsCanonical != null) {
+                    spec.Put("filterParams", filterParamsCanonical);
+                }
+                if (docIdsSorted != null) {
+                    spec.Put("docids", docIdsSorted);
+                }
+
+                IEnumerable<byte> inputBytes = null;
+                try {
+                    inputBytes = Manager.GetObjectMapper().WriteValueAsBytes(spec);
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+                remoteCheckpointDocID = Misc.TDHexSHA1Digest(inputBytes);
+                return remoteCheckpointDocID;
+
+            }
         }
 
         internal StatusCode GetStatusFromError(Exception e)
@@ -1130,7 +1185,7 @@ namespace Couchbase.Lite
             );
         }
 
-        protected void RevisionFailed()
+        internal protected void RevisionFailed()
         {
             revisionsFailed++;
         }
@@ -1247,7 +1302,7 @@ namespace Couchbase.Lite
         /// Gets or sets the parameters to pass to the filter function.
         /// </summary>
         /// <value>The parameters to pass to the filter function.</value>
-        public IDictionary<String, String> FilterParams { get; set; }
+        public IDictionary<String, Object> FilterParams { get; set; }
 
         /// <summary>
         /// Gets or sets the list of Sync Gateway channel names to filter by for pull <see cref="Couchbase.Lite.Replication"/>.
@@ -1267,7 +1322,9 @@ namespace Couchbase.Lite
                     return new List<string>();
                 }
 
-                var p = FilterParams.ContainsKey(ChannelsQueryParam) ? FilterParams[ChannelsQueryParam] : null;
+                var p = FilterParams.ContainsKey(ChannelsQueryParam) 
+                    ? (string)FilterParams[ChannelsQueryParam] 
+                    : null;
                 if (!IsPull || Filter == null || !Filter.Equals(ByChannelFilterName) || p == null || p.IsEmpty())
                 {
                     return new List<string>();
@@ -1287,7 +1344,7 @@ namespace Couchbase.Lite
                     }
 
                     Filter = ByChannelFilterName;
-                    var filterParams = new Dictionary<string, string>();
+                    var filterParams = new Dictionary<string, object>();
                     filterParams.Put(ChannelsQueryParam, String.Join(",", value));
                     FilterParams = filterParams;
                 }
@@ -1415,29 +1472,31 @@ namespace Couchbase.Lite
             CancelPendingRetryIfReady();
             LocalDatabase.ForgetReplication(this);
                 
-            if (asyncTaskCount > 0)
+            if (IsRunning && asyncTaskCount <= 0)
             {
-                var timeout = DateTime.UtcNow + TimeSpan.FromSeconds(10);
-                var spinWait = new SpinWait();
-                const int maxSpins = 100;
-                var shouldExit = false;
-                do
-                {
-                    spinWait.Reset();
-                    while (spinWait.Count < maxSpins)
-                    {
-                        if (asyncTaskCount <= 0) {
-                            shouldExit = true;
-                            break;
-                        }
-                        spinWait.SpinOnce();
-                    }
-                } while(!shouldExit && DateTime.UtcNow < timeout);
-
-                if (asyncTaskCount > 0)
-                    throw new InvalidOperationException("Could not stop due to too many outstanding async tasks");
+                Stopped();
+//                var timeout = DateTime.UtcNow + TimeSpan.FromSeconds(5);
+                //System.Threading.Thread.Sleep(TimeSpan.FromSeconds(5));
+//                var spinWait = new SpinWait();
+//                const int maxSpins = 100;
+//                var shouldExit = false;
+//                do
+//                {
+//                    spinWait.Reset();
+//                    while (spinWait.Count < maxSpins)
+//                    {
+//                        if (asyncTaskCount <= 0) {
+//                            shouldExit = true;
+//                            break;
+//                        }
+//                        spinWait.SpinOnce();
+//                    }
+//                } while(!shouldExit && DateTime.UtcNow < timeout);
+//
+//                if (asyncTaskCount > 0)
+//                    throw new InvalidOperationException("Could not stop due to too many outstanding async tasks");
             }
-            Stopped();
+
         }
 
         /// <summary>

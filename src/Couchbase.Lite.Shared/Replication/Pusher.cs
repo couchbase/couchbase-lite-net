@@ -1,5 +1,5 @@
-//
 // Pusher.cs
+//
 //
 // Author:
 //     Zachary Gramana  <zack@xamarin.com>
@@ -189,15 +189,8 @@ namespace Couchbase.Lite.Replicator
 		{
 			if (observing)
 			{
-                try
-                {
-                    observing = false;
-                    LocalDatabase.Changed -= OnChanged;
-                }
-                finally
-                {
-                    AsyncTaskFinished(1);
-                }
+                observing = false;
+                LocalDatabase.Changed -= OnChanged;
 			}
 		}
 
