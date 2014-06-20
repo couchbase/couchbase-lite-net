@@ -363,7 +363,9 @@ namespace Couchbase.Lite.Shared
                 //Log.D(Tag, "Build Command : " + sql + " with params " + paramArgs);
                 lock(dbLock) {
                     command = db.prepare(sql);
-                    command.bind (paramArgs);
+                    if (paramArgs != null && paramArgs.Length > 0) {
+                        command.bind (paramArgs);
+                    }
                 }
             } catch (Exception e) {
                 Log.E(Tag, "Error when build a sql " + sql + " with params " + paramArgs, e);
