@@ -69,6 +69,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections;
+using System.Text;
 
 namespace Sharpen
 {
@@ -127,6 +128,14 @@ namespace Sharpen
 			if (c > Capacity && c > Count)
 				Capacity = c;
 		}
+
+        public override string ToString ()
+        {
+            var str = new StringBuilder();
+            foreach(var item in this)
+                str.AppendFormat("{0},", item);
+            return str.ToString().TrimEnd(',');
+        }
 	}
 }
 

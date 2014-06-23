@@ -1,5 +1,5 @@
-//
 // Pusher.cs
+//
 //
 // Author:
 //     Zachary Gramana  <zack@xamarin.com>
@@ -189,15 +189,8 @@ namespace Couchbase.Lite.Replicator
 		{
 			if (observing)
 			{
-                try
-                {
-                    observing = false;
-                    LocalDatabase.Changed -= OnChanged;
-                }
-                finally
-                {
-                    AsyncTaskFinished(1);
-                }
+                observing = false;
+                LocalDatabase.Changed -= OnChanged;
 			}
 		}
 
@@ -268,8 +261,9 @@ namespace Couchbase.Lite.Replicator
                             foreach (var rev in inbox) {
                                 IDictionary<string, object> properties = null;
                                 var resultDocData = (JObject)results.Get (rev.GetDocId ());
-                                var resultDoc = resultDocData.ToObject<IDictionary<String, Object>>();
-                                if (resultDoc != null) {
+                                IDictionary<string, object> resultDoc = null;
+                                if (resultDocData != null && (resultDoc = resultDocData.ToObject<IDictionary<String, Object>> ()) != null)
+                                {
                                     var revs = ((JArray)resultDoc.Get ("missing")).Values<String>().ToList();
                                     if (revs != null && revs.Contains (rev.GetRevId ())) {
                                         //remote server needs this revision

@@ -223,7 +223,7 @@ namespace Couchbase.Lite.Shared
                 try {
                     Log.V(Tag, "RawQuery sql: {0}".Fmt(sql));
                     lock (dbLock) {
-                        cursor = new Cursor(command);
+                    cursor = new Cursor(command, dbLock);
                     }
                 } catch (Exception e) {
                     if (command != null) {
@@ -363,7 +363,9 @@ namespace Couchbase.Lite.Shared
                 //Log.D(Tag, "Build Command : " + sql + " with params " + paramArgs);
                 lock(dbLock) {
                     command = db.prepare(sql);
-                    command.bind (paramArgs);
+                    if (paramArgs != null && paramArgs.Length > 0) {
+                        command.bind (paramArgs);
+                    }
                 }
             } catch (Exception e) {
                 Log.E(Tag, "Error when build a sql " + sql + " with params " + paramArgs, e);

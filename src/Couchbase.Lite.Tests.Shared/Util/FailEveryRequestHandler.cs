@@ -63,7 +63,7 @@ namespace Couchbase.Lite.Replicator
     {
         protected override Task<HttpResponseMessage> SendAsync (HttpRequestMessage request, System.Threading.CancellationToken cancellationToken)
         {
-            return Task.Factory.StartNew<HttpResponseMessage>(() => new HttpResponseMessage (HttpStatusCode.InternalServerError));
+            return Task.FromResult(new HttpResponseMessage (HttpStatusCode.InternalServerError));
         }
     }
 }

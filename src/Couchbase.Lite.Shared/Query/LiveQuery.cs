@@ -78,9 +78,9 @@ namespace Couchbase.Lite
         Task UpdateQueryTask { get; set; }
         CancellationTokenSource UpdateQueryTokenSource { get; set; }
 
-        // TODO: Should this be privated
         private Task ReRunUpdateQueryTask;
         private CancellationTokenSource ReRunUpdateQueryTokenSource;
+        private readonly object updateLock = new object();
 
         private void OnDatabaseChanged (object sender, Database.DatabaseChangeEventArgs e)
         {
@@ -118,26 +118,24 @@ namespace Couchbase.Lite
             return rows == null ? null : new QueryEnumerator (rows);
         }
 
-        private void RunUpdateAfterQueryFinishes() {
+        private void RunUpdateAfterQueryFinishes(Task updateQueryTask, CancellationTokenSource updateQueryTaskTokenSource) {
             if (!runningState) 
             {
                 Log.D(Tag, this + ": ReRunUpdateAfterQueryFinishes() fired, but running state == false. Ignoring.");
                 return; // NOTE: Assuming that we don't want to lose rows we already retrieved.
             }
 
-            if (UpdateQueryTask != null) {
-                try
+            try
+            {
+                updateQueryTask.Wait(DefaultQueryTimeout, updateQueryTaskTokenSource.Token);
+                if (runningState && !updateQueryTaskTokenSource.IsCancellationRequested)
                 {
-                    UpdateQueryTask.Wait(DefaultQueryTimeout, UpdateQueryTokenSource.Token);
-                    if (!UpdateQueryTokenSource.IsCancellationRequested)
-                    {
-                        Update();
-                    }
+                    Update();
                 }
-                catch (Exception e)
-                {
-                    Log.E(Tag, "Got an exception waiting for Update Query Task to finish", e);
-                }
+            }
+            catch (Exception e)
+            {
+                Log.E(Tag, "Got an exception waiting for Update Query Task to finish", e);
             }
         }
 
@@ -146,44 +144,52 @@ namespace Couchbase.Lite
         /// </summary>
         private void Update()
         {
-            Log.D(Tag, this + ": update() called.");
-
-            if (View == null)
+            lock(updateLock)
             {
-                throw new CouchbaseLiteException("Cannot start LiveQuery when view is null");
-            }
+                Log.D(Tag, this + ": update() called.");
 
-            if (!runningState)
-            {
-                Log.D(Tag, this + ": update() called, but running state == false.  Ignoring.");
-                return;
-            }
-
-            if (UpdateQueryTask != null &&
-                UpdateQueryTask.Status != TaskStatus.Canceled && 
-                UpdateQueryTask.Status != TaskStatus.RanToCompletion)
-            {
-                Log.D(Tag, this + ": already a query in flight, scheduling call to update() once it's done");
-                if (ReRunUpdateQueryTask != null &&
-                    ReRunUpdateQueryTask.Status != TaskStatus.Canceled && 
-                    ReRunUpdateQueryTask.Status != TaskStatus.RanToCompletion)
+                if (View == null)
                 {
-                    ReRunUpdateQueryTokenSource.Cancel();
-                    Log.D(Tag, this + ": cancelled rerun update query token source.");
+                    throw new CouchbaseLiteException("Cannot start LiveQuery when view is null");
                 }
 
-                ReRunUpdateQueryTokenSource = new CancellationTokenSource();
-                Database.Manager.RunAsync(() => { RunUpdateAfterQueryFinishes(); }, ReRunUpdateQueryTokenSource.Token);
+                if (!runningState)
+                {
+                    Log.D(Tag, this + ": update() called, but running state == false.  Ignoring.");
+                    return;
+                }
 
-                Log.D(Tag, this + ": RunUpdateAfterQueryFinishes() is fired.");
+                if (UpdateQueryTask != null &&
+                    UpdateQueryTask.Status != TaskStatus.Canceled && 
+                    UpdateQueryTask.Status != TaskStatus.RanToCompletion)
+                {
+                    Log.D(Tag, this + ": already a query in flight, scheduling call to update() once it's done");
+                    if (ReRunUpdateQueryTask != null &&
+                        ReRunUpdateQueryTask.Status != TaskStatus.Canceled && 
+                        ReRunUpdateQueryTask.Status != TaskStatus.RanToCompletion)
+                    {
+                        ReRunUpdateQueryTokenSource.Cancel();
+                        Log.D(Tag, this + ": cancelled rerun update query token source.");
+                    }
 
-                return;
-            }
+                    var updateQueryTaskToWait = UpdateQueryTask;
+                    var updateQueryTaskToWaitTokenSource = UpdateQueryTokenSource;
 
-            UpdateQueryTokenSource = new CancellationTokenSource();
+                    ReRunUpdateQueryTokenSource = new CancellationTokenSource();
+                    Database.Manager.RunAsync(() => 
+                    { 
+                        RunUpdateAfterQueryFinishes(updateQueryTaskToWait, updateQueryTaskToWaitTokenSource); 
+                    }, ReRunUpdateQueryTokenSource.Token);
 
-            UpdateQueryTask = RunAsync(base.Run, UpdateQueryTokenSource.Token)
-                .ContinueWith(runTask =>
+                    Log.D(Tag, this + ": RunUpdateAfterQueryFinishes() is fired.");
+
+                    return;
+                }
+
+                UpdateQueryTokenSource = new CancellationTokenSource();
+
+                UpdateQueryTask = RunAsync(base.Run, UpdateQueryTokenSource.Token)
+                    .ContinueWith(runTask =>
                     {
                         if (runTask.Status != TaskStatus.RanToCompletion) {
                             Log.W(String.Format("Query Updated task did not run to completion ({0})", runTask.Status), runTask.Exception);
@@ -200,6 +206,7 @@ namespace Couchbase.Lite
                         var args = new QueryChangeEventArgs (this, rows, LastError);
                         evt (this, args);
                     }, Database.Manager.CapturedContext.Scheduler);
+            }
         }
 
     #endregion
