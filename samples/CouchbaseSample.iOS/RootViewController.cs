@@ -159,7 +159,7 @@ namespace CouchbaseSample
                     doc.TryGetValue (CreationDatePropertyName, out date);
 
                     object checkedOff;
-                    doc.TryGetValue ((NSString)"check", out checkedOff);
+                    doc.TryGetValue ("check", out checkedOff);
 
                     if (date != null) {
                        emit (new[] { checkedOff, date }, null);
