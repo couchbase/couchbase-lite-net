@@ -67,18 +67,14 @@ namespace Couchbase.Lite.iOS
             if (evt != null)
             {
                 var args = new ReloadEventArgs(Query);
-//                UIApplication.SharedApplication.InvokeOnMainThread(new NSAction(()=> evt(this, args)));
                 evt(this, args);
             }
 
             var reloadEvt = Reload;
-            if (evt != null) {
+            if (reloadEvt != null) {
                 var args = new ReloadEventArgs(Query, oldRows);
                 reloadEvt(this, args);
-//                UIApplication.SharedApplication.InvokeOnMainThread(new NSAction(()=> reloadEvt(this, args)));
             } else {
-//                UIApplication.SharedApplication.InvokeOnMainThread(
-//                    new NSAction (TableView.ReloadData));
                 TableView.ReloadData();
             }
         }
