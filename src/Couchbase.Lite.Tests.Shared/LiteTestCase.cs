@@ -81,6 +81,7 @@ namespace Couchbase.Lite
             Log.V(Tag, "SetUp");
             Trace.Listeners.Clear();
             Trace.Listeners.Add(new DefaultTraceListener());
+            Manager.DefaultOptions.CallbackScheduler = new SingleThreadTaskScheduler();
             LoadCustomProperties();
 			StartCBLite();
             StartDatabase();
@@ -118,7 +119,7 @@ namespace Couchbase.Lite
             path.Create();
 
             var testPath = path.CreateSubdirectory("tests");
-            manager = new Manager(testPath, Manager.DefaultOptions, false);
+            manager = new Manager(testPath, Manager.DefaultOptions);
 		}
 
 		protected internal virtual void StopCBLite()

@@ -186,9 +186,9 @@ namespace Couchbase.Lite
             Batcher = new Batcher<RevisionInternal>(workExecutor, InboxCapacity, ProcessorDelay, 
                 inbox => 
                 {
-                    Log.V (Database.Tag, "*** " + this + ": BEGIN processInbox (" + inbox.Count + " sequences)");
+                    Log.V (Tag, "*** " + this + ": BEGIN processInbox (" + inbox.Count + " sequences)");
                     ProcessInbox (new RevisionList (inbox));
-                    Log.V (Database.Tag, "*** " + this.ToString () + ": END processInbox (lastSequence=" + LastSequence);
+                    Log.V (Tag, "*** " + this.ToString () + ": END processInbox (lastSequence=" + LastSequence);
                     UpdateActive();
                 }, CancellationTokenSource);
                 
@@ -585,7 +585,7 @@ namespace Couchbase.Lite
                 {
                     UpdateActive();
                 }
-                Log.D(Database.Tag, "asyncTaskStarted() updated asyncTaskCount to " + asyncTaskCount);
+                Log.D(Tag, "asyncTaskStarted() updated asyncTaskCount to " + asyncTaskCount);
             }
         }
 
@@ -668,7 +668,7 @@ namespace Couchbase.Lite
             Log.V(Tag, this + " set batcher to null");
             Batcher = null;
             ClearDbRef();
-            Log.V(Database.Tag, ToString() + " STOPPED");
+            Log.V(Tag, ToString() + " STOPPED");
         }
 
         internal void SaveLastSequence()
@@ -880,7 +880,7 @@ namespace Couchbase.Lite
 //                }
 //                else
 //                {
-//                    Log.W(Database.Tag, "RemoteRequest Unable to parse user info, not setting credentials"
+//                    Log.W(Tag, "RemoteRequest Unable to parse user info, not setting credentials"
 //                    );
 //                }
 //            }
@@ -920,10 +920,10 @@ namespace Couchbase.Lite
                         var status = response.StatusCode;
                         if ((Int32)status.GetStatusCode() >= 300)
                         {
-                            Log.E(Database.Tag, "Got error " + Sharpen.Extensions.ToString(status.GetStatusCode
+                            Log.E(Tag, "Got error " + Sharpen.Extensions.ToString(status.GetStatusCode
                                     ()));
-                            Log.E(Database.Tag, "Request was for: " + message);
-                            Log.E(Database.Tag, "Status reason: " + response.ReasonPhrase);
+                            Log.E(Tag, "Request was for: " + message);
+                            Log.E(Tag, "Status reason: " + response.ReasonPhrase);
                             error = new WebException(response.ReasonPhrase);
                         }
                         else
@@ -1010,19 +1010,19 @@ namespace Couchbase.Lite
                     }
                     catch (ProtocolViolationException e)
                     {
-                        Log.E(Database.Tag, "client protocol exception", e);
+                        Log.E(Tag, "client protocol exception", e);
                         error = e;
                     }
                     catch (IOException e)
                     {
-                        Log.E(Database.Tag, "io exception", e);
+                        Log.E(Tag, "io exception", e);
                         error = e;
                     }
                 }), WorkExecutor.Scheduler);
             }
             catch (UriFormatException e)
             {
-                Log.E(Database.Tag, "Malformed URL for async request", e);
+                Log.E(Tag, "Malformed URL for async request", e);
             }
         }
 
@@ -1167,11 +1167,11 @@ namespace Couchbase.Lite
 
                     if (e != null && GetStatusFromError(e) != StatusCode.NotFound)
                     {
-                        Log.E(Database.Tag, this + ": Error refreshing remote checkpoint", e);
+                        Log.E(Tag, this + ": Error refreshing remote checkpoint", e);
                     }
                     else
                     {
-                        Log.D(Database.Tag, this + ": Refreshed remote checkpoint: " + result);
+                        Log.D(Tag, this + ": Refreshed remote checkpoint: " + result);
                         remoteCheckpoint = (IDictionary<string, object>)result;
                         lastSequenceChanged = true;
                         SaveLastSequence();
@@ -1449,7 +1449,7 @@ namespace Couchbase.Lite
             LocalDatabase.AddReplication(this);
             LocalDatabase.AddActiveReplication(this);
             sessionID = string.Format("repl{0:000}", ++lastSessionID);
-            Log.V(Database.Tag, ToString() + " STARTING ...");
+            Log.V(Tag, ToString() + " STARTING ...");
             IsRunning = true;
             LastSequence = null;
             CheckSession();
@@ -1465,7 +1465,7 @@ namespace Couchbase.Lite
                 return;
             }
 
-            Log.V(Database.Tag, ToString() + " STOPPING...");
+            Log.V(Tag, ToString() + " STOPPING...");
             Batcher.Clear();
             // no sense processing any pending changes
             continuous = false;

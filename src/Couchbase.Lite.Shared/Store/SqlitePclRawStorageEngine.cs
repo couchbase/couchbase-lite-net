@@ -77,6 +77,13 @@ namespace Couchbase.Lite.Shared
                 {
                     throw new CouchbaseLiteException(errMessage, StatusCode.DbError);
                 }
+                var i = 0;
+                var val = raw.sqlite3_compileoption_get(i);
+                while (val != null)
+                {
+                    Log.V(Tag, "Sqlite Config: {0}".Fmt(val));
+                    val = raw.sqlite3_compileoption_get(++i);
+                }
 
                 raw.sqlite3_create_collation(db, "JSON", null, CouchbaseSqliteJsonUnicodeCollationFunction.Compare);
                 raw.sqlite3_create_collation(db, "JSON_ASCII", null, CouchbaseSqliteJsonAsciiCollationFunction.Compare);
@@ -203,7 +210,8 @@ namespace Couchbase.Lite.Shared
                     if (result == SQLiteResult.ERROR)
                         throw new CouchbaseLiteException(raw.sqlite3_errmsg(db), StatusCode.DbError);
                 } catch (Exception e) {
-                    Log.E(Tag, "Error executing sql'{0}'".Fmt(sql), e);
+                    Log.E(Tag, "Error {0} executing sql '{1}'".Fmt(db.extended_errcode(), sql), e);
+                    throw;
                 } finally {
                     command.Dispose();
                 }
@@ -283,6 +291,7 @@ namespace Couchbase.Lite.Shared
 
                 } catch (Exception ex) {
                     Log.E(Tag, "Error inserting into table " + table, ex);
+                    throw;
                 } finally {
                     lock (dbLock) {
                         command.Dispose();
@@ -313,6 +322,7 @@ namespace Couchbase.Lite.Shared
                     }
                 } catch (Exception ex) {
                     Log.E(Tag, "Error updating table " + table, ex);
+                    throw;
                 } finally {
                     command.Dispose();
                 }
@@ -339,7 +349,8 @@ namespace Couchbase.Lite.Shared
                     }
 
                 } catch (Exception ex) {
-                    Log.E(Tag, "Error deleting from table " + table, ex);
+                    Log.E(Tag, "Error {0} when deleting from table {1}".Fmt(db.extended_errcode(), table), ex);
+                    throw;
                 } finally {
                     command.Dispose();
                 }
