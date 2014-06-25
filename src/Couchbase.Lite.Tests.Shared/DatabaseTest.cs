@@ -45,6 +45,8 @@ using NUnit.Framework;
 using System.Collections.Generic;
 using System.Linq;
 using Sharpen;
+using System.Threading.Tasks;
+using System.Threading;
 
 namespace Couchbase.Lite
 {
@@ -151,10 +153,10 @@ namespace Couchbase.Lite
         /// for each insert (no batching)
         /// </summary>
         [Test]
-        public void TestGetActiveReplications()
+        public async void TestGetActiveReplications()
         {
             var remote = GetReplicationURL();
-            var replication = (Replication)database.CreatePullReplication(remote);
+            var replication = database.CreatePullReplication(remote);
 
             Assert.AreEqual(0, database.AllReplications.ToList().Count);
             Assert.AreEqual(0, database.ActiveReplicators.Count);
@@ -165,15 +167,18 @@ namespace Couchbase.Lite
             Assert.AreEqual(1, database.ActiveReplicators.Count);
 
             // TODO: Port full ReplicationFinishedObserver
-            var doneSignal = new CountDownLatch(1);
-            replication.Changed += (sender, e) => {
-                if (!replication.IsRunning) {
-                    doneSignal.CountDown();
-                }
-            };
-
-            var success = doneSignal.Await(TimeSpan.FromSeconds(60));
-            Assert.IsTrue(success);
+            var doneSignal = new CountdownEvent(1);
+            var replicateTask = new TaskFactory().StartNew(()=>
+                {
+                    replication.Changed += (sender, e) => {
+                        if (!replication.IsRunning) {
+                            doneSignal.Signal();
+                        }
+                    };
+                    return doneSignal.Wait(TimeSpan.FromSeconds(30));
+                });
+            var failed = await replicateTask;
+            Assert.True(failed);
             Assert.AreEqual(1, database.AllReplications.ToList().Count);
             Assert.AreEqual(0, database.ActiveReplicators.Count);
         }

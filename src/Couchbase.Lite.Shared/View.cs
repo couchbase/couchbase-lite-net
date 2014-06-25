@@ -205,7 +205,7 @@ namespace Couchbase.Lite {
                             args);
                 }
                 var deleted = 0;
-                cursor = Database.StorageEngine.RawQuery("SELECT changes()", null); // TODO: Convert to ADO params.
+                cursor = Database.StorageEngine.RawQuery("SELECT changes()");
                 cursor.MoveToNext();
                 deleted = cursor.GetInt(0);
                 cursor.Close();

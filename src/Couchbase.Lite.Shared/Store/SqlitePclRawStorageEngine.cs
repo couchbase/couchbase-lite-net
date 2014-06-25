@@ -46,7 +46,6 @@ using SQLitePCL;
 using Couchbase.Lite.Util;
 using System.Data;
 using System.Diagnostics;
-using System.Runtime.InteropServices;
 using System.Text;
 using System.Collections.Generic;
 using System.Linq;
@@ -57,6 +56,10 @@ namespace Couchbase.Lite.Shared
 {
     internal class SqlitePCLRawStorageEngine : ISQLiteStorageEngine, IDisposable
     {
+        private const int SQLITE_OPEN_FILEPROTECTION_COMPLETEUNLESSOPEN = 0x00200000;
+        private const int SQLITE_OPEN_READWRITE = 0x00000002;
+        private const int SQLITE_OPEN_CREATE = 0x00000004;
+
         private const String Tag = "SqlitePCLRawStorageEngine";
         private sqlite3 db;
         private Boolean shouldCommit;
@@ -70,13 +73,15 @@ namespace Couchbase.Lite.Shared
             var result = true;
             try {
                 shouldCommit = false;
-                const int flags = 0x00200000; // #define SQLITE_OPEN_FILEPROTECTION_COMPLETEUNLESSOPEN 0x00200000
-                //var status = raw.sqlite3_open_v2(path, out db, flags, null);
-                var status = raw.sqlite3_open(path, out db);
+                const int flags = SQLITE_OPEN_FILEPROTECTION_COMPLETEUNLESSOPEN | SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE; // #define SQLITE_OPEN_FILEPROTECTION_COMPLETEUNLESSOPEN 0x00200000
+
+                var status = raw.sqlite3_open_v2(path, out db, flags, null);
                 if (status != raw.SQLITE_OK)
                 {
                     throw new CouchbaseLiteException(errMessage, StatusCode.DbError);
                 }
+#if __ANDROID__
+#else
                 var i = 0;
                 var val = raw.sqlite3_compileoption_get(i);
                 while (val != null)
@@ -84,6 +89,7 @@ namespace Couchbase.Lite.Shared
                     Log.V(Tag, "Sqlite Config: {0}".Fmt(val));
                     val = raw.sqlite3_compileoption_get(++i);
                 }
+                #endif
 
                 raw.sqlite3_create_collation(db, "JSON", null, CouchbaseSqliteJsonUnicodeCollationFunction.Compare);
                 raw.sqlite3_create_collation(db, "JSON_ASCII", null, CouchbaseSqliteJsonAsciiCollationFunction.Compare);
@@ -112,6 +118,8 @@ namespace Couchbase.Lite.Shared
                 }
             } catch (Exception e) {
                 Log.E(Tag, "Error getting user version", e);
+            } finally {
+                statement.Dispose();
             }
 
             return result;
@@ -226,23 +234,23 @@ namespace Couchbase.Lite.Shared
         public Cursor RawQuery (String sql, CommandBehavior behavior, params Object[] paramArgs)
         {
             Cursor cursor = null;
-                var command = BuildCommand (sql, paramArgs);
+            var command = BuildCommand (sql, paramArgs);
 
-                try {
-                    Log.V(Tag, "RawQuery sql: {0}".Fmt(sql));
-                    lock (dbLock) {
-                    cursor = new Cursor(command, dbLock);
+            try {
+                Log.V(Tag, "RawQuery sql: {0}".Fmt(sql));
+                lock (dbLock) {
+                cursor = new Cursor(command, dbLock);
+                }
+            } catch (Exception e) {
+                if (command != null) {
+                    lock (dbLock){
+                        command.Dispose();
                     }
-                } catch (Exception e) {
-                    if (command != null) {
-                        lock (dbLock){
-                            command.Dispose();
-                        }
-                    }
+                }
 
-                    Log.E(Tag, "Error executing raw query '{0}'".Fmt(sql), e);
-                    throw;
-                } 
+                Log.E(Tag, "Error executing raw query '{0}'".Fmt(sql), e);
+                throw;
+            } 
 
             return cursor;
         }
@@ -261,42 +269,42 @@ namespace Couchbase.Lite.Shared
             }
 
             var lastInsertedId = -1L;
-                var command = GetInsertCommand(table, initialValues, conflictResolutionStrategy);
+            var command = GetInsertCommand(table, initialValues, conflictResolutionStrategy);
 
-                try {
-                    int result;
+            try {
+                int result;
+                lock (dbLock) {
+                    result = command.step ();
+                }
+                if (result == SQLiteResult.ERROR)
+                    throw new CouchbaseLiteException(raw.sqlite3_errmsg(db), StatusCode.DbError);
+
+                int changes;
+                lock (dbLock) {
+                    changes = db.changes ();
+                }
+                if (changes > 0) 
+                {
                     lock (dbLock) {
-                        result = command.step ();
-                    }
-                    if (result == SQLiteResult.ERROR)
-                        throw new CouchbaseLiteException(raw.sqlite3_errmsg(db), StatusCode.DbError);
-
-                    int changes;
-                    lock (dbLock) {
-                        changes = db.changes ();
-                    }
-                    if (changes > 0) 
-                    {
-                        lock (dbLock) {
-                            lastInsertedId = db.last_insert_rowid();
-                        }
-                    }
-
-                    if (lastInsertedId == -1L) {
-                        Log.E(Tag, "Error inserting " + initialValues + " using " + command);
-                        throw new CouchbaseLiteException("Error inserting " + initialValues + " using " + command, StatusCode.DbError);
-                    } else {
-                        Log.V(Tag, "Inserting row " + lastInsertedId + " from " + initialValues + " using " + command);
-                    }
-
-                } catch (Exception ex) {
-                    Log.E(Tag, "Error inserting into table " + table, ex);
-                    throw;
-                } finally {
-                    lock (dbLock) {
-                        command.Dispose();
+                        lastInsertedId = db.last_insert_rowid();
                     }
                 }
+
+                if (lastInsertedId == -1L) {
+                    Log.E(Tag, "Error inserting " + initialValues + " using " + command);
+                    throw new CouchbaseLiteException("Error inserting " + initialValues + " using " + command, StatusCode.DbError);
+                } else {
+                    Log.V(Tag, "Inserting row " + lastInsertedId + " from " + initialValues + " using " + command);
+                }
+
+            } catch (Exception ex) {
+                Log.E(Tag, "Error inserting into table " + table, ex);
+                throw;
+            } finally {
+                lock (dbLock) {
+                    command.Dispose();
+                }
+            }
 
             return lastInsertedId;
         }
@@ -373,10 +381,12 @@ namespace Couchbase.Lite.Shared
             try {
                 //Log.D(Tag, "Build Command : " + sql + " with params " + paramArgs);
                 lock(dbLock) {
-                    command = db.prepare(sql);
-                    if (paramArgs != null && paramArgs.Length > 0) {
-                        command.bind (paramArgs);
-                    }
+                    command = paramArgs.Length > 0 
+                        ? db.prepare(sql, paramArgs) 
+                        : db.prepare(sql);
+//                    if (paramArgs != null && paramArgs.Length > 0) {
+//                        command.bind (paramArgs);
+//                    }
                 }
             } catch (Exception e) {
                 Log.E(Tag, "Error when build a sql " + sql + " with params " + paramArgs, e);
@@ -402,9 +412,9 @@ namespace Couchbase.Lite.Shared
 
             // Append our content column names and create our SQL parameters.
             var valueSet = values.ValueSet();
-            var valueSetLength = valueSet.Count();
-
-            var whereArgsLength = (whereArgs != null ? whereArgs.Length : 0);
+//            var valueSetLength = valueSet.Count();
+//
+//            var whereArgsLength = (whereArgs != null ? whereArgs.Length : 0);
 
             var paramList = new List<object>();
 
