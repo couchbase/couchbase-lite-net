@@ -41,12 +41,7 @@
 //
 
 using System;
-using System.Data;
-using System.ComponentModel.Design;
-using System.Collections.Generic;
 
-using System.Linq;
-using System.Text;
 using SQLitePCL;
 using Couchbase.Lite.Store;
 using SQLitePCL.Ugly;
@@ -58,6 +53,7 @@ namespace Couchbase.Lite
         const Int32 DefaultChunkSize = 8192;
 
         private sqlite3_stmt statement;
+        private object dbLock;
 
         private Int32 currentStep = -1;
 
@@ -69,18 +65,19 @@ namespace Couchbase.Lite
 
         Int64 currentRow;
 
-        public Cursor (sqlite3_stmt stmt)
+        internal Cursor (sqlite3_stmt stmt, object dbLock)
         {
+            this.dbLock = dbLock;
             this.statement = stmt;
             currentRow = -1;
-            currentStep = statement.step();
+            lock (dbLock) { currentStep = statement.step(); }
         }
 
         public bool MoveToNext ()
         {
             if (currentRow >= 0)
             {
-                currentStep = statement.step();
+                lock (dbLock) { currentStep = statement.step(); }
             }
 
             if (HasRows) currentRow++;
@@ -89,23 +86,23 @@ namespace Couchbase.Lite
 
         public int GetInt (int columnIndex)
         {
-            return statement.column_int(columnIndex);
+            lock (dbLock) { return statement.column_int(columnIndex); }
         }
 
         public long GetLong (int columnIndex)
         {
-            return statement.column_int64(columnIndex);
+            lock (dbLock) { return statement.column_int64(columnIndex); }
         }
 
         public string GetString (int columnIndex)
         {
-            return statement.column_text(columnIndex);
+            lock (dbLock) { return statement.column_text(columnIndex); }
         }
 
         // TODO: Refactor this to return IEnumerable<byte>.
         public byte[] GetBlob (int columnIndex)
         {
-            return statement.column_blob(columnIndex);
+            lock (dbLock) { return statement.column_blob(columnIndex); }
         }
 
 //        public byte[] GetBlob (int columnIndex, int chunkSize)
@@ -134,7 +131,7 @@ namespace Couchbase.Lite
         {
             if (statement == null) return;
 
-            try { statement.Dispose(); } catch (Exception e){ };
+            statement.Dispose();
 
             statement = null;
         }
@@ -148,6 +145,11 @@ namespace Couchbase.Lite
 
         public void Dispose ()
         {
+            if (this.dbLock != null)
+            {
+                this.dbLock = null;
+            }
+
             if (statement != null)
             {
                 Close();

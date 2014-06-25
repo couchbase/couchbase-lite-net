@@ -151,6 +151,7 @@ namespace Couchbase.Lite.Replicator
                     string msg = "ReplicationFinishedObserver.changed called, set replicationFinished to true";
                     Log.D(Tag, msg);
                     this.doneSignal.CountDown();
+                    System.Threading.Thread.Sleep(5000);
                 }
                 else
                 {
@@ -178,9 +179,9 @@ namespace Couchbase.Lite.Replicator
 
             try
             {
-                var success = replicationDoneSignalPolling.Await(TimeSpan.FromSeconds(120));
+                var success = replicationDoneSignal.Await(TimeSpan.FromSeconds(10));
                 Assert.IsTrue(success);
-                success = replicationDoneSignalPolling.Await(TimeSpan.FromSeconds(120));
+                success = replicationDoneSignalPolling.Await(TimeSpan.FromSeconds(10));
                 Assert.IsTrue(success);
 
                 Log.D(Tag, "replicator finished");
@@ -556,7 +557,13 @@ namespace Couchbase.Lite.Replicator
 			Assert.AreEqual(replicator, activeReplicators [0]);
 
             replicator.Stop();
-			Log.D(Tag, "Called replication.Stop()");
+
+            // Wait for a second to ensure that the replicator finishes
+            // updating all status (esp Database.ActiveReplicator that will
+            // be updated when receiving a Replication.Changed event which
+            // is distached asynchronously when running tests.
+            Thread.Sleep(1000);
+
             Assert.IsFalse(replicator.IsRunning);
 			activeReplicators = new Replication[database.ActiveReplicators.Count];
 			database.ActiveReplicators.CopyTo(activeReplicators, 0);
@@ -585,7 +592,12 @@ namespace Couchbase.Lite.Replicator
         [Test]
 		public void TestRunReplicationWithError()
 		{
-            var mockHttpClientFactory = new AlwaysFailingClientFactory();
+            var mockHttpClientFactory = new MockHttpClientFactory();
+            manager.DefaultHttpClientFactory = mockHttpClientFactory;
+
+            var mockHttpHandler = (MockHttpRequestHandler)mockHttpClientFactory.HttpHandler;
+            mockHttpHandler.AddResponderFailAllRequests(HttpStatusCode.InternalServerError);
+
 			var dbUrlString = "http://fake.test-url.com:4984/fake/";
             var remote = new Uri(dbUrlString);
             var continuous = false;
@@ -593,8 +605,7 @@ namespace Couchbase.Lite.Replicator
             Assert.IsFalse(r1.Continuous);
             RunReplication(r1);
 
-			// It should have failed with a 404:
-            Assert.AreEqual(ReplicationStatus.Stopped, r1.Status);			
+            Assert.AreEqual(ReplicationStatus.Stopped, r1.Status);
 			Assert.AreEqual(0, r1.CompletedChangesCount);
 			Assert.AreEqual(0, r1.ChangesCount);
 			Assert.IsNotNull(r1.LastError);
@@ -680,7 +691,7 @@ namespace Couchbase.Lite.Replicator
             r1.Filter = "foo/bar";
             Assert.IsTrue(!r1.Channels.Any());
 
-            var filterParams = new Dictionary<string, string>();
+            var filterParams = new Dictionary<string, object>();
             filterParams.Put("a", "b");
             r1.FilterParams = filterParams;
             Assert.IsTrue(!r1.Channels.Any());
@@ -696,7 +707,7 @@ namespace Couchbase.Lite.Replicator
             Assert.AreEqual(channels, r1.Channels);
             Assert.AreEqual("sync_gateway/bychannel", r1.Filter);
 
-            filterParams = new Dictionary<string, string>();
+            filterParams = new Dictionary<string, object>();
             filterParams.Put("channels", "NBC,MTV");
             Assert.AreEqual(filterParams, r1.FilterParams);
                         

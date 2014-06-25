@@ -161,14 +161,14 @@ namespace Couchbase.Lite
                 int result = 0;
                 try
                 {
-                    cursor = StorageEngine.RawQuery(sql, null);
+                    cursor = StorageEngine.RawQuery(sql);
                     if (cursor.MoveToNext())
                     {
                         result = cursor.GetInt(0);
                     }
                 }
                 catch (SQLException e)
-                {
+                {   // FIXME: Should we really swallow this exception?
                     Log.E(Database.Tag, "Error getting document count", e);
                 }
                 finally
@@ -197,7 +197,7 @@ namespace Couchbase.Lite
                 long result = 0;
                 try
                 {
-                    cursor = StorageEngine.RawQuery(sql, null);
+                    cursor = StorageEngine.RawQuery(sql);
                     if (cursor.MoveToNext())
                     {
                         result = cursor.GetLong(0);
@@ -208,7 +208,7 @@ namespace Couchbase.Lite
                     }
                 }
                 catch (SQLException e)
-                {
+                {   // FIXME: Should we really swallow this exception?
                     Log.E(Database.Tag, "Error getting last sequence", e);
                 }
                 finally
@@ -250,9 +250,9 @@ namespace Couchbase.Lite
                 PruneRevsToMaxDepth(0);
                 Log.V(Database.Tag, "Deleting JSON of old revisions...");
 
-                ContentValues args = new ContentValues();
-                args.Put("json", (string)null);
-                StorageEngine.Update("revs", args, "current=0", null);
+                var args = new ContentValues();
+                args["json"] = null;
+                StorageEngine.Update("revs", args, "current=0 AND json IS NOT NULL", null);
             }
             catch (SQLException e)
             {
@@ -269,7 +269,7 @@ namespace Couchbase.Lite
 
             try
             {
-                Log.V(Database.Tag, "Vacuuming SQLite sqliteDb..." + result.ToString());
+                Log.V(Database.Tag, "Vacuuming SQLite sqliteDb..." + result);
                 StorageEngine.ExecSQL("VACUUM");
             }
             catch (SQLException e)
@@ -1239,7 +1239,7 @@ PRAGMA user_version = 3;";
             Cursor cursor = null;
             try
             {
-                cursor = StorageEngine.RawQuery("SELECT DISTINCT key FROM attachments", CommandBehavior.SequentialAccess, null);
+                cursor = StorageEngine.RawQuery("SELECT DISTINCT key FROM attachments", CommandBehavior.SequentialAccess);
                 cursor.MoveToNext();
 
                 var allKeys = new AList<BlobKey>();
@@ -1292,7 +1292,7 @@ PRAGMA user_version = 3;";
             try
             {
                 var args = new [] { url.ToString(), (push ? 1 : 0).ToString() };
-                                cursor = StorageEngine.RawQuery("SELECT last_sequence FROM replicators WHERE remote=? AND push=?", args);
+                cursor = StorageEngine.RawQuery("SELECT last_sequence FROM replicators WHERE remote=? AND push=?", args);
                 if (cursor.MoveToNext())
                 {
                     result = cursor.GetString(0);
@@ -1830,7 +1830,7 @@ PRAGMA user_version = 3;";
             IList<View> result = null;
             try
             {
-                cursor = StorageEngine.RawQuery("SELECT name FROM views", null);
+                cursor = StorageEngine.RawQuery("SELECT name FROM views");
                 result = new AList<View>();
                 if (cursor.MoveToNext())
                 {
@@ -1915,13 +1915,13 @@ PRAGMA user_version = 3;";
 
             // Now get its revID and deletion status:
             RevisionInternal result = null;
-            var args_1 = new [] { Convert.ToString(seq) };
+            var queryArgs = new [] { Convert.ToString(seq) };
             var queryString = "SELECT revid, deleted FROM revs WHERE sequence=?";
 
             Cursor cursor = null;
             try
             {
-                cursor = StorageEngine.RawQuery(queryString, args_1);
+                cursor = StorageEngine.RawQuery(queryString, queryArgs);
                 if (cursor.MoveToNext())
                 {
                     string revId = cursor.GetString(0);
@@ -1950,7 +1950,7 @@ PRAGMA user_version = 3;";
             long result = 0;
             try
             {
-                cursor = StorageEngine.RawQuery(sql, null);
+                cursor = StorageEngine.RawQuery(sql);
                 if (cursor.MoveToNext())
                 {
                     result = cursor.GetLong(0);
@@ -2033,7 +2033,7 @@ PRAGMA user_version = 3;";
             Cursor cursor = null;
             try
             {
-                cursor = StorageEngine.RawQuery("SELECT value FROM info WHERE key='privateUUID'", null);
+                cursor = StorageEngine.RawQuery("SELECT value FROM info WHERE key='privateUUID'");
                 if (cursor.MoveToNext())
                 {
                     result = cursor.GetString(0);
@@ -2059,7 +2059,7 @@ PRAGMA user_version = 3;";
             Cursor cursor = null;
             try
             {
-                cursor = StorageEngine.RawQuery("SELECT value FROM info WHERE key='publicUUID'", null);
+                cursor = StorageEngine.RawQuery("SELECT value FROM info WHERE key='publicUUID'");
                 if (cursor.MoveToNext())
                 {
                     result = cursor.GetString(0);
@@ -3242,7 +3242,7 @@ PRAGMA user_version = 3;";
                     Boolean isExternal = false;
                     foreach (var change in outgoingChanges)
                     {
-                        Document document = GetDocument(change.DocumentId);
+                        var document = GetDocument(change.DocumentId);
                         document.RevisionAdded(change);
                         if (change.SourceUrl != null)
                         {
@@ -3358,7 +3358,7 @@ PRAGMA user_version = 3;";
             {
                 StorageEngine.ExecSQL("INSERT INTO attachments (sequence, filename, key, type, length, revpos) "
                     + "SELECT ?, ?, key, type, length, revpos FROM attachments " + "WHERE sequence=? AND filename=?", args);
-                cursor = StorageEngine.RawQuery("SELECT changes()", null);
+                cursor = StorageEngine.RawQuery("SELECT changes()");
                 cursor.MoveToNext();
 
                 int rowsUpdated = cursor.GetInt(0);
@@ -3774,7 +3774,7 @@ PRAGMA user_version = 3;";
             Cursor cursor = null;
             try
             {
-                cursor = StorageEngine.RawQuery(sql, null);
+                cursor = StorageEngine.RawQuery(sql);
                 cursor.MoveToNext();
                 while (!cursor.IsAfterLast())
                 {
@@ -4043,7 +4043,7 @@ PRAGMA user_version = 3;";
             var maxGen = 0;
             try
             {
-                cursor = StorageEngine.RawQuery(sql, null);
+                cursor = StorageEngine.RawQuery(sql);
                 while (cursor.MoveToNext())
                 {
                     docNumericID = cursor.GetLong(0);

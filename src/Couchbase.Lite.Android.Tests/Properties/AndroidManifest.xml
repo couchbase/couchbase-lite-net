@@ -3,4 +3,5 @@
 	<uses-sdk android:minSdkVersion="15" />
 	<application android:label="Couchbase.Lite.Android.Tests">
 	</application>
+	<uses-permission android:name="android.permission.INTERNET" />
 </manifest>

@@ -41,6 +41,7 @@
 //
 
 using System;
+using System.Threading.Tasks;
 
 namespace Couchbase.Lite
 {
@@ -60,7 +61,18 @@ namespace Couchbase.Lite
             Default = new ManagerOptions();
         }
 
+        public ManagerOptions()
+        {
+            CallbackScheduler = TaskScheduler.FromCurrentSynchronizationContext();
+        }
+
         /// <summary>Gets or sets, whether changes to the database are disallowed.</summary>
         public Boolean ReadOnly { get; set; }
+
+        /// <summary>
+        /// Gets or sets the callback synchronization context.
+        /// </summary>
+        /// <value>The callback context.</value>
+        public TaskScheduler CallbackScheduler { get; set; }
 	}
 }
