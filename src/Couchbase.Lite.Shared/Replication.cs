@@ -363,11 +363,11 @@ namespace Couchbase.Lite
             {
                 client.CancelPendingRequests();
             }
-
-            while(requests.Count > 0)
-            {
-                System.Threading.Thread.Sleep(100);
-            }
+//
+//            while(requests.Count > 0)
+//            {
+//                System.Threading.Thread.Sleep(100);
+//            }
         }
 
         internal void UpdateProgress()
