@@ -1065,7 +1065,7 @@ namespace Couchbase.Lite
         }
 
         [Test]
-        public void TestViewUpdateWithLiveQuery()
+        public void TestViewUpdateIndexWithLiveQuery()
         {
             var view = database.GetView("TestViewUpdateWithLiveQuery");
             MapDelegate mapBlock = (document, emitter) => emitter(document["name"], null);
@@ -1093,7 +1093,7 @@ namespace Couchbase.Lite
             }
 
             // Sleep to ensure that the LiveQuery is done all of its async operations.
-            Thread.Sleep(30000);
+            Thread.Sleep(20000);
 
             liveQuery.Stop();
 
