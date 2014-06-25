@@ -1063,5 +1063,41 @@ namespace Couchbase.Lite
                 Assert.AreEqual(expected[i][4], doc["_id"]);
             }
         }
+
+        [Test]
+        public void TestViewUpdateWithLiveQuery()
+        {
+            var view = database.GetView("TestViewUpdateWithLiveQuery");
+            MapDelegate mapBlock = (document, emitter) => emitter(document["name"], null);
+            view.SetMap(mapBlock, "1.0");
+
+            var rowCountAlwaysOne = true;
+            var liveQuery = view.CreateQuery().ToLiveQuery();
+            liveQuery.Changed += (sender, e) => 
+            {
+                var count = e.Rows.Count;
+                if (count > 0) 
+                {
+                    rowCountAlwaysOne = rowCountAlwaysOne && (count == 1);
+                }
+            };
+
+            liveQuery.Start();
+
+            var properties = new Dictionary<string, object>();
+            properties.Put("name", "test");
+            var doc = database.CreateDocument();
+            var rev = doc.PutProperties(properties);
+            for (var i = 0; i < 50; i++) {
+                rev = rev.CreateRevision(properties);
+            }
+
+            // Sleep to ensure that the LiveQuery is done all of its async operations.
+            Thread.Sleep(30000);
+
+            liveQuery.Stop();
+
+            Assert.IsTrue(rowCountAlwaysOne);
+        }
     }
 }
