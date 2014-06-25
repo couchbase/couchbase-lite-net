@@ -602,6 +602,11 @@ namespace Couchbase.Lite
 //                    result = Interlocked.CompareExchange(ref asyncTaskCount, final, initial);
 //                } while (initial != result);
 //            }
+
+            var cancel = CancellationTokenSource.IsCancellationRequested;
+            if (cancel)
+                return;
+
             lock (asyncTaskLocker)
             {
                 asyncTaskCount -= numTasks;

@@ -53,7 +53,7 @@ namespace Couchbase.Lite
         const Int32 DefaultChunkSize = 8192;
 
         private sqlite3_stmt statement;
-        private readonly object dbLock;
+        private object dbLock;
 
         private Int32 currentStep = -1;
 
@@ -65,7 +65,7 @@ namespace Couchbase.Lite
 
         Int64 currentRow;
 
-        public Cursor (sqlite3_stmt stmt, object dbLock)
+        internal Cursor (sqlite3_stmt stmt, object dbLock)
         {
             this.dbLock = dbLock;
             this.statement = stmt;
@@ -145,6 +145,11 @@ namespace Couchbase.Lite
 
         public void Dispose ()
         {
+            if (this.dbLock != null)
+            {
+                this.dbLock = null;
+            }
+
             if (statement != null)
             {
                 Close();

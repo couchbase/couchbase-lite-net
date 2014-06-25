@@ -13,6 +13,7 @@ TestResults
 *.suo
 *.user
 *.sln.docstates
+local-test.properties
 
 # Build results
 [Dd]ebug/
