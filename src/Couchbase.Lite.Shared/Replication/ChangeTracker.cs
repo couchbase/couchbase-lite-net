@@ -41,7 +41,6 @@
 //
 
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using Couchbase.Lite;
@@ -82,6 +81,8 @@ namespace Couchbase.Lite.Replicator
 
         private Boolean running = false;
 
+        private readonly object runningMutex = new object();
+
         private HttpRequestMessage Request;
 
         private String filterName;
@@ -94,17 +95,11 @@ namespace Couchbase.Lite.Replicator
 
         private bool shouldBreak;
 
-        private bool requestPending;
-
-        private ChangeTrackerBackoff backoff;
+        internal ChangeTrackerBackoff backoff;
 
 		protected internal IDictionary<string, object> RequestHeaders;
 
-        //private ChangeTrackerBackoff backoff;
-
         private readonly CancellationTokenSource tokenSource;
-
-        System.Threading.Tasks.Task CurrentRequest;
 
         internal enum ChangeTrackerMode
 		{
@@ -247,8 +242,12 @@ namespace Couchbase.Lite.Replicator
         // TODO: Needs to refactored into smaller calls. Each continuation could be its own method, for example.
         public async void Run()
 		{
-			running = true;
-            //HttpClient httpClient;
+            if (IsRunning()) 
+            {
+                return;
+            }
+
+            running = true;
 
 			if (client == null)
 			{
@@ -258,6 +257,7 @@ namespace Couchbase.Lite.Replicator
                 Log.W(Tag, this + ": ChangeTracker run() loop aborting because client == null");
 				return;
 			}
+
 			if (mode == ChangeTracker.ChangeTrackerMode.Continuous)
 			{
 				// there is a failing unit test for this, and from looking at the code the Replication
@@ -266,15 +266,14 @@ namespace Couchbase.Lite.Replicator
 				throw new RuntimeException("ChangeTracker does not correctly support continuous mode");
 			}
 
+            var httpClient = client.GetHttpClient();
+            backoff = new ChangeTrackerBackoff();
+
             this.shouldBreak = false;
-            this.requestPending = false;
-			while (running)
+            while (IsRunning())
 			{
                 if (tokenSource.Token.IsCancellationRequested)
                     break;
-
-                var httpClient = client.GetHttpClient();
-                this.backoff = new ChangeTrackerBackoff();
 
                 var url = GetChangesFeedURL();
                 Request = new HttpRequestMessage(HttpMethod.Get, url);
@@ -302,32 +301,22 @@ namespace Couchbase.Lite.Replicator
 
 				try
 				{
-                    var requestStatus = CurrentRequest == null 
-                        ? TaskStatus.RanToCompletion 
-                        : CurrentRequest.Status;
-
-                    Log.V(Tag, this + ": Current Request Status: " + requestStatus);
-
-                    if (this.requestPending || requestStatus == TaskStatus.Running || requestStatus == TaskStatus.WaitingForActivation) 
-                    {
-                        System.Threading.Thread.Sleep(500);
-                        continue;
-                    }
                     var maskedRemoteWithoutCredentials = GetChangesFeedURL().ToString();
                     maskedRemoteWithoutCredentials = maskedRemoteWithoutCredentials.ReplaceAll("://.*:.*@", "://---:---@");
                     Log.V(Tag, this + ": Making request to " + maskedRemoteWithoutCredentials);
+
                     if (tokenSource.Token.IsCancellationRequested)
                         break;
-                    this.requestPending = true;
-                    var req = await httpClient.SendAsync(Request, HttpCompletionOption.ResponseHeadersRead, tokenSource.Token);
-                    await ChangeFeedResponseHandler(req);
-                    requestPending = false;
+                        
+                    var response = await httpClient.SendAsync(Request, HttpCompletionOption.ResponseHeadersRead, tokenSource.Token);
+                    await ChangeFeedResponseHandler(response);
+
+                    response.Dispose();
                     Request.Dispose();
-                    httpClient.Dispose();
 				}
 				catch (Exception e)
 				{
-					if (!running && e is IOException)
+                    if (!IsRunning() && e is IOException)
                     {
                         // swallow
                     }
@@ -340,100 +329,104 @@ namespace Couchbase.Lite.Replicator
 					}
 					backoff.SleepAppropriateAmountOfTime();
 				}
+
                 if (runTask.Exception != null) {
                     Log.E(Tag, "Unhandled exception", runTask.Exception);
                     throw runTask.Exception;
                 }
-                if (this.shouldBreak) break;
+
+                if (this.shouldBreak) 
+                {
+                    break;
+                }
 			}
+
+            httpClient.Dispose();
 		}
 
         async Task ChangeFeedResponseHandler(HttpResponseMessage response)
         {
-            HttpResponseException faulted = null;
-
-            if (faulted != null) {
-                Log.E(Tag, this + ": Change tracker got error " + Sharpen.Extensions.ToString(faulted.StatusCode));
-                throw faulted;
-            }
             var status = response.StatusCode;
-            if ((Int32)status >= 300)
+            if ((Int32)status >= 300 && !Utils.IsTransientError(status))
             {
                 var msg = String.Format("Change tracker got error: {0}", status);
                 Log.E(Tag, msg);
                 Error = new CouchbaseLiteException (msg, new Status (status.GetStatusCode ()));
                 Stop();
             }
-
-            switch (mode) {
-            case ChangeTrackerMode.Continuous:
-                {
-                    using (var contentStream = await response.Content.ReadAsStreamAsync())
-                    using (var contentReader = new StreamReader(contentStream))
+                
+            switch (mode)
+            {
+                case ChangeTrackerMode.Continuous:
                     {
-
-                        while(!tokenSource.IsCancellationRequested && !contentReader.EndOfStream)
+                        using (var contentStream = await response.Content.ReadAsStreamAsync())
+                        using (var contentReader = new StreamReader(contentStream))
                         {
-                            var change = await contentReader.ReadLineAsync();
-                            Log.V(Tag, "Read longpolling change: {0}".Fmt(change));
-                            var fullBody = Manager.GetObjectMapper().ReadValue<IDictionary<string, object>>(change);
-                            var responseOK = ReceivedChange(fullBody);
+
+                            while (!tokenSource.IsCancellationRequested && !contentReader.EndOfStream)
+                            {
+                                var change = await contentReader.ReadLineAsync();
+                                Log.V(Tag, "Read longpolling change: {0}".Fmt(change));
+                                var fullBody = Manager.GetObjectMapper().ReadValue<IDictionary<string, object>>(change);
+                                var responseOK = ReceivedChange(fullBody);
+                            }
                         }
                     }
-                }
-                break;
-            case ChangeTrackerMode.LongPoll:
-                {
-                    var content = await response.Content.ReadAsByteArrayAsync();
-                    var fullBody = Manager.GetObjectMapper().ReadValue<IDictionary<string, object>>(content.AsEnumerable());
-                    var responseOK = ReceivedPollResponse(fullBody);
-                    if (mode == ChangeTracker.ChangeTrackerMode.LongPoll && responseOK)
+                    break;
+                case ChangeTrackerMode.LongPoll:
                     {
-                        Log.V(Tag, this + ": Starting new longpoll");
-                        backoff.ResetBackoff();
+                        var content = await response.Content.ReadAsByteArrayAsync();
+                        var fullBody = Manager.GetObjectMapper().ReadValue<IDictionary<string, object>>(content.AsEnumerable());
+                        var responseOK = ReceivedPollResponse(fullBody);
+                        if (responseOK)
+                        {
+                            Log.V(Tag, this + ": Starting new longpoll");
+                            backoff.ResetBackoff();
+                            return;
+                        }
+                        else
+                        {
+                            Log.W(Tag, this + ": Change tracker calling stop");
+                            Stop();
+                        }
+                    }
+                    break;
+                default:
+                    {
+                        var content = response.Content.ReadAsByteArrayAsync().Result;
+                        var results = Manager.GetObjectMapper().ReadValue<IDictionary<String, Object>>(content.AsEnumerable());
+                        var resultsValue = results["results"] as JArray;
+                        foreach (var item in resultsValue)
+                        {
+                            IDictionary<String, Object> change = null;
+                            try
+                            {
+                                change = item.ToObject<IDictionary<String, Object>>();
+                            }
+                            catch (Exception)
+                            {
+                                Log.E(Tag, this + string.Format(": Received unparseable change line from server: {0}", change));
+                            }
+                            if (!ReceivedChange(change))
+                            {
+                                Log.W(Tag, this + string.Format(": Received unparseable change line from server: {0}", change));
+                            }
+                        }
+                    
+                        // As ReceivedChange() dispatches the change event to its client via WorkExecutor,
+                        // to avoid the Stop() to be called before the client is done handling the change event,    
+                        // we need to setup the Stop() call with the WorkExecutor as well 
+                        // (Assuming that the WorkExecutor is a single thread executor).
+
+                        WorkExecutor.StartNew(() => Stop());
+
+                        this.shouldBreak = true;
+
                         return;
                     }
-                    else
-                    {
-                        Log.W(Tag, this + ": Change tracker calling stop");
-                        Stop();
-                    }
-                }
-                break;
-            default:
-                {
-                    var content = response.Content.ReadAsByteArrayAsync().Result;
-                    var results = Manager.GetObjectMapper().ReadValue<IDictionary<String, Object>>(content.AsEnumerable());
-                    var resultsValue = results["results"] as JArray;
-                    foreach (var item in resultsValue)
-                    {
-                        IDictionary<String, Object> change = null;
-                        try {
-                            change = item.ToObject<IDictionary<String, Object>>();
-                        } catch (Exception) {
-                            Log.E(Tag, this + string.Format(": Received unparseable change line from server: {0}", change));
-                        }
-                        if (! ReceivedChange(change))
-                        {
-                            Log.W(Tag, this + string.Format(": Received unparseable change line from server: {0}", change));
-                        }
-                    }
-                    
-                    // As ReceivedChange() dispatches the change event to its client via WorkExecutor,
-                    // to avoid the Stop() to be called before the client is done handling the change event,    
-                    // we need to setup the Stop() call with the WorkExecutor as well 
-                    // (Assuming that the WorkExecutor is a single thread executor).
-
-                    WorkExecutor.StartNew(() => Stop());
-
-                    this.shouldBreak = true;
-
-                    return;
-                }
             }
 
-            this.backoff.ResetBackoff();
-            response.Dispose();
+            backoff.ResetBackoff();
         }
 
         public bool ReceivedChange(IDictionary<string, object> change)
@@ -485,13 +478,27 @@ namespace Couchbase.Lite.Replicator
 
 		public void Stop()
 		{
-            Log.D(Tag, this + ": changed tracker asked to stop");
-			running = false;
-			if (Request != null)
-			{
-                tokenSource.Cancel();
-			}
-			Stopped();
+            // Lock to prevent multiple calls to Stop() method from different
+            // threads (eg. one from ChangeTracker itself and one from any other
+            // consumers).
+            lock(runningMutex)
+            {
+                if (!IsRunning())
+                {
+                    return;
+                }
+
+                Log.D(Tag, this + ": changed tracker asked to stop");
+
+                running = false;
+
+                if (Request != null)
+                {
+                    tokenSource.Cancel();
+                }
+
+                Stopped();
+            }
 		}
 
 		public void Stopped()
@@ -506,33 +513,33 @@ namespace Couchbase.Lite.Replicator
             Log.D(Tag, this + ": change tracker client should be null now");
 		}
 
-        internal void SetRequestHeaders(IDictionary<String, Object> requestHeaders)
-		{
-			RequestHeaders = requestHeaders;
-		}
-
-        private void AddRequestHeaders(HttpRequestMessage request)
-		{
-			foreach (string requestHeaderKey in RequestHeaders.Keys)
-			{
-                request.Headers.Add(requestHeaderKey, RequestHeaders.Get(requestHeaderKey).ToString());
-			}
-		}
-
 		public Exception GetLastError()
 		{
 			return Error;
 		}
 
+        public void SetDocIDs(IList<string> docIDs)
+        {
+            this.docIDs = docIDs;
+        }
+
 		public bool IsRunning()
 		{
-			return running;
+            return running;
 		}
 
-		public void SetDocIDs(IList<string> docIDs)
-		{
-			this.docIDs = docIDs;
-		}
+        internal void SetRequestHeaders(IDictionary<String, Object> requestHeaders)
+        {
+            RequestHeaders = requestHeaders;
+        }
+
+        private void AddRequestHeaders(HttpRequestMessage request)
+        {
+            foreach (string requestHeaderKey in RequestHeaders.Keys)
+            {
+                request.Headers.Add(requestHeaderKey, RequestHeaders.Get(requestHeaderKey).ToString());
+            }
+        }
 	}
 
 }

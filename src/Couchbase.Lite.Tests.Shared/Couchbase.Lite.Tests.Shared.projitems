@@ -16,7 +16,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)CRUDOperationsTest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)ChangesTest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)CollationTest.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)CustomizableMockHttpClientHandler.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)DatabaseTest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)DocumentTest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)FakeHttpWebResponse.cs" />
@@ -36,6 +35,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Util\FailEveryRequestHandler.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\MockHttpClientFactory.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\MockHttpRequestHandler.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)ChangeTrackerTest.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="$(MSBuildThisFileDirectory)Assets\GatewayConfig.json" />
