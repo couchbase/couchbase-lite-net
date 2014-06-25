@@ -204,18 +204,29 @@ namespace Couchbase.Lite {
                         + "SELECT parent FROM revs WHERE sequence>? " + "AND parent>0 AND parent<=?)", 
                             args);
                 }
+
                 var deleted = 0;
                 cursor = Database.StorageEngine.RawQuery("SELECT changes()");
                 cursor.MoveToNext();
                 deleted = cursor.GetInt(0);
                 cursor.Close();
 
-                // find a better way to propagate this back
-                // Now scan every revision added since the last time the view was
-                // indexed:
-                var selectArgs = new[] { lastSequence.ToString() };
+                // Find a better way to propagate this back
+                // Now scan every revision added since the last time the view was indexed:
+                // 
+                // This SQL diverts from the CBL's android. The SQL also checked the upper-bound 
+                // sequence to ensure that only sequences between lastSequence and dbMaxSequence 
+                // are getting indexed. According to the issue #81, it is possible 
+                // that there will be another thread inserting a new revision to the database at
+                // the same time that the UpdateIndex operation is running. As a result, it is possible
+                // that dbMaxSequence will be out of date. If we do not check for the upperbound 
+                // limit of the sequence numbers to get indexed, the additional entries 
+                // beyound the dbMaxSequence will be indexed and will be out of track from
+                // the obsolete map entry cleanup logic above -- this will result to duplicated documents
+                // in the indexed map.
+                var selectArgs = new[] { lastSequence.ToString(), dbMaxSequence.ToString() };
                 cursor = Database.StorageEngine.RawQuery("SELECT revs.doc_id, sequence, docid, revid, json FROM revs, docs "
-                    + "WHERE sequence>? AND current!=0 AND deleted=0 " 
+                    + "WHERE sequence>? AND sequence<=? AND current!=0 AND deleted=0 " 
                     + "AND revs.doc_id = docs.doc_id "
                     + "ORDER BY revs.doc_id, revid DESC", CommandBehavior.SequentialAccess, selectArgs);
                 cursor.MoveToNext();
