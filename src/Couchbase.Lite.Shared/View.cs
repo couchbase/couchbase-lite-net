@@ -204,15 +204,15 @@ namespace Couchbase.Lite {
                         + "SELECT parent FROM revs WHERE sequence>? " + "AND parent>0 AND parent<=?)", 
                             args);
                 }
+
                 var deleted = 0;
                 cursor = Database.StorageEngine.RawQuery("SELECT changes()");
                 cursor.MoveToNext();
                 deleted = cursor.GetInt(0);
                 cursor.Close();
 
-                // find a better way to propagate this back
-                // Now scan every revision added since the last time the view was
-                // indexed:
+                // Find a better way to propagate this back
+                // Now scan every revision added since the last time the view was indexed:
                 var selectArgs = new[] { lastSequence.ToString() };
                 cursor = Database.StorageEngine.RawQuery("SELECT revs.doc_id, sequence, docid, revid, json FROM revs, docs "
                     + "WHERE sequence>? AND current!=0 AND deleted=0 " 
@@ -278,6 +278,25 @@ namespace Couchbase.Lite {
                                     insertValues["value"] = valueJson;
 
                                     enclosingView.Database.StorageEngine.Insert("maps", null, insertValues);
+
+                                    //
+                                    // According to the issue #81, it is possible that there will be another
+                                    // thread inserting a new revision to the database at the same time that 
+                                    // the UpdateIndex operation is running. As a result, it is possible that 
+                                    // dbMaxSequence will be out of date at this point and could cause the 
+                                    // last indexed sequence to be out of track from the obsolete map entry
+                                    // cleanup operation, which eventually results to duplicated documents 
+                                    // in the indexed map.
+                                    //
+                                    // To prevent the issue above, we need to make sure that we have the current 
+                                    // max sequence of the indexed documents updated. This diverts from the 
+                                    // CBL's Android code which doesn't have the same issue as the Android 
+                                    // doesn't allow multiple thread to interact with the database at the same 
+                                    // time.
+                                    if (thisSequence > dbMaxSequence)
+                                    {
+                                        dbMaxSequence = thisSequence;
+                                    }
                                 }
                                 catch (Exception e)
                                 {
@@ -291,7 +310,7 @@ namespace Couchbase.Lite {
                     cursor.MoveToNext();
                 }
 
-                // Finally, record the last revision sequence number that was
+                // Finally, record the last revision sequence number that was 
                 // indexed:
                 ContentValues updateValues = new ContentValues();
                 updateValues["lastSequence"] = dbMaxSequence;
@@ -303,7 +322,7 @@ namespace Couchbase.Lite {
                     System.Convert.ToString(dbMaxSequence) + " (deleted " + deleted + " added " + "?" + ")");
                         result.SetCode(StatusCode.Ok);
             }
-            catch (SQLException e)
+            catch (Exception e)
             {
                 throw new CouchbaseLiteException(e, new Status(StatusCode.DbError));
             }
