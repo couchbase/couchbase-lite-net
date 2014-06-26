@@ -59,6 +59,7 @@ namespace Couchbase.Lite.Shared
         private const int SQLITE_OPEN_FILEPROTECTION_COMPLETEUNLESSOPEN = 0x00200000;
         private const int SQLITE_OPEN_READWRITE = 0x00000002;
         private const int SQLITE_OPEN_CREATE = 0x00000004;
+        private const int SQLITE_OPEN_FULLMUTEX = 0x00010000;
 
         private const String Tag = "SqlitePCLRawStorageEngine";
         private sqlite3 db;
@@ -73,7 +74,7 @@ namespace Couchbase.Lite.Shared
             var result = true;
             try {
                 shouldCommit = false;
-                const int flags = SQLITE_OPEN_FILEPROTECTION_COMPLETEUNLESSOPEN | SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE; // #define SQLITE_OPEN_FILEPROTECTION_COMPLETEUNLESSOPEN 0x00200000
+                const int flags = SQLITE_OPEN_FILEPROTECTION_COMPLETEUNLESSOPEN | SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE | SQLITE_OPEN_FULLMUTEX; // #define SQLITE_OPEN_FILEPROTECTION_COMPLETEUNLESSOPEN 0x00200000
 
                 var status = raw.sqlite3_open_v2(path, out db, flags, null);
                 if (status != raw.SQLITE_OK)
