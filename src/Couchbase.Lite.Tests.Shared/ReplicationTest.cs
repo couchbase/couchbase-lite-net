@@ -838,7 +838,8 @@ namespace Couchbase.Lite.Replicator
             Assert.AreEqual(2, resultArray.Count);
             foreach (var value in resultArray.Values<JObject>())
             {
-                Assert.IsNull(value["error"]);
+                var err = (string)value["error"];
+                Assert.IsNull(err);
             }
 
             WorkaroundSyncGatewayRaceCondition();
