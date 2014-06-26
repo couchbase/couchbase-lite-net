@@ -1,7 +1,0 @@
-using System;
-
-namespace Sharpen
-{
-
-}
-

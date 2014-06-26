@@ -1,0 +1,12 @@
+{
+     "log":["REST", "HTTP+", "CRUD"],
+     "verbose": true,
+     "databases": {
+          "db": {
+             "server":"walrus:./",
+             "users": {"GUEST": {"disabled": false, "all_channels": ["*"], "admin_channels": ["*"]}},
+             "bucket":"db",
+             "sync":`function(doc) {channel(doc.channels);}`
+          }
+     }
+}

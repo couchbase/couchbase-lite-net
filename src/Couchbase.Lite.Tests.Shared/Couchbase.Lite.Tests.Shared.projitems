@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <MSBuildAllProjects>$(MSBuildAllProjects);$(MSBuildThisFileFullPath)</MSBuildAllProjects>
+    <HasSharedItems>true</HasSharedItems>
+    <SharedGUID>{D06EDB2A-0AE0-4606-A8AE-AA3F6248630F}</SharedGUID>
+  </PropertyGroup>
+  <PropertyGroup Label="Configuration">
+    <Import_RootNamespace>Couchbase.Lite.Tests.Shared</Import_RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(MSBuildThisFileDirectory)ApiTest.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)AttachmentsTest.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Base64Test.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)BlobStoreWriterTest.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)CRUDOperationsTest.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)ChangesTest.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)CollationTest.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)DatabaseTest.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)DocumentTest.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)FakeHttpWebResponse.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)LiteTestCase.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)LocalDocsTest.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)ManagerTest.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)MiscTest.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)ReplicationTest.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)RevTreeTest.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)RevisionsTest.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)SequenceMapTest.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)ValidationsTest.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)ViewsTest.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Util\AlwaysFailingClientFactory.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Util\CollationTest.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Util\ExtensionMethods.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Util\FailEveryRequestHandler.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Util\MockHttpClientFactory.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Util\MockHttpRequestHandler.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)ChangeTrackerTest.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)BatcherTest.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="$(MSBuildThisFileDirectory)Assets\GatewayConfig.json" />
+    <None Include="$(MSBuildThisFileDirectory)Assets\attachment.png" />
+    <None Include="$(MSBuildThisFileDirectory)Assets\attachment2.png" />
+    <None Include="$(MSBuildThisFileDirectory)Assets\local-test.properties" />
+    <None Include="$(MSBuildThisFileDirectory)Assets\test.properties" />
+  </ItemGroup>
+</Project>
