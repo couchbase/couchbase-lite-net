@@ -925,8 +925,7 @@ namespace Couchbase.Lite
                         var status = response.StatusCode;
                         if ((Int32)status.GetStatusCode() >= 300)
                         {
-                            Log.E(Tag, "Got error " + Sharpen.Extensions.ToString(status.GetStatusCode
-                                    ()));
+                            Log.E(Tag, "Got error " + Sharpen.Extensions.ToString(status.GetStatusCode()));
                             Log.E(Tag, "Request was for: " + message);
                             Log.E(Tag, "Status reason: " + response.ReasonPhrase);
                             error = new WebException(response.ReasonPhrase);

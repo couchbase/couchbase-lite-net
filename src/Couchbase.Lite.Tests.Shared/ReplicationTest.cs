@@ -506,8 +506,6 @@ namespace Couchbase.Lite.Replicator
                     request.Headers.Add("Accept", "*/*");
 
                     var postTask = httpclient.PutAsync(pathToDoc1.AbsoluteUri, new StringContent(docJson, Encoding.UTF8, "application/json"));
-                    postTask.Wait();
-
                     response = postTask.Result;
                     var statusLine = response.StatusCode;
                     Log.D(ReplicationTest.Tag, "Got response: " + statusLine);

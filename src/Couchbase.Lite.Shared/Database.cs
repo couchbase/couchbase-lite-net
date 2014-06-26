@@ -169,7 +169,7 @@ namespace Couchbase.Lite
                 }
                 catch (SQLException e)
                 {   // FIXME: Should we really swallow this exception?
-                    Log.E(Database.Tag, "Error getting document count", e);
+                    Log.E(Tag, "Error getting document count", e);
                 }
                 finally
                 {
@@ -209,7 +209,7 @@ namespace Couchbase.Lite
                 }
                 catch (SQLException e)
                 {   // FIXME: Should we really swallow this exception?
-                    Log.E(Database.Tag, "Error getting last sequence", e);
+                    Log.E(Tag, "Error getting last sequence", e);
                 }
                 finally
                 {
@@ -246,9 +246,9 @@ namespace Couchbase.Lite
             // But we can remove the JSON of non-current revisions, which is most of the space.
             try
             {
-                Log.V(Database.Tag, "Deleting JSON of old revisions...");
+                Log.V(Tag, "Deleting JSON of old revisions...");
                 PruneRevsToMaxDepth(0);
-                Log.V(Database.Tag, "Deleting JSON of old revisions...");
+                Log.V(Tag, "Deleting JSON of old revisions...");
 
                 var args = new ContentValues();
                 args["json"] = null;
@@ -256,11 +256,11 @@ namespace Couchbase.Lite
             }
             catch (SQLException e)
             {
-                Log.E(Database.Tag, "Error compacting", e);
+                Log.E(Tag, "Error compacting", e);
                 throw new CouchbaseLiteException(StatusCode.InternalServerError);
             }
 
-            Log.V(Database.Tag, "Deleting old attachments...");
+            Log.V(Tag, "Deleting old attachments...");
             var result = GarbageCollectAttachments();
             if (!result.IsSuccessful())
             {
@@ -269,12 +269,12 @@ namespace Couchbase.Lite
 
             try
             {
-                Log.V(Database.Tag, "Vacuuming SQLite sqliteDb..." + result);
+                Log.V(Tag, "Vacuuming SQLite sqliteDb..." + result);
                 StorageEngine.ExecSQL("VACUUM");
             }
             catch (SQLException e)
             {
-                Log.E(Database.Tag, "Error vacuuming sqliteDb", e);
+                Log.E(Tag, "Error vacuuming sqliteDb", e);
                 throw new CouchbaseLiteException(StatusCode.InternalServerError);
             }
         }
@@ -307,7 +307,7 @@ namespace Couchbase.Lite
             var deleteStatus = file.Delete();
             if (!deleteStatus)
             {
-                Log.V(Database.Tag, String.Format("Error deleting the SQLite database file at {0}", file.GetAbsolutePath()));
+                Log.V(Tag, String.Format("Error deleting the SQLite database file at {0}", file.GetAbsolutePath()));
             }
 
             //recursively delete attachments path
@@ -315,7 +315,7 @@ namespace Couchbase.Lite
             try {
                 Directory.Delete (attachmentsFile.GetPath (), true);
             } catch (Exception ex) {
-                Log.V(Database.Tag, "Error deleting the attachments directory.", ex);
+                Log.V(Tag, "Error deleting the attachments directory.", ex);
                 deletedAttachmentsPath = false;
             }
 
@@ -459,7 +459,7 @@ namespace Couchbase.Lite
             }
             catch (Exception ex)
             {
-                Log.D(Database.Tag, "Cannot delete a local document id " + id, ex);
+                Log.D(Tag, "Cannot delete a local document id " + id, ex);
                 return false;
             }
 
@@ -588,7 +588,7 @@ namespace Couchbase.Lite
                 var filter = filterCompiler(sourceCode, language);
                 if (filter == null)
                 {
-                    Log.W(Database.Tag, string.Format("Filter {0} failed to compile", name));
+                    Log.W(Tag, string.Format("Filter {0} failed to compile", name));
                     return null;
                 }
 
@@ -657,7 +657,7 @@ namespace Couchbase.Lite
             catch (Exception e)
             {
                 shouldCommit = false;
-                Log.E(Database.Tag, e.ToString(), e);
+                Log.E(Tag, e.ToString(), e);
                 throw new RuntimeException(e);
             }
             finally
@@ -840,7 +840,7 @@ PRAGMA user_version = 3;";
             }
             catch (SQLException e)
             {
-                Log.E(Database.Tag, "Error getting all revisions of document", e);
+                Log.E(Tag, "Error getting all revisions of document", e);
                 return null;
             }
             finally
@@ -1035,7 +1035,7 @@ PRAGMA user_version = 3;";
                     }
                     catch (Exception e)
                     {
-                        Log.W(Database.Tag, "Error parsing local doc JSON", e);
+                        Log.W(Tag, "Error parsing local doc JSON", e);
                         return null;
                     }
                 }
@@ -1043,7 +1043,7 @@ PRAGMA user_version = 3;";
             }
             catch (SQLException e)
             {
-                Log.E(Database.Tag, "Error getting local document", e);
+                Log.E(Tag, "Error getting local document", e);
                 return null;
             }
             finally
@@ -1232,7 +1232,7 @@ PRAGMA user_version = 3;";
             }
             catch (SQLException e)
             {
-                Log.E(Database.Tag, "Error deleting attachments", e);
+                Log.E(Tag, "Error deleting attachments", e);
             }
 
             // Now collect all remaining attachment IDs and tell the store to delete all but these:
@@ -1256,13 +1256,13 @@ PRAGMA user_version = 3;";
                     return new Status(StatusCode.InternalServerError);
                 }
 
-                Log.V(Database.Tag, "Deleted " + numDeleted + " attachments");
+                Log.V(Tag, "Deleted " + numDeleted + " attachments");
 
                 return new Status(StatusCode.Ok);
             }
             catch (SQLException e)
             {
-                Log.E(Database.Tag, "Error finding attachment keys in use", e);
+                Log.E(Tag, "Error finding attachment keys in use", e);
                 return new Status(StatusCode.InternalServerError);
             }
             finally
@@ -1300,7 +1300,7 @@ PRAGMA user_version = 3;";
             }
             catch (SQLException e)
             {
-                Log.E(Database.Tag, "Error getting last sequence", e);
+                Log.E(Tag, "Error getting last sequence", e);
                 return null;
             }
             finally
@@ -1352,7 +1352,7 @@ PRAGMA user_version = 3;";
                         }
                         catch (CouchbaseLiteException e)
                         {
-                            Log.E(Database.Tag, "Error updating view index on background thread", e);
+                            Log.E(Tag, "Error updating view index on background thread", e);
                         }
                 }
                 rows = view.QueryWithOptions (options);
@@ -1368,7 +1368,7 @@ PRAGMA user_version = 3;";
             outLastSequence.AddItem(lastSequence);
 
             var delta = Runtime.CurrentTimeMillis() - before;
-            Log.D(Database.Tag, String.Format("Query view {0} completed in {1} milliseconds", viewName, delta));
+            Log.D(Tag, String.Format("Query view {0} completed in {1} milliseconds", viewName, delta));
 
             return rows;
         }
@@ -1438,7 +1438,7 @@ PRAGMA user_version = 3;";
             }
             catch (SQLException e)
             {
-                Log.E(Database.Tag, "Error looking for changes", e);
+                Log.E(Tag, "Error looking for changes", e);
             }
             finally
             {
@@ -1652,7 +1652,7 @@ PRAGMA user_version = 3;";
             }
             catch (SQLException e)
             {
-                Log.E(Database.Tag, "Error getting all docs", e);
+                Log.E(Tag, "Error getting all docs", e);
                 throw new CouchbaseLiteException("Error getting all docs", e, new Status(StatusCode.InternalServerError));
             }
             finally
@@ -1709,7 +1709,7 @@ PRAGMA user_version = 3;";
             }
             catch (SQLException e)
             {
-                Log.E(Database.Tag, "Error", e);
+                Log.E(Tag, "Error", e);
                 throw new CouchbaseLiteException("Error", e, new Status(StatusCode.InternalServerError));
             }
             finally
@@ -1741,7 +1741,7 @@ PRAGMA user_version = 3;";
             }
             catch (Exception e)
             {
-                Log.E(Database.Tag, "Error serializing properties to JSON", e);
+                Log.E(Tag, "Error serializing properties to JSON", e);
             }
             return docProperties;
         }
@@ -1872,7 +1872,7 @@ PRAGMA user_version = 3;";
             }
             catch (SQLException e)
             {
-                Log.E(Database.Tag, "Error deleting view", e);
+                Log.E(Tag, "Error deleting view", e);
             }
             return result;
         }
@@ -1958,7 +1958,7 @@ PRAGMA user_version = 3;";
             }
             catch (SQLException e)
             {
-                Log.E(Database.Tag, "Error getting last sequence", e);
+                Log.E(Tag, "Error getting last sequence", e);
             }
             finally
             {
@@ -2094,7 +2094,7 @@ PRAGMA user_version = 3;";
             }
             catch (SQLException e)
             {
-                Log.E(Database.Tag, "Error updating UUIDs", e);
+                Log.E(Tag, "Error updating UUIDs", e);
                 return false;
             }
 
@@ -2106,7 +2106,7 @@ PRAGMA user_version = 3;";
             }
             catch (SQLException e)
             {
-                Log.E(Database.Tag, "Error updating UUIDs", e);
+                Log.E(Tag, "Error updating UUIDs", e);
                 return false;
             }
 
@@ -2136,7 +2136,7 @@ PRAGMA user_version = 3;";
                 var contentStream = Attachments.BlobStreamForKey(key);
                 if (contentStream == null)
                 {
-                    Log.E(Database.Tag, "Failed to load attachment");
+                    Log.E(Tag, "Failed to load attachment");
                     throw new CouchbaseLiteException(StatusCode.InternalServerError);
                 }
                 else
@@ -2189,7 +2189,7 @@ PRAGMA user_version = 3;";
             }
             catch (Exception e)
             {
-                Log.E(Database.Tag, "Error getting doc numeric id", e);
+                Log.E(Tag, "Error getting doc numeric id", e);
             }
             finally
             {
@@ -2214,11 +2214,11 @@ PRAGMA user_version = 3;";
 
                 ++transactionLevel;
 
-                Log.I(Database.TagSql, System.Threading.Thread.CurrentThread.Name + " Begin transaction (level " + transactionLevel + ")");
+                Log.I(Tag, " Begin transaction (level " + transactionLevel + ")");
             }
             catch (SQLException e)
             {
-                Log.E(Database.Tag,System.Threading.Thread.CurrentThread.Name + " Error calling beginTransaction()" , e);
+                Log.E(Tag," Error calling beginTransaction()" , e);
 
                 return false;
             }
@@ -2234,21 +2234,21 @@ PRAGMA user_version = 3;";
 
             if (commit)
             {
-                Log.I(Database.TagSql,System.Threading.Thread.CurrentThread.Name + " Committing transaction (level " + transactionLevel + ")");
+                Log.I(Tag, "Committing transaction (level " + transactionLevel + ")");
 
                 StorageEngine.SetTransactionSuccessful();
                 StorageEngine.EndTransaction();
             }
             else
             {
-                Log.I(TagSql,System.Threading.Thread.CurrentThread.Name + " CANCEL transaction (level " + transactionLevel + ")");
+                Log.I(Tag, " CANCEL transaction (level " + transactionLevel + ")");
                 try
                 {
                     StorageEngine.EndTransaction();
                 }
                 catch (SQLException e)
                 {
-                    Log.E(Database.Tag,System.Threading.Thread.CurrentThread.Name + " Error calling endTransaction()", e);
+                    Log.E(Tag, " Error calling endTransaction()", e);
 
                     return false;
                 }
@@ -2292,7 +2292,7 @@ PRAGMA user_version = 3;";
                             }
                             catch (SQLException e)
                             {
-                                Log.E(Database.Tag, "Error deleting revisions", e);
+                                Log.E(Tag, "Error deleting revisions", e);
                                 return false;
                             }
                             revsPurged = new AList<string>();
@@ -2308,7 +2308,7 @@ PRAGMA user_version = 3;";
                                 cursor = enclosingDatabase.StorageEngine.RawQuery(queryString, args);
                                 if (!cursor.MoveToNext())
                                 {
-                                    Log.W(Database.Tag, "No results for query: " + queryString);
+                                    Log.W(Tag, "No results for query: " + queryString);
                                     return false;
                                 }
                                 var seqsToPurge = new HashSet<long>();
@@ -2338,7 +2338,7 @@ PRAGMA user_version = 3;";
                                     cursor.MoveToNext();
                                 }
                                 seqsToPurge.RemoveAll(seqsToKeep);
-                                Log.I(Database.Tag, String.Format("Purging doc '{0}' revs ({1}); asked for ({2})", docID, revsToPurge, revIDs));
+                                Log.I(Tag, String.Format("Purging doc '{0}' revs ({1}); asked for ({2})", docID, revsToPurge, revIDs));
                                 if (seqsToPurge.Count > 0)
                                 {
                                     string seqsToPurgeList = String.Join(",", seqsToPurge);
@@ -2349,7 +2349,7 @@ PRAGMA user_version = 3;";
                                     }
                                     catch (SQLException e)
                                     {
-                                        Log.E(Database.Tag, "Error deleting revisions via: " + sql, e);
+                                        Log.E(Tag, "Error deleting revisions via: " + sql, e);
                                         return false;
                                     }
                                 }
@@ -2357,7 +2357,7 @@ PRAGMA user_version = 3;";
                             }
                             catch (SQLException e)
                             {
-                                Log.E(Database.Tag, "Error getting revisions", e);
+                                Log.E(Tag, "Error getting revisions", e);
                                 return false;
                             }
                             finally
@@ -2422,7 +2422,7 @@ PRAGMA user_version = 3;";
             }
             catch (Exception e)
             {
-                Log.E(Database.Tag, "Error getting document with id and rev", e);
+                Log.E(Tag, "Error getting document with id and rev", e);
             }
             finally
             {
@@ -2631,7 +2631,7 @@ PRAGMA user_version = 3;";
             }
             catch (SQLException e)
             {
-                Log.E(Database.Tag, "Error getting revision history", e);
+                Log.E(Tag, "Error getting revision history", e);
                 return null;
             }
             finally
@@ -2819,7 +2819,7 @@ PRAGMA user_version = 3;";
                             else
                             {
                                 // <-- very expensive
-                                Log.W(Database.Tag, "Error loading attachment");
+                                Log.W(Tag, "Error loading attachment");
                             }
                         }
                     }
@@ -2849,7 +2849,7 @@ PRAGMA user_version = 3;";
             }
             catch (SQLException e)
             {
-                Log.E(Database.Tag, "Error getting attachments for sequence", e);
+                Log.E(Tag, "Error getting attachments for sequence", e);
                 return null;
             }
             finally
@@ -2874,7 +2874,7 @@ PRAGMA user_version = 3;";
             }
             catch (Exception e)
             {
-                Log.E(Database.Tag, "Error convert extra JSON to bytes", e);
+                Log.E(Tag, "Error convert extra JSON to bytes", e);
                 return null;
             }
 
@@ -3127,7 +3127,7 @@ PRAGMA user_version = 3;";
             }
             catch (SQLException e1)
             {
-                Log.E(Database.Tag, "Error putting revision", e1);
+                Log.E(Tag, "Error putting revision", e1);
                 return null;
             }
             finally
@@ -3209,7 +3209,7 @@ PRAGMA user_version = 3;";
             }
             catch (Exception e)
             {
-                Log.E(Database.Tag, "Error getting getSequenceOfDocument", e);
+                Log.E(Tag, "Error getting getSequenceOfDocument", e);
             }
             finally
             {
@@ -3262,7 +3262,7 @@ PRAGMA user_version = 3;";
                 }
                 catch (Exception e)
                 {
-                    Log.E(Database.Tag, this + " got exception posting change notifications", e);
+                    Log.E(Tag, this + " got exception posting change notifications", e);
                 }
                 finally
                 {
@@ -3324,7 +3324,7 @@ PRAGMA user_version = 3;";
                     {
                         if (attachment.GetRevpos() > generation)
                         {
-                            Log.W(Database.Tag, string.Format("Attachment {0} {1} has unexpected revpos {2}, setting to {3}", rev, name, attachment.GetRevpos(), generation));
+                            Log.W(Tag, string.Format("Attachment {0} {1} has unexpected revpos {2}, setting to {3}", rev, name, attachment.GetRevpos(), generation));
                             attachment.SetRevpos(generation);
                         }
                     }
@@ -3366,7 +3366,7 @@ PRAGMA user_version = 3;";
                 {
                     // Oops. This means a glitch in our attachment-management or pull code,
                     // or else a bug in the upstream server.
-                    Log.W(Database.Tag, "Can't find inherited attachment " + name 
+                    Log.W(Tag, "Can't find inherited attachment " + name 
                           + " from seq# " + Convert.ToString(fromSeq) + " to copy to " + Convert.ToString(toSeq));
                     throw new CouchbaseLiteException(StatusCode.NotFound);
                 }
@@ -3377,7 +3377,7 @@ PRAGMA user_version = 3;";
             }
             catch (SQLException e)
             {
-                Log.E(Database.Tag, "Error copying attachment", e);
+                Log.E(Tag, "Error copying attachment", e);
                 throw new CouchbaseLiteException(StatusCode.InternalServerError);
             }
             finally
@@ -3428,13 +3428,13 @@ PRAGMA user_version = 3;";
                 if (result == -1)
                 {
                     var msg = "Insert attachment failed (returned -1)";
-                    Log.E(Database.Tag, msg);
+                    Log.E(Tag, msg);
                     throw new CouchbaseLiteException(msg, StatusCode.InternalServerError);
                 }
             }
             catch (SQLException e)
             {
-                Log.E(Database.Tag, "Error inserting attachment", e);
+                Log.E(Tag, "Error inserting attachment", e);
                 throw new CouchbaseLiteException(StatusCode.InternalServerError);
             }
         }
@@ -3491,7 +3491,7 @@ PRAGMA user_version = 3;";
             }
             catch (Exception e)
             {
-                Log.E(Database.Tag, "Error inserting revision", e);
+                Log.E(Tag, "Error inserting revision", e);
             }
             return rowId;
         }
@@ -3566,7 +3566,7 @@ PRAGMA user_version = 3;";
             }
             catch (Exception e)
             {
-                Log.E(Database.Tag, "Error serializing " + rev + " to JSON", e);
+                Log.E(Tag, "Error serializing " + rev + " to JSON", e);
             }
             return json;
         }
@@ -3723,7 +3723,7 @@ PRAGMA user_version = 3;";
             }
             catch (SQLException e)
             {
-                Log.E(Database.Tag, "Error loading revision body", e);
+                Log.E(Tag, "Error loading revision body", e);
                 throw new CouchbaseLiteException(StatusCode.InternalServerError);
             }
             finally
@@ -3751,7 +3751,7 @@ PRAGMA user_version = 3;";
             }
             catch (Exception e)
             {
-                Log.E(Database.Tag, "Error inserting document id", e);
+                Log.E(Tag, "Error inserting document id", e);
             }
             return rowId;
         }
@@ -3788,7 +3788,7 @@ PRAGMA user_version = 3;";
             }
             catch (SQLException e)
             {
-                Log.E(Database.Tag, "Error finding missing revisions", e);
+                Log.E(Tag, "Error finding missing revisions", e);
                 return false;
             }
             finally
@@ -3878,14 +3878,14 @@ PRAGMA user_version = 3;";
             if (StorageEngine == null || !StorageEngine.Open(Path))
             {
                 string msg = "Unable to create a storage engine, fatal error";
-                Log.E(Database.Tag, msg);
+                Log.E(Tag, msg);
                 throw new CouchbaseLiteException(msg);
             }
 
             // Stuff we need to initialize every time the sqliteDb opens:
             if (!Initialize("PRAGMA foreign_keys = ON;"))
             {
-                Log.E(Database.Tag, "Error turning on foreign keys");
+                Log.E(Tag, "Error turning on foreign keys");
                 return false;
             }
 
@@ -3895,7 +3895,7 @@ PRAGMA user_version = 3;";
             // Incompatible version changes increment the hundreds' place:
             if (dbVersion >= 100)
             {
-                Log.W(Database.Tag, "Database: Database version (" + dbVersion + ") is newer than I know how to work with");
+                Log.W(Tag, "Database: Database version (" + dbVersion + ") is newer than I know how to work with");
                 StorageEngine.Close();
                 return false;
             }
@@ -3959,7 +3959,7 @@ PRAGMA user_version = 3;";
             }
             catch (ArgumentException e)
             {
-                Log.E(Database.Tag, "Could not initialize attachment store", e);
+                Log.E(Tag, "Could not initialize attachment store", e);
                 StorageEngine.Close();
                 return false;
             }
