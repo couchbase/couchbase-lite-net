@@ -55,6 +55,7 @@ using Couchbase.Lite.Auth;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Internal;
 using Sharpen;
+using System.Net.Http.Headers;
 
 
 namespace Couchbase.Lite
@@ -803,6 +804,7 @@ namespace Couchbase.Lite
                 var bytes = mapper.WriteValueAsBytes(body).ToArray();
                 var byteContent = new ByteArrayContent(bytes);
                 message.Content = byteContent;
+				message.Content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
             }
             message.Headers.Add("Accept", new[] { "multipart/related", "application/json" });
 
