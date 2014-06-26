@@ -151,7 +151,7 @@ namespace Couchbase.Lite.Replicator
                     string msg = "ReplicationFinishedObserver.changed called, set replicationFinished to true";
                     Log.D(Tag, msg);
                     this.doneSignal.CountDown();
-                    System.Threading.Thread.Sleep(5000);
+                    System.Threading.Thread.Sleep(500);
                 }
                 else
                 {

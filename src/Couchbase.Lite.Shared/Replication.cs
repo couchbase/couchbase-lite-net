@@ -513,7 +513,8 @@ namespace Couchbase.Lite
             var localLastSequence = LocalDatabase.LastSequenceWithRemoteURL(RemoteUrl, !IsPull);
             Log.D(Tag, this + "|" + Sharpen.Thread.CurrentThread() + ": fetchRemoteCheckpointDoc() calling asyncTaskStarted()");
             AsyncTaskStarted();
-            SendAsyncRequest(HttpMethod.Get, "/_local/" + RemoteCheckpointDocID(), null, (response, e) => {
+            var checkpointId = RemoteCheckpointDocID();
+            SendAsyncRequest(HttpMethod.Get, "/_local/" + checkpointId, null, (response, e) => {
                 try
                 {
                     if (e != null && !Is404 (e)) {
