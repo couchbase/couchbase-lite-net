@@ -151,7 +151,7 @@ namespace Couchbase.Lite.Replicator
                     string msg = "ReplicationFinishedObserver.changed called, set replicationFinished to true";
                     Log.D(Tag, msg);
                     this.doneSignal.CountDown();
-                    System.Threading.Thread.Sleep(5000);
+                    System.Threading.Thread.Sleep(500);
                 }
                 else
                 {
@@ -838,7 +838,8 @@ namespace Couchbase.Lite.Replicator
             Assert.AreEqual(2, resultArray.Count);
             foreach (var value in resultArray.Values<JObject>())
             {
-                Assert.IsNull(value["error"]);
+                var err = (string)value["error"];
+                Assert.IsNull(err);
             }
 
             WorkaroundSyncGatewayRaceCondition();
