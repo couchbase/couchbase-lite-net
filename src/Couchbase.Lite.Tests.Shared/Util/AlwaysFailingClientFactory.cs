@@ -41,14 +41,15 @@
 //
 
 using System;
+using System.Net;
 using System.Net.Http;
+using System.Collections.Generic;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Replicator;
-using System.Collections.Generic;
 
 namespace Couchbase.Lite.Tests
 {
-	public class AlwaysFailingClientFactory : IHttpClientFactory
+    public class AlwaysFailingClientFactory : IHttpClientFactory
     {
 		public IDictionary<string, string> Headers { get; set; }
 
@@ -64,6 +65,21 @@ namespace Couchbase.Lite.Tests
         {
             var mockHttpClient = new HttpClient(HttpHandler);
             return mockHttpClient;
+        }
+
+        public void AddCookies(System.Net.CookieCollection cookies)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void DeleteCookie(Uri domain, string name)
+        {
+            throw new NotImplementedException();
+        }
+
+        public CookieContainer GetCookieContainer()
+        {
+            throw new NotImplementedException();
         }
     }
 }

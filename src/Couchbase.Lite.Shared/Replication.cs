@@ -221,7 +221,7 @@ namespace Couchbase.Lite
         protected internal Boolean lastSequenceChanged;
 
         private String lastSequence;
-        protected internal String  LastSequence 
+        protected internal String LastSequence 
         {
             get { return lastSequence; }
             set 
@@ -296,11 +296,21 @@ namespace Couchbase.Lite
                 } 
                 else 
                 {
-                    this.clientFactory = new CouchbaseLiteHttpClientFactory();
+                    CookieStore cookieStore = null;
+                    if (manager != null)
+                    {
+                        cookieStore = manager.SharedCookieStore;
+                    }
+
+                    if (cookieStore == null)
+                    {
+                        cookieStore = new CookieStore();
+                    }
+
+                    this.clientFactory = new CouchbaseLiteHttpClientFactory(cookieStore);
                 }
             }
         }
-
 
         void NotifyChangeListeners ()
         {
@@ -1515,6 +1525,38 @@ namespace Couchbase.Lite
             Start();
         }
 
+        public void SetCookie(string name, string value, string path, DateTime expirationDate, bool secure, bool httpOnly)
+        {
+            var cookie = new Cookie(name, value);
+            cookie.Expires = expirationDate;
+            cookie.Secure = secure;
+            cookie.HttpOnly = httpOnly;
+            cookie.Domain = RemoteUrl.GetHost();
+
+            if (!string.IsNullOrEmpty(path))
+            {
+                cookie.Path = path;
+            }
+            else
+            {
+                cookie.Path = RemoteUrl.PathAndQuery;
+            }
+
+            var cookies = new CookieCollection();
+            cookies.Add(cookie);
+            clientFactory.AddCookies(cookies);
+        }
+
+        public void DeleteCookie(String name)
+        {
+            clientFactory.DeleteCookie(RemoteUrl, name);
+        }
+
+        public CookieContainer GetCookieContainer()
+        {
+            return clientFactory.GetCookieContainer();
+        }
+
         /// <summary>
         /// Adds or Removed a <see cref="Couchbase.Lite.Database"/> change delegate 
         /// that will be called whenever the <see cref="Couchbase.Lite.Replication"/> 
@@ -1523,7 +1565,7 @@ namespace Couchbase.Lite
         public event EventHandler<ReplicationChangeEventArgs> Changed;
     }
     #endregion
-    
+
     #region EventArgs Subclasses
 
         ///
