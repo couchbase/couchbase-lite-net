@@ -45,6 +45,7 @@ using System.Net.Http;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Replicator;
 using System.Collections.Generic;
+using System.Net;
 
 namespace Couchbase.Lite.Tests
 {
@@ -52,17 +53,22 @@ namespace Couchbase.Lite.Tests
     {
 		public IDictionary<string, string> Headers { get; set; }
 
-        public HttpClientHandler HttpHandler { get ; set; }
-
         public AlwaysFailingClientFactory()
         {
 			Headers = new Dictionary<string,string>();
-            HttpHandler = new FailEveryRequestHandler();
         }
 
         public HttpClient GetHttpClient()
         {
-            var mockHttpClient = new HttpClient(HttpHandler);
+            return GetHttpClient(null);
+        }
+
+        public HttpClient GetHttpClient(ICredentials credentials)
+        {
+            var handler = new FailEveryRequestHandler();
+            handler.Credentials = credentials;
+
+            var mockHttpClient = new HttpClient(handler);
             return mockHttpClient;
         }
     }

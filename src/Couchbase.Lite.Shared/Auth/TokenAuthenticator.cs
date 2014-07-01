@@ -1,10 +1,10 @@
-//
-// IHttpClientFactory.cs
+﻿//
+// TokenAuthenticator.cs
 //
 // Author:
-//     Zachary Gramana  <zack@xamarin.com>
+//     Pasin Suriyentrakorn  <pasin@couchbase.com>
 //
-// Copyright (c) 2014 Xamarin Inc
+// Copyright (c) 2014 Couchbase Inc
 // Copyright (c) 2014 .NET Foundation
 //
 // Permission is hereby granted, free of charge, to any person obtaining
@@ -41,18 +41,38 @@
 //
 
 using System;
-using System.Net.Http;
-using System.Collections;
 using System.Collections.Generic;
-using System.Net;
 
-namespace Couchbase.Lite.Support
+namespace Couchbase.Lite.Auth
 {
-    public interface IHttpClientFactory
+    public class TokenAuthenticator : Authenticator
     {
-        HttpClient GetHttpClient();
-        HttpClient GetHttpClient(ICredentials credentials);
-        IDictionary<string,string> Headers { get; set; }
+        private string loginPath;
+        private IDictionary<string, string>loginParams;
+
+        public TokenAuthenticator(string loginPath, IDictionary<String, String> loginParams) 
+        {
+            this.loginPath = loginPath;
+            this.loginParams = loginParams;
+        }
+
+        public override bool UsesCookieBasedLogin()
+        {
+            return true;
+        }
+            
+        public override IDictionary<string, string> LoginParametersForSite(Uri site) 
+        {
+            return loginParams;
+        }
+            
+        public override string LoginPathForSite(Uri site) 
+        {
+            var path = loginPath;
+            if (path != null && !path.StartsWith("/")) {
+                path = "/" + path;
+            }
+            return path;
+        }
     }
 }
-

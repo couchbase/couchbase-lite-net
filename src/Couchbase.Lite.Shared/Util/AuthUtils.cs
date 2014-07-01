@@ -1,10 +1,10 @@
-//
-// IHttpClientFactory.cs
+﻿//
+// AuthUtils.cs
 //
 // Author:
-//     Zachary Gramana  <zack@xamarin.com>
+//     Pasin Suriyentrakorn  <pasin@couchbase.com>
 //
-// Copyright (c) 2014 Xamarin Inc
+// Copyright (c) 2014 Couchbase Inc
 // Copyright (c) 2014 .NET Foundation
 //
 // Permission is hereby granted, free of charge, to any person obtaining
@@ -42,17 +42,42 @@
 
 using System;
 using System.Net.Http;
-using System.Collections;
-using System.Collections.Generic;
+using Couchbase.Lite.Auth;
 using System.Net;
 
-namespace Couchbase.Lite.Support
+namespace Couchbase.Lite.Util
 {
-    public interface IHttpClientFactory
+    internal class AuthUtils
     {
-        HttpClient GetHttpClient();
-        HttpClient GetHttpClient(ICredentials credentials);
-        IDictionary<string,string> Headers { get; set; }
+        const String Tag = "AuthUtils";
+
+        internal static ICredentials GetCredentialsIfAvailable (Authenticator authenticator, HttpRequestMessage request)
+        {
+            ICredentials credentials = null;
+
+            String userInfo = request != null ? request.RequestUri.UserInfo : null;
+            if (!String.IsNullOrEmpty(userInfo)) 
+            {
+                credentials = request.ToCredentialsFromUri();
+                if (credentials == null)
+                {
+                    Log.W(Tag, "Unable to parse user info, not setting credentials");
+                }
+            } 
+            else 
+            {
+                if (authenticator != null) 
+                {
+                    userInfo = authenticator.AuthUserInfo();
+                    if (userInfo != null)
+                    {
+                        credentials = userInfo.ToCredentialsFromUserInfoString();
+                    }
+                }
+            }
+
+            return credentials;
+        }
     }
 }
 

@@ -70,6 +70,8 @@ namespace Couchbase.Lite.Tests
 
             public MockHttpClientFactory HttpClientFactory { get; set; }
 
+            public MockHttpRequestHandler HttpRequestHandler { get { return HttpClientFactory.HttpHandler; } }
+
             public ChangeTrackerStoppedDelegate StoppedDelegate { get; set; }
 
             public ChangeTrackerReceivedChangeDelegate ReceivedChangeDelegate { get; set; }
@@ -119,12 +121,9 @@ namespace Couchbase.Lite.Tests
                 return HttpClientFactory.GetHttpClient();
             }
 
-            public HttpClientHandler HttpHandler
+            public HttpClient GetHttpClient(ICredentials credentials)
             {
-                get
-                {
-                    return HttpClientFactory.HttpHandler;
-                }
+                return HttpClientFactory.GetHttpClient(credentials);
             }
 
             public IDictionary<string, string> Headers
@@ -154,7 +153,7 @@ namespace Couchbase.Lite.Tests
                 Assert.AreEqual("1", change["seq"]);
             };
 
-            var handler = (MockHttpRequestHandler) client.HttpHandler;
+            var handler = client.HttpRequestHandler;
 
             handler.SetResponder("_changes", (request) => 
             {
@@ -199,7 +198,7 @@ namespace Couchbase.Lite.Tests
             Thread.Sleep(5 * 1000);
 
             // make sure we got less than 10 requests in those 10 seconds (if it was hammering, we'd get a lot more)
-            var handler = (MockHttpRequestHandler) client.HttpHandler;
+            var handler = client.HttpRequestHandler;
             Assert.IsTrue(handler.CapturedRequests.Count < 25);
             Assert.IsTrue(changeTracker.backoff.NumAttempts > 0);
 
@@ -266,7 +265,7 @@ namespace Couchbase.Lite.Tests
                 return sentinal(request);
             };
 
-            var handler = (MockHttpRequestHandler) client.HttpHandler;
+            var handler = client.HttpRequestHandler;
             handler.SetResponder("_changes", chainResponder);
 
             var testUrl = GetReplicationURL();

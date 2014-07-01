@@ -1,10 +1,10 @@
-//
-// IHttpClientFactory.cs
+﻿//
+// BasicAuthenticator.cs
 //
 // Author:
-//     Zachary Gramana  <zack@xamarin.com>
+//     Pasin Suriyentrakorn  <pasin@couchbase.com>
 //
-// Copyright (c) 2014 Xamarin Inc
+// Copyright (c) 2014 Couchbase Inc
 // Copyright (c) 2014 .NET Foundation
 //
 // Permission is hereby granted, free of charge, to any person obtaining
@@ -41,18 +41,43 @@
 //
 
 using System;
-using System.Net.Http;
-using System.Collections;
 using System.Collections.Generic;
-using System.Net;
 
-namespace Couchbase.Lite.Support
+namespace Couchbase.Lite.Auth
 {
-    public interface IHttpClientFactory
+    public class BasicAuthenticator : Authenticator
     {
-        HttpClient GetHttpClient();
-        HttpClient GetHttpClient(ICredentials credentials);
-        IDictionary<string,string> Headers { get; set; }
+        private string username;
+        private string password;
+
+        public BasicAuthenticator(string username, string password) {
+            this.username = username;
+            this.password = password;
+        }
+
+        public override bool UsesCookieBasedLogin() {
+            return true;
+        }
+            
+        public override string AuthUserInfo() {
+            if (this.username != null && this.password != null) {
+                return this.username + ":" + this.password;
+            }
+            return base.AuthUserInfo();
+        }
+            
+        public override string LoginPathForSite(Uri site) {
+            return "/_session";
+        }
+            
+        public override IDictionary<String, String> LoginParametersForSite(Uri site) {
+            // This method has different implementation from the iOS's.
+            // It is safe to return NULL as the method is not called
+            // when Basic Authenticator is used. Also theoretically, the
+            // standard Basic Auth doesn't add any additional parameters
+            // to the login url.
+            return null;
+        }
     }
 }
 

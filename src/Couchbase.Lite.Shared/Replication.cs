@@ -147,7 +147,7 @@ namespace Couchbase.Lite
                 {
                     var email = PersonaAuthorizer.RegisterAssertion(personaAssertion);
                     var authorizer = new PersonaAuthorizer(email);
-                    Authorizer = authorizer;
+                    Authenticator = authorizer;
                 }
 
                 var facebookAccessToken = URIUtils.GetQueryParameter(uri, FacebookAuthorizer.QueryParameter);
@@ -169,7 +169,7 @@ namespace Couchbase.Lite
 
                     FacebookAuthorizer.RegisterAccessToken(facebookAccessToken, email, remoteWithQueryRemoved.ToString());
 
-                    Authorizer = authorizer;
+                    Authenticator = authorizer;
                 }
                 // we need to remove the query from the URL, since it will cause problems when
                 // communicating with sync gw / couchdb
@@ -256,7 +256,6 @@ namespace Couchbase.Lite
         protected internal Int32 asyncTaskCount;
         protected internal Boolean active;
 
-        internal Authorizer Authorizer { get; set; }
         internal Batcher<RevisionInternal> Batcher { get; set; }
         private CancellationTokenSource CancellationTokenSource { get; set; }
         private CancellationTokenSource RetryIfReadyTokenSource { get; set; }
@@ -420,7 +419,7 @@ namespace Couchbase.Lite
 
         internal void CheckSession()
         {
-            if (Authorizer != null && Authorizer.UsesCookieBasedLogin)
+            if (Authenticator != null && ((Authenticator)Authenticator).UsesCookieBasedLogin())
             {
                 CheckSessionAtPath("/_session");
             }
@@ -472,16 +471,16 @@ namespace Couchbase.Lite
 
         protected internal virtual void Login()
         {
-            var loginParameters = Authorizer.LoginParametersForSite(RemoteUrl);
+            var loginParameters = ((Authenticator)Authenticator).LoginParametersForSite(RemoteUrl);
             if (loginParameters == null)
             {
-                Log.D(Tag, String.Format("{0}: {1} has no login parameters, so skipping login", this, Authorizer));
+                Log.D(Tag, String.Format("{0}: {1} has no login parameters, so skipping login", this, Authenticator));
                 FetchRemoteCheckpointDoc();
                 return;
             }
 
-            var loginPath = Authorizer.LoginPathForSite(RemoteUrl);
-            Log.D(Tag, string.Format("{0}: Doing login with {1} at {2}", this, Authorizer.GetType(), loginPath));
+            var loginPath = ((Authenticator)Authenticator).LoginPathForSite(RemoteUrl);
+            Log.D(Tag, string.Format("{0}: Doing login with {1} at {2}", this, Authenticator.GetType(), loginPath));
 
             Log.D(Tag, string.Format("{0} | {1} : login() calling asyncTaskStarted()", this, Sharpen.Thread.CurrentThread()));
             AsyncTaskStarted();
@@ -807,9 +806,8 @@ namespace Couchbase.Lite
             }
             message.Headers.Add("Accept", new[] { "multipart/related", "application/json" });
 
-            PreemptivelySetAuthCredentials(message);
-
-            var client = clientFactory.GetHttpClient();
+            ICredentials credentials = AuthUtils.GetCredentialsIfAvailable((Authenticator)Authenticator, message);
+            var client = clientFactory.GetHttpClient(credentials);
             client.SendAsync(message, HttpCompletionOption.ResponseHeadersRead, CancellationTokenSource.Token)
                 .ContinueWith(response =>
                 {
@@ -864,35 +862,6 @@ namespace Couchbase.Lite
             requests.Add(client);
         }
 
-        void PreemptivelySetAuthCredentials (HttpRequestMessage message)
-        {
-            // FIXME Not sure we actually need this, since our handler should do it.. Will find out in tests.
-
-            // if the URL contains user info AND if this a DefaultHttpClient
-            // then preemptively set the auth credentials
-//            if (url.GetUserInfo() != null)
-//            {
-//                if (url.GetUserInfo().Contains(":") && !url.GetUserInfo().Trim().Equals(":"))
-//                {
-//                    string[] userInfoSplit = url.GetUserInfo().Split(":");
-//                    Credentials creds = new UsernamePasswordCredentials(URIUtils.Decode(userInfoSplit
-//                        [0]), URIUtils.Decode(userInfoSplit[1]));
-//                    if (httpClient is DefaultHttpClient)
-//                    {
-//                        DefaultHttpClient dhc = (DefaultHttpClient)httpClient;
-//                        IHttpRequestInterceptor preemptiveAuth = new _IHttpRequestInterceptor_167(creds);
-//                        dhc.AddRequestInterceptor(preemptiveAuth, 0);
-//                    }
-//                }
-//                else
-//                {
-//                    Log.W(Tag, "RemoteRequest Unable to parse user info, not setting credentials"
-//                    );
-//                }
-//            }
-
-        }
-
         private void AddRequestHeaders(HttpRequestMessage request)
         {
             foreach (string requestHeaderKey in RequestHeaders.Keys)
@@ -912,8 +881,9 @@ namespace Couchbase.Lite
                 message.Headers.Add("Accept", "*/*");
                 AddRequestHeaders(message);
 
-                var httpClient = clientFactory.GetHttpClient();
-                httpClient.SendAsync(message, HttpCompletionOption.ResponseHeadersRead, CancellationTokenSource.Token).ContinueWith(new Action<Task<HttpResponseMessage>>(responseMessage => 
+                ICredentials credentials = AuthUtils.GetCredentialsIfAvailable((Authenticator)Authenticator, message);
+                var client = clientFactory.GetHttpClient(credentials);
+                client.SendAsync(message, HttpCompletionOption.ResponseHeadersRead, CancellationTokenSource.Token).ContinueWith(new Action<Task<HttpResponseMessage>>(responseMessage => 
                 {
                     object fullBody = null;
                     Exception error = null;
@@ -1048,10 +1018,8 @@ namespace Couchbase.Lite
             message.Content = multiPartEntity;
             message.Headers.Add("Accept", "*/*");
 
-            PreemptivelySetAuthCredentials(message);
-
-            var client = clientFactory.GetHttpClient();
-
+            ICredentials credentials = AuthUtils.GetCredentialsIfAvailable((Authenticator)Authenticator, message);
+            var client = clientFactory.GetHttpClient(credentials);
             client.SendAsync(message, HttpCompletionOption.ResponseHeadersRead, CancellationTokenSource.Token)
                 .ContinueWith(response=> {
                     if (response.Status != TaskStatus.RanToCompletion)
@@ -1263,6 +1231,8 @@ namespace Couchbase.Lite
         /// </summary>
         /// <value>The remote URL being replicated to/from.</value>
         public Uri RemoteUrl { get; private set; }
+
+        public IAuthenticator Authenticator { get; set; }
 
         /// <summary>
         /// Gets whether the <see cref="Couchbase.Lite.Replication"/> pulls from, 

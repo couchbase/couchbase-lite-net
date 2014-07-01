@@ -45,6 +45,7 @@ using System.Net.Http;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
 using System.Collections.Generic;
+using System.Net;
 
 namespace Couchbase.Lite.Tests
 {
@@ -52,14 +53,14 @@ namespace Couchbase.Lite.Tests
     {
         const string Tag = "MockHttpClientFactory";
 
-        public HttpClientHandler HttpHandler { get; private set;}
+        public MockHttpRequestHandler HttpHandler { get; private set;}
 
         public IDictionary<string, string> Headers { get; set; }
 
         public MockHttpClientFactory()
         {
-            HttpHandler = new MockHttpRequestHandler();
             Headers = new Dictionary<string,string>();
+            HttpHandler = new MockHttpRequestHandler();
         }
 
         public HttpClient GetHttpClient()
@@ -75,6 +76,11 @@ namespace Couchbase.Lite.Tests
                 }
             }
             return client;
+        }
+
+        public HttpClient GetHttpClient(ICredentials credentials)
+        {
+            return GetHttpClient();
         }
     }
 }

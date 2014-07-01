@@ -63,7 +63,6 @@ namespace Couchbase.Lite.Support
 
         private readonly CookieContainer cookieStore;
         private readonly Object locker = new Object ();
-        private HttpClientHandler handler;
 
         public CouchbaseLiteHttpClientFactory()
         {
@@ -71,18 +70,25 @@ namespace Couchbase.Lite.Support
             Headers = new ConcurrentDictionary<string,string>();
         }
 
-		public HttpClient GetHttpClient()
+        public HttpClient GetHttpClient()
+        {
+            return GetHttpClient(null);
+        }
+
+        public HttpClient GetHttpClient(ICredentials credentials)
 		{
             // Build a pipeline of HttpMessageHandlers.
-            var clientHandler = new HttpClientHandler 
+            var handler = new HttpClientHandler 
             {
                 CookieContainer = cookieStore,
-                UseDefaultCredentials = true,               
+                UseDefaultCredentials = true,
+                Credentials = credentials
             };
 
             // NOTE: Probably could set httpHandler.MaxRequestContentBufferSize to Couchbase Lite 
             // max doc size (~16 MB) plus some overhead.
-            var authHandler = new DefaultAuthHandler(clientHandler);
+            var authHandler = new DefaultAuthHandler(handler);
+
             var client =  new HttpClient(authHandler);
             foreach(var header in Headers)
             {
@@ -92,12 +98,6 @@ namespace Couchbase.Lite.Support
             }
             return client;
 		}
-
-        public HttpClientHandler HttpHandler {
-            get {
-                return handler;
-            }
-        }
 
         public void AddCookies(CookieCollection cookies)
 		{

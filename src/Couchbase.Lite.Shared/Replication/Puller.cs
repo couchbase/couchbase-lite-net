@@ -56,6 +56,7 @@ using System.Diagnostics;
 using System.Web;
 using System.Linq;
 using Newtonsoft.Json.Linq;
+using System.Net;
 
 namespace Couchbase.Lite.Replicator
 {
@@ -86,8 +87,6 @@ namespace Couchbase.Lite.Replicator
             : base(db, remote, continuous, clientFactory, workExecutor) {  }
 
         #region implemented abstract members of Replication
-
-        public HttpClientHandler HttpHandler { get { return clientFactory.HttpHandler; } }
 
         public override IEnumerable<string> DocIds { get; set; }
 
@@ -121,6 +120,7 @@ namespace Couchbase.Lite.Replicator
                        : ChangeTracker.ChangeTrackerMode.OneShot;
 
             changeTracker = new ChangeTracker(RemoteUrl, mode, LastSequence, true, this, WorkExecutor);
+            changeTracker.Authenticator = Authenticator;
 
             Log.W(Tag, this + ": started ChangeTracker " + changeTracker);
 
@@ -254,6 +254,11 @@ namespace Couchbase.Lite.Replicator
 		{
             return clientFactory.GetHttpClient();
 		}
+
+        public HttpClient GetHttpClient(ICredentials credentials)
+        {
+            return clientFactory.GetHttpClient(credentials);
+        }
 
 		/// <summary>Process a bunch of remote revisions from the _changes feed at once</summary>
         internal override void ProcessInbox(RevisionList inbox)

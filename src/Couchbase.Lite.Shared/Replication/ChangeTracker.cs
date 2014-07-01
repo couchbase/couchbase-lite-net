@@ -54,6 +54,7 @@ using System.Web;
 using System.Threading;
 using System.Threading.Tasks;
 using Newtonsoft.Json.Linq;
+using Couchbase.Lite.Auth;
 
 namespace Couchbase.Lite.Replicator
 {
@@ -107,6 +108,8 @@ namespace Couchbase.Lite.Replicator
 			LongPoll,
 			Continuous
 		}
+
+        public IAuthenticator Authenticator { get; set; }
 
         public ChangeTracker(Uri databaseURL, ChangeTracker.ChangeTrackerMode mode, object lastSequenceID, 
             Boolean includeConflicts, IChangeTrackerClient client, TaskFactory workExecutor = null)
@@ -266,7 +269,6 @@ namespace Couchbase.Lite.Replicator
 				throw new RuntimeException("ChangeTracker does not correctly support continuous mode");
 			}
 
-            var httpClient = client.GetHttpClient();
             backoff = new ChangeTrackerBackoff();
 
             this.shouldBreak = false;
@@ -276,32 +278,16 @@ namespace Couchbase.Lite.Replicator
                     break;
 
                 var url = GetChangesFeedURL();
-                Request = new HttpRequestMessage(HttpMethod.Get, url);
 
+                Request = new HttpRequestMessage(HttpMethod.Get, url);
 				AddRequestHeaders(Request);
 
-				// if the URL contains user info AND if this a DefaultHttpClient
-                // then preemptively set/update the auth credentials
-                if (!String.IsNullOrEmpty(url.UserInfo))
-				{
-					Log.V(Tag, "url.getUserInfo(): " + url.GetUserInfo());
-
-                    var credentials = Request.ToCredentialsFromUri();
-                    if (credentials != null)
-					{
-                        var handler = client.HttpHandler;
-                        if (handler.Credentials == null || !handler.Credentials.Equals(credentials))
-                            client.HttpHandler.Credentials = credentials;
-					}
-					else
-					{
-                        Log.W(Tag, this + ": ChangeTracker Unable to parse user info, not setting credentials");
-					}
-				}
+                ICredentials credentials = AuthUtils.GetCredentialsIfAvailable((Authenticator)Authenticator, Request);
+                var httpClient = client.GetHttpClient(credentials);
 
 				try
 				{
-                    var maskedRemoteWithoutCredentials = GetChangesFeedURL().ToString();
+                    var maskedRemoteWithoutCredentials = url.ToString();
                     maskedRemoteWithoutCredentials = maskedRemoteWithoutCredentials.ReplaceAll("://.*:.*@", "://---:---@");
                     Log.V(Tag, this + ": Making request to " + maskedRemoteWithoutCredentials);
 
@@ -329,6 +315,10 @@ namespace Couchbase.Lite.Replicator
 					}
 					backoff.SleepAppropriateAmountOfTime();
 				}
+                finally
+                {
+                    httpClient.Dispose();
+                }
 
                 if (runTask.Exception != null) {
                     Log.E(Tag, "Unhandled exception", runTask.Exception);
@@ -340,8 +330,6 @@ namespace Couchbase.Lite.Replicator
                     break;
                 }
 			}
-
-            httpClient.Dispose();
 		}
 
         async Task ChangeFeedResponseHandler(HttpResponseMessage response)
@@ -540,6 +528,7 @@ namespace Couchbase.Lite.Replicator
                 request.Headers.Add(requestHeaderKey, RequestHeaders.Get(requestHeaderKey).ToString());
             }
         }
+
 	}
 
 }

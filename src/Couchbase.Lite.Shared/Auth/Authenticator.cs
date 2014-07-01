@@ -1,10 +1,10 @@
-//
-// IHttpClientFactory.cs
+﻿//
+// Authenticator.cs
 //
 // Author:
-//     Zachary Gramana  <zack@xamarin.com>
+//     Pasin Suriyentrakorn  <pasin@couchbase.com>
 //
-// Copyright (c) 2014 Xamarin Inc
+// Copyright (c) 2014 Couchbase Inc
 // Copyright (c) 2014 .NET Foundation
 //
 // Permission is hereby granted, free of charge, to any person obtaining
@@ -41,18 +41,21 @@
 //
 
 using System;
-using System.Net.Http;
-using System.Collections;
 using System.Collections.Generic;
-using System.Net;
 
-namespace Couchbase.Lite.Support
+namespace Couchbase.Lite.Auth
 {
-    public interface IHttpClientFactory
+    public abstract class Authenticator : IAuthenticator
     {
-        HttpClient GetHttpClient();
-        HttpClient GetHttpClient(ICredentials credentials);
-        IDictionary<string,string> Headers { get; set; }
+        public virtual string AuthUserInfo() {
+            return null;
+        }
+
+        public abstract bool UsesCookieBasedLogin();
+
+        public abstract string LoginPathForSite(Uri site);
+
+        public abstract IDictionary<string, string> LoginParametersForSite(Uri site);
     }
 }
 

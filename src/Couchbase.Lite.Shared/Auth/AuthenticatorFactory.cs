@@ -1,10 +1,10 @@
-//
-// IHttpClientFactory.cs
+﻿//
+// AuthenticatorFactory.cs
 //
 // Author:
-//     Zachary Gramana  <zack@xamarin.com>
+//     Pasin Suriyentrakorn  <pasin@couchbase.com>
 //
-// Copyright (c) 2014 Xamarin Inc
+// Copyright (c) 2014 Couchbase Inc
 // Copyright (c) 2014 .NET Foundation
 //
 // Permission is hereby granted, free of charge, to any person obtaining
@@ -41,18 +41,29 @@
 //
 
 using System;
-using System.Net.Http;
-using System.Collections;
 using System.Collections.Generic;
-using System.Net;
 
-namespace Couchbase.Lite.Support
+namespace Couchbase.Lite.Auth
 {
-    public interface IHttpClientFactory
+    public class AuthenticatorFactory
     {
-        HttpClient GetHttpClient();
-        HttpClient GetHttpClient(ICredentials credentials);
-        IDictionary<string,string> Headers { get; set; }
+        public static IAuthenticator CreateBasicAuthenticator(string username, string password)
+        {
+            return new BasicAuthenticator(username, password);
+        }
+
+        public static IAuthenticator CreateFacebookAuthenticator(string token)
+        {
+            var parameters = new Dictionary<string, string>();
+            parameters["access_token"] = token;
+            return new TokenAuthenticator("_facebook", parameters);
+        }
+
+        public static IAuthenticator CreatePersonaAuthenticator(string assertion, string email)
+        {
+            var parameters = new Dictionary<string, string>();
+            parameters["access_token"] = assertion;
+            return new TokenAuthenticator("_persona", parameters);
+        }
     }
 }
-
