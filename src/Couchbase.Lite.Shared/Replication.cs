@@ -805,7 +805,7 @@ namespace Couchbase.Lite
                 var bytes = mapper.WriteValueAsBytes(body).ToArray();
                 var byteContent = new ByteArrayContent(bytes);
                 message.Content = byteContent;
-				message.Content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
+                message.Content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
             }
             message.Headers.Add("Accept", new[] { "multipart/related", "application/json" });
 
