@@ -51,6 +51,7 @@ using Couchbase.Lite.Util;
 
 using NUnit.Framework;
 using Sharpen;
+using System.Threading;
 
 namespace Couchbase.Lite
 {
@@ -63,8 +64,6 @@ namespace Couchbase.Lite
         private Int32 processorDelay;
 
         private CountDownLatch doneSignal = null;
-
-        private long timeProcessed = 0L;
 
         private long maxObservedDelta = -1L;
 
@@ -91,28 +90,39 @@ namespace Couchbase.Lite
         [Test]
         public void TestBatcherLatencyInitialBatch()
         {
-            doneSignal = new CountDownLatch(1);
+            var doneEvent = new ManualResetEvent(false);
 
             inboxCapacity = 100;
             processorDelay = 500;
 
+            var timeProcessed = default(DateTime);
             var scheduler = new SingleThreadTaskScheduler();
-            var batcher = new Batcher<string>(new TaskFactory(scheduler), 
-                inboxCapacity, processorDelay, TestBatcherLatencyInitialBatchProcessor);
+            var batcher = new Batcher<string>(
+                new TaskFactory(scheduler), 
+                inboxCapacity,
+                processorDelay, 
+                itemsToProcess =>
+                {
+                    Log.V(Tag, "process called with: " + itemsToProcess);
+
+                    timeProcessed = DateTime.UtcNow;
+
+                    doneEvent.Set();
+                });
 
             var objectsToQueue = new List<string>();
             for (var i = 0; i < inboxCapacity + 1; i++) {
                 objectsToQueue.Add(i.ToString());
             }
 
-            var timeQueued = Runtime.CurrentTimeMillis();
+            var timeQueued = DateTime.UtcNow;
 
             batcher.QueueObjects(objectsToQueue);
 
-            var success = doneSignal.Await(TimeSpan.FromSeconds(35));
+            var success = doneEvent.WaitOne(TimeSpan.FromSeconds(35));
             Assert.IsTrue(success);
 
-            var delta = timeProcessed - timeQueued;
+            var delta = (timeProcessed - timeQueued).TotalMilliseconds;
             Assert.IsTrue(delta >= 0);
 
             // we want the delta between the time it was queued until the
@@ -125,18 +135,6 @@ namespace Couchbase.Lite
             Log.V(Tag, string.Format("TestBatcherLatencyInitialBatch : delta: {0}", delta));
 
             Assert.IsTrue(delta < acceptableDelta);
-        }
-
-        public void TestBatcherLatencyInitialBatchProcessor(IList<string> itemsToProcess)
-        {
-            Log.V(Tag, "process called with: " + itemsToProcess);
-
-            lock (mutex)
-            {
-                timeProcessed = Runtime.CurrentTimeMillis();
-            }
-
-            doneSignal.CountDown();
         }
 
         [Test]
@@ -158,7 +156,7 @@ namespace Couchbase.Lite
                 var objectsToQueue = new List<long>();
                 objectsToQueue.Add(Runtime.CurrentTimeMillis());
                 batcher.QueueObjects(objectsToQueue);
-                Thread.Sleep(1000);
+                System.Threading.Thread.Sleep(1000);
             }
 
             var success = doneSignal.Await(TimeSpan.FromSeconds(35));
