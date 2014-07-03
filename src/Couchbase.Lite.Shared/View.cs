@@ -282,17 +282,18 @@ namespace Couchbase.Lite {
                                     //
                                     // According to the issue #81, it is possible that there will be another
                                     // thread inserting a new revision to the database at the same time that 
-                                    // the UpdateIndex operation is running. As a result, it is possible that 
-                                    // dbMaxSequence will be out of date at this point and could cause the 
-                                    // last indexed sequence to be out of track from the obsolete map entry
-                                    // cleanup operation, which eventually results to duplicated documents 
-                                    // in the indexed map.
+                                    // the UpdateIndex operation is running. This event should be guarded by
+                                    // the database transaction that the code begun but apparently it was not.
+                                    // As a result, it is possible that dbMaxSequence will be out of date at 
+                                    // this point and could cause the last indexed sequence to be out of track 
+                                    // from the obsolete map entry cleanup operation, which eventually results 
+                                    // to duplicated documents in the indexed map.
                                     //
-                                    // To prevent the issue above, we need to make sure that we have the current 
-                                    // max sequence of the indexed documents updated. This diverts from the 
-                                    // CBL's Android code which doesn't have the same issue as the Android 
-                                    // doesn't allow multiple thread to interact with the database at the same 
-                                    // time.
+                                    // To prevent the issue above, as a workaroubd, we need to make sure that 
+                                    // we have the current max sequence of the indexed documents updated. 
+                                    // This diverts from the CBL's Android code which doesn't have the same issue 
+                                    // as the Android doesn't allow multiple thread to interact with the database 
+                                    // at the same time.
                                     if (thisSequence > dbMaxSequence)
                                     {
                                         dbMaxSequence = thisSequence;
