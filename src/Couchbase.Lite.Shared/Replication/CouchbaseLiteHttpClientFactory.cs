@@ -61,7 +61,7 @@ namespace Couchbase.Lite.Support
             Instance = new CouchbaseLiteHttpClientFactory();
         }
 
-        private readonly CookieContainer cookieStore;
+        internal readonly CookieContainer cookieStore;
         private readonly Object locker = new Object ();
 
         public CouchbaseLiteHttpClientFactory()
@@ -82,6 +82,7 @@ namespace Couchbase.Lite.Support
             {
                 CookieContainer = cookieStore,
                 UseDefaultCredentials = true,
+                UseCookies = true,
                 Credentials = credentials
             };
 

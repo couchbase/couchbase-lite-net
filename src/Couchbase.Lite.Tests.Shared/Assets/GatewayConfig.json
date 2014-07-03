@@ -8,5 +8,6 @@
              "bucket":"db",
              "sync":`function(doc) {channel(doc.channels);}`
           }
-     }
+     },
+     "facebook" : { "register" : true }
 }
