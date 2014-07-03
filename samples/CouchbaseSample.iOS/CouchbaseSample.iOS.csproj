@@ -32,8 +32,8 @@
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|iPhoneSimulator' ">
     <DebugType>pdbonly</DebugType>
-    <Optimize>false</Optimize>
-    <OutputPath>bin\Release</OutputPath>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\iPhone\Release</OutputPath>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <MtouchLink>None</MtouchLink>
@@ -41,7 +41,6 @@
     <DebugSymbols>true</DebugSymbols>
     <CodesignKey>iPhone Developer</CodesignKey>
     <MtouchExtraArgs>--registrar=static</MtouchExtraArgs>
-    <BuildIpa>true</BuildIpa>
     <MtouchI18n>
     </MtouchI18n>
     <MtouchArch>ARMv7</MtouchArch>
@@ -67,13 +66,12 @@
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|iPhone' ">
     <DebugType>pdbonly</DebugType>
-    <Optimize>false</Optimize>
-    <OutputPath>bin\Release</OutputPath>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\iPhone\Release</OutputPath>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <CodesignKey>iPhone Developer</CodesignKey>
     <ConsolePause>false</ConsolePause>
-    <BuildIpa>true</BuildIpa>
     <MtouchExtraArgs>--registrar=static</MtouchExtraArgs>
     <MtouchI18n>
     </MtouchI18n>
@@ -132,6 +130,12 @@
     <Reference Include="System.Json" />
     <Reference Include="Newtonsoft.Json">
       <HintPath>..\..\src\packages\Newtonsoft.Json.6.0.3\lib\portable-net40+sl4+wp7+win8\Newtonsoft.Json.dll</HintPath>
+    </Reference>
+    <Reference Include="SQLitePCL.raw">
+      <HintPath>packages\SQLitePCL.raw_basic.0.4.0-alpha\lib\MonoTouch\SQLitePCL.raw.dll</HintPath>
+    </Reference>
+    <Reference Include="SQLitePCL.ugly">
+      <HintPath>packages\SQLitePCL.ugly.0.4.0-alpha\lib\portable-net45+netcore45+wp8+MonoAndroid+MonoTouch\SQLitePCL.ugly.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
