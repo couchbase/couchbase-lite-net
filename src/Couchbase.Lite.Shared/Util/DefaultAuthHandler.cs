@@ -73,7 +73,7 @@ namespace Couchbase.Lite.Replicator
             var hasSetCookie = response.Headers.Contains("Set-Cookie");
             if (hasSetCookie)
             {
-                cookieStore.Commit();
+                cookieStore.Save();
             }
 
             return response;

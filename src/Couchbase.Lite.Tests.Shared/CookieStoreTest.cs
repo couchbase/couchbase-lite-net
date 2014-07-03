@@ -50,30 +50,30 @@ namespace Couchbase.Lite
 {
     public class CookieStoreTest : LiteTestCase
     {
-        public const string Tag = "PersistentCookieContainerTest";
+        public const string Tag = "CookieStoreTest";
 
-        private DirectoryInfo GetCookieStorageDirectory()
+        private DirectoryInfo GetCookiesDirectory()
         {
             return new DirectoryInfo(Path.Combine(manager.Directory, "test"));
         }
 
-        private void CleanUpCookieStorageDirectory()
+        private void CleanUpCookiesDirectory()
         {
-            Directory.Delete(GetCookieStorageDirectory().FullName, true);
-            Assert.AreEqual(false, GetCookieStorageDirectory().Exists);
+            Directory.Delete(GetCookiesDirectory().FullName, true);
+            Assert.AreEqual(false, GetCookiesDirectory().Exists);
         }
 
         [TearDown]
         protected void TearDown()
         {
-            CleanUpCookieStorageDirectory();
+            CleanUpCookiesDirectory();
         }
 
         [Test]
-        public void TestPersistingCookieStore()
+        public void TestSaveCookieStore()
         {
-            var cookieStore = new CookieStore(GetCookieStorageDirectory());
-            Assert.AreEqual(0, cookieStore.Container.Count);
+            var cookieStore = new CookieStore(GetCookiesDirectory());
+            Assert.AreEqual(0, cookieStore.Count);
 
             var name = "foo";
             var value = "bar";
@@ -91,13 +91,13 @@ namespace Couchbase.Lite
             cookie.Secure = isSecure;
             cookie.Expires = expires;
 
-            cookieStore.Container.Add(cookie);
-            cookieStore.Commit();
+            cookieStore.Add(cookie);
+            cookieStore.Save();
 
-            cookieStore = new CookieStore(GetCookieStorageDirectory());
-            Assert.AreEqual(1, cookieStore.Container.Count);
+            cookieStore = new CookieStore(GetCookiesDirectory());
+            Assert.AreEqual(1, cookieStore.Count);
 
-            var cookies = cookieStore.Container.GetCookies(uri);
+            var cookies = cookieStore.GetCookies(uri);
             Assert.AreEqual(1, cookies.Count);
             Assert.AreEqual(name, cookies[0].Name);
             Assert.AreEqual(value, cookies[0].Value);
@@ -105,6 +105,16 @@ namespace Couchbase.Lite
             Assert.AreEqual(domain, cookies[0].Domain);
             Assert.AreEqual(expires, cookies[0].Expires);
         }
+
+        [Test]
+        public void TestSaveEmptyCookieStore()
+        {
+            var cookieStore = new CookieStore(GetCookiesDirectory());
+            Assert.AreEqual(0, cookieStore.Count);
+            cookieStore.Save();
+
+            cookieStore = new CookieStore(GetCookiesDirectory());
+            Assert.AreEqual(0, cookieStore.Count);
+        }
     }
 }
-

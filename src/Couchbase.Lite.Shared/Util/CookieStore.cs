@@ -43,61 +43,45 @@
 using System;
 using System.Net;
 using System.IO;
-using System.Runtime.Serialization.Formatters.Binary;
+using System.Reflection;
+using Newtonsoft.Json;
 
 namespace Couchbase.Lite.Util
 {
-    public class CookieStore
+    public class CookieStore : CookieContainer
     {
-        private readonly Object locker = new Object();
+        const string FileName = "cookies.json";
 
-        private CookieContainer container = null;
+        readonly Object locker = new Object();
 
-        private DirectoryInfo directory = null;
+        readonly DirectoryInfo directory;
+
+        readonly FieldInfo cookiesField;
 
         #region Constructors
 
-        public CookieStore() : this (null)
+        public CookieStore() : this (null) { }
+
+        public CookieStore(DirectoryInfo directory) 
         {
+            cookiesField = typeof(CookieContainer)
+                .GetField("cookies", (BindingFlags.GetField | BindingFlags.Instance | BindingFlags.NonPublic));
 
-        }
+            this.directory = directory;
 
-        public CookieStore(DirectoryInfo persistentDirectory) 
-        {
-            this.directory = persistentDirectory;
-
-            container = DeserializeCookieContainer();
-            if (container == null)
-            {
-                container = new CookieContainer();
-            }
-        }
-
-        #endregion
-
-        #region Propertis
-
-        public CookieContainer Container
-        {
-            get
-            {
-                return container;
-            }
+            DeserializeFromDisk();
         }
 
         #endregion
 
         #region Public
-        public void AddCookies(CookieCollection cookies)
+        public new void Add(CookieCollection cookies)
         {
-            lock (locker)
-            {
-                Container.Add(cookies);
-                Commit();
-            }
+            base.Add(cookies);
+            Save();
         }
 
-        public void DeleteCookie(Uri uri, string name)
+        public void Delete(Uri uri, string name)
         {
             if (uri == null || name == null)
             {
@@ -107,7 +91,7 @@ namespace Couchbase.Lite.Util
             lock (locker) 
             {
                 var delete = false;
-                var cookies = Container.GetCookies(uri);
+                var cookies = GetCookies(uri);
                 foreach (Cookie cookie in cookies)
                 {
                     if (name.Equals(cookie.Name))
@@ -126,80 +110,142 @@ namespace Couchbase.Lite.Util
                 if (delete)
                 {
                     // Trigger container cookie list refreshment
-                    Container.GetCookies(uri);
-                    Commit();
+                    GetCookies(uri);
+                    Save();
                 }
             }
         }
 
-        public void Commit()
+        public void Save()
         {
-            SerializeCookieContainer();
+            lock(locker)
+            {
+                SerializeToDisk();
+            }
         }
 
         #endregion
 
         #region Private
 
-        private bool IsPersistentStoreEnabled()
+        private string GetSaveCookiesFilePath()
         {
-            return (directory != null);
-        }
+            if (directory == null)
+            {
+                return null;
+            }
 
-        private string GetFilePath()
-        {
             if (!directory.Exists)
             {
                 directory.Create();
                 directory.Refresh();
             }
 
-            var fileName = GetType().Name + ".cookies";
-
-            return Path.Combine(directory.FullName, fileName);
+            return Path.Combine(directory.FullName, FileName);
         }
 
-        private void SerializeCookieContainer()
+        private void SerializeToDisk()
         {
-            if (!IsPersistentStoreEnabled())
+            var filePath = GetSaveCookiesFilePath();
+            if (String.IsNullOrWhiteSpace(filePath))
             {
                 return;
             }
 
-            lock (locker)
+            using (var writer = new StreamWriter(filePath))
             {
-                var filePath = GetFilePath();
-                using (var stream = File.Create(filePath))
+                var settings = new JsonSerializerSettings 
                 {
-                    BinaryFormatter formatter = new BinaryFormatter();
-                    formatter.Serialize(stream, container);
+                    Converters = { new CookieCollectionJsonConverter() }
+                };
+
+                var cookies = cookiesField.GetValue(this);
+                var json = JsonConvert.SerializeObject(cookies, settings);
+                writer.Write(json);
+            }
+        }
+
+        private void DeserializeFromDisk()
+        {
+            var filePath = GetSaveCookiesFilePath();
+            if (String.IsNullOrWhiteSpace(filePath))
+            {
+                return;
+            }
+
+            var fileInfo = new FileInfo(filePath);
+            if (!fileInfo.Exists)
+            {
+                return;
+            }
+
+            using (var reader = new StreamReader(filePath))
+            {
+                var settings = new JsonSerializerSettings 
+                {
+                    Converters = { new CookieCollectionJsonConverter() }
+                };
+
+                var json = reader.ReadToEnd();
+
+                var cookies = JsonConvert.DeserializeObject<CookieCollection> (json, settings);
+                if (cookies != null)
+                {
+                    cookiesField.SetValue(this, cookies);
                 }
             }
         }
 
-        private CookieContainer DeserializeCookieContainer()
+        private class CookieCollectionJsonConverter : JsonConverter
         {
-            if (!IsPersistentStoreEnabled())
+            public override bool CanRead 
             {
-                return null;
+                get {
+                    return true;
+                }
             }
 
-            lock(locker)
+            public override bool CanWrite 
             {
-                CookieContainer deserialized = null;
+                get {
+                    return true;
+                }
+            }
 
-                var filePath = GetFilePath();
-                var filePathInfo = new FileInfo(filePath);
-                if (filePathInfo.Exists)
+            public override bool CanConvert (Type objectType)
+            {
+                var val = objectType == typeof(CookieCollection);
+                return val;
+            }
+
+            public override object ReadJson (JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
+            {
+                var value = (string)reader.Value;
+                if (value == null)
                 {
-                    using(Stream stream = File.Open(filePath, FileMode.Open))
+                    return null;
+                }
+
+                var collection = new CookieCollection();
+
+                var cookies = JsonConvert.DeserializeObject<Cookie[]>(value);
+                if (cookies != null)
+                {
+                    foreach(var cookie in cookies)
                     {
-                        BinaryFormatter formatter = new BinaryFormatter();
-                        deserialized = (CookieContainer)formatter.Deserialize(stream);
+                        collection.Add(cookie);
                     }
                 }
 
-                return deserialized;
+                return collection;
+            }
+
+            public override void WriteJson (JsonWriter writer, object value, JsonSerializer serializer)
+            {
+                var uri = (CookieCollection)value;
+                var str = JsonConvert.SerializeObject(uri);
+
+                writer.WriteValue(str);
             }
         }
 

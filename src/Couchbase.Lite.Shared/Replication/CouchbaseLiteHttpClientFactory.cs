@@ -73,7 +73,7 @@ namespace Couchbase.Lite.Support
             // Build a pipeline of HttpMessageHandlers.
             var clientHandler = new HttpClientHandler 
             {
-                CookieContainer = cookieStore.Container,
+                CookieContainer = cookieStore,
                 UseCookies = true,
                 UseDefaultCredentials = true
             };
@@ -103,17 +103,17 @@ namespace Couchbase.Lite.Support
 
         public void AddCookies(CookieCollection cookies)
         {
-            cookieStore.AddCookies(cookies);
+            cookieStore.Add(cookies);
         }
 
         public void DeleteCookie(Uri uri, string name)
         {
-            cookieStore.DeleteCookie(uri, name);
+            cookieStore.Delete(uri, name);
         }
 
         public CookieContainer GetCookieContainer()
         {
-            return cookieStore.Container;
+            return cookieStore;
         }
 	}
 }

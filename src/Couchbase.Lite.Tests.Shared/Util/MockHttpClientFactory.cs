@@ -69,7 +69,7 @@ namespace Couchbase.Lite.Tests
         {
             cookieStore = new CookieStore(cookieStoreDirectory);
             HttpHandler = new MockHttpRequestHandler();
-            HttpHandler.CookieContainer = cookieStore.Container;
+            HttpHandler.CookieContainer = cookieStore;
             HttpHandler.UseCookies = true;
 
             Headers = new Dictionary<string,string>();
@@ -92,17 +92,17 @@ namespace Couchbase.Lite.Tests
 
         public void AddCookies(CookieCollection cookies)
         {
-            cookieStore.Container.Add(cookies);
+            cookieStore.Add(cookies);
         }
 
         public void DeleteCookie(Uri uri, string name)
         {
-            cookieStore.DeleteCookie(uri, name);
+            cookieStore.Delete(uri, name);
         }
 
         public CookieContainer GetCookieContainer()
         {
-            return cookieStore.Container;
+            return cookieStore;
         }
     }
 }
