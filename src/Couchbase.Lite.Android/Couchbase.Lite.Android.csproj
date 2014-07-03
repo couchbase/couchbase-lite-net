@@ -13,6 +13,8 @@
     <AndroidResgenFile>Resources\Resource.designer.cs</AndroidResgenFile>
     <AndroidUseLatestPlatformSdk>False</AndroidUseLatestPlatformSdk>
     <AssemblyName>Couchbase.Lite</AssemblyName>
+    <ProductVersion>8.0.30703</ProductVersion>
+    <SchemaVersion>2.0</SchemaVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -49,11 +51,11 @@
     </Reference>
     <Reference Include="System.Data" />
     <Reference Include="System.Web.Services" />
-    <Reference Include="SQLitePCL">
-      <HintPath>..\packages\SQLitePCL.raw_basic.0.2.0-alpha\lib\MonoAndroid\SQLitePCL.dll</HintPath>
+    <Reference Include="SQLitePCL.raw">
+      <HintPath>..\..\samples\SimpleAndroidSync\packages\SQLitePCL.raw_basic.0.4.0-alpha\lib\MonoAndroid\SQLitePCL.raw.dll</HintPath>
     </Reference>
     <Reference Include="SQLitePCL.ugly">
-      <HintPath>..\packages\SQLitePCL.ugly.0.2.0-alpha\lib\portable-net45+netcore45+wp8+MonoAndroid+MonoTouch\SQLitePCL.ugly.dll</HintPath>
+      <HintPath>..\..\samples\SimpleAndroidSync\packages\SQLitePCL.ugly.0.4.0-alpha\lib\portable-net45+netcore45+wp8+MonoAndroid+MonoTouch\SQLitePCL.ugly.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
