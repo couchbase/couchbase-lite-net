@@ -257,6 +257,15 @@ namespace Couchbase.Lite
         protected internal Boolean active;
 
         internal Authorizer Authorizer { get; set; }
+
+        internal CookieContainer CookieContainer 
+        { 
+            get 
+            { 
+                return clientFactory.GetCookieContainer();
+            } 
+        }
+
         internal Batcher<RevisionInternal> Batcher { get; set; }
         private CancellationTokenSource CancellationTokenSource { get; set; }
         private CancellationTokenSource RetryIfReadyTokenSource { get; set; }
@@ -1550,11 +1559,6 @@ namespace Couchbase.Lite
         public void DeleteCookie(String name)
         {
             clientFactory.DeleteCookie(RemoteUrl, name);
-        }
-
-        public CookieContainer GetCookieContainer()
-        {
-            return clientFactory.GetCookieContainer();
         }
 
         /// <summary>

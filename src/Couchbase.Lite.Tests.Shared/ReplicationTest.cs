@@ -857,7 +857,7 @@ namespace Couchbase.Lite.Replicator
         {
             var replicationUrl = GetReplicationURL();
             var puller = database.CreatePullReplication(replicationUrl);
-            var cookieContainer = puller.GetCookieContainer();
+            var cookieContainer = puller.CookieContainer;
 
             // Set
             var name = "foo";
@@ -881,7 +881,7 @@ namespace Couchbase.Lite.Replicator
             Assert.AreEqual(httpOnly, cookie.HttpOnly);
 
             puller = database.CreatePullReplication(replicationUrl);
-            cookieContainer = puller.GetCookieContainer();
+            cookieContainer = puller.CookieContainer;
 
             var name2 = "foo2";
             puller.SetCookie(name2, value, path, expires, isSecure, httpOnly);
