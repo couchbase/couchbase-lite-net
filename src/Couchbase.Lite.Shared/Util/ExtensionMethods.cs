@@ -109,7 +109,7 @@ namespace Couchbase.Lite
                                     ? System.Web.HttpUtility.UrlDecode(request.RequestUri.UserInfo)
                                     : request.RequestUri.UserInfo;
 
-            var userAndPassword = unescapedUserInfo.Split(new[] { ':' }, 1, StringSplitOptions.None);
+            var userAndPassword = unescapedUserInfo.Split(new[] { ':' }, 2, StringSplitOptions.None);
             if (userAndPassword.Length != 2)
                 return null;
 

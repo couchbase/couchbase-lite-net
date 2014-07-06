@@ -290,7 +290,7 @@ namespace Couchbase.Lite.Replicator
                     if (credentials != null)
 					{
                         var handler = client.HttpHandler;
-                        if (handler.Credentials == null || !handler.Credentials.Equals(credentials))
+						if (handler != null && (handler.Credentials == null || !handler.Credentials.Equals(credentials)))
                             client.HttpHandler.Credentials = credentials;
 					}
 					else
