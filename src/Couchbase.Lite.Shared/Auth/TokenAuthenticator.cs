@@ -45,7 +45,7 @@ using System.Collections.Generic;
 
 namespace Couchbase.Lite.Auth
 {
-    public class TokenAuthenticator : Authenticator
+    public class TokenAuthenticator : IAuthenticator
     {
         private string loginPath;
         private IDictionary<string, string>loginParams;
@@ -56,17 +56,23 @@ namespace Couchbase.Lite.Auth
             this.loginParams = loginParams;
         }
 
-        public override bool UsesCookieBasedLogin
+        public bool UsesCookieBasedLogin
         {
             get { return true; }
         }
             
-        public override IDictionary<string, string> LoginParametersForSite(Uri site) 
+        public IDictionary<string, string> LoginParametersForSite(Uri site) 
         {
             return loginParams;
         }
             
-        public override string LoginPathForSite(Uri site) 
+        public string AuthUserInfo {
+            get {
+                return null;
+            }
+        }
+
+        public string LoginPathForSite(Uri site) 
         {
             var path = loginPath;
             if (path != null && !path.StartsWith("/")) {

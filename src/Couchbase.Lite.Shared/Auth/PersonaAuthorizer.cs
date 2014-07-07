@@ -53,7 +53,7 @@ using Newtonsoft.Json.Linq;
 
 namespace Couchbase.Lite.Auth
 {
-	public class PersonaAuthorizer : Authorizer
+	internal class PersonaAuthorizer : Authorizer
 	{
 		public const string LoginParameterAssertion = "assertion";
 
@@ -123,6 +123,8 @@ namespace Couchbase.Lite.Auth
             var result = ParseAssertion(assertion);
 			return IsAssertionExpired (result) ? null : assertion;
 		}
+
+        public override string AuthUserInfo { get { return null; } }
 
         public override bool UsesCookieBasedLogin
         {

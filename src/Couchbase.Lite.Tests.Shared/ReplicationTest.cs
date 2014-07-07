@@ -579,7 +579,7 @@ namespace Couchbase.Lite.Replicator
 
             var url = GetReplicationURLWithoutCredentials();
             Replication replicator = database.CreatePushReplication(url);
-            replicator.Authenticator = AuthenticatorFactory.CreateFacebookAuthenticator(accessToken);
+            replicator.Authenticator = AuthenticatorFactory.CreateFacebookAuthenticator (accessToken);
 
 			Assert.IsNotNull(replicator);
             Assert.IsNotNull(replicator.Authenticator);
@@ -593,7 +593,7 @@ namespace Couchbase.Lite.Replicator
             var mockHttpClientFactory = new MockHttpClientFactory();
             manager.DefaultHttpClientFactory = mockHttpClientFactory;
 
-            var mockHttpHandler = (MockHttpRequestHandler)mockHttpClientFactory.HttpHandler;
+            var mockHttpHandler = mockHttpClientFactory.HttpHandler;
             mockHttpHandler.AddResponderFailAllRequests(HttpStatusCode.InternalServerError);
 
 			var dbUrlString = "http://fake.test-url.com:4984/fake/";
@@ -619,7 +619,7 @@ namespace Couchbase.Lite.Replicator
             FacebookAuthorizer.RegisterAccessToken(accessToken, email, remoteUrl);
 
             var replicator = database.CreatePullReplication(GetReplicationURL());
-            replicator.Authenticator = AuthenticatorFactory.CreateFacebookAuthenticator(accessToken);
+            replicator.Authenticator = AuthenticatorFactory.CreateFacebookAuthenticator (accessToken);
 
             RunReplication(replicator);
 
@@ -721,7 +721,7 @@ namespace Couchbase.Lite.Replicator
             var mockHttpClientFactory = new MockHttpClientFactory();
             manager.DefaultHttpClientFactory = mockHttpClientFactory;
 
-            var mockHttpHandler = (MockHttpRequestHandler)mockHttpClientFactory.HttpHandler;
+            var mockHttpHandler = mockHttpClientFactory.HttpHandler;
             mockHttpHandler.AddResponderThrowExceptionAllRequests();
 
             Uri remote = GetReplicationURL();
@@ -752,7 +752,7 @@ namespace Couchbase.Lite.Replicator
         public void TestAllLeafRevisionsArePushed()
         {
             var httpClientFactory = new MockHttpClientFactory();
-            var httpHandler = (MockHttpRequestHandler) httpClientFactory.HttpHandler; 
+            var httpHandler = httpClientFactory.HttpHandler; 
             httpHandler.AddResponderRevDiffsAllMissing();
             httpHandler.AddResponderFakeLocalDocumentUpdate404();
             httpHandler.ResponseDelayMilliseconds = 250;
