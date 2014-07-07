@@ -49,7 +49,7 @@ using Sharpen;
 
 namespace Couchbase.Lite.Auth
 {
-	public class FacebookAuthorizer : Authorizer
+    internal class FacebookAuthorizer : Authorizer
 	{
 		public const string LoginParameterAccessToken = "access_token";
 
@@ -65,6 +65,8 @@ namespace Couchbase.Lite.Auth
 		{
 			this.emailAddress = emailAddress;
 		}
+
+        public override string AuthUserInfo { get { return null; } }
 
         public override bool UsesCookieBasedLogin { get { return true; } }
 

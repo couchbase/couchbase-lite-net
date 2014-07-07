@@ -43,17 +43,17 @@
 using System;
 using System.Collections.Generic;
 
-namespace Couchbase.Lite.Auth
-{
-    public abstract class Authenticator : IAuthenticator
-    {
-        public virtual string AuthUserInfo { get { return null; } }
-
-        public abstract bool UsesCookieBasedLogin { get; }
-
-        public abstract string LoginPathForSite(Uri site);
-
-        public abstract IDictionary<string, string> LoginParametersForSite(Uri site);
-    }
-}
-
+//namespace Couchbase.Lite.Auth
+//{
+//    public abstract class Authenticator : IAuthenticator
+//    {
+//        public virtual string AuthUserInfo { get { return null; } }
+//
+//        public abstract bool UsesCookieBasedLogin { get; }
+//
+//        public abstract string LoginPathForSite(Uri site);
+//
+//        public abstract IDictionary<string, string> LoginParametersForSite(Uri site);
+//    }
+//}
+//

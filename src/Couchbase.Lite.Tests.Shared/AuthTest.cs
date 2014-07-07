@@ -122,8 +122,8 @@ namespace Couchbase.Lite
             Assert.AreEqual(tokenAuthParams.Count, parameters.Count);
             Assert.AreEqual(tokenAuthParams["access_token"], parameters["access_token"]);
             Assert.AreEqual(tokenAuth.LoginPathForSite(null), "/_facebook");
-            Assert.IsTrue(tokenAuth.UsesCookieBasedLogin());
-            Assert.IsNull(tokenAuth.AuthUserInfo());
+            Assert.IsTrue(tokenAuth.UsesCookieBasedLogin);
+            Assert.IsNull(tokenAuth.AuthUserInfo);
         }
 
         [Test]
@@ -134,8 +134,8 @@ namespace Couchbase.Lite
             var basicAuth = new BasicAuthenticator(username, password);
 
             Assert.IsNull(basicAuth.LoginParametersForSite(null));
-            Assert.IsTrue(basicAuth.UsesCookieBasedLogin());
-            Assert.AreEqual(basicAuth.AuthUserInfo(), username + ":" + password);
+            Assert.IsTrue(basicAuth.UsesCookieBasedLogin);
+            Assert.AreEqual(basicAuth.AuthUserInfo, username + ":" + password);
         }
 
         [Test]
@@ -143,7 +143,7 @@ namespace Couchbase.Lite
         {
             var username1 = "username1";
             var password1 = "password1";
-            var auth = (Authenticator)AuthenticatorFactory.CreateBasicAuthenticator(username1, password1);
+            var auth = AuthenticatorFactory.CreateBasicAuthenticator(username1, password1);
 
             var credentials = AuthUtils.GetCredentialsIfAvailable(auth, null);
             Assert.IsNotNull(credentials);
@@ -171,7 +171,7 @@ namespace Couchbase.Lite
             credentials = AuthUtils.GetCredentialsIfAvailable(null, request);
             Assert.IsNull(credentials);
 
-            auth = (Authenticator)AuthenticatorFactory.CreateFacebookAuthenticator("1234");
+            auth = AuthenticatorFactory.CreateFacebookAuthenticator("1234");
             credentials = AuthUtils.GetCredentialsIfAvailable(null, null);
             Assert.IsNull(credentials);
         }

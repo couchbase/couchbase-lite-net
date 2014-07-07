@@ -45,7 +45,7 @@ using System.Collections.Generic;
 
 namespace Couchbase.Lite.Auth
 {
-    public class BasicAuthenticator : Authenticator
+    public class BasicAuthenticator : IAuthenticator
     {
         private string username;
         private string password;
@@ -55,11 +55,11 @@ namespace Couchbase.Lite.Auth
             this.password = password;
         }
 
-        public override bool UsesCookieBasedLogin {
+        public bool UsesCookieBasedLogin {
             get { return true; }
         }
             
-        public override string AuthUserInfo
+        public string AuthUserInfo
         {
             get 
             {
@@ -67,15 +67,15 @@ namespace Couchbase.Lite.Auth
                 {
                     return this.username + ":" + this.password;
                 }
-                return base.AuthUserInfo;
+                return null;
             }
         }
             
-        public override string LoginPathForSite(Uri site) {
+        public string LoginPathForSite(Uri site) {
             return "/_session";
         }
             
-        public override IDictionary<String, String> LoginParametersForSite(Uri site) {
+        public IDictionary<String, String> LoginParametersForSite(Uri site) {
             // This method has different implementation from the iOS's.
             // It is safe to return NULL as the method is not called
             // when Basic Authenticator is used. Also theoretically, the

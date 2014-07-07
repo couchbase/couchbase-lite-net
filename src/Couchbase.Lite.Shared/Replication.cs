@@ -257,7 +257,7 @@ namespace Couchbase.Lite
         protected internal Int32 asyncTaskCount;
         protected internal Boolean active;
 
-        internal Authenticator Authenticator { get; set; }
+        internal IAuthenticator Authenticator { get; set; }
 
         internal CookieContainer CookieContainer 
         { 

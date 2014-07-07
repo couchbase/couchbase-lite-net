@@ -86,18 +86,14 @@ using System.Collections.Generic;
 
 namespace Couchbase.Lite.Auth
 {
-    public class Authorizer : Authenticator
+    internal abstract class Authorizer : IAuthenticator
 	{
-        override public bool UsesCookieBasedLogin { get { return false; } }
+        public abstract string AuthUserInfo { get; }
 
-        override public IDictionary<String, String> LoginParametersForSite(Uri site)
-		{
-			return null;
-		}
+        public abstract bool UsesCookieBasedLogin { get; }
 
-        override public String LoginPathForSite(Uri site)
-		{
-			return null;
-		}
+        public abstract IDictionary<String, String> LoginParametersForSite(Uri site);
+
+        public abstract String LoginPathForSite(Uri site);
 	}
 }

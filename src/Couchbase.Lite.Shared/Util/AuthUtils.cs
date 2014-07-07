@@ -51,7 +51,7 @@ namespace Couchbase.Lite.Util
     {
         const String Tag = "AuthUtils";
 
-        internal static ICredentials GetCredentialsIfAvailable (Authenticator authenticator, HttpRequestMessage request)
+        internal static ICredentials GetCredentialsIfAvailable (IAuthenticator authenticator, HttpRequestMessage request)
         {
             ICredentials credentials = null;
 
