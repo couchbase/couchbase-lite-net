@@ -55,6 +55,7 @@ using Couchbase.Lite.Auth;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Internal;
 using Sharpen;
+using System.Net.Http.Headers;
 
 
 namespace Couchbase.Lite
@@ -221,7 +222,7 @@ namespace Couchbase.Lite
         protected internal Boolean lastSequenceChanged;
 
         private String lastSequence;
-        protected internal String  LastSequence 
+        protected internal String LastSequence 
         {
             get { return lastSequence; }
             set 
@@ -255,6 +256,16 @@ namespace Couchbase.Lite
         protected internal Int32 changesCount;
         protected internal Int32 asyncTaskCount;
         protected internal Boolean active;
+
+        internal Authenticator Authenticator { get; set; }
+
+        internal CookieContainer CookieContainer 
+        { 
+            get 
+            { 
+                return clientFactory.GetCookieContainer();
+            } 
+        }
 
         internal Batcher<RevisionInternal> Batcher { get; set; }
         private CancellationTokenSource CancellationTokenSource { get; set; }
@@ -295,11 +306,21 @@ namespace Couchbase.Lite
                 } 
                 else 
                 {
-                    this.clientFactory = new CouchbaseLiteHttpClientFactory();
+                    CookieStore cookieStore = null;
+                    if (manager != null)
+                    {
+                        cookieStore = manager.SharedCookieStore;
+                    }
+
+                    if (cookieStore == null)
+                    {
+                        cookieStore = new CookieStore();
+                    }
+
+                    this.clientFactory = new CouchbaseLiteHttpClientFactory(cookieStore);
                 }
             }
         }
-
 
         void NotifyChangeListeners ()
         {
@@ -419,7 +440,7 @@ namespace Couchbase.Lite
 
         internal void CheckSession()
         {
-            if (Authenticator != null && ((Authenticator)Authenticator).UsesCookieBasedLogin())
+            if (Authenticator != null && Authenticator.UsesCookieBasedLogin)
             {
                 CheckSessionAtPath("/_session");
             }
@@ -471,7 +492,7 @@ namespace Couchbase.Lite
 
         protected internal virtual void Login()
         {
-            var loginParameters = ((Authenticator)Authenticator).LoginParametersForSite(RemoteUrl);
+            var loginParameters = Authenticator.LoginParametersForSite(RemoteUrl);
             if (loginParameters == null)
             {
                 Log.D(Tag, String.Format("{0}: {1} has no login parameters, so skipping login", this, Authenticator));
@@ -479,7 +500,7 @@ namespace Couchbase.Lite
                 return;
             }
 
-            var loginPath = ((Authenticator)Authenticator).LoginPathForSite(RemoteUrl);
+            var loginPath = Authenticator.LoginPathForSite(RemoteUrl);
             Log.D(Tag, string.Format("{0}: Doing login with {1} at {2}", this, Authenticator.GetType(), loginPath));
 
             Log.D(Tag, string.Format("{0} | {1} : login() calling asyncTaskStarted()", this, Sharpen.Thread.CurrentThread()));
@@ -803,11 +824,13 @@ namespace Couchbase.Lite
                 var bytes = mapper.WriteValueAsBytes(body).ToArray();
                 var byteContent = new ByteArrayContent(bytes);
                 message.Content = byteContent;
+                message.Content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
             }
             message.Headers.Add("Accept", new[] { "multipart/related", "application/json" });
 
-            ICredentials credentials = AuthUtils.GetCredentialsIfAvailable((Authenticator)Authenticator, message);
-            var client = clientFactory.GetHttpClient(credentials);
+            PreemptivelySetAuthCredentials(message);
+
+            var client = clientFactory.GetHttpClient();
             client.SendAsync(message, HttpCompletionOption.ResponseHeadersRead, CancellationTokenSource.Token)
                 .ContinueWith(response =>
                 {
@@ -862,6 +885,35 @@ namespace Couchbase.Lite
             requests.Add(client);
         }
 
+        void PreemptivelySetAuthCredentials (HttpRequestMessage message)
+        {
+            // FIXME Not sure we actually need this, since our handler should do it.. Will find out in tests.
+
+            // if the URL contains user info AND if this a DefaultHttpClient
+            // then preemptively set the auth credentials
+//            if (url.GetUserInfo() != null)
+//            {
+//                if (url.GetUserInfo().Contains(":") && !url.GetUserInfo().Trim().Equals(":"))
+//                {
+//                    string[] userInfoSplit = url.GetUserInfo().Split(":");
+//                    Credentials creds = new UsernamePasswordCredentials(URIUtils.Decode(userInfoSplit
+//                        [0]), URIUtils.Decode(userInfoSplit[1]));
+//                    if (httpClient is DefaultHttpClient)
+//                    {
+//                        DefaultHttpClient dhc = (DefaultHttpClient)httpClient;
+//                        IHttpRequestInterceptor preemptiveAuth = new _IHttpRequestInterceptor_167(creds);
+//                        dhc.AddRequestInterceptor(preemptiveAuth, 0);
+//                    }
+//                }
+//                else
+//                {
+//                    Log.W(Tag, "RemoteRequest Unable to parse user info, not setting credentials"
+//                    );
+//                }
+//            }
+
+        }
+
         private void AddRequestHeaders(HttpRequestMessage request)
         {
             foreach (string requestHeaderKey in RequestHeaders.Keys)
@@ -881,9 +933,8 @@ namespace Couchbase.Lite
                 message.Headers.Add("Accept", "*/*");
                 AddRequestHeaders(message);
 
-                ICredentials credentials = AuthUtils.GetCredentialsIfAvailable((Authenticator)Authenticator, message);
-                var client = clientFactory.GetHttpClient(credentials);
-                client.SendAsync(message, HttpCompletionOption.ResponseHeadersRead, CancellationTokenSource.Token).ContinueWith(new Action<Task<HttpResponseMessage>>(responseMessage => 
+                var httpClient = clientFactory.GetHttpClient();
+                httpClient.SendAsync(message, HttpCompletionOption.ResponseHeadersRead, CancellationTokenSource.Token).ContinueWith(new Action<Task<HttpResponseMessage>>(responseMessage => 
                 {
                     object fullBody = null;
                     Exception error = null;
@@ -1018,8 +1069,10 @@ namespace Couchbase.Lite
             message.Content = multiPartEntity;
             message.Headers.Add("Accept", "*/*");
 
-            ICredentials credentials = AuthUtils.GetCredentialsIfAvailable((Authenticator)Authenticator, message);
-            var client = clientFactory.GetHttpClient(credentials);
+            PreemptivelySetAuthCredentials(message);
+
+            var client = clientFactory.GetHttpClient();
+
             client.SendAsync(message, HttpCompletionOption.ResponseHeadersRead, CancellationTokenSource.Token)
                 .ContinueWith(response=> {
                     if (response.Status != TaskStatus.RanToCompletion)
@@ -1231,8 +1284,6 @@ namespace Couchbase.Lite
         /// </summary>
         /// <value>The remote URL being replicated to/from.</value>
         public Uri RemoteUrl { get; private set; }
-
-        public IAuthenticator Authenticator { get; set; }
 
         /// <summary>
         /// Gets whether the <see cref="Couchbase.Lite.Replication"/> pulls from, 
@@ -1485,6 +1536,33 @@ namespace Couchbase.Lite
             Start();
         }
 
+        public void SetCookie(string name, string value, string path, DateTime expirationDate, bool secure, bool httpOnly)
+        {
+            var cookie = new Cookie(name, value);
+            cookie.Expires = expirationDate;
+            cookie.Secure = secure;
+            cookie.HttpOnly = httpOnly;
+            cookie.Domain = RemoteUrl.GetHost();
+
+            if (!string.IsNullOrEmpty(path))
+            {
+                cookie.Path = path;
+            }
+            else
+            {
+                cookie.Path = RemoteUrl.PathAndQuery;
+            }
+
+            var cookies = new CookieCollection();
+            cookies.Add(cookie);
+            clientFactory.AddCookies(cookies);
+        }
+
+        public void DeleteCookie(String name)
+        {
+            clientFactory.DeleteCookie(RemoteUrl, name);
+        }
+
         /// <summary>
         /// Adds or Removed a <see cref="Couchbase.Lite.Database"/> change delegate 
         /// that will be called whenever the <see cref="Couchbase.Lite.Replication"/> 
@@ -1493,7 +1571,7 @@ namespace Couchbase.Lite
         public event EventHandler<ReplicationChangeEventArgs> Changed;
     }
     #endregion
-    
+
     #region EventArgs Subclasses
 
         ///

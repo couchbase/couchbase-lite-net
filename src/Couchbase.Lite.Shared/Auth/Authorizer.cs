@@ -88,9 +88,7 @@ namespace Couchbase.Lite.Auth
 {
     public class Authorizer : Authenticator
 	{
-        override public bool UsesCookieBasedLogin() {
-            return false;
-        }
+        override public bool UsesCookieBasedLogin { get { return false; } }
 
         override public IDictionary<String, String> LoginParametersForSite(Uri site)
 		{

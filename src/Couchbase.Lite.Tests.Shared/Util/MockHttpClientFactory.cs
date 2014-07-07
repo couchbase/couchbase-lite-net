@@ -41,11 +41,14 @@
 //
     
 using System;
+using System.Net;
 using System.Net.Http;
+using System.Collections.Generic;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
 using System.Collections.Generic;
 using System.Net;
+using System.IO;
 
 namespace Couchbase.Lite.Tests
 {
@@ -53,17 +56,26 @@ namespace Couchbase.Lite.Tests
     {
         const string Tag = "MockHttpClientFactory";
 
+        private readonly CookieStore cookieStore;
+
         public MockHttpRequestHandler HttpHandler { get; private set;}
 
         public IDictionary<string, string> Headers { get; set; }
 
-        public MockHttpClientFactory()
+        public MockHttpClientFactory() : this (null) { }
+
+        public MockHttpClientFactory(DirectoryInfo cookieStoreDirectory)
         {
+            cookieStore = new CookieStore(cookieStoreDirectory);
+            HttpHandler = new MockHttpRequestHandler();
+            HttpHandler.CookieContainer = cookieStore;
+            HttpHandler.UseCookies = true;
+
             Headers = new Dictionary<string,string>();
             HttpHandler = new MockHttpRequestHandler();
         }
 
-        public HttpClient GetHttpClient()
+        public HttpClient GetHttpClient(ICredentials credentials = null)
         {
             var client = new HttpClient(HttpHandler);
 
@@ -78,9 +90,19 @@ namespace Couchbase.Lite.Tests
             return client;
         }
 
-        public HttpClient GetHttpClient(ICredentials credentials)
+        public void AddCookies(CookieCollection cookies)
         {
-            return GetHttpClient();
+            cookieStore.Add(cookies);
+        }
+
+        public void DeleteCookie(Uri uri, string name)
+        {
+            cookieStore.Delete(uri, name);
+        }
+
+        public CookieContainer GetCookieContainer()
+        {
+            return cookieStore;
         }
     }
 }

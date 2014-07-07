@@ -254,6 +254,21 @@ namespace Couchbase.Lite.Replicator
 		{
             return clientFactory.GetHttpClient();
 		}
+            
+        public void AddCookies(CookieCollection cookies)
+        {
+            clientFactory.AddCookies(cookies);
+        }
+
+        public void DeleteCookie(Uri domain, string name)
+        {
+            clientFactory.DeleteCookie(domain, name);
+        }
+
+        public CookieContainer GetCookieContainer()
+        {
+            return clientFactory.GetCookieContainer();
+        }
 
         public HttpClient GetHttpClient(ICredentials credentials)
         {

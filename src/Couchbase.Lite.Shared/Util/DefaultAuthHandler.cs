@@ -59,9 +59,10 @@ namespace Couchbase.Lite.Replicator
 
     internal sealed class DefaultAuthHandler : MessageProcessingHandler
     {
-        public DefaultAuthHandler(HttpClientHandler context) : base()
+        public DefaultAuthHandler(HttpClientHandler context, CookieStore cookieStore) : base()
         {
             this.context = context;
+            this.cookieStore = cookieStore;
             InnerHandler = this.context;
         }
 
@@ -69,6 +70,12 @@ namespace Couchbase.Lite.Replicator
 
         protected override HttpResponseMessage ProcessResponse (HttpResponseMessage response, CancellationToken cancellationToken)
         {
+            var hasSetCookie = response.Headers.Contains("Set-Cookie");
+            if (hasSetCookie)
+            {
+                cookieStore.Save();
+            }
+
             return response;
         }
 
@@ -101,11 +108,16 @@ namespace Couchbase.Lite.Replicator
 
         #endregion
 
+        #region Private
+
         private IEnumerator GetEnumerator() 
         {
             return AuthenticationManager.RegisteredModules; 
         }
 
         private readonly HttpClientHandler context;
+        private readonly CookieStore cookieStore;
+
+        #endregion
     }
 }

@@ -41,35 +41,45 @@
 //
 
 using System;
+using System.Net;
 using System.Net.Http;
+using System.Collections.Generic;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Replicator;
-using System.Collections.Generic;
-using System.Net;
 
 namespace Couchbase.Lite.Tests
 {
-	public class AlwaysFailingClientFactory : IHttpClientFactory
+    public class AlwaysFailingClientFactory : IHttpClientFactory
     {
 		public IDictionary<string, string> Headers { get; set; }
+
+        public HttpClientHandler HttpHandler { get ; set; }
 
         public AlwaysFailingClientFactory()
         {
 			Headers = new Dictionary<string,string>();
+            HttpHandler = new FailEveryRequestHandler();
         }
 
         public HttpClient GetHttpClient()
         {
-            return GetHttpClient(null);
+            var mockHttpClient = new HttpClient(HttpHandler);
+            return mockHttpClient;
         }
 
-        public HttpClient GetHttpClient(ICredentials credentials)
+        public void AddCookies(System.Net.CookieCollection cookies)
         {
-            var handler = new FailEveryRequestHandler();
-            handler.Credentials = credentials;
+            throw new NotImplementedException();
+        }
 
-            var mockHttpClient = new HttpClient(handler);
-            return mockHttpClient;
+        public void DeleteCookie(Uri domain, string name)
+        {
+            throw new NotImplementedException();
+        }
+
+        public CookieContainer GetCookieContainer()
+        {
+            throw new NotImplementedException();
         }
     }
 }

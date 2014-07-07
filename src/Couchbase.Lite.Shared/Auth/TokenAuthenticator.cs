@@ -56,9 +56,9 @@ namespace Couchbase.Lite.Auth
             this.loginParams = loginParams;
         }
 
-        public override bool UsesCookieBasedLogin()
+        public override bool UsesCookieBasedLogin
         {
-            return true;
+            get { return true; }
         }
             
         public override IDictionary<string, string> LoginParametersForSite(Uri site) 

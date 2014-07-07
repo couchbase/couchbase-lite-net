@@ -69,6 +69,9 @@ namespace Couchbase.Lite.Shared
 
         public bool Open (String path)
         {
+            if (IsOpen)
+                return true;
+
             var errMessage = "Cannot open Sqlite Database at pth {0}".Fmt(path);
 
             var result = true;

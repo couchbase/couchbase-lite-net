@@ -47,11 +47,9 @@ namespace Couchbase.Lite.Auth
 {
     public abstract class Authenticator : IAuthenticator
     {
-        public virtual string AuthUserInfo() {
-            return null;
-        }
+        public virtual string AuthUserInfo { get { return null; } }
 
-        public abstract bool UsesCookieBasedLogin();
+        public abstract bool UsesCookieBasedLogin { get; }
 
         public abstract string LoginPathForSite(Uri site);
 

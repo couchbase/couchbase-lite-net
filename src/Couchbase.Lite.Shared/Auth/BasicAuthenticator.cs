@@ -55,15 +55,20 @@ namespace Couchbase.Lite.Auth
             this.password = password;
         }
 
-        public override bool UsesCookieBasedLogin() {
-            return true;
+        public override bool UsesCookieBasedLogin {
+            get { return true; }
         }
             
-        public override string AuthUserInfo() {
-            if (this.username != null && this.password != null) {
-                return this.username + ":" + this.password;
+        public override string AuthUserInfo
+        {
+            get 
+            {
+                if (this.username != null && this.password != null) 
+                {
+                    return this.username + ":" + this.password;
+                }
+                return base.AuthUserInfo;
             }
-            return base.AuthUserInfo();
         }
             
         public override string LoginPathForSite(Uri site) {

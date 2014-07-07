@@ -112,6 +112,21 @@ namespace Couchbase.Lite.Tests
                 }
             }
 
+            public void AddCookies(CookieCollection cookies)
+            {
+                HttpClientFactory.AddCookies(cookies);
+            }
+
+            public void DeleteCookie(Uri domain, string name)
+            {
+                HttpClientFactory.DeleteCookie(domain, name);
+            }
+
+            public CookieContainer GetCookieContainer()
+            {
+                return HttpClientFactory.GetCookieContainer();
+            }
+
             #endregion
 
             #region IHttpClientFactory implementation

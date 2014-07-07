@@ -68,7 +68,7 @@ namespace Couchbase.Lite.Util
             {
                 if (authenticator != null) 
                 {
-                    userInfo = authenticator.AuthUserInfo();
+                    userInfo = authenticator.AuthUserInfo;
                     if (userInfo != null)
                     {
                         credentials = userInfo.ToCredentialsFromUserInfoString();
