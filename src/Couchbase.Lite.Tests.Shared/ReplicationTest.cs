@@ -647,7 +647,7 @@ namespace Couchbase.Lite.Replicator
 			Replication replicator = new Pusher(null, new Uri(dbUrlString), false, null);
 			string relativeUrlString = replicator.BuildRelativeURLString("foo");
 			string expected = "http://10.0.0.3:4984/todos/foo";
-			NUnit.Framework.Assert.AreEqual(expected, relativeUrlString);
+			Assert.AreEqual(expected, relativeUrlString);
 		}
 
 		/// <exception cref="System.Exception"></exception>
@@ -658,7 +658,7 @@ namespace Couchbase.Lite.Replicator
 			Replication replicator = new Pusher(null, new Uri(dbUrlString), false, null);
 			string relativeUrlString = replicator.BuildRelativeURLString("/foo");
 			string expected = "http://10.0.0.3:4984/todos/foo";
-			NUnit.Framework.Assert.AreEqual(expected, relativeUrlString);
+			Assert.AreEqual(expected, relativeUrlString);
 		}
 
 		/// <exception cref="System.Exception"></exception>
@@ -852,5 +852,46 @@ namespace Couchbase.Lite.Replicator
             Assert.AreEqual(1, doc.ConflictingRevisions.Count());
         }
 
+        [Test]
+        public void TestSetAndDeleteCookies()
+        {
+            var replicationUrl = GetReplicationURL();
+            var puller = database.CreatePullReplication(replicationUrl);
+            var cookieContainer = puller.CookieContainer;
+
+            // Set
+            var name = "foo";
+            var value = "bar";
+            var isSecure = false;
+            var httpOnly = false;
+            var domain = replicationUrl.Host;
+            var path = replicationUrl.PathAndQuery;
+            var expires = DateTime.Now.Add(TimeSpan.FromDays(1));
+            puller.SetCookie(name, value, path, expires, isSecure, httpOnly);
+
+            var cookies = cookieContainer.GetCookies(replicationUrl);
+            Assert.AreEqual(1, cookies.Count);
+            var cookie = cookies[0];
+            Assert.AreEqual(name, cookie.Name);
+            Assert.AreEqual(value, cookie.Value);
+            Assert.AreEqual(domain, cookie.Domain);
+            Assert.AreEqual(path, cookie.Path);
+            Assert.AreEqual(expires, cookie.Expires);
+            Assert.AreEqual(isSecure, cookie.Secure);
+            Assert.AreEqual(httpOnly, cookie.HttpOnly);
+
+            puller = database.CreatePullReplication(replicationUrl);
+            cookieContainer = puller.CookieContainer;
+
+            var name2 = "foo2";
+            puller.SetCookie(name2, value, path, expires, isSecure, httpOnly);
+            cookies = cookieContainer.GetCookies(replicationUrl);
+            Assert.AreEqual(2, cookies.Count);
+
+            // Delete
+            puller.DeleteCookie(name2);
+            Assert.AreEqual(1, cookieContainer.GetCookies(replicationUrl).Count);
+            Assert.AreEqual(name, cookieContainer.GetCookies(replicationUrl)[0].Name);
+        }
 	}
 }

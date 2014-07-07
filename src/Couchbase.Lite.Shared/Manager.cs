@@ -160,9 +160,9 @@ namespace Couchbase.Lite
             CapturedContext = new TaskFactory(scheduler);
             workExecutor = new TaskFactory(new SingleThreadTaskScheduler());
             Log.D("Manager", "New replication uses a scheduler with a max concurrency level of {0}".Fmt(workExecutor.Scheduler.MaximumConcurrencyLevel));
-            DefaultHttpClientFactory = CouchbaseLiteHttpClientFactory.Instance;
-        }
 
+            SharedCookieStore = new CookieStore(this.directoryFile);
+        }
 
     #endregion
 
@@ -300,6 +300,8 @@ namespace Couchbase.Lite
         // Static Properties
         /// <exclude>Only used for unit testing.</exclude>
         internal IHttpClientFactory DefaultHttpClientFactory { get; set; }
+
+        internal CookieStore SharedCookieStore { get; set; } 
 
         // Static Fields
         private static readonly ObjectWriter mapper;

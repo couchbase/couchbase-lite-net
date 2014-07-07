@@ -47,6 +47,10 @@ using System;
 using Couchbase.Lite.Replicator;
 using System.Collections.Generic;
 using System.Collections.Concurrent;
+using System.IO;
+using System.Threading.Tasks;
+using Couchbase.Lite.Util;
+using System.Runtime.Serialization.Formatters.Binary;
 
 namespace Couchbase.Lite.Support
 {
@@ -54,20 +58,13 @@ namespace Couchbase.Lite.Support
 	{
         const string Tag = "CouchbaseLiteHttpClientFactory";
 
-        public static CouchbaseLiteHttpClientFactory Instance;
-
-        static CouchbaseLiteHttpClientFactory()
-        {
-            Instance = new CouchbaseLiteHttpClientFactory();
-        }
-
-        private readonly CookieContainer cookieStore;
-        private readonly Object locker = new Object ();
+        private readonly CookieStore cookieStore;
+        private readonly Object locker = new Object();
         private HttpClientHandler handler;
 
-        public CouchbaseLiteHttpClientFactory()
+        public CouchbaseLiteHttpClientFactory(CookieStore cookieStore)
         {
-            cookieStore = new CookieContainer ();
+            this.cookieStore = cookieStore;
             Headers = new ConcurrentDictionary<string,string>();
         }
 
@@ -77,12 +74,13 @@ namespace Couchbase.Lite.Support
             var clientHandler = new HttpClientHandler 
             {
                 CookieContainer = cookieStore,
-                UseDefaultCredentials = true,               
+                UseCookies = true,
+                UseDefaultCredentials = true
             };
 
             // NOTE: Probably could set httpHandler.MaxRequestContentBufferSize to Couchbase Lite 
             // max doc size (~16 MB) plus some overhead.
-            var authHandler = new DefaultAuthHandler(clientHandler);
+            var authHandler = new DefaultAuthHandler(clientHandler, cookieStore);
             var client =  new HttpClient(authHandler);
             foreach(var header in Headers)
             {
@@ -90,22 +88,32 @@ namespace Couchbase.Lite.Support
                 if (!success)
                     Util.Log.W(Tag, "Unabled to add header to request: {0}: {1}".Fmt(header.Key, header.Value));
             }
+
             return client;
 		}
 
         public HttpClientHandler HttpHandler {
-            get {
+            get 
+            {
                 return handler;
             }
         }
 
-        public void AddCookies(CookieCollection cookies)
-		{
-            lock (locker) {
-                cookieStore.Add(cookies);
-            }
-		}
-
         public IDictionary<string, string> Headers { get; set; }
+
+        public void AddCookies(CookieCollection cookies)
+        {
+            cookieStore.Add(cookies);
+        }
+
+        public void DeleteCookie(Uri uri, string name)
+        {
+            cookieStore.Delete(uri, name);
+        }
+
+        public CookieContainer GetCookieContainer()
+        {
+            return cookieStore;
+        }
 	}
 }

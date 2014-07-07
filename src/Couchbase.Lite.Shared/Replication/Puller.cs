@@ -56,6 +56,7 @@ using System.Diagnostics;
 using System.Web;
 using System.Linq;
 using Newtonsoft.Json.Linq;
+using System.Net;
 
 namespace Couchbase.Lite.Replicator
 {
@@ -254,6 +255,21 @@ namespace Couchbase.Lite.Replicator
 		{
             return clientFactory.GetHttpClient();
 		}
+            
+        public void AddCookies(CookieCollection cookies)
+        {
+            clientFactory.AddCookies(cookies);
+        }
+
+        public void DeleteCookie(Uri domain, string name)
+        {
+            clientFactory.DeleteCookie(domain, name);
+        }
+
+        public CookieContainer GetCookieContainer()
+        {
+            return clientFactory.GetCookieContainer();
+        }
 
 		/// <summary>Process a bunch of remote revisions from the _changes feed at once</summary>
         internal override void ProcessInbox(RevisionList inbox)
