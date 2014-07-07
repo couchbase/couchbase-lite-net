@@ -40,17 +40,14 @@
 // and limitations under the License.
 //
 
-using Couchbase.Lite.Support;
-using System.Net.Http;
-using System.Net;
 using System;
-using Couchbase.Lite.Replicator;
-using System.Collections.Generic;
 using System.Collections.Concurrent;
-using System.IO;
-using System.Threading.Tasks;
+using System.Collections.Generic;
+using System.Net;
+using System.Net.Http;
+using Couchbase.Lite.Replicator;
+using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
-using System.Runtime.Serialization.Formatters.Binary;
 
 namespace Couchbase.Lite.Support
 {
@@ -60,7 +57,6 @@ namespace Couchbase.Lite.Support
 
         private readonly CookieStore cookieStore;
         private readonly Object locker = new Object();
-        private HttpClientHandler handler;
 
         public CouchbaseLiteHttpClientFactory(CookieStore cookieStore)
         {
@@ -68,19 +64,20 @@ namespace Couchbase.Lite.Support
             Headers = new ConcurrentDictionary<string,string>();
         }
 
-		public HttpClient GetHttpClient()
+        public HttpClient GetHttpClient(ICredentials credentials = null)
 		{
             // Build a pipeline of HttpMessageHandlers.
-            var clientHandler = new HttpClientHandler 
+            var handler = new HttpClientHandler 
             {
                 CookieContainer = cookieStore,
+                UseDefaultCredentials = true,
                 UseCookies = true,
-                UseDefaultCredentials = true
+                Credentials = credentials
             };
 
             // NOTE: Probably could set httpHandler.MaxRequestContentBufferSize to Couchbase Lite 
             // max doc size (~16 MB) plus some overhead.
-            var authHandler = new DefaultAuthHandler(clientHandler, cookieStore);
+            var authHandler = new DefaultAuthHandler(handler, cookieStore);
             var client =  new HttpClient(authHandler);
             foreach(var header in Headers)
             {
@@ -92,12 +89,6 @@ namespace Couchbase.Lite.Support
             return client;
 		}
 
-        public HttpClientHandler HttpHandler {
-            get 
-            {
-                return handler;
-            }
-        }
 
         public IDictionary<string, string> Headers { get; set; }
 

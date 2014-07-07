@@ -207,6 +207,12 @@
     <Compile Include="$(MSBuildThisFileDirectory)Store\SqlitePclRawStorageEngine.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Store\SQLiteResult.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\Utils.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Auth\AuthenticatorFactory.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Auth\IAuthenticator.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Auth\Authenticator.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Auth\TokenAuthenticator.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Auth\BasicAuthenticator.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Util\AuthUtils.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\CookieStore.cs" />
   </ItemGroup>
   <ItemGroup>

@@ -88,8 +88,6 @@ namespace Couchbase.Lite.Replicator
 
         #region implemented abstract members of Replication
 
-        public HttpClientHandler HttpHandler { get { return clientFactory.HttpHandler; } }
-
         public override IEnumerable<string> DocIds { get; set; }
 
         public override IDictionary<string, string> Headers 
@@ -122,6 +120,7 @@ namespace Couchbase.Lite.Replicator
                        : ChangeTracker.ChangeTrackerMode.OneShot;
 
             changeTracker = new ChangeTracker(RemoteUrl, mode, LastSequence, true, this, WorkExecutor);
+            changeTracker.Authenticator = Authenticator;
 
             Log.W(Tag, this + ": started ChangeTracker " + changeTracker);
 
@@ -269,6 +268,11 @@ namespace Couchbase.Lite.Replicator
         public CookieContainer GetCookieContainer()
         {
             return clientFactory.GetCookieContainer();
+        }
+
+        public HttpClient GetHttpClient(ICredentials credentials)
+        {
+            return clientFactory.GetHttpClient(credentials);
         }
 
 		/// <summary>Process a bunch of remote revisions from the _changes feed at once</summary>

@@ -1,5 +1,5 @@
 ﻿//
-// MockHttpClientFactory.cs
+// AuthUtils.cs
 //
 // Author:
 //     Pasin Suriyentrakorn  <pasin@couchbase.com>
@@ -39,70 +39,45 @@
 // either express or implied. See the License for the specific language governing permissions
 // and limitations under the License.
 //
-    
+
 using System;
-using System.Net;
 using System.Net.Http;
-using System.Collections.Generic;
-using Couchbase.Lite.Support;
-using Couchbase.Lite.Util;
-using System.Collections.Generic;
+using Couchbase.Lite.Auth;
 using System.Net;
-using System.IO;
 
-namespace Couchbase.Lite.Tests
+namespace Couchbase.Lite.Util
 {
-    public class MockHttpClientFactory : IHttpClientFactory
+    internal class AuthUtils
     {
-        const string Tag = "MockHttpClientFactory";
+        const String Tag = "AuthUtils";
 
-        private readonly CookieStore cookieStore;
-
-        public MockHttpRequestHandler HttpHandler { get; private set;}
-
-        public IDictionary<string, string> Headers { get; set; }
-
-        public MockHttpClientFactory() : this (null) { }
-
-        public MockHttpClientFactory(DirectoryInfo cookieStoreDirectory)
+        internal static ICredentials GetCredentialsIfAvailable (Authenticator authenticator, HttpRequestMessage request)
         {
-            cookieStore = new CookieStore(cookieStoreDirectory);
-            HttpHandler = new MockHttpRequestHandler();
-            HttpHandler.CookieContainer = cookieStore;
-            HttpHandler.UseCookies = true;
+            ICredentials credentials = null;
 
-            Headers = new Dictionary<string,string>();
-            HttpHandler = new MockHttpRequestHandler();
-        }
-
-        public HttpClient GetHttpClient(ICredentials credentials = null)
-        {
-            var client = new HttpClient(HttpHandler);
-
-            foreach(var header in Headers)
+            String userInfo = request != null ? request.RequestUri.UserInfo : null;
+            if (!String.IsNullOrEmpty(userInfo)) 
             {
-                var success = client.DefaultRequestHeaders.TryAddWithoutValidation(header.Key, header.Value);
-                if (!success)
+                credentials = request.ToCredentialsFromUri();
+                if (credentials == null)
                 {
-                    Log.W(Tag, "Unabled to add header to request: {0}: {1}".Fmt(header.Key, header.Value));
+                    Log.W(Tag, "Unable to parse user info, not setting credentials");
+                }
+            } 
+            else 
+            {
+                if (authenticator != null) 
+                {
+                    userInfo = authenticator.AuthUserInfo;
+                    if (userInfo != null)
+                    {
+                        credentials = userInfo.ToCredentialsFromUserInfoString();
+                    }
                 }
             }
-            return client;
-        }
 
-        public void AddCookies(CookieCollection cookies)
-        {
-            cookieStore.Add(cookies);
-        }
-
-        public void DeleteCookie(Uri uri, string name)
-        {
-            cookieStore.Delete(uri, name);
-        }
-
-        public CookieContainer GetCookieContainer()
-        {
-            return cookieStore;
+            return credentials;
         }
     }
 }
+

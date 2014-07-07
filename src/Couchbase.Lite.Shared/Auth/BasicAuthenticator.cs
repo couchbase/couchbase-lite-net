@@ -1,5 +1,5 @@
 ﻿//
-// MockHttpClientFactory.cs
+// BasicAuthenticator.cs
 //
 // Author:
 //     Pasin Suriyentrakorn  <pasin@couchbase.com>
@@ -39,70 +39,50 @@
 // either express or implied. See the License for the specific language governing permissions
 // and limitations under the License.
 //
-    
+
 using System;
-using System.Net;
-using System.Net.Http;
 using System.Collections.Generic;
-using Couchbase.Lite.Support;
-using Couchbase.Lite.Util;
-using System.Collections.Generic;
-using System.Net;
-using System.IO;
 
-namespace Couchbase.Lite.Tests
+namespace Couchbase.Lite.Auth
 {
-    public class MockHttpClientFactory : IHttpClientFactory
+    public class BasicAuthenticator : Authenticator
     {
-        const string Tag = "MockHttpClientFactory";
+        private string username;
+        private string password;
 
-        private readonly CookieStore cookieStore;
-
-        public MockHttpRequestHandler HttpHandler { get; private set;}
-
-        public IDictionary<string, string> Headers { get; set; }
-
-        public MockHttpClientFactory() : this (null) { }
-
-        public MockHttpClientFactory(DirectoryInfo cookieStoreDirectory)
-        {
-            cookieStore = new CookieStore(cookieStoreDirectory);
-            HttpHandler = new MockHttpRequestHandler();
-            HttpHandler.CookieContainer = cookieStore;
-            HttpHandler.UseCookies = true;
-
-            Headers = new Dictionary<string,string>();
-            HttpHandler = new MockHttpRequestHandler();
+        public BasicAuthenticator(string username, string password) {
+            this.username = username;
+            this.password = password;
         }
 
-        public HttpClient GetHttpClient(ICredentials credentials = null)
+        public override bool UsesCookieBasedLogin {
+            get { return true; }
+        }
+            
+        public override string AuthUserInfo
         {
-            var client = new HttpClient(HttpHandler);
-
-            foreach(var header in Headers)
+            get 
             {
-                var success = client.DefaultRequestHeaders.TryAddWithoutValidation(header.Key, header.Value);
-                if (!success)
+                if (this.username != null && this.password != null) 
                 {
-                    Log.W(Tag, "Unabled to add header to request: {0}: {1}".Fmt(header.Key, header.Value));
+                    return this.username + ":" + this.password;
                 }
+                return base.AuthUserInfo;
             }
-            return client;
         }
-
-        public void AddCookies(CookieCollection cookies)
-        {
-            cookieStore.Add(cookies);
+            
+        public override string LoginPathForSite(Uri site) {
+            return "/_session";
         }
-
-        public void DeleteCookie(Uri uri, string name)
-        {
-            cookieStore.Delete(uri, name);
-        }
-
-        public CookieContainer GetCookieContainer()
-        {
-            return cookieStore;
+            
+        public override IDictionary<String, String> LoginParametersForSite(Uri site) {
+            // This method has different implementation from the iOS's.
+            // It is safe to return NULL as the method is not called
+            // when Basic Authenticator is used. Also theoretically, the
+            // standard Basic Auth doesn't add any additional parameters
+            // to the login url.
+            return null;
         }
     }
 }
+

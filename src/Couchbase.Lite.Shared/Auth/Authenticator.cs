@@ -1,5 +1,5 @@
 ﻿//
-// MockHttpClientFactory.cs
+// Authenticator.cs
 //
 // Author:
 //     Pasin Suriyentrakorn  <pasin@couchbase.com>
@@ -39,70 +39,21 @@
 // either express or implied. See the License for the specific language governing permissions
 // and limitations under the License.
 //
-    
+
 using System;
-using System.Net;
-using System.Net.Http;
 using System.Collections.Generic;
-using Couchbase.Lite.Support;
-using Couchbase.Lite.Util;
-using System.Collections.Generic;
-using System.Net;
-using System.IO;
 
-namespace Couchbase.Lite.Tests
+namespace Couchbase.Lite.Auth
 {
-    public class MockHttpClientFactory : IHttpClientFactory
+    public abstract class Authenticator : IAuthenticator
     {
-        const string Tag = "MockHttpClientFactory";
+        public virtual string AuthUserInfo { get { return null; } }
 
-        private readonly CookieStore cookieStore;
+        public abstract bool UsesCookieBasedLogin { get; }
 
-        public MockHttpRequestHandler HttpHandler { get; private set;}
+        public abstract string LoginPathForSite(Uri site);
 
-        public IDictionary<string, string> Headers { get; set; }
-
-        public MockHttpClientFactory() : this (null) { }
-
-        public MockHttpClientFactory(DirectoryInfo cookieStoreDirectory)
-        {
-            cookieStore = new CookieStore(cookieStoreDirectory);
-            HttpHandler = new MockHttpRequestHandler();
-            HttpHandler.CookieContainer = cookieStore;
-            HttpHandler.UseCookies = true;
-
-            Headers = new Dictionary<string,string>();
-            HttpHandler = new MockHttpRequestHandler();
-        }
-
-        public HttpClient GetHttpClient(ICredentials credentials = null)
-        {
-            var client = new HttpClient(HttpHandler);
-
-            foreach(var header in Headers)
-            {
-                var success = client.DefaultRequestHeaders.TryAddWithoutValidation(header.Key, header.Value);
-                if (!success)
-                {
-                    Log.W(Tag, "Unabled to add header to request: {0}: {1}".Fmt(header.Key, header.Value));
-                }
-            }
-            return client;
-        }
-
-        public void AddCookies(CookieCollection cookies)
-        {
-            cookieStore.Add(cookies);
-        }
-
-        public void DeleteCookie(Uri uri, string name)
-        {
-            cookieStore.Delete(uri, name);
-        }
-
-        public CookieContainer GetCookieContainer()
-        {
-            return cookieStore;
-        }
+        public abstract IDictionary<string, string> LoginParametersForSite(Uri site);
     }
 }
+

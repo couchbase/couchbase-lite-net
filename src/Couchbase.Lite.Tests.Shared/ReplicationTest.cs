@@ -579,11 +579,11 @@ namespace Couchbase.Lite.Replicator
 
             var url = GetReplicationURLWithoutCredentials();
             Replication replicator = database.CreatePushReplication(url);
-            replicator.Authorizer = new FacebookAuthorizer(email);
+            replicator.Authenticator = AuthenticatorFactory.CreateFacebookAuthenticator(accessToken);
 
 			Assert.IsNotNull(replicator);
-            Assert.IsNotNull(replicator.Authorizer);
-            Assert.IsTrue(replicator.Authorizer is FacebookAuthorizer);
+            Assert.IsNotNull(replicator.Authenticator);
+            Assert.IsTrue(replicator.Authenticator is TokenAuthenticator);
 		}
 
 		/// <exception cref="System.Exception"></exception>
@@ -619,7 +619,7 @@ namespace Couchbase.Lite.Replicator
             FacebookAuthorizer.RegisterAccessToken(accessToken, email, remoteUrl);
 
             var replicator = database.CreatePullReplication(GetReplicationURL());
-            replicator.Authorizer = new FacebookAuthorizer(email);
+            replicator.Authenticator = AuthenticatorFactory.CreateFacebookAuthenticator(accessToken);
 
             RunReplication(replicator);
 

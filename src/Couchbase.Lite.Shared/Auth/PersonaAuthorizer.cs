@@ -49,6 +49,7 @@ using Couchbase.Lite.Auth;
 using Couchbase.Lite.Util;
 using Sharpen;
 using System.Text;
+using Newtonsoft.Json.Linq;
 
 namespace Couchbase.Lite.Auth
 {
@@ -92,21 +93,21 @@ namespace Couchbase.Lite.Auth
 			return emailAddress;
 		}
 
-		protected internal virtual bool IsAssertionExpired(IDictionary<string, object> parsedAssertion
-			)
+		protected internal virtual bool IsAssertionExpired(IDictionary<string, object> parsedAssertion)
 		{
-			if (this.IsSkipAssertionExpirationCheck() == true)
+			if (IsSkipAssertionExpirationCheck())
 			{
 				return false;
 			}
-			DateTime exp;
-			exp = (DateTime)parsedAssertion.Get(AssertionFieldExpiration);
-			DateTime now = new DateTime();
+
+			var exp = (DateTime)parsedAssertion.Get(AssertionFieldExpiration);
+            var now = DateTime.Now;
             if (exp < now)
 			{
                 Log.W(Database.Tag, string.Format("{0} assertion for {1} expired: {2}", GetType(), emailAddress, exp));
 				return true;
 			}
+
 			return false;
 		}
 
@@ -123,7 +124,8 @@ namespace Couchbase.Lite.Auth
 			return IsAssertionExpired (result) ? null : assertion;
 		}
 
-        public override bool UsesCookieBasedLogin {
+        public override bool UsesCookieBasedLogin
+        {
             get { return true; }
         }
 
@@ -221,17 +223,17 @@ namespace Couchbase.Lite.Auth
 			{
                 var mapper = Manager.GetObjectMapper();
 
-                var component1Json = mapper.ReadValue<IDictionary<Object, Object>>(component1Decoded);
-                var principal = (IDictionary<Object, Object>)component1Json.Get("principal");
+                var component1Json = mapper.ReadValue<object>(component1Decoded).AsDictionary<object, object>();
+                var principal = component1Json.Get("principal").AsDictionary<object, object>();
 
 				result.Put(AssertionFieldEmail, principal.Get("email"));
 
-                var component3Json = mapper.ReadValue<IDictionary<Object, Object>>(component3Decoded);
+                var component3Json = mapper.ReadValue<object>(component3Decoded).AsDictionary<object, object>();
 				result.Put(AssertionFieldOrigin, component3Json.Get("aud"));
 
                 var expObject = (long)component3Json.Get("exp");
 				Log.D(Database.Tag, "PersonaAuthorizer exp: " + expObject + " class: " + expObject.GetType());
-                var expDate = Extensions.CreateDate(expObject);
+                var expDate = Sharpen.Extensions.CreateDate(expObject);
 				result[AssertionFieldExpiration] = expDate;
 			}
 			catch (IOException e)
@@ -248,8 +250,7 @@ namespace Couchbase.Lite.Auth
 			IList<string> key = new AList<string>();
 			key.AddItem(email);
             key.AddItem(site.ToString().ToLower());
-			Log.D(Database.Tag, "PersonaAuthorizer looking up key: " + key + " from list of assertions"
-				);
+			Log.D(Database.Tag, "PersonaAuthorizer looking up key: " + key + " from list of assertions");
 			return assertions.Get(key);
 		}
 	}

@@ -148,7 +148,7 @@ namespace Couchbase.Lite
                 {
                     var email = PersonaAuthorizer.RegisterAssertion(personaAssertion);
                     var authorizer = new PersonaAuthorizer(email);
-                    Authorizer = authorizer;
+                    Authenticator = authorizer;
                 }
 
                 var facebookAccessToken = URIUtils.GetQueryParameter(uri, FacebookAuthorizer.QueryParameter);
@@ -170,7 +170,7 @@ namespace Couchbase.Lite
 
                     FacebookAuthorizer.RegisterAccessToken(facebookAccessToken, email, remoteWithQueryRemoved.ToString());
 
-                    Authorizer = authorizer;
+                    Authenticator = authorizer;
                 }
                 // we need to remove the query from the URL, since it will cause problems when
                 // communicating with sync gw / couchdb
@@ -257,7 +257,7 @@ namespace Couchbase.Lite
         protected internal Int32 asyncTaskCount;
         protected internal Boolean active;
 
-        internal Authorizer Authorizer { get; set; }
+        internal Authenticator Authenticator { get; set; }
 
         internal CookieContainer CookieContainer 
         { 
@@ -440,7 +440,7 @@ namespace Couchbase.Lite
 
         internal void CheckSession()
         {
-            if (Authorizer != null && Authorizer.UsesCookieBasedLogin)
+            if (Authenticator != null && Authenticator.UsesCookieBasedLogin)
             {
                 CheckSessionAtPath("/_session");
             }
@@ -492,16 +492,16 @@ namespace Couchbase.Lite
 
         protected internal virtual void Login()
         {
-            var loginParameters = Authorizer.LoginParametersForSite(RemoteUrl);
+            var loginParameters = Authenticator.LoginParametersForSite(RemoteUrl);
             if (loginParameters == null)
             {
-                Log.D(Tag, String.Format("{0}: {1} has no login parameters, so skipping login", this, Authorizer));
+                Log.D(Tag, String.Format("{0}: {1} has no login parameters, so skipping login", this, Authenticator));
                 FetchRemoteCheckpointDoc();
                 return;
             }
 
-            var loginPath = Authorizer.LoginPathForSite(RemoteUrl);
-            Log.D(Tag, string.Format("{0}: Doing login with {1} at {2}", this, Authorizer.GetType(), loginPath));
+            var loginPath = Authenticator.LoginPathForSite(RemoteUrl);
+            Log.D(Tag, string.Format("{0}: Doing login with {1} at {2}", this, Authenticator.GetType(), loginPath));
 
             Log.D(Tag, string.Format("{0} | {1} : login() calling asyncTaskStarted()", this, Sharpen.Thread.CurrentThread()));
             AsyncTaskStarted();
