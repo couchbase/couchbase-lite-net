@@ -17,6 +17,6 @@ Couchbase Mobile enables mobile application developers to create highly responsi
 
 Couchbase Lite .NET for Xamarin currently supports deployment to iOS 6+ and Android 2.2+.
 
-# Manuals & Release Notes
+# Manuals
 
 Learn how Couchbase Lite and Sync Gateway works at our [Couchbase Mobile Developer portal](http://developer.couchbase.com/mobile/index.html).
