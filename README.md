@@ -39,7 +39,7 @@ The upstream Java project is:
     https://github.com/couchbase/couchbase-lite-java-core
 
 The current codebase is based on commit:
-	03895431fe71ed9ccd74c9cbc11ad88c8ae65602
+	71ca5082c19ac9c0ca5049ba09715def67aa0714
 
 
 
