@@ -99,7 +99,8 @@ namespace Couchbase.Lite
 
             var url = GetReplicationURLWithoutCredentials();
 
-            var httpClientFactory = new CouchbaseLiteHttpClientFactory();
+            var cookieStore = new CookieStore();
+            var httpClientFactory = new CouchbaseLiteHttpClientFactory(cookieStore);
             manager.DefaultHttpClientFactory = httpClientFactory;
             Replication replicator = database.CreatePushReplication(url);
             replicator.Authenticator = AuthenticatorFactory.CreateFacebookAuthenticator(token);
@@ -128,7 +129,7 @@ namespace Couchbase.Lite
 
             var urlStr = url.ToString();
             urlStr = urlStr.EndsWith("/") ? urlStr : urlStr + "/";
-            var cookies = httpClientFactory.cookieStore.GetCookies(new Uri(urlStr));
+            var cookies = httpClientFactory.GetCookieContainer().GetCookies(new Uri(urlStr));
             Assert.IsTrue(cookies.Count == 1);
             Assert.AreEqual("SyncGatewaySession", cookies[0].Name);
         }
