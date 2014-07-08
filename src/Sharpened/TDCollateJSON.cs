@@ -1,10 +1,4 @@
-//
-// TDCollateJSON.cs
-//
-// Author:
-//     Zachary Gramana  <zack@xamarin.com>
-//
-// Copyright (c) 2014 Xamarin Inc
+// 
 // Copyright (c) 2014 .NET Foundation
 //
 // Permission is hereby granted, free of charge, to any person obtaining
@@ -38,9 +32,7 @@
 // License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
 // either express or implied. See the License for the specific language governing permissions
 // and limitations under the License.
-//
-
-using Android.Database.Sqlite;
+//using Android.Database.Sqlite;
 using Android.OS;
 using Couchbase.Lite;
 using Sharpen;
@@ -78,6 +70,20 @@ namespace Couchbase.Lite
 
 		public static int TestDigitToInt(int digit)
 		{
+		}
+
+		/// <summary>
+		/// Convenience wrapper around testCollateJSON which calculates lengths based on string lengths
+		/// of params.
+		/// </summary>
+		/// <remarks>
+		/// Convenience wrapper around testCollateJSON which calculates lengths based on string lengths
+		/// of params.
+		/// </remarks>
+		public static int TestCollateJSONWrapper(int mode, string string1, string string2
+			)
+		{
+			return TestCollateJSON(mode, string1.Length, string1, string2.Length, string2);
 		}
 
 		static TDCollateJSON()

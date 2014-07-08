@@ -1,10 +1,4 @@
-//
-// DatabaseTest.cs
-//
-// Author:
-//     Zachary Gramana  <zack@xamarin.com>
-//
-// Copyright (c) 2014 Xamarin Inc
+// 
 // Copyright (c) 2014 .NET Foundation
 //
 // Permission is hereby granted, free of charge, to any person obtaining
@@ -38,12 +32,12 @@
 // License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
 // either express or implied. See the License for the specific language governing permissions
 // and limitations under the License.
-//
-
-using System;
+//using System;
 using System.Collections.Generic;
 using Couchbase.Lite;
+using Couchbase.Lite.Internal;
 using Couchbase.Lite.Replicator;
+using Couchbase.Lite.Support;
 using Sharpen;
 
 namespace Couchbase.Lite
@@ -67,7 +61,7 @@ namespace Couchbase.Lite
 				rev = rev.CreateRevision(properties2);
 			}
 			int numPruned = database.PruneRevsToMaxDepth(1);
-			NUnit.Framework.Assert.AreEqual(9, numPruned);
+			NUnit.Framework.Assert.AreEqual(10, numPruned);
 			Document fetchedDoc = database.GetDocument(doc.GetId());
 			IList<SavedRevision> revisions = fetchedDoc.GetRevisionHistory();
 			NUnit.Framework.Assert.AreEqual(1, revisions.Count);
@@ -108,17 +102,17 @@ namespace Couchbase.Lite
 			int numDocs = 50;
 			AtomicInteger atomicInteger = new AtomicInteger(0);
 			CountDownLatch countDownLatch = new CountDownLatch(1);
-			database.AddChangeListener(new _ChangeListener_78(atomicInteger));
-			database.RunInTransaction(new _TransactionalTask_85(this, numDocs, countDownLatch
+			database.AddChangeListener(new _ChangeListener_81(atomicInteger));
+			database.RunInTransaction(new _TransactionalTask_88(this, numDocs, countDownLatch
 				));
 			bool success = countDownLatch.Await(30, TimeUnit.Seconds);
 			NUnit.Framework.Assert.IsTrue(success);
 			NUnit.Framework.Assert.AreEqual(1, atomicInteger.Get());
 		}
 
-		private sealed class _ChangeListener_78 : Database.ChangeListener
+		private sealed class _ChangeListener_81 : Database.ChangeListener
 		{
-			public _ChangeListener_78(AtomicInteger atomicInteger)
+			public _ChangeListener_81(AtomicInteger atomicInteger)
 			{
 				this.atomicInteger = atomicInteger;
 			}
@@ -131,9 +125,9 @@ namespace Couchbase.Lite
 			private readonly AtomicInteger atomicInteger;
 		}
 
-		private sealed class _TransactionalTask_85 : TransactionalTask
+		private sealed class _TransactionalTask_88 : TransactionalTask
 		{
-			public _TransactionalTask_85(DatabaseTest _enclosing, int numDocs, CountDownLatch
+			public _TransactionalTask_88(DatabaseTest _enclosing, int numDocs, CountDownLatch
 				 countDownLatch)
 			{
 				this._enclosing = _enclosing;
@@ -165,14 +159,14 @@ namespace Couchbase.Lite
 			int numDocs = 50;
 			AtomicInteger atomicInteger = new AtomicInteger(0);
 			CountDownLatch countDownLatch = new CountDownLatch(1);
-			database.AddChangeListener(new _ChangeListener_112(atomicInteger));
+			database.AddChangeListener(new _ChangeListener_115(atomicInteger));
 			CreateDocuments(database, numDocs);
 			NUnit.Framework.Assert.AreEqual(numDocs, atomicInteger.Get());
 		}
 
-		private sealed class _ChangeListener_112 : Database.ChangeListener
+		private sealed class _ChangeListener_115 : Database.ChangeListener
 		{
-			public _ChangeListener_112(AtomicInteger atomicInteger)
+			public _ChangeListener_115(AtomicInteger atomicInteger)
 			{
 				this.atomicInteger = atomicInteger;
 			}
@@ -203,6 +197,64 @@ namespace Couchbase.Lite
 			NUnit.Framework.Assert.IsTrue(success);
 			NUnit.Framework.Assert.AreEqual(1, database.GetAllReplications().Count);
 			NUnit.Framework.Assert.AreEqual(0, database.GetActiveReplications().Count);
+		}
+
+		/// <exception cref="System.Exception"></exception>
+		public virtual void TestGetDatabaseNameFromPath()
+		{
+			NUnit.Framework.Assert.AreEqual("baz", FileDirUtils.GetDatabaseNameFromPath("foo/bar/baz.cblite"
+				));
+		}
+
+		/// <exception cref="System.Exception"></exception>
+		public virtual void TestEncodeDocumentJSON()
+		{
+			IDictionary<string, object> props = new Dictionary<string, object>();
+			props.Put("_local_seq", string.Empty);
+			RevisionInternal revisionInternal = new RevisionInternal(props, database);
+			byte[] encoded = database.EncodeDocumentJSON(revisionInternal);
+			NUnit.Framework.Assert.IsNotNull(encoded);
+		}
+
+		/// <exception cref="System.Exception"></exception>
+		public virtual void TestWinningRevIDOfDoc()
+		{
+			IDictionary<string, object> properties = new Dictionary<string, object>();
+			properties.Put("testName", "testCreateRevisions");
+			properties.Put("tag", 1337);
+			IDictionary<string, object> properties2a = new Dictionary<string, object>();
+			properties2a.Put("testName", "testCreateRevisions");
+			properties2a.Put("tag", 1338);
+			IDictionary<string, object> properties2b = new Dictionary<string, object>();
+			properties2b.Put("testName", "testCreateRevisions");
+			properties2b.Put("tag", 1339);
+			IList<bool> outIsDeleted = new AList<bool>();
+			IList<bool> outIsConflict = new AList<bool>();
+			// Create a conflict on purpose
+			Document doc = database.CreateDocument();
+			UnsavedRevision newRev1 = doc.CreateRevision();
+			newRev1.SetUserProperties(properties);
+			SavedRevision rev1 = newRev1.Save();
+			long docNumericId = database.GetDocNumericID(doc.GetId());
+			NUnit.Framework.Assert.IsTrue(docNumericId != 0);
+			NUnit.Framework.Assert.AreEqual(rev1.GetId(), database.WinningRevIDOfDoc(docNumericId
+				, outIsDeleted, outIsConflict));
+			NUnit.Framework.Assert.IsTrue(outIsConflict.Count == 0);
+			outIsDeleted = new AList<bool>();
+			outIsConflict = new AList<bool>();
+			UnsavedRevision newRev2a = rev1.CreateRevision();
+			newRev2a.SetUserProperties(properties2a);
+			SavedRevision rev2a = newRev2a.Save();
+			NUnit.Framework.Assert.AreEqual(rev2a.GetId(), database.WinningRevIDOfDoc(docNumericId
+				, outIsDeleted, outIsConflict));
+			NUnit.Framework.Assert.IsTrue(outIsConflict.Count == 0);
+			outIsDeleted = new AList<bool>();
+			outIsConflict = new AList<bool>();
+			UnsavedRevision newRev2b = rev1.CreateRevision();
+			newRev2b.SetUserProperties(properties2b);
+			SavedRevision rev2b = newRev2b.Save(true);
+			database.WinningRevIDOfDoc(docNumericId, outIsDeleted, outIsConflict);
+			NUnit.Framework.Assert.IsTrue(outIsConflict.Count > 0);
 		}
 	}
 }

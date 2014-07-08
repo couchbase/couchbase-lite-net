@@ -1,10 +1,4 @@
-//
-// RemoteRequest.cs
-//
-// Author:
-//     Zachary Gramana  <zack@xamarin.com>
-//
-// Copyright (c) 2014 Xamarin Inc
+// 
 // Copyright (c) 2014 .NET Foundation
 //
 // Permission is hereby granted, free of charge, to any person obtaining
@@ -38,9 +32,7 @@
 // License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
 // either express or implied. See the License for the specific language governing permissions
 // and limitations under the License.
-//
-
-using System;
+//using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Net;
@@ -55,6 +47,7 @@ using Apache.Http.Impl.Auth;
 using Apache.Http.Impl.Client;
 using Apache.Http.Protocol;
 using Couchbase.Lite;
+using Couchbase.Lite.Auth;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
 using Sharpen;
@@ -63,6 +56,10 @@ namespace Couchbase.Lite.Support
 {
 	public class RemoteRequest : Runnable
 	{
+		private const int MaxRetries = 2;
+
+		private const int RetryDelayMs = 10 * 1000;
+
 		protected internal ScheduledExecutorService workExecutor;
 
 		protected internal readonly HttpClientFactory clientFactory;
@@ -73,13 +70,25 @@ namespace Couchbase.Lite.Support
 
 		protected internal object body;
 
+		protected internal Authenticator authenticator;
+
+		protected internal RemoteRequestCompletionBlock onPreCompletion;
+
 		protected internal RemoteRequestCompletionBlock onCompletion;
+
+		protected internal RemoteRequestCompletionBlock onPostCompletion;
+
+		private int retryCount;
+
+		private Database db;
+
+		protected internal HttpRequestMessage request;
 
 		protected internal IDictionary<string, object> requestHeaders;
 
 		public RemoteRequest(ScheduledExecutorService workExecutor, HttpClientFactory clientFactory
-			, string method, Uri url, object body, IDictionary<string, object> requestHeaders
-			, RemoteRequestCompletionBlock onCompletion)
+			, string method, Uri url, object body, Database db, IDictionary<string, object> 
+			requestHeaders, RemoteRequestCompletionBlock onCompletion)
 		{
 			this.clientFactory = clientFactory;
 			this.method = method;
@@ -88,18 +97,40 @@ namespace Couchbase.Lite.Support
 			this.onCompletion = onCompletion;
 			this.workExecutor = workExecutor;
 			this.requestHeaders = requestHeaders;
+			this.db = db;
+			this.request = CreateConcreteRequest();
+			Log.V(Log.TagSync, "%s: RemoteRequest created, url: %s", this, url);
 		}
 
 		public virtual void Run()
 		{
+			Log.V(Log.TagSync, "%s: RemoteRequest run() called, url: %s", this, url);
 			HttpClient httpClient = clientFactory.GetHttpClient();
 			ClientConnectionManager manager = httpClient.GetConnectionManager();
-			HttpRequestMessage request = CreateConcreteRequest();
 			PreemptivelySetAuthCredentials(httpClient);
 			request.AddHeader("Accept", "multipart/related, application/json");
 			AddRequestHeaders(request);
 			SetBody(request);
 			ExecuteRequest(httpClient, request);
+			Log.V(Log.TagSync, "%s: RemoteRequest run() finished, url: %s", this, url);
+		}
+
+		public virtual void Abort()
+		{
+			if (request != null)
+			{
+				request.Abort();
+			}
+			else
+			{
+				Log.W(Log.TagRemoteRequest, "%s: Unable to abort request since underlying request is null"
+					, this);
+			}
+		}
+
+		public virtual HttpRequestMessage GetRequest()
+		{
+			return request;
 		}
 
 		protected internal virtual void AddRequestHeaders(HttpRequestMessage request)
@@ -109,6 +140,18 @@ namespace Couchbase.Lite.Support
 				request.AddHeader(requestHeaderKey, requestHeaders.Get(requestHeaderKey).ToString
 					());
 			}
+		}
+
+		public virtual void SetOnPostCompletion(RemoteRequestCompletionBlock onPostCompletion
+			)
+		{
+			this.onPostCompletion = onPostCompletion;
+		}
+
+		public virtual void SetOnPreCompletion(RemoteRequestCompletionBlock onPreCompletion
+			)
+		{
+			this.onPreCompletion = onPreCompletion;
 		}
 
 		protected internal virtual HttpRequestMessage CreateConcreteRequest()
@@ -135,7 +178,7 @@ namespace Couchbase.Lite.Support
 			return request;
 		}
 
-		private void SetBody(HttpRequestMessage request)
+		protected internal virtual void SetBody(HttpRequestMessage request)
 		{
 			// set body if appropriate
 			if (body != null && request is HttpEntityEnclosingRequestBase)
@@ -147,7 +190,7 @@ namespace Couchbase.Lite.Support
 				}
 				catch (Exception e)
 				{
-					Log.E(Database.Tag, "Error serializing body of request", e);
+					Log.E(Log.TagRemoteRequest, "Error serializing body of request", e);
 				}
 				ByteArrayEntity entity = new ByteArrayEntity(bodyBytes);
 				entity.SetContentType("application/json");
@@ -155,35 +198,78 @@ namespace Couchbase.Lite.Support
 			}
 		}
 
+		/// <summary>Set Authenticator for BASIC Authentication</summary>
+		public virtual void SetAuthenticator(Authenticator authenticator)
+		{
+			this.authenticator = authenticator;
+		}
+
+		/// <summary>
+		/// Retry this remote request, unless we've already retried MAX_RETRIES times
+		/// NOTE: This assumes all requests are idempotent, since even though we got an error back, the
+		/// request might have succeeded on the remote server, and by retrying we'd be issuing it again.
+		/// </summary>
+		/// <remarks>
+		/// Retry this remote request, unless we've already retried MAX_RETRIES times
+		/// NOTE: This assumes all requests are idempotent, since even though we got an error back, the
+		/// request might have succeeded on the remote server, and by retrying we'd be issuing it again.
+		/// PUT and POST requests aren't generally idempotent, but the ones sent by the replicator are.
+		/// </remarks>
+		/// <returns>true if going to retry the request, false otherwise</returns>
+		protected internal virtual bool RetryRequest()
+		{
+			if (retryCount >= MaxRetries)
+			{
+				return false;
+			}
+			workExecutor.Schedule(this, RetryDelayMs, TimeUnit.Milliseconds);
+			retryCount += 1;
+			Log.D(Log.TagRemoteRequest, "Will retry in %d ms", RetryDelayMs);
+			return true;
+		}
+
 		protected internal virtual void ExecuteRequest(HttpClient httpClient, HttpRequestMessage
 			 request)
 		{
 			object fullBody = null;
 			Exception error = null;
+			HttpResponse response = null;
 			try
 			{
-				HttpResponse response = httpClient.Execute(request);
+				Log.V(Log.TagSync, "%s: RemoteRequest executeRequest() called, url: %s", this, url
+					);
+				if (request.IsAborted())
+				{
+					Log.V(Log.TagSync, "%s: RemoteRequest has already been aborted", this);
+					RespondWithResult(fullBody, new Exception(string.Format("%s: Request %s has been aborted"
+						, this, request)), response);
+					return;
+				}
+				Log.V(Log.TagSync, "%s: RemoteRequest calling httpClient.execute", this);
+				response = httpClient.Execute(request);
+				Log.V(Log.TagSync, "%s: RemoteRequest called httpClient.execute", this);
 				// add in cookies to global store
 				try
 				{
 					if (httpClient is DefaultHttpClient)
 					{
 						DefaultHttpClient defaultHttpClient = (DefaultHttpClient)httpClient;
-						CouchbaseLiteHttpClientFactory.Instance.AddCookies(defaultHttpClient.GetCookieStore
-							().GetCookies());
+						this.clientFactory.AddCookies(defaultHttpClient.GetCookieStore().GetCookies());
 					}
 				}
 				catch (Exception e)
 				{
-					Log.E(Database.Tag, "Unable to add in cookies to global store", e);
+					Log.E(Log.TagRemoteRequest, "Unable to add in cookies to global store", e);
 				}
 				StatusLine status = response.GetStatusLine();
+				if (Utils.IsTransientError(status) && RetryRequest())
+				{
+					return;
+				}
 				if (status.GetStatusCode() >= 300)
 				{
-					Log.E(Database.Tag, "Got error " + Sharpen.Extensions.ToString(status.GetStatusCode
-						()));
-					Log.E(Database.Tag, "Request was for: " + request.ToString());
-					Log.E(Database.Tag, "Status reason: " + status.GetReasonPhrase());
+					Log.E(Log.TagRemoteRequest, "Got error status: %d for %s.  Reason: %s", status.GetStatusCode
+						(), request, status.GetReasonPhrase());
 					error = new HttpResponseException(status.GetStatusCode(), status.GetReasonPhrase(
 						));
 				}
@@ -211,52 +297,76 @@ namespace Couchbase.Lite.Support
 					}
 				}
 			}
-			catch (ClientProtocolException e)
-			{
-				Log.E(Database.Tag, "client protocol exception", e);
-				error = e;
-			}
 			catch (IOException e)
 			{
-				Log.E(Database.Tag, "io exception", e);
+				Log.E(Log.TagRemoteRequest, "io exception", e);
+				error = e;
+				// Treat all IOExceptions as transient, per:
+				// http://hc.apache.org/httpclient-3.x/exception-handling.html
+				Log.V(Log.TagSync, "%s: RemoteRequest calling retryRequest()", this);
+				if (RetryRequest())
+				{
+					return;
+				}
+			}
+			catch (Exception e)
+			{
+				Log.E(Log.TagRemoteRequest, "%s: executeRequest() Exception: ", e, this);
 				error = e;
 			}
-			RespondWithResult(fullBody, error);
+			Log.V(Log.TagSync, "%s: RemoteRequest calling respondWithResult.  error: %s", this
+				, error);
+			RespondWithResult(fullBody, error, response);
 		}
 
 		protected internal virtual void PreemptivelySetAuthCredentials(HttpClient httpClient
 			)
 		{
-			// if the URL contains user info AND if this a DefaultHttpClient
-			// then preemptively set the auth credentials
-			if (url.GetUserInfo() != null)
+			bool isUrlBasedUserInfo = false;
+			string userInfo = url.GetUserInfo();
+			if (userInfo != null)
 			{
-				if (url.GetUserInfo().Contains(":") && !url.GetUserInfo().Trim().Equals(":"))
+				isUrlBasedUserInfo = true;
+			}
+			else
+			{
+				if (authenticator != null)
 				{
-					string[] userInfoSplit = url.GetUserInfo().Split(":");
-					Credentials creds = new UsernamePasswordCredentials(URIUtils.Decode(userInfoSplit
-						[0]), URIUtils.Decode(userInfoSplit[1]));
+					AuthenticatorImpl auth = (AuthenticatorImpl)authenticator;
+					userInfo = auth.AuthUserInfo();
+				}
+			}
+			if (userInfo != null)
+			{
+				if (userInfo.Contains(":") && !userInfo.Trim().Equals(":"))
+				{
+					string[] userInfoElements = userInfo.Split(":");
+					string username = isUrlBasedUserInfo ? URIUtils.Decode(userInfoElements[0]) : userInfoElements
+						[0];
+					string password = isUrlBasedUserInfo ? URIUtils.Decode(userInfoElements[1]) : userInfoElements
+						[1];
+					Credentials credentials = new UsernamePasswordCredentials(username, password);
 					if (httpClient is DefaultHttpClient)
 					{
 						DefaultHttpClient dhc = (DefaultHttpClient)httpClient;
-						MessageProcessingHandler preemptiveAuth = new _MessageProcessingHandler_185(creds
+						MessageProcessingHandler preemptiveAuth = new _MessageProcessingHandler_286(credentials
 							);
 						dhc.AddRequestInterceptor(preemptiveAuth, 0);
 					}
 				}
 				else
 				{
-					Log.W(Database.Tag, "RemoteRequest Unable to parse user info, not setting credentials"
+					Log.W(Log.TagRemoteRequest, "RemoteRequest Unable to parse user info, not setting credentials"
 						);
 				}
 			}
 		}
 
-		private sealed class _MessageProcessingHandler_185 : MessageProcessingHandler
+		private sealed class _MessageProcessingHandler_286 : MessageProcessingHandler
 		{
-			public _MessageProcessingHandler_185(Credentials creds)
+			public _MessageProcessingHandler_286(Credentials credentials)
 			{
-				this.creds = creds;
+				this.credentials = credentials;
 			}
 
 			/// <exception cref="Apache.Http.HttpException"></exception>
@@ -265,61 +375,68 @@ namespace Couchbase.Lite.Support
 			{
 				AuthState authState = (AuthState)context.GetAttribute(ClientContext.TargetAuthState
 					);
-				CredentialsProvider credsProvider = (CredentialsProvider)context.GetAttribute(ClientContext
-					.CredsProvider);
-				HttpHost targetHost = (HttpHost)context.GetAttribute(ExecutionContext.HttpTargetHost
-					);
 				if (authState.GetAuthScheme() == null)
 				{
-					AuthScope authScope = new AuthScope(targetHost.GetHostName(), targetHost.GetPort(
-						));
 					authState.SetAuthScheme(new BasicScheme());
-					authState.SetCredentials(creds);
+					authState.SetCredentials(credentials);
 				}
 			}
 
-			private readonly Credentials creds;
+			private readonly Credentials credentials;
 		}
 
-		public virtual void RespondWithResult(object result, Exception error)
+		public virtual void RespondWithResult(object result, Exception error, HttpResponse
+			 response)
 		{
 			if (workExecutor != null)
 			{
-				workExecutor.Submit(new _Runnable_219(this, result, error));
+				workExecutor.Submit(new _Runnable_307(this, response, error, result));
 			}
 			else
 			{
 				// don't let this crash the thread
-				Log.E(Database.Tag, "work executor was null!!!");
+				Log.E(Log.TagRemoteRequest, "Work executor was null!");
 			}
 		}
 
-		private sealed class _Runnable_219 : Runnable
+		private sealed class _Runnable_307 : Runnable
 		{
-			public _Runnable_219(RemoteRequest _enclosing, object result, Exception error)
+			public _Runnable_307(RemoteRequest _enclosing, HttpResponse response, Exception error
+				, object result)
 			{
 				this._enclosing = _enclosing;
-				this.result = result;
+				this.response = response;
 				this.error = error;
+				this.result = result;
 			}
 
 			public void Run()
 			{
 				try
 				{
+					if (this._enclosing.onPreCompletion != null)
+					{
+						this._enclosing.onPreCompletion.OnCompletion(response, error);
+					}
 					this._enclosing.onCompletion.OnCompletion(result, error);
+					if (this._enclosing.onPostCompletion != null)
+					{
+						this._enclosing.onPostCompletion.OnCompletion(response, error);
+					}
 				}
 				catch (Exception e)
 				{
-					Log.E(Database.Tag, "RemoteRequestCompletionBlock throw Exception", e);
+					Log.E(Log.TagRemoteRequest, "RemoteRequestCompletionBlock throw Exception", e);
 				}
 			}
 
 			private readonly RemoteRequest _enclosing;
 
-			private readonly object result;
+			private readonly HttpResponse response;
 
 			private readonly Exception error;
+
+			private readonly object result;
 		}
 	}
 }

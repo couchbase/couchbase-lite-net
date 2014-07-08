@@ -1,10 +1,4 @@
-//
-// AttachmentsTest.cs
-//
-// Author:
-//     Zachary Gramana  <zack@xamarin.com>
-//
-// Copyright (c) 2014 Xamarin Inc
+// 
 // Copyright (c) 2014 .NET Foundation
 //
 // Permission is hereby granted, free of charge, to any person obtaining
@@ -38,14 +32,13 @@
 // License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
 // either express or implied. See the License for the specific language governing permissions
 // and limitations under the License.
-//
-
-using System.Collections;
+//using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using Couchbase.Lite;
 using Couchbase.Lite.Internal;
+using Couchbase.Lite.Storage;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
 using NUnit.Framework;
@@ -76,6 +69,21 @@ namespace Couchbase.Lite
 			database.InsertAttachmentForSequenceWithNameAndType(new ByteArrayInputStream(attach1
 				), rev1.GetSequence(), testAttachmentName, "text/plain", rev1.GetGeneration());
 			NUnit.Framework.Assert.AreEqual(Status.Created, status.GetCode());
+			//We must set the no_attachments column for the rev to false, as we are using an internal
+			//private API call above (database.insertAttachmentForSequenceWithNameAndType) which does
+			//not set the no_attachments column on revs table
+			try
+			{
+				ContentValues args = new ContentValues();
+				args.Put("no_attachments=", false);
+				database.GetDatabase().Update("revs", args, "sequence=?", new string[] { rev1.GetSequence
+					().ToString() });
+			}
+			catch (SQLException e)
+			{
+				Log.E(Database.Tag, "Error setting rev1 no_attachments to false", e);
+				throw new CouchbaseLiteException(Status.InternalServerError);
+			}
 			Attachment attachment = database.GetAttachmentForSequence(rev1.GetSequence(), testAttachmentName
 				);
 			NUnit.Framework.Assert.AreEqual("text/plain", attachment.GetContentType());
@@ -142,6 +150,22 @@ namespace Couchbase.Lite
 			NUnit.Framework.Assert.AreEqual("text/html", attachment3.GetContentType());
 			data = IOUtils.ToByteArray(attachment3.GetContent());
 			NUnit.Framework.Assert.IsTrue(Arrays.Equals(attach2, data));
+			IDictionary<string, object> attachmentDictForRev3 = (IDictionary<string, object>)
+				database.GetAttachmentsDictForSequenceWithContent(rev3.GetSequence(), EnumSet.NoneOf
+				<Database.TDContentOptions>()).Get(testAttachmentName);
+			if (attachmentDictForRev3.ContainsKey("follows"))
+			{
+				if (((bool)attachmentDictForRev3.Get("follows")) == true)
+				{
+					throw new RuntimeException("Did not expected attachment dict 'follows' key to be true"
+						);
+				}
+				else
+				{
+					throw new RuntimeException("Did not expected attachment dict to have 'follows' key"
+						);
+				}
+			}
 			// Examine the attachment store:
 			NUnit.Framework.Assert.AreEqual(2, attachments.Count());
 			ICollection<BlobKey> expected = new HashSet<BlobKey>();
@@ -189,13 +213,17 @@ namespace Couchbase.Lite
 				(rev1.GetSequence(), contentOptions);
 			IDictionary<string, object> innerDict = (IDictionary<string, object>)attachmentDictForSequence
 				.Get(testAttachmentName);
-			if (!innerDict.ContainsKey("stub"))
+			if (innerDict.ContainsKey("stub"))
 			{
-				throw new RuntimeException("Expected attachment dict to have 'stub' key");
-			}
-			if (((bool)innerDict.Get("stub")) == false)
-			{
-				throw new RuntimeException("Expected attachment dict 'stub' key to be true");
+				if (((bool)innerDict.Get("stub")) == true)
+				{
+					throw new RuntimeException("Did not expected attachment dict 'stub' key to be true"
+						);
+				}
+				else
+				{
+					throw new RuntimeException("Did not expected attachment dict to have 'stub' key");
+				}
 			}
 			if (!innerDict.ContainsKey("follows"))
 			{
@@ -294,10 +322,13 @@ namespace Couchbase.Lite
 			// Update the attachment directly:
 			byte[] attachv2 = Sharpen.Runtime.GetBytesForString("Replaced body of attach");
 			bool gotExpectedErrorCode = false;
+			BlobStoreWriter blobWriter = new BlobStoreWriter(database.GetAttachments());
+			blobWriter.AppendData(attachv2);
+			blobWriter.Finish();
 			try
 			{
-				database.UpdateAttachment(testAttachmentName, new ByteArrayInputStream(attachv2), 
-					"application/foo", rev1.GetDocId(), null);
+				database.UpdateAttachment(testAttachmentName, blobWriter, "application/foo", AttachmentInternal.AttachmentEncoding
+					.AttachmentEncodingNone, rev1.GetDocId(), null);
 			}
 			catch (CouchbaseLiteException e)
 			{
@@ -307,8 +338,8 @@ namespace Couchbase.Lite
 			gotExpectedErrorCode = false;
 			try
 			{
-				database.UpdateAttachment(testAttachmentName, new ByteArrayInputStream(attachv2), 
-					"application/foo", rev1.GetDocId(), "1-bogus");
+				database.UpdateAttachment(testAttachmentName, blobWriter, "application/foo", AttachmentInternal.AttachmentEncoding
+					.AttachmentEncodingNone, rev1.GetDocId(), "1-bogus");
 			}
 			catch (CouchbaseLiteException e)
 			{
@@ -319,8 +350,9 @@ namespace Couchbase.Lite
 			RevisionInternal rev2 = null;
 			try
 			{
-				rev2 = database.UpdateAttachment(testAttachmentName, new ByteArrayInputStream(attachv2
-					), "application/foo", rev1.GetDocId(), rev1.GetRevId());
+				rev2 = database.UpdateAttachment(testAttachmentName, blobWriter, "application/foo"
+					, AttachmentInternal.AttachmentEncoding.AttachmentEncodingNone, rev1.GetDocId(), 
+					rev1.GetRevId());
 			}
 			catch (CouchbaseLiteException)
 			{
@@ -346,8 +378,8 @@ namespace Couchbase.Lite
 			gotExpectedErrorCode = false;
 			try
 			{
-				database.UpdateAttachment("nosuchattach", null, null, rev2.GetDocId(), rev2.GetRevId
-					());
+				database.UpdateAttachment("nosuchattach", null, null, AttachmentInternal.AttachmentEncoding
+					.AttachmentEncodingNone, rev2.GetDocId(), rev2.GetRevId());
 			}
 			catch (CouchbaseLiteException e)
 			{
@@ -357,7 +389,8 @@ namespace Couchbase.Lite
 			gotExpectedErrorCode = false;
 			try
 			{
-				database.UpdateAttachment("nosuchattach", null, null, "nosuchdoc", "nosuchrev");
+				database.UpdateAttachment("nosuchattach", null, null, AttachmentInternal.AttachmentEncoding
+					.AttachmentEncodingNone, "nosuchdoc", "nosuchrev");
 			}
 			catch (CouchbaseLiteException e)
 			{
@@ -365,7 +398,8 @@ namespace Couchbase.Lite
 			}
 			NUnit.Framework.Assert.IsTrue(gotExpectedErrorCode);
 			RevisionInternal rev3 = database.UpdateAttachment(testAttachmentName, null, null, 
-				rev2.GetDocId(), rev2.GetRevId());
+				AttachmentInternal.AttachmentEncoding.AttachmentEncodingNone, rev2.GetDocId(), rev2
+				.GetRevId());
 			NUnit.Framework.Assert.AreEqual(rev2.GetDocId(), rev3.GetDocId());
 			NUnit.Framework.Assert.AreEqual(3, rev3.GetGeneration());
 			// Get the updated revision:
@@ -416,7 +450,7 @@ namespace Couchbase.Lite
 			rev.Save();
 			// do query that finds that doc with prefetch
 			View view = database.GetView("aview");
-			view.SetMapReduce(new _Mapper_432(), null, "1");
+			view.SetMapReduce(new _Mapper_461(), null, "1");
 			// try to get the attachment
 			Query query = view.CreateQuery();
 			query.SetPrefetch(true);
@@ -444,9 +478,9 @@ namespace Couchbase.Lite
 			}
 		}
 
-		private sealed class _Mapper_432 : Mapper
+		private sealed class _Mapper_461 : Mapper
 		{
-			public _Mapper_432()
+			public _Mapper_461()
 			{
 			}
 

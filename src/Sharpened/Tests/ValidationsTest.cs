@@ -1,10 +1,4 @@
-//
-// ValidationsTest.cs
-//
-// Author:
-//     Zachary Gramana  <zack@xamarin.com>
-//
-// Copyright (c) 2014 Xamarin Inc
+// 
 // Copyright (c) 2014 .NET Foundation
 //
 // Permission is hereby granted, free of charge, to any person obtaining
@@ -38,9 +32,7 @@
 // License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
 // either express or implied. See the License for the specific language governing permissions
 // and limitations under the License.
-//
-
-using System.Collections.Generic;
+//using System.Collections.Generic;
 using Couchbase.Lite;
 using Couchbase.Lite.Internal;
 using Couchbase.Lite.Util;

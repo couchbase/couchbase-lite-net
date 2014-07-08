@@ -1,10 +1,4 @@
-//
-// FacebookAuthorizer.cs
-//
-// Author:
-//     Zachary Gramana  <zack@xamarin.com>
-//
-// Copyright (c) 2014 Xamarin Inc
+// 
 // Copyright (c) 2014 .NET Foundation
 //
 // Permission is hereby granted, free of charge, to any person obtaining
@@ -38,17 +32,16 @@
 // License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
 // either express or implied. See the License for the specific language governing permissions
 // and limitations under the License.
-//
-
-using System;
+//using System;
 using System.Collections.Generic;
-using Couchbase.Lite;
 using Couchbase.Lite.Auth;
 using Couchbase.Lite.Util;
 using Sharpen;
 
 namespace Couchbase.Lite.Auth
 {
+	/// <summary>Authenticator impl that knows how to do facebook auth</summary>
+	/// <exclude></exclude>
 	public class FacebookAuthorizer : Authorizer
 	{
 		public const string LoginParameterAccessToken = "access_token";
@@ -89,7 +82,7 @@ namespace Couchbase.Lite.Auth
 			}
 			catch (Exception e)
 			{
-				Log.E(Database.Tag, "Error looking login parameters for site", e);
+				Log.E(Log.TagSync, "Error looking login parameters for site", e);
 			}
 			return null;
 		}
@@ -111,7 +104,7 @@ namespace Couchbase.Lite.Auth
 				{
 					accessTokens = new Dictionary<IList<string>, string>();
 				}
-				Log.D(Database.Tag, "FacebookAuthorizer registering key: " + key);
+				Log.V(Log.TagSync, "FacebookAuthorizer registering key: %s", key);
 				accessTokens.Put(key, accessToken);
 				return email;
 			}
@@ -124,13 +117,13 @@ namespace Couchbase.Lite.Auth
 				IList<string> key = new AList<string>();
 				key.AddItem(email);
 				key.AddItem(site.ToExternalForm().ToLower());
-				Log.D(Database.Tag, "FacebookAuthorizer looking up key: " + key + " from list of access tokens"
-					);
+				Log.V(Log.TagSync, "FacebookAuthorizer looking up key: %s from list of access tokens"
+					, key);
 				return accessTokens.Get(key);
 			}
 			catch (Exception e)
 			{
-				Log.E(Database.Tag, "Error looking up access token", e);
+				Log.E(Log.TagSync, "Error looking up access token", e);
 			}
 			return null;
 		}

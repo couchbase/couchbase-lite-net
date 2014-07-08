@@ -1,10 +1,4 @@
-//
-// CouchbaseLiteHttpClientFactory.cs
-//
-// Author:
-//     Zachary Gramana  <zack@xamarin.com>
-//
-// Copyright (c) 2014 Xamarin Inc
+// 
 // Copyright (c) 2014 .NET Foundation
 //
 // Permission is hereby granted, free of charge, to any person obtaining
@@ -38,17 +32,15 @@
 // License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
 // either express or implied. See the License for the specific language governing permissions
 // and limitations under the License.
-//
-
-using System.Collections.Generic;
+//using System.Collections.Generic;
 using Apache.Http.Client;
 using Apache.Http.Conn;
 using Apache.Http.Conn.Scheme;
 using Apache.Http.Conn.Ssl;
 using Apache.Http.Impl.Client;
-using Apache.Http.Impl.Client.Trunk;
 using Apache.Http.Impl.Conn.Tsccm;
 using Apache.Http.Params;
+using Couchbase.Lite.Internal;
 using Couchbase.Lite.Support;
 using Sharpen;
 
@@ -56,16 +48,27 @@ namespace Couchbase.Lite.Support
 {
 	public class CouchbaseLiteHttpClientFactory : HttpClientFactory
 	{
-		public static CouchbaseLiteHttpClientFactory Instance;
-
 		private CookieStore cookieStore;
 
 		private SSLSocketFactory sslSocketFactory;
+
+		private BasicHttpParams basicHttpParams;
+
+		public const int DefaultConnectionTimeoutSeconds = 60;
+
+		public const int DefaultSoTimeoutSeconds = 60;
+
+		/// <summary>Constructor</summary>
+		public CouchbaseLiteHttpClientFactory(CookieStore cookieStore)
+		{
+			this.cookieStore = cookieStore;
+		}
 
 		/// <param name="sslSocketFactoryFromUser">
 		/// This is to open up the system for end user to inject the sslSocket factories with their
 		/// custom KeyStore
 		/// </param>
+		[InterfaceAudience.Private]
 		public virtual void SetSSLSocketFactory(SSLSocketFactory sslSocketFactoryFromUser
 			)
 		{
@@ -76,22 +79,36 @@ namespace Couchbase.Lite.Support
 			sslSocketFactory = sslSocketFactoryFromUser;
 		}
 
+		[InterfaceAudience.Private]
+		public virtual void SetBasicHttpParams(BasicHttpParams basicHttpParams)
+		{
+			this.basicHttpParams = basicHttpParams;
+		}
+
+		[InterfaceAudience.Private]
 		public virtual HttpClient GetHttpClient()
 		{
 			// workaround attempt for issue #81
 			// it does not seem like _not_ using the ThreadSafeClientConnManager actually
 			// caused any problems, but it seems wise to use it "just in case", since it provides
 			// extra safety and there are no observed side effects.
-			BasicHttpParams @params = new BasicHttpParams();
+			if (basicHttpParams == null)
+			{
+				basicHttpParams = new BasicHttpParams();
+				HttpConnectionParams.SetConnectionTimeout(basicHttpParams, DefaultConnectionTimeoutSeconds
+					 * 1000);
+				HttpConnectionParams.SetSoTimeout(basicHttpParams, DefaultSoTimeoutSeconds * 1000
+					);
+			}
 			SchemeRegistry schemeRegistry = new SchemeRegistry();
 			schemeRegistry.Register(new Apache.Http.Conn.Scheme.Scheme("http", PlainSocketFactory
 				.GetSocketFactory(), 80));
 			SSLSocketFactory sslSocketFactory = SSLSocketFactory.GetSocketFactory();
 			schemeRegistry.Register(new Apache.Http.Conn.Scheme.Scheme("https", this.sslSocketFactory
 				 == null ? sslSocketFactory : this.sslSocketFactory, 443));
-			ClientConnectionManager cm = new ThreadSafeClientConnManager(@params, schemeRegistry
+			ClientConnectionManager cm = new ThreadSafeClientConnManager(basicHttpParams, schemeRegistry
 				);
-			DefaultHttpClient client = new DefaultHttpClient(cm, @params);
+			DefaultHttpClient client = new DefaultHttpClient(cm, basicHttpParams);
 			// synchronize access to the cookieStore in case there is another
 			// thread in the middle of updating it.  wait until they are done so we get their changes.
 			lock (this)
@@ -101,19 +118,54 @@ namespace Couchbase.Lite.Support
 			return client;
 		}
 
+		[InterfaceAudience.Private]
 		public virtual void AddCookies(IList<Apache.Http.Cookie.Cookie> cookies)
 		{
+			if (cookieStore == null)
+			{
+				return;
+			}
 			lock (this)
 			{
-				if (cookieStore == null)
-				{
-					cookieStore = new BasicCookieStore();
-				}
 				foreach (Apache.Http.Cookie.Cookie cookie in cookies)
 				{
 					cookieStore.AddCookie(cookie);
 				}
 			}
+		}
+
+		public virtual void DeleteCookie(string name)
+		{
+			// since CookieStore does not have a way to delete an individual cookie, do workaround:
+			// 1. get all cookies
+			// 2. filter list to strip out the one we want to delete
+			// 3. clear cookie store
+			// 4. re-add all cookies except the one we want to delete
+			if (cookieStore == null)
+			{
+				return;
+			}
+			IList<Apache.Http.Cookie.Cookie> cookies = cookieStore.GetCookies();
+			IList<Apache.Http.Cookie.Cookie> retainedCookies = new AList<Apache.Http.Cookie.Cookie
+				>();
+			foreach (Apache.Http.Cookie.Cookie cookie in cookies)
+			{
+				if (!cookie.GetName().Equals(name))
+				{
+					retainedCookies.AddItem(cookie);
+				}
+			}
+			cookieStore.Clear();
+			foreach (Apache.Http.Cookie.Cookie retainedCookie in retainedCookies)
+			{
+				cookieStore.AddCookie(retainedCookie);
+			}
+		}
+
+		[InterfaceAudience.Private]
+		public virtual CookieStore GetCookieStore()
+		{
+			return cookieStore;
 		}
 	}
 }

@@ -1,10 +1,4 @@
-//
-// CustomizableMockHttpClient.cs
-//
-// Author:
-//     Zachary Gramana  <zack@xamarin.com>
-//
-// Copyright (c) 2014 Xamarin Inc
+// 
 // Copyright (c) 2014 .NET Foundation
 //
 // Permission is hereby granted, free of charge, to any person obtaining
@@ -38,9 +32,7 @@
 // License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
 // either express or implied. See the License for the specific language governing permissions
 // and limitations under the License.
-//
-
-using System;
+//using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
@@ -65,8 +57,8 @@ namespace Couchbase.Lite.Replicator
 	{
 		private IDictionary<string, CustomizableMockHttpClient.Responder> responders;
 
-		private IList<HttpWebRequest> capturedRequests = Sharpen.Collections.SynchronizedList
-			(new AList<HttpWebRequest>());
+		private IList<HttpWebRequest> capturedRequests = new CopyOnWriteArrayList<HttpWebRequest
+			>();
 
 		private long responseDelayMilliseconds;
 
@@ -119,12 +111,12 @@ namespace Couchbase.Lite.Replicator
 
 		public virtual void AddResponderFailAllRequests(int statusCode)
 		{
-			SetResponder("*", new _Responder_83(statusCode));
+			SetResponder("*", new _Responder_84(statusCode));
 		}
 
-		private sealed class _Responder_83 : CustomizableMockHttpClient.Responder
+		private sealed class _Responder_84 : CustomizableMockHttpClient.Responder
 		{
-			public _Responder_83(int statusCode)
+			public _Responder_84(int statusCode)
 			{
 				this.statusCode = statusCode;
 			}
@@ -141,12 +133,12 @@ namespace Couchbase.Lite.Replicator
 
 		public virtual void AddResponderThrowExceptionAllRequests()
 		{
-			SetResponder("*", new _Responder_92());
+			SetResponder("*", new _Responder_93());
 		}
 
-		private sealed class _Responder_92 : CustomizableMockHttpClient.Responder
+		private sealed class _Responder_93 : CustomizableMockHttpClient.Responder
 		{
-			public _Responder_92()
+			public _Responder_93()
 			{
 			}
 
@@ -157,14 +149,46 @@ namespace Couchbase.Lite.Replicator
 			}
 		}
 
-		public virtual void AddResponderFakeLocalDocumentUpdate404()
+		public virtual void AddResponderFakeLocalDocumentUpdate401()
 		{
-			responders.Put("_local", new _Responder_101());
+			responders.Put("_local", GetFakeLocalDocumentUpdate401());
 		}
 
-		private sealed class _Responder_101 : CustomizableMockHttpClient.Responder
+		public virtual CustomizableMockHttpClient.Responder GetFakeLocalDocumentUpdate401
+			()
 		{
-			public _Responder_101()
+			return new _Responder_106();
+		}
+
+		private sealed class _Responder_106 : CustomizableMockHttpClient.Responder
+		{
+			public _Responder_106()
+			{
+			}
+
+			/// <exception cref="System.IO.IOException"></exception>
+			public HttpResponse Execute(HttpRequestMessage httpUriRequest)
+			{
+				string json = "{\"error\":\"Unauthorized\",\"reason\":\"Login required\"}";
+				return Couchbase.Lite.Replicator.CustomizableMockHttpClient.GenerateHttpResponseObject
+					(401, "Unauthorized", json);
+			}
+		}
+
+		public virtual void AddResponderFakeLocalDocumentUpdate404()
+		{
+			responders.Put("_local", GetFakeLocalDocumentUpdate404());
+		}
+
+		public virtual CustomizableMockHttpClient.Responder GetFakeLocalDocumentUpdate404
+			()
+		{
+			return new _Responder_120();
+		}
+
+		private sealed class _Responder_120 : CustomizableMockHttpClient.Responder
+		{
+			public _Responder_120()
 			{
 			}
 
@@ -179,12 +203,12 @@ namespace Couchbase.Lite.Replicator
 
 		public virtual void AddResponderFakeLocalDocumentUpdateIOException()
 		{
-			responders.Put("_local", new _Responder_111());
+			responders.Put("_local", new _Responder_130());
 		}
 
-		private sealed class _Responder_111 : CustomizableMockHttpClient.Responder
+		private sealed class _Responder_130 : CustomizableMockHttpClient.Responder
 		{
-			public _Responder_111()
+			public _Responder_130()
 			{
 			}
 
@@ -198,12 +222,17 @@ namespace Couchbase.Lite.Replicator
 
 		public virtual void AddResponderFakeBulkDocs()
 		{
-			responders.Put("_bulk_docs", new _Responder_120());
+			responders.Put("_bulk_docs", FakeBulkDocsResponder());
 		}
 
-		private sealed class _Responder_120 : CustomizableMockHttpClient.Responder
+		public static CustomizableMockHttpClient.Responder FakeBulkDocsResponder()
 		{
-			public _Responder_120()
+			return new _Responder_143();
+		}
+
+		private sealed class _Responder_143 : CustomizableMockHttpClient.Responder
+		{
+			public _Responder_143()
 			{
 			}
 
@@ -215,14 +244,47 @@ namespace Couchbase.Lite.Replicator
 			}
 		}
 
-		public virtual void AddResponderRevDiffsAllMissing()
+		public static CustomizableMockHttpClient.Responder TransientErrorResponder(int statusCode
+			, string statusMsg)
 		{
-			responders.Put("_revs_diff", new _Responder_129());
+			return new _Responder_152(statusCode, statusMsg);
 		}
 
-		private sealed class _Responder_129 : CustomizableMockHttpClient.Responder
+		private sealed class _Responder_152 : CustomizableMockHttpClient.Responder
 		{
-			public _Responder_129()
+			public _Responder_152(int statusCode, string statusMsg)
+			{
+				this.statusCode = statusCode;
+				this.statusMsg = statusMsg;
+			}
+
+			/// <exception cref="System.IO.IOException"></exception>
+			public HttpResponse Execute(HttpRequestMessage httpUriRequest)
+			{
+				if (statusCode == -1)
+				{
+					throw new IOException("Fake IO Exception from transientErrorResponder");
+				}
+				else
+				{
+					return Couchbase.Lite.Replicator.CustomizableMockHttpClient.GenerateHttpResponseObject
+						(statusCode, statusMsg, null);
+				}
+			}
+
+			private readonly int statusCode;
+
+			private readonly string statusMsg;
+		}
+
+		public virtual void AddResponderRevDiffsAllMissing()
+		{
+			responders.Put("_revs_diff", new _Responder_166());
+		}
+
+		private sealed class _Responder_166 : CustomizableMockHttpClient.Responder
+		{
+			public _Responder_166()
 			{
 			}
 
@@ -244,12 +306,12 @@ namespace Couchbase.Lite.Replicator
 
 		public virtual void AddResponderReturnInvalidChangesFeedJson()
 		{
-			SetResponder("_changes", new _Responder_146());
+			SetResponder("_changes", new _Responder_183());
 		}
 
-		private sealed class _Responder_146 : CustomizableMockHttpClient.Responder
+		private sealed class _Responder_183 : CustomizableMockHttpClient.Responder
 		{
-			public _Responder_146()
+			public _Responder_183()
 			{
 			}
 
@@ -269,12 +331,12 @@ namespace Couchbase.Lite.Replicator
 
 		public virtual void AddResponderReturnEmptyChangesFeed()
 		{
-			SetResponder("_changes", new _Responder_160());
+			SetResponder("_changes", new _Responder_197());
 		}
 
-		private sealed class _Responder_160 : CustomizableMockHttpClient.Responder
+		private sealed class _Responder_197 : CustomizableMockHttpClient.Responder
 		{
-			public _Responder_160()
+			public _Responder_197()
 			{
 			}
 
@@ -289,9 +351,7 @@ namespace Couchbase.Lite.Replicator
 
 		public virtual IList<HttpWebRequest> GetCapturedRequests()
 		{
-			IList<HttpWebRequest> snapshot = new AList<HttpWebRequest>();
-			Sharpen.Collections.AddAll(snapshot, capturedRequests);
-			return snapshot;
+			return capturedRequests;
 		}
 
 		public virtual void ClearCapturedRequests()
@@ -415,8 +475,11 @@ namespace Couchbase.Lite.Replicator
 			BasicStatusLine statusLine = new BasicStatusLine(HttpVersion.Http11, statusCode, 
 				statusString);
 			HttpResponse response = responseFactory.NewHttpResponse(statusLine, null);
-			byte[] responseBytes = Sharpen.Runtime.GetBytesForString(responseJson);
-			response.SetEntity(new ByteArrayEntity(responseBytes));
+			if (responseJson != null)
+			{
+				byte[] responseBytes = Sharpen.Runtime.GetBytesForString(responseJson);
+				response.SetEntity(new ByteArrayEntity(responseBytes));
+			}
 			return response;
 		}
 

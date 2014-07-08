@@ -1,10 +1,4 @@
-//
-// AuthTest.cs
-//
-// Author:
-//     Zachary Gramana  <zack@xamarin.com>
-//
-// Copyright (c) 2014 Xamarin Inc
+// 
 // Copyright (c) 2014 .NET Foundation
 //
 // Permission is hereby granted, free of charge, to any person obtaining
@@ -38,9 +32,7 @@
 // License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
 // either express or implied. See the License for the specific language governing permissions
 // and limitations under the License.
-//
-
-using System;
+//using System;
 using System.Collections.Generic;
 using Couchbase.Lite;
 using Couchbase.Lite.Auth;
@@ -83,6 +75,50 @@ namespace Couchbase.Lite
 				Sharpen.Runtime.PrintStackTrace(e);
 				Assert.Fail(e.Message);
 			}
+		}
+
+		public virtual void TestAuthenticatorFactory()
+		{
+			Authenticator basicAuth = AuthenticatorFactory.CreateBasicAuthenticator("username"
+				, "password");
+			NUnit.Framework.Assert.IsNotNull(basicAuth);
+			NUnit.Framework.Assert.IsTrue(basicAuth is BasicAuthenticator);
+			Authenticator facebookAuth = AuthenticatorFactory.CreateFacebookAuthenticator("DUMMY_TOKEN"
+				);
+			NUnit.Framework.Assert.IsNotNull(facebookAuth);
+			NUnit.Framework.Assert.IsTrue(facebookAuth is TokenAuthenticator);
+			Authenticator personalAuth = AuthenticatorFactory.CreatePersonaAuthenticator("DUMMY_ASSERTION"
+				, null);
+			NUnit.Framework.Assert.IsNotNull(personalAuth);
+			NUnit.Framework.Assert.IsTrue(personalAuth is TokenAuthenticator);
+		}
+
+		public virtual void TestTokenAuthenticator()
+		{
+			string loginPath = "_facebook";
+			IDictionary<string, string> @params = new Dictionary<string, string>();
+			@params.Put("access_token", "facebookaccesstoken");
+			TokenAuthenticator tokenAuth = new TokenAuthenticator(loginPath, @params);
+			IDictionary<string, string> tokenAuthParams = tokenAuth.LoginParametersForSite(null
+				);
+			NUnit.Framework.Assert.IsNotNull(tokenAuthParams);
+			NUnit.Framework.Assert.AreEqual(tokenAuthParams.Count, @params.Count);
+			NUnit.Framework.Assert.AreEqual(tokenAuthParams.Get("access_token"), @params.Get(
+				"access_token"));
+			NUnit.Framework.Assert.AreEqual(tokenAuth.LoginPathForSite(null), "/_facebook");
+			NUnit.Framework.Assert.IsTrue(tokenAuth.UsesCookieBasedLogin());
+			NUnit.Framework.Assert.IsNull(tokenAuth.AuthUserInfo());
+		}
+
+		public virtual void TestBasicAuthenticator()
+		{
+			string username = "username";
+			string password = "password";
+			BasicAuthenticator basicAuth = new BasicAuthenticator(username, password);
+			NUnit.Framework.Assert.IsNull(basicAuth.LoginParametersForSite(null));
+			NUnit.Framework.Assert.IsTrue(basicAuth.UsesCookieBasedLogin());
+			NUnit.Framework.Assert.AreEqual(basicAuth.AuthUserInfo(), username + ":" + password
+				);
 		}
 	}
 }

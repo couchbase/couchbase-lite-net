@@ -1,10 +1,4 @@
-//
-// FileDirUtils.cs
-//
-// Author:
-//     Zachary Gramana  <zack@xamarin.com>
-//
-// Copyright (c) 2014 Xamarin Inc
+// 
 // Copyright (c) 2014 .NET Foundation
 //
 // Permission is hereby granted, free of charge, to any person obtaining
@@ -38,8 +32,7 @@
 // License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
 // either express or implied. See the License for the specific language governing permissions
 // and limitations under the License.
-//
-
+//using System;
 using System.IO;
 using Couchbase.Lite;
 using Couchbase.Lite.Support;
@@ -71,14 +64,15 @@ namespace Couchbase.Lite.Support
 
 		public static string GetDatabaseNameFromPath(string path)
 		{
-			int lastSlashPos = path.LastIndexOf("/");
-			int extensionPos = path.LastIndexOf(".");
-			if (lastSlashPos < 0 || extensionPos < 0 || extensionPos < lastSlashPos)
+			string fileName = new FilePath(path).GetName();
+			int extensionPos = fileName.LastIndexOf(".");
+			if (extensionPos < 0)
 			{
-				Log.E(Database.Tag, "Unable to determine database name from path");
-				return null;
+				string message = "Unable to determine database name from path: " + path;
+				Log.E(Database.Tag, message);
+				throw new ArgumentException(message);
 			}
-			return Sharpen.Runtime.Substring(path, lastSlashPos + 1, extensionPos);
+			return Sharpen.Runtime.Substring(fileName, 0, extensionPos);
 		}
 
 		/// <exception cref="System.IO.IOException"></exception>

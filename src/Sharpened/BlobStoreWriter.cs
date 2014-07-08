@@ -1,10 +1,4 @@
-//
-// BlobStoreWriter.cs
-//
-// Author:
-//     Zachary Gramana  <zack@xamarin.com>
-//
-// Copyright (c) 2014 Xamarin Inc
+// 
 // Copyright (c) 2014 .NET Foundation
 //
 // Permission is hereby granted, free of charge, to any person obtaining
@@ -38,9 +32,7 @@
 // License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
 // either express or implied. See the License for the specific language governing permissions
 // and limitations under the License.
-//
-
-using System;
+//using System;
 using System.IO;
 using Couchbase.Lite;
 using Couchbase.Lite.Support;
@@ -142,8 +134,8 @@ namespace Couchbase.Lite
 				while ((len = inputStream.Read(buffer)) != -1)
 				{
 					outStream.Write(buffer, 0, len);
-					sha1Digest.Update(buffer);
-					md5Digest.Update(buffer);
+					sha1Digest.Update(buffer, 0, len);
+					md5Digest.Update(buffer, 0, len);
 					length += len;
 				}
 			}
@@ -159,7 +151,7 @@ namespace Couchbase.Lite
 				}
 				catch (IOException e)
 				{
-					Log.W(Database.Tag, "Exception closing input stream", e);
+					Log.W(Log.TagBlobStore, "Exception closing input stream", e);
 				}
 			}
 		}
@@ -174,7 +166,7 @@ namespace Couchbase.Lite
 			}
 			catch (IOException e)
 			{
-				Log.W(Database.Tag, "Exception closing output stream", e);
+				Log.W(Log.TagBlobStore, "Exception closing output stream", e);
 			}
 			blobKey = new BlobKey(sha1Digest.Digest());
 			md5DigestResult = md5Digest.Digest();
@@ -190,7 +182,7 @@ namespace Couchbase.Lite
 			}
 			catch (IOException e)
 			{
-				Log.W(Database.Tag, "Exception closing output stream", e);
+				Log.W(Log.TagBlobStore, "Exception closing output stream", e);
 			}
 			tempFile.Delete();
 		}
@@ -237,6 +229,11 @@ namespace Couchbase.Lite
 		public virtual BlobKey GetBlobKey()
 		{
 			return blobKey;
+		}
+
+		public virtual string GetFilePath()
+		{
+			return tempFile.GetPath();
 		}
 	}
 }

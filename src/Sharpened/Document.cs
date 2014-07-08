@@ -1,10 +1,4 @@
-//
-// Document.cs
-//
-// Author:
-//     Zachary Gramana  <zack@xamarin.com>
-//
-// Copyright (c) 2014 Xamarin Inc
+// 
 // Copyright (c) 2014 .NET Foundation
 //
 // Permission is hereby granted, free of charge, to any person obtaining
@@ -38,9 +32,7 @@
 // License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
 // either express or implied. See the License for the specific language governing permissions
 // and limitations under the License.
-//
-
-using System.Collections.Generic;
+//using System.Collections.Generic;
 using Couchbase.Lite;
 using Couchbase.Lite.Internal;
 using Couchbase.Lite.Util;
@@ -100,7 +92,14 @@ namespace Couchbase.Lite
 		[InterfaceAudience.Public]
 		public bool IsDeleted()
 		{
-			return GetCurrentRevision().IsDeletion();
+			try
+			{
+				return GetCurrentRevision() == null && GetLeafRevisions().Count > 0;
+			}
+			catch (CouchbaseLiteException e)
+			{
+				throw new RuntimeException(e);
+			}
 		}
 
 		/// <summary>Get the ID of the current revision</summary>
@@ -219,11 +218,10 @@ namespace Couchbase.Lite
 		/// Purges this document from the database; this is more than deletion, it forgets entirely about it.
 		/// The purge will NOT be replicated to other databases.
 		/// </remarks>
-		/// <returns>boolean to indicate whether purged or not</returns>
 		/// <exception cref="CouchbaseLiteException">CouchbaseLiteException</exception>
 		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
 		[InterfaceAudience.Public]
-		public bool Purge()
+		public void Purge()
 		{
 			IDictionary<string, IList<string>> docsToRevs = new Dictionary<string, IList<string
 				>>();
@@ -232,7 +230,6 @@ namespace Couchbase.Lite
 			docsToRevs.Put(documentId, revs);
 			database.PurgeRevisions(docsToRevs);
 			database.RemoveDocumentFromCache(this);
-			return true;
 		}
 
 		/// <summary>The revision with the specified ID.</summary>
@@ -276,7 +273,11 @@ namespace Couchbase.Lite
 		[InterfaceAudience.Public]
 		public object GetProperty(string key)
 		{
-			return GetCurrentRevision().GetProperties().Get(key);
+			if (GetCurrentRevision().GetProperties().ContainsKey(key))
+			{
+				return GetCurrentRevision().GetProperties().Get(key);
+			}
+			return null;
 		}
 
 		/// <summary>Saves a new revision.</summary>
@@ -445,8 +446,8 @@ namespace Couchbase.Lite
 			}
 			if (newId != null && !Sharpen.Runtime.EqualsIgnoreCase(newId, GetId()))
 			{
-				Log.W(Database.Tag, string.Format("Trying to put wrong _id to this: %s properties: %s"
-					, this, properties));
+				Log.W(Database.Tag, "Trying to put wrong _id to this: %s properties: %s", this, properties
+					);
 			}
 			// Process _attachments dict, converting CBLAttachments to dicts:
 			IDictionary<string, object> attachments = null;
@@ -554,7 +555,14 @@ namespace Couchbase.Lite
 			// current revision didn't change
 			if (currentRevision != null && !rev.GetRevId().Equals(currentRevision.GetId()))
 			{
-				currentRevision = new SavedRevision(this, rev);
+				if (!rev.IsDeleted())
+				{
+					currentRevision = new SavedRevision(this, rev);
+				}
+				else
+				{
+					currentRevision = null;
+				}
 			}
 			foreach (Document.ChangeListener listener in changeListeners)
 			{

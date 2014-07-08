@@ -1,10 +1,4 @@
-//
-// Status.cs
-//
-// Author:
-//     Zachary Gramana  <zack@xamarin.com>
-//
-// Copyright (c) 2014 Xamarin Inc
+// 
 // Copyright (c) 2014 .NET Foundation
 //
 // Permission is hereby granted, free of charge, to any person obtaining
@@ -38,9 +32,7 @@
 // License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
 // either express or implied. See the License for the specific language governing permissions
 // and limitations under the License.
-//
-
-using Sharpen;
+//using Sharpen;
 
 namespace Couchbase.Lite
 {
@@ -57,6 +49,8 @@ namespace Couchbase.Lite
 		public const int NotModified = 304;
 
 		public const int BadRequest = 400;
+
+		public const int Unauthorized = 401;
 
 		public const int Forbidden = 403;
 
@@ -80,12 +74,17 @@ namespace Couchbase.Lite
 
 		public const int StatusAttachmentError = 592;
 
+		public const int UpstreamError = 589;
+
 		public const int DbError = 590;
+
+		public const int DbBusy = 595;
 
 		private int code;
 
 		public Status()
 		{
+			// SQLite DB is busy (this is recoverable!)
 			this.code = Unknown;
 		}
 
@@ -107,6 +106,11 @@ namespace Couchbase.Lite
 		public virtual bool IsSuccessful()
 		{
 			return (code > 0 && code < 400);
+		}
+
+		public virtual bool IsError()
+		{
+			return !IsSuccessful();
 		}
 
 		public override string ToString()

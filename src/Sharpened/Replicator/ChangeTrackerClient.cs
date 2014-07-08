@@ -1,10 +1,4 @@
-//
-// ChangeTrackerClient.cs
-//
-// Author:
-//     Zachary Gramana  <zack@xamarin.com>
-//
-// Copyright (c) 2014 Xamarin Inc
+// 
 // Copyright (c) 2014 .NET Foundation
 //
 // Permission is hereby granted, free of charge, to any person obtaining
@@ -38,18 +32,18 @@
 // License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
 // either express or implied. See the License for the specific language governing permissions
 // and limitations under the License.
-//
-
-using System.Collections.Generic;
+//using System.Collections.Generic;
+using Apache.Http.Client;
 using Couchbase.Lite.Replicator;
-using Couchbase.Lite.Support;
 using Sharpen;
 
 namespace Couchbase.Lite.Replicator
 {
 	/// <exclude></exclude>
-	public interface ChangeTrackerClient : HttpClientFactory
+	public interface ChangeTrackerClient
 	{
+		HttpClient GetHttpClient();
+
 		void ChangeTrackerReceivedChange(IDictionary<string, object> change);
 
 		void ChangeTrackerStopped(ChangeTracker tracker);

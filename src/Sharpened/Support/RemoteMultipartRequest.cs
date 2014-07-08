@@ -1,10 +1,4 @@
-//
-// RemoteMultipartRequest.cs
-//
-// Author:
-//     Zachary Gramana  <zack@xamarin.com>
-//
-// Copyright (c) 2014 Xamarin Inc
+// 
 // Copyright (c) 2014 .NET Foundation
 //
 // Permission is hereby granted, free of charge, to any person obtaining
@@ -38,14 +32,13 @@
 // License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
 // either express or implied. See the License for the specific language governing permissions
 // and limitations under the License.
-//
-
-using System;
+//using System;
 using System.Collections.Generic;
 using System.Net;
 using Apache.Http.Client;
 using Apache.Http.Client.Methods;
 using Apache.Http.Entity.Mime;
+using Couchbase.Lite;
 using Couchbase.Lite.Support;
 using Sharpen;
 
@@ -56,9 +49,10 @@ namespace Couchbase.Lite.Support
 		private MultipartEntity multiPart;
 
 		public RemoteMultipartRequest(ScheduledExecutorService workExecutor, HttpClientFactory
-			 clientFactory, string method, Uri url, MultipartEntity multiPart, IDictionary<string
-			, object> requestHeaders, RemoteRequestCompletionBlock onCompletion) : base(workExecutor
-			, clientFactory, method, url, null, requestHeaders, onCompletion)
+			 clientFactory, string method, Uri url, MultipartEntity multiPart, Database db, 
+			IDictionary<string, object> requestHeaders, RemoteRequestCompletionBlock onCompletion
+			) : base(workExecutor, clientFactory, method, url, null, db, requestHeaders, onCompletion
+			)
 		{
 			this.multiPart = multiPart;
 		}

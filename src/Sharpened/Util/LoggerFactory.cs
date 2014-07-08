@@ -1,10 +1,4 @@
-//
-// LoggerFactory.cs
-//
-// Author:
-//     Zachary Gramana  <zack@xamarin.com>
-//
-// Copyright (c) 2014 Xamarin Inc
+// 
 // Copyright (c) 2014 .NET Foundation
 //
 // Permission is hereby granted, free of charge, to any person obtaining
@@ -38,9 +32,7 @@
 // License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
 // either express or implied. See the License for the specific language governing permissions
 // and limitations under the License.
-//
-
-using System;
+//using System;
 using System.IO;
 using Couchbase.Lite;
 using Couchbase.Lite.Util;
@@ -61,8 +53,7 @@ namespace Couchbase.Lite.Util
 				if (inputStream == null)
 				{
 					// Return default System logger.
-					Log.D(Database.Tag, "Unable to load " + resource + " falling back to SystemLogger"
-						);
+					Log.D(Database.Tag, "Unable to load %s. Falling back to SystemLogger", resource);
 					return new SystemLogger();
 				}
 				byte[] bytes = TextUtils.Read(inputStream);
@@ -70,11 +61,10 @@ namespace Couchbase.Lite.Util
 				if (classname == null || classname.IsEmpty())
 				{
 					// Return default System logger.
-					Log.D(Database.Tag, "Unable to load " + resource + " falling back to SystemLogger"
-						);
+					Log.D(Database.Tag, "Unable to load %s. Falling back to SystemLogger", resource);
 					return new SystemLogger();
 				}
-				Log.D(Database.Tag, "Loading logger: " + classname);
+				Log.V(Database.Tag, "Loading logger: %s", classname);
 				Type clazz = Sharpen.Runtime.GetType(classname);
 				Logger logger = (Logger)System.Activator.CreateInstance(clazz);
 				return logger;

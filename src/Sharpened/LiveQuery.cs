@@ -1,10 +1,4 @@
-//
-// LiveQuery.cs
-//
-// Author:
-//     Zachary Gramana  <zack@xamarin.com>
-//
-// Copyright (c) 2014 Xamarin Inc
+// 
 // Copyright (c) 2014 .NET Foundation
 //
 // Permission is hereby granted, free of charge, to any person obtaining
@@ -38,9 +32,7 @@
 // License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
 // either express or implied. See the License for the specific language governing permissions
 // and limitations under the License.
-//
-
-using System;
+//using System;
 using System.Collections.Generic;
 using Couchbase.Lite;
 using Couchbase.Lite.Internal;
@@ -170,20 +162,20 @@ namespace Couchbase.Lite
 		{
 			if (runningState.Get() == true)
 			{
-				Log.D(Database.Tag, this + ": start() called, but runningState is already true.  Ignoring."
-					);
+				Log.V(Log.TagQuery, "%s: start() called, but runningState is already true.  Ignoring."
+					, this);
 				return;
 			}
 			else
 			{
-				Log.D(Database.Tag, this + ": start() called");
+				Log.D(Log.TagQuery, "%s: start() called", this);
 				runningState.Set(true);
 			}
 			if (!observing)
 			{
 				observing = true;
 				GetDatabase().AddChangeListener(this);
-				Log.D(Database.Tag, this + ": start() is calling update()");
+				Log.V(Log.TagQuery, "%s: start() is calling update()", this);
 				Update();
 			}
 		}
@@ -196,13 +188,13 @@ namespace Couchbase.Lite
 		{
 			if (runningState.Get() == false)
 			{
-				Log.D(Database.Tag, this + ": stop() called, but runningState is already false.  Ignoring."
-					);
+				Log.D(Log.TagQuery, "%s: stop() called, but runningState is already false.  Ignoring."
+					, this);
 				return;
 			}
 			else
 			{
-				Log.D(Database.Tag, this + ": stop() called");
+				Log.D(Log.TagQuery, "%s: stop() called", this);
 				runningState.Set(false);
 			}
 			if (observing)
@@ -216,23 +208,14 @@ namespace Couchbase.Lite
 			if (queryFuture != null)
 			{
 				bool cancelled = queryFuture.Cancel(true);
-				Log.D(Database.Tag, this + ": cancelled queryFuture " + queryFuture + ", returned: "
-					 + cancelled);
-			}
-			else
-			{
-				Log.D(Database.Tag, this + ": not cancelling queryFuture, since it is null");
+				Log.V(Log.TagQuery, "%s: cancelled queryFuture %s, returned: %s", this, queryFuture
+					, cancelled);
 			}
 			if (rerunUpdateFuture != null)
 			{
 				bool cancelled = rerunUpdateFuture.Cancel(true);
-				Log.D(Database.Tag, this + ": cancelled rerunUpdateFuture " + rerunUpdateFuture +
-					 ", returned: " + cancelled);
-			}
-			else
-			{
-				Log.D(Database.Tag, this + ": not cancelling rerunUpdateFuture, since it is null"
-					);
+				Log.D(Log.TagQuery, "%s: cancelled rerunUpdateFuture %s, returned: %s", this, rerunUpdateFuture
+					, cancelled);
 			}
 		}
 
@@ -356,43 +339,43 @@ namespace Couchbase.Lite
 		[InterfaceAudience.Private]
 		internal void Update()
 		{
-			Log.D(Database.Tag, this + ": update() called.");
+			Log.V(Log.TagQuery, "%s: update() called.", this);
 			if (GetView() == null)
 			{
 				throw new InvalidOperationException("Cannot start LiveQuery when view is null");
 			}
 			if (runningState.Get() == false)
 			{
-				Log.D(Database.Tag, this + ": update() called, but running state == false.  Ignoring."
-					);
+				Log.D(Log.TagQuery, "%s: update() called, but running state == false.  Ignoring."
+					, this);
 				return;
 			}
 			if (queryFuture != null && !queryFuture.IsCancelled() && !queryFuture.IsDone())
 			{
 				// There is a already a query in flight, so leave it alone except to schedule something
 				// to run update() again once it finishes.
-				Log.D(Database.Tag, this + ": already a query in flight, scheduling call to update() once it's done"
-					);
+				Log.D(Log.TagQuery, "%s: already a query in flight, scheduling call to update() once it's done"
+					, this);
 				if (rerunUpdateFuture != null && !rerunUpdateFuture.IsCancelled() && !rerunUpdateFuture
 					.IsDone())
 				{
 					bool cancelResult = rerunUpdateFuture.Cancel(true);
-					Log.D(Database.Tag, this + ": cancelled " + rerunUpdateFuture + " result: " + cancelResult
+					Log.D(Log.TagQuery, "%s: cancelled %s result: %s", this, rerunUpdateFuture, cancelResult
 						);
 				}
-				rerunUpdateFuture = RerunUpdateAfterQueryFinishes();
-				Log.D(Database.Tag, this + ": created new rerunUpdateFuture: " + rerunUpdateFuture
+				rerunUpdateFuture = RerunUpdateAfterQueryFinishes(queryFuture);
+				Log.D(Log.TagQuery, "%s: created new rerunUpdateFuture: %s", this, rerunUpdateFuture
 					);
 				return;
 			}
 			// No query in flight, so kick one off
-			queryFuture = RunAsyncInternal(new _QueryCompleteListener_285(this));
-			Log.D(Database.Tag, this + ": update() created queryFuture: " + queryFuture);
+			queryFuture = RunAsyncInternal(new _QueryCompleteListener_281(this));
+			Log.D(Log.TagQuery, "%s: update() created queryFuture: %s", this, queryFuture);
 		}
 
-		private sealed class _QueryCompleteListener_285 : Query.QueryCompleteListener
+		private sealed class _QueryCompleteListener_281 : Query.QueryCompleteListener
 		{
-			public _QueryCompleteListener_285(LiveQuery _enclosing)
+			public _QueryCompleteListener_281(LiveQuery _enclosing)
 			{
 				this._enclosing = _enclosing;
 			}
@@ -409,12 +392,18 @@ namespace Couchbase.Lite
 				}
 				else
 				{
+					if (this._enclosing.runningState.Get() == false)
+					{
+						Log.D(Log.TagQuery, "%s: update() finished query, but running state == false.", this
+							);
+						return;
+					}
 					if (rowsParam != null && !rowsParam.Equals(this._enclosing.rows))
 					{
 						this._enclosing.SetRows(rowsParam);
 						foreach (LiveQuery.ChangeListener observer in this._enclosing.observers)
 						{
-							Log.D(Database.Tag, this._enclosing + ": update() calling back observer with rows"
+							Log.D(Log.TagQuery, "%s: update() calling back observer with rows", this._enclosing
 								);
 							observer.Changed(new LiveQuery.ChangeEvent(this._enclosing, this._enclosing.rows)
 								);
@@ -437,31 +426,39 @@ namespace Couchbase.Lite
 		/// does, it will run upate() again in case the current query in flight misses
 		/// some of the recently added items.
 		/// </remarks>
-		private Future RerunUpdateAfterQueryFinishes()
+		private Future RerunUpdateAfterQueryFinishes(Future queryFutureInProgress)
 		{
-			return GetDatabase().GetManager().RunAsync(new _Runnable_315(this));
+			return GetDatabase().GetManager().RunAsync(new _Runnable_317(this, queryFutureInProgress
+				));
 		}
 
-		private sealed class _Runnable_315 : Runnable
+		private sealed class _Runnable_317 : Runnable
 		{
-			public _Runnable_315(LiveQuery _enclosing)
+			public _Runnable_317(LiveQuery _enclosing, Future queryFutureInProgress)
 			{
 				this._enclosing = _enclosing;
+				this.queryFutureInProgress = queryFutureInProgress;
 			}
 
 			public void Run()
 			{
 				if (this._enclosing.runningState.Get() == false)
 				{
-					Log.D(Database.Tag, this + ": rerunUpdateAfterQueryFinishes.run() fired, but running state == false.  Ignoring."
-						);
+					Log.V(Log.TagQuery, "%s: rerunUpdateAfterQueryFinishes.run() fired, but running state == false.  Ignoring."
+						, this);
 					return;
 				}
-				if (this._enclosing.queryFuture != null)
+				if (queryFutureInProgress != null)
 				{
 					try
 					{
-						this._enclosing.queryFuture.Get();
+						queryFutureInProgress.Get();
+						if (this._enclosing.runningState.Get() == false)
+						{
+							Log.V(Log.TagQuery, "%s: queryFutureInProgress.get() done, but running state == false."
+								, this);
+							return;
+						}
 						this._enclosing.Update();
 					}
 					catch (Exception e)
@@ -472,20 +469,22 @@ namespace Couchbase.Lite
 						else
 						{
 							// can safely ignore these
-							Log.E(Database.Tag, "Got exception waiting for queryFuture to finish", e);
+							Log.E(Log.TagQuery, "Got exception waiting for queryFutureInProgress to finish", 
+								e);
 						}
 					}
 				}
 			}
 
 			private readonly LiveQuery _enclosing;
+
+			private readonly Future queryFutureInProgress;
 		}
 
 		/// <exclude></exclude>
 		[InterfaceAudience.Private]
 		public void Changed(Database.ChangeEvent @event)
 		{
-			Log.D(Database.Tag, this + ": changed() called");
 			Update();
 		}
 

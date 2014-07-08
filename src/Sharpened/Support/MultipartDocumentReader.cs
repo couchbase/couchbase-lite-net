@@ -1,10 +1,4 @@
-//
-// MultipartDocumentReader.cs
-//
-// Author:
-//     Zachary Gramana  <zack@xamarin.com>
-//
-// Copyright (c) 2014 Xamarin Inc
+// 
 // Copyright (c) 2014 .NET Foundation
 //
 // Permission is hereby granted, free of charge, to any person obtaining
@@ -38,9 +32,7 @@
 // License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
 // either express or implied. See the License for the specific language governing permissions
 // and limitations under the License.
-//
-
-using System;
+//using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
@@ -99,13 +91,25 @@ namespace Couchbase.Lite.Support
 
 		public virtual void SetContentType(string contentType)
 		{
-			if (!contentType.StartsWith("multipart/"))
+			if (contentType.StartsWith("multipart/"))
 			{
-				throw new ArgumentException("contentType must start with multipart/");
+				multipartReader = new MultipartReader(contentType, this);
+				attachmentsByName = new Dictionary<string, BlobStoreWriter>();
+				attachmentsByMd5Digest = new Dictionary<string, BlobStoreWriter>();
 			}
-			multipartReader = new MultipartReader(contentType, this);
-			attachmentsByName = new Dictionary<string, BlobStoreWriter>();
-			attachmentsByMd5Digest = new Dictionary<string, BlobStoreWriter>();
+			else
+			{
+				if (contentType == null || contentType.StartsWith("application/json") || contentType
+					.StartsWith("text/plain"))
+				{
+				}
+				else
+				{
+					// No multipart, so no attachments. Body is pure JSON. (We allow text/plain because CouchDB
+					// sends JSON responses using the wrong content-type.)
+					throw new ArgumentException("contentType must start with multipart/");
+				}
+			}
 		}
 
 		public virtual void AppendData(byte[] data)
@@ -220,9 +224,8 @@ namespace Couchbase.Lite.Support
 				{
 					if (attachment.ContainsKey("data") && length > 1000)
 					{
-						string msg = string.Format("Attachment '%s' sent inline (len=%d).  Large attachments "
+						Log.W(Log.TagRemoteRequest, "Attachment '%s' sent inline (len=%d).  Large attachments "
 							 + "should be sent in MIME parts for reduced memory overhead.", attachmentName);
-						Log.W(Database.Tag, msg);
 					}
 				}
 			}

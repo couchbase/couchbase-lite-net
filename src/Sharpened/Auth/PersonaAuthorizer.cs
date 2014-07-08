@@ -1,10 +1,4 @@
-//
-// PersonaAuthorizer.cs
-//
-// Author:
-//     Zachary Gramana  <zack@xamarin.com>
-//
-// Copyright (c) 2014 Xamarin Inc
+// 
 // Copyright (c) 2014 .NET Foundation
 //
 // Permission is hereby granted, free of charge, to any person obtaining
@@ -38,9 +32,7 @@
 // License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
 // either express or implied. See the License for the specific language governing permissions
 // and limitations under the License.
-//
-
-using System;
+//using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
@@ -51,6 +43,8 @@ using Sharpen;
 
 namespace Couchbase.Lite.Auth
 {
+	/// <summary>Authenticator impl that knows how to do Persona auth</summary>
+	/// <exclude></exclude>
 	public class PersonaAuthorizer : Authorizer
 	{
 		public const string LoginParameterAssertion = "assertion";
@@ -103,8 +97,8 @@ namespace Couchbase.Lite.Auth
 			DateTime now = new DateTime();
 			if (exp.Before(now))
 			{
-				Log.W(Database.Tag, string.Format("%s assertion for %s expired: %s", this.GetType
-					(), this.emailAddress, exp));
+				Log.W(Log.TagSync, "%s assertion for %s expired: %s", this.GetType(), this.emailAddress
+					, exp);
 				return true;
 			}
 			return false;
@@ -115,8 +109,8 @@ namespace Couchbase.Lite.Auth
 			string assertion = AssertionForEmailAndSite(this.emailAddress, site);
 			if (assertion == null)
 			{
-				Log.W(Database.Tag, string.Format("%s %s no assertion found for: %s", this.GetType
-					(), this.emailAddress, site));
+				Log.W(Log.TagSync, "%s %s no assertion found for: %s", this.GetType(), this.emailAddress
+					, site);
 				return null;
 			}
 			IDictionary<string, object> result = ParseAssertion(assertion);
@@ -174,7 +168,7 @@ namespace Couchbase.Lite.Auth
 				catch (UriFormatException e)
 				{
 					string message = "Error registering assertion: " + assertion;
-					Log.E(Database.Tag, message, e);
+					Log.E(Log.TagSync, message, e);
 					throw new ArgumentException(message, e);
 				}
 				return RegisterAssertion(assertion, email, origin);
@@ -201,7 +195,7 @@ namespace Couchbase.Lite.Auth
 				{
 					assertions = new Dictionary<IList<string>, string>();
 				}
-				Log.D(Database.Tag, "PersonaAuthorizer registering key: " + key);
+				Log.V(Log.TagSync, "PersonaAuthorizer registering key: %s", key);
 				assertions.Put(key, assertion);
 				return email;
 			}
@@ -235,15 +229,13 @@ namespace Couchbase.Lite.Auth
 					);
 				result.Put(AssertionFieldOrigin, component3Json.Get("aud"));
 				long expObject = (long)component3Json.Get("exp");
-				Log.D(Database.Tag, "PersonaAuthorizer exp: " + expObject + " class: " + expObject
-					.GetType());
 				DateTime expDate = Sharpen.Extensions.CreateDate(expObject);
 				result.Put(AssertionFieldExpiration, expDate);
 			}
 			catch (IOException e)
 			{
 				string message = "Error parsing assertion: " + assertion;
-				Log.E(Database.Tag, message, e);
+				Log.E(Log.TagSync, message, e);
 				throw new ArgumentException(message, e);
 			}
 			return result;
@@ -254,8 +246,8 @@ namespace Couchbase.Lite.Auth
 			IList<string> key = new AList<string>();
 			key.AddItem(email);
 			key.AddItem(site.ToExternalForm().ToLower());
-			Log.D(Database.Tag, "PersonaAuthorizer looking up key: " + key + " from list of assertions"
-				);
+			Log.V(Log.TagSync, "PersonaAuthorizer looking up key: %s from list of assertions"
+				, key);
 			return assertions.Get(key);
 		}
 	}

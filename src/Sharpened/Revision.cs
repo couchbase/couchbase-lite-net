@@ -1,10 +1,4 @@
-//
-// Revision.cs
-//
-// Author:
-//     Zachary Gramana  <zack@xamarin.com>
-//
-// Copyright (c) 2014 Xamarin Inc
+// 
 // Copyright (c) 2014 .NET Foundation
 //
 // Permission is hereby granted, free of charge, to any person obtaining
@@ -38,9 +32,7 @@
 // License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
 // either express or implied. See the License for the specific language governing permissions
 // and limitations under the License.
-//
-
-using System.Collections.Generic;
+//using System.Collections.Generic;
 using Couchbase.Lite;
 using Couchbase.Lite.Internal;
 using Sharpen;
@@ -231,6 +223,23 @@ namespace Couchbase.Lite
 		[InterfaceAudience.Public]
 		public abstract IList<SavedRevision> GetRevisionHistory();
 
+		/// <summary>
+		/// Does this revision mark the deletion or removal (from available channels) of its document?
+		/// (In other words, does it have a "_deleted_ or "_removed" property?)
+		/// </summary>
+		[InterfaceAudience.Public]
+		public virtual bool IsGone()
+		{
+			bool wasRemovedFromChannel = false;
+			object removed = GetProperty("_removed");
+			if (removed != null)
+			{
+				bool removedBoolean = (bool)removed;
+				wasRemovedFromChannel = removedBoolean;
+			}
+			return IsDeletion() || wasRemovedFromChannel;
+		}
+
 		/// <summary>Compare this revision to the given revision to check for equality.</summary>
 		/// <remarks>
 		/// Compare this revision to the given revision to check for equality.
@@ -282,6 +291,13 @@ namespace Couchbase.Lite
 		internal virtual IDictionary<string, object> GetAttachmentMetadata()
 		{
 			return (IDictionary<string, object>)GetProperty("_attachments");
+		}
+
+		/// <exclude></exclude>
+		[InterfaceAudience.Private]
+		internal virtual void SetParentRevisionID(string parentRevID)
+		{
+			this.parentRevID = parentRevID;
 		}
 
 		/// <exclude></exclude>

@@ -1,10 +1,4 @@
-//
-// View.cs
-//
-// Author:
-//     Zachary Gramana  <zack@xamarin.com>
-//
-// Copyright (c) 2014 Xamarin Inc
+// 
 // Copyright (c) 2014 .NET Foundation
 //
 // Permission is hereby granted, free of charge, to any person obtaining
@@ -38,14 +32,13 @@
 // License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
 // either express or implied. See the License for the specific language governing permissions
 // and limitations under the License.
-//
-
-using System;
+//using System;
 using System.Collections;
 using System.Collections.Generic;
 using Couchbase.Lite;
 using Couchbase.Lite.Internal;
 using Couchbase.Lite.Storage;
+using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
 using Sharpen;
 
@@ -163,11 +156,7 @@ namespace Couchbase.Lite
 			long result = -1;
 			try
 			{
-				Log.D(Database.TagSql, Sharpen.Thread.CurrentThread().GetName() + " start running query: "
-					 + sql);
 				cursor = database.GetDatabase().RawQuery(sql, args);
-				Log.D(Database.TagSql, Sharpen.Thread.CurrentThread().GetName() + " finish running query: "
-					 + sql);
 				if (cursor.MoveToNext())
 				{
 					result = cursor.GetLong(0);
@@ -175,7 +164,7 @@ namespace Couchbase.Lite
 			}
 			catch (Exception e)
 			{
-				Log.E(Database.Tag, "Error getting last sequence indexed", e);
+				Log.E(Log.TagView, "Error getting last sequence indexed", e);
 			}
 			finally
 			{
@@ -260,7 +249,7 @@ namespace Couchbase.Lite
 			}
 			catch (SQLException e)
 			{
-				Log.E(Database.Tag, "Error setting map block", e);
+				Log.E(Log.TagView, "Error setting map block", e);
 				return false;
 			}
 			finally
@@ -295,7 +284,7 @@ namespace Couchbase.Lite
 			}
 			catch (SQLException e)
 			{
-				Log.E(Database.Tag, "Error removing index", e);
+				Log.E(Log.TagView, "Error removing index", e);
 			}
 			finally
 			{
@@ -344,7 +333,7 @@ namespace Couchbase.Lite
 				}
 				catch (SQLException e)
 				{
-					Log.E(Database.Tag, "Error getting view id", e);
+					Log.E(Log.TagView, "Error getting view id", e);
 					viewId = 0;
 				}
 				finally
@@ -381,27 +370,7 @@ namespace Couchbase.Lite
 			}
 			catch (Exception e)
 			{
-				Log.W(Database.Tag, "Exception serializing object to json: " + @object, e);
-			}
-			return result;
-		}
-
-		/// <exclude></exclude>
-		[InterfaceAudience.Private]
-		public object FromJSON(byte[] json)
-		{
-			if (json == null)
-			{
-				return null;
-			}
-			object result = null;
-			try
-			{
-				result = Manager.GetObjectMapper().ReadValue<object>(json);
-			}
-			catch (Exception e)
-			{
-				Log.W(Database.Tag, "Exception parsing json", e);
+				Log.W(Log.TagView, "Exception serializing object to json: %s", e, @object);
 			}
 			return result;
 		}
@@ -428,9 +397,9 @@ namespace Couchbase.Lite
 		[InterfaceAudience.Private]
 		public void UpdateIndex()
 		{
-			Log.V(Database.Tag, "Re-indexing view " + name + " ...");
+			Log.V(Log.TagView, "Re-indexing view: %s", name);
 			System.Diagnostics.Debug.Assert((mapBlock != null));
-			if (GetViewId() < 0)
+			if (GetViewId() <= 0)
 			{
 				string msg = string.Format("getViewId() < 0");
 				throw new CouchbaseLiteException(msg, new Status(Status.NotFound));
@@ -445,10 +414,9 @@ namespace Couchbase.Lite
 				if (lastSequence == dbMaxSequence)
 				{
 					// nothing to do (eg,  kCBLStatusNotModified)
-					string msg = string.Format("lastSequence (%d) == dbMaxSequence (%d), nothing to do"
-						, lastSequence, dbMaxSequence);
-					Log.D(Database.Tag, msg);
-					result.SetCode(Status.Ok);
+					Log.V(Log.TagView, "lastSequence (%s) == dbMaxSequence (%s), nothing to do", lastSequence
+						, dbMaxSequence);
+					result.SetCode(Status.NotModified);
 					return;
 				}
 				// First remove obsolete emitted results from the 'maps' table:
@@ -483,17 +451,19 @@ namespace Couchbase.Lite
 				// This is the emit() block, which gets called from within the
 				// user-defined map() block
 				// that's called down below.
-				AbstractTouchMapEmitBlock emitBlock = new _AbstractTouchMapEmitBlock_446(this);
+				AbstractTouchMapEmitBlock emitBlock = new _AbstractTouchMapEmitBlock_428(this);
+				//Log.v(Log.TAG_VIEW, "    emit(" + keyJson + ", "
+				//        + valueJson + ")");
 				// find a better way to propagate this back
 				// Now scan every revision added since the last time the view was
 				// indexed:
 				string[] selectArgs = new string[] { System.Convert.ToString(lastSequence) };
-				cursor = database.GetDatabase().RawQuery("SELECT revs.doc_id, sequence, docid, revid, json FROM revs, docs "
+				cursor = database.GetDatabase().RawQuery("SELECT revs.doc_id, sequence, docid, revid, json, no_attachments FROM revs, docs "
 					 + "WHERE sequence>? AND current!=0 AND deleted=0 " + "AND revs.doc_id = docs.doc_id "
 					 + "ORDER BY revs.doc_id, revid DESC", selectArgs);
-				cursor.MoveToNext();
 				long lastDocID = 0;
-				while (!cursor.IsAfterLast())
+				bool keepGoing = cursor.MoveToNext();
+				while (keepGoing)
 				{
 					long docID = cursor.GetLong(0);
 					if (docID != lastDocID)
@@ -509,24 +479,63 @@ namespace Couchbase.Lite
 						if (docId.StartsWith("_design/"))
 						{
 							// design docs don't get indexed!
-							cursor.MoveToNext();
+							keepGoing = cursor.MoveToNext();
 							continue;
 						}
 						string revId = cursor.GetString(3);
 						byte[] json = cursor.GetBlob(4);
+						bool noAttachments = cursor.GetInt(5) > 0;
+						while ((keepGoing = cursor.MoveToNext()) && cursor.GetLong(0) == docID)
+						{
+						}
+						// Skip rows with the same doc_id -- these are losing conflicts.
+						if (lastSequence > 0)
+						{
+							// Find conflicts with documents from previous indexings.
+							string[] selectArgs2 = new string[] { System.Convert.ToString(docID), System.Convert.ToString
+								(lastSequence) };
+							Cursor cursor2 = database.GetDatabase().RawQuery("SELECT revid, sequence FROM revs "
+								 + "WHERE doc_id=? AND sequence<=? AND current!=0 AND deleted=0 " + "ORDER BY revID DESC "
+								 + "LIMIT 1", selectArgs2);
+							if (cursor2.MoveToNext())
+							{
+								string oldRevId = cursor2.GetString(0);
+								// This is the revision that used to be the 'winner'.
+								// Remove its emitted rows:
+								long oldSequence = cursor2.GetLong(1);
+								string[] args = new string[] { Sharpen.Extensions.ToString(GetViewId()), System.Convert.ToString
+									(oldSequence) };
+								database.GetDatabase().ExecSQL("DELETE FROM maps WHERE view_id=? AND sequence=?", 
+									args);
+								if (RevisionInternal.CBLCompareRevIDs(oldRevId, revId) > 0)
+								{
+									// It still 'wins' the conflict, so it's the one that
+									// should be mapped [again], not the current revision!
+									revId = oldRevId;
+									sequence = oldSequence;
+									string[] selectArgs3 = new string[] { System.Convert.ToString(sequence) };
+									json = Utils.ByteArrayResultForQuery(database.GetDatabase(), "SELECT json FROM revs WHERE sequence=?"
+										, selectArgs3);
+								}
+							}
+						}
+						// Get the document properties, to pass to the map function:
+						EnumSet<Database.TDContentOptions> contentOptions = EnumSet.NoneOf<Database.TDContentOptions
+							>();
+						if (noAttachments)
+						{
+							contentOptions.AddItem(Database.TDContentOptions.TDNoAttachments);
+						}
 						IDictionary<string, object> properties = database.DocumentPropertiesFromJSON(json
-							, docId, revId, false, sequence, EnumSet.NoneOf<Database.TDContentOptions>());
+							, docId, revId, false, sequence, contentOptions);
 						if (properties != null)
 						{
 							// Call the user-defined map() to emit new key/value
 							// pairs from this revision:
-							Log.V(Database.Tag, "  call map for sequence=" + System.Convert.ToString(sequence
-								));
 							emitBlock.SetSequence(sequence);
 							mapBlock.Map(properties, emitBlock);
 						}
 					}
-					cursor.MoveToNext();
 				}
 				// Finally, record the last revision sequence number that was
 				// indexed:
@@ -535,9 +544,8 @@ namespace Couchbase.Lite
 				string[] whereArgs_1 = new string[] { Sharpen.Extensions.ToString(GetViewId()) };
 				database.GetDatabase().Update("views", updateValues, "view_id=?", whereArgs_1);
 				// FIXME actually count number added :)
-				Log.V(Database.Tag, "...Finished re-indexing view " + name + " up to sequence " +
-					 System.Convert.ToString(dbMaxSequence) + " (deleted " + deleted + " added " + "?"
-					 + ")");
+				Log.V(Log.TagView, "Finished re-indexing view: %s " + " up to sequence %s" + " (deleted %s added ?)"
+					, name, dbMaxSequence, deleted);
 				result.SetCode(Status.Ok);
 			}
 			catch (SQLException e)
@@ -552,7 +560,8 @@ namespace Couchbase.Lite
 				}
 				if (!result.IsSuccessful())
 				{
-					Log.W(Database.Tag, "Failed to rebuild view " + name + ": " + result.GetCode());
+					Log.W(Log.TagView, "Failed to rebuild view %s.  Result code: %d", name, result.GetCode
+						());
 				}
 				if (database != null)
 				{
@@ -561,9 +570,9 @@ namespace Couchbase.Lite
 			}
 		}
 
-		private sealed class _AbstractTouchMapEmitBlock_446 : AbstractTouchMapEmitBlock
+		private sealed class _AbstractTouchMapEmitBlock_428 : AbstractTouchMapEmitBlock
 		{
-			public _AbstractTouchMapEmitBlock_446(View _enclosing)
+			public _AbstractTouchMapEmitBlock_428(View _enclosing)
 			{
 				this._enclosing = _enclosing;
 			}
@@ -582,7 +591,6 @@ namespace Couchbase.Lite
 					{
 						valueJson = Manager.GetObjectMapper().WriteValueAsString(value);
 					}
-					Log.V(Database.Tag, "    emit(" + keyJson + ", " + valueJson + ")");
 					ContentValues insertValues = new ContentValues();
 					insertValues.Put("view_id", this._enclosing.GetViewId());
 					insertValues.Put("sequence", this.sequence);
@@ -592,7 +600,7 @@ namespace Couchbase.Lite
 				}
 				catch (Exception e)
 				{
-					Log.E(Database.Tag, "Error emitting", e);
+					Log.E(Log.TagView, "Error emitting", e);
 				}
 			}
 
@@ -641,20 +649,26 @@ namespace Couchbase.Lite
 				}
 				sql += ")";
 			}
-			object minKey = options.GetStartKey();
-			object maxKey = options.GetEndKey();
+			string startKey = ToJSONString(options.GetStartKey());
+			string endKey = ToJSONString(options.GetEndKey());
+			string minKey = startKey;
+			string maxKey = endKey;
+			string minKeyDocId = options.GetStartKeyDocId();
+			string maxKeyDocId = options.GetEndKeyDocId();
 			bool inclusiveMin = true;
 			bool inclusiveMax = options.IsInclusiveEnd();
 			if (options.IsDescending())
 			{
+				string min = minKey;
 				minKey = maxKey;
-				maxKey = options.GetStartKey();
+				maxKey = min;
 				inclusiveMin = inclusiveMax;
 				inclusiveMax = true;
+				minKeyDocId = options.GetEndKeyDocId();
+				maxKeyDocId = options.GetStartKeyDocId();
 			}
 			if (minKey != null)
 			{
-				System.Diagnostics.Debug.Assert((minKey is string));
 				if (inclusiveMin)
 				{
 					sql += " AND key >= ?";
@@ -664,11 +678,17 @@ namespace Couchbase.Lite
 					sql += " AND key > ?";
 				}
 				sql += collationStr;
-				argsList.AddItem(ToJSONString(minKey));
+				argsList.AddItem(minKey);
+				if (minKeyDocId != null && inclusiveMin)
+				{
+					//OPT: This calls the JSON collator a 2nd time unnecessarily.
+					sql += string.Format(" AND (key > ? %s OR docid >= ?)", collationStr);
+					argsList.AddItem(minKey);
+					argsList.AddItem(minKeyDocId);
+				}
 			}
 			if (maxKey != null)
 			{
-				System.Diagnostics.Debug.Assert((maxKey is string));
 				if (inclusiveMax)
 				{
 					sql += " AND key <= ?";
@@ -678,7 +698,13 @@ namespace Couchbase.Lite
 					sql += " AND key < ?";
 				}
 				sql += collationStr;
-				argsList.AddItem(ToJSONString(maxKey));
+				argsList.AddItem(maxKey);
+				if (maxKeyDocId != null && inclusiveMax)
+				{
+					sql += string.Format(" AND (key < ? %s OR docid <= ?)", collationStr);
+					argsList.AddItem(maxKey);
+					argsList.AddItem(maxKeyDocId);
+				}
 			}
 			sql = sql + " AND revs.sequence = maps.sequence AND docs.doc_id = revs.doc_id ORDER BY key";
 			sql += collationStr;
@@ -689,7 +715,7 @@ namespace Couchbase.Lite
 			sql = sql + " LIMIT ? OFFSET ?";
 			argsList.AddItem(Sharpen.Extensions.ToString(options.GetLimit()));
 			argsList.AddItem(Sharpen.Extensions.ToString(options.GetSkip()));
-			Log.V(Database.Tag, "Query " + name + ": " + sql);
+			Log.V(Log.TagView, "Query %s: %s | args: %s", name, sql, argsList);
 			Cursor cursor = database.GetDatabase().RawQuery(sql, Sharpen.Collections.ToArray(
 				argsList, new string[argsList.Count]));
 			return cursor;
@@ -762,7 +788,7 @@ namespace Couchbase.Lite
 			}
 			catch (SQLException e)
 			{
-				Log.E(Database.Tag, "Error dumping view", e);
+				Log.E(Log.TagView, "Error dumping view", e);
 				return null;
 			}
 			finally
@@ -792,10 +818,11 @@ namespace Couchbase.Lite
 			cursor.MoveToNext();
 			while (!cursor.IsAfterLast())
 			{
-				object keyData = FromJSON(cursor.GetBlob(0));
-				object value = FromJSON(cursor.GetBlob(1));
-				System.Diagnostics.Debug.Assert((keyData != null));
-				if (group && !GroupTogether(keyData, lastKey, groupLevel))
+				JsonDocument keyDoc = new JsonDocument(cursor.GetBlob(0));
+				JsonDocument valueDoc = new JsonDocument(cursor.GetBlob(1));
+				System.Diagnostics.Debug.Assert((keyDoc != null));
+				object keyObject = keyDoc.JsonObject();
+				if (group && !GroupTogether(keyObject, lastKey, groupLevel))
 				{
 					if (lastKey != null)
 					{
@@ -809,10 +836,10 @@ namespace Couchbase.Lite
 						keysToReduce.Clear();
 						valuesToReduce.Clear();
 					}
-					lastKey = keyData;
+					lastKey = keyObject;
 				}
-				keysToReduce.AddItem(keyData);
-				valuesToReduce.AddItem(value);
+				keysToReduce.AddItem(keyObject);
+				valuesToReduce.AddItem(valueDoc.JsonObject());
 				cursor.MoveToNext();
 			}
 			if (keysToReduce.Count > 0)
@@ -851,8 +878,8 @@ namespace Couchbase.Lite
 				bool reduce = options.IsReduce() || group;
 				if (reduce && (reduceBlock == null) && !group)
 				{
-					string msg = "Cannot use reduce option in view " + name + " which has no reduce block defined";
-					Log.W(Database.Tag, msg);
+					Log.W(Log.TagView, "Cannot use reduce option in view %s which has no reduce block defined"
+						, name);
 					throw new CouchbaseLiteException(new Status(Status.BadRequest));
 				}
 				if (reduce || group)
@@ -866,19 +893,18 @@ namespace Couchbase.Lite
 					cursor.MoveToNext();
 					while (!cursor.IsAfterLast())
 					{
-						object keyData = FromJSON(cursor.GetBlob(0));
-						// TODO: delay parsing this for increased efficiency
-						object value = FromJSON(cursor.GetBlob(1));
-						// TODO: ditto
+						JsonDocument keyDoc = new JsonDocument(cursor.GetBlob(0));
+						JsonDocument valueDoc = new JsonDocument(cursor.GetBlob(1));
 						string docId = cursor.GetString(2);
 						int sequence = Sharpen.Extensions.ValueOf(cursor.GetString(3));
 						IDictionary<string, object> docContents = null;
 						if (options.IsIncludeDocs())
 						{
+							object valueObject = valueDoc.JsonObject();
 							// http://wiki.apache.org/couchdb/Introduction_to_CouchDB_views#Linked_documents
-							if (value is IDictionary && ((IDictionary)value).ContainsKey("_id"))
+							if (valueObject is IDictionary && ((IDictionary)valueObject).ContainsKey("_id"))
 							{
-								string linkedDocId = (string)((IDictionary)value).Get("_id");
+								string linkedDocId = (string)((IDictionary)valueObject).Get("_id");
 								RevisionInternal linkedDoc = database.GetDocumentWithIDAndRev(linkedDocId, null, 
 									EnumSet.NoneOf<Database.TDContentOptions>());
 								docContents = linkedDoc.GetProperties();
@@ -889,7 +915,8 @@ namespace Couchbase.Lite
 									.GetString(4), false, cursor.GetLong(3), options.GetContentOptions());
 							}
 						}
-						QueryRow row = new QueryRow(docId, sequence, keyData, value, docContents);
+						QueryRow row = new QueryRow(docId, sequence, keyDoc.JsonObject(), valueDoc.JsonObject
+							(), docContents);
 						row.SetDatabase(database);
 						rows.AddItem(row);
 						cursor.MoveToNext();
@@ -899,7 +926,7 @@ namespace Couchbase.Lite
 			catch (SQLException e)
 			{
 				string errMsg = string.Format("Error querying view: %s", this);
-				Log.E(Database.Tag, errMsg, e);
+				Log.E(Log.TagView, errMsg, e);
 				throw new CouchbaseLiteException(errMsg, e, new Status(Status.DbError));
 			}
 			finally
@@ -928,7 +955,7 @@ namespace Couchbase.Lite
 				}
 				else
 				{
-					Log.W(Database.Tag, "Warning non-numeric value found in totalValues: " + @object);
+					Log.W(Log.TagView, "Warning non-numeric value found in totalValues: %s", @object);
 				}
 			}
 			return total;
