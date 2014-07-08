@@ -1,10 +1,4 @@
-//
-// QueryOptions.cs
-//
-// Author:
-//     Zachary Gramana  <zack@xamarin.com>
-//
-// Copyright (c) 2014 Xamarin Inc
+// 
 // Copyright (c) 2014 .NET Foundation
 //
 // Permission is hereby granted, free of charge, to any person obtaining
@@ -38,9 +32,7 @@
 // License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
 // either express or implied. See the License for the specific language governing permissions
 // and limitations under the License.
-//
-
-using System.Collections.Generic;
+//using System.Collections.Generic;
 using Couchbase.Lite;
 using Sharpen;
 
@@ -83,6 +75,10 @@ namespace Couchbase.Lite
 		private Query.IndexUpdateMode stale = Query.IndexUpdateMode.Before;
 
 		private Query.AllDocsMode allDocsMode;
+
+		private string startKeyDocId;
+
+		private string endKeyDocId;
 
 		public virtual object GetStartKey()
 		{
@@ -243,6 +239,26 @@ namespace Couchbase.Lite
 		public virtual void SetAllDocsMode(Query.AllDocsMode allDocsMode)
 		{
 			this.allDocsMode = allDocsMode;
+		}
+
+		public virtual string GetStartKeyDocId()
+		{
+			return startKeyDocId;
+		}
+
+		public virtual void SetStartKeyDocId(string startKeyDocId)
+		{
+			this.startKeyDocId = startKeyDocId;
+		}
+
+		public virtual string GetEndKeyDocId()
+		{
+			return endKeyDocId;
+		}
+
+		public virtual void SetEndKeyDocId(string endKeyDocId)
+		{
+			this.endKeyDocId = endKeyDocId;
 		}
 	}
 }

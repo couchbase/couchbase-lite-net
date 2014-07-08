@@ -1,10 +1,4 @@
-//
-// Router.cs
-//
-// Author:
-//     Zachary Gramana  <zack@xamarin.com>
-//
-// Copyright (c) 2014 Xamarin Inc
+// 
 // Copyright (c) 2014 .NET Foundation
 //
 // Permission is hereby granted, free of charge, to any person obtaining
@@ -38,9 +32,7 @@
 // License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
 // either express or implied. See the License for the specific language governing permissions
 // and limitations under the License.
-//
-
-using System;
+//using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
@@ -52,6 +44,8 @@ using Couchbase.Lite.Auth;
 using Couchbase.Lite.Internal;
 using Couchbase.Lite.Replicator;
 using Couchbase.Lite.Router;
+using Couchbase.Lite.Storage;
+using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
 using Sharpen;
 
@@ -81,7 +75,7 @@ namespace Couchbase.Lite.Router
 
 		public static string GetVersionString()
 		{
-			return Manager.Version;
+			return Version.GetVersion();
 		}
 
 		public Router(Manager manager, URLConnection connection)
@@ -205,7 +199,7 @@ namespace Couchbase.Lite.Router
 			}
 			catch (IOException e)
 			{
-				Log.W(Database.Tag, "WARNING: Exception parsing body into dictionary", e);
+				Log.W(Log.TagRouter, "WARNING: Exception parsing body into dictionary", e);
 				return null;
 			}
 		}
@@ -283,6 +277,14 @@ namespace Couchbase.Lite.Router
 			{
 				options.SetStartKey(GetJSONQuery("startkey"));
 				options.SetEndKey(GetJSONQuery("endkey"));
+				if (GetJSONQuery("startkey_docid") != null)
+				{
+					options.SetStartKeyDocId(GetJSONQuery("startkey_docid").ToString());
+				}
+				if (GetJSONQuery("endkey_docid") != null)
+				{
+					options.SetEndKeyDocId(GetJSONQuery("endkey_docid").ToString());
+				}
 			}
 			return true;
 		}
@@ -368,7 +370,7 @@ namespace Couchbase.Lite.Router
 				}
 				catch (IOException)
 				{
-					Log.E(Database.Tag, "Error closing empty output stream");
+					Log.E(Log.TagRouter, "Error closing empty output stream");
 				}
 				SendResponse();
 				return;
@@ -406,7 +408,7 @@ namespace Couchbase.Lite.Router
 						}
 						catch (IOException)
 						{
-							Log.E(Database.Tag, "Error closing empty output stream");
+							Log.E(Log.TagRouter, "Error closing empty output stream");
 						}
 						SendResponse();
 						return;
@@ -424,7 +426,7 @@ namespace Couchbase.Lite.Router
 							}
 							catch (IOException)
 							{
-								Log.E(Database.Tag, "Error closing empty output stream");
+								Log.E(Log.TagRouter, "Error closing empty output stream");
 							}
 							SendResponse();
 							return;
@@ -451,7 +453,7 @@ namespace Couchbase.Lite.Router
 					}
 					catch (IOException)
 					{
-						Log.E(Database.Tag, "Error closing empty output stream");
+						Log.E(Log.TagRouter, "Error closing empty output stream");
 					}
 					SendResponse();
 					return;
@@ -469,7 +471,7 @@ namespace Couchbase.Lite.Router
 						}
 						catch (IOException)
 						{
-							Log.E(Database.Tag, "Error closing empty output stream");
+							Log.E(Log.TagRouter, "Error closing empty output stream");
 						}
 						SendResponse();
 						return;
@@ -490,7 +492,7 @@ namespace Couchbase.Lite.Router
 							}
 							catch (IOException)
 							{
-								Log.E(Database.Tag, "Error closing empty output stream");
+								Log.E(Log.TagRouter, "Error closing empty output stream");
 							}
 							SendResponse();
 							return;
@@ -577,8 +579,9 @@ namespace Couchbase.Lite.Router
 			{
 				try
 				{
-					string errorMessage = "Router unable to route request to " + message;
-					Log.E(Database.Tag, errorMessage);
+					string errorMessage = string.Format("Router unable to route request to %s", message
+						);
+					Log.E(Log.TagRouter, errorMessage);
 					IDictionary<string, object> result = new Dictionary<string, object>();
 					result.Put("error", "not_found");
 					result.Put("reason", errorMessage);
@@ -590,7 +593,7 @@ namespace Couchbase.Lite.Router
 				catch (Exception e)
 				{
 					//default status is internal server error
-					Log.E(Database.Tag, "Router attempted do_UNKNWON fallback, but that threw an exception"
+					Log.E(Log.TagRouter, "Router attempted do_UNKNWON fallback, but that threw an exception"
 						, e);
 					IDictionary<string, object> result = new Dictionary<string, object>();
 					result.Put("error", "not_found");
@@ -602,7 +605,7 @@ namespace Couchbase.Lite.Router
 			catch (Exception e)
 			{
 				string errorMessage = "Router unable to route request to " + message;
-				Log.E(Database.Tag, errorMessage, e);
+				Log.E(Log.TagRouter, errorMessage, e);
 				IDictionary<string, object> result = new Dictionary<string, object>();
 				result.Put("error", "not_found");
 				result.Put("reason", errorMessage + e.ToString());
@@ -639,7 +642,7 @@ namespace Couchbase.Lite.Router
 				}
 				else
 				{
-					Log.W(Database.Tag, "Cannot add Content-Type header because getResHeader() returned null"
+					Log.W(Log.TagRouter, "Cannot add Content-Type header because getResHeader() returned null"
 						);
 				}
 			}
@@ -650,8 +653,7 @@ namespace Couchbase.Lite.Router
 				string responseType = connection.GetBaseContentType();
 				if (responseType != null && accept.IndexOf(responseType) < 0)
 				{
-					Log.E(Database.Tag, string.Format("Error 406: Can't satisfy request Accept: %s", 
-						accept));
+					Log.E(Log.TagRouter, "Error 406: Can't satisfy request Accept: %s", accept);
 					status_1 = new Status(Status.NotAcceptable);
 				}
 			}
@@ -675,7 +677,7 @@ namespace Couchbase.Lite.Router
 					}
 					catch (IOException)
 					{
-						Log.E(Database.Tag, "Error closing empty output stream");
+						Log.E(Log.TagRouter, "Error closing empty output stream");
 					}
 				}
 				SendResponse();
@@ -699,7 +701,7 @@ namespace Couchbase.Lite.Router
 
 		public virtual void SetResponseLocation(Uri url)
 		{
-			string location = url.ToExternalForm();
+			string location = url.AbsolutePath;
 			string query = url.GetQuery();
 			if (query != null)
 			{
@@ -838,7 +840,7 @@ namespace Couchbase.Lite.Router
 						{
 							string msg = string.Format("Replicator error: %s.  Repl: %s.  Source: %s, Target: %s"
 								, replicator.GetLastError(), replicator, source, target);
-							Log.E(Database.Tag, msg);
+							Log.E(Log.TagRouter, msg);
 							Exception error = replicator.GetLastError();
 							int statusCode = 400;
 							if (error is HttpResponseException)
@@ -922,9 +924,12 @@ namespace Couchbase.Lite.Router
 			IList<IDictionary<string, object>> rowsAsMaps = new AList<IDictionary<string, object
 				>>();
 			IList<QueryRow> rows = (IList<QueryRow>)allDocsResult.Get("rows");
-			foreach (QueryRow row in rows)
+			if (rows != null)
 			{
-				rowsAsMaps.AddItem(row.AsJSONDictionary());
+				foreach (QueryRow row in rows)
+				{
+					rowsAsMaps.AddItem(row.AsJSONDictionary());
+				}
 			}
 			allDocsResult.Put("rows", rowsAsMaps);
 		}
@@ -1166,20 +1171,18 @@ namespace Couchbase.Lite.Router
 						results.AddItem(result);
 					}
 				}
-				Log.W(Database.Tag, string.Format("%s finished inserting %d revisions in bulk", this
-					, docs.Count));
+				Log.W(Log.TagRouter, "%s finished inserting %d revisions in bulk", this, docs.Count
+					);
 				ok = true;
 			}
 			catch (Exception e)
 			{
-				Log.E(Database.Tag, string.Format("%s: Exception inserting revisions in bulk", this
-					), e);
+				Log.E(Log.TagRouter, "%s: Exception inserting revisions in bulk", e, this);
 			}
 			finally
 			{
 				db.EndTransaction(ok);
 			}
-			Log.D(Database.Tag, "results: " + results.ToString());
 			connection.SetResponseBody(new Body(results));
 			return new Status(Status.Created);
 		}
@@ -1205,8 +1208,13 @@ namespace Couchbase.Lite.Router
 				}
 			}
 			// Look them up, removing the existing ones from revs:
-			if (!db.FindMissingRevisions(revs))
+			try
 			{
+				db.FindMissingRevisions(revs);
+			}
+			catch (SQLException e)
+			{
+				Log.E(Log.TagRouter, "Exception", e);
 				return new Status(Status.DbError);
 			}
 			// Return the missing revs in a somewhat different format:
@@ -1289,7 +1297,7 @@ namespace Couchbase.Lite.Router
 			// replicator thread: call db.loadRevisionBody for doc1
 			// liteserv thread: call db.purge on doc1
 			// replicator thread: call db.getRevisionHistory for doc1, which returns empty history since it was purged
-			Future future = db.RunAsync(new _AsyncTask_1037(this, docsToRevs, asyncApiCallResponse
+			Future future = db.RunAsync(new _AsyncTask_1054(this, docsToRevs, asyncApiCallResponse
 				));
 			try
 			{
@@ -1297,17 +1305,17 @@ namespace Couchbase.Lite.Router
 			}
 			catch (Exception e)
 			{
-				Log.E(Database.Tag, "Exception waiting for future", e);
+				Log.E(Log.TagRouter, "Exception waiting for future", e);
 				return new Status(Status.InternalServerError);
 			}
 			catch (ExecutionException e)
 			{
-				Log.E(Database.Tag, "Exception waiting for future", e);
+				Log.E(Log.TagRouter, "Exception waiting for future", e);
 				return new Status(Status.InternalServerError);
 			}
 			catch (TimeoutException e)
 			{
-				Log.E(Database.Tag, "Exception waiting for future", e);
+				Log.E(Log.TagRouter, "Exception waiting for future", e);
 				return new Status(Status.InternalServerError);
 			}
 			IDictionary<string, object> purgedRevisions = asyncApiCallResponse[0];
@@ -1318,9 +1326,9 @@ namespace Couchbase.Lite.Router
 			return new Status(Status.Ok);
 		}
 
-		private sealed class _AsyncTask_1037 : AsyncTask
+		private sealed class _AsyncTask_1054 : AsyncTask
 		{
-			public _AsyncTask_1037(Router _enclosing, IDictionary<string, IList<string>> docsToRevs
+			public _AsyncTask_1054(Router _enclosing, IDictionary<string, IList<string>> docsToRevs
 				, IList<IDictionary<string, object>> asyncApiCallResponse)
 			{
 				this._enclosing = _enclosing;
@@ -1419,11 +1427,19 @@ namespace Couchbase.Lite.Router
 				}
 			}
 			// After collecting revisions, sort by sequence:
-			entries.Sort(new _IComparer_1125());
-			long lastSeq = (long)entries[entries.Count - 1].Get("seq");
-			if (lastSeq == null)
+			entries.Sort(new _IComparer_1142());
+			long lastSeq;
+			if (entries.Count == 0)
 			{
 				lastSeq = since;
+			}
+			else
+			{
+				lastSeq = (long)entries[entries.Count - 1].Get("seq");
+				if (lastSeq == null)
+				{
+					lastSeq = since;
+				}
 			}
 			IDictionary<string, object> result = new Dictionary<string, object>();
 			result.Put("results", entries);
@@ -1431,9 +1447,9 @@ namespace Couchbase.Lite.Router
 			return result;
 		}
 
-		private sealed class _IComparer_1125 : IComparer<IDictionary<string, object>>
+		private sealed class _IComparer_1142 : IComparer<IDictionary<string, object>>
 		{
-			public _IComparer_1125()
+			public _IComparer_1142()
 			{
 			}
 
@@ -1461,7 +1477,7 @@ namespace Couchbase.Lite.Router
 					}
 					catch (Exception e)
 					{
-						Log.E(Database.Tag, "IOException writing to internal streams", e);
+						Log.E(Log.TagRouter, "IOException writing to internal streams", e);
 					}
 				}
 			}
@@ -1487,7 +1503,7 @@ namespace Couchbase.Lite.Router
 				}
 				if (longpoll)
 				{
-					Log.W(Database.Tag, "Router: Sending longpoll response");
+					Log.W(Log.TagRouter, "Router: Sending longpoll response");
 					SendResponse();
 					IList<RevisionInternal> revs = new AList<RevisionInternal>();
 					revs.AddItem(rev);
@@ -1501,7 +1517,7 @@ namespace Couchbase.Lite.Router
 						}
 						catch (Exception e)
 						{
-							Log.W(Database.Tag, "Error serializing JSON", e);
+							Log.W(Log.TagRouter, "Error serializing JSON", e);
 						}
 						OutputStream os = connection.GetResponseOutputStream();
 						try
@@ -1511,13 +1527,13 @@ namespace Couchbase.Lite.Router
 						}
 						catch (IOException e)
 						{
-							Log.E(Database.Tag, "IOException writing to internal streams", e);
+							Log.E(Log.TagRouter, "IOException writing to internal streams", e);
 						}
 					}
 				}
 				else
 				{
-					Log.W(Database.Tag, "Router: Sending continous change chunk");
+					Log.W(Log.TagRouter, "Router: Sending continous change chunk");
 					SendContinuousChange(rev);
 				}
 			}
@@ -1854,7 +1870,7 @@ namespace Couchbase.Lite.Router
 			catch (CouchbaseLiteException e)
 			{
 				Sharpen.Runtime.PrintStackTrace(e);
-				Log.E(Database.Tag, e.ToString());
+				Log.E(Log.TagRouter, "Error updating doc: %s", e, docID);
 				outStatus.SetCode(e.GetCBLStatus().GetCode());
 			}
 			return result;
@@ -1968,8 +1984,21 @@ namespace Couchbase.Lite.Router
 			{
 				revID = GetRevIDFromIfMatchHeader();
 			}
-			RevisionInternal rev = db.UpdateAttachment(attachment, contentStream, connection.
-				GetRequestProperty("content-type"), docID, revID);
+			BlobStoreWriter body = new BlobStoreWriter(db.GetAttachments());
+			ByteArrayOutputStream dataStream = new ByteArrayOutputStream();
+			try
+			{
+				StreamUtils.CopyStream(contentStream, dataStream);
+				body.AppendData(dataStream.ToByteArray());
+				body.Finish();
+			}
+			catch (IOException)
+			{
+				throw new CouchbaseLiteException(Status.BadAttachment);
+			}
+			RevisionInternal rev = db.UpdateAttachment(attachment, body, connection.GetRequestProperty
+				("content-type"), AttachmentInternal.AttachmentEncoding.AttachmentEncodingNone, 
+				docID, revID);
 			IDictionary<string, object> resultDict = new Dictionary<string, object>();
 			resultDict.Put("ok", true);
 			resultDict.Put("id", rev.GetDocId());
@@ -2015,8 +2044,7 @@ namespace Couchbase.Lite.Router
 			Mapper mapBlock = View.GetCompiler().CompileMap(mapSource, language);
 			if (mapBlock == null)
 			{
-				Log.W(Database.Tag, string.Format("View %s has unknown map function: %s", viewName
-					, mapSource));
+				Log.W(Log.TagRouter, "View %s has unknown map function: %s", viewName, mapSource);
 				return null;
 			}
 			string reduceSource = (string)viewProps.Get("reduce");
@@ -2026,8 +2054,8 @@ namespace Couchbase.Lite.Router
 				reduceBlock = View.GetCompiler().CompileReduce(reduceSource, language);
 				if (reduceBlock == null)
 				{
-					Log.W(Database.Tag, string.Format("View %s has unknown reduce function: %s", viewName
-						, reduceBlock));
+					Log.W(Log.TagRouter, "View %s has unknown reduce function: %s", viewName, reduceBlock
+						);
 					return null;
 				}
 			}

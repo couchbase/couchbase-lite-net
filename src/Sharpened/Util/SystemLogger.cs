@@ -1,10 +1,4 @@
-//
-// SystemLogger.cs
-//
-// Author:
-//     Zachary Gramana  <zack@xamarin.com>
-//
-// Copyright (c) 2014 Xamarin Inc
+// 
 // Copyright (c) 2014 .NET Foundation
 //
 // Permission is hereby granted, free of charge, to any person obtaining
@@ -38,9 +32,7 @@
 // License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
 // either express or implied. See the License for the specific language governing permissions
 // and limitations under the License.
-//
-
-using System;
+//using System;
 using System.IO;
 using Couchbase.Lite.Util;
 using Sharpen;
@@ -50,7 +42,7 @@ namespace Couchbase.Lite.Util
 {
 	public class SystemLogger : Logger
 	{
-		private static readonly Logger logger = Logger.GetLogger("com.couchbase.cblite");
+		private static readonly Logger logger = Logger.GetLogger("com.couchbase.lite");
 
 		public virtual void V(string tag, string msg)
 		{

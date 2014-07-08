@@ -1,10 +1,4 @@
-//
-// Database.cs
-//
-// Author:
-//     Zachary Gramana  <zack@xamarin.com>
-//
-// Copyright (c) 2014 Xamarin Inc
+// 
 // Copyright (c) 2014 .NET Foundation
 //
 // Permission is hereby granted, free of charge, to any person obtaining
@@ -38,9 +32,7 @@
 // License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
 // either express or implied. See the License for the specific language governing permissions
 // and limitations under the License.
-//
-
-using System;
+//using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
@@ -59,8 +51,6 @@ namespace Couchbase.Lite
 	/// <remarks>A CouchbaseLite database.</remarks>
 	public sealed class Database
 	{
-		private const int MaxDocCacheSize = 50;
-
 		private const int DefaultMaxRevs = int.MaxValue;
 
 		private static ReplicationFilterCompiler filterCompiler;
@@ -76,10 +66,7 @@ namespace Couchbase.Lite
 		private int transactionLevel = 0;
 
 		/// <exclude></exclude>
-		public const string Tag = "Database";
-
-		/// <exclude></exclude>
-		public const string TagSql = "CBLSQL";
+		public const string Tag = Log.Tag;
 
 		private IDictionary<string, View> views;
 
@@ -99,11 +86,32 @@ namespace Couchbase.Lite
 
 		private readonly IList<Database.ChangeListener> changeListeners;
 
-		private LruCache<string, Document> docCache;
+		private Cache<string, Document> docCache;
 
 		private IList<DocumentChange> changesToNotify;
 
 		private bool postingChangeNotifications;
+
+		/// <summary>
+		/// Each database can have an associated PersistentCookieStore,
+		/// where the persistent cookie store uses the database to store
+		/// its cookies.
+		/// </summary>
+		/// <remarks>
+		/// Each database can have an associated PersistentCookieStore,
+		/// where the persistent cookie store uses the database to store
+		/// its cookies.
+		/// There are two reasons this has been made an instance variable
+		/// of the Database, rather than of the Replication:
+		/// - The PersistentCookieStore needs to span multiple replications.
+		/// For example, if there is a "push" and a "pull" replication for
+		/// the same DB, they should share a cookie store.
+		/// - PersistentCookieStore lifecycle should be tied to the Database
+		/// lifecycle, since it needs to cease to exist if the underlying
+		/// Database ceases to exist.
+		/// REF: https://github.com/couchbase/couchbase-lite-android/issues/269
+		/// </remarks>
+		private PersistentCookieStore persistentCookieStore;
 
 		private int maxRevTreeDepth = DefaultMaxRevs;
 
@@ -123,7 +131,8 @@ namespace Couchbase.Lite
 			TDIncludeRevsInfo,
 			TDIncludeLocalSeq,
 			TDNoBody,
-			TDBigAttachmentsFollow
+			TDBigAttachmentsFollow,
+			TDNoAttachments
 		}
 
 		private static readonly ICollection<string> KnownSpecialKeys;
@@ -140,6 +149,8 @@ namespace Couchbase.Lite
 			KnownSpecialKeys.AddItem("_revs_info");
 			KnownSpecialKeys.AddItem("_conflicts");
 			KnownSpecialKeys.AddItem("_deleted_conflicts");
+			KnownSpecialKeys.AddItem("_local_seq");
+			KnownSpecialKeys.AddItem("_removed");
 		}
 
 		/// <exclude></exclude>
@@ -147,13 +158,13 @@ namespace Couchbase.Lite
 			 + "        docid TEXT UNIQUE NOT NULL); " + "    CREATE INDEX docs_docid ON docs(docid); "
 			 + "    CREATE TABLE revs ( " + "        sequence INTEGER PRIMARY KEY AUTOINCREMENT, "
 			 + "        doc_id INTEGER NOT NULL REFERENCES docs(doc_id) ON DELETE CASCADE, "
-			 + "        revid TEXT NOT NULL, " + "        parent INTEGER REFERENCES revs(sequence) ON DELETE SET NULL, "
+			 + "        revid TEXT NOT NULL COLLATE REVID, " + "        parent INTEGER REFERENCES revs(sequence) ON DELETE SET NULL, "
 			 + "        current BOOLEAN, " + "        deleted BOOLEAN DEFAULT 0, " + "        json BLOB); "
 			 + "    CREATE INDEX revs_by_id ON revs(revid, doc_id); " + "    CREATE INDEX revs_current ON revs(doc_id, current); "
 			 + "    CREATE INDEX revs_parent ON revs(parent); " + "    CREATE TABLE localdocs ( "
-			 + "        docid TEXT UNIQUE NOT NULL, " + "        revid TEXT NOT NULL, " + "        json BLOB); "
-			 + "    CREATE INDEX localdocs_by_docid ON localdocs(docid); " + "    CREATE TABLE views ( "
-			 + "        view_id INTEGER PRIMARY KEY, " + "        name TEXT UNIQUE NOT NULL,"
+			 + "        docid TEXT UNIQUE NOT NULL, " + "        revid TEXT NOT NULL COLLATE REVID, "
+			 + "        json BLOB); " + "    CREATE INDEX localdocs_by_docid ON localdocs(docid); "
+			 + "    CREATE TABLE views ( " + "        view_id INTEGER PRIMARY KEY, " + "        name TEXT UNIQUE NOT NULL,"
 			 + "        version TEXT, " + "        lastsequence INTEGER DEFAULT 0); " + "    CREATE INDEX views_by_name ON views(name); "
 			 + "    CREATE TABLE maps ( " + "        view_id INTEGER NOT NULL REFERENCES views(view_id) ON DELETE CASCADE, "
 			 + "        sequence INTEGER NOT NULL REFERENCES revs(sequence) ON DELETE CASCADE, "
@@ -189,20 +200,18 @@ namespace Couchbase.Lite
 		[InterfaceAudience.Private]
 		public Database(string path, Manager manager)
 		{
-			System.Diagnostics.Debug.Assert((path.StartsWith("/")));
+			System.Diagnostics.Debug.Assert((new FilePath(path).IsAbsolute()));
 			//path must be absolute
 			this.path = path;
 			this.name = FileDirUtils.GetDatabaseNameFromPath(path);
 			this.manager = manager;
-			this.changeListeners = Sharpen.Collections.SynchronizedList(new AList<Database.ChangeListener
-				>());
-			this.docCache = new LruCache<string, Document>(MaxDocCacheSize);
+			this.changeListeners = new CopyOnWriteArrayList<Database.ChangeListener>();
+			this.docCache = new Cache<string, Document>();
 			this.startTime = Runtime.CurrentTimeMillis();
 			this.changesToNotify = new AList<DocumentChange>();
-			this.activeReplicators = Sharpen.Collections.SynchronizedSet(new HashSet<Replication
-				>());
-			this.allReplicators = Sharpen.Collections.SynchronizedSet(new HashSet<Replication
-				>());
+			this.activeReplicators = Sharpen.Collections.NewSetFromMap(new ConcurrentHashMap(
+				));
+			this.allReplicators = Sharpen.Collections.NewSetFromMap(new ConcurrentHashMap());
 		}
 
 		/// <summary>Get the database's name.</summary>
@@ -365,10 +374,23 @@ namespace Couchbase.Lite
 				return;
 			}
 			FilePath file = new FilePath(path);
-			FilePath attachmentsFile = new FilePath(GetAttachmentStorePath());
+			FilePath fileJournal = new FilePath(path + "-journal");
 			bool deleteStatus = file.Delete();
+			if (fileJournal.Exists())
+			{
+				deleteStatus &= fileJournal.Delete();
+			}
+			FilePath attachmentsFile = new FilePath(GetAttachmentStorePath());
 			//recursively delete attachments path
 			bool deleteAttachmentStatus = FileDirUtils.DeleteRecursive(attachmentsFile);
+			//recursively delete path where attachments stored( see getAttachmentStorePath())
+			int lastDotPosition = path.LastIndexOf('.');
+			if (lastDotPosition > 0)
+			{
+				FilePath attachmentsFileUpFolder = new FilePath(Sharpen.Runtime.Substring(path, 0
+					, lastDotPosition));
+				FileDirUtils.DeleteRecursive(attachmentsFileUpFolder);
+			}
 			if (!deleteStatus)
 			{
 				throw new CouchbaseLiteException("Was not able to delete the database file", Status
@@ -636,8 +658,7 @@ namespace Couchbase.Lite
 					);
 				if (filter == null)
 				{
-					Log.W(Couchbase.Lite.Database.Tag, string.Format("Filter %s failed to compile", filterName
-						));
+					Log.W(Couchbase.Lite.Database.Tag, "Filter %s failed to compile", filterName);
 					return null;
 				}
 				SetFilter(filterName, filter);
@@ -704,12 +725,12 @@ namespace Couchbase.Lite
 		[InterfaceAudience.Public]
 		public Future RunAsync(AsyncTask asyncTask)
 		{
-			return GetManager().RunAsync(new _Runnable_639(this, asyncTask));
+			return GetManager().RunAsync(new _Runnable_679(this, asyncTask));
 		}
 
-		private sealed class _Runnable_639 : Runnable
+		private sealed class _Runnable_679 : Runnable
 		{
-			public _Runnable_639(Database _enclosing, AsyncTask asyncTask)
+			public _Runnable_679(Database _enclosing, AsyncTask asyncTask)
 			{
 				this._enclosing = _enclosing;
 				this.asyncTask = asyncTask;
@@ -874,7 +895,7 @@ namespace Couchbase.Lite
 		[InterfaceAudience.Private]
 		protected internal void ClearDocumentCache()
 		{
-			docCache.EvictAll();
+			docCache.Clear();
 		}
 
 		/// <summary>Get all the active replicators associated with this database.</summary>
@@ -988,8 +1009,8 @@ namespace Couchbase.Lite
 			// Incompatible version changes increment the hundreds' place:
 			if (dbVersion >= 100)
 			{
-				Log.W(Database.Tag, "Database: Database version (" + dbVersion + ") is newer than I know how to work with"
-					);
+				Log.E(Database.Tag, "Database: Database version (%d) is newer than I know how to work with"
+					, dbVersion);
 				database.Close();
 				return false;
 			}
@@ -1035,6 +1056,90 @@ namespace Couchbase.Lite
 					 + "INSERT INTO INFO (key, value) VALUES ('privateUUID', '" + Misc.TDCreateUUID(
 					) + "'); " + "INSERT INTO INFO (key, value) VALUES ('publicUUID',  '" + Misc.TDCreateUUID
 					() + "'); " + "PRAGMA user_version = 4";
+				if (!Initialize(upgradeSql))
+				{
+					database.Close();
+					return false;
+				}
+				dbVersion = 4;
+			}
+			if (dbVersion < 5)
+			{
+				// Version 5: added encoding for attachments
+				string upgradeSql = "ALTER TABLE attachments ADD COLUMN encoding INTEGER DEFAULT 0; "
+					 + "ALTER TABLE attachments ADD COLUMN encoded_length INTEGER; " + "PRAGMA user_version = 5";
+				if (!Initialize(upgradeSql))
+				{
+					database.Close();
+					return false;
+				}
+				dbVersion = 5;
+			}
+			if (dbVersion < 6)
+			{
+				// Version 6: enable Write-Ahead Log (WAL) <http://sqlite.org/wal.html>
+				// Not supported on Android, require SQLite 3.7.0
+				//String upgradeSql  = "PRAGMA journal_mode=WAL; " +
+				string upgradeSql = "PRAGMA user_version = 6";
+				if (!Initialize(upgradeSql))
+				{
+					database.Close();
+					return false;
+				}
+				dbVersion = 6;
+			}
+			if (dbVersion < 7)
+			{
+				// Version 7: enable full-text search
+				// Note: Apple's SQLite build does not support the icu or unicode61 tokenizers :(
+				// OPT: Could add compress/decompress functions to make stored content smaller
+				// Not supported on Android
+				//String upgradeSql = "CREATE VIRTUAL TABLE fulltext USING fts4(content, tokenize=unicodesn); " +
+				//"ALTER TABLE maps ADD COLUMN fulltext_id INTEGER; " +
+				//"CREATE INDEX IF NOT EXISTS maps_by_fulltext ON maps(fulltext_id); " +
+				//"CREATE TRIGGER del_fulltext DELETE ON maps WHEN old.fulltext_id not null " +
+				//"BEGIN DELETE FROM fulltext WHERE rowid=old.fulltext_id| END; " +
+				string upgradeSql = "PRAGMA user_version = 7";
+				if (!Initialize(upgradeSql))
+				{
+					database.Close();
+					return false;
+				}
+				dbVersion = 7;
+			}
+			// (Version 8 was an older version of the geo index)
+			if (dbVersion < 9)
+			{
+				// Version 9: Add geo-query index
+				//String upgradeSql = "CREATE VIRTUAL TABLE bboxes USING rtree(rowid, x0, x1, y0, y1); " +
+				//"ALTER TABLE maps ADD COLUMN bbox_id INTEGER; " +
+				//"ALTER TABLE maps ADD COLUMN geokey BLOB; " +
+				//"CREATE TRIGGER del_bbox DELETE ON maps WHEN old.bbox_id not null " +
+				//"BEGIN DELETE FROM bboxes WHERE rowid=old.bbox_id| END; " +
+				string upgradeSql = "PRAGMA user_version = 9";
+				if (!Initialize(upgradeSql))
+				{
+					database.Close();
+					return false;
+				}
+				dbVersion = 9;
+			}
+			if (dbVersion < 10)
+			{
+				// Version 10: Add rev flag for whether it has an attachment
+				string upgradeSql = "ALTER TABLE revs ADD COLUMN no_attachments BOOLEAN; " + "PRAGMA user_version = 10";
+				if (!Initialize(upgradeSql))
+				{
+					database.Close();
+					return false;
+				}
+				dbVersion = 10;
+			}
+			if (dbVersion < 11)
+			{
+				// Version 10: Add another index
+				string upgradeSql = "CREATE INDEX revs_cur_deleted ON revs(current,deleted); " + 
+					"PRAGMA user_version = 11";
 				if (!Initialize(upgradeSql))
 				{
 					database.Close();
@@ -1141,8 +1246,8 @@ namespace Couchbase.Lite
 			{
 				database.BeginTransaction();
 				++transactionLevel;
-				Log.I(Database.TagSql, Sharpen.Thread.CurrentThread().GetName() + " Begin transaction (level "
-					 + Sharpen.Extensions.ToString(transactionLevel) + ")");
+				Log.I(Log.Tag, "%s Begin transaction (level %d)", Sharpen.Thread.CurrentThread().
+					GetName(), transactionLevel);
 			}
 			catch (SQLException e)
 			{
@@ -1164,15 +1269,15 @@ namespace Couchbase.Lite
 			System.Diagnostics.Debug.Assert((transactionLevel > 0));
 			if (commit)
 			{
-				Log.I(Database.TagSql, Sharpen.Thread.CurrentThread().GetName() + " Committing transaction (level "
-					 + Sharpen.Extensions.ToString(transactionLevel) + ")");
+				Log.I(Log.Tag, "%s Committing transaction (level %d)", Sharpen.Thread.CurrentThread
+					().GetName(), transactionLevel);
 				database.SetTransactionSuccessful();
 				database.EndTransaction();
 			}
 			else
 			{
-				Log.I(TagSql, Sharpen.Thread.CurrentThread().GetName() + " CANCEL transaction (level "
-					 + Sharpen.Extensions.ToString(transactionLevel) + ")");
+				Log.I(Log.Tag, "%s CANCEL transaction (level %d)", Sharpen.Thread.CurrentThread()
+					.GetName(), transactionLevel);
 				try
 				{
 					database.EndTransaction();
@@ -1300,9 +1405,13 @@ namespace Couchbase.Lite
 			long sequenceNumber = rev.GetSequence();
 			System.Diagnostics.Debug.Assert((revId != null));
 			System.Diagnostics.Debug.Assert((sequenceNumber > 0));
+			IDictionary<string, object> attachmentsDict = null;
 			// Get attachment metadata, and optionally the contents:
-			IDictionary<string, object> attachmentsDict = GetAttachmentsDictForSequenceWithContent
-				(sequenceNumber, contentOptions);
+			if (!contentOptions.Contains(Database.TDContentOptions.TDNoAttachments))
+			{
+				attachmentsDict = GetAttachmentsDictForSequenceWithContent(sequenceNumber, contentOptions
+					);
+			}
 			// Get more optional stuff to put in the properties:
 			//OPT: This probably ends up making redundant SQL queries if multiple options are enabled.
 			long localSeq = null;
@@ -1344,11 +1453,15 @@ namespace Couchbase.Lite
 				if (revs.Count > 1)
 				{
 					conflicts = new AList<string>();
-					foreach (RevisionInternal historicalRev in revs)
+					foreach (RevisionInternal aRev in revs)
 					{
-						if (!historicalRev.Equals(rev))
+						if (aRev.Equals(rev) || aRev.IsDeleted())
 						{
-							conflicts.AddItem(historicalRev.GetRevId());
+						}
+						else
+						{
+							// don't add in this case
+							conflicts.AddItem(aRev.GetRevId());
 						}
 					}
 				}
@@ -1396,13 +1509,17 @@ namespace Couchbase.Lite
 		{
 			IDictionary<string, object> extra = ExtraPropertiesForRevision(rev, contentOptions
 				);
-			if (json != null)
+			if (json != null && json.Length > 0)
 			{
 				rev.SetJson(AppendDictToJSON(json, extra));
 			}
 			else
 			{
 				rev.SetProperties(extra);
+				if (json == null)
+				{
+					rev.SetMissing(true);
+				}
 			}
 		}
 
@@ -1445,7 +1562,7 @@ namespace Couchbase.Lite
 			try
 			{
 				cursor = null;
-				string cols = "revid, deleted, sequence";
+				string cols = "revid, deleted, sequence, no_attachments";
 				if (!contentOptions.Contains(Database.TDContentOptions.TDNoBody))
 				{
 					cols += ", json";
@@ -1453,12 +1570,14 @@ namespace Couchbase.Lite
 				if (rev != null)
 				{
 					sql = "SELECT " + cols + " FROM revs, docs WHERE docs.docid=? AND revs.doc_id=docs.doc_id AND revid=? LIMIT 1";
+					//TODO: mismatch w iOS: {sql = "SELECT " + cols + " FROM revs WHERE revs.doc_id=? AND revid=? AND json notnull LIMIT 1";}
 					string[] args = new string[] { id, rev };
 					cursor = database.RawQuery(sql, args);
 				}
 				else
 				{
 					sql = "SELECT " + cols + " FROM revs, docs WHERE docs.docid=? AND revs.doc_id=docs.doc_id and current=1 and deleted=0 ORDER BY revid DESC LIMIT 1";
+					//TODO: mismatch w iOS: {sql = "SELECT " + cols + " FROM revs WHERE revs.doc_id=? and current=1 and deleted=0 ORDER BY revid DESC LIMIT 1";}
 					string[] args = new string[] { id };
 					cursor = database.RawQuery(sql, args);
 				}
@@ -1476,7 +1595,12 @@ namespace Couchbase.Lite
 						byte[] json = null;
 						if (!contentOptions.Contains(Database.TDContentOptions.TDNoBody))
 						{
-							json = cursor.GetBlob(3);
+							json = cursor.GetBlob(4);
+						}
+						if (cursor.GetInt(3) > 0)
+						{
+							// no_attachments == true
+							contentOptions.AddItem(Database.TDContentOptions.TDNoAttachments);
 						}
 						ExpandStoredJSONIntoRevisionWithAttachments(json, result, contentOptions);
 					}
@@ -1515,8 +1639,11 @@ namespace Couchbase.Lite
 			{
 				return rev;
 			}
-			System.Diagnostics.Debug.Assert(((rev.GetDocId() != null) && (rev.GetRevId() != null
-				)));
+			if ((rev.GetDocId() == null) || (rev.GetRevId() == null))
+			{
+				Log.E(Database.Tag, "Error loading revision body");
+				throw new CouchbaseLiteException(Status.PreconditionFailed);
+			}
 			Cursor cursor = null;
 			Status result = new Status(Status.NotFound);
 			try
@@ -1694,6 +1821,56 @@ namespace Couchbase.Lite
 				}
 			}
 			return result;
+		}
+
+		/// <exclude></exclude>
+		[InterfaceAudience.Private]
+		public IList<string> GetPossibleAncestorRevisionIDs(RevisionInternal rev, int limit
+			, AtomicBoolean hasAttachment)
+		{
+			IList<string> matchingRevs = new AList<string>();
+			int generation = rev.GetGeneration();
+			if (generation <= 1)
+			{
+				return null;
+			}
+			long docNumericID = GetDocNumericID(rev.GetDocId());
+			if (docNumericID <= 0)
+			{
+				return null;
+			}
+			int sqlLimit = limit > 0 ? (int)limit : -1;
+			// SQL uses -1, not 0, to denote 'no limit'
+			string sql = "SELECT revid, sequence FROM revs WHERE doc_id=? and revid < ?" + " and deleted=0 and json not null"
+				 + " ORDER BY sequence DESC LIMIT ?";
+			string[] args = new string[] { System.Convert.ToString(docNumericID), generation 
+				+ "-", Sharpen.Extensions.ToString(sqlLimit) };
+			Cursor cursor = null;
+			try
+			{
+				cursor = database.RawQuery(sql, args);
+				cursor.MoveToNext();
+				if (!cursor.IsAfterLast())
+				{
+					if (matchingRevs.Count == 0)
+					{
+						hasAttachment.Set(SequenceHasAttachments(cursor.GetLong(1)));
+					}
+					matchingRevs.AddItem(cursor.GetString(0));
+				}
+			}
+			catch (SQLException e)
+			{
+				Log.E(Database.Tag, "Error getting all revisions of document", e);
+			}
+			finally
+			{
+				if (cursor != null)
+				{
+					cursor.Close();
+				}
+			}
+			return matchingRevs;
 		}
 
 		/// <exclude></exclude>
@@ -1924,6 +2101,32 @@ namespace Couchbase.Lite
 			return MakeRevisionHistoryDict(GetRevisionHistory(rev));
 		}
 
+		/// <summary>Returns the revision history as a _revisions dictionary, as returned by the REST API's ?revs=true option.
+		/// 	</summary>
+		/// <remarks>Returns the revision history as a _revisions dictionary, as returned by the REST API's ?revs=true option.
+		/// 	</remarks>
+		/// <exclude></exclude>
+		[InterfaceAudience.Private]
+		public IDictionary<string, object> GetRevisionHistoryDictStartingFromAnyAncestor(
+			RevisionInternal rev, IList<string> ancestorRevIDs)
+		{
+			IList<RevisionInternal> history = GetRevisionHistory(rev);
+			// (this is in reverse order, newest..oldest
+			if (ancestorRevIDs != null && ancestorRevIDs.Count > 0)
+			{
+				int n = history.Count;
+				for (int i = 0; i < n; ++i)
+				{
+					if (ancestorRevIDs.Contains(history[i].GetRevId()))
+					{
+						history = history.SubList(0, i + 1);
+						break;
+					}
+				}
+			}
+			return MakeRevisionHistoryDict(history);
+		}
+
 		/// <exclude></exclude>
 		[InterfaceAudience.Private]
 		public RevisionList ChangesSince(long lastSeq, ChangesOptions options, ReplicationFilter
@@ -2088,7 +2291,7 @@ namespace Couchbase.Lite
 					if (options.GetStale() == Query.IndexUpdateMode.After && lastSequence < GetLastSequenceNumber
 						())
 					{
-						new Sharpen.Thread(new _Runnable_1847(view)).Start();
+						new Sharpen.Thread(new _Runnable_2051(view)).Start();
 					}
 				}
 				rows = view.QueryWithOptions(options);
@@ -2105,14 +2308,14 @@ namespace Couchbase.Lite
 			}
 			outLastSequence.AddItem(lastSequence);
 			long delta = Runtime.CurrentTimeMillis() - before;
-			Log.D(Database.Tag, string.Format("Query view %s completed in %d milliseconds", viewName
-				, delta));
+			Log.D(Database.Tag, "Query view %s completed in %d milliseconds", viewName, delta
+				);
 			return rows;
 		}
 
-		private sealed class _Runnable_1847 : Runnable
+		private sealed class _Runnable_2051 : Runnable
 		{
-			public _Runnable_1847(View view)
+			public _Runnable_2051(View view)
 			{
 				this.view = view;
 			}
@@ -2448,7 +2651,7 @@ namespace Couchbase.Lite
 					if (hasNextResult)
 					{
 						bool isNextDeleted = cursor.GetInt(1) > 0;
-						bool isInConflict = !deleted && hasNextResult && isNextDeleted;
+						bool isInConflict = !deleted && hasNextResult && !isNextDeleted;
 						if (isInConflict)
 						{
 							outIsConflict.AddItem(true);
@@ -2599,8 +2802,8 @@ namespace Couchbase.Lite
 				{
 					// Oops. This means a glitch in our attachment-management or pull code,
 					// or else a bug in the upstream server.
-					Log.W(Database.Tag, "Can't find inherited attachment " + name + " from seq# " + System.Convert.ToString
-						(fromSeq) + " to copy to " + System.Convert.ToString(toSeq));
+					Log.W(Database.Tag, "Can't find inherited attachment %s from seq# %s to copy to %s"
+						, name, fromSeq, toSeq);
 					throw new CouchbaseLiteException(Status.NotFound);
 				}
 				else
@@ -2707,6 +2910,37 @@ namespace Couchbase.Lite
 			}
 		}
 
+		public bool SequenceHasAttachments(long sequence)
+		{
+			Cursor cursor = null;
+			string[] args = new string[] { System.Convert.ToString(sequence) };
+			try
+			{
+				cursor = database.RawQuery("SELECT 1 FROM attachments WHERE sequence=? LIMIT 1", 
+					args);
+				if (cursor.MoveToNext())
+				{
+					return true;
+				}
+				else
+				{
+					return false;
+				}
+			}
+			catch (SQLException e)
+			{
+				Log.E(Database.Tag, "Error getting attachments for sequence", e);
+				return false;
+			}
+			finally
+			{
+				if (cursor != null)
+				{
+					cursor.Close();
+				}
+			}
+		}
+
 		/// <summary>Constructs an "_attachments" dictionary for a revision, to be inserted in its JSON body.
 		/// 	</summary>
 		/// <remarks>Constructs an "_attachments" dictionary for a revision, to be inserted in its JSON body.
@@ -2753,12 +2987,12 @@ namespace Couchbase.Lite
 							else
 							{
 								// <-- very expensive
-								Log.W(Database.Tag, "Error loading attachment");
+								Log.W(Database.Tag, "Error loading attachment.  Sequence: %s", sequence);
 							}
 						}
 					}
 					IDictionary<string, object> attachment = new Dictionary<string, object>();
-					if (dataBase64 == null || dataSuppressed == true)
+					if (!(dataBase64 != null || dataSuppressed))
 					{
 						attachment.Put("stub", true);
 					}
@@ -2793,6 +3027,46 @@ namespace Couchbase.Lite
 					cursor.Close();
 				}
 			}
+		}
+
+		[InterfaceAudience.Private]
+		public Uri FileForAttachmentDict(IDictionary<string, object> attachmentDict)
+		{
+			string digest = (string)attachmentDict.Get("digest");
+			if (digest == null)
+			{
+				return null;
+			}
+			string path = null;
+			object pending = pendingAttachmentsByDigest.Get(digest);
+			if (pending != null)
+			{
+				if (pending is BlobStoreWriter)
+				{
+					path = ((BlobStoreWriter)pending).GetFilePath();
+				}
+				else
+				{
+					BlobKey key = new BlobKey((byte[])pending);
+					path = attachments.PathForKey(key);
+				}
+			}
+			else
+			{
+				// If it's an installed attachment, ask the blob-store for it:
+				BlobKey key = new BlobKey(digest);
+				path = attachments.PathForKey(key);
+			}
+			Uri retval = null;
+			try
+			{
+				retval = new FilePath(path).ToURI().ToURL();
+			}
+			catch (UriFormatException)
+			{
+			}
+			//NOOP: retval will be null
+			return retval;
 		}
 
 		/// <summary>Modifies a RevisionInternal's body by changing all attachments with revpos &lt; minRevPos into stubs.
@@ -2840,8 +3114,8 @@ namespace Couchbase.Lite
 					Sharpen.Collections.Remove(editedAttachment, "follows");
 					editedAttachment.Put("stub", true);
 					editedAttachments.Put(name, editedAttachment);
-					Log.D(Database.Tag, "Stubbed out attachment" + rev + " " + name + ": revpos" + revPos
-						 + " " + minRevPos);
+					Log.V(Database.Tag, "Stubbed out attachment.  minRevPos: %s rev: %s name: %s revpos: %s"
+						, minRevPos, rev, name, revPos);
 				}
 			}
 			if (editedProperties != null)
@@ -2890,6 +3164,121 @@ namespace Couchbase.Lite
 			}
 		}
 
+		// Replaces attachment data whose revpos is < minRevPos with stubs.
+		// If attachmentsFollow==YES, replaces data with "follows" key.
+		public static void StubOutAttachmentsInRevBeforeRevPos(RevisionInternal rev, int 
+			minRevPos, bool attachmentsFollow)
+		{
+			if (minRevPos <= 1 && !attachmentsFollow)
+			{
+				return;
+			}
+			rev.MutateAttachments(new _Functor_2832(minRevPos, attachmentsFollow, rev));
+		}
+
+		private sealed class _Functor_2832 : CollectionUtils.Functor<IDictionary<string, 
+			object>, IDictionary<string, object>>
+		{
+			public _Functor_2832(int minRevPos, bool attachmentsFollow, RevisionInternal rev)
+			{
+				this.minRevPos = minRevPos;
+				this.attachmentsFollow = attachmentsFollow;
+				this.rev = rev;
+			}
+
+			public IDictionary<string, object> Invoke(IDictionary<string, object> attachment)
+			{
+				int revPos = 0;
+				if (attachment.Get("revpos") != null)
+				{
+					revPos = (int)attachment.Get("revpos");
+				}
+				bool includeAttachment = (revPos == 0 || revPos >= minRevPos);
+				bool stubItOut = !includeAttachment && (attachment.Get("stub") == null || (bool)attachment
+					.Get("stub") == false);
+				bool addFollows = includeAttachment && attachmentsFollow && (attachment.Get("follows"
+					) == null || (bool)attachment.Get("follows") == false);
+				if (!stubItOut && !addFollows)
+				{
+					return attachment;
+				}
+				// no change
+				// Need to modify attachment entry:
+				IDictionary<string, object> editedAttachment = new Dictionary<string, object>(attachment
+					);
+				Sharpen.Collections.Remove(editedAttachment, "data");
+				if (stubItOut)
+				{
+					// ...then remove the 'data' and 'follows' key:
+					Sharpen.Collections.Remove(editedAttachment, "follows");
+					editedAttachment.Put("stub", true);
+					Log.V(Log.TagSync, "Stubbed out attachment %s: revpos %d < %d", rev, revPos, minRevPos
+						);
+				}
+				else
+				{
+					if (addFollows)
+					{
+						Sharpen.Collections.Remove(editedAttachment, "stub");
+						editedAttachment.Put("follows", true);
+						Log.V(Log.TagSync, "Added 'follows' for attachment %s: revpos %d >= %d", rev, revPos
+							, minRevPos);
+					}
+				}
+				return editedAttachment;
+			}
+
+			private readonly int minRevPos;
+
+			private readonly bool attachmentsFollow;
+
+			private readonly RevisionInternal rev;
+		}
+
+		// Replaces the "follows" key with the real attachment data in all attachments to 'doc'.
+		public bool InlineFollowingAttachmentsIn(RevisionInternal rev)
+		{
+			return rev.MutateAttachments(new _Functor_2868(this));
+		}
+
+		private sealed class _Functor_2868 : CollectionUtils.Functor<IDictionary<string, 
+			object>, IDictionary<string, object>>
+		{
+			public _Functor_2868(Database _enclosing)
+			{
+				this._enclosing = _enclosing;
+			}
+
+			public IDictionary<string, object> Invoke(IDictionary<string, object> attachment)
+			{
+				if (!attachment.ContainsKey("follows"))
+				{
+					return attachment;
+				}
+				Uri fileURL = this._enclosing.FileForAttachmentDict(attachment);
+				byte[] fileData = null;
+				try
+				{
+					InputStream @is = fileURL.OpenStream();
+					ByteArrayOutputStream os = new ByteArrayOutputStream();
+					StreamUtils.CopyStream(@is, os);
+					fileData = os.ToByteArray();
+				}
+				catch (IOException e)
+				{
+					Log.E(Log.TagSync, "could not retrieve attachment data: %S", e);
+					return null;
+				}
+				IDictionary<string, object> editedAttachment = new Dictionary<string, object>(attachment
+					);
+				Sharpen.Collections.Remove(editedAttachment, "follows");
+				editedAttachment.Put("data", Base64.EncodeBytes(fileData));
+				return editedAttachment;
+			}
+
+			private readonly Database _enclosing;
+		}
+
 		/// <summary>
 		/// Given a newly-added revision, adds the necessary attachment rows to the sqliteDb and
 		/// stores inline attachments into the blob store.
@@ -2936,8 +3325,8 @@ namespace Couchbase.Lite
 					{
 						if (attachment.GetRevpos() > generation)
 						{
-							Log.W(Database.Tag, string.Format("Attachment %s %s has unexpected revpos %s, setting to %s"
-								, rev, name, attachment.GetRevpos(), generation));
+							Log.W(Database.Tag, "Attachment %s %s has unexpected revpos %s, setting to %s", rev
+								, name, attachment.GetRevpos(), generation);
 							attachment.SetRevpos(generation);
 						}
 					}
@@ -2962,13 +3351,13 @@ namespace Couchbase.Lite
 		/// <exclude></exclude>
 		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
 		[InterfaceAudience.Private]
-		public RevisionInternal UpdateAttachment(string filename, InputStream contentStream
-			, string contentType, string docID, string oldRevID)
+		public RevisionInternal UpdateAttachment(string filename, BlobStoreWriter body, string
+			 contentType, AttachmentInternal.AttachmentEncoding encoding, string docID, string
+			 oldRevID)
 		{
 			bool isSuccessful = false;
-			if (filename == null || filename.Length == 0 || (contentStream != null && contentType
-				 == null) || (oldRevID != null && docID == null) || (contentStream != null && docID
-				 == null))
+			if (filename == null || filename.Length == 0 || (body != null && contentType == null
+				) || (oldRevID != null && docID == null) || (body != null && docID == null))
 			{
 				throw new CouchbaseLiteException(Status.BadRequest);
 			}
@@ -2991,54 +3380,55 @@ namespace Couchbase.Lite
 							throw new CouchbaseLiteException(Status.Conflict);
 						}
 					}
-					IDictionary<string, object> oldRevProps = oldRev.GetProperties();
-					IDictionary<string, object> attachments = null;
-					if (oldRevProps != null)
-					{
-						attachments = (IDictionary<string, object>)oldRevProps.Get("_attachments");
-					}
-					if (contentStream == null && attachments != null && !attachments.ContainsKey(filename
-						))
-					{
-						throw new CouchbaseLiteException(Status.NotFound);
-					}
-					// Remove the _attachments stubs so putRevision: doesn't copy the rows for me
-					// OPT: Would be better if I could tell loadRevisionBody: not to add it
-					if (attachments != null)
-					{
-						IDictionary<string, object> properties = new Dictionary<string, object>(oldRev.GetProperties
-							());
-						Sharpen.Collections.Remove(properties, "_attachments");
-						oldRev.SetBody(new Body(properties));
-					}
 				}
 				else
 				{
 					// If this creates a new doc, it needs a body:
 					oldRev.SetBody(new Body(new Dictionary<string, object>()));
 				}
+				// Update the _attachments dictionary:
+				IDictionary<string, object> oldRevProps = oldRev.GetProperties();
+				IDictionary<string, object> attachments = null;
+				if (oldRevProps != null)
+				{
+					attachments = (IDictionary<string, object>)oldRevProps.Get("_attachments");
+				}
+				if (attachments == null)
+				{
+					attachments = new Dictionary<string, object>();
+				}
+				if (body != null)
+				{
+					BlobKey key = body.GetBlobKey();
+					string digest = key.Base64Digest();
+					IDictionary<string, BlobStoreWriter> blobsByDigest = new Dictionary<string, BlobStoreWriter
+						>();
+					blobsByDigest.Put(digest, body);
+					RememberAttachmentWritersForDigests(blobsByDigest);
+					string encodingName = (encoding == AttachmentInternal.AttachmentEncoding.AttachmentEncodingGZIP
+						) ? "gzip" : null;
+					IDictionary<string, object> dict = new Dictionary<string, object>();
+					dict.Put("digest", digest);
+					dict.Put("length", body.GetLength());
+					dict.Put("follows", true);
+					dict.Put("content_type", contentType);
+					dict.Put("encoding", encodingName);
+					attachments.Put(filename, dict);
+				}
+				else
+				{
+					if (oldRevID != null && !attachments.ContainsKey(filename))
+					{
+						throw new CouchbaseLiteException(Status.NotFound);
+					}
+					Sharpen.Collections.Remove(attachments, filename);
+				}
+				IDictionary<string, object> properties = oldRev.GetProperties();
+				properties.Put("_attachments", attachments);
+				oldRev.SetProperties(properties);
 				// Create a new revision:
 				Status putStatus = new Status();
 				RevisionInternal newRev = PutRevision(oldRev, oldRevID, false, putStatus);
-				if (newRev == null)
-				{
-					return null;
-				}
-				if (oldRevID != null)
-				{
-					// Copy all attachment rows _except_ for the one being updated:
-					string[] args = new string[] { System.Convert.ToString(newRev.GetSequence()), System.Convert.ToString
-						(oldRev.GetSequence()), filename };
-					database.ExecSQL("INSERT INTO attachments " + "(sequence, filename, key, type, length, revpos) "
-						 + "SELECT ?, filename, key, type, length, revpos FROM attachments " + "WHERE sequence=? AND filename != ?"
-						, args);
-				}
-				if (contentStream != null)
-				{
-					// If not deleting, add a new attachment entry:
-					InsertAttachmentForSequenceWithNameAndType(contentStream, newRev.GetSequence(), filename
-						, contentType, newRev.GetGeneration());
-				}
 				isSuccessful = true;
 				return newRev;
 			}
@@ -3103,7 +3493,7 @@ namespace Couchbase.Lite
 				{
 					return new Status(Status.InternalServerError);
 				}
-				Log.V(Database.Tag, "Deleted " + numDeleted + " attachments");
+				Log.V(Database.Tag, "Deleted %d attachments", numDeleted);
 				return new Status(Status.Ok);
 			}
 			catch (SQLException e)
@@ -3146,21 +3536,63 @@ namespace Couchbase.Lite
 
 		/// <exclude></exclude>
 		[InterfaceAudience.Private]
-		public string GenerateNextRevisionID(string revisionId)
+		public string GenerateIDForRevision(RevisionInternal rev, byte[] json, IDictionary
+			<string, AttachmentInternal> attachments, string previousRevisionId)
 		{
+			MessageDigest md5Digest;
 			// Revision IDs have a generation count, a hyphen, and a UUID.
 			int generation = 0;
-			if (revisionId != null)
+			if (previousRevisionId != null)
 			{
-				generation = RevisionInternal.GenerationFromRevID(revisionId);
+				generation = RevisionInternal.GenerationFromRevID(previousRevisionId);
 				if (generation == 0)
 				{
 					return null;
 				}
 			}
-			string digest = Misc.TDCreateUUID();
-			// TODO: Generate canonical digest of body
-			return Sharpen.Extensions.ToString(generation + 1) + "-" + digest;
+			// Generate a digest for this revision based on the previous revision ID, document JSON,
+			// and attachment digests. This doesn't need to be secure; we just need to ensure that this
+			// code consistently generates the same ID given equivalent revisions.
+			try
+			{
+				md5Digest = MessageDigest.GetInstance("MD5");
+			}
+			catch (NoSuchAlgorithmException e)
+			{
+				throw new RuntimeException(e);
+			}
+			int length = 0;
+			if (previousRevisionId != null)
+			{
+				byte[] prevIDUTF8 = Sharpen.Runtime.GetBytesForString(previousRevisionId, Sharpen.Extensions.GetEncoding
+					("UTF-8"));
+				length = prevIDUTF8.Length;
+			}
+			if (length > unchecked((int)(0xFF)))
+			{
+				return null;
+			}
+			byte lengthByte = unchecked((byte)(length & unchecked((int)(0xFF))));
+			byte[] lengthBytes = new byte[] { lengthByte };
+			md5Digest.Update(lengthBytes);
+			int isDeleted = ((rev.IsDeleted() != false) ? 1 : 0);
+			byte[] deletedByte = new byte[] { unchecked((byte)isDeleted) };
+			md5Digest.Update(deletedByte);
+			IList<string> attachmentKeys = new AList<string>(attachments.Keys);
+			attachmentKeys.Sort();
+			foreach (string key in attachmentKeys)
+			{
+				AttachmentInternal attachment = attachments.Get(key);
+				md5Digest.Update(attachment.GetBlobKey().GetBytes());
+			}
+			if (json != null)
+			{
+				md5Digest.Update(json);
+			}
+			byte[] md5DigestResult = md5Digest.Digest();
+			string digestAsHex = Utils.BytesToHex(md5DigestResult);
+			int generationIncremented = generation + 1;
+			return string.Format("%d-%s", generationIncremented, digestAsHex);
 		}
 
 		/// <exclude></exclude>
@@ -3204,9 +3636,13 @@ namespace Couchbase.Lite
 				.Get("_revisions");
 			if (revisions == null)
 			{
-				return null;
+				return new AList<string>();
 			}
-			IList<string> revIDs = (IList<string>)revisions.Get("ids");
+			IList<string> revIDs = new AList<string>((IList<string>)revisions.Get("ids"));
+			if (revIDs == null || revIDs.IsEmpty())
+			{
+				return new AList<string>();
+			}
 			int start = (int)revisions.Get("start");
 			if (start != null)
 			{
@@ -3228,21 +3664,32 @@ namespace Couchbase.Lite
 			{
 				return null;
 			}
+			IList<string> specialKeysToLeave = Arrays.AsList("_removed", "_replication_id", "_replication_state"
+				, "_replication_state_time");
 			// Don't allow any "_"-prefixed keys. Known ones we'll ignore, unknown ones are an error.
 			IDictionary<string, object> properties = new Dictionary<string, object>(origProps
 				.Count);
 			foreach (string key in origProps.Keys)
 			{
+				bool shouldAdd = false;
 				if (key.StartsWith("_"))
 				{
 					if (!KnownSpecialKeys.Contains(key))
 					{
-						Log.E(Tag, "Database: Invalid top-level key '" + key + "' in document to be inserted"
+						Log.E(Tag, "Database: Invalid top-level key '%s' in document to be inserted", key
 							);
 						return null;
 					}
+					if (specialKeysToLeave.Contains(key))
+					{
+						shouldAdd = true;
+					}
 				}
 				else
+				{
+					shouldAdd = true;
+				}
+				if (shouldAdd)
 				{
 					properties.Put(key, origProps.Get(key));
 				}
@@ -3275,6 +3722,7 @@ namespace Couchbase.Lite
 					IList<DocumentChange> outgoingChanges = new AList<DocumentChange>();
 					Sharpen.Collections.AddAll(outgoingChanges, changesToNotify);
 					changesToNotify.Clear();
+					// TODO: change this to match iOS and call cachedDocumentWithID
 					bool isExternal = false;
 					foreach (DocumentChange change in outgoingChanges)
 					{
@@ -3287,12 +3735,9 @@ namespace Couchbase.Lite
 					}
 					Database.ChangeEvent changeEvent = new Database.ChangeEvent(this, isExternal, outgoingChanges
 						);
-					lock (changeListeners)
+					foreach (Database.ChangeListener changeListener in changeListeners)
 					{
-						foreach (Database.ChangeListener changeListener in changeListeners)
-						{
-							changeListener.Changed(changeEvent);
-						}
+						changeListener.Changed(changeEvent);
 					}
 				}
 				catch (Exception e)
@@ -3338,7 +3783,7 @@ namespace Couchbase.Lite
 		/// <exclude></exclude>
 		[InterfaceAudience.Private]
 		public long InsertRevision(RevisionInternal rev, long docNumericID, long parentSequence
-			, bool current, byte[] data)
+			, bool current, bool hasAttachments, byte[] data)
 		{
 			long rowId = 0;
 			try
@@ -3352,6 +3797,7 @@ namespace Couchbase.Lite
 				}
 				args.Put("current", current);
 				args.Put("deleted", rev.IsDeleted());
+				args.Put("no_attachments", !hasAttachments);
 				args.Put("json", data);
 				rowId = database.Insert("revs", null, args);
 				rev.SetSequence(rowId);
@@ -3453,18 +3899,7 @@ namespace Couchbase.Lite
 						string msg = string.Format("No existing revision found with doc id: %s", docId);
 						throw new CouchbaseLiteException(msg, Status.NotFound);
 					}
-					string[] args = new string[] { System.Convert.ToString(docNumericID), prevRevId };
-					string additionalWhereClause = string.Empty;
-					if (!allowConflict)
-					{
-						additionalWhereClause = "AND current=1";
-					}
-					cursor = database.RawQuery("SELECT sequence FROM revs WHERE doc_id=? AND revid=? "
-						 + additionalWhereClause + " LIMIT 1", args);
-					if (cursor.MoveToNext())
-					{
-						parentSequence = cursor.GetLong(0);
-					}
+					parentSequence = GetSequenceOfDocument(docNumericID, prevRevId, !allowConflict);
 					if (parentSequence == 0)
 					{
 						// Not found: either a 404 or a 409, depending on whether there is any current revision
@@ -3483,13 +3918,10 @@ namespace Couchbase.Lite
 					if (validations != null && validations.Count > 0)
 					{
 						// Fetch the previous revision and validate the new one against it:
+						RevisionInternal fakeNewRev = oldRev.CopyWithDocID(oldRev.GetDocId(), null);
 						RevisionInternal prevRev = new RevisionInternal(docId, prevRevId, false, this);
-						ValidateRevision(oldRev, prevRev);
+						ValidateRevision(fakeNewRev, prevRev, prevRevId);
 					}
-					// Make replaced rev non-current:
-					ContentValues updateContent = new ContentValues();
-					updateContent.Put("current", 0);
-					database.Update("revs", updateContent, "sequence=" + parentSequence, null);
 				}
 				else
 				{
@@ -3507,7 +3939,7 @@ namespace Couchbase.Lite
 						}
 					}
 					// Validate:
-					ValidateRevision(oldRev, null);
+					ValidateRevision(oldRev, null, null);
 					if (docId != null)
 					{
 						// Inserting first revision, with docID given (PUT):
@@ -3553,30 +3985,57 @@ namespace Couchbase.Lite
 				// (b) a conflict is created by adding a non-deletion child of a non-winning rev.
 				inConflict = wasConflicted || (!deleted && prevRevId != null && oldWinningRevID !=
 					 null && !prevRevId.Equals(oldWinningRevID));
-				//// PART II: In which insertion occurs...
+				//// PART II: In which we prepare for insertion...
 				// Get the attachments:
 				IDictionary<string, AttachmentInternal> attachments = GetAttachmentsFromRevision(
 					oldRev);
 				// Bump the revID and update the JSON:
-				string newRevId = GenerateNextRevisionID(prevRevId);
-				byte[] data = null;
+				byte[] json = null;
 				if (!oldRev.IsDeleted())
 				{
-					data = EncodeDocumentJSON(oldRev);
-					if (data == null)
+					json = EncodeDocumentJSON(oldRev);
+					if (json == null)
 					{
 						// bad or missing json
 						throw new CouchbaseLiteException(Status.BadRequest);
 					}
+					if (json.Length == 2 && json[0] == '{' && json[1] == '}')
+					{
+						json = null;
+					}
 				}
+				string newRevId = GenerateIDForRevision(oldRev, json, attachments, prevRevId);
 				newRev = oldRev.CopyWithDocID(docId, newRevId);
 				StubOutAttachmentsInRevision(attachments, newRev);
+				// Don't store a SQL null in the 'json' column -- I reserve it to mean that the revision data
+				// is missing due to compaction or replication.
+				// Instead, store an empty zero-length blob.
+				if (json == null)
+				{
+					json = new byte[0];
+				}
+				//// PART III: In which the actual insertion finally takes place:
+				int attachmentSize = attachments.Count;
+				bool hasAttachments = attachments.Count > 0;
 				// Now insert the rev itself:
-				long newSequence = InsertRevision(newRev, docNumericID, parentSequence, true, data
-					);
+				long newSequence = InsertRevision(newRev, docNumericID, parentSequence, true, (attachments
+					.Count > 0), json);
 				if (newSequence == 0)
 				{
 					return null;
+				}
+				// Make replaced rev non-current:
+				try
+				{
+					ContentValues args = new ContentValues();
+					args.Put("current", 0);
+					database.Update("revs", args, "sequence=?", new string[] { parentSequence.ToString
+						() });
+				}
+				catch (SQLException e)
+				{
+					Log.E(Database.Tag, "Error setting parent rev non-current", e);
+					throw new CouchbaseLiteException(Status.InternalServerError);
 				}
 				// Store any attachments:
 				if (attachments != null)
@@ -3808,10 +4267,6 @@ namespace Couchbase.Lite
 				{
 					attachment.SetRevpos((int)attachInfo.Get("revpos"));
 				}
-				else
-				{
-					attachment.SetRevpos(1);
-				}
 				attachments.Put(name, attachment);
 			}
 			return attachments;
@@ -3922,7 +4377,8 @@ namespace Couchbase.Lite
 							newRev = new RevisionInternal(docId, revId, false, this);
 						}
 						// Insert it:
-						sequence = InsertRevision(newRev, docNumericID, sequence, current, data);
+						sequence = InsertRevision(newRev, docNumericID, sequence, current, (GetAttachmentsFromRevision
+							(newRev).Count > 0), data);
 						if (sequence <= 0)
 						{
 							throw new CouchbaseLiteException(Status.InternalServerError);
@@ -3981,14 +4437,16 @@ namespace Couchbase.Lite
 		/// <exclude></exclude>
 		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
 		[InterfaceAudience.Private]
-		public void ValidateRevision(RevisionInternal newRev, RevisionInternal oldRev)
+		public void ValidateRevision(RevisionInternal newRev, RevisionInternal oldRev, string
+			 parentRevID)
 		{
 			if (validations == null || validations.Count == 0)
 			{
 				return;
 			}
-			ValidationContextImpl context = new ValidationContextImpl(this, oldRev, newRev);
 			SavedRevision publicRev = new SavedRevision(this, newRev);
+			publicRev.SetParentRevisionID(parentRevID);
+			ValidationContextImpl context = new ValidationContextImpl(this, oldRev, newRev);
 			foreach (string validationName in validations.Keys)
 			{
 				Validator validation = GetValidation(validationName);
@@ -4032,7 +4490,7 @@ namespace Couchbase.Lite
 		[InterfaceAudience.Private]
 		public Replication GetReplicator(string sessionId)
 		{
-			if (activeReplicators != null)
+			if (allReplicators != null)
 			{
 				foreach (Replication replicator in allReplicators)
 				{
@@ -4097,6 +4555,8 @@ namespace Couchbase.Lite
 		[InterfaceAudience.Private]
 		public bool SetLastSequence(string lastSequence, string checkpointId, bool push)
 		{
+			Log.V(Database.Tag, "%s: setLastSequence() called with lastSequence: %s checkpointId: %s"
+				, this, lastSequence, checkpointId);
 			ContentValues values = new ContentValues();
 			values.Put("remote", checkpointId);
 			values.Put("push", push);
@@ -4104,6 +4564,44 @@ namespace Couchbase.Lite
 			long newId = database.InsertWithOnConflict("replicators", null, values, SQLiteStorageEngine
 				.ConflictReplace);
 			return (newId == -1);
+		}
+
+		/// <exclude></exclude>
+		[InterfaceAudience.Private]
+		public string GetLastSequenceStored(string checkpointId, bool push)
+		{
+			if (!push)
+			{
+				throw new RuntimeException("need to unhardcode push = 1 before it will work with pull replications"
+					);
+			}
+			string sql = "SELECT last_sequence FROM replicators " + "WHERE remote = ? AND push = 1 ";
+			string[] args = new string[] { checkpointId };
+			Cursor cursor = null;
+			RevisionList changes = null;
+			string lastSequence = null;
+			try
+			{
+				cursor = database.RawQuery(sql, args);
+				cursor.MoveToNext();
+				while (!cursor.IsAfterLast())
+				{
+					lastSequence = cursor.GetString(0);
+					cursor.MoveToNext();
+				}
+			}
+			catch (SQLException e)
+			{
+				Log.E(Database.Tag, "Error", e);
+			}
+			finally
+			{
+				if (cursor != null)
+				{
+					cursor.Close();
+				}
+			}
+			return lastSequence;
 		}
 
 		/// <exclude></exclude>
@@ -4152,12 +4650,14 @@ namespace Couchbase.Lite
 		}
 
 		/// <exclude></exclude>
+		/// <exception cref="Couchbase.Lite.Storage.SQLException"></exception>
 		[InterfaceAudience.Private]
-		public bool FindMissingRevisions(RevisionList touchRevs)
+		public int FindMissingRevisions(RevisionList touchRevs)
 		{
+			int numRevisionsRemoved = 0;
 			if (touchRevs.Count == 0)
 			{
-				return true;
+				return numRevisionsRemoved;
 			}
 			string quotedDocIds = JoinQuoted(touchRevs.GetAllDocIds());
 			string quotedRevIds = JoinQuoted(touchRevs.GetAllRevIds());
@@ -4175,14 +4675,10 @@ namespace Couchbase.Lite
 					if (rev != null)
 					{
 						touchRevs.Remove(rev);
+						numRevisionsRemoved += 1;
 					}
 					cursor.MoveToNext();
 				}
-			}
-			catch (SQLException e)
-			{
-				Log.E(Database.Tag, "Error finding missing revisions", e);
-				return false;
 			}
 			finally
 			{
@@ -4191,7 +4687,7 @@ namespace Couchbase.Lite
 					cursor.Close();
 				}
 			}
-			return true;
+			return numRevisionsRemoved;
 		}
 
 		/// <exclude></exclude>
@@ -4374,7 +4870,7 @@ namespace Couchbase.Lite
 			>> docsToRevs)
 		{
 			IDictionary<string, object> result = new Dictionary<string, object>();
-			RunInTransaction(new _TransactionalTask_3895(this, docsToRevs, result));
+			RunInTransaction(new _TransactionalTask_4345(this, docsToRevs, result));
 			// no such document, skip it
 			// Delete all revisions if magic "*" revision ID is given:
 			// Iterate over all the revisions of the doc, in reverse sequence order.
@@ -4386,9 +4882,9 @@ namespace Couchbase.Lite
 			return result;
 		}
 
-		private sealed class _TransactionalTask_3895 : TransactionalTask
+		private sealed class _TransactionalTask_4345 : TransactionalTask
 		{
-			public _TransactionalTask_3895(Database _enclosing, IDictionary<string, IList<string
+			public _TransactionalTask_4345(Database _enclosing, IDictionary<string, IList<string
 				>> docsToRevs, IDictionary<string, object> result)
 			{
 				this._enclosing = _enclosing;
@@ -4444,7 +4940,7 @@ namespace Couchbase.Lite
 									cursor = this._enclosing.database.RawQuery(queryString, args);
 									if (!cursor.MoveToNext())
 									{
-										Log.W(Database.Tag, "No results for query: " + queryString);
+										Log.W(Database.Tag, "No results for query: %s", queryString);
 										return false;
 									}
 									ICollection<long> seqsToPurge = new HashSet<long>();
@@ -4474,8 +4970,8 @@ namespace Couchbase.Lite
 										cursor.MoveToNext();
 									}
 									seqsToPurge.RemoveAll(seqsToKeep);
-									Log.I(Database.Tag, string.Format("Purging doc '%s' revs (%s); asked for (%s)", docID
-										, revsToPurge, revIDs));
+									Log.I(Database.Tag, "Purging doc '%s' revs (%s); asked for (%s)", docID, revsToPurge
+										, revIDs);
 									if (seqsToPurge.Count > 0)
 									{
 										string seqsToPurgeList = TextUtils.Join(",", seqsToPurge);
@@ -4764,12 +5260,12 @@ namespace Couchbase.Lite
 			{
 				activeReplicators.AddItem(replication);
 			}
-			replication.AddChangeListener(new _ChangeListener_4224(this));
+			replication.AddChangeListener(new _ChangeListener_4674(this));
 		}
 
-		private sealed class _ChangeListener_4224 : Replication.ChangeListener
+		private sealed class _ChangeListener_4674 : Replication.ChangeListener
 		{
-			public _ChangeListener_4224(Database _enclosing)
+			public _ChangeListener_4674(Database _enclosing)
 			{
 				this._enclosing = _enclosing;
 			}
@@ -4786,6 +5282,22 @@ namespace Couchbase.Lite
 			}
 
 			private readonly Database _enclosing;
+		}
+
+		/// <summary>Get the PersistentCookieStore associated with this database.</summary>
+		/// <remarks>
+		/// Get the PersistentCookieStore associated with this database.
+		/// Will lazily create one if none exists.
+		/// </remarks>
+		/// <exclude></exclude>
+		[InterfaceAudience.Private]
+		public PersistentCookieStore GetPersistentCookieStore()
+		{
+			if (persistentCookieStore == null)
+			{
+				persistentCookieStore = new PersistentCookieStore(this);
+			}
+			return persistentCookieStore;
 		}
 	}
 }

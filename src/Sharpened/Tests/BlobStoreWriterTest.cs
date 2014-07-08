@@ -1,10 +1,4 @@
-//
-// BlobStoreWriterTest.cs
-//
-// Author:
-//     Zachary Gramana  <zack@xamarin.com>
-//
-// Copyright (c) 2014 Xamarin Inc
+// 
 // Copyright (c) 2014 .NET Foundation
 //
 // Permission is hereby granted, free of charge, to any person obtaining
@@ -38,9 +32,7 @@
 // License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
 // either express or implied. See the License for the specific language governing permissions
 // and limitations under the License.
-//
-
-using System.IO;
+//using System.IO;
 using Couchbase.Lite;
 using NUnit.Framework;
 using Org.Apache.Commons.IO;
@@ -61,9 +53,23 @@ namespace Couchbase.Lite
 			blobStoreWriter.Finish();
 			blobStoreWriter.Install();
 			string sha1DigestKey = blobStoreWriter.SHA1DigestString();
+			NUnit.Framework.Assert.IsTrue(sha1DigestKey.Contains("LmsoqJJ6LOn4YS60pYnvrKbBd64="
+				));
 			BlobKey keyFromSha1 = new BlobKey(sha1DigestKey);
 			NUnit.Framework.Assert.IsTrue(attachments.GetSizeOfBlob(keyFromSha1) == bytes.Length
 				);
+		}
+
+		/// <exception cref="System.Exception"></exception>
+		public virtual void TestBlobStoreWriterForBody()
+		{
+			BlobStore attachments = database.GetAttachments();
+			InputStream attachmentStream = GetAsset("attachment.png");
+			BlobStoreWriter blobStoreWriter = Attachment.BlobStoreWriterForBody(attachmentStream
+				, database);
+			string sha1DigestKey = blobStoreWriter.SHA1DigestString();
+			NUnit.Framework.Assert.IsTrue(sha1DigestKey.Contains("LmsoqJJ6LOn4YS60pYnvrKbBd64="
+				));
 		}
 	}
 }

@@ -1,10 +1,4 @@
-//
-// ContentValues.cs
 // 
-// Author:
-//     Zachary Gramana  <zack@xamarin.com>
-//
-// Copyright (c) 2014 Xamarin Inc
 // Copyright (c) 2014 .NET Foundation
 //
 // Permission is hereby granted, free of charge, to any person obtaining
@@ -38,9 +32,7 @@
 // License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
 // either express or implied. See the License for the specific language governing permissions
 // and limitations under the License.
-//
-
-using System;
+//using System;
 using System.Collections.Generic;
 using System.Text;
 using Couchbase.Lite.Util;
@@ -275,13 +267,13 @@ namespace Couchbase.Lite.Storage
 					}
 					catch (FormatException)
 					{
-						Log.E(Tag, "Cannot parse Long value for " + value + " at key " + key);
+						Log.E(Tag, "Cannot parse Long value for %s at key %s", value, key);
 						return null;
 					}
 				}
 				else
 				{
-					Log.E(Tag, "Cannot cast value for " + key + " to a Long: " + value, e);
+					Log.E(Tag, "Cannot cast value for %s to a Long: %s", e, key, value);
 					return null;
 				}
 			}
@@ -309,13 +301,13 @@ namespace Couchbase.Lite.Storage
 					}
 					catch (FormatException)
 					{
-						Log.E(Tag, "Cannot parse Integer value for " + value + " at key " + key);
+						Log.E(Tag, "Cannot parse Integer value for %s at key %s", value, key);
 						return null;
 					}
 				}
 				else
 				{
-					Log.E(Tag, "Cannot cast value for " + key + " to a Integer: " + value, e);
+					Log.E(Tag, "Cannot cast value for %s to a Integer: %s", e, key, value);
 					return null;
 				}
 			}
@@ -342,13 +334,13 @@ namespace Couchbase.Lite.Storage
 					}
 					catch (FormatException)
 					{
-						Log.E(Tag, "Cannot parse Short value for " + value + " at key " + key);
+						Log.E(Tag, "Cannot parse Short value for %s at key %s", value, key);
 						return null;
 					}
 				}
 				else
 				{
-					Log.E(Tag, "Cannot cast value for " + key + " to a Short: " + value, e);
+					Log.E(Tag, "Cannot cast value for %s to a Short: %s", e, key, value);
 					return null;
 				}
 			}
@@ -375,13 +367,13 @@ namespace Couchbase.Lite.Storage
 					}
 					catch (FormatException)
 					{
-						Log.E(Tag, "Cannot parse Byte value for " + value + " at key " + key);
+						Log.E(Tag, "Cannot parse Byte value for %s at key %s", value, key);
 						return null;
 					}
 				}
 				else
 				{
-					Log.E(Tag, "Cannot cast value for " + key + " to a Byte: " + value, e);
+					Log.E(Tag, "Cannot cast value for %s to a Byte: %s", e, key, value);
 					return null;
 				}
 			}
@@ -409,13 +401,13 @@ namespace Couchbase.Lite.Storage
 					}
 					catch (FormatException)
 					{
-						Log.E(Tag, "Cannot parse Double value for " + value + " at key " + key);
+						Log.E(Tag, "Cannot parse Double value for %s at key %s", value, key);
 						return null;
 					}
 				}
 				else
 				{
-					Log.E(Tag, "Cannot cast value for " + key + " to a Double: " + value, e);
+					Log.E(Tag, "Cannot cast value for %s to a Double: %s", e, key, value);
 					return null;
 				}
 			}
@@ -442,13 +434,13 @@ namespace Couchbase.Lite.Storage
 					}
 					catch (FormatException)
 					{
-						Log.E(Tag, "Cannot parse Float value for " + value + " at key " + key);
+						Log.E(Tag, "Cannot parse Float value for %s at key %s", value, key);
 						return null;
 					}
 				}
 				else
 				{
-					Log.E(Tag, "Cannot cast value for " + key + " to a Float: " + value, e);
+					Log.E(Tag, "Cannot cast value for %s to a Float: %s", e, key, value);
 					return null;
 				}
 			}

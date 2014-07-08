@@ -1,10 +1,4 @@
-//
-// RevisionInternal.cs
-//
-// Author:
-//     Zachary Gramana  <zack@xamarin.com>
-//
-// Copyright (c) 2014 Xamarin Inc
+// 
 // Copyright (c) 2014 .NET Foundation
 //
 // Permission is hereby granted, free of charge, to any person obtaining
@@ -38,12 +32,11 @@
 // License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
 // either express or implied. See the License for the specific language governing permissions
 // and limitations under the License.
-//
-
-using System;
+//using System;
 using System.Collections.Generic;
 using Couchbase.Lite;
 using Couchbase.Lite.Internal;
+using Couchbase.Lite.Util;
 using Sharpen;
 
 namespace Couchbase.Lite.Internal
@@ -52,6 +45,7 @@ namespace Couchbase.Lite.Internal
 	/// 	</summary>
 	/// <remarks>
 	/// Stores information about a revision -- its docID, revID, and whether it's deleted.
+	/// <p/>
 	/// It can also store the sequence number and document contents (they can be added after creation).
 	/// </remarks>
 	public class RevisionInternal
@@ -220,7 +214,8 @@ namespace Couchbase.Lite.Internal
 		public virtual Couchbase.Lite.Internal.RevisionInternal CopyWithDocID(string docId
 			, string revId)
 		{
-			System.Diagnostics.Debug.Assert(((docId != null) && (revId != null)));
+			//assert((docId != null) && (revId != null));
+			System.Diagnostics.Debug.Assert((docId != null));
 			System.Diagnostics.Debug.Assert(((this.docId == null) || (this.docId.Equals(docId
 				))));
 			Couchbase.Lite.Internal.RevisionInternal result = new Couchbase.Lite.Internal.RevisionInternal
@@ -340,6 +335,49 @@ namespace Couchbase.Lite.Internal
 			System.Diagnostics.Debug.Assert((revId1 != null));
 			System.Diagnostics.Debug.Assert((revId2 != null));
 			return CBLCollateRevIDs(revId1, revId2);
+		}
+
+		// Calls the block on every attachment dictionary. The block can return a different dictionary,
+		// which will be replaced in the rev's properties. If it returns nil, the operation aborts.
+		// Returns YES if any changes were made.
+		public virtual bool MutateAttachments(CollectionUtils.Functor<IDictionary<string, 
+			object>, IDictionary<string, object>> functor)
+		{
+			{
+				IDictionary<string, object> properties = GetProperties();
+				IDictionary<string, object> editedProperties = null;
+				IDictionary<string, object> attachments = (IDictionary<string, object>)properties
+					.Get("_attachments");
+				IDictionary<string, object> editedAttachments = null;
+				foreach (string name in attachments.Keys)
+				{
+					IDictionary<string, object> attachment = (IDictionary<string, object>)attachments
+						.Get(name);
+					IDictionary<string, object> editedAttachment = functor.Invoke(attachment);
+					if (editedAttachment == null)
+					{
+						return false;
+					}
+					// block canceled
+					if (editedAttachment != attachment)
+					{
+						if (editedProperties == null)
+						{
+							// Make the document properties and _attachments dictionary mutable:
+							editedProperties = new Dictionary<string, object>(properties);
+							editedAttachments = new Dictionary<string, object>(attachments);
+							editedProperties.Put("_attachments", editedAttachments);
+						}
+						editedAttachments.Put(name, editedAttachment);
+					}
+				}
+				if (editedProperties != null)
+				{
+					SetProperties(editedProperties);
+					return true;
+				}
+				return false;
+			}
 		}
 	}
 }

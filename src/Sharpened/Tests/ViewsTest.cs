@@ -1,10 +1,4 @@
-//
-// ViewsTest.cs
-//
-// Author:
-//     Zachary Gramana  <zack@xamarin.com>
-//
-// Copyright (c) 2014 Xamarin Inc
+// 
 // Copyright (c) 2014 .NET Foundation
 //
 // Permission is hereby granted, free of charge, to any person obtaining
@@ -38,9 +32,7 @@
 // License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
 // either express or implied. See the License for the specific language governing permissions
 // and limitations under the License.
-//
-
-using System;
+//using System;
 using System.Collections.Generic;
 using Couchbase.Lite;
 using Couchbase.Lite.Internal;
@@ -71,22 +63,22 @@ namespace Couchbase.Lite
 			NUnit.Framework.Assert.AreEqual("aview", view.GetName());
 			NUnit.Framework.Assert.IsNull(view.GetMap());
 			NUnit.Framework.Assert.AreEqual(view, database.GetExistingView("aview"));
-			bool changed = view.SetMapReduce(new _Mapper_55(), null, "1");
+			bool changed = view.SetMapReduce(new _Mapper_57(), null, "1");
 			//no-op
 			NUnit.Framework.Assert.IsTrue(changed);
 			NUnit.Framework.Assert.AreEqual(1, database.GetAllViews().Count);
 			NUnit.Framework.Assert.AreEqual(view, database.GetAllViews()[0]);
-			changed = view.SetMapReduce(new _Mapper_67(), null, "1");
+			changed = view.SetMapReduce(new _Mapper_69(), null, "1");
 			//no-op
 			NUnit.Framework.Assert.IsFalse(changed);
-			changed = view.SetMapReduce(new _Mapper_77(), null, "2");
+			changed = view.SetMapReduce(new _Mapper_79(), null, "2");
 			//no-op
 			NUnit.Framework.Assert.IsTrue(changed);
 		}
 
-		private sealed class _Mapper_55 : Mapper
+		private sealed class _Mapper_57 : Mapper
 		{
-			public _Mapper_55()
+			public _Mapper_57()
 			{
 			}
 
@@ -95,9 +87,9 @@ namespace Couchbase.Lite
 			}
 		}
 
-		private sealed class _Mapper_67 : Mapper
+		private sealed class _Mapper_69 : Mapper
 		{
-			public _Mapper_67()
+			public _Mapper_69()
 			{
 			}
 
@@ -106,9 +98,9 @@ namespace Couchbase.Lite
 			}
 		}
 
-		private sealed class _Mapper_77 : Mapper
+		private sealed class _Mapper_79 : Mapper
 		{
-			public _Mapper_77()
+			public _Mapper_79()
 			{
 			}
 
@@ -203,13 +195,13 @@ namespace Couchbase.Lite
 		public static View CreateView(Database db)
 		{
 			View view = db.GetView("aview");
-			view.SetMapReduce(new _Mapper_172(), null, "1");
+			view.SetMapReduce(new _Mapper_174(), null, "1");
 			return view;
 		}
 
-		private sealed class _Mapper_172 : Mapper
+		private sealed class _Mapper_174 : Mapper
 		{
-			public _Mapper_172()
+			public _Mapper_174()
 			{
 			}
 
@@ -241,7 +233,7 @@ namespace Couchbase.Lite
 			RevisionInternal rev3 = PutDoc(database, dict3);
 			PutDoc(database, dictX);
 			View view = database.GetView("aview");
-			_T1975167965 mapBlock = new _T1975167965(this);
+			_T2100558083 mapBlock = new _T2100558083(this);
 			view.SetMap(mapBlock, "1");
 			NUnit.Framework.Assert.AreEqual(1, view.GetViewId());
 			NUnit.Framework.Assert.IsTrue(view.IsStale());
@@ -305,7 +297,7 @@ namespace Couchbase.Lite
 			view.DeleteIndex();
 		}
 
-		internal class _T1975167965 : Mapper
+		internal class _T2100558083 : Mapper
 		{
 			internal int numTimesInvoked = 0;
 
@@ -325,12 +317,25 @@ namespace Couchbase.Lite
 				return this.numTimesInvoked;
 			}
 
-			internal _T1975167965(ViewsTest _enclosing)
+			internal _T2100558083(ViewsTest _enclosing)
 			{
 				this._enclosing = _enclosing;
 			}
 
 			private readonly ViewsTest _enclosing;
+		}
+
+		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
+		public virtual void TestViewIndexSkipsDesignDocs()
+		{
+			View view = CreateView(database);
+			IDictionary<string, object> designDoc = new Dictionary<string, object>();
+			designDoc.Put("_id", "_design/test");
+			designDoc.Put("key", "value");
+			PutDoc(database, designDoc);
+			view.UpdateIndex();
+			IList<QueryRow> rows = view.QueryWithOptions(null);
+			NUnit.Framework.Assert.AreEqual(0, rows.Count);
 		}
 
 		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
@@ -440,6 +445,85 @@ namespace Couchbase.Lite
 			NUnit.Framework.Assert.AreEqual(dict2.Get("value"), rows[1].GetValue());
 		}
 
+		/// <summary>
+		/// https://github.com/couchbase/couchbase-lite-android/issues/139
+		/// test based on https://github.com/couchbase/couchbase-lite-ios/blob/master/Source/CBL_View_Tests.m#L358
+		/// </summary>
+		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
+		public virtual void TestViewQueryStartKeyDocID()
+		{
+			PutDocs(database);
+			IList<RevisionInternal> result = new AList<RevisionInternal>();
+			IDictionary<string, object> dict = new Dictionary<string, object>();
+			dict.Put("_id", "11112");
+			dict.Put("key", "one");
+			result.AddItem(PutDoc(database, dict));
+			View view = CreateView(database);
+			view.UpdateIndex();
+			QueryOptions options = new QueryOptions();
+			options.SetStartKey("one");
+			options.SetStartKeyDocId("11112");
+			options.SetEndKey("three");
+			IList<QueryRow> rows = view.QueryWithOptions(options);
+			NUnit.Framework.Assert.AreEqual(2, rows.Count);
+			NUnit.Framework.Assert.AreEqual("11112", rows[0].GetDocumentId());
+			NUnit.Framework.Assert.AreEqual("one", rows[0].GetKey());
+			NUnit.Framework.Assert.AreEqual("33333", rows[1].GetDocumentId());
+			NUnit.Framework.Assert.AreEqual("three", rows[1].GetKey());
+			options = new QueryOptions();
+			options.SetEndKey("one");
+			options.SetEndKeyDocId("11111");
+			rows = view.QueryWithOptions(options);
+			Log.D(Tag, "rows: " + rows);
+			NUnit.Framework.Assert.AreEqual(3, rows.Count);
+			NUnit.Framework.Assert.AreEqual("55555", rows[0].GetDocumentId());
+			NUnit.Framework.Assert.AreEqual("five", rows[0].GetKey());
+			NUnit.Framework.Assert.AreEqual("44444", rows[1].GetDocumentId());
+			NUnit.Framework.Assert.AreEqual("four", rows[1].GetKey());
+			NUnit.Framework.Assert.AreEqual("11111", rows[2].GetDocumentId());
+			NUnit.Framework.Assert.AreEqual("one", rows[2].GetKey());
+			options.SetStartKey("one");
+			options.SetStartKeyDocId("11111");
+			rows = view.QueryWithOptions(options);
+			NUnit.Framework.Assert.AreEqual(1, rows.Count);
+			NUnit.Framework.Assert.AreEqual("11111", rows[0].GetDocumentId());
+			NUnit.Framework.Assert.AreEqual("one", rows[0].GetKey());
+		}
+
+		/// <summary>https://github.com/couchbase/couchbase-lite-android/issues/260</summary>
+		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
+		public virtual void TestViewNumericKeys()
+		{
+			IDictionary<string, object> dict = new Dictionary<string, object>();
+			dict.Put("_id", "22222");
+			dict.Put("referenceNumber", 33547239);
+			dict.Put("title", "this is the title");
+			PutDoc(database, dict);
+			View view = CreateView(database);
+			view.SetMap(new _Mapper_513(), "1");
+			Query query = view.CreateQuery();
+			query.SetStartKey(33547239);
+			query.SetEndKey(33547239);
+			QueryEnumerator rows = query.Run();
+			NUnit.Framework.Assert.AreEqual(1, rows.GetCount());
+			NUnit.Framework.Assert.AreEqual(33547239, rows.GetRow(0).GetKey());
+		}
+
+		private sealed class _Mapper_513 : Mapper
+		{
+			public _Mapper_513()
+			{
+			}
+
+			public void Map(IDictionary<string, object> document, Emitter emitter)
+			{
+				if (document.ContainsKey("referenceNumber"))
+				{
+					emitter.Emit(document.Get("referenceNumber"), document);
+				}
+			}
+		}
+
 		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
 		public virtual void TestAllDocsQuery()
 		{
@@ -534,7 +618,7 @@ namespace Couchbase.Lite
 			docProperties3.Put("cost", 6.50);
 			PutDoc(database, docProperties3);
 			View view = database.GetView("totaler");
-			view.SetMapReduce(new _Mapper_544(), new _Reducer_555(), "1");
+			view.SetMapReduce(new _Mapper_640(), new _Reducer_651(), "1");
 			view.UpdateIndex();
 			IList<IDictionary<string, object>> dumpResult = view.Dump();
 			Log.V(Tag, "View dump: " + dumpResult);
@@ -557,9 +641,9 @@ namespace Couchbase.Lite
 			NUnit.Framework.Assert.IsTrue(Math.Abs(numberValue - 17.44) < 0.001);
 		}
 
-		private sealed class _Mapper_544 : Mapper
+		private sealed class _Mapper_640 : Mapper
 		{
-			public _Mapper_544()
+			public _Mapper_640()
 			{
 			}
 
@@ -575,9 +659,9 @@ namespace Couchbase.Lite
 			}
 		}
 
-		private sealed class _Reducer_555 : Reducer
+		private sealed class _Reducer_651 : Reducer
 		{
-			public _Reducer_555()
+			public _Reducer_651()
 			{
 			}
 
@@ -661,7 +745,7 @@ namespace Couchbase.Lite
 			docProperties5.Put("time", 187);
 			PutDoc(database, docProperties5);
 			View view = database.GetView("grouper");
-			view.SetMapReduce(new _Mapper_671(), new _Reducer_681(), "1");
+			view.SetMapReduce(new _Mapper_767(), new _Reducer_777(), "1");
 			Status status = new Status();
 			view.UpdateIndex();
 			QueryOptions options = new QueryOptions();
@@ -785,9 +869,9 @@ namespace Couchbase.Lite
 			NUnit.Framework.Assert.AreEqual(row3.Get("value"), rows[2].GetValue());
 		}
 
-		private sealed class _Mapper_671 : Mapper
+		private sealed class _Mapper_767 : Mapper
 		{
-			public _Mapper_671()
+			public _Mapper_767()
 			{
 			}
 
@@ -801,9 +885,9 @@ namespace Couchbase.Lite
 			}
 		}
 
-		private sealed class _Reducer_681 : Reducer
+		private sealed class _Reducer_777 : Reducer
 		{
-			public _Reducer_681()
+			public _Reducer_777()
 			{
 			}
 
@@ -832,7 +916,7 @@ namespace Couchbase.Lite
 			docProperties5.Put("name", "Jed");
 			PutDoc(database, docProperties5);
 			View view = database.GetView("default/names");
-			view.SetMapReduce(new _Mapper_859(), new _Reducer_869(), "1.0");
+			view.SetMapReduce(new _Mapper_955(), new _Reducer_965(), "1.0");
 			view.UpdateIndex();
 			QueryOptions options = new QueryOptions();
 			options.SetGroupLevel(1);
@@ -859,9 +943,9 @@ namespace Couchbase.Lite
 			NUnit.Framework.Assert.AreEqual(row3.Get("value"), rows[2].GetValue());
 		}
 
-		private sealed class _Mapper_859 : Mapper
+		private sealed class _Mapper_955 : Mapper
 		{
-			public _Mapper_859()
+			public _Mapper_955()
 			{
 			}
 
@@ -875,9 +959,9 @@ namespace Couchbase.Lite
 			}
 		}
 
-		private sealed class _Reducer_869 : Reducer
+		private sealed class _Reducer_965 : Reducer
 		{
-			public _Reducer_869()
+			public _Reducer_965()
 			{
 			}
 
@@ -941,7 +1025,7 @@ namespace Couchbase.Lite
 				PutDoc(database, docProperties);
 			}
 			View view = database.GetView("default/names");
-			view.SetMapReduce(new _Mapper_970(), null, "1.0");
+			view.SetMapReduce(new _Mapper_1066(), null, "1.0");
 			QueryOptions options = new QueryOptions();
 			IList<QueryRow> rows = view.QueryWithOptions(options);
 			i = 0;
@@ -951,9 +1035,9 @@ namespace Couchbase.Lite
 			}
 		}
 
-		private sealed class _Mapper_970 : Mapper
+		private sealed class _Mapper_1066 : Mapper
 		{
-			public _Mapper_970()
+			public _Mapper_1066()
 			{
 			}
 
@@ -1017,7 +1101,7 @@ namespace Couchbase.Lite
 				PutDoc(database, docProperties);
 			}
 			View view = database.GetView("default/names");
-			view.SetMapReduce(new _Mapper_1048(), null, "1.0");
+			view.SetMapReduce(new _Mapper_1144(), null, "1.0");
 			view.SetCollation(View.TDViewCollation.TDViewCollationRaw);
 			QueryOptions options = new QueryOptions();
 			IList<QueryRow> rows = view.QueryWithOptions(options);
@@ -1029,9 +1113,9 @@ namespace Couchbase.Lite
 			database.Close();
 		}
 
-		private sealed class _Mapper_1048 : Mapper
+		private sealed class _Mapper_1144 : Mapper
 		{
-			public _Mapper_1048()
+			public _Mapper_1144()
 			{
 			}
 
@@ -1058,7 +1142,7 @@ namespace Couchbase.Lite
 		{
 			PutLinkedDocs(database);
 			View view = database.GetView("linked");
-			view.SetMapReduce(new _Mapper_1086(), null, "1");
+			view.SetMapReduce(new _Mapper_1182(), null, "1");
 			view.UpdateIndex();
 			QueryOptions options = new QueryOptions();
 			options.SetIncludeDocs(true);
@@ -1096,9 +1180,9 @@ namespace Couchbase.Lite
 			}
 		}
 
-		private sealed class _Mapper_1086 : Mapper
+		private sealed class _Mapper_1182 : Mapper
 		{
-			public _Mapper_1086()
+			public _Mapper_1182()
 			{
 			}
 
@@ -1119,6 +1203,188 @@ namespace Couchbase.Lite
 					}
 				}
 			}
+		}
+
+		/// <summary>https://github.com/couchbase/couchbase-lite-java-core/issues/29</summary>
+		/// <exception cref="System.Exception"></exception>
+		public virtual void TestRunLiveQueriesWithReduce()
+		{
+			Database db = StartDatabase();
+			// run a live query
+			View view = db.GetView("vu");
+			view.SetMapReduce(new _Mapper_1250(), new _Reducer_1255(), "1");
+			LiveQuery query = view.CreateQuery().ToLiveQuery();
+			View view1 = db.GetView("vu1");
+			view1.SetMapReduce(new _Mapper_1266(), new _Reducer_1271(), "1");
+			LiveQuery query1 = view1.CreateQuery().ToLiveQuery();
+			int kNDocs = 10;
+			CreateDocumentsAsync(db, kNDocs);
+			NUnit.Framework.Assert.IsNull(query.GetRows());
+			query.Start();
+			CountDownLatch gotExpectedQueryResult = new CountDownLatch(1);
+			query.AddChangeListener(new _ChangeListener_1289(kNDocs, gotExpectedQueryResult));
+			bool success = gotExpectedQueryResult.Await(30, TimeUnit.Seconds);
+			NUnit.Framework.Assert.IsTrue(success);
+			query.Stop();
+			query1.Start();
+			CreateDocumentsAsync(db, kNDocs + 5);
+			//10 + 10 + 5
+			CountDownLatch gotExpectedQuery1Result = new CountDownLatch(1);
+			query1.AddChangeListener(new _ChangeListener_1310(kNDocs, gotExpectedQuery1Result
+				));
+			success = gotExpectedQuery1Result.Await(30, TimeUnit.Seconds);
+			NUnit.Framework.Assert.IsTrue(success);
+			query1.Stop();
+			NUnit.Framework.Assert.AreEqual(2 * kNDocs + 5, db.GetDocumentCount());
+		}
+
+		private sealed class _Mapper_1250 : Mapper
+		{
+			public _Mapper_1250()
+			{
+			}
+
+			public void Map(IDictionary<string, object> document, Emitter emitter)
+			{
+				emitter.Emit(document.Get("sequence"), 1);
+			}
+		}
+
+		private sealed class _Reducer_1255 : Reducer
+		{
+			public _Reducer_1255()
+			{
+			}
+
+			public object Reduce(IList<object> keys, IList<object> values, bool rereduce)
+			{
+				return View.TotalValues(values);
+			}
+		}
+
+		private sealed class _Mapper_1266 : Mapper
+		{
+			public _Mapper_1266()
+			{
+			}
+
+			public void Map(IDictionary<string, object> document, Emitter emitter)
+			{
+				emitter.Emit(document.Get("sequence"), 1);
+			}
+		}
+
+		private sealed class _Reducer_1271 : Reducer
+		{
+			public _Reducer_1271()
+			{
+			}
+
+			public object Reduce(IList<object> keys, IList<object> values, bool rereduce)
+			{
+				return View.TotalValues(values);
+			}
+		}
+
+		private sealed class _ChangeListener_1289 : LiveQuery.ChangeListener
+		{
+			public _ChangeListener_1289(int kNDocs, CountDownLatch gotExpectedQueryResult)
+			{
+				this.kNDocs = kNDocs;
+				this.gotExpectedQueryResult = gotExpectedQueryResult;
+			}
+
+			public void Changed(LiveQuery.ChangeEvent @event)
+			{
+				if (@event.GetError() != null)
+				{
+					Log.E(ViewsTest.Tag, "LiveQuery change event had error", @event.GetError());
+				}
+				else
+				{
+					if (@event.GetRows().GetCount() == 1 && ((double)@event.GetRows().GetRow(0).GetValue
+						()) == kNDocs)
+					{
+						gotExpectedQueryResult.CountDown();
+					}
+				}
+			}
+
+			private readonly int kNDocs;
+
+			private readonly CountDownLatch gotExpectedQueryResult;
+		}
+
+		private sealed class _ChangeListener_1310 : LiveQuery.ChangeListener
+		{
+			public _ChangeListener_1310(int kNDocs, CountDownLatch gotExpectedQuery1Result)
+			{
+				this.kNDocs = kNDocs;
+				this.gotExpectedQuery1Result = gotExpectedQuery1Result;
+			}
+
+			public void Changed(LiveQuery.ChangeEvent @event)
+			{
+				if (@event.GetError() != null)
+				{
+					Log.E(ViewsTest.Tag, "LiveQuery change event had error", @event.GetError());
+				}
+				else
+				{
+					if (@event.GetRows().GetCount() == 1 && ((double)@event.GetRows().GetRow(0).GetValue
+						()) == 2 * kNDocs + 5)
+					{
+						gotExpectedQuery1Result.CountDown();
+					}
+				}
+			}
+
+			private readonly int kNDocs;
+
+			private readonly CountDownLatch gotExpectedQuery1Result;
+		}
+
+		// 25 - OK
+		/// <exception cref="System.Exception"></exception>
+		private SavedRevision CreateTestRevisionNoConflicts(Document doc, string val)
+		{
+			UnsavedRevision unsavedRev = doc.CreateRevision();
+			IDictionary<string, object> props = new Dictionary<string, object>();
+			props.Put("key", val);
+			unsavedRev.SetUserProperties(props);
+			return unsavedRev.Save();
+		}
+
+		/// <summary>https://github.com/couchbase/couchbase-lite-java-core/issues/131</summary>
+		/// <exception cref="System.Exception"></exception>
+		public virtual void TestViewWithConflict()
+		{
+			// Create doc and add some revs
+			Document doc = database.CreateDocument();
+			SavedRevision rev1 = CreateTestRevisionNoConflicts(doc, "1");
+			SavedRevision rev2a = CreateTestRevisionNoConflicts(doc, "2a");
+			SavedRevision rev3 = CreateTestRevisionNoConflicts(doc, "3");
+			// index the view
+			View view = CreateView(database);
+			QueryEnumerator rows = view.CreateQuery().Run();
+			NUnit.Framework.Assert.AreEqual(1, rows.GetCount());
+			QueryRow row = rows.Next();
+			NUnit.Framework.Assert.AreEqual(row.GetKey(), "3");
+			// assertNotNull(row.getDocumentRevisionId()); -- TODO: why is this null?
+			// Create a conflict
+			UnsavedRevision rev2bUnsaved = rev1.CreateRevision();
+			IDictionary<string, object> props = new Dictionary<string, object>();
+			props.Put("key", "2b");
+			rev2bUnsaved.SetUserProperties(props);
+			SavedRevision rev2b = rev2bUnsaved.Save(true);
+			// re-run query
+			view.UpdateIndex();
+			rows = view.CreateQuery().Run();
+			// we should only see one row, with key=3.
+			// if we see key=2b then it's a bug.
+			NUnit.Framework.Assert.AreEqual(1, rows.GetCount());
+			row = rows.Next();
+			NUnit.Framework.Assert.AreEqual(row.GetKey(), "3");
 		}
 	}
 }

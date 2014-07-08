@@ -1,10 +1,4 @@
-//
-// ChangeTrackerBackoff.cs
-//
-// Author:
-//     Zachary Gramana  <zack@xamarin.com>
-//
-// Copyright (c) 2014 Xamarin Inc
+// 
 // Copyright (c) 2014 .NET Foundation
 //
 // Permission is hereby granted, free of charge, to any person obtaining
@@ -38,10 +32,7 @@
 // License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
 // either express or implied. See the License for the specific language governing permissions
 // and limitations under the License.
-//
-
-using System;
-using Couchbase.Lite;
+//using System;
 using Couchbase.Lite.Replicator;
 using Couchbase.Lite.Util;
 using Sharpen;
@@ -80,7 +71,7 @@ namespace Couchbase.Lite.Replicator
 				int sleepMilliseconds = GetSleepMilliseconds();
 				if (sleepMilliseconds > 0)
 				{
-					Log.D(Database.Tag, this.GetType().Name + " sleeping for " + sleepMilliseconds);
+					Log.D(Log.TagChangeTracker, "%s: sleeping for %d", this, sleepMilliseconds);
 					Sharpen.Thread.Sleep(sleepMilliseconds);
 				}
 			}

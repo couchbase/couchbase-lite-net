@@ -1,10 +1,4 @@
-//
-// ReplicationTest.cs
-//
-// Author:
-//     Zachary Gramana  <zack@xamarin.com>
-//
-// Copyright (c) 2014 Xamarin Inc
+// 
 // Copyright (c) 2014 .NET Foundation
 //
 // Permission is hereby granted, free of charge, to any person obtaining
@@ -38,17 +32,17 @@
 // License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
 // either express or implied. See the License for the specific language governing permissions
 // and limitations under the License.
-//
-
-using System;
+//using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Net;
+using System.Text;
 using Apache.Http;
 using Apache.Http.Client;
 using Apache.Http.Client.Methods;
 using Apache.Http.Entity;
+using Apache.Http.Entity.Mime;
 using Apache.Http.Impl.Client;
 using Apache.Http.Message;
 using Couchbase.Lite;
@@ -124,12 +118,12 @@ namespace Couchbase.Lite.Replicator
 		private HttpClientFactory MockFactoryFactory(CustomizableMockHttpClient mockHttpClient
 			)
 		{
-			return new _HttpClientFactory_117(mockHttpClient);
+			return new _HttpClientFactory_128(mockHttpClient);
 		}
 
-		private sealed class _HttpClientFactory_117 : HttpClientFactory
+		private sealed class _HttpClientFactory_128 : HttpClientFactory
 		{
-			public _HttpClientFactory_117(CustomizableMockHttpClient mockHttpClient)
+			public _HttpClientFactory_128(CustomizableMockHttpClient mockHttpClient)
 			{
 				this.mockHttpClient = mockHttpClient;
 			}
@@ -137,6 +131,19 @@ namespace Couchbase.Lite.Replicator
 			public HttpClient GetHttpClient()
 			{
 				return mockHttpClient;
+			}
+
+			public void AddCookies(IList<Apache.Http.Cookie.Cookie> cookies)
+			{
+			}
+
+			public void DeleteCookie(string name)
+			{
+			}
+
+			public CookieStore GetCookieStore()
+			{
+				return null;
 			}
 
 			private readonly CustomizableMockHttpClient mockHttpClient;
@@ -157,14 +164,14 @@ namespace Couchbase.Lite.Replicator
 			mockHttpClient.AddResponderRevDiffsAllMissing();
 			mockHttpClient.SetResponseDelayMilliseconds(250);
 			mockHttpClient.AddResponderFakeLocalDocumentUpdate404();
-			HttpClientFactory mockHttpClientFactory = new _HttpClientFactory_143(mockHttpClient
+			HttpClientFactory mockHttpClientFactory = new _HttpClientFactory_169(mockHttpClient
 				);
 			Uri remote = GetReplicationURL();
 			manager.SetDefaultHttpClientFactory(mockHttpClientFactory);
 			Replication pusher = database.CreatePushReplication(remote);
 			pusher.SetContinuous(true);
 			CountDownLatch replicationCaughtUpSignal = new CountDownLatch(1);
-			pusher.AddChangeListener(new _ChangeListener_158(replicationCaughtUpSignal));
+			pusher.AddChangeListener(new _ChangeListener_199(replicationCaughtUpSignal));
 			pusher.Start();
 			// wait until that doc is pushed
 			bool didNotTimeOut = replicationCaughtUpSignal.Await(60, TimeUnit.Seconds);
@@ -195,7 +202,7 @@ namespace Couchbase.Lite.Replicator
 			unsavedRevision.SetUserProperties(properties);
 			unsavedRevision.Save();
 			// but then immediately purge it
-			NUnit.Framework.Assert.IsTrue(doc.Purge());
+			doc.Purge();
 			// wait for a while to give the replicator a chance to push it
 			// (it should not actually push anything)
 			Sharpen.Thread.Sleep(5 * 1000);
@@ -215,9 +222,9 @@ namespace Couchbase.Lite.Replicator
 			pusher.Stop();
 		}
 
-		private sealed class _HttpClientFactory_143 : HttpClientFactory
+		private sealed class _HttpClientFactory_169 : HttpClientFactory
 		{
-			public _HttpClientFactory_143(CustomizableMockHttpClient mockHttpClient)
+			public _HttpClientFactory_169(CustomizableMockHttpClient mockHttpClient)
 			{
 				this.mockHttpClient = mockHttpClient;
 			}
@@ -227,12 +234,25 @@ namespace Couchbase.Lite.Replicator
 				return mockHttpClient;
 			}
 
+			public void AddCookies(IList<Apache.Http.Cookie.Cookie> cookies)
+			{
+			}
+
+			public void DeleteCookie(string name)
+			{
+			}
+
+			public CookieStore GetCookieStore()
+			{
+				return null;
+			}
+
 			private readonly CustomizableMockHttpClient mockHttpClient;
 		}
 
-		private sealed class _ChangeListener_158 : Replication.ChangeListener
+		private sealed class _ChangeListener_199 : Replication.ChangeListener
 		{
-			public _ChangeListener_158(CountDownLatch replicationCaughtUpSignal)
+			public _ChangeListener_199(CountDownLatch replicationCaughtUpSignal)
 			{
 				this.replicationCaughtUpSignal = replicationCaughtUpSignal;
 			}
@@ -277,8 +297,8 @@ namespace Couchbase.Lite.Replicator
 			NUnit.Framework.Assert.IsFalse(repl.IsContinuous());
 			NUnit.Framework.Assert.IsNull(repl.GetFilter());
 			NUnit.Framework.Assert.IsNull(repl.GetFilterParams());
-			// TODO: CAssertNil(r1.doc_ids);
-			// TODO: CAssertNil(r1.headers);
+			NUnit.Framework.Assert.IsNull(repl.GetDocIds());
+			// TODO: CAssertNil(r1.headers); still not null!
 			// Check that the replication hasn't started running:
 			NUnit.Framework.Assert.IsFalse(repl.IsRunning());
 			NUnit.Framework.Assert.AreEqual(Replication.ReplicationStatus.ReplicationStopped, 
@@ -287,6 +307,10 @@ namespace Couchbase.Lite.Replicator
 			NUnit.Framework.Assert.AreEqual(0, repl.GetChangesCount());
 			NUnit.Framework.Assert.IsNull(repl.GetLastError());
 			RunReplication(repl);
+			// since we pushed two documents, should expect the changes count to be >= 2
+			NUnit.Framework.Assert.IsTrue(repl.GetChangesCount() >= 2);
+			NUnit.Framework.Assert.IsTrue(repl.GetCompletedChangesCount() >= 2);
+			NUnit.Framework.Assert.IsNull(repl.GetLastError());
 			// make sure doc1 is there
 			VerifyRemoteDocExists(remote, doc1Id);
 			// add doc3
@@ -302,41 +326,98 @@ namespace Couchbase.Lite.Replicator
 			{
 				repl2.SetCreateTarget(true);
 			}
+			string repl2CheckpointId = repl2.RemoteCheckpointDocID();
 			RunReplication(repl2);
+			NUnit.Framework.Assert.IsNull(repl2.GetLastError());
 			// make sure the doc has been added
 			VerifyRemoteDocExists(remote, doc3Id);
+			// verify sequence stored in local db has been updated
+			bool isPush = true;
+			NUnit.Framework.Assert.AreEqual(repl2.GetLastSequence(), database.GetLastSequenceStored
+				(repl2CheckpointId, isPush));
+			// wait a few seconds in case reqeust to server to update checkpoint still in flight
+			Sharpen.Thread.Sleep(2000);
+			// verify that the _local doc remote checkpoint has been updated and it matches
+			string pathToCheckpointDoc = string.Format("%s/_local/%s", remote.ToExternalForm(
+				), repl2CheckpointId);
+			HttpResponse response = GetRemoteDoc(new Uri(pathToCheckpointDoc));
+			IDictionary<string, object> json = ExtractJsonFromResponse(response);
+			string remoteLastSequence = (string)json.Get("lastSequence");
+			NUnit.Framework.Assert.AreEqual(repl2.GetLastSequence(), remoteLastSequence);
 			Log.D(Tag, "testPusher() finished");
+		}
+
+		/// <exception cref="System.IO.IOException"></exception>
+		private IDictionary<string, object> ExtractJsonFromResponse(HttpResponse response
+			)
+		{
+			InputStream @is = response.GetEntity().GetContent();
+			return Manager.GetObjectMapper().ReadValue<IDictionary>(@is);
 		}
 
 		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
 		private string CreateDocumentsForPushReplication(string docIdTimestamp)
 		{
+			return CreateDocumentsForPushReplication(docIdTimestamp, "png");
+		}
+
+		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
+		private string CreateDocumentsForPushReplication(string docIdTimestamp, string attachmentType
+			)
+		{
 			string doc1Id;
 			string doc2Id;
 			// Create some documents:
-			IDictionary<string, object> documentProperties = new Dictionary<string, object>();
+			IDictionary<string, object> doc1Properties = new Dictionary<string, object>();
 			doc1Id = string.Format("doc1-%s", docIdTimestamp);
-			documentProperties.Put("_id", doc1Id);
-			documentProperties.Put("foo", 1);
-			documentProperties.Put("bar", false);
-			Body body = new Body(documentProperties);
+			doc1Properties.Put("_id", doc1Id);
+			doc1Properties.Put("foo", 1);
+			doc1Properties.Put("bar", false);
+			Body body = new Body(doc1Properties);
 			RevisionInternal rev1 = new RevisionInternal(body, database);
 			Status status = new Status();
 			rev1 = database.PutRevision(rev1, null, false, status);
 			NUnit.Framework.Assert.AreEqual(Status.Created, status.GetCode());
-			documentProperties.Put("_rev", rev1.GetRevId());
-			documentProperties.Put("UPDATED", true);
-			RevisionInternal rev2 = database.PutRevision(new RevisionInternal(documentProperties
-				, database), rev1.GetRevId(), false, status);
+			doc1Properties.Put("_rev", rev1.GetRevId());
+			doc1Properties.Put("UPDATED", true);
+			RevisionInternal rev2 = database.PutRevision(new RevisionInternal(doc1Properties, 
+				database), rev1.GetRevId(), false, status);
 			NUnit.Framework.Assert.AreEqual(Status.Created, status.GetCode());
-			documentProperties = new Dictionary<string, object>();
+			IDictionary<string, object> doc2Properties = new Dictionary<string, object>();
 			doc2Id = string.Format("doc2-%s", docIdTimestamp);
-			documentProperties.Put("_id", doc2Id);
-			documentProperties.Put("baz", 666);
-			documentProperties.Put("fnord", true);
-			database.PutRevision(new RevisionInternal(documentProperties, database), null, false
-				, status);
+			doc2Properties.Put("_id", doc2Id);
+			doc2Properties.Put("baz", 666);
+			doc2Properties.Put("fnord", true);
+			database.PutRevision(new RevisionInternal(doc2Properties, database), null, false, 
+				status);
 			NUnit.Framework.Assert.AreEqual(Status.Created, status.GetCode());
+			Document doc2 = database.GetDocument(doc2Id);
+			UnsavedRevision doc2UnsavedRev = doc2.CreateRevision();
+			if (attachmentType.Equals("png"))
+			{
+				InputStream attachmentStream = GetAsset("attachment.png");
+				doc2UnsavedRev.SetAttachment("attachment.png", "image/png", attachmentStream);
+			}
+			else
+			{
+				if (attachmentType.Equals("txt"))
+				{
+					StringBuilder sb = new StringBuilder();
+					for (int i = 0; i < 1000; i++)
+					{
+						sb.Append("This is a large attachemnt.");
+					}
+					ByteArrayInputStream attachmentStream = new ByteArrayInputStream(Sharpen.Runtime.GetBytesForString
+						(sb.ToString()));
+					doc2UnsavedRev.SetAttachment("attachment.txt", "text/plain", attachmentStream);
+				}
+				else
+				{
+					throw new RuntimeException("invalid attachment type: " + attachmentType);
+				}
+			}
+			SavedRevision doc2Rev = doc2UnsavedRev.Save();
+			NUnit.Framework.Assert.IsNotNull(doc2Rev);
 			return doc1Id;
 		}
 
@@ -346,6 +427,30 @@ namespace Couchbase.Lite.Replicator
 		}
 
 		/// <exception cref="System.UriFormatException"></exception>
+		/// <exception cref="System.IO.IOException"></exception>
+		private HttpResponse GetRemoteDoc(Uri pathToDoc)
+		{
+			HttpClient httpclient = new DefaultHttpClient();
+			HttpResponse response = null;
+			string responseString = null;
+			response = httpclient.Execute(new HttpGet(pathToDoc.ToExternalForm()));
+			StatusLine statusLine = response.GetStatusLine();
+			if (statusLine.GetStatusCode() != HttpStatus.ScOk)
+			{
+				throw new RuntimeException("Did not get 200 status doing GET to URL: " + pathToDoc
+					);
+			}
+			return response;
+		}
+
+		/// <summary>TODO: 1.</summary>
+		/// <remarks>
+		/// TODO: 1. refactor to use getRemoteDoc
+		/// TODO: 2. can just make synchronous http call, no need for background task
+		/// </remarks>
+		/// <param name="remote"></param>
+		/// <param name="doc1Id"></param>
+		/// <exception cref="System.UriFormatException">System.UriFormatException</exception>
 		private void VerifyRemoteDocExists(Uri remote, string doc1Id)
 		{
 			Uri replicationUrlTrailing = new Uri(string.Format("%s/", remote.ToExternalForm()
@@ -353,7 +458,7 @@ namespace Couchbase.Lite.Replicator
 			Uri pathToDoc = new Uri(replicationUrlTrailing, doc1Id);
 			Log.D(Tag, "Send http request to " + pathToDoc);
 			CountDownLatch httpRequestDoneSignal = new CountDownLatch(1);
-			BackgroundTask getDocTask = new _BackgroundTask_331(pathToDoc, doc1Id, httpRequestDoneSignal
+			BackgroundTask getDocTask = new _BackgroundTask_445(pathToDoc, doc1Id, httpRequestDoneSignal
 				);
 			//Closes the connection.
 			getDocTask.Execute();
@@ -369,9 +474,9 @@ namespace Couchbase.Lite.Replicator
 			}
 		}
 
-		private sealed class _BackgroundTask_331 : BackgroundTask
+		private sealed class _BackgroundTask_445 : BackgroundTask
 		{
-			public _BackgroundTask_331(Uri pathToDoc, string doc1Id, CountDownLatch httpRequestDoneSignal
+			public _BackgroundTask_445(Uri pathToDoc, string doc1Id, CountDownLatch httpRequestDoneSignal
 				)
 			{
 				this.pathToDoc = pathToDoc;
@@ -444,6 +549,7 @@ namespace Couchbase.Lite.Replicator
 			manager.SetDefaultHttpClientFactory(mockHttpClientFactory);
 			Replication pusher = database.CreatePushReplication(remote);
 			RunReplication(pusher);
+			NUnit.Framework.Assert.IsNull(pusher.GetLastError());
 			int numDocsSent = 0;
 			// verify that only INBOX_SIZE documents are included in any given bulk post request
 			IList<HttpWebRequest> capturedRequests = mockHttpClient.GetCapturedRequests();
@@ -489,15 +595,19 @@ namespace Couchbase.Lite.Replicator
 				, database), rev1.GetRevId(), false, status);
 			NUnit.Framework.Assert.IsTrue(status.GetCode() >= 200 && status.GetCode() < 300);
 			Replication repl = database.CreatePushReplication(remote);
-			((Pusher)repl).SetCreateTarget(true);
+			if (!IsSyncGateway(remote))
+			{
+				repl.SetCreateTarget(true);
+			}
 			RunReplication(repl);
+			NUnit.Framework.Assert.IsNull(repl.GetLastError());
 			// make sure doc1 is deleted
 			Uri replicationUrlTrailing = new Uri(string.Format("%s/", remote.ToExternalForm()
 				));
 			Uri pathToDoc = new Uri(replicationUrlTrailing, doc1Id);
 			Log.D(Tag, "Send http request to " + pathToDoc);
 			CountDownLatch httpRequestDoneSignal = new CountDownLatch(1);
-			BackgroundTask getDocTask = new _BackgroundTask_466(pathToDoc, httpRequestDoneSignal
+			BackgroundTask getDocTask = new _BackgroundTask_584(pathToDoc, httpRequestDoneSignal
 				);
 			getDocTask.Execute();
 			Log.D(Tag, "Waiting for http request to finish");
@@ -513,9 +623,9 @@ namespace Couchbase.Lite.Replicator
 			Log.D(Tag, "testPusherDeletedDoc() finished");
 		}
 
-		private sealed class _BackgroundTask_466 : BackgroundTask
+		private sealed class _BackgroundTask_584 : BackgroundTask
 		{
-			public _BackgroundTask_466(Uri pathToDoc, CountDownLatch httpRequestDoneSignal)
+			public _BackgroundTask_584(Uri pathToDoc, CountDownLatch httpRequestDoneSignal)
 			{
 				this.pathToDoc = pathToDoc;
 				this.httpRequestDoneSignal = httpRequestDoneSignal;
@@ -638,9 +748,9 @@ namespace Couchbase.Lite.Replicator
 			AddDocWithId(doc2Id, "attachment2.png", false);
 			int numDocsBeforePull = database.GetDocumentCount();
 			View view = database.GetView("testPullerWithLiveQueryView");
-			view.SetMapReduce(new _Mapper_606(), null, "1");
+			view.SetMapReduce(new _Mapper_724(), null, "1");
 			LiveQuery allDocsLiveQuery = view.CreateQuery().ToLiveQuery();
-			allDocsLiveQuery.AddChangeListener(new _ChangeListener_616(numDocsBeforePull));
+			allDocsLiveQuery.AddChangeListener(new _ChangeListener_734(numDocsBeforePull));
 			// the first time this is called back, the rows will be empty.
 			// but on subsequent times we should expect to get a non empty
 			// row set.
@@ -649,9 +759,9 @@ namespace Couchbase.Lite.Replicator
 			allDocsLiveQuery.Stop();
 		}
 
-		private sealed class _Mapper_606 : Mapper
+		private sealed class _Mapper_724 : Mapper
 		{
-			public _Mapper_606()
+			public _Mapper_724()
 			{
 			}
 
@@ -664,9 +774,9 @@ namespace Couchbase.Lite.Replicator
 			}
 		}
 
-		private sealed class _ChangeListener_616 : LiveQuery.ChangeListener
+		private sealed class _ChangeListener_734 : LiveQuery.ChangeListener
 		{
-			public _ChangeListener_616(int numDocsBeforePull)
+			public _ChangeListener_734(int numDocsBeforePull)
 			{
 				this.numDocsBeforePull = numDocsBeforePull;
 			}
@@ -696,6 +806,7 @@ namespace Couchbase.Lite.Replicator
 			repl.SetContinuous(false);
 			Log.D(Tag, "Doing pull replication with: " + repl);
 			RunReplication(repl);
+			NUnit.Framework.Assert.IsNull(repl.GetLastError());
 			Log.D(Tag, "Finished pull replication with: " + repl);
 		}
 
@@ -740,7 +851,7 @@ namespace Couchbase.Lite.Replicator
 			Uri pathToDoc1 = new Uri(replicationUrlTrailingDoc1, docId);
 			Log.D(Tag, "Send http request to " + pathToDoc1);
 			CountDownLatch httpRequestDoneSignal = new CountDownLatch(1);
-			BackgroundTask getDocTask = new _BackgroundTask_694(pathToDoc1, docJson, httpRequestDoneSignal
+			BackgroundTask getDocTask = new _BackgroundTask_813(pathToDoc1, docJson, httpRequestDoneSignal
 				);
 			getDocTask.Execute();
 			Log.D(Tag, "Waiting for http request to finish");
@@ -755,9 +866,9 @@ namespace Couchbase.Lite.Replicator
 			}
 		}
 
-		private sealed class _BackgroundTask_694 : BackgroundTask
+		private sealed class _BackgroundTask_813 : BackgroundTask
 		{
-			public _BackgroundTask_694(Uri pathToDoc1, string docJson, CountDownLatch httpRequestDoneSignal
+			public _BackgroundTask_813(Uri pathToDoc1, string docJson, CountDownLatch httpRequestDoneSignal
 				)
 			{
 				this.pathToDoc1 = pathToDoc1;
@@ -825,13 +936,18 @@ namespace Couchbase.Lite.Replicator
 				(replicationDoneSignal);
 			replicator.AddChangeListener(replicationFinishedObserver);
 			// start the replicator
+			Log.D(Tag, "Starting replicator " + replicator);
 			replicator.Start();
 			// now lets lookup existing replicator and stop it
+			Log.D(Tag, "Looking up replicator");
 			properties.Put("cancel", true);
 			Replication activeReplicator = manager.GetReplicator(properties);
+			Log.D(Tag, "Found replicator " + activeReplicator + " and calling stop()");
 			activeReplicator.Stop();
+			Log.D(Tag, "called stop(), waiting for it to finish");
 			// wait for replication to finish
-			bool didNotTimeOut = replicationDoneSignal.Await(30, TimeUnit.Seconds);
+			bool didNotTimeOut = replicationDoneSignal.Await(180, TimeUnit.Seconds);
+			Log.D(Tag, "replicationDoneSignal.await done, didNotTimeOut: " + didNotTimeOut);
 			NUnit.Framework.Assert.IsTrue(didNotTimeOut);
 			NUnit.Framework.Assert.IsFalse(activeReplicator.IsRunning());
 		}
@@ -842,14 +958,15 @@ namespace Couchbase.Lite.Replicator
 			IDictionary<string, object> properties = GetPushReplicationParsedJson();
 			Replication replicator = manager.GetReplicator(properties);
 			NUnit.Framework.Assert.IsNotNull(replicator);
-			NUnit.Framework.Assert.IsNotNull(replicator.GetAuthorizer());
-			NUnit.Framework.Assert.IsTrue(replicator.GetAuthorizer() is FacebookAuthorizer);
+			NUnit.Framework.Assert.IsNotNull(replicator.GetAuthenticator());
+			NUnit.Framework.Assert.IsTrue(replicator.GetAuthenticator() is FacebookAuthorizer
+				);
 		}
 
 		/// <exception cref="System.Exception"></exception>
 		public virtual void TestRunReplicationWithError()
 		{
-			HttpClientFactory mockHttpClientFactory = new _HttpClientFactory_788();
+			HttpClientFactory mockHttpClientFactory = new _HttpClientFactory_913();
 			string dbUrlString = "http://fake.test-url.com:4984/fake/";
 			Uri remote = new Uri(dbUrlString);
 			bool continuous = false;
@@ -865,9 +982,9 @@ namespace Couchbase.Lite.Replicator
 			NUnit.Framework.Assert.IsNotNull(r1.GetLastError());
 		}
 
-		private sealed class _HttpClientFactory_788 : HttpClientFactory
+		private sealed class _HttpClientFactory_913 : HttpClientFactory
 		{
-			public _HttpClientFactory_788()
+			public _HttpClientFactory_913()
 			{
 			}
 
@@ -877,6 +994,19 @@ namespace Couchbase.Lite.Replicator
 				int statusCode = 500;
 				mockHttpClient.AddResponderFailAllRequests(statusCode);
 				return mockHttpClient;
+			}
+
+			public void AddCookies(IList<Apache.Http.Cookie.Cookie> cookies)
+			{
+			}
+
+			public void DeleteCookie(string name)
+			{
+			}
+
+			public CookieStore GetCookieStore()
+			{
+				return null;
 			}
 		}
 
@@ -936,7 +1066,7 @@ namespace Couchbase.Lite.Replicator
 			replicator.Start();
 			bool success = countDownLatch.Await(30, TimeUnit.Seconds);
 			NUnit.Framework.Assert.IsTrue(success);
-			replicator.GoOffline();
+			PutReplicationOffline(replicator);
 			NUnit.Framework.Assert.IsTrue(replicator.GetStatus() == Replication.ReplicationStatus
 				.ReplicationOffline);
 			replicator.Stop();
@@ -948,7 +1078,7 @@ namespace Couchbase.Lite.Replicator
 		public virtual void TestBuildRelativeURLString()
 		{
 			string dbUrlString = "http://10.0.0.3:4984/todos/";
-			Replication replicator = new Pusher(null, new Uri(dbUrlString), false, null);
+			Replication replicator = new Pusher(database, new Uri(dbUrlString), false, null);
 			string relativeUrlString = replicator.BuildRelativeURLString("foo");
 			string expected = "http://10.0.0.3:4984/todos/foo";
 			NUnit.Framework.Assert.AreEqual(expected, relativeUrlString);
@@ -958,7 +1088,7 @@ namespace Couchbase.Lite.Replicator
 		public virtual void TestBuildRelativeURLStringWithLeadingSlash()
 		{
 			string dbUrlString = "http://10.0.0.3:4984/todos/";
-			Replication replicator = new Pusher(null, new Uri(dbUrlString), false, null);
+			Replication replicator = new Pusher(database, new Uri(dbUrlString), false, null);
 			string relativeUrlString = replicator.BuildRelativeURLString("/foo");
 			string expected = "http://10.0.0.3:4984/todos/foo";
 			NUnit.Framework.Assert.AreEqual(expected, relativeUrlString);
@@ -1014,7 +1144,7 @@ namespace Couchbase.Lite.Replicator
 		{
 			CustomizableMockHttpClient mockHttpClient = new CustomizableMockHttpClient();
 			mockHttpClient.AddResponderThrowExceptionAllRequests();
-			HttpClientFactory mockHttpClientFactory = new _HttpClientFactory_966(mockHttpClient
+			HttpClientFactory mockHttpClientFactory = new _HttpClientFactory_1106(mockHttpClient
 				);
 			Uri remote = GetReplicationURL();
 			manager.SetDefaultHttpClientFactory(mockHttpClientFactory);
@@ -1023,6 +1153,7 @@ namespace Couchbase.Lite.Replicator
 			headers.Put("foo", "bar");
 			puller.SetHeaders(headers);
 			RunReplication(puller);
+			NUnit.Framework.Assert.IsNotNull(puller.GetLastError());
 			bool foundFooHeader = false;
 			IList<HttpWebRequest> requests = mockHttpClient.GetCapturedRequests();
 			foreach (HttpWebRequest request in requests)
@@ -1038,9 +1169,9 @@ namespace Couchbase.Lite.Replicator
 			manager.SetDefaultHttpClientFactory(null);
 		}
 
-		private sealed class _HttpClientFactory_966 : HttpClientFactory
+		private sealed class _HttpClientFactory_1106 : HttpClientFactory
 		{
-			public _HttpClientFactory_966(CustomizableMockHttpClient mockHttpClient)
+			public _HttpClientFactory_1106(CustomizableMockHttpClient mockHttpClient)
 			{
 				this.mockHttpClient = mockHttpClient;
 			}
@@ -1048,6 +1179,19 @@ namespace Couchbase.Lite.Replicator
 			public HttpClient GetHttpClient()
 			{
 				return mockHttpClient;
+			}
+
+			public void AddCookies(IList<Apache.Http.Cookie.Cookie> cookies)
+			{
+			}
+
+			public void DeleteCookie(string name)
+			{
+			}
+
+			public CookieStore GetCookieStore()
+			{
+				return null;
 			}
 
 			private readonly CustomizableMockHttpClient mockHttpClient;
@@ -1061,20 +1205,21 @@ namespace Couchbase.Lite.Replicator
 			mockHttpClient.AddResponderRevDiffsAllMissing();
 			mockHttpClient.SetResponseDelayMilliseconds(250);
 			mockHttpClient.AddResponderFakeLocalDocumentUpdate404();
-			HttpClientFactory mockHttpClientFactory = new _HttpClientFactory_1009(mockHttpClient
+			HttpClientFactory mockHttpClientFactory = new _HttpClientFactory_1165(mockHttpClient
 				);
 			manager.SetDefaultHttpClientFactory(mockHttpClientFactory);
 			Document doc = database.CreateDocument();
 			SavedRevision rev1a = doc.CreateRevision().Save();
-			SavedRevision rev2a = rev1a.CreateRevision().Save();
-			SavedRevision rev3a = rev2a.CreateRevision().Save();
+			SavedRevision rev2a = CreateRevisionWithRandomProps(rev1a, false);
+			SavedRevision rev3a = CreateRevisionWithRandomProps(rev2a, false);
 			// delete the branch we've been using, then create a new one to replace it
 			SavedRevision rev4a = rev3a.DeleteDocument();
-			SavedRevision rev2b = rev1a.CreateRevision().Save(true);
+			SavedRevision rev2b = CreateRevisionWithRandomProps(rev1a, true);
 			NUnit.Framework.Assert.AreEqual(rev2b.GetId(), doc.GetCurrentRevisionId());
 			// sync with remote DB -- should push both leaf revisions
 			Replication push = database.CreatePushReplication(GetReplicationURL());
 			RunReplication(push);
+			NUnit.Framework.Assert.IsNull(push.GetLastError());
 			// find the _revs_diff captured request and decode into json
 			bool foundRevsDiff = false;
 			IList<HttpWebRequest> captured = mockHttpClient.GetCapturedRequests();
@@ -1099,9 +1244,9 @@ namespace Couchbase.Lite.Replicator
 			NUnit.Framework.Assert.IsTrue(foundRevsDiff);
 		}
 
-		private sealed class _HttpClientFactory_1009 : HttpClientFactory
+		private sealed class _HttpClientFactory_1165 : HttpClientFactory
 		{
-			public _HttpClientFactory_1009(CustomizableMockHttpClient mockHttpClient)
+			public _HttpClientFactory_1165(CustomizableMockHttpClient mockHttpClient)
 			{
 				this.mockHttpClient = mockHttpClient;
 			}
@@ -1109,6 +1254,19 @@ namespace Couchbase.Lite.Replicator
 			public HttpClient GetHttpClient()
 			{
 				return mockHttpClient;
+			}
+
+			public void AddCookies(IList<Apache.Http.Cookie.Cookie> cookies)
+			{
+			}
+
+			public void DeleteCookie(string name)
+			{
+			}
+
+			public CookieStore GetCookieStore()
+			{
+				return null;
 			}
 
 			private readonly CustomizableMockHttpClient mockHttpClient;
@@ -1120,11 +1278,27 @@ namespace Couchbase.Lite.Replicator
 			// Create a document with two conflicting edits.
 			Document doc = database.CreateDocument();
 			SavedRevision rev1 = doc.CreateRevision().Save();
-			SavedRevision rev2a = rev1.CreateRevision().Save();
-			SavedRevision rev2b = rev1.CreateRevision().Save(true);
+			SavedRevision rev2a = CreateRevisionWithRandomProps(rev1, false);
+			SavedRevision rev2b = CreateRevisionWithRandomProps(rev1, true);
+			// make sure we can query the db to get the conflict
+			Query allDocsQuery = database.CreateAllDocumentsQuery();
+			allDocsQuery.SetAllDocsMode(Query.AllDocsMode.OnlyConflicts);
+			QueryEnumerator rows = allDocsQuery.Run();
+			bool foundDoc = false;
+			NUnit.Framework.Assert.AreEqual(1, rows.GetCount());
+			for (IEnumerator<QueryRow> it = rows; it.HasNext(); )
+			{
+				QueryRow row = it.Next();
+				if (row.GetDocument().GetId().Equals(doc.GetId()))
+				{
+					foundDoc = true;
+				}
+			}
+			NUnit.Framework.Assert.IsTrue(foundDoc);
 			// Push the conflicts to the remote DB.
 			Replication push = database.CreatePushReplication(GetReplicationURL());
 			RunReplication(push);
+			NUnit.Framework.Assert.IsNull(push.GetLastError());
 			// Prepare a bulk docs request to resolve the conflict remotely. First, advance rev 2a.
 			JSONObject rev3aBody = new JSONObject();
 			rev3aBody.Put("_id", doc.GetId());
@@ -1158,6 +1332,7 @@ namespace Couchbase.Lite.Replicator
 			// Pull the remote changes.
 			Replication pull = database.CreatePullReplication(GetReplicationURL());
 			RunReplication(pull);
+			NUnit.Framework.Assert.IsNull(pull.GetLastError());
 			// Make sure the conflict was resolved locally.
 			NUnit.Framework.Assert.AreEqual(1, doc.GetConflictingRevisions().Count);
 		}
@@ -1172,72 +1347,60 @@ namespace Couchbase.Lite.Replicator
 			mockHttpClient.AddResponderRevDiffsSmartResponder();
 			HttpClientFactory mockHttpClientFactory = MockFactoryFactory(mockHttpClient);
 			manager.SetDefaultHttpClientFactory(mockHttpClientFactory);
+			// create a replication observer
+			CountDownLatch replicationDoneSignal = new CountDownLatch(1);
+			LiteTestCase.ReplicationFinishedObserver replicationFinishedObserver = new LiteTestCase.ReplicationFinishedObserver
+				(replicationDoneSignal);
 			// create a push replication
 			Replication pusher = database.CreatePushReplication(remote);
 			Log.D(Database.Tag, "created pusher: " + pusher);
+			pusher.AddChangeListener(replicationFinishedObserver);
 			pusher.SetContinuous(true);
 			pusher.Start();
 			for (int i = 0; i < 5; i++)
 			{
 				Log.D(Database.Tag, "testOnlineOfflinePusher, i: " + i);
+				string docFieldName = "testOnlineOfflinePusher" + i;
 				// put the replication offline
 				PutReplicationOffline(pusher);
+				// add a response listener to wait for a bulk_docs request from the pusher
+				CountDownLatch gotBulkDocsRequest = new CountDownLatch(1);
+				CustomizableMockHttpClient.ResponseListener bulkDocsListener = new _ResponseListener_1334
+					(docFieldName, gotBulkDocsRequest);
+				mockHttpClient.AddResponseListener(bulkDocsListener);
 				// add a document
-				string docFieldName = "testOnlineOfflinePusher" + i;
 				string docFieldVal = "foo" + i;
 				IDictionary<string, object> properties = new Dictionary<string, object>();
 				properties.Put(docFieldName, docFieldVal);
 				CreateDocumentWithProperties(database, properties);
-				// add a response listener to wait for a bulk_docs request from the pusher
-				CountDownLatch gotBulkDocsRequest = new CountDownLatch(1);
-				CustomizableMockHttpClient.ResponseListener bulkDocsListener = new _ResponseListener_1145
-					(gotBulkDocsRequest);
-				mockHttpClient.AddResponseListener(bulkDocsListener);
 				// put the replication online, which should trigger it to send outgoing bulk_docs request
 				PutReplicationOnline(pusher);
 				// wait until we get a bulk docs request
-				Log.D(Database.Tag, "waiting for bulk docs request");
-				bool succeeded = gotBulkDocsRequest.Await(120, TimeUnit.Seconds);
+				Log.D(Database.Tag, "waiting for bulk docs request with " + docFieldName);
+				bool succeeded = gotBulkDocsRequest.Await(90, TimeUnit.Seconds);
 				NUnit.Framework.Assert.IsTrue(succeeded);
-				Log.D(Database.Tag, "got bulk docs request, verifying captured requests");
+				Log.D(Database.Tag, "got bulk docs request with " + docFieldName);
 				mockHttpClient.RemoveResponseListener(bulkDocsListener);
-				// workaround bug https://github.com/couchbase/couchbase-lite-android/issues/219
-				Sharpen.Thread.Sleep(2000);
-				// make sure that doc was pushed out in a bulk docs request
-				bool foundExpectedDoc = false;
-				IList<HttpWebRequest> capturedRequests = mockHttpClient.GetCapturedRequests();
-				foreach (HttpWebRequest capturedRequest in capturedRequests)
-				{
-					Log.D(Database.Tag, "captured request: " + capturedRequest);
-					if (capturedRequest is HttpPost)
-					{
-						HttpPost capturedPostRequest = (HttpPost)capturedRequest;
-						Log.D(Database.Tag, "capturedPostRequest: " + capturedPostRequest.GetURI().GetPath
-							());
-						if (capturedPostRequest.GetURI().GetPath().EndsWith("_bulk_docs"))
-						{
-							ArrayList docs = CustomizableMockHttpClient.ExtractDocsFromBulkDocsPost(capturedRequest
-								);
-							NUnit.Framework.Assert.AreEqual(1, docs.Count);
-							IDictionary<string, object> doc = (IDictionary)docs[0];
-							Log.D(Database.Tag, "doc from captured request: " + doc);
-							Log.D(Database.Tag, "docFieldName: " + docFieldName);
-							Log.D(Database.Tag, "expected docFieldVal: " + docFieldVal);
-							Log.D(Database.Tag, "actual doc.get(docFieldName): " + doc.Get(docFieldName));
-							NUnit.Framework.Assert.AreEqual(docFieldVal, doc.Get(docFieldName));
-							foundExpectedDoc = true;
-						}
-					}
-				}
-				NUnit.Framework.Assert.IsTrue(foundExpectedDoc);
 				mockHttpClient.ClearCapturedRequests();
 			}
+			Log.D(Database.Tag, "calling pusher.stop()");
+			pusher.Stop();
+			Log.D(Database.Tag, "called pusher.stop()");
+			// wait for replication to finish
+			Log.D(Database.Tag, "waiting for replicationDoneSignal");
+			bool didNotTimeOut = replicationDoneSignal.Await(90, TimeUnit.Seconds);
+			Log.D(Database.Tag, "done waiting for replicationDoneSignal.  didNotTimeOut: " + 
+				didNotTimeOut);
+			NUnit.Framework.Assert.IsTrue(didNotTimeOut);
+			NUnit.Framework.Assert.IsFalse(pusher.IsRunning());
 		}
 
-		private sealed class _ResponseListener_1145 : CustomizableMockHttpClient.ResponseListener
+		private sealed class _ResponseListener_1334 : CustomizableMockHttpClient.ResponseListener
 		{
-			public _ResponseListener_1145(CountDownLatch gotBulkDocsRequest)
+			public _ResponseListener_1334(string docFieldName, CountDownLatch gotBulkDocsRequest
+				)
 			{
+				this.docFieldName = docFieldName;
 				this.gotBulkDocsRequest = gotBulkDocsRequest;
 			}
 
@@ -1246,11 +1409,530 @@ namespace Couchbase.Lite.Replicator
 			{
 				if (httpUriRequest.GetURI().GetPath().EndsWith("_bulk_docs"))
 				{
-					gotBulkDocsRequest.CountDown();
+					Log.D(ReplicationTest.Tag, "testOnlineOfflinePusher responselistener called with _bulk_docs"
+						);
+					ArrayList docs = CustomizableMockHttpClient.ExtractDocsFromBulkDocsPost(httpUriRequest
+						);
+					Log.D(ReplicationTest.Tag, "docs: " + docs);
+					foreach (object docObject in docs)
+					{
+						IDictionary<string, object> doc = (IDictionary)docObject;
+						if (doc.ContainsKey(docFieldName))
+						{
+							Log.D(ReplicationTest.Tag, "Found expected doc in _bulk_docs: " + doc);
+							gotBulkDocsRequest.CountDown();
+						}
+						else
+						{
+							Log.D(ReplicationTest.Tag, "Ignore doc in _bulk_docs: " + doc);
+						}
+					}
 				}
 			}
 
+			private readonly string docFieldName;
+
 			private readonly CountDownLatch gotBulkDocsRequest;
+		}
+
+		/// <summary>https://github.com/couchbase/couchbase-lite-android/issues/247</summary>
+		/// <exception cref="System.Exception"></exception>
+		public virtual void TestPushReplicationRecoverableError()
+		{
+			int statusCode = 503;
+			string statusMsg = "Transient Error";
+			bool expectReplicatorError = false;
+			RunPushReplicationWithTransientError(statusCode, statusMsg, expectReplicatorError
+				);
+		}
+
+		/// <summary>https://github.com/couchbase/couchbase-lite-android/issues/247</summary>
+		/// <exception cref="System.Exception"></exception>
+		public virtual void TestPushReplicationRecoverableIOException()
+		{
+			int statusCode = -1;
+			// code to tell it to throw an IOException
+			string statusMsg = null;
+			bool expectReplicatorError = false;
+			RunPushReplicationWithTransientError(statusCode, statusMsg, expectReplicatorError
+				);
+		}
+
+		/// <summary>https://github.com/couchbase/couchbase-lite-android/issues/247</summary>
+		/// <exception cref="System.Exception"></exception>
+		public virtual void TestPushReplicationNonRecoverableError()
+		{
+			int statusCode = 404;
+			string statusMsg = "NOT FOUND";
+			bool expectReplicatorError = true;
+			RunPushReplicationWithTransientError(statusCode, statusMsg, expectReplicatorError
+				);
+		}
+
+		/// <summary>https://github.com/couchbase/couchbase-lite-android/issues/247</summary>
+		/// <exception cref="System.Exception"></exception>
+		public virtual void RunPushReplicationWithTransientError(int statusCode, string statusMsg
+			, bool expectReplicatorError)
+		{
+			IDictionary<string, object> properties1 = new Dictionary<string, object>();
+			properties1.Put("doc1", "testPushReplicationTransientError");
+			CreateDocWithProperties(properties1);
+			CustomizableMockHttpClient mockHttpClient = new CustomizableMockHttpClient();
+			mockHttpClient.AddResponderFakeLocalDocumentUpdate404();
+			CustomizableMockHttpClient.Responder sentinal = CustomizableMockHttpClient.FakeBulkDocsResponder
+				();
+			Queue<CustomizableMockHttpClient.Responder> responders = new List<CustomizableMockHttpClient.Responder
+				>();
+			responders.AddItem(CustomizableMockHttpClient.TransientErrorResponder(statusCode, 
+				statusMsg));
+			ResponderChain responderChain = new ResponderChain(responders, sentinal);
+			mockHttpClient.SetResponder("_bulk_docs", responderChain);
+			// create a replication observer to wait until replication finishes
+			CountDownLatch replicationDoneSignal = new CountDownLatch(1);
+			LiteTestCase.ReplicationFinishedObserver replicationFinishedObserver = new LiteTestCase.ReplicationFinishedObserver
+				(replicationDoneSignal);
+			// create replication and add observer
+			manager.SetDefaultHttpClientFactory(MockFactoryFactory(mockHttpClient));
+			Replication pusher = database.CreatePushReplication(GetReplicationURL());
+			pusher.AddChangeListener(replicationFinishedObserver);
+			// save the checkpoint id for later usage
+			string checkpointId = pusher.RemoteCheckpointDocID();
+			// kick off the replication
+			pusher.Start();
+			// wait for it to finish
+			bool success = replicationDoneSignal.Await(60, TimeUnit.Seconds);
+			NUnit.Framework.Assert.IsTrue(success);
+			Log.D(Tag, "replicationDoneSignal finished");
+			if (expectReplicatorError == true)
+			{
+				NUnit.Framework.Assert.IsNotNull(pusher.GetLastError());
+			}
+			else
+			{
+				NUnit.Framework.Assert.IsNull(pusher.GetLastError());
+			}
+			// workaround for the fact that the replicationDoneSignal.wait() call will unblock before all
+			// the statements in Replication.stopped() have even had a chance to execute.
+			// (specifically the ones that come after the call to notifyChangeListeners())
+			Sharpen.Thread.Sleep(500);
+			string localLastSequence = database.LastSequenceWithCheckpointId(checkpointId);
+			if (expectReplicatorError == true)
+			{
+				NUnit.Framework.Assert.IsNull(localLastSequence);
+			}
+			else
+			{
+				NUnit.Framework.Assert.IsNotNull(localLastSequence);
+			}
+		}
+
+		/// <summary>https://github.com/couchbase/couchbase-lite-java-core/issues/95</summary>
+		/// <exception cref="System.Exception"></exception>
+		public virtual void TestPushReplicationCanMissDocs()
+		{
+			NUnit.Framework.Assert.AreEqual(0, database.GetLastSequenceNumber());
+			IDictionary<string, object> properties1 = new Dictionary<string, object>();
+			properties1.Put("doc1", "testPushReplicationCanMissDocs");
+			Document doc1 = CreateDocWithProperties(properties1);
+			IDictionary<string, object> properties2 = new Dictionary<string, object>();
+			properties1.Put("doc2", "testPushReplicationCanMissDocs");
+			Document doc2 = CreateDocWithProperties(properties2);
+			UnsavedRevision doc2UnsavedRev = doc2.CreateRevision();
+			InputStream attachmentStream = GetAsset("attachment.png");
+			doc2UnsavedRev.SetAttachment("attachment.png", "image/png", attachmentStream);
+			SavedRevision doc2Rev = doc2UnsavedRev.Save();
+			NUnit.Framework.Assert.IsNotNull(doc2Rev);
+			CustomizableMockHttpClient mockHttpClient = new CustomizableMockHttpClient();
+			mockHttpClient.AddResponderFakeLocalDocumentUpdate404();
+			mockHttpClient.SetResponder("_bulk_docs", new _Responder_1506());
+			mockHttpClient.SetResponder(doc2.GetId(), new _Responder_1514(doc2));
+			// create a replication obeserver to wait until replication finishes
+			CountDownLatch replicationDoneSignal = new CountDownLatch(1);
+			LiteTestCase.ReplicationFinishedObserver replicationFinishedObserver = new LiteTestCase.ReplicationFinishedObserver
+				(replicationDoneSignal);
+			// create replication and add observer
+			manager.SetDefaultHttpClientFactory(MockFactoryFactory(mockHttpClient));
+			Replication pusher = database.CreatePushReplication(GetReplicationURL());
+			pusher.AddChangeListener(replicationFinishedObserver);
+			// save the checkpoint id for later usage
+			string checkpointId = pusher.RemoteCheckpointDocID();
+			// kick off the replication
+			pusher.Start();
+			// wait for it to finish
+			bool success = replicationDoneSignal.Await(60, TimeUnit.Seconds);
+			NUnit.Framework.Assert.IsTrue(success);
+			Log.D(Tag, "replicationDoneSignal finished");
+			// we would expect it to have recorded an error because one of the docs (the one without the attachment)
+			// will have failed.
+			NUnit.Framework.Assert.IsNotNull(pusher.GetLastError());
+			// workaround for the fact that the replicationDoneSignal.wait() call will unblock before all
+			// the statements in Replication.stopped() have even had a chance to execute.
+			// (specifically the ones that come after the call to notifyChangeListeners())
+			Sharpen.Thread.Sleep(500);
+			string localLastSequence = database.LastSequenceWithCheckpointId(checkpointId);
+			Log.D(Tag, "database.lastSequenceWithCheckpointId(): " + localLastSequence);
+			Log.D(Tag, "doc2.getCurrentRevision().getSequence(): " + doc2.GetCurrentRevision(
+				).GetSequence());
+			string msg = "Since doc1 failed, the database should _not_ have had its lastSequence bumped"
+				 + " to doc2's sequence number.  If it did, it's bug: github.com/couchbase/couchbase-lite-java-core/issues/95";
+			NUnit.Framework.Assert.IsFalse(msg, System.Convert.ToString(doc2.GetCurrentRevision
+				().GetSequence()).Equals(localLastSequence));
+			NUnit.Framework.Assert.IsNull(localLastSequence);
+			NUnit.Framework.Assert.IsTrue(doc2.GetCurrentRevision().GetSequence() > 0);
+		}
+
+		private sealed class _Responder_1506 : CustomizableMockHttpClient.Responder
+		{
+			public _Responder_1506()
+			{
+			}
+
+			/// <exception cref="System.IO.IOException"></exception>
+			public HttpResponse Execute(HttpRequestMessage httpUriRequest)
+			{
+				string json = "{\"error\":\"not_found\",\"reason\":\"missing\"}";
+				return CustomizableMockHttpClient.GenerateHttpResponseObject(404, "NOT FOUND", json
+					);
+			}
+		}
+
+		private sealed class _Responder_1514 : CustomizableMockHttpClient.Responder
+		{
+			public _Responder_1514(Document doc2)
+			{
+				this.doc2 = doc2;
+			}
+
+			/// <exception cref="System.IO.IOException"></exception>
+			public HttpResponse Execute(HttpRequestMessage httpUriRequest)
+			{
+				IDictionary<string, object> responseObject = new Dictionary<string, object>();
+				responseObject.Put("id", doc2.GetId());
+				responseObject.Put("ok", true);
+				responseObject.Put("rev", doc2.GetCurrentRevisionId());
+				return CustomizableMockHttpClient.GenerateHttpResponseObject(responseObject);
+			}
+
+			private readonly Document doc2;
+		}
+
+		/// <summary>https://github.com/couchbase/couchbase-lite-android/issues/66</summary>
+		/// <exception cref="System.Exception"></exception>
+		public virtual void TestPushUpdatedDocWithoutReSendingAttachments()
+		{
+			NUnit.Framework.Assert.AreEqual(0, database.GetLastSequenceNumber());
+			IDictionary<string, object> properties1 = new Dictionary<string, object>();
+			properties1.Put("dynamic", 1);
+			Document doc = CreateDocWithProperties(properties1);
+			SavedRevision doc1Rev = doc.GetCurrentRevision();
+			// Add attachment to document
+			UnsavedRevision doc2UnsavedRev = doc.CreateRevision();
+			InputStream attachmentStream = GetAsset("attachment.png");
+			doc2UnsavedRev.SetAttachment("attachment.png", "image/png", attachmentStream);
+			SavedRevision doc2Rev = doc2UnsavedRev.Save();
+			NUnit.Framework.Assert.IsNotNull(doc2Rev);
+			CustomizableMockHttpClient mockHttpClient = new CustomizableMockHttpClient();
+			mockHttpClient.AddResponderFakeLocalDocumentUpdate404();
+			// http://url/db/foo (foo==docid)
+			mockHttpClient.SetResponder(doc.GetId(), new _Responder_1593(doc));
+			// create replication and add observer
+			manager.SetDefaultHttpClientFactory(MockFactoryFactory(mockHttpClient));
+			Replication pusher = database.CreatePushReplication(GetReplicationURL());
+			RunReplication(pusher);
+			IList<HttpWebRequest> captured = mockHttpClient.GetCapturedRequests();
+			foreach (HttpWebRequest httpRequest in captured)
+			{
+				// verify that there are no PUT requests with attachments
+				if (httpRequest is HttpPut)
+				{
+					HttpPut httpPut = (HttpPut)httpRequest;
+					HttpEntity entity = httpPut.GetEntity();
+				}
+			}
+			//assertFalse("PUT request with updated doc properties contains attachment", entity instanceof MultipartEntity);
+			mockHttpClient.ClearCapturedRequests();
+			Document oldDoc = database.GetDocument(doc.GetId());
+			UnsavedRevision aUnsavedRev = oldDoc.CreateRevision();
+			IDictionary<string, object> prop = new Dictionary<string, object>();
+			prop.PutAll(oldDoc.GetProperties());
+			prop.Put("dynamic", (int)oldDoc.GetProperty("dynamic") + 1);
+			aUnsavedRev.SetProperties(prop);
+			SavedRevision savedRev = aUnsavedRev.Save();
+			mockHttpClient.SetResponder(doc.GetId(), new _Responder_1630(doc, savedRev));
+			string json = string.Format("{\"%s\":{\"missing\":[\"%s\"],\"possible_ancestors\":[\"%s\",\"%s\"]}}"
+				, doc.GetId(), savedRev.GetId(), doc1Rev.GetId(), doc2Rev.GetId());
+			mockHttpClient.SetResponder("_revs_diff", new _Responder_1642(mockHttpClient, json
+				));
+			pusher = database.CreatePushReplication(GetReplicationURL());
+			RunReplication(pusher);
+			captured = mockHttpClient.GetCapturedRequests();
+			foreach (HttpWebRequest httpRequest_1 in captured)
+			{
+				// verify that there are no PUT requests with attachments
+				if (httpRequest_1 is HttpPut)
+				{
+					HttpPut httpPut = (HttpPut)httpRequest_1;
+					HttpEntity entity = httpPut.GetEntity();
+					NUnit.Framework.Assert.IsFalse("PUT request with updated doc properties contains attachment"
+						, entity is MultipartEntity);
+				}
+			}
+		}
+
+		private sealed class _Responder_1593 : CustomizableMockHttpClient.Responder
+		{
+			public _Responder_1593(Document doc)
+			{
+				this.doc = doc;
+			}
+
+			/// <exception cref="System.IO.IOException"></exception>
+			public HttpResponse Execute(HttpRequestMessage httpUriRequest)
+			{
+				IDictionary<string, object> responseObject = new Dictionary<string, object>();
+				responseObject.Put("id", doc.GetId());
+				responseObject.Put("ok", true);
+				responseObject.Put("rev", doc.GetCurrentRevisionId());
+				return CustomizableMockHttpClient.GenerateHttpResponseObject(responseObject);
+			}
+
+			private readonly Document doc;
+		}
+
+		private sealed class _Responder_1630 : CustomizableMockHttpClient.Responder
+		{
+			public _Responder_1630(Document doc, SavedRevision savedRev)
+			{
+				this.doc = doc;
+				this.savedRev = savedRev;
+			}
+
+			/// <exception cref="System.IO.IOException"></exception>
+			public HttpResponse Execute(HttpRequestMessage httpUriRequest)
+			{
+				IDictionary<string, object> responseObject = new Dictionary<string, object>();
+				responseObject.Put("id", doc.GetId());
+				responseObject.Put("ok", true);
+				responseObject.Put("rev", savedRev.GetId());
+				return CustomizableMockHttpClient.GenerateHttpResponseObject(responseObject);
+			}
+
+			private readonly Document doc;
+
+			private readonly SavedRevision savedRev;
+		}
+
+		private sealed class _Responder_1642 : CustomizableMockHttpClient.Responder
+		{
+			public _Responder_1642(CustomizableMockHttpClient mockHttpClient, string json)
+			{
+				this.mockHttpClient = mockHttpClient;
+				this.json = json;
+			}
+
+			/// <exception cref="System.IO.IOException"></exception>
+			public HttpResponse Execute(HttpRequestMessage httpUriRequest)
+			{
+				return CustomizableMockHttpClient.GenerateHttpResponseObject(json);
+			}
+
+			private readonly CustomizableMockHttpClient mockHttpClient;
+
+			private readonly string json;
+		}
+
+		/// <summary>https://github.com/couchbase/couchbase-lite-java-core/issues/188</summary>
+		/// <exception cref="System.Exception"></exception>
+		public virtual void TestServerDoesNotSupportMultipart()
+		{
+			NUnit.Framework.Assert.AreEqual(0, database.GetLastSequenceNumber());
+			IDictionary<string, object> properties1 = new Dictionary<string, object>();
+			properties1.Put("dynamic", 1);
+			Document doc = CreateDocWithProperties(properties1);
+			SavedRevision doc1Rev = doc.GetCurrentRevision();
+			// Add attachment to document
+			UnsavedRevision doc2UnsavedRev = doc.CreateRevision();
+			InputStream attachmentStream = GetAsset("attachment.png");
+			doc2UnsavedRev.SetAttachment("attachment.png", "image/png", attachmentStream);
+			SavedRevision doc2Rev = doc2UnsavedRev.Save();
+			NUnit.Framework.Assert.IsNotNull(doc2Rev);
+			CustomizableMockHttpClient mockHttpClient = new CustomizableMockHttpClient();
+			mockHttpClient.AddResponderFakeLocalDocumentUpdate404();
+			Queue<CustomizableMockHttpClient.Responder> responders = new List<CustomizableMockHttpClient.Responder
+				>();
+			//first http://url/db/foo (foo==docid)
+			//Reject multipart PUT with response code 415
+			responders.AddItem(new _Responder_1691());
+			// second http://url/db/foo (foo==docid)
+			// second call should be plain json, return good response
+			responders.AddItem(new _Responder_1701(doc));
+			ResponderChain responderChain = new ResponderChain(responders);
+			mockHttpClient.SetResponder(doc.GetId(), responderChain);
+			// create replication and add observer
+			manager.SetDefaultHttpClientFactory(MockFactoryFactory(mockHttpClient));
+			Replication pusher = database.CreatePushReplication(GetReplicationURL());
+			RunReplication(pusher);
+			IList<HttpWebRequest> captured = mockHttpClient.GetCapturedRequests();
+			int entityIndex = 0;
+			foreach (HttpWebRequest httpRequest in captured)
+			{
+				// verify that there are no PUT requests with attachments
+				if (httpRequest is HttpPut)
+				{
+					HttpPut httpPut = (HttpPut)httpRequest;
+					HttpEntity entity = httpPut.GetEntity();
+					if (entityIndex++ == 0)
+					{
+						NUnit.Framework.Assert.IsTrue("PUT request with attachment is not multipart", entity
+							 is MultipartEntity);
+					}
+					else
+					{
+						NUnit.Framework.Assert.IsFalse("PUT request with attachment is multipart", entity
+							 is MultipartEntity);
+					}
+				}
+			}
+		}
+
+		private sealed class _Responder_1691 : CustomizableMockHttpClient.Responder
+		{
+			public _Responder_1691()
+			{
+			}
+
+			/// <exception cref="System.IO.IOException"></exception>
+			public HttpResponse Execute(HttpRequestMessage httpUriRequest)
+			{
+				string json = "{\"error\":\"Unsupported Media Type\",\"reason\":\"missing\"}";
+				return CustomizableMockHttpClient.GenerateHttpResponseObject(415, "Unsupported Media Type"
+					, json);
+			}
+		}
+
+		private sealed class _Responder_1701 : CustomizableMockHttpClient.Responder
+		{
+			public _Responder_1701(Document doc)
+			{
+				this.doc = doc;
+			}
+
+			/// <exception cref="System.IO.IOException"></exception>
+			public HttpResponse Execute(HttpRequestMessage httpUriRequest)
+			{
+				IDictionary<string, object> responseObject = new Dictionary<string, object>();
+				responseObject.Put("id", doc.GetId());
+				responseObject.Put("ok", true);
+				responseObject.Put("rev", doc.GetCurrentRevisionId());
+				return CustomizableMockHttpClient.GenerateHttpResponseObject(responseObject);
+			}
+
+			private readonly Document doc;
+		}
+
+		/// <summary>https://github.com/couchbase/couchbase-lite-java-core/issues/55</summary>
+		/// <exception cref="System.Exception"></exception>
+		public virtual void TestContinuousPushReplicationGoesIdle()
+		{
+			// make sure we are starting empty
+			NUnit.Framework.Assert.AreEqual(0, database.GetLastSequenceNumber());
+			// add docs
+			IDictionary<string, object> properties1 = new Dictionary<string, object>();
+			properties1.Put("doc1", "testContinuousPushReplicationGoesIdle");
+			Document doc1 = CreateDocWithProperties(properties1);
+			// create a mock http client that serves as a mocked out sync gateway
+			CustomizableMockHttpClient mockHttpClient = new CustomizableMockHttpClient();
+			// replication to do initial sync up - has to be continuous replication so the checkpoint id
+			// matches the next continuous replication we're gonna do later.
+			manager.SetDefaultHttpClientFactory(MockFactoryFactory(mockHttpClient));
+			Replication firstPusher = database.CreatePushReplication(GetReplicationURL());
+			firstPusher.SetContinuous(true);
+			string checkpointId = firstPusher.RemoteCheckpointDocID();
+			// save the checkpoint id for later usage
+			// intercept checkpoint PUT request and return a 201 response with expected json
+			mockHttpClient.SetResponder("_local", new _Responder_1762(checkpointId));
+			// start the continuous replication
+			CountDownLatch replicationIdleSignal = new CountDownLatch(1);
+			LiteTestCase.ReplicationIdleObserver replicationIdleObserver = new LiteTestCase.ReplicationIdleObserver
+				(replicationIdleSignal);
+			firstPusher.AddChangeListener(replicationIdleObserver);
+			firstPusher.Start();
+			// wait until we get an IDLE event
+			bool successful = replicationIdleSignal.Await(30, TimeUnit.Seconds);
+			NUnit.Framework.Assert.IsTrue(successful);
+			StopReplication(firstPusher);
+			// the last sequence should be "1" at this point.  we will use this later
+			string lastSequence = database.LastSequenceWithCheckpointId(checkpointId);
+			NUnit.Framework.Assert.AreEqual("1", lastSequence);
+			// start a second continuous replication
+			Replication secondPusher = database.CreatePushReplication(GetReplicationURL());
+			secondPusher.SetContinuous(true);
+			string secondPusherCheckpointId = secondPusher.RemoteCheckpointDocID();
+			NUnit.Framework.Assert.AreEqual(checkpointId, secondPusherCheckpointId);
+			// when this goes to fetch the checkpoint, return the last sequence from the previous replication
+			mockHttpClient.SetResponder("_local", new _Responder_1793(secondPusherCheckpointId
+				, lastSequence));
+			// start second replication
+			replicationIdleSignal = new CountDownLatch(1);
+			replicationIdleObserver = new LiteTestCase.ReplicationIdleObserver(replicationIdleSignal
+				);
+			secondPusher.AddChangeListener(replicationIdleObserver);
+			secondPusher.Start();
+			// wait until we get an IDLE event
+			successful = replicationIdleSignal.Await(30, TimeUnit.Seconds);
+			NUnit.Framework.Assert.IsTrue(successful);
+			StopReplication(secondPusher);
+		}
+
+		private sealed class _Responder_1762 : CustomizableMockHttpClient.Responder
+		{
+			public _Responder_1762(string checkpointId)
+			{
+				this.checkpointId = checkpointId;
+			}
+
+			/// <exception cref="System.IO.IOException"></exception>
+			public HttpResponse Execute(HttpRequestMessage httpUriRequest)
+			{
+				string id = string.Format("_local/%s", checkpointId);
+				string json = string.Format("{\"id\":\"%s\",\"ok\":true,\"rev\":\"0-2\"}", id);
+				return CustomizableMockHttpClient.GenerateHttpResponseObject(201, "OK", json);
+			}
+
+			private readonly string checkpointId;
+		}
+
+		private sealed class _Responder_1793 : CustomizableMockHttpClient.Responder
+		{
+			public _Responder_1793(string secondPusherCheckpointId, string lastSequence)
+			{
+				this.secondPusherCheckpointId = secondPusherCheckpointId;
+				this.lastSequence = lastSequence;
+			}
+
+			/// <exception cref="System.IO.IOException"></exception>
+			public HttpResponse Execute(HttpRequestMessage httpUriRequest)
+			{
+				string id = string.Format("_local/%s", secondPusherCheckpointId);
+				string json = string.Format("{\"id\":\"%s\",\"ok\":true,\"rev\":\"0-2\",\"lastSequence\":\"%s\"}"
+					, id, lastSequence);
+				return CustomizableMockHttpClient.GenerateHttpResponseObject(200, "OK", json);
+			}
+
+			private readonly string secondPusherCheckpointId;
+
+			private readonly string lastSequence;
+		}
+
+		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
+		private Document CreateDocWithProperties(IDictionary<string, object> properties1)
+		{
+			Document doc1 = database.CreateDocument();
+			UnsavedRevision revUnsaved = doc1.CreateRevision();
+			revUnsaved.SetUserProperties(properties1);
+			SavedRevision rev = revUnsaved.Save();
+			NUnit.Framework.Assert.IsNotNull(rev);
+			return doc1;
 		}
 
 		/// <exception cref="System.Exception"></exception>
@@ -1292,11 +1974,20 @@ namespace Couchbase.Lite.Replicator
 			Log.D(Tag, "replication done");
 		}
 
+		public virtual void TestServerIsSyncGatewayVersion()
+		{
+			Replication pusher = database.CreatePushReplication(GetReplicationURL());
+			NUnit.Framework.Assert.IsFalse(pusher.ServerIsSyncGatewayVersion("0.01"));
+			pusher.SetServerType("Couchbase Sync Gateway/0.93");
+			NUnit.Framework.Assert.IsTrue(pusher.ServerIsSyncGatewayVersion("0.92"));
+			NUnit.Framework.Assert.IsFalse(pusher.ServerIsSyncGatewayVersion("0.94"));
+		}
+
 		/// <exception cref="System.Exception"></exception>
 		private void PutReplicationOffline(Replication replication)
 		{
 			CountDownLatch wentOffline = new CountDownLatch(1);
-			Replication.ChangeListener offlineChangeListener = new _ChangeListener_1260(wentOffline
+			Replication.ChangeListener offlineChangeListener = new _ChangeListener_1894(wentOffline
 				);
 			replication.AddChangeListener(offlineChangeListener);
 			replication.GoOffline();
@@ -1305,9 +1996,9 @@ namespace Couchbase.Lite.Replicator
 			replication.RemoveChangeListener(offlineChangeListener);
 		}
 
-		private sealed class _ChangeListener_1260 : Replication.ChangeListener
+		private sealed class _ChangeListener_1894 : Replication.ChangeListener
 		{
-			public _ChangeListener_1260(CountDownLatch wentOffline)
+			public _ChangeListener_1894(CountDownLatch wentOffline)
 			{
 				this.wentOffline = wentOffline;
 			}
@@ -1327,7 +2018,7 @@ namespace Couchbase.Lite.Replicator
 		private void PutReplicationOnline(Replication replication)
 		{
 			CountDownLatch wentOnline = new CountDownLatch(1);
-			Replication.ChangeListener onlineChangeListener = new _ChangeListener_1281(wentOnline
+			Replication.ChangeListener onlineChangeListener = new _ChangeListener_1915(wentOnline
 				);
 			replication.AddChangeListener(onlineChangeListener);
 			replication.GoOnline();
@@ -1336,9 +2027,9 @@ namespace Couchbase.Lite.Replicator
 			replication.RemoveChangeListener(onlineChangeListener);
 		}
 
-		private sealed class _ChangeListener_1281 : Replication.ChangeListener
+		private sealed class _ChangeListener_1915 : Replication.ChangeListener
 		{
-			public _ChangeListener_1281(CountDownLatch wentOnline)
+			public _ChangeListener_1915(CountDownLatch wentOnline)
 			{
 				this.wentOnline = wentOnline;
 			}
@@ -1352,6 +2043,78 @@ namespace Couchbase.Lite.Replicator
 			}
 
 			private readonly CountDownLatch wentOnline;
+		}
+
+		/// <summary>https://github.com/couchbase/couchbase-lite-android/issues/243</summary>
+		/// <exception cref="System.Exception"></exception>
+		public virtual void TestDifferentCheckpointsFilteredReplication()
+		{
+			Replication pullerNoFilter = database.CreatePullReplication(GetReplicationURL());
+			string noFilterCheckpointDocId = pullerNoFilter.RemoteCheckpointDocID();
+			Replication pullerWithFilter1 = database.CreatePullReplication(GetReplicationURL(
+				));
+			pullerWithFilter1.SetFilter("foo/bar");
+			IDictionary<string, object> filterParams = new Dictionary<string, object>();
+			filterParams.Put("a", "aval");
+			filterParams.Put("b", "bval");
+			pullerWithFilter1.SetDocIds(Arrays.AsList("doc3", "doc1", "doc2"));
+			pullerWithFilter1.SetFilterParams(filterParams);
+			string withFilterCheckpointDocId = pullerWithFilter1.RemoteCheckpointDocID();
+			NUnit.Framework.Assert.IsFalse(withFilterCheckpointDocId.Equals(noFilterCheckpointDocId
+				));
+			Replication pullerWithFilter2 = database.CreatePullReplication(GetReplicationURL(
+				));
+			pullerWithFilter2.SetFilter("foo/bar");
+			filterParams = new Dictionary<string, object>();
+			filterParams.Put("b", "bval");
+			filterParams.Put("a", "aval");
+			pullerWithFilter2.SetDocIds(Arrays.AsList("doc2", "doc3", "doc1"));
+			pullerWithFilter2.SetFilterParams(filterParams);
+			string withFilterCheckpointDocId2 = pullerWithFilter2.RemoteCheckpointDocID();
+			NUnit.Framework.Assert.IsTrue(withFilterCheckpointDocId.Equals(withFilterCheckpointDocId2
+				));
+		}
+
+		/// <exception cref="System.Exception"></exception>
+		public virtual void TestSetReplicationCookie()
+		{
+			Uri replicationUrl = GetReplicationURL();
+			Replication puller = database.CreatePullReplication(replicationUrl);
+			string cookieName = "foo";
+			string cookieVal = "bar";
+			bool isSecure = false;
+			bool httpOnly = false;
+			// expiration date - 1 day from now
+			Calendar cal = Calendar.GetInstance();
+			cal.SetTime(new DateTime());
+			int numDaysToAdd = 1;
+			cal.Add(Calendar.Date, numDaysToAdd);
+			DateTime expirationDate = cal.GetTime();
+			// set the cookie
+			puller.SetCookie(cookieName, cookieVal, string.Empty, expirationDate, isSecure, httpOnly
+				);
+			// make sure it made it into cookie store and has expected params
+			CookieStore cookieStore = puller.GetClientFactory().GetCookieStore();
+			IList<Apache.Http.Cookie.Cookie> cookies = cookieStore.GetCookies();
+			NUnit.Framework.Assert.AreEqual(1, cookies.Count);
+			Apache.Http.Cookie.Cookie cookie = cookies[0];
+			NUnit.Framework.Assert.AreEqual(cookieName, cookie.GetName());
+			NUnit.Framework.Assert.AreEqual(cookieVal, cookie.GetValue());
+			NUnit.Framework.Assert.AreEqual(replicationUrl.GetHost(), cookie.GetDomain());
+			NUnit.Framework.Assert.AreEqual(replicationUrl.AbsolutePath, cookie.GetPath());
+			NUnit.Framework.Assert.AreEqual(expirationDate, cookie.GetExpiryDate());
+			NUnit.Framework.Assert.AreEqual(isSecure, cookie.IsSecure());
+			// add a second cookie
+			string cookieName2 = "foo2";
+			puller.SetCookie(cookieName2, cookieVal, string.Empty, expirationDate, isSecure, 
+				false);
+			NUnit.Framework.Assert.AreEqual(2, cookieStore.GetCookies().Count);
+			// delete cookie
+			puller.DeleteCookie(cookieName2);
+			// should only have the original cookie left
+			NUnit.Framework.Assert.AreEqual(1, cookieStore.GetCookies().Count);
+			NUnit.Framework.Assert.AreEqual(cookieName, cookieStore.GetCookies()[0].GetName()
+				);
 		}
 
 		/// <summary>

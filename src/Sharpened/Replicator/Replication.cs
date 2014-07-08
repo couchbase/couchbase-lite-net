@@ -1,10 +1,4 @@
-//
-// Replication.cs
-//
-// Author:
-//     Zachary Gramana  <zack@xamarin.com>
-//
-// Copyright (c) 2014 Xamarin Inc
+// 
 // Copyright (c) 2014 .NET Foundation
 //
 // Permission is hereby granted, free of charge, to any person obtaining
@@ -38,12 +32,13 @@
 // License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
 // either express or implied. See the License for the specific language governing permissions
 // and limitations under the License.
-//
-
-using System;
+//using System;
 using System.Collections.Generic;
+using System.IO;
+using Apache.Http;
 using Apache.Http.Client;
 using Apache.Http.Entity.Mime;
+using Apache.Http.Impl.Cookie;
 using Couchbase.Lite;
 using Couchbase.Lite.Auth;
 using Couchbase.Lite.Internal;
@@ -58,7 +53,7 @@ namespace Couchbase.Lite.Replicator
 	/// 	</summary>
 	/// <remarks>A Couchbase Lite pull or push Replication between a local and a remote Database.
 	/// 	</remarks>
-	public abstract class Replication
+	public abstract class Replication : NetworkReachabilityListener
 	{
 		private static int lastSessionID = 0;
 
@@ -94,15 +89,15 @@ namespace Couchbase.Lite.Replicator
 
 		protected internal int asyncTaskCount;
 
-		private int completedChangesCount;
+		protected internal AtomicInteger completedChangesCount;
 
-		private int changesCount;
+		private AtomicInteger changesCount;
 
 		protected internal bool online;
 
 		protected internal HttpClientFactory clientFactory;
 
-		private IList<Replication.ChangeListener> changeListeners;
+		private readonly IList<Replication.ChangeListener> changeListeners;
 
 		protected internal IList<string> documentIDs;
 
@@ -110,7 +105,7 @@ namespace Couchbase.Lite.Replicator
 
 		protected internal ExecutorService remoteRequestExecutor;
 
-		protected internal Authorizer authorizer;
+		protected internal Authenticator authenticator;
 
 		private Replication.ReplicationStatus status = Replication.ReplicationStatus.ReplicationStopped;
 
@@ -120,11 +115,24 @@ namespace Couchbase.Lite.Replicator
 
 		private ScheduledFuture retryIfReadyFuture;
 
+		private readonly IDictionary<RemoteRequest, Future> requests;
+
+		private string serverType;
+
+		private string remoteCheckpointDocID;
+
+		private CollectionUtils.Functor<IDictionary<string, object>, IDictionary<string, 
+			object>> propertiesTransformationBlock;
+
+		protected internal CollectionUtils.Functor<RevisionInternal, RevisionInternal> revisionBodyTransformationBlock;
+
 		protected internal const int ProcessorDelay = 500;
 
 		protected internal const int InboxCapacity = 100;
 
 		protected internal const int RetryDelay = 60;
+
+		protected internal const int ExecutorThreadPoolSize = 5;
 
 		/// <exclude></exclude>
 		public const string ByChannelFilterName = "sync_gateway/bychannel";
@@ -162,10 +170,13 @@ namespace Couchbase.Lite.Replicator
 			this.continuous = continuous;
 			this.workExecutor = workExecutor;
 			this.remote = remote;
-			this.remoteRequestExecutor = Executors.NewCachedThreadPool();
-			this.changeListeners = new AList<Replication.ChangeListener>();
+			this.remoteRequestExecutor = Executors.NewFixedThreadPool(ExecutorThreadPoolSize);
+			this.changeListeners = new CopyOnWriteArrayList<Replication.ChangeListener>();
 			this.online = true;
 			this.requestHeaders = new Dictionary<string, object>();
+			this.requests = new ConcurrentHashMap<RemoteRequest, Future>();
+			this.completedChangesCount = new AtomicInteger(0);
+			this.changesCount = new AtomicInteger(0);
 			if (remote.GetQuery() != null && !remote.GetQuery().IsEmpty())
 			{
 				URI uri = URI.Create(remote.ToExternalForm());
@@ -175,7 +186,7 @@ namespace Couchbase.Lite.Replicator
 				{
 					string email = PersonaAuthorizer.RegisterAssertion(personaAssertion);
 					PersonaAuthorizer authorizer = new PersonaAuthorizer(email);
-					SetAuthorizer(authorizer);
+					SetAuthenticator(authorizer);
 				}
 				string facebookAccessToken = URIUtils.GetQueryParameter(uri, FacebookAuthorizer.QueryParameter
 					);
@@ -196,7 +207,7 @@ namespace Couchbase.Lite.Replicator
 					}
 					FacebookAuthorizer.RegisterAccessToken(facebookAccessToken, email, remoteWithQueryRemoved
 						.ToExternalForm());
-					SetAuthorizer(authorizer);
+					SetAuthenticator(authorizer);
 				}
 				// we need to remove the query from the URL, since it will cause problems when
 				// communicating with sync gw / couchdb
@@ -211,31 +222,39 @@ namespace Couchbase.Lite.Replicator
 				}
 			}
 			batcher = new Batcher<RevisionInternal>(workExecutor, InboxCapacity, ProcessorDelay
-				, new _BatchProcessor_176(this));
+				, new _BatchProcessor_207(this));
 			SetClientFactory(clientFactory);
 		}
 
-		private sealed class _BatchProcessor_176 : BatchProcessor<RevisionInternal>
+		private sealed class _BatchProcessor_207 : BatchProcessor<RevisionInternal>
 		{
-			public _BatchProcessor_176(Replication _enclosing)
+			public _BatchProcessor_207(Replication _enclosing)
 			{
 				this._enclosing = _enclosing;
 			}
 
 			public void Process(IList<RevisionInternal> inbox)
 			{
-				Log.V(Database.Tag, "*** " + this.ToString() + ": BEGIN processInbox (" + inbox.Count
-					 + " sequences)");
-				this._enclosing.ProcessInbox(new RevisionList(inbox));
-				Log.V(Database.Tag, "*** " + this.ToString() + ": END processInbox (lastSequence="
-					 + this._enclosing.lastSequence + ")");
-				this._enclosing.UpdateActive();
+				try
+				{
+					Log.V(Log.TagSync, "*** %s: BEGIN processInbox (%d sequences)", this, inbox.Count
+						);
+					this._enclosing.ProcessInbox(new RevisionList(inbox));
+					Log.V(Log.TagSync, "*** %s: END processInbox (lastSequence=%s)", this, this._enclosing
+						.lastSequence);
+					Log.V(Log.TagSync, "%s: batcher calling updateActive()", this);
+					this._enclosing.UpdateActive();
+				}
+				catch (Exception e)
+				{
+					Log.E(Log.TagSync, "ERROR: processInbox failed: ", e);
+					throw new RuntimeException(e);
+				}
 			}
 
 			private readonly Replication _enclosing;
 		}
 
-		// this.clientFactory = clientFactory != null ? clientFactory : CouchbaseLiteHttpClientFactory.INSTANCE;
 		/// <summary>
 		/// Set the HTTP client factory if one was passed in, or use the default
 		/// set in the manager if available.
@@ -270,7 +289,8 @@ namespace Couchbase.Lite.Replicator
 				}
 				else
 				{
-					this.clientFactory = CouchbaseLiteHttpClientFactory.Instance;
+					PersistentCookieStore cookieStore = db.GetPersistentCookieStore();
+					this.clientFactory = new CouchbaseLiteHttpClientFactory(cookieStore);
 				}
 			}
 		}
@@ -401,7 +421,7 @@ namespace Couchbase.Lite.Replicator
 			{
 				if (!IsPull())
 				{
-					Log.W(Database.Tag, "filterChannels can only be set in pull replications");
+					Log.W(Log.TagSync, "filterChannels can only be set in pull replications");
 					return;
 				}
 				SetFilter(ByChannelFilterName);
@@ -474,7 +494,7 @@ namespace Couchbase.Lite.Replicator
 		[InterfaceAudience.Public]
 		public virtual int GetCompletedChangesCount()
 		{
-			return completedChangesCount;
+			return completedChangesCount.Get();
 		}
 
 		/// <summary>The total number of changes to be processed, if the task is active, else 0 (observable).
@@ -484,7 +504,7 @@ namespace Couchbase.Lite.Replicator
 		[InterfaceAudience.Public]
 		public virtual int GetChangesCount()
 		{
-			return changesCount;
+			return changesCount.Get();
 		}
 
 		/// <summary>True while the replication is running, False if it's stopped.</summary>
@@ -521,7 +541,7 @@ namespace Couchbase.Lite.Replicator
 			if (!db.IsOpen())
 			{
 				// Race condition: db closed before replication starts
-				Log.W(Database.Tag, "Not starting replication because db.isOpen() returned false."
+				Log.W(Log.TagSync, "Not starting replication because db.isOpen() returned false."
 					);
 				return;
 			}
@@ -531,11 +551,61 @@ namespace Couchbase.Lite.Replicator
 			}
 			db.AddReplication(this);
 			db.AddActiveReplication(this);
+			CollectionUtils.Functor<IDictionary<string, object>, IDictionary<string, object>>
+				 xformer = propertiesTransformationBlock;
+			if (xformer != null)
+			{
+				revisionBodyTransformationBlock = new _Functor_483(this, xformer);
+			}
 			this.sessionID = string.Format("repl%03d", ++lastSessionID);
-			Log.V(Database.Tag, ToString() + " STARTING ...");
+			Log.V(Log.TagSync, "%s: STARTING ...", this);
 			running = true;
 			lastSequence = null;
 			CheckSession();
+			db.GetManager().GetContext().GetNetworkReachabilityManager().AddNetworkReachabilityListener
+				(this);
+		}
+
+		private sealed class _Functor_483 : CollectionUtils.Functor<RevisionInternal, RevisionInternal
+			>
+		{
+			public _Functor_483(Replication _enclosing, CollectionUtils.Functor<IDictionary<string
+				, object>, IDictionary<string, object>> xformer)
+			{
+				this._enclosing = _enclosing;
+				this.xformer = xformer;
+			}
+
+			public RevisionInternal Invoke(RevisionInternal rev)
+			{
+				IDictionary<string, object> properties = rev.GetProperties();
+				IDictionary<string, object> xformedProperties = xformer.Invoke(properties);
+				if (xformedProperties == null)
+				{
+					rev = null;
+				}
+				else
+				{
+					if (xformedProperties != properties)
+					{
+						System.Diagnostics.Debug.Assert((xformedProperties != null));
+						System.Diagnostics.Debug.Assert((xformedProperties.Get("_id").Equals(properties.Get
+							("_id"))));
+						System.Diagnostics.Debug.Assert((xformedProperties.Get("_rev").Equals(properties.
+							Get("_rev"))));
+						RevisionInternal nuRev = new RevisionInternal(rev.GetProperties(), this._enclosing
+							.db);
+						nuRev.SetProperties(xformedProperties);
+						rev = nuRev;
+					}
+				}
+				return rev;
+			}
+
+			private readonly Replication _enclosing;
+
+			private readonly CollectionUtils.Functor<IDictionary<string, object>, IDictionary
+				<string, object>> xformer;
 		}
 
 		/// <summary>Stops replication, asynchronously.</summary>
@@ -547,16 +617,38 @@ namespace Couchbase.Lite.Replicator
 			{
 				return;
 			}
-			Log.V(Database.Tag, ToString() + " STOPPING...");
-			batcher.Clear();
-			// no sense processing any pending changes
+			Log.V(Log.TagSync, "%s: STOPPING...", this);
+			if (batcher != null)
+			{
+				batcher.Clear();
+			}
+			else
+			{
+				// no sense processing any pending changes
+				Log.V(Log.TagSync, "%s: stop() called, not calling batcher.clear() since it's null"
+					, this);
+			}
 			continuous = false;
 			StopRemoteRequests();
 			CancelPendingRetryIfReady();
-			db.ForgetReplication(this);
-			if (running && asyncTaskCount == 0)
+			if (db != null)
 			{
+				db.ForgetReplication(this);
+			}
+			else
+			{
+				Log.V(Log.TagSync, "%s: stop() called, not calling db.forgetReplication() since it's null"
+					, this);
+			}
+			if (running && asyncTaskCount <= 0)
+			{
+				Log.V(Log.TagSync, "%s: calling stopped()", this);
 				Stopped();
+			}
+			else
+			{
+				Log.V(Log.TagSync, "%s: not calling stopped().  running: %s asyncTaskCount: %d", 
+					this, running, asyncTaskCount);
 			}
 		}
 
@@ -595,6 +687,72 @@ namespace Couchbase.Lite.Replicator
 			string name = GetType().Name + "@" + Sharpen.Extensions.ToHexString(GetHashCode()
 				) + "[" + maskedRemoteWithoutCredentials + "]";
 			return name;
+		}
+
+		/// <summary>Sets an HTTP cookie for the Replication.</summary>
+		/// <remarks>Sets an HTTP cookie for the Replication.</remarks>
+		/// <param name="name">The name of the cookie.</param>
+		/// <param name="value">The value of the cookie.</param>
+		/// <param name="path">The path attribute of the cookie.  If null or empty, will use remote.getPath()
+		/// 	</param>
+		/// <param name="maxAge">The maxAge, in milliseconds, that this cookie should be valid for.
+		/// 	</param>
+		/// <param name="secure">Whether the cookie should only be sent using a secure protocol (e.g. HTTPS).
+		/// 	</param>
+		/// <param name="httpOnly">(ignored) Whether the cookie should only be used when transmitting HTTP, or HTTPS, requests thus restricting access from other, non-HTTP APIs.
+		/// 	</param>
+		[InterfaceAudience.Public]
+		public virtual void SetCookie(string name, string value, string path, long maxAge
+			, bool secure, bool httpOnly)
+		{
+			DateTime now = new DateTime();
+			DateTime expirationDate = Sharpen.Extensions.CreateDate(now.GetTime() + maxAge);
+			SetCookie(name, value, path, expirationDate, secure, httpOnly);
+		}
+
+		/// <summary>Sets an HTTP cookie for the Replication.</summary>
+		/// <remarks>Sets an HTTP cookie for the Replication.</remarks>
+		/// <param name="name">The name of the cookie.</param>
+		/// <param name="value">The value of the cookie.</param>
+		/// <param name="path">The path attribute of the cookie.  If null or empty, will use remote.getPath()
+		/// 	</param>
+		/// <param name="expirationDate">The expiration date of the cookie.</param>
+		/// <param name="secure">Whether the cookie should only be sent using a secure protocol (e.g. HTTPS).
+		/// 	</param>
+		/// <param name="httpOnly">(ignored) Whether the cookie should only be used when transmitting HTTP, or HTTPS, requests thus restricting access from other, non-HTTP APIs.
+		/// 	</param>
+		[InterfaceAudience.Public]
+		public virtual void SetCookie(string name, string value, string path, DateTime expirationDate
+			, bool secure, bool httpOnly)
+		{
+			if (remote == null)
+			{
+				throw new InvalidOperationException("Cannot setCookie since remote == null");
+			}
+			BasicClientCookie2 cookie = new BasicClientCookie2(name, value);
+			cookie.SetDomain(remote.GetHost());
+			if (path != null && path.Length > 0)
+			{
+				cookie.SetPath(path);
+			}
+			else
+			{
+				cookie.SetPath(remote.AbsolutePath);
+			}
+			cookie.SetExpiryDate(expirationDate);
+			cookie.SetSecure(secure);
+			IList<Apache.Http.Cookie.Cookie> cookies = Arrays.AsList((Apache.Http.Cookie.Cookie
+				)cookie);
+			this.clientFactory.AddCookies(cookies);
+		}
+
+		/// <summary>Deletes an HTTP cookie for the Replication.</summary>
+		/// <remarks>Deletes an HTTP cookie for the Replication.</remarks>
+		/// <param name="name">The name of the cookie.</param>
+		[InterfaceAudience.Public]
+		public virtual void DeleteCookie(string name)
+		{
+			this.clientFactory.DeleteCookie(name);
 		}
 
 		/// <summary>
@@ -638,18 +796,18 @@ namespace Couchbase.Lite.Replicator
 			changeListeners.Remove(changeListener);
 		}
 
-		/// <exclude></exclude>
-		[InterfaceAudience.Private]
-		public virtual void SetAuthorizer(Authorizer authorizer)
+		/// <summary>Set the Authenticator used for authenticating with the Sync Gateway</summary>
+		[InterfaceAudience.Public]
+		public virtual void SetAuthenticator(Authenticator authenticator)
 		{
-			this.authorizer = authorizer;
+			this.authenticator = authenticator;
 		}
 
-		/// <exclude></exclude>
-		[InterfaceAudience.Private]
-		public virtual Authorizer GetAuthorizer()
+		/// <summary>Get the Authenticator used for authenticating with the Sync Gateway</summary>
+		[InterfaceAudience.Public]
+		public virtual Authenticator GetAuthenticator()
 		{
-			return authorizer;
+			return authenticator;
 		}
 
 		/// <exclude></exclude>
@@ -673,7 +831,7 @@ namespace Couchbase.Lite.Replicator
 		/// <exclude></exclude>
 		private void ClearDbRef()
 		{
-			if (savingCheckpoint && lastSequence != null)
+			if (savingCheckpoint && lastSequence != null && db != null)
 			{
 				db.SetLastSequence(lastSequence, RemoteCheckpointDocID(), !IsPull());
 				db = null;
@@ -693,20 +851,20 @@ namespace Couchbase.Lite.Replicator
 		{
 			if (lastSequenceIn != null && !lastSequenceIn.Equals(lastSequence))
 			{
-				Log.V(Database.Tag, ToString() + ": Setting lastSequence to " + lastSequenceIn + 
-					" from( " + lastSequence + ")");
+				Log.V(Log.TagSync, "%s: Setting lastSequence to %s from(%s)", this, lastSequenceIn
+					, lastSequence);
 				lastSequence = lastSequenceIn;
 				if (!lastSequenceChanged)
 				{
 					lastSequenceChanged = true;
-					workExecutor.Schedule(new _Runnable_596(this), 2 * 1000, TimeUnit.Milliseconds);
+					workExecutor.Schedule(new _Runnable_729(this), 2 * 1000, TimeUnit.Milliseconds);
 				}
 			}
 		}
 
-		private sealed class _Runnable_596 : Runnable
+		private sealed class _Runnable_729 : Runnable
 		{
-			public _Runnable_596(Replication _enclosing)
+			public _Runnable_729(Replication _enclosing)
 			{
 				this._enclosing = _enclosing;
 			}
@@ -720,16 +878,24 @@ namespace Couchbase.Lite.Replicator
 		}
 
 		[InterfaceAudience.Private]
-		internal virtual void SetCompletedChangesCount(int processed)
+		internal virtual void AddToCompletedChangesCount(int delta)
 		{
-			this.completedChangesCount = processed;
+			int previousVal = this.completedChangesCount.GetAndAdd(delta);
+			Log.V(Log.TagSync, "%s: Incrementing completedChangesCount count from %s by adding %d -> %d"
+				, this, previousVal, delta, completedChangesCount.Get());
 			NotifyChangeListeners();
 		}
 
 		[InterfaceAudience.Private]
-		internal virtual void SetChangesCount(int total)
+		internal virtual void AddToChangesCount(int delta)
 		{
-			this.changesCount = total;
+			int previousVal = this.changesCount.GetAndAdd(delta);
+			if (changesCount.Get() < 0)
+			{
+				Log.W(Log.TagSync, "Changes count is negative, this could indicate an error");
+			}
+			Log.V(Log.TagSync, "%s: Incrementing changesCount count from %s by adding %d -> %d"
+				, this, previousVal, delta, changesCount.Get());
 			NotifyChangeListeners();
 		}
 
@@ -743,7 +909,9 @@ namespace Couchbase.Lite.Replicator
 		[InterfaceAudience.Private]
 		protected internal virtual void CheckSession()
 		{
-			if (GetAuthorizer() != null && GetAuthorizer().UsesCookieBasedLogin())
+			// REVIEW : This is not in line with the iOS implementation
+			if (GetAuthenticator() != null && ((AuthenticatorImpl)GetAuthenticator()).UsesCookieBasedLogin
+				())
 			{
 				CheckSessionAtPath("/_session");
 			}
@@ -756,16 +924,16 @@ namespace Couchbase.Lite.Replicator
 		[InterfaceAudience.Private]
 		protected internal virtual void CheckSessionAtPath(string sessionPath)
 		{
-			Log.D(Database.Tag, this + "|" + Sharpen.Thread.CurrentThread() + ": checkSessionAtPath() calling asyncTaskStarted()"
-				);
+			Log.V(Log.TagSync, "%s | %s: checkSessionAtPath() calling asyncTaskStarted()", this
+				, Sharpen.Thread.CurrentThread());
 			AsyncTaskStarted();
-			SendAsyncRequest("GET", sessionPath, null, new _RemoteRequestCompletionBlock_643(
+			SendAsyncRequest("GET", sessionPath, null, new _RemoteRequestCompletionBlock_782(
 				this, sessionPath));
 		}
 
-		private sealed class _RemoteRequestCompletionBlock_643 : RemoteRequestCompletionBlock
+		private sealed class _RemoteRequestCompletionBlock_782 : RemoteRequestCompletionBlock
 		{
-			public _RemoteRequestCompletionBlock_643(Replication _enclosing, string sessionPath
+			public _RemoteRequestCompletionBlock_782(Replication _enclosing, string sessionPath
 				)
 			{
 				this._enclosing = _enclosing;
@@ -785,7 +953,7 @@ namespace Couchbase.Lite.Replicator
 							this._enclosing.CheckSessionAtPath("_session");
 							return;
 						}
-						Log.E(Database.Tag, this + ": Session check failed", error);
+						Log.E(Log.TagSync, this + ": Session check failed", error);
 						this._enclosing.SetError(error);
 					}
 					else
@@ -796,21 +964,20 @@ namespace Couchbase.Lite.Replicator
 						string username = (string)userCtx.Get("name");
 						if (username != null && username.Length > 0)
 						{
-							Log.D(Database.Tag, string.Format("%s Active session, logged in as %s", this, username
-								));
+							Log.D(Log.TagSync, "%s Active session, logged in as %s", this, username);
 							this._enclosing.FetchRemoteCheckpointDoc();
 						}
 						else
 						{
-							Log.D(Database.Tag, string.Format("%s No active session, going to login", this));
+							Log.D(Log.TagSync, "%s No active session, going to login", this);
 							this._enclosing.Login();
 						}
 					}
 				}
 				finally
 				{
-					Log.D(Database.Tag, this + "|" + Sharpen.Thread.CurrentThread() + ": checkSessionAtPath() calling asyncTaskFinished()"
-						);
+					Log.V(Log.TagSync, "%s | %s: checkSessionAtPath() calling asyncTaskFinished()", this
+						, Sharpen.Thread.CurrentThread());
 					this._enclosing.AsyncTaskFinished(1);
 				}
 			}
@@ -827,13 +994,16 @@ namespace Couchbase.Lite.Replicator
 		[InterfaceAudience.Private]
 		protected internal virtual void Stopped()
 		{
-			Log.V(Database.Tag, this + ": STOPPED");
+			Log.V(Log.TagSync, "%s: STOPPED", this);
 			running = false;
-			this.completedChangesCount = this.changesCount = 0;
 			NotifyChangeListeners();
 			SaveLastSequence();
-			Log.V(Database.Tag, this + " set batcher to null");
 			batcher = null;
+			if (db != null)
+			{
+				db.GetManager().GetContext().GetNetworkReachabilityManager().RemoveNetworkReachabilityListener
+					(this);
+			}
 			ClearDbRef();
 		}
 
@@ -852,28 +1022,29 @@ namespace Couchbase.Lite.Replicator
 		[InterfaceAudience.Private]
 		protected internal virtual void Login()
 		{
-			IDictionary<string, string> loginParameters = GetAuthorizer().LoginParametersForSite
-				(remote);
+			IDictionary<string, string> loginParameters = ((AuthenticatorImpl)GetAuthenticator
+				()).LoginParametersForSite(remote);
 			if (loginParameters == null)
 			{
-				Log.D(Database.Tag, string.Format("%s: %s has no login parameters, so skipping login"
-					, this, GetAuthorizer()));
+				Log.D(Log.TagSync, "%s: %s has no login parameters, so skipping login", this, GetAuthenticator
+					());
 				FetchRemoteCheckpointDoc();
 				return;
 			}
-			string loginPath = GetAuthorizer().LoginPathForSite(remote);
-			Log.D(Database.Tag, string.Format("%s: Doing login with %s at %s", this, GetAuthorizer
-				().GetType(), loginPath));
-			Log.D(Database.Tag, this + "|" + Sharpen.Thread.CurrentThread() + ": login() calling asyncTaskStarted()"
+			string loginPath = ((AuthenticatorImpl)GetAuthenticator()).LoginPathForSite(remote
 				);
+			Log.D(Log.TagSync, "%s: Doing login with %s at %s", this, GetAuthenticator().GetType
+				(), loginPath);
+			Log.V(Log.TagSync, "%s | %s: login() calling asyncTaskStarted()", this, Sharpen.Thread
+				.CurrentThread());
 			AsyncTaskStarted();
-			SendAsyncRequest("POST", loginPath, loginParameters, new _RemoteRequestCompletionBlock_731
+			SendAsyncRequest("POST", loginPath, loginParameters, new _RemoteRequestCompletionBlock_874
 				(this, loginPath));
 		}
 
-		private sealed class _RemoteRequestCompletionBlock_731 : RemoteRequestCompletionBlock
+		private sealed class _RemoteRequestCompletionBlock_874 : RemoteRequestCompletionBlock
 		{
-			public _RemoteRequestCompletionBlock_731(Replication _enclosing, string loginPath
+			public _RemoteRequestCompletionBlock_874(Replication _enclosing, string loginPath
 				)
 			{
 				this._enclosing = _enclosing;
@@ -886,20 +1057,19 @@ namespace Couchbase.Lite.Replicator
 				{
 					if (e != null)
 					{
-						Log.D(Database.Tag, string.Format("%s: Login failed for path: %s", this, loginPath
-							));
+						Log.D(Log.TagSync, "%s: Login failed for path: %s", this, loginPath);
 						this._enclosing.SetError(e);
 					}
 					else
 					{
-						Log.D(Database.Tag, string.Format("%s: Successfully logged in!", this));
+						Log.V(Log.TagSync, "%s: Successfully logged in!", this);
 						this._enclosing.FetchRemoteCheckpointDoc();
 					}
 				}
 				finally
 				{
-					Log.D(Database.Tag, this + "|" + Sharpen.Thread.CurrentThread() + ": login() calling asyncTaskFinished()"
-						);
+					Log.V(Log.TagSync, "%s | %s: login() calling asyncTaskFinished()", this, Sharpen.Thread
+						.CurrentThread());
 					this._enclosing.AsyncTaskFinished(1);
 				}
 			}
@@ -915,14 +1085,13 @@ namespace Couchbase.Lite.Replicator
 		{
 			lock (this)
 			{
-				Log.D(Database.Tag, this + "|" + Sharpen.Thread.CurrentThread().ToString() + ": asyncTaskStarted() called, asyncTaskCount: "
-					 + asyncTaskCount);
+				Log.V(Log.TagSync, "%s: asyncTaskStarted %d -> %d", this, this.asyncTaskCount, this
+					.asyncTaskCount + 1);
 				if (asyncTaskCount++ == 0)
 				{
+					Log.V(Log.TagSync, "%s: asyncTaskStarted() calling updateActive()", this);
 					UpdateActive();
 				}
-				Log.D(Database.Tag, "asyncTaskStarted() updated asyncTaskCount to " + asyncTaskCount
-					);
 			}
 		}
 
@@ -932,16 +1101,15 @@ namespace Couchbase.Lite.Replicator
 		{
 			lock (this)
 			{
-				Log.D(Database.Tag, this + "|" + Sharpen.Thread.CurrentThread().ToString() + ": asyncTaskFinished() called, asyncTaskCount: "
-					 + asyncTaskCount + " numTasks: " + numTasks);
+				Log.V(Log.TagSync, "%s: asyncTaskFinished %d -> %d", this, this.asyncTaskCount, this
+					.asyncTaskCount - numTasks);
 				this.asyncTaskCount -= numTasks;
 				System.Diagnostics.Debug.Assert((asyncTaskCount >= 0));
 				if (asyncTaskCount == 0)
 				{
+					Log.V(Log.TagSync, "%s: asyncTaskFinished() calling updateActive()", this);
 					UpdateActive();
 				}
-				Log.D(Database.Tag, "asyncTaskFinished() updated asyncTaskCount to: " + asyncTaskCount
-					);
 			}
 		}
 
@@ -958,39 +1126,48 @@ namespace Couchbase.Lite.Replicator
 				}
 				else
 				{
-					Log.W(Database.Tag, this + ": batcher object is null.  dumpStack()");
-					Sharpen.Thread.DumpStack();
+					Log.W(Log.TagSync, "%s: batcher object is null.", this);
 				}
 				bool newActive = batcherCount > 0 || asyncTaskCount > 0;
+				Log.D(Log.TagSync, "%s: updateActive() called.  active: %s, newActive: %s batcherCount: %d, asyncTaskCount: %d"
+					, this, active, newActive, batcherCount, asyncTaskCount);
 				if (active != newActive)
 				{
-					Log.D(Database.Tag, this + " Progress: set active = " + newActive);
+					Log.D(Log.TagSync, "%s: Progress: set active = %s asyncTaskCount: %d batcherCount: %d"
+						, this, newActive, asyncTaskCount, batcherCount);
 					active = newActive;
 					NotifyChangeListeners();
 					if (!active)
 					{
 						if (!continuous)
 						{
-							Log.D(Database.Tag, this + " since !continuous, calling stopped()");
+							Log.D(Log.TagSync, "%s since !continuous, calling stopped()", this);
 							Stopped();
 						}
 						else
 						{
 							if (error != null)
 							{
-								string msg = string.Format("%s: Failed to xfer %d revisions, will retry in %d sec"
-									, this, revisionsFailed, RetryDelay);
-								Log.D(Database.Tag, msg);
+								Log.D(Log.TagSync, "%s: Failed to xfer %d revisions, will retry in %d sec", this, 
+									revisionsFailed, RetryDelay);
 								CancelPendingRetryIfReady();
 								ScheduleRetryIfReady();
 							}
 						}
 					}
 				}
+				else
+				{
+					Log.D(Log.TagSync, "%s: active == newActive.", this);
+				}
 			}
 			catch (Exception e)
 			{
-				Log.E(Database.Tag, "Exception in updateActive()", e);
+				Log.E(Log.TagSync, "Exception in updateActive()", e);
+			}
+			finally
+			{
+				Log.D(Log.TagSync, "%s: exit updateActive()", this);
 			}
 		}
 
@@ -998,7 +1175,9 @@ namespace Couchbase.Lite.Replicator
 		[InterfaceAudience.Private]
 		public virtual void AddToInbox(RevisionInternal rev)
 		{
+			Log.V(Log.TagSync, "%s: addToInbox() called, rev: %s", this, rev);
 			batcher.QueueObject(rev);
+			Log.V(Log.TagSync, "%s: addToInbox() calling updateActive()", this);
 			UpdateActive();
 		}
 
@@ -1020,7 +1199,7 @@ namespace Couchbase.Lite.Replicator
 			}
 			catch (UriFormatException e)
 			{
-				Log.E(Database.Tag, "Malformed URL for async request", e);
+				Log.E(Log.TagSync, "Malformed URL for async request", e);
 			}
 		}
 
@@ -1046,13 +1225,62 @@ namespace Couchbase.Lite.Replicator
 			 onCompletion)
 		{
 			RemoteRequest request = new RemoteRequest(workExecutor, clientFactory, method, url
-				, body, GetHeaders(), onCompletion);
+				, body, GetLocalDatabase(), GetHeaders(), onCompletion);
+			request.SetAuthenticator(GetAuthenticator());
+			request.SetOnPreCompletion(new _RemoteRequestCompletionBlock_1023(this));
+			request.SetOnPostCompletion(new _RemoteRequestCompletionBlock_1038(this, request)
+				);
 			if (remoteRequestExecutor.IsTerminated())
 			{
 				string msg = "sendAsyncRequest called, but remoteRequestExecutor has been terminated";
 				throw new InvalidOperationException(msg);
 			}
-			remoteRequestExecutor.Execute(request);
+			Future future = remoteRequestExecutor.Submit(request);
+			requests.Put(request, future);
+		}
+
+		private sealed class _RemoteRequestCompletionBlock_1023 : RemoteRequestCompletionBlock
+		{
+			public _RemoteRequestCompletionBlock_1023(Replication _enclosing)
+			{
+				this._enclosing = _enclosing;
+			}
+
+			public void OnCompletion(object result, Exception e)
+			{
+				if (this._enclosing.serverType == null && result is HttpResponse)
+				{
+					HttpResponse response = (HttpResponse)result;
+					Header serverHeader = response.GetFirstHeader("Server");
+					if (serverHeader != null)
+					{
+						string serverVersion = serverHeader.GetValue();
+						Log.V(Log.TagSync, "serverVersion: %s", serverVersion);
+						this._enclosing.serverType = serverVersion;
+					}
+				}
+			}
+
+			private readonly Replication _enclosing;
+		}
+
+		private sealed class _RemoteRequestCompletionBlock_1038 : RemoteRequestCompletionBlock
+		{
+			public _RemoteRequestCompletionBlock_1038(Replication _enclosing, RemoteRequest request
+				)
+			{
+				this._enclosing = _enclosing;
+				this.request = request;
+			}
+
+			public void OnCompletion(object result, Exception e)
+			{
+				Sharpen.Collections.Remove(this._enclosing.requests, request);
+			}
+
+			private readonly Replication _enclosing;
+
+			private readonly RemoteRequest request;
 		}
 
 		/// <exclude></exclude>
@@ -1066,11 +1294,12 @@ namespace Couchbase.Lite.Replicator
 				Uri url = new Uri(urlStr);
 				RemoteMultipartDownloaderRequest request = new RemoteMultipartDownloaderRequest(workExecutor
 					, clientFactory, method, url, body, db, GetHeaders(), onCompletion);
+				request.SetAuthenticator(GetAuthenticator());
 				remoteRequestExecutor.Execute(request);
 			}
 			catch (UriFormatException e)
 			{
-				Log.E(Database.Tag, "Malformed URL for async request", e);
+				Log.E(Log.TagSync, "Malformed URL for async request", e);
 			}
 		}
 
@@ -1090,7 +1319,8 @@ namespace Couchbase.Lite.Replicator
 				throw new ArgumentException(e);
 			}
 			RemoteMultipartRequest request = new RemoteMultipartRequest(workExecutor, clientFactory
-				, method, url, multiPartEntity, GetHeaders(), onCompletion);
+				, method, url, multiPartEntity, GetLocalDatabase(), GetHeaders(), onCompletion);
+			request.SetAuthenticator(GetAuthenticator());
 			remoteRequestExecutor.Execute(request);
 		}
 
@@ -1112,13 +1342,61 @@ namespace Couchbase.Lite.Replicator
 		[InterfaceAudience.Private]
 		public virtual string RemoteCheckpointDocID()
 		{
-			if (db == null)
+			if (remoteCheckpointDocID != null)
 			{
-				return null;
+				return remoteCheckpointDocID;
 			}
-			string input = db.PrivateUUID() + "\n" + remote.ToExternalForm() + "\n" + (!IsPull
-				() ? "1" : "0");
-			return Misc.TDHexSHA1Digest(Sharpen.Runtime.GetBytesForString(input));
+			else
+			{
+				// TODO: Needs to be consistent with -hasSameSettingsAs: --
+				// TODO: If a.remoteCheckpointID == b.remoteCheckpointID then [a hasSameSettingsAs: b]
+				if (db == null)
+				{
+					return null;
+				}
+				// canonicalization: make sure it produces the same checkpoint id regardless of
+				// ordering of filterparams / docids
+				IDictionary<string, object> filterParamsCanonical = null;
+				if (GetFilterParams() != null)
+				{
+					filterParamsCanonical = new SortedDictionary<string, object>(GetFilterParams());
+				}
+				IList<string> docIdsSorted = null;
+				if (GetDocIds() != null)
+				{
+					docIdsSorted = new AList<string>(GetDocIds());
+					docIdsSorted.Sort();
+				}
+				// use a treemap rather than a dictionary for purposes of canonicalization
+				IDictionary<string, object> spec = new SortedDictionary<string, object>();
+				spec.Put("localUUID", db.PrivateUUID());
+				spec.Put("remoteURL", remote.ToExternalForm());
+				spec.Put("push", !IsPull());
+				spec.Put("continuous", IsContinuous());
+				if (GetFilter() != null)
+				{
+					spec.Put("filter", GetFilter());
+				}
+				if (filterParamsCanonical != null)
+				{
+					spec.Put("filterParams", filterParamsCanonical);
+				}
+				if (docIdsSorted != null)
+				{
+					spec.Put("docids", docIdsSorted);
+				}
+				byte[] inputBytes = null;
+				try
+				{
+					inputBytes = Manager.GetObjectMapper().WriteValueAsBytes(spec);
+				}
+				catch (IOException e)
+				{
+					throw new RuntimeException(e);
+				}
+				remoteCheckpointDocID = Misc.TDHexSHA1Digest(inputBytes);
+				return remoteCheckpointDocID;
+			}
 		}
 
 		[InterfaceAudience.Private]
@@ -1138,16 +1416,16 @@ namespace Couchbase.Lite.Replicator
 			lastSequenceChanged = false;
 			string checkpointId = RemoteCheckpointDocID();
 			string localLastSequence = db.LastSequenceWithCheckpointId(checkpointId);
-			Log.D(Database.Tag, this + "|" + Sharpen.Thread.CurrentThread() + ": fetchRemoteCheckpointDoc() calling asyncTaskStarted()"
-				);
+			Log.V(Log.TagSync, "%s | %s: fetchRemoteCheckpointDoc() calling asyncTaskStarted()"
+				, this, Sharpen.Thread.CurrentThread());
 			AsyncTaskStarted();
-			SendAsyncRequest("GET", "/_local/" + checkpointId, null, new _RemoteRequestCompletionBlock_983
+			SendAsyncRequest("GET", "/_local/" + checkpointId, null, new _RemoteRequestCompletionBlock_1202
 				(this, localLastSequence));
 		}
 
-		private sealed class _RemoteRequestCompletionBlock_983 : RemoteRequestCompletionBlock
+		private sealed class _RemoteRequestCompletionBlock_1202 : RemoteRequestCompletionBlock
 		{
-			public _RemoteRequestCompletionBlock_983(Replication _enclosing, string localLastSequence
+			public _RemoteRequestCompletionBlock_1202(Replication _enclosing, string localLastSequence
 				)
 			{
 				this._enclosing = _enclosing;
@@ -1160,15 +1438,15 @@ namespace Couchbase.Lite.Replicator
 				{
 					if (e != null && !this._enclosing.Is404(e))
 					{
-						Log.D(Database.Tag, this + " error getting remote checkpoint: " + e);
+						Log.W(Log.TagSync, "%s: error getting remote checkpoint", e, this);
 						this._enclosing.SetError(e);
 					}
 					else
 					{
 						if (e != null && this._enclosing.Is404(e))
 						{
-							Log.D(Database.Tag, this + " 404 error getting remote checkpoint " + this._enclosing
-								.RemoteCheckpointDocID() + ", calling maybeCreateRemoteDB");
+							Log.D(Log.TagSync, "%s: 404 error getting remote checkpoint %s, calling maybeCreateRemoteDB"
+								, this, this._enclosing.RemoteCheckpointDocID());
 							this._enclosing.MaybeCreateRemoteDB();
 						}
 						IDictionary<string, object> response = (IDictionary<string, object>)result;
@@ -1181,21 +1459,21 @@ namespace Couchbase.Lite.Replicator
 						if (remoteLastSequence != null && remoteLastSequence.Equals(localLastSequence))
 						{
 							this._enclosing.lastSequence = localLastSequence;
-							Log.V(Database.Tag, this + ": Replicating from lastSequence=" + this._enclosing.lastSequence
-								);
+							Log.D(Log.TagSync, "%s: Replicating from lastSequence=%s", this, this._enclosing.
+								lastSequence);
 						}
 						else
 						{
-							Log.V(Database.Tag, this + ": lastSequence mismatch: I had " + localLastSequence 
-								+ ", remote had " + remoteLastSequence);
+							Log.D(Log.TagSync, "%s: lastSequence mismatch: I had: %s, remote had: %s", this, 
+								localLastSequence, remoteLastSequence);
 						}
 						this._enclosing.BeginReplicating();
 					}
 				}
 				finally
 				{
-					Log.D(Database.Tag, this + "|" + Sharpen.Thread.CurrentThread() + ": fetchRemoteCheckpointDoc() calling asyncTaskFinished()"
-						);
+					Log.V(Log.TagSync, "%s | %s: fetchRemoteCheckpointDoc() calling asyncTaskFinished()"
+						, this, Sharpen.Thread.CurrentThread());
 					this._enclosing.AsyncTaskFinished(1);
 				}
 			}
@@ -1222,7 +1500,7 @@ namespace Couchbase.Lite.Replicator
 			}
 			lastSequenceChanged = false;
 			overdueForSave = false;
-			Log.D(Database.Tag, this + " saveLastSequence() called. lastSequence: " + lastSequence
+			Log.D(Log.TagSync, "%s: saveLastSequence() called. lastSequence: %s", this, lastSequence
 				);
 			IDictionary<string, object> body = new Dictionary<string, object>();
 			if (remoteCheckpoint != null)
@@ -1233,21 +1511,21 @@ namespace Couchbase.Lite.Replicator
 			string remoteCheckpointDocID = RemoteCheckpointDocID();
 			if (remoteCheckpointDocID == null)
 			{
-				Log.W(Database.Tag, this + ": remoteCheckpointDocID is null, aborting saveLastSequence()"
-					);
+				Log.W(Log.TagSync, "%s: remoteCheckpointDocID is null, aborting saveLastSequence()"
+					, this);
 				return;
 			}
 			savingCheckpoint = true;
 			string checkpointID = remoteCheckpointDocID;
-			Log.D(Database.Tag, this + " put remote _local document.  checkpointID: " + checkpointID
+			Log.D(Log.TagSync, "%s: put remote _local document.  checkpointID: %s", this, checkpointID
 				);
-			SendAsyncRequest("PUT", "/_local/" + checkpointID, body, new _RemoteRequestCompletionBlock_1053
+			SendAsyncRequest("PUT", "/_local/" + checkpointID, body, new _RemoteRequestCompletionBlock_1274
 				(this, body, checkpointID));
 		}
 
-		private sealed class _RemoteRequestCompletionBlock_1053 : RemoteRequestCompletionBlock
+		private sealed class _RemoteRequestCompletionBlock_1274 : RemoteRequestCompletionBlock
 		{
-			public _RemoteRequestCompletionBlock_1053(Replication _enclosing, IDictionary<string
+			public _RemoteRequestCompletionBlock_1274(Replication _enclosing, IDictionary<string
 				, object> body, string checkpointID)
 			{
 				this._enclosing = _enclosing;
@@ -1260,12 +1538,18 @@ namespace Couchbase.Lite.Replicator
 				this._enclosing.savingCheckpoint = false;
 				if (e != null)
 				{
-					Log.W(Database.Tag, this + ": Unable to save remote checkpoint", e);
+					Log.W(Log.TagSync, "%s: Unable to save remote checkpoint", e, this);
 				}
 				if (this._enclosing.db == null)
 				{
-					Log.W(Database.Tag, this + ": Database is null, ignoring remote checkpoint response"
+					Log.W(Log.TagSync, "%s: Database is null, ignoring remote checkpoint response", this
 						);
+					return;
+				}
+				if (!this._enclosing.db.IsOpen())
+				{
+					Log.W(Log.TagSync, "%s: Database is closed, ignoring remote checkpoint response", 
+						this);
 					return;
 				}
 				if (e != null)
@@ -1325,12 +1609,31 @@ namespace Couchbase.Lite.Replicator
 			{
 				return false;
 			}
-			Log.D(Database.Tag, this + ": Going offline");
-			online = false;
-			StopRemoteRequests();
-			UpdateProgress();
-			NotifyChangeListeners();
+			if (db == null)
+			{
+				return false;
+			}
+			db.RunAsync(new _AsyncTask_1328(this));
 			return true;
+		}
+
+		private sealed class _AsyncTask_1328 : AsyncTask
+		{
+			public _AsyncTask_1328(Replication _enclosing)
+			{
+				this._enclosing = _enclosing;
+			}
+
+			public void Run(Database database)
+			{
+				Log.D(Log.TagSync, "%s: Going offline", this);
+				this._enclosing.online = false;
+				this._enclosing.StopRemoteRequests();
+				this._enclosing.UpdateProgress();
+				this._enclosing.NotifyChangeListeners();
+			}
+
+			private readonly Replication _enclosing;
 		}
 
 		[InterfaceAudience.Public]
@@ -1340,55 +1643,49 @@ namespace Couchbase.Lite.Replicator
 			{
 				return false;
 			}
-			Log.D(Database.Tag, this + ": Going online");
-			online = true;
-			if (running)
+			if (db == null)
 			{
-				lastSequence = null;
-				SetError(null);
+				return false;
 			}
-			remoteRequestExecutor = Executors.NewCachedThreadPool();
-			CheckSession();
-			NotifyChangeListeners();
+			db.RunAsync(new _AsyncTask_1349(this));
 			return true;
+		}
+
+		private sealed class _AsyncTask_1349 : AsyncTask
+		{
+			public _AsyncTask_1349(Replication _enclosing)
+			{
+				this._enclosing = _enclosing;
+			}
+
+			public void Run(Database database)
+			{
+				Log.D(Log.TagSync, "%s: Going online", this);
+				this._enclosing.online = true;
+				if (this._enclosing.running)
+				{
+					this._enclosing.lastSequence = null;
+					this._enclosing.SetError(null);
+				}
+				this._enclosing.remoteRequestExecutor = Executors.NewCachedThreadPool();
+				this._enclosing.CheckSession();
+				this._enclosing.NotifyChangeListeners();
+			}
+
+			private readonly Replication _enclosing;
 		}
 
 		[InterfaceAudience.Private]
 		private void StopRemoteRequests()
 		{
-			if (remoteRequestExecutor == null)
+			Log.V(Log.TagSync, "%s: stopRemoteRequests() cancelling: %d requests", this, requests
+				.Count);
+			foreach (RemoteRequest request in requests.Keys)
 			{
-				Log.W(Database.Tag, this + " stopRemoteRequests() called, but remoteRequestExecutor == null.  Ignoring."
-					);
-				return;
-			}
-			int timeoutSeconds = 30;
-			IList<Runnable> inProgress = remoteRequestExecutor.ShutdownNow();
-			Log.D(Database.Tag, this + " stopped remoteRequestExecutor. " + inProgress.Count 
-				+ " remote requests in progress.  Awaiting termination with timeout: " + timeoutSeconds
-				);
-			bool finishedBeforeTimeout = false;
-			try
-			{
-				finishedBeforeTimeout = remoteRequestExecutor.AwaitTermination(timeoutSeconds, TimeUnit
-					.Seconds);
-				if (finishedBeforeTimeout)
-				{
-					Log.D(Database.Tag, this + " Awaiting termination finished normally");
-				}
-				else
-				{
-					Log.W(Database.Tag, this + " Timed out awaiting termination of remoteRequestExecutor"
-						);
-				}
-			}
-			catch (Exception e)
-			{
-				Log.E(Database.Tag, this + "  Exception Awaiting termination", e);
-			}
-			finally
-			{
-				remoteRequestExecutor = null;
+				Log.V(Log.TagSync, "%s: aborting request: %s underlying req: %s", this, request, 
+					request.GetRequest().GetURI());
+				request.Abort();
+				Log.V(Log.TagSync, "%s: aborted request", this);
 			}
 		}
 
@@ -1425,7 +1722,7 @@ namespace Couchbase.Lite.Replicator
 			// TODO
 			if (throwable != error)
 			{
-				Log.E(Database.Tag, this + " Progress: set error = " + throwable);
+				Log.E(Log.TagSync, "%s: Progress: set error = %s", this, throwable);
 				error = throwable;
 				NotifyChangeListeners();
 			}
@@ -1436,6 +1733,71 @@ namespace Couchbase.Lite.Replicator
 		{
 			// Remember that some revisions failed to transfer, so we can later retry.
 			++revisionsFailed;
+		}
+
+		protected internal virtual RevisionInternal TransformRevision(RevisionInternal rev
+			)
+		{
+			if (revisionBodyTransformationBlock != null)
+			{
+				try
+				{
+					int generation = rev.GetGeneration();
+					RevisionInternal xformed = revisionBodyTransformationBlock.Invoke(rev);
+					if (xformed == null)
+					{
+						return null;
+					}
+					if (xformed != rev)
+					{
+						System.Diagnostics.Debug.Assert((xformed.GetDocId().Equals(rev.GetDocId())));
+						System.Diagnostics.Debug.Assert((xformed.GetRevId().Equals(rev.GetRevId())));
+						System.Diagnostics.Debug.Assert((xformed.GetProperties().Get("_revisions").Equals
+							(rev.GetProperties().Get("_revisions"))));
+						if (xformed.GetProperties().Get("_attachments") != null)
+						{
+							// Insert 'revpos' properties into any attachments added by the callback:
+							RevisionInternal mx = new RevisionInternal(xformed.GetProperties(), db);
+							xformed = mx;
+							mx.MutateAttachments(new _Functor_1452(generation));
+						}
+						rev = xformed;
+					}
+				}
+				catch (Exception e)
+				{
+					Log.W(Log.TagSync, "%s: Exception transforming a revision of doc '%s", e, this, rev
+						.GetDocId());
+				}
+			}
+			return rev;
+		}
+
+		private sealed class _Functor_1452 : CollectionUtils.Functor<IDictionary<string, 
+			object>, IDictionary<string, object>>
+		{
+			public _Functor_1452(int generation)
+			{
+				this.generation = generation;
+			}
+
+			public IDictionary<string, object> Invoke(IDictionary<string, object> info)
+			{
+				if (info.Get("revpos") != null)
+				{
+					return info;
+				}
+				if (info.Get("data") == null)
+				{
+					throw new InvalidOperationException("Transformer added attachment without adding data"
+						);
+				}
+				IDictionary<string, object> nuInfo = new Dictionary<string, object>(info);
+				nuInfo.Put("revpos", generation);
+				return nuInfo;
+			}
+
+			private readonly int generation;
 		}
 
 		/// <summary>
@@ -1461,7 +1823,7 @@ namespace Couchbase.Lite.Replicator
 			}
 			if (online)
 			{
-				Log.D(Database.Tag, this + " RETRYING, to transfer missed revisions...");
+				Log.D(Log.TagSync, "%s: RETRYING, to transfer missed revisions", this);
 				revisionsFailed = 0;
 				CancelPendingRetryIfReady();
 				Retry();
@@ -1484,13 +1846,13 @@ namespace Couchbase.Lite.Replicator
 		[InterfaceAudience.Private]
 		protected internal virtual void ScheduleRetryIfReady()
 		{
-			retryIfReadyFuture = workExecutor.Schedule(new _Runnable_1223(this), RetryDelay, 
+			retryIfReadyFuture = workExecutor.Schedule(new _Runnable_1508(this), RetryDelay, 
 				TimeUnit.Seconds);
 		}
 
-		private sealed class _Runnable_1223 : Runnable
+		private sealed class _Runnable_1508 : Runnable
 		{
-			public _Runnable_1223(Replication _enclosing)
+			public _Runnable_1508(Replication _enclosing)
 			{
 				this._enclosing = _enclosing;
 			}
@@ -1525,16 +1887,18 @@ namespace Couchbase.Lite.Replicator
 		[InterfaceAudience.Private]
 		private void RefreshRemoteCheckpointDoc()
 		{
-			Log.D(Database.Tag, this + ": Refreshing remote checkpoint to get its _rev...");
+			Log.D(Log.TagSync, "%s: Refreshing remote checkpoint to get its _rev...", this);
 			savingCheckpoint = true;
+			Log.V(Log.TagSync, "%s | %s: refreshRemoteCheckpointDoc() calling asyncTaskStarted()"
+				, this, Sharpen.Thread.CurrentThread());
 			AsyncTaskStarted();
-			SendAsyncRequest("GET", "/_local/" + RemoteCheckpointDocID(), null, new _RemoteRequestCompletionBlock_1249
+			SendAsyncRequest("GET", "/_local/" + RemoteCheckpointDocID(), null, new _RemoteRequestCompletionBlock_1535
 				(this));
 		}
 
-		private sealed class _RemoteRequestCompletionBlock_1249 : RemoteRequestCompletionBlock
+		private sealed class _RemoteRequestCompletionBlock_1535 : RemoteRequestCompletionBlock
 		{
-			public _RemoteRequestCompletionBlock_1249(Replication _enclosing)
+			public _RemoteRequestCompletionBlock_1535(Replication _enclosing)
 			{
 				this._enclosing = _enclosing;
 			}
@@ -1545,18 +1909,18 @@ namespace Couchbase.Lite.Replicator
 				{
 					if (this._enclosing.db == null)
 					{
-						Log.W(Database.Tag, this + ": db == null while refreshing remote checkpoint.  aborting"
-							);
+						Log.W(Log.TagSync, "%s: db == null while refreshing remote checkpoint.  aborting"
+							, this);
 						return;
 					}
 					this._enclosing.savingCheckpoint = false;
 					if (e != null && this._enclosing.GetStatusFromError(e) != Status.NotFound)
 					{
-						Log.E(Database.Tag, this + ": Error refreshing remote checkpoint", e);
+						Log.E(Log.TagSync, "%s: Error refreshing remote checkpoint", e, this);
 					}
 					else
 					{
-						Log.D(Database.Tag, this + ": Refreshed remote checkpoint: " + result);
+						Log.D(Log.TagSync, "%s: Refreshed remote checkpoint: %s", this, result);
 						this._enclosing.remoteCheckpoint = (IDictionary<string, object>)result;
 						this._enclosing.lastSequenceChanged = true;
 						this._enclosing.SaveLastSequence();
@@ -1565,11 +1929,109 @@ namespace Couchbase.Lite.Replicator
 				finally
 				{
 					// try saving again
+					Log.V(Log.TagSync, "%s | %s: refreshRemoteCheckpointDoc() calling asyncTaskFinished()"
+						, this, Sharpen.Thread.CurrentThread());
 					this._enclosing.AsyncTaskFinished(1);
 				}
 			}
 
 			private readonly Replication _enclosing;
+		}
+
+		[InterfaceAudience.Private]
+		protected internal virtual Status StatusFromBulkDocsResponseItem(IDictionary<string
+			, object> item)
+		{
+			try
+			{
+				if (!item.ContainsKey("error"))
+				{
+					return new Status(Status.Ok);
+				}
+				string errorStr = (string)item.Get("error");
+				if (errorStr == null || errorStr.IsEmpty())
+				{
+					return new Status(Status.Ok);
+				}
+				// 'status' property is nonstandard; TouchDB returns it, others don't.
+				string statusString = (string)item.Get("status");
+				int status = System.Convert.ToInt32(statusString);
+				if (status >= 400)
+				{
+					return new Status(status);
+				}
+				// If no 'status' present, interpret magic hardcoded CouchDB error strings:
+				if (Sharpen.Runtime.EqualsIgnoreCase(errorStr, "unauthorized"))
+				{
+					return new Status(Status.Unauthorized);
+				}
+				else
+				{
+					if (Sharpen.Runtime.EqualsIgnoreCase(errorStr, "forbidden"))
+					{
+						return new Status(Status.Forbidden);
+					}
+					else
+					{
+						if (Sharpen.Runtime.EqualsIgnoreCase(errorStr, "conflict"))
+						{
+							return new Status(Status.Conflict);
+						}
+						else
+						{
+							return new Status(Status.UpstreamError);
+						}
+					}
+				}
+			}
+			catch (Exception e)
+			{
+				Log.E(Database.Tag, "Exception getting status from " + item, e);
+			}
+			return new Status(Status.Ok);
+		}
+
+		[InterfaceAudience.Private]
+		public virtual void NetworkReachable()
+		{
+			GoOnline();
+		}
+
+		[InterfaceAudience.Private]
+		public virtual void NetworkUnreachable()
+		{
+			GoOffline();
+		}
+
+		[InterfaceAudience.Private]
+		internal virtual bool ServerIsSyncGatewayVersion(string minVersion)
+		{
+			string prefix = "Couchbase Sync Gateway/";
+			if (serverType == null)
+			{
+				return false;
+			}
+			else
+			{
+				if (serverType.StartsWith(prefix))
+				{
+					string versionString = Sharpen.Runtime.Substring(serverType, prefix.Length);
+					return Sharpen.Runtime.CompareOrdinal(versionString, minVersion) >= 0;
+				}
+			}
+			return false;
+		}
+
+		[InterfaceAudience.Private]
+		internal virtual void SetServerType(string serverType)
+		{
+			this.serverType = serverType;
+		}
+
+		[InterfaceAudience.Private]
+		internal virtual HttpClientFactory GetClientFactory()
+		{
+			return clientFactory;
 		}
 	}
 }

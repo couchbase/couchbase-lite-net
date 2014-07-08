@@ -1,10 +1,4 @@
-//
-// BlobStore.cs
-//
-// Author:
-//     Zachary Gramana  <zack@xamarin.com>
-//
-// Copyright (c) 2014 Xamarin Inc
+// 
 // Copyright (c) 2014 .NET Foundation
 //
 // Permission is hereby granted, free of charge, to any person obtaining
@@ -38,9 +32,7 @@
 // License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
 // either express or implied. See the License for the specific language governing permissions
 // and limitations under the License.
-//
-
-using System;
+//using System;
 using System.Collections.Generic;
 using System.IO;
 using Couchbase.Lite;
@@ -86,7 +78,7 @@ namespace Couchbase.Lite
 			}
 			catch (NoSuchAlgorithmException)
 			{
-				Log.E(Database.Tag, "Error, SHA-1 digest is unavailable.");
+				Log.E(Log.TagBlobStore, "Error, SHA-1 digest is unavailable.");
 				return null;
 			}
 			byte[] sha1hash = new byte[40];
@@ -105,7 +97,7 @@ namespace Couchbase.Lite
 			}
 			catch (NoSuchAlgorithmException)
 			{
-				Log.E(Database.Tag, "Error, SHA-1 digest is unavailable.");
+				Log.E(Log.TagBlobStore, "Error, SHA-1 digest is unavailable.");
 				return null;
 			}
 			byte[] sha1hash = new byte[40];
@@ -123,7 +115,7 @@ namespace Couchbase.Lite
 			}
 			catch (IOException)
 			{
-				Log.E(Database.Tag, "Error readin tmp file to compute key");
+				Log.E(Log.TagBlobStore, "Error readin tmp file to compute key");
 			}
 			sha1hash = md.Digest();
 			BlobKey result = new BlobKey(sha1hash);
@@ -166,7 +158,7 @@ namespace Couchbase.Lite
 			}
 			catch (IOException e)
 			{
-				Log.E(Database.Tag, "Error reading file", e);
+				Log.E(Log.TagBlobStore, "Error reading file", e);
 			}
 			return result;
 		}
@@ -183,7 +175,7 @@ namespace Couchbase.Lite
 				}
 				catch (FileNotFoundException e)
 				{
-					Log.E(Database.Tag, "Unexpected file not found in blob store", e);
+					Log.E(Log.TagBlobStore, "Unexpected file not found in blob store", e);
 					return null;
 				}
 			}
@@ -210,7 +202,7 @@ namespace Couchbase.Lite
 			}
 			catch (IOException e)
 			{
-				Log.E(Database.Tag, "Error writing blog to tmp file", e);
+				Log.E(Log.TagBlobStore, "Error writing blog to tmp file", e);
 				return false;
 			}
 			BlobKey newKey = KeyForBlobFromFile(tmp);
@@ -249,12 +241,12 @@ namespace Couchbase.Lite
 			}
 			catch (FileNotFoundException e)
 			{
-				Log.E(Database.Tag, "Error opening file for output", e);
+				Log.E(Log.TagBlobStore, "Error opening file for output", e);
 				return false;
 			}
 			catch (IOException ioe)
 			{
-				Log.E(Database.Tag, "Error writing to file", ioe);
+				Log.E(Log.TagBlobStore, "Error writing to file", ioe);
 				return false;
 			}
 			finally
@@ -355,7 +347,7 @@ namespace Couchbase.Lite
 					}
 					else
 					{
-						Log.E(Database.Tag, "Error deleting attachmetn");
+						Log.E(Log.TagBlobStore, "Error deleting attachment: %s", attachment);
 					}
 				}
 			}

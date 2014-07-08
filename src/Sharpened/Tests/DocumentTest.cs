@@ -1,10 +1,4 @@
-//
-// DocumentTest.cs
-//
-// Author:
-//     Zachary Gramana  <zack@xamarin.com>
-//
-// Copyright (c) 2014 Xamarin Inc
+// 
 // Copyright (c) 2014 .NET Foundation
 //
 // Permission is hereby granted, free of charge, to any person obtaining
@@ -38,9 +32,7 @@
 // License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
 // either express or implied. See the License for the specific language governing permissions
 // and limitations under the License.
-//
-
-using System.Collections.Generic;
+//using System.Collections.Generic;
 using Couchbase.Lite;
 using Couchbase.Lite.Internal;
 using NUnit.Framework;
@@ -87,6 +79,19 @@ namespace Couchbase.Lite
 			}
 		}
 
+		/// <summary>
+		/// Port test over from:
+		/// https://github.com/couchbase/couchbase-lite-ios/commit/e0469300672a2087feb46b84ca498facd49e0066
+		/// </summary>
+		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
+		public virtual void TestGetNonExistentDocument()
+		{
+			NUnit.Framework.Assert.IsNull(database.GetExistingDocument("missing"));
+			Document doc = database.GetDocument("missing");
+			NUnit.Framework.Assert.IsNotNull(doc);
+			NUnit.Framework.Assert.IsNull(database.GetExistingDocument("missing"));
+		}
+
 		// Reproduces issue #167
 		// https://github.com/couchbase/couchbase-lite-android/issues/167
 		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
@@ -105,7 +110,7 @@ namespace Couchbase.Lite
 				.TDIncludeAttachments, Database.TDContentOptions.TDBigAttachmentsFollow);
 			database.LoadRevisionBody(revisionInternal, contentOptions);
 			// now lets purge the document, and then try to load the revision body again
-			NUnit.Framework.Assert.IsTrue(document.Purge());
+			document.Purge();
 			bool gotExpectedException = false;
 			try
 			{
@@ -119,6 +124,22 @@ namespace Couchbase.Lite
 				}
 			}
 			NUnit.Framework.Assert.IsTrue(gotExpectedException);
+		}
+
+		/// <summary>https://github.com/couchbase/couchbase-lite-android/issues/281</summary>
+		public virtual void TestDocumentWithRemovedProperty()
+		{
+			IDictionary<string, object> props = new Dictionary<string, object>();
+			props.Put("_id", "fakeid");
+			props.Put("_removed", true);
+			props.Put("foo", "bar");
+			Document doc = CreateDocumentWithProperties(database, props);
+			NUnit.Framework.Assert.IsNotNull(doc);
+			Document docFetched = database.GetDocument(doc.GetId());
+			IDictionary<string, object> fetchedProps = docFetched.GetCurrentRevision().GetProperties
+				();
+			NUnit.Framework.Assert.IsNotNull(fetchedProps.Get("_removed"));
+			NUnit.Framework.Assert.IsTrue(docFetched.GetCurrentRevision().IsGone());
 		}
 	}
 }

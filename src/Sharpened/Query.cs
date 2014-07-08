@@ -1,10 +1,4 @@
-//
-// Query.cs
-//
-// Author:
-//     Zachary Gramana  <zack@xamarin.com>
-//
-// Copyright (c) 2014 Xamarin Inc
+// 
 // Copyright (c) 2014 .NET Foundation
 //
 // Permission is hereby granted, free of charge, to any person obtaining
@@ -38,12 +32,11 @@
 // License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
 // either express or implied. See the License for the specific language governing permissions
 // and limitations under the License.
-//
-
-using System;
+//using System;
 using System.Collections.Generic;
 using Couchbase.Lite;
 using Couchbase.Lite.Internal;
+using Couchbase.Lite.Util;
 using Sharpen;
 
 namespace Couchbase.Lite
@@ -464,12 +457,12 @@ namespace Couchbase.Lite
 		[InterfaceAudience.Private]
 		internal virtual Future RunAsyncInternal(Query.QueryCompleteListener onComplete)
 		{
-			return database.GetManager().RunAsync(new _Runnable_382(this, onComplete));
+			return database.GetManager().RunAsync(new _Runnable_383(this, onComplete));
 		}
 
-		private sealed class _Runnable_382 : Runnable
+		private sealed class _Runnable_383 : Runnable
 		{
-			public _Runnable_382(Query _enclosing, Query.QueryCompleteListener onComplete)
+			public _Runnable_383(Query _enclosing, Query.QueryCompleteListener onComplete)
 			{
 				this._enclosing = _enclosing;
 				this.onComplete = onComplete;
@@ -495,6 +488,7 @@ namespace Couchbase.Lite
 				}
 				catch (Exception t)
 				{
+					Log.E(Log.TagQuery, "Exception caught in runAsyncInternal", t);
 					onComplete.Completed(null, t);
 				}
 			}
@@ -530,6 +524,8 @@ namespace Couchbase.Lite
 			queryOptions.SetInclusiveEnd(true);
 			queryOptions.SetStale(GetIndexUpdateMode());
 			queryOptions.SetAllDocsMode(GetAllDocsMode());
+			queryOptions.SetStartKeyDocId(GetStartKeyDocId());
+			queryOptions.SetEndKeyDocId(GetEndKeyDocId());
 			return queryOptions;
 		}
 

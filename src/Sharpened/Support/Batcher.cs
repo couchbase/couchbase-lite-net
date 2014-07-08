@@ -1,10 +1,4 @@
-//
-// Batcher.cs
-//
-// Author:
-//     Zachary Gramana  <zack@xamarin.com>
-//
-// Copyright (c) 2014 Xamarin Inc
+// 
 // Copyright (c) 2014 .NET Foundation
 //
 // Permission is hereby granted, free of charge, to any person obtaining
@@ -38,11 +32,8 @@
 // License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
 // either express or implied. See the License for the specific language governing permissions
 // and limitations under the License.
-//
-
-using System;
+//using System;
 using System.Collections.Generic;
-using Couchbase.Lite;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
 using Sharpen;
@@ -77,9 +68,9 @@ namespace Couchbase.Lite.Support
 
 		private long lastProcessedTime;
 
-		private sealed class _Runnable_30 : Runnable
+		private sealed class _Runnable_31 : Runnable
 		{
-			public _Runnable_30(Batcher<T> _enclosing)
+			public _Runnable_31(Batcher<T> _enclosing)
 			{
 				this._enclosing = _enclosing;
 			}
@@ -93,7 +84,7 @@ namespace Couchbase.Lite.Support
 				catch (Exception e)
 				{
 					// we don't want this to crash the batcher
-					Log.E(Database.Tag, this + ": BatchProcessor throw exception", e);
+					Log.E(Log.TagSync, this + ": BatchProcessor throw exception", e);
 				}
 			}
 
@@ -114,7 +105,7 @@ namespace Couchbase.Lite.Support
 		public Batcher(ScheduledExecutorService workExecutor, int capacity, int delay, BatchProcessor
 			<T> processor)
 		{
-			processNowRunnable = new _Runnable_30(this);
+			processNowRunnable = new _Runnable_31(this);
 			this.workExecutor = workExecutor;
 			this.capacity = capacity;
 			this.delay = delay;
@@ -127,7 +118,8 @@ namespace Couchbase.Lite.Support
 		{
 			lock (this)
 			{
-				Log.D(Database.Tag, "queuObjects called with " + objects.Count + " objects. ");
+				Log.V(Log.TagSync, "%s: queueObjects called with %d objects. ", this, objects.Count
+					);
 				if (objects.Count == 0)
 				{
 					return;
@@ -136,37 +128,9 @@ namespace Couchbase.Lite.Support
 				{
 					inbox = new LinkedHashSet<T>();
 				}
-				Log.D(Database.Tag, "inbox size before adding objects: " + inbox.Count);
+				Log.V(Log.TagSync, "%s: inbox size before adding objects: %d", this, inbox.Count);
 				Sharpen.Collections.AddAll(inbox, objects);
-				Log.D(Database.Tag, objects.Count + " objects added to inbox.  inbox size: " + inbox
-					.Count);
-				if (inbox.Count < capacity)
-				{
-					// Schedule the processing. To improve latency, if we haven't processed anything
-					// in at least our delay time, rush these object(s) through ASAP:
-					Log.D(Database.Tag, "inbox.size() < capacity, schedule processing");
-					int delayToUse = delay;
-					long delta = (Runtime.CurrentTimeMillis() - lastProcessedTime);
-					if (delta >= delay)
-					{
-						Log.D(Database.Tag, "delta " + delta + " >= delay " + delay + " --> using delay 0"
-							);
-						delayToUse = 0;
-					}
-					else
-					{
-						Log.D(Database.Tag, "delta " + delta + " < delay " + delay + " --> using delay " 
-							+ delayToUse);
-					}
-					ScheduleWithDelay(delayToUse);
-				}
-				else
-				{
-					// If inbox fills up, process it immediately:
-					Log.D(Database.Tag, "inbox.size() >= capacity, process immediately");
-					Unschedule();
-					ProcessNow();
-				}
+				ScheduleWithDelay(DelayToUse());
 			}
 		}
 
@@ -182,8 +146,7 @@ namespace Couchbase.Lite.Support
 		/// <remarks>Sends queued objects to the processor block (up to the capacity).</remarks>
 		public virtual void Flush()
 		{
-			Unschedule();
-			ProcessNow();
+			ScheduleWithDelay(DelayToUse());
 		}
 
 		/// <summary>Sends _all_ the queued objects at once to the processor block.</summary>
@@ -207,7 +170,7 @@ namespace Couchbase.Lite.Support
 		/// <remarks>Empties the queue without processing any of the objects in it.</remarks>
 		public virtual void Clear()
 		{
-			Log.D(Database.Tag, this + ": clear() called, setting inbox to null");
+			Log.V(Log.TagSync, "%s: clear() called, setting inbox to null", this);
 			Unschedule();
 			inbox = null;
 		}
@@ -226,29 +189,28 @@ namespace Couchbase.Lite.Support
 
 		private void ProcessNow()
 		{
-			Log.D(Database.Tag, this + ": processNow() called");
+			Log.V(Log.TagSync, this + ": processNow() called");
 			scheduled = false;
 			IList<T> toProcess = new AList<T>();
 			lock (this)
 			{
 				if (inbox == null || inbox.Count == 0)
 				{
-					Log.D(Database.Tag, this + ": processNow() called, but inbox is empty");
+					Log.V(Log.TagSync, this + ": processNow() called, but inbox is empty");
 					return;
 				}
 				else
 				{
 					if (inbox.Count <= capacity)
 					{
-						Log.D(Database.Tag, this + ": processNow() called, inbox size: " + inbox.Count);
-						Log.D(Database.Tag, this + ": inbox.size() <= capacity, adding " + inbox.Count + 
-							" items to toProcess array");
+						Log.V(Log.TagSync, "%s: inbox.size() <= capacity, adding %d items from inbox -> toProcess"
+							, this, inbox.Count);
 						Sharpen.Collections.AddAll(toProcess, inbox);
 						inbox = null;
 					}
 					else
 					{
-						Log.D(Database.Tag, this + ": processNow() called, inbox size: " + inbox.Count);
+						Log.V(Log.TagSync, "%s: processNow() called, inbox size: %d", this, inbox.Count);
 						int i = 0;
 						foreach (T item in inbox)
 						{
@@ -261,46 +223,45 @@ namespace Couchbase.Lite.Support
 						}
 						foreach (T item_1 in toProcess)
 						{
-							Log.D(Database.Tag, this + ": processNow() removing " + item_1 + " from inbox");
+							Log.V(Log.TagSync, "%s: processNow() removing %s from inbox", this, item_1);
 							inbox.Remove(item_1);
 						}
-						Log.D(Database.Tag, this + ": inbox.size() > capacity, moving " + toProcess.Count
-							 + " items from inbox -> toProcess array");
+						Log.V(Log.TagSync, "%s: inbox.size() > capacity, moving %d items from inbox -> toProcess array"
+							, this, toProcess.Count);
 						// There are more objects left, so schedule them Real Soon:
-						ScheduleWithDelay(0);
+						ScheduleWithDelay(DelayToUse());
 					}
 				}
 			}
 			if (toProcess != null && toProcess.Count > 0)
 			{
-				Log.D(Database.Tag, this + ": invoking processor with " + toProcess.Count + " items "
+				Log.V(Log.TagSync, "%s: invoking processor with %d items ", this, toProcess.Count
 					);
 				processor.Process(toProcess);
 			}
 			else
 			{
-				Log.D(Database.Tag, this + ": nothing to process");
+				Log.V(Log.TagSync, "%s: nothing to process", this);
 			}
 			lastProcessedTime = Runtime.CurrentTimeMillis();
 		}
 
 		private void ScheduleWithDelay(int suggestedDelay)
 		{
-			Log.D(Database.Tag, "scheduleWithDelay called with delay: " + suggestedDelay + " ms"
+			Log.V(Log.TagSync, "%s: scheduleWithDelay called with delay: %d ms", this, suggestedDelay
 				);
 			if (scheduled && (suggestedDelay < scheduledDelay))
 			{
-				Log.D(Database.Tag, "already scheduled and : " + suggestedDelay + " < " + scheduledDelay
-					 + " --> unscheduling");
+				Log.V(Log.TagSync, "%s: already scheduled and: %d < %d --> unscheduling", this, suggestedDelay
+					, scheduledDelay);
 				Unschedule();
 			}
 			if (!scheduled)
 			{
-				Log.D(Database.Tag, "not already scheduled");
+				Log.V(Log.TagSync, "not already scheduled");
 				scheduled = true;
 				scheduledDelay = suggestedDelay;
-				Log.D(Database.Tag, "workExecutor.schedule() with delay: " + suggestedDelay + " ms"
-					);
+				Log.V(Log.TagSync, "workExecutor.schedule() with delay: %d ms", suggestedDelay);
 				flushFuture = workExecutor.Schedule(processNowRunnable, suggestedDelay, TimeUnit.
 					Milliseconds);
 			}
@@ -308,17 +269,34 @@ namespace Couchbase.Lite.Support
 
 		private void Unschedule()
 		{
-			Log.D(Database.Tag, this + ": unschedule() called");
+			Log.V(Log.TagSync, this + ": unschedule() called");
 			scheduled = false;
 			if (flushFuture != null)
 			{
 				bool didCancel = flushFuture.Cancel(false);
-				Log.D(Database.Tag, "tried to cancel flushFuture, result: " + didCancel);
+				Log.V(Log.TagSync, "tried to cancel flushFuture, result: %s", didCancel);
 			}
 			else
 			{
-				Log.D(Database.Tag, "flushFuture was null, doing nothing");
+				Log.V(Log.TagSync, "flushFuture was null, doing nothing");
 			}
+		}
+
+		private int DelayToUse()
+		{
+			//initially set the delay to the default value for this Batcher
+			int delayToUse = delay;
+			//get the time interval since the last batch completed to the current system time
+			long delta = (Runtime.CurrentTimeMillis() - lastProcessedTime);
+			//if the time interval is greater or equal to the default delay then set the
+			// delay so that the next batch gets scheduled to process immediately
+			if (delta >= delay)
+			{
+				delayToUse = 0;
+			}
+			Log.V(Log.TagSync, "%s: delayToUse() delta: %d, delayToUse: %d, delay: %d", this, 
+				delta, delayToUse, delta);
+			return delayToUse;
 		}
 	}
 }

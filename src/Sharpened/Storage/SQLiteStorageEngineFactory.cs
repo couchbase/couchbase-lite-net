@@ -1,10 +1,4 @@
-//
-// SQLiteStorageEngineFactory.cs
-//
-// Author:
-//     Zachary Gramana  <zack@xamarin.com>
-//
-// Copyright (c) 2014 Xamarin Inc
+// 
 // Copyright (c) 2014 .NET Foundation
 //
 // Permission is hereby granted, free of charge, to any person obtaining
@@ -38,9 +32,7 @@
 // License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
 // either express or implied. See the License for the specific language governing permissions
 // and limitations under the License.
-//
-
-using System;
+//using System;
 using System.IO;
 using Couchbase.Lite;
 using Couchbase.Lite.Storage;
@@ -61,7 +53,7 @@ namespace Couchbase.Lite.Storage
 					GetResourceAsStream(resource);
 				byte[] bytes = TextUtils.Read(inputStream);
 				classname = Sharpen.Runtime.GetStringForBytes(bytes);
-				Log.D(Database.Tag, "Loading storage engine: " + classname);
+				Log.D(Database.Tag, "Loading storage engine: %s", classname);
 				Type clazz = Sharpen.Runtime.GetType(classname);
 				SQLiteStorageEngine storageEngine = (SQLiteStorageEngine)System.Activator.CreateInstance
 					(clazz);

@@ -1,10 +1,4 @@
-//
-// RouterTest.cs
-//
-// Author:
-//     Zachary Gramana  <zack@xamarin.com>
-//
-// Copyright (c) 2014 Xamarin Inc
+// 
 // Copyright (c) 2014 .NET Foundation
 //
 // Permission is hereby granted, free of charge, to any person obtaining
@@ -38,8 +32,7 @@
 // License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
 // either express or implied. See the License for the specific language governing permissions
 // and limitations under the License.
-//
-
+//using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using Couchbase.Lite;
@@ -82,11 +75,21 @@ namespace Couchbase.Lite
 		public virtual void TestDatabase()
 		{
 			Send("PUT", "/database", Status.Created, null);
+			IDictionary entries = new Dictionary<string, IDictionary<string, object>>();
+			entries.Put("results", new AList<object>());
+			entries.Put("last_seq", 0);
+			Send("GET", "/database/_changes?feed=normal&heartbeat=300000&style=all_docs", Status
+				.Ok, entries);
 			IDictionary<string, object> dbInfo = (IDictionary<string, object>)Send("GET", "/database"
 				, Status.Ok, null);
+			NUnit.Framework.Assert.AreEqual(6, dbInfo.Count);
 			NUnit.Framework.Assert.AreEqual(0, dbInfo.Get("doc_count"));
 			NUnit.Framework.Assert.AreEqual(0, dbInfo.Get("update_seq"));
 			NUnit.Framework.Assert.IsTrue((int)dbInfo.Get("disk_size") > 8000);
+			NUnit.Framework.Assert.AreEqual("database", dbInfo.Get("db_name"));
+			NUnit.Framework.Assert.IsTrue(Runtime.CurrentTimeMillis() * 1000 > (long)dbInfo.Get
+				("instance_start_time"));
+			NUnit.Framework.Assert.IsTrue(dbInfo.ContainsKey("db_uuid"));
 			Send("PUT", "/database", Status.PreconditionFailed, null);
 			Send("PUT", "/database2", Status.Created, null);
 			IList<string> allDbs = new AList<string>();
@@ -122,6 +125,21 @@ namespace Couchbase.Lite
 			docWithAttachment.Put("_attachments", attachments);
 			IDictionary<string, object> result = (IDictionary<string, object>)SendBody("PUT", 
 				"/db/docWithAttachment", docWithAttachment, Status.Created, null);
+			IDictionary expChanges = new Dictionary<string, IDictionary<string, object>>();
+			IList changesResults = new ArrayList();
+			IDictionary docChanges = new Dictionary<string, object>();
+			docChanges.Put("id", "docWithAttachment");
+			docChanges.Put("seq", 1);
+			IList lChanges = new AList<IDictionary<string, object>>();
+			Hashtable mChanges = new Dictionary<string, object>();
+			mChanges.Put("rev", result.Get("rev"));
+			lChanges.AddItem(mChanges);
+			docChanges.Put("changes", lChanges);
+			changesResults.AddItem(docChanges);
+			expChanges.Put("results", changesResults);
+			expChanges.Put("last_seq", 1);
+			Send("GET", "/db/_changes?feed=normal&heartbeat=300000&style=all_docs", Status.Ok
+				, expChanges);
 			result = (IDictionary<string, object>)Send("GET", "/db/docWithAttachment", Status
 				.Ok, null);
 			IDictionary<string, object> attachmentsResult = (IDictionary<string, object>)result
@@ -391,7 +409,7 @@ namespace Couchbase.Lite
 			string revID2 = (string)result.Get("rev");
 			Database db = manager.GetDatabase("db");
 			View view = db.GetView("design/view");
-			view.SetMapReduce(new _Mapper_372(), null, "1");
+			view.SetMapReduce(new _Mapper_397(), null, "1");
 			// Build up our expected result
 			IDictionary<string, object> row1 = new Dictionary<string, object>();
 			row1.Put("id", "doc1");
@@ -436,9 +454,9 @@ namespace Couchbase.Lite
 			NUnit.Framework.Assert.AreEqual(4, result.Get("total_rows"));
 		}
 
-		private sealed class _Mapper_372 : Mapper
+		private sealed class _Mapper_397 : Mapper
 		{
-			public _Mapper_372()
+			public _Mapper_397()
 			{
 			}
 
@@ -472,6 +490,45 @@ namespace Couchbase.Lite
 			NUnit.Framework.Assert.IsNotNull(bulk_result[1].Get("rev"));
 		}
 
+		public virtual void FailingTestPostBulkDocsWithConflict()
+		{
+			Send("PUT", "/db", Status.Created, null);
+			IDictionary<string, object> bulk_doc1 = new Dictionary<string, object>();
+			bulk_doc1.Put("_id", "bulk_message1");
+			bulk_doc1.Put("baz", "hello");
+			IDictionary<string, object> bulk_doc2 = new Dictionary<string, object>();
+			bulk_doc2.Put("_id", "bulk_message2");
+			bulk_doc2.Put("baz", "hi");
+			IList<IDictionary<string, object>> list = new AList<IDictionary<string, object>>(
+				);
+			list.AddItem(bulk_doc1);
+			list.AddItem(bulk_doc2);
+			list.AddItem(bulk_doc2);
+			IDictionary<string, object> bodyObj = new Dictionary<string, object>();
+			bodyObj.Put("docs", list);
+			IList<IDictionary<string, object>> bulk_result = (AList<IDictionary<string, object
+				>>)SendBody("POST", "/db/_bulk_docs", bodyObj, Status.Created, null);
+			NUnit.Framework.Assert.AreEqual(3, bulk_result.Count);
+			NUnit.Framework.Assert.AreEqual(bulk_result[0].Get("id"), bulk_doc1.Get("_id"));
+			NUnit.Framework.Assert.IsNotNull(bulk_result[0].Get("rev"));
+			NUnit.Framework.Assert.AreEqual(bulk_result[1].Get("id"), bulk_doc2.Get("_id"));
+			NUnit.Framework.Assert.IsNotNull(bulk_result[1].Get("rev"));
+			NUnit.Framework.Assert.AreEqual(2, bulk_result[2].Count);
+			NUnit.Framework.Assert.AreEqual(bulk_result[2].Get("id"), bulk_doc2.Get("_id"));
+			NUnit.Framework.Assert.AreEqual(bulk_result[2].Get("error"), "conflict");
+			list = new AList<IDictionary<string, object>>();
+			list.AddItem(bulk_doc1);
+			bodyObj = new Dictionary<string, object>();
+			bodyObj.Put("docs", list);
+			bulk_result = (AList<IDictionary<string, object>>)SendBody("POST", "/db/_bulk_docs"
+				, bodyObj, Status.Created, null);
+			//https://github.com/couchbase/couchbase-lite-android/issues/79
+			NUnit.Framework.Assert.AreEqual(1, bulk_result.Count);
+			NUnit.Framework.Assert.AreEqual(2, bulk_result[0].Count);
+			NUnit.Framework.Assert.AreEqual(bulk_result[0].Get("id"), bulk_doc1.Get("_id"));
+			NUnit.Framework.Assert.AreEqual(bulk_result[0].Get("error"), "conflict");
+		}
+
 		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
 		public virtual void TestPostKeysView()
 		{
@@ -479,13 +536,13 @@ namespace Couchbase.Lite
 			IDictionary<string, object> result;
 			Database db = manager.GetDatabase("db");
 			View view = db.GetView("design/view");
-			view.SetMapReduce(new _Mapper_463(), null, "1");
+			view.SetMapReduce(new _Mapper_538(), null, "1");
 			IDictionary<string, object> key_doc1 = new Dictionary<string, object>();
 			key_doc1.Put("parentId", "12345");
 			result = (IDictionary<string, object>)SendBody("PUT", "/db/key_doc1", key_doc1, Status
 				.Created, null);
 			view = db.GetView("design/view");
-			view.SetMapReduce(new _Mapper_475(), null, "1");
+			view.SetMapReduce(new _Mapper_550(), null, "1");
 			IList<object> keys = new AList<object>();
 			keys.AddItem("12345");
 			IDictionary<string, object> bodyObj = new Dictionary<string, object>();
@@ -496,9 +553,9 @@ namespace Couchbase.Lite
 			NUnit.Framework.Assert.AreEqual(1, result.Get("total_rows"));
 		}
 
-		private sealed class _Mapper_463 : Mapper
+		private sealed class _Mapper_538 : Mapper
 		{
-			public _Mapper_463()
+			public _Mapper_538()
 			{
 			}
 
@@ -508,9 +565,9 @@ namespace Couchbase.Lite
 			}
 		}
 
-		private sealed class _Mapper_475 : Mapper
+		private sealed class _Mapper_550 : Mapper
 		{
-			public _Mapper_475()
+			public _Mapper_550()
 			{
 			}
 
@@ -638,7 +695,7 @@ namespace Couchbase.Lite
 				activeTasks = (AList<object>)Send("GET", "/_active_tasks", Status.Ok, null);
 				timeWaited += timeToWait;
 			}
-			if (timeWaited > maxTimeToWaitMs)
+			if (timeWaited >= maxTimeToWaitMs)
 			{
 				success = false;
 			}
@@ -657,6 +714,48 @@ namespace Couchbase.Lite
 			NUnit.Framework.Assert.IsNotNull(result.Get("session_id"));
 			bool success = WaitForReplicationToFinish();
 			NUnit.Framework.Assert.IsTrue(success);
+		}
+
+		/// <summary>https://github.com/couchbase/couchbase-lite-java-core/issues/106</summary>
+		/// <exception cref="System.Exception"></exception>
+		public virtual void TestResolveConflict()
+		{
+			IDictionary<string, object> result;
+			// Create a conflict on purpose
+			Document doc = database.CreateDocument();
+			SavedRevision rev1 = doc.CreateRevision().Save();
+			SavedRevision rev2a = CreateRevisionWithRandomProps(rev1, false);
+			SavedRevision rev2b = CreateRevisionWithRandomProps(rev1, true);
+			SavedRevision winningRev = null;
+			SavedRevision losingRev = null;
+			if (doc.GetCurrentRevisionId().Equals(rev2a.GetId()))
+			{
+				winningRev = rev2a;
+				losingRev = rev2b;
+			}
+			else
+			{
+				winningRev = rev2b;
+				losingRev = rev2a;
+			}
+			NUnit.Framework.Assert.AreEqual(2, doc.GetConflictingRevisions().Count);
+			NUnit.Framework.Assert.AreEqual(2, doc.GetLeafRevisions().Count);
+			result = (IDictionary<string, object>)Send("GET", string.Format("/%s/%s?conflicts=true"
+				, DefaultTestDb, doc.GetId()), Status.Ok, null);
+			IList<string> conflicts = (IList)result.Get("_conflicts");
+			NUnit.Framework.Assert.AreEqual(1, conflicts.Count);
+			string conflictingRevId = conflicts[0];
+			NUnit.Framework.Assert.AreEqual(losingRev.GetId(), conflictingRevId);
+			long docNumericID = database.GetDocNumericID(doc.GetId());
+			NUnit.Framework.Assert.IsTrue(docNumericID != 0);
+			NUnit.Framework.Assert.IsNotNull(database.GetDocument(doc.GetId()));
+			Log.D(Tag, "docNumericID for " + doc.GetId() + " is: " + docNumericID);
+			result = (IDictionary<string, object>)Send("DELETE", string.Format("/%s/%s?rev=%s"
+				, DefaultTestDb, doc.GetId(), conflictingRevId), Status.Ok, null);
+			result = (IDictionary<string, object>)Send("GET", string.Format("/%s/%s?conflicts=true"
+				, DefaultTestDb, doc.GetId()), Status.Ok, null);
+			conflicts = (IList)result.Get("_conflicts");
+			NUnit.Framework.Assert.AreEqual(0, conflicts.Count);
 		}
 	}
 }

@@ -1,10 +1,4 @@
-//
-// CollationTest.cs
-//
-// Author:
-//     Zachary Gramana  <zack@xamarin.com>
-//
-// Copyright (c) 2014 Xamarin Inc
+// 
 // Copyright (c) 2014 .NET Foundation
 //
 // Permission is hereby granted, free of charge, to any person obtaining
@@ -38,9 +32,7 @@
 // License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
 // either express or implied. See the License for the specific language governing permissions
 // and limitations under the License.
-//
-
-using System;
+//using System;
 using Couchbase.Lite;
 using Couchbase.Lite.Util;
 using NUnit.Framework;
@@ -79,128 +71,128 @@ namespace Couchbase.Lite
 		public virtual void TestCollateScalars()
 		{
 			int mode = kTDCollateJSON_Unicode;
-			NUnit.Framework.Assert.AreEqual(1, TDCollateJSON.TestCollateJSON(mode, 0, "true", 
-				0, "false"));
-			NUnit.Framework.Assert.AreEqual(-1, TDCollateJSON.TestCollateJSON(mode, 0, "false"
-				, 0, "true"));
-			NUnit.Framework.Assert.AreEqual(-1, TDCollateJSON.TestCollateJSON(mode, 0, "null"
-				, 0, "17"));
-			NUnit.Framework.Assert.AreEqual(1, TDCollateJSON.TestCollateJSON(mode, 0, "123", 
-				0, "1"));
-			NUnit.Framework.Assert.AreEqual(0, TDCollateJSON.TestCollateJSON(mode, 0, "123", 
-				0, "0123.0"));
-			NUnit.Framework.Assert.AreEqual(-1, TDCollateJSON.TestCollateJSON(mode, 0, "123", 
-				0, "\"123\""));
-			NUnit.Framework.Assert.AreEqual(1, TDCollateJSON.TestCollateJSON(mode, 0, "\"1234\""
-				, 0, "\"123\""));
-			NUnit.Framework.Assert.AreEqual(-1, TDCollateJSON.TestCollateJSON(mode, 0, "\"1234\""
-				, 0, "\"1235\""));
-			NUnit.Framework.Assert.AreEqual(0, TDCollateJSON.TestCollateJSON(mode, 0, "\"1234\""
-				, 0, "\"1234\""));
-			NUnit.Framework.Assert.AreEqual(0, TDCollateJSON.TestCollateJSON(mode, 0, "\"12\\/34\""
-				, 0, "\"12/34\""));
-			NUnit.Framework.Assert.AreEqual(0, TDCollateJSON.TestCollateJSON(mode, 0, "\"\\/1234\""
-				, 0, "\"/1234\""));
-			NUnit.Framework.Assert.AreEqual(0, TDCollateJSON.TestCollateJSON(mode, 0, "\"1234\\/\""
-				, 0, "\"1234/\""));
-			NUnit.Framework.Assert.AreEqual(-1, TDCollateJSON.TestCollateJSON(mode, 0, "\"a\""
-				, 0, "\"A\""));
-			NUnit.Framework.Assert.AreEqual(-1, TDCollateJSON.TestCollateJSON(mode, 0, "\"A\""
-				, 0, "\"aa\""));
-			NUnit.Framework.Assert.AreEqual(1, TDCollateJSON.TestCollateJSON(mode, 0, "\"B\""
-				, 0, "\"aa\""));
+			NUnit.Framework.Assert.AreEqual(1, TDCollateJSON.TestCollateJSONWrapper(mode, "true"
+				, "false"));
+			NUnit.Framework.Assert.AreEqual(-1, TDCollateJSON.TestCollateJSONWrapper(mode, "false"
+				, "true"));
+			NUnit.Framework.Assert.AreEqual(-1, TDCollateJSON.TestCollateJSONWrapper(mode, "null"
+				, "17"));
+			NUnit.Framework.Assert.AreEqual(1, TDCollateJSON.TestCollateJSONWrapper(mode, "123"
+				, "1"));
+			NUnit.Framework.Assert.AreEqual(0, TDCollateJSON.TestCollateJSONWrapper(mode, "123"
+				, "0123.0"));
+			NUnit.Framework.Assert.AreEqual(-1, TDCollateJSON.TestCollateJSONWrapper(mode, "123"
+				, "\"123\""));
+			NUnit.Framework.Assert.AreEqual(1, TDCollateJSON.TestCollateJSONWrapper(mode, "\"1234\""
+				, "\"123\""));
+			NUnit.Framework.Assert.AreEqual(-1, TDCollateJSON.TestCollateJSONWrapper(mode, "\"1234\""
+				, "\"1235\""));
+			NUnit.Framework.Assert.AreEqual(0, TDCollateJSON.TestCollateJSONWrapper(mode, "\"1234\""
+				, "\"1234\""));
+			NUnit.Framework.Assert.AreEqual(0, TDCollateJSON.TestCollateJSONWrapper(mode, "\"12\\/34\""
+				, "\"12/34\""));
+			NUnit.Framework.Assert.AreEqual(0, TDCollateJSON.TestCollateJSONWrapper(mode, "\"\\/1234\""
+				, "\"/1234\""));
+			NUnit.Framework.Assert.AreEqual(0, TDCollateJSON.TestCollateJSONWrapper(mode, "\"1234\\/\""
+				, "\"1234/\""));
+			NUnit.Framework.Assert.AreEqual(-1, TDCollateJSON.TestCollateJSONWrapper(mode, "\"a\""
+				, "\"A\""));
+			NUnit.Framework.Assert.AreEqual(-1, TDCollateJSON.TestCollateJSONWrapper(mode, "\"A\""
+				, "\"aa\""));
+			NUnit.Framework.Assert.AreEqual(1, TDCollateJSON.TestCollateJSONWrapper(mode, "\"B\""
+				, "\"aa\""));
 		}
 
 		public virtual void TestCollateASCII()
 		{
 			int mode = kTDCollateJSON_ASCII;
-			NUnit.Framework.Assert.AreEqual(1, TDCollateJSON.TestCollateJSON(mode, 0, "true", 
-				0, "false"));
-			NUnit.Framework.Assert.AreEqual(-1, TDCollateJSON.TestCollateJSON(mode, 0, "false"
-				, 0, "true"));
-			NUnit.Framework.Assert.AreEqual(-1, TDCollateJSON.TestCollateJSON(mode, 0, "null"
-				, 0, "17"));
-			NUnit.Framework.Assert.AreEqual(1, TDCollateJSON.TestCollateJSON(mode, 0, "123", 
-				0, "1"));
-			NUnit.Framework.Assert.AreEqual(0, TDCollateJSON.TestCollateJSON(mode, 0, "123", 
-				0, "0123.0"));
-			NUnit.Framework.Assert.AreEqual(-1, TDCollateJSON.TestCollateJSON(mode, 0, "123", 
-				0, "\"123\""));
-			NUnit.Framework.Assert.AreEqual(1, TDCollateJSON.TestCollateJSON(mode, 0, "\"1234\""
-				, 0, "\"123\""));
-			NUnit.Framework.Assert.AreEqual(-1, TDCollateJSON.TestCollateJSON(mode, 0, "\"1234\""
-				, 0, "\"1235\""));
-			NUnit.Framework.Assert.AreEqual(0, TDCollateJSON.TestCollateJSON(mode, 0, "\"1234\""
-				, 0, "\"1234\""));
-			NUnit.Framework.Assert.AreEqual(0, TDCollateJSON.TestCollateJSON(mode, 0, "\"12\\/34\""
-				, 0, "\"12/34\""));
-			NUnit.Framework.Assert.AreEqual(0, TDCollateJSON.TestCollateJSON(mode, 0, "\"\\/1234\""
-				, 0, "\"/1234\""));
-			NUnit.Framework.Assert.AreEqual(0, TDCollateJSON.TestCollateJSON(mode, 0, "\"1234\\/\""
-				, 0, "\"1234/\""));
-			NUnit.Framework.Assert.AreEqual(-1, TDCollateJSON.TestCollateJSON(mode, 0, "\"A\""
-				, 0, "\"a\""));
-			NUnit.Framework.Assert.AreEqual(-1, TDCollateJSON.TestCollateJSON(mode, 0, "\"B\""
-				, 0, "\"a\""));
+			NUnit.Framework.Assert.AreEqual(1, TDCollateJSON.TestCollateJSONWrapper(mode, "true"
+				, "false"));
+			NUnit.Framework.Assert.AreEqual(-1, TDCollateJSON.TestCollateJSONWrapper(mode, "false"
+				, "true"));
+			NUnit.Framework.Assert.AreEqual(-1, TDCollateJSON.TestCollateJSONWrapper(mode, "null"
+				, "17"));
+			NUnit.Framework.Assert.AreEqual(1, TDCollateJSON.TestCollateJSONWrapper(mode, "123"
+				, "1"));
+			NUnit.Framework.Assert.AreEqual(0, TDCollateJSON.TestCollateJSONWrapper(mode, "123"
+				, "0123.0"));
+			NUnit.Framework.Assert.AreEqual(-1, TDCollateJSON.TestCollateJSONWrapper(mode, "123"
+				, "\"123\""));
+			NUnit.Framework.Assert.AreEqual(1, TDCollateJSON.TestCollateJSONWrapper(mode, "\"1234\""
+				, "\"123\""));
+			NUnit.Framework.Assert.AreEqual(-1, TDCollateJSON.TestCollateJSONWrapper(mode, "\"1234\""
+				, "\"1235\""));
+			NUnit.Framework.Assert.AreEqual(0, TDCollateJSON.TestCollateJSONWrapper(mode, "\"1234\""
+				, "\"1234\""));
+			NUnit.Framework.Assert.AreEqual(0, TDCollateJSON.TestCollateJSONWrapper(mode, "\"12\\/34\""
+				, "\"12/34\""));
+			NUnit.Framework.Assert.AreEqual(0, TDCollateJSON.TestCollateJSONWrapper(mode, "\"\\/1234\""
+				, "\"/1234\""));
+			NUnit.Framework.Assert.AreEqual(0, TDCollateJSON.TestCollateJSONWrapper(mode, "\"1234\\/\""
+				, "\"1234/\""));
+			NUnit.Framework.Assert.AreEqual(-1, TDCollateJSON.TestCollateJSONWrapper(mode, "\"A\""
+				, "\"a\""));
+			NUnit.Framework.Assert.AreEqual(-1, TDCollateJSON.TestCollateJSONWrapper(mode, "\"B\""
+				, "\"a\""));
 		}
 
 		public virtual void TestCollateRaw()
 		{
 			int mode = kTDCollateJSON_Raw;
-			NUnit.Framework.Assert.AreEqual(1, TDCollateJSON.TestCollateJSON(mode, 0, "false"
-				, 0, "17"));
-			NUnit.Framework.Assert.AreEqual(-1, TDCollateJSON.TestCollateJSON(mode, 0, "false"
-				, 0, "true"));
-			NUnit.Framework.Assert.AreEqual(-1, TDCollateJSON.TestCollateJSON(mode, 0, "null"
-				, 0, "true"));
-			NUnit.Framework.Assert.AreEqual(-1, TDCollateJSON.TestCollateJSON(mode, 0, "[\"A\"]"
-				, 0, "\"A\""));
-			NUnit.Framework.Assert.AreEqual(-1, TDCollateJSON.TestCollateJSON(mode, 0, "\"A\""
-				, 0, "\"a\""));
-			NUnit.Framework.Assert.AreEqual(-1, TDCollateJSON.TestCollateJSON(mode, 0, "[\"b\"]"
-				, 0, "[\"b\",\"c\",\"a\"]"));
+			NUnit.Framework.Assert.AreEqual(1, TDCollateJSON.TestCollateJSONWrapper(mode, "false"
+				, "17"));
+			NUnit.Framework.Assert.AreEqual(-1, TDCollateJSON.TestCollateJSONWrapper(mode, "false"
+				, "true"));
+			NUnit.Framework.Assert.AreEqual(-1, TDCollateJSON.TestCollateJSONWrapper(mode, "null"
+				, "true"));
+			NUnit.Framework.Assert.AreEqual(-1, TDCollateJSON.TestCollateJSONWrapper(mode, "[\"A\"]"
+				, "\"A\""));
+			NUnit.Framework.Assert.AreEqual(-1, TDCollateJSON.TestCollateJSONWrapper(mode, "\"A\""
+				, "\"a\""));
+			NUnit.Framework.Assert.AreEqual(-1, TDCollateJSON.TestCollateJSONWrapper(mode, "[\"b\"]"
+				, "[\"b\",\"c\",\"a\"]"));
 		}
 
 		public virtual void TestCollateArrays()
 		{
 			int mode = kTDCollateJSON_Unicode;
-			NUnit.Framework.Assert.AreEqual(1, TDCollateJSON.TestCollateJSON(mode, 0, "[]", 0
+			NUnit.Framework.Assert.AreEqual(1, TDCollateJSON.TestCollateJSONWrapper(mode, "[]"
 				, "\"foo\""));
-			NUnit.Framework.Assert.AreEqual(0, TDCollateJSON.TestCollateJSON(mode, 0, "[]", 0
+			NUnit.Framework.Assert.AreEqual(0, TDCollateJSON.TestCollateJSONWrapper(mode, "[]"
 				, "[]"));
-			NUnit.Framework.Assert.AreEqual(0, TDCollateJSON.TestCollateJSON(mode, 0, "[true]"
-				, 0, "[true]"));
-			NUnit.Framework.Assert.AreEqual(1, TDCollateJSON.TestCollateJSON(mode, 0, "[false]"
-				, 0, "[null]"));
-			NUnit.Framework.Assert.AreEqual(-1, TDCollateJSON.TestCollateJSON(mode, 0, "[]", 
-				0, "[null]"));
-			NUnit.Framework.Assert.AreEqual(1, TDCollateJSON.TestCollateJSON(mode, 0, "[123]"
-				, 0, "[45]"));
-			NUnit.Framework.Assert.AreEqual(1, TDCollateJSON.TestCollateJSON(mode, 0, "[123]"
-				, 0, "[45,67]"));
-			NUnit.Framework.Assert.AreEqual(1, TDCollateJSON.TestCollateJSON(mode, 0, "[123.4,\"wow\"]"
-				, 0, "[123.40,789]"));
+			NUnit.Framework.Assert.AreEqual(0, TDCollateJSON.TestCollateJSONWrapper(mode, "[true]"
+				, "[true]"));
+			NUnit.Framework.Assert.AreEqual(1, TDCollateJSON.TestCollateJSONWrapper(mode, "[false]"
+				, "[null]"));
+			NUnit.Framework.Assert.AreEqual(-1, TDCollateJSON.TestCollateJSONWrapper(mode, "[]"
+				, "[null]"));
+			NUnit.Framework.Assert.AreEqual(1, TDCollateJSON.TestCollateJSONWrapper(mode, "[123]"
+				, "[45]"));
+			NUnit.Framework.Assert.AreEqual(1, TDCollateJSON.TestCollateJSONWrapper(mode, "[123]"
+				, "[45,67]"));
+			NUnit.Framework.Assert.AreEqual(1, TDCollateJSON.TestCollateJSONWrapper(mode, "[123.4,\"wow\"]"
+				, "[123.40,789]"));
 		}
 
 		public virtual void TestCollateNestedArray()
 		{
 			int mode = kTDCollateJSON_Unicode;
-			NUnit.Framework.Assert.AreEqual(1, TDCollateJSON.TestCollateJSON(mode, 0, "[[]]", 
-				0, "[]"));
-			NUnit.Framework.Assert.AreEqual(-1, TDCollateJSON.TestCollateJSON(mode, 0, "[1,[2,3],4]"
-				, 0, "[1,[2,3.1],4,5,6]"));
+			NUnit.Framework.Assert.AreEqual(1, TDCollateJSON.TestCollateJSONWrapper(mode, "[[]]"
+				, "[]"));
+			NUnit.Framework.Assert.AreEqual(-1, TDCollateJSON.TestCollateJSONWrapper(mode, "[1,[2,3],4]"
+				, "[1,[2,3.1],4,5,6]"));
 		}
 
 		public virtual void TestCollateUnicodeStrings()
 		{
 			int mode = kTDCollateJSON_Unicode;
-			NUnit.Framework.Assert.AreEqual(0, TDCollateJSON.TestCollateJSON(mode, 0, Encode(
-				"frÔøΩd"), 0, Encode("frÔøΩd")));
-			// Assert.assertEquals(1, TDCollateJSON.testCollateJSON(mode, 0, encode("ÔøΩmÔøΩ"), 0, encode("omo")));
-			NUnit.Framework.Assert.AreEqual(-1, TDCollateJSON.TestCollateJSON(mode, 0, Encode
-				("\t"), 0, Encode(" ")));
-			NUnit.Framework.Assert.AreEqual(-1, TDCollateJSON.TestCollateJSON(mode, 0, Encode
-				("\x1"), 0, Encode(" ")));
+			NUnit.Framework.Assert.AreEqual(0, TDCollateJSON.TestCollateJSONWrapper(mode, Encode
+				("frÔøΩd"), Encode("frÔøΩd")));
+			// Assert.assertEquals(1, TDCollateJSON.testCollateJSONWrapper(mode, encode("ÔøΩmÔøΩ"), encode("omo")));
+			NUnit.Framework.Assert.AreEqual(-1, TDCollateJSON.TestCollateJSONWrapper(mode, Encode
+				("\t"), Encode(" ")));
+			NUnit.Framework.Assert.AreEqual(-1, TDCollateJSON.TestCollateJSONWrapper(mode, Encode
+				("\x1"), Encode(" ")));
 		}
 
 		public virtual void TestConvertEscape()
@@ -220,6 +212,44 @@ namespace Couchbase.Lite
 				('c'));
 			NUnit.Framework.Assert.AreEqual(unchecked((int)(0xc)), TDCollateJSON.TestDigitToInt
 				('C'));
+		}
+
+		public virtual void TestCollateRevIds()
+		{
+			NUnit.Framework.Assert.AreEqual(RevCollator.TestCollateRevIds("1-foo", "1-foo"), 
+				0);
+			NUnit.Framework.Assert.AreEqual(RevCollator.TestCollateRevIds("2-bar", "1-foo"), 
+				1);
+			NUnit.Framework.Assert.AreEqual(RevCollator.TestCollateRevIds("1-foo", "2-bar"), 
+				-1);
+			// Multi-digit:
+			NUnit.Framework.Assert.AreEqual(RevCollator.TestCollateRevIds("123-bar", "456-foo"
+				), -1);
+			NUnit.Framework.Assert.AreEqual(RevCollator.TestCollateRevIds("456-foo", "123-bar"
+				), 1);
+			NUnit.Framework.Assert.AreEqual(RevCollator.TestCollateRevIds("456-foo", "456-foo"
+				), 0);
+			NUnit.Framework.Assert.AreEqual(RevCollator.TestCollateRevIds("456-foo", "456-foofoo"
+				), -1);
+			// Different numbers of digits:
+			NUnit.Framework.Assert.AreEqual(RevCollator.TestCollateRevIds("89-foo", "123-bar"
+				), -1);
+			NUnit.Framework.Assert.AreEqual(RevCollator.TestCollateRevIds("123-bar", "89-foo"
+				), 1);
+			// Edge cases:
+			NUnit.Framework.Assert.AreEqual(RevCollator.TestCollateRevIds("123-", "89-"), 1);
+			NUnit.Framework.Assert.AreEqual(RevCollator.TestCollateRevIds("123-a", "123-a"), 
+				0);
+			// Invalid rev IDs:
+			NUnit.Framework.Assert.AreEqual(RevCollator.TestCollateRevIds("-a", "-b"), -1);
+			NUnit.Framework.Assert.AreEqual(RevCollator.TestCollateRevIds("-", "-"), 0);
+			NUnit.Framework.Assert.AreEqual(RevCollator.TestCollateRevIds(string.Empty, string.Empty
+				), 0);
+			NUnit.Framework.Assert.AreEqual(RevCollator.TestCollateRevIds(string.Empty, "-b")
+				, -1);
+			NUnit.Framework.Assert.AreEqual(RevCollator.TestCollateRevIds("bogus", "yo"), -1);
+			NUnit.Framework.Assert.AreEqual(RevCollator.TestCollateRevIds("bogus-x", "yo-y"), 
+				-1);
 		}
 	}
 }
