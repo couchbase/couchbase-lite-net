@@ -3634,7 +3634,7 @@ PRAGMA user_version = 3;";
                                                              BadAttachment);
                         }
 
-                        var revPos = ((long)attachInfo.Get("revpos"));
+                        var revPos = ((int)attachInfo.Get("revpos"));
                         if (revPos <= 0)
                         {
                             throw new CouchbaseLiteException("Invalid revpos: " + revPos, StatusCode.BadAttachment
@@ -3666,7 +3666,7 @@ PRAGMA user_version = 3;";
                 }
                 if (attachInfo.ContainsKey("revpos"))
                 {
-                    var revpos = (long)attachInfo.Get("revpos");
+                    var revpos = (int)attachInfo.Get("revpos");
                     attachment.SetRevpos((int)revpos);
                 }
                 else
