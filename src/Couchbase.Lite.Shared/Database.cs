@@ -3666,8 +3666,8 @@ PRAGMA user_version = 3;";
                 }
                 if (attachInfo.ContainsKey("revpos"))
                 {
-                    var revpos = (long)attachInfo.Get("revpos");
-                    attachment.SetRevpos((int)revpos);
+                    var revpos = Convert.ToInt32(attachInfo.Get("revpos"));
+                    attachment.SetRevpos(revpos);
                 }
                 else
                 {
