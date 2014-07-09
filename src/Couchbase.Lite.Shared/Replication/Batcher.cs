@@ -118,7 +118,7 @@ namespace Couchbase.Lite.Support
 
 		public void ProcessNow()
 		{
-            Log.D(Tag, this + ": processNow() called");
+            Log.V(Tag, this + ": processNow() called");
 
             scheduled = false;
 
@@ -127,11 +127,12 @@ namespace Couchbase.Lite.Support
 			{
 				if (inbox == null || inbox.Count == 0)
 				{
-                    Log.D(Tag, this + ": processNow() called, but inbox is empty");
+                    Log.V(Tag, this + ": processNow() called, but inbox is empty");
 					return;
 				}
                 else if (inbox.Count <= capacity)
                 {
+                    Log.V(Tag, this + ": inbox size <= capacity, adding " + inbox.Count + " items from inbox -> toProcess");
                     toProcess.AddRange(inbox);
                     inbox = null;
                 }
@@ -182,7 +183,7 @@ namespace Couchbase.Lite.Support
 		{
             lock (locker)
             {
-                Log.D(Tag, "queuObjects called with " + objects.Count + " objects. ");
+                Log.V(Tag, this + ": queuObjects called with " + objects.Count + " objects");
 
                 if (objects == null || objects.Count == 0)
                 {
@@ -194,7 +195,7 @@ namespace Couchbase.Lite.Support
                     inbox = new List<T>();
                 }
 
-                Log.D(Tag, "inbox size before adding objects: " + inbox.Count);
+                Log.V(Tag, this + ": inbox size before adding objects: " + inbox.Count);
                 foreach (T item in objects)
                 {
                     inbox.Add(item);
@@ -252,6 +253,7 @@ namespace Couchbase.Lite.Support
         public void Clear()
 		{
             lock (locker) {
+                Log.V(Tag, this + ": clear() called, setting inbox to null");
                 Unschedule();
                 if (inbox != null) {
                     inbox.Clear();
@@ -262,11 +264,11 @@ namespace Couchbase.Lite.Support
 
         private void ScheduleWithDelay(Int32 suggestedDelay)
         {
-            Log.V(Tag, "scheduleWithDelay called with delay: " + suggestedDelay + " ms");
+            Log.V(Tag, this + ": scheduleWithDelay called with delay: " + suggestedDelay + " ms");
 
             if (scheduled && (suggestedDelay < scheduledDelay))
             {
-                Log.D(Tag, "already scheduled and : " + suggestedDelay + " < " + scheduledDelay + " --> unscheduling");
+                Log.V(Tag, "already scheduled and : " + suggestedDelay + " < " + scheduledDelay + " --> unscheduling");
                 Unschedule();
             }
 
@@ -293,16 +295,23 @@ namespace Couchbase.Lite.Support
 
         private void Unschedule()
         {
-            Log.D(Tag, this + ": unschedule() called");
+            Log.V(Tag, this + ": unschedule() called");
             scheduled = false;
             if (cancellationSource != null && flushFuture != null)
             {
-                try 
+                try
                 {
                     cancellationSource.Cancel(true);
+                }
+                catch (Exception)
+                {
+                    // Swallow it.
                 } 
-                catch (Exception) { } // Swallow it.
-                Log.D(Tag, "tried to cancel flushFuture.");
+                Log.V(Tag, this + ": cancallationSource.Cancel() called");
+            }
+            else
+            {
+                Log.V(Tag, this + ": cancellationSource or flushFutre was null, doing nothing");
             }
         }
 
