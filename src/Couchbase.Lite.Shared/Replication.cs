@@ -817,9 +817,9 @@ namespace Couchbase.Lite
             }
             message.Headers.Add("Accept", new[] { "multipart/related", "application/json" });
 
-            PreemptivelySetAuthCredentials(message);
+            ICredentials credentials = AuthUtils.GetCredentialsIfAvailable (Authenticator, message);
+            var client = clientFactory.GetHttpClient(credentials);
 
-            var client = clientFactory.GetHttpClient();
             client.SendAsync(message, HttpCompletionOption.ResponseHeadersRead, CancellationTokenSource.Token)
                 .ContinueWith(response =>
                 {
@@ -874,35 +874,6 @@ namespace Couchbase.Lite
             requests.Add(client);
         }
 
-        void PreemptivelySetAuthCredentials (HttpRequestMessage message)
-        {
-            // FIXME Not sure we actually need this, since our handler should do it.. Will find out in tests.
-
-            // if the URL contains user info AND if this a DefaultHttpClient
-            // then preemptively set the auth credentials
-//            if (url.GetUserInfo() != null)
-//            {
-//                if (url.GetUserInfo().Contains(":") && !url.GetUserInfo().Trim().Equals(":"))
-//                {
-//                    string[] userInfoSplit = url.GetUserInfo().Split(":");
-//                    Credentials creds = new UsernamePasswordCredentials(URIUtils.Decode(userInfoSplit
-//                        [0]), URIUtils.Decode(userInfoSplit[1]));
-//                    if (httpClient is DefaultHttpClient)
-//                    {
-//                        DefaultHttpClient dhc = (DefaultHttpClient)httpClient;
-//                        IHttpRequestInterceptor preemptiveAuth = new _IHttpRequestInterceptor_167(creds);
-//                        dhc.AddRequestInterceptor(preemptiveAuth, 0);
-//                    }
-//                }
-//                else
-//                {
-//                    Log.W(Tag, "RemoteRequest Unable to parse user info, not setting credentials"
-//                    );
-//                }
-//            }
-
-        }
-
         private void AddRequestHeaders(HttpRequestMessage request)
         {
             foreach (string requestHeaderKey in RequestHeaders.Keys)
@@ -922,8 +893,10 @@ namespace Couchbase.Lite
                 message.Headers.Add("Accept", "*/*");
                 AddRequestHeaders(message);
 
-                var httpClient = clientFactory.GetHttpClient();
-                httpClient.SendAsync(message, HttpCompletionOption.ResponseHeadersRead, CancellationTokenSource.Token).ContinueWith(new Action<Task<HttpResponseMessage>>(responseMessage => 
+                ICredentials credentials = AuthUtils.GetCredentialsIfAvailable (Authenticator, message);
+                var client = clientFactory.GetHttpClient(credentials);
+
+                client.SendAsync(message, HttpCompletionOption.ResponseHeadersRead, CancellationTokenSource.Token).ContinueWith(new Action<Task<HttpResponseMessage>>(responseMessage => 
                 {
                     object fullBody = null;
                     Exception error = null;
@@ -1058,9 +1031,8 @@ namespace Couchbase.Lite
             message.Content = multiPartEntity;
             message.Headers.Add("Accept", "*/*");
 
-            PreemptivelySetAuthCredentials(message);
-
-            var client = clientFactory.GetHttpClient();
+            ICredentials credentials = AuthUtils.GetCredentialsIfAvailable (Authenticator, message);
+            var client = clientFactory.GetHttpClient(credentials);
 
             client.SendAsync(message, HttpCompletionOption.ResponseHeadersRead, CancellationTokenSource.Token)
                 .ContinueWith(response=> {
