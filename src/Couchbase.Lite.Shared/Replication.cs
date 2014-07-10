@@ -14,10 +14,10 @@
 // distribute, sublicense, and/or sell copies of the Software, and to
 // permit persons to whom the Software is furnished to do so, subject to
 // the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be
 // included in all copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
 // EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
 // MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
@@ -85,7 +85,7 @@ namespace Couchbase.Lite
     /// <item>
     /// <term>Idle</term>
     /// <description>
-    /// The continuous <see cref="Couchbase.Lite.Replication"/> is caught up and 
+    /// The continuous <see cref="Couchbase.Lite.Replication"/> is caught up and
     /// waiting for more changes.
     /// </description>
     /// </item>
@@ -94,7 +94,7 @@ namespace Couchbase.Lite
     /// <description>
     /// The <see cref="Couchbase.Lite.Replication"/> is actively transferring data.
     /// </description>
-    /// </item>    
+    /// </item>
     /// </list>
     /// </summary>
     public enum ReplicationStatus {
@@ -107,10 +107,10 @@ namespace Couchbase.Lite
     #endregion
 
     /// <summary>
-    /// A Couchbase Lite pull or push <see cref="Couchbase.Lite.Replication"/> 
+    /// A Couchbase Lite pull or push <see cref="Couchbase.Lite.Replication"/>
     /// between a local and a remote <see cref="Couchbase.Lite.Database"/>.
     /// </summary>
-    public abstract partial class Replication 
+    public abstract partial class Replication
     {
 
     #region Constants
@@ -184,15 +184,15 @@ namespace Couchbase.Lite
                 }
             }
 
-            Batcher = new Batcher<RevisionInternal>(workExecutor, InboxCapacity, ProcessorDelay, 
-                inbox => 
+            Batcher = new Batcher<RevisionInternal>(workExecutor, InboxCapacity, ProcessorDelay,
+                inbox =>
                 {
                     Log.V (Tag, "*** " + this + ": BEGIN processInbox (" + inbox.Count + " sequences)");
                     ProcessInbox (new RevisionList (inbox));
                     Log.V (Tag, "*** " + this.ToString () + ": END processInbox (lastSequence=" + LastSequence);
                     UpdateActive();
                 }, CancellationTokenSource);
-                
+
             SetClientFactory(clientFactory);
         }
 
@@ -222,10 +222,10 @@ namespace Couchbase.Lite
         protected internal Boolean lastSequenceChanged;
 
         private String lastSequence;
-        protected internal String LastSequence 
+        protected internal String LastSequence
         {
             get { return lastSequence; }
-            set 
+            set
             {
                 if (value != null && !value.Equals(lastSequence))
                 {
@@ -236,7 +236,7 @@ namespace Couchbase.Lite
                     {
                         lastSequenceChanged = true;
                         Task.Delay(SaveLastSequenceDelay)
-                            .ContinueWith(task => 
+                            .ContinueWith(task =>
                             {
                                 SaveLastSequence();
                             });
@@ -259,12 +259,12 @@ namespace Couchbase.Lite
 
         internal IAuthenticator Authenticator { get; set; }
 
-        internal CookieContainer CookieContainer 
-        { 
-            get 
-            { 
+        internal CookieContainer CookieContainer
+        {
+            get
+            {
                 return clientFactory.GetCookieContainer();
-            } 
+            }
         }
 
         internal Batcher<RevisionInternal> Batcher { get; set; }
@@ -289,22 +289,22 @@ namespace Couchbase.Lite
             else
             {
                 Manager manager = null;
-                if (LocalDatabase != null) 
+                if (LocalDatabase != null)
                 {
                     manager = LocalDatabase.Manager;
                 }
 
                 IHttpClientFactory managerClientFactory = null;
-                if (manager != null) 
+                if (manager != null)
                 {
                     managerClientFactory = manager.DefaultHttpClientFactory;
                 }
 
-                if (managerClientFactory != null) 
+                if (managerClientFactory != null)
                 {
                     this.clientFactory = managerClientFactory;
-                } 
-                else 
+                }
+                else
                 {
                     CookieStore cookieStore = null;
                     if (manager != null)
@@ -335,7 +335,7 @@ namespace Couchbase.Lite
             LocalDatabase.Manager.CapturedContext.StartNew(()=>evt(this, args));
         }
 
-        //TODO: Do we need this method? It's not in the API Spec.
+        // This method will be used by Router.
         internal bool GoOffline()
         {
             if (!online)
@@ -343,18 +343,21 @@ namespace Couchbase.Lite
                 return false;
             }
 
-            Log.D(Tag, this + ": Going offline");
-            online = false;
+            LocalDatabase.Manager.RunAsync(() =>
+            {
+                Log.D(Tag, this + ": Going offline");
+                online = false;
 
-            StopRemoteRequests();
+                StopRemoteRequests();
 
-            UpdateProgress();
-            NotifyChangeListeners();
+                UpdateProgress();
+                NotifyChangeListeners();
+            });
 
             return true;
         }
 
-        //TODO: Do we need this method? It's not in the API Spec.
+        // This method will be used by Router.
         internal bool GoOnline()
         {
             if (online)
@@ -362,16 +365,19 @@ namespace Couchbase.Lite
                 return false;
             }
 
-            Log.D(Tag, this + ": Going online");
-            online = true;
-            if (IsRunning)
+            LocalDatabase.Manager.RunAsync(() =>
             {
-                lastSequence = null;
-                LastError = null;
-            }
+                Log.D(Tag, this + ": Going online");
+                online = true;
+                if (IsRunning)
+                {
+                    lastSequence = null;
+                    LastError = null;
+                }
 
-            CheckSession();
-            NotifyChangeListeners();
+                CheckSession();
+                NotifyChangeListeners();
+            });
 
             return true;
         }
@@ -383,11 +389,6 @@ namespace Couchbase.Lite
             {
                 client.CancelPendingRequests();
             }
-//
-//            while(requests.Count > 0)
-//            {
-//                System.Threading.Thread.Sleep(100);
-//            }
         }
 
         internal void UpdateProgress()
@@ -481,7 +482,7 @@ namespace Couchbase.Lite
                             Login ();
                         }
                     }
-                } 
+                }
                 finally
                 {
                     Log.D(Tag, this + "|" + Sharpen.Thread.CurrentThread() + ": checkSessionAtPath() calling asyncTaskFinished()");
@@ -508,12 +509,12 @@ namespace Couchbase.Lite
             SendAsyncRequest(HttpMethod.Post, loginPath, loginParameters, (result, e) => {
                 try
                 {
-                    if (e != null) 
+                    if (e != null)
                     {
                         Log.D (Tag, string.Format ("{0}: Login failed for path: {1}", this, loginPath));
                         LastError = e;
                     }
-                    else 
+                    else
                     {
                         Log.D (Tag, string.Format ("{0}: Successfully logged in!", this));
                         FetchRemoteCheckpointDoc ();
@@ -552,7 +553,7 @@ namespace Couchbase.Lite
                             var responseData = (JObject)response;
                             result = responseData.ToObject<IDictionary<string, object>>();
                             remoteCheckpoint = result;
-                        } 
+                        }
                         remoteCheckpoint = result;
                         string remoteLastSequence = null;
 
@@ -633,30 +634,30 @@ namespace Couchbase.Lite
         {
             try {
                 var batcherCount = 0;
-                if (Batcher != null) 
+                if (Batcher != null)
                 {
                     batcherCount = Batcher.Count();
                 }
-                else 
+                else
                 {
                     Log.W(Tag, this + ": batcher object is null");
                 }
 
                 var newActive = batcherCount > 0 || asyncTaskCount > 0;
-                if (active != newActive) 
+                if (active != newActive)
                 {
                     Log.D(Tag, this + " Progress: set active = " + newActive + " asyncTaskCount: " + asyncTaskCount + " batcherCount: " + batcherCount );
                     active = newActive;
                     NotifyChangeListeners();
 
-                    if (!active) 
+                    if (!active)
                     {
-                        if (!continuous) 
+                        if (!continuous)
                         {
                             Log.D(Tag, this + " since !continuous, calling stopped()");
                             Stopped();
-                        } 
-                        else if (LastError != null) /*(revisionsFailed > 0)*/ 
+                        }
+                        else if (LastError != null) /*(revisionsFailed > 0)*/
                         {
                             string msg = string.Format("{0}: Failed to xfer {1} revisions, will retry in {2} sec", this, revisionsFailed, RetryDelay);
                             Log.D(Tag, msg);
@@ -666,8 +667,8 @@ namespace Couchbase.Lite
 
                     }
                 }
-            } 
-            catch (Exception e) 
+            }
+            catch (Exception e)
             {
                 Log.E(Tag, "Exception in updateActive()", e);
             }
@@ -722,7 +723,7 @@ namespace Couchbase.Lite
             //Log.D(Tag, this + " put remote _local document.  checkpointID: " + remoteCheckpointDocID);
             SendAsyncRequest(HttpMethod.Put, "/_local/" + remoteCheckpointDocID, body, (result, e) => {
                 savingCheckpoint = false;
-                if (e != null) 
+                if (e != null)
                 {
                     Log.V (Tag, this + ": Unable to save remote checkpoint", e);
                 }
@@ -756,7 +757,7 @@ namespace Couchbase.Lite
                             }
                     }
                 }
-                else 
+                else
                 {
                     var response = ((JObject)result).ToObject<IDictionary<string, object>>();
                     body.Put ("_rev", response.Get ("rev"));
@@ -829,7 +830,7 @@ namespace Couchbase.Lite
                         Exception error = null;
                         object fullBody = null;
 
-                        try 
+                        try
                         {
                             if (response.Status != TaskStatus.RanToCompletion) {
                                 Log.D(Tag, "SendAsyncRequest did not run to completion.", response.Exception);
@@ -838,12 +839,12 @@ namespace Couchbase.Lite
                             error = error is AggregateException
                                 ? response.Exception.Flatten()
                                 : response.Exception;
-                            
+
                             if (error == null && !response.Result.IsSuccessStatusCode)
                             {
-                                error = new HttpResponseException(response.Result.StatusCode); 
+                                error = new HttpResponseException(response.Result.StatusCode);
                             }
-                            
+
                             if (error == null)
                             {
                                 var content = response.Result.Content;
@@ -896,7 +897,7 @@ namespace Couchbase.Lite
                 ICredentials credentials = AuthUtils.GetCredentialsIfAvailable (Authenticator, message);
                 var client = clientFactory.GetHttpClient(credentials);
 
-                client.SendAsync(message, HttpCompletionOption.ResponseHeadersRead, CancellationTokenSource.Token).ContinueWith(new Action<Task<HttpResponseMessage>>(responseMessage => 
+                client.SendAsync(message, HttpCompletionOption.ResponseHeadersRead, CancellationTokenSource.Token).ContinueWith(new Action<Task<HttpResponseMessage>>(responseMessage =>
                 {
                     object fullBody = null;
                     Exception error = null;
@@ -905,7 +906,7 @@ namespace Couchbase.Lite
                         var response = responseMessage.Result;
                         // add in cookies to global store
                         //CouchbaseLiteHttpClientFactory.Instance.AddCookies(clientFactory.HttpHandler.CookieContainer.GetCookies(url));
-                               
+
                         var status = response.StatusCode;
                         if ((Int32)status.GetStatusCode() >= 300)
                         {
@@ -928,12 +929,12 @@ namespace Couchbase.Lite
                                     reader.SetContentType(contentType);
 
                                     var inputStreamTask = entity.ReadAsStreamAsync();
-                                    inputStreamTask.Wait(90000, CancellationTokenSource.Token);    
+                                    inputStreamTask.Wait(90000, CancellationTokenSource.Token);
                                     inputStream = inputStreamTask.Result;
-                                    
+
                                     const int bufLen = 1024;
                                     var buffer = new byte[bufLen];
-                                    
+
                                     int numBytesRead = 0;
                                     while ((numBytesRead = inputStream.Read(buffer)) != -1)
                                     {
@@ -957,13 +958,13 @@ namespace Couchbase.Lite
                                 catch (Exception ex)
                                 {
                                     Log.E(Tag, "SendAsyncMultipartDownloaderRequest has an error occurred.", ex);
-                                }   
+                                }
                                 finally
                                 {
                                     try
-                                    { 
-                                        inputStream.Close(); 
-                                    } 
+                                    {
+                                        inputStream.Close();
+                                    }
                                     catch (Exception) { }
                                 }
                             }
@@ -1164,7 +1165,7 @@ namespace Couchbase.Lite
                         SaveLastSequence();
                     }
 
-                } 
+                }
                 finally
                 {
                     AsyncTaskFinished(1);
@@ -1197,7 +1198,7 @@ namespace Couchbase.Lite
             {
                 return;
             }
-                
+
             if (online)
             {
                 Log.D(Tag, this + " RETRYING, to transfer missed revisions...");
@@ -1223,15 +1224,15 @@ namespace Couchbase.Lite
         {
             RetryIfReadyTokenSource = new CancellationTokenSource();
             RetryIfReadyTask = Task.Delay(RetryDelay * 1000)
-                .ContinueWith(task => 
+                .ContinueWith(task =>
                 {
                     if (RetryIfReadyTokenSource != null && !RetryIfReadyTokenSource.IsCancellationRequested)
                         RetryIfReady();
                 }, RetryIfReadyTokenSource.Token);
         }
-            
+
     #endregion
-    
+
     #region Instance Members
 
         /// <summary>
@@ -1247,41 +1248,41 @@ namespace Couchbase.Lite
         public Uri RemoteUrl { get; private set; }
 
         /// <summary>
-        /// Gets whether the <see cref="Couchbase.Lite.Replication"/> pulls from, 
+        /// Gets whether the <see cref="Couchbase.Lite.Replication"/> pulls from,
         /// as opposed to pushes to, the target.
         /// </summary>
         /// <value>
-        /// <c>true</c> if the <see cref="Couchbase.Lite.Replication"/> 
+        /// <c>true</c> if the <see cref="Couchbase.Lite.Replication"/>
         /// is pull; otherwise, <c>false</c>.
         /// </value>
         public abstract Boolean IsPull { get; }
 
         /// <summary>
-        /// Gets or sets whether the target <see cref="Couchbase.Lite.Database"/> should be created 
+        /// Gets or sets whether the target <see cref="Couchbase.Lite.Database"/> should be created
         /// if it doesn't already exist. This only has an effect if the target supports it.
         /// </summary>
-        /// <value><c>true</c> if the target <see cref="Couchbase.Lite.Database"/> should be created if 
+        /// <value><c>true</c> if the target <see cref="Couchbase.Lite.Database"/> should be created if
         /// it doesn't already exist; otherwise, <c>false</c>.</value>
         public abstract Boolean CreateTarget { get; set; }
 
         /// <summary>
-        /// Gets or sets whether the <see cref="Couchbase.Lite.Replication"/> operates continuously, 
+        /// Gets or sets whether the <see cref="Couchbase.Lite.Replication"/> operates continuously,
         /// replicating changes as the source <see cref="Couchbase.Lite.Database"/> is modified.
         /// </summary>
         /// <value><c>true</c> if continuous; otherwise, <c>false</c>.</value>
-        public Boolean Continuous 
-        { 
+        public Boolean Continuous
+        {
             get { return continuous; }
             set { if (!IsRunning) continuous = value; }
         }
 
         /// <summary>
-        /// Gets or sets the name of an optional filter function to run on the source 
-        /// <see cref="Couchbase.Lite.Database"/>. Only documents for which the function 
+        /// Gets or sets the name of an optional filter function to run on the source
+        /// <see cref="Couchbase.Lite.Database"/>. Only documents for which the function
         /// returns true are replicated.
         /// </summary>
         /// <value>
-        /// The name of an optional filter function to run on the source 
+        /// The name of an optional filter function to run on the source
         /// <see cref="Couchbase.Lite.Database"/>.
         /// </value>
         public String Filter { get; set; }
@@ -1296,22 +1297,22 @@ namespace Couchbase.Lite
         /// Gets or sets the list of Sync Gateway channel names to filter by for pull <see cref="Couchbase.Lite.Replication"/>.
         /// </summary>
         /// <remarks>
-        /// Gets or sets the list of Sync Gateway channel names to filter by for pull <see cref="Couchbase.Lite.Replication"/>. 
-        /// A null value means no filtering, and all available channels will be replicated. 
-        /// Only valid for pull replications whose source database is on a Couchbase Sync Gateway server. 
+        /// Gets or sets the list of Sync Gateway channel names to filter by for pull <see cref="Couchbase.Lite.Replication"/>.
+        /// A null value means no filtering, and all available channels will be replicated.
+        /// Only valid for pull replications whose source database is on a Couchbase Sync Gateway server.
         /// This is a convenience property that just sets the values of filter and filterParams.
         /// </remarks>
         /// <value>The list of Sync Gateway channel names to filter by for pull <see cref="Couchbase.Lite.Replication"/>.</value>
-        public IEnumerable<String> Channels { 
-            get 
-            { 
+        public IEnumerable<String> Channels {
+            get
+            {
                 if (FilterParams == null || FilterParams.IsEmpty())
                 {
                     return new List<string>();
                 }
 
-                var p = FilterParams.ContainsKey(ChannelsQueryParam) 
-                    ? (string)FilterParams[ChannelsQueryParam] 
+                var p = FilterParams.ContainsKey(ChannelsQueryParam)
+                    ? (string)FilterParams[ChannelsQueryParam]
                     : null;
                 if (!IsPull || Filter == null || !Filter.Equals(ByChannelFilterName) || p == null || p.IsEmpty())
                 {
@@ -1321,8 +1322,8 @@ namespace Couchbase.Lite
                 var pArray = p.Split(new Char[] {','});
                 return pArray.ToList<string>();
             }
-            set 
-            {  
+            set
+            {
                 if (value != null && value.Any())
                 {
                     if (!IsPull)
@@ -1341,7 +1342,7 @@ namespace Couchbase.Lite
                     Filter = null;
                     FilterParams = null;
                 }
-            } 
+            }
         }
 
         /// <summary>
@@ -1351,11 +1352,11 @@ namespace Couchbase.Lite
         public abstract IEnumerable<String> DocIds { get; set; }
 
         /// <summary>
-        /// Gets or sets the extra HTTP headers to send in <see cref="Couchbase.Lite.Replication"/> 
+        /// Gets or sets the extra HTTP headers to send in <see cref="Couchbase.Lite.Replication"/>
         /// requests to the remote <see cref="Couchbase.Lite.Database"/>.
         /// </summary>
         /// <value>
-        /// the extra HTTP headers to send in <see cref="Couchbase.Lite.Replication"/> requests 
+        /// the extra HTTP headers to send in <see cref="Couchbase.Lite.Replication"/> requests
         /// to the remote <see cref="Couchbase.Lite.Database"/>.
         /// </value>
         public abstract IDictionary<String, String> Headers { get; set; }
@@ -1367,8 +1368,8 @@ namespace Couchbase.Lite
         public ReplicationStatus Status { get; set; }
 
         /// <summary>
-        /// Gets whether the <see cref="Couchbase.Lite.Replication"/> is running. 
-        /// Continuous <see cref="Couchbase.Lite.Replication"/>s never actually stop, 
+        /// Gets whether the <see cref="Couchbase.Lite.Replication"/> is running.
+        /// Continuous <see cref="Couchbase.Lite.Replication"/>s never actually stop,
         /// instead they go idle waiting for new data to appear.
         /// </summary>
         /// <value>
@@ -1436,7 +1437,7 @@ namespace Couchbase.Lite
             LocalDatabase.AddReplication(this);
             LocalDatabase.AddActiveReplication(this);
             sessionID = string.Format("repl{0:000}", ++lastSessionID);
-            Log.V(Tag, ToString() + " STARTING ...");
+            Log.V(Tag, this + ": STARTING ...");
             IsRunning = true;
             LastSequence = null;
             CheckSession();
@@ -1445,46 +1446,29 @@ namespace Couchbase.Lite
         /// <summary>
         /// Stops the <see cref="Couchbase.Lite.Replication"/>.
         /// </summary>
-        public virtual void Stop() 
+        public virtual void Stop()
         {
             if (!IsRunning)
             {
                 return;
             }
 
-            Log.V(Tag, ToString() + " STOPPING...");
-            Batcher.Clear();
-            // no sense processing any pending changes
+            Log.V(Tag, this + ": STOPPING...");
+            Batcher.Clear(); // no sense processing any pending changes
             continuous = false;
             StopRemoteRequests();
             CancelPendingRetryIfReady();
             LocalDatabase.ForgetReplication(this);
-                
+
             if (IsRunning && asyncTaskCount <= 0)
             {
+                Log.V(Tag, this + ": calling stopped()");
                 Stopped();
-//                var timeout = DateTime.UtcNow + TimeSpan.FromSeconds(5);
-                //System.Threading.Thread.Sleep(TimeSpan.FromSeconds(5));
-//                var spinWait = new SpinWait();
-//                const int maxSpins = 100;
-//                var shouldExit = false;
-//                do
-//                {
-//                    spinWait.Reset();
-//                    while (spinWait.Count < maxSpins)
-//                    {
-//                        if (asyncTaskCount <= 0) {
-//                            shouldExit = true;
-//                            break;
-//                        }
-//                        spinWait.SpinOnce();
-//                    }
-//                } while(!shouldExit && DateTime.UtcNow < timeout);
-//
-//                if (asyncTaskCount > 0)
-//                    throw new InvalidOperationException("Could not stop due to too many outstanding async tasks");
             }
-
+            else
+            {
+                Log.V(Tag, this + ": not calling stopped().  running: " + IsRunning + " asyncTaskCount: " + asyncTaskCount);
+            }
         }
 
         /// <summary>
@@ -1525,8 +1509,8 @@ namespace Couchbase.Lite
         }
 
         /// <summary>
-        /// Adds or Removed a <see cref="Couchbase.Lite.Database"/> change delegate 
-        /// that will be called whenever the <see cref="Couchbase.Lite.Replication"/> 
+        /// Adds or Removed a <see cref="Couchbase.Lite.Database"/> change delegate
+        /// that will be called whenever the <see cref="Couchbase.Lite.Replication"/>
         /// changes.
         /// </summary>
         public event EventHandler<ReplicationChangeEventArgs> Changed;
@@ -1538,7 +1522,7 @@ namespace Couchbase.Lite
         ///
         /// <see cref="Couchbase.Lite.Replication"/> Change Event Arguments.
         ///
-        public class ReplicationChangeEventArgs : EventArgs 
+        public class ReplicationChangeEventArgs : EventArgs
         {
             //Properties
             /// <summary>
@@ -1561,4 +1545,3 @@ namespace Couchbase.Lite
 
 
 }
-

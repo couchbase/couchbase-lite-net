@@ -60,6 +60,7 @@ using Couchbase.Lite.Replicator;
 using Couchbase.Lite.Util;
 using Couchbase.Lite.Tests;
 using Newtonsoft.Json.Linq;
+using System.Threading;
 
 
 namespace Couchbase.Lite.Replicator
@@ -94,7 +95,7 @@ namespace Couchbase.Lite.Replicator
 
                     try
                     {
-                        Thread.Sleep(1000);
+                        System.Threading.Thread.Sleep(1000);
                     }
                     catch (Exception e)
                     {
@@ -194,8 +195,26 @@ namespace Couchbase.Lite.Replicator
             replication.Changed -= observer.Changed;
         }
 
-        private void WorkaroundSyncGatewayRaceCondition() {
-            Thread.Sleep(5 * 1000);
+        private void WorkaroundSyncGatewayRaceCondition() 
+        {
+            System.Threading.Thread.Sleep(5 * 1000);
+        }
+
+        private void PutReplicationOffline(Replication replication)
+        {
+            var doneEvent = new ManualResetEvent(false);
+            replication.Changed += (object sender, ReplicationChangeEventArgs e) => 
+            {
+                if (!e.Source.online)
+                {
+                    doneEvent.Set();
+                }
+            };
+
+            replication.GoOffline();
+
+            var success = doneEvent.WaitOne(TimeSpan.FromSeconds(30));
+            Assert.IsTrue(success);
         }
 
         [SetUp]
@@ -560,7 +579,7 @@ namespace Couchbase.Lite.Replicator
             // updating all status (esp Database.ActiveReplicator that will
             // be updated when receiving a Replication.Changed event which
             // is distached asynchronously when running tests.
-            Thread.Sleep(1000);
+            System.Threading.Thread.Sleep(1000);
 
             Assert.IsFalse(replicator.IsRunning);
 			activeReplicators = new Replication[database.ActiveReplicators.Count];
@@ -634,10 +653,9 @@ namespace Couchbase.Lite.Replicator
 			var repl = database.CreatePullReplication(remote);
 			repl.Continuous = true;
             repl.Start();
-			repl.GoOffline();
+            PutReplicationOffline(repl);
             Assert.IsTrue(repl.Status == ReplicationStatus.Offline);
 		}
-
 
 		/// <exception cref="System.Exception"></exception>
         [Test]
