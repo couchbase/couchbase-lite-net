@@ -424,9 +424,10 @@ namespace Couchbase.Lite.Replicator
             var path = string.Format("/{0}?new_edits=false", revision.GetDocId());
 
             // TODO: need to throttle these requests
-            Log.D(Tag, "Uploadeding multipart request.  Revision: " + revision);
+            Log.D(Tag, "Uploading multipart request.  Revision: " + revision);
             Log.D(Tag, this + "|" + Thread.CurrentThread() + ": uploadMultipartRevision() calling asyncTaskStarted()");
 
+            // TODO: ios code has self.changesTotal++; here
             AsyncTaskStarted();
 
             SendAsyncMultipartRequest(HttpMethod.Put, path, multiPart, (result, e) => {
