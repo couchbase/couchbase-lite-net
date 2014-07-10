@@ -544,7 +544,7 @@ namespace Couchbase.Lite.Replicator
 			return HttpUtility.UrlEncode(Runtime.GetStringForBytes(json));
 		}
 
-        public Boolean GoOffline()
+        internal Boolean GoOffline()
         {
             Log.D(Tag, this + " goOffline() called, stopping changeTracker: " + changeTracker);
             if (!base.GoOffline())

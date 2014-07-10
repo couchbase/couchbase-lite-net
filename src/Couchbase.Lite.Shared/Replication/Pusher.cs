@@ -130,10 +130,10 @@ namespace Couchbase.Lite.Replicator
 
         internal override void BeginReplicating()
 		{
-            // If we're still waiting to create the remote db, do nothing now. (This method will be
-            // re-invoked after that request finishes; see maybeCreateRemoteDB() above.)
             Log.D(Database.Tag, this + "|" + Sharpen.Thread.CurrentThread() + ": beginReplicating() called");
 
+            // If we're still waiting to create the remote db, do nothing now. (This method will be
+            // re-invoked after that request finishes; see maybeCreateRemoteDB() above.)
             if (CreateTarget)
             {
                 Log.D(Tag, this + "|" + Sharpen.Thread.CurrentThread() + ": creatingTarget == true, doing nothing");
@@ -168,13 +168,12 @@ namespace Couchbase.Lite.Replicator
                 Batcher.QueueObjects(changes);
                 Batcher.Flush();
             }
+
             // Now listen for future changes (in continuous mode):
             if (continuous)
             {
                 observing = true;
                 LocalDatabase.Changed += OnChanged;
-                Log.D(Tag, this + "|" + Thread.CurrentThread() + ": pusher.beginReplicating() calling asyncTaskStarted()");
-                AsyncTaskStarted();
             }
 		}
 
