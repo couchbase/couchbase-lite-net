@@ -612,24 +612,13 @@ namespace Couchbase.Lite
 
         internal void AsyncTaskFinished(Int32 numTasks)
         {
-//            TODO: Check to see if retry policy isn't throwing this number off.
-//            lock (asyncTaskLocker)
-//            {
-//                int result, initial, final;
-//                do
-//                {
-//                    initial = asyncTaskCount;
-//                    final = initial - numTasks;
-//                    result = Interlocked.CompareExchange(ref asyncTaskCount, final, initial);
-//                } while (initial != result);
-//            }
-
             var cancel = CancellationTokenSource.IsCancellationRequested;
             if (cancel)
                 return;
 
             lock (asyncTaskLocker)
             {
+                Log.D(Tag, this + "|" + Sharpen.Thread.CurrentThread() + ": asyncTaskFinished() called, asyncTaskCount: " + asyncTaskCount);
                 asyncTaskCount -= numTasks;
                 System.Diagnostics.Debug.Assert(asyncTaskCount >= 0);
                 if (asyncTaskCount == 0)
