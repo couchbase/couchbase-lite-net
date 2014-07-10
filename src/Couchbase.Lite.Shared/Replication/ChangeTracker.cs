@@ -82,7 +82,7 @@ namespace Couchbase.Lite.Replicator
 
         private Boolean running = false;
 
-        private readonly object runningMutex = new object();
+        private readonly object stopMutex = new object();
 
         private HttpRequestMessage Request;
 
@@ -337,7 +337,9 @@ namespace Couchbase.Lite.Replicator
             var status = response.StatusCode;
             if ((Int32)status >= 300 && !Utils.IsTransientError(status))
             {
-                var msg = String.Format("Change tracker got error: {0}", status);
+                var msg = response.Content != null 
+                    ? String.Format("Change tracker got error with status code: {0}", status)
+                    : String.Format("Change tracker got error with status code: {0} and null response content", status);
                 Log.E(Tag, msg);
                 Error = new CouchbaseLiteException (msg, new Status (status.GetStatusCode ()));
                 Stop();
@@ -350,7 +352,6 @@ namespace Couchbase.Lite.Replicator
                         using (var contentStream = await response.Content.ReadAsStreamAsync())
                         using (var contentReader = new StreamReader(contentStream))
                         {
-
                             while (!tokenSource.IsCancellationRequested && !contentReader.EndOfStream)
                             {
                                 var change = await contentReader.ReadLineAsync();
@@ -424,11 +425,12 @@ namespace Couchbase.Lite.Replicator
 			{
 				return false;
 			}
+
 			//pass the change to the client on the thread that created this change tracker
 			if (client != null)
 			{
-                WorkExecutor.StartNew(()=> 
-                    client.ChangeTrackerReceivedChange(change), tokenSource.Token);
+                Log.D(Tag, this + ": changed tracker posting change");
+                client.ChangeTrackerReceivedChange(change);
 			}
 			lastSequenceID = seq;
 			return true;
@@ -469,7 +471,7 @@ namespace Couchbase.Lite.Replicator
             // Lock to prevent multiple calls to Stop() method from different
             // threads (eg. one from ChangeTracker itself and one from any other
             // consumers).
-            lock(runningMutex)
+            lock(stopMutex)
             {
                 if (!IsRunning())
                 {
@@ -495,7 +497,7 @@ namespace Couchbase.Lite.Replicator
 			if (client != null)
 			{
                 Log.D(Tag, this + ": posting stopped");
-				client.ChangeTrackerStopped(this);
+                client.ChangeTrackerStopped(this);
 			}
 			client = null;
             Log.D(Tag, this + ": change tracker client should be null now");
