@@ -357,7 +357,7 @@ namespace Couchbase.Lite.Replicator
             var revProps = revision.GetProperties();
             revProps.Put("_revisions", LocalDatabase.GetRevisionHistoryDict(revision));
 
-			var attachments = revProps.Get("_attachments").AsDictionary<string,object>;
+			var attachments = revProps.Get("_attachments").AsDictionary<string,object>();
 
             foreach (var attachmentKey in attachments.Keys)
             {
