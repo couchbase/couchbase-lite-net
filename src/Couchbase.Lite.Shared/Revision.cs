@@ -219,7 +219,7 @@ namespace Couchbase.Lite
             {
                 return null;
             }
-            var attachmentMetadata = (IDictionary<String, Object>)attachmentsMetadata.Get(name);
+			var attachmentMetadata = attachmentsMetadata.Get(name).AsDictionary<string,Object>();
             return new Attachment(this, name, attachmentMetadata);
         }
 
