@@ -41,9 +41,8 @@
 //
 
 using System;
-using System.Net.Http;
+using System.Net.Http.Headers;
 using Couchbase.Lite.Auth;
-using System.Net;
 
 namespace Couchbase.Lite.Util
 {
@@ -51,15 +50,16 @@ namespace Couchbase.Lite.Util
     {
         const String Tag = "AuthUtils";
 
-        internal static ICredentials GetCredentialsIfAvailable (IAuthenticator authenticator, HttpRequestMessage request)
+        internal static AuthenticationHeaderValue GetAuthenticationHeaderValue(
+            IAuthenticator authenticator, Uri uri)
         {
-            ICredentials credentials = null;
+            AuthenticationHeaderValue authHeader = null;
 
-            String userInfo = request != null ? request.RequestUri.UserInfo : null;
+            var userInfo = uri != null ? uri.UserInfo : null;
             if (!String.IsNullOrEmpty(userInfo)) 
             {
-                credentials = request.ToCredentialsFromUri();
-                if (credentials == null)
+                authHeader = uri.GetAuthenticationHeader("Basic");
+                if (authHeader == null)
                 {
                     Log.W(Tag, "Unable to parse user info, not setting credentials");
                 }
@@ -68,15 +68,16 @@ namespace Couchbase.Lite.Util
             {
                 if (authenticator != null) 
                 {
-                    userInfo = authenticator.AuthUserInfo;
-                    if (userInfo != null)
+                    userInfo = authenticator.UserInfo;
+                    var scheme = authenticator.Scheme;
+                    if (userInfo != null && scheme != null)
                     {
-                        credentials = userInfo.ToCredentialsFromUserInfoString();
+                        authHeader = userInfo.AsAuthenticationHeader(scheme);
                     }
                 }
             }
 
-            return credentials;
+            return authHeader;
         }
     }
 }

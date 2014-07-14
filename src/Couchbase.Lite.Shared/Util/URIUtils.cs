@@ -357,5 +357,14 @@ namespace Couchbase.Lite.Util
 				}
 			}
 		}
+
+        public static Uri Combile(Uri uri, string path)
+        {
+            if (uri == null) return null;
+
+            var baseUri = uri.ToString().Trim().TrimEnd('/');
+            var pathUri = !String.IsNullOrWhiteSpace(path) ? path.Trim().TrimStart('/') : "";
+            return new Uri(baseUri + '/' + pathUri);
+        }
 	}
 }

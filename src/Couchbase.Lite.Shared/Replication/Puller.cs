@@ -270,11 +270,6 @@ namespace Couchbase.Lite.Replicator
             return clientFactory.GetCookieContainer();
         }
 
-        public HttpClient GetHttpClient(ICredentials credentials)
-        {
-            return clientFactory.GetHttpClient(credentials);
-        }
-
 		/// <summary>Process a bunch of remote revisions from the _changes feed at once</summary>
         internal override void ProcessInbox(RevisionList inbox)
 		{

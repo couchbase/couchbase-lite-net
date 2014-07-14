@@ -88,7 +88,9 @@ namespace Couchbase.Lite.Auth
 {
     internal abstract class Authorizer : IAuthenticator
 	{
-        public abstract string AuthUserInfo { get; }
+        public abstract string UserInfo { get; }
+
+        public abstract string Scheme { get; }
 
         public abstract bool UsesCookieBasedLogin { get; }
 

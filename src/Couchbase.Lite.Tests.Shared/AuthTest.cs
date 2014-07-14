@@ -51,6 +51,10 @@ using Sharpen;
 using NUnit.Framework;
 using System.Net;
 using System.Net.Http;
+using Couchbase.Lite.Support;
+using System.Threading;
+using System.Threading.Tasks;
+using System.Text;
 
 namespace Couchbase.Lite
 {
@@ -123,7 +127,7 @@ namespace Couchbase.Lite
             Assert.AreEqual(tokenAuthParams["access_token"], parameters["access_token"]);
             Assert.AreEqual(tokenAuth.LoginPathForSite(null), "/_facebook");
             Assert.IsTrue(tokenAuth.UsesCookieBasedLogin);
-            Assert.IsNull(tokenAuth.AuthUserInfo);
+            Assert.IsNull(tokenAuth.UserInfo);
         }
 
         [Test]
@@ -135,45 +139,136 @@ namespace Couchbase.Lite
 
             Assert.IsNull(basicAuth.LoginParametersForSite(null));
             Assert.IsTrue(basicAuth.UsesCookieBasedLogin);
-            Assert.AreEqual(basicAuth.AuthUserInfo, username + ":" + password);
+            Assert.AreEqual(basicAuth.UserInfo, username + ":" + password);
+        }
+
+        private void AddUser(string username, string password)
+        {
+            var uri = GetReplicationAdminURL();
+            var addUserUri = URIUtils.Combile(uri, string.Format("_user/{0}", username));
+            var content = "{\"all_channels\":[\"*\"],\"password\":\"" + password + "\"}";
+            var httpclient = new HttpClient();
+            var postTask = httpclient.PutAsync(addUserUri, new StringContent(content, Encoding.UTF8, "application/json"));
+            var response = postTask.Result;
+            var status = response.StatusCode;
+            Assert.IsTrue((status == HttpStatusCode.Created) || (status == HttpStatusCode.OK));
         }
 
         [Test]
-        public void TestGetCredentialsIfAvailable()
+        public void TestBasicAuthenticationSuccess()
+        {
+            var username = "testbasciauthuser";
+            var password = "password1";
+            AddUser(username, password);
+
+            var url = GetReplicationURLWithoutCredentials();
+            var httpClientFactory = new CouchbaseLiteHttpClientFactory(new CookieStore());
+            manager.DefaultHttpClientFactory = httpClientFactory;
+            Replication replicator = database.CreatePushReplication(url);
+            replicator.Authenticator = AuthenticatorFactory.CreateBasicAuthenticator(username, password);
+
+            Assert.IsNotNull(replicator);
+            Assert.IsNotNull(replicator.Authenticator);
+            Assert.IsTrue(replicator.Authenticator is BasicAuthenticator);
+
+            replicator.Start();
+
+            var doneEvent = new ManualResetEvent(false);
+
+            Task.Factory.StartNew(()=>
+            {
+                var timeout = DateTime.UtcNow + TimeSpan.FromSeconds(30);
+                while (DateTime.UtcNow < timeout)
+                {
+                    if (!replicator.active)
+                    {
+                        break;
+                    }
+                    System.Threading.Thread.Sleep(TimeSpan.FromMilliseconds(10));
+                }
+                doneEvent.Set();
+            });
+            doneEvent.WaitOne(TimeSpan.FromSeconds(35));
+
+            var lastError = replicator.LastError;
+            Assert.IsNull(lastError);
+        }
+
+        [Test]
+        public void TestBasicAuthenticationWrongPassword()
+        {
+            var username = "testbasciauthuser";
+            var password = "password1";
+            var wrongPassword = "password2";
+            AddUser(username, password);
+
+            var url = GetReplicationURLWithoutCredentials();
+            var httpClientFactory = new CouchbaseLiteHttpClientFactory(new CookieStore());
+            manager.DefaultHttpClientFactory = httpClientFactory;
+            Replication replicator = database.CreatePushReplication(url);
+            replicator.Authenticator = AuthenticatorFactory.CreateBasicAuthenticator(username, wrongPassword);
+
+            Assert.IsNotNull(replicator);
+            Assert.IsNotNull(replicator.Authenticator);
+            Assert.IsTrue(replicator.Authenticator is BasicAuthenticator);
+
+            replicator.Start();
+
+            var doneEvent = new ManualResetEvent(false);
+
+            Task.Factory.StartNew(()=>
+            {
+                var timeout = DateTime.UtcNow + TimeSpan.FromSeconds(30);
+                while (DateTime.UtcNow < timeout)
+                {
+                    if (!replicator.active)
+                    {
+                        break;
+                    }
+                    System.Threading.Thread.Sleep(TimeSpan.FromMilliseconds(10));
+                }
+                doneEvent.Set();
+            });
+            doneEvent.WaitOne(TimeSpan.FromSeconds(35));
+
+            var lastError = replicator.LastError;
+            Assert.IsNotNull(lastError);
+        }
+
+        [Test]
+        public void TestGetAuthenticationHeaderValue()
         {
             var username1 = "username1";
             var password1 = "password1";
-            var auth = AuthenticatorFactory.CreateBasicAuthenticator(username1, password1);
+            var credParam1 = Convert.ToBase64String(
+                Encoding.UTF8.GetBytes(string.Format("{0}:{1}", username1, password1)));
 
-            var credentials = AuthUtils.GetCredentialsIfAvailable(auth, null);
-            Assert.IsNotNull(credentials);
-            Assert.AreEqual(username1, ((NetworkCredential)credentials).UserName);
-            Assert.AreEqual(password1, ((NetworkCredential)credentials).Password);
+            var auth = AuthenticatorFactory.CreateBasicAuthenticator(username1, password1);
+            var authHeader = AuthUtils.GetAuthenticationHeaderValue(auth, null);
+            Assert.IsNotNull(authHeader);
+            Assert.AreEqual(credParam1, authHeader.Parameter);
 
             var username2 = "username2";
             var password2 = "password2";
+            var credParam2 = Convert.ToBase64String(
+                Encoding.UTF8.GetBytes(string.Format("{0}:{1}", username2, password2)));
+
             var userinfo = username2 + ":" + password2;
             var uri = new Uri("http://" + userinfo + "@couchbase.com");
             var request = new HttpRequestMessage(HttpMethod.Get, uri);
                
-            credentials = AuthUtils.GetCredentialsIfAvailable(null, request);
-            Assert.IsNotNull(credentials);
-            Assert.AreEqual(username2, ((NetworkCredential)credentials).UserName);
-            Assert.AreEqual(password2, ((NetworkCredential)credentials).Password);
-
-            credentials = AuthUtils.GetCredentialsIfAvailable(auth, request);
-            Assert.IsNotNull(credentials);
-            Assert.AreEqual(username2, ((NetworkCredential)credentials).UserName);
-            Assert.AreEqual(password2, ((NetworkCredential)credentials).Password);
+            authHeader = AuthUtils.GetAuthenticationHeaderValue(auth, request.RequestUri);
+            Assert.IsNotNull(authHeader);
+            Assert.AreEqual(credParam2, authHeader.Parameter);
 
             uri = new Uri("http://www.couchbase.com");
             request = new HttpRequestMessage(HttpMethod.Get, uri);
-            credentials = AuthUtils.GetCredentialsIfAvailable(null, request);
-            Assert.IsNull(credentials);
+            authHeader = AuthUtils.GetAuthenticationHeaderValue(null, request.RequestUri);
+            Assert.IsNull(authHeader);
 
             auth = AuthenticatorFactory.CreateFacebookAuthenticator("1234");
-            credentials = AuthUtils.GetCredentialsIfAvailable(null, null);
-            Assert.IsNull(credentials);
+            authHeader = AuthUtils.GetAuthenticationHeaderValue(auth, null);
+            Assert.IsNull(authHeader);
         }
 	}
 }
