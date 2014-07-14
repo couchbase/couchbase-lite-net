@@ -79,6 +79,8 @@ namespace Couchbase.Lite
 
 		InternalServerError = 500,
 
+        UpStreamError = 589,
+
 		StatusAttachmentError = 592,
 
 		DbError = 590
