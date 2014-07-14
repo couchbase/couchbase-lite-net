@@ -50,16 +50,15 @@ namespace Couchbase.Lite.Auth
         private string username;
         private string password;
 
-        public BasicAuthenticator(string username, string password) {
+        public BasicAuthenticator(string username, string password) 
+        {
             this.username = username;
             this.password = password;
         }
 
-        public bool UsesCookieBasedLogin {
-            get { return true; }
-        }
+        public bool UsesCookieBasedLogin { get { return true; } }
             
-        public string AuthUserInfo
+        public string UserInfo
         {
             get 
             {
@@ -70,12 +69,16 @@ namespace Couchbase.Lite.Auth
                 return null;
             }
         }
+
+        public string Scheme { get { return "Basic"; } }
             
-        public string LoginPathForSite(Uri site) {
+        public string LoginPathForSite(Uri site) 
+        {
             return "/_session";
         }
             
-        public IDictionary<String, String> LoginParametersForSite(Uri site) {
+        public IDictionary<String, String> LoginParametersForSite(Uri site) 
+        {
             // This method has different implementation from the iOS's.
             // It is safe to return NULL as the method is not called
             // when Basic Authenticator is used. Also theoretically, the

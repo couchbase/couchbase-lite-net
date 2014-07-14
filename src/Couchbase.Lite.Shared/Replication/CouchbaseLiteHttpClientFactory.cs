@@ -64,7 +64,7 @@ namespace Couchbase.Lite.Support
             Headers = new ConcurrentDictionary<string,string>();
         }
 
-        public HttpClient GetHttpClient(ICredentials credentials = null)
+        public HttpClient GetHttpClient()
 		{
             // Build a pipeline of HttpMessageHandlers.
             var handler = new HttpClientHandler 
@@ -72,7 +72,6 @@ namespace Couchbase.Lite.Support
                 CookieContainer = cookieStore,
                 UseDefaultCredentials = true,
                 UseCookies = true,
-                Credentials = credentials
             };
 
             // NOTE: Probably could set httpHandler.MaxRequestContentBufferSize to Couchbase Lite 

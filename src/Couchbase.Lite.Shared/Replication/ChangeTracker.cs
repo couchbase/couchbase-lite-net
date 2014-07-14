@@ -282,8 +282,13 @@ namespace Couchbase.Lite.Replicator
                 Request = new HttpRequestMessage(HttpMethod.Get, url);
 				AddRequestHeaders(Request);
 
-                ICredentials credentials = AuthUtils.GetCredentialsIfAvailable (Authenticator, Request);
-                var httpClient = client.GetHttpClient(credentials);
+                var httpClient = client.GetHttpClient();
+
+                var authHeader = AuthUtils.GetAuthenticationHeaderValue(Authenticator, Request.RequestUri);
+                if (authHeader != null)
+                {
+                    httpClient.DefaultRequestHeaders.Authorization = authHeader;
+                }
 
 				try
 				{
