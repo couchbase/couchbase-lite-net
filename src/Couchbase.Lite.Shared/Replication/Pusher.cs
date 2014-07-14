@@ -426,7 +426,7 @@ namespace Couchbase.Lite.Replicator
             Log.D(Tag, "Uploading multipart request.  Revision: " + revision);
             Log.D(Tag, "|" + Thread.CurrentThread() + ": uploadMultipartRevision() calling asyncTaskStarted()");
 
-            // TODO: ios code has self.changesTotal++; here
+            ChangesCount += 1;
             AsyncTaskStarted();
 
             SendAsyncMultipartRequest(HttpMethod.Put, path, multiPart, (result, e) => {
@@ -445,6 +445,8 @@ namespace Couchbase.Lite.Replicator
                 }
                 finally
                 {
+                    CompletedChangesCount += 1;
+                    Log.D(Tag, this + "|" + Thread.CurrentThread() + ": uploadMultipartRevision() calling asyncTaskFinished()");
                     AsyncTaskFinished (1);
                 }
             });
