@@ -3084,8 +3084,9 @@ PRAGMA user_version = 3;";
                 // Bump the revID and update the JSON:
                 var newRevId = GenerateNextRevisionID(prevRevId);
                 IEnumerable<byte> data = null;
-                if (!oldRev.IsDeleted())
-                {
+
+
+                if(oldRev.GetProperties() != null && oldRev.GetProperties().Any()) {
                     data = EncodeDocumentJSON(oldRev);
                     if (data == null)
                     {
