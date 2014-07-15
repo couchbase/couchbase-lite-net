@@ -396,8 +396,7 @@ namespace Couchbase.Lite
         {
             lock(requests)
             {
-                var remoteRequests = new List<HttpClient>(requests);
-                foreach(var client in remoteRequests)
+                foreach(var client in requests)
                 {
                     client.CancelPendingRequests();
                 }
