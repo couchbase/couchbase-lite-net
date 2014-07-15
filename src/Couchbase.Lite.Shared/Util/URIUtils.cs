@@ -79,7 +79,7 @@ namespace Couchbase.Lite.Util
 			}
 			try
 			{
-                return HttpUtility.UrlDecode(s, Encoding.UTF8);
+                return Uri.UnescapeDataString(s);
 			}
 			catch (UnsupportedEncodingException e)
 			{

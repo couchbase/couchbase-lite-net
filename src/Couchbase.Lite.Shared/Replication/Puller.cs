@@ -372,7 +372,7 @@ namespace Couchbase.Lite.Replicator
             // Construct a query. We want the revision history, and the bodies of attachments that have
             // been added since the latest revisions we have locally.
             // See: http://wiki.apache.org/couchdb/HTTP_Document_API#Getting_Attachments_With_a_Document
-            var path = new StringBuilder("/" + HttpUtility.UrlEncode(rev.GetDocId()) + "?rev=" + HttpUtility.UrlEncode(rev.GetRevId()) + "&revs=true&attachments=true");
+            var path = new StringBuilder("/" + Uri.EscapeUriString(rev.GetDocId()) + "?rev=" + Uri.EscapeUriString(rev.GetRevId()) + "&revs=true&attachments=true");
             var knownRevs = KnownCurrentRevIDs(rev);
             if (knownRevs == null)
             {
@@ -541,7 +541,7 @@ namespace Couchbase.Lite.Replicator
 				Log.W(Tag, "Unable to serialize json", e);
 			}
 
-			return HttpUtility.UrlEncode(Runtime.GetStringForBytes(json));
+			return Uri.EscapeUriString(Runtime.GetStringForBytes(json));
 		}
 
         internal Boolean GoOffline()
