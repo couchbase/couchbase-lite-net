@@ -688,7 +688,8 @@ namespace Couchbase.Lite
 
         internal virtual void Stopped()
         {
-            Log.V(Tag, this + " STOPPED");
+            Log.V(Tag, this + " Stopped() called");
+
             IsRunning = false;
 
             NotifyChangeListeners();
@@ -700,6 +701,8 @@ namespace Couchbase.Lite
             Batcher = null;
 
             ClearDbRef();
+
+            Log.V(Tag, this + " STOPPED");
         }
 
         internal void SaveLastSequence()
