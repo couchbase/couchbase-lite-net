@@ -108,7 +108,7 @@ namespace Couchbase.Lite
             var unescapedUserInfo = uri.UserEscaped
                 ? Uri.UnescapeDataString(uri.UserInfo)
                 : uri.UserInfo;
-                
+
             var param = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(unescapedUserInfo));
 
             return new AuthenticationHeaderValue(scheme, param);
