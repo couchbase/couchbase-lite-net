@@ -394,9 +394,10 @@ namespace Couchbase.Lite
 
         internal void StopRemoteRequests()
         {
+            IList<HttpClient> remoteRequests;
             lock(requests)
             {
-                var remoteRequests = new List<HttpClient>(requests);
+                remoteRequests = new List<HttpClient>(requests);
             }
 
             foreach(var client in remoteRequests)
