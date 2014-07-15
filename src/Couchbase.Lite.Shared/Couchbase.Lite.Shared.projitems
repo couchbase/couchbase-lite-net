@@ -91,7 +91,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)Sharpen\CopyOnWriteArrayList.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Sharpen\CountDownLatch.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Sharpen\CyclicBarrier.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Sharpen\DataConverter.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Sharpen\DateFormat.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Sharpen\DigestInputStream.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Sharpen\DigestOutputStream.cs" />
@@ -168,7 +167,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)Sharpen\TimeUnit.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Sharpen\TreeSet.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Sharpen\TrustManager.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Sharpen\URLEncoder.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Sharpen\Uri.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Sharpen\WeakReference.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Sharpen\WrappedSystemStream.cs" />

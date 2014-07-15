@@ -53,8 +53,9 @@ using System.Web;
 using System.Net.Http;
 using System.Threading.Tasks;
 using NUnit.Framework;
+using Couchbase.Lite.Tests;
 
-namespace Couchbase.Lite.Tests
+namespace Couchbase.Lite
 {
 	public class ChangeTrackerTest : LiteTestCase
 	{
@@ -398,7 +399,7 @@ namespace Couchbase.Lite.Tests
 			docIds.AddItem("doc2");
 			changeTrackerDocIds.SetDocIDs(docIds);
 
-            var docIdsEncoded = HttpUtility.UrlEncode("[\"doc1\",\"doc2\"]");
+            var docIdsEncoded = Uri.EscapeUriString("[\"doc1\",\"doc2\"]");
             var expectedFeedPath = string.Format("_changes?feed=longpoll&limit=50&heartbeat=300000&since=0&filter=_doc_ids&doc_ids={0}", 
                 docIdsEncoded);
 			string changesFeedPath = changeTrackerDocIds.GetChangesFeedPath();

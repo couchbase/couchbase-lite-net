@@ -63,7 +63,15 @@ namespace Couchbase.Lite
 
         public ManagerOptions()
         {
-            CallbackScheduler = TaskScheduler.FromCurrentSynchronizationContext();
+            TaskScheduler scheduler = null;
+            try {
+                scheduler = TaskScheduler.FromCurrentSynchronizationContext ();
+            } catch (InvalidOperationException) {
+                // Running in the unit test runner will throw an exception.
+                // Just swallow.
+            } finally {
+                CallbackScheduler =  scheduler ?? TaskScheduler.Current ?? TaskScheduler.Default;
+            }
         }
 
         /// <summary>Gets or sets, whether changes to the database are disallowed.</summary>

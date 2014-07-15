@@ -59,6 +59,6 @@ using System.Runtime.CompilerServices;
 // if desired. See the Mono documentation for more information about signing.
 //[assembly: AssemblyDelaySign(false)]
 //[assembly: AssemblyKeyFile("")]
-[assembly: InternalsVisibleTo("Couchbase.Lite.Tests")]
+[assembly: InternalsVisibleTo("Couchbase.Lite.Net45.Tests")]
 [assembly: InternalsVisibleTo("Couchbase.Lite.Android.Tests")]
 [assembly: InternalsVisibleTo("CouchbaseLiteiOSTests")]

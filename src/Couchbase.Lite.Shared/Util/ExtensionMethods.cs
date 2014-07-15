@@ -106,7 +106,7 @@ namespace Couchbase.Lite
             Debug.Assert(request.RequestUri != null);
 
             var unescapedUserInfo = request.RequestUri.UserEscaped
-                                    ? System.Web.HttpUtility.UrlDecode(request.RequestUri.UserInfo)
+                                    ? Uri.UnescapeDataString(request.RequestUri.UserInfo)
                                     : request.RequestUri.UserInfo;
 
             var userAndPassword = unescapedUserInfo.Split(new[] { ':' }, 2, StringSplitOptions.None);
