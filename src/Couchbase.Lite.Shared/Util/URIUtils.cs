@@ -358,7 +358,7 @@ namespace Couchbase.Lite.Util
 			}
 		}
 
-        public static Uri Combile(Uri uri, string path)
+        public static Uri Combine(Uri uri, string path)
         {
             if (uri == null) return null;
 

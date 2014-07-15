@@ -145,7 +145,7 @@ namespace Couchbase.Lite
         private void AddUser(string username, string password)
         {
             var uri = GetReplicationAdminURL();
-            var addUserUri = URIUtils.Combile(uri, string.Format("_user/{0}", username));
+            var addUserUri = URIUtils.Combine(uri, string.Format("_user/{0}", username));
             var content = "{\"all_channels\":[\"*\"],\"password\":\"" + password + "\"}";
             var httpclient = new HttpClient();
             var postTask = httpclient.PutAsync(addUserUri, new StringContent(content, Encoding.UTF8, "application/json"));
