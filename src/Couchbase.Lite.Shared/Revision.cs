@@ -74,7 +74,7 @@ namespace Couchbase.Lite
 
         internal IDictionary<String, Object> GetAttachmentMetadata()
         {
-            return (IDictionary<String, Object>)GetProperty("_attachments");
+			return GetProperty("_attachments").AsDictionary<string,object>();
         }
 
 
@@ -219,7 +219,7 @@ namespace Couchbase.Lite
             {
                 return null;
             }
-            var attachmentMetadata = (IDictionary<String, Object>)attachmentsMetadata.Get(name);
+			var attachmentMetadata = attachmentsMetadata.Get(name).AsDictionary<string,Object>();
             return new Attachment(this, name, attachmentMetadata);
         }
 
