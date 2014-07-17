@@ -40,6 +40,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)AuthTest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)CookieStoreTest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)StorageEngineTest.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)CouchbaseTraceListener.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="$(MSBuildThisFileDirectory)Assets\GatewayConfig.json" />

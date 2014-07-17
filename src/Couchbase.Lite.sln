@@ -257,5 +257,6 @@ Global
 	EndGlobalSection
 	GlobalSection(MonoDevelopProperties) = preSolution
 		StartupItem = Couchbase.Lite.Net45.Tests\Couchbase.Lite.Net45.Tests.csproj
+		version = 0.9.3
 	EndGlobalSection
 EndGlobal

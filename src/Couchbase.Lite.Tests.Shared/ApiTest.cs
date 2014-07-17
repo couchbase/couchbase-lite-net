@@ -143,7 +143,7 @@ namespace Couchbase.Lite
                 {
                     if (expectedKeys.Contains((Int64)row.Key))
                     {
-                        Console.WriteLine(Tag + " doneSignal decremented " + doneSignal.Count);
+                        Log.I(Tag, " doneSignal decremented " + doneSignal.Count);
                         doneSignal.CountDown();
                     }
                 }

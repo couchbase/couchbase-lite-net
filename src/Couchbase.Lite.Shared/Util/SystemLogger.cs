@@ -49,63 +49,63 @@ using System.Threading;
 
 namespace Couchbase.Lite.Util
 {
-	public class SystemLogger : ILogger
+	public sealed class SystemLogger : ILogger
 	{
-		public virtual void V(string tag, string msg)
+		public void V(string tag, string msg)
 		{
             try {
-                Trace.WriteLine(tag + ": " + msg);
+                Trace.TraceInformation(tag + ": " + msg);
             } catch (ThreadInterruptedException ex) {
                 // swallow.
             }
 		}
 
-		public virtual void V(string tag, string msg, Exception tr)
-		{
-			Trace.WriteLine(tag + ": " + msg + "\n" + GetStackTraceString(tr));
-		}
-
-		public virtual void D(string tag, string msg)
-		{
-			Debug.WriteLine(tag + ": " + msg);
-		}
-
-		public virtual void D(string tag, string msg, Exception tr)
-		{
-			Debug.WriteLine(tag + ": " + msg + "\n" + GetStackTraceString(tr));
-		}
-
-		public virtual void I(string tag, string msg)
-		{
-			Trace.TraceInformation(tag + ": " + msg);
-		}
-
-		public virtual void I(string tag, string msg, Exception tr)
+		public void V(string tag, string msg, Exception tr)
 		{
 			Trace.TraceInformation(tag + ": " + msg + "\n" + GetStackTraceString(tr));
 		}
 
-		public virtual void W(string tag, string msg)
+		public void D(string tag, string msg)
 		{
-            Debug.WriteLine("Warning:" + tag + ": " + msg);
+			Trace.WriteLine(msg, tag);
 		}
 
-		public virtual void W(string tag, Exception tr)
+		public void D(string tag, string msg, Exception tr)
 		{
-            Debug.WriteLine("Warning:" + tag + ": " + "\n" + GetStackTraceString(tr));
+			Trace.WriteLine(msg + "\n" + GetStackTraceString(tr), tag);
 		}
 
-		public virtual void W(string tag, string msg, Exception tr)
+		public void I(string tag, string msg)
 		{
-            Debug.WriteLine("Warning:" + tag + ": " + msg + "\n" + GetStackTraceString(tr));
+			Trace.TraceInformation(tag + ": " + msg);
 		}
 
-		public virtual void E(string tag, string msg)
+		public void I(string tag, string msg, Exception tr)
+		{
+			Trace.TraceInformation(tag + ": " + msg + "\n" + GetStackTraceString(tr));
+		}
+
+		public void W(string tag, string msg)
+		{
+            Trace.TraceWarning(tag + ": " + msg);
+		}
+
+		public void W(string tag, Exception tr)
+		{
+            Trace.TraceWarning(tag + ": " + "\n" + GetStackTraceString(tr));
+		}
+
+		public void W(string tag, string msg, Exception tr)
+		{
+            Trace.TraceWarning(tag + ": " + msg + "\n" + GetStackTraceString(tr));
+		}
+
+		public void E(string tag, string msg)
 		{
 			Trace.TraceError(tag + ": " + msg);
 		}
 
-		public virtual void E(string tag, string msg, Exception tr)
+		public void E(string tag, string msg, Exception tr)
 		{
 			Trace.TraceError(tag + ": " + msg + "\n" + GetStackTraceString(tr));
 		}
