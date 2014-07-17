@@ -46,7 +46,7 @@ using System.Diagnostics;
 
 namespace Couchbase.Lite.Util
 {
-    #if !__ANDROID__
+    #if !__ANDROID__ && !__IOS__
     internal sealed class CustomLogger : ILogger 
     {
         readonly TraceSource ts;

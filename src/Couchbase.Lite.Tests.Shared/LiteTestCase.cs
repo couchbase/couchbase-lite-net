@@ -76,7 +76,7 @@ namespace Couchbase.Lite
 		protected void SetUp()
 		{
             Log.V(Tag, "SetUp");
-#if !__ANDROID__
+#if !__ANDROID__ && !__IOS__
             Trace.Listeners.Clear();
             Trace.Listeners.Add(new ConsoleTraceListener());
 #endif
