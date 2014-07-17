@@ -41,20 +41,19 @@
 //
 
 using System;
-using System.Linq;
 using System.Collections.Generic;
-using System.IO;
-using Sharpen;
-using Couchbase.Lite.Util;
-using Couchbase.Lite.Storage;
-using Couchbase.Lite.Internal;
-using System.Threading.Tasks;
-using System.Text;
-using System.Diagnostics;
 using System.Data;
-using Couchbase.Lite.Replicator;
-using Couchbase.Lite.Support;
+using System.Diagnostics;
+using System.IO;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 using Newtonsoft.Json.Linq;
+using Couchbase.Lite.Internal;
+using Couchbase.Lite.Replicator;
+using Couchbase.Lite.Storage;
+using Couchbase.Lite.Util;
+using Sharpen;
 
 namespace Couchbase.Lite 
 {
@@ -82,7 +81,7 @@ namespace Couchbase.Lite
             Path = path;
             Name = FileDirUtils.GetDatabaseNameFromPath(path);
             Manager = manager;
-            DocumentCache = new LruCache<string, Document>(MaxDocCacheSize);
+            DocumentCache = new Cache<string, Document>(MaxDocCacheSize);
 
             // TODO: Make Synchronized ICollection
             ActiveReplicators = new HashSet<Replication>();
@@ -777,8 +776,8 @@ PRAGMA user_version = 3;";
         internal String                                 Path { get; private set; }
         internal ICollection<Replication>               ActiveReplicators { get; set; }
         internal ICollection<Replication>               AllReplicators { get; set; }
-        internal ISQLiteStorageEngine                    StorageEngine { get; set; }
-        internal LruCache<String, Document>             DocumentCache { get; set; }
+        internal ISQLiteStorageEngine                   StorageEngine { get; set; }
+        internal Cache<String, Document>                DocumentCache { get; set; }
 
         //TODO: Should thid be a public member?
 
