@@ -212,6 +212,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Auth\BasicAuthenticator.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\AuthUtils.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\CookieStore.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Util\CustomLogger.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="$(MSBuildThisFileDirectory)Store\MonoSQLiteStorageEngine.cs" />

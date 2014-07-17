@@ -9,6 +9,7 @@
     <RootNamespace>Couchbase.Lite.iOS.Tests</RootNamespace>
     <IPhoneResourcePrefix>Resources</IPhoneResourcePrefix>
     <AssemblyName>CouchbaseLiteiOSTests</AssemblyName>
+    <ReleaseVersion>0.9.3</ReleaseVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|iPhoneSimulator' ">
     <DebugSymbols>true</DebugSymbols>

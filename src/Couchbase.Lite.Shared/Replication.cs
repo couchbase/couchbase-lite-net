@@ -1409,7 +1409,7 @@ namespace Couchbase.Lite
         protected void SetLastError(Exception error) {
             if (LastError != error)
             {
-                Log.E(Tag, this + " Progress: set error = " + error);
+                Log.E(Tag, " Progress: set error = ", error);
                 LastError = error;
                 NotifyChangeListeners();
             }

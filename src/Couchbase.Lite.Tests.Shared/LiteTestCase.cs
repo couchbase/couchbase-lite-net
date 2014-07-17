@@ -72,17 +72,14 @@ namespace Couchbase.Lite
 
 		protected internal string DefaultTestDb = "cblitetest";
 
-//        [TestFixtureSetUp]
-//        protected void Init()
-//        {
-//        }
-
         [SetUp]
 		protected void SetUp()
 		{
             Log.V(Tag, "SetUp");
+#if !__ANDROID__ && !__IOS__
             Trace.Listeners.Clear();
-            Trace.Listeners.Add(new DefaultTraceListener());
+            Trace.Listeners.Add(new ConsoleTraceListener());
+#endif
             Manager.DefaultOptions.CallbackScheduler = new SingleThreadTaskScheduler();
             LoadCustomProperties();
 			StartCBLite();
