@@ -225,7 +225,7 @@ namespace Couchbase.Lite
 			Assert.AreEqual(doc.UserProperties, properties);
 			Assert.AreEqual(db.GetDocument(docID), doc);
 
-            db.DocumentCache.EvictAll();
+            db.DocumentCache.Clear();
 			
             // so we can load fresh copies
             var doc2 = db.GetExistingDocument(docID);
@@ -453,7 +453,7 @@ namespace Couchbase.Lite
             CreateDocuments(db, numberOfDocsToCreate: docsCount);
 
 			// clear the cache so all documents/revisions will be re-fetched:
-            db.DocumentCache.EvictAll();
+            db.DocumentCache.Clear();
 			
             Log.I(Tag, "----- all documents -----");
 
