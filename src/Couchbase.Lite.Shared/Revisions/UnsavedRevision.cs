@@ -70,7 +70,7 @@ namespace Couchbase.Lite
         /// <param name="name">The attachment name.</param>
         internal void AddAttachment(Attachment attachment, string name)
         {
-			var attachments = Properties.Get("_attachments").AsDictionary<string,object>();
+            var attachments = Properties.Get("_attachments").AsDictionary<string,object>();
             if (attachments == null)
             {
                 attachments = new Dictionary<String, Object>();
