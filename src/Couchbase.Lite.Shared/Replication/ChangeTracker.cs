@@ -237,7 +237,7 @@ namespace Couchbase.Lite.Replicator
 			}
 			catch (UriFormatException e)
 			{
-                Log.E(Tag, this + ": Changes feed ULR is malformed", e);
+                Log.E(Tag, "Changes feed ULR is malformed", e);
 			}
 			return result;
 		}
@@ -257,7 +257,7 @@ namespace Couchbase.Lite.Replicator
 				// This is a race condition that can be reproduced by calling cbpuller.start() and cbpuller.stop()
 				// directly afterwards.  What happens is that by the time the Changetracker thread fires up,
 				// the cbpuller has already set this.client to null.  See issue #109
-                Log.W(Tag, this + ": ChangeTracker run() loop aborting because client == null");
+                Log.W(Tag, "ChangeTracker run() loop aborting because client == null");
 				return;
 			}
 
@@ -289,7 +289,7 @@ namespace Couchbase.Lite.Replicator
 				{
                     var maskedRemoteWithoutCredentials = url.ToString();
                     maskedRemoteWithoutCredentials = maskedRemoteWithoutCredentials.ReplaceAll("://.*:.*@", "://---:---@");
-                    Log.V(Tag, this + ": Making request to " + maskedRemoteWithoutCredentials);
+                    Log.V(Tag, "Making request to " + maskedRemoteWithoutCredentials);
 
                     if (tokenSource.Token.IsCancellationRequested)
                         break;
@@ -311,7 +311,7 @@ namespace Couchbase.Lite.Replicator
 						// in this case, just silently absorb the exception because it
 						// frequently happens when we're shutting down and have to
 						// close the socket underneath our read.
-                        Log.E(Tag, this + ": Exception in change tracker", e);
+                        Log.E(Tag, "Exception in change tracker", e);
 					}
 					backoff.SleepAppropriateAmountOfTime();
 				}
@@ -369,13 +369,13 @@ namespace Couchbase.Lite.Replicator
                         var responseOK = ReceivedPollResponse(fullBody);
                         if (responseOK)
                         {
-                            Log.V(Tag, this + ": Starting new longpoll");
+                            Log.V(Tag, "Starting new longpoll");
                             backoff.ResetBackoff();
                             return;
                         }
                         else
                         {
-                            Log.W(Tag, this + ": Change tracker calling stop");
+                            Log.W(Tag, "Change tracker calling stop");
                             Stop();
                         }
                     }
@@ -429,7 +429,7 @@ namespace Couchbase.Lite.Replicator
 			//pass the change to the client on the thread that created this change tracker
 			if (client != null)
 			{
-                Log.D(Tag, this + ": changed tracker posting change");
+                Log.D(Tag, "changed tracker posting change");
                 client.ChangeTrackerReceivedChange(change);
 			}
 			lastSequenceID = seq;
@@ -478,7 +478,7 @@ namespace Couchbase.Lite.Replicator
                     return;
                 }
 
-                Log.D(Tag, this + ": changed tracker asked to stop");
+                Log.D(Tag, "changed tracker asked to stop");
 
                 running = false;
 
@@ -493,14 +493,14 @@ namespace Couchbase.Lite.Replicator
 
 		public void Stopped()
 		{
-            Log.D(Tag, this + ": change tracker in stopped");
+            Log.D(Tag, "change tracker in stopped");
 			if (client != null)
 			{
-                Log.D(Tag, this + ": posting stopped");
+                Log.D(Tag, "posting stopped");
                 client.ChangeTrackerStopped(this);
 			}
 			client = null;
-            Log.D(Tag, this + ": change tracker client should be null now");
+            Log.D(Tag, "change tracker client should be null now");
 		}
 
 		public Exception GetLastError()

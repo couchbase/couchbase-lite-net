@@ -51,11 +51,7 @@ namespace Couchbase.Lite.Util
 	{
 		public static ILogger CreateLogger()
 		{
-			#if __ANDROID__ || __IOS__
-            return new SystemLogger();
-            #else
             return new CustomLogger(SourceLevels.Information);
-            #endif
 		}
 	}
 }

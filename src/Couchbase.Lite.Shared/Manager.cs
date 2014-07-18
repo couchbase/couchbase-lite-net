@@ -61,12 +61,13 @@ namespace Couchbase.Lite
     /// <summary>
     /// The top-level object that manages Couchbase Lite <see cref="Couchbase.Lite.Database"/>s.
     /// </summary>
-    public partial class Manager
+    public sealed partial class Manager
     {
 
     #region Constants
 
-        const string VersionString = "1.0.0-beta2";
+        const string VersionString = "1.0.0-beta3";
+        const string Tag = "Manager";
 
         /// <summary>
         /// The error domain used for HTTP status codes.
@@ -136,7 +137,7 @@ namespace Couchbase.Lite
         /// <exception cref="T:System.IO.DirectoryNotFoundException">Thrown when there is an error while accessing or creating the given directory.</exception>
         public Manager(DirectoryInfo directoryFile, ManagerOptions options)
         {
-            Log.V(Database.Tag, "Starting Manager version: " + VersionString);
+            Log.I(Tag, "Starting Manager version: " + VersionString);
 
             this.directoryFile = directoryFile;
             this.options = options ?? DefaultOptions;
@@ -159,7 +160,7 @@ namespace Couchbase.Lite
             var scheduler = options.CallbackScheduler;
             CapturedContext = new TaskFactory(scheduler);
             workExecutor = new TaskFactory(new SingleThreadTaskScheduler());
-            Log.D("Manager", "New replication uses a scheduler with a max concurrency level of {0}".Fmt(workExecutor.Scheduler.MaximumConcurrencyLevel));
+            Log.D(Tag, "New replication uses a scheduler with a max concurrency level of {0}".Fmt(workExecutor.Scheduler.MaximumConcurrencyLevel));
 
             SharedCookieStore = new CookieStore(this.directoryFile);
         }

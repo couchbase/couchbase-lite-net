@@ -2214,7 +2214,7 @@ PRAGMA user_version = 3;";
 
                 ++transactionLevel;
 
-                Log.I(Tag, " Begin transaction (level " + transactionLevel + ")");
+                Log.D(Tag, "Begin transaction (level " + transactionLevel + ")");
             }
             catch (SQLException e)
             {
@@ -2234,7 +2234,7 @@ PRAGMA user_version = 3;";
 
             if (commit)
             {
-                Log.I(Tag, "Committing transaction (level " + transactionLevel + ")");
+                Log.D(Tag, "Committing transaction (level " + transactionLevel + ")");
 
                 StorageEngine.SetTransactionSuccessful();
                 StorageEngine.EndTransaction();
@@ -3262,7 +3262,7 @@ PRAGMA user_version = 3;";
                 }
                 catch (Exception e)
                 {
-                    Log.E(Tag, this + " got exception posting change notifications", e);
+                    Log.E(Tag, " got exception posting change notifications", e);
                 }
                 finally
                 {

@@ -113,7 +113,7 @@ namespace Couchbase.Lite.Replicator
 
 			pendingSequences = new SequenceMap();
 
-            Log.W(Tag, this + ": starting ChangeTracker with since=" + LastSequence);
+            Log.W(Tag, "starting ChangeTracker with since=" + LastSequence);
 
             var mode = Continuous 
                        ? ChangeTracker.ChangeTrackerMode.LongPoll 
@@ -122,7 +122,7 @@ namespace Couchbase.Lite.Replicator
             changeTracker = new ChangeTracker(RemoteUrl, mode, LastSequence, true, this, WorkExecutor);
             changeTracker.Authenticator = Authenticator;
 
-            Log.W(Tag, this + ": started ChangeTracker " + changeTracker);
+            Log.W(Tag, "started ChangeTracker " + changeTracker);
 
             if (Filter != null)
 			{
@@ -147,7 +147,7 @@ namespace Couchbase.Lite.Replicator
 			}
 			if (changeTracker != null)
 			{
-                Log.D(Tag, this + ": stopping changetracker " + changeTracker);
+                Log.D(Tag, "stopping changetracker " + changeTracker);
 
 				changeTracker.SetClient(null);
 				// stop it from calling my changeTrackerStopped()
@@ -155,7 +155,7 @@ namespace Couchbase.Lite.Replicator
 				changeTracker = null;
                 if (!Continuous)
                 {   
-                    Log.D(Tag, this + "|" + Sharpen.Thread.CurrentThread() + ": stop() calling asyncTaskFinished()");
+                    Log.D(Tag, "stop() calling asyncTaskFinished()");
 					AsyncTaskFinished(1);
 				}
 			}
@@ -207,7 +207,7 @@ namespace Couchbase.Lite.Replicator
                 }
                 var rev = new PulledRevision(docID, revID, deleted, LocalDatabase);
                 rev.SetRemoteSequenceID(lastSequence);
-                Log.D(Tag, this + ": adding rev to inbox " + rev);
+                Log.D(Tag, "adding rev to inbox " + rev);
                 AddToInbox(rev);
             }
             ChangesCount += changes.Length;
@@ -229,7 +229,7 @@ namespace Couchbase.Lite.Replicator
 		// <-- TODO: why is this here?
 		public void ChangeTrackerStopped(ChangeTracker tracker)
 		{
-            Log.W(Tag, this + ": ChangeTracker " + tracker + " stopped");
+            Log.W(Tag, "ChangeTracker " + tracker + " stopped");
             if (LastError == null && tracker.GetLastError() != null)
             {
                 SetLastError(tracker.GetLastError());
@@ -237,7 +237,7 @@ namespace Couchbase.Lite.Replicator
             changeTracker = null;
             if (Batcher != null)
             {
-                Log.D(Tag, this + ": calling batcher.flush().  batcher.count() is " + Batcher.Count());
+                Log.D(Tag, "calling batcher.flush().  batcher.count() is " + Batcher.Count());
 
                 Batcher.Flush();
             }
@@ -310,7 +310,7 @@ namespace Couchbase.Lite.Replicator
                 return;
             }
 
-            Log.V(Tag, this + " fetching " + inboxCount + " remote revisions...");
+            Log.V(Tag, " fetching " + inboxCount + " remote revisions...");
             //Log.v(Database.TAG, String.format("%s fetching remote revisions %s", this, inbox));
             // Dump the revs into the queue of revs to pull from the remote db:
             lock (locker) {
@@ -334,7 +334,7 @@ namespace Couchbase.Lite.Replicator
 		/// </summary>
 		public void PullRemoteRevisions()
 		{
-            Log.D(Tag, this + ": pullRemoteRevisions() with revsToPull size: " + revsToPull.Count);
+            Log.D(Tag, "pullRemoteRevisions() with revsToPull size: " + revsToPull.Count);
 
             //find the work to be done in a synchronized block
             var workToStartNow = new AList<RevisionInternal>();
@@ -343,7 +343,7 @@ namespace Couchbase.Lite.Replicator
                 while (httpConnectionCount + workToStartNow.Count < MaxOpenHttpConnections && revsToPull != null && revsToPull.Count > 0)
                 {
                     var work = revsToPull.Remove(0);
-                    Log.D(Tag, this + ": add " + work + " to workToStartNow");
+                    Log.D(Tag, "add " + work + " to workToStartNow");
                     workToStartNow.AddItem(work);
                 }
             }
@@ -362,8 +362,8 @@ namespace Couchbase.Lite.Replicator
 		/// </remarks>
         internal void PullRemoteRevision(RevisionInternal rev)
 		{
-            Log.D(Tag, this + "|" + Thread.CurrentThread() + ": pullRemoteRevision with rev: " + rev);
-            Log.D(Tag, this + "|" + Thread.CurrentThread() + ": pullRemoteRevision() calling asyncTaskStarted()");
+            Log.D(Tag, "|" + Thread.CurrentThread() + ": pullRemoteRevision with rev: " + rev);
+            Log.D(Tag, "|" + Thread.CurrentThread() + ": pullRemoteRevision() calling asyncTaskStarted()");
 
             AsyncTaskStarted();
 
@@ -377,7 +377,7 @@ namespace Couchbase.Lite.Replicator
             if (knownRevs == null)
             {
                 //this means something is wrong, possibly the replicator has shut down
-                Log.D(Tag, this + "|" + Thread.CurrentThread() + ": pullRemoteRevision() calling asyncTaskFinished()");
+                Log.D(Tag, "|" + Thread.CurrentThread() + ": pullRemoteRevision() calling asyncTaskFinished()");
                 AsyncTaskFinished(1);
                 httpConnectionCount--;
                 return;
@@ -397,7 +397,7 @@ namespace Couchbase.Lite.Replicator
                 try 
                 {
                     // OK, now we've got the response revision:
-                    Log.D (Tag, this + ": pullRemoteRevision got response for rev: " + rev);
+                    Log.D (Tag, "pullRemoteRevision got response for rev: " + rev);
                     if (result != null)
                     {
                         var properties = result.AsDictionary<string, object>();
@@ -419,7 +419,7 @@ namespace Couchbase.Lite.Replicator
                 }
                 finally
                 {
-                    Log.D (Tag, this + "|" + Thread.CurrentThread() + ": pullRemoteRevision.onCompletion() calling asyncTaskFinished()");
+                    Log.D (Tag, "|" + Thread.CurrentThread() + ": pullRemoteRevision.onCompletion() calling asyncTaskFinished()");
                     AsyncTaskFinished (1);
                 }
 
@@ -433,7 +433,7 @@ namespace Couchbase.Lite.Replicator
 		/// <summary>This will be called when _revsToInsert fills up:</summary>
         public void InsertDownloads(IList<RevisionInternal> downloads)
 		{
-            Log.I(Tag, this + " inserting " + downloads.Count + " revisions...");
+            Log.I(Tag, " inserting " + downloads.Count + " revisions...");
 
             downloads.Sort(new RevisionComparer());
 
@@ -471,11 +471,11 @@ namespace Couchbase.Lite.Replicator
                     {
                         if (e.GetCBLStatus().GetCode() == StatusCode.Forbidden)
                         {
-                            Log.I(Tag, this + ": Remote rev failed validation: " + rev);
+                            Log.I(Tag, "Remote rev failed validation: " + rev);
                         }
                         else
                         {
-                            Log.W(Tag, this + " failed to write " + rev + ": status=" + e.GetCBLStatus().GetCode());
+                            Log.W(Tag, " failed to write " + rev + ": status=" + e.GetCBLStatus().GetCode());
                             RevisionFailed();
                             SetLastError(e);
                             continue;
@@ -484,21 +484,21 @@ namespace Couchbase.Lite.Replicator
                     pendingSequences.RemoveSequence(fakeSequence);
                 }
 
-                Log.W(Tag, this + " finished inserting " + downloads.Count + " revisions");
+                Log.W(Tag, " finished inserting " + downloads.Count + " revisions");
 
                 LastSequence = pendingSequences.GetCheckpointedValue();
                 success = true;
             }
             catch (Exception e)
             {
-                Log.E(Tag, this + ": Exception inserting revisions", e);
+                Log.E(Tag, "Exception inserting revisions", e);
             }
             finally
             {
                 LocalDatabase.EndTransaction(success);
                 CompletedChangesCount += downloads.Count;
                 AsyncTaskFinished(downloads.Count);
-                Log.D(Tag, this + "|" + Thread.CurrentThread() + ": insertRevisions() calling asyncTaskFinished()");
+                Log.D(Tag, "|" + Thread.CurrentThread() + ": insertRevisions() calling asyncTaskFinished()");
             }
 		}
 
@@ -546,7 +546,7 @@ namespace Couchbase.Lite.Replicator
 
         internal Boolean GoOffline()
         {
-            Log.D(Tag, this + " goOffline() called, stopping changeTracker: " + changeTracker);
+            Log.D(Tag, " goOffline() called, stopping changeTracker: " + changeTracker);
             if (!base.GoOffline())
             {
                 return false;

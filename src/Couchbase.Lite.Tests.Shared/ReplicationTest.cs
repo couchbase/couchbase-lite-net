@@ -63,7 +63,7 @@ using Newtonsoft.Json.Linq;
 using System.Threading;
 
 
-namespace Couchbase.Lite.Replicator
+namespace Couchbase.Lite
 {
 	public class ReplicationTest : LiteTestCase
 	{
