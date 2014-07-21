@@ -46,24 +46,18 @@ using System.Diagnostics;
 
 namespace Couchbase.Lite.Util
 {
-    #if !__ANDROID__ && !__IOS__
     internal sealed class CustomLogger : ILogger 
     {
-        readonly TraceSource ts;
+        readonly CouchbaseTraceListener ts;
 
         SourceLevels level;
+
+        public CustomLogger() : this(SourceLevels.Information) { }
 
         public CustomLogger(SourceLevels logLevel)
         {
             level = logLevel;
-            ts = new TraceSource("Couchbase.Lite", SourceLevels.Verbose);
-            ts.Listeners.Add(new ConsoleTraceListener
-                {
-                    Name = "console",
-                    TraceOutputOptions = logLevel.HasFlag(SourceLevels.All) 
-                        ? TraceOptions.ThreadId 
-                        : TraceOptions.None
-                });
+            ts = new CouchbaseTraceListener(logLevel);
         }
 
         static Exception Flatten (Exception tr)
@@ -80,82 +74,82 @@ namespace Couchbase.Lite.Util
         {
             if (!(level.HasFlag(SourceLevels.Verbose)))
                 return;
-            ts.TraceEvent(TraceEventType.Verbose, 0, "{0}: {1}", tag, msg);
+
+            ts.WriteLine(SourceLevels.Verbose, msg, tag);
         }
 
         public void V (string tag, string msg, Exception tr)
         {
             if (!(level.HasFlag(SourceLevels.Verbose)))
                 return;
-            ts.TraceEvent(TraceEventType.Verbose, 0, "{0}: {1}\r\n{2}", tag, msg, Flatten(tr));
+            ts.WriteLine(SourceLevels.Verbose, "{0}:\r\n{1}".Fmt(msg, Flatten(tr).ToString()), tag);
         }
 
         public void D (string tag, string msg)
         {
             if (!(level.HasFlag(SourceLevels.All)))
                 return;
-            ts.TraceEvent(TraceEventType.Verbose, 0, "{0}: {1}", tag, msg);
+            ts.WriteLine(SourceLevels.Verbose, msg, tag);
         }
 
         public void D (string tag, string msg, Exception tr)
         {
             if (!(level.HasFlag(SourceLevels.All)))
                 return;
-            ts.TraceEvent(TraceEventType.Verbose, 0, "{0}: {1}", tag, msg);
+            ts.WriteLine(SourceLevels.Verbose, msg, tag);
         }
 
         public void I (string tag, string msg)
         {
             if (!(level.HasFlag(SourceLevels.Information)))
                 return;
-            ts.TraceEvent(TraceEventType.Verbose, 0, "{0}: {1}", tag, msg);
+            ts.WriteLine(SourceLevels.Information, msg, tag);
         }
 
         public void I (string tag, string msg, Exception tr)
         {
             if (!(level.HasFlag(SourceLevels.Information)))
                 return;
-            ts.TraceEvent(TraceEventType.Verbose, 0, "{0}: {1}\r\n{2}", tag, msg, Flatten(tr));
+            ts.WriteLine(SourceLevels.Information, "{0}:\r\n{1}".Fmt(msg, Flatten(tr).ToString()), tag);
         }
 
         public void W (string tag, string msg)
         {
             if (!(level.HasFlag(SourceLevels.Warning)))
                 return;
-            ts.TraceEvent(TraceEventType.Warning, 0, "{0}: {1}", tag, msg);
+            ts.WriteLine(SourceLevels.Warning, msg, tag);
         }
 
         public void W (string tag, Exception tr)
         {
             if (!(level.HasFlag(SourceLevels.Warning)))
                 return;
-            ts.TraceEvent(TraceEventType.Warning, 0, "{0}: {1}\r\n{2}", tag, string.Empty, Flatten(tr));
+            ts.WriteLine(Flatten(tr).Message, tag);
         }
 
         public void W (string tag, string msg, Exception tr)
         {
             if (!(level.HasFlag(SourceLevels.Warning)))
                 return;
-            ts.TraceEvent(TraceEventType.Warning, 0, "{0}: {1}\r\n{2}", tag, msg, Flatten(tr));
+            ts.WriteLine(SourceLevels.Warning, "{0}:\r\n{1}".Fmt(msg, Flatten(tr).ToString()), tag);
         }
 
         public void E (string tag, string msg)
         {
             if (!(level.HasFlag(SourceLevels.Error)))
                 return;
-            ts.TraceData(TraceEventType.Error, 0, msg);
+            ts.Fail(msg, tag);
         }
 
         public void E (string tag, string msg, Exception tr)
         {
             if (!(level.HasFlag(SourceLevels.Error)))
                 return;
-            ts.TraceData(TraceEventType.Error, 0, msg, Flatten(tr));
+            ts.Fail("{0}: {1}".Fmt(tag, msg), Flatten(tr).ToString());
         }
 
         #endregion
 
 
     }
-	#endif
 }

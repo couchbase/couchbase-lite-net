@@ -47,15 +47,11 @@ using System.Diagnostics;
 
 namespace Couchbase.Lite.Util
 {
-	public class LoggerFactory
+	public static class LoggerFactory
 	{
 		public static ILogger CreateLogger()
 		{
-			#if __ANDROID__ || __IOS__
-            return new SystemLogger();
-            #else
             return new CustomLogger(SourceLevels.Information);
-            #endif
 		}
 	}
 }

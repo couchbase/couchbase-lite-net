@@ -100,8 +100,8 @@ namespace Couchbase.Lite.Replicator
                 return;
             }
 
-            Log.V(Tag, this + ": Remote db might not exist; creating it...");
-            Log.D(Tag, this + "|" + Thread.CurrentThread() + ": maybeCreateRemoteDB() calling asyncTaskStarted()");
+            Log.V(Tag, "Remote db might not exist; creating it...");
+            Log.D(Tag, "|" + Thread.CurrentThread() + ": maybeCreateRemoteDB() calling asyncTaskStarted()");
             SendAsyncRequest(HttpMethod.Put, String.Empty, null, (result, e) => 
                 {
                     try
@@ -109,20 +109,20 @@ namespace Couchbase.Lite.Replicator
                         if (e is HttpResponseException && ((HttpResponseException)e).StatusCode.GetStatusCode() != StatusCode.PreconditionFailed) 
                         {
                             // this is fatal: no db to push to!
-                            Log.E(Tag, this + ": Failed to create remote db", e);
+                            Log.E(Tag, "Failed to create remote db", e);
                             LastError = e;
                             Stop();
                         } 
                         else 
                         {
-                            Log.V (Tag, this + ": Created remote db");
+                            Log.V (Tag, "Created remote db");
                             CreateTarget = false;
                             BeginReplicating ();
                         }
                     } 
                     finally
                     {
-                        Log.D(Tag, this + "|" +  Thread.CurrentThread() + ": maybeCreateRemoteDB.onComplete() calling asyncTaskFinished()");
+                        Log.D(Tag, "|" +  Thread.CurrentThread() + ": maybeCreateRemoteDB.onComplete() calling asyncTaskFinished()");
                         AsyncTaskFinished(1);
                     }
                 });
@@ -130,18 +130,18 @@ namespace Couchbase.Lite.Replicator
 
         internal override void BeginReplicating()
 		{
-            Log.D(Database.Tag, this + "|" + Sharpen.Thread.CurrentThread() + ": beginReplicating() called");
+            Log.D(Tag, "beginReplicating() called");
 
             // If we're still waiting to create the remote db, do nothing now. (This method will be
             // re-invoked after that request finishes; see maybeCreateRemoteDB() above.)
             if (CreateTarget)
             {
-                Log.D(Tag, this + "|" + Sharpen.Thread.CurrentThread() + ": creatingTarget == true, doing nothing");
+                Log.D(Tag, "creatingTarget == true, doing nothing");
                 return;
             }
             else
             {
-                Log.D(Tag, this + "|" + Sharpen.Thread.CurrentThread() + ": creatingTarget != true, continuing");
+                Log.D(Tag, "creatingTarget != true, continuing");
             }
 
             if (Filter != null)
@@ -235,14 +235,14 @@ namespace Couchbase.Lite.Replicator
             }
 
             // Call _revs_diff on the target db:
-            Log.D(Tag, this + "|" + Thread.CurrentThread() + ": processInbox() calling asyncTaskStarted()");
-            Log.D(Tag, this + "|" + Thread.CurrentThread() + ": posting to /_revs_diff: " + string.Join(Environment.NewLine, diffs));
+            Log.D(Tag, "|" + Thread.CurrentThread() + ": processInbox() calling asyncTaskStarted()");
+            Log.D(Tag, "|" + Thread.CurrentThread() + ": posting to /_revs_diff: " + string.Join(Environment.NewLine, diffs));
 
             AsyncTaskStarted();
             SendAsyncRequest(HttpMethod.Post, "/_revs_diff", diffs, (response, e) => 
             {
                 try {
-                    Log.D(Tag, this + "|" + Thread.CurrentThread() + ": /_revs_diff response: " + response);
+                    Log.D(Tag, "|" + Thread.CurrentThread() + ": /_revs_diff response: " + response);
 
                     var responseData = (JObject)response;
                     var results = responseData.ToObject<IDictionary<string, object>>();
@@ -311,7 +311,7 @@ namespace Couchbase.Lite.Replicator
 
                                 ChangesCount += numDocsToSend;
 
-                                Log.D(Tag, this + "|" + Thread.CurrentThread() + ": processInbox-before_bulk_docs() calling asyncTaskStarted()");
+                                Log.D(Tag, "|" + Thread.CurrentThread() + ": processInbox-before_bulk_docs() calling asyncTaskStarted()");
 
                                 AsyncTaskStarted ();
                                 SendAsyncRequest (HttpMethod.Post, "/_bulk_docs", bulkDocsBody, (result, ex) => {
@@ -344,7 +344,7 @@ namespace Couchbase.Lite.Replicator
                 }
                 finally
                 {
-                    Log.D(Tag, this + "|" + Thread.CurrentThread() + ": processInbox() calling asyncTaskFinished()");
+                    Log.D(Tag, "|" + Thread.CurrentThread() + ": processInbox() calling asyncTaskFinished()");
                     AsyncTaskFinished (1);
                 }
             });
@@ -424,7 +424,7 @@ namespace Couchbase.Lite.Replicator
 
             // TODO: need to throttle these requests
             Log.D(Tag, "Uploading multipart request.  Revision: " + revision);
-            Log.D(Tag, this + "|" + Thread.CurrentThread() + ": uploadMultipartRevision() calling asyncTaskStarted()");
+            Log.D(Tag, "|" + Thread.CurrentThread() + ": uploadMultipartRevision() calling asyncTaskStarted()");
 
             // TODO: ios code has self.changesTotal++; here
             AsyncTaskStarted();

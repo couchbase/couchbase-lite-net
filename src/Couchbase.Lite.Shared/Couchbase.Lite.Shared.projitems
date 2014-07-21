@@ -213,6 +213,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Util\AuthUtils.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\CookieStore.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\CustomLogger.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Util\CouchbaseTraceListener.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="$(MSBuildThisFileDirectory)Store\MonoSQLiteStorageEngine.cs" />

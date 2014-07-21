@@ -84,7 +84,7 @@ namespace Couchbase.Lite
 
         private void OnDatabaseChanged (object sender, Database.DatabaseChangeEventArgs e)
         {
-            Log.D(Tag, this + ": OnDatabaseChanged() called");
+            Log.D(Tag, "OnDatabaseChanged() called");
             Update();
         }
 
@@ -121,7 +121,7 @@ namespace Couchbase.Lite
         private void RunUpdateAfterQueryFinishes(Task updateQueryTask, CancellationTokenSource updateQueryTaskTokenSource) {
             if (!runningState) 
             {
-                Log.D(Tag, this + ": ReRunUpdateAfterQueryFinishes() fired, but running state == false. Ignoring.");
+                Log.D(Tag, "ReRunUpdateAfterQueryFinishes() fired, but running state == false. Ignoring.");
                 return; // NOTE: Assuming that we don't want to lose rows we already retrieved.
             }
 
@@ -146,7 +146,7 @@ namespace Couchbase.Lite
         {
             lock(updateLock)
             {
-                Log.D(Tag, this + ": update() called.");
+                Log.D(Tag, "update() called.");
 
                 if (View == null)
                 {
@@ -155,7 +155,7 @@ namespace Couchbase.Lite
 
                 if (!runningState)
                 {
-                    Log.D(Tag, this + ": update() called, but running state == false.  Ignoring.");
+                    Log.D(Tag, "update() called, but running state == false.  Ignoring.");
                     return;
                 }
 
@@ -163,13 +163,13 @@ namespace Couchbase.Lite
                     UpdateQueryTask.Status != TaskStatus.Canceled && 
                     UpdateQueryTask.Status != TaskStatus.RanToCompletion)
                 {
-                    Log.D(Tag, this + ": already a query in flight, scheduling call to update() once it's done");
+                    Log.D(Tag, "already a query in flight, scheduling call to update() once it's done");
                     if (ReRunUpdateQueryTask != null &&
                         ReRunUpdateQueryTask.Status != TaskStatus.Canceled && 
                         ReRunUpdateQueryTask.Status != TaskStatus.RanToCompletion)
                     {
                         ReRunUpdateQueryTokenSource.Cancel();
-                        Log.D(Tag, this + ": cancelled rerun update query token source.");
+                        Log.D(Tag, "cancelled rerun update query token source.");
                     }
 
                     var updateQueryTaskToWait = UpdateQueryTask;
@@ -181,7 +181,7 @@ namespace Couchbase.Lite
                         RunUpdateAfterQueryFinishes(updateQueryTaskToWait, updateQueryTaskToWaitTokenSource); 
                     }, ReRunUpdateQueryTokenSource.Token);
 
-                    Log.D(Tag, this + ": RunUpdateAfterQueryFinishes() is fired.");
+                    Log.D(Tag, "RunUpdateAfterQueryFinishes() is fired.");
 
                     return;
                 }
@@ -257,12 +257,12 @@ namespace Couchbase.Lite
         {
             if (runningState)
             {
-                Log.D(Tag, this + ": start() called, but runningState is already true.  Ignoring.");
+                Log.D(Tag, "start() called, but runningState is already true.  Ignoring.");
                 return;
             }
             else
             {
-                Log.D(Tag, this + ": start() called");
+                Log.D(Tag, "start() called");
                 runningState = true;
             }
 
@@ -282,12 +282,12 @@ namespace Couchbase.Lite
         {
             if (!runningState)
             {
-                Log.D(Tag, this + ": stop() called, but runningState is already false.  Ignoring.");
+                Log.D(Tag, "stop() called, but runningState is already false.  Ignoring.");
                 return;
             }
             else
             {
-                Log.D(Tag, this + ": stop() called");
+                Log.D(Tag, "stop() called");
                 runningState = false;
             }
 
@@ -303,21 +303,21 @@ namespace Couchbase.Lite
             if (UpdateQueryTokenSource != null && UpdateQueryTokenSource.Token.CanBeCanceled)
             {
                 UpdateQueryTokenSource.Cancel();
-                Log.D(Tag, this + ": canceled update query token Source");
+                Log.D(Tag, "canceled update query token Source");
             }
             else
             {
-                Log.D(Tag, this + ": not cancelling update query token source.");
+                Log.D(Tag, "not cancelling update query token source.");
             }
 
             if (ReRunUpdateQueryTokenSource != null && ReRunUpdateQueryTokenSource.Token.CanBeCanceled)
             {
                 ReRunUpdateQueryTokenSource.Cancel();
-                Log.D(Tag, this + ": canceled rerun update query token Source");
+                Log.D(Tag, "canceled rerun update query token Source");
             }
             else
             {
-                Log.D(Tag, this + ": not cancelling rerun update query token source.");
+                Log.D(Tag, "not cancelling rerun update query token source.");
             }
         }
 
