@@ -197,7 +197,7 @@ namespace Couchbase.Lite
 			options.ReadOnly = true;
             options.CallbackScheduler = new SingleThreadTaskScheduler();
 
-            var roManager = new Manager(new DirectoryInfo(manager.Directory), options);
+            var roManager = new Manager(new DefaultContext(), options);
 			Assert.IsTrue(roManager != null);
 
             var nonExistantDatabase = roManager.GetDatabase("foo");
@@ -882,7 +882,7 @@ namespace Couchbase.Lite
         public void TestSharedMapBlocks()
 		{
             var path = new DirectoryInfo(Path.Combine(GetRootDirectory().FullName, "API_SharedMapBlocks"));
-            var mgr = new Manager(path, Manager.DefaultOptions);
+            var mgr = new Manager(new LiteTestContext(path), Manager.DefaultOptions);
             var db = mgr.GetDatabase("db");
 
 			db.Open();
@@ -919,7 +919,8 @@ namespace Couchbase.Lite
         [Test]
         public void TestChangeUUID()
 		{
-            var mgr = new Manager(new DirectoryInfo(Path.Combine(GetRootDirectory().FullName, "ChangeUUID")), Manager.DefaultOptions);
+            var path = new DirectoryInfo(Path.Combine(GetRootDirectory().FullName, "ChangeUUID"));
+            var mgr = new Manager(new LiteTestContext(path), Manager.DefaultOptions);
             var db = mgr.GetDatabase("db");
 
 			db.Open();
