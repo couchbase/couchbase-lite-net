@@ -213,6 +213,9 @@
     <Compile Include="$(MSBuildThisFileDirectory)Util\AuthUtils.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\CookieStore.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\CustomLogger.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Manager\IContext.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Manager\INetworkReachabilityManager.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Manager\DefaultContext.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="$(MSBuildThisFileDirectory)Store\MonoSQLiteStorageEngine.cs" />

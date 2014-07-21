@@ -280,6 +280,8 @@ namespace Couchbase.Lite
 
         readonly object asyncTaskLocker = new object ();
 
+        private EventHandler<NetworkReachabilityChangeEventArgs> networkReachabilityEventHandler;
+
         protected void SetClientFactory(IHttpClientFactory clientFactory)
         {
             if (clientFactory != null)
@@ -683,6 +685,13 @@ namespace Couchbase.Lite
             SaveLastSequence();
             Log.V(Tag, this + " set batcher to null");
             Batcher = null;
+
+            var reachabilityManager = LocalDatabase.Manager.Context.NetworkReachabilityManager;
+            if (reachabilityManager != null) 
+            {
+                reachabilityManager.Changed -= networkReachabilityEventHandler;
+            }
+
             ClearDbRef();
             Log.V(Tag, ToString() + " STOPPED");
         }
@@ -1441,6 +1450,23 @@ namespace Couchbase.Lite
             IsRunning = true;
             LastSequence = null;
             CheckSession();
+
+            var reachabilityManager = LocalDatabase.Manager.Context.NetworkReachabilityManager;
+            if (reachabilityManager != null)
+            {
+                networkReachabilityEventHandler = (sender, e) =>
+                {
+                    if (e.Status == NetworkReachabilityStatus.Reachable)
+                    {
+                        GoOnline();
+                    }
+                    else
+                    {
+                        GoOffline();
+                    }
+                };
+                reachabilityManager.Changed += networkReachabilityEventHandler;
+            }
         }
 
         /// <summary>

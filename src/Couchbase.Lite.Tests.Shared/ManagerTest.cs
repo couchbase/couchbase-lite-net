@@ -103,7 +103,7 @@ namespace Couchbase.Lite
             File.Create(migratedOldFile);
 
 			StopCBLite();
-            manager = new Manager(testDirInfo, Manager.DefaultOptions);
+            manager = new Manager(new LiteTestContext(testDirInfo), Manager.DefaultOptions);
 
             var oldTouchDbInfo = new FileInfo(oldTouchDb);
             var newCbLiteDbInfo = new FileInfo(newCbLiteDb);
@@ -117,7 +117,7 @@ namespace Couchbase.Lite
 
 			StopCBLite();
             migratedOldInfo.Delete();
-            manager = new Manager(testDirInfo, Manager.DefaultOptions);
+            manager = new Manager(new LiteTestContext(testDirInfo), Manager.DefaultOptions);
 
             oldTouchDbInfo = new FileInfo(oldTouchDb);
             newCbLiteDbInfo = new FileInfo(newCbLiteDb);
