@@ -43,12 +43,28 @@
 using System;
 using Couchbase.Lite.Util;
 using Sharpen;
+using System.Threading;
 
 namespace Couchbase.Lite.Util
 {
-	public class Log
+    /// <summary>
+    /// Centralized logging facility.
+    /// </summary>
+	public static class Log
 	{
-		private static readonly ILogger logger = LoggerFactory.CreateLogger();
+		private static ILogger Logger = LoggerFactory.CreateLogger();
+
+        /// <summary>
+        /// Sets the logger.
+        /// </summary>
+        /// <returns><c>true</c>, if Logger was set, <c>false</c> otherwise.</returns>
+        /// <param name="customLogger">Custom logger.</param>
+        public static bool SetLogger(ILogger customLogger)
+        {
+            var currentLogger = Logger;
+            Interlocked.CompareExchange(ref Logger, customLogger, currentLogger);
+            return Logger == customLogger;
+        }
 
 		/// <summary>Send a VERBOSE message.</summary>
 		/// <remarks>Send a VERBOSE message.</remarks>
@@ -59,9 +75,9 @@ namespace Couchbase.Lite.Util
 		/// <param name="msg">The message you would like logged.</param>
 		public static void V(string tag, string msg)
 		{
-			if (logger != null)
+			if (Logger != null)
 			{
-				logger.V(tag, msg);
+				Logger.V(tag, msg);
 			}
 		}
 
@@ -75,9 +91,9 @@ namespace Couchbase.Lite.Util
 		/// <param name="tr">An exception to log</param>
 		public static void V(string tag, string msg, Exception tr)
 		{
-			if (logger != null)
+			if (Logger != null)
 			{
-				logger.V(tag, msg, tr);
+				Logger.V(tag, msg, tr);
 			}
 		}
 
@@ -90,9 +106,9 @@ namespace Couchbase.Lite.Util
 		/// <param name="msg">The message you would like logged.</param>
 		public static void D(string tag, string msg)
 		{
-			if (logger != null)
+			if (Logger != null)
 			{
-				logger.D(tag, msg);
+				Logger.D(tag, msg);
 			}
 		}
 
@@ -106,9 +122,9 @@ namespace Couchbase.Lite.Util
 		/// <param name="tr">An exception to log</param>
 		public static void D(string tag, string msg, Exception tr)
 		{
-			if (logger != null)
+			if (Logger != null)
 			{
-				logger.D(tag, msg, tr);
+				Logger.D(tag, msg, tr);
 			}
 		}
 
@@ -121,9 +137,9 @@ namespace Couchbase.Lite.Util
 		/// <param name="msg">The message you would like logged.</param>
 		public static void I(string tag, string msg)
 		{
-			if (logger != null)
+			if (Logger != null)
 			{
-				logger.I(tag, msg);
+				Logger.I(tag, msg);
 			}
 		}
 
@@ -137,9 +153,9 @@ namespace Couchbase.Lite.Util
 		/// <param name="tr">An exception to log</param>
 		public static void I(string tag, string msg, Exception tr)
 		{
-			if (logger != null)
+			if (Logger != null)
 			{
-				logger.I(tag, msg, tr);
+				Logger.I(tag, msg, tr);
 			}
 		}
 
@@ -152,17 +168,17 @@ namespace Couchbase.Lite.Util
 		/// <param name="msg">The message you would like logged.</param>
 		public static void W(string tag, string msg)
 		{
-			if (logger != null)
+			if (Logger != null)
 			{
-				logger.W(tag, msg);
+				Logger.W(tag, msg);
 			}
 		}
 
 		public static void W(string tag, Exception tr)
 		{
-			if (logger != null)
+			if (Logger != null)
 			{
-				logger.W(tag, tr);
+				Logger.W(tag, tr);
 			}
 		}
 
@@ -176,9 +192,9 @@ namespace Couchbase.Lite.Util
 		/// <param name="tr">An exception to log</param>
 		public static void W(string tag, string msg, Exception tr)
 		{
-			if (logger != null)
+			if (Logger != null)
 			{
-				logger.W(tag, msg, tr);
+				Logger.W(tag, msg, tr);
 			}
 		}
 
@@ -191,9 +207,9 @@ namespace Couchbase.Lite.Util
 		/// <param name="msg">The message you would like logged.</param>
 		public static void E(string tag, string msg)
 		{
-			if (logger != null)
+			if (Logger != null)
 			{
-				logger.E(tag, msg);
+				Logger.E(tag, msg);
 			}
 		}
 
@@ -207,9 +223,9 @@ namespace Couchbase.Lite.Util
 		/// <param name="tr">An exception to log</param>
 		public static void E(string tag, string msg, Exception tr)
 		{
-			if (logger != null)
+			if (Logger != null)
 			{
-				logger.E(tag, msg, tr);
+				Logger.E(tag, msg, tr);
 			}
 		}
 	}
