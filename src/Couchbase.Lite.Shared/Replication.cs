@@ -706,7 +706,7 @@ namespace Couchbase.Lite
             Log.V(Tag, "set batcher to null");
 
             Batcher = null;
-            
+
             if (LocalDatabase != null)
             {
                 var reachabilityManager = LocalDatabase.Manager.Context.NetworkReachabilityManager;
