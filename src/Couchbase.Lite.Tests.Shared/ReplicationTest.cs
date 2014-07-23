@@ -65,8 +65,8 @@ using System.Threading;
 
 namespace Couchbase.Lite
 {
-	public class ReplicationTest : LiteTestCase
-	{
+    public class ReplicationTest : LiteTestCase
+    {
         public const string Tag = "ReplicationTest";
 
         private CountDownLatch ReplicationWatcherThread(Replication replication)
@@ -227,38 +227,38 @@ namespace Couchbase.Lite
             Log.V(Tag, "------");
         }
 
-		/// <exception cref="System.Exception"></exception>
+        /// <exception cref="System.Exception"></exception>
         [Test]
-		public void TestPusher()
-		{
-			var remote = GetReplicationURL();
-			var docIdTimestamp = Convert.ToString(Runtime.CurrentTimeMillis());
+        public void TestPusher()
+        {
+            var remote = GetReplicationURL();
+            var docIdTimestamp = Convert.ToString(Runtime.CurrentTimeMillis());
 
-			// Create some documents:
-			var documentProperties = new Dictionary<string, object>();
-			var doc1Id = string.Format("doc1-{0}", docIdTimestamp);
-			documentProperties["_id"] = doc1Id;
-			documentProperties["foo"] = 1;
-			documentProperties["bar"] = false;
+            // Create some documents:
+            var documentProperties = new Dictionary<string, object>();
+            var doc1Id = string.Format("doc1-{0}", docIdTimestamp);
+            documentProperties["_id"] = doc1Id;
+            documentProperties["foo"] = 1;
+            documentProperties["bar"] = false;
 
-			var body = new Body(documentProperties);
-			var rev1 = new RevisionInternal(body, database);
-			var status = new Status();
-			rev1 = database.PutRevision(rev1, null, false, status);
+            var body = new Body(documentProperties);
+            var rev1 = new RevisionInternal(body, database);
+            var status = new Status();
+            rev1 = database.PutRevision(rev1, null, false, status);
             Assert.AreEqual(StatusCode.Created, status.GetCode());
 
-			documentProperties.Put("_rev", rev1.GetRevId());
-			documentProperties["UPDATED"] = true;
-			database.PutRevision(new RevisionInternal(documentProperties, database), rev1.GetRevId(), false, status);
+            documentProperties.Put("_rev", rev1.GetRevId());
+            documentProperties["UPDATED"] = true;
+            database.PutRevision(new RevisionInternal(documentProperties, database), rev1.GetRevId(), false, status);
             Assert.AreEqual(StatusCode.Created, status.GetCode());
 
-			documentProperties = new Dictionary<string, object>();
-			var doc2Id = string.Format("doc2-{0}", docIdTimestamp);
-			documentProperties["_id"] = doc2Id;
-			documentProperties["baz"] = 666;
-			documentProperties["fnord"] = true;
+            documentProperties = new Dictionary<string, object>();
+            var doc2Id = string.Format("doc2-{0}", docIdTimestamp);
+            documentProperties["_id"] = doc2Id;
+            documentProperties["baz"] = 666;
+            documentProperties["fnord"] = true;
 
-			database.PutRevision(new RevisionInternal(documentProperties, database), null, false, status);
+            database.PutRevision(new RevisionInternal(documentProperties, database), null, false, status);
             Assert.AreEqual(StatusCode.Created, status.GetCode());
 
             var doc2 = database.GetDocument(doc2Id);
@@ -269,29 +269,29 @@ namespace Couchbase.Lite
 
             Assert.IsNotNull(doc2Rev);
 
-			const bool continuous = false;
-			var repl = database.CreatePushReplication(remote);
+            const bool continuous = false;
+            var repl = database.CreatePushReplication(remote);
             repl.Continuous = continuous;
             if (!IsSyncGateway(remote)) {
                 repl.CreateTarget = true;
             }
 
-			// Check the replication's properties:
-			Assert.AreEqual(database, repl.LocalDatabase);
-			Assert.AreEqual(remote, repl.RemoteUrl);
-			Assert.IsFalse(repl.IsPull);
+            // Check the replication's properties:
+            Assert.AreEqual(database, repl.LocalDatabase);
+            Assert.AreEqual(remote, repl.RemoteUrl);
+            Assert.IsFalse(repl.IsPull);
             Assert.IsFalse(repl.Continuous);
-			Assert.IsNull(repl.Filter);
-			Assert.IsNull(repl.FilterParams);
-			// TODO: CAssertNil(r1.doc_ids);
-			// TODO: CAssertNil(r1.headers);
+            Assert.IsNull(repl.Filter);
+            Assert.IsNull(repl.FilterParams);
+            // TODO: CAssertNil(r1.doc_ids);
+            // TODO: CAssertNil(r1.headers);
 
-			// Check that the replication hasn't started running:
-			Assert.IsFalse(repl.IsRunning);
+            // Check that the replication hasn't started running:
+            Assert.IsFalse(repl.IsRunning);
             Assert.AreEqual((int)repl.Status, (int)ReplicationStatus.Stopped);
-			Assert.AreEqual(0, repl.CompletedChangesCount);
-			Assert.AreEqual(0, repl.ChangesCount);
-			Assert.IsNull(repl.LastError);
+            Assert.AreEqual(0, repl.CompletedChangesCount);
+            Assert.AreEqual(0, repl.ChangesCount);
+            Assert.IsNull(repl.LastError);
 
             RunReplication(repl);
 
@@ -302,11 +302,11 @@ namespace Couchbase.Lite
             Assert.IsNull(repl.LastError);
 
             // make sure doc1 is there
-			// TODO: make sure doc2 is there (refactoring needed)
+            // TODO: make sure doc2 is there (refactoring needed)
             var replicationUrlTrailing = new Uri(string.Format("{0}/", remote));
-			var pathToDoc = new Uri(replicationUrlTrailing, doc1Id);
-			Log.D(Tag, "Send http request to " + pathToDoc);
-			var httpRequestDoneSignal = new CountDownLatch(1);
+            var pathToDoc = new Uri(replicationUrlTrailing, doc1Id);
+            Log.D(Tag, "Send http request to " + pathToDoc);
+            var httpRequestDoneSignal = new CountDownLatch(1);
             Task.Factory.StartNew(() =>
             {
                 var httpclient = new HttpClient();
@@ -360,30 +360,30 @@ namespace Couchbase.Lite
             Log.D(Tag, "testPusher() finished");
         }
 
-		/// <exception cref="System.Exception"></exception>
+        /// <exception cref="System.Exception"></exception>
         [Test]
         public void TestPusherDeletedDoc()
-		{
-			var remote = GetReplicationURL();
-			var docIdTimestamp = Convert.ToString(Runtime.CurrentTimeMillis());
+        {
+            var remote = GetReplicationURL();
+            var docIdTimestamp = Convert.ToString(Runtime.CurrentTimeMillis());
 
-			// Create some documentsConvert
-			var documentProperties = new Dictionary<string, object>();
-			var doc1Id = string.Format("doc1-{0}", docIdTimestamp);
-			documentProperties["_id"] = doc1Id;
-			documentProperties["foo"] = 1;
-			documentProperties["bar"] = false;
+            // Create some documentsConvert
+            var documentProperties = new Dictionary<string, object>();
+            var doc1Id = string.Format("doc1-{0}", docIdTimestamp);
+            documentProperties["_id"] = doc1Id;
+            documentProperties["foo"] = 1;
+            documentProperties["bar"] = false;
 
-			var body = new Body(documentProperties);
-			var rev1 = new RevisionInternal(body, database);
-			var status = new Status();
-			rev1 = database.PutRevision(rev1, null, false, status);
+            var body = new Body(documentProperties);
+            var rev1 = new RevisionInternal(body, database);
+            var status = new Status();
+            rev1 = database.PutRevision(rev1, null, false, status);
             Assert.AreEqual(StatusCode.Created, status.GetCode());
 
             documentProperties["_rev"] = rev1.GetRevId();
-			documentProperties["UPDATED"] = true;
-			documentProperties["_deleted"] = true;
-			database.PutRevision(new RevisionInternal(documentProperties, database), rev1.GetRevId(), false, status);
+            documentProperties["UPDATED"] = true;
+            documentProperties["_deleted"] = true;
+            database.PutRevision(new RevisionInternal(documentProperties, database), rev1.GetRevId(), false, status);
             Assert.IsTrue((int)status.GetCode() >= 200 && (int)status.GetCode() < 300);
 
             var repl = database.CreatePushReplication(remote);
@@ -391,21 +391,21 @@ namespace Couchbase.Lite
                 ((Pusher)repl).CreateTarget = true;
             }
 
-			RunReplication(repl);
+            RunReplication(repl);
 
             Assert.IsNull(repl.LastError);
 
-			// make sure doc1 is deleted
-			var replicationUrlTrailing = new Uri(string.Format ("{0}/", remote));
-			var pathToDoc = new Uri(replicationUrlTrailing, doc1Id);
-			Log.D(Tag, "Send http request to " + pathToDoc);
-			var httpRequestDoneSignal = new CountDownLatch(1);
-			Task.Factory.StartNew(async ()=>
+            // make sure doc1 is deleted
+            var replicationUrlTrailing = new Uri(string.Format ("{0}/", remote));
+            var pathToDoc = new Uri(replicationUrlTrailing, doc1Id);
+            Log.D(Tag, "Send http request to " + pathToDoc);
+            var httpRequestDoneSignal = new CountDownLatch(1);
+            Task.Factory.StartNew(async ()=>
                 {
                     var httpclient = new HttpClient();
                     try
                     {
-						var getDocResponse = await httpclient.GetAsync(pathToDoc.ToString());
+                        var getDocResponse = await httpclient.GetAsync(pathToDoc.ToString());
                         var statusLine = getDocResponse.StatusCode;
                         Log.D(ReplicationTest.Tag, "statusLine " + statusLine);
                         Assert.AreEqual(HttpStatusCode.NotFound, statusLine.GetStatusCode());                        
@@ -423,37 +423,37 @@ namespace Couchbase.Lite
                         httpRequestDoneSignal.CountDown();
                     }
                 });
-			Log.D(Tag, "Waiting for http request to finish");
-			try
-			{
+            Log.D(Tag, "Waiting for http request to finish");
+            try
+            {
                 httpRequestDoneSignal.Await(TimeSpan.FromSeconds(10));
-				Log.D(Tag, "http request finished");
-			}
-			catch (Exception e)
-			{
-				Runtime.PrintStackTrace(e);
-			}
-			Log.D(Tag, "testPusherDeletedDoc() finished");
-		}
+                Log.D(Tag, "http request finished");
+            }
+            catch (Exception e)
+            {
+                Runtime.PrintStackTrace(e);
+            }
+            Log.D(Tag, "testPusherDeletedDoc() finished");
+        }
 
-		/// <exception cref="System.Exception"></exception>
+        /// <exception cref="System.Exception"></exception>
         [Test]
-		public void TestPuller()
-		{
-			var docIdTimestamp = System.Convert.ToString(Runtime.CurrentTimeMillis());
+        public void TestPuller()
+        {
+            var docIdTimestamp = System.Convert.ToString(Runtime.CurrentTimeMillis());
             var doc1Id = string.Format("doc1-{0}", docIdTimestamp);
             var doc2Id = string.Format("doc2-{0}", docIdTimestamp);
             AddDocWithId(doc1Id, "attachment.png");
             AddDocWithId(doc2Id, "attachment2.png");
 
-			// workaround for https://github.com/couchbase/sync_gateway/issues/228
+            // workaround for https://github.com/couchbase/sync_gateway/issues/228
             Sharpen.Thread.Sleep(3000);
             DoPullReplication();
             Sharpen.Thread.Sleep(3000);
 
-			Log.D(Tag, "Fetching doc1 via id: " + doc1Id);
+            Log.D(Tag, "Fetching doc1 via id: " + doc1Id);
             var doc1 = database.GetExistingDocument(doc1Id);
-			Assert.IsNotNull(doc1);
+            Assert.IsNotNull(doc1);
             Assert.IsNotNull(doc1.CurrentRevisionId);
             Assert.IsTrue(doc1.CurrentRevisionId.StartsWith("1-"));
             Assert.IsNotNull(doc1.Properties);
@@ -461,18 +461,18 @@ namespace Couchbase.Lite
 
             Log.D(Tag, "Fetching doc2 via id: " + doc2Id);
             var doc2 = database.GetExistingDocument(doc2Id);
-			Assert.IsNotNull(doc2);
+            Assert.IsNotNull(doc2);
             Assert.IsNotNull(doc2.CurrentRevisionId);
             Assert.IsTrue(doc2.CurrentRevisionId.StartsWith("1-"));
             Assert.IsNotNull(doc2.Properties);
             Assert.AreEqual(1, doc2.GetProperty("foo"));
             Log.D(Tag, "testPuller() finished");
-		}
+        }
 
-		/// <exception cref="System.Exception"></exception>
+        /// <exception cref="System.Exception"></exception>
         [Test]
-		public void TestPullerWithLiveQuery()
-		{
+        public void TestPullerWithLiveQuery()
+        {
             // Even though this test is passed, there is a runtime exception
             // thrown regarding the replication's number of changes count versus
             // number of completed changes count. Investigation is required.
@@ -512,40 +512,40 @@ namespace Couchbase.Lite
             allDocsLiveQuery.Start();
             DoPullReplication();
             allDocsLiveQuery.Stop();
-		}
+        }
 
-		private void DoPullReplication()
-		{
+        private void DoPullReplication()
+        {
             var remote = GetReplicationURL();
             var repl = database.CreatePullReplication(remote);
-			repl.Continuous = false;
-			RunReplication(repl);
+            repl.Continuous = false;
+            RunReplication(repl);
             Assert.IsNull(repl.LastError);
-		}
+        }
 
-		/// <exception cref="System.IO.IOException"></exception>
-		private void AddDocWithId(string docId, string attachmentName)
-		{
-			string docJson;
+        /// <exception cref="System.IO.IOException"></exception>
+        private void AddDocWithId(string docId, string attachmentName)
+        {
+            string docJson;
             if (attachmentName != null)
-			{
-				// add attachment to document
+            {
+                // add attachment to document
                 var attachmentStream = (InputStream)GetAsset(attachmentName);
                 var baos = new MemoryStream();
                 attachmentStream.Wrapped.CopyTo(baos);
                 var attachmentBase64 = Convert.ToBase64String(baos.ToArray());
                 docJson = String.Format("{{\"foo\":1,\"bar\":false, \"_attachments\": {{ \"i_use_couchdb.png\": {{ \"content_type\": \"image/png\", \"data\": \"{0}\" }} }} }}", attachmentBase64);
-			}
-			else
-			{
+            }
+            else
+            {
                 docJson = @"{""foo"":1,""bar"":false}";
-			}
+            }
 
-			// push a document to server
+            // push a document to server
             var replicationUrlTrailingDoc1 = new Uri(string.Format("{0}/{1}", GetReplicationURL(), docId));
-			var pathToDoc1 = new Uri(replicationUrlTrailingDoc1, docId);
-			Log.D(Tag, "Send http request to " + pathToDoc1);
-			CountDownLatch httpRequestDoneSignal = new CountDownLatch(1);
+            var pathToDoc1 = new Uri(replicationUrlTrailingDoc1, docId);
+            Log.D(Tag, "Send http request to " + pathToDoc1);
+            CountDownLatch httpRequestDoneSignal = new CountDownLatch(1);
             Task.Factory.StartNew(() =>
             {
                 var httpclient = new HttpClient(); //CouchbaseLiteHttpClientFactory.Instance.GetHttpClient();
@@ -574,22 +574,22 @@ namespace Couchbase.Lite
                 httpRequestDoneSignal.CountDown();
             });
 
-			Log.D(Tag, "Waiting for http request to finish");
-			try
-			{
-				httpRequestDoneSignal.Await(TimeSpan.FromSeconds(10));
-				Log.D(Tag, "http request finished");
-			}
-			catch (Exception e)
-			{
-				Sharpen.Runtime.PrintStackTrace(e);
-			}
-		}
+            Log.D(Tag, "Waiting for http request to finish");
+            try
+            {
+                httpRequestDoneSignal.Await(TimeSpan.FromSeconds(10));
+                Log.D(Tag, "http request finished");
+            }
+            catch (Exception e)
+            {
+                Sharpen.Runtime.PrintStackTrace(e);
+            }
+        }
 
-		/// <exception cref="System.Exception"></exception>
+        /// <exception cref="System.Exception"></exception>
         [Test]
-		public void TestGetReplicator()
-		{
+        public void TestGetReplicator()
+        {
             var replicationUrl = GetReplicationURL();
             var replicator = database.CreatePullReplication(replicationUrl);
             Assert.IsNotNull(replicator);
@@ -600,10 +600,10 @@ namespace Couchbase.Lite
             replicator.Start();
             Assert.IsTrue(replicator.IsRunning);
 
-			var activeReplicators = new Replication[database.ActiveReplicators.Count];
-			database.ActiveReplicators.CopyTo(activeReplicators, 0);
-			Assert.AreEqual(1, activeReplicators.Length);
-			Assert.AreEqual(replicator, activeReplicators [0]);
+            var activeReplicators = new Replication[database.ActiveReplicators.Count];
+            database.ActiveReplicators.CopyTo(activeReplicators, 0);
+            Assert.AreEqual(1, activeReplicators.Length);
+            Assert.AreEqual(replicator, activeReplicators [0]);
 
             replicator.Stop();
 
@@ -614,15 +614,15 @@ namespace Couchbase.Lite
             System.Threading.Thread.Sleep(1000);
 
             Assert.IsFalse(replicator.IsRunning);
-			activeReplicators = new Replication[database.ActiveReplicators.Count];
-			database.ActiveReplicators.CopyTo(activeReplicators, 0);
-			Assert.AreEqual(0, activeReplicators.Length);
-		}
+            activeReplicators = new Replication[database.ActiveReplicators.Count];
+            database.ActiveReplicators.CopyTo(activeReplicators, 0);
+            Assert.AreEqual(0, activeReplicators.Length);
+        }
 
-		/// <exception cref="System.Exception"></exception>
+        /// <exception cref="System.Exception"></exception>
         [Test]
-		public void TestGetReplicatorWithAuth()
-		{
+        public void TestGetReplicatorWithAuth()
+        {
             var email = "jchris@couchbase.com";
             var accessToken = "fake_access_token";
             var remoteUrl = GetReplicationURL().ToString();
@@ -632,22 +632,22 @@ namespace Couchbase.Lite
             Replication replicator = database.CreatePushReplication(url);
             replicator.Authenticator = AuthenticatorFactory.CreateFacebookAuthenticator (accessToken);
 
-			Assert.IsNotNull(replicator);
+            Assert.IsNotNull(replicator);
             Assert.IsNotNull(replicator.Authenticator);
             Assert.IsTrue(replicator.Authenticator is TokenAuthenticator);
-		}
+        }
 
-		/// <exception cref="System.Exception"></exception>
+        /// <exception cref="System.Exception"></exception>
         [Test]
-		public void TestRunReplicationWithError()
-		{
+        public void TestRunReplicationWithError()
+        {
             var mockHttpClientFactory = new MockHttpClientFactory();
             manager.DefaultHttpClientFactory = mockHttpClientFactory;
 
             var mockHttpHandler = mockHttpClientFactory.HttpHandler;
             mockHttpHandler.AddResponderFailAllRequests(HttpStatusCode.InternalServerError);
 
-			var dbUrlString = "http://fake.test-url.com:4984/fake/";
+            var dbUrlString = "http://fake.test-url.com:4984/fake/";
             var remote = new Uri(dbUrlString);
             var continuous = false;
             var r1 = new Pusher(database, remote, continuous, mockHttpClientFactory, new TaskFactory(new SingleThreadTaskScheduler()));
@@ -655,15 +655,15 @@ namespace Couchbase.Lite
             RunReplication(r1);
 
             Assert.AreEqual(ReplicationStatus.Stopped, r1.Status);
-			Assert.AreEqual(0, r1.CompletedChangesCount);
-			Assert.AreEqual(0, r1.ChangesCount);
-			Assert.IsNotNull(r1.LastError);
-		}
+            Assert.AreEqual(0, r1.CompletedChangesCount);
+            Assert.AreEqual(0, r1.ChangesCount);
+            Assert.IsNotNull(r1.LastError);
+        }
 
-		/// <exception cref="System.Exception"></exception>
+        /// <exception cref="System.Exception"></exception>
         [Test]
-		public void TestReplicatorErrorStatus()
-		{
+        public void TestReplicatorErrorStatus()
+        {
             var email = "jchris@couchbase.com";
             var accessToken = "fake_access_token";
             var remoteUrl = GetReplicationURL().ToString();
@@ -675,46 +675,46 @@ namespace Couchbase.Lite
             RunReplication(replicator);
 
             Assert.IsNotNull(replicator.LastError);
-		}
+        }
 
-		/// <exception cref="System.Exception"></exception>
+        /// <exception cref="System.Exception"></exception>
         [Test]
-		public void TestGoOffline()
-		{
-			var remote = GetReplicationURL();
-			var repl = database.CreatePullReplication(remote);
-			repl.Continuous = true;
+        public void TestGoOffline()
+        {
+            var remote = GetReplicationURL();
+            var repl = database.CreatePullReplication(remote);
+            repl.Continuous = true;
             repl.Start();
             PutReplicationOffline(repl);
             Assert.IsTrue(repl.Status == ReplicationStatus.Offline);
-		}
+        }
 
-		/// <exception cref="System.Exception"></exception>
+        /// <exception cref="System.Exception"></exception>
         [Test]
-		public virtual void TestBuildRelativeURLString()
-		{
-			string dbUrlString = "http://10.0.0.3:4984/todos/";
-			Replication replicator = new Pusher(null, new Uri(dbUrlString), false, null);
-			string relativeUrlString = replicator.BuildRelativeURLString("foo");
-			string expected = "http://10.0.0.3:4984/todos/foo";
-			Assert.AreEqual(expected, relativeUrlString);
-		}
+        public virtual void TestBuildRelativeURLString()
+        {
+            string dbUrlString = "http://10.0.0.3:4984/todos/";
+            Replication replicator = new Pusher(null, new Uri(dbUrlString), false, null);
+            string relativeUrlString = replicator.BuildRelativeURLString("foo");
+            string expected = "http://10.0.0.3:4984/todos/foo";
+            Assert.AreEqual(expected, relativeUrlString);
+        }
 
-		/// <exception cref="System.Exception"></exception>
+        /// <exception cref="System.Exception"></exception>
         [Test]
-		public virtual void TestBuildRelativeURLStringWithLeadingSlash()
-		{
-			string dbUrlString = "http://10.0.0.3:4984/todos/";
-			Replication replicator = new Pusher(null, new Uri(dbUrlString), false, null);
-			string relativeUrlString = replicator.BuildRelativeURLString("/foo");
-			string expected = "http://10.0.0.3:4984/todos/foo";
-			Assert.AreEqual(expected, relativeUrlString);
-		}
+        public virtual void TestBuildRelativeURLStringWithLeadingSlash()
+        {
+            string dbUrlString = "http://10.0.0.3:4984/todos/";
+            Replication replicator = new Pusher(null, new Uri(dbUrlString), false, null);
+            string relativeUrlString = replicator.BuildRelativeURLString("/foo");
+            string expected = "http://10.0.0.3:4984/todos/foo";
+            Assert.AreEqual(expected, relativeUrlString);
+        }
 
-		/// <exception cref="System.Exception"></exception>
+        /// <exception cref="System.Exception"></exception>
         [Test]
-		public void TestChannels()
-		{
+        public void TestChannels()
+        {
             Uri remote = GetReplicationURL();
             Replication replicator = database.CreatePullReplication(remote);
 
@@ -726,12 +726,12 @@ namespace Couchbase.Lite
 
             replicator.Channels = null;
             Assert.IsTrue(replicator.Channels.ToList().Count == 0);
-		}
+        }
 
-		/// <exception cref="System.UriFormatException"></exception>
+        /// <exception cref="System.UriFormatException"></exception>
         [Test]
-		public virtual void TestChannelsMore()
-		{
+        public virtual void TestChannelsMore()
+        {
             Uri fakeRemoteURL = new Uri("http://couchbase.com/no_such_db");
             Replication r1 = database.CreatePullReplication(fakeRemoteURL);
 
@@ -762,12 +762,12 @@ namespace Couchbase.Lite
             r1.Channels = null;
             Assert.AreEqual(r1.Filter, null);
             Assert.AreEqual(null, r1.FilterParams);
-		}
+        }
 
-		/// <exception cref="System.Exception"></exception>
+        /// <exception cref="System.Exception"></exception>
         [Test]
-		public void TestHeaders()
-		{
+        public void TestHeaders()
+        {
             var mockHttpClientFactory = new MockHttpClientFactory();
             manager.DefaultHttpClientFactory = mockHttpClientFactory;
 
@@ -1013,5 +1013,5 @@ namespace Couchbase.Lite
             Assert.IsNull(localLastSequence);
             Assert.IsTrue(doc2.CurrentRevision.Sequence > 0);
         }
-	}
+    }
 }
