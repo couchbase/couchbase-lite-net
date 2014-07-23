@@ -120,13 +120,14 @@ namespace Couchbase.Lite
             legalCharactersPattern = new Regex("^[abcdefghijklmnopqrstuvwxyz0123456789_$()+-/]+$");
             mapper = new ObjectWriter();
             DefaultOptions = ManagerOptions.Default;
-            sharedManager = new Manager(new DefaultContext(), ManagerOptions.Default);
+            defaultDirectory = new DirectoryInfo(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData));
+            sharedManager = new Manager(defaultDirectory, ManagerOptions.Default);
         }
 
         /// <summary>
         ///  Initializes a Manager that stores Databases in the default directory.
         /// </summary>
-        public Manager() : this(new DefaultContext(), ManagerOptions.Default) { }
+        public Manager() : this(defaultDirectory, ManagerOptions.Default) { }
 
         /// <summary>
         /// Initializes a Manager that stores Databases in the given directory.
@@ -134,13 +135,13 @@ namespace Couchbase.Lite
         /// <param name="context"><see cref="Couchbase.Lite.IContext"/> object for initializing the Manager object.</param>
         /// <param name="options">Option flags for initialization.</param>
         /// <exception cref="T:System.IO.DirectoryNotFoundException">Thrown when there is an error while accessing or creating the given directory.</exception>
-        public Manager(IContext context, ManagerOptions options)
+        public Manager(DirectoryInfo directoryFile, ManagerOptions options, INetworkReachabilityManager networkReachabilityManager = null)
         {
             Log.I(Tag, "Starting Manager version: " + VersionString);
 
-            this.context = context;
-            this.directoryFile = context.FilesDir;
+            this.directoryFile = directoryFile;
             this.options = options ?? DefaultOptions;
+            this.NetworkReachabilityManager = networkReachabilityManager;
             this.databases = new Dictionary<string, Database>();
             this.replications = new AList<Replication>();
 
@@ -175,7 +176,7 @@ namespace Couchbase.Lite
         /// <value>The directory.</value>
         public String Directory { get { return directoryFile.FullName; } }
 
-        public IContext Context { get { return context; } }
+        public INetworkReachabilityManager NetworkReachabilityManager { get ; private set; }
 
         /// <summary>
         /// Gets the names of all existing <see cref="Couchbase.Lite.Database"/>s.
@@ -309,6 +310,7 @@ namespace Couchbase.Lite
         // Static Fields
         private static readonly ObjectWriter mapper;
         private static readonly Manager sharedManager;
+        private static readonly DirectoryInfo defaultDirectory;
         private static readonly Regex legalCharactersPattern;
         private static readonly Regex illegalCharactersPattern;
 
@@ -324,7 +326,6 @@ namespace Couchbase.Lite
         }
 
         // Instance Fields
-        private readonly IContext context;
         private readonly ManagerOptions options;
         private readonly DirectoryInfo directoryFile;
         private readonly IDictionary<String, Database> databases;

@@ -709,7 +709,7 @@ namespace Couchbase.Lite
 
             if (LocalDatabase != null)
             {
-                var reachabilityManager = LocalDatabase.Manager.Context.NetworkReachabilityManager;
+                var reachabilityManager = LocalDatabase.Manager.NetworkReachabilityManager;
                 if (reachabilityManager != null)
                 {
                     reachabilityManager.Changed -= networkReachabilityEventHandler;
@@ -1500,7 +1500,7 @@ namespace Couchbase.Lite
             LastSequence = null;
             CheckSession();
 
-            var reachabilityManager = LocalDatabase.Manager.Context.NetworkReachabilityManager;
+            var reachabilityManager = LocalDatabase.Manager.NetworkReachabilityManager;
             if (reachabilityManager != null)
             {
                 networkReachabilityEventHandler = (sender, e) =>

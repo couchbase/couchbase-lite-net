@@ -90,7 +90,6 @@ namespace Couchbase.Lite
             var testDirName = "test-directory-" + Runtime.CurrentTimeMillis();
             var rootDirPath = GetRootDirectory().FullName;
             var testDirPath = Path.Combine(rootDirPath, testDirName);
-
             var testDirInfo = Directory.CreateDirectory(testDirPath);
 
             var oldTouchDb = Path.Combine(testDirPath, "old" + Manager.DatabaseSuffixOld);
@@ -103,7 +102,7 @@ namespace Couchbase.Lite
             File.Create(migratedOldFile);
 
 			StopCBLite();
-            manager = new Manager(new LiteTestContext(testDirInfo), Manager.DefaultOptions);
+            manager = new Manager(testDirInfo, Manager.DefaultOptions);
 
             var oldTouchDbInfo = new FileInfo(oldTouchDb);
             var newCbLiteDbInfo = new FileInfo(newCbLiteDb);
@@ -117,7 +116,7 @@ namespace Couchbase.Lite
 
 			StopCBLite();
             migratedOldInfo.Delete();
-            manager = new Manager(new LiteTestContext(testDirInfo), Manager.DefaultOptions);
+            manager = new Manager(testDirInfo, Manager.DefaultOptions);
 
             oldTouchDbInfo = new FileInfo(oldTouchDb);
             newCbLiteDbInfo = new FileInfo(newCbLiteDb);
