@@ -354,7 +354,7 @@ namespace Couchbase.Lite
             {
                 Log.D(Tag, "Going offline");
                 online = false;
-
+            
                 StopRemoteRequests();
 
                 UpdateProgress();

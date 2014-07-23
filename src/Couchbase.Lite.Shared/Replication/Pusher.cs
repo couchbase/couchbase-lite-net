@@ -493,7 +493,7 @@ namespace Couchbase.Lite.Replicator
                 }
                 else
                 {
-                    return new Status(StatusCode.UpstreamError);
+                    return new Status(StatusCode.UpStreamError);
                 }
 
             }
