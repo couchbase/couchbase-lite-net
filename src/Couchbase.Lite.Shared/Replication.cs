@@ -707,10 +707,13 @@ namespace Couchbase.Lite
 
             Batcher = null;
             
-            var reachabilityManager = LocalDatabase.Manager.Context.NetworkReachabilityManager;
-            if (reachabilityManager != null)
+            if (LocalDatabase != null)
             {
-                reachabilityManager.Changed -= networkReachabilityEventHandler;
+                var reachabilityManager = LocalDatabase.Manager.Context.NetworkReachabilityManager;
+                if (reachabilityManager != null)
+                {
+                    reachabilityManager.Changed -= networkReachabilityEventHandler;
+                }
             }
 
             ClearDbRef();
