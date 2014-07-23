@@ -345,6 +345,11 @@ namespace Couchbase.Lite
                 return false;
             }
 
+            if (LocalDatabase == null)
+            {
+                return false;
+            }
+
             LocalDatabase.Manager.RunAsync(() =>
             {
                 Log.D(Tag, this + ": Going offline");
@@ -363,6 +368,11 @@ namespace Couchbase.Lite
         internal bool GoOnline()
         {
             if (online)
+            {
+                return false;
+            }
+
+            if (LocalDatabase == null)
             {
                 return false;
             }
@@ -686,10 +696,13 @@ namespace Couchbase.Lite
             Log.V(Tag, this + " set batcher to null");
             Batcher = null;
 
-            var reachabilityManager = LocalDatabase.Manager.Context.NetworkReachabilityManager;
-            if (reachabilityManager != null) 
+            if (LocalDatabase != null)
             {
-                reachabilityManager.Changed -= networkReachabilityEventHandler;
+                var reachabilityManager = LocalDatabase.Manager.Context.NetworkReachabilityManager;
+                if (reachabilityManager != null) 
+                {
+                    reachabilityManager.Changed -= networkReachabilityEventHandler;
+                }
             }
 
             ClearDbRef();
