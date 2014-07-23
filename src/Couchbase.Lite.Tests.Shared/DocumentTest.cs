@@ -63,6 +63,38 @@ namespace Couchbase.Lite
 			Assert.IsNotNull(document.CurrentRevision);
 		}
 
+        /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
+        [Test]
+        public void TestPutDeletedDocument() 
+        {
+            Document document = database.CreateDocument();
+            var properties = new Dictionary<string, object>();
+            properties["foo"] = "foo";
+            properties["bar"] = false;
+            document.PutProperties(properties);
+            Assert.IsNotNull(document.CurrentRevision);
+
+            var docId = document.Id;
+
+            properties["_rev"] = document.CurrentRevisionId;
+            properties["_deleted"] = true;
+            properties["mykey"] = "myval";
+            var newRev = document.PutProperties(properties);
+            newRev.LoadProperties();
+
+            Assert.IsTrue(newRev.Properties.ContainsKey("mykey"));
+            Assert.IsTrue(document.Deleted);
+            var featchedDoc = database.GetExistingDocument(docId);
+            Assert.IsNull(featchedDoc);
+
+            var queryAllDocs = database.CreateAllDocumentsQuery();
+            var queryEnumerator = queryAllDocs.Run();
+            foreach(QueryRow row in queryEnumerator)
+            {
+                Assert.AreNotEqual(row.Document.Id, docId);
+            }
+        }
+
 		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
         [Test]
         public void TestDeleteDocument()
