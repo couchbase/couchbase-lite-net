@@ -65,27 +65,25 @@ namespace Couchbase.Lite.Replicator
 
         private bool creatingTarget;
 
-		private bool observing;
+        private bool observing;
 
-		private FilterDelegate filter;
+        private FilterDelegate filter;
 
         private SortedSet<long> pendingSequences;
 
         private long maxPendingSequence;
 
 		/// <summary>Constructor</summary>
-        public Pusher(Database db, Uri remote, bool continuous, TaskFactory workExecutor) : this(db, remote, continuous, null, workExecutor)
-		{
-		}
+        public Pusher(Database db, Uri remote, bool continuous, TaskFactory workExecutor) 
+        : this(db, remote, continuous, null, workExecutor) { }
 
 		/// <summary>Constructor</summary>
-        public Pusher(Database db, Uri remote, bool continuous, IHttpClientFactory clientFactory
-            , TaskFactory workExecutor) : base(db, remote, continuous, clientFactory
-			, workExecutor)
-		{
-			CreateTarget = false;
-			observing = false;
-		}
+        public Pusher(Database db, Uri remote, bool continuous, IHttpClientFactory clientFactory, TaskFactory workExecutor) 
+        : base(db, remote, continuous, clientFactory, workExecutor)
+        {
+                CreateTarget = false;
+                observing = false;
+        }
 
         #region implemented abstract members of Replication
 
@@ -109,7 +107,7 @@ namespace Couchbase.Lite.Replicator
             creatingTarget = true;
 
             Log.V(Tag, "Remote db might not exist; creating it...");
-            Log.D(Tag, "|" + Thread.CurrentThread() + ": maybeCreateRemoteDB() calling asyncTaskStarted()");
+            Log.D(Tag, "maybeCreateRemoteDB() calling asyncTaskStarted()");
             SendAsyncRequest(HttpMethod.Put, String.Empty, null, (result, e) =>
             {
                 try
@@ -131,14 +129,14 @@ namespace Couchbase.Lite.Replicator
                 }
                 finally
                 {
-                    Log.D(Tag, "|" + Thread.CurrentThread() + ": maybeCreateRemoteDB.onComplete() calling asyncTaskFinished()");
+                    Log.D(Tag, "maybeCreateRemoteDB.onComplete() calling asyncTaskFinished()");
                     AsyncTaskFinished(1);
                 }
             });
         }
 
         internal override void BeginReplicating()
-		{
+        {
             Log.D(Tag, "beginReplicating() called");
 
             // If we're still waiting to create the remote db, do nothing now. (This method will be
@@ -193,26 +191,26 @@ namespace Couchbase.Lite.Replicator
                 observing = true;
                 LocalDatabase.Changed += OnChanged;
             }
-		}
+        }
 
 		// prevents stopped() from being called when other tasks finish
-		public override void Stop()
-		{
-			StopObserving();
-			base.Stop();
-		}
+        public override void Stop()
+        {
+            StopObserving();
+            base.Stop();
+        }
 
-		private void StopObserving()
-		{
-			if (observing)
-			{
+        private void StopObserving()
+        {
+            if (observing)
+            {
                 observing = false;
                 LocalDatabase.Changed -= OnChanged;
-			}
-		}
+            }
+        }
 
         internal void OnChanged(Object sender, Database.DatabaseChangeEventArgs args)
-		{
+        {
             var changes = args.Changes;
             foreach (DocumentChange change in changes)
             {
@@ -232,7 +230,7 @@ namespace Couchbase.Lite.Replicator
                     AddToInbox(rev);
                 }
             }
-		}
+        }
 
         private void AddPending(RevisionInternal revisionInternal)
         {
@@ -296,14 +294,14 @@ namespace Couchbase.Lite.Replicator
             }
 
             // Call _revs_diff on the target db:
-            Log.D(Tag, "|" + Thread.CurrentThread() + ": processInbox() calling asyncTaskStarted()");
-            Log.D(Tag, "|" + Thread.CurrentThread() + ": posting to /_revs_diff: " + string.Join(Environment.NewLine, diffs));
+            Log.D(Tag, "processInbox() calling asyncTaskStarted()");
+            Log.D(Tag, "posting to /_revs_diff: " + string.Join(Environment.NewLine, diffs));
 
             AsyncTaskStarted();
             SendAsyncRequest(HttpMethod.Post, "/_revs_diff", diffs, (response, e) =>
             {
                 try {
-                    Log.D(Tag, "|" + Thread.CurrentThread() + ": /_revs_diff response: " + response);
+                    Log.D(Tag, "/_revs_diff response: " + response);
 
                     var results = response.AsDictionary<string, object>();
 
@@ -378,11 +376,11 @@ namespace Couchbase.Lite.Replicator
                 }
                 finally
                 {
-                    Log.D(Tag, "|" + Thread.CurrentThread() + ": processInbox() calling asyncTaskFinished()");
+                    Log.D(Tag, "processInbox() calling asyncTaskFinished()");
                     AsyncTaskFinished(1);
                 }
             });
-		}
+        }
 
         private void UploadBulkDocs(IList<object> docsToSend, RevisionList revChanges)
         {
@@ -446,7 +444,7 @@ namespace Couchbase.Lite.Replicator
                 }
                 finally
                 {
-                    Log.D(Tag, "|" + Thread.CurrentThread() + ": processInbox() after _bulk_docs() calling asyncTaskFinished()");
+                    Log.D(Tag, "processInbox() after _bulk_docs() calling asyncTaskFinished()");
                     AsyncTaskFinished(1);
                 }
             });
@@ -507,17 +505,17 @@ namespace Couchbase.Lite.Replicator
             return new Status(StatusCode.Ok);
         }
 
-		private bool UploadMultipartRevision(RevisionInternal revision)
-		{
+        private bool UploadMultipartRevision(RevisionInternal revision)
+        {
             MultipartFormDataContent multiPart = null;
 
             var revProps = revision.GetProperties();
             revProps.Put("_revisions", LocalDatabase.GetRevisionHistoryDict(revision));
 
-			var attachments = revProps.Get("_attachments").AsDictionary<string,object>();
+            var attachments = revProps.Get("_attachments").AsDictionary<string,object>();
             foreach (var attachmentKey in attachments.Keys)
             {
-				var attachment = attachments.Get(attachmentKey).AsDictionary<string,object>();
+                var attachment = attachments.Get(attachmentKey).AsDictionary<string,object>();
                 if (attachment.ContainsKey("follows"))
                 {
                     if (multiPart == null)
@@ -581,7 +579,7 @@ namespace Couchbase.Lite.Replicator
 
             // TODO: need to throttle these requests
             Log.D(Tag, "Uploading multipart request.  Revision: " + revision);
-            Log.D(Tag, "|" + Thread.CurrentThread() + ": uploadMultipartRevision() calling asyncTaskStarted()");
+            Log.D(Tag, "uploadMultipartRevision() calling asyncTaskStarted()");
 
             ChangesCount += 1;
             AsyncTaskStarted();
@@ -603,12 +601,12 @@ namespace Couchbase.Lite.Replicator
                 }
                 finally
                 {
-                    Log.D(Tag, "|" + Thread.CurrentThread() + " : uploadMultipartRevision() calling asyncTaskFinished()");
+                    Log.D(Tag, "uploadMultipartRevision() calling asyncTaskFinished()");
                     AsyncTaskFinished (1);
                 }
             });
 
             return true;
-		}
-	}
+        }
+    }
 }
