@@ -221,7 +221,7 @@ namespace Couchbase.Lite.Tests
             return jsonMap;
         }
 
-        private static HttpResponseMessage GenerateHttpResponseMessage(IDictionary<string, object> content)
+        public static HttpResponseMessage GenerateHttpResponseMessage(IDictionary<string, object> content)
         {
             var message = new HttpResponseMessage(HttpStatusCode.OK);
 
@@ -235,7 +235,7 @@ namespace Couchbase.Lite.Tests
             return message;
         }
 
-        private static HttpResponseMessage GenerateHttpResponseMessage(IList<IDictionary<string, object>> content)
+        public static HttpResponseMessage GenerateHttpResponseMessage(IList<IDictionary<string, object>> content)
         {
             var message = new HttpResponseMessage(HttpStatusCode.OK);
 

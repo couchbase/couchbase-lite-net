@@ -59,6 +59,8 @@ namespace Couchbase.Lite
 
 		BadRequest = 400,
 
+        Unauthorized = 401,
+
 		Forbidden = 403,
 
 		NotFound = 404,
@@ -79,9 +81,13 @@ namespace Couchbase.Lite
 
 		InternalServerError = 500,
 
+        UpstreamError = 589,
+
 		StatusAttachmentError = 592,
 
-		DbError = 590
+		DbError = 590,
+
+        DbBusy = 595
     }
 
     public class Status {
