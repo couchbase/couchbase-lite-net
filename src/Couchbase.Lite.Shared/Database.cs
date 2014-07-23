@@ -41,20 +41,19 @@
 //
 
 using System;
-using System.Linq;
 using System.Collections.Generic;
-using System.IO;
-using Sharpen;
-using Couchbase.Lite.Util;
-using Couchbase.Lite.Storage;
-using Couchbase.Lite.Internal;
-using System.Threading.Tasks;
-using System.Text;
-using System.Diagnostics;
 using System.Data;
-using Couchbase.Lite.Replicator;
-using Couchbase.Lite.Support;
+using System.Diagnostics;
+using System.IO;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 using Newtonsoft.Json.Linq;
+using Couchbase.Lite.Internal;
+using Couchbase.Lite.Replicator;
+using Couchbase.Lite.Storage;
+using Couchbase.Lite.Util;
+using Sharpen;
 
 namespace Couchbase.Lite 
 {
@@ -2709,15 +2708,21 @@ PRAGMA user_version = 3;";
         }
 
         /// <summary>Parses the _revisions dict from a document into an array of revision ID strings.</summary>
-        internal static IList<String> ParseCouchDBRevisionHistory(IDictionary<String, Object> docProperties)
+        internal static IList<string> ParseCouchDBRevisionHistory(IDictionary<String, Object> docProperties)
         {
             var revs = (JObject)docProperties.Get("_revisions");
             var revisions = revs.ToObject<Dictionary<String, Object>>();
             if (revisions == null)
             {
-                return null;
+                return new List<string>();
             }
+
             var ids = (JArray)revisions["ids"];
+            if (ids == null || ids.Count == 0)
+            {
+                return new List<string>();
+            }
+
             var revIDs = ids.Values<String>().ToList();
             var start = (Int64)revisions.Get("start");
             for (var i = 0; i < revIDs.Count; i++)
@@ -2725,6 +2730,7 @@ PRAGMA user_version = 3;";
                 var revID = revIDs[i];
                 revIDs.Set(i, Sharpen.Extensions.ToString(start--) + "-" + revID);
             }
+
             return revIDs;
         }
 

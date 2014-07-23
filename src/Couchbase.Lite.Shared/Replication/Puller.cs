@@ -42,21 +42,20 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Linq;
+using System.Net;
+using System.Net.Http;
 using System.Text;
+using System.Threading.Tasks;
+using System.Web;
+using Newtonsoft.Json.Linq;
 using Couchbase.Lite;
 using Couchbase.Lite.Internal;
 using Couchbase.Lite.Replicator;
-using Couchbase.Lite.Storage;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
 using Sharpen;
-using System.Threading.Tasks;
-using System.Net.Http;
-using System.Diagnostics;
-using System.Web;
-using System.Linq;
-using Newtonsoft.Json.Linq;
-using System.Net;
 
 namespace Couchbase.Lite.Replicator
 {
@@ -305,7 +304,7 @@ namespace Couchbase.Lite.Replicator
                 return;
             }
 
-            Log.V(Tag, " fetching " + inboxCount + " remote revisions...");
+            Log.V(Tag, "fetching " + inboxCount + " remote revisions...");
             //Log.v(Database.TAG, String.format("%s fetching remote revisions %s", this, inbox));
             // Dump the revs into the queue of revs to pull from the remote db:
             lock (locker) {
@@ -392,24 +391,23 @@ namespace Couchbase.Lite.Replicator
                 try 
                 {
                     // OK, now we've got the response revision:
-                    Log.D (Tag, "pullRemoteRevision got response for rev: " + rev);
-                    if (result != null)
+                    Log.D (Tag, ": pullRemoteRevision got response for rev: " + rev);
+
+                    if (e != null)
+                    {
+                        Log.E (Tag, "Error pulling remote revision", e);
+                        SetLastError(e);
+                        RevisionFailed();
+                        CompletedChangesCount += 1;
+                    }
+                    else
                     {
                         var properties = result.AsDictionary<string, object>();
                         PulledRevision gotRev = new PulledRevision(properties, LocalDatabase);
                         gotRev.SetSequence(rev.GetSequence());
                         AsyncTaskStarted ();
+                        Log.D(Tag, ": pullRemoteRevision add rev: " + gotRev + " to batcher");
                         downloadsToInsert.QueueObject(gotRev);
-                    } 
-                    else 
-                    {
-                        if (e != null) 
-                        {
-                            Log.E (Tag, "Error pulling remote revision", e);
-                            SetLastError(e);
-                            RevisionFailed();
-                        }
-                        CompletedChangesCount += 1;
                     }
                 }
                 finally
@@ -428,7 +426,9 @@ namespace Couchbase.Lite.Replicator
 		/// <summary>This will be called when _revsToInsert fills up:</summary>
         public void InsertDownloads(IList<RevisionInternal> downloads)
 		{
-            Log.I(Tag, " inserting " + downloads.Count + " revisions...");
+            Log.I(Tag, "inserting " + downloads.Count + " revisions...");
+
+            var time = Runtime.CurrentTimeMillis();
 
             downloads.Sort(new RevisionComparer());
 
@@ -449,8 +449,7 @@ namespace Couchbase.Lite.Replicator
                     var history = Database.ParseCouchDBRevisionHistory(rev.GetProperties());
                     if (history.Count == 0 && rev.GetGeneration() > 1) {
                         Log.W(Tag, String.Format("{0}: Missing revision history in response for: {1}", this, rev));
-                        // TODO: Use StatusCode.UpstreamError instead
-                        SetLastError(new CouchbaseLiteException(StatusCode.Unknown));
+                        SetLastError(new CouchbaseLiteException(StatusCode.UpStreamError));
                         RevisionFailed();
                         continue;
                     }
@@ -481,7 +480,6 @@ namespace Couchbase.Lite.Replicator
 
                 Log.W(Tag, " finished inserting " + downloads.Count + " revisions");
 
-                LastSequence = pendingSequences.GetCheckpointedValue();
                 success = true;
             }
             catch (Exception e)
@@ -491,17 +489,23 @@ namespace Couchbase.Lite.Replicator
             finally
             {
                 LocalDatabase.EndTransaction(success);
-                CompletedChangesCount += downloads.Count;
                 AsyncTaskFinished(downloads.Count);
+
                 Log.D(Tag, "|" + Thread.CurrentThread() + ": insertRevisions() calling asyncTaskFinished()");
+
+                var delta = Runtime.CurrentTimeMillis() - time;
+                var oldCompletedChangesCount = CompletedChangesCount;
+                LastSequence = pendingSequences.GetCheckpointedValue();
+                CompletedChangesCount += downloads.Count;
+
+                Log.D(Tag, "inserted " + downloads.Count + " revs in " + delta + " milliseconds");
+                Log.D(Tag, "insertDownloads updating completedChangesCount from " + oldCompletedChangesCount + " -> " + CompletedChangesCount + downloads.Count);
             }
 		}
 
         private sealed class RevisionComparer : IComparer<RevisionInternal>
 		{
-            public RevisionComparer()
-			{
-			}
+            public RevisionComparer() { }
 
             public int Compare(RevisionInternal reva, RevisionInternal revb)
 			{
@@ -541,7 +545,7 @@ namespace Couchbase.Lite.Replicator
 
         internal Boolean GoOffline()
         {
-            Log.D(Tag, " goOffline() called, stopping changeTracker: " + changeTracker);
+            Log.D(Tag, "goOffline() called, stopping changeTracker: " + changeTracker);
             if (!base.GoOffline())
             {
                 return false;
