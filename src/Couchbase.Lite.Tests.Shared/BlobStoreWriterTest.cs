@@ -49,29 +49,29 @@ using Sharpen;
 
 namespace Couchbase.Lite
 {
-	public class BlobStoreWriterTest : LiteTestCase
-	{
-		/// <exception cref="System.Exception"></exception>
+    public class BlobStoreWriterTest : LiteTestCase
+    {
+        /// <exception cref="System.Exception"></exception>
         [Test]
         public void TestBasicOperation()
-		{
+        {
             var attachmentStream = (InputStream)GetAsset("attachment.png");
             var memoryStream = new MemoryStream();
             attachmentStream.Wrapped.CopyTo(memoryStream);
             var bytes = memoryStream.ToArray();
 
             var attachments = database.Attachments;
-			var blobStoreWriter = new BlobStoreWriter(attachments);
+            var blobStoreWriter = new BlobStoreWriter(attachments);
             blobStoreWriter.AppendData(bytes);
-			blobStoreWriter.Finish();
-			blobStoreWriter.Install();
+            blobStoreWriter.Finish();
+            blobStoreWriter.Install();
 
-			var sha1DigestKey = blobStoreWriter.SHA1DigestString();
+            var sha1DigestKey = blobStoreWriter.SHA1DigestString();
             Assert.IsTrue(sha1DigestKey.Contains("LmsoqJJ6LOn4YS60pYnvrKbBd64="));
 
-			var keyFromSha1 = new BlobKey(sha1DigestKey);
-			Assert.IsTrue(attachments.GetSizeOfBlob(keyFromSha1) == bytes.Length);
-		}
+            var keyFromSha1 = new BlobKey(sha1DigestKey);
+            Assert.IsTrue(attachments.GetSizeOfBlob(keyFromSha1) == bytes.Length);
+        }
 
         [Test]
         public void TestBlobStoreWriterForBody()
@@ -84,5 +84,5 @@ namespace Couchbase.Lite
 
             Assert.IsTrue(sha1DigestKey.Contains("LmsoqJJ6LOn4YS60pYnvrKbBd64="));
         }
-	}
+    }
 }
