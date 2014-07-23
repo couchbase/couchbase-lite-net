@@ -256,7 +256,7 @@ Global
 		{F376966C-CCAB-4C5C-A81A-E2A754AA7A4C} = {3D44EF32-EE84-42A0-B586-6AE71AB75CFF}
 	EndGlobalSection
 	GlobalSection(MonoDevelopProperties) = preSolution
-		StartupItem = Couchbase.Lite.Android.Tests\Couchbase.Lite.Android.Tests.csproj
+		StartupItem = Couchbase.Lite.iOS.Tests\Couchbase.Lite.iOS.Tests.csproj
 		version = 0.9.3
 	EndGlobalSection
 EndGlobal
