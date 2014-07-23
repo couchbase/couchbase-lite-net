@@ -1312,6 +1312,33 @@ PRAGMA user_version = 3;";
             return result;
         }
 
+        internal String LastSequenceWithCheckpointId(string checkpointId)
+        {
+            Cursor cursor = null;
+            string result = null;
+            try
+            {
+                var args = new [] { checkpointId };
+                cursor = StorageEngine.RawQuery("SELECT last_sequence FROM replicators WHERE remote=?", args);
+                if (cursor.MoveToNext())
+                {
+                    result = cursor.GetString(0);
+                }
+            }
+            catch (SQLException e)
+            {
+                Log.E(Tag, "Error getting last sequence", e);
+            }
+            finally
+            {
+                if (cursor != null)
+                {
+                    cursor.Close();
+                }
+            }
+            return result;
+        }
+
         private IDictionary<String, BlobStoreWriter> PendingAttachmentsByDigest
         {
             get {
