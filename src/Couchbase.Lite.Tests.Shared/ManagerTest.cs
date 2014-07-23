@@ -90,7 +90,6 @@ namespace Couchbase.Lite
             var testDirName = "test-directory-" + Runtime.CurrentTimeMillis();
             var rootDirPath = GetRootDirectory().FullName;
             var testDirPath = Path.Combine(rootDirPath, testDirName);
-
             var testDirInfo = Directory.CreateDirectory(testDirPath);
 
             var oldTouchDb = Path.Combine(testDirPath, "old" + Manager.DatabaseSuffixOld);

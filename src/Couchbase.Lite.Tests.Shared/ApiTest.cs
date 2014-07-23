@@ -919,7 +919,8 @@ namespace Couchbase.Lite
         [Test]
         public void TestChangeUUID()
 		{
-            var mgr = new Manager(new DirectoryInfo(Path.Combine(GetRootDirectory().FullName, "ChangeUUID")), Manager.DefaultOptions);
+            var path = new DirectoryInfo(Path.Combine(GetRootDirectory().FullName, "ChangeUUID"));
+            var mgr = new Manager(path, Manager.DefaultOptions);
             var db = mgr.GetDatabase("db");
 
 			db.Open();
