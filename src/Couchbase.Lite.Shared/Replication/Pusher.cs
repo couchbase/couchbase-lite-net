@@ -603,8 +603,7 @@ namespace Couchbase.Lite.Replicator
                 }
                 finally
                 {
-                    CompletedChangesCount += 1;
-                    Log.D(Tag, this + "|" + Thread.CurrentThread() + ": uploadMultipartRevision() calling asyncTaskFinished()");
+                    Log.D(Tag, "|" + Thread.CurrentThread() + " : uploadMultipartRevision() calling asyncTaskFinished()");
                     AsyncTaskFinished (1);
                 }
             });

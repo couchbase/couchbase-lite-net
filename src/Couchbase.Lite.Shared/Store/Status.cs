@@ -48,7 +48,7 @@ namespace Couchbase.Lite
 	/// <summary>Same interpretation as HTTP status codes, esp.</summary>
 	/// <remarks>Same interpretation as HTTP status codes, esp. 200, 201, 404, 409, 500.</remarks>
     public enum StatusCode
-	{
+    {
 		Unknown = -1,
 
 		Ok = 200,
@@ -59,9 +59,9 @@ namespace Couchbase.Lite
 
 		BadRequest = 400,
 
-		Unauthorized = 401,
+        Unauthorized = 401,
 
-		Forbidden = 403,
+        Forbidden = 403,
 
 		NotFound = 404,
 
@@ -81,14 +81,14 @@ namespace Couchbase.Lite
 
 		InternalServerError = 500,
 
-		UpStreamError = 589,
+        UpStreamError = 589,
 
 		StatusAttachmentError = 592,
 
 		DbError = 590,
 
-		DbBusy = 595
-		}
+        DbBusy = 595
+    }
 
     public class Status {
 
