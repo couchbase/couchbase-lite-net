@@ -304,7 +304,7 @@ namespace Couchbase.Lite.Replicator
                 return;
             }
 
-            Log.V(Tag, " fetching " + inboxCount + " remote revisions...");
+            Log.V(Tag, "fetching " + inboxCount + " remote revisions...");
             //Log.v(Database.TAG, String.format("%s fetching remote revisions %s", this, inbox));
             // Dump the revs into the queue of revs to pull from the remote db:
             lock (locker) {
@@ -391,11 +391,8 @@ namespace Couchbase.Lite.Replicator
                 try 
                 {
                     // OK, now we've got the response revision:
-<<<<<<< HEAD
                     Log.D (Tag, ": pullRemoteRevision got response for rev: " + rev);
-=======
-                    Log.D (Tag, this + ": pullRemoteRevision got response for rev: " + rev);
->>>>>>> 75d82bef1a54c0e0f764cbff11b1ae60e338bd0f
+
                     if (e != null)
                     {
                         Log.E (Tag, "Error pulling remote revision", e);
@@ -409,7 +406,7 @@ namespace Couchbase.Lite.Replicator
                         PulledRevision gotRev = new PulledRevision(properties, LocalDatabase);
                         gotRev.SetSequence(rev.GetSequence());
                         AsyncTaskStarted ();
-                        Log.D(Tag, this + ": pullRemoteRevision add rev: " + gotRev + " to batcher");
+                        Log.D(Tag, ": pullRemoteRevision add rev: " + gotRev + " to batcher");
                         downloadsToInsert.QueueObject(gotRev);
                     }
                 }
@@ -429,15 +426,10 @@ namespace Couchbase.Lite.Replicator
 		/// <summary>This will be called when _revsToInsert fills up:</summary>
         public void InsertDownloads(IList<RevisionInternal> downloads)
 		{
-<<<<<<< HEAD
-            Log.I(Tag, " inserting " + downloads.Count + " revisions...");
+            Log.I(Tag, "inserting " + downloads.Count + " revisions...");
 
             var time = Runtime.CurrentTimeMillis();
 
-=======
-            Log.I(Tag, this + " inserting " + downloads.Count + " revisions...");
-            var time = Runtime.CurrentTimeMillis();
->>>>>>> 75d82bef1a54c0e0f764cbff11b1ae60e338bd0f
             downloads.Sort(new RevisionComparer());
 
             if (LocalDatabase == null)
@@ -506,8 +498,8 @@ namespace Couchbase.Lite.Replicator
                 LastSequence = pendingSequences.GetCheckpointedValue();
                 CompletedChangesCount += downloads.Count;
 
-                Log.V(Tag, " inserted " + downloads.Count + " revs in " + delta + " milliseconds");
-                Log.D(Tag, " insertDownloads updating completedChangesCount from " + oldCompletedChangesCount + " -> " + CompletedChangesCount + downloads.Count);
+                Log.D(Tag, "inserted " + downloads.Count + " revs in " + delta + " milliseconds");
+                Log.D(Tag, "insertDownloads updating completedChangesCount from " + oldCompletedChangesCount + " -> " + CompletedChangesCount + downloads.Count);
             }
 		}
 
@@ -553,7 +545,7 @@ namespace Couchbase.Lite.Replicator
 
         internal Boolean GoOffline()
         {
-            Log.D(Tag, " goOffline() called, stopping changeTracker: " + changeTracker);
+            Log.D(Tag, "goOffline() called, stopping changeTracker: " + changeTracker);
             if (!base.GoOffline())
             {
                 return false;
