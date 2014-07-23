@@ -201,6 +201,11 @@ namespace Couchbase.Lite
 			return System.Convert.ToInt32(Runtime.GetProperty("replicationPort"));
 		}
 
+        protected internal virtual int GetReplicationAdminPort()
+        {
+            return System.Convert.ToInt32(Runtime.GetProperty("replicationAdminPort"));
+        }
+
 		protected internal virtual string GetReplicationAdminUser()
 		{
 			return Runtime.GetProperty("replicationAdminUser");
@@ -246,6 +251,11 @@ namespace Couchbase.Lite
 		{
             return new Uri(string.Format("{0}://{1}:{2}/{3}", GetReplicationProtocol(), GetReplicationServer(), GetReplicationPort(), GetReplicationDatabase()));
 		}
+
+        protected internal virtual Uri GetReplicationAdminURL()
+        {
+            return new Uri(string.Format("{0}://{1}:{2}/{3}", GetReplicationProtocol(), GetReplicationServer(), GetReplicationAdminPort(), GetReplicationDatabase()));
+        }
 
         [TearDown]
         protected void TearDown()

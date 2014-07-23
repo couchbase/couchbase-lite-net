@@ -343,11 +343,16 @@ namespace Couchbase.Lite
                 return false;
             }
 
+            if (LocalDatabase == null)
+            {
+                return false;
+            }
+
             LocalDatabase.Manager.RunAsync(() =>
             {
                 Log.D(Tag, "Going offline");
                 online = false;
-
+            
                 StopRemoteRequests();
 
                 UpdateProgress();
@@ -361,6 +366,11 @@ namespace Couchbase.Lite
         internal bool GoOnline()
         {
             if (online)
+            {
+                return false;
+            }
+
+            if (LocalDatabase == null)
             {
                 return false;
             }
@@ -384,7 +394,12 @@ namespace Couchbase.Lite
 
         internal void StopRemoteRequests()
         {
-            var remoteRequests = new List<HttpClient>(requests);
+            IList<HttpClient> remoteRequests;
+            lock(requests)
+            {
+                remoteRequests = new List<HttpClient>(requests);
+            }
+
             foreach(var client in remoteRequests)
             {
                 client.CancelPendingRequests();
@@ -646,7 +661,7 @@ namespace Couchbase.Lite
                 var newActive = batcherCount > 0 || asyncTaskCount > 0;
                 if (active != newActive)
                 {
-                    Log.D(Tag, " Progress: set active = " + newActive + " asyncTaskCount: " + asyncTaskCount + " batcherCount: " + batcherCount );
+                    Log.D(Tag, "Progress: set active = " + newActive + " asyncTaskCount: " + asyncTaskCount + " batcherCount: " + batcherCount );
                     active = newActive;
                     NotifyChangeListeners();
 
@@ -654,7 +669,7 @@ namespace Couchbase.Lite
                     {
                         if (!continuous)
                         {
-                            Log.D(Tag, " since !continuous, calling stopped()");
+                            Log.D(Tag, "since !continuous, calling stopped()");
                             Stopped();
                         }
                         else if (LastError != null) /*(revisionsFailed > 0)*/
@@ -676,15 +691,23 @@ namespace Couchbase.Lite
 
         internal virtual void Stopped()
         {
-            Log.V(Tag, ToString() + " STOPPING");
+            Log.V(Tag, "STOPPING");
+
+            Log.V(Tag, this + " Stopped() called");
+
             IsRunning = false;
-            completedChangesCount = changesCount = 0;
+
             NotifyChangeListeners();
+
             SaveLastSequence();
-            Log.V(Tag, " set batcher to null");
+
+            Log.V(Tag, "set batcher to null");
+
             Batcher = null;
+
             ClearDbRef();
-            Log.V(Tag, ToString() + " STOPPED");
+
+            Log.V(Tag, "STOPPED");
         }
 
         internal void SaveLastSequence()
@@ -704,7 +727,7 @@ namespace Couchbase.Lite
             lastSequenceChanged = false;
             overdueForSave = false;
 
-            Log.D(Tag, " saveLastSequence() called. lastSequence: " + LastSequence);
+            Log.D(Tag, "saveLastSequence() called. lastSequence: " + LastSequence);
 
             var body = new Dictionary<String, Object>();
             if (remoteCheckpoint != null)
@@ -720,7 +743,7 @@ namespace Couchbase.Lite
             }
 
             savingCheckpoint = true;
-            //Log.D(Tag, " put remote _local document.  checkpointID: " + remoteCheckpointDocID);
+            //Log.D(Tag, "put remote _local document.  checkpointID: " + remoteCheckpointDocID);
             SendAsyncRequest(HttpMethod.Put, "/_local/" + remoteCheckpointDocID, body, (result, e) => {
                 savingCheckpoint = false;
                 if (e != null)
@@ -818,13 +841,22 @@ namespace Couchbase.Lite
             }
             message.Headers.Add("Accept", new[] { "multipart/related", "application/json" });
 
-            ICredentials credentials = AuthUtils.GetCredentialsIfAvailable (Authenticator, message);
-            var client = clientFactory.GetHttpClient(credentials);
+            var client = clientFactory.GetHttpClient();
+
+            var authHeader = AuthUtils.GetAuthenticationHeaderValue(Authenticator, message.RequestUri);
+            if (authHeader != null)
+            {
+                client.DefaultRequestHeaders.Authorization = authHeader;
+            }
 
             client.SendAsync(message, HttpCompletionOption.ResponseHeadersRead, CancellationTokenSource.Token)
                 .ContinueWith(response =>
                 {
-                    requests.Remove(client);
+                    lock(requests)
+                    {
+                        requests.Remove(client);
+                    }
+
                     if (completionHandler != null)
                     {
                         Exception error = null;
@@ -872,7 +904,10 @@ namespace Couchbase.Lite
                     return response.Result;
                 }, CancellationTokenSource.Token, TaskContinuationOptions.None, WorkExecutor.Scheduler);
 
-            requests.Add(client);
+            lock(requests)
+            {
+                requests.Add(client);
+            }
         }
 
         private void AddRequestHeaders(HttpRequestMessage request)
@@ -894,8 +929,13 @@ namespace Couchbase.Lite
                 message.Headers.Add("Accept", "*/*");
                 AddRequestHeaders(message);
 
-                ICredentials credentials = AuthUtils.GetCredentialsIfAvailable (Authenticator, message);
-                var client = clientFactory.GetHttpClient(credentials);
+                var client = clientFactory.GetHttpClient();
+
+                var authHeader = AuthUtils.GetAuthenticationHeaderValue(Authenticator, message.RequestUri);
+                if (authHeader != null)
+                {
+                    client.DefaultRequestHeaders.Authorization = authHeader;
+                }
 
                 client.SendAsync(message, HttpCompletionOption.ResponseHeadersRead, CancellationTokenSource.Token).ContinueWith(new Action<Task<HttpResponseMessage>>(responseMessage =>
                 {
@@ -1032,8 +1072,13 @@ namespace Couchbase.Lite
             message.Content = multiPartEntity;
             message.Headers.Add("Accept", "*/*");
 
-            ICredentials credentials = AuthUtils.GetCredentialsIfAvailable (Authenticator, message);
-            var client = clientFactory.GetHttpClient(credentials);
+            var client = clientFactory.GetHttpClient();
+
+            var authHeader = AuthUtils.GetAuthenticationHeaderValue(Authenticator, message.RequestUri);
+            if (authHeader != null)
+            {
+                client.DefaultRequestHeaders.Authorization = authHeader;
+            }
 
             client.SendAsync(message, HttpCompletionOption.ResponseHeadersRead, CancellationTokenSource.Token)
                 .ContinueWith(response=> {
@@ -1201,7 +1246,7 @@ namespace Couchbase.Lite
 
             if (online)
             {
-                Log.D(Tag, " RETRYING, to transfer missed revisions...");
+                Log.D(Tag, "RETRYING, to transfer missed revisions...");
                 revisionsFailed = 0;
                 CancelPendingRetryIfReady();
                 Retry();
@@ -1389,6 +1434,7 @@ namespace Couchbase.Lite
         public Int32 CompletedChangesCount {
             get { return completedChangesCount; }
             protected set {
+                Log.V(Tag, "Updating completedChanges count from " + completedChangesCount + " -> " + value);
                 completedChangesCount = value;
                 NotifyChangeListeners();
             }
@@ -1401,6 +1447,7 @@ namespace Couchbase.Lite
         public Int32 ChangesCount {
             get { return changesCount; }
             protected set {
+                Log.V(Tag, "Updating changes count from " + changesCount + " -> " + value);
                 changesCount = value;
                 NotifyChangeListeners();
             }

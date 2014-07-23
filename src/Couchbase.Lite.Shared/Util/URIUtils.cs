@@ -49,7 +49,7 @@ using System.Linq;
 
 namespace Couchbase.Lite.Util
 {
-	public class URIUtils
+	public static class URIUtils
 	{
 		/// <summary>Index of a component which was not found.</summary>
 		/// <remarks>Index of a component which was not found.</remarks>
@@ -357,5 +357,19 @@ namespace Couchbase.Lite.Util
 				}
 			}
 		}
+
+        public static Uri AppendPath(this Uri uri, string path)
+        {
+            if (uri == null) return null;
+
+            if (!uri.AbsolutePath.EndsWith("/") && !String.IsNullOrWhiteSpace(path)) 
+            {
+                return new Uri(new Uri(uri, uri.AbsolutePath +"/"), path);
+            }
+            else
+            {
+                return new Uri(uri, path);
+            }
+        }
 	}
 }

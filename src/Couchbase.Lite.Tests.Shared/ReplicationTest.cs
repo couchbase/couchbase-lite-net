@@ -946,5 +946,72 @@ namespace Couchbase.Lite
             Assert.AreEqual(1, cookieContainer.GetCookies(replicationUrl).Count);
             Assert.AreEqual(name, cookieContainer.GetCookies(replicationUrl)[0].Name);
         }
+
+        [Test]
+        public void TestPushReplicationCanMissDocs()
+        {
+            Assert.AreEqual(0, database.LastSequenceNumber);
+
+            var properties1 = new Dictionary<string, object>();
+            properties1["doc1"] = "testPushReplicationCanMissDocs";
+            var doc1 = CreateDocumentWithProperties(database, properties1);
+
+            var properties2 = new Dictionary<string, object>();
+            properties2["doc2"] = "testPushReplicationCanMissDocs";
+            var doc2 = CreateDocumentWithProperties(database, properties2);
+
+            var doc2UnsavedRev = doc2.CreateRevision();
+            var attachmentStream = GetAsset("attachment.png");
+            doc2UnsavedRev.SetAttachment("attachment.png", "image/png", attachmentStream);
+            var doc2Rev = doc2UnsavedRev.Save();
+            Assert.IsNotNull(doc2Rev);
+
+            var httpClientFactory = new MockHttpClientFactory();
+            manager.DefaultHttpClientFactory = httpClientFactory;
+
+            var httpHandler = httpClientFactory.HttpHandler; 
+            httpHandler.AddResponderFakeLocalDocumentUpdate404();
+
+            var json = "{\"error\":\"not_found\",\"reason\":\"missing\"}";
+            MockHttpRequestHandler.HttpResponseDelegate bulkDocsResponder = (request) =>
+            {
+                return MockHttpRequestHandler.GenerateHttpResponseMessage(HttpStatusCode.NotFound, null, json);
+            };
+            httpHandler.SetResponder("_bulk_docs", bulkDocsResponder);
+
+            MockHttpRequestHandler.HttpResponseDelegate doc2Responder = (request) =>
+            {
+                var responseObject = new Dictionary<string, object>();
+                responseObject["id"] = doc2.Id;
+                responseObject["ok"] = true;
+                responseObject["rev"] = doc2.CurrentRevisionId;
+                return  MockHttpRequestHandler.GenerateHttpResponseMessage(responseObject);
+            };
+            httpHandler.SetResponder(doc2.Id, bulkDocsResponder);
+
+            var replicationDoneSignal = new CountDownLatch(1);
+            var observer = new ReplicationObserver(replicationDoneSignal);
+            var pusher = database.CreatePushReplication(GetReplicationURL());
+            pusher.Changed += observer.Changed;
+            pusher.Start();
+
+            var success = replicationDoneSignal.Await(TimeSpan.FromSeconds(60));
+            Assert.IsTrue(success);
+
+            Assert.IsNotNull(pusher.LastError);
+
+            System.Threading.Thread.Sleep(TimeSpan.FromMilliseconds(500));
+
+            var localLastSequence = database.LastSequenceWithCheckpointId(pusher.RemoteCheckpointDocID());
+
+            Log.D(Tag, "dtabase.lastSequenceWithCheckpointId(): " + localLastSequence);
+            Log.D(Tag, "doc2.getCUrrentRevision().getSequence(): " + doc2.CurrentRevision.Sequence);
+
+            // Since doc1 failed, the database should _not_ have had its lastSequence bumped to doc2's sequence number.
+            // If it did, it's bug: github.com/couchbase/couchbase-lite-java-core/issues/95
+            Assert.IsFalse(doc2.CurrentRevision.Sequence.ToString().Equals(localLastSequence));
+            Assert.IsNull(localLastSequence);
+            Assert.IsTrue(doc2.CurrentRevision.Sequence > 0);
+        }
 	}
 }

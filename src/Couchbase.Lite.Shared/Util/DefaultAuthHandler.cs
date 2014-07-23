@@ -83,26 +83,6 @@ namespace Couchbase.Lite.Replicator
         /// <exception cref="System.IO.IOException"></exception>
         protected override HttpRequestMessage ProcessRequest(HttpRequestMessage request, CancellationToken token)
         {
-//              AuthState authState = (AuthState)context.GetAttribute(ClientContext.TargetAuthState
-//                  );
-//              CredentialsProvider credsProvider = (CredentialsProvider)context.GetAttribute(ClientContext
-//                  .CredsProvider);
-//              HttpHost targetHost = (HttpHost)context.GetAttribute(ExecutionContext.HttpTargetHost
-//                  );
-//              if (authState.GetAuthScheme() == null)
-//              {
-//                  AuthScope authScope = new AuthScope(targetHost.GetHostName(), targetHost.GetPort(
-//                      ));
-//                  authState.SetAuthScheme(new BasicScheme());
-//                  authState.SetCredentials(creds);
-//              }
-
-            if (!context.UseDefaultCredentials && (context.Credentials == null))
-            {
-
-                context.Credentials = request.ToCredentialsFromUri();
-            }
-
             return request;
         }
 

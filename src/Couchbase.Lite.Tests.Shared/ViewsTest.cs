@@ -1093,7 +1093,7 @@ namespace Couchbase.Lite
             }
 
             // Sleep to ensure that the LiveQuery is done all of its async operations.
-            Thread.Sleep(20000);
+            Thread.Sleep(5000);
 
             liveQuery.Stop();
 

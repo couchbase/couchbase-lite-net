@@ -670,14 +670,12 @@ namespace Couchbase.Lite {
             }
             if (minKey != null)
             {
-                System.Diagnostics.Debug.Assert(minKey != null);
                 sql += inclusiveMin ? " AND key >= ?" : " AND key > ?";
                 sql += collationStr;
                 argsList.AddItem(ToJSONString(minKey));
             }
             if (maxKey != null)
             {
-                System.Diagnostics.Debug.Assert(maxKey != null);
                 if (inclusiveMax)
                 {
                     sql += " AND key <= ?";

@@ -49,7 +49,7 @@ namespace Couchbase.Lite.Support
 {
     public interface IHttpClientFactory
     {
-        HttpClient GetHttpClient(ICredentials credentials = null);
+        HttpClient GetHttpClient();
         IDictionary<string,string> Headers { get; set; }
 
         void AddCookies(CookieCollection cookies);

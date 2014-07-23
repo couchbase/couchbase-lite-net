@@ -46,7 +46,9 @@ namespace Couchbase.Lite.Auth
 {
     public interface IAuthenticator
     {
-        string AuthUserInfo { get; }
+        string UserInfo { get; }
+
+        string Scheme { get; }
 
         bool UsesCookieBasedLogin { get; }
 
