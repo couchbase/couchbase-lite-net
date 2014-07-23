@@ -391,7 +391,11 @@ namespace Couchbase.Lite.Replicator
                 try 
                 {
                     // OK, now we've got the response revision:
+<<<<<<< HEAD
                     Log.D (Tag, ": pullRemoteRevision got response for rev: " + rev);
+=======
+                    Log.D (Tag, this + ": pullRemoteRevision got response for rev: " + rev);
+>>>>>>> 75d82bef1a54c0e0f764cbff11b1ae60e338bd0f
                     if (e != null)
                     {
                         Log.E (Tag, "Error pulling remote revision", e);
@@ -425,10 +429,15 @@ namespace Couchbase.Lite.Replicator
 		/// <summary>This will be called when _revsToInsert fills up:</summary>
         public void InsertDownloads(IList<RevisionInternal> downloads)
 		{
+<<<<<<< HEAD
             Log.I(Tag, " inserting " + downloads.Count + " revisions...");
 
             var time = Runtime.CurrentTimeMillis();
 
+=======
+            Log.I(Tag, this + " inserting " + downloads.Count + " revisions...");
+            var time = Runtime.CurrentTimeMillis();
+>>>>>>> 75d82bef1a54c0e0f764cbff11b1ae60e338bd0f
             downloads.Sort(new RevisionComparer());
 
             if (LocalDatabase == null)
@@ -476,8 +485,9 @@ namespace Couchbase.Lite.Replicator
                     }
                     pendingSequences.RemoveSequence(fakeSequence);
                 }
-                    
+
                 Log.W(Tag, " finished inserting " + downloads.Count + " revisions");
+
                 success = true;
             }
             catch (Exception e)

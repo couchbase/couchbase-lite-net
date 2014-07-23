@@ -693,6 +693,8 @@ namespace Couchbase.Lite
         {
             Log.V(Tag, "STOPPING");
 
+            Log.V(Tag, this + " Stopped() called");
+
             IsRunning = false;
 
             NotifyChangeListeners();
