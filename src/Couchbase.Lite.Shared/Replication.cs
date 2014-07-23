@@ -818,8 +818,13 @@ namespace Couchbase.Lite
             }
             message.Headers.Add("Accept", new[] { "multipart/related", "application/json" });
 
-            ICredentials credentials = AuthUtils.GetCredentialsIfAvailable (Authenticator, message);
-            var client = clientFactory.GetHttpClient(credentials);
+            var client = clientFactory.GetHttpClient();
+
+            var authHeader = AuthUtils.GetAuthenticationHeaderValue(Authenticator, message.RequestUri);
+            if (authHeader != null)
+            {
+                client.DefaultRequestHeaders.Authorization = authHeader;
+            }
 
             client.SendAsync(message, HttpCompletionOption.ResponseHeadersRead, CancellationTokenSource.Token)
                 .ContinueWith(response =>
@@ -894,8 +899,13 @@ namespace Couchbase.Lite
                 message.Headers.Add("Accept", "*/*");
                 AddRequestHeaders(message);
 
-                ICredentials credentials = AuthUtils.GetCredentialsIfAvailable (Authenticator, message);
-                var client = clientFactory.GetHttpClient(credentials);
+                var client = clientFactory.GetHttpClient();
+
+                var authHeader = AuthUtils.GetAuthenticationHeaderValue(Authenticator, message.RequestUri);
+                if (authHeader != null)
+                {
+                    client.DefaultRequestHeaders.Authorization = authHeader;
+                }
 
                 client.SendAsync(message, HttpCompletionOption.ResponseHeadersRead, CancellationTokenSource.Token).ContinueWith(new Action<Task<HttpResponseMessage>>(responseMessage =>
                 {
@@ -1032,8 +1042,13 @@ namespace Couchbase.Lite
             message.Content = multiPartEntity;
             message.Headers.Add("Accept", "*/*");
 
-            ICredentials credentials = AuthUtils.GetCredentialsIfAvailable (Authenticator, message);
-            var client = clientFactory.GetHttpClient(credentials);
+            var client = clientFactory.GetHttpClient();
+
+            var authHeader = AuthUtils.GetAuthenticationHeaderValue(Authenticator, message.RequestUri);
+            if (authHeader != null)
+            {
+                client.DefaultRequestHeaders.Authorization = authHeader;
+            }
 
             client.SendAsync(message, HttpCompletionOption.ResponseHeadersRead, CancellationTokenSource.Token)
                 .ContinueWith(response=> {

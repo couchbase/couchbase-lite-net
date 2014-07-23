@@ -66,7 +66,9 @@ namespace Couchbase.Lite.Auth
 			this.emailAddress = emailAddress;
 		}
 
-        public override string AuthUserInfo { get { return null; } }
+        public override string UserInfo { get { return null; } }
+
+        public override string Scheme { get { return null; } }
 
         public override bool UsesCookieBasedLogin { get { return true; } }
 

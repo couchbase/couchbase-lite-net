@@ -75,7 +75,7 @@ namespace Couchbase.Lite.Tests
             HttpHandler = new MockHttpRequestHandler();
         }
 
-        public HttpClient GetHttpClient(ICredentials credentials = null)
+        public HttpClient GetHttpClient()
         {
             var client = new HttpClient(HttpHandler);
 

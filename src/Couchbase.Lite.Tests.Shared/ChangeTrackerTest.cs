@@ -137,11 +137,6 @@ namespace Couchbase.Lite
                 return HttpClientFactory.GetHttpClient();
             }
 
-            public HttpClient GetHttpClient(ICredentials credentials)
-            {
-                return HttpClientFactory.GetHttpClient(credentials);
-            }
-
             public IDictionary<string, string> Headers
             {
                 get

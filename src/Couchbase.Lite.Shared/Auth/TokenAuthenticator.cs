@@ -56,21 +56,16 @@ namespace Couchbase.Lite.Auth
             this.loginParams = loginParams;
         }
 
-        public bool UsesCookieBasedLogin
-        {
-            get { return true; }
-        }
+        public bool UsesCookieBasedLogin { get { return true; } }
             
         public IDictionary<string, string> LoginParametersForSite(Uri site) 
         {
             return loginParams;
         }
             
-        public string AuthUserInfo {
-            get {
-                return null;
-            }
-        }
+        public string UserInfo { get { return null; } }
+
+        public string Scheme { get { return null; } }
 
         public string LoginPathForSite(Uri site) 
         {

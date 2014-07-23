@@ -14,10 +14,10 @@
 // distribute, sublicense, and/or sell copies of the Software, and to
 // permit persons to whom the Software is furnished to do so, subject to
 // the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be
 // included in all copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
 // EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
 // MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
@@ -49,6 +49,7 @@ using System.Net.Http;
 using System.IO;
 using System.Collections.Generic;
 using Newtonsoft.Json.Linq;
+using System.Net.Http.Headers;
 
 namespace Couchbase.Lite
 {
@@ -100,32 +101,26 @@ namespace Couchbase.Lite
             return status;
         }
 
-        public static ICredentials ToCredentialsFromUri(this HttpRequestMessage request)
+        public static AuthenticationHeaderValue GetAuthenticationHeader(this Uri uri, string scheme)
         {
-            Debug.Assert(request != null);
-            Debug.Assert(request.RequestUri != null);
+            Debug.Assert(uri != null);
 
-            var unescapedUserInfo = request.RequestUri.UserEscaped
-                                    ? Uri.UnescapeDataString(request.RequestUri.UserInfo)
-                                    : request.RequestUri.UserInfo;
+            var unescapedUserInfo = uri.UserEscaped
+                ? Uri.UnescapeDataString(uri.UserInfo)
+                : uri.UserInfo;
 
-            var userAndPassword = unescapedUserInfo.Split(new[] { ':' }, 2, StringSplitOptions.None);
-            if (userAndPassword.Length != 2)
-                return null;
+            var param = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(unescapedUserInfo));
 
-            return new NetworkCredential(userAndPassword[0], userAndPassword[1], request.RequestUri.DnsSafeHost);
+            return new AuthenticationHeaderValue(scheme, param);
         }
 
-        public static ICredentials ToCredentialsFromUserInfoString(this string userinfo)
+        public static AuthenticationHeaderValue AsAuthenticationHeader(this string userinfo, string scheme)
         {
             Debug.Assert(userinfo != null);
 
-            var userAndPassword = userinfo.Split(new[] { ':' }, 2, StringSplitOptions.None);
-            if (userAndPassword.Length != 2)
-                return null;
+            var param = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(userinfo));
 
-            return new NetworkCredential(userAndPassword[0], userAndPassword[1]);
+            return new AuthenticationHeaderValue(scheme, param);
         }
     }
 }
-
