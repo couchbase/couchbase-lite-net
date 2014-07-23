@@ -143,8 +143,8 @@ namespace Couchbase.Lite
 				while ((len = inputStream.Read(buffer)) != -1)
 				{
 					outStream.Write(buffer, 0, len);
-					sha1Digest.Update(buffer);
-					md5Digest.Update(buffer);
+					sha1Digest.Update(buffer, 0, len);
+					md5Digest.Update(buffer, 0, len);
 					length += len;
 				}
 			}

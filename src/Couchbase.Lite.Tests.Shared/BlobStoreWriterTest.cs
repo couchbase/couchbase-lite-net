@@ -55,21 +55,34 @@ namespace Couchbase.Lite
         [Test]
         public void TestBasicOperation()
 		{
-			InputStream attachmentStream = GetAsset("attachment.png");
+            var attachmentStream = (InputStream)GetAsset("attachment.png");
             var memoryStream = new MemoryStream();
             attachmentStream.Wrapped.CopyTo(memoryStream);
-            byte[] bytes = memoryStream.ToArray();
+            var bytes = memoryStream.ToArray();
 
-            BlobStore attachments = database.Attachments;
-			BlobStoreWriter blobStoreWriter = new BlobStoreWriter(attachments);
+            var attachments = database.Attachments;
+			var blobStoreWriter = new BlobStoreWriter(attachments);
             blobStoreWriter.AppendData(bytes);
 			blobStoreWriter.Finish();
 			blobStoreWriter.Install();
-			string sha1DigestKey = blobStoreWriter.SHA1DigestString();
-			BlobKey keyFromSha1 = new BlobKey(sha1DigestKey);
+
+			var sha1DigestKey = blobStoreWriter.SHA1DigestString();
+            Assert.IsTrue(sha1DigestKey.Contains("LmsoqJJ6LOn4YS60pYnvrKbBd64="));
+
+			var keyFromSha1 = new BlobKey(sha1DigestKey);
 			Assert.IsTrue(attachments.GetSizeOfBlob(keyFromSha1) == bytes.Length);
 		}
 
+        [Test]
+        public void TestBlobStoreWriterForBody()
+        {
+            var attachmentStream = (InputStream)GetAsset("attachment.png");
 
+            var blobStoreWriter = Attachment.BlobStoreWriterForBody(attachmentStream, database);
+
+            var sha1DigestKey = blobStoreWriter.SHA1DigestString();
+
+            Assert.IsTrue(sha1DigestKey.Contains("LmsoqJJ6LOn4YS60pYnvrKbBd64="));
+        }
 	}
 }

@@ -217,6 +217,10 @@ namespace Couchbase.Lite
             Assert.IsTrue(success);
         }
 
+        private Boolean IsSyncGateway(Uri remote) {
+            return (remote.Port == 4984 || remote.Port == 4985);
+        }
+
         [SetUp]
         public void Setup()
         {
@@ -257,28 +261,47 @@ namespace Couchbase.Lite
 			database.PutRevision(new RevisionInternal(documentProperties, database), null, false, status);
             Assert.AreEqual(StatusCode.Created, status.GetCode());
 
+            var doc2 = database.GetDocument(doc2Id);
+            var doc2UnsavedRev = doc2.CreateRevision();
+            var attachmentStream = GetAsset("attachment.png");
+            doc2UnsavedRev.SetAttachment("attachment.png", "image/png", attachmentStream);
+            var doc2Rev = doc2UnsavedRev.Save();
+
+            Assert.IsNotNull(doc2Rev);
+
 			const bool continuous = false;
 			var repl = database.CreatePushReplication(remote);
             repl.Continuous = continuous;
+            if (!IsSyncGateway(remote)) {
+                repl.CreateTarget = true;
+            }
 
 			// Check the replication's properties:
 			Assert.AreEqual(database, repl.LocalDatabase);
 			Assert.AreEqual(remote, repl.RemoteUrl);
 			Assert.IsFalse(repl.IsPull);
             Assert.IsFalse(repl.Continuous);
-            //Assert.IsTrue(repl.CreateTarget);
 			Assert.IsNull(repl.Filter);
 			Assert.IsNull(repl.FilterParams);
 			// TODO: CAssertNil(r1.doc_ids);
 			// TODO: CAssertNil(r1.headers);
+
 			// Check that the replication hasn't started running:
 			Assert.IsFalse(repl.IsRunning);
             Assert.AreEqual((int)repl.Status, (int)ReplicationStatus.Stopped);
 			Assert.AreEqual(0, repl.CompletedChangesCount);
 			Assert.AreEqual(0, repl.ChangesCount);
 			Assert.IsNull(repl.LastError);
+
             RunReplication(repl);
-			// make sure doc1 is there
+
+            // TODO: Verify the foloowing 2 asserts. ChangesCount and CompletedChangesCount
+            // should already be reset when the replicator stopped.
+            // Assert.IsTrue(repl.ChangesCount >= 2);
+            // Assert.IsTrue(repl.CompletedChangesCount >= 2);
+            Assert.IsNull(repl.LastError);
+
+            // make sure doc1 is there
 			// TODO: make sure doc2 is there (refactoring needed)
             var replicationUrlTrailing = new Uri(string.Format("{0}/", remote));
 			var pathToDoc = new Uri(replicationUrlTrailing, doc1Id);
@@ -343,12 +366,14 @@ namespace Couchbase.Lite
 		{
 			var remote = GetReplicationURL();
 			var docIdTimestamp = Convert.ToString(Runtime.CurrentTimeMillis());
+
 			// Create some documentsConvert
 			var documentProperties = new Dictionary<string, object>();
 			var doc1Id = string.Format("doc1-{0}", docIdTimestamp);
 			documentProperties["_id"] = doc1Id;
 			documentProperties["foo"] = 1;
 			documentProperties["bar"] = false;
+
 			var body = new Body(documentProperties);
 			var rev1 = new RevisionInternal(body, database);
 			var status = new Status();
@@ -362,8 +387,14 @@ namespace Couchbase.Lite
             Assert.IsTrue((int)status.GetCode() >= 200 && (int)status.GetCode() < 300);
 
             var repl = database.CreatePushReplication(remote);
-            ((Pusher)repl).CreateTarget = true;
+            if (!IsSyncGateway(remote)) {
+                ((Pusher)repl).CreateTarget = true;
+            }
+
 			RunReplication(repl);
+
+            Assert.IsNull(repl.LastError);
+
 			// make sure doc1 is deleted
 			var replicationUrlTrailing = new Uri(string.Format ("{0}/", remote));
 			var pathToDoc = new Uri(replicationUrlTrailing, doc1Id);
@@ -489,6 +520,7 @@ namespace Couchbase.Lite
             var repl = database.CreatePullReplication(remote);
 			repl.Continuous = false;
 			RunReplication(repl);
+            Assert.IsNull(repl.LastError);
 		}
 
 		/// <exception cref="System.IO.IOException"></exception>
@@ -790,6 +822,7 @@ namespace Couchbase.Lite
             // sync with remote DB -- should push both leaf revisions
             var pusher = database.CreatePushReplication(GetReplicationURL());
             RunReplication(pusher);
+            Assert.IsNull(pusher.LastError);
 
             var foundRevsDiff = false;
             var capturedRequests = httpHandler.GetCapturedRequests();
@@ -823,6 +856,7 @@ namespace Couchbase.Lite
             // Push the conflicts to the remote DB.
             var pusher = database.CreatePushReplication(GetReplicationURL());
             RunReplication(pusher);
+            Assert.IsNull(pusher.LastError);
 
             var rev3aBody = new JObject();
             rev3aBody.Put("_id", doc.Id);
@@ -865,6 +899,7 @@ namespace Couchbase.Lite
             // Pull the remote changes.
             Replication puller = database.CreatePullReplication(GetReplicationURL());
             RunReplication(puller);
+            Assert.IsNull(puller.LastError);
 
             // Make sure the conflict was resolved locally.
             Assert.AreEqual(1, doc.ConflictingRevisions.Count());
