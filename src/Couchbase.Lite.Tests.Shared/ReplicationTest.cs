@@ -217,8 +217,69 @@ namespace Couchbase.Lite
             Assert.IsTrue(success);
         }
 
-        private Boolean IsSyncGateway(Uri remote) {
+        private Boolean IsSyncGateway(Uri remote) 
+        {
             return (remote.Port == 4984 || remote.Port == 4985);
+        }
+
+        private void VerifyRemoteDocExists(Uri remote, string docId)
+        {
+            var replicationUrlTrailing = new Uri(string.Format("{0}/", remote));
+            var pathToDoc = new Uri(replicationUrlTrailing, docId);
+            Log.D(Tag, "Send http request to " + pathToDoc);
+
+            var httpRequestDoneSignal = new CountDownLatch(1);
+            Task.Factory.StartNew(() =>
+            {
+                var httpclient = new HttpClient();
+                HttpResponseMessage response;
+                string responseString = null;
+                try
+                {
+                    var responseTask = httpclient.GetAsync(pathToDoc.ToString());
+                    responseTask.Wait(TimeSpan.FromSeconds(10));
+                    response = responseTask.Result;
+                    var statusLine = response.StatusCode;
+                    Assert.IsTrue(statusLine == HttpStatusCode.OK);
+                    if (statusLine == HttpStatusCode.OK)
+                    {
+                        var responseStringTask = response.Content.ReadAsStringAsync();
+                        responseStringTask.Wait(TimeSpan.FromSeconds(10));
+                        responseString = responseStringTask.Result;
+                        Assert.IsTrue(responseString.Contains(docId));
+                        Log.D(ReplicationTest.Tag, "result: " + responseString);
+                    }
+                    else
+                    {
+                        var statusReason = response.ReasonPhrase;
+                        response.Dispose();
+                        throw new IOException(statusReason);
+                    }
+                }
+                catch (ProtocolViolationException e)
+                {
+                    Assert.IsNull(e, "Got ClientProtocolException: " + e.Message);
+                }
+                catch (IOException e)
+                {
+                    Assert.IsNull(e, "Got IOException: " + e.Message);
+                }
+
+                httpRequestDoneSignal.CountDown();
+            });
+
+            var result = httpRequestDoneSignal.Await(TimeSpan.FromSeconds(10));
+            Assert.IsTrue(result, "Could not retrieve the new doc from the sync gateway.");
+        }
+
+        private IDictionary<string, object> GetRemoteDoc(Uri remote, string checkpointId)
+        {
+            var url = new Uri(string.Format("{0}/_local/{1}", remote, checkpointId));
+            var request = new HttpRequestMessage(HttpMethod.Get, url);
+            var response = new HttpClient().SendAsync(request).Result;
+            var result = response.Content.ReadAsStringAsync().Result;
+            var json = Manager.GetObjectMapper().ReadValue<JObject>(result);
+            return json.AsDictionary<string, object>();
         }
 
         [SetUp]
@@ -301,62 +362,37 @@ namespace Couchbase.Lite
             // Assert.IsTrue(repl.CompletedChangesCount >= 2);
             Assert.IsNull(repl.LastError);
 
-            // make sure doc1 is there
-            // TODO: make sure doc2 is there (refactoring needed)
-            var replicationUrlTrailing = new Uri(string.Format("{0}/", remote));
-            var pathToDoc = new Uri(replicationUrlTrailing, doc1Id);
-            Log.D(Tag, "Send http request to " + pathToDoc);
-            var httpRequestDoneSignal = new CountDownLatch(1);
-            Task.Factory.StartNew(() =>
-            {
-                var httpclient = new HttpClient();
-                HttpResponseMessage response;
-                string responseString = null;
-                try
-                {
-                    var responseTask = httpclient.GetAsync(pathToDoc.ToString());
-                    responseTask.Wait(TimeSpan.FromSeconds(10));
-                    response = responseTask.Result;
-                    var statusLine = response.StatusCode;
-                    Assert.IsTrue(statusLine == HttpStatusCode.OK);
-                    if (statusLine == HttpStatusCode.OK)
-                    {
-                        var responseStringTask = response.Content.ReadAsStringAsync();
-                        responseStringTask.Wait(TimeSpan.FromSeconds(10));
-                        responseString = responseStringTask.Result;
-                        Assert.IsTrue(responseString.Contains(doc1Id));
-                        Log.D(ReplicationTest.Tag, "result: " + responseString);
-                    }
-                    else
-                    {
-                        var statusReason = response.ReasonPhrase;
-                        response.Dispose();
-                        throw new IOException(statusReason);
-                    }
-                }
-                catch (ProtocolViolationException e)
-                {
-                    Assert.IsNull(e, "Got ClientProtocolException: " + e.Message);
-                }
-                catch (IOException e)
-                {
-                    Assert.IsNull(e, "Got IOException: " + e.Message);
-                }
-                httpRequestDoneSignal.CountDown();
-            });
+            VerifyRemoteDocExists(remote, doc1Id);
 
-            //Closes the connection.
-            Log.D(Tag, "Waiting for http request to finish");
-            try
+            // Add doc3
+            documentProperties = new Dictionary<string, object>();
+            var doc3Id = string.Format("doc3-{0}", docIdTimestamp);
+            var doc3 = database.GetDocument(doc3Id);
+            documentProperties["bat"] = 677;
+            doc3.PutProperties(documentProperties);
+
+            // re-run push replication
+            var repl2 = database.CreatePushReplication(remote);
+            repl2.Continuous = continuous;
+            if (!IsSyncGateway(remote))
             {
-                var result = httpRequestDoneSignal.Await(TimeSpan.FromSeconds(10));
-                Assert.IsTrue(result, "Could not retrieve the new doc from the sync gateway.");
-                Log.D(Tag, "http request finished");
+                repl2.CreateTarget = true;
             }
-            catch (Exception e)
-            {
-                Sharpen.Runtime.PrintStackTrace(e);
-            }
+
+            var repl2CheckedpointId = repl2.RemoteCheckpointDocID();
+
+            RunReplication(repl2);
+
+            // make sure trhe doc has been added
+            VerifyRemoteDocExists(remote, doc3Id);
+
+            Assert.AreEqual(repl2.LastSequence, database.LastSequenceWithCheckpointId(repl2CheckedpointId));
+
+            System.Threading.Thread.Sleep(2000);
+            var json = GetRemoteDoc(remote, repl2CheckedpointId);
+            var remoteLastSequence = (string)json["lastSequence"];
+            Assert.AreEqual(repl2.LastSequence, remoteLastSequence);
+
             Log.D(Tag, "testPusher() finished");
         }
 
