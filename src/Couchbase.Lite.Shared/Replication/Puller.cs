@@ -204,12 +204,18 @@ namespace Couchbase.Lite.Replicator
                 {
                     continue;
                 }
+
                 var rev = new PulledRevision(docID, revID, deleted, LocalDatabase);
                 rev.SetRemoteSequenceID(lastSequence);
+
                 Log.D(Tag, "adding rev to inbox " + rev);
+                Log.V(Tag, "ChangeTrackerReceivedChange() incrementing changesCount by 1");
+
+                ChangesCount += changes.Length;
+
                 AddToInbox(rev);
             }
-            ChangesCount += changes.Length;
+
             while (revsToPull != null && revsToPull.Count > 1000)
             {
                 try
@@ -275,13 +281,13 @@ namespace Couchbase.Lite.Replicator
             Debug.Assert(inbox != null);
 
             // Ask the local database which of the revs are not known to it:
-            //Log.w(Database.TAG, String.format("%s: Looking up %s", this, inbox));
-            var lastInboxSequence = ((PulledRevision)inbox[inbox.Count - 1]).GetRemoteSequenceID
-                                       ();
-            var total = ChangesCount - inbox.Count;
-            if (!LocalDatabase.FindMissingRevisions(inbox))
-            {
-                Log.W(Tag, string.Format("{0} failed to look up local revs", this));
+            var lastInboxSequence = ((PulledRevision)inbox[inbox.Count - 1]).GetRemoteSequenceID();
+
+            var numRevisionsRemoved = 0;
+            try {
+                numRevisionsRemoved = LocalDatabase.FindMissingRevisions(inbox);
+            } catch (Exception e) {
+                Log.E(Tag, "Failed to look up local revs", e);
                 inbox = null;
             }
 
@@ -291,7 +297,12 @@ namespace Couchbase.Lite.Replicator
             {
                 inboxCount = inbox.Count;
             }
-            ChangesCount = total + inboxCount;
+
+            if (numRevisionsRemoved > 0)
+            {
+                Log.V(Tag, "processInbox() setting changesCount to: " + (ChangesCount - numRevisionsRemoved));
+                ChangesCount = ChangesCount - numRevisionsRemoved;
+            }
 
             if (inboxCount == 0)
             {
@@ -305,7 +316,7 @@ namespace Couchbase.Lite.Replicator
             }
 
             Log.V(Tag, "fetching " + inboxCount + " remote revisions...");
-            //Log.v(Database.TAG, String.format("%s fetching remote revisions %s", this, inbox));
+
             // Dump the revs into the queue of revs to pull from the remote db:
             lock (locker) {
                 if (revsToPull == null) {
@@ -318,6 +329,7 @@ namespace Couchbase.Lite.Replicator
                     revsToPull.AddItem (rev);
                 }
             }
+
             PullRemoteRevisions();
 		}
 
@@ -398,6 +410,9 @@ namespace Couchbase.Lite.Replicator
                         Log.E (Tag, "Error pulling remote revision", e);
                         SetLastError(e);
                         RevisionFailed();
+                        Log.D(Tag, "pullRemoteRevision updating completedChangesCount from " + 
+                            CompletedChangesCount + " -> " + (CompletedChangesCount + 1) 
+                            + " due to error pulling remote revision");
                         CompletedChangesCount += 1;
                     }
                     else

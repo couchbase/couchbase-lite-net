@@ -1445,6 +1445,7 @@ namespace Couchbase.Lite
         public Int32 CompletedChangesCount {
             get { return completedChangesCount; }
             protected set {
+                System.Diagnostics.Debug.Assert(value > 0);
                 Log.V(Tag, "Updating completedChanges count from " + completedChangesCount + " -> " + value);
                 completedChangesCount = value;
                 NotifyChangeListeners();
@@ -1458,6 +1459,7 @@ namespace Couchbase.Lite
         public Int32 ChangesCount {
             get { return changesCount; }
             protected set {
+                System.Diagnostics.Debug.Assert(value > 0);
                 Log.V(Tag, "Updating changes count from " + changesCount + " -> " + value);
                 changesCount = value;
                 NotifyChangeListeners();

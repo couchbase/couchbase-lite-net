@@ -3795,12 +3795,14 @@ PRAGMA user_version = 3;";
             return GetDocumentWithIDAndRev(docId, revId, EnumSet.Of(TDContentOptions.TDNoBody)) != null;
         }
 
-        internal bool FindMissingRevisions(RevisionList touchRevs)
+        internal Int32 FindMissingRevisions(RevisionList touchRevs)
         {
+            var numRevisionsRemoved = 0;
             if (touchRevs.Count == 0)
             {
-                return true;
+                return numRevisionsRemoved;
             }
+
             var quotedDocIds = JoinQuoted(touchRevs.GetAllDocIds());
             var quotedRevIds = JoinQuoted(touchRevs.GetAllRevIds());
             var sql = "SELECT docid, revid FROM revs, docs " + "WHERE docid IN (" + quotedDocIds
@@ -3816,14 +3818,10 @@ PRAGMA user_version = 3;";
                     if (rev != null)
                     {
                         touchRevs.Remove(rev);
+                        numRevisionsRemoved += 1;
                     }
                     cursor.MoveToNext();
                 }
-            }
-            catch (SQLException e)
-            {
-                Log.E(Tag, "Error finding missing revisions", e);
-                return false;
             }
             finally
             {
@@ -3832,7 +3830,7 @@ PRAGMA user_version = 3;";
                     cursor.Close();
                 }
             }
-            return true;
+            return numRevisionsRemoved;
         }
 
         /// <summary>DOCUMENT & REV IDS:</summary>
