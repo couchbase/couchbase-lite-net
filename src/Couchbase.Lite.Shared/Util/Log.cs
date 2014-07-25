@@ -50,9 +50,9 @@ namespace Couchbase.Lite.Util
     /// <summary>
     /// Centralized logging facility.
     /// </summary>
-	public static class Log
-	{
-		private static ILogger Logger = LoggerFactory.CreateLogger();
+    public static class Log
+    {
+        private static ILogger Logger = LoggerFactory.CreateLogger();
 
         /// <summary>
         /// Sets the logger.
@@ -66,167 +66,176 @@ namespace Couchbase.Lite.Util
             return Logger == customLogger;
         }
 
-		/// <summary>Send a VERBOSE message.</summary>
-		/// <remarks>Send a VERBOSE message.</remarks>
-		/// <param name="tag">
-		/// Used to identify the source of a log message.  It usually identifies
-		/// the class or activity where the log call occurs.
-		/// </param>
-		/// <param name="msg">The message you would like logged.</param>
-		public static void V(string tag, string msg)
-		{
-			if (Logger != null)
-			{
-				Logger.V(tag, msg);
-			}
-		}
+        /// <summary>Send a VERBOSE message.</summary>
+        /// <remarks>Send a VERBOSE message.</remarks>
+        /// <param name="tag">
+        /// Used to identify the source of a log message.  It usually identifies
+        /// the class or activity where the log call occurs.
+        /// </param>
+        /// <param name="msg">The message you would like logged.</param>
+        [System.Diagnostics.Conditional("TRACE")]
+        public static void V(string tag, string msg)
+        {
+            if (Logger != null)
+            {
+                Logger.V(tag, msg);
+            }
+        }
 
-		/// <summary>Send a VERBOSE message and log the exception.</summary>
-		/// <remarks>Send a VERBOSE message and log the exception.</remarks>
-		/// <param name="tag">
-		/// Used to identify the source of a log message.  It usually identifies
-		/// the class or activity where the log call occurs.
-		/// </param>
-		/// <param name="msg">The message you would like logged.</param>
-		/// <param name="tr">An exception to log</param>
-		public static void V(string tag, string msg, Exception tr)
-		{
-			if (Logger != null)
-			{
-				Logger.V(tag, msg, tr);
-			}
-		}
+        /// <summary>Send a VERBOSE message and log the exception.</summary>
+        /// <remarks>Send a VERBOSE message and log the exception.</remarks>
+        /// <param name="tag">
+        /// Used to identify the source of a log message.  It usually identifies
+        /// the class or activity where the log call occurs.
+        /// </param>
+        /// <param name="msg">The message you would like logged.</param>
+        /// <param name="tr">An exception to log</param>
+        [System.Diagnostics.Conditional("TRACE")]
+        public static void V(string tag, string msg, Exception tr)
+        {
+            if (Logger != null)
+            {
+                Logger.V(tag, msg, tr);
+            }
+        }
 
-		/// <summary>Send a DEBUG message.</summary>
-		/// <remarks>Send a DEBUG message.</remarks>
-		/// <param name="tag">
-		/// Used to identify the source of a log message.  It usually identifies
-		/// the class or activity where the log call occurs.
-		/// </param>
-		/// <param name="msg">The message you would like logged.</param>
-		public static void D(string tag, string msg)
-		{
-			if (Logger != null)
-			{
-				Logger.D(tag, msg);
-			}
-		}
+        /// <summary>Send a DEBUG message.</summary>
+        /// <remarks>Send a DEBUG message.</remarks>
+        /// <param name="tag">
+        /// Used to identify the source of a log message.  It usually identifies
+        /// the class or activity where the log call occurs.
+        /// </param>
+        /// <param name="msg">The message you would like logged.</param>
+        [System.Diagnostics.Conditional("TRACE")]
+        public static void D(string tag, string msg)
+        {
+            if (Logger != null)
+            {
+                Logger.D(tag, msg);
+            }
+        }
 
-		/// <summary>Send a DEBUG message and log the exception.</summary>
-		/// <remarks>Send a DEBUG message and log the exception.</remarks>
-		/// <param name="tag">
-		/// Used to identify the source of a log message.  It usually identifies
-		/// the class or activity where the log call occurs.
-		/// </param>
-		/// <param name="msg">The message you would like logged.</param>
-		/// <param name="tr">An exception to log</param>
-		public static void D(string tag, string msg, Exception tr)
-		{
-			if (Logger != null)
-			{
-				Logger.D(tag, msg, tr);
-			}
-		}
+        /// <summary>Send a DEBUG message and log the exception.</summary>
+        /// <remarks>Send a DEBUG message and log the exception.</remarks>
+        /// <param name="tag">
+        /// Used to identify the source of a log message.  It usually identifies
+        /// the class or activity where the log call occurs.
+        /// </param>
+        /// <param name="msg">The message you would like logged.</param>
+        /// <param name="tr">An exception to log</param>
+        [System.Diagnostics.Conditional("TRACE")]
+        public static void D(string tag, string msg, Exception tr)
+        {
+            if (Logger != null)
+            {
+                Logger.D(tag, msg, tr);
+            }
+        }
 
-		/// <summary>Send an INFO message.</summary>
-		/// <remarks>Send an INFO message.</remarks>
-		/// <param name="tag">
-		/// Used to identify the source of a log message.  It usually identifies
-		/// the class or activity where the log call occurs.
-		/// </param>
-		/// <param name="msg">The message you would like logged.</param>
-		public static void I(string tag, string msg)
-		{
-			if (Logger != null)
-			{
-				Logger.I(tag, msg);
-			}
-		}
+        /// <summary>Send an INFO message.</summary>
+        /// <remarks>Send an INFO message.</remarks>
+        /// <param name="tag">
+        /// Used to identify the source of a log message.  It usually identifies
+        /// the class or activity where the log call occurs.
+        /// </param>
+        /// <param name="msg">The message you would like logged.</param>
+        [System.Diagnostics.Conditional("TRACE")]
+        public static void I(string tag, string msg)
+        {
+            if (Logger != null)
+            {
+                Logger.I(tag, msg);
+            }
+        }
 
-		/// <summary>Send a INFO message and log the exception.</summary>
-		/// <remarks>Send a INFO message and log the exception.</remarks>
-		/// <param name="tag">
-		/// Used to identify the source of a log message.  It usually identifies
-		/// the class or activity where the log call occurs.
-		/// </param>
-		/// <param name="msg">The message you would like logged.</param>
-		/// <param name="tr">An exception to log</param>
-		public static void I(string tag, string msg, Exception tr)
-		{
-			if (Logger != null)
-			{
-				Logger.I(tag, msg, tr);
-			}
-		}
+        /// <summary>Send a INFO message and log the exception.</summary>
+        /// <remarks>Send a INFO message and log the exception.</remarks>
+        /// <param name="tag">
+        /// Used to identify the source of a log message.  It usually identifies
+        /// the class or activity where the log call occurs.
+        /// </param>
+        /// <param name="msg">The message you would like logged.</param>
+        /// <param name="tr">An exception to log</param>
+        [System.Diagnostics.Conditional("TRACE")]
+        public static void I(string tag, string msg, Exception tr)
+        {
+            if (Logger != null)
+            {
+                Logger.I(tag, msg, tr);
+            }
+        }
 
-		/// <summary>Send a WARN message.</summary>
-		/// <remarks>Send a WARN message.</remarks>
-		/// <param name="tag">
-		/// Used to identify the source of a log message.  It usually identifies
-		/// the class or activity where the log call occurs.
-		/// </param>
-		/// <param name="msg">The message you would like logged.</param>
-		public static void W(string tag, string msg)
-		{
-			if (Logger != null)
-			{
-				Logger.W(tag, msg);
-			}
-		}
+        /// <summary>Send a WARN message.</summary>
+        /// <remarks>Send a WARN message.</remarks>
+        /// <param name="tag">
+        /// Used to identify the source of a log message.  It usually identifies
+        /// the class or activity where the log call occurs.
+        /// </param>
+        /// <param name="msg">The message you would like logged.</param>
+        [System.Diagnostics.Conditional("TRACE")]
+        public static void W(string tag, string msg)
+        {
+            if (Logger != null)
+            {
+                Logger.W(tag, msg);
+            }
+        }
 
-		public static void W(string tag, Exception tr)
-		{
-			if (Logger != null)
-			{
-				Logger.W(tag, tr);
-			}
-		}
+        [System.Diagnostics.Conditional("TRACE")]
+        public static void W(string tag, Exception tr)
+        {
+            if (Logger != null)
+            {
+                Logger.W(tag, tr);
+            }
+        }
 
-		/// <summary>Send a WARN message and log the exception.</summary>
-		/// <remarks>Send a WARN message and log the exception.</remarks>
-		/// <param name="tag">
-		/// Used to identify the source of a log message.  It usually identifies
-		/// the class or activity where the log call occurs.
-		/// </param>
-		/// <param name="msg">The message you would like logged.</param>
-		/// <param name="tr">An exception to log</param>
-		public static void W(string tag, string msg, Exception tr)
-		{
-			if (Logger != null)
-			{
-				Logger.W(tag, msg, tr);
-			}
-		}
+        /// <summary>Send a WARN message and log the exception.</summary>
+        /// <remarks>Send a WARN message and log the exception.</remarks>
+        /// <param name="tag">
+        /// Used to identify the source of a log message.  It usually identifies
+        /// the class or activity where the log call occurs.
+        /// </param>
+        /// <param name="msg">The message you would like logged.</param>
+        /// <param name="tr">An exception to log</param>
+        [System.Diagnostics.Conditional("TRACE")]
+        public static void W(string tag, string msg, Exception tr)
+        {
+            if (Logger != null)
+            {
+                Logger.W(tag, msg, tr);
+            }
+        }
 
-		/// <summary>Send an ERROR message.</summary>
-		/// <remarks>Send an ERROR message.</remarks>
-		/// <param name="tag">
-		/// Used to identify the source of a log message.  It usually identifies
-		/// the class or activity where the log call occurs.
-		/// </param>
-		/// <param name="msg">The message you would like logged.</param>
-		public static void E(string tag, string msg)
-		{
-			if (Logger != null)
-			{
-				Logger.E(tag, msg);
-			}
-		}
+        /// <summary>Send an ERROR message.</summary>
+        /// <remarks>Send an ERROR message.</remarks>
+        /// <param name="tag">
+        /// Used to identify the source of a log message.  It usually identifies
+        /// the class or activity where the log call occurs.
+        /// </param>
+        /// <param name="msg">The message you would like logged.</param>
+        public static void E(string tag, string msg)
+        {
+            if (Logger != null)
+            {
+                Logger.E(tag, msg);
+            }
+        }
 
-		/// <summary>Send a ERROR message and log the exception.</summary>
-		/// <remarks>Send a ERROR message and log the exception.</remarks>
-		/// <param name="tag">
-		/// Used to identify the source of a log message.  It usually identifies
-		/// the class or activity where the log call occurs.
-		/// </param>
-		/// <param name="msg">The message you would like logged.</param>
-		/// <param name="tr">An exception to log</param>
-		public static void E(string tag, string msg, Exception tr)
-		{
-			if (Logger != null)
-			{
-				Logger.E(tag, msg, tr);
-			}
-		}
-	}
+        /// <summary>Send a ERROR message and log the exception.</summary>
+        /// <remarks>Send a ERROR message and log the exception.</remarks>
+        /// <param name="tag">
+        /// Used to identify the source of a log message.  It usually identifies
+        /// the class or activity where the log call occurs.
+        /// </param>
+        /// <param name="msg">The message you would like logged.</param>
+        /// <param name="tr">An exception to log</param>
+        public static void E(string tag, string msg, Exception tr)
+        {
+            if (Logger != null)
+            {
+                Logger.E(tag, msg, tr);
+            }
+        }
+    }
 }
