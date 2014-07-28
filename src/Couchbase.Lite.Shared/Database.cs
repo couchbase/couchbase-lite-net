@@ -82,7 +82,8 @@ namespace Couchbase.Lite
             Name = FileDirUtils.GetDatabaseNameFromPath(path);
             Manager = manager;
             DocumentCache = new LruCache<string, Document>(MaxDocCacheSize);
-
+            UnsavedRevisionDocumentCache = new Dictionary<string, WeakReference>();
+ 
             // TODO: Make Synchronized ICollection
             ActiveReplicators = new HashSet<Replication>();
             AllReplicators = new HashSet<Replication>();
@@ -340,7 +341,10 @@ namespace Couchbase.Lite
                 return null;
             }
 
-            var doc = DocumentCache.Get(id);
+            var unsavedDoc = UnsavedRevisionDocumentCache.Get(id);
+            Document doc = ((unsavedDoc != null && unsavedDoc.Target != null) 
+                ? (Document)unsavedDoc.Target : DocumentCache.Get(id));
+
             if (doc == null)
             {
                 doc = new Document(this, id);
@@ -349,6 +353,7 @@ namespace Couchbase.Lite
                     return null;
                 }
                 DocumentCache[id] = doc;
+                UnsavedRevisionDocumentCache[id] = new WeakReference(doc);
             }
 
             return doc;
@@ -776,8 +781,9 @@ PRAGMA user_version = 3;";
         internal String                                 Path { get; private set; }
         internal ICollection<Replication>               ActiveReplicators { get; set; }
         internal ICollection<Replication>               AllReplicators { get; set; }
-        internal ISQLiteStorageEngine                    StorageEngine { get; set; }
+        internal ISQLiteStorageEngine                   StorageEngine { get; set; }
         internal LruCache<String, Document>             DocumentCache { get; set; }
+        internal IDictionary<String, WeakReference>     UnsavedRevisionDocumentCache { get; set; }
 
         //TODO: Should thid be a public member?
 
@@ -2047,6 +2053,7 @@ PRAGMA user_version = 3;";
         internal void RemoveDocumentFromCache(Document document)
         {
             DocumentCache.Remove(document.Id);
+            UnsavedRevisionDocumentCache.Remove(document.Id);
         }
 
         internal BlobStoreWriter AttachmentWriter { get { return new BlobStoreWriter(Attachments); } }
@@ -3171,7 +3178,10 @@ PRAGMA user_version = 3;";
                     cursor.Close();
                 }
                 EndTransaction(resultStatus.IsSuccessful());
+
+                UnsavedRevisionDocumentCache.Remove(docId);
             }
+
             // EPILOGUE: A change notification is sent...
             NotifyChange(newRev, winningRev, null, inConflict);
             return newRev;

@@ -182,6 +182,38 @@ namespace Couchbase.Lite
             Assert.AreEqual(1, database.AllReplications.ToList().Count);
             Assert.AreEqual(0, database.ActiveReplicators.Count);
         }
+
+        [Test]
+        public void TestUnsavedRevisionCacheRetainDocument()
+        {
+            var document = database.CreateDocument();
+
+            database.DocumentCache.Remove(document.Id);
+
+            Assert.IsNull(database.DocumentCache.Get(document.Id));
+
+            var cachedDocument = database.UnsavedRevisionDocumentCache.Get(document.Id);
+            Assert.IsTrue(cachedDocument.Target == document);
+
+            var checkedDocument = database.GetDocument(document.Id);
+            Assert.IsTrue(document == checkedDocument);
+        }
+
+        [Test]
+        public void TestUnsavedRevisionCacheRemoveDocument()
+        {
+            var document = database.CreateDocument();
+
+            var properties = new Dictionary<string, object>();
+            properties.Add("test", "test");
+            document.PutProperties(properties);
+
+            var cachedDocument = database.UnsavedRevisionDocumentCache.Get(document.Id);
+            Assert.IsNull(cachedDocument);
+
+            var checkedDocument = database.GetDocument(document.Id);
+            Assert.IsTrue(document == checkedDocument);
+        }
     }
 }
 
