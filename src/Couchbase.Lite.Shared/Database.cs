@@ -342,16 +342,10 @@ namespace Couchbase.Lite
             }
 
             var unsavedDoc = UnsavedRevisionDocumentCache.Get(id);
-            Document doc = ((unsavedDoc != null && unsavedDoc.Target != null) 
-                ? (Document)unsavedDoc.Target : DocumentCache.Get(id));
-
+            Document doc = unsavedDoc == null ? unsavedDoc.Target as Document : DocumentCache.Get(id);
             if (doc == null)
             {
                 doc = new Document(this, id);
-                if (doc == null)
-                {
-                    return null;
-                }
                 DocumentCache[id] = doc;
                 UnsavedRevisionDocumentCache[id] = new WeakReference(doc);
             }
