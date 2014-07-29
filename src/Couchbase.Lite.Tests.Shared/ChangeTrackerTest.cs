@@ -54,6 +54,7 @@ using System.Net.Http;
 using System.Threading.Tasks;
 using NUnit.Framework;
 using Couchbase.Lite.Tests;
+using System.Collections;
 
 namespace Couchbase.Lite
 {
@@ -152,6 +153,11 @@ namespace Couchbase.Lite
             #endregion
         }
 
+        private Boolean IsSyncGateway(Uri remote) 
+        {
+            return (remote.Port == 4984 || remote.Port == 4985);
+        }
+
         private void ChangeTrackerTestWithMode(ChangeTracker.ChangeTrackerMode mode)
 		{
             var changeTrackerFinishedSignal = new CountDownLatch(1);
@@ -177,7 +183,8 @@ namespace Couchbase.Lite
             var testUrl = GetReplicationURL();
             var scheduler = new SingleThreadTaskScheduler();
             var changeTracker = new ChangeTracker(testUrl, mode, 0, false, client, new TaskFactory(scheduler));
-            // TODO: Set Use POST
+
+            changeTracker.UsePost = IsSyncGateway(testUrl);
             changeTracker.Start();
 
             var success = changeReceivedSignal.Await(TimeSpan.FromSeconds(30));
@@ -200,9 +207,7 @@ namespace Couchbase.Lite
             var changeTracker = new ChangeTracker(testUrl, ChangeTracker.ChangeTrackerMode.LongPoll, 
                 0, false, client, new TaskFactory(scheduler));
 
-            // TODO: Set Use POST
-            //changeTracker.setUsePOST(isTestingAgainstSyncGateway());
-
+            changeTracker.UsePost = IsSyncGateway(testUrl);
             changeTracker.Start();
 
             // sleep for a few seconds
@@ -283,9 +288,7 @@ namespace Couchbase.Lite
             var scheduler = new SingleThreadTaskScheduler();
             var changeTracker = new ChangeTracker(testUrl, mode, 0, false, client, new TaskFactory(scheduler));
 
-            // TODO: Set Use POST
-            //changeTracker.setUsePOST(isTestingAgainstSyncGateway());
-
+            changeTracker.UsePost = IsSyncGateway(testUrl);
             changeTracker.Start();
 
             var success = changeReceivedSignal.Await(TimeSpan.FromSeconds(30));
@@ -314,7 +317,7 @@ namespace Couchbase.Lite
         {
             Uri testUrl = GetReplicationURL();
             var changeTracker = new ChangeTracker(testUrl, ChangeTracker.ChangeTrackerMode.LongPoll, 0, true, null);
-            Assert.AreEqual("_changes?feed=longpoll&limit=50&heartbeat=300000&style=all_docs&since=0", 
+            Assert.AreEqual("_changes?feed=longpoll&heartbeat=300000&style=all_docs&since=0&limit=50", 
                 changeTracker.GetChangesFeedPath());
         }
             
@@ -333,7 +336,7 @@ namespace Couchbase.Lite
 
 			// set filter map
 			changeTracker.SetFilterParams(filterMap);
-			Assert.AreEqual("_changes?feed=longpoll&limit=50&heartbeat=300000&since=0&filter=filter&param=value", 
+            Assert.AreEqual("_changes?feed=longpoll&heartbeat=300000&since=0&limit=50&filter=filter&param=value", 
                 changeTracker.GetChangesFeedPath());
 		}
 
@@ -386,22 +389,28 @@ namespace Couchbase.Lite
 		public void TestChangeTrackerWithDocsIds()
 		{
             var testURL = GetReplicationURL();
-            var changeTrackerDocIds = new ChangeTracker(testURL, ChangeTracker.ChangeTrackerMode
+            var changeTracker = new ChangeTracker(testURL, ChangeTracker.ChangeTrackerMode
                 .LongPoll, 0, false, null);
 
             var docIds = new List<string>();
 			docIds.AddItem("doc1");
 			docIds.AddItem("doc2");
-			changeTrackerDocIds.SetDocIDs(docIds);
+			changeTracker.SetDocIDs(docIds);
 
-            var docIdsEncoded = Uri.EscapeUriString("[\"doc1\",\"doc2\"]");
-            var expectedFeedPath = string.Format("_changes?feed=longpoll&limit=50&heartbeat=300000&since=0&filter=_doc_ids&doc_ids={0}", 
+            var docIdsJson = "[\"doc1\",\"doc2\"]";
+            var docIdsEncoded = Uri.EscapeUriString(docIdsJson);
+            var expectedFeedPath = string.Format("_changes?feed=longpoll&heartbeat=300000&since=0&limit=50&filter=_doc_ids&doc_ids={0}", 
                 docIdsEncoded);
-			string changesFeedPath = changeTrackerDocIds.GetChangesFeedPath();
+			string changesFeedPath = changeTracker.GetChangesFeedPath();
 			Assert.AreEqual(expectedFeedPath, changesFeedPath);
 
-            // TODO: Test POST BODY When ChangeTracker implements POST requests
-            // https://github.com/couchbaselabs/couchbase-lite-net/issues/71
+            changeTracker.UsePost = true;
+            var parameters = changeTracker.GetChangesFeedParams();
+            Assert.AreEqual("_doc_ids", parameters["filter"]);
+            AssertEnumerablesAreEqual(docIds, (IEnumerable)parameters["doc_ids"]);
+
+            var body = changeTracker.GetChangesFeedPostBody();
+            Assert.IsTrue(body.Contains(docIdsJson));
 		}
 	}
 }

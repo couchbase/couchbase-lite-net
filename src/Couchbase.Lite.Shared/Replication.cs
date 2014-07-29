@@ -267,6 +267,7 @@ namespace Couchbase.Lite
             }
         }
 
+        internal string ServerType { get; set; }
         internal Batcher<RevisionInternal> Batcher { get; set; }
         private CancellationTokenSource CancellationTokenSource { get; set; }
         private CancellationTokenSource RetryIfReadyTokenSource { get; set; }
@@ -863,6 +864,8 @@ namespace Couchbase.Lite
             client.SendAsync(message, HttpCompletionOption.ResponseHeadersRead, CancellationTokenSource.Token)
                 .ContinueWith(response =>
                 {
+                    UpdateServerType(response.Result);
+
                     lock(requests)
                     {
                         requests.Remove(client);
@@ -1116,6 +1119,33 @@ namespace Couchbase.Lite
                 }, CancellationTokenSource.Token);
         }
 
+        internal void UpdateServerType(HttpResponseMessage response)
+        {
+            var server = response.Headers.GetValues("Server");
+            if (server != null && server.Any())
+            {
+                ServerType = server.First();
+                Log.V(Tag, "Server Version: " + ServerType);
+            }
+        }
+
+        protected internal bool CheckServerCompatVersion(string minVersion)
+        {
+            if (String.IsNullOrWhiteSpace(ServerType))
+            {
+                return false;
+            }
+
+            const string prefix = "Couchbase Sync Gateway/";
+            if (ServerType.StartsWith(prefix)) 
+            {
+                var version = ServerType.Substring(prefix.Length);
+                return version.CompareTo(minVersion) >= 0;
+
+            }
+
+            return false;
+        }
 
         // Pusher overrides this to implement the .createTarget option
         /// <summary>This is the _local document ID stored on the remote server to keep track of state.

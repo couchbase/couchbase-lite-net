@@ -42,14 +42,13 @@
 
 using System;
 using System.Collections;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Net;
-using System.Diagnostics;
-using System.Net.Http;
-using System.IO;
-using System.Collections.Generic;
-using Newtonsoft.Json.Linq;
 using System.Net.Http.Headers;
+using Newtonsoft.Json.Linq;
 
 namespace Couchbase.Lite
 {
@@ -121,6 +120,32 @@ namespace Couchbase.Lite
             var param = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(userinfo));
 
             return new AuthenticationHeaderValue(scheme, param);
+        }
+
+        public static string ToQueryString(this IDictionary<string, object> parameters)
+        {
+            var maps = parameters.Select(kvp =>
+            {
+                var key = Uri.EscapeUriString(kvp.Key);
+
+                string value;
+                if (kvp.Value is string) 
+                {
+                    value = Uri.EscapeUriString(kvp.Value as String);
+                }
+                else if (kvp.Value is ICollection)
+                {
+                    value = Uri.EscapeUriString(Manager.GetObjectMapper().WriteValueAsString(kvp.Value));
+                }
+                else
+                {
+                    value = Uri.EscapeUriString(kvp.Value.ToString());
+                }
+
+                return String.Format("{0}={1}", key, value);
+            });
+
+            return String.Join("&", maps.ToArray());
         }
     }
 }

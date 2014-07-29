@@ -1049,5 +1049,15 @@ namespace Couchbase.Lite
             Assert.IsNull(localLastSequence);
             Assert.IsTrue(doc2.CurrentRevision.Sequence > 0);
         }
+
+        public void TestCheckServerCompatVersion()
+        {
+            var replicator = database.CreatePushReplication(GetReplicationURL());
+            Assert.IsFalse(replicator.CheckServerCompatVersion("0.01"));
+
+            replicator.ServerType = "Couchbase Sync Gateway/0.93";
+            Assert.IsTrue(replicator.CheckServerCompatVersion("0.92"));
+            Assert.IsFalse(replicator.CheckServerCompatVersion("0.94"));
+        }
     }
 }
