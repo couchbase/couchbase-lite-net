@@ -991,7 +991,7 @@ namespace Couchbase.Lite
                                     {
                                         if (numBytesRead != bufLen)
                                         {
-                                            var bufferToAppend = new ArraySegment<Byte>(buffer, 0, numBytesRead).Array;
+                                            var bufferToAppend = new ArraySegment<Byte>(buffer, 0, numBytesRead);
                                             reader.AppendData(bufferToAppend);
                                         }
                                         else
