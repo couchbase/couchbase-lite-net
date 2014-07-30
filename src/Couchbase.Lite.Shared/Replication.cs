@@ -768,6 +768,12 @@ namespace Couchbase.Lite
                     return;
                 }
 
+                if (!LocalDatabase.Open())
+                {
+                    Log.W(Tag, "Database is closed, ignoring remote checkpoint response");
+                    return
+                }
+
                 if (e != null)
                 {
                     switch (GetStatusFromError(e))
