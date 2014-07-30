@@ -238,7 +238,11 @@ namespace Couchbase.Lite
             var db = GetDatabaseWithoutOpening(name, false);
             if (db != null)
             {
-                db.Open();
+                var opened = db.Open();
+                if (!opened)
+                {
+                    return null;
+                }
             }
             return db;
         }
