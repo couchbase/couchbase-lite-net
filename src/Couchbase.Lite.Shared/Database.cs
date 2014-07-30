@@ -2471,13 +2471,17 @@ PRAGMA user_version = 3;";
         {
             var extra = ExtraPropertiesForRevision(rev, contentOptions);
 
-            if (json != null)
+            if (json != null && json.Count > 0)
             {
                 rev.SetJson(AppendDictToJSON(json, extra));
             }
             else
             {
                 rev.SetProperties(extra);
+                if (json == null)
+                {
+                    rev.SetMissing(true);
+                }
             }
         }
 
