@@ -234,7 +234,11 @@ namespace Couchbase.Lite
             var documentPropertiesBothNull = (DocumentProperties == null && other.DocumentProperties == null);
             var documentPropertiesEqual = documentPropertiesBothNull || DocumentProperties.Equals(other.DocumentProperties);
 
-            if (Database == other.Database && Key.Equals(other.Key) && SourceDocumentId.Equals(other.SourceDocumentId) && documentPropertiesEqual)
+            if (Database == other.Database && 
+                ((Key == null && other.Key == null) || Key.Equals(other.Key)) && 
+                ((SourceDocumentId == null && other.SourceDocumentId == null) || 
+                    SourceDocumentId.Equals(other.SourceDocumentId)) && 
+                documentPropertiesEqual)
             {
                 // If values were emitted, compare them. Otherwise we have nothing to go on so check
                 // if _anything_ about the doc has changed (i.e. the sequences are different.)
