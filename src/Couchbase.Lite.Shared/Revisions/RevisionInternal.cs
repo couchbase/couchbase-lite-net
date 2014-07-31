@@ -332,5 +332,57 @@ namespace Couchbase.Lite.Internal
 			System.Diagnostics.Debug.Assert((revId2 != null));
 			return CBLCollateRevIDs(revId1, revId2);
 		}
+
+        // Calls the block on every attachment dictionary. The block can return a different dictionary,
+        // which will be replaced in the rev's properties. If it returns nil, the operation aborts.
+        // Returns YES if any changes were made.
+        public bool MutateAttachments(Func<string, IDictionary<string, object>, IDictionary<string, object>> mutator)
+        {
+            var properties = GetProperties();
+            IDictionary<string, object> editedProperties = null;
+
+            IDictionary<string, object> attachments = null;
+            if (properties.ContainsKey("_attachments"))
+            {
+                attachments = properties["_attachments"].AsDictionary<string, object>();
+            }
+
+            IDictionary<string, object> editedAttachments = null;
+
+            if (attachments != null)
+            {
+                foreach(var kvp in attachments)
+                {
+                    IDictionary<string, object> attachment = 
+                        new Dictionary<string, object>(kvp.Value.AsDictionary<string, object>());
+                    IDictionary<string, object> editedAttachment = mutator(kvp.Key, attachment);
+                    if (editedAttachment == null)
+                    {
+                        return false;
+                    }
+
+                    if (editedAttachment != attachment)
+                    {
+                        if (editedProperties == null)
+                        {
+                            // Make the document properties and _attachments dictionary mutable:
+                            editedProperties = new Dictionary<string, object>(properties);
+                            editedAttachments = new Dictionary<string, object>(attachments);
+                            editedProperties["_attachments"] = editedAttachments;
+                        }
+                        editedAttachments[kvp.Key] = editedAttachment;
+                    }
+                }
+            }
+
+            if (editedProperties != null)
+            {
+                SetProperties(editedProperties);
+                return true;
+            }
+
+            return false;
+        }
+
 	}
 }

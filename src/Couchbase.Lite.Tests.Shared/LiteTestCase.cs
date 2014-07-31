@@ -41,19 +41,17 @@
 //
 
 using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.IO;
+
+using System.Net;
 using Couchbase.Lite;
 using Couchbase.Lite.Internal;
-
-using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
 using NUnit.Framework;
 using Sharpen;
 using Couchbase.Lite.Tests;
-using System.Diagnostics;
-using System.Net;
-using System.Collections;
-using System.Collections.Generic;
 
 namespace Couchbase.Lite
 {

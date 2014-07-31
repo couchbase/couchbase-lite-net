@@ -1283,35 +1283,6 @@ PRAGMA user_version = 3;";
             return (newId == -1);
         }
 
-
-        internal String LastSequenceWithRemoteURL(Uri url, Boolean push)
-        {
-            Cursor cursor = null;
-            string result = null;
-            try
-            {
-                var args = new [] { url.ToString(), (push ? 1 : 0).ToString() };
-                cursor = StorageEngine.RawQuery("SELECT last_sequence FROM replicators WHERE remote=? AND push=?", args);
-                if (cursor.MoveToNext())
-                {
-                    result = cursor.GetString(0);
-                }
-            }
-            catch (SQLException e)
-            {
-                Log.E(Tag, "Error getting last sequence", e);
-                return null;
-            }
-            finally
-            {
-                if (cursor != null)
-                {
-                    cursor.Close();
-                }
-            }
-            return result;
-        }
-
         internal String LastSequenceWithCheckpointId(string checkpointId)
         {
             Cursor cursor = null;
@@ -2678,6 +2649,29 @@ PRAGMA user_version = 3;";
             return MakeRevisionHistoryDict(GetRevisionHistory(rev));
         }
 
+        internal IDictionary<string, object> GetRevisionHistoryDictStartingFromAnyAncestor(RevisionInternal rev, IList<string>ancestorRevIDs)
+        {
+            var history = GetRevisionHistory(rev); // This is in reverse order, newest ... oldest
+            if (ancestorRevIDs != null && ancestorRevIDs.Any())
+            {
+                for (var i = 0; i < history.Count; i++)
+                {
+                    if (ancestorRevIDs.Contains(history[i].GetRevId()))
+                    {
+                        var newHistory = new List<RevisionInternal>();
+                        for (var index = 0; index < i + 1; index++) 
+                        {
+                            newHistory.Add(history[index]);
+                        }
+                        history = newHistory;
+                        break;
+                    }
+                }
+            }
+
+            return MakeRevisionHistoryDict(history);
+        }
+
         internal static IDictionary<string, object> MakeRevisionHistoryDict(IList<RevisionInternal> history)
         {
             if (history == null)
@@ -2858,7 +2852,7 @@ PRAGMA user_version = 3;";
                         }
                     }
                     var attachment = new Dictionary<string, object>();
-                    if (dataBase64 == null || dataSuppressed)
+                    if (!(dataBase64 != null || dataSuppressed))
                     {
                         attachment["stub"] = true;
                     }
@@ -3541,38 +3535,84 @@ PRAGMA user_version = 3;";
         {
             var properties = rev.GetProperties();
             var attachmentProps = properties.Get("_attachments");
-            var attachmentsFromProps = attachmentProps.AsDictionary<string,object>();
-            if (attachmentsFromProps != null)
+            if (attachmentProps != null)
             {
-                foreach (string attachmentKey in attachmentsFromProps.Keys)
+                var nuAttachments = new Dictionary<string, object>();
+                foreach (var kvp in attachmentProps.AsDictionary<string,object>())
                 {
-                    var attachmentFromProps = attachmentsFromProps.Get(attachmentKey).AsDictionary<string,object>();
-                    if (attachmentFromProps.Get("follows") != null || attachmentFromProps.Get("data")
-                        != null)
+                    var attachmentValue = kvp.Value.AsDictionary<string,object>();
+                    if (attachmentValue.ContainsKey("follows") || attachmentValue.ContainsKey("data"))
                     {
-                        Collections.Remove(attachmentFromProps, "follows");
-                        Collections.Remove(attachmentFromProps, "data");
+                        attachmentValue.Remove("follows");
+                        attachmentValue.Remove("data");
 
-                        attachmentFromProps["stub"] = true;
-                        if (attachmentFromProps.Get("revpos") == null)
+                        attachmentValue["stub"] = true;
+                        if (attachmentValue.Get("revpos") == null)
                         {
-                            attachmentFromProps.Put("revpos", rev.GetGeneration());
+                            attachmentValue.Put("revpos", rev.GetGeneration());
                         }
-                        var attachmentObject = attachments.Get(attachmentKey);
+
+                        var attachmentObject = attachments.Get(kvp.Key);
                         if (attachmentObject != null)
                         {
-                            attachmentFromProps.Put("length", attachmentObject.GetLength());
+                            attachmentValue.Put("length", attachmentObject.GetLength());
                             if (attachmentObject.GetBlobKey() != null)
                             {
-                                // case with Large Attachment
-                                attachmentFromProps.Put("digest", attachmentObject.GetBlobKey().Base64Digest());
+                                attachmentValue.Put("digest", attachmentObject.GetBlobKey().Base64Digest());
                             }
                         }
-                        attachmentFromProps[attachmentKey] = attachmentFromProps;
                     }
+                    nuAttachments[kvp.Key] = attachmentValue;
                 }
+
+                properties["_attachments"] = nuAttachments;  
             }
-            properties["_attachments"] = attachmentsFromProps;  
+        }
+
+        internal static void StubOutAttachmentsInRevBeforeRevPos(RevisionInternal rev, long minRevPos, bool attachmentsFollow)
+        {
+            if (minRevPos <= 1 && !attachmentsFollow)
+            {
+                return;
+            }
+
+            rev.MutateAttachments((name, attachment) =>
+            {
+                var revPos = 0L;
+                if (attachment.ContainsKey("revpos"))
+                {
+                    revPos = Convert.ToInt64(attachment["revpos"]);
+                }
+
+                var includeAttachment = (revPos == 0 || revPos >= minRevPos);
+                var stubItOut = !includeAttachment && (!attachment.ContainsKey("stub") || (bool)attachment["stub"] == false);
+                var addFollows = includeAttachment && attachmentsFollow && (!attachment.ContainsKey("follows") || (bool)attachment["follows"] == false);
+
+                if (!stubItOut && !addFollows)
+                {
+                    return attachment; // no change
+                }
+
+                // Need to modify attachment entry
+                var editedAttachment = new Dictionary<string, object>(attachment);
+                editedAttachment.Remove("data");
+
+                if (stubItOut)
+                {
+                    // ...then remove the 'data' and 'follows' key:
+                    editedAttachment.Remove("follows");
+                    editedAttachment["stub"] = true;
+                    Log.V(Tag, String.Format("Stubbed out attachment {0}: revpos {1} < {2}", rev, revPos, minRevPos));
+                }
+                else if (addFollows)
+                {
+                    editedAttachment.Remove("stub");
+                    editedAttachment["follows"] = true;
+                    Log.V(Tag, String.Format("Added 'follows' for attachment {0}: revpos {1} >= {2}", rev, revPos, minRevPos));
+                }
+
+                return editedAttachment;
+            });
         }
 
         /// <summary>INSERTION:</summary>
@@ -3675,7 +3715,7 @@ PRAGMA user_version = 3;";
                                                              BadAttachment);
                         }
 
-                        var revPos = ((long)attachInfo.Get("revpos"));
+                        var revPos = Convert.ToInt64(attachInfo.Get("revpos"));
                         if (revPos <= 0)
                         {
                             throw new CouchbaseLiteException("Invalid revpos: " + revPos, StatusCode.BadAttachment
