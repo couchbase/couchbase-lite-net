@@ -703,15 +703,13 @@ namespace Couchbase.Lite
         {
             Log.V(Tag, "STOPPING");
 
-            Log.V(Tag, this + " Stopped() called");
-
             IsRunning = false;
 
             NotifyChangeListeners();
 
             SaveLastSequence();
 
-            Log.V(Tag, "set batcher to null");
+            Log.V(Tag, "Set batcher to null");
 
             Batcher = null;
 
@@ -1112,7 +1110,7 @@ namespace Couchbase.Lite
                         Log.E(Tag, "SendAsyncRequest did not run to completion.", response.Exception);
                         return null;
                     }
-                    if (response.Result.StatusCode != HttpStatusCode.OK) {
+                    if ((Int32)response.Result.StatusCode > 300) {
                         SetLastError(new HttpResponseException(response.Result.StatusCode));
                         Log.E(Tag, "Server returned HTTP Error", LastError);
                         return null;
@@ -1576,6 +1574,8 @@ namespace Couchbase.Lite
         /// </summary>
         public void Start()
         {
+            Log.V(Tag, "Replication Start");
+
             if (!LocalDatabase.Open())
             {
                 // Race condition: db closed before replication starts
