@@ -1104,6 +1104,11 @@ namespace Couchbase.Lite
                         Log.E(Tag, "SendAsyncRequest did not run to completion.", response.Exception);
                         return null;
                     }
+                    if (response.Result.StatusCode != HttpStatusCode.OK) {
+                        SetLastError(new HttpResponseException(response.Result.StatusCode));
+                        Log.E(Tag, "Server returned HTTP Error", LastError);
+                        return null;
+                    }
                     return response.Result.Content.ReadAsStreamAsync();
                 }, CancellationTokenSource.Token)
                 .ContinueWith(response=> {
