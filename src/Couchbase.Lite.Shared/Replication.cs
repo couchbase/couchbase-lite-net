@@ -56,6 +56,7 @@ using Couchbase.Lite.Support;
 using Couchbase.Lite.Internal;
 using Sharpen;
 using System.Net.Http.Headers;
+using System.Diagnostics;
 
 
 namespace Couchbase.Lite
@@ -281,6 +282,10 @@ namespace Couchbase.Lite
         readonly object asyncTaskLocker = new object ();
 
         private EventHandler<NetworkReachabilityChangeEventArgs> networkReachabilityEventHandler;
+
+        private Func <IDictionary<string, object>, IDictionary<string, object>> propertiesTransformationFunction;
+
+        protected Func<RevisionInternal, RevisionInternal> revisionBodyTransformationFunction;
 
         protected void SetClientFactory(IHttpClientFactory clientFactory)
         {
@@ -548,10 +553,13 @@ namespace Couchbase.Lite
         internal void FetchRemoteCheckpointDoc()
         {
             lastSequenceChanged = false;
-            var localLastSequence = LocalDatabase.LastSequenceWithRemoteURL(RemoteUrl, !IsPull);
-            Log.D(Tag, "fetchRemoteCheckpointDoc() calling asyncTaskStarted()");
-            AsyncTaskStarted();
             var checkpointId = RemoteCheckpointDocID();
+            var localLastSequence = LocalDatabase.LastSequenceWithCheckpointId(checkpointId);
+
+            Log.D(Tag, "fetchRemoteCheckpointDoc() calling asyncTaskStarted()");
+
+            AsyncTaskStarted();
+
             SendAsyncRequest(HttpMethod.Get, "/_local/" + checkpointId, null, (response, e) => {
                 try
                 {
@@ -997,7 +1005,7 @@ namespace Couchbase.Lite
                                     {
                                         if (numBytesRead != bufLen)
                                         {
-                                            var bufferToAppend = new ArraySegment<Byte>(buffer, 0, numBytesRead).Array;
+                                            var bufferToAppend = new ArraySegment<Byte>(buffer, 0, numBytesRead).ToArray<byte>();
                                             reader.AppendData(bufferToAppend);
                                         }
                                         else
@@ -1246,6 +1254,52 @@ namespace Couchbase.Lite
             revisionsFailed++;
         }
 
+        protected RevisionInternal TransformRevision(RevisionInternal rev)
+        {
+            if (revisionBodyTransformationFunction != null)
+            {
+                try
+                {
+                    var generation = rev.GetGeneration();
+                    var xformed = revisionBodyTransformationFunction(rev);
+                    if (xformed == null)
+                    {
+                        return null;
+                    }
+
+                    if (xformed != rev)
+                    {
+                        if (xformed.GetProperties().ContainsKey("_attachments"))
+                        {
+                            // Insert 'revpos' properties into any attachments added by the callback:
+                            var mx = new RevisionInternal(xformed.GetProperties(), LocalDatabase);
+                            xformed = mx;
+                            mx.MutateAttachments((name, info) => {
+                                if (info.ContainsKey("revpos"))
+                                {
+                                    return info;
+                                }
+
+                                if (!info.ContainsKey("data"))
+                                {
+                                    throw new InvalidOperationException("Transformer added attachment without adding data");
+                                }
+
+                                var newInfo = new Dictionary<string, object>(info);
+                                newInfo["revpos"] = generation;
+                                return newInfo;
+                            });
+                        }
+                    }
+                }
+                catch(Exception e)
+                {
+                    Log.W(Tag, String.Format("Exception transforming a revision of doc '{0}'", rev.GetDocId()), e);
+                }
+            }
+            return rev;
+        }
+
         /// <summary>
         /// Called after a continuous replication has gone idle, but it failed to transfer some revisions
         /// and so wants to try again in a minute.
@@ -1296,6 +1350,35 @@ namespace Couchbase.Lite
                     if (RetryIfReadyTokenSource != null && !RetryIfReadyTokenSource.IsCancellationRequested)
                         RetryIfReady();
                 }, RetryIfReadyTokenSource.Token);
+        }
+
+        private void SetupRevisionBodyTransformationFunction()
+        {
+            // propertiesTransformationFunction is not port of v1.0.0 release and doesn't
+            // have any value assigned.
+            var xformer = propertiesTransformationFunction;
+            if (xformer != null)
+            {
+                revisionBodyTransformationFunction = (rev) =>
+                {
+                    var properties = rev.GetProperties();
+                    var xformedProperties = xformer(properties);
+                    if (xformedProperties == null)
+                    {
+                        return null;
+                    }
+                    else if (xformedProperties != properties)
+                    {
+                        Debug.Assert(xformedProperties["_id"].Equals(properties["_id"]));
+                        Debug.Assert(xformedProperties["_rev"].Equals(properties["_rev"]));
+
+                        var nuRev = new RevisionInternal(rev.GetProperties(), LocalDatabase);
+                        nuRev.SetProperties(xformedProperties);
+                        return nuRev;
+                    }
+                    return rev;
+                };
+            }
         }
 
     #endregion
@@ -1507,10 +1590,22 @@ namespace Couchbase.Lite
 
             LocalDatabase.AddReplication(this);
             LocalDatabase.AddActiveReplication(this);
+
+            // This is not part of 1.0.0 release feature. 
+            // Couchbase-lite-java-core doesn't have it enabled. 
+            // See: https://github.com/couchbase/couchbase-lite-java-core/issues/264
+            //
+            // The code was ported here because it was a part of the fix 
+            // for the unneccessarily pushing attachments issue that couchbase-lite-android 
+            // has ported from the upstream iOS code.
+            // https://github.com/couchbase/couchbase-lite-android/issues/66
+            SetupRevisionBodyTransformationFunction();
+
             sessionID = string.Format("repl{0:000}", ++lastSessionID);
             Log.V(Tag, "STARTING ...");
             IsRunning = true;
             LastSequence = null;
+
             CheckSession();
 
             var reachabilityManager = LocalDatabase.Manager.NetworkReachabilityManager;

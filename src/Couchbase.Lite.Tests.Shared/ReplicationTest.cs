@@ -1049,5 +1049,26 @@ namespace Couchbase.Lite
             Assert.IsNull(localLastSequence);
             Assert.IsTrue(doc2.CurrentRevision.Sequence > 0);
         }
+
+        [Test]
+        public void TestPusherFindCommonAncestor()
+        {
+            var ids = new JArray();
+            ids.Add("second");
+            ids.Add("first");
+
+            var revDict = new JObject();
+            revDict["ids"] = ids;
+            revDict["start"] = 2;
+
+            var properties = new Dictionary<string, object>();
+            properties["_revisions"] = revDict;
+
+            var rev = new RevisionInternal(properties, database);
+            Assert.AreEqual(Pusher.FindCommonAncestor(rev, new  List<string>()), 0);
+            Assert.AreEqual(Pusher.FindCommonAncestor(rev, (new [] {"3-noway", "1-nope"}).ToList()), 0);
+            Assert.AreEqual(Pusher.FindCommonAncestor(rev, (new [] {"3-noway", "1-first"}).ToList()), 1);
+            Assert.AreEqual(Pusher.FindCommonAncestor(rev, (new [] {"3-noway", "2-second", "1-first"}).ToList()), 2);
+        }
     }
 }
