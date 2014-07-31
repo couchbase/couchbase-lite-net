@@ -308,11 +308,13 @@ namespace Couchbase.Lite.Replicator
 
                     var results = response.AsDictionary<string, object>();
 
-                    if (e != null) {
+                    if (e != null) 
+                    {
                         SetLastError(e);
                         RevisionFailed();
                     } else {
-                        if (results.Count != 0) {
+                        if (results.Count != 0) 
+                        {
                             // Go through the list of local changes again, selecting the ones the destination server
                             // said were missing and mapping them to a JSON dictionary in the form _bulk_docs wants:
                             var docsToSend = new List<object> ();
@@ -388,10 +390,9 @@ namespace Couchbase.Lite.Replicator
                                     //now add it to the docs to send
                                     docsToSend.AddItem (properties);
                                 }
-
-                                UploadBulkDocs(docsToSend, revsToSend);
                             }
 
+                            UploadBulkDocs(docsToSend, revsToSend);
                         } else {
                             foreach (RevisionInternal revisionInternal in revChanges)
                             {
