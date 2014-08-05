@@ -76,7 +76,7 @@ namespace Couchbase.Lite.Tests
 
         public HttpClient GetHttpClient()
         {
-            var client = new HttpClient(HttpHandler);
+            var client = new HttpClient(HttpHandler, false);
 
             foreach(var header in Headers)
             {

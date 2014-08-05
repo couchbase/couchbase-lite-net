@@ -910,7 +910,7 @@ namespace Couchbase.Lite
 
             // Make the _bulk_docs request.
             var client = new HttpClient();
-            var bulkDocsUrl = GetReplicationURL().ToString() + "/_bulk_docs";
+            var bulkDocsUrl = GetReplicationURL () + "/_bulk_docs";
             var request = new HttpRequestMessage(HttpMethod.Post, bulkDocsUrl);
             request.Headers.Add("Accept", "*/*");
             request.Content = new StringContent(requestBody.ToString(), Encoding.UTF8, "application/json");

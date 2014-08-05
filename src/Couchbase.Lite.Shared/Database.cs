@@ -3173,7 +3173,10 @@ PRAGMA user_version = 3;";
                 }
                 EndTransaction(resultStatus.IsSuccessful());
 
-                UnsavedRevisionDocumentCache.Remove(docId);
+                if (!string.IsNullOrEmpty(docId))
+                {
+                    UnsavedRevisionDocumentCache.Remove(docId);
+                }
             }
 
             // EPILOGUE: A change notification is sent...
