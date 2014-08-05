@@ -864,13 +864,16 @@ namespace Couchbase.Lite
             client.SendAsync(message, HttpCompletionOption.ResponseHeadersRead, CancellationTokenSource.Token)
                 .ContinueWith(response =>
                 {
-                    UpdateServerType(response.Result);
-
                     lock(requests)
                     {
                         requests.Remove(client);
                     }
-
+                    
+                    if (!response.IsFaulted)
+                    {
+                        UpdateServerType(response.Result);
+                    }
+                    
                     if (completionHandler != null)
                     {
                         Exception error = null;
@@ -1121,10 +1124,10 @@ namespace Couchbase.Lite
 
         internal void UpdateServerType(HttpResponseMessage response)
         {
-            var server = response.Headers.GetValues("Server");
+            var server = response.Headers.Server;
             if (server != null && server.Any())
             {
-                ServerType = server.First();
+                ServerType = server.First().Product.ToString();
                 Log.V(Tag, "Server Version: " + ServerType);
             }
         }
@@ -1560,7 +1563,7 @@ namespace Couchbase.Lite
                 return;
             }
 
-            Log.V(Tag, "STOPPING...");
+            Log.V(Tag, "STOP...");
             Batcher.Clear(); // no sense processing any pending changes
             continuous = false;
             StopRemoteRequests();

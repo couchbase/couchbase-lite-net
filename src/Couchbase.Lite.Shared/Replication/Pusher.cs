@@ -250,7 +250,7 @@ namespace Couchbase.Lite.Replicator
             lock (pendingSequences)
             {
                 var seq = revisionInternal.GetSequence();
-                var wasFirst = (seq == pendingSequences.First());
+                var wasFirst = (seq == pendingSequences.FirstOrDefault());
                 if (!pendingSequences.Contains(seq))
                 {
                     Log.W(Tag, "Remove Pending: Sequence " + seq + " not in set, for rev " + revisionInternal);

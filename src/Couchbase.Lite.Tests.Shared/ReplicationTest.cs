@@ -436,29 +436,26 @@ namespace Couchbase.Lite
             var pathToDoc = new Uri(replicationUrlTrailing, doc1Id);
             Log.D(Tag, "Send http request to " + pathToDoc);
             var httpRequestDoneSignal = new CountDownLatch(1);
-            Task.Factory.StartNew(async ()=>
+                var httpclient = new HttpClient();
+                try
                 {
-                    var httpclient = new HttpClient();
-                    try
-                    {
-                        var getDocResponse = await httpclient.GetAsync(pathToDoc.ToString());
-                        var statusLine = getDocResponse.StatusCode;
-                        Log.D(ReplicationTest.Tag, "statusLine " + statusLine);
-                        Assert.AreEqual(HttpStatusCode.NotFound, statusLine.GetStatusCode());                        
-                    }
-                    catch (ProtocolViolationException e)
-                    {
-                        Assert.IsNull(e, "Got ClientProtocolException: " + e.Message);
-                    }
-                    catch (IOException e)
-                    {
-                        Assert.IsNull(e, "Got IOException: " + e.Message);
-                    }
-                    finally
-                    {
-                        httpRequestDoneSignal.CountDown();
-                    }
-                });
+                    var getDocResponse = httpclient.GetAsync(pathToDoc.ToString()).Result;
+                    var statusLine = getDocResponse.StatusCode;
+                    Log.D(ReplicationTest.Tag, "statusLine " + statusLine);
+                    Assert.AreEqual(Couchbase.Lite.StatusCode.NotFound, statusLine.GetStatusCode());                        
+                }
+                catch (ProtocolViolationException e)
+                {
+                    Assert.IsNull(e, "Got ClientProtocolException: " + e.Message);
+                }
+                catch (IOException e)
+                {
+                    Assert.IsNull(e, "Got IOException: " + e.Message);
+                }
+                finally
+                {
+                    httpRequestDoneSignal.CountDown();
+                }
             Log.D(Tag, "Waiting for http request to finish");
             try
             {

@@ -72,7 +72,6 @@ namespace Couchbase.Lite.Tests
             HttpHandler.UseCookies = true;
 
             Headers = new Dictionary<string,string>();
-            HttpHandler = new MockHttpRequestHandler();
         }
 
         public HttpClient GetHttpClient()
