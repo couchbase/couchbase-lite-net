@@ -436,29 +436,26 @@ namespace Couchbase.Lite
             var pathToDoc = new Uri(replicationUrlTrailing, doc1Id);
             Log.D(Tag, "Send http request to " + pathToDoc);
             var httpRequestDoneSignal = new CountDownLatch(1);
-            Task.Factory.StartNew(async ()=>
+                var httpclient = new HttpClient();
+                try
                 {
-                    var httpclient = new HttpClient();
-                    try
-                    {
-                        var getDocResponse = await httpclient.GetAsync(pathToDoc.ToString());
-                        var statusLine = getDocResponse.StatusCode;
-                        Log.D(ReplicationTest.Tag, "statusLine " + statusLine);
-                        Assert.AreEqual(HttpStatusCode.NotFound, statusLine.GetStatusCode());                        
-                    }
-                    catch (ProtocolViolationException e)
-                    {
-                        Assert.IsNull(e, "Got ClientProtocolException: " + e.Message);
-                    }
-                    catch (IOException e)
-                    {
-                        Assert.IsNull(e, "Got IOException: " + e.Message);
-                    }
-                    finally
-                    {
-                        httpRequestDoneSignal.CountDown();
-                    }
-                });
+                    var getDocResponse = httpclient.GetAsync(pathToDoc.ToString()).Result;
+                    var statusLine = getDocResponse.StatusCode;
+                    Log.D(ReplicationTest.Tag, "statusLine " + statusLine);
+                    Assert.AreEqual(Couchbase.Lite.StatusCode.NotFound, statusLine.GetStatusCode());                        
+                }
+                catch (ProtocolViolationException e)
+                {
+                    Assert.IsNull(e, "Got ClientProtocolException: " + e.Message);
+                }
+                catch (IOException e)
+                {
+                    Assert.IsNull(e, "Got IOException: " + e.Message);
+                }
+                finally
+                {
+                    httpRequestDoneSignal.CountDown();
+                }
             Log.D(Tag, "Waiting for http request to finish");
             try
             {
@@ -913,7 +910,7 @@ namespace Couchbase.Lite
 
             // Make the _bulk_docs request.
             var client = new HttpClient();
-            var bulkDocsUrl = GetReplicationURL().ToString() + "/_bulk_docs";
+            var bulkDocsUrl = GetReplicationURL () + "/_bulk_docs";
             var request = new HttpRequestMessage(HttpMethod.Post, bulkDocsUrl);
             request.Headers.Add("Accept", "*/*");
             request.Content = new StringContent(requestBody.ToString(), Encoding.UTF8, "application/json");
@@ -1048,6 +1045,16 @@ namespace Couchbase.Lite
             Assert.IsFalse(doc2.CurrentRevision.Sequence.ToString().Equals(localLastSequence));
             Assert.IsNull(localLastSequence);
             Assert.IsTrue(doc2.CurrentRevision.Sequence > 0);
+        }
+
+        public void TestCheckServerCompatVersion()
+        {
+            var replicator = database.CreatePushReplication(GetReplicationURL());
+            Assert.IsFalse(replicator.CheckServerCompatVersion("0.01"));
+
+            replicator.ServerType = "Couchbase Sync Gateway/0.93";
+            Assert.IsTrue(replicator.CheckServerCompatVersion("0.92"));
+            Assert.IsFalse(replicator.CheckServerCompatVersion("0.94"));
         }
     }
 }

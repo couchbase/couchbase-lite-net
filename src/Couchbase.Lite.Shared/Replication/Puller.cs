@@ -135,6 +135,8 @@ namespace Couchbase.Lite.Replicator
 			{
 				AsyncTaskStarted();
 			}
+
+            changeTracker.UsePost = CheckServerCompatVersion("0.93");
 			changeTracker.Start();
 		}
 

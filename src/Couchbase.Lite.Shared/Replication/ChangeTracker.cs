@@ -43,18 +43,18 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using Couchbase.Lite;
-using Couchbase.Lite.Replicator;
-using Couchbase.Lite.Util;
-using Sharpen;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
-using System.Web;
+using System.Net.Http.Headers;
 using System.Threading;
 using System.Threading.Tasks;
 using Newtonsoft.Json.Linq;
+using Couchbase.Lite;
 using Couchbase.Lite.Auth;
+using Couchbase.Lite.Replicator;
+using Couchbase.Lite.Util;
+using Sharpen;
 
 namespace Couchbase.Lite.Replicator
 {
@@ -65,6 +65,10 @@ namespace Couchbase.Lite.Replicator
     internal class ChangeTracker : Runnable
 	{
         const String Tag = "ChangeTracker";
+
+        const Int32 LongPollModeLimit = 50;
+
+        const Int32 HeartbeatMilliseconds = 300000;
 
 		private Uri databaseURL;
 
@@ -110,6 +114,8 @@ namespace Couchbase.Lite.Replicator
 		}
 
         public IAuthenticator Authenticator { get; set; }
+
+        public bool UsePost { get; set; }
 
         public ChangeTracker(Uri databaseURL, ChangeTracker.ChangeTrackerMode mode, object lastSequenceID, 
             Boolean includeConflicts, IChangeTrackerClient client, TaskFactory workExecutor = null)
@@ -159,65 +165,13 @@ namespace Couchbase.Lite.Replicator
 
 		public string GetChangesFeedPath()
 		{
-			string path = "_changes?feed=";
-			switch (mode)
-			{
-				case ChangeTracker.ChangeTrackerMode.OneShot:
-				{
-					path += "normal";
-					break;
-				}
+			string path = "_changes";
 
-				case ChangeTracker.ChangeTrackerMode.LongPoll:
-				{
-					path += "longpoll&limit=50";
-					break;
-				}
-
-				case ChangeTracker.ChangeTrackerMode.Continuous:
-				{
-					path += "continuous";
-					break;
-				}
-			}
-			path += "&heartbeat=300000";
-            if (includeConflicts) 
+            if (!UsePost)
             {
-                path += "&style=all_docs";
+                path = path + "?" + GetChangesFeedParams().ToQueryString();
             }
-			if (lastSequenceID != null)
-			{
-                path += "&since=" + Uri.EscapeUriString(lastSequenceID.ToString());
-			}
-			if (docIDs != null && docIDs.Count > 0)
-			{
-				filterName = "_doc_ids";
-                filterParams = new Dictionary<String, Object>();
-                filterParams["doc_ids"] = docIDs;
-			}
-			if (filterName != null)
-			{
-				path += "&filter=" + Uri.EscapeUriString(filterName);
-				if (filterParams != null)
-				{
-					foreach (string filterParamKey in filterParams.Keys)
-					{
-                        var value = filterParams.Get(filterParamKey);
-						if (!(value is string))
-						{
-							try
-							{
-								value = Manager.GetObjectMapper().WriteValueAsString(value);
-							}
-							catch (IOException e)
-							{
-                                throw new ArgumentException(Tag, e);
-							}
-						}
-						path += "&" + Uri.EscapeUriString(filterParamKey) + "=" + Uri.EscapeUriString(value.ToString());
-					}
-				}
-			}
+
 			return path;
 		}
 
@@ -278,20 +232,30 @@ namespace Couchbase.Lite.Replicator
                     break;
 
                 var url = GetChangesFeedURL();
-
-                Request = new HttpRequestMessage(HttpMethod.Get, url);
-				AddRequestHeaders(Request);
-
-                var httpClient = client.GetHttpClient();
-
-                var authHeader = AuthUtils.GetAuthenticationHeaderValue(Authenticator, Request.RequestUri);
-                if (authHeader != null)
+                if (UsePost)
                 {
-                    httpClient.DefaultRequestHeaders.Authorization = authHeader;
+                    Request = new HttpRequestMessage(HttpMethod.Post, url);
+                    var body = GetChangesFeedPostBody();
+                    Request.Content = new StringContent(body);
+                    Request.Content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
+                }
+                else
+                {
+                    Request = new HttpRequestMessage(HttpMethod.Get, url);
                 }
 
+				AddRequestHeaders(Request);
+
+                HttpClient httpClient = null;
 				try
 				{
+                    httpClient = client.GetHttpClient();
+                    var authHeader = AuthUtils.GetAuthenticationHeaderValue(Authenticator, Request.RequestUri);
+                    if (authHeader != null)
+                    {
+                        httpClient.DefaultRequestHeaders.Authorization = authHeader;
+                    }
+
                     var maskedRemoteWithoutCredentials = url.ToString();
                     maskedRemoteWithoutCredentials = maskedRemoteWithoutCredentials.ReplaceAll("://.*:.*@", "://---:---@");
                     Log.V(Tag, "Making request to " + maskedRemoteWithoutCredentials);
@@ -322,7 +286,10 @@ namespace Couchbase.Lite.Replicator
 				}
                 finally
                 {
-                    httpClient.Dispose();
+                    if (httpClient != null) 
+                    {
+                        httpClient.Dispose();
+                    }
                 }
 
                 if (runTask.Exception != null) {
@@ -458,6 +425,7 @@ namespace Couchbase.Lite.Replicator
             }
             return true;
         }
+
 		public void SetUpstreamError(string message)
 		{
             Log.W(Tag, this + string.Format(": Server error: {0}", message));
@@ -536,6 +504,67 @@ namespace Couchbase.Lite.Replicator
             }
         }
 
-	}
+        private string GetFeedModeValue()
+        {
+            switch (mode)
+            {
+                case ChangeTracker.ChangeTrackerMode.OneShot:
+                    return "normal";
+                case ChangeTracker.ChangeTrackerMode.LongPoll:
+                    return "longpoll";
+                case ChangeTracker.ChangeTrackerMode.Continuous:
+                    return "continuous";
+            }
+            return "normal";
+        }
 
+        internal IDictionary<string, object> GetChangesFeedParams()
+        {
+            var bodyParams = new Dictionary<string, object>();
+            bodyParams["feed"] = GetFeedModeValue();
+
+            bodyParams["heartbeat"] = HeartbeatMilliseconds;
+
+            if (includeConflicts) 
+            {
+                bodyParams["style"] = "all_docs";
+            }
+
+            if (lastSequenceID != null)
+            {
+                bodyParams["since"] = lastSequenceID.ToString();
+            }
+
+            if (mode == ChangeTracker.ChangeTrackerMode.LongPoll)
+            {
+                bodyParams["limit"] = LongPollModeLimit.ToString();
+            }
+
+            if (docIDs != null && docIDs.Count > 0)
+            {
+                filterName = "_doc_ids";
+                filterParams = new Dictionary<String, Object>();
+                filterParams["doc_ids"] = docIDs;
+            }
+
+            if (filterName != null)
+            {
+                bodyParams["filter"] = filterName;
+                foreach(var param in filterParams)
+                {
+                    bodyParams[param.Key] = param.Value;
+                }
+            }
+
+            return bodyParams;
+        }
+
+        internal string GetChangesFeedPostBody()
+        {
+            var parameters = GetChangesFeedParams();
+            var mapper = Manager.GetObjectMapper();
+            var body = mapper.WriteValueAsString(parameters);
+            return body;
+        }
+	}
 }
