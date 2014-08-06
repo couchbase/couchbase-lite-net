@@ -10,7 +10,6 @@ namespace Couchbase.Lite.Util
 {
     sealed class SingleThreadTaskScheduler : TaskScheduler 
     { 
-        [ThreadStatic] 
         private readonly BlockingCollection<Task> queue = new BlockingCollection<Task>(new ConcurrentQueue<Task>());
         private const int maxConcurrency = 1;
         private int runningTasks = 0;
