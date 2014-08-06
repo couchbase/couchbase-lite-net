@@ -2444,7 +2444,7 @@ PRAGMA user_version = 3;";
         {
             var extra = ExtraPropertiesForRevision(rev, contentOptions);
 
-            if (json != null && json.Count > 0)
+            if (json != null && json.Any())
             {
                 rev.SetJson(AppendDictToJSON(json, extra));
             }
