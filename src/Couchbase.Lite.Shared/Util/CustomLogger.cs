@@ -49,6 +49,7 @@ namespace Couchbase.Lite.Util
     internal sealed class CustomLogger : ILogger 
     {
         readonly CouchbaseTraceListener ts;
+        object locker = new object();
 
         SourceLevels level;
 
@@ -75,77 +76,77 @@ namespace Couchbase.Lite.Util
             if (!(level.HasFlag(SourceLevels.Verbose)))
                 return;
 
-            ts.WriteLine(SourceLevels.Verbose, msg, tag);
+            lock (locker){ ts.WriteLine(SourceLevels.Verbose, msg, tag); }
         }
 
         public void V (string tag, string msg, Exception tr)
         {
             if (!(level.HasFlag(SourceLevels.Verbose)))
                 return;
-            ts.WriteLine(SourceLevels.Verbose, "{0}:\r\n{1}".Fmt(msg, Flatten(tr).ToString()), tag);
+            lock (locker){ ts.WriteLine(SourceLevels.Verbose, "{0}:\r\n{1}".Fmt(msg, Flatten(tr).ToString()), tag); }
         }
 
         public void D (string tag, string msg)
         {
             if (!(level.HasFlag(SourceLevels.All)))
                 return;
-            ts.WriteLine(SourceLevels.Verbose, msg, tag);
+            lock (locker){ ts.WriteLine(SourceLevels.Verbose, msg, tag); }
         }
 
         public void D (string tag, string msg, Exception tr)
         {
             if (!(level.HasFlag(SourceLevels.All)))
                 return;
-            ts.WriteLine(SourceLevels.Verbose, msg, tag);
+            lock (locker){ ts.WriteLine(SourceLevels.Verbose, msg, tag); }
         }
 
         public void I (string tag, string msg)
         {
             if (!(level.HasFlag(SourceLevels.Information)))
                 return;
-            ts.WriteLine(SourceLevels.Information, msg, tag);
+            lock (locker){ ts.WriteLine(SourceLevels.Information, msg, tag); }
         }
 
         public void I (string tag, string msg, Exception tr)
         {
             if (!(level.HasFlag(SourceLevels.Information)))
                 return;
-            ts.WriteLine(SourceLevels.Information, "{0}:\r\n{1}".Fmt(msg, Flatten(tr).ToString()), tag);
+            lock (locker){ ts.WriteLine(SourceLevels.Information, "{0}:\r\n{1}".Fmt(msg, Flatten(tr).ToString()), tag); }
         }
 
         public void W (string tag, string msg)
         {
             if (!(level.HasFlag(SourceLevels.Warning)))
                 return;
-            ts.WriteLine(SourceLevels.Warning, msg, tag);
+            lock (locker){ ts.WriteLine(SourceLevels.Warning, msg, tag); }
         }
 
         public void W (string tag, Exception tr)
         {
             if (!(level.HasFlag(SourceLevels.Warning)))
                 return;
-            ts.WriteLine(Flatten(tr).Message, tag);
+            lock (locker){ ts.WriteLine(Flatten(tr).Message, tag); }
         }
 
         public void W (string tag, string msg, Exception tr)
         {
             if (!(level.HasFlag(SourceLevels.Warning)))
                 return;
-            ts.WriteLine(SourceLevels.Warning, "{0}:\r\n{1}".Fmt(msg, Flatten(tr).ToString()), tag);
+            lock (locker){ ts.WriteLine(SourceLevels.Warning, "{0}:\r\n{1}".Fmt(msg, Flatten(tr).ToString()), tag); }
         }
 
         public void E (string tag, string msg)
         {
             if (!(level.HasFlag(SourceLevels.Error)))
                 return;
-            ts.Fail(msg, tag);
+            lock (locker){ ts.Fail(msg, tag); }
         }
 
         public void E (string tag, string msg, Exception tr)
         {
             if (!(level.HasFlag(SourceLevels.Error)))
                 return;
-            ts.Fail("{0}: {1}".Fmt(tag, msg), Flatten(tr).ToString());
+            lock (locker){ ts.Fail("{0}: {1}".Fmt(tag, msg), Flatten(tr).ToString()); }
         }
 
         #endregion

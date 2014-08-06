@@ -56,6 +56,7 @@ using System.Web;
 using System.Net.Http.Headers;
 using Newtonsoft.Json.Linq;
 using System.Linq;
+using System.Diagnostics;
 
 namespace Couchbase.Lite.Replicator
 {
@@ -66,6 +67,8 @@ namespace Couchbase.Lite.Replicator
         private bool creatingTarget;
 
         private bool observing;
+
+        private bool dontSendMultipart;
 
         private FilterDelegate filter;
 
@@ -305,63 +308,91 @@ namespace Couchbase.Lite.Replicator
 
                     var results = response.AsDictionary<string, object>();
 
-                    if (e != null) {
+                    if (e != null) 
+                    {
                         SetLastError(e);
                         RevisionFailed();
                     } else {
-                        if (results.Count != 0) {
+                        if (results.Count != 0) 
+                        {
                             // Go through the list of local changes again, selecting the ones the destination server
                             // said were missing and mapping them to a JSON dictionary in the form _bulk_docs wants:
                             var docsToSend = new List<object> ();
-
+                            var revsToSend = new RevisionList();
                             foreach (var rev in revChanges)
                             {
-                                var resultDocData = (JObject)results.Get(rev.GetDocId());
-                                IDictionary<string, object> resultDoc = resultDocData != null ?
-                                    resultDocData.AsDictionary<string, object>() : null;
+                                IDictionary<string, object> properties = null;
 
-                                if (resultDoc == null)
+                                var revResultsObject = (JObject)results.Get(rev.GetDocId());
+                                IDictionary<string, object> revResults = revResultsObject != null ?
+                                    revResultsObject.AsDictionary<string, object>() : null;
+
+                                if (revResults == null)
                                 {
                                     continue;
                                 }
 
-                                var revs = ((JArray)resultDoc.Get("missing")).Values<String>().ToList();
+                                var revs = ((JArray)revResults.Get("missing")).Values<String>().ToList();
                                 if (revs == null || !revs.Contains(rev.GetRevId()))
                                 {
                                     RemovePending(rev);
                                     continue;
                                 }
 
-                                var contentOptions = EnumSet.Of(
-                                    TDContentOptions.TDIncludeAttachments,
-                                    TDContentOptions.TDBigAttachmentsFollow);
+                                var contentOptions = EnumSet.Of(TDContentOptions.TDIncludeAttachments);
 
+                                if (!dontSendMultipart && revisionBodyTransformationFunction == null)
+                                {
+                                    contentOptions.AddItem(TDContentOptions.TDBigAttachmentsFollow);
+                                }
+
+
+                                RevisionInternal loadedRev;
                                 try {
-                                    LocalDatabase.LoadRevisionBody (rev, contentOptions);
+                                    loadedRev = LocalDatabase.LoadRevisionBody (rev, contentOptions);
+                                    properties = new Dictionary<string, object>(rev.GetProperties());
                                 } catch (CouchbaseLiteException e1) {
                                     Log.W(Tag, string.Format("{0} Couldn't get local contents of {1}", rev, this));
                                     RevisionFailed();
                                     continue;
                                 }
 
-                                var properties = new Dictionary<String, Object>(rev.GetProperties());
+                                var populatedRev = TransformRevision(loadedRev);
+
+                                IList<string> possibleAncestors = null;
+                                if (revResults.ContainsKey("possible_ancestors"))
+                                {
+                                    possibleAncestors = (IList<string>)revResults["possible_ancestors"];
+                                }
+
+                                properties = new Dictionary<string, object>(populatedRev.GetProperties());
+                                var revisions = LocalDatabase.GetRevisionHistoryDictStartingFromAnyAncestor(populatedRev, possibleAncestors);
+                                properties["_revisions"] = revisions;
+                                populatedRev.SetProperties(properties);
+
                                 if (properties.ContainsKey ("_attachments")) {
-                                    if (UploadMultipartRevision (rev)) {
+                                    // Look for the latest common ancestor and stuf out older attachments:
+                                    var minRevPos = FindCommonAncestor(populatedRev, possibleAncestors);
+
+                                    Database.StubOutAttachmentsInRevBeforeRevPos(populatedRev, minRevPos + 1, false);
+
+                                    properties = populatedRev.GetProperties();
+
+                                    if (!dontSendMultipart && UploadMultipartRevision(rev)) {
                                         continue;
                                     }
                                 }
 
-                                if (properties != null) {
+                                if (properties != null && properties.ContainsKey("_id")) {
                                     // Add the _revisions list:
-                                    properties.Put ("_revisions", LocalDatabase.GetRevisionHistoryDict (rev));
+                                    revsToSend.Add(rev);
 
                                     //now add it to the docs to send
                                     docsToSend.AddItem (properties);
                                 }
-
-                                UploadBulkDocs(docsToSend, revChanges);
                             }
 
+                            UploadBulkDocs(docsToSend, revsToSend);
                         } else {
                             foreach (RevisionInternal revisionInternal in revChanges)
                             {
@@ -507,10 +538,9 @@ namespace Couchbase.Lite.Replicator
 
         private bool UploadMultipartRevision(RevisionInternal revision)
         {
-            MultipartFormDataContent multiPart = null;
+            MultipartContent multiPart = null;
 
             var revProps = revision.GetProperties();
-            revProps.Put("_revisions", LocalDatabase.GetRevisionHistoryDict(revision));
 
             var attachments = revProps.Get("_attachments").AsDictionary<string,object>();
             foreach (var attachmentKey in attachments.Keys)
@@ -520,12 +550,16 @@ namespace Couchbase.Lite.Replicator
                 {
                     if (multiPart == null)
                     {
-                        multiPart = new MultipartFormDataContent();
+                        multiPart = new MultipartContent("related");
                         try
                         {
                             var json = Manager.GetObjectMapper().WriteValueAsString(revProps);
                             var utf8charset = Encoding.UTF8;
-                            multiPart.Add(new StringContent(json, utf8charset, "application/json"), "param1");
+                            //multiPart.Add(new StringContent(json, utf8charset, "application/json"), "param1");
+
+                            var jsonContent = new StringContent(json, utf8charset, "application/json");
+                            //jsonContent.Headers.ContentDisposition = new ContentDispositionHeaderValue("attachment");
+                            multiPart.Add(jsonContent);
                         }
                         catch (IOException e)
                         {
@@ -563,9 +597,13 @@ namespace Couchbase.Lite.Replicator
                         }
 
                         var content = new StreamContent(inputStream);
+                        content.Headers.ContentDisposition = new ContentDispositionHeaderValue("attachment")
+                        {
+                            FileName = Path.GetFileName(blobStore.PathForKey(blobKey))
+                        };
                         content.Headers.ContentType = new MediaTypeHeaderValue(contentType);
 
-                        multiPart.Add(content, attachmentKey);
+                        multiPart.Add(content);
                     }
                 }
             }
@@ -590,6 +628,17 @@ namespace Couchbase.Lite.Replicator
                     if (e != null)
                     {
                         Log.E (Tag, "Exception uploading multipart request", e);
+                        // TODO: Check upstream if we need to port the following code.
+                        /*
+                         * if(e instanceof HttpResponseException) {
+                            status 415 = "bad_content_type"
+                            if (((HttpResponseException) e).getStatusCode() == 415) {
+                                dontSendMultipart = true;
+                            }
+                        }
+                        */
+
+                        dontSendMultipart = true;
                         LastError = e;
                         RevisionFailed();
                     }
@@ -602,11 +651,41 @@ namespace Couchbase.Lite.Replicator
                 finally
                 {
                     Log.D(Tag, "uploadMultipartRevision() calling asyncTaskFinished()");
+                    // TODO: calling addToCompleteChangesCount(1)
                     AsyncTaskFinished (1);
                 }
             });
 
             return true;
+        }
+
+        internal static Int32 FindCommonAncestor(RevisionInternal rev, IList<string> possibleRevIDs)
+        {
+            if (possibleRevIDs == null || possibleRevIDs.Count == 0)
+            {
+                return 0;
+            }
+
+            var history = Database.ParseCouchDBRevisionHistory(rev.GetProperties());
+            Debug.Assert(history != null);
+
+            string ancestorID = null;
+            foreach(var revId in history)
+            {
+                if (possibleRevIDs.Contains(revId))
+                {
+                    ancestorID = revId;
+                    break;
+                }
+            }
+
+            if (ancestorID == null)
+            {
+                return 0;
+            }
+
+            var generation = Database.ParseRevIDNumber(ancestorID);
+            return generation;
         }
     }
 }
