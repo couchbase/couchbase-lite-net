@@ -122,7 +122,7 @@ namespace Couchbase.Lite
             public void Changed(object sender, ReplicationChangeEventArgs args)
             {
                 Replication replicator = args.Source;
-                Log.V(Tag, replicator + " changed: " + replicator.CompletedChangesCount + " / " + replicator.ChangesCount);
+                Log.D(Tag, replicator + " changed: " + replicator.CompletedChangesCount + " / " + replicator.ChangesCount);
 
                 if (replicator.CompletedChangesCount < 0)
                 {
