@@ -122,13 +122,13 @@ namespace Couchbase.Lite
             public void Changed(object sender, ReplicationChangeEventArgs args)
             {
                 Replication replicator = args.Source;
-                Log.D(Tag, replicator + " changed: " + replicator.CompletedChangesCount + " / " + replicator.ChangesCount);
+                Log.V(Tag, replicator + " changed: " + replicator.CompletedChangesCount + " / " + replicator.ChangesCount);
 
                 if (replicator.CompletedChangesCount < 0)
                 {
                     var msg = replicator + ": replicator.CompletedChangesCount < 0";
                     Log.D(Tag, msg);
-                    // throw new RuntimeException(msg);
+                    throw new ApplicationException(msg);
                 }
 
                 if (replicator.ChangesCount < 0)
@@ -140,10 +140,9 @@ namespace Couchbase.Lite
 
                 if (replicator.CompletedChangesCount > replicator.ChangesCount)
                 {
-                    var msg = "replicator.CompletedChangesCount : " + replicator.CompletedChangesCount +
+                    var msgStr = "replicator.CompletedChangesCount : " + replicator.CompletedChangesCount +
                         " > replicator.ChangesCount : " + replicator.ChangesCount;
-                    Log.D(Tag, msg);
-                    // throw new RuntimeException(msg);
+                    Log.W(Tag, msgStr);
                 }
 
                 if (!replicator.IsRunning)
@@ -237,7 +236,7 @@ namespace Couchbase.Lite
                 try
                 {
                     var responseTask = httpclient.GetAsync(pathToDoc.ToString());
-                    responseTask.Wait(TimeSpan.FromSeconds(10));
+                    responseTask.Wait(TimeSpan.FromSeconds(1));
                     response = responseTask.Result;
                     var statusLine = response.StatusCode;
                     Assert.IsTrue(statusLine == HttpStatusCode.OK);
@@ -388,7 +387,7 @@ namespace Couchbase.Lite
 
             Assert.AreEqual(repl2.LastSequence, database.LastSequenceWithCheckpointId(repl2CheckedpointId));
 
-            System.Threading.Thread.Sleep(2000);
+            //System.Threading.Thread.Sleep(2000);
             var json = GetRemoteDoc(remote, repl2CheckedpointId);
             var remoteLastSequence = (string)json["lastSequence"];
             Assert.AreEqual(repl2.LastSequence, remoteLastSequence);
@@ -1028,7 +1027,7 @@ namespace Couchbase.Lite
             pusher.Changed += observer.Changed;
             pusher.Start();
 
-            var success = replicationDoneSignal.Await(TimeSpan.FromSeconds(60));
+            var success = replicationDoneSignal.Await(TimeSpan.FromSeconds(5));
             Assert.IsTrue(success);
 
             Assert.IsNotNull(pusher.LastError);
@@ -1047,14 +1046,15 @@ namespace Couchbase.Lite
             Assert.IsTrue(doc2.CurrentRevision.Sequence > 0);
         }
 
+        [Test]
         public void TestCheckServerCompatVersion()
         {
             var replicator = database.CreatePushReplication(GetReplicationURL());
             Assert.IsFalse(replicator.CheckServerCompatVersion("0.01"));
 
-            replicator.ServerType = "Couchbase Sync Gateway/0.93";
-            Assert.IsTrue(replicator.CheckServerCompatVersion("0.92"));
-            Assert.IsFalse(replicator.CheckServerCompatVersion("0.94"));
+            replicator.ServerType = "Couchbase Sync Gateway/1.00";
+            Assert.IsTrue(replicator.CheckServerCompatVersion("1.00"));
+            Assert.IsFalse(replicator.CheckServerCompatVersion("2.00"));
         }
 
         [Test]

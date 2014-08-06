@@ -243,18 +243,17 @@ namespace Couchbase.Lite
             var data = attachment.Content.ToArray();
 			Assert.IsTrue(Arrays.Equals(attach1, data));
 
-            var contentOptions = EnumSet.Of(TDContentOptions
-				.TDIncludeAttachments, TDContentOptions.TDBigAttachmentsFollow);
-            var attachmentDictForSequence = database.GetAttachmentsDictForSequenceWithContent
-                (rev1.GetSequence(), contentOptions);
+            var contentOptions = EnumSet.Of(TDContentOptions.TDIncludeAttachments, TDContentOptions.TDBigAttachmentsFollow);
+            var attachmentDictForSequence = database.GetAttachmentsDictForSequenceWithContent(rev1.GetSequence(), contentOptions);
             var innerDict = (IDictionary<string, object>)attachmentDictForSequence[testAttachmentName];
-			if (!innerDict.ContainsKey("stub"))
+			if (innerDict.ContainsKey("stub"))
 			{
-				throw new RuntimeException("Expected attachment dict to have 'stub' key");
-			}
-			if (((bool)innerDict["stub"]) == false)
-			{
-				throw new RuntimeException("Expected attachment dict 'stub' key to be true");
+                if (((bool)innerDict["stub"]))
+                {
+                    throw new RuntimeException("Expected attachment dict 'stub' key to be true");
+                } else {
+                    throw new RuntimeException("Expected attachment dict to have 'stub' key");
+                }
 			}
 			if (!innerDict.ContainsKey("follows"))
 			{

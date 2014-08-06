@@ -449,6 +449,7 @@ namespace Couchbase.Lite
 
         internal void ClearDbRef()
         {
+            Log.D(Tag, "ClearDbRef...");
             if (savingCheckpoint && LastSequence != null)
             {
                 LocalDatabase.SetLastSequence(LastSequence, RemoteCheckpointDocID(), !IsPull);
@@ -603,6 +604,7 @@ namespace Couchbase.Lite
                 }
                 finally
                 {
+                    Log.D(Tag, "fetchRemoteCheckpointDoc() calling asyncTaskFinished()");
                     AsyncTaskFinished (1);
                 }
             });
@@ -628,12 +630,12 @@ namespace Couchbase.Lite
         {   // TODO.ZJG: Replace lock with Interlocked.CompareExchange.
             lock (asyncTaskLocker)
             {
-                Log.D(Tag, "asyncTaskStarted() called, asyncTaskCount: " + asyncTaskCount);
+                Log.D(Tag + ".AsyncTaskStarted", "asyncTaskCount: " + asyncTaskCount);
                 if (asyncTaskCount++ == 0)
                 {
                     UpdateActive();
                 }
-                Log.D(Tag, "asyncTaskStarted() updated asyncTaskCount to " + asyncTaskCount);
+                Log.D(Tag + ".AsyncTaskStarted", "updated to " + asyncTaskCount);
             }
         }
 
@@ -645,14 +647,13 @@ namespace Couchbase.Lite
 
             lock (asyncTaskLocker)
             {
-                Log.D(Tag, "asyncTaskFinished() called, asyncTaskCount: " + asyncTaskCount);
+                Log.D(Tag + ".AsyncTaskFinished", "AsyncTaskCount: {0} > {1}".Fmt(asyncTaskCount, asyncTaskCount - numTasks));
                 asyncTaskCount -= numTasks;
                 System.Diagnostics.Debug.Assert(asyncTaskCount >= 0);
                 if (asyncTaskCount == 0)
                 {
                     UpdateActive();
                 }
-                Log.D(Tag, "asyncTaskFinished() updated asyncTaskCount to: " + asyncTaskCount);
             }
         }
 
@@ -681,7 +682,7 @@ namespace Couchbase.Lite
                         if (!continuous)
                         {
                             Log.D(Tag, "since !continuous, calling stopped()");
-                            Stopped();
+                            Stopping();
                         }
                         else if (LastError != null) /*(revisionsFailed > 0)*/
                         {
@@ -700,7 +701,7 @@ namespace Couchbase.Lite
             }
         }
 
-        internal virtual void Stopped()
+        internal virtual void Stopping()
         {
             Log.V(Tag, "STOPPING");
 
@@ -766,7 +767,7 @@ namespace Couchbase.Lite
                 savingCheckpoint = false;
                 if (e != null)
                 {
-                    Log.V (Tag, "Unable to save remote checkpoint", e);
+                    Log.V (Tag, "Unable to save remote checkpoint", e as HttpResponseException);
                 }
 
                 if (LocalDatabase == null)
@@ -806,10 +807,11 @@ namespace Couchbase.Lite
                 }
                 else
                 {
+                    Log.D(Tag, "Save checkpoint response: " + result.ToString());
                     var response = ((JObject)result).ToObject<IDictionary<string, object>>();
                     body.Put ("_rev", response.Get ("rev"));
                     remoteCheckpoint = body;
-                    LocalDatabase.SetLastSequence(LastSequence, RemoteCheckpointDocID(), IsPull);
+                    LocalDatabase.SetLastSequence(LastSequence, RemoteCheckpointDocID(), !IsPull);
                 }
 
                 if (overdueForSave) {
@@ -1124,16 +1126,19 @@ namespace Couchbase.Lite
                     return response.Result.Content.ReadAsStreamAsync();
                 }, CancellationTokenSource.Token)
                 .ContinueWith(response=> {
-                    if (response.Status != TaskStatus.RanToCompletion)
-                    {
-                        Log.E(Tag, "SendAsyncRequest did not run to completion.", response.Exception);
-                    } else if (response.Result.Result == null || response.Result.Result.Length == 0)
-                    {
-                        Log.E(Tag, "Server returned an empty response.", response.Exception);
+                    var hasEmptyResult = response.Result == null || response.Result.Result == null || response.Result.Result.Length == 0;
+                    if (response.Status != TaskStatus.RanToCompletion) {
+                        Log.E (Tag, "SendAsyncRequest did not run to completion.", response.Exception);
+                    } else if (hasEmptyResult) {
+                        Log.E (Tag, "Server returned an empty response.", response.Exception ?? LastError);
                     }
                     if (completionHandler != null) {
-                        var mapper = Manager.GetObjectMapper();
-                        var fullBody = mapper.ReadValue<Object>(response.Result.Result);
+                        object fullBody = null;
+                        if (!hasEmptyResult)
+                        {
+                            var mapper = Manager.GetObjectMapper();
+                            fullBody = mapper.ReadValue<Object> (response.Result.Result);
+                        }
                         completionHandler (fullBody, response.Exception);
                     }
                 }, CancellationTokenSource.Token);
@@ -1157,11 +1162,10 @@ namespace Couchbase.Lite
             }
 
             const string prefix = "Couchbase Sync Gateway/";
-            if (ServerType.StartsWith(prefix)) 
+            if (ServerType.StartsWith (prefix, StringComparison.Ordinal))
             {
-                var version = ServerType.Substring(prefix.Length);
-                return version.CompareTo(minVersion) >= 0;
-
+                var version = ServerType.Substring (prefix.Length);
+                return string.Compare (version, minVersion, StringComparison.Ordinal) >= 0;
             }
 
             return false;
@@ -1245,6 +1249,8 @@ namespace Couchbase.Lite
         {
             Log.D(Tag, "Refreshing remote checkpoint to get its _rev...");
             savingCheckpoint = true;
+
+            Log.D(Tag, "RefreshRemoteCheckpointDoc() calling asyncTaskStarted()");
             AsyncTaskStarted();
 
             SendAsyncRequest(HttpMethod.Get, "/_local/" + RemoteCheckpointDocID(), null, (result, e) =>
@@ -1679,7 +1685,7 @@ namespace Couchbase.Lite
             if (IsRunning && asyncTaskCount <= 0)
             {
                 Log.V(Tag, "calling stopped()");
-                Stopped();
+                Stopping();
             }
             else
             {

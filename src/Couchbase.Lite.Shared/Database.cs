@@ -1280,6 +1280,7 @@ PRAGMA user_version = 3;";
             values["push"] = push;
             values["last_sequence"] = lastSequence;
             var newId = StorageEngine.InsertWithOnConflict("replicators", null, values, ConflictResolutionStrategy.Replace);
+            Log.D(Tag, "Set Last Sequence: {0}: {1} / {2}".Fmt(lastSequence, checkpointId, newId));
             return (newId == -1);
         }
 
@@ -1307,6 +1308,7 @@ PRAGMA user_version = 3;";
                     cursor.Close();
                 }
             }
+            Log.D(Tag, "LastSequenceWithCheckpointId: {1} -> {0}".Fmt(result, checkpointId));
             return result;
         }
 
