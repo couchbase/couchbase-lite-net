@@ -682,7 +682,7 @@ namespace Couchbase.Lite
                         if (!continuous)
                         {
                             Log.D(Tag, "since !continuous, calling stopped()");
-                            Stopping();
+                            WorkExecutor.StartNew(Stopping);
                         }
                         else if (LastError != null) /*(revisionsFailed > 0)*/
                         {

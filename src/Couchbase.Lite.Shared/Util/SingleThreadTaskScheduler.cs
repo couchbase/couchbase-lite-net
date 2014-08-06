@@ -9,7 +9,10 @@ using System.Threading;
 namespace Couchbase.Lite.Util
 {
     sealed class SingleThreadTaskScheduler : TaskScheduler 
-    { 
+    {
+        const string Tag = "SingleThreadTaskScheduler";
+
+ 
         private readonly BlockingCollection<Task> queue = new BlockingCollection<Task>(new ConcurrentQueue<Task>());
         private const int maxConcurrency = 1;
         private int runningTasks = 0;
@@ -56,7 +59,8 @@ namespace Couchbase.Lite.Util
         } 
 
         protected override bool TryExecuteTaskInline(Task task, bool taskWasPreviouslyQueued) 
-        { 
+        {
+            Log.D(Tag, "Executing task inline.");
             if (taskWasPreviouslyQueued)
                 TryDequeue(task); 
 
