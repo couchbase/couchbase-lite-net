@@ -44,11 +44,14 @@ using System.IO;
 using Couchbase.Lite;
 using Couchbase.Lite.Util;
 using Sharpen;
+using System;
 
 namespace Couchbase.Lite.Util
 {
-	public class FileDirUtils
+	internal class FileDirUtils
 	{
+        const string Tag = "FileDirUtils";
+
         public static string GetDatabaseNameFromPath(string path)
         {
             int lastSlashPos = path.LastIndexOf("/");
@@ -77,6 +80,18 @@ namespace Couchbase.Lite.Util
 
             sourceFile.CopyTo(destFile.FullName);
 		}
+
+        public static bool DeleteRecursive (FilePath attachmentsFile)
+        {
+            var success = true;
+            try {
+                Directory.Delete (attachmentsFile.GetPath (), true);
+            } catch (Exception ex) {
+                Log.V(Tag, "Error deleting the '{0}' directory.".Fmt(attachmentsFile.GetAbsolutePath()), ex);
+                success = false;
+            }
+            return success;
+        }
 
 		/// <exception cref="System.IO.IOException"></exception>
         public static void CopyFolder(FileSystemInfo sourcePath, FileSystemInfo destinationPath)

@@ -55,6 +55,9 @@ using Couchbase.Lite.Storage;
 using Couchbase.Lite.Util;
 using Sharpen;
 using System.Collections.Concurrent;
+using System.Collections;
+using System.Collections.Immutable;
+using System.Collections.ObjectModel;
 
 namespace Couchbase.Lite 
 {
@@ -83,16 +86,15 @@ namespace Couchbase.Lite
             UnsavedRevisionDocumentCache = new Dictionary<string, WeakReference>();
  
             // FIXME: Not portable to WinRT/WP8.
-            ActiveReplicators = (ICollection<Replication>)new BlockingCollection<Task> (new ConcurrentQueue<Task> ());
-            AllReplicators = (ICollection<Replication>)new BlockingCollection<Task> (new ConcurrentQueue<Task> ());
+            ActiveReplicators = new List<Replication>();
+            AllReplicators = new List<Replication> ();
 
-            ChangesToNotify = new AList<DocumentChange>();
+            _changesToNotify = new AList<DocumentChange>();
 
             StartTime = DateTime.UtcNow.ToMillisecondsSinceEpoch ();
 
             MaxRevTreeDepth = DefaultMaxRevs;
         }
-
 
     #endregion
 
@@ -285,13 +287,9 @@ namespace Couchbase.Lite
         /// Thrown if an issue occurs while deleting the <see cref="Couchbase.Lite.Database" /></exception>
         public void Delete()
         {
-            if (open)
+            if (_isOpen && !Close())
             {
-                if (!Close())
-                {
-                    throw new CouchbaseLiteException("The database was open, and could not be closed", 
-                        StatusCode.InternalServerError);
-                }
+                throw new CouchbaseLiteException("The database was open, and could not be closed", StatusCode.InternalServerError);
             }
 
             Manager.ForgetDatabase(this);
@@ -301,21 +299,29 @@ namespace Couchbase.Lite
             }
 
             var file = new FilePath(Path);
-            var attachmentsFile = new FilePath(AttachmentStorePath);
+            var fileJournal = new FilePath(AttachmentStorePath + "-journal");
 
             var deleteStatus = file.Delete();
-            if (!deleteStatus)
+            if (fileJournal.Exists())
             {
-                Log.V(Tag, String.Format("Error deleting the SQLite database file at {0}", file.GetAbsolutePath()));
+                deleteStatus &= fileJournal.Delete();
             }
 
             //recursively delete attachments path
-            var deletedAttachmentsPath = true;
-            try {
-                Directory.Delete (attachmentsFile.GetPath (), true);
-            } catch (Exception ex) {
-                Log.V(Tag, "Error deleting the attachments directory.", ex);
-                deletedAttachmentsPath = false;
+            var attachmentsFile = new FilePath(AttachmentStorePath);
+            var deleteAttachmentStatus = FileDirUtils.DeleteRecursive(attachmentsFile);
+
+            //recursively delete path where attachments stored( see getAttachmentStorePath())
+            var lastDotPosition = Path.LastIndexOf('.');
+            if (lastDotPosition > 0)
+            {
+                var attachmentsFileUpFolder = new FilePath(Path.Substring(0, lastDotPosition));
+                FileDirUtils.DeleteRecursive(attachmentsFileUpFolder);
+            }
+
+            if (!deleteStatus)
+            {
+                Log.V(Tag, String.Format("Error deleting the SQLite database file at {0}", file.GetAbsolutePath()));
             }
 
             if (!deleteStatus)
@@ -323,7 +329,7 @@ namespace Couchbase.Lite
                 throw new CouchbaseLiteException("Was not able to delete the database file", StatusCode.InternalServerError);
             }
 
-            if (!deletedAttachmentsPath)
+            if (!deleteAttachmentStatus)
             {
                 throw new CouchbaseLiteException("Was not able to delete the attachments files", StatusCode.InternalServerError);
             }
@@ -483,9 +489,9 @@ namespace Couchbase.Lite
         {
             View view = null;
 
-            if (views != null)
+            if (_views != null)
             {
-                view = views.Get(name);
+                view = _views.Get(name);
             }
 
             if (view != null)
@@ -504,9 +510,9 @@ namespace Couchbase.Lite
         public View GetExistingView(String name) 
         {
             View view = null;
-            if (views != null)
+            if (_views != null)
             {
-                views.TryGetValue(name, out view);
+                _views.TryGetValue(name, out view);
             }
             if (view != null)
             {
@@ -525,9 +531,9 @@ namespace Couchbase.Lite
         public ValidateDelegate GetValidation(String name) 
         {
             ValidateDelegate result = null;
-            if (Validations != null)
+            if (_validations != null)
             {
-                result = Validations.Get(name);
+                result = _validations.Get(name);
             }
             return result;
         }
@@ -543,13 +549,13 @@ namespace Couchbase.Lite
         /// <param name="validationDelegate">The validation delegate to set.</param>
         public void SetValidation(String name, ValidateDelegate validationDelegate)
         {
-            if (Validations == null)
-                Validations = new Dictionary<string, ValidateDelegate>();
+            if (_validations == null)
+                _validations = new Dictionary<string, ValidateDelegate>();
 
             if (validationDelegate != null)
-                Validations[name] = validationDelegate;
+                _validations[name] = validationDelegate;
             else
-                Validations.Remove(name);
+                _validations.Remove(name);
         }
 
         /// <summary>
@@ -763,21 +769,6 @@ PRAGMA user_version = 3;";
 
     #region Non-Public Instance Members
 
-        private Boolean                                 open;
-        private IDictionary<String, ValidateDelegate>   Validations;
-        private IDictionary<String, BlobStoreWriter>    _pendingAttachmentsByDigest;
-        private IDictionary<String, View>               views;
-        private Int32                                   transactionLevel;
-        private IList<DocumentChange>                   ChangesToNotify;
-        private Boolean                                 PostingChangeNotifications;
-
-        internal String                                 Path { get; private set; }
-        internal ICollection<Replication>               ActiveReplicators { get; set; }
-        internal ICollection<Replication>               AllReplicators { get; set; }
-        internal ISQLiteStorageEngine                   StorageEngine { get; set; }
-        internal LruCache<String, Document>             DocumentCache { get; set; }
-        internal IDictionary<String, WeakReference>     UnsavedRevisionDocumentCache { get; set; }
-
         /// <summary>
         /// Each database can have an associated PersistentCookieStore,
         /// where the persistent cookie store uses the database to store
@@ -797,7 +788,24 @@ PRAGMA user_version = 3;";
         /// Database ceases to exist.
         /// REF: https://github.com/couchbase/couchbase-lite-android/issues/269
         /// </remarks>
-        private CookieStore persistentCookieStore;
+        private CookieStore                             _persistentCookieStore; // Not used yet.
+
+        private Boolean                                 _isOpen;
+        private IDictionary<String, ValidateDelegate>   _validations;
+        private IDictionary<String, BlobStoreWriter>    _pendingAttachmentsByDigest;
+        private IDictionary<String, View>               _views;
+        private Int32                                   _transactionLevel;
+        private IList<DocumentChange>                   _changesToNotify;
+        private Boolean                                 _isPostingChangeNotifications;
+        private Object                                  _allReplicatorsLocker = new Object();
+
+        internal String                                 Path { get; private set; }
+        internal IList<Replication>                     ActiveReplicators { get; set; }
+        internal IList<Replication>                     AllReplicators { get; set; }
+        internal ISQLiteStorageEngine                   StorageEngine { get; set; }
+        internal LruCache<String, Document>             DocumentCache { get; set; }
+        internal IDictionary<String, WeakReference>     UnsavedRevisionDocumentCache { get; set; }
+
 
         //TODO: Should thid be a public member?
 
@@ -1821,11 +1829,11 @@ PRAGMA user_version = 3;";
             {
                 return null;
             }
-            if (views == null)
+            if (_views == null)
             {
-                views = new Dictionary<string, View>();
+                _views = new Dictionary<string, View>();
             }
-            views.Put(view.Name, view);
+            _views.Put(view.Name, view);
             return view;
         }
 
@@ -2232,9 +2240,9 @@ PRAGMA user_version = 3;";
             {
                 StorageEngine.BeginTransaction();
 
-                ++transactionLevel;
+                ++_transactionLevel;
 
-                Log.D(Tag, "Begin transaction (level " + transactionLevel + ")");
+                Log.D(Tag, "Begin transaction (level " + _transactionLevel + ")");
             }
             catch (SQLException e)
             {
@@ -2250,18 +2258,18 @@ PRAGMA user_version = 3;";
         ///     </param>
         internal Boolean EndTransaction(bool commit)
         {
-            Debug.Assert((transactionLevel > 0));
+            Debug.Assert((_transactionLevel > 0));
 
             if (commit)
             {
-                Log.D(Tag, "Committing transaction (level " + transactionLevel + ")");
+                Log.D(Tag, "Committing transaction (level " + _transactionLevel + ")");
 
                 StorageEngine.SetTransactionSuccessful();
                 StorageEngine.EndTransaction();
             }
             else
             {
-                Log.I(Tag, " CANCEL transaction (level " + transactionLevel + ")");
+                Log.I(Tag, " CANCEL transaction (level " + _transactionLevel + ")");
                 try
                 {
                     StorageEngine.EndTransaction();
@@ -2274,7 +2282,7 @@ PRAGMA user_version = 3;";
                 }
             }
 
-            --transactionLevel;
+            --_transactionLevel;
             PostChangeNotifications();
 
             return true;
@@ -3058,7 +3066,7 @@ PRAGMA user_version = 3;";
                         }
                     }
 
-                    if (Validations != null && Validations.Count > 0)
+                    if (_validations != null && _validations.Count > 0)
                     {
                         // Fetch the previous revision and validate the new one against it:
                         var prevRev = new RevisionInternal(docId, prevRevId, false, this);
@@ -3287,18 +3295,18 @@ PRAGMA user_version = 3;";
             // This is a 'while' instead of an 'if' because when we finish posting notifications, there
             // might be new ones that have arrived as a result of notification handlers making document
             // changes of their own (the replicator manager will do this.) So we need to check again.
-            while (transactionLevel == 0 && open && !PostingChangeNotifications && ChangesToNotify.Count > 0)
+            while (_transactionLevel == 0 && _isOpen && !_isPostingChangeNotifications && _changesToNotify.Count > 0)
             {
                 try
                 {
-                    PostingChangeNotifications = true;
+                    _isPostingChangeNotifications = true;
 
                     IList<DocumentChange> outgoingChanges = new AList<DocumentChange>();
-                    foreach (var change in ChangesToNotify)
+                    foreach (var change in _changesToNotify)
                     {
                         outgoingChanges.Add(change);
                     }
-                    ChangesToNotify.Clear();
+                    _changesToNotify.Clear();
 
                     Boolean isExternal = false;
                     foreach (var change in outgoingChanges)
@@ -3327,7 +3335,7 @@ PRAGMA user_version = 3;";
                 }
                 finally
                 {
-                    PostingChangeNotifications = false;
+                    _isPostingChangeNotifications = false;
                 }
             }
         }
@@ -3335,7 +3343,7 @@ PRAGMA user_version = 3;";
         internal void NotifyChange(RevisionInternal rev, RevisionInternal winningRev, Uri source, bool inConflict)
         {
             var change = new DocumentChange(rev, winningRev, inConflict, source);
-            ChangesToNotify.Add(change);
+            _changesToNotify.Add(change);
 
             PostChangeNotifications();
         }
@@ -3921,14 +3929,14 @@ PRAGMA user_version = 3;";
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
         internal void ValidateRevision(RevisionInternal newRev, RevisionInternal oldRev)
         {
-            if (Validations == null || Validations.Count == 0)
+            if (_validations == null || _validations.Count == 0)
             {
                 return;
             }
 
             var context = new ValidationContext(this, oldRev, newRev);
             var publicRev = new SavedRevision(this, newRev);
-            foreach (var validationName in Validations.Keys)
+            foreach (var validationName in _validations.Keys)
             {
                 var validation = GetValidation(validationName);
                 validation(publicRev, context);
@@ -3971,7 +3979,7 @@ PRAGMA user_version = 3;";
 
         internal Boolean Open()
         {
-            if (open)
+            if (_isOpen)
             {
                 return true;
             }
@@ -4069,25 +4077,25 @@ PRAGMA user_version = 3;";
                 return false;
             }
 
-            open = true;
+            _isOpen = true;
 
             return true;
         }
 
         internal Boolean Close()
         {
-            if (!open)
+            if (!_isOpen)
             {
                 return false;
             }
-            if (views != null)
+            if (_views != null)
             {
-                foreach (View view in views.Values)
+                foreach (View view in _views.Values)
                 {
                     view.DatabaseClosing();
                 }
             }
-            views = null;
+            _views = null;
             if (ActiveReplicators != null)
             {
                 // 
@@ -4103,24 +4111,24 @@ PRAGMA user_version = 3;";
             {
                 StorageEngine.Close();
             }
-            open = false;
-            transactionLevel = 0;
+            _isOpen = false;
+            _transactionLevel = 0;
             return true;
         }
 
         internal void AddReplication(Replication replication)
         {
-            AllReplicators.AddItem(replication);
+            lock (_allReplicatorsLocker) { AllReplicators.Add(replication); }
         }
 
         internal void ForgetReplication(Replication replication)
         {
-            AllReplicators.Remove(replication);
+            lock (_allReplicatorsLocker) { AllReplicators.Remove(replication); }
         }
 
         internal void AddActiveReplication(Replication replication)
         {
-            ActiveReplicators.AddItem(replication);
+            ActiveReplicators.Add(replication);
             replication.Changed += (sender, e) => 
             {
                 if (!e.Source.IsRunning && ActiveReplicators != null)
