@@ -339,11 +339,11 @@ namespace Couchbase.Lite.Replicator
                                     continue;
                                 }
 
-                                var contentOptions = EnumSet.Of(TDContentOptions.TDIncludeAttachments);
+                                var contentOptions = EnumSet.Of(DocumentContentOptions.IncludeAttachments);
 
                                 if (!dontSendMultipart && revisionBodyTransformationFunction == null)
                                 {
-                                    contentOptions.AddItem(TDContentOptions.TDBigAttachmentsFollow);
+                                    contentOptions.AddItem(DocumentContentOptions.BigAttachmentsFollow);
                                 }
 
 

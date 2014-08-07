@@ -61,7 +61,7 @@ namespace Couchbase.Lite
 
 		private int groupLevel = 0;
 
-		private EnumSet<TDContentOptions> contentOptions = EnumSet.NoneOf<TDContentOptions
+		private EnumSet<DocumentContentOptions> contentOptions = EnumSet.NoneOf<DocumentContentOptions
 			>();
 
 		private bool descending = false;
@@ -206,12 +206,12 @@ namespace Couchbase.Lite
 			this.group = group;
 		}
 
-		public virtual EnumSet<TDContentOptions> GetContentOptions()
+		public virtual EnumSet<DocumentContentOptions> GetContentOptions()
 		{
 			return contentOptions;
 		}
 
-		public virtual void SetContentOptions(EnumSet<TDContentOptions> contentOptions
+		public virtual void SetContentOptions(EnumSet<DocumentContentOptions> contentOptions
 			)
 		{
 			this.contentOptions = contentOptions;

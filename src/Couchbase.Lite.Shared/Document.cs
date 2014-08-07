@@ -248,7 +248,7 @@ namespace Couchbase.Lite {
             if (CurrentRevision != null && id.Equals(CurrentRevision.Id))
                 return CurrentRevision;
 
-            var contentOptions = EnumSet.NoneOf<TDContentOptions>();
+            var contentOptions = EnumSet.NoneOf<DocumentContentOptions>();
             var revisionInternal = Database.GetDocumentWithIDAndRev(Id, id, contentOptions);
 
             var revision = GetRevisionFromRev(revisionInternal);
@@ -363,7 +363,7 @@ namespace Couchbase.Lite {
             {
                 return currentRevision;
             }
-            return GetRevisionFromRev(Database.GetDocumentWithIDAndRev(Id, revId, EnumSet.NoneOf<TDContentOptions>()));
+            return GetRevisionFromRev(Database.GetDocumentWithIDAndRev(Id, revId, EnumSet.NoneOf<DocumentContentOptions>()));
         }
 
         internal void LoadCurrentRevisionFrom(QueryRow row)

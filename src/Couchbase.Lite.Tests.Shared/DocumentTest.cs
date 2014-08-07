@@ -138,8 +138,8 @@ namespace Couchbase.Lite
             var revisionInternal = new RevisionInternal(
                 document.Id, document.CurrentRevisionId, deleted, database);
 
-            var contentOptions = EnumSet.Of (TDContentOptions.TDIncludeAttachments, 
-                TDContentOptions.TDBigAttachmentsFollow);
+            var contentOptions = EnumSet.Of (DocumentContentOptions.IncludeAttachments, 
+                DocumentContentOptions.BigAttachmentsFollow);
 
             database.LoadRevisionBody(revisionInternal, contentOptions);
 

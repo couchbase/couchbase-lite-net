@@ -243,7 +243,7 @@ namespace Couchbase.Lite {
                         var revId = cursor.GetString(3);
                         var json = cursor.GetBlob(4);
                         var properties = Database.DocumentPropertiesFromJSON(
-                            json, docId, revId, false, sequence, EnumSet.NoneOf<TDContentOptions>()
+                            json, docId, revId, false, sequence, EnumSet.NoneOf<DocumentContentOptions>()
                         );
                         if (properties != null)
                         {
@@ -398,7 +398,7 @@ namespace Couchbase.Lite {
                             {
                                 string linkedDocId = (string)((IDictionary<string,object>)value).Get("_id");
                                 RevisionInternal linkedDoc = Database.GetDocumentWithIDAndRev(linkedDocId, null, 
-                                    EnumSet.NoneOf<TDContentOptions>());
+                                    EnumSet.NoneOf<DocumentContentOptions>());
                                 docContents = linkedDoc.GetProperties();
                             }
                             else

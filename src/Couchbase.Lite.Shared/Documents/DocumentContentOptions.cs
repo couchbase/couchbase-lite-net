@@ -52,19 +52,15 @@ using Sharpen;
 
 namespace Couchbase.Lite {
     /// <summary>Options for what metadata to include in document bodies</summary>
-    internal enum TDContentOptions
+    internal enum DocumentContentOptions
     {
-        TDIncludeAttachments,
-        TDIncludeConflicts,
-        TDIncludeRevs,
-        TDIncludeRevsInfo,
-        TDIncludeLocalSeq,
-        TDNoBody,
-        TDBigAttachmentsFollow
+        IncludeAttachments,
+        IncludeConflicts,
+        IncludeRevs,
+        IncludeRevsInfo,
+        IncludeLocalSeq,
+        NoBody,
+        BigAttachmentsFollow,
+        NoAttachments
     }
-
-    
-
-    
-
 }

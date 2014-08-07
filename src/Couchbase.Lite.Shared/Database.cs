@@ -54,6 +54,7 @@ using Couchbase.Lite.Replicator;
 using Couchbase.Lite.Storage;
 using Couchbase.Lite.Util;
 using Sharpen;
+using System.Collections.Concurrent;
 
 namespace Couchbase.Lite 
 {
@@ -63,9 +64,6 @@ namespace Couchbase.Lite
     /// </summary>
     public partial class Database 
     {
-
-        Document debugDoc;
-    
     #region Constructors
 
         /// <summary>
@@ -75,7 +73,7 @@ namespace Couchbase.Lite
         /// <param name="manager">Manager.</param>
         internal Database(String path, Manager manager)
         {
-            Debug.Assert((path.StartsWith("/", StringComparison.InvariantCultureIgnoreCase)));
+            Debug.Assert(System.IO.Path.IsPathRooted(path));
 
             //path must be absolute
             Path = path;
@@ -84,9 +82,9 @@ namespace Couchbase.Lite
             DocumentCache = new LruCache<string, Document>(MaxDocCacheSize);
             UnsavedRevisionDocumentCache = new Dictionary<string, WeakReference>();
  
-            // TODO: Make Synchronized ICollection
-            ActiveReplicators = new HashSet<Replication>();
-            AllReplicators = new HashSet<Replication>();
+            // FIXME: Not portable to WinRT/WP8.
+            ActiveReplicators = (ICollection<Replication>)new BlockingCollection<Task> (new ConcurrentQueue<Task> ());
+            AllReplicators = (ICollection<Replication>)new BlockingCollection<Task> (new ConcurrentQueue<Task> ());
 
             ChangesToNotify = new AList<DocumentChange>();
 
@@ -128,6 +126,7 @@ namespace Couchbase.Lite
             KnownSpecialKeys.Add("_conflicts");
             KnownSpecialKeys.Add("_deleted_conflicts");
             KnownSpecialKeys.Add("_local_seq");
+            KnownSpecialKeys.Add("_removed");
         }
 
     #endregion
@@ -363,7 +362,7 @@ namespace Couchbase.Lite
             if (String.IsNullOrWhiteSpace (id)) {
                 return null;
             }
-            var revisionInternal = GetDocumentWithIDAndRev(id, null, EnumSet.NoneOf<TDContentOptions>());
+            var revisionInternal = GetDocumentWithIDAndRev(id, null, EnumSet.NoneOf<DocumentContentOptions>());
             return revisionInternal == null ? null : GetDocument (id);
         }
 
@@ -779,6 +778,27 @@ PRAGMA user_version = 3;";
         internal LruCache<String, Document>             DocumentCache { get; set; }
         internal IDictionary<String, WeakReference>     UnsavedRevisionDocumentCache { get; set; }
 
+        /// <summary>
+        /// Each database can have an associated PersistentCookieStore,
+        /// where the persistent cookie store uses the database to store
+        /// its cookies.
+        /// </summary>
+        /// <remarks>
+        /// Each database can have an associated PersistentCookieStore,
+        /// where the persistent cookie store uses the database to store
+        /// its cookies.
+        /// There are two reasons this has been made an instance variable
+        /// of the Database, rather than of the Replication:
+        /// - The PersistentCookieStore needs to span multiple replications.
+        /// For example, if there is a "push" and a "pull" replication for
+        /// the same DB, they should share a cookie store.
+        /// - PersistentCookieStore lifecycle should be tied to the Database
+        /// lifecycle, since it needs to cease to exist if the underlying
+        /// Database ceases to exist.
+        /// REF: https://github.com/couchbase/couchbase-lite-android/issues/269
+        /// </remarks>
+        private CookieStore persistentCookieStore;
+
         //TODO: Should thid be a public member?
 
         /// <summary>
@@ -861,7 +881,7 @@ PRAGMA user_version = 3;";
             }
 
             var docId = string.Format("_design/{0}", path[0]);
-            var rev = GetDocumentWithIDAndRev(docId, null, EnumSet.NoneOf<TDContentOptions>());
+            var rev = GetDocumentWithIDAndRev(docId, null, EnumSet.NoneOf<DocumentContentOptions>());
             if (rev == null)
             {
                 return null;
@@ -1721,7 +1741,7 @@ PRAGMA user_version = 3;";
             return revId;
         }
 
-        internal IDictionary<String, Object> DocumentPropertiesFromJSON(IEnumerable<Byte> json, String docId, String revId, Boolean deleted, Int64 sequence, EnumSet<TDContentOptions> contentOptions)
+        internal IDictionary<String, Object> DocumentPropertiesFromJSON(IEnumerable<Byte> json, String docId, String revId, Boolean deleted, Int64 sequence, EnumSet<DocumentContentOptions> contentOptions)
         {
             var rev = new RevisionInternal(docId, revId, deleted, this);
             rev.SetSequence(sequence);
@@ -2375,7 +2395,7 @@ PRAGMA user_version = 3;";
             return true;
         }
 
-        internal RevisionInternal GetDocumentWithIDAndRev(String id, String rev, EnumSet<TDContentOptions> contentOptions)
+        internal RevisionInternal GetDocumentWithIDAndRev(String id, String rev, EnumSet<DocumentContentOptions> contentOptions)
         {
             RevisionInternal result = null;
             string sql;
@@ -2384,7 +2404,7 @@ PRAGMA user_version = 3;";
             {
                 cursor = null;
                 var cols = "revid, deleted, sequence";
-                if (!contentOptions.Contains(TDContentOptions.TDNoBody))
+                if (!contentOptions.Contains(DocumentContentOptions.NoBody))
                 {
                     cols += ", json";
                 }
@@ -2409,10 +2429,10 @@ PRAGMA user_version = 3;";
                     var deleted = cursor.GetInt(1) > 0;
                     result = new RevisionInternal(id, rev, deleted, this);
                     result.SetSequence(cursor.GetLong(2));
-                    if (!contentOptions.Equals(EnumSet.Of(TDContentOptions.TDNoBody)))
+                    if (!contentOptions.Equals(EnumSet.Of(DocumentContentOptions.NoBody)))
                     {
                         byte[] json = null;
-                        if (!contentOptions.Contains(TDContentOptions.TDNoBody))
+                        if (!contentOptions.Contains(DocumentContentOptions.NoBody))
                         {
                             json = cursor.GetBlob(3);
                         }
@@ -2440,7 +2460,7 @@ PRAGMA user_version = 3;";
         /// Inserts the _id, _rev and _attachments properties into the JSON data and stores it in rev.
         /// Rev must already have its revID and sequence properties set.
         /// </remarks>
-        internal void ExpandStoredJSONIntoRevisionWithAttachments(IEnumerable<Byte> json, RevisionInternal rev, EnumSet<TDContentOptions> contentOptions)
+        internal void ExpandStoredJSONIntoRevisionWithAttachments(IEnumerable<Byte> json, RevisionInternal rev, EnumSet<DocumentContentOptions> contentOptions)
         {
             var extra = ExtraPropertiesForRevision(rev, contentOptions);
 
@@ -2464,7 +2484,7 @@ PRAGMA user_version = 3;";
         /// Inserts the _id, _rev and _attachments properties into the JSON data and stores it in rev.
         /// Rev must already have its revID and sequence properties set.
         /// </remarks>
-        internal IDictionary<String, Object> ExtraPropertiesForRevision(RevisionInternal rev, EnumSet<TDContentOptions> contentOptions)
+        internal IDictionary<String, Object> ExtraPropertiesForRevision(RevisionInternal rev, EnumSet<DocumentContentOptions> contentOptions)
         {
             var docId = rev.GetDocId();
             var revId = rev.GetRevId();
@@ -2480,17 +2500,17 @@ PRAGMA user_version = 3;";
             // Get more optional stuff to put in the properties:
             //OPT: This probably ends up making redundant SQL queries if multiple options are enabled.
             var localSeq = -1L;
-            if (contentOptions.Contains(TDContentOptions.TDIncludeLocalSeq))
+            if (contentOptions.Contains(DocumentContentOptions.IncludeLocalSeq))
             {
                 localSeq = sequenceNumber;
             }
             IDictionary<string, object> revHistory = null;
-            if (contentOptions.Contains(TDContentOptions.TDIncludeRevs))
+            if (contentOptions.Contains(DocumentContentOptions.IncludeRevs))
             {
                 revHistory = GetRevisionHistoryDict(rev);
             }
             IList<object> revsInfo = null;
-            if (contentOptions.Contains(TDContentOptions.TDIncludeRevsInfo))
+            if (contentOptions.Contains(DocumentContentOptions.IncludeRevsInfo))
             {
                 revsInfo = new AList<object>();
                 var revHistoryFull = GetRevisionHistory(rev);
@@ -2513,7 +2533,7 @@ PRAGMA user_version = 3;";
                 }
             }
             IList<string> conflicts = null;
-            if (contentOptions.Contains(TDContentOptions.TDIncludeConflicts))
+            if (contentOptions.Contains(DocumentContentOptions.IncludeConflicts))
             {
                 var revs = GetAllRevisionsOfDocumentID(docId, true);
                 if (revs.Count > 1)
@@ -2806,7 +2826,7 @@ PRAGMA user_version = 3;";
         }
 
         /// <summary>Constructs an "_attachments" dictionary for a revision, to be inserted in its JSON body.</summary>
-        internal IDictionary<String, Object> GetAttachmentsDictForSequenceWithContent(long sequence, EnumSet<TDContentOptions> contentOptions)
+        internal IDictionary<String, Object> GetAttachmentsDictForSequenceWithContent(long sequence, EnumSet<DocumentContentOptions> contentOptions)
         {
             Debug.Assert((sequence > 0));
 
@@ -2836,9 +2856,9 @@ PRAGMA user_version = 3;";
                     var digestString = "sha1-" + Convert.ToBase64String(keyData);
 
                     var dataBase64 = (string) null;
-                    if (contentOptions.Contains(TDContentOptions.TDIncludeAttachments))
+                    if (contentOptions.Contains(DocumentContentOptions.IncludeAttachments))
                     {
-                        if (contentOptions.Contains(TDContentOptions.TDBigAttachmentsFollow) && 
+                        if (contentOptions.Contains(DocumentContentOptions.BigAttachmentsFollow) && 
                             length >= Database.BigAttachmentLength)
                         {
                             dataSuppressed = true;
@@ -3783,9 +3803,9 @@ PRAGMA user_version = 3;";
         }
 
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
-        internal RevisionInternal LoadRevisionBody(RevisionInternal rev, EnumSet<TDContentOptions> contentOptions)
+        internal RevisionInternal LoadRevisionBody(RevisionInternal rev, EnumSet<DocumentContentOptions> contentOptions)
         {
-            if (rev.GetBody() != null && contentOptions == EnumSet.NoneOf<TDContentOptions>() && rev.GetSequence() != 0)
+            if (rev.GetBody() != null && contentOptions == EnumSet.NoneOf<DocumentContentOptions>() && rev.GetSequence() != 0)
             {
                 return rev;
             }
@@ -3845,7 +3865,7 @@ PRAGMA user_version = 3;";
 
         internal Boolean ExistsDocumentWithIDAndRev(String docId, String revId)
         {
-            return GetDocumentWithIDAndRev(docId, revId, EnumSet.Of(TDContentOptions.TDNoBody)) != null;
+            return GetDocumentWithIDAndRev(docId, revId, EnumSet.Of(DocumentContentOptions.NoBody)) != null;
         }
 
         internal Int32 FindMissingRevisions(RevisionList touchRevs)

@@ -95,7 +95,7 @@ namespace Couchbase.Lite
 
 			//read it back
             var readRev = database.GetDocumentWithIDAndRev(rev1.GetDocId(), null, 
-                EnumSet.NoneOf<TDContentOptions>());
+                EnumSet.NoneOf<DocumentContentOptions>());
 			Assert.IsNotNull(readRev);
 
             var userReadRevProps = UserProperties(readRev.GetProperties());
@@ -119,7 +119,7 @@ namespace Couchbase.Lite
 
 			//read it back
 			readRev = database.GetDocumentWithIDAndRev(rev2.GetDocId(), null, 
-                EnumSet.NoneOf<TDContentOptions>());
+                EnumSet.NoneOf<DocumentContentOptions>());
 			Assert.IsNotNull(readRev);
             Assert.AreEqual(UserProperties(readRev.GetProperties()), UserProperties
                 (body.GetProperties()));
@@ -185,7 +185,7 @@ namespace Couchbase.Lite
 
 			// Read it back (should fail):
 			readRev = database.GetDocumentWithIDAndRev(revD.GetDocId(), null, 
-                EnumSet.NoneOf<TDContentOptions>());
+                EnumSet.NoneOf<DocumentContentOptions>());
 			Assert.IsNull(readRev);
 
             // Get Changes feed:

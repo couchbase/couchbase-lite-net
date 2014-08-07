@@ -53,7 +53,7 @@ namespace Couchbase.Lite
 	/// <summary>Lets you stream a large attachment to a BlobStore asynchronously, e.g.</summary>
 	/// <remarks>Lets you stream a large attachment to a BlobStore asynchronously, e.g. from a network download.
 	/// 	</remarks>
-	public class BlobStoreWriter
+	internal class BlobStoreWriter
 	{
 		/// <summary>The underlying blob store where it should be stored.</summary>
 		/// <remarks>The underlying blob store where it should be stored.</remarks>
@@ -80,6 +80,11 @@ namespace Couchbase.Lite
 		private BufferedOutputStream outStream;
 
 		private FilePath tempFile;
+
+        public string FilePath
+        {
+            get { return tempFile.GetPath(); }
+        }
 
 		public BlobStoreWriter(BlobStore store)
 		{
@@ -167,7 +172,7 @@ namespace Couchbase.Lite
 
 		/// <summary>Call this after all the data has been added.</summary>
 		/// <remarks>Call this after all the data has been added.</remarks>
-		public virtual void Finish()
+		public void Finish()
 		{
 			try
 			{
@@ -183,7 +188,7 @@ namespace Couchbase.Lite
 
 		/// <summary>Call this to cancel before finishing the data.</summary>
 		/// <remarks>Call this to cancel before finishing the data.</remarks>
-		public virtual void Cancel()
+		public void Cancel()
 		{
 			try
 			{
@@ -198,7 +203,7 @@ namespace Couchbase.Lite
 
 		/// <summary>Installs a finished blob into the store.</summary>
 		/// <remarks>Installs a finished blob into the store.</remarks>
-		public virtual void Install()
+		public void Install()
 		{
 			if (tempFile == null)
 			{
@@ -218,24 +223,24 @@ namespace Couchbase.Lite
 			tempFile = null;
 		}
 
-		public virtual string MD5DigestString()
+		public string MD5DigestString()
 		{
             string base64Md5Digest = Convert.ToBase64String(md5DigestResult);
             return string.Format("md5-{0}", base64Md5Digest);
 		}
 
-		public virtual string SHA1DigestString()
+		public string SHA1DigestString()
 		{
             string base64Sha1Digest = Convert.ToBase64String(blobKey.GetBytes());
             return string.Format("sha1-{0}", base64Sha1Digest);
 		}
 
-		public virtual int GetLength()
+		public int GetLength()
 		{
 			return length;
 		}
 
-		public virtual BlobKey GetBlobKey()
+		public BlobKey GetBlobKey()
 		{
 			return blobKey;
 		}

@@ -24,7 +24,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)Documents\Body.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Documents\DocumentChange.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Documents\IValidationContext.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Documents\TDContentOptions.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Documents\ValidationContext.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Exceptions\CouchbaseLiteException.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Extensions\SqliteExtensions.cs" />
@@ -215,6 +214,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Util\CustomLogger.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\CouchbaseTraceListener.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Manager\INetworkReachabilityManager.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Documents\DocumentContentOptions.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="$(MSBuildThisFileDirectory)Store\MonoSQLiteStorageEngine.cs" />
