@@ -2080,6 +2080,30 @@ PRAGMA user_version = 3;";
             return result;
         }
 
+        public bool SequenceHasAttachments(long sequence)
+        {
+            Cursor cursor = null;
+            var args = new [] { Convert.ToString(sequence) };
+            try
+            {
+                cursor = StorageEngine.RawQuery("SELECT 1 FROM attachments WHERE sequence=? LIMIT 1", args);
+                return cursor.MoveToNext ();
+            }
+            catch (SQLException e)
+            {
+                Log.E(Database.Tag, "Error getting attachments for sequence", e);
+                return false;
+            }
+            finally
+            {
+                if (cursor != null)
+                {
+                    cursor.Close();
+                }
+            }
+        }
+
+
         internal String PublicUUID()
         {
             string result = null;
@@ -2448,7 +2472,7 @@ PRAGMA user_version = 3;";
                         if (cursor.GetInt(3) > 0)
                         {
                             // no_attachments == true
-                            contentOptions.AddItem(DocumentContentOptions.NoAttachments);
+                            contentOptions |= DocumentContentOptions.NoAttachments;
                         }
                         ExpandStoredJSONIntoRevisionWithAttachments(json, result, contentOptions);
                     }
@@ -3820,6 +3844,57 @@ PRAGMA user_version = 3;";
             return Sharpen.Extensions.ToString(generation + 1) + "-" + digest;
         }
 
+        public IList<String> GetPossibleAncestorRevisionIDs(RevisionInternal rev, int limit, Boolean hasAttachment)
+        {
+            var matchingRevs = new List<String>();
+            var generation = rev.GetGeneration();
+            if (generation <= 1)
+            {
+                return null;
+            }
+
+            var docNumericID = GetDocNumericID(rev.GetDocId());
+            if (docNumericID <= 0)
+            {
+                return null;
+            }
+
+            var sqlLimit = limit > 0 ? limit : -1;
+
+            // SQL uses -1, not 0, to denote 'no limit'
+            var sql = @"SELECT revid, sequence FROM revs WHERE doc_id=? and revid < ? and deleted=0 and json not null"
+                  + " ORDER BY sequence DESC LIMIT ?";
+            var args = new [] { Convert.ToString(docNumericID), generation + "-", sqlLimit.ToString() };
+            Cursor cursor = null;
+            try
+            {
+                cursor = StorageEngine.RawQuery(sql, args);
+                cursor.MoveToNext();
+
+                if (!cursor.IsAfterLast())
+                {
+                    if (matchingRevs.Count == 0)
+                    {
+                        hasAttachment = SequenceHasAttachments(cursor.GetLong(1));
+                    }
+                    matchingRevs.AddItem(cursor.GetString(0));
+                }
+            }
+            catch (SQLException e)
+            {
+                Log.E(Database.Tag, "Error getting all revisions of document", e);
+            }
+            finally
+            {
+                if (cursor != null)
+                {
+                    cursor.Close();
+                }
+            }
+            return matchingRevs;
+        }
+
+
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
         internal RevisionInternal LoadRevisionBody(RevisionInternal rev, DocumentContentOptions contentOptions)
         {
@@ -3828,7 +3903,11 @@ PRAGMA user_version = 3;";
                 return rev;
             }
 
-            Debug.Assert(((rev.GetDocId() != null) && (rev.GetRevId() != null)));
+            if ((rev.GetDocId() == null) || (rev.GetRevId() == null))
+            {
+                Log.E(Database.Tag, "Error loading revision body");
+                throw new CouchbaseLiteException(StatusCode.PreconditionFailed);
+            }
             Cursor cursor = null;
             var result = new Status(StatusCode.NotFound);
             try
