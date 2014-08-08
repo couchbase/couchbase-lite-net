@@ -2410,7 +2410,7 @@ PRAGMA user_version = 3;";
             try
             {
                 cursor = null;
-                var cols = "revid, deleted, sequence";
+                var cols = "revid, deleted, sequence, no_attachments";
                 if (!contentOptions.HasFlag(DocumentContentOptions.NoBody))
                 {
                     cols += ", json";
@@ -2418,12 +2418,14 @@ PRAGMA user_version = 3;";
                 if (rev != null)
                 {
                     sql = "SELECT " + cols + " FROM revs, docs WHERE docs.docid=? AND revs.doc_id=docs.doc_id AND revid=? LIMIT 1";
+                    //TODO: mismatch w iOS: {sql = "SELECT " + cols + " FROM revs WHERE revs.doc_id=? AND revid=? AND json notnull LIMIT 1";}
                     var args = new[] { id, rev };
                     cursor = StorageEngine.RawQuery(sql, args);
                 }
                 else
                 {
                     sql = "SELECT " + cols + " FROM revs, docs WHERE docs.docid=? AND revs.doc_id=docs.doc_id and current=1 and deleted=0 ORDER BY revid DESC LIMIT 1";
+                    //TODO: mismatch w iOS: {sql = "SELECT " + cols + " FROM revs WHERE revs.doc_id=? and current=1 and deleted=0 ORDER BY revid DESC LIMIT 1";}
                     var args = new[] { id };
                     cursor = StorageEngine.RawQuery(sql, CommandBehavior.SequentialAccess, args);
                 }
@@ -2441,7 +2443,12 @@ PRAGMA user_version = 3;";
                         byte[] json = null;
                         if (!contentOptions.HasFlag(DocumentContentOptions.NoBody))
                         {
-                            json = cursor.GetBlob(3);
+                            json = cursor.GetBlob(4);
+                        }
+                        if (cursor.GetInt(3) > 0)
+                        {
+                            // no_attachments == true
+                            contentOptions.AddItem(DocumentContentOptions.NoAttachments);
                         }
                         ExpandStoredJSONIntoRevisionWithAttachments(json, result, contentOptions);
                     }
@@ -2533,7 +2540,7 @@ PRAGMA user_version = 3;";
                     {
                         status = "deleted";
                     }
-                    // TODO: Detect missing revisions, set status="missing"
+
                     if (historicalRev.IsMissing())
                     {
                         status = "missing";
