@@ -2503,7 +2503,7 @@ PRAGMA user_version = 3;";
 
             // Get attachment metadata, and optionally the contents:
             IDictionary<string, object> attachmentsDict = null;
-            // TODO: Refactor to use flagged enums instead of the EnumSet.
+
             if (!contentOptions.HasFlag(DocumentContentOptions.NoAttachments))
             {
                 attachmentsDict = GetAttachmentsDictForSequenceWithContent (sequenceNumber, contentOptions);
@@ -2550,11 +2550,11 @@ PRAGMA user_version = 3;";
                 if (revs.Count > 1)
                 {
                     conflicts = new AList<string>();
-                    foreach (RevisionInternal historicalRev in revs)
+                    foreach (RevisionInternal savedRev in revs)
                     {
-                        if (!historicalRev.Equals(rev))
+                        if (!(savedRev.Equals(rev) || savedRev.IsDeleted()))
                         {
-                            conflicts.AddItem(historicalRev.GetRevId());
+                            conflicts.AddItem(savedRev.GetRevId());
                         }
                     }
                 }
