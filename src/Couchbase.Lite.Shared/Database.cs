@@ -56,7 +56,6 @@ using Couchbase.Lite.Util;
 using Sharpen;
 using System.Collections.Concurrent;
 using System.Collections;
-using System.Collections.Immutable;
 using System.Collections.ObjectModel;
 
 namespace Couchbase.Lite 
@@ -368,7 +367,7 @@ namespace Couchbase.Lite
             if (String.IsNullOrWhiteSpace (id)) {
                 return null;
             }
-            var revisionInternal = GetDocumentWithIDAndRev(id, null, EnumSet.NoneOf<DocumentContentOptions>());
+            var revisionInternal = GetDocumentWithIDAndRev(id, null, DocumentContentOptions.None);
             return revisionInternal == null ? null : GetDocument (id);
         }
 
@@ -889,7 +888,7 @@ PRAGMA user_version = 3;";
             }
 
             var docId = string.Format("_design/{0}", path[0]);
-            var rev = GetDocumentWithIDAndRev(docId, null, EnumSet.NoneOf<DocumentContentOptions>());
+            var rev = GetDocumentWithIDAndRev(docId, null, DocumentContentOptions.None);
             if (rev == null)
             {
                 return null;
@@ -1749,7 +1748,7 @@ PRAGMA user_version = 3;";
             return revId;
         }
 
-        internal IDictionary<String, Object> DocumentPropertiesFromJSON(IEnumerable<Byte> json, String docId, String revId, Boolean deleted, Int64 sequence, EnumSet<DocumentContentOptions> contentOptions)
+        internal IDictionary<String, Object> DocumentPropertiesFromJSON(IEnumerable<Byte> json, String docId, String revId, Boolean deleted, Int64 sequence, DocumentContentOptions contentOptions)
         {
             var rev = new RevisionInternal(docId, revId, deleted, this);
             rev.SetSequence(sequence);
@@ -2403,7 +2402,7 @@ PRAGMA user_version = 3;";
             return true;
         }
 
-        internal RevisionInternal GetDocumentWithIDAndRev(String id, String rev, EnumSet<DocumentContentOptions> contentOptions)
+        internal RevisionInternal GetDocumentWithIDAndRev(String id, String rev, DocumentContentOptions contentOptions)
         {
             RevisionInternal result = null;
             string sql;
@@ -2412,7 +2411,7 @@ PRAGMA user_version = 3;";
             {
                 cursor = null;
                 var cols = "revid, deleted, sequence";
-                if (!contentOptions.Contains(DocumentContentOptions.NoBody))
+                if (!contentOptions.HasFlag(DocumentContentOptions.NoBody))
                 {
                     cols += ", json";
                 }
@@ -2437,10 +2436,10 @@ PRAGMA user_version = 3;";
                     var deleted = cursor.GetInt(1) > 0;
                     result = new RevisionInternal(id, rev, deleted, this);
                     result.SetSequence(cursor.GetLong(2));
-                    if (!contentOptions.Equals(EnumSet.Of(DocumentContentOptions.NoBody)))
+                    if (contentOptions != DocumentContentOptions.NoBody)
                     {
                         byte[] json = null;
-                        if (!contentOptions.Contains(DocumentContentOptions.NoBody))
+                        if (!contentOptions.HasFlag(DocumentContentOptions.NoBody))
                         {
                             json = cursor.GetBlob(3);
                         }
@@ -2468,7 +2467,7 @@ PRAGMA user_version = 3;";
         /// Inserts the _id, _rev and _attachments properties into the JSON data and stores it in rev.
         /// Rev must already have its revID and sequence properties set.
         /// </remarks>
-        internal void ExpandStoredJSONIntoRevisionWithAttachments(IEnumerable<Byte> json, RevisionInternal rev, EnumSet<DocumentContentOptions> contentOptions)
+        internal void ExpandStoredJSONIntoRevisionWithAttachments(IEnumerable<Byte> json, RevisionInternal rev, DocumentContentOptions contentOptions)
         {
             var extra = ExtraPropertiesForRevision(rev, contentOptions);
 
@@ -2492,7 +2491,7 @@ PRAGMA user_version = 3;";
         /// Inserts the _id, _rev and _attachments properties into the JSON data and stores it in rev.
         /// Rev must already have its revID and sequence properties set.
         /// </remarks>
-        internal IDictionary<String, Object> ExtraPropertiesForRevision(RevisionInternal rev, EnumSet<DocumentContentOptions> contentOptions)
+        internal IDictionary<String, Object> ExtraPropertiesForRevision(RevisionInternal rev, DocumentContentOptions contentOptions)
         {
             var docId = rev.GetDocId();
             var revId = rev.GetRevId();
@@ -2503,22 +2502,26 @@ PRAGMA user_version = 3;";
             Debug.Assert((sequenceNumber > 0));
 
             // Get attachment metadata, and optionally the contents:
-            var attachmentsDict = GetAttachmentsDictForSequenceWithContent(sequenceNumber, contentOptions);
-
+            IDictionary<string, object> attachmentsDict = null;
+            // TODO: Refactor to use flagged enums instead of the EnumSet.
+            if (!contentOptions.HasFlag(DocumentContentOptions.NoAttachments))
+            {
+                attachmentsDict = GetAttachmentsDictForSequenceWithContent (sequenceNumber, contentOptions);
+            }
             // Get more optional stuff to put in the properties:
             //OPT: This probably ends up making redundant SQL queries if multiple options are enabled.
             var localSeq = -1L;
-            if (contentOptions.Contains(DocumentContentOptions.IncludeLocalSeq))
+            if (contentOptions.HasFlag(DocumentContentOptions.IncludeLocalSeq))
             {
                 localSeq = sequenceNumber;
             }
             IDictionary<string, object> revHistory = null;
-            if (contentOptions.Contains(DocumentContentOptions.IncludeRevs))
+            if (contentOptions.HasFlag(DocumentContentOptions.IncludeRevs))
             {
                 revHistory = GetRevisionHistoryDict(rev);
             }
             IList<object> revsInfo = null;
-            if (contentOptions.Contains(DocumentContentOptions.IncludeRevsInfo))
+            if (contentOptions.HasFlag(DocumentContentOptions.IncludeRevsInfo))
             {
                 revsInfo = new AList<object>();
                 var revHistoryFull = GetRevisionHistory(rev);
@@ -2541,7 +2544,7 @@ PRAGMA user_version = 3;";
                 }
             }
             IList<string> conflicts = null;
-            if (contentOptions.Contains(DocumentContentOptions.IncludeConflicts))
+            if (contentOptions.HasFlag(DocumentContentOptions.IncludeConflicts))
             {
                 var revs = GetAllRevisionsOfDocumentID(docId, true);
                 if (revs.Count > 1)
@@ -2834,7 +2837,7 @@ PRAGMA user_version = 3;";
         }
 
         /// <summary>Constructs an "_attachments" dictionary for a revision, to be inserted in its JSON body.</summary>
-        internal IDictionary<String, Object> GetAttachmentsDictForSequenceWithContent(long sequence, EnumSet<DocumentContentOptions> contentOptions)
+        internal IDictionary<String, Object> GetAttachmentsDictForSequenceWithContent(long sequence, DocumentContentOptions contentOptions)
         {
             Debug.Assert((sequence > 0));
 
@@ -2864,9 +2867,9 @@ PRAGMA user_version = 3;";
                     var digestString = "sha1-" + Convert.ToBase64String(keyData);
 
                     var dataBase64 = (string) null;
-                    if (contentOptions.Contains(DocumentContentOptions.IncludeAttachments))
+                    if (contentOptions.HasFlag(DocumentContentOptions.IncludeAttachments))
                     {
-                        if (contentOptions.Contains(DocumentContentOptions.BigAttachmentsFollow) && 
+                        if (contentOptions.HasFlag(DocumentContentOptions.BigAttachmentsFollow) && 
                             length >= Database.BigAttachmentLength)
                         {
                             dataSuppressed = true;
@@ -3811,9 +3814,9 @@ PRAGMA user_version = 3;";
         }
 
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
-        internal RevisionInternal LoadRevisionBody(RevisionInternal rev, EnumSet<DocumentContentOptions> contentOptions)
+        internal RevisionInternal LoadRevisionBody(RevisionInternal rev, DocumentContentOptions contentOptions)
         {
-            if (rev.GetBody() != null && contentOptions == EnumSet.NoneOf<DocumentContentOptions>() && rev.GetSequence() != 0)
+            if (rev.GetBody() != null && contentOptions == DocumentContentOptions.None && rev.GetSequence() != 0)
             {
                 return rev;
             }
@@ -3873,7 +3876,7 @@ PRAGMA user_version = 3;";
 
         internal Boolean ExistsDocumentWithIDAndRev(String docId, String revId)
         {
-            return GetDocumentWithIDAndRev(docId, revId, EnumSet.Of(DocumentContentOptions.NoBody)) != null;
+            return GetDocumentWithIDAndRev(docId, revId, DocumentContentOptions.NoBody) != null;
         }
 
         internal Int32 FindMissingRevisions(RevisionList touchRevs)
@@ -4008,7 +4011,7 @@ PRAGMA user_version = 3;";
             // Incompatible version changes increment the hundreds' place:
             if (dbVersion >= 100)
             {
-                Log.W(Tag, "Database: Database version (" + dbVersion + ") is newer than I know how to work with");
+                Log.E(Tag, "Database: Database version (" + dbVersion + ") is newer than I know how to work with");
                 StorageEngine.Close();
                 return false;
             }

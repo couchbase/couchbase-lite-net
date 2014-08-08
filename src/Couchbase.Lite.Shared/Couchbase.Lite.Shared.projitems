@@ -93,7 +93,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)Sharpen\DateFormat.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Sharpen\DigestInputStream.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Sharpen\DigestOutputStream.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Sharpen\EnumSet.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Sharpen\EnumerableWrapper.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Sharpen\EnumeratorWrapper.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Sharpen\Exceptions.cs" />

@@ -90,7 +90,7 @@ namespace Couchbase.Lite {
         {
             try
             {
-                var loadRevision = Database.LoadRevisionBody(RevisionInternal, EnumSet.NoneOf<DocumentContentOptions>());
+                var loadRevision = Database.LoadRevisionBody(RevisionInternal, DocumentContentOptions.None);
                 if (loadRevision == null)
                 {
                     Log.W(Database.Tag, "Couldn't load body/sequence of {0}" + this);

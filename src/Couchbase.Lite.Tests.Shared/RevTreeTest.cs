@@ -119,7 +119,7 @@ namespace Couchbase.Lite
 			
             // Fetch one of those phantom revisions with no body:
             var rev2 = database.GetDocumentWithIDAndRev(rev.GetDocId(), "2-too", 
-				EnumSet.NoneOf<DocumentContentOptions>());
+				DocumentContentOptions.None);
 			Assert.AreEqual(rev.GetDocId(), rev2.GetDocId());
 			Assert.AreEqual("2-too", rev2.GetRevId());
 			
@@ -127,7 +127,7 @@ namespace Couchbase.Lite
 			Assert.AreEqual(8, database.GetLastSequenceNumber());
 			// Make sure the revision with the higher revID wins the conflict:
             var current = database.GetDocumentWithIDAndRev(rev.GetDocId(), null, 
-				EnumSet.NoneOf<DocumentContentOptions>());
+				DocumentContentOptions.None);
 			Assert.AreEqual(conflict, current);
 			
             // Get the _changes feed and verify only the winner is in it:
@@ -264,7 +264,7 @@ namespace Couchbase.Lite
 		private void VerifyHistory(Database db, RevisionInternal rev, IList<string> history)
 		{
             var gotRev = db.GetDocumentWithIDAndRev(rev.GetDocId(), null, 
-                EnumSet.NoneOf<DocumentContentOptions>());
+                DocumentContentOptions.None);
 			Assert.AreEqual(rev, gotRev);
             AssertPropertiesAreEqual(rev.GetProperties(), gotRev.GetProperties());
 

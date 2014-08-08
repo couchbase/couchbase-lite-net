@@ -39,19 +39,22 @@
 // either express or implied. See the License for the specific language governing permissions
 // and limitations under the License.
 //
+using System;
 
 
 namespace Couchbase.Lite {
     /// <summary>Options for what metadata to include in document bodies</summary>
+    [Flags]
     internal enum DocumentContentOptions
     {
-        IncludeAttachments,
-        IncludeConflicts,
-        IncludeRevs,
-        IncludeRevsInfo,
-        IncludeLocalSeq,
-        NoBody,
-        BigAttachmentsFollow,
-        NoAttachments
+        None,
+        IncludeAttachments = 2,
+        IncludeConflicts = 4,
+        IncludeRevs = 8,
+        IncludeRevsInfo = 16,
+        IncludeLocalSeq = 32,
+        NoBody = 64,
+        BigAttachmentsFollow = 128,
+        NoAttachments = 256
     }
 }

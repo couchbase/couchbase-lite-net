@@ -339,11 +339,11 @@ namespace Couchbase.Lite.Replicator
                                     continue;
                                 }
 
-                                var contentOptions = EnumSet.Of(DocumentContentOptions.IncludeAttachments);
+                                var contentOptions = DocumentContentOptions.IncludeAttachments;
 
                                 if (!dontSendMultipart && revisionBodyTransformationFunction == null)
                                 {
-                                    contentOptions.AddItem(DocumentContentOptions.BigAttachmentsFollow);
+                                    contentOptions &= DocumentContentOptions.BigAttachmentsFollow;
                                 }
 
 
@@ -352,7 +352,7 @@ namespace Couchbase.Lite.Replicator
                                     loadedRev = LocalDatabase.LoadRevisionBody (rev, contentOptions);
                                     properties = new Dictionary<string, object>(rev.GetProperties());
                                 } catch (CouchbaseLiteException e1) {
-                                    Log.W(Tag, string.Format("{0} Couldn't get local contents of {1}", rev, this));
+                                    Log.W(Tag, string.Format("{0} Couldn't get local contents of {1}", rev, this), e1);
                                     RevisionFailed();
                                     continue;
                                 }

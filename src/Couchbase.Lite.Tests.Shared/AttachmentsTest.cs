@@ -106,14 +106,14 @@ namespace Couchbase.Lite
             var attachmentDict = new Dictionary<string, object>();
 			attachmentDict[testAttachmentName] = innerDict;
             var attachmentDictForSequence = database.GetAttachmentsDictForSequenceWithContent
-                (rev1.GetSequence(), EnumSet.NoneOf<DocumentContentOptions>());
+                (rev1.GetSequence(), DocumentContentOptions.None);
             Assert.AreEqual(1, attachmentDictForSequence.Count);
             AssertPropertiesAreEqual(
                 (IDictionary<string, object>)attachmentDict.Get(testAttachmentName), 
                 (IDictionary<string, object>)attachmentDictForSequence.Get(testAttachmentName));
 
             var gotRev1 = database.GetDocumentWithIDAndRev(rev1.GetDocId(), 
-                rev1.GetRevId(), EnumSet.NoneOf<DocumentContentOptions>());
+                rev1.GetRevId(), DocumentContentOptions.None);
             var gotRev1Properties = (IDictionary<string, object>)gotRev1.GetProperties();
             var gotRev1AttachmentDict = ((JObject)gotRev1Properties.Get("_attachments"))
                 .ToObject<Dictionary<string, object>>();
@@ -127,14 +127,14 @@ namespace Couchbase.Lite
 			Collections.Remove(innerDict, "stub");
             innerDict.Put("data", Convert.ToBase64String(attach1));
 			attachmentDictForSequence = database.GetAttachmentsDictForSequenceWithContent(
-                rev1.GetSequence(), EnumSet.Of(DocumentContentOptions.IncludeAttachments));
+                rev1.GetSequence(), DocumentContentOptions.IncludeAttachments);
             Assert.AreEqual(1, attachmentDictForSequence.Count);
             AssertPropertiesAreEqual(
                 (IDictionary<string, object>)attachmentDict.Get(testAttachmentName), 
                 (IDictionary<string, object>)attachmentDictForSequence.Get(testAttachmentName));
 
 			gotRev1 = database.GetDocumentWithIDAndRev(
-                rev1.GetDocId(), rev1.GetRevId(), EnumSet.Of(DocumentContentOptions.IncludeAttachments));
+                rev1.GetDocId(), rev1.GetRevId(), DocumentContentOptions.IncludeAttachments);
             gotRev1Properties = (IDictionary<string, object>)gotRev1.GetProperties();
             gotRev1AttachmentDict = ((JObject)gotRev1Properties.Get("_attachments"))
                 .ToObject<Dictionary<String, Object>>();
@@ -243,7 +243,7 @@ namespace Couchbase.Lite
             var data = attachment.Content.ToArray();
 			Assert.IsTrue(Arrays.Equals(attach1, data));
 
-            var contentOptions = EnumSet.Of(DocumentContentOptions.IncludeAttachments, DocumentContentOptions.BigAttachmentsFollow);
+            const DocumentContentOptions contentOptions = DocumentContentOptions.IncludeAttachments | DocumentContentOptions.BigAttachmentsFollow;
             var attachmentDictForSequence = database.GetAttachmentsDictForSequenceWithContent(rev1.GetSequence(), contentOptions);
             var innerDict = (IDictionary<string, object>)attachmentDictForSequence[testAttachmentName];
 			if (innerDict.ContainsKey("stub"))

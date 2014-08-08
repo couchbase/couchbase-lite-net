@@ -50,7 +50,7 @@ namespace Couchbase.Lite
 	{
 		private int limit = int.MaxValue;
 
-		private EnumSet<DocumentContentOptions> contentOptions = EnumSet.NoneOf<DocumentContentOptions>();
+		private DocumentContentOptions contentOptions;
 
 		private bool includeDocs = false;
 
@@ -98,12 +98,12 @@ namespace Couchbase.Lite
 			this.sortBySequence = sortBySequence;
 		}
 
-		public virtual EnumSet<DocumentContentOptions> GetContentOptions()
+		public virtual DocumentContentOptions GetContentOptions()
 		{
 			return contentOptions;
 		}
 
-		public virtual void SetContentOptions(EnumSet<DocumentContentOptions> contentOptions
+		public virtual void SetContentOptions(DocumentContentOptions contentOptions
 			)
 		{
 			this.contentOptions = contentOptions;
