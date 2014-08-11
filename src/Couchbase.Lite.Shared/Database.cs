@@ -1725,7 +1725,7 @@ PRAGMA user_version = 3;";
                     if (hasNextResult)
                     {
                         var isNextDeleted = cursor.GetInt(1) > 0;
-                        var isInConflict = !deleted && hasNextResult && isNextDeleted;
+                        var isInConflict = !deleted && hasNextResult && !isNextDeleted;
                         if (isInConflict)
                         {
                             outIsConflict.AddItem(true);
@@ -3637,6 +3637,37 @@ PRAGMA user_version = 3;";
             }
         }
 
+        private Uri FileForAttachmentDict(IDictionary<String, Object> attachmentDict)
+        {
+            var digest = (string)attachmentDict.Get("digest");
+            if (digest == null)
+            {
+                return null;
+            }
+            string path = null;
+            var pending = PendingAttachmentsByDigest.Get(digest);
+            if (pending != null)
+            {
+                path = pending.FilePath;
+            }
+            else
+            {
+                // If it's an installed attachment, ask the blob-store for it:
+                var key = new BlobKey(digest);
+                path = Attachments.PathForKey(key);
+            }
+            Uri retval = null;
+            try
+            {
+                retval = new FilePath(path).ToURI().ToURL();
+            }
+            catch (UriFormatException)
+            {
+            }
+            //NOOP: retval will be null
+            return retval;
+        }
+
         internal static void StubOutAttachmentsInRevBeforeRevPos(RevisionInternal rev, long minRevPos, bool attachmentsFollow)
         {
             if (minRevPos <= 1 && !attachmentsFollow)
@@ -3678,6 +3709,89 @@ PRAGMA user_version = 3;";
                     editedAttachment["follows"] = true;
                     Log.V(Tag, String.Format("Added 'follows' for attachment {0}: revpos {1} >= {2}", rev, revPos, minRevPos));
                 }
+
+                return editedAttachment;
+            });
+        }
+
+        // Replaces attachment data whose revpos is < minRevPos with stubs.
+        // If attachmentsFollow==YES, replaces data with "follows" key.
+        private static void StubOutAttachmentsInRevBeforeRevPos(RevisionInternal rev, int minRevPos, bool attachmentsFollow)
+        {
+            if (minRevPos <= 1 && !attachmentsFollow)
+            {
+                return;
+            }
+
+            rev.MutateAttachments((s, attachment)=>
+            {
+                var revPos = 0;
+                if (attachment.Get("revpos") != null)
+                {
+                    revPos = (int)attachment.Get("revpos");
+                }
+
+                var includeAttachment = (revPos == 0 || revPos >= minRevPos);
+                var stubItOut = !includeAttachment && (attachment.Get("stub") == null || (bool)attachment.Get("stub") == false);
+                var addFollows = includeAttachment && attachmentsFollow && (attachment.Get("follows") == null || !(bool)attachment.Get ("follows"));
+                if (!stubItOut && !addFollows)
+                {
+                    return attachment;
+                }
+
+                // no change
+                // Need to modify attachment entry:
+                var editedAttachment = new Dictionary<string, object>(attachment);
+                editedAttachment.Remove("data");
+
+                if (stubItOut)
+                {
+                    // ...then remove the 'data' and 'follows' key:
+                    editedAttachment.Remove("follows");
+                    editedAttachment.Put("stub", true);
+                    Log.V(Tag, "Stubbed out attachment {0}: revpos {1} < {2}".Fmt(rev, revPos, minRevPos));
+                }
+                else
+                {
+                    if (addFollows)
+                    {
+                        editedAttachment.Remove("stub");
+                        editedAttachment.Put("follows", true);
+                        Log.V(Tag, "Added 'follows' for attachment {0}: revpos {1} >= {2}".Fmt(rev, revPos, minRevPos));
+                    }
+                }
+                return editedAttachment;
+            });
+        }
+
+        // Replaces the "follows" key with the real attachment data in all attachments to 'doc'.
+        public bool InlineFollowingAttachmentsIn(RevisionInternal rev)
+        {
+            return rev.MutateAttachments((s, attachment)=>
+            {
+                if (!attachment.ContainsKey("follows"))
+                {
+                    return attachment;
+                }
+
+                var fileURL = FileForAttachmentDict(attachment);
+                byte[] fileData = null;
+                try
+                {
+                    var inputStream = fileURL.OpenConnection().GetInputStream();
+                    var os = new ByteArrayOutputStream();
+                    inputStream.CopyTo(os);
+                    fileData = os.ToByteArray();
+                }
+                catch (IOException e)
+                {
+                    Log.E(Tag, "could not retrieve attachment data: {0}".Fmt(fileURL.ToString()), e);
+                    return null;
+                }
+
+                var editedAttachment = new Dictionary<string, object>(attachment);
+                editedAttachment.Remove("follows");
+                editedAttachment.Put("data", Convert.ToBase64String(fileData));
 
                 return editedAttachment;
             });
@@ -4148,6 +4262,90 @@ PRAGMA user_version = 3;";
                                     + "INSERT INTO INFO (key, value) VALUES ('privateUUID', '" + Misc.TDCreateUUID(
                                        ) + "'); " + "INSERT INTO INFO (key, value) VALUES ('publicUUID',  '" + Misc.TDCreateUUID
                                     () + "'); " + "PRAGMA user_version = 4";
+                if (!Initialize(upgradeSql))
+                {
+                    StorageEngine.Close();
+                    return false;
+                }
+                dbVersion = 4;
+            }
+            if (dbVersion < 5)
+            {
+                // Version 5: added encoding for attachments
+                var upgradeSql = "ALTER TABLE attachments ADD COLUMN encoding INTEGER DEFAULT 0; "
+                    + "ALTER TABLE attachments ADD COLUMN encoded_length INTEGER; " + "PRAGMA user_version = 5";
+                if (!Initialize(upgradeSql))
+                {
+                    StorageEngine.Close();
+                    return false;
+                }
+                dbVersion = 5;
+            }
+            if (dbVersion < 6)
+            {
+                // Version 6: enable Write-Ahead Log (WAL) <http://sqlite.org/wal.html>
+                // Not supported on Android, require SQLite 3.7.0
+                //String upgradeSql  = "PRAGMA journal_mode=WAL; " +
+                var upgradeSql = "PRAGMA user_version = 6";
+                if (!Initialize(upgradeSql))
+                {
+                    StorageEngine.Close();
+                    return false;
+                }
+                dbVersion = 6;
+            }
+            if (dbVersion < 7)
+            {
+                // Version 7: enable full-text search
+                // Note: Apple's SQLite build does not support the icu or unicode61 tokenizers :(
+                // OPT: Could add compress/decompress functions to make stored content smaller
+                // Not supported on Android
+                //String upgradeSql = "CREATE VIRTUAL TABLE fulltext USING fts4(content, tokenize=unicodesn); " +
+                //"ALTER TABLE maps ADD COLUMN fulltext_id INTEGER; " +
+                //"CREATE INDEX IF NOT EXISTS maps_by_fulltext ON maps(fulltext_id); " +
+                //"CREATE TRIGGER del_fulltext DELETE ON maps WHEN old.fulltext_id not null " +
+                //"BEGIN DELETE FROM fulltext WHERE rowid=old.fulltext_id| END; " +
+                var upgradeSql = "PRAGMA user_version = 7";
+                if (!Initialize(upgradeSql))
+                {
+                    StorageEngine.Close();
+                    return false;
+                }
+                dbVersion = 7;
+            }
+            // (Version 8 was an older version of the geo index)
+            if (dbVersion < 9)
+            {
+                // Version 9: Add geo-query index
+                //String upgradeSql = "CREATE VIRTUAL TABLE bboxes USING rtree(rowid, x0, x1, y0, y1); " +
+                //"ALTER TABLE maps ADD COLUMN bbox_id INTEGER; " +
+                //"ALTER TABLE maps ADD COLUMN geokey BLOB; " +
+                //"CREATE TRIGGER del_bbox DELETE ON maps WHEN old.bbox_id not null " +
+                //"BEGIN DELETE FROM bboxes WHERE rowid=old.bbox_id| END; " +
+                var upgradeSql = "PRAGMA user_version = 9";
+                if (!Initialize(upgradeSql))
+                {
+                    StorageEngine.Close();
+                    return false;
+                }
+                dbVersion = 9;
+            }
+            if (dbVersion < 10)
+            {
+                // Version 10: Add rev flag for whether it has an attachment
+                var upgradeSql = "ALTER TABLE revs ADD COLUMN no_attachments BOOLEAN; " + "PRAGMA user_version = 10";
+                if (!Initialize(upgradeSql))
+                {
+                    StorageEngine.Close();
+                    return false;
+                }
+                dbVersion = 10;
+            }
+            if (dbVersion < 11)
+            {
+                // Version 10: Add another index
+                var upgradeSql = "CREATE INDEX revs_cur_deleted ON revs(current,deleted); " + 
+                    "PRAGMA user_version = 11";
                 if (!Initialize(upgradeSql))
                 {
                     StorageEngine.Close();
