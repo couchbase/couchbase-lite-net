@@ -52,6 +52,9 @@ using Couchbase.Lite.Util;
 using NUnit.Framework;
 using Sharpen;
 using Couchbase.Lite.Tests;
+using System.Threading.Tasks;
+using System.Linq;
+using System.Text;
 
 namespace Couchbase.Lite
 {
@@ -62,13 +65,13 @@ namespace Couchbase.Lite
 
         public const string FacebookAppId = "719417398131095";
 
-        protected internal ObjectWriter mapper = new ObjectWriter();
+        protected ObjectWriter mapper = new ObjectWriter();
 
-        protected internal Manager manager = null;
+        protected Manager manager = null;
 
-        protected internal Database database = null;
+        protected Database database = null;
 
-        protected internal string DefaultTestDb = "cblitetest";
+        protected string DefaultTestDb = "cblitetest";
 
         [SetUp]
         protected void SetUp()
@@ -155,7 +158,7 @@ namespace Couchbase.Lite
                     Log.E(Tag, "Cannot delete database " + e.Message);
                 }
 
-                NUnit.Framework.Assert.IsTrue(status);
+                Assert.IsTrue(status);
             }
             db = manager.GetDatabase(dbName);
             return db;
@@ -196,12 +199,12 @@ namespace Couchbase.Lite
 
         protected int GetReplicationPort()
         {
-            return System.Convert.ToInt32(Runtime.GetProperty("replicationPort"));
+            return Convert.ToInt32(Runtime.GetProperty("replicationPort"));
         }
 
         protected int GetReplicationAdminPort()
         {
-            return System.Convert.ToInt32(Runtime.GetProperty("replicationAdminPort"));
+            return Convert.ToInt32(Runtime.GetProperty("replicationAdminPort"));
         }
 
         protected string GetReplicationAdminUser()
@@ -372,7 +375,7 @@ namespace Couchbase.Lite
                 String jsonString = null;
                 if (json != null)
                 {
-                    jsonString = Sharpen.Runtime.GetStringForBytes(json);
+                    jsonString = Runtime.GetStringForBytes(json);
                     try
                     {
                         result = mapper.ReadValue<object>(jsonString);
@@ -386,27 +389,29 @@ namespace Couchbase.Lite
             return result;
         }
 
-        protected object SendBody(string method, string path, IDictionary<string, object> bodyObj
-            , int expectedStatus, object expectedResult)
+        protected object SendBody(string method, string path, IDictionary<string, object> bodyObj, int expectedStatus, object expectedResult)
         {
             var conn = SendRequest(method, path, null, bodyObj);
-            object result = ParseJSONResponse(conn);
+            var result = ParseJSONResponse(conn);
+
             Log.V(Tag, string.Format("{0} {1} --> {2}", method, path, conn.GetResponseCode()));
-            NUnit.Framework.Assert.AreEqual(expectedStatus, conn.GetResponseCode());
+
+            Assert.AreEqual(expectedStatus, conn.GetResponseCode());
+            
             if (expectedResult != null)
             {
-                NUnit.Framework.Assert.AreEqual(expectedResult, result);
+                Assert.AreEqual(expectedResult, result);
             }
             return result;
         }
 
-        protected object Send(string method, string path, HttpStatusCode expectedStatus
-            , object expectedResult)
+        protected object Send(string method, string path, HttpStatusCode expectedStatus, object expectedResult)
         {
             return SendBody(method, path, null, (int)expectedStatus, expectedResult);
         }
 
-        protected internal void CreateDocuments(Database db, int n) {
+        internal static void CreateDocuments(Database db, int n)
+        {
             for (int i = 0; i < n; i++) {
                 var properties = new Dictionary<string, object>();
                 properties.Add("testName", "testDatabase");
@@ -415,7 +420,17 @@ namespace Couchbase.Lite
             }
         }
 
-        protected internal Document CreateDocumentWithProperties(Database db, IDictionary<string, object> properties) 
+        internal static Task CreateDocumentsAsync(Database database, int n)
+        {
+            return database.RunAsync(db => 
+            {
+                db.BeginTransaction();
+                LiteTestCase.CreateDocuments(db, n);
+                db.EndTransaction(true);
+            });
+        }
+
+        internal static Document CreateDocumentWithProperties(Database db, IDictionary<string, object> properties) 
         {
             var doc = db.CreateDocument();
 
@@ -438,13 +453,61 @@ namespace Couchbase.Lite
             Assert.IsNotNull(doc.CurrentRevisionId);
             Assert.IsNotNull(doc.CurrentRevision);
 
+            // should be same doc instance, since there should only ever be a single Document instance for a given document
             Assert.AreEqual(db.GetDocument(doc.Id), doc);
             Assert.AreEqual(db.GetDocument(doc.Id).Id, doc.Id);
 
             return doc;
         }
+
+        internal static Document CreateDocWithAttachment(Database database, string attachmentName, string content)
+        {
+            var properties = new Dictionary<string, object>();
+            properties.Put("foo", "bar");
+
+            var doc = CreateDocumentWithProperties(database, properties);
+            var rev = doc.CurrentRevision;
+            Assert.AreEqual(rev.Attachments.Count(), 0);
+            Assert.AreEqual(rev.AttachmentNames.Count(), 0);
+            Assert.IsNull(rev.GetAttachment(attachmentName));
+
+            var body = new ByteArrayInputStream(Encoding.UTF8.GetBytes(content));
+            var rev2 = doc.CreateRevision();
+            rev2.SetAttachment(attachmentName, "text/plain; charset=utf-8", body);
+            var rev3 = rev2.Save();
+            Assert.IsNotNull(rev3);
+            Assert.AreEqual(rev3.Attachments.Count(), 1);
+            Assert.AreEqual(rev3.AttachmentNames.Count(), 1);
+
+            var attach = rev3.GetAttachment(attachmentName);
+            Assert.IsNotNull(attach);
+            Assert.AreEqual(doc, attach.Document);
+            Assert.AreEqual(attachmentName, attach.Name);
+
+            var attNames = new AList<string>();
+            attNames.AddItem(attachmentName);
+            Assert.AreEqual(rev3.AttachmentNames, attNames);
+            Assert.AreEqual("text/plain; charset=utf-8", attach.ContentType);
+            Assert.AreEqual(Encoding.UTF8.GetString(attach.Content.ToArray()), content);
+            Assert.AreEqual(Encoding.UTF8.GetBytes(content).Length, attach.Length);
+            return doc;
+        }          
             
-        protected internal void AssertEnumerablesAreEqual(
+        public void StopReplication(Replication replication)
+        {
+            var replicationDoneSignal = new CountDownLatch(1);
+            var replicationStoppedObserver = new ReplicationObserver(replicationDoneSignal);
+            replication.Changed += replicationStoppedObserver.Changed;
+            replication.Stop();
+
+            var success = replicationDoneSignal.Await(TimeSpan.FromSeconds(30));
+            Assert.IsTrue(success);
+
+            // give a little padding to give it a chance to save a checkpoint
+            System.Threading.Thread.Sleep(2 * 1000);
+        }
+
+        protected void AssertEnumerablesAreEqual(
             IEnumerable list1, 
             IEnumerable list2)
         {
@@ -471,7 +534,7 @@ namespace Couchbase.Lite
             }
         }
 
-        protected internal void AssertPropertiesAreEqual(
+        protected void AssertPropertiesAreEqual(
             IDictionary<string, object> prop1,
             IDictionary<string, object> prop2)
         {
@@ -494,6 +557,118 @@ namespace Couchbase.Lite
                 {
                     Assert.AreEqual(obj1, obj2);
                 }
+            }
+        }
+
+        /// <exception cref="System.Exception"></exception>
+        public void DumpTableMaps()
+        {
+            var cursor = database.StorageEngine.RawQuery("SELECT * FROM maps", null);
+            while (cursor.MoveToNext())
+            {
+                var viewId = cursor.GetInt(0);
+                var sequence = cursor.GetInt(1);
+                var key = cursor.GetBlob(2);
+                string keyStr = null;
+
+                if (key != null)
+                {
+                    keyStr = Encoding.UTF8.GetString(key);
+                }
+
+                var value = cursor.GetBlob(3);
+                string valueStr = null;
+                if (value != null)
+                {
+                    valueStr = Encoding.UTF8.GetString(value);
+                }
+
+                Log.D(
+                    Tag,
+                    "Maps row viewId: {0} seq: {1}, key: {2}, val: {3}"
+                    .Fmt(viewId, sequence, keyStr, valueStr)
+                );
+            }
+        }
+
+        /// <exception cref="System.Exception"></exception>
+        public void DumpTableRevs()
+        {
+            var cursor = database.StorageEngine.RawQuery("SELECT * FROM revs", null);
+            while (cursor.MoveToNext())
+            {
+                var sequence = cursor.GetInt(0);
+                var doc_id = cursor.GetInt(1);
+                var revid = cursor.GetBlob(2);
+                string revIdStr = null;
+
+                if (revid != null)
+                {
+                    revIdStr = Encoding.UTF8.GetString(revid);
+                }
+
+                var parent = cursor.GetInt(3);
+                var current = cursor.GetInt(4);
+                var deleted = cursor.GetInt(5);
+
+                Log.D(
+                    Tag, 
+                    "Revs row seq: {0} doc_id: {1}, " +
+                    "revIdStr: {2}, " +
+                    "parent: {3}, " +
+                    "current: {4}, " +
+                    "deleted: {5}".Fmt(sequence, doc_id, revIdStr, parent, current, deleted)
+                );
+            }
+        }
+
+        /// <exception cref="System.Exception"></exception>
+        public static SavedRevision CreateRevisionWithRandomProps(SavedRevision createRevFrom, bool allowConflict)
+        {
+            var properties = new Dictionary<string, object>();
+            properties.Put(Guid.NewGuid().ToString(), "val");
+
+            var unsavedRevision = createRevFrom.CreateRevision();
+            unsavedRevision.SetUserProperties(properties);
+
+            return unsavedRevision.Save(allowConflict);
+        }
+    }
+
+    internal class ReplicationStoppedObserver
+    {
+        private readonly CountDownLatch doneSignal;
+
+        public ReplicationStoppedObserver(CountDownLatch doneSignal)
+        {
+            this.doneSignal = doneSignal;
+        }
+
+        public void Changed(ReplicationChangeEventArgs args)
+        {
+            var replicator = args.Source;
+            if (replicator.Status == ReplicationStatus.Stopped)
+            {
+                doneSignal.CountDown();
+            }
+        }
+    }
+
+    internal class ReplicationErrorObserver
+    {
+        private readonly CountDownLatch doneSignal;
+
+        public ReplicationErrorObserver(CountDownLatch doneSignal)
+        {
+            this.doneSignal = doneSignal;
+        }
+
+        public void Changed(ReplicationChangeEventArgs args)
+        {
+            var replicator = args.Source;
+            if (replicator.LastError != null)
+            {
+                doneSignal.CountDown();
             }
         }
     }

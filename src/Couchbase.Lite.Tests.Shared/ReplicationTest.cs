@@ -108,64 +108,6 @@ namespace Couchbase.Lite
             return doneSignal;
         }
 
-        private class ReplicationObserver 
-        {
-            private bool replicationFinished = false;
-
-            private readonly CountDownLatch doneSignal;
-
-            internal ReplicationObserver(CountDownLatch doneSignal)
-            {
-                this.doneSignal = doneSignal;
-            }
-
-            public void Changed(object sender, ReplicationChangeEventArgs args)
-            {
-                Replication replicator = args.Source;
-                Log.D(Tag, replicator + " changed: " + replicator.CompletedChangesCount + " / " + replicator.ChangesCount);
-
-                if (replicator.CompletedChangesCount < 0)
-                {
-                    var msg = replicator + ": replicator.CompletedChangesCount < 0";
-                    Log.D(Tag, msg);
-                    throw new ApplicationException(msg);
-                }
-
-                if (replicator.ChangesCount < 0)
-                {
-                    var msg = replicator + ": replicator.ChangesCount < 0";
-                    Log.D(Tag, msg);
-                    throw new RuntimeException(msg);
-                }
-
-                if (replicator.CompletedChangesCount > replicator.ChangesCount)
-                {
-                    var msgStr = "replicator.CompletedChangesCount : " + replicator.CompletedChangesCount +
-                        " > replicator.ChangesCount : " + replicator.ChangesCount;
-                    Log.W(Tag, msgStr);
-                }
-
-                if (!replicator.IsRunning)
-                {
-                    this.replicationFinished = true;
-                    string msg = "ReplicationFinishedObserver.changed called, set replicationFinished to true";
-                    Log.D(Tag, msg);
-                    this.doneSignal.CountDown();
-                    System.Threading.Thread.Sleep(500);
-                }
-                else
-                {
-                    string msg = string.Format("ReplicationFinishedObserver.changed called, but replicator still running, so ignore it");
-                    Log.D(ReplicationTest.Tag, msg);
-                }
-            }
-
-            internal virtual bool IsReplicationFinished()
-            {
-                return this.replicationFinished;
-            }
-        }
-
         private void RunReplication(Replication replication)
         {
             var replicationDoneSignal = new CountDownLatch(1);

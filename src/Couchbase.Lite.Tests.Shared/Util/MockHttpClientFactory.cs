@@ -41,14 +41,12 @@
 //
     
 using System;
+using System.Collections.Generic;
+using System.IO;
 using System.Net;
 using System.Net.Http;
-using System.Collections.Generic;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
-using System.Collections.Generic;
-using System.Net;
-using System.IO;
 
 namespace Couchbase.Lite.Tests
 {
