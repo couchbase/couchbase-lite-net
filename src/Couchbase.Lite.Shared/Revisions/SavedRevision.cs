@@ -105,6 +105,11 @@ namespace Couchbase.Lite {
             }
         }
 
+
+        public string ParentRevisionID {
+            get;
+            set;
+        }
     #endregion
 
     #region Instance Members

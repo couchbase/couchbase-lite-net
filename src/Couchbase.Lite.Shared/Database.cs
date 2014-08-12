@@ -1185,7 +1185,7 @@ PRAGMA user_version = 3;";
                         }
 
                         // Insert it:
-                        sequence = InsertRevision(newRev, docNumericID, sequence, current, data);
+                        sequence = InsertRevision(newRev, docNumericID, sequence, current, (GetAttachmentsFromRevision(newRev).Count > 0), data);
                         if (sequence <= 0)
                         {
                             throw new CouchbaseLiteException(StatusCode.InternalServerError);
@@ -3072,19 +3072,7 @@ PRAGMA user_version = 3;";
                         var msg = string.Format("No existing revision found with doc id: {0}", docId);
                         throw new CouchbaseLiteException(msg, StatusCode.NotFound);
                     }
-                    var args = new [] { Convert.ToString(docNumericID), prevRevId };
-                    var additionalWhereClause = String.Empty;
-                    if (!allowConflict)
-                    {
-                        additionalWhereClause = "AND current=1";
-                    }
-                    cursor = StorageEngine.RawQuery(
-                        "SELECT sequence FROM revs WHERE doc_id=? AND revid=? "
-                        + additionalWhereClause + " LIMIT 1", args);
-                    if (cursor.MoveToNext())
-                    {
-                        parentSequence = cursor.GetLong(0);
-                    }
+                    parentSequence = GetSequenceOfDocument(docNumericID, prevRevId, !allowConflict);
                     if (parentSequence == 0)
                     {
                         // Not found: either a 404 or a 409, depending on whether there is any current revision
@@ -3103,14 +3091,10 @@ PRAGMA user_version = 3;";
                     if (_validations != null && _validations.Count > 0)
                     {
                         // Fetch the previous revision and validate the new one against it:
+                        var oldRevCopy = oldRev.CopyWithDocID(oldRev.GetDocId(), null);
                         var prevRev = new RevisionInternal(docId, prevRevId, false, this);
-                        ValidateRevision(oldRev, prevRev);
+                        ValidateRevision(oldRevCopy, prevRev, prevRevId);
                     }
-                    // Make replaced rev non-current:
-                    var updateContent = new ContentValues();
-                    updateContent["current"] = 0;
-
-                    StorageEngine.Update("revs", updateContent, "sequence=" + parentSequence, null);
                 }
                 else
                 {
@@ -3128,7 +3112,7 @@ PRAGMA user_version = 3;";
                         }
                     }
                     // Validate:
-                    ValidateRevision(oldRev, null);
+                    ValidateRevision(oldRev, null, null);
                     if (docId != null)
                     {
                         // Inserting first revision, with docID given (PUT):
@@ -3174,34 +3158,50 @@ PRAGMA user_version = 3;";
                 // (b) a conflict is created by adding a non-deletion child of a non-winning rev.
                 inConflict = wasConflicted 
                           || (!deleted && prevRevId != null && oldWinningRevID != null && !prevRevId.Equals(oldWinningRevID));
-                // PART II: In which insertion occurs...
+                // PART II: In which we prepare for insertion...
                 // Get the attachments:
                 var attachments = GetAttachmentsFromRevision(oldRev);
                 // Bump the revID and update the JSON:
-                var newRevId = GenerateNextRevisionID(prevRevId);
-                IEnumerable<byte> data = null;
+                IList<byte> json = null;
 
 
-                if(oldRev.GetProperties() != null && oldRev.GetProperties().Any()) {
-                    data = EncodeDocumentJSON(oldRev);
-                    if (data == null)
+                if(!oldRev.IsDeleted()) //oldRev.GetProperties() != null && oldRev.GetProperties().Any())
+                {
+                    json = EncodeDocumentJSON(oldRev).ToList();
+                    if (json == null)
                     {
                         // bad or missing json
                         throw new CouchbaseLiteException(StatusCode.BadRequest);
                     }
+                    if (json.Count() == 2 && json[0] == '{' && json[1] == '}')
+                    {
+                        json = null;
+                    }
                 }
                 else 
                 {
-                    data = Encoding.UTF8.GetBytes("{}"); // NOTE.ZJG: Confirm w/ Traun. This prevents a null reference exception in call to InsertRevision below.
+                    json = Encoding.UTF8.GetBytes("{}"); // NOTE.ZJG: Confirm w/ Traun. This prevents a null reference exception in call to InsertRevision below.
                 }
-
+                var newRevId = GenerateIDForRevision(oldRev, (byte[])json, attachments, prevRevId);
                 newRev = oldRev.CopyWithDocID(docId, newRevId);
                 StubOutAttachmentsInRevision(attachments, newRev);
                 // Now insert the rev itself:
-                var newSequence = InsertRevision(newRev, docNumericID, parentSequence, true, data);
+                var newSequence = InsertRevision(newRev, docNumericID, parentSequence, true, (attachments.Count > 0), json);
                 if (newSequence == 0)
                 {
                     return null;
+                }
+                // Make replaced rev non-current:
+                try
+                {
+                    var args = new ContentValues();
+                    args["current"] = 0;
+                    StorageEngine.Update("revs", args, "sequence=?", new[] { parentSequence.ToString() });
+                }
+                catch (SQLException e)
+                {
+                    Log.E(Database.Tag, "Error setting parent rev non-current", e);
+                    throw new CouchbaseLiteException(StatusCode.InternalServerError);
                 }
                 // Store any attachments:
                 if (attachments != null)
@@ -3341,8 +3341,8 @@ PRAGMA user_version = 3;";
                         outgoingChanges.Add(change);
                     }
                     _changesToNotify.Clear();
-
-                    Boolean isExternal = false;
+                    // TODO: change this to match iOS and call cachedDocumentWithID
+                    var isExternal = false;
                     foreach (var change in outgoingChanges)
                     {
                         var document = GetDocument(change.DocumentId);
@@ -3568,7 +3568,7 @@ PRAGMA user_version = 3;";
             }
         }
 
-        internal Int64 InsertRevision(RevisionInternal rev, long docNumericID, long parentSequence, Boolean current, IEnumerable<byte> data)
+        internal Int64 InsertRevision(RevisionInternal rev, long docNumericID, long parentSequence, bool current, bool hasAttachments, IEnumerable<byte> data)
         {
             var rowId = 0L;
             try
@@ -3582,11 +3582,11 @@ PRAGMA user_version = 3;";
                 }
 
                 args["current"] = current;
-                args.Put("deleted", rev.IsDeleted());
-
+                args["deleted"] = rev.IsDeleted();
+                args["no_attachments"] = !hasAttachments;
                 if (data != null)
                 {
-                    args.Put("json", data.ToArray());
+                    args["json"] = data.ToArray();
                 }
 
                 rowId = StorageEngine.Insert("revs", null, args);
@@ -3805,10 +3805,13 @@ PRAGMA user_version = 3;";
             {
                 return null;
             }
+            var specialKeysToLeave = new[] { "_removed", "_replication_id", "_replication_state", "_replication_state_time" };
+
             // Don't allow any "_"-prefixed keys. Known ones we'll ignore, unknown ones are an error.
             var properties = new Dictionary<String, Object>(origProps.Count);
             foreach (var key in origProps.Keys)
             {
+                var shouldAdd = false;
                 if (key.StartsWith("_", StringComparison.InvariantCultureIgnoreCase))
                 {
                     if (!KnownSpecialKeys.Contains(key))
@@ -3816,8 +3819,16 @@ PRAGMA user_version = 3;";
                         Log.E(Tag, "Database: Invalid top-level key '" + key + "' in document to be inserted");
                         return null;
                     }
+                    if (specialKeysToLeave.Contains(key))
+                    {
+                        shouldAdd = true;
+                    }
                 }
                 else
+                {
+                    shouldAdd = true;
+                }
+                if (shouldAdd)
                 {
                     properties.Put(key, origProps.Get(key));
                 }
@@ -3900,8 +3911,7 @@ PRAGMA user_version = 3;";
                         var revPos = Convert.ToInt64(attachInfo.Get("revpos"));
                         if (revPos <= 0)
                         {
-                            throw new CouchbaseLiteException("Invalid revpos: " + revPos, StatusCode.BadAttachment
-                                                            );
+                            throw new CouchbaseLiteException("Invalid revpos: " + revPos, StatusCode.BadAttachment);
                         }
 
                         continue;
@@ -3913,7 +3923,7 @@ PRAGMA user_version = 3;";
                 {
                     if (Runtime.EqualsIgnoreCase(encodingStr, "gzip"))
                     {
-                        attachment.SetEncoding(AttachmentInternal.AttachmentEncoding.AttachmentEncodingGZIP
+                        attachment.SetEncoding(AttachmentEncoding.AttachmentEncodingGZIP
                                               );
                     }
                     else
@@ -3932,30 +3942,76 @@ PRAGMA user_version = 3;";
                     var revpos = Convert.ToInt32(attachInfo.Get("revpos"));
                     attachment.SetRevpos(revpos);
                 }
-                else
-                {
-                    attachment.SetRevpos(1);
-                }
                 attachments[name] = attachment;
             }
             return attachments;
         }
 
-        internal String GenerateNextRevisionID(string revisionId)
+        internal String GenerateIDForRevision(RevisionInternal rev, byte[] json, IDictionary<string, AttachmentInternal> attachments, string previousRevisionId)
         {
+            MessageDigest md5Digest;
+
             // Revision IDs have a generation count, a hyphen, and a UUID.
-            var generation = 0;
-            if (revisionId != null)
+            int generation = 0;
+            if (previousRevisionId != null)
             {
-                generation = RevisionInternal.GenerationFromRevID(revisionId);
+                generation = RevisionInternal.GenerationFromRevID(previousRevisionId);
                 if (generation == 0)
                 {
                     return null;
                 }
             }
-            var digest = Misc.TDCreateUUID();
-            // TODO: Generate canonical digest of body
-            return Sharpen.Extensions.ToString(generation + 1) + "-" + digest;
+
+            // Generate a digest for this revision based on the previous revision ID, document JSON,
+            // and attachment digests. This doesn't need to be secure; we just need to ensure that this
+            // code consistently generates the same ID given equivalent revisions.
+            try
+            {
+                md5Digest = MessageDigest.GetInstance("MD5");
+            }
+            catch (NoSuchAlgorithmException e)
+            {
+                throw new RuntimeException(e);
+            }
+
+            var length = 0;
+            if (previousRevisionId != null)
+            {
+                var prevIDUTF8 = Encoding.UTF8.GetBytes(previousRevisionId);
+                length = prevIDUTF8.Length;
+            }
+
+            if (length > unchecked((0xFF)))
+            {
+                return null;
+            }
+
+            var lengthByte = unchecked((byte)(length & unchecked((0xFF))));
+            var lengthBytes = new[] { lengthByte };
+            md5Digest.Update(lengthBytes);
+
+            var isDeleted = ((rev.IsDeleted()) ? 1 : 0);
+            var deletedByte = new[] { unchecked((byte)isDeleted) };
+            md5Digest.Update(deletedByte);
+
+            var attachmentKeys = new List<String>(attachments.Keys);
+            attachmentKeys.Sort();
+
+            foreach (string key in attachmentKeys)
+            {
+                var attachment = attachments.Get(key);
+                md5Digest.Update(attachment.GetBlobKey().GetBytes());
+            }
+
+            if (json != null)
+            {
+                md5Digest.Update(json);
+            }
+
+            var md5DigestResult = md5Digest.Digest();
+            var digestAsHex = BitConverter.ToString(md5DigestResult).Replace("-", String.Empty);
+            int generationIncremented = generation + 1;
+            return string.Format("{0}-{1}", generationIncremented, digestAsHex);
         }
 
         public IList<String> GetPossibleAncestorRevisionIDs(RevisionInternal rev, int limit, Boolean hasAttachment)
@@ -4128,17 +4184,122 @@ PRAGMA user_version = 3;";
             return id [0] != '_' || id.StartsWith ("_design/", StringComparison.InvariantCultureIgnoreCase);
         }
 
+        /// <summary>Updates or deletes an attachment, creating a new document revision in the process.
+        ///     </summary>
+        /// <remarks>
+        /// Updates or deletes an attachment, creating a new document revision in the process.
+        /// Used by the PUT / DELETE methods called on attachment URLs.
+        /// </remarks>
+        /// <exclude></exclude>
+        /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
+        internal RevisionInternal UpdateAttachment(string filename, BlobStoreWriter body, string contentType, AttachmentEncoding encoding, string docID, string oldRevID)
+        {
+            var isSuccessful = false;
+            if (String.IsNullOrEmpty (filename) || (body != null && contentType == null) || (oldRevID != null && docID == null) || (body != null && docID == null))
+            {
+                throw new CouchbaseLiteException(StatusCode.BadRequest);
+            }
+
+            BeginTransaction();
+
+            try
+            {
+                var oldRev = new RevisionInternal(docID, oldRevID, false, this);
+                if (oldRevID != null)
+                {
+                    // Load existing revision if this is a replacement:
+                    try
+                    {
+                        LoadRevisionBody(oldRev, DocumentContentOptions.None);
+                    }
+                    catch (CouchbaseLiteException e)
+                    {
+                        if (e.GetCBLStatus().GetCode() == StatusCode.NotFound && ExistsDocumentWithIDAndRev(docID, null))
+                        {
+                            throw new CouchbaseLiteException(StatusCode.Conflict);
+                        }
+                    }
+                }
+                else
+                {
+                    // If this creates a new doc, it needs a body:
+                    oldRev.SetBody(new Body(new Dictionary<string, object>()));
+                }
+                // Update the _attachments dictionary:
+                var oldRevProps = oldRev.GetProperties();
+                IDictionary<string, object> attachments = null;
+                if (oldRevProps != null)
+                {
+                    attachments = (IDictionary<string, object>)oldRevProps.Get("_attachments");
+                }
+                if (attachments == null)
+                {
+                    attachments = new Dictionary<string, object>();
+                }
+                if (body != null)
+                {
+                    var key = body.GetBlobKey();
+                    var digest = key.Base64Digest();
+
+                    var blobsByDigest = new Dictionary<string, BlobStoreWriter>();
+                    blobsByDigest.Put(digest, body);
+
+                    RememberAttachmentWritersForDigests(blobsByDigest);
+
+                    var encodingName = (encoding == AttachmentEncoding.AttachmentEncodingGZIP) ? "gzip" : null;
+                    var dict = new Dictionary<string, object>();
+                    dict.Put("digest", digest);
+                    dict.Put("length", body.GetLength());
+                    dict.Put("follows", true);
+                    dict.Put("content_type", contentType);
+                    dict.Put("encoding", encodingName);
+
+                    attachments.Put(filename, dict);
+                }
+                else
+                {
+                    if (oldRevID != null && !attachments.ContainsKey(filename))
+                    {
+                        throw new CouchbaseLiteException(StatusCode.NotFound);
+                    }
+                    attachments.Remove(filename);
+                }
+
+                var properties = oldRev.GetProperties();
+                properties.Put("_attachments", attachments);
+                oldRev.SetProperties(properties);
+
+                // Create a new revision:
+                var putStatus = new Status();
+                var newRev = PutRevision(oldRev, oldRevID, false, putStatus);
+
+                isSuccessful = true;
+
+                return newRev;
+            }
+            catch (SQLException e)
+            {
+                Log.E(Tag, "Error updating attachment", e);
+                throw new CouchbaseLiteException(StatusCode.InternalServerError);
+            }
+            finally
+            {
+                EndTransaction(isSuccessful);
+            }
+        }
+
         /// <summary>VALIDATION</summary>
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
-        internal void ValidateRevision(RevisionInternal newRev, RevisionInternal oldRev)
+        internal void ValidateRevision(RevisionInternal newRev, RevisionInternal oldRev, String parentRevId)
         {
             if (_validations == null || _validations.Count == 0)
             {
                 return;
             }
 
-            var context = new ValidationContext(this, oldRev, newRev);
             var publicRev = new SavedRevision(this, newRev);
+            publicRev.ParentRevisionID = parentRevId;
+            var context = new ValidationContext(this, oldRev, newRev);
             foreach (var validationName in _validations.Keys)
             {
                 var validation = GetValidation(validationName);

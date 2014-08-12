@@ -46,16 +46,16 @@ using Sharpen;
 
 namespace Couchbase.Lite.Internal
 {
+    internal enum AttachmentEncoding
+    {
+        AttachmentEncodingNone,
+        AttachmentEncodingGZIP
+    }
+
 	/// <summary>A simple container for attachment metadata.</summary>
 	/// <remarks>A simple container for attachment metadata.</remarks>
-	public class AttachmentInternal
+	internal class AttachmentInternal
 	{
-		public enum AttachmentEncoding
-		{
-			AttachmentEncodingNone,
-			AttachmentEncodingGZIP
-		}
-
 		private string name;
 
 		private string contentType;
@@ -66,7 +66,7 @@ namespace Couchbase.Lite.Internal
 
 		private long encodedLength;
 
-		private AttachmentInternal.AttachmentEncoding encoding;
+		private AttachmentEncoding encoding;
 
 		private int revpos;
 
@@ -78,7 +78,7 @@ namespace Couchbase.Lite.Internal
 
 		public virtual bool IsValid()
 		{
-			if (encoding != AttachmentInternal.AttachmentEncoding.AttachmentEncodingNone)
+			if (encoding != AttachmentEncoding.AttachmentEncodingNone)
 			{
 				if (encodedLength == 0 && length > 0)
 				{
@@ -139,12 +139,12 @@ namespace Couchbase.Lite.Internal
 			this.encodedLength = encodedLength;
 		}
 
-		public virtual AttachmentInternal.AttachmentEncoding GetEncoding()
+		public virtual AttachmentEncoding GetEncoding()
 		{
 			return encoding;
 		}
 
-		public virtual void SetEncoding(AttachmentInternal.AttachmentEncoding encoding)
+		public virtual void SetEncoding(AttachmentEncoding encoding)
 		{
 			this.encoding = encoding;
 		}
