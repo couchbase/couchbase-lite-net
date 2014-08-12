@@ -54,6 +54,33 @@ namespace Couchbase.Lite
 {
     public class DatabaseTest : LiteTestCase
     {
+        const String TooLongName = "a11111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111110";
+
+        [Test]
+        public void TestValidDatabaseNames([Values("foo", "try1", "foo-bar", "goofball99", TooLongName)] String testName)
+        {
+            // Arrange.
+            // Act.
+            if (testName.Length == 240) {
+                testName = testName.Trim('0');
+            }
+            var result = Manager.IsValidDatabaseName(testName);
+
+            // Assert.
+            Assert.IsTrue(result);
+        }
+
+        [Test]
+        public void TestInvalidDatabaseNames([Values("Foo", "1database", "", "foo;", TooLongName)] String testName)
+        {
+            // Arrange.
+            // Act.
+            var result = Manager.IsValidDatabaseName(testName);
+
+            // Assert.
+            Assert.IsFalse(result);
+        }
+
         [Test]
         public void TestPruneRevsToMaxDepth()
         {
