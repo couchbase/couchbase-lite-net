@@ -57,6 +57,7 @@ using Sharpen;
 using System.Collections.Concurrent;
 using System.Collections;
 using System.Collections.ObjectModel;
+using System.Net;
 
 namespace Couchbase.Lite 
 {
@@ -134,6 +135,17 @@ namespace Couchbase.Lite
     
     #region Instance Members
         //Properties
+        public CookieContainer PersistentCookieStore
+        {
+            get
+            {
+                if (_persistentCookieStore == null)
+                {
+                    _persistentCookieStore = new CookieStore(System.IO.Path.GetDirectoryName(Path));
+                }
+                return _persistentCookieStore;
+            }
+        }
 
         /// <summary>
         /// Gets the <see cref="Couchbase.Lite.Database"/> name.
@@ -3182,7 +3194,7 @@ PRAGMA user_version = 3;";
                 {
                     json = Encoding.UTF8.GetBytes("{}"); // NOTE.ZJG: Confirm w/ Traun. This prevents a null reference exception in call to InsertRevision below.
                 }
-                var newRevId = GenerateIDForRevision(oldRev, (byte[])json, attachments, prevRevId);
+                var newRevId = GenerateIDForRevision(oldRev, json.ToArray(), attachments, prevRevId);
                 newRev = oldRev.CopyWithDocID(docId, newRevId);
                 StubOutAttachmentsInRevision(attachments, newRev);
                 // Now insert the rev itself:
@@ -4135,6 +4147,7 @@ PRAGMA user_version = 3;";
             return GetDocumentWithIDAndRev(docId, revId, DocumentContentOptions.NoBody) != null;
         }
 
+        /// <exception cref="Couchbase.Lite.Storage.SQLException"></exception>
         internal Int32 FindMissingRevisions(RevisionList touchRevs)
         {
             var numRevisionsRemoved = 0;
@@ -4328,13 +4341,15 @@ PRAGMA user_version = 3;";
             return true;
         }
 
-        internal String AttachmentStorePath {
-            get {
+        internal String AttachmentStorePath 
+        {
+            get 
+            {
                 var attachmentStorePath = Path;
                 int lastDotPosition = attachmentStorePath.LastIndexOf(".", StringComparison.InvariantCultureIgnoreCase);
                 if (lastDotPosition > 0)
                 {
-                    attachmentStorePath = Runtime.Substring(attachmentStorePath, 0, lastDotPosition);
+                    attachmentStorePath = attachmentStorePath.Substring(0, lastDotPosition);
                 }
                 attachmentStorePath = attachmentStorePath + FilePath.separator + "attachments";
                 return attachmentStorePath;
@@ -4354,7 +4369,7 @@ PRAGMA user_version = 3;";
             // Try to open the storage engine and stop if we fail.
             if (StorageEngine == null || !StorageEngine.Open(Path))
             {
-                string msg = "Unable to create a storage engine, fatal error";
+                var msg = "Unable to create a storage engine, fatal error";
                 Log.E(Tag, msg);
                 throw new CouchbaseLiteException(msg);
             }

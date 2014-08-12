@@ -66,7 +66,7 @@ namespace Couchbase.Lite.Tests
 
         public MockHttpClientFactory(DirectoryInfo cookieStoreDirectory)
         {
-            cookieStore = new CookieStore(cookieStoreDirectory);
+            cookieStore = new CookieStore(cookieStoreDirectory.FullName);
             HttpHandler = new MockHttpRequestHandler();
             HttpHandler.CookieContainer = cookieStore;
             HttpHandler.UseCookies = true;

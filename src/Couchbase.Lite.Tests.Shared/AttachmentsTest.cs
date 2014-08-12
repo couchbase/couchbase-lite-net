@@ -115,7 +115,8 @@ namespace Couchbase.Lite
             var gotRev1 = database.GetDocumentWithIDAndRev(rev1.GetDocId(), 
                 rev1.GetRevId(), DocumentContentOptions.None);
             var gotRev1Properties = (IDictionary<string, object>)gotRev1.GetProperties();
-            var gotRev1AttachmentDict = ((JObject)gotRev1Properties.Get("_attachments"))
+            var gotRev1AttachmentDict = ((JObject)gotRev1Properties
+                .Get("_attachments"))
                 .ToObject<Dictionary<string, object>>();
             Assert.AreEqual(1, gotRev1AttachmentDict.Count);
             AssertPropertiesAreEqual(

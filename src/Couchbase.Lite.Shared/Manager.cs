@@ -162,7 +162,7 @@ namespace Couchbase.Lite
             workExecutor = new TaskFactory(new SingleThreadTaskScheduler());
             Log.D(Tag, "New replication uses a scheduler with a max concurrency level of {0}".Fmt(workExecutor.Scheduler.MaximumConcurrencyLevel));
 
-            SharedCookieStore = new CookieStore(this.directoryFile);
+            SharedCookieStore = new CookieStore(this.directoryFile.FullName);
         }
 
     #endregion
