@@ -213,7 +213,7 @@ namespace Couchbase.Lite.Internal
 
         public RevisionInternal CopyWithDocID(String docId, String revId)
 		{
-			System.Diagnostics.Debug.Assert(((docId != null) && (revId != null)));
+			System.Diagnostics.Debug.Assert((docId != null));
 			System.Diagnostics.Debug.Assert(((this.docId == null) || (this.docId.Equals(docId))));
 
             var result = new RevisionInternal(docId, revId, deleted, database);
@@ -353,9 +353,8 @@ namespace Couchbase.Lite.Internal
             {
                 foreach(var kvp in attachments)
                 {
-                    IDictionary<string, object> attachment = 
-                        new Dictionary<string, object>(kvp.Value.AsDictionary<string, object>());
-                    IDictionary<string, object> editedAttachment = mutator(kvp.Key, attachment);
+                    var attachment = new Dictionary<string, object>(kvp.Value.AsDictionary<string, object>());
+                    var editedAttachment = mutator(kvp.Key, attachment);
                     if (editedAttachment == null)
                     {
                         return false;
