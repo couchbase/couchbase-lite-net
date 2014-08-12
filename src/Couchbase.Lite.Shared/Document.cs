@@ -92,7 +92,7 @@ namespace Couchbase.Lite {
         /// Gets if the <see cref="Couchbase.Lite.Document"/> is deleted.
         /// </summary>
         /// <value><c>true</c> if deleted; otherwise, <c>false</c>.</value>
-        public Boolean Deleted { get { return CurrentRevision.IsDeletion; } }
+        public Boolean Deleted { get { return CurrentRevision == null && LeafRevisions.Any (); } }
 
         /// <summary>
         /// If known, gets the Id of the current <see cref="Couchbase.Lite.Revision"/>, otherwise null.
@@ -491,7 +491,9 @@ namespace Couchbase.Lite {
             // current revision didn't change
             if (currentRevision != null && !rev.GetRevId().Equals(currentRevision.Id))
             {
-                currentRevision = new SavedRevision(this, rev);
+                currentRevision = rev.IsDeleted() 
+                    ? null 
+                    : new SavedRevision(this, rev);
             }
 
             var args = new DocumentChangeEventArgs {
