@@ -56,23 +56,23 @@ using Couchbase.Lite.Tests;
 namespace Couchbase.Lite
 {
     [TestFixture]
-	public abstract class LiteTestCase
-	{
-		public const string Tag = "LiteTestCase";
+    public abstract class LiteTestCase
+    {
+        public const string Tag = "LiteTestCase";
 
         public const string FacebookAppId = "719417398131095";
 
-		protected internal ObjectWriter mapper = new ObjectWriter();
+        protected internal ObjectWriter mapper = new ObjectWriter();
 
-		protected internal Manager manager = null;
+        protected internal Manager manager = null;
 
-		protected internal Database database = null;
+        protected internal Database database = null;
 
-		protected internal string DefaultTestDb = "cblitetest";
+        protected internal string DefaultTestDb = "cblitetest";
 
         [SetUp]
-		protected void SetUp()
-		{
+        protected void SetUp()
+        {
             Log.V(Tag, "SetUp");
 #if !__ANDROID__ && !__IOS__
 //            Trace.Listeners.Clear();
@@ -80,34 +80,34 @@ namespace Couchbase.Lite
 #endif
             ManagerOptions.Default.CallbackScheduler = new SingleThreadTaskScheduler();
             LoadCustomProperties();
-			StartCBLite();
+            StartCBLite();
             StartDatabase();
-		}
+        }
 
-		protected internal virtual Stream GetAsset(string name)
-		{
+        protected Stream GetAsset(string name)
+        {
             var assetPath = System.Reflection.Assembly.GetExecutingAssembly().GetName().Name + ".Assets." + name;
             Log.D(Tag, "Fetching assembly resource: " + assetPath);
             return this.GetType().GetResourceAsStream(assetPath);
-		}
+        }
 
-        protected internal virtual DirectoryInfo GetRootDirectory()
-		{
+        protected DirectoryInfo GetRootDirectory()
+        {
             var rootDirectoryPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
             var rootDirectory = new DirectoryInfo(Path.Combine(rootDirectoryPath, "couchbase/tests/files"));
-			return rootDirectory;
-		}
+            return rootDirectory;
+        }
 
-		protected internal virtual string GetServerPath()
-		{
+        protected string GetServerPath()
+        {
             var filesDir = GetRootDirectory().FullName;
-			return filesDir;
-		}
+            return filesDir;
+        }
 
-		/// <exception cref="System.IO.IOException"></exception>
-		protected internal virtual void StartCBLite()
-		{
-			string serverPath = GetServerPath();
+        /// <exception cref="System.IO.IOException"></exception>
+        protected void StartCBLite()
+        {
+            string serverPath = GetServerPath();
             var path = new DirectoryInfo(serverPath);
 
             if (path.Exists)
@@ -117,35 +117,35 @@ namespace Couchbase.Lite
 
             var testPath = path.CreateSubdirectory("tests");
             manager = new Manager(testPath, Manager.DefaultOptions);
-		}
+        }
 
-		protected internal virtual void StopCBLite()
-		{
-			if (manager != null)
-			{
-				manager.Close();
-			}
-		}
+        protected void StopCBLite()
+        {
+            if (manager != null)
+            {
+                manager.Close();
+            }
+        }
 
-		protected internal virtual Database StartDatabase()
-		{
-			database = EnsureEmptyDatabase(DefaultTestDb);
-			return database;
-		}
+        protected Database StartDatabase()
+        {
+            database = EnsureEmptyDatabase(DefaultTestDb);
+            return database;
+        }
 
-		protected internal virtual void StopDatabase()
-		{
-			if (database != null)
-			{
-				database.Close();
-			}
-		}
+        protected void StopDatabase()
+        {
+            if (database != null)
+            {
+                database.Close();
+            }
+        }
 
-		protected internal virtual Database EnsureEmptyDatabase(string dbName)
-		{
-			Database db = manager.GetExistingDatabase(dbName);
-			if (db != null)
-			{
+        protected Database EnsureEmptyDatabase(string dbName)
+        {
+            Database db = manager.GetExistingDatabase(dbName);
+            if (db != null)
+            {
                 var status = false;;
 
                 try {
@@ -155,204 +155,209 @@ namespace Couchbase.Lite
                     Log.E(Tag, "Cannot delete database " + e.Message);
                 }
 
-				NUnit.Framework.Assert.IsTrue(status);
+                NUnit.Framework.Assert.IsTrue(status);
             }
             db = manager.GetDatabase(dbName);
-			return db;
-		}
+            return db;
+        }
 
-		/// <exception cref="System.IO.IOException"></exception>
-		protected internal virtual void LoadCustomProperties()
-		{
+        /// <exception cref="System.IO.IOException"></exception>
+        protected void LoadCustomProperties()
+        {
             var systemProperties = Runtime.Properties;
-			InputStream mainProperties = GetAsset("test.properties");
-			if (mainProperties != null)
-			{
+            InputStream mainProperties = GetAsset("test.properties");
+            if (mainProperties != null)
+            {
                 systemProperties.Load(mainProperties);
-			}
-			try
-			{
+            }
+            try
+            {
                 InputStream localProperties = GetAsset("local-test.properties");
-				if (localProperties != null)
-				{
+                if (localProperties != null)
+                {
                     systemProperties.Load(localProperties);
-				}
-			}
-			catch (IOException)
-			{
-				Log.W(Tag, "Error trying to read from local-test.properties, does this file exist?");
-			}
-		}
+                }
+            }
+            catch (IOException)
+            {
+                Log.W(Tag, "Error trying to read from local-test.properties, does this file exist?");
+            }
+        }
 
-		protected internal virtual string GetReplicationProtocol()
-		{
-			return Runtime.GetProperty("replicationProtocol");
-		}
+        protected string GetReplicationProtocol()
+        {
+            return Runtime.GetProperty("replicationProtocol");
+        }
 
-		protected internal virtual string GetReplicationServer()
-		{
-			return Runtime.GetProperty("replicationServer");
-		}
+        protected string GetReplicationServer()
+        {
+            return Runtime.GetProperty("replicationServer");
+        }
 
-		protected internal virtual int GetReplicationPort()
-		{
-			return System.Convert.ToInt32(Runtime.GetProperty("replicationPort"));
-		}
+        protected int GetReplicationPort()
+        {
+            return System.Convert.ToInt32(Runtime.GetProperty("replicationPort"));
+        }
 
-        protected internal virtual int GetReplicationAdminPort()
+        protected int GetReplicationAdminPort()
         {
             return System.Convert.ToInt32(Runtime.GetProperty("replicationAdminPort"));
         }
 
-		protected internal virtual string GetReplicationAdminUser()
-		{
-			return Runtime.GetProperty("replicationAdminUser");
-		}
+        protected string GetReplicationAdminUser()
+        {
+            return Runtime.GetProperty("replicationAdminUser");
+        }
 
-		protected internal virtual string GetReplicationAdminPassword()
-		{
-			return Runtime.GetProperty("replicationAdminPassword");
-		}
+        protected string GetReplicationAdminPassword()
+        {
+            return Runtime.GetProperty("replicationAdminPassword");
+        }
 
-		protected internal virtual string GetReplicationDatabase()
-		{
-			return Runtime.GetProperty("replicationDatabase");
-		}
+        protected string GetReplicationDatabase()
+        {
+            return Runtime.GetProperty("replicationDatabase");
+        }
 
-		protected internal virtual Uri GetReplicationURL()
-		{
+        protected Uri GetReplicationURL()
+        {
             String path = null;
-			try
-			{
+            try
+            {
                 if (GetReplicationAdminUser() != null && GetReplicationAdminUser().Trim().Length > 0)
-				{
+                {
                     path = string.Format("{0}://{1}:{2}@{3}:{4}/{5}", GetReplicationProtocol(), GetReplicationAdminUser
                         (), GetReplicationAdminPassword(), GetReplicationServer(), GetReplicationPort(), 
                         GetReplicationDatabase());
                     return new Uri(path);
-				}
-				else
-				{
+                }
+                else
+                {
                     path = string.Format("{0}://{1}:{2}/{3}", GetReplicationProtocol(), GetReplicationServer
                         (), GetReplicationPort(), GetReplicationDatabase());
                     return new Uri(path);
-				}
-			}
-			catch (UriFormatException e)
-			{
+                }
+            }
+            catch (UriFormatException e)
+            {
                 throw new ArgumentException(String.Format("Invalid replication URL: {0}", path), e);
-			}
-		}
+            }
+        }
 
-		/// <exception cref="System.UriFormatException"></exception>
-		protected internal virtual Uri GetReplicationURLWithoutCredentials()
-		{
+        protected bool IsTestingAgainstSyncGateway()
+        {
+            return GetReplicationPort() == 4984;
+        }
+
+        /// <exception cref="System.UriFormatException"></exception>
+        protected Uri GetReplicationURLWithoutCredentials()
+        {
             return new Uri(string.Format("{0}://{1}:{2}/{3}", GetReplicationProtocol(), GetReplicationServer(), GetReplicationPort(), GetReplicationDatabase()));
-		}
+        }
 
-        protected internal virtual Uri GetReplicationAdminURL()
+        protected Uri GetReplicationAdminURL()
         {
             return new Uri(string.Format("{0}://{1}:{2}/{3}", GetReplicationProtocol(), GetReplicationServer(), GetReplicationAdminPort(), GetReplicationDatabase()));
         }
 
         [TearDown]
         protected void TearDown()
-		{
-			Log.V(Tag, "tearDown");
-			StopDatabase();
-			StopCBLite();
-		}
+        {
+            Log.V(Tag, "tearDown");
+            StopDatabase();
+            StopCBLite();
+        }
 
-		protected internal virtual IDictionary<string, object> UserProperties(IDictionary
-			<string, object> properties)
-		{
+        protected IDictionary<string, object> UserProperties(IDictionary
+            <string, object> properties)
+        {
             var result = new Dictionary<string, object>();
-			foreach (string key in properties.Keys)
-			{
-				if (!key.StartsWith ("_", StringComparison.Ordinal))
-				{
-					result.Put(key, properties[key]);
-				}
-			}
-			return result;
-		}
+            foreach (string key in properties.Keys)
+            {
+                if (!key.StartsWith ("_", StringComparison.Ordinal))
+                {
+                    result.Put(key, properties[key]);
+                }
+            }
+            return result;
+        }
 
-		/// <exception cref="System.IO.IOException"></exception>
-		public virtual IDictionary<string, object> GetReplicationAuthParsedJson()
-		{
-			var authJson = "{\n" + "    \"facebook\" : {\n" + "        \"email\" : \"jchris@couchbase.com\"\n"
-				 + "     }\n" + "   }\n";
+        /// <exception cref="System.IO.IOException"></exception>
+        public virtual IDictionary<string, object> GetReplicationAuthParsedJson()
+        {
+            var authJson = "{\n" + "    \"facebook\" : {\n" + "        \"email\" : \"jchris@couchbase.com\"\n"
+                 + "     }\n" + "   }\n";
             mapper = new ObjectWriter();
             var authProperties = mapper.ReadValue<Dictionary<string, object>>(authJson);
-			return authProperties;
-		}
+            return authProperties;
+        }
 
-		/// <exception cref="System.IO.IOException"></exception>
-		public virtual IDictionary<string, object> GetPushReplicationParsedJson()
-		{
-			IDictionary<string, object> authProperties = GetReplicationAuthParsedJson();
-			IDictionary<string, object> targetProperties = new Dictionary<string, object>();
-			targetProperties.Put("url", GetReplicationURL().ToString());
-			targetProperties["auth"] = authProperties;
-			IDictionary<string, object> properties = new Dictionary<string, object>();
-			properties["source"] = DefaultTestDb;
-			properties["target"] = targetProperties;
-			return properties;
-		}
+        /// <exception cref="System.IO.IOException"></exception>
+        public virtual IDictionary<string, object> GetPushReplicationParsedJson()
+        {
+            IDictionary<string, object> authProperties = GetReplicationAuthParsedJson();
+            IDictionary<string, object> targetProperties = new Dictionary<string, object>();
+            targetProperties.Put("url", GetReplicationURL().ToString());
+            targetProperties["auth"] = authProperties;
+            IDictionary<string, object> properties = new Dictionary<string, object>();
+            properties["source"] = DefaultTestDb;
+            properties["target"] = targetProperties;
+            return properties;
+        }
 
-		/// <exception cref="System.IO.IOException"></exception>
-		public virtual IDictionary<string, object> GetPullReplicationParsedJson()
-		{
-			IDictionary<string, object> authProperties = GetReplicationAuthParsedJson();
-			IDictionary<string, object> sourceProperties = new Dictionary<string, object>();
-			sourceProperties.Put("url", GetReplicationURL().ToString());
-			sourceProperties["auth"] = authProperties;
-			IDictionary<string, object> properties = new Dictionary<string, object>();
-			properties["source"] = sourceProperties;
-			properties["target"] = DefaultTestDb;
-			return properties;
-		}
+        /// <exception cref="System.IO.IOException"></exception>
+        public virtual IDictionary<string, object> GetPullReplicationParsedJson()
+        {
+            IDictionary<string, object> authProperties = GetReplicationAuthParsedJson();
+            IDictionary<string, object> sourceProperties = new Dictionary<string, object>();
+            sourceProperties.Put("url", GetReplicationURL().ToString());
+            sourceProperties["auth"] = authProperties;
+            IDictionary<string, object> properties = new Dictionary<string, object>();
+            properties["source"] = sourceProperties;
+            properties["target"] = DefaultTestDb;
+            return properties;
+        }
 
         internal virtual HttpURLConnection SendRequest(string method, string path, 
             IDictionary<string, string> headers, IDictionary<string, object> bodyObj)
-		{
-			try
-			{
+        {
+            try
+            {
                 var url = new Uri(new Uri((string)bodyObj["remote_url"]), path);
                 var conn = url.OpenConnection();
-				conn.SetDoOutput(true);
-				conn.SetRequestMethod(method);
-				if (headers != null)
-				{
-					foreach (string header in headers.Keys)
-					{
-						conn.SetRequestProperty(header, headers[header]);
-					}
-				}
+                conn.SetDoOutput(true);
+                conn.SetRequestMethod(method);
+                if (headers != null)
+                {
+                    foreach (string header in headers.Keys)
+                    {
+                        conn.SetRequestProperty(header, headers[header]);
+                    }
+                }
                 var allProperties = conn.GetRequestProperties();
-				if (bodyObj != null)
-				{
+                if (bodyObj != null)
+                {
                     //conn.SetDoInput(true);
-					var bais = mapper.WriteValueAsBytes(bodyObj);
+                    var bais = mapper.WriteValueAsBytes(bodyObj);
                     conn.SetRequestInputStream(bais);
-				}
+                }
 /*                var router = new Couchbase.Lite.Router.Router(manager, conn);
-				router.Start();
-*/				return conn;
-			}
-			catch (UriFormatException)
-			{
+                router.Start();
+*/              return conn;
+            }
+            catch (UriFormatException)
+            {
                 Assert.Fail();
-			}
-			catch (IOException)
-			{
+            }
+            catch (IOException)
+            {
                 Assert.Fail();
-			}
-			return null;
-		}
+            }
+            return null;
+        }
 
         internal virtual object ParseJSONResponse(HttpURLConnection conn)
-		{
+        {
             Object result = null;
             var stream = conn.GetOutputStream();
             var bytesRead = 0L;
@@ -361,45 +366,45 @@ namespace Couchbase.Lite
             var bytes = stream.ReadAllBytes();
 
             var responseBody = new Body(bytes);
-			if (responseBody != null)
-			{
+            if (responseBody != null)
+            {
                 var json = responseBody.GetJson();
                 String jsonString = null;
-				if (json != null)
-				{
-					jsonString = Sharpen.Runtime.GetStringForBytes(json);
-					try
-					{
-						result = mapper.ReadValue<object>(jsonString);
-					}
-					catch (Exception)
-					{
+                if (json != null)
+                {
+                    jsonString = Sharpen.Runtime.GetStringForBytes(json);
+                    try
+                    {
+                        result = mapper.ReadValue<object>(jsonString);
+                    }
+                    catch (Exception)
+                    {
                         Assert.Fail();
-					}
-				}
-			}
-			return result;
-		}
+                    }
+                }
+            }
+            return result;
+        }
 
-        protected internal virtual object SendBody(string method, string path, IDictionary<string, object> bodyObj
-			, int expectedStatus, object expectedResult)
-		{
+        protected object SendBody(string method, string path, IDictionary<string, object> bodyObj
+            , int expectedStatus, object expectedResult)
+        {
             var conn = SendRequest(method, path, null, bodyObj);
-			object result = ParseJSONResponse(conn);
+            object result = ParseJSONResponse(conn);
             Log.V(Tag, string.Format("{0} {1} --> {2}", method, path, conn.GetResponseCode()));
-			NUnit.Framework.Assert.AreEqual(expectedStatus, conn.GetResponseCode());
-			if (expectedResult != null)
-			{
-				NUnit.Framework.Assert.AreEqual(expectedResult, result);
-			}
-			return result;
-		}
+            NUnit.Framework.Assert.AreEqual(expectedStatus, conn.GetResponseCode());
+            if (expectedResult != null)
+            {
+                NUnit.Framework.Assert.AreEqual(expectedResult, result);
+            }
+            return result;
+        }
 
-        protected internal virtual object Send(string method, string path, HttpStatusCode expectedStatus
-			, object expectedResult)
-		{
+        protected object Send(string method, string path, HttpStatusCode expectedStatus
+            , object expectedResult)
+        {
             return SendBody(method, path, null, (int)expectedStatus, expectedResult);
-		}
+        }
 
         protected internal void CreateDocuments(Database db, int n) {
             for (int i = 0; i < n; i++) {
@@ -491,5 +496,5 @@ namespace Couchbase.Lite
                 }
             }
         }
-	}
+    }
 }
