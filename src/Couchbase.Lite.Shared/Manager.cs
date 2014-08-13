@@ -222,7 +222,12 @@ namespace Couchbase.Lite
             }
 
             databases.Clear();
-            NetworkReachabilityManager.StopListening();
+
+            if (NetworkReachabilityManager != null)
+            {
+                NetworkReachabilityManager.StopListening();
+            }
+
             Log.I(Database.Tag, "Closed " + this);
         }
 
