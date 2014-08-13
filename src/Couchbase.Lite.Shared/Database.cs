@@ -3589,7 +3589,7 @@ PRAGMA user_version = 3;";
                     revPos = Convert.ToInt64(attachment["revpos"]);
                 }
 
-                var includeAttachment = (revPos == 0 || revPos >= minRevPos);
+                var includeAttachment = (revPos == 0 || revPos <= minRevPos);
                 var stubItOut = !includeAttachment && (!attachment.ContainsKey("stub") || (bool)attachment["stub"] == false);
                 var addFollows = includeAttachment && attachmentsFollow && (!attachment.ContainsKey("follows") || (bool)attachment["follows"] == false);
 
