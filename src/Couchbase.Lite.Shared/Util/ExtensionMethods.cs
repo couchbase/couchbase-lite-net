@@ -63,14 +63,14 @@ namespace Couchbase.Lite
                     : (IDictionary<TKey, TValue>)attachmentProps;
         }
 
-		internal static IList<TValue> AsList<TValue>(this object value)
-		{
-			if (value == null)
-				return null;
-			return value is JArray
-				? ((JArray)value).ToObject<IList<TValue>>()
-					: (IList<TValue>)value;
-		}
+        internal static IList<TValue> AsList<TValue>(this object value)
+        {
+            if (value == null)
+                return null;
+            return value is JArray
+                ? ((JArray)value).ToObject<IList<TValue>>()
+                    : (IList<TValue>)value;
+        }
 
         public static IEnumerable ToEnumerable(this IEnumerator enumerator)
         {

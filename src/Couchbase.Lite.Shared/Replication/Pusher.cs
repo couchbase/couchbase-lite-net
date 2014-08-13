@@ -61,7 +61,7 @@ using System.Diagnostics;
 namespace Couchbase.Lite.Replicator
 {
     internal class Pusher : Replication
-	{
+    {
         readonly string Tag = "Pusher";
 
         private bool creatingTarget;
@@ -76,11 +76,11 @@ namespace Couchbase.Lite.Replicator
 
         private long maxPendingSequence;
 
-		/// <summary>Constructor</summary>
+        /// <summary>Constructor</summary>
         public Pusher(Database db, Uri remote, bool continuous, TaskFactory workExecutor) 
         : this(db, remote, continuous, null, workExecutor) { }
 
-		/// <summary>Constructor</summary>
+        /// <summary>Constructor</summary>
         public Pusher(Database db, Uri remote, bool continuous, IHttpClientFactory clientFactory, TaskFactory workExecutor) 
         : base(db, remote, continuous, clientFactory, workExecutor)
         {
@@ -196,7 +196,7 @@ namespace Couchbase.Lite.Replicator
             }
         }
 
-		// prevents stopped() from being called when other tasks finish
+        // prevents stopped() from being called when other tasks finish
         public override void Stop()
         {
             StopObserving();
@@ -279,7 +279,7 @@ namespace Couchbase.Lite.Replicator
         }
 
         internal override void ProcessInbox(RevisionList revChanges)
-		{
+        {
             // Generate a set of doc/rev IDs in the JSON format that _revs_diff wants:
             // <http://wiki.apache.org/couchdb/HttpPostRevsDiff>
             var diffs = new Dictionary<String, IList<String>>();
@@ -362,7 +362,7 @@ namespace Couchbase.Lite.Replicator
                                 IList<string> possibleAncestors = null;
                                 if (revResults.ContainsKey("possible_ancestors"))
                                 {
-									possibleAncestors = revResults["possible_ancestors"].AsList<string>();
+                                    possibleAncestors = revResults["possible_ancestors"].AsList<string>();
                                 }
 
                                 properties = new Dictionary<string, object>(populatedRev.GetProperties());
