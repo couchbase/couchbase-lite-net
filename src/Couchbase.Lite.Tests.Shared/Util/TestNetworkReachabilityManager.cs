@@ -1,22 +1,21 @@
 ﻿using System;
+using Couchbase.Lite.Shared;
 
-namespace Couchbase.Lite.Tests.Shared
+namespace Couchbase.Lite.Tests
 {
-    internal class TestNetworkReachabilityManager : INetworkReachabilityManager
+    internal class TestNetworkReachabilityManager : NetworkReachabilityManager
     {
         #region INetworkReachabilityManager implementation
 
-        public event EventHandler<NetworkReachabilityChangeEventArgs> Changed;
+        public override void StartListening()
+        {
+        }
+
+        public override void StopListening()
+        {
+        }
 
         #endregion
-
-        public virtual void StartListening()
-        {
-        }
-
-        public virtual void StopListening()
-        {
-        }
     }
 }
 

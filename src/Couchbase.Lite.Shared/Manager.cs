@@ -92,7 +92,7 @@ namespace Couchbase.Lite
         /// </summary>
         /// <value>The shared instance.</value>
         // FIXME: SharedInstance lifecycle is undefined, so returning default manager for now.
-                public static Manager SharedInstance { get { return sharedManager ?? (sharedManager = new Manager(defaultDirectory, ManagerOptions.Default)); } }
+        public static Manager SharedInstance { get { return sharedManager ?? (sharedManager = new Manager(defaultDirectory, ManagerOptions.Default)); } }
 
         //Methods
 
@@ -222,7 +222,7 @@ namespace Couchbase.Lite
             }
 
             databases.Clear();
-
+            NetworkReachabilityManager.StopListening();
             Log.I(Database.Tag, "Closed " + this);
         }
 

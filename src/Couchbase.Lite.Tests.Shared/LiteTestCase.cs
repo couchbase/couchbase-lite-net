@@ -626,7 +626,7 @@ namespace Couchbase.Lite
         public static SavedRevision CreateRevisionWithRandomProps(SavedRevision createRevFrom, bool allowConflict)
         {
             var properties = new Dictionary<string, object>();
-            properties.Put(Guid.NewGuid().ToString(), "val");
+            properties.Put(Misc.CreateGUID(), "val");
 
             var unsavedRevision = createRevFrom.CreateRevision();
             unsavedRevision.SetUserProperties(properties);

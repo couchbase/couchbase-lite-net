@@ -4,7 +4,9 @@ namespace Couchbase.Lite
 {
     public interface INetworkReachabilityManager
     {
-        event EventHandler<NetworkReachabilityChangeEventArgs> Changed;
+        event EventHandler<NetworkReachabilityChangeEventArgs> StatusChanged;
+        void StartListening();
+        void StopListening();
     }
 
     #region Enum
@@ -23,13 +25,10 @@ namespace Couchbase.Lite
     ///
     public class NetworkReachabilityChangeEventArgs : EventArgs
     {
-        public INetworkReachabilityManager Source { get; private set; }
-
         public NetworkReachabilityStatus Status { get; private set; }
 
-        public NetworkReachabilityChangeEventArgs (INetworkReachabilityManager sender, NetworkReachabilityStatus status)
+        public NetworkReachabilityChangeEventArgs (NetworkReachabilityStatus status)
         {
-            Source = sender;
             Status = status;
         }
     }

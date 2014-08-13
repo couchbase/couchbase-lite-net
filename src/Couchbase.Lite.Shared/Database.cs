@@ -110,7 +110,7 @@ namespace Couchbase.Lite
         // "_local/*" is not a valid document ID. Local docs have their own API and shouldn't get here.
         internal static String GenerateDocumentId()
         {
-            return Misc.TDCreateUUID();
+            return Misc.CreateGUID();
         }
 
         static readonly ICollection<String> KnownSpecialKeys;
@@ -389,7 +389,7 @@ namespace Couchbase.Lite
         /// <returns>A document with a unique id.</returns>
         public Document CreateDocument()
         { 
-            return GetDocument(Misc.TDCreateUUID());
+            return GetDocument(Misc.CreateGUID());
         }
 
         /// <summary>
@@ -2149,7 +2149,7 @@ PRAGMA user_version = 3;";
 
         internal Boolean ReplaceUUIDs()
         {
-            var query = "UPDATE INFO SET value='" + Misc.TDCreateUUID() + "' where key = 'privateUUID';";
+            var query = "UPDATE INFO SET value='" + Misc.CreateGUID() + "' where key = 'privateUUID';";
 
             try
             {
@@ -2161,7 +2161,7 @@ PRAGMA user_version = 3;";
                 return false;
             }
 
-            query = "UPDATE INFO SET value='" + Misc.TDCreateUUID() + "' where key = 'publicUUID';";
+            query = "UPDATE INFO SET value='" + Misc.CreateGUID() + "' where key = 'publicUUID';";
 
             try
             {
@@ -4435,8 +4435,8 @@ PRAGMA user_version = 3;";
             if (dbVersion < 4)
             {
                 var upgradeSql = "CREATE TABLE info ( " + "key TEXT PRIMARY KEY, " + "value TEXT); "
-                                    + "INSERT INTO INFO (key, value) VALUES ('privateUUID', '" + Misc.TDCreateUUID(
-                                       ) + "'); " + "INSERT INTO INFO (key, value) VALUES ('publicUUID',  '" + Misc.TDCreateUUID
+                                    + "INSERT INTO INFO (key, value) VALUES ('privateUUID', '" + Misc.CreateGUID(
+                                       ) + "'); " + "INSERT INTO INFO (key, value) VALUES ('publicUUID',  '" + Misc.CreateGUID
                                     () + "'); " + "PRAGMA user_version = 4";
                 if (!Initialize(upgradeSql))
                 {

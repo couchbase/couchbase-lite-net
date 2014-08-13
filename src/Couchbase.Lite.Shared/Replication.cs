@@ -720,7 +720,7 @@ namespace Couchbase.Lite
                 var reachabilityManager = LocalDatabase.Manager.NetworkReachabilityManager;
                 if (reachabilityManager != null)
                 {
-                    reachabilityManager.Changed -= networkReachabilityEventHandler;
+                    reachabilityManager.StatusChanged -= networkReachabilityEventHandler;
                 }
             }
 
@@ -1661,7 +1661,7 @@ namespace Couchbase.Lite
                         GoOffline();
                     }
                 };
-                reachabilityManager.Changed += networkReachabilityEventHandler;
+                reachabilityManager.StatusChanged += networkReachabilityEventHandler;
             }
         }
 
