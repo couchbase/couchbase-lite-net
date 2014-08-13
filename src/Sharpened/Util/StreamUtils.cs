@@ -39,45 +39,44 @@ using Sharpen;
 
 namespace Couchbase.Lite.Util
 {
-	public class StreamUtils
-	{
-		/// <exception cref="System.IO.IOException"></exception>
-		public static void CopyStream(InputStream @is, OutputStream os)
-		{
-			int n;
-			byte[] buffer = new byte[16384];
-			while ((n = @is.Read(buffer)) > -1)
-			{
-				os.Write(buffer, 0, n);
-			}
-			os.Close();
-			@is.Close();
-		}
+    public class StreamUtils
+    {
+        /// <exception cref="System.IO.IOException"></exception>
+        public static void CopyStream(InputStream @is, OutputStream os)
+        {
+            int n;
+            byte[] buffer = new byte[16384];
+            while ((n = @is.Read(buffer)) > -1)
+            {
+                os.Write(buffer, 0, n);
+            }
+            os.Close();
+            @is.Close();
+        }
 
-		/// <exception cref="System.IO.IOException"></exception>
-		public static void CopyStreamsToFolder(IEnumerator<KeyValuePair<string, InputStream
-			>> streams, FilePath folder)
-		{
-			while (streams.HasNext())
-			{
-				KeyValuePair<string, InputStream> entry = streams.Next();
-				FilePath file = new FilePath(folder, entry.Key);
-				CopyStreamToFile(entry.Value, file);
-			}
-		}
+        /// <exception cref="System.IO.IOException"></exception>
+        public static void CopyStreamsToFolder(IEnumerator<KeyValuePair<string, InputStream     >> streams, FilePath folder)
+        {
+            while (streams.HasNext())
+            {
+                KeyValuePair<string, InputStream> entry = streams.Next();
+                FilePath file = new FilePath(folder, entry.Key);
+                CopyStreamToFile(entry.Value, file);
+            }
+        }
 
-		/// <exception cref="System.IO.IOException"></exception>
-		public static void CopyStreamToFile(InputStream @is, FilePath file)
-		{
-			OutputStream os = new FileOutputStream(file);
-			int n;
-			byte[] buffer = new byte[16384];
-			while ((n = @is.Read(buffer)) > -1)
-			{
-				os.Write(buffer, 0, n);
-			}
-			os.Close();
-			@is.Close();
-		}
-	}
+        /// <exception cref="System.IO.IOException"></exception>
+        public static void CopyStreamToFile(InputStream @is, FilePath file)
+        {
+            OutputStream os = new FileOutputStream(file);
+            int n;
+            byte[] buffer = new byte[16384];
+            while ((n = @is.Read(buffer)) > -1)
+            {
+                os.Write(buffer, 0, n);
+            }
+            os.Close();
+            @is.Close();
+        }
+    }
 }

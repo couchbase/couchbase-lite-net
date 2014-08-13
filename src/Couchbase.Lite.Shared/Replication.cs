@@ -1229,7 +1229,7 @@ namespace Couchbase.Lite
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
-                remoteCheckpointDocID = Misc.TDHexSHA1Digest(inputBytes);
+                remoteCheckpointDocID = Misc.HexSHA1Digest(inputBytes);
                 return remoteCheckpointDocID;
 
             }

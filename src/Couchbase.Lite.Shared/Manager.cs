@@ -262,42 +262,51 @@ namespace Couchbase.Lite
             return db;
         }
 
-        /// <summary>
-        /// Replaces or creates a <see cref="Couchbase.Lite.Database"/> from local files.
-        /// </summary>
-        /// <returns><c>true</c>, if database was replaced, <c>false</c> otherwise.</returns>
-        /// <param name="name">The name of the target Database to replace or create.</param>
-        /// <param name="databaseFile">Database file.</param>
-        /// <param name="attachmentsDirectory">Attachments directory.</param>
-        public Boolean ReplaceDatabase(String name, FileInfo databaseFile, DirectoryInfo attachmentsDirectory)
+        /// <summary>Replaces or installs a database from a file.</summary>
+        /// <remarks>
+        /// Replaces or installs a database from a file.
+        /// This is primarily used to install a canned database on first launch of an app, in which case
+        /// you should first check .exists to avoid replacing the database if it exists already. The
+        /// canned database would have been copied into your app bundle at build time.
+        /// </remarks>
+        /// <param name="databaseName">The name of the target Database to replace or create.</param>
+        /// <param name="databaseStream">InputStream on the source Database file.</param>
+        /// <param name="attachmentStreams">
+        /// Map of the associated source Attachments, or null if there are no attachments.
+        /// The Map key is the name of the attachment, the map value is an InputStream for
+        /// the attachment contents. If you wish to control the order that the attachments
+        /// will be processed, use a LinkedHashMap, SortedMap or similar and the iteration order
+        /// will be honoured.
+        /// </param>
+        /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
+        public void ReplaceDatabase(String name, Stream databaseStream, IDictionary<String, Stream> attachmentStreams)
         {
             var result = true;
 
             try {
                 var database = GetDatabase (name);
                 var dstAttachmentsPath = database.AttachmentStorePath;
-                var sourceFile = databaseFile;
-                var destFile = new FileInfo (database.Path);
-                
-                //FileDirUtils.CopyFile(sourceFile, destFile);
-                File.Copy (sourceFile.FullName, destFile.FullName);
-                
+
+                var destStream = File.OpenWrite(database.Path);
+                databaseStream.CopyTo(destStream);
+
                 var dstAttachmentsDirectory = new DirectoryInfo (dstAttachmentsPath);
                 //FileDirUtils.DeleteRecursive(attachmentsFile);
                 System.IO.Directory.Delete (dstAttachmentsPath, true);
                 dstAttachmentsDirectory.Create ();
-                
-                if (attachmentsDirectory != null) {
-                    System.IO.Directory.Move (attachmentsDirectory.FullName, dstAttachmentsDirectory.FullName);
+
+                var attachmentsFile = new FilePath(dstAttachmentsPath);
+
+                if (attachmentStreams != null) {
+                    StreamUtils.CopyStreamsToFolder(attachmentStreams, attachmentsFile);
                 }
 
                 database.ReplaceUUIDs ();
 
-            } catch (Exception) {
-                result = false;
+            } catch (Exception e) {
+                Log.E(Database.Tag, string.Empty, e);
+                throw new CouchbaseLiteException(StatusCode.InternalServerError);
             }
-
-            return result;
         }
 
     #endregion

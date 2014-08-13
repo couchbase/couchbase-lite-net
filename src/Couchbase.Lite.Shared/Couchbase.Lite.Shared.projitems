@@ -215,6 +215,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Manager\INetworkReachabilityManager.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Documents\DocumentContentOptions.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Manager\NetworkReachabilityManager.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Util\StreamUtils.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="$(MSBuildThisFileDirectory)Store\MonoSQLiteStorageEngine.cs" />
