@@ -9,9 +9,10 @@ using System.Threading;
 namespace Couchbase.Lite.Util
 {
     sealed class SingleThreadTaskScheduler : TaskScheduler 
-    { 
-        [ThreadStatic] 
-        private static bool allowInlining; 
+    {
+        const string Tag = "SingleThreadTaskScheduler";
+
+ 
         private readonly BlockingCollection<Task> queue = new BlockingCollection<Task>(new ConcurrentQueue<Task>());
         private const int maxConcurrency = 1;
         private int runningTasks = 0;
@@ -32,7 +33,6 @@ namespace Couchbase.Lite.Util
         { 
             ThreadPool.UnsafeQueueUserWorkItem(s => 
                 { 
-                    allowInlining = true; 
                     try 
                     { 
                         while (true) 
@@ -46,7 +46,7 @@ namespace Couchbase.Lite.Util
 
                             task = queue.Take(); 
                             var success = TryExecuteTask(task);
-                            if (!success && task.Status != TaskStatus.Canceled && task.Status != TaskStatus.RanToCompletion)
+                            if ((!success && task.Status != TaskStatus.Canceled) || task.Status != TaskStatus.RanToCompletion)
                                 Log.E("Scheduled task failed to execute.", task.Exception.ToString());
                         } 
                     }
@@ -55,18 +55,12 @@ namespace Couchbase.Lite.Util
                         Log.E("Unhandled exception in runloop", e.ToString());
                         throw;
                     }
-                    finally 
-                    {
-                        allowInlining = false;
-                    } 
                 }, null);
         } 
 
         protected override bool TryExecuteTaskInline(Task task, bool taskWasPreviouslyQueued) 
-        { 
-            if (!allowInlining)
-                return false; 
-
+        {
+            Log.D(Tag, "Executing task inline.");
             if (taskWasPreviouslyQueued)
                 TryDequeue(task); 
 

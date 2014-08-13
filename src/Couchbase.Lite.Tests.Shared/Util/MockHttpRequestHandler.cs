@@ -77,25 +77,22 @@ namespace Couchbase.Lite.Tests
 
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
-            return Task.Factory.StartNew<HttpResponseMessage>(() => 
+            Delay();
+
+            CapturedRequests.Add(request);
+
+            foreach(var urlPattern in responders.Keys)
             {
-                Delay();
-
-                CapturedRequests.Add(request);
-
-                foreach(var urlPattern in responders.Keys)
+                if (urlPattern.Equals("*") || request.RequestUri.PathAndQuery.Contains(urlPattern))
                 {
-                    if (urlPattern.Equals("*") || request.RequestUri.PathAndQuery.Contains(urlPattern))
-                    {
-                        HttpResponseDelegate responder = responders[urlPattern];
-                        HttpResponseMessage message = responder(request);
-                        NotifyResponseListeners(request, message);
-                        return message;
-                    }
+                    HttpResponseDelegate responder = responders[urlPattern];
+                    HttpResponseMessage message = responder(request);
+                    NotifyResponseListeners(request, message);
+                    return Task.FromResult<HttpResponseMessage>(message);
                 }
+            }
 
-                throw new Exception("No responders matched for url pattern: " + request.RequestUri.PathAndQuery);
-            });
+            throw new Exception("No responders matched for url pattern: " + request.RequestUri.PathAndQuery);
         }
 
         public void SetResponder(string urlPattern, HttpResponseDelegate responder)

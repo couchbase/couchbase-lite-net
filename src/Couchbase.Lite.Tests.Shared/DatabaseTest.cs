@@ -47,11 +47,40 @@ using System.Linq;
 using Sharpen;
 using System.Threading.Tasks;
 using System.Threading;
+using Newtonsoft.Json.Linq;
+using Couchbase.Lite.Internal;
 
 namespace Couchbase.Lite
 {
     public class DatabaseTest : LiteTestCase
     {
+        const String TooLongName = "a11111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111110";
+
+        [Test]
+        public void TestValidDatabaseNames([Values("foo", "try1", "foo-bar", "goofball99", TooLongName)] String testName)
+        {
+            // Arrange.
+            // Act.
+            if (testName.Length == 240) {
+                testName = testName.Trim('0');
+            }
+            var result = Manager.IsValidDatabaseName(testName);
+
+            // Assert.
+            Assert.IsTrue(result);
+        }
+
+        [Test]
+        public void TestInvalidDatabaseNames([Values("Foo", "1database", "", "foo;", TooLongName)] String testName)
+        {
+            // Arrange.
+            // Act.
+            var result = Manager.IsValidDatabaseName(testName);
+
+            // Assert.
+            Assert.IsFalse(result);
+        }
+
         [Test]
         public void TestPruneRevsToMaxDepth()
         {
@@ -213,6 +242,106 @@ namespace Couchbase.Lite
 
             var checkedDocument = database.GetDocument(document.Id);
             Assert.IsTrue(document == checkedDocument);
+        }
+
+        [Test]
+        public void TestStubOutAttachmentsInRevBeforeRevPos()
+        {
+            var hello = new JObject();
+            hello["revpos"] = 1;
+            hello["follows"] = true;
+
+            var goodbye = new JObject();
+            goodbye["revpos"] = 2;
+            goodbye["data"] = "squeee";
+
+            var attachments = new JObject();
+            attachments["hello"] = hello;
+            attachments["goodbye"] = goodbye;
+
+            var properties = new Dictionary<string, object>();
+            properties["_attachments"] = attachments;
+
+            IDictionary<string, object> expected = null;
+
+            var rev = new RevisionInternal(properties, database);
+            Database.StubOutAttachmentsInRevBeforeRevPos(rev, 3, false);
+            var checkAttachments = rev.GetProperties()["_attachments"].AsDictionary<string, object>();
+            var result = (IDictionary<string, object>)checkAttachments["hello"];
+            expected = new Dictionary<string, object>();
+            expected["revpos"] = 1;
+            expected["stub"] = true;
+            AssertPropertiesAreEqual(expected, result);
+            result = (IDictionary<string, object>)checkAttachments["goodbye"];
+            expected = new Dictionary<string, object>();
+            expected["revpos"] = 2;
+            expected["stub"] = true;
+            AssertPropertiesAreEqual(expected, result);
+
+            rev = new RevisionInternal(properties, database);
+            Database.StubOutAttachmentsInRevBeforeRevPos(rev, 2, false);
+            checkAttachments = rev.GetProperties()["_attachments"].AsDictionary<string, object>();
+            result = checkAttachments["hello"].AsDictionary<string, object>();
+            expected = new Dictionary<string, object>();
+            expected["revpos"] = 1;
+            expected["stub"] = true;
+            AssertPropertiesAreEqual(expected, result);
+            result = checkAttachments["goodbye"].AsDictionary<string, object>();
+            expected = goodbye.AsDictionary<string, object>();
+            AssertPropertiesAreEqual(expected, result);
+
+            rev = new RevisionInternal(properties, database);
+            Database.StubOutAttachmentsInRevBeforeRevPos(rev, 1, false);
+            checkAttachments = rev.GetProperties()["_attachments"].AsDictionary<string, object>();
+            result = checkAttachments["hello"].AsDictionary<string, object>();
+            expected = hello.AsDictionary<string, object>();
+            AssertPropertiesAreEqual(expected, result);
+            result = checkAttachments["goodbye"].AsDictionary<string, object>();
+            expected = goodbye.AsDictionary<string, object>();
+            AssertPropertiesAreEqual(expected, result);
+
+            //Test the follows mode
+            rev = new RevisionInternal(properties, database);
+            Database.StubOutAttachmentsInRevBeforeRevPos(rev, 3, true);
+            checkAttachments = rev.GetProperties()["_attachments"].AsDictionary<string, object>();
+            result = checkAttachments["hello"].AsDictionary<string, object>();
+            expected = new Dictionary<string, object>();
+            expected["revpos"] = 1;
+            expected["stub"] = true;
+            AssertPropertiesAreEqual(expected, result);
+            result = checkAttachments["goodbye"].AsDictionary<string, object>();
+            expected = new Dictionary<string, object>();
+            expected["revpos"] = 2;
+            expected["stub"] = true;
+            AssertPropertiesAreEqual(expected, result);
+
+            rev = new RevisionInternal(properties, database);
+            Database.StubOutAttachmentsInRevBeforeRevPos(rev, 2, true);
+            checkAttachments = rev.GetProperties()["_attachments"].AsDictionary<string, object>();
+            result = checkAttachments["hello"].AsDictionary<string, object>();
+            expected = new Dictionary<string, object>();
+            expected["revpos"] = 1;
+            expected["stub"] = true;
+            AssertPropertiesAreEqual(expected, result);
+            result = checkAttachments["goodbye"].AsDictionary<string, object>();
+            expected = new Dictionary<string, object>();
+            expected["revpos"] = 2;
+            expected["follows"] = true;
+            AssertPropertiesAreEqual(expected, result);
+
+            rev = new RevisionInternal(properties, database);
+            Database.StubOutAttachmentsInRevBeforeRevPos(rev, 1, true);
+            checkAttachments = rev.GetProperties()["_attachments"].AsDictionary<string, object>();
+            result = checkAttachments["hello"].AsDictionary<string, object>();
+            expected = new Dictionary<string, object>();
+            expected["revpos"] = 1;
+            expected["follows"] = true;
+            AssertPropertiesAreEqual(expected, result);
+            result = checkAttachments["goodbye"].AsDictionary<string, object>();
+            expected = new Dictionary<string, object>();
+            expected["revpos"] = 2;
+            expected["follows"] = true;
+            AssertPropertiesAreEqual(expected, result);
         }
     }
 }

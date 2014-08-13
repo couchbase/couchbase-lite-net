@@ -64,8 +64,6 @@ namespace Couchbase.Lite.Support
 	{
         private readonly static string Tag = "Batcher";
 
-        private SpinLock spinLock;
-
         private readonly TaskFactory workExecutor;
 
         private Task flushFuture;
@@ -90,7 +88,6 @@ namespace Couchbase.Lite.Support
 
         public Batcher(TaskFactory workExecutor, int capacity, int delay, Action<IList<T>> processor, CancellationTokenSource tokenSource = null)
 		{
-            spinLock = new SpinLock(true);
             processNowRunnable = new Action(()=>
             {
                 try
@@ -283,13 +280,7 @@ namespace Couchbase.Lite.Support
 
                 cancellationSource = new CancellationTokenSource();
                 flushFuture = Task.Delay(scheduledDelay)
-                    .ContinueWith(task => 
-                    {
-                        if(!(task.IsCanceled && cancellationSource.IsCancellationRequested))
-                        {
-                            workExecutor.StartNew(processNowRunnable);
-                        }
-                    }, cancellationSource.Token);
+                    .ContinueWith(task => processNowRunnable(), cancellationSource.Token);
             }
         }
 

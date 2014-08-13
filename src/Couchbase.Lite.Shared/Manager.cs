@@ -78,7 +78,8 @@ namespace Couchbase.Lite
 
         internal const string DatabaseSuffix = ".cblite";
 
-        const string IllegalCharacters = "[^a-z]{1,}[^a-z0-9_$()/+-]*$";
+        // FIXME: Not all of these are valid Windows file chars.
+        const string IllegalCharacters = @"(^[^a-z]+)|[^a-z0-9_\$\(\)/\+\-]+";
 
     #endregion
 
@@ -91,7 +92,7 @@ namespace Couchbase.Lite
         /// </summary>
         /// <value>The shared instance.</value>
         // FIXME: SharedInstance lifecycle is undefined, so returning default manager for now.
-        public static Manager SharedInstance { get { return sharedManager; } }
+                public static Manager SharedInstance { get { return sharedManager ?? (sharedManager = new Manager(defaultDirectory, ManagerOptions.Default)); } }
 
         //Methods
 
@@ -117,11 +118,9 @@ namespace Couchbase.Lite
         static Manager()
         {
             illegalCharactersPattern = new Regex(IllegalCharacters);
-            legalCharactersPattern = new Regex("^[abcdefghijklmnopqrstuvwxyz0123456789_$()+-/]+$");
             mapper = new ObjectWriter();
             DefaultOptions = ManagerOptions.Default;
             defaultDirectory = new DirectoryInfo(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData));
-            sharedManager = new Manager(defaultDirectory, ManagerOptions.Default);
         }
 
         /// <summary>
@@ -238,7 +237,11 @@ namespace Couchbase.Lite
             var db = GetDatabaseWithoutOpening(name, false);
             if (db != null)
             {
-                db.Open();
+                var opened = db.Open();
+                if (!opened)
+                {
+                    return null;
+                }
             }
             return db;
         }
@@ -309,9 +312,8 @@ namespace Couchbase.Lite
 
         // Static Fields
         private static readonly ObjectWriter mapper;
-        private static readonly Manager sharedManager;
+        private static          Manager sharedManager;
         private static readonly DirectoryInfo defaultDirectory;
-        private static readonly Regex legalCharactersPattern;
         private static readonly Regex illegalCharactersPattern;
 
         // Static Methods
@@ -322,7 +324,8 @@ namespace Couchbase.Lite
 
         private static bool ContainsOnlyLegalCharacters(string databaseName)
         {
-            return !illegalCharactersPattern.IsMatch(databaseName);
+            var result = !illegalCharactersPattern.IsMatch(databaseName);
+            return result;
         }
 
         // Instance Fields

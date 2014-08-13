@@ -172,7 +172,7 @@ namespace Couchbase.Lite
 		public Stream BlobStreamForKey(BlobKey key)
 		{
 			var path = PathForKey(key);
-            Log.I(Database.Tag, "Blob Path : " + path);
+            Log.D(Database.Tag, "Blob Path : " + path);
 			var file = new FilePath(path);
             if (file.CanRead())
 			{

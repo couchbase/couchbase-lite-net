@@ -41,19 +41,17 @@
 //
 
 using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.IO;
+
+using System.Net;
 using Couchbase.Lite;
 using Couchbase.Lite.Internal;
-
-using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
 using NUnit.Framework;
 using Sharpen;
 using Couchbase.Lite.Tests;
-using System.Diagnostics;
-using System.Net;
-using System.Collections;
-using System.Collections.Generic;
 
 namespace Couchbase.Lite
 {
@@ -80,7 +78,7 @@ namespace Couchbase.Lite
 //            Trace.Listeners.Clear();
 //            Trace.Listeners.Add(new ConsoleTraceListener());
 #endif
-            Manager.DefaultOptions.CallbackScheduler = new SingleThreadTaskScheduler();
+            ManagerOptions.Default.CallbackScheduler = new SingleThreadTaskScheduler();
             LoadCustomProperties();
 			StartCBLite();
             StartDatabase();

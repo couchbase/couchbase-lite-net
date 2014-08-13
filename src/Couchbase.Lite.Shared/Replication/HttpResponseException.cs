@@ -50,6 +50,11 @@ namespace Couchbase.Lite
         internal HttpStatusCode StatusCode { get; set; }
 
         public HttpResponseException (HttpStatusCode statusCode) { StatusCode = statusCode; }
+
+        public override string ToString ()
+        {
+            return string.Format ("[HttpResponseException: StatusCode = {0}]", StatusCode);
+        }
     }
 }
 

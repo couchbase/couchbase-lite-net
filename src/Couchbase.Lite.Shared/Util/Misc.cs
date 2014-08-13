@@ -71,7 +71,7 @@ namespace Couchbase.Lite
 			}
             byte[] sha1hash;
             var inputArray = input.ToArray();
-            md.Update(inputArray, 0, inputArray.Length);
+            md.Update(inputArray, 0, inputArray.Count());
 			sha1hash = md.Digest();
 			return ConvertToHex(sha1hash);
 		}

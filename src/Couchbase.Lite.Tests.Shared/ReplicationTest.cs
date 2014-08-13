@@ -128,7 +128,7 @@ namespace Couchbase.Lite
                 {
                     var msg = replicator + ": replicator.CompletedChangesCount < 0";
                     Log.D(Tag, msg);
-                    // throw new RuntimeException(msg);
+                    throw new ApplicationException(msg);
                 }
 
                 if (replicator.ChangesCount < 0)
@@ -140,10 +140,9 @@ namespace Couchbase.Lite
 
                 if (replicator.CompletedChangesCount > replicator.ChangesCount)
                 {
-                    var msg = "replicator.CompletedChangesCount : " + replicator.CompletedChangesCount +
+                    var msgStr = "replicator.CompletedChangesCount : " + replicator.CompletedChangesCount +
                         " > replicator.ChangesCount : " + replicator.ChangesCount;
-                    Log.D(Tag, msg);
-                    // throw new RuntimeException(msg);
+                    Log.W(Tag, msgStr);
                 }
 
                 if (!replicator.IsRunning)
@@ -237,7 +236,7 @@ namespace Couchbase.Lite
                 try
                 {
                     var responseTask = httpclient.GetAsync(pathToDoc.ToString());
-                    responseTask.Wait(TimeSpan.FromSeconds(10));
+                    responseTask.Wait(TimeSpan.FromSeconds(1));
                     response = responseTask.Result;
                     var statusLine = response.StatusCode;
                     Assert.IsTrue(statusLine == HttpStatusCode.OK);
@@ -388,7 +387,7 @@ namespace Couchbase.Lite
 
             Assert.AreEqual(repl2.LastSequence, database.LastSequenceWithCheckpointId(repl2CheckedpointId));
 
-            System.Threading.Thread.Sleep(2000);
+            //System.Threading.Thread.Sleep(2000);
             var json = GetRemoteDoc(remote, repl2CheckedpointId);
             var remoteLastSequence = (string)json["lastSequence"];
             Assert.AreEqual(repl2.LastSequence, remoteLastSequence);
@@ -436,29 +435,26 @@ namespace Couchbase.Lite
             var pathToDoc = new Uri(replicationUrlTrailing, doc1Id);
             Log.D(Tag, "Send http request to " + pathToDoc);
             var httpRequestDoneSignal = new CountDownLatch(1);
-            Task.Factory.StartNew(async ()=>
+                var httpclient = new HttpClient();
+                try
                 {
-                    var httpclient = new HttpClient();
-                    try
-                    {
-                        var getDocResponse = await httpclient.GetAsync(pathToDoc.ToString());
-                        var statusLine = getDocResponse.StatusCode;
-                        Log.D(ReplicationTest.Tag, "statusLine " + statusLine);
-                        Assert.AreEqual(HttpStatusCode.NotFound, statusLine.GetStatusCode());                        
-                    }
-                    catch (ProtocolViolationException e)
-                    {
-                        Assert.IsNull(e, "Got ClientProtocolException: " + e.Message);
-                    }
-                    catch (IOException e)
-                    {
-                        Assert.IsNull(e, "Got IOException: " + e.Message);
-                    }
-                    finally
-                    {
-                        httpRequestDoneSignal.CountDown();
-                    }
-                });
+                    var getDocResponse = httpclient.GetAsync(pathToDoc.ToString()).Result;
+                    var statusLine = getDocResponse.StatusCode;
+                    Log.D(ReplicationTest.Tag, "statusLine " + statusLine);
+                    Assert.AreEqual(Couchbase.Lite.StatusCode.NotFound, statusLine.GetStatusCode());                        
+                }
+                catch (ProtocolViolationException e)
+                {
+                    Assert.IsNull(e, "Got ClientProtocolException: " + e.Message);
+                }
+                catch (IOException e)
+                {
+                    Assert.IsNull(e, "Got IOException: " + e.Message);
+                }
+                finally
+                {
+                    httpRequestDoneSignal.CountDown();
+                }
             Log.D(Tag, "Waiting for http request to finish");
             try
             {
@@ -913,7 +909,7 @@ namespace Couchbase.Lite
 
             // Make the _bulk_docs request.
             var client = new HttpClient();
-            var bulkDocsUrl = GetReplicationURL().ToString() + "/_bulk_docs";
+            var bulkDocsUrl = GetReplicationURL () + "/_bulk_docs";
             var request = new HttpRequestMessage(HttpMethod.Post, bulkDocsUrl);
             request.Headers.Add("Accept", "*/*");
             request.Content = new StringContent(requestBody.ToString(), Encoding.UTF8, "application/json");
@@ -1031,7 +1027,7 @@ namespace Couchbase.Lite
             pusher.Changed += observer.Changed;
             pusher.Start();
 
-            var success = replicationDoneSignal.Await(TimeSpan.FromSeconds(60));
+            var success = replicationDoneSignal.Await(TimeSpan.FromSeconds(5));
             Assert.IsTrue(success);
 
             Assert.IsNotNull(pusher.LastError);
@@ -1048,6 +1044,38 @@ namespace Couchbase.Lite
             Assert.IsFalse(doc2.CurrentRevision.Sequence.ToString().Equals(localLastSequence));
             Assert.IsNull(localLastSequence);
             Assert.IsTrue(doc2.CurrentRevision.Sequence > 0);
+        }
+
+        [Test]
+        public void TestCheckServerCompatVersion()
+        {
+            var replicator = database.CreatePushReplication(GetReplicationURL());
+            Assert.IsFalse(replicator.CheckServerCompatVersion("0.01"));
+
+            replicator.ServerType = "Couchbase Sync Gateway/1.00";
+            Assert.IsTrue(replicator.CheckServerCompatVersion("1.00"));
+            Assert.IsFalse(replicator.CheckServerCompatVersion("2.00"));
+        }
+
+        [Test]
+        public void TestPusherFindCommonAncestor()
+        {
+            var ids = new JArray();
+            ids.Add("second");
+            ids.Add("first");
+
+            var revDict = new JObject();
+            revDict["ids"] = ids;
+            revDict["start"] = 2;
+
+            var properties = new Dictionary<string, object>();
+            properties["_revisions"] = revDict;
+
+            var rev = new RevisionInternal(properties, database);
+            Assert.AreEqual(Pusher.FindCommonAncestor(rev, new  List<string>()), 0);
+            Assert.AreEqual(Pusher.FindCommonAncestor(rev, (new [] {"3-noway", "1-nope"}).ToList()), 0);
+            Assert.AreEqual(Pusher.FindCommonAncestor(rev, (new [] {"3-noway", "1-first"}).ToList()), 1);
+            Assert.AreEqual(Pusher.FindCommonAncestor(rev, (new [] {"3-noway", "2-second", "1-first"}).ToList()), 2);
         }
     }
 }
