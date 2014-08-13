@@ -182,7 +182,7 @@ namespace Couchbase.Lite
         /// for each insert (no batching)
         /// </summary>
         [Test]
-        public async void TestGetActiveReplications()
+        public void TestGetActiveReplications()
         {
             var remote = GetReplicationURL();
             var replication = database.CreatePullReplication(remote);
@@ -206,7 +206,7 @@ namespace Couchbase.Lite
                     };
                     return doneSignal.Wait(TimeSpan.FromSeconds(30));
                 });
-            var failed = await replicateTask;
+            var failed = replicateTask.Result;
             Assert.True(failed);
             Assert.AreEqual(1, database.AllReplications.ToList().Count);
             Assert.AreEqual(0, database.ActiveReplicators.Count);
