@@ -79,7 +79,7 @@ namespace Couchbase.Lite
             }
         }
 
-        public static String Fmt(this String str, params IConvertible[] vals)
+        public static String Fmt(this String str, params Object[] vals)
         {
             return String.Format(str, vals);
         }
