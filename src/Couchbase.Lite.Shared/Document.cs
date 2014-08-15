@@ -406,7 +406,7 @@ namespace Couchbase.Lite {
             IDictionary<string, object> attachments = null;
             if (properties != null && properties.ContainsKey("_attachments"))
             {
-				attachments = properties.Get("_attachments").AsDictionary<string,object>();
+                attachments = properties.Get("_attachments").AsDictionary<string,object>();
             }
             if (attachments != null && attachments.Count > 0)
             {
