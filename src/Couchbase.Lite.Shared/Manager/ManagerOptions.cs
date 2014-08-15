@@ -49,7 +49,7 @@ namespace Couchbase.Lite
     /// Option flags for Manager initialization.
     /// </summary>
     public class ManagerOptions
-	{
+    {
         /// <summary>
         /// Gets the default option flags.
         /// </summary>
@@ -63,6 +63,8 @@ namespace Couchbase.Lite
 
         public ManagerOptions()
         {
+            RequestTimeout = TimeSpan.FromSeconds(30);
+
             TaskScheduler scheduler = null;
             try {
                 scheduler = TaskScheduler.FromCurrentSynchronizationContext ();
@@ -82,5 +84,11 @@ namespace Couchbase.Lite
         /// </summary>
         /// <value>The callback context.</value>
         public TaskScheduler CallbackScheduler { get; set; }
-	}
+
+        /// <summary>
+        /// Gets or sets the default network request timeout.
+        /// </summary>
+        /// <value>The request timeout. Defaults to 30 seconds.</value>
+        public TimeSpan RequestTimeout { get; set; }
+    }
 }

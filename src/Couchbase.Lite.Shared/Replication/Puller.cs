@@ -60,20 +60,22 @@ using Sharpen;
 namespace Couchbase.Lite.Replicator
 {
     internal class Puller : Replication, IChangeTrackerClient
-	{
-		private const int MaxOpenHttpConnections = 16;
+    {
+        private const int MaxOpenHttpConnections = 16;
+
+        internal const int MaxNumberOfAttsSince = 50;
 
         readonly string Tag = "Puller";
 
         protected internal Batcher<RevisionInternal> downloadsToInsert;
 
-		protected internal IList<RevisionInternal> revsToPull;
+        protected internal IList<RevisionInternal> revsToPull;
 
-		protected internal ChangeTracker changeTracker;
+        protected internal ChangeTracker changeTracker;
 
-		protected internal SequenceMap pendingSequences;
+        protected internal SequenceMap pendingSequences;
 
-		protected internal volatile int httpConnectionCount;
+        protected internal volatile int httpConnectionCount;
 
         private readonly Object locker = new object ();
 
@@ -81,7 +83,7 @@ namespace Couchbase.Lite.Replicator
         internal Puller(Database db, Uri remote, bool continuous, TaskFactory workExecutor)
             : this(db, remote, continuous, null, workExecutor) { }
 
-		/// <summary>Constructor</summary>
+        /// <summary>Constructor</summary>
         internal Puller(Database db, Uri remote, bool continuous, IHttpClientFactory clientFactory, TaskFactory workExecutor) 
             : base(db, remote, continuous, clientFactory, workExecutor) {  }
 
@@ -102,15 +104,15 @@ namespace Couchbase.Lite.Replicator
         public override bool CreateTarget { get { return false; } set { return; /* No-op intended. Only used in Pusher. */ } }
 
         internal override void BeginReplicating()
-		{
-			if (downloadsToInsert == null)
-			{
-				const int capacity = 200;
-				const int delay = 1000;
+        {
+            if (downloadsToInsert == null)
+            {
+                const int capacity = 200;
+                const int delay = 1000;
                 downloadsToInsert = new Batcher<RevisionInternal> (WorkExecutor, capacity, delay, InsertDownloads);
-			}
+            }
 
-			pendingSequences = new SequenceMap();
+            pendingSequences = new SequenceMap();
 
             Log.W(Tag, "starting ChangeTracker with since=" + LastSequence);
 
@@ -124,64 +126,64 @@ namespace Couchbase.Lite.Replicator
             Log.W(Tag, "started ChangeTracker " + changeTracker);
 
             if (Filter != null)
-			{
+            {
                 changeTracker.SetFilterName(Filter);
                 if (FilterParams != null)
-				{
+                {
                     changeTracker.SetFilterParams(FilterParams.ToDictionary(kvp=>kvp.Key, kvp=>(Object)kvp.Value));
-				}
-			}
-			if (!continuous)
-			{
+                }
+            }
+            if (!continuous)
+            {
                 Log.D(Tag, "BeginReplicating() calling asyncTaskStarted()");
-				AsyncTaskStarted();
-			}
+                AsyncTaskStarted();
+            }
 
             changeTracker.UsePost = CheckServerCompatVersion("0.93");
-			changeTracker.Start();
-		}
+            changeTracker.Start();
+        }
 
-		public override void Stop()
-		{
+        public override void Stop()
+        {
             if (!IsRunning)
-			{
-				return;
-			}
-			if (changeTracker != null)
-			{
+            {
+                return;
+            }
+            if (changeTracker != null)
+            {
                 Log.D(Tag, "stopping changetracker " + changeTracker);
 
-				changeTracker.SetClient(null);
-				// stop it from calling my changeTrackerStopped()
-				changeTracker.Stop();
-				changeTracker = null;
+                changeTracker.SetClient(null);
+                // stop it from calling my changeTrackerStopped()
+                changeTracker.Stop();
+                changeTracker = null;
                 if (!Continuous)
                 {   
                     Log.D(Tag, "stop() calling asyncTaskFinished()");
-					AsyncTaskFinished(1);
-				}
-			}
-			// balances asyncTaskStarted() in beginReplicating()
+                    AsyncTaskFinished(1);
+                }
+            }
+            // balances asyncTaskStarted() in beginReplicating()
             lock (locker)
-			{
-				revsToPull = null;
-			}
+            {
+                revsToPull = null;
+            }
             base.Stop();
-		}
+        }
 
         internal override void Stopping()
-		{
+        {
             if (downloadsToInsert != null)
             {
                 downloadsToInsert.Flush();
                 //downloadsToInsert = null;
             }
-			base.Stopping();
-		}
+            base.Stopping();
+        }
 
-		// Got a _changes feed entry from the ChangeTracker.
-		public void ChangeTrackerReceivedChange(IDictionary<string, object> change)
-		{
+        // Got a _changes feed entry from the ChangeTracker.
+        public void ChangeTrackerReceivedChange(IDictionary<string, object> change)
+        {
             var lastSequence = change.Get("seq").ToString();
             var docID = (string)change.Get("id");
             if (docID == null)
@@ -232,11 +234,11 @@ namespace Couchbase.Lite.Replicator
                     // swallow
                 }
             }
-		}
+        }
 
-		// <-- TODO: why is this here?
-		public void ChangeTrackerStopped(ChangeTracker tracker)
-		{
+        // <-- TODO: why is this here?
+        public void ChangeTrackerStopped(ChangeTracker tracker)
+        {
             Log.W(Tag, "ChangeTracker " + tracker + " stopped");
             if (LastError == null && tracker.GetLastError() != null)
             {
@@ -256,12 +258,12 @@ namespace Couchbase.Lite.Replicator
                     AsyncTaskFinished(1);
                 });
             }
-		}
+        }
 
         public HttpClient GetHttpClient()
-		{
+        {
             return clientFactory.GetHttpClient();
-		}
+        }
             
         public void AddCookies(CookieCollection cookies)
         {
@@ -278,9 +280,9 @@ namespace Couchbase.Lite.Replicator
             return clientFactory.GetCookieContainer();
         }
 
-		/// <summary>Process a bunch of remote revisions from the _changes feed at once</summary>
+        /// <summary>Process a bunch of remote revisions from the _changes feed at once</summary>
         internal override void ProcessInbox(RevisionList inbox)
-		{
+        {
             Debug.Assert(inbox != null);
 
             // Ask the local database which of the revs are not known to it:
@@ -334,15 +336,15 @@ namespace Couchbase.Lite.Replicator
             }
 
             PullRemoteRevisions();
-		}
+        }
 
-		/// <summary>
-		/// Start up some HTTP GETs, within our limit on the maximum simultaneous number
-		/// The entire method is not synchronized, only the portion pulling work off the list
-		/// Important to not hold the synchronized block while we do network access
-		/// </summary>
-		public void PullRemoteRevisions()
-		{
+        /// <summary>
+        /// Start up some HTTP GETs, within our limit on the maximum simultaneous number
+        /// The entire method is not synchronized, only the portion pulling work off the list
+        /// Important to not hold the synchronized block while we do network access
+        /// </summary>
+        public void PullRemoteRevisions()
+        {
             Log.D(Tag, "pullRemoteRevisions() with revsToPull size: " + revsToPull.Count);
 
             //find the work to be done in a synchronized block
@@ -361,16 +363,16 @@ namespace Couchbase.Lite.Replicator
             {
                 PullRemoteRevision(rev);
             }
-		}
+        }
 
-		/// <summary>Fetches the contents of a revision from the remote db, including its parent revision ID.
-		/// 	</summary>
-		/// <remarks>
-		/// Fetches the contents of a revision from the remote db, including its parent revision ID.
-		/// The contents are stored into rev.properties.
-		/// </remarks>
+        /// <summary>Fetches the contents of a revision from the remote db, including its parent revision ID.
+        ///     </summary>
+        /// <remarks>
+        /// Fetches the contents of a revision from the remote db, including its parent revision ID.
+        /// The contents are stored into rev.properties.
+        /// </remarks>
         internal void PullRemoteRevision(RevisionInternal rev)
-		{
+        {
             Log.D(Tag, "|" + Thread.CurrentThread() + ": pullRemoteRevision with rev: " + rev);
             Log.D(Tag, "|" + Thread.CurrentThread() + ": pullRemoteRevision() calling asyncTaskStarted()");
 
@@ -439,11 +441,11 @@ namespace Couchbase.Lite.Replicator
                 --httpConnectionCount;
                 PullRemoteRevisions ();
             });
-		}
+        }
 
-		/// <summary>This will be called when _revsToInsert fills up:</summary>
+        /// <summary>This will be called when _revsToInsert fills up:</summary>
         public void InsertDownloads(IList<RevisionInternal> downloads)
-		{
+        {
             Log.I(Tag, "inserting " + downloads.Count + " revisions...");
 
             var time = Runtime.CurrentTimeMillis();
@@ -519,47 +521,47 @@ namespace Couchbase.Lite.Replicator
                 Log.D(Tag, "inserted " + downloads.Count + " revs in " + delta + " milliseconds");
                 Log.D(Tag, "insertDownloads updating completedChangesCount from " + oldCompletedChangesCount + " -> " + CompletedChangesCount + downloads.Count);
             }
-		}
+        }
 
         private sealed class RevisionComparer : IComparer<RevisionInternal>
-		{
+        {
             public RevisionComparer() { }
 
             public int Compare(RevisionInternal reva, RevisionInternal revb)
-			{
-				return Misc.TDSequenceCompare(reva.GetSequence(), revb.GetSequence());
-			}
-		}
+            {
+                return Misc.TDSequenceCompare(reva.GetSequence(), revb.GetSequence());
+            }
+        }
 
         private IList<String> KnownCurrentRevIDs(RevisionInternal rev)
-		{
+        {
             if (LocalDatabase != null)
-			{
+            {
                 return LocalDatabase.GetAllRevisionsOfDocumentID(rev.GetDocId(), true).GetAllRevIds();
-			}
-			return null;
-		}
+            }
+            return null;
+        }
 
-		public string JoinQuotedEscaped(IList<string> strings)
-		{
-			if (strings.Count == 0)
-			{
-				return "[]";
-			}
+        public string JoinQuotedEscaped(IList<string> strings)
+        {
+            if (strings.Count == 0)
+            {
+                return "[]";
+            }
 
             IEnumerable<Byte> json = null;
 
-			try
-			{
+            try
+            {
                 json = Manager.GetObjectMapper().WriteValueAsBytes(strings);
-			}
-			catch (Exception e)
-			{
-				Log.W(Tag, "Unable to serialize json", e);
-			}
+            }
+            catch (Exception e)
+            {
+                Log.W(Tag, "Unable to serialize json", e);
+            }
 
-			return Uri.EscapeUriString(Runtime.GetStringForBytes(json));
-		}
+            return Uri.EscapeUriString(Runtime.GetStringForBytes(json));
+        }
 
         internal Boolean GoOffline()
         {
@@ -574,6 +576,6 @@ namespace Couchbase.Lite.Replicator
             }
             return true;
         }
-	}
+    }
 
 }

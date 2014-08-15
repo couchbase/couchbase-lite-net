@@ -48,7 +48,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)Replication\PulledRevision.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Replication\Puller.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Replication\Pusher.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Replication\ScheduledFuture.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Revisions\ChangesOptions.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Revisions\RevisionInternal.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Revisions\RevisionList.cs" />
@@ -192,7 +191,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)Util\Misc.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\ObjectWriter.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\Range.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Util\RemoteRequestCompletionBlock.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\SequenceMap.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\StringUtils.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\SystemLogger.cs" />
@@ -202,7 +200,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)Store\CouchbaseSqliteCollationFunctions.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Store\SqlitePclRawStorageEngine.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Store\SQLiteResult.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Util\Utils.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Auth\AuthenticatorFactory.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Auth\IAuthenticator.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Auth\Authenticator.cs" />
@@ -216,6 +213,11 @@
     <Compile Include="$(MSBuildThisFileDirectory)Documents\DocumentContentOptions.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Manager\NetworkReachabilityManager.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\StreamUtils.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Replication\BulkDownloader.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Replication\BulkDownloaderDelegate.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Replication\RemoteRequest.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Replication\RemoteRequestEventArgs.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Replication\RemoteRequestCompletionBlock.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="$(MSBuildThisFileDirectory)Store\MonoSQLiteStorageEngine.cs" />

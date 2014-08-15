@@ -58,23 +58,23 @@ using Sharpen;
 
 namespace Couchbase.Lite.Replicator
 {
-	/// <summary>
-	/// Reads the continuous-mode _changes feed of a database, and sends the
-	/// individual change entries to its client's changeTrackerReceivedChange()
-	/// </summary>
+    /// <summary>
+    /// Reads the continuous-mode _changes feed of a database, and sends the
+    /// individual change entries to its client's changeTrackerReceivedChange()
+    /// </summary>
     internal class ChangeTracker : Runnable
-	{
+    {
         const String Tag = "ChangeTracker";
 
         const Int32 LongPollModeLimit = 50;
 
         const Int32 HeartbeatMilliseconds = 300000;
 
-		private Uri databaseURL;
+        private Uri databaseURL;
 
-		private IChangeTrackerClient client;
+        private IChangeTrackerClient client;
 
-		private ChangeTracker.ChangeTrackerMode mode;
+        private ChangeTracker.ChangeTrackerMode mode;
 
         private Object lastSequenceID;
 
@@ -96,22 +96,22 @@ namespace Couchbase.Lite.Replicator
 
         private IList<String> docIDs;
 
-		private Exception Error;
+        private Exception Error;
 
         private bool shouldBreak;
 
         internal ChangeTrackerBackoff backoff;
 
-		protected internal IDictionary<string, object> RequestHeaders;
+        protected internal IDictionary<string, object> RequestHeaders;
 
         private readonly CancellationTokenSource tokenSource;
 
         internal enum ChangeTrackerMode
-		{
-			OneShot,
-			LongPoll,
-			Continuous
-		}
+        {
+            OneShot,
+            LongPoll,
+            Continuous
+        }
 
         public IAuthenticator Authenticator { get; set; }
 
@@ -119,86 +119,86 @@ namespace Couchbase.Lite.Replicator
 
         public ChangeTracker(Uri databaseURL, ChangeTracker.ChangeTrackerMode mode, object lastSequenceID, 
             Boolean includeConflicts, IChangeTrackerClient client, TaskFactory workExecutor = null)
-		{
-			this.databaseURL = databaseURL;
-			this.mode = mode;
+        {
+            this.databaseURL = databaseURL;
+            this.mode = mode;
             this.includeConflicts = includeConflicts;
-			this.lastSequenceID = lastSequenceID;
-			this.client = client;
-			this.RequestHeaders = new Dictionary<string, object>();
+            this.lastSequenceID = lastSequenceID;
+            this.client = client;
+            this.RequestHeaders = new Dictionary<string, object>();
             this.tokenSource = new CancellationTokenSource();
             WorkExecutor = workExecutor ?? Task.Factory;
-		}
+        }
 
-		public void SetFilterName(string filterName)
-		{
-			this.filterName = filterName;
-		}
+        public void SetFilterName(string filterName)
+        {
+            this.filterName = filterName;
+        }
 
         public void SetFilterParams(IDictionary<String, Object> filterParams)
-		{
-			this.filterParams = filterParams;
-		}
+        {
+            this.filterParams = filterParams;
+        }
 
-		public void SetClient(IChangeTrackerClient client)
-		{
-			this.client = client;
-		}
+        public void SetClient(IChangeTrackerClient client)
+        {
+            this.client = client;
+        }
 
-		public string GetDatabaseName()
-		{
-			string result = null;
-			if (databaseURL != null)
-			{
-				result = databaseURL.AbsolutePath;
-				if (result != null)
-				{
-					int pathLastSlashPos = result.LastIndexOf('/');
-					if (pathLastSlashPos > 0)
-					{
-						result = Sharpen.Runtime.Substring(result, pathLastSlashPos);
-					}
-				}
-			}
-			return result;
-		}
+        public string GetDatabaseName()
+        {
+            string result = null;
+            if (databaseURL != null)
+            {
+                result = databaseURL.AbsolutePath;
+                if (result != null)
+                {
+                    int pathLastSlashPos = result.LastIndexOf('/');
+                    if (pathLastSlashPos > 0)
+                    {
+                        result = Sharpen.Runtime.Substring(result, pathLastSlashPos);
+                    }
+                }
+            }
+            return result;
+        }
 
-		public string GetChangesFeedPath()
-		{
-			string path = "_changes";
+        public string GetChangesFeedPath()
+        {
+            string path = "_changes";
 
             if (!UsePost)
             {
                 path = path + "?" + GetChangesFeedParams().ToQueryString();
             }
 
-			return path;
-		}
+            return path;
+        }
 
-		public Uri GetChangesFeedURL()
-		{
+        public Uri GetChangesFeedURL()
+        {
             var dbURLString = databaseURL.ToString();
-			if (!dbURLString.EndsWith ("/", StringComparison.Ordinal))
-			{
-				dbURLString += "/";
-			}
-			dbURLString += GetChangesFeedPath();
+            if (!dbURLString.EndsWith ("/", StringComparison.Ordinal))
+            {
+                dbURLString += "/";
+            }
+            dbURLString += GetChangesFeedPath();
 
-			Uri result = null;
-			try
-			{
-				result = new Uri(dbURLString);
-			}
-			catch (UriFormatException e)
-			{
+            Uri result = null;
+            try
+            {
+                result = new Uri(dbURLString);
+            }
+            catch (UriFormatException e)
+            {
                 Log.E(Tag, "Changes feed ULR is malformed", e);
-			}
-			return result;
-		}
+            }
+            return result;
+        }
 
         // TODO: Needs to refactored into smaller calls. Each continuation could be its own method, for example.
         public async void Run()
-		{
+        {
             if (IsRunning()) 
             {
                 return;
@@ -206,28 +206,28 @@ namespace Couchbase.Lite.Replicator
 
             running = true;
 
-			if (client == null)
-			{
-				// This is a race condition that can be reproduced by calling cbpuller.start() and cbpuller.stop()
-				// directly afterwards.  What happens is that by the time the Changetracker thread fires up,
-				// the cbpuller has already set this.client to null.  See issue #109
+            if (client == null)
+            {
+                // This is a race condition that can be reproduced by calling cbpuller.start() and cbpuller.stop()
+                // directly afterwards.  What happens is that by the time the Changetracker thread fires up,
+                // the cbpuller has already set this.client to null.  See issue #109
                 Log.W(Tag, "ChangeTracker run() loop aborting because client == null");
-				return;
-			}
+                return;
+            }
 
-			if (mode == ChangeTracker.ChangeTrackerMode.Continuous)
-			{
-				// there is a failing unit test for this, and from looking at the code the Replication
-				// object will never use Continuous mode anyway.  Explicitly prevent its use until
-				// it is demonstrated to actually work.
-				throw new RuntimeException("ChangeTracker does not correctly support continuous mode");
-			}
+            if (mode == ChangeTracker.ChangeTrackerMode.Continuous)
+            {
+                // there is a failing unit test for this, and from looking at the code the Replication
+                // object will never use Continuous mode anyway.  Explicitly prevent its use until
+                // it is demonstrated to actually work.
+                throw new RuntimeException("ChangeTracker does not correctly support continuous mode");
+            }
 
             backoff = new ChangeTrackerBackoff();
 
             this.shouldBreak = false;
             while (IsRunning())
-			{
+            {
                 if (tokenSource.Token.IsCancellationRequested)
                     break;
 
@@ -244,11 +244,11 @@ namespace Couchbase.Lite.Replicator
                     Request = new HttpRequestMessage(HttpMethod.Get, url);
                 }
 
-				AddRequestHeaders(Request);
+                AddRequestHeaders(Request);
 
                 HttpClient httpClient = null;
-				try
-				{
+                try
+                {
                     httpClient = client.GetHttpClient();
                     var authHeader = AuthUtils.GetAuthenticationHeaderValue(Authenticator, Request.RequestUri);
                     if (authHeader != null)
@@ -268,22 +268,22 @@ namespace Couchbase.Lite.Replicator
 
                     response.Dispose();
                     Request.Dispose();
-				}
-				catch (Exception e)
-				{
+                }
+                catch (Exception e)
+                {
                     if (!IsRunning() && e is IOException)
                     {
                         // swallow
                     }
-					else
-					{
-						// in this case, just silently absorb the exception because it
-						// frequently happens when we're shutting down and have to
-						// close the socket underneath our read.
+                    else
+                    {
+                        // in this case, just silently absorb the exception because it
+                        // frequently happens when we're shutting down and have to
+                        // close the socket underneath our read.
                         Log.E(Tag, "Exception in change tracker", e);
-					}
-					backoff.SleepAppropriateAmountOfTime();
-				}
+                    }
+                    backoff.SleepAppropriateAmountOfTime();
+                }
                 finally
                 {
                     if (httpClient != null) 
@@ -301,13 +301,13 @@ namespace Couchbase.Lite.Replicator
                 {
                     break;
                 }
-			}
-		}
+            }
+        }
 
         async Task ChangeFeedResponseHandler(HttpResponseMessage response)
         {
             var status = response.StatusCode;
-            if ((Int32)status >= 300 && !Utils.IsTransientError(status))
+            if ((Int32)status >= 300 && !Misc.IsTransientError(status))
             {
                 var msg = response.Content != null 
                     ? String.Format("Change tracker got error with status code: {0}", status)
@@ -391,22 +391,22 @@ namespace Couchbase.Lite.Replicator
         }
 
         public bool ReceivedChange(IDictionary<string, object> change)
-		{
+        {
             var seq = change.Get("seq");
-			if (seq == null)
-			{
-				return false;
-			}
+            if (seq == null)
+            {
+                return false;
+            }
 
-			//pass the change to the client on the thread that created this change tracker
-			if (client != null)
-			{
+            //pass the change to the client on the thread that created this change tracker
+            if (client != null)
+            {
                 Log.D(Tag, "changed tracker posting change");
                 client.ChangeTrackerReceivedChange(change);
-			}
-			lastSequenceID = seq;
-			return true;
-		}
+            }
+            lastSequenceID = seq;
+            return true;
+        }
 
         public bool ReceivedPollResponse(IDictionary<string, object> response)
         {
@@ -426,21 +426,21 @@ namespace Couchbase.Lite.Replicator
             return true;
         }
 
-		public void SetUpstreamError(string message)
-		{
+        public void SetUpstreamError(string message)
+        {
             Log.W(Tag, this + string.Format(": Server error: {0}", message));
-			this.Error = new Exception(message);
-		}
+            this.Error = new Exception(message);
+        }
 
-		public bool Start()
-		{
-			this.Error = null;
+        public bool Start()
+        {
+            this.Error = null;
             runTask = Task.Factory.StartNew(Run, tokenSource.Token);
             return true;
-		}
+        }
 
-		public void Stop()
-		{
+        public void Stop()
+        {
             // Lock to prevent multiple calls to Stop() method from different
             // threads (eg. one from ChangeTracker itself and one from any other
             // consumers).
@@ -462,34 +462,34 @@ namespace Couchbase.Lite.Replicator
 
                 Stopped();
             }
-		}
+        }
 
-		public void Stopped()
-		{
+        public void Stopped()
+        {
             Log.D(Tag, "change tracker in stopped");
-			if (client != null)
-			{
+            if (client != null)
+            {
                 Log.D(Tag, "posting stopped");
                 client.ChangeTrackerStopped(this);
-			}
-			client = null;
+            }
+            client = null;
             Log.D(Tag, "change tracker client should be null now");
-		}
+        }
 
-		public Exception GetLastError()
-		{
-			return Error;
-		}
+        public Exception GetLastError()
+        {
+            return Error;
+        }
 
         public void SetDocIDs(IList<string> docIDs)
         {
             this.docIDs = docIDs;
         }
 
-		public bool IsRunning()
-		{
+        public bool IsRunning()
+        {
             return running;
-		}
+        }
 
         internal void SetRequestHeaders(IDictionary<String, Object> requestHeaders)
         {
@@ -566,5 +566,5 @@ namespace Couchbase.Lite.Replicator
             var body = mapper.WriteValueAsString(parameters);
             return body;
         }
-	}
+    }
 }

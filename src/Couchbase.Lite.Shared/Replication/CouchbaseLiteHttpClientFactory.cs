@@ -55,8 +55,8 @@ using Couchbase.Lite.Util;
 
 namespace Couchbase.Lite.Support
 {
-    public class CouchbaseLiteHttpClientFactory : IHttpClientFactory
-	{
+    internal class CouchbaseLiteHttpClientFactory : IHttpClientFactory
+    {
         const string Tag = "CouchbaseLiteHttpClientFactory";
 
         private readonly CookieStore cookieStore;
@@ -118,22 +118,33 @@ namespace Couchbase.Lite.Support
                     return false;
                 }
             };
+
+            BuildHandlerPipeline();
         }
 
-        public HttpClient GetHttpClient()
-		{
-            // Build a pipeline of HttpMessageHandlers.
-            var handler = new HttpClientHandler 
-            {
+        /// <summary>
+        /// Build a pipeline of HttpMessageHandlers.
+        /// </summary>
+        void BuildHandlerPipeline ()
+        {
+            var handler = new HttpClientHandler {
                 CookieContainer = cookieStore,
                 UseDefaultCredentials = true,
                 UseCookies = true,
             };
+            Handler = new DefaultAuthHandler (handler, cookieStore);
+        }
 
+        public HttpClient GetHttpClient()
+        {
             // NOTE: Probably could set httpHandler.MaxRequestContentBufferSize to Couchbase Lite 
             // max doc size (~16 MB) plus some overhead.
-            var authHandler = new DefaultAuthHandler(handler, cookieStore);
-            var client =  new HttpClient(authHandler);
+            var authHandler = Handler;
+            var client =  new HttpClient(authHandler)
+            {
+                Timeout = ManagerOptions.Default.RequestTimeout,
+// TODO:               MaxResponseContentBufferSize = CouchbaseLiteMaxContentSize
+            };
             foreach(var header in Headers)
             {
                 var success = client.DefaultRequestHeaders.TryAddWithoutValidation(header.Key, header.Value);
@@ -142,8 +153,9 @@ namespace Couchbase.Lite.Support
             }
 
             return client;
-		}
+        }
 
+        public DefaultAuthHandler Handler { get; private set; }
 
         public IDictionary<string, string> Headers { get; set; }
 
@@ -161,5 +173,5 @@ namespace Couchbase.Lite.Support
         {
             return cookieStore;
         }
-	}
+    }
 }

@@ -44,6 +44,7 @@ using System;
 using System.Net.Http;
 using System.Collections.Generic;
 using System.Net;
+using Couchbase.Lite.Replicator;
 
 namespace Couchbase.Lite.Support
 {
@@ -51,7 +52,7 @@ namespace Couchbase.Lite.Support
     {
         HttpClient GetHttpClient();
         IDictionary<string,string> Headers { get; set; }
-
+        MessageProcessingHandler Handler { get; }
         void AddCookies(CookieCollection cookies);
         void DeleteCookie(Uri domain, string name);
         CookieContainer GetCookieContainer();

@@ -47,6 +47,7 @@ using Sharpen;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 
 namespace Couchbase.Lite
 {
@@ -111,6 +112,36 @@ namespace Couchbase.Lite
         public static string UnquoteString(string param)
         {
             return param.Replace("\"", string.Empty);
+        }
+
+        public static bool IsTransientError(HttpStatusCode status)
+        {
+            if (status == HttpStatusCode.InternalServerError || 
+                status == HttpStatusCode.BadGateway || 
+                status == HttpStatusCode.ServiceUnavailable || 
+                status == HttpStatusCode.GatewayTimeout)
+            {
+                return true;
+            }
+            return false;
+        }
+        /// <summary>Like equals, but works even if either/both are null</summary>
+        /// <param name="obj1">object1 being compared</param>
+        /// <param name="obj2">object2 being compared</param>
+        /// <returns>
+        /// true if both are non-null and obj1.equals(obj2), or true if both are null.
+        /// otherwise return false.
+        /// </returns>
+        public static bool IsEqual(object obj1, object obj2)
+        {
+            if (obj1 != null)
+            {
+                return (obj2 != null) && obj1.Equals(obj2);
+            }
+            else
+            {
+                return obj2 == null;
+            }
         }
 
         public static bool PropertiesEqual(IDictionary<string, object> prop1, IDictionary<string, object> prop2)
