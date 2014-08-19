@@ -155,7 +155,7 @@ namespace Couchbase.Lite.Support
             return client;
         }
 
-        public DefaultAuthHandler Handler { get; private set; }
+        public MessageProcessingHandler Handler { get; private set; }
 
         public IDictionary<string, string> Headers { get; set; }
 

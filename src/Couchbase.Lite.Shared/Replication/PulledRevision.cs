@@ -58,35 +58,35 @@ using System.Web;
 namespace Couchbase.Lite.Replicator
 {
 
-	/// <summary>A revision received from a remote server during a pull.</summary>
-	/// <remarks>A revision received from a remote server during a pull. Tracks the opaque remote sequence ID.
-	/// 	</remarks>
-	internal class PulledRevision : RevisionInternal
-	{
-		public PulledRevision(Body body, Database database) : base(body, database)
-		{
-		}
+    /// <summary>A revision received from a remote server during a pull.</summary>
+    /// <remarks>A revision received from a remote server during a pull. Tracks the opaque remote sequence ID.
+    ///     </remarks>
+    internal class PulledRevision : RevisionInternal
+    {
+        public PulledRevision(Body body, Database database) : base(body, database)
+        {
+        }
 
-		public PulledRevision(string docId, string revId, bool deleted, Database database
-			) : base(docId, revId, deleted, database)
-		{
-		}
+        public PulledRevision(string docId, string revId, bool deleted, Database database
+            ) : base(docId, revId, deleted, database)
+        {
+        }
 
-		public PulledRevision(IDictionary<string, object> properties, Database database) : 
-			base(properties, database)
-		{
-		}
+        public PulledRevision(IDictionary<string, object> properties, Database database) : 
+            base(properties, database)
+        {
+        }
 
-		protected internal string remoteSequenceID;
+        protected internal string remoteSequenceID;
 
-		public string GetRemoteSequenceID()
-		{
-			return remoteSequenceID;
-		}
+        public string GetRemoteSequenceID()
+        {
+            return remoteSequenceID;
+        }
 
-		public void SetRemoteSequenceID(string remoteSequenceID)
-		{
-			this.remoteSequenceID = remoteSequenceID;
-		}
-	}
+        public void SetRemoteSequenceID(string remoteSequenceID)
+        {
+            this.remoteSequenceID = remoteSequenceID;
+        }
+    }
 }

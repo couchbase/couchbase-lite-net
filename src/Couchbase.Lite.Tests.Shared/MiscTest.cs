@@ -2,7 +2,7 @@
 // MiscTest.cs
 //
 // Author:
-//	Zachary Gramana  <zack@xamarin.com>
+//  Zachary Gramana  <zack@xamarin.com>
 //
 // Copyright (c) 2013, 2014 Xamarin Inc (http://www.xamarin.com)
 //
@@ -48,15 +48,15 @@ using Sharpen;
 
 namespace Couchbase.Lite
 {
-	public class MiscTest : LiteTestCase
-	{
+    public class MiscTest : LiteTestCase
+    {
         [Test]
-		public void TestUnquoteString()
-		{
-			string testString = "attachment; filename=\"attach\"";
-			string expected = "attachment; filename=attach";
-			string result = Misc.UnquoteString(testString);
-			Assert.AreEqual(expected, result);
-		}
-	}
+        public void TestUnquoteString()
+        {
+            string testString = "attachment; filename=\"attach\"";
+            string expected = "attachment; filename=attach";
+            string result = Misc.UnquoteString(testString);
+            Assert.AreEqual(expected, result);
+        }
+    }
 }

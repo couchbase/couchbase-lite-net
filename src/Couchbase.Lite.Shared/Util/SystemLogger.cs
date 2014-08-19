@@ -49,77 +49,103 @@ using System.Threading;
 
 namespace Couchbase.Lite.Util
 {
-	public sealed class SystemLogger : ILogger
-	{
-		public void V(string tag, string msg)
-		{
+    [Obsolete]
+    public sealed class SystemLogger : ILogger
+    {
+        public void V(string tag, string msg)
+        {
             try {
                 Trace.TraceInformation(tag + ": " + msg);
             } catch (ThreadInterruptedException ex) {
                 // swallow.
             }
-		}
+        }
 
-		public void V(string tag, string msg, Exception tr)
-		{
-			Trace.TraceInformation(tag + ": " + msg + "\n" + GetStackTraceString(tr));
-		}
+        public void V(string tag, string msg, Exception tr)
+        {
+            Trace.TraceInformation(tag + ": " + msg + "\n" + GetStackTraceString(tr));
+        }
 
-		public void D(string tag, string msg)
-		{
-			Trace.WriteLine(msg, tag);
-		}
+        public void V (string tag, string format, params object[] args)
+        {
+            throw new NotImplementedException ();
+        }
 
-		public void D(string tag, string msg, Exception tr)
-		{
-			Trace.WriteLine(msg + "\n" + GetStackTraceString(tr), tag);
-		}
+        public void D(string tag, string msg)
+        {
+            Trace.WriteLine(msg, tag);
+        }
 
-		public void I(string tag, string msg)
-		{
-			Trace.TraceInformation(tag + ": " + msg);
-		}
+        public void D(string tag, string msg, Exception tr)
+        {
+            Trace.WriteLine(msg + "\n" + GetStackTraceString(tr), tag);
+        }
 
-		public void I(string tag, string msg, Exception tr)
-		{
-			Trace.TraceInformation(tag + ": " + msg + "\n" + GetStackTraceString(tr));
-		}
+        public void D (string tag, string format, params object[] args)
+        {
+            throw new NotImplementedException ();
+        }
 
-		public void W(string tag, string msg)
-		{
+        public void I(string tag, string msg)
+        {
+            Trace.TraceInformation(tag + ": " + msg);
+        }
+
+        public void I(string tag, string msg, Exception tr)
+        {
+            Trace.TraceInformation(tag + ": " + msg + "\n" + GetStackTraceString(tr));
+        }
+
+        public void I (string tag, string format, params object[] args)
+        {
+            throw new NotImplementedException ();
+        }
+
+        public void W(string tag, string msg)
+        {
             Trace.TraceWarning(tag + ": " + msg);
-		}
+        }
 
-		public void W(string tag, Exception tr)
-		{
+        public void W(string tag, Exception tr)
+        {
             Trace.TraceWarning(tag + ": " + "\n" + GetStackTraceString(tr));
-		}
+        }
 
-		public void W(string tag, string msg, Exception tr)
-		{
+        public void W(string tag, string msg, Exception tr)
+        {
             Trace.TraceWarning(tag + ": " + msg + "\n" + GetStackTraceString(tr));
-		}
+        }
 
-		public void E(string tag, string msg)
-		{
-			Trace.TraceError(tag + ": " + msg);
-		}
+        public void W (string tag, string format, params object[] args)
+        {
+            throw new NotImplementedException ();
+        }
 
-		public void E(string tag, string msg, Exception tr)
-		{
-			Trace.TraceError(tag + ": " + msg + "\n" + GetStackTraceString(tr));
-		}
+        public void E(string tag, string msg)
+        {
+            Trace.TraceError(tag + ": " + msg);
+        }
 
-		private static string GetStackTraceString(Exception tr)
-		{
-			if (tr == null)
-			{
+        public void E(string tag, string msg, Exception tr)
+        {
+            Trace.TraceError(tag + ": " + msg + "\n" + GetStackTraceString(tr));
+        }
+
+        public void E (string tag, string format, params object[] args)
+        {
+            throw new NotImplementedException ();
+        }
+
+        private static string GetStackTraceString(Exception tr)
+        {
+            if (tr == null)
+            {
                 return Environment.StackTrace;
-			}
-			StringWriter stringWriter = new StringWriter();
-			PrintWriter printWriter = new PrintWriter(stringWriter);
+            }
+            StringWriter stringWriter = new StringWriter();
+            PrintWriter printWriter = new PrintWriter(stringWriter);
             Runtime.PrintStackTrace(tr, printWriter);
-			return stringWriter.ToString();
-		}
-	}
+            return stringWriter.ToString();
+        }
+    }
 }

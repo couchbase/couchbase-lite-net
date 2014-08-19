@@ -48,8 +48,8 @@ using Sharpen;
 namespace Couchbase.Lite.Replicator
 {
     internal interface IChangeTrackerClient : IHttpClientFactory
-	{
-		void ChangeTrackerReceivedChange(IDictionary<string, object> change);
-		void ChangeTrackerStopped(ChangeTracker tracker);
-	}
+    {
+        void ChangeTrackerReceivedChange(IDictionary<string, object> change);
+        void ChangeTrackerStopped(ChangeTracker tracker);
+    }
 }

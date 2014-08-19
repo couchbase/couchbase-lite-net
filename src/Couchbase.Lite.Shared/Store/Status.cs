@@ -45,47 +45,47 @@ using System;
 
 namespace Couchbase.Lite
 {
-	/// <summary>Same interpretation as HTTP status codes, esp.</summary>
-	/// <remarks>Same interpretation as HTTP status codes, esp. 200, 201, 404, 409, 500.</remarks>
+    /// <summary>Same interpretation as HTTP status codes, esp.</summary>
+    /// <remarks>Same interpretation as HTTP status codes, esp. 200, 201, 404, 409, 500.</remarks>
     public enum StatusCode
     {
-		Unknown = -1,
+        Unknown = -1,
 
-		Ok = 200,
+        Ok = 200,
 
-		Created = 201,
+        Created = 201,
 
-		NotModified = 304,
+        NotModified = 304,
 
-		BadRequest = 400,
+        BadRequest = 400,
 
         Unauthorized = 401,
 
         Forbidden = 403,
 
-		NotFound = 404,
+        NotFound = 404,
 
-		MethodNotAllowed = 405,
+        MethodNotAllowed = 405,
 
-		NotAcceptable = 406,
+        NotAcceptable = 406,
 
-		Conflict = 409,
+        Conflict = 409,
 
-		PreconditionFailed = 412,
+        PreconditionFailed = 412,
 
-		BadEncoding = 490,
+        BadEncoding = 490,
 
-		BadAttachment = 491,
+        BadAttachment = 491,
 
-		BadJson = 493,
+        BadJson = 493,
 
-		InternalServerError = 500,
+        InternalServerError = 500,
 
         UpStreamError = 589,
 
-		StatusAttachmentError = 592,
+        StatusAttachmentError = 592,
 
-		DbError = 590,
+        DbError = 590,
 
         DbBusy = 595
     }
@@ -94,34 +94,34 @@ namespace Couchbase.Lite
 
         private StatusCode code;
 
-		public Status()
-		{
+        public Status()
+        {
             this.code = StatusCode.Unknown;
-		}
+        }
 
         public Status(StatusCode code)
-		{
-			this.code = code;
-		}
+        {
+            this.code = code;
+        }
 
         public virtual StatusCode GetCode()
-		{
-			return code;
-		}
+        {
+            return code;
+        }
 
         public virtual void SetCode(StatusCode code)
-		{
-			this.code = code;
-		}
+        {
+            this.code = code;
+        }
 
         public virtual Boolean IsSuccessful()
-		{
+        {
             return ((Int32)code > 0 && (Int32)code < 400);
-		}
+        }
 
-		public override string ToString()
-		{
-			return "Status: " + code;
-		}
-	}
+        public override string ToString()
+        {
+            return "Status: " + code;
+        }
+    }
 }

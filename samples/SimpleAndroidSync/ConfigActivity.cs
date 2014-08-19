@@ -14,7 +14,7 @@ using Android.Preferences;
 
 namespace SimpleAndroidSync
 {
-    [Activity(Label = "ConfigActivity")]			
+    [Activity(Label = "ConfigActivity")]            
     public class ConfigActivity : Activity
     {
         protected override void OnCreate(Bundle bundle)

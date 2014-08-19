@@ -46,12 +46,12 @@ using Sharpen;
 
 namespace Couchbase.Lite.Support
 {
-	public interface IMultipartReaderDelegate
-	{
-		void StartedPart(IDictionary<string, string> headers);
+    public interface IMultipartReaderDelegate
+    {
+        void StartedPart(IDictionary<string, string> headers);
 
         void AppendToPart(IEnumerable<byte> data);
 
-		void FinishedPart();
-	}
+        void FinishedPart();
+    }
 }

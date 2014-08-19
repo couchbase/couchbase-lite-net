@@ -9,29 +9,29 @@ using System.CodeDom.Compiler;
 
 namespace CouchbaseSample
 {
-	[Register ("ConfigViewController")]
-	partial class ConfigViewController
-	{
-		[Outlet]
-		MonoTouch.UIKit.UITextField UrlField { get; set; }
+    [Register ("ConfigViewController")]
+    partial class ConfigViewController
+    {
+        [Outlet]
+        MonoTouch.UIKit.UITextField UrlField { get; set; }
 
-		[Outlet]
-		MonoTouch.UIKit.UILabel VersionField { get; set; }
+        [Outlet]
+        MonoTouch.UIKit.UILabel VersionField { get; set; }
 
-		[Action ("learnMore:")]
-		partial void LearnMore (MonoTouch.Foundation.NSObject sender);
-		
-		void ReleaseDesignerOutlets ()
-		{
-			if (UrlField != null) {
-				UrlField.Dispose ();
-				UrlField = null;
-			}
+        [Action ("learnMore:")]
+        partial void LearnMore (MonoTouch.Foundation.NSObject sender);
+        
+        void ReleaseDesignerOutlets ()
+        {
+            if (UrlField != null) {
+                UrlField.Dispose ();
+                UrlField = null;
+            }
 
-			if (VersionField != null) {
-				VersionField.Dispose ();
-				VersionField = null;
-			}
-		}
-	}
+            if (VersionField != null) {
+                VersionField.Dispose ();
+                VersionField = null;
+            }
+        }
+    }
 }

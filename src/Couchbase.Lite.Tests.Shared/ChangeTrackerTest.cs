@@ -58,9 +58,9 @@ using System.Collections;
 
 namespace Couchbase.Lite
 {
-	public class ChangeTrackerTest : LiteTestCase
-	{
-		public const string Tag = "ChangeTracker";
+    public class ChangeTrackerTest : LiteTestCase
+    {
+        public const string Tag = "ChangeTracker";
 
         private class ChangeTrackerTestClient : IChangeTrackerClient
         {
@@ -159,7 +159,7 @@ namespace Couchbase.Lite
         }
 
         private void ChangeTrackerTestWithMode(ChangeTracker.ChangeTrackerMode mode)
-		{
+        {
             var changeTrackerFinishedSignal = new CountDownLatch(1);
             var changeReceivedSignal = new CountDownLatch(1);
             var client = new ChangeTrackerTestClient(changeTrackerFinishedSignal, changeReceivedSignal);
@@ -194,7 +194,7 @@ namespace Couchbase.Lite
 
             success = changeTrackerFinishedSignal.Await(TimeSpan.FromSeconds(30));
             Assert.IsTrue(success);
-		}
+        }
 
         private void TestChangeTrackerBackoff(MockHttpClientFactory httpClientFactory)
         {
@@ -322,23 +322,23 @@ namespace Couchbase.Lite
         }
             
         [Test]
-		public void TestChangeTrackerWithFilterURL()
-		{
+        public void TestChangeTrackerWithFilterURL()
+        {
             var testUrl = GetReplicationURL();
             var changeTracker = new ChangeTracker(testUrl, ChangeTracker.ChangeTrackerMode.LongPoll, 0, false, null);
-			
+            
             // set filter
-			changeTracker.SetFilterName("filter");
-			
+            changeTracker.SetFilterName("filter");
+            
             // build filter map
             var filterMap = new Dictionary<string, object>();
-			filterMap["param"] = "value";
+            filterMap["param"] = "value";
 
-			// set filter map
-			changeTracker.SetFilterParams(filterMap);
+            // set filter map
+            changeTracker.SetFilterParams(filterMap);
             Assert.AreEqual("_changes?feed=longpoll&heartbeat=300000&since=0&limit=50&filter=filter&param=value", 
                 changeTracker.GetChangesFeedPath());
-		}
+        }
 
         [Test]
         public void TestChangeTrackerBackoffExceptions()
@@ -386,23 +386,23 @@ namespace Couchbase.Lite
         }
 
         [Test]
-		public void TestChangeTrackerWithDocsIds()
-		{
+        public void TestChangeTrackerWithDocsIds()
+        {
             var testURL = GetReplicationURL();
             var changeTracker = new ChangeTracker(testURL, ChangeTracker.ChangeTrackerMode
                 .LongPoll, 0, false, null);
 
             var docIds = new List<string>();
-			docIds.AddItem("doc1");
-			docIds.AddItem("doc2");
-			changeTracker.SetDocIDs(docIds);
+            docIds.AddItem("doc1");
+            docIds.AddItem("doc2");
+            changeTracker.SetDocIDs(docIds);
 
             var docIdsJson = "[\"doc1\",\"doc2\"]";
             var docIdsEncoded = Uri.EscapeUriString(docIdsJson);
             var expectedFeedPath = string.Format("_changes?feed=longpoll&heartbeat=300000&since=0&limit=50&filter=_doc_ids&doc_ids={0}", 
                 docIdsEncoded);
-			string changesFeedPath = changeTracker.GetChangesFeedPath();
-			Assert.AreEqual(expectedFeedPath, changesFeedPath);
+            string changesFeedPath = changeTracker.GetChangesFeedPath();
+            Assert.AreEqual(expectedFeedPath, changesFeedPath);
 
             changeTracker.UsePost = true;
             var parameters = changeTracker.GetChangesFeedParams();
@@ -411,6 +411,6 @@ namespace Couchbase.Lite
 
             var body = changeTracker.GetChangesFeedPostBody();
             Assert.IsTrue(body.Contains(docIdsJson));
-		}
-	}
+        }
+    }
 }

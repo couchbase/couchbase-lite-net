@@ -46,7 +46,7 @@ using System.Diagnostics;
 namespace Couchbase.Lite.Util
 {
     class CouchbaseTraceListener : DefaultTraceListener
-	{
+    {
         static readonly string Indent = "    ";
 
         SourceLevels Level;
@@ -162,5 +162,5 @@ namespace Couchbase.Lite.Util
             }
         }
         #endregion
-	}
+    }
 }

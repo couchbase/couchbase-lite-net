@@ -45,80 +45,80 @@ using Sharpen;
 
 namespace Couchbase.Lite.Support
 {
-	public class SequenceMap
-	{
-		private TreeSet<long> sequences;
+    public class SequenceMap
+    {
+        private TreeSet<long> sequences;
 
-		private long lastSequence;
+        private long lastSequence;
 
-		private IList<string> values;
+        private IList<string> values;
 
-		private long firstValueSequence;
+        private long firstValueSequence;
 
-		public SequenceMap()
-		{
-			sequences = new TreeSet<long>();
-			values = new AList<string>(100);
-			firstValueSequence = 1;
-			lastSequence = 0;
-		}
+        public SequenceMap()
+        {
+            sequences = new TreeSet<long>();
+            values = new AList<string>(100);
+            firstValueSequence = 1;
+            lastSequence = 0;
+        }
 
         object locker = new object ();
-		public long AddValue(string value)
-		{
-			lock (locker)
-			{
-				sequences.AddItem(++lastSequence);
-				values.AddItem(value);
-				return lastSequence;
-			}
-		}
+        public long AddValue(string value)
+        {
+            lock (locker)
+            {
+                sequences.AddItem(++lastSequence);
+                values.AddItem(value);
+                return lastSequence;
+            }
+        }
 
-		public void RemoveSequence(long sequence)
-		{
-			lock (locker)
-			{
-				sequences.Remove(sequence);
-			}
-		}
+        public void RemoveSequence(long sequence)
+        {
+            lock (locker)
+            {
+                sequences.Remove(sequence);
+            }
+        }
 
-		public bool IsEmpty()
-		{
-			lock (locker)
-			{
-				return sequences.IsEmpty();
-			}
-		}
+        public bool IsEmpty()
+        {
+            lock (locker)
+            {
+                return sequences.IsEmpty();
+            }
+        }
 
-		public long GetCheckpointedSequence()
-		{
-			lock (locker)
-			{
-				long sequence = lastSequence;
-				if (!sequences.IsEmpty())
-				{
-					sequence = sequences.First() - 1;
-				}
-				if (sequence > firstValueSequence)
-				{
-					// Garbage-collect inaccessible values:
-					int numToRemove = (int)(sequence - firstValueSequence);
-					for (int i = 0; i < numToRemove; i++)
-					{
-						values.Remove(0);
-					}
-					firstValueSequence += numToRemove;
-				}
-				return sequence;
-			}
-		}
+        public long GetCheckpointedSequence()
+        {
+            lock (locker)
+            {
+                long sequence = lastSequence;
+                if (!sequences.IsEmpty())
+                {
+                    sequence = sequences.First() - 1;
+                }
+                if (sequence > firstValueSequence)
+                {
+                    // Garbage-collect inaccessible values:
+                    int numToRemove = (int)(sequence - firstValueSequence);
+                    for (int i = 0; i < numToRemove; i++)
+                    {
+                        values.Remove(0);
+                    }
+                    firstValueSequence += numToRemove;
+                }
+                return sequence;
+            }
+        }
 
-		public string GetCheckpointedValue()
-		{
+        public string GetCheckpointedValue()
+        {
             lock (locker) {
                 int index = (int)(GetCheckpointedSequence () - firstValueSequence);
                 return (index >= 0) ? values [index] : null;
             }
-		}
-	}
+        }
+    }
 }

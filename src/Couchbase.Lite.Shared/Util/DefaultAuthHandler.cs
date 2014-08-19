@@ -73,7 +73,7 @@ namespace Couchbase.Lite.Replicator
                 cookieStore.Save();
             }
 
-            return this.context;
+            return response;
         }
 
         /// <exception cref="System.IO.IOException"></exception>
@@ -83,7 +83,7 @@ namespace Couchbase.Lite.Replicator
             //       but that would require using unique tokens per request, instead of sharing them. In order to
             //       keep our easy cancellability, we can use linked cancellation sourceses that all link back
             //       to our root cancellation token source.
-            token.IsCancellationRequested
+
             return request;
         }
 
@@ -91,7 +91,7 @@ namespace Couchbase.Lite.Replicator
 
         #region Private
 
-        private IEnumerator GetEnumerator() 
+        private static IEnumerator GetEnumerator() 
         {
             return AuthenticationManager.RegisteredModules; 
         }

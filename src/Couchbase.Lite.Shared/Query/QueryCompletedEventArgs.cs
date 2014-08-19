@@ -54,8 +54,8 @@ namespace Couchbase.Lite
     /// <summary>
     /// Query completed event arguments.
     /// </summary>
-	public class QueryCompletedEventArgs : EventArgs
-	{
+    public class QueryCompletedEventArgs : EventArgs
+    {
         /// <summary>
         /// The result rows from the Query.
         /// </summary>
@@ -77,6 +77,6 @@ namespace Couchbase.Lite
             Rows = rows;
             ErrorInfo = errorInfo;
         }
-	}
+    }
 }
 

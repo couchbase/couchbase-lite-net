@@ -33,21 +33,21 @@
 // either express or implied. See the License for the specific language governing permissions
 // and limitations under the License.
 //using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Net;
+using System.Net.Http;
+using System.Threading.Tasks;
 using Couchbase.Lite;
 using Couchbase.Lite.Internal;
 using Couchbase.Lite.Replicator;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
 using Sharpen;
-using System;
-using System.Linq;
-using System.Net.Http;
-using Couchbase.Lite.Replication;
-using System.Threading.Tasks;
+using System.Threading;
 
 namespace Couchbase.Lite.Replicator
 {
@@ -67,8 +67,8 @@ namespace Couchbase.Lite.Replicator
         private BulkDownloaderDelegate _onDocument;
 
         /// <exception cref="System.Exception"></exception>
-        public BulkDownloader(TaskFactory workExecutor, IHttpClientFactory clientFactory, Uri dbURL, IList<RevisionInternal> revs, Database database, IDictionary<string, object> requestHeaders)            
-            : base(workExecutor, clientFactory, "POST", new Uri(BuildRelativeURLString(dbURL, "/_bulk_get?revs=true&attachments=true")), HelperMethod(revs, database), database, requestHeaders)
+        public BulkDownloader(TaskFactory workExecutor, IHttpClientFactory clientFactory, Uri dbURL, IList<RevisionInternal> revs, Database database, IDictionary<string, object> requestHeaders, CancellationTokenSource tokenSource = null)
+            : base(workExecutor, clientFactory, "POST", new Uri(BuildRelativeURLString(dbURL, "/_bulk_get?revs=true&attachments=true")), HelperMethod(revs, database), database, requestHeaders, tokenSource)
         {
             _db = database;
         }
@@ -78,17 +78,17 @@ namespace Couchbase.Lite.Replicator
             throw new System.NotImplementedException ();
         }
 
-        public void Run()
+        public override void Run()
         {
             var httpClient = clientFactory.GetHttpClient();
             PreemptivelySetAuthCredentials(httpClient);
-            request.Headers.Add("Content-Type", "application/json");
-            request.Headers.Add("Accept", "multipart/related");
+            requestMessage.Headers.Add("Content-Type", "application/json");
+            requestMessage.Headers.Add("Accept", "multipart/related");
             //TODO: implement gzip support for server response see issue #172
             //request.addHeader("X-Accept-Part-Encoding", "gzip");
-            AddRequestHeaders(request);
-            SetBody(request);
-            ExecuteRequest(httpClient, request);
+            AddRequestHeaders(requestMessage);
+            SetBody(requestMessage);
+            ExecuteRequest(httpClient, requestMessage);
         }
 
         private string Description()
@@ -100,58 +100,54 @@ namespace Couchbase.Lite.Replicator
         {
             object fullBody = null;
             Exception error = null;
-            HttpWebResponse response = null;
+            HttpResponseMessage response = null;
             try
             {
-                if (request.IsAborted)
+                if (!_tokenSource.IsCancellationRequested)
                 {
-                    RespondWithResult(fullBody, new Exception(string.Format("%s: Request %s has been aborted"
-                        , this, request)), response);
+                    RespondWithResult(fullBody, new Exception(string.Format("{0}: Request {1} has been aborted", this, request)), response);
                     return;
                 }
-                response = httpClient.Execute(request);
-                try
+                response = httpClient.SendAsync(request, _tokenSource.Token).Result;
+//                try
+//                {
+//                    // add in cookies to global store
+//                    if (httpClient is DefaultHttpClient)
+//                    {
+//                        DefaultHttpClient defaultHttpClient = (DefaultHttpClient)httpClient;
+//                        clientFactory.AddCookies(defaultHttpClient.GetCookieStore().GetCookies());
+//                    }
+//                }
+//                catch (Exception e)
+//                {
+//                    Log.E(Tag, "Unable to add in cookies to global store", e);
+//                }
+                var status = response.StatusCode;
+                if (response.IsSuccessStatusCode)
                 {
-                    // add in cookies to global store
-                    if (httpClient is DefaultHttpClient)
-                    {
-                        DefaultHttpClient defaultHttpClient = (DefaultHttpClient)httpClient;
-                        clientFactory.AddCookies(defaultHttpClient.GetCookieStore().GetCookies());
-                    }
-                }
-                catch (Exception e)
-                {
-                    Log.E(Log.TagRemoteRequest, "Unable to add in cookies to global store", e);
-                }
-                StatusLine status = response.GetStatusLine();
-                if (status.GetStatusCode() >= 300)
-                {
-                    Log.E(Log.TagRemoteRequest, "Got error status: %d for %s.  Reason: %s", status.GetStatusCode
-                        (), request, status.GetReasonPhrase());
-                    error = new HttpResponseException(status.GetStatusCode(), status.GetReasonPhrase(
-                    ));
+                    Log.E(Tag, "Got error status: {0} for {1}.  Reason: {2}", status.GetStatusCode(), request, response.ReasonPhrase);
+                    error = new HttpResponseException(status);
                 }
                 else
                 {
-                    var entity = response.Result;
-                    var contentTypeHeader = entity.ContentType;
-                    InputStream inputStream = null;
-                    if (contentTypeHeader != null && contentTypeHeader.GetValue().Contains("multipart/"
-                    ))
+                    var entity = response.Content;
+                    var contentTypeHeader = entity.Headers.ContentType;
+                    Stream inputStream = null;
+                    if (contentTypeHeader != null && contentTypeHeader.ToString().Contains("multipart/"))
                     {
-                        Log.V(Tag, "contentTypeHeader = %s", contentTypeHeader.GetValue());
+                        Log.V(Tag, "contentTypeHeader = %s", contentTypeHeader.ToString());
                         try
                         {
-                            _topReader = new MultipartReader(contentTypeHeader.GetValue(), this);
-                            inputStream = entity.GetContent();
-                            int bufLen = 1024;
-                            byte[] buffer = new byte[bufLen];
-                            int numBytesRead = 0;
-                            while ((numBytesRead = inputStream.Read(buffer)) != -1)
+                            _topReader = new MultipartReader(contentTypeHeader.ToString(), this);
+                            inputStream = entity.ReadAsStreamAsync().Result;
+                            const int bufLen = 1024;
+                            var buffer = new byte[bufLen];
+                            var numBytesRead = 0;
+                            while ((numBytesRead = inputStream.Read(buffer, 0, bufLen)) != -1)
                             {
                                 if (numBytesRead != bufLen)
                                 {
-                                    byte[] bufferToAppend = Arrays.CopyOfRange(buffer, 0, numBytesRead);
+                                    var bufferToAppend = new ArraySegment<byte>(buffer, 0, numBytesRead).ToArray();
                                     _topReader.AppendData(bufferToAppend);
                                 }
                                 else
@@ -175,13 +171,12 @@ namespace Couchbase.Lite.Replicator
                     }
                     else
                     {
-                        Log.V(Tag, "contentTypeHeader is not multipart = %s", contentTypeHeader.GetValue
-                            ());
+                        Log.V(Tag, "contentTypeHeader is not multipart = {0}", contentTypeHeader.ToString());
                         if (entity != null)
                         {
                             try
                             {
-                                inputStream = entity.Content;
+                                inputStream = entity.ReadAsStreamAsync().Result;
                                 fullBody = Manager.GetObjectMapper().ReadValue<object>(inputStream);
                                 RespondWithResult(fullBody, error, response);
                             }
@@ -201,13 +196,13 @@ namespace Couchbase.Lite.Replicator
             }
             catch (IOException e)
             {
-                Log.E(Log.TagRemoteRequest, "io exception", e);
+                Log.E(Tag, "io exception", e);
                 error = e;
                 RespondWithResult(fullBody, e, response);
             }
             catch (Exception e)
             {
-                Log.E(Log.TagRemoteRequest, "%s: executeRequest() Exception: ", e, this);
+                Log.E(Tag, "%s: executeRequest() Exception: ", e, this);
                 error = e;
                 RespondWithResult(fullBody, e, response);
             }
@@ -223,10 +218,10 @@ namespace Couchbase.Lite.Replicator
             {
                 throw new InvalidOperationException("_docReader is already defined");
             }
-            Log.V(Tag, "{0}: Starting new document; headers =%s", this, headers);
+            Log.V(Tag, "{0}: Starting new document; headers ={1}", this, headers);
             Log.V(Tag, "{0}: Starting new document; ID={1}".Fmt(this, headers.Get("X-Doc-Id")));
             _docReader = new MultipartDocumentReader(_db);
-            _docReader.SetContentType((string)headers.Get("Content-Type"));
+            _docReader.SetContentType(headers.Get ("Content-Type"));
             _docReader.StartedPart(headers);
         }
 
@@ -263,7 +258,7 @@ namespace Couchbase.Lite.Replicator
                 const bool hasAttachment = false;
                 var attsSince = database.GetPossibleAncestorRevisionIDs(source, Puller.MaxNumberOfAttsSince, hasAttachment);
 
-                if (!hasAttachment.Get () || attsSince.Count == 0) 
+                if (!hasAttachment || attsSince.Count == 0) 
                 {
                     attsSince = null;
                 }

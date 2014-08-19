@@ -34,19 +34,19 @@ using Java.Lang.Annotation;
 namespace CouchbaseSample.Android.Helper
 {
     public class LiveQueryAdapter : BaseAdapter <CBDocument>
-	{
-		private LiveQuery query;
+    {
+        private LiveQuery query;
 
-		private QueryEnumerator enumerator;
+        private QueryEnumerator enumerator;
 
         protected Context Context;
 
         public event EventHandler<QueryChangeEventArgs> DataSetChanged;
 
-		public LiveQueryAdapter(Context context, LiveQuery query)
-		{
+        public LiveQueryAdapter(Context context, LiveQuery query)
+        {
             this.Context = context;
-			this.query = query;
+            this.query = query;
             query.Changed += (sender, e) => {
                 enumerator = e.Rows;
                 ((Activity)context).RunOnUiThread(new Action(()=>{
@@ -54,41 +54,41 @@ namespace CouchbaseSample.Android.Helper
                 }));
             };
 
-			//TODO: Revise
-			query.Start();
-		}
+            //TODO: Revise
+            query.Start();
+        }
 
-		public override int Count
-		{
+        public override int Count
+        {
             get { 
                 return enumerator != null ? enumerator.Count : 0; 
             }
-		}
+        }
 
         public override CBDocument this[int i]
-		{
+        {
             get {
                 var val = enumerator != null ? enumerator.GetRow(i).Document : null;
                 return val;
             }
         }
 
-		public override long GetItemId(int i)
-		{
-			return enumerator.GetRow(i).SequenceNumber;
-		}
+        public override long GetItemId(int i)
+        {
+            return enumerator.GetRow(i).SequenceNumber;
+        }
 
-		public override global::Android.Views.View GetView(int position, global::Android.Views.View convertView, ViewGroup parent)
-		{
-			return null;
-		}
+        public override global::Android.Views.View GetView(int position, global::Android.Views.View convertView, ViewGroup parent)
+        {
+            return null;
+        }
 
-		public virtual void Invalidate()
-		{
-			if (query != null)
-			{
-				query.Stop();
-			}
-		}
-	}
+        public virtual void Invalidate()
+        {
+            if (query != null)
+            {
+                query.Stop();
+            }
+        }
+    }
 }

@@ -51,13 +51,13 @@ namespace Couchbase.Lite.Tests
 {
     public class AlwaysFailingClientFactory : IHttpClientFactory
     {
-		public IDictionary<string, string> Headers { get; set; }
+        public IDictionary<string, string> Headers { get; set; }
 
         public HttpClientHandler HttpHandler { get ; set; }
 
         public AlwaysFailingClientFactory()
         {
-			Headers = new Dictionary<string,string>();
+            Headers = new Dictionary<string,string>();
             HttpHandler = new FailEveryRequestHandler();
         }
 

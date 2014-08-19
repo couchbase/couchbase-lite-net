@@ -17,7 +17,7 @@ namespace CouchbaseSample
     };
 
     public ConfigViewController ()
-			: base ("ConfigViewController", null)
+            : base ("ConfigViewController", null)
     {
     }
 

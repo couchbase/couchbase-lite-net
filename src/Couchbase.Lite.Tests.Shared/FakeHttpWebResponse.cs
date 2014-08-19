@@ -2,7 +2,7 @@
 // CustomizableMockHttpClient.cs
 //
 // Author:
-//	Zachary Gramana  <zack@xamarin.com>
+//  Zachary Gramana  <zack@xamarin.com>
 //
 // Copyright (c) 2013, 2014 Xamarin Inc (http://www.xamarin.com)
 //
@@ -56,14 +56,14 @@ using System.Runtime.Serialization;
 
 namespace Couchbase.Lite.Replicator
 {
-	public class FakeHttpWebResponse : HttpResponseMessage
-	{
-		public FakeHttpWebResponse()
-		{ }
+    public class FakeHttpWebResponse : HttpResponseMessage
+    {
+        public FakeHttpWebResponse()
+        { }
 
-		public FakeHttpWebResponse(HttpStatusCode status) : base(status)
-		{
+        public FakeHttpWebResponse(HttpStatusCode status) : base(status)
+        {
 
-		}
-	}
+        }
+    }
 }

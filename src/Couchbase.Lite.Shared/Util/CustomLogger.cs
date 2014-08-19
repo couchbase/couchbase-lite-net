@@ -86,6 +86,16 @@ namespace Couchbase.Lite.Util
             lock (locker){ ts.WriteLine(SourceLevels.Verbose, "{0}:\r\n{1}".Fmt(msg, Flatten(tr).ToString()), tag); }
         }
 
+        public void V (string tag, string format, params object[] args)
+        {
+            V(tag, string.Format(format, args));
+        }
+
+        public void D (string tag, string format, params object[] args)
+        {
+            D(tag, string.Format(format, args));
+        }
+
         public void D (string tag, string msg)
         {
             if (!(level.HasFlag(SourceLevels.All)))
@@ -114,6 +124,11 @@ namespace Couchbase.Lite.Util
             lock (locker){ ts.WriteLine(SourceLevels.Information, "{0}:\r\n{1}".Fmt(msg, Flatten(tr).ToString()), tag); }
         }
 
+        public void I (string tag, string format, params object[] args)
+        {
+            I(tag, string.Format(format, args));
+        }
+
         public void W (string tag, string msg)
         {
             if (!(level.HasFlag(SourceLevels.Warning)))
@@ -135,6 +150,11 @@ namespace Couchbase.Lite.Util
             lock (locker){ ts.WriteLine(SourceLevels.Warning, "{0}:\r\n{1}".Fmt(msg, Flatten(tr).ToString()), tag); }
         }
 
+        public void W (string tag, string format, params object[] args)
+        {
+            W(tag, string.Format(format, args));
+        }
+
         public void E (string tag, string msg)
         {
             if (!(level.HasFlag(SourceLevels.Error)))
@@ -147,6 +167,11 @@ namespace Couchbase.Lite.Util
             if (!(level.HasFlag(SourceLevels.Error)))
                 return;
             lock (locker){ ts.Fail("{0}: {1}".Fmt(tag, msg), Flatten(tr).ToString()); }
+        }
+
+        public void E (string tag, string format, params object[] args)
+        {
+            E(tag, string.Format(format, args));
         }
 
         #endregion

@@ -260,6 +260,8 @@ namespace Couchbase.Lite.Replicator
             }
         }
 
+        public MessageProcessingHandler Handler { get { return clientFactory.Handler; } }
+
         public HttpClient GetHttpClient()
         {
             return clientFactory.GetHttpClient();

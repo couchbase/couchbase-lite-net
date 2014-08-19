@@ -24,8 +24,8 @@ using Sharpen;
 
 namespace CouchbaseSample.Android
 {
-	public sealed class BuildConfig
-	{
-		public const bool Debug = true;
-	}
+    public sealed class BuildConfig
+    {
+        public const bool Debug = true;
+    }
 }

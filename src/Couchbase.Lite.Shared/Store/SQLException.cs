@@ -45,23 +45,23 @@ using Sharpen;
 
 namespace Couchbase.Lite.Storage
 {
-	[System.Serializable]
+    [System.Serializable]
     public class SQLException : Exception
-	{
-		public SQLException()
-		{
-		}
+    {
+        public SQLException()
+        {
+        }
 
-		public SQLException(string error) : base(error)
-		{
-		}
+        public SQLException(string error) : base(error)
+        {
+        }
 
-		public SQLException(string error, Exception cause) : base(error, cause)
-		{
-		}
+        public SQLException(string error, Exception cause) : base(error, cause)
+        {
+        }
 
         public SQLException(Exception cause) : base("SQLException", cause)
-		{
-		}
-	}
+        {
+        }
+    }
 }

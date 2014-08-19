@@ -2,7 +2,7 @@
 // ChangesTest.cs
 //
 // Author:
-//	Zachary Gramana  <zack@xamarin.com>
+//  Zachary Gramana  <zack@xamarin.com>
 //
 // Copyright (c) 2013, 2014 Xamarin Inc (http://www.xamarin.com)
 //
@@ -51,12 +51,12 @@ using System;
 
 namespace Couchbase.Lite
 {
-	public class ChangesTest : LiteTestCase
-	{
-		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
+    public class ChangesTest : LiteTestCase
+    {
+        /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
         [Test]
-		public void TestChangeNotification()
-		{
+        public void TestChangeNotification()
+        {
             var changeNotifications = 0;
 
             EventHandler<Database.DatabaseChangeEventArgs> handler
@@ -64,23 +64,23 @@ namespace Couchbase.Lite
 
             database.Changed += handler;
 
-			// create a document
+            // create a document
             var documentProperties = new Dictionary<string, object>();
-			documentProperties["foo"] = 1;
-			documentProperties["bar"] = false;
-			documentProperties["baz"] = "touch";
-			
+            documentProperties["foo"] = 1;
+            documentProperties["bar"] = false;
+            documentProperties["baz"] = "touch";
+            
             var body = new Body(documentProperties);
             var rev1 = new RevisionInternal(body, database);
-			
+            
             var status = new Status();
-			database.PutRevision(rev1, null, false, status);
-			
+            database.PutRevision(rev1, null, false, status);
+            
             Assert.AreEqual(1, changeNotifications);
 
             // Analysis disable once DelegateSubtraction
             database.Changed -= handler;
-		}
+        }
 
         [Test]
         public void TestLocalChangesAreNotExternal()
@@ -135,5 +135,5 @@ namespace Couchbase.Lite
             // Analysis disable once DelegateSubtraction
             database.Changed -= handler;
         }
-	}
+    }
 }

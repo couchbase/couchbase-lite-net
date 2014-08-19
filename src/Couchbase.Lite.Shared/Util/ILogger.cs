@@ -46,103 +46,160 @@ using Sharpen;
 
 namespace Couchbase.Lite.Util
 {
-	public interface ILogger
-	{
-		/// <summary>Send a VERBOSE message.</summary>
-		/// <remarks>Send a VERBOSE message.</remarks>
-		/// <param name="tag">
-		/// Used to identify the source of a log message.  It usually identifies
-		/// the class or activity where the log call occurs.
-		/// </param>
-		/// <param name="msg">The message you would like logged.</param>
-		void V(string tag, string msg);
+    public interface ILogger
+    {
+        /// <summary>Send a VERBOSE message.</summary>
+        /// <remarks>Send a VERBOSE message.</remarks>
+        /// <param name="tag">
+        /// Used to identify the source of a log message.  It usually identifies
+        /// the class or activity where the log call occurs.
+        /// </param>
+        /// <param name="msg">The message you would like logged.</param>
+        void V(string tag, string msg);
 
-		/// <summary>Send a VERBOSE message and log the exception.</summary>
-		/// <remarks>Send a VERBOSE message and log the exception.</remarks>
-		/// <param name="tag">
-		/// Used to identify the source of a log message.  It usually identifies
-		/// the class or activity where the log call occurs.
-		/// </param>
-		/// <param name="msg">The message you would like logged.</param>
-		/// <param name="tr">An exception to log</param>
-		void V(string tag, string msg, Exception tr);
+        /// <summary>Send a VERBOSE message and log the exception.</summary>
+        /// <remarks>Send a VERBOSE message and log the exception.</remarks>
+        /// <param name="tag">
+        /// Used to identify the source of a log message.  It usually identifies
+        /// the class or activity where the log call occurs.
+        /// </param>
+        /// <param name="msg">The message you would like logged.</param>
+        /// <param name="tr">An exception to log</param>
+        void V(string tag, string msg, Exception tr);
 
-		/// <summary>Send a DEBUG message.</summary>
-		/// <remarks>Send a DEBUG message.</remarks>
-		/// <param name="tag">
-		/// Used to identify the source of a log message.  It usually identifies
-		/// the class or activity where the log call occurs.
-		/// </param>
-		/// <param name="msg">The message you would like logged.</param>
-		void D(string tag, string msg);
+        /// <summary>Send a VERBOSE message and log the exception.</summary>
+        /// <remarks>Send a VERBOSE message and log the exception.</remarks>
+        /// <param name="tag">
+        /// Used to identify the source of a log message.  It usually identifies
+        /// the class or activity where the log call occurs.
+        /// </param>
+        /// <param name="format">The message you would like logged.</param>
+        /// <param name="args">string format arguments</param>
+        void V(string tag, string format, params object[] args);
 
-		/// <summary>Send a DEBUG message and log the exception.</summary>
-		/// <remarks>Send a DEBUG message and log the exception.</remarks>
-		/// <param name="tag">
-		/// Used to identify the source of a log message.  It usually identifies
-		/// the class or activity where the log call occurs.
-		/// </param>
-		/// <param name="msg">The message you would like logged.</param>
-		/// <param name="tr">An exception to log</param>
-		void D(string tag, string msg, Exception tr);
+        /// <summary>Send a DEBUG message.</summary>
+        /// <remarks>Send a DEBUG message.</remarks>
+        /// <param name="tag">
+        /// Used to identify the source of a log message.  It usually identifies
+        /// the class or activity where the log call occurs.
+        /// </param>
+        /// <param name="msg">The message you would like logged.</param>
+        void D(string tag, string msg);
 
-		/// <summary>Send an INFO message.</summary>
-		/// <remarks>Send an INFO message.</remarks>
-		/// <param name="tag">
-		/// Used to identify the source of a log message.  It usually identifies
-		/// the class or activity where the log call occurs.
-		/// </param>
-		/// <param name="msg">The message you would like logged.</param>
-		void I(string tag, string msg);
+        /// <summary>Send a DEBUG message and log the exception.</summary>
+        /// <remarks>Send a DEBUG message and log the exception.</remarks>
+        /// <param name="tag">
+        /// Used to identify the source of a log message.  It usually identifies
+        /// the class or activity where the log call occurs.
+        /// </param>
+        /// <param name="msg">The message you would like logged.</param>
+        /// <param name="tr">An exception to log</param>
+        void D(string tag, string msg, Exception tr);
 
-		/// <summary>Send a INFO message and log the exception.</summary>
-		/// <remarks>Send a INFO message and log the exception.</remarks>
-		/// <param name="tag">
-		/// Used to identify the source of a log message.  It usually identifies
-		/// the class or activity where the log call occurs.
-		/// </param>
-		/// <param name="msg">The message you would like logged.</param>
-		/// <param name="tr">An exception to log</param>
-		void I(string tag, string msg, Exception tr);
+        /// <summary>Send a DEBUG message and log the exception.</summary>
+        /// <remarks>Send a DEBUG message and log the exception.</remarks>
+        /// <param name="tag">
+        /// Used to identify the source of a log message.  It usually identifies
+        /// the class or activity where the log call occurs.
+        /// </param>
+        /// <param name="format">The message you would like logged.</param>
+        /// <param name="args">string format arguments</param>
+        void D(string tag, string format, params object[] args);
 
-		/// <summary>Send a WARN message.</summary>
-		/// <remarks>Send a WARN message.</remarks>
-		/// <param name="tag">
-		/// Used to identify the source of a log message.  It usually identifies
-		/// the class or activity where the log call occurs.
-		/// </param>
-		/// <param name="msg">The message you would like logged.</param>
-		void W(string tag, string msg);
+        /// <summary>Send an INFO message.</summary>
+        /// <remarks>Send an INFO message.</remarks>
+        /// <param name="tag">
+        /// Used to identify the source of a log message.  It usually identifies
+        /// the class or activity where the log call occurs.
+        /// </param>
+        /// <param name="msg">The message you would like logged.</param>
+        void I(string tag, string msg);
 
-		void W(string tag, Exception tr);
+        /// <summary>Send a INFO message and log the exception.</summary>
+        /// <remarks>Send a INFO message and log the exception.</remarks>
+        /// <param name="tag">
+        /// Used to identify the source of a log message.  It usually identifies
+        /// the class or activity where the log call occurs.
+        /// </param>
+        /// <param name="msg">The message you would like logged.</param>
+        /// <param name="tr">An exception to log</param>
+        void I(string tag, string msg, Exception tr);
 
-		/// <summary>Send a WARN message and log the exception.</summary>
-		/// <remarks>Send a WARN message and log the exception.</remarks>
-		/// <param name="tag">
-		/// Used to identify the source of a log message.  It usually identifies
-		/// the class or activity where the log call occurs.
-		/// </param>
-		/// <param name="msg">The message you would like logged.</param>
-		/// <param name="tr">An exception to log</param>
-		void W(string tag, string msg, Exception tr);
+        /// <summary>Send a INFO message and log the exception.</summary>
+        /// <remarks>Send a INFO message and log the exception.</remarks>
+        /// <param name="tag">
+        /// Used to identify the source of a log message.  It usually identifies
+        /// the class or activity where the log call occurs.
+        /// </param>
+        /// <param name="format">The message you would like logged.</param>
+        /// <param name="args">string format arguments</param>
+        void I(string tag, string format, params object[] args);
 
-		/// <summary>Send an ERROR message.</summary>
-		/// <remarks>Send an ERROR message.</remarks>
-		/// <param name="tag">
-		/// Used to identify the source of a log message.  It usually identifies
-		/// the class or activity where the log call occurs.
-		/// </param>
-		/// <param name="msg">The message you would like logged.</param>
-		void E(string tag, string msg);
+        /// <summary>Send a WARN message.</summary>
+        /// <remarks>Send a WARN message.</remarks>
+        /// <param name="tag">
+        /// Used to identify the source of a log message.  It usually identifies
+        /// the class or activity where the log call occurs.
+        /// </param>
+        /// <param name="msg">The message you would like logged.</param>
+        void W(string tag, string msg);
 
-		/// <summary>Send a ERROR message and log the exception.</summary>
-		/// <remarks>Send a ERROR message and log the exception.</remarks>
-		/// <param name="tag">
-		/// Used to identify the source of a log message.  It usually identifies
-		/// the class or activity where the log call occurs.
-		/// </param>
-		/// <param name="msg">The message you would like logged.</param>
-		/// <param name="tr">An exception to log</param>
-		void E(string tag, string msg, Exception tr);
-	}
+        /// <summary>Send a WARN message.</summary>
+        /// <remarks>Send a WARN message.</remarks>
+        /// <param name="tag">
+        /// Used to identify the source of a log message.  It usually identifies
+        /// the class or activity where the log call occurs.
+        /// </param>
+        /// <param name="tr">The exception you would like logged.</param>
+        void W(string tag, Exception tr);
+
+        /// <summary>Send a WARN message and log the exception.</summary>
+        /// <remarks>Send a WARN message and log the exception.</remarks>
+        /// <param name="tag">
+        /// Used to identify the source of a log message.  It usually identifies
+        /// the class or activity where the log call occurs.
+        /// </param>
+        /// <param name="msg">The message you would like logged.</param>
+        /// <param name="tr">An exception to log</param>
+        void W(string tag, string msg, Exception tr);
+
+        /// <summary>Send a WARN message and log the exception.</summary>
+        /// <remarks>Send a WARN message and log the exception.</remarks>
+        /// <param name="tag">
+        /// Used to identify the source of a log message.  It usually identifies
+        /// the class or activity where the log call occurs.
+        /// </param>
+        /// <param name="format">The message you would like logged.</param>
+        /// <param name="args">string format arguments</param>
+        void W(string tag, string format, params object[] args);
+
+        /// <summary>Send an ERROR message.</summary>
+        /// <remarks>Send an ERROR message.</remarks>
+        /// <param name="tag">
+        /// Used to identify the source of a log message.  It usually identifies
+        /// the class or activity where the log call occurs.
+        /// </param>
+        /// <param name="msg">The message you would like logged.</param>
+        void E(string tag, string msg);
+
+        /// <summary>Send a ERROR message and log the exception.</summary>
+        /// <remarks>Send a ERROR message and log the exception.</remarks>
+        /// <param name="tag">
+        /// Used to identify the source of a log message.  It usually identifies
+        /// the class or activity where the log call occurs.
+        /// </param>
+        /// <param name="msg">The message you would like logged.</param>
+        /// <param name="tr">An exception to log</param>
+        void E(string tag, string msg, Exception tr);
+
+        /// <summary>Send a ERROR message and log the exception.</summary>
+        /// <remarks>Send a ERROR message and log the exception.</remarks>
+        /// <param name="tag">
+        /// Used to identify the source of a log message.  It usually identifies
+        /// the class or activity where the log call occurs.
+        /// </param>
+        /// <param name="format">The message you would like logged.</param>
+        /// <param name="args">Arguments for the string format variables.</param>
+        void E(string tag, string format, params object[] args);
+    }
 }

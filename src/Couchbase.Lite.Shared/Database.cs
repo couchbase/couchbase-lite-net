@@ -473,7 +473,7 @@ namespace Couchbase.Lite
             }
             catch (Exception ex)
             {
-                Log.D(Tag, "Cannot delete a local document id " + id, ex);
+                Log.D(Tag, "Cannot delete a local document id {0}\r\n{1}", id, ex);
                 return false;
             }
 

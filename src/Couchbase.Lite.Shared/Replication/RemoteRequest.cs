@@ -44,10 +44,11 @@ using Sharpen;
 using System;
 using System.Threading.Tasks;
 using System.Net.Http;
-using System.ComponentModel;
-using System.Security;
+using System.Threading;
+using System.Linq;
+using System.Net.Http.Headers;
 
-namespace Couchbase.Lite.Replication
+namespace Couchbase.Lite.Replicator
 {
     internal class RemoteRequest
     {
@@ -79,11 +80,15 @@ namespace Couchbase.Lite.Replication
 
         private Database db;
 
-        protected internal HttpRequestMessage request;
+        protected internal HttpRequestMessage requestMessage;
 
         protected internal IDictionary<string, object> requestHeaders;
 
-        public RemoteRequest(TaskFactory workExecutor, IHttpClientFactory clientFactory, string method, Uri url, object body, Database db, IDictionary<string, object>requestHeaders)
+        protected CancellationTokenSource _tokenSource;
+
+        Task request;
+
+        public RemoteRequest(TaskFactory workExecutor, IHttpClientFactory clientFactory, string method, Uri url, object body, Database db, IDictionary<string, object>requestHeaders, CancellationTokenSource tokenSource = null)
         {
             this.clientFactory = clientFactory;
             this.method = method;
@@ -92,11 +97,12 @@ namespace Couchbase.Lite.Replication
             this.workExecutor = workExecutor;
             this.requestHeaders = requestHeaders;
             this.db = db;
-            this.request = CreateConcreteRequest();
+            this.requestMessage = CreateConcreteRequest();
+            _tokenSource = tokenSource ?? new CancellationTokenSource();
             Log.V(Tag, "%s: RemoteRequest created, url: %s", this, url);
         }
 
-        public void Run()
+        public virtual void Run()
         {
             Log.V(Tag, "{0}: RemoteRequest run() called, url: {1}".Fmt(this, url));
 
@@ -105,32 +111,31 @@ namespace Couchbase.Lite.Replication
             //var manager = httpClient.GetConnectionManager();
             PreemptivelySetAuthCredentials(httpClient);
 
-            request.Headers.Add("Accept", "multipart/related, application/json");           
-            AddRequestHeaders(request);
+            requestMessage.Headers.Add("Accept", "multipart/related, application/json");           
+            AddRequestHeaders(requestMessage);
             
-            SetBody(request);
+            SetBody(requestMessage);
             
-            ExecuteRequest(httpClient, request);
+            ExecuteRequest(httpClient, requestMessage);
             
             Log.V(Tag, "{0}: RemoteRequest run() finished, url: {1}".Fmt(this, url));
         }
 
         public virtual void Abort()
         {
-            if (request != null)
+            if (requestMessage != null)
             {
-                request.Abort();
+                _tokenSource.Cancel();
             }
             else
             {
-                Log.W(Log.TagRemoteRequest, "%s: Unable to abort request since underlying request is null"
-                    , this);
+                Log.W(Tag, "{0}: Unable to abort request since underlying request is null", this.ToString());
             }
         }
 
         public virtual HttpRequestMessage GetRequest()
         {
-            return request;
+            return requestMessage;
         }
 
         protected internal void AddRequestHeaders(HttpRequestMessage request)
@@ -159,20 +164,20 @@ namespace Couchbase.Lite.Replication
         protected internal void SetBody(HttpRequestMessage request)
         {
             // set body if appropriate
-            if (body != null && request.Content is HttpContent)//HttpEntityEnclosingRequestBase)
+            if (body != null)
             {
                 byte[] bodyBytes = null;
                 try
                 {
-                    bodyBytes = Manager.GetObjectMapper().WriteValueAsBytes(body);
+                    bodyBytes = Manager.GetObjectMapper().WriteValueAsBytes(body).ToArray();
                 }
                 catch (Exception e)
                 {
-                    Log.E(Log.TagRemoteRequest, "Error serializing body of request", e);
+                    Log.E(Tag, "Error serializing body of request", e);
                 }
-                ByteArrayEntity entity = new ByteArrayEntity(bodyBytes);
-                entity.SetContentType("application/json");
-                ((HttpEntityEnclosingRequestBase)request).SetEntity(entity);
+                var entity = new ByteArrayContent(bodyBytes);
+                entity.Headers.ContentType = new MediaTypeHeaderValue("application/json");
+                request.Content = entity;
             }
         }
 
@@ -200,64 +205,49 @@ namespace Couchbase.Lite.Replication
             {
                 return false;
             }
-            workExecutor.Schedule(this, RetryDelayMs, TimeUnit.Milliseconds);
+            request.ContinueWith((t)=> Task.Delay(RetryDelayMs, _tokenSource.Token), _tokenSource.Token, TaskContinuationOptions.None, workExecutor.Scheduler)
+                .ContinueWith((t)=> Run(), _tokenSource.Token, TaskContinuationOptions.None, workExecutor.Scheduler);
             retryCount += 1;
-            Log.D(Log.TagRemoteRequest, "Will retry in %d ms", RetryDelayMs);
+            Log.D(Tag, "Will retry in {0} ms", RetryDelayMs);
             return true;
         }
 
-        protected internal void ExecuteRequest(HttpClient httpClient, HttpRequestMessage req)
+        protected internal virtual void ExecuteRequest(HttpClient httpClient, HttpRequestMessage req)
         {
             object fullBody = null;
             Exception error = null;
-            HttpWebResponse response = null;
+            HttpResponseMessage response = null;
             try
             {
                 Log.V(Tag, "{0}: RemoteRequest executeRequest() called, url: {1}".Fmt(this, url));
-                if (request.IsAborted)
+                if (request.IsCanceled)
                 {
                     Log.V(Tag, "%s: RemoteRequest has already been aborted", this);
-                    RespondWithResult(fullBody, new Exception(string.Format("%s: Request %s has been aborted"
-                        , this, request)), response);
+                    RespondWithResult(fullBody, new Exception(string.Format("{0}: Request {1} has been aborted", this, requestMessage)), response);
                     return;
                 }
-                Log.V(Tag, "%s: RemoteRequest calling httpClient.execute", this);
-                response = httpClient.Execute(request);
-                Log.V(Tag, "%s: RemoteRequest called httpClient.execute", this);
-                // add in cookies to global store
-                try
-                {
-                    if (httpClient is DefaultHttpClient)
-                    {
-                        DefaultHttpClient defaultHttpClient = (DefaultHttpClient)httpClient;
-                        this.clientFactory.AddCookies(defaultHttpClient.GetCookieStore().GetCookies());
-                    }
-                }
-                catch (Exception e)
-                {
-                    Log.E(Log.TagRemoteRequest, "Unable to add in cookies to global store", e);
-                }
-                StatusLine status = response.GetStatusLine();
-                if (Utils.IsTransientError(status) && RetryRequest())
+                Log.V(Tag, "{0}: RemoteRequest calling httpClient.execute", this);
+                response = httpClient.SendAsync(requestMessage, _tokenSource.Token).Result;
+                Log.V(Tag, "{0}: RemoteRequest called httpClient.execute", this);
+                var status = response.StatusCode;
+                if (Misc.IsTransientError(status) && RetryRequest())
                 {
                     return;
                 }
-                if (status.GetStatusCode() >= 300)
+                if ((int)status.GetStatusCode() >= 300)
                 {
-                    Log.E(Log.TagRemoteRequest, "Got error status: %d for %s.  Reason: %s", status.GetStatusCode
-                        (), request, status.GetReasonPhrase());
-                    error = new HttpResponseException(status.GetStatusCode(), status.GetReasonPhrase(
-                        ));
+                    Log.E(Tag, "Got error status: {0} for {1}.  Reason: {2}", status.GetStatusCode(), requestMessage, response.ReasonPhrase);
+                    error = new HttpResponseException(status);
                 }
                 else
                 {
-                    HttpEntity temp = response.GetEntity();
+                    var temp = response.Content;
                     if (temp != null)
                     {
-                        InputStream stream = null;
+                        Stream stream = null;
                         try
                         {
-                            stream = temp.GetContent();
+                            stream = temp.ReadAsStreamAsync().Result;
                             fullBody = Manager.GetObjectMapper().ReadValue<object>(stream);
                         }
                         finally
@@ -275,7 +265,7 @@ namespace Couchbase.Lite.Replication
             }
             catch (IOException e)
             {
-                Log.E(Log.TagRemoteRequest, "io exception", e);
+                Log.E(Tag, "io exception", e);
                 error = e;
                 // Treat all IOExceptions as transient, per:
                 // http://hc.apache.org/httpclient-3.x/exception-handling.html
@@ -287,7 +277,7 @@ namespace Couchbase.Lite.Replication
             }
             catch (Exception e)
             {
-                Log.E(Log.TagRemoteRequest, "%s: executeRequest() Exception: ", e, this);
+                Log.E(Tag, "%s: executeRequest() Exception: ", e, this);
                 error = e;
             }
             Log.V(Tag, "%s: RemoteRequest calling respondWithResult.  error: %s", this
@@ -315,7 +305,7 @@ namespace Couchbase.Lite.Replication
             {
                 if (userInfo.Contains(":") && !userInfo.Trim().Equals(":"))
                 {
-                    var userInfoElements = userInfo.Split(":");
+                    var userInfoElements = userInfo.Split(':');
                     var username = isUrlBasedUserInfo ? URIUtils.Decode(userInfoElements[0]) : userInfoElements[0];
                     var password = isUrlBasedUserInfo ? URIUtils.Decode(userInfoElements[1]) : userInfoElements[1];
                     var authHandler = clientFactory.Handler.InnerHandler as HttpClientHandler;
@@ -328,17 +318,17 @@ namespace Couchbase.Lite.Replication
             }
         }
 
-        public void RespondWithResult(object result, Exception error, HttpWebResponse response)
+        public void RespondWithResult(object result, Exception error, HttpResponseMessage response)
         {
             if (workExecutor != null)
             {
-                workExecutor.StartNew(()=>
+                request = workExecutor.StartNew(()=>
                 {
                     try
                     {
-                        OnCompletion(WillComplete, response, error);
-                        OnCompletion(Complete, result, error);
-                        OnCompletion(HasCompleted, response, error);
+                        OnEvent(WillComplete, response, error);
+                        OnEvent(Complete, result, error);
+                        OnEvent(HasCompleted, response, error);
                     }
                     catch (Exception e)
                     {

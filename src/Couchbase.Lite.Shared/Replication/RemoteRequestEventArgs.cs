@@ -46,7 +46,7 @@ using System.Threading.Tasks;
 using System.Net.Http;
 using System.ComponentModel;
 
-namespace Couchbase.Lite.Replication
+namespace Couchbase.Lite.Replicator
 {
     internal class RemoteRequestEventArgs : EventArgs
     {

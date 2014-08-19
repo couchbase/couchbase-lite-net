@@ -52,29 +52,29 @@ using Couchbase.Lite.Internal;
 
 namespace Couchbase.Lite.Support
 {
-	/// <summary>
-	/// Utility that queues up objects until the queue fills up or a time interval elapses,
-	/// then passes all the objects at once to a client-supplied processor block.
-	/// </summary>
-	/// <remarks>
-	/// Utility that queues up objects until the queue fills up or a time interval elapses,
-	/// then passes all the objects at once to a client-supplied processor block.
-	/// </remarks>
+    /// <summary>
+    /// Utility that queues up objects until the queue fills up or a time interval elapses,
+    /// then passes all the objects at once to a client-supplied processor block.
+    /// </summary>
+    /// <remarks>
+    /// Utility that queues up objects until the queue fills up or a time interval elapses,
+    /// then passes all the objects at once to a client-supplied processor block.
+    /// </remarks>
     internal class Batcher<T>
-	{
+    {
         private readonly static string Tag = "Batcher";
 
         private readonly TaskFactory workExecutor;
 
         private Task flushFuture;
 
-		private readonly int capacity;
+        private readonly int capacity;
 
-		private readonly int delay;
+        private readonly int delay;
 
         private int scheduledDelay;
 
-		private IList<T> inbox;
+        private IList<T> inbox;
 
         private readonly Action<IList<T>> processor;
 
@@ -87,7 +87,7 @@ namespace Couchbase.Lite.Support
         private readonly Object locker;
 
         public Batcher(TaskFactory workExecutor, int capacity, int delay, Action<IList<T>> processor, CancellationTokenSource tokenSource = null)
-		{
+        {
             processNowRunnable = new Action(()=>
             {
                 try
@@ -106,27 +106,27 @@ namespace Couchbase.Lite.Support
             });
 
             this.locker = new Object ();
-			this.workExecutor = workExecutor;
+            this.workExecutor = workExecutor;
             this.cancellationSource = tokenSource;
-			this.capacity = capacity;
-			this.delay = delay;
-			this.processor = processor;
-		}
+            this.capacity = capacity;
+            this.delay = delay;
+            this.processor = processor;
+        }
 
-		public void ProcessNow()
-		{
+        public void ProcessNow()
+        {
             Log.V(Tag, "processNow() called");
 
             scheduled = false;
 
             var toProcess = new List<T>();
-			lock (locker)
-			{
-				if (inbox == null || inbox.Count == 0)
-				{
+            lock (locker)
+            {
+                if (inbox == null || inbox.Count == 0)
+                {
                     Log.V(Tag, "processNow() called, but inbox is empty");
-					return;
-				}
+                    return;
+                }
                 else if (inbox.Count <= capacity)
                 {
                     Log.V(Tag, "inbox size <= capacity, adding " + inbox.Count + " items from inbox -> toProcess");
@@ -159,25 +159,25 @@ namespace Couchbase.Lite.Support
                     // There are more objects left, so schedule them Real Soon:
                     ScheduleWithDelay(DelayToUse());
                 }
-			}
+            }
 
             if (toProcess != null && toProcess.Count > 0)
-			{
+            {
                 Log.D(Tag, "invoking processor with " + toProcess.Count + " items ");
                 processor(toProcess);
-			}
+            }
             else
             {
                 Log.D(Tag, "nothing to process");
             }
 
             lastProcessedTime = Runtime.CurrentTimeMillis();
-		}
+        }
 
         CancellationTokenSource cancellationSource;
 
         public void QueueObjects(IList<T> objects)
-		{
+        {
             lock (locker)
             {
                 Log.V(Tag, "queuObjects called with " + objects.Count + " objects");
@@ -200,7 +200,7 @@ namespace Couchbase.Lite.Support
 
                 ScheduleWithDelay(DelayToUse());
             }
-		}
+        }
 
         public void QueueObject(T o)
         {
@@ -209,13 +209,13 @@ namespace Couchbase.Lite.Support
             QueueObjects(objects);
         }
 
-		public void Flush()
-		{
-			lock (locker)
-			{
+        public void Flush()
+        {
+            lock (locker)
+            {
                 ScheduleWithDelay(DelayToUse());
-			}
-		}
+            }
+        }
 
         public void FlushAll()
         {
@@ -237,18 +237,18 @@ namespace Couchbase.Lite.Support
             }
         }
 
-		public int Count()
-		{
+        public int Count()
+        {
             lock (locker) {
                 if (inbox == null) {
                     return 0;
                 }
                 return inbox.Count;
             }
-		}
+        }
 
         public void Clear()
-		{
+        {
             lock (locker) {
                 Log.V(Tag, "clear() called, setting inbox to null");
                 Unschedule();
@@ -257,7 +257,7 @@ namespace Couchbase.Lite.Support
                     inbox = null;
                 }
             }
-		}
+        }
 
         private void ScheduleWithDelay(Int32 suggestedDelay)
         {
@@ -321,5 +321,5 @@ namespace Couchbase.Lite.Support
 
             return delayToUse;
         }
-	}
+    }
 }
