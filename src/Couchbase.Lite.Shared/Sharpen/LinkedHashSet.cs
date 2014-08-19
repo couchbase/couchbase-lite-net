@@ -2,7 +2,7 @@
 // LinkedHashSet.cs
 //
 // Author:
-//	Zachary Gramana  <zack@xamarin.com>
+//  Zachary Gramana  <zack@xamarin.com>
 //
 // Copyright (c) 2013, 2014 Xamarin Inc (http://www.xamarin.com)
 //
@@ -71,60 +71,60 @@ using System.Collections.Generic;
 
 namespace Sharpen
 {
-	internal class LinkedHashSet<T>: AbstractSet<T>
-	{
-		private List<T> list = new List<T> ();
-		private HashSet<T> table = new HashSet<T> ();
-		
-		public LinkedHashSet ()
-		{
-		}
-		
-		public LinkedHashSet (IEnumerable<T> items)
-		{
-			foreach (T t in items)
-				AddItem (t);
-		}
-		
-		public override bool AddItem (T element)
-		{
-			if (table.Add (element)) {
-				list.Add (element);
-				return true;
-			}
-			return false;
-		}
-		
-		public override void Clear ()
-		{
-			list.Clear ();
-			table.Clear ();
-		}
-		
-		public override bool Contains (object item)
-		{
-			return table.Contains ((T)item);
-		}
-		
-		public override bool Remove (object element)
-		{
-			if (table.Remove ((T)element)) {
-				list.Remove ((T)element);
-				return true;
-			}
-			return false;
-		}
-		
-		public override int Count {
-			get {
-				return table.Count;
-			}
-		}
-		
-		public override Iterator<T> Iterator ()
-		{
-			return list.AsIterable ().Iterator ();
-		}
-	}
+    internal class LinkedHashSet<T>: AbstractSet<T>
+    {
+        private List<T> list = new List<T> ();
+        private HashSet<T> table = new HashSet<T> ();
+        
+        public LinkedHashSet ()
+        {
+        }
+        
+        public LinkedHashSet (IEnumerable<T> items)
+        {
+            foreach (T t in items)
+                AddItem (t);
+        }
+        
+        public override bool AddItem (T element)
+        {
+            if (table.Add (element)) {
+                list.Add (element);
+                return true;
+            }
+            return false;
+        }
+        
+        public override void Clear ()
+        {
+            list.Clear ();
+            table.Clear ();
+        }
+        
+        public override bool Contains (object item)
+        {
+            return table.Contains ((T)item);
+        }
+        
+        public override bool Remove (object element)
+        {
+            if (table.Remove ((T)element)) {
+                list.Remove ((T)element);
+                return true;
+            }
+            return false;
+        }
+        
+        public override int Count {
+            get {
+                return table.Count;
+            }
+        }
+        
+        public override Iterator<T> Iterator ()
+        {
+            return list.AsIterable ().Iterator ();
+        }
+    }
 }
 

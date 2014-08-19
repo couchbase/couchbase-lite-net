@@ -2,7 +2,7 @@
 // BufferedWriter.cs
 //
 // Author:
-//	Zachary Gramana  <zack@xamarin.com>
+//  Zachary Gramana  <zack@xamarin.com>
 //
 // Copyright (c) 2013, 2014 Xamarin Inc (http://www.xamarin.com)
 //
@@ -72,29 +72,29 @@ using System.IO;
 
 namespace Sharpen
 {
-	internal class BufferedWriter
-	{
-		StreamWriter writer;
-		
-		public BufferedWriter (StreamWriter w)
-		{
-			writer = w;
-		}
-		
-		public void Write (string s)
-		{
-			writer.Write (s);
-		}
-		
-		public void NewLine ()
-		{
-			writer.WriteLine ();
-		}
-		
-		public void Close ()
-		{
-			writer.Close ();
-		}
-	}
+    internal class BufferedWriter
+    {
+        StreamWriter writer;
+        
+        public BufferedWriter (StreamWriter w)
+        {
+            writer = w;
+        }
+        
+        public void Write (string s)
+        {
+            writer.Write (s);
+        }
+        
+        public void NewLine ()
+        {
+            writer.WriteLine ();
+        }
+        
+        public void Close ()
+        {
+            writer.Close ();
+        }
+    }
 }
 

@@ -36,26 +36,26 @@
 
 namespace Couchbase.Lite
 {
-	/// <summary>Option flags for Manager initialization.</summary>
-	/// <remarks>Option flags for Manager initialization.</remarks>
-	public class ManagerOptions
-	{
-		/// <summary>No modifications to databases are allowed.</summary>
-		/// <remarks>No modifications to databases are allowed.</remarks>
-		private bool readOnly;
+    /// <summary>Option flags for Manager initialization.</summary>
+    /// <remarks>Option flags for Manager initialization.</remarks>
+    public class ManagerOptions
+    {
+        /// <summary>No modifications to databases are allowed.</summary>
+        /// <remarks>No modifications to databases are allowed.</remarks>
+        private bool readOnly;
 
-		public ManagerOptions()
-		{
-		}
+        public ManagerOptions()
+        {
+        }
 
-		public virtual bool IsReadOnly()
-		{
-			return readOnly;
-		}
+        public virtual bool IsReadOnly()
+        {
+            return readOnly;
+        }
 
-		public virtual void SetReadOnly(bool readOnly)
-		{
-			this.readOnly = readOnly;
-		}
-	}
+        public virtual void SetReadOnly(bool readOnly)
+        {
+            this.readOnly = readOnly;
+        }
+    }
 }

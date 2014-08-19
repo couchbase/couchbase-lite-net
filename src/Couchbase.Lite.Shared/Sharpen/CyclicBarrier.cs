@@ -2,7 +2,7 @@
 // CyclicBarrier.cs
 //
 // Author:
-//	Zachary Gramana  <zack@xamarin.com>
+//  Zachary Gramana  <zack@xamarin.com>
 //
 // Copyright (c) 2013, 2014 Xamarin Inc (http://www.xamarin.com)
 //
@@ -43,21 +43,21 @@
 */
 namespace Sharpen
 {
-	using System;
+    using System;
 
-	internal class CyclicBarrier
-	{
-		private CountDownLatch counter;
+    internal class CyclicBarrier
+    {
+        private CountDownLatch counter;
 
-		public CyclicBarrier (int parties)
-		{
-			this.counter = new CountDownLatch (parties);
-		}
+        public CyclicBarrier (int parties)
+        {
+            this.counter = new CountDownLatch (parties);
+        }
 
-		public void Await ()
-		{
-			this.counter.CountDown ();
-			this.counter.Await ();
-		}
-	}
+        public void Await ()
+        {
+            this.counter.CountDown ();
+            this.counter.Await ();
+        }
+    }
 }

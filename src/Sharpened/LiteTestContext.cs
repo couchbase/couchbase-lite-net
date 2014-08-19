@@ -37,60 +37,60 @@ using Sharpen;
 
 namespace Couchbase.Lite
 {
-	public class LiteTestContext : Context
-	{
-		private string subdir;
+    public class LiteTestContext : Context
+    {
+        private string subdir;
 
-		public LiteTestContext(string subdir)
-		{
-			this.subdir = subdir;
-		}
+        public LiteTestContext(string subdir)
+        {
+            this.subdir = subdir;
+        }
 
-		public LiteTestContext()
-		{
-			this.subdir = "test";
-		}
+        public LiteTestContext()
+        {
+            this.subdir = "test";
+        }
 
-		public virtual FilePath GetFilesDir()
-		{
-			return new FilePath(GetRootDirectory(), subdir);
-		}
+        public virtual FilePath GetFilesDir()
+        {
+            return new FilePath(GetRootDirectory(), subdir);
+        }
 
-		public virtual void SetNetworkReachabilityManager(NetworkReachabilityManager networkReachabilityManager
-			)
-		{
-		}
+        public virtual void SetNetworkReachabilityManager(NetworkReachabilityManager networkReachabilityManager
+            )
+        {
+        }
 
-		public virtual NetworkReachabilityManager GetNetworkReachabilityManager()
-		{
-			return new LiteTestContext.TestNetworkReachabilityManager(this);
-		}
+        public virtual NetworkReachabilityManager GetNetworkReachabilityManager()
+        {
+            return new LiteTestContext.TestNetworkReachabilityManager(this);
+        }
 
-		public virtual FilePath GetRootDirectory()
-		{
-			string rootDirectoryPath = Runtime.GetProperty("user.dir");
-			FilePath rootDirectory = new FilePath(rootDirectoryPath);
-			rootDirectory = new FilePath(rootDirectory, "data/data/com.couchbase.lite.test/files"
-				);
-			return rootDirectory;
-		}
+        public virtual FilePath GetRootDirectory()
+        {
+            string rootDirectoryPath = Runtime.GetProperty("user.dir");
+            FilePath rootDirectory = new FilePath(rootDirectoryPath);
+            rootDirectory = new FilePath(rootDirectory, "data/data/com.couchbase.lite.test/files"
+                );
+            return rootDirectory;
+        }
 
-		internal class TestNetworkReachabilityManager : NetworkReachabilityManager
-		{
-			public override void StartListening()
-			{
-			}
+        internal class TestNetworkReachabilityManager : NetworkReachabilityManager
+        {
+            public override void StartListening()
+            {
+            }
 
-			public override void StopListening()
-			{
-			}
+            public override void StopListening()
+            {
+            }
 
-			internal TestNetworkReachabilityManager(LiteTestContext _enclosing)
-			{
-				this._enclosing = _enclosing;
-			}
+            internal TestNetworkReachabilityManager(LiteTestContext _enclosing)
+            {
+                this._enclosing = _enclosing;
+            }
 
-			private readonly LiteTestContext _enclosing;
-		}
-	}
+            private readonly LiteTestContext _enclosing;
+        }
+    }
 }

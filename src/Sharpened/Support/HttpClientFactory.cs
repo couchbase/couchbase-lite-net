@@ -39,14 +39,14 @@ using Sharpen;
 
 namespace Couchbase.Lite.Support
 {
-	public interface HttpClientFactory
-	{
-		HttpClient GetHttpClient();
+    public interface HttpClientFactory
+    {
+        HttpClient GetHttpClient();
 
-		void AddCookies(IList<Apache.Http.Cookie.Cookie> cookies);
+        void AddCookies(IList<Apache.Http.Cookie.Cookie> cookies);
 
-		void DeleteCookie(string name);
+        void DeleteCookie(string name);
 
-		CookieStore GetCookieStore();
-	}
+        CookieStore GetCookieStore();
+    }
 }

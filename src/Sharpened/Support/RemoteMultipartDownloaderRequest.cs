@@ -46,146 +46,146 @@ using Sharpen;
 
 namespace Couchbase.Lite.Support
 {
-	public class RemoteMultipartDownloaderRequest : RemoteRequest
-	{
-		private Database db;
+    public class RemoteMultipartDownloaderRequest : RemoteRequest
+    {
+        private Database db;
 
-		public RemoteMultipartDownloaderRequest(ScheduledExecutorService workExecutor, HttpClientFactory
-			 clientFactory, string method, Uri url, object body, Database db, IDictionary<string
-			, object> requestHeaders, RemoteRequestCompletionBlock onCompletion) : base(workExecutor
-			, clientFactory, method, url, body, db, requestHeaders, onCompletion)
-		{
-			this.db = db;
-		}
+        public RemoteMultipartDownloaderRequest(ScheduledExecutorService workExecutor, HttpClientFactory
+             clientFactory, string method, Uri url, object body, Database db, IDictionary<string
+            , object> requestHeaders, RemoteRequestCompletionBlock onCompletion) : base(workExecutor
+            , clientFactory, method, url, body, db, requestHeaders, onCompletion)
+        {
+            this.db = db;
+        }
 
-		public override void Run()
-		{
-			HttpClient httpClient = clientFactory.GetHttpClient();
-			PreemptivelySetAuthCredentials(httpClient);
-			request.AddHeader("Accept", "*/*");
-			AddRequestHeaders(request);
-			ExecuteRequest(httpClient, request);
-		}
+        public override void Run()
+        {
+            HttpClient httpClient = clientFactory.GetHttpClient();
+            PreemptivelySetAuthCredentials(httpClient);
+            request.AddHeader("Accept", "*/*");
+            AddRequestHeaders(request);
+            ExecuteRequest(httpClient, request);
+        }
 
-		protected internal override void ExecuteRequest(HttpClient httpClient, HttpRequestMessage
-			 request)
-		{
-			object fullBody = null;
-			Exception error = null;
-			HttpResponse response = null;
-			try
-			{
-				if (request.IsAborted())
-				{
-					RespondWithResult(fullBody, new Exception(string.Format("%s: Request %s has been aborted"
-						, this, request)), response);
-					return;
-				}
-				response = httpClient.Execute(request);
-				try
-				{
-					// add in cookies to global store
-					if (httpClient is DefaultHttpClient)
-					{
-						DefaultHttpClient defaultHttpClient = (DefaultHttpClient)httpClient;
-						this.clientFactory.AddCookies(defaultHttpClient.GetCookieStore().GetCookies());
-					}
-				}
-				catch (Exception e)
-				{
-					Log.E(Log.TagRemoteRequest, "Unable to add in cookies to global store", e);
-				}
-				StatusLine status = response.GetStatusLine();
-				if (status.GetStatusCode() >= 300)
-				{
-					Log.E(Log.TagRemoteRequest, "Got error status: %d for %s.  Reason: %s", status.GetStatusCode
-						(), request, status.GetReasonPhrase());
-					error = new HttpResponseException(status.GetStatusCode(), status.GetReasonPhrase(
-						));
-				}
-				else
-				{
-					HttpEntity entity = response.GetEntity();
-					Header contentTypeHeader = entity.GetContentType();
-					InputStream inputStream = null;
-					if (contentTypeHeader != null && contentTypeHeader.GetValue().Contains("multipart/related"
-						))
-					{
-						try
-						{
-							MultipartDocumentReader reader = new MultipartDocumentReader(response, db);
-							reader.SetContentType(contentTypeHeader.GetValue());
-							inputStream = entity.GetContent();
-							int bufLen = 1024;
-							byte[] buffer = new byte[bufLen];
-							int numBytesRead = 0;
-							while ((numBytesRead = inputStream.Read(buffer)) != -1)
-							{
-								if (numBytesRead != bufLen)
-								{
-									byte[] bufferToAppend = Arrays.CopyOfRange(buffer, 0, numBytesRead);
-									reader.AppendData(bufferToAppend);
-								}
-								else
-								{
-									reader.AppendData(buffer);
-								}
-							}
-							reader.Finish();
-							fullBody = reader.GetDocumentProperties();
-							RespondWithResult(fullBody, error, response);
-						}
-						finally
-						{
-							try
-							{
-								inputStream.Close();
-							}
-							catch (IOException)
-							{
-							}
-						}
-					}
-					else
-					{
-						if (entity != null)
-						{
-							try
-							{
-								inputStream = entity.GetContent();
-								fullBody = Manager.GetObjectMapper().ReadValue<object>(inputStream);
-								RespondWithResult(fullBody, error, response);
-							}
-							finally
-							{
-								try
-								{
-									inputStream.Close();
-								}
-								catch (IOException)
-								{
-								}
-							}
-						}
-					}
-				}
-			}
-			catch (IOException e)
-			{
-				Log.E(Log.TagRemoteRequest, "%s: io exception", e, this);
-				error = e;
-				RespondWithResult(fullBody, e, response);
-			}
-			catch (Exception e)
-			{
-				Log.E(Log.TagRemoteRequest, "%s: executeRequest() Exception: ", e, this);
-				error = e;
-				RespondWithResult(fullBody, e, response);
-			}
-			finally
-			{
-				Log.E(Log.TagRemoteRequest, "%s: executeRequest() finally", this);
-			}
-		}
-	}
+        protected internal override void ExecuteRequest(HttpClient httpClient, HttpRequestMessage
+             request)
+        {
+            object fullBody = null;
+            Exception error = null;
+            HttpResponse response = null;
+            try
+            {
+                if (request.IsAborted())
+                {
+                    RespondWithResult(fullBody, new Exception(string.Format("%s: Request %s has been aborted"
+                        , this, request)), response);
+                    return;
+                }
+                response = httpClient.Execute(request);
+                try
+                {
+                    // add in cookies to global store
+                    if (httpClient is DefaultHttpClient)
+                    {
+                        DefaultHttpClient defaultHttpClient = (DefaultHttpClient)httpClient;
+                        this.clientFactory.AddCookies(defaultHttpClient.GetCookieStore().GetCookies());
+                    }
+                }
+                catch (Exception e)
+                {
+                    Log.E(Log.TagRemoteRequest, "Unable to add in cookies to global store", e);
+                }
+                StatusLine status = response.GetStatusLine();
+                if (status.GetStatusCode() >= 300)
+                {
+                    Log.E(Log.TagRemoteRequest, "Got error status: %d for %s.  Reason: %s", status.GetStatusCode
+                        (), request, status.GetReasonPhrase());
+                    error = new HttpResponseException(status.GetStatusCode(), status.GetReasonPhrase(
+                        ));
+                }
+                else
+                {
+                    HttpEntity entity = response.GetEntity();
+                    Header contentTypeHeader = entity.GetContentType();
+                    InputStream inputStream = null;
+                    if (contentTypeHeader != null && contentTypeHeader.GetValue().Contains("multipart/related"
+                        ))
+                    {
+                        try
+                        {
+                            MultipartDocumentReader reader = new MultipartDocumentReader(response, db);
+                            reader.SetContentType(contentTypeHeader.GetValue());
+                            inputStream = entity.GetContent();
+                            int bufLen = 1024;
+                            byte[] buffer = new byte[bufLen];
+                            int numBytesRead = 0;
+                            while ((numBytesRead = inputStream.Read(buffer)) != -1)
+                            {
+                                if (numBytesRead != bufLen)
+                                {
+                                    byte[] bufferToAppend = Arrays.CopyOfRange(buffer, 0, numBytesRead);
+                                    reader.AppendData(bufferToAppend);
+                                }
+                                else
+                                {
+                                    reader.AppendData(buffer);
+                                }
+                            }
+                            reader.Finish();
+                            fullBody = reader.GetDocumentProperties();
+                            RespondWithResult(fullBody, error, response);
+                        }
+                        finally
+                        {
+                            try
+                            {
+                                inputStream.Close();
+                            }
+                            catch (IOException)
+                            {
+                            }
+                        }
+                    }
+                    else
+                    {
+                        if (entity != null)
+                        {
+                            try
+                            {
+                                inputStream = entity.GetContent();
+                                fullBody = Manager.GetObjectMapper().ReadValue<object>(inputStream);
+                                RespondWithResult(fullBody, error, response);
+                            }
+                            finally
+                            {
+                                try
+                                {
+                                    inputStream.Close();
+                                }
+                                catch (IOException)
+                                {
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            catch (IOException e)
+            {
+                Log.E(Log.TagRemoteRequest, "%s: io exception", e, this);
+                error = e;
+                RespondWithResult(fullBody, e, response);
+            }
+            catch (Exception e)
+            {
+                Log.E(Log.TagRemoteRequest, "%s: executeRequest() Exception: ", e, this);
+                error = e;
+                RespondWithResult(fullBody, e, response);
+            }
+            finally
+            {
+                Log.E(Log.TagRemoteRequest, "%s: executeRequest() finally", this);
+            }
+        }
+    }
 }

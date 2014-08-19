@@ -39,39 +39,39 @@ using Sharpen;
 
 namespace Couchbase.Lite.Auth
 {
-	/// <summary>Authenticator impl that knows how to do token based auth</summary>
-	/// <exclude></exclude>
-	public class TokenAuthenticator : AuthenticatorImpl
-	{
-		private string loginPath;
+    /// <summary>Authenticator impl that knows how to do token based auth</summary>
+    /// <exclude></exclude>
+    public class TokenAuthenticator : AuthenticatorImpl
+    {
+        private string loginPath;
 
-		private IDictionary<string, string> loginParams;
+        private IDictionary<string, string> loginParams;
 
-		public TokenAuthenticator(string loginPath, IDictionary<string, string> loginParams
-			)
-		{
-			this.loginPath = loginPath;
-			this.loginParams = loginParams;
-		}
+        public TokenAuthenticator(string loginPath, IDictionary<string, string> loginParams
+            )
+        {
+            this.loginPath = loginPath;
+            this.loginParams = loginParams;
+        }
 
-		public override bool UsesCookieBasedLogin()
-		{
-			return true;
-		}
+        public override bool UsesCookieBasedLogin()
+        {
+            return true;
+        }
 
-		public override IDictionary<string, string> LoginParametersForSite(Uri site)
-		{
-			return loginParams;
-		}
+        public override IDictionary<string, string> LoginParametersForSite(Uri site)
+        {
+            return loginParams;
+        }
 
-		public override string LoginPathForSite(Uri site)
-		{
-			string path = loginPath;
-			if (path != null && !path.StartsWith("/"))
-			{
-				path = "/" + path;
-			}
-			return path;
-		}
-	}
+        public override string LoginPathForSite(Uri site)
+        {
+            string path = loginPath;
+            if (path != null && !path.StartsWith("/"))
+            {
+                path = "/" + path;
+            }
+            return path;
+        }
+    }
 }

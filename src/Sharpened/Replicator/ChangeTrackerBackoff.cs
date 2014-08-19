@@ -39,55 +39,55 @@ using Sharpen;
 
 namespace Couchbase.Lite.Replicator
 {
-	/// <exclude></exclude>
-	public class ChangeTrackerBackoff
-	{
-		private static int MaxSleepMilliseconds = 5 * 60 * 1000;
+    /// <exclude></exclude>
+    public class ChangeTrackerBackoff
+    {
+        private static int MaxSleepMilliseconds = 5 * 60 * 1000;
 
-		private int numAttempts = 0;
+        private int numAttempts = 0;
 
-		// 5 mins
-		public virtual void ResetBackoff()
-		{
-			numAttempts = 0;
-		}
+        // 5 mins
+        public virtual void ResetBackoff()
+        {
+            numAttempts = 0;
+        }
 
-		public virtual int GetSleepMilliseconds()
-		{
-			int result = (int)(Math.Pow(numAttempts, 2) - 1) / 2;
-			result *= 100;
-			if (result < MaxSleepMilliseconds)
-			{
-				IncreaseBackoff();
-			}
-			result = Math.Abs(result);
-			return result;
-		}
+        public virtual int GetSleepMilliseconds()
+        {
+            int result = (int)(Math.Pow(numAttempts, 2) - 1) / 2;
+            result *= 100;
+            if (result < MaxSleepMilliseconds)
+            {
+                IncreaseBackoff();
+            }
+            result = Math.Abs(result);
+            return result;
+        }
 
-		public virtual void SleepAppropriateAmountOfTime()
-		{
-			try
-			{
-				int sleepMilliseconds = GetSleepMilliseconds();
-				if (sleepMilliseconds > 0)
-				{
-					Log.D(Log.TagChangeTracker, "%s: sleeping for %d", this, sleepMilliseconds);
-					Sharpen.Thread.Sleep(sleepMilliseconds);
-				}
-			}
-			catch (Exception)
-			{
-			}
-		}
+        public virtual void SleepAppropriateAmountOfTime()
+        {
+            try
+            {
+                int sleepMilliseconds = GetSleepMilliseconds();
+                if (sleepMilliseconds > 0)
+                {
+                    Log.D(Log.TagChangeTracker, "%s: sleeping for %d", this, sleepMilliseconds);
+                    Sharpen.Thread.Sleep(sleepMilliseconds);
+                }
+            }
+            catch (Exception)
+            {
+            }
+        }
 
-		private void IncreaseBackoff()
-		{
-			numAttempts += 1;
-		}
+        private void IncreaseBackoff()
+        {
+            numAttempts += 1;
+        }
 
-		public virtual int GetNumAttempts()
-		{
-			return numAttempts;
-		}
-	}
+        public virtual int GetNumAttempts()
+        {
+            return numAttempts;
+        }
+    }
 }

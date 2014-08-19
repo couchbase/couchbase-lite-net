@@ -2,7 +2,7 @@
 // FileInputStream.cs
 //
 // Author:
-//	Zachary Gramana  <zack@xamarin.com>
+//  Zachary Gramana  <zack@xamarin.com>
 //
 // Copyright (c) 2013, 2014 Xamarin Inc (http://www.xamarin.com)
 //
@@ -43,26 +43,26 @@
 */
 namespace Sharpen
 {
-	using System;
-	using System.IO;
+    using System;
+    using System.IO;
 
-	internal class FileInputStream : InputStream
-	{
-		public FileInputStream (FilePath file) : this(file.GetPath ())
-		{
-		}
+    internal class FileInputStream : InputStream
+    {
+        public FileInputStream (FilePath file) : this(file.GetPath ())
+        {
+        }
 
-		public FileInputStream (string file)
-		{
-			if (!File.Exists (file)) {
-				throw new FileNotFoundException ("File not found", file);
-			}
+        public FileInputStream (string file)
+        {
+            if (!File.Exists (file)) {
+                throw new FileNotFoundException ("File not found", file);
+            }
             base.Wrapped = new FileStream (file, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
-		}
+        }
 
-		public FileChannel GetChannel ()
-		{
-			return new FileChannel ((FileStream)base.Wrapped);
-		}
-	}
+        public FileChannel GetChannel ()
+        {
+            return new FileChannel ((FileStream)base.Wrapped);
+        }
+    }
 }

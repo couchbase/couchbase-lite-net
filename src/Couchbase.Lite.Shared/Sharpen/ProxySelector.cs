@@ -2,7 +2,7 @@
 // ProxySelector.cs
 //
 // Author:
-//	Zachary Gramana  <zack@xamarin.com>
+//  Zachary Gramana  <zack@xamarin.com>
 //
 // Copyright (c) 2013, 2014 Xamarin Inc (http://www.xamarin.com)
 //
@@ -70,23 +70,23 @@ using System;
 
 namespace Sharpen
 {
-	internal class ProxySelector
-	{
-		public ProxySelector ()
-		{
-		}
-		
-		public static ProxySelector GetDefault ()
-		{
-			// TODO
-			return new ProxySelector ();
-		}
-		
-		public Proxy[] Select (Uri uri)
-		{
-			// TODO
-			return new Proxy [] { new Proxy () };
-		}
-	}
+    internal class ProxySelector
+    {
+        public ProxySelector ()
+        {
+        }
+        
+        public static ProxySelector GetDefault ()
+        {
+            // TODO
+            return new ProxySelector ();
+        }
+        
+        public Proxy[] Select (Uri uri)
+        {
+            // TODO
+            return new Proxy [] { new Proxy () };
+        }
+    }
 }
 

@@ -40,144 +40,144 @@ using Sharpen;
 
 namespace Couchbase.Lite.Support
 {
-	public class LazyJsonArray<T> : AbstractList<T>
-	{
-		private bool parsed = false;
+    public class LazyJsonArray<T> : AbstractList<T>
+    {
+        private bool parsed = false;
 
-		private byte[] json;
+        private byte[] json;
 
-		private IList<T> cache = new AList<T>();
+        private IList<T> cache = new AList<T>();
 
-		private IEnumerator<T> cacheIterator;
+        private IEnumerator<T> cacheIterator;
 
-		public LazyJsonArray(byte[] json)
-		{
-			if (json[0] != '[')
-			{
-				throw new ArgumentException("data must represent a JSON array");
-			}
-			this.json = json;
-		}
+        public LazyJsonArray(byte[] json)
+        {
+            if (json[0] != '[')
+            {
+                throw new ArgumentException("data must represent a JSON array");
+            }
+            this.json = json;
+        }
 
-		public override IEnumerator<T> GetEnumerator()
-		{
-			if (parsed)
-			{
-				return cache.GetEnumerator();
-			}
-			else
-			{
-				ParseJson();
-				return cache.GetEnumerator();
-			}
-		}
+        public override IEnumerator<T> GetEnumerator()
+        {
+            if (parsed)
+            {
+                return cache.GetEnumerator();
+            }
+            else
+            {
+                ParseJson();
+                return cache.GetEnumerator();
+            }
+        }
 
-		public override T Get(int index)
-		{
-			if (parsed)
-			{
-				return cache[index];
-			}
-			else
-			{
-				ParseJson();
-				return cache[index];
-			}
-		}
+        public override T Get(int index)
+        {
+            if (parsed)
+            {
+                return cache[index];
+            }
+            else
+            {
+                ParseJson();
+                return cache[index];
+            }
+        }
 
-		public override int Count
-		{
-			get
-			{
-				if (parsed)
-				{
-					return cache.Count;
-				}
-				else
-				{
-					ParseJson();
-					return cache.Count;
-				}
-			}
-		}
+        public override int Count
+        {
+            get
+            {
+                if (parsed)
+                {
+                    return cache.Count;
+                }
+                else
+                {
+                    ParseJson();
+                    return cache.Count;
+                }
+            }
+        }
 
-		// the following methods in AbstractList use #iterator(). Overwrite them to make sure they use the
-		// cached version
-		public override bool Contains(object o)
-		{
-			if (parsed)
-			{
-				return cache.Contains(o);
-			}
-			else
-			{
-				ParseJson();
-				return cache.Contains(o);
-			}
-		}
+        // the following methods in AbstractList use #iterator(). Overwrite them to make sure they use the
+        // cached version
+        public override bool Contains(object o)
+        {
+            if (parsed)
+            {
+                return cache.Contains(o);
+            }
+            else
+            {
+                ParseJson();
+                return cache.Contains(o);
+            }
+        }
 
-		public override object[] ToArray()
-		{
-			if (parsed)
-			{
-				return Sharpen.Collections.ToArray(cache);
-			}
-			else
-			{
-				ParseJson();
-				return Sharpen.Collections.ToArray(cache);
-			}
-		}
+        public override object[] ToArray()
+        {
+            if (parsed)
+            {
+                return Sharpen.Collections.ToArray(cache);
+            }
+            else
+            {
+                ParseJson();
+                return Sharpen.Collections.ToArray(cache);
+            }
+        }
 
-		public override T[] ToArray<S>(S[] a)
-		{
-			if (parsed)
-			{
-				return Sharpen.Collections.ToArray(cache, a);
-			}
-			else
-			{
-				ParseJson();
-				return Sharpen.Collections.ToArray(cache, a);
-			}
-		}
+        public override T[] ToArray<S>(S[] a)
+        {
+            if (parsed)
+            {
+                return Sharpen.Collections.ToArray(cache, a);
+            }
+            else
+            {
+                ParseJson();
+                return Sharpen.Collections.ToArray(cache, a);
+            }
+        }
 
-		public override int GetHashCode()
-		{
-			if (parsed)
-			{
-				return cache.GetHashCode();
-			}
-			else
-			{
-				ParseJson();
-				return cache.GetHashCode();
-			}
-		}
+        public override int GetHashCode()
+        {
+            if (parsed)
+            {
+                return cache.GetHashCode();
+            }
+            else
+            {
+                ParseJson();
+                return cache.GetHashCode();
+            }
+        }
 
-		private void ParseJson()
-		{
-			if (parsed)
-			{
-				return;
-			}
-			try
-			{
-				IList<T> parsedvalues = (IList<T>)Manager.GetObjectMapper().ReadValue<object>(json
-					);
-				//Merge parsed values into List, overwriting the values for duplicate keys
-				Sharpen.Collections.AddAll(parsedvalues, cache);
-				cache = parsedvalues;
-			}
-			catch (Exception e)
-			{
-				Log.E(Database.Tag, this.GetType().FullName + ": Failed to parse Json data: ", e);
-			}
-			finally
-			{
-				parsed = true;
-				json = null;
-			}
-		}
-	}
+        private void ParseJson()
+        {
+            if (parsed)
+            {
+                return;
+            }
+            try
+            {
+                IList<T> parsedvalues = (IList<T>)Manager.GetObjectMapper().ReadValue<object>(json
+                    );
+                //Merge parsed values into List, overwriting the values for duplicate keys
+                Sharpen.Collections.AddAll(parsedvalues, cache);
+                cache = parsedvalues;
+            }
+            catch (Exception e)
+            {
+                Log.E(Database.Tag, this.GetType().FullName + ": Failed to parse Json data: ", e);
+            }
+            finally
+            {
+                parsed = true;
+                json = null;
+            }
+        }
+    }
 }

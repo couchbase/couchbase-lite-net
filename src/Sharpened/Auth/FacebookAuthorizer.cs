@@ -40,92 +40,92 @@ using Sharpen;
 
 namespace Couchbase.Lite.Auth
 {
-	/// <summary>Authenticator impl that knows how to do facebook auth</summary>
-	/// <exclude></exclude>
-	public class FacebookAuthorizer : Authorizer
-	{
-		public const string LoginParameterAccessToken = "access_token";
+    /// <summary>Authenticator impl that knows how to do facebook auth</summary>
+    /// <exclude></exclude>
+    public class FacebookAuthorizer : Authorizer
+    {
+        public const string LoginParameterAccessToken = "access_token";
 
-		public const string QueryParameter = "facebookAccessToken";
+        public const string QueryParameter = "facebookAccessToken";
 
-		public const string QueryParameterEmail = "email";
+        public const string QueryParameterEmail = "email";
 
-		private static IDictionary<IList<string>, string> accessTokens;
+        private static IDictionary<IList<string>, string> accessTokens;
 
-		private string emailAddress;
+        private string emailAddress;
 
-		public FacebookAuthorizer(string emailAddress)
-		{
-			this.emailAddress = emailAddress;
-		}
+        public FacebookAuthorizer(string emailAddress)
+        {
+            this.emailAddress = emailAddress;
+        }
 
-		public override bool UsesCookieBasedLogin()
-		{
-			return true;
-		}
+        public override bool UsesCookieBasedLogin()
+        {
+            return true;
+        }
 
-		public override IDictionary<string, string> LoginParametersForSite(Uri site)
-		{
-			IDictionary<string, string> loginParameters = new Dictionary<string, string>();
-			try
-			{
-				string accessToken = AccessTokenForEmailAndSite(this.emailAddress, site);
-				if (accessToken != null)
-				{
-					loginParameters.Put(LoginParameterAccessToken, accessToken);
-					return loginParameters;
-				}
-				else
-				{
-					return null;
-				}
-			}
-			catch (Exception e)
-			{
-				Log.E(Log.TagSync, "Error looking login parameters for site", e);
-			}
-			return null;
-		}
+        public override IDictionary<string, string> LoginParametersForSite(Uri site)
+        {
+            IDictionary<string, string> loginParameters = new Dictionary<string, string>();
+            try
+            {
+                string accessToken = AccessTokenForEmailAndSite(this.emailAddress, site);
+                if (accessToken != null)
+                {
+                    loginParameters.Put(LoginParameterAccessToken, accessToken);
+                    return loginParameters;
+                }
+                else
+                {
+                    return null;
+                }
+            }
+            catch (Exception e)
+            {
+                Log.E(Log.TagSync, "Error looking login parameters for site", e);
+            }
+            return null;
+        }
 
-		public override string LoginPathForSite(Uri site)
-		{
-			return "/_facebook";
-		}
+        public override string LoginPathForSite(Uri site)
+        {
+            return "/_facebook";
+        }
 
-		public static string RegisterAccessToken(string accessToken, string email, string
-			 origin)
-		{
-			lock (typeof(FacebookAuthorizer))
-			{
-				IList<string> key = new AList<string>();
-				key.AddItem(email);
-				key.AddItem(origin);
-				if (accessTokens == null)
-				{
-					accessTokens = new Dictionary<IList<string>, string>();
-				}
-				Log.V(Log.TagSync, "FacebookAuthorizer registering key: %s", key);
-				accessTokens.Put(key, accessToken);
-				return email;
-			}
-		}
+        public static string RegisterAccessToken(string accessToken, string email, string
+             origin)
+        {
+            lock (typeof(FacebookAuthorizer))
+            {
+                IList<string> key = new AList<string>();
+                key.AddItem(email);
+                key.AddItem(origin);
+                if (accessTokens == null)
+                {
+                    accessTokens = new Dictionary<IList<string>, string>();
+                }
+                Log.V(Log.TagSync, "FacebookAuthorizer registering key: %s", key);
+                accessTokens.Put(key, accessToken);
+                return email;
+            }
+        }
 
-		public static string AccessTokenForEmailAndSite(string email, Uri site)
-		{
-			try
-			{
-				IList<string> key = new AList<string>();
-				key.AddItem(email);
-				key.AddItem(site.ToExternalForm().ToLower());
-				Log.V(Log.TagSync, "FacebookAuthorizer looking up key: %s from list of access tokens"
-					, key);
-				return accessTokens.Get(key);
-			}
-			catch (Exception e)
-			{
-				Log.E(Log.TagSync, "Error looking up access token", e);
-			}
-			return null;
-		}
-	}
+        public static string AccessTokenForEmailAndSite(string email, Uri site)
+        {
+            try
+            {
+                IList<string> key = new AList<string>();
+                key.AddItem(email);
+                key.AddItem(site.ToExternalForm().ToLower());
+                Log.V(Log.TagSync, "FacebookAuthorizer looking up key: %s from list of access tokens"
+                    , key);
+                return accessTokens.Get(key);
+            }
+            catch (Exception e)
+            {
+                Log.E(Log.TagSync, "Error looking up access token", e);
+            }
+            return null;
+        }
+    }
 }

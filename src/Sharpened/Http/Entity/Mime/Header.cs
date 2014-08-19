@@ -47,132 +47,132 @@ using Sharpen;
 
 namespace Apache.Http.Entity.Mime
 {
-	/// <summary>The header of an entity (see RFC 2045).</summary>
-	/// <remarks>The header of an entity (see RFC 2045).</remarks>
-	public class Header : IEnumerable<MinimalField>
-	{
-		private readonly IList<MinimalField> fields;
+    /// <summary>The header of an entity (see RFC 2045).</summary>
+    /// <remarks>The header of an entity (see RFC 2045).</remarks>
+    public class Header : IEnumerable<MinimalField>
+    {
+        private readonly IList<MinimalField> fields;
 
-		private readonly IDictionary<string, IList<MinimalField>> fieldMap;
+        private readonly IDictionary<string, IList<MinimalField>> fieldMap;
 
-		public Header() : base()
-		{
-			this.fields = new List<MinimalField>();
-			this.fieldMap = new Dictionary<string, IList<MinimalField>>();
-		}
+        public Header() : base()
+        {
+            this.fields = new List<MinimalField>();
+            this.fieldMap = new Dictionary<string, IList<MinimalField>>();
+        }
 
-		public virtual void AddField(MinimalField field)
-		{
-			if (field == null)
-			{
-				return;
-			}
-			string key = field.GetName().ToLower(CultureInfo.InvariantCulture);
-			IList<MinimalField> values = this.fieldMap.Get(key);
-			if (values == null)
-			{
-				values = new List<MinimalField>();
-				this.fieldMap.Put(key, values);
-			}
-			values.AddItem(field);
-			this.fields.AddItem(field);
-		}
+        public virtual void AddField(MinimalField field)
+        {
+            if (field == null)
+            {
+                return;
+            }
+            string key = field.GetName().ToLower(CultureInfo.InvariantCulture);
+            IList<MinimalField> values = this.fieldMap.Get(key);
+            if (values == null)
+            {
+                values = new List<MinimalField>();
+                this.fieldMap.Put(key, values);
+            }
+            values.AddItem(field);
+            this.fields.AddItem(field);
+        }
 
-		public virtual IList<MinimalField> GetFields()
-		{
-			return new AList<MinimalField>(this.fields);
-		}
+        public virtual IList<MinimalField> GetFields()
+        {
+            return new AList<MinimalField>(this.fields);
+        }
 
-		public virtual MinimalField GetField(string name)
-		{
-			if (name == null)
-			{
-				return null;
-			}
-			string key = name.ToLower(CultureInfo.InvariantCulture);
-			IList<MinimalField> list = this.fieldMap.Get(key);
-			if (list != null && !list.IsEmpty())
-			{
-				return list[0];
-			}
-			return null;
-		}
+        public virtual MinimalField GetField(string name)
+        {
+            if (name == null)
+            {
+                return null;
+            }
+            string key = name.ToLower(CultureInfo.InvariantCulture);
+            IList<MinimalField> list = this.fieldMap.Get(key);
+            if (list != null && !list.IsEmpty())
+            {
+                return list[0];
+            }
+            return null;
+        }
 
-		public virtual IList<MinimalField> GetFields(string name)
-		{
-			if (name == null)
-			{
-				return null;
-			}
-			string key = name.ToLower(CultureInfo.InvariantCulture);
-			IList<MinimalField> list = this.fieldMap.Get(key);
-			if (list == null || list.IsEmpty())
-			{
-				return Sharpen.Collections.EmptyList();
-			}
-			else
-			{
-				return new AList<MinimalField>(list);
-			}
-		}
+        public virtual IList<MinimalField> GetFields(string name)
+        {
+            if (name == null)
+            {
+                return null;
+            }
+            string key = name.ToLower(CultureInfo.InvariantCulture);
+            IList<MinimalField> list = this.fieldMap.Get(key);
+            if (list == null || list.IsEmpty())
+            {
+                return Sharpen.Collections.EmptyList();
+            }
+            else
+            {
+                return new AList<MinimalField>(list);
+            }
+        }
 
-		public virtual int RemoveFields(string name)
-		{
-			if (name == null)
-			{
-				return 0;
-			}
-			string key = name.ToLower(CultureInfo.InvariantCulture);
-			IList<MinimalField> removed = Sharpen.Collections.Remove(fieldMap, key);
-			if (removed == null || removed.IsEmpty())
-			{
-				return 0;
-			}
-			this.fields.RemoveAll(removed);
-			return removed.Count;
-		}
+        public virtual int RemoveFields(string name)
+        {
+            if (name == null)
+            {
+                return 0;
+            }
+            string key = name.ToLower(CultureInfo.InvariantCulture);
+            IList<MinimalField> removed = Sharpen.Collections.Remove(fieldMap, key);
+            if (removed == null || removed.IsEmpty())
+            {
+                return 0;
+            }
+            this.fields.RemoveAll(removed);
+            return removed.Count;
+        }
 
-		public virtual void SetField(MinimalField field)
-		{
-			if (field == null)
-			{
-				return;
-			}
-			string key = field.GetName().ToLower(CultureInfo.InvariantCulture);
-			IList<MinimalField> list = fieldMap.Get(key);
-			if (list == null || list.IsEmpty())
-			{
-				AddField(field);
-				return;
-			}
-			list.Clear();
-			list.AddItem(field);
-			int firstOccurrence = -1;
-			int index = 0;
-			for (IEnumerator<MinimalField> it = this.fields.GetEnumerator(); it.HasNext(); index
-				++)
-			{
-				MinimalField f = it.Next();
-				if (Sharpen.Runtime.EqualsIgnoreCase(f.GetName(), field.GetName()))
-				{
-					it.Remove();
-					if (firstOccurrence == -1)
-					{
-						firstOccurrence = index;
-					}
-				}
-			}
-			this.fields.Add(firstOccurrence, field);
-		}
+        public virtual void SetField(MinimalField field)
+        {
+            if (field == null)
+            {
+                return;
+            }
+            string key = field.GetName().ToLower(CultureInfo.InvariantCulture);
+            IList<MinimalField> list = fieldMap.Get(key);
+            if (list == null || list.IsEmpty())
+            {
+                AddField(field);
+                return;
+            }
+            list.Clear();
+            list.AddItem(field);
+            int firstOccurrence = -1;
+            int index = 0;
+            for (IEnumerator<MinimalField> it = this.fields.GetEnumerator(); it.HasNext(); index
+                ++)
+            {
+                MinimalField f = it.Next();
+                if (Sharpen.Runtime.EqualsIgnoreCase(f.GetName(), field.GetName()))
+                {
+                    it.Remove();
+                    if (firstOccurrence == -1)
+                    {
+                        firstOccurrence = index;
+                    }
+                }
+            }
+            this.fields.Add(firstOccurrence, field);
+        }
 
-		public override IEnumerator<MinimalField> GetEnumerator()
-		{
-			return Sharpen.Collections.UnmodifiableList(fields).GetEnumerator();
-		}
+        public override IEnumerator<MinimalField> GetEnumerator()
+        {
+            return Sharpen.Collections.UnmodifiableList(fields).GetEnumerator();
+        }
 
-		public override string ToString()
-		{
-			return this.fields.ToString();
-		}
-	}
+        public override string ToString()
+        {
+            return this.fields.ToString();
+        }
+    }
 }

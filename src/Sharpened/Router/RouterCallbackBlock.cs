@@ -37,8 +37,8 @@ using Sharpen;
 
 namespace Couchbase.Lite.Router
 {
-	public interface RouterCallbackBlock
-	{
-		void OnResponseReady();
-	}
+    public interface RouterCallbackBlock
+    {
+        void OnResponseReady();
+    }
 }

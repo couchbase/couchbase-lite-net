@@ -2,7 +2,7 @@
 // CharBuffer.cs
 //
 // Author:
-//	Zachary Gramana  <zack@xamarin.com>
+//  Zachary Gramana  <zack@xamarin.com>
 //
 // Copyright (c) 2013, 2014 Xamarin Inc (http://www.xamarin.com)
 //
@@ -43,22 +43,22 @@
 */
 namespace Sharpen
 {
-	using System;
+    using System;
 
-	internal class CharBuffer : CharSequence
-	{
-		internal string Wrapped;
+    internal class CharBuffer : CharSequence
+    {
+        internal string Wrapped;
 
-		public override string ToString ()
-		{
-			return Wrapped;
-		}
+        public override string ToString ()
+        {
+            return Wrapped;
+        }
 
-		public static CharBuffer Wrap (string str)
-		{
-			CharBuffer buffer = new CharBuffer ();
-			buffer.Wrapped = str;
-			return buffer;
-		}
-	}
+        public static CharBuffer Wrap (string str)
+        {
+            CharBuffer buffer = new CharBuffer ();
+            buffer.Wrapped = str;
+            return buffer;
+        }
+    }
 }

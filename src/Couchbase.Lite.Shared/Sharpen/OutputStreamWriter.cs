@@ -2,7 +2,7 @@
 // OutputStreamWriter.cs
 //
 // Author:
-//	Zachary Gramana  <zack@xamarin.com>
+//  Zachary Gramana  <zack@xamarin.com>
 //
 // Copyright (c) 2013, 2014 Xamarin Inc (http://www.xamarin.com)
 //
@@ -43,22 +43,22 @@
 */
 namespace Sharpen
 {
-	using System;
-	using System.IO;
-	using System.Text;
+    using System;
+    using System.IO;
+    using System.Text;
 
-	internal class OutputStreamWriter : StreamWriter
-	{
-		public OutputStreamWriter (OutputStream stream) : base(stream.GetWrappedStream ())
-		{
-		}
+    internal class OutputStreamWriter : StreamWriter
+    {
+        public OutputStreamWriter (OutputStream stream) : base(stream.GetWrappedStream ())
+        {
+        }
 
-		public OutputStreamWriter (OutputStream stream, string encoding) : base(stream.GetWrappedStream (), Extensions.GetEncoding (encoding))
-		{
-		}
+        public OutputStreamWriter (OutputStream stream, string encoding) : base(stream.GetWrappedStream (), Extensions.GetEncoding (encoding))
+        {
+        }
 
-		public OutputStreamWriter (OutputStream stream, Encoding encoding) : base(stream.GetWrappedStream (), encoding)
-		{
-		}
-	}
+        public OutputStreamWriter (OutputStream stream, Encoding encoding) : base(stream.GetWrappedStream (), encoding)
+        {
+        }
+    }
 }

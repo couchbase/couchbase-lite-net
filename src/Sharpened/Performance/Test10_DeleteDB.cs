@@ -42,98 +42,98 @@ using Sharpen;
 
 namespace Couchbase.Lite.Performance
 {
-	public class Test10_DeleteDB : LiteTestCase
-	{
-		public const string Tag = "DeleteDBPerformance";
+    public class Test10_DeleteDB : LiteTestCase
+    {
+        public const string Tag = "DeleteDBPerformance";
 
-		private const string _propertyValue = "1234567";
+        private const string _propertyValue = "1234567";
 
-		/// <exception cref="System.Exception"></exception>
-		protected override void SetUp()
-		{
-			Log.V(Tag, "DeleteDBPerformance setUp");
-			base.SetUp();
-			//Create docs that will be deleted in test case
-			NUnit.Framework.Assert.IsTrue(database.RunInTransaction(new _TransactionalTask_43
-				(this)));
-		}
+        /// <exception cref="System.Exception"></exception>
+        protected override void SetUp()
+        {
+            Log.V(Tag, "DeleteDBPerformance setUp");
+            base.SetUp();
+            //Create docs that will be deleted in test case
+            NUnit.Framework.Assert.IsTrue(database.RunInTransaction(new _TransactionalTask_43
+                (this)));
+        }
 
-		private sealed class _TransactionalTask_43 : TransactionalTask
-		{
-			public _TransactionalTask_43(Test10_DeleteDB _enclosing)
-			{
-				this._enclosing = _enclosing;
-			}
+        private sealed class _TransactionalTask_43 : TransactionalTask
+        {
+            public _TransactionalTask_43(Test10_DeleteDB _enclosing)
+            {
+                this._enclosing = _enclosing;
+            }
 
-			public bool Run()
-			{
-				string[] bigObj = new string[this._enclosing.GetSizeOfDocument()];
-				for (int i = 0; i < this._enclosing.GetSizeOfDocument(); i++)
-				{
-					bigObj[i] = Test10_DeleteDB._propertyValue;
-				}
-				for (int i_1 = 0; i_1 < this._enclosing.GetNumberOfDocuments(); i_1++)
-				{
-					//create a document
-					IDictionary<string, object> props = new Dictionary<string, object>();
-					props.Put("bigArray", bigObj);
-					Body body = new Body(props);
-					RevisionInternal rev1 = new RevisionInternal(body, this._enclosing.database);
-					Status status = new Status();
-					try
-					{
-						rev1 = this._enclosing.database.PutRevision(rev1, null, false, status);
-					}
-					catch (Exception t)
-					{
-						Log.E(Test10_DeleteDB.Tag, "Document create failed", t);
-						return false;
-					}
-				}
-				return true;
-			}
+            public bool Run()
+            {
+                string[] bigObj = new string[this._enclosing.GetSizeOfDocument()];
+                for (int i = 0; i < this._enclosing.GetSizeOfDocument(); i++)
+                {
+                    bigObj[i] = Test10_DeleteDB._propertyValue;
+                }
+                for (int i_1 = 0; i_1 < this._enclosing.GetNumberOfDocuments(); i_1++)
+                {
+                    //create a document
+                    IDictionary<string, object> props = new Dictionary<string, object>();
+                    props.Put("bigArray", bigObj);
+                    Body body = new Body(props);
+                    RevisionInternal rev1 = new RevisionInternal(body, this._enclosing.database);
+                    Status status = new Status();
+                    try
+                    {
+                        rev1 = this._enclosing.database.PutRevision(rev1, null, false, status);
+                    }
+                    catch (Exception t)
+                    {
+                        Log.E(Test10_DeleteDB.Tag, "Document create failed", t);
+                        return false;
+                    }
+                }
+                return true;
+            }
 
-			private readonly Test10_DeleteDB _enclosing;
-		}
+            private readonly Test10_DeleteDB _enclosing;
+        }
 
-		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
-		public virtual void TestDeleteDBPerformance()
-		{
-			long startMillis = Runtime.CurrentTimeMillis();
-			try
-			{
-				for (int i = 0; i < GetNumberOfDBs(); i++)
-				{
-					//Note: This shuts down the current manager and database
-					//but does not delete the database, that is done in setUp()
-					base.TearDown();
-					SetUp();
-				}
-			}
-			catch (Exception ex)
-			{
-				//run local test setup
-				Log.E(Tag, "DB Teardown/Setup failed", ex);
-				Fail();
-			}
-			Log.V("PerformanceStats", Tag + "," + Sharpen.Extensions.ValueOf(Runtime.CurrentTimeMillis
-				() - startMillis).ToString() + "," + GetNumberOfDocuments() + "," + GetSizeOfDocument
-				() + "," + GetNumberOfDBs());
-		}
+        /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
+        public virtual void TestDeleteDBPerformance()
+        {
+            long startMillis = Runtime.CurrentTimeMillis();
+            try
+            {
+                for (int i = 0; i < GetNumberOfDBs(); i++)
+                {
+                    //Note: This shuts down the current manager and database
+                    //but does not delete the database, that is done in setUp()
+                    base.TearDown();
+                    SetUp();
+                }
+            }
+            catch (Exception ex)
+            {
+                //run local test setup
+                Log.E(Tag, "DB Teardown/Setup failed", ex);
+                Fail();
+            }
+            Log.V("PerformanceStats", Tag + "," + Sharpen.Extensions.ValueOf(Runtime.CurrentTimeMillis
+                () - startMillis).ToString() + "," + GetNumberOfDocuments() + "," + GetSizeOfDocument
+                () + "," + GetNumberOfDBs());
+        }
 
-		private int GetSizeOfDocument()
-		{
-			return System.Convert.ToInt32(Runtime.GetProperty("Test10_sizeOfDocument"));
-		}
+        private int GetSizeOfDocument()
+        {
+            return System.Convert.ToInt32(Runtime.GetProperty("Test10_sizeOfDocument"));
+        }
 
-		private int GetNumberOfDocuments()
-		{
-			return System.Convert.ToInt32(Runtime.GetProperty("Test10_numberOfDocuments"));
-		}
+        private int GetNumberOfDocuments()
+        {
+            return System.Convert.ToInt32(Runtime.GetProperty("Test10_numberOfDocuments"));
+        }
 
-		private int GetNumberOfDBs()
-		{
-			return System.Convert.ToInt32(Runtime.GetProperty("Test10_numberOfDBs"));
-		}
-	}
+        private int GetNumberOfDBs()
+        {
+            return System.Convert.ToInt32(Runtime.GetProperty("Test10_numberOfDBs"));
+        }
+    }
 }

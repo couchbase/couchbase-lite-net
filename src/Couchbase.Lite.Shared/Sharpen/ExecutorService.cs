@@ -2,7 +2,7 @@
 // ExecutorService.cs
 //
 // Author:
-//	Zachary Gramana  <zack@xamarin.com>
+//  Zachary Gramana  <zack@xamarin.com>
 //
 // Copyright (c) 2013, 2014 Xamarin Inc (http://www.xamarin.com)
 //
@@ -43,13 +43,13 @@
 */
 namespace Sharpen
 {
-	using System;
+    using System;
 
-	internal interface ExecutorService : Executor
-	{
-		bool AwaitTermination (long n, TimeUnit unit);
-		void Shutdown ();
-		void ShutdownNow ();
-		Future<T> Submit<T> (Callable<T> ob);
-	}
+    internal interface ExecutorService : Executor
+    {
+        bool AwaitTermination (long n, TimeUnit unit);
+        void Shutdown ();
+        void ShutdownNow ();
+        Future<T> Submit<T> (Callable<T> ob);
+    }
 }

@@ -45,10 +45,10 @@ using Sharpen;
 
 namespace Org.Apache.Http.Entity.Mime
 {
-	/// <since>4.0</since>
-	public enum HttpMultipartMode
-	{
-		Strict,
-		BrowserCompatible
-	}
+    /// <since>4.0</since>
+    public enum HttpMultipartMode
+    {
+        Strict,
+        BrowserCompatible
+    }
 }

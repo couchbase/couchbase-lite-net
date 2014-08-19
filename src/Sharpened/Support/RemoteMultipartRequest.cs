@@ -44,45 +44,45 @@ using Sharpen;
 
 namespace Couchbase.Lite.Support
 {
-	public class RemoteMultipartRequest : RemoteRequest
-	{
-		private MultipartEntity multiPart;
+    public class RemoteMultipartRequest : RemoteRequest
+    {
+        private MultipartEntity multiPart;
 
-		public RemoteMultipartRequest(ScheduledExecutorService workExecutor, HttpClientFactory
-			 clientFactory, string method, Uri url, MultipartEntity multiPart, Database db, 
-			IDictionary<string, object> requestHeaders, RemoteRequestCompletionBlock onCompletion
-			) : base(workExecutor, clientFactory, method, url, null, db, requestHeaders, onCompletion
-			)
-		{
-			this.multiPart = multiPart;
-		}
+        public RemoteMultipartRequest(ScheduledExecutorService workExecutor, HttpClientFactory
+             clientFactory, string method, Uri url, MultipartEntity multiPart, Database db, 
+            IDictionary<string, object> requestHeaders, RemoteRequestCompletionBlock onCompletion
+            ) : base(workExecutor, clientFactory, method, url, null, db, requestHeaders, onCompletion
+            )
+        {
+            this.multiPart = multiPart;
+        }
 
-		public override void Run()
-		{
-			HttpClient httpClient = clientFactory.GetHttpClient();
-			PreemptivelySetAuthCredentials(httpClient);
-			HttpRequestMessage request = null;
-			if (Sharpen.Runtime.EqualsIgnoreCase(method, "PUT"))
-			{
-				HttpPut putRequest = new HttpPut(url.ToExternalForm());
-				putRequest.SetEntity(multiPart);
-				request = putRequest;
-			}
-			else
-			{
-				if (Sharpen.Runtime.EqualsIgnoreCase(method, "POST"))
-				{
-					HttpPost postRequest = new HttpPost(url.ToExternalForm());
-					postRequest.SetEntity(multiPart);
-					request = postRequest;
-				}
-				else
-				{
-					throw new ArgumentException("Invalid request method: " + method);
-				}
-			}
-			request.AddHeader("Accept", "*/*");
-			ExecuteRequest(httpClient, request);
-		}
-	}
+        public override void Run()
+        {
+            HttpClient httpClient = clientFactory.GetHttpClient();
+            PreemptivelySetAuthCredentials(httpClient);
+            HttpRequestMessage request = null;
+            if (Sharpen.Runtime.EqualsIgnoreCase(method, "PUT"))
+            {
+                HttpPut putRequest = new HttpPut(url.ToExternalForm());
+                putRequest.SetEntity(multiPart);
+                request = putRequest;
+            }
+            else
+            {
+                if (Sharpen.Runtime.EqualsIgnoreCase(method, "POST"))
+                {
+                    HttpPost postRequest = new HttpPost(url.ToExternalForm());
+                    postRequest.SetEntity(multiPart);
+                    request = postRequest;
+                }
+                else
+                {
+                    throw new ArgumentException("Invalid request method: " + method);
+                }
+            }
+            request.AddHeader("Accept", "*/*");
+            ExecuteRequest(httpClient, request);
+        }
+    }
 }

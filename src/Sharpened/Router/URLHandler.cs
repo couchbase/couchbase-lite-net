@@ -38,12 +38,12 @@ using Sharpen;
 
 namespace Couchbase.Lite.Router
 {
-	public class URLHandler : URLStreamHandler
-	{
-		/// <exception cref="System.IO.IOException"></exception>
-		protected override URLConnection OpenConnection(Uri u)
-		{
-			return new URLConnection(u);
-		}
-	}
+    public class URLHandler : URLStreamHandler
+    {
+        /// <exception cref="System.IO.IOException"></exception>
+        protected override URLConnection OpenConnection(Uri u)
+        {
+            return new URLConnection(u);
+        }
+    }
 }

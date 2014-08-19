@@ -2,7 +2,7 @@
 // Iterator.cs
 //
 // Author:
-//	Zachary Gramana  <zack@xamarin.com>
+//  Zachary Gramana  <zack@xamarin.com>
 //
 // Copyright (c) 2013, 2014 Xamarin Inc (http://www.xamarin.com)
 //
@@ -43,58 +43,58 @@
 */
 namespace Sharpen
 {
-	using System;
-	using System.Collections;
-	using System.Collections.Generic;
+    using System;
+    using System.Collections;
+    using System.Collections.Generic;
 
-	internal interface Iterator
-	{
+    internal interface Iterator
+    {
         bool HasNext ();
-		object Next ();
-		void Remove ();
-	}
+        object Next ();
+        void Remove ();
+    }
 
-	internal abstract class Iterator<T> : IEnumerator, IDisposable, IEnumerator<T>, Iterator
-	{
-		private T lastValue;
+    internal abstract class Iterator<T> : IEnumerator, IDisposable, IEnumerator<T>, Iterator
+    {
+        private T lastValue;
 
-		protected Iterator ()
-		{
-		}
+        protected Iterator ()
+        {
+        }
 
-		object Iterator.Next ()
-		{
-			return Next ();
-		}
+        object Iterator.Next ()
+        {
+            return Next ();
+        }
 
         public abstract bool HasNext ();
-		public abstract T Next ();
-		public abstract void Remove ();
+        public abstract T Next ();
+        public abstract void Remove ();
 
-		bool IEnumerator.MoveNext ()
-		{
+        bool IEnumerator.MoveNext ()
+        {
             if (HasNext ()) {
-				lastValue = Next ();
-				return true;
-			}
-			return false;
-		}
+                lastValue = Next ();
+                return true;
+            }
+            return false;
+        }
 
-		void IEnumerator.Reset ()
-		{
-			throw new NotImplementedException ();
-		}
+        void IEnumerator.Reset ()
+        {
+            throw new NotImplementedException ();
+        }
 
-		void IDisposable.Dispose ()
-		{
-		}
+        void IDisposable.Dispose ()
+        {
+        }
 
-		T IEnumerator<T>.Current {
-			get { return lastValue; }
-		}
+        T IEnumerator<T>.Current {
+            get { return lastValue; }
+        }
 
-		object IEnumerator.Current {
-			get { return lastValue; }
-		}
-	}
+        object IEnumerator.Current {
+            get { return lastValue; }
+        }
+    }
 }

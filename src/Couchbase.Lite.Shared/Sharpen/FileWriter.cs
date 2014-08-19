@@ -2,7 +2,7 @@
 // FileWriter.cs
 //
 // Author:
-//	Zachary Gramana  <zack@xamarin.com>
+//  Zachary Gramana  <zack@xamarin.com>
 //
 // Copyright (c) 2013, 2014 Xamarin Inc (http://www.xamarin.com)
 //
@@ -43,19 +43,19 @@
 */
 namespace Sharpen
 {
-	using System;
-	using System.IO;
+    using System;
+    using System.IO;
 
-	internal class FileWriter : StreamWriter
-	{
-		public FileWriter (FilePath path) : base(path.GetPath ())
-		{
-		}
-		
-		public FileWriter Append (string sequence)
-		{
-			Write (sequence);
-			return this;
-		}
-	}
+    internal class FileWriter : StreamWriter
+    {
+        public FileWriter (FilePath path) : base(path.GetPath ())
+        {
+        }
+        
+        public FileWriter Append (string sequence)
+        {
+            Write (sequence);
+            return this;
+        }
+    }
 }

@@ -37,20 +37,20 @@ using Sharpen;
 
 namespace Couchbase.Lite.Storage
 {
-	public interface Cursor
-	{
-		bool MoveToNext();
+    public interface Cursor
+    {
+        bool MoveToNext();
 
-		bool IsAfterLast();
+        bool IsAfterLast();
 
-		string GetString(int columnIndex);
+        string GetString(int columnIndex);
 
-		int GetInt(int columnIndex);
+        int GetInt(int columnIndex);
 
-		long GetLong(int columnIndex);
+        long GetLong(int columnIndex);
 
-		byte[] GetBlob(int columnIndex);
+        byte[] GetBlob(int columnIndex);
 
-		void Close();
-	}
+        void Close();
+    }
 }

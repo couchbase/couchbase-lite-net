@@ -38,31 +38,31 @@ using Sharpen;
 
 namespace Couchbase.Lite.Router
 {
-	public class URLStreamHandlerFactory : URLStreamHandlerFactory
-	{
-		public const string Scheme = "cblite";
+    public class URLStreamHandlerFactory : URLStreamHandlerFactory
+    {
+        public const string Scheme = "cblite";
 
-		// eg, cblite://
-		public virtual URLStreamHandler CreateURLStreamHandler(string protocol)
-		{
-			if (Scheme.Equals(protocol))
-			{
-				return new URLHandler();
-			}
-			return null;
-		}
+        // eg, cblite://
+        public virtual URLStreamHandler CreateURLStreamHandler(string protocol)
+        {
+            if (Scheme.Equals(protocol))
+            {
+                return new URLHandler();
+            }
+            return null;
+        }
 
-		public static void RegisterSelfIgnoreError()
-		{
-			try
-			{
-				Uri.SetURLStreamHandlerFactory(new URLStreamHandlerFactory());
-			}
-			catch (Error)
-			{
-			}
-		}
-		//usually you should never catch an Error
-		//but I can't see how to avoid this
-	}
+        public static void RegisterSelfIgnoreError()
+        {
+            try
+            {
+                Uri.SetURLStreamHandlerFactory(new URLStreamHandlerFactory());
+            }
+            catch (Error)
+            {
+            }
+        }
+        //usually you should never catch an Error
+        //but I can't see how to avoid this
+    }
 }

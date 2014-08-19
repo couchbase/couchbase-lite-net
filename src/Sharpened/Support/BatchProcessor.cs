@@ -38,8 +38,8 @@ using Sharpen;
 
 namespace Couchbase.Lite.Support
 {
-	public interface BatchProcessor<T>
-	{
-		void Process(IList<T> inbox);
-	}
+    public interface BatchProcessor<T>
+    {
+        void Process(IList<T> inbox);
+    }
 }

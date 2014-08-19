@@ -2,7 +2,7 @@
 // ByteOrder.cs
 //
 // Author:
-//	Zachary Gramana  <zack@xamarin.com>
+//  Zachary Gramana  <zack@xamarin.com>
 //
 // Copyright (c) 2013, 2014 Xamarin Inc (http://www.xamarin.com)
 //
@@ -43,11 +43,11 @@
 */
 namespace Sharpen
 {
-	using System;
+    using System;
 
     internal enum ByteOrder
-	{
-		BIG_ENDIAN,
-		LITTLE_ENDIAN
-	}
+    {
+        BIG_ENDIAN,
+        LITTLE_ENDIAN
+    }
 }

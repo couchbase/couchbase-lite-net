@@ -2,7 +2,7 @@
 // ObjectInputStream.cs
 //
 // Author:
-//	Zachary Gramana  <zack@xamarin.com>
+//  Zachary Gramana  <zack@xamarin.com>
 //
 // Copyright (c) 2013, 2014 Xamarin Inc (http://www.xamarin.com)
 //
@@ -43,26 +43,26 @@
 */
 namespace Sharpen
 {
-	using System;
-	using System.IO;
+    using System;
+    using System.IO;
 
-	internal class ObjectInputStream : InputStream
-	{
-		private BinaryReader reader;
+    internal class ObjectInputStream : InputStream
+    {
+        private BinaryReader reader;
 
-		public ObjectInputStream (InputStream s)
-		{
-			this.reader = new BinaryReader (s.GetWrappedStream ());
-		}
+        public ObjectInputStream (InputStream s)
+        {
+            this.reader = new BinaryReader (s.GetWrappedStream ());
+        }
 
-		public int ReadInt ()
-		{
-			return this.reader.ReadInt32 ();
-		}
+        public int ReadInt ()
+        {
+            return this.reader.ReadInt32 ();
+        }
 
-		public object ReadObject ()
-		{
-			throw new NotImplementedException ();
-		}
-	}
+        public object ReadObject ()
+        {
+            throw new NotImplementedException ();
+        }
+    }
 }

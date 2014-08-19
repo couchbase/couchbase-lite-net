@@ -38,8 +38,8 @@ using Sharpen;
 
 namespace Couchbase.Lite.Support
 {
-	public interface RemoteRequestCompletionBlock
-	{
-		void OnCompletion(object result, Exception e);
-	}
+    public interface RemoteRequestCompletionBlock
+    {
+        void OnCompletion(object result, Exception e);
+    }
 }

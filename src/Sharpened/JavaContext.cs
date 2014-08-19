@@ -37,60 +37,60 @@ using Sharpen;
 
 namespace Couchbase.Lite
 {
-	public class JavaContext : Context
-	{
-		private string subdir;
+    public class JavaContext : Context
+    {
+        private string subdir;
 
-		public JavaContext(string subdir)
-		{
-			this.subdir = subdir;
-		}
+        public JavaContext(string subdir)
+        {
+            this.subdir = subdir;
+        }
 
-		public JavaContext()
-		{
-			this.subdir = "cblite";
-		}
+        public JavaContext()
+        {
+            this.subdir = "cblite";
+        }
 
-		public virtual FilePath GetFilesDir()
-		{
-			return new FilePath(GetRootDirectory(), subdir);
-		}
+        public virtual FilePath GetFilesDir()
+        {
+            return new FilePath(GetRootDirectory(), subdir);
+        }
 
-		public virtual void SetNetworkReachabilityManager(NetworkReachabilityManager networkReachabilityManager
-			)
-		{
-		}
+        public virtual void SetNetworkReachabilityManager(NetworkReachabilityManager networkReachabilityManager
+            )
+        {
+        }
 
-		public virtual NetworkReachabilityManager GetNetworkReachabilityManager()
-		{
-			return new JavaContext.FakeNetworkReachabilityManager(this);
-		}
+        public virtual NetworkReachabilityManager GetNetworkReachabilityManager()
+        {
+            return new JavaContext.FakeNetworkReachabilityManager(this);
+        }
 
-		public virtual FilePath GetRootDirectory()
-		{
-			string rootDirectoryPath = Runtime.GetProperty("user.dir");
-			FilePath rootDirectory = new FilePath(rootDirectoryPath);
-			rootDirectory = new FilePath(rootDirectory, "data/data/com.couchbase.lite.test/files"
-				);
-			return rootDirectory;
-		}
+        public virtual FilePath GetRootDirectory()
+        {
+            string rootDirectoryPath = Runtime.GetProperty("user.dir");
+            FilePath rootDirectory = new FilePath(rootDirectoryPath);
+            rootDirectory = new FilePath(rootDirectory, "data/data/com.couchbase.lite.test/files"
+                );
+            return rootDirectory;
+        }
 
-		internal class FakeNetworkReachabilityManager : NetworkReachabilityManager
-		{
-			public override void StartListening()
-			{
-			}
+        internal class FakeNetworkReachabilityManager : NetworkReachabilityManager
+        {
+            public override void StartListening()
+            {
+            }
 
-			public override void StopListening()
-			{
-			}
+            public override void StopListening()
+            {
+            }
 
-			internal FakeNetworkReachabilityManager(JavaContext _enclosing)
-			{
-				this._enclosing = _enclosing;
-			}
+            internal FakeNetworkReachabilityManager(JavaContext _enclosing)
+            {
+                this._enclosing = _enclosing;
+            }
 
-			private readonly JavaContext _enclosing;
-		}
-	}
+            private readonly JavaContext _enclosing;
+        }
+    }
 }

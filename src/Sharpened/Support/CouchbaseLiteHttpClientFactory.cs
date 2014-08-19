@@ -46,126 +46,126 @@ using Sharpen;
 
 namespace Couchbase.Lite.Support
 {
-	public class CouchbaseLiteHttpClientFactory : HttpClientFactory
-	{
-		private CookieStore cookieStore;
+    public class CouchbaseLiteHttpClientFactory : HttpClientFactory
+    {
+        private CookieStore cookieStore;
 
-		private SSLSocketFactory sslSocketFactory;
+        private SSLSocketFactory sslSocketFactory;
 
-		private BasicHttpParams basicHttpParams;
+        private BasicHttpParams basicHttpParams;
 
-		public const int DefaultConnectionTimeoutSeconds = 60;
+        public const int DefaultConnectionTimeoutSeconds = 60;
 
-		public const int DefaultSoTimeoutSeconds = 60;
+        public const int DefaultSoTimeoutSeconds = 60;
 
-		/// <summary>Constructor</summary>
-		public CouchbaseLiteHttpClientFactory(CookieStore cookieStore)
-		{
-			this.cookieStore = cookieStore;
-		}
+        /// <summary>Constructor</summary>
+        public CouchbaseLiteHttpClientFactory(CookieStore cookieStore)
+        {
+            this.cookieStore = cookieStore;
+        }
 
-		/// <param name="sslSocketFactoryFromUser">
-		/// This is to open up the system for end user to inject the sslSocket factories with their
-		/// custom KeyStore
-		/// </param>
-		[InterfaceAudience.Private]
-		public virtual void SetSSLSocketFactory(SSLSocketFactory sslSocketFactoryFromUser
-			)
-		{
-			if (sslSocketFactory != null)
-			{
-				throw new RuntimeException("SSLSocketFactory already set");
-			}
-			sslSocketFactory = sslSocketFactoryFromUser;
-		}
+        /// <param name="sslSocketFactoryFromUser">
+        /// This is to open up the system for end user to inject the sslSocket factories with their
+        /// custom KeyStore
+        /// </param>
+        [InterfaceAudience.Private]
+        public virtual void SetSSLSocketFactory(SSLSocketFactory sslSocketFactoryFromUser
+            )
+        {
+            if (sslSocketFactory != null)
+            {
+                throw new RuntimeException("SSLSocketFactory already set");
+            }
+            sslSocketFactory = sslSocketFactoryFromUser;
+        }
 
-		[InterfaceAudience.Private]
-		public virtual void SetBasicHttpParams(BasicHttpParams basicHttpParams)
-		{
-			this.basicHttpParams = basicHttpParams;
-		}
+        [InterfaceAudience.Private]
+        public virtual void SetBasicHttpParams(BasicHttpParams basicHttpParams)
+        {
+            this.basicHttpParams = basicHttpParams;
+        }
 
-		[InterfaceAudience.Private]
-		public virtual HttpClient GetHttpClient()
-		{
-			// workaround attempt for issue #81
-			// it does not seem like _not_ using the ThreadSafeClientConnManager actually
-			// caused any problems, but it seems wise to use it "just in case", since it provides
-			// extra safety and there are no observed side effects.
-			if (basicHttpParams == null)
-			{
-				basicHttpParams = new BasicHttpParams();
-				HttpConnectionParams.SetConnectionTimeout(basicHttpParams, DefaultConnectionTimeoutSeconds
-					 * 1000);
-				HttpConnectionParams.SetSoTimeout(basicHttpParams, DefaultSoTimeoutSeconds * 1000
-					);
-			}
-			SchemeRegistry schemeRegistry = new SchemeRegistry();
-			schemeRegistry.Register(new Apache.Http.Conn.Scheme.Scheme("http", PlainSocketFactory
-				.GetSocketFactory(), 80));
-			SSLSocketFactory sslSocketFactory = SSLSocketFactory.GetSocketFactory();
-			schemeRegistry.Register(new Apache.Http.Conn.Scheme.Scheme("https", this.sslSocketFactory
-				 == null ? sslSocketFactory : this.sslSocketFactory, 443));
-			ClientConnectionManager cm = new ThreadSafeClientConnManager(basicHttpParams, schemeRegistry
-				);
-			DefaultHttpClient client = new DefaultHttpClient(cm, basicHttpParams);
-			// synchronize access to the cookieStore in case there is another
-			// thread in the middle of updating it.  wait until they are done so we get their changes.
-			lock (this)
-			{
-				client.SetCookieStore(cookieStore);
-			}
-			return client;
-		}
+        [InterfaceAudience.Private]
+        public virtual HttpClient GetHttpClient()
+        {
+            // workaround attempt for issue #81
+            // it does not seem like _not_ using the ThreadSafeClientConnManager actually
+            // caused any problems, but it seems wise to use it "just in case", since it provides
+            // extra safety and there are no observed side effects.
+            if (basicHttpParams == null)
+            {
+                basicHttpParams = new BasicHttpParams();
+                HttpConnectionParams.SetConnectionTimeout(basicHttpParams, DefaultConnectionTimeoutSeconds
+                     * 1000);
+                HttpConnectionParams.SetSoTimeout(basicHttpParams, DefaultSoTimeoutSeconds * 1000
+                    );
+            }
+            SchemeRegistry schemeRegistry = new SchemeRegistry();
+            schemeRegistry.Register(new Apache.Http.Conn.Scheme.Scheme("http", PlainSocketFactory
+                .GetSocketFactory(), 80));
+            SSLSocketFactory sslSocketFactory = SSLSocketFactory.GetSocketFactory();
+            schemeRegistry.Register(new Apache.Http.Conn.Scheme.Scheme("https", this.sslSocketFactory
+                 == null ? sslSocketFactory : this.sslSocketFactory, 443));
+            ClientConnectionManager cm = new ThreadSafeClientConnManager(basicHttpParams, schemeRegistry
+                );
+            DefaultHttpClient client = new DefaultHttpClient(cm, basicHttpParams);
+            // synchronize access to the cookieStore in case there is another
+            // thread in the middle of updating it.  wait until they are done so we get their changes.
+            lock (this)
+            {
+                client.SetCookieStore(cookieStore);
+            }
+            return client;
+        }
 
-		[InterfaceAudience.Private]
-		public virtual void AddCookies(IList<Apache.Http.Cookie.Cookie> cookies)
-		{
-			if (cookieStore == null)
-			{
-				return;
-			}
-			lock (this)
-			{
-				foreach (Apache.Http.Cookie.Cookie cookie in cookies)
-				{
-					cookieStore.AddCookie(cookie);
-				}
-			}
-		}
+        [InterfaceAudience.Private]
+        public virtual void AddCookies(IList<Apache.Http.Cookie.Cookie> cookies)
+        {
+            if (cookieStore == null)
+            {
+                return;
+            }
+            lock (this)
+            {
+                foreach (Apache.Http.Cookie.Cookie cookie in cookies)
+                {
+                    cookieStore.AddCookie(cookie);
+                }
+            }
+        }
 
-		public virtual void DeleteCookie(string name)
-		{
-			// since CookieStore does not have a way to delete an individual cookie, do workaround:
-			// 1. get all cookies
-			// 2. filter list to strip out the one we want to delete
-			// 3. clear cookie store
-			// 4. re-add all cookies except the one we want to delete
-			if (cookieStore == null)
-			{
-				return;
-			}
-			IList<Apache.Http.Cookie.Cookie> cookies = cookieStore.GetCookies();
-			IList<Apache.Http.Cookie.Cookie> retainedCookies = new AList<Apache.Http.Cookie.Cookie
-				>();
-			foreach (Apache.Http.Cookie.Cookie cookie in cookies)
-			{
-				if (!cookie.GetName().Equals(name))
-				{
-					retainedCookies.AddItem(cookie);
-				}
-			}
-			cookieStore.Clear();
-			foreach (Apache.Http.Cookie.Cookie retainedCookie in retainedCookies)
-			{
-				cookieStore.AddCookie(retainedCookie);
-			}
-		}
+        public virtual void DeleteCookie(string name)
+        {
+            // since CookieStore does not have a way to delete an individual cookie, do workaround:
+            // 1. get all cookies
+            // 2. filter list to strip out the one we want to delete
+            // 3. clear cookie store
+            // 4. re-add all cookies except the one we want to delete
+            if (cookieStore == null)
+            {
+                return;
+            }
+            IList<Apache.Http.Cookie.Cookie> cookies = cookieStore.GetCookies();
+            IList<Apache.Http.Cookie.Cookie> retainedCookies = new AList<Apache.Http.Cookie.Cookie
+                >();
+            foreach (Apache.Http.Cookie.Cookie cookie in cookies)
+            {
+                if (!cookie.GetName().Equals(name))
+                {
+                    retainedCookies.AddItem(cookie);
+                }
+            }
+            cookieStore.Clear();
+            foreach (Apache.Http.Cookie.Cookie retainedCookie in retainedCookies)
+            {
+                cookieStore.AddCookie(retainedCookie);
+            }
+        }
 
-		[InterfaceAudience.Private]
-		public virtual CookieStore GetCookieStore()
-		{
-			return cookieStore;
-		}
-	}
+        [InterfaceAudience.Private]
+        public virtual CookieStore GetCookieStore()
+        {
+            return cookieStore;
+        }
+    }
 }

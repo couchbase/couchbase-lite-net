@@ -2,7 +2,7 @@
 // BufferedOutputStream.cs
 //
 // Author:
-//	Zachary Gramana  <zack@xamarin.com>
+//  Zachary Gramana  <zack@xamarin.com>
 //
 // Copyright (c) 2013, 2014 Xamarin Inc (http://www.xamarin.com)
 //
@@ -43,19 +43,19 @@
 */
 namespace Sharpen
 {
-	using System;
-	using System.IO;
+    using System;
+    using System.IO;
 
-	internal class BufferedOutputStream : OutputStream
-	{
-		public BufferedOutputStream (OutputStream outs)
-		{
-			base.Wrapped = new BufferedStream (outs == null ? new MemoryStream () : outs.GetWrappedStream ());
-		}
+    internal class BufferedOutputStream : OutputStream
+    {
+        public BufferedOutputStream (OutputStream outs)
+        {
+            base.Wrapped = new BufferedStream (outs == null ? new MemoryStream () : outs.GetWrappedStream ());
+        }
 
-		public BufferedOutputStream (OutputStream outs, int bufferSize)
-		{
-			base.Wrapped = new BufferedStream (outs.GetWrappedStream (), bufferSize);
-		}
-	}
+        public BufferedOutputStream (OutputStream outs, int bufferSize)
+        {
+            base.Wrapped = new BufferedStream (outs.GetWrappedStream (), bufferSize);
+        }
+    }
 }

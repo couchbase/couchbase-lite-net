@@ -2,7 +2,7 @@
 // WeakReference.cs
 //
 // Author:
-//	Zachary Gramana  <zack@xamarin.com>
+//  Zachary Gramana  <zack@xamarin.com>
 //
 // Copyright (c) 2013, 2014 Xamarin Inc (http://www.xamarin.com)
 //
@@ -45,16 +45,16 @@ using System;
 
 namespace Sharpen
 {
-	internal class JavaWeakReference<T>: WeakReference
-	{
-		public JavaWeakReference (T t): base (t)
-		{
-		}
-		
-		public T Get ()
-		{
-			return (T) Target;
-		}
-	}
+    internal class JavaWeakReference<T>: WeakReference
+    {
+        public JavaWeakReference (T t): base (t)
+        {
+        }
+        
+        public T Get ()
+        {
+            return (T) Target;
+        }
+    }
 }
 

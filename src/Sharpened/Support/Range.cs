@@ -36,26 +36,26 @@
 
 namespace Couchbase.Lite.Support
 {
-	public class Range
-	{
-		private int location;
+    public class Range
+    {
+        private int location;
 
-		private int length;
+        private int length;
 
-		internal Range(int location, int length)
-		{
-			this.location = location;
-			this.length = length;
-		}
+        internal Range(int location, int length)
+        {
+            this.location = location;
+            this.length = length;
+        }
 
-		public virtual int GetLocation()
-		{
-			return location;
-		}
+        public virtual int GetLocation()
+        {
+            return location;
+        }
 
-		public virtual int GetLength()
-		{
-			return length;
-		}
-	}
+        public virtual int GetLength()
+        {
+            return length;
+        }
+    }
 }

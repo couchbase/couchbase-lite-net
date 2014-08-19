@@ -2,7 +2,7 @@
 // X509Certificate.cs
 //
 // Author:
-//	Zachary Gramana  <zack@xamarin.com>
+//  Zachary Gramana  <zack@xamarin.com>
 //
 // Copyright (c) 2013, 2014 Xamarin Inc (http://www.xamarin.com)
 //
@@ -70,11 +70,11 @@ using System;
 
 namespace Sharpen
 {
-	internal class X509Certificate
-	{
-		public X509Certificate ()
-		{
-		}
-	}
+    internal class X509Certificate
+    {
+        public X509Certificate ()
+        {
+        }
+    }
 }
 

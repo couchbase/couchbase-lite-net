@@ -38,14 +38,14 @@ using Sharpen;
 
 namespace Couchbase.Lite
 {
-	/// <summary>Block container for the map callback function</summary>
-	public interface Mapper
-	{
-		/// <summary>A "map" function called when a document is to be added to a view.</summary>
-		/// <remarks>A "map" function called when a document is to be added to a view.</remarks>
-		/// <param name="document">The contents of the document being analyzed.</param>
-		/// <param name="emitter">A block to be called to add a key/value pair to the view. Your block can call it zero, one or multiple times.
-		/// 	</param>
-		void Map(IDictionary<string, object> document, Emitter emitter);
-	}
+    /// <summary>Block container for the map callback function</summary>
+    public interface Mapper
+    {
+        /// <summary>A "map" function called when a document is to be added to a view.</summary>
+        /// <remarks>A "map" function called when a document is to be added to a view.</remarks>
+        /// <param name="document">The contents of the document being analyzed.</param>
+        /// <param name="emitter">A block to be called to add a key/value pair to the view. Your block can call it zero, one or multiple times.
+        ///     </param>
+        void Map(IDictionary<string, object> document, Emitter emitter);
+    }
 }

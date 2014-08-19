@@ -45,38 +45,38 @@ using Sharpen;
 
 namespace Org.Apache.Http.Entity.Mime
 {
-	/// <summary>Minimal MIME field.</summary>
-	/// <remarks>Minimal MIME field.</remarks>
-	/// <since>4.0</since>
-	public class MinimalField
-	{
-		private readonly string name;
+    /// <summary>Minimal MIME field.</summary>
+    /// <remarks>Minimal MIME field.</remarks>
+    /// <since>4.0</since>
+    public class MinimalField
+    {
+        private readonly string name;
 
-		private readonly string value;
+        private readonly string value;
 
-		internal MinimalField(string name, string value) : base()
-		{
-			this.name = name;
-			this.value = value;
-		}
+        internal MinimalField(string name, string value) : base()
+        {
+            this.name = name;
+            this.value = value;
+        }
 
-		public virtual string GetName()
-		{
-			return this.name;
-		}
+        public virtual string GetName()
+        {
+            return this.name;
+        }
 
-		public virtual string GetBody()
-		{
-			return this.value;
-		}
+        public virtual string GetBody()
+        {
+            return this.value;
+        }
 
-		public override string ToString()
-		{
-			StringBuilder buffer = new StringBuilder();
-			buffer.Append(this.name);
-			buffer.Append(": ");
-			buffer.Append(this.value);
-			return buffer.ToString();
-		}
-	}
+        public override string ToString()
+        {
+            StringBuilder buffer = new StringBuilder();
+            buffer.Append(this.name);
+            buffer.Append(": ");
+            buffer.Append(this.value);
+            return buffer.ToString();
+        }
+    }
 }

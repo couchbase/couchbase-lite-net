@@ -2,7 +2,7 @@
 // FileReader.cs
 //
 // Author:
-//	Zachary Gramana  <zack@xamarin.com>
+//  Zachary Gramana  <zack@xamarin.com>
 //
 // Copyright (c) 2013, 2014 Xamarin Inc (http://www.xamarin.com)
 //
@@ -43,12 +43,12 @@
 */
 namespace Sharpen
 {
-	using System;
+    using System;
 
-	internal class FileReader : InputStreamReader
-	{
-		public FileReader (FilePath f) : base(f.GetPath ())
-		{
-		}
-	}
+    internal class FileReader : InputStreamReader
+    {
+        public FileReader (FilePath f) : base(f.GetPath ())
+        {
+        }
+    }
 }

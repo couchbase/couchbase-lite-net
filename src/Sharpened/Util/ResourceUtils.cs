@@ -40,50 +40,50 @@ using Sharpen.Jar;
 
 namespace Couchbase.Lite.Util
 {
-	public class ResourceUtils
-	{
-		/// <summary>List directory contents for a resource folder.</summary>
-		/// <remarks>List directory contents for a resource folder. Not recursive.</remarks>
-		/// <author>Andrew Reslan</author>
-		/// <param name="clazz">Any java class that lives in the same place as the resources folder
-		/// 	</param>
-		/// <param name="path">Should end with "/", but not start with one.</param>
-		/// <returns>An array of the name of each member item, or null if path does not denote a directory
-		/// 	</returns>
-		/// <exception cref="Sharpen.URISyntaxException">Sharpen.URISyntaxException</exception>
-		/// <exception cref="System.IO.IOException">System.IO.IOException</exception>
-		public static string[] GetResourceListing(Type clazz, string path)
-		{
-			Uri dirURL = clazz.GetClassLoader().GetResource(path);
-			if (dirURL != null && dirURL.Scheme.Equals("file"))
-			{
-				return new FilePath(dirURL.ToURI()).List();
-			}
-			if (dirURL != null && dirURL.Scheme.Equals("jar"))
-			{
-				string jarPath = Sharpen.Runtime.Substring(dirURL.AbsolutePath, 5, dirURL.AbsolutePath
-					.IndexOf("!"));
-				JarFile jar = new JarFile(URLDecoder.Decode(jarPath, "UTF-8"));
-				Enumeration<JarEntry> entries = ((Enumeration<JarEntry>)jar.Entries());
-				ICollection<string> result = new HashSet<string>();
-				while (entries.MoveNext())
-				{
-					string name = entries.Current.GetName();
-					if (name.StartsWith(path))
-					{
-						string entry = Sharpen.Runtime.Substring(name, path.Length);
-						int checkSubdir = entry.IndexOf("/");
-						if (checkSubdir >= 0)
-						{
-							// if it is a subdirectory, we just return the directory name
-							entry = Sharpen.Runtime.Substring(entry, 0, checkSubdir);
-						}
-						result.AddItem(entry);
-					}
-				}
-				return Sharpen.Collections.ToArray(result, new string[result.Count]);
-			}
-			throw new NotSupportedException("Cannot list files for URL " + dirURL);
-		}
-	}
+    public class ResourceUtils
+    {
+        /// <summary>List directory contents for a resource folder.</summary>
+        /// <remarks>List directory contents for a resource folder. Not recursive.</remarks>
+        /// <author>Andrew Reslan</author>
+        /// <param name="clazz">Any java class that lives in the same place as the resources folder
+        ///     </param>
+        /// <param name="path">Should end with "/", but not start with one.</param>
+        /// <returns>An array of the name of each member item, or null if path does not denote a directory
+        ///     </returns>
+        /// <exception cref="Sharpen.URISyntaxException">Sharpen.URISyntaxException</exception>
+        /// <exception cref="System.IO.IOException">System.IO.IOException</exception>
+        public static string[] GetResourceListing(Type clazz, string path)
+        {
+            Uri dirURL = clazz.GetClassLoader().GetResource(path);
+            if (dirURL != null && dirURL.Scheme.Equals("file"))
+            {
+                return new FilePath(dirURL.ToURI()).List();
+            }
+            if (dirURL != null && dirURL.Scheme.Equals("jar"))
+            {
+                string jarPath = Sharpen.Runtime.Substring(dirURL.AbsolutePath, 5, dirURL.AbsolutePath
+                    .IndexOf("!"));
+                JarFile jar = new JarFile(URLDecoder.Decode(jarPath, "UTF-8"));
+                Enumeration<JarEntry> entries = ((Enumeration<JarEntry>)jar.Entries());
+                ICollection<string> result = new HashSet<string>();
+                while (entries.MoveNext())
+                {
+                    string name = entries.Current.GetName();
+                    if (name.StartsWith(path))
+                    {
+                        string entry = Sharpen.Runtime.Substring(name, path.Length);
+                        int checkSubdir = entry.IndexOf("/");
+                        if (checkSubdir >= 0)
+                        {
+                            // if it is a subdirectory, we just return the directory name
+                            entry = Sharpen.Runtime.Substring(entry, 0, checkSubdir);
+                        }
+                        result.AddItem(entry);
+                    }
+                }
+                return Sharpen.Collections.ToArray(result, new string[result.Count]);
+            }
+            throw new NotSupportedException("Cannot list files for URL " + dirURL);
+        }
+    }
 }

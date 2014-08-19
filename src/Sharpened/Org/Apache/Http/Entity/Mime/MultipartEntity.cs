@@ -52,190 +52,190 @@ using Sharpen;
 
 namespace Org.Apache.Http.Entity.Mime
 {
-	/// <summary>Multipart/form coded HTTP entity consisting of multiple body parts.</summary>
-	/// <remarks>Multipart/form coded HTTP entity consisting of multiple body parts.</remarks>
-	/// <since>4.0</since>
-	public class MultipartEntity : HttpEntity
-	{
-		/// <summary>The pool of ASCII chars to be used for generating a multipart boundary.</summary>
-		/// <remarks>The pool of ASCII chars to be used for generating a multipart boundary.</remarks>
-		private static readonly char[] MultipartChars = "-_1234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
-			.ToCharArray();
+    /// <summary>Multipart/form coded HTTP entity consisting of multiple body parts.</summary>
+    /// <remarks>Multipart/form coded HTTP entity consisting of multiple body parts.</remarks>
+    /// <since>4.0</since>
+    public class MultipartEntity : HttpEntity
+    {
+        /// <summary>The pool of ASCII chars to be used for generating a multipart boundary.</summary>
+        /// <remarks>The pool of ASCII chars to be used for generating a multipart boundary.</remarks>
+        private static readonly char[] MultipartChars = "-_1234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+            .ToCharArray();
 
-		private readonly HttpMultipart multipart;
+        private readonly HttpMultipart multipart;
 
-		private readonly Header contentType;
+        private readonly Header contentType;
 
-		private long length;
+        private long length;
 
-		private volatile bool dirty;
+        private volatile bool dirty;
 
-		/// <summary>Creates an instance using the specified parameters</summary>
-		/// <param name="mode">
-		/// the mode to use, may be
-		/// <code>null</code>
-		/// , in which case
-		/// <see cref="HttpMultipartMode.Strict">HttpMultipartMode.Strict</see>
-		/// is used
-		/// </param>
-		/// <param name="boundary">
-		/// the boundary string, may be
-		/// <code>null</code>
-		/// , in which case
-		/// <see cref="GenerateBoundary()">GenerateBoundary()</see>
-		/// is invoked to create the string
-		/// </param>
-		/// <param name="charset">
-		/// the character set to use, may be
-		/// <code>null</code>
-		/// , in which case
-		/// <see cref="MIME.DefaultCharset">MIME.DefaultCharset</see>
-		/// - i.e. US-ASCII - is used.
-		/// </param>
-		public MultipartEntity(HttpMultipartMode mode, string boundary, Encoding charset)
-			 : base()
-		{
-			// @GuardedBy("dirty") // we always read dirty before accessing length
-			// used to decide whether to recalculate length
-			if (boundary == null)
-			{
-				boundary = GenerateBoundary();
-			}
-			if (mode == null)
-			{
-				mode = HttpMultipartMode.Strict;
-			}
-			this.multipart = new HttpMultipart("related", charset, boundary, mode);
-			this.contentType = new BasicHeader(HTTP.ContentType, GenerateContentType(boundary
-				, charset));
-			this.dirty = true;
-		}
+        /// <summary>Creates an instance using the specified parameters</summary>
+        /// <param name="mode">
+        /// the mode to use, may be
+        /// <code>null</code>
+        /// , in which case
+        /// <see cref="HttpMultipartMode.Strict">HttpMultipartMode.Strict</see>
+        /// is used
+        /// </param>
+        /// <param name="boundary">
+        /// the boundary string, may be
+        /// <code>null</code>
+        /// , in which case
+        /// <see cref="GenerateBoundary()">GenerateBoundary()</see>
+        /// is invoked to create the string
+        /// </param>
+        /// <param name="charset">
+        /// the character set to use, may be
+        /// <code>null</code>
+        /// , in which case
+        /// <see cref="MIME.DefaultCharset">MIME.DefaultCharset</see>
+        /// - i.e. US-ASCII - is used.
+        /// </param>
+        public MultipartEntity(HttpMultipartMode mode, string boundary, Encoding charset)
+             : base()
+        {
+            // @GuardedBy("dirty") // we always read dirty before accessing length
+            // used to decide whether to recalculate length
+            if (boundary == null)
+            {
+                boundary = GenerateBoundary();
+            }
+            if (mode == null)
+            {
+                mode = HttpMultipartMode.Strict;
+            }
+            this.multipart = new HttpMultipart("related", charset, boundary, mode);
+            this.contentType = new BasicHeader(HTTP.ContentType, GenerateContentType(boundary
+                , charset));
+            this.dirty = true;
+        }
 
-		/// <summary>
-		/// Creates an instance using the specified
-		/// <see cref="HttpMultipartMode">HttpMultipartMode</see>
-		/// mode.
-		/// Boundary and charset are set to
-		/// <code>null</code>
-		/// .
-		/// </summary>
-		/// <param name="mode">the desired mode</param>
-		public MultipartEntity(HttpMultipartMode mode) : this(mode, null, null)
-		{
-		}
+        /// <summary>
+        /// Creates an instance using the specified
+        /// <see cref="HttpMultipartMode">HttpMultipartMode</see>
+        /// mode.
+        /// Boundary and charset are set to
+        /// <code>null</code>
+        /// .
+        /// </summary>
+        /// <param name="mode">the desired mode</param>
+        public MultipartEntity(HttpMultipartMode mode) : this(mode, null, null)
+        {
+        }
 
-		/// <summary>
-		/// Creates an instance using mode
-		/// <see cref="HttpMultipartMode.Strict">HttpMultipartMode.Strict</see>
-		/// </summary>
-		public MultipartEntity() : this(HttpMultipartMode.Strict, null, null)
-		{
-		}
+        /// <summary>
+        /// Creates an instance using mode
+        /// <see cref="HttpMultipartMode.Strict">HttpMultipartMode.Strict</see>
+        /// </summary>
+        public MultipartEntity() : this(HttpMultipartMode.Strict, null, null)
+        {
+        }
 
-		protected internal virtual string GenerateContentType(string boundary, Encoding charset
-			)
-		{
-			StringBuilder buffer = new StringBuilder();
-			buffer.Append("multipart/related; boundary=");
-			buffer.Append(boundary);
-			if (charset != null)
-			{
-				buffer.Append("; charset=");
-				buffer.Append(charset.Name());
-			}
-			return buffer.ToString();
-		}
+        protected internal virtual string GenerateContentType(string boundary, Encoding charset
+            )
+        {
+            StringBuilder buffer = new StringBuilder();
+            buffer.Append("multipart/related; boundary=");
+            buffer.Append(boundary);
+            if (charset != null)
+            {
+                buffer.Append("; charset=");
+                buffer.Append(charset.Name());
+            }
+            return buffer.ToString();
+        }
 
-		protected internal virtual string GenerateBoundary()
-		{
-			StringBuilder buffer = new StringBuilder();
-			Random rand = new Random();
-			int count = rand.Next(11) + 30;
-			// a random size from 30 to 40
-			for (int i = 0; i < count; i++)
-			{
-				buffer.Append(MultipartChars[rand.Next(MultipartChars.Length)]);
-			}
-			return buffer.ToString();
-		}
+        protected internal virtual string GenerateBoundary()
+        {
+            StringBuilder buffer = new StringBuilder();
+            Random rand = new Random();
+            int count = rand.Next(11) + 30;
+            // a random size from 30 to 40
+            for (int i = 0; i < count; i++)
+            {
+                buffer.Append(MultipartChars[rand.Next(MultipartChars.Length)]);
+            }
+            return buffer.ToString();
+        }
 
-		public virtual void AddPart(FormBodyPart bodyPart)
-		{
-			this.multipart.AddBodyPart(bodyPart);
-			this.dirty = true;
-		}
+        public virtual void AddPart(FormBodyPart bodyPart)
+        {
+            this.multipart.AddBodyPart(bodyPart);
+            this.dirty = true;
+        }
 
-		public virtual void AddPart(string name, ContentBody contentBody)
-		{
-			AddPart(new FormBodyPart(name, contentBody));
-		}
+        public virtual void AddPart(string name, ContentBody contentBody)
+        {
+            AddPart(new FormBodyPart(name, contentBody));
+        }
 
-		public virtual bool IsRepeatable()
-		{
-			foreach (FormBodyPart part in this.multipart.GetBodyParts())
-			{
-				ContentBody body = part.GetBody();
-				if (body.GetContentLength() < 0)
-				{
-					return false;
-				}
-			}
-			return true;
-		}
+        public virtual bool IsRepeatable()
+        {
+            foreach (FormBodyPart part in this.multipart.GetBodyParts())
+            {
+                ContentBody body = part.GetBody();
+                if (body.GetContentLength() < 0)
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
 
-		public virtual bool IsChunked()
-		{
-			return !IsRepeatable();
-		}
+        public virtual bool IsChunked()
+        {
+            return !IsRepeatable();
+        }
 
-		public virtual bool IsStreaming()
-		{
-			return !IsRepeatable();
-		}
+        public virtual bool IsStreaming()
+        {
+            return !IsRepeatable();
+        }
 
-		public virtual long GetContentLength()
-		{
-			if (this.dirty)
-			{
-				this.length = this.multipart.GetTotalLength();
-				this.dirty = false;
-			}
-			return this.length;
-		}
+        public virtual long GetContentLength()
+        {
+            if (this.dirty)
+            {
+                this.length = this.multipart.GetTotalLength();
+                this.dirty = false;
+            }
+            return this.length;
+        }
 
-		public virtual Header GetContentType()
-		{
-			return this.contentType;
-		}
+        public virtual Header GetContentType()
+        {
+            return this.contentType;
+        }
 
-		public virtual Header GetContentEncoding()
-		{
-			return null;
-		}
+        public virtual Header GetContentEncoding()
+        {
+            return null;
+        }
 
-		/// <exception cref="System.IO.IOException"></exception>
-		/// <exception cref="System.NotSupportedException"></exception>
-		public virtual void ConsumeContent()
-		{
-			if (IsStreaming())
-			{
-				throw new NotSupportedException("Streaming entity does not implement #consumeContent()"
-					);
-			}
-		}
+        /// <exception cref="System.IO.IOException"></exception>
+        /// <exception cref="System.NotSupportedException"></exception>
+        public virtual void ConsumeContent()
+        {
+            if (IsStreaming())
+            {
+                throw new NotSupportedException("Streaming entity does not implement #consumeContent()"
+                    );
+            }
+        }
 
-		/// <exception cref="System.IO.IOException"></exception>
-		/// <exception cref="System.NotSupportedException"></exception>
-		public virtual InputStream GetContent()
-		{
-			throw new NotSupportedException("Multipart form entity does not implement #getContent()"
-				);
-		}
+        /// <exception cref="System.IO.IOException"></exception>
+        /// <exception cref="System.NotSupportedException"></exception>
+        public virtual InputStream GetContent()
+        {
+            throw new NotSupportedException("Multipart form entity does not implement #getContent()"
+                );
+        }
 
-		/// <exception cref="System.IO.IOException"></exception>
-		public virtual void WriteTo(OutputStream outstream)
-		{
-			this.multipart.WriteTo(outstream);
-		}
-	}
+        /// <exception cref="System.IO.IOException"></exception>
+        public virtual void WriteTo(OutputStream outstream)
+        {
+            this.multipart.WriteTo(outstream);
+        }
+    }
 }

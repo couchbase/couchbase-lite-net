@@ -2,7 +2,7 @@
 // TimeUnit.cs
 //
 // Author:
-//	Zachary Gramana  <zack@xamarin.com>
+//  Zachary Gramana  <zack@xamarin.com>
 //
 // Copyright (c) 2013, 2014 Xamarin Inc (http://www.xamarin.com)
 //
@@ -43,19 +43,19 @@
 */
 namespace Sharpen
 {
-	using System;
+    using System;
 
     internal enum TimeUnit : long
-	{
+    {
         Milliseconds = 1,
         Seconds = 1000
-	}
+    }
 
-	internal static class TimeUnitExtensions
-	{
-		public static long Convert (this TimeUnit thisUnit, long duration, TimeUnit targetUnit)
-		{
-			return ((duration * (long)targetUnit) / (long)thisUnit);
-		}
-	}
+    internal static class TimeUnitExtensions
+    {
+        public static long Convert (this TimeUnit thisUnit, long duration, TimeUnit targetUnit)
+        {
+            return ((duration * (long)targetUnit) / (long)thisUnit);
+        }
+    }
 }

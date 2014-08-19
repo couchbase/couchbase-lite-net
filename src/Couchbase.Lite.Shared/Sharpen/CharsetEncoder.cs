@@ -2,7 +2,7 @@
 //// CharsetEncoder.cs
 ////
 //// Author:
-////	Zachary Gramana  <zack@xamarin.com>
+////    Zachary Gramana  <zack@xamarin.com>
 ////
 //// Copyright (c) 2013, 2014 Xamarin Inc (http://www.xamarin.com)
 ////
@@ -43,26 +43,26 @@
 //*/
 //namespace Sharpen
 //{
-//	using System;
-//	using System.Text;
+//  using System;
+//  using System.Text;
 //
-//	internal class CharsetEncoder
-//	{
-//		private Encoding enc;
+//  internal class CharsetEncoder
+//  {
+//      private Encoding enc;
 //
-//		public CharsetEncoder (Encoding enc)
-//		{
-//			this.enc = enc;
-//		}
+//      public CharsetEncoder (Encoding enc)
+//      {
+//          this.enc = enc;
+//      }
 //
-//		public ByteBuffer Encode (CharSequence str)
-//		{
-//			return Encode (str.ToString ());
-//		}
+//      public ByteBuffer Encode (CharSequence str)
+//      {
+//          return Encode (str.ToString ());
+//      }
 //
-//		public ByteBuffer Encode (string str)
-//		{
-//			return ByteBuffer.Wrap (enc.GetBytes (str));
-//		}
-//	}
+//      public ByteBuffer Encode (string str)
+//      {
+//          return ByteBuffer.Wrap (enc.GetBytes (str));
+//      }
+//  }
 //}

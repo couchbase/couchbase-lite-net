@@ -41,44 +41,44 @@ using Sharpen;
 
 namespace Couchbase.Lite.Performance
 {
-	public class Test2_CreateDocsUnoptimizedWay : LiteTestCase
-	{
-		public const string Tag = "CreateDocsUnoptimizedWayPerformance";
+    public class Test2_CreateDocsUnoptimizedWay : LiteTestCase
+    {
+        public const string Tag = "CreateDocsUnoptimizedWayPerformance";
 
-		private const string _propertyValue = "1234567";
+        private const string _propertyValue = "1234567";
 
-		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
-		public virtual void TestCreateDocsUnoptimizedWayPerformance()
-		{
-			long startMillis = Runtime.CurrentTimeMillis();
-			string[] bigObj = new string[GetSizeOfDocument()];
-			for (int i = 0; i < GetSizeOfDocument(); i++)
-			{
-				bigObj[i] = _propertyValue;
-			}
-			for (int i_1 = 0; i_1 < GetNumberOfDocuments(); i_1++)
-			{
-				//create a document
-				IDictionary<string, object> props = new Dictionary<string, object>();
-				props.Put("bigArray", bigObj);
-				Body body = new Body(props);
-				RevisionInternal rev1 = new RevisionInternal(body, database);
-				Status status = new Status();
-				rev1 = database.PutRevision(rev1, null, false, status);
-			}
-			Log.V("PerformanceStats", Tag + "," + Sharpen.Extensions.ValueOf(Runtime.CurrentTimeMillis
-				() - startMillis).ToString() + "," + GetNumberOfDocuments() + "," + GetSizeOfDocument
-				());
-		}
+        /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
+        public virtual void TestCreateDocsUnoptimizedWayPerformance()
+        {
+            long startMillis = Runtime.CurrentTimeMillis();
+            string[] bigObj = new string[GetSizeOfDocument()];
+            for (int i = 0; i < GetSizeOfDocument(); i++)
+            {
+                bigObj[i] = _propertyValue;
+            }
+            for (int i_1 = 0; i_1 < GetNumberOfDocuments(); i_1++)
+            {
+                //create a document
+                IDictionary<string, object> props = new Dictionary<string, object>();
+                props.Put("bigArray", bigObj);
+                Body body = new Body(props);
+                RevisionInternal rev1 = new RevisionInternal(body, database);
+                Status status = new Status();
+                rev1 = database.PutRevision(rev1, null, false, status);
+            }
+            Log.V("PerformanceStats", Tag + "," + Sharpen.Extensions.ValueOf(Runtime.CurrentTimeMillis
+                () - startMillis).ToString() + "," + GetNumberOfDocuments() + "," + GetSizeOfDocument
+                ());
+        }
 
-		private int GetSizeOfDocument()
-		{
-			return System.Convert.ToInt32(Runtime.GetProperty("Test2_sizeOfDocument"));
-		}
+        private int GetSizeOfDocument()
+        {
+            return System.Convert.ToInt32(Runtime.GetProperty("Test2_sizeOfDocument"));
+        }
 
-		private int GetNumberOfDocuments()
-		{
-			return System.Convert.ToInt32(Runtime.GetProperty("Test2_numberOfDocuments"));
-		}
-	}
+        private int GetNumberOfDocuments()
+        {
+            return System.Convert.ToInt32(Runtime.GetProperty("Test2_numberOfDocuments"));
+        }
+    }
 }

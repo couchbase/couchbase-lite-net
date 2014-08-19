@@ -45,8 +45,8 @@ using Sharpen;
 
 namespace Couchbase.Lite
 {
-	public interface TransactionTask
-	{
-		bool Run();
-	}
+    public interface TransactionTask
+    {
+        bool Run();
+    }
 }

@@ -41,93 +41,93 @@ using Sharpen;
 
 namespace Couchbase.Lite.Support
 {
-	public class FileDirUtils
-	{
-		public static bool RemoveItemIfExists(string path)
-		{
-			FilePath f = new FilePath(path);
-			return f.Delete() || !f.Exists();
-		}
+    public class FileDirUtils
+    {
+        public static bool RemoveItemIfExists(string path)
+        {
+            FilePath f = new FilePath(path);
+            return f.Delete() || !f.Exists();
+        }
 
-		public static bool DeleteRecursive(FilePath fileOrDirectory)
-		{
-			if (fileOrDirectory.IsDirectory())
-			{
-				foreach (FilePath child in fileOrDirectory.ListFiles())
-				{
-					DeleteRecursive(child);
-				}
-			}
-			bool result = fileOrDirectory.Delete() || !fileOrDirectory.Exists();
-			return result;
-		}
+        public static bool DeleteRecursive(FilePath fileOrDirectory)
+        {
+            if (fileOrDirectory.IsDirectory())
+            {
+                foreach (FilePath child in fileOrDirectory.ListFiles())
+                {
+                    DeleteRecursive(child);
+                }
+            }
+            bool result = fileOrDirectory.Delete() || !fileOrDirectory.Exists();
+            return result;
+        }
 
-		public static string GetDatabaseNameFromPath(string path)
-		{
-			string fileName = new FilePath(path).GetName();
-			int extensionPos = fileName.LastIndexOf(".");
-			if (extensionPos < 0)
-			{
-				string message = "Unable to determine database name from path: " + path;
-				Log.E(Database.Tag, message);
-				throw new ArgumentException(message);
-			}
-			return Sharpen.Runtime.Substring(fileName, 0, extensionPos);
-		}
+        public static string GetDatabaseNameFromPath(string path)
+        {
+            string fileName = new FilePath(path).GetName();
+            int extensionPos = fileName.LastIndexOf(".");
+            if (extensionPos < 0)
+            {
+                string message = "Unable to determine database name from path: " + path;
+                Log.E(Database.Tag, message);
+                throw new ArgumentException(message);
+            }
+            return Sharpen.Runtime.Substring(fileName, 0, extensionPos);
+        }
 
-		/// <exception cref="System.IO.IOException"></exception>
-		public static void CopyFile(FilePath sourceFile, FilePath destFile)
-		{
-			if (!destFile.Exists())
-			{
-				destFile.CreateNewFile();
-			}
-			FileChannel source = null;
-			FileChannel destination = null;
-			try
-			{
-				source = new FileInputStream(sourceFile).GetChannel();
-				destination = new FileOutputStream(destFile).GetChannel();
-				destination.TransferFrom(source, 0, source.Size());
-			}
-			finally
-			{
-				if (source != null)
-				{
-					source.Close();
-				}
-				if (destination != null)
-				{
-					destination.Close();
-				}
-			}
-		}
+        /// <exception cref="System.IO.IOException"></exception>
+        public static void CopyFile(FilePath sourceFile, FilePath destFile)
+        {
+            if (!destFile.Exists())
+            {
+                destFile.CreateNewFile();
+            }
+            FileChannel source = null;
+            FileChannel destination = null;
+            try
+            {
+                source = new FileInputStream(sourceFile).GetChannel();
+                destination = new FileOutputStream(destFile).GetChannel();
+                destination.TransferFrom(source, 0, source.Size());
+            }
+            finally
+            {
+                if (source != null)
+                {
+                    source.Close();
+                }
+                if (destination != null)
+                {
+                    destination.Close();
+                }
+            }
+        }
 
-		/// <exception cref="System.IO.IOException"></exception>
-		public static void CopyFolder(FilePath src, FilePath dest)
-		{
-			if (src.IsDirectory())
-			{
-				//if directory not exists, create it
-				if (!dest.Exists())
-				{
-					dest.Mkdir();
-				}
-				//list all the directory contents
-				string[] files = src.List();
-				foreach (string file in files)
-				{
-					//construct the src and dest file structure
-					FilePath srcFile = new FilePath(src, file);
-					FilePath destFile = new FilePath(dest, file);
-					//recursive copy
-					CopyFolder(srcFile, destFile);
-				}
-			}
-			else
-			{
-				CopyFile(src, dest);
-			}
-		}
-	}
+        /// <exception cref="System.IO.IOException"></exception>
+        public static void CopyFolder(FilePath src, FilePath dest)
+        {
+            if (src.IsDirectory())
+            {
+                //if directory not exists, create it
+                if (!dest.Exists())
+                {
+                    dest.Mkdir();
+                }
+                //list all the directory contents
+                string[] files = src.List();
+                foreach (string file in files)
+                {
+                    //construct the src and dest file structure
+                    FilePath srcFile = new FilePath(src, file);
+                    FilePath destFile = new FilePath(dest, file);
+                    //recursive copy
+                    CopyFolder(srcFile, destFile);
+                }
+            }
+            else
+            {
+                CopyFile(src, dest);
+            }
+        }
+    }
 }

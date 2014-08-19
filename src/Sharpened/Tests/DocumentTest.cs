@@ -40,106 +40,106 @@ using Sharpen;
 
 namespace Couchbase.Lite
 {
-	public class DocumentTest : LiteTestCase
-	{
-		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
-		public virtual void TestNewDocumentHasCurrentRevision()
-		{
-			Document document = database.CreateDocument();
-			IDictionary<string, object> properties = new Dictionary<string, object>();
-			properties.Put("foo", "foo");
-			properties.Put("bar", false);
-			document.PutProperties(properties);
-			NUnit.Framework.Assert.IsNotNull(document.GetCurrentRevisionId());
-			NUnit.Framework.Assert.IsNotNull(document.GetCurrentRevision());
-		}
+    public class DocumentTest : LiteTestCase
+    {
+        /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
+        public virtual void TestNewDocumentHasCurrentRevision()
+        {
+            Document document = database.CreateDocument();
+            IDictionary<string, object> properties = new Dictionary<string, object>();
+            properties.Put("foo", "foo");
+            properties.Put("bar", false);
+            document.PutProperties(properties);
+            NUnit.Framework.Assert.IsNotNull(document.GetCurrentRevisionId());
+            NUnit.Framework.Assert.IsNotNull(document.GetCurrentRevision());
+        }
 
-		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
-		public virtual void TestDeleteDocument()
-		{
-			Document document = database.CreateDocument();
-			IDictionary<string, object> properties = new Dictionary<string, object>();
-			properties.Put("foo", "foo");
-			properties.Put("bar", false);
-			document.PutProperties(properties);
-			NUnit.Framework.Assert.IsNotNull(document.GetCurrentRevision());
-			string docId = document.GetId();
-			document.Delete();
-			NUnit.Framework.Assert.IsTrue(document.IsDeleted());
-			Document fetchedDoc = database.GetExistingDocument(docId);
-			NUnit.Framework.Assert.IsNull(fetchedDoc);
-			// query all docs and make sure we don't see that document
-			database.GetAllDocs(new QueryOptions());
-			Query queryAllDocs = database.CreateAllDocumentsQuery();
-			QueryEnumerator queryEnumerator = queryAllDocs.Run();
-			for (IEnumerator<QueryRow> it = queryEnumerator; it.HasNext(); )
-			{
-				QueryRow row = it.Next();
-				NUnit.Framework.Assert.IsFalse(row.GetDocument().GetId().Equals(docId));
-			}
-		}
+        /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
+        public virtual void TestDeleteDocument()
+        {
+            Document document = database.CreateDocument();
+            IDictionary<string, object> properties = new Dictionary<string, object>();
+            properties.Put("foo", "foo");
+            properties.Put("bar", false);
+            document.PutProperties(properties);
+            NUnit.Framework.Assert.IsNotNull(document.GetCurrentRevision());
+            string docId = document.GetId();
+            document.Delete();
+            NUnit.Framework.Assert.IsTrue(document.IsDeleted());
+            Document fetchedDoc = database.GetExistingDocument(docId);
+            NUnit.Framework.Assert.IsNull(fetchedDoc);
+            // query all docs and make sure we don't see that document
+            database.GetAllDocs(new QueryOptions());
+            Query queryAllDocs = database.CreateAllDocumentsQuery();
+            QueryEnumerator queryEnumerator = queryAllDocs.Run();
+            for (IEnumerator<QueryRow> it = queryEnumerator; it.HasNext(); )
+            {
+                QueryRow row = it.Next();
+                NUnit.Framework.Assert.IsFalse(row.GetDocument().GetId().Equals(docId));
+            }
+        }
 
-		/// <summary>
-		/// Port test over from:
-		/// https://github.com/couchbase/couchbase-lite-ios/commit/e0469300672a2087feb46b84ca498facd49e0066
-		/// </summary>
-		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
-		public virtual void TestGetNonExistentDocument()
-		{
-			NUnit.Framework.Assert.IsNull(database.GetExistingDocument("missing"));
-			Document doc = database.GetDocument("missing");
-			NUnit.Framework.Assert.IsNotNull(doc);
-			NUnit.Framework.Assert.IsNull(database.GetExistingDocument("missing"));
-		}
+        /// <summary>
+        /// Port test over from:
+        /// https://github.com/couchbase/couchbase-lite-ios/commit/e0469300672a2087feb46b84ca498facd49e0066
+        /// </summary>
+        /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
+        public virtual void TestGetNonExistentDocument()
+        {
+            NUnit.Framework.Assert.IsNull(database.GetExistingDocument("missing"));
+            Document doc = database.GetDocument("missing");
+            NUnit.Framework.Assert.IsNotNull(doc);
+            NUnit.Framework.Assert.IsNull(database.GetExistingDocument("missing"));
+        }
 
-		// Reproduces issue #167
-		// https://github.com/couchbase/couchbase-lite-android/issues/167
-		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
-		public virtual void TestLoadRevisionBody()
-		{
-			Document document = database.CreateDocument();
-			IDictionary<string, object> properties = new Dictionary<string, object>();
-			properties.Put("foo", "foo");
-			properties.Put("bar", false);
-			document.PutProperties(properties);
-			NUnit.Framework.Assert.IsNotNull(document.GetCurrentRevision());
-			bool deleted = false;
-			RevisionInternal revisionInternal = new RevisionInternal(document.GetId(), document
-				.GetCurrentRevisionId(), deleted, database);
-			EnumSet<Database.TDContentOptions> contentOptions = EnumSet.Of(Database.TDContentOptions
-				.TDIncludeAttachments, Database.TDContentOptions.TDBigAttachmentsFollow);
-			database.LoadRevisionBody(revisionInternal, contentOptions);
-			// now lets purge the document, and then try to load the revision body again
-			document.Purge();
-			bool gotExpectedException = false;
-			try
-			{
-				database.LoadRevisionBody(revisionInternal, contentOptions);
-			}
-			catch (CouchbaseLiteException e)
-			{
-				if (e.GetCBLStatus().GetCode() == Status.NotFound)
-				{
-					gotExpectedException = true;
-				}
-			}
-			NUnit.Framework.Assert.IsTrue(gotExpectedException);
-		}
+        // Reproduces issue #167
+        // https://github.com/couchbase/couchbase-lite-android/issues/167
+        /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
+        public virtual void TestLoadRevisionBody()
+        {
+            Document document = database.CreateDocument();
+            IDictionary<string, object> properties = new Dictionary<string, object>();
+            properties.Put("foo", "foo");
+            properties.Put("bar", false);
+            document.PutProperties(properties);
+            NUnit.Framework.Assert.IsNotNull(document.GetCurrentRevision());
+            bool deleted = false;
+            RevisionInternal revisionInternal = new RevisionInternal(document.GetId(), document
+                .GetCurrentRevisionId(), deleted, database);
+            EnumSet<Database.TDContentOptions> contentOptions = EnumSet.Of(Database.TDContentOptions
+                .TDIncludeAttachments, Database.TDContentOptions.TDBigAttachmentsFollow);
+            database.LoadRevisionBody(revisionInternal, contentOptions);
+            // now lets purge the document, and then try to load the revision body again
+            document.Purge();
+            bool gotExpectedException = false;
+            try
+            {
+                database.LoadRevisionBody(revisionInternal, contentOptions);
+            }
+            catch (CouchbaseLiteException e)
+            {
+                if (e.GetCBLStatus().GetCode() == Status.NotFound)
+                {
+                    gotExpectedException = true;
+                }
+            }
+            NUnit.Framework.Assert.IsTrue(gotExpectedException);
+        }
 
-		/// <summary>https://github.com/couchbase/couchbase-lite-android/issues/281</summary>
-		public virtual void TestDocumentWithRemovedProperty()
-		{
-			IDictionary<string, object> props = new Dictionary<string, object>();
-			props.Put("_id", "fakeid");
-			props.Put("_removed", true);
-			props.Put("foo", "bar");
-			Document doc = CreateDocumentWithProperties(database, props);
-			NUnit.Framework.Assert.IsNotNull(doc);
-			Document docFetched = database.GetDocument(doc.GetId());
-			IDictionary<string, object> fetchedProps = docFetched.GetCurrentRevision().GetProperties
-				();
-			NUnit.Framework.Assert.IsNotNull(fetchedProps.Get("_removed"));
-			NUnit.Framework.Assert.IsTrue(docFetched.GetCurrentRevision().IsGone());
-		}
-	}
+        /// <summary>https://github.com/couchbase/couchbase-lite-android/issues/281</summary>
+        public virtual void TestDocumentWithRemovedProperty()
+        {
+            IDictionary<string, object> props = new Dictionary<string, object>();
+            props.Put("_id", "fakeid");
+            props.Put("_removed", true);
+            props.Put("foo", "bar");
+            Document doc = CreateDocumentWithProperties(database, props);
+            NUnit.Framework.Assert.IsNotNull(doc);
+            Document docFetched = database.GetDocument(doc.GetId());
+            IDictionary<string, object> fetchedProps = docFetched.GetCurrentRevision().GetProperties
+                ();
+            NUnit.Framework.Assert.IsNotNull(fetchedProps.Get("_removed"));
+            NUnit.Framework.Assert.IsTrue(docFetched.GetCurrentRevision().IsGone());
+        }
+    }
 }

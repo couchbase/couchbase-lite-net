@@ -2,7 +2,7 @@
 // Channels.cs
 //
 // Author:
-//	Zachary Gramana  <zack@xamarin.com>
+//  Zachary Gramana  <zack@xamarin.com>
 //
 // Copyright (c) 2013, 2014 Xamarin Inc (http://www.xamarin.com)
 //
@@ -70,12 +70,12 @@ using System;
 
 namespace Sharpen
 {
-	internal static class Channels
-	{
-		public static OutputStream NewOutputStream (FileChannel c)
-		{
-			return c.Stream;
-		}
-	}
+    internal static class Channels
+    {
+        public static OutputStream NewOutputStream (FileChannel c)
+        {
+            return c.Stream;
+        }
+    }
 }
 

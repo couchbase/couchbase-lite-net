@@ -37,107 +37,107 @@ using Sharpen;
 
 namespace Couchbase.Lite.Support
 {
-	/// <summary>
-	/// A data structure representing a type of array that allows object values to be added to the end, and removed in arbitrary order;
-	/// it's used by the replicator to keep track of which revisions have been transferred and what sequences to checkpoint.
-	/// </summary>
-	/// <remarks>
-	/// A data structure representing a type of array that allows object values to be added to the end, and removed in arbitrary order;
-	/// it's used by the replicator to keep track of which revisions have been transferred and what sequences to checkpoint.
-	/// </remarks>
-	public class SequenceMap
-	{
-		private TreeSet<long> sequences;
+    /// <summary>
+    /// A data structure representing a type of array that allows object values to be added to the end, and removed in arbitrary order;
+    /// it's used by the replicator to keep track of which revisions have been transferred and what sequences to checkpoint.
+    /// </summary>
+    /// <remarks>
+    /// A data structure representing a type of array that allows object values to be added to the end, and removed in arbitrary order;
+    /// it's used by the replicator to keep track of which revisions have been transferred and what sequences to checkpoint.
+    /// </remarks>
+    public class SequenceMap
+    {
+        private TreeSet<long> sequences;
 
-		private long lastSequence;
+        private long lastSequence;
 
-		private IList<string> values;
+        private IList<string> values;
 
-		private long firstValueSequence;
+        private long firstValueSequence;
 
-		public SequenceMap()
-		{
-			// Sequence numbers currently in the map
-			// last generated sequence
-			// values of remaining sequences
-			// sequence # of first item in _values
-			sequences = new TreeSet<long>();
-			values = new AList<string>(100);
-			firstValueSequence = 1;
-			lastSequence = 0;
-		}
+        public SequenceMap()
+        {
+            // Sequence numbers currently in the map
+            // last generated sequence
+            // values of remaining sequences
+            // sequence # of first item in _values
+            sequences = new TreeSet<long>();
+            values = new AList<string>(100);
+            firstValueSequence = 1;
+            lastSequence = 0;
+        }
 
-		/// <summary>Adds a value to the map, assigning it a sequence number and returning it.
-		/// 	</summary>
-		/// <remarks>
-		/// Adds a value to the map, assigning it a sequence number and returning it.
-		/// Sequence numbers start at 1 and increment from there.
-		/// </remarks>
-		public virtual long AddValue(string value)
-		{
-			lock (this)
-			{
-				sequences.AddItem(++lastSequence);
-				values.AddItem(value);
-				return lastSequence;
-			}
-		}
+        /// <summary>Adds a value to the map, assigning it a sequence number and returning it.
+        ///     </summary>
+        /// <remarks>
+        /// Adds a value to the map, assigning it a sequence number and returning it.
+        /// Sequence numbers start at 1 and increment from there.
+        /// </remarks>
+        public virtual long AddValue(string value)
+        {
+            lock (this)
+            {
+                sequences.AddItem(++lastSequence);
+                values.AddItem(value);
+                return lastSequence;
+            }
+        }
 
-		/// <summary>Removes a sequence and its associated value.</summary>
-		/// <remarks>Removes a sequence and its associated value.</remarks>
-		public virtual void RemoveSequence(long sequence)
-		{
-			lock (this)
-			{
-				sequences.Remove(sequence);
-			}
-		}
+        /// <summary>Removes a sequence and its associated value.</summary>
+        /// <remarks>Removes a sequence and its associated value.</remarks>
+        public virtual void RemoveSequence(long sequence)
+        {
+            lock (this)
+            {
+                sequences.Remove(sequence);
+            }
+        }
 
-		public virtual bool IsEmpty()
-		{
-			lock (this)
-			{
-				return sequences.IsEmpty();
-			}
-		}
+        public virtual bool IsEmpty()
+        {
+            lock (this)
+            {
+                return sequences.IsEmpty();
+            }
+        }
 
-		/// <summary>Returns the maximum consecutively-removed sequence number.</summary>
-		/// <remarks>
-		/// Returns the maximum consecutively-removed sequence number.
-		/// This is one less than the minimum remaining sequence number.
-		/// </remarks>
-		public virtual long GetCheckpointedSequence()
-		{
-			lock (this)
-			{
-				long sequence = lastSequence;
-				if (!sequences.IsEmpty())
-				{
-					sequence = sequences.First() - 1;
-				}
-				if (sequence > firstValueSequence)
-				{
-					// Garbage-collect inaccessible values:
-					int numToRemove = (int)(sequence - firstValueSequence);
-					for (int i = 0; i < numToRemove; i++)
-					{
-						values.Remove(0);
-					}
-					firstValueSequence += numToRemove;
-				}
-				return sequence;
-			}
-		}
+        /// <summary>Returns the maximum consecutively-removed sequence number.</summary>
+        /// <remarks>
+        /// Returns the maximum consecutively-removed sequence number.
+        /// This is one less than the minimum remaining sequence number.
+        /// </remarks>
+        public virtual long GetCheckpointedSequence()
+        {
+            lock (this)
+            {
+                long sequence = lastSequence;
+                if (!sequences.IsEmpty())
+                {
+                    sequence = sequences.First() - 1;
+                }
+                if (sequence > firstValueSequence)
+                {
+                    // Garbage-collect inaccessible values:
+                    int numToRemove = (int)(sequence - firstValueSequence);
+                    for (int i = 0; i < numToRemove; i++)
+                    {
+                        values.Remove(0);
+                    }
+                    firstValueSequence += numToRemove;
+                }
+                return sequence;
+            }
+        }
 
-		/// <summary>Returns the value associated with the checkpointedSequence.</summary>
-		/// <remarks>Returns the value associated with the checkpointedSequence.</remarks>
-		public virtual string GetCheckpointedValue()
-		{
-			lock (this)
-			{
-				int index = (int)(GetCheckpointedSequence() - firstValueSequence);
-				return (index >= 0) ? values[index] : null;
-			}
-		}
-	}
+        /// <summary>Returns the value associated with the checkpointedSequence.</summary>
+        /// <remarks>Returns the value associated with the checkpointedSequence.</remarks>
+        public virtual string GetCheckpointedValue()
+        {
+            lock (this)
+            {
+                int index = (int)(GetCheckpointedSequence() - firstValueSequence);
+                return (index >= 0) ? values[index] : null;
+            }
+        }
+    }
 }

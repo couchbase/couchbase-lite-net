@@ -39,13 +39,13 @@ using Sharpen;
 
 namespace Couchbase.Lite.Replicator
 {
-	/// <exclude></exclude>
-	public interface ChangeTrackerClient
-	{
-		HttpClient GetHttpClient();
+    /// <exclude></exclude>
+    public interface ChangeTrackerClient
+    {
+        HttpClient GetHttpClient();
 
-		void ChangeTrackerReceivedChange(IDictionary<string, object> change);
+        void ChangeTrackerReceivedChange(IDictionary<string, object> change);
 
-		void ChangeTrackerStopped(ChangeTracker tracker);
-	}
+        void ChangeTrackerStopped(ChangeTracker tracker);
+    }
 }

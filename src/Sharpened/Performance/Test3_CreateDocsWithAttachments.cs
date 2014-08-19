@@ -45,74 +45,74 @@ using Sharpen;
 
 namespace Couchbase.Lite.Performance
 {
-	public class Test3_CreateDocsWithAttachments : LiteTestCase
-	{
-		public const string Tag = "CreateDocsWithAttachmentsPerformance";
+    public class Test3_CreateDocsWithAttachments : LiteTestCase
+    {
+        public const string Tag = "CreateDocsWithAttachmentsPerformance";
 
-		private const string _testAttachmentName = "test_attachment";
+        private const string _testAttachmentName = "test_attachment";
 
-		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
-		public virtual void TestCreateDocsWithAttachmentsPerformance()
-		{
-			long startMillis = Runtime.CurrentTimeMillis();
-			bool success = database.RunInTransaction(new _TransactionalTask_44(this));
-			Log.V("PerformanceStats", Tag + "," + Sharpen.Extensions.ValueOf(Runtime.CurrentTimeMillis
-				() - startMillis).ToString() + "," + GetNumberOfDocuments() + "," + GetSizeOfAttachment
-				());
-		}
+        /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
+        public virtual void TestCreateDocsWithAttachmentsPerformance()
+        {
+            long startMillis = Runtime.CurrentTimeMillis();
+            bool success = database.RunInTransaction(new _TransactionalTask_44(this));
+            Log.V("PerformanceStats", Tag + "," + Sharpen.Extensions.ValueOf(Runtime.CurrentTimeMillis
+                () - startMillis).ToString() + "," + GetNumberOfDocuments() + "," + GetSizeOfAttachment
+                ());
+        }
 
-		private sealed class _TransactionalTask_44 : TransactionalTask
-		{
-			public _TransactionalTask_44(Test3_CreateDocsWithAttachments _enclosing)
-			{
-				this._enclosing = _enclosing;
-			}
+        private sealed class _TransactionalTask_44 : TransactionalTask
+        {
+            public _TransactionalTask_44(Test3_CreateDocsWithAttachments _enclosing)
+            {
+                this._enclosing = _enclosing;
+            }
 
-			public bool Run()
-			{
-				StringBuilder sb = new StringBuilder();
-				for (int i = 0; i < this._enclosing.GetSizeOfAttachment(); i++)
-				{
-					sb.Append('1');
-				}
-				byte[] attach1 = Sharpen.Runtime.GetBytesForString(sb.ToString());
-				try
-				{
-					Status status = new Status();
-					for (int i_1 = 0; i_1 < this._enclosing.GetNumberOfDocuments(); i_1++)
-					{
-						IDictionary<string, object> rev1Properties = new Dictionary<string, object>();
-						rev1Properties.Put("foo", 1);
-						rev1Properties.Put("bar", false);
-						RevisionInternal rev1 = this._enclosing.database.PutRevision(new RevisionInternal
-							(rev1Properties, this._enclosing.database), null, false, status);
-						NUnit.Framework.Assert.AreEqual(Status.Created, status.GetCode());
-						this._enclosing.database.InsertAttachmentForSequenceWithNameAndType(new ByteArrayInputStream
-							(attach1), rev1.GetSequence(), Test3_CreateDocsWithAttachments._testAttachmentName
-							, "text/plain", rev1.GetGeneration());
-						NUnit.Framework.Assert.AreEqual(Status.Created, status.GetCode());
-					}
-				}
-				catch (Exception t)
-				{
-					Log.E(Test3_CreateDocsWithAttachments.Tag, "Document create with attachment failed"
-						, t);
-					return false;
-				}
-				return true;
-			}
+            public bool Run()
+            {
+                StringBuilder sb = new StringBuilder();
+                for (int i = 0; i < this._enclosing.GetSizeOfAttachment(); i++)
+                {
+                    sb.Append('1');
+                }
+                byte[] attach1 = Sharpen.Runtime.GetBytesForString(sb.ToString());
+                try
+                {
+                    Status status = new Status();
+                    for (int i_1 = 0; i_1 < this._enclosing.GetNumberOfDocuments(); i_1++)
+                    {
+                        IDictionary<string, object> rev1Properties = new Dictionary<string, object>();
+                        rev1Properties.Put("foo", 1);
+                        rev1Properties.Put("bar", false);
+                        RevisionInternal rev1 = this._enclosing.database.PutRevision(new RevisionInternal
+                            (rev1Properties, this._enclosing.database), null, false, status);
+                        NUnit.Framework.Assert.AreEqual(Status.Created, status.GetCode());
+                        this._enclosing.database.InsertAttachmentForSequenceWithNameAndType(new ByteArrayInputStream
+                            (attach1), rev1.GetSequence(), Test3_CreateDocsWithAttachments._testAttachmentName
+                            , "text/plain", rev1.GetGeneration());
+                        NUnit.Framework.Assert.AreEqual(Status.Created, status.GetCode());
+                    }
+                }
+                catch (Exception t)
+                {
+                    Log.E(Test3_CreateDocsWithAttachments.Tag, "Document create with attachment failed"
+                        , t);
+                    return false;
+                }
+                return true;
+            }
 
-			private readonly Test3_CreateDocsWithAttachments _enclosing;
-		}
+            private readonly Test3_CreateDocsWithAttachments _enclosing;
+        }
 
-		private int GetSizeOfAttachment()
-		{
-			return System.Convert.ToInt32(Runtime.GetProperty("Test3_sizeOfAttachment"));
-		}
+        private int GetSizeOfAttachment()
+        {
+            return System.Convert.ToInt32(Runtime.GetProperty("Test3_sizeOfAttachment"));
+        }
 
-		private int GetNumberOfDocuments()
-		{
-			return System.Convert.ToInt32(Runtime.GetProperty("Test3_numberOfDocuments"));
-		}
-	}
+        private int GetNumberOfDocuments()
+        {
+            return System.Convert.ToInt32(Runtime.GetProperty("Test3_numberOfDocuments"));
+        }
+    }
 }

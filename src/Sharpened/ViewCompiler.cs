@@ -38,26 +38,26 @@ using Sharpen;
 
 namespace Couchbase.Lite
 {
-	/// <summary>An external object that knows how to map source code of some sort into executable functions.
-	/// 	</summary>
-	/// <remarks>An external object that knows how to map source code of some sort into executable functions.
-	/// 	</remarks>
-	public interface ViewCompiler
-	{
-		/// <summary>Compiles source code into a MapDelegate.</summary>
-		/// <remarks>Compiles source code into a MapDelegate.</remarks>
-		/// <param name="source">The source code to compile into a Mapper.</param>
-		/// <param name="language">The language of the source.</param>
-		/// <returns>A compiled Mapper.</returns>
-		[InterfaceAudience.Public]
-		Mapper CompileMap(string source, string language);
+    /// <summary>An external object that knows how to map source code of some sort into executable functions.
+    ///     </summary>
+    /// <remarks>An external object that knows how to map source code of some sort into executable functions.
+    ///     </remarks>
+    public interface ViewCompiler
+    {
+        /// <summary>Compiles source code into a MapDelegate.</summary>
+        /// <remarks>Compiles source code into a MapDelegate.</remarks>
+        /// <param name="source">The source code to compile into a Mapper.</param>
+        /// <param name="language">The language of the source.</param>
+        /// <returns>A compiled Mapper.</returns>
+        [InterfaceAudience.Public]
+        Mapper CompileMap(string source, string language);
 
-		/// <summary>Compiles source code into a ReduceDelegate.</summary>
-		/// <remarks>Compiles source code into a ReduceDelegate.</remarks>
-		/// <param name="source">The source code to compile into a Reducer.</param>
-		/// <param name="language">The language of the source.</param>
-		/// <returns>A compiled Reducer</returns>
-		[InterfaceAudience.Public]
-		Reducer CompileReduce(string source, string language);
-	}
+        /// <summary>Compiles source code into a ReduceDelegate.</summary>
+        /// <remarks>Compiles source code into a ReduceDelegate.</remarks>
+        /// <param name="source">The source code to compile into a Reducer.</param>
+        /// <param name="language">The language of the source.</param>
+        /// <returns>A compiled Reducer</returns>
+        [InterfaceAudience.Public]
+        Reducer CompileReduce(string source, string language);
+    }
 }

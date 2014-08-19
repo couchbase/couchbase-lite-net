@@ -40,98 +40,98 @@ using Sharpen;
 
 namespace Couchbase.Lite.Performance
 {
-	public class Test12_IndexView : LiteTestCase
-	{
-		public const string Tag = "IndexViewPerformance";
+    public class Test12_IndexView : LiteTestCase
+    {
+        public const string Tag = "IndexViewPerformance";
 
-		/// <exception cref="System.Exception"></exception>
-		protected override void SetUp()
-		{
-			Log.V(Tag, "IndexViewPerformance setUp");
-			base.SetUp();
-			View view = database.GetView("vacant");
-			view.SetMapReduce(new _Mapper_53(), new _Reducer_63(), "1.0.0");
-			bool success = database.RunInTransaction(new _TransactionalTask_71(this));
-		}
+        /// <exception cref="System.Exception"></exception>
+        protected override void SetUp()
+        {
+            Log.V(Tag, "IndexViewPerformance setUp");
+            base.SetUp();
+            View view = database.GetView("vacant");
+            view.SetMapReduce(new _Mapper_53(), new _Reducer_63(), "1.0.0");
+            bool success = database.RunInTransaction(new _TransactionalTask_71(this));
+        }
 
-		private sealed class _Mapper_53 : Mapper
-		{
-			public _Mapper_53()
-			{
-			}
+        private sealed class _Mapper_53 : Mapper
+        {
+            public _Mapper_53()
+            {
+            }
 
-			public void Map(IDictionary<string, object> document, Emitter emitter)
-			{
-				bool vacant = (bool)document.Get("vacant");
-				string name = (string)document.Get("name");
-				if (vacant && name != null)
-				{
-					emitter.Emit(name, vacant);
-				}
-			}
-		}
+            public void Map(IDictionary<string, object> document, Emitter emitter)
+            {
+                bool vacant = (bool)document.Get("vacant");
+                string name = (string)document.Get("name");
+                if (vacant && name != null)
+                {
+                    emitter.Emit(name, vacant);
+                }
+            }
+        }
 
-		private sealed class _Reducer_63 : Reducer
-		{
-			public _Reducer_63()
-			{
-			}
+        private sealed class _Reducer_63 : Reducer
+        {
+            public _Reducer_63()
+            {
+            }
 
-			public object Reduce(IList<object> keys, IList<object> values, bool rereduce)
-			{
-				return View.TotalValues(values);
-			}
-		}
+            public object Reduce(IList<object> keys, IList<object> values, bool rereduce)
+            {
+                return View.TotalValues(values);
+            }
+        }
 
-		private sealed class _TransactionalTask_71 : TransactionalTask
-		{
-			public _TransactionalTask_71(Test12_IndexView _enclosing)
-			{
-				this._enclosing = _enclosing;
-			}
+        private sealed class _TransactionalTask_71 : TransactionalTask
+        {
+            public _TransactionalTask_71(Test12_IndexView _enclosing)
+            {
+                this._enclosing = _enclosing;
+            }
 
-			public bool Run()
-			{
-				for (int i = 0; i < this._enclosing.GetNumberOfDocuments(); i++)
-				{
-					string name = string.Format("%s%s", "n", i);
-					bool vacant = ((i + 2) % 2 == 0) ? true : false;
-					IDictionary<string, object> props = new Dictionary<string, object>();
-					props.Put("name", name);
-					props.Put("apt", i);
-					props.Put("phone", 408100000 + i);
-					props.Put("vacant", vacant);
-					Document doc = this._enclosing.database.CreateDocument();
-					try
-					{
-						doc.PutProperties(props);
-					}
-					catch (CouchbaseLiteException cblex)
-					{
-						Log.E(Test12_IndexView.Tag, "!!! Failed to create doc " + props, cblex);
-						return false;
-					}
-				}
-				return true;
-			}
+            public bool Run()
+            {
+                for (int i = 0; i < this._enclosing.GetNumberOfDocuments(); i++)
+                {
+                    string name = string.Format("%s%s", "n", i);
+                    bool vacant = ((i + 2) % 2 == 0) ? true : false;
+                    IDictionary<string, object> props = new Dictionary<string, object>();
+                    props.Put("name", name);
+                    props.Put("apt", i);
+                    props.Put("phone", 408100000 + i);
+                    props.Put("vacant", vacant);
+                    Document doc = this._enclosing.database.CreateDocument();
+                    try
+                    {
+                        doc.PutProperties(props);
+                    }
+                    catch (CouchbaseLiteException cblex)
+                    {
+                        Log.E(Test12_IndexView.Tag, "!!! Failed to create doc " + props, cblex);
+                        return false;
+                    }
+                }
+                return true;
+            }
 
-			private readonly Test12_IndexView _enclosing;
-		}
+            private readonly Test12_IndexView _enclosing;
+        }
 
-		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
-		public virtual void TestViewIndexPerformance()
-		{
-			long startMillis = Runtime.CurrentTimeMillis();
-			View view = database.GetView("vacant");
-			view.UpdateIndex();
-			Log.V("PerformanceStats", Tag + ":testViewIndexPerformance," + Sharpen.Extensions.ValueOf
-				(Runtime.CurrentTimeMillis() - startMillis).ToString() + "," + GetNumberOfDocuments
-				());
-		}
+        /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
+        public virtual void TestViewIndexPerformance()
+        {
+            long startMillis = Runtime.CurrentTimeMillis();
+            View view = database.GetView("vacant");
+            view.UpdateIndex();
+            Log.V("PerformanceStats", Tag + ":testViewIndexPerformance," + Sharpen.Extensions.ValueOf
+                (Runtime.CurrentTimeMillis() - startMillis).ToString() + "," + GetNumberOfDocuments
+                ());
+        }
 
-		private int GetNumberOfDocuments()
-		{
-			return System.Convert.ToInt32(Runtime.GetProperty("Test12_numberOfDocuments"));
-		}
-	}
+        private int GetNumberOfDocuments()
+        {
+            return System.Convert.ToInt32(Runtime.GetProperty("Test12_numberOfDocuments"));
+        }
+    }
 }

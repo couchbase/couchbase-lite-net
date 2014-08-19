@@ -38,30 +38,30 @@ using Sharpen;
 
 namespace Couchbase.Lite.Auth
 {
-	/// <summary>A factory to create instances of supported Authenticators.</summary>
-	/// <remarks>A factory to create instances of supported Authenticators.</remarks>
-	public class AuthenticatorFactory
-	{
-		public static Authenticator CreateBasicAuthenticator(string username, string password
-			)
-		{
-			return new BasicAuthenticator(username, password);
-		}
+    /// <summary>A factory to create instances of supported Authenticators.</summary>
+    /// <remarks>A factory to create instances of supported Authenticators.</remarks>
+    public class AuthenticatorFactory
+    {
+        public static Authenticator CreateBasicAuthenticator(string username, string password
+            )
+        {
+            return new BasicAuthenticator(username, password);
+        }
 
-		public static Authenticator CreateFacebookAuthenticator(string token)
-		{
-			IDictionary<string, string> @params = new Dictionary<string, string>();
-			@params.Put("access_token", token);
-			return new TokenAuthenticator("_facebook", @params);
-		}
+        public static Authenticator CreateFacebookAuthenticator(string token)
+        {
+            IDictionary<string, string> @params = new Dictionary<string, string>();
+            @params.Put("access_token", token);
+            return new TokenAuthenticator("_facebook", @params);
+        }
 
-		public static Authenticator CreatePersonaAuthenticator(string assertion, string email
-			)
-		{
-			// TODO: REVIEW : Do we need email?
-			IDictionary<string, string> @params = new Dictionary<string, string>();
-			@params.Put("access_token", assertion);
-			return new TokenAuthenticator("_persona", @params);
-		}
-	}
+        public static Authenticator CreatePersonaAuthenticator(string assertion, string email
+            )
+        {
+            // TODO: REVIEW : Do we need email?
+            IDictionary<string, string> @params = new Dictionary<string, string>();
+            @params.Put("access_token", assertion);
+            return new TokenAuthenticator("_persona", @params);
+        }
+    }
 }

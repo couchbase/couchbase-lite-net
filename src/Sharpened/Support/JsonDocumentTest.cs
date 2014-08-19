@@ -40,89 +40,89 @@ using Sharpen;
 
 namespace Couchbase.Lite.Support
 {
-	public class JsonDocumentTest : LiteTestCase
-	{
-		/// <exception cref="System.Exception"></exception>
-		public virtual void TestJsonObject()
-		{
-			IDictionary<string, object> dict = new Dictionary<string, object>();
-			dict.Put("id", "01234567890");
-			dict.Put("foo", "bar");
-			dict.Put("int", 5);
-			dict.Put("double", 3.5);
-			dict.Put("bool", true);
-			dict.Put("date", new DateTime().ToString());
-			ObjectWriter mapper = new ObjectWriter();
-			byte[] json = mapper.WriteValueAsBytes(dict);
-			JsonDocument jsdoc = new JsonDocument(json);
-			NUnit.Framework.Assert.AreEqual(dict, jsdoc.JsonObject());
-		}
+    public class JsonDocumentTest : LiteTestCase
+    {
+        /// <exception cref="System.Exception"></exception>
+        public virtual void TestJsonObject()
+        {
+            IDictionary<string, object> dict = new Dictionary<string, object>();
+            dict.Put("id", "01234567890");
+            dict.Put("foo", "bar");
+            dict.Put("int", 5);
+            dict.Put("double", 3.5);
+            dict.Put("bool", true);
+            dict.Put("date", new DateTime().ToString());
+            ObjectWriter mapper = new ObjectWriter();
+            byte[] json = mapper.WriteValueAsBytes(dict);
+            JsonDocument jsdoc = new JsonDocument(json);
+            NUnit.Framework.Assert.AreEqual(dict, jsdoc.JsonObject());
+        }
 
-		/// <exception cref="System.Exception"></exception>
-		public virtual void TestJsonArray()
-		{
-			IList<object> array = new AList<object>();
-			array.AddItem("01234567890");
-			array.AddItem("bar");
-			array.AddItem(5);
-			array.AddItem(3.5);
-			array.AddItem(true);
-			array.AddItem(new DateTime().ToString());
-			ObjectWriter mapper = new ObjectWriter();
-			byte[] json = mapper.WriteValueAsBytes(array);
-			JsonDocument jsdoc = new JsonDocument(json);
-			NUnit.Framework.Assert.AreEqual(array, jsdoc.JsonObject());
-		}
+        /// <exception cref="System.Exception"></exception>
+        public virtual void TestJsonArray()
+        {
+            IList<object> array = new AList<object>();
+            array.AddItem("01234567890");
+            array.AddItem("bar");
+            array.AddItem(5);
+            array.AddItem(3.5);
+            array.AddItem(true);
+            array.AddItem(new DateTime().ToString());
+            ObjectWriter mapper = new ObjectWriter();
+            byte[] json = mapper.WriteValueAsBytes(array);
+            JsonDocument jsdoc = new JsonDocument(json);
+            NUnit.Framework.Assert.AreEqual(array, jsdoc.JsonObject());
+        }
 
-		/// <exception cref="System.Exception"></exception>
-		public virtual void TestStringFragment()
-		{
-			string fragment = "01234567890";
-			ObjectWriter mapper = new ObjectWriter();
-			byte[] json = mapper.WriteValueAsBytes(fragment);
-			JsonDocument jsdoc = new JsonDocument(json);
-			NUnit.Framework.Assert.AreEqual(fragment, jsdoc.JsonObject());
-		}
+        /// <exception cref="System.Exception"></exception>
+        public virtual void TestStringFragment()
+        {
+            string fragment = "01234567890";
+            ObjectWriter mapper = new ObjectWriter();
+            byte[] json = mapper.WriteValueAsBytes(fragment);
+            JsonDocument jsdoc = new JsonDocument(json);
+            NUnit.Framework.Assert.AreEqual(fragment, jsdoc.JsonObject());
+        }
 
-		/// <exception cref="System.Exception"></exception>
-		public virtual void TestBooleanFragment()
-		{
-			bool fragment = true;
-			ObjectWriter mapper = new ObjectWriter();
-			byte[] json = mapper.WriteValueAsBytes(fragment);
-			JsonDocument jsdoc = new JsonDocument(json);
-			NUnit.Framework.Assert.AreEqual(fragment, jsdoc.JsonObject());
-		}
+        /// <exception cref="System.Exception"></exception>
+        public virtual void TestBooleanFragment()
+        {
+            bool fragment = true;
+            ObjectWriter mapper = new ObjectWriter();
+            byte[] json = mapper.WriteValueAsBytes(fragment);
+            JsonDocument jsdoc = new JsonDocument(json);
+            NUnit.Framework.Assert.AreEqual(fragment, jsdoc.JsonObject());
+        }
 
-		/// <exception cref="System.Exception"></exception>
-		public virtual void TestIntegerFragment()
-		{
-			int fragment = 5;
-			ObjectWriter mapper = new ObjectWriter();
-			byte[] json = mapper.WriteValueAsBytes(fragment);
-			JsonDocument jsdoc = new JsonDocument(json);
-			NUnit.Framework.Assert.AreEqual(fragment, jsdoc.JsonObject());
-		}
+        /// <exception cref="System.Exception"></exception>
+        public virtual void TestIntegerFragment()
+        {
+            int fragment = 5;
+            ObjectWriter mapper = new ObjectWriter();
+            byte[] json = mapper.WriteValueAsBytes(fragment);
+            JsonDocument jsdoc = new JsonDocument(json);
+            NUnit.Framework.Assert.AreEqual(fragment, jsdoc.JsonObject());
+        }
 
-		/// <exception cref="System.Exception"></exception>
-		public virtual void TestDoubleFragment()
-		{
-			double fragment = 3.5;
-			ObjectWriter mapper = new ObjectWriter();
-			byte[] json = mapper.WriteValueAsBytes(fragment);
-			JsonDocument jsdoc = new JsonDocument(json);
-			NUnit.Framework.Assert.AreEqual(fragment, jsdoc.JsonObject());
-		}
+        /// <exception cref="System.Exception"></exception>
+        public virtual void TestDoubleFragment()
+        {
+            double fragment = 3.5;
+            ObjectWriter mapper = new ObjectWriter();
+            byte[] json = mapper.WriteValueAsBytes(fragment);
+            JsonDocument jsdoc = new JsonDocument(json);
+            NUnit.Framework.Assert.AreEqual(fragment, jsdoc.JsonObject());
+        }
 
-		/// <exception cref="System.Exception"></exception>
-		public virtual void TestDateFragment()
-		{
-			DateTime fragment = new DateTime();
-			ObjectWriter mapper = new ObjectWriter();
-			byte[] json = mapper.WriteValueAsBytes(fragment);
-			JsonDocument jsdoc = new JsonDocument(json);
-			NUnit.Framework.Assert.AreEqual(fragment, Sharpen.Extensions.CreateDate((long)jsdoc
-				.JsonObject()));
-		}
-	}
+        /// <exception cref="System.Exception"></exception>
+        public virtual void TestDateFragment()
+        {
+            DateTime fragment = new DateTime();
+            ObjectWriter mapper = new ObjectWriter();
+            byte[] json = mapper.WriteValueAsBytes(fragment);
+            JsonDocument jsdoc = new JsonDocument(json);
+            NUnit.Framework.Assert.AreEqual(fragment, Sharpen.Extensions.CreateDate((long)jsdoc
+                .JsonObject()));
+        }
+    }
 }

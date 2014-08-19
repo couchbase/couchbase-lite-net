@@ -39,25 +39,25 @@ using Sharpen;
 
 namespace Couchbase.Lite
 {
-	public class RevCollator
-	{
-		public static void Register(SQLiteDatabase database)
-		{
-			NativeRegister(database, Build.VERSION.SdkInt);
-		}
+    public class RevCollator
+    {
+        public static void Register(SQLiteDatabase database)
+        {
+            NativeRegister(database, Build.VERSION.SdkInt);
+        }
 
-		private static void NativeRegister(SQLiteDatabase database, int sdkVersion)
-		{
-		}
+        private static void NativeRegister(SQLiteDatabase database, int sdkVersion)
+        {
+        }
 
-		// FIXME: only public for now until moved in to same package
-		public static int TestCollateRevIds(string string1, string string2)
-		{
-		}
+        // FIXME: only public for now until moved in to same package
+        public static int TestCollateRevIds(string string1, string string2)
+        {
+        }
 
-		static RevCollator()
-		{
-			Runtime.LoadLibrary("com_couchbase_touchdb_RevCollator");
-		}
-	}
+        static RevCollator()
+        {
+            Runtime.LoadLibrary("com_couchbase_touchdb_RevCollator");
+        }
+    }
 }

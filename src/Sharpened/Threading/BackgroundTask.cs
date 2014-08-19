@@ -37,105 +37,105 @@ using Sharpen;
 
 namespace Couchbase.Lite.Threading
 {
-	public abstract class BackgroundTask : Runnable
-	{
-		private const int CorePoolSize = 5;
+    public abstract class BackgroundTask : Runnable
+    {
+        private const int CorePoolSize = 5;
 
-		private const int MaximumPoolSize = 128;
+        private const int MaximumPoolSize = 128;
 
-		private const int KeepAlive = 1;
+        private const int KeepAlive = 1;
 
-		private sealed class _ThreadFactory_33 : ThreadFactory
-		{
-			public _ThreadFactory_33()
-			{
-				this.mCount = new AtomicInteger(1);
-			}
+        private sealed class _ThreadFactory_33 : ThreadFactory
+        {
+            public _ThreadFactory_33()
+            {
+                this.mCount = new AtomicInteger(1);
+            }
 
-			private readonly AtomicInteger mCount;
+            private readonly AtomicInteger mCount;
 
-			public Sharpen.Thread NewThread(Runnable r)
-			{
-				return new Sharpen.Thread(r, "BackgroundTask #" + this.mCount.GetAndIncrement());
-			}
-		}
+            public Sharpen.Thread NewThread(Runnable r)
+            {
+                return new Sharpen.Thread(r, "BackgroundTask #" + this.mCount.GetAndIncrement());
+            }
+        }
 
-		private static readonly ThreadFactory sThreadFactory = new _ThreadFactory_33();
+        private static readonly ThreadFactory sThreadFactory = new _ThreadFactory_33();
 
-		private static readonly BlockingQueue<Runnable> sPoolWorkQueue = new LinkedBlockingQueue
-			<Runnable>(10);
+        private static readonly BlockingQueue<Runnable> sPoolWorkQueue = new LinkedBlockingQueue
+            <Runnable>(10);
 
-		public static readonly Executor ThreadPoolExecutor = new ThreadPoolExecutor(CorePoolSize
-			, MaximumPoolSize, KeepAlive, TimeUnit.Seconds, sPoolWorkQueue, sThreadFactory);
+        public static readonly Executor ThreadPoolExecutor = new ThreadPoolExecutor(CorePoolSize
+            , MaximumPoolSize, KeepAlive, TimeUnit.Seconds, sPoolWorkQueue, sThreadFactory);
 
-		public static readonly Executor SerialExecutor = new BackgroundTask.SerialExecutor
-			();
+        public static readonly Executor SerialExecutor = new BackgroundTask.SerialExecutor
+            ();
 
-		private static volatile Executor sDefaultExecutor = SerialExecutor;
+        private static volatile Executor sDefaultExecutor = SerialExecutor;
 
-		private class SerialExecutor : Executor
-		{
-			internal readonly ArrayDeque<Runnable> mTasks = new ArrayDeque<Runnable>();
+        private class SerialExecutor : Executor
+        {
+            internal readonly ArrayDeque<Runnable> mTasks = new ArrayDeque<Runnable>();
 
-			internal Runnable mActive;
+            internal Runnable mActive;
 
-			// An Executor that can be used to execute tasks in parallel.
-			// An Executor that executes tasks one at a time in serial order.  This
-			// serialization is global to a particular process.
-			public virtual void Execute(Runnable r)
-			{
-				lock (this)
-				{
-					mTasks.Offer(new _Runnable_58(this, r));
-					if (mActive == null)
-					{
-						ScheduleNext();
-					}
-				}
-			}
+            // An Executor that can be used to execute tasks in parallel.
+            // An Executor that executes tasks one at a time in serial order.  This
+            // serialization is global to a particular process.
+            public virtual void Execute(Runnable r)
+            {
+                lock (this)
+                {
+                    mTasks.Offer(new _Runnable_58(this, r));
+                    if (mActive == null)
+                    {
+                        ScheduleNext();
+                    }
+                }
+            }
 
-			private sealed class _Runnable_58 : Runnable
-			{
-				public _Runnable_58(SerialExecutor _enclosing, Runnable r)
-				{
-					this._enclosing = _enclosing;
-					this.r = r;
-				}
+            private sealed class _Runnable_58 : Runnable
+            {
+                public _Runnable_58(SerialExecutor _enclosing, Runnable r)
+                {
+                    this._enclosing = _enclosing;
+                    this.r = r;
+                }
 
-				public void Run()
-				{
-					try
-					{
-						r.Run();
-					}
-					finally
-					{
-						this._enclosing.ScheduleNext();
-					}
-				}
+                public void Run()
+                {
+                    try
+                    {
+                        r.Run();
+                    }
+                    finally
+                    {
+                        this._enclosing.ScheduleNext();
+                    }
+                }
 
-				private readonly SerialExecutor _enclosing;
+                private readonly SerialExecutor _enclosing;
 
-				private readonly Runnable r;
-			}
+                private readonly Runnable r;
+            }
 
-			protected internal virtual void ScheduleNext()
-			{
-				lock (this)
-				{
-					if ((mActive = mTasks.Poll()) != null)
-					{
-						ThreadPoolExecutor.Execute(mActive);
-					}
-				}
-			}
-		}
+            protected internal virtual void ScheduleNext()
+            {
+                lock (this)
+                {
+                    if ((mActive = mTasks.Poll()) != null)
+                    {
+                        ThreadPoolExecutor.Execute(mActive);
+                    }
+                }
+            }
+        }
 
-		public void Execute()
-		{
-			sDefaultExecutor.Execute(this);
-		}
+        public void Execute()
+        {
+            sDefaultExecutor.Execute(this);
+        }
 
-		public abstract void Run();
-	}
+        public abstract void Run();
+    }
 }

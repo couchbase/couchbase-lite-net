@@ -48,110 +48,110 @@ using Sharpen;
 
 namespace Apache.Http.Entity.Mime.Content
 {
-	/// <since>4.0</since>
-	public class FileBody : AbstractContentBody
-	{
-		private readonly FilePath file;
+    /// <since>4.0</since>
+    public class FileBody : AbstractContentBody
+    {
+        private readonly FilePath file;
 
-		private readonly string filename;
+        private readonly string filename;
 
-		private readonly string charset;
+        private readonly string charset;
 
-		/// <since>4.1</since>
-		public FileBody(FilePath file, string filename, string mimeType, string charset) : 
-			base(mimeType)
-		{
-			if (file == null)
-			{
-				throw new ArgumentException("File may not be null");
-			}
-			this.file = file;
-			if (filename != null)
-			{
-				this.filename = filename;
-			}
-			else
-			{
-				this.filename = file.GetName();
-			}
-			this.charset = charset;
-		}
+        /// <since>4.1</since>
+        public FileBody(FilePath file, string filename, string mimeType, string charset) : 
+            base(mimeType)
+        {
+            if (file == null)
+            {
+                throw new ArgumentException("File may not be null");
+            }
+            this.file = file;
+            if (filename != null)
+            {
+                this.filename = filename;
+            }
+            else
+            {
+                this.filename = file.GetName();
+            }
+            this.charset = charset;
+        }
 
-		/// <since>4.1</since>
-		public FileBody(FilePath file, string mimeType, string charset) : this(file, null
-			, mimeType, charset)
-		{
-		}
+        /// <since>4.1</since>
+        public FileBody(FilePath file, string mimeType, string charset) : this(file, null
+            , mimeType, charset)
+        {
+        }
 
-		public FileBody(FilePath file, string mimeType) : this(file, mimeType, null)
-		{
-		}
+        public FileBody(FilePath file, string mimeType) : this(file, mimeType, null)
+        {
+        }
 
-		public FileBody(FilePath file) : this(file, "application/octet-stream")
-		{
-		}
+        public FileBody(FilePath file) : this(file, "application/octet-stream")
+        {
+        }
 
-		/// <exception cref="System.IO.IOException"></exception>
-		public virtual InputStream GetInputStream()
-		{
-			return new FileInputStream(this.file);
-		}
+        /// <exception cref="System.IO.IOException"></exception>
+        public virtual InputStream GetInputStream()
+        {
+            return new FileInputStream(this.file);
+        }
 
-		/// <exception cref="System.IO.IOException"></exception>
-		[Obsolete]
-		[System.ObsoleteAttribute(@"use WriteTo(System.IO.OutputStream)")]
-		public virtual void WriteTo(OutputStream @out, int mode)
-		{
-			WriteTo(@out);
-		}
+        /// <exception cref="System.IO.IOException"></exception>
+        [Obsolete]
+        [System.ObsoleteAttribute(@"use WriteTo(System.IO.OutputStream)")]
+        public virtual void WriteTo(OutputStream @out, int mode)
+        {
+            WriteTo(@out);
+        }
 
-		/// <exception cref="System.IO.IOException"></exception>
-		public override void WriteTo(OutputStream @out)
-		{
-			if (@out == null)
-			{
-				throw new ArgumentException("Output stream may not be null");
-			}
-			InputStream @in = new FileInputStream(this.file);
-			try
-			{
-				byte[] tmp = new byte[4096];
-				int l;
-				while ((l = @in.Read(tmp)) != -1)
-				{
-					@out.Write(tmp, 0, l);
-				}
-				@out.Flush();
-			}
-			finally
-			{
-				@in.Close();
-			}
-		}
+        /// <exception cref="System.IO.IOException"></exception>
+        public override void WriteTo(OutputStream @out)
+        {
+            if (@out == null)
+            {
+                throw new ArgumentException("Output stream may not be null");
+            }
+            InputStream @in = new FileInputStream(this.file);
+            try
+            {
+                byte[] tmp = new byte[4096];
+                int l;
+                while ((l = @in.Read(tmp)) != -1)
+                {
+                    @out.Write(tmp, 0, l);
+                }
+                @out.Flush();
+            }
+            finally
+            {
+                @in.Close();
+            }
+        }
 
-		public override string GetTransferEncoding()
-		{
-			return MIME.EncBinary;
-		}
+        public override string GetTransferEncoding()
+        {
+            return MIME.EncBinary;
+        }
 
-		public override string GetCharset()
-		{
-			return charset;
-		}
+        public override string GetCharset()
+        {
+            return charset;
+        }
 
-		public override long GetContentLength()
-		{
-			return this.file.Length();
-		}
+        public override long GetContentLength()
+        {
+            return this.file.Length();
+        }
 
-		public override string GetFilename()
-		{
-			return filename;
-		}
+        public override string GetFilename()
+        {
+            return filename;
+        }
 
-		public virtual FilePath GetFile()
-		{
-			return this.file;
-		}
-	}
+        public virtual FilePath GetFile()
+        {
+            return this.file;
+        }
+    }
 }

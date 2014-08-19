@@ -40,101 +40,101 @@ using Sharpen;
 
 namespace Couchbase.Lite.Performance
 {
-	public class Test14_ReduceView : LiteTestCase
-	{
-		public const string Tag = "ReduceViewPerformance";
+    public class Test14_ReduceView : LiteTestCase
+    {
+        public const string Tag = "ReduceViewPerformance";
 
-		/// <exception cref="System.Exception"></exception>
-		protected override void SetUp()
-		{
-			Log.V(Tag, "ReduceViewPerformance setUp");
-			base.SetUp();
-			View view = database.GetView("vacant");
-			view.SetMapReduce(new _Mapper_49(), new _Reducer_59(), "1.0.0");
-			bool success = database.RunInTransaction(new _TransactionalTask_67(this));
-			view.UpdateIndex();
-		}
+        /// <exception cref="System.Exception"></exception>
+        protected override void SetUp()
+        {
+            Log.V(Tag, "ReduceViewPerformance setUp");
+            base.SetUp();
+            View view = database.GetView("vacant");
+            view.SetMapReduce(new _Mapper_49(), new _Reducer_59(), "1.0.0");
+            bool success = database.RunInTransaction(new _TransactionalTask_67(this));
+            view.UpdateIndex();
+        }
 
-		private sealed class _Mapper_49 : Mapper
-		{
-			public _Mapper_49()
-			{
-			}
+        private sealed class _Mapper_49 : Mapper
+        {
+            public _Mapper_49()
+            {
+            }
 
-			public void Map(IDictionary<string, object> document, Emitter emitter)
-			{
-				bool vacant = (bool)document.Get("vacant");
-				string name = (string)document.Get("name");
-				if (vacant && name != null)
-				{
-					emitter.Emit(name, vacant);
-				}
-			}
-		}
+            public void Map(IDictionary<string, object> document, Emitter emitter)
+            {
+                bool vacant = (bool)document.Get("vacant");
+                string name = (string)document.Get("name");
+                if (vacant && name != null)
+                {
+                    emitter.Emit(name, vacant);
+                }
+            }
+        }
 
-		private sealed class _Reducer_59 : Reducer
-		{
-			public _Reducer_59()
-			{
-			}
+        private sealed class _Reducer_59 : Reducer
+        {
+            public _Reducer_59()
+            {
+            }
 
-			public object Reduce(IList<object> keys, IList<object> values, bool rereduce)
-			{
-				return View.TotalValues(values);
-			}
-		}
+            public object Reduce(IList<object> keys, IList<object> values, bool rereduce)
+            {
+                return View.TotalValues(values);
+            }
+        }
 
-		private sealed class _TransactionalTask_67 : TransactionalTask
-		{
-			public _TransactionalTask_67(Test14_ReduceView _enclosing)
-			{
-				this._enclosing = _enclosing;
-			}
+        private sealed class _TransactionalTask_67 : TransactionalTask
+        {
+            public _TransactionalTask_67(Test14_ReduceView _enclosing)
+            {
+                this._enclosing = _enclosing;
+            }
 
-			public bool Run()
-			{
-				for (int i = 0; i < this._enclosing.GetNumberOfDocuments(); i++)
-				{
-					string name = string.Format("%s%s", "n", i);
-					bool vacant = ((i + 2) % 2 == 0) ? true : false;
-					IDictionary<string, object> props = new Dictionary<string, object>();
-					props.Put("name", name);
-					props.Put("apt", i);
-					props.Put("phone", 408100000 + i);
-					props.Put("vacant", vacant);
-					Document doc = this._enclosing.database.CreateDocument();
-					try
-					{
-						doc.PutProperties(props);
-					}
-					catch (CouchbaseLiteException cblex)
-					{
-						Log.E(Test14_ReduceView.Tag, "!!! Failed to create doc " + props, cblex);
-						return false;
-					}
-				}
-				return true;
-			}
+            public bool Run()
+            {
+                for (int i = 0; i < this._enclosing.GetNumberOfDocuments(); i++)
+                {
+                    string name = string.Format("%s%s", "n", i);
+                    bool vacant = ((i + 2) % 2 == 0) ? true : false;
+                    IDictionary<string, object> props = new Dictionary<string, object>();
+                    props.Put("name", name);
+                    props.Put("apt", i);
+                    props.Put("phone", 408100000 + i);
+                    props.Put("vacant", vacant);
+                    Document doc = this._enclosing.database.CreateDocument();
+                    try
+                    {
+                        doc.PutProperties(props);
+                    }
+                    catch (CouchbaseLiteException cblex)
+                    {
+                        Log.E(Test14_ReduceView.Tag, "!!! Failed to create doc " + props, cblex);
+                        return false;
+                    }
+                }
+                return true;
+            }
 
-			private readonly Test14_ReduceView _enclosing;
-		}
+            private readonly Test14_ReduceView _enclosing;
+        }
 
-		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
-		public virtual void TestViewReducePerformance()
-		{
-			long startMillis = Runtime.CurrentTimeMillis();
-			Query query = database.GetView("vacant").CreateQuery();
-			query.SetMapOnly(false);
-			QueryEnumerator rowEnum = query.Run();
-			QueryRow row = rowEnum.GetRow(0);
-			Log.V("PerformanceStats", Tag + ":testViewReducePerformance," + Sharpen.Extensions.ValueOf
-				(Runtime.CurrentTimeMillis() - startMillis).ToString() + "," + GetNumberOfDocuments
-				());
-		}
+        /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
+        public virtual void TestViewReducePerformance()
+        {
+            long startMillis = Runtime.CurrentTimeMillis();
+            Query query = database.GetView("vacant").CreateQuery();
+            query.SetMapOnly(false);
+            QueryEnumerator rowEnum = query.Run();
+            QueryRow row = rowEnum.GetRow(0);
+            Log.V("PerformanceStats", Tag + ":testViewReducePerformance," + Sharpen.Extensions.ValueOf
+                (Runtime.CurrentTimeMillis() - startMillis).ToString() + "," + GetNumberOfDocuments
+                ());
+        }
 
-		private int GetNumberOfDocuments()
-		{
-			return System.Convert.ToInt32(Runtime.GetProperty("Test14_numberOfDocuments"));
-		}
-	}
+        private int GetNumberOfDocuments()
+        {
+            return System.Convert.ToInt32(Runtime.GetProperty("Test14_numberOfDocuments"));
+        }
+    }
 }

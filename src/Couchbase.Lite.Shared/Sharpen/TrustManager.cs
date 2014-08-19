@@ -2,7 +2,7 @@
 // TrustManager.cs
 //
 // Author:
-//	Zachary Gramana  <zack@xamarin.com>
+//  Zachary Gramana  <zack@xamarin.com>
 //
 // Copyright (c) 2013, 2014 Xamarin Inc (http://www.xamarin.com)
 //
@@ -70,8 +70,8 @@ using System;
 
 namespace Sharpen
 {
-	interface TrustManager
-	{
-	}
+    interface TrustManager
+    {
+    }
 }
 

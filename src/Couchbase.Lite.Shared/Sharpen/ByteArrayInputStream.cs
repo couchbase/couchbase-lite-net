@@ -2,7 +2,7 @@
 // ByteArrayInputStream.cs
 //
 // Author:
-//	Zachary Gramana  <zack@xamarin.com>
+//  Zachary Gramana  <zack@xamarin.com>
 //
 // Copyright (c) 2013, 2014 Xamarin Inc (http://www.xamarin.com)
 //
@@ -43,25 +43,25 @@
 */
 namespace Sharpen
 {
-	using System;
-	using System.IO;
+    using System;
+    using System.IO;
 
-	internal class ByteArrayInputStream : InputStream
-	{
-		public ByteArrayInputStream (byte[] data)
-		{
-			base.Wrapped = new MemoryStream (data);
-		}
+    internal class ByteArrayInputStream : InputStream
+    {
+        public ByteArrayInputStream (byte[] data)
+        {
+            base.Wrapped = new MemoryStream (data);
+        }
 
-		public ByteArrayInputStream (byte[] data, int off, int len)
-		{
-			base.Wrapped = new MemoryStream (data, off, len);
-		}
-		
-		public override int Available ()
-		{
-			MemoryStream ms = (MemoryStream) Wrapped;
-			return (int)(ms.Length - ms.Position);
-		}
-	}
+        public ByteArrayInputStream (byte[] data, int off, int len)
+        {
+            base.Wrapped = new MemoryStream (data, off, len);
+        }
+        
+        public override int Available ()
+        {
+            MemoryStream ms = (MemoryStream) Wrapped;
+            return (int)(ms.Length - ms.Position);
+        }
+    }
 }

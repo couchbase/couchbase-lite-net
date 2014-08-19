@@ -59,295 +59,295 @@ using Sharpen;
 
 namespace Couchbase.Lite.Replicator
 {
-	public class CustomizableMockHttpClient : HttpClient
-	{
-		private IDictionary<string, CustomizableMockHttpClient.Responder> responders;
+    public class CustomizableMockHttpClient : HttpClient
+    {
+        private IDictionary<string, CustomizableMockHttpClient.Responder> responders;
 
-		private IList<HttpWebRequest> capturedRequests = Sharpen.Collections.SynchronizedList
-			(new AList<HttpWebRequest>());
+        private IList<HttpWebRequest> capturedRequests = Sharpen.Collections.SynchronizedList
+            (new AList<HttpWebRequest>());
 
-		public CustomizableMockHttpClient()
-		{
-			// tests can register custom responders per url.  the key is the URL pattern to match,
-			// the value is the responder that should handle that request.
-			// capture all request so that the test can verify expected requests were received.
-			responders = new Dictionary<string, CustomizableMockHttpClient.Responder>();
-			AddDefaultResponders();
-		}
+        public CustomizableMockHttpClient()
+        {
+            // tests can register custom responders per url.  the key is the URL pattern to match,
+            // the value is the responder that should handle that request.
+            // capture all request so that the test can verify expected requests were received.
+            responders = new Dictionary<string, CustomizableMockHttpClient.Responder>();
+            AddDefaultResponders();
+        }
 
-		public virtual void SetResponder(string urlPattern, CustomizableMockHttpClient.Responder
-			 responder)
-		{
-			responders.Put(urlPattern, responder);
-		}
+        public virtual void SetResponder(string urlPattern, CustomizableMockHttpClient.Responder
+             responder)
+        {
+            responders.Put(urlPattern, responder);
+        }
 
-		public virtual void AddDefaultResponders()
-		{
-			responders.Put("_revs_diff", new _Responder_49());
-			responders.Put("_bulk_docs", new _Responder_56());
-			responders.Put("_local", new _Responder_63());
-		}
+        public virtual void AddDefaultResponders()
+        {
+            responders.Put("_revs_diff", new _Responder_49());
+            responders.Put("_bulk_docs", new _Responder_56());
+            responders.Put("_local", new _Responder_63());
+        }
 
-		private sealed class _Responder_49 : CustomizableMockHttpClient.Responder
-		{
-			public _Responder_49()
-			{
-			}
+        private sealed class _Responder_49 : CustomizableMockHttpClient.Responder
+        {
+            public _Responder_49()
+            {
+            }
 
-			/// <exception cref="System.IO.IOException"></exception>
-			public HttpResponse Execute(HttpRequestMessage httpUriRequest)
-			{
-				return Couchbase.Lite.Replicator.CustomizableMockHttpClient.FakeRevsDiff(httpUriRequest
-					);
-			}
-		}
+            /// <exception cref="System.IO.IOException"></exception>
+            public HttpResponse Execute(HttpRequestMessage httpUriRequest)
+            {
+                return Couchbase.Lite.Replicator.CustomizableMockHttpClient.FakeRevsDiff(httpUriRequest
+                    );
+            }
+        }
 
-		private sealed class _Responder_56 : CustomizableMockHttpClient.Responder
-		{
-			public _Responder_56()
-			{
-			}
+        private sealed class _Responder_56 : CustomizableMockHttpClient.Responder
+        {
+            public _Responder_56()
+            {
+            }
 
-			/// <exception cref="System.IO.IOException"></exception>
-			public HttpResponse Execute(HttpRequestMessage httpUriRequest)
-			{
-				return Couchbase.Lite.Replicator.CustomizableMockHttpClient.FakeBulkDocs(httpUriRequest
-					);
-			}
-		}
+            /// <exception cref="System.IO.IOException"></exception>
+            public HttpResponse Execute(HttpRequestMessage httpUriRequest)
+            {
+                return Couchbase.Lite.Replicator.CustomizableMockHttpClient.FakeBulkDocs(httpUriRequest
+                    );
+            }
+        }
 
-		private sealed class _Responder_63 : CustomizableMockHttpClient.Responder
-		{
-			public _Responder_63()
-			{
-			}
+        private sealed class _Responder_63 : CustomizableMockHttpClient.Responder
+        {
+            public _Responder_63()
+            {
+            }
 
-			/// <exception cref="System.IO.IOException"></exception>
-			public HttpResponse Execute(HttpRequestMessage httpUriRequest)
-			{
-				return Couchbase.Lite.Replicator.CustomizableMockHttpClient.FakeLocalDocumentUpdate
-					(httpUriRequest);
-			}
-		}
+            /// <exception cref="System.IO.IOException"></exception>
+            public HttpResponse Execute(HttpRequestMessage httpUriRequest)
+            {
+                return Couchbase.Lite.Replicator.CustomizableMockHttpClient.FakeLocalDocumentUpdate
+                    (httpUriRequest);
+            }
+        }
 
-		public virtual void AddResponderFailAllRequests(int statusCode)
-		{
-			SetResponder("*", new _Responder_73(statusCode));
-		}
+        public virtual void AddResponderFailAllRequests(int statusCode)
+        {
+            SetResponder("*", new _Responder_73(statusCode));
+        }
 
-		private sealed class _Responder_73 : CustomizableMockHttpClient.Responder
-		{
-			public _Responder_73(int statusCode)
-			{
-				this.statusCode = statusCode;
-			}
+        private sealed class _Responder_73 : CustomizableMockHttpClient.Responder
+        {
+            public _Responder_73(int statusCode)
+            {
+                this.statusCode = statusCode;
+            }
 
-			/// <exception cref="System.IO.IOException"></exception>
-			public HttpResponse Execute(HttpRequestMessage httpUriRequest)
-			{
-				return Couchbase.Lite.Replicator.CustomizableMockHttpClient.EmptyResponseWithStatusCode
-					(statusCode);
-			}
+            /// <exception cref="System.IO.IOException"></exception>
+            public HttpResponse Execute(HttpRequestMessage httpUriRequest)
+            {
+                return Couchbase.Lite.Replicator.CustomizableMockHttpClient.EmptyResponseWithStatusCode
+                    (statusCode);
+            }
 
-			private readonly int statusCode;
-		}
+            private readonly int statusCode;
+        }
 
-		public virtual void AddResponderThrowExceptionAllRequests()
-		{
-			SetResponder("*", new _Responder_82());
-		}
+        public virtual void AddResponderThrowExceptionAllRequests()
+        {
+            SetResponder("*", new _Responder_82());
+        }
 
-		private sealed class _Responder_82 : CustomizableMockHttpClient.Responder
-		{
-			public _Responder_82()
-			{
-			}
+        private sealed class _Responder_82 : CustomizableMockHttpClient.Responder
+        {
+            public _Responder_82()
+            {
+            }
 
-			/// <exception cref="System.IO.IOException"></exception>
-			public HttpResponse Execute(HttpRequestMessage httpUriRequest)
-			{
-				throw new IOException("Test IOException");
-			}
-		}
+            /// <exception cref="System.IO.IOException"></exception>
+            public HttpResponse Execute(HttpRequestMessage httpUriRequest)
+            {
+                throw new IOException("Test IOException");
+            }
+        }
 
-		public virtual IList<HttpWebRequest> GetCapturedRequests()
-		{
-			return capturedRequests;
-		}
+        public virtual IList<HttpWebRequest> GetCapturedRequests()
+        {
+            return capturedRequests;
+        }
 
-		public virtual HttpParams GetParams()
-		{
-			return null;
-		}
+        public virtual HttpParams GetParams()
+        {
+            return null;
+        }
 
-		public virtual ClientConnectionManager GetConnectionManager()
-		{
-			return null;
-		}
+        public virtual ClientConnectionManager GetConnectionManager()
+        {
+            return null;
+        }
 
-		/// <exception cref="System.IO.IOException"></exception>
-		public virtual HttpResponse Execute(HttpRequestMessage httpUriRequest)
-		{
-			capturedRequests.AddItem(httpUriRequest);
-			foreach (string urlPattern in responders.Keys)
-			{
-				if (urlPattern.Equals("*") || httpUriRequest.GetURI().GetPath().Contains(urlPattern
-					))
-				{
-					CustomizableMockHttpClient.Responder responder = responders.Get(urlPattern);
-					return responder.Execute(httpUriRequest);
-				}
-			}
-			throw new RuntimeException("No responders matched for url pattern: " + httpUriRequest
-				.GetURI().GetPath());
-		}
+        /// <exception cref="System.IO.IOException"></exception>
+        public virtual HttpResponse Execute(HttpRequestMessage httpUriRequest)
+        {
+            capturedRequests.AddItem(httpUriRequest);
+            foreach (string urlPattern in responders.Keys)
+            {
+                if (urlPattern.Equals("*") || httpUriRequest.GetURI().GetPath().Contains(urlPattern
+                    ))
+                {
+                    CustomizableMockHttpClient.Responder responder = responders.Get(urlPattern);
+                    return responder.Execute(httpUriRequest);
+                }
+            }
+            throw new RuntimeException("No responders matched for url pattern: " + httpUriRequest
+                .GetURI().GetPath());
+        }
 
-		/// <exception cref="System.IO.IOException"></exception>
-		/// <exception cref="Apache.Http.Client.ClientProtocolException"></exception>
-		public static HttpResponse FakeLocalDocumentUpdate(HttpRequestMessage httpUriRequest
-			)
-		{
-			throw new IOException("Throw exception on purpose for purposes of testSaveRemoteCheckpointNoResponse()"
-				);
-		}
+        /// <exception cref="System.IO.IOException"></exception>
+        /// <exception cref="Apache.Http.Client.ClientProtocolException"></exception>
+        public static HttpResponse FakeLocalDocumentUpdate(HttpRequestMessage httpUriRequest
+            )
+        {
+            throw new IOException("Throw exception on purpose for purposes of testSaveRemoteCheckpointNoResponse()"
+                );
+        }
 
-		/// <exception cref="System.IO.IOException"></exception>
-		/// <exception cref="Apache.Http.Client.ClientProtocolException"></exception>
-		public static HttpResponse FakeBulkDocs(HttpRequestMessage httpUriRequest)
-		{
-			IDictionary<string, object> jsonMap = GetJsonMapFromRequest((HttpPost)httpUriRequest
-				);
-			IList<IDictionary<string, object>> responseList = new AList<IDictionary<string, object
-				>>();
-			AList<IDictionary<string, object>> docs = (ArrayList)jsonMap.Get("docs");
-			foreach (IDictionary<string, object> doc in docs)
-			{
-				IDictionary<string, object> responseListItem = new Dictionary<string, object>();
-				responseListItem.Put("id", doc.Get("_id"));
-				responseListItem.Put("rev", doc.Get("_rev"));
-				responseList.AddItem(responseListItem);
-			}
-			HttpResponse response = GenerateHttpResponseObject(responseList);
-			return response;
-		}
+        /// <exception cref="System.IO.IOException"></exception>
+        /// <exception cref="Apache.Http.Client.ClientProtocolException"></exception>
+        public static HttpResponse FakeBulkDocs(HttpRequestMessage httpUriRequest)
+        {
+            IDictionary<string, object> jsonMap = GetJsonMapFromRequest((HttpPost)httpUriRequest
+                );
+            IList<IDictionary<string, object>> responseList = new AList<IDictionary<string, object
+                >>();
+            AList<IDictionary<string, object>> docs = (ArrayList)jsonMap.Get("docs");
+            foreach (IDictionary<string, object> doc in docs)
+            {
+                IDictionary<string, object> responseListItem = new Dictionary<string, object>();
+                responseListItem.Put("id", doc.Get("_id"));
+                responseListItem.Put("rev", doc.Get("_rev"));
+                responseList.AddItem(responseListItem);
+            }
+            HttpResponse response = GenerateHttpResponseObject(responseList);
+            return response;
+        }
 
-		/// <exception cref="System.IO.IOException"></exception>
-		public static HttpResponse FakeRevsDiff(HttpRequestMessage httpUriRequest)
-		{
-			IDictionary<string, object> jsonMap = GetJsonMapFromRequest((HttpPost)httpUriRequest
-				);
-			IDictionary<string, object> responseMap = new Dictionary<string, object>();
-			foreach (string key in jsonMap.Keys)
-			{
-				ArrayList value = (ArrayList)jsonMap.Get(key);
-				IDictionary<string, object> missingMap = new Dictionary<string, object>();
-				missingMap.Put("missing", value);
-				responseMap.Put(key, missingMap);
-			}
-			HttpResponse response = GenerateHttpResponseObject(responseMap);
-			return response;
-		}
+        /// <exception cref="System.IO.IOException"></exception>
+        public static HttpResponse FakeRevsDiff(HttpRequestMessage httpUriRequest)
+        {
+            IDictionary<string, object> jsonMap = GetJsonMapFromRequest((HttpPost)httpUriRequest
+                );
+            IDictionary<string, object> responseMap = new Dictionary<string, object>();
+            foreach (string key in jsonMap.Keys)
+            {
+                ArrayList value = (ArrayList)jsonMap.Get(key);
+                IDictionary<string, object> missingMap = new Dictionary<string, object>();
+                missingMap.Put("missing", value);
+                responseMap.Put(key, missingMap);
+            }
+            HttpResponse response = GenerateHttpResponseObject(responseMap);
+            return response;
+        }
 
-		/// <exception cref="System.IO.IOException"></exception>
-		public static HttpResponse GenerateHttpResponseObject(object o)
-		{
-			DefaultHttpResponseFactory responseFactory = new DefaultHttpResponseFactory();
-			BasicStatusLine statusLine = new BasicStatusLine(HttpVersion.Http11, 200, "OK");
-			HttpResponse response = responseFactory.NewHttpResponse(statusLine, null);
-			byte[] responseBytes = Manager.GetObjectMapper().WriteValueAsBytes(o);
-			response.SetEntity(new ByteArrayEntity(responseBytes));
-			return response;
-		}
+        /// <exception cref="System.IO.IOException"></exception>
+        public static HttpResponse GenerateHttpResponseObject(object o)
+        {
+            DefaultHttpResponseFactory responseFactory = new DefaultHttpResponseFactory();
+            BasicStatusLine statusLine = new BasicStatusLine(HttpVersion.Http11, 200, "OK");
+            HttpResponse response = responseFactory.NewHttpResponse(statusLine, null);
+            byte[] responseBytes = Manager.GetObjectMapper().WriteValueAsBytes(o);
+            response.SetEntity(new ByteArrayEntity(responseBytes));
+            return response;
+        }
 
-		/// <exception cref="System.IO.IOException"></exception>
-		public static HttpResponse GenerateHttpResponseObject(string responseJson)
-		{
-			DefaultHttpResponseFactory responseFactory = new DefaultHttpResponseFactory();
-			BasicStatusLine statusLine = new BasicStatusLine(HttpVersion.Http11, 200, "OK");
-			HttpResponse response = responseFactory.NewHttpResponse(statusLine, null);
-			byte[] responseBytes = Sharpen.Runtime.GetBytesForString(responseJson);
-			response.SetEntity(new ByteArrayEntity(responseBytes));
-			return response;
-		}
+        /// <exception cref="System.IO.IOException"></exception>
+        public static HttpResponse GenerateHttpResponseObject(string responseJson)
+        {
+            DefaultHttpResponseFactory responseFactory = new DefaultHttpResponseFactory();
+            BasicStatusLine statusLine = new BasicStatusLine(HttpVersion.Http11, 200, "OK");
+            HttpResponse response = responseFactory.NewHttpResponse(statusLine, null);
+            byte[] responseBytes = Sharpen.Runtime.GetBytesForString(responseJson);
+            response.SetEntity(new ByteArrayEntity(responseBytes));
+            return response;
+        }
 
-		public static HttpResponse EmptyResponseWithStatusCode(int statusCode)
-		{
-			DefaultHttpResponseFactory responseFactory = new DefaultHttpResponseFactory();
-			BasicStatusLine statusLine = new BasicStatusLine(HttpVersion.Http11, statusCode, 
-				string.Empty);
-			HttpResponse response = responseFactory.NewHttpResponse(statusLine, null);
-			return response;
-		}
+        public static HttpResponse EmptyResponseWithStatusCode(int statusCode)
+        {
+            DefaultHttpResponseFactory responseFactory = new DefaultHttpResponseFactory();
+            BasicStatusLine statusLine = new BasicStatusLine(HttpVersion.Http11, statusCode, 
+                string.Empty);
+            HttpResponse response = responseFactory.NewHttpResponse(statusLine, null);
+            return response;
+        }
 
-		/// <exception cref="System.IO.IOException"></exception>
-		private static IDictionary<string, object> GetJsonMapFromRequest(HttpPost httpUriRequest
-			)
-		{
-			HttpPost post = (HttpPost)httpUriRequest;
-			InputStream @is = post.GetEntity().GetContent();
-			return Manager.GetObjectMapper().ReadValue<IDictionary>(@is);
-		}
+        /// <exception cref="System.IO.IOException"></exception>
+        private static IDictionary<string, object> GetJsonMapFromRequest(HttpPost httpUriRequest
+            )
+        {
+            HttpPost post = (HttpPost)httpUriRequest;
+            InputStream @is = post.GetEntity().GetContent();
+            return Manager.GetObjectMapper().ReadValue<IDictionary>(@is);
+        }
 
-		/// <exception cref="System.IO.IOException"></exception>
-		public virtual HttpResponse Execute(HttpRequestMessage httpUriRequest, HttpContext
-			 httpContext)
-		{
-			throw new RuntimeException("Mock Http Client does not know how to handle this request.  It should be fixed"
-				);
-		}
+        /// <exception cref="System.IO.IOException"></exception>
+        public virtual HttpResponse Execute(HttpRequestMessage httpUriRequest, HttpContext
+             httpContext)
+        {
+            throw new RuntimeException("Mock Http Client does not know how to handle this request.  It should be fixed"
+                );
+        }
 
-		/// <exception cref="System.IO.IOException"></exception>
-		public virtual HttpResponse Execute(HttpHost httpHost, HttpWebRequest httpRequest
-			)
-		{
-			throw new RuntimeException("Mock Http Client does not know how to handle this request.  It should be fixed"
-				);
-		}
+        /// <exception cref="System.IO.IOException"></exception>
+        public virtual HttpResponse Execute(HttpHost httpHost, HttpWebRequest httpRequest
+            )
+        {
+            throw new RuntimeException("Mock Http Client does not know how to handle this request.  It should be fixed"
+                );
+        }
 
-		/// <exception cref="System.IO.IOException"></exception>
-		public virtual HttpResponse Execute(HttpHost httpHost, HttpWebRequest httpRequest
-			, HttpContext httpContext)
-		{
-			throw new RuntimeException("Mock Http Client does not know how to handle this request.  It should be fixed"
-				);
-		}
+        /// <exception cref="System.IO.IOException"></exception>
+        public virtual HttpResponse Execute(HttpHost httpHost, HttpWebRequest httpRequest
+            , HttpContext httpContext)
+        {
+            throw new RuntimeException("Mock Http Client does not know how to handle this request.  It should be fixed"
+                );
+        }
 
-		/// <exception cref="System.IO.IOException"></exception>
-		public virtual T Execute<T, _T1>(HttpRequestMessage httpUriRequest, ResponseHandler
-			<_T1> responseHandler) where _T1:T
-		{
-			throw new RuntimeException("Mock Http Client does not know how to handle this request.  It should be fixed"
-				);
-		}
+        /// <exception cref="System.IO.IOException"></exception>
+        public virtual T Execute<T, _T1>(HttpRequestMessage httpUriRequest, ResponseHandler
+            <_T1> responseHandler) where _T1:T
+        {
+            throw new RuntimeException("Mock Http Client does not know how to handle this request.  It should be fixed"
+                );
+        }
 
-		/// <exception cref="System.IO.IOException"></exception>
-		public virtual T Execute<T, _T1>(HttpRequestMessage httpUriRequest, ResponseHandler
-			<_T1> responseHandler, HttpContext httpContext) where _T1:T
-		{
-			throw new RuntimeException("Mock Http Client does not know how to handle this request.  It should be fixed"
-				);
-		}
+        /// <exception cref="System.IO.IOException"></exception>
+        public virtual T Execute<T, _T1>(HttpRequestMessage httpUriRequest, ResponseHandler
+            <_T1> responseHandler, HttpContext httpContext) where _T1:T
+        {
+            throw new RuntimeException("Mock Http Client does not know how to handle this request.  It should be fixed"
+                );
+        }
 
-		/// <exception cref="System.IO.IOException"></exception>
-		public virtual T Execute<T, _T1>(HttpHost httpHost, HttpWebRequest httpRequest, ResponseHandler
-			<_T1> responseHandler) where _T1:T
-		{
-			throw new RuntimeException("Mock Http Client does not know how to handle this request.  It should be fixed"
-				);
-		}
+        /// <exception cref="System.IO.IOException"></exception>
+        public virtual T Execute<T, _T1>(HttpHost httpHost, HttpWebRequest httpRequest, ResponseHandler
+            <_T1> responseHandler) where _T1:T
+        {
+            throw new RuntimeException("Mock Http Client does not know how to handle this request.  It should be fixed"
+                );
+        }
 
-		/// <exception cref="System.IO.IOException"></exception>
-		public virtual T Execute<T, _T1>(HttpHost httpHost, HttpWebRequest httpRequest, ResponseHandler
-			<_T1> responseHandler, HttpContext httpContext) where _T1:T
-		{
-			throw new RuntimeException("Mock Http Client does not know how to handle this request.  It should be fixed"
-				);
-		}
+        /// <exception cref="System.IO.IOException"></exception>
+        public virtual T Execute<T, _T1>(HttpHost httpHost, HttpWebRequest httpRequest, ResponseHandler
+            <_T1> responseHandler, HttpContext httpContext) where _T1:T
+        {
+            throw new RuntimeException("Mock Http Client does not know how to handle this request.  It should be fixed"
+                );
+        }
 
-		internal interface Responder
-		{
-			/// <exception cref="System.IO.IOException"></exception>
-			HttpResponse Execute(HttpRequestMessage httpUriRequest);
-		}
-	}
+        internal interface Responder
+        {
+            /// <exception cref="System.IO.IOException"></exception>
+            HttpResponse Execute(HttpRequestMessage httpUriRequest);
+        }
+    }
 }

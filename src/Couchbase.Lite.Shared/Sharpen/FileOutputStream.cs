@@ -2,7 +2,7 @@
 // FileOutputStream.cs
 //
 // Author:
-//	Zachary Gramana  <zack@xamarin.com>
+//  Zachary Gramana  <zack@xamarin.com>
 //
 // Copyright (c) 2013, 2014 Xamarin Inc (http://www.xamarin.com)
 //
@@ -43,39 +43,39 @@
 */
 namespace Sharpen
 {
-	using System;
-	using System.IO;
+    using System;
+    using System.IO;
 
-	internal class FileOutputStream : OutputStream
-	{
-		public FileOutputStream (FilePath file): this (file.GetPath (), false)
-		{
-		}
+    internal class FileOutputStream : OutputStream
+    {
+        public FileOutputStream (FilePath file): this (file.GetPath (), false)
+        {
+        }
 
-		public FileOutputStream (string file): this (file, false)
-		{
-		}
+        public FileOutputStream (string file): this (file, false)
+        {
+        }
 
-		public FileOutputStream (FilePath file, bool append) : this(file.GetPath (), append)
-		{
-		}
+        public FileOutputStream (FilePath file, bool append) : this(file.GetPath (), append)
+        {
+        }
 
-		public FileOutputStream (string file, bool append)
-		{
-			try {
-				if (append) {
+        public FileOutputStream (string file, bool append)
+        {
+            try {
+                if (append) {
                     base.Wrapped = File.Open (file, System.IO.FileMode.Append, FileAccess.Write, FileShare.Write);
-				} else {
+                } else {
                     base.Wrapped = File.Open (file, System.IO.FileMode.Create, FileAccess.ReadWrite, FileShare.ReadWrite);
-				}
-			} catch (DirectoryNotFoundException) {
-				throw new FileNotFoundException ("File not found: " + file);
-			}
-		}
+                }
+            } catch (DirectoryNotFoundException) {
+                throw new FileNotFoundException ("File not found: " + file);
+            }
+        }
 
-		public FileChannel GetChannel ()
-		{
-			return new FileChannel ((FileStream)base.Wrapped);
-		}
-	}
+        public FileChannel GetChannel ()
+        {
+            return new FileChannel ((FileStream)base.Wrapped);
+        }
+    }
 }

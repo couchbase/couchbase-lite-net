@@ -37,15 +37,15 @@ using Sharpen;
 
 namespace Couchbase.Lite
 {
-	/// <summary>A delegate that can validate a key/value change.</summary>
-	/// <remarks>A delegate that can validate a key/value change.</remarks>
-	public interface ChangeValidator
-	{
-		/// <summary>Validate a change</summary>
-		/// <param name="key">The key of the value being changed.</param>
-		/// <param name="oldValue">The old value.</param>
-		/// <param name="newValue">The new value.</param>
-		/// <returns>true if the change is valid, false otherwise</returns>
-		bool ValidateChange(string key, object oldValue, object newValue);
-	}
+    /// <summary>A delegate that can validate a key/value change.</summary>
+    /// <remarks>A delegate that can validate a key/value change.</remarks>
+    public interface ChangeValidator
+    {
+        /// <summary>Validate a change</summary>
+        /// <param name="key">The key of the value being changed.</param>
+        /// <param name="oldValue">The old value.</param>
+        /// <param name="newValue">The new value.</param>
+        /// <returns>true if the change is valid, false otherwise</returns>
+        bool ValidateChange(string key, object oldValue, object newValue);
+    }
 }

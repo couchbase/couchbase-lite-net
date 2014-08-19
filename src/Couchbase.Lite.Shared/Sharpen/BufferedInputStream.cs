@@ -2,7 +2,7 @@
 // BufferedInputStream.cs
 //
 // Author:
-//	Zachary Gramana  <zack@xamarin.com>
+//  Zachary Gramana  <zack@xamarin.com>
 //
 // Copyright (c) 2013, 2014 Xamarin Inc (http://www.xamarin.com)
 //
@@ -43,21 +43,21 @@
 */
 namespace Sharpen
 {
-	using System;
-	using System.IO;
+    using System;
+    using System.IO;
 
-	internal class BufferedInputStream : InputStream
-	{
-		public BufferedInputStream (InputStream s)
-		{
-			BaseStream = s.GetWrappedStream ();
-			base.Wrapped = new BufferedStream (BaseStream);
-		}
+    internal class BufferedInputStream : InputStream
+    {
+        public BufferedInputStream (InputStream s)
+        {
+            BaseStream = s.GetWrappedStream ();
+            base.Wrapped = new BufferedStream (BaseStream);
+        }
 
-		public BufferedInputStream (InputStream s, int bufferSize)
-		{
-			BaseStream = s.GetWrappedStream ();
-			base.Wrapped = new BufferedStream (BaseStream, bufferSize);
-		}
-	}
+        public BufferedInputStream (InputStream s, int bufferSize)
+        {
+            BaseStream = s.GetWrappedStream ();
+            base.Wrapped = new BufferedStream (BaseStream, bufferSize);
+        }
+    }
 }

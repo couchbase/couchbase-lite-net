@@ -2,7 +2,7 @@
 // SSLContext.cs
 //
 // Author:
-//	Zachary Gramana  <zack@xamarin.com>
+//  Zachary Gramana  <zack@xamarin.com>
 //
 // Copyright (c) 2013, 2014 Xamarin Inc (http://www.xamarin.com)
 //
@@ -70,24 +70,24 @@ using System;
 
 namespace Sharpen
 {
-	class SSLContext
-	{
-		public static SSLContext GetInstance (string id)
-		{
-			// TODO
-			return new SSLContext();
-		}
-		
-		public void Init (object[] keyManager, TrustManager[] tm, object secureRandom)
-		{
-			// TODO
-		}
-		
-		public object GetSocketFactory ()
-		{
-			// TODO
-			return null;
-		}
-	}
+    class SSLContext
+    {
+        public static SSLContext GetInstance (string id)
+        {
+            // TODO
+            return new SSLContext();
+        }
+        
+        public void Init (object[] keyManager, TrustManager[] tm, object secureRandom)
+        {
+            // TODO
+        }
+        
+        public object GetSocketFactory ()
+        {
+            // TODO
+            return null;
+        }
+    }
 }
 

@@ -2,7 +2,7 @@
 // Exceptions.cs
 //
 // Author:
-//	Zachary Gramana  <zack@xamarin.com>
+//  Zachary Gramana  <zack@xamarin.com>
 //
 // Copyright (c) 2013, 2014 Xamarin Inc (http://www.xamarin.com)
 //
@@ -71,181 +71,181 @@ using System;
 
 namespace Sharpen
 {
-	internal class VirtualMachineError : Error
-	{
-	}
+    internal class VirtualMachineError : Error
+    {
+    }
 
-	internal class StackOverflowError : VirtualMachineError
-	{
-		public StackOverflowError ()
-		{
-		}
-	}
+    internal class StackOverflowError : VirtualMachineError
+    {
+        public StackOverflowError ()
+        {
+        }
+    }
 
-	internal class BrokenBarrierException : Exception
-	{
-	}
+    internal class BrokenBarrierException : Exception
+    {
+    }
 
-	internal class BufferUnderflowException : Exception
-	{
-	}
+    internal class BufferUnderflowException : Exception
+    {
+    }
 
-	internal class CharacterCodingException : Exception
-	{
-	}
+    internal class CharacterCodingException : Exception
+    {
+    }
 
-	internal class DataFormatException : Exception
-	{
-	}
+    internal class DataFormatException : Exception
+    {
+    }
 
-	internal class EOFException : Exception
-	{
-		public EOFException ()
-		{
-		}
+    internal class EOFException : Exception
+    {
+        public EOFException ()
+        {
+        }
 
-		public EOFException (string msg) : base(msg)
-		{
-		}
-	}
+        public EOFException (string msg) : base(msg)
+        {
+        }
+    }
 
-	internal class Error : Exception
-	{
-		public Error ()
-		{
-		}
+    internal class Error : Exception
+    {
+        public Error ()
+        {
+        }
 
-		public Error (Exception ex) : base("Runtime Exception", ex)
-		{
-		}
+        public Error (Exception ex) : base("Runtime Exception", ex)
+        {
+        }
 
-		public Error (string msg) : base(msg)
-		{
-		}
+        public Error (string msg) : base(msg)
+        {
+        }
 
-		public Error (string msg, Exception ex) : base(msg, ex)
-		{
-		}
-	}
+        public Error (string msg, Exception ex) : base(msg, ex)
+        {
+        }
+    }
 
-	internal class ExecutionException : Exception
-	{
-		public ExecutionException (Exception inner): base ("Execution failed", inner)
-		{
-		}
-	}
+    internal class ExecutionException : Exception
+    {
+        public ExecutionException (Exception inner): base ("Execution failed", inner)
+        {
+        }
+    }
 
-	internal class InstantiationException : Exception
-	{
-	}
+    internal class InstantiationException : Exception
+    {
+    }
 
-	internal class InterruptedIOException : Exception
-	{
-		public InterruptedIOException (string msg) : base(msg)
-		{
-		}
-	}
+    internal class InterruptedIOException : Exception
+    {
+        public InterruptedIOException (string msg) : base(msg)
+        {
+        }
+    }
 
-	internal class MissingResourceException : Exception
-	{
-	}
+    internal class MissingResourceException : Exception
+    {
+    }
 
-	internal class NoSuchAlgorithmException : Exception
-	{
-	}
+    internal class NoSuchAlgorithmException : Exception
+    {
+    }
 
-	internal class NoSuchElementException : Exception
-	{
-	}
+    internal class NoSuchElementException : Exception
+    {
+    }
 
-	internal class NoSuchMethodException : Exception
-	{
-	}
+    internal class NoSuchMethodException : Exception
+    {
+    }
 
-	internal class OverlappingFileLockException : Exception
-	{
-	}
+    internal class OverlappingFileLockException : Exception
+    {
+    }
 
-	internal class ParseException : Exception
-	{
-		public ParseException ()
-		{
-		}
+    internal class ParseException : Exception
+    {
+        public ParseException ()
+        {
+        }
 
-		public ParseException (string msg, int errorOffset) : base(string.Format ("Msg: msg. Error Offset: {1}", msg, errorOffset))
-		{ 
-		}
-	}
+        public ParseException (string msg, int errorOffset) : base(string.Format ("Msg: msg. Error Offset: {1}", msg, errorOffset))
+        { 
+        }
+    }
 
-	internal class RuntimeException : Exception
-	{
-		public RuntimeException ()
-		{
-		}
+    internal class RuntimeException : Exception
+    {
+        public RuntimeException ()
+        {
+        }
 
-		public RuntimeException (Exception ex) : base("Runtime Exception", ex)
-		{
-		}
+        public RuntimeException (Exception ex) : base("Runtime Exception", ex)
+        {
+        }
 
-		public RuntimeException (string msg) : base(msg)
-		{
-		}
+        public RuntimeException (string msg) : base(msg)
+        {
+        }
 
-		public RuntimeException (string msg, Exception ex) : base(msg, ex)
-		{
-		}
-	}
+        public RuntimeException (string msg, Exception ex) : base(msg, ex)
+        {
+        }
+    }
 
-	internal class StringIndexOutOfBoundsException : Exception
-	{
-	}
+    internal class StringIndexOutOfBoundsException : Exception
+    {
+    }
 
-	internal class UnknownHostException : Exception
-	{
-	}
+    internal class UnknownHostException : Exception
+    {
+    }
 
-	internal class UnsupportedEncodingException : Exception
-	{
-	}
+    internal class UnsupportedEncodingException : Exception
+    {
+    }
 
-	internal class URISyntaxException : Exception
-	{
-		public URISyntaxException (string s, string msg) : base(s + " " + msg)
-		{
-		}
-	}
+    internal class URISyntaxException : Exception
+    {
+        public URISyntaxException (string s, string msg) : base(s + " " + msg)
+        {
+        }
+    }
 
-	internal class ZipException : Exception
-	{
-	}
+    internal class ZipException : Exception
+    {
+    }
 
-	internal class GitException : Exception
-	{
-	}
-	
-	class ConnectException: Exception
-	{
-		public ConnectException (string msg): base (msg)
-		{
-		}
-	}
-	
-	class KeyManagementException: Exception
-	{
-	}
-	
-	class IllegalCharsetNameException: Exception
-	{
-		public IllegalCharsetNameException (string msg): base (msg)
-		{
-		}
-	}
-	
-	class UnsupportedCharsetException: Exception
-	{
-		public UnsupportedCharsetException (string msg): base (msg)
-		{
-		}
-	}
+    internal class GitException : Exception
+    {
+    }
+    
+    class ConnectException: Exception
+    {
+        public ConnectException (string msg): base (msg)
+        {
+        }
+    }
+    
+    class KeyManagementException: Exception
+    {
+    }
+    
+    class IllegalCharsetNameException: Exception
+    {
+        public IllegalCharsetNameException (string msg): base (msg)
+        {
+        }
+    }
+    
+    class UnsupportedCharsetException: Exception
+    {
+        public UnsupportedCharsetException (string msg): base (msg)
+        {
+        }
+    }
 }
 

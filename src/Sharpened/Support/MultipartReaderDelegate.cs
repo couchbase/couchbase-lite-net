@@ -38,12 +38,12 @@ using Sharpen;
 
 namespace Couchbase.Lite.Support
 {
-	public interface MultipartReaderDelegate
-	{
-		void StartedPart(IDictionary<string, string> headers);
+    public interface MultipartReaderDelegate
+    {
+        void StartedPart(IDictionary<string, string> headers);
 
-		void AppendToPart(byte[] data);
+        void AppendToPart(byte[] data);
 
-		void FinishedPart();
-	}
+        void FinishedPart();
+    }
 }

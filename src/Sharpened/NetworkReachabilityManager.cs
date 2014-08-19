@@ -38,87 +38,87 @@ using Sharpen;
 
 namespace Couchbase.Lite
 {
-	/// <summary>
-	/// This uses system api (on Android, uses the Context) to listen for network reachability
-	/// change events and notifies all NetworkReachabilityListeners that have registered themselves.
-	/// </summary>
-	/// <remarks>
-	/// This uses system api (on Android, uses the Context) to listen for network reachability
-	/// change events and notifies all NetworkReachabilityListeners that have registered themselves.
-	/// (an example of a NetworkReachabilityListeners is a Replicator that wants to pause when
-	/// it's been detected that the network is not reachable)
-	/// </remarks>
-	public abstract class NetworkReachabilityManager
-	{
-		protected internal IList<NetworkReachabilityListener> networkReachabilityListeners;
+    /// <summary>
+    /// This uses system api (on Android, uses the Context) to listen for network reachability
+    /// change events and notifies all NetworkReachabilityListeners that have registered themselves.
+    /// </summary>
+    /// <remarks>
+    /// This uses system api (on Android, uses the Context) to listen for network reachability
+    /// change events and notifies all NetworkReachabilityListeners that have registered themselves.
+    /// (an example of a NetworkReachabilityListeners is a Replicator that wants to pause when
+    /// it's been detected that the network is not reachable)
+    /// </remarks>
+    public abstract class NetworkReachabilityManager
+    {
+        protected internal IList<NetworkReachabilityListener> networkReachabilityListeners;
 
-		/// <summary>Add Network Reachability Listener</summary>
-		public virtual void AddNetworkReachabilityListener(NetworkReachabilityListener listener
-			)
-		{
-			lock (this)
-			{
-				if (networkReachabilityListeners == null)
-				{
-					networkReachabilityListeners = new AList<NetworkReachabilityListener>();
-				}
-				int numListenersBeforeAdd = networkReachabilityListeners.Count;
-				networkReachabilityListeners.AddItem(listener);
-				if (numListenersBeforeAdd == 0)
-				{
-					StartListening();
-				}
-			}
-		}
+        /// <summary>Add Network Reachability Listener</summary>
+        public virtual void AddNetworkReachabilityListener(NetworkReachabilityListener listener
+            )
+        {
+            lock (this)
+            {
+                if (networkReachabilityListeners == null)
+                {
+                    networkReachabilityListeners = new AList<NetworkReachabilityListener>();
+                }
+                int numListenersBeforeAdd = networkReachabilityListeners.Count;
+                networkReachabilityListeners.AddItem(listener);
+                if (numListenersBeforeAdd == 0)
+                {
+                    StartListening();
+                }
+            }
+        }
 
-		/// <summary>Remove Network Reachability Listener</summary>
-		public virtual void RemoveNetworkReachabilityListener(NetworkReachabilityListener
-			 listener)
-		{
-			lock (this)
-			{
-				if (networkReachabilityListeners == null)
-				{
-					networkReachabilityListeners = new AList<NetworkReachabilityListener>();
-				}
-				networkReachabilityListeners.Remove(listener);
-				if (networkReachabilityListeners.Count == 0)
-				{
-					StopListening();
-				}
-			}
-		}
+        /// <summary>Remove Network Reachability Listener</summary>
+        public virtual void RemoveNetworkReachabilityListener(NetworkReachabilityListener
+             listener)
+        {
+            lock (this)
+            {
+                if (networkReachabilityListeners == null)
+                {
+                    networkReachabilityListeners = new AList<NetworkReachabilityListener>();
+                }
+                networkReachabilityListeners.Remove(listener);
+                if (networkReachabilityListeners.Count == 0)
+                {
+                    StopListening();
+                }
+            }
+        }
 
-		/// <summary>Notify listeners that the network is now reachable</summary>
-		public virtual void NotifyListenersNetworkReachable()
-		{
-			lock (this)
-			{
-				foreach (NetworkReachabilityListener networkReachabilityListener in networkReachabilityListeners)
-				{
-					networkReachabilityListener.NetworkReachable();
-				}
-			}
-		}
+        /// <summary>Notify listeners that the network is now reachable</summary>
+        public virtual void NotifyListenersNetworkReachable()
+        {
+            lock (this)
+            {
+                foreach (NetworkReachabilityListener networkReachabilityListener in networkReachabilityListeners)
+                {
+                    networkReachabilityListener.NetworkReachable();
+                }
+            }
+        }
 
-		/// <summary>Notify listeners that the network is now unreachable</summary>
-		public virtual void NotifyListenersNetworkUneachable()
-		{
-			lock (this)
-			{
-				foreach (NetworkReachabilityListener networkReachabilityListener in networkReachabilityListeners)
-				{
-					networkReachabilityListener.NetworkUnreachable();
-				}
-			}
-		}
+        /// <summary>Notify listeners that the network is now unreachable</summary>
+        public virtual void NotifyListenersNetworkUneachable()
+        {
+            lock (this)
+            {
+                foreach (NetworkReachabilityListener networkReachabilityListener in networkReachabilityListeners)
+                {
+                    networkReachabilityListener.NetworkUnreachable();
+                }
+            }
+        }
 
-		/// <summary>This method starts listening for network connectivity state changes.</summary>
-		/// <remarks>This method starts listening for network connectivity state changes.</remarks>
-		public abstract void StartListening();
+        /// <summary>This method starts listening for network connectivity state changes.</summary>
+        /// <remarks>This method starts listening for network connectivity state changes.</remarks>
+        public abstract void StartListening();
 
-		/// <summary>This method stops this class from listening for network changes.</summary>
-		/// <remarks>This method stops this class from listening for network changes.</remarks>
-		public abstract void StopListening();
-	}
+        /// <summary>This method stops this class from listening for network changes.</summary>
+        /// <remarks>This method stops this class from listening for network changes.</remarks>
+        public abstract void StopListening();
+    }
 }

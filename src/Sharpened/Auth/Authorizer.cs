@@ -39,23 +39,23 @@ using Sharpen;
 
 namespace Couchbase.Lite.Auth
 {
-	/// <summary>Authorizers should extend from this class</summary>
-	/// <exclude></exclude>
-	public class Authorizer : AuthenticatorImpl
-	{
-		public override bool UsesCookieBasedLogin()
-		{
-			return false;
-		}
+    /// <summary>Authorizers should extend from this class</summary>
+    /// <exclude></exclude>
+    public class Authorizer : AuthenticatorImpl
+    {
+        public override bool UsesCookieBasedLogin()
+        {
+            return false;
+        }
 
-		public override IDictionary<string, string> LoginParametersForSite(Uri site)
-		{
-			return null;
-		}
+        public override IDictionary<string, string> LoginParametersForSite(Uri site)
+        {
+            return null;
+        }
 
-		public override string LoginPathForSite(Uri site)
-		{
-			return null;
-		}
-	}
+        public override string LoginPathForSite(Uri site)
+        {
+            return null;
+        }
+    }
 }

@@ -38,18 +38,18 @@ using Sharpen;
 
 namespace Couchbase.Lite
 {
-	/// <summary>Block container for the reduce callback function</summary>
-	public interface Reducer
-	{
-		/// <summary>A "reduce" function called to summarize the results of a view.</summary>
-		/// <remarks>A "reduce" function called to summarize the results of a view.</remarks>
-		/// <param name="keys">An array of keys to be reduced (or null if this is a rereduce).
-		/// 	</param>
-		/// <param name="values">A parallel array of values to be reduced, corresponding 1::1 with the keys.
-		/// 	</param>
-		/// <param name="rereduce">true if the input values are the results of previous reductions.
-		/// 	</param>
-		/// <returns>The reduced value; almost always a scalar or small fixed-size object.</returns>
-		object Reduce(IList<object> keys, IList<object> values, bool rereduce);
-	}
+    /// <summary>Block container for the reduce callback function</summary>
+    public interface Reducer
+    {
+        /// <summary>A "reduce" function called to summarize the results of a view.</summary>
+        /// <remarks>A "reduce" function called to summarize the results of a view.</remarks>
+        /// <param name="keys">An array of keys to be reduced (or null if this is a rereduce).
+        ///     </param>
+        /// <param name="values">A parallel array of values to be reduced, corresponding 1::1 with the keys.
+        ///     </param>
+        /// <param name="rereduce">true if the input values are the results of previous reductions.
+        ///     </param>
+        /// <returns>The reduced value; almost always a scalar or small fixed-size object.</returns>
+        object Reduce(IList<object> keys, IList<object> values, bool rereduce);
+    }
 }

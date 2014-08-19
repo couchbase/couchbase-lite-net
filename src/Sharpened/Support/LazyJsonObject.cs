@@ -40,143 +40,143 @@ using Sharpen;
 
 namespace Couchbase.Lite.Support
 {
-	public class LazyJsonObject<K, V> : AbstractMap<K, V>
-	{
-		private bool parsed = false;
+    public class LazyJsonObject<K, V> : AbstractMap<K, V>
+    {
+        private bool parsed = false;
 
-		private byte[] json;
+        private byte[] json;
 
-		private IDictionary<K, V> cache = new Dictionary<K, V>();
+        private IDictionary<K, V> cache = new Dictionary<K, V>();
 
-		public LazyJsonObject(byte[] json)
-		{
-			if (json[0] != '{')
-			{
-				throw new ArgumentException("data must represent a JSON Object");
-			}
-			this.json = json;
-		}
+        public LazyJsonObject(byte[] json)
+        {
+            if (json[0] != '{')
+            {
+                throw new ArgumentException("data must represent a JSON Object");
+            }
+            this.json = json;
+        }
 
-		public override V Put(K key, V value)
-		{
-			//value for key takes priority over json properties even if
-			//json has not been parsed yet
-			return cache.Put(key, value);
-		}
+        public override V Put(K key, V value)
+        {
+            //value for key takes priority over json properties even if
+            //json has not been parsed yet
+            return cache.Put(key, value);
+        }
 
-		public override V Get(object key)
-		{
-			if (cache.ContainsKey(key))
-			{
-				return cache.Get(key);
-			}
-			else
-			{
-				ParseJson();
-				return cache.Get(key);
-			}
-		}
+        public override V Get(object key)
+        {
+            if (cache.ContainsKey(key))
+            {
+                return cache.Get(key);
+            }
+            else
+            {
+                ParseJson();
+                return cache.Get(key);
+            }
+        }
 
-		public override V Remove(object key)
-		{
-			if (cache.ContainsKey(key))
-			{
-				return Sharpen.Collections.Remove(cache, key);
-			}
-			else
-			{
-				ParseJson();
-				return Sharpen.Collections.Remove(cache, key);
-			}
-		}
+        public override V Remove(object key)
+        {
+            if (cache.ContainsKey(key))
+            {
+                return Sharpen.Collections.Remove(cache, key);
+            }
+            else
+            {
+                ParseJson();
+                return Sharpen.Collections.Remove(cache, key);
+            }
+        }
 
-		public override void Clear()
-		{
-			cache.Clear();
-		}
+        public override void Clear()
+        {
+            cache.Clear();
+        }
 
-		public override bool ContainsKey(object key)
-		{
-			if (cache.ContainsKey(key))
-			{
-				return cache.ContainsKey(key);
-			}
-			else
-			{
-				ParseJson();
-				return cache.ContainsKey(key);
-			}
-		}
+        public override bool ContainsKey(object key)
+        {
+            if (cache.ContainsKey(key))
+            {
+                return cache.ContainsKey(key);
+            }
+            else
+            {
+                ParseJson();
+                return cache.ContainsKey(key);
+            }
+        }
 
-		public override bool ContainsValue(object value)
-		{
-			if (cache.ContainsValue(value))
-			{
-				return cache.ContainsValue(value);
-			}
-			else
-			{
-				ParseJson();
-				return cache.ContainsValue(value);
-			}
-		}
+        public override bool ContainsValue(object value)
+        {
+            if (cache.ContainsValue(value))
+            {
+                return cache.ContainsValue(value);
+            }
+            else
+            {
+                ParseJson();
+                return cache.ContainsValue(value);
+            }
+        }
 
-		public override ICollection<K> Keys
-		{
-			get
-			{
-				ParseJson();
-				return cache.Keys;
-			}
-		}
+        public override ICollection<K> Keys
+        {
+            get
+            {
+                ParseJson();
+                return cache.Keys;
+            }
+        }
 
-		public override int Count
-		{
-			get
-			{
-				ParseJson();
-				return cache.Count;
-			}
-		}
+        public override int Count
+        {
+            get
+            {
+                ParseJson();
+                return cache.Count;
+            }
+        }
 
-		public override ICollection<KeyValuePair<K, V>> EntrySet()
-		{
-			ParseJson();
-			return cache.EntrySet();
-		}
+        public override ICollection<KeyValuePair<K, V>> EntrySet()
+        {
+            ParseJson();
+            return cache.EntrySet();
+        }
 
-		public override ICollection<V> Values
-		{
-			get
-			{
-				ParseJson();
-				return cache.Values;
-			}
-		}
+        public override ICollection<V> Values
+        {
+            get
+            {
+                ParseJson();
+                return cache.Values;
+            }
+        }
 
-		private void ParseJson()
-		{
-			if (parsed)
-			{
-				return;
-			}
-			try
-			{
-				IDictionary<K, V> parsedprops = (IDictionary<K, V>)Manager.GetObjectMapper().ReadValue
-					<object>(json);
-				//Merge parsed properties into map, overwriting the values for duplicate keys
-				parsedprops.PutAll(cache);
-				cache = parsedprops;
-			}
-			catch (Exception e)
-			{
-				Log.E(Database.Tag, this.GetType().FullName + ": Failed to parse Json data: ", e);
-			}
-			finally
-			{
-				parsed = true;
-				json = null;
-			}
-		}
-	}
+        private void ParseJson()
+        {
+            if (parsed)
+            {
+                return;
+            }
+            try
+            {
+                IDictionary<K, V> parsedprops = (IDictionary<K, V>)Manager.GetObjectMapper().ReadValue
+                    <object>(json);
+                //Merge parsed properties into map, overwriting the values for duplicate keys
+                parsedprops.PutAll(cache);
+                cache = parsedprops;
+            }
+            catch (Exception e)
+            {
+                Log.E(Database.Tag, this.GetType().FullName + ": Failed to parse Json data: ", e);
+            }
+            finally
+            {
+                parsed = true;
+                json = null;
+            }
+        }
+    }
 }

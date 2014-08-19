@@ -39,82 +39,82 @@ using Sharpen;
 
 namespace Couchbase.Lite
 {
-	/// <summary>An ordered list of TDRevisions</summary>
-	/// <exclude></exclude>
-	[System.Serializable]
-	public class RevisionList : AList<RevisionInternal>
-	{
-		public RevisionList() : base()
-		{
-		}
+    /// <summary>An ordered list of TDRevisions</summary>
+    /// <exclude></exclude>
+    [System.Serializable]
+    public class RevisionList : AList<RevisionInternal>
+    {
+        public RevisionList() : base()
+        {
+        }
 
-		/// <summary>Allow converting to RevisionList from List<RevisionInternal></summary>
-		/// <param name="list"></param>
-		public RevisionList(IList<RevisionInternal> list) : base(list)
-		{
-		}
+        /// <summary>Allow converting to RevisionList from List<RevisionInternal></summary>
+        /// <param name="list"></param>
+        public RevisionList(IList<RevisionInternal> list) : base(list)
+        {
+        }
 
-		public virtual RevisionInternal RevWithDocIdAndRevId(string docId, string revId)
-		{
-			IEnumerator<RevisionInternal> iterator = GetEnumerator();
-			while (iterator.HasNext())
-			{
-				RevisionInternal rev = iterator.Next();
-				if (docId.Equals(rev.GetDocId()) && revId.Equals(rev.GetRevId()))
-				{
-					return rev;
-				}
-			}
-			return null;
-		}
+        public virtual RevisionInternal RevWithDocIdAndRevId(string docId, string revId)
+        {
+            IEnumerator<RevisionInternal> iterator = GetEnumerator();
+            while (iterator.HasNext())
+            {
+                RevisionInternal rev = iterator.Next();
+                if (docId.Equals(rev.GetDocId()) && revId.Equals(rev.GetRevId()))
+                {
+                    return rev;
+                }
+            }
+            return null;
+        }
 
-		public virtual IList<string> GetAllDocIds()
-		{
-			IList<string> result = new AList<string>();
-			IEnumerator<RevisionInternal> iterator = GetEnumerator();
-			while (iterator.HasNext())
-			{
-				RevisionInternal rev = iterator.Next();
-				result.AddItem(rev.GetDocId());
-			}
-			return result;
-		}
+        public virtual IList<string> GetAllDocIds()
+        {
+            IList<string> result = new AList<string>();
+            IEnumerator<RevisionInternal> iterator = GetEnumerator();
+            while (iterator.HasNext())
+            {
+                RevisionInternal rev = iterator.Next();
+                result.AddItem(rev.GetDocId());
+            }
+            return result;
+        }
 
-		public virtual IList<string> GetAllRevIds()
-		{
-			IList<string> result = new AList<string>();
-			IEnumerator<RevisionInternal> iterator = GetEnumerator();
-			while (iterator.HasNext())
-			{
-				RevisionInternal rev = iterator.Next();
-				result.AddItem(rev.GetRevId());
-			}
-			return result;
-		}
+        public virtual IList<string> GetAllRevIds()
+        {
+            IList<string> result = new AList<string>();
+            IEnumerator<RevisionInternal> iterator = GetEnumerator();
+            while (iterator.HasNext())
+            {
+                RevisionInternal rev = iterator.Next();
+                result.AddItem(rev.GetRevId());
+            }
+            return result;
+        }
 
-		public virtual void SortBySequence()
-		{
-			this.Sort(new _IComparer_83());
-		}
+        public virtual void SortBySequence()
+        {
+            this.Sort(new _IComparer_83());
+        }
 
-		private sealed class _IComparer_83 : IComparer<RevisionInternal>
-		{
-			public _IComparer_83()
-			{
-			}
+        private sealed class _IComparer_83 : IComparer<RevisionInternal>
+        {
+            public _IComparer_83()
+            {
+            }
 
-			public int Compare(RevisionInternal rev1, RevisionInternal rev2)
-			{
-				return Misc.TDSequenceCompare(rev1.GetSequence(), rev2.GetSequence());
-			}
-		}
+            public int Compare(RevisionInternal rev1, RevisionInternal rev2)
+            {
+                return Misc.TDSequenceCompare(rev1.GetSequence(), rev2.GetSequence());
+            }
+        }
 
-		public virtual void Limit(int limit)
-		{
-			if (Count > limit)
-			{
-				RemoveRange(limit, Count);
-			}
-		}
-	}
+        public virtual void Limit(int limit)
+        {
+            if (Count > limit)
+            {
+                RemoveRange(limit, Count);
+            }
+        }
+    }
 }

@@ -45,251 +45,251 @@ using Sharpen;
 
 namespace Couchbase.Lite.Support
 {
-	public class MultipartDocumentReader : MultipartReaderDelegate
-	{
-		/// <summary>The response which contains the input stream we need to read from</summary>
-		private HttpResponse response;
+    public class MultipartDocumentReader : MultipartReaderDelegate
+    {
+        /// <summary>The response which contains the input stream we need to read from</summary>
+        private HttpResponse response;
 
-		private MultipartReader multipartReader;
+        private MultipartReader multipartReader;
 
-		private BlobStoreWriter curAttachment;
+        private BlobStoreWriter curAttachment;
 
-		private ByteArrayBuffer jsonBuffer;
+        private ByteArrayBuffer jsonBuffer;
 
-		private IDictionary<string, object> document;
+        private IDictionary<string, object> document;
 
-		private Database database;
+        private Database database;
 
-		private IDictionary<string, BlobStoreWriter> attachmentsByName;
+        private IDictionary<string, BlobStoreWriter> attachmentsByName;
 
-		private IDictionary<string, BlobStoreWriter> attachmentsByMd5Digest;
+        private IDictionary<string, BlobStoreWriter> attachmentsByMd5Digest;
 
-		public MultipartDocumentReader(HttpResponse response, Database database)
-		{
-			this.response = response;
-			this.database = database;
-		}
+        public MultipartDocumentReader(HttpResponse response, Database database)
+        {
+            this.response = response;
+            this.database = database;
+        }
 
-		public virtual IDictionary<string, object> GetDocumentProperties()
-		{
-			return document;
-		}
+        public virtual IDictionary<string, object> GetDocumentProperties()
+        {
+            return document;
+        }
 
-		public virtual void ParseJsonBuffer()
-		{
-			try
-			{
-				document = Manager.GetObjectMapper().ReadValue<IDictionary>(jsonBuffer.ToByteArray
-					());
-			}
-			catch (IOException e)
-			{
-				throw new InvalidOperationException("Failed to parse json buffer", e);
-			}
-			jsonBuffer = null;
-		}
+        public virtual void ParseJsonBuffer()
+        {
+            try
+            {
+                document = Manager.GetObjectMapper().ReadValue<IDictionary>(jsonBuffer.ToByteArray
+                    ());
+            }
+            catch (IOException e)
+            {
+                throw new InvalidOperationException("Failed to parse json buffer", e);
+            }
+            jsonBuffer = null;
+        }
 
-		public virtual void SetContentType(string contentType)
-		{
-			if (contentType.StartsWith("multipart/"))
-			{
-				multipartReader = new MultipartReader(contentType, this);
-				attachmentsByName = new Dictionary<string, BlobStoreWriter>();
-				attachmentsByMd5Digest = new Dictionary<string, BlobStoreWriter>();
-			}
-			else
-			{
-				if (contentType == null || contentType.StartsWith("application/json") || contentType
-					.StartsWith("text/plain"))
-				{
-				}
-				else
-				{
-					// No multipart, so no attachments. Body is pure JSON. (We allow text/plain because CouchDB
-					// sends JSON responses using the wrong content-type.)
-					throw new ArgumentException("contentType must start with multipart/");
-				}
-			}
-		}
+        public virtual void SetContentType(string contentType)
+        {
+            if (contentType.StartsWith("multipart/"))
+            {
+                multipartReader = new MultipartReader(contentType, this);
+                attachmentsByName = new Dictionary<string, BlobStoreWriter>();
+                attachmentsByMd5Digest = new Dictionary<string, BlobStoreWriter>();
+            }
+            else
+            {
+                if (contentType == null || contentType.StartsWith("application/json") || contentType
+                    .StartsWith("text/plain"))
+                {
+                }
+                else
+                {
+                    // No multipart, so no attachments. Body is pure JSON. (We allow text/plain because CouchDB
+                    // sends JSON responses using the wrong content-type.)
+                    throw new ArgumentException("contentType must start with multipart/");
+                }
+            }
+        }
 
-		public virtual void AppendData(byte[] data)
-		{
-			if (multipartReader != null)
-			{
-				multipartReader.AppendData(data);
-			}
-			else
-			{
-				jsonBuffer.Append(data, 0, data.Length);
-			}
-		}
+        public virtual void AppendData(byte[] data)
+        {
+            if (multipartReader != null)
+            {
+                multipartReader.AppendData(data);
+            }
+            else
+            {
+                jsonBuffer.Append(data, 0, data.Length);
+            }
+        }
 
-		public virtual void Finish()
-		{
-			if (multipartReader != null)
-			{
-				if (!multipartReader.Finished())
-				{
-					throw new InvalidOperationException("received incomplete MIME multipart response"
-						);
-				}
-				RegisterAttachments();
-			}
-			else
-			{
-				ParseJsonBuffer();
-			}
-		}
+        public virtual void Finish()
+        {
+            if (multipartReader != null)
+            {
+                if (!multipartReader.Finished())
+                {
+                    throw new InvalidOperationException("received incomplete MIME multipart response"
+                        );
+                }
+                RegisterAttachments();
+            }
+            else
+            {
+                ParseJsonBuffer();
+            }
+        }
 
-		private void RegisterAttachments()
-		{
-			int numAttachmentsInDoc = 0;
-			IDictionary<string, object> attachments = (IDictionary<string, object>)document.Get
-				("_attachments");
-			if (attachments == null)
-			{
-				return;
-			}
-			foreach (string attachmentName in attachments.Keys)
-			{
-				IDictionary<string, object> attachment = (IDictionary<string, object>)attachments
-					.Get(attachmentName);
-				int length = 0;
-				if (attachment.ContainsKey("length"))
-				{
-					length = ((int)attachment.Get("length"));
-				}
-				if (attachment.ContainsKey("encoded_length"))
-				{
-					length = ((int)attachment.Get("encoded_length"));
-				}
-				if (attachment.ContainsKey("follows") && ((bool)attachment.Get("follows")) == true)
-				{
-					// Check that each attachment in the JSON corresponds to an attachment MIME body.
-					// Look up the attachment by either its MIME Content-Disposition header or MD5 digest:
-					string digest = (string)attachment.Get("digest");
-					BlobStoreWriter writer = attachmentsByName.Get(attachmentName);
-					if (writer != null)
-					{
-						// Identified the MIME body by the filename in its Disposition header:
-						string actualDigest = writer.MD5DigestString();
-						if (digest != null && !digest.Equals(actualDigest) && !digest.Equals(writer.SHA1DigestString
-							()))
-						{
-							string errMsg = string.Format("Attachment '%s' has incorrect MD5 digest (%s; should be %s)"
-								, attachmentName, digest, actualDigest);
-							throw new InvalidOperationException(errMsg);
-						}
-						attachment.Put("digest", actualDigest);
-					}
-					else
-					{
-						if (digest != null)
-						{
-							writer = attachmentsByMd5Digest.Get(digest);
-							if (writer == null)
-							{
-								string errMsg = string.Format("Attachment '%s' does not appear in MIME body (%s; should be %s)"
-									, attachmentName);
-								throw new InvalidOperationException(errMsg);
-							}
-						}
-						else
-						{
-							if (attachments.Count == 1 && attachmentsByMd5Digest.Count == 1)
-							{
-								// Else there's only one attachment, so just assume it matches & use it:
-								writer = attachmentsByMd5Digest.Values.GetEnumerator().Next();
-								attachment.Put("digest", writer.MD5DigestString());
-							}
-							else
-							{
-								// No digest metatata, no filename in MIME body; give up:
-								string errMsg = string.Format("Attachment '%s' has no digest metadata; cannot identify MIME body"
-									, attachmentName);
-								throw new InvalidOperationException(errMsg);
-							}
-						}
-					}
-					// Check that the length matches:
-					if (writer.GetLength() != length)
-					{
-						string errMsg = string.Format("Attachment '%s' has incorrect length field %d (should be %d)"
-							, attachmentName, length, writer.GetLength());
-						throw new InvalidOperationException(errMsg);
-					}
-					++numAttachmentsInDoc;
-				}
-				else
-				{
-					if (attachment.ContainsKey("data") && length > 1000)
-					{
-						Log.W(Log.TagRemoteRequest, "Attachment '%s' sent inline (len=%d).  Large attachments "
-							 + "should be sent in MIME parts for reduced memory overhead.", attachmentName);
-					}
-				}
-			}
-			if (numAttachmentsInDoc < attachmentsByMd5Digest.Count)
-			{
-				string msg = string.Format("More MIME bodies (%d) than attachments (%d) ", attachmentsByMd5Digest
-					.Count, numAttachmentsInDoc);
-				throw new InvalidOperationException(msg);
-			}
-			// hand over the (uninstalled) blobs to the database to remember:
-			database.RememberAttachmentWritersForDigests(attachmentsByMd5Digest);
-		}
+        private void RegisterAttachments()
+        {
+            int numAttachmentsInDoc = 0;
+            IDictionary<string, object> attachments = (IDictionary<string, object>)document.Get
+                ("_attachments");
+            if (attachments == null)
+            {
+                return;
+            }
+            foreach (string attachmentName in attachments.Keys)
+            {
+                IDictionary<string, object> attachment = (IDictionary<string, object>)attachments
+                    .Get(attachmentName);
+                int length = 0;
+                if (attachment.ContainsKey("length"))
+                {
+                    length = ((int)attachment.Get("length"));
+                }
+                if (attachment.ContainsKey("encoded_length"))
+                {
+                    length = ((int)attachment.Get("encoded_length"));
+                }
+                if (attachment.ContainsKey("follows") && ((bool)attachment.Get("follows")) == true)
+                {
+                    // Check that each attachment in the JSON corresponds to an attachment MIME body.
+                    // Look up the attachment by either its MIME Content-Disposition header or MD5 digest:
+                    string digest = (string)attachment.Get("digest");
+                    BlobStoreWriter writer = attachmentsByName.Get(attachmentName);
+                    if (writer != null)
+                    {
+                        // Identified the MIME body by the filename in its Disposition header:
+                        string actualDigest = writer.MD5DigestString();
+                        if (digest != null && !digest.Equals(actualDigest) && !digest.Equals(writer.SHA1DigestString
+                            ()))
+                        {
+                            string errMsg = string.Format("Attachment '%s' has incorrect MD5 digest (%s; should be %s)"
+                                , attachmentName, digest, actualDigest);
+                            throw new InvalidOperationException(errMsg);
+                        }
+                        attachment.Put("digest", actualDigest);
+                    }
+                    else
+                    {
+                        if (digest != null)
+                        {
+                            writer = attachmentsByMd5Digest.Get(digest);
+                            if (writer == null)
+                            {
+                                string errMsg = string.Format("Attachment '%s' does not appear in MIME body (%s; should be %s)"
+                                    , attachmentName);
+                                throw new InvalidOperationException(errMsg);
+                            }
+                        }
+                        else
+                        {
+                            if (attachments.Count == 1 && attachmentsByMd5Digest.Count == 1)
+                            {
+                                // Else there's only one attachment, so just assume it matches & use it:
+                                writer = attachmentsByMd5Digest.Values.GetEnumerator().Next();
+                                attachment.Put("digest", writer.MD5DigestString());
+                            }
+                            else
+                            {
+                                // No digest metatata, no filename in MIME body; give up:
+                                string errMsg = string.Format("Attachment '%s' has no digest metadata; cannot identify MIME body"
+                                    , attachmentName);
+                                throw new InvalidOperationException(errMsg);
+                            }
+                        }
+                    }
+                    // Check that the length matches:
+                    if (writer.GetLength() != length)
+                    {
+                        string errMsg = string.Format("Attachment '%s' has incorrect length field %d (should be %d)"
+                            , attachmentName, length, writer.GetLength());
+                        throw new InvalidOperationException(errMsg);
+                    }
+                    ++numAttachmentsInDoc;
+                }
+                else
+                {
+                    if (attachment.ContainsKey("data") && length > 1000)
+                    {
+                        Log.W(Log.TagRemoteRequest, "Attachment '%s' sent inline (len=%d).  Large attachments "
+                             + "should be sent in MIME parts for reduced memory overhead.", attachmentName);
+                    }
+                }
+            }
+            if (numAttachmentsInDoc < attachmentsByMd5Digest.Count)
+            {
+                string msg = string.Format("More MIME bodies (%d) than attachments (%d) ", attachmentsByMd5Digest
+                    .Count, numAttachmentsInDoc);
+                throw new InvalidOperationException(msg);
+            }
+            // hand over the (uninstalled) blobs to the database to remember:
+            database.RememberAttachmentWritersForDigests(attachmentsByMd5Digest);
+        }
 
-		public virtual void StartedPart(IDictionary<string, string> headers)
-		{
-			if (document == null)
-			{
-				jsonBuffer = new ByteArrayBuffer(1024);
-			}
-			else
-			{
-				curAttachment = database.GetAttachmentWriter();
-				string contentDisposition = headers.Get("Content-Disposition");
-				if (contentDisposition != null && contentDisposition.StartsWith("attachment; filename="
-					))
-				{
-					// TODO: Parse this less simplistically. Right now it assumes it's in exactly the same
-					// format generated by -[CBL_Pusher uploadMultipartRevision:]. CouchDB (as of 1.2) doesn't
-					// output any headers at all on attachments so there's no compatibility issue yet.
-					string contentDispositionUnquoted = Misc.UnquoteString(contentDisposition);
-					string name = Sharpen.Runtime.Substring(contentDispositionUnquoted, 21);
-					if (name != null)
-					{
-						attachmentsByName.Put(name, curAttachment);
-					}
-				}
-			}
-		}
+        public virtual void StartedPart(IDictionary<string, string> headers)
+        {
+            if (document == null)
+            {
+                jsonBuffer = new ByteArrayBuffer(1024);
+            }
+            else
+            {
+                curAttachment = database.GetAttachmentWriter();
+                string contentDisposition = headers.Get("Content-Disposition");
+                if (contentDisposition != null && contentDisposition.StartsWith("attachment; filename="
+                    ))
+                {
+                    // TODO: Parse this less simplistically. Right now it assumes it's in exactly the same
+                    // format generated by -[CBL_Pusher uploadMultipartRevision:]. CouchDB (as of 1.2) doesn't
+                    // output any headers at all on attachments so there's no compatibility issue yet.
+                    string contentDispositionUnquoted = Misc.UnquoteString(contentDisposition);
+                    string name = Sharpen.Runtime.Substring(contentDispositionUnquoted, 21);
+                    if (name != null)
+                    {
+                        attachmentsByName.Put(name, curAttachment);
+                    }
+                }
+            }
+        }
 
-		public virtual void AppendToPart(byte[] data)
-		{
-			if (jsonBuffer != null)
-			{
-				jsonBuffer.Append(data, 0, data.Length);
-			}
-			else
-			{
-				curAttachment.AppendData(data);
-			}
-		}
+        public virtual void AppendToPart(byte[] data)
+        {
+            if (jsonBuffer != null)
+            {
+                jsonBuffer.Append(data, 0, data.Length);
+            }
+            else
+            {
+                curAttachment.AppendData(data);
+            }
+        }
 
-		public virtual void FinishedPart()
-		{
-			if (jsonBuffer != null)
-			{
-				ParseJsonBuffer();
-			}
-			else
-			{
-				curAttachment.Finish();
-				string md5String = curAttachment.MD5DigestString();
-				attachmentsByMd5Digest.Put(md5String, curAttachment);
-				curAttachment = null;
-			}
-		}
-	}
+        public virtual void FinishedPart()
+        {
+            if (jsonBuffer != null)
+            {
+                ParseJsonBuffer();
+            }
+            else
+            {
+                curAttachment.Finish();
+                string md5String = curAttachment.MD5DigestString();
+                attachmentsByMd5Digest.Put(md5String, curAttachment);
+                curAttachment = null;
+            }
+        }
+    }
 }

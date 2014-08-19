@@ -38,14 +38,14 @@ using Sharpen;
 
 namespace Couchbase.Lite
 {
-	/// <summary>Filter block, used in changes feeds and replication.</summary>
-	/// <remarks>Filter block, used in changes feeds and replication.</remarks>
-	public interface ReplicationFilter
-	{
-		/// <summary>True if the Revision should be included in the pushed replication, otherwise false.
-		/// 	</summary>
-		/// <remarks>True if the Revision should be included in the pushed replication, otherwise false.
-		/// 	</remarks>
-		bool Filter(SavedRevision revision, IDictionary<string, object> @params);
-	}
+    /// <summary>Filter block, used in changes feeds and replication.</summary>
+    /// <remarks>Filter block, used in changes feeds and replication.</remarks>
+    public interface ReplicationFilter
+    {
+        /// <summary>True if the Revision should be included in the pushed replication, otherwise false.
+        ///     </summary>
+        /// <remarks>True if the Revision should be included in the pushed replication, otherwise false.
+        ///     </remarks>
+        bool Filter(SavedRevision revision, IDictionary<string, object> @params);
+    }
 }

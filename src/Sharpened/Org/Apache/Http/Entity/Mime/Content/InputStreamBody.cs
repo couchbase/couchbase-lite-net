@@ -48,83 +48,83 @@ using Sharpen;
 
 namespace Org.Apache.Http.Entity.Mime.Content
 {
-	/// <since>4.0</since>
-	public class InputStreamBody : AbstractContentBody
-	{
-		private readonly InputStream @in;
+    /// <since>4.0</since>
+    public class InputStreamBody : AbstractContentBody
+    {
+        private readonly InputStream @in;
 
-		private readonly string filename;
+        private readonly string filename;
 
-		public InputStreamBody(InputStream @in, string mimeType, string filename) : base(
-			mimeType)
-		{
-			if (@in == null)
-			{
-				throw new ArgumentException("Input stream may not be null");
-			}
-			this.@in = @in;
-			this.filename = filename;
-		}
+        public InputStreamBody(InputStream @in, string mimeType, string filename) : base(
+            mimeType)
+        {
+            if (@in == null)
+            {
+                throw new ArgumentException("Input stream may not be null");
+            }
+            this.@in = @in;
+            this.filename = filename;
+        }
 
-		public InputStreamBody(InputStream @in, string filename) : this(@in, "application/octet-stream"
-			, filename)
-		{
-		}
+        public InputStreamBody(InputStream @in, string filename) : this(@in, "application/octet-stream"
+            , filename)
+        {
+        }
 
-		public virtual InputStream GetInputStream()
-		{
-			return this.@in;
-		}
+        public virtual InputStream GetInputStream()
+        {
+            return this.@in;
+        }
 
-		/// <exception cref="System.IO.IOException"></exception>
-		[Obsolete]
-		[System.ObsoleteAttribute(@"use WriteTo(System.IO.OutputStream)")]
-		public virtual void WriteTo(OutputStream @out, int mode)
-		{
-			WriteTo(@out);
-		}
+        /// <exception cref="System.IO.IOException"></exception>
+        [Obsolete]
+        [System.ObsoleteAttribute(@"use WriteTo(System.IO.OutputStream)")]
+        public virtual void WriteTo(OutputStream @out, int mode)
+        {
+            WriteTo(@out);
+        }
 
-		/// <exception cref="System.IO.IOException"></exception>
-		public override void WriteTo(OutputStream @out)
-		{
-			if (@out == null)
-			{
-				throw new ArgumentException("Output stream may not be null");
-			}
-			try
-			{
-				byte[] tmp = new byte[4096];
-				int l;
-				while ((l = this.@in.Read(tmp)) != -1)
-				{
-					@out.Write(tmp, 0, l);
-				}
-				@out.Flush();
-			}
-			finally
-			{
-				this.@in.Close();
-			}
-		}
+        /// <exception cref="System.IO.IOException"></exception>
+        public override void WriteTo(OutputStream @out)
+        {
+            if (@out == null)
+            {
+                throw new ArgumentException("Output stream may not be null");
+            }
+            try
+            {
+                byte[] tmp = new byte[4096];
+                int l;
+                while ((l = this.@in.Read(tmp)) != -1)
+                {
+                    @out.Write(tmp, 0, l);
+                }
+                @out.Flush();
+            }
+            finally
+            {
+                this.@in.Close();
+            }
+        }
 
-		public override string GetTransferEncoding()
-		{
-			return MIME.EncBinary;
-		}
+        public override string GetTransferEncoding()
+        {
+            return MIME.EncBinary;
+        }
 
-		public override string GetCharset()
-		{
-			return null;
-		}
+        public override string GetCharset()
+        {
+            return null;
+        }
 
-		public override long GetContentLength()
-		{
-			return -1;
-		}
+        public override long GetContentLength()
+        {
+            return -1;
+        }
 
-		public override string GetFilename()
-		{
-			return this.filename;
-		}
-	}
+        public override string GetFilename()
+        {
+            return this.filename;
+        }
+    }
 }

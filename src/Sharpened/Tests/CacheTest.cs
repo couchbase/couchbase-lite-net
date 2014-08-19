@@ -38,27 +38,27 @@ using Sharpen;
 
 namespace Couchbase.Lite
 {
-	public class CacheTest : LiteTestCase
-	{
-		/// <exception cref="System.Exception"></exception>
-		public virtual void TestCache()
-		{
-			int retainCount = 1;
-			Cache cache = new Cache<string, Document>(retainCount);
-			IDictionary<string, object> props = new Dictionary<string, object>();
-			props.Put("foo", "bar");
-			Document doc1 = CreateDocumentWithProperties(database, props);
-			cache.Put(doc1.GetId(), doc1);
-			IDictionary<string, object> props2 = new Dictionary<string, object>();
-			props2.Put("foo2", "bar2");
-			Document doc2 = CreateDocumentWithProperties(database, props2);
-			cache.Put(doc2.GetId(), doc2);
-			NUnit.Framework.Assert.IsNotNull(cache.Get(doc1.GetId()));
-			NUnit.Framework.Assert.IsNotNull(cache.Get(doc2.GetId()));
-			cache.Remove(doc1.GetId());
-			NUnit.Framework.Assert.IsNull(cache.Get(doc1.GetId()));
-			cache.Clear();
-			NUnit.Framework.Assert.IsNull(cache.Get(doc2.GetId()));
-		}
-	}
+    public class CacheTest : LiteTestCase
+    {
+        /// <exception cref="System.Exception"></exception>
+        public virtual void TestCache()
+        {
+            int retainCount = 1;
+            Cache cache = new Cache<string, Document>(retainCount);
+            IDictionary<string, object> props = new Dictionary<string, object>();
+            props.Put("foo", "bar");
+            Document doc1 = CreateDocumentWithProperties(database, props);
+            cache.Put(doc1.GetId(), doc1);
+            IDictionary<string, object> props2 = new Dictionary<string, object>();
+            props2.Put("foo2", "bar2");
+            Document doc2 = CreateDocumentWithProperties(database, props2);
+            cache.Put(doc2.GetId(), doc2);
+            NUnit.Framework.Assert.IsNotNull(cache.Get(doc1.GetId()));
+            NUnit.Framework.Assert.IsNotNull(cache.Get(doc2.GetId()));
+            cache.Remove(doc1.GetId());
+            NUnit.Framework.Assert.IsNull(cache.Get(doc1.GetId()));
+            cache.Clear();
+            NUnit.Framework.Assert.IsNull(cache.Get(doc2.GetId()));
+        }
+    }
 }

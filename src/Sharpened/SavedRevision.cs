@@ -40,200 +40,200 @@ using Sharpen;
 
 namespace Couchbase.Lite
 {
-	/// <summary>Stores information about a revision -- its docID, revID, and whether it's deleted.
-	/// 	</summary>
-	/// <remarks>
-	/// Stores information about a revision -- its docID, revID, and whether it's deleted.
-	/// It can also store the sequence number and document contents (they can be added after creation).
-	/// </remarks>
-	public sealed class SavedRevision : Revision
-	{
-		private RevisionInternal revisionInternal;
+    /// <summary>Stores information about a revision -- its docID, revID, and whether it's deleted.
+    ///     </summary>
+    /// <remarks>
+    /// Stores information about a revision -- its docID, revID, and whether it's deleted.
+    /// It can also store the sequence number and document contents (they can be added after creation).
+    /// </remarks>
+    public sealed class SavedRevision : Revision
+    {
+        private RevisionInternal revisionInternal;
 
-		private bool checkedProperties;
+        private bool checkedProperties;
 
-		/// <summary>Constructor</summary>
-		/// <exclude></exclude>
-		[InterfaceAudience.Private]
-		internal SavedRevision(Document document, RevisionInternal revision) : base(document
-			)
-		{
-			this.revisionInternal = revision;
-		}
+        /// <summary>Constructor</summary>
+        /// <exclude></exclude>
+        [InterfaceAudience.Private]
+        internal SavedRevision(Document document, RevisionInternal revision) : base(document
+            )
+        {
+            this.revisionInternal = revision;
+        }
 
-		/// <summary>Constructor</summary>
-		/// <exclude></exclude>
-		[InterfaceAudience.Private]
-		internal SavedRevision(Database database, RevisionInternal revision) : this(database
-			.GetDocument(revision.GetDocId()), revision)
-		{
-		}
+        /// <summary>Constructor</summary>
+        /// <exclude></exclude>
+        [InterfaceAudience.Private]
+        internal SavedRevision(Database database, RevisionInternal revision) : this(database
+            .GetDocument(revision.GetDocId()), revision)
+        {
+        }
 
-		/// <summary>Get the document this is a revision of</summary>
-		[InterfaceAudience.Public]
-		public override Document GetDocument()
-		{
-			return document;
-		}
+        /// <summary>Get the document this is a revision of</summary>
+        [InterfaceAudience.Public]
+        public override Document GetDocument()
+        {
+            return document;
+        }
 
-		/// <summary>Has this object fetched its contents from the database yet?</summary>
-		[InterfaceAudience.Public]
-		public bool ArePropertiesAvailable()
-		{
-			return revisionInternal.GetProperties() != null;
-		}
+        /// <summary>Has this object fetched its contents from the database yet?</summary>
+        [InterfaceAudience.Public]
+        public bool ArePropertiesAvailable()
+        {
+            return revisionInternal.GetProperties() != null;
+        }
 
-		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
-		[InterfaceAudience.Public]
-		public override IList<Couchbase.Lite.SavedRevision> GetRevisionHistory()
-		{
-			IList<Couchbase.Lite.SavedRevision> revisions = new AList<Couchbase.Lite.SavedRevision
-				>();
-			IList<RevisionInternal> internalRevisions = GetDatabase().GetRevisionHistory(revisionInternal
-				);
-			foreach (RevisionInternal internalRevision in internalRevisions)
-			{
-				if (internalRevision.GetRevId().Equals(GetId()))
-				{
-					revisions.AddItem(this);
-				}
-				else
-				{
-					Couchbase.Lite.SavedRevision revision = document.GetRevisionFromRev(internalRevision
-						);
-					revisions.AddItem(revision);
-				}
-			}
-			Sharpen.Collections.Reverse(revisions);
-			return Sharpen.Collections.UnmodifiableList(revisions);
-		}
+        /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
+        [InterfaceAudience.Public]
+        public override IList<Couchbase.Lite.SavedRevision> GetRevisionHistory()
+        {
+            IList<Couchbase.Lite.SavedRevision> revisions = new AList<Couchbase.Lite.SavedRevision
+                >();
+            IList<RevisionInternal> internalRevisions = GetDatabase().GetRevisionHistory(revisionInternal
+                );
+            foreach (RevisionInternal internalRevision in internalRevisions)
+            {
+                if (internalRevision.GetRevId().Equals(GetId()))
+                {
+                    revisions.AddItem(this);
+                }
+                else
+                {
+                    Couchbase.Lite.SavedRevision revision = document.GetRevisionFromRev(internalRevision
+                        );
+                    revisions.AddItem(revision);
+                }
+            }
+            Sharpen.Collections.Reverse(revisions);
+            return Sharpen.Collections.UnmodifiableList(revisions);
+        }
 
-		/// <summary>
-		/// Creates a new mutable child revision whose properties and attachments are initially identical
-		/// to this one's, which you can modify and then save.
-		/// </summary>
-		/// <remarks>
-		/// Creates a new mutable child revision whose properties and attachments are initially identical
-		/// to this one's, which you can modify and then save.
-		/// </remarks>
-		/// <returns></returns>
-		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
-		[InterfaceAudience.Public]
-		public UnsavedRevision CreateRevision()
-		{
-			UnsavedRevision newRevision = new UnsavedRevision(document, this);
-			return newRevision;
-		}
+        /// <summary>
+        /// Creates a new mutable child revision whose properties and attachments are initially identical
+        /// to this one's, which you can modify and then save.
+        /// </summary>
+        /// <remarks>
+        /// Creates a new mutable child revision whose properties and attachments are initially identical
+        /// to this one's, which you can modify and then save.
+        /// </remarks>
+        /// <returns></returns>
+        /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
+        [InterfaceAudience.Public]
+        public UnsavedRevision CreateRevision()
+        {
+            UnsavedRevision newRevision = new UnsavedRevision(document, this);
+            return newRevision;
+        }
 
-		/// <summary>Creates and saves a new revision with the given properties.</summary>
-		/// <remarks>
-		/// Creates and saves a new revision with the given properties.
-		/// This will fail with a 412 error if the receiver is not the current revision of the document.
-		/// </remarks>
-		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
-		[InterfaceAudience.Public]
-		public Couchbase.Lite.SavedRevision CreateRevision(IDictionary<string, object> properties
-			)
-		{
-			bool allowConflict = false;
-			return document.PutProperties(properties, revisionInternal.GetRevId(), allowConflict
-				);
-		}
+        /// <summary>Creates and saves a new revision with the given properties.</summary>
+        /// <remarks>
+        /// Creates and saves a new revision with the given properties.
+        /// This will fail with a 412 error if the receiver is not the current revision of the document.
+        /// </remarks>
+        /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
+        [InterfaceAudience.Public]
+        public Couchbase.Lite.SavedRevision CreateRevision(IDictionary<string, object> properties
+            )
+        {
+            bool allowConflict = false;
+            return document.PutProperties(properties, revisionInternal.GetRevId(), allowConflict
+                );
+        }
 
-		[InterfaceAudience.Public]
-		public override string GetId()
-		{
-			return revisionInternal.GetRevId();
-		}
+        [InterfaceAudience.Public]
+        public override string GetId()
+        {
+            return revisionInternal.GetRevId();
+        }
 
-		[InterfaceAudience.Public]
-		public override bool IsDeletion()
-		{
-			return revisionInternal.IsDeleted();
-		}
+        [InterfaceAudience.Public]
+        public override bool IsDeletion()
+        {
+            return revisionInternal.IsDeleted();
+        }
 
-		/// <summary>The contents of this revision of the document.</summary>
-		/// <remarks>
-		/// The contents of this revision of the document.
-		/// Any keys in the dictionary that begin with "_", such as "_id" and "_rev", contain CouchbaseLite metadata.
-		/// </remarks>
-		/// <returns>contents of this revision of the document.</returns>
-		[InterfaceAudience.Public]
-		public override IDictionary<string, object> GetProperties()
-		{
-			IDictionary<string, object> properties = revisionInternal.GetProperties();
-			if (properties == null && !checkedProperties)
-			{
-				if (LoadProperties() == true)
-				{
-					properties = revisionInternal.GetProperties();
-				}
-				checkedProperties = true;
-			}
-			return Sharpen.Collections.UnmodifiableMap(properties);
-		}
+        /// <summary>The contents of this revision of the document.</summary>
+        /// <remarks>
+        /// The contents of this revision of the document.
+        /// Any keys in the dictionary that begin with "_", such as "_id" and "_rev", contain CouchbaseLite metadata.
+        /// </remarks>
+        /// <returns>contents of this revision of the document.</returns>
+        [InterfaceAudience.Public]
+        public override IDictionary<string, object> GetProperties()
+        {
+            IDictionary<string, object> properties = revisionInternal.GetProperties();
+            if (properties == null && !checkedProperties)
+            {
+                if (LoadProperties() == true)
+                {
+                    properties = revisionInternal.GetProperties();
+                }
+                checkedProperties = true;
+            }
+            return Sharpen.Collections.UnmodifiableMap(properties);
+        }
 
-		/// <summary>Deletes the document by creating a new deletion-marker revision.</summary>
-		/// <remarks>Deletes the document by creating a new deletion-marker revision.</remarks>
-		/// <returns></returns>
-		/// <exception cref="CouchbaseLiteException">CouchbaseLiteException</exception>
-		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
-		[InterfaceAudience.Public]
-		public Couchbase.Lite.SavedRevision DeleteDocument()
-		{
-			return CreateRevision(null);
-		}
+        /// <summary>Deletes the document by creating a new deletion-marker revision.</summary>
+        /// <remarks>Deletes the document by creating a new deletion-marker revision.</remarks>
+        /// <returns></returns>
+        /// <exception cref="CouchbaseLiteException">CouchbaseLiteException</exception>
+        /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
+        [InterfaceAudience.Public]
+        public Couchbase.Lite.SavedRevision DeleteDocument()
+        {
+            return CreateRevision(null);
+        }
 
-		[InterfaceAudience.Public]
-		public override Couchbase.Lite.SavedRevision GetParent()
-		{
-			return GetDocument().GetRevisionFromRev(GetDatabase().GetParentRevision(revisionInternal
-				));
-		}
+        [InterfaceAudience.Public]
+        public override Couchbase.Lite.SavedRevision GetParent()
+        {
+            return GetDocument().GetRevisionFromRev(GetDatabase().GetParentRevision(revisionInternal
+                ));
+        }
 
-		[InterfaceAudience.Public]
-		public override string GetParentId()
-		{
-			RevisionInternal parRev = GetDocument().GetDatabase().GetParentRevision(revisionInternal
-				);
-			if (parRev == null)
-			{
-				return null;
-			}
-			return parRev.GetRevId();
-		}
+        [InterfaceAudience.Public]
+        public override string GetParentId()
+        {
+            RevisionInternal parRev = GetDocument().GetDatabase().GetParentRevision(revisionInternal
+                );
+            if (parRev == null)
+            {
+                return null;
+            }
+            return parRev.GetRevId();
+        }
 
-		[InterfaceAudience.Public]
-		internal override long GetSequence()
-		{
-			long sequence = revisionInternal.GetSequence();
-			if (sequence == 0 && LoadProperties())
-			{
-				sequence = revisionInternal.GetSequence();
-			}
-			return sequence;
-		}
+        [InterfaceAudience.Public]
+        internal override long GetSequence()
+        {
+            long sequence = revisionInternal.GetSequence();
+            if (sequence == 0 && LoadProperties())
+            {
+                sequence = revisionInternal.GetSequence();
+            }
+            return sequence;
+        }
 
-		/// <exclude></exclude>
-		[InterfaceAudience.Private]
-		internal bool LoadProperties()
-		{
-			try
-			{
-				RevisionInternal loadRevision = GetDatabase().LoadRevisionBody(revisionInternal, 
-					EnumSet.NoneOf<Database.TDContentOptions>());
-				if (loadRevision == null)
-				{
-					Log.W(Database.Tag, "%s: Couldn't load body/sequence", this);
-					return false;
-				}
-				revisionInternal = loadRevision;
-				return true;
-			}
-			catch (CouchbaseLiteException e)
-			{
-				throw new RuntimeException(e);
-			}
-		}
-	}
+        /// <exclude></exclude>
+        [InterfaceAudience.Private]
+        internal bool LoadProperties()
+        {
+            try
+            {
+                RevisionInternal loadRevision = GetDatabase().LoadRevisionBody(revisionInternal, 
+                    EnumSet.NoneOf<Database.TDContentOptions>());
+                if (loadRevision == null)
+                {
+                    Log.W(Database.Tag, "%s: Couldn't load body/sequence", this);
+                    return false;
+                }
+                revisionInternal = loadRevision;
+                return true;
+            }
+            catch (CouchbaseLiteException e)
+            {
+                throw new RuntimeException(e);
+            }
+        }
+    }
 }

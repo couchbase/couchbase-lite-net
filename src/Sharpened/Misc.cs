@@ -39,65 +39,65 @@ using Sharpen;
 
 namespace Couchbase.Lite
 {
-	/// <exclude></exclude>
-	public class Misc
-	{
-		public static string TDCreateUUID()
-		{
-			return UUID.RandomUUID().ToString();
-		}
+    /// <exclude></exclude>
+    public class Misc
+    {
+        public static string TDCreateUUID()
+        {
+            return UUID.RandomUUID().ToString();
+        }
 
-		public static string TDHexSHA1Digest(byte[] input)
-		{
-			MessageDigest md;
-			try
-			{
-				md = MessageDigest.GetInstance("SHA-1");
-			}
-			catch (NoSuchAlgorithmException)
-			{
-				Log.E(Database.Tag, "Error, SHA-1 digest is unavailable.");
-				return null;
-			}
-			byte[] sha1hash = new byte[40];
-			md.Update(input, 0, input.Length);
-			sha1hash = md.Digest();
-			return ConvertToHex(sha1hash);
-		}
+        public static string TDHexSHA1Digest(byte[] input)
+        {
+            MessageDigest md;
+            try
+            {
+                md = MessageDigest.GetInstance("SHA-1");
+            }
+            catch (NoSuchAlgorithmException)
+            {
+                Log.E(Database.Tag, "Error, SHA-1 digest is unavailable.");
+                return null;
+            }
+            byte[] sha1hash = new byte[40];
+            md.Update(input, 0, input.Length);
+            sha1hash = md.Digest();
+            return ConvertToHex(sha1hash);
+        }
 
-		public static string ConvertToHex(byte[] data)
-		{
-			StringBuilder buf = new StringBuilder();
-			for (int i = 0; i < data.Length; i++)
-			{
-				int halfbyte = (data[i] >> 4) & unchecked((int)(0x0F));
-				int two_halfs = 0;
-				do
-				{
-					if ((0 <= halfbyte) && (halfbyte <= 9))
-					{
-						buf.Append((char)('0' + halfbyte));
-					}
-					else
-					{
-						buf.Append((char)('a' + (halfbyte - 10)));
-					}
-					halfbyte = data[i] & unchecked((int)(0x0F));
-				}
-				while (two_halfs++ < 1);
-			}
-			return buf.ToString();
-		}
+        public static string ConvertToHex(byte[] data)
+        {
+            StringBuilder buf = new StringBuilder();
+            for (int i = 0; i < data.Length; i++)
+            {
+                int halfbyte = (data[i] >> 4) & unchecked((int)(0x0F));
+                int two_halfs = 0;
+                do
+                {
+                    if ((0 <= halfbyte) && (halfbyte <= 9))
+                    {
+                        buf.Append((char)('0' + halfbyte));
+                    }
+                    else
+                    {
+                        buf.Append((char)('a' + (halfbyte - 10)));
+                    }
+                    halfbyte = data[i] & unchecked((int)(0x0F));
+                }
+                while (two_halfs++ < 1);
+            }
+            return buf.ToString();
+        }
 
-		public static int TDSequenceCompare(long a, long b)
-		{
-			long diff = a - b;
-			return diff > 0 ? 1 : (diff < 0 ? -1 : 0);
-		}
+        public static int TDSequenceCompare(long a, long b)
+        {
+            long diff = a - b;
+            return diff > 0 ? 1 : (diff < 0 ? -1 : 0);
+        }
 
-		public static string UnquoteString(string param)
-		{
-			return param.Replace("\"", string.Empty);
-		}
-	}
+        public static string UnquoteString(string param)
+        {
+            return param.Replace("\"", string.Empty);
+        }
+    }
 }

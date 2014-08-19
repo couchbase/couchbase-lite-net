@@ -37,45 +37,45 @@ using Sharpen;
 
 namespace Couchbase.Lite
 {
-	/// <summary>Portable java wrapper around a "system specific" context.</summary>
-	/// <remarks>
-	/// Portable java wrapper around a "system specific" context.  The main implementation wraps an
-	/// Android context.
-	/// The wrapper is needed so that there are no compile time dependencies on Android classes
-	/// within the Couchbase Lite java core library.
-	/// This also has the nice side effect of having a single place to see exactly what parts of the
-	/// Android context are being used.
-	/// </remarks>
-	public interface Context
-	{
-		/// <summary>The files dir.</summary>
-		/// <remarks>The files dir.  On Android implementation, simply proxies call to underlying Context
-		/// 	</remarks>
-		FilePath GetFilesDir();
+    /// <summary>Portable java wrapper around a "system specific" context.</summary>
+    /// <remarks>
+    /// Portable java wrapper around a "system specific" context.  The main implementation wraps an
+    /// Android context.
+    /// The wrapper is needed so that there are no compile time dependencies on Android classes
+    /// within the Couchbase Lite java core library.
+    /// This also has the nice side effect of having a single place to see exactly what parts of the
+    /// Android context are being used.
+    /// </remarks>
+    public interface Context
+    {
+        /// <summary>The files dir.</summary>
+        /// <remarks>The files dir.  On Android implementation, simply proxies call to underlying Context
+        ///     </remarks>
+        FilePath GetFilesDir();
 
-		/// <summary>
-		/// Override the default behavior and set your own NetworkReachabilityManager subclass,
-		/// which allows you to completely control how to respond to network reachability changes
-		/// in your app affects the replicators that are listening for change events.
-		/// </summary>
-		/// <remarks>
-		/// Override the default behavior and set your own NetworkReachabilityManager subclass,
-		/// which allows you to completely control how to respond to network reachability changes
-		/// in your app affects the replicators that are listening for change events.
-		/// </remarks>
-		void SetNetworkReachabilityManager(NetworkReachabilityManager networkReachabilityManager
-			);
+        /// <summary>
+        /// Override the default behavior and set your own NetworkReachabilityManager subclass,
+        /// which allows you to completely control how to respond to network reachability changes
+        /// in your app affects the replicators that are listening for change events.
+        /// </summary>
+        /// <remarks>
+        /// Override the default behavior and set your own NetworkReachabilityManager subclass,
+        /// which allows you to completely control how to respond to network reachability changes
+        /// in your app affects the replicators that are listening for change events.
+        /// </remarks>
+        void SetNetworkReachabilityManager(NetworkReachabilityManager networkReachabilityManager
+            );
 
-		/// <summary>
-		/// Replicators call this to get the NetworkReachabilityManager, and they register/unregister
-		/// themselves to receive network reachability callbacks.
-		/// </summary>
-		/// <remarks>
-		/// Replicators call this to get the NetworkReachabilityManager, and they register/unregister
-		/// themselves to receive network reachability callbacks.
-		/// If setNetworkReachabilityManager() was called prior to this, that instance will be used.
-		/// Otherwise, the context will create a new default reachability manager and return that.
-		/// </remarks>
-		NetworkReachabilityManager GetNetworkReachabilityManager();
-	}
+        /// <summary>
+        /// Replicators call this to get the NetworkReachabilityManager, and they register/unregister
+        /// themselves to receive network reachability callbacks.
+        /// </summary>
+        /// <remarks>
+        /// Replicators call this to get the NetworkReachabilityManager, and they register/unregister
+        /// themselves to receive network reachability callbacks.
+        /// If setNetworkReachabilityManager() was called prior to this, that instance will be used.
+        /// Otherwise, the context will create a new default reachability manager and return that.
+        /// </remarks>
+        NetworkReachabilityManager GetNetworkReachabilityManager();
+    }
 }
