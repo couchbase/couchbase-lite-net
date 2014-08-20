@@ -3649,7 +3649,7 @@ PRAGMA user_version = 3;";
             }
         }
 
-        private Uri FileForAttachmentDict(IDictionary<String, Object> attachmentDict)
+        internal Uri FileForAttachmentDict(IDictionary<String, Object> attachmentDict)
         {
             var digest = (string)attachmentDict.Get("digest");
             if (digest == null)

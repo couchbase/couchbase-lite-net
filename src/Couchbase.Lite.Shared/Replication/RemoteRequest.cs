@@ -68,7 +68,7 @@ namespace Couchbase.Lite.Replicator
 
         protected internal object body;
 
-        protected internal IAuthenticator authenticator;
+        protected internal IAuthenticator Authenticator { get; set; }
 
         public event EventHandler<RemoteRequestEventArgs> WillComplete;
 
@@ -181,12 +181,6 @@ namespace Couchbase.Lite.Replicator
             }
         }
 
-        /// <summary>Set IAuthenticator for BASIC Authentication</summary>
-        public void SetAuthenticator(IAuthenticator authenticator)
-        {
-            this.authenticator = authenticator;
-        }
-
         /// <summary>
         /// Retry this remote request, unless we've already retried MAX_RETRIES times
         /// NOTE: This assumes all requests are idempotent, since even though we got an error back, the
@@ -295,9 +289,9 @@ namespace Couchbase.Lite.Replicator
             }
             else
             {
-                if (authenticator != null)
+                if (Authenticator != null)
                 {
-                    var auth = authenticator;
+                    var auth = Authenticator;
                     userInfo = auth.UserInfo;
                 }
             }

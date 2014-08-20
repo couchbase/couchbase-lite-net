@@ -270,7 +270,7 @@ namespace Couchbase.Lite
 
         internal string ServerType { get; set; }
         internal Batcher<RevisionInternal> Batcher { get; set; }
-        private CancellationTokenSource CancellationTokenSource { get; set; }
+        protected CancellationTokenSource CancellationTokenSource { get; set; }
         private CancellationTokenSource RetryIfReadyTokenSource { get; set; }
         private Task RetryIfReadyTask { get; set; }
 

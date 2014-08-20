@@ -66,6 +66,8 @@ namespace Couchbase.Lite.Replicator
 
         private BulkDownloaderDelegate _onDocument;
 
+        public event EventHandler<BulkDownloadEventArgs> DocumentDownloaded;
+
         /// <exception cref="System.Exception"></exception>
         public BulkDownloader(TaskFactory workExecutor, IHttpClientFactory clientFactory, Uri dbURL, IList<RevisionInternal> revs, Database database, IDictionary<string, object> requestHeaders, CancellationTokenSource tokenSource = null)
             : base(workExecutor, clientFactory, "POST", new Uri(BuildRelativeURLString(dbURL, "/_bulk_get?revs=true&attachments=true")), HelperMethod(revs, database), database, requestHeaders, tokenSource)
@@ -82,8 +84,10 @@ namespace Couchbase.Lite.Replicator
         {
             var httpClient = clientFactory.GetHttpClient();
             PreemptivelySetAuthCredentials(httpClient);
+
             requestMessage.Headers.Add("Content-Type", "application/json");
             requestMessage.Headers.Add("Accept", "multipart/related");
+
             //TODO: implement gzip support for server response see issue #172
             //request.addHeader("X-Accept-Part-Encoding", "gzip");
             AddRequestHeaders(requestMessage);
@@ -247,8 +251,15 @@ namespace Couchbase.Lite.Replicator
             }
             _docReader.Finish();
             ++_docCount;
-            _onDocument(_docReader.GetDocumentProperties());
+            OnDocumentDownloaded(_docReader.GetDocumentProperties());
             _docReader = null;
+        }
+
+        protected virtual void OnDocumentDownloaded (IDictionary<string, object> props)
+        {
+            var handler = DocumentDownloaded;
+            if (handler != null)
+                handler (this, new BulkDownloadEventArgs(props));
         }
 
         private static IDictionary<string, object> HelperMethod(IList<RevisionInternal> revs, Database database)
