@@ -55,14 +55,22 @@ using Couchbase.Lite.Auth;
 using Couchbase.Lite.Replicator;
 using Couchbase.Lite.Util;
 using Sharpen;
+using System.Text;
 
 namespace Couchbase.Lite.Replicator
 {
+    internal enum ChangeTrackerMode
+    {
+        OneShot,
+        LongPoll
+    }
+
+
     /// <summary>
     /// Reads the continuous-mode _changes feed of a database, and sends the
     /// individual change entries to its client's changeTrackerReceivedChange()
     /// </summary>
-    internal class ChangeTracker : Runnable
+    internal class ChangeTracker
     {
         const String Tag = "ChangeTracker";
 
@@ -74,7 +82,7 @@ namespace Couchbase.Lite.Replicator
 
         private IChangeTrackerClient client;
 
-        private ChangeTracker.ChangeTrackerMode mode;
+        private ChangeTrackerMode mode;
 
         private Object lastSequenceID;
 
@@ -83,8 +91,6 @@ namespace Couchbase.Lite.Replicator
         private TaskFactory WorkExecutor;
 
         private Task runTask;
-
-        private Boolean running = false;
 
         private readonly object stopMutex = new object();
 
@@ -106,20 +112,15 @@ namespace Couchbase.Lite.Replicator
 
         private readonly CancellationTokenSource tokenSource;
 
-        internal enum ChangeTrackerMode
-        {
-            OneShot,
-            LongPoll,
-            Continuous
-        }
-
+        /// <summary>Set Authenticator for BASIC Authentication</summary>
         public IAuthenticator Authenticator { get; set; }
 
         public bool UsePost { get; set; }
 
-        public ChangeTracker(Uri databaseURL, ChangeTracker.ChangeTrackerMode mode, object lastSequenceID, 
+        public ChangeTracker(Uri databaseURL, ChangeTrackerMode mode, object lastSequenceID, 
             Boolean includeConflicts, IChangeTrackerClient client, TaskFactory workExecutor = null)
         {
+            // does not work, do not use it.
             this.databaseURL = databaseURL;
             this.mode = mode;
             this.includeConflicts = includeConflicts;
@@ -165,14 +166,62 @@ namespace Couchbase.Lite.Replicator
 
         public string GetChangesFeedPath()
         {
-            string path = "_changes";
-
-            if (!UsePost)
+            if (UsePost)
             {
-                path = path + "?" + GetChangesFeedParams().ToQueryString();
+                return "_changes";
             }
 
-            return path;
+            var path = new StringBuilder("_changes?feed=");
+            path.Append(GetFeed());
+
+            if (mode == ChangeTrackerMode.LongPoll)
+            {
+                path.Append(string.Format("&limit={0}", LongPollModeLimit));
+            }
+            path.Append(string.Format("&heartbeat={0}", HeartbeatMilliseconds));
+            if (includeConflicts)
+            {
+                path.Append("&style=all_docs");
+            }
+            if (lastSequenceID != null)
+            {
+                path.Append("&since=");
+                path.Append(Uri.EscapeUriString(lastSequenceID.ToString()));
+            }
+            if (docIDs != null && docIDs.Count > 0)
+            {
+                filterName = "_doc_ids";
+                filterParams = new Dictionary<string, object>();
+                filterParams.Put("doc_ids", docIDs);
+            }
+            if (filterName != null)
+            {
+                path.Append("&filter=");
+                path.Append(Uri.EscapeUriString(filterName));
+                if (filterParams != null)
+                {
+                    foreach (string filterParamKey in filterParams.Keys)
+                    {
+                        var value = filterParams.Get(filterParamKey);
+                        if (!(value is string))
+                        {
+                            try
+                            {
+                                value = Manager.GetObjectMapper().WriteValueAsString(value);
+                            }
+                            catch (IOException e)
+                            {
+                                throw new InvalidOperationException("Unable to JSON-serialize a filter parameter value.", e);
+                            }
+                        }
+                        path.Append("&");
+                        path.Append(Uri.EscapeUriString(filterParamKey));
+                        path.Append("=");
+                        path.Append(Uri.EscapeUriString(value.ToString()));
+                    }
+                }
+            }
+            return path.ToString();
         }
 
         public Uri GetChangesFeedURL()
@@ -197,14 +246,14 @@ namespace Couchbase.Lite.Replicator
         }
 
         // TODO: Needs to refactored into smaller calls. Each continuation could be its own method, for example.
-        public async void Run()
+        public void Run()
         {
-            if (IsRunning()) 
+            if (IsRunning) 
             {
                 return;
             }
 
-            running = true;
+            IsRunning = true;
 
             if (client == null)
             {
@@ -215,18 +264,10 @@ namespace Couchbase.Lite.Replicator
                 return;
             }
 
-            if (mode == ChangeTracker.ChangeTrackerMode.Continuous)
-            {
-                // there is a failing unit test for this, and from looking at the code the Replication
-                // object will never use Continuous mode anyway.  Explicitly prevent its use until
-                // it is demonstrated to actually work.
-                throw new RuntimeException("ChangeTracker does not correctly support continuous mode");
-            }
-
             backoff = new ChangeTrackerBackoff();
 
             this.shouldBreak = false;
-            while (IsRunning())
+            while (IsRunning)
             {
                 if (tokenSource.Token.IsCancellationRequested)
                     break;
@@ -263,15 +304,16 @@ namespace Couchbase.Lite.Replicator
                     if (tokenSource.Token.IsCancellationRequested)
                         break;
                         
-                    var response = await httpClient.SendAsync(Request, HttpCompletionOption.ResponseHeadersRead, tokenSource.Token);
-                    await ChangeFeedResponseHandler(response);
+                    var task = httpClient
+                        .SendAsync(Request, HttpCompletionOption.ResponseHeadersRead, tokenSource.Token)
+                        .ContinueWith<HttpResponseMessage>(ChangeFeedResponseHandler)
+                        .ContinueWith(t => { if (t != null) t.Result.Dispose(); return;});
 
-                    response.Dispose();
                     Request.Dispose();
                 }
                 catch (Exception e)
                 {
-                    if (!IsRunning() && e is IOException)
+                    if (!IsRunning && e is IOException)
                     {
                         // swallow
                     }
@@ -304,10 +346,12 @@ namespace Couchbase.Lite.Replicator
             }
         }
 
-        async Task ChangeFeedResponseHandler(HttpResponseMessage response)
+        HttpResponseMessage ChangeFeedResponseHandler(Task<HttpResponseMessage> responseTask)
         {
+            var response = responseTask.Result;
             var status = response.StatusCode;
-            if ((Int32)status >= 300 && !Misc.IsTransientError(status))
+            if ((responseTask.IsCanceled || responseTask.IsFaulted) 
+            || ((Int32)status >= 300 && !Misc.IsTransientError(status)))
             {
                 var msg = response.Content != null 
                     ? String.Format("Change tracker got error with status code: {0}", status)
@@ -315,35 +359,21 @@ namespace Couchbase.Lite.Replicator
                 Log.E(Tag, msg);
                 Error = new CouchbaseLiteException (msg, new Status (status.GetStatusCode ()));
                 Stop();
+                return response;
             }
                 
             switch (mode)
             {
-                case ChangeTrackerMode.Continuous:
-                    {
-                        using (var contentStream = await response.Content.ReadAsStreamAsync())
-                        using (var contentReader = new StreamReader(contentStream))
-                        {
-                            while (!tokenSource.IsCancellationRequested && !contentReader.EndOfStream)
-                            {
-                                var change = await contentReader.ReadLineAsync();
-                                Log.V(Tag, "Read longpolling change: {0}".Fmt(change));
-                                var fullBody = Manager.GetObjectMapper().ReadValue<IDictionary<string, object>>(change);
-                                var responseOK = ReceivedChange(fullBody);
-                            }
-                        }
-                    }
-                    break;
                 case ChangeTrackerMode.LongPoll:
                     {
-                        var content = await response.Content.ReadAsByteArrayAsync();
+                        var content = response.Content.ReadAsByteArrayAsync().Result;
                         var fullBody = Manager.GetObjectMapper().ReadValue<IDictionary<string, object>>(content.AsEnumerable());
                         var responseOK = ReceivedPollResponse(fullBody);
                         if (responseOK)
                         {
                             Log.V(Tag, "Starting new longpoll");
                             backoff.ResetBackoff();
-                            return;
+                            return response;
                         }
                         else
                         {
@@ -379,15 +409,15 @@ namespace Couchbase.Lite.Replicator
                         // we need to setup the Stop() call with the WorkExecutor as well 
                         // (Assuming that the WorkExecutor is a single thread executor).
 
-                        WorkExecutor.StartNew(() => Stop());
+                        WorkExecutor.StartNew(Stop);
 
                         this.shouldBreak = true;
-
-                        return;
+                        return response;
                     }
             }
 
             backoff.ResetBackoff();
+            return response;
         }
 
         public bool ReceivedChange(IDictionary<string, object> change)
@@ -446,14 +476,14 @@ namespace Couchbase.Lite.Replicator
             // consumers).
             lock(stopMutex)
             {
-                if (!IsRunning())
+                if (!IsRunning)
                 {
                     return;
                 }
 
                 Log.D(Tag, "changed tracker asked to stop");
 
-                running = false;
+                IsRunning = false;
 
                 if (Request != null)
                 {
@@ -486,9 +516,9 @@ namespace Couchbase.Lite.Replicator
             this.docIDs = docIDs;
         }
 
-        public bool IsRunning()
+        public bool IsRunning
         {
-            return running;
+            get; private set;
         }
 
         internal void SetRequestHeaders(IDictionary<String, Object> requestHeaders)
@@ -504,40 +534,56 @@ namespace Couchbase.Lite.Replicator
             }
         }
 
-        private string GetFeedModeValue()
+        private string GetFeed()
         {
             switch (mode)
             {
-                case ChangeTracker.ChangeTrackerMode.OneShot:
-                    return "normal";
-                case ChangeTracker.ChangeTrackerMode.LongPoll:
+                case ChangeTrackerMode.LongPoll:
                     return "longpoll";
-                case ChangeTracker.ChangeTrackerMode.Continuous:
-                    return "continuous";
+                default:
+                    return "normal";
             }
-            return "normal";
         }
 
         internal IDictionary<string, object> GetChangesFeedParams()
         {
-            var bodyParams = new Dictionary<string, object>();
-            bodyParams["feed"] = GetFeedModeValue();
+            if (!UsePost)
+            {
+                return null;
+            }
 
+            if (docIDs != null && docIDs.Count > 0)
+            {
+                filterName = "_doc_ids";
+                filterParams = new Dictionary<string, object>();
+                filterParams.Put("doc_ids", docIDs);
+            }
+
+            var bodyParams = new Dictionary<string, object>();
+            bodyParams["feed"] = GetFeed();
             bodyParams["heartbeat"] = HeartbeatMilliseconds;
 
             if (includeConflicts) 
             {
                 bodyParams["style"] = "all_docs";
             }
+            else
+            {
+                bodyParams["style"] = null;
+            }
 
             if (lastSequenceID != null)
             {
-                bodyParams["since"] = lastSequenceID.ToString();
+                Int64 sequenceAsLong;
+                var success = Int64.TryParse(lastSequenceID.ToString(), out sequenceAsLong);
+                bodyParams["since"] = success ? sequenceAsLong : lastSequenceID;
             }
 
-            if (mode == ChangeTracker.ChangeTrackerMode.LongPoll)
+            if (mode == ChangeTrackerMode.LongPoll)
             {
-                bodyParams["limit"] = LongPollModeLimit.ToString();
+                bodyParams["limit"] = LongPollModeLimit > 0  //NOTE: This is to make tweaking this value easier.
+                    ? LongPollModeLimit.ToString() 
+                    : null;
             }
 
             if (docIDs != null && docIDs.Count > 0)
@@ -550,10 +596,7 @@ namespace Couchbase.Lite.Replicator
             if (filterName != null)
             {
                 bodyParams["filter"] = filterName;
-                foreach(var param in filterParams)
-                {
-                    bodyParams[param.Key] = param.Value;
-                }
+                bodyParams.PutAll(filterParams);
             }
 
             return bodyParams;

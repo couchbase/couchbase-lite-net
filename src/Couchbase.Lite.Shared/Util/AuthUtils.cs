@@ -46,12 +46,11 @@ using Couchbase.Lite.Auth;
 
 namespace Couchbase.Lite.Util
 {
-    internal class AuthUtils
+    internal static class AuthUtils
     {
         const String Tag = "AuthUtils";
 
-        internal static AuthenticationHeaderValue GetAuthenticationHeaderValue(
-            IAuthenticator authenticator, Uri uri)
+        internal static AuthenticationHeaderValue GetAuthenticationHeaderValue(IAuthenticator authenticator, Uri uri)
         {
             AuthenticationHeaderValue authHeader = null;
 

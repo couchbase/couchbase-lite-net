@@ -55,6 +55,12 @@ namespace Couchbase.Lite.Tests
 
         public HttpClientHandler HttpHandler { get ; set; }
 
+        public MessageProcessingHandler Handler {
+            get {
+                throw new NotImplementedException ();
+            }
+        }
+
         public AlwaysFailingClientFactory()
         {
             Headers = new Dictionary<string,string>();

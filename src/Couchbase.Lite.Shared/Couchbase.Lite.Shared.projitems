@@ -39,7 +39,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)Replication\Batcher.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Replication\ChangeTracker.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Replication\ChangeTrackerBackoff.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Replication\ChangeTrackerClient.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Replication\CouchbaseLiteHttpClientFactory.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Replication\HttpResponseException.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Replication\MultipartDocumentReader.cs" />
@@ -218,6 +217,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Replication\RemoteRequest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Replication\RemoteRequestEventArgs.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Replication\RemoteRequestCompletionBlock.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Replication\IChangeTrackerClient.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="$(MSBuildThisFileDirectory)Store\MonoSQLiteStorageEngine.cs" />

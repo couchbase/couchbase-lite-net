@@ -58,6 +58,12 @@ namespace Couchbase.Lite.Tests
 
         public MockHttpRequestHandler HttpHandler { get; private set;}
 
+        public MessageProcessingHandler Handler {
+            get {
+                throw new NotImplementedException ();
+            }
+        }
+
         public IDictionary<string, string> Headers { get; set; }
 
         public MockHttpClientFactory() : this (null) { }

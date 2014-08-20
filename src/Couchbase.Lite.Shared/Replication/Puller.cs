@@ -117,8 +117,8 @@ namespace Couchbase.Lite.Replicator
             Log.W(Tag, "starting ChangeTracker with since=" + LastSequence);
 
             var mode = Continuous 
-                       ? ChangeTracker.ChangeTrackerMode.LongPoll 
-                       : ChangeTracker.ChangeTrackerMode.OneShot;
+                       ? ChangeTrackerMode.LongPoll 
+                       : ChangeTrackerMode.OneShot;
 
             changeTracker = new ChangeTracker(RemoteUrl, mode, LastSequence, true, this, WorkExecutor);
             changeTracker.Authenticator = Authenticator;
