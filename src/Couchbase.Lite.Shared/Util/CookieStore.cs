@@ -67,8 +67,10 @@ namespace Couchbase.Lite.Util
             cookiesField = typeof(CookieContainer)
                 .GetField("cookies", (BindingFlags.GetField | BindingFlags.Instance | BindingFlags.NonPublic));
 
-            this.directory = new DirectoryInfo(directory);
-
+            if (directory != null)
+            {
+                this.directory = new DirectoryInfo(directory);
+            }
             DeserializeFromDisk();
         }
 
