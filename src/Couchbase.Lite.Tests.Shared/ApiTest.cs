@@ -423,7 +423,7 @@ namespace Couchbase.Lite
             doc.Delete();
 
             Assert.IsTrue(doc.Deleted);
-            Assert.IsNotNull(doc.CurrentRevision.IsDeletion);
+            Assert.IsNull(doc.CurrentRevision);
         }
 
         /// <exception cref="System.Exception"></exception>

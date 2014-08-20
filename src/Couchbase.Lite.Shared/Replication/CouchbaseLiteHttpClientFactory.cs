@@ -137,14 +137,12 @@ namespace Couchbase.Lite.Support
 
         public HttpClient GetHttpClient()
         {
-            // NOTE: Probably could set httpHandler.MaxRequestContentBufferSize to Couchbase Lite 
-            // max doc size (~16 MB) plus some overhead.
             var authHandler = Handler;
             var client =  new HttpClient(authHandler)
             {
                 Timeout = ManagerOptions.Default.RequestTimeout,
-// TODO:               MaxResponseContentBufferSize = CouchbaseLiteMaxContentSize
             };
+
             foreach(var header in Headers)
             {
                 var success = client.DefaultRequestHeaders.TryAddWithoutValidation(header.Key, header.Value);
