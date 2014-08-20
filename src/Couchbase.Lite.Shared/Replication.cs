@@ -343,8 +343,8 @@ namespace Couchbase.Lite
             LocalDatabase.Manager.CapturedContext.StartNew(()=>evt(this, args));
         }
 
-        // This method will be used by Router.
-        internal bool GoOffline()
+        // This method will be used by Router & Reachability Manager
+        internal virtual bool GoOffline()
         {
             if (!online)
             {
@@ -370,8 +370,8 @@ namespace Couchbase.Lite
             return true;
         }
 
-        // This method will be used by Router.
-        internal bool GoOnline()
+        // This method will be used by Router & Reachability Manager
+        internal virtual bool GoOnline()
         {
             if (online)
             {

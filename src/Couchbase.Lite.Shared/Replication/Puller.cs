@@ -260,28 +260,11 @@ namespace Couchbase.Lite.Replicator
             }
         }
 
-        public MessageProcessingHandler Handler { get { return clientFactory.Handler; } }
-
         public HttpClient GetHttpClient()
         {
             return clientFactory.GetHttpClient();
         }
             
-        public void AddCookies(CookieCollection cookies)
-        {
-            clientFactory.AddCookies(cookies);
-        }
-
-        public void DeleteCookie(Uri domain, string name)
-        {
-            clientFactory.DeleteCookie(domain, name);
-        }
-
-        public CookieContainer GetCookieContainer()
-        {
-            return clientFactory.GetCookieContainer();
-        }
-
         /// <summary>Process a bunch of remote revisions from the _changes feed at once</summary>
         internal override void ProcessInbox(RevisionList inbox)
         {
@@ -565,7 +548,7 @@ namespace Couchbase.Lite.Replicator
             return Uri.EscapeUriString(Runtime.GetStringForBytes(json));
         }
 
-        internal Boolean GoOffline()
+        internal override Boolean GoOffline()
         {
             Log.D(Tag, "goOffline() called, stopping changeTracker: " + changeTracker);
             if (!base.GoOffline())

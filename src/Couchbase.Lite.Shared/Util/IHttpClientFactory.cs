@@ -44,7 +44,6 @@ using System;
 using System.Net.Http;
 using System.Collections.Generic;
 using System.Net;
-using Couchbase.Lite.Replicator;
 
 namespace Couchbase.Lite.Support
 {
