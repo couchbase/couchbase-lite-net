@@ -4017,7 +4017,7 @@ PRAGMA user_version = 3;";
 
             if (json != null)
             {
-                md5Digest.Update((byte[])json);
+                md5Digest.Update(json != null ? json.ToArray() : null);
             }
 
             var md5DigestResult = md5Digest.Digest();
