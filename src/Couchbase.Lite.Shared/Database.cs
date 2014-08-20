@@ -3194,7 +3194,7 @@ PRAGMA user_version = 3;";
                 {
                     json = Encoding.UTF8.GetBytes("{}"); // NOTE.ZJG: Confirm w/ Traun. This prevents a null reference exception in call to InsertRevision below.
                 }
-                var newRevId = GenerateIDForRevision(oldRev, json.ToArray(), attachments, prevRevId);
+                var newRevId = GenerateIDForRevision(oldRev, json, attachments, prevRevId);
                 newRev = oldRev.CopyWithDocID(docId, newRevId);
                 StubOutAttachmentsInRevision(attachments, newRev);
                 // Now insert the rev itself:
@@ -3959,7 +3959,7 @@ PRAGMA user_version = 3;";
             return attachments;
         }
 
-        internal String GenerateIDForRevision(RevisionInternal rev, byte[] json, IDictionary<string, AttachmentInternal> attachments, string previousRevisionId)
+        internal String GenerateIDForRevision(RevisionInternal rev, IEnumerable<byte> json, IDictionary<string, AttachmentInternal> attachments, string previousRevisionId)
         {
             MessageDigest md5Digest;
 
@@ -4017,7 +4017,7 @@ PRAGMA user_version = 3;";
 
             if (json != null)
             {
-                md5Digest.Update(json);
+                md5Digest.Update((byte[])json);
             }
 
             var md5DigestResult = md5Digest.Digest();
