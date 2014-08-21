@@ -558,9 +558,9 @@ namespace Couchbase.Lite.Replicator
             if (revisionBodyTransformationFunction != null)
             {
                 // Add 'file' properties to attachments pointing to their bodies:
-                foreach (var entry in ((IDictionary<string, IDictionary<string, object>>)rev.GetProperties().Get("_attachments")).EntrySet())
+                foreach (var entry in rev.GetProperties().Get("_attachments").AsDictionary<string,object>())
                 {
-                    var attachment = entry.Value;
+                    var attachment = entry.Value as IDictionary<string, object>;
                     attachment.Remove("file");
 
                     if (attachment.Get("follows") != null && attachment.Get("data") == null)
