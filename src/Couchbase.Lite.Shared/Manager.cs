@@ -55,6 +55,7 @@ using System.Text.RegularExpressions;
 using System.Collections.ObjectModel;
 using Couchbase.Lite.Replicator;
 using Couchbase.Lite.Support;
+using System.Net.NetworkInformation;
 
 namespace Couchbase.Lite
 {
@@ -131,16 +132,15 @@ namespace Couchbase.Lite
         /// <summary>
         /// Initializes a Manager that stores Databases in the given directory.
         /// </summary>
-        /// <param name="context"><see cref="Couchbase.Lite.IContext"/> object for initializing the Manager object.</param>
+        /// <param name="directoryFile"><see cref="System.IO.DirectoryInfo"/> object for initializing the Manager object.</param>
         /// <param name="options">Option flags for initialization.</param>
         /// <exception cref="T:System.IO.DirectoryNotFoundException">Thrown when there is an error while accessing or creating the given directory.</exception>
-        public Manager(DirectoryInfo directoryFile, ManagerOptions options, INetworkReachabilityManager networkReachabilityManager = null)
+        public Manager(DirectoryInfo directoryFile, ManagerOptions options)
         {
             Log.I(Tag, "Starting Manager version: " + VersionString);
 
             this.directoryFile = directoryFile;
             this.options = options ?? DefaultOptions;
-            this.NetworkReachabilityManager = networkReachabilityManager;
             this.databases = new Dictionary<string, Database>();
             this.replications = new AList<Replication>();
 
@@ -162,6 +162,8 @@ namespace Couchbase.Lite
             workExecutor = new TaskFactory(new SingleThreadTaskScheduler());
             Log.D(Tag, "New replication uses a scheduler with a max concurrency level of {0}".Fmt(workExecutor.Scheduler.MaximumConcurrencyLevel));
 
+            this.NetworkReachabilityManager = new NetworkReachabilityManager();
+
             SharedCookieStore = new CookieStore(this.directoryFile.FullName);
         }
 
@@ -174,8 +176,6 @@ namespace Couchbase.Lite
         /// </summary>
         /// <value>The directory.</value>
         public String Directory { get { return directoryFile.FullName; } }
-
-        public INetworkReachabilityManager NetworkReachabilityManager { get ; private set; }
 
         /// <summary>
         /// Gets the names of all existing <see cref="Couchbase.Lite.Database"/>s.
@@ -204,7 +204,7 @@ namespace Couchbase.Lite
         /// </summary>
         public void Close() 
         {
-            Log.I(Database.Tag, "Closing " + this);
+            Log.I(Tag, "Closing " + this);
 
             foreach (var database in databases.Values)
             {
@@ -223,12 +223,7 @@ namespace Couchbase.Lite
 
             databases.Clear();
 
-            if (NetworkReachabilityManager != null)
-            {
-                NetworkReachabilityManager.StopListening();
-            }
-
-            Log.I(Database.Tag, "Closed " + this);
+            Log.I(Tag, "Manager is Closed");
         }
 
         /// <summary>
@@ -318,12 +313,6 @@ namespace Couchbase.Lite
     
     #region Non-public Members
 
-        // Static Properties
-        /// <exclude>Only used for unit testing.</exclude>
-        internal IHttpClientFactory DefaultHttpClientFactory { get; set; }
-
-        internal CookieStore SharedCookieStore { get; set; } 
-
         // Static Fields
         private static readonly ObjectWriter mapper;
         private static          Manager sharedManager;
@@ -348,7 +337,13 @@ namespace Couchbase.Lite
         private readonly IDictionary<String, Database> databases;
         private readonly List<Replication> replications;
         internal readonly TaskFactory workExecutor;
+
+        // Instance Properties
         internal TaskFactory CapturedContext { get; private set; }
+        internal IHttpClientFactory DefaultHttpClientFactory { get; set; }
+        internal INetworkReachabilityManager NetworkReachabilityManager { get ; private set; }
+        internal CookieStore SharedCookieStore { get; set; } 
+
 
         // Instance Methods
         internal Database GetDatabaseWithoutOpening(String name, Boolean mustExist)

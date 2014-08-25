@@ -517,7 +517,7 @@ namespace Couchbase.Lite.Replicator
                         var status = StatusFromBulkDocsResponseItem(props);
                         LastError = new CouchbaseLiteException(status.GetCode());
                         RevisionFailed();
-                        Interlocked.Increment(ref completedChangesCount);
+                        SafeIncrementCompletedChangesCount();
                     }
                 };
 
@@ -527,7 +527,7 @@ namespace Couchbase.Lite.Replicator
                     {
                         SetLastError(args.Error);
                         RevisionFailed();
-                        Interlocked.Add(ref completedChangesCount, remainingRevs.Count);
+                        SafeAddToCompletedChangesCount(remainingRevs.Count);
                     }
 
                     Log.V(Tag, "PullBulkRevisions.Completion event handler calling AsyncTaskFinished()");
@@ -620,7 +620,7 @@ namespace Couchbase.Lite.Replicator
                 if (e != null) {
                     SetLastError(e);
                     RevisionFailed();
-                    Interlocked.Add(ref completedChangesCount, bulkRevs.Count);
+                    SafeAddToCompletedChangesCount(bulkRevs.Count);
                 } else {
                     // Process the resulting rows' documents.
                     // We only add a document if it doesn't have attachments, and if its
@@ -762,7 +762,7 @@ namespace Couchbase.Lite.Replicator
                         Log.D(Tag, "pullRemoteRevision updating completedChangesCount from " + 
                             CompletedChangesCount + " -> " + (CompletedChangesCount + 1) 
                             + " due to error pulling remote revision");
-                        CompletedChangesCount += 1;
+                        SafeIncrementCompletedChangesCount();
                     }
                     else
                     {
@@ -868,7 +868,7 @@ namespace Couchbase.Lite.Replicator
             var newCompletedChangesCount = CompletedChangesCount + downloads.Count;
             Log.D(Tag, "InsertDownloads() updating CompletedChangesCount from {0} -> {1}", CompletedChangesCount, newCompletedChangesCount);
 
-            Interlocked.Add(ref completedChangesCount, newCompletedChangesCount);
+            SafeAddToCompletedChangesCount(newCompletedChangesCount);
 
             Log.D(Tag, "InsertDownloads updating completedChangesCount from " + newCompletedChangesCount + " -> " + CompletedChangesCount + downloads.Count);
         }

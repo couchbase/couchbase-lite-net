@@ -51,6 +51,7 @@ using System.Collections.Generic;
 using System.Linq;
 using SQLitePCL.Ugly;
 using Couchbase.Lite.Store;
+using Sharpen;
 
 namespace Couchbase.Lite.Shared
 {
@@ -59,11 +60,16 @@ namespace Couchbase.Lite.Shared
         private const int SQLITE_OPEN_FILEPROTECTION_COMPLETEUNLESSOPEN = 0x00200000;
         private const int SQLITE_OPEN_READWRITE = 0x00000002;
         private const int SQLITE_OPEN_CREATE = 0x00000004;
-        private const int SQLITE_OPEN_FULLMUTEX = 0x00010000;
+        //private const int SQLITE_OPEN_FULLMUTEX = 0x00010000;
+        private const int SQLITE_OPEN_NOMUTEX = 0x00008000;
+        private const int SQLITE_OPEN_PRIVATECACHE = 0x00040000;
 
         private const String Tag = "SqlitePCLRawStorageEngine";
-        private sqlite3 db;
+        [ThreadStatic]
+        private static sqlite3 db;
         private Boolean shouldCommit;
+
+        string Path { get; set; }
 
         #region implemented abstract members of SQLiteStorageEngine
 
@@ -77,7 +83,7 @@ namespace Couchbase.Lite.Shared
             var result = true;
             try {
                 shouldCommit = false;
-                const int flags = SQLITE_OPEN_FILEPROTECTION_COMPLETEUNLESSOPEN | SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE | SQLITE_OPEN_FULLMUTEX; // #define SQLITE_OPEN_FILEPROTECTION_COMPLETEUNLESSOPEN 0x00200000
+                const int flags = SQLITE_OPEN_FILEPROTECTION_COMPLETEUNLESSOPEN | SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE | SQLITE_OPEN_NOMUTEX | SQLITE_OPEN_PRIVATECACHE;
 
                 var status = raw.sqlite3_open_v2(path, out db, flags, null);
                 if (status != raw.SQLITE_OK)
@@ -373,6 +379,7 @@ namespace Couchbase.Lite.Shared
         public void Close ()
         {
             db.Dispose();
+            db = null;
         }
 
         #endregion
@@ -383,6 +390,9 @@ namespace Couchbase.Lite.Shared
         {
             sqlite3_stmt command = null;
             try {
+                if (!IsOpen) {
+                    Open(Path);
+                }
                 //Log.D(Tag, "Build Command : " + sql + " with params " + paramArgs);
                 lock(dbLock) {
                     command = paramArgs.Length > 0 

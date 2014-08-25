@@ -57,6 +57,7 @@ using Couchbase.Lite.Internal;
 using Sharpen;
 using System.Net.Http.Headers;
 using System.Diagnostics;
+using System.Net.NetworkInformation;
 
 
 namespace Couchbase.Lite
@@ -132,6 +133,7 @@ namespace Couchbase.Lite
         {
             LocalDatabase = db;
             Continuous = continuous;
+            // NOTE: Consider running a separate scheduler for all http requests.
             WorkExecutor = workExecutor;
             CancellationTokenSource = tokenSource ?? new CancellationTokenSource();
             RemoteUrl = remote;
@@ -140,6 +142,7 @@ namespace Couchbase.Lite
             RequestHeaders = new Dictionary<String, Object>();
             requests = new HashSet<HttpClient>();
 
+            // FIXME: Refactor to visitor pattern.
             if (RemoteUrl.GetQuery() != null && !RemoteUrl.GetQuery().IsEmpty())
             {
                 var uri = new Uri(remote.ToString());
@@ -185,14 +188,21 @@ namespace Couchbase.Lite
                 }
             }
 
-            Batcher = new Batcher<RevisionInternal>(workExecutor, InboxCapacity, ProcessorDelay,
-                inbox =>
+            Batcher = new Batcher<RevisionInternal>(workExecutor, InboxCapacity, ProcessorDelay, inbox =>
+            {
+                try 
                 {
-                    Log.V (Tag, "*** " + this + ": BEGIN processInbox (" + inbox.Count + " sequences)");
-                    ProcessInbox (new RevisionList (inbox));
-                    Log.V (Tag, "*** " + this.ToString () + ": END processInbox (lastSequence=" + LastSequence);
+                    Log.V(Tag, "*** BEGIN ProcessInbox ({0} sequences)", inbox.Count);
+                    ProcessInbox (new RevisionList(inbox));
+                    Log.V(Tag, "*** END ProcessInbox (lastSequence={0})", LastSequence);
                     UpdateActive();
-                }, CancellationTokenSource);
+                } 
+                catch (Exception e) 
+                {
+                    Log.E(Tag, "ERROR: ProcessInbox failed: ", e);
+                    throw new RuntimeException(e);
+                }
+            }, CancellationTokenSource);
 
             SetClientFactory(clientFactory);
         }
@@ -213,8 +223,9 @@ namespace Couchbase.Lite
     #region Non-public Members
 
         private static Int32 lastSessionID = 0;
+        private string remoteCheckpointDocID = null;
 
-        readonly protected TaskFactory WorkExecutor; // FIXME: Remove this.
+        readonly protected TaskFactory WorkExecutor;
 
         protected IHttpClientFactory clientFactory;
 
@@ -230,7 +241,7 @@ namespace Couchbase.Lite
             {
                 if (value != null && !value.Equals(lastSequence))
                 {
-                    Log.V(Tag, "Setting lastSequence to " + value + " from( " + lastSequence + ")");
+                    Log.V(Tag, "Setting LastSequence to " + value + " from( " + lastSequence + ")");
                     lastSequence = value;
 
                     if (!lastSequenceChanged)
@@ -276,17 +287,30 @@ namespace Couchbase.Lite
 
         protected internal IDictionary<String, Object> RequestHeaders { get; set; }
 
+        // FIXME: This probably should become IDictionary<HttpRequestMessage, Task>
         protected internal ICollection<HttpClient> requests;
 
         private Int32 revisionsFailed;
 
         readonly object asyncTaskLocker = new object ();
 
-        private EventHandler<NetworkReachabilityChangeEventArgs> networkReachabilityEventHandler;
-
+        // FIXME: This is never assigned, as a result Start never initializes revisionBodyTransformationFunction
         private Func <IDictionary<string, object>, IDictionary<string, object>> propertiesTransformationFunction;
 
         protected Func<RevisionInternal, RevisionInternal> revisionBodyTransformationFunction;
+
+        protected void SafeIncrementCompletedChangesCount()
+        {
+            SafeAddToCompletedChangesCount(1);
+        }
+
+        protected void SafeAddToCompletedChangesCount(int value)
+        {
+            Debug.Assert(value > 0);
+            Log.V(Tag, "Updating completedChanges count from " + completedChangesCount + " -> " + value);
+            Interlocked.Add(ref completedChangesCount, value);
+            NotifyChangeListeners();
+        }
 
         protected void SetClientFactory(IHttpClientFactory clientFactory)
         {
@@ -359,10 +383,9 @@ namespace Couchbase.Lite
             LocalDatabase.Manager.RunAsync(() =>
             {
                 Log.D(Tag, "Going offline");
-                online = false;
-            
-                StopRemoteRequests();
 
+                online = false;            
+                StopRemoteRequests();
                 UpdateProgress();
                 NotifyChangeListeners();
             });
@@ -390,7 +413,7 @@ namespace Couchbase.Lite
                 if (IsRunning)
                 {
                     lastSequence = null;
-                    LastError = null;
+                    SetLastError(null);
                 }
 
                 CheckSession();
@@ -450,7 +473,7 @@ namespace Couchbase.Lite
         internal void ClearDbRef()
         {
             Log.D(Tag, "ClearDbRef...");
-            if (savingCheckpoint && LastSequence != null)
+            if (LocalDatabase != null && savingCheckpoint && LastSequence != null)
             {
                 LocalDatabase.SetLastSequence(LastSequence, RemoteCheckpointDocID(), !IsPull);
                 LocalDatabase = null;
@@ -720,7 +743,7 @@ namespace Couchbase.Lite
                 var reachabilityManager = LocalDatabase.Manager.NetworkReachabilityManager;
                 if (reachabilityManager != null)
                 {
-                    reachabilityManager.StatusChanged -= networkReachabilityEventHandler;
+                    reachabilityManager.StopListening();
                 }
             }
 
@@ -1179,14 +1202,14 @@ namespace Couchbase.Lite
         /// Its ID is based on the local database ID (the private one, to make the result unguessable)
         /// and the remote database's URL.
         /// </remarks>
-        private string remoteCheckpointDocID = null;
         internal String RemoteCheckpointDocID()
         {
-
-            if (remoteCheckpointDocID != null) {
+            if (remoteCheckpointDocID != null) 
+            {
                 return remoteCheckpointDocID;
-            } else {
-
+            }
+            else
+            {
                 // TODO: Needs to be consistent with -hasSameSettingsAs: --
                 // TODO: If a.remoteCheckpointID == b.remoteCheckpointID then [a hasSameSettingsAs: b]
 
@@ -1213,6 +1236,7 @@ namespace Couchbase.Lite
                 spec.Put("remoteURL", RemoteUrl.AbsoluteUri);
                 spec.Put("push", !IsPull);
                 spec.Put("continuous", Continuous);
+
                 if (Filter != null) {
                     spec.Put("filter", Filter);
                 }
@@ -1229,6 +1253,7 @@ namespace Couchbase.Lite
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
+
                 remoteCheckpointDocID = Misc.HexSHA1Digest(inputBytes);
                 return remoteCheckpointDocID;
 
@@ -1291,7 +1316,66 @@ namespace Couchbase.Lite
             revisionsFailed++;
         }
 
-        protected RevisionInternal TransformRevision(RevisionInternal rev)
+        protected internal Status StatusFromBulkDocsResponseItem(IDictionary<string, object> item)
+        {
+            try
+            {
+                if (!item.ContainsKey("error"))
+                {
+                    return new Status(StatusCode.Ok);
+                }
+
+                var errorStr = item.Get("error") as string;
+                if (errorStr == null || errorStr.IsEmpty())
+                {
+                    return new Status(StatusCode.Ok);
+                }
+
+                // 'status' property is nonstandard; TouchDB returns it, others don't.
+                var statusString = item.Get("status") as string;
+                if (String.IsNullOrWhiteSpace(statusString))
+                {
+                    var status = Convert.ToInt32(statusString);
+                    if (status >= 400)
+                    {
+                        return new Status((StatusCode)status);
+                    }
+                }
+
+                // If no 'status' present, interpret magic hardcoded CouchDB error strings:
+                if (errorStr.Equals("unauthorized", StringComparison.InvariantCultureIgnoreCase))
+                {
+                    return new Status(StatusCode.Unauthorized);
+                }
+                else
+                {
+                    if (errorStr.Equals("forbidden", StringComparison.InvariantCultureIgnoreCase))
+                    {
+                        return new Status(StatusCode.Forbidden);
+                    }
+                    else
+                    {
+                        if (errorStr.Equals("conflict", StringComparison.InvariantCultureIgnoreCase))
+                        {
+                            return new Status(StatusCode.Conflict);
+                        }
+                        else
+                        {
+                            return new Status(StatusCode.UpStreamError);
+                        }
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                Log.E(Database.Tag, "Exception getting status from " + item, e);
+            }
+            return new Status(StatusCode.Ok);
+        }
+
+
+
+        protected internal RevisionInternal TransformRevision(RevisionInternal rev)
         {
             if (revisionBodyTransformationFunction != null)
             {
@@ -1306,18 +1390,22 @@ namespace Couchbase.Lite
 
                     if (xformed != rev)
                     {
+                        Debug.Assert((xformed.GetDocId().Equals(rev.GetDocId())));
+                        Debug.Assert((xformed.GetRevId().Equals(rev.GetRevId())));
+                        Debug.Assert((xformed.GetProperties().Get("_revisions").Equals(rev.GetProperties().Get("_revisions"))));
+
                         if (xformed.GetProperties().ContainsKey("_attachments"))
                         {
                             // Insert 'revpos' properties into any attachments added by the callback:
                             var mx = new RevisionInternal(xformed.GetProperties(), LocalDatabase);
                             xformed = mx;
                             mx.MutateAttachments((name, info) => {
-                                if (info.ContainsKey("revpos"))
+                                if (info.Get("revpos") != null)
                                 {
                                     return info;
                                 }
 
-                                if (!info.ContainsKey("data"))
+                                if (info.Get("data") == null)
                                 {
                                     throw new InvalidOperationException("Transformer added attachment without adding data");
                                 }
@@ -1391,26 +1479,25 @@ namespace Couchbase.Lite
 
         private void SetupRevisionBodyTransformationFunction()
         {
-            // propertiesTransformationFunction is not port of v1.0.0 release and doesn't
-            // have any value assigned.
             var xformer = propertiesTransformationFunction;
             if (xformer != null)
             {
                 revisionBodyTransformationFunction = (rev) =>
                 {
                     var properties = rev.GetProperties();
+
                     var xformedProperties = xformer(properties);
-                    if (xformedProperties == null)
+                    if (xformedProperties == null) 
                     {
                         return null;
                     }
-                    else if (xformedProperties != properties)
-                    {
-                        Debug.Assert(xformedProperties["_id"].Equals(properties["_id"]));
-                        Debug.Assert(xformedProperties["_rev"].Equals(properties["_rev"]));
+                    if (xformedProperties != properties) {
+                        Debug.Assert (xformedProperties != null);
+                        Debug.Assert (xformedProperties ["_id"].Equals (properties ["_id"]));
+                        Debug.Assert (xformedProperties ["_rev"].Equals (properties ["_rev"]));
 
-                        var nuRev = new RevisionInternal(rev.GetProperties(), LocalDatabase);
-                        nuRev.SetProperties(xformedProperties);
+                        var nuRev = new RevisionInternal (rev.GetProperties (), LocalDatabase);
+                        nuRev.SetProperties (xformedProperties);
                         return nuRev;
                     }
                     return rev;
@@ -1575,12 +1662,6 @@ namespace Couchbase.Lite
         /// <value>The completed changes count.</value>
         public Int32 CompletedChangesCount {
             get { return completedChangesCount; }
-            protected set {
-                Debug.Assert(value > 0);
-                Log.V(Tag, "Updating completedChanges count from " + completedChangesCount + " -> " + value);
-                completedChangesCount = value;
-                NotifyChangeListeners();
-            }
         }
 
         /// <summary>
@@ -1630,14 +1711,6 @@ namespace Couchbase.Lite
             LocalDatabase.AddReplication(this);
             LocalDatabase.AddActiveReplication(this);
 
-            // This is not part of 1.0.0 release feature. 
-            // Couchbase-lite-java-core doesn't have it enabled. 
-            // See: https://github.com/couchbase/couchbase-lite-java-core/issues/264
-            //
-            // The code was ported here because it was a part of the fix 
-            // for the unneccessarily pushing attachments issue that couchbase-lite-android 
-            // has ported from the upstream iOS code.
-            // https://github.com/couchbase/couchbase-lite-android/issues/66
             SetupRevisionBodyTransformationFunction();
 
             sessionID = string.Format("repl{0:000}", ++lastSessionID);
@@ -1648,21 +1721,18 @@ namespace Couchbase.Lite
             CheckSession();
 
             var reachabilityManager = LocalDatabase.Manager.NetworkReachabilityManager;
-            if (reachabilityManager != null)
+            reachabilityManager.StatusChanged += (sender, e) =>
             {
-                networkReachabilityEventHandler = (sender, e) =>
+                if (e.Status == NetworkReachabilityStatus.Reachable)
                 {
-                    if (e.Status == NetworkReachabilityStatus.Reachable)
-                    {
-                        GoOnline();
-                    }
-                    else
-                    {
-                        GoOffline();
-                    }
-                };
-                reachabilityManager.StatusChanged += networkReachabilityEventHandler;
-            }
+                    GoOnline();
+                }
+                else
+                {
+                    GoOffline();
+                }
+            };
+            reachabilityManager.StartListening();
         }
 
         /// <summary>
@@ -1676,11 +1746,22 @@ namespace Couchbase.Lite
             }
 
             Log.V(Tag, "STOP...");
-            Batcher.Clear(); // no sense processing any pending changes
+
             continuous = false;
+
+            if (Batcher != null)
+            {
+                Batcher.Clear(); // no sense processing any pending changes
+            }
+
             StopRemoteRequests();
+
             CancelPendingRetryIfReady();
-            LocalDatabase.ForgetReplication(this);
+
+            if (LocalDatabase != null)
+            {
+                LocalDatabase.ForgetReplication(this);
+            }
 
             if (IsRunning && asyncTaskCount <= 0)
             {
@@ -1703,25 +1784,31 @@ namespace Couchbase.Lite
             Start();
         }
 
+        /// <summary>Sets an HTTP cookie for the Replication.</summary>
+        /// <param name="name">The name of the cookie.</param>
+        /// <param name="value">The value of the cookie.</param>
+        /// <param name="path">The path attribute of the cookie.  If null or empty, will use remote.getPath()
+        ///     </param>
+        /// <param name="expirationDate">The expiration date of the cookie.</param>
+        /// <param name="secure">Whether the cookie should only be sent using a secure protocol (e.g. HTTPS).
+        ///     </param>
+        /// <param name="httpOnly">(ignored) Whether the cookie should only be used when transmitting HTTP, or HTTPS, requests thus restricting access from other, non-HTTP APIs.
+        ///     </param>
         public void SetCookie(string name, string value, string path, DateTime expirationDate, bool secure, bool httpOnly)
         {
-            var cookie = new Cookie(name, value);
-            cookie.Expires = expirationDate;
-            cookie.Secure = secure;
-            cookie.HttpOnly = httpOnly;
-            cookie.Domain = RemoteUrl.GetHost();
-
-            if (!string.IsNullOrEmpty(path))
+            var cookie = new Cookie(name, value)
             {
-                cookie.Path = path;
-            }
-            else
-            {
-                cookie.Path = RemoteUrl.PathAndQuery;
-            }
+                Expires = expirationDate,
+                Secure = secure,
+                HttpOnly = httpOnly,
+                Domain = RemoteUrl.GetHost()
+            };
 
-            var cookies = new CookieCollection();
-            cookies.Add(cookie);
+            cookie.Path = !string.IsNullOrEmpty(path) 
+                ? path 
+                : RemoteUrl.PathAndQuery;
+
+            var cookies = new CookieCollection { cookie };
             clientFactory.AddCookies(cookies);
         }
 

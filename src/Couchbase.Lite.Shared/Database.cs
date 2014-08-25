@@ -1157,7 +1157,6 @@ PRAGMA user_version = 3;";
                 // in the local history:
                 long sequence = 0;
                 long localParentSequence = 0;
-                string localParentRevID = null;
                 for (int i = revHistory.Count - 1; i >= 0; --i)
                 {
                     revId = revHistory[i];
@@ -1168,7 +1167,6 @@ PRAGMA user_version = 3;";
                         sequence = localRev.GetSequence();
                         Debug.Assert((sequence > 0));
                         localParentSequence = sequence;
-                        localParentRevID = revId;
                     }
                     else
                     {

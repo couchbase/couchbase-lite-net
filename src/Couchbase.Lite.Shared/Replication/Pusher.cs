@@ -486,7 +486,7 @@ namespace Couchbase.Lite.Replicator
                     {
                         Log.V(Tag, string.Format("POSTed to _bulk_docs: {0}", docsToSend));
                     }
-                    Interlocked.Add(ref completedChangesCount, numDocsToSend);
+                    SafeAddToCompletedChangesCount(numDocsToSend);
                 }
                 finally
                 {

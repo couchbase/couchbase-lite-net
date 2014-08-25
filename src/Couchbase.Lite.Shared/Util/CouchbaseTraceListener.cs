@@ -51,20 +51,71 @@ namespace Couchbase.Lite.Util
 
         SourceLevels Level;
 
-        string Category;
-
         public CouchbaseTraceListener() { }
 
         public CouchbaseTraceListener(SourceLevels logLevel)
         {
-            Level = SourceLevels.Off;
+            Level = logLevel;
             Name = "Couchbase";
-            TraceOutputOptions = Level.HasFlag(SourceLevels.Verbose)
-                ? TraceOptions.ThreadId
+            TraceOutputOptions = Level.HasFlag(SourceLevels.All)
+                ? TraceOptions.ThreadId | TraceOptions.DateTime | TraceOptions.Timestamp
                 : TraceOptions.None;
         }
 
-        public void WriteLine (SourceLevels level, string message, string category)
+        void WriteOptionalTraceInfo()
+        {
+            var traceInfo = new TraceEventCache();
+            if (TraceOutputOptions.HasFlag(TraceOptions.ThreadId))
+            {
+                PrintThreadId(traceInfo);
+            }
+            if (TraceOutputOptions.HasFlag(TraceOptions.DateTime))
+            {
+                PrintDateTime(traceInfo);
+            }
+            if (TraceOutputOptions.HasFlag(TraceOptions.Timestamp))
+            {
+                PrintTimeStamp(traceInfo);
+            }
+        }
+
+        void PrintThreadId(TraceEventCache info)
+        {
+            #if __MOBILE__
+            Debugger.Log((int)SourceLevels.Critical, Category, "Thread Name: " + System.Threading.Thread.CurrentThread.Name + Environment.NewLine);
+            #else
+            WriteIndent();
+            Console.Out.Write("Thread Name: ");
+            Console.Out.Write(info.ThreadId);
+            Console.Out.Write(Environment.NewLine);
+            #endif
+        }
+
+        void PrintDateTime(TraceEventCache info)
+        {
+            #if __MOBILE__
+            Debugger.Log((int)SourceLevels.Critical, Category, "Date Time: " + DateTime.Now.ToString("o") + Environment.NewLine);
+            #else
+            WriteIndent();
+            Console.Out.Write("Date Time:   ");
+            Console.Out.Write(info.DateTime);
+            Console.Out.Write(Environment.NewLine);
+            #endif
+        }
+
+        void PrintTimeStamp(TraceEventCache info)
+        {
+            #if __MOBILE__
+            Debugger.Log((int)SourceLevels.Critical, Category, "Date Time: " + DateTime.Now + Environment.NewLine);
+            #else
+            WriteIndent();
+            Console.Out.Write("Timestamp:   ");
+            Console.Out.Write(info.Timestamp);
+            Console.Out.Write(Environment.NewLine);
+            #endif
+        }
+
+        public void WriteLine(SourceLevels level, string message, string category)
         {
             Level = level;
             WriteLine(message, category);
@@ -75,7 +126,7 @@ namespace Couchbase.Lite.Util
 
         public override string Name { get; set; }
 
-        public override void Write (string message)
+        public override void Write(string message)
         {
             #if __MOBILE__
             Debugger.Log((int)Level, null, message);
@@ -85,13 +136,14 @@ namespace Couchbase.Lite.Util
             #endif
         }
         
-        public override void WriteLine (string message)
+        public override void WriteLine(string message)
         {
             WriteLine(message, null);
         }
 
-        public override void WriteLine (string message, string category)
+        public override void WriteLine(string message, string category)
         {
+            WriteOptionalTraceInfo();
             #if __MOBILE__
             Debugger.Log((int)Level, category, message + Environment.NewLine);
             #else
@@ -103,27 +155,27 @@ namespace Couchbase.Lite.Util
             #endif
         }      
 
-        public override void Write (object o)
+        public override void Write(object o)
         {
-            Write (o.ToString());
+            Write(o.ToString());
         }
 
-        public override void Write (object o, string category)
+        public override void Write(object o, string category)
         {
-            Write (o.ToString(), category);
+            Write(o.ToString(), category);
         }
 
-        public override void WriteLine (object o)
+        public override void WriteLine(object o)
         {
-            WriteLine (o.ToString());
+            WriteLine(o.ToString());
         }
 
-        public override void WriteLine (object o, string category)
+        public override void WriteLine(object o, string category)
         {
-            WriteLine (o.ToString(), category);
+            WriteLine(o.ToString(), category);
         }
 
-        public override void Write (string message, string category)
+        public override void Write(string message, string category)
         {
             #if __MOBILE__
             Debugger.Log((int)Level, category, message);
@@ -135,13 +187,15 @@ namespace Couchbase.Lite.Util
             #endif
         }
 
-        protected override void WriteIndent ()
+        protected override void WriteIndent()
         {
             Write(Indent);
         }
 
         public override void Fail (string message)
         {
+            WriteOptionalTraceInfo();
+
             #if __MOBILE__
             Debugger.Log((int)SourceLevels.Critical, Category, message + Environment.NewLine);
             #else

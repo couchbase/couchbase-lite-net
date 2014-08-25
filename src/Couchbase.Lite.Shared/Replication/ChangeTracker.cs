@@ -92,6 +92,8 @@ namespace Couchbase.Lite.Replicator
 
         private Task runTask;
 
+        Task changesRequestTask;
+
         private readonly object stopMutex = new object();
 
         private HttpRequestMessage Request;
@@ -272,6 +274,10 @@ namespace Couchbase.Lite.Replicator
                 if (tokenSource.Token.IsCancellationRequested)
                     break;
 
+                if (changesRequestTask != null && !changesRequestTask.IsCompleted) {
+                    changesRequestTask.Wait(tokenSource.Token);
+                }
+
                 var url = GetChangesFeedURL();
                 if (UsePost)
                 {
@@ -304,10 +310,11 @@ namespace Couchbase.Lite.Replicator
                     if (tokenSource.Token.IsCancellationRequested)
                         break;
                         
-                    var task = httpClient
+                    httpClient
                         .SendAsync(Request, HttpCompletionOption.ResponseHeadersRead, tokenSource.Token)
                         .ContinueWith<HttpResponseMessage>(ChangeFeedResponseHandler)
-                        .ContinueWith(t => { if (t != null) t.Result.Dispose(); return;});
+                        .ContinueWith(t => { if (t != null) t.Result.Dispose(); return;})
+                        .Wait(tokenSource.Token);
 
                     Request.Dispose();
                 }

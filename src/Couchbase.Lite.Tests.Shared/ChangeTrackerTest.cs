@@ -217,7 +217,7 @@ namespace Couchbase.Lite
             // make sure we got less than 10 requests in those 10 seconds (if it was hammering, we'd get a lot more)
             var handler = client.HttpRequestHandler;
             Assert.IsTrue(handler.CapturedRequests.Count < 25);
-            Assert.IsTrue(changeTracker.backoff.NumAttempts > 0);
+            Assert.IsTrue(changeTracker.backoff.NumAttempts > 0, "Observed attempts: {0}".Fmt(changeTracker.backoff.NumAttempts));
 
             handler.ClearResponders();
             handler.AddResponderReturnEmptyChangesFeed();
@@ -318,8 +318,7 @@ namespace Couchbase.Lite
         {
             Uri testUrl = GetReplicationURL();
             var changeTracker = new ChangeTracker(testUrl, ChangeTrackerMode.LongPoll, 0, true, null);
-            Assert.AreEqual("_changes?feed=longpoll&heartbeat=300000&style=all_docs&since=0&limit=50", 
-                changeTracker.GetChangesFeedPath());
+            Assert.AreEqual("_changes?feed=longpoll&limit=50&heartbeat=300000&style=all_docs&since=0", changeTracker.GetChangesFeedPath());
         }
             
         [Test]
@@ -337,7 +336,7 @@ namespace Couchbase.Lite
 
             // set filter map
             changeTracker.SetFilterParams(filterMap);
-            Assert.AreEqual("_changes?feed=longpoll&heartbeat=300000&since=0&limit=50&filter=filter&param=value", 
+            Assert.AreEqual("_changes?feed=longpoll&limit=50&heartbeat=300000&since=0&filter=filter&param=value", 
                 changeTracker.GetChangesFeedPath());
         }
 
@@ -400,7 +399,7 @@ namespace Couchbase.Lite
 
             var docIdsJson = "[\"doc1\",\"doc2\"]";
             var docIdsEncoded = Uri.EscapeUriString(docIdsJson);
-            var expectedFeedPath = string.Format("_changes?feed=longpoll&heartbeat=300000&since=0&limit=50&filter=_doc_ids&doc_ids={0}", 
+            var expectedFeedPath = string.Format("_changes?feed=longpoll&limit=50&heartbeat=300000&since=0&filter=_doc_ids&doc_ids={0}", 
                 docIdsEncoded);
             string changesFeedPath = changeTracker.GetChangesFeedPath();
             Assert.AreEqual(expectedFeedPath, changesFeedPath);

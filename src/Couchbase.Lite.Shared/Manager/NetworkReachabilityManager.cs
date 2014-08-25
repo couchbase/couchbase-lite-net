@@ -1,19 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Net.NetworkInformation;
 
 namespace Couchbase.Lite
 {
     /// <summary>
-    /// This uses system api (on Android, uses the Context) to listen for network reachability
-    /// change events and notifies all NetworkReachabilityListeners that have registered themselves.
+    /// This uses the NetworkAvailability API to listen for network reachability
+    /// change events and fires off changes internally.
     /// </summary>
-    /// <remarks>
-    /// This uses system api (on Android, uses the Context) to listen for network reachability
-    /// change events and notifies all NetworkReachabilityListeners that have registered themselves.
-    /// (an example of a NetworkReachabilityListeners is a Replicator that wants to pause when
-    /// it's been detected that the network is not reachable)
-    /// </remarks>
-    public abstract class NetworkReachabilityManager : INetworkReachabilityManager
+    internal sealed class NetworkReachabilityManager : INetworkReachabilityManager
     {
         #region INetworkReachabilityManager implementation
 
@@ -21,15 +16,21 @@ namespace Couchbase.Lite
 
         /// <summary>This method starts listening for network connectivity state changes.</summary>
         /// <remarks>This method starts listening for network connectivity state changes.</remarks>
-        public abstract void StartListening();
+        public void StartListening()
+        {
+            NetworkChange.NetworkAvailabilityChanged += OnNetworkChange;
+        }
 
         /// <summary>This method stops this class from listening for network changes.</summary>
         /// <remarks>This method stops this class from listening for network changes.</remarks>
-        public abstract void StopListening();
+        public void StopListening()
+        {
+            NetworkChange.NetworkAvailabilityChanged -= OnNetworkChange;          
+        }
         #endregion
 
-        /// <summary>Notify listeners that the network is now reachable</summary>
-        public virtual void OnNetworkReachable()
+        /// <summary>Notify listeners that the network is now reachable/unreachable.</summary>
+        private void OnNetworkChange(Object sender, NetworkAvailabilityEventArgs args)
         {
             var evt = StatusChanged;
             if (evt == null)
@@ -37,21 +38,12 @@ namespace Couchbase.Lite
                 return;
             }
 
-            var args = new NetworkReachabilityChangeEventArgs(NetworkReachabilityStatus.Reachable);
-            evt(this, args);
-        }
+            var status = args.IsAvailable
+                ? NetworkReachabilityStatus.Reachable
+                : NetworkReachabilityStatus.Unreachable;
 
-        /// <summary>Notify listeners that the network is now unreachable</summary>
-        public virtual void OnNetworkUneachable()
-        {
-            var evt = StatusChanged;
-            if (evt == null)
-            {
-                return;
-            }
-
-            var args = new NetworkReachabilityChangeEventArgs(NetworkReachabilityStatus.Unreachable);
-            evt(this, args);
+            var eventArgs = new NetworkReachabilityChangeEventArgs(status);
+            evt(this, eventArgs);
         }
     }
 }
