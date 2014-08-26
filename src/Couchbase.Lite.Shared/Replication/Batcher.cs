@@ -171,7 +171,8 @@ namespace Couchbase.Lite.Support
                 Log.D(Tag, "nothing to process");
             }
 
-            lastProcessedTime = Runtime.CurrentTimeMillis();
+            var newTime = Runtime.CurrentTimeMillis();
+            Interlocked.Exchange(ref lastProcessedTime, newTime);
         }
 
         CancellationTokenSource cancellationSource;
@@ -280,7 +281,13 @@ namespace Couchbase.Lite.Support
 
                 cancellationSource = new CancellationTokenSource();
                 flushFuture = Task.Delay(scheduledDelay)
-                    .ContinueWith(task => processNowRunnable(), cancellationSource.Token);
+                    .ContinueWith(task => 
+                    {
+                        if(!(task.IsCanceled && cancellationSource.IsCancellationRequested))
+                        {
+                            workExecutor.StartNew(processNowRunnable);
+                        }
+                    }, cancellationSource.Token);
             }
         }
 

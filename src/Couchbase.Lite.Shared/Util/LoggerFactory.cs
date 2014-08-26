@@ -52,7 +52,7 @@ namespace Couchbase.Lite.Util
         public static ILogger CreateLogger()
         {
 #if VERBOSE
-            return new CustomLogger(SourceLevels.All);
+            return new CustomLogger(SourceLevels.Verbose);
 #else
             return new CustomLogger(SourceLevels.Information);
 #endif

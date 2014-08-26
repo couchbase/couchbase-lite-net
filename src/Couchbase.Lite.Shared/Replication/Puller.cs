@@ -515,7 +515,7 @@ namespace Couchbase.Lite.Replicator
                     else
                     {
                         var status = StatusFromBulkDocsResponseItem(props);
-                        LastError = new CouchbaseLiteException(status.GetCode());
+                        SetLastError(new CouchbaseLiteException(status.GetCode()));
                         RevisionFailed();
                         SafeIncrementCompletedChangesCount();
                     }

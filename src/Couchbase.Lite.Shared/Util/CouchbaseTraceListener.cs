@@ -39,6 +39,10 @@
 // either express or implied. See the License for the specific language governing permissions
 // and limitations under the License.
 //
+#if VERBOSE
+#define __DEBUGGER__
+//#define __CONSOLE__
+#endif
 
 using System;
 using System.Diagnostics;
@@ -50,6 +54,8 @@ namespace Couchbase.Lite.Util
         static readonly string Indent = "    ";
 
         SourceLevels Level;
+
+        string Category;
 
         public CouchbaseTraceListener() { }
 
@@ -81,9 +87,10 @@ namespace Couchbase.Lite.Util
 
         void PrintThreadId(TraceEventCache info)
         {
-            #if __MOBILE__
+            #if __DEBUGGER__
             Debugger.Log((int)SourceLevels.Critical, Category, "Thread Name: " + System.Threading.Thread.CurrentThread.Name + Environment.NewLine);
-            #else
+            #endif
+            #if __CONSOLE__
             WriteIndent();
             Console.Out.Write("Thread Name: ");
             Console.Out.Write(info.ThreadId);
@@ -93,9 +100,10 @@ namespace Couchbase.Lite.Util
 
         void PrintDateTime(TraceEventCache info)
         {
-            #if __MOBILE__
+            #if __DEBUGGER__
             Debugger.Log((int)SourceLevels.Critical, Category, "Date Time: " + DateTime.Now.ToString("o") + Environment.NewLine);
-            #else
+            #endif
+            #if __CONSOLE__
             WriteIndent();
             Console.Out.Write("Date Time:   ");
             Console.Out.Write(info.DateTime);
@@ -105,9 +113,10 @@ namespace Couchbase.Lite.Util
 
         void PrintTimeStamp(TraceEventCache info)
         {
-            #if __MOBILE__
+            #if __DEBUGGER__
             Debugger.Log((int)SourceLevels.Critical, Category, "Date Time: " + DateTime.Now + Environment.NewLine);
-            #else
+            #endif
+            #if __CONSOLE__
             WriteIndent();
             Console.Out.Write("Timestamp:   ");
             Console.Out.Write(info.Timestamp);
@@ -128,9 +137,10 @@ namespace Couchbase.Lite.Util
 
         public override void Write(string message)
         {
-            #if __MOBILE__
+            #if __DEBUGGER__
             Debugger.Log((int)Level, null, message);
-            #else
+            #endif
+            #if __CONSOLE__
             Console.Out.Write(message);
             Console.Out.Flush();
             #endif
@@ -144,9 +154,10 @@ namespace Couchbase.Lite.Util
         public override void WriteLine(string message, string category)
         {
             WriteOptionalTraceInfo();
-            #if __MOBILE__
+            #if __DEBUGGER__
             Debugger.Log((int)Level, category, message + Environment.NewLine);
-            #else
+            #endif
+            #if __CONSOLE__
             Console.Out.Write(category);
             Console.Out.Write(": ");
             Console.Out.Write(message);
@@ -177,9 +188,10 @@ namespace Couchbase.Lite.Util
 
         public override void Write(string message, string category)
         {
-            #if __MOBILE__
+            #if __DEBUGGER__
             Debugger.Log((int)Level, category, message);
-            #else
+            #endif
+            #if __CONSOLE__
             Console.Out.Write(category);
             Console.Out.Write(": ");
             Console.Out.Write(message);
@@ -196,9 +208,10 @@ namespace Couchbase.Lite.Util
         {
             WriteOptionalTraceInfo();
 
-            #if __MOBILE__
+            #if __DEBUGGER__
             Debugger.Log((int)SourceLevels.Critical, Category, message + Environment.NewLine);
-            #else
+            #endif
+            #if __CONSOLE__
             Console.Out.Write(message);
             Console.Out.Write(Environment.NewLine);
             #endif

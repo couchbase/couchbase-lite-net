@@ -479,7 +479,7 @@ namespace Couchbase.Lite.Replicator
 
                     if (e != null) 
                     {
-                        LastError = e; // TODO: May need to be SetLastError depending on if we need to notify listeners.
+                        SetLastError(e); // TODO: May need to be SetLastError depending on if we need to notify listeners.
                         RevisionFailed();
                     } 
                     else 
@@ -653,7 +653,7 @@ namespace Couchbase.Lite.Replicator
                         else
                         {
                             Log.E (Tag, "Exception uploading multipart request", e);
-                            LastError = e;
+                            SetLastError(e);
                             RevisionFailed();
                         }
                     }
@@ -687,7 +687,7 @@ namespace Couchbase.Lite.Replicator
             // Get the revision's properties:
             if (!LocalDatabase.InlineFollowingAttachmentsIn(rev))
             {
-                LastError = new CouchbaseLiteException(StatusCode.BadAttachment);
+                SetLastError(new CouchbaseLiteException(StatusCode.BadAttachment));
                 RevisionFailed();
                 return;
             }
@@ -700,7 +700,7 @@ namespace Couchbase.Lite.Replicator
             {
                 if (e != null) 
                 {
-                    LastError = e;
+                    SetLastError(e);
                     RevisionFailed();
                 } 
                 else 

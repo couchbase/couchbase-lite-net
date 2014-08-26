@@ -513,7 +513,7 @@ namespace Couchbase.Lite
                             return;
                         }
                         Log.E(Tag, "Session check failed", e);
-                        LastError = e;
+                        SetLastError(e);
                     }
                     else
                     {
@@ -559,7 +559,7 @@ namespace Couchbase.Lite
                     if (e != null)
                     {
                         Log.D (Tag, string.Format ("{0}: Login failed for path: {1}", this, loginPath));
-                        LastError = e;
+                        SetLastError(e);
                     }
                     else
                     {
@@ -881,13 +881,6 @@ namespace Couchbase.Lite
         {
             var message = new HttpRequestMessage(method, url);
             var mapper = Manager.GetObjectMapper();
-            if (body != null)
-            {
-                var bytes = mapper.WriteValueAsBytes(body).ToArray();
-                var byteContent = new ByteArrayContent(bytes);
-                message.Content = byteContent;
-                message.Content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
-            }
             message.Headers.Add("Accept", new[] { "multipart/related", "application/json" });
 
             var client = clientFactory.GetHttpClient();
@@ -896,6 +889,14 @@ namespace Couchbase.Lite
             if (authHeader != null)
             {
                 client.DefaultRequestHeaders.Authorization = authHeader;
+            }
+
+            if (body != null)
+            {
+                var bytes = mapper.WriteValueAsBytes(body).ToArray();
+                var byteContent = new ByteArrayContent(bytes);
+                message.Content = byteContent;
+                message.Content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
             }
 
             client.SendAsync(message, HttpCompletionOption.ResponseHeadersRead, CancellationTokenSource.Token)
@@ -909,6 +910,11 @@ namespace Couchbase.Lite
                     if (!response.IsFaulted)
                     {
                         UpdateServerType(response.Result);
+                    }
+                    else
+                    {
+                        Log.E(Tag, "Http Message failed to send: {0}", message);
+                        Log.E(Tag, "\tFailed content: {0}", message.Content.ReadAsStringAsync().Result);
                     }
                     
                     if (completionHandler != null)

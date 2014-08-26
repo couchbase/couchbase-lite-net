@@ -77,15 +77,15 @@ namespace Couchbase.Lite.Shared
         {
             if (IsOpen)
                 return true;
-
+            Path = path;
             var errMessage = "Cannot open Sqlite Database at pth {0}".Fmt(path);
 
             var result = true;
             try {
                 shouldCommit = false;
-                const int flags = SQLITE_OPEN_FILEPROTECTION_COMPLETEUNLESSOPEN | SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE | SQLITE_OPEN_NOMUTEX | SQLITE_OPEN_PRIVATECACHE;
+                const int flags = SQLITE_OPEN_FILEPROTECTION_COMPLETEUNLESSOPEN | SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE;
 
-                var status = raw.sqlite3_open_v2(path, out db, flags, null);
+                var status = raw.sqlite3_open_v2(Path, out db, flags, null);
                 if (status != raw.SQLITE_OK)
                 {
                     throw new CouchbaseLiteException(errMessage, StatusCode.DbError);
@@ -170,6 +170,10 @@ namespace Couchbase.Lite.Shared
 
         public void BeginTransaction ()
         {
+            if (!IsOpen)
+            {
+                Open(Path);
+            }
             // NOTE.ZJG: Seems like we should really be using TO SAVEPOINT
             //           but this is how Android SqliteDatabase does it,
             //           so I'm matching that for now.
@@ -243,6 +247,10 @@ namespace Couchbase.Lite.Shared
 
         public Cursor RawQuery (String sql, CommandBehavior behavior, params Object[] paramArgs)
         {
+            if (!IsOpen)
+            {
+                Open(Path);
+            }
             Cursor cursor = null;
             var command = BuildCommand (sql, paramArgs);
 
@@ -419,6 +427,10 @@ namespace Couchbase.Lite.Shared
         /// <param name="whereArgs">Where arguments.</param>
         sqlite3_stmt GetUpdateCommand (string table, ContentValues values, string whereClause, string[] whereArgs)
         {
+            if (!IsOpen)
+            {
+                Open(Path);
+            }
             var builder = new StringBuilder("UPDATE ");
 
             builder.Append(table);
@@ -474,6 +486,10 @@ namespace Couchbase.Lite.Shared
         /// <param name="conflictResolutionStrategy">Conflict resolution strategy.</param>
         sqlite3_stmt GetInsertCommand (String table, ContentValues values, ConflictResolutionStrategy conflictResolutionStrategy)
         {
+            if (!IsOpen)
+            {
+                Open(Path);
+            }
             var builder = new StringBuilder("INSERT");
 
             if (conflictResolutionStrategy != ConflictResolutionStrategy.None) {
@@ -530,6 +546,10 @@ namespace Couchbase.Lite.Shared
         /// <param name="whereArgs">Where arguments.</param>
         sqlite3_stmt GetDeleteCommand (string table, string whereClause, string[] whereArgs)
         {
+            if (!IsOpen)
+            {
+                Open(Path);
+            }
             var builder = new StringBuilder("DELETE FROM ");
             builder.Append(table);
             if (!String.IsNullOrWhiteSpace(whereClause)) {
