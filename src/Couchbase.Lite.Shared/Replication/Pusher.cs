@@ -479,7 +479,7 @@ namespace Couchbase.Lite.Replicator
 
                     if (e != null) 
                     {
-                        SetLastError(e); // TODO: May need to be SetLastError depending on if we need to notify listeners.
+                        SetLastError(e);
                         RevisionFailed();
                     } 
                     else 
