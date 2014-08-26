@@ -68,8 +68,10 @@ namespace Couchbase.Lite.Util
                 : TraceOptions.None;
         }
 
+
         void WriteOptionalTraceInfo()
         {
+            #if !__MOBILE__
             var traceInfo = new TraceEventCache();
             if (TraceOutputOptions.HasFlag(TraceOptions.ThreadId))
             {
@@ -83,8 +85,10 @@ namespace Couchbase.Lite.Util
             {
                 PrintTimeStamp(traceInfo);
             }
+            #endif
         }
 
+    #if !__MOBILE__
         void PrintThreadId(TraceEventCache info)
         {
             #if __DEBUGGER__
@@ -123,7 +127,7 @@ namespace Couchbase.Lite.Util
             Console.Out.Write(Environment.NewLine);
             #endif
         }
-
+    #endif
         public void WriteLine(SourceLevels level, string message, string category)
         {
             Level = level;
