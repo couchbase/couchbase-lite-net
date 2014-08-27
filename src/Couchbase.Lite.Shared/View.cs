@@ -565,8 +565,8 @@ namespace Couchbase.Lite {
             // FIXME: If reduce is null, then so are keysToReduce and ValuesToReduce, which can throw an NRE below.
             if (reduce != null)
             {
-                keysToReduce = new AList<Object>(ReduceBatchSize);
-                valuesToReduce = new AList<Object>(ReduceBatchSize);
+                keysToReduce = new List<Object>(ReduceBatchSize);
+                valuesToReduce = new List<Object>(ReduceBatchSize);
             }
 
             var rows = new AList<QueryRow>();
@@ -588,8 +588,10 @@ namespace Couchbase.Lite {
                             : null;
 
                         var key = GroupKey(lastKey.Value, groupLevel);
-                        var row = new QueryRow(null, 0, key, reduced, null);
-                        row.Database = Database;
+                        var row = new QueryRow(null, 0, key, reduced, null)
+                        {
+                            Database = Database
+                        };
                         rows.AddItem(row); // NOTE.ZJG: Change to `yield return row` to convert to a generator.
 
                         keysToReduce.Clear();
@@ -605,7 +607,7 @@ namespace Couchbase.Lite {
             if (keysToReduce.Count > 0)
             {
                 // Finish the last group (or the entire list, if no grouping):
-                var key = group ? GroupKey(lastKey, groupLevel) : null;
+                var key = group ? GroupKey(lastKey.Value, groupLevel) : null;
                 var reduced = (reduce != null) ? reduce(keysToReduce, valuesToReduce, false) : null;
                 var row = new QueryRow(null, 0, key, reduced, null);
                 row.Database = Database;
@@ -617,9 +619,12 @@ namespace Couchbase.Lite {
         // Are key1 and key2 grouped together at this groupLevel?
         public static bool GroupTogether(Lazy<object> key1, Lazy<object> key2, int groupLevel)
         {
-            if (groupLevel == 0 || !(key1.Value is IList) || !(key2.Value is IList))
+            if (groupLevel == 0 || !(key1 != null && key1.Value is IList) || !(key2 != null && key2.Value is IList))
             {
-                return key1.Value.Equals(key2.Value);
+                var key2val = key2 != null 
+                    ? key2.Value 
+                    : null;
+                return key1.Value.Equals(key2val);
             }
             var key1List = (IList)key1.Value;
             var key2List = (IList)key2.Value;

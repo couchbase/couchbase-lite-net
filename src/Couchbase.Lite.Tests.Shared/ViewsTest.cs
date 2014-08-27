@@ -456,7 +456,7 @@ namespace Couchbase.Lite
             expectedRows.AddItem(expectedRow[3]);
             expectedRows.AddItem(expectedRow[1]);
             expectedQueryResult = CreateExpectedQueryResult(expectedRows, 0);
-            Assert.AreEqual(expectedQueryResult, allDocs);
+            Assert.AreEqual(expectedQueryResult.Select(kvp => kvp.Key).OrderBy(k => k), allDocs.Select(kvp => kvp.Key).OrderBy(k => k));
 
             // Start/end query without inclusive end:
             options.SetInclusiveEnd(false);
@@ -465,7 +465,7 @@ namespace Couchbase.Lite
             expectedRows.AddItem(expectedRow[0]);
             expectedRows.AddItem(expectedRow[3]);
             expectedQueryResult = CreateExpectedQueryResult(expectedRows, 0);
-            Assert.AreEqual(expectedQueryResult, allDocs);
+            Assert.AreEqual(expectedQueryResult.Select(kvp => kvp.Key).OrderBy(k => k), allDocs.Select(kvp => kvp.Key).OrderBy(k => k));
 
             // Get all documents: with default QueryOptions
             options = new QueryOptions();
@@ -477,7 +477,7 @@ namespace Couchbase.Lite
             expectedRows.AddItem(expectedRow[1]);
             expectedRows.AddItem(expectedRow[4]);
             expectedQueryResult = CreateExpectedQueryResult(expectedRows, 0);
-            Assert.AreEqual(expectedQueryResult, allDocs);
+            Assert.AreEqual(expectedQueryResult.Select(kvp => kvp.Key).OrderBy(k => k), allDocs.Select(kvp => kvp.Key).OrderBy(k => k));
 
             // Get specific documents:
             options = new QueryOptions();
@@ -489,7 +489,7 @@ namespace Couchbase.Lite
             expectedRows = new AList<QueryRow>();
             expectedRows.AddItem(expected2);
             expectedQueryResult = CreateExpectedQueryResult(expectedRows, 0);
-            Assert.AreEqual(expectedQueryResult, allDocs);
+            Assert.AreEqual(expectedQueryResult.Select(kvp => kvp.Key).OrderBy(k => k), allDocs.Select(kvp => kvp.Key).OrderBy(k => k));
         }
 
         private IDictionary<string, object> CreateExpectedQueryResult(IList<QueryRow> rows, int offset)
