@@ -914,7 +914,9 @@ namespace Couchbase.Lite
                     else
                     {
                         Log.E(Tag, "Http Message failed to send: {0}", message);
-                        Log.E(Tag, "\tFailed content: {0}", message.Content.ReadAsStringAsync().Result);
+                        if (message.Content != null) {
+                            Log.E(Tag, "\tFailed content: {0}", message.Content.ReadAsStringAsync().Result);
+                        }
                     }
                     
                     if (completionHandler != null)

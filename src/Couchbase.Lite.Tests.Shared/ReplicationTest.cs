@@ -67,12 +67,12 @@ namespace Couchbase.Lite
 {
     public class ReplicationTest : LiteTestCase
     {
-        public const string Tag = "ReplicationTest";
+        new const string Tag = "ReplicationTest";
 
-        private CountDownLatch ReplicationWatcherThread(Replication replication)
+        private static CountdownEvent ReplicationWatcherThread(Replication replication)
         {
             var started = replication.IsRunning;
-            var doneSignal = new CountDownLatch(1);
+            var doneSignal = new CountdownEvent(1);
 
             Task.Factory.StartNew(()=>
             {
@@ -102,7 +102,7 @@ namespace Couchbase.Lite
                         Runtime.PrintStackTrace(e);
                     }
                 }
-                doneSignal.CountDown();
+                doneSignal.Signal();
             });
 
             return doneSignal;
@@ -123,7 +123,7 @@ namespace Couchbase.Lite
             {
                 var success = replicationDoneSignal.Await(TimeSpan.FromSeconds(10));
                 Assert.IsTrue(success);
-                success = replicationDoneSignalPolling.Await(TimeSpan.FromSeconds(10));
+                success = replicationDoneSignalPolling.Wait(TimeSpan.FromSeconds(10));
                 Assert.IsTrue(success);
 
                 Log.D(Tag, "replicator finished");
@@ -228,6 +228,113 @@ namespace Couchbase.Lite
         {
             Log.V(Tag, "------");
         }
+
+        // Reproduces issue #167
+        // https://github.com/couchbase/couchbase-lite-android/issues/167
+        /// <exception cref="System.Exception"></exception>
+        [Test]
+        public void TestPushPurgedDoc()
+        {
+            var numBulkDocRequests = 0;
+            HttpRequestMessage lastBulkDocsRequest = null;
+
+            var doc = CreateDocumentWithProperties(
+                database, 
+                new Dictionary<string, object>
+                {
+                    {"testName", "testPurgeDocument"}
+                }
+            );
+            Assert.IsNotNull(doc);
+
+            var remote = GetReplicationURL();
+            var factory = new MockHttpClientFactory();
+            factory.HttpHandler.ClearResponders();
+            factory.HttpHandler.AddResponderRevDiffsAllMissing();
+            factory.HttpHandler.AddResponderFakeLocalDocumentUpdate404();
+            factory.HttpHandler.AddResponderFakeBulkDocs();
+            manager.DefaultHttpClientFactory = factory;
+
+            var pusher = database.CreatePushReplication(remote);
+            pusher.Continuous = true;
+
+            var replicationCaughtUpSignal = new CountdownEvent(1);
+            pusher.Changed += (sender, e) => 
+            {
+                var changesCount = e.Source.ChangesCount;
+                var completedChangesCount = e.Source.CompletedChangesCount;
+                var msg = "changes: {0} completed changes: {1}".Fmt(changesCount, completedChangesCount);
+                Log.D(Tag, msg);
+                if (changesCount == completedChangesCount 
+                 && changesCount != 0
+                 && replicationCaughtUpSignal.CurrentCount > 0)
+                {
+                    replicationCaughtUpSignal.Signal();
+                }
+            };
+            pusher.Start();
+
+            // wait until that doc is pushed
+            var didNotTimeOut = replicationCaughtUpSignal.Wait(TimeSpan.FromSeconds(5));
+            Assert.IsTrue(didNotTimeOut);
+
+            // at this point, we should have captured exactly 1 bulk docs request
+            numBulkDocRequests = 0;
+
+            var handler = factory.HttpHandler;
+
+            foreach (var capturedRequest in handler.CapturedRequests)
+            {
+                if (capturedRequest.Method == HttpMethod.Post && capturedRequest.RequestUri.AbsoluteUri.EndsWith("_bulk_docs", StringComparison.Ordinal))
+                {
+                    lastBulkDocsRequest = capturedRequest;
+                    numBulkDocRequests++;
+                }
+            }
+
+            Assert.AreEqual(1, numBulkDocRequests);
+
+            // that bulk docs request should have the "start" key under its _revisions
+            var jsonMap = MockHttpRequestHandler.GetJsonMapFromRequest(lastBulkDocsRequest);
+            var docs = ((JArray)jsonMap.Get("docs")).ToObject<IList<IDictionary<string,object>>>();
+            var onlyDoc = docs[0];
+            var revisions = ((JObject)onlyDoc.Get("_revisions")).ToObject<IDictionary<string,object>>();
+            Assert.IsTrue(revisions.ContainsKey("start"));
+
+            // Reset for the next attempt.
+            handler.ClearCapturedRequests();
+
+            // now add a new revision, which will trigger the pusher to try to push it
+            var properties = new Dictionary<string, object>();
+            properties.Put("testName2", "update doc");
+
+            var unsavedRevision = doc.CreateRevision();
+            unsavedRevision.SetUserProperties(properties);
+            unsavedRevision.Save();
+
+            // but then immediately purge it
+            doc.Purge();
+
+            // wait for a while to give the replicator a chance to push it
+            // (it should not actually push anything)
+            System.Threading.Thread.Sleep(5 * 1000);
+
+            // we should not have gotten any more _bulk_docs requests, because
+            // the replicator should not have pushed anything else.
+            // (in the case of the bug, it was trying to push the purged revision)
+            numBulkDocRequests = 0;
+            foreach (var capturedRequest in handler.CapturedRequests)
+            {
+                if (capturedRequest.Method == HttpMethod.Post && capturedRequest.RequestUri.AbsoluteUri.EndsWith("_bulk_docs", StringComparison.Ordinal))
+                {
+                    numBulkDocRequests++;
+                }
+            }
+
+            Assert.AreEqual(1, numBulkDocRequests);
+            pusher.Stop();
+        }
+
 
         /// <exception cref="System.Exception"></exception>
         [Test]
@@ -757,7 +864,7 @@ namespace Couchbase.Lite
             Assert.IsNotNull(puller.LastError);
 
             var foundFooHeader = false;
-            var requests = mockHttpHandler.GetCapturedRequests();
+            var requests = mockHttpHandler.CapturedRequests;
 
             foreach (var request in requests)
             {
@@ -799,11 +906,11 @@ namespace Couchbase.Lite
             Assert.IsNull(pusher.LastError);
 
             var foundRevsDiff = false;
-            var capturedRequests = httpHandler.GetCapturedRequests();
+            var capturedRequests = httpHandler.CapturedRequests;
             foreach (var httpRequest in capturedRequests) 
             {
                 var uriString = httpRequest.RequestUri.ToString();
-                if (uriString.EndsWith("_revs_diff"))
+                if (uriString.EndsWith("_revs_diff", StringComparison.Ordinal))
                 {
                     foundRevsDiff = true;
                     var jsonMap = MockHttpRequestHandler.GetJsonMapFromRequest(httpRequest);

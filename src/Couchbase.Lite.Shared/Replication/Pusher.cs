@@ -305,9 +305,9 @@ namespace Couchbase.Lite.Replicator
             SendAsyncRequest(HttpMethod.Post, "/_revs_diff", diffs, (response, e) =>
             {
                 try {
-                    Log.D(Tag, "/_revs_diff response: {0}", response);
-
                     var results = response.AsDictionary<string, object>();
+
+                    Log.D(Tag, "/_revs_diff response: {0}\r\n{1}", response, results);
 
                     if (e != null) 
                     {

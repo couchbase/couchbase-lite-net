@@ -262,7 +262,8 @@ namespace Couchbase.Lite.Support
 
         private void ScheduleWithDelay(Int32 suggestedDelay)
         {
-            Log.V(Tag, "scheduleWithDelay called with delay: " + suggestedDelay + " ms");
+            if (!scheduled)
+                Log.V(Tag, "scheduleWithDelay called with delay: " + suggestedDelay + " ms");
 
             if (scheduled && (suggestedDelay < scheduledDelay))
             {

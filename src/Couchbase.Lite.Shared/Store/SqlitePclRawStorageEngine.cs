@@ -60,13 +60,13 @@ namespace Couchbase.Lite.Shared
         private const int SQLITE_OPEN_FILEPROTECTION_COMPLETEUNLESSOPEN = 0x00200000;
         private const int SQLITE_OPEN_READWRITE = 0x00000002;
         private const int SQLITE_OPEN_CREATE = 0x00000004;
-        //private const int SQLITE_OPEN_FULLMUTEX = 0x00010000;
+        private const int SQLITE_OPEN_FULLMUTEX = 0x00010000;
         private const int SQLITE_OPEN_NOMUTEX = 0x00008000;
         private const int SQLITE_OPEN_PRIVATECACHE = 0x00040000;
 
         private const String Tag = "SqlitePCLRawStorageEngine";
-        [ThreadStatic]
-        private static sqlite3 db;
+//        [ThreadStatic]
+        private /*static*/ sqlite3 db;
         private Boolean shouldCommit;
 
         string Path { get; set; }

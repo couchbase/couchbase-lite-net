@@ -49,6 +49,7 @@ using System.Threading.Tasks;
 using System.Linq;
 using System.IO;
 using Newtonsoft.Json.Linq;
+using System.Web;
 
 namespace Couchbase.Lite.Tests
 {
@@ -79,7 +80,7 @@ namespace Couchbase.Lite.Tests
         {
             Delay();
 
-            CapturedRequests.Add(request);
+            capturedRequests.Add(request);
 
             foreach(var urlPattern in responders.Keys)
             {
@@ -100,14 +101,9 @@ namespace Couchbase.Lite.Tests
             responders[urlPattern] = responder;
         }
 
-        public IList<HttpRequestMessage> GetCapturedRequests() 
+        public void ClearCapturedRequests() 
         {
-            var snapshot = new List<HttpRequestMessage>(CapturedRequests);
-            return snapshot;
-        }
-
-        public void ClearCapturedRequests() {
-            CapturedRequests.Clear();
+            capturedRequests.Clear();
         }
 
         public void AddDefaultResponders()
@@ -180,7 +176,16 @@ namespace Couchbase.Lite.Tests
 
         private IDictionary <string, HttpResponseDelegate> responders;
 
-        internal IList <HttpRequestMessage> CapturedRequests;
+        private IList <HttpRequestMessage> capturedRequests;
+
+        internal IList<HttpRequestMessage> CapturedRequests
+        {
+            private set { capturedRequests = value; }
+            get {
+                var snapshot = new List<HttpRequestMessage>(capturedRequests);
+                return snapshot;
+            }
+        }
 
         private void Delay()
         {
@@ -330,7 +335,8 @@ namespace Couchbase.Lite.Tests
             return response;
         }
 
-        public static HttpResponseMessage FakeLocalDocumentUpdateIOException(HttpRequestMessage httpUriRequest) {
+        public static HttpResponseMessage FakeLocalDocumentUpdateIOException(HttpRequestMessage httpUriRequest)
+        {
             throw new IOException("Throw exception on purpose for purposes of testSaveRemoteCheckpointNoResponse()");
         }
 
