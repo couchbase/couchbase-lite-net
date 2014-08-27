@@ -96,6 +96,7 @@ namespace Couchbase.Lite
 
         public Status()
         {
+            // SQLite DB is busy (this is recoverable!)
             this.code = StatusCode.Unknown;
         }
 
@@ -114,9 +115,14 @@ namespace Couchbase.Lite
             this.code = code;
         }
 
-        public virtual Boolean IsSuccessful()
+        public Boolean IsSuccessful
         {
-            return ((Int32)code > 0 && (Int32)code < 400);
+            get { return ((Int32)code > 0 && (Int32)code < 400); }
+        }
+
+        public Boolean IsError
+        {
+            get { return !IsSuccessful; }
         }
 
         public override string ToString()

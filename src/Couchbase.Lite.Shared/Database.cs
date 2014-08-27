@@ -274,7 +274,7 @@ namespace Couchbase.Lite
 
             Log.V(Tag, "Deleting old attachments...");
             var result = GarbageCollectAttachments();
-            if (!result.IsSuccessful())
+            if (!result.IsSuccessful)
             {
                 throw new CouchbaseLiteException(result.GetCode());
             }
@@ -3243,7 +3243,7 @@ PRAGMA user_version = 3;";
                 {
                     cursor.Close();
                 }
-                EndTransaction(resultStatus.IsSuccessful());
+                EndTransaction(resultStatus.IsSuccessful);
 
                 if (!string.IsNullOrEmpty(docId))
                 {

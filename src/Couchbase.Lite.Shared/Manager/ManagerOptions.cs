@@ -63,7 +63,7 @@ namespace Couchbase.Lite
 
         public ManagerOptions()
         {
-            RequestTimeout = TimeSpan.FromSeconds(30);
+            RequestTimeout = TimeSpan.FromSeconds(60);
 
             TaskScheduler scheduler = null;
             try {

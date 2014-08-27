@@ -54,14 +54,11 @@ namespace Couchbase.Lite.Util
 
         public static string GetDatabaseNameFromPath(string path)
         {
-            int lastSlashPos = path.LastIndexOf("/");
-            int extensionPos = path.LastIndexOf(".");
-            if (lastSlashPos < 0 || extensionPos < 0 || extensionPos < lastSlashPos)
-            {
+            var name = Path.GetFileNameWithoutExtension(path);
+            if (name == null) {
                 Log.E(Database.Tag, "Unable to determine database name from path");
-                return null;
             }
-            return Sharpen.Runtime.Substring(path, lastSlashPos + 1, extensionPos);
+            return name;
         }
 
         public static bool RemoveItemIfExists(string path)

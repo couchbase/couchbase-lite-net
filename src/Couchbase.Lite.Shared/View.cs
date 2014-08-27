@@ -333,13 +333,13 @@ namespace Couchbase.Lite {
                 {
                     cursor.Close();
                 }
-                if (!result.IsSuccessful())
+                if (!result.IsSuccessful)
                 {
                     Log.W(Database.Tag, "Failed to rebuild view " + Name + ": " + result.GetCode());
                 }
                 if (Database != null)
                 {
-                    Database.EndTransaction(result.IsSuccessful());
+                    Database.EndTransaction(result.IsSuccessful);
                 }
             }
         }

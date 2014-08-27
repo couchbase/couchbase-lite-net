@@ -451,7 +451,7 @@ namespace Couchbase.Lite.Replicator
                         {
                             var itemObject = item.AsDictionary<string, object>();
                             var status = StatusFromBulkDocsResponseItem(itemObject);
-                            if (!status.IsSuccessful())
+                            if (!status.IsSuccessful)
                             {
                                 // One of the docs failed to save.
                                 Log.W(Tag, "_bulk_docs got an error: " + item);

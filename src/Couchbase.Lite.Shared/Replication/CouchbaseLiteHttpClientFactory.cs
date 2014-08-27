@@ -60,7 +60,6 @@ namespace Couchbase.Lite.Support
         const string Tag = "CouchbaseLiteHttpClientFactory";
 
         private readonly CookieStore cookieStore;
-        private readonly Object locker = new Object();
 
         public CouchbaseLiteHttpClientFactory(CookieStore cookieStore)
         {
