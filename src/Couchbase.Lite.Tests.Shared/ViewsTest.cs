@@ -98,7 +98,7 @@ namespace Couchbase.Lite
             var rev = new RevisionInternal(props, db);
             var status = new Status();
             rev = db.PutRevision(rev, null, false, status);
-            Assert.IsTrue(status.IsSuccessful());
+            Assert.IsTrue(status.IsSuccessful);
             return rev;
         }
 
@@ -269,7 +269,7 @@ namespace Couchbase.Lite
 
             Status status = new Status();
             rev3 = database.PutRevision(threeUpdated, rev3.GetRevId(), false, status);
-            Assert.IsTrue(status.IsSuccessful());
+            Assert.IsTrue(status.IsSuccessful);
 
             // Reindex again:
             Assert.IsTrue(view.IsStale);
@@ -283,7 +283,7 @@ namespace Couchbase.Lite
             var rev4 = PutDoc(database, dict4);
             var twoDeleted = new RevisionInternal(rev2.GetDocId(), rev2.GetRevId(), true, database);
             database.PutRevision(twoDeleted, rev2.GetRevId(), false, status);
-            Assert.IsTrue(status.IsSuccessful());
+            Assert.IsTrue(status.IsSuccessful);
 
             // Reindex again:
             Assert.IsTrue(view.IsStale);

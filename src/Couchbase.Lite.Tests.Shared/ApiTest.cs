@@ -236,6 +236,29 @@ namespace Couchbase.Lite
 
         /// <exception cref="System.Exception"></exception>
         [Test]
+        public void TestDeleteDatabase()
+        {
+            var deleteme = manager.GetDatabase("deleteme");
+            Assert.IsTrue(deleteme.Exists());
+
+            var dbPath = deleteme.Path;
+            Assert.IsTrue(new FilePath(dbPath).Exists());
+            Assert.IsTrue(new FilePath(dbPath.Substring(0, dbPath.LastIndexOf('.'))).Exists());
+
+            deleteme.Delete();
+            Assert.IsFalse(deleteme.Exists());
+            Assert.IsFalse(new FilePath(dbPath).Exists());
+            Assert.IsFalse(new FilePath(dbPath + "-journal").Exists());
+            Assert.IsFalse(new FilePath(dbPath.Substring(0, dbPath.LastIndexOf('.'))).Exists());
+
+            // delete again, even though already deleted
+            deleteme.Delete();          
+            var deletemeFetched = manager.GetExistingDatabase("deleteme");
+            Assert.IsNull(deletemeFetched);
+        }
+
+        /// <exception cref="System.Exception"></exception>
+        [Test]
         public void TestDatabaseCompaction()
         {
             var properties = new Dictionary<String, Object>();
@@ -278,6 +301,7 @@ namespace Couchbase.Lite
             var db = StartDatabase();
 
             var doc = CreateDocumentWithProperties(db, properties);
+            Assert.IsFalse(doc.Deleted);
             var rev1 = doc.CurrentRevision;
             Assert.IsTrue(rev1.Id.StartsWith("1-"));
             Assert.AreEqual(1, rev1.Sequence);
@@ -301,6 +325,8 @@ namespace Couchbase.Lite
             Assert.IsNull(newRev.Id);
             Assert.AreEqual(newRev.Parent, rev2);
             Assert.AreEqual(newRev.ParentId, rev2.Id);
+            Assert.AreEqual(doc.CurrentRevision, rev2);
+            Assert.IsFalse(doc.Deleted);
 
             var listRevs = new AList<SavedRevision>();
             listRevs.Add(rev1);
@@ -393,11 +419,14 @@ namespace Couchbase.Lite
             newRev.IsDeletion = true;
             var rev3 = newRev.Save();
             Assert.IsNotNull(rev3, "Save 3 failed");
-            Assert.AreEqual(doc.CurrentRevision, rev3);
             Assert.IsTrue (rev3.Id.StartsWith ("3-", StringComparison.Ordinal), "Unexpected revID " + rev3.Id);
             Assert.AreEqual(3, rev3.Sequence);
             Assert.IsTrue(rev3.IsDeletion);
             Assert.IsTrue(doc.Deleted);
+            Assert.IsNull(doc.CurrentRevision);
+            var leafRevs = new List<SavedRevision>();
+            leafRevs.AddItem(rev3);
+            Assert.AreEqual(doc.LeafRevisions, leafRevs);
 
             var doc2 = db.GetDocument(doc.Id);
             Assert.AreEqual(doc, doc2);
