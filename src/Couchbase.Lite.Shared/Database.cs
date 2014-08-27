@@ -65,7 +65,7 @@ namespace Couchbase.Lite
     /// <summary>
     /// A Couchbase Lite Database.
     /// </summary>
-    public partial class Database 
+    public sealed class Database 
     {
     #region Constructors
 
@@ -3514,8 +3514,8 @@ PRAGMA user_version = 3;";
             Debug.Assert((sequence > 0));
             Debug.Assert((name != null));
 
-            var key = new BlobKey();
-            if (!Attachments.StoreBlobStream(contentStream, key))
+            BlobKey key;
+            if (!Attachments.StoreBlobStream(contentStream, out key))
             {
                 throw new CouchbaseLiteException(StatusCode.InternalServerError);
             }
@@ -3527,7 +3527,7 @@ PRAGMA user_version = 3;";
         {
             try
             {
-                var args = new ContentValues();
+                var args = new ContentValues(); // TODO: Create Add override and refactor to use initializer syntax.
                 args["sequence"] = sequence;
                 args["filename"] = name;
                 if (key != null)
@@ -4024,7 +4024,7 @@ PRAGMA user_version = 3;";
             return string.Format("{0}-{1}", generationIncremented, digestAsHex);
         }
 
-        public IList<String> GetPossibleAncestorRevisionIDs(RevisionInternal rev, int limit, Boolean hasAttachment)
+        public IList<String> GetPossibleAncestorRevisionIDs(RevisionInternal rev, int limit, ref Boolean hasAttachment)
         {
             var matchingRevs = new List<String>();
             var generation = rev.GetGeneration();

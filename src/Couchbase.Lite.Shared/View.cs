@@ -66,7 +66,7 @@ namespace Couchbase.Lite {
     /// A Couchbase Lite <see cref="Couchbase.Lite.View"/>. 
     /// A <see cref="Couchbase.Lite.View"/> defines a persistent index managed by map/reduce.
     /// </summary>
-    public partial class View {
+    public sealed class View {
 
     #region Constructors
 
@@ -148,12 +148,12 @@ namespace Couchbase.Lite {
 
         internal void UpdateIndex()
         {
-            Log.V(Database.Tag, "Re-indexing view " + Name + " ...");
+            Log.V(Database.Tag, "Re-indexing view {0} ...", Name);
             System.Diagnostics.Debug.Assert((Map != null));
 
-            if (Id < 0)
+            if (Id <= 0)
             {
-                var msg = string.Format("View.Id < 0");
+                var msg = string.Format("View.Id <= 0");
                 throw new CouchbaseLiteException(msg, new Status(StatusCode.NotFound));
             }
 
@@ -169,9 +169,8 @@ namespace Couchbase.Lite {
                 if (lastSequence == dbMaxSequence)
                 {
                     // nothing to do (eg,  kCBLStatusNotModified)
-                    var msg = String.Format("lastSequence ({0}) == dbMaxSequence ({1}), nothing to do", lastSequence, dbMaxSequence);
-                    Log.D(Database.Tag, msg);
-                    result.SetCode(StatusCode.Ok);
+                    Log.V(Database.Tag, "lastSequence ({0}) == dbMaxSequence ({1}), nothing to do", lastSequence, dbMaxSequence);
+                    result.SetCode(StatusCode.NotModified);
                     return;
                 }
 
@@ -214,14 +213,14 @@ namespace Couchbase.Lite {
                 // Find a better way to propagate this back
                 // Now scan every revision added since the last time the view was indexed:
                 var selectArgs = new[] { lastSequence.ToString() };
-                cursor = Database.StorageEngine.RawQuery("SELECT revs.doc_id, sequence, docid, revid, json FROM revs, docs "
+                cursor = Database.StorageEngine.RawQuery("SELECT revs.doc_id, sequence, docid, revid, json, no_attachments FROM revs, docs "
                     + "WHERE sequence>? AND current!=0 AND deleted=0 " 
                     + "AND revs.doc_id = docs.doc_id "
                     + "ORDER BY revs.doc_id, revid DESC", CommandBehavior.SequentialAccess, selectArgs);
-                cursor.MoveToNext();
 
                 var lastDocID = 0L;
-                while (!cursor.IsAfterLast())
+                var keepGoing = cursor.MoveToNext();
+                while (keepGoing)
                 {
                     long docID = cursor.GetLong(0);
                     if (docID != lastDocID)
@@ -237,11 +236,56 @@ namespace Couchbase.Lite {
                         if (docId.StartsWith("_design/", StringComparison.InvariantCultureIgnoreCase))
                         {
                             // design docs don't get indexed!
-                            cursor.MoveToNext();
+                            keepGoing = cursor.MoveToNext();
                             continue;
                         }
                         var revId = cursor.GetString(3);
                         var json = cursor.GetBlob(4);
+
+                        var noAttachments = cursor.GetInt(5) > 0;
+
+                        // Skip rows with the same doc_id -- these are losing conflicts.
+                        while ((keepGoing = cursor.MoveToNext()) && cursor.GetLong(0) == docID) { }
+
+                        if (lastSequence > 0)
+                        {
+                            // Find conflicts with documents from previous indexings.
+                            var selectArgs2 = new[] { Convert.ToString(docID), Convert.ToString(lastSequence) };
+                            var cursor2 = Database.StorageEngine.RawQuery("SELECT revid, sequence FROM revs "
+                                + "WHERE doc_id=? AND sequence<=? AND current!=0 AND deleted=0 " + "ORDER BY revID DESC "
+                                + "LIMIT 1", selectArgs2);
+                            if (cursor2.MoveToNext())
+                            {
+                                var oldRevId = cursor2.GetString(0);
+
+                                // This is the revision that used to be the 'winner'.
+                                // Remove its emitted rows:
+                                var oldSequence = cursor2.GetLong(1);
+                                var args = new[] { Sharpen.Extensions.ToString(Id), Convert.ToString(oldSequence) };
+                                Database.StorageEngine.ExecSQL("DELETE FROM maps WHERE view_id=? AND sequence=?", args);
+
+                                if (RevisionInternal.CBLCompareRevIDs(oldRevId, revId) > 0)
+                                {
+                                    // It still 'wins' the conflict, so it's the one that
+                                    // should be mapped [again], not the current revision!
+                                    revId = oldRevId;
+                                    sequence = oldSequence;
+                                    var selectArgs3 = new[] { Convert.ToString(sequence) };
+                                    json = Misc.ByteArrayResultForQuery(
+                                        Database.StorageEngine, 
+                                        "SELECT json FROM revs WHERE sequence=?", 
+                                        selectArgs3
+                                    );
+                                }
+                            }
+                        }
+                        // Get the document properties, to pass to the map function:
+                        var contentOptions = DocumentContentOptions.None;
+                        if (noAttachments)
+                        {
+                            contentOptions |= DocumentContentOptions.NoAttachments;
+                        }
+
                         var properties = Database.DocumentPropertiesFromJSON(
                             json, docId, revId, false, sequence, DocumentContentOptions.None
                         );
@@ -249,7 +293,6 @@ namespace Couchbase.Lite {
                         {
                             // Call the user-defined map() to emit new key/value
                             // pairs from this revision:
-                            Log.V(Database.Tag, "  call map for sequence=" + System.Convert.ToString(sequence));
 
                             // This is the emit() block, which gets called from within the
                             // user-defined map() block
@@ -269,7 +312,6 @@ namespace Couchbase.Lite {
                                 {
                                     var keyJson = Manager.GetObjectMapper().WriteValueAsString(key);
                                     var valueJson = value == null ? null : Manager.GetObjectMapper().WriteValueAsString(value) ;
-                                    Log.V(Database.Tag, String.Format("    emit({0}, {1})", keyJson, valueJson));
 
                                     var insertValues = new ContentValues();
                                     insertValues.Put("view_id", enclosingView.Id);
@@ -308,20 +350,18 @@ namespace Couchbase.Lite {
                             map(properties, emitBlock);
                         }
                     }
-                    cursor.MoveToNext();
                 }
 
                 // Finally, record the last revision sequence number that was 
                 // indexed:
-                ContentValues updateValues = new ContentValues();
+                var updateValues = new ContentValues();
                 updateValues["lastSequence"] = dbMaxSequence;
                 var whereArgs_1 = new string[] { Id.ToString() };
                 Database.StorageEngine.Update("views", updateValues, "view_id=?", whereArgs_1);
 
                 // FIXME actually count number added :)
-                Log.V(Database.Tag, "...Finished re-indexing view " + Name + " up to sequence " +
-                    System.Convert.ToString(dbMaxSequence) + " (deleted " + deleted + " added " + "?" + ")");
-                        result.SetCode(StatusCode.Ok);
+                Log.V(Database.Tag, "...Finished re-indexing view {0} up to sequence {1} (deleted {2} added ?)", Name, Convert.ToString(dbMaxSequence), deleted);
+                result.SetCode(StatusCode.Ok);
             }
             catch (Exception e)
             {
@@ -335,7 +375,7 @@ namespace Couchbase.Lite {
                 }
                 if (!result.IsSuccessful)
                 {
-                    Log.W(Database.Tag, "Failed to rebuild view " + Name + ": " + result.GetCode());
+                    Log.W(Database.Tag, "Failed to rebuild view {0}:{1}", Name, result.GetCode());
                 }
                 if (Database != null)
                 {
@@ -382,9 +422,8 @@ namespace Couchbase.Lite {
                     cursor.MoveToNext();
                     while (!cursor.IsAfterLast())
                     {
-                        var keyData = FromJSON(cursor.GetBlob(0));
-                        // TODO: delay parsing this for increased efficiency
-                        var value = FromJSON(cursor.GetBlob(1));
+                        var lazyKey = new Lazy<object>(()=>FromJSON(cursor.GetBlob(0)));
+                        var lazyValue = new Lazy<object>(()=>FromJSON(cursor.GetBlob(1)));
                         // TODO: ditto
                         var docId = cursor.GetString(2);
                         var sequenceLong = cursor.GetLong(3);
@@ -394,11 +433,10 @@ namespace Couchbase.Lite {
                         if (options.IsIncludeDocs())
                         {
                             // http://wiki.apache.org/couchdb/Introduction_to_CouchDB_views#Linked_documents
-                            if (value is IDictionary<string,object> && ((IDictionary<string,object>)value).ContainsKey("_id"))
+                            if (lazyValue.Value is IDictionary<string,object> && ((IDictionary<string,object>)lazyValue.Value).ContainsKey("_id"))
                             {
-                                string linkedDocId = (string)((IDictionary<string,object>)value).Get("_id");
-                                RevisionInternal linkedDoc = Database.GetDocumentWithIDAndRev(linkedDocId, null, 
-                                    DocumentContentOptions.None);
+                                var linkedDocId = (string)((IDictionary<string,object>)lazyValue.Value).Get("_id");
+                                var linkedDoc = Database.GetDocumentWithIDAndRev(linkedDocId, null, DocumentContentOptions.None);
                                 docContents = linkedDoc.GetProperties();
                             }
                             else
@@ -407,7 +445,7 @@ namespace Couchbase.Lite {
                                 docContents = Database.DocumentPropertiesFromJSON(cursor.GetBlob(5), docId, revId, false, sequenceLong, options.GetContentOptions());
                             }
                         }
-                        var row = new QueryRow(docId, sequence, keyData, value, docContents);
+                        var row = new QueryRow(docId, sequence, lazyKey.Value, lazyValue.Value, docContents);
                         row.Database = Database;
                         rows.AddItem<QueryRow>(row);  // NOTE.ZJG: Change to `yield return row` to convert to a generator.
                         cursor.MoveToNext();
@@ -521,7 +559,7 @@ namespace Couchbase.Lite {
         {
             IList<object> keysToReduce = null;
             IList<object> valuesToReduce = null;
-            object lastKey = null;
+            Lazy<object> lastKey = null;
 
             var reduce = Reduce;
             // FIXME: If reduce is null, then so are keysToReduce and ValuesToReduce, which can throw an NRE below.
@@ -536,18 +574,20 @@ namespace Couchbase.Lite {
 
             while (!cursor.IsAfterLast())
             {
-                var keyData = FromJSON(cursor.GetBlob(0));
-                var value = FromJSON(cursor.GetBlob(1));
+                var lazyKey = new Lazy<Object>(()=>FromJSON(cursor.GetBlob(0)));
+                var lazyValue = new Lazy<Object>(()=>FromJSON(cursor.GetBlob(1)));
 
-                System.Diagnostics.Debug.Assert((keyData != null));
-                if (group && !GroupTogether(keyData, lastKey, groupLevel))
+                System.Diagnostics.Debug.Assert((lazyKey != null));
+                if (group && !GroupTogether(lazyKey, lastKey, groupLevel))
                 {
-                    if (lastKey != null)
+                    if (lastKey != null && lastKey.Value != null)
                     {
                         // This pair starts a new group, so reduce & record the last one:
-                        var reduced = (reduce != null) ? reduce(keysToReduce, valuesToReduce, false) : null;
+                        var reduced = (reduce != null) 
+                            ? reduce(keysToReduce, valuesToReduce, false) 
+                            : null;
 
-                        var key = GroupKey(lastKey, groupLevel);
+                        var key = GroupKey(lastKey.Value, groupLevel);
                         var row = new QueryRow(null, 0, key, reduced, null);
                         row.Database = Database;
                         rows.AddItem(row); // NOTE.ZJG: Change to `yield return row` to convert to a generator.
@@ -555,10 +595,10 @@ namespace Couchbase.Lite {
                         keysToReduce.Clear();
                         valuesToReduce.Clear();
                     }
-                    lastKey = keyData;
+                    lastKey = lazyKey;
                 }
-                keysToReduce.AddItem(keyData);
-                valuesToReduce.AddItem(value);
+                keysToReduce.AddItem(lazyKey.Value);
+                valuesToReduce.AddItem(lazyValue.Value);
                 cursor.MoveToNext();
             }
             // NOTE.ZJG: Need to handle grouping differently if switching this to a generator.
@@ -575,14 +615,14 @@ namespace Couchbase.Lite {
         }
 
         // Are key1 and key2 grouped together at this groupLevel?
-        public static bool GroupTogether(object key1, object key2, int groupLevel)
+        public static bool GroupTogether(Lazy<object> key1, Lazy<object> key2, int groupLevel)
         {
-            if (groupLevel == 0 || !(key1 is IList) || !(key2 is IList))
+            if (groupLevel == 0 || !(key1.Value is IList) || !(key2.Value is IList))
             {
-                return key1.Equals(key2);
+                return key1.Value.Equals(key2.Value);
             }
-            var key1List = (IList)key1;
-            var key2List = (IList)key2;
+            var key1List = (IList)key1.Value;
+            var key2List = (IList)key2.Value;
 
             var end = Math.Min(groupLevel, Math.Min(key1List.Count, key2List.Count));
             for (int i = 0; i < end; ++i)
@@ -657,22 +697,38 @@ namespace Couchbase.Lite {
                 }
                 sql += ")";
             }
-            var minKey = options.GetStartKey();
-            var maxKey = options.GetEndKey();
+            var startKey = ToJSONString(options.GetStartKey());
+            var endKey = ToJSONString(options.GetEndKey());
+            var minKey = startKey;
+            var maxKey = endKey;
+            var minKeyDocId = options.GetStartKeyDocId();
+            var maxKeyDocId = options.GetEndKeyDocId();
             var inclusiveMin = true;
             var inclusiveMax = options.IsInclusiveEnd();
             if (options.IsDescending())
             {
+                var min = minKey;
                 minKey = maxKey;
-                maxKey = options.GetStartKey();
+                maxKey = min;
                 inclusiveMin = inclusiveMax;
                 inclusiveMax = true;
+                minKeyDocId = options.GetEndKeyDocId();
+                maxKeyDocId = options.GetStartKeyDocId();
             }
             if (minKey != null)
             {
-                sql += inclusiveMin ? " AND key >= ?" : " AND key > ?";
+                sql += inclusiveMin 
+                    ? " AND key >= ?" 
+                    : " AND key > ?";
                 sql += collationStr;
-                argsList.AddItem(ToJSONString(minKey));
+                argsList.AddItem(minKey);
+                if (minKeyDocId != null && inclusiveMin)
+                {
+                    //OPT: This calls the JSON collator a 2nd time unnecessarily.
+                    sql += " AND (key > ? {0} OR docid >= ?)".Fmt(collationStr);
+                    argsList.AddItem(minKey);
+                    argsList.AddItem(minKeyDocId);
+                }
             }
             if (maxKey != null)
             {
@@ -685,7 +741,13 @@ namespace Couchbase.Lite {
                     sql += " AND key < ?";
                 }
                 sql += collationStr;
-                argsList.AddItem(ToJSONString(maxKey));
+                argsList.AddItem(maxKey);
+                if (maxKeyDocId != null && inclusiveMax)
+                {
+                    sql += string.Format(" AND (key < ? %s OR docid <= ?)", collationStr);
+                    argsList.AddItem(maxKey);
+                    argsList.AddItem(maxKeyDocId);
+                }
             }
             sql = sql + " AND revs.sequence = maps.sequence AND docs.doc_id = revs.doc_id ORDER BY key";
             sql += collationStr;
@@ -696,7 +758,7 @@ namespace Couchbase.Lite {
             sql = sql + " LIMIT ? OFFSET ?";
             argsList.AddItem(options.GetLimit().ToString());
             argsList.AddItem(options.GetSkip().ToString());
-            Log.V(Database.Tag, "Query " + Name + ": " + sql);
+            Log.V(Database.Tag, "Query {0}:{1}", Name, sql);
             var cursor = Database.StorageEngine.RawQuery(sql, CommandBehavior.SequentialAccess, argsList.ToArray());
             return cursor;
         }

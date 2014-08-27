@@ -58,6 +58,7 @@ using Sharpen;
 using System.Net.Http.Headers;
 using System.Diagnostics;
 using System.Net.NetworkInformation;
+using System.Dynamic;
 
 
 namespace Couchbase.Lite
@@ -295,7 +296,6 @@ namespace Couchbase.Lite
         readonly object asyncTaskLocker = new object ();
 
         // FIXME: This is never assigned, as a result Start never initializes revisionBodyTransformationFunction
-        private Func <IDictionary<string, object>, IDictionary<string, object>> propertiesTransformationFunction;
 
         protected Func<RevisionInternal, RevisionInternal> revisionBodyTransformationFunction;
 
@@ -1487,7 +1487,7 @@ namespace Couchbase.Lite
 
         private void SetupRevisionBodyTransformationFunction()
         {
-            var xformer = propertiesTransformationFunction;
+            var xformer = TransformationFunction;
             if (xformer != null)
             {
                 revisionBodyTransformationFunction = (rev) =>
@@ -1516,6 +1516,8 @@ namespace Couchbase.Lite
     #endregion
 
     #region Instance Members
+
+        public PropertyTransformationDelegate TransformationFunction { get; set; }
 
         /// <summary>
         /// Gets the local <see cref="Couchbase.Lite.Database"/> being replicated to/from.
@@ -1849,7 +1851,7 @@ namespace Couchbase.Lite
             public Replication Source { get; private set; }
 
             /// <summary>
-            /// Initializes a new instance of the <see cref="Couchbase.Lite.Replication+ReplicationChangeEventArgs"/> class.
+            /// Initializes a new instance of the <see cref="Couchbase.Lite.ReplicationChangeEventArgs"/> class.
             /// </summary>
             /// <param name="sender">The <see cref="Couchbase.Lite.Replication"/> that raised the event.</param>
             public ReplicationChangeEventArgs (Replication sender)
@@ -1860,5 +1862,9 @@ namespace Couchbase.Lite
 
     #endregion
 
+    #region Delegates
 
+    public delegate IDictionary<string, object> PropertyTransformationDelegate(IDictionary<string, object> propertyBag);
+
+    #endregion
 }

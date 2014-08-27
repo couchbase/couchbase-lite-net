@@ -64,8 +64,6 @@ namespace Couchbase.Lite.Replicator
 
         private int _docCount;
 
-        private BulkDownloaderDelegate _onDocument;
-
         public event EventHandler<BulkDownloadEventArgs> DocumentDownloaded;
 
         /// <exception cref="System.Exception"></exception>
@@ -262,12 +260,12 @@ namespace Couchbase.Lite.Replicator
                 handler (this, new BulkDownloadEventArgs(props));
         }
 
-        private static IDictionary<string, object> HelperMethod(IList<RevisionInternal> revs, Database database)
+        private static IDictionary<string, object> HelperMethod(IEnumerable<RevisionInternal> revs, Database database)
         {
             Func<RevisionInternal, IDictionary<String, Object>> invoke = source =>
             {
-                const bool hasAttachment = false;
-                var attsSince = database.GetPossibleAncestorRevisionIDs(source, Puller.MaxNumberOfAttsSince, hasAttachment);
+                var hasAttachment = false;
+                var attsSince = database.GetPossibleAncestorRevisionIDs(source, Puller.MaxNumberOfAttsSince, ref hasAttachment);
 
                 if (!hasAttachment || attsSince.Count == 0) 
                 {

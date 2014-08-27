@@ -193,7 +193,7 @@ namespace Couchbase.Lite
             return null;
         }
 
-        public bool StoreBlobStream(Stream inputStream, BlobKey outKey)
+        public bool StoreBlobStream(Stream inputStream, out BlobKey outKey)
         {
             FilePath tmp = null;
             try
@@ -213,13 +213,13 @@ namespace Couchbase.Lite
             catch (IOException e)
             {
                 Log.E(Database.Tag, "Error writing blog to tmp file", e);
+                outKey = null;
                 return false;
             }
 
-            BlobKey newKey = KeyForBlobFromFile(tmp);
-            outKey.SetBytes(newKey.GetBytes());
-            string path = PathForKey(outKey);
-            FilePath file = new FilePath(path);
+            outKey = KeyForBlobFromFile(tmp);
+            var keyPath = PathForKey(outKey);
+            var file = new FilePath(keyPath);
             if (file.CanRead())
             {
                 // object with this hash already exists, we should delete tmp file and return true

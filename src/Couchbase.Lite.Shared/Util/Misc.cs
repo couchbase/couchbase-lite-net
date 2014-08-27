@@ -48,6 +48,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using Couchbase.Lite.Storage;
 
 namespace Couchbase.Lite
 {
@@ -125,6 +126,22 @@ namespace Couchbase.Lite
             }
             return false;
         }
+
+        /// <exception cref="Couchbase.Lite.Storage.SQLException"></exception>
+        public static byte[] ByteArrayResultForQuery(ISQLiteStorageEngine database, string query, params string[] args)
+        {
+            byte[] result = null;
+            using (var cursor = database.RawQuery(query, args))
+            {
+                if (cursor.MoveToNext())
+                {
+                    result = cursor.GetBlob(0);
+                }
+                return result;
+            }
+        }
+
+
         /// <summary>Like equals, but works even if either/both are null</summary>
         /// <param name="obj1">object1 being compared</param>
         /// <param name="obj2">object2 being compared</param>

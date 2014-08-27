@@ -667,7 +667,7 @@ namespace Couchbase.Lite.Replicator
         }
 
 
-        private static Status StatusFromBulkDocsResponseItem(IDictionary<string, object> item)
+        private new static Status StatusFromBulkDocsResponseItem(IDictionary<string, object> item)
         {
             try {
                 if (!item.ContainsKey ("error")) {

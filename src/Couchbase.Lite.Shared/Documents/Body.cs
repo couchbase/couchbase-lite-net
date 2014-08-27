@@ -181,12 +181,7 @@ namespace Couchbase.Lite.Internal
         public IDictionary<string, object> GetProperties()
         {
             var currentObj = GetObject();
-            if (currentObj is IDictionary)
-            {
-                IDictionary<string, object> map = (IDictionary<string, object>)currentObj;
-                return Sharpen.Collections.UnmodifiableMap(map);
-            }
-            return null;
+            return currentObj as IDictionary<string, object>;
         }
 
         public Boolean HasValueForKey(string key)

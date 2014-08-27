@@ -45,12 +45,13 @@ using System.Collections.Generic;
 using System.Text;
 using Couchbase.Lite.Util;
 using Sharpen;
+using System.Linq;
 
 namespace Couchbase.Lite.Storage
 {
-    public sealed class ContentValues
+    public sealed class ContentValues // TODO: Create Add override and refactor to use initializer syntax.
     {
-        public const string Tag = "ContentValues";
+        const string Tag = "ContentValues";
 
         /// <summary>Holds the actual values</summary>
         private readonly Dictionary<string, object> mValues;
@@ -207,7 +208,7 @@ namespace Couchbase.Lite.Storage
         /// <param name="key">the name of the value to remove</param>
         public void Remove(string key)
         {
-            Sharpen.Collections.Remove(mValues, key);
+            mValues.Remove(key);
         }
 
         /// <summary>Removes all values.</summary>
@@ -516,7 +517,7 @@ namespace Couchbase.Lite.Storage
         /// <returns>a set of all of the keys and values</returns>
         public ICollection<KeyValuePair<string, object>> ValueSet()
         {
-            return mValues.EntrySet();
+            return mValues.ToArray();
         }
 
         /// <summary>Returns a set of all of the keys</summary>

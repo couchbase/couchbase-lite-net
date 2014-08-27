@@ -62,7 +62,7 @@ namespace Couchbase.Lite
     /// <summary>
     /// The top-level object that manages Couchbase Lite <see cref="Couchbase.Lite.Database"/>s.
     /// </summary>
-    public sealed partial class Manager
+    public sealed class Manager
     {
 
     #region Constants

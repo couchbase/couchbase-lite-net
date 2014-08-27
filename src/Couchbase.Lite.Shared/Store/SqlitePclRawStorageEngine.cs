@@ -312,7 +312,7 @@ namespace Couchbase.Lite.Shared
                     Log.E(Tag, "Error inserting " + initialValues + " using " + command);
                     throw new CouchbaseLiteException("Error inserting " + initialValues + " using " + command, StatusCode.DbError);
                 } else {
-                    Log.V(Tag, "Inserting row " + lastInsertedId + " from " + initialValues + " using " + command);
+                    Log.V(Tag, "Inserting row {0} into {1} with values {2}", lastInsertedId, table, initialValues);
                 }
 
             } catch (Exception ex) {

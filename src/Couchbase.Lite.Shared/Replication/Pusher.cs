@@ -63,7 +63,7 @@ namespace Couchbase.Lite.Replicator
 {
     internal class Pusher : Replication
     {
-        readonly string Tag = "Pusher";
+        const string Tag = "Pusher";
 
         private bool creatingTarget;
 
@@ -496,7 +496,7 @@ namespace Couchbase.Lite.Replicator
             });
         }
 
-        private Status StatusFromBulkDocsResponseItem(IDictionary<string, object> item)
+        private new static Status StatusFromBulkDocsResponseItem(IDictionary<string, object> item)
         {
             try
             {
