@@ -392,9 +392,8 @@ namespace Couchbase.Lite
             Assert.IsFalse(repl.Continuous);
             Assert.IsNull(repl.Filter);
             Assert.IsNull(repl.FilterParams);
-            // TODO: CAssertNil(r1.doc_ids);
-            // TODO: CAssertNil(r1.headers);
-
+            Assert.IsNull(repl.DocIds);
+            // TODO: CAssertNil(r1.headers); still not null!
             // Check that the replication hasn't started running:
             Assert.IsFalse(repl.IsRunning);
             Assert.AreEqual((int)repl.Status, (int)ReplicationStatus.Stopped);
@@ -406,8 +405,8 @@ namespace Couchbase.Lite
 
             // TODO: Verify the foloowing 2 asserts. ChangesCount and CompletedChangesCount
             // should already be reset when the replicator stopped.
-            // Assert.IsTrue(repl.ChangesCount >= 2);
-            // Assert.IsTrue(repl.CompletedChangesCount >= 2);
+             Assert.IsTrue(repl.ChangesCount >= 2);
+             Assert.IsTrue(repl.CompletedChangesCount >= 2);
             Assert.IsNull(repl.LastError);
 
             VerifyRemoteDocExists(remote, doc1Id);
@@ -430,6 +429,8 @@ namespace Couchbase.Lite
             var repl2CheckedpointId = repl2.RemoteCheckpointDocID();
 
             RunReplication(repl2);
+
+            Assert.IsNull(repl2.LastError);
 
             // make sure trhe doc has been added
             VerifyRemoteDocExists(remote, doc3Id);
@@ -962,13 +963,15 @@ namespace Couchbase.Lite
             var request = new HttpRequestMessage(HttpMethod.Post, bulkDocsUrl);
             request.Headers.Add("Accept", "*/*");
             request.Content = new StringContent(requestBody.ToString(), Encoding.UTF8, "application/json");
-            var response = client.SendAsync(request).Result;
 
+            var response = client.SendAsync(request).Result;
             // Check the response to make sure everything worked as it should.
             Assert.AreEqual(HttpStatusCode.Created, response.StatusCode);
+
             var rawResponse = response.Content.ReadAsStringAsync().Result;
             var resultArray = Manager.GetObjectMapper().ReadValue<JArray>(rawResponse);
             Assert.AreEqual(2, resultArray.Count);
+
             foreach (var value in resultArray.Values<JObject>())
             {
                 var err = (string)value["error"];

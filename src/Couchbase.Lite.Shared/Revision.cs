@@ -117,6 +117,25 @@ namespace Couchbase.Lite
             }
         }
 
+        /// <summary>
+        /// Does this revision mark the deletion or removal (from available channels) of its document?
+        /// (In other words, does it have a "_deleted_ or "_removed" property?)
+        /// </summary>
+        public bool IsGone
+        {
+            get 
+            {
+                var wasRemovedFromChannel = false;
+                var removed = GetProperty("_removed");
+                if (removed != null)
+                {
+                    var removedBoolean = (bool)removed;
+                    wasRemovedFromChannel = removedBoolean;
+                }
+                return IsDeletion || wasRemovedFromChannel;
+            }
+        }
+
         /// <summary>Gets the properties of the <see cref="Couchbase.Lite.Revision"/>.</summary>
         /// <remarks>
         /// The contents of this revision of the document.
