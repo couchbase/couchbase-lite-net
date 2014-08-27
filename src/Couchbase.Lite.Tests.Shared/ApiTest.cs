@@ -474,6 +474,24 @@ namespace Couchbase.Lite
 
         /// <exception cref="System.Exception"></exception>
         [Test]
+        public void TestDeleteDocumentViaTombstoneRevision()
+        {
+            var properties = new Dictionary<string, object>();
+            properties.Put("testName", "testDeleteDocument");
+            var doc = CreateDocumentWithProperties(database, properties);
+            Assert.IsTrue(!doc.Deleted);
+            Assert.IsTrue(!doc.CurrentRevision.IsDeletion);
+
+            var props = new Dictionary<string, object>(doc.Properties);
+            props.Put("_deleted", true);
+            var deletedRevision = doc.PutProperties(props);
+            Assert.IsTrue(doc.Deleted);
+            Assert.IsTrue(deletedRevision.IsDeletion);
+            Assert.IsNull(doc.CurrentRevision);
+        }
+
+        /// <exception cref="System.Exception"></exception>
+        [Test]
         public void TestAllDocuments()
         {
             var db = manager.GetExistingDatabase(DefaultTestDb); //StartDatabase();
@@ -658,44 +676,11 @@ namespace Couchbase.Lite
         [Test]
         public void TestAttachments()
         {
-            var properties = new Dictionary<String, Object>();
-            properties["testName"] = "testAttachments";
-            var db = manager.GetExistingDatabase(DefaultTestDb);
-
-            var doc = CreateDocumentWithProperties(db, properties);
-            var rev = doc.CurrentRevision;
-            Assert.AreEqual(rev.Attachments.Count(), 0);
-            Assert.AreEqual(rev.AttachmentNames.Count(), 0);
-            Assert.IsNull(rev.GetAttachment("index.html"));
-
+            var attachmentName = "index.html";
             var content = "This is a test attachment!";
-            var body = new ByteArrayInputStream(Runtime.GetBytesForString(content).ToArray());
-
-            var rev2 = doc.CreateRevision();
-            rev2.SetAttachment("index.html", "text/plain; charset=utf-8", body);
-
-            var rev3 = rev2.Save();
-
-            Assert.IsNotNull(rev3);
-            Assert.AreEqual(rev3.Attachments.Count(), 1);
-            Assert.AreEqual(rev3.AttachmentNames.Count(), 1);
-
-            var attach = rev3.GetAttachment("index.html");
-            Assert.IsNotNull(attach);
-            Assert.AreEqual(doc, attach.Document);
-            Assert.AreEqual("index.html", attach.Name);
-
-            var attNames = new AList<string>();
-            attNames.AddItem("index.html");
-            Assert.AreEqual(rev3.AttachmentNames, attNames);
-            Assert.AreEqual("text/plain; charset=utf-8", attach.ContentType);
-
-            var attachmentContent = Encoding.UTF8.GetString(attach.Content.ToArray());
-            Assert.AreEqual(content, attachmentContent);
-            Assert.AreEqual(Runtime.GetBytesForString(content).ToArray().Length, attach.Length);
-
-            var newRev = rev3.CreateRevision();
-            newRev.RemoveAttachment(attach.Name);
+            var doc = CreateDocWithAttachment(database, attachmentName, content);
+            var newRev = doc.CurrentRevision.CreateRevision();
+            newRev.RemoveAttachment(attachmentName);
             var rev4 = newRev.Save();
             Assert.IsNotNull(rev4);
             Assert.AreEqual(0, rev4.AttachmentNames.Count());
