@@ -686,6 +686,33 @@ namespace Couchbase.Lite
             Assert.AreEqual(0, rev4.AttachmentNames.Count());
         }
 
+        /// <summary>https://github.com/couchbase/couchbase-lite-java-core/issues/132</summary>
+        /// <exception cref="System.Exception"></exception>
+        /// <exception cref="System.IO.IOException"></exception>
+        [Test]
+        public void TestUpdateDocWithAttachments()
+        {
+            var attachmentName = "index.html";
+            var content = "This is a test attachment!";
+            var doc = CreateDocWithAttachment(database, attachmentName, content);
+
+            var latestRevision = doc.CurrentRevision;
+            var propertiesUpdated = new Dictionary<string, object>();
+            propertiesUpdated.Put("propertiesUpdated", "testUpdateDocWithAttachments");
+
+            var newUnsavedRevision = latestRevision.CreateRevision();
+            newUnsavedRevision.SetUserProperties(propertiesUpdated);
+
+            var newSavedRevision = newUnsavedRevision.Save();
+            Assert.IsNotNull(newSavedRevision);
+            Assert.AreEqual(1, newSavedRevision.AttachmentNames.Count());
+
+            var fetched = doc.CurrentRevision.GetAttachment(attachmentName);
+            var attachmentBytes = fetched.Content.ToArray();
+            Assert.AreEqual(content, Encoding.UTF8.GetString(attachmentBytes));
+            Assert.IsNotNull(fetched);
+        }
+
         //CHANGE TRACKING
         /// <exception cref="System.Exception"></exception>
         [Test]
