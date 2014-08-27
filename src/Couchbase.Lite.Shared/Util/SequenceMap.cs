@@ -45,7 +45,15 @@ using Sharpen;
 
 namespace Couchbase.Lite.Support
 {
-    public class SequenceMap
+    /// <summary>
+    /// A data structure representing a type of array that allows object values to be added to the end, and removed in arbitrary order;
+    /// it's used by the replicator to keep track of which revisions have been transferred and what sequences to checkpoint.
+    /// </summary>
+    /// <remarks>
+    /// A data structure representing a type of array that allows object values to be added to the end, and removed in arbitrary order;
+    /// it's used by the replicator to keep track of which revisions have been transferred and what sequences to checkpoint.
+    /// </remarks>
+    internal class SequenceMap
     {
         private TreeSet<long> sequences;
 
@@ -55,15 +63,25 @@ namespace Couchbase.Lite.Support
 
         private long firstValueSequence;
 
+        private object locker = new object ();
+
         public SequenceMap()
         {
+            // Sequence numbers currently in the map
+            // last generated sequence
+            // values of remaining sequences
+            // sequence # of first item in _values
             sequences = new TreeSet<long>();
-            values = new AList<string>(100);
+            values = new List<string>(100);
             firstValueSequence = 1;
             lastSequence = 0;
         }
 
-        object locker = new object ();
+        /// <summary>Adds a value to the map, assigning it a sequence number and returning it.</summary>
+        /// <remarks>
+        /// Adds a value to the map, assigning it a sequence number and returning it.
+        /// Sequence numbers start at 1 and increment from there.
+        /// </remarks>
         public long AddValue(string value)
         {
             lock (locker)
@@ -74,6 +92,8 @@ namespace Couchbase.Lite.Support
             }
         }
 
+        /// <summary>Removes a sequence and its associated value.</summary>
+        /// <remarks>Removes a sequence and its associated value.</remarks>
         public void RemoveSequence(long sequence)
         {
             lock (locker)
@@ -90,6 +110,11 @@ namespace Couchbase.Lite.Support
             }
         }
 
+        /// <summary>Returns the maximum consecutively-removed sequence number.</summary>
+        /// <remarks>
+        /// Returns the maximum consecutively-removed sequence number.
+        /// This is one less than the minimum remaining sequence number.
+        /// </remarks>
         public long GetCheckpointedSequence()
         {
             lock (locker)
@@ -113,6 +138,7 @@ namespace Couchbase.Lite.Support
             }
         }
 
+        /// <summary>Returns the value associated with the checkpointedSequence.</summary>
         public string GetCheckpointedValue()
         {
             lock (locker) {
