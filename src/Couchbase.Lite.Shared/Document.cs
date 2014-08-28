@@ -51,6 +51,7 @@ using Couchbase.Lite.Internal;
 using Sharpen;
 using System.Diagnostics;
 using System.Text;
+using System.Collections.ObjectModel;
 
 namespace Couchbase.Lite {
 

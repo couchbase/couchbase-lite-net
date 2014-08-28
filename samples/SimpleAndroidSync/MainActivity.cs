@@ -159,7 +159,9 @@ namespace SimpleAndroidSync
 
         public void ReplicationChanged(object sender, ReplicationChangeEventArgs args)
         {
-            Replication replicator = args.Source;
+            Couchbase.Lite.Util.Log.D(Tag, "Replication Changed: {0}", args);
+
+            var replicator = args.Source;
 
             var totalCount = replicator.ChangesCount;
             var completedCount = replicator.CompletedChangesCount;

@@ -792,7 +792,7 @@ namespace Couchbase.Lite.Replicator
         {
             Log.I(Tag, "inserting " + downloads.Count + " revisions...");
 
-            var time = DateTime.Now.ToMillisecondsSinceEpoch();
+            var time = DateTime.UtcNow.ToMillisecondsSinceEpoch();
 
             downloads.Sort(new RevisionComparer());
 
@@ -862,7 +862,7 @@ namespace Couchbase.Lite.Replicator
             // Checkpoint:
             LastSequence = pendingSequences.GetCheckpointedValue();
 
-            var delta = DateTime.Now.ToMillisecondsSinceEpoch() - time;
+            var delta = DateTime.UtcNow.ToMillisecondsSinceEpoch() - time;
             Log.D(Tag, "inserted " + downloads.Count + " revs in " + delta + " milliseconds");
 
             var newCompletedChangesCount = CompletedChangesCount + downloads.Count;

@@ -86,6 +86,15 @@ namespace Couchbase.Lite.Support
 
         private readonly Object locker;
 
+        /// <summary>Initializes a batcher.</summary>
+        /// <remarks>Initializes a batcher.</remarks>
+        /// <param name="workExecutor">the work executor that performs actual work</param>
+        /// <param name="capacity">The maximum number of objects to batch up. If the queue reaches this size, the queued objects will be sent to the processor immediately.
+        ///     </param>
+        /// <param name="delay">The maximum waiting time to collect objects before processing them. In some circumstances objects will be processed sooner.
+        ///     </param>
+        /// <param name="processor">The callback/block that will be called to process the objects.
+        ///     </param>
         public Batcher(TaskFactory workExecutor, int capacity, int delay, Action<IList<T>> processor, CancellationTokenSource tokenSource = null)
         {
             processNowRunnable = new Action(()=>
@@ -203,6 +212,7 @@ namespace Couchbase.Lite.Support
             }
         }
 
+        /// <summary>Adds an object to the queue.</summary>
         public void QueueObject(T o)
         {
             IList<T> objects = new AList<T>();
@@ -210,6 +220,7 @@ namespace Couchbase.Lite.Support
             QueueObjects(objects);
         }
 
+        /// <summary>Sends queued objects to the processor block (up to the capacity).</summary>
         public void Flush()
         {
             lock (locker)
@@ -218,6 +229,7 @@ namespace Couchbase.Lite.Support
             }
         }
 
+        /// <summary>Sends _all_ the queued objects at once to the processor block.</summary>
         public void FlushAll()
         {
             lock (locker)
@@ -238,6 +250,7 @@ namespace Couchbase.Lite.Support
             }
         }
 
+        /// <summary>Number of items to be processed.</summary>
         public int Count()
         {
             lock (locker) {
@@ -248,6 +261,7 @@ namespace Couchbase.Lite.Support
             }
         }
 
+        /// <summary>Empties the queue without processing any of the objects in it.</summary>
         public void Clear()
         {
             lock (locker) {
@@ -314,6 +328,15 @@ namespace Couchbase.Lite.Support
             }
         }
 
+        /// <summary>
+        /// Calculates the delay to use when scheduling the next batch of objects to process.
+        /// </summary>
+        /// <remarks>
+        /// There is a balance required between clearing down the input queue as fast as possible
+        /// and not exhausting downstream system resources such as sockets and http response buffers
+        /// by processing too many batches concurrently.
+        /// </remarks>
+        /// <returns>The to use.</returns>
         private Int32 DelayToUse()
         {
             int delayToUse = delay;

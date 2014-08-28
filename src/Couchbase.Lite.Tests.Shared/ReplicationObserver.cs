@@ -61,7 +61,7 @@ namespace Couchbase.Lite
 
         public void Changed(object sender, ReplicationChangeEventArgs args)
         {
-            Replication replicator = args.Source;
+            var replicator = args.Source;
             Log.D(Tag, replicator + " changed: " + replicator.CompletedChangesCount + " / " + replicator.ChangesCount);
 
             if (replicator.CompletedChangesCount < 0)

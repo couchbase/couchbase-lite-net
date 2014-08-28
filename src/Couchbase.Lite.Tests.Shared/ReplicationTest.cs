@@ -79,8 +79,9 @@ namespace Couchbase.Lite
                 var done = false;
                 while (!done)
                 {
-                    if (!started) {
-                        started = replication.IsRunning;
+                    if (replication.IsRunning)
+                    {
+                        started = true;
                     }
 
                     var statusIsDone = (
@@ -119,19 +120,12 @@ namespace Couchbase.Lite
 
             Log.D(Tag, "Waiting for replicator to finish.");
 
-            try
-            {
-                var success = replicationDoneSignal.Await(TimeSpan.FromSeconds(10));
+                var success = replicationDoneSignal.Await(TimeSpan.FromSeconds(30));
                 Assert.IsTrue(success);
                 success = replicationDoneSignalPolling.Wait(TimeSpan.FromSeconds(10));
                 Assert.IsTrue(success);
 
                 Log.D(Tag, "replicator finished");
-            }
-            catch (Exception e)
-            {
-                Runtime.PrintStackTrace(e);
-            }
 
             replication.Changed -= observer.Changed;
         }
@@ -522,19 +516,20 @@ namespace Couchbase.Lite
         [Test]
         public void TestPuller()
         {
-            var docIdTimestamp = System.Convert.ToString(Runtime.CurrentTimeMillis());
+            var docIdTimestamp = Convert.ToString(Runtime.CurrentTimeMillis());
             var doc1Id = string.Format("doc1-{0}", docIdTimestamp);
             var doc2Id = string.Format("doc2-{0}", docIdTimestamp);
+            Log.D(Tag, "Adding " + doc1Id + " directly to sync gateway");
             AddDocWithId(doc1Id, "attachment.png");
+            Log.D(Tag, "Adding " + doc2Id + " directly to sync gateway");
             AddDocWithId(doc2Id, "attachment2.png");
 
-            // workaround for https://github.com/couchbase/sync_gateway/issues/228
-            Sharpen.Thread.Sleep(3000);
             DoPullReplication();
-            Sharpen.Thread.Sleep(3000);
+            Assert.IsNotNull(database);
 
             Log.D(Tag, "Fetching doc1 via id: " + doc1Id);
             var doc1 = database.GetExistingDocument(doc1Id);
+            Log.D(Tag, "doc1" + doc1);
             Assert.IsNotNull(doc1);
             Assert.IsNotNull(doc1.CurrentRevisionId);
             Assert.IsTrue(doc1.CurrentRevisionId.StartsWith("1-"));
@@ -659,13 +654,15 @@ namespace Couchbase.Lite
             Log.D(Tag, "Waiting for http request to finish");
             try
             {
-                httpRequestDoneSignal.Await(TimeSpan.FromSeconds(10));
+                Assert.IsTrue(httpRequestDoneSignal.Await(TimeSpan.FromSeconds(10)));
                 Log.D(Tag, "http request finished");
             }
             catch (Exception e)
             {
                 Sharpen.Runtime.PrintStackTrace(e);
             }
+
+            WorkaroundSyncGatewayRaceCondition();
         }
 
         /// <exception cref="System.Exception"></exception>
@@ -932,8 +929,16 @@ namespace Couchbase.Lite
             // Create a document with two conflicting edits.
             var doc = database.CreateDocument();
             var rev1 = doc.CreateRevision().Save();
-            var rev2a = rev1.CreateRevision().Save();
-            var rev2b = rev1.CreateRevision().Save(true);
+            var rev2a = CreateRevisionWithRandomProps(rev1, false);
+            var rev2b = CreateRevisionWithRandomProps(rev1, true);
+
+            // make sure we can query the db to get the conflict
+            var allDocsQuery = database.CreateAllDocumentsQuery();
+            allDocsQuery.AllDocsMode = allDocsQuery.AllDocsMode = AllDocsMode.OnlyConflicts;
+
+            var rows = allDocsQuery.Run();
+            Assert.AreEqual(1, rows.Count);
+            Assert.IsTrue(rows.Aggregate(false, (found, row) => found |= row.Document.Id.Equals(doc.Id)));
 
             // Push the conflicts to the remote DB.
             var pusher = database.CreatePushReplication(GetReplicationURL());
@@ -952,16 +957,14 @@ namespace Couchbase.Lite
 
             // Combine into one _bulk_docs request.
             var requestBody = new JObject();
-            var docs = new JArray();
-            docs.Add(rev3aBody);
-            docs.Add(rev3bBody);
+            var docs = new JArray { rev3aBody, rev3bBody};
             requestBody.Put("docs", docs);
 
             // Make the _bulk_docs request.
             var client = new HttpClient();
             var bulkDocsUrl = GetReplicationURL () + "/_bulk_docs";
             var request = new HttpRequestMessage(HttpMethod.Post, bulkDocsUrl);
-            request.Headers.Add("Accept", "*/*");
+            //request.Headers.Add("Accept", "*/*");
             request.Content = new StringContent(requestBody.ToString(), Encoding.UTF8, "application/json");
 
             var response = client.SendAsync(request).Result;
@@ -981,7 +984,7 @@ namespace Couchbase.Lite
             WorkaroundSyncGatewayRaceCondition();
 
             // Pull the remote changes.
-            Replication puller = database.CreatePullReplication(GetReplicationURL());
+            var puller = database.CreatePullReplication(GetReplicationURL());
             RunReplication(puller);
             Assert.IsNull(puller.LastError);
 
