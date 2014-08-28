@@ -54,7 +54,7 @@ namespace Couchbase.Lite
     /// <summary>
     /// A result row for a Couchbase Lite <see cref="Couchbase.Lite.View"/> <see cref="Couchbase.Lite.Query"/>.
     /// </summary>
-    public partial class QueryRow 
+    public sealed class QueryRow 
     {
 
     #region Constructors
@@ -262,7 +262,7 @@ namespace Couchbase.Lite
 
     #region Non-public Members
 
-        public virtual IDictionary<string, object> AsJSONDictionary()
+        public IDictionary<string, object> AsJSONDictionary()
         {
             var result = new Dictionary<string, object>();
             if (Value != null || SourceDocumentId != null)

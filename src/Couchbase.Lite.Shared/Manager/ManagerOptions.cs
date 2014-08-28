@@ -48,7 +48,7 @@ namespace Couchbase.Lite
     /// <summary>
     /// Option flags for Manager initialization.
     /// </summary>
-    public class ManagerOptions
+    public sealed class ManagerOptions
     {
         /// <summary>
         /// Gets the default option flags.

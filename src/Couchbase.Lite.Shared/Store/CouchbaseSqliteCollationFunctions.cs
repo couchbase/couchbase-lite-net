@@ -52,11 +52,9 @@ namespace Couchbase.Lite.Storage
         /// <summary>
         /// Couchbase custom JSON collation algorithm.
         /// </summary>
-        /// <remarks>
-        /// This is woefully incomplete.
-        /// For full details, see https://github.com/couchbase/couchbase-lite-ios/blob/580c5f65ebda159ce5d0ce1f75adc16955a2a6ff/Source/CBLCollateJSON.m.
-        /// </remarks>
-        /// <param name = "args"></param>
+        /// <param name = "userData"></param>
+        /// <param name = "param1"></param>
+        /// <param name = "param2"></param>
         public static Int32 Compare (object userData, String param1, String param2)
         {
             return JsonCollator.Compare(JsonCollationMode.Unicode, param1, param2, Int32.MaxValue);

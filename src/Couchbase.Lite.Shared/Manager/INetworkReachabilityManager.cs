@@ -31,7 +31,7 @@ namespace Couchbase.Lite
     /// Need this class because .NET's NetworkAvailabilityEventArgs
     /// only has an internal constructor.
     /// </remarks>
-    public class NetworkReachabilityChangeEventArgs : EventArgs
+    public sealed class NetworkReachabilityChangeEventArgs : EventArgs
     {
         public NetworkReachabilityStatus Status { get; private set; }
 

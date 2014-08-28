@@ -46,22 +46,19 @@ using System.IO;
 using System.Text;
 using Couchbase.Lite;
 using Couchbase.Lite.Internal;
-using Couchbase.Lite.Replicator;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
 using Sharpen;
 using System.Threading.Tasks;
 using System.Net.Http;
-using System.Web;
 using System.Net.Http.Headers;
 using Newtonsoft.Json.Linq;
 using System.Linq;
 using System.Diagnostics;
-using System.Threading;
 
 namespace Couchbase.Lite.Replicator
 {
-    internal class Pusher : Replication
+    internal sealed class Pusher : Replication
     {
         const string Tag = "Pusher";
 

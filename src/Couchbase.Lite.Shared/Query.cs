@@ -332,7 +332,7 @@ namespace Couchbase.Lite {
                 throw new CouchbaseLiteException("The database has been closed.");
             }
 
-            var outSequence = new AList<long>();
+            var outSequence = new List<long>();
             var viewName = (View != null) ? View.Name : null;
             var queryOptions = QueryOptions;
 

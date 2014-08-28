@@ -41,24 +41,20 @@
 //
 
 using System;
-using System.Linq;
-using System.Collections;
 using System.Collections.Generic;
-using System.Net;
-using System.IO;
-using Couchbase.Lite.Util;
-using Couchbase.Lite.Internal;
-using Sharpen;
 using System.Diagnostics;
+using System.Linq;
 using System.Text;
-using System.Collections.ObjectModel;
+using Couchbase.Lite.Internal;
+using Couchbase.Lite.Util;
+using Sharpen;
 
 namespace Couchbase.Lite {
 
     /// <summary>
     /// A Couchbase Lite Document.
     /// </summary>
-    public partial class Document {
+    public sealed class Document {
 
         SavedRevision currentRevision;
             

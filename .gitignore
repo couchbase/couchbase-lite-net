@@ -109,6 +109,7 @@ ClientBin
 *.dbmdl
 Generated_Code #added for RIA/Silverlight projects
 *.walrus
+*.designer.cs
 
 # Android code gen.
 R.cs
