@@ -51,6 +51,7 @@ using Couchbase.Lite.Util;
 using NUnit.Framework;
 using Sharpen;
 using Newtonsoft.Json.Linq;
+using System.Threading;
 
 namespace Couchbase.Lite
 {
@@ -590,7 +591,7 @@ namespace Couchbase.Lite
             // wait until indexing is (hopefully) done
             try
             {
-                Sharpen.Thread.Sleep(1 * 1000);
+                Thread.Sleep(1 * 1000);
             }
             catch (Exception e)
             {

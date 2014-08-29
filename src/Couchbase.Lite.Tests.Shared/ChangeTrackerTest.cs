@@ -55,6 +55,7 @@ using System.Threading.Tasks;
 using NUnit.Framework;
 using Couchbase.Lite.Tests;
 using System.Collections;
+using System.Threading;
 
 namespace Couchbase.Lite
 {
@@ -212,7 +213,7 @@ namespace Couchbase.Lite
             changeTracker.Start();
 
             // sleep for a few seconds
-            Thread.Sleep(5 * 1000);
+            Thread.Sleep(25 * 1000);
 
             // make sure we got less than 10 requests in those 10 seconds (if it was hammering, we'd get a lot more)
             var handler = client.HttpRequestHandler;

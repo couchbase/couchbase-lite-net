@@ -47,9 +47,9 @@ namespace Sharpen
 {
     internal class ThreadFactory
     {
-        public Thread NewThread (Runnable r)
+        public SharpenThread NewThread (Runnable r)
         {
-            Thread t = new Thread (r);
+            SharpenThread t = new SharpenThread (r);
             t.SetDaemon (true);
             t.Start ();
             return t;

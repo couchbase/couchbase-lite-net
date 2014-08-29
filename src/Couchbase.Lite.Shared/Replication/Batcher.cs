@@ -295,12 +295,12 @@ namespace Couchbase.Lite.Support
                 Log.D(Tag, "workExecutor.schedule() with delay: " + suggestedDelay + " ms");
 
                 cancellationSource = new CancellationTokenSource();
-                flushFuture = Task.Delay(scheduledDelay)
-                    .ContinueWith(task => 
+                flushFuture = workExecutor.StartNew(()=> 
                     {
-                        if(!(task.IsCanceled && cancellationSource.IsCancellationRequested))
+                        System.Threading.Thread.Sleep(scheduledDelay);
+                        if(!(cancellationSource.IsCancellationRequested))
                         {
-                            workExecutor.StartNew(processNowRunnable);
+                            processNowRunnable();
                         }
                     }, cancellationSource.Token);
             }

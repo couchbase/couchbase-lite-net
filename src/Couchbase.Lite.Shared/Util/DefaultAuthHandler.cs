@@ -65,12 +65,17 @@ namespace Couchbase.Lite.Replicator
 
         #region implemented abstract members of MessageProcessingHandler
 
+        object locker = new object();
+
         protected override HttpResponseMessage ProcessResponse (HttpResponseMessage response, CancellationToken cancellationToken)
         {
             var hasSetCookie = response.Headers.Contains("Set-Cookie");
             if (hasSetCookie)
             {
-                cookieStore.Save();
+                lock (locker)
+                {
+                    cookieStore.Save();
+                }
             }
 
             return response;

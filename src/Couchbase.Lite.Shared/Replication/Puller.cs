@@ -61,7 +61,7 @@ using System.Data;
 
 namespace Couchbase.Lite.Replicator
 {
-    internal class Puller : Replication, IChangeTrackerClient
+    internal sealed class Puller : Replication, IChangeTrackerClient
     {
         private const int MaxOpenHttpConnections = 16;
 
@@ -258,7 +258,7 @@ namespace Couchbase.Lite.Replicator
                 try
                 {
                     // Presumably we are letting 1 or more other threads do something while we wait.
-                    Sharpen.Thread.Sleep(500);
+                    Thread.Sleep(500);
                 }
                 catch (Exception e)
                 {
@@ -352,7 +352,6 @@ namespace Couchbase.Lite.Replicator
                 int numBulked = 0;
                 for (int i = 0; i < inbox.Count; i++) {
                     var rev = (PulledRevision)inbox [i];
-                    // FIXME add logic here to pull initial revs in bulk
                     //TODO: add support for rev isConflicted
                     if (canBulkGet || (rev.GetGeneration() == 1 && !rev.IsDeleted()))
                     {
@@ -405,11 +404,11 @@ namespace Couchbase.Lite.Replicator
         public void PullRemoteRevisions()
         {
             //find the work to be done in a synchronized block
-            var workToStartNow = new AList<RevisionInternal>();
-            var bulkWorkToStartNow = new AList<RevisionInternal>();
+            var workToStartNow = new List<RevisionInternal>();
+            var bulkWorkToStartNow = new List<RevisionInternal>();
             lock (locker)
             {
-                while (httpConnectionCount + workToStartNow.Count < MaxOpenHttpConnections)
+                while (httpConnectionCount + bulkWorkToStartNow.Count + workToStartNow.Count < MaxOpenHttpConnections)
                 {
                     int nBulk = 0;
                     if (bulkRevsToPull != null)
@@ -426,8 +425,9 @@ namespace Couchbase.Lite.Replicator
                     if (nBulk > 0)
                     {
                         // Prefer to pull bulk revisions:
-                        Sharpen.Collections.AddAll(bulkWorkToStartNow, bulkRevsToPull.SubList(0, nBulk));
-                        bulkRevsToPull.SubList(0, nBulk).Clear();
+                        var range = new ArraySegment<RevisionInternal>(bulkRevsToPull.ToArray(), 0, nBulk);
+                        bulkWorkToStartNow.AddRange(range) ;
+                        bulkRevsToPull.RemoveAll(range);
                     }
                     else
                     {
@@ -616,7 +616,7 @@ namespace Couchbase.Lite.Replicator
 
             SendAsyncRequest(HttpMethod.Post, "/_all_docs?include_docs=true", body, (result, e) =>
             {
-                var res = (IDictionary<string, object>)result;
+                var res = result.AsDictionary<string, object>();
                 if (e != null) {
                     SetLastError(e);
                     RevisionFailed();
@@ -625,11 +625,11 @@ namespace Couchbase.Lite.Replicator
                     // Process the resulting rows' documents.
                     // We only add a document if it doesn't have attachments, and if its
                     // revID matches the one we asked for.
-                    var rows = (IList<IDictionary<string, object>>)res.Get ("rows");
+                    var rows = res.Get ("rows").AsList<IDictionary<string, object>>();
                     Log.V (Tag, "Checking {0} bulk-fetched remote revisions", rows.Count);
 
                     foreach (var row in rows) {
-                        var doc = (IDictionary<string, object>)row.Get ("doc");
+                        var doc = row.Get ("doc").AsDictionary<string, object>();
                         if (doc != null && doc.Get ("_attachments") == null)
                         {
                             var rev = new RevisionInternal (doc, LocalDatabase);
@@ -648,7 +648,7 @@ namespace Couchbase.Lite.Replicator
                 if (remainingRevs.Count > 0) 
                 {
                     Log.V (Tag, "Bulk-fetch didn't work for {0} of {1} revs; getting individually", remainingRevs.Count, bulkRevs.Count);
-                    foreach (RevisionInternal rev in remainingRevs) 
+                    foreach (var rev in remainingRevs) 
                     {
                         QueueRemoteRevision (rev);
                     }

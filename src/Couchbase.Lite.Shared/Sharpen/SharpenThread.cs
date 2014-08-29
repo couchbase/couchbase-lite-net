@@ -47,7 +47,7 @@ namespace Sharpen
     using System.Threading;
     using System.Collections.Generic;
 
-    internal class Thread : Runnable
+    internal class SharpenThread : Runnable
     {
         private static ThreadGroup defaultGroup = new ThreadGroup ();
         private bool interrupted;
@@ -56,29 +56,29 @@ namespace Sharpen
         private System.Threading.Thread thread;
         
         [ThreadStatic]
-        private static Sharpen.Thread wrapperThread;
+        private static Sharpen.SharpenThread wrapperThread;
 
-        public Thread () : this(null, null, null)
+        public SharpenThread () : this(null, null, null)
         {
         }
 
-        public Thread (string name) : this (null, null, name)
+        public SharpenThread (string name) : this (null, null, name)
         {
         }
 
-        public Thread (ThreadGroup grp, string name) : this (null, grp, name)
+        public SharpenThread (ThreadGroup grp, string name) : this (null, grp, name)
         {
         }
 
-        public Thread (Runnable runnable): this (runnable, null, null)
+        public SharpenThread (Runnable runnable): this (runnable, null, null)
         {
         }
         
-        public Thread (Runnable runnable, string name): this (runnable, null, name)
+        public SharpenThread (Runnable runnable, string name): this (runnable, null, name)
         {
         }
 
-        Thread (Runnable runnable, ThreadGroup grp, string name)
+        SharpenThread (Runnable runnable, ThreadGroup grp, string name)
         {
             thread = new System.Threading.Thread (new ThreadStart (InternalRun));
             
@@ -89,17 +89,17 @@ namespace Sharpen
                 thread.Name = name;
         }
 
-        private Thread (System.Threading.Thread t)
+        private SharpenThread (System.Threading.Thread t)
         {
             thread = t;
             tgroup = defaultGroup;
             tgroup.Add (this);
         }
 
-        public static Sharpen.Thread CurrentThread ()
+        public static Sharpen.SharpenThread CurrentThread ()
         {
             if (wrapperThread == null) {
-                wrapperThread = new Sharpen.Thread (System.Threading.Thread.CurrentThread);
+                wrapperThread = new Sharpen.SharpenThread (System.Threading.Thread.CurrentThread);
             }
             return wrapperThread;
         }
@@ -140,13 +140,13 @@ namespace Sharpen
 
         public static bool Interrupted ()
         {
-            if (Sharpen.Thread.wrapperThread == null) {
+            if (Sharpen.SharpenThread.wrapperThread == null) {
                 return false;
             }
-            Sharpen.Thread wrapperThread = Sharpen.Thread.wrapperThread;
+            Sharpen.SharpenThread wrapperThread = Sharpen.SharpenThread.wrapperThread;
             lock (wrapperThread) {
-                bool interrupted = Sharpen.Thread.wrapperThread.interrupted;
-                Sharpen.Thread.wrapperThread.interrupted = false;
+                bool interrupted = Sharpen.SharpenThread.wrapperThread.interrupted;
+                Sharpen.SharpenThread.wrapperThread.interrupted = false;
                 return interrupted;
             }
         }
@@ -180,10 +180,10 @@ namespace Sharpen
             thread.Name = name;
         }
 
-        public static void Sleep (long milis)
-        {
-            System.Threading.Thread.Sleep ((int)milis);
-        }
+//      public static void Sleep (long milis)
+//      {
+//          System.Threading.Thread.Sleep ((int)milis);
+//      }
 
         public void Start ()
         {
@@ -199,7 +199,7 @@ namespace Sharpen
 
     internal class ThreadGroup
     {
-        private List<Thread> threads = new List<Thread> ();
+        private List<SharpenThread> threads = new List<SharpenThread> ();
         
         public ThreadGroup()
         {
@@ -209,21 +209,21 @@ namespace Sharpen
         {
         }
 
-        internal void Add (Thread t)
+        internal void Add (SharpenThread t)
         {
             lock (threads) {
                 threads.Add (t);
             }
         }
         
-        internal void Remove (Thread t)
+        internal void Remove (SharpenThread t)
         {
             lock (threads) {
                 threads.Remove (t);
             }
         }
 
-        public int Enumerate (Thread[] array)
+        public int Enumerate (SharpenThread[] array)
         {
             lock (threads) {
                 int count = Math.Min (array.Length, threads.Count);

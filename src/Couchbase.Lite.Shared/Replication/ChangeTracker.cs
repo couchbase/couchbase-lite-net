@@ -106,8 +106,6 @@ namespace Couchbase.Lite.Replicator
 
         private Exception Error;
 
-        private bool shouldBreak;
-
         internal ChangeTrackerBackoff backoff;
 
         protected internal IDictionary<string, object> RequestHeaders;
@@ -250,11 +248,6 @@ namespace Couchbase.Lite.Replicator
         // TODO: Needs to refactored into smaller calls. Each continuation could be its own method, for example.
         public void Run()
         {
-            if (IsRunning) 
-            {
-                return;
-            }
-
             IsRunning = true;
 
             if (client == null)
@@ -267,15 +260,20 @@ namespace Couchbase.Lite.Replicator
             }
 
             backoff = new ChangeTrackerBackoff();
+            HttpClient httpClient = client.GetHttpClient();
 
-            this.shouldBreak = false;
-            while (IsRunning)
+            while (IsRunning && !tokenSource.Token.IsCancellationRequested)
             {
-                if (tokenSource.Token.IsCancellationRequested)
-                    break;
+                if (changesRequestTask != null && !changesRequestTask.IsCanceled && !changesRequestTask.IsFaulted) 
+                {
+                    Thread.Sleep(500);
+                    continue;
+                }
 
-                if (changesRequestTask != null && !changesRequestTask.IsCompleted) {
-                    changesRequestTask.Wait(tokenSource.Token);
+                if (Request != null)
+                {
+                    Request.Dispose();
+                    Request = null;
                 }
 
                 var url = GetChangesFeedURL();
@@ -293,63 +291,71 @@ namespace Couchbase.Lite.Replicator
 
                 AddRequestHeaders(Request);
 
-                HttpClient httpClient = null;
-                try
+                var authHeader = AuthUtils.GetAuthenticationHeaderValue(Authenticator, Request.RequestUri);
+                if (authHeader != null)
                 {
-                    httpClient = client.GetHttpClient();
-                    var authHeader = AuthUtils.GetAuthenticationHeaderValue(Authenticator, Request.RequestUri);
-                    if (authHeader != null)
-                    {
-                        httpClient.DefaultRequestHeaders.Authorization = authHeader;
-                    }
-
-                    var maskedRemoteWithoutCredentials = url.ToString();
-                    maskedRemoteWithoutCredentials = maskedRemoteWithoutCredentials.ReplaceAll("://.*:.*@", "://---:---@");
-                    Log.V(Tag, "Making request to " + maskedRemoteWithoutCredentials);
-
-                    if (tokenSource.Token.IsCancellationRequested)
-                        break;
-                        
-                    httpClient
-                        .SendAsync(Request, HttpCompletionOption.ResponseHeadersRead, tokenSource.Token)
-                        .ContinueWith<HttpResponseMessage>(ChangeFeedResponseHandler)
-                        .ContinueWith(t => { if (t != null) t.Result.Dispose(); return;})
-                        .Wait(tokenSource.Token);
-
-                    Request.Dispose();
-                }
-                catch (Exception e)
-                {
-                    if (!IsRunning && e is IOException)
-                    {
-                        // swallow
-                    }
-                    else
-                    {
-                        // in this case, just silently absorb the exception because it
-                        // frequently happens when we're shutting down and have to
-                        // close the socket underneath our read.
-                        Log.E(Tag, "Exception in change tracker", e);
-                    }
-                    backoff.SleepAppropriateAmountOfTime();
-                }
-                finally
-                {
-                    if (httpClient != null) 
-                    {
-                        httpClient.Dispose();
-                    }
+                    httpClient.DefaultRequestHeaders.Authorization = authHeader;
                 }
 
-                if (runTask.Exception != null) {
-                    Log.E(Tag, "Unhandled exception", runTask.Exception);
-                    throw runTask.Exception;
-                }
+                var maskedRemoteWithoutCredentials = url.ToString();
+                maskedRemoteWithoutCredentials = maskedRemoteWithoutCredentials.ReplaceAll("://.*:.*@", "://---:---@");
+                Log.V(Tag, "Making request to " + maskedRemoteWithoutCredentials);
 
-                if (this.shouldBreak) 
-                {
+                if (tokenSource.Token.IsCancellationRequested)
                     break;
-                }
+
+                var singleRequestTokenSource = CancellationTokenSource.CreateLinkedTokenSource(tokenSource.Token);
+                changesRequestTask = httpClient
+                    .SendAsync(Request, HttpCompletionOption.ResponseHeadersRead, singleRequestTokenSource.Token)
+                    .ContinueWith<HttpResponseMessage>(t => 
+                    {
+                        Log.D(Tag, "ChangeFeedResponseHandler finished.");
+                        singleRequestTokenSource.Token.ThrowIfCancellationRequested();
+                        if (t != null) t.Result.Dispose();
+                        return null;
+                    }, singleRequestTokenSource.Token, TaskContinuationOptions.None, TaskScheduler.Default)
+                    .ContinueWith<HttpResponseMessage>(ChangeFeedResponseHandler, singleRequestTokenSource.Token, TaskContinuationOptions.OnlyOnRanToCompletion | TaskContinuationOptions.AttachedToParent, WorkExecutor.Scheduler)
+                    .ContinueWith<HttpResponseMessage>(t =>
+                    {
+                        if (!IsRunning)
+                        {
+                            return null;
+                            // swallow
+                        }
+                        if (t.IsFaulted && t.Exception.InnerException is IOException)
+                        {
+                            // in this case, just silently absorb the exception because it
+                            // frequently happens when we're shutting down and have to
+                            // close the socket underneath our read.
+                            Log.E(Tag, "Exception in change tracker", t.Exception);
+                            return null;
+                        }
+                        if (!singleRequestTokenSource.IsCancellationRequested && t.Exception != null)
+                        {
+                            var e = t.Exception.InnerException as WebException;
+                            var status = (HttpStatusCode)e.Status;
+                            if ((Int32)status >= 300 && !Misc.IsTransientError(status))
+                            {
+                                var response = t.Result;
+                                var msg = response.Content != null 
+                                            ? String.Format("Change tracker got error with status code: {0}", status)
+                                            : String.Format("Change tracker got error with status code: {0} and null response content", status);
+                                Log.E(Tag, msg);
+                                Error = new CouchbaseLiteException(msg, new Status(status.GetStatusCode()));
+                                Stop();
+                            }
+                            backoff.SleepAppropriateAmountOfTime();
+                        }
+                        return null;
+                }, singleRequestTokenSource.Token, TaskContinuationOptions.NotOnRanToCompletion | TaskContinuationOptions.AttachedToParent, WorkExecutor.Scheduler);
+//                    .ContinueWith((t) => 
+//                    {
+//                        Log.D(Tag, "ChangeFeedResponseHandler faulted.");
+//                    }, singleRequestTokenSource.Token, TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.AttachedToParent, TaskScheduler.Default);
+            }
+            if (httpClient != null) 
+            {
+                httpClient.Dispose();
             }
         }
 
@@ -357,17 +363,6 @@ namespace Couchbase.Lite.Replicator
         {
             var response = responseTask.Result;
             var status = response.StatusCode;
-            if ((responseTask.IsCanceled || responseTask.IsFaulted) 
-            || ((Int32)status >= 300 && !Misc.IsTransientError(status)))
-            {
-                var msg = response.Content != null 
-                    ? String.Format("Change tracker got error with status code: {0}", status)
-                    : String.Format("Change tracker got error with status code: {0} and null response content", status);
-                Log.E(Tag, msg);
-                Error = new CouchbaseLiteException (msg, new Status (status.GetStatusCode ()));
-                Stop();
-                return response;
-            }
                 
             switch (mode)
             {
@@ -393,6 +388,7 @@ namespace Couchbase.Lite.Replicator
                     {
                         var content = response.Content.ReadAsByteArrayAsync().Result;
                         var results = Manager.GetObjectMapper().ReadValue<IDictionary<String, Object>>(content.AsEnumerable());
+                        Log.D(Tag, "Received results from changes feed: {0}", results);
                         var resultsValue = results["results"] as JArray;
                         foreach (var item in resultsValue)
                         {
@@ -418,7 +414,6 @@ namespace Couchbase.Lite.Replicator
 
                         WorkExecutor.StartNew(Stop);
 
-                        this.shouldBreak = true;
                         return response;
                     }
             }
@@ -472,7 +467,12 @@ namespace Couchbase.Lite.Replicator
         public bool Start()
         {
             this.Error = null;
-            runTask = Task.Factory.StartNew(Run, tokenSource.Token);
+            this.runTask = Task.Factory
+                .StartNew(Run, tokenSource.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default)
+                .ContinueWith(t =>
+                {
+                    Log.E(Tag, "Run task faulted", t.Exception);
+                }, TaskContinuationOptions.AttachedToParent | TaskContinuationOptions.OnlyOnFaulted);
             return true;
         }
 

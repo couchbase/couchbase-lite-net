@@ -31,7 +31,7 @@ namespace Couchbase.Lite.Util
 
         private void QueueThreadPoolWorkItem() 
         { 
-            ThreadPool.UnsafeQueueUserWorkItem(s => 
+            ThreadPool.QueueUserWorkItem(s => 
                 { 
                     try 
                     { 
@@ -47,7 +47,7 @@ namespace Couchbase.Lite.Util
                             task = queue.Take(); 
                             var success = TryExecuteTask(task);
                             if ((!success && task.Status != TaskStatus.Canceled) || task.Status != TaskStatus.RanToCompletion)
-                                Log.E("Scheduled task failed to execute.", task.Exception.ToString());
+                                Log.E(Tag, "Scheduled task faulted", task.Exception);
                         } 
                     }
                     catch (Exception e)

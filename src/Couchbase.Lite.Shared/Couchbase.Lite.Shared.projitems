@@ -157,7 +157,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)Sharpen\String.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Sharpen\StringTokenizer.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Sharpen\SynchronizedList.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Sharpen\Thread.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Sharpen\ThreadFactory.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Sharpen\ThreadPoolExecutor.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Sharpen\TimeUnit.cs" />
@@ -219,6 +218,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Replication\RemoteRequestCompletionBlock.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Replication\IChangeTrackerClient.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Replication\BulkDownloadEventArgs.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Sharpen\SharpenThread.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="$(MSBuildThisFileDirectory)Store\MonoSQLiteStorageEngine.cs" />

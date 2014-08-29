@@ -81,7 +81,7 @@ namespace Couchbase.Lite
 //            Trace.Listeners.Clear();
 //            Trace.Listeners.Add(new ConsoleTraceListener());
 #endif
-            ManagerOptions.Default.CallbackScheduler = new SingleThreadTaskScheduler();
+            ManagerOptions.Default.CallbackScheduler = TaskScheduler.Default;
             LoadCustomProperties();
             StartCBLite();
             StartDatabase();

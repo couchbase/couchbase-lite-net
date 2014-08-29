@@ -45,6 +45,7 @@ using Couchbase.Lite;
 using Couchbase.Lite.Replicator;
 using Couchbase.Lite.Util;
 using Sharpen;
+using System.Threading;
 
 namespace Couchbase.Lite.Replicator
 {
@@ -78,10 +79,10 @@ namespace Couchbase.Lite.Replicator
         {
             try
             {
-                long sleepMilliseconds = GetSleepMilliseconds();
+                var sleepMilliseconds = GetSleepMilliseconds();
                 if (sleepMilliseconds > 0)
                 {
-                    Thread.Sleep(sleepMilliseconds);
+                    Thread.Sleep(TimeSpan.FromMilliseconds(sleepMilliseconds));
                 }
             }
             catch (Exception) { }

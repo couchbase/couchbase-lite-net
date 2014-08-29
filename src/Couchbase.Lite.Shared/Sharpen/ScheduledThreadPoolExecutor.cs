@@ -55,7 +55,7 @@ namespace Sharpen
         
         class Task<T>: Runnable, Future<T>, IScheduledITask
         {
-            Thread thread;
+            SharpenThread thread;
             bool canceled;
             bool completed;
             ST.ManualResetEvent doneEvent = new ST.ManualResetEvent (false);
@@ -81,7 +81,7 @@ namespace Sharpen
             public void Run ()
             {
                 lock (this) {
-                    thread = Thread.CurrentThread();
+                    thread = SharpenThread.CurrentThread();
                 }
                 try {
                     if (!canceled)

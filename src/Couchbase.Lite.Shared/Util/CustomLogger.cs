@@ -98,14 +98,14 @@ namespace Couchbase.Lite.Util
 
         public void D (string tag, string msg)
         {
-            if (!(level.HasFlag(SourceLevels.All)))
+            if (!(level.HasFlag(SourceLevels.ActivityTracing)))
                 return;
             lock (locker){ ts.WriteLine(SourceLevels.Verbose, msg, tag); }
         }
 
         public void D (string tag, string msg, Exception tr)
         {
-            if (!(level.HasFlag(SourceLevels.All)))
+            if (!(level.HasFlag(SourceLevels.ActivityTracing)))
                 return;
             lock (locker){ ts.WriteLine(SourceLevels.Verbose, msg, tag); }
         }
@@ -159,7 +159,7 @@ namespace Couchbase.Lite.Util
         {
             if (!(level.HasFlag(SourceLevels.Error)))
                 return;
-            lock (locker){ ts.Fail(msg, tag); }
+            lock (locker){ ts.Fail(tag, msg); }
         }
 
         public void E (string tag, string msg, Exception tr)

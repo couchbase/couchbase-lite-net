@@ -42,23 +42,20 @@
 
 using System;
 using System.Collections.Generic;
-using System.Net;
-using System.Web;
-using System.Threading.Tasks;
-using System.Net.Http;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Threading;
-using Newtonsoft.Json.Linq;
-using Couchbase.Lite.Util;
-using Couchbase.Lite.Auth;
-using Couchbase.Lite.Support;
-using Couchbase.Lite.Internal;
-using Sharpen;
+using System.Net;
+using System.Net.Http;
 using System.Net.Http.Headers;
-using System.Diagnostics;
-using System.Net.NetworkInformation;
-using System.Dynamic;
+using System.Threading;
+using System.Threading.Tasks;
+using Newtonsoft.Json.Linq;
+using Couchbase.Lite.Auth;
+using Couchbase.Lite.Internal;
+using Couchbase.Lite.Support;
+using Couchbase.Lite.Util;
+using Sharpen;
 
 
 namespace Couchbase.Lite
@@ -384,7 +381,8 @@ namespace Couchbase.Lite
             {
                 Log.D(Tag, "Going offline");
 
-                online = false;            
+                online = false;
+                // FIXME: Shouldn't we let batcher drain?
                 StopRemoteRequests();
                 UpdateProgress();
                 NotifyChangeListeners();
@@ -551,7 +549,7 @@ namespace Couchbase.Lite
             var loginPath = Authenticator.LoginPathForSite(RemoteUrl);
             Log.D(Tag, string.Format("{0}: Doing login with {1} at {2}", this, Authenticator.GetType(), loginPath));
 
-            Log.D(Tag, string.Format("{0} | {1} : login() calling asyncTaskStarted()", this, Sharpen.Thread.CurrentThread()));
+            Log.D(Tag, string.Format("{0} | {1} : login() calling asyncTaskStarted()", this, Sharpen.SharpenThread.CurrentThread()));
             AsyncTaskStarted();
             SendAsyncRequest(HttpMethod.Post, loginPath, loginParameters, (result, e) => {
                 try
@@ -964,7 +962,7 @@ namespace Couchbase.Lite
                     }
 
                     return response.Result;
-                }, CancellationTokenSource.Token, TaskContinuationOptions.None, WorkExecutor.Scheduler);
+                }, CancellationTokenSource.Token);
 
             lock(requests)
             {
@@ -1077,7 +1075,7 @@ namespace Couchbase.Lite
                                     try
                                     {
                                         var readTask = entity.ReadAsStreamAsync();
-                                        readTask.Wait(); // TODO: This should be scaled based on content length.
+                                        //readTask.Wait(); // TODO: This should be scaled based on content length.
                                         inputStream = readTask.Result;
                                         fullBody = Manager.GetObjectMapper().ReadValue<Object>(inputStream);
                                         if (onCompletion != null)

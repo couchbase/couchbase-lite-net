@@ -78,7 +78,9 @@ namespace Couchbase.Lite.Tests
 
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
-            Delay();
+            //var response = base.SendAsync(request, cancellationToken).Result;
+
+            Delay(); // FIXEM: Currently a no-op.
 
             capturedRequests.Add(request);
 
@@ -86,8 +88,8 @@ namespace Couchbase.Lite.Tests
             {
                 if (urlPattern.Equals("*") || request.RequestUri.PathAndQuery.Contains(urlPattern))
                 {
-                    HttpResponseDelegate responder = responders[urlPattern];
-                    HttpResponseMessage message = responder(request);
+                    var responder = responders[urlPattern];
+                    var message = responder(request);
                     NotifyResponseListeners(request, message);
                     return Task.FromResult<HttpResponseMessage>(message);
                 }
@@ -140,7 +142,7 @@ namespace Couchbase.Lite.Tests
         public void AddResponderThrowExceptionAllRequests() 
         {
             HttpResponseDelegate responder = (request) => {
-                throw new IOException("Test IOException");
+                throw new WebException("Test WebException", WebExceptionStatus.UnknownError);
             };
             SetResponder("*", responder);
         }

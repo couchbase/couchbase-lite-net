@@ -55,18 +55,21 @@ using Sharpen;
 
 namespace Couchbase.Lite.Shared
 {
-    internal class SqlitePCLRawStorageEngine : ISQLiteStorageEngine, IDisposable
+    internal sealed class SqlitePCLRawStorageEngine : ISQLiteStorageEngine, IDisposable
     {
+        // NOTE: SqlitePCL.raw only defines a subset of the ones we want,
+        // so we just redefine them here instead.
         private const int SQLITE_OPEN_FILEPROTECTION_COMPLETEUNLESSOPEN = 0x00200000;
         private const int SQLITE_OPEN_READWRITE = 0x00000002;
         private const int SQLITE_OPEN_CREATE = 0x00000004;
         private const int SQLITE_OPEN_FULLMUTEX = 0x00010000;
         private const int SQLITE_OPEN_NOMUTEX = 0x00008000;
         private const int SQLITE_OPEN_PRIVATECACHE = 0x00040000;
+        private const int SQLITE_OPEN_SHAREDCACHE = 0x00020000;
 
         private const String Tag = "SqlitePCLRawStorageEngine";
-//        [ThreadStatic]
-        private /*static*/ sqlite3 db;
+        [ThreadStatic]
+        private static sqlite3 db;
         private Boolean shouldCommit;
 
         string Path { get; set; }
@@ -83,14 +86,14 @@ namespace Couchbase.Lite.Shared
             var result = true;
             try {
                 shouldCommit = false;
-                const int flags = SQLITE_OPEN_FILEPROTECTION_COMPLETEUNLESSOPEN | SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE;
+                const int flags = SQLITE_OPEN_FILEPROTECTION_COMPLETEUNLESSOPEN | SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE | SQLITE_OPEN_NOMUTEX;
 
                 var status = raw.sqlite3_open_v2(Path, out db, flags, null);
                 if (status != raw.SQLITE_OK)
                 {
                     throw new CouchbaseLiteException(errMessage, StatusCode.DbError);
                 }
-#if __ANDROID__
+#if __ANDROID__ && VERBOSE
 #else
                 var i = 0;
                 var val = raw.sqlite3_compileoption_get(i);
@@ -99,12 +102,11 @@ namespace Couchbase.Lite.Shared
                     Log.V(Tag, "Sqlite Config: {0}".Fmt(val));
                     val = raw.sqlite3_compileoption_get(++i);
                 }
-                #endif
-
-                raw.sqlite3_create_collation(db, "JSON", null, CouchbaseSqliteJsonUnicodeCollationFunction.Compare);
-                raw.sqlite3_create_collation(db, "JSON_ASCII", null, CouchbaseSqliteJsonAsciiCollationFunction.Compare);
-                raw.sqlite3_create_collation(db, "JSON_RAW", null, CouchbaseSqliteJsonRawCollationFunction.Compare);
-                raw.sqlite3_create_collation(db, "REVID", null, CouchbaseSqliteRevIdCollationFunction.Compare);
+#endif
+                db.create_collation("JSON", null, CouchbaseSqliteJsonUnicodeCollationFunction.Compare);
+                db.create_collation("JSON_ASCII", null, CouchbaseSqliteJsonAsciiCollationFunction.Compare);
+                db.create_collation("JSON_RAW", null, CouchbaseSqliteJsonRawCollationFunction.Compare);
+                db.create_collation("REVID", null, CouchbaseSqliteRevIdCollationFunction.Compare);
             } catch (Exception ex) {
                 Log.E(Tag, "Error opening the Sqlite connection using connection String: {0}".Fmt(path), ex);
                 result = false;

@@ -52,7 +52,7 @@ namespace Sharpen
         ThreadFactory tf;
         int corePoolSize;
         int maxPoolSize;
-        List<Thread> pool = new List<Thread> ();
+        List<SharpenThread> pool = new List<SharpenThread> ();
         int runningThreads;
         int freeThreads;
         bool shutdown;

@@ -51,11 +51,10 @@ namespace Couchbase.Lite.Util
 {
     class CouchbaseTraceListener : DefaultTraceListener
     {
-        static readonly string Indent = "    ";
-
+        const string Indent = "    ";
+        const string Category = "Trace";
+        
         SourceLevels Level;
-
-        string Category;
 
         public CouchbaseTraceListener() { }
 
@@ -64,10 +63,9 @@ namespace Couchbase.Lite.Util
             Level = logLevel;
             Name = "Couchbase";
             TraceOutputOptions = Level.HasFlag(SourceLevels.All)
-                ? TraceOptions.ThreadId | TraceOptions.DateTime | TraceOptions.Timestamp
+                ? TraceOptions.ThreadId /*| TraceOptions.DateTime | TraceOptions.Timestamp*/
                 : TraceOptions.None;
         }
-
 
         void WriteOptionalTraceInfo()
         {
@@ -157,7 +155,6 @@ namespace Couchbase.Lite.Util
 
         public override void WriteLine(string message, string category)
         {
-            WriteOptionalTraceInfo();
             #if __DEBUGGER__
             Debugger.Log((int)Level, category, message + Environment.NewLine);
             #endif
@@ -168,6 +165,7 @@ namespace Couchbase.Lite.Util
             Console.Out.Write(Environment.NewLine);
             Console.Out.Flush();
             #endif
+            WriteOptionalTraceInfo();
         }      
 
         public override void Write(object o)
@@ -210,8 +208,6 @@ namespace Couchbase.Lite.Util
 
         public override void Fail (string message)
         {
-            WriteOptionalTraceInfo();
-
             #if __DEBUGGER__
             Debugger.Log((int)SourceLevels.Critical, Category, message + Environment.NewLine);
             #endif
@@ -219,6 +215,7 @@ namespace Couchbase.Lite.Util
             Console.Out.Write(message);
             Console.Out.Write(Environment.NewLine);
             #endif
+            WriteOptionalTraceInfo();
         }
 
         public override void Fail (string message, string detailMessage)

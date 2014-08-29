@@ -82,6 +82,7 @@ namespace Couchbase.Lite
             {
                 var msgStr = "replicator.CompletedChangesCount : " + replicator.CompletedChangesCount +
                     " > replicator.ChangesCount : " + replicator.ChangesCount;
+
                 Log.E(Tag, msgStr);
                 throw new Exception(msgStr);
             }
