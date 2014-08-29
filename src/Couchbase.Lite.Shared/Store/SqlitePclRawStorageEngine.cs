@@ -68,8 +68,8 @@ namespace Couchbase.Lite.Shared
         private const int SQLITE_OPEN_SHAREDCACHE = 0x00020000;
 
         private const String Tag = "SqlitePCLRawStorageEngine";
-        [ThreadStatic]
-        private static sqlite3 db;
+        /*[ThreadStatic]*/
+        private /*static*/ sqlite3 db;
         private Boolean shouldCommit;
 
         string Path { get; set; }
@@ -86,7 +86,7 @@ namespace Couchbase.Lite.Shared
             var result = true;
             try {
                 shouldCommit = false;
-                const int flags = SQLITE_OPEN_FILEPROTECTION_COMPLETEUNLESSOPEN | SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE | SQLITE_OPEN_NOMUTEX;
+                const int flags = SQLITE_OPEN_FILEPROTECTION_COMPLETEUNLESSOPEN | SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE | SQLITE_OPEN_FULLMUTEX;
 
                 var status = raw.sqlite3_open_v2(Path, out db, flags, null);
                 if (status != raw.SQLITE_OK)

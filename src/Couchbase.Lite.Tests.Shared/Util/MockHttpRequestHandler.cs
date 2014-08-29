@@ -163,7 +163,7 @@ namespace Couchbase.Lite.Tests
 
         public void AddResponderReturnEmptyChangesFeed() 
         {
-            String json = "{\"results\":[]}";
+            var json = "{\"results\":[]}";
             HttpResponseDelegate responder = (request) => GenerateHttpResponseMessage(HttpStatusCode.Accepted, null, json);
             SetResponder("_changes", responder);
         }

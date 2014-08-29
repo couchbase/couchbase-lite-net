@@ -40,7 +40,7 @@
 // and limitations under the License.
 //
 #if VERBOSE
-#define __DEBUGGER__
+//#define __DEBUGGER__
 #define __CONSOLE__
 #endif
 
@@ -62,9 +62,9 @@ namespace Couchbase.Lite.Util
         {
             Level = logLevel;
             Name = "Couchbase";
-            TraceOutputOptions = Level.HasFlag(SourceLevels.All)
-                ? TraceOptions.ThreadId /*| TraceOptions.DateTime | TraceOptions.Timestamp*/
-                : TraceOptions.None;
+            TraceOutputOptions = /*Level.HasFlag(SourceLevels.All)
+                ? TraceOptions.ThreadId /*| TraceOptions.DateTime | TraceOptions.Timestamp
+                : */ TraceOptions.None;
         }
 
         void WriteOptionalTraceInfo()
@@ -90,7 +90,7 @@ namespace Couchbase.Lite.Util
         void PrintThreadId(TraceEventCache info)
         {
             #if __DEBUGGER__
-            Debugger.Log((int)SourceLevels.Critical, Category, "Thread Name: " + System.Threading.Thread.CurrentThread.Name + Environment.NewLine);
+            Debugger.Log((int)SourceLevels.Critical, Category, "Thread Name: " + info.ThreadId + Environment.NewLine);
             #endif
             #if __CONSOLE__
             WriteIndent();
@@ -103,7 +103,7 @@ namespace Couchbase.Lite.Util
         void PrintDateTime(TraceEventCache info)
         {
             #if __DEBUGGER__
-            Debugger.Log((int)SourceLevels.Critical, Category, "Date Time: " + DateTime.Now.ToString("o") + Environment.NewLine);
+            Debugger.Log((int)SourceLevels.Critical, Category, "Date Time: " + info.DateTime + Environment.NewLine);
             #endif
             #if __CONSOLE__
             WriteIndent();
@@ -116,7 +116,7 @@ namespace Couchbase.Lite.Util
         void PrintTimeStamp(TraceEventCache info)
         {
             #if __DEBUGGER__
-            Debugger.Log((int)SourceLevels.Critical, Category, "Date Time: " + DateTime.Now + Environment.NewLine);
+            Debugger.Log((int)SourceLevels.Critical, Category, "Timestamp: " + info.Timestamp + Environment.NewLine);
             #endif
             #if __CONSOLE__
             WriteIndent();

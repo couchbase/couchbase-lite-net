@@ -46,13 +46,13 @@ namespace Couchbase.Lite.Util
 
                             task = queue.Take(); 
                             var success = TryExecuteTask(task);
-                            if ((!success && task.Status != TaskStatus.Canceled) || task.Status != TaskStatus.RanToCompletion)
+                            if (!success && (task.Status != TaskStatus.Canceled || task.Status != TaskStatus.RanToCompletion))
                                 Log.E(Tag, "Scheduled task faulted", task.Exception);
                         } 
                     }
                     catch (Exception e)
                     {
-                        Log.E("Unhandled exception in runloop", e.ToString());
+                        Log.E(Tag, "Unhandled exception in runloop", e.ToString());
                         throw;
                     }
                 }, null);

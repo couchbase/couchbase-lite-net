@@ -662,7 +662,7 @@ namespace Couchbase.Lite.Replicator
                 --httpConnectionCount;
 
                 // Start another task if there are still revisions waiting to be pulled:
-                PullRemoteRevisions ();
+                PullRemoteRevisions();
             });
         }
 

@@ -881,7 +881,7 @@ namespace Couchbase.Lite
             var mapper = Manager.GetObjectMapper();
             message.Headers.Add("Accept", new[] { "multipart/related", "application/json" });
 
-            var client = clientFactory.GetHttpClient();
+            var client = new CouchbaseLiteHttpClientFactory(new CookieStore()).GetHttpClient(); //clientFactory.GetHttpClient();
 
             var authHeader = AuthUtils.GetAuthenticationHeaderValue(Authenticator, message.RequestUri);
             if (authHeader != null)
@@ -912,6 +912,7 @@ namespace Couchbase.Lite
                     else
                     {
                         Log.E(Tag, "Http Message failed to send: {0}", message);
+                        Log.E(Tag, "Http exception", response.Exception.InnerException);
                         if (message.Content != null) {
                             Log.E(Tag, "\tFailed content: {0}", message.Content.ReadAsStringAsync().Result);
                         }
@@ -1029,7 +1030,7 @@ namespace Couchbase.Lite
                                     reader.SetContentType(contentType);
 
                                     var inputStreamTask = entity.ReadAsStreamAsync();
-                                    inputStreamTask.Wait(90000, CancellationTokenSource.Token);
+                                    //inputStreamTask.Wait(90000, CancellationTokenSource.Token);
                                     inputStream = inputStreamTask.Result;
 
                                     const int bufLen = 1024;
