@@ -549,7 +549,8 @@ namespace Couchbase.Lite.Replicator
                 return;
             }
             dl.Authenticator = Authenticator;
-            WorkExecutor.StartNew(dl.Run, CancellationTokenSource.Token);
+//            WorkExecutor.StartNew(dl.Run, CancellationTokenSource.Token, TaskCreationOptions.AttachedToParent);
+            dl.Run();
         }
 
         // This invokes the tranformation block if one is installed and queues the resulting CBL_Revision

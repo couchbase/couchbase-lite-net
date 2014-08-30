@@ -364,7 +364,10 @@ namespace Couchbase.Lite.Util
 
             if (!uri.AbsolutePath.EndsWith("/") && !String.IsNullOrWhiteSpace(path)) 
             {
-                return new Uri(new Uri(uri, uri.AbsolutePath +"/"), path);
+                var newUri = new UriBuilder(uri);
+                newUri.Path += path;
+                var newUriStr = new Uri(Uri.UnescapeDataString(newUri.Uri.AbsoluteUri));
+                return newUriStr;
             }
             else
             {

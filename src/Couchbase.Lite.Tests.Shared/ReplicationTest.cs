@@ -120,9 +120,9 @@ namespace Couchbase.Lite
 
             Log.D(Tag, "Waiting for replicator to finish.");
 
-                var success = replicationDoneSignal.Await(TimeSpan.FromSeconds(30));
+                var success = replicationDoneSignal.Await(TimeSpan.FromSeconds(300));
                 Assert.IsTrue(success);
-                success = replicationDoneSignalPolling.Wait(TimeSpan.FromSeconds(10));
+                success = replicationDoneSignalPolling.Wait(TimeSpan.FromSeconds(300));
                 Assert.IsTrue(success);
 
                 Log.D(Tag, "replicator finished");
@@ -132,7 +132,7 @@ namespace Couchbase.Lite
 
         private void WorkaroundSyncGatewayRaceCondition() 
         {
-            System.Threading.Thread.Sleep(5 * 1000);
+            System.Threading.Thread.Sleep(2 * 1000);
         }
 
         private void PutReplicationOffline(Replication replication)
@@ -519,8 +519,10 @@ namespace Couchbase.Lite
             var docIdTimestamp = Convert.ToString(Runtime.CurrentTimeMillis());
             var doc1Id = string.Format("doc1-{0}", docIdTimestamp);
             var doc2Id = string.Format("doc2-{0}", docIdTimestamp);
-            Log.D(Tag, "Adding " + doc1Id + " directly to sync gateway");
+
+            Log.D(Tag, "Adding " + doc1Id + " directly to sync gateway");           
             AddDocWithId(doc1Id, "attachment.png");
+
             Log.D(Tag, "Adding " + doc2Id + " directly to sync gateway");
             AddDocWithId(doc2Id, "attachment2.png");
 
@@ -532,7 +534,7 @@ namespace Couchbase.Lite
             Log.D(Tag, "doc1" + doc1);
             Assert.IsNotNull(doc1);
             Assert.IsNotNull(doc1.CurrentRevisionId);
-            Assert.IsTrue(doc1.CurrentRevisionId.StartsWith("1-"));
+            Assert.IsTrue(doc1.CurrentRevisionId.StartsWith("1-", StringComparison.Ordinal));
             Assert.IsNotNull(doc1.Properties);
             Assert.AreEqual(1, doc1.GetProperty("foo"));
 
@@ -540,7 +542,7 @@ namespace Couchbase.Lite
             var doc2 = database.GetExistingDocument(doc2Id);
             Assert.IsNotNull(doc2);
             Assert.IsNotNull(doc2.CurrentRevisionId);
-            Assert.IsTrue(doc2.CurrentRevisionId.StartsWith("1-"));
+            Assert.IsTrue(doc2.CurrentRevisionId.StartsWith("1-", StringComparison.Ordinal));
             Assert.IsNotNull(doc2.Properties);
             Assert.AreEqual(1, doc2.GetProperty("foo"));
             Log.D(Tag, "testPuller() finished");

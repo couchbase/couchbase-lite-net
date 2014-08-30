@@ -1,9 +1,8 @@
 ﻿using System;
 using System.Collections.Generic; 
-using System.Diagnostics;
 using System.Collections.Concurrent;
 using System.Threading.Tasks;
-using System.Threading; 
+using System.Threading;
 
 
 namespace Couchbase.Lite.Util
@@ -16,15 +15,22 @@ namespace Couchbase.Lite.Util
         private readonly BlockingCollection<Task> queue = new BlockingCollection<Task>(new ConcurrentQueue<Task>());
         private const int maxConcurrency = 1;
         private int runningTasks = 0;
+        private int longRunningTasks = 0;
 
         /// <summary>Queues a task to the scheduler.</summary> 
         /// <param name="task">The task to be queued.</param> 
         protected override void QueueTask(Task task) 
-        { 
-            queue.Add (task); 
-            if (runningTasks < maxConcurrency)
+        {
+            // Long-running tasks can deadlock us easily.
+            // We want to allow these to run without doing that.
+            if (task.CreationOptions.HasFlag(TaskCreationOptions.LongRunning))
             {
-                ++runningTasks; 
+                Interlocked.Increment(ref longRunningTasks);
+            }
+            queue.Add (task); 
+            if ((runningTasks - longRunningTasks) < maxConcurrency)
+            {
+                Interlocked.Increment(ref runningTasks);
                 QueueThreadPoolWorkItem (); 
             }
         } 
@@ -32,30 +38,34 @@ namespace Couchbase.Lite.Util
         private void QueueThreadPoolWorkItem() 
         { 
             ThreadPool.QueueUserWorkItem(s => 
+            { 
+                try 
                 { 
-                    try 
+                    while (true) 
                     { 
-                        while (true) 
+                        Task task;
+                        if (queue.Count == 0) 
                         { 
-                            Task task; 
-                            if (queue.Count == 0) 
-                            { 
-                                --runningTasks; 
-                                break; 
-                            } 
-
-                            task = queue.Take(); 
-                            var success = TryExecuteTask(task);
-                            if (!success && (task.Status != TaskStatus.Canceled || task.Status != TaskStatus.RanToCompletion))
-                                Log.E(Tag, "Scheduled task faulted", task.Exception);
+                            --runningTasks; 
+                            break; 
                         } 
-                    }
-                    catch (Exception e)
-                    {
-                        Log.E(Tag, "Unhandled exception in runloop", e.ToString());
-                        throw;
-                    }
-                }, null);
+                        task = queue.Take(); 
+                        var success = TryExecuteTask(task);
+                        // Remove our temporary easing of max concurrency limit.
+                        if (task.CreationOptions.HasFlag(TaskCreationOptions.LongRunning))
+                        {
+                            Interlocked.Decrement(ref longRunningTasks);
+                        }
+                        if (!success && (task.Status != TaskStatus.Canceled || task.Status != TaskStatus.RanToCompletion))
+                            Log.E(Tag, "Scheduled task faulted", task.Exception);
+                    } 
+                }
+                catch (Exception e)
+                {
+                    Log.E(Tag, "Unhandled exception in runloop", e.ToString());
+                    throw;
+                }
+            }, null);
         } 
 
         protected override bool TryExecuteTaskInline(Task task, bool taskWasPreviouslyQueued) 

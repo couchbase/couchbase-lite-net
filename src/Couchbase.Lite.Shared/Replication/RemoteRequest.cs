@@ -199,8 +199,8 @@ namespace Couchbase.Lite.Replicator
             {
                 return false;
             }
-            request.ContinueWith((t)=> Task.Delay(RetryDelayMs, _tokenSource.Token), _tokenSource.Token, TaskContinuationOptions.None, workExecutor.Scheduler)
-                .ContinueWith((t)=> Run(), _tokenSource.Token, TaskContinuationOptions.None, workExecutor.Scheduler);
+            request.ContinueWith((t)=> Task.Delay(RetryDelayMs, _tokenSource.Token), _tokenSource.Token, TaskContinuationOptions.AttachedToParent, workExecutor.Scheduler)
+                .ContinueWith((t)=> Run(), _tokenSource.Token, TaskContinuationOptions.AttachedToParent, workExecutor.Scheduler);
             retryCount += 1;
             Log.D(Tag, "Will retry in {0} ms", RetryDelayMs);
             return true;
@@ -263,7 +263,7 @@ namespace Couchbase.Lite.Replicator
                 error = e;
                 // Treat all IOExceptions as transient, per:
                 // http://hc.apache.org/httpclient-3.x/exception-handling.html
-                Log.V(Tag, "%s: RemoteRequest calling retryRequest()", this);
+                Log.V(Tag, "RemoteRequest calling RetryRequest()", this);
                 if (RetryRequest())
                 {
                     return;
@@ -271,11 +271,10 @@ namespace Couchbase.Lite.Replicator
             }
             catch (Exception e)
             {
-                Log.E(Tag, "%s: executeRequest() Exception: ", e, this);
+                Log.E(Tag, "ExecuteRequest() Exception", e);
                 error = e;
             }
-            Log.V(Tag, "%s: RemoteRequest calling respondWithResult.  error: %s", this
-                , error);
+            Log.V(Tag, "RemoteRequest calling respondWithResult.", error);
             RespondWithResult(fullBody, error, response);
         }
 

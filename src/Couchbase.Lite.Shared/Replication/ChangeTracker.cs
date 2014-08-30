@@ -305,9 +305,16 @@ namespace Couchbase.Lite.Replicator
                     break;
 
                 try {
-                    var response = httpClient.SendAsync(Request, HttpCompletionOption.ResponseHeadersRead, tokenSource.Token);
-                    ChangeFeedResponseHandler(response);
-
+                    var singleRequestTokenSource = CancellationTokenSource.CreateLinkedTokenSource(tokenSource.Token);
+                    var response = httpClient
+                        .SendAsync(Request, HttpCompletionOption.ResponseHeadersRead, singleRequestTokenSource.Token)
+                        .ContinueWith<HttpResponseMessage>(ChangeFeedResponseHandler, singleRequestTokenSource.Token, TaskContinuationOptions.LongRunning, WorkExecutor.Scheduler);
+                    var result = response.Result;
+                    //                    ChangeFeedResponseHandler(response);
+                    if (result != null)
+                    {
+                        result.Dispose();
+                    }
                     response.Dispose();
                     Request.Dispose();
                 }
@@ -388,6 +395,15 @@ namespace Couchbase.Lite.Replicator
             if (response == null)
                 return null;
             var status = response.StatusCode;
+            if ((Int32)status >= 300 && !Misc.IsTransientError(status))
+            {
+                var msg = response.Content != null 
+                    ? String.Format("Change tracker got error with status code: {0}", status)
+                    : String.Format("Change tracker got error with status code: {0} and null response content", status);
+                Log.E(Tag, msg);
+                Error = new CouchbaseLiteException (msg, new Status (status.GetStatusCode ()));
+                Stop();
+            }
                 
             switch (mode)
             {
@@ -493,11 +509,11 @@ namespace Couchbase.Lite.Replicator
         {
             this.Error = null;
             this.runTask = Task.Factory
-                .StartNew(Run, tokenSource.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default)
+                .StartNew(Run, tokenSource.Token, TaskCreationOptions.LongRunning, WorkExecutor.Scheduler)
                 .ContinueWith(t =>
                 {
                     Log.E(Tag, "Run task faulted", t.Exception);
-                }, TaskContinuationOptions.AttachedToParent | TaskContinuationOptions.OnlyOnFaulted);
+                }, TaskContinuationOptions.OnlyOnFaulted);
             return true;
         }
 

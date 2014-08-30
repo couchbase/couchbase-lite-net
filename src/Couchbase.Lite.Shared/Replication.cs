@@ -841,13 +841,13 @@ namespace Couchbase.Lite
             });
         }
 
-        internal void SendAsyncRequest(HttpMethod method, string relativePath, object body, RemoteRequestCompletionBlock completionHandler)
+        internal void SendAsyncRequest(HttpMethod method, string relativePath, object body, RemoteRequestCompletionBlock completionHandler, CancellationTokenSource requestTokenSource = null)
         {
             try
             {
                 var urlStr = BuildRelativeURLString(relativePath);
                 var url = new Uri(urlStr);
-                SendAsyncRequest(method, url, body, completionHandler);
+                SendAsyncRequest(method, url, body, completionHandler, requestTokenSource);
             }
             catch (UriFormatException e)
             {
@@ -875,7 +875,7 @@ namespace Couchbase.Lite
             return remoteUrlString + relativePath;
         }
 
-        internal void SendAsyncRequest(HttpMethod method, Uri url, Object body, RemoteRequestCompletionBlock completionHandler)
+        internal void SendAsyncRequest(HttpMethod method, Uri url, Object body, RemoteRequestCompletionBlock completionHandler, CancellationTokenSource requestTokenSource = null)
         {
             var message = new HttpRequestMessage(method, url);
             var mapper = Manager.GetObjectMapper();
@@ -897,7 +897,11 @@ namespace Couchbase.Lite
                 message.Content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
             }
 
-            client.SendAsync(message, HttpCompletionOption.ResponseHeadersRead, CancellationTokenSource.Token)
+            var token = requestTokenSource != null 
+                ? requestTokenSource.Token
+                : CancellationTokenSource.Token;
+
+            client.SendAsync(message, HttpCompletionOption.ResponseHeadersRead, token)
                 .ContinueWith(response =>
                 {
                     lock(requests)
@@ -963,7 +967,7 @@ namespace Couchbase.Lite
                     }
 
                     return response.Result;
-                }, CancellationTokenSource.Token);
+                }, token, TaskContinuationOptions.None, WorkExecutor.Scheduler);
 
             lock(requests)
             {
@@ -998,7 +1002,8 @@ namespace Couchbase.Lite
                     client.DefaultRequestHeaders.Authorization = authHeader;
                 }
 
-                client.SendAsync(message, HttpCompletionOption.ResponseHeadersRead, CancellationTokenSource.Token).ContinueWith(new Action<Task<HttpResponseMessage>>(responseMessage =>
+                client.SendAsync(message, HttpCompletionOption.ResponseHeadersRead, CancellationTokenSource.Token)
+                .ContinueWith(new Action<Task<HttpResponseMessage>>(responseMessage =>
                 {
                     object fullBody = null;
                     Exception error = null;
@@ -1179,7 +1184,7 @@ namespace Couchbase.Lite
             var server = response.Headers.Server;
             if (server != null && server.Any())
             {
-                ServerType = server.First().Product.ToString();
+                ServerType = String.Join(" ", server.Select(pi => pi.Product));
                 Log.V(Tag, "Server Version: " + ServerType);
             }
         }

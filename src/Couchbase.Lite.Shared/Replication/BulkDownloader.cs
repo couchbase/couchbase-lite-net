@@ -68,7 +68,7 @@ namespace Couchbase.Lite.Replicator
 
         /// <exception cref="System.Exception"></exception>
         public BulkDownloader(TaskFactory workExecutor, IHttpClientFactory clientFactory, Uri dbURL, IList<RevisionInternal> revs, Database database, IDictionary<string, object> requestHeaders, CancellationTokenSource tokenSource = null)
-            : base(workExecutor, clientFactory, "POST", new Uri(BuildRelativeURLString(dbURL, "/_bulk_get?revs=true&attachments=true")), HelperMethod(revs, database), database, requestHeaders, tokenSource)
+            : base(workExecutor, clientFactory, "POST", new Uri(AppendRelativeURLString(dbURL, "/_bulk_get?revs=true&attachments=true")), HelperMethod(revs, database), database, requestHeaders, tokenSource)
         {
             _db = database;
         }
@@ -83,8 +83,7 @@ namespace Couchbase.Lite.Replicator
             var httpClient = clientFactory.GetHttpClient();
             PreemptivelySetAuthCredentials(httpClient);
 
-            requestMessage.Headers.Add("Content-Type", "application/json");
-            requestMessage.Headers.Add("Accept", "multipart/related");
+            requestMessage.Headers.Accept.Add(new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("multipart/related"));
 
             //TODO: implement gzip support for server response see issue #172
             //request.addHeader("X-Accept-Part-Encoding", "gzip");
@@ -105,7 +104,7 @@ namespace Couchbase.Lite.Replicator
             HttpResponseMessage response = null;
             try
             {
-                if (!_tokenSource.IsCancellationRequested)
+                if (_tokenSource.IsCancellationRequested)
                 {
                     RespondWithResult(fullBody, new Exception(string.Format("{0}: Request {1} has been aborted", this, request)), response);
                     return;
@@ -204,7 +203,7 @@ namespace Couchbase.Lite.Replicator
             }
             catch (Exception e)
             {
-                Log.E(Tag, "%s: executeRequest() Exception: ", e, this);
+                Log.E(Tag, "{0}: executeRequest() Exception: ", e);
                 error = e;
                 RespondWithResult(fullBody, e, response);
             }
@@ -288,19 +287,21 @@ namespace Couchbase.Lite.Replicator
             return retval;
         }
 
-        private static string BuildRelativeURLString(Uri remote, string relativePath)
+        private static string AppendRelativeURLString(Uri remote, string relativePath)
         {
+            var uri = remote.AppendPath(relativePath);
+            return uri.AbsoluteUri;
             // the following code is a band-aid for a system problem in the codebase
             // where it is appending "relative paths" that start with a slash, eg:
             //     http://dotcom/db/ + /relpart == http://dotcom/db/relpart
             // which is not compatible with the way the java url concatonation works.
-            var remoteUrlString = remote.AbsolutePath;
-            if (remoteUrlString.EndsWith ("/", StringComparison.Ordinal) 
-                && relativePath.StartsWith ("/", StringComparison.Ordinal))
-            {
-                remoteUrlString = remoteUrlString.Substring(0, remoteUrlString.Length - 1);
-            }
-            return remoteUrlString + relativePath;
+//            var remoteUrlString = remote.AbsolutePath;
+//            if (remoteUrlString.EndsWith ("/", StringComparison.Ordinal) 
+//                && relativePath.StartsWith ("/", StringComparison.Ordinal))
+//            {
+//                remoteUrlString = remoteUrlString.Substring(0, remoteUrlString.Length - 1);
+//            }
+//            return remoteUrlString + relativePath;
         }
     }
 }
