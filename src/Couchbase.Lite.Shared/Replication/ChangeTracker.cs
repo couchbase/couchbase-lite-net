@@ -104,8 +104,6 @@ namespace Couchbase.Lite.Replicator
 
         private IList<String> docIDs;
 
-        private Exception Error;
-
         internal ChangeTrackerBackoff backoff;
 
         protected internal IDictionary<string, object> RequestHeaders;
@@ -118,6 +116,8 @@ namespace Couchbase.Lite.Replicator
         public IAuthenticator Authenticator { get; set; }
 
         public bool UsePost { get; set; }
+
+        public Exception Error { get; private set; }
 
         public ChangeTracker(Uri databaseURL, ChangeTrackerMode mode, object lastSequenceID, 
             Boolean includeConflicts, IChangeTrackerClient client, TaskFactory workExecutor = null)
@@ -321,6 +321,7 @@ namespace Couchbase.Lite.Replicator
                         .ContinueWith((t) => 
                         {
                             Log.D(Tag, "ChangeFeedResponseHandler faulted.");
+                            Error = t.Exception;
                         }, changesFeedRequestTokenSource.Token, TaskContinuationOptions.OnlyOnFaulted, WorkExecutor.Scheduler);
 
                     try {
@@ -581,11 +582,6 @@ namespace Couchbase.Lite.Replicator
             }
             client = null;
             Log.D(Tag, "change tracker client should be null now");
-        }
-
-        public Exception GetLastError()
-        {
-            return Error;
         }
 
         public void SetDocIDs(IList<string> docIDs)

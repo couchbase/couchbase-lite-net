@@ -887,7 +887,7 @@ namespace Couchbase.Lite
             var mapper = Manager.GetObjectMapper();
             message.Headers.Add("Accept", new[] { "multipart/related", "application/json" });
 
-            var client = new CouchbaseLiteHttpClientFactory(new CookieStore()).GetHttpClient(); //clientFactory.GetHttpClient();
+            var client = clientFactory.GetHttpClient();
 
             var authHeader = AuthUtils.GetAuthenticationHeaderValue(Authenticator, message.RequestUri);
             if (authHeader != null)

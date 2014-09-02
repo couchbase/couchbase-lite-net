@@ -272,9 +272,9 @@ namespace Couchbase.Lite.Replicator
         public void ChangeTrackerStopped(ChangeTracker tracker)
         {
             Log.W(Tag, "ChangeTracker " + tracker + " stopped");
-            if (LastError == null && tracker.GetLastError() != null)
+            if (LastError == null && tracker.Error != null)
             {
-                SetLastError(tracker.GetLastError());
+                SetLastError(tracker.Error);
             }
             changeTracker = null;
             if (Batcher != null)

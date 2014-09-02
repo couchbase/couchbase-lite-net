@@ -182,7 +182,9 @@ namespace Couchbase.Lite.Tests
 
         internal IList<HttpRequestMessage> CapturedRequests
         {
-            private set { capturedRequests = value; }
+            private set { 
+                capturedRequests = value; 
+            }
             get {
                 var snapshot = new List<HttpRequestMessage>(capturedRequests);
                 return snapshot;
