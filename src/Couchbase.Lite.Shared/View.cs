@@ -749,7 +749,7 @@ namespace Couchbase.Lite {
                 argsList.AddItem(maxKey);
                 if (maxKeyDocId != null && inclusiveMax)
                 {
-                    sql += string.Format(" AND (key < ? %s OR docid <= ?)", collationStr);
+                    sql += string.Format(" AND (key < ? {0} OR docid <= ?)", collationStr);
                     argsList.AddItem(maxKey);
                     argsList.AddItem(maxKeyDocId);
                 }

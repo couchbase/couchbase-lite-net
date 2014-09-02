@@ -90,9 +90,9 @@ namespace Couchbase.Lite.Replicator
 
         private TaskFactory WorkExecutor;
 
-        private Task runTask;
+//        private Task runTask;
 
-        Task changesRequestTask;
+//        Task changesRequestTask;
 
         private readonly object stopMutex = new object();
 
@@ -110,7 +110,9 @@ namespace Couchbase.Lite.Replicator
 
         protected internal IDictionary<string, object> RequestHeaders;
 
-        private readonly CancellationTokenSource tokenSource;
+        private CancellationTokenSource tokenSource;
+
+        CancellationTokenSource changesFeedRequestTokenSource;
 
         /// <summary>Set Authenticator for BASIC Authentication</summary>
         public IAuthenticator Authenticator { get; set; }
@@ -259,16 +261,21 @@ namespace Couchbase.Lite.Replicator
                 return;
             }
 
+            if (tokenSource.IsCancellationRequested) {
+                tokenSource.Dispose();
+                tokenSource = new CancellationTokenSource();
+            }
+
             backoff = new ChangeTrackerBackoff();
             HttpClient httpClient = client.GetHttpClient();
 
             while (IsRunning && !tokenSource.Token.IsCancellationRequested)
             {
-                if (changesRequestTask != null && !changesRequestTask.IsCanceled && !changesRequestTask.IsFaulted) 
-                {
-                    Thread.Sleep(500);
-                    continue;
-                }
+//                if (changesRequestTask != null && !changesRequestTask.IsCanceled && !changesRequestTask.IsFaulted) 
+//                {
+//                    Thread.Sleep(500);
+//                    continue;
+//                }
 
                 if (Request != null)
                 {
@@ -305,18 +312,29 @@ namespace Couchbase.Lite.Replicator
                     break;
 
                 try {
-                    var singleRequestTokenSource = CancellationTokenSource.CreateLinkedTokenSource(tokenSource.Token);
-                    var response = httpClient
-                        .SendAsync(Request, HttpCompletionOption.ResponseHeadersRead, singleRequestTokenSource.Token)
-                        .ContinueWith<HttpResponseMessage>(ChangeFeedResponseHandler, singleRequestTokenSource.Token, TaskContinuationOptions.LongRunning, WorkExecutor.Scheduler);
-                    var result = response.Result;
-                    //                    ChangeFeedResponseHandler(response);
-                    if (result != null)
-                    {
-                        result.Dispose();
+                    changesFeedRequestTokenSource = CancellationTokenSource.CreateLinkedTokenSource(tokenSource.Token);
+                    var changesRequestTask = httpClient
+                        .SendAsync(Request, HttpCompletionOption.ResponseHeadersRead, changesFeedRequestTokenSource.Token);
+                    var successHandler = changesRequestTask
+                        .ContinueWith<HttpResponseMessage>(ChangeFeedResponseHandler, changesFeedRequestTokenSource.Token, TaskContinuationOptions.LongRunning, WorkExecutor.Scheduler);
+                    var errorHandler = changesRequestTask
+                        .ContinueWith((t) => 
+                        {
+                            Log.D(Tag, "ChangeFeedResponseHandler faulted.");
+                        }, changesFeedRequestTokenSource.Token, TaskContinuationOptions.OnlyOnFaulted, WorkExecutor.Scheduler);
+
+                    try {
+                        Task.WaitAll(changesRequestTask, successHandler, errorHandler);
+                    } catch (Exception ex) {
+                        // Swallow TaskCancelledExceptions, which will always happen
+                        // if either errorHandler or successHandler don't need to fire.
+                        if (!(ex.InnerException is TaskCanceledException))
+                            throw ex;
                     }
-                    response.Dispose();
-                    Request.Dispose();
+//                    allWork.Wait(TimeSpan.FromSeconds(90));
+                    var result = successHandler.Result;
+                    //                    ChangeFeedResponseHandler(response);
+                    result.Dispose();
                 }
                 catch (Exception e)
                 {
@@ -332,6 +350,13 @@ namespace Couchbase.Lite.Replicator
                         Log.E(Tag, "Exception in change tracker", e);
                     }
                     backoff.SleepAppropriateAmountOfTime();
+                }
+                finally
+                {
+                    if (mode == ChangeTrackerMode.OneShot)
+                    {
+                        Stop();
+                    }
                 }
 //                var singleRequestTokenSource = CancellationTokenSource.CreateLinkedTokenSource(tokenSource.Token);
 //                var cTask = httpClient.SendAsync(Request, HttpCompletionOption.ResponseHeadersRead, singleRequestTokenSource.Token);
@@ -505,15 +530,19 @@ namespace Couchbase.Lite.Replicator
             this.Error = new Exception(message);
         }
 
+        Thread thread;
+
         public bool Start()
         {
             this.Error = null;
-            this.runTask = Task.Factory
-                .StartNew(Run, tokenSource.Token, TaskCreationOptions.LongRunning, WorkExecutor.Scheduler)
-                .ContinueWith(t =>
-                {
-                    Log.E(Tag, "Run task faulted", t.Exception);
-                }, TaskContinuationOptions.OnlyOnFaulted);
+            this.thread = new Thread(Run) { IsBackground = true };
+            thread.Start();
+//            this.runTask = Task.Factory
+//                .StartNew(Run, tokenSource.Token, TaskCreationOptions.LongRunning, WorkExecutor.Scheduler)
+//                .ContinueWith(t =>
+//                {
+//                    Log.E(Tag, "Run task faulted", t.Exception);
+//                }, TaskContinuationOptions.OnlyOnFaulted);
             return true;
         }
 
@@ -533,9 +562,9 @@ namespace Couchbase.Lite.Replicator
 
                 IsRunning = false;
 
-                if (Request != null)
+                if (changesFeedRequestTokenSource != null)
                 {
-                    tokenSource.Cancel();
+                    changesFeedRequestTokenSource.Cancel();
                 }
 
                 Stopped();

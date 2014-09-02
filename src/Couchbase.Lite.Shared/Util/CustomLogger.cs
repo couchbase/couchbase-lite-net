@@ -1,5 +1,5 @@
 //
-// SystemLogger.cs
+// CustomLogger.cs
 //
 // Author:
 //     Zachary Gramana  <zack@xamarin.com>

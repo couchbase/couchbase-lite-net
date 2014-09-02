@@ -71,23 +71,23 @@ namespace Couchbase.Lite.Replicator
 
         readonly string Tag = "Puller";
 
-        protected internal bool canBulkGet;
+        internal bool canBulkGet;
 
-        protected internal bool caughtUp;
+        internal bool caughtUp;
 
-        protected internal Batcher<RevisionInternal> downloadsToInsert;
+        internal Batcher<RevisionInternal> downloadsToInsert;
 
-        protected internal IList<RevisionInternal> revsToPull;
+        internal IList<RevisionInternal> revsToPull;
 
-        protected internal IList<RevisionInternal> deletedRevsToPull;
+        internal IList<RevisionInternal> deletedRevsToPull;
 
-        protected internal IList<RevisionInternal> bulkRevsToPull;
+        internal IList<RevisionInternal> bulkRevsToPull;
 
-        protected internal ChangeTracker changeTracker;
+        internal ChangeTracker changeTracker;
 
-        protected internal SequenceMap pendingSequences;
+        internal SequenceMap pendingSequences;
 
-        protected internal volatile int httpConnectionCount;
+        internal volatile int httpConnectionCount;
 
         private readonly Object locker = new object ();
 
@@ -498,6 +498,8 @@ namespace Couchbase.Lite.Replicator
                         ? new RevisionInternal (props, LocalDatabase) 
                         : new RevisionInternal ((string)props.Get ("id"), (string)props.Get ("rev"), false, LocalDatabase);
 
+                    Log.D(Tag, "Document downloaded! {0}", rev);
+
                     var pos = remainingRevs.IndexOf(rev);
                     if (pos > -1)
                     {
@@ -549,11 +551,11 @@ namespace Couchbase.Lite.Replicator
                 return;
             }
             dl.Authenticator = Authenticator;
-//            WorkExecutor.StartNew(dl.Run, CancellationTokenSource.Token, TaskCreationOptions.AttachedToParent);
-            dl.Run();
+            WorkExecutor.StartNew(dl.Run, CancellationTokenSource.Token);
+//            dl.Run();
         }
 
-        // This invokes the tranformation block if one is installed and queues the resulting CBL_Revision
+        // This invokes the tranformation block if one is installed and queues the resulting Revision
         private void QueueDownloadedRevision(RevisionInternal rev)
         {
             if (revisionBodyTransformationFunction != null)
@@ -584,9 +586,8 @@ namespace Couchbase.Lite.Replicator
 
                 rev = xformed;
 
-                // Clean up afterwards
-                var attachments = (IDictionary<string, object>)rev.GetProperties().Get("_attachments");
-                foreach (var entry in ((IDictionary<string, IDictionary<string, object>>)rev.GetProperties().Get("_attachments")).EntrySet())
+                var attachments = (IDictionary<string, IDictionary<string, object>>)rev.GetProperties().Get("_attachments");
+                foreach (var entry in attachments.EntrySet())
                 {
                     var attachment = entry.Value;
                     attachment.Remove("file");
@@ -602,7 +603,7 @@ namespace Couchbase.Lite.Replicator
 
         // Get as many revisions as possible in one _all_docs request.
         // This is compatible with CouchDB, but it only works for revs of generation 1 without attachments.
-        protected internal void PullBulkWithAllDocs(IList<RevisionInternal> bulkRevs)
+        internal void PullBulkWithAllDocs(IList<RevisionInternal> bulkRevs)
         {
             // http://wiki.apache.org/couchdb/HTTP_Bulk_Document_API
             Log.V(Tag, "PullBulkWithAllDocs() calling AsyncTaskStarted()");
@@ -753,14 +754,14 @@ namespace Couchbase.Lite.Replicator
                 try 
                 {
                     // OK, now we've got the response revision:
-                    Log.D (Tag, ": pullRemoteRevision got response for rev: " + rev);
+                    Log.D (Tag, "PullRemoteRevision got response for rev: " + rev);
 
                     if (e != null)
                     {
                         Log.E (Tag, "Error pulling remote revision", e);
                         SetLastError(e);
                         RevisionFailed();
-                        Log.D(Tag, "pullRemoteRevision updating completedChangesCount from " + 
+                        Log.D(Tag, "PullRemoteRevision updating completedChangesCount from " + 
                             CompletedChangesCount + " -> " + (CompletedChangesCount + 1) 
                             + " due to error pulling remote revision");
                         SafeIncrementCompletedChangesCount();
@@ -771,7 +772,7 @@ namespace Couchbase.Lite.Replicator
                         PulledRevision gotRev = new PulledRevision(properties, LocalDatabase);
                         gotRev.SetSequence(rev.GetSequence());
                         AsyncTaskStarted ();
-                        Log.D(Tag, ": pullRemoteRevision add rev: " + gotRev + " to batcher");
+                        Log.D(Tag, "PullRemoteRevision add rev: " + gotRev + " to batcher");
                         downloadsToInsert.QueueObject(gotRev);
                     }
                 }
@@ -793,7 +794,7 @@ namespace Couchbase.Lite.Replicator
         {
             Log.I(Tag, "inserting " + downloads.Count + " revisions...");
 
-            var time = DateTime.UtcNow.ToMillisecondsSinceEpoch();
+            var time = DateTime.UtcNow;
 
             downloads.Sort(new RevisionComparer());
 
@@ -863,15 +864,15 @@ namespace Couchbase.Lite.Replicator
             // Checkpoint:
             LastSequence = pendingSequences.GetCheckpointedValue();
 
-            var delta = DateTime.UtcNow.ToMillisecondsSinceEpoch() - time;
-            Log.D(Tag, "inserted " + downloads.Count + " revs in " + delta + " milliseconds");
+            var delta = (DateTime.UtcNow - time).TotalMilliseconds;
+            Log.D(Tag, "inserted {0} revs in {1} milliseconds", downloads.Count, delta);
 
             var newCompletedChangesCount = CompletedChangesCount + downloads.Count;
             Log.D(Tag, "InsertDownloads() updating CompletedChangesCount from {0} -> {1}", CompletedChangesCount, newCompletedChangesCount);
 
-            SafeAddToCompletedChangesCount(newCompletedChangesCount);
+            SafeAddToCompletedChangesCount(downloads.Count);
 
-            Log.D(Tag, "InsertDownloads updating completedChangesCount from " + newCompletedChangesCount + " -> " + CompletedChangesCount + downloads.Count);
+            Log.D(Tag, "InsertDownloads updating completedChangesCount from " + newCompletedChangesCount + " -> " + CompletedChangesCount);
         }
 
         private sealed class RevisionComparer : IComparer<RevisionInternal>

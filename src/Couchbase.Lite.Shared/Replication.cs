@@ -133,7 +133,10 @@ namespace Couchbase.Lite
             Continuous = continuous;
             // NOTE: Consider running a separate scheduler for all http requests.
             WorkExecutor = workExecutor;
-            CancellationTokenSource = tokenSource ?? new CancellationTokenSource();
+            var ts = tokenSource != null
+                ? CancellationTokenSource.CreateLinkedTokenSource(tokenSource.Token)
+                : new CancellationTokenSource();
+            CancellationTokenSource = ts;
             RemoteUrl = remote;
             Status = ReplicationStatus.Stopped;
             online = true;
@@ -304,8 +307,9 @@ namespace Couchbase.Lite
         protected void SafeAddToCompletedChangesCount(int value)
         {
             Debug.Assert(value > 0);
-            Log.V(Tag, "Updating completedChanges count from " + completedChangesCount + " -> " + value);
+            Log.V(Tag, ">>>Updating completedChangesCount from {0} by {1}", completedChangesCount, value);
             Interlocked.Add(ref completedChangesCount, value);
+            Log.V(Tag, "<<<Updated completedChanges count to {0}", completedChangesCount);
             NotifyChangeListeners();
         }
 
@@ -351,7 +355,7 @@ namespace Couchbase.Lite
             }
         }
 
-        void NotifyChangeListeners ()
+        void NotifyChangeListeners()
         {
             UpdateProgress();
 
@@ -361,7 +365,9 @@ namespace Couchbase.Lite
             var args = new ReplicationChangeEventArgs(this);
 
             // Ensure callback runs on captured context, which should be the UI thread.
-            LocalDatabase.Manager.CapturedContext.StartNew(()=>evt(this, args));
+            Log.D(Tag, "Firing NotifyChangeListeners event! [{0} -> {1}]", TaskScheduler.Current.GetType().Name, LocalDatabase.Manager.CapturedContext.Scheduler.GetType().Name);
+            //LocalDatabase.Manager.CapturedContext.StartNew(()=>evt(this, args));
+            evt(this, args);
         }
 
         // This method will be used by Router & Reachability Manager
@@ -670,7 +676,7 @@ namespace Couchbase.Lite
             {
                 Log.D(Tag + ".AsyncTaskFinished", "AsyncTaskCount: {0} > {1}".Fmt(asyncTaskCount, asyncTaskCount - numTasks));
                 asyncTaskCount -= numTasks;
-                System.Diagnostics.Debug.Assert(asyncTaskCount >= 0);
+                Debug.Assert(asyncTaskCount >= 0);
                 if (asyncTaskCount == 0)
                 {
                     UpdateActive();
@@ -702,7 +708,7 @@ namespace Couchbase.Lite
                     {
                         if (!continuous)
                         {
-                            Log.D(Tag, "since !continuous, calling stopped()");
+                            Log.D(Tag, "since !continuous, calling Stopped()");
                             WorkExecutor.StartNew(Stopping);
                         }
                         else if (LastError != null) /*(revisionsFailed > 0)*/
@@ -1732,7 +1738,7 @@ namespace Couchbase.Lite
             IsRunning = true;
             LastSequence = null;
 
-            CheckSession();
+            WorkExecutor.StartNew(CheckSession);
 
             var reachabilityManager = LocalDatabase.Manager.NetworkReachabilityManager;
             reachabilityManager.StatusChanged += (sender, e) =>

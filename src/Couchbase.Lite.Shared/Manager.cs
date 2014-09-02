@@ -160,7 +160,7 @@ namespace Couchbase.Lite
             var scheduler = options.CallbackScheduler;
             CapturedContext = new TaskFactory(scheduler);
             workExecutor = new TaskFactory(new SingleThreadTaskScheduler());
-            Log.D(Tag, "New replication uses a scheduler with a max concurrency level of {0}".Fmt(workExecutor.Scheduler.MaximumConcurrencyLevel));
+            Log.D(Tag, "New Manager uses a scheduler with a max concurrency level of {0}".Fmt(workExecutor.Scheduler.MaximumConcurrencyLevel));
 
             this.NetworkReachabilityManager = new NetworkReachabilityManager();
 

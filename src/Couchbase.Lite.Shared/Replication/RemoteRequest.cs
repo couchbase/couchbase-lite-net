@@ -99,7 +99,7 @@ namespace Couchbase.Lite.Replicator
             this.db = db;
             this.requestMessage = CreateConcreteRequest();
             _tokenSource = tokenSource ?? new CancellationTokenSource();
-            Log.V(Tag, "%s: RemoteRequest created, url: %s", this, url);
+            Log.V(Tag, "RemoteRequest created, url: {0}", url);
         }
 
         public virtual void Run()
@@ -216,7 +216,7 @@ namespace Couchbase.Lite.Replicator
                 Log.V(Tag, "{0}: RemoteRequest executeRequest() called, url: {1}".Fmt(this, url));
                 if (request.IsCanceled)
                 {
-                    Log.V(Tag, "%s: RemoteRequest has already been aborted", this);
+                    Log.V(Tag, "RemoteRequest has already been aborted");
                     RespondWithResult(fullBody, new Exception(string.Format("{0}: Request {1} has been aborted", this, requestMessage)), response);
                     return;
                 }
@@ -313,27 +313,8 @@ namespace Couchbase.Lite.Replicator
 
         public void RespondWithResult(object result, Exception error, HttpResponseMessage response)
         {
-            if (workExecutor != null)
-            {
-                request = workExecutor.StartNew(()=>
-                {
-                    try
-                    {
-                        OnEvent(WillComplete, response, error);
-                        OnEvent(Complete, result, error);
-                        OnEvent(HasCompleted, response, error);
-                    }
-                    catch (Exception e)
-                    {
-                        Log.E(Tag, "RemoteRequestCompletionBlock throw Exception", e);
-                    }
-                });
-            }
-            else
-            {
-                // don't let this crash the thread
-                Log.E(Tag, "Work executor was null!");
-            }
+            Log.D(Tag + ".RespondWithREsult", "Firing Completed event.");
+            OnEvent(Complete, result, error);
         }
     }
 }

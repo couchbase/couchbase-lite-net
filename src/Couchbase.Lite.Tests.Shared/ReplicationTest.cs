@@ -120,9 +120,9 @@ namespace Couchbase.Lite
 
             Log.D(Tag, "Waiting for replicator to finish.");
 
-                var success = replicationDoneSignal.Await(TimeSpan.FromSeconds(300));
+                var success = replicationDoneSignal.Await(TimeSpan.FromSeconds(15));
                 Assert.IsTrue(success);
-                success = replicationDoneSignalPolling.Wait(TimeSpan.FromSeconds(300));
+                success = replicationDoneSignalPolling.Wait(TimeSpan.FromSeconds(15));
                 Assert.IsTrue(success);
 
                 Log.D(Tag, "replicator finished");

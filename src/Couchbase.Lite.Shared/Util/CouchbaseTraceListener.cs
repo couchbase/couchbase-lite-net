@@ -62,9 +62,9 @@ namespace Couchbase.Lite.Util
         {
             Level = logLevel;
             Name = "Couchbase";
-            TraceOutputOptions = /*Level.HasFlag(SourceLevels.All)
-                ? TraceOptions.ThreadId /*| TraceOptions.DateTime | TraceOptions.Timestamp
-                : */ TraceOptions.None;
+            TraceOutputOptions = Level.HasFlag(SourceLevels.All)
+                ? TraceOptions.ThreadId | TraceOptions.DateTime /*| TraceOptions.Timestamp*/
+                :  TraceOptions.None;
         }
 
         void WriteOptionalTraceInfo()

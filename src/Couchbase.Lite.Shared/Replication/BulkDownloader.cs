@@ -73,11 +73,6 @@ namespace Couchbase.Lite.Replicator
             _db = database;
         }
 
-        public void AppendToPart (IEnumerable<byte> data)
-        {
-            throw new System.NotImplementedException ();
-        }
-
         public override void Run()
         {
             var httpClient = clientFactory.GetHttpClient();
@@ -124,19 +119,20 @@ namespace Couchbase.Lite.Replicator
 //                    Log.E(Tag, "Unable to add in cookies to global store", e);
 //                }
                 var status = response.StatusCode;
-                if (response.IsSuccessStatusCode)
+                if (!response.IsSuccessStatusCode)
                 {
                     Log.E(Tag, "Got error status: {0} for {1}.  Reason: {2}", status.GetStatusCode(), request, response.ReasonPhrase);
                     error = new HttpResponseException(status);
                 }
                 else
                 {
+                    Log.D(Tag, "Processing response: {0}", response);
                     var entity = response.Content;
                     var contentTypeHeader = entity.Headers.ContentType;
                     Stream inputStream = null;
                     if (contentTypeHeader != null && contentTypeHeader.ToString().Contains("multipart/"))
                     {
-                        Log.V(Tag, "contentTypeHeader = %s", contentTypeHeader.ToString());
+                        Log.V(Tag, "contentTypeHeader = {0}", contentTypeHeader.ToString());
                         try
                         {
                             _topReader = new MultipartReader(contentTypeHeader.ToString(), this);
@@ -195,6 +191,13 @@ namespace Couchbase.Lite.Replicator
                     }
                 }
             }
+            catch (AggregateException e)
+            {
+                var err = e.InnerException;
+                Log.E(Tag, "io exception", err);
+                error = err;
+                RespondWithResult(fullBody, err, response);
+            }
             catch (IOException e)
             {
                 Log.E(Tag, "io exception", e);
@@ -203,7 +206,7 @@ namespace Couchbase.Lite.Replicator
             }
             catch (Exception e)
             {
-                Log.E(Tag, "{0}: executeRequest() Exception: ", e);
+                Log.E(Tag, "{0}: ExecuteRequest Exception: ", e);
                 error = e;
                 RespondWithResult(fullBody, e, response);
             }
@@ -228,7 +231,7 @@ namespace Couchbase.Lite.Replicator
 
         /// <summary>This method is called to append data to a part's body.</summary>
         /// <remarks>This method is called to append data to a part's body.</remarks>
-        public virtual void AppendToPart(byte[] data)
+        public void AppendToPart (IEnumerable<byte> data)
         {
             if (_docReader == null)
             {

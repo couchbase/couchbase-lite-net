@@ -25,10 +25,14 @@ namespace Couchbase.Lite.Util
             // We want to allow these to run without doing that.
             if (task.CreationOptions.HasFlag(TaskCreationOptions.LongRunning))
             {
-                Interlocked.Increment(ref longRunningTasks);
+                Log.D(Tag, " --> Spawing a long running task as a thread.");
+                var thread = new Thread(()=>TryExecuteTask(task)) { IsBackground = true };
+                thread.Start();
+                return;
             }
             queue.Add (task); 
-            if ((runningTasks - longRunningTasks) < maxConcurrency)
+            Log.D(Tag, " --> Queued a task: {0}/{1}/{2}", queue.Count, runningTasks, longRunningTasks);
+            if (runningTasks < maxConcurrency)
             {
                 Interlocked.Increment(ref runningTasks);
                 QueueThreadPoolWorkItem (); 
@@ -42,20 +46,15 @@ namespace Couchbase.Lite.Util
                 try 
                 { 
                     while (true) 
-                    { 
-                        Task task;
+                    {
                         if (queue.Count == 0) 
-                        { 
-                            --runningTasks; 
+                        {
+                            Interlocked.Decrement(ref runningTasks);
                             break; 
                         } 
-                        task = queue.Take(); 
+                        var task = queue.Take();
+                        Log.D(Tag, " --> Dequeued a task: {0}/{1}/{2}", queue.Count, runningTasks, longRunningTasks);
                         var success = TryExecuteTask(task);
-                        // Remove our temporary easing of max concurrency limit.
-                        if (task.CreationOptions.HasFlag(TaskCreationOptions.LongRunning))
-                        {
-                            Interlocked.Decrement(ref longRunningTasks);
-                        }
                         if (!success && (task.Status != TaskStatus.Canceled || task.Status != TaskStatus.RanToCompletion))
                             Log.E(Tag, "Scheduled task faulted", task.Exception);
                     } 

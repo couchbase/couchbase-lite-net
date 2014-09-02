@@ -137,7 +137,7 @@ namespace Couchbase.Lite.Support
         public HttpClient GetHttpClient()
         {
             var authHandler = Handler;
-            var client =  new HttpClient(authHandler)
+            var client =  new HttpClient(authHandler, false) // <- don't dispose the handler, which we reuse.
             {
                 Timeout = ManagerOptions.Default.RequestTimeout,
             };
