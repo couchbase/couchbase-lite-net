@@ -359,7 +359,7 @@ namespace Couchbase.Lite.Replicator
                                 IList<string> possibleAncestors = null;
                                 if (revResults.ContainsKey("possible_ancestors"))
                                 {
-                                    possibleAncestors = (IList<string>)revResults["possible_ancestors"];
+                                    possibleAncestors = revResults["possible_ancestors"].AsList<string>();
                                 }
 
                                 properties = new Dictionary<string, object>(populatedRev.GetProperties());

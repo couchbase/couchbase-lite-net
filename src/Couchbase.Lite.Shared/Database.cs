@@ -2810,21 +2810,20 @@ PRAGMA user_version = 3;";
         /// <summary>Parses the _revisions dict from a document into an array of revision ID strings.</summary>
         internal static IList<string> ParseCouchDBRevisionHistory(IDictionary<String, Object> docProperties)
         {
-            var revs = (JObject)docProperties.Get("_revisions");
-            var revisions = revs.ToObject<Dictionary<String, Object>>();
+            var revisions = docProperties.Get ("_revisions").AsDictionary<string,object> ();
             if (revisions == null)
             {
                 return new List<string>();
             }
 
-            var ids = (JArray)revisions["ids"];
+            var ids = revisions ["ids"].AsList<string> ();
             if (ids == null || ids.Count == 0)
             {
                 return new List<string>();
             }
 
-            var revIDs = ids.Values<String>().ToList();
-            var start = (Int64)revisions.Get("start");
+            var revIDs = new List<string>(ids);
+            var start = Convert.ToInt64(revisions.Get("start"));
             for (var i = 0; i < revIDs.Count; i++)
             {
                 var revID = revIDs[i];

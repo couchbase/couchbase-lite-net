@@ -76,7 +76,7 @@
   <ItemGroup>
     <EmbeddedResource Include="Assets\attachment.png" />
     <EmbeddedResource Include="Assets\attachment2.png" />
-    <EmbeddedResource Include="Assets\local-test.properties" />
+    <EmbeddedResource Condition="Exists('Assets\local-test.properties')" Include="Assets\local-test.properties" />
     <EmbeddedResource Include="Assets\test.properties" />
   </ItemGroup>
 </Project>

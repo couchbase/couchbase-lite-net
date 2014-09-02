@@ -142,7 +142,7 @@
     <EmbeddedResource Include="Resources\attachment2.png">
       <LogicalName>CouchbaseLiteiOSTests.Assets.attachment2.png</LogicalName>
     </EmbeddedResource>
-    <EmbeddedResource Include="Resources\local-test.properties">
+    <EmbeddedResource Condition="Exists('Resources\local-test.properties')" Include="Resources\local-test.properties">
       <LogicalName>CouchbaseLiteiOSTests.Assets.local-test.properties</LogicalName>
     </EmbeddedResource>
     <EmbeddedResource Include="Resources\test.properties">
