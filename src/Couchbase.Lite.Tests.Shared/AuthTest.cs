@@ -145,7 +145,7 @@ namespace Couchbase.Lite
         private void AddUser(string username, string password)
         {
             var uri = GetReplicationAdminURL();
-            var addUserUri = uri.AppendPath(string.Format("_user/{0}", username));
+            var addUserUri = uri.AppendPath(string.Format("/_user/{0}", username));
             var content = "{\"all_channels\":[\"*\"],\"password\":\"" + password + "\"}";
             var httpclient = new HttpClient();
             var postTask = httpclient.PutAsync(addUserUri, new StringContent(content, Encoding.UTF8, "application/json"));
@@ -164,7 +164,7 @@ namespace Couchbase.Lite
             var url = GetReplicationURLWithoutCredentials();
             var httpClientFactory = new CouchbaseLiteHttpClientFactory(new CookieStore());
             manager.DefaultHttpClientFactory = httpClientFactory;
-            Replication replicator = database.CreatePushReplication(url);
+            var replicator = database.CreatePushReplication(url);
             replicator.Authenticator = AuthenticatorFactory.CreateBasicAuthenticator(username, password);
 
             Assert.IsNotNull(replicator);
@@ -184,11 +184,11 @@ namespace Couchbase.Lite
                     {
                         break;
                     }
-                    System.Threading.Thread.Sleep(TimeSpan.FromMilliseconds(10));
+                    Thread.Sleep(TimeSpan.FromMilliseconds(10));
                 }
                 doneEvent.Set();
             });
-            doneEvent.WaitOne(TimeSpan.FromSeconds(35));
+            Assert.IsTrue(doneEvent.WaitOne(TimeSpan.FromSeconds(35)));
 
             var lastError = replicator.LastError;
             Assert.IsNull(lastError);
@@ -205,7 +205,8 @@ namespace Couchbase.Lite
             var url = GetReplicationURLWithoutCredentials();
             var httpClientFactory = new CouchbaseLiteHttpClientFactory(new CookieStore());
             manager.DefaultHttpClientFactory = httpClientFactory;
-            Replication replicator = database.CreatePushReplication(url);
+
+            var replicator = database.CreatePushReplication(url);
             replicator.Authenticator = AuthenticatorFactory.CreateBasicAuthenticator(username, wrongPassword);
 
             Assert.IsNotNull(replicator);
@@ -219,18 +220,16 @@ namespace Couchbase.Lite
             Task.Factory.StartNew(()=>
             {
                 var timeout = DateTime.UtcNow + TimeSpan.FromSeconds(30);
-                while (DateTime.UtcNow < timeout)
+                var stop = false;
+                while (DateTime.UtcNow < timeout && !stop)
                 {
-                    if (!replicator.active)
-                    {
-                        break;
-                    }
-                    System.Threading.Thread.Sleep(TimeSpan.FromMilliseconds(10));
+                    stop |= !replicator.active;
+                    Thread.Sleep(TimeSpan.FromMilliseconds(10));
                 }
                 doneEvent.Set();
             });
             doneEvent.WaitOne(TimeSpan.FromSeconds(35));
-
+            Thread.Sleep(1000);
             var lastError = replicator.LastError;
             Assert.IsNotNull(lastError);
         }

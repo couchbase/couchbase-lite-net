@@ -7,7 +7,7 @@ using System.Threading;
 
 namespace Couchbase.Lite.Util
 {
-    sealed class SingleThreadTaskScheduler : TaskScheduler 
+    sealed internal class SingleThreadTaskScheduler : TaskScheduler 
     {
         const string Tag = "SingleThreadTaskScheduler";
 
@@ -50,12 +50,13 @@ namespace Couchbase.Lite.Util
                         if (queue.Count == 0) 
                         {
                             Interlocked.Decrement(ref runningTasks);
+                            Log.D(Tag, " --> Exiting runloop: {0}/{1}/{2}", queue.Count, runningTasks, longRunningTasks);
                             break; 
                         } 
                         var task = queue.Take();
                         Log.D(Tag, " --> Dequeued a task: {0}/{1}/{2}", queue.Count, runningTasks, longRunningTasks);
                         var success = TryExecuteTask(task);
-                        if (!success && (task.Status != TaskStatus.Canceled || task.Status != TaskStatus.RanToCompletion))
+                        if (!success && (task.Status != TaskStatus.Canceled && task.Status != TaskStatus.RanToCompletion))
                             Log.E(Tag, "Scheduled task faulted", task.Exception);
                     } 
                 }
@@ -89,9 +90,12 @@ namespace Couchbase.Lite.Util
                 return maxConcurrency; 
             } 
         } 
+
         protected override IEnumerable<Task> GetScheduledTasks() 
         { 
             return queue.ToArray(); 
-        } 
+        }
+
+        internal IEnumerable<Task> ScheduledTasks { get { return GetScheduledTasks(); } }
     } 
 }

@@ -140,7 +140,7 @@ namespace Couchbase.Lite.Replicator
                             const int bufLen = 1024;
                             var buffer = new byte[bufLen];
                             var numBytesRead = 0;
-                            while ((numBytesRead = inputStream.Read(buffer, 0, bufLen)) != -1)
+                            while ((numBytesRead = inputStream.Read(buffer, 0, bufLen)) > 0)
                             {
                                 if (numBytesRead != bufLen)
                                 {
@@ -206,7 +206,7 @@ namespace Couchbase.Lite.Replicator
             }
             catch (Exception e)
             {
-                Log.E(Tag, "{0}: ExecuteRequest Exception: ", e);
+                Log.E(Tag, "ExecuteRequest Exception: ", e);
                 error = e;
                 RespondWithResult(fullBody, e, response);
             }

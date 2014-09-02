@@ -49,6 +49,7 @@ using Sharpen;
 using System.Threading.Tasks;
 using System.Threading;
 using Couchbase.Lite.Internal;
+using System.Linq;
 
 namespace Couchbase.Lite.Support
 {
@@ -97,6 +98,7 @@ namespace Couchbase.Lite.Support
         ///     </param>
         public Batcher(TaskFactory workExecutor, int capacity, int delay, Action<IList<T>> processor, CancellationTokenSource tokenSource = null)
         {
+            Log.D(Tag, "New batcher created with capacity: {0}, delay: {1}", capacity, delay);
             processNowRunnable = new Action(()=>
             {
                 try
@@ -182,6 +184,7 @@ namespace Couchbase.Lite.Support
             }
 
             lastProcessedTime = DateTime.UtcNow;
+            Log.D(Tag, "Set lastProcessedTime to {0}", lastProcessedTime.ToString());
         }
 
         CancellationTokenSource cancellationSource;
@@ -229,16 +232,12 @@ namespace Couchbase.Lite.Support
         {
             lock (locker)
             {
-                while(inbox.Count > 0)
+                while(inbox != null && inbox.Count > 0)
                 {
                     Unschedule();
 
-                    var toProcess = new List<T>();
-                    foreach (T item in inbox)
-                    {
-                        toProcess.Add(item);
-                    }
-
+                    var toProcess = new List<T>(inbox);
+                    inbox.Clear();
                     processor(toProcess);
                     lastProcessedTime = DateTime.UtcNow;
                 }
@@ -271,12 +270,12 @@ namespace Couchbase.Lite.Support
 
         private void ScheduleWithDelay(Int32 suggestedDelay)
         {
-            if (!scheduled)
-                Log.V(Tag, "scheduleWithDelay called with delay: " + suggestedDelay + " ms");
+            if (scheduled)
+                Log.V(Tag, "ScheduleWithDelay called with delay: {0} ms but already scheduled", suggestedDelay);
 
             if (scheduled && (suggestedDelay < scheduledDelay))
             {
-                Log.V(Tag, "already scheduled and : " + suggestedDelay + " < " + scheduledDelay + " --> unscheduling");
+                Log.V(Tag, "Unscheduling");
                 Unschedule();
             }
 
@@ -287,7 +286,7 @@ namespace Couchbase.Lite.Support
                 scheduled = true;
                 scheduledDelay = suggestedDelay;
 
-                Log.D(Tag, "scheduleWithDelay called with delay: {0} ms", suggestedDelay);
+                Log.D(Tag, "ScheduleWithDelay called with delay: {0} ms, scheduler: {1}/{2}", suggestedDelay, workExecutor.Scheduler.GetType().Name, ((SingleThreadTaskScheduler)workExecutor.Scheduler).ScheduledTasks.Count());
 
                 cancellationSource = new CancellationTokenSource();
                 flushFuture = workExecutor.StartNew(()=> 
@@ -297,6 +296,11 @@ namespace Couchbase.Lite.Support
                             processNowRunnable();
                         }
                     }, cancellationSource.Token, TaskCreationOptions.None, workExecutor.Scheduler);
+            }
+            else
+            {
+                if (flushFuture == null || flushFuture.IsCompleted)
+                    throw new InvalidOperationException("Flushfuture missing despite scheduled.");
             }
         }
 
@@ -341,7 +345,7 @@ namespace Couchbase.Lite.Support
                 ? 0
                 : delay;
 
-            Log.V(Tag, "DelayToUse() delta: " + delta + ", delayToUse: " + delayToUse + ", delay: " + delay);
+            Log.V(Tag, "DelayToUse() delta: {0}, delayToUse: {1}, delay: {2} [last: {3}]", delta, delayToUse, delay, lastProcessedTime.ToString());
 
             return delayToUse;
         }

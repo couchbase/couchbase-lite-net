@@ -95,13 +95,20 @@ namespace Couchbase.Lite.Support
 
         public void SetContentType(String contentType)
         {
-            if (!contentType.StartsWith ("multipart/", StringComparison.InvariantCultureIgnoreCase))
+
+            if (contentType.StartsWith ("multipart/", StringComparison.InvariantCultureIgnoreCase))
             {
+                multipartReader = new MultipartReader(contentType, this);
+                attachmentsByName = new Dictionary<String, BlobStoreWriter>();
+                attachmentsByMd5Digest = new Dictionary<String, BlobStoreWriter>();
+            } else if (contentType == null 
+                || contentType.StartsWith("application/json", StringComparison.Ordinal)
+                || contentType.StartsWith("text/plain", StringComparison.Ordinal)) {
+                // No multipart, so no attachments. Body is pure JSON. (We allow text/plain because CouchDB
+                // sends JSON responses using the wrong content-type.)
+            } else {
                 throw new ArgumentException("contentType must start with multipart/");
             }
-            multipartReader = new MultipartReader(contentType, this);
-            attachmentsByName = new Dictionary<String, BlobStoreWriter>();
-            attachmentsByMd5Digest = new Dictionary<String, BlobStoreWriter>();
         }
 
         public void AppendData(IEnumerable<byte> data)

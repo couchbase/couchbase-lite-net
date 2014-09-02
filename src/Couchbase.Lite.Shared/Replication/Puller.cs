@@ -199,7 +199,7 @@ namespace Couchbase.Lite.Replicator
 
             if (downloadsToInsert != null)
             {
-                downloadsToInsert.Flush();
+                downloadsToInsert.FlushAll();
             }
         }
 
@@ -268,7 +268,7 @@ namespace Couchbase.Lite.Replicator
             }
         }
 
-        // <-- TODO: why is this here?
+        // The change tracker reached EOF or an error.
         public void ChangeTrackerStopped(ChangeTracker tracker)
         {
             Log.W(Tag, "ChangeTracker " + tracker + " stopped");
@@ -281,7 +281,7 @@ namespace Couchbase.Lite.Replicator
             {
                 Log.D(Tag, "calling batcher.flush().  batcher.count() is " + Batcher.Count());
 
-                Batcher.Flush();
+                Batcher.FlushAll();
             }
             if (!Continuous)
             {

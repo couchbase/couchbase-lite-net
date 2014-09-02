@@ -200,7 +200,7 @@ namespace Couchbase.Lite.Replicator
                 return false;
             }
             request.ContinueWith((t)=> Task.Delay(RetryDelayMs, _tokenSource.Token), _tokenSource.Token, TaskContinuationOptions.AttachedToParent, workExecutor.Scheduler)
-                .ContinueWith((t)=> Run(), _tokenSource.Token, TaskContinuationOptions.AttachedToParent, workExecutor.Scheduler);
+                .ContinueWith((t)=> Run(), _tokenSource.Token, TaskContinuationOptions.LongRunning, workExecutor.Scheduler);
             retryCount += 1;
             Log.D(Tag, "Will retry in {0} ms", RetryDelayMs);
             return true;
