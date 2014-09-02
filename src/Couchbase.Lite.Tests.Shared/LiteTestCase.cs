@@ -63,7 +63,7 @@ namespace Couchbase.Lite
     {
         public const string Tag = "LiteTestCase";
 
-        public const string FacebookAppId = "719417398131095";
+        public const string FacebookAppId = "78255794086";
 
         protected ObjectWriter mapper = new ObjectWriter();
 
@@ -77,11 +77,11 @@ namespace Couchbase.Lite
         protected void SetUp()
         {
             Log.V(Tag, "SetUp");
-#if !__ANDROID__ && !__IOS__
+#if !(__ANDROID__ || __IOS__)
 //            Trace.Listeners.Clear();
 //            Trace.Listeners.Add(new ConsoleTraceListener());
-#endif
             ManagerOptions.Default.CallbackScheduler = TaskScheduler.Default;
+#endif
             LoadCustomProperties();
             StartCBLite();
             StartDatabase();
@@ -91,7 +91,8 @@ namespace Couchbase.Lite
         {
             var assetPath = System.Reflection.Assembly.GetExecutingAssembly().GetName().Name + ".Assets." + name;
             Log.D(Tag, "Fetching assembly resource: " + assetPath);
-            return this.GetType().GetResourceAsStream(assetPath);
+            var stream = GetType().GetResourceAsStream(assetPath);
+            return stream;
         }
 
         protected DirectoryInfo GetRootDirectory()
@@ -175,7 +176,7 @@ namespace Couchbase.Lite
             }
             try
             {
-                InputStream localProperties = GetAsset("local-test.properties");
+                var localProperties = GetAsset("local-test.properties");
                 if (localProperties != null)
                 {
                     systemProperties.Load(localProperties);

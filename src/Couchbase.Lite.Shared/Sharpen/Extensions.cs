@@ -279,9 +279,9 @@ namespace Sharpen
             return (int)tzone.GetUtcOffset (MillisToDateTimeOffset (date, 0).DateTime).TotalMilliseconds;
         }
 
-        public static InputStream GetResourceAsStream (this Type type, string name)
+        public static Stream GetResourceAsStream (this Type type, string name)
         {
-            Stream manifestResourceStream = type.Assembly.GetManifestResourceStream (name);
+            var manifestResourceStream = type.Assembly.GetManifestResourceStream (name);
             if (manifestResourceStream == null) {
                 return null;
             }

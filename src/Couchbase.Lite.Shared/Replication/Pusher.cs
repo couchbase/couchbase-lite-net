@@ -296,7 +296,7 @@ namespace Couchbase.Lite.Replicator
 
             // Call _revs_diff on the target db:
             Log.D(Tag, "processInbox() calling asyncTaskStarted()");
-            Log.D(Tag, "posting to /_revs_diff: " + string.Join(Environment.NewLine, diffs));
+            Log.D(Tag, "posting to /_revs_diff: {0}", String.Join(Environment.NewLine, Manager.GetObjectMapper().WriteValueAsString(diffs)));
 
             AsyncTaskStarted();
             SendAsyncRequest(HttpMethod.Post, "/_revs_diff", diffs, (response, e) =>
@@ -503,21 +503,17 @@ namespace Couchbase.Lite.Replicator
                 }
 
                 var errorStr = (string)item["error"];
-                if (!string.IsNullOrWhiteSpace(errorStr))
+                if (string.IsNullOrWhiteSpace(errorStr))
                 {
                     return new Status(StatusCode.Ok);
                 }
 
                 if (item.ContainsKey("status"))
                 {
-                    var statusStr = (string)item["status"];
-                    if (!string.IsNullOrWhiteSpace(statusStr))
+                    var status = (Int64)item["status"];
+                    if (status >= 400)
                     {
-                        var status = Int32.Parse(statusStr);
-                        if (status >= 400)
-                        {
-                            return new Status((StatusCode)status);
-                        }
+                        return new Status((StatusCode)status);
                     }
                 }
 

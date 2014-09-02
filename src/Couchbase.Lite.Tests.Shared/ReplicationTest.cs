@@ -431,7 +431,7 @@ namespace Couchbase.Lite
 
             Assert.AreEqual(repl2.LastSequence, database.LastSequenceWithCheckpointId(repl2CheckedpointId));
 
-            //System.Threading.Thread.Sleep(2000);
+            System.Threading.Thread.Sleep(2000);
             var json = GetRemoteDoc(remote, repl2CheckedpointId);
             var remoteLastSequence = (string)json["lastSequence"];
             Assert.AreEqual(repl2.LastSequence, remoteLastSequence);

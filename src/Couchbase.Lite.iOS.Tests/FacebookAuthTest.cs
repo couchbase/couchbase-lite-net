@@ -63,7 +63,6 @@ namespace Couchbase.Lite
             var doneEvent = new ManualResetEvent(false);
 
             var accountStore = new ACAccountStore();
-
             var accountType = accountStore.FindAccountType(ACAccountType.Facebook);
 
             var options = new AccountStoreOptions();

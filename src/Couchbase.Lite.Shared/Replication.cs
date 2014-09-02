@@ -306,7 +306,10 @@ namespace Couchbase.Lite
 
         protected void SafeAddToCompletedChangesCount(int value)
         {
-            Debug.Assert(value > 0);
+            if (value == 0) {
+                return;
+            }
+
             Log.V(Tag, ">>>Updating completedChangesCount from {0} by {1}", completedChangesCount, value);
             Interlocked.Add(ref completedChangesCount, value);
             Log.V(Tag, "<<<Updated completedChanges count to {0}", completedChangesCount);
@@ -906,7 +909,7 @@ namespace Couchbase.Lite
             var token = requestTokenSource != null 
                 ? requestTokenSource.Token
                 : CancellationTokenSource.Token;
-
+            Log.D(Tag, "Sending async {0} request to: {1}", method, url);
             client.SendAsync(message, HttpCompletionOption.ResponseHeadersRead, token)
                 .ContinueWith(response =>
                 {
@@ -914,10 +917,10 @@ namespace Couchbase.Lite
                     {
                         requests.Remove(client);
                     }
-                    
+                    var result = response.Result;
                     if (!response.IsFaulted)
                     {
-                        UpdateServerType(response.Result);
+                        UpdateServerType(result);
                     }
                     else
                     {
@@ -943,14 +946,14 @@ namespace Couchbase.Lite
                                 ? response.Exception.Flatten()
                                 : response.Exception;
 
-                            if (error == null && !response.Result.IsSuccessStatusCode)
+                            if (error == null && !result.IsSuccessStatusCode)
                             {
-                                error = new HttpResponseException(response.Result.StatusCode);
+                                error = new HttpResponseException(result.StatusCode);
                             }
 
                             if (error == null)
                             {
-                                var content = response.Result.Content;
+                                var content = result.Content;
                                 if (content != null)
                                 {
                                     fullBody = mapper.ReadValue<object>(content.ReadAsStreamAsync().Result);
@@ -972,7 +975,7 @@ namespace Couchbase.Lite
                         completionHandler(fullBody, error);
                     }
 
-                    return response.Result;
+                    return result;
                 }, token, TaskContinuationOptions.None, WorkExecutor.Scheduler);
 
             lock(requests)

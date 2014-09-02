@@ -59,7 +59,9 @@ namespace Sharpen
 
         public static implicit operator Stream (InputStream s)
         {
-            return s.GetWrappedStream ();
+            return s == null 
+                ? null 
+                : s.GetWrappedStream();
         }
         
         public virtual int Available ()
