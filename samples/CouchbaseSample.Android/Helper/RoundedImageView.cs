@@ -25,50 +25,50 @@ using Android.Widget;
 
 namespace CouchbaseSample.Android.Helper
 {
-	/// <summary>Created by Pasin Suriyentrakorn <pasin@couchbase.com> on 4/13/14.</summary>
-	/// <remarks>Created by Pasin Suriyentrakorn <pasin@couchbase.com> on 4/13/14.</remarks>
-	public class RoundedImageView : ImageView
-	{
-		private const float Radius = 90;
+    /// <summary>Created by Pasin Suriyentrakorn <pasin@couchbase.com> on 4/13/14.</summary>
+    /// <remarks>Created by Pasin Suriyentrakorn <pasin@couchbase.com> on 4/13/14.</remarks>
+    public class RoundedImageView : ImageView
+    {
+        private const float Radius = 90;
 
-		public RoundedImageView(Context context) : base(context)
-		{
-		}
+        public RoundedImageView(Context context) : base(context)
+        {
+        }
 
-		public RoundedImageView(Context context, AttributeSet attrs) : base(context, attrs
-			)
-		{
-		}
+        public RoundedImageView(Context context, AttributeSet attrs) : base(context, attrs
+            )
+        {
+        }
 
-		public RoundedImageView(Context context, AttributeSet attrs, int defStyle) : base
-			(context, attrs, defStyle)
-		{
-		}
+        public RoundedImageView(Context context, AttributeSet attrs, int defStyle) : base
+            (context, attrs, defStyle)
+        {
+        }
 
-		protected override void OnDraw(Canvas canvas)
-		{
-			Android.Graphics.Drawable.Drawable drawable = GetDrawable();
-			if (drawable is BitmapDrawable)
-			{
-				RectF rectF = new RectF(drawable.GetBounds());
-				int restoreCount = canvas.SaveLayer(rectF, null, Canvas.AllSaveFlag);
-				GetImageMatrix().MapRect(rectF);
-				Paint paint = ((BitmapDrawable)drawable).GetPaint();
-				paint.SetAntiAlias(true);
-				paint.SetColor(unchecked((int)(0xff000000)));
-				canvas.DrawARGB(0, 0, 0, 0);
-				canvas.DrawRoundRect(rectF, Radius, Radius, paint);
-				Xfermode restoreMode = paint.GetXfermode();
-				paint.SetXfermode(new PorterDuffXfermode(PorterDuff.Mode.SrcIn));
-				base.OnDraw(canvas);
-				// Restore paint and canvas
-				paint.SetXfermode(restoreMode);
-				canvas.RestoreToCount(restoreCount);
-			}
-			else
-			{
-				base.OnDraw(canvas);
-			}
-		}
-	}
+        protected override void OnDraw(Canvas canvas)
+        {
+            Android.Graphics.Drawable.Drawable drawable = GetDrawable();
+            if (drawable is BitmapDrawable)
+            {
+                RectF rectF = new RectF(drawable.GetBounds());
+                int restoreCount = canvas.SaveLayer(rectF, null, Canvas.AllSaveFlag);
+                GetImageMatrix().MapRect(rectF);
+                Paint paint = ((BitmapDrawable)drawable).GetPaint();
+                paint.SetAntiAlias(true);
+                paint.SetColor(unchecked((int)(0xff000000)));
+                canvas.DrawARGB(0, 0, 0, 0);
+                canvas.DrawRoundRect(rectF, Radius, Radius, paint);
+                Xfermode restoreMode = paint.GetXfermode();
+                paint.SetXfermode(new PorterDuffXfermode(PorterDuff.Mode.SrcIn));
+                base.OnDraw(canvas);
+                // Restore paint and canvas
+                paint.SetXfermode(restoreMode);
+                canvas.RestoreToCount(restoreCount);
+            }
+            else
+            {
+                base.OnDraw(canvas);
+            }
+        }
+    }
 }

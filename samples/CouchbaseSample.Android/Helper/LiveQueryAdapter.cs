@@ -32,55 +32,55 @@ using Android.Views;
 namespace CouchbaseSample.Android.Helper
 {
     public class LiveQueryAdapter : BaseAdapter<Document>
-	{
-		private LiveQuery query;
+    {
+        private LiveQuery query;
 
-		private QueryEnumerator enumerator;
+        private QueryEnumerator enumerator;
 
-		private Context context;
+        private Context context;
 
         public event EventHandler<QueryChangeEventArgs> DataSetChanged;
 
-		public LiveQueryAdapter(Context context, LiveQuery query)
-		{
-			this.context = context;
-			this.query = query;
+        public LiveQueryAdapter(Context context, LiveQuery query)
+        {
+            this.context = context;
+            this.query = query;
             query.Changed += async (sender, e) => {
                 enumerator = e.Rows;
                 var evt = DataSetChanged;
                 if (evt == null) return;
                 ((Activity)context).RunOnUiThread(new Action(()=>evt(e)));
             };
-			//TODO: Revise
-			query.Start();
-		}
+            //TODO: Revise
+            query.Start();
+        }
 
-		public override int Count
-		{
+        public override int Count
+        {
             get { return enumerator != null ? enumerator.Count() : 0; }
-		}
+        }
 
         public override Document GetItem(int i)
-		{
+        {
             return enumerator != null ? enumerator.ElementAt(i).Document : null;
-		}
+        }
 
-		public override long GetItemId(int i)
-		{
-			return enumerator.GetRow(i).SequenceNumber;
-		}
+        public override long GetItemId(int i)
+        {
+            return enumerator.GetRow(i).SequenceNumber;
+        }
 
-		public override global::Android.Views.View GetView(int position, global::Android.Views.View convertView, ViewGroup parent)
-		{
-			return null;
-		}
+        public override global::Android.Views.View GetView(int position, global::Android.Views.View convertView, ViewGroup parent)
+        {
+            return null;
+        }
 
-		public virtual void Invalidate()
-		{
-			if (query != null)
-			{
-				query.Stop();
-			}
-		}
-	}
+        public virtual void Invalidate()
+        {
+            if (query != null)
+            {
+                query.Stop();
+            }
+        }
+    }
 }

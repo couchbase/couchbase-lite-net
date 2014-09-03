@@ -2,7 +2,7 @@
 // GZIPInputStream.cs
 //
 // Author:
-//	Zachary Gramana  <zack@xamarin.com>
+//  Zachary Gramana  <zack@xamarin.com>
 //
 // Copyright (c) 2013, 2014 Xamarin Inc (http://www.xamarin.com)
 //
@@ -43,16 +43,16 @@
 */
 namespace Sharpen
 {
-	using System;
-	using System.IO.Compression;
+    using System;
+    using System.IO.Compression;
 
-	internal class GZIPInputStream : InputStream
-	{
+    internal class GZIPInputStream : InputStream
+    {
         public static readonly int GzipMagic = 0;
 
-		public GZIPInputStream (InputStream s)
-		{
-			Wrapped = new GZipStream (s, CompressionMode.Decompress);
-		}
-	}
+        public GZIPInputStream (InputStream s)
+        {
+            Wrapped = new GZipStream (s, CompressionMode.Decompress);
+        }
+    }
 }

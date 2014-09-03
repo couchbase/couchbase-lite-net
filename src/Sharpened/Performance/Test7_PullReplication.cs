@@ -53,182 +53,182 @@ using Sharpen;
 
 namespace Couchbase.Lite.Performance
 {
-	public class Test7_PullReplication : LiteTestCase
-	{
-		public const string Tag = "PullReplicationPerformance";
+    public class Test7_PullReplication : LiteTestCase
+    {
+        public const string Tag = "PullReplicationPerformance";
 
-		private const string _propertyValue = "1234567";
+        private const string _propertyValue = "1234567";
 
-		/// <exception cref="System.Exception"></exception>
-		protected override void SetUp()
-		{
-			Log.V(Tag, "DeleteDBPerformance setUp");
-			base.SetUp();
-			string docIdTimestamp = System.Convert.ToString(Runtime.CurrentTimeMillis());
-			for (int i = 0; i < GetNumberOfDocuments(); i++)
-			{
-				string docId = string.Format("doc%d-%s", i, docIdTimestamp);
-				Log.D(Tag, "Adding " + docId + " directly to sync gateway");
-				try
-				{
-					AddDocWithId(docId, "attachment.png", false);
-				}
-				catch (IOException ioex)
-				{
-					Log.E(Tag, "Add document directly to sync gateway failed", ioex);
-					Fail();
-				}
-			}
-		}
+        /// <exception cref="System.Exception"></exception>
+        protected override void SetUp()
+        {
+            Log.V(Tag, "DeleteDBPerformance setUp");
+            base.SetUp();
+            string docIdTimestamp = System.Convert.ToString(Runtime.CurrentTimeMillis());
+            for (int i = 0; i < GetNumberOfDocuments(); i++)
+            {
+                string docId = string.Format("doc%d-%s", i, docIdTimestamp);
+                Log.D(Tag, "Adding " + docId + " directly to sync gateway");
+                try
+                {
+                    AddDocWithId(docId, "attachment.png", false);
+                }
+                catch (IOException ioex)
+                {
+                    Log.E(Tag, "Add document directly to sync gateway failed", ioex);
+                    Fail();
+                }
+            }
+        }
 
-		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
-		public virtual void TestPullReplicationPerformance()
-		{
-			long startMillis = Runtime.CurrentTimeMillis();
-			Log.D(Tag, "testPullReplicationPerformance() started");
-			DoPullReplication();
-			NUnit.Framework.Assert.IsNotNull(database);
-			Log.D(Tag, "testPullReplicationPerformance() finished");
-			Log.V("PerformanceStats", Tag + "," + Sharpen.Extensions.ValueOf(Runtime.CurrentTimeMillis
-				() - startMillis).ToString() + "," + GetNumberOfDocuments());
-		}
+        /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
+        public virtual void TestPullReplicationPerformance()
+        {
+            long startMillis = Runtime.CurrentTimeMillis();
+            Log.D(Tag, "testPullReplicationPerformance() started");
+            DoPullReplication();
+            NUnit.Framework.Assert.IsNotNull(database);
+            Log.D(Tag, "testPullReplicationPerformance() finished");
+            Log.V("PerformanceStats", Tag + "," + Sharpen.Extensions.ValueOf(Runtime.CurrentTimeMillis
+                () - startMillis).ToString() + "," + GetNumberOfDocuments());
+        }
 
-		private void DoPullReplication()
-		{
-			Uri remote = GetReplicationURL();
-			Replication repl = (Replication)database.CreatePullReplication(remote);
-			repl.SetContinuous(false);
-			Log.D(Tag, "Doing pull replication with: " + repl);
-			RunReplication(repl);
-			Log.D(Tag, "Finished pull replication with: " + repl);
-		}
+        private void DoPullReplication()
+        {
+            Uri remote = GetReplicationURL();
+            Replication repl = (Replication)database.CreatePullReplication(remote);
+            repl.SetContinuous(false);
+            Log.D(Tag, "Doing pull replication with: " + repl);
+            RunReplication(repl);
+            Log.D(Tag, "Finished pull replication with: " + repl);
+        }
 
-		/// <exception cref="System.IO.IOException"></exception>
-		private void AddDocWithId(string docId, string attachmentName, bool gzipped)
-		{
-			string docJson;
-			if (attachmentName != null)
-			{
-				// add attachment to document
-				InputStream attachmentStream = GetAsset(attachmentName);
-				ByteArrayOutputStream baos = new ByteArrayOutputStream();
-				IOUtils.Copy(attachmentStream, baos);
-				if (gzipped == false)
-				{
-					string attachmentBase64 = Base64.EncodeBytes(baos.ToByteArray());
-					docJson = string.Format("{\"foo\":1,\"bar\":false, \"_attachments\": { \"%s\": { \"content_type\": \"image/png\", \"data\": \"%s\" } } }"
-						, attachmentName, attachmentBase64);
-				}
-				else
-				{
-					byte[] bytes = baos.ToByteArray();
-					string attachmentBase64 = Base64.EncodeBytes(bytes, Base64.Gzip);
-					docJson = string.Format("{\"foo\":1,\"bar\":false, \"_attachments\": { \"%s\": { \"content_type\": \"image/png\", \"data\": \"%s\", \"encoding\": \"gzip\", \"length\":%d } } }"
-						, attachmentName, attachmentBase64, bytes.Length);
-				}
-			}
-			else
-			{
-				docJson = "{\"foo\":1,\"bar\":false}";
-			}
-			PushDocumentToSyncGateway(docId, docJson);
-			WorkaroundSyncGatewayRaceCondition();
-		}
+        /// <exception cref="System.IO.IOException"></exception>
+        private void AddDocWithId(string docId, string attachmentName, bool gzipped)
+        {
+            string docJson;
+            if (attachmentName != null)
+            {
+                // add attachment to document
+                InputStream attachmentStream = GetAsset(attachmentName);
+                ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                IOUtils.Copy(attachmentStream, baos);
+                if (gzipped == false)
+                {
+                    string attachmentBase64 = Base64.EncodeBytes(baos.ToByteArray());
+                    docJson = string.Format("{\"foo\":1,\"bar\":false, \"_attachments\": { \"%s\": { \"content_type\": \"image/png\", \"data\": \"%s\" } } }"
+                        , attachmentName, attachmentBase64);
+                }
+                else
+                {
+                    byte[] bytes = baos.ToByteArray();
+                    string attachmentBase64 = Base64.EncodeBytes(bytes, Base64.Gzip);
+                    docJson = string.Format("{\"foo\":1,\"bar\":false, \"_attachments\": { \"%s\": { \"content_type\": \"image/png\", \"data\": \"%s\", \"encoding\": \"gzip\", \"length\":%d } } }"
+                        , attachmentName, attachmentBase64, bytes.Length);
+                }
+            }
+            else
+            {
+                docJson = "{\"foo\":1,\"bar\":false}";
+            }
+            PushDocumentToSyncGateway(docId, docJson);
+            WorkaroundSyncGatewayRaceCondition();
+        }
 
-		/// <exception cref="System.UriFormatException"></exception>
-		private void PushDocumentToSyncGateway(string docId, string docJson)
-		{
-			// push a document to server
-			Uri replicationUrlTrailingDoc1 = new Uri(string.Format("%s/%s", GetReplicationURL
-				().ToExternalForm(), docId));
-			Uri pathToDoc1 = new Uri(replicationUrlTrailingDoc1, docId);
-			Log.D(Tag, "Send http request to " + pathToDoc1);
-			CountDownLatch httpRequestDoneSignal = new CountDownLatch(1);
-			BackgroundTask getDocTask = new _BackgroundTask_139(pathToDoc1, docJson, httpRequestDoneSignal
-				);
-			getDocTask.Execute();
-			Log.D(Tag, "Waiting for http request to finish");
-			try
-			{
-				httpRequestDoneSignal.Await(300, TimeUnit.Seconds);
-				Log.D(Tag, "http request finished");
-			}
-			catch (Exception e)
-			{
-				Sharpen.Runtime.PrintStackTrace(e);
-			}
-		}
+        /// <exception cref="System.UriFormatException"></exception>
+        private void PushDocumentToSyncGateway(string docId, string docJson)
+        {
+            // push a document to server
+            Uri replicationUrlTrailingDoc1 = new Uri(string.Format("%s/%s", GetReplicationURL
+                ().ToExternalForm(), docId));
+            Uri pathToDoc1 = new Uri(replicationUrlTrailingDoc1, docId);
+            Log.D(Tag, "Send http request to " + pathToDoc1);
+            CountDownLatch httpRequestDoneSignal = new CountDownLatch(1);
+            BackgroundTask getDocTask = new _BackgroundTask_139(pathToDoc1, docJson, httpRequestDoneSignal
+                );
+            getDocTask.Execute();
+            Log.D(Tag, "Waiting for http request to finish");
+            try
+            {
+                httpRequestDoneSignal.Await(300, TimeUnit.Seconds);
+                Log.D(Tag, "http request finished");
+            }
+            catch (Exception e)
+            {
+                Sharpen.Runtime.PrintStackTrace(e);
+            }
+        }
 
-		private sealed class _BackgroundTask_139 : BackgroundTask
-		{
-			public _BackgroundTask_139(Uri pathToDoc1, string docJson, CountDownLatch httpRequestDoneSignal
-				)
-			{
-				this.pathToDoc1 = pathToDoc1;
-				this.docJson = docJson;
-				this.httpRequestDoneSignal = httpRequestDoneSignal;
-			}
+        private sealed class _BackgroundTask_139 : BackgroundTask
+        {
+            public _BackgroundTask_139(Uri pathToDoc1, string docJson, CountDownLatch httpRequestDoneSignal
+                )
+            {
+                this.pathToDoc1 = pathToDoc1;
+                this.docJson = docJson;
+                this.httpRequestDoneSignal = httpRequestDoneSignal;
+            }
 
-			public override void Run()
-			{
-				HttpClient httpclient = new DefaultHttpClient();
-				HttpResponse response;
-				string responseString = null;
-				try
-				{
-					HttpPut post = new HttpPut(pathToDoc1.ToExternalForm());
-					StringEntity se = new StringEntity(docJson.ToString());
-					se.SetContentType(new BasicHeader("content_type", "application/json"));
-					post.SetEntity(se);
-					response = httpclient.Execute(post);
-					StatusLine statusLine = response.GetStatusLine();
-					Log.D(Test7_PullReplication.Tag, "Got response: " + statusLine);
-					NUnit.Framework.Assert.IsTrue(statusLine.GetStatusCode() == HttpStatus.ScCreated);
-				}
-				catch (ClientProtocolException e)
-				{
-					NUnit.Framework.Assert.IsNull("Got ClientProtocolException: " + e.GetLocalizedMessage
-						(), e);
-				}
-				catch (IOException e)
-				{
-					NUnit.Framework.Assert.IsNull("Got IOException: " + e.GetLocalizedMessage(), e);
-				}
-				httpRequestDoneSignal.CountDown();
-			}
+            public override void Run()
+            {
+                HttpClient httpclient = new DefaultHttpClient();
+                HttpResponse response;
+                string responseString = null;
+                try
+                {
+                    HttpPut post = new HttpPut(pathToDoc1.ToExternalForm());
+                    StringEntity se = new StringEntity(docJson.ToString());
+                    se.SetContentType(new BasicHeader("content_type", "application/json"));
+                    post.SetEntity(se);
+                    response = httpclient.Execute(post);
+                    StatusLine statusLine = response.GetStatusLine();
+                    Log.D(Test7_PullReplication.Tag, "Got response: " + statusLine);
+                    NUnit.Framework.Assert.IsTrue(statusLine.GetStatusCode() == HttpStatus.ScCreated);
+                }
+                catch (ClientProtocolException e)
+                {
+                    NUnit.Framework.Assert.IsNull("Got ClientProtocolException: " + e.GetLocalizedMessage
+                        (), e);
+                }
+                catch (IOException e)
+                {
+                    NUnit.Framework.Assert.IsNull("Got IOException: " + e.GetLocalizedMessage(), e);
+                }
+                httpRequestDoneSignal.CountDown();
+            }
 
-			private readonly Uri pathToDoc1;
+            private readonly Uri pathToDoc1;
 
-			private readonly string docJson;
+            private readonly string docJson;
 
-			private readonly CountDownLatch httpRequestDoneSignal;
-		}
+            private readonly CountDownLatch httpRequestDoneSignal;
+        }
 
-		/// <summary>
-		/// Whenever posting information directly to sync gateway via HTTP, the client
-		/// must pause briefly to give it a chance to achieve internal consistency.
-		/// </summary>
-		/// <remarks>
-		/// Whenever posting information directly to sync gateway via HTTP, the client
-		/// must pause briefly to give it a chance to achieve internal consistency.
-		/// <p/>
-		/// This is documented in https://github.com/couchbase/sync_gateway/issues/228
-		/// </remarks>
-		private void WorkaroundSyncGatewayRaceCondition()
-		{
-			try
-			{
-				Sharpen.Thread.Sleep(5 * 1000);
-			}
-			catch (Exception e)
-			{
-				Sharpen.Runtime.PrintStackTrace(e);
-			}
-		}
+        /// <summary>
+        /// Whenever posting information directly to sync gateway via HTTP, the client
+        /// must pause briefly to give it a chance to achieve internal consistency.
+        /// </summary>
+        /// <remarks>
+        /// Whenever posting information directly to sync gateway via HTTP, the client
+        /// must pause briefly to give it a chance to achieve internal consistency.
+        /// <p/>
+        /// This is documented in https://github.com/couchbase/sync_gateway/issues/228
+        /// </remarks>
+        private void WorkaroundSyncGatewayRaceCondition()
+        {
+            try
+            {
+                Sharpen.Thread.Sleep(5 * 1000);
+            }
+            catch (Exception e)
+            {
+                Sharpen.Runtime.PrintStackTrace(e);
+            }
+        }
 
-		private int GetNumberOfDocuments()
-		{
-			return System.Convert.ToInt32(Runtime.GetProperty("Test7_numberOfDocuments"));
-		}
-	}
+        private int GetNumberOfDocuments()
+        {
+            return System.Convert.ToInt32(Runtime.GetProperty("Test7_numberOfDocuments"));
+        }
+    }
 }

@@ -1,5 +1,5 @@
 {
-     "log":["REST", "HTTP+", "CRUD"],
+     "log":["REST", "REST+", "HTTP", "HTTP+", "Access", "Cache", "Shadow", "Shadow+", "CRUD", "CRUD+", "Changes", "Changes+", "JSON", "JSON+"],
      "verbose": true,
      "databases": {
           "db": {

@@ -49,45 +49,56 @@ using Sharpen;
 using System.Threading.Tasks;
 using System.Threading;
 using Couchbase.Lite.Internal;
+using System.Linq;
 
 namespace Couchbase.Lite.Support
 {
-	/// <summary>
-	/// Utility that queues up objects until the queue fills up or a time interval elapses,
-	/// then passes all the objects at once to a client-supplied processor block.
-	/// </summary>
-	/// <remarks>
-	/// Utility that queues up objects until the queue fills up or a time interval elapses,
-	/// then passes all the objects at once to a client-supplied processor block.
-	/// </remarks>
+    /// <summary>
+    /// Utility that queues up objects until the queue fills up or a time interval elapses,
+    /// then passes all the objects at once to a client-supplied processor block.
+    /// </summary>
+    /// <remarks>
+    /// Utility that queues up objects until the queue fills up or a time interval elapses,
+    /// then passes all the objects at once to a client-supplied processor block.
+    /// </remarks>
     internal class Batcher<T>
-	{
+    {
         private readonly static string Tag = "Batcher";
 
         private readonly TaskFactory workExecutor;
 
         private Task flushFuture;
 
-		private readonly int capacity;
+        private readonly int capacity;
 
-		private readonly int delay;
+        private readonly int delay;
 
         private int scheduledDelay;
 
-		private IList<T> inbox;
+        private List<T> inbox;
 
         private readonly Action<IList<T>> processor;
 
         private Boolean scheduled;
 
-        private long lastProcessedTime;
+        private DateTime lastProcessedTime;
 
         private readonly Action processNowRunnable;
 
         private readonly Object locker;
 
+        /// <summary>Initializes a batcher.</summary>
+        /// <remarks>Initializes a batcher.</remarks>
+        /// <param name="workExecutor">the work executor that performs actual work</param>
+        /// <param name="capacity">The maximum number of objects to batch up. If the queue reaches this size, the queued objects will be sent to the processor immediately.
+        ///     </param>
+        /// <param name="delay">The maximum waiting time to collect objects before processing them. In some circumstances objects will be processed sooner.
+        ///     </param>
+        /// <param name="processor">The callback/block that will be called to process the objects.
+        ///     </param>
         public Batcher(TaskFactory workExecutor, int capacity, int delay, Action<IList<T>> processor, CancellationTokenSource tokenSource = null)
-		{
+        {
+            Log.D(Tag, "New batcher created with capacity: {0}, delay: {1}", capacity, delay);
             processNowRunnable = new Action(()=>
             {
                 try
@@ -106,42 +117,43 @@ namespace Couchbase.Lite.Support
             });
 
             this.locker = new Object ();
-			this.workExecutor = workExecutor;
+            this.workExecutor = workExecutor;
             this.cancellationSource = tokenSource;
-			this.capacity = capacity;
-			this.delay = delay;
-			this.processor = processor;
-		}
+            this.capacity = capacity;
+            this.delay = delay;
+            this.processor = processor;
+        }
 
-		public void ProcessNow()
-		{
-            Log.V(Tag, "processNow() called");
+        public void ProcessNow()
+        {
+            Log.V(Tag, "ProcessNow() called");
 
             scheduled = false;
 
             var toProcess = new List<T>();
-			lock (locker)
-			{
-				if (inbox == null || inbox.Count == 0)
-				{
-                    Log.V(Tag, "processNow() called, but inbox is empty");
-					return;
-				}
-                else if (inbox.Count <= capacity)
+            lock (locker)
+            {
+                if (inbox == null || inbox.Count == 0)
                 {
-                    Log.V(Tag, "inbox size <= capacity, adding " + inbox.Count + " items from inbox -> toProcess");
+                    Log.V(Tag, "ProcessNow() called, but inbox is empty");
+                    return;
+                }
+
+                if (inbox.Count <= capacity)
+                {
+                    Log.V(Tag, "inbox size <= capacity, adding {0} items from inbox -> toProcess", inbox.Count);
                     toProcess.AddRange(inbox);
                     inbox = null;
                 }
-                else 
+                else
                 {
-                    Log.V(Tag, "processNow() called, inbox size: " + inbox.Count);
+                    Log.V(Tag, "ProcessNow() called, inbox size: {0}", inbox.Count);
 
                     int i = 0;
                     foreach (T item in inbox)
                     {
                         toProcess.AddItem(item);
-                        i += 1;
+                        i++;
                         if (i >= capacity)
                         {
                             break;
@@ -150,37 +162,38 @@ namespace Couchbase.Lite.Support
 
                     foreach (T item in toProcess)
                     {
-                        Log.D(Tag, "processNow() removing " + item + " from inbox");
+                        Log.D(Tag, "ProcessNow() removing {0} from inbox", item);
                         inbox.Remove(item);
                     }
 
-                    Log.D(Tag, "inbox.size() > capacity, moving " + toProcess.Count + " items from inbox -> toProcess array");
+                    Log.D(Tag, "inbox.Count > capacity, moving {0} items from inbox -> toProcess array", toProcess.Count);
 
                     // There are more objects left, so schedule them Real Soon:
                     ScheduleWithDelay(DelayToUse());
                 }
-			}
+            }
 
             if (toProcess != null && toProcess.Count > 0)
-			{
+            {
                 Log.D(Tag, "invoking processor with " + toProcess.Count + " items ");
                 processor(toProcess);
-			}
+            }
             else
             {
                 Log.D(Tag, "nothing to process");
             }
 
-            lastProcessedTime = Runtime.CurrentTimeMillis();
-		}
+            lastProcessedTime = DateTime.UtcNow;
+            Log.D(Tag, "Set lastProcessedTime to {0}", lastProcessedTime.ToString());
+        }
 
         CancellationTokenSource cancellationSource;
 
         public void QueueObjects(IList<T> objects)
-		{
+        {
             lock (locker)
             {
-                Log.V(Tag, "queuObjects called with " + objects.Count + " objects");
+                Log.V(Tag, "QueueObjects called with {0} objects", objects.Count);
 
                 if (objects == null || objects.Count == 0)
                 {
@@ -192,63 +205,59 @@ namespace Couchbase.Lite.Support
                     inbox = new List<T>();
                 }
 
-                Log.V(Tag, "inbox size before adding objects: " + inbox.Count);
-                foreach (T item in objects)
-                {
-                    inbox.Add(item);
-                }
-
+                Log.V(Tag, "inbox size before adding objects: {0}", inbox.Count);
+                inbox.AddRange(objects);
                 ScheduleWithDelay(DelayToUse());
             }
-		}
+        }
 
+        /// <summary>Adds an object to the queue.</summary>
         public void QueueObject(T o)
         {
-            IList<T> objects = new AList<T>();
-            objects.Add(o);
+            var objects = new List<T> { o };
             QueueObjects(objects);
         }
 
-		public void Flush()
-		{
-			lock (locker)
-			{
+        /// <summary>Sends queued objects to the processor block (up to the capacity).</summary>
+        public void Flush()
+        {
+            lock (locker)
+            {
                 ScheduleWithDelay(DelayToUse());
-			}
-		}
+            }
+        }
 
+        /// <summary>Sends _all_ the queued objects at once to the processor block.</summary>
         public void FlushAll()
         {
             lock (locker)
             {
-                while(inbox.Count > 0)
+                while(inbox != null && inbox.Count > 0)
                 {
                     Unschedule();
 
-                    var toProcess = new List<T>();
-                    foreach (T item in inbox)
-                    {
-                        toProcess.Add(item);
-                    }
-
+                    var toProcess = new List<T>(inbox);
+                    inbox.Clear();
                     processor(toProcess);
-                    lastProcessedTime = Runtime.CurrentTimeMillis();
+                    lastProcessedTime = DateTime.UtcNow;
                 }
             }
         }
 
-		public int Count()
-		{
+        /// <summary>Number of items to be processed.</summary>
+        public int Count()
+        {
             lock (locker) {
                 if (inbox == null) {
                     return 0;
                 }
                 return inbox.Count;
             }
-		}
+        }
 
+        /// <summary>Empties the queue without processing any of the objects in it.</summary>
         public void Clear()
-		{
+        {
             lock (locker) {
                 Log.V(Tag, "clear() called, setting inbox to null");
                 Unschedule();
@@ -257,30 +266,41 @@ namespace Couchbase.Lite.Support
                     inbox = null;
                 }
             }
-		}
+        }
 
         private void ScheduleWithDelay(Int32 suggestedDelay)
         {
-            Log.V(Tag, "scheduleWithDelay called with delay: " + suggestedDelay + " ms");
+            if (scheduled)
+                Log.V(Tag, "ScheduleWithDelay called with delay: {0} ms but already scheduled", suggestedDelay);
 
             if (scheduled && (suggestedDelay < scheduledDelay))
             {
-                Log.V(Tag, "already scheduled and : " + suggestedDelay + " < " + scheduledDelay + " --> unscheduling");
+                Log.V(Tag, "Unscheduling");
                 Unschedule();
             }
 
             if (!scheduled)
             {
-                Log.D(Database.Tag, "not already scheduled");
+                Log.D(Tag, "not already scheduled");
 
                 scheduled = true;
                 scheduledDelay = suggestedDelay;
 
-                Log.D(Tag, "workExecutor.schedule() with delay: " + suggestedDelay + " ms");
+                Log.D(Tag, "ScheduleWithDelay called with delay: {0} ms, scheduler: {1}/{2}", suggestedDelay, workExecutor.Scheduler.GetType().Name, ((SingleThreadTaskScheduler)workExecutor.Scheduler).ScheduledTasks.Count());
 
                 cancellationSource = new CancellationTokenSource();
-                flushFuture = Task.Delay(scheduledDelay)
-                    .ContinueWith(task => processNowRunnable(), cancellationSource.Token);
+                flushFuture = workExecutor.StartNew(()=> 
+                    {
+                        if(!(cancellationSource.IsCancellationRequested))
+                        {
+                            processNowRunnable();
+                        }
+                    }, cancellationSource.Token, TaskCreationOptions.None, workExecutor.Scheduler);
+            }
+            else
+            {
+                if (flushFuture == null || flushFuture.IsCompleted)
+                    throw new InvalidOperationException("Flushfuture missing despite scheduled.");
             }
         }
 
@@ -302,24 +322,32 @@ namespace Couchbase.Lite.Support
             }
             else
             {
-                Log.V(Tag, "cancellationSource or flushFutre was null, doing nothing");
+                Log.V(Tag, "cancellationSource or flushFuture was null, doing nothing");
             }
         }
 
+        /// <summary>
+        /// Calculates the delay to use when scheduling the next batch of objects to process.
+        /// </summary>
+        /// <remarks>
+        /// There is a balance required between clearing down the input queue as fast as possible
+        /// and not exhausting downstream system resources such as sockets and http response buffers
+        /// by processing too many batches concurrently.
+        /// </remarks>
+        /// <returns>The to use.</returns>
         private Int32 DelayToUse()
         {
-            int delayToUse = delay;
+            var delayToUse = delay;
 
-            long delta = Runtime.CurrentTimeMillis() - lastProcessedTime;
+            var delta = (Int32)(DateTime.UtcNow - lastProcessedTime).TotalMilliseconds;
 
-            if (delta >= delay)
-            {
-                delayToUse = 0;
-            }
+            delayToUse = delta >= delay
+                ? 0
+                : delay;
 
-            Log.V(Tag, "delayToUse() delta: " + delta + ", delayToUse: " + delayToUse + ", delay: " + delay);
+            Log.V(Tag, "DelayToUse() delta: {0}, delayToUse: {1}, delay: {2} [last: {3}]", delta, delayToUse, delay, lastProcessedTime.ToString());
 
             return delayToUse;
         }
-	}
+    }
 }

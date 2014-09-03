@@ -55,82 +55,89 @@ using Newtonsoft.Json.Linq;
 namespace Couchbase.Lite.Support
 {
     internal class MultipartDocumentReader : IMultipartReaderDelegate
-	{
-		private MultipartReader multipartReader;
+    {
+        private MultipartReader multipartReader;
 
-		private BlobStoreWriter curAttachment;
+        private BlobStoreWriter curAttachment;
 
         private List<Byte> jsonBuffer;
 
-		private IDictionary<String, Object> document;
+        private IDictionary<String, Object> document;
 
-		private Database database;
+        private Database database;
 
-		private IDictionary<String, BlobStoreWriter> attachmentsByName;
+        private IDictionary<String, BlobStoreWriter> attachmentsByName;
 
-		private IDictionary<String, BlobStoreWriter> attachmentsByMd5Digest;
+        private IDictionary<String, BlobStoreWriter> attachmentsByMd5Digest;
 
         public MultipartDocumentReader(Database database)
-		{
-			this.database = database;
-		}
+        {
+            this.database = database;
+        }
 
-		public IDictionary<String, Object> GetDocumentProperties()
-		{
-			return document;
-		}
+        public IDictionary<String, Object> GetDocumentProperties()
+        {
+            return document;
+        }
 
-		public void ParseJsonBuffer()
-		{
-			try
-			{
+        public void ParseJsonBuffer()
+        {
+            try
+            {
                 document = Manager.GetObjectMapper().ReadValue<IDictionary<String, Object>>(jsonBuffer.ToArray());
-			}
-			catch (IOException e)
-			{
-				throw new InvalidOperationException("Failed to parse json buffer", e);
-			}
-			jsonBuffer = null;
-		}
+            }
+            catch (IOException e)
+            {
+                throw new InvalidOperationException("Failed to parse json buffer", e);
+            }
+            jsonBuffer = null;
+        }
 
-		public void SetContentType(String contentType)
-		{
-            if (!contentType.StartsWith ("multipart/", StringComparison.InvariantCultureIgnoreCase))
-			{
-				throw new ArgumentException("contentType must start with multipart/");
-			}
-            multipartReader = new MultipartReader(contentType, this);
-            attachmentsByName = new Dictionary<String, BlobStoreWriter>();
-            attachmentsByMd5Digest = new Dictionary<String, BlobStoreWriter>();
-		}
+        public void SetContentType(String contentType)
+        {
+
+            if (contentType.StartsWith ("multipart/", StringComparison.InvariantCultureIgnoreCase))
+            {
+                multipartReader = new MultipartReader(contentType, this);
+                attachmentsByName = new Dictionary<String, BlobStoreWriter>();
+                attachmentsByMd5Digest = new Dictionary<String, BlobStoreWriter>();
+            } else if (contentType == null 
+                || contentType.StartsWith("application/json", StringComparison.Ordinal)
+                || contentType.StartsWith("text/plain", StringComparison.Ordinal)) {
+                // No multipart, so no attachments. Body is pure JSON. (We allow text/plain because CouchDB
+                // sends JSON responses using the wrong content-type.)
+            } else {
+                throw new ArgumentException("contentType must start with multipart/");
+            }
+        }
 
         public void AppendData(IEnumerable<byte> data)
-		{
-			if (multipartReader != null)
-			{
-				multipartReader.AppendData(data);
-			}
-			else
-			{
+        {
+            if (multipartReader != null)
+            {
+                multipartReader.AppendData(data);
+            }
+            else
+            {
                 jsonBuffer.AddRange(data);
-			}
-		}
+            }
+        }
 
-		public void Finish()
-		{
-			if (multipartReader != null)
-			{
-				if (!multipartReader.Finished())
-				{
-					throw new InvalidOperationException("received incomplete MIME multipart response");
-				}
-				RegisterAttachments();
-			}
-			else
-			{
-				ParseJsonBuffer();
-			}
-		}
+        public void Finish()
+        {
+            if (multipartReader != null)
+            {
+                if (!multipartReader.Finished())
+                {
+                    throw new InvalidOperationException("received incomplete MIME multipart response");
+                }
+                RegisterAttachments();
+            }
+            else
+            {
+                ParseJsonBuffer();
+            }
+        }
 
         private void RegisterAttachments()
         {
@@ -234,56 +241,56 @@ namespace Couchbase.Lite.Support
             database.RememberAttachmentWritersForDigests(attachmentsByMd5Digest);
         }
 
-		public void StartedPart(IDictionary<String, String> headers)
-		{
-			if (document == null)
-			{
+        public void StartedPart(IDictionary<String, String> headers)
+        {
+            if (document == null)
+            {
                 jsonBuffer = new List<Byte>(1024);
-			}
-			else
-			{
-				curAttachment = database.GetAttachmentWriter();
+            }
+            else
+            {
+                curAttachment = database.GetAttachmentWriter();
                 var contentDisposition = headers.Get("Content-Disposition");
-				if (contentDisposition != null && contentDisposition.StartsWith("attachment; filename="))
-				{
-					// TODO: Parse this less simplistically. Right now it assumes it's in exactly the same
-					// format generated by -[CBL_Pusher uploadMultipartRevision:]. CouchDB (as of 1.2) doesn't
-					// output any headers at all on attachments so there's no compatibility issue yet.
+                if (contentDisposition != null && contentDisposition.StartsWith("attachment; filename="))
+                {
+                    // TODO: Parse this less simplistically. Right now it assumes it's in exactly the same
+                    // format generated by -[CBL_Pusher uploadMultipartRevision:]. CouchDB (as of 1.2) doesn't
+                    // output any headers at all on attachments so there's no compatibility issue yet.
                     var contentDispositionUnquoted = Misc.UnquoteString(contentDisposition);
                     var name = contentDispositionUnquoted.Substring(21);
-					if (name != null)
-					{
-						attachmentsByName.Put(name, curAttachment);
-					}
-				}
-			}
-		}
+                    if (name != null)
+                    {
+                        attachmentsByName.Put(name, curAttachment);
+                    }
+                }
+            }
+        }
 
         public void AppendToPart(IEnumerable<Byte> data)
-		{
-			if (jsonBuffer != null)
-			{
+        {
+            if (jsonBuffer != null)
+            {
                 jsonBuffer.AddRange(data);
-			}
-			else
-			{
+            }
+            else
+            {
                 curAttachment.AppendData(data.ToArray());
-			}
-		}
+            }
+        }
 
-		public void FinishedPart()
-		{
-			if (jsonBuffer != null)
-			{
-				ParseJsonBuffer();
-			}
-			else
-			{
-				curAttachment.Finish();
-				String md5String = curAttachment.MD5DigestString();
-				attachmentsByMd5Digest.Put(md5String, curAttachment);
-				curAttachment = null;
-			}
-		}
-	}
+        public void FinishedPart()
+        {
+            if (jsonBuffer != null)
+            {
+                ParseJsonBuffer();
+            }
+            else
+            {
+                curAttachment.Finish();
+                String md5String = curAttachment.MD5DigestString();
+                attachmentsByMd5Digest.Put(md5String, curAttachment);
+                curAttachment = null;
+            }
+        }
+    }
 }

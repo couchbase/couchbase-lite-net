@@ -48,152 +48,152 @@ using Sharpen;
 
 namespace Org.Apache.Http.Impl.Client.Trunk
 {
-	/// <summary>
-	/// Default implementation of
-	/// <see cref="Org.Apache.Http.Client.CookieStore">Org.Apache.Http.Client.CookieStore
-	/// 	</see>
-	/// </summary>
-	/// <since>4.0</since>
-	[System.Serializable]
-	public class BasicCookieStore : CookieStore
-	{
-		private const long serialVersionUID = -7581093305228232025L;
+    /// <summary>
+    /// Default implementation of
+    /// <see cref="Org.Apache.Http.Client.CookieStore">Org.Apache.Http.Client.CookieStore
+    ///     </see>
+    /// </summary>
+    /// <since>4.0</since>
+    [System.Serializable]
+    public class BasicCookieStore : CookieStore
+    {
+        private const long serialVersionUID = -7581093305228232025L;
 
-		private readonly TreeSet<Org.Apache.Http.Cookie.Cookie> cookies;
+        private readonly TreeSet<Org.Apache.Http.Cookie.Cookie> cookies;
 
-		public BasicCookieStore() : base()
-		{
-			this.cookies = new TreeSet<Org.Apache.Http.Cookie.Cookie>(new CookieIdentityComparator
-				());
-		}
+        public BasicCookieStore() : base()
+        {
+            this.cookies = new TreeSet<Org.Apache.Http.Cookie.Cookie>(new CookieIdentityComparator
+                ());
+        }
 
-		/// <summary>
-		/// Adds an
-		/// <see cref="Org.Apache.Http.Cookie.Cookie">HTTP cookie</see>
-		/// , replacing any existing equivalent cookies.
-		/// If the given cookie has already expired it will not be added, but existing
-		/// values will still be removed.
-		/// </summary>
-		/// <param name="cookie">
-		/// the
-		/// <see cref="Org.Apache.Http.Cookie.Cookie">cookie</see>
-		/// to be added
-		/// </param>
-		/// <seealso cref="AddCookies(Org.Apache.Http.Cookie.Cookie[])">AddCookies(Org.Apache.Http.Cookie.Cookie[])
-		/// 	</seealso>
-		public virtual void AddCookie(Org.Apache.Http.Cookie.Cookie cookie)
-		{
-			lock (this)
-			{
-				if (cookie != null)
-				{
-					// first remove any old cookie that is equivalent
-					cookies.Remove(cookie);
-					if (!cookie.IsExpired(new DateTime()))
-					{
-						cookies.AddItem(cookie);
-					}
-				}
-			}
-		}
+        /// <summary>
+        /// Adds an
+        /// <see cref="Org.Apache.Http.Cookie.Cookie">HTTP cookie</see>
+        /// , replacing any existing equivalent cookies.
+        /// If the given cookie has already expired it will not be added, but existing
+        /// values will still be removed.
+        /// </summary>
+        /// <param name="cookie">
+        /// the
+        /// <see cref="Org.Apache.Http.Cookie.Cookie">cookie</see>
+        /// to be added
+        /// </param>
+        /// <seealso cref="AddCookies(Org.Apache.Http.Cookie.Cookie[])">AddCookies(Org.Apache.Http.Cookie.Cookie[])
+        ///     </seealso>
+        public virtual void AddCookie(Org.Apache.Http.Cookie.Cookie cookie)
+        {
+            lock (this)
+            {
+                if (cookie != null)
+                {
+                    // first remove any old cookie that is equivalent
+                    cookies.Remove(cookie);
+                    if (!cookie.IsExpired(new DateTime()))
+                    {
+                        cookies.AddItem(cookie);
+                    }
+                }
+            }
+        }
 
-		/// <summary>
-		/// Adds an array of
-		/// <see cref="Org.Apache.Http.Cookie.Cookie">HTTP cookies</see>
-		/// . Cookies are added individually and
-		/// in the given array order. If any of the given cookies has already expired it will
-		/// not be added, but existing values will still be removed.
-		/// </summary>
-		/// <param name="cookies">
-		/// the
-		/// <see cref="Org.Apache.Http.Cookie.Cookie">cookies</see>
-		/// to be added
-		/// </param>
-		/// <seealso cref="AddCookie(Org.Apache.Http.Cookie.Cookie)">AddCookie(Org.Apache.Http.Cookie.Cookie)
-		/// 	</seealso>
-		public virtual void AddCookies(Org.Apache.Http.Cookie.Cookie[] cookies)
-		{
-			lock (this)
-			{
-				if (cookies != null)
-				{
-					foreach (Org.Apache.Http.Cookie.Cookie cooky in cookies)
-					{
-						this.AddCookie(cooky);
-					}
-				}
-			}
-		}
+        /// <summary>
+        /// Adds an array of
+        /// <see cref="Org.Apache.Http.Cookie.Cookie">HTTP cookies</see>
+        /// . Cookies are added individually and
+        /// in the given array order. If any of the given cookies has already expired it will
+        /// not be added, but existing values will still be removed.
+        /// </summary>
+        /// <param name="cookies">
+        /// the
+        /// <see cref="Org.Apache.Http.Cookie.Cookie">cookies</see>
+        /// to be added
+        /// </param>
+        /// <seealso cref="AddCookie(Org.Apache.Http.Cookie.Cookie)">AddCookie(Org.Apache.Http.Cookie.Cookie)
+        ///     </seealso>
+        public virtual void AddCookies(Org.Apache.Http.Cookie.Cookie[] cookies)
+        {
+            lock (this)
+            {
+                if (cookies != null)
+                {
+                    foreach (Org.Apache.Http.Cookie.Cookie cooky in cookies)
+                    {
+                        this.AddCookie(cooky);
+                    }
+                }
+            }
+        }
 
-		/// <summary>
-		/// Returns an immutable array of
-		/// <see cref="Org.Apache.Http.Cookie.Cookie">cookies</see>
-		/// that this HTTP
-		/// state currently contains.
-		/// </summary>
-		/// <returns>
-		/// an array of
-		/// <see cref="Org.Apache.Http.Cookie.Cookie">cookies</see>
-		/// .
-		/// </returns>
-		public virtual IList<Org.Apache.Http.Cookie.Cookie> GetCookies()
-		{
-			lock (this)
-			{
-				//create defensive copy so it won't be concurrently modified
-				return new AList<Org.Apache.Http.Cookie.Cookie>(cookies);
-			}
-		}
+        /// <summary>
+        /// Returns an immutable array of
+        /// <see cref="Org.Apache.Http.Cookie.Cookie">cookies</see>
+        /// that this HTTP
+        /// state currently contains.
+        /// </summary>
+        /// <returns>
+        /// an array of
+        /// <see cref="Org.Apache.Http.Cookie.Cookie">cookies</see>
+        /// .
+        /// </returns>
+        public virtual IList<Org.Apache.Http.Cookie.Cookie> GetCookies()
+        {
+            lock (this)
+            {
+                //create defensive copy so it won't be concurrently modified
+                return new AList<Org.Apache.Http.Cookie.Cookie>(cookies);
+            }
+        }
 
-		/// <summary>
-		/// Removes all of
-		/// <see cref="Org.Apache.Http.Cookie.Cookie">cookies</see>
-		/// in this HTTP state
-		/// that have expired by the specified
-		/// <see cref="System.DateTime">date</see>
-		/// .
-		/// </summary>
-		/// <returns>true if any cookies were purged.</returns>
-		/// <seealso cref="Org.Apache.Http.Cookie.Cookie.IsExpired(System.DateTime)">Org.Apache.Http.Cookie.Cookie.IsExpired(System.DateTime)
-		/// 	</seealso>
-		public virtual bool ClearExpired(DateTime date)
-		{
-			lock (this)
-			{
-				if (date == null)
-				{
-					return false;
-				}
-				bool removed = false;
-				for (IEnumerator<Org.Apache.Http.Cookie.Cookie> it = cookies.GetEnumerator(); it.
-					HasNext(); )
-				{
-					if (it.Next().IsExpired(date))
-					{
-						it.Remove();
-						removed = true;
-					}
-				}
-				return removed;
-			}
-		}
+        /// <summary>
+        /// Removes all of
+        /// <see cref="Org.Apache.Http.Cookie.Cookie">cookies</see>
+        /// in this HTTP state
+        /// that have expired by the specified
+        /// <see cref="System.DateTime">date</see>
+        /// .
+        /// </summary>
+        /// <returns>true if any cookies were purged.</returns>
+        /// <seealso cref="Org.Apache.Http.Cookie.Cookie.IsExpired(System.DateTime)">Org.Apache.Http.Cookie.Cookie.IsExpired(System.DateTime)
+        ///     </seealso>
+        public virtual bool ClearExpired(DateTime date)
+        {
+            lock (this)
+            {
+                if (date == null)
+                {
+                    return false;
+                }
+                bool removed = false;
+                for (IEnumerator<Org.Apache.Http.Cookie.Cookie> it = cookies.GetEnumerator(); it.
+                    HasNext(); )
+                {
+                    if (it.Next().IsExpired(date))
+                    {
+                        it.Remove();
+                        removed = true;
+                    }
+                }
+                return removed;
+            }
+        }
 
-		/// <summary>Clears all cookies.</summary>
-		/// <remarks>Clears all cookies.</remarks>
-		public virtual void Clear()
-		{
-			lock (this)
-			{
-				cookies.Clear();
-			}
-		}
+        /// <summary>Clears all cookies.</summary>
+        /// <remarks>Clears all cookies.</remarks>
+        public virtual void Clear()
+        {
+            lock (this)
+            {
+                cookies.Clear();
+            }
+        }
 
-		public override string ToString()
-		{
-			lock (this)
-			{
-				return cookies.ToString();
-			}
-		}
-	}
+        public override string ToString()
+        {
+            lock (this)
+            {
+                return cookies.ToString();
+            }
+        }
+    }
 }

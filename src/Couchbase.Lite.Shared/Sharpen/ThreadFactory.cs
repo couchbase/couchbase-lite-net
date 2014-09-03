@@ -2,7 +2,7 @@
 // ThreadFactory.cs
 //
 // Author:
-//	Zachary Gramana  <zack@xamarin.com>
+//  Zachary Gramana  <zack@xamarin.com>
 //
 // Copyright (c) 2013, 2014 Xamarin Inc (http://www.xamarin.com)
 //
@@ -45,14 +45,14 @@ using System;
 
 namespace Sharpen
 {
-	internal class ThreadFactory
-	{
-		public Thread NewThread (Runnable r)
-		{
-			Thread t = new Thread (r);
-			t.SetDaemon (true);
-			t.Start ();
-			return t;
-		}
-	}
+    internal class ThreadFactory
+    {
+        public SharpenThread NewThread (Runnable r)
+        {
+            SharpenThread t = new SharpenThread (r);
+            t.SetDaemon (true);
+            t.Start ();
+            return t;
+        }
+    }
 }

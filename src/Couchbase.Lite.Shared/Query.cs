@@ -49,6 +49,7 @@ using System.IO;
 using Sharpen;
 using System.Threading.Tasks;
 using System.Threading;
+using Couchbase.Lite.Util;
 
 namespace Couchbase.Lite {
 
@@ -149,6 +150,8 @@ namespace Couchbase.Lite {
        
     #region Non-public Members
 
+        const string Tag = "Query";
+
         internal View View { get; private set; }
 
         private  bool TemporaryView { get; set; }
@@ -174,6 +177,8 @@ namespace Couchbase.Lite {
                 queryOptions.SetIncludeDeletedDocs(IncludeDeleted);
                 queryOptions.SetStale(IndexUpdateMode);
                 queryOptions.SetAllDocsMode(AllDocsMode);
+                queryOptions.SetStartKeyDocId(StartKeyDocId);
+                queryOptions.SetEndKeyDocId(EndKeyDocId);
                 return queryOptions;
             }
         }
@@ -327,7 +332,7 @@ namespace Couchbase.Lite {
                 throw new CouchbaseLiteException("The database has been closed.");
             }
 
-            var outSequence = new AList<long>();
+            var outSequence = new List<long>();
             var viewName = (View != null) ? View.Name : null;
             var queryOptions = QueryOptions;
 
@@ -349,20 +354,21 @@ namespace Couchbase.Lite {
         {
             return Database.Manager.RunAsync(run, token)
                     .ContinueWith(runTask=> // Raise the query's Completed event.
+                    {
+                        var error = runTask.Exception;
+
+                        var completed = Completed;
+                        if (completed != null)
                         {
-                            var error = runTask.Exception;
+                            var args = new QueryCompletedEventArgs(runTask.Result, error);
+                            completed(this, args);
+                        }
 
-                            var completed = Completed;
-                            if (completed != null)
-                            {
-                                var args = new QueryCompletedEventArgs(runTask.Result, error);
-                                completed(this, args);
-                            }
-
-                            if (runTask.Status != TaskStatus.RanToCompletion)
-                                throw runTask.Exception; // Rethrow innner exceptions.
-
-                            return runTask.Result; // Give additional continuation functions access to the results task.
+                        if (error != null) {
+                            Log.E(Tag, "Exception caught in runAsyncInternal", error);
+                            throw error; // Rethrow innner exceptions.
+                        }
+                        return runTask.Result; // Give additional continuation functions access to the results task.
                     }, Database.Manager.CapturedContext.Scheduler);
         }
 

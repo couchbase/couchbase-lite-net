@@ -2,7 +2,7 @@
 //// CharsetDecoder.cs
 ////
 //// Author:
-////	Zachary Gramana  <zack@xamarin.com>
+////    Zachary Gramana  <zack@xamarin.com>
 ////
 //// Copyright (c) 2013, 2014 Xamarin Inc (http://www.xamarin.com)
 ////
@@ -43,42 +43,42 @@
 //*/
 //namespace Sharpen
 //{
-//	using System;
-//	using System.Text;
+//  using System;
+//  using System.Text;
 //
-//	internal class CharsetDecoder
-//	{
-//		private Encoding enc;
-//		Decoder decoder;
+//  internal class CharsetDecoder
+//  {
+//      private Encoding enc;
+//      Decoder decoder;
 //
-//		public CharsetDecoder (Encoding enc)
-//		{
-//			this.enc = enc;
-//			this.decoder = enc.GetDecoder ();
-//		}
+//      public CharsetDecoder (Encoding enc)
+//      {
+//          this.enc = enc;
+//          this.decoder = enc.GetDecoder ();
+//      }
 //
-//		public string Decode (ByteBuffer b)
-//		{
-//			string res = enc.Decode (b);
-//			if (res.IndexOf ('\uFFFD') != -1 && decoder.Fallback == DecoderFallback.ExceptionFallback)
-//				throw new CharacterCodingException ();
-//			return res;
-//		}
+//      public string Decode (ByteBuffer b)
+//      {
+//          string res = enc.Decode (b);
+//          if (res.IndexOf ('\uFFFD') != -1 && decoder.Fallback == DecoderFallback.ExceptionFallback)
+//              throw new CharacterCodingException ();
+//          return res;
+//      }
 //
-//		public void OnMalformedInput (CodingErrorAction action)
-//		{
-//			if (action == CodingErrorAction.REPORT)
-//				decoder.Fallback = DecoderFallback.ExceptionFallback;
-//			else
-//				decoder.Fallback = DecoderFallback.ReplacementFallback;
-//		}
+//      public void OnMalformedInput (CodingErrorAction action)
+//      {
+//          if (action == CodingErrorAction.REPORT)
+//              decoder.Fallback = DecoderFallback.ExceptionFallback;
+//          else
+//              decoder.Fallback = DecoderFallback.ReplacementFallback;
+//      }
 //
-//		public void OnUnmappableCharacter (CodingErrorAction action)
-//		{
-//			if (action == CodingErrorAction.REPORT)
-//				decoder.Fallback = DecoderFallback.ExceptionFallback;
-//			else
-//				decoder.Fallback = DecoderFallback.ReplacementFallback;
-//		}
-//	}
+//      public void OnUnmappableCharacter (CodingErrorAction action)
+//      {
+//          if (action == CodingErrorAction.REPORT)
+//              decoder.Fallback = DecoderFallback.ExceptionFallback;
+//          else
+//              decoder.Fallback = DecoderFallback.ReplacementFallback;
+//      }
+//  }
 //}

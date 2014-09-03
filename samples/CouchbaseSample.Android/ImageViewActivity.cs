@@ -28,48 +28,48 @@ using Sharpen;
 
 namespace CouchbaseSample.Android
 {
-	public class ImageViewActivity : Activity
-	{
-		public const string IntentImage = "image";
+    public class ImageViewActivity : Activity
+    {
+        public const string IntentImage = "image";
 
-		protected override void OnCreate(Bundle savedInstanceState)
-		{
-			base.OnCreate(savedInstanceState);
-			RequestWindowFeature(Window.FeatureNoTitle);
-			GetWindow().SetFlags(WindowManager.LayoutParams.FlagFullscreen, WindowManager.LayoutParams
-				.FlagFullscreen);
-			SetContentView(R.Layout.activity_image_view);
-			byte[] byteArray = GetIntent().GetByteArrayExtra("image");
-			Bitmap image = BitmapFactory.DecodeByteArray(byteArray, 0, byteArray.Length);
-			ImageView imageView = (ImageView)FindViewById(R.ID.image);
-			imageView.SetImageBitmap(image);
-			imageView.SetOnClickListener(new _OnClickListener_33(this));
-		}
+        protected override void OnCreate(Bundle savedInstanceState)
+        {
+            base.OnCreate(savedInstanceState);
+            RequestWindowFeature(Window.FeatureNoTitle);
+            GetWindow().SetFlags(WindowManager.LayoutParams.FlagFullscreen, WindowManager.LayoutParams
+                .FlagFullscreen);
+            SetContentView(R.Layout.activity_image_view);
+            byte[] byteArray = GetIntent().GetByteArrayExtra("image");
+            Bitmap image = BitmapFactory.DecodeByteArray(byteArray, 0, byteArray.Length);
+            ImageView imageView = (ImageView)FindViewById(R.ID.image);
+            imageView.SetImageBitmap(image);
+            imageView.SetOnClickListener(new _OnClickListener_33(this));
+        }
 
-		private sealed class _OnClickListener_33 : View.OnClickListener
-		{
-			public _OnClickListener_33(ImageViewActivity _enclosing)
-			{
-				this._enclosing = _enclosing;
-			}
+        private sealed class _OnClickListener_33 : View.OnClickListener
+        {
+            public _OnClickListener_33(ImageViewActivity _enclosing)
+            {
+                this._enclosing = _enclosing;
+            }
 
-			public void OnClick(Android.View.View v)
-			{
-				this._enclosing.Finish();
-			}
+            public void OnClick(Android.View.View v)
+            {
+                this._enclosing.Finish();
+            }
 
-			private readonly ImageViewActivity _enclosing;
-		}
+            private readonly ImageViewActivity _enclosing;
+        }
 
-		public override bool OnCreateOptionsMenu(Menu menu)
-		{
-			GetMenuInflater().Inflate(R.Menu.image_view, menu);
-			return true;
-		}
+        public override bool OnCreateOptionsMenu(Menu menu)
+        {
+            GetMenuInflater().Inflate(R.Menu.image_view, menu);
+            return true;
+        }
 
-		public override bool OnOptionsItemSelected(MenuItem item)
-		{
-			return base.OnOptionsItemSelected(item);
-		}
-	}
+        public override bool OnOptionsItemSelected(MenuItem item)
+        {
+            return base.OnOptionsItemSelected(item);
+        }
+    }
 }

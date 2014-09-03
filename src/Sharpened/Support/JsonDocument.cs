@@ -40,60 +40,60 @@ using Sharpen;
 
 namespace Couchbase.Lite.Support
 {
-	/// <summary>
-	/// A wrapper around a json byte array that will parse the data
-	/// as lat as possible
-	/// </summary>
-	public class JsonDocument
-	{
-		private readonly byte[] json;
+    /// <summary>
+    /// A wrapper around a json byte array that will parse the data
+    /// as lat as possible
+    /// </summary>
+    public class JsonDocument
+    {
+        private readonly byte[] json;
 
-		private object cached = null;
+        private object cached = null;
 
-		public JsonDocument(byte[] json)
-		{
-			this.json = json;
-		}
+        public JsonDocument(byte[] json)
+        {
+            this.json = json;
+        }
 
-		//Return a JSON object from the json data
-		//If the Json starts with  '{' or a '[' then no parsing takes place and the
-		//data is wrapped in a LazyJsonObject or a LazyJsonArray which will delay parsing until
-		//values are requested
-		public virtual object JsonObject()
-		{
-			if (json == null)
-			{
-				return null;
-			}
-			if (cached == null)
-			{
-				object tmp = null;
-				if (json[0] == '{')
-				{
-					tmp = new LazyJsonObject<string, object>(json);
-				}
-				else
-				{
-					if (json[0] == '[')
-					{
-						tmp = new LazyJsonArray<object>(json);
-					}
-					else
-					{
-						try
-						{
-							tmp = Manager.GetObjectMapper().ReadValue<object>(json);
-						}
-						catch (Exception e)
-						{
-							//cached will remain null
-							Log.W(Database.Tag, "Exception parsing json", e);
-						}
-					}
-				}
-				cached = tmp;
-			}
-			return cached;
-		}
-	}
+        //Return a JSON object from the json data
+        //If the Json starts with  '{' or a '[' then no parsing takes place and the
+        //data is wrapped in a LazyJsonObject or a LazyJsonArray which will delay parsing until
+        //values are requested
+        public virtual object JsonObject()
+        {
+            if (json == null)
+            {
+                return null;
+            }
+            if (cached == null)
+            {
+                object tmp = null;
+                if (json[0] == '{')
+                {
+                    tmp = new LazyJsonObject<string, object>(json);
+                }
+                else
+                {
+                    if (json[0] == '[')
+                    {
+                        tmp = new LazyJsonArray<object>(json);
+                    }
+                    else
+                    {
+                        try
+                        {
+                            tmp = Manager.GetObjectMapper().ReadValue<object>(json);
+                        }
+                        catch (Exception e)
+                        {
+                            //cached will remain null
+                            Log.W(Database.Tag, "Exception parsing json", e);
+                        }
+                    }
+                }
+                cached = tmp;
+            }
+            return cached;
+        }
+    }
 }

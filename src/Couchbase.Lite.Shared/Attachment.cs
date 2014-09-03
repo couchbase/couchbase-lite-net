@@ -58,7 +58,7 @@ namespace Couchbase.Lite {
     /// <summary>
     /// A Couchbase Lite Document Attachment.
     /// </summary>
-    public partial class Attachment {
+    public sealed class Attachment {
 
         #region Constants
 
@@ -95,7 +95,7 @@ namespace Couchbase.Lite {
         /// <value><c>true</c> if compressed; otherwise, <c>false</c>.</value>
         internal bool Compressed { get; set; }
 
-        protected Stream Body { get; set; }
+        internal Stream Body { get; set; }
 
         /// <summary>
         /// Goes through an _attachments dictionary and replaces any values that are Attachment objects

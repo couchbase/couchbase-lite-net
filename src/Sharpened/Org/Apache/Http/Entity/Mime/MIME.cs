@@ -46,22 +46,22 @@ using Sharpen;
 
 namespace Org.Apache.Http.Entity.Mime
 {
-	/// <since>4.0</since>
-	public sealed class MIME
-	{
-		public const string ContentType = "Content-Type";
+    /// <since>4.0</since>
+    public sealed class MIME
+    {
+        public const string ContentType = "Content-Type";
 
-		public const string ContentTransferEnc = "Content-Transfer-Encoding";
+        public const string ContentTransferEnc = "Content-Transfer-Encoding";
 
-		public const string ContentDisposition = "Content-Disposition";
+        public const string ContentDisposition = "Content-Disposition";
 
-		public const string Enc8bit = "8bit";
+        public const string Enc8bit = "8bit";
 
-		public const string EncBinary = "binary";
+        public const string EncBinary = "binary";
 
-		/// <summary>The default character set to be used, i.e.</summary>
-		/// <remarks>The default character set to be used, i.e. "US-ASCII"</remarks>
-		public static readonly Encoding DefaultCharset = Sharpen.Extensions.GetEncoding("US-ASCII"
-			);
-	}
+        /// <summary>The default character set to be used, i.e.</summary>
+        /// <remarks>The default character set to be used, i.e. "US-ASCII"</remarks>
+        public static readonly Encoding DefaultCharset = Sharpen.Extensions.GetEncoding("US-ASCII"
+            );
+    }
 }

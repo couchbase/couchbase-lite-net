@@ -46,215 +46,238 @@ using Sharpen;
 
 namespace Couchbase.Lite
 {
-	/// <summary>Standard query options for views.</summary>
+    /// <summary>Standard query options for views.</summary>
     internal class QueryOptions
-	{
-		private object startKey = null;
+    {
+        private object startKey = null;
 
-		private object endKey = null;
+        private object endKey = null;
 
-		private IEnumerable<object> keys = null;
+        private IEnumerable<object> keys = null;
 
-		private int skip = 0;
+        private int skip = 0;
 
-		private int limit = int.MaxValue;
+        private int limit = int.MaxValue;
 
-		private int groupLevel = 0;
+        private int groupLevel = 0;
 
-		private EnumSet<TDContentOptions> contentOptions = EnumSet.NoneOf<TDContentOptions
-			>();
+        private DocumentContentOptions contentOptions;
 
-		private bool descending = false;
+        private bool descending = false;
 
-		private bool includeDocs = false;
+        private bool includeDocs = false;
 
-		private bool includeDeletedDocs = false;
+        private bool includeDeletedDocs = false;
 
-		private bool updateSeq = false;
+        private bool updateSeq = false;
 
-		private bool inclusiveEnd = true;
+        private bool inclusiveEnd = true;
 
-		private bool reduce = false;
+        private bool reduce = false;
 
-		private bool reduceSpecified = false;
+        private bool reduceSpecified = false;
 
-		private bool group = false;
+        private bool group = false;
 
-		private IndexUpdateMode stale;
+        private IndexUpdateMode stale;
 
         private AllDocsMode allDocsMode;
 
-		// only works with _all_docs, not regular views
-		public virtual object GetStartKey()
-		{
-			return startKey;
-		}
+        private string startKeyDocId;
 
-		public virtual void SetStartKey(object startKey)
-		{
-			this.startKey = startKey;
-		}
+        private string endKeyDocId;
 
-		public virtual object GetEndKey()
-		{
-			return endKey;
-		}
+        // only works with _all_docs, not regular views
+        public object GetStartKey()
+        {
+            return startKey;
+        }
 
-		public virtual void SetEndKey(object endKey)
-		{
-			this.endKey = endKey;
-		}
+        public void SetStartKey(object startKey)
+        {
+            this.startKey = startKey;
+        }
 
-		public virtual int GetSkip()
-		{
-			return skip;
-		}
+        public object GetEndKey()
+        {
+            return endKey;
+        }
 
-		public virtual void SetSkip(int skip)
-		{
-			this.skip = skip;
-		}
+        public void SetEndKey(object endKey)
+        {
+            this.endKey = endKey;
+        }
 
-		public virtual int GetLimit()
-		{
-			return limit;
-		}
+        public int GetSkip()
+        {
+            return skip;
+        }
 
-		public virtual void SetLimit(int limit)
-		{
-			this.limit = limit;
-		}
+        public void SetSkip(int skip)
+        {
+            this.skip = skip;
+        }
 
-		public virtual bool IsDescending()
-		{
-			return descending;
-		}
+        public int GetLimit()
+        {
+            return limit;
+        }
 
-		public virtual void SetDescending(bool descending)
-		{
-			this.descending = descending;
-		}
+        public void SetLimit(int limit)
+        {
+            this.limit = limit;
+        }
 
-		public virtual bool IsIncludeDocs()
-		{
-			return includeDocs;
-		}
+        public bool IsDescending()
+        {
+            return descending;
+        }
 
-		public virtual void SetIncludeDocs(bool includeDocs)
-		{
-			this.includeDocs = includeDocs;
-		}
+        public void SetDescending(bool descending)
+        {
+            this.descending = descending;
+        }
+
+        public bool IsIncludeDocs()
+        {
+            return includeDocs;
+        }
+
+        public void SetIncludeDocs(bool includeDocs)
+        {
+            this.includeDocs = includeDocs;
+        }
 
 
-        public virtual AllDocsMode GetAllDocsMode()
+        public AllDocsMode GetAllDocsMode()
         {
             return allDocsMode;
         }
 
-        public virtual void SetAllDocsMode(AllDocsMode allDocsMode)
+        public void SetAllDocsMode(AllDocsMode allDocsMode)
         {
             this.allDocsMode = allDocsMode;
         }
 
-		public virtual bool IsUpdateSeq()
-		{
-			return updateSeq;
-		}
+        public bool IsUpdateSeq()
+        {
+            return updateSeq;
+        }
 
-		public virtual void SetUpdateSeq(bool updateSeq)
-		{
-			this.updateSeq = updateSeq;
-		}
+        public void SetUpdateSeq(bool updateSeq)
+        {
+            this.updateSeq = updateSeq;
+        }
 
-		public virtual bool IsInclusiveEnd()
-		{
-			return inclusiveEnd;
-		}
+        public bool IsInclusiveEnd()
+        {
+            return inclusiveEnd;
+        }
 
-		public virtual void SetInclusiveEnd(bool inclusiveEnd)
-		{
-			this.inclusiveEnd = inclusiveEnd;
-		}
+        public void SetInclusiveEnd(bool inclusiveEnd)
+        {
+            this.inclusiveEnd = inclusiveEnd;
+        }
 
-		public virtual int GetGroupLevel()
-		{
-			return groupLevel;
-		}
+        public int GetGroupLevel()
+        {
+            return groupLevel;
+        }
 
-		public virtual void SetGroupLevel(int groupLevel)
-		{
-			this.groupLevel = groupLevel;
-		}
+        public void SetGroupLevel(int groupLevel)
+        {
+            this.groupLevel = groupLevel;
+        }
 
-		public virtual bool IsReduce()
-		{
-			return reduce;
-		}
+        public bool IsReduce()
+        {
+            return reduce;
+        }
 
-		public virtual void SetReduce(bool reduce)
-		{
-			this.reduce = reduce;
-		}
+        public void SetReduce(bool reduce)
+        {
+            this.reduce = reduce;
+        }
 
-		public virtual bool IsGroup()
-		{
-			return group;
-		}
+        public bool IsGroup()
+        {
+            return group;
+        }
 
-		public virtual void SetGroup(bool group)
-		{
-			this.group = group;
-		}
+        public void SetGroup(bool group)
+        {
+            this.group = group;
+        }
 
-		public virtual EnumSet<TDContentOptions> GetContentOptions()
-		{
-			return contentOptions;
-		}
+        public DocumentContentOptions GetContentOptions()
+        {
+            return contentOptions;
+        }
 
-		public virtual void SetContentOptions(EnumSet<TDContentOptions> contentOptions
-			)
-		{
-			this.contentOptions = contentOptions;
-		}
+        public void SetContentOptions(DocumentContentOptions contentOptions
+            )
+        {
+            this.contentOptions = contentOptions;
+        }
 
-		public virtual IEnumerable<object> GetKeys()
-		{
-			return keys;
-		}
+        public IEnumerable<object> GetKeys()
+        {
+            return keys;
+        }
 
-		public virtual void SetKeys(IEnumerable<object> keys)
-		{
-			this.keys = keys;
-		}
+        public void SetKeys(IEnumerable<object> keys)
+        {
+            this.keys = keys;
+        }
 
-		public virtual IndexUpdateMode GetStale()
-		{
-			return stale;
-		}
+        public IndexUpdateMode GetStale()
+        {
+            return stale;
+        }
 
-		public virtual bool IsIncludeDeletedDocs()
-		{
-			return includeDeletedDocs;
-		}
+        public bool IsIncludeDeletedDocs()
+        {
+            return includeDeletedDocs;
+        }
 
-		public virtual void SetIncludeDeletedDocs(bool includeDeletedDocs)
-		{
-			this.includeDeletedDocs = includeDeletedDocs;
-		}
+        public void SetIncludeDeletedDocs(bool includeDeletedDocs)
+        {
+            this.includeDeletedDocs = includeDeletedDocs;
+        }
 
-		public virtual void SetStale(IndexUpdateMode stale)
-		{
-			this.stale = stale;
-		}
+        public void SetStale(IndexUpdateMode stale)
+        {
+            this.stale = stale;
+        }
 
-		public virtual bool IsReduceSpecified()
-		{
-			return reduceSpecified;
-		}
+        public bool IsReduceSpecified()
+        {
+            return reduceSpecified;
+        }
 
-		public virtual void SetReduceSpecified(bool reduceSpecified)
-		{
-			this.reduceSpecified = reduceSpecified;
-		}
-	}
+        public void SetReduceSpecified(bool reduceSpecified)
+        {
+            this.reduceSpecified = reduceSpecified;
+        }
+
+        public string GetStartKeyDocId()
+        {
+            return startKeyDocId;
+        }
+
+        public void SetStartKeyDocId(string startKeyDocId)
+        {
+            this.startKeyDocId = startKeyDocId;
+        }
+
+        public string GetEndKeyDocId()
+        {
+            return endKeyDocId;
+        }
+
+        public void SetEndKeyDocId(string endKeyDocId)
+        {
+            this.endKeyDocId = endKeyDocId;
+        }
+    }
 }

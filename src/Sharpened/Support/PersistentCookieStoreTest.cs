@@ -42,70 +42,70 @@ using Sharpen;
 
 namespace Couchbase.Lite.Support
 {
-	public class PersistentCookieStoreTest : LiteTestCase
-	{
-		/// <exception cref="System.Exception"></exception>
-		public virtual void TestEncodeDecodeCookie()
-		{
-			PersistentCookieStore cookieStore = new PersistentCookieStore(database);
-			string cookieName = "foo";
-			string cookieVal = "bar";
-			bool isSecure = false;
-			bool httpOnly = false;
-			string cookiePath = "baz";
-			string cookieDomain = "foo.com";
-			// expiration date - 1 day from now
-			Calendar cal = Calendar.GetInstance();
-			cal.SetTime(new DateTime());
-			int numDaysToAdd = 1;
-			cal.Add(Calendar.Date, numDaysToAdd);
-			DateTime expirationDate = cal.GetTime();
-			BasicClientCookie cookie = new BasicClientCookie(cookieName, cookieVal);
-			cookie.SetExpiryDate(expirationDate);
-			cookie.SetSecure(isSecure);
-			cookie.SetDomain(cookieDomain);
-			cookie.SetPath(cookiePath);
-			string encodedCookie = cookieStore.EncodeCookie(new SerializableCookie(cookie));
-			Apache.Http.Cookie.Cookie fetchedCookie = cookieStore.DecodeCookie(encodedCookie);
-			NUnit.Framework.Assert.AreEqual(cookieName, fetchedCookie.GetName());
-			NUnit.Framework.Assert.AreEqual(cookieVal, fetchedCookie.GetValue());
-			NUnit.Framework.Assert.AreEqual(expirationDate, fetchedCookie.GetExpiryDate());
-			NUnit.Framework.Assert.AreEqual(cookiePath, fetchedCookie.GetPath());
-			NUnit.Framework.Assert.AreEqual(cookieDomain, fetchedCookie.GetDomain());
-		}
+    public class PersistentCookieStoreTest : LiteTestCase
+    {
+        /// <exception cref="System.Exception"></exception>
+        public virtual void TestEncodeDecodeCookie()
+        {
+            PersistentCookieStore cookieStore = new PersistentCookieStore(database);
+            string cookieName = "foo";
+            string cookieVal = "bar";
+            bool isSecure = false;
+            bool httpOnly = false;
+            string cookiePath = "baz";
+            string cookieDomain = "foo.com";
+            // expiration date - 1 day from now
+            Calendar cal = Calendar.GetInstance();
+            cal.SetTime(new DateTime());
+            int numDaysToAdd = 1;
+            cal.Add(Calendar.Date, numDaysToAdd);
+            DateTime expirationDate = cal.GetTime();
+            BasicClientCookie cookie = new BasicClientCookie(cookieName, cookieVal);
+            cookie.SetExpiryDate(expirationDate);
+            cookie.SetSecure(isSecure);
+            cookie.SetDomain(cookieDomain);
+            cookie.SetPath(cookiePath);
+            string encodedCookie = cookieStore.EncodeCookie(new SerializableCookie(cookie));
+            Apache.Http.Cookie.Cookie fetchedCookie = cookieStore.DecodeCookie(encodedCookie);
+            NUnit.Framework.Assert.AreEqual(cookieName, fetchedCookie.GetName());
+            NUnit.Framework.Assert.AreEqual(cookieVal, fetchedCookie.GetValue());
+            NUnit.Framework.Assert.AreEqual(expirationDate, fetchedCookie.GetExpiryDate());
+            NUnit.Framework.Assert.AreEqual(cookiePath, fetchedCookie.GetPath());
+            NUnit.Framework.Assert.AreEqual(cookieDomain, fetchedCookie.GetDomain());
+        }
 
-		/// <exception cref="System.Exception"></exception>
-		public virtual void TestPersistentCookiestore()
-		{
-			CookieStore cookieStore = new PersistentCookieStore(database);
-			NUnit.Framework.Assert.AreEqual(0, cookieStore.GetCookies().Count);
-			string cookieName = "foo";
-			string cookieVal = "bar";
-			bool isSecure = false;
-			bool httpOnly = false;
-			string cookiePath = "baz";
-			string cookieDomain = "foo.com";
-			// expiration date - 1 day from now
-			Calendar cal = Calendar.GetInstance();
-			cal.SetTime(new DateTime());
-			int numDaysToAdd = 1;
-			cal.Add(Calendar.Date, numDaysToAdd);
-			DateTime expirationDate = cal.GetTime();
-			BasicClientCookie cookie = new BasicClientCookie(cookieName, cookieVal);
-			cookie.SetExpiryDate(expirationDate);
-			cookie.SetSecure(isSecure);
-			cookie.SetDomain(cookieDomain);
-			cookie.SetPath(cookiePath);
-			cookieStore.AddCookie(cookie);
-			CookieStore cookieStore2 = new PersistentCookieStore(database);
-			NUnit.Framework.Assert.AreEqual(1, cookieStore.GetCookies().Count);
-			IList<Apache.Http.Cookie.Cookie> fetchedCookies = cookieStore.GetCookies();
-			Apache.Http.Cookie.Cookie fetchedCookie = fetchedCookies[0];
-			NUnit.Framework.Assert.AreEqual(cookieName, fetchedCookie.GetName());
-			NUnit.Framework.Assert.AreEqual(cookieVal, fetchedCookie.GetValue());
-			NUnit.Framework.Assert.AreEqual(expirationDate, fetchedCookie.GetExpiryDate());
-			NUnit.Framework.Assert.AreEqual(cookiePath, fetchedCookie.GetPath());
-			NUnit.Framework.Assert.AreEqual(cookieDomain, fetchedCookie.GetDomain());
-		}
-	}
+        /// <exception cref="System.Exception"></exception>
+        public virtual void TestPersistentCookiestore()
+        {
+            CookieStore cookieStore = new PersistentCookieStore(database);
+            NUnit.Framework.Assert.AreEqual(0, cookieStore.GetCookies().Count);
+            string cookieName = "foo";
+            string cookieVal = "bar";
+            bool isSecure = false;
+            bool httpOnly = false;
+            string cookiePath = "baz";
+            string cookieDomain = "foo.com";
+            // expiration date - 1 day from now
+            Calendar cal = Calendar.GetInstance();
+            cal.SetTime(new DateTime());
+            int numDaysToAdd = 1;
+            cal.Add(Calendar.Date, numDaysToAdd);
+            DateTime expirationDate = cal.GetTime();
+            BasicClientCookie cookie = new BasicClientCookie(cookieName, cookieVal);
+            cookie.SetExpiryDate(expirationDate);
+            cookie.SetSecure(isSecure);
+            cookie.SetDomain(cookieDomain);
+            cookie.SetPath(cookiePath);
+            cookieStore.AddCookie(cookie);
+            CookieStore cookieStore2 = new PersistentCookieStore(database);
+            NUnit.Framework.Assert.AreEqual(1, cookieStore.GetCookies().Count);
+            IList<Apache.Http.Cookie.Cookie> fetchedCookies = cookieStore.GetCookies();
+            Apache.Http.Cookie.Cookie fetchedCookie = fetchedCookies[0];
+            NUnit.Framework.Assert.AreEqual(cookieName, fetchedCookie.GetName());
+            NUnit.Framework.Assert.AreEqual(cookieVal, fetchedCookie.GetValue());
+            NUnit.Framework.Assert.AreEqual(expirationDate, fetchedCookie.GetExpiryDate());
+            NUnit.Framework.Assert.AreEqual(cookiePath, fetchedCookie.GetPath());
+            NUnit.Framework.Assert.AreEqual(cookieDomain, fetchedCookie.GetDomain());
+        }
+    }
 }

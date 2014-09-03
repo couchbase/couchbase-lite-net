@@ -2,7 +2,7 @@
 // AtomicLong.cs
 //
 // Author:
-//	Zachary Gramana  <zack@xamarin.com>
+//  Zachary Gramana  <zack@xamarin.com>
 //
 // Copyright (c) 2013, 2014 Xamarin Inc (http://www.xamarin.com)
 //
@@ -43,45 +43,45 @@
 */
 namespace Sharpen
 {
-	using System;
-	using System.Threading;
+    using System;
+    using System.Threading;
 
-	internal class AtomicLong
-	{
-		private long val;
+    internal class AtomicLong
+    {
+        private long val;
 
-		public AtomicLong ()
-		{
-		}
+        public AtomicLong ()
+        {
+        }
 
-		public AtomicLong (long val)
-		{
-			this.val = val;
-		}
+        public AtomicLong (long val)
+        {
+            this.val = val;
+        }
 
-		public long AddAndGet (long addval)
-		{
-			return Interlocked.Add (ref val, addval);
-		}
+        public long AddAndGet (long addval)
+        {
+            return Interlocked.Add (ref val, addval);
+        }
 
-		public bool CompareAndSet (long expect, long update)
-		{
-			return (Interlocked.CompareExchange (ref val, update, expect) == expect);
-		}
+        public bool CompareAndSet (long expect, long update)
+        {
+            return (Interlocked.CompareExchange (ref val, update, expect) == expect);
+        }
 
-		public long DecrementAndGet ()
-		{
-			return Interlocked.Decrement (ref val);
-		}
+        public long DecrementAndGet ()
+        {
+            return Interlocked.Decrement (ref val);
+        }
 
-		public long Get ()
-		{
-			return val;
-		}
+        public long Get ()
+        {
+            return val;
+        }
 
-		public long IncrementAndGet ()
-		{
-			return Interlocked.Increment (ref val);
-		}
-	}
+        public long IncrementAndGet ()
+        {
+            return Interlocked.Increment (ref val);
+        }
+    }
 }

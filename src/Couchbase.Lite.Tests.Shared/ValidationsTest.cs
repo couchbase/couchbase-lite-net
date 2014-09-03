@@ -2,7 +2,7 @@
 // ValidationsTest.cs
 //
 // Author:
-//	Zachary Gramana  <zack@xamarin.com>
+//  Zachary Gramana  <zack@xamarin.com>
 //
 // Copyright (c) 2013, 2014 Xamarin Inc (http://www.xamarin.com)
 //
@@ -51,16 +51,16 @@ using Sharpen;
 
 namespace Couchbase.Lite
 {
-	public class ValidationsTest : LiteTestCase
-	{
-		public const string Tag = "Validations";
+    public class ValidationsTest : LiteTestCase
+    {
+        public const string Tag = "Validations";
 
-		internal bool validationCalled = false;
+        internal bool validationCalled = false;
 
-		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
+        /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
         [Test]
-		public void TestValidations()
-		{
+        public void TestValidations()
+        {
             ValidateDelegate validator = (newRevision, context)=>
             {
                 Assert.IsNotNull(newRevision);
@@ -78,96 +78,96 @@ namespace Couchbase.Lite
                 return hoopy;
             };
 
-			database.SetValidation("hoopy", validator);
+            database.SetValidation("hoopy", validator);
 
-			// POST a valid new document:
-			IDictionary<string, object> props = new Dictionary<string, object>();
-			props["name"] = "Zaphod Beeblebrox";
-			props["towel"] = "velvet";
-			RevisionInternal rev = new RevisionInternal(props, database);
-			Status status = new Status();
-			validationCalled = false;
-			rev = database.PutRevision(rev, null, false, status);
-			Assert.IsTrue(validationCalled);
+            // POST a valid new document:
+            IDictionary<string, object> props = new Dictionary<string, object>();
+            props["name"] = "Zaphod Beeblebrox";
+            props["towel"] = "velvet";
+            RevisionInternal rev = new RevisionInternal(props, database);
+            Status status = new Status();
+            validationCalled = false;
+            rev = database.PutRevision(rev, null, false, status);
+            Assert.IsTrue(validationCalled);
             Assert.AreEqual(StatusCode.Created, status.GetCode());
 
-			// PUT a valid update:
-			props["head_count"] = 3;
-			rev.SetProperties(props);
-			validationCalled = false;
-			rev = database.PutRevision(rev, rev.GetRevId(), false, status);
-			Assert.IsTrue(validationCalled);
+            // PUT a valid update:
+            props["head_count"] = 3;
+            rev.SetProperties(props);
+            validationCalled = false;
+            rev = database.PutRevision(rev, rev.GetRevId(), false, status);
+            Assert.IsTrue(validationCalled);
             Assert.AreEqual(StatusCode.Created, status.GetCode());
 
-			// PUT an invalid update:
-			Sharpen.Collections.Remove(props, "towel");
-			rev.SetProperties(props);
-			validationCalled = false;
-			bool gotExpectedError = false;
-			try
-			{
-				rev = database.PutRevision(rev, rev.GetRevId(), false, status);
-			}
-			catch (CouchbaseLiteException e)
-			{
+            // PUT an invalid update:
+            Sharpen.Collections.Remove(props, "towel");
+            rev.SetProperties(props);
+            validationCalled = false;
+            bool gotExpectedError = false;
+            try
+            {
+                rev = database.PutRevision(rev, rev.GetRevId(), false, status);
+            }
+            catch (CouchbaseLiteException e)
+            {
                 gotExpectedError = (e.GetCBLStatus().GetCode() == StatusCode.Forbidden);
-			}
-			Assert.IsTrue(validationCalled);
-			Assert.IsTrue(gotExpectedError);
+            }
+            Assert.IsTrue(validationCalled);
+            Assert.IsTrue(gotExpectedError);
 
-			// POST an invalid new document:
-			props = new Dictionary<string, object>();
-			props["name"] = "Vogon";
-			props["poetry"] = true;
-			rev = new RevisionInternal(props, database);
-			validationCalled = false;
-			gotExpectedError = false;
-			try
-			{
-				rev = database.PutRevision(rev, null, false, status);
-			}
-			catch (CouchbaseLiteException e)
-			{
+            // POST an invalid new document:
+            props = new Dictionary<string, object>();
+            props["name"] = "Vogon";
+            props["poetry"] = true;
+            rev = new RevisionInternal(props, database);
+            validationCalled = false;
+            gotExpectedError = false;
+            try
+            {
+                rev = database.PutRevision(rev, null, false, status);
+            }
+            catch (CouchbaseLiteException e)
+            {
                 gotExpectedError = (e.GetCBLStatus().GetCode() == StatusCode.Forbidden);
-			}
-			Assert.IsTrue(validationCalled);
-			Assert.IsTrue(gotExpectedError);
+            }
+            Assert.IsTrue(validationCalled);
+            Assert.IsTrue(gotExpectedError);
 
-			// PUT a valid new document with an ID:
-			props = new Dictionary<string, object>();
-			props["_id"] = "ford";
-			props["name"] = "Ford Prefect";
-			props["towel"] = "terrycloth";
-			rev = new RevisionInternal(props, database);
-			validationCalled = false;
-			rev = database.PutRevision(rev, null, false, status);
-			Assert.IsTrue(validationCalled);
-			Assert.AreEqual("ford", rev.GetDocId());
+            // PUT a valid new document with an ID:
+            props = new Dictionary<string, object>();
+            props["_id"] = "ford";
+            props["name"] = "Ford Prefect";
+            props["towel"] = "terrycloth";
+            rev = new RevisionInternal(props, database);
+            validationCalled = false;
+            rev = database.PutRevision(rev, null, false, status);
+            Assert.IsTrue(validationCalled);
+            Assert.AreEqual("ford", rev.GetDocId());
 
-			// DELETE a document:
-			rev = new RevisionInternal(rev.GetDocId(), rev.GetRevId(), true, database);
-			Assert.IsTrue(rev.IsDeleted());
-			validationCalled = false;
-			rev = database.PutRevision(rev, rev.GetRevId(), false, status);
-			Assert.IsTrue(validationCalled);
+            // DELETE a document:
+            rev = new RevisionInternal(rev.GetDocId(), rev.GetRevId(), true, database);
+            Assert.IsTrue(rev.IsDeleted());
+            validationCalled = false;
+            rev = database.PutRevision(rev, rev.GetRevId(), false, status);
+            Assert.IsTrue(validationCalled);
 
-			// PUT an invalid new document:
-			props = new Dictionary<string, object>();
-			props["_id"] = "petunias";
-			props["name"] = "Pot of Petunias";
-			rev = new RevisionInternal(props, database);
-			validationCalled = false;
-			gotExpectedError = false;
-			try
-			{
-				rev = database.PutRevision(rev, null, false, status);
-			}
-			catch (CouchbaseLiteException e)
-			{
+            // PUT an invalid new document:
+            props = new Dictionary<string, object>();
+            props["_id"] = "petunias";
+            props["name"] = "Pot of Petunias";
+            rev = new RevisionInternal(props, database);
+            validationCalled = false;
+            gotExpectedError = false;
+            try
+            {
+                rev = database.PutRevision(rev, null, false, status);
+            }
+            catch (CouchbaseLiteException e)
+            {
                 gotExpectedError = (e.GetCBLStatus().GetCode() == StatusCode.Forbidden);
-			}
-			Assert.IsTrue(validationCalled);
-			Assert.IsTrue(gotExpectedError);
-		}
-	}
+            }
+            Assert.IsTrue(validationCalled);
+            Assert.IsTrue(gotExpectedError);
+        }
+    }
 }

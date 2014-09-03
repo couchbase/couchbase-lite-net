@@ -72,7 +72,7 @@ namespace Couchbase.Lite
         [Test]
         public void TestSaveCookieStore()
         {
-            var cookieStore = new CookieStore(GetCookiesDirectory());
+            var cookieStore = new CookieStore(GetCookiesDirectory().FullName);
             Assert.AreEqual(0, cookieStore.Count);
 
             var name = "foo";
@@ -94,7 +94,7 @@ namespace Couchbase.Lite
             cookieStore.Add(cookie);
             cookieStore.Save();
 
-            cookieStore = new CookieStore(GetCookiesDirectory());
+            cookieStore = new CookieStore(GetCookiesDirectory().FullName);
             Assert.AreEqual(1, cookieStore.Count);
 
             var cookies = cookieStore.GetCookies(uri);
@@ -109,11 +109,11 @@ namespace Couchbase.Lite
         [Test]
         public void TestSaveEmptyCookieStore()
         {
-            var cookieStore = new CookieStore(GetCookiesDirectory());
+            var cookieStore = new CookieStore(GetCookiesDirectory().FullName);
             Assert.AreEqual(0, cookieStore.Count);
             cookieStore.Save();
 
-            cookieStore = new CookieStore(GetCookiesDirectory());
+            cookieStore = new CookieStore(GetCookiesDirectory().FullName);
             Assert.AreEqual(0, cookieStore.Count);
         }
     }

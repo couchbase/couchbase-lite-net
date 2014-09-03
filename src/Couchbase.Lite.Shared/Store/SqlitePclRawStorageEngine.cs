@@ -51,19 +51,28 @@ using System.Collections.Generic;
 using System.Linq;
 using SQLitePCL.Ugly;
 using Couchbase.Lite.Store;
+using Sharpen;
 
 namespace Couchbase.Lite.Shared
 {
-    internal class SqlitePCLRawStorageEngine : ISQLiteStorageEngine, IDisposable
+    internal sealed class SqlitePCLRawStorageEngine : ISQLiteStorageEngine, IDisposable
     {
+        // NOTE: SqlitePCL.raw only defines a subset of the ones we want,
+        // so we just redefine them here instead.
         private const int SQLITE_OPEN_FILEPROTECTION_COMPLETEUNLESSOPEN = 0x00200000;
         private const int SQLITE_OPEN_READWRITE = 0x00000002;
         private const int SQLITE_OPEN_CREATE = 0x00000004;
         private const int SQLITE_OPEN_FULLMUTEX = 0x00010000;
+        private const int SQLITE_OPEN_NOMUTEX = 0x00008000;
+        private const int SQLITE_OPEN_PRIVATECACHE = 0x00040000;
+        private const int SQLITE_OPEN_SHAREDCACHE = 0x00020000;
 
         private const String Tag = "SqlitePCLRawStorageEngine";
-        private sqlite3 db;
+        /*[ThreadStatic]*/
+        private /*static*/ sqlite3 db;
         private Boolean shouldCommit;
+
+        string Path { get; set; }
 
         #region implemented abstract members of SQLiteStorageEngine
 
@@ -71,34 +80,32 @@ namespace Couchbase.Lite.Shared
         {
             if (IsOpen)
                 return true;
-
+            Path = path;
             var errMessage = "Cannot open Sqlite Database at pth {0}".Fmt(path);
 
             var result = true;
             try {
                 shouldCommit = false;
-                const int flags = SQLITE_OPEN_FILEPROTECTION_COMPLETEUNLESSOPEN | SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE | SQLITE_OPEN_FULLMUTEX; // #define SQLITE_OPEN_FILEPROTECTION_COMPLETEUNLESSOPEN 0x00200000
+                const int flags = SQLITE_OPEN_FILEPROTECTION_COMPLETEUNLESSOPEN | SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE | SQLITE_OPEN_FULLMUTEX;
 
-                var status = raw.sqlite3_open_v2(path, out db, flags, null);
+                var status = raw.sqlite3_open_v2(Path, out db, flags, null);
                 if (status != raw.SQLITE_OK)
                 {
                     throw new CouchbaseLiteException(errMessage, StatusCode.DbError);
                 }
-#if __ANDROID__
-#else
+#if !__ANDROID__ && VERBOSE
                 var i = 0;
                 var val = raw.sqlite3_compileoption_get(i);
                 while (val != null)
                 {
-                    Log.V(Tag, "Sqlite Config: {0}".Fmt(val));
-                    val = raw.sqlite3_compileoption_get(++i);
+                Log.V(Tag, "Sqlite Config: {0}".Fmt(val));
+                val = raw.sqlite3_compileoption_get(++i);
                 }
-                #endif
-
-                raw.sqlite3_create_collation(db, "JSON", null, CouchbaseSqliteJsonUnicodeCollationFunction.Compare);
-                raw.sqlite3_create_collation(db, "JSON_ASCII", null, CouchbaseSqliteJsonAsciiCollationFunction.Compare);
-                raw.sqlite3_create_collation(db, "JSON_RAW", null, CouchbaseSqliteJsonRawCollationFunction.Compare);
-                raw.sqlite3_create_collation(db, "REVID", null, CouchbaseSqliteRevIdCollationFunction.Compare);
+#endif
+                db.create_collation("JSON", null, CouchbaseSqliteJsonUnicodeCollationFunction.Compare);
+                db.create_collation("JSON_ASCII", null, CouchbaseSqliteJsonAsciiCollationFunction.Compare);
+                db.create_collation("JSON_RAW", null, CouchbaseSqliteJsonRawCollationFunction.Compare);
+                db.create_collation("REVID", null, CouchbaseSqliteRevIdCollationFunction.Compare);
             } catch (Exception ex) {
                 Log.E(Tag, "Error opening the Sqlite connection using connection String: {0}".Fmt(path), ex);
                 result = false;
@@ -164,6 +171,10 @@ namespace Couchbase.Lite.Shared
 
         public void BeginTransaction ()
         {
+            if (!IsOpen)
+            {
+                Open(Path);
+            }
             // NOTE.ZJG: Seems like we should really be using TO SAVEPOINT
             //           but this is how Android SqliteDatabase does it,
             //           so I'm matching that for now.
@@ -237,6 +248,10 @@ namespace Couchbase.Lite.Shared
 
         public Cursor RawQuery (String sql, CommandBehavior behavior, params Object[] paramArgs)
         {
+            if (!IsOpen)
+            {
+                Open(Path);
+            }
             Cursor cursor = null;
             var command = BuildCommand (sql, paramArgs);
 
@@ -298,7 +313,7 @@ namespace Couchbase.Lite.Shared
                     Log.E(Tag, "Error inserting " + initialValues + " using " + command);
                     throw new CouchbaseLiteException("Error inserting " + initialValues + " using " + command, StatusCode.DbError);
                 } else {
-                    Log.V(Tag, "Inserting row " + lastInsertedId + " from " + initialValues + " using " + command);
+                    Log.V(Tag, "Inserting row {0} into {1} with values {2}", lastInsertedId, table, initialValues);
                 }
 
             } catch (Exception ex) {
@@ -373,6 +388,7 @@ namespace Couchbase.Lite.Shared
         public void Close ()
         {
             db.Dispose();
+            db = null;
         }
 
         #endregion
@@ -383,6 +399,9 @@ namespace Couchbase.Lite.Shared
         {
             sqlite3_stmt command = null;
             try {
+                if (!IsOpen) {
+                    Open(Path);
+                }
                 //Log.D(Tag, "Build Command : " + sql + " with params " + paramArgs);
                 lock(dbLock) {
                     command = paramArgs.Length > 0 
@@ -409,6 +428,10 @@ namespace Couchbase.Lite.Shared
         /// <param name="whereArgs">Where arguments.</param>
         sqlite3_stmt GetUpdateCommand (string table, ContentValues values, string whereClause, string[] whereArgs)
         {
+            if (!IsOpen)
+            {
+                Open(Path);
+            }
             var builder = new StringBuilder("UPDATE ");
 
             builder.Append(table);
@@ -464,6 +487,10 @@ namespace Couchbase.Lite.Shared
         /// <param name="conflictResolutionStrategy">Conflict resolution strategy.</param>
         sqlite3_stmt GetInsertCommand (String table, ContentValues values, ConflictResolutionStrategy conflictResolutionStrategy)
         {
+            if (!IsOpen)
+            {
+                Open(Path);
+            }
             var builder = new StringBuilder("INSERT");
 
             if (conflictResolutionStrategy != ConflictResolutionStrategy.None) {
@@ -520,6 +547,10 @@ namespace Couchbase.Lite.Shared
         /// <param name="whereArgs">Where arguments.</param>
         sqlite3_stmt GetDeleteCommand (string table, string whereClause, string[] whereArgs)
         {
+            if (!IsOpen)
+            {
+                Open(Path);
+            }
             var builder = new StringBuilder("DELETE FROM ");
             builder.Append(table);
             if (!String.IsNullOrWhiteSpace(whereClause)) {

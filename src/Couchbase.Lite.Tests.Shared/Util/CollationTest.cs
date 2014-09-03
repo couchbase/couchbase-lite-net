@@ -2,11 +2,11 @@
 
 namespace Couchbase.Lite.Tests
 {
-	public class CollationTest
-	{
-		public CollationTest ()
-		{
-		}
-	}
+    public class CollationTest
+    {
+        public CollationTest ()
+        {
+        }
+    }
 }
 

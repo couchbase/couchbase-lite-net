@@ -2,7 +2,7 @@
 // ReferenceQueue.cs
 //
 // Author:
-//	Zachary Gramana  <zack@xamarin.com>
+//  Zachary Gramana  <zack@xamarin.com>
 //
 // Copyright (c) 2013, 2014 Xamarin Inc (http://www.xamarin.com)
 //
@@ -43,39 +43,39 @@
 */
 namespace Sharpen
 {
-	using System;
-	using System.Collections.Generic;
+    using System;
+    using System.Collections.Generic;
 
-	internal class ReferenceQueue<T>
-	{
-		private Queue<Reference<T>> queue;
+    internal class ReferenceQueue<T>
+    {
+        private Queue<Reference<T>> queue;
 
-		public ReferenceQueue ()
-		{
-			this.queue = new Queue<Reference<T>> ();
-		}
+        public ReferenceQueue ()
+        {
+            this.queue = new Queue<Reference<T>> ();
+        }
 
-		internal bool Add (Reference<T> t)
-		{
-			Queue<Reference<T>> queue = this.queue;
-			lock (queue) {
-				if (this.queue.Contains (t)) {
-					return false;
-				}
-				this.queue.Enqueue (t);
-				return true;
-			}
-		}
+        internal bool Add (Reference<T> t)
+        {
+            Queue<Reference<T>> queue = this.queue;
+            lock (queue) {
+                if (this.queue.Contains (t)) {
+                    return false;
+                }
+                this.queue.Enqueue (t);
+                return true;
+            }
+        }
 
-		public Reference<T> Poll ()
-		{
-			Queue<Reference<T>> queue = this.queue;
-			lock (queue) {
-				if (this.queue.Count > 0) {
-					return this.queue.Dequeue ();
-				}
-				return null;
-			}
-		}
-	}
+        public Reference<T> Poll ()
+        {
+            Queue<Reference<T>> queue = this.queue;
+            lock (queue) {
+                if (this.queue.Count > 0) {
+                    return this.queue.Dequeue ();
+                }
+                return null;
+            }
+        }
+    }
 }

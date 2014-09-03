@@ -41,14 +41,12 @@
 //
     
 using System;
+using System.Collections.Generic;
+using System.IO;
 using System.Net;
 using System.Net.Http;
-using System.Collections.Generic;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
-using System.Collections.Generic;
-using System.Net;
-using System.IO;
 
 namespace Couchbase.Lite.Tests
 {
@@ -60,13 +58,21 @@ namespace Couchbase.Lite.Tests
 
         public MockHttpRequestHandler HttpHandler { get; private set;}
 
+        public MessageProcessingHandler Handler {
+            get {
+                throw new NotImplementedException ();
+            }
+        }
+
         public IDictionary<string, string> Headers { get; set; }
 
         public MockHttpClientFactory() : this (null) { }
 
         public MockHttpClientFactory(DirectoryInfo cookieStoreDirectory)
         {
-            cookieStore = new CookieStore(cookieStoreDirectory);
+            cookieStore = new CookieStore(cookieStore != null 
+                ? cookieStoreDirectory.FullName
+                : null);
             HttpHandler = new MockHttpRequestHandler();
             HttpHandler.CookieContainer = cookieStore;
             HttpHandler.UseCookies = true;

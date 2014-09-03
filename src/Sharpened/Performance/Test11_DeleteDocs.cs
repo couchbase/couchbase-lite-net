@@ -41,109 +41,109 @@ using Sharpen;
 
 namespace Couchbase.Lite.Performance
 {
-	public class Test11_DeleteDocs : LiteTestCase
-	{
-		public const string Tag = "DeleteDocsPerformance";
+    public class Test11_DeleteDocs : LiteTestCase
+    {
+        public const string Tag = "DeleteDocsPerformance";
 
-		private const string _propertyValue = "1234567";
+        private const string _propertyValue = "1234567";
 
-		private Document[] docs;
+        private Document[] docs;
 
-		/// <exception cref="System.Exception"></exception>
-		protected override void SetUp()
-		{
-			Log.V(Tag, "DeleteDocsPerformance setUp");
-			base.SetUp();
-			docs = new Document[GetNumberOfDocuments()];
-			//Create docs that will be deleted in test case
-			NUnit.Framework.Assert.IsTrue(database.RunInTransaction(new _TransactionalTask_49
-				(this)));
-		}
+        /// <exception cref="System.Exception"></exception>
+        protected override void SetUp()
+        {
+            Log.V(Tag, "DeleteDocsPerformance setUp");
+            base.SetUp();
+            docs = new Document[GetNumberOfDocuments()];
+            //Create docs that will be deleted in test case
+            NUnit.Framework.Assert.IsTrue(database.RunInTransaction(new _TransactionalTask_49
+                (this)));
+        }
 
-		private sealed class _TransactionalTask_49 : TransactionalTask
-		{
-			public _TransactionalTask_49(Test11_DeleteDocs _enclosing)
-			{
-				this._enclosing = _enclosing;
-			}
+        private sealed class _TransactionalTask_49 : TransactionalTask
+        {
+            public _TransactionalTask_49(Test11_DeleteDocs _enclosing)
+            {
+                this._enclosing = _enclosing;
+            }
 
-			public bool Run()
-			{
-				string[] bigObj = new string[this._enclosing.GetSizeOfDocument()];
-				for (int i = 0; i < this._enclosing.GetSizeOfDocument(); i++)
-				{
-					bigObj[i] = Test11_DeleteDocs._propertyValue;
-				}
-				for (int i_1 = 0; i_1 < this._enclosing.GetNumberOfDocuments(); i_1++)
-				{
-					//create a document
-					IDictionary<string, object> props = new Dictionary<string, object>();
-					props.Put("bigArray", bigObj);
-					Document doc = this._enclosing.database.CreateDocument();
-					this._enclosing.docs[i_1] = doc;
-					try
-					{
-						doc.PutProperties(props);
-					}
-					catch (CouchbaseLiteException cblex)
-					{
-						Log.E(Test11_DeleteDocs.Tag, "Document creation failed", cblex);
-						return false;
-					}
-				}
-				return true;
-			}
+            public bool Run()
+            {
+                string[] bigObj = new string[this._enclosing.GetSizeOfDocument()];
+                for (int i = 0; i < this._enclosing.GetSizeOfDocument(); i++)
+                {
+                    bigObj[i] = Test11_DeleteDocs._propertyValue;
+                }
+                for (int i_1 = 0; i_1 < this._enclosing.GetNumberOfDocuments(); i_1++)
+                {
+                    //create a document
+                    IDictionary<string, object> props = new Dictionary<string, object>();
+                    props.Put("bigArray", bigObj);
+                    Document doc = this._enclosing.database.CreateDocument();
+                    this._enclosing.docs[i_1] = doc;
+                    try
+                    {
+                        doc.PutProperties(props);
+                    }
+                    catch (CouchbaseLiteException cblex)
+                    {
+                        Log.E(Test11_DeleteDocs.Tag, "Document creation failed", cblex);
+                        return false;
+                    }
+                }
+                return true;
+            }
 
-			private readonly Test11_DeleteDocs _enclosing;
-		}
+            private readonly Test11_DeleteDocs _enclosing;
+        }
 
-		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
-		public virtual void TestDeleteDocsPerformance()
-		{
-			long startMillis = Runtime.CurrentTimeMillis();
-			NUnit.Framework.Assert.IsTrue(database.RunInTransaction(new _TransactionalTask_85
-				(this)));
-			Log.V("PerformanceStats", Tag + "," + Sharpen.Extensions.ValueOf(Runtime.CurrentTimeMillis
-				() - startMillis).ToString() + "," + GetNumberOfDocuments() + "," + GetSizeOfDocument
-				());
-		}
+        /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
+        public virtual void TestDeleteDocsPerformance()
+        {
+            long startMillis = Runtime.CurrentTimeMillis();
+            NUnit.Framework.Assert.IsTrue(database.RunInTransaction(new _TransactionalTask_85
+                (this)));
+            Log.V("PerformanceStats", Tag + "," + Sharpen.Extensions.ValueOf(Runtime.CurrentTimeMillis
+                () - startMillis).ToString() + "," + GetNumberOfDocuments() + "," + GetSizeOfDocument
+                ());
+        }
 
-		private sealed class _TransactionalTask_85 : TransactionalTask
-		{
-			public _TransactionalTask_85(Test11_DeleteDocs _enclosing)
-			{
-				this._enclosing = _enclosing;
-			}
+        private sealed class _TransactionalTask_85 : TransactionalTask
+        {
+            public _TransactionalTask_85(Test11_DeleteDocs _enclosing)
+            {
+                this._enclosing = _enclosing;
+            }
 
-			public bool Run()
-			{
-				for (int i = 0; i < this._enclosing.GetNumberOfDocuments(); i++)
-				{
-					Document doc = this._enclosing.docs[i];
-					try
-					{
-						doc.Delete();
-					}
-					catch (Exception t)
-					{
-						Log.E(Test11_DeleteDocs.Tag, "Document delete failed", t);
-						return false;
-					}
-				}
-				return true;
-			}
+            public bool Run()
+            {
+                for (int i = 0; i < this._enclosing.GetNumberOfDocuments(); i++)
+                {
+                    Document doc = this._enclosing.docs[i];
+                    try
+                    {
+                        doc.Delete();
+                    }
+                    catch (Exception t)
+                    {
+                        Log.E(Test11_DeleteDocs.Tag, "Document delete failed", t);
+                        return false;
+                    }
+                }
+                return true;
+            }
 
-			private readonly Test11_DeleteDocs _enclosing;
-		}
+            private readonly Test11_DeleteDocs _enclosing;
+        }
 
-		private int GetSizeOfDocument()
-		{
-			return System.Convert.ToInt32(Runtime.GetProperty("Test11_sizeOfDocument"));
-		}
+        private int GetSizeOfDocument()
+        {
+            return System.Convert.ToInt32(Runtime.GetProperty("Test11_sizeOfDocument"));
+        }
 
-		private int GetNumberOfDocuments()
-		{
-			return System.Convert.ToInt32(Runtime.GetProperty("Test11_numberOfDocuments"));
-		}
-	}
+        private int GetNumberOfDocuments()
+        {
+            return System.Convert.ToInt32(Runtime.GetProperty("Test11_numberOfDocuments"));
+        }
+    }
 }

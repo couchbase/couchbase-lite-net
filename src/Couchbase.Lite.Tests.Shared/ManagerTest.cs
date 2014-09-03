@@ -49,44 +49,44 @@ using Sharpen;
 
 namespace Couchbase.Lite
 {
-	public class ManagerTest : LiteTestCase
-	{
+    public class ManagerTest : LiteTestCase
+    {
         [Test]
-		public void TestServer()
-		{
-			//to ensure this test is easily repeatable we will explicitly remove
-			//any stale foo.cblite
+        public void TestServer()
+        {
+            //to ensure this test is easily repeatable we will explicitly remove
+            //any stale foo.cblite
             var mustExist = true;
-			Database old = manager.GetDatabaseWithoutOpening("foo", mustExist);
-			if (old != null)
-			{
-				old.Delete();
-			}
+            Database old = manager.GetDatabaseWithoutOpening("foo", mustExist);
+            if (old != null)
+            {
+                old.Delete();
+            }
 
-			mustExist = false;
+            mustExist = false;
             var db = manager.GetDatabaseWithoutOpening("foo", mustExist);
-			Assert.IsNotNull(db);
-			Assert.AreEqual("foo", db.Name);
+            Assert.IsNotNull(db);
+            Assert.AreEqual("foo", db.Name);
             Assert.IsTrue(db.Path.StartsWith(GetServerPath()));
-			Assert.IsFalse(db.Exists());
+            Assert.IsFalse(db.Exists());
 
-			// because foo doesn't exist yet
+            // because foo doesn't exist yet
             List<string> databaseNames = manager.AllDatabaseNames.ToList();
 
-			Assert.IsTrue(!databaseNames.Contains("foo"));
-			Assert.IsTrue(db.Open());
-			Assert.IsTrue(db.Exists());
-			
+            Assert.IsTrue(!databaseNames.Contains("foo"));
+            Assert.IsTrue(db.Open());
+            Assert.IsTrue(db.Exists());
+            
             databaseNames = manager.AllDatabaseNames.ToList();
-			Assert.IsTrue(databaseNames.Contains("foo"));
-			db.Close();
-			db.Delete();
-		}
+            Assert.IsTrue(databaseNames.Contains("foo"));
+            db.Close();
+            db.Delete();
+        }
 
-		/// <exception cref="System.Exception"></exception>
+        /// <exception cref="System.Exception"></exception>
         [Test]
         public void TestUpgradeOldDatabaseFiles()
-		{
+        {
             var testDirName = "test-directory-" + Runtime.CurrentTimeMillis();
             var rootDirPath = GetRootDirectory().FullName;
             var testDirPath = Path.Combine(rootDirPath, testDirName);
@@ -101,7 +101,7 @@ namespace Couchbase.Lite
             var migratedOldFile = Path.Combine(testDirPath, "old" + Manager.DatabaseSuffix);
             File.Create(migratedOldFile);
 
-			StopCBLite();
+            StopCBLite();
             manager = new Manager(testDirInfo, Manager.DefaultOptions);
 
             var oldTouchDbInfo = new FileInfo(oldTouchDb);
@@ -109,12 +109,12 @@ namespace Couchbase.Lite
             var migratedOldInfo = new FileInfo(migratedOldFile);
 
             Assert.IsTrue(migratedOldInfo.Exists);
-			//cannot rename old.touchdb in old.cblite, old.cblite already exists
+            //cannot rename old.touchdb in old.cblite, old.cblite already exists
             Assert.IsTrue(oldTouchDbInfo.Exists);
             Assert.IsTrue(newCbLiteDbInfo.Exists);
             Assert.AreEqual(3, testDirInfo.GetFiles().Length);
 
-			StopCBLite();
+            StopCBLite();
             migratedOldInfo.Delete();
             manager = new Manager(testDirInfo, Manager.DefaultOptions);
 
@@ -122,11 +122,11 @@ namespace Couchbase.Lite
             newCbLiteDbInfo = new FileInfo(newCbLiteDb);
             migratedOldInfo = new FileInfo(migratedOldFile);
 
-			//rename old.touchdb in old.cblite, previous old.cblite already doesn't exist
+            //rename old.touchdb in old.cblite, previous old.cblite already doesn't exist
             Assert.IsTrue(migratedOldInfo.Exists);
             Assert.IsFalse(oldTouchDbInfo.Exists);
             Assert.IsTrue(newCbLiteDbInfo.Exists);    
             Assert.AreEqual(2, testDirInfo.GetFiles().Length); 
-		}
-	}
+        }
+    }
 }

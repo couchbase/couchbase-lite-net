@@ -1,10 +1,4 @@
-//
-// TDContentOptions.cs
-//
-// Author:
-//     Zachary Gramana  <zack@xamarin.com>
-//
-// Copyright (c) 2014 Xamarin Inc
+// 
 // Copyright (c) 2014 .NET Foundation
 //
 // Permission is hereby granted, free of charge, to any person obtaining
@@ -38,33 +32,32 @@
 // License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
 // either express or implied. See the License for the specific language governing permissions
 // and limitations under the License.
-//
-
-using System;
-using System.Linq;
-using System.Collections;
+//using System;
 using System.Collections.Generic;
-using System.Net;
 using System.IO;
+using System.Net;
+using Couchbase.Lite;
+using Couchbase.Lite.Auth;
+using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
-using Couchbase.Lite.Internal;
 using Sharpen;
+using System;
+using System.Threading.Tasks;
+using System.Net.Http;
+using System.ComponentModel;
 
-namespace Couchbase.Lite {
-    /// <summary>Options for what metadata to include in document bodies</summary>
-    internal enum TDContentOptions
+namespace Couchbase.Lite.Replicator
+{
+    internal class RemoteRequestEventArgs : EventArgs
     {
-        TDIncludeAttachments,
-        TDIncludeConflicts,
-        TDIncludeRevs,
-        TDIncludeRevsInfo,
-        TDIncludeLocalSeq,
-        TDNoBody,
-        TDBigAttachmentsFollow
+        public Exception Error { get; private set; }
+        public Object Result { get; private set; }
+
+        public RemoteRequestEventArgs(Object result, Exception error)
+        {
+            Result = result;
+            Error = error;
+        }
     }
-
-    
-
-    
 
 }

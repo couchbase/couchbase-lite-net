@@ -26,109 +26,109 @@ using Sharpen;
 
 namespace CouchbaseSample.Android.Document
 {
-	public class Profile
-	{
-		private const string ViewName = "profiles";
+    public class Profile
+    {
+        private const string ViewName = "profiles";
 
-		private const string ByIdViewName = "profiles_by_id";
+        private const string ByIdViewName = "profiles_by_id";
 
-		private const string DocType = "profile";
+        private const string DocType = "profile";
 
-		public static Query GetQuery(Database database, string ignoreUserId)
-		{
-			View view = database.GetView(ViewName);
-			if (view.GetMap() == null)
-			{
-				Mapper map = new _Mapper_30(ignoreUserId);
-				view.SetMap(map, null);
-			}
-			Query query = view.CreateQuery();
-			return query;
-		}
+        public static Query GetQuery(Database database, string ignoreUserId)
+        {
+            View view = database.GetView(ViewName);
+            if (view.GetMap() == null)
+            {
+                Mapper map = new _Mapper_30(ignoreUserId);
+                view.SetMap(map, null);
+            }
+            Query query = view.CreateQuery();
+            return query;
+        }
 
-		private sealed class _Mapper_30 : Mapper
-		{
-			public _Mapper_30(string ignoreUserId)
-			{
-				this.ignoreUserId = ignoreUserId;
-			}
+        private sealed class _Mapper_30 : Mapper
+        {
+            public _Mapper_30(string ignoreUserId)
+            {
+                this.ignoreUserId = ignoreUserId;
+            }
 
-			public void Map(IDictionary<string, object> document, Emitter emitter)
-			{
-				if (Profile.DocType.Equals(document.Get("type")))
-				{
-					if (ignoreUserId == null || (ignoreUserId != null && !ignoreUserId.Equals(document
-						.Get("user_id"))))
-					{
-						emitter.Emit(document.Get("name"), document);
-					}
-				}
-			}
+            public void Map(IDictionary<string, object> document, Emitter emitter)
+            {
+                if (Profile.DocType.Equals(document.Get("type")))
+                {
+                    if (ignoreUserId == null || (ignoreUserId != null && !ignoreUserId.Equals(document
+                        .Get("user_id"))))
+                    {
+                        emitter.Emit(document.Get("name"), document);
+                    }
+                }
+            }
 
-			private readonly string ignoreUserId;
-		}
+            private readonly string ignoreUserId;
+        }
 
-		public static Query GetQueryById(Database database, string userId)
-		{
-			View view = database.GetView(ByIdViewName);
-			if (view.GetMap() == null)
-			{
-				Mapper map = new _Mapper_52();
-				view.SetMap(map, null);
-			}
-			Query query = view.CreateQuery();
-			IList<object> keys = new AList<object>();
-			keys.AddItem(userId);
-			query.SetKeys(keys);
-			return query;
-		}
+        public static Query GetQueryById(Database database, string userId)
+        {
+            View view = database.GetView(ByIdViewName);
+            if (view.GetMap() == null)
+            {
+                Mapper map = new _Mapper_52();
+                view.SetMap(map, null);
+            }
+            Query query = view.CreateQuery();
+            IList<object> keys = new AList<object>();
+            keys.AddItem(userId);
+            query.SetKeys(keys);
+            return query;
+        }
 
-		private sealed class _Mapper_52 : Mapper
-		{
-			public _Mapper_52()
-			{
-			}
+        private sealed class _Mapper_52 : Mapper
+        {
+            public _Mapper_52()
+            {
+            }
 
-			public void Map(IDictionary<string, object> document, Emitter emitter)
-			{
-				if (Profile.DocType.Equals(document.Get("type")))
-				{
-					emitter.Emit(document.Get("user_id"), document);
-				}
-			}
-		}
+            public void Map(IDictionary<string, object> document, Emitter emitter)
+            {
+                if (Profile.DocType.Equals(document.Get("type")))
+                {
+                    emitter.Emit(document.Get("user_id"), document);
+                }
+            }
+        }
 
-		public static Couchbase.Lite.Document GetUserProfileById(Database database, string
-			 userId)
-		{
-			Couchbase.Lite.Document profile = null;
-			try
-			{
-				QueryEnumerator enumerator = Profile.GetQueryById(database, userId).Run();
-				profile = enumerator != null && enumerator.GetCount() > 0 ? enumerator.GetRow(0).
-					GetDocument() : null;
-			}
-			catch (CouchbaseLiteException)
-			{
-			}
-			return profile;
-		}
+        public static Couchbase.Lite.Document GetUserProfileById(Database database, string
+             userId)
+        {
+            Couchbase.Lite.Document profile = null;
+            try
+            {
+                QueryEnumerator enumerator = Profile.GetQueryById(database, userId).Run();
+                profile = enumerator != null && enumerator.GetCount() > 0 ? enumerator.GetRow(0).
+                    GetDocument() : null;
+            }
+            catch (CouchbaseLiteException)
+            {
+            }
+            return profile;
+        }
 
-		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
-		public static Couchbase.Lite.Document CreateProfile(Database database, string userId
-			, string name)
-		{
-			SimpleDateFormat dateFormatter = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"
-				);
-			Calendar calendar = GregorianCalendar.GetInstance();
-			string currentTimeString = dateFormatter.Format(calendar.GetTime());
-			IDictionary<string, object> properties = new Dictionary<string, object>();
-			properties.Put("type", DocType);
-			properties.Put("user_id", userId);
-			properties.Put("name", name);
-			Couchbase.Lite.Document document = database.GetDocument("profile:" + userId);
-			document.PutProperties(properties);
-			return document;
-		}
-	}
+        /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
+        public static Couchbase.Lite.Document CreateProfile(Database database, string userId
+            , string name)
+        {
+            SimpleDateFormat dateFormatter = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"
+                );
+            Calendar calendar = GregorianCalendar.GetInstance();
+            string currentTimeString = dateFormatter.Format(calendar.GetTime());
+            IDictionary<string, object> properties = new Dictionary<string, object>();
+            properties.Put("type", DocType);
+            properties.Put("user_id", userId);
+            properties.Put("name", name);
+            Couchbase.Lite.Document document = database.GetDocument("profile:" + userId);
+            document.PutProperties(properties);
+            return document;
+        }
+    }
 }

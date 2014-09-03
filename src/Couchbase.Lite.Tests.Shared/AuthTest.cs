@@ -59,42 +59,42 @@ using System.Text;
 namespace Couchbase.Lite
 {
     public class AuthTest : LiteTestCase
-	{
+    {
         const string Tag = "AuthTest";
 
         [Test]
-		public void TestParsePersonaAssertion()
-		{
-			try
-			{
-				Log.D(Database.Tag, "testParsePersonaAssertion");
-				var sampleAssertion = "eyJhbGciOiJSUzI1NiJ9.eyJwdWJsaWMta2V5Ijp7ImFsZ29yaXRobSI6IkRTIiwieSI6ImNhNWJiYTYzZmI4MDQ2OGE0MjFjZjgxYTIzN2VlMDcwYTJlOTM4NTY0ODhiYTYzNTM0ZTU4NzJjZjllMGUwMDk0ZWQ2NDBlOGNhYmEwMjNkYjc5ODU3YjkxMzBlZGNmZGZiNmJiNTUwMWNjNTk3MTI1Y2NiMWQ1ZWQzOTVjZTMyNThlYjEwN2FjZTM1ODRiOWIwN2I4MWU5MDQ4NzhhYzBhMjFlOWZkYmRjYzNhNzNjOTg3MDAwYjk4YWUwMmZmMDQ4ODFiZDNiOTBmNzllYzVlNDU1YzliZjM3NzFkYjEzMTcxYjNkMTA2ZjM1ZDQyZmZmZjQ2ZWZiZDcwNjgyNWQiLCJwIjoiZmY2MDA0ODNkYjZhYmZjNWI0NWVhYjc4NTk0YjM1MzNkNTUwZDlmMWJmMmE5OTJhN2E4ZGFhNmRjMzRmODA0NWFkNGU2ZTBjNDI5ZDMzNGVlZWFhZWZkN2UyM2Q0ODEwYmUwMGU0Y2MxNDkyY2JhMzI1YmE4MWZmMmQ1YTViMzA1YThkMTdlYjNiZjRhMDZhMzQ5ZDM5MmUwMGQzMjk3NDRhNTE3OTM4MDM0NGU4MmExOGM0NzkzMzQzOGY4OTFlMjJhZWVmODEyZDY5YzhmNzVlMzI2Y2I3MGVhMDAwYzNmNzc2ZGZkYmQ2MDQ2MzhjMmVmNzE3ZmMyNmQwMmUxNyIsInEiOiJlMjFlMDRmOTExZDFlZDc5OTEwMDhlY2FhYjNiZjc3NTk4NDMwOWMzIiwiZyI6ImM1MmE0YTBmZjNiN2U2MWZkZjE4NjdjZTg0MTM4MzY5YTYxNTRmNGFmYTkyOTY2ZTNjODI3ZTI1Y2ZhNmNmNTA4YjkwZTVkZTQxOWUxMzM3ZTA3YTJlOWUyYTNjZDVkZWE3MDRkMTc1ZjhlYmY2YWYzOTdkNjllMTEwYjk2YWZiMTdjN2EwMzI1OTMyOWU0ODI5YjBkMDNiYmM3ODk2YjE1YjRhZGU1M2UxMzA4NThjYzM0ZDk2MjY5YWE4OTA0MWY0MDkxMzZjNzI0MmEzODg5NWM5ZDViY2NhZDRmMzg5YWYxZDdhNGJkMTM5OGJkMDcyZGZmYTg5NjIzMzM5N2EifSwicHJpbmNpcGFsIjp7ImVtYWlsIjoiamVuc0Btb29zZXlhcmQuY29tIn0sImlhdCI6MTM1ODI5NjIzNzU3NywiZXhwIjoxMzU4MzgyNjM3NTc3LCJpc3MiOiJsb2dpbi5wZXJzb25hLm9yZyJ9.RnDK118nqL2wzpLCVRzw1MI4IThgeWpul9jPl6ypyyxRMMTurlJbjFfs-BXoPaOem878G8-4D2eGWS6wd307k7xlPysevYPogfFWxK_eDHwkTq3Ts91qEDqrdV_JtgULC8c1LvX65E0TwW_GL_TM94g3CvqoQnGVxxoaMVye4ggvR7eOZjimWMzUuu4Lo9Z-VBHBj7XM0UMBie57CpGwH4_Wkv0V_LHZRRHKdnl9ISp_aGwfBObTcHG9v0P3BW9vRrCjihIn0SqOJQ9obl52rMf84GD4Lcy9NIktzfyka70xR9Sh7ALotW7rWywsTzMTu3t8AzMz2MJgGjvQmx49QA~eyJhbGciOiJEUzEyOCJ9.eyJleHAiOjEzNTgyOTY0Mzg0OTUsImF1ZCI6Imh0dHA6Ly9sb2NhbGhvc3Q6NDk4NC8ifQ.4FV2TrUQffDya0MOxOQlzJQbDNvCPF2sfTIJN7KOLvvlSFPknuIo5g";
-				var result = PersonaAuthorizer.ParseAssertion(sampleAssertion);
-				var email = (string)result.Get(PersonaAuthorizer.AssertionFieldEmail);
-				var origin = (string)result.Get(PersonaAuthorizer.AssertionFieldOrigin);
+        public void TestParsePersonaAssertion()
+        {
+            try
+            {
+                Log.D(Database.Tag, "testParsePersonaAssertion");
+                var sampleAssertion = "eyJhbGciOiJSUzI1NiJ9.eyJwdWJsaWMta2V5Ijp7ImFsZ29yaXRobSI6IkRTIiwieSI6ImNhNWJiYTYzZmI4MDQ2OGE0MjFjZjgxYTIzN2VlMDcwYTJlOTM4NTY0ODhiYTYzNTM0ZTU4NzJjZjllMGUwMDk0ZWQ2NDBlOGNhYmEwMjNkYjc5ODU3YjkxMzBlZGNmZGZiNmJiNTUwMWNjNTk3MTI1Y2NiMWQ1ZWQzOTVjZTMyNThlYjEwN2FjZTM1ODRiOWIwN2I4MWU5MDQ4NzhhYzBhMjFlOWZkYmRjYzNhNzNjOTg3MDAwYjk4YWUwMmZmMDQ4ODFiZDNiOTBmNzllYzVlNDU1YzliZjM3NzFkYjEzMTcxYjNkMTA2ZjM1ZDQyZmZmZjQ2ZWZiZDcwNjgyNWQiLCJwIjoiZmY2MDA0ODNkYjZhYmZjNWI0NWVhYjc4NTk0YjM1MzNkNTUwZDlmMWJmMmE5OTJhN2E4ZGFhNmRjMzRmODA0NWFkNGU2ZTBjNDI5ZDMzNGVlZWFhZWZkN2UyM2Q0ODEwYmUwMGU0Y2MxNDkyY2JhMzI1YmE4MWZmMmQ1YTViMzA1YThkMTdlYjNiZjRhMDZhMzQ5ZDM5MmUwMGQzMjk3NDRhNTE3OTM4MDM0NGU4MmExOGM0NzkzMzQzOGY4OTFlMjJhZWVmODEyZDY5YzhmNzVlMzI2Y2I3MGVhMDAwYzNmNzc2ZGZkYmQ2MDQ2MzhjMmVmNzE3ZmMyNmQwMmUxNyIsInEiOiJlMjFlMDRmOTExZDFlZDc5OTEwMDhlY2FhYjNiZjc3NTk4NDMwOWMzIiwiZyI6ImM1MmE0YTBmZjNiN2U2MWZkZjE4NjdjZTg0MTM4MzY5YTYxNTRmNGFmYTkyOTY2ZTNjODI3ZTI1Y2ZhNmNmNTA4YjkwZTVkZTQxOWUxMzM3ZTA3YTJlOWUyYTNjZDVkZWE3MDRkMTc1ZjhlYmY2YWYzOTdkNjllMTEwYjk2YWZiMTdjN2EwMzI1OTMyOWU0ODI5YjBkMDNiYmM3ODk2YjE1YjRhZGU1M2UxMzA4NThjYzM0ZDk2MjY5YWE4OTA0MWY0MDkxMzZjNzI0MmEzODg5NWM5ZDViY2NhZDRmMzg5YWYxZDdhNGJkMTM5OGJkMDcyZGZmYTg5NjIzMzM5N2EifSwicHJpbmNpcGFsIjp7ImVtYWlsIjoiamVuc0Btb29zZXlhcmQuY29tIn0sImlhdCI6MTM1ODI5NjIzNzU3NywiZXhwIjoxMzU4MzgyNjM3NTc3LCJpc3MiOiJsb2dpbi5wZXJzb25hLm9yZyJ9.RnDK118nqL2wzpLCVRzw1MI4IThgeWpul9jPl6ypyyxRMMTurlJbjFfs-BXoPaOem878G8-4D2eGWS6wd307k7xlPysevYPogfFWxK_eDHwkTq3Ts91qEDqrdV_JtgULC8c1LvX65E0TwW_GL_TM94g3CvqoQnGVxxoaMVye4ggvR7eOZjimWMzUuu4Lo9Z-VBHBj7XM0UMBie57CpGwH4_Wkv0V_LHZRRHKdnl9ISp_aGwfBObTcHG9v0P3BW9vRrCjihIn0SqOJQ9obl52rMf84GD4Lcy9NIktzfyka70xR9Sh7ALotW7rWywsTzMTu3t8AzMz2MJgGjvQmx49QA~eyJhbGciOiJEUzEyOCJ9.eyJleHAiOjEzNTgyOTY0Mzg0OTUsImF1ZCI6Imh0dHA6Ly9sb2NhbGhvc3Q6NDk4NC8ifQ.4FV2TrUQffDya0MOxOQlzJQbDNvCPF2sfTIJN7KOLvvlSFPknuIo5g";
+                var result = PersonaAuthorizer.ParseAssertion(sampleAssertion);
+                var email = (string)result.Get(PersonaAuthorizer.AssertionFieldEmail);
+                var origin = (string)result.Get(PersonaAuthorizer.AssertionFieldOrigin);
 
-				Assert.AreEqual(email, "jens@mooseyard.com");
-				Assert.AreEqual(origin, "http://localhost:4984/");
-				Assert.AreEqual(PersonaAuthorizer.RegisterAssertion(sampleAssertion), email);
+                Assert.AreEqual(email, "jens@mooseyard.com");
+                Assert.AreEqual(origin, "http://localhost:4984/");
+                Assert.AreEqual(PersonaAuthorizer.RegisterAssertion(sampleAssertion), email);
 
-				Uri originURL = new Uri(origin);
-				var gotAssertion = PersonaAuthorizer.AssertionForEmailAndSite(email, originURL);
-				Assert.AreEqual(gotAssertion, sampleAssertion);
-				
+                Uri originURL = new Uri(origin);
+                var gotAssertion = PersonaAuthorizer.AssertionForEmailAndSite(email, originURL);
+                Assert.AreEqual(gotAssertion, sampleAssertion);
+                
                 // variant form of URL
-				originURL = new Uri("Http://LocalHost:4984/");
-				gotAssertion = PersonaAuthorizer.AssertionForEmailAndSite(email, originURL);
-				Assert.AreEqual(sampleAssertion, gotAssertion);
+                originURL = new Uri("Http://LocalHost:4984/");
+                gotAssertion = PersonaAuthorizer.AssertionForEmailAndSite(email, originURL);
+                Assert.AreEqual(sampleAssertion, gotAssertion);
 
-				var auth = new PersonaAuthorizer(email);
-				Assert.AreEqual(email, auth.GetEmailAddress());
-				Assert.AreEqual(null, auth.AssertionForSite(originURL));
-			}
-			catch (Exception e)
-			{
-				Assert.Fail(e.Message);
-			}
-		}
+                var auth = new PersonaAuthorizer(email);
+                Assert.AreEqual(email, auth.GetEmailAddress());
+                Assert.AreEqual(null, auth.AssertionForSite(originURL));
+            }
+            catch (Exception e)
+            {
+                Assert.Fail(e.Message);
+            }
+        }
 
         [Test]
         public void TestAuthenticationFactory()
@@ -145,7 +145,7 @@ namespace Couchbase.Lite
         private void AddUser(string username, string password)
         {
             var uri = GetReplicationAdminURL();
-            var addUserUri = uri.AppendPath(string.Format("_user/{0}", username));
+            var addUserUri = uri.AppendPath(string.Format("/_user/{0}", username));
             var content = "{\"all_channels\":[\"*\"],\"password\":\"" + password + "\"}";
             var httpclient = new HttpClient();
             var postTask = httpclient.PutAsync(addUserUri, new StringContent(content, Encoding.UTF8, "application/json"));
@@ -164,7 +164,7 @@ namespace Couchbase.Lite
             var url = GetReplicationURLWithoutCredentials();
             var httpClientFactory = new CouchbaseLiteHttpClientFactory(new CookieStore());
             manager.DefaultHttpClientFactory = httpClientFactory;
-            Replication replicator = database.CreatePushReplication(url);
+            var replicator = database.CreatePushReplication(url);
             replicator.Authenticator = AuthenticatorFactory.CreateBasicAuthenticator(username, password);
 
             Assert.IsNotNull(replicator);
@@ -184,11 +184,11 @@ namespace Couchbase.Lite
                     {
                         break;
                     }
-                    System.Threading.Thread.Sleep(TimeSpan.FromMilliseconds(10));
+                    Thread.Sleep(TimeSpan.FromMilliseconds(10));
                 }
                 doneEvent.Set();
             });
-            doneEvent.WaitOne(TimeSpan.FromSeconds(35));
+            Assert.IsTrue(doneEvent.WaitOne(TimeSpan.FromSeconds(35)));
 
             var lastError = replicator.LastError;
             Assert.IsNull(lastError);
@@ -205,7 +205,8 @@ namespace Couchbase.Lite
             var url = GetReplicationURLWithoutCredentials();
             var httpClientFactory = new CouchbaseLiteHttpClientFactory(new CookieStore());
             manager.DefaultHttpClientFactory = httpClientFactory;
-            Replication replicator = database.CreatePushReplication(url);
+
+            var replicator = database.CreatePushReplication(url);
             replicator.Authenticator = AuthenticatorFactory.CreateBasicAuthenticator(username, wrongPassword);
 
             Assert.IsNotNull(replicator);
@@ -219,18 +220,16 @@ namespace Couchbase.Lite
             Task.Factory.StartNew(()=>
             {
                 var timeout = DateTime.UtcNow + TimeSpan.FromSeconds(30);
-                while (DateTime.UtcNow < timeout)
+                var stop = false;
+                while (DateTime.UtcNow < timeout && !stop)
                 {
-                    if (!replicator.active)
-                    {
-                        break;
-                    }
-                    System.Threading.Thread.Sleep(TimeSpan.FromMilliseconds(10));
+                    stop |= !replicator.active;
+                    Thread.Sleep(TimeSpan.FromMilliseconds(10));
                 }
                 doneEvent.Set();
             });
             doneEvent.WaitOne(TimeSpan.FromSeconds(35));
-
+            Thread.Sleep(1000);
             var lastError = replicator.LastError;
             Assert.IsNotNull(lastError);
         }
@@ -270,5 +269,5 @@ namespace Couchbase.Lite
             authHeader = AuthUtils.GetAuthenticationHeaderValue(auth, null);
             Assert.IsNull(authHeader);
         }
-	}
+    }
 }

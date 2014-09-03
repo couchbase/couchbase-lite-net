@@ -2,7 +2,7 @@
 // SequenceMapTest.cs
 //
 // Author:
-//	Zachary Gramana  <zack@xamarin.com>
+//  Zachary Gramana  <zack@xamarin.com>
 //
 // Copyright (c) 2013, 2014 Xamarin Inc (http://www.xamarin.com)
 //
@@ -49,41 +49,41 @@ using Sharpen;
 
 namespace Couchbase.Lite
 {
-	public class SequenceMapTest : LiteTestCase
-	{
+    public class SequenceMapTest : LiteTestCase
+    {
         [Test]
-		public void TestSequenceMap()
-		{
+        public void TestSequenceMap()
+        {
             var map = new SequenceMap();
-			Assert.AreEqual(0, map.GetCheckpointedSequence());
-			Assert.AreEqual(null, map.GetCheckpointedValue());
-			Assert.IsTrue(map.IsEmpty());
-			Assert.AreEqual(1, map.AddValue("one"));
-			Assert.AreEqual(0, map.GetCheckpointedSequence());
-			Assert.AreEqual(null, map.GetCheckpointedValue());
-			Assert.IsTrue(!map.IsEmpty());
-			Assert.AreEqual(2, map.AddValue("two"));
-			Assert.AreEqual(0, map.GetCheckpointedSequence());
-			Assert.AreEqual(null, map.GetCheckpointedValue());
-			Assert.AreEqual(3, map.AddValue("three"));
-			Assert.AreEqual(0, map.GetCheckpointedSequence());
-			Assert.AreEqual(null, map.GetCheckpointedValue());
-			map.RemoveSequence(2);
-			Assert.AreEqual(0, map.GetCheckpointedSequence());
-			Assert.AreEqual(null, map.GetCheckpointedValue());
-			map.RemoveSequence(1);
-			Assert.AreEqual(2, map.GetCheckpointedSequence());
-			Assert.AreEqual("two", map.GetCheckpointedValue());
-			Assert.AreEqual(4, map.AddValue("four"));
-			Assert.AreEqual(2, map.GetCheckpointedSequence());
-			Assert.AreEqual("two", map.GetCheckpointedValue());
-			map.RemoveSequence(3);
-			Assert.AreEqual(3, map.GetCheckpointedSequence());
-			Assert.AreEqual("three", map.GetCheckpointedValue());
-			map.RemoveSequence(4);
-			Assert.AreEqual(4, map.GetCheckpointedSequence());
-			Assert.AreEqual("four", map.GetCheckpointedValue());
-			Assert.IsTrue(map.IsEmpty());
-		}
-	}
+            Assert.AreEqual(0, map.GetCheckpointedSequence());
+            Assert.AreEqual(null, map.GetCheckpointedValue());
+            Assert.IsTrue(map.IsEmpty());
+            Assert.AreEqual(1, map.AddValue("one"));
+            Assert.AreEqual(0, map.GetCheckpointedSequence());
+            Assert.AreEqual(null, map.GetCheckpointedValue());
+            Assert.IsTrue(!map.IsEmpty());
+            Assert.AreEqual(2, map.AddValue("two"));
+            Assert.AreEqual(0, map.GetCheckpointedSequence());
+            Assert.AreEqual(null, map.GetCheckpointedValue());
+            Assert.AreEqual(3, map.AddValue("three"));
+            Assert.AreEqual(0, map.GetCheckpointedSequence());
+            Assert.AreEqual(null, map.GetCheckpointedValue());
+            map.RemoveSequence(2);
+            Assert.AreEqual(0, map.GetCheckpointedSequence());
+            Assert.AreEqual(null, map.GetCheckpointedValue());
+            map.RemoveSequence(1);
+            Assert.AreEqual(2, map.GetCheckpointedSequence());
+            Assert.AreEqual("two", map.GetCheckpointedValue());
+            Assert.AreEqual(4, map.AddValue("four"));
+            Assert.AreEqual(2, map.GetCheckpointedSequence());
+            Assert.AreEqual("two", map.GetCheckpointedValue());
+            map.RemoveSequence(3);
+            Assert.AreEqual(3, map.GetCheckpointedSequence());
+            Assert.AreEqual("three", map.GetCheckpointedValue());
+            map.RemoveSequence(4);
+            Assert.AreEqual(4, map.GetCheckpointedSequence());
+            Assert.AreEqual("four", map.GetCheckpointedValue());
+            Assert.IsTrue(map.IsEmpty());
+        }
+    }
 }

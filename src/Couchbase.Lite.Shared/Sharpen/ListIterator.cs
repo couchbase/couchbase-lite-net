@@ -2,7 +2,7 @@
 // ListIterator.cs
 //
 // Author:
-//	Zachary Gramana  <zack@xamarin.com>
+//  Zachary Gramana  <zack@xamarin.com>
 //
 // Copyright (c) 2013, 2014 Xamarin Inc (http://www.xamarin.com)
 //
@@ -43,29 +43,29 @@
 */
 namespace Sharpen
 {
-	using System;
-	using System.Collections.Generic;
+    using System;
+    using System.Collections.Generic;
 
-	internal class ListIterator<T>
-	{
-		private IList<T> list;
-		private int pos;
+    internal class ListIterator<T>
+    {
+        private IList<T> list;
+        private int pos;
 
-		public ListIterator (IList<T> list, int n)
-		{
-			this.list = list;
-			this.pos = n;
-		}
+        public ListIterator (IList<T> list, int n)
+        {
+            this.list = list;
+            this.pos = n;
+        }
 
-		public bool HasPrevious ()
-		{
-			return (this.pos > 0);
-		}
+        public bool HasPrevious ()
+        {
+            return (this.pos > 0);
+        }
 
-		public T Previous ()
-		{
-			pos--;
-			return list[pos];
-		}
-	}
+        public T Previous ()
+        {
+            pos--;
+            return list[pos];
+        }
+    }
 }

@@ -9,37 +9,37 @@ using System.CodeDom.Compiler;
 
 namespace CouchbaseSample
 {
-	[Register ("RootViewController")]
-	partial class RootViewController
-	{
-		[Outlet]
+    [Register ("RootViewController")]
+    partial class RootViewController
+    {
+        [Outlet]
         global::Couchbase.Lite.iOS.CouchbaseTableSource Datasource { get; set; }
 
-		[Outlet]
-		MonoTouch.UIKit.UITextField EntryField { get; set; }
+        [Outlet]
+        MonoTouch.UIKit.UITextField EntryField { get; set; }
 
-		[Outlet]
-		MonoTouch.UIKit.UITableView TableView { get; set; }
+        [Outlet]
+        MonoTouch.UIKit.UITableView TableView { get; set; }
 
-		[Action ("AddNewEntry:")]
-		partial void AddNewEntry (MonoTouch.Foundation.NSObject sender);
-		
-		void ReleaseDesignerOutlets ()
-		{
-			if (Datasource != null) {
-				Datasource.Dispose ();
-				Datasource = null;
-			}
+        [Action ("AddNewEntry:")]
+        partial void AddNewEntry (MonoTouch.Foundation.NSObject sender);
+        
+        void ReleaseDesignerOutlets ()
+        {
+            if (Datasource != null) {
+                Datasource.Dispose ();
+                Datasource = null;
+            }
 
-			if (EntryField != null) {
-				EntryField.Dispose ();
-				EntryField = null;
-			}
+            if (EntryField != null) {
+                EntryField.Dispose ();
+                EntryField = null;
+            }
 
-			if (TableView != null) {
-				TableView.Dispose ();
-				TableView = null;
-			}
-		}
-	}
+            if (TableView != null) {
+                TableView.Dispose ();
+                TableView = null;
+            }
+        }
+    }
 }

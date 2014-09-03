@@ -52,62 +52,66 @@ using Couchbase.Lite.Util;
 using NUnit.Framework;
 using Sharpen;
 using Couchbase.Lite.Tests;
+using System.Threading.Tasks;
+using System.Linq;
+using System.Text;
 
 namespace Couchbase.Lite
 {
     [TestFixture]
-	public abstract class LiteTestCase
-	{
-		public const string Tag = "LiteTestCase";
+    public abstract class LiteTestCase
+    {
+        public const string Tag = "LiteTestCase";
 
-        public const string FacebookAppId = "719417398131095";
+        public const string FacebookAppId = "78255794086";
 
-		protected internal ObjectWriter mapper = new ObjectWriter();
+        protected ObjectWriter mapper = new ObjectWriter();
 
-		protected internal Manager manager = null;
+        protected Manager manager = null;
 
-		protected internal Database database = null;
+        protected Database database = null;
 
-		protected internal string DefaultTestDb = "cblitetest";
+        protected string DefaultTestDb = "cblitetest";
 
         [SetUp]
-		protected void SetUp()
-		{
+        protected void SetUp()
+        {
             Log.V(Tag, "SetUp");
-#if !__ANDROID__ && !__IOS__
+//#if !(__IOS__)
 //            Trace.Listeners.Clear();
 //            Trace.Listeners.Add(new ConsoleTraceListener());
-#endif
-            ManagerOptions.Default.CallbackScheduler = new SingleThreadTaskScheduler();
+            ManagerOptions.Default.CallbackScheduler = TaskScheduler.Default;
+//#endif
             LoadCustomProperties();
-			StartCBLite();
+            StartCBLite();
             StartDatabase();
-		}
+        }
 
-		protected internal virtual Stream GetAsset(string name)
-		{
+        protected Stream GetAsset(string name)
+        {
             var assetPath = System.Reflection.Assembly.GetExecutingAssembly().GetName().Name + ".Assets." + name;
             Log.D(Tag, "Fetching assembly resource: " + assetPath);
-            return this.GetType().GetResourceAsStream(assetPath);
-		}
+            var stream = GetType().GetResourceAsStream(assetPath);
+            return stream;
+        }
 
-        protected internal virtual DirectoryInfo GetRootDirectory()
-		{
+        protected DirectoryInfo GetRootDirectory()
+        {
             var rootDirectoryPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
             var rootDirectory = new DirectoryInfo(Path.Combine(rootDirectoryPath, "couchbase/tests/files"));
-			return rootDirectory;
-		}
+            return rootDirectory;
+        }
 
-		protected internal virtual string GetServerPath()
-		{
+        protected string GetServerPath()
+        {
             var filesDir = GetRootDirectory().FullName;
-			return filesDir;
-		}
+            return filesDir;
+        }
 
-		/// <exception cref="System.IO.IOException"></exception>
-		protected internal virtual void StartCBLite()
-		{
-			string serverPath = GetServerPath();
+        /// <exception cref="System.IO.IOException"></exception>
+        protected void StartCBLite()
+        {
+            string serverPath = GetServerPath();
             var path = new DirectoryInfo(serverPath);
 
             if (path.Exists)
@@ -117,35 +121,35 @@ namespace Couchbase.Lite
 
             var testPath = path.CreateSubdirectory("tests");
             manager = new Manager(testPath, Manager.DefaultOptions);
-		}
+        }
 
-		protected internal virtual void StopCBLite()
-		{
-			if (manager != null)
-			{
-				manager.Close();
-			}
-		}
+        protected void StopCBLite()
+        {
+            if (manager != null)
+            {
+                manager.Close();
+            }
+        }
 
-		protected internal virtual Database StartDatabase()
-		{
-			database = EnsureEmptyDatabase(DefaultTestDb);
-			return database;
-		}
+        protected Database StartDatabase()
+        {
+            database = EnsureEmptyDatabase(DefaultTestDb);
+            return database;
+        }
 
-		protected internal virtual void StopDatabase()
-		{
-			if (database != null)
-			{
-				database.Close();
-			}
-		}
+        protected void StopDatabase()
+        {
+            if (database != null)
+            {
+                database.Close();
+            }
+        }
 
-		protected internal virtual Database EnsureEmptyDatabase(string dbName)
-		{
-			Database db = manager.GetExistingDatabase(dbName);
-			if (db != null)
-			{
+        protected Database EnsureEmptyDatabase(string dbName)
+        {
+            Database db = manager.GetExistingDatabase(dbName);
+            if (db != null)
+            {
                 var status = false;;
 
                 try {
@@ -155,204 +159,209 @@ namespace Couchbase.Lite
                     Log.E(Tag, "Cannot delete database " + e.Message);
                 }
 
-				NUnit.Framework.Assert.IsTrue(status);
+                Assert.IsTrue(status);
             }
             db = manager.GetDatabase(dbName);
-			return db;
-		}
-
-		/// <exception cref="System.IO.IOException"></exception>
-		protected internal virtual void LoadCustomProperties()
-		{
-            var systemProperties = Runtime.Properties;
-			InputStream mainProperties = GetAsset("test.properties");
-			if (mainProperties != null)
-			{
-                systemProperties.Load(mainProperties);
-			}
-			try
-			{
-                InputStream localProperties = GetAsset("local-test.properties");
-				if (localProperties != null)
-				{
-                    systemProperties.Load(localProperties);
-				}
-			}
-			catch (IOException)
-			{
-				Log.W(Tag, "Error trying to read from local-test.properties, does this file exist?");
-			}
-		}
-
-		protected internal virtual string GetReplicationProtocol()
-		{
-			return Runtime.GetProperty("replicationProtocol");
-		}
-
-		protected internal virtual string GetReplicationServer()
-		{
-			return Runtime.GetProperty("replicationServer");
-		}
-
-		protected internal virtual int GetReplicationPort()
-		{
-			return System.Convert.ToInt32(Runtime.GetProperty("replicationPort"));
-		}
-
-        protected internal virtual int GetReplicationAdminPort()
-        {
-            return System.Convert.ToInt32(Runtime.GetProperty("replicationAdminPort"));
+            return db;
         }
 
-		protected internal virtual string GetReplicationAdminUser()
-		{
-			return Runtime.GetProperty("replicationAdminUser");
-		}
+        /// <exception cref="System.IO.IOException"></exception>
+        protected void LoadCustomProperties()
+        {
+            var systemProperties = Runtime.Properties;
+            InputStream mainProperties = GetAsset("test.properties");
+            if (mainProperties != null)
+            {
+                systemProperties.Load(mainProperties);
+            }
+            try
+            {
+                var localProperties = GetAsset("local-test.properties");
+                if (localProperties != null)
+                {
+                    systemProperties.Load(localProperties);
+                }
+            }
+            catch (IOException)
+            {
+                Log.W(Tag, "Error trying to read from local-test.properties, does this file exist?");
+            }
+        }
 
-		protected internal virtual string GetReplicationAdminPassword()
-		{
-			return Runtime.GetProperty("replicationAdminPassword");
-		}
+        protected string GetReplicationProtocol()
+        {
+            return Runtime.GetProperty("replicationProtocol");
+        }
 
-		protected internal virtual string GetReplicationDatabase()
-		{
-			return Runtime.GetProperty("replicationDatabase");
-		}
+        protected string GetReplicationServer()
+        {
+            return Runtime.GetProperty("replicationServer");
+        }
 
-		protected internal virtual Uri GetReplicationURL()
-		{
+        protected int GetReplicationPort()
+        {
+            return Convert.ToInt32(Runtime.GetProperty("replicationPort"));
+        }
+
+        protected int GetReplicationAdminPort()
+        {
+            return Convert.ToInt32(Runtime.GetProperty("replicationAdminPort"));
+        }
+
+        protected string GetReplicationAdminUser()
+        {
+            return Runtime.GetProperty("replicationAdminUser");
+        }
+
+        protected string GetReplicationAdminPassword()
+        {
+            return Runtime.GetProperty("replicationAdminPassword");
+        }
+
+        protected string GetReplicationDatabase()
+        {
+            return Runtime.GetProperty("replicationDatabase");
+        }
+
+        protected Uri GetReplicationURL()
+        {
             String path = null;
-			try
-			{
+            try
+            {
                 if (GetReplicationAdminUser() != null && GetReplicationAdminUser().Trim().Length > 0)
-				{
+                {
                     path = string.Format("{0}://{1}:{2}@{3}:{4}/{5}", GetReplicationProtocol(), GetReplicationAdminUser
                         (), GetReplicationAdminPassword(), GetReplicationServer(), GetReplicationPort(), 
                         GetReplicationDatabase());
                     return new Uri(path);
-				}
-				else
-				{
+                }
+                else
+                {
                     path = string.Format("{0}://{1}:{2}/{3}", GetReplicationProtocol(), GetReplicationServer
                         (), GetReplicationPort(), GetReplicationDatabase());
                     return new Uri(path);
-				}
-			}
-			catch (UriFormatException e)
-			{
+                }
+            }
+            catch (UriFormatException e)
+            {
                 throw new ArgumentException(String.Format("Invalid replication URL: {0}", path), e);
-			}
-		}
+            }
+        }
 
-		/// <exception cref="System.UriFormatException"></exception>
-		protected internal virtual Uri GetReplicationURLWithoutCredentials()
-		{
+        protected bool IsTestingAgainstSyncGateway()
+        {
+            return GetReplicationPort() == 4984;
+        }
+
+        /// <exception cref="System.UriFormatException"></exception>
+        protected Uri GetReplicationURLWithoutCredentials()
+        {
             return new Uri(string.Format("{0}://{1}:{2}/{3}", GetReplicationProtocol(), GetReplicationServer(), GetReplicationPort(), GetReplicationDatabase()));
-		}
+        }
 
-        protected internal virtual Uri GetReplicationAdminURL()
+        protected Uri GetReplicationAdminURL()
         {
             return new Uri(string.Format("{0}://{1}:{2}/{3}", GetReplicationProtocol(), GetReplicationServer(), GetReplicationAdminPort(), GetReplicationDatabase()));
         }
 
         [TearDown]
         protected void TearDown()
-		{
-			Log.V(Tag, "tearDown");
-			StopDatabase();
-			StopCBLite();
-		}
+        {
+            Log.V(Tag, "tearDown");
+            StopDatabase();
+            StopCBLite();
+        }
 
-		protected internal virtual IDictionary<string, object> UserProperties(IDictionary
-			<string, object> properties)
-		{
+        protected IDictionary<string, object> UserProperties(IDictionary
+            <string, object> properties)
+        {
             var result = new Dictionary<string, object>();
-			foreach (string key in properties.Keys)
-			{
-				if (!key.StartsWith ("_", StringComparison.Ordinal))
-				{
-					result.Put(key, properties[key]);
-				}
-			}
-			return result;
-		}
+            foreach (string key in properties.Keys)
+            {
+                if (!key.StartsWith ("_", StringComparison.Ordinal))
+                {
+                    result.Put(key, properties[key]);
+                }
+            }
+            return result;
+        }
 
-		/// <exception cref="System.IO.IOException"></exception>
-		public virtual IDictionary<string, object> GetReplicationAuthParsedJson()
-		{
-			var authJson = "{\n" + "    \"facebook\" : {\n" + "        \"email\" : \"jchris@couchbase.com\"\n"
-				 + "     }\n" + "   }\n";
+        /// <exception cref="System.IO.IOException"></exception>
+        public virtual IDictionary<string, object> GetReplicationAuthParsedJson()
+        {
+            var authJson = "{\n" + "    \"facebook\" : {\n" + "        \"email\" : \"jchris@couchbase.com\"\n"
+                 + "     }\n" + "   }\n";
             mapper = new ObjectWriter();
             var authProperties = mapper.ReadValue<Dictionary<string, object>>(authJson);
-			return authProperties;
-		}
+            return authProperties;
+        }
 
-		/// <exception cref="System.IO.IOException"></exception>
-		public virtual IDictionary<string, object> GetPushReplicationParsedJson()
-		{
-			IDictionary<string, object> authProperties = GetReplicationAuthParsedJson();
-			IDictionary<string, object> targetProperties = new Dictionary<string, object>();
-			targetProperties.Put("url", GetReplicationURL().ToString());
-			targetProperties["auth"] = authProperties;
-			IDictionary<string, object> properties = new Dictionary<string, object>();
-			properties["source"] = DefaultTestDb;
-			properties["target"] = targetProperties;
-			return properties;
-		}
+        /// <exception cref="System.IO.IOException"></exception>
+        public virtual IDictionary<string, object> GetPushReplicationParsedJson()
+        {
+            IDictionary<string, object> authProperties = GetReplicationAuthParsedJson();
+            IDictionary<string, object> targetProperties = new Dictionary<string, object>();
+            targetProperties.Put("url", GetReplicationURL().ToString());
+            targetProperties["auth"] = authProperties;
+            IDictionary<string, object> properties = new Dictionary<string, object>();
+            properties["source"] = DefaultTestDb;
+            properties["target"] = targetProperties;
+            return properties;
+        }
 
-		/// <exception cref="System.IO.IOException"></exception>
-		public virtual IDictionary<string, object> GetPullReplicationParsedJson()
-		{
-			IDictionary<string, object> authProperties = GetReplicationAuthParsedJson();
-			IDictionary<string, object> sourceProperties = new Dictionary<string, object>();
-			sourceProperties.Put("url", GetReplicationURL().ToString());
-			sourceProperties["auth"] = authProperties;
-			IDictionary<string, object> properties = new Dictionary<string, object>();
-			properties["source"] = sourceProperties;
-			properties["target"] = DefaultTestDb;
-			return properties;
-		}
+        /// <exception cref="System.IO.IOException"></exception>
+        public virtual IDictionary<string, object> GetPullReplicationParsedJson()
+        {
+            IDictionary<string, object> authProperties = GetReplicationAuthParsedJson();
+            IDictionary<string, object> sourceProperties = new Dictionary<string, object>();
+            sourceProperties.Put("url", GetReplicationURL().ToString());
+            sourceProperties["auth"] = authProperties;
+            IDictionary<string, object> properties = new Dictionary<string, object>();
+            properties["source"] = sourceProperties;
+            properties["target"] = DefaultTestDb;
+            return properties;
+        }
 
         internal virtual HttpURLConnection SendRequest(string method, string path, 
             IDictionary<string, string> headers, IDictionary<string, object> bodyObj)
-		{
-			try
-			{
+        {
+            try
+            {
                 var url = new Uri(new Uri((string)bodyObj["remote_url"]), path);
                 var conn = url.OpenConnection();
-				conn.SetDoOutput(true);
-				conn.SetRequestMethod(method);
-				if (headers != null)
-				{
-					foreach (string header in headers.Keys)
-					{
-						conn.SetRequestProperty(header, headers[header]);
-					}
-				}
+                conn.SetDoOutput(true);
+                conn.SetRequestMethod(method);
+                if (headers != null)
+                {
+                    foreach (string header in headers.Keys)
+                    {
+                        conn.SetRequestProperty(header, headers[header]);
+                    }
+                }
                 var allProperties = conn.GetRequestProperties();
-				if (bodyObj != null)
-				{
+                if (bodyObj != null)
+                {
                     //conn.SetDoInput(true);
-					var bais = mapper.WriteValueAsBytes(bodyObj);
+                    var bais = mapper.WriteValueAsBytes(bodyObj);
                     conn.SetRequestInputStream(bais);
-				}
+                }
 /*                var router = new Couchbase.Lite.Router.Router(manager, conn);
-				router.Start();
-*/				return conn;
-			}
-			catch (UriFormatException)
-			{
+                router.Start();
+*/              return conn;
+            }
+            catch (UriFormatException)
+            {
                 Assert.Fail();
-			}
-			catch (IOException)
-			{
+            }
+            catch (IOException)
+            {
                 Assert.Fail();
-			}
-			return null;
-		}
+            }
+            return null;
+        }
 
         internal virtual object ParseJSONResponse(HttpURLConnection conn)
-		{
+        {
             Object result = null;
             var stream = conn.GetOutputStream();
             var bytesRead = 0L;
@@ -361,47 +370,49 @@ namespace Couchbase.Lite
             var bytes = stream.ReadAllBytes();
 
             var responseBody = new Body(bytes);
-			if (responseBody != null)
-			{
+            if (responseBody != null)
+            {
                 var json = responseBody.GetJson();
                 String jsonString = null;
-				if (json != null)
-				{
-					jsonString = Sharpen.Runtime.GetStringForBytes(json);
-					try
-					{
-						result = mapper.ReadValue<object>(jsonString);
-					}
-					catch (Exception)
-					{
+                if (json != null)
+                {
+                    jsonString = Runtime.GetStringForBytes(json);
+                    try
+                    {
+                        result = mapper.ReadValue<object>(jsonString);
+                    }
+                    catch (Exception)
+                    {
                         Assert.Fail();
-					}
-				}
-			}
-			return result;
-		}
+                    }
+                }
+            }
+            return result;
+        }
 
-        protected internal virtual object SendBody(string method, string path, IDictionary<string, object> bodyObj
-			, int expectedStatus, object expectedResult)
-		{
+        protected object SendBody(string method, string path, IDictionary<string, object> bodyObj, int expectedStatus, object expectedResult)
+        {
             var conn = SendRequest(method, path, null, bodyObj);
-			object result = ParseJSONResponse(conn);
+            var result = ParseJSONResponse(conn);
+
             Log.V(Tag, string.Format("{0} {1} --> {2}", method, path, conn.GetResponseCode()));
-			NUnit.Framework.Assert.AreEqual(expectedStatus, conn.GetResponseCode());
-			if (expectedResult != null)
-			{
-				NUnit.Framework.Assert.AreEqual(expectedResult, result);
-			}
-			return result;
-		}
 
-        protected internal virtual object Send(string method, string path, HttpStatusCode expectedStatus
-			, object expectedResult)
-		{
+            Assert.AreEqual(expectedStatus, conn.GetResponseCode());
+            
+            if (expectedResult != null)
+            {
+                Assert.AreEqual(expectedResult, result);
+            }
+            return result;
+        }
+
+        protected object Send(string method, string path, HttpStatusCode expectedStatus, object expectedResult)
+        {
             return SendBody(method, path, null, (int)expectedStatus, expectedResult);
-		}
+        }
 
-        protected internal void CreateDocuments(Database db, int n) {
+        internal static void CreateDocuments(Database db, int n)
+        {
             for (int i = 0; i < n; i++) {
                 var properties = new Dictionary<string, object>();
                 properties.Add("testName", "testDatabase");
@@ -410,7 +421,17 @@ namespace Couchbase.Lite
             }
         }
 
-        protected internal Document CreateDocumentWithProperties(Database db, IDictionary<string, object> properties) 
+        internal static Task CreateDocumentsAsync(Database database, int n)
+        {
+            return database.RunAsync(db => 
+            {
+                db.BeginTransaction();
+                LiteTestCase.CreateDocuments(db, n);
+                db.EndTransaction(true);
+            });
+        }
+
+        internal static Document CreateDocumentWithProperties(Database db, IDictionary<string, object> properties) 
         {
             var doc = db.CreateDocument();
 
@@ -433,13 +454,61 @@ namespace Couchbase.Lite
             Assert.IsNotNull(doc.CurrentRevisionId);
             Assert.IsNotNull(doc.CurrentRevision);
 
+            // should be same doc instance, since there should only ever be a single Document instance for a given document
             Assert.AreEqual(db.GetDocument(doc.Id), doc);
             Assert.AreEqual(db.GetDocument(doc.Id).Id, doc.Id);
 
             return doc;
         }
+
+        internal static Document CreateDocWithAttachment(Database database, string attachmentName, string content)
+        {
+            var properties = new Dictionary<string, object>();
+            properties.Put("foo", "bar");
+
+            var doc = CreateDocumentWithProperties(database, properties);
+            var rev = doc.CurrentRevision;
+            Assert.AreEqual(rev.Attachments.Count(), 0);
+            Assert.AreEqual(rev.AttachmentNames.Count(), 0);
+            Assert.IsNull(rev.GetAttachment(attachmentName));
+
+            var body = new ByteArrayInputStream(Encoding.UTF8.GetBytes(content));
+            var rev2 = doc.CreateRevision();
+            rev2.SetAttachment(attachmentName, "text/plain; charset=utf-8", body);
+            var rev3 = rev2.Save();
+            Assert.IsNotNull(rev3);
+            Assert.AreEqual(rev3.Attachments.Count(), 1);
+            Assert.AreEqual(rev3.AttachmentNames.Count(), 1);
+
+            var attach = rev3.GetAttachment(attachmentName);
+            Assert.IsNotNull(attach);
+            Assert.AreEqual(doc, attach.Document);
+            Assert.AreEqual(attachmentName, attach.Name);
+
+            var attNames = new AList<string>();
+            attNames.AddItem(attachmentName);
+            Assert.AreEqual(rev3.AttachmentNames, attNames);
+            Assert.AreEqual("text/plain; charset=utf-8", attach.ContentType);
+            Assert.AreEqual(Encoding.UTF8.GetString(attach.Content.ToArray()), content);
+            Assert.AreEqual(Encoding.UTF8.GetBytes(content).Length, attach.Length);
+            return doc;
+        }          
             
-        protected internal void AssertEnumerablesAreEqual(
+        public void StopReplication(Replication replication)
+        {
+            var replicationDoneSignal = new CountDownLatch(1);
+            var replicationStoppedObserver = new ReplicationObserver(replicationDoneSignal);
+            replication.Changed += replicationStoppedObserver.Changed;
+            replication.Stop();
+
+            var success = replicationDoneSignal.Await(TimeSpan.FromSeconds(30));
+            Assert.IsTrue(success);
+
+            // give a little padding to give it a chance to save a checkpoint
+            System.Threading.Thread.Sleep(2 * 1000);
+        }
+
+        protected void AssertEnumerablesAreEqual(
             IEnumerable list1, 
             IEnumerable list2)
         {
@@ -466,7 +535,7 @@ namespace Couchbase.Lite
             }
         }
 
-        protected internal void AssertPropertiesAreEqual(
+        protected void AssertPropertiesAreEqual(
             IDictionary<string, object> prop1,
             IDictionary<string, object> prop2)
         {
@@ -491,5 +560,117 @@ namespace Couchbase.Lite
                 }
             }
         }
-	}
+
+        /// <exception cref="System.Exception"></exception>
+        public void DumpTableMaps()
+        {
+            var cursor = database.StorageEngine.RawQuery("SELECT * FROM maps", null);
+            while (cursor.MoveToNext())
+            {
+                var viewId = cursor.GetInt(0);
+                var sequence = cursor.GetInt(1);
+                var key = cursor.GetBlob(2);
+                string keyStr = null;
+
+                if (key != null)
+                {
+                    keyStr = Encoding.UTF8.GetString(key);
+                }
+
+                var value = cursor.GetBlob(3);
+                string valueStr = null;
+                if (value != null)
+                {
+                    valueStr = Encoding.UTF8.GetString(value);
+                }
+
+                Log.D(
+                    Tag,
+                    "Maps row viewId: {0} seq: {1}, key: {2}, val: {3}"
+                    .Fmt(viewId, sequence, keyStr, valueStr)
+                );
+            }
+        }
+
+        /// <exception cref="System.Exception"></exception>
+        public void DumpTableRevs()
+        {
+            var cursor = database.StorageEngine.RawQuery("SELECT * FROM revs", null);
+            while (cursor.MoveToNext())
+            {
+                var sequence = cursor.GetInt(0);
+                var doc_id = cursor.GetInt(1);
+                var revid = cursor.GetBlob(2);
+                string revIdStr = null;
+
+                if (revid != null)
+                {
+                    revIdStr = Encoding.UTF8.GetString(revid);
+                }
+
+                var parent = cursor.GetInt(3);
+                var current = cursor.GetInt(4);
+                var deleted = cursor.GetInt(5);
+
+                Log.D(
+                    Tag, 
+                    "Revs row seq: {0} doc_id: {1}, " +
+                    "revIdStr: {2}, " +
+                    "parent: {3}, " +
+                    "current: {4}, " +
+                    "deleted: {5}".Fmt(sequence, doc_id, revIdStr, parent, current, deleted)
+                );
+            }
+        }
+
+        /// <exception cref="System.Exception"></exception>
+        public static SavedRevision CreateRevisionWithRandomProps(SavedRevision createRevFrom, bool allowConflict)
+        {
+            var properties = new Dictionary<string, object>();
+            properties.Put(Misc.CreateGUID(), "val");
+
+            var unsavedRevision = createRevFrom.CreateRevision();
+            unsavedRevision.SetUserProperties(properties);
+
+            return unsavedRevision.Save(allowConflict);
+        }
+    }
+
+    internal class ReplicationStoppedObserver
+    {
+        private readonly CountDownLatch doneSignal;
+
+        public ReplicationStoppedObserver(CountDownLatch doneSignal)
+        {
+            this.doneSignal = doneSignal;
+        }
+
+        public void Changed(ReplicationChangeEventArgs args)
+        {
+            var replicator = args.Source;
+            if (replicator.Status == ReplicationStatus.Stopped)
+            {
+                doneSignal.CountDown();
+            }
+        }
+    }
+
+    internal class ReplicationErrorObserver
+    {
+        private readonly CountDownLatch doneSignal;
+
+        public ReplicationErrorObserver(CountDownLatch doneSignal)
+        {
+            this.doneSignal = doneSignal;
+        }
+
+        public void Changed(ReplicationChangeEventArgs args)
+        {
+            var replicator = args.Source;
+            if (replicator.LastError != null)
+            {
+                doneSignal.CountDown();
+            }
+        }
+    }
 }

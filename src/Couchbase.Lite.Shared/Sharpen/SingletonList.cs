@@ -2,7 +2,7 @@
 // SingletonList.cs
 //
 // Author:
-//	Zachary Gramana  <zack@xamarin.com>
+//  Zachary Gramana  <zack@xamarin.com>
 //
 // Copyright (c) 2013, 2014 Xamarin Inc (http://www.xamarin.com)
 //
@@ -43,13 +43,13 @@
 */
 namespace Sharpen
 {
-	using System;
+    using System;
 
-	internal class SingletonList
-	{
-		public SingletonList (string val)
-		{
-			throw new NotImplementedException ();
-		}
-	}
+    internal class SingletonList
+    {
+        public SingletonList (string val)
+        {
+            throw new NotImplementedException ();
+        }
+    }
 }

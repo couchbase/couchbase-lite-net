@@ -1,5 +1,5 @@
 //
-// ChangeTrackerClient.cs
+// TDContentOptions.cs
 //
 // Author:
 //     Zachary Gramana  <zack@xamarin.com>
@@ -39,17 +39,22 @@
 // either express or implied. See the License for the specific language governing permissions
 // and limitations under the License.
 //
+using System;
 
-using System.Collections.Generic;
-using Couchbase.Lite.Replicator;
-using Couchbase.Lite.Support;
-using Sharpen;
 
-namespace Couchbase.Lite.Replicator
-{
-    internal interface IChangeTrackerClient : IHttpClientFactory
-	{
-		void ChangeTrackerReceivedChange(IDictionary<string, object> change);
-		void ChangeTrackerStopped(ChangeTracker tracker);
-	}
+namespace Couchbase.Lite {
+    /// <summary>Options for what metadata to include in document bodies</summary>
+    [Flags]
+    internal enum DocumentContentOptions
+    {
+        None,
+        IncludeAttachments = 2,
+        IncludeConflicts = 4,
+        IncludeRevs = 8,
+        IncludeRevsInfo = 16,
+        IncludeLocalSeq = 32,
+        NoBody = 64,
+        BigAttachmentsFollow = 128,
+        NoAttachments = 256
+    }
 }

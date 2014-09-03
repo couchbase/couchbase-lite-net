@@ -44,67 +44,79 @@ using System.IO;
 using Couchbase.Lite;
 using Couchbase.Lite.Util;
 using Sharpen;
+using System;
 
 namespace Couchbase.Lite.Util
 {
-	public class FileDirUtils
-	{
+    internal class FileDirUtils
+    {
+        const string Tag = "FileDirUtils";
+
         public static string GetDatabaseNameFromPath(string path)
         {
-            int lastSlashPos = path.LastIndexOf("/");
-            int extensionPos = path.LastIndexOf(".");
-            if (lastSlashPos < 0 || extensionPos < 0 || extensionPos < lastSlashPos)
-            {
+            var name = Path.GetFileNameWithoutExtension(path);
+            if (name == null) {
                 Log.E(Database.Tag, "Unable to determine database name from path");
-                return null;
             }
-            return Sharpen.Runtime.Substring(path, lastSlashPos + 1, extensionPos);
+            return name;
         }
 
-		public static bool RemoveItemIfExists(string path)
-		{
-			FilePath f = new FilePath(path);
-			return f.Delete() || !f.Exists();
-		}
+        public static bool RemoveItemIfExists(string path)
+        {
+            FilePath f = new FilePath(path);
+            return f.Delete() || !f.Exists();
+        }
 
-		/// <exception cref="System.IO.IOException"></exception>
+        /// <exception cref="System.IO.IOException"></exception>
         public static void CopyFile(FileInfo sourceFile, FileInfo destFile)
-		{
+        {
             if (!File.Exists(destFile.FullName))
-			{
+            {
                 File.Open (destFile.FullName, FileMode.CreateNew).Close ();
-			}
+            }
 
             sourceFile.CopyTo(destFile.FullName);
-		}
+        }
 
-		/// <exception cref="System.IO.IOException"></exception>
+        public static bool DeleteRecursive (FilePath attachmentsFile)
+        {
+            var success = true;
+            try {
+                Directory.Delete (attachmentsFile.GetPath (), true);
+            } catch (Exception ex) {
+                Log.V(Tag, "Error deleting the '{0}' directory.".Fmt(attachmentsFile.GetAbsolutePath()), ex);
+                success = false;
+            }
+            return success;
+        }
+
+        /// <exception cref="System.IO.IOException"></exception>
         public static void CopyFolder(FileSystemInfo sourcePath, FileSystemInfo destinationPath)
-		{
+        {
             var sourceDirectory = sourcePath as DirectoryInfo;
             if (sourceDirectory != null)
-			{
+            {
                 var destPath = Path.Combine(Path.GetDirectoryName(destinationPath.FullName), Path.GetFileName(sourceDirectory.Name));
                 var destinationDirectory = new DirectoryInfo(destPath);
 
-				//if directory not exists, create it
+                //if directory not exists, create it
                 if (!destinationDirectory.Exists)
-				{
+                {
                     destinationDirectory.Create();
-				}
-				//list all the directory contents
+                }
+                //list all the directory contents
                 var fileInfos = sourceDirectory.EnumerateFileSystemInfos();
                 foreach (var fileInfo in fileInfos)
-				{
-					//construct the src and dest file structure
-					//recursive copy
+                {
+                    //construct the src and dest file structure
+                    //recursive copy
                     CopyFolder(fileInfo, destinationDirectory);
-				}
-			}
-			else
-			{
+                }
+            }
+            else
+            {
                 CopyFile((FileInfo)sourcePath, (FileInfo)destinationPath);
-			}
-		}
-	}
+            }
+        }
+    }
 }

@@ -62,13 +62,15 @@ namespace Couchbase.Lite.Util
 
         public CookieStore() : this (null) { }
 
-        public CookieStore(DirectoryInfo directory) 
+        public CookieStore(String directory) 
         {
             cookiesField = typeof(CookieContainer)
                 .GetField("cookies", (BindingFlags.GetField | BindingFlags.Instance | BindingFlags.NonPublic));
 
-            this.directory = directory;
-
+            if (directory != null)
+            {
+                this.directory = new DirectoryInfo(directory);
+            }
             DeserializeFromDisk();
         }
 

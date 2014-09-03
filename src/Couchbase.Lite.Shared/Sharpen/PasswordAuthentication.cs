@@ -2,7 +2,7 @@
 // PasswordAuthentication.cs
 //
 // Author:
-//	Zachary Gramana  <zack@xamarin.com>
+//  Zachary Gramana  <zack@xamarin.com>
 //
 // Copyright (c) 2013, 2014 Xamarin Inc (http://www.xamarin.com)
 //
@@ -43,23 +43,23 @@
 */
 namespace Sharpen
 {
-	using System;
+    using System;
 
-	internal class PasswordAuthentication
-	{
-		public PasswordAuthentication (string user, char[] password)
-		{
-			throw new NotImplementedException ();
-		}
+    internal class PasswordAuthentication
+    {
+        public PasswordAuthentication (string user, char[] password)
+        {
+            throw new NotImplementedException ();
+        }
 
-		public char[] GetPassword ()
-		{
-			throw new NotImplementedException ();
-		}
+        public char[] GetPassword ()
+        {
+            throw new NotImplementedException ();
+        }
 
-		public string GetUserName ()
-		{
-			throw new NotImplementedException ();
-		}
-	}
+        public string GetUserName ()
+        {
+            throw new NotImplementedException ();
+        }
+    }
 }

@@ -49,6 +49,7 @@ using System.Threading.Tasks;
 using System.Linq;
 using System.IO;
 using Newtonsoft.Json.Linq;
+using System.Web;
 
 namespace Couchbase.Lite.Tests
 {
@@ -77,16 +78,18 @@ namespace Couchbase.Lite.Tests
 
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
-            Delay();
+            //var response = base.SendAsync(request, cancellationToken).Result;
 
-            CapturedRequests.Add(request);
+            Delay(); // FIXEM: Currently a no-op.
+
+            capturedRequests.Add(request);
 
             foreach(var urlPattern in responders.Keys)
             {
                 if (urlPattern.Equals("*") || request.RequestUri.PathAndQuery.Contains(urlPattern))
                 {
-                    HttpResponseDelegate responder = responders[urlPattern];
-                    HttpResponseMessage message = responder(request);
+                    var responder = responders[urlPattern];
+                    var message = responder(request);
                     NotifyResponseListeners(request, message);
                     return Task.FromResult<HttpResponseMessage>(message);
                 }
@@ -100,14 +103,9 @@ namespace Couchbase.Lite.Tests
             responders[urlPattern] = responder;
         }
 
-        public IList<HttpRequestMessage> GetCapturedRequests() 
+        public void ClearCapturedRequests() 
         {
-            var snapshot = new List<HttpRequestMessage>(CapturedRequests);
-            return snapshot;
-        }
-
-        public void ClearCapturedRequests() {
-            CapturedRequests.Clear();
+            capturedRequests.Clear();
         }
 
         public void AddDefaultResponders()
@@ -144,7 +142,7 @@ namespace Couchbase.Lite.Tests
         public void AddResponderThrowExceptionAllRequests() 
         {
             HttpResponseDelegate responder = (request) => {
-                throw new IOException("Test IOException");
+                throw new WebException("Test WebException", WebExceptionStatus.UnknownError);
             };
             SetResponder("*", responder);
         }
@@ -165,7 +163,7 @@ namespace Couchbase.Lite.Tests
 
         public void AddResponderReturnEmptyChangesFeed() 
         {
-            String json = "{\"results\":[]}";
+            var json = "{\"results\":[]}";
             HttpResponseDelegate responder = (request) => GenerateHttpResponseMessage(HttpStatusCode.Accepted, null, json);
             SetResponder("_changes", responder);
         }
@@ -180,7 +178,18 @@ namespace Couchbase.Lite.Tests
 
         private IDictionary <string, HttpResponseDelegate> responders;
 
-        internal IList <HttpRequestMessage> CapturedRequests;
+        private IList <HttpRequestMessage> capturedRequests;
+
+        internal IList<HttpRequestMessage> CapturedRequests
+        {
+            private set { 
+                capturedRequests = value; 
+            }
+            get {
+                var snapshot = new List<HttpRequestMessage>(capturedRequests);
+                return snapshot;
+            }
+        }
 
         private void Delay()
         {
@@ -330,7 +339,8 @@ namespace Couchbase.Lite.Tests
             return response;
         }
 
-        public static HttpResponseMessage FakeLocalDocumentUpdateIOException(HttpRequestMessage httpUriRequest) {
+        public static HttpResponseMessage FakeLocalDocumentUpdateIOException(HttpRequestMessage httpUriRequest)
+        {
             throw new IOException("Throw exception on purpose for purposes of testSaveRemoteCheckpointNoResponse()");
         }
 

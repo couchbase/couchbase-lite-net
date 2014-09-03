@@ -2,7 +2,7 @@
 // BufferedReader.cs
 //
 // Author:
-//	Zachary Gramana  <zack@xamarin.com>
+//  Zachary Gramana  <zack@xamarin.com>
 //
 // Copyright (c) 2013, 2014 Xamarin Inc (http://www.xamarin.com)
 //
@@ -43,13 +43,13 @@
 */
 namespace Sharpen
 {
-	using System;
-	using System.IO;
+    using System;
+    using System.IO;
 
-	internal class BufferedReader : StreamReader
-	{
-		public BufferedReader (InputStreamReader r) : base(r.BaseStream)
-		{
-		}
-	}
+    internal class BufferedReader : StreamReader
+    {
+        public BufferedReader (InputStreamReader r) : base(r.BaseStream)
+        {
+        }
+    }
 }

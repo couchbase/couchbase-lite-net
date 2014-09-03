@@ -40,36 +40,36 @@ using Sharpen;
 
 namespace Couchbase.Lite
 {
-	public class BlobStoreWriterTest : LiteTestCase
-	{
-		/// <exception cref="System.Exception"></exception>
-		public virtual void TestBasicOperation()
-		{
-			BlobStore attachments = database.GetAttachments();
-			InputStream attachmentStream = GetAsset("attachment.png");
-			byte[] bytes = IOUtils.ToByteArray(attachmentStream);
-			BlobStoreWriter blobStoreWriter = new BlobStoreWriter(attachments);
-			blobStoreWriter.AppendData(bytes);
-			blobStoreWriter.Finish();
-			blobStoreWriter.Install();
-			string sha1DigestKey = blobStoreWriter.SHA1DigestString();
-			NUnit.Framework.Assert.IsTrue(sha1DigestKey.Contains("LmsoqJJ6LOn4YS60pYnvrKbBd64="
-				));
-			BlobKey keyFromSha1 = new BlobKey(sha1DigestKey);
-			NUnit.Framework.Assert.IsTrue(attachments.GetSizeOfBlob(keyFromSha1) == bytes.Length
-				);
-		}
+    public class BlobStoreWriterTest : LiteTestCase
+    {
+        /// <exception cref="System.Exception"></exception>
+        public virtual void TestBasicOperation()
+        {
+            BlobStore attachments = database.GetAttachments();
+            InputStream attachmentStream = GetAsset("attachment.png");
+            byte[] bytes = IOUtils.ToByteArray(attachmentStream);
+            BlobStoreWriter blobStoreWriter = new BlobStoreWriter(attachments);
+            blobStoreWriter.AppendData(bytes);
+            blobStoreWriter.Finish();
+            blobStoreWriter.Install();
+            string sha1DigestKey = blobStoreWriter.SHA1DigestString();
+            NUnit.Framework.Assert.IsTrue(sha1DigestKey.Contains("LmsoqJJ6LOn4YS60pYnvrKbBd64="
+                ));
+            BlobKey keyFromSha1 = new BlobKey(sha1DigestKey);
+            NUnit.Framework.Assert.IsTrue(attachments.GetSizeOfBlob(keyFromSha1) == bytes.Length
+                );
+        }
 
-		/// <exception cref="System.Exception"></exception>
-		public virtual void TestBlobStoreWriterForBody()
-		{
-			BlobStore attachments = database.GetAttachments();
-			InputStream attachmentStream = GetAsset("attachment.png");
-			BlobStoreWriter blobStoreWriter = Attachment.BlobStoreWriterForBody(attachmentStream
-				, database);
-			string sha1DigestKey = blobStoreWriter.SHA1DigestString();
-			NUnit.Framework.Assert.IsTrue(sha1DigestKey.Contains("LmsoqJJ6LOn4YS60pYnvrKbBd64="
-				));
-		}
-	}
+        /// <exception cref="System.Exception"></exception>
+        public virtual void TestBlobStoreWriterForBody()
+        {
+            BlobStore attachments = database.GetAttachments();
+            InputStream attachmentStream = GetAsset("attachment.png");
+            BlobStoreWriter blobStoreWriter = Attachment.BlobStoreWriterForBody(attachmentStream
+                , database);
+            string sha1DigestKey = blobStoreWriter.SHA1DigestString();
+            NUnit.Framework.Assert.IsTrue(sha1DigestKey.Contains("LmsoqJJ6LOn4YS60pYnvrKbBd64="
+                ));
+        }
+    }
 }

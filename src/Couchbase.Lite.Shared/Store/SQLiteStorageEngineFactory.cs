@@ -47,10 +47,10 @@ using Couchbase.Lite.Shared;
 namespace Couchbase.Lite.Storage
 {
     internal static class SQLiteStorageEngineFactory
-	{
+    {
         internal static ISQLiteStorageEngine CreateStorageEngine()
-		{
+        {
             return new SqlitePCLRawStorageEngine(); //MonoSQLiteStorageEngine();
-		}
-	}
+        }
+    }
 }

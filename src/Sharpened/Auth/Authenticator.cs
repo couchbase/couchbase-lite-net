@@ -37,7 +37,7 @@ using Sharpen;
 
 namespace Couchbase.Lite.Auth
 {
-	public interface Authenticator
-	{
-	}
+    public interface Authenticator
+    {
+    }
 }

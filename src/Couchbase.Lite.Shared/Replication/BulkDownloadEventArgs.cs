@@ -1,10 +1,4 @@
-﻿//
-// Utils.cs
-//
-// Author:
-//     Pasin Suriyentrakorn  <pasin@couchbase.com>
-//
-// Copyright (c) 2014 Couchbase Inc
+// 
 // Copyright (c) 2014 .NET Foundation
 //
 // Permission is hereby granted, free of charge, to any person obtaining
@@ -38,25 +32,34 @@
 // License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
 // either express or implied. See the License for the specific language governing permissions
 // and limitations under the License.
-//
-
+//using System;
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 using System.Net;
+using System.Net.Http;
+using System.Threading.Tasks;
+using Couchbase.Lite;
+using Couchbase.Lite.Internal;
+using Couchbase.Lite.Replicator;
+using Couchbase.Lite.Support;
+using Couchbase.Lite.Util;
+using Sharpen;
+using System.Threading;
 
-namespace Couchbase.Lite.Util
+namespace Couchbase.Lite.Replicator
 {
-    public class Utils
+
+    public class BulkDownloadEventArgs : EventArgs
     {
-        public static bool IsTransientError(HttpStatusCode status)
+        public IDictionary<string, object> DocumentProperties { get; private set; }
+
+        public BulkDownloadEventArgs(IDictionary<string, object> props)
         {
-            if (status == HttpStatusCode.InternalServerError || 
-                status == HttpStatusCode.BadGateway || 
-                status == HttpStatusCode.ServiceUnavailable || 
-                status == HttpStatusCode.GatewayTimeout)
-            {
-                return true;
-            }
-            return false;
+            DocumentProperties = props;
         }
     }
-}
 
+}

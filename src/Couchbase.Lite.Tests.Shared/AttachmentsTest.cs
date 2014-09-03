@@ -2,7 +2,7 @@
 // AttachmentsTest.cs
 //
 // Author:
-//	Zachary Gramana  <zack@xamarin.com>
+//  Zachary Gramana  <zack@xamarin.com>
 //
 // Copyright (c) 2013, 2014 Xamarin Inc (http://www.xamarin.com)
 //
@@ -51,45 +51,69 @@ using Couchbase.Lite;
 using Couchbase.Lite.Internal;
 using Sharpen;
 using Newtonsoft.Json.Linq;
+using Couchbase.Lite.Storage;
+using Couchbase.Lite.Util;
 
 namespace Couchbase.Lite
 {
-	public class AttachmentsTest : LiteTestCase
-	{
-		public const string Tag = "Attachments";
+    public class AttachmentsTest : LiteTestCase
+    {
+        public const string Tag = "Attachments";
 
-		/// <exception cref="System.Exception"></exception>
+        /// <exception cref="System.Exception"></exception>
         [Test]
         public void TestAttachments()
-		{
+        {
             var testAttachmentName = "test_attachment";
             var attachments = database.Attachments;
-			Assert.AreEqual(0, attachments.Count());
+            Assert.AreEqual(0, attachments.Count());
             Assert.AreEqual(0, attachments.AllKeys().Count());
-			
+            
             var rev1Properties = new Dictionary<string, object>();
-			rev1Properties["foo"] = 1;
-			rev1Properties["bar"] = false;
+            rev1Properties["foo"] = 1;
+            rev1Properties["bar"] = false;
 
             var status = new Status();
             var rev1 = database.PutRevision(
                 new RevisionInternal(rev1Properties, database), null, false, status);
-			Assert.AreEqual(StatusCode.Created, status.GetCode());
+            Assert.AreEqual(StatusCode.Created, status.GetCode());
 
             var attach1 = Runtime.GetBytesForString(
                 "This is the body of attach1").ToArray();
-			database.InsertAttachmentForSequenceWithNameAndType(
+            database.InsertAttachmentForSequenceWithNameAndType(
                 new ByteArrayInputStream(attach1), 
                 rev1.GetSequence(), 
                 testAttachmentName, 
                 "text/plain", 
                 rev1.GetGeneration());
 
+            //We must set the no_attachments column for the rev to false, as we are using an internal
+            //private API call above (database.insertAttachmentForSequenceWithNameAndType) which does
+            //not set the no_attachments column on revs table
+            try
+            {
+                var args = new ContentValues();
+                args.Put("no_attachments", false);
+                database.StorageEngine.Update(
+                    "revs", 
+                    args, 
+                    "sequence=?", 
+                    new[] { rev1.GetSequence().ToString() }
+                );
+            }
+            catch (SQLException e)
+            {
+                Log.E(Tag, "Error setting rev1 no_attachments to false", e);
+                throw new CouchbaseLiteException(StatusCode.InternalServerError);
+            }
+
             var attachment = database.GetAttachmentForSequence(
-                rev1.GetSequence(), testAttachmentName);
+                rev1.GetSequence(), 
+                testAttachmentName
+            );
             Assert.AreEqual("text/plain", attachment.ContentType);
             var data = attachment.Content.ToArray();
-			Assert.IsTrue(Arrays.Equals(attach1, data));
+            Assert.IsTrue(Arrays.Equals(attach1, data));
 
             // Workaround :
             // Not closing the content stream will cause Sharing Violation
@@ -97,80 +121,67 @@ namespace Couchbase.Lite
             attachment.ContentStream.Close();
 
             var innerDict = new Dictionary<string, object>();
-			innerDict["content_type"] = "text/plain";
-			innerDict["digest"] = "sha1-gOHUOBmIMoDCrMuGyaLWzf1hQTE=";
+            innerDict["content_type"] = "text/plain";
+            innerDict["digest"] = "sha1-gOHUOBmIMoDCrMuGyaLWzf1hQTE=";
             innerDict["length"] = 27;
-			innerDict["stub"] = true;
-			innerDict["revpos"] = 1;
+            innerDict["stub"] = true;
+            innerDict["revpos"] = 1;
 
             var attachmentDict = new Dictionary<string, object>();
-			attachmentDict[testAttachmentName] = innerDict;
-            var attachmentDictForSequence = database.GetAttachmentsDictForSequenceWithContent
-                (rev1.GetSequence(), EnumSet.NoneOf<TDContentOptions>());
-            Assert.AreEqual(1, attachmentDictForSequence.Count);
-            AssertPropertiesAreEqual(
-                (IDictionary<string, object>)attachmentDict.Get(testAttachmentName), 
-                (IDictionary<string, object>)attachmentDictForSequence.Get(testAttachmentName));
-
+            attachmentDict[testAttachmentName] = innerDict;
+            var attachmentDictForSequence = database.GetAttachmentsDictForSequenceWithContent(rev1.GetSequence(), DocumentContentOptions.None);
+            Assert.AreEqual(new SortedDictionary<string,object>(attachmentDict), new SortedDictionary<string,object>(attachmentDictForSequence));//Assert.AreEqual(1, attachmentDictForSequence.Count);
             var gotRev1 = database.GetDocumentWithIDAndRev(rev1.GetDocId(), 
-                rev1.GetRevId(), EnumSet.NoneOf<TDContentOptions>());
-            var gotRev1Properties = (IDictionary<string, object>)gotRev1.GetProperties();
-            var gotRev1AttachmentDict = ((JObject)gotRev1Properties.Get("_attachments"))
-                .ToObject<Dictionary<string, object>>();
-            Assert.AreEqual(1, gotRev1AttachmentDict.Count);
-            AssertPropertiesAreEqual(
-                (IDictionary<string, object>)attachmentDict.Get(testAttachmentName), 
-                ((JObject)gotRev1AttachmentDict.Get(testAttachmentName))
-                .ToObject<IDictionary<string, object>>());
+                rev1.GetRevId(), DocumentContentOptions.IncludeAttachments);
+            var gotAttachmentDict = gotRev1.GetProperties()
+                .Get("_attachments")
+                .AsDictionary<string,object>();
+            Assert.AreEqual(attachmentDict.Select(kvp => kvp.Key).OrderBy(k => k), gotAttachmentDict.Select(kvp => kvp.Key).OrderBy(k => k));
 
-			// Check the attachment dict, with attachments included:
-			Collections.Remove(innerDict, "stub");
+            // Check the attachment dict, with attachments included:
+            innerDict.Remove("stub");
             innerDict.Put("data", Convert.ToBase64String(attach1));
-			attachmentDictForSequence = database.GetAttachmentsDictForSequenceWithContent(
-                rev1.GetSequence(), EnumSet.Of(TDContentOptions.TDIncludeAttachments));
-            Assert.AreEqual(1, attachmentDictForSequence.Count);
-            AssertPropertiesAreEqual(
-                (IDictionary<string, object>)attachmentDict.Get(testAttachmentName), 
-                (IDictionary<string, object>)attachmentDictForSequence.Get(testAttachmentName));
+            attachmentDictForSequence = database.GetAttachmentsDictForSequenceWithContent(
+                rev1.GetSequence(), DocumentContentOptions.IncludeAttachments);
+            Assert.AreEqual(new SortedDictionary<string,object>(attachmentDict[testAttachmentName].AsDictionary<string,object>()), new SortedDictionary<string,object>(attachmentDictForSequence[testAttachmentName].AsDictionary<string,object>()));
 
-			gotRev1 = database.GetDocumentWithIDAndRev(
-                rev1.GetDocId(), rev1.GetRevId(), EnumSet.Of(TDContentOptions.TDIncludeAttachments));
-            gotRev1Properties = (IDictionary<string, object>)gotRev1.GetProperties();
-            gotRev1AttachmentDict = ((JObject)gotRev1Properties.Get("_attachments"))
-                .ToObject<Dictionary<String, Object>>();
-            AssertPropertiesAreEqual(
-                (IDictionary<string, object>)attachmentDict.Get(testAttachmentName), 
-                ((JObject)gotRev1AttachmentDict.Get(testAttachmentName))
-                .ToObject<IDictionary<string, object>>());
+            gotRev1 = database.GetDocumentWithIDAndRev(
+                rev1.GetDocId(), rev1.GetRevId(), DocumentContentOptions.IncludeAttachments);
+            gotAttachmentDict = gotRev1.GetProperties()
+                .Get("_attachments")
+                .AsDictionary<string, object>()
+                .Get(testAttachmentName)
+                .AsDictionary<string,object>();
+            Assert.AreEqual(innerDict.Select(kvp => kvp.Key).OrderBy(k => k), gotAttachmentDict.Select(kvp => kvp.Key).OrderBy(k => k));
 
-			// Add a second revision that doesn't update the attachment:
+            // Add a second revision that doesn't update the attachment:
             var rev2Properties = new Dictionary<string, object>();
-			rev2Properties.Put("_id", rev1.GetDocId());
-			rev2Properties["foo"] = 2;
-			rev2Properties["bazz"] = false;
+            rev2Properties.Put("_id", rev1.GetDocId());
+            rev2Properties["foo"] = 2;
+            rev2Properties["bazz"] = false;
             var rev2 = database.PutRevision(new RevisionInternal(rev2Properties, 
-				database), rev1.GetRevId(), false, status);
-			Assert.AreEqual(StatusCode.Created, status.GetCode());
-			database.CopyAttachmentNamedFromSequenceToSequence(
-                testAttachmentName, rev1.GetSequence(), rev2.GetSequence());
+                database), rev1.GetRevId(), false, status);
+            Assert.AreEqual(StatusCode.Created, status.GetCode());
 
-			// Add a third revision of the same document:
+            database.CopyAttachmentNamedFromSequenceToSequence(
+                testAttachmentName, rev1.GetSequence(), rev2.GetSequence());           
+            // Add a third revision of the same document:
             var rev3Properties = new Dictionary<string, object>();
-			rev3Properties.Put("_id", rev2.GetDocId());
-			rev3Properties["foo"] = 2;
-			rev3Properties["bazz"] = false;
+            rev3Properties.Put("_id", rev2.GetDocId());
+            rev3Properties["foo"] = 2;
+            rev3Properties["bazz"] = false;
             var rev3 = database.PutRevision(new RevisionInternal(
                 rev3Properties, database), rev2.GetRevId(), false, status);
-			Assert.AreEqual(StatusCode.Created, status.GetCode());
+            Assert.AreEqual(StatusCode.Created, status.GetCode());
 
             var attach2 = Runtime.GetBytesForString("<html>And this is attach2</html>").ToArray();
             database.InsertAttachmentForSequenceWithNameAndType(
                 new ByteArrayInputStream(attach2), rev3.GetSequence(), 
                 testAttachmentName, "text/html", rev2.GetGeneration());
-
-			// Check the 2nd revision's attachment:
+            // Check the 2nd revision's attachment:
             var attachment2 = database.GetAttachmentForSequence(rev2.GetSequence(), testAttachmentName);
             Assert.AreEqual("text/plain", attachment2.ContentType);
+
             data = attachment2.Content.ToArray();
             Assert.IsTrue(Arrays.Equals(attach1, data));
 
@@ -179,86 +190,108 @@ namespace Couchbase.Lite
             // Exception when trying to get the same attachment going forward.
             attachment2.ContentStream.Close();
 
-			// Check the 3rd revision's attachment:
-            Attachment attachment3 = database.GetAttachmentForSequence(rev3.GetSequence(), testAttachmentName);
+            // Check the 3rd revision's attachment:
+            var attachment3 = database.GetAttachmentForSequence(rev3.GetSequence(), testAttachmentName);
             Assert.AreEqual("text/html", attachment3.ContentType);
+
             data = attachment3.Content.ToArray();
             Assert.IsTrue(Arrays.Equals(attach2, data));
+
+            var attachmentDictForRev3 = database.GetAttachmentsDictForSequenceWithContent(rev3.GetSequence(), DocumentContentOptions.None)
+                .Get(testAttachmentName)
+                .AsDictionary<string,object>();
+            if (attachmentDictForRev3.ContainsKey("follows"))
+            {
+                if (((bool)attachmentDictForRev3.Get("follows")) == true)
+                {
+                    throw new RuntimeException("Did not expected attachment dict 'follows' key to be true"
+                    );
+                }
+                else
+                {
+                    throw new RuntimeException("Did not expected attachment dict to have 'follows' key"
+                    );
+                }
+            }
 
             // Workaround :
             // Not closing the content stream will cause Sharing Violation
             // Exception when trying to get the same attachment going forward.
             attachment3.ContentStream.Close();
 
-			// Examine the attachment store:
-			Assert.AreEqual(2, attachments.Count());
+            // Examine the attachment store:
+            Assert.AreEqual(2, attachments.Count());
+
             var expected = new HashSet<BlobKey>();
-			expected.AddItem(BlobStore.KeyForBlob(attach1));
-			expected.AddItem(BlobStore.KeyForBlob(attach2));
+            expected.AddItem(BlobStore.KeyForBlob(attach1));
+            expected.AddItem(BlobStore.KeyForBlob(attach2));
             Assert.AreEqual(expected.Count, attachments.AllKeys().Count());
+
             foreach(var key in attachments.AllKeys()) {
                 Assert.IsTrue(expected.Contains(key));
             }
 
             database.Compact();
 
-			// This clears the body of the first revision
-			Assert.AreEqual(1, attachments.Count());
+            // This clears the body of the first revision
+            Assert.AreEqual(1, attachments.Count());
+
             var expected2 = new HashSet<BlobKey>();
-			expected2.AddItem(BlobStore.KeyForBlob(attach2));
+            expected2.AddItem(BlobStore.KeyForBlob(attach2));
             Assert.AreEqual(expected2.Count, attachments.AllKeys().Count());
+
             foreach(var key in attachments.AllKeys()) {
                 Assert.IsTrue(expected2.Contains(key));
             }
-		}
+        }
 
-		/// <exception cref="System.Exception"></exception>
+        /// <exception cref="System.Exception"></exception>
         [Test]
-		public void TestPutLargeAttachment()
-		{
+        public void TestPutLargeAttachment()
+        {
             var testAttachmentName = "test_attachment";
             var attachments = database.Attachments;
-			attachments.DeleteBlobs();
-			Assert.AreEqual(0, attachments.Count());
+            attachments.DeleteBlobs();
+            Assert.AreEqual(0, attachments.Count());
 
             var status = new Status();
             var rev1Properties = new Dictionary<string, object>();
-			rev1Properties["foo"] = 1;
-			rev1Properties["bar"] = false;
+            rev1Properties["foo"] = 1;
+            rev1Properties["bar"] = false;
             var rev1 = database.PutRevision(new RevisionInternal(rev1Properties, 
-				database), null, false, status);
-			Assert.AreEqual(StatusCode.Created, status.GetCode());
+                database), null, false, status);
+            Assert.AreEqual(StatusCode.Created, status.GetCode());
             var largeAttachment = new StringBuilder();
             for (int i = 0; i < Database.BigAttachmentLength; i++)
-			{
-				largeAttachment.Append("big attachment!");
-			}
+            {
+                largeAttachment.Append("big attachment!");
+            }
 
             var attach1 = Runtime.GetBytesForString(largeAttachment.ToString()).ToArray();
-			database.InsertAttachmentForSequenceWithNameAndType(
+            database.InsertAttachmentForSequenceWithNameAndType(
                 new ByteArrayInputStream(attach1), rev1.GetSequence(), 
                 testAttachmentName, "text/plain", rev1.GetGeneration());
             var attachment = database.GetAttachmentForSequence(rev1.GetSequence(), testAttachmentName);
             Assert.AreEqual("text/plain", attachment.ContentType);
             var data = attachment.Content.ToArray();
-			Assert.IsTrue(Arrays.Equals(attach1, data));
+            Assert.IsTrue(Arrays.Equals(attach1, data));
 
-            var contentOptions = EnumSet.Of(TDContentOptions.TDIncludeAttachments, TDContentOptions.TDBigAttachmentsFollow);
+            const DocumentContentOptions contentOptions = DocumentContentOptions.IncludeAttachments | DocumentContentOptions.BigAttachmentsFollow;
             var attachmentDictForSequence = database.GetAttachmentsDictForSequenceWithContent(rev1.GetSequence(), contentOptions);
             var innerDict = (IDictionary<string, object>)attachmentDictForSequence[testAttachmentName];
-			if (innerDict.ContainsKey("stub"))
-			{
+            if (innerDict.ContainsKey("stub"))
+            {
                 if (((bool)innerDict["stub"]))
                 {
                     throw new RuntimeException("Expected attachment dict 'stub' key to be true");
                 } else {
                     throw new RuntimeException("Expected attachment dict to have 'stub' key");
                 }
-			}
-			if (!innerDict.ContainsKey("follows"))
-			{
-				throw new RuntimeException("Expected attachment dict to have 'follows' key");
-			}
+            }
+            if (!innerDict.ContainsKey("follows"))
+            {
+                throw new RuntimeException("Expected attachment dict to have 'follows' key");
+            }
 
             // Workaround :
             // Not closing the content stream will cause Sharing Violation
@@ -267,227 +300,227 @@ namespace Couchbase.Lite
 
             var rev1WithAttachments = database.GetDocumentWithIDAndRev(
                 rev1.GetDocId(), rev1.GetRevId(), contentOptions);
-			
+            
             var rev1WithAttachmentsProperties = rev1WithAttachments.GetProperties();
             var rev2Properties = new Dictionary<string, object>();
-			rev2Properties.Put("_id", rev1WithAttachmentsProperties["_id"]);
-			rev2Properties["foo"] = 2;
+            rev2Properties.Put("_id", rev1WithAttachmentsProperties["_id"]);
+            rev2Properties["foo"] = 2;
             var newRev = new RevisionInternal(rev2Properties, database);
             var rev2 = database.PutRevision(newRev, rev1WithAttachments.GetRevId(), false, status);
-			Assert.AreEqual(StatusCode.Created, status.GetCode());
+            Assert.AreEqual(StatusCode.Created, status.GetCode());
 
             database.CopyAttachmentNamedFromSequenceToSequence(
                 testAttachmentName, rev1WithAttachments.GetSequence(), rev2.GetSequence());
 
-			// Check the 2nd revision's attachment:
+            // Check the 2nd revision's attachment:
             var rev2FetchedAttachment = database.GetAttachmentForSequence(rev2.GetSequence(), testAttachmentName);
             Assert.AreEqual(attachment.Length, rev2FetchedAttachment.Length);
             AssertPropertiesAreEqual(attachment.Metadata, rev2FetchedAttachment.Metadata);
             Assert.AreEqual(attachment.ContentType, rev2FetchedAttachment.ContentType);
 
-			// Add a third revision of the same document:
+            // Add a third revision of the same document:
             var rev3Properties = new Dictionary<string, object>();
             rev3Properties.Put("_id", rev2.GetProperties().Get("_id"));
-			rev3Properties["foo"] = 3;
-			rev3Properties["baz"] = false;
+            rev3Properties["foo"] = 3;
+            rev3Properties["baz"] = false;
             var rev3 = new RevisionInternal(rev3Properties, database);
-			rev3 = database.PutRevision(rev3, rev2.GetRevId(), false, status);
+            rev3 = database.PutRevision(rev3, rev2.GetRevId(), false, status);
 
-			Assert.AreEqual(StatusCode.Created, status.GetCode());
+            Assert.AreEqual(StatusCode.Created, status.GetCode());
             var attach3 = Runtime.GetBytesForString("<html><blink>attach3</blink></html>").ToArray();
-			database.InsertAttachmentForSequenceWithNameAndType(
+            database.InsertAttachmentForSequenceWithNameAndType(
                 new ByteArrayInputStream(attach3), rev3.GetSequence(), 
                 testAttachmentName, "text/html", rev3.GetGeneration());
 
-			// Check the 3rd revision's attachment:
+            // Check the 3rd revision's attachment:
             var rev3FetchedAttachment = database.GetAttachmentForSequence(
                 rev3.GetSequence(), testAttachmentName);
             data = rev3FetchedAttachment.Content.ToArray();
-			Assert.IsTrue(Arrays.Equals(attach3, data));
+            Assert.IsTrue(Arrays.Equals(attach3, data));
             Assert.AreEqual("text/html", rev3FetchedAttachment.ContentType);
 
-			// TODO: why doesn't this work?
-			// Assert.assertEquals(attach3.length, rev3FetchedAttachment.getLength());
-			ICollection<BlobKey> blobKeys = database.Attachments.AllKeys();
-			Assert.AreEqual(2, blobKeys.Count);
-			database.Compact();
-			blobKeys = database.Attachments.AllKeys();
-			Assert.AreEqual(1, blobKeys.Count);
-		}
+            // TODO: why doesn't this work?
+            // Assert.assertEquals(attach3.length, rev3FetchedAttachment.getLength());
+            ICollection<BlobKey> blobKeys = database.Attachments.AllKeys();
+            Assert.AreEqual(2, blobKeys.Count);
+            database.Compact();
+            blobKeys = database.Attachments.AllKeys();
+            Assert.AreEqual(1, blobKeys.Count);
+        }
 
-		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
+        /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
         /*
         public virtual void TestPutAttachment()
-		{
+        {
             var testAttachmentName = "test_attachment";
             var attachments = database.Attachments;
-			attachments.DeleteBlobs();
-			Assert.AreEqual(0, attachments.Count());
+            attachments.DeleteBlobs();
+            Assert.AreEqual(0, attachments.Count());
 
-			// Put a revision that includes an _attachments dict:
+            // Put a revision that includes an _attachments dict:
             var attach1 = Runtime.GetBytesForString("This is the body of attach1").ToArray();
             var base64 = Convert.ToBase64String(attach1);
             var attachment = new Dictionary<string, object>();
-			attachment["content_type"] = "text/plain";
-			attachment["data"] = base64;
+            attachment["content_type"] = "text/plain";
+            attachment["data"] = base64;
 
             var attachmentDict = new Dictionary<string, object>();
-			attachmentDict[testAttachmentName] = attachment;
+            attachmentDict[testAttachmentName] = attachment;
             var properties = new Dictionary<string, object>();
-			properties["foo"] = 1;
-			properties["bar"] = false;
-			properties["_attachments"] = attachmentDict;
+            properties["foo"] = 1;
+            properties["bar"] = false;
+            properties["_attachments"] = attachmentDict;
 
             var rev1 = database.PutRevision(new RevisionInternal(properties, database), null, false);
 
-			// Examine the attachment store:
-			Assert.AreEqual(1, attachments.Count());
-			
+            // Examine the attachment store:
+            Assert.AreEqual(1, attachments.Count());
+            
             // Get the revision:
             var gotRev1 = database.GetDocumentWithIDAndRev(rev1.GetDocId(), 
                 rev1.GetRevId(), EnumSet.NoneOf<TDContentOptions>());
             var gotAttachmentDict = (IDictionary<string, object>)gotRev1.
                 GetProperties().Get("_attachments");
             var innerDict = new Dictionary<string, object>();
-			innerDict["content_type"] = "text/plain";
-			innerDict["digest"] = "sha1-gOHUOBmIMoDCrMuGyaLWzf1hQTE=";
-			innerDict["length"] = 27;
-			innerDict["stub"] = true;
-			innerDict["revpos"] = 1;
+            innerDict["content_type"] = "text/plain";
+            innerDict["digest"] = "sha1-gOHUOBmIMoDCrMuGyaLWzf1hQTE=";
+            innerDict["length"] = 27;
+            innerDict["stub"] = true;
+            innerDict["revpos"] = 1;
             var expectAttachmentDict = new Dictionary<string, object>();
-			expectAttachmentDict[testAttachmentName] = innerDict;
-			Assert.AreEqual(expectAttachmentDict, gotAttachmentDict);
+            expectAttachmentDict[testAttachmentName] = innerDict;
+            Assert.AreEqual(expectAttachmentDict, gotAttachmentDict);
 
-			// Update the attachment directly:
+            // Update the attachment directly:
             var attachv2 = Runtime.GetBytesForString("Replaced body of attach").ToArray();
             var gotExpectedErrorCode = false;
-			try
-			{
-				database.UpdateAttachment(testAttachmentName, new ByteArrayInputStream(attachv2), 
-					"application/foo", rev1.GetDocId(), null);
-			}
-			catch (CouchbaseLiteException e)
-			{
-				gotExpectedErrorCode = (e.GetCBLStatus().GetCode() == StatusCode.Conflict);
-			}
-			Assert.IsTrue(gotExpectedErrorCode);
-			gotExpectedErrorCode = false;
-			
             try
-			{
-				database.UpdateAttachment(testAttachmentName, new ByteArrayInputStream(attachv2), 
-					"application/foo", rev1.GetDocId(), "1-bogus");
-			}
-			catch (CouchbaseLiteException e)
-			{
-				gotExpectedErrorCode = (e.GetCBLStatus().GetCode() == StatusCode.Conflict);
-			}
+            {
+                database.UpdateAttachment(testAttachmentName, new ByteArrayInputStream(attachv2), 
+                    "application/foo", rev1.GetDocId(), null);
+            }
+            catch (CouchbaseLiteException e)
+            {
+                gotExpectedErrorCode = (e.GetCBLStatus().GetCode() == StatusCode.Conflict);
+            }
+            Assert.IsTrue(gotExpectedErrorCode);
+            gotExpectedErrorCode = false;
+            
+            try
+            {
+                database.UpdateAttachment(testAttachmentName, new ByteArrayInputStream(attachv2), 
+                    "application/foo", rev1.GetDocId(), "1-bogus");
+            }
+            catch (CouchbaseLiteException e)
+            {
+                gotExpectedErrorCode = (e.GetCBLStatus().GetCode() == StatusCode.Conflict);
+            }
 
-			Assert.IsTrue(gotExpectedErrorCode);
-			gotExpectedErrorCode = false;
-			RevisionInternal rev2 = null;
-			try
-			{
-				rev2 = database.UpdateAttachment(testAttachmentName, new ByteArrayInputStream(attachv2
-					), "application/foo", rev1.GetDocId(), rev1.GetRevId());
-			}
-			catch (CouchbaseLiteException)
-			{
-				gotExpectedErrorCode = true;
-			}
-			Assert.IsFalse(gotExpectedErrorCode);
-			Assert.AreEqual(rev1.GetDocId(), rev2.GetDocId());
-			Assert.AreEqual(2, rev2.GetGeneration());
-			// Get the updated revision:
-			RevisionInternal gotRev2 = database.GetDocumentWithIDAndRev(rev2.GetDocId(), rev2
-				.GetRevId(), EnumSet.NoneOf<TDContentOptions>());
-			attachmentDict = (IDictionary<string, object>)gotRev2.Properties.Get("_attachments"
-				);
-			innerDict = new Dictionary<string, object>();
-			innerDict["content_type"] = "application/foo";
-			innerDict["digest"] = "sha1-mbT3208HI3PZgbG4zYWbDW2HsPk=";
-			innerDict["length"] = 23;
-			innerDict["stub"] = true;
-			innerDict["revpos"] = 2;
-			expectAttachmentDict[testAttachmentName] = innerDict;
-			Assert.AreEqual(expectAttachmentDict, attachmentDict);
-			// Delete the attachment:
-			gotExpectedErrorCode = false;
-			try
-			{
-				database.UpdateAttachment("nosuchattach", null, null, rev2.GetDocId(), rev2.GetRevId
-					());
-			}
-			catch (CouchbaseLiteException e)
-			{
-				gotExpectedErrorCode = (e.GetCBLStatus().GetCode() == StatusCode.NotFound);
-			}
-			Assert.IsTrue(gotExpectedErrorCode);
-			gotExpectedErrorCode = false;
-			try
-			{
-				database.UpdateAttachment("nosuchattach", null, null, "nosuchdoc", "nosuchrev");
-			}
-			catch (CouchbaseLiteException e)
-			{
-				gotExpectedErrorCode = (e.GetCBLStatus().GetCode() == StatusCode.NotFound);
-			}
-			Assert.IsTrue(gotExpectedErrorCode);
-			RevisionInternal rev3 = database.UpdateAttachment(testAttachmentName, null, null, 
-				rev2.GetDocId(), rev2.GetRevId());
-			Assert.AreEqual(rev2.GetDocId(), rev3.GetDocId());
-			Assert.AreEqual(3, rev3.GetGeneration());
-			// Get the updated revision:
-			RevisionInternal gotRev3 = database.GetDocumentWithIDAndRev(rev3.GetDocId(), rev3
-				.GetRevId(), EnumSet.NoneOf<TDContentOptions>());
-			attachmentDict = (IDictionary<string, object>)gotRev3.Properties.Get("_attachments"
-				);
-			Assert.IsNull(attachmentDict);
-			database.Close();
+            Assert.IsTrue(gotExpectedErrorCode);
+            gotExpectedErrorCode = false;
+            RevisionInternal rev2 = null;
+            try
+            {
+                rev2 = database.UpdateAttachment(testAttachmentName, new ByteArrayInputStream(attachv2
+                    ), "application/foo", rev1.GetDocId(), rev1.GetRevId());
+            }
+            catch (CouchbaseLiteException)
+            {
+                gotExpectedErrorCode = true;
+            }
+            Assert.IsFalse(gotExpectedErrorCode);
+            Assert.AreEqual(rev1.GetDocId(), rev2.GetDocId());
+            Assert.AreEqual(2, rev2.GetGeneration());
+            // Get the updated revision:
+            RevisionInternal gotRev2 = database.GetDocumentWithIDAndRev(rev2.GetDocId(), rev2
+                .GetRevId(), EnumSet.NoneOf<TDContentOptions>());
+            attachmentDict = (IDictionary<string, object>)gotRev2.Properties.Get("_attachments"
+                );
+            innerDict = new Dictionary<string, object>();
+            innerDict["content_type"] = "application/foo";
+            innerDict["digest"] = "sha1-mbT3208HI3PZgbG4zYWbDW2HsPk=";
+            innerDict["length"] = 23;
+            innerDict["stub"] = true;
+            innerDict["revpos"] = 2;
+            expectAttachmentDict[testAttachmentName] = innerDict;
+            Assert.AreEqual(expectAttachmentDict, attachmentDict);
+            // Delete the attachment:
+            gotExpectedErrorCode = false;
+            try
+            {
+                database.UpdateAttachment("nosuchattach", null, null, rev2.GetDocId(), rev2.GetRevId
+                    ());
+            }
+            catch (CouchbaseLiteException e)
+            {
+                gotExpectedErrorCode = (e.GetCBLStatus().GetCode() == StatusCode.NotFound);
+            }
+            Assert.IsTrue(gotExpectedErrorCode);
+            gotExpectedErrorCode = false;
+            try
+            {
+                database.UpdateAttachment("nosuchattach", null, null, "nosuchdoc", "nosuchrev");
+            }
+            catch (CouchbaseLiteException e)
+            {
+                gotExpectedErrorCode = (e.GetCBLStatus().GetCode() == StatusCode.NotFound);
+            }
+            Assert.IsTrue(gotExpectedErrorCode);
+            RevisionInternal rev3 = database.UpdateAttachment(testAttachmentName, null, null, 
+                rev2.GetDocId(), rev2.GetRevId());
+            Assert.AreEqual(rev2.GetDocId(), rev3.GetDocId());
+            Assert.AreEqual(3, rev3.GetGeneration());
+            // Get the updated revision:
+            RevisionInternal gotRev3 = database.GetDocumentWithIDAndRev(rev3.GetDocId(), rev3
+                .GetRevId(), EnumSet.NoneOf<TDContentOptions>());
+            attachmentDict = (IDictionary<string, object>)gotRev3.Properties.Get("_attachments"
+                );
+            Assert.IsNull(attachmentDict);
+            database.Close();
         }*/
 
         [Test]
-		public void TestStreamAttachmentBlobStoreWriter()
-		{
+        public void TestStreamAttachmentBlobStoreWriter()
+        {
             var attachments = database.Attachments;
             var blobWriter = new BlobStoreWriter(attachments);
             var testBlob = "foo";
             blobWriter.AppendData(Runtime.GetBytesForString(testBlob));
-			blobWriter.Finish();
+            blobWriter.Finish();
 
             var sha1Base64Digest = "sha1-C+7Hteo/D9vJXQ3UfzxbwnXaijM=";
-			Assert.AreEqual(blobWriter.SHA1DigestString(), sha1Base64Digest);
-			Assert.AreEqual(blobWriter.MD5DigestString(), "md5-rL0Y20zC+Fzt72VPzMSk2A==");
+            Assert.AreEqual(blobWriter.SHA1DigestString(), sha1Base64Digest);
+            Assert.AreEqual(blobWriter.MD5DigestString(), "md5-rL0Y20zC+Fzt72VPzMSk2A==");
 
-			// install it
-			blobWriter.Install();
-			// look it up in blob store and make sure it's there
+            // install it
+            blobWriter.Install();
+            // look it up in blob store and make sure it's there
             var blobKey = new BlobKey(sha1Base64Digest);
             var blob = attachments.BlobForKey(blobKey);
-			Assert.IsTrue(Arrays.Equals(Runtime.GetBytesForString(testBlob).ToArray(), blob));
-		}
+            Assert.IsTrue(Arrays.Equals(Runtime.GetBytesForString(testBlob).ToArray(), blob));
+        }
 
-		/// <summary>https://github.com/couchbase/couchbase-lite-android/issues/134</summary>
-		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
-		/// <exception cref="System.IO.IOException"></exception>
+        /// <summary>https://github.com/couchbase/couchbase-lite-android/issues/134</summary>
+        /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
+        /// <exception cref="System.IO.IOException"></exception>
         [Test]
-		public void TestGetAttachmentBodyUsingPrefetch()
-		{
-			// add a doc with an attachment
+        public void TestGetAttachmentBodyUsingPrefetch()
+        {
+            // add a doc with an attachment
             var doc = database.CreateDocument();
             var rev = doc.CreateRevision();
 
             var properties = new Dictionary<string, object>();
-			properties["foo"] = "bar";
-			rev.SetUserProperties(properties);
+            properties["foo"] = "bar";
+            rev.SetUserProperties(properties);
 
             var attachBodyBytes = Runtime.GetBytesForString("attach body").ToArray();
             var attachment = new Attachment(new ByteArrayInputStream(attachBodyBytes), "text/plain");
-			string attachmentName = "test_attachment.txt";
-			rev.AddAttachment(attachment, attachmentName);
+            string attachmentName = "test_attachment.txt";
+            rev.AddAttachment(attachment, attachmentName);
             rev.Save();
 
-			// do query that finds that doc with prefetch
+            // do query that finds that doc with prefetch
 
             var view = database.GetView("aview");
             view.SetMapReduce((IDictionary<string, object> document, EmitDelegate emitter)=>
@@ -496,30 +529,30 @@ namespace Couchbase.Lite
                     emitter(id, null);
                 }, null, "1");
 
-			// try to get the attachment
+            // try to get the attachment
             var query = view.CreateQuery();
-			query.Prefetch=true;
+            query.Prefetch=true;
             var results = query.Run();
             while (results.MoveNext())
-			{
+            {
                 var row = results.Current;
-				// This returns the revision just fine, but the sequence number
-				// is set to 0.
+                // This returns the revision just fine, but the sequence number
+                // is set to 0.
                 var revision = row.Document.CurrentRevision;
                 //var attachments = revision.AttachmentNames.ToList();
 
-				// This returns an Attachment object which looks ok, except again
-				// its sequence number is 0. The metadata property knows about
-				// the length and mime type of the attachment. It also says
-				// "stub" -> "true".
+                // This returns an Attachment object which looks ok, except again
+                // its sequence number is 0. The metadata property knows about
+                // the length and mime type of the attachment. It also says
+                // "stub" -> "true".
                 var attachmentRetrieved = revision.GetAttachment(attachmentName);
                 var inputStream = attachmentRetrieved.ContentStream;
                 Assert.IsNotNull(inputStream);
                 var attachmentDataRetrieved = attachmentRetrieved.Content.ToArray();
                 var attachmentDataRetrievedString = Runtime.GetStringForBytes(attachmentDataRetrieved);
                 var attachBodyString = Sharpen.Runtime.GetStringForBytes(attachBodyBytes);
-				Assert.AreEqual(attachBodyString, attachmentDataRetrievedString);
-			}
-		}
-	}
+                Assert.AreEqual(attachBodyString, attachmentDataRetrievedString);
+            }
+        }
+    }
 }

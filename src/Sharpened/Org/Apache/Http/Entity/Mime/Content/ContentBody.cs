@@ -46,12 +46,12 @@ using Sharpen;
 
 namespace Org.Apache.Http.Entity.Mime.Content
 {
-	/// <since>4.0</since>
-	public interface ContentBody : ContentDescriptor
-	{
-		string GetFilename();
+    /// <since>4.0</since>
+    public interface ContentBody : ContentDescriptor
+    {
+        string GetFilename();
 
-		/// <exception cref="System.IO.IOException"></exception>
-		void WriteTo(OutputStream @out);
-	}
+        /// <exception cref="System.IO.IOException"></exception>
+        void WriteTo(OutputStream @out);
+    }
 }

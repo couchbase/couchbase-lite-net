@@ -87,7 +87,7 @@ using System.Collections.Generic;
 namespace Couchbase.Lite.Auth
 {
     internal abstract class Authorizer : IAuthenticator
-	{
+    {
         public abstract string UserInfo { get; }
 
         public abstract string Scheme { get; }
@@ -97,5 +97,5 @@ namespace Couchbase.Lite.Auth
         public abstract IDictionary<String, String> LoginParametersForSite(Uri site);
 
         public abstract String LoginPathForSite(Uri site);
-	}
+    }
 }

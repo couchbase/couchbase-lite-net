@@ -39,22 +39,22 @@ using Sharpen;
 
 namespace Couchbase.Lite.Auth
 {
-	/// <summary>
-	/// Abstract implementation of Authenticator that all Authenticator Impls
-	/// should extend from
-	/// </summary>
-	/// <exclude></exclude>
-	public abstract class AuthenticatorImpl : Authenticator
-	{
-		public virtual string AuthUserInfo()
-		{
-			return null;
-		}
+    /// <summary>
+    /// Abstract implementation of Authenticator that all Authenticator Impls
+    /// should extend from
+    /// </summary>
+    /// <exclude></exclude>
+    public abstract class AuthenticatorImpl : Authenticator
+    {
+        public virtual string AuthUserInfo()
+        {
+            return null;
+        }
 
-		public abstract bool UsesCookieBasedLogin();
+        public abstract bool UsesCookieBasedLogin();
 
-		public abstract string LoginPathForSite(Uri site);
+        public abstract string LoginPathForSite(Uri site);
 
-		public abstract IDictionary<string, string> LoginParametersForSite(Uri site);
-	}
+        public abstract IDictionary<string, string> LoginParametersForSite(Uri site);
+    }
 }

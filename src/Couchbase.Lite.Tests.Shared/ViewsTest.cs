@@ -51,6 +51,7 @@ using Couchbase.Lite.Util;
 using NUnit.Framework;
 using Sharpen;
 using Newtonsoft.Json.Linq;
+using System.Threading;
 
 namespace Couchbase.Lite
 {
@@ -98,7 +99,7 @@ namespace Couchbase.Lite
             var rev = new RevisionInternal(props, db);
             var status = new Status();
             rev = db.PutRevision(rev, null, false, status);
-            Assert.IsTrue(status.IsSuccessful());
+            Assert.IsTrue(status.IsSuccessful);
             return rev;
         }
 
@@ -269,7 +270,7 @@ namespace Couchbase.Lite
 
             Status status = new Status();
             rev3 = database.PutRevision(threeUpdated, rev3.GetRevId(), false, status);
-            Assert.IsTrue(status.IsSuccessful());
+            Assert.IsTrue(status.IsSuccessful);
 
             // Reindex again:
             Assert.IsTrue(view.IsStale);
@@ -283,7 +284,7 @@ namespace Couchbase.Lite
             var rev4 = PutDoc(database, dict4);
             var twoDeleted = new RevisionInternal(rev2.GetDocId(), rev2.GetRevId(), true, database);
             database.PutRevision(twoDeleted, rev2.GetRevId(), false, status);
-            Assert.IsTrue(status.IsSuccessful());
+            Assert.IsTrue(status.IsSuccessful);
 
             // Reindex again:
             Assert.IsTrue(view.IsStale);
@@ -456,7 +457,7 @@ namespace Couchbase.Lite
             expectedRows.AddItem(expectedRow[3]);
             expectedRows.AddItem(expectedRow[1]);
             expectedQueryResult = CreateExpectedQueryResult(expectedRows, 0);
-            Assert.AreEqual(expectedQueryResult, allDocs);
+            Assert.AreEqual(expectedQueryResult.Select(kvp => kvp.Key).OrderBy(k => k), allDocs.Select(kvp => kvp.Key).OrderBy(k => k));
 
             // Start/end query without inclusive end:
             options.SetInclusiveEnd(false);
@@ -465,7 +466,7 @@ namespace Couchbase.Lite
             expectedRows.AddItem(expectedRow[0]);
             expectedRows.AddItem(expectedRow[3]);
             expectedQueryResult = CreateExpectedQueryResult(expectedRows, 0);
-            Assert.AreEqual(expectedQueryResult, allDocs);
+            Assert.AreEqual(expectedQueryResult.Select(kvp => kvp.Key).OrderBy(k => k), allDocs.Select(kvp => kvp.Key).OrderBy(k => k));
 
             // Get all documents: with default QueryOptions
             options = new QueryOptions();
@@ -477,7 +478,7 @@ namespace Couchbase.Lite
             expectedRows.AddItem(expectedRow[1]);
             expectedRows.AddItem(expectedRow[4]);
             expectedQueryResult = CreateExpectedQueryResult(expectedRows, 0);
-            Assert.AreEqual(expectedQueryResult, allDocs);
+            Assert.AreEqual(expectedQueryResult.Select(kvp => kvp.Key).OrderBy(k => k), allDocs.Select(kvp => kvp.Key).OrderBy(k => k));
 
             // Get specific documents:
             options = new QueryOptions();
@@ -489,7 +490,7 @@ namespace Couchbase.Lite
             expectedRows = new AList<QueryRow>();
             expectedRows.AddItem(expected2);
             expectedQueryResult = CreateExpectedQueryResult(expectedRows, 0);
-            Assert.AreEqual(expectedQueryResult, allDocs);
+            Assert.AreEqual(expectedQueryResult.Select(kvp => kvp.Key).OrderBy(k => k), allDocs.Select(kvp => kvp.Key).OrderBy(k => k));
         }
 
         private IDictionary<string, object> CreateExpectedQueryResult(IList<QueryRow> rows, int offset)
@@ -590,7 +591,7 @@ namespace Couchbase.Lite
             // wait until indexing is (hopefully) done
             try
             {
-                Sharpen.Thread.Sleep(1 * 1000);
+                Thread.Sleep(1 * 1000);
             }
             catch (Exception e)
             {

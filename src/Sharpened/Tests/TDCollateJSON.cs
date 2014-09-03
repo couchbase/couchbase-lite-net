@@ -47,42 +47,42 @@ using Sharpen;
 
 namespace Couchbase.Lite
 {
-	public class TDCollateJSON
-	{
-		public static void RegisterCustomCollators(SQLiteDatabase database)
-		{
-			NativeRegisterCustomCollators(database, Build.VERSION.SdkInt);
-		}
+    public class TDCollateJSON
+    {
+        public static void RegisterCustomCollators(SQLiteDatabase database)
+        {
+            NativeRegisterCustomCollators(database, Build.VERSION.SdkInt);
+        }
 
-		public static int CompareStringsUnicode(string a, string b)
-		{
-			Collator c = Collator.GetInstance();
-			int res = c.Compare(a, b);
-			return res;
-		}
+        public static int CompareStringsUnicode(string a, string b)
+        {
+            Collator c = Collator.GetInstance();
+            int res = c.Compare(a, b);
+            return res;
+        }
 
-		private static void NativeRegisterCustomCollators(SQLiteDatabase database, int sdkVersion
-			)
-		{
-		}
+        private static void NativeRegisterCustomCollators(SQLiteDatabase database, int sdkVersion
+            )
+        {
+        }
 
-		//FIXME only public for now until tests are moved int same package
-		public static int TestCollateJSON(int mode, int len1, string string1, int len2, string
-			 string2)
-		{
-		}
+        //FIXME only public for now until tests are moved int same package
+        public static int TestCollateJSON(int mode, int len1, string string1, int len2, string
+             string2)
+        {
+        }
 
-		public static char TestEscape(string source)
-		{
-		}
+        public static char TestEscape(string source)
+        {
+        }
 
-		public static int TestDigitToInt(int digit)
-		{
-		}
+        public static int TestDigitToInt(int digit)
+        {
+        }
 
-		static TDCollateJSON()
-		{
-			Runtime.LoadLibrary("com_couchbase_touchdb_TDCollateJSON");
-		}
-	}
+        static TDCollateJSON()
+        {
+            Runtime.LoadLibrary("com_couchbase_touchdb_TDCollateJSON");
+        }
+    }
 }

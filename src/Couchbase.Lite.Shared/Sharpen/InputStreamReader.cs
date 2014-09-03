@@ -2,7 +2,7 @@
 // InputStreamReader.cs
 //
 // Author:
-//	Zachary Gramana  <zack@xamarin.com>
+//  Zachary Gramana  <zack@xamarin.com>
 //
 // Copyright (c) 2013, 2014 Xamarin Inc (http://www.xamarin.com)
 //
@@ -43,26 +43,26 @@
 */
 namespace Sharpen
 {
-	using System;
-	using System.IO;
-	using System.Text;
+    using System;
+    using System.IO;
+    using System.Text;
 
-	internal class InputStreamReader : StreamReader
-	{
-		protected InputStreamReader (string file) : base(file)
-		{
-		}
+    internal class InputStreamReader : StreamReader
+    {
+        protected InputStreamReader (string file) : base(file)
+        {
+        }
 
-		public InputStreamReader (InputStream s) : base(s.GetWrappedStream ())
-		{
-		}
+        public InputStreamReader (InputStream s) : base(s.GetWrappedStream ())
+        {
+        }
 
-		public InputStreamReader (InputStream s, string encoding) : base(s.GetWrappedStream (), Encoding.GetEncoding (encoding))
-		{
-		}
+        public InputStreamReader (InputStream s, string encoding) : base(s.GetWrappedStream (), Encoding.GetEncoding (encoding))
+        {
+        }
 
-		public InputStreamReader (InputStream s, Encoding e) : base(s.GetWrappedStream (), e)
-		{
-		}
-	}
+        public InputStreamReader (InputStream s, Encoding e) : base(s.GetWrappedStream (), e)
+        {
+        }
+    }
 }

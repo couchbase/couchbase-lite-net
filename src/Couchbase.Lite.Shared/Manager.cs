@@ -55,13 +55,14 @@ using System.Text.RegularExpressions;
 using System.Collections.ObjectModel;
 using Couchbase.Lite.Replicator;
 using Couchbase.Lite.Support;
+using System.Net.NetworkInformation;
 
 namespace Couchbase.Lite
 {
     /// <summary>
     /// The top-level object that manages Couchbase Lite <see cref="Couchbase.Lite.Database"/>s.
     /// </summary>
-    public sealed partial class Manager
+    public sealed class Manager
     {
 
     #region Constants
@@ -92,7 +93,7 @@ namespace Couchbase.Lite
         /// </summary>
         /// <value>The shared instance.</value>
         // FIXME: SharedInstance lifecycle is undefined, so returning default manager for now.
-                public static Manager SharedInstance { get { return sharedManager ?? (sharedManager = new Manager(defaultDirectory, ManagerOptions.Default)); } }
+        public static Manager SharedInstance { get { return sharedManager ?? (sharedManager = new Manager(defaultDirectory, ManagerOptions.Default)); } }
 
         //Methods
 
@@ -131,16 +132,15 @@ namespace Couchbase.Lite
         /// <summary>
         /// Initializes a Manager that stores Databases in the given directory.
         /// </summary>
-        /// <param name="context"><see cref="Couchbase.Lite.IContext"/> object for initializing the Manager object.</param>
+        /// <param name="directoryFile"><see cref="System.IO.DirectoryInfo"/> object for initializing the Manager object.</param>
         /// <param name="options">Option flags for initialization.</param>
         /// <exception cref="T:System.IO.DirectoryNotFoundException">Thrown when there is an error while accessing or creating the given directory.</exception>
-        public Manager(DirectoryInfo directoryFile, ManagerOptions options, INetworkReachabilityManager networkReachabilityManager = null)
+        public Manager(DirectoryInfo directoryFile, ManagerOptions options)
         {
             Log.I(Tag, "Starting Manager version: " + VersionString);
 
             this.directoryFile = directoryFile;
             this.options = options ?? DefaultOptions;
-            this.NetworkReachabilityManager = networkReachabilityManager;
             this.databases = new Dictionary<string, Database>();
             this.replications = new AList<Replication>();
 
@@ -160,9 +160,11 @@ namespace Couchbase.Lite
             var scheduler = options.CallbackScheduler;
             CapturedContext = new TaskFactory(scheduler);
             workExecutor = new TaskFactory(new SingleThreadTaskScheduler());
-            Log.D(Tag, "New replication uses a scheduler with a max concurrency level of {0}".Fmt(workExecutor.Scheduler.MaximumConcurrencyLevel));
+            Log.D(Tag, "New Manager uses a scheduler with a max concurrency level of {0}".Fmt(workExecutor.Scheduler.MaximumConcurrencyLevel));
 
-            SharedCookieStore = new CookieStore(this.directoryFile);
+            this.NetworkReachabilityManager = new NetworkReachabilityManager();
+
+            SharedCookieStore = new CookieStore(this.directoryFile.FullName);
         }
 
     #endregion
@@ -174,8 +176,6 @@ namespace Couchbase.Lite
         /// </summary>
         /// <value>The directory.</value>
         public String Directory { get { return directoryFile.FullName; } }
-
-        public INetworkReachabilityManager NetworkReachabilityManager { get ; private set; }
 
         /// <summary>
         /// Gets the names of all existing <see cref="Couchbase.Lite.Database"/>s.
@@ -204,7 +204,7 @@ namespace Couchbase.Lite
         /// </summary>
         public void Close() 
         {
-            Log.I(Database.Tag, "Closing " + this);
+            Log.I(Tag, "Closing " + this);
 
             foreach (var database in databases.Values)
             {
@@ -223,7 +223,7 @@ namespace Couchbase.Lite
 
             databases.Clear();
 
-            Log.I(Database.Tag, "Closed " + this);
+            Log.I(Tag, "Manager is Closed");
         }
 
         /// <summary>
@@ -262,53 +262,56 @@ namespace Couchbase.Lite
             return db;
         }
 
-        /// <summary>
-        /// Replaces or creates a <see cref="Couchbase.Lite.Database"/> from local files.
-        /// </summary>
-        /// <returns><c>true</c>, if database was replaced, <c>false</c> otherwise.</returns>
-        /// <param name="name">The name of the target Database to replace or create.</param>
-        /// <param name="databaseFile">Database file.</param>
-        /// <param name="attachmentsDirectory">Attachments directory.</param>
-        public Boolean ReplaceDatabase(String name, FileInfo databaseFile, DirectoryInfo attachmentsDirectory)
+        /// <summary>Replaces or installs a database from a file.</summary>
+        /// <remarks>
+        /// Replaces or installs a database from a file.
+        /// This is primarily used to install a canned database on first launch of an app, in which case
+        /// you should first check .exists to avoid replacing the database if it exists already. The
+        /// canned database would have been copied into your app bundle at build time.
+        /// </remarks>
+        /// <param name="databaseName">The name of the target Database to replace or create.</param>
+        /// <param name="databaseStream">InputStream on the source Database file.</param>
+        /// <param name="attachmentStreams">
+        /// Map of the associated source Attachments, or null if there are no attachments.
+        /// The Map key is the name of the attachment, the map value is an InputStream for
+        /// the attachment contents. If you wish to control the order that the attachments
+        /// will be processed, use a LinkedHashMap, SortedMap or similar and the iteration order
+        /// will be honoured.
+        /// </param>
+        /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
+        public void ReplaceDatabase(String name, Stream databaseStream, IDictionary<String, Stream> attachmentStreams)
         {
             var result = true;
 
             try {
                 var database = GetDatabase (name);
                 var dstAttachmentsPath = database.AttachmentStorePath;
-                var sourceFile = databaseFile;
-                var destFile = new FileInfo (database.Path);
-                
-                //FileDirUtils.CopyFile(sourceFile, destFile);
-                File.Copy (sourceFile.FullName, destFile.FullName);
-                
+
+                var destStream = File.OpenWrite(database.Path);
+                databaseStream.CopyTo(destStream);
+
                 var dstAttachmentsDirectory = new DirectoryInfo (dstAttachmentsPath);
                 //FileDirUtils.DeleteRecursive(attachmentsFile);
                 System.IO.Directory.Delete (dstAttachmentsPath, true);
                 dstAttachmentsDirectory.Create ();
-                
-                if (attachmentsDirectory != null) {
-                    System.IO.Directory.Move (attachmentsDirectory.FullName, dstAttachmentsDirectory.FullName);
+
+                var attachmentsFile = new FilePath(dstAttachmentsPath);
+
+                if (attachmentStreams != null) {
+                    StreamUtils.CopyStreamsToFolder(attachmentStreams, attachmentsFile);
                 }
 
                 database.ReplaceUUIDs ();
 
-            } catch (Exception) {
-                result = false;
+            } catch (Exception e) {
+                Log.E(Database.Tag, string.Empty, e);
+                throw new CouchbaseLiteException(StatusCode.InternalServerError);
             }
-
-            return result;
         }
 
     #endregion
     
     #region Non-public Members
-
-        // Static Properties
-        /// <exclude>Only used for unit testing.</exclude>
-        internal IHttpClientFactory DefaultHttpClientFactory { get; set; }
-
-        internal CookieStore SharedCookieStore { get; set; } 
 
         // Static Fields
         private static readonly ObjectWriter mapper;
@@ -334,7 +337,13 @@ namespace Couchbase.Lite
         private readonly IDictionary<String, Database> databases;
         private readonly List<Replication> replications;
         internal readonly TaskFactory workExecutor;
+
+        // Instance Properties
         internal TaskFactory CapturedContext { get; private set; }
+        internal IHttpClientFactory DefaultHttpClientFactory { get; set; }
+        internal INetworkReachabilityManager NetworkReachabilityManager { get ; private set; }
+        internal CookieStore SharedCookieStore { get; set; } 
+
 
         // Instance Methods
         internal Database GetDatabaseWithoutOpening(String name, Boolean mustExist)

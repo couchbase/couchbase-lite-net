@@ -2,7 +2,7 @@
 // AtomicBoolean.cs
 //
 // Author:
-//	Zachary Gramana  <zack@xamarin.com>
+//  Zachary Gramana  <zack@xamarin.com>
 //
 // Copyright (c) 2013, 2014 Xamarin Inc (http://www.xamarin.com)
 //
@@ -70,28 +70,28 @@ using System;
 
 namespace Sharpen
 {
-	internal class AtomicBoolean
-	{
-		bool val;
-		
-		public AtomicBoolean ()
-		{
-		}
-		
-		public AtomicBoolean (bool val)
-		{
-			this.val = val;
-		}
-		
-		public bool Get ()
-		{
-			return val;
-		}
-		
-		public void Set (bool v)
-		{
-			val = v;
-		}
-	}
+    internal class AtomicBoolean
+    {
+        bool val;
+        
+        public AtomicBoolean ()
+        {
+        }
+        
+        public AtomicBoolean (bool val)
+        {
+            this.val = val;
+        }
+        
+        public bool Get ()
+        {
+            return val;
+        }
+        
+        public void Set (bool v)
+        {
+            val = v;
+        }
+    }
 }
 

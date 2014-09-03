@@ -39,68 +39,68 @@ using Sharpen;
 
 namespace Couchbase.Lite.Support
 {
-	/// <summary>
-	/// A wrapper class around
-	/// <see cref="Apache.Http.Cookie.Cookie">Apache.Http.Cookie.Cookie</see>
-	/// and/or
-	/// <see cref="Apache.Http.Impl.Cookie.BasicClientCookie">Apache.Http.Impl.Cookie.BasicClientCookie
-	/// 	</see>
-	/// designed for use in
-	/// <see cref="PersistentCookieStore">PersistentCookieStore</see>
-	/// .
-	/// </summary>
-	[System.Serializable]
-	public class SerializableCookie
-	{
-		private const long serialVersionUID = 6374381828722046732L;
+    /// <summary>
+    /// A wrapper class around
+    /// <see cref="Apache.Http.Cookie.Cookie">Apache.Http.Cookie.Cookie</see>
+    /// and/or
+    /// <see cref="Apache.Http.Impl.Cookie.BasicClientCookie">Apache.Http.Impl.Cookie.BasicClientCookie
+    ///     </see>
+    /// designed for use in
+    /// <see cref="PersistentCookieStore">PersistentCookieStore</see>
+    /// .
+    /// </summary>
+    [System.Serializable]
+    public class SerializableCookie
+    {
+        private const long serialVersionUID = 6374381828722046732L;
 
-		[System.NonSerialized]
-		private readonly Apache.Http.Cookie.Cookie cookie;
+        [System.NonSerialized]
+        private readonly Apache.Http.Cookie.Cookie cookie;
 
-		[System.NonSerialized]
-		private BasicClientCookie clientCookie;
+        [System.NonSerialized]
+        private BasicClientCookie clientCookie;
 
-		public SerializableCookie(Apache.Http.Cookie.Cookie cookie)
-		{
-			this.cookie = cookie;
-		}
+        public SerializableCookie(Apache.Http.Cookie.Cookie cookie)
+        {
+            this.cookie = cookie;
+        }
 
-		public virtual Apache.Http.Cookie.Cookie GetCookie()
-		{
-			Apache.Http.Cookie.Cookie bestCookie = cookie;
-			if (clientCookie != null)
-			{
-				bestCookie = clientCookie;
-			}
-			return bestCookie;
-		}
+        public virtual Apache.Http.Cookie.Cookie GetCookie()
+        {
+            Apache.Http.Cookie.Cookie bestCookie = cookie;
+            if (clientCookie != null)
+            {
+                bestCookie = clientCookie;
+            }
+            return bestCookie;
+        }
 
-		/// <exception cref="System.IO.IOException"></exception>
-		private void WriteObject(ObjectOutputStream @out)
-		{
-			@out.WriteObject(cookie.GetName());
-			@out.WriteObject(cookie.GetValue());
-			@out.WriteObject(cookie.GetComment());
-			@out.WriteObject(cookie.GetDomain());
-			@out.WriteObject(cookie.GetExpiryDate());
-			@out.WriteObject(cookie.GetPath());
-			@out.WriteInt(cookie.GetVersion());
-			@out.WriteBoolean(cookie.IsSecure());
-		}
+        /// <exception cref="System.IO.IOException"></exception>
+        private void WriteObject(ObjectOutputStream @out)
+        {
+            @out.WriteObject(cookie.GetName());
+            @out.WriteObject(cookie.GetValue());
+            @out.WriteObject(cookie.GetComment());
+            @out.WriteObject(cookie.GetDomain());
+            @out.WriteObject(cookie.GetExpiryDate());
+            @out.WriteObject(cookie.GetPath());
+            @out.WriteInt(cookie.GetVersion());
+            @out.WriteBoolean(cookie.IsSecure());
+        }
 
-		/// <exception cref="System.IO.IOException"></exception>
-		/// <exception cref="System.TypeLoadException"></exception>
-		private void ReadObject(ObjectInputStream @in)
-		{
-			string name = (string)@in.ReadObject();
-			string value = (string)@in.ReadObject();
-			clientCookie = new BasicClientCookie(name, value);
-			clientCookie.SetComment((string)@in.ReadObject());
-			clientCookie.SetDomain((string)@in.ReadObject());
-			clientCookie.SetExpiryDate((DateTime)@in.ReadObject());
-			clientCookie.SetPath((string)@in.ReadObject());
-			clientCookie.SetVersion(@in.ReadInt());
-			clientCookie.SetSecure(@in.ReadBoolean());
-		}
-	}
+        /// <exception cref="System.IO.IOException"></exception>
+        /// <exception cref="System.TypeLoadException"></exception>
+        private void ReadObject(ObjectInputStream @in)
+        {
+            string name = (string)@in.ReadObject();
+            string value = (string)@in.ReadObject();
+            clientCookie = new BasicClientCookie(name, value);
+            clientCookie.SetComment((string)@in.ReadObject());
+            clientCookie.SetDomain((string)@in.ReadObject());
+            clientCookie.SetExpiryDate((DateTime)@in.ReadObject());
+            clientCookie.SetPath((string)@in.ReadObject());
+            clientCookie.SetVersion(@in.ReadInt());
+            clientCookie.SetSecure(@in.ReadBoolean());
+        }
+    }
 }

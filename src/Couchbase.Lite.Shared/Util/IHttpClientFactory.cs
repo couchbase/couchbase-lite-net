@@ -51,7 +51,7 @@ namespace Couchbase.Lite.Support
     {
         HttpClient GetHttpClient();
         IDictionary<string,string> Headers { get; set; }
-
+        MessageProcessingHandler Handler { get; }
         void AddCookies(CookieCollection cookies);
         void DeleteCookie(Uri domain, string name);
         CookieContainer GetCookieContainer();

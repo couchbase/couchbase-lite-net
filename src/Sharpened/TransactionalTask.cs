@@ -37,12 +37,12 @@ using Sharpen;
 
 namespace Couchbase.Lite
 {
-	/// <summary>A delegate that can be run in a transaction on a Database.</summary>
-	/// <remarks>A delegate that can be run in a transaction on a Database.</remarks>
-	public interface TransactionalTask
-	{
-		/// <summary>Run in a transaction</summary>
-		/// <returns>true if the transaction should be committed, otherwise false.</returns>
-		bool Run();
-	}
+    /// <summary>A delegate that can be run in a transaction on a Database.</summary>
+    /// <remarks>A delegate that can be run in a transaction on a Database.</remarks>
+    public interface TransactionalTask
+    {
+        /// <summary>Run in a transaction</summary>
+        /// <returns>true if the transaction should be committed, otherwise false.</returns>
+        bool Run();
+    }
 }

@@ -47,13 +47,14 @@ using System.Collections.Generic;
 using System.Net;
 using System.IO;
 using Sharpen;
+using Couchbase.Lite.Util;
 
 namespace Couchbase.Lite 
 {
     /// <summary>
     /// A result row for a Couchbase Lite <see cref="Couchbase.Lite.View"/> <see cref="Couchbase.Lite.Query"/>.
     /// </summary>
-    public partial class QueryRow 
+    public sealed class QueryRow 
     {
 
     #region Constructors
@@ -231,28 +232,18 @@ namespace Couchbase.Lite
             }
 
             var other = (QueryRow)obj;
-            var documentPropertiesBothNull = (DocumentProperties == null && other.DocumentProperties == null);
-            var documentPropertiesEqual = documentPropertiesBothNull || DocumentProperties.Equals(other.DocumentProperties);
+            var documentPropertiesEqual = Misc.IsEqual(DocumentProperties, other.DocumentProperties);
 
             if (Database == other.Database && 
-                ((Key == null && other.Key == null) || Key.Equals(other.Key)) && 
-                ((SourceDocumentId == null && other.SourceDocumentId == null) || 
-                    SourceDocumentId.Equals(other.SourceDocumentId)) && 
+                Misc.IsEqual(Key, other.Key) && 
+                Misc.IsEqual(SourceDocumentId, other.SourceDocumentId) && 
                 documentPropertiesEqual)
             {
                 // If values were emitted, compare them. Otherwise we have nothing to go on so check
                 // if _anything_ about the doc has changed (i.e. the sequences are different.)
                 if (Value != null || other.Value != null)
                 {
-                    bool isEqual;
-                    if (Value is IDictionary<string, object> && other.Value is IDictionary<string, object>)
-                    {
-                        return Misc.PropertiesEqual((IDictionary<string, object>)Value, (IDictionary<string, object>)other.Value);
-                    }
-                    else
-                    {
-                        return Value.Equals(other.Value);
-                    }
+                    return Value.Equals(other.Value);
                 }
                 else
                 {
@@ -271,7 +262,7 @@ namespace Couchbase.Lite
 
     #region Non-public Members
 
-        public virtual IDictionary<string, object> AsJSONDictionary()
+        public IDictionary<string, object> AsJSONDictionary()
         {
             var result = new Dictionary<string, object>();
             if (Value != null || SourceDocumentId != null)

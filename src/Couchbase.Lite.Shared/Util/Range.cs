@@ -44,26 +44,26 @@ using Sharpen;
 
 namespace Couchbase.Lite.Support
 {
-	public class Range
-	{
-		private readonly int location;
+    public class Range
+    {
+        private readonly int location;
 
-		private readonly int length;
+        private readonly int length;
 
-		internal Range(int location, int length)
-		{
-			this.location = location;
-			this.length = length;
-		}
+        internal Range(int location, int length)
+        {
+            this.location = location;
+            this.length = length;
+        }
 
-		public virtual int GetLocation()
-		{
-			return location;
-		}
+        public virtual int GetLocation()
+        {
+            return location;
+        }
 
-		public virtual int GetLength()
-		{
-			return length;
-		}
-	}
+        public virtual int GetLength()
+        {
+            return length;
+        }
+    }
 }

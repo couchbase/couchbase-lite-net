@@ -38,47 +38,47 @@ using Sharpen;
 
 namespace Couchbase.Lite.Util
 {
-	/// <summary>Created by andy on 15/04/2014.</summary>
-	/// <remarks>Created by andy on 15/04/2014.</remarks>
-	public class CollectionUtils
-	{
-		public static ICollection<T> Filter<T>(ICollection<T> target, CollectionUtils.Predicate
-			<T> predicate)
-		{
-			ICollection<T> result = new AList<T>();
-			foreach (T element in target)
-			{
-				if (predicate.Apply(element))
-				{
-					result.AddItem(element);
-				}
-			}
-			return result;
-		}
+    /// <summary>Created by andy on 15/04/2014.</summary>
+    /// <remarks>Created by andy on 15/04/2014.</remarks>
+    public class CollectionUtils
+    {
+        public static ICollection<T> Filter<T>(ICollection<T> target, CollectionUtils.Predicate
+            <T> predicate)
+        {
+            ICollection<T> result = new AList<T>();
+            foreach (T element in target)
+            {
+                if (predicate.Apply(element))
+                {
+                    result.AddItem(element);
+                }
+            }
+            return result;
+        }
 
-		public static ICollection<U> Transform<T, U>(ICollection<T> target, CollectionUtils.Functor
-			<T, U> functor)
-		{
-			ICollection<U> result = new AList<U>();
-			foreach (T element in target)
-			{
-				U mapped = functor.Invoke(element);
-				if (mapped != null)
-				{
-					result.AddItem(mapped);
-				}
-			}
-			return result;
-		}
+        public static ICollection<U> Transform<T, U>(ICollection<T> target, CollectionUtils.Functor
+            <T, U> functor)
+        {
+            ICollection<U> result = new AList<U>();
+            foreach (T element in target)
+            {
+                U mapped = functor.Invoke(element);
+                if (mapped != null)
+                {
+                    result.AddItem(mapped);
+                }
+            }
+            return result;
+        }
 
-		public interface Predicate<T>
-		{
-			bool Apply(T type);
-		}
+        public interface Predicate<T>
+        {
+            bool Apply(T type);
+        }
 
-		public interface Functor<T, U>
-		{
-			U Invoke(T source);
-		}
-	}
+        public interface Functor<T, U>
+        {
+            U Invoke(T source);
+        }
+    }
 }

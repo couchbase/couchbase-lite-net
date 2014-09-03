@@ -42,68 +42,68 @@ using Sharpen;
 
 namespace Couchbase.Lite.Performance
 {
-	public class Test1_CreateDocs : LiteTestCase
-	{
-		public const string Tag = "CreateDocsPerformance";
+    public class Test1_CreateDocs : LiteTestCase
+    {
+        public const string Tag = "CreateDocsPerformance";
 
-		private const string _propertyValue = "1234567";
+        private const string _propertyValue = "1234567";
 
-		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
-		public virtual void TestCreateDocsPerformance()
-		{
-			long startMillis = Runtime.CurrentTimeMillis();
-			bool success = database.RunInTransaction(new _TransactionalTask_50(this));
-			//create a document
-			Log.V("PerformanceStats", Tag + "," + Sharpen.Extensions.ValueOf(Runtime.CurrentTimeMillis
-				() - startMillis).ToString() + "," + GetNumberOfDocuments() + "," + GetSizeOfDocument
-				());
-		}
+        /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
+        public virtual void TestCreateDocsPerformance()
+        {
+            long startMillis = Runtime.CurrentTimeMillis();
+            bool success = database.RunInTransaction(new _TransactionalTask_50(this));
+            //create a document
+            Log.V("PerformanceStats", Tag + "," + Sharpen.Extensions.ValueOf(Runtime.CurrentTimeMillis
+                () - startMillis).ToString() + "," + GetNumberOfDocuments() + "," + GetSizeOfDocument
+                ());
+        }
 
-		private sealed class _TransactionalTask_50 : TransactionalTask
-		{
-			public _TransactionalTask_50(Test1_CreateDocs _enclosing)
-			{
-				this._enclosing = _enclosing;
-			}
+        private sealed class _TransactionalTask_50 : TransactionalTask
+        {
+            public _TransactionalTask_50(Test1_CreateDocs _enclosing)
+            {
+                this._enclosing = _enclosing;
+            }
 
-			public bool Run()
-			{
-				string[] bigObj = new string[this._enclosing.GetSizeOfDocument()];
-				for (int i = 0; i < this._enclosing.GetSizeOfDocument(); i++)
-				{
-					bigObj[i] = Test1_CreateDocs._propertyValue;
-				}
-				for (int i_1 = 0; i_1 < this._enclosing.GetNumberOfDocuments(); i_1++)
-				{
-					IDictionary<string, object> props = new Dictionary<string, object>();
-					props.Put("bigArray", bigObj);
-					Body body = new Body(props);
-					RevisionInternal rev1 = new RevisionInternal(body, this._enclosing.database);
-					Status status = new Status();
-					try
-					{
-						rev1 = this._enclosing.database.PutRevision(rev1, null, false, status);
-					}
-					catch (Exception t)
-					{
-						Log.E(Test1_CreateDocs.Tag, "Document create failed", t);
-						return false;
-					}
-				}
-				return true;
-			}
+            public bool Run()
+            {
+                string[] bigObj = new string[this._enclosing.GetSizeOfDocument()];
+                for (int i = 0; i < this._enclosing.GetSizeOfDocument(); i++)
+                {
+                    bigObj[i] = Test1_CreateDocs._propertyValue;
+                }
+                for (int i_1 = 0; i_1 < this._enclosing.GetNumberOfDocuments(); i_1++)
+                {
+                    IDictionary<string, object> props = new Dictionary<string, object>();
+                    props.Put("bigArray", bigObj);
+                    Body body = new Body(props);
+                    RevisionInternal rev1 = new RevisionInternal(body, this._enclosing.database);
+                    Status status = new Status();
+                    try
+                    {
+                        rev1 = this._enclosing.database.PutRevision(rev1, null, false, status);
+                    }
+                    catch (Exception t)
+                    {
+                        Log.E(Test1_CreateDocs.Tag, "Document create failed", t);
+                        return false;
+                    }
+                }
+                return true;
+            }
 
-			private readonly Test1_CreateDocs _enclosing;
-		}
+            private readonly Test1_CreateDocs _enclosing;
+        }
 
-		private int GetSizeOfDocument()
-		{
-			return System.Convert.ToInt32(Runtime.GetProperty("Test1_sizeOfDocument"));
-		}
+        private int GetSizeOfDocument()
+        {
+            return System.Convert.ToInt32(Runtime.GetProperty("Test1_sizeOfDocument"));
+        }
 
-		private int GetNumberOfDocuments()
-		{
-			return System.Convert.ToInt32(Runtime.GetProperty("Test1_numberOfDocuments"));
-		}
-	}
+        private int GetNumberOfDocuments()
+        {
+            return System.Convert.ToInt32(Runtime.GetProperty("Test1_numberOfDocuments"));
+        }
+    }
 }

@@ -46,12 +46,12 @@ using Sharpen;
 
 namespace Couchbase.Lite
 {
-	/// <summary>Validation block, used to approve revisions being added to the database.
-	/// 	</summary>
-	/// <remarks>Validation block, used to approve revisions being added to the database.
-	/// 	</remarks>
-	public interface ValidationBlock
-	{
-		bool Validate(RevisionInternal newRevision, ValidationContext context);
-	}
+    /// <summary>Validation block, used to approve revisions being added to the database.
+    ///     </summary>
+    /// <remarks>Validation block, used to approve revisions being added to the database.
+    ///     </remarks>
+    public interface ValidationBlock
+    {
+        bool Validate(RevisionInternal newRevision, ValidationContext context);
+    }
 }

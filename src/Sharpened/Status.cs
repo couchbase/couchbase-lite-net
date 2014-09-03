@@ -36,86 +36,86 @@
 
 namespace Couchbase.Lite
 {
-	/// <summary>Same interpretation as HTTP status codes, esp.</summary>
-	/// <remarks>Same interpretation as HTTP status codes, esp. 200, 201, 404, 409, 500.</remarks>
-	public class Status
-	{
-		public const int Unknown = -1;
+    /// <summary>Same interpretation as HTTP status codes, esp.</summary>
+    /// <remarks>Same interpretation as HTTP status codes, esp. 200, 201, 404, 409, 500.</remarks>
+    public class Status
+    {
+        public const int Unknown = -1;
 
-		public const int Ok = 200;
+        public const int Ok = 200;
 
-		public const int Created = 201;
+        public const int Created = 201;
 
-		public const int NotModified = 304;
+        public const int NotModified = 304;
 
-		public const int BadRequest = 400;
+        public const int BadRequest = 400;
 
-		public const int Unauthorized = 401;
+        public const int Unauthorized = 401;
 
-		public const int Forbidden = 403;
+        public const int Forbidden = 403;
 
-		public const int NotFound = 404;
+        public const int NotFound = 404;
 
-		public const int MethodNotAllowed = 405;
+        public const int MethodNotAllowed = 405;
 
-		public const int NotAcceptable = 406;
+        public const int NotAcceptable = 406;
 
-		public const int Conflict = 409;
+        public const int Conflict = 409;
 
-		public const int PreconditionFailed = 412;
+        public const int PreconditionFailed = 412;
 
-		public const int BadEncoding = 490;
+        public const int BadEncoding = 490;
 
-		public const int BadAttachment = 491;
+        public const int BadAttachment = 491;
 
-		public const int BadJson = 493;
+        public const int BadJson = 493;
 
-		public const int InternalServerError = 500;
+        public const int InternalServerError = 500;
 
-		public const int StatusAttachmentError = 592;
+        public const int StatusAttachmentError = 592;
 
-		public const int UpstreamError = 589;
+        public const int UpstreamError = 589;
 
-		public const int DbError = 590;
+        public const int DbError = 590;
 
-		public const int DbBusy = 595;
+        public const int DbBusy = 595;
 
-		private int code;
+        private int code;
 
-		public Status()
-		{
-			// SQLite DB is busy (this is recoverable!)
-			this.code = Unknown;
-		}
+        public Status()
+        {
+            // SQLite DB is busy (this is recoverable!)
+            this.code = Unknown;
+        }
 
-		public Status(int code)
-		{
-			this.code = code;
-		}
+        public Status(int code)
+        {
+            this.code = code;
+        }
 
-		public virtual int GetCode()
-		{
-			return code;
-		}
+        public virtual int GetCode()
+        {
+            return code;
+        }
 
-		public virtual void SetCode(int code)
-		{
-			this.code = code;
-		}
+        public virtual void SetCode(int code)
+        {
+            this.code = code;
+        }
 
-		public virtual bool IsSuccessful()
-		{
-			return (code > 0 && code < 400);
-		}
+        public virtual bool IsSuccessful()
+        {
+            return (code > 0 && code < 400);
+        }
 
-		public virtual bool IsError()
-		{
-			return !IsSuccessful();
-		}
+        public virtual bool IsError()
+        {
+            return !IsSuccessful();
+        }
 
-		public override string ToString()
-		{
-			return "Status: " + code;
-		}
-	}
+        public override string ToString()
+        {
+            return "Status: " + code;
+        }
+    }
 }

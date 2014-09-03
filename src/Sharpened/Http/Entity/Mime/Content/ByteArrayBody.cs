@@ -48,68 +48,68 @@ using Sharpen;
 
 namespace Apache.Http.Entity.Mime.Content
 {
-	/// <summary>Body part that is built using a byte array containing a file.</summary>
-	/// <remarks>Body part that is built using a byte array containing a file.</remarks>
-	/// <since>4.1</since>
-	public class ByteArrayBody : AbstractContentBody
-	{
-		/// <summary>The contents of the file contained in this part.</summary>
-		/// <remarks>The contents of the file contained in this part.</remarks>
-		private readonly byte[] data;
+    /// <summary>Body part that is built using a byte array containing a file.</summary>
+    /// <remarks>Body part that is built using a byte array containing a file.</remarks>
+    /// <since>4.1</since>
+    public class ByteArrayBody : AbstractContentBody
+    {
+        /// <summary>The contents of the file contained in this part.</summary>
+        /// <remarks>The contents of the file contained in this part.</remarks>
+        private readonly byte[] data;
 
-		/// <summary>The name of the file contained in this part.</summary>
-		/// <remarks>The name of the file contained in this part.</remarks>
-		private readonly string filename;
+        /// <summary>The name of the file contained in this part.</summary>
+        /// <remarks>The name of the file contained in this part.</remarks>
+        private readonly string filename;
 
-		/// <summary>Creates a new ByteArrayBody.</summary>
-		/// <remarks>Creates a new ByteArrayBody.</remarks>
-		/// <param name="data">The contents of the file contained in this part.</param>
-		/// <param name="mimeType">The mime type of the file contained in this part.</param>
-		/// <param name="filename">The name of the file contained in this part.</param>
-		public ByteArrayBody(byte[] data, string mimeType, string filename) : base(mimeType
-			)
-		{
-			if (data == null)
-			{
-				throw new ArgumentException("byte[] may not be null");
-			}
-			this.data = data;
-			this.filename = filename;
-		}
+        /// <summary>Creates a new ByteArrayBody.</summary>
+        /// <remarks>Creates a new ByteArrayBody.</remarks>
+        /// <param name="data">The contents of the file contained in this part.</param>
+        /// <param name="mimeType">The mime type of the file contained in this part.</param>
+        /// <param name="filename">The name of the file contained in this part.</param>
+        public ByteArrayBody(byte[] data, string mimeType, string filename) : base(mimeType
+            )
+        {
+            if (data == null)
+            {
+                throw new ArgumentException("byte[] may not be null");
+            }
+            this.data = data;
+            this.filename = filename;
+        }
 
-		/// <summary>Creates a new ByteArrayBody.</summary>
-		/// <remarks>Creates a new ByteArrayBody.</remarks>
-		/// <param name="data">The contents of the file contained in this part.</param>
-		/// <param name="filename">The name of the file contained in this part.</param>
-		public ByteArrayBody(byte[] data, string filename) : this(data, "application/octet-stream"
-			, filename)
-		{
-		}
+        /// <summary>Creates a new ByteArrayBody.</summary>
+        /// <remarks>Creates a new ByteArrayBody.</remarks>
+        /// <param name="data">The contents of the file contained in this part.</param>
+        /// <param name="filename">The name of the file contained in this part.</param>
+        public ByteArrayBody(byte[] data, string filename) : this(data, "application/octet-stream"
+            , filename)
+        {
+        }
 
-		public override string GetFilename()
-		{
-			return filename;
-		}
+        public override string GetFilename()
+        {
+            return filename;
+        }
 
-		/// <exception cref="System.IO.IOException"></exception>
-		public override void WriteTo(OutputStream @out)
-		{
-			@out.Write(data);
-		}
+        /// <exception cref="System.IO.IOException"></exception>
+        public override void WriteTo(OutputStream @out)
+        {
+            @out.Write(data);
+        }
 
-		public override string GetCharset()
-		{
-			return null;
-		}
+        public override string GetCharset()
+        {
+            return null;
+        }
 
-		public override string GetTransferEncoding()
-		{
-			return MIME.EncBinary;
-		}
+        public override string GetTransferEncoding()
+        {
+            return MIME.EncBinary;
+        }
 
-		public override long GetContentLength()
-		{
-			return data.Length;
-		}
-	}
+        public override long GetContentLength()
+        {
+            return data.Length;
+        }
+    }
 }

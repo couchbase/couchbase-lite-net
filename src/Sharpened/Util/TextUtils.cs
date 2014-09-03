@@ -41,48 +41,48 @@ using Sharpen;
 
 namespace Couchbase.Lite.Util
 {
-	public class TextUtils
-	{
-		// COPY: Partially copied from android.text.TextUtils
-		/// <summary>Returns a string containing the tokens joined by delimiters.</summary>
-		/// <remarks>Returns a string containing the tokens joined by delimiters.</remarks>
-		/// <param name="tokens">
-		/// an array objects to be joined. Strings will be formed from
-		/// the objects by calling object.toString().
-		/// </param>
-		public static string Join(CharSequence delimiter, IEnumerable tokens)
-		{
-			StringBuilder sb = new StringBuilder();
-			bool firstTime = true;
-			foreach (object token in tokens)
-			{
-				if (firstTime)
-				{
-					firstTime = false;
-				}
-				else
-				{
-					sb.Append(delimiter);
-				}
-				sb.Append(token);
-			}
-			return sb.ToString();
-		}
+    public class TextUtils
+    {
+        // COPY: Partially copied from android.text.TextUtils
+        /// <summary>Returns a string containing the tokens joined by delimiters.</summary>
+        /// <remarks>Returns a string containing the tokens joined by delimiters.</remarks>
+        /// <param name="tokens">
+        /// an array objects to be joined. Strings will be formed from
+        /// the objects by calling object.toString().
+        /// </param>
+        public static string Join(CharSequence delimiter, IEnumerable tokens)
+        {
+            StringBuilder sb = new StringBuilder();
+            bool firstTime = true;
+            foreach (object token in tokens)
+            {
+                if (firstTime)
+                {
+                    firstTime = false;
+                }
+                else
+                {
+                    sb.Append(delimiter);
+                }
+                sb.Append(token);
+            }
+            return sb.ToString();
+        }
 
-		/// <exception cref="System.IO.IOException"></exception>
-		public static byte[] Read(InputStream @is)
-		{
-			int initialCapacity = 1024;
-			ByteArrayBuffer byteArrayBuffer = new ByteArrayBuffer(initialCapacity);
-			byte[] bytes = new byte[512];
-			int offset = 0;
-			int numRead = 0;
-			while ((numRead = @is.Read(bytes, offset, bytes.Length - offset)) >= 0)
-			{
-				byteArrayBuffer.Append(bytes, 0, numRead);
-				offset += numRead;
-			}
-			return byteArrayBuffer.ToByteArray();
-		}
-	}
+        /// <exception cref="System.IO.IOException"></exception>
+        public static byte[] Read(InputStream @is)
+        {
+            int initialCapacity = 1024;
+            ByteArrayBuffer byteArrayBuffer = new ByteArrayBuffer(initialCapacity);
+            byte[] bytes = new byte[512];
+            int offset = 0;
+            int numRead = 0;
+            while ((numRead = @is.Read(bytes, offset, bytes.Length - offset)) >= 0)
+            {
+                byteArrayBuffer.Append(bytes, 0, numRead);
+                offset += numRead;
+            }
+            return byteArrayBuffer.ToByteArray();
+        }
+    }
 }

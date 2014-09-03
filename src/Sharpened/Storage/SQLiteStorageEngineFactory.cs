@@ -41,29 +41,29 @@ using Sharpen;
 
 namespace Couchbase.Lite.Storage
 {
-	public class SQLiteStorageEngineFactory
-	{
-		public static SQLiteStorageEngine CreateStorageEngine()
-		{
-			string classname = string.Empty;
-			string resource = "services/com.couchbase.lite.storage.SQLiteStorageEngine";
-			try
-			{
-				InputStream inputStream = Sharpen.Thread.CurrentThread().GetContextClassLoader().
-					GetResourceAsStream(resource);
-				byte[] bytes = TextUtils.Read(inputStream);
-				classname = Sharpen.Runtime.GetStringForBytes(bytes);
-				Log.D(Database.Tag, "Loading storage engine: %s", classname);
-				Type clazz = Sharpen.Runtime.GetType(classname);
-				SQLiteStorageEngine storageEngine = (SQLiteStorageEngine)System.Activator.CreateInstance
-					(clazz);
-				return storageEngine;
-			}
-			catch (Exception e)
-			{
-				throw new RuntimeException("Failed to load storage.  Resource: " + resource + " classname: "
-					 + classname, e);
-			}
-		}
-	}
+    public class SQLiteStorageEngineFactory
+    {
+        public static SQLiteStorageEngine CreateStorageEngine()
+        {
+            string classname = string.Empty;
+            string resource = "services/com.couchbase.lite.storage.SQLiteStorageEngine";
+            try
+            {
+                InputStream inputStream = Sharpen.Thread.CurrentThread().GetContextClassLoader().
+                    GetResourceAsStream(resource);
+                byte[] bytes = TextUtils.Read(inputStream);
+                classname = Sharpen.Runtime.GetStringForBytes(bytes);
+                Log.D(Database.Tag, "Loading storage engine: %s", classname);
+                Type clazz = Sharpen.Runtime.GetType(classname);
+                SQLiteStorageEngine storageEngine = (SQLiteStorageEngine)System.Activator.CreateInstance
+                    (clazz);
+                return storageEngine;
+            }
+            catch (Exception e)
+            {
+                throw new RuntimeException("Failed to load storage.  Resource: " + resource + " classname: "
+                     + classname, e);
+            }
+        }
+    }
 }

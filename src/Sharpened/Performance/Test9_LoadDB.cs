@@ -42,74 +42,74 @@ using Sharpen;
 
 namespace Couchbase.Lite.Performance
 {
-	public class Test9_LoadDB : LiteTestCase
-	{
-		public const string Tag = "LoadDBPerformance";
+    public class Test9_LoadDB : LiteTestCase
+    {
+        public const string Tag = "LoadDBPerformance";
 
-		private const string _propertyValue = "1234567";
+        private const string _propertyValue = "1234567";
 
-		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
-		public virtual void TestLoadDBPerformance()
-		{
-			long startMillis = Runtime.CurrentTimeMillis();
-			string[] bigObj = new string[GetSizeOfDocument()];
-			for (int i = 0; i < GetSizeOfDocument(); i++)
-			{
-				bigObj[i] = _propertyValue;
-			}
-			for (int j = 0; j < GetNumberOfShutAndReloadCycles(); j++)
-			{
-				//Force close and reopen of manager and database to ensure cold
-				//start before doc creation
-				try
-				{
-					TearDown();
-					manager = new Manager(new LiteTestContext(), Manager.DefaultOptions);
-					database = manager.GetExistingDatabase(DefaultTestDb);
-				}
-				catch (Exception ex)
-				{
-					Log.E(Tag, "DB teardown", ex);
-					Fail();
-				}
-				for (int k = 0; k < GetNumberOfDocuments(); k++)
-				{
-					//create a document
-					IDictionary<string, object> props = new Dictionary<string, object>();
-					props.Put("bigArray", bigObj);
-					Body body = new Body(props);
-					RevisionInternal rev1 = new RevisionInternal(body, database);
-					Status status = new Status();
-					try
-					{
-						rev1 = database.PutRevision(rev1, null, false, status);
-					}
-					catch (Exception t)
-					{
-						Log.E(Tag, "Document creation failed", t);
-						Fail();
-					}
-				}
-			}
-			Log.V("PerformanceStats", Tag + "," + Sharpen.Extensions.ValueOf(Runtime.CurrentTimeMillis
-				() - startMillis).ToString() + "," + GetNumberOfDocuments() + "," + GetSizeOfDocument
-				() + ",," + GetNumberOfShutAndReloadCycles());
-		}
+        /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
+        public virtual void TestLoadDBPerformance()
+        {
+            long startMillis = Runtime.CurrentTimeMillis();
+            string[] bigObj = new string[GetSizeOfDocument()];
+            for (int i = 0; i < GetSizeOfDocument(); i++)
+            {
+                bigObj[i] = _propertyValue;
+            }
+            for (int j = 0; j < GetNumberOfShutAndReloadCycles(); j++)
+            {
+                //Force close and reopen of manager and database to ensure cold
+                //start before doc creation
+                try
+                {
+                    TearDown();
+                    manager = new Manager(new LiteTestContext(), Manager.DefaultOptions);
+                    database = manager.GetExistingDatabase(DefaultTestDb);
+                }
+                catch (Exception ex)
+                {
+                    Log.E(Tag, "DB teardown", ex);
+                    Fail();
+                }
+                for (int k = 0; k < GetNumberOfDocuments(); k++)
+                {
+                    //create a document
+                    IDictionary<string, object> props = new Dictionary<string, object>();
+                    props.Put("bigArray", bigObj);
+                    Body body = new Body(props);
+                    RevisionInternal rev1 = new RevisionInternal(body, database);
+                    Status status = new Status();
+                    try
+                    {
+                        rev1 = database.PutRevision(rev1, null, false, status);
+                    }
+                    catch (Exception t)
+                    {
+                        Log.E(Tag, "Document creation failed", t);
+                        Fail();
+                    }
+                }
+            }
+            Log.V("PerformanceStats", Tag + "," + Sharpen.Extensions.ValueOf(Runtime.CurrentTimeMillis
+                () - startMillis).ToString() + "," + GetNumberOfDocuments() + "," + GetSizeOfDocument
+                () + ",," + GetNumberOfShutAndReloadCycles());
+        }
 
-		private int GetSizeOfDocument()
-		{
-			return System.Convert.ToInt32(Runtime.GetProperty("Test9_sizeOfDocument"));
-		}
+        private int GetSizeOfDocument()
+        {
+            return System.Convert.ToInt32(Runtime.GetProperty("Test9_sizeOfDocument"));
+        }
 
-		private int GetNumberOfDocuments()
-		{
-			return System.Convert.ToInt32(Runtime.GetProperty("Test9_numberOfDocuments"));
-		}
+        private int GetNumberOfDocuments()
+        {
+            return System.Convert.ToInt32(Runtime.GetProperty("Test9_numberOfDocuments"));
+        }
 
-		private int GetNumberOfShutAndReloadCycles()
-		{
-			return System.Convert.ToInt32(Runtime.GetProperty("Test9_numberOfShutAndReloadCycles"
-				));
-		}
-	}
+        private int GetNumberOfShutAndReloadCycles()
+        {
+            return System.Convert.ToInt32(Runtime.GetProperty("Test9_numberOfShutAndReloadCycles"
+                ));
+        }
+    }
 }

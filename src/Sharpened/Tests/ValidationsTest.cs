@@ -41,126 +41,126 @@ using Sharpen;
 
 namespace Couchbase.Lite
 {
-	public class ValidationsTest : LiteTestCase
-	{
-		public const string Tag = "Validations";
+    public class ValidationsTest : LiteTestCase
+    {
+        public const string Tag = "Validations";
 
-		internal bool validationCalled = false;
+        internal bool validationCalled = false;
 
-		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
-		public virtual void TestValidations()
-		{
-			Validator validator = new _Validator_19(this);
-			database.SetValidation("hoopy", validator);
-			// POST a valid new document:
-			IDictionary<string, object> props = new Dictionary<string, object>();
-			props.Put("name", "Zaphod Beeblebrox");
-			props.Put("towel", "velvet");
-			RevisionInternal rev = new RevisionInternal(props, database);
-			Status status = new Status();
-			validationCalled = false;
-			rev = database.PutRevision(rev, null, false, status);
-			NUnit.Framework.Assert.IsTrue(validationCalled);
-			NUnit.Framework.Assert.AreEqual(Status.Created, status.GetCode());
-			// PUT a valid update:
-			props.Put("head_count", 3);
-			rev.SetProperties(props);
-			validationCalled = false;
-			rev = database.PutRevision(rev, rev.GetRevId(), false, status);
-			NUnit.Framework.Assert.IsTrue(validationCalled);
-			NUnit.Framework.Assert.AreEqual(Status.Created, status.GetCode());
-			// PUT an invalid update:
-			Sharpen.Collections.Remove(props, "towel");
-			rev.SetProperties(props);
-			validationCalled = false;
-			bool gotExpectedError = false;
-			try
-			{
-				rev = database.PutRevision(rev, rev.GetRevId(), false, status);
-			}
-			catch (CouchbaseLiteException e)
-			{
-				gotExpectedError = (e.GetCBLStatus().GetCode() == Status.Forbidden);
-			}
-			NUnit.Framework.Assert.IsTrue(validationCalled);
-			NUnit.Framework.Assert.IsTrue(gotExpectedError);
-			// POST an invalid new document:
-			props = new Dictionary<string, object>();
-			props.Put("name", "Vogon");
-			props.Put("poetry", true);
-			rev = new RevisionInternal(props, database);
-			validationCalled = false;
-			gotExpectedError = false;
-			try
-			{
-				rev = database.PutRevision(rev, null, false, status);
-			}
-			catch (CouchbaseLiteException e)
-			{
-				gotExpectedError = (e.GetCBLStatus().GetCode() == Status.Forbidden);
-			}
-			NUnit.Framework.Assert.IsTrue(validationCalled);
-			NUnit.Framework.Assert.IsTrue(gotExpectedError);
-			// PUT a valid new document with an ID:
-			props = new Dictionary<string, object>();
-			props.Put("_id", "ford");
-			props.Put("name", "Ford Prefect");
-			props.Put("towel", "terrycloth");
-			rev = new RevisionInternal(props, database);
-			validationCalled = false;
-			rev = database.PutRevision(rev, null, false, status);
-			NUnit.Framework.Assert.IsTrue(validationCalled);
-			NUnit.Framework.Assert.AreEqual("ford", rev.GetDocId());
-			// DELETE a document:
-			rev = new RevisionInternal(rev.GetDocId(), rev.GetRevId(), true, database);
-			NUnit.Framework.Assert.IsTrue(rev.IsDeleted());
-			validationCalled = false;
-			rev = database.PutRevision(rev, rev.GetRevId(), false, status);
-			NUnit.Framework.Assert.IsTrue(validationCalled);
-			// PUT an invalid new document:
-			props = new Dictionary<string, object>();
-			props.Put("_id", "petunias");
-			props.Put("name", "Pot of Petunias");
-			rev = new RevisionInternal(props, database);
-			validationCalled = false;
-			gotExpectedError = false;
-			try
-			{
-				rev = database.PutRevision(rev, null, false, status);
-			}
-			catch (CouchbaseLiteException e)
-			{
-				gotExpectedError = (e.GetCBLStatus().GetCode() == Status.Forbidden);
-			}
-			NUnit.Framework.Assert.IsTrue(validationCalled);
-			NUnit.Framework.Assert.IsTrue(gotExpectedError);
-		}
+        /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
+        public virtual void TestValidations()
+        {
+            Validator validator = new _Validator_19(this);
+            database.SetValidation("hoopy", validator);
+            // POST a valid new document:
+            IDictionary<string, object> props = new Dictionary<string, object>();
+            props.Put("name", "Zaphod Beeblebrox");
+            props.Put("towel", "velvet");
+            RevisionInternal rev = new RevisionInternal(props, database);
+            Status status = new Status();
+            validationCalled = false;
+            rev = database.PutRevision(rev, null, false, status);
+            NUnit.Framework.Assert.IsTrue(validationCalled);
+            NUnit.Framework.Assert.AreEqual(Status.Created, status.GetCode());
+            // PUT a valid update:
+            props.Put("head_count", 3);
+            rev.SetProperties(props);
+            validationCalled = false;
+            rev = database.PutRevision(rev, rev.GetRevId(), false, status);
+            NUnit.Framework.Assert.IsTrue(validationCalled);
+            NUnit.Framework.Assert.AreEqual(Status.Created, status.GetCode());
+            // PUT an invalid update:
+            Sharpen.Collections.Remove(props, "towel");
+            rev.SetProperties(props);
+            validationCalled = false;
+            bool gotExpectedError = false;
+            try
+            {
+                rev = database.PutRevision(rev, rev.GetRevId(), false, status);
+            }
+            catch (CouchbaseLiteException e)
+            {
+                gotExpectedError = (e.GetCBLStatus().GetCode() == Status.Forbidden);
+            }
+            NUnit.Framework.Assert.IsTrue(validationCalled);
+            NUnit.Framework.Assert.IsTrue(gotExpectedError);
+            // POST an invalid new document:
+            props = new Dictionary<string, object>();
+            props.Put("name", "Vogon");
+            props.Put("poetry", true);
+            rev = new RevisionInternal(props, database);
+            validationCalled = false;
+            gotExpectedError = false;
+            try
+            {
+                rev = database.PutRevision(rev, null, false, status);
+            }
+            catch (CouchbaseLiteException e)
+            {
+                gotExpectedError = (e.GetCBLStatus().GetCode() == Status.Forbidden);
+            }
+            NUnit.Framework.Assert.IsTrue(validationCalled);
+            NUnit.Framework.Assert.IsTrue(gotExpectedError);
+            // PUT a valid new document with an ID:
+            props = new Dictionary<string, object>();
+            props.Put("_id", "ford");
+            props.Put("name", "Ford Prefect");
+            props.Put("towel", "terrycloth");
+            rev = new RevisionInternal(props, database);
+            validationCalled = false;
+            rev = database.PutRevision(rev, null, false, status);
+            NUnit.Framework.Assert.IsTrue(validationCalled);
+            NUnit.Framework.Assert.AreEqual("ford", rev.GetDocId());
+            // DELETE a document:
+            rev = new RevisionInternal(rev.GetDocId(), rev.GetRevId(), true, database);
+            NUnit.Framework.Assert.IsTrue(rev.IsDeleted());
+            validationCalled = false;
+            rev = database.PutRevision(rev, rev.GetRevId(), false, status);
+            NUnit.Framework.Assert.IsTrue(validationCalled);
+            // PUT an invalid new document:
+            props = new Dictionary<string, object>();
+            props.Put("_id", "petunias");
+            props.Put("name", "Pot of Petunias");
+            rev = new RevisionInternal(props, database);
+            validationCalled = false;
+            gotExpectedError = false;
+            try
+            {
+                rev = database.PutRevision(rev, null, false, status);
+            }
+            catch (CouchbaseLiteException e)
+            {
+                gotExpectedError = (e.GetCBLStatus().GetCode() == Status.Forbidden);
+            }
+            NUnit.Framework.Assert.IsTrue(validationCalled);
+            NUnit.Framework.Assert.IsTrue(gotExpectedError);
+        }
 
-		private sealed class _Validator_19 : Validator
-		{
-			public _Validator_19(ValidationsTest _enclosing)
-			{
-				this._enclosing = _enclosing;
-			}
+        private sealed class _Validator_19 : Validator
+        {
+            public _Validator_19(ValidationsTest _enclosing)
+            {
+                this._enclosing = _enclosing;
+            }
 
-			public void Validate(Revision newRevision, ValidationContext context)
-			{
-				NUnit.Framework.Assert.IsNotNull(newRevision);
-				NUnit.Framework.Assert.IsNotNull(context);
-				NUnit.Framework.Assert.IsTrue(newRevision.GetProperties() != null || newRevision.
-					IsDeletion());
-				this._enclosing.validationCalled = true;
-				bool hoopy = newRevision.IsDeletion() || (newRevision.GetProperties().Get("towel"
-					) != null);
-				Log.V(ValidationsTest.Tag, string.Format("--- Validating %s --> %b", newRevision.
-					GetProperties(), hoopy));
-				if (!hoopy)
-				{
-					context.Reject("Where's your towel?");
-				}
-			}
+            public void Validate(Revision newRevision, ValidationContext context)
+            {
+                NUnit.Framework.Assert.IsNotNull(newRevision);
+                NUnit.Framework.Assert.IsNotNull(context);
+                NUnit.Framework.Assert.IsTrue(newRevision.GetProperties() != null || newRevision.
+                    IsDeletion());
+                this._enclosing.validationCalled = true;
+                bool hoopy = newRevision.IsDeletion() || (newRevision.GetProperties().Get("towel"
+                    ) != null);
+                Log.V(ValidationsTest.Tag, string.Format("--- Validating %s --> %b", newRevision.
+                    GetProperties(), hoopy));
+                if (!hoopy)
+                {
+                    context.Reject("Where's your towel?");
+                }
+            }
 
-			private readonly ValidationsTest _enclosing;
-		}
-	}
+            private readonly ValidationsTest _enclosing;
+        }
+    }
 }

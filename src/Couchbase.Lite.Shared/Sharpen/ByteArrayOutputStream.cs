@@ -2,7 +2,7 @@
 // ByteArrayOutputStream.cs
 //
 // Author:
-//	Zachary Gramana  <zack@xamarin.com>
+//  Zachary Gramana  <zack@xamarin.com>
 //
 // Copyright (c) 2013, 2014 Xamarin Inc (http://www.xamarin.com)
 //
@@ -43,44 +43,44 @@
 */
 namespace Sharpen
 {
-	using System;
-	using System.IO;
+    using System;
+    using System.IO;
 
-	internal class ByteArrayOutputStream : OutputStream
-	{
-		public ByteArrayOutputStream ()
-		{
-			base.Wrapped = new MemoryStream ();
-		}
+    internal class ByteArrayOutputStream : OutputStream
+    {
+        public ByteArrayOutputStream ()
+        {
+            base.Wrapped = new MemoryStream ();
+        }
 
-		public ByteArrayOutputStream (int bufferSize)
-		{
-			base.Wrapped = new MemoryStream (bufferSize);
-		}
+        public ByteArrayOutputStream (int bufferSize)
+        {
+            base.Wrapped = new MemoryStream (bufferSize);
+        }
 
-		public long Size ()
-		{
-			return ((MemoryStream)base.Wrapped).Length;
-		}
+        public long Size ()
+        {
+            return ((MemoryStream)base.Wrapped).Length;
+        }
 
-		public byte[] ToByteArray ()
-		{
-			return ((MemoryStream)base.Wrapped).ToArray ();
-		}
-		
-		public override void Close ()
-		{
-			// Closing a ByteArrayOutputStream has no effect.
-		}
+        public byte[] ToByteArray ()
+        {
+            return ((MemoryStream)base.Wrapped).ToArray ();
+        }
+        
+        public override void Close ()
+        {
+            // Closing a ByteArrayOutputStream has no effect.
+        }
 
         public void Reset ()
         {
             GetWrappedStream().Seek(0, SeekOrigin.Begin);
         }
-		
-		public override string ToString ()
-		{
-			return System.Text.Encoding.UTF8.GetString (ToByteArray ());
-		}
-	}
+        
+        public override string ToString ()
+        {
+            return System.Text.Encoding.UTF8.GetString (ToByteArray ());
+        }
+    }
 }

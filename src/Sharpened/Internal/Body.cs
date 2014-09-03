@@ -41,158 +41,158 @@ using Sharpen;
 
 namespace Couchbase.Lite.Internal
 {
-	/// <summary>A request/response/document body, stored as either JSON or a Map<String,Object>
-	/// 	</summary>
-	public class Body
-	{
-		private byte[] json;
+    /// <summary>A request/response/document body, stored as either JSON or a Map<String,Object>
+    ///     </summary>
+    public class Body
+    {
+        private byte[] json;
 
-		private object @object;
+        private object @object;
 
-		public Body(byte[] json)
-		{
-			this.json = json;
-		}
+        public Body(byte[] json)
+        {
+            this.json = json;
+        }
 
-		public Body(IDictionary<string, object> properties)
-		{
-			this.@object = properties;
-		}
+        public Body(IDictionary<string, object> properties)
+        {
+            this.@object = properties;
+        }
 
-		public Body(IList<object> array)
-		{
-			this.@object = array;
-		}
+        public Body(IList<object> array)
+        {
+            this.@object = array;
+        }
 
-		public static Couchbase.Lite.Internal.Body BodyWithProperties(IDictionary<string, 
-			object> properties)
-		{
-			Couchbase.Lite.Internal.Body result = new Couchbase.Lite.Internal.Body(properties
-				);
-			return result;
-		}
+        public static Couchbase.Lite.Internal.Body BodyWithProperties(IDictionary<string, 
+            object> properties)
+        {
+            Couchbase.Lite.Internal.Body result = new Couchbase.Lite.Internal.Body(properties
+                );
+            return result;
+        }
 
-		public static Couchbase.Lite.Internal.Body BodyWithJSON(byte[] json)
-		{
-			Couchbase.Lite.Internal.Body result = new Couchbase.Lite.Internal.Body(json);
-			return result;
-		}
+        public static Couchbase.Lite.Internal.Body BodyWithJSON(byte[] json)
+        {
+            Couchbase.Lite.Internal.Body result = new Couchbase.Lite.Internal.Body(json);
+            return result;
+        }
 
-		public virtual byte[] GetJson()
-		{
-			if (json == null)
-			{
-				LazyLoadJsonFromObject();
-			}
-			return json;
-		}
+        public virtual byte[] GetJson()
+        {
+            if (json == null)
+            {
+                LazyLoadJsonFromObject();
+            }
+            return json;
+        }
 
-		private void LazyLoadJsonFromObject()
-		{
-			if (@object == null)
-			{
-				throw new InvalidOperationException("Both json and object are null for this body: "
-					 + this);
-			}
-			try
-			{
-				json = Manager.GetObjectMapper().WriteValueAsBytes(@object);
-			}
-			catch (IOException e)
-			{
-				throw new RuntimeException(e);
-			}
-		}
+        private void LazyLoadJsonFromObject()
+        {
+            if (@object == null)
+            {
+                throw new InvalidOperationException("Both json and object are null for this body: "
+                     + this);
+            }
+            try
+            {
+                json = Manager.GetObjectMapper().WriteValueAsBytes(@object);
+            }
+            catch (IOException e)
+            {
+                throw new RuntimeException(e);
+            }
+        }
 
-		public virtual object GetObject()
-		{
-			if (@object == null)
-			{
-				LazyLoadObjectFromJson();
-			}
-			return @object;
-		}
+        public virtual object GetObject()
+        {
+            if (@object == null)
+            {
+                LazyLoadObjectFromJson();
+            }
+            return @object;
+        }
 
-		private void LazyLoadObjectFromJson()
-		{
-			if (json == null)
-			{
-				throw new InvalidOperationException("Both object and json are null for this body: "
-					 + this);
-			}
-			try
-			{
-				@object = Manager.GetObjectMapper().ReadValue<object>(json);
-			}
-			catch (IOException e)
-			{
-				throw new RuntimeException(e);
-			}
-		}
+        private void LazyLoadObjectFromJson()
+        {
+            if (json == null)
+            {
+                throw new InvalidOperationException("Both object and json are null for this body: "
+                     + this);
+            }
+            try
+            {
+                @object = Manager.GetObjectMapper().ReadValue<object>(json);
+            }
+            catch (IOException e)
+            {
+                throw new RuntimeException(e);
+            }
+        }
 
-		public virtual bool IsValidJSON()
-		{
-			if (@object == null)
-			{
-				bool gotException = false;
-				if (json == null)
-				{
-					throw new InvalidOperationException("Both object and json are null for this body: "
-						 + this);
-				}
-				try
-				{
-					@object = Manager.GetObjectMapper().ReadValue<object>(json);
-				}
-				catch (IOException)
-				{
-				}
-			}
-			return @object != null;
-		}
+        public virtual bool IsValidJSON()
+        {
+            if (@object == null)
+            {
+                bool gotException = false;
+                if (json == null)
+                {
+                    throw new InvalidOperationException("Both object and json are null for this body: "
+                         + this);
+                }
+                try
+                {
+                    @object = Manager.GetObjectMapper().ReadValue<object>(json);
+                }
+                catch (IOException)
+                {
+                }
+            }
+            return @object != null;
+        }
 
-		public virtual byte[] GetPrettyJson()
-		{
-			object properties = GetObject();
-			if (properties != null)
-			{
-				ObjectWriter writer = Manager.GetObjectMapper().WriterWithDefaultPrettyPrinter();
-				try
-				{
-					json = writer.WriteValueAsBytes(properties);
-				}
-				catch (IOException e)
-				{
-					throw new RuntimeException(e);
-				}
-			}
-			return GetJson();
-		}
+        public virtual byte[] GetPrettyJson()
+        {
+            object properties = GetObject();
+            if (properties != null)
+            {
+                ObjectWriter writer = Manager.GetObjectMapper().WriterWithDefaultPrettyPrinter();
+                try
+                {
+                    json = writer.WriteValueAsBytes(properties);
+                }
+                catch (IOException e)
+                {
+                    throw new RuntimeException(e);
+                }
+            }
+            return GetJson();
+        }
 
-		public virtual string GetJSONString()
-		{
-			return Sharpen.Runtime.GetStringForBytes(GetJson());
-		}
+        public virtual string GetJSONString()
+        {
+            return Sharpen.Runtime.GetStringForBytes(GetJson());
+        }
 
-		public virtual IDictionary<string, object> GetProperties()
-		{
-			object @object = GetObject();
-			if (@object is IDictionary)
-			{
-				IDictionary<string, object> map = (IDictionary<string, object>)@object;
-				return Sharpen.Collections.UnmodifiableMap(map);
-			}
-			return null;
-		}
+        public virtual IDictionary<string, object> GetProperties()
+        {
+            object @object = GetObject();
+            if (@object is IDictionary)
+            {
+                IDictionary<string, object> map = (IDictionary<string, object>)@object;
+                return Sharpen.Collections.UnmodifiableMap(map);
+            }
+            return null;
+        }
 
-		public virtual object GetPropertyForKey(string key)
-		{
-			IDictionary<string, object> theProperties = GetProperties();
-			if (theProperties == null)
-			{
-				return null;
-			}
-			return theProperties.Get(key);
-		}
-	}
+        public virtual object GetPropertyForKey(string key)
+        {
+            IDictionary<string, object> theProperties = GetProperties();
+            if (theProperties == null)
+            {
+                return null;
+            }
+            return theProperties.Get(key);
+        }
+    }
 }

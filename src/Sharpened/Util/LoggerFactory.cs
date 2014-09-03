@@ -40,40 +40,40 @@ using Sharpen;
 
 namespace Couchbase.Lite.Util
 {
-	public class LoggerFactory
-	{
-		public static Logger CreateLogger()
-		{
-			string classname = string.Empty;
-			string resource = "services/com.couchbase.lite.util.Logger";
-			try
-			{
-				InputStream inputStream = Sharpen.Thread.CurrentThread().GetContextClassLoader().
-					GetResourceAsStream(resource);
-				if (inputStream == null)
-				{
-					// Return default System logger.
-					Log.D(Database.Tag, "Unable to load %s. Falling back to SystemLogger", resource);
-					return new SystemLogger();
-				}
-				byte[] bytes = TextUtils.Read(inputStream);
-				classname = Sharpen.Runtime.GetStringForBytes(bytes);
-				if (classname == null || classname.IsEmpty())
-				{
-					// Return default System logger.
-					Log.D(Database.Tag, "Unable to load %s. Falling back to SystemLogger", resource);
-					return new SystemLogger();
-				}
-				Log.V(Database.Tag, "Loading logger: %s", classname);
-				Type clazz = Sharpen.Runtime.GetType(classname);
-				Logger logger = (Logger)System.Activator.CreateInstance(clazz);
-				return logger;
-			}
-			catch (Exception e)
-			{
-				throw new RuntimeException("Failed to logger.  Resource: " + resource + " classname: "
-					 + classname, e);
-			}
-		}
-	}
+    public class LoggerFactory
+    {
+        public static Logger CreateLogger()
+        {
+            string classname = string.Empty;
+            string resource = "services/com.couchbase.lite.util.Logger";
+            try
+            {
+                InputStream inputStream = Sharpen.Thread.CurrentThread().GetContextClassLoader().
+                    GetResourceAsStream(resource);
+                if (inputStream == null)
+                {
+                    // Return default System logger.
+                    Log.D(Database.Tag, "Unable to load %s. Falling back to SystemLogger", resource);
+                    return new SystemLogger();
+                }
+                byte[] bytes = TextUtils.Read(inputStream);
+                classname = Sharpen.Runtime.GetStringForBytes(bytes);
+                if (classname == null || classname.IsEmpty())
+                {
+                    // Return default System logger.
+                    Log.D(Database.Tag, "Unable to load %s. Falling back to SystemLogger", resource);
+                    return new SystemLogger();
+                }
+                Log.V(Database.Tag, "Loading logger: %s", classname);
+                Type clazz = Sharpen.Runtime.GetType(classname);
+                Logger logger = (Logger)System.Activator.CreateInstance(clazz);
+                return logger;
+            }
+            catch (Exception e)
+            {
+                throw new RuntimeException("Failed to logger.  Resource: " + resource + " classname: "
+                     + classname, e);
+            }
+        }
+    }
 }

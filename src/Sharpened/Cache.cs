@@ -38,80 +38,80 @@ using Sharpen;
 
 namespace Couchbase.Lite
 {
-	/// <summary>An in-memory object cache.</summary>
-	/// <remarks>
-	/// An in-memory object cache.
-	/// It keeps track of all added objects as long as anything else has retained them,
-	/// and it keeps a certain number of recently-accessed objects with no external references.
-	/// It's intended for use by a parent resource, to cache its children.
-	/// </remarks>
-	public class Cache<K, V>
-	{
-		private const int DefaultRetainLimit = 50;
+    /// <summary>An in-memory object cache.</summary>
+    /// <remarks>
+    /// An in-memory object cache.
+    /// It keeps track of all added objects as long as anything else has retained them,
+    /// and it keeps a certain number of recently-accessed objects with no external references.
+    /// It's intended for use by a parent resource, to cache its children.
+    /// </remarks>
+    public class Cache<K, V>
+    {
+        private const int DefaultRetainLimit = 50;
 
-		internal int retainLimit = DefaultRetainLimit;
+        internal int retainLimit = DefaultRetainLimit;
 
-		private LruCache<K, V> strongReferenceCache;
+        private LruCache<K, V> strongReferenceCache;
 
-		private WeakValueHashMap<K, V> weakReferenceCache;
+        private WeakValueHashMap<K, V> weakReferenceCache;
 
-		public Cache() : this(DefaultRetainLimit)
-		{
-		}
+        public Cache() : this(DefaultRetainLimit)
+        {
+        }
 
-		public Cache(int retainLimit)
-		{
-			// how many items to retain strong references to
-			// the underlying strong reference cache
-			// the underlying weak reference cache
-			this.retainLimit = retainLimit;
-			strongReferenceCache = new LruCache<K, V>(this.retainLimit);
-			weakReferenceCache = new WeakValueHashMap<K, V>();
-		}
+        public Cache(int retainLimit)
+        {
+            // how many items to retain strong references to
+            // the underlying strong reference cache
+            // the underlying weak reference cache
+            this.retainLimit = retainLimit;
+            strongReferenceCache = new LruCache<K, V>(this.retainLimit);
+            weakReferenceCache = new WeakValueHashMap<K, V>();
+        }
 
-		public virtual V Put(K key, V value)
-		{
-			strongReferenceCache.Put(key, value);
-			weakReferenceCache.Put(key, value);
-			return value;
-		}
+        public virtual V Put(K key, V value)
+        {
+            strongReferenceCache.Put(key, value);
+            weakReferenceCache.Put(key, value);
+            return value;
+        }
 
-		public virtual V Get(K key)
-		{
-			V value = null;
-			if (weakReferenceCache.ContainsKey(key))
-			{
-				value = weakReferenceCache.Get(key);
-			}
-			if (value != null && strongReferenceCache.Get(key) == null)
-			{
-				strongReferenceCache.Put(key, value);
-			}
-			// re-add doc to NSCache since it's recently used
-			return value;
-		}
+        public virtual V Get(K key)
+        {
+            V value = null;
+            if (weakReferenceCache.ContainsKey(key))
+            {
+                value = weakReferenceCache.Get(key);
+            }
+            if (value != null && strongReferenceCache.Get(key) == null)
+            {
+                strongReferenceCache.Put(key, value);
+            }
+            // re-add doc to NSCache since it's recently used
+            return value;
+        }
 
-		public virtual V Remove(K key)
-		{
-			V removedStrongValue = null;
-			V removedWeakValue = null;
-			removedStrongValue = strongReferenceCache.Remove(key);
-			removedWeakValue = Sharpen.Collections.Remove(weakReferenceCache, key);
-			if (removedStrongValue != null)
-			{
-				return removedStrongValue;
-			}
-			if (removedWeakValue != null)
-			{
-				return removedWeakValue;
-			}
-			return null;
-		}
+        public virtual V Remove(K key)
+        {
+            V removedStrongValue = null;
+            V removedWeakValue = null;
+            removedStrongValue = strongReferenceCache.Remove(key);
+            removedWeakValue = Sharpen.Collections.Remove(weakReferenceCache, key);
+            if (removedStrongValue != null)
+            {
+                return removedStrongValue;
+            }
+            if (removedWeakValue != null)
+            {
+                return removedWeakValue;
+            }
+            return null;
+        }
 
-		public virtual void Clear()
-		{
-			strongReferenceCache.EvictAll();
-			weakReferenceCache.Clear();
-		}
-	}
+        public virtual void Clear()
+        {
+            strongReferenceCache.EvictAll();
+            weakReferenceCache.Clear();
+        }
+    }
 }

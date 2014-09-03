@@ -2,7 +2,7 @@
 // ReentrantLock.cs
 //
 // Author:
-//	Zachary Gramana  <zack@xamarin.com>
+//  Zachary Gramana  <zack@xamarin.com>
 //
 // Copyright (c) 2013, 2014 Xamarin Inc (http://www.xamarin.com)
 //
@@ -43,26 +43,26 @@
 */
 namespace Sharpen
 {
-	using System;
-	using System.Threading;
+    using System;
+    using System.Threading;
 
-	internal class ReentrantLock
-	{
+    internal class ReentrantLock
+    {
         readonly Object lockObject = new Object();
 
-		public void Lock ()
-		{
+        public void Lock ()
+        {
             Monitor.Enter (lockObject);
-		}
+        }
 
-		public bool TryLock ()
-		{
+        public bool TryLock ()
+        {
             return Monitor.TryEnter (lockObject);
-		}
+        }
 
-		public void Unlock ()
-		{
+        public void Unlock ()
+        {
             Monitor.Exit (lockObject);
-		}
-	}
+        }
+    }
 }

@@ -1,5 +1,5 @@
 //
-// ScheduledFuture.cs
+// ChangeTrackerClient.cs
 //
 // Author:
 //     Zachary Gramana  <zack@xamarin.com>
@@ -40,18 +40,18 @@
 // and limitations under the License.
 //
 
-using System;
 using System.Collections.Generic;
-using Couchbase.Lite;
+using Couchbase.Lite.Replicator;
 using Couchbase.Lite.Support;
-using Couchbase.Lite.Util;
 using Sharpen;
-using System.Threading.Tasks;
+using System.Net.Http;
 
-namespace Couchbase.Lite.Support
+namespace Couchbase.Lite.Replicator
 {
-    [Obsolete("Remove this stub")]
-    class ScheduledFuture<Task>
-	{
-	}
+    internal interface IChangeTrackerClient
+    {
+        HttpClient GetHttpClient();
+        void ChangeTrackerReceivedChange(IDictionary<string, object> change);
+        void ChangeTrackerStopped(ChangeTracker tracker);
+    }
 }

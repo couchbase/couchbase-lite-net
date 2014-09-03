@@ -45,68 +45,68 @@ using Sharpen;
 
 namespace Couchbase.Lite
 {
-	/// <summary>Options for _changes feed</summary>
+    /// <summary>Options for _changes feed</summary>
     internal class ChangesOptions
-	{
-		private int limit = int.MaxValue;
+    {
+        private int limit = int.MaxValue;
 
-		private EnumSet<TDContentOptions> contentOptions = EnumSet.NoneOf<TDContentOptions>();
+        private DocumentContentOptions contentOptions;
 
-		private bool includeDocs = false;
+        private bool includeDocs = false;
 
-		private bool includeConflicts = false;
+        private bool includeConflicts = false;
 
-		private bool sortBySequence = true;
+        private bool sortBySequence = true;
 
-		public virtual int GetLimit()
-		{
-			return limit;
-		}
+        public virtual int GetLimit()
+        {
+            return limit;
+        }
 
-		public virtual void SetLimit(int limit)
-		{
-			this.limit = limit;
-		}
+        public virtual void SetLimit(int limit)
+        {
+            this.limit = limit;
+        }
 
-		public virtual bool IsIncludeConflicts()
-		{
-			return includeConflicts;
-		}
+        public virtual bool IsIncludeConflicts()
+        {
+            return includeConflicts;
+        }
 
-		public virtual void SetIncludeConflicts(bool includeConflicts)
-		{
-			this.includeConflicts = includeConflicts;
-		}
+        public virtual void SetIncludeConflicts(bool includeConflicts)
+        {
+            this.includeConflicts = includeConflicts;
+        }
 
-		public virtual bool IsIncludeDocs()
-		{
-			return includeDocs;
-		}
+        public virtual bool IsIncludeDocs()
+        {
+            return includeDocs;
+        }
 
-		public virtual void SetIncludeDocs(bool includeDocs)
-		{
-			this.includeDocs = includeDocs;
-		}
+        public virtual void SetIncludeDocs(bool includeDocs)
+        {
+            this.includeDocs = includeDocs;
+        }
 
-		public virtual bool IsSortBySequence()
-		{
-			return sortBySequence;
-		}
+        public virtual bool IsSortBySequence()
+        {
+            return sortBySequence;
+        }
 
-		public virtual void SetSortBySequence(bool sortBySequence)
-		{
-			this.sortBySequence = sortBySequence;
-		}
+        public virtual void SetSortBySequence(bool sortBySequence)
+        {
+            this.sortBySequence = sortBySequence;
+        }
 
-		public virtual EnumSet<TDContentOptions> GetContentOptions()
-		{
-			return contentOptions;
-		}
+        public virtual DocumentContentOptions GetContentOptions()
+        {
+            return contentOptions;
+        }
 
-		public virtual void SetContentOptions(EnumSet<TDContentOptions> contentOptions
-			)
-		{
-			this.contentOptions = contentOptions;
-		}
-	}
+        public virtual void SetContentOptions(DocumentContentOptions contentOptions
+            )
+        {
+            this.contentOptions = contentOptions;
+        }
+    }
 }

@@ -29,17 +29,17 @@ using System.Globalization;
 
 namespace CouchbaseSample.Android.Document
 {
-	public class List
-	{
-		private const string ViewName = "lists";
+    public class List
+    {
+        private const string ViewName = "lists";
 
-		private const string DocType = "list";
+        private const string DocType = "list";
 
-		public static Query GetQuery(Database database)
-		{
-			View view = database.GetView(ViewName);
-			if (view.Map == null)
-			{
+        public static Query GetQuery(Database database)
+        {
+            View view = database.GetView(ViewName);
+            if (view.Map == null)
+            {
                 view.Map += (IDictionary<string, object> document, EmitDelegate emitter) =>
                 {
                     string type = (string)document.Get("type");
@@ -48,37 +48,37 @@ namespace CouchbaseSample.Android.Document
                         emitter(document.Get("title"), document);
                     }
                 };
-			}
-			Query query = view.CreateQuery();
-			return query;
-		}
+            }
+            Query query = view.CreateQuery();
+            return query;
+        }
 
-		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
-		public static Couchbase.Lite.Document CreateNewList(Database database, string title, string userId)
-		{
-			var dateFormatter = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+        /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
+        public static Couchbase.Lite.Document CreateNewList(Database database, string title, string userId)
+        {
+            var dateFormatter = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
             var calendar = Calendar.CurrentEra;
-			string currentTimeString = dateFormatter.Format(calendar.GetTime());
-			IDictionary<string, object> properties = new Dictionary<string, object>();
-			properties.Put("type", "list");
-			properties.Put("title", title);
-			properties.Put("created_at", currentTimeString);
-			properties.Put("owner", "profile:" + userId);
-			properties.Put("members", new AList<string>());
-			Couchbase.Lite.Document document = database.CreateDocument();
-			document.PutProperties(properties);
-			return document;
-		}
+            string currentTimeString = dateFormatter.Format(calendar.GetTime());
+            IDictionary<string, object> properties = new Dictionary<string, object>();
+            properties.Put("type", "list");
+            properties.Put("title", title);
+            properties.Put("created_at", currentTimeString);
+            properties.Put("owner", "profile:" + userId);
+            properties.Put("members", new AList<string>());
+            Couchbase.Lite.Document document = database.CreateDocument();
+            document.PutProperties(properties);
+            return document;
+        }
 
-		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
-		public static void AssignOwnerToListsIfNeeded(Database database, Couchbase.Lite.Document
-			 user)
-		{
-			QueryEnumerator enumerator = GetQuery(database).Run();
-			if (enumerator == null)
-			{
-				return;
-			}
+        /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
+        public static void AssignOwnerToListsIfNeeded(Database database, Couchbase.Lite.Document
+             user)
+        {
+            QueryEnumerator enumerator = GetQuery(database).Run();
+            if (enumerator == null)
+            {
+                return;
+            }
             foreach (var row in enumerator)
             {
                 Couchbase.Lite.Document document = row.Document;
@@ -92,44 +92,44 @@ namespace CouchbaseSample.Android.Document
                 properties.Put("owner", user.Id);
                 document.PutProperties(properties);
             }
-		}
+        }
 
-		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
-		public static void AddMemberToList(Couchbase.Lite.Document list, Couchbase.Lite.Document
-			 user)
-		{
-			IDictionary<string, object> newProperties = new Dictionary<string, object>();
-			newProperties.PutAll(list.Properties);
-			IList<string> members = (IList<string>)newProperties.Get("members");
-			if (members == null)
-			{
-				members = new AList<string>();
-			}
-			members.AddItem(user.Id);
-			newProperties.Put("members", members);
-			try
-			{
-				list.PutProperties(newProperties);
-			}
-			catch (CouchbaseLiteException e)
-			{
-				Log.E(Application.Tag, "Cannot add member to the list", e);
-			}
-		}
+        /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
+        public static void AddMemberToList(Couchbase.Lite.Document list, Couchbase.Lite.Document
+             user)
+        {
+            IDictionary<string, object> newProperties = new Dictionary<string, object>();
+            newProperties.PutAll(list.Properties);
+            IList<string> members = (IList<string>)newProperties.Get("members");
+            if (members == null)
+            {
+                members = new AList<string>();
+            }
+            members.AddItem(user.Id);
+            newProperties.Put("members", members);
+            try
+            {
+                list.PutProperties(newProperties);
+            }
+            catch (CouchbaseLiteException e)
+            {
+                Log.E(Application.Tag, "Cannot add member to the list", e);
+            }
+        }
 
-		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
-		public static void RemoveMemberFromList(Couchbase.Lite.Document list, Couchbase.Lite.Document
-			 user)
-		{
-			IDictionary<string, object> newProperties = new Dictionary<string, object>();
-			newProperties.PutAll(list.Properties);
-			IList<string> members = (IList<string>)newProperties.Get("members");
-			if (members != null)
-			{
-				members.Remove(user.Id);
-			}
-			newProperties.Put("members", members);
-			list.PutProperties(newProperties);
-		}
-	}
+        /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
+        public static void RemoveMemberFromList(Couchbase.Lite.Document list, Couchbase.Lite.Document
+             user)
+        {
+            IDictionary<string, object> newProperties = new Dictionary<string, object>();
+            newProperties.PutAll(list.Properties);
+            IList<string> members = (IList<string>)newProperties.Get("members");
+            if (members != null)
+            {
+                members.Remove(user.Id);
+            }
+            newProperties.Put("members", members);
+            list.PutProperties(newProperties);
+        }
+    }
 }

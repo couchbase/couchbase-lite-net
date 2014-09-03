@@ -52,7 +52,7 @@ namespace Couchbase.Lite {
     /// <summary>
     /// An enumerator for Couchbase Lite <see cref="Couchbase.Lite.View"/> <see cref="Couchbase.Lite.Query"/> results.
     /// </summary>
-    public partial class QueryEnumerator : IEnumerator<QueryRow>, IEnumerable<QueryRow>
+    public sealed class QueryEnumerator : IEnumerator<QueryRow>, IEnumerable<QueryRow>
     {
 
     #region Constructors

@@ -1,5 +1,5 @@
 //
-// SystemLogger.cs
+// CustomLogger.cs
 //
 // Author:
 //     Zachary Gramana  <zack@xamarin.com>
@@ -86,16 +86,26 @@ namespace Couchbase.Lite.Util
             lock (locker){ ts.WriteLine(SourceLevels.Verbose, "{0}:\r\n{1}".Fmt(msg, Flatten(tr).ToString()), tag); }
         }
 
+        public void V (string tag, string format, params object[] args)
+        {
+            V(tag, string.Format(format, args));
+        }
+
+        public void D (string tag, string format, params object[] args)
+        {
+            D(tag, string.Format(format, args));
+        }
+
         public void D (string tag, string msg)
         {
-            if (!(level.HasFlag(SourceLevels.All)))
+            if (!(level.HasFlag(SourceLevels.ActivityTracing)))
                 return;
             lock (locker){ ts.WriteLine(SourceLevels.Verbose, msg, tag); }
         }
 
         public void D (string tag, string msg, Exception tr)
         {
-            if (!(level.HasFlag(SourceLevels.All)))
+            if (!(level.HasFlag(SourceLevels.ActivityTracing)))
                 return;
             lock (locker){ ts.WriteLine(SourceLevels.Verbose, msg, tag); }
         }
@@ -112,6 +122,11 @@ namespace Couchbase.Lite.Util
             if (!(level.HasFlag(SourceLevels.Information)))
                 return;
             lock (locker){ ts.WriteLine(SourceLevels.Information, "{0}:\r\n{1}".Fmt(msg, Flatten(tr).ToString()), tag); }
+        }
+
+        public void I (string tag, string format, params object[] args)
+        {
+            I(tag, string.Format(format, args));
         }
 
         public void W (string tag, string msg)
@@ -135,11 +150,16 @@ namespace Couchbase.Lite.Util
             lock (locker){ ts.WriteLine(SourceLevels.Warning, "{0}:\r\n{1}".Fmt(msg, Flatten(tr).ToString()), tag); }
         }
 
+        public void W (string tag, string format, params object[] args)
+        {
+            W(tag, string.Format(format, args));
+        }
+
         public void E (string tag, string msg)
         {
             if (!(level.HasFlag(SourceLevels.Error)))
                 return;
-            lock (locker){ ts.Fail(msg, tag); }
+            lock (locker){ ts.Fail(tag, msg); }
         }
 
         public void E (string tag, string msg, Exception tr)
@@ -147,6 +167,11 @@ namespace Couchbase.Lite.Util
             if (!(level.HasFlag(SourceLevels.Error)))
                 return;
             lock (locker){ ts.Fail("{0}: {1}".Fmt(tag, msg), Flatten(tr).ToString()); }
+        }
+
+        public void E (string tag, string format, params object[] args)
+        {
+            E(tag, string.Format(format, args));
         }
 
         #endregion

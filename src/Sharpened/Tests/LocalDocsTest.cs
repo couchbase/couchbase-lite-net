@@ -40,95 +40,95 @@ using Sharpen;
 
 namespace Couchbase.Lite
 {
-	public class LocalDocsTest : LiteTestCase
-	{
-		public const string Tag = "LocalDocs";
+    public class LocalDocsTest : LiteTestCase
+    {
+        public const string Tag = "LocalDocs";
 
-		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
-		public virtual void TestLocalDocs()
-		{
-			//create a document
-			IDictionary<string, object> documentProperties = new Dictionary<string, object>();
-			documentProperties.Put("_id", "_local/doc1");
-			documentProperties.Put("foo", 1);
-			documentProperties.Put("bar", false);
-			Body body = new Body(documentProperties);
-			RevisionInternal rev1 = new RevisionInternal(body, database);
-			Status status = new Status();
-			rev1 = database.PutLocalRevision(rev1, null);
-			Log.V(Tag, "Created " + rev1);
-			NUnit.Framework.Assert.AreEqual("_local/doc1", rev1.GetDocId());
-			NUnit.Framework.Assert.IsTrue(rev1.GetRevId().StartsWith("1-"));
-			//read it back
-			RevisionInternal readRev = database.GetLocalDocument(rev1.GetDocId(), null);
-			NUnit.Framework.Assert.IsNotNull(readRev);
-			IDictionary<string, object> readRevProps = readRev.GetProperties();
-			NUnit.Framework.Assert.AreEqual(rev1.GetDocId(), readRev.GetProperties().Get("_id"
-				));
-			NUnit.Framework.Assert.AreEqual(rev1.GetRevId(), readRev.GetProperties().Get("_rev"
-				));
-			NUnit.Framework.Assert.AreEqual(UserProperties(readRevProps), UserProperties(body
-				.GetProperties()));
-			//now update it
-			documentProperties = readRev.GetProperties();
-			documentProperties.Put("status", "updated!");
-			body = new Body(documentProperties);
-			RevisionInternal rev2 = new RevisionInternal(body, database);
-			RevisionInternal rev2input = rev2;
-			rev2 = database.PutLocalRevision(rev2, rev1.GetRevId());
-			Log.V(Tag, "Updated " + rev1);
-			NUnit.Framework.Assert.AreEqual(rev1.GetDocId(), rev2.GetDocId());
-			NUnit.Framework.Assert.IsTrue(rev2.GetRevId().StartsWith("2-"));
-			//read it back
-			readRev = database.GetLocalDocument(rev2.GetDocId(), null);
-			NUnit.Framework.Assert.IsNotNull(readRev);
-			NUnit.Framework.Assert.AreEqual(UserProperties(readRev.GetProperties()), UserProperties
-				(body.GetProperties()));
-			// Try to update the first rev, which should fail:
-			bool gotException = false;
-			try
-			{
-				database.PutLocalRevision(rev2input, rev1.GetRevId());
-			}
-			catch (CouchbaseLiteException e)
-			{
-				NUnit.Framework.Assert.AreEqual(Status.Conflict, e.GetCBLStatus().GetCode());
-				gotException = true;
-			}
-			NUnit.Framework.Assert.IsTrue(gotException);
-			// Delete it:
-			RevisionInternal revD = new RevisionInternal(rev2.GetDocId(), null, true, database
-				);
-			gotException = false;
-			try
-			{
-				RevisionInternal revResult = database.PutLocalRevision(revD, null);
-				NUnit.Framework.Assert.IsNull(revResult);
-			}
-			catch (CouchbaseLiteException e)
-			{
-				NUnit.Framework.Assert.AreEqual(Status.Conflict, e.GetCBLStatus().GetCode());
-				gotException = true;
-			}
-			NUnit.Framework.Assert.IsTrue(gotException);
-			revD = database.PutLocalRevision(revD, rev2.GetRevId());
-			// Delete nonexistent doc:
-			gotException = false;
-			RevisionInternal revFake = new RevisionInternal("_local/fake", null, true, database
-				);
-			try
-			{
-				database.PutLocalRevision(revFake, null);
-			}
-			catch (CouchbaseLiteException e)
-			{
-				NUnit.Framework.Assert.AreEqual(Status.NotFound, e.GetCBLStatus().GetCode());
-				gotException = true;
-			}
-			NUnit.Framework.Assert.IsTrue(gotException);
-			// Read it back (should fail):
-			readRev = database.GetLocalDocument(revD.GetDocId(), null);
-			NUnit.Framework.Assert.IsNull(readRev);
-		}
-	}
+        /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
+        public virtual void TestLocalDocs()
+        {
+            //create a document
+            IDictionary<string, object> documentProperties = new Dictionary<string, object>();
+            documentProperties.Put("_id", "_local/doc1");
+            documentProperties.Put("foo", 1);
+            documentProperties.Put("bar", false);
+            Body body = new Body(documentProperties);
+            RevisionInternal rev1 = new RevisionInternal(body, database);
+            Status status = new Status();
+            rev1 = database.PutLocalRevision(rev1, null);
+            Log.V(Tag, "Created " + rev1);
+            NUnit.Framework.Assert.AreEqual("_local/doc1", rev1.GetDocId());
+            NUnit.Framework.Assert.IsTrue(rev1.GetRevId().StartsWith("1-"));
+            //read it back
+            RevisionInternal readRev = database.GetLocalDocument(rev1.GetDocId(), null);
+            NUnit.Framework.Assert.IsNotNull(readRev);
+            IDictionary<string, object> readRevProps = readRev.GetProperties();
+            NUnit.Framework.Assert.AreEqual(rev1.GetDocId(), readRev.GetProperties().Get("_id"
+                ));
+            NUnit.Framework.Assert.AreEqual(rev1.GetRevId(), readRev.GetProperties().Get("_rev"
+                ));
+            NUnit.Framework.Assert.AreEqual(UserProperties(readRevProps), UserProperties(body
+                .GetProperties()));
+            //now update it
+            documentProperties = readRev.GetProperties();
+            documentProperties.Put("status", "updated!");
+            body = new Body(documentProperties);
+            RevisionInternal rev2 = new RevisionInternal(body, database);
+            RevisionInternal rev2input = rev2;
+            rev2 = database.PutLocalRevision(rev2, rev1.GetRevId());
+            Log.V(Tag, "Updated " + rev1);
+            NUnit.Framework.Assert.AreEqual(rev1.GetDocId(), rev2.GetDocId());
+            NUnit.Framework.Assert.IsTrue(rev2.GetRevId().StartsWith("2-"));
+            //read it back
+            readRev = database.GetLocalDocument(rev2.GetDocId(), null);
+            NUnit.Framework.Assert.IsNotNull(readRev);
+            NUnit.Framework.Assert.AreEqual(UserProperties(readRev.GetProperties()), UserProperties
+                (body.GetProperties()));
+            // Try to update the first rev, which should fail:
+            bool gotException = false;
+            try
+            {
+                database.PutLocalRevision(rev2input, rev1.GetRevId());
+            }
+            catch (CouchbaseLiteException e)
+            {
+                NUnit.Framework.Assert.AreEqual(Status.Conflict, e.GetCBLStatus().GetCode());
+                gotException = true;
+            }
+            NUnit.Framework.Assert.IsTrue(gotException);
+            // Delete it:
+            RevisionInternal revD = new RevisionInternal(rev2.GetDocId(), null, true, database
+                );
+            gotException = false;
+            try
+            {
+                RevisionInternal revResult = database.PutLocalRevision(revD, null);
+                NUnit.Framework.Assert.IsNull(revResult);
+            }
+            catch (CouchbaseLiteException e)
+            {
+                NUnit.Framework.Assert.AreEqual(Status.Conflict, e.GetCBLStatus().GetCode());
+                gotException = true;
+            }
+            NUnit.Framework.Assert.IsTrue(gotException);
+            revD = database.PutLocalRevision(revD, rev2.GetRevId());
+            // Delete nonexistent doc:
+            gotException = false;
+            RevisionInternal revFake = new RevisionInternal("_local/fake", null, true, database
+                );
+            try
+            {
+                database.PutLocalRevision(revFake, null);
+            }
+            catch (CouchbaseLiteException e)
+            {
+                NUnit.Framework.Assert.AreEqual(Status.NotFound, e.GetCBLStatus().GetCode());
+                gotException = true;
+            }
+            NUnit.Framework.Assert.IsTrue(gotException);
+            // Read it back (should fail):
+            readRev = database.GetLocalDocument(revD.GetDocId(), null);
+            NUnit.Framework.Assert.IsNull(readRev);
+        }
+    }
 }

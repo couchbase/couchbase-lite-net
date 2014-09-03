@@ -7,8 +7,8 @@ using System.Linq;
 
 namespace Couchbase.Lite.iOS
 {
-	public class ReloadEventArgs : EventArgs
-	{
+    public class ReloadEventArgs : EventArgs
+    {
         public Query Query { get; private set; }
         public QueryEnumerator Rows { get; private set; }
 
@@ -17,7 +17,7 @@ namespace Couchbase.Lite.iOS
             Query = query;
             Rows = rows;
         }
-	}
+    }
 
 }
 

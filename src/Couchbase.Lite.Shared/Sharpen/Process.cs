@@ -2,7 +2,7 @@
 // Process.cs
 //
 // Author:
-//	Zachary Gramana  <zack@xamarin.com>
+//  Zachary Gramana  <zack@xamarin.com>
 //
 // Copyright (c) 2013, 2014 Xamarin Inc (http://www.xamarin.com)
 //
@@ -46,61 +46,61 @@ using System.Diagnostics;
 
 namespace Sharpen
 {
-	internal class SystemProcess
-	{
-		Process proc;
-		
-		public SystemProcess ()
-		{
-		}
-		
-		public SystemProcess (Process proc)
-		{
-			this.proc = proc;
-		}
-		
-		public static SystemProcess Start (ProcessStartInfo psi)
-		{
-			var p = Process.Start (psi);
-			return new SystemProcess (p);
-		}
-		
-		public virtual InputStream GetInputStream()
-		{
-			return InputStream.Wrap (proc.StandardOutput.BaseStream);
-		}
+    internal class SystemProcess
+    {
+        Process proc;
+        
+        public SystemProcess ()
+        {
+        }
+        
+        public SystemProcess (Process proc)
+        {
+            this.proc = proc;
+        }
+        
+        public static SystemProcess Start (ProcessStartInfo psi)
+        {
+            var p = Process.Start (psi);
+            return new SystemProcess (p);
+        }
+        
+        public virtual InputStream GetInputStream()
+        {
+            return InputStream.Wrap (proc.StandardOutput.BaseStream);
+        }
 
-		public virtual OutputStream GetOutputStream()
-		{
-			return OutputStream.Wrap (proc.StandardInput.BaseStream);
-		}
+        public virtual OutputStream GetOutputStream()
+        {
+            return OutputStream.Wrap (proc.StandardInput.BaseStream);
+        }
 
-		public virtual InputStream GetErrorStream()
-		{
-			return InputStream.Wrap (proc.StandardError.BaseStream);
-		}
+        public virtual InputStream GetErrorStream()
+        {
+            return InputStream.Wrap (proc.StandardError.BaseStream);
+        }
 
-		public virtual int ExitValue()
-		{
-			return proc.ExitCode;
-		}
-		
-		public virtual void Destroy()
-		{
-			if (!proc.HasExited) {
-				try {
-					proc.Kill ();
-				} catch (InvalidOperationException) {
-					// Already exited. Do nothing
-				}
-			}
-		}
+        public virtual int ExitValue()
+        {
+            return proc.ExitCode;
+        }
+        
+        public virtual void Destroy()
+        {
+            if (!proc.HasExited) {
+                try {
+                    proc.Kill ();
+                } catch (InvalidOperationException) {
+                    // Already exited. Do nothing
+                }
+            }
+        }
 
-		public virtual int WaitFor()
-		{
-			proc.WaitForExit ();
-			return proc.ExitCode;
-		}
-	}
+        public virtual int WaitFor()
+        {
+            proc.WaitForExit ();
+            return proc.ExitCode;
+        }
+    }
 }
 

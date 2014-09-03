@@ -2,7 +2,7 @@
 // PipedOutputStream.cs
 //
 // Author:
-//	Zachary Gramana  <zack@xamarin.com>
+//  Zachary Gramana  <zack@xamarin.com>
 //
 // Copyright (c) 2013, 2014 Xamarin Inc (http://www.xamarin.com)
 //
@@ -43,40 +43,40 @@
 */
 namespace Sharpen
 {
-	using System;
+    using System;
 
-	internal class PipedOutputStream : OutputStream
-	{
-		PipedInputStream ips;
+    internal class PipedOutputStream : OutputStream
+    {
+        PipedInputStream ips;
 
-		public PipedOutputStream ()
-		{
-		}
+        public PipedOutputStream ()
+        {
+        }
 
-		public PipedOutputStream (PipedInputStream iss) : this()
-		{
-			Attach (iss);
-		}
+        public PipedOutputStream (PipedInputStream iss) : this()
+        {
+            Attach (iss);
+        }
 
-		public override void Close ()
-		{
-			ips.Close ();
-			base.Close ();
-		}
+        public override void Close ()
+        {
+            ips.Close ();
+            base.Close ();
+        }
 
-		internal void Attach (PipedInputStream iss)
-		{
-			ips = iss;
-		}
+        internal void Attach (PipedInputStream iss)
+        {
+            ips = iss;
+        }
 
-		public override void Write (int b)
-		{
-			ips.Write (b);
-		}
+        public override void Write (int b)
+        {
+            ips.Write (b);
+        }
 
-		public override void Write (byte[] b, int offset, int len)
-		{
-			ips.Write (b, offset, len);
-		}
-	}
+        public override void Write (byte[] b, int offset, int len)
+        {
+            ips.Write (b, offset, len);
+        }
+    }
 }

@@ -45,51 +45,52 @@ using Couchbase.Lite;
 using Couchbase.Lite.Replicator;
 using Couchbase.Lite.Util;
 using Sharpen;
+using System.Threading;
 
 namespace Couchbase.Lite.Replicator
 {
     internal class ChangeTrackerBackoff
-	{
+    {
         public const int MaxSleepMilliseconds = 5 * 60 * 1000; // 5 Mins
 
         public Int32 NumAttempts { get; private set; }
 
-		public void ResetBackoff()
-		{
+        public void ResetBackoff()
+        {
             NumAttempts = 0;
-		}
+        }
 
         public long GetSleepMilliseconds()
-		{
+        {
             var result = (long)(Math.Pow(NumAttempts, 2) - 1) / 2;
-			result *= 100;
+            result *= 100;
 
-			if (result < MaxSleepMilliseconds)
-			{
-				IncreaseBackoff();
-			}
+            if (result < MaxSleepMilliseconds)
+            {
+                IncreaseBackoff();
+            }
 
-			result = Math.Abs(result);
+            result = Math.Abs(result);
 
-			return result;
-		}
+            return result;
+        }
 
-		public void SleepAppropriateAmountOfTime()
-		{
-			try
-			{
-                long sleepMilliseconds = GetSleepMilliseconds();
-				if (sleepMilliseconds > 0)
-				{
-					Thread.Sleep(sleepMilliseconds);
-				}
-			}
+        public void SleepAppropriateAmountOfTime()
+        {
+            try
+            {
+                var sleepMilliseconds = GetSleepMilliseconds();
+                if (sleepMilliseconds > 0)
+                {
+                    Thread.Sleep(TimeSpan.FromMilliseconds(sleepMilliseconds));
+                }
+            }
             catch (Exception) { }
-		}
+        }
 
-		private void IncreaseBackoff()
-		{
+        private void IncreaseBackoff()
+        {
             NumAttempts += 1;
-		}
-	}
+        }
+    }
 }

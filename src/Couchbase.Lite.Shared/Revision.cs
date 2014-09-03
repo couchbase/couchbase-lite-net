@@ -74,7 +74,7 @@ namespace Couchbase.Lite
 
         internal IDictionary<String, Object> GetAttachmentMetadata()
         {
-			return GetProperty("_attachments").AsDictionary<string,object>();
+            return GetProperty("_attachments").AsDictionary<string,object>();
         }
 
 
@@ -114,6 +114,25 @@ namespace Couchbase.Lite
                 }
                 var deletedBool = (Boolean)deleted;
                 return deletedBool;
+            }
+        }
+
+        /// <summary>
+        /// Does this revision mark the deletion or removal (from available channels) of its document?
+        /// (In other words, does it have a "_deleted_ or "_removed" property?)
+        /// </summary>
+        public bool IsGone
+        {
+            get 
+            {
+                var wasRemovedFromChannel = false;
+                var removed = GetProperty("_removed");
+                if (removed != null)
+                {
+                    var removedBoolean = (bool)removed;
+                    wasRemovedFromChannel = removedBoolean;
+                }
+                return IsDeletion || wasRemovedFromChannel;
             }
         }
 
@@ -219,7 +238,7 @@ namespace Couchbase.Lite
             {
                 return null;
             }
-			var attachmentMetadata = attachmentsMetadata.Get(name).AsDictionary<string,Object>();
+            var attachmentMetadata = attachmentsMetadata.Get(name).AsDictionary<string,Object>();
             return new Attachment(this, name, attachmentMetadata);
         }
 

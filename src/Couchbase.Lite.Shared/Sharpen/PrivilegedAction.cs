@@ -2,7 +2,7 @@
 // PrivilegedAction.cs
 //
 // Author:
-//	Zachary Gramana  <zack@xamarin.com>
+//  Zachary Gramana  <zack@xamarin.com>
 //
 // Copyright (c) 2013, 2014 Xamarin Inc (http://www.xamarin.com)
 //
@@ -43,8 +43,8 @@
 */
 namespace Sharpen
 {
-	internal interface PrivilegedAction<T>
-	{
-		T Run ();
-	}
+    internal interface PrivilegedAction<T>
+    {
+        T Run ();
+    }
 }

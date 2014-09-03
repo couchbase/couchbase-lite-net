@@ -46,117 +46,117 @@ using Sharpen;
 
 namespace Couchbase.Lite.Internal
 {
-	/// <summary>A simple container for attachment metadata.</summary>
-	/// <remarks>A simple container for attachment metadata.</remarks>
-	public class AttachmentInternal
-	{
-		public enum AttachmentEncoding
-		{
-			AttachmentEncodingNone,
-			AttachmentEncodingGZIP
-		}
+    internal enum AttachmentEncoding
+    {
+        AttachmentEncodingNone,
+        AttachmentEncodingGZIP
+    }
 
-		private string name;
+    /// <summary>A simple container for attachment metadata.</summary>
+    /// <remarks>A simple container for attachment metadata.</remarks>
+    internal class AttachmentInternal
+    {
+        private string name;
 
-		private string contentType;
+        private string contentType;
 
-		private BlobKey blobKey;
+        private BlobKey blobKey;
 
-		private long length;
+        private long length;
 
-		private long encodedLength;
+        private long encodedLength;
 
-		private AttachmentInternal.AttachmentEncoding encoding;
+        private AttachmentEncoding encoding;
 
-		private int revpos;
+        private int revpos;
 
-		public AttachmentInternal(string name, string contentType)
-		{
-			this.name = name;
-			this.contentType = contentType;
-		}
+        public AttachmentInternal(string name, string contentType)
+        {
+            this.name = name;
+            this.contentType = contentType;
+        }
 
-		public virtual bool IsValid()
-		{
-			if (encoding != AttachmentInternal.AttachmentEncoding.AttachmentEncodingNone)
-			{
-				if (encodedLength == 0 && length > 0)
-				{
-					return false;
-				}
-			}
-			else
-			{
-				if (encodedLength > 0)
-				{
-					return false;
-				}
-			}
-			if (revpos == 0)
-			{
-				return false;
-			}
-			return true;
-		}
+        public virtual bool IsValid()
+        {
+            if (encoding != AttachmentEncoding.AttachmentEncodingNone)
+            {
+                if (encodedLength == 0 && length > 0)
+                {
+                    return false;
+                }
+            }
+            else
+            {
+                if (encodedLength > 0)
+                {
+                    return false;
+                }
+            }
+            if (revpos == 0)
+            {
+                return false;
+            }
+            return true;
+        }
 
-		public virtual string GetName()
-		{
-			return name;
-		}
+        public virtual string GetName()
+        {
+            return name;
+        }
 
-		public virtual string GetContentType()
-		{
-			return contentType;
-		}
+        public virtual string GetContentType()
+        {
+            return contentType;
+        }
 
-		public virtual BlobKey GetBlobKey()
-		{
-			return blobKey;
-		}
+        public virtual BlobKey GetBlobKey()
+        {
+            return blobKey;
+        }
 
-		public virtual void SetBlobKey(BlobKey blobKey)
-		{
-			this.blobKey = blobKey;
-		}
+        public virtual void SetBlobKey(BlobKey blobKey)
+        {
+            this.blobKey = blobKey;
+        }
 
-		public virtual long GetLength()
-		{
-			return length;
-		}
+        public virtual long GetLength()
+        {
+            return length;
+        }
 
-		public virtual void SetLength(long length)
-		{
-			this.length = length;
-		}
+        public virtual void SetLength(long length)
+        {
+            this.length = length;
+        }
 
-		public virtual long GetEncodedLength()
-		{
-			return encodedLength;
-		}
+        public virtual long GetEncodedLength()
+        {
+            return encodedLength;
+        }
 
-		public virtual void SetEncodedLength(long encodedLength)
-		{
-			this.encodedLength = encodedLength;
-		}
+        public virtual void SetEncodedLength(long encodedLength)
+        {
+            this.encodedLength = encodedLength;
+        }
 
-		public virtual AttachmentInternal.AttachmentEncoding GetEncoding()
-		{
-			return encoding;
-		}
+        public virtual AttachmentEncoding GetEncoding()
+        {
+            return encoding;
+        }
 
-		public virtual void SetEncoding(AttachmentInternal.AttachmentEncoding encoding)
-		{
-			this.encoding = encoding;
-		}
+        public virtual void SetEncoding(AttachmentEncoding encoding)
+        {
+            this.encoding = encoding;
+        }
 
-		public virtual int GetRevpos()
-		{
-			return revpos;
-		}
+        public virtual int GetRevpos()
+        {
+            return revpos;
+        }
 
-		public virtual void SetRevpos(int revpos)
-		{
-			this.revpos = revpos;
-		}
-	}
+        public virtual void SetRevpos(int revpos)
+        {
+            this.revpos = revpos;
+        }
+    }
 }

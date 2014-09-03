@@ -45,80 +45,106 @@ using Sharpen;
 
 namespace Couchbase.Lite.Support
 {
-	public class SequenceMap
-	{
-		private TreeSet<long> sequences;
+    /// <summary>
+    /// A data structure representing a type of array that allows object values to be added to the end, and removed in arbitrary order;
+    /// it's used by the replicator to keep track of which revisions have been transferred and what sequences to checkpoint.
+    /// </summary>
+    /// <remarks>
+    /// A data structure representing a type of array that allows object values to be added to the end, and removed in arbitrary order;
+    /// it's used by the replicator to keep track of which revisions have been transferred and what sequences to checkpoint.
+    /// </remarks>
+    internal class SequenceMap
+    {
+        private TreeSet<long> sequences;
 
-		private long lastSequence;
+        private long lastSequence;
 
-		private IList<string> values;
+        private IList<string> values;
 
-		private long firstValueSequence;
+        private long firstValueSequence;
 
-		public SequenceMap()
-		{
-			sequences = new TreeSet<long>();
-			values = new AList<string>(100);
-			firstValueSequence = 1;
-			lastSequence = 0;
-		}
+        private object locker = new object ();
 
-        object locker = new object ();
-		public long AddValue(string value)
-		{
-			lock (locker)
-			{
-				sequences.AddItem(++lastSequence);
-				values.AddItem(value);
-				return lastSequence;
-			}
-		}
+        public SequenceMap()
+        {
+            // Sequence numbers currently in the map
+            // last generated sequence
+            // values of remaining sequences
+            // sequence # of first item in _values
+            sequences = new TreeSet<long>();
+            values = new List<string>(100);
+            firstValueSequence = 1;
+            lastSequence = 0;
+        }
 
-		public void RemoveSequence(long sequence)
-		{
-			lock (locker)
-			{
-				sequences.Remove(sequence);
-			}
-		}
+        /// <summary>Adds a value to the map, assigning it a sequence number and returning it.</summary>
+        /// <remarks>
+        /// Adds a value to the map, assigning it a sequence number and returning it.
+        /// Sequence numbers start at 1 and increment from there.
+        /// </remarks>
+        public long AddValue(string value)
+        {
+            lock (locker)
+            {
+                sequences.AddItem(++lastSequence);
+                values.AddItem(value);
+                return lastSequence;
+            }
+        }
 
-		public bool IsEmpty()
-		{
-			lock (locker)
-			{
-				return sequences.IsEmpty();
-			}
-		}
+        /// <summary>Removes a sequence and its associated value.</summary>
+        /// <remarks>Removes a sequence and its associated value.</remarks>
+        public void RemoveSequence(long sequence)
+        {
+            lock (locker)
+            {
+                sequences.Remove(sequence);
+            }
+        }
 
-		public long GetCheckpointedSequence()
-		{
-			lock (locker)
-			{
-				long sequence = lastSequence;
-				if (!sequences.IsEmpty())
-				{
-					sequence = sequences.First() - 1;
-				}
-				if (sequence > firstValueSequence)
-				{
-					// Garbage-collect inaccessible values:
-					int numToRemove = (int)(sequence - firstValueSequence);
-					for (int i = 0; i < numToRemove; i++)
-					{
-						values.Remove(0);
-					}
-					firstValueSequence += numToRemove;
-				}
-				return sequence;
-			}
-		}
+        public bool IsEmpty()
+        {
+            lock (locker)
+            {
+                return sequences.IsEmpty();
+            }
+        }
 
-		public string GetCheckpointedValue()
-		{
+        /// <summary>Returns the maximum consecutively-removed sequence number.</summary>
+        /// <remarks>
+        /// Returns the maximum consecutively-removed sequence number.
+        /// This is one less than the minimum remaining sequence number.
+        /// </remarks>
+        public long GetCheckpointedSequence()
+        {
+            lock (locker)
+            {
+                long sequence = lastSequence;
+                if (!sequences.IsEmpty())
+                {
+                    sequence = sequences.First() - 1;
+                }
+                if (sequence > firstValueSequence)
+                {
+                    // Garbage-collect inaccessible values:
+                    int numToRemove = (int)(sequence - firstValueSequence);
+                    for (int i = 0; i < numToRemove; i++)
+                    {
+                        values.Remove(0);
+                    }
+                    firstValueSequence += numToRemove;
+                }
+                return sequence;
+            }
+        }
+
+        /// <summary>Returns the value associated with the checkpointedSequence.</summary>
+        public string GetCheckpointedValue()
+        {
             lock (locker) {
                 int index = (int)(GetCheckpointedSequence () - firstValueSequence);
                 return (index >= 0) ? values [index] : null;
             }
-		}
-	}
+        }
+    }
 }

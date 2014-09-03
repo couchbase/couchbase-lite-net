@@ -24,7 +24,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)Documents\Body.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Documents\DocumentChange.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Documents\IValidationContext.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Documents\TDContentOptions.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Documents\ValidationContext.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Exceptions\CouchbaseLiteException.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Extensions\SqliteExtensions.cs" />
@@ -40,7 +39,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)Replication\Batcher.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Replication\ChangeTracker.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Replication\ChangeTrackerBackoff.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Replication\ChangeTrackerClient.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Replication\CouchbaseLiteHttpClientFactory.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Replication\HttpResponseException.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Replication\MultipartDocumentReader.cs" />
@@ -49,7 +47,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)Replication\PulledRevision.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Replication\Puller.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Replication\Pusher.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Replication\ScheduledFuture.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Revisions\ChangesOptions.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Revisions\RevisionInternal.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Revisions\RevisionList.cs" />
@@ -94,7 +91,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)Sharpen\DateFormat.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Sharpen\DigestInputStream.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Sharpen\DigestOutputStream.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Sharpen\EnumSet.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Sharpen\EnumerableWrapper.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Sharpen\EnumeratorWrapper.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Sharpen\Exceptions.cs" />
@@ -161,7 +157,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)Sharpen\String.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Sharpen\StringTokenizer.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Sharpen\SynchronizedList.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Sharpen\Thread.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Sharpen\ThreadFactory.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Sharpen\ThreadPoolExecutor.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Sharpen\TimeUnit.cs" />
@@ -194,7 +189,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)Util\Misc.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\ObjectWriter.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\Range.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Util\RemoteRequestCompletionBlock.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\SequenceMap.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\StringUtils.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\SystemLogger.cs" />
@@ -204,7 +198,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)Store\CouchbaseSqliteCollationFunctions.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Store\SqlitePclRawStorageEngine.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Store\SQLiteResult.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Util\Utils.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Auth\AuthenticatorFactory.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Auth\IAuthenticator.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Auth\Authenticator.cs" />
@@ -215,6 +208,17 @@
     <Compile Include="$(MSBuildThisFileDirectory)Util\CustomLogger.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\CouchbaseTraceListener.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Manager\INetworkReachabilityManager.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Documents\DocumentContentOptions.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Manager\NetworkReachabilityManager.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Util\StreamUtils.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Replication\BulkDownloader.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Replication\BulkDownloaderDelegate.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Replication\RemoteRequest.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Replication\RemoteRequestEventArgs.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Replication\RemoteRequestCompletionBlock.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Replication\IChangeTrackerClient.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Replication\BulkDownloadEventArgs.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Sharpen\SharpenThread.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="$(MSBuildThisFileDirectory)Store\MonoSQLiteStorageEngine.cs" />

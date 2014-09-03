@@ -47,15 +47,15 @@ using System.Diagnostics;
 
 namespace Couchbase.Lite.Util
 {
-	public static class LoggerFactory
-	{
-		public static ILogger CreateLogger()
-		{
+    public static class LoggerFactory
+    {
+        public static ILogger CreateLogger()
+        {
 #if VERBOSE
             return new CustomLogger(SourceLevels.All);
 #else
             return new CustomLogger(SourceLevels.Information);
 #endif
-		}
-	}
+        }
+    }
 }

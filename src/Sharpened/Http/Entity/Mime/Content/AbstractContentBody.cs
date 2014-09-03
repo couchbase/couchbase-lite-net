@@ -47,58 +47,58 @@ using Sharpen;
 
 namespace Apache.Http.Entity.Mime.Content
 {
-	/// <since>4.0</since>
-	public abstract class AbstractContentBody : ContentBody
-	{
-		private readonly string mimeType;
+    /// <since>4.0</since>
+    public abstract class AbstractContentBody : ContentBody
+    {
+        private readonly string mimeType;
 
-		private readonly string mediaType;
+        private readonly string mediaType;
 
-		private readonly string subType;
+        private readonly string subType;
 
-		public AbstractContentBody(string mimeType) : base()
-		{
-			if (mimeType == null)
-			{
-				throw new ArgumentException("MIME type may not be null");
-			}
-			this.mimeType = mimeType;
-			int i = mimeType.IndexOf('/');
-			if (i != -1)
-			{
-				this.mediaType = Sharpen.Runtime.Substring(mimeType, 0, i);
-				this.subType = Sharpen.Runtime.Substring(mimeType, i + 1);
-			}
-			else
-			{
-				this.mediaType = mimeType;
-				this.subType = null;
-			}
-		}
+        public AbstractContentBody(string mimeType) : base()
+        {
+            if (mimeType == null)
+            {
+                throw new ArgumentException("MIME type may not be null");
+            }
+            this.mimeType = mimeType;
+            int i = mimeType.IndexOf('/');
+            if (i != -1)
+            {
+                this.mediaType = Sharpen.Runtime.Substring(mimeType, 0, i);
+                this.subType = Sharpen.Runtime.Substring(mimeType, i + 1);
+            }
+            else
+            {
+                this.mediaType = mimeType;
+                this.subType = null;
+            }
+        }
 
-		public virtual string GetMimeType()
-		{
-			return this.mimeType;
-		}
+        public virtual string GetMimeType()
+        {
+            return this.mimeType;
+        }
 
-		public virtual string GetMediaType()
-		{
-			return this.mediaType;
-		}
+        public virtual string GetMediaType()
+        {
+            return this.mediaType;
+        }
 
-		public virtual string GetSubType()
-		{
-			return this.subType;
-		}
+        public virtual string GetSubType()
+        {
+            return this.subType;
+        }
 
-		public abstract string GetCharset();
+        public abstract string GetCharset();
 
-		public abstract long GetContentLength();
+        public abstract long GetContentLength();
 
-		public abstract string GetTransferEncoding();
+        public abstract string GetTransferEncoding();
 
-		public abstract string GetFilename();
+        public abstract string GetFilename();
 
-		public abstract void WriteTo(OutputStream arg1);
-	}
+        public abstract void WriteTo(OutputStream arg1);
+    }
 }

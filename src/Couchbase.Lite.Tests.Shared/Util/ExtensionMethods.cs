@@ -51,6 +51,9 @@ namespace Couchbase.Lite.Tests
     {
         public static void Load(this Hashtable props, System.IO.Stream stream)
         {
+            if (stream == null) {
+                return;
+            }
             using (var reader = new InputStreamReader((InputStream)stream, Encoding.UTF8))
             {
                 while (!reader.EndOfStream)

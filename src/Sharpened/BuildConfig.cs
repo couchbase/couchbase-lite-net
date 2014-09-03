@@ -45,8 +45,8 @@ using Sharpen;
 
 namespace Couchbase.Lite
 {
-	public sealed class BuildConfig
-	{
-		public const bool Debug = true;
-	}
+    public sealed class BuildConfig
+    {
+        public const bool Debug = true;
+    }
 }

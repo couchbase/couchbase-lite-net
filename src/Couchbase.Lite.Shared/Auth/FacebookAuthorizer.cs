@@ -50,21 +50,21 @@ using Sharpen;
 namespace Couchbase.Lite.Auth
 {
     internal class FacebookAuthorizer : Authorizer
-	{
-		public const string LoginParameterAccessToken = "access_token";
+    {
+        public const string LoginParameterAccessToken = "access_token";
 
-		public const string QueryParameter = "facebookAccessToken";
+        public const string QueryParameter = "facebookAccessToken";
 
-		public const string QueryParameterEmail = "email";
+        public const string QueryParameterEmail = "email";
 
-		private static IDictionary<IList<string>, string> accessTokens;
+        private static IDictionary<IList<string>, string> accessTokens;
 
-		private string emailAddress;
+        private string emailAddress;
 
-		public FacebookAuthorizer(string emailAddress)
-		{
-			this.emailAddress = emailAddress;
-		}
+        public FacebookAuthorizer(string emailAddress)
+        {
+            this.emailAddress = emailAddress;
+        }
 
         public override string UserInfo { get { return null; } }
 
@@ -72,46 +72,46 @@ namespace Couchbase.Lite.Auth
 
         public override bool UsesCookieBasedLogin { get { return true; } }
 
-		public override IDictionary<string, string> LoginParametersForSite(Uri site)
-		{
-			IDictionary<string, string> loginParameters = new Dictionary<string, string>();
-			string accessToken = AccessTokenForEmailAndSite(this.emailAddress, site);
-			if (accessToken != null)
-			{
-				loginParameters[LoginParameterAccessToken] = accessToken;
-				return loginParameters;
-			}
-			else
-			{
-				return null;
-			}
-		}
+        public override IDictionary<string, string> LoginParametersForSite(Uri site)
+        {
+            IDictionary<string, string> loginParameters = new Dictionary<string, string>();
+            string accessToken = AccessTokenForEmailAndSite(this.emailAddress, site);
+            if (accessToken != null)
+            {
+                loginParameters[LoginParameterAccessToken] = accessToken;
+                return loginParameters;
+            }
+            else
+            {
+                return null;
+            }
+        }
 
-		public override string LoginPathForSite(Uri site)
-		{
-			return "/_facebook";
-		}
+        public override string LoginPathForSite(Uri site)
+        {
+            return "/_facebook";
+        }
 
-		public static string RegisterAccessToken(string accessToken, string email, string
-			 origin)
-		{
-			lock (typeof(FacebookAuthorizer))
-			{
-				IList<string> key = new AList<string>();
-				key.AddItem(email);
-				key.AddItem(origin);
-				if (accessTokens == null)
-				{
-					accessTokens = new Dictionary<IList<string>, string>();
-				}
-				Log.D(Database.Tag, "FacebookAuthorizer registering key: " + key);
-				accessTokens[key] = accessToken;
-				return email;
-			}
-		}
+        public static string RegisterAccessToken(string accessToken, string email, string
+             origin)
+        {
+            lock (typeof(FacebookAuthorizer))
+            {
+                IList<string> key = new AList<string>();
+                key.AddItem(email);
+                key.AddItem(origin);
+                if (accessTokens == null)
+                {
+                    accessTokens = new Dictionary<IList<string>, string>();
+                }
+                Log.D(Database.Tag, "FacebookAuthorizer registering key: " + key);
+                accessTokens[key] = accessToken;
+                return email;
+            }
+        }
 
-		public static string AccessTokenForEmailAndSite(string email, Uri site)
-		{
+        public static string AccessTokenForEmailAndSite(string email, Uri site)
+        {
             try
             {
                 IList<string> key = new AList<string>();
@@ -125,6 +125,6 @@ namespace Couchbase.Lite.Auth
                 Log.E(Database.Tag, "Error looking up access token", e);
             }
             return null;
-		}
-	}
+        }
+    }
 }

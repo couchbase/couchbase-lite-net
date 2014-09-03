@@ -40,87 +40,87 @@ using Sharpen;
 
 namespace Couchbase.Lite
 {
-	/// <summary>Provides details about a Document change.</summary>
-	/// <remarks>Provides details about a Document change.</remarks>
-	public class DocumentChange
-	{
-		/// <exclude></exclude>
-		[InterfaceAudience.Private]
-		internal DocumentChange(RevisionInternal addedRevision, RevisionInternal winningRevision
-			, bool isConflict, Uri sourceUrl)
-		{
-			this.addedRevision = addedRevision;
-			this.winningRevision = winningRevision;
-			this.isConflict = isConflict;
-			this.sourceUrl = sourceUrl;
-		}
+    /// <summary>Provides details about a Document change.</summary>
+    /// <remarks>Provides details about a Document change.</remarks>
+    public class DocumentChange
+    {
+        /// <exclude></exclude>
+        [InterfaceAudience.Private]
+        internal DocumentChange(RevisionInternal addedRevision, RevisionInternal winningRevision
+            , bool isConflict, Uri sourceUrl)
+        {
+            this.addedRevision = addedRevision;
+            this.winningRevision = winningRevision;
+            this.isConflict = isConflict;
+            this.sourceUrl = sourceUrl;
+        }
 
-		private RevisionInternal addedRevision;
+        private RevisionInternal addedRevision;
 
-		private RevisionInternal winningRevision;
+        private RevisionInternal winningRevision;
 
-		private bool isConflict;
+        private bool isConflict;
 
-		private Uri sourceUrl;
+        private Uri sourceUrl;
 
-		[InterfaceAudience.Public]
-		public virtual string GetDocumentId()
-		{
-			return addedRevision.GetDocId();
-		}
+        [InterfaceAudience.Public]
+        public virtual string GetDocumentId()
+        {
+            return addedRevision.GetDocId();
+        }
 
-		[InterfaceAudience.Public]
-		public virtual string GetRevisionId()
-		{
-			return addedRevision.GetRevId();
-		}
+        [InterfaceAudience.Public]
+        public virtual string GetRevisionId()
+        {
+            return addedRevision.GetRevId();
+        }
 
-		[InterfaceAudience.Public]
-		public virtual bool IsCurrentRevision()
-		{
-			return winningRevision != null && addedRevision.GetRevId().Equals(winningRevision
-				.GetRevId());
-		}
+        [InterfaceAudience.Public]
+        public virtual bool IsCurrentRevision()
+        {
+            return winningRevision != null && addedRevision.GetRevId().Equals(winningRevision
+                .GetRevId());
+        }
 
-		[InterfaceAudience.Public]
-		public virtual bool IsConflict()
-		{
-			return isConflict;
-		}
+        [InterfaceAudience.Public]
+        public virtual bool IsConflict()
+        {
+            return isConflict;
+        }
 
-		[InterfaceAudience.Public]
-		public virtual Uri GetSourceUrl()
-		{
-			return sourceUrl;
-		}
+        [InterfaceAudience.Public]
+        public virtual Uri GetSourceUrl()
+        {
+            return sourceUrl;
+        }
 
-		/// <exclude></exclude>
-		[InterfaceAudience.Private]
-		public virtual RevisionInternal GetAddedRevision()
-		{
-			return addedRevision;
-		}
+        /// <exclude></exclude>
+        [InterfaceAudience.Private]
+        public virtual RevisionInternal GetAddedRevision()
+        {
+            return addedRevision;
+        }
 
-		/// <exclude></exclude>
-		[InterfaceAudience.Private]
-		internal virtual RevisionInternal GetWinningRevision()
-		{
-			return winningRevision;
-		}
+        /// <exclude></exclude>
+        [InterfaceAudience.Private]
+        internal virtual RevisionInternal GetWinningRevision()
+        {
+            return winningRevision;
+        }
 
-		[InterfaceAudience.Public]
-		public override string ToString()
-		{
-			try
-			{
-				return string.Format("docId: %s rev: %s isConflict: %s sourceUrl: %s", GetDocumentId
-					(), GetRevisionId(), IsConflict(), GetSourceUrl());
-			}
-			catch (Exception e)
-			{
-				Log.E(Database.Tag, "Error in DocumentChange.toString()", e);
-				return base.ToString();
-			}
-		}
-	}
+        [InterfaceAudience.Public]
+        public override string ToString()
+        {
+            try
+            {
+                return string.Format("docId: %s rev: %s isConflict: %s sourceUrl: %s", GetDocumentId
+                    (), GetRevisionId(), IsConflict(), GetSourceUrl());
+            }
+            catch (Exception e)
+            {
+                Log.E(Database.Tag, "Error in DocumentChange.toString()", e);
+                return base.ToString();
+            }
+        }
+    }
 }

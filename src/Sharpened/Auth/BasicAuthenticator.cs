@@ -39,47 +39,47 @@ using Sharpen;
 
 namespace Couchbase.Lite.Auth
 {
-	/// <summary>Authenticator impl that knows how to do basic auth</summary>
-	/// <exclude></exclude>
-	public class BasicAuthenticator : AuthenticatorImpl
-	{
-		private string username;
+    /// <summary>Authenticator impl that knows how to do basic auth</summary>
+    /// <exclude></exclude>
+    public class BasicAuthenticator : AuthenticatorImpl
+    {
+        private string username;
 
-		private string password;
+        private string password;
 
-		public BasicAuthenticator(string username, string password)
-		{
-			this.username = username;
-			this.password = password;
-		}
+        public BasicAuthenticator(string username, string password)
+        {
+            this.username = username;
+            this.password = password;
+        }
 
-		public override bool UsesCookieBasedLogin()
-		{
-			return true;
-		}
+        public override bool UsesCookieBasedLogin()
+        {
+            return true;
+        }
 
-		public override string AuthUserInfo()
-		{
-			if (this.username != null && this.password != null)
-			{
-				return this.username + ":" + this.password;
-			}
-			return base.AuthUserInfo();
-		}
+        public override string AuthUserInfo()
+        {
+            if (this.username != null && this.password != null)
+            {
+                return this.username + ":" + this.password;
+            }
+            return base.AuthUserInfo();
+        }
 
-		public override string LoginPathForSite(Uri site)
-		{
-			return "/_session";
-		}
+        public override string LoginPathForSite(Uri site)
+        {
+            return "/_session";
+        }
 
-		public override IDictionary<string, string> LoginParametersForSite(Uri site)
-		{
-			// This method has different implementation from the iOS's.
-			// It is safe to return NULL as the method is not called
-			// when Basic Authenticator is used. Also theoretically, the
-			// standard Basic Auth doesn't add any additional parameters
-			// to the login url.
-			return null;
-		}
-	}
+        public override IDictionary<string, string> LoginParametersForSite(Uri site)
+        {
+            // This method has different implementation from the iOS's.
+            // It is safe to return NULL as the method is not called
+            // when Basic Authenticator is used. Also theoretically, the
+            // standard Basic Auth doesn't add any additional parameters
+            // to the login url.
+            return null;
+        }
+    }
 }

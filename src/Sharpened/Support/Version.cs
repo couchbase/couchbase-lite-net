@@ -39,50 +39,50 @@ using Sharpen;
 
 namespace Couchbase.Lite.Support
 {
-	public class Version
-	{
-		public static readonly string Version;
+    public class Version
+    {
+        public static readonly string Version;
 
-		private const string VersionName = "${VERSION_NAME}";
+        private const string VersionName = "${VERSION_NAME}";
 
-		private const string VersionCode = "${VERSION_CODE}";
+        private const string VersionCode = "${VERSION_CODE}";
 
-		static Version()
-		{
-			// replaced during build process
-			// replaced during build process
-			Version = string.Format("%s-%s", GetVersionName(), GetVersionCode());
-		}
+        static Version()
+        {
+            // replaced during build process
+            // replaced during build process
+            Version = string.Format("%s-%s", GetVersionName(), GetVersionCode());
+        }
 
-		public static string GetVersionName()
-		{
-			if (VersionName == "${VERSION_NAME}")
-			{
-				return "devbuild";
-			}
-			return VersionName;
-		}
+        public static string GetVersionName()
+        {
+            if (VersionName == "${VERSION_NAME}")
+            {
+                return "devbuild";
+            }
+            return VersionName;
+        }
 
-		public static int GetVersionCode()
-		{
-			if (VersionCode == "${VERSION_CODE}")
-			{
-				return 0;
-			}
-			try
-			{
-				System.Convert.ToInt32(VersionCode);
-			}
-			catch (FormatException)
-			{
-				Log.E(Log.Tag, "Cannot parse version code: %s", VersionCode);
-			}
-			return -1;
-		}
+        public static int GetVersionCode()
+        {
+            if (VersionCode == "${VERSION_CODE}")
+            {
+                return 0;
+            }
+            try
+            {
+                System.Convert.ToInt32(VersionCode);
+            }
+            catch (FormatException)
+            {
+                Log.E(Log.Tag, "Cannot parse version code: %s", VersionCode);
+            }
+            return -1;
+        }
 
-		public static string GetVersion()
-		{
-			return string.Format("%s-%s", GetVersionName(), GetVersionCode());
-		}
-	}
+        public static string GetVersion()
+        {
+            return string.Format("%s-%s", GetVersionName(), GetVersionCode());
+        }
+    }
 }

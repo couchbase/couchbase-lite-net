@@ -41,93 +41,93 @@ using Sharpen;
 
 namespace Couchbase.Lite.Performance
 {
-	public class Test8_DocRevisions : LiteTestCase
-	{
-		public const string Tag = "DocRevisionsPerformance";
+    public class Test8_DocRevisions : LiteTestCase
+    {
+        public const string Tag = "DocRevisionsPerformance";
 
-		private Document[] docs;
+        private Document[] docs;
 
-		/// <exception cref="System.Exception"></exception>
-		protected override void SetUp()
-		{
-			Log.V(Tag, "DocRevisionsPerformance setUp");
-			base.SetUp();
-			docs = new Document[GetNumberOfDocuments()];
-			//Create docs that will be updated in test case
-			NUnit.Framework.Assert.IsTrue(database.RunInTransaction(new _TransactionalTask_46
-				(this)));
-		}
+        /// <exception cref="System.Exception"></exception>
+        protected override void SetUp()
+        {
+            Log.V(Tag, "DocRevisionsPerformance setUp");
+            base.SetUp();
+            docs = new Document[GetNumberOfDocuments()];
+            //Create docs that will be updated in test case
+            NUnit.Framework.Assert.IsTrue(database.RunInTransaction(new _TransactionalTask_46
+                (this)));
+        }
 
-		private sealed class _TransactionalTask_46 : TransactionalTask
-		{
-			public _TransactionalTask_46(Test8_DocRevisions _enclosing)
-			{
-				this._enclosing = _enclosing;
-			}
+        private sealed class _TransactionalTask_46 : TransactionalTask
+        {
+            public _TransactionalTask_46(Test8_DocRevisions _enclosing)
+            {
+                this._enclosing = _enclosing;
+            }
 
-			public bool Run()
-			{
-				for (int i = 0; i < this._enclosing.GetNumberOfDocuments(); i++)
-				{
-					//create a document
-					IDictionary<string, object> props = new Dictionary<string, object>();
-					props.Put("toogle", true);
-					Document doc = this._enclosing.database.CreateDocument();
-					this._enclosing.docs[i] = doc;
-					try
-					{
-						doc.PutProperties(props);
-					}
-					catch (CouchbaseLiteException cblex)
-					{
-						Log.E(Test8_DocRevisions.Tag, "Document creation failed", cblex);
-						return false;
-					}
-				}
-				return true;
-			}
+            public bool Run()
+            {
+                for (int i = 0; i < this._enclosing.GetNumberOfDocuments(); i++)
+                {
+                    //create a document
+                    IDictionary<string, object> props = new Dictionary<string, object>();
+                    props.Put("toogle", true);
+                    Document doc = this._enclosing.database.CreateDocument();
+                    this._enclosing.docs[i] = doc;
+                    try
+                    {
+                        doc.PutProperties(props);
+                    }
+                    catch (CouchbaseLiteException cblex)
+                    {
+                        Log.E(Test8_DocRevisions.Tag, "Document creation failed", cblex);
+                        return false;
+                    }
+                }
+                return true;
+            }
 
-			private readonly Test8_DocRevisions _enclosing;
-		}
+            private readonly Test8_DocRevisions _enclosing;
+        }
 
-		/// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
-		public virtual void TestDocRevisionsPerformance()
-		{
-			long startMillis = Runtime.CurrentTimeMillis();
-			for (int j = 0; j < GetNumberOfDocuments(); j++)
-			{
-				Document doc = docs[j];
-				for (int k = 0; k < GetNumberOfUpdates(); k++)
-				{
-					IDictionary<string, object> contents = new Hashtable(doc.GetProperties());
-					bool wasChecked = (bool)contents.Get("toogle");
-					//toggle value of check property
-					contents.Put("toogle", !wasChecked);
-					try
-					{
-						doc.PutProperties(contents);
-					}
-					catch (CouchbaseLiteException cblex)
-					{
-						Log.E(Tag, "Document update failed", cblex);
-						//return false;
-						throw;
-					}
-				}
-			}
-			Log.V("PerformanceStats", Tag + "," + Sharpen.Extensions.ValueOf(Runtime.CurrentTimeMillis
-				() - startMillis).ToString() + "," + GetNumberOfDocuments() + ",,,," + GetNumberOfUpdates
-				());
-		}
+        /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
+        public virtual void TestDocRevisionsPerformance()
+        {
+            long startMillis = Runtime.CurrentTimeMillis();
+            for (int j = 0; j < GetNumberOfDocuments(); j++)
+            {
+                Document doc = docs[j];
+                for (int k = 0; k < GetNumberOfUpdates(); k++)
+                {
+                    IDictionary<string, object> contents = new Hashtable(doc.GetProperties());
+                    bool wasChecked = (bool)contents.Get("toogle");
+                    //toggle value of check property
+                    contents.Put("toogle", !wasChecked);
+                    try
+                    {
+                        doc.PutProperties(contents);
+                    }
+                    catch (CouchbaseLiteException cblex)
+                    {
+                        Log.E(Tag, "Document update failed", cblex);
+                        //return false;
+                        throw;
+                    }
+                }
+            }
+            Log.V("PerformanceStats", Tag + "," + Sharpen.Extensions.ValueOf(Runtime.CurrentTimeMillis
+                () - startMillis).ToString() + "," + GetNumberOfDocuments() + ",,,," + GetNumberOfUpdates
+                ());
+        }
 
-		private int GetNumberOfDocuments()
-		{
-			return System.Convert.ToInt32(Runtime.GetProperty("Test8_numberOfDocuments"));
-		}
+        private int GetNumberOfDocuments()
+        {
+            return System.Convert.ToInt32(Runtime.GetProperty("Test8_numberOfDocuments"));
+        }
 
-		private int GetNumberOfUpdates()
-		{
-			return System.Convert.ToInt32(Runtime.GetProperty("Test8_numberOfUpdates"));
-		}
-	}
+        private int GetNumberOfUpdates()
+        {
+            return System.Convert.ToInt32(Runtime.GetProperty("Test8_numberOfUpdates"));
+        }
+    }
 }

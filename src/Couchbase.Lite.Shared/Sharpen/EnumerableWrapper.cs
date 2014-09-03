@@ -2,7 +2,7 @@
 // EnumerableWrapper.cs
 //
 // Author:
-//	Zachary Gramana  <zack@xamarin.com>
+//  Zachary Gramana  <zack@xamarin.com>
 //
 // Copyright (c) 2013, 2014 Xamarin Inc (http://www.xamarin.com)
 //
@@ -43,21 +43,21 @@
 */
 namespace Sharpen
 {
-	using System;
-	using System.Collections.Generic;
+    using System;
+    using System.Collections.Generic;
 
-	internal class EnumerableWrapper<T> : Iterable<T>
-	{
-		private IEnumerable<T> e;
+    internal class EnumerableWrapper<T> : Iterable<T>
+    {
+        private IEnumerable<T> e;
 
-		public EnumerableWrapper (IEnumerable<T> e)
-		{
-			this.e = e;
-		}
+        public EnumerableWrapper (IEnumerable<T> e)
+        {
+            this.e = e;
+        }
 
-		public override Iterator<T> Iterator ()
-		{
-			return new EnumeratorWrapper<T> (this.e, this.e.GetEnumerator ());
-		}
-	}
+        public override Iterator<T> Iterator ()
+        {
+            return new EnumeratorWrapper<T> (this.e, this.e.GetEnumerator ());
+        }
+    }
 }

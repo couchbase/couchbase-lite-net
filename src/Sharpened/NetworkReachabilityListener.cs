@@ -37,18 +37,18 @@ using Sharpen;
 
 namespace Couchbase.Lite
 {
-	/// <summary>
-	/// Classes that want to register to the NetworkReachabilityManager to be notified of
-	/// network reachability events should implment this interface.
-	/// </summary>
-	/// <remarks>
-	/// Classes that want to register to the NetworkReachabilityManager to be notified of
-	/// network reachability events should implment this interface.
-	/// </remarks>
-	public interface NetworkReachabilityListener
-	{
-		void NetworkReachable();
+    /// <summary>
+    /// Classes that want to register to the NetworkReachabilityManager to be notified of
+    /// network reachability events should implment this interface.
+    /// </summary>
+    /// <remarks>
+    /// Classes that want to register to the NetworkReachabilityManager to be notified of
+    /// network reachability events should implment this interface.
+    /// </remarks>
+    public interface NetworkReachabilityListener
+    {
+        void NetworkReachable();
 
-		void NetworkUnreachable();
-	}
+        void NetworkUnreachable();
+    }
 }

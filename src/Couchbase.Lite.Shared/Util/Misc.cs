@@ -47,69 +47,119 @@ using Sharpen;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
+using Couchbase.Lite.Storage;
 
 namespace Couchbase.Lite
 {
-	public class Misc
-	{
-		public static string TDCreateUUID()
-		{
+    public static class Misc
+    {
+        public static string CreateGUID()
+        {
             return Guid.NewGuid().ToString();
-		}
+        }
 
-        public static string TDHexSHA1Digest(IEnumerable<Byte> input)
-		{
-			MessageDigest md;
-			try
-			{
-				md = MessageDigest.GetInstance("SHA-1");
-			}
-			catch (NoSuchAlgorithmException)
-			{
-				Log.E(Database.Tag, "Error, SHA-1 digest is unavailable.");
-				return null;
-			}
+        public static string HexSHA1Digest(IEnumerable<Byte> input)
+        {
+            MessageDigest md;
+            try
+            {
+                md = MessageDigest.GetInstance("SHA-1");
+            }
+            catch (NoSuchAlgorithmException)
+            {
+                Log.E(Database.Tag, "Error, SHA-1 digest is unavailable.");
+                return null;
+            }
             byte[] sha1hash;
             var inputArray = input.ToArray();
+
             md.Update(inputArray, 0, inputArray.Count());
-			sha1hash = md.Digest();
-			return ConvertToHex(sha1hash);
-		}
+            sha1hash = md.Digest();
+            
+            return ConvertToHex(sha1hash);
+        }
 
-		public static string ConvertToHex(byte[] data)
-		{
-			StringBuilder buf = new StringBuilder();
-			for (int i = 0; i < data.Length; i++)
-			{
-				int halfbyte = (data[i] >> 4) & unchecked((0x0F));
-				int two_halfs = 0;
-				do
-				{
-					if ((0 <= halfbyte) && (halfbyte <= 9))
-					{
-						buf.Append((char)('0' + halfbyte));
-					}
-					else
-					{
-						buf.Append((char)('a' + (halfbyte - 10)));
-					}
-					halfbyte = data[i] & unchecked((0x0F));
-				}
-				while (two_halfs++ < 1);
-			}
-			return buf.ToString();
-		}
+        public static string ConvertToHex(byte[] data)
+        {
+            StringBuilder buf = new StringBuilder();
+            for (int i = 0; i < data.Length; i++)
+            {
+                int halfbyte = (data[i] >> 4) & unchecked((0x0F));
+                int two_halfs = 0;
+                do
+                {
+                    if ((0 <= halfbyte) && (halfbyte <= 9))
+                    {
+                        buf.Append((char)('0' + halfbyte));
+                    }
+                    else
+                    {
+                        buf.Append((char)('a' + (halfbyte - 10)));
+                    }
+                    halfbyte = data[i] & unchecked((0x0F));
+                }
+                while (two_halfs++ < 1);
+            }
+            return buf.ToString();
+        }
 
-		public static int TDSequenceCompare(long a, long b)
-		{
-			long diff = a - b;
-			return diff > 0 ? 1 : (diff < 0 ? -1 : 0);
-		}
+        public static int TDSequenceCompare(long a, long b)
+        {
+            long diff = a - b;
+            return diff > 0 ? 1 : (diff < 0 ? -1 : 0);
+        }
 
-		public static string UnquoteString(string param)
-		{
-			return param.Replace("\"", string.Empty);
-		}
+        public static string UnquoteString(string param)
+        {
+            return param.Replace("\"", string.Empty);
+        }
+
+        public static bool IsTransientError(HttpStatusCode status)
+        {
+            if (status == HttpStatusCode.InternalServerError || 
+                status == HttpStatusCode.BadGateway || 
+                status == HttpStatusCode.ServiceUnavailable || 
+                status == HttpStatusCode.GatewayTimeout)
+            {
+                return true;
+            }
+            return false;
+        }
+
+        /// <exception cref="Couchbase.Lite.Storage.SQLException"></exception>
+        public static byte[] ByteArrayResultForQuery(ISQLiteStorageEngine database, string query, params string[] args)
+        {
+            byte[] result = null;
+            using (var cursor = database.RawQuery(query, args))
+            {
+                if (cursor.MoveToNext())
+                {
+                    result = cursor.GetBlob(0);
+                }
+                return result;
+            }
+        }
+
+
+        /// <summary>Like equals, but works even if either/both are null</summary>
+        /// <param name="obj1">object1 being compared</param>
+        /// <param name="obj2">object2 being compared</param>
+        /// <returns>
+        /// true if both are non-null and obj1.equals(obj2), or true if both are null.
+        /// otherwise return false.
+        /// </returns>
+        public static bool IsEqual(object obj1, object obj2)
+        {
+            if (obj1 != null)
+            {
+                return (obj2 != null) && obj1.Equals(obj2);
+            }
+            else
+            {
+                return obj2 == null;
+            }
+        }
 
         public static bool PropertiesEqual(IDictionary<string, object> prop1, IDictionary<string, object> prop2)
         {
@@ -150,5 +200,5 @@ namespace Couchbase.Lite
 
             return true;
         }
-	}
+    }
 }

@@ -90,7 +90,7 @@ namespace Couchbase.Lite {
         {
             try
             {
-                var loadRevision = Database.LoadRevisionBody(RevisionInternal, EnumSet.NoneOf<TDContentOptions>());
+                var loadRevision = Database.LoadRevisionBody(RevisionInternal, DocumentContentOptions.None);
                 if (loadRevision == null)
                 {
                     Log.W(Database.Tag, "Couldn't load body/sequence of {0}" + this);
@@ -105,6 +105,11 @@ namespace Couchbase.Lite {
             }
         }
 
+
+        public string ParentRevisionID {
+            get;
+            set;
+        }
     #endregion
 
     #region Instance Members

@@ -42,47 +42,53 @@
 
 using System;
 using System.Collections;
-using System.Collections.Generic;
-using System.IO;
-using Couchbase.Lite;
-using Couchbase.Lite.Replicator;
-using Couchbase.Lite.Util;
-using Sharpen;
-using System.Linq;
 using System.Net;
 using System.Net.Http;
-using System.Web;
 using System.Threading;
+using Couchbase.Lite.Util;
+using System.Collections.Generic;
 
 namespace Couchbase.Lite.Replicator
 {
 
     internal sealed class DefaultAuthHandler : MessageProcessingHandler
     {
+        internal IDictionary<CancellationToken, HttpRequestMessage> Requests { get; set; }
+
         public DefaultAuthHandler(HttpClientHandler context, CookieStore cookieStore) : base()
         {
             this.context = context;
             this.cookieStore = cookieStore;
             InnerHandler = this.context;
+            Requests = new Dictionary<CancellationToken, HttpRequestMessage>();
         }
 
         #region implemented abstract members of MessageProcessingHandler
+
+        object locker = new object();
 
         protected override HttpResponseMessage ProcessResponse (HttpResponseMessage response, CancellationToken cancellationToken)
         {
             var hasSetCookie = response.Headers.Contains("Set-Cookie");
             if (hasSetCookie)
             {
-                cookieStore.Save();
+                lock (locker)
+                {
+                    cookieStore.Save();
+                }
             }
 
             return response;
         }
 
-        /// <exception cref="Org.Apache.Http.HttpException"></exception>
         /// <exception cref="System.IO.IOException"></exception>
         protected override HttpRequestMessage ProcessRequest(HttpRequestMessage request, CancellationToken token)
         {
+            // TODO: We could make this class handle more than one request using a dictionary of cancellation tokens,
+            //       but that would require using unique tokens per request, instead of sharing them. In order to
+            //       keep our easy cancellability, we can use linked cancellation sourceses that all link back
+            //       to our root cancellation token source.
+
             return request;
         }
 
@@ -90,7 +96,7 @@ namespace Couchbase.Lite.Replicator
 
         #region Private
 
-        private IEnumerator GetEnumerator() 
+        private static IEnumerator GetEnumerator() 
         {
             return AuthenticationManager.RegisteredModules; 
         }
