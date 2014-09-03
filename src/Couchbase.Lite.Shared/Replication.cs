@@ -917,9 +917,10 @@ namespace Couchbase.Lite
                     {
                         requests.Remove(client);
                     }
-                    var result = response.Result;
+                    HttpResponseMessage result = null;
                     if (!response.IsFaulted)
                     {
+                        result = response.Result;
                         UpdateServerType(result);
                     }
                     else
@@ -946,9 +947,13 @@ namespace Couchbase.Lite
                                 ? response.Exception.Flatten()
                                 : response.Exception;
 
-                            if (error == null && !result.IsSuccessStatusCode)
+                            if (error == null )
                             {
-                                error = new HttpResponseException(result.StatusCode);
+                                if (!result.IsSuccessStatusCode) 
+                                {
+                                    result = response.Result;
+                                    error = new HttpResponseException(result.StatusCode);
+                                }
                             }
 
                             if (error == null)

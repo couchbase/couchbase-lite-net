@@ -93,14 +93,13 @@ namespace Couchbase.Lite.Shared
                 {
                     throw new CouchbaseLiteException(errMessage, StatusCode.DbError);
                 }
-#if __ANDROID__ && VERBOSE
-#else
+#if !__ANDROID__ && VERBOSE
                 var i = 0;
                 var val = raw.sqlite3_compileoption_get(i);
                 while (val != null)
                 {
-                    Log.V(Tag, "Sqlite Config: {0}".Fmt(val));
-                    val = raw.sqlite3_compileoption_get(++i);
+                Log.V(Tag, "Sqlite Config: {0}".Fmt(val));
+                val = raw.sqlite3_compileoption_get(++i);
                 }
 #endif
                 db.create_collation("JSON", null, CouchbaseSqliteJsonUnicodeCollationFunction.Compare);

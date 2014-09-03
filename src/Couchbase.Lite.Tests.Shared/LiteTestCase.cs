@@ -77,11 +77,11 @@ namespace Couchbase.Lite
         protected void SetUp()
         {
             Log.V(Tag, "SetUp");
-#if !(__ANDROID__ || __IOS__)
+//#if !(__IOS__)
 //            Trace.Listeners.Clear();
 //            Trace.Listeners.Add(new ConsoleTraceListener());
             ManagerOptions.Default.CallbackScheduler = TaskScheduler.Default;
-#endif
+//#endif
             LoadCustomProperties();
             StartCBLite();
             StartDatabase();
