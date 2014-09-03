@@ -56,6 +56,7 @@ using Couchbase.Lite.Replicator;
 using Couchbase.Lite.Util;
 using Sharpen;
 using System.Text;
+using Couchbase.Lite.Support;
 
 namespace Couchbase.Lite.Replicator
 {
@@ -267,7 +268,6 @@ namespace Couchbase.Lite.Replicator
             }
 
             backoff = new ChangeTrackerBackoff();
-            HttpClient httpClient = client.GetHttpClient();
 
             while (IsRunning && !tokenSource.Token.IsCancellationRequested)
             {
@@ -276,6 +276,7 @@ namespace Couchbase.Lite.Replicator
 //                    Thread.Sleep(500);
 //                    continue;
 //                }
+                var httpClient = client.GetHttpClient();
 
                 if (Request != null)
                 {
@@ -311,31 +312,73 @@ namespace Couchbase.Lite.Replicator
                 if (tokenSource.Token.IsCancellationRequested)
                     break;
 
+                Task<HttpResponseMessage> changesRequestTask = null;
+                Task<HttpResponseMessage> successHandler;
+                Task<Boolean> errorHandler;
+
                 try {
                     changesFeedRequestTokenSource = CancellationTokenSource.CreateLinkedTokenSource(tokenSource.Token);
-                    var changesRequestTask = httpClient
-                        .SendAsync(Request, HttpCompletionOption.ResponseHeadersRead, changesFeedRequestTokenSource.Token);
-                    var successHandler = changesRequestTask
-                        .ContinueWith<HttpResponseMessage>(ChangeFeedResponseHandler, changesFeedRequestTokenSource.Token, TaskContinuationOptions.LongRunning, WorkExecutor.Scheduler);
-                    var errorHandler = changesRequestTask
-                        .ContinueWith((t) => 
-                        {
-                            Log.D(Tag, "ChangeFeedResponseHandler faulted.");
-                            Error = t.Exception;
-                        }, changesFeedRequestTokenSource.Token, TaskContinuationOptions.OnlyOnFaulted, WorkExecutor.Scheduler);
+
+                    var evt = new ManualResetEvent(false);
+                    //successHandler.ConfigureAwait(false).GetAwaiter().OnCompleted(()=>evt.Set());
+                    //                    ChangeFeedResponseHandler(response);
+
+
+                    var info = httpClient.SendAsync(
+                        Request, 
+                        HttpCompletionOption.ResponseContentRead, 
+                        changesFeedRequestTokenSource.Token
+                    );
+                    var infoAwaiter = info.ConfigureAwait(false).GetAwaiter();
+                    infoAwaiter.OnCompleted(()=>
+                        evt.Set()
+                    );
+                    evt.WaitOne(ManagerOptions.Default.RequestTimeout);
+
+                    changesRequestTask = info; //Task.FromResult(info.Result);
+
+                    successHandler = changesRequestTask.ContinueWith<HttpResponseMessage>(
+                        ChangeFeedResponseHandler, 
+                        changesFeedRequestTokenSource.Token, 
+                        TaskContinuationOptions.LongRunning | TaskContinuationOptions.OnlyOnRanToCompletion, 
+                        WorkExecutor.Scheduler
+                    );
+
+                    errorHandler = changesRequestTask.ContinueWith(t =>
+                    {
+                        if (t.IsCanceled) {
+                            return false; // Not a real error.
+                        }
+                        var err = t.Exception.Flatten();
+                        Log.D(Tag, "ChangeFeedResponseHandler faulted.", err.InnerException ?? err);
+                        Error = err.InnerException ?? err;
+                        return true; // a real error.
+                    }, changesFeedRequestTokenSource.Token, TaskContinuationOptions.OnlyOnFaulted, WorkExecutor.Scheduler);
 
                     try {
-                        Task.WaitAll(changesRequestTask, successHandler, errorHandler);
+                        var completedTask = Task.WhenAll(successHandler, errorHandler);
+                        completedTask.Wait((Int32)ManagerOptions.Default.RequestTimeout.TotalMilliseconds, changesFeedRequestTokenSource.Token);
+                        Log.D(Tag, "Finished processing changes feed.");
                     } catch (Exception ex) {
                         // Swallow TaskCancelledExceptions, which will always happen
                         // if either errorHandler or successHandler don't need to fire.
                         if (!(ex.InnerException is TaskCanceledException))
                             throw ex;
+                    } finally {
+                        changesRequestTask.Dispose();
+                        changesRequestTask = null;
+                        successHandler.Dispose();
+                        successHandler = null;
+                        errorHandler.Dispose();
+                        errorHandler = null;
+                        Request.Dispose();
+                        Request = null;
+                        changesFeedRequestTokenSource.Dispose();
+                        if (httpClient != null) 
+                        {
+                            httpClient.Dispose();
+                        }
                     }
-//                    allWork.Wait(TimeSpan.FromSeconds(90));
-                    var result = successHandler.Result;
-                    //                    ChangeFeedResponseHandler(response);
-                    result.Dispose();
                 }
                 catch (Exception e)
                 {
@@ -408,10 +451,6 @@ namespace Couchbase.Lite.Replicator
 //                    {
 //                        Log.D(Tag, "ChangeFeedResponseHandler faulted.");
 //                    }, singleRequestTokenSource.Token, TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.AttachedToParent, TaskScheduler.Default);
-            }
-            if (httpClient != null) 
-            {
-                httpClient.Dispose();
             }
         }
 
@@ -509,15 +548,14 @@ namespace Couchbase.Lite.Replicator
 
         public bool ReceivedPollResponse(IDictionary<string, object> response)
         {
-            var changes = ((JArray)response.Get("results")).ToList();
+            var changes = response.Get("results").AsList<IDictionary<string, object>>();
             if (changes == null)
             {
                 return false;
             }
             foreach (var change in changes)
             {
-                var changeDict = change.ToObject<IDictionary<string, object>>();
-                if (! ReceivedChange(changeDict))
+                if (! ReceivedChange(change))
                 {
                     return false;
                 }
@@ -654,9 +692,7 @@ namespace Couchbase.Lite.Replicator
 
             if (mode == ChangeTrackerMode.LongPoll)
             {
-                bodyParams["limit"] = LongPollModeLimit > 0  //NOTE: This is to make tweaking this value easier.
-                    ? LongPollModeLimit.ToString() 
-                    : null;
+                bodyParams["limit"] = LongPollModeLimit;
             }
 
             if (docIDs != null && docIDs.Count > 0)

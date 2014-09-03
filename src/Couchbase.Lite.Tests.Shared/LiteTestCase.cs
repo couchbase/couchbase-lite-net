@@ -77,11 +77,8 @@ namespace Couchbase.Lite
         protected void SetUp()
         {
             Log.V(Tag, "SetUp");
-//#if !(__IOS__)
-//            Trace.Listeners.Clear();
-//            Trace.Listeners.Add(new ConsoleTraceListener());
             ManagerOptions.Default.CallbackScheduler = TaskScheduler.Default;
-//#endif
+
             LoadCustomProperties();
             StartCBLite();
             StartDatabase();

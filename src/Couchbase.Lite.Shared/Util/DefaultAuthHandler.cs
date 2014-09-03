@@ -53,14 +53,11 @@ namespace Couchbase.Lite.Replicator
 
     internal sealed class DefaultAuthHandler : MessageProcessingHandler
     {
-        internal IDictionary<CancellationToken, HttpRequestMessage> Requests { get; set; }
-
         public DefaultAuthHandler(HttpClientHandler context, CookieStore cookieStore) : base()
         {
             this.context = context;
             this.cookieStore = cookieStore;
             InnerHandler = this.context;
-            Requests = new Dictionary<CancellationToken, HttpRequestMessage>();
         }
 
         #region implemented abstract members of MessageProcessingHandler
@@ -82,7 +79,7 @@ namespace Couchbase.Lite.Replicator
         }
 
         /// <exception cref="System.IO.IOException"></exception>
-        protected override HttpRequestMessage ProcessRequest(HttpRequestMessage request, CancellationToken token)
+        protected override HttpRequestMessage ProcessRequest(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             // TODO: We could make this class handle more than one request using a dictionary of cancellation tokens,
             //       but that would require using unique tokens per request, instead of sharing them. In order to

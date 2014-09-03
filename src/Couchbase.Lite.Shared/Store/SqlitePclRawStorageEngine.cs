@@ -225,6 +225,7 @@ namespace Couchbase.Lite.Shared
 
         public void ExecSQL (String sql, params Object[] paramArgs)
         {
+            Log.D(Tag + ".ExecSQL", "{0} with values: {1}", sql, String.Join(", ", paramArgs.ToString()));
             lock (dbLock) {
                 var command = BuildCommand (sql, paramArgs);
 
@@ -256,7 +257,7 @@ namespace Couchbase.Lite.Shared
             var command = BuildCommand (sql, paramArgs);
 
             try {
-                Log.V(Tag, "RawQuery sql: {0}".Fmt(sql));
+                Log.V(Tag, "RawQuery sql: {0} ({1})", sql, String.Join(", ", paramArgs));
                 lock (dbLock) {
                 cursor = new Cursor(command, dbLock);
                 }

@@ -56,8 +56,6 @@ namespace Couchbase.Lite.Replicator
     {
         const string Tag = "BulkDownloader";
 
-        private Database _db;
-
         private MultipartReader _topReader;
 
         private MultipartDocumentReader _docReader;
@@ -69,9 +67,7 @@ namespace Couchbase.Lite.Replicator
         /// <exception cref="System.Exception"></exception>
         public BulkDownloader(TaskFactory workExecutor, IHttpClientFactory clientFactory, Uri dbURL, IList<RevisionInternal> revs, Database database, IDictionary<string, object> requestHeaders, CancellationTokenSource tokenSource = null)
             : base(workExecutor, clientFactory, "POST", new Uri(AppendRelativeURLString(dbURL, "/_bulk_get?revs=true&attachments=true")), HelperMethod(revs, database), database, requestHeaders, tokenSource)
-        {
-            _db = database;
-        }
+        { }
 
         public override void Run()
         {
@@ -104,22 +100,17 @@ namespace Couchbase.Lite.Replicator
                     RespondWithResult(fullBody, new Exception(string.Format("{0}: Request {1} has been aborted", this, request)), response);
                     return;
                 }
-                response = httpClient.SendAsync(request, _tokenSource.Token).Result;
-//                try
-//                {
-//                    // add in cookies to global store
-//                    if (httpClient is DefaultHttpClient)
-//                    {
-//                        DefaultHttpClient defaultHttpClient = (DefaultHttpClient)httpClient;
-//                        clientFactory.AddCookies(defaultHttpClient.GetCookieStore().GetCookies());
-//                    }
-//                }
-//                catch (Exception e)
-//                {
-//                    Log.E(Tag, "Unable to add in cookies to global store", e);
-//                }
+                Log.D(Tag + ".ExecuteRequest", "Sending request: {0}", request);
+                var requestTokenSource = CancellationTokenSource.CreateLinkedTokenSource(_tokenSource.Token);
+                var responseTask = httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, requestTokenSource.Token);
+                if (!responseTask.Wait((Int32)ManagerOptions.Default.RequestTimeout.TotalMilliseconds, requestTokenSource.Token))
+                {
+                    Log.E(Tag, "Response task timed out: {0}, {1}", responseTask, TaskScheduler.Current);
+                    throw new HttpResponseException(HttpStatusCode.RequestTimeout);
+                }
+                response = responseTask.Result;
                 var status = response.StatusCode;
-                if (!response.IsSuccessStatusCode)
+                if (response == null || !response.IsSuccessStatusCode)
                 {
                     Log.E(Tag, "Got error status: {0} for {1}.  Reason: {2}", status.GetStatusCode(), request, response.ReasonPhrase);
                     error = new HttpResponseException(status);
@@ -224,7 +215,7 @@ namespace Couchbase.Lite.Replicator
             }
             Log.V(Tag, "{0}: Starting new document; headers ={1}", this, headers);
             Log.V(Tag, "{0}: Starting new document; ID={1}".Fmt(this, headers.Get("X-Doc-Id")));
-            _docReader = new MultipartDocumentReader(_db);
+            _docReader = new MultipartDocumentReader(db);
             _docReader.SetContentType(headers.Get ("Content-Type"));
             _docReader.StartedPart(headers);
         }

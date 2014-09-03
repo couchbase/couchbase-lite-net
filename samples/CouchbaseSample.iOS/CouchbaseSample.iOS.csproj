@@ -24,7 +24,7 @@
     <MtouchDebug>true</MtouchDebug>
     <MtouchI18n>
     </MtouchI18n>
-    <MtouchArch>ARMv7s</MtouchArch>
+    <MtouchArch>i386</MtouchArch>
     <MtouchSdkVersion>7.0</MtouchSdkVersion>
     <MtouchExtraArgs>--registrar:static</MtouchExtraArgs>
   </PropertyGroup>
