@@ -1698,8 +1698,8 @@ namespace Couchbase.Lite
         public Int32 ChangesCount {
             get { return changesCount; }
             protected set {
-                Debug.Assert(value > 0);
-                Log.V(Tag, "Updating changes count from " + changesCount + " -> " + value);
+                //Debug.Assert(value > 0);
+                Log.V(Tag, "Updating changes count by {0} to {1}", value, changesCount);
                 changesCount = value;
                 NotifyChangeListeners();
             }

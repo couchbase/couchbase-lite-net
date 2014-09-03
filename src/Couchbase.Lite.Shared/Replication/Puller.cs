@@ -525,7 +525,7 @@ namespace Couchbase.Lite.Replicator
 
                 dl.Complete += (sender, args) => 
                 {
-                    if (args != null)
+                    if (args != null && args.Error != null)
                     {
                         SetLastError(args.Error);
                         RevisionFailed();

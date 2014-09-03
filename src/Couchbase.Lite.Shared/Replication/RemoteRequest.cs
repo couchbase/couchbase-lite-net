@@ -40,7 +40,6 @@ using Couchbase.Lite;
 using Couchbase.Lite.Auth;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
-using Sharpen;
 using System;
 using System.Threading.Tasks;
 using System.Net.Http;
@@ -70,15 +69,15 @@ namespace Couchbase.Lite.Replicator
 
         protected internal IAuthenticator Authenticator { get; set; }
 
-        public event EventHandler<RemoteRequestEventArgs> WillComplete;
+//        public event EventHandler<RemoteRequestEventArgs> WillComplete;
 
         public event EventHandler<RemoteRequestEventArgs> Complete;
 
-        public event EventHandler<RemoteRequestEventArgs> HasCompleted;
+//        public event EventHandler<RemoteRequestEventArgs> HasCompleted;
 
         private int retryCount;
 
-        private Database db;
+        protected Database db;
 
         protected internal HttpRequestMessage requestMessage;
 
@@ -86,7 +85,7 @@ namespace Couchbase.Lite.Replicator
 
         protected CancellationTokenSource _tokenSource;
 
-        Task request;
+        protected Task request;
 
         public RemoteRequest(TaskFactory workExecutor, IHttpClientFactory clientFactory, string method, Uri url, object body, Database db, IDictionary<string, object>requestHeaders, CancellationTokenSource tokenSource = null)
         {
@@ -98,7 +97,9 @@ namespace Couchbase.Lite.Replicator
             this.requestHeaders = requestHeaders;
             this.db = db;
             this.requestMessage = CreateConcreteRequest();
-            _tokenSource = tokenSource ?? new CancellationTokenSource();
+            _tokenSource = tokenSource == null 
+                ? new CancellationTokenSource() 
+                : CancellationTokenSource.CreateLinkedTokenSource(tokenSource.Token);
             Log.V(Tag, "RemoteRequest created, url: {0}", url);
         }
 
@@ -142,7 +143,7 @@ namespace Couchbase.Lite.Replicator
         {
             foreach (string requestHeaderKey in requestHeaders.Keys)
             {
-                request.Headers.Add(requestHeaderKey, requestHeaders.Get(requestHeaderKey).ToString());
+                request.Headers.Add(requestHeaderKey, requestHeaders[requestHeaderKey].ToString());
             }
         }
 
@@ -221,7 +222,7 @@ namespace Couchbase.Lite.Replicator
                     return;
                 }
                 Log.V(Tag, "{0}: RemoteRequest calling httpClient.execute", this);
-                response = httpClient.SendAsync(requestMessage, _tokenSource.Token).Result;
+                response = httpClient.SendAsync(requestMessage, HttpCompletionOption.ResponseHeadersRead, _tokenSource.Token).Result;
                 Log.V(Tag, "{0}: RemoteRequest called httpClient.execute", this);
                 var status = response.StatusCode;
                 if (Misc.IsTransientError(status) && RetryRequest())

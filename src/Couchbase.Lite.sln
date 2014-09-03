@@ -250,7 +250,7 @@ Global
 		{F376966C-CCAB-4C5C-A81A-E2A754AA7A4C} = {3D44EF32-EE84-42A0-B586-6AE71AB75CFF}
 	EndGlobalSection
 	GlobalSection(MonoDevelopProperties) = preSolution
-		StartupItem = Couchbase.Lite.iOS.Tests\Couchbase.Lite.iOS.Tests.csproj
+		StartupItem = ..\samples\CouchbaseSample.iOS\CouchbaseSample.iOS.csproj
 		Policies = $0
 		$0.TextStylePolicy = $1
 		$1.FileWidth = 120
