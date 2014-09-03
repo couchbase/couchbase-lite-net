@@ -369,8 +369,7 @@ namespace Couchbase.Lite
 
             // Ensure callback runs on captured context, which should be the UI thread.
             Log.D(Tag, "Firing NotifyChangeListeners event! [{0} -> {1}]", TaskScheduler.Current.GetType().Name, LocalDatabase.Manager.CapturedContext.Scheduler.GetType().Name);
-            //LocalDatabase.Manager.CapturedContext.StartNew(()=>evt(this, args));
-            evt(this, args);
+            LocalDatabase.Manager.CapturedContext.StartNew(()=>evt(this, args));
         }
 
         // This method will be used by Router & Reachability Manager
