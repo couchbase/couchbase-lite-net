@@ -52,7 +52,26 @@ namespace Couchbase.Lite
     {
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
         [Test]
-        public void TestNewDocumentHasCurrentRevision()
+        public void TestUnsavedDocumentReturnsNullValues()
+        {
+            var document = database.CreateDocument();
+            try
+            {
+                Assert.IsNull(document.Properties);
+                Assert.IsNull(document.CurrentRevisionId);
+                Assert.IsNull(document.CurrentRevision);
+                Assert.IsNull(document.RevisionHistory);
+                Assert.IsNull(document.GetRevision("doc2"));
+            }
+            catch
+            {
+                Assert.Fail("Document getter threw an exception");
+            }
+        }
+
+        /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
+        [Test]
+        public void TestSavedDocumentHasCurrentRevision()
         {
             var document = database.CreateDocument();
             var properties = new Dictionary<string, object>();
