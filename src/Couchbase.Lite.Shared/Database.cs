@@ -358,7 +358,10 @@ namespace Couchbase.Lite
             }
 
             var unsavedDoc = UnsavedRevisionDocumentCache.Get(id);
-            Document doc = unsavedDoc != null ? (Document)unsavedDoc.Target : DocumentCache.Get(id);
+            var doc = unsavedDoc != null 
+                ? (Document)unsavedDoc.Target 
+                : DocumentCache.Get(id);
+
             if (doc == null)
             {
                 doc = new Document(this, id);
