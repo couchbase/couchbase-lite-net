@@ -267,7 +267,7 @@ namespace Couchbase.Lite
 
             var db = manager.GetExistingDatabase(DefaultTestDb);
             var doc = CreateDocumentWithProperties(db, properties);
-            var rev1 = doc.CurrentRevision;
+            var rev1 = doc.CurrentRevision as SavedRevision;
             var properties2 = new Dictionary<String, Object>(properties);
             properties2["tag"] = 4567;
 
@@ -302,7 +302,7 @@ namespace Couchbase.Lite
 
             var doc = CreateDocumentWithProperties(db, properties);
             Assert.IsFalse(doc.Deleted);
-            var rev1 = doc.CurrentRevision;
+            var rev1 = doc.CurrentRevision as SavedRevision;
             Assert.IsTrue(rev1.Id.StartsWith("1-"));
             Assert.AreEqual(1, rev1.Sequence);
             Assert.AreEqual(0, rev1.Attachments.Count());
@@ -328,7 +328,7 @@ namespace Couchbase.Lite
             Assert.AreEqual(doc.CurrentRevision, rev2);
             Assert.IsFalse(doc.Deleted);
 
-            var listRevs = new AList<SavedRevision>();
+            var listRevs = new List<SavedRevision>();
             listRevs.Add(rev1);
             listRevs.Add(rev2);
             Assert.AreEqual(newRev.RevisionHistory, listRevs);
@@ -521,7 +521,7 @@ namespace Couchbase.Lite
                 var doc = row.Document;
 
                 Assert.IsNotNull(doc, "Couldn't get doc from query");
-                Assert.IsNotNull(doc.CurrentRevision.PropertiesAvailable, "QueryRow should have preloaded revision contents");
+                Assert.IsNotNull(((SavedRevision)doc.CurrentRevision).PropertiesAvailable, "QueryRow should have preloaded revision contents");
 
                 Log.I(Tag, "        Properties =" + doc.Properties);
 
@@ -625,7 +625,7 @@ namespace Couchbase.Lite
 
             var doc = CreateDocumentWithProperties(db, prop);
 
-            var rev1 = doc.CurrentRevision;
+            var rev1 = doc.CurrentRevision as SavedRevision;
 
             var properties = new Dictionary<String, Object>(doc.Properties);
             properties["tag"] = 2;
@@ -679,7 +679,7 @@ namespace Couchbase.Lite
             var attachmentName = "index.html";
             var content = "This is a test attachment!";
             var doc = CreateDocWithAttachment(database, attachmentName, content);
-            var newRev = doc.CurrentRevision.CreateRevision();
+            var newRev = ((SavedRevision)doc.CurrentRevision).CreateRevision();
             newRev.RemoveAttachment(attachmentName);
             var rev4 = newRev.Save();
             Assert.IsNotNull(rev4);
@@ -700,7 +700,7 @@ namespace Couchbase.Lite
             var propertiesUpdated = new Dictionary<string, object>();
             propertiesUpdated.Put("propertiesUpdated", "testUpdateDocWithAttachments");
 
-            var newUnsavedRevision = latestRevision.CreateRevision();
+            var newUnsavedRevision = ((SavedRevision)latestRevision).CreateRevision();
             newUnsavedRevision.SetUserProperties(propertiesUpdated);
 
             var newSavedRevision = newUnsavedRevision.Save();

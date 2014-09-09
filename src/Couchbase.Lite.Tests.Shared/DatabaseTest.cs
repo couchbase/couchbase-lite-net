@@ -89,7 +89,7 @@ namespace Couchbase.Lite
             properties.Add("tag", 1337);
 
             var doc = CreateDocumentWithProperties(database, properties);
-            var rev = doc.CurrentRevision;
+            var rev = doc.CurrentRevision as SavedRevision;
             database.MaxRevTreeDepth = 1;
 
             for (int i = 0; i < 10; i++)
@@ -118,7 +118,7 @@ namespace Couchbase.Lite
             properties.Add("tag", 1337);
 
             var doc = CreateDocumentWithProperties(database, properties);
-            var rev = doc.CurrentRevision;
+            var rev = doc.CurrentRevision as SavedRevision;
             database.MaxRevTreeDepth = 1;
 
             for (int i = 0; i < 10; i++)

@@ -153,10 +153,9 @@ namespace Couchbase.Lite
         /// <value>The parent.</value>
         public override SavedRevision Parent {
             get {
-                if (String.IsNullOrEmpty (ParentId)) {
-                    return null;
-                }
-                return Document.GetRevision(ParentId);
+                return String.IsNullOrEmpty(ParentId) 
+                    ? null 
+                    : Document.GetRevision(ParentId);
             }
         }
 
@@ -179,7 +178,7 @@ namespace Couchbase.Lite
         public override IEnumerable<SavedRevision> RevisionHistory {
             get {
                 // (Don't include self in the array, because this revision doesn't really exist yet)
-                return Parent != null ? Parent.RevisionHistory : new AList<SavedRevision>();
+                return Parent != null ? Parent.RevisionHistory : new List<SavedRevision>();
             }
         }
 

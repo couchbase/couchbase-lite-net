@@ -49,7 +49,7 @@ namespace Couchbase.Lite
 {
     /// <summary>An ordered list of TDRevisions</summary>
     [System.Serializable]
-    internal class RevisionList : AList<RevisionInternal>
+    internal class RevisionList : List<RevisionInternal>
     {
         public RevisionList() : base()
         {

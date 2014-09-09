@@ -45,6 +45,7 @@ using Couchbase.Lite;
 using NUnit.Framework;
 using Sharpen;
 using Couchbase.Lite.Internal;
+using System;
 
 namespace Couchbase.Lite
 {
@@ -52,7 +53,26 @@ namespace Couchbase.Lite
     {
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
         [Test]
-        public void TestNewDocumentHasCurrentRevision()
+        public void TestUnsavedDocumentReturnsNullValues()
+        {
+            var document = database.CreateDocument();
+            try
+            {
+                Assert.IsNotNull(document.Properties);
+                Assert.IsNotNull(document.CurrentRevisionId);
+                Assert.IsNotNull(document.CurrentRevision);
+                Assert.IsNull(document.RevisionHistory);
+                Assert.IsNull(document.GetRevision("doc2"));
+            }
+            catch (Exception e)
+            {
+                Assert.Fail("Document getter threw an exception");
+            }
+        }
+
+        /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
+        [Test]
+        public void TestSavedDocumentHasCurrentRevision()
         {
             var document = database.CreateDocument();
             var properties = new Dictionary<string, object>();
@@ -104,7 +124,7 @@ namespace Couchbase.Lite
             properties["foo"] = "foo";
             properties["bar"] = false;
             document.PutProperties(properties);
-            Assert.IsNotNull(document.CurrentRevision);
+            Assert.IsNotNull(document.CurrentRevision as SavedRevision);
 
             var docId = document.Id;
             document.Delete();

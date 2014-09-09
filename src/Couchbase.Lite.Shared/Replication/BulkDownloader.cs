@@ -34,7 +34,6 @@
 // and limitations under the License.
 //using System;
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -51,7 +50,6 @@ using System.Threading;
 
 namespace Couchbase.Lite.Replicator
 {
-
     internal class BulkDownloader : RemoteRequest, IMultipartReaderDelegate
     {
         const string Tag = "BulkDownloader";
