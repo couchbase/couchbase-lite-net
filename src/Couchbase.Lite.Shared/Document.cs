@@ -56,7 +56,7 @@ namespace Couchbase.Lite {
     /// </summary>
     public sealed class Document {
 
-        SavedRevision currentRevision;
+        Revision currentRevision;
             
     #region Constructors
 
@@ -89,7 +89,7 @@ namespace Couchbase.Lite {
         /// Gets if the <see cref="Couchbase.Lite.Document"/> is deleted.
         /// </summary>
         /// <value><c>true</c> if deleted; otherwise, <c>false</c>.</value>
-        public Boolean Deleted { get { return CurrentRevision == null && LeafRevisions.Any (); } }
+        public Boolean Deleted { get { return CurrentRevision is UnsavedRevision || LeafRevisions.Any (); } }
 
         /// <summary>
         /// If known, gets the Id of the current <see cref="Couchbase.Lite.Revision"/>, otherwise null.
@@ -108,11 +108,11 @@ namespace Couchbase.Lite {
         /// Gets the current/latest <see cref="Couchbase.Lite.Revision"/>.
         /// </summary>
         /// <value>The current/latest <see cref="Couchbase.Lite.Revision"/>.</value>
-        public SavedRevision CurrentRevision { 
+        public Revision CurrentRevision { 
             get {
                 if (currentRevision == null) 
                 {
-                    currentRevision = GetRevisionWithId(null);
+                    currentRevision = (Revision)GetRevisionWithId(null) ?? CreateRevision();
                 }
                 return currentRevision;
             }
@@ -209,7 +209,14 @@ namespace Couchbase.Lite {
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException">
         /// Thrown if an issue occurs while deleting the <see cref="Couchbase.Lite.Document"/>.
         /// </exception>
-        public void Delete() { if (CurrentRevision != null) { CurrentRevision.DeleteDocument(); } }
+        public void Delete() 
+        {
+            var rev = CurrentRevision as SavedRevision;
+            if (rev != null) 
+            {
+                rev.DeleteDocument(); 
+            }
+        }
 
         /// <summary>
         /// Completely purges the <see cref="Couchbase.Lite.Document"/> from the local <see cref="Couchbase.Lite.Database"/>. 
@@ -242,8 +249,9 @@ namespace Couchbase.Lite {
         /// <returns>The <see cref="Couchbase.Lite.Revision"/> with the specified id if it exists, otherwise null</returns>
         public SavedRevision GetRevision(String id)
         {
-            if (CurrentRevision != null && id.Equals(CurrentRevision.Id))
-                return CurrentRevision;
+            var rev = CurrentRevision as SavedRevision;
+            if (rev != null && id.Equals(CurrentRevision.Id))
+                return rev;
 
             var contentOptions = DocumentContentOptions.None;
             var revisionInternal = Database.GetDocumentWithIDAndRev(Id, id, contentOptions);
@@ -268,7 +276,7 @@ namespace Couchbase.Lite {
         /// </returns>
         public UnsavedRevision CreateRevision()
         {
-            return new UnsavedRevision(this, CurrentRevision);
+            return new UnsavedRevision(this, currentRevision as SavedRevision);
         }
 
         /// <summary>
@@ -358,7 +366,7 @@ namespace Couchbase.Lite {
         {
             if (!String.IsNullOrWhiteSpace(revId) && revId.Equals(currentRevision.Id))
             {
-                return currentRevision;
+                return (SavedRevision)currentRevision;
             }
             return GetRevisionFromRev(Database.GetDocumentWithIDAndRev(Id, revId, DocumentContentOptions.None));
         }
@@ -431,7 +439,9 @@ namespace Couchbase.Lite {
             {
                 return null;
             }
-            return new SavedRevision(this, newRev);
+            var savedRev = new SavedRevision(this, newRev);
+            currentRevision = savedRev;
+            return savedRev;
         }
 
         /// <summary>
@@ -469,7 +479,7 @@ namespace Couchbase.Lite {
 
             if (currentRevision != null && internalRevision.GetRevId().Equals(CurrentRevision.Id))
             {
-                return currentRevision;
+                return (SavedRevision)currentRevision;
             }
             else
             {
