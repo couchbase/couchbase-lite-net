@@ -76,7 +76,7 @@ namespace Couchbase.Lite
         private CancellationTokenSource ReRunUpdateQueryTokenSource;
         private readonly object updateLock = new object();
 
-        private void OnDatabaseChanged (object sender, Database.DatabaseChangeEventArgs e)
+        private void OnDatabaseChanged (object sender, DatabaseChangeEventArgs e)
         {
             Log.D(Tag, "OnDatabaseChanged() called");
             Update();

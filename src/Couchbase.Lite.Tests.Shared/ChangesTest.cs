@@ -59,7 +59,7 @@ namespace Couchbase.Lite
         {
             var changeNotifications = 0;
 
-            EventHandler<Database.DatabaseChangeEventArgs> handler
+            EventHandler<DatabaseChangeEventArgs> handler
                 = (sender, e) => changeNotifications++;
 
             database.Changed += handler;
@@ -87,7 +87,7 @@ namespace Couchbase.Lite
         {
             var changeNotifications = 0;
 
-            EventHandler<Database.DatabaseChangeEventArgs> handler = (sender, e) =>
+            EventHandler<DatabaseChangeEventArgs> handler = (sender, e) =>
             {
                 changeNotifications++;
                 Assert.IsFalse(e.IsExternal);
@@ -111,7 +111,7 @@ namespace Couchbase.Lite
         {
             var changeNotifications = 0;
 
-            EventHandler<Database.DatabaseChangeEventArgs> handler = (sender, e) =>
+            EventHandler<DatabaseChangeEventArgs> handler = (sender, e) =>
             {
                 changeNotifications++;
                 Assert.IsTrue(e.IsExternal);

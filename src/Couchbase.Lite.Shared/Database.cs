@@ -4667,36 +4667,6 @@ PRAGMA user_version = 3;";
 
     #endregion
     
-    #region EventArgs Subclasses
-
-        ///
-        /// <summary>The event raised when a <see cref="Couchbase.Lite.Database"/> changes</summary>
-        ///
-        public class DatabaseChangeEventArgs : EventArgs {
-            //Properties
-            /// <summary>
-            /// Gets the <see cref="Couchbase.Lite.Database"/> that raised the event.
-            /// </summary>
-            /// <value>The <see cref="Couchbase.Lite.Database"/> that raised the event.</value>
-            public Database Source { get; internal set; }
-
-            /// <summary>
-            /// Returns true if the change was not made by a Document belonging to this Database 
-            /// (e.g. it came from another process or from a pull Replication), otherwise false.
-            /// </summary>
-            /// <value>true if the change was not made by a Document belonging to this Database 
-            /// (e.g. it came from another process or from a pull Replication), otherwise false</value>
-            public Boolean IsExternal { get; internal set; }
-
-            /// <summary>
-            /// Gets the DocumentChange details for the Documents that caused the Database change.
-            /// </summary>
-            /// <value>The DocumentChange details for the Documents that caused the Database change.</value>
-            public IEnumerable<DocumentChange> Changes { get; internal set; }
-        }
-
-    #endregion
-    
     }
 
     #region Global Delegates
@@ -4730,6 +4700,32 @@ PRAGMA user_version = 3;";
     /// A delegate that can be run in a transaction on a <see cref="Couchbase.Lite.Database"/>.
     /// </summary>
     public delegate Boolean RunInTransactionDelegate();
+
+    ///
+    /// <summary>The event raised when a <see cref="Couchbase.Lite.Database"/> changes</summary>
+    ///
+    public class DatabaseChangeEventArgs : EventArgs 
+    {
+        /// <summary>
+        /// Gets the <see cref="Couchbase.Lite.Database"/> that raised the event.
+        /// </summary>
+        /// <value>The <see cref="Couchbase.Lite.Database"/> that raised the event.</value>
+            public Database Source { get; internal set; }
+
+        /// <summary>
+        /// Returns true if the change was not made by a Document belonging to this Database 
+        /// (e.g. it came from another process or from a pull Replication), otherwise false.
+        /// </summary>
+        /// <value>true if the change was not made by a Document belonging to this Database 
+        /// (e.g. it came from another process or from a pull Replication), otherwise false</value>
+            public Boolean IsExternal { get; internal set; }
+
+        /// <summary>
+        /// Gets the DocumentChange details for the Documents that caused the Database change.
+        /// </summary>
+        /// <value>The DocumentChange details for the Documents that caused the Database change.</value>
+            public IEnumerable<DocumentChange> Changes { get; internal set; }
+    }
 
     #endregion
 }

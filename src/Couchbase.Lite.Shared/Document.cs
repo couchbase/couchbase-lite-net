@@ -279,6 +279,25 @@ namespace Couchbase.Lite {
         public Object GetProperty(String key) { return CurrentRevision != null ? CurrentRevision.Properties.Get(key) : null; }
 
         /// <summary>
+        /// Returns the TValue of the property with the specified key.
+        /// </summary>
+        /// <returns>The value of the property with the specified key as TValue.</returns>
+        /// <param name="key">The key of the property value to return.</param>
+        public TValue GetProperty<TValue>(String key)
+        {
+            TValue val;
+            try
+            {
+                val = (TValue)GetProperty(key);
+            }
+            catch (InvalidCastException)
+            {
+                val = default(TValue);
+            }
+            return val;
+        }
+
+        /// <summary>
         /// Creates and saves a new <see cref="Couchbase.Lite.Revision"/> with the specified properties. 
         /// To succeed the specified properties must include a '_rev' property whose value maches 
         /// the current <see cref="Couchbase.Lite.Revision"/>'s id.

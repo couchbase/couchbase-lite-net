@@ -210,7 +210,7 @@ namespace Couchbase.Lite.Replicator
             }
         }
 
-        internal void OnChanged(Object sender, Database.DatabaseChangeEventArgs args)
+        internal void OnChanged(Object sender, DatabaseChangeEventArgs args)
         {
             var changes = args.Changes;
             foreach (DocumentChange change in changes)

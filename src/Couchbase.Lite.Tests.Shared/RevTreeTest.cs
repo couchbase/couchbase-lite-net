@@ -161,7 +161,7 @@ namespace Couchbase.Lite
             var revHistory = new List<string>();
             revHistory.Add(rev.GetRevId());
 
-            EventHandler<Database.DatabaseChangeEventArgs> handler = (sender, e) =>
+            EventHandler<DatabaseChangeEventArgs> handler = (sender, e) =>
             {
                 var changes = e.Changes.ToList();
                 Assert.AreEqual(1, changes.Count);

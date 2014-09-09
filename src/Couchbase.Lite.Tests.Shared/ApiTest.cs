@@ -52,6 +52,7 @@ using System.Threading;
 using NUnit.Framework;
 using System.Security.Permissions;
 using System.Threading.Tasks;
+using System.Diagnostics;
 
 namespace Couchbase.Lite
 {
@@ -114,6 +115,26 @@ namespace Couchbase.Lite
         public void RunLiveQuery(String methodNameToCall)
         {
             var db = StartDatabase();
+
+            //var doc = db.GetExistingDocument("foo-doc");
+            //Debug.Assert(doc == null);
+            var doc = db.CreateDocument();
+            var props = doc.Properties;
+            var newProps = new Dictionary<string, object>(props)
+                        {
+                            { "foo", "bar"}
+                        };
+            doc.PutProperties(newProps); // Saved
+
+
+            doc.Change += (sender, e) => 
+            {
+                // If we get a conflict...
+                if (e.Change.IsConflict)
+                {
+                    // Resolve it!
+                }
+            };
 
             var doneSignal = new CountDownLatch(11); // FIXME.ZJG: Not sure why, but now Changed is only called once.
 
