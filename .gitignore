@@ -138,3 +138,4 @@ Tools/sync_gateway
 Tools/sync_gateway.exe
 
 samples/Sync10kDocsSample*
+samples/CouchbaseSample.Android/Resources/Resource.designer.cs
