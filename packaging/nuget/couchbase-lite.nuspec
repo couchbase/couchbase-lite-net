@@ -8,7 +8,7 @@
     <owners>Couchbase</owners>
     <licenseUrl>https://github.com/couchbaselabs/couchbase-lite-net/blob/master/LICENSE</licenseUrl>
     <projectUrl>https://github.com/couchbaselabs/couchbase-lite-net</projectUrl>
-    <iconUrl>https://raw.githubusercontent.com/couchbaselabs/couchbase-lite-net/master/packaging/nuget/icon.png</iconUrl>
+    <iconUrl>https://raw.githubusercontent.com/couchbaselabs/couchbase-lite-net/master/packaging/nuget/logo.png</iconUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>A lightweight, document-oriented (NoSQL), syncable database engine for .NET</description>
     <releaseNotes>Now available via NuGet package, and includes a bunch of bug fixes.</releaseNotes>
