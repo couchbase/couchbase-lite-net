@@ -16,7 +16,7 @@
     <AssemblyName>Couchbase.Lite.Android.Tests</AssemblyName>
     <AndroidManifest>Properties\AndroidManifest.xml</AndroidManifest>
     <TargetFrameworkVersion>v4.4</TargetFrameworkVersion>
-    <ReleaseVersion>0.9.4</ReleaseVersion>
+    <ReleaseVersion>0.9.5</ReleaseVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>

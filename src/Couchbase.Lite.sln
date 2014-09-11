@@ -35,6 +35,24 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Couchbase.Lite.Net45.Tests"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Couchbase.Lite.Net45", "Couchbase.Lite.Net45\Couchbase.Lite.Net45.csproj", "{C87E0C01-AAD6-46DA-9935-C772C112BB18}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Packaging", "Packaging", "{628D4C66-5E24-40E2-ACD4-67CA9D8D665E}"
+	ProjectSection(MonoDevelopProperties) = preProject
+		BaseDirectory = ..\packaging
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Component", "Component", "{47BE374F-A87F-4C96-B283-4B62E55D6E5E}"
+	ProjectSection(MonoDevelopProperties) = preProject
+		BaseDirectory = ..\packaging\component
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "NuGet", "NuGet", "{3F2E642D-D821-4DD0-BE55-5801E924D0EF}"
+	ProjectSection(SolutionItems) = preProject
+		..\packaging\nuget\couchbase-lite.nuspec = ..\packaging\nuget\couchbase-lite.nuspec
+	EndProjectSection
+	ProjectSection(MonoDevelopProperties) = preProject
+		BaseDirectory = ..\packaging\nuget
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x86 = Debug|x86
@@ -248,6 +266,8 @@ Global
 		{D06EDB2A-0AE0-4606-A8AE-AA3F6248630F} = {3D44EF32-EE84-42A0-B586-6AE71AB75CFF}
 		{AF7359A0-D709-491C-8DEE-5C5C1E9521B1} = {3D44EF32-EE84-42A0-B586-6AE71AB75CFF}
 		{F376966C-CCAB-4C5C-A81A-E2A754AA7A4C} = {3D44EF32-EE84-42A0-B586-6AE71AB75CFF}
+		{47BE374F-A87F-4C96-B283-4B62E55D6E5E} = {628D4C66-5E24-40E2-ACD4-67CA9D8D665E}
+		{3F2E642D-D821-4DD0-BE55-5801E924D0EF} = {628D4C66-5E24-40E2-ACD4-67CA9D8D665E}
 	EndGlobalSection
 	GlobalSection(MonoDevelopProperties) = preSolution
 		StartupItem = ..\samples\CouchbaseSample.iOS\CouchbaseSample.iOS.csproj
@@ -282,6 +302,6 @@ Global
 		$2.inheritsSet = Mono
 		$2.inheritsScope = text/x-csharp
 		$2.scope = text/x-csharp
-		version = 0.9.4
+		version = 0.9.5
 	EndGlobalSection
 EndGlobal
