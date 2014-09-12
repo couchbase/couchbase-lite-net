@@ -115,10 +115,7 @@ namespace Couchbase.Lite
             var data = attachment.Content.ToArray();
             Assert.IsTrue(Arrays.Equals(attach1, data));
 
-            // Workaround :
-            // Not closing the content stream will cause Sharing Violation
-            // Exception when trying to get the same attachment going forward.
-            attachment.ContentStream.Close();
+            attachment.Dispose();
 
             var innerDict = new Dictionary<string, object>();
             innerDict["content_type"] = "text/plain";
@@ -185,10 +182,7 @@ namespace Couchbase.Lite
             data = attachment2.Content.ToArray();
             Assert.IsTrue(Arrays.Equals(attach1, data));
 
-            // Workaround :
-            // Not closing the content stream will cause Sharing Violation
-            // Exception when trying to get the same attachment going forward.
-            attachment2.ContentStream.Close();
+            attachment2.Dispose();
 
             // Check the 3rd revision's attachment:
             var attachment3 = database.GetAttachmentForSequence(rev3.GetSequence(), testAttachmentName);
@@ -214,10 +208,7 @@ namespace Couchbase.Lite
                 }
             }
 
-            // Workaround :
-            // Not closing the content stream will cause Sharing Violation
-            // Exception when trying to get the same attachment going forward.
-            attachment3.ContentStream.Close();
+            attachment3.Dispose();
 
             // Examine the attachment store:
             Assert.AreEqual(2, attachments.Count());
@@ -275,6 +266,7 @@ namespace Couchbase.Lite
             Assert.AreEqual("text/plain", attachment.ContentType);
             var data = attachment.Content.ToArray();
             Assert.IsTrue(Arrays.Equals(attach1, data));
+            attachment.Dispose();
 
             const DocumentContentOptions contentOptions = DocumentContentOptions.IncludeAttachments | DocumentContentOptions.BigAttachmentsFollow;
             var attachmentDictForSequence = database.GetAttachmentsDictForSequenceWithContent(rev1.GetSequence(), contentOptions);
@@ -293,10 +285,7 @@ namespace Couchbase.Lite
                 throw new RuntimeException("Expected attachment dict to have 'follows' key");
             }
 
-            // Workaround :
-            // Not closing the content stream will cause Sharing Violation
-            // Exception when trying to get the same attachment going forward.
-            attachment.ContentStream.Close();
+            attachment.Dispose();
 
             var rev1WithAttachments = database.GetDocumentWithIDAndRev(
                 rev1.GetDocId(), rev1.GetRevId(), contentOptions);
@@ -317,6 +306,7 @@ namespace Couchbase.Lite
             Assert.AreEqual(attachment.Length, rev2FetchedAttachment.Length);
             AssertPropertiesAreEqual(attachment.Metadata, rev2FetchedAttachment.Metadata);
             Assert.AreEqual(attachment.ContentType, rev2FetchedAttachment.ContentType);
+            rev2FetchedAttachment.Dispose();
 
             // Add a third revision of the same document:
             var rev3Properties = new Dictionary<string, object>();
@@ -338,10 +328,11 @@ namespace Couchbase.Lite
             data = rev3FetchedAttachment.Content.ToArray();
             Assert.IsTrue(Arrays.Equals(attach3, data));
             Assert.AreEqual("text/html", rev3FetchedAttachment.ContentType);
+            rev3FetchedAttachment.Dispose();
 
             // TODO: why doesn't this work?
             // Assert.assertEquals(attach3.length, rev3FetchedAttachment.getLength());
-            ICollection<BlobKey> blobKeys = database.Attachments.AllKeys();
+            var blobKeys = database.Attachments.AllKeys();
             Assert.AreEqual(2, blobKeys.Count);
             database.Compact();
             blobKeys = database.Attachments.AllKeys();
@@ -548,11 +539,16 @@ namespace Couchbase.Lite
                 var attachmentRetrieved = revision.GetAttachment(attachmentName);
                 var inputStream = attachmentRetrieved.ContentStream;
                 Assert.IsNotNull(inputStream);
+
                 var attachmentDataRetrieved = attachmentRetrieved.Content.ToArray();
                 var attachmentDataRetrievedString = Runtime.GetStringForBytes(attachmentDataRetrieved);
                 var attachBodyString = Sharpen.Runtime.GetStringForBytes(attachBodyBytes);
                 Assert.AreEqual(attachBodyString, attachmentDataRetrievedString);
+                // Cleanup
+                attachmentRetrieved.Dispose();
             }
+            // Cleanup.
+            attachment.Dispose();
         }
     }
 }

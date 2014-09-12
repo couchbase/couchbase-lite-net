@@ -313,6 +313,7 @@ namespace Couchbase.Lite
             var fileJournal = new FilePath(AttachmentStorePath + "-journal");
 
             var deleteStatus = file.Delete();
+            
             if (fileJournal.Exists())
             {
                 deleteStatus &= fileJournal.Delete();
@@ -1053,7 +1054,7 @@ PRAGMA user_version = 3;";
             try
             {
                 var args = new [] { docID };
-                cursor = StorageEngine.RawQuery("SELECT revid, json FROM localdocs WHERE docid=?", CommandBehavior.SequentialAccess, args);
+                cursor = StorageEngine.RawQuery("SELECT revid, json FROM localdocs WHERE docid=?", args);
 
                 if (cursor.MoveToNext())
                 {
@@ -1278,7 +1279,7 @@ PRAGMA user_version = 3;";
             Cursor cursor = null;
             try
             {
-                cursor = StorageEngine.RawQuery("SELECT DISTINCT key FROM attachments", CommandBehavior.SequentialAccess);
+                cursor = StorageEngine.RawQuery("SELECT DISTINCT key FROM attachments");
                 cursor.MoveToNext();
 
                 var allKeys = new AList<BlobKey>();
@@ -1438,7 +1439,7 @@ PRAGMA user_version = 3;";
 
             try
             {
-                cursor = StorageEngine.RawQuery(sql, CommandBehavior.SequentialAccess, args);
+                cursor = StorageEngine.RawQuery(sql, args);
                 cursor.MoveToNext();
 
                 changes = new RevisionList();
@@ -1585,11 +1586,7 @@ PRAGMA user_version = 3;";
             var docs = new Dictionary<String, QueryRow>();
             try
             {
-                cursor = StorageEngine.RawQuery(
-                    sql.ToString(),
-                    CommandBehavior.SequentialAccess,
-                    args.ToArray()
-                );
+                cursor = StorageEngine.RawQuery(sql.ToString(), args.ToArray());
 
 //                cursor.MoveToNext();
 
@@ -2464,7 +2461,7 @@ PRAGMA user_version = 3;";
                     sql = "SELECT " + cols + " FROM revs, docs WHERE docs.docid=? AND revs.doc_id=docs.doc_id and current=1 and deleted=0 ORDER BY revid DESC LIMIT 1";
                     //TODO: mismatch w iOS: {sql = "SELECT " + cols + " FROM revs WHERE revs.doc_id=? and current=1 and deleted=0 ORDER BY revid DESC LIMIT 1";}
                     var args = new[] { id };
-                    cursor = StorageEngine.RawQuery(sql, CommandBehavior.SequentialAccess, args);
+                    cursor = StorageEngine.RawQuery(sql, args);
                 }
                 if (cursor.MoveToNext())
                 {
@@ -2889,7 +2886,7 @@ PRAGMA user_version = 3;";
 
             try
             {
-                cursor = StorageEngine.RawQuery("SELECT filename, key, type, length, revpos FROM attachments WHERE sequence=?", CommandBehavior.SequentialAccess, args);
+                cursor = StorageEngine.RawQuery("SELECT filename, key, type, length, revpos FROM attachments WHERE sequence=?", args);
                 if (!cursor.MoveToNext())
                 {
                     return null;
@@ -4099,7 +4096,7 @@ PRAGMA user_version = 3;";
                 var sql = "SELECT sequence, json FROM revs, docs WHERE revid=? AND docs.docid=? AND revs.doc_id=docs.doc_id LIMIT 1";
                 var args = new [] { rev.GetRevId(), rev.GetDocId() };
 
-                cursor = StorageEngine.RawQuery(sql, CommandBehavior.SequentialAccess, args);
+                cursor = StorageEngine.RawQuery(sql, args);
                 if (cursor.MoveToNext())
                 {
                     result.SetCode(StatusCode.Ok);

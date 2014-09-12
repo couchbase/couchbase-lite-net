@@ -201,7 +201,7 @@ namespace Sharpen
 
         public string GetCanonicalPath ()
         {
-            string p = Path.GetFullPath (path);
+            var p = Path.GetFullPath (path);
             p.TrimEnd (Path.DirectorySeparatorChar);
             return p;
         }

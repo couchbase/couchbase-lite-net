@@ -52,6 +52,7 @@ using System.Threading;
 using NUnit.Framework;
 using System.Security.Permissions;
 using System.Threading.Tasks;
+using System.Diagnostics;
 
 namespace Couchbase.Lite
 {
@@ -59,6 +60,7 @@ namespace Couchbase.Lite
     /// <remarks>Created by andrey on 12/3/13.</remarks>
     public class ApiTest : LiteTestCase
     {
+        private const string Tag = "ApiTest";
 //        public static Task CreateDocumentsAsync(Database db, int n)
 //      {
 //            return db.RunAsync((database)=>
@@ -115,7 +117,7 @@ namespace Couchbase.Lite
         {
             var db = StartDatabase();
 
-            var doneSignal = new CountDownLatch(11); // FIXME.ZJG: Not sure why, but now Changed is only called once.
+            var doneSignal = new CountdownEvent(11); // FIXME.ZJG: Not sure why, but now Changed is only called once.
 
             // 11 corresponds to startKey = 23; endKey = 33
             // run a live query
@@ -143,8 +145,8 @@ namespace Couchbase.Lite
                 {
                     if (expectedKeys.Contains((Int64)row.Key))
                     {
-                        Log.I(Tag, " doneSignal decremented " + doneSignal.Count);
-                        doneSignal.CountDown();
+                        Log.I(Tag, " doneSignal decremented " + doneSignal.CurrentCount);
+                        doneSignal.Signal();
                     }
                 }
             };
@@ -170,12 +172,17 @@ namespace Couchbase.Lite
             }
 
             // wait for the doneSignal to be finished
-            var success = doneSignal.Await(TimeSpan.FromSeconds(5));
+            var success = doneSignal.Wait(TimeSpan.FromSeconds(5));
             Assert.IsTrue(success, "Done signal timed out live query never ran");
 
             // stop the livequery since we are done with it
             query.Changed -= handler;
             query.Stop();
+            query.Dispose();
+
+            db.Close();
+            createTask.Dispose();
+            doneSignal.Dispose();
         }
 
         //SERVER & DOCUMENTS
@@ -310,7 +317,15 @@ namespace Couchbase.Lite
             // Test -createRevisionWithProperties:
             var properties2 = new Dictionary<String, Object>(properties);
             properties2["tag"] = 4567;
-            var rev2 = rev1.CreateRevision(properties2);
+            SavedRevision rev2 = null;
+            try
+            {
+                rev2 = rev1.CreateRevision(properties2);
+            }
+            catch
+            {
+                Assert.Fail("Couldn't create revision");
+            }
             Assert.IsNotNull(rev2, "Put failed");
             Assert.IsTrue(doc.CurrentRevisionId.StartsWith("2-"), "Document revision ID is still " + doc.CurrentRevisionId);
             Assert.AreEqual(rev2.Id, doc.CurrentRevisionId);
@@ -740,6 +755,7 @@ namespace Couchbase.Lite
         [Test]
         public void TestCreateView()
         {
+            AppDomain.CurrentDomain.FirstChanceException += CurrentDomain_FirstChanceException;
             var db = StartDatabase();
 
             var view = db.GetView("vu");
@@ -769,6 +785,14 @@ namespace Couchbase.Lite
                 Assert.AreEqual(expectedKey, row.Key);
                 Assert.AreEqual(expectedKey + 1, row.SequenceNumber);
                 ++expectedKey;
+            }
+        }
+
+        void CurrentDomain_FirstChanceException(object sender, System.Runtime.ExceptionServices.FirstChanceExceptionEventArgs e)
+        {
+            if (e.Exception is NullReferenceException && e.Exception.Source.Contains("SQLitePCL"))
+            {
+                Debugger.Break();
             }
         }
 
@@ -874,6 +898,8 @@ namespace Couchbase.Lite
         [Test]
         public void TestAsyncViewQuery()
         {
+            AppDomain.CurrentDomain.FirstChanceException += CurrentDomain_FirstChanceException;
+            
             var doneSignal = new CountDownLatch(1);
             var db = StartDatabase();
 
@@ -886,10 +912,10 @@ namespace Couchbase.Lite
             var query = view.CreateQuery();
             query.StartKey=23;
             query.EndKey=33;
-
+            
             var task = query.RunAsync().ContinueWith((resultTask) => 
             {
-                Log.I (LiteTestCase.Tag, "Async query finished!");
+                Log.I (Tag, "Async query finished!");
                 var rows = resultTask.Result;
 
                 Assert.IsNotNull (rows);
@@ -903,10 +929,10 @@ namespace Couchbase.Lite
                     ++expectedKey;
                 }
                 doneSignal.CountDown ();
-            });
+            }, manager.CapturedContext.Scheduler);
 
             Log.I(Tag, "Waiting for async query to finish...");
-            var success = task.Wait(TimeSpan.FromSeconds(10));
+            var success = task.Wait(TimeSpan.FromSeconds(130));
             Assert.IsTrue(success, "Done signal timed out. Query.RunAsync() has never run or returned the result.");
         }
 
