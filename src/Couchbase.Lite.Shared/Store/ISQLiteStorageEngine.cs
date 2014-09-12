@@ -68,8 +68,6 @@ namespace Couchbase.Lite.Storage
 
         Cursor RawQuery(string sql, params Object[] paramArgs);
 
-        Cursor RawQuery(string sql, CommandBehavior behavior, params Object[] paramArgs);
-
         long Insert(string table, string nullColumnHack, ContentValues values);
 
         long InsertWithOnConflict(string table, string nullColumnHack, ContentValues initialValues, ConflictResolutionStrategy conflictResolutionStrategy);

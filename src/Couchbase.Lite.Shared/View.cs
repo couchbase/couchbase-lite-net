@@ -214,9 +214,9 @@ namespace Couchbase.Lite {
                 // Now scan every revision added since the last time the view was indexed:
                 var selectArgs = new[] { lastSequence.ToString() };
                 cursor = Database.StorageEngine.RawQuery("SELECT revs.doc_id, sequence, docid, revid, json, no_attachments FROM revs, docs "
-                    + "WHERE sequence>? AND current!=0 AND deleted=0 " 
+                    + "WHERE sequence>? AND current!=0 AND deleted=0 "
                     + "AND revs.doc_id = docs.doc_id "
-                    + "ORDER BY revs.doc_id, revid DESC", CommandBehavior.SequentialAccess, selectArgs);
+                    + "ORDER BY revs.doc_id, revid DESC", selectArgs);
 
                 var lastDocID = 0L;
                 var keepGoing = cursor.MoveToNext();
@@ -764,7 +764,7 @@ namespace Couchbase.Lite {
             argsList.AddItem(options.GetLimit().ToString());
             argsList.AddItem(options.GetSkip().ToString());
             Log.V(Database.Tag, "Query {0}:{1}", Name, sql);
-            var cursor = Database.StorageEngine.RawQuery(sql, CommandBehavior.SequentialAccess, argsList.ToArray());
+            var cursor = Database.StorageEngine.RawQuery(sql, argsList.ToArray());
             return cursor;
         }
 
