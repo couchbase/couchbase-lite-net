@@ -46,13 +46,14 @@ using System.Runtime.CompilerServices;
 using System.Runtime.Versioning;
 
 [assembly: AssemblyTitle ("Couchbase.Lite")]
-[assembly: AssemblyDescription ("")]
-[assembly: AssemblyConfiguration ("")]
-[assembly: AssemblyCompany ("Xamarin")]
-[assembly: AssemblyProduct ("")]
-[assembly: AssemblyCopyright ("")]
-[assembly: AssemblyTrademark ("")]
-[assembly: AssemblyCulture ("en-US")]
+[assembly: AssemblyDescription ("A lightweight, document-oriented (NoSQL), syncable database engine for .NET")]
+#if ENTERPRISE
+#else
+[assembly: AssemblyConfiguration ("Community Edition")]
+#endif
+[assembly: AssemblyCompany ("Couchbase")]
+[assembly: AssemblyProduct ("Couchbase Lite")]
+[assembly: AssemblyCopyright ("2014")]
 // The assembly version has the format "{Major}.{Minor}.{Build}.{Revision}".
 // The form "{Major}.{Minor}.*" will automatically update the build and revision,
 // and "{Major}.{Minor}.{Build}.*" will update just the revision.
