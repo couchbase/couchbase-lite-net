@@ -3,7 +3,7 @@
   <metadata>
     <id>Couchbase.Lite </id>
     <title>Couchbase Lite</title>
-    <version>0.9.5-pre</version>
+    <version>0.9.5-pre2</version>
     <authors>Zachary Gramana</authors>
     <owners>Couchbase</owners>
     <licenseUrl>https://github.com/couchbaselabs/couchbase-lite-net/blob/master/LICENSE</licenseUrl>
@@ -11,7 +11,10 @@
     <iconUrl>https://raw.githubusercontent.com/couchbaselabs/couchbase-lite-net/master/packaging/nuget/logo.png</iconUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>A lightweight, document-oriented (NoSQL), syncable database engine for .NET</description>
-    <releaseNotes>Now available via NuGet package, and includes a bunch of bug fixes.</releaseNotes>
+    <releaseNotes>
+    	* Everything in 0.9.4, plus
+    	* Fixes issues #272, #269, #268, #264.
+    </releaseNotes>
     <copyright>Copyright 2014</copyright>
     <tags>couchbase couchbase-mobile couchbase-lite sync database mobile xamarin ios android windows linux mac osx</tags>
     <language>en-US</language>
