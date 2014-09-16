@@ -10,8 +10,7 @@ namespace Couchbase.Lite.Util
     sealed internal class SingleThreadTaskScheduler : TaskScheduler 
     {
         const string Tag = "SingleThreadTaskScheduler";
-
- 
+         
         private readonly BlockingCollection<Task> queue = new BlockingCollection<Task>(new ConcurrentQueue<Task>());
         private const int maxConcurrency = 1;
         private int runningTasks = 0;
@@ -34,6 +33,7 @@ namespace Couchbase.Lite.Util
             Log.D(Tag, " --> Queued a task: {0}/{1}/{2}", queue.Count, runningTasks, longRunningTasks);
             if (runningTasks < maxConcurrency)
             {
+                Interlocked.MemoryBarrier();
                 Interlocked.Increment(ref runningTasks);
                 QueueThreadPoolWorkItem (); 
             }
