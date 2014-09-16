@@ -365,15 +365,31 @@ namespace Couchbase.Lite.Replicator
                         if (!(ex.InnerException is TaskCanceledException))
                             throw ex;
                     } finally {
-                        changesRequestTask.Dispose();
+                        if (changesRequestTask.IsCompleted) 
+                        {
+                            changesRequestTask.Dispose();
+                        }
                         changesRequestTask = null;
-                        successHandler.Dispose();
+
+                        if (successHandler.IsCompleted) 
+                        {
+                            successHandler.Dispose();
+                        }
+
                         successHandler = null;
-                        errorHandler.Dispose();
+
+                        if (errorHandler.IsCompleted) 
+                        {
+                            errorHandler.Dispose();
+                        }
+
                         errorHandler = null;
+
                         Request.Dispose();
                         Request = null;
+
                         changesFeedRequestTokenSource.Dispose();
+
                         if (httpClient != null) 
                         {
                             httpClient.Dispose();
