@@ -320,10 +320,14 @@ namespace Couchbase.Lite.Replicator
                     changesFeedRequestTokenSource = CancellationTokenSource.CreateLinkedTokenSource(tokenSource.Token);
 
                     var evt = new ManualResetEvent(false);
-                    //successHandler.ConfigureAwait(false).GetAwaiter().OnCompleted(()=>evt.Set());
-                    //                    ChangeFeedResponseHandler(response);
 
-
+                    // We do this akward set of calls in order
+                    // to help minimize the frequency of the error:
+                    //
+                    //   "Cannot re-call start of asynchronous method 
+                    //    while a previous call is still in progress."
+                    // 
+                    // There's got to be a better way to deal with this.
                     var info = httpClient.SendAsync(
                         Request, 
                         HttpCompletionOption.ResponseContentRead, 
@@ -335,7 +339,7 @@ namespace Couchbase.Lite.Replicator
                     );
                     evt.WaitOne(ManagerOptions.Default.RequestTimeout);
 
-                    changesRequestTask = info; //Task.FromResult(info.Result);
+                    changesRequestTask = info;
 
                     successHandler = changesRequestTask.ContinueWith<HttpResponseMessage>(
                         ChangeFeedResponseHandler, 
