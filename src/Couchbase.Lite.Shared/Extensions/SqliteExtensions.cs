@@ -47,7 +47,6 @@ using System.Data;
 using System.Collections;
 using System.Collections.Generic;
 using Couchbase.Lite.Util;
-using Mono.Security.X509;
 using System.IO;
 using System.Text;
 using System.Text.RegularExpressions;

@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2013
-VisualStudioVersion = 12.0.30723.0
+VisualStudioVersion = 12.0.30501.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Docs", "Docs", "{751921E0-F01B-4253-A973-74EA7B3DB146}"
 	ProjectSection(SolutionItems) = preProject
@@ -36,6 +36,13 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Couchbase.Lite.Net45.Tests", "Couchbase.Lite.Net45.Tests\Couchbase.Lite.Net45.Tests.csproj", "{F376966C-CCAB-4C5C-A81A-E2A754AA7A4C}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Couchbase.Lite.Net45", "Couchbase.Lite.Net45\Couchbase.Lite.Net45.csproj", "{C87E0C01-AAD6-46DA-9935-C772C112BB18}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{37972D26-A773-4051-BB36-2637DCEB3886}"
+	ProjectSection(SolutionItems) = preProject
+		.nuget\NuGet.Config = .nuget\NuGet.Config
+		.nuget\NuGet.exe = .nuget\NuGet.exe
+		.nuget\NuGet.targets = .nuget\NuGet.targets
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution
@@ -331,8 +338,8 @@ Global
 		{C87E0C01-AAD6-46DA-9935-C772C112BB18}.Debug|iPhoneSimulator.Build.0 = Debug|Any CPU
 		{C87E0C01-AAD6-46DA-9935-C772C112BB18}.Debug|x64.ActiveCfg = Debug|x64
 		{C87E0C01-AAD6-46DA-9935-C772C112BB18}.Debug|x64.Build.0 = Debug|x64
-		{C87E0C01-AAD6-46DA-9935-C772C112BB18}.Debug|x86.ActiveCfg = Debug|Any CPU
-		{C87E0C01-AAD6-46DA-9935-C772C112BB18}.Debug|x86.Build.0 = Debug|Any CPU
+		{C87E0C01-AAD6-46DA-9935-C772C112BB18}.Debug|x86.ActiveCfg = Debug|x86
+		{C87E0C01-AAD6-46DA-9935-C772C112BB18}.Debug|x86.Build.0 = Debug|x86
 		{C87E0C01-AAD6-46DA-9935-C772C112BB18}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C87E0C01-AAD6-46DA-9935-C772C112BB18}.Release|Any CPU.Build.0 = Release|Any CPU
 		{C87E0C01-AAD6-46DA-9935-C772C112BB18}.Release|iPhone.ActiveCfg = Release|Any CPU
