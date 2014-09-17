@@ -1197,7 +1197,7 @@ namespace Couchbase.Lite
             var server = response.Headers.Server;
             if (server != null && server.Any())
             {
-                ServerType = String.Join(" ", server.Select(pi => pi.Product));
+				ServerType = String.Join(" ", server.Select(pi => pi.Product).Where(pi => pi != null));
                 Log.V(Tag, "Server Version: " + ServerType);
             }
         }

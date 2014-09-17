@@ -393,6 +393,7 @@ namespace Couchbase.Lite.Replicator
                         Request = null;
 
                         changesFeedRequestTokenSource.Dispose();
+						changesFeedRequestTokenSource = null;
 
                         if (httpClient != null) 
                         {
