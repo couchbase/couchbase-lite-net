@@ -104,11 +104,13 @@ namespace Couchbase.Lite.Replicator
             {
                 return;
             }
-
+				
             creatingTarget = true;
 
             Log.V(Tag, "Remote db might not exist; creating it...");
             Log.D(Tag, "maybeCreateRemoteDB() calling asyncTaskStarted()");
+
+			AsyncTaskStarted();
             SendAsyncRequest(HttpMethod.Put, String.Empty, null, (result, e) =>
             {
                 try
@@ -329,7 +331,7 @@ namespace Couchbase.Lite.Replicator
                                 }
 
                                 var revs = ((JArray)revResults.Get("missing")).Values<String>().ToList();
-                                if (revs == null || !revs.Contains(rev.GetRevId()))
+								if (revs == null || !revs.Any( id => id.Equals(rev.GetRevId(), StringComparison.OrdinalIgnoreCase)))
                                 {
                                     RemovePending(rev);
                                     continue;
