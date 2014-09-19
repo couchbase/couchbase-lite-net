@@ -356,6 +356,7 @@ namespace Couchbase.Lite.Replicator
                         var err = t.Exception.Flatten();
                         Log.D(Tag, "ChangeFeedResponseHandler faulted.", err.InnerException ?? err);
                         Error = err.InnerException ?? err;
+                        backoff.SleepAppropriateAmountOfTime();
                         return true; // a real error.
                     }, changesFeedRequestTokenSource.Token, TaskContinuationOptions.OnlyOnFaulted, WorkExecutor.Scheduler);
 
@@ -423,55 +424,6 @@ namespace Couchbase.Lite.Replicator
                         Stop();
                     }
                 }
-//                var singleRequestTokenSource = CancellationTokenSource.CreateLinkedTokenSource(tokenSource.Token);
-//                var cTask = httpClient.SendAsync(Request, HttpCompletionOption.ResponseHeadersRead, singleRequestTokenSource.Token);
-//                var bTask = cTask
-//                    .ContinueWith<HttpResponseMessage>(t =>
-//                    {
-//                        if (!IsRunning)
-//                        {
-//                            return null;
-//                            // swallow
-//                        }
-//                        if (t.IsFaulted && t.Exception.InnerException is IOException)
-//                        {
-//                            // in this case, just silently absorb the exception because it
-//                            // frequently happens when we're shutting down and have to
-//                            // close the socket underneath our read.
-//                            Log.E(Tag, "Exception in change tracker", t.Exception);
-//                            return null;
-//                        }
-//                        if (!singleRequestTokenSource.IsCancellationRequested && t.Exception != null)
-//                        {
-//                            var e = t.Exception.InnerException as WebException;
-//                            var status = (HttpStatusCode)e.Status;
-//                            if ((Int32)status >= 300 && !Misc.IsTransientError(status))
-//                            {
-//                                var response = t.Result;
-//                                var msg = response.Content != null 
-//                                    ? String.Format("Change tracker got error with status code: {0}", status)
-//                                    : String.Format("Change tracker got error with status code: {0} and null response content", status);
-//                                Log.E(Tag, msg);
-//                                Error = new CouchbaseLiteException(msg, new Status(status.GetStatusCode()));
-//                                Stop();
-//                            }
-//                            backoff.SleepAppropriateAmountOfTime();
-//                        }
-//                        return t.Result;
-//                    }, singleRequestTokenSource.Token, TaskContinuationOptions.OnlyOnFaulted, WorkExecutor.Scheduler)
-//                    .ContinueWith<HttpResponseMessage>(ChangeFeedResponseHandler, singleRequestTokenSource.Token, TaskContinuationOptions.OnlyOnRanToCompletion, WorkExecutor.Scheduler)
-//                    .ContinueWith<HttpResponseMessage>(t => 
-//                    {
-//                        Log.D(Tag, "ChangeFeedResponseHandler finished.");
-//                        singleRequestTokenSource.Token.ThrowIfCancellationRequested();
-//                        if (t != null) t.Result.Dispose();
-//                        return null;
-//                    }, singleRequestTokenSource.Token, TaskContinuationOptions.OnlyOnRanToCompletion, WorkExecutor.Scheduler);
-//                changesRequestTask = bTask;
-//                    .ContinueWith((t) => 
-//                    {
-//                        Log.D(Tag, "ChangeFeedResponseHandler faulted.");
-//                    }, singleRequestTokenSource.Token, TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.AttachedToParent, TaskScheduler.Default);
             }
         }
 

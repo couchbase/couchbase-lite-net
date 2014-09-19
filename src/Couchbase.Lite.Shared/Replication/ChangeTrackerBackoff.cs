@@ -41,17 +41,17 @@
 //
 
 using System;
-using Couchbase.Lite;
-using Couchbase.Lite.Replicator;
 using Couchbase.Lite.Util;
-using Sharpen;
 using System.Threading;
 
 namespace Couchbase.Lite.Replicator
 {
     internal class ChangeTrackerBackoff
     {
-        public const int MaxSleepMilliseconds = 5 * 60 * 1000; // 5 Mins
+        internal const int MaxSleepMilliseconds = 5 * 60 * 1000;
+        private const string Tag = "ChangeTrackerBackoff";
+
+ // 5 Mins
 
         public Int32 NumAttempts { get; private set; }
 
@@ -82,6 +82,7 @@ namespace Couchbase.Lite.Replicator
                 var sleepMilliseconds = GetSleepMilliseconds();
                 if (sleepMilliseconds > 0)
                 {
+                    Log.D(Tag, "Sleeping for {0} milliseconds.", sleepMilliseconds);
                     Thread.Sleep(TimeSpan.FromMilliseconds(sleepMilliseconds));
                 }
             }
