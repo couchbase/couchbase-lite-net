@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Net.NetworkInformation;
+using Couchbase.Lite.Util;
 
 #if __ANDROID__
 using Android.App;
@@ -22,28 +23,51 @@ namespace Couchbase.Lite
     internal sealed class NetworkReachabilityManager : INetworkReachabilityManager
     {
         #if __ANDROID__
-        private class NetworkChangeReceiver : BroadcastReceiver
+        private class AndroidNetworkChangeReceiver : BroadcastReceiver
         {
+            const string Tag = "AndroidNetworkChangeReceiver";
+
             readonly private Action<NetworkReachabilityStatus> _callback;
+
+            object lockObject;
 
             private volatile Boolean _ignoreNotifications;
 
-            public NetworkChangeReceiver(Action<NetworkReachabilityStatus> callback)
+            private NetworkReachabilityStatus _lastStatus;
+
+            public AndroidNetworkChangeReceiver(Action<NetworkReachabilityStatus> callback)
             {
                 _callback = callback;
+                _ignoreNotifications = true;
+
+                lockObject = new object();
             }
 
             public override void OnReceive(Context context, Intent intent)
             {
+                Log.D(Tag + ".OnReceive", "Received intent: {0}", intent.ToString());
+
                 if (_ignoreNotifications) {
+                    Log.D(Tag + ".OnReceive", "Ignoring received intent: {0}", intent.ToString());
+                    _ignoreNotifications = false;
                     return;
                 }
+
+                Log.D(Tag + ".OnReceive", "Received intent: {0}", intent.ToString());
 
                 var status = intent.GetBooleanExtra(ConnectivityManager.ExtraNoConnectivity, false)
                     ? NetworkReachabilityStatus.Unreachable
                     : NetworkReachabilityStatus.Reachable;
 
-                _callback(status);
+                if (!status.Equals(_lastStatus))
+                {
+                    _callback(status);
+                }
+
+                lock(lockObject) 
+                {
+                    _lastStatus = status;
+                }
             }
 
             public void EnableListening()
@@ -57,7 +81,7 @@ namespace Couchbase.Lite
             }
         }
 
-        private NetworkChangeReceiver _receiver;
+        private AndroidNetworkChangeReceiver _receiver;
 
         #endif
 
@@ -74,7 +98,7 @@ namespace Couchbase.Lite
                 return; // We only need one handler.
             }
             var intent = new IntentFilter(ConnectivityManager.ConnectivityAction);
-            _receiver = new NetworkChangeReceiver(InvokeNetworkChangeEvent);
+            _receiver = new AndroidNetworkChangeReceiver(InvokeNetworkChangeEvent);
             Application.Context.RegisterReceiver(_receiver, intent);
             #else
             if (_isListening) {
