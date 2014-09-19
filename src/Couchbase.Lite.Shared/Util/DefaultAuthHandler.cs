@@ -93,10 +93,10 @@ namespace Couchbase.Lite.Replicator
 
         #region Private
 
-        private static IEnumerator GetEnumerator() 
-        {
-            return AuthenticationManager.RegisteredModules; 
-        }
+//        private static IEnumerator GetEnumerator() 
+//        {
+//            return AuthenticationManager.RegisteredModules; 
+//        }
 
         private readonly HttpClientHandler context;
         private readonly CookieStore cookieStore;

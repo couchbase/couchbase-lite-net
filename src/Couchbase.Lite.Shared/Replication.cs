@@ -258,17 +258,18 @@ namespace Couchbase.Lite
             }
         }
 
-        protected internal Boolean savingCheckpoint;
-        protected internal Boolean overdueForSave;
-        protected internal IDictionary<String, Object> remoteCheckpoint;
-        protected internal Boolean online;
+        internal Boolean savingCheckpoint;
+        internal Boolean overdueForSave;
+        internal IDictionary<String, Object> remoteCheckpoint;
+        internal volatile Boolean online;
+        internal volatile Boolean offline_inprogress;
 
-        protected internal Boolean continuous;
+        internal Boolean continuous;
 
-        protected internal Int32 completedChangesCount;
-        protected internal Int32 changesCount;
-        protected internal Int32 asyncTaskCount;
-        protected internal Boolean active;
+        internal Int32 completedChangesCount;
+        internal Int32 changesCount;
+        internal Int32 asyncTaskCount;
+        internal Boolean active;
 
         internal IAuthenticator Authenticator { get; set; }
 
@@ -375,7 +376,7 @@ namespace Couchbase.Lite
         // This method will be used by Router & Reachability Manager
         internal virtual bool GoOffline()
         {
-            if (!online)
+            if (!online || offline_inprogress)
             {
                 return false;
             }
@@ -384,6 +385,8 @@ namespace Couchbase.Lite
             {
                 return false;
             }
+
+            offline_inprogress = true;
 
             LocalDatabase.Manager.RunAsync(() =>
             {
@@ -394,6 +397,7 @@ namespace Couchbase.Lite
                 StopRemoteRequests();
                 UpdateProgress();
                 NotifyChangeListeners();
+                offline_inprogress = false;
             });
 
             return true;
@@ -917,6 +921,7 @@ namespace Couchbase.Lite
                         requests.Remove(client);
                     }
                     HttpResponseMessage result = null;
+                    Exception error = null;
                     if (!response.IsFaulted)
                     {
                         result = response.Result;
@@ -924,6 +929,7 @@ namespace Couchbase.Lite
                     }
                     else
                     {
+                        error = response.Exception.InnerException;
                         Log.E(Tag, "Http Message failed to send: {0}", message);
                         Log.E(Tag, "Http exception", response.Exception.InnerException);
                         if (message.Content != null) {
@@ -933,7 +939,6 @@ namespace Couchbase.Lite
                     
                     if (completionHandler != null)
                     {
-                        Exception error = null;
                         object fullBody = null;
 
                         try

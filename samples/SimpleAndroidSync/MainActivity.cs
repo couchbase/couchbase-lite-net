@@ -10,6 +10,9 @@ using Android.Util;
 using CouchbaseSample.Android.Helper;
 using Couchbase.Lite;
 using CouchbaseSample.Android.Document;
+using Org.Apache.Http.Conn;
+using Android.Net;
+using Android.Net.Wifi;
 
 namespace SimpleAndroidSync
 {
@@ -83,6 +86,25 @@ namespace SimpleAndroidSync
 
         public override bool OnCreateOptionsMenu(IMenu menu)
         {
+            var preferences = PreferenceManager.GetDefaultSharedPreferences(this);
+            var syncUrl = preferences.GetString("sync-gateway-url", null);
+
+            var offlineMenu = menu.Add("Toggle Wifi");
+            offlineMenu.SetShowAsAction(ShowAsAction.Always);
+            offlineMenu.SetOnMenuItemClickListener(new DelegatedMenuItemListener(
+            (item)=>
+            {
+                if (!String.IsNullOrWhiteSpace(syncUrl))
+                {
+                    var mgr = Application.Context.GetSystemService(Application.WifiService) as WifiManager;
+                    var setEnabled = !mgr.IsWifiEnabled;
+                    mgr.SetWifiEnabled(setEnabled);
+                    item.SetTitle(!setEnabled ? "Enable Wifi" : "Disable Wifi");
+                }
+            
+                return true;
+            }));
+
             var addMenu = menu.Add("Config");
             addMenu.SetShowAsAction(ShowAsAction.Always);
             addMenu.SetOnMenuItemClickListener(new DelegatedMenuItemListener(OnConfigClicked));
@@ -123,7 +145,7 @@ namespace SimpleAndroidSync
             {
                 try 
                 {
-                    var uri = new Uri(syncUrl);
+                    var uri = new System.Uri(syncUrl);
                     Pull = Database.CreatePullReplication(uri);
                     Pull.Continuous = true;
                     Pull.Changed += ReplicationChanged;
