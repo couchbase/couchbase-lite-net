@@ -142,7 +142,7 @@ namespace Couchbase.Lite
             this.directoryFile = directoryFile;
             this.options = options ?? DefaultOptions;
             this.databases = new Dictionary<string, Database>();
-            this.replications = new AList<Replication>();
+            this.replications = new List<Replication>();
 
             //create the directory, but don't fail if it already exists
             if (!directoryFile.Exists)
@@ -186,7 +186,7 @@ namespace Couchbase.Lite
             get 
             { 
                 var databaseFiles = directoryFile.EnumerateFiles("*" + Manager.DatabaseSuffix, SearchOption.AllDirectories);
-                var result = new AList<String>();
+                var result = new List<String>();
                 foreach (var databaseFile in databaseFiles)
                 {
                     var path = Path.GetFileNameWithoutExtension(databaseFile.FullName);

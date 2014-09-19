@@ -54,7 +54,7 @@ namespace Couchbase.Lite.Internal
     /// Stores information about a revision -- its docID, revID, and whether it's deleted.
     /// It can also store the sequence number and document contents (they can be added after creation).
     /// </remarks>
-    public class RevisionInternal
+    internal class RevisionInternal
     {
         private string docId;
 
@@ -70,7 +70,7 @@ namespace Couchbase.Lite.Internal
 
         private Database database;
 
-        public RevisionInternal(String docId, String revId, Boolean deleted, Database database)
+        internal RevisionInternal(String docId, String revId, Boolean deleted, Database database)
         {
             // TODO: get rid of this field!
             this.docId = docId;
@@ -79,16 +79,16 @@ namespace Couchbase.Lite.Internal
             this.database = database;
         }
 
-        public RevisionInternal(Body body, Database database)
+        internal RevisionInternal(Body body, Database database)
             : this((string)body.GetPropertyForKey("_id"), (string)body.GetPropertyForKey("_rev"), (body.HasValueForKey("_deleted") && (bool)body.GetPropertyForKey("_deleted")), database)
         {
             this.body = body;
         }
 
-        public RevisionInternal(IDictionary<String, Object> properties, Database database)
+        internal RevisionInternal(IDictionary<String, Object> properties, Database database)
             : this(new Body(properties), database) { }
 
-        public IDictionary<String, Object> GetProperties()
+        internal IDictionary<String, Object> GetProperties()
         {
             IDictionary<string, object> result = null;
             if (body != null)
@@ -112,7 +112,7 @@ namespace Couchbase.Lite.Internal
             return result;
         }
 
-        public object GetPropertyForKey(string key)
+        internal object GetPropertyForKey(string key)
         {
             var prop = GetProperties();
             if (prop == null)
@@ -122,12 +122,12 @@ namespace Couchbase.Lite.Internal
             return GetProperties().Get(key);
         }
 
-        public void SetProperties(IDictionary<string, object> properties)
+        internal void SetProperties(IDictionary<string, object> properties)
         {
             body = new Body(properties);
         }
 
-        public IEnumerable<Byte> GetJson()
+        internal IEnumerable<Byte> GetJson()
         {
             IEnumerable<Byte> result = null;
             if (body != null)
@@ -137,7 +137,7 @@ namespace Couchbase.Lite.Internal
             return result;
         }
 
-        public void SetJson(IEnumerable<Byte> json)
+        internal void SetJson(IEnumerable<Byte> json)
         {
             body = new Body(json);
         }
@@ -161,57 +161,57 @@ namespace Couchbase.Lite.Internal
             return docId.GetHashCode() ^ revId.GetHashCode();
         }
 
-        public string GetDocId()
+        internal string GetDocId()
         {
             return docId;
         }
 
-        public void SetDocId(string docId)
+        internal void SetDocId(string docId)
         {
             this.docId = docId;
         }
 
-        public string GetRevId()
+        internal string GetRevId()
         {
             return revId;
         }
 
-        public void SetRevId(string revId)
+        internal void SetRevId(string revId)
         {
             this.revId = revId;
         }
 
-        public bool IsDeleted()
+        internal bool IsDeleted()
         {
             return deleted;
         }
 
-        public void SetDeleted(bool deleted)
+        internal void SetDeleted(bool deleted)
         {
             this.deleted = deleted;
         }
 
-        public Body GetBody()
+        internal Body GetBody()
         {
             return body;
         }
 
-        public void SetBody(Body body)
+        internal void SetBody(Body body)
         {
             this.body = body;
         }
 
-        public Boolean IsMissing()
+        internal Boolean IsMissing()
         {
             return missing;
         }
 
-        public void SetMissing(Boolean isMissing)
+        internal void SetMissing(Boolean isMissing)
         {
             missing = isMissing;
         }
 
-        public RevisionInternal CopyWithDocID(String docId, String revId)
+        internal RevisionInternal CopyWithDocID(String docId, String revId)
         {
             System.Diagnostics.Debug.Assert((docId != null));
             System.Diagnostics.Debug.Assert(((this.docId == null) || (this.docId.Equals(docId))));
@@ -229,12 +229,12 @@ namespace Couchbase.Lite.Internal
             return result;
         }
 
-        public void SetSequence(long sequence)
+        internal void SetSequence(long sequence)
         {
             this.sequence = sequence;
         }
 
-        public long GetSequence()
+        internal long GetSequence()
         {
             return sequence;
         }
@@ -249,12 +249,12 @@ namespace Couchbase.Lite.Internal
         /// Generation number: 1 for a new document, 2 for the 2nd revision, ...
         /// Extracted from the numeric prefix of the revID.
         /// </remarks>
-        public int GetGeneration()
+        internal int GetGeneration()
         {
             return GenerationFromRevID(revId);
         }
 
-        public static int GenerationFromRevID(string revID)
+        internal static int GenerationFromRevID(string revID)
         {
             var generation = 0;
             var dashPos = revID.IndexOf("-", StringComparison.InvariantCultureIgnoreCase);
@@ -265,7 +265,7 @@ namespace Couchbase.Lite.Internal
             return generation;
         }
 
-        public static int CBLCollateRevIDs(string revId1, string revId2)
+        internal static int CBLCollateRevIDs(string revId1, string revId2)
         {
             string rev1GenerationStr = null;
             string rev2GenerationStr = null;
@@ -326,7 +326,7 @@ namespace Couchbase.Lite.Internal
             }
         }
 
-        public static int CBLCompareRevIDs(string revId1, string revId2)
+        internal static int CBLCompareRevIDs(string revId1, string revId2)
         {
             System.Diagnostics.Debug.Assert((revId1 != null));
             System.Diagnostics.Debug.Assert((revId2 != null));
@@ -336,7 +336,7 @@ namespace Couchbase.Lite.Internal
         // Calls the block on every attachment dictionary. The block can return a different dictionary,
         // which will be replaced in the rev's properties. If it returns nil, the operation aborts.
         // Returns YES if any changes were made.
-        public bool MutateAttachments(Func<string, IDictionary<string, object>, IDictionary<string, object>> mutator)
+        internal bool MutateAttachments(Func<string, IDictionary<string, object>, IDictionary<string, object>> mutator)
         {
             var properties = GetProperties();
             IDictionary<string, object> editedProperties = null;

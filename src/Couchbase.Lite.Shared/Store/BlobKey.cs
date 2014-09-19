@@ -51,7 +51,7 @@ namespace Couchbase.Lite
 {
     /// <summary>Key identifying a data blob.</summary>
     /// <remarks>Key identifying a data blob. This happens to be a SHA-1 digest.</remarks>
-    public class BlobKey
+    internal class BlobKey
     {
         private byte[] bytes;
 

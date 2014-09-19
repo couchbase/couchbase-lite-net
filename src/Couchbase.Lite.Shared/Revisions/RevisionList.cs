@@ -77,7 +77,7 @@ namespace Couchbase.Lite
 
         public virtual IList<string> GetAllDocIds()
         {
-            IList<string> result = new AList<string>();
+            IList<string> result = new List<string>();
             IEnumerator<RevisionInternal> iterator = GetEnumerator();
             while (iterator.MoveNext())
             {
@@ -89,7 +89,7 @@ namespace Couchbase.Lite
 
         public virtual IList<string> GetAllRevIds()
         {
-            IList<string> result = new AList<string>();
+            IList<string> result = new List<string>();
             IEnumerator<RevisionInternal> iterator = GetEnumerator();
             while (iterator.MoveNext())
             {

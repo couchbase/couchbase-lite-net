@@ -611,7 +611,7 @@ namespace Couchbase.Lite.Replicator
 
             ++httpConnectionCount;
 
-            var remainingRevs = new AList<RevisionInternal>(bulkRevs);
+            var remainingRevs = new List<RevisionInternal>(bulkRevs);
             var keys = bulkRevs.Select(rev => rev.GetDocId()).ToArray();
             var body = new Dictionary<string, object>();
             body.Put("keys", keys);

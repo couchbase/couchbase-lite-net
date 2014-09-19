@@ -1,4 +1,4 @@
-/**
+/*
  * Couchbase Lite for .NET
  *
  * Original iOS version by Jens Alfke

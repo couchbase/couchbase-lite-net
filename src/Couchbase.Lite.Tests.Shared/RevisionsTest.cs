@@ -129,12 +129,12 @@ namespace Couchbase.Lite
         [Test]
         public void TestMakeRevisionHistoryDict()
         {
-            var revs = new AList<RevisionInternal>();
+            var revs = new List<RevisionInternal>();
             revs.AddItem(Mkrev("4-jkl"));
             revs.AddItem(Mkrev("3-ghi"));
             revs.AddItem(Mkrev("2-def"));
 
-            var expectedSuffixes = new AList<string>();
+            var expectedSuffixes = new List<string>();
             expectedSuffixes.AddItem("jkl");
             expectedSuffixes.AddItem("ghi");
             expectedSuffixes.AddItem("def");
@@ -146,11 +146,11 @@ namespace Couchbase.Lite
             var historyDict = Database.MakeRevisionHistoryDict(revs);
             Assert.AreEqual(expectedHistoryDict, historyDict);
             
-            revs = new AList<RevisionInternal>();
+            revs = new List<RevisionInternal>();
             revs.AddItem(Mkrev("4-jkl"));
             revs.AddItem(Mkrev("2-def"));
             
-            expectedSuffixes = new AList<string>();
+            expectedSuffixes = new List<string>();
             expectedSuffixes.AddItem("4-jkl");
             expectedSuffixes.AddItem("2-def");
             
@@ -159,11 +159,11 @@ namespace Couchbase.Lite
             historyDict = Database.MakeRevisionHistoryDict(revs);
             Assert.AreEqual(expectedHistoryDict, historyDict);
 
-            revs = new AList<RevisionInternal>();
+            revs = new List<RevisionInternal>();
             revs.AddItem(Mkrev("12345"));
             revs.AddItem(Mkrev("6789"));
             
-            expectedSuffixes = new AList<string>();
+            expectedSuffixes = new List<string>();
             expectedSuffixes.AddItem("12345");
             expectedSuffixes.AddItem("6789");
             

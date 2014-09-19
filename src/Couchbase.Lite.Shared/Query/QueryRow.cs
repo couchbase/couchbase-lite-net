@@ -199,10 +199,10 @@ namespace Couchbase.Lite
             var conflicts = (IList<string>)valueTmp["_conflicts"];
             if (conflicts == null)
             {
-                conflicts = new AList<string>();
+                conflicts = new List<string>();
             }
 
-            var conflictingRevisions = new AList<SavedRevision>();
+            var conflictingRevisions = new List<SavedRevision>();
             foreach (var conflictRevisionId in conflicts)
             {
                 var revision = doc.GetRevision(conflictRevisionId);

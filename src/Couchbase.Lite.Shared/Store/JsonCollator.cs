@@ -47,14 +47,14 @@ using Couchbase.Lite.Util;
 
 namespace Couchbase.Lite
 {
-    public enum JsonCollationMode 
+    internal enum JsonCollationMode 
     {
         Unicode,
         Ascii,
         Raw
     }
 
-    public class JsonCollator
+    internal class JsonCollator
     {
         // Types of values, ordered according to CouchDB collation order (see view_collation.js tests)
         enum ValueType

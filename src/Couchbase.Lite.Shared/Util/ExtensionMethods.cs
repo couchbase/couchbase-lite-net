@@ -52,7 +52,7 @@ using Newtonsoft.Json.Linq;
 
 namespace Couchbase.Lite
 {
-    public static class ExtensionMethods
+    internal static class ExtensionMethods
     {
         internal static IDictionary<TKey,TValue> AsDictionary<TKey, TValue>(this object attachmentProps)
         {

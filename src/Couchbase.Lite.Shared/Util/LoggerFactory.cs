@@ -47,7 +47,7 @@ using System.Diagnostics;
 
 namespace Couchbase.Lite.Util
 {
-    public static class LoggerFactory
+    internal static class LoggerFactory
     {
         public static ILogger CreateLogger()
         {

@@ -192,7 +192,7 @@ namespace Couchbase.Lite
         public IEnumerable<String> AttachmentNames {
             get {
                 var attachmentMetadata = GetAttachmentMetadata();
-                var result = new AList<String>();
+                var result = new List<String>();
 
                 if (attachmentMetadata != null)
                 {
@@ -208,7 +208,7 @@ namespace Couchbase.Lite
         /// <value>All the <see cref="Couchbase.Lite.Attachment"/>s.</value>
         public IEnumerable<Attachment> Attachments {
             get {
-                var result = new AList<Attachment>();
+                var result = new List<Attachment>();
 
                 foreach (var attachmentName in AttachmentNames)
                 {

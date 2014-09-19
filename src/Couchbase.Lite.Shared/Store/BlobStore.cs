@@ -54,7 +54,7 @@ namespace Couchbase.Lite
     /// A persistent content-addressable store for arbitrary-size data blobs.
     /// Each blob is stored as a file named by its SHA-1 digest.
     /// </remarks>
-    public class BlobStore
+    internal class BlobStore
     {
         public static string FileExtension = ".blob";
 
@@ -367,7 +367,7 @@ namespace Couchbase.Lite
 
         public int DeleteBlobs()
         {
-            return DeleteBlobsExceptWithKeys(new AList<BlobKey>());
+            return DeleteBlobsExceptWithKeys(new List<BlobKey>());
         }
 
         public bool IsGZipped(BlobKey key)

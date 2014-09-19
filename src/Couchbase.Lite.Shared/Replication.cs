@@ -298,7 +298,7 @@ namespace Couchbase.Lite
 
         // FIXME: This is never assigned, as a result Start never initializes revisionBodyTransformationFunction
 
-        protected Func<RevisionInternal, RevisionInternal> revisionBodyTransformationFunction;
+        internal Func<RevisionInternal, RevisionInternal> revisionBodyTransformationFunction;
 
         protected void SafeIncrementCompletedChangesCount()
         {
@@ -1405,7 +1405,7 @@ namespace Couchbase.Lite
 
 
 
-        protected internal RevisionInternal TransformRevision(RevisionInternal rev)
+        internal RevisionInternal TransformRevision(RevisionInternal rev)
         {
             if (revisionBodyTransformationFunction != null)
             {

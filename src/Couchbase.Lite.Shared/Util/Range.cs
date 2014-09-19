@@ -44,7 +44,7 @@ using Sharpen;
 
 namespace Couchbase.Lite.Support
 {
-    public class Range
+    internal class Range
     {
         private readonly int location;
 

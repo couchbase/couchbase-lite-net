@@ -328,7 +328,7 @@ namespace Couchbase.Lite
             Assert.AreEqual(doc.CurrentRevision, rev2);
             Assert.IsFalse(doc.Deleted);
 
-            var listRevs = new AList<SavedRevision>();
+            var listRevs = new List<SavedRevision>();
             listRevs.Add(rev1);
             listRevs.Add(rev2);
             Assert.AreEqual(newRev.RevisionHistory, listRevs);
@@ -608,7 +608,7 @@ namespace Couchbase.Lite
             gotProperties = rev2.Properties;
             Assert.AreEqual(2, gotProperties["tag"]);
 
-            var tmp = new AList<SavedRevision>();
+            var tmp = new List<SavedRevision>();
             tmp.Add(rev2);
             Assert.AreEqual(doc.ConflictingRevisions, tmp);
             Assert.AreEqual(doc.LeafRevisions, tmp);
@@ -638,7 +638,7 @@ namespace Couchbase.Lite
             var rev2b = newRev.Save(allowConflict: true);
             Assert.IsNotNull(rev2b, "Failed to create a a conflict");
 
-            var confRevs = new AList<SavedRevision>();
+            var confRevs = new List<SavedRevision>();
             confRevs.AddItem(rev2b);
             confRevs.AddItem(rev2a);
             Assert.AreEqual(doc.ConflictingRevisions, confRevs);
