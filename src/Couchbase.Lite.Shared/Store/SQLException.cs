@@ -48,15 +48,15 @@ namespace Couchbase.Lite.Storage
     [System.Serializable]
     public class SQLException : Exception
     {
-        public SQLException()
+        internal SQLException()
         {
         }
 
-        public SQLException(string error) : base(error)
+        internal SQLException(string error) : base(error)
         {
         }
 
-        public SQLException(string error, Exception cause) : base(error, cause)
+        internal SQLException(string error, Exception cause) : base(error, cause)
         {
         }
 

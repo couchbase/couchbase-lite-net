@@ -49,7 +49,7 @@ using System.Linq;
 
 namespace Couchbase.Lite.Support
 {
-    public class MultipartReader
+    internal class MultipartReader
     {
         private enum MultipartReaderState
         {

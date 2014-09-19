@@ -49,10 +49,8 @@ using Newtonsoft.Json;
 
 namespace Couchbase.Lite 
 {
-
-    public class ObjectWriter 
+    internal class ObjectWriter 
     {
-
         readonly Boolean prettyPrintJson;
 
         public ObjectWriter() : this(false) { }

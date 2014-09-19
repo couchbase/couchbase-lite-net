@@ -47,9 +47,9 @@ namespace Couchbase.Lite
 {
     public class HttpResponseException : Exception
     {
-        internal HttpStatusCode StatusCode { get; set; }
+        public HttpStatusCode StatusCode { get; set; }
 
-        public HttpResponseException (HttpStatusCode statusCode) { StatusCode = statusCode; }
+        internal HttpResponseException (HttpStatusCode statusCode) { StatusCode = statusCode; }
 
         public override string ToString ()
         {

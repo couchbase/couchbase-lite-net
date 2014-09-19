@@ -97,7 +97,7 @@ namespace Couchbase.Lite.Auth
         {
             lock (typeof(FacebookAuthorizer))
             {
-                IList<string> key = new AList<string>();
+                IList<string> key = new List<string>();
                 key.AddItem(email);
                 key.AddItem(origin);
                 if (accessTokens == null)
@@ -114,7 +114,7 @@ namespace Couchbase.Lite.Auth
         {
             try
             {
-                IList<string> key = new AList<string>();
+                IList<string> key = new List<string>();
                 key.AddItem(email);
                 key.AddItem(site.ToString().ToLower());
                 Log.D(Database.Tag, "FacebookAuthorizer looking up key: " + key + " from list of access tokens");

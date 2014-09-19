@@ -52,7 +52,7 @@ using Couchbase.Lite.Storage;
 
 namespace Couchbase.Lite
 {
-    public static class Misc
+    internal static class Misc
     {
         public static string CreateGUID()
         {

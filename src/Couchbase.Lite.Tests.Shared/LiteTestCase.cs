@@ -65,7 +65,7 @@ namespace Couchbase.Lite
 
         public const string FacebookAppId = "78255794086";
 
-        protected ObjectWriter mapper = new ObjectWriter();
+         ObjectWriter mapper = new ObjectWriter();
 
         protected Manager manager = null;
 
@@ -482,7 +482,7 @@ namespace Couchbase.Lite
             Assert.AreEqual(doc, attach.Document);
             Assert.AreEqual(attachmentName, attach.Name);
 
-            var attNames = new AList<string>();
+            var attNames = new List<string>();
             attNames.AddItem(attachmentName);
             Assert.AreEqual(rev3.AttachmentNames, attNames);
             Assert.AreEqual("text/plain; charset=utf-8", attach.ContentType);

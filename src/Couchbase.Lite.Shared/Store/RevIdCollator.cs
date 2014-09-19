@@ -45,7 +45,7 @@ using System;
 
 namespace Couchbase.Lite
 {
-    public static class RevIdCollator
+    internal static class RevIdCollator
     {
         private static Int32 DefaultCollate(string rev1, string rev2) {
             var result = String.Compare(rev1, rev2, StringComparison.Ordinal);

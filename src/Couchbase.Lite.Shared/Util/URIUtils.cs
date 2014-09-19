@@ -49,7 +49,7 @@ using System.Linq;
 
 namespace Couchbase.Lite.Util
 {
-    public static class URIUtils
+    internal static class URIUtils
     {
         /// <summary>Index of a component which was not found.</summary>
         /// <remarks>Index of a component which was not found.</remarks>

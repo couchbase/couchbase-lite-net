@@ -45,7 +45,7 @@ using System.IO;
 
 namespace Couchbase.Lite {
 
-    public static class StreamExtensions {
+    internal static class StreamExtensions {
 
         /// <summary>
         /// Readies a stream to be read from the beginning.

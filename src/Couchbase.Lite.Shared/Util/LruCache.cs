@@ -102,9 +102,11 @@ namespace Couchbase.Lite.Util
     /// of <a href="http://developer.android.com/sdk/compatibility-library.html">Android's
     /// Support Package</a> for earlier releases.
     /// </remarks>
-    public class LruCache<K, V>
+    internal class LruCache<TKey, TValue> 
+    where TKey: class 
+    where TValue: class
     {
-        private readonly LinkedHashMap<K, V> map;
+        private readonly LinkedHashMap<TKey, TValue> map;
         private readonly Object locker = new Object ();
 
         /// <summary>Size of this cache in units.</summary>
@@ -139,7 +141,7 @@ namespace Couchbase.Lite.Util
                 throw new ArgumentException("maxSize <= 0");
             }
             this.maxSize = maxSize;
-            this.map = new LinkedHashMap<K, V>(0, 0.75f, true);
+            this.map = new LinkedHashMap<TKey, TValue>(0, 0.75f, true);
         }
 
         /// <summary>Sets the size of the cache.</summary>
@@ -169,13 +171,13 @@ namespace Couchbase.Lite.Util
         /// head of the queue. This returns null if a value is not cached and cannot
         /// be created.
         /// </summary>
-        public V Get(K key)
+        public TValue Get(TKey key)
         {
             if (key == null)
             {
-                throw new ArgumentNullException("key == null");
+                throw new ArgumentNullException("key");
             }
-            V mapValue;
+            TValue mapValue;
             lock (locker)
             {
                 mapValue = map.Get(key);
@@ -186,10 +188,10 @@ namespace Couchbase.Lite.Util
                 }
                 missCount++;
             }
-            V createdValue = Create(key);
+            TValue createdValue = Create(key);
             if (createdValue == null)
             {
-                return default(V);
+                return default(TValue);
             }
             lock (locker)
             {
@@ -217,7 +219,7 @@ namespace Couchbase.Lite.Util
             }
         }
 
-        public V this[K key] {
+        public TValue this[TKey key] {
             get { return Get (key); }
             set { Put (key, value); }
         }
@@ -235,13 +237,13 @@ namespace Couchbase.Lite.Util
         /// <code>key</code>
         /// .
         /// </returns>
-        public V Put(K key, V value)
+        public TValue Put(TKey key, TValue value)
         {
             if (key == null || value == null)
             {
                 throw new ArgumentNullException("key == null || value == null");
             }
-            V previous;
+            TValue previous;
             lock (locker)
             {
                 putCount++;
@@ -268,8 +270,8 @@ namespace Couchbase.Lite.Util
         {
             while (true)
             {
-                K key;
-                V value;
+                TKey key;
+                TValue value;
                 lock (locker)
                 {
                     if (size < 0 || (map.IsEmpty() && size != 0))
@@ -284,13 +286,13 @@ namespace Couchbase.Lite.Util
                     // get the last item in the linked list.
                     // This is not efficient, the goal here is to minimize the changes
                     // compared to the platform version.
-                    KeyValuePair<K, V> toEvict = default(KeyValuePair<K, V>);
-                    foreach (KeyValuePair<K, V> entry in map.EntrySet())
+                    KeyValuePair<TKey, TValue> toEvict = default(KeyValuePair<TKey, TValue>);
+                    foreach (KeyValuePair<TKey, TValue> entry in map.EntrySet())
                     {
                         toEvict = entry;
                     }
                     // END LAYOUTLIB CHANGE
-                    if (toEvict.Equals(default(KeyValuePair<K, V>)))
+                    if (toEvict.Equals(default(KeyValuePair<TKey, TValue>)))
                     {
                         break;
                     }
@@ -300,7 +302,7 @@ namespace Couchbase.Lite.Util
                     size -= SafeSizeOf(key, value);
                     evictionCount++;
                 }
-                EntryRemoved(true, key, value, default(V));
+                EntryRemoved(true, key, value, default(TValue));
             }
         }
 
@@ -314,13 +316,13 @@ namespace Couchbase.Lite.Util
         /// <code>key</code>
         /// .
         /// </returns>
-        public V Remove(K key)
+        public TValue Remove(TKey key)
         {
             if (key == null)
             {
                 throw new ArgumentNullException("key == null");
             }
-            V previous;
+            TValue previous;
             lock (locker)
             {
                 previous = Sharpen.Collections.Remove(map, key);
@@ -331,7 +333,7 @@ namespace Couchbase.Lite.Util
             }
             if (previous != null)
             {
-                EntryRemoved(false, key, previous, default(V));
+                EntryRemoved(false, key, previous, default(TValue));
             }
             return previous;
         }
@@ -370,7 +372,7 @@ namespace Couchbase.Lite.Util
         /// <see cref="LruCache{K, V}.Remove(object)">LruCache&lt;K, V&gt;.Remove(object)</see>
         /// .
         /// </param>
-        protected internal virtual void EntryRemoved(bool evicted, K key, V oldValue, V newValue)
+        protected internal virtual void EntryRemoved(bool evicted, TKey key, TValue oldValue, TValue newValue)
         {
         }
 
@@ -395,12 +397,12 @@ namespace Couchbase.Lite.Util
         /// while another is creating a value for the same
         /// key.
         /// </remarks>
-        protected internal virtual V Create(K key)
+        protected internal virtual TValue Create(TKey key)
         {
-            return default(V);
+            return default(TValue);
         }
 
-        private int SafeSizeOf(K key, V value)
+        private int SafeSizeOf(TKey key, TValue value)
         {
             int result = SizeOf(key, value);
             if (result < 0)
@@ -420,7 +422,7 @@ namespace Couchbase.Lite.Util
         /// is the number of entries and max size is the maximum number of entries.
         /// <p>An entry's size must not change while it is in the cache.
         /// </summary>
-        protected internal virtual int SizeOf(K key, V value)
+        protected internal virtual int SizeOf(TKey key, TValue value)
         {
             return 1;
         }
@@ -542,11 +544,11 @@ namespace Couchbase.Lite.Util
         /// Returns a copy of the current contents of the cache, ordered from least
         /// recently accessed to most recently accessed.
         /// </remarks>
-        public IDictionary<K, V> Snapshot()
+        public IDictionary<TKey, TValue> Snapshot()
         {
             lock (locker)
             {
-                return new LinkedHashMap<K, V>(map);
+                return new LinkedHashMap<TKey, TValue>(map);
             }
         }
 

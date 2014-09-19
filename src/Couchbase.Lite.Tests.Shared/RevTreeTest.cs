@@ -25,7 +25,7 @@
 // OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //
-/**
+/*
 * Original iOS version by Jens Alfke
 * Ported to Android by Marty Schoch, Traun Leyden
 *
@@ -82,7 +82,7 @@ namespace Couchbase.Lite
             revProperties["message"] = "hi";
             rev.SetProperties(revProperties);
 
-            var revHistory = new AList<string>();
+            var revHistory = new List<string>();
             revHistory.AddItem(rev.GetRevId());
             revHistory.AddItem("3-thrice");
             revHistory.AddItem("2-too");
@@ -98,7 +98,7 @@ namespace Couchbase.Lite
             conflictProperties["message"] = "yo";
             conflict.SetProperties(conflictProperties);
             
-            var conflictHistory = new AList<string>();
+            var conflictHistory = new List<string>();
             conflictHistory.AddItem(conflict.GetRevId());
             conflictHistory.AddItem("4-delta");
             conflictHistory.AddItem("3-gamma");
@@ -113,7 +113,7 @@ namespace Couchbase.Lite
             var otherProperties = new Dictionary<string, object>();
             otherProperties["language"] = "jp";
             other.SetProperties(otherProperties);
-            var otherHistory = new AList<string>();
+            var otherHistory = new List<string>();
             otherHistory.AddItem(other.GetRevId());
             database.ForceInsert(other, otherHistory, null);
             

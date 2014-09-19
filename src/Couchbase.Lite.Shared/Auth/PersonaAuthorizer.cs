@@ -195,7 +195,7 @@ namespace Couchbase.Lite.Auth
         {
             lock (typeof(PersonaAuthorizer))
             {
-                IList<string> key = new AList<string>();
+                IList<string> key = new List<string>();
                 key.AddItem(email);
                 key.AddItem(origin);
                 if (assertions == null)
@@ -251,7 +251,7 @@ namespace Couchbase.Lite.Auth
 
         public static string AssertionForEmailAndSite(string email, Uri site)
         {
-            IList<string> key = new AList<string>();
+            IList<string> key = new List<string>();
             key.AddItem(email);
             key.AddItem(site.ToString().ToLower());
             Log.D(Database.Tag, "PersonaAuthorizer looking up key: " + key + " from list of assertions");

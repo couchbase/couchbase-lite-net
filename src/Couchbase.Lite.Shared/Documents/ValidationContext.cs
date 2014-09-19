@@ -55,7 +55,7 @@ using Couchbase.Lite;
 namespace Couchbase.Lite
 {
 
-    public class ValidationContext : IValidationContext
+    internal class ValidationContext : IValidationContext
     {
         IList<String> changedKeys;
 
@@ -130,7 +130,7 @@ namespace Couchbase.Lite
             get {
                 if (changedKeys == null)
                 {
-                    changedKeys = new AList<String>();
+                    changedKeys = new List<String>();
                     var cur = CurrentRevision.Properties;
                     var nuu = NewRevision.GetProperties();
 

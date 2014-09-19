@@ -89,7 +89,7 @@ namespace Couchbase.Lite
             ActiveReplicators = new List<Replication>();
             AllReplicators = new List<Replication> ();
 
-            _changesToNotify = new AList<DocumentChange>();
+            _changesToNotify = new List<DocumentChange>();
 
             StartTime = DateTime.UtcNow.ToMillisecondsSinceEpoch ();
 
@@ -592,7 +592,7 @@ namespace Couchbase.Lite
                     return null;
                 }
 
-                var outLanguageList = new AList<string>();
+                var outLanguageList = new List<string>();
                 var sourceCode = GetDesignDocFunction(name, "filters", outLanguageList);
 
                 if (sourceCode == null)
@@ -1118,7 +1118,7 @@ PRAGMA user_version = 3;";
             }
             if (historyCount == 0)
             {
-                revHistory = new AList<string>();
+                revHistory = new List<string>();
                 revHistory.AddItem(revId);
                 historyCount = 1;
             }
@@ -1141,8 +1141,8 @@ PRAGMA user_version = 3;";
                     throw new CouchbaseLiteException(StatusCode.InternalServerError);
                 }
 
-                IList<bool> outIsDeleted = new AList<bool>();
-                IList<bool> outIsConflict = new AList<bool>();
+                IList<bool> outIsDeleted = new List<bool>();
+                IList<bool> outIsConflict = new List<bool>();
                 bool oldWinnerWasDeletion = false;
                 string oldWinningRevID = WinningRevIDOfDoc(docNumericID, outIsDeleted, outIsConflict
                 );
@@ -1281,7 +1281,7 @@ PRAGMA user_version = 3;";
                 cursor = StorageEngine.RawQuery("SELECT DISTINCT key FROM attachments", CommandBehavior.SequentialAccess);
                 cursor.MoveToNext();
 
-                var allKeys = new AList<BlobKey>();
+                var allKeys = new List<BlobKey>();
                 while (!cursor.IsAfterLast())
                 {
                     var key = new BlobKey(cursor.GetBlob(0));
@@ -1508,7 +1508,7 @@ PRAGMA user_version = 3;";
         internal IDictionary<String, Object> GetAllDocs(QueryOptions options)
         {
             var result = new Dictionary<String, Object>();
-            var rows = new AList<QueryRow>();
+            var rows = new List<QueryRow>();
             if (options == null)
                 options = new QueryOptions();
 
@@ -1547,7 +1547,7 @@ PRAGMA user_version = 3;";
                 sql.Append(" AND deleted=0");
             }
 
-            var args = new AList<String>();
+            var args = new List<String>();
             var minKey = options.GetStartKey();
             var maxKey = options.GetEndKey();
             var inclusiveMin = true;
@@ -1668,8 +1668,8 @@ PRAGMA user_version = 3;";
                                 if (docNumericID > 0)
                                 {
                                     bool deleted;
-                                    var outIsDeleted = new AList<bool>();
-                                    var outIsConflict = new AList<bool>();
+                                    var outIsDeleted = new List<bool>();
+                                    var outIsConflict = new List<bool>();
                                     var revId = WinningRevIDOfDoc(docNumericID, outIsDeleted, outIsConflict);
                                     if (outIsDeleted.Count > 0)
                                     {
@@ -1797,7 +1797,7 @@ PRAGMA user_version = 3;";
 
         internal static String JoinQuotedObjects(IEnumerable<Object> objects)
         {
-            var strings = new AList<String>();
+            var strings = new List<String>();
             foreach (var obj in objects)
             {
                 strings.AddItem(obj != null ? obj.ToString() : null);
@@ -1870,7 +1870,7 @@ PRAGMA user_version = 3;";
             try
             {
                 cursor = StorageEngine.RawQuery("SELECT name FROM views");
-                result = new AList<View>();
+                result = new List<View>();
                 if (cursor.MoveToNext())
                 {
                     var name = cursor.GetString(0);
@@ -2333,7 +2333,7 @@ PRAGMA user_version = 3;";
                 {
                     continue;
                 }
-                var revsPurged = new AList<string>();
+                var revsPurged = new List<string>();
                 var revIDs = docsToRevs [docID];
                 if (revIDs == null)
                 {
@@ -2343,7 +2343,7 @@ PRAGMA user_version = 3;";
                 {
                     if (revIDs.Count == 0)
                     {
-                        revsPurged = new AList<string>();
+                        revsPurged = new List<string>();
                     }
                     else
                     {
@@ -2359,7 +2359,7 @@ PRAGMA user_version = 3;";
                                 Log.E(Tag, "Error deleting revisions", e);
                                 return false;
                             }
-                            revsPurged = new AList<string>();
+                            revsPurged = new List<string>();
                             revsPurged.AddItem("*");
                         }
                         else
@@ -2567,7 +2567,7 @@ PRAGMA user_version = 3;";
             IList<object> revsInfo = null;
             if (contentOptions.HasFlag(DocumentContentOptions.IncludeRevsInfo))
             {
-                revsInfo = new AList<object>();
+                revsInfo = new List<object>();
                 var revHistoryFull = GetRevisionHistory(rev);
                 foreach (RevisionInternal historicalRev in revHistoryFull)
                 {
@@ -2593,7 +2593,7 @@ PRAGMA user_version = 3;";
                 var revs = GetAllRevisionsOfDocumentID(docId, true);
                 if (revs.Count > 1)
                 {
-                    conflicts = new AList<string>();
+                    conflicts = new List<string>();
                     foreach (RevisionInternal savedRev in revs)
                     {
                         if (!(savedRev.Equals(rev) || savedRev.IsDeleted()))
@@ -2655,7 +2655,7 @@ PRAGMA user_version = 3;";
             {
                 if (docNumericId == 0)
                 {
-                    return new AList<RevisionInternal>();
+                    return new List<RevisionInternal>();
                 }
             }
 
@@ -2670,7 +2670,7 @@ PRAGMA user_version = 3;";
                 cursor.MoveToNext();
 
                 long lastSequence = 0;
-                result = new AList<RevisionInternal>();
+                result = new List<RevisionInternal>();
 
                 while (!cursor.IsAfterLast())
                 {
@@ -2759,7 +2759,7 @@ PRAGMA user_version = 3;";
                 return null;
 
             // Try to extract descending numeric prefixes:
-            var suffixes = new AList<string>();
+            var suffixes = new List<string>();
             var start = -1;
             var lastRevNo = -1;
 
@@ -2795,7 +2795,7 @@ PRAGMA user_version = 3;";
             if (start == -1)
             {
                 // we failed to build sequence, just stuff all the revs in list
-                suffixes = new AList<string>();
+                suffixes = new List<string>();
                 foreach (RevisionInternal rev_1 in history)
                 {
                     suffixes.AddItem(rev_1.GetRevId());
@@ -3063,8 +3063,8 @@ PRAGMA user_version = 3;";
                 var wasConflicted = false;
                 if (docNumericID > 0)
                 {
-                    var outIsDeleted = new AList<bool>();
-                    var outIsConflict = new AList<bool>();
+                    var outIsDeleted = new List<bool>();
+                    var outIsConflict = new List<bool>();
                     try
                     {
                         oldWinningRevID = WinningRevIDOfDoc(docNumericID, outIsDeleted, outIsConflict);
@@ -3286,8 +3286,8 @@ PRAGMA user_version = 3;";
                 {
                     // doc still deleted, but this beats previous deletion rev
                     // Doc was alive. How does this deletion affect the winning rev ID?
-                    var outIsDeleted = new AList<bool>();
-                    var outIsConflict = new AList<bool>();
+                    var outIsDeleted = new List<bool>();
+                    var outIsConflict = new List<bool>();
                     var winningRevID = WinningRevIDOfDoc(docNumericID, outIsDeleted, outIsConflict);
 
                     if (!winningRevID.Equals(oldWinningRevID))
@@ -3347,7 +3347,7 @@ PRAGMA user_version = 3;";
                 {
                     _isPostingChangeNotifications = true;
 
-                    IList<DocumentChange> outgoingChanges = new AList<DocumentChange>();
+                    IList<DocumentChange> outgoingChanges = new List<DocumentChange>();
                     foreach (var change in _changesToNotify)
                     {
                         outgoingChanges.Add(change);
@@ -3777,7 +3777,7 @@ PRAGMA user_version = 3;";
         }
 
         // Replaces the "follows" key with the real attachment data in all attachments to 'doc'.
-        public bool InlineFollowingAttachmentsIn(RevisionInternal rev)
+        internal bool InlineFollowingAttachmentsIn(RevisionInternal rev)
         {
             return rev.MutateAttachments((s, attachment)=>
             {
@@ -4026,7 +4026,7 @@ PRAGMA user_version = 3;";
             return string.Format("{0}-{1}", generationIncremented, digestAsHex);
         }
 
-        public IList<String> GetPossibleAncestorRevisionIDs(RevisionInternal rev, int limit, ref Boolean hasAttachment)
+        internal IList<String> GetPossibleAncestorRevisionIDs(RevisionInternal rev, int limit, ref Boolean hasAttachment)
         {
             var matchingRevs = new List<String>();
             var generation = rev.GetGeneration();

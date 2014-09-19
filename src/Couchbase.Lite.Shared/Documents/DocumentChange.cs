@@ -91,7 +91,7 @@ namespace Couchbase.Lite {
         /// Gets the winning revision.
         /// </summary>
         /// <value>The winning revision.</value>
-        public RevisionInternal WinningRevision { get; private set; }
+        internal RevisionInternal WinningRevision { get; private set; }
 
         /// <summary>
         /// Gets a value indicating whether this instance is conflict.

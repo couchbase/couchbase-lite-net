@@ -395,7 +395,7 @@ namespace Couchbase.Lite {
                 options = new QueryOptions();
 
             Cursor cursor = null;
-            IList<QueryRow> rows = new AList<QueryRow>();
+            IList<QueryRow> rows = new List<QueryRow>();
             try
             {
                 cursor = ResultSetWithOptions(options);
@@ -479,7 +479,7 @@ namespace Couchbase.Lite {
 
             Cursor cursor = null;
 
-            var result = new AList<IDictionary<string, object>>();
+            var result = new List<IDictionary<string, object>>();
 
             try
             {
@@ -518,7 +518,7 @@ namespace Couchbase.Lite {
                 return null;
             }
 
-            var result = new AList<IDictionary<string, object>>();
+            var result = new List<IDictionary<string, object>>();
 
             var selectArgs = new string[] { Id.ToString() };
 
@@ -569,7 +569,7 @@ namespace Couchbase.Lite {
                 valuesToReduce = new List<Object>(ReduceBatchSize);
             }
 
-            var rows = new AList<QueryRow>();
+            var rows = new List<QueryRow>();
             cursor.MoveToNext();
 
             while (!cursor.IsAfterLast())
@@ -688,7 +688,7 @@ namespace Couchbase.Lite {
                 sql = sql + ", revid, json";
             }
             sql = sql + " FROM maps, revs, docs WHERE maps.view_id=?";
-            var argsList = new AList<string>();
+            var argsList = new List<string>();
             argsList.AddItem(Sharpen.Extensions.ToString(Id));
             if (options.GetKeys() != null)
             {

@@ -44,7 +44,7 @@ using System;
 
 namespace Couchbase.Lite.Util
 {
-    public class StringUtils
+    internal class StringUtils
     {
         /* Largest possible base 10 exponent.  Any
         * exponent larger than this will already

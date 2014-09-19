@@ -51,7 +51,7 @@ namespace Couchbase.Lite.Internal
 {
     /// <summary>A request/response/document body, stored as either JSON or a Map<String,Object>
     ///     </summary>
-    public class Body
+    internal class Body
     {
         private IEnumerable<Byte> json;
 

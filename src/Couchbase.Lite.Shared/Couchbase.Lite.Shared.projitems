@@ -52,7 +52,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)Revisions\RevisionList.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Revisions\SavedRevision.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Revisions\UnsavedRevision.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Sharpen\AList.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Sharpen\AbstractCollection.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Sharpen\AbstractList.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Sharpen\AbstractMap.cs" />
@@ -71,7 +70,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)Sharpen\BufferedWriter.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Sharpen\ByteArrayInputStream.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Sharpen\ByteArrayOutputStream.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Sharpen\ByteBuffer.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Sharpen\ByteOrder.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Sharpen\CRC32.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Sharpen\Callable.cs" />
@@ -79,8 +77,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)Sharpen\CharBuffer.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Sharpen\CharSequence.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Sharpen\CharUtils.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Sharpen\CharsetDecoder.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Sharpen\CharsetEncoder.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Sharpen\CodingErrorAction.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Sharpen\Collections.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Sharpen\ConcurrentHashMap.cs" />
@@ -123,7 +119,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)Sharpen\LinkedHashMap.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Sharpen\LinkedHashSet.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Sharpen\ListIterator.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Sharpen\MappedByteBuffer.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Sharpen\Matcher.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Sharpen\MessageDigest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Sharpen\MessageFormat.cs" />
