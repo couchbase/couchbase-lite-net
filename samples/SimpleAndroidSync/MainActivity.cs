@@ -86,14 +86,14 @@ namespace SimpleAndroidSync
 
         public override bool OnCreateOptionsMenu(IMenu menu)
         {
-            var preferences = PreferenceManager.GetDefaultSharedPreferences(this);
-            var syncUrl = preferences.GetString("sync-gateway-url", null);
-
             var offlineMenu = menu.Add("Toggle Wifi");
             offlineMenu.SetShowAsAction(ShowAsAction.Always);
             offlineMenu.SetOnMenuItemClickListener(new DelegatedMenuItemListener(
             (item)=>
             {
+                var preferences = PreferenceManager.GetDefaultSharedPreferences(this);
+                var syncUrl = preferences.GetString("sync-gateway-url", null);
+                
                 if (!String.IsNullOrWhiteSpace(syncUrl))
                 {
                     var mgr = Application.Context.GetSystemService(Application.WifiService) as WifiManager;
