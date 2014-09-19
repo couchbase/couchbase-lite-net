@@ -9,12 +9,17 @@ namespace Couchbase.Lite.Util
 {
     sealed internal class SingleThreadTaskScheduler : TaskScheduler 
     {
-        const string Tag = "SingleThreadTaskScheduler";
-         
-        private readonly BlockingCollection<Task> queue = new BlockingCollection<Task>(new ConcurrentQueue<Task>());
+        private const string Tag = "SingleThreadTaskScheduler";
         private const int maxConcurrency = 1;
-        private int runningTasks = 0;
-        private int longRunningTasks = 0;
+
+        private readonly BlockingCollection<Task> queue;
+        private int runningTasks;
+
+        public SingleThreadTaskScheduler()
+        {
+            queue = new BlockingCollection<Task>(new ConcurrentQueue<Task>());
+            runningTasks = 0;
+        }
 
         /// <summary>Queues a task to the scheduler.</summary> 
         /// <param name="task">The task to be queued.</param> 
@@ -30,7 +35,7 @@ namespace Couchbase.Lite.Util
                 return;
             }
             queue.Add (task); 
-            Log.D(Tag, " --> Queued a task: {0}/{1}/{2}", queue.Count, runningTasks, longRunningTasks);
+            Log.D(Tag, " --> Queued a task: {0}/{1}", queue.Count, runningTasks);
             if (runningTasks < maxConcurrency)
             {
                 Interlocked.MemoryBarrier();
@@ -50,19 +55,26 @@ namespace Couchbase.Lite.Util
                         if (queue.Count == 0) 
                         {
                             Interlocked.Decrement(ref runningTasks);
-                            Log.D(Tag, " --> Exiting runloop: {0}/{1}/{2}", queue.Count, runningTasks, longRunningTasks);
+                            Log.D(Tag, " --> Exiting runloop: {0}/{1}", queue.Count, runningTasks);
                             break; 
                         } 
                         var task = queue.Take();
-                        Log.D(Tag, " --> Dequeued a task: {0}/{1}/{2}", queue.Count, runningTasks, longRunningTasks);
-                        var success = TryExecuteTask(task);
-                        if (!success && (task.Status != TaskStatus.Canceled && task.Status != TaskStatus.RanToCompletion))
-                            Log.E(Tag, "Scheduled task faulted", task.Exception);
+                        Log.D(Tag, " --> Dequeued a task: {0}/{1}", queue.Count, runningTasks);
+                        if (task.Status == TaskStatus.Running)
+                        {
+                            Log.D(Tag, "       skipping previously inlined task, which is still running.");
+                        }
+                        else
+                        {
+                            var success = TryExecuteTask(task);
+                            if (!success && (task.Status != TaskStatus.Canceled && task.Status != TaskStatus.RanToCompletion))
+                                Log.E(Tag, "Scheduled task faulted", task.Exception);
+                        }
                     } 
                 }
                 catch (Exception e)
                 {
-                    Log.E(Tag, "Unhandled exception in runloop", e.ToString());
+                    Log.E(Tag, "Unhandled exception in runloop", e);
                     throw;
                 }
             }, null);
@@ -71,10 +83,16 @@ namespace Couchbase.Lite.Util
         protected override bool TryExecuteTaskInline(Task task, bool taskWasPreviouslyQueued) 
         {
             Log.D(Tag, "Executing task inline.");
-            if (taskWasPreviouslyQueued)
+            if (taskWasPreviouslyQueued) 
+            {
+                Log.D(Tag, "Task was previously Queued, so expect it to error out later.");
                 TryDequeue(task); 
+            }
 
-            return TryExecuteTask(task); 
+            var success = TryExecuteTask(task);
+            if (!success && (task.Status != TaskStatus.Canceled && task.Status != TaskStatus.RanToCompletion))
+                Log.E(Tag, "Scheduled task faulted", task.Exception);
+            return success;
         } 
 
         protected override bool TryDequeue(Task task) 
