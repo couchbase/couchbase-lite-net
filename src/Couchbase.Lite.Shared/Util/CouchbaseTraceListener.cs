@@ -40,8 +40,8 @@
 // and limitations under the License.
 //
 #if DEBUG
-#define __DEBUGGER__
-//#define __CONSOLE__
+//#define __DEBUGGER__
+#define __CONSOLE__
 #endif
 
 using System;
