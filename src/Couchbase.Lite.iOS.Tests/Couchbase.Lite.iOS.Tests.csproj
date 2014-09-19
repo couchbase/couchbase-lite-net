@@ -157,5 +157,8 @@
     <EmbeddedResource Include="Resources\attachment.blob">
       <LogicalName>CouchbaseLiteiOSTests.Assets.attachment.blob</LogicalName>
     </EmbeddedResource>
+    <EmbeddedResource Include="Resources\performance-test.json">
+      <LogicalName>CouchbaseLiteiOSTests.Assets.performance-test.json</LogicalName>
+    </EmbeddedResource>
   </ItemGroup>
 </Project>

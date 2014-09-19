@@ -42,6 +42,8 @@
     <Compile Include="$(MSBuildThisFileDirectory)StorageEngineTest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)ReplicationObserver.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\TestNetworkReachabilityManager.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Performance\PerformanceTestCase.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Performance\PerformanceTest.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="$(MSBuildThisFileDirectory)Assets\GatewayConfig.json" />
@@ -52,5 +54,9 @@
     <None Include="$(MSBuildThisFileDirectory)Assets\noattachments.cblite" />
     <None Include="$(MSBuildThisFileDirectory)Assets\attachment.blob" />
     <None Include="$(MSBuildThisFileDirectory)Assets\withattachments.cblite" />
+    <None Include="$(MSBuildThisFileDirectory)Assets\performance-test.json" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="$(MSBuildThisFileDirectory)Performance\" />
   </ItemGroup>
 </Project>
