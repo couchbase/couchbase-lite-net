@@ -267,10 +267,10 @@ namespace Couchbase.Lite
         /// Replaces or installs a database from a file.
         /// This is primarily used to install a canned database on first launch of an app, in which case
         /// you should first check .exists to avoid replacing the database if it exists already. The
-        /// canned database would have been copied into your app bundle at build time.
+        /// canned database would have been copied into your app at build time.
         /// </remarks>
-        /// <param name="databaseName">The name of the target Database to replace or create.</param>
-        /// <param name="databaseStream">InputStream on the source Database file.</param>
+        /// <param name="name">The name of the target Database to replace or create.</param>
+        /// <param name="databaseStream">Stream on the source Database file.</param>
         /// <param name="attachmentStreams">
         /// Map of the associated source Attachments, or null if there are no attachments.
         /// The Map key is the name of the attachment, the map value is an InputStream for
@@ -281,26 +281,26 @@ namespace Couchbase.Lite
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
         public void ReplaceDatabase(String name, Stream databaseStream, IDictionary<String, Stream> attachmentStreams)
         {
-            var result = true;
-
             try {
-                var database = GetDatabase (name);
+                var database = GetDatabaseWithoutOpening (name, false);
                 var dstAttachmentsPath = database.AttachmentStorePath;
 
                 var destStream = File.OpenWrite(database.Path);
                 databaseStream.CopyTo(destStream);
-                destStream.Close();
+                destStream.Dispose();
 
-                var dstAttachmentsDirectory = new DirectoryInfo (dstAttachmentsPath);
-                System.IO.Directory.Delete (dstAttachmentsPath, true);
-                dstAttachmentsDirectory.Create ();
+                if (File.Exists(dstAttachmentsPath)) 
+                {
+                    System.IO.Directory.Delete (dstAttachmentsPath, true);
+                }
+                System.IO.Directory.CreateDirectory(dstAttachmentsPath);
 
                 var attachmentsFile = new FilePath(dstAttachmentsPath);
 
                 if (attachmentStreams != null) {
                     StreamUtils.CopyStreamsToFolder(attachmentStreams, attachmentsFile);
                 }
-
+                database.Open();
                 database.ReplaceUUIDs ();
             } catch (Exception e) {
                 Log.E(Database.Tag, string.Empty, e);
