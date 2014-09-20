@@ -23,7 +23,7 @@ namespace Couchbase.Lite.Util
             var outStream = new FileStream(file.GetAbsolutePath(), FileMode.OpenOrCreate);
             var n = 0;
             var buffer = new byte[16384];
-            while ((n = inStream.Read(buffer, n, buffer.Length)) > -1)
+            while ((n = inStream.Read(buffer, 0, buffer.Length)) > 0)
             {
                 outStream.Write(buffer, 0, n);
             }

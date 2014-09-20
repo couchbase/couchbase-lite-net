@@ -84,5 +84,8 @@
     <EmbeddedResource Include="Assets\attachment2.png" />
     <EmbeddedResource Condition="Exists('Assets\local-test.properties')" Include="Assets\local-test.properties" />
     <EmbeddedResource Include="Assets\test.properties" />
+    <EmbeddedResource Include="Assets\attachment.blob" />
+    <EmbeddedResource Include="Assets\noattachments.cblite" />
+    <EmbeddedResource Include="Assets\withattachments.cblite" />
   </ItemGroup>
 </Project>

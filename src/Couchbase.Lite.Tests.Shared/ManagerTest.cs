@@ -128,5 +128,30 @@ namespace Couchbase.Lite
             Assert.IsTrue(newCbLiteDbInfo.Exists);    
             Assert.AreEqual(2, testDirInfo.GetFiles().Length); 
         }
+
+        [Test]
+        public void TestReplaceDatabaseNamedNoAttachments() {
+            //Copy database from assets to local storage
+            var dbStream = GetAsset("noattachments.cblite");
+
+            manager.ReplaceDatabase("replaced", dbStream, null);
+
+            //Now validate the number of files in the DB
+            Assert.AreEqual(10, manager.GetDatabase("replaced").DocumentCount);
+        }
+
+        [Test]
+        public void TestReplaceDatabaseNamedWithAttachments() {
+            var dbStream = GetAsset("withattachments.cblite");
+            var attachments = new Dictionary<string, Stream>();
+            attachments["attachment.blob"] = GetAsset("attachment.blob");
+            manager.ReplaceDatabase("replaced", dbStream, attachments);
+
+            //Validate the number of files in the DB
+            Assert.AreEqual(1, manager.GetDatabase("replaced").DocumentCount);
+
+            var doc = manager.GetDatabase("replaced").GetExistingDocument("168e0c56-4588-4df4-8700-4d5115fa9c74");
+            Assert.IsNotNull(doc);
+        }
     }
 }
