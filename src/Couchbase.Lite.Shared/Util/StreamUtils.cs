@@ -27,8 +27,8 @@ namespace Couchbase.Lite.Util
             {
                 outStream.Write(buffer, 0, n);
             }
-            outStream.Close();
-            inStream.Close();
+            outStream.Dispose();
+            inStream.Dispose();
         }
     }
 }
