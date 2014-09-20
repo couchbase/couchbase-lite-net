@@ -183,13 +183,13 @@ namespace Couchbase.Lite.Replicator
             catch (AggregateException e)
             {
                 var err = e.InnerException;
-                Log.E(Tag, "io exception", err);
+                Log.E(Tag, "Unhandled Exception", err);
                 error = err;
                 RespondWithResult(fullBody, err, response);
             }
             catch (IOException e)
             {
-                Log.E(Tag, "io exception", e);
+                Log.E(Tag, "IO Exception", e);
                 error = e;
                 RespondWithResult(fullBody, e, response);
             }

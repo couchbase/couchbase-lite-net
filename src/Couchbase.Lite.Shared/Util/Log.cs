@@ -122,7 +122,7 @@ namespace Couchbase.Lite.Util
         /// the class or activity where the log call occurs.
         /// </param>
         /// <param name="msg">The message you would like logged.</param>
-        [System.Diagnostics.Conditional("TRACE")]
+        [System.Diagnostics.Conditional("DEBUG")]
         public static void D(string tag, string msg)
         {
             if (Logger != null)
@@ -139,7 +139,7 @@ namespace Couchbase.Lite.Util
         /// </param>
         /// <param name="msg">The message you would like logged.</param>
         /// <param name="tr">An exception to log</param>
-        [System.Diagnostics.Conditional("TRACE")]
+        [System.Diagnostics.Conditional("DEBUG")]
         public static void D(string tag, string msg, Exception tr)
         {
             if (Logger != null)
@@ -156,7 +156,7 @@ namespace Couchbase.Lite.Util
         /// </param>
         /// <param name="format">The message you would like logged.</param>
         /// <param name="args">string format arguments</param>
-        [System.Diagnostics.Conditional("TRACE")]
+        [System.Diagnostics.Conditional("DEBUG")]
         public static void D(string tag, string  format, params object[] args)
         {
             if (Logger != null)
@@ -172,7 +172,6 @@ namespace Couchbase.Lite.Util
         /// the class or activity where the log call occurs.
         /// </param>
         /// <param name="msg">The message you would like logged.</param>
-        [System.Diagnostics.Conditional("TRACE")]
         public static void I(string tag, string msg)
         {
             if (Logger != null)
@@ -189,7 +188,6 @@ namespace Couchbase.Lite.Util
         /// </param>
         /// <param name="msg">The message you would like logged.</param>
         /// <param name="tr">An exception to log</param>
-        [System.Diagnostics.Conditional("TRACE")]
         public static void I(string tag, string msg, Exception tr)
         {
             if (Logger != null)
@@ -206,7 +204,6 @@ namespace Couchbase.Lite.Util
         /// </param>
         /// <param name="format">The message you would like logged.</param>
         /// <param name="args">string format arguments</param>
-        [System.Diagnostics.Conditional("TRACE")]
         public static void I(string tag, string  format, params object[] args)
         {
             if (Logger != null)
@@ -222,7 +219,6 @@ namespace Couchbase.Lite.Util
         /// the class or activity where the log call occurs.
         /// </param>
         /// <param name="msg">The message you would like logged.</param>
-        [System.Diagnostics.Conditional("TRACE")]
         public static void W(string tag, string msg)
         {
             if (Logger != null)
@@ -235,7 +231,6 @@ namespace Couchbase.Lite.Util
         /// <remarks>Send a WARN message.</remarks>
         /// <param name="tag">Tag.</param>
         /// <param name="tr">Exception</param>
-        [System.Diagnostics.Conditional("TRACE")]
         public static void W(string tag, Exception tr)
         {
             if (Logger != null)
@@ -252,7 +247,6 @@ namespace Couchbase.Lite.Util
         /// </param>
         /// <param name="msg">The message you would like logged.</param>
         /// <param name="tr">An exception to log</param>
-        [System.Diagnostics.Conditional("TRACE")]
         public static void W(string tag, string msg, Exception tr)
         {
             if (Logger != null)
@@ -269,7 +263,6 @@ namespace Couchbase.Lite.Util
         /// </param>
         /// <param name="format">The message you would like logged.</param>
         /// <param name="args">string format arguments</param>
-        [System.Diagnostics.Conditional("TRACE")]
         public static void W(string tag, string  format, params object[] args)
         {
             if (Logger != null)

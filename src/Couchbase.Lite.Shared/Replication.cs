@@ -1128,7 +1128,7 @@ namespace Couchbase.Lite
                     }
                     catch (IOException e)
                     {
-                        Log.E(Tag, "io exception", e);
+                        Log.E(Tag, "IO Exception", e);
                         error = e;
                     }
                 }), WorkExecutor.Scheduler);

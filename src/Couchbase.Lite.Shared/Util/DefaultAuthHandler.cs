@@ -66,6 +66,9 @@ namespace Couchbase.Lite.Replicator
 
         protected override HttpResponseMessage ProcessResponse (HttpResponseMessage response, CancellationToken cancellationToken)
         {
+            if (response.Content != null) {
+                response.Content.LoadIntoBufferAsync().Wait();
+            }
             var hasSetCookie = response.Headers.Contains("Set-Cookie");
             if (hasSetCookie)
             {
@@ -81,6 +84,9 @@ namespace Couchbase.Lite.Replicator
         /// <exception cref="System.IO.IOException"></exception>
         protected override HttpRequestMessage ProcessRequest(HttpRequestMessage request, CancellationToken cancellationToken)
         {
+            if (request.Content != null) {
+                request.Content.LoadIntoBufferAsync().Wait();
+            }
             // TODO: We could make this class handle more than one request using a dictionary of cancellation tokens,
             //       but that would require using unique tokens per request, instead of sharing them. In order to
             //       keep our easy cancellability, we can use linked cancellation sourceses that all link back
