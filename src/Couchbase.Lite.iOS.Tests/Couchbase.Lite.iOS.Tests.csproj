@@ -148,5 +148,14 @@
     <EmbeddedResource Include="Resources\test.properties">
       <LogicalName>CouchbaseLiteiOSTests.Assets.test.properties</LogicalName>
     </EmbeddedResource>
+    <EmbeddedResource Include="Resources\noattachments.cblite">
+      <LogicalName>CouchbaseLiteiOSTests.Assets.noattachments.cblite</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\withattachments.cblite">
+      <LogicalName>CouchbaseLiteiOSTests.Assets.withattachments.cblite</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\attachment.blob">
+      <LogicalName>CouchbaseLiteiOSTests.Assets.attachment.blob</LogicalName>
+    </EmbeddedResource>
   </ItemGroup>
 </Project>

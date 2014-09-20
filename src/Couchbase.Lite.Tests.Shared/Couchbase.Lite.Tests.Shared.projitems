@@ -49,5 +49,8 @@
     <None Include="$(MSBuildThisFileDirectory)Assets\attachment2.png" />
     <None Include="$(MSBuildThisFileDirectory)Assets\local-test.properties" />
     <None Include="$(MSBuildThisFileDirectory)Assets\test.properties" />
+    <None Include="$(MSBuildThisFileDirectory)Assets\noattachments.cblite" />
+    <None Include="$(MSBuildThisFileDirectory)Assets\attachment.blob" />
+    <None Include="$(MSBuildThisFileDirectory)Assets\withattachments.cblite" />
   </ItemGroup>
 </Project>

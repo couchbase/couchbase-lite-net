@@ -289,9 +289,9 @@ namespace Couchbase.Lite
 
                 var destStream = File.OpenWrite(database.Path);
                 databaseStream.CopyTo(destStream);
+                destStream.Close();
 
                 var dstAttachmentsDirectory = new DirectoryInfo (dstAttachmentsPath);
-                //FileDirUtils.DeleteRecursive(attachmentsFile);
                 System.IO.Directory.Delete (dstAttachmentsPath, true);
                 dstAttachmentsDirectory.Create ();
 
@@ -302,7 +302,6 @@ namespace Couchbase.Lite
                 }
 
                 database.ReplaceUUIDs ();
-
             } catch (Exception e) {
                 Log.E(Database.Tag, string.Empty, e);
                 throw new CouchbaseLiteException(StatusCode.InternalServerError);
