@@ -3,7 +3,7 @@
   <metadata>
     <id>Couchbase.Lite </id>
     <title>Couchbase Lite</title>
-    <version>0.9.5-pre5</version>
+    <version>0.9.5-pre6</version>
     <authors>Zachary Gramana</authors>
     <owners>Couchbase</owners>
     <licenseUrl>https://github.com/couchbaselabs/couchbase-lite-net/blob/master/LICENSE</licenseUrl>
@@ -16,7 +16,8 @@
     	* pre2's' fixes for issues #272, #269, #268, #264.
     	* pre3's' fixes for issues #277, #274
     	* pre4's' fixes for issues #276, #282, #286
-      * Plus fixes for issues #288
+    	* pre5's' fixes for issues #288
+    	* Plus fixes for issues #291
     </releaseNotes>
     <copyright>Copyright 2014</copyright>
     <tags>couchbase couchbase-mobile couchbase-lite sync database mobile xamarin ios android windows linux mac osx</tags>
@@ -29,7 +30,7 @@
   </metadata>
   <files>
     <file target="lib/net45" src="src/Couchbase.Lite.Net45/bin/Release/Couchbase.Lite.*" />
-    <file target="lib/MonoAndroid" src="src/Couchbase.Lite.Net45/bin/Release/Couchbase.Lite.*" />
+    <file target="lib/MonoAndroid" src="src/Couchbase.Lite.Android/bin/Release/Couchbase.Lite.*" />
     <file target="lib/MonoTouch" src="src/Couchbase.Lite.iOS/bin/Release/Couchbase.Lite.*" />
   </files>
 </package>
