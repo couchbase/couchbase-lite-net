@@ -792,7 +792,7 @@ namespace Couchbase.Lite.Replicator
         /// <summary>This will be called when _revsToInsert fills up:</summary>
         public void InsertDownloads(IList<RevisionInternal> downloads)
         {
-            Log.I(Tag, "inserting " + downloads.Count + " revisions...");
+            Log.V(Tag, "Inserting " + downloads.Count + " revisions...");
 
             var time = DateTime.UtcNow;
 

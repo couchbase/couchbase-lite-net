@@ -913,7 +913,7 @@ namespace Couchbase.Lite
                 ? requestTokenSource.Token
                 : CancellationTokenSource.Token;
             Log.D(Tag, "Sending async {0} request to: {1}", method, url);
-            client.SendAsync(message, HttpCompletionOption.ResponseHeadersRead, token)
+            client.SendAsync(message, token)
                 .ContinueWith(response =>
                 {
                     lock(requests)

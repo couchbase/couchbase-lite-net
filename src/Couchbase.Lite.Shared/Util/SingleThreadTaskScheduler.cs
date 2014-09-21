@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Collections.Concurrent;
 using System.Threading.Tasks;
 using System.Threading;
+using System.Linq;
+using System.Reflection;
 
 
 namespace Couchbase.Lite.Util
@@ -30,8 +32,17 @@ namespace Couchbase.Lite.Util
             if (task.CreationOptions.HasFlag(TaskCreationOptions.LongRunning))
             {
                 Log.D(Tag, " --> Spawing a long running task as a thread.");
-                var thread = new Thread(()=>TryExecuteTask(task)) { IsBackground = true };
-                thread.Start();
+                var thread = new Thread((t)=>
+                {
+                    try {
+                        var success = TryExecuteTask((Task)t);
+                        if (!success)
+                            throw new InvalidOperationException("A spawned task failed to run correctly.");
+                    } catch (Exception ex) {
+                        Log.E(Tag, "Spawned task throw an unhandled exception.", ex);
+                    }
+                }) { IsBackground = true };
+                thread.Start(task);
                 return;
             }
             queue.Add (task); 

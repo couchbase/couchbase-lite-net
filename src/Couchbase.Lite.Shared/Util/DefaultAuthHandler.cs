@@ -67,7 +67,11 @@ namespace Couchbase.Lite.Replicator
         protected override HttpResponseMessage ProcessResponse (HttpResponseMessage response, CancellationToken cancellationToken)
         {
             if (response.Content != null) {
-                response.Content.LoadIntoBufferAsync().Wait();
+                var mre = new ManualResetEvent(false);
+                response.Content.LoadIntoBufferAsync().ConfigureAwait(true).GetAwaiter().OnCompleted(()=>{
+                    mre.Set();
+                });
+                mre.WaitOne(Manager.DefaultOptions.RequestTimeout, true);
             }
             var hasSetCookie = response.Headers.Contains("Set-Cookie");
             if (hasSetCookie)
@@ -85,7 +89,11 @@ namespace Couchbase.Lite.Replicator
         protected override HttpRequestMessage ProcessRequest(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             if (request.Content != null) {
-                request.Content.LoadIntoBufferAsync().Wait();
+                var mre = new ManualResetEvent(false);
+                request.Content.LoadIntoBufferAsync().ConfigureAwait(true).GetAwaiter().OnCompleted(()=>{
+                    mre.Set();
+                });
+                mre.WaitOne(Manager.DefaultOptions.RequestTimeout, true);
             }
             // TODO: We could make this class handle more than one request using a dictionary of cancellation tokens,
             //       but that would require using unique tokens per request, instead of sharing them. In order to

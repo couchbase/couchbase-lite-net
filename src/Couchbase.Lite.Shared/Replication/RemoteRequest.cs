@@ -158,7 +158,7 @@ namespace Couchbase.Lite.Replicator
         protected HttpRequestMessage CreateConcreteRequest()
         {
             var httpMethod = new HttpMethod(method);
-            var newRequest = new HttpRequestMessage(httpMethod, url.AbsoluteUri);;
+            var newRequest = new HttpRequestMessage(httpMethod, url.AbsoluteUri);
             return newRequest;
         }
 
@@ -179,6 +179,10 @@ namespace Couchbase.Lite.Replicator
                 var entity = new ByteArrayContent(bodyBytes);
                 entity.Headers.ContentType = new MediaTypeHeaderValue("application/json");
                 request.Content = entity;
+            }
+            else
+            {
+                Log.W(Tag + ".SetBody", "No body found for this request to {0}", request.RequestUri);
             }
         }
 
@@ -222,7 +226,7 @@ namespace Couchbase.Lite.Replicator
                     return;
                 }
                 Log.V(Tag, "{0}: RemoteRequest calling httpClient.execute", this);
-                response = httpClient.SendAsync(requestMessage, HttpCompletionOption.ResponseHeadersRead, _tokenSource.Token).Result;
+                response = httpClient.SendAsync(requestMessage, _tokenSource.Token).Result;
                 Log.V(Tag, "{0}: RemoteRequest called httpClient.execute", this);
                 var status = response.StatusCode;
                 if (Misc.IsTransientError(status) && RetryRequest())

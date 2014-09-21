@@ -98,15 +98,65 @@ namespace Couchbase.Lite.Replicator
                     RespondWithResult(fullBody, new Exception(string.Format("{0}: Request {1} has been aborted", this, request)), response);
                     return;
                 }
+            }
+            catch (AggregateException e)
+            {
+                var err = e.InnerException;
+                Log.E(Tag, "Unhandled Exception", err);
+                error = err;
+                RespondWithResult(fullBody, err, response);
+                return;
+            }
+            catch (IOException e)
+            {
+                Log.E(Tag, "IO Exception", e);
+                error = e;
+                RespondWithResult(fullBody, e, response);
+                return;
+            }
+            catch (Exception e)
+            {
+                Log.E(Tag, "ExecuteRequest Exception: ", e);
+                error = e;
+                RespondWithResult(fullBody, e, response);
+                return;
+            }
+
+            try
+            {
                 Log.D(Tag + ".ExecuteRequest", "Sending request: {0}", request);
                 var requestTokenSource = CancellationTokenSource.CreateLinkedTokenSource(_tokenSource.Token);
-                var responseTask = httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, requestTokenSource.Token);
+                var responseTask = httpClient.SendAsync(request/*, HttpCompletionOption.ResponseContentRead*/, requestTokenSource.Token);
                 if (!responseTask.Wait((Int32)ManagerOptions.Default.RequestTimeout.TotalMilliseconds, requestTokenSource.Token))
                 {
                     Log.E(Tag, "Response task timed out: {0}, {1}", responseTask, TaskScheduler.Current);
                     throw new HttpResponseException(HttpStatusCode.RequestTimeout);
                 }
+                requestTokenSource.Dispose();
                 response = responseTask.Result;
+            }
+            catch (AggregateException e)
+            {
+                var err = e.InnerException;
+                Log.E(Tag, "Unhandled Exception at Line 129 or 130", err);
+                error = err;
+                RespondWithResult(fullBody, err, response);
+            }
+            catch (IOException e)
+            {
+                Log.E(Tag, "IO Exception", e);
+                error = e;
+                RespondWithResult(fullBody, e, response);
+            }
+            catch (Exception e)
+            {
+                Log.E(Tag, "ExecuteRequest Exception: ", e);
+                error = e;
+                RespondWithResult(fullBody, e, response);
+            }
+
+            try
+            {
                 var status = response.StatusCode;
                 if (response == null || !response.IsSuccessStatusCode)
                 {
@@ -272,7 +322,15 @@ namespace Couchbase.Lite.Replicator
             };
 
                 // Build up a JSON body describing what revisions we want:
-            var keys = revs.Select(invoke);       
+            IEnumerable<IDictionary<string, object>> keys = null;
+            try
+            {
+                keys = revs.Select(invoke);
+            } 
+            catch (Exception ex)
+            {
+                Log.E(Tag, "Error generating bulk request data.", ex);
+            }       
             
             var retval = new Dictionary<string, object>();
             retval.Put("docs", keys);
@@ -283,17 +341,6 @@ namespace Couchbase.Lite.Replicator
         {
             var uri = remote.AppendPath(relativePath);
             return uri.AbsoluteUri;
-            // the following code is a band-aid for a system problem in the codebase
-            // where it is appending "relative paths" that start with a slash, eg:
-            //     http://dotcom/db/ + /relpart == http://dotcom/db/relpart
-            // which is not compatible with the way the java url concatonation works.
-//            var remoteUrlString = remote.AbsolutePath;
-//            if (remoteUrlString.EndsWith ("/", StringComparison.Ordinal) 
-//                && relativePath.StartsWith ("/", StringComparison.Ordinal))
-//            {
-//                remoteUrlString = remoteUrlString.Substring(0, remoteUrlString.Length - 1);
-//            }
-//            return remoteUrlString + relativePath;
         }
     }
 }
