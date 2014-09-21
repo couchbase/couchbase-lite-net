@@ -57,6 +57,7 @@ using Couchbase.Lite.Util;
 using Sharpen;
 using System.Text;
 using Couchbase.Lite.Support;
+using Newtonsoft.Json;
 
 namespace Couchbase.Lite.Replicator
 {
@@ -330,7 +331,6 @@ namespace Couchbase.Lite.Replicator
                     // There's got to be a better way to deal with this.
                     var info = httpClient.SendAsync(
                         Request, 
-                        HttpCompletionOption.ResponseContentRead, 
                         changesFeedRequestTokenSource.Token
                     );
                     var infoAwaiter = info.ConfigureAwait(false).GetAwaiter();
@@ -433,6 +433,7 @@ namespace Couchbase.Lite.Replicator
             if (response == null)
                 return null;
             var status = response.StatusCode;
+
             if ((Int32)status >= 300 && !Misc.IsTransientError(status))
             {
                 var msg = response.Content != null 
@@ -448,7 +449,19 @@ namespace Couchbase.Lite.Replicator
                 case ChangeTrackerMode.LongPoll:
                     {
                         var content = response.Content.ReadAsByteArrayAsync().Result;
-                        var fullBody = Manager.GetObjectMapper().ReadValue<IDictionary<string, object>>(content.AsEnumerable());
+                        IDictionary<string, object> fullBody;
+                        try
+                        {
+                            fullBody = Manager.GetObjectMapper().ReadValue<IDictionary<string, object>>(content.AsEnumerable());
+                        } 
+                        catch (JsonSerializationException ex)
+                        {
+                            const string timeoutContent = "{\"results\":[\r\n";
+                            if (!Encoding.UTF8.GetString(content).Equals(timeoutContent) || !ex.Message.EndsWith("Path 'results', line 3, position 1."))
+                                throw ex;
+                            Log.V(Tag, "Timeout while waiting for changes.");
+                            return response;
+                        }
                         var responseOK = ReceivedPollResponse(fullBody);
                         if (responseOK)
                         {
