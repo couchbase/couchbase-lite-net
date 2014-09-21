@@ -68,6 +68,10 @@
     <OutputPath>bin\x86\Release\</OutputPath>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="nunit.framework">
+      <HintPath>..\packages\NUnit.2.6.3\lib\nunit.framework.dll</HintPath>
+    <Reference Include="SQLitePCL.raw">
+      <HintPath>..\packages\SQLitePCL.raw_basic.0.4.0-alpha\build\net45\pinvoke_sqlite3\x64\SQLitePCL.raw.dll</HintPath>
     <Reference Include="nunitlite">
       <HintPath>..\packages\NUnitLite.1.0.0\lib\net45\nunitlite.dll</HintPath>
     <Reference Include="SQLitePCL.raw">

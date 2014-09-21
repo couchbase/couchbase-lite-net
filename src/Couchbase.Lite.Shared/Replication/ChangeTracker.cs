@@ -372,20 +372,20 @@ namespace Couchbase.Lite.Replicator
                     } finally {
                         if (changesRequestTask.IsCompleted) 
                         {
-                            changesRequestTask.Dispose();
+                        changesRequestTask.Dispose();
                         }
                         changesRequestTask = null;
 
                         if (successHandler.IsCompleted) 
                         {
-                            successHandler.Dispose();
+                        successHandler.Dispose();
                         }
 
                         successHandler = null;
 
                         if (errorHandler.IsCompleted) 
                         {
-                            errorHandler.Dispose();
+                        errorHandler.Dispose();
                         }
 
                         errorHandler = null;
