@@ -1134,5 +1134,52 @@ namespace Couchbase.Lite
             Assert.AreEqual(Pusher.FindCommonAncestor(rev, (new [] {"3-noway", "1-first"}).ToList()), 1);
             Assert.AreEqual(Pusher.FindCommonAncestor(rev, (new [] {"3-noway", "2-second", "1-first"}).ToList()), 2);
         }
+
+        [Test]
+        public void TestPushManyNewDocuments()
+        {
+            var numDocs = 100;
+
+            var pusher = database.CreatePushReplication(GetReplicationURL());
+            pusher.Continuous = true;
+
+            var changesCount = 0;
+            var completedChangesCount = 0;
+            var replicationCaughtUpSignal = new CountdownEvent(1);
+            pusher.Changed += (sender, e) => 
+            {
+                changesCount = e.Source.ChangesCount;
+                completedChangesCount = e.Source.CompletedChangesCount;
+                var msg = "changes: {0} completed changes: {1}".Fmt(changesCount, completedChangesCount);
+                Log.D(Tag, msg);
+                if (changesCount == completedChangesCount 
+                    && changesCount == numDocs
+                    && replicationCaughtUpSignal.CurrentCount > 0)
+                {
+                    replicationCaughtUpSignal.Signal();
+                }
+            };
+            pusher.Start();
+
+            for (var i = 0; i < numDocs; i++)
+            {
+                var properties = new Dictionary<string, object>() 
+                {
+                    {"type", "session"},
+                    {"id", "session-" + i},
+                    {"title", "title" + i},
+                    {"speaker", "TBD"},
+                    {"time", "2014-10-07T16:20:00"},
+                    {"Track", "Case Study"}
+                };
+
+                var doc = database.CreateDocument();
+                var rev = doc.PutProperties(properties);
+                Assert.IsNotNull(rev);
+            }
+
+            replicationCaughtUpSignal.Wait(TimeSpan.FromSeconds(8));
+            Assert.AreEqual(numDocs, completedChangesCount);
+        }
     }
 }
