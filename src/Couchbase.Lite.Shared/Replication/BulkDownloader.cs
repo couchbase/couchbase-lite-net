@@ -69,20 +69,31 @@ namespace Couchbase.Lite.Replicator
 
         public override void Run()
         {
-            var httpClient = clientFactory.GetHttpClient();
-
-            requestMessage.Headers.Accept.Add(new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("multipart/related"));
-
-            var authHeader = AuthUtils.GetAuthenticationHeaderValue(Authenticator, requestMessage.RequestUri);
-            if (authHeader != null)
+            HttpClient httpClient = null;
+            try 
             {
-                httpClient.DefaultRequestHeaders.Authorization = authHeader;
+                httpClient = clientFactory.GetHttpClient();
+                requestMessage.Headers.Accept.Add(new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("multipart/related"));
+
+                var authHeader = AuthUtils.GetAuthenticationHeaderValue(Authenticator, requestMessage.RequestUri);
+                if (authHeader != null)
+                {
+                    httpClient.DefaultRequestHeaders.Authorization = authHeader;
+                }
+
+                //TODO: implement gzip support for server response see issue #172
+                //request.addHeader("X-Accept-Part-Encoding", "gzip");
+                AddRequestHeaders(requestMessage);
+                SetBody(requestMessage);
+                ExecuteRequest(httpClient, requestMessage);
             }
-            //TODO: implement gzip support for server response see issue #172
-            //request.addHeader("X-Accept-Part-Encoding", "gzip");
-            AddRequestHeaders(requestMessage);
-            SetBody(requestMessage);
-            ExecuteRequest(httpClient, requestMessage);
+            finally
+            {
+                if (httpClient != null) 
+                {
+                    httpClient.Dispose();
+                }
+            }
         }
 
         private string Description()
