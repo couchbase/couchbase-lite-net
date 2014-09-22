@@ -107,23 +107,34 @@ namespace Couchbase.Lite.Replicator
         {
             Log.V(Tag, "{0}: RemoteRequest run() called, url: {1}".Fmt(this, url));
 
-            var httpClient = clientFactory.GetHttpClient();
-            
-            //var manager = httpClient.GetConnectionManager();
-            var authHeader = AuthUtils.GetAuthenticationHeaderValue(Authenticator, requestMessage.RequestUri);
-            if (authHeader != null)
+            HttpClient httpClient = null;
+            try
             {
-                httpClient.DefaultRequestHeaders.Authorization = authHeader;
-            }
+                httpClient = clientFactory.GetHttpClient();
 
-            requestMessage.Headers.Add("Accept", "multipart/related, application/json");           
-            AddRequestHeaders(requestMessage);
-            
-            SetBody(requestMessage);
-            
-            ExecuteRequest(httpClient, requestMessage);
-            
-            Log.V(Tag, "{0}: RemoteRequest run() finished, url: {1}".Fmt(this, url));
+                //var manager = httpClient.GetConnectionManager();
+                var authHeader = AuthUtils.GetAuthenticationHeaderValue(Authenticator, requestMessage.RequestUri);
+                if (authHeader != null)
+                {
+                    httpClient.DefaultRequestHeaders.Authorization = authHeader;
+                }
+
+                requestMessage.Headers.Add("Accept", "multipart/related, application/json");           
+                AddRequestHeaders(requestMessage);
+
+                SetBody(requestMessage);
+
+                ExecuteRequest(httpClient, requestMessage);
+
+                Log.V(Tag, "{0}: RemoteRequest run() finished, url: {1}".Fmt(this, url));
+            }
+            finally
+            {
+                if (httpClient != null)
+                {
+                    httpClient.Dispose();
+                }
+            }
         }
 
         public virtual void Abort()

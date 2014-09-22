@@ -933,79 +933,87 @@ namespace Couchbase.Lite
             var token = requestTokenSource != null 
                 ? requestTokenSource.Token
                 : CancellationTokenSource.Token;
+
             Log.D(Tag, "Sending async {0} request to: {1}", method, url);
             client.SendAsync(message, token)
                 .ContinueWith(response =>
                 {
-                    lock(requests)
+                    try 
                     {
-                        requests.Remove(client);
-                    }
-                    HttpResponseMessage result = null;
-                    Exception error = null;
-                    if (!response.IsFaulted)
-                    {
-                        result = response.Result;
-                        UpdateServerType(result);
-                    }
-                    else
-                    {
-                        error = response.Exception.InnerException;
-                        Log.E(Tag, "Http Message failed to send: {0}", message);
-                        Log.E(Tag, "Http exception", response.Exception.InnerException);
-                        if (message.Content != null) {
-                            Log.E(Tag, "\tFailed content: {0}", message.Content.ReadAsStringAsync().Result);
-                        }
-                    }
-                    
-                    if (completionHandler != null)
-                    {
-                        object fullBody = null;
-
-                        try
+                        lock(requests)
                         {
-                            if (response.Status != TaskStatus.RanToCompletion) {
-                                Log.D(Tag, "SendAsyncRequest did not run to completion.", response.Exception);
+                            requests.Remove(client);
+                        }
+                        HttpResponseMessage result = null;
+                        Exception error = null;
+                        if (!response.IsFaulted)
+                        {
+                            result = response.Result;
+                            UpdateServerType(result);
+                        }
+                        else
+                        {
+                            error = response.Exception.InnerException;
+                            Log.E(Tag, "Http Message failed to send: {0}", message);
+                            Log.E(Tag, "Http exception", response.Exception.InnerException);
+                            if (message.Content != null) {
+                                Log.E(Tag, "\tFailed content: {0}", message.Content.ReadAsStringAsync().Result);
                             }
+                        }
 
-                            error = error is AggregateException
-                                ? response.Exception.Flatten()
-                                : response.Exception;
+                        if (completionHandler != null)
+                        {
+                            object fullBody = null;
 
-                            if (error == null )
+                            try
                             {
-                                if (!result.IsSuccessStatusCode) 
+                                if (response.Status != TaskStatus.RanToCompletion) {
+                                    Log.D(Tag, "SendAsyncRequest did not run to completion.", response.Exception);
+                                }
+
+                                error = error is AggregateException
+                                    ? response.Exception.Flatten()
+                                    : response.Exception;
+
+                                if (error == null )
                                 {
-                                    result = response.Result;
-                                    error = new HttpResponseException(result.StatusCode);
+                                    if (!result.IsSuccessStatusCode) 
+                                    {
+                                        result = response.Result;
+                                        error = new HttpResponseException(result.StatusCode);
+                                    }
+                                }
+
+                                if (error == null)
+                                {
+                                    var content = result.Content;
+                                    if (content != null)
+                                    {
+                                        fullBody = mapper.ReadValue<object>(content.ReadAsStreamAsync().Result);
+                                    }
                                 }
                             }
-
-                            if (error == null)
+                            catch (Exception e)
                             {
-                                var content = result.Content;
-                                if (content != null)
-                                {
-                                    fullBody = mapper.ReadValue<object>(content.ReadAsStreamAsync().Result);
-                                }
+                                error = e;
+                                Log.E(Tag, "SendAsyncRequest has an error occurred.", e);
                             }
-                        }
-                        catch (Exception e)
-                        {
-                            error = e;
-                            Log.E(Tag, "SendAsyncRequest has an error occurred.", e);
+
+                            if (response.Status == TaskStatus.Canceled)
+                            {
+                                fullBody = null;
+                                error = new Exception("SendAsyncRequest Task has been canceled.");
+                            }
+
+                            completionHandler(fullBody, error);
                         }
 
-                        if (response.Status == TaskStatus.Canceled)
-                        {
-                            fullBody = null;
-                            error = new Exception("SendAsyncRequest Task has been canceled.");
-                        }
-
-                        completionHandler(fullBody, error);
+                        return result;
                     }
-
-                    return result;
+                    finally
+                    {
+                        client.Dispose();
+                    }
                 }, token, TaskContinuationOptions.None, WorkExecutor.Scheduler);
 
             lock(requests)
@@ -1041,8 +1049,7 @@ namespace Couchbase.Lite
                     client.DefaultRequestHeaders.Authorization = authHeader;
                 }
 
-                client.SendAsync(message, CancellationTokenSource.Token)
-                .ContinueWith(new Action<Task<HttpResponseMessage>>(responseMessage =>
+                client.SendAsync(message, CancellationTokenSource.Token).ContinueWith(new Action<Task<HttpResponseMessage>>(responseMessage =>
                 {
                     object fullBody = null;
                     Exception error = null;
@@ -1152,6 +1159,10 @@ namespace Couchbase.Lite
                         Log.E(Tag, "IO Exception", e);
                         error = e;
                     }
+                    finally
+                    {
+                        client.Dispose();
+                    }
                 }), WorkExecutor.Scheduler);
             }
             catch (UriFormatException e)
@@ -1190,30 +1201,39 @@ namespace Couchbase.Lite
                     if (response.Status != TaskStatus.RanToCompletion)
                     {
                         Log.E(Tag, "SendAsyncRequest did not run to completion.", response.Exception);
+                        client.Dispose();
                         return null;
                     }
                     if ((Int32)response.Result.StatusCode > 300) {
                         SetLastError(new HttpResponseException(response.Result.StatusCode));
                         Log.E(Tag, "Server returned HTTP Error", LastError);
+                        client.Dispose();
                         return null;
                     }
                     return response.Result.Content.ReadAsStreamAsync();
                 }, CancellationTokenSource.Token)
                 .ContinueWith(response=> {
-                    var hasEmptyResult = response.Result == null || response.Result.Result == null || response.Result.Result.Length == 0;
-                    if (response.Status != TaskStatus.RanToCompletion) {
-                        Log.E (Tag, "SendAsyncRequest did not run to completion.", response.Exception);
-                    } else if (hasEmptyResult) {
-                        Log.E (Tag, "Server returned an empty response.", response.Exception ?? LastError);
-                    }
-                    if (completionHandler != null) {
-                        object fullBody = null;
-                        if (!hasEmptyResult)
-                        {
-                            var mapper = Manager.GetObjectMapper();
-                            fullBody = mapper.ReadValue<Object> (response.Result.Result);
+                    try 
+                    {
+                        var hasEmptyResult = response.Result == null || response.Result.Result == null || response.Result.Result.Length == 0;
+                        if (response.Status != TaskStatus.RanToCompletion) {
+                            Log.E (Tag, "SendAsyncRequest did not run to completion.", response.Exception);
+                        } else if (hasEmptyResult) {
+                            Log.E (Tag, "Server returned an empty response.", response.Exception ?? LastError);
                         }
-                        completionHandler (fullBody, response.Exception);
+                        if (completionHandler != null) {
+                            object fullBody = null;
+                            if (!hasEmptyResult)
+                            {
+                                var mapper = Manager.GetObjectMapper();
+                                fullBody = mapper.ReadValue<Object> (response.Result.Result);
+                            }
+                            completionHandler (fullBody, response.Exception);
+                        }
+                    }
+                    finally
+                    {
+                        client.Dispose();
                     }
                 }, CancellationTokenSource.Token);
         }
