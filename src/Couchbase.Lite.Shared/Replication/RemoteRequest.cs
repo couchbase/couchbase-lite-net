@@ -110,7 +110,11 @@ namespace Couchbase.Lite.Replicator
             var httpClient = clientFactory.GetHttpClient();
             
             //var manager = httpClient.GetConnectionManager();
-            PreemptivelySetAuthCredentials(httpClient);
+            var authHeader = AuthUtils.GetAuthenticationHeaderValue(Authenticator, requestMessage.RequestUri);
+            if (authHeader != null)
+            {
+                httpClient.DefaultRequestHeaders.Authorization = authHeader;
+            }
 
             requestMessage.Headers.Add("Accept", "multipart/related, application/json");           
             AddRequestHeaders(requestMessage);
@@ -281,39 +285,6 @@ namespace Couchbase.Lite.Replicator
             }
             Log.V(Tag, "RemoteRequest calling respondWithResult.", error);
             RespondWithResult(fullBody, error, response);
-        }
-
-        protected internal void PreemptivelySetAuthCredentials(HttpClient httpClient)
-        {
-            var isUrlBasedUserInfo = false;
-            var userInfo = url.UserInfo;
-            if (userInfo != null)
-            {
-                isUrlBasedUserInfo = true;
-            }
-            else
-            {
-                if (Authenticator != null)
-                {
-                    var auth = Authenticator;
-                    userInfo = auth.UserInfo;
-                }
-            }
-            if (userInfo != null)
-            {
-                if (userInfo.Contains(":") && !userInfo.Trim().Equals(":"))
-                {
-                    var userInfoElements = userInfo.Split(':');
-                    var username = isUrlBasedUserInfo ? URIUtils.Decode(userInfoElements[0]) : userInfoElements[0];
-                    var password = isUrlBasedUserInfo ? URIUtils.Decode(userInfoElements[1]) : userInfoElements[1];
-                    var authHandler = clientFactory.Handler.InnerHandler as HttpClientHandler;
-                    authHandler.Credentials = new NetworkCredential(username, password);
-                }
-                else
-                {
-                    Log.W(Tag, "RemoteRequest Unable to parse user info, not setting credentials");
-                }
-            }
         }
 
         public void RespondWithResult(object result, Exception error, HttpResponseMessage response)
