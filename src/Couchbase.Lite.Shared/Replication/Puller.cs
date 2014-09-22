@@ -248,7 +248,7 @@ namespace Couchbase.Lite.Replicator
                 Log.D(Tag, "adding rev to inbox " + rev);
                 Log.V(Tag, "ChangeTrackerReceivedChange() incrementing changesCount by 1");
 
-                ChangesCount += changes.Length;
+                SafeAddToChangesCount(changes.Length);
 
                 AddToInbox(rev);
             }
@@ -331,7 +331,7 @@ namespace Couchbase.Lite.Replicator
             if (numRevisionsRemoved > 0)
             {
                 Log.V(Tag, "processInbox() setting changesCount to: " + (ChangesCount - numRevisionsRemoved));
-                ChangesCount = ChangesCount - numRevisionsRemoved;
+                SafeAddToChangesCount(-numRevisionsRemoved);
             }
 
             if (inboxCount == 0)

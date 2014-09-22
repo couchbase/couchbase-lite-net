@@ -430,7 +430,8 @@ namespace Couchbase.Lite.Replicator
             }
 
             Log.V(Tag, string.Format("{0}: POSTing " + numDocsToSend + " revisions to _bulk_docs: {1}", this, docsToSend));
-            ChangesCount += numDocsToSend;
+
+            SafeAddToChangesCount(numDocsToSend);
 
             var bulkDocsBody = new Dictionary<string, object>();
             bulkDocsBody["docs"] = docsToSend;
@@ -628,7 +629,7 @@ namespace Couchbase.Lite.Replicator
             Log.D(Tag, "Uploading multipart request.  Revision: " + revision);
             Log.D(Tag, "uploadMultipartRevision() calling asyncTaskStarted()");
 
-            ChangesCount += 1;
+            SafeAddToChangesCount(1);
             AsyncTaskStarted();
 
             SendAsyncMultipartRequest(HttpMethod.Put, path, multiPart, (result, e) => {
