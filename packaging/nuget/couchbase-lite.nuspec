@@ -3,7 +3,7 @@
   <metadata>
     <id>Couchbase.Lite </id>
     <title>Couchbase Lite</title>
-    <version>0.9.5-pre9</version>
+    <version>0.9.5-pre10</version>
     <authors>Zachary Gramana</authors>
     <owners>Couchbase</owners>
     <licenseUrl>https://github.com/couchbaselabs/couchbase-lite-net/blob/master/LICENSE</licenseUrl>
@@ -20,7 +20,8 @@
     	* pre6's fix for issue #291.
     	* pre7's fix for issue #292.
     	* pre8's fix for issue #294.
-    	* plus fixes for #296 (thanks Eric Sink!), #302.
+    	* pre9's fix for issue #296 (thanks Eric Sink!), #302.
+    	* plus fixes for issue #303, #304.
     </releaseNotes>
     <copyright>Copyright 2014</copyright>
     <tags>couchbase couchbase-mobile couchbase-lite sync database mobile xamarin ios android windows linux mac osx</tags>
