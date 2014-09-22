@@ -314,13 +314,27 @@ namespace Couchbase.Lite
 
         protected void SafeAddToCompletedChangesCount(int value)
         {
-            if (value == 0) {
+            if (value == 0) 
+            {
                 return;
             }
 
             Log.V(Tag, ">>>Updating completedChangesCount from {0} by {1}", completedChangesCount, value);
             Interlocked.Add(ref completedChangesCount, value);
             Log.V(Tag, "<<<Updated completedChanges count to {0}", completedChangesCount);
+            NotifyChangeListeners();
+        }
+
+        protected void SafeAddToChangesCount(int value)
+        {
+            if (value == 0) 
+            {
+                return;
+            }
+
+            Log.V(Tag, ">>>Updating changesCount from {0} by {1}", changesCount, value);
+            Interlocked.Add(ref changesCount, value);
+            Log.V(Tag, "<<<Updated changesCount to {0}", changesCount);
             NotifyChangeListeners();
         }
 
@@ -1709,12 +1723,6 @@ namespace Couchbase.Lite
         /// <value>The changes count.</value>
         public Int32 ChangesCount {
             get { return changesCount; }
-            protected set {
-                //Debug.Assert(value > 0);
-                Log.V(Tag, "Updating changes count by {0} to {1}", value, changesCount);
-                changesCount = value;
-                NotifyChangeListeners();
-            }
         }
 
         /// <summary>
