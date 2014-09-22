@@ -232,6 +232,15 @@ namespace Couchbase.Lite
 
         protected internal String  sessionID;
 
+        protected void SetLastError(Exception error) {
+            if (LastError != error)
+            {
+                Log.E(Tag, " Progress: set error = ", error);
+                LastError = error;
+                NotifyChangeListeners();
+            }
+        }
+
         protected internal Boolean lastSequenceChanged;
 
         private String lastSequence;
@@ -270,8 +279,6 @@ namespace Couchbase.Lite
         internal Int32 changesCount;
         internal Int32 asyncTaskCount;
         internal Boolean active;
-
-        internal IAuthenticator Authenticator { get; set; }
 
         internal CookieContainer CookieContainer
         {
@@ -1710,14 +1717,11 @@ namespace Couchbase.Lite
             }
         }
 
-        protected void SetLastError(Exception error) {
-            if (LastError != error)
-            {
-                Log.E(Tag, " Progress: set error = ", error);
-                LastError = error;
-                NotifyChangeListeners();
-            }
-        }
+        /// <summary>
+        /// Gets or sets the authenticator.
+        /// </summary>
+        /// <value>The authenticator.</value>
+        public IAuthenticator Authenticator { get; set; }
 
         //Methods
 

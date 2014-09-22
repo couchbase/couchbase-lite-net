@@ -25,8 +25,8 @@
     <tags>couchbase couchbase-mobile couchbase-lite sync database mobile xamarin ios android windows linux mac osx</tags>
     <language>en-US</language>
     <dependencies>
-      <dependency id="SQLitePCL.raw_basic" version="0.5.0" />
-      <dependency id="SQLitePCL.ugly" version="0.5.0" />
+      <dependency id="SQLitePCL.raw_basic" version="0.6.1" />
+      <dependency id="SQLitePCL.ugly" version="0.6.1" />
       <dependency id="Newtonsoft.Json" version="6.0.3" />
     </dependencies>
   </metadata>
