@@ -124,19 +124,19 @@ namespace Couchbase.Lite.Support
         /// <summary>
         /// Build a pipeline of HttpMessageHandlers.
         /// </summary>
-        void BuildHandlerPipeline ()
+        HttpMessageHandler BuildHandlerPipeline ()
         {
             var handler = new HttpClientHandler {
                 CookieContainer = cookieStore,
                 UseDefaultCredentials = true,
                 UseCookies = true,
             };
-            Handler = new DefaultAuthHandler (handler, cookieStore);
+            return new DefaultAuthHandler (handler, cookieStore);
         }
 
         public HttpClient GetHttpClient()
         {
-            var authHandler = Handler;
+            var authHandler = BuildHandlerPipeline();
             var client =  new HttpClient(authHandler, false) // <- don't dispose the handler, which we reuse.
             {
                 Timeout = ManagerOptions.Default.RequestTimeout,

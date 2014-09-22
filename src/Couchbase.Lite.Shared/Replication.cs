@@ -1020,7 +1020,7 @@ namespace Couchbase.Lite
                     client.DefaultRequestHeaders.Authorization = authHeader;
                 }
 
-                client.SendAsync(message, HttpCompletionOption.ResponseHeadersRead, CancellationTokenSource.Token)
+                client.SendAsync(message, CancellationTokenSource.Token)
                 .ContinueWith(new Action<Task<HttpResponseMessage>>(responseMessage =>
                 {
                     object fullBody = null;
@@ -1164,7 +1164,7 @@ namespace Couchbase.Lite
                 client.DefaultRequestHeaders.Authorization = authHeader;
             }
 
-            client.SendAsync(message, HttpCompletionOption.ResponseHeadersRead, CancellationTokenSource.Token)
+            client.SendAsync(message, CancellationTokenSource.Token)
                 .ContinueWith(response=> {
                     if (response.Status != TaskStatus.RanToCompletion)
                     {
