@@ -652,11 +652,11 @@ namespace Couchbase.Lite
             CountDownLatch httpRequestDoneSignal = new CountDownLatch(1);
             Task.Factory.StartNew(() =>
             {
-                var httpclient = new HttpClient(); //CouchbaseLiteHttpClientFactory.Instance.GetHttpClient();
-                HttpResponseMessage response;
-
+                HttpClient httpclient = null;
                 try
                 {
+                    httpclient = new HttpClient();
+                    HttpResponseMessage response;
                     var request = new HttpRequestMessage();
                     request.Headers.Add("Accept", "*/*");
 
@@ -673,6 +673,10 @@ namespace Couchbase.Lite
                 catch (IOException e)
                 {
                     Assert.IsNull(e, "Got IOException: " + e.Message);
+                }
+                finally
+                {
+                    httpclient.Dispose();
                 }
 
                 httpRequestDoneSignal.CountDown();
