@@ -55,7 +55,7 @@ namespace Couchbase.Lite.Auth
     {
         public const string LoginParameterAssertion = "assertion";
 
-        private static IDictionary<EmailSite, string> assertions;
+        private static IDictionary<string, string> assertions;
 
         public const string AssertionFieldEmail = "email";
 
@@ -191,10 +191,10 @@ namespace Couchbase.Lite.Auth
         {
             lock (typeof(PersonaAuthorizer))
             {
-                var key = new EmailSite(email, origin);
+                var key = GetKeyForEmailAndSite(email, origin);
                 if (assertions == null)
                 {
-                    assertions = new Dictionary<EmailSite, string>();
+                    assertions = new Dictionary<string, string>();
                 }
                 Log.D(Database.Tag, "PersonaAuthorizer registering key: " + key);
                 assertions[key] = assertion;
@@ -245,40 +245,14 @@ namespace Couchbase.Lite.Auth
 
         public static string AssertionForEmailAndSite(string email, Uri site)
         {
-            var key = new EmailSite(email, site.ToString());
+            var key = GetKeyForEmailAndSite(email, site.ToString());
             Log.D(Database.Tag, "PersonaAuthorizer looking up key: " + key + " from list of assertions");
             return assertions.Get(key);
         }
 
-        private class EmailSite
+        private static string GetKeyForEmailAndSite(string email, string site)
         {
-            public string Email { get; private set; }
-            public string Site { get; private set; }
-
-            public EmailSite(string email, string site)
-            {
-                Email = email;
-                Site = site;
-            }
-
-            public override bool Equals(object obj)
-            {
-                var o = (EmailSite)obj;
-                return Email.Equals(o.Email) && Site.Equals(o.Site); 
-            }
-
-            public override int GetHashCode()
-            {
-                var hash = 1;
-                hash = hash * 31 + Email.GetHashCode();
-                hash = hash * 31 + Site.GetHashCode();
-                return hash;
-            }
-
-            public override string ToString()
-            {
-                return string.Format("[{0}, {1}]", Email, Site);
-            }
+            return String.Format("{0}:{1}", email, site);
         }
     }
 }
