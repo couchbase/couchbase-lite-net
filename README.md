@@ -2,10 +2,25 @@
 couchbase-lite-net
 ==================
 
-Native API port of Couchbase Lite for Android to C#.
+Couchbase Lite is a lightweight embedded NoSQL database that has built-in sync to larger backend structures, such as Couchbase Server.
 
-Running Tests
-=============
+This is the source repo of Couchbase Lite C#. It is a port of Couchbase Lite from Couchbase Lite Android.
+
+## Architecture
+
+![](http://tleyden-misc.s3.amazonaws.com/couchbase-lite/couchbase-lite-architecture.png)
+
+Couchbase Lite databases are able to sync with eachother via [Sync Gateway](https://github.com/couchbase/sync_gateway/) backed by [Couchbase Server](http://www.couchbase.com/couchbase-server/overview)
+
+## Documentation Overview
+
+* [Official Documentation](http://developer.couchbase.com/mobile/develop/guides/couchbase-lite/index.html)
+
+## Building Couchbase Lite master branch from source
+
+TBD
+
+## Running Tests
 
 The replication unit tests currently require a running
 instance of `sync_gateway`. Prior to running the
@@ -15,32 +30,12 @@ command:
 *nix:
    /path/to/sync_gateway -pretty -verbose=true Couchbase.Lite/Couchbase.Lite.Tests/Assets/GatewayConfig.json
 
-Windows:
-   {TBD}
+## Example Apps
+* [GrocerySync]()
+	* Beginner example
+* [Couchbase Connect]()
+	* Advanced example
+	
+## License
 
-Porting Code
-============
-
-This project is a port of the Couchbase Lite portable Java codebase,
-ported to C#.  The port was done with the assistance of Sharpen,
-a tool that converts Java code to C#. An idiomatic C# public API
-was defined in XML, and we used an XSLT stylesheet to generate
-stubs for all C# types and members.
-
-Once the Java source was bulk converted to C#, and the public API
-stubs generated, we replaced the stubs one-by-one with the coverted
-source, which we also refactored into idiomatic C#. We used temporary 
-shims in some cases to simulate key Java classes/types that don't 
-directly map to .NET Framework classes/types. Those shims that 
-haven't yet been removed will disappear eventually.
-
-The upstream Java project is:
-
-    https://github.com/couchbase/couchbase-lite-java-core
-
-The current codebase is based on commit:
-	71ca5082c19ac9c0ca5049ba09715def67aa0714
-
-
-
-
+Apache License 2.0
