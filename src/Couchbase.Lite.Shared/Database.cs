@@ -4023,7 +4023,7 @@ PRAGMA user_version = 3;";
             var md5DigestResult = md5Digest.Digest();
             var digestAsHex = BitConverter.ToString(md5DigestResult).Replace("-", String.Empty);
             int generationIncremented = generation + 1;
-            return string.Format("{0}-{1}", generationIncremented, digestAsHex);
+            return string.Format("{0}-{1}", generationIncremented, digestAsHex).ToLower();
         }
 
         internal IList<String> GetPossibleAncestorRevisionIDs(RevisionInternal rev, int limit, ref Boolean hasAttachment)
