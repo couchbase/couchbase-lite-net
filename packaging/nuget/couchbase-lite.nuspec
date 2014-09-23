@@ -3,7 +3,7 @@
   <metadata>
     <id>Couchbase.Lite </id>
     <title>Couchbase Lite</title>
-    <version>0.9.5-pre10</version>
+    <version>0.9.5</version>
     <authors>Zachary Gramana</authors>
     <owners>Couchbase</owners>
     <licenseUrl>https://github.com/couchbaselabs/couchbase-lite-net/blob/master/LICENSE</licenseUrl>
