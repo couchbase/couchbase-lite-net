@@ -1294,6 +1294,13 @@ namespace Couchbase.Lite
 
             replicationCaughtUpSignal.Wait(TimeSpan.FromSeconds(8));
             Assert.AreEqual(numDocs, completedChangesCount);
+
+            // Workaroud: sleep to ensure that all of the pending replication tasks 
+            // (e.g. saving checkpoint) are all drained to prevent accessing to 
+            // the database after the manager is closed during the test tearing 
+            // down state.
+            Log.V(Tag, "Wait for a few seconds to ensure all pending replication tasks are drained ...");
+            Thread.Sleep(3000);
         }
     }
 }
