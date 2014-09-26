@@ -81,5 +81,6 @@
     <EmbeddedResource Include="Assets\attachment.blob" />
     <EmbeddedResource Include="Assets\noattachments.cblite" />
     <EmbeddedResource Include="Assets\withattachments.cblite" />
+    <EmbeddedResource Include="Assets\performance-test.json" />
   </ItemGroup>
 </Project>
