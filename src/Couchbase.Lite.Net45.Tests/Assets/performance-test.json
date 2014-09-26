@@ -1,5 +1,8 @@
 {
-    "P01CreateDocs": {
+    "enabled": false,
+
+	"Test01CreateDocs": {
+		"enabled": true,
         "numbers_of_documents":[10, 100, 1000, 10000],
         "sizes_of_document":   [500, 1000, 10000, 100000, 1000000],
         "kpi": [[20, 20, 50,  200, 1000],
@@ -14,7 +17,8 @@
         "sum_kpi_baseline": 1160
     },
 
-    "P02CreateDocsUnoptimizedWay": {
+    "Test02CreateDocsUnoptimizedWay": {
+		"enabled": true,
         "numbers_of_documents":[10, 100, 1000, 10000],
         "sizes_of_document":   [500, 1000, 10000, 100000, 1000000],
         "kpi": [[50, 50, 50,  200, 1200],
@@ -29,7 +33,8 @@
         "sum_kpi_baseline": 1425.0
     },
 
-    "P03CreateDocsWithAttachments": {
+    "Test03CreateDocsWithAttachments": {
+		"enabled": true,
         "numbers_of_documents":[10, 100, 1000, 10000],
         "sizes_of_document":   [500, 1000, 10000, 100000, 1000000],
         "kpi": [[20, 20, 50,  50, 50],
@@ -44,8 +49,8 @@
         "sum_kpi_baseline": 168.0
     },
 
-
-    "P06PullReplication": {
+    "Test06PullReplication": {
+		"enabled": true,
         "numbers_of_documents":[10, 100],
         "sizes_of_document":   [1000, 10000, 100000],
         "kpi": [[  10000,    10000,    -2],
@@ -57,7 +62,8 @@
         "sum_kpi_baseline": 17800.00
     },
 
-    "P07PushReplication-9999": {
+    "Test07PushReplication-9999": {
+		"enabled": true,
         "numbers_of_documents":[10, 100],
         "sizes_of_document":   [1000, 10000, 100000],
         "kpi": [[  10000,    10000,    -2],
@@ -69,7 +75,8 @@
         "sum_kpi_baseline": 37800.00
     },
 
-    "P08DocRevisions-999": {
+    "Test08DocRevisions": {
+		"enabled": true,
         "numbers_of_documents":[10, 100, 1000, 10000],
         "sizes_of_document":   [500, 1000, 10000],
         "kpi": [[20, 50, 100],
@@ -84,7 +91,8 @@
         "sum_kpi_baseline": 167.25
     },
 
-    "P09LoadDB": {
+    "Test09LoadDB": {
+		"enabled": true,
         "numbers_of_documents":[100, 1000, 10000],
         "sizes_of_document":   [1000, 10000, 100000],
         "kpi": [[10, 50, 100],
@@ -97,7 +105,8 @@
         "sum_kpi_baseline": 13.70
     },
 
-    "P10DeleteDB": {
+    "Test10DeleteDB": {
+		"enabled": true,
         "numbers_of_documents":[100, 1000, 10000],
         "sizes_of_document":   [1000, 10000, 100000],
         "kpi": [[10, 50, 100],
@@ -111,7 +120,8 @@
         "sum_kpi_baseline": 184.00
     },
 
-    "P11DeleteDocs": {
+    "Test11DeleteDocs": {
+		"enabled": true,
         "numbers_of_documents":[100, 1000],
         "sizes_of_document":   [100, 10000, 100000],
         "kpi": [[500, 1000, -2],
@@ -123,7 +133,8 @@
         "sum_kpi_baseline": 22700.21
     },
 
-    "P12IndexView": {
+    "Test12IndexView": {
+		"enabled": true,
         "numbers_of_documents":[100, 1000],
         "sizes_of_document":   [1000, 10000, 100000],
         "kpi": [[500, 1000, 5000],
@@ -135,7 +146,8 @@
         "sum_kpi_baseline": 8790.21
     },
 
-    "P13QueryView": {
+    "Test13QueryView": {
+		"enabled": true,
         "numbers_of_documents":[100, 1000],
         "sizes_of_document":   [1000, 10000, 100000],
         "kpi": [[500, 1000, 6000],
@@ -147,7 +159,8 @@
         "sum_kpi_baseline": 9490.21
     },
     
-    "P14ReduceView": {
+    "Test14ReduceView": {
+		"enabled": true,
         "numbers_of_documents":[100, 1000],
         "sizes_of_document":   [1000, 10000, 100000],
         "kpi": [[500, 1000, 5000],
@@ -159,9 +172,8 @@
         "sum_kpi_baseline": 9790.21
     },
     
-    
-    
-    "P24PushReplication": {
+    "Test24PushReplication": {
+		"enabled": true,
         "numbers_of_documents":[1, 10, 100, 1000, 100000],
         "sizes_of_document":   [1000, 10000, 100000, 1000000],
         "kpi": [[  10000,    150,    500,   1000],
@@ -179,7 +191,8 @@
         "sum_kpi_baseline": 125860.10
     },
 
-    "P25PullReplication": {
+    "Test25PullReplication": {
+		"enabled": true,
         "numbers_of_documents":[1, 10, 100, 1000, 100000],
         "sizes_of_document":   [1000, 10000, 100000, 1000000],
         "kpi": [[350000, 350000, 350000, 350000],
@@ -197,8 +210,8 @@
         "sum_kpi_baseline": 3122495.55
     },
 
-
-    "P26PushReplicateWithAttachment": {
+    "Test26PushReplicateWithAttachment": {
+		"enabled": true,
         "numbers_of_documents":[1, 10, 100, 1000, 100000],
         "sizes_of_document":   [1000, 10000, 100000, 1000000],
         "kpi": [[400, 400, 400, -2],
@@ -216,7 +229,8 @@
         "sum_kpi_baseline": 3731.77
     },
 
-    "P28KeySizes": {
+    "Test28KeySizes": {
+		"enabled": true,
         "numbers_of_documents":[1, 10, 100, 1000],
         "sizes_of_document":   [10, 10000, 100000],
         "kpi": [[50, 50, 100],
@@ -232,7 +246,8 @@
         "sum_kpi_baseline": 7089
     },
 
-    "P29AllDocQuery": {
+    "Test29AllDocQuery": {
+		"enabled": true,
         "numbers_of_documents":[1, 10, 100, 1000, 10000],
         "sizes_of_document":   [10, 100, 1000, 10000],
         "kpi": [[5, 5, 5, 5],
@@ -250,7 +265,8 @@
         "sum_kpi_baseline": 1623.55
     },
 
-    "P30LiveQuery": {
+    "Test30LiveQuery": {
+		"enabled": true,
         "numbers_of_documents":[1, 100, 1000, 10000],
         "sizes_of_document":   [500, 1000, 10000, 100000, 1000000],
         "kpi": [[100, 100, 100, 100, 100],
@@ -265,4 +281,3 @@
         "sum_kpi_baseline": 471
     }
 }
-
