@@ -53,12 +53,6 @@
     <Reference Include="Newtonsoft.Json">
       <HintPath>..\packages\Newtonsoft.Json.6.0.4\lib\portable-net45+wp80+win8+wpa81\Newtonsoft.Json.dll</HintPath>
     </Reference>
-    <Reference Include="SQLitePCL.raw">
-      <HintPath>..\packages\SQLitePCL.raw_basic.0.5.0\lib\MonoAndroid\SQLitePCL.raw.dll</HintPath>
-    </Reference>
-    <Reference Include="SQLitePCL.ugly">
-      <HintPath>..\packages\SQLitePCL.ugly.0.5.0\lib\portable-net45+netcore45+wp8+MonoAndroid+MonoTouch\SQLitePCL.ugly.dll</HintPath>
-    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="MainActivity.cs" />
@@ -89,6 +83,7 @@
     <EmbeddedResource Include="Assets\attachment.blob" />
     <EmbeddedResource Include="Assets\noattachments.cblite" />
     <EmbeddedResource Include="Assets\withattachments.cblite" />
+    <EmbeddedResource Include="Assets\performance-test.json" />
   </ItemGroup>
   <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">

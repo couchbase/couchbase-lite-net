@@ -229,6 +229,11 @@ namespace Couchbase.Lite
         [Test]
         public void TestPushPurgedDoc()
         {
+            if (!Boolean.Parse((string)Runtime.Properties["replicationTestsEnabled"]))
+            {
+                Assert.Inconclusive("Replication tests disabled.");
+                return;
+            }
             var numBulkDocRequests = 0;
             HttpRequestMessage lastBulkDocsRequest = null;
 
@@ -334,6 +339,11 @@ namespace Couchbase.Lite
         [Test]
         public void TestPusher()
         {
+            if (!Boolean.Parse((string)Runtime.Properties["replicationTestsEnabled"]))
+            {
+                Assert.Inconclusive("Replication tests disabled.");
+                return;
+            }
             var remote = GetReplicationURL();
             var docIdTimestamp = Convert.ToString(Runtime.CurrentTimeMillis());
 
@@ -443,6 +453,11 @@ namespace Couchbase.Lite
         [Test]
         public void TestPusherDeletedDoc()
         {
+            if (!Boolean.Parse((string)Runtime.Properties["replicationTestsEnabled"]))
+            {
+                Assert.Inconclusive("Replication tests disabled.");
+                return;
+            }
             var remote = GetReplicationURL();
             var docIdTimestamp = Convert.ToString(Runtime.CurrentTimeMillis());
 
@@ -516,6 +531,11 @@ namespace Couchbase.Lite
         [Test]
         public void TestPuller()
         {
+            if (!Boolean.Parse((string)Runtime.Properties["replicationTestsEnabled"]))
+            {
+                Assert.Inconclusive("Replication tests disabled.");
+                return;
+            }
             var docIdTimestamp = Convert.ToString(Runtime.CurrentTimeMillis());
             var doc1Id = string.Format("doc1-{0}", docIdTimestamp);
             var doc2Id = string.Format("doc2-{0}", docIdTimestamp);
@@ -552,6 +572,11 @@ namespace Couchbase.Lite
         [Test]
         public void TestPullerWithLiveQuery()
         {
+            if (!Boolean.Parse((string)Runtime.Properties["replicationTestsEnabled"]))
+            {
+                Assert.Inconclusive("Replication tests disabled.");
+                return;
+            }
             // Even though this test is passed, there is a runtime exception
             // thrown regarding the replication's number of changes count versus
             // number of completed changes count. Investigation is required.
@@ -627,11 +652,11 @@ namespace Couchbase.Lite
             CountDownLatch httpRequestDoneSignal = new CountDownLatch(1);
             Task.Factory.StartNew(() =>
             {
-                var httpclient = new HttpClient(); //CouchbaseLiteHttpClientFactory.Instance.GetHttpClient();
-                HttpResponseMessage response;
-
+                HttpClient httpclient = null;
                 try
                 {
+                    httpclient = new HttpClient();
+                    HttpResponseMessage response;
                     var request = new HttpRequestMessage();
                     request.Headers.Add("Accept", "*/*");
 
@@ -648,6 +673,10 @@ namespace Couchbase.Lite
                 catch (IOException e)
                 {
                     Assert.IsNull(e, "Got IOException: " + e.Message);
+                }
+                finally
+                {
+                    httpclient.Dispose();
                 }
 
                 httpRequestDoneSignal.CountDown();
@@ -671,6 +700,11 @@ namespace Couchbase.Lite
         [Test]
         public void TestGetReplicator()
         {
+            if (!Boolean.Parse((string)Runtime.Properties["replicationTestsEnabled"]))
+            {
+                Assert.Inconclusive("Replication tests disabled.");
+                return;
+            }
             var replicationUrl = GetReplicationURL();
             var replicator = database.CreatePullReplication(replicationUrl);
             Assert.IsNotNull(replicator);
@@ -704,6 +738,11 @@ namespace Couchbase.Lite
         [Test]
         public void TestGetReplicatorWithAuth()
         {
+            if (!Boolean.Parse((string)Runtime.Properties["replicationTestsEnabled"]))
+            {
+                Assert.Inconclusive("Replication tests disabled.");
+                return;
+            }
             var email = "jchris@couchbase.com";
             var accessToken = "fake_access_token";
             var remoteUrl = GetReplicationURL().ToString();
@@ -722,6 +761,11 @@ namespace Couchbase.Lite
         [Test]
         public void TestRunReplicationWithError()
         {
+            if (!Boolean.Parse((string)Runtime.Properties["replicationTestsEnabled"]))
+            {
+                Assert.Inconclusive("Replication tests disabled.");
+                return;
+            }
             var mockHttpClientFactory = new MockHttpClientFactory();
             manager.DefaultHttpClientFactory = mockHttpClientFactory;
 
@@ -745,6 +789,11 @@ namespace Couchbase.Lite
         [Test]
         public void TestReplicatorErrorStatus()
         {
+            if (!Boolean.Parse((string)Runtime.Properties["replicationTestsEnabled"]))
+            {
+                Assert.Inconclusive("Replication tests disabled.");
+                return;
+            }
             var email = "jchris@couchbase.com";
             var accessToken = "fake_access_token";
             var remoteUrl = GetReplicationURL().ToString();
@@ -762,6 +811,11 @@ namespace Couchbase.Lite
         [Test]
         public void TestGoOffline()
         {
+            if (!Boolean.Parse((string)Runtime.Properties["replicationTestsEnabled"]))
+            {
+                Assert.Inconclusive("Replication tests disabled.");
+                return;
+            }
             var remote = GetReplicationURL();
             var repl = database.CreatePullReplication(remote);
             repl.Continuous = true;
@@ -774,8 +828,13 @@ namespace Couchbase.Lite
         [Test]
         public virtual void TestBuildRelativeURLString()
         {
-            string dbUrlString = "http://10.0.0.3:4984/todos/";
-            Replication replicator = new Pusher(null, new Uri(dbUrlString), false, null);
+            if (!Boolean.Parse((string)Runtime.Properties["replicationTestsEnabled"]))
+            {
+                Assert.Inconclusive("Replication tests disabled.");
+                return;
+            }
+            var dbUrlString = "http://10.0.0.3:4984/todos/";
+            var replicator = new Pusher(null, new Uri(dbUrlString), false, null);
             string relativeUrlString = replicator.BuildRelativeURLString("foo");
             string expected = "http://10.0.0.3:4984/todos/foo";
             Assert.AreEqual(expected, relativeUrlString);
@@ -785,8 +844,13 @@ namespace Couchbase.Lite
         [Test]
         public virtual void TestBuildRelativeURLStringWithLeadingSlash()
         {
-            string dbUrlString = "http://10.0.0.3:4984/todos/";
-            Replication replicator = new Pusher(null, new Uri(dbUrlString), false, null);
+            if (!Boolean.Parse((string)Runtime.Properties["replicationTestsEnabled"]))
+            {
+                Assert.Inconclusive("Replication tests disabled.");
+                return;
+            }
+            var dbUrlString = "http://10.0.0.3:4984/todos/";
+            var replicator = new Pusher(null, new Uri(dbUrlString), false, null);
             string relativeUrlString = replicator.BuildRelativeURLString("/foo");
             string expected = "http://10.0.0.3:4984/todos/foo";
             Assert.AreEqual(expected, relativeUrlString);
@@ -796,8 +860,13 @@ namespace Couchbase.Lite
         [Test]
         public void TestChannels()
         {
-            Uri remote = GetReplicationURL();
-            Replication replicator = database.CreatePullReplication(remote);
+            if (!Boolean.Parse((string)Runtime.Properties["replicationTestsEnabled"]))
+            {
+                Assert.Inconclusive("Replication tests disabled.");
+                return;
+            }
+            var remote = GetReplicationURL();
+            var replicator = database.CreatePullReplication(remote);
 
             var channels = new List<string>();
             channels.AddItem("chan1");
@@ -813,8 +882,13 @@ namespace Couchbase.Lite
         [Test]
         public virtual void TestChannelsMore()
         {
-            Uri fakeRemoteURL = new Uri("http://couchbase.com/no_such_db");
-            Replication r1 = database.CreatePullReplication(fakeRemoteURL);
+            if (!Boolean.Parse((string)Runtime.Properties["replicationTestsEnabled"]))
+            {
+                Assert.Inconclusive("Replication tests disabled.");
+                return;
+            }
+            var fakeRemoteURL = new Uri("http://couchbase.com/no_such_db");
+            var r1 = database.CreatePullReplication(fakeRemoteURL);
 
             Assert.IsTrue(!r1.Channels.Any());
             r1.Filter = "foo/bar";
@@ -849,14 +923,19 @@ namespace Couchbase.Lite
         [Test]
         public void TestHeaders()
         {
+            if (!Boolean.Parse((string)Runtime.Properties["replicationTestsEnabled"]))
+            {
+                Assert.Inconclusive("Replication tests disabled.");
+                return;
+            }
             var mockHttpClientFactory = new MockHttpClientFactory();
             manager.DefaultHttpClientFactory = mockHttpClientFactory;
 
             var mockHttpHandler = mockHttpClientFactory.HttpHandler;
             mockHttpHandler.AddResponderThrowExceptionAllRequests();
 
-            Uri remote = GetReplicationURL();
-            Replication puller = database.CreatePullReplication(remote);
+            var remote = GetReplicationURL();
+            var puller = database.CreatePullReplication(remote);
             var headers = new Dictionary<string, string>();
             headers["foo"] = "bar";
             puller.Headers = headers;
@@ -882,6 +961,11 @@ namespace Couchbase.Lite
         [Test]
         public void TestAllLeafRevisionsArePushed()
         {
+            if (!Boolean.Parse((string)Runtime.Properties["replicationTestsEnabled"]))
+            {
+                Assert.Inconclusive("Replication tests disabled.");
+                return;
+            }
             var httpClientFactory = new MockHttpClientFactory();
             var httpHandler = httpClientFactory.HttpHandler; 
             httpHandler.AddResponderRevDiffsAllMissing();
@@ -928,6 +1012,11 @@ namespace Couchbase.Lite
         [Test]
         public void TestRemoteConflictResolution()
         {
+            if (!Boolean.Parse((string)Runtime.Properties["replicationTestsEnabled"]))
+            {
+                Assert.Inconclusive("Replication tests disabled.");
+                return;
+            }
             // Create a document with two conflicting edits.
             var doc = database.CreateDocument();
             var rev1 = doc.CreateRevision().Save();
@@ -997,6 +1086,11 @@ namespace Couchbase.Lite
         [Test]
         public void TestSetAndDeleteCookies()
         {
+            if (!Boolean.Parse((string)Runtime.Properties["replicationTestsEnabled"]))
+            {
+                Assert.Inconclusive("Replication tests disabled.");
+                return;
+            }
             var replicationUrl = GetReplicationURL();
             var puller = database.CreatePullReplication(replicationUrl);
             var cookieContainer = puller.CookieContainer;
@@ -1039,6 +1133,11 @@ namespace Couchbase.Lite
         [Test]
         public void TestPushReplicationCanMissDocs()
         {
+            if (!Boolean.Parse((string)Runtime.Properties["replicationTestsEnabled"]))
+            {
+                Assert.Inconclusive("Replication tests disabled.");
+                return;
+            }
             Assert.AreEqual(0, database.LastSequenceNumber);
 
             var properties1 = new Dictionary<string, object>();
@@ -1106,6 +1205,11 @@ namespace Couchbase.Lite
         [Test]
         public void TestCheckServerCompatVersion()
         {
+            if (!Boolean.Parse((string)Runtime.Properties["replicationTestsEnabled"]))
+            {
+                Assert.Inconclusive("Replication tests disabled.");
+                return;
+            }
             var replicator = database.CreatePushReplication(GetReplicationURL());
             Assert.IsFalse(replicator.CheckServerCompatVersion("0.01"));
 
@@ -1117,6 +1221,11 @@ namespace Couchbase.Lite
         [Test]
         public void TestPusherFindCommonAncestor()
         {
+            if (!Boolean.Parse((string)Runtime.Properties["replicationTestsEnabled"]))
+            {
+                Assert.Inconclusive("Replication tests disabled.");
+                return;
+            }
             var ids = new JArray();
             ids.Add("second");
             ids.Add("first");
@@ -1138,6 +1247,11 @@ namespace Couchbase.Lite
         [Test]
         public void TestPushManyNewDocuments()
         {
+            if (!Boolean.Parse((string)Runtime.Properties["replicationTestsEnabled"]))
+            {
+                Assert.Inconclusive("Replication tests disabled.");
+                return;
+            }
             var numDocs = 100;
 
             var pusher = database.CreatePushReplication(GetReplicationURL());

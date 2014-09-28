@@ -69,16 +69,31 @@ namespace Couchbase.Lite.Replicator
 
         public override void Run()
         {
-            var httpClient = clientFactory.GetHttpClient();
-            PreemptivelySetAuthCredentials(httpClient);
+            HttpClient httpClient = null;
+            try 
+            {
+                httpClient = clientFactory.GetHttpClient();
+                requestMessage.Headers.Accept.Add(new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("multipart/related"));
 
-            requestMessage.Headers.Accept.Add(new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("multipart/related"));
+                var authHeader = AuthUtils.GetAuthenticationHeaderValue(Authenticator, requestMessage.RequestUri);
+                if (authHeader != null)
+                {
+                    httpClient.DefaultRequestHeaders.Authorization = authHeader;
+                }
 
-            //TODO: implement gzip support for server response see issue #172
-            //request.addHeader("X-Accept-Part-Encoding", "gzip");
-            AddRequestHeaders(requestMessage);
-            SetBody(requestMessage);
-            ExecuteRequest(httpClient, requestMessage);
+                //TODO: implement gzip support for server response see issue #172
+                //request.addHeader("X-Accept-Part-Encoding", "gzip");
+                AddRequestHeaders(requestMessage);
+                SetBody(requestMessage);
+                ExecuteRequest(httpClient, requestMessage);
+            }
+            finally
+            {
+                if (httpClient != null) 
+                {
+                    httpClient.Dispose();
+                }
+            }
         }
 
         private string Description()
@@ -126,7 +141,7 @@ namespace Couchbase.Lite.Replicator
             {
                 Log.D(Tag + ".ExecuteRequest", "Sending request: {0}", request);
                 var requestTokenSource = CancellationTokenSource.CreateLinkedTokenSource(_tokenSource.Token);
-                var responseTask = httpClient.SendAsync(request/*, HttpCompletionOption.ResponseContentRead*/, requestTokenSource.Token);
+                var responseTask = httpClient.SendAsync(request, requestTokenSource.Token);
                 if (!responseTask.Wait((Int32)ManagerOptions.Default.RequestTimeout.TotalMilliseconds, requestTokenSource.Token))
                 {
                     Log.E(Tag, "Response task timed out: {0}, {1}", responseTask, TaskScheduler.Current);

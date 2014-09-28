@@ -41,7 +41,6 @@
 //
 
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using Couchbase.Lite;
@@ -49,7 +48,6 @@ using Couchbase.Lite.Auth;
 using Couchbase.Lite.Util;
 using Sharpen;
 using System.Text;
-using Newtonsoft.Json.Linq;
 
 namespace Couchbase.Lite.Auth
 {
@@ -57,7 +55,7 @@ namespace Couchbase.Lite.Auth
     {
         public const string LoginParameterAssertion = "assertion";
 
-        private static IDictionary<IList<string>, string> assertions;
+        private static IDictionary<string, string> assertions;
 
         public const string AssertionFieldEmail = "email";
 
@@ -157,11 +155,10 @@ namespace Couchbase.Lite.Auth
         {
             lock (typeof(PersonaAuthorizer))
             {
-                string email;
-                string origin;
                 IDictionary<string, object> result = ParseAssertion(assertion);
-                email = (string)result.Get(AssertionFieldEmail);
-                origin = (string)result.Get(AssertionFieldOrigin);
+                var email = (string)result.Get(AssertionFieldEmail);
+                var origin = (string)result.Get(AssertionFieldOrigin);
+
                 // Normalize the origin URL string:
                 try
                 {
@@ -190,17 +187,14 @@ namespace Couchbase.Lite.Auth
         /// don't use this!! this was factored out for testing purposes, and had to be
         /// made public since tests are in their own package.
         /// </remarks>
-        public static string RegisterAssertion(string assertion, string email, string origin
-            )
+        internal static string RegisterAssertion(string assertion, string email, string origin)
         {
             lock (typeof(PersonaAuthorizer))
             {
-                IList<string> key = new List<string>();
-                key.AddItem(email);
-                key.AddItem(origin);
+                var key = GetKeyForEmailAndSite(email, origin);
                 if (assertions == null)
                 {
-                    assertions = new Dictionary<IList<string>, string>();
+                    assertions = new Dictionary<string, string>();
                 }
                 Log.D(Database.Tag, "PersonaAuthorizer registering key: " + key);
                 assertions[key] = assertion;
@@ -251,11 +245,14 @@ namespace Couchbase.Lite.Auth
 
         public static string AssertionForEmailAndSite(string email, Uri site)
         {
-            IList<string> key = new List<string>();
-            key.AddItem(email);
-            key.AddItem(site.ToString().ToLower());
+            var key = GetKeyForEmailAndSite(email, site.ToString());
             Log.D(Database.Tag, "PersonaAuthorizer looking up key: " + key + " from list of assertions");
             return assertions.Get(key);
+        }
+
+        private static string GetKeyForEmailAndSite(string email, string site)
+        {
+            return String.Format("{0}:{1}", email, site);
         }
     }
 }

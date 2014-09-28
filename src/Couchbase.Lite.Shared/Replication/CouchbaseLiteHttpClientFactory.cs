@@ -124,20 +124,24 @@ namespace Couchbase.Lite.Support
         /// <summary>
         /// Build a pipeline of HttpMessageHandlers.
         /// </summary>
-        void BuildHandlerPipeline ()
+        HttpMessageHandler BuildHandlerPipeline ()
         {
             var handler = new HttpClientHandler {
                 CookieContainer = cookieStore,
                 UseDefaultCredentials = true,
                 UseCookies = true,
             };
-            Handler = new DefaultAuthHandler (handler, cookieStore);
+            return new DefaultAuthHandler (handler, cookieStore);
         }
 
         public HttpClient GetHttpClient()
         {
-            var authHandler = Handler;
-            var client =  new HttpClient(authHandler, false) // <- don't dispose the handler, which we reuse.
+            var authHandler = BuildHandlerPipeline();
+
+            // As the handler will not be shared, client.Dispose() needs to be 
+            // called once the operation is done to release the unmanaged resources 
+            // and disposes of the managed resources.
+            var client =  new HttpClient(authHandler, true) 
             {
                 Timeout = ManagerOptions.Default.RequestTimeout,
             };

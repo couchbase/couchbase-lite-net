@@ -157,6 +157,11 @@ namespace Couchbase.Lite
         [Test]
         public void TestBasicAuthenticationSuccess()
         {
+            if (!Boolean.Parse((string)Runtime.Properties["replicationTestsEnabled"]))
+            {
+                Assert.Inconclusive("Server tests disabled.");
+                return;
+            }
             var username = "testbasciauthuser";
             var password = "password1";
             AddUser(username, password);
@@ -197,6 +202,11 @@ namespace Couchbase.Lite
         [Test]
         public void TestBasicAuthenticationWrongPassword()
         {
+            if (!Boolean.Parse((string)Runtime.Properties["replicationTestsEnabled"]))
+            {
+                Assert.Inconclusive("Server tests disabled.");
+                return;
+            }
             var username = "testbasciauthuser";
             var password = "password1";
             var wrongPassword = "password2";
@@ -240,7 +250,7 @@ namespace Couchbase.Lite
             var username1 = "username1";
             var password1 = "password1";
             var credParam1 = Convert.ToBase64String(
-                Encoding.UTF8.GetBytes(string.Format("{0}:{1}", username1, password1)));
+            Encoding.UTF8.GetBytes(string.Format("{0}:{1}", username1, password1)));
 
             var auth = AuthenticatorFactory.CreateBasicAuthenticator(username1, password1);
             var authHeader = AuthUtils.GetAuthenticationHeaderValue(auth, null);

@@ -56,7 +56,7 @@ namespace Couchbase.Lite
     {
         public static string CreateGUID()
         {
-            return Guid.NewGuid().ToString();
+            return Guid.NewGuid().ToString().ToLower();
         }
 
         public static string HexSHA1Digest(IEnumerable<Byte> input)
