@@ -342,7 +342,7 @@ namespace Couchbase.Lite.Replicator
 
                                 if (!dontSendMultipart && revisionBodyTransformationFunction == null)
                                 {
-                                    contentOptions &= DocumentContentOptions.BigAttachmentsFollow;
+                                    contentOptions |= DocumentContentOptions.BigAttachmentsFollow;
                                 }
 
 
