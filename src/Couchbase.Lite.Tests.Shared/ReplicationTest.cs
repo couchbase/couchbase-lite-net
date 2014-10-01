@@ -1295,5 +1295,44 @@ namespace Couchbase.Lite
             replicationCaughtUpSignal.Wait(TimeSpan.FromSeconds(8));
             Assert.AreEqual(numDocs, completedChangesCount);
         }
+
+        [Test]
+        public void TestPushPullDocumentWithAttachment()
+        {
+            var props = new Dictionary<string, object>()
+            { 
+                {"type", "post"},
+                {"title", "This is a post."}
+            };
+
+            var doc = database.CreateDocument();
+            doc.PutProperties(props);
+            var docId = doc.Id;
+
+            var unsavedRev = doc.CreateRevision();
+            var attachmentStream = GetAsset("attachment.png");
+            unsavedRev.SetAttachment("photo", "image/png", attachmentStream);
+            var rev = unsavedRev.Save();
+            var attachment = rev.GetAttachment("photo");
+            var attachmentLength = attachment.Length;
+
+            var pusher = database.CreatePushReplication(GetReplicationURL());
+            RunReplication(pusher);
+            pusher.Stop();
+
+            StopDatabase();
+            StartDatabase();
+
+            var puller = database.CreatePullReplication(GetReplicationURL());
+            RunReplication(puller);
+
+            doc = database.GetExistingDocument(docId);
+            Assert.IsNotNull(doc);
+
+            attachment = doc.CurrentRevision.GetAttachment("photo");
+            Assert.IsNotNull(attachment);
+            Assert.AreEqual(attachmentLength, attachment.Length);
+            Assert.IsNotNull(attachment.Content);
+        }
     }
 }
