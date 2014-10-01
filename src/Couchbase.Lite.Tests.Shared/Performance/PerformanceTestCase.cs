@@ -49,6 +49,7 @@ using System.Net.Http;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Couchbase.Lite.Util;
 using NUnit.Framework;
 using Newtonsoft.Json.Linq;
 using Sharpen;
@@ -71,9 +72,18 @@ namespace Couchbase.Lite
         [SetUp]
         protected void InitConfig()
         {
+            // Workaround for filtering only performance log
+            Log.SetLogger(null);
+
             var stream = GetAsset("performance-test.json");
             var reader = new StreamReader(stream);
             _config = JObject.Parse(reader.ReadToEnd());
+        }
+
+        [TearDown]
+        protected void Cleanup()
+        {
+            Log.SetLogger(LoggerFactory.CreateLogger());
         }
 
         private void PrintMessage(string tag, string message) {
@@ -310,15 +320,15 @@ namespace Couchbase.Lite
                     }
 
                     var message = String.Format(
-                                      "stats: #test {0}, pass {1}, #docs {2}, size {3}B, " +
-                                      "avg {4:F2}, max {5:F2}, min {6:F2}, " +
-                                      "result {7:F2}, kpi {8:F2}, " +
-                                      "baseline {9:F2}, diffBaseLine {10:F2}%, " +
-                                      "allResult {11}", 
-                                      testCount, pass, numDoc, docSize, 
-                                      results.Average(), results.Max(), results.Min(), 
-                                      result, kpi, baseline, deltaFromBaseline, 
-                                      Manager.GetObjectMapper().WriteValueAsString(results));
+                        "stats: #test {0}, pass {1}, #docs {2}, size {3}B, " +
+                        "avg {4:F2}, max {5:F2}, min {6:F2}, " +
+                        "result {7:F2}, kpi {8:F2}, " +
+                        "baseline {9:F2}, diffBaseLine {10:F2}%, " +
+                        "allResult {11}", 
+                        testCount, pass, numDoc, docSize, 
+                        results.Average(), results.Max(), results.Min(), 
+                        result, kpi, baseline, deltaFromBaseline, 
+                        Manager.GetObjectMapper().WriteValueAsString(results));
                     PrintMessage(name, message);
                 }
             }
