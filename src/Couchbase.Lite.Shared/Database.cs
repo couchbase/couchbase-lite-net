@@ -2922,11 +2922,11 @@ PRAGMA user_version = 3;";
                             byte[] data = Attachments.BlobForKey(key);
                             if (data != null)
                             {
+                                // <-- very expensive
                                 dataBase64 = Convert.ToBase64String(data);
                             }
                             else
                             {
-                                // <-- very expensive
                                 Log.W(Tag, "Error loading attachment");
                             }
                         }
@@ -3722,56 +3722,6 @@ PRAGMA user_version = 3;";
                     Log.V(Tag, String.Format("Added 'follows' for attachment {0}: revpos {1} >= {2}", rev, revPos, minRevPos));
                 }
 
-                return editedAttachment;
-            });
-        }
-
-        // Replaces attachment data whose revpos is < minRevPos with stubs.
-        // If attachmentsFollow==YES, replaces data with "follows" key.
-        private static void StubOutAttachmentsInRevBeforeRevPos(RevisionInternal rev, int minRevPos, bool attachmentsFollow)
-        {
-            if (minRevPos <= 1 && !attachmentsFollow)
-            {
-                return;
-            }
-
-            rev.MutateAttachments((s, attachment)=>
-            {
-                var revPos = 0;
-                if (attachment.Get("revpos") != null)
-                {
-                    revPos = (int)attachment.Get("revpos");
-                }
-
-                var includeAttachment = (revPos == 0 || revPos >= minRevPos);
-                var stubItOut = !includeAttachment && (attachment.Get("stub") == null || (bool)attachment.Get("stub") == false);
-                var addFollows = includeAttachment && attachmentsFollow && (attachment.Get("follows") == null || !(bool)attachment.Get ("follows"));
-                if (!stubItOut && !addFollows)
-                {
-                    return attachment;
-                }
-
-                // no change
-                // Need to modify attachment entry:
-                var editedAttachment = new Dictionary<string, object>(attachment);
-                editedAttachment.Remove("data");
-
-                if (stubItOut)
-                {
-                    // ...then remove the 'data' and 'follows' key:
-                    editedAttachment.Remove("follows");
-                    editedAttachment.Put("stub", true);
-                    Log.V(Tag, "Stubbed out attachment {0}: revpos {1} < {2}".Fmt(rev, revPos, minRevPos));
-                }
-                else
-                {
-                    if (addFollows)
-                    {
-                        editedAttachment.Remove("stub");
-                        editedAttachment.Put("follows", true);
-                        Log.V(Tag, "Added 'follows' for attachment {0}: revpos {1} >= {2}".Fmt(rev, revPos, minRevPos));
-                    }
-                }
                 return editedAttachment;
             });
         }

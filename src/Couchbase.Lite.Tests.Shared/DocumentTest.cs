@@ -52,6 +52,31 @@ namespace Couchbase.Lite
     {
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
         [Test]
+        public void TestNewDocumentHasCurrentRevision()  {
+
+            var document = database.CreateDocument();
+            var properties = new Dictionary<string, object>() 
+            {
+                {"foo", "foo"},
+                {"bar", false}
+            };
+
+            document.PutProperties(properties);
+            Assert.IsNotNull(document.CurrentRevisionId);
+            Assert.IsNotNull(document.CurrentRevision);
+        }
+
+        /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
+        [Test]
+        public void TestGetNonExistentDocument() {
+            Assert.IsNull(database.GetExistingDocument("missing"));
+            var doc = database.GetDocument("missing");
+            Assert.IsNotNull(doc);
+            Assert.IsNull(database.GetExistingDocument("missing"));
+        }
+
+        /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
+        [Test]
         public void TestUnsavedDocumentReturnsNullValues()
         {
             var document = database.CreateDocument();
@@ -142,6 +167,26 @@ namespace Couchbase.Lite
             }
         }
 
+        /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
+        [Test]
+        public void TestDocumentWithRemovedProperty() {
+            var props = new Dictionary<string, object>() 
+            {
+                {"_id", "fakeid"},
+                {"_removed", true},
+                {"foo", "bar"}
+            };
+
+            var doc = CreateDocumentWithProperties(database, props);
+            Assert.IsNotNull(doc);
+
+            var docFetched = database.GetDocument(doc.Id);
+            var fetchedProps = docFetched.CurrentRevision.Properties;
+            Assert.IsNotNull(fetchedProps["_removed"]);
+            Assert.IsTrue(docFetched.CurrentRevision.IsGone);
+        }
+
+        /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
         [Test]
         public void TestLoadRevisionBody()
         {
@@ -174,6 +219,5 @@ namespace Couchbase.Lite
 
             Assert.IsTrue(gotExpectedException);
         }
-
     }
 }
