@@ -261,8 +261,8 @@ namespace Couchbase.Lite
             var docSizes = (JArray)config["sizes_of_document"];
             var kpis = (JArray)config["kpi"];
             var baselines = (JArray)config["baseline"];
-            var needsPerDocResult = !Convert.ToBoolean(config["kpi_is_total"]);
-            var repeatCount = Convert.ToInt32(config["repeat_count"]);
+            var needsPerDocResult = config["kpi_is_total"] != null && !(Boolean)config["kpi_is_total"];
+            var repeatCount = (Int32)config["repeat_count"];
 
             double[,] finalResults = new double[numDocs.Count, docSizes.Count];
             double[,] baselineDelta = new double[numDocs.Count, docSizes.Count];
@@ -274,9 +274,9 @@ namespace Couchbase.Lite
                 for (var j = 0; j < docSizes.Count; j++)
                 {
                     testCount++;
-                    var numDoc = Convert.ToInt32(numDocs[i]);
-                    var docSize = Convert.ToInt32(docSizes[j]);
-                    var kpi = Convert.ToDouble(((JArray)kpis[i])[j]);
+                    var numDoc = (Int32)numDocs[i];
+                    var docSize = (Int32)docSizes[j];
+                    var kpi = (double)((JArray)kpis[i])[j];
                     if (kpi < 0 || numDoc < 0 || docSize < 0)
                     {
                         finalResults[i, j] = kpi;
@@ -309,7 +309,7 @@ namespace Couchbase.Lite
                     var result = needsPerDocResult ? (min / numDoc) : min;
                     finalResults[i, j] = result;
 
-                    var baseline = Convert.ToDouble(((JArray)baselines[i])[j]);
+                    var baseline = (double)((JArray)baselines[i])[j];
                     var deltaFromBaseline = (result - baseline) / baseline * 100;
                     baselineDelta[i, j] = deltaFromBaseline;
 
