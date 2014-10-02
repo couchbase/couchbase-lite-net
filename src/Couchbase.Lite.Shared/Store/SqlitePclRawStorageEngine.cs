@@ -463,6 +463,17 @@ namespace Couchbase.Lite.Shared
 
         public void Close()
         {
+            if (db == null)
+            {
+                return;
+            }
+#if __MOBILE__
+            db.close();
+#else
+            db.close_v2();
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+#endif
             db.Dispose();
             db = null;
         }
@@ -670,7 +681,7 @@ namespace Couchbase.Lite.Shared
 
         public void Dispose()
         {
-            throw new NotImplementedException();
+            Close();
         }
 
         #endregion
