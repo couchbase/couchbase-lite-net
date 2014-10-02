@@ -554,5 +554,28 @@ namespace Couchbase.Lite
                 Assert.AreEqual(attachBodyString, attachmentDataRetrievedString);
             }
         }
+
+        [Test]
+        public void TestAttachmentDisappearsAfterSave()
+        {
+            var doc = database.CreateDocument();
+            var content = "This is a test attachment!";
+            var body = Runtime.GetBytesForString(content).ToArray();
+            var rev = doc.CreateRevision();
+            rev.SetAttachment("index.html", "text/plain; charset=utf-8", body);
+            rev.Save();
+
+            // make sure the doc's latest revision has the attachment
+            var attachments = (Dictionary<string, object>)doc.CurrentRevision.GetProperty("_attachments");
+            Assert.IsNotNull(attachments);
+            Assert.AreEqual(1, attachments.Count);
+
+            var rev2 = doc.CreateRevision();
+            rev2.Properties.Add("foo", "bar");
+            rev2.Save();
+            attachments = (Dictionary<string, object>)rev2.GetProperty("_attachments");
+            Assert.IsNotNull(attachments);
+            Assert.AreEqual(1, attachments.Count);
+        }
     }
 }

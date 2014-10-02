@@ -49,6 +49,7 @@ using System.Threading.Tasks;
 using System.Threading;
 using Newtonsoft.Json.Linq;
 using Couchbase.Lite.Internal;
+using Couchbase.Lite.Util;
 
 namespace Couchbase.Lite
 {
@@ -79,6 +80,12 @@ namespace Couchbase.Lite
 
             // Assert.
             Assert.IsFalse(result);
+        }
+
+        [Test]
+        public void TestGetDatabaseNameFromPath() 
+        {
+            Assert.AreEqual("baz", FileDirUtils.GetDatabaseNameFromPath("foo/bar/baz.cblite"));
         }
 
         [Test]
@@ -342,6 +349,70 @@ namespace Couchbase.Lite
             expected["revpos"] = 2;
             expected["follows"] = true;
             AssertPropertiesAreEqual(expected, result);
+        }
+
+        [Test]
+        public void TestEncodeDocumentJSON() 
+        {
+            var props = new Dictionary<string, object>() 
+            {
+                {"_local_seq", ""}
+            };
+
+            var revisionInternal = new RevisionInternal(props, database);
+            var encoded = database.EncodeDocumentJSON(revisionInternal);
+            Assert.IsNotNull(encoded);
+        }
+
+        [Test]
+        public void TestWinningRevIDOfDoc()
+        {
+            var properties = new Dictionary<string, object>() 
+            {
+                {"testName", "testCreateRevisions"},
+                {"tag", 1337}
+            };
+
+            var properties2a = new Dictionary<string, object>() 
+            {
+                {"testName", "testCreateRevisions"},
+                {"tag", 1338}
+            };
+
+            var properties2b = new Dictionary<string, object>()
+            {
+                {"testName", "testCreateRevisions"},
+                {"tag", 1339}
+            };
+
+            var doc = database.CreateDocument();
+            var newRev1 = doc.CreateRevision();
+            newRev1.SetUserProperties(properties);
+            var rev1 = newRev1.Save();
+
+            var outIsDeleted = new List<Boolean>();
+            var outIsConflict = new List<Boolean>();
+
+            var docNumericId = database.GetDocNumericID(doc.Id);
+            Assert.IsTrue(docNumericId != 0);
+            Assert.AreEqual(rev1.Id, database.WinningRevIDOfDoc(docNumericId, outIsDeleted, outIsConflict));
+            Assert.IsTrue(outIsConflict.Count == 0);
+
+            outIsDeleted = new List<Boolean>();
+            outIsConflict = new List<Boolean>();
+            var newRev2a = rev1.CreateRevision();
+            newRev2a.SetUserProperties(properties2a);
+            var rev2a = newRev2a.Save();
+            Assert.AreEqual(rev2a.Id, database.WinningRevIDOfDoc(docNumericId, outIsDeleted, outIsConflict));
+            Assert.IsTrue(outIsConflict.Count == 0);
+
+            outIsDeleted = new List<Boolean>();
+            outIsConflict = new List<Boolean>();
+            var newRev2b = rev1.CreateRevision();
+            newRev2b.SetUserProperties(properties2b);
+            var rev2b = newRev2b.Save(true);
+            database.WinningRevIDOfDoc(docNumericId, outIsDeleted, outIsConflict);
+            Assert.IsTrue(outIsConflict.Count > 0);
         }
     }
 }

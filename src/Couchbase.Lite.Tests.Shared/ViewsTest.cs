@@ -1046,8 +1046,7 @@ namespace Couchbase.Lite
                 IDictionary<string, object> rowAsJson = row.AsJSONDictionary();
                 Log.D(Tag, string.Empty + rowAsJson);
                 IList<object> key = (IList<object>)rowAsJson["key"];
-                IDictionary<string, object> doc = (IDictionary<string, object>)rowAsJson.Get("doc"
-                    );
+                IDictionary<string, object> doc = (IDictionary<string, object>)rowAsJson.Get("doc");
                 string id = (string)rowAsJson["id"];
                 Assert.AreEqual(expected[i][0], id);
                 Assert.AreEqual(2, key.Count);
@@ -1099,6 +1098,209 @@ namespace Couchbase.Lite
             liveQuery.Stop();
 
             Assert.IsTrue(rowCountAlwaysOne);
+        }
+
+        [Test]
+        public void TestRunLiveQueriesWithReduce()
+        {
+            var view = database.GetView("vu");
+            view.SetMapReduce((document, emit) => emit(document["sequence"], 1), 
+                (keys, values, rereduce) => View.TotalValues(values.ToList()), "1");
+
+            var query = view.CreateQuery().ToLiveQuery();
+
+            var view1 = database.GetView("vu1");
+            view1.SetMapReduce((document, emit) => emit(document["sequence"], 1), 
+                (keys, values, rereduce) => View.TotalValues(values.ToList()), "1");
+
+            var query1 = view1.CreateQuery().ToLiveQuery();
+
+            const Int32 numDocs = 10;
+            CreateDocumentsAsync(database, numDocs);
+
+            Assert.IsNull(query.Rows);
+            query.Start();
+
+            var gotExpectedQueryResult = new CountDownLatch(1);
+            query.Changed += (sender, e) => 
+            {
+                Assert.IsNull(e.Error);
+                if (e.Rows.Count == 1 && Convert.ToInt32(e.Rows.GetRow(0).Value) == numDocs)
+                {
+                    gotExpectedQueryResult.CountDown();
+                }
+            };
+
+            var success = gotExpectedQueryResult.Await(TimeSpan.FromSeconds(10));
+            Assert.IsTrue(success);
+            query.Stop();
+
+            query1.Start();
+
+            CreateDocumentsAsync(database, numDocs + 5); //10 + 10 + 5
+
+            var gotExpectedQuery1Result = new CountDownLatch(1);
+            query1.Changed += (sender, e) => 
+            {
+                Assert.IsNull(e.Error);
+                if (e.Rows.Count == 1 && Convert.ToInt32(e.Rows.GetRow(0).Value) == (2 * numDocs) + 5)
+                {
+                    gotExpectedQuery1Result.CountDown();
+                }
+            };
+
+            success = gotExpectedQuery1Result.Await(TimeSpan.FromSeconds(10));
+            Assert.IsTrue(success);
+            query1.Stop();
+
+            Assert.AreEqual((2 * numDocs) + 5, database.DocumentCount);
+        }
+
+        [Test]
+        public void TestViewIndexSkipsDesignDocs() 
+        {
+            var view = CreateView(database);
+
+            var designDoc = new Dictionary<string, object>() 
+            {
+                {"_id", "_design/test"},
+                {"key", "value"}
+            };
+            PutDoc(database, designDoc);
+
+            view.UpdateIndex();
+            var rows = view.QueryWithOptions(null);
+            Assert.AreEqual(0, rows.Count());
+        }
+
+        [Test]
+        public void TestViewNumericKeys() {
+            var dict = new Dictionary<string, object>()
+            { 
+                {"_id", "22222"},
+                {"referenceNumber", 33547239},
+                {"title", "this is the title"}
+
+            };
+            PutDoc(database, dict);
+
+            var view = CreateView(database);
+            view.SetMap((document, emit) =>
+            {
+                if (document.ContainsKey("referenceNumber"))
+                {
+                    emit(document["referenceNumber"], document);
+                }
+            }, "1");
+
+            var query = view.CreateQuery();
+            query.StartKey = 33547239;
+            query.EndKey = 33547239;
+            var rows = query.Run();
+            Assert.AreEqual(1, rows.Count());
+            Assert.AreEqual(33547239, rows.GetRow(0).Key);
+        }
+            
+        [Test]
+        public void TestViewQueryStartKeyDocID()
+        {
+            PutDocs(database);
+
+            var result = new List<RevisionInternal>();
+
+            var dict = new Dictionary<string, object>() 
+            {
+                {"_id", "11112"},
+                {"key", "one"}
+            };
+            result.Add(PutDoc(database, dict));
+            var view = CreateView(database);
+            view.UpdateIndex();
+
+            var options = new QueryOptions();
+            options.SetStartKey("one");
+            options.SetStartKeyDocId("11112");
+            options.SetEndKey("three");
+            var rows = view.QueryWithOptions(options).ToList<QueryRow>();
+
+            Assert.AreEqual(2, rows.Count);
+            Assert.AreEqual("11112", rows[0].DocumentId);
+            Assert.AreEqual("one", rows[0].Key);
+            Assert.AreEqual("33333", rows[1].DocumentId);
+            Assert.AreEqual("three", rows[1].Key);
+
+            options = new QueryOptions();
+            options.SetEndKey("one");
+            options.SetEndKeyDocId("11111");
+            rows = view.QueryWithOptions(options).ToList<QueryRow>();
+
+            Assert.AreEqual(3, rows.Count);
+            Assert.AreEqual("55555", rows[0].DocumentId);
+            Assert.AreEqual("five", rows[0].Key);
+            Assert.AreEqual("44444", rows[1].DocumentId);
+            Assert.AreEqual("four", rows[1].Key);
+            Assert.AreEqual("11111", rows[2].DocumentId);
+            Assert.AreEqual("one", rows[2].Key);
+
+            options.SetStartKey("one");
+            options.SetStartKeyDocId("11111");
+            rows = view.QueryWithOptions(options).ToList<QueryRow>();
+
+            Assert.AreEqual(1, rows.Count);
+            Assert.AreEqual("11111", rows[0].DocumentId);
+            Assert.AreEqual("one", rows[0].Key);
+        }
+
+        private SavedRevision CreateTestRevisionNoConflicts(Document doc, string val) {
+            var unsavedRev = doc.CreateRevision();
+            var props = new Dictionary<string, object>() 
+            {
+                {"key", val}
+            };
+            unsavedRev.SetUserProperties(props);
+            return unsavedRev.Save();
+        }
+
+        [Test]
+        public void TestViewWithConflict() {
+            // Create doc and add some revs
+            var doc = database.CreateDocument();
+            var rev1 = CreateTestRevisionNoConflicts(doc, "1");
+            Assert.IsNotNull(rev1);
+            var rev2a = CreateTestRevisionNoConflicts(doc, "2a");
+            Assert.IsNotNull(rev2a);
+            var rev3 = CreateTestRevisionNoConflicts(doc, "3");
+            Assert.IsNotNull(rev3);
+
+            // index the view
+            var view = CreateView(database);
+            var rows = view.CreateQuery().Run();
+            Assert.AreEqual(1, rows.Count);
+            var row = rows.GetRow(0);
+            Assert.AreEqual(row.Key, "3");
+
+            // TODO: Why is this null?
+            //Assert.IsNotNull(row.DocumentRevisionId);
+
+            // Create a conflict
+            var rev2bUnsaved = rev1.CreateRevision();
+            var props = new Dictionary<string, object>() 
+            {
+                {"key", "2b"}
+            };
+            rev2bUnsaved.SetUserProperties(props);
+            var rev2b = rev2bUnsaved.Save(true);
+            Assert.IsNotNull(rev2b);
+
+            // re-run query
+            view.UpdateIndex();
+            rows = view.CreateQuery().Run();
+
+            // we should only see one row, with key=3.
+            // if we see key=2b then it's a bug.
+            Assert.AreEqual(1, rows.Count);
+            row = rows.GetRow(0);
+            Assert.AreEqual(row.Key, "3");
         }
     }
 }
