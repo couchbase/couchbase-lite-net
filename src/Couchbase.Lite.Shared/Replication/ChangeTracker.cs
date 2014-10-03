@@ -459,7 +459,7 @@ namespace Couchbase.Lite.Replicator
                         catch (JsonSerializationException ex)
                         {
                             const string timeoutContent = "{\"results\":[";
-							if (!Encoding.UTF8.GetString(content).Trim().Equals(timeoutContent))
+                            if (!Encoding.UTF8.GetString(content).Trim().Equals(timeoutContent))
                                 throw ex;
                             Log.V(Tag, "Timeout while waiting for changes.");
                             return response;
