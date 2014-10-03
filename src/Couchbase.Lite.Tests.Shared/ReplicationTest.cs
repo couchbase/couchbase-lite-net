@@ -890,6 +890,21 @@ namespace Couchbase.Lite
 
         /// <exception cref="System.Exception"></exception>
         [Test]
+        public virtual void TestAppendPathURLString([Values("http://10.0.0.3:4984/connect-2014", "http://10.0.0.3:4984/connect-2014/")] String baseUri, [Values("/_bulk_get?revs=true&attachments=true", "_bulk_get?revs=true&attachments=true")] String newPath)
+        {
+            if (!Boolean.Parse((string)Runtime.Properties["replicationTestsEnabled"]))
+            {
+                Assert.Inconclusive("Replication tests disabled.");
+                return;
+            }
+            var dbUrlString = new Uri(baseUri);
+            var relativeUrlString = dbUrlString.AppendPath(newPath).AbsoluteUri;
+            var expected = "http://10.0.0.3:4984/connect-2014/_bulk_get?revs=true&attachments=true";
+            Assert.AreEqual(expected, relativeUrlString);
+        }
+
+        /// <exception cref="System.Exception"></exception>
+        [Test]
         public void TestChannels()
         {
             if (!Boolean.Parse((string)Runtime.Properties["replicationTestsEnabled"]))
