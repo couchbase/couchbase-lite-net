@@ -3,7 +3,7 @@
      "verbose": true,
      "databases": {
           "db": {
-             "server":"walrus:",
+             "server":"http://127.0.0.1:8091",
              "users": {"GUEST": {"disabled": false, "all_channels": ["*"], "admin_channels": ["*"]}},
              "bucket":"testing",
              "sync":`function(doc) {channel(doc.channels);}`
