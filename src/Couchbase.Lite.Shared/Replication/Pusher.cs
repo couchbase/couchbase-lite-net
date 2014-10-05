@@ -381,6 +381,7 @@ namespace Couchbase.Lite.Replicator
 
                                     if (!dontSendMultipart && UploadMultipartRevision(populatedRev)) 
                                     {
+                                        SafeIncrementCompletedChangesCount();
                                         continue;
                                     }
                                 }
