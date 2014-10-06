@@ -367,7 +367,7 @@ namespace Couchbase.Lite.Replicator
                     catch (Exception ex) {
                         // Swallow TaskCancelledExceptions, which will always happen
                         // if either errorHandler or successHandler don't need to fire.
-                        if (!(ex.InnerException is TaskCanceledException))
+                        if (!(ex.InnerException is OperationCanceledException))
                             throw ex;
                     } 
                     finally 
