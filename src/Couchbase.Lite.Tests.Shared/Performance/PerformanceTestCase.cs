@@ -144,11 +144,14 @@ namespace Couchbase.Lite
                     var postTask = httpclient.PutAsync(url.AbsoluteUri, 
                         new StringContent(docJson, Encoding.UTF8, "application/json"));
                     var response = postTask.Result;
-                    Assert.IsTrue(response.StatusCode == HttpStatusCode.Created);
+
+                    Assert.IsTrue(response.StatusCode == HttpStatusCode.Created || 
+                        response.StatusCode == HttpStatusCode.Conflict);
                 }
                 catch (Exception e)
                 {
-                    Assert.IsNull(e, "Got IOException: " + e.Message);
+                    Console.WriteLine("Error while pusing document to sync gateway : " + e.Message);
+                    throw e;
                 }
                 finally
                 {
