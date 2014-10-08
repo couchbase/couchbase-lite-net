@@ -132,9 +132,11 @@ namespace Couchbase.Lite.Support
                 UseCookies = true,
             };
 
-            var retryHandler = new TransientErrorRetryHandler(handler);
+            var authHandler = new DefaultAuthHandler (handler, cookieStore);
 
-            return new DefaultAuthHandler (retryHandler, cookieStore);
+            var retryHandler = new TransientErrorRetryHandler(authHandler);
+
+            return retryHandler;
         }
 
         public HttpClient GetHttpClient()

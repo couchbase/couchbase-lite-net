@@ -76,7 +76,7 @@ namespace Couchbase.Lite
         {
             MaxRetries = 10;
 
-            RequestTimeout = TimeSpan.FromSeconds(60);
+            RequestTimeout = TimeSpan.FromSeconds(90);
 
             TaskScheduler scheduler = null;
             try {
