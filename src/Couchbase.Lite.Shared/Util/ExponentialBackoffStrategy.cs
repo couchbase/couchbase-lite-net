@@ -35,7 +35,7 @@ namespace Couchbase.Lite.Util
         public Task<HttpResponseMessage> Retry()
         {
             _tries++;
-            _millis *= 2;
+            _millis *= 2; // Double the wait backoff.
             return Task
                 .Delay(WaitInterval)
                 .ContinueWith(t => Send(_request, Token))

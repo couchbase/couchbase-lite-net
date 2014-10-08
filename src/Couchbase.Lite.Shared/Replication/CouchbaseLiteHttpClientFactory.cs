@@ -131,7 +131,10 @@ namespace Couchbase.Lite.Support
                 UseDefaultCredentials = true,
                 UseCookies = true,
             };
-            return new DefaultAuthHandler (handler, cookieStore);
+
+            var retryHandler = new TransientErrorRetryHandler(handler);
+
+            return new DefaultAuthHandler (retryHandler, cookieStore);
         }
 
         public HttpClient GetHttpClient()
