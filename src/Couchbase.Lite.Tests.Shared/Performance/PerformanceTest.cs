@@ -533,5 +533,194 @@ namespace Couchbase.Lite
                 return stopwatch.ElapsedMilliseconds;
             });
         }
+
+        [Test]
+        public void Test28KeySizes()
+        {
+            RunTest("Test28KeySizes", (parameters) =>
+            {
+                var numDocs = Convert.ToInt32(parameters[NUMDOCS_KEY]);
+                var docSize = Convert.ToInt32(parameters[DOCSIZE_KEY]);
+
+                var sb = new StringBuilder();
+                for (var i = 0; i < docSize; i++)
+                {
+                    sb.Append("1");
+                }
+
+                //Start measurement, including create docs, define view, and do query
+                var stopwatch = Stopwatch.StartNew();
+                database.RunInTransaction(() => 
+                {
+                    for (var i = 0; i < numDocs; i++)
+                    {
+                        var vacant = ((i + 2) % 2 == 0);
+                        var props = new Dictionary<string, object>()
+                        {
+                            {"name", sb.ToString()},
+                            {"apt", i},
+                            {"phone", 408100000 + i},
+                            {"vacant", vacant}
+                        };
+
+                        var doc = database.CreateDocument();
+                        var rev = doc.PutProperties(props);
+                        Assert.IsNotNull(rev);
+                    }
+                    return true;
+                });
+
+                var view = database.GetView("vacant");
+                view.SetMapReduce((document, emit) => 
+                {
+                    var vacant = (Boolean)document["vacant"];
+                    var name = (string)document["name"];
+                    if (vacant && !String.IsNullOrWhiteSpace(name))
+                    {
+                        emit(name, vacant);
+                    }
+                }, (keys, values, rereduce) => 
+                {
+                    return View.TotalValues(values.ToList());
+                }, "1.0.0");
+
+                var query = database.GetView("vacant").CreateQuery();
+                query.Descending = false;
+                query.MapOnly = true;
+
+                var rows = query.Run();
+                foreach(var row in rows)
+                {
+                    var key = (string)row.Key;
+                    var value = (Boolean)row.Value;
+
+                    Assert.IsNotNull(key);
+                    Assert.IsTrue(value == true || value == false);
+                }
+
+                stopwatch.Stop();
+
+                return stopwatch.ElapsedMilliseconds;
+            });
+        }
+
+        [Test]
+        public void Test29AllDocQuery()
+        {
+            RunTest("Test29AllDocQuery", (parameters) =>
+            {
+                var numDocs = Convert.ToInt32(parameters[NUMDOCS_KEY]);
+                var docSize = Convert.ToInt32(parameters[DOCSIZE_KEY]);
+
+                var sb = new StringBuilder();
+                for (var i = 0; i < docSize; i++)
+                {
+                    sb.Append("1");
+                }
+
+                database.RunInTransaction(() => 
+                {
+                    for (var i = 0; i < numDocs; i++)
+                    {
+                        var vacant = ((i + 2) % 2 == 0);
+                        var props = new Dictionary<string, object>()
+                        {
+                            {"name", sb.ToString()},
+                            {"apt", i},
+                            {"phone", 408100000 + i},
+                            {"vacant", vacant}
+                        };
+
+                        var doc = database.CreateDocument();
+                        var rev = doc.PutProperties(props);
+                        Assert.IsNotNull(rev);
+                    }
+                    return true;
+                });
+
+                var stopwatch = Stopwatch.StartNew();
+
+                var query = database.CreateAllDocumentsQuery();
+                query.AllDocsMode = AllDocsMode.IncludeDeleted;
+                var rows = query.Run();
+                foreach(var row in rows)
+                {
+                    var key = row.Key;
+                    var value = row.Value;
+                    Assert.IsNotNull(key);
+                    Assert.IsNotNull(value);
+                }
+
+                stopwatch.Stop();
+
+                return stopwatch.ElapsedMilliseconds;
+            });
+        }
+
+        [Test]
+        public void Test30LiveQuery()
+        {
+            RunTest("Test30LiveQuery", (parameters) =>
+            {
+                var numDocs = Convert.ToInt32(parameters[NUMDOCS_KEY]);
+                var docSize = Convert.ToInt32(parameters[DOCSIZE_KEY]);
+
+                // Prepare document content
+                var sb = new StringBuilder();
+                for (var s = 0; s < docSize; s++)
+                {
+                    sb.Append("1");
+                }
+                var name = sb.ToString();
+
+                var props = new Dictionary<string, object>();
+                props["name"] = name;
+
+                var doneSignal = new CountDownLatch(1);
+
+                // Run a live query
+                var view = database.GetView("vu");
+                view.SetMap((document, emit) =>
+                {
+                    emit(document["sequence"], null);
+                }, "1");
+
+                var liveQuery = view.CreateQuery().ToLiveQuery();
+                liveQuery.Changed += (sender, e) => 
+                {
+                    var rows = e.Rows;
+                    var count = rows.Count;
+                    if (count == numDocs)
+                    {
+                        doneSignal.CountDown();
+                    }
+                };
+                liveQuery.Start();
+
+                var stopwatch = Stopwatch.StartNew();
+
+                database.RunAsync((db) => 
+                {
+                    database.BeginTransaction();
+
+                    for (var i = 0; i < numDocs; i++)
+                    {
+                        var doc = database.CreateDocument();
+                        props["sequence"] = i;
+                        var rev = doc.PutProperties(props);
+                        Assert.IsNotNull(rev);
+                    }
+
+                    db.EndTransaction(true);
+                });
+
+                var success = doneSignal.Await(TimeSpan.FromSeconds(300));
+                Assert.IsTrue(success);
+
+                stopwatch.Stop();
+
+                return stopwatch.ElapsedMilliseconds;
+            });
+        }
     }
 }
