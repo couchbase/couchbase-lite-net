@@ -12,9 +12,19 @@
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>A lightweight, document-oriented (NoSQL), syncable database engine for .NET</description>
     <releaseNotes>
-    * Everything in 0.9.6, plus
-    	* fix for issue #325.
-    	* updates assembly version to 0.9.7.
+    Fixes:
+    * _bulk_get returns NotFound error when replication URL ends with a forward slash
+    * Uppercase Revision Ids are incompatible with CouchD
+    * Replicator.Authenticator should be public
+    * AccessViolationException on Windows
+    * Sqlite error on "database disk image is malformed" after replacing database file
+    * TraceEventCache undefined in Couchbase.Lite.0.9.5-pre5 for Android
+    * _bulk_get fails in release builds
+    * SingleThreadTaskScheduler sometimes throws an NRE
+    * [Android] Sometimes crashes with "EntryPointNotFoundException: getifaddrs"
+    * Client stops pulling changes
+    * Localization quirk makes NUnit fail to run tests
+    * Calling `Properties` on an unsaved document throws NRE
     </releaseNotes>
     <copyright>Copyright 2014</copyright>
     <tags>couchbase couchbase-mobile couchbase-lite sync database mobile xamarin ios android windows linux mac osx</tags>
