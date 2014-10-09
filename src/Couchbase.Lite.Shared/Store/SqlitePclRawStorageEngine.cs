@@ -447,13 +447,19 @@ namespace Couchbase.Lite.Shared
             {
                 return;
             }
-#if __MOBILE__
-            db.close();
-#else
-            db.close_v2();
+
+            try 
+            {
+                db.close();
+            }
+            catch (ugly.sqlite3_exception ex)
+            {
+                Thread.Sleep(5000);
+                db.close();
+            }
             GC.Collect();
             GC.WaitForPendingFinalizers();
-#endif
+
             db.Dispose();
             db = null;
         }

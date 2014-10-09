@@ -760,7 +760,6 @@ namespace Couchbase.Lite
         [Test]
         public void TestCreateView()
         {
-            AppDomain.CurrentDomain.FirstChanceException += CurrentDomain_FirstChanceException;
             var db = StartDatabase();
 
             var view = db.GetView("vu");
@@ -955,8 +954,6 @@ namespace Couchbase.Lite
         [Test]
         public void TestAsyncViewQuery()
         {
-            AppDomain.CurrentDomain.FirstChanceException += CurrentDomain_FirstChanceException;
-            
             var doneSignal = new CountDownLatch(1);
             var db = StartDatabase();
 

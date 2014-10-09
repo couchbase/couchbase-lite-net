@@ -124,7 +124,7 @@ namespace Couchbase.Lite.Support
         /// <summary>
         /// Build a pipeline of HttpMessageHandlers.
         /// </summary>
-        HttpMessageHandler BuildHandlerPipeline ()
+        internal HttpMessageHandler BuildHandlerPipeline ()
         {
             var handler = new HttpClientHandler {
                 CookieContainer = cookieStore,

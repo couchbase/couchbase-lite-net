@@ -462,6 +462,7 @@ namespace Couchbase.Lite.Replicator
                             if (!Encoding.UTF8.GetString(content).Trim().Equals(timeoutContent))
                                 throw ex;
                             Log.V(Tag, "Timeout while waiting for changes.");
+                            backoff.SleepAppropriateAmountOfTime();
                             return response;
                         }
                         var responseOK = ReceivedPollResponse(fullBody);
