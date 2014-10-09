@@ -135,6 +135,7 @@ namespace Couchbase.Lite
             var dbStream = GetAsset("noattachments.cblite");
 
             manager.ReplaceDatabase("replaced", dbStream, null);
+            dbStream.Dispose();
 
             //Now validate the number of files in the DB
             Assert.AreEqual(10, manager.GetDatabase("replaced").DocumentCount);
@@ -146,7 +147,7 @@ namespace Couchbase.Lite
             var attachments = new Dictionary<string, Stream>();
             attachments["attachment.blob"] = GetAsset("attachment.blob");
             manager.ReplaceDatabase("replaced", dbStream, attachments);
-
+            dbStream.Dispose();
             //Validate the number of files in the DB
             Assert.AreEqual(1, manager.GetDatabase("replaced").DocumentCount);
 

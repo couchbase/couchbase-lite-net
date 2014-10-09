@@ -58,6 +58,7 @@ namespace Couchbase.Lite
 {
     public abstract class PerformanceTestCase : LiteTestCase
     {
+        private const string Tag = "LiteTestCase";
         protected const string NUMDOCS_KEY = "num_docs";
         protected const string DOCSIZE_KEY = "doc_size";
 

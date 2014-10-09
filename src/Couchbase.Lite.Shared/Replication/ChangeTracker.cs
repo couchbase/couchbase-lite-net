@@ -374,20 +374,20 @@ namespace Couchbase.Lite.Replicator
                     {
                         if (changesRequestTask.IsCompleted) 
                         {
-                            changesRequestTask.Dispose();
+                        changesRequestTask.Dispose();
                         }
                         changesRequestTask = null;
 
                         if (successHandler.IsCompleted) 
                         {
-                            successHandler.Dispose();
+                        successHandler.Dispose();
                         }
 
                         successHandler = null;
 
                         if (errorHandler.IsCompleted) 
                         {
-                            errorHandler.Dispose();
+                        errorHandler.Dispose();
                         }
 
                         errorHandler = null;
@@ -462,6 +462,7 @@ namespace Couchbase.Lite.Replicator
                             if (!Encoding.UTF8.GetString(content).Trim().Equals(timeoutContent))
                                 throw ex;
                             Log.V(Tag, "Timeout while waiting for changes.");
+                            backoff.SleepAppropriateAmountOfTime();
                             return response;
                         }
                         var responseOK = ReceivedPollResponse(fullBody);

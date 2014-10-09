@@ -67,6 +67,8 @@ namespace Couchbase.Lite
         [Test]
         public async void TestTransientRetryHandler()
         {
+            Assert.Inconclusive("Need to implement a scriptable http service, like Square's MockWebServer.");
+
             // Arrange
             var handler = new TransientErrorRetryHandler(new HttpClientHandler());
             var client = new HttpClient(handler);
