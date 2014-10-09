@@ -48,7 +48,6 @@ using Sharpen;
 using Couchbase.Lite.Util;
 using System.Net.Http;
 using System.Web;
-using Couchbase.Lite.Support;
 
 namespace Couchbase.Lite
 {

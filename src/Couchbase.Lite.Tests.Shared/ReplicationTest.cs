@@ -1598,7 +1598,6 @@ namespace Couchbase.Lite
         [Test]
         public void TestPushReplicationRecoverableError()
         {
-            Assert.Inconclusive("Not sure this is a valid test.");
             var statusCode = 503;
             var statusMessage = "Transient Error";
             var expectError = false;
@@ -1608,7 +1607,6 @@ namespace Couchbase.Lite
         // Failed : https://github.com/couchbase/couchbase-lite-net/issues/320
         [Test]
         public void TestPushReplicationRecoverableIOException() {
-            Assert.Inconclusive("Not sure this is a valid test.");
             var statusCode = -1; // code to tell it to throw an IOException
             string statusMessage = null;
             var expectError = false;
@@ -1618,7 +1616,6 @@ namespace Couchbase.Lite
         [Test]
         public void TestPushReplicationNonRecoverableError()
         {
-            Assert.Inconclusive("Not sure this is a valid test.");
             var statusCode = 404;
             var statusMessage = "NOT FOUND";
             var expectError = true;
@@ -1628,7 +1625,6 @@ namespace Couchbase.Lite
         [Test]
         public void TestPushUpdatedDocWithoutReSendingAttachments() 
         {
-            Assert.Inconclusive("Not sure this is a valid test.");
             Assert.AreEqual(0, database.LastSequenceNumber);
 
             var properties1 = new Dictionary<string, object>() {
