@@ -69,6 +69,38 @@ namespace Couchbase.Lite
     {
         new const string Tag = "ReplicationTest";
 
+        private class ReplicationIdleObserver 
+        {
+            private readonly CountDownLatch doneSignal;
+
+            internal ReplicationIdleObserver(CountDownLatch doneSignal) {
+                this.doneSignal = doneSignal;
+            }
+                
+            public void Changed(object sender, ReplicationChangeEventArgs args) {
+                var replicator = args.Source;
+                if (replicator.Status == ReplicationStatus.Idle) {
+                    doneSignal.CountDown();
+                }
+            }
+        }
+
+        private class ReplicationErrorObserver 
+        {
+            private readonly CountDownLatch doneSignal;
+
+            internal ReplicationErrorObserver(CountDownLatch doneSignal) {
+                this.doneSignal = doneSignal;
+            }
+
+            public void Changed(object sender, ReplicationChangeEventArgs args) {
+                var replicator = args.Source;
+                if (replicator.LastError != null) {
+                    doneSignal.CountDown();
+                }
+            }
+        }
+
         private static CountdownEvent ReplicationWatcherThread(Replication replication)
         {
             var started = replication.IsRunning;
@@ -858,6 +890,21 @@ namespace Couchbase.Lite
 
         /// <exception cref="System.Exception"></exception>
         [Test]
+        public virtual void TestAppendPathURLString([Values("http://10.0.0.3:4984/connect-2014", "http://10.0.0.3:4984/connect-2014/")] String baseUri, [Values("/_bulk_get?revs=true&attachments=true", "_bulk_get?revs=true&attachments=true")] String newPath)
+        {
+            if (!Boolean.Parse((string)Runtime.Properties["replicationTestsEnabled"]))
+            {
+                Assert.Inconclusive("Replication tests disabled.");
+                return;
+            }
+            var dbUrlString = new Uri(baseUri);
+            var relativeUrlString = dbUrlString.AppendPath(newPath).AbsoluteUri;
+            var expected = "http://10.0.0.3:4984/connect-2014/_bulk_get?revs=true&attachments=true";
+            Assert.AreEqual(expected, relativeUrlString);
+        }
+
+        /// <exception cref="System.Exception"></exception>
+        [Test]
         public void TestChannels()
         {
             if (!Boolean.Parse((string)Runtime.Properties["replicationTestsEnabled"]))
@@ -1142,7 +1189,7 @@ namespace Couchbase.Lite
 
             var properties1 = new Dictionary<string, object>();
             properties1["doc1"] = "testPushReplicationCanMissDocs";
-            var doc1 = CreateDocumentWithProperties(database, properties1);
+            CreateDocumentWithProperties(database, properties1);
 
             var properties2 = new Dictionary<string, object>();
             properties2["doc2"] = "testPushReplicationCanMissDocs";
@@ -1175,7 +1222,7 @@ namespace Couchbase.Lite
                 responseObject["rev"] = doc2.CurrentRevisionId;
                 return  MockHttpRequestHandler.GenerateHttpResponseMessage(responseObject);
             };
-            httpHandler.SetResponder(doc2.Id, bulkDocsResponder);
+            httpHandler.SetResponder(doc2.Id, doc2Responder);
 
             var replicationDoneSignal = new CountDownLatch(1);
             var observer = new ReplicationObserver(replicationDoneSignal);
@@ -1294,6 +1341,441 @@ namespace Couchbase.Lite
 
             replicationCaughtUpSignal.Wait(TimeSpan.FromSeconds(8));
             Assert.AreEqual(numDocs, completedChangesCount);
+
+            // Workaroud: sleep to ensure that all of the pending replication tasks 
+            // (e.g. saving checkpoint) are all drained to prevent accessing to 
+            // the database after the manager is closed during the test tearing 
+            // down state.
+            Log.V(Tag, "Wait for a few seconds to ensure all pending replication tasks are drained ...");
+            Thread.Sleep(3000);
+        }
+
+        [Test]
+        public void TestContinuousPushReplicationGoesIdle() 
+        {
+            // make sure we are starting empty
+            Assert.AreEqual(0, database.LastSequenceNumber);
+
+            // add docs
+            var properties1 = new Dictionary<string, object>();
+            properties1["doc1"] = "testContinuousPushReplicationGoesIdle";
+            CreateDocumentWithProperties(database, properties1);
+
+            var httpClientFactory = new MockHttpClientFactory();
+            manager.DefaultHttpClientFactory = httpClientFactory;
+
+            var firstPusher = database.CreatePushReplication(GetReplicationURL());
+            firstPusher.Continuous = true;
+            var checkpointId = firstPusher.RemoteCheckpointDocID();
+
+            var httpHandler = httpClientFactory.HttpHandler; 
+            MockHttpRequestHandler.HttpResponseDelegate localResponder = (request) =>
+            {
+                var id = String.Format("_local/{0}", checkpointId);
+                var json = "{" + String.Format("\"id\":\"{0}\",\"ok\":true,\"rev\":\"0-2\"", id) + "}";
+                return MockHttpRequestHandler.GenerateHttpResponseMessage(HttpStatusCode.Created, "OK", json);
+            };
+            httpHandler.SetResponder("_local", localResponder);
+
+            var replicationIdleSignal = new CountDownLatch(1);
+            var replicationIdleObserver = new ReplicationIdleObserver(replicationIdleSignal);
+            firstPusher.Changed += replicationIdleObserver.Changed;
+            firstPusher.Start();
+
+            var success = replicationIdleSignal.Await(TimeSpan.FromSeconds(30));
+            Assert.IsTrue(success);
+            StopReplication(firstPusher);
+
+            // the last sequence should be "1" at this point.  we will use this later
+            var lastSequence = database.LastSequenceWithCheckpointId(checkpointId);
+            Assert.AreEqual("1", lastSequence);
+
+            // start a second continuous replication
+            var secondPusher = database.CreatePushReplication(GetReplicationURL());
+            secondPusher.Continuous = true;
+            var secondPusherCheckpointId = secondPusher.RemoteCheckpointDocID();
+            Assert.AreEqual(checkpointId, secondPusherCheckpointId);
+
+            // when this goes to fetch the checkpoint, return the last sequence from the previous replication
+            localResponder = (request) =>
+            {
+                var id = String.Format("_local/{0}", secondPusherCheckpointId);
+                var json = String.Format("{{\"id\":\"{0}\",\"ok\":true,\"rev\":\"0-2\",\"lastSequence\":\"{1}\"}}", id, lastSequence);
+                return MockHttpRequestHandler.GenerateHttpResponseMessage(HttpStatusCode.Created, "OK", json);
+            };
+            httpHandler.SetResponder("_local", localResponder);
+
+            // start second replication
+            replicationIdleSignal = new CountDownLatch(1);
+            replicationIdleObserver = new ReplicationIdleObserver(replicationIdleSignal);
+            secondPusher.Changed += replicationIdleObserver.Changed;
+            secondPusher.Start();
+
+            // wait until we get an IDLE event
+            success = replicationIdleSignal.Await(TimeSpan.FromSeconds(30));
+            Assert.IsTrue(success);
+            StopReplication(secondPusher);
+        }
+
+        /**
+        * Verify that running a continuous push replication will emit a change while
+        * in an error state when run against a mock server that returns 500 Internal Server
+        * errors on every request.
+        */
+        [Test]
+        public void TestContinuousReplicationErrorNotification() {
+            var httpClientFactory = new MockHttpClientFactory();
+            manager.DefaultHttpClientFactory = httpClientFactory;
+
+            var httpHandler = httpClientFactory.HttpHandler; 
+            httpHandler.AddResponderThrowExceptionAllRequests();
+
+            var pusher = database.CreatePushReplication(GetReplicationURL());
+            pusher.Continuous = true;
+
+            var signal = new CountDownLatch(1);
+            var observer = new ReplicationErrorObserver(signal);
+            pusher.Changed += observer.Changed;
+            pusher.Start();
+
+            var success = signal.Await(TimeSpan.FromSeconds(30));
+            Assert.IsTrue(success);
+
+            pusher.Stop();
+        }
+
+        [Test]
+        public void TestDifferentCheckpointsFilteredReplication() {
+            var pullerNoFilter = database.CreatePullReplication(GetReplicationURL());
+            var noFilterCheckpointDocId = pullerNoFilter.RemoteCheckpointDocID();
+
+            var pullerWithFilter1 = database.CreatePullReplication(GetReplicationURL());
+            pullerWithFilter1.Filter = "foo/bar";
+            pullerWithFilter1.DocIds = new List<string>() 
+            { 
+                "doc3", "doc1", "doc2"
+            };
+            pullerWithFilter1.FilterParams = new Dictionary<string, object>() 
+            { 
+                { "a", "aval" },
+                { "b", "bval" }
+            };
+            var withFilterCheckpointDocId = pullerWithFilter1.RemoteCheckpointDocID();
+            Assert.IsFalse(withFilterCheckpointDocId.Equals(noFilterCheckpointDocId));
+
+            var pullerWithFilter2 = database.CreatePullReplication(GetReplicationURL());
+            pullerWithFilter2.Filter = "foo/bar";
+            pullerWithFilter2.DocIds = new List<string>() 
+            { 
+                "doc2", "doc3", "doc1"
+            };
+            pullerWithFilter2.FilterParams = new Dictionary<string, object>() 
+            { 
+                { "b", "bval" },
+                { "a", "aval" }
+            };
+            var withFilterCheckpointDocId2 = pullerWithFilter2.RemoteCheckpointDocID();
+            Assert.IsTrue(withFilterCheckpointDocId.Equals(withFilterCheckpointDocId2));
+        }
+
+        [Test]
+        public void TestPusherBatching()
+        {
+            // Create a bunch (InboxCapacity * 2) local documents
+            var numDocsToSend = Replication.InboxCapacity * 2;
+            for (var i = 0; i < numDocsToSend; i++)
+            {
+                var properties = new Dictionary<string, object>();
+                properties["testPusherBatching"] = i;
+                var doc = database.CreateDocument();
+                var rev = doc.PutProperties(properties);
+                Assert.IsNotNull(rev);
+            }
+
+            // Kick off a one time push replication to a mock
+            var httpClientFactory = new MockHttpClientFactory();
+            var httpHandler = httpClientFactory.HttpHandler; 
+            httpHandler.AddResponderFakeLocalDocumentUpdate404();
+            manager.DefaultHttpClientFactory = httpClientFactory;
+
+            var pusher = database.CreatePushReplication(GetReplicationURL());
+            RunReplication(pusher);
+            Assert.IsNull(pusher.LastError);
+
+            var numDocsSent = 0;
+
+            // Verify that only INBOX_SIZE documents are included in any given bulk post request
+            var capturedRequests = httpHandler.CapturedRequests;
+            foreach (var request in capturedRequests)
+            {
+                if (request.Method == HttpMethod.Post && 
+                    request.RequestUri.AbsoluteUri.EndsWith("_bulk_docs", StringComparison.Ordinal))
+                {
+                    var bytes = request.Content.ReadAsByteArrayAsync().Result;
+                    var body = Manager.GetObjectMapper().ReadValue<IDictionary<string, object>>(bytes.AsEnumerable());
+                    var docs = (JArray)body["docs"];
+                    numDocsSent += docs.Count;
+                }
+            }
+
+            Assert.AreEqual(numDocsToSend, numDocsSent);
+        }
+
+        private void RunPushReplicationWithTransientError(Int32 errorCode, string statusMessage, Boolean expectError) 
+        {
+            var properties1 = new Dictionary<string, object>() 
+            {
+                {"doc1", "testPushReplicationTransientError"}
+            };
+            CreateDocumentWithProperties(database, properties1);
+
+            var httpClientFactory = new MockHttpClientFactory();
+            var httpHandler = httpClientFactory.HttpHandler; 
+            httpHandler.AddResponderFakeLocalDocumentUpdate404();
+            manager.DefaultHttpClientFactory = httpClientFactory;
+
+            var sentinal = MockHttpRequestHandler.FakeBulkDocs;
+
+            var responders = new List<MockHttpRequestHandler.HttpResponseDelegate>();
+            responders.Add(MockHttpRequestHandler.TransientErrorResponder(errorCode, statusMessage));
+            MockHttpRequestHandler.HttpResponseDelegate chainResponder = (request) =>
+            {
+                if (responders.Count > 0) {
+                    var responder = responders[0];
+                    responders.RemoveAt(0);
+                    return responder(request);
+                }
+
+                return sentinal(request);
+            };
+
+            httpHandler.SetResponder("_bulk_docs", chainResponder);
+
+            // Create a replication observer to wait until replication finishes
+            var replicationDoneSignal = new CountDownLatch(1);
+            var replicationFinishedObserver = new ReplicationObserver(replicationDoneSignal);
+            var pusher = database.CreatePushReplication(GetReplicationURL());
+            pusher.Changed += replicationFinishedObserver.Changed;
+
+            // save the checkpoint id for later usage
+            var checkpointId = pusher.RemoteCheckpointDocID();
+
+            // kick off the replication
+            pusher.Start();
+
+            // wait for it to finish
+            var success = replicationDoneSignal.Await(TimeSpan.FromSeconds(30));
+            Assert.IsTrue(success);
+
+            if (expectError)
+            {
+                Assert.IsNotNull(pusher.LastError);
+            }
+            else
+            {
+                Assert.IsNull(pusher.LastError);
+            }
+
+            // workaround for the fact that the replicationDoneSignal.Await() call could unblock before all
+            // the statements in Replication.Stopped() have even had a chance to execute.
+            Thread.Sleep(500);
+
+            var localLastSequence = database.LastSequenceWithCheckpointId(checkpointId);
+            if (expectError)
+            {
+                Assert.Null(localLastSequence);
+            }
+            else
+            {
+                Assert.IsNotNull(localLastSequence);
+            }
+        }
+
+        // Failed : https://github.com/couchbase/couchbase-lite-net/issues/320
+        [Test]
+        public void TestPushReplicationRecoverableError()
+        {
+            var statusCode = 503;
+            var statusMessage = "Transient Error";
+            var expectError = false;
+            RunPushReplicationWithTransientError(statusCode, statusMessage, expectError);
+        }
+
+        // Failed : https://github.com/couchbase/couchbase-lite-net/issues/320
+        [Test]
+        public void TestPushReplicationRecoverableIOException() {
+            var statusCode = -1; // code to tell it to throw an IOException
+            string statusMessage = null;
+            var expectError = false;
+            RunPushReplicationWithTransientError(statusCode, statusMessage, expectError);
+        }
+
+        [Test]
+        public void TestPushReplicationNonRecoverableError()
+        {
+            var statusCode = 404;
+            var statusMessage = "NOT FOUND";
+            var expectError = true;
+            RunPushReplicationWithTransientError(statusCode, statusMessage, expectError);
+        }
+
+        [Test]
+        public void TestPushUpdatedDocWithoutReSendingAttachments() 
+        {
+            Assert.AreEqual(0, database.LastSequenceNumber);
+
+            var properties1 = new Dictionary<string, object>() {
+                { "dynamic", 1 }
+            };
+
+            var doc = CreateDocumentWithProperties(database, properties1);
+            var rev1 = doc.CurrentRevision;
+
+            var unsavedRev2 = doc.CreateRevision();
+            var attachmentStream = GetAsset("attachment.png");
+            unsavedRev2.SetAttachment("attachment.png", "image/png", attachmentStream);
+            var rev2 = unsavedRev2.Save();
+
+            // Kick off a one time push replication to a mock
+            var httpClientFactory = new MockHttpClientFactory();
+            var httpHandler = httpClientFactory.HttpHandler; 
+            httpHandler.AddResponderFakeLocalDocumentUpdate404();
+            httpHandler.SetResponder(doc.Id, (request) => 
+            {
+                var content = new Dictionary<string, object>()
+                {
+                    {"id", doc.Id},
+                    {"ok", true},
+                    {"rev", doc.CurrentRevisionId}
+                };
+                return MockHttpRequestHandler.GenerateHttpResponseMessage(content);
+            });
+            manager.DefaultHttpClientFactory = httpClientFactory;
+
+            var pusher = database.CreatePushReplication(GetReplicationURL());
+            RunReplication(pusher);
+
+            foreach (var request in httpHandler.CapturedRequests)
+            {
+                if (request.Method == HttpMethod.Put)
+                {
+                    var isMultipartContent = (request.Content is MultipartContent);
+                    Assert.IsFalse(isMultipartContent);
+                }
+            }
+
+            httpHandler.ClearCapturedRequests();
+
+            var oldDoc = database.GetDocument(doc.Id);
+            var unsavedRev = oldDoc.CreateRevision();
+            var props = new Dictionary<string, object>(oldDoc.Properties);
+            props["dynamic"] = Convert.ToInt64(oldDoc.Properties["dynamic"]) + 1;
+            unsavedRev.SetProperties(props);
+            var savedRev = unsavedRev.Save();
+            httpHandler.SetResponder(doc.Id, (request) => 
+            {
+                var content = new Dictionary<string, object>()
+                {
+                    {"id", doc.Id},
+                    {"ok", true},
+                    {"rev", savedRev.Id}
+                };
+                return MockHttpRequestHandler.GenerateHttpResponseMessage(content);
+            });
+
+            httpHandler.SetResponder("_revs_diff", (request) => 
+            {
+                var json = String.Format("{{\"{0}\":{{\"missing\":[\"{1}\"],\"possible_ancestors\":[\"{2},{3}\"]}}}}", doc.Id, savedRev.Id, rev1.Id, rev2.Id);
+                return MockHttpRequestHandler.GenerateHttpResponseMessage(HttpStatusCode.OK, "OK", json);
+            });
+
+            pusher = database.CreatePushReplication(GetReplicationURL());
+            RunReplication(pusher);
+
+            foreach (var request in httpHandler.CapturedRequests)
+            {
+                if (request.Method == HttpMethod.Put)
+                {
+                    var isMultipartContent = (request.Content is MultipartContent);
+                    Assert.IsFalse(isMultipartContent);
+                }
+            }
+        }
+
+        [Test]
+        public void TestServerDoesNotSupportMultipart() {
+            Assert.AreEqual(0, database.LastSequenceNumber);
+
+            var properties1 = new Dictionary<string, object>() {
+                { "dynamic", 1 }
+            };
+
+            var doc = CreateDocumentWithProperties(database, properties1);
+            var rev1 = doc.CurrentRevision;
+
+            var unsavedRev2 = doc.CreateRevision();
+            var attachmentStream = GetAsset("attachment.png");
+            unsavedRev2.SetAttachment("attachment.png", "image/png", attachmentStream);
+            var rev2 = unsavedRev2.Save();
+            Assert.IsNotNull(rev2);
+
+            var httpClientFactory = new MockHttpClientFactory();
+            var httpHandler = httpClientFactory.HttpHandler; 
+            httpHandler.AddResponderFakeLocalDocumentUpdate404();
+
+            var responders = new List<MockHttpRequestHandler.HttpResponseDelegate>();
+            responders.Add((request) => 
+            {
+                var json = "{\"error\":\"Unsupported Media Type\",\"reason\":\"missing\"}";
+                return MockHttpRequestHandler.GenerateHttpResponseMessage(HttpStatusCode.UnsupportedMediaType, 
+                    "Unsupported Media Type", json);
+            });
+
+            responders.Add((request) => 
+            {
+                var props = new Dictionary<string, object>()
+                {
+                    {"id", doc.Id},
+                    {"ok", true},
+                    {"rev", doc.CurrentRevisionId}
+
+                };
+                return MockHttpRequestHandler.GenerateHttpResponseMessage(props);
+            });
+
+            MockHttpRequestHandler.HttpResponseDelegate chainResponder = (request) =>
+            {
+                if (responders.Count > 0) {
+                    var responder = responders[0];
+                    responders.RemoveAt(0);
+                    return responder(request);
+                }
+                return null;
+            };
+
+            httpHandler.SetResponder(doc.Id, chainResponder);
+            manager.DefaultHttpClientFactory = httpClientFactory;
+
+            var pusher = database.CreatePushReplication(GetReplicationURL());
+            RunReplication(pusher);
+
+            var count = 0;
+            foreach (var request in httpHandler.CapturedRequests)
+            {
+                if (request.Method == HttpMethod.Put)
+                {
+                    var isMultipartContent = (request.Content is MultipartContent);
+                    if (count == 0)
+                    {
+                        Assert.IsTrue(isMultipartContent);
+                    }
+                    else
+                    {
+                        Assert.IsFalse(isMultipartContent);
+                    }
+                    count++;
+                }
+            }
         }
 
         [Test]

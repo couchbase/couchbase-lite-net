@@ -161,6 +161,11 @@ namespace Couchbase.Lite
                 // start the livequery running asynchronously
                 query.Start();
             }
+            else if (methodNameToCall.Equals("startWaitForRows")) 
+            {
+                query.Start();
+                query.WaitForRows();
+            }
             else
             {
                 Assert.IsNull(query.Rows);
@@ -896,6 +901,58 @@ namespace Couchbase.Lite
 
         /// <exception cref="System.Exception"></exception>
         [Test]
+        public void TestLiveQueryStartWaitForRows()
+        {
+            RunLiveQuery("startWaitForRows");
+        }
+
+        /// <exception cref="System.Exception"></exception>
+        [Test]
+        public void TestLiveQueryStop()
+        {
+            const int numDocs = 10;
+            var doneSignal = new CountDownLatch(1);
+
+            // Run a live query
+            var view = database.GetView("vu");
+            view.SetMap((document, emit) =>
+            {
+                emit(document["sequence"], null);
+            }, "1");
+
+            var changedCalled = false;
+
+            var query = view.CreateQuery().ToLiveQuery();
+            query.Changed += (object sender, QueryChangeEventArgs e) => 
+            {
+                changedCalled = true;
+                Assert.IsNull(e.Error);
+                if (e.Rows.Count == numDocs)
+                {
+                    doneSignal.CountDown();
+                }
+            };
+
+            // create the docs that will cause the above change listener to decrement countdown latch
+            CreateDocumentsAsync(database, numDocs);
+
+            query.Start();
+
+            var success = doneSignal.Await(TimeSpan.FromSeconds(5));
+            Assert.IsTrue(success);
+
+            query.Stop();
+
+            CreateDocumentsAsync(database, numDocs);
+
+            changedCalled = false;
+            doneSignal = new CountDownLatch(1);
+            doneSignal.Await(TimeSpan.FromSeconds(5));
+            Assert.IsTrue(!changedCalled);
+        }
+
+        /// <exception cref="System.Exception"></exception>
+        [Test]
         public void TestAsyncViewQuery()
         {
             AppDomain.CurrentDomain.FirstChanceException += CurrentDomain_FirstChanceException;
@@ -1000,6 +1057,88 @@ namespace Couchbase.Lite
             Assert.IsFalse(pub.Equals(db.PublicUUID()));
             Assert.IsFalse(priv.Equals(db.PrivateUUID()));
             mgr.Close();
+        }
+
+        [Test]
+        public void TestHistoryAfterDocDeletion()
+        {
+            var properties = new Dictionary<string, object>() 
+            {
+                {"tag", 1}
+            };
+
+            var docId = "testHistoryAfterDocDeletion";
+            var doc = database.GetDocument(docId);
+            Assert.AreEqual(docId, doc.Id);
+            doc.PutProperties(properties);
+
+            var revId = doc.CurrentRevisionId;
+            for (var i = 2; i < 6; i++)
+            {
+                properties["tag"] = i;
+                properties["_rev"] = revId;
+                doc.PutProperties(properties);
+                revId = doc.CurrentRevisionId;
+                Assert.IsTrue(revId.StartsWith(i + "-", StringComparison.Ordinal));
+                Assert.AreEqual(docId, doc.Id);
+            }
+
+            // now delete the doc and clear it from the cache so we
+            // make sure we are reading a fresh copy
+            doc.Delete();
+            database.RemoveDocumentFromCache(doc);
+
+            // get doc from db with same ID as before, and the current rev should be null since the
+            // last update was a deletion
+            var docPostDelete = database.GetDocument(docId);
+            Assert.IsNull(docPostDelete.CurrentRevision);
+
+            properties = new Dictionary<string, object>() 
+            {
+                { "tag", 6 }
+            };
+
+            var newRevision = docPostDelete.CreateRevision();
+            newRevision.SetProperties(properties);
+            var newSavedRevision = newRevision.Save();
+
+            // make sure the current revision of doc matches the rev we just saved
+            Assert.AreEqual(newSavedRevision, docPostDelete.CurrentRevision);
+
+            // make sure the rev id is 7-
+            Assert.IsTrue(docPostDelete.CurrentRevisionId.StartsWith("7-", StringComparison.Ordinal));
+        }
+
+        [Test]
+        public void TestMultiDocumentUpdate()
+        {
+            const Int32 numDocs = 10;
+            const Int32 numUpdates = 10;
+            var docs = new Document[numDocs];
+
+            for (var i = 0; i < numDocs; i++)
+            {
+                var props = new Dictionary<string, object>() 
+                {
+                    { "foo", "bar" },
+                    { "toggle", true }
+                };
+
+                var doc = CreateDocumentWithProperties(database, props);
+                docs[i] = doc;
+            }
+
+            for (var i = 0; i < numDocs; i++)
+            {
+                var doc = docs[i];
+                for (var j = 0; j < numUpdates; j++)
+                {
+                    var contents = new Dictionary<string, object>(doc.Properties);
+                    contents["toggle"] = !(Boolean)contents["toggle"];
+                    var rev = doc.PutProperties(contents);
+                    Assert.IsNotNull(rev);
+                }
+            }
         }
     }
 }

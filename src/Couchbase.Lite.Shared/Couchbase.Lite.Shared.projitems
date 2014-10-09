@@ -214,6 +214,9 @@
     <Compile Include="$(MSBuildThisFileDirectory)Replication\IChangeTrackerClient.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Replication\BulkDownloadEventArgs.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Sharpen\SharpenThread.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Util\TransientErrorRetryHandler.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Util\IRetryStrategy.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Util\ExponentialBackoffStrategy.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="$(MSBuildThisFileDirectory)Store\MonoSQLiteStorageEngine.cs" />

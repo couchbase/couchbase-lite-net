@@ -45,11 +45,16 @@
 using Couchbase.Lite;
 using NUnit.Framework;
 using Sharpen;
+using Couchbase.Lite.Util;
+using System.Net.Http;
+using System.Web;
 
 namespace Couchbase.Lite
 {
-    public class MiscTest : LiteTestCase
+    public class MiscTest
     {
+        const string Tag = "MiscTest";
+
         [Test]
         public void TestUnquoteString()
         {
@@ -57,6 +62,28 @@ namespace Couchbase.Lite
             string expected = "attachment; filename=attach";
             string result = Misc.UnquoteString(testString);
             Assert.AreEqual(expected, result);
+        }
+
+        [Test]
+        public async void TestTransientRetryHandler()
+        {
+            // Arrange
+            var handler = new TransientErrorRetryHandler(new HttpClientHandler());
+            var client = new HttpClient(handler);
+            var request = new HttpRequestMessage(HttpMethod.Get, "http://localhost/foo");
+
+            // Act
+            HttpResponseMessage response = null;
+
+            try {
+                response = await client.SendAsync(request);
+            } catch (HttpRequestException e) {
+                Log.E(Tag, "Transient exception not handled", e);
+                Assert.Fail("Transient exception not handled");
+            }
+
+            // Assert
+            Assert.Pass();
         }
     }
 }

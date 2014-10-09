@@ -213,7 +213,7 @@ namespace Couchbase.Lite
     #region Constants
 
         const int ProcessorDelay = 500; //Milliseconds
-        const int InboxCapacity = 100;
+        internal const int InboxCapacity = 100;
         const int RetryDelay = 60; // Seconds
         const int SaveLastSequenceDelay = 2; //Seconds
 

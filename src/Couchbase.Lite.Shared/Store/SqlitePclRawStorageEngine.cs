@@ -1,4 +1,4 @@
-﻿//
+//
 // SqlitePclRawStorageEngine.cs
 //
 // Author:
@@ -150,25 +150,22 @@ namespace Couchbase.Lite.Shared
             var commandText = "PRAGMA user_version = ?";
 
             sqlite3_stmt statement;
-            lock (dbLock) { statement = db.prepare(commandText); }
+            lock (dbLock) { 
+                statement = db.prepare (commandText);
 
-            if (raw.sqlite3_bind_int(statement, 1, version) == raw.SQLITE_ERROR)
-                throw new CouchbaseLiteException(errMessage, StatusCode.DbError);
-
-            int result;
-            try
-            {
-                result = statement.step();
-                if (result != SQLiteResult.OK)
+                if (raw.sqlite3_bind_int(statement, 1, version) == raw.SQLITE_ERROR)
                     throw new CouchbaseLiteException(errMessage, StatusCode.DbError);
-            }
-            catch (Exception e)
-            {
-                Log.E(Tag, "Error getting user version", e);
-            }
-            finally
-            {
-                statement.Dispose();
+
+                int result;
+                try {
+                    result = statement.step();
+                    if (result != SQLiteResult.OK)
+                        throw new CouchbaseLiteException(errMessage, StatusCode.DbError);
+                } catch (Exception e) {
+                    Log.E(Tag, "Error getting user version", e);
+                } finally {
+                    statement.Dispose();
+                }
             }
             return;
         }
@@ -277,32 +274,26 @@ namespace Couchbase.Lite.Shared
             {
                 Open(Path);
             }
-            RegisterCollationFunctions(db);
-            Cursor cursor = null;
-            var command = BuildCommand(sql, paramArgs);
 
-            try
+            Cursor cursor = null;
+            lock (dbLock) 
             {
-                Log.V(Tag, "RawQuery sql: {0}".Fmt(sql));
-                lock (dbLock)
+                var command = BuildCommand (sql, paramArgs);
+                try 
                 {
+                    Log.V(Tag, "RawQuery sql: {0} ({1})", sql, String.Join(", ", paramArgs));
                     cursor = new Cursor(command, dbLock);
-                }
-            }
-            catch (Exception e)
-            {
-                if (command != null)
+                } 
+                catch (Exception e) 
                 {
-                    lock (dbLock)
+                    if (command != null) 
                     {
                         command.Dispose();
                     }
+                    Log.E(Tag, "Error executing raw query '{0}'".Fmt(sql), e);
+                    throw;
                 }
-
-                Log.E(Tag, "Error executing raw query '{0}'".Fmt(sql), e);
-                throw;
             }
-
             return cursor;
         }
 
@@ -320,58 +311,47 @@ namespace Couchbase.Lite.Shared
                 throw e;
             }
 
-            int result;
-            long lastInsertedId;
-            sqlite3_stmt command = null;
-
-            try
+            var lastInsertedId = -1L;
+            lock (dbLock)
             {
-                lock (dbLock)
-                {
-                    lastInsertedId = -1L;
-                    command = GetInsertCommand(table, initialValues, conflictResolutionStrategy);
-                    result = command.step();
-                }
-                if (result == SQLiteResult.ERROR)
-                    throw new CouchbaseLiteException(raw.sqlite3_errmsg(db), StatusCode.DbError);
 
-                int changes;
-                lock (dbLock)
+                var command = GetInsertCommand(table, initialValues, conflictResolutionStrategy);
+
+                try
                 {
-                    changes = db.changes();
-                }
-                if (changes > 0)
-                {
-                    lock (dbLock)
+                    int result;
+
+                    result = command.step();
+               
+                    if (result == SQLiteResult.ERROR)
+                        throw new CouchbaseLiteException(raw.sqlite3_errmsg(db), StatusCode.DbError);
+
+                    int changes = changes = db.changes();
+                    if (changes > 0)
                     {
                         lastInsertedId = db.last_insert_rowid();
                     }
-                }
 
-                if (lastInsertedId == -1L)
-                {
-                    Log.E(Tag, "Error inserting " + initialValues + " using " + command);
-                    throw new CouchbaseLiteException("Error inserting " + initialValues + " using " + command, StatusCode.DbError);
-                }
-                else
-                {
-                    Log.V(Tag, "Inserting row " + lastInsertedId + " from " + initialValues + " using " + command);
-                }
+                    if (lastInsertedId == -1L)
+                    {
+                        Log.E(Tag, "Error inserting " + initialValues + " using " + command);
+                        throw new CouchbaseLiteException("Error inserting " + initialValues + " using " + command, StatusCode.DbError);
+                    } else
+                    {
+                        Log.V(Tag, "Inserting row {0} into {1} with values {2}", lastInsertedId, table, initialValues);
+                    }
 
-            }
-            catch (Exception ex)
-            {
-                Log.E(Tag, "Error inserting into table " + table, ex);
-                throw;
-            }
-            finally
-            {
-                lock (dbLock)
+                } 
+                catch (Exception ex)
+                {
+                    Log.E(Tag, "Error inserting into table " + table, ex);
+                    throw;
+                } 
+                finally
                 {
                     command.Dispose();
                 }
             }
-
             return lastInsertedId;
         }
 
@@ -491,15 +471,11 @@ namespace Couchbase.Lite.Shared
                 {
                     Open(Path);
                 }
-                //Log.D(Tag, "Build Command : " + sql + " with params " + paramArgs);
-                lock (dbLock)
-                {
-                    command = paramArgs.Length > 0
-                        ? db.prepare(sql, paramArgs)
+
+                lock(dbLock) {
+                    command = paramArgs.Length > 0 
+                        ? db.prepare(sql, paramArgs) 
                         : db.prepare(sql);
-                    //                    if (paramArgs != null && paramArgs.Length > 0) {
-                    //                        command.bind (paramArgs);
-                    //                    }
                 }
             }
             catch (Exception e)

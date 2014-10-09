@@ -49,6 +49,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using Couchbase.Lite.Storage;
+using System.IO;
+using System.Net.NetworkInformation;
+using System.Net.Http;
+using System.Net.Sockets;
+using System.Net.WebSockets;
 
 namespace Couchbase.Lite
 {
@@ -113,6 +118,25 @@ namespace Couchbase.Lite
         public static string UnquoteString(string param)
         {
             return param.Replace("\"", string.Empty);
+        }
+
+        public static bool IsTransientNetworkError(Exception error)
+        {
+            return error is IOException
+                || error is TimeoutException
+                || error is WebException
+                || error is SocketException
+                || error is WebSocketException;
+        }
+
+        public static bool IsTransientError(HttpResponseMessage response)
+        {
+            if (response == null)
+            {
+                return false;
+            }
+
+            return IsTransientError(response.StatusCode);
         }
 
         public static bool IsTransientError(HttpStatusCode status)
