@@ -35,7 +35,7 @@ details: Details.md
 screenshots: 
   - screenshots/screenshot1.png
 getting-started: GettingStarted.md
-version: "0.9.5"
+version: "1.0.0"
 samples:
   iOS Sample: ../../samples/CouchbaseSample.iOS/CouchbaseSample.iOS.sln
   Android Sample: ../../samples/SimpleAndroidSync/SimpleAndroidSync.sln
