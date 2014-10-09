@@ -1534,8 +1534,7 @@ namespace Couchbase.Lite
             httpHandler.AddResponderFakeLocalDocumentUpdate404();
             manager.DefaultHttpClientFactory = httpClientFactory;
 
-            MockHttpRequestHandler.HttpResponseDelegate sentinal =
-                MockHttpRequestHandler.FakeBulkDocs;
+            var sentinal = MockHttpRequestHandler.FakeBulkDocs;
 
             var responders = new List<MockHttpRequestHandler.HttpResponseDelegate>();
             responders.Add(MockHttpRequestHandler.TransientErrorResponder(errorCode, statusMessage));

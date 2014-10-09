@@ -95,10 +95,6 @@ namespace Couchbase.Lite.Replicator
                 });
                 mre.WaitOne(Manager.DefaultOptions.RequestTimeout, true);
             }
-            // TODO: We could make this class handle more than one request using a dictionary of cancellation tokens,
-            //       but that would require using unique tokens per request, instead of sharing them. In order to
-            //       keep our easy cancellability, we can use linked cancellation sourceses that all link back
-            //       to our root cancellation token source.
 
             return request;
         }
@@ -106,11 +102,6 @@ namespace Couchbase.Lite.Replicator
         #endregion
 
         #region Private
-
-//        private static IEnumerator GetEnumerator() 
-//        {
-//            return AuthenticationManager.RegisteredModules; 
-//        }
 
         private readonly HttpClientHandler context;
         private readonly CookieStore cookieStore;

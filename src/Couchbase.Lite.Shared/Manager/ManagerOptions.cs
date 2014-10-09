@@ -51,6 +51,14 @@ namespace Couchbase.Lite
     public sealed class ManagerOptions
     {
         /// <summary>
+        /// The maximum number of times to retry
+        /// network requests that failed due to
+        /// transient network errors.
+        /// </summary>
+        /// <value>The max retries.</value>
+        internal int MaxRetries { get; private set; }
+
+        /// <summary>
         /// Gets the default option flags.
         /// </summary>
         /// <value>The default option flags.</value>
@@ -61,9 +69,14 @@ namespace Couchbase.Lite
             Default = new ManagerOptions();
         }
 
+        /// <summary>
+        /// Provides configuration settings.
+        /// </summary>
         public ManagerOptions()
         {
-            RequestTimeout = TimeSpan.FromSeconds(60);
+            MaxRetries = 10;
+
+            RequestTimeout = TimeSpan.FromSeconds(90);
 
             TaskScheduler scheduler = null;
             try {

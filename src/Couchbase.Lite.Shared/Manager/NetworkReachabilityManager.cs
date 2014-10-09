@@ -15,6 +15,7 @@ namespace Couchbase.Lite
     //       to work around Xamarin.Android bug 
     //       https://bugzilla.xamarin.com/show_bug.cgi?id=1969
 
+    // NOTE: The issue above was fixed as of Xamarin.Android 4.18
 
     /// <summary>
     /// This uses the NetworkAvailability API to listen for network reachability
