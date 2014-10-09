@@ -264,7 +264,9 @@ namespace Couchbase.Lite
             var docSizes = (JArray)config["sizes_of_document"];
             var kpis = (JArray)config["kpi"];
             var baselines = (JArray)config["baseline"];
-            var needsPerDocResult = config["kpi_is_total"] != null && !(Boolean)config["kpi_is_total"];
+            var needsPerDocResult = true;
+            if (config["kpi_is_total"] != null && !(Boolean)config["kpi_is_total"])
+                needsPerDocResult = false;
             var repeatCount = (Int32)config["repeat_count"];
 
             double[,] finalResults = new double[numDocs.Count, docSizes.Count];

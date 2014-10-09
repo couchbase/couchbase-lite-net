@@ -187,7 +187,7 @@ namespace Couchbase.Lite
         [Test]
         public void Test07PushReplication()
         {
-            RunTest("Test07PullReplication", (parameters) =>
+            RunTest("Test07PushReplication", (parameters) =>
             {
                 var numDocs = Convert.ToInt32(parameters[NUMDOCS_KEY]);
                 var docSize = Convert.ToInt32(parameters[DOCSIZE_KEY]);
@@ -418,7 +418,7 @@ namespace Couchbase.Lite
         [Test]
         public void Test13QueryView()
         {
-            RunTest("Test12IndexView", (parameters) =>
+            RunTest("Test13QueryView", (parameters) =>
             {
                 var numDocs = Convert.ToInt32(parameters[NUMDOCS_KEY]);
 
