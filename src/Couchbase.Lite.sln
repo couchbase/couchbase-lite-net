@@ -259,7 +259,6 @@ Global
 		Policies = $0
 		$0.TextStylePolicy = $1
 		$1.FileWidth = 120
-		$1.TabsToSpaces = True
 		$1.inheritsSet = VisualStudio
 		$1.inheritsScope = text/plain
 		$1.scope = text/x-csharp
@@ -288,6 +287,6 @@ Global
 		$2.inheritsSet = Mono
 		$2.inheritsScope = text/x-csharp
 		$2.scope = text/x-csharp
-		version = 0.9.7
+		version = 1.0.0
 	EndGlobalSection
 EndGlobal

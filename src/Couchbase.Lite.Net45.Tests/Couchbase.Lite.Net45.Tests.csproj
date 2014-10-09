@@ -18,7 +18,7 @@
     <SolutionDir Condition="$(SolutionDir) == '' Or $(SolutionDir) == '*Undefined*'">..\</SolutionDir>
     <RestorePackages>true</RestorePackages>
     <NuGetPackageImportStamp>602f9abe</NuGetPackageImportStamp>
-    <ReleaseVersion>0.9.7</ReleaseVersion>
+    <ReleaseVersion>1.0.0</ReleaseVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -62,10 +62,14 @@
     <PlatformTarget>x86</PlatformTarget>
     <OutputPath>bin\x86\Debug\</OutputPath>
     <DefineConstants>TRACE;DEBUG;VERBOSE</DefineConstants>
+    <WarningLevel>4</WarningLevel>
+    <Optimize>false</Optimize>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x86'">
     <PlatformTarget>x86</PlatformTarget>
     <OutputPath>bin\x86\Release\</OutputPath>
+    <WarningLevel>4</WarningLevel>
+    <Optimize>false</Optimize>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="nunit.framework">
@@ -73,14 +77,6 @@
     </Reference>
     <Reference Include="Newtonsoft.Json">
       <HintPath>..\packages\Newtonsoft.Json.6.0.3\lib\net45\Newtonsoft.Json.dll</HintPath>
-    </Reference>
-    <Reference Include="SQLitePCL.raw, Version=0.6.1.0, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\packages\SQLitePCL.raw_basic.0.6.3-testing\lib\net45\SQLitePCL.raw.dll</HintPath>
-    </Reference>
-    <Reference Include="SQLitePCL.ugly, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\packages\SQLitePCL.ugly.0.6.2\lib\portable-net45+netcore45+wp8+MonoAndroid10+MonoTouch10\SQLitePCL.ugly.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Data" />
@@ -95,6 +91,12 @@
     <Reference Include="System.Web.Services" />
     <Reference Include="System.Web" />
     <Reference Include="nunit.framework, Version=2.6.0.12051, Culture=neutral, PublicKeyToken=96d09a1eb7f44a77" />
+    <Reference Include="SQLitePCL.raw">
+      <HintPath>..\packages\SQLitePCL.raw_basic.0.6.3-testing\lib\net45\SQLitePCL.raw.dll</HintPath>
+    </Reference>
+    <Reference Include="SQLitePCL.ugly">
+      <HintPath>..\packages\SQLitePCL.ugly.0.6.2\lib\portable-net45+netcore45+wp8+MonoAndroid10+MonoTouch10\SQLitePCL.ugly.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <Choose>
     <When Condition="('$(VisualStudioVersion)' == '10.0' or '$(VisualStudioVersion)' == '') and '$(TargetFrameworkVersion)' == 'v3.5'">
