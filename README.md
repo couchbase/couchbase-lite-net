@@ -33,7 +33,7 @@ command:
 ## Example Apps
 * [GrocerySync]()
 	* Beginner example
-* [Couchbase Connect]()
+* [Couchbase Connect](https://github.com/FireflyLogic/couchbase-connect-14)
 	* Advanced example
 	
 ## License
