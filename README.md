@@ -31,7 +31,7 @@ command:
    /path/to/sync_gateway -pretty -verbose=true Couchbase.Lite/Couchbase.Lite.Tests/Assets/GatewayConfig.json
 
 ## Example Apps
-* [GrocerySync]()
+* [GrocerySync](https://github.com/couchbase/couchbase-lite-net/tree/master/samples)
 	* Beginner example
 * [Couchbase Connect](https://github.com/FireflyLogic/couchbase-connect-14)
 	* Advanced example
