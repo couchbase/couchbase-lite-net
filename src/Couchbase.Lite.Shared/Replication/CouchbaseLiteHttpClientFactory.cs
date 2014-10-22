@@ -66,6 +66,9 @@ namespace Couchbase.Lite.Support
             this.cookieStore = cookieStore;
             Headers = new ConcurrentDictionary<string,string>();
 
+            // Disable SSL 3 fallback to mitigate POODLE vulnerability.
+            ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls;
+
             //
             // Source: http://msdn.microsoft.com/en-us/library/office/dd633677(v=exchg.80).aspx
             // ServerCertificateValidationCallback returns true if either of the following criteria are met:
@@ -73,30 +76,30 @@ namespace Couchbase.Lite.Support
             // The certificate is self-signed by the server that returned the certificate.
             //
             ServicePointManager.ServerCertificateValidationCallback = 
-                (object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors) =>
+            (object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors) =>
             {
                 // If the certificate is a valid, signed certificate, return true.
-                if (sslPolicyErrors == System.Net.Security.SslPolicyErrors.None)
+                if (sslPolicyErrors == SslPolicyErrors.None)
                 {
                     return true;
                 }
 
                 // If there are errors in the certificate chain, look at each error to determine the cause.
-                if ((sslPolicyErrors & System.Net.Security.SslPolicyErrors.RemoteCertificateChainErrors) != 0)
+                if ((sslPolicyErrors & SslPolicyErrors.RemoteCertificateChainErrors) != 0)
                 {
                     if (chain != null && chain.ChainStatus != null)
                     {
-                        foreach (System.Security.Cryptography.X509Certificates.X509ChainStatus status in chain.ChainStatus)
+                        foreach (X509ChainStatus status in chain.ChainStatus)
                         {
                             if ((certificate.Subject == certificate.Issuer) &&
-                                (status.Status == System.Security.Cryptography.X509Certificates.X509ChainStatusFlags.UntrustedRoot))
+                                (status.Status == X509ChainStatusFlags.UntrustedRoot))
                             {
                                 // Self-signed certificates with an untrusted root are valid. 
                                 continue;
                             }
                             else
                             {
-                                if (status.Status != System.Security.Cryptography.X509Certificates.X509ChainStatusFlags.NoError)
+                                if (status.Status != X509ChainStatusFlags.NoError)
                                 {
                                     // If there are any other errors in the certificate chain, the certificate is invalid,
                                     // so the method returns false.
