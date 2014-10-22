@@ -15,7 +15,7 @@ Couchbase Mobile enables mobile application developers to create highly responsi
 
 # Platform Support
 
-Couchbase Lite .NET for Xamarin currently supports deployment to iOS 6+ and Android 2.2+.
+Couchbase Lite .NET for Xamarin currently supports deployment to iOS 6+, Android 2.2+ and .NET 4.5 targets.
 
 # Manuals
 
