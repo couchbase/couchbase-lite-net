@@ -1,0 +1,40 @@
+﻿<Page x:Class="Todo.WPF.MainPage"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+      xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+      xmlns:cbl="clr-namespace:Couchbase.Lite;assembly=Couchbase.Lite"
+      xmlns:mp="clr-namespace:Todo.WPF"
+      xmlns:sys="clr-namespace:System;assembly=mscorlib"          
+      mc:Ignorable="d" 
+      d:DesignHeight="300" d:DesignWidth="300"
+	Title="MainPage">
+    <Page.Resources>
+        <mp:DocumentToTextConverter x:Key="DocToText" />
+    </Page.Resources>
+    <StackPanel Height="321" Margin="0,0,0,0" VerticalAlignment="Top">
+        <Grid>
+            <TextBox TextWrapping="Wrap" VerticalAlignment="Top" KeyDown="TextBox_KeyDown" Name="NewTodoBox" />
+            <TextBlock IsHitTestVisible="False" Text="Enter a todo item" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="5,0,0,0" Foreground="DarkGray">
+                <TextBlock.Style>
+                    <Style TargetType="{x:Type TextBlock}">
+                        <Setter Property="Visibility" Value="Collapsed"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding Text, ElementName=NewTodoBox}" Value="">
+                                <Setter Property="Visibility" Value="Visible"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </TextBlock.Style>
+            </TextBlock>
+        </Grid>
+        <ItemsControl Height="303" Margin="0,0,0,0" ItemsSource="{Binding Todos}" Name="items">
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <!--<Label Content="{Binding Converter={StaticResource DocToText}, ConverterParameter='text'}" />-->
+                    <TextBlock Text="{Binding Converter={StaticResource DocToText}, ConverterParameter='text'}" />
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+    </StackPanel>
+</Page>
