@@ -69,7 +69,8 @@ namespace Todo.WPF
         {
             if (e.Rows.Count == 0)
             {
-                CreateNewDocument();
+                var input = FindName("NewTodoBox") as TextBox;
+                input.Focus();
             }
         }
 
