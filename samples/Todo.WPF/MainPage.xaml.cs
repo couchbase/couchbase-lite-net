@@ -108,8 +108,10 @@ namespace Todo.WPF
             if (!e.Key.Equals(Key.Enter))
                 return;
 
-            var text = ((TextBox)sender).Text;
+            var box = (TextBox)sender;
+            var text = box.Text;
             CreateNewDocument(text);
+            box.Clear();
         }
     }
 
