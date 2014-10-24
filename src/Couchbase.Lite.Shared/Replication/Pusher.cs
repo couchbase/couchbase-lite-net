@@ -375,7 +375,8 @@ namespace Couchbase.Lite.Replicator
                                     // Look for the latest common ancestor and stuf out older attachments:
                                     var minRevPos = FindCommonAncestor(populatedRev, possibleAncestors);
 
-                                    Database.StubOutAttachmentsInRevBeforeRevPos(populatedRev, minRevPos + 1, false);
+                                    var attachmentsFollow = ServerType.StartsWith("CouchDB");
+                                    Database.StubOutAttachmentsInRevBeforeRevPos(populatedRev, minRevPos + 1, attachmentsFollow);
 
                                     properties = populatedRev.GetProperties();
 
