@@ -68,7 +68,7 @@ namespace Couchbase.Lite.Replicator
         {
             if (response.Content != null) {
                 var mre = new ManualResetEvent(false);
-                response.Content.LoadIntoBufferAsync().ConfigureAwait(true).GetAwaiter().OnCompleted(()=>{
+                response.Content.LoadIntoBufferAsync().ConfigureAwait(false).GetAwaiter().OnCompleted(()=>{
                     mre.Set();
                 });
                 mre.WaitOne(Manager.DefaultOptions.RequestTimeout, true);
@@ -90,7 +90,7 @@ namespace Couchbase.Lite.Replicator
         {
             if (request.Content != null) {
                 var mre = new ManualResetEvent(false);
-                request.Content.LoadIntoBufferAsync().ConfigureAwait(true).GetAwaiter().OnCompleted(()=>{
+                request.Content.LoadIntoBufferAsync().ConfigureAwait(false).GetAwaiter().OnCompleted(()=>{
                     mre.Set();
                 });
                 mre.WaitOne(Manager.DefaultOptions.RequestTimeout, true);

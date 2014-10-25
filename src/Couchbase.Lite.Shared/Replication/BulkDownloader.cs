@@ -141,10 +141,7 @@ namespace Couchbase.Lite.Replicator
             {
                 Log.D(Tag + ".ExecuteRequest", "Sending request: {0}", request);
                 var requestTokenSource = CancellationTokenSource.CreateLinkedTokenSource(_tokenSource.Token);
-
-                // need to isolate HttpClient from current TaskSCheduler, 'cause it's a SingleThreadTaskScheduler and as we're going to wait for the task in this same thread, the task itself won't run
-                // also, see http://datatoknowledge.com/2012/10/26/the-danger-of-tpl-schedulers-with-httpclient/
-                Task<HttpResponseMessage> responseTask = Task.Factory.StartNew(token => httpClient.SendAsync(request, (CancellationToken) token), requestTokenSource.Token, requestTokenSource.Token, TaskCreationOptions.HideScheduler, TaskScheduler.Default).Unwrap();
+                var responseTask = httpClient.SendAsync(request, requestTokenSource.Token);
                 if (!responseTask.Wait((Int32)ManagerOptions.Default.RequestTimeout.TotalMilliseconds, requestTokenSource.Token))
                 {
                     Log.E(Tag, "Response task timed out: {0}, {1}", responseTask, TaskScheduler.Current);
