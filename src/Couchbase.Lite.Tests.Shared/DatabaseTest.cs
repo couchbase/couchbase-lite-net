@@ -454,8 +454,8 @@ namespace Couchbase.Lite
         }
 
         [Test]
-        //[Ignore("This test just attempts to reproduce issue https://github.com/couchbase/couchbase-lite-net/issues/257")]
-        [Description("Potentially nested transactions should not affect each others outcome.")]
+        [Ignore("This test just attempts to reproduce issue https://github.com/couchbase/couchbase-lite-net/issues/257")]
+        [Description("Potentially nested transactions should not affect each others outcome. Unfortunately, they currently do.")]
         public void TestRunInTransactionCommitsThreadSafe()
         {
             var storageEngine = database.StorageEngine;
