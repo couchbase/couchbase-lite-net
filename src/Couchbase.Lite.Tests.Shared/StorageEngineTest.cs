@@ -8,55 +8,90 @@ namespace Couchbase.Lite
     public class StorageEngineTest : LiteTestCase
     {
         [Test]
-        public void TestTransactionThreadSafe()
+        [Description("If the delegate returns true, the transaction should be committed.")]
+        public void TestRunInTransactionCommits()
         {
-            Assert.Inconclusive("This test does not result in a pass even when it should.");
             var storageEngine = database.StorageEngine;
-            try
+
+            storageEngine.RawQuery("CREATE TABLE transTest (id INTEGER PRIMARY KEY, whatever INTEGER)");
+
+            database.RunInTransaction(() =>
             {
-                storageEngine.BeginTransaction();
-                storageEngine.ExecSQL("CREATE TABLE testtrans (id INTEGER PRIMARY KEY, count INTEGER)");
-                storageEngine.ExecSQL("INSERT INTO testtrans (id, count) VALUES (1, 0)");
-                storageEngine.SetTransactionSuccessful();
-                storageEngine.EndTransaction();
+                storageEngine.RawQuery("INSERT INTO transTest VALUES (0,1)");
+                return true;
+            });
 
-                storageEngine.BeginTransaction();
-                storageEngine.ExecSQL("UPDATE testtrans SET count=1 WHERE id=1");
+            var result = storageEngine.RawQuery("SELECT EXISTS (SELECT 1 FROM transTest WHERE id=0 AND whatever=1)");
 
-                var startEvent = new ManualResetEvent(false);
-                var doneEvent = new ManualResetEvent(false);
+            Assert.AreEqual(1, result.GetInt(0));
+        }
 
-                Task.Factory.StartNew(()=> 
-                { 
-                    storageEngine.BeginTransaction();
-                    storageEngine.ExecSQL("UPDATE testtrans SET count=2 WHERE id=1");
-                    storageEngine.SetTransactionSuccessful();
-                    storageEngine.EndTransaction();
-                    startEvent.Set();
+        [Test]
+        [Description("If the delegate returns false, the transaction should be rolledback.")]
+        public void TestRunInTransactionRollsback()
+        {
+            var storageEngine = database.StorageEngine;
+
+            storageEngine.RawQuery("CREATE TABLE transTest (id INTEGER PRIMARY KEY, whatever INTEGER)");
+
+            database.RunInTransaction(() =>
+            {
+                storageEngine.RawQuery("INSERT INTO transTest values (0,1)");
+                return false;
+            });
+
+            var result = storageEngine.RawQuery("SELECT EXISTS (SELECT 1 FROM transTest WHERE id=0 AND whatever=1)");
+
+            Assert.AreEqual(0, result.GetInt(0));
+        }
+
+        [Test]
+        [Ignore("This test just attempts to reproduce issue https://github.com/couchbase/couchbase-lite-net/issues/257")]
+        [Description("Potentially nested transactions should not affect each others outcome. Unfortunately, they currently do.")]
+        public void TestRunInTransactionCommitsThreadSafe()
+        {
+            var storageEngine = database.StorageEngine;
+
+            storageEngine.RawQuery("CREATE TABLE transTest (id INTEGER PRIMARY KEY, whatever INTEGER)");
+
+            var syncEvent = new ManualResetEvent(false);
+
+            var firstTransaction = Task.Factory.StartNew(() =>
+            {
+                database.RunInTransaction(() =>
+                {
+                    storageEngine.RawQuery("INSERT INTO transTest VALUES (0,1)");
+
+                    syncEvent.WaitOne();
+
+                    return false;
                 });
+            });
 
-                // Ensure that the other thread is running
-                Assert.IsTrue(startEvent.WaitOne(TimeSpan.FromSeconds(3)));
-                // Give the other thread a little time to work
-                //Thread.Sleep(1000);
-
-                var cursor = storageEngine.RawQuery("SELECT id, count FROM testtrans WHERE id=1");
-                Assert.IsTrue(cursor.MoveToNext());
-                Assert.AreEqual(1, cursor.GetInt(0));
-                Assert.AreEqual(1, cursor.GetInt(1));
-                storageEngine.SetTransactionSuccessful();
-                storageEngine.EndTransaction();
-
-                //doneEvent.WaitOne();
-            }
-            finally
+            var secondTransaction = Task.Factory.StartNew(() =>
             {
-                try 
-                { 
-                    storageEngine.ExecSQL("DROP TABLE IF EXISTS testtrans"); 
-                } 
-                catch (Exception e) { }
-            }
+                database.RunInTransaction(() =>
+                {
+                    storageEngine.RawQuery("INSERT INTO transTest VALUES (1,2)");
+
+                    // before we commit this transaction, we signal the other task
+                    // so that the other transaction is suposedly rolledback
+                    // then we see how this affects it
+                    syncEvent.Set();
+                    return true;
+                });
+            });
+
+            Task.WaitAll(firstTransaction, secondTransaction);
+
+            var firstTransResult = storageEngine.RawQuery("SELECT EXISTS (SELECT 1 FROM transTest WHERE id=0 AND whatever=1)");
+            var secondTransResult = storageEngine.RawQuery("SELECT EXISTS (SELECT 1 FROM transTest WHERE id=1 AND whatever=2)");
+
+            // should not fail since the second transaction will 
+            // return true right after signalling the other task
+            Assert.AreEqual(1, firstTransResult.GetInt(0));
+
+            Assert.AreEqual(1, secondTransResult.GetInt(0));
         }
     }
 }
