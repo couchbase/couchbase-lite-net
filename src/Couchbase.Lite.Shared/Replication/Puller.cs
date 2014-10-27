@@ -551,7 +551,7 @@ namespace Couchbase.Lite.Replicator
                 return;
             }
             dl.Authenticator = Authenticator;
-            WorkExecutor.StartNew(dl.Run, CancellationTokenSource.Token);
+            WorkExecutor.StartNew(dl.Run, CancellationTokenSource.Token, TaskCreationOptions.LongRunning, WorkExecutor.Scheduler);
 //            dl.Run();
         }
 
