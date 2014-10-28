@@ -1447,6 +1447,70 @@ namespace Couchbase.Lite
             pusher.Stop();
         }
 
+        /// <exception cref="System.Exception"></exception>
+        [Test]
+        public void TestContinuousPusherWithAttachment()
+        {
+            var remote = GetReplicationURL();
+
+            var pusher = database.CreatePushReplication(remote);
+            pusher.Continuous = true;
+            pusher.Start ();
+
+            var docIdTimestamp = Convert.ToString(Runtime.CurrentTimeMillis());
+            var doc1Id = string.Format("doc1-{0}", docIdTimestamp);
+
+            var document = database.GetDocument (doc1Id);
+            var values =  new Dictionary<string,object> 
+            {
+                {"type" , "attachment_test"},
+            };
+
+            var result = document.PutProperties (values);
+
+            long expectedLength = 0;
+            document.Update((r) => 
+            {
+                var attachmentStream = (InputStream)GetAsset("attachment2.png");
+                var memoryStream = new MemoryStream();
+                attachmentStream.Wrapped.CopyTo(memoryStream);
+                expectedLength = memoryStream.Length;
+
+                r.SetAttachment ("content", "application/octet-stream", memoryStream.ToArray());
+                return true;
+            });
+
+            // Make sure it has time to push the document
+            System.Threading.Thread.Sleep (5000);
+
+            // make sure the doc has been added
+            VerifyRemoteDocExists(remote, doc1Id);
+
+            System.Threading.Thread.Sleep(2000);
+            var json = GetRemoteDocById(remote, doc1Id);
+
+            var attachments = json ["_attachments"].AsDictionary<string,object> ();
+            var content = attachments ["content"].AsDictionary<string,object> ();
+            var lengthAsStr = content ["length"];
+            var length = Convert.ToInt64 (lengthAsStr);
+            Assert.AreEqual(expectedLength, length);
+
+            Log.D(Tag, "TestContinuousPusherWithAttachment() finished");
+
+            pusher.Stop ();
+        }  
+
+        private IDictionary<string, object> GetRemoteDocById(Uri remote, string docId)
+        {
+            var replicationUrlTrailing = new Uri(string.Format("{0}/", remote));
+            var pathToDoc = new Uri(replicationUrlTrailing, docId);
+            var request = new HttpRequestMessage(HttpMethod.Get, pathToDoc);
+            var response = new HttpClient().SendAsync(request).Result;
+            var result = response.Content.ReadAsStringAsync().Result;
+            var json = Manager.GetObjectMapper().ReadValue<JObject>(result);
+            return json.AsDictionary<string, object>();
+        }
+
         [Test]
         public void TestDifferentCheckpointsFilteredReplication() {
             var pullerNoFilter = database.CreatePullReplication(GetReplicationURL());
