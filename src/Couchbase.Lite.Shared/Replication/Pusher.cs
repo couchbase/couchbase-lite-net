@@ -703,8 +703,8 @@ namespace Couchbase.Lite.Replicator
             var path = string.Format("/{0}?new_edits=false", Uri.EscapeUriString(rev.GetDocId()));
             SendAsyncRequest(HttpMethod.Put, path, rev.GetProperties(), (result, e) =>
             {
-				try
-				{
+                try
+                {
 	                if (e != null) 
 	                {
 	                    SetLastError(e);
@@ -720,11 +720,11 @@ namespace Couchbase.Lite.Replicator
                 {
                     Log.E(Tag, "Unhandled exception", exc);
                 }
-				finally
-				{
-					Log.V(Tag, "UploadJsonRevision() calling AsyncTaskFinished()");
-					AsyncTaskFinished (1);
-				}
+                finally
+                {
+                    Log.V(Tag, "UploadJsonRevision() calling AsyncTaskFinished()");
+                    AsyncTaskFinished (1);
+                }
             });
         }
 

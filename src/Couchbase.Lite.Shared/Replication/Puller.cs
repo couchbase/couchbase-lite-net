@@ -618,8 +618,8 @@ namespace Couchbase.Lite.Replicator
 
             SendAsyncRequest(HttpMethod.Post, "/_all_docs?include_docs=true", body, (result, e) =>
             {
-				try
-				{
+                try
+                {
 	                var res = result.AsDictionary<string, object>();
 	                if (e != null) {
 	                    SetLastError(e);

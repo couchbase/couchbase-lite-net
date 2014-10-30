@@ -827,8 +827,8 @@ namespace Couchbase.Lite
             savingCheckpoint = true;
             //Log.D(Tag, "put remote _local document.  checkpointID: " + remoteCheckpointDocID);
             SendAsyncRequest(HttpMethod.Put, "/_local/" + remoteCheckpointDocID, body, (result, e) => {
-				try
-				{
+                try
+                {
 	                savingCheckpoint = false;
 	                if (e != null)
 	                {
@@ -882,11 +882,11 @@ namespace Couchbase.Lite
 	                if (overdueForSave) {
 	                    SaveLastSequence ();
 	                }
-				}
-				catch (Exception exc)
-				{
-					Log.E(Tag, "Unhandled exception", exc);
-				}
+                }
+                catch (Exception exc)
+                {
+                    Log.E(Tag, "Unhandled exception", exc);
+                }
             });
         }
 
@@ -1390,10 +1390,10 @@ namespace Couchbase.Lite
                     }
 
                 }
-				catch (Exception exc)
-				{
-					Log.E(Tag, "Unhandled exception", exc);
-				}
+                catch (Exception exc)
+                {
+                    Log.E(Tag, "Unhandled exception", exc);
+                }
                 finally
                 {
                     AsyncTaskFinished(1);
