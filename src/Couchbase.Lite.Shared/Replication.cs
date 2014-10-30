@@ -562,10 +562,10 @@ namespace Couchbase.Lite
                         }
                     }
                 }
-				catch (Exception exc)
-				{
-					Log.E(Tag, "Unhandled exception", exc);
-				}
+                catch (Exception exc)
+                {
+                    Log.E(Tag, "Unhandled exception", exc);
+                }
                 finally
                 {
                     Log.D(Tag, "checkSessionAtPath() calling asyncTaskFinished()");
@@ -603,10 +603,10 @@ namespace Couchbase.Lite
                         FetchRemoteCheckpointDoc ();
                     }
                 }
-				catch (Exception exc)
-				{
-					Log.E(Tag, "Unhandled exception", exc);
-				}
+                catch (Exception exc)
+                {
+                    Log.E(Tag, "Unhandled exception", exc);
+                }
                 finally
                 {
                     Log.D(Tag, "login() calling asyncTaskFinished()");

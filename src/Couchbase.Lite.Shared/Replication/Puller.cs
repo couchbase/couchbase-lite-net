@@ -659,21 +659,21 @@ namespace Couchbase.Lite.Replicator
 	                    PullRemoteRevisions ();
 	                }
 				}
-				catch (Exception exc)
-				{
-					Log.E(Tag, "Unhandled exception", exc);
-				}
-				finally
-				{
-					// Note that we've finished this task:
-					Log.V (Tag, "PullBulkWithAllDocs() calling AsyncTaskFinished()");
-					AsyncTaskFinished (1);
+                catch (Exception exc)
+                {
+                    Log.E(Tag, "Unhandled exception", exc);
+                }
+                finally
+                {
+                    // Note that we've finished this task:
+                    Log.V (Tag, "PullBulkWithAllDocs() calling AsyncTaskFinished()");
+                    AsyncTaskFinished (1);
 
-					--httpConnectionCount;
+                    --httpConnectionCount;
 
-					// Start another task if there are still revisions waiting to be pulled:
-					PullRemoteRevisions();
-				}
+                    // Start another task if there are still revisions waiting to be pulled:
+                    PullRemoteRevisions();
+                }
             });
         }
 

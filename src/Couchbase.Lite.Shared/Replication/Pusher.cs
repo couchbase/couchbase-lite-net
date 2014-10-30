@@ -130,10 +130,10 @@ namespace Couchbase.Lite.Replicator
                         BeginReplicating();
                     }
                 }
-				catch (Exception exc)
-				{
-					Log.E(Tag, "Unhandled exception", exc);
-				}
+                catch (Exception exc)
+                {
+                    Log.E(Tag, "Unhandled exception", exc);
+                }
                 finally
                 {
                     Log.D(Tag, "maybeCreateRemoteDB.onComplete() calling asyncTaskFinished()");
@@ -493,10 +493,10 @@ namespace Couchbase.Lite.Replicator
                     }
                     SafeAddToCompletedChangesCount(numDocsToSend);
                 }
-				catch (Exception exc)
-				{
-					Log.E(Tag, "Unhandled exception", exc);
-				}
+                catch (Exception exc)
+                {
+                    Log.E(Tag, "Unhandled exception", exc);
+                }
                 finally
                 {
                     Log.D(Tag, "ProcessInbox() after _bulk_docs() calling AsyncTaskFinished()");
@@ -716,10 +716,10 @@ namespace Couchbase.Lite.Replicator
 	                    RemovePending (rev);
 	                }
 				}
-				catch (Exception exc)
-				{
-					Log.E(Tag, "Unhandled exception", exc);
-				}
+                catch (Exception exc)
+                {
+                    Log.E(Tag, "Unhandled exception", exc);
+                }
 				finally
 				{
 					Log.V(Tag, "UploadJsonRevision() calling AsyncTaskFinished()");
