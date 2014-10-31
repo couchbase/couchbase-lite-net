@@ -13,11 +13,11 @@ namespace Couchbase.Lite
         {
             var storageEngine = database.StorageEngine;
 
-            storageEngine.RawQuery("CREATE TABLE transTest (id INTEGER PRIMARY KEY, whatever INTEGER)");
+            storageEngine.ExecSQL("CREATE TABLE transTest (id INTEGER PRIMARY KEY, whatever INTEGER)");
 
             database.RunInTransaction(() =>
             {
-                storageEngine.RawQuery("INSERT INTO transTest VALUES (0,1)");
+                storageEngine.ExecSQL("INSERT INTO transTest VALUES (0,1)");
                 return true;
             });
 
@@ -32,11 +32,11 @@ namespace Couchbase.Lite
         {
             var storageEngine = database.StorageEngine;
 
-            storageEngine.RawQuery("CREATE TABLE transTest (id INTEGER PRIMARY KEY, whatever INTEGER)");
+            storageEngine.ExecSQL("CREATE TABLE transTest (id INTEGER PRIMARY KEY, whatever INTEGER)");
 
             database.RunInTransaction(() =>
             {
-                storageEngine.RawQuery("INSERT INTO transTest values (0,1)");
+                storageEngine.ExecSQL("INSERT INTO transTest values (0,1)");
                 return false;
             });
 
@@ -52,7 +52,7 @@ namespace Couchbase.Lite
         {
             var storageEngine = database.StorageEngine;
 
-            storageEngine.RawQuery("CREATE TABLE transTest (id INTEGER PRIMARY KEY, whatever INTEGER)");
+            storageEngine.ExecSQL("CREATE TABLE transTest (id INTEGER PRIMARY KEY, whatever INTEGER)");
 
             var syncEvent = new ManualResetEvent(false);
 
@@ -60,7 +60,7 @@ namespace Couchbase.Lite
             {
                 database.RunInTransaction(() =>
                 {
-                    storageEngine.RawQuery("INSERT INTO transTest VALUES (0,1)");
+                    storageEngine.ExecSQL("INSERT INTO transTest VALUES (0,1)");
 
                     syncEvent.WaitOne();
 
@@ -72,7 +72,7 @@ namespace Couchbase.Lite
             {
                 database.RunInTransaction(() =>
                 {
-                    storageEngine.RawQuery("INSERT INTO transTest VALUES (1,2)");
+                    storageEngine.ExecSQL("INSERT INTO transTest VALUES (1,2)");
 
                     // before we commit this transaction, we signal the other task
                     // so that the other transaction is suposedly rolledback

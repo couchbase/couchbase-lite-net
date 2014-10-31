@@ -55,6 +55,7 @@ using Couchbase.Lite.Tests;
 using System.Threading.Tasks;
 using System.Linq;
 using System.Text;
+using System.Threading;
 
 namespace Couchbase.Lite
 {
@@ -130,6 +131,12 @@ namespace Couchbase.Lite
 
         protected Database StartDatabase()
         {
+            if (database != null)
+            {
+                database.Close();
+                database.Delete();
+                database = null;
+            }
             database = EnsureEmptyDatabase(DefaultTestDb);
             return database;
         }

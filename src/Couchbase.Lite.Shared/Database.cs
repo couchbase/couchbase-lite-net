@@ -3469,7 +3469,7 @@ PRAGMA user_version = 3;";
             try
             {
                 StorageEngine.ExecSQL("INSERT INTO attachments (sequence, filename, key, type, length, revpos) "
-                    + "SELECT ?, ?, key, type, length, revpos FROM attachments " + "WHERE sequence=? AND filename=?", args);
+                    + "SELECT ?, ?, key, type, length, revpos FROM attachments " + "WHERE sequence=? AND filename=?;", args);
                 cursor = StorageEngine.RawQuery("SELECT changes()");
                 cursor.MoveToNext();
 
