@@ -40,8 +40,10 @@
 // and limitations under the License.
 //
 using System;
+using System.Threading.Tasks;
 using Couchbase.Lite.Storage;
 using System.Threading;
+using Sharpen;
 using SQLitePCL;
 using Couchbase.Lite.Util;
 using System.Diagnostics;
@@ -76,7 +78,9 @@ namespace Couchbase.Lite.Shared
 
         private Boolean shouldCommit;
 
-        string Path { get; set; }
+        private string Path { get; set; }
+        private TaskFactory Scheduler { get; set; }
+
 
         #region implemented abstract members of SQLiteStorageEngine
 
@@ -84,7 +88,9 @@ namespace Couchbase.Lite.Shared
         {
             if (IsOpen)
                 return true;
+
             Path = path;
+            Scheduler = new TaskFactory(new SingleThreadTaskScheduler());
 
             var result = true;
             try
@@ -131,8 +137,9 @@ namespace Couchbase.Lite.Shared
 
         public Int32 GetVersion()
         {
-            var commandText = "PRAGMA user_version;";
+            const string commandText = "PRAGMA user_version;";
             sqlite3_stmt statement;
+
             lock (dbLock) { statement = _writeConnection.prepare(commandText); }
 
             var result = -1;
@@ -399,35 +406,38 @@ namespace Couchbase.Lite.Shared
             Debug.Assert(!String.IsNullOrWhiteSpace(table));
             Debug.Assert(values != null);
 
-            var resultCount = 0;
-            lock (dbLock)
+            var t = Scheduler.StartNew(() =>
             {
-                RegisterCollationFunctions(_writeConnection);
+                var resultCount = 0;
                 var command = GetUpdateCommand(table, values, whereClause, whereArgs);
                 try
                 {
                     var result = command.step();
                     if (result == SQLiteResult.ERROR)
-                        throw new CouchbaseLiteException(raw.sqlite3_errmsg(_writeConnection), StatusCode.DbError);
+                        throw new CouchbaseLiteException(raw.sqlite3_errmsg(_writeConnection),
+                            StatusCode.DbError);
+                }
+                catch (ugly.sqlite3_exception ex)
+                {
+                    var msg = ex.errmsg ?? raw.sqlite3_extended_errcode(_writeConnection).ToString();
+                    Log.E(Tag, "Error {0}: \"{1}\" while updating table {2}", ex.errcode, msg, table, ex);
+                }
 
-                    resultCount = _writeConnection.changes();
-                    if (resultCount < 0)
-                    {
-                        Log.E(Tag, "Error updating " + values + " using " + command);
-                        throw new CouchbaseLiteException("Failed to update any records.", StatusCode.DbError);
-                    }
-                }
-                catch (Exception ex)
+                resultCount = _writeConnection.changes();
+                if (resultCount < 0)
                 {
-                    Log.E(Tag, "Error updating table " + table, ex);
-                    throw;
+                    Log.E(Tag, "Error updating " + values + " using " + command);
+                    throw new CouchbaseLiteException("Failed to update any records.", StatusCode.DbError);
                 }
-                finally
-                {
-                    command.Dispose();
-                }
-            }
-            return resultCount;
+                command.Dispose();
+                return resultCount;
+            }, CancellationToken.None);
+
+            // NOTE.ZJG: Just a sketch here. Needs better error handling, etc.
+            var r = t.GetAwaiter().GetResult();
+            if (t.Exception != null)
+                throw t.Exception;
+            return r;
         }
 
         public int Delete(String table, String whereClause, params String[] whereArgs)
@@ -552,9 +562,6 @@ namespace Couchbase.Lite.Shared
 
             // Append our content column names and create our SQL parameters.
             var valueSet = values.ValueSet();
-            //            var valueSetLength = valueSet.Count();
-            //
-            //            var whereArgsLength = (whereArgs != null ? whereArgs.Length : 0);
 
             var paramList = new List<object>();
 
@@ -577,19 +584,12 @@ namespace Couchbase.Lite.Shared
 
             if (whereArgs != null)
             {
-                foreach (var arg in whereArgs)
-                {
-                    paramList.Add(arg);
-                }
+                paramList.AddRange(whereArgs);
             }
 
             var sql = builder.ToString();
-            sqlite3_stmt command;
-            lock (dbLock)
-            {
-                command = _writeConnection.prepare(sql);
-                command.bind(paramList.ToArray<object>());
-            }
+            var command = _writeConnection.prepare(sql);
+            command.bind(paramList.ToArray<object>());
 
             return command;
         }
