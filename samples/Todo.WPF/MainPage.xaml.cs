@@ -41,24 +41,31 @@ namespace Todo.WPF
             DataContext = this; // Because we're inside of a frame.
             Todos = new ObservableCollection<Document>();
             InitializeComponent();
-            InitializeCouchbase();
+            Loaded += (sender, args) => InitializeCouchbase();
+
+            Dispatcher.ShutdownStarted += (sender, args) =>
+            {
+                _query.Stop();
+                _query.Dispose();
+                Manager.SharedInstance.Close();
+            };
         }
 
         private void InitializeCouchbase()
         {
             _db = Manager.SharedInstance.GetDatabase("wpf-lite");
-
-            var view = _db.GetExistingView("todos");
             
-            if (view == null)
+            var view = _db.GetView("todos");
+
+            if (view.Map == null)
             {
-                view = _db.GetView("todos");
                 view.SetMap((props, emit) =>
                 {
                     Console.WriteLine("Mapper mapping");
                     emit(DateTime.UtcNow.ToString(), props["text"]);
                 }, "1");
             }
+
             _query = view.CreateQuery().ToLiveQuery();
             _query.Changed += QueryChanged;
             _query.Completed += QueryCompleted;
