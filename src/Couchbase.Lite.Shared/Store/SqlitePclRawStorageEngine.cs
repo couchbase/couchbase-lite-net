@@ -43,7 +43,6 @@ using System;
 using System.Threading.Tasks;
 using Couchbase.Lite.Storage;
 using System.Threading;
-using Sharpen;
 using SQLitePCL;
 using Couchbase.Lite.Util;
 using System.Diagnostics;
@@ -52,7 +51,6 @@ using System.Collections.Generic;
 using System.Linq;
 using SQLitePCL.Ugly;
 using Couchbase.Lite.Store;
-using System.IO;
 
 namespace Couchbase.Lite.Shared
 {
