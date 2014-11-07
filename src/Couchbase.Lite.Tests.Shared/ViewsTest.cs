@@ -52,6 +52,7 @@ using NUnit.Framework;
 using Sharpen;
 using Newtonsoft.Json.Linq;
 using System.Threading;
+using System.Data;
 
 namespace Couchbase.Lite
 {
@@ -1086,12 +1087,13 @@ namespace Couchbase.Lite
 
             var properties = new Dictionary<string, object>();
             properties.Put("name", "test");
+            database.BeginTransaction();
             var doc = database.CreateDocument();
             var rev = doc.PutProperties(properties);
+            database.EndTransaction(true);
             for (var i = 0; i < 50; i++) {
                 rev = rev.CreateRevision(properties);
             }
-
             // Sleep to ensure that the LiveQuery is done all of its async operations.
             Thread.Sleep(5000);
 

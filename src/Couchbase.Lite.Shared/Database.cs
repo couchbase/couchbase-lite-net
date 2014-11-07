@@ -1718,7 +1718,7 @@ PRAGMA user_version = 3;";
 
             try
             {
-                cursor = StorageEngine.RawQuery(sql, args);
+                cursor = StorageEngine.InIntransactionRawQuery(sql, args);
                 cursor.MoveToNext();
 
                 if (!cursor.IsAfterLast())
@@ -2454,14 +2454,14 @@ PRAGMA user_version = 3;";
                     sql = "SELECT " + cols + " FROM revs, docs WHERE docs.docid=? AND revs.doc_id=docs.doc_id AND revid=? LIMIT 1";
                     //TODO: mismatch w iOS: {sql = "SELECT " + cols + " FROM revs WHERE revs.doc_id=? AND revid=? AND json notnull LIMIT 1";}
                     var args = new[] { id, rev };
-                    cursor = StorageEngine.RawQuery(sql, args);
+                    cursor = StorageEngine.InIntransactionRawQuery(sql, args);
                 }
                 else
                 {
                     sql = "SELECT " + cols + " FROM revs, docs WHERE docs.docid=? AND revs.doc_id=docs.doc_id and current=1 and deleted=0 ORDER BY revid DESC LIMIT 1";
                     //TODO: mismatch w iOS: {sql = "SELECT " + cols + " FROM revs WHERE revs.doc_id=? and current=1 and deleted=0 ORDER BY revid DESC LIMIT 1";}
                     var args = new[] { id };
-                    cursor = StorageEngine.RawQuery(sql, args);
+                    cursor = StorageEngine.InIntransactionRawQuery(sql, args);
                 }
                 if (cursor.MoveToNext())
                 {
@@ -3314,7 +3314,7 @@ PRAGMA user_version = 3;";
                 var extraSql = (onlyCurrent ? "AND current=1" : string.Empty);
                 var sql = string.Format("SELECT sequence FROM revs WHERE doc_id=? AND revid=? {0} LIMIT 1", extraSql);
                 var args = new [] { string.Empty + docNumericId, revId };
-                cursor = StorageEngine.RawQuery(sql, args);
+                cursor = StorageEngine.InIntransactionRawQuery(sql, args);
                 result = cursor.MoveToNext()
                              ? cursor.GetLong(0)
                              : 0;
@@ -3470,7 +3470,7 @@ PRAGMA user_version = 3;";
             {
                 StorageEngine.ExecSQL("INSERT INTO attachments (sequence, filename, key, type, length, revpos) "
                     + "SELECT ?, ?, key, type, length, revpos FROM attachments " + "WHERE sequence=? AND filename=?;", args);
-                cursor = StorageEngine.RawQuery("SELECT changes()");
+                cursor = StorageEngine.InIntransactionRawQuery("SELECT changes()");
                 cursor.MoveToNext();
 
                 int rowsUpdated = cursor.GetInt(0);
@@ -3882,8 +3882,7 @@ PRAGMA user_version = 3;";
                 {
                     if (Runtime.EqualsIgnoreCase(encodingStr, "gzip"))
                     {
-                        attachment.SetEncoding(AttachmentEncoding.AttachmentEncodingGZIP
-                                              );
+                        attachment.SetEncoding(AttachmentEncoding.AttachmentEncodingGZIP);
                     }
                     else
                     {

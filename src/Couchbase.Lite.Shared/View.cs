@@ -205,7 +205,7 @@ namespace Couchbase.Lite {
                 }
 
                 var deleted = 0;
-                cursor = Database.StorageEngine.RawQuery("SELECT changes()");
+                cursor = Database.StorageEngine.InIntransactionRawQuery("SELECT changes()");
                 cursor.MoveToNext();
                 deleted = cursor.GetInt(0);
                 cursor.Close();
@@ -213,7 +213,7 @@ namespace Couchbase.Lite {
                 // Find a better way to propagate this back
                 // Now scan every revision added since the last time the view was indexed:
                 var selectArgs = new[] { lastSequence.ToString() };
-                cursor = Database.StorageEngine.RawQuery("SELECT revs.doc_id, sequence, docid, revid, json, no_attachments FROM revs, docs "
+                cursor = Database.StorageEngine.InIntransactionRawQuery("SELECT revs.doc_id, sequence, docid, revid, json, no_attachments FROM revs, docs "
                     + "WHERE sequence>? AND current!=0 AND deleted=0 "
                     + "AND revs.doc_id = docs.doc_id "
                     + "ORDER BY revs.doc_id, revid DESC", selectArgs);
@@ -251,7 +251,7 @@ namespace Couchbase.Lite {
                         {
                             // Find conflicts with documents from previous indexings.
                             var selectArgs2 = new[] { Convert.ToString(docID), Convert.ToString(lastSequence) };
-                            var cursor2 = Database.StorageEngine.RawQuery("SELECT revid, sequence FROM revs "
+                            var cursor2 = Database.StorageEngine.InIntransactionRawQuery("SELECT revid, sequence FROM revs "
                                 + "WHERE doc_id=? AND sequence<=? AND current!=0 AND deleted=0 " + "ORDER BY revID DESC "
                                 + "LIMIT 1", selectArgs2);
                             if (cursor2.MoveToNext())

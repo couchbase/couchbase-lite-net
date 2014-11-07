@@ -270,7 +270,7 @@ namespace Couchbase.Lite.Shared
         /// <param name="paramArgs">Parameter arguments.</param>
         public void ExecSQL(String sql, params Object[] paramArgs)
         {
-            lock (dbLock)
+            var t = Scheduler.StartNew(()=>
             {
                 RegisterCollationFunctions(_writeConnection);
                 var command = BuildCommand(_writeConnection, sql, paramArgs);
@@ -290,8 +290,55 @@ namespace Couchbase.Lite.Shared
                 {
                     command.Dispose();
                 }
+            });
+            // NOTE.ZJG: Just a sketch here. Needs better error handling, etc.
+            var mre = new ManualResetEvent(false);
+            t.GetAwaiter().OnCompleted(()=>mre.Set());
+
+            var success = mre.WaitOne(30000);
+            if (!success) {
+                throw new CouchbaseLiteException("ExecSQL timedout", StatusCode.InternalServerError);
             }
+
+            if (t.Exception != null)
+                throw t.Exception;
         }
+
+        /// <summary>
+        /// Executes only read-only SQL.
+        /// </summary>
+        /// <returns>The query.</returns>
+        /// <param name="sql">Sql.</param>
+        /// <param name="paramArgs">Parameter arguments.</param>
+        public Cursor InIntransactionRawQuery(String sql, params Object[] paramArgs)
+        {
+            if (!IsOpen)
+            {
+                Open(Path);
+            }
+
+            Cursor cursor = null;
+            lock (dbReadLock) 
+            {
+                var command = BuildCommand (transactionCount > 0 ? _writeConnection : _readConnection, sql, paramArgs);
+                try 
+                {
+                    Log.V(Tag, "RawQuery sql: {0} ({1})", sql, String.Join(", ", paramArgs));
+                    cursor = new Cursor(command, dbLock);
+                } 
+                catch (Exception e) 
+                {
+                    if (command != null) 
+                    {
+                        command.Dispose();
+                    }
+                    Log.E(Tag, "Error executing raw query '{0}'".Fmt(sql), e);
+                    throw;
+                }
+            }
+            return cursor;
+        }
+
 
         /// <summary>
         /// Executes only read-only SQL.
@@ -444,10 +491,9 @@ namespace Couchbase.Lite.Shared
         {
             Debug.Assert(!String.IsNullOrWhiteSpace(table));
 
-            var resultCount = -1;
-            lock (dbLock)
+            var t = Scheduler.StartNew(() =>
             {
-                RegisterCollationFunctions(_writeConnection);
+                var resultCount = -1;
                 var command = GetDeleteCommand(table, whereClause, whereArgs);
                 try
                 {
@@ -471,8 +517,13 @@ namespace Couchbase.Lite.Shared
                 {
                     command.Dispose();
                 }
-            }
-            return resultCount;
+                return resultCount;
+            });
+            // NOTE.ZJG: Just a sketch here. Needs better error handling, etc.
+            var r = t.GetAwaiter().GetResult();
+            if (t.Exception != null)
+                throw t.Exception;
+            return r;
         }
 
         public void Close()
