@@ -4617,8 +4617,8 @@ PRAGMA user_version = 3;";
         internal int PruneRevsToMaxDepth(int maxDepth)
         {
             int outPruned = 0;
-            bool shouldCommit = false;
             IDictionary<long, int> toPrune = new Dictionary<long, int>();
+
             if (maxDepth == 0)
             {
                 maxDepth = MaxRevTreeDepth;
@@ -4626,41 +4626,48 @@ PRAGMA user_version = 3;";
 
             // First find which docs need pruning, and by how much:
             Cursor cursor = null;
-            var sql = "SELECT doc_id, MIN(revid), MAX(revid) FROM revs GROUP BY doc_id";
+            const string sql = "SELECT doc_id, MIN(revid), MAX(revid) FROM revs GROUP BY doc_id";
             long docNumericID = -1;
             var minGen = 0;
             var maxGen = 0;
+
             try
             {
                 cursor = StorageEngine.RawQuery(sql);
+
                 while (cursor.MoveToNext())
                 {
                     docNumericID = cursor.GetLong(0);
+
                     var minGenRevId = cursor.GetString(1);
                     var maxGenRevId = cursor.GetString(2);
+
                     minGen = RevisionInternal.GenerationFromRevID(minGenRevId);
                     maxGen = RevisionInternal.GenerationFromRevID(maxGenRevId);
+
                     if ((maxGen - minGen + 1) > maxDepth)
                     {
                         toPrune.Put(docNumericID, (maxGen - minGen));
                     }
                 }
 
-                BeginTransaction();
-
                 if (toPrune.Count == 0)
                 {
                     return 0;
                 }
 
-                foreach (long id in toPrune.Keys)
+                RunInTransaction(() =>
                 {
-                    string minIDToKeep = String.Format("{0}-", (toPrune.Get(id) + 1));
-                    string[] deleteArgs = new string[] { System.Convert.ToString(docNumericID), minIDToKeep };
-                    int rowsDeleted = StorageEngine.Delete("revs", "doc_id=? AND revid < ? AND current=0", deleteArgs);
-                    outPruned += rowsDeleted;
-                }
-                shouldCommit = true;
+                    foreach (long id in toPrune.Keys)
+                    {
+                        var minIDToKeep = String.Format("{0}-", (toPrune.Get(id) + 1));
+                        var deleteArgs = new string[] { System.Convert.ToString(docNumericID), minIDToKeep };
+                        var rowsDeleted = StorageEngine.Delete("revs", "doc_id=? AND revid < ? AND current=0", deleteArgs);
+                        outPruned += rowsDeleted;
+                    }
+
+                    return true;
+                });
             }
             catch (Exception e)
             {
@@ -4668,12 +4675,12 @@ PRAGMA user_version = 3;";
             }
             finally
             {
-                EndTransaction(shouldCommit);
                 if (cursor != null)
                 {
                     cursor.Close();
                 }
             }
+
             return outPruned;
         }
 
