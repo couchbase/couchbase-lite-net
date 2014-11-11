@@ -1095,7 +1095,7 @@ namespace Couchbase.Lite
                 rev = rev.CreateRevision(properties);
             }
             // Sleep to ensure that the LiveQuery is done all of its async operations.
-            Thread.Sleep(5000);
+            Thread.Sleep(8000);
 
             liveQuery.Stop();
 
