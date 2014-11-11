@@ -804,50 +804,50 @@ namespace Couchbase.Lite.Replicator
                 return;
             }
 
-            LocalDatabase.BeginTransaction();
-
-            var success = false;
             try
             {
-                foreach (var rev in downloads)
+                LocalDatabase.RunInTransaction(() =>
                 {
-                    var fakeSequence = rev.GetSequence();
-                    var history = Database.ParseCouchDBRevisionHistory(rev.GetProperties());
-                    if (history.Count == 0 && rev.GetGeneration() > 1) 
+                    foreach (var rev in downloads)
                     {
-                        Log.W(Tag, String.Format("{0}: Missing revision history in response for: {1}", this, rev));
-                        SetLastError(new CouchbaseLiteException(StatusCode.UpStreamError));
-                        RevisionFailed();
-                        continue;
-                    }
-
-                    Log.V(Tag, String.Format("{0}: inserting {1} {2}", this, rev.GetDocId(), history));
-
-                    // Insert the revision:
-                    try
-                    {
-                        LocalDatabase.ForceInsert(rev, history, RemoteUrl);
-                    }
-                    catch (CouchbaseLiteException e)
-                    {
-                        if (e.GetCBLStatus().GetCode() == StatusCode.Forbidden)
+                        var fakeSequence = rev.GetSequence();
+                        var history = Database.ParseCouchDBRevisionHistory(rev.GetProperties());
+                        if (history.Count == 0 && rev.GetGeneration() > 1) 
                         {
-                            Log.I(Tag, "Remote rev failed validation: " + rev);
-                        }
-                        else
-                        {
-                            Log.W(Tag, " failed to write " + rev + ": status=" + e.GetCBLStatus().GetCode());
+                            Log.W(Tag, String.Format("{0}: Missing revision history in response for: {1}", this, rev));
+                            SetLastError(new CouchbaseLiteException(StatusCode.UpStreamError));
                             RevisionFailed();
-                            SetLastError(e);
                             continue;
                         }
+
+                        Log.V(Tag, String.Format("{0}: inserting {1} {2}", this, rev.GetDocId(), history));
+
+                        // Insert the revision:
+                        try
+                        {
+                            LocalDatabase.ForceInsert(rev, history, RemoteUrl);
+                        }
+                        catch (CouchbaseLiteException e)
+                        {
+                            if (e.GetCBLStatus().GetCode() == StatusCode.Forbidden)
+                            {
+                                Log.I(Tag, "Remote rev failed validation: " + rev);
+                            }
+                            else
+                            {
+                                Log.W(Tag, " failed to write " + rev + ": status=" + e.GetCBLStatus().GetCode());
+                                RevisionFailed();
+                                SetLastError(e);
+                                continue;
+                            }
+                        }
+                        pendingSequences.RemoveSequence(fakeSequence);
                     }
-                    pendingSequences.RemoveSequence(fakeSequence);
-                }
 
-                Log.W(Tag, " finished inserting " + downloads.Count + " revisions");
+                    Log.W(Tag, " finished inserting " + downloads.Count + " revisions");
 
-                success = true;
+                    return true;
+                });
             }
             catch (Exception e)
             {
@@ -855,8 +855,6 @@ namespace Couchbase.Lite.Replicator
             }
             finally
             {
-                LocalDatabase.EndTransaction(success);
-
                 Log.D(Tag, "InsertRevisions() calling AsyncTaskFinished()");
                 AsyncTaskFinished(downloads.Count);
             }

@@ -740,7 +740,8 @@ namespace Couchbase.Lite
         {
             var doneSignal = new CountDownLatch(1);
             var db = StartDatabase();
-            db.Changed += (sender, e) => doneSignal.CountDown();
+            db.Changed += (sender, e) => 
+                doneSignal.CountDown();
 
             var task = CreateDocumentsAsync(db, 5);
 

@@ -152,6 +152,7 @@ namespace Couchbase.Lite
             Assert.AreEqual(innerDict.Select(kvp => kvp.Key).OrderBy(k => k), gotAttachmentDict.Select(kvp => kvp.Key).OrderBy(k => k));
 
             // Add a second revision that doesn't update the attachment:
+            database.BeginTransaction();
             var rev2Properties = new Dictionary<string, object>();
             rev2Properties.Put("_id", rev1.GetDocId());
             rev2Properties["foo"] = 2;
@@ -161,12 +162,14 @@ namespace Couchbase.Lite
             Assert.AreEqual(StatusCode.Created, status.GetCode());
 
             database.CopyAttachmentNamedFromSequenceToSequence(
-                testAttachmentName, rev1.GetSequence(), rev2.GetSequence());           
+                testAttachmentName, rev1.GetSequence(), rev2.GetSequence());  
+            database.EndTransaction(true);
             // Add a third revision of the same document:
             var rev3Properties = new Dictionary<string, object>();
             rev3Properties.Put("_id", rev2.GetDocId());
             rev3Properties["foo"] = 2;
             rev3Properties["bazz"] = false;
+            database.BeginTransaction();
             var rev3 = database.PutRevision(new RevisionInternal(
                 rev3Properties, database), rev2.GetRevId(), false, status);
             Assert.AreEqual(StatusCode.Created, status.GetCode());
@@ -175,6 +178,7 @@ namespace Couchbase.Lite
             database.InsertAttachmentForSequenceWithNameAndType(
                 new ByteArrayInputStream(attach2), rev3.GetSequence(), 
                 testAttachmentName, "text/html", rev2.GetGeneration());
+            database.EndTransaction(true);
             // Check the 2nd revision's attachment:
             var attachment2 = database.GetAttachmentForSequence(rev2.GetSequence(), testAttachmentName);
             Assert.AreEqual("text/plain", attachment2.ContentType);
@@ -249,6 +253,7 @@ namespace Couchbase.Lite
             var rev1Properties = new Dictionary<string, object>();
             rev1Properties["foo"] = 1;
             rev1Properties["bar"] = false;
+            database.BeginTransaction();
             var rev1 = database.PutRevision(new RevisionInternal(rev1Properties, 
                 database), null, false, status);
             Assert.AreEqual(StatusCode.Created, status.GetCode());
@@ -262,6 +267,7 @@ namespace Couchbase.Lite
             database.InsertAttachmentForSequenceWithNameAndType(
                 new ByteArrayInputStream(attach1), rev1.GetSequence(), 
                 testAttachmentName, "text/plain", rev1.GetGeneration());
+            database.EndTransaction(true);
             var attachment = database.GetAttachmentForSequence(rev1.GetSequence(), testAttachmentName);
             Assert.AreEqual("text/plain", attachment.ContentType);
             var data = attachment.Content.ToArray();
@@ -294,12 +300,13 @@ namespace Couchbase.Lite
             var rev2Properties = new Dictionary<string, object>();
             rev2Properties.Put("_id", rev1WithAttachmentsProperties["_id"]);
             rev2Properties["foo"] = 2;
+            database.BeginTransaction();
             var newRev = new RevisionInternal(rev2Properties, database);
             var rev2 = database.PutRevision(newRev, rev1WithAttachments.GetRevId(), false, status);
             Assert.AreEqual(StatusCode.Created, status.GetCode());
-
             database.CopyAttachmentNamedFromSequenceToSequence(
                 testAttachmentName, rev1WithAttachments.GetSequence(), rev2.GetSequence());
+            database.EndTransaction(true);
 
             // Check the 2nd revision's attachment:
             var rev2FetchedAttachment = database.GetAttachmentForSequence(rev2.GetSequence(), testAttachmentName);
