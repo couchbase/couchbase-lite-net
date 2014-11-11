@@ -4218,92 +4218,100 @@ PRAGMA user_version = 3;";
                 throw new CouchbaseLiteException(StatusCode.BadRequest);
             }
 
-            BeginTransaction();
+            RevisionInternal newRev = null;
 
-            try
+            var transactionSucceeded = RunInTransaction(() =>
             {
-                var oldRev = new RevisionInternal(docID, oldRevID, false, this);
-                if (oldRevID != null)
+                try
                 {
-                    // Load existing revision if this is a replacement:
-                    try
+                    var oldRev = new RevisionInternal(docID, oldRevID, false, this);
+                    if (oldRevID != null)
                     {
-                        LoadRevisionBody(oldRev, DocumentContentOptions.None);
-                    }
-                    catch (CouchbaseLiteException e)
-                    {
-                        if (e.GetCBLStatus().GetCode() == StatusCode.NotFound && ExistsDocumentWithIDAndRev(docID, null))
+                        // Load existing revision if this is a replacement:
+                        try
                         {
-                            throw new CouchbaseLiteException(StatusCode.Conflict);
+                            LoadRevisionBody(oldRev, DocumentContentOptions.None);
+                        }
+                        catch (CouchbaseLiteException e)
+                        {
+                            if (e.GetCBLStatus().GetCode() == StatusCode.NotFound && ExistsDocumentWithIDAndRev(docID, null))
+                            {
+                                throw new CouchbaseLiteException(StatusCode.Conflict);
+                            }
                         }
                     }
-                }
-                else
-                {
-                    // If this creates a new doc, it needs a body:
-                    oldRev.SetBody(new Body(new Dictionary<string, object>()));
-                }
-                // Update the _attachments dictionary:
-                var oldRevProps = oldRev.GetProperties();
-                IDictionary<string, object> attachments = null;
-                if (oldRevProps != null)
-                {
-                    attachments = (IDictionary<string, object>)oldRevProps.Get("_attachments");
-                }
-                if (attachments == null)
-                {
-                    attachments = new Dictionary<string, object>();
-                }
-                if (body != null)
-                {
-                    var key = body.GetBlobKey();
-                    var digest = key.Base64Digest();
-
-                    var blobsByDigest = new Dictionary<string, BlobStoreWriter>();
-                    blobsByDigest.Put(digest, body);
-
-                    RememberAttachmentWritersForDigests(blobsByDigest);
-
-                    var encodingName = (encoding == AttachmentEncoding.AttachmentEncodingGZIP) ? "gzip" : null;
-                    var dict = new Dictionary<string, object>();
-                    dict.Put("digest", digest);
-                    dict.Put("length", body.GetLength());
-                    dict.Put("follows", true);
-                    dict.Put("content_type", contentType);
-                    dict.Put("encoding", encodingName);
-
-                    attachments.Put(filename, dict);
-                }
-                else
-                {
-                    if (oldRevID != null && !attachments.ContainsKey(filename))
+                    else
                     {
-                        throw new CouchbaseLiteException(StatusCode.NotFound);
+                        // If this creates a new doc, it needs a body:
+                        oldRev.SetBody(new Body(new Dictionary<string, object>()));
                     }
-                    attachments.Remove(filename);
+
+                    // Update the _attachments dictionary:
+                    var oldRevProps = oldRev.GetProperties();
+                    IDictionary<string, object> attachments = null;
+
+                    if (oldRevProps != null)
+                    {
+                        attachments = (IDictionary<string, object>)oldRevProps.Get("_attachments");
+                    }
+
+                    if (attachments == null)
+                    {
+                        attachments = new Dictionary<string, object>();
+                    }
+
+                    if (body != null)
+                    {
+                        var key = body.GetBlobKey();
+                        var digest = key.Base64Digest();
+
+                        var blobsByDigest = new Dictionary<string, BlobStoreWriter>();
+                        blobsByDigest.Put(digest, body);
+
+                        RememberAttachmentWritersForDigests(blobsByDigest);
+
+                        var encodingName = (encoding == AttachmentEncoding.AttachmentEncodingGZIP) ? "gzip" : null;
+                        var dict = new Dictionary<string, object>();
+
+                        dict.Put("digest", digest);
+                        dict.Put("length", body.GetLength());
+                        dict.Put("follows", true);
+                        dict.Put("content_type", contentType);
+                        dict.Put("encoding", encodingName);
+
+                        attachments.Put(filename, dict);
+                    }
+                    else
+                    {
+                        if (oldRevID != null && !attachments.ContainsKey(filename))
+                        {
+                            throw new CouchbaseLiteException(StatusCode.NotFound);
+                        }
+
+                        attachments.Remove(filename);
+                    }
+
+                    var properties = oldRev.GetProperties();
+                    properties.Put("_attachments", attachments);
+                    oldRev.SetProperties(properties);
+
+                    // Create a new revision:
+                    var putStatus = new Status();
+                    newRev = PutRevision(oldRev, oldRevID, false, putStatus);
+
+                    isSuccessful = true;
+
+                }
+                catch (SQLException e)
+                {
+                    Log.E(Tag, "Error updating attachment", e);
+                    throw new CouchbaseLiteException(StatusCode.InternalServerError);
                 }
 
-                var properties = oldRev.GetProperties();
-                properties.Put("_attachments", attachments);
-                oldRev.SetProperties(properties);
+                return isSuccessful;
+            });
 
-                // Create a new revision:
-                var putStatus = new Status();
-                var newRev = PutRevision(oldRev, oldRevID, false, putStatus);
-
-                isSuccessful = true;
-
-                return newRev;
-            }
-            catch (SQLException e)
-            {
-                Log.E(Tag, "Error updating attachment", e);
-                throw new CouchbaseLiteException(StatusCode.InternalServerError);
-            }
-            finally
-            {
-                EndTransaction(isSuccessful);
-            }
+            return newRev;
         }
 
         /// <summary>VALIDATION</summary>
