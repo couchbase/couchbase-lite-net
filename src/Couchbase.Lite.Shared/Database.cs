@@ -683,7 +683,7 @@ namespace Couchbase.Lite
                 {
                     shouldCommit = false;
                     Log.E(Tag, e.ToString(), e);
-                    throw new RuntimeException(e);
+                    throw;
                 }
                 finally
                 {
@@ -3074,211 +3074,240 @@ PRAGMA user_version = 3;";
             {
                 throw new CouchbaseLiteException(StatusCode.BadRequest);
             }
-            BeginTransaction();
+
             Cursor cursor = null;
             var inConflict = false;
             RevisionInternal winningRev = null;
             RevisionInternal newRev = null;
 
-            // PART I: In which are performed lookups and validations prior to the insert...
-            var docNumericID = (docId != null) ? GetDocNumericID(docId) : 0;
-            var parentSequence = 0L;
-            string oldWinningRevID = null;
-            try
+            var transactionSucceeded = RunInTransaction(() =>
             {
-                var oldWinnerWasDeletion = false;
-                var wasConflicted = false;
-                if (docNumericID > 0)
+                // PART I: In which are performed lookups and validations prior to the insert...
+                var docNumericID = (docId != null) ? GetDocNumericID(docId) : 0;
+                var parentSequence = 0L;
+                string oldWinningRevID = null;
+
+                try
                 {
-                    var outIsDeleted = new List<bool>();
-                    var outIsConflict = new List<bool>();
-                    try
+                    var oldWinnerWasDeletion = false;
+                    var wasConflicted = false;
+
+                    if (docNumericID > 0)
                     {
-                        oldWinningRevID = WinningRevIDOfDoc(docNumericID, outIsDeleted, outIsConflict);
-                        oldWinnerWasDeletion |= outIsDeleted.Count > 0;
-                        wasConflicted |= outIsConflict.Count > 0;
-                    }
-                    catch (Exception e)
-                    {
-                        Sharpen.Runtime.PrintStackTrace(e);
-                    }
-                }
-                if (prevRevId != null)
-                {
-                    // Replacing: make sure given prevRevID is current & find its sequence number:
-                    if (docNumericID <= 0)
-                    {
-                        var msg = string.Format("No existing revision found with doc id: {0}", docId);
-                        throw new CouchbaseLiteException(msg, StatusCode.NotFound);
-                    }
-                    parentSequence = GetSequenceOfDocument(docNumericID, prevRevId, !allowConflict);
-                    if (parentSequence == 0)
-                    {
-                        // Not found: either a 404 or a 409, depending on whether there is any current revision
-                        if (!allowConflict && ExistsDocumentWithIDAndRev(docId, null))
+                        var outIsDeleted = new List<bool>();
+                        var outIsConflict = new List<bool>();
+
+                        try
                         {
-                            var msg = string.Format("Conflicts not allowed and there is already an existing doc with id: {0}", docId);
-                            throw new CouchbaseLiteException(msg, StatusCode.Conflict);
+                            oldWinningRevID = WinningRevIDOfDoc(docNumericID, outIsDeleted, outIsConflict);
+                            oldWinnerWasDeletion |= outIsDeleted.Count > 0;
+                            wasConflicted |= outIsConflict.Count > 0;
                         }
-                        else
+                        catch (Exception e)
+                        {
+                            Sharpen.Runtime.PrintStackTrace(e);
+                        }
+                    }
+                    if (prevRevId != null)
+                    {
+                        // Replacing: make sure given prevRevID is current & find its sequence number:
+                        if (docNumericID <= 0)
                         {
                             var msg = string.Format("No existing revision found with doc id: {0}", docId);
                             throw new CouchbaseLiteException(msg, StatusCode.NotFound);
                         }
-                    }
 
-                    if (_validations != null && _validations.Count > 0)
-                    {
-                        // Fetch the previous revision and validate the new one against it:
-                        var oldRevCopy = oldRev.CopyWithDocID(oldRev.GetDocId(), null);
-                        var prevRev = new RevisionInternal(docId, prevRevId, false, this);
-                        ValidateRevision(oldRevCopy, prevRev, prevRevId);
-                    }
-                }
-                else
-                {
-                    // Inserting first revision.
-                    if (deleted && (docId != null))
-                    {
-                        // Didn't specify a revision to delete: 404 or a 409, depending
-                        if (ExistsDocumentWithIDAndRev(docId, null))
+                        parentSequence = GetSequenceOfDocument(docNumericID, prevRevId, !allowConflict);
+
+                        if (parentSequence == 0)
                         {
-                            throw new CouchbaseLiteException(StatusCode.Conflict);
-                        }
-                        else
-                        {
-                            throw new CouchbaseLiteException(StatusCode.NotFound);
-                        }
-                    }
-                    // Validate:
-                    ValidateRevision(oldRev, null, null);
-                    if (docId != null)
-                    {
-                        // Inserting first revision, with docID given (PUT):
-                        if (docNumericID <= 0)
-                        {
-                            // Doc doesn't exist at all; create it:
-                            docNumericID = InsertDocumentID(docId);
-                            if (docNumericID <= 0)
+                            // Not found: either a 404 or a 409, depending on whether there is any current revision
+                            if (!allowConflict && ExistsDocumentWithIDAndRev(docId, null))
                             {
-                                return null;
-                            }
-                        }
-                        else
-                        {
-                            // Doc ID exists; check whether current winning revision is deleted:
-                            if (oldWinnerWasDeletion)
-                            {
-                                prevRevId = oldWinningRevID;
-                                parentSequence = GetSequenceOfDocument(docNumericID, prevRevId, false);
+                                var msg = string.Format("Conflicts not allowed and there is already an existing doc with id: {0}", docId);
+                                throw new CouchbaseLiteException(msg, StatusCode.Conflict);
                             }
                             else
                             {
-                                if (oldWinningRevID != null)
-                                {
-                                    // The current winning revision is not deleted, so this is a conflict
-                                    throw new CouchbaseLiteException(StatusCode.Conflict);
-                                }
+                                var msg = string.Format("No existing revision found with doc id: {0}", docId);
+                                throw new CouchbaseLiteException(msg, StatusCode.NotFound);
                             }
+                        }
+
+                        if (_validations != null && _validations.Count > 0)
+                        {
+                            // Fetch the previous revision and validate the new one against it:
+                            var oldRevCopy = oldRev.CopyWithDocID(oldRev.GetDocId(), null);
+                            var prevRev = new RevisionInternal(docId, prevRevId, false, this);
+
+                            ValidateRevision(oldRevCopy, prevRev, prevRevId);
                         }
                     }
                     else
                     {
-                        // Inserting first revision, with no docID given (POST): generate a unique docID:
-                        docId = Database.GenerateDocumentId();
-                        docNumericID = InsertDocumentID(docId);
-                        if (docNumericID <= 0)
+                        // Inserting first revision.
+                        if (deleted && (docId != null))
                         {
-                            return null;
+                            // Didn't specify a revision to delete: 404 or a 409, depending
+                            if (ExistsDocumentWithIDAndRev(docId, null))
+                            {
+                                throw new CouchbaseLiteException(StatusCode.Conflict);
+                            }
+                            else
+                            {
+                                throw new CouchbaseLiteException(StatusCode.NotFound);
+                            }
+                        }
+
+                        // Validate:
+                        ValidateRevision(oldRev, null, null);
+
+                        if (docId != null)
+                        {
+                            // Inserting first revision, with docID given (PUT):
+                            if (docNumericID <= 0)
+                            {
+                                // Doc doesn't exist at all; create it:
+                                docNumericID = InsertDocumentID(docId);
+
+                                if (docNumericID <= 0)
+                                {
+                                    return false;
+                                }
+                            }
+                            else
+                            {
+                                // Doc ID exists; check whether current winning revision is deleted:
+                                if (oldWinnerWasDeletion)
+                                {
+                                    prevRevId = oldWinningRevID;
+                                    parentSequence = GetSequenceOfDocument(docNumericID, prevRevId, false);
+                                }
+                                else
+                                {
+                                    if (oldWinningRevID != null)
+                                    {
+                                        // The current winning revision is not deleted, so this is a conflict
+                                        throw new CouchbaseLiteException(StatusCode.Conflict);
+                                    }
+                                }
+                            }
+                        }
+                        else
+                        {
+                            // Inserting first revision, with no docID given (POST): generate a unique docID:
+                            docId = Database.GenerateDocumentId();
+                            docNumericID = InsertDocumentID(docId);
+
+                            if (docNumericID <= 0)
+                            {
+                                return false;
+                            }
                         }
                     }
-                }
-                // There may be a conflict if (a) the document was already in conflict, or
-                // (b) a conflict is created by adding a non-deletion child of a non-winning rev.
-                inConflict = wasConflicted 
-                          || (!deleted && prevRevId != null && oldWinningRevID != null && !prevRevId.Equals(oldWinningRevID));
-                // PART II: In which we prepare for insertion...
-                // Get the attachments:
-                var attachments = GetAttachmentsFromRevision(oldRev);
-                // Bump the revID and update the JSON:
-                IList<byte> json = null;
+
+                    // There may be a conflict if (a) the document was already in conflict, or
+                    // (b) a conflict is created by adding a non-deletion child of a non-winning rev.
+                    inConflict = wasConflicted
+                    || (!deleted && prevRevId != null && oldWinningRevID != null && !prevRevId.Equals(oldWinningRevID));
+
+                    // PART II: In which we prepare for insertion...
+                    // Get the attachments:
+                    var attachments = GetAttachmentsFromRevision(oldRev);
+
+                    // Bump the revID and update the JSON:
+                    IList<byte> json = null;
 
 
-                if(!oldRev.IsDeleted()) //oldRev.GetProperties() != null && oldRev.GetProperties().Any())
-                {
-                    json = EncodeDocumentJSON(oldRev).ToList();
-                    if (json == null)
+                    if (!oldRev.IsDeleted()) //oldRev.GetProperties() != null && oldRev.GetProperties().Any())
                     {
-                        // bad or missing json
-                        throw new CouchbaseLiteException(StatusCode.BadRequest);
+                        json = EncodeDocumentJSON(oldRev).ToList();
+
+                        if (json == null)
+                        {
+                            // bad or missing json
+                            throw new CouchbaseLiteException(StatusCode.BadRequest);
+                        }
+
+                        if (json.Count() == 2 && json[0] == '{' && json[1] == '}')
+                        {
+                            json = null;
+                        }
                     }
-                    if (json.Count() == 2 && json[0] == '{' && json[1] == '}')
+                    else
                     {
-                        json = null;
+                        json = Encoding.UTF8.GetBytes("{}"); // NOTE.ZJG: Confirm w/ Traun. This prevents a null reference exception in call to InsertRevision below.
+                    }
+
+                    var newRevId = GenerateIDForRevision(oldRev, json, attachments, prevRevId);
+                    newRev = oldRev.CopyWithDocID(docId, newRevId);
+                    StubOutAttachmentsInRevision(attachments, newRev);
+
+                    // Now insert the rev itself:
+                    var newSequence = InsertRevision(newRev, docNumericID, parentSequence, true, (attachments.Count > 0), json);
+
+                    if (newSequence == 0)
+                    {
+                        return false;
+                    }
+
+                    // Make replaced rev non-current:
+                    try
+                    {
+                        var args = new ContentValues();
+                        args["current"] = 0;
+                        StorageEngine.Update("revs", args, "sequence=?", new[] { parentSequence.ToString() });
+                    }
+                    catch (SQLException e)
+                    {
+                        Log.E(Database.Tag, "Error setting parent rev non-current", e);
+                        throw new CouchbaseLiteException(StatusCode.InternalServerError);
+                    }
+
+                    // Store any attachments:
+                    if (attachments != null)
+                    {
+                        ProcessAttachmentsForRevision(attachments, newRev, parentSequence);
+                    }
+
+                    // Figure out what the new winning rev ID is:
+                    winningRev = Winner(docNumericID, oldWinningRevID, oldWinnerWasDeletion, newRev);
+
+                    // Success!
+                    if (deleted)
+                    {
+                        resultStatus.SetCode(StatusCode.Ok);
+                    }
+                    else
+                    {
+                        resultStatus.SetCode(StatusCode.Created);
                     }
                 }
-                else 
+                catch (SQLException e1)
                 {
-                    json = Encoding.UTF8.GetBytes("{}"); // NOTE.ZJG: Confirm w/ Traun. This prevents a null reference exception in call to InsertRevision below.
+                    Log.E(Tag, "Error putting revision", e1);
+                    return false;
                 }
-                var newRevId = GenerateIDForRevision(oldRev, json, attachments, prevRevId);
-                newRev = oldRev.CopyWithDocID(docId, newRevId);
-                StubOutAttachmentsInRevision(attachments, newRev);
-                // Now insert the rev itself:
-                var newSequence = InsertRevision(newRev, docNumericID, parentSequence, true, (attachments.Count > 0), json);
-                if (newSequence == 0)
+                finally
                 {
-                    return null;
-                }
-                // Make replaced rev non-current:
-                try
-                {
-                    var args = new ContentValues();
-                    args["current"] = 0;
-                    StorageEngine.Update("revs", args, "sequence=?", new[] { parentSequence.ToString() });
-                }
-                catch (SQLException e)
-                {
-                    Log.E(Database.Tag, "Error setting parent rev non-current", e);
-                    throw new CouchbaseLiteException(StatusCode.InternalServerError);
-                }
-                // Store any attachments:
-                if (attachments != null)
-                {
-                    ProcessAttachmentsForRevision(attachments, newRev, parentSequence);
+                    if (cursor != null)
+                    {
+                        cursor.Close();
+                    }
+
+
+
+                    if (!string.IsNullOrEmpty(docId))
+                    {
+                        UnsavedRevisionDocumentCache.Remove(docId);
+                    }
                 }
 
-                // Figure out what the new winning rev ID is:
-                winningRev = Winner(docNumericID, oldWinningRevID, oldWinnerWasDeletion, newRev);
+                return resultStatus.IsSuccessful;
+            });
 
-                 // Success!
-                if (deleted)
-                {
-                    resultStatus.SetCode(StatusCode.Ok);
-                }
-                else
-                {
-                    resultStatus.SetCode(StatusCode.Created);
-                }
-            }
-            catch (SQLException e1)
-            {
-                Log.E(Tag, "Error putting revision", e1);
+            if (!transactionSucceeded)
                 return null;
-            }
-            finally
-            {
-                if (cursor != null)
-                {
-                    cursor.Close();
-                }
-                EndTransaction(resultStatus.IsSuccessful);
-
-                if (!string.IsNullOrEmpty(docId))
-                {
-                    UnsavedRevisionDocumentCache.Remove(docId);
-                }
-            }
 
             // EPILOGUE: A change notification is sent...
             NotifyChange(newRev, winningRev, null, inConflict);
