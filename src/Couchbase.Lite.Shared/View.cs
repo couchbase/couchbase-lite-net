@@ -1017,29 +1017,24 @@ namespace Couchbase.Lite {
             if (Id < 0)
                 return;
 
-            var success = false;
-
             try
             {
-                Database.BeginTransaction();
+                Database.RunInTransaction(() =>
+                {
+                    var whereArgs = new string[] { Sharpen.Extensions.ToString(Id) };
+                    Database.StorageEngine.Delete("maps", "view_id=?", whereArgs);
 
-                var whereArgs = new string[] { Sharpen.Extensions.ToString(Id) };
-                Database.StorageEngine.Delete("maps", "view_id=?", whereArgs);
+                    var updateValues = new ContentValues();
+                    updateValues["lastSequence"] = 0;
 
-                var updateValues = new ContentValues();
-                updateValues["lastSequence"] = 0;
+                    Database.StorageEngine.Update("views", updateValues, "view_id=?", whereArgs); // TODO: Convert to ADO params.
 
-                Database.StorageEngine.Update("views", updateValues, "view_id=?", whereArgs); // TODO: Convert to ADO params.
-
-                success = true;
+                    return true;
+                });
             }
             catch (SQLException e)
             {
                 Log.E(Database.Tag, "Error removing index", e);
-            }
-            finally
-            {
-                Database.EndTransaction(success);
             }
         }
 
