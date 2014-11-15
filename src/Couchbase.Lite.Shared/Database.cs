@@ -58,6 +58,7 @@ using System.Collections.Concurrent;
 using System.Collections;
 using System.Collections.ObjectModel;
 using System.Net;
+using System.Threading;
 
 namespace Couchbase.Lite 
 {
@@ -683,7 +684,6 @@ namespace Couchbase.Lite
                 {
                     shouldCommit = false;
                     Log.E(Tag, e.ToString(), e);
-                    throw;
                 }
                 finally
                 {
@@ -694,12 +694,16 @@ namespace Couchbase.Lite
             });
 
             // NOTE: Needs better error handling, etc.
-            var result = transactionTask.GetAwaiter().GetResult();
+            // TODO: Should have a timeout here. However,
+            //       using one of the timeout overloads results
+            //       in deadlock. Probably need to use a
+            //       TaskCompletionSource instead.
+            transactionTask.Wait();
 
             if (transactionTask.Exception != null)
                 throw transactionTask.Exception;
 
-            return result;
+            return transactionTask.Result;
         }
 
             

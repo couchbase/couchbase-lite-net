@@ -548,6 +548,12 @@ namespace Couchbase.Lite.Shared
                 } 
                 db.close();
             }
+            catch (KeyNotFoundException ex)
+            {
+                // Appears to be a bug in sqlite3.find_stmt. Concurrency issue in static dictionary?
+                // Assuming we're done.
+                Log.W(Tag, "Abandoning database close.", ex);
+            }
             catch (ugly.sqlite3_exception ex)
             {
                 Log.E(Tag, "Retrying database close.", ex);
@@ -557,8 +563,18 @@ namespace Couchbase.Lite.Shared
             }
             GC.Collect();
             GC.WaitForPendingFinalizers();
-            db.Dispose();
-            db = null;
+            try
+            {
+                db.Dispose();
+            }
+            catch (Exception ex)
+            {
+                Log.E(Tag, "Error while closing database.", ex);
+            }
+            finally
+            {                
+                db = null;
+            }
         }
 
         #endregion
