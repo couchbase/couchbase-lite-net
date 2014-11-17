@@ -47,13 +47,14 @@ using System.Collections.Generic;
 using System.Net;
 using System.IO;
 using Sharpen;
+using Couchbase.Lite.Portable;
 
 namespace Couchbase.Lite 
 {
     /// <summary>
     /// A Couchbase Lite Document Revision.
     /// </summary>
-    public abstract partial class Revision 
+    public abstract partial class Revision : Couchbase.Lite.Portable.IRevision
     {
     
     #region Constructors
@@ -85,7 +86,7 @@ namespace Couchbase.Lite
         /// Gets the <see cref="Couchbase.Lite.Document"/> that this <see cref="Couchbase.Lite.Revision"/> belongs to.
         /// </summary>
         /// <value>The <see cref="Couchbase.Lite.Document"/> that this <see cref="Couchbase.Lite.Revision"/> belongs to</value>
-        public virtual Document Document { get; protected set; }
+        public virtual IDocument Document { get; protected set; }
 
         /// <summary>
         /// Gets the <see cref="Couchbase.Lite.Database"/> that owns the <see cref="Couchbase.Lite.Revision"/>'s 
@@ -93,7 +94,9 @@ namespace Couchbase.Lite
         /// </summary>
         /// <value>The <see cref="Couchbase.Lite.Database"/> that owns the <see cref="Couchbase.Lite.Revision"/>'s 
         /// <see cref="Couchbase.Lite.Document"/>.</value>
-        public Database Database { get { return Document.Database; } }
+        public IDatabase Database { get { return Document.Database; } }
+
+        internal Database DatabaseRef { get { return (Database)Document.Database; } }
 
         /// <summary>
         /// Gets the <see cref="Couchbase.Lite.Revision"/>'s id.
@@ -167,7 +170,7 @@ namespace Couchbase.Lite
         /// Gets the parent <see cref="Couchbase.Lite.Revision"/>.
         /// </summary>
         /// <value>The parent <see cref="Couchbase.Lite.Revision"/>.</value>
-        public abstract SavedRevision Parent { get; }
+        public abstract ISavedRevision Parent { get; }
 
         /// <summary>
         /// Gets the parent <see cref="Couchbase.Lite.Revision"/>'s id.
@@ -181,7 +184,7 @@ namespace Couchbase.Lite
         /// Older revisions are NOT guaranteed to have their properties available.
         /// </remarks>
         /// <value>The history of this document as an array of CBLRevisions, in forward order</value>
-        public abstract IEnumerable<SavedRevision> RevisionHistory { get; }
+        public abstract IEnumerable<ISavedRevision> RevisionHistory { get; }
 
         /// <summary>
         /// Gets the names of all the <see cref="Couchbase.Lite.Attachment"/>s.
@@ -206,16 +209,17 @@ namespace Couchbase.Lite
         /// Gets all the <see cref="Couchbase.Lite.Attachment"/>s.
         /// </summary>
         /// <value>All the <see cref="Couchbase.Lite.Attachment"/>s.</value>
-        public IEnumerable<Attachment> Attachments {
-            get {
-                var result = new List<Attachment>();
+        public IEnumerable<IAttachment> Attachments
+        {
+            get
+            {
+                List<IAttachment> result = new List<IAttachment>();
 
                 foreach (var attachmentName in AttachmentNames)
-                {
                     result.AddItem(GetAttachment(attachmentName));
-                }
+                
                 return result;
-            } 
+            }
         }
 
         /// <summary>
@@ -232,7 +236,7 @@ namespace Couchbase.Lite
         /// </summary>
         /// <returns>The <see cref="Couchbase.Lite.Attachment"/> with the specified name if it exists, otherwise null.</returns>
         /// <param name="name">The name of the <see cref="Couchbase.Lite.Attachment"/> to return.</param>
-        public Attachment GetAttachment(String name) {
+        public IAttachment GetAttachment(String name) {
             var attachmentsMetadata = GetAttachmentMetadata();
             if (attachmentsMetadata == null)
             {
@@ -271,6 +275,7 @@ namespace Couchbase.Lite
         }
 
     #endregion
-    }
+
+    }
 }
 

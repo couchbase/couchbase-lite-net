@@ -223,7 +223,7 @@ namespace Couchbase.Lite.Replicator
                 return;
             }
 
-            if (!LocalDatabase.IsValidDocumentId(docID))
+            if (!DatabaseInternal.IsValidDocumentId(docID))
             {
                 Log.W(Tag, string.Format("{0}: Received invalid doc ID from _changes: {1}", this, change));
                 return;
@@ -242,7 +242,7 @@ namespace Couchbase.Lite.Replicator
                     continue;
                 }
 
-                var rev = new PulledRevision(docID, revID, deleted, LocalDatabase);
+                var rev = new PulledRevision(docID, revID, deleted, DatabaseInternal);
                 rev.SetRemoteSequenceID(lastSequence);
 
                 Log.D(Tag, "adding rev to inbox " + rev);
@@ -315,7 +315,7 @@ namespace Couchbase.Lite.Replicator
                 // findMissingRevisions is the local equivalent of _revs_diff. it looks at the
                 // array of revisions in inbox and removes the ones that already exist. So whatever's left in inbox
                 // afterwards are the revisions that need to be downloaded.
-                numRevisionsRemoved = LocalDatabase.FindMissingRevisions(inbox);
+                numRevisionsRemoved = DatabaseInternal.FindMissingRevisions(inbox);
             } catch (Exception e) {
                 Log.E(Tag, "Failed to look up local revs", e);
                 inbox = null;
@@ -487,7 +487,7 @@ namespace Couchbase.Lite.Replicator
             BulkDownloader dl;
             try
             {
-                dl = new BulkDownloader(WorkExecutor, clientFactory, RemoteUrl, bulkRevs, LocalDatabase, RequestHeaders);
+                dl = new BulkDownloader(WorkExecutor, clientFactory, RemoteUrl, bulkRevs, DatabaseInternal, RequestHeaders);
                 // , new _BulkDownloaderDocumentBlock_506(this, remainingRevs), new _RemoteRequestCompletionBlock_537(this, remainingRevs)
                 // TODO: add event handles for completion and documentdownloaded.
                 dl.DocumentDownloaded += (sender, e) =>
@@ -495,8 +495,8 @@ namespace Couchbase.Lite.Replicator
                     var props = e.DocumentProperties;
 
                     var rev = props.Get ("_id") != null 
-                        ? new RevisionInternal (props, LocalDatabase) 
-                        : new RevisionInternal ((string)props.Get ("id"), (string)props.Get ("rev"), false, LocalDatabase);
+                        ? new RevisionInternal (props, DatabaseInternal)
+                        : new RevisionInternal((string)props.Get("id"), (string)props.Get("rev"), false, DatabaseInternal);
 
                     Log.D(Tag, "Document downloaded! {0}", rev);
 
@@ -568,7 +568,7 @@ namespace Couchbase.Lite.Replicator
 
                     if (attachment.Get("follows") != null && attachment.Get("data") == null)
                     {
-                        var filePath = LocalDatabase.FileForAttachmentDict(attachment).AbsolutePath;
+                        var filePath = DatabaseInternal.FileForAttachmentDict(attachment).AbsolutePath;
                         if (filePath != null)
                         {
                             attachment["file"] = filePath;
@@ -634,7 +634,7 @@ namespace Couchbase.Lite.Replicator
                         var doc = row.Get ("doc").AsDictionary<string, object>();
                         if (doc != null && doc.Get ("_attachments") == null)
                         {
-                            var rev = new RevisionInternal (doc, LocalDatabase);
+                            var rev = new RevisionInternal(doc, DatabaseInternal);
                             var pos = remainingRevs.IndexOf (rev);
                             if (pos > -1) 
                             {
@@ -705,7 +705,7 @@ namespace Couchbase.Lite.Replicator
             }
             catch (Exception e)
             {
-                Log.E(Database.Tag, "Exception getting status from " + item, e);
+                Log.E(Couchbase.Lite.Database.Tag, "Exception getting status from " + item, e);
             }
             return new Status(StatusCode.Ok);
         }
@@ -749,7 +749,7 @@ namespace Couchbase.Lite.Replicator
             //create a final version of this variable for the log statement inside
             //FIXME find a way to avoid this
             var pathInside = path.ToString();
-            SendAsyncMultipartDownloaderRequest(HttpMethod.Get, pathInside, null, LocalDatabase, (result, e) => 
+            SendAsyncMultipartDownloaderRequest(HttpMethod.Get, pathInside, null, DatabaseInternal, (result, e) => 
             {
                 try 
                 {
@@ -769,7 +769,7 @@ namespace Couchbase.Lite.Replicator
                     else
                     {
                         var properties = result.AsDictionary<string, object>();
-                        PulledRevision gotRev = new PulledRevision(properties, LocalDatabase);
+                        PulledRevision gotRev = new PulledRevision(properties, DatabaseInternal);
                         gotRev.SetSequence(rev.GetSequence());
                         AsyncTaskStarted ();
                         Log.D(Tag, "PullRemoteRevision add rev: " + gotRev + " to batcher");
@@ -798,13 +798,13 @@ namespace Couchbase.Lite.Replicator
 
             downloads.Sort(new RevisionComparer());
 
-            if (LocalDatabase == null)
+            if (this.Database == null)
             {
                 AsyncTaskFinished(downloads.Count);
                 return;
             }
 
-            LocalDatabase.BeginTransaction();
+            DatabaseInternal.BeginTransaction();
 
             var success = false;
             try
@@ -812,7 +812,7 @@ namespace Couchbase.Lite.Replicator
                 foreach (var rev in downloads)
                 {
                     var fakeSequence = rev.GetSequence();
-                    var history = Database.ParseCouchDBRevisionHistory(rev.GetProperties());
+                    var history = Couchbase.Lite.Database.ParseCouchDBRevisionHistory(rev.GetProperties());
                     if (history.Count == 0 && rev.GetGeneration() > 1) 
                     {
                         Log.W(Tag, String.Format("{0}: Missing revision history in response for: {1}", this, rev));
@@ -826,7 +826,7 @@ namespace Couchbase.Lite.Replicator
                     // Insert the revision:
                     try
                     {
-                        LocalDatabase.ForceInsert(rev, history, RemoteUrl);
+                        DatabaseInternal.ForceInsert(rev, history, RemoteUrl);
                     }
                     catch (CouchbaseLiteException e)
                     {
@@ -855,7 +855,7 @@ namespace Couchbase.Lite.Replicator
             }
             finally
             {
-                LocalDatabase.EndTransaction(success);
+                DatabaseInternal.EndTransaction(success);
 
                 Log.D(Tag, "InsertRevisions() calling AsyncTaskFinished()");
                 AsyncTaskFinished(downloads.Count);
@@ -887,9 +887,9 @@ namespace Couchbase.Lite.Replicator
 
         private IList<String> KnownCurrentRevIDs(RevisionInternal rev)
         {
-            if (LocalDatabase != null)
+            if (this.Database != null)
             {
-                return LocalDatabase.GetAllRevisionsOfDocumentID(rev.GetDocId(), true).GetAllRevIds();
+                return DatabaseInternal.GetAllRevisionsOfDocumentID(rev.GetDocId(), true).GetAllRevIds();
             }
             return null;
         }

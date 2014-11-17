@@ -44,6 +44,7 @@ using System;
 using System.Threading.Tasks;
 using System.Threading;
 using Couchbase.Lite.Util;
+using Couchbase.Lite.Portable;
 
 namespace Couchbase.Lite
 {
@@ -52,7 +53,7 @@ namespace Couchbase.Lite
     /// automatically refreshes every time the <see cref="Couchbase.Lite.Database"/> changes 
     /// in a way that would affect the results.
     /// </summary>
-    public sealed class LiveQuery : Query
+    public sealed class LiveQuery : Query, ILiveQuery
     {
     #region Non-public Members
 
@@ -89,7 +90,7 @@ namespace Couchbase.Lite
         /// Note: In a CBLLiveQuery you should add a ChangeListener and call start() instead.
         /// </remarks>
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
-        public override QueryEnumerator Run()
+        public override IQueryEnumerator Run()
         {
             while (true)
             {
@@ -170,7 +171,7 @@ namespace Couchbase.Lite
                     var updateQueryTaskToWaitTokenSource = UpdateQueryTokenSource;
 
                     ReRunUpdateQueryTokenSource = new CancellationTokenSource();
-                    Database.Manager.RunAsync(() => 
+                    this.DatabaseInternal.ManagerInternal.RunAsync(() => 
                     { 
                         RunUpdateAfterQueryFinishes(updateQueryTaskToWait, updateQueryTaskToWaitTokenSource); 
                     }, ReRunUpdateQueryTokenSource.Token);
@@ -190,7 +191,7 @@ namespace Couchbase.Lite
                             return; // NOTE: Assuming that we don't want to lose rows we already retrieved.
                         }
 
-                        rows = runTask.Result; // NOTE: Should this be 'append' instead of 'replace' semantics? If append, use a concurrent collection.
+                        rows = (QueryEnumerator)runTask.Result; // NOTE: Should this be 'append' instead of 'replace' semantics? If append, use a concurrent collection.
                         LastError = runTask.Exception;
 
                         var evt = Changed;
@@ -199,7 +200,7 @@ namespace Couchbase.Lite
 
                         var args = new QueryChangeEventArgs (this, rows, LastError);
                         evt (this, args);
-                    }, Database.Manager.CapturedContext.Scheduler);
+                    }, DatabaseInternal.ManagerInternal.CapturedContext.Scheduler);
             }
         }
 
@@ -207,7 +208,7 @@ namespace Couchbase.Lite
 
     #region Constructors
 
-        internal LiveQuery(Query query) : base(query.Database, query.View) { }
+        internal LiveQuery(Query query) : base(query.DatabaseInternal, query.View) { }
     
     #endregion
 
@@ -218,7 +219,7 @@ namespace Couchbase.Lite
         /// The value will be null until the initial <see cref="Couchbase.Lite.Query"/> completes.
         /// </summary>
         /// <value>The row results of the <see cref="Couchbase.Lite.Query"/>.</value>
-        public QueryEnumerator Rows
+        public IQueryEnumerator Rows
         { 
             get
             {
@@ -360,42 +361,4 @@ namespace Couchbase.Lite
     #endregion
     
     }
-
-    #region EventArgs Subclasses
-
-    /// <summary>
-    /// Query change event arguments.
-    /// </summary>
-    public class QueryChangeEventArgs : EventArgs 
-    {
-        internal QueryChangeEventArgs (LiveQuery liveQuery, QueryEnumerator enumerator, Exception error)
-        {
-            Source = liveQuery;
-            Rows = enumerator;
-            Error = error;
-        }
-            
-        //Properties
-        /// <summary>
-        /// Gets the LiveQuery that raised the event.
-        /// </summary>
-        /// <value>The LiveQuery that raised the event.</value>
-        public LiveQuery Source { get; private set; }
-
-        /// <summary>
-        /// Gets the results of the Query.
-        /// </summary>
-        /// <value>The results of the Query.</value>
-        public QueryEnumerator Rows { get; private set; }
-
-        /// <summary>
-        /// Returns the error, if any, that occured while executing 
-        /// the <see cref="Couchbase.Lite.Query"/>, otherwise null.
-        /// </summary>
-        /// <value>The error.</value>
-        public Exception Error { get; private set; }
-    }
-
-        #endregion
-        
 }

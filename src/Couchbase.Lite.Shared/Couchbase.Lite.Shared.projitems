@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
     <MSBuildAllProjects>$(MSBuildAllProjects);$(MSBuildThisFileFullPath)</MSBuildAllProjects>
@@ -14,8 +14,11 @@
     <Compile Include="$(MSBuildThisFileDirectory)Document.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Manager.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Query.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Query\QueryEnumerator.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Replication.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Revision.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Util\DatabaseHolder.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Util\IDatabaseHolder.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)View.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Auth\Authorizer.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Auth\FacebookAuthorizer.cs" />
@@ -23,7 +26,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)Documents\AttachmentInternal.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Documents\Body.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Documents\DocumentChange.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Documents\IValidationContext.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Documents\ValidationContext.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Exceptions\CouchbaseLiteException.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Extensions\SqliteExtensions.cs" />
@@ -31,8 +33,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)Manager\ManagerOptions.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Properties\AssemblyInfo.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Query\LiveQuery.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Query\QueryCompletedEventArgs.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Query\QueryEnumerator.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Query\QueryOptions.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Query\QueryRow.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Replication\BatchProcessor.cs" />
@@ -194,7 +194,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)Store\SqlitePclRawStorageEngine.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Store\SQLiteResult.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Auth\AuthenticatorFactory.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Auth\IAuthenticator.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Auth\Authenticator.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Auth\TokenAuthenticator.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Auth\BasicAuthenticator.cs" />
@@ -219,6 +218,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Util\ExponentialBackoffStrategy.cs" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="$(MSBuildThisFileDirectory)ClassDiagram.cd" />
     <None Include="$(MSBuildThisFileDirectory)Store\MonoSQLiteStorageEngine.cs" />
     <None Include="$(MSBuildThisFileDirectory)Store\SqlitePclStorageEngine.cs" />
   </ItemGroup>

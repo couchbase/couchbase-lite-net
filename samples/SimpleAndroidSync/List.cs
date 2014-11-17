@@ -23,6 +23,7 @@ using System.Collections.Generic;
 using CouchbaseSample.Android;
 using CouchbaseSample.Android.Document;
 using Couchbase.Lite;
+using Couchbase.Lite.Portable;
 using Couchbase.Lite.Util;
 using Sharpen;
 using System.Globalization;
@@ -36,7 +37,7 @@ namespace CouchbaseSample.Android.Document
         private const string DocType = "list";
         private const string ViewName = "lists";
 
-        public static Query GetQuery(Database database)
+        public static IQuery GetQuery(IDatabase database)
         {
             var view = database.GetView(ViewName);
             if (view.Map == null)

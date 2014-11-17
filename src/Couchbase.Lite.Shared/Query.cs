@@ -50,67 +50,21 @@ using Sharpen;
 using System.Threading.Tasks;
 using System.Threading;
 using Couchbase.Lite.Util;
+using Couchbase.Lite.Portable;
 
-namespace Couchbase.Lite {
-
-    /// <summary>
-    /// Used to specify when a <see cref="Couchbase.Lite.View"/> index is updated 
-    /// when running a <see cref="Couchbase.Lite.Query"/>.
-    /// 
-    /// <list type="table">
-    /// <listheader>
-    /// <term>Name</term>
-    /// <description>Description</description>
-    /// </listheader>
-    /// <item>
-    /// <term>Before</term>
-    /// <description>
-    /// If needed, update the index before running the <see cref="Couchbase.Lite.Query"/> (default). 
-    /// This guarantees up-to-date results at the expense of a potential delay in receiving results.
-    /// </description>
-    /// </item>
-    /// <item>
-    /// <term>Never</term>
-    /// <description>
-    /// Never update the index when running a <see cref="Couchbase.Lite.Query"/>. 
-    /// This guarantees receiving results the fastest at the expense of potentially out-of-date results.
-    /// </description>
-    /// </item>
-    /// <item>
-    /// <term>After</term>
-    /// <description>
-    /// If needed, update the index asynchronously after running the <see cref="Couchbase.Lite.Query"/>. 
-    /// This guarantees receiving results the fastest, at the expense of potentially out-of-date results, 
-    /// and that subsequent Queries will return more accurate results.
-    /// </description>
-    /// </item>    
-    /// </list>
-    /// </summary>
-    public enum IndexUpdateMode {
-            Before,
-            Never,
-            After
-    }
-                            
-    public enum AllDocsMode
-    {
-        AllDocs,
-        IncludeDeleted,
-        ShowConflicts,
-        OnlyConflicts
-    }
-
+namespace Couchbase.Lite 
+{
     /// <summary>
     /// A Couchbase Lite <see cref="Couchbase.Lite.View"/> <see cref="Couchbase.Lite.Query"/>.
     /// </summary>
-    public partial class Query : IDisposable
+    public partial class Query : Couchbase.Lite.Shared.DatabaseHolder, IDisposable, IQuery
     {
 
     #region Constructors
-        internal Query(Database database, View view)
+        internal Query(IDatabase database, View view)
         {
             // null for _all_docs query
-            Database = database;
+            this.Database = database;
             View = view;
             Limit = Int32.MaxValue;
             MapOnly = (view != null && view.Reduce == null);
@@ -128,7 +82,7 @@ namespace Couchbase.Lite {
         }
 
         /// <summary>Constructor</summary>
-        internal Query(Database database, Query query) 
+        internal Query(IDatabase database, Query query) 
         : this(database, query.View)
         {
             Limit = query.Limit;
@@ -189,16 +143,18 @@ namespace Couchbase.Lite {
     #endregion
 
     #region Instance Members
-        //Properties
-        /// <summary>
-        /// Gets the <see cref="Couchbase.Lite.Database"/> that owns 
-        /// the <see cref="Couchbase.Lite.Query"/>'s <see cref="Couchbase.Lite.View"/>.
-        /// </summary>
-        /// <value>
-        /// The <see cref="Couchbase.Lite.Database"/> that owns 
-        /// the <see cref="Couchbase.Lite.Query"/>'s <see cref="Couchbase.Lite.View"/>.
-        /// </value>
-        public Database Database { get; private set; }
+        ////Properties
+        ///// <summary>
+        ///// Gets the <see cref="Couchbase.Lite.Database"/> that owns 
+        ///// the <see cref="Couchbase.Lite.Query"/>'s <see cref="Couchbase.Lite.View"/>.
+        ///// </summary>
+        ///// <value>
+        ///// The <see cref="Couchbase.Lite.Database"/> that owns 
+        ///// the <see cref="Couchbase.Lite.Query"/>'s <see cref="Couchbase.Lite.View"/>.
+        ///// </value>
+        //public IDatabase Database { get; private set; }
+
+        //protected Database DatabaseInternal { get { return (Database)this.Database; } }
 
         /// <summary>
         /// Gets or sets the maximum number of rows to return. 
@@ -334,9 +290,9 @@ namespace Couchbase.Lite {
         /// <exception cref="T:Couchbase.Lite.CouchbaseLiteException">
         /// Thrown if an issue occurs while executing the <see cref="Couchbase.Lite.Query"/>.
         /// </exception>
-        public virtual QueryEnumerator Run() 
+        public virtual IQueryEnumerator Run() 
         {
-            if (!Database.Open())
+            if (!DatabaseInternal.Open())
             {
                 throw new CouchbaseLiteException("The database has been closed.");
             }
@@ -345,11 +301,11 @@ namespace Couchbase.Lite {
             var viewName = (View != null) ? View.Name : null;
             var queryOptions = QueryOptions;
 
-            var rows = Database.QueryViewNamed (viewName, queryOptions, outSequence);
+            var rows = DatabaseInternal.QueryViewNamed(viewName, queryOptions, outSequence);
 
             LastSequence = outSequence[0]; // potential concurrency issue?
 
-            return new QueryEnumerator(Database, rows, outSequence[0]);
+            return new QueryEnumerator(DatabaseInternal, rows, outSequence[0]);
         }
 
         /// <summary>
@@ -359,9 +315,9 @@ namespace Couchbase.Lite {
         /// <returns>The async task.</returns>
         /// <param name="run">Query's Run function</param>
         /// <param name="token">CancellationToken token.</param>
-        public Task<QueryEnumerator> RunAsync(Func<QueryEnumerator> run, CancellationToken token) 
+        public Task<IQueryEnumerator> RunAsync(Func<IQueryEnumerator> run, CancellationToken token) 
         {
-            return Database.Manager.RunAsync(run, token)
+            return DatabaseInternal.ManagerInternal.RunAsync(run, token)
                     .ContinueWith(runTask=> // Raise the query's Completed event.
                     {
                         var error = runTask.Exception;
@@ -378,7 +334,7 @@ namespace Couchbase.Lite {
                             throw error; // Rethrow innner exceptions.
                         }
                         return runTask.Result; // Give additional continuation functions access to the results task.
-                    }, Database.Manager.CapturedContext.Scheduler);
+                    }, DatabaseInternal.ManagerInternal.CapturedContext.Scheduler);
         }
 
         /// <summary>
@@ -386,7 +342,7 @@ namespace Couchbase.Lite {
         /// will notified <see cref="Completed"/> event handlers on completion.
         /// </summary>
         /// <returns>The async task.</returns>
-        public Task<QueryEnumerator> RunAsync() 
+        public Task<IQueryEnumerator> RunAsync() 
         {
             return RunAsync(Run, CancellationToken.None);
         }
@@ -395,7 +351,7 @@ namespace Couchbase.Lite {
         /// Returns a new LiveQuery with identical properties to the the Query.
         /// </summary>
         /// <returns>The live query.</returns>
-        public LiveQuery ToLiveQuery() 
+        public ILiveQuery ToLiveQuery() 
         {
             if (View == null)
             {

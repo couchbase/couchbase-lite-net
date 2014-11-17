@@ -55,7 +55,7 @@ namespace Couchbase.Lite {
     /// <summary>
     /// Provides details about a Document change.
     /// </summary>
-    public partial class DocumentChange
+    public partial class DocumentChange : Couchbase.Lite.Portable.IDocumentChange
     {
         internal RevisionInternal AddedRevision { get; private set; }
 

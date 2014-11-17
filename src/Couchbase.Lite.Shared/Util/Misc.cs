@@ -53,7 +53,7 @@ using System.IO;
 using System.Net.NetworkInformation;
 using System.Net.Http;
 using System.Net.Sockets;
-using System.Net.WebSockets;
+//using System.Net.WebSockets;
 
 namespace Couchbase.Lite
 {
@@ -125,8 +125,8 @@ namespace Couchbase.Lite
             return error is IOException
                 || error is TimeoutException
                 || error is WebException
-                || error is SocketException
-                || error is WebSocketException;
+                || error is SocketException;
+                //|| error is WebSocketException;
         }
 
         public static bool IsTransientError(HttpResponseMessage response)

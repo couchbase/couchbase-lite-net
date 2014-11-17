@@ -24,6 +24,7 @@ using Android.Content;
 using Android.Views;
 using Android.Widget;
 using Couchbase.Lite;
+using Couchbase.Lite.Portable;
 using Sharpen;
 using System;
 using System.Linq;
@@ -35,15 +36,15 @@ namespace CouchbaseSample.Android.Helper
 {
     public class LiveQueryAdapter : BaseAdapter <CBDocument>
     {
-        private LiveQuery query;
+        private ILiveQuery query;
 
-        private QueryEnumerator enumerator;
+        private IQueryEnumerator enumerator;
 
         protected Context Context;
 
         public event EventHandler<QueryChangeEventArgs> DataSetChanged;
 
-        public LiveQueryAdapter(Context context, LiveQuery query)
+        public LiveQueryAdapter(Context context, ILiveQuery query)
         {
             this.Context = context;
             this.query = query;
@@ -69,7 +70,7 @@ namespace CouchbaseSample.Android.Helper
         {
             get {
                 var val = enumerator != null ? enumerator.GetRow(i).Document : null;
-                return val;
+                return (CBDocument)val;
             }
         }
 

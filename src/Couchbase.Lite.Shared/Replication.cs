@@ -57,64 +57,21 @@ using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
 using Sharpen;
 
+using Couchbase.Lite.Portable;
 
 namespace Couchbase.Lite
 {
-
-    #region Enums
-
-    /// <summary>
-    /// Describes the status of a <see cref="Couchbase.Lite.Replication"/>.
-    /// <list type="table">
-    /// <listheader>
-    /// <term>Name</term>
-    /// <description>Description</description>
-    /// </listheader>
-    /// <item>
-    /// <term>Stopped</term>
-    /// <description>
-    /// The <see cref="Couchbase.Lite.Replication"/> is finished or hit a fatal error.
-    /// </description>
-    /// </item>
-    /// <item>
-    /// <term>Offline</term>
-    /// <description>
-    /// The remote host is currently unreachable.
-    /// </description>
-    /// </item>
-    /// <item>
-    /// <term>Idle</term>
-    /// <description>
-    /// The continuous <see cref="Couchbase.Lite.Replication"/> is caught up and
-    /// waiting for more changes.
-    /// </description>
-    /// </item>
-    /// <item>
-    /// <term>Active</term>
-    /// <description>
-    /// The <see cref="Couchbase.Lite.Replication"/> is actively transferring data.
-    /// </description>
-    /// </item>
-    /// </list>
-    /// </summary>
-    public enum ReplicationStatus {
-        Stopped,
-        Offline,
-        Idle,
-        Active
-    }
-
-    #endregion
-
     /// <summary>
     /// A Couchbase Lite pull or push <see cref="Couchbase.Lite.Replication"/>
     /// between a local and a remote <see cref="Couchbase.Lite.Database"/>.
     /// </summary>
-    public abstract partial class Replication
+    public abstract partial class Replication :
+                                    Couchbase.Lite.Shared.DatabaseHolder,
+                                    Couchbase.Lite.Portable.IReplication
     {
 
     #region Constants
-
+        //leave these static so thy're not instanced?
         internal static readonly string ChannelsQueryParam = "channels";
         internal static readonly string ByChannelFilterName = "sync_gateway/bychannel";
         internal static readonly string ReplicatorDatabaseName = "_replicator";
@@ -129,7 +86,7 @@ namespace Couchbase.Lite
         /// <summary>Private Constructor</summary>
         protected Replication(Database db, Uri remote, bool continuous, IHttpClientFactory clientFactory, TaskFactory workExecutor, CancellationTokenSource tokenSource = null)
         {
-            LocalDatabase = db;
+            Database = db;
             Continuous = continuous;
             // NOTE: Consider running a separate scheduler for all http requests.
             WorkExecutor = workExecutor;
@@ -347,9 +304,9 @@ namespace Couchbase.Lite
             else
             {
                 Manager manager = null;
-                if (LocalDatabase != null)
+                if (Database != null)
                 {
-                    manager = LocalDatabase.Manager;
+                    manager = DatabaseInternal.ManagerInternal;
                 }
 
                 IHttpClientFactory managerClientFactory = null;
@@ -390,8 +347,11 @@ namespace Couchbase.Lite
             var args = new ReplicationChangeEventArgs(this);
 
             // Ensure callback runs on captured context, which should be the UI thread.
-            Log.D(Tag, "Firing NotifyChangeListeners event! [{0} -> {1}]", TaskScheduler.Current.GetType().Name, LocalDatabase.Manager.CapturedContext.Scheduler.GetType().Name);
-            LocalDatabase.Manager.CapturedContext.StartNew(()=>evt(this, args));
+            Log.D(Tag, "Firing NotifyChangeListeners event! [{0} -> {1}]",
+                TaskScheduler.Current.GetType().Name,
+                DatabaseInternal.ManagerInternal.CapturedContext.Scheduler.GetType().Name);
+
+            DatabaseInternal.ManagerInternal.CapturedContext.StartNew(() => evt(this, args));
         }
 
         // This method will be used by Router & Reachability Manager
@@ -402,14 +362,14 @@ namespace Couchbase.Lite
                 return false;
             }
 
-            if (LocalDatabase == null)
+            if (Database == null)
             {
                 return false;
             }
 
             offline_inprogress = true;
 
-            LocalDatabase.Manager.RunAsync(() =>
+            DatabaseInternal.ManagerInternal.RunAsync(() =>
             {
                 Log.D(Tag, "Going offline");
 
@@ -432,12 +392,12 @@ namespace Couchbase.Lite
                 return false;
             }
 
-            if (LocalDatabase == null)
+            if (Database == null)
             {
                 return false;
             }
 
-            LocalDatabase.Manager.RunAsync(() =>
+            DatabaseInternal.ManagerInternal.RunAsync(() =>
             {
                 Log.D(Tag, "Going online");
                 online = true;
@@ -505,10 +465,10 @@ namespace Couchbase.Lite
         internal void ClearDbRef()
         {
             Log.D(Tag, "ClearDbRef...");
-            if (LocalDatabase != null && savingCheckpoint && LastSequence != null)
+            if (Database != null && savingCheckpoint && LastSequence != null)
             {
-                LocalDatabase.SetLastSequence(LastSequence, RemoteCheckpointDocID(), !IsPull);
-                LocalDatabase = null;
+                DatabaseInternal.SetLastSequence(LastSequence, RemoteCheckpointDocID(), !IsPull);
+                Database = null;
             }
         }
 
@@ -611,7 +571,7 @@ namespace Couchbase.Lite
         {
             lastSequenceChanged = false;
             var checkpointId = RemoteCheckpointDocID();
-            var localLastSequence = LocalDatabase.LastSequenceWithCheckpointId(checkpointId);
+            var localLastSequence = DatabaseInternal.LastSequenceWithCheckpointId(checkpointId);
 
             Log.D(Tag, "fetchRemoteCheckpointDoc() calling asyncTaskStarted()");
 
@@ -770,9 +730,9 @@ namespace Couchbase.Lite
 
             Batcher = null;
 
-            if (LocalDatabase != null)
+            if (Database != null)
             {
-                var reachabilityManager = LocalDatabase.Manager.NetworkReachabilityManager;
+                var reachabilityManager = DatabaseInternal.ManagerInternal.NetworkReachabilityManager;
                 if (reachabilityManager != null)
                 {
                     reachabilityManager.StopListening();
@@ -825,13 +785,13 @@ namespace Couchbase.Lite
                     Log.V (Tag, "Unable to save remote checkpoint", e as HttpResponseException);
                 }
 
-                if (LocalDatabase == null)
+                if (Database == null)
                 {
                     Log.W(Tag, "Database is null, ignoring remote checkpoint response");
                     return;
                 }
 
-                if (!LocalDatabase.Open())
+                if (!DatabaseInternal.Open())
                 {
                     Log.W(Tag, "Database is closed, ignoring remote checkpoint response");
                     return;
@@ -866,7 +826,7 @@ namespace Couchbase.Lite
                     var response = ((JObject)result).ToObject<IDictionary<string, object>>();
                     body.Put ("_rev", response.Get ("rev"));
                     remoteCheckpoint = body;
-                    LocalDatabase.SetLastSequence(LastSequence, RemoteCheckpointDocID(), !IsPull);
+                    DatabaseInternal.SetLastSequence(LastSequence, RemoteCheckpointDocID(), !IsPull);
                 }
 
                 if (overdueForSave) {
@@ -1077,7 +1037,7 @@ namespace Couchbase.Lite
                             {
                                 try
                                 {
-                                    var reader = new MultipartDocumentReader(LocalDatabase);
+                                    var reader = new MultipartDocumentReader(Database);
                                     var contentType = contentTypeHeader.ToString();
                                     reader.SetContentType(contentType);
 
@@ -1285,7 +1245,7 @@ namespace Couchbase.Lite
                 // TODO: Needs to be consistent with -hasSameSettingsAs: --
                 // TODO: If a.remoteCheckpointID == b.remoteCheckpointID then [a hasSameSettingsAs: b]
 
-                if (LocalDatabase == null) {
+                if (Database == null) {
                     return null;
                 }
 
@@ -1304,7 +1264,7 @@ namespace Couchbase.Lite
 
                 // use a treemap rather than a dictionary for purposes of canonicalization
                 var spec = new SortedDictionary<String, Object>();
-                spec.Put("localUUID", LocalDatabase.PrivateUUID());
+                spec.Put("localUUID", DatabaseInternal.PrivateUUID());
                 spec.Put("remoteURL", RemoteUrl.AbsoluteUri);
                 spec.Put("push", !IsPull);
                 spec.Put("continuous", Continuous);
@@ -1354,7 +1314,7 @@ namespace Couchbase.Lite
             {
                 try
                 {
-                    if (LocalDatabase == null)
+                    if (Database == null)
                     {
                         Log.W(Tag, "db == null while refreshing remote checkpoint.  aborting");
                         return;
@@ -1440,7 +1400,7 @@ namespace Couchbase.Lite
             }
             catch (Exception e)
             {
-                Log.E(Database.Tag, "Exception getting status from " + item, e);
+                Log.E(Couchbase.Lite.Database.Tag, "Exception getting status from " + item, e);
             }
             return new Status(StatusCode.Ok);
         }
@@ -1469,7 +1429,7 @@ namespace Couchbase.Lite
                         if (xformed.GetProperties().ContainsKey("_attachments"))
                         {
                             // Insert 'revpos' properties into any attachments added by the callback:
-                            var mx = new RevisionInternal(xformed.GetProperties(), LocalDatabase);
+                            var mx = new RevisionInternal(xformed.GetProperties(), DatabaseInternal);
                             xformed = mx;
                             mx.MutateAttachments((name, info) => {
                                 if (info.Get("revpos") != null)
@@ -1568,7 +1528,7 @@ namespace Couchbase.Lite
                         Debug.Assert (xformedProperties ["_id"].Equals (properties ["_id"]));
                         Debug.Assert (xformedProperties ["_rev"].Equals (properties ["_rev"]));
 
-                        var nuRev = new RevisionInternal (rev.GetProperties (), LocalDatabase);
+                        var nuRev = new RevisionInternal (rev.GetProperties (), DatabaseInternal);
                         nuRev.SetProperties (xformedProperties);
                         return nuRev;
                     }
@@ -1582,12 +1542,6 @@ namespace Couchbase.Lite
     #region Instance Members
 
         public PropertyTransformationDelegate TransformationFunction { get; set; }
-
-        /// <summary>
-        /// Gets the local <see cref="Couchbase.Lite.Database"/> being replicated to/from.
-        /// </summary>
-        /// <value>The local <see cref="Couchbase.Lite.Database"/> being replicated to/from.</value>
-        public Database LocalDatabase { get; private set; }
 
         /// <summary>
         /// Gets the remote URL being replicated to/from.
@@ -1761,7 +1715,7 @@ namespace Couchbase.Lite
         {
             Log.V(Tag, "Replication Start");
 
-            if (!LocalDatabase.Open())
+            if (!DatabaseInternal.Open())
             {
                 // Race condition: db closed before replication starts
                 Log.W(Tag, "Not starting replication because db.isOpen() returned false.");
@@ -1773,8 +1727,8 @@ namespace Couchbase.Lite
                 return;
             }
 
-            LocalDatabase.AddReplication(this);
-            LocalDatabase.AddActiveReplication(this);
+            DatabaseInternal.AddReplication(this);
+            DatabaseInternal.AddActiveReplication(this);
 
             SetupRevisionBodyTransformationFunction();
 
@@ -1785,7 +1739,7 @@ namespace Couchbase.Lite
 
             WorkExecutor.StartNew(CheckSession);
 
-            var reachabilityManager = LocalDatabase.Manager.NetworkReachabilityManager;
+            var reachabilityManager = DatabaseInternal.ManagerInternal.NetworkReachabilityManager;
             reachabilityManager.StatusChanged += (sender, e) =>
             {
                 if (e.Status == NetworkReachabilityStatus.Reachable)
@@ -1823,9 +1777,9 @@ namespace Couchbase.Lite
 
             CancelPendingRetryIfReady();
 
-            if (LocalDatabase != null)
+            if (Database != null)
             {
-                LocalDatabase.ForgetReplication(this);
+                DatabaseInternal.ForgetReplication(this);
             }
 
             if (IsRunning && asyncTaskCount <= 0)
@@ -1889,37 +1843,5 @@ namespace Couchbase.Lite
         /// </summary>
         public event EventHandler<ReplicationChangeEventArgs> Changed;
     }
-    #endregion
-
-    #region EventArgs Subclasses
-
-        ///
-        /// <see cref="Couchbase.Lite.Replication"/> Change Event Arguments.
-        ///
-        public class ReplicationChangeEventArgs : EventArgs
-        {
-            //Properties
-            /// <summary>
-            /// Gets the <see cref="Couchbase.Lite.Replication"/> that raised the event.
-            /// </summary>
-            /// <value>The <see cref="Couchbase.Lite.Replication"/> that raised the event.</value>
-            public Replication Source { get; private set; }
-
-            /// <summary>
-            /// Initializes a new instance of the <see cref="Couchbase.Lite.ReplicationChangeEventArgs"/> class.
-            /// </summary>
-            /// <param name="sender">The <see cref="Couchbase.Lite.Replication"/> that raised the event.</param>
-            public ReplicationChangeEventArgs (Replication sender)
-            {
-                Source = sender;
-            }
-        }
-
-    #endregion
-
-    #region Delegates
-
-    public delegate IDictionary<string, object> PropertyTransformationDelegate(IDictionary<string, object> propertyBag);
-
     #endregion
 }

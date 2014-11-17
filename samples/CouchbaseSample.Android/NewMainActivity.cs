@@ -37,7 +37,6 @@ using Couchbase.Lite.Util;
 using Sharpen;
 using Android.Runtime;
 using CouchbaseSample.Android.Document;
-using CouchbaseSample.Android.Helper;
 using System.Linq;
 using Android.Views;
 using Couchbase.Lite.Android;
@@ -774,11 +773,11 @@ namespace CouchbaseSample.Android
                 listView.SetOnItemLongClickListener(new _OnItemLongClickListener_608(this));
                 LiveQuery query = Task.GetQuery(GetDatabase(), listId).ToLiveQuery();
                 mAdapter = new MainActivity.TasksFragment.TaskAdapter(this, Activity, query);
-                listView.SetAdapter(mAdapter);
+                listView.Adapter = (mAdapter);
                 return listView;
             }
 
-            private sealed class _OnClickListener_560 : View.OnClickListener
+            private sealed class _OnClickListener_560 : Android.Support.V4.View.OnClickListener
             {
                 public _OnClickListener_560(TasksFragment _enclosing)
                 {
@@ -793,7 +792,7 @@ namespace CouchbaseSample.Android
                 private readonly TasksFragment _enclosing;
             }
 
-            private sealed class _OnKeyListener_568 : View.OnKeyListener
+            private sealed class _OnKeyListener_568 : Android.Support.V4.View.IOnKeyListener
             {
                 public _OnKeyListener_568(TasksFragment _enclosing, EditText text, string listId)
                 {
@@ -802,11 +801,11 @@ namespace CouchbaseSample.Android
                     this.listId = listId;
                 }
 
-                public bool OnKey(global::Android.Views.View view, int i, KeyEvent keyEvent)
+                public bool OnKey(Android.Support.V4.View view, int i, KeyEvent keyEvent)
                 {
                     if ((keyEvent.Action == KeyEventActions.Down) && (keyEvent.KeyCode == Keycode.Enter))
                     {
-                        string inputText = ((IEditable)text.Text).ToString();
+                        string inputText = (text.Text);//.ToString();
                         if (inputText.Length > 0)
                         {
                             try
@@ -819,7 +818,7 @@ namespace CouchbaseSample.Android
                                 Log.E(Application.Tag, "Cannot create new task", e);
                             }
                         }
-                        text.SetText(string.Empty);
+                        text.Text = (string.Empty);
                         this._enclosing.DeleteCurrentPhoto();
                         return true;
                     }
@@ -831,9 +830,24 @@ namespace CouchbaseSample.Android
                 private readonly EditText text;
 
                 private readonly string listId;
+
+                public bool OnKey(global::Android.Views.View v, Keycode keyCode, KeyEvent e)
+                {
+                    throw new NotImplementedException();
+                }
+
+                public IntPtr Handle
+                {
+                    get { throw new NotImplementedException(); }
+                }
+
+                public void Dispose()
+                {
+                    throw new NotImplementedException();
+                }
             }
 
-            private sealed class _OnItemClickListener_594 : AdapterView.OnItemClickListener
+            private sealed class _OnItemClickListener_594 : AdapterView.IOnItemClickListener
             {
                 public _OnItemClickListener_594()
                 {
@@ -857,7 +871,7 @@ namespace CouchbaseSample.Android
                 }
             }
 
-            private sealed class _OnItemLongClickListener_608 : AdapterView.OnItemLongClickListener
+            private sealed class _OnItemLongClickListener_608 : AdapterView.IOnItemLongClickListener
             {
                 public _OnItemLongClickListener_608(TasksFragment _enclosing)
                 {
@@ -876,7 +890,7 @@ namespace CouchbaseSample.Android
                     return true;
                 }
 
-                private sealed class _OnMenuItemClickListener_614 : PopupMenu.OnMenuItemClickListener
+                private sealed class _OnMenuItemClickListener_614 : PopupMenu.IOnMenuItemClickListener
                 {
                     public _OnMenuItemClickListener_614(_OnItemLongClickListener_608 _enclosing, int 
                         position)

@@ -22,6 +22,8 @@
 using System.Collections.Generic;
 using CouchbaseSample.Android.Document;
 using Couchbase.Lite;
+using Couchbase.Lite.Portable;
+
 using Sharpen;
 
 namespace CouchbaseSample.Android.Document
@@ -34,15 +36,15 @@ namespace CouchbaseSample.Android.Document
 
         private const string DocType = "profile";
 
-        public static Query GetQuery(Database database, string ignoreUserId)
+        public static IQuery GetQuery(IDatabase database, string ignoreUserId)
         {
-            View view = database.GetView(ViewName);
+            IView view = database.GetView(ViewName);
             if (view.GetMap() == null)
             {
                 Mapper map = new _Mapper_30(ignoreUserId);
                 view.SetMap(map, null);
             }
-            Query query = view.CreateQuery();
+            IQuery query = view.CreateQuery();
             return query;
         }
 

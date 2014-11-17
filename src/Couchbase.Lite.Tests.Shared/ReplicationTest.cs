@@ -424,7 +424,7 @@ namespace Couchbase.Lite
             }
 
             // Check the replication's properties:
-            Assert.AreEqual(database, repl.LocalDatabase);
+            Assert.AreEqual(database, repl.Database);
             Assert.AreEqual(remote, repl.RemoteUrl);
             Assert.IsFalse(repl.IsPull);
             Assert.IsFalse(repl.Continuous);

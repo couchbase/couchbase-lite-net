@@ -8,8 +8,9 @@ using System.Diagnostics;
 using System.Linq;
 using Couchbase.Lite.iOS;
 using Couchbase.Lite;
-using System.Json;
+//using System.Json;
 using Newtonsoft.Json.Linq;
+using Couchbase.Lite.Portable;
 
 namespace CouchbaseSample
 {
@@ -27,22 +28,25 @@ namespace CouchbaseSample
 
         #region implemented abstract members of CouchBaseTableDelegate
 
-        public override UITableViewCell CellForRowAtIndexPath(CouchbaseTableSource source, NSIndexPath indexPath)
+        public override UITableViewCell CellForRowAtIndexPath(CouchbaseTableSource source,
+                                                            NSIndexPath indexPath)
         {
             return null;
         }
 
-        public override void WillUpdateFromQuery(CouchbaseTableSource source, LiveQuery query)
+        public override void WillUpdateFromQuery(CouchbaseTableSource source, ILiveQuery query)
         {
             return;
         }
 
-        public override void UpdateFromQuery(CouchbaseTableSource source, LiveQuery query, QueryRow[] previousRows)
+        public override void UpdateFromQuery(CouchbaseTableSource source,
+                                                ILiveQuery query,
+                                                IQueryRow[] previousRows)
         {
             return;
         }
 
-        public override bool DeleteRow(CouchbaseTableSource source, QueryRow row)
+        public override bool DeleteRow(CouchbaseTableSource source, IQueryRow row)
         {
             return false;
         }
@@ -77,7 +81,7 @@ namespace CouchbaseSample
             var wasChecked = (bool)checkedVal;
             docContent[RootViewController.CheckboxPropertyName] = !wasChecked;
 
-            SavedRevision newRevision = null;
+            ISavedRevision newRevision = null;
 
             try
             {
@@ -90,7 +94,9 @@ namespace CouchbaseSample
             }
         }
 
-        public override void WillUseCell (CouchbaseTableSource source, UITableViewCell cell, QueryRow row)
+        public override void WillUseCell (CouchbaseTableSource source,
+                                            UITableViewCell cell,
+                                            IQueryRow row)
         {
           if (backgroundColor == null) {
             var image = UIImage.FromBundle ("item_background");

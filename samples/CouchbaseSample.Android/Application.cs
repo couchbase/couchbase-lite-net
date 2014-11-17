@@ -26,6 +26,7 @@ using Android.Content;
 using CouchbaseSample.Android;
 using Couchbase.Lite;
 using Couchbase.Lite.Android;
+using Couchbase.Lite.Portable;
 using Couchbase.Lite.Auth;
 using Couchbase.Lite.Replicator;
 using Couchbase.Lite.Util;
@@ -45,9 +46,9 @@ namespace CouchbaseSample.Android
 
         private const string PrefCurrentUserId = "CurrentUserId";
 
-        private Manager manager;
+        private IManager manager;
 
-        private Database database;
+        private IDatabase database;
 
         private int syncCompletedChangedCount;
 
@@ -258,7 +259,7 @@ namespace CouchbaseSample.Android
             }
         }
 
-        public virtual Application.OnSyncProgressChangeObservable GetOnSyncProgressChangeObservable
+        internal virtual Application.OnSyncProgressChangeObservable GetOnSyncProgressChangeObservable
             ()
         {
             return onSyncProgressChangeObservable;

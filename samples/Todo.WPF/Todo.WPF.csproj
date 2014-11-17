@@ -13,7 +13,7 @@
     <FileAlignment>512</FileAlignment>
     <ProjectTypeGuids>{60dc8134-eba5-43b8-bcc9-bb4bc16c2548};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
     <WarningLevel>4</WarningLevel>
-    <NuGetPackageImportStamp>49314416</NuGetPackageImportStamp>
+    <NuGetPackageImportStamp>0aa293cb</NuGetPackageImportStamp>
     <SolutionDir Condition="$(SolutionDir) == '' Or $(SolutionDir) == '*Undefined*'">.\</SolutionDir>
     <RestorePackages>true</RestorePackages>
   </PropertyGroup>
@@ -57,20 +57,18 @@
     <Prefer32Bit>true</Prefer32Bit>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Couchbase.Lite, Version=0.9.5.0, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\src\packages\Couchbase.Lite.1.0.0\lib\net45\Couchbase.Lite.dll</HintPath>
+    <Reference Include="Couchbase.Lite">
+      <HintPath>packages\Couchbase.Lite.1.0.0\lib\net45\Couchbase.Lite.dll</HintPath>
     </Reference>
     <Reference Include="Newtonsoft.Json, Version=6.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\src\packages\Newtonsoft.Json.6.0.3\lib\net45\Newtonsoft.Json.dll</HintPath>
+      <HintPath>packages\Newtonsoft.Json.6.0.3\lib\net45\Newtonsoft.Json.dll</HintPath>
     </Reference>
     <Reference Include="SQLitePCL.raw, Version=0.6.1.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\..\src\packages\SQLitePCL.raw_needy.0.6.2\lib\net45\SQLitePCL.raw.dll</HintPath>
+      <HintPath>packages\SQLitePCL.raw_needy.0.6.2\lib\net45\SQLitePCL.raw.dll</HintPath>
     </Reference>
-    <Reference Include="SQLitePCL.ugly, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\src\packages\SQLitePCL.ugly.0.6.1\lib\portable-net45+netcore45+wp8+MonoAndroid10+MonoTouch10\SQLitePCL.ugly.dll</HintPath>
+    <Reference Include="SQLitePCL.ugly">
+      <HintPath>packages\SQLitePCL.ugly.0.6.1\lib\portable-net45+netcore45+wp8+MonoAndroid10+MonoTouch10\SQLitePCL.ugly.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Data" />
@@ -147,10 +145,8 @@
     </PropertyGroup>
     <Error Condition="!Exists('packages\SQLitePCL.raw_basic.0.6.1\build\net45\SQLitePCL.raw_basic.targets')" Text="$([System.String]::Format('$(ErrorText)', 'packages\SQLitePCL.raw_basic.0.6.1\build\net45\SQLitePCL.raw_basic.targets'))" />
     <Error Condition="!Exists('$(SolutionDir)\.nuget\NuGet.targets')" Text="$([System.String]::Format('$(ErrorText)', '$(SolutionDir)\.nuget\NuGet.targets'))" />
-    <Error Condition="!Exists('..\..\src\packages\SQLitePCL.raw_basic.0.6.1\build\net45\SQLitePCL.raw_basic.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\..\src\packages\SQLitePCL.raw_basic.0.6.1\build\net45\SQLitePCL.raw_basic.targets'))" />
   </Target>
   <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
-  <Import Project="..\..\src\packages\SQLitePCL.raw_basic.0.6.1\build\net45\SQLitePCL.raw_basic.targets" Condition="Exists('..\..\src\packages\SQLitePCL.raw_basic.0.6.1\build\net45\SQLitePCL.raw_basic.targets')" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="BeforeBuild">

@@ -51,26 +51,20 @@ using System.Data;
 using System.Linq;
 using Newtonsoft.Json.Linq;
 using System.Collections;
+using Couchbase.Lite.Portable;
 
-namespace Couchbase.Lite {
-
-    // TODO: Either remove or update the API defs to indicate the enum value changes, and global scope.
-    public enum ViewCollation
-    {
-        Unicode,
-        Raw,
-        ASCII
-    }
-
+namespace Couchbase.Lite 
+{
     /// <summary>
     /// A Couchbase Lite <see cref="Couchbase.Lite.View"/>. 
     /// A <see cref="Couchbase.Lite.View"/> defines a persistent index managed by map/reduce.
     /// </summary>
-    public sealed class View {
+    public sealed class View : Shared.DatabaseHolder, IView
+    {
 
     #region Constructors
 
-        internal View(Database database, String name)
+        internal View(Database database, String name):base()
         {
             Database = database;
             Name = name;
@@ -113,7 +107,7 @@ namespace Couchbase.Lite {
                     Cursor cursor = null;
                     try
                     {
-                        cursor = Database.StorageEngine.RawQuery(sql, args);
+                        cursor = DatabaseInternal.StorageEngine.RawQuery(sql, args);
                         if (cursor.MoveToNext())
                         {
                             _id = cursor.GetInt(0);
@@ -125,7 +119,7 @@ namespace Couchbase.Lite {
                     }
                     catch (SQLException e)
                     {
-                        Log.E(Database.Tag, "Error getting view id", e);
+                        Log.E(Couchbase.Lite.Database.Tag, "Error getting view id", e);
                         _id = 0;
                     }
                     finally
@@ -148,7 +142,7 @@ namespace Couchbase.Lite {
 
         internal void UpdateIndex()
         {
-            Log.V(Database.Tag, "Re-indexing view {0} ...", Name);
+            Log.V(Couchbase.Lite.Database.Tag, "Re-indexing view {0} ...", Name);
             System.Diagnostics.Debug.Assert((Map != null));
 
             if (Id <= 0)
@@ -157,7 +151,7 @@ namespace Couchbase.Lite {
                 throw new CouchbaseLiteException(msg, new Status(StatusCode.NotFound));
             }
 
-            Database.BeginTransaction();
+            DatabaseInternal.BeginTransaction();
 
             var result = new Status(StatusCode.InternalServerError);
             Cursor cursor = null;
@@ -169,7 +163,7 @@ namespace Couchbase.Lite {
                 if (lastSequence == dbMaxSequence)
                 {
                     // nothing to do (eg,  kCBLStatusNotModified)
-                    Log.V(Database.Tag, "lastSequence ({0}) == dbMaxSequence ({1}), nothing to do", lastSequence, dbMaxSequence);
+                    Log.V(Couchbase.Lite.Database.Tag, "lastSequence ({0}) == dbMaxSequence ({1}), nothing to do", lastSequence, dbMaxSequence);
                     result.SetCode(StatusCode.NotModified);
                     return;
                 }
@@ -186,7 +180,7 @@ namespace Couchbase.Lite {
                     // If the lastSequence has been reset to 0, make sure to remove
                     // any leftover rows:
                     var whereArgs = new string[] { Id.ToString() };
-                    Database.StorageEngine.Delete("maps", "view_id=?", whereArgs);
+                    DatabaseInternal.StorageEngine.Delete("maps", "view_id=?", whereArgs);
                 }
                 else
                 {
@@ -198,14 +192,14 @@ namespace Couchbase.Lite {
                         lastSequence.ToString()
                     };
 
-                    Database.StorageEngine.ExecSQL(
+                    DatabaseInternal.StorageEngine.ExecSQL(
                         "DELETE FROM maps WHERE view_id=? AND sequence IN ("
                         + "SELECT parent FROM revs WHERE sequence>? " + "AND parent>0 AND parent<=?)", 
                             args);
                 }
 
                 var deleted = 0;
-                cursor = Database.StorageEngine.RawQuery("SELECT changes()");
+                cursor = DatabaseInternal.StorageEngine.RawQuery("SELECT changes()");
                 cursor.MoveToNext();
                 deleted = cursor.GetInt(0);
                 cursor.Close();
@@ -213,7 +207,7 @@ namespace Couchbase.Lite {
                 // Find a better way to propagate this back
                 // Now scan every revision added since the last time the view was indexed:
                 var selectArgs = new[] { lastSequence.ToString() };
-                cursor = Database.StorageEngine.RawQuery("SELECT revs.doc_id, sequence, docid, revid, json, no_attachments FROM revs, docs "
+                cursor = DatabaseInternal.StorageEngine.RawQuery("SELECT revs.doc_id, sequence, docid, revid, json, no_attachments FROM revs, docs "
                     + "WHERE sequence>? AND current!=0 AND deleted=0 "
                     + "AND revs.doc_id = docs.doc_id "
                     + "ORDER BY revs.doc_id, revid DESC", selectArgs);
@@ -251,7 +245,7 @@ namespace Couchbase.Lite {
                         {
                             // Find conflicts with documents from previous indexings.
                             var selectArgs2 = new[] { Convert.ToString(docID), Convert.ToString(lastSequence) };
-                            var cursor2 = Database.StorageEngine.RawQuery("SELECT revid, sequence FROM revs "
+                            var cursor2 = DatabaseInternal.StorageEngine.RawQuery("SELECT revid, sequence FROM revs "
                                 + "WHERE doc_id=? AND sequence<=? AND current!=0 AND deleted=0 " + "ORDER BY revID DESC "
                                 + "LIMIT 1", selectArgs2);
                             if (cursor2.MoveToNext())
@@ -262,7 +256,7 @@ namespace Couchbase.Lite {
                                 // Remove its emitted rows:
                                 var oldSequence = cursor2.GetLong(1);
                                 var args = new[] { Sharpen.Extensions.ToString(Id), Convert.ToString(oldSequence) };
-                                Database.StorageEngine.ExecSQL("DELETE FROM maps WHERE view_id=? AND sequence=?", args);
+                                DatabaseInternal.StorageEngine.ExecSQL("DELETE FROM maps WHERE view_id=? AND sequence=?", args);
 
                                 if (RevisionInternal.CBLCompareRevIDs(oldRevId, revId) > 0)
                                 {
@@ -272,7 +266,7 @@ namespace Couchbase.Lite {
                                     sequence = oldSequence;
                                     var selectArgs3 = new[] { Convert.ToString(sequence) };
                                     json = Misc.ByteArrayResultForQuery(
-                                        Database.StorageEngine, 
+                                        DatabaseInternal.StorageEngine, 
                                         "SELECT json FROM revs WHERE sequence=?", 
                                         selectArgs3
                                     );
@@ -286,7 +280,7 @@ namespace Couchbase.Lite {
                             contentOptions |= DocumentContentOptions.NoAttachments;
                         }
 
-                        var properties = Database.DocumentPropertiesFromJSON(
+                        var properties = DatabaseInternal.DocumentPropertiesFromJSON(
                             json, docId, revId, false, sequence, DocumentContentOptions.None
                         );
                         if (properties != null)
@@ -319,7 +313,7 @@ namespace Couchbase.Lite {
                                     insertValues["key"] = keyJson;
                                     insertValues["value"] = valueJson;
 
-                                    enclosingView.Database.StorageEngine.Insert("maps", null, insertValues);
+                                    enclosingView.DatabaseInternal.StorageEngine.Insert("maps", null, insertValues);
 
                                     //
                                     // According to the issue #81, it is possible that there will be another
@@ -343,7 +337,7 @@ namespace Couchbase.Lite {
                                 }
                                 catch (Exception e)
                                 {
-                                    Log.E(Database.Tag, "Error emitting", e);
+                                    Log.E(Couchbase.Lite.Database.Tag, "Error emitting", e);
                                 }
                             };
 
@@ -357,10 +351,10 @@ namespace Couchbase.Lite {
                 var updateValues = new ContentValues();
                 updateValues["lastSequence"] = dbMaxSequence;
                 var whereArgs_1 = new string[] { Id.ToString() };
-                Database.StorageEngine.Update("views", updateValues, "view_id=?", whereArgs_1);
+                DatabaseInternal.StorageEngine.Update("views", updateValues, "view_id=?", whereArgs_1);
 
                 // FIXME actually count number added :)
-                Log.V(Database.Tag, "...Finished re-indexing view {0} up to sequence {1} (deleted {2} added ?)", Name, Convert.ToString(dbMaxSequence), deleted);
+                Log.V(Couchbase.Lite.Database.Tag, "...Finished re-indexing view {0} up to sequence {1} (deleted {2} added ?)", Name, Convert.ToString(dbMaxSequence), deleted);
                 result.SetCode(StatusCode.Ok);
             }
             catch (Exception e)
@@ -375,11 +369,11 @@ namespace Couchbase.Lite {
                 }
                 if (!result.IsSuccessful)
                 {
-                    Log.W(Database.Tag, "Failed to rebuild view {0}:{1}", Name, result.GetCode());
+                    Log.W(Couchbase.Lite.Database.Tag, "Failed to rebuild view {0}:{1}", Name, result.GetCode());
                 }
                 if (Database != null)
                 {
-                    Database.EndTransaction(result.IsSuccessful);
+                    DatabaseInternal.EndTransaction(result.IsSuccessful);
                 }
             }
         }
@@ -407,7 +401,7 @@ namespace Couchbase.Lite {
                 if (reduce && (reduceBlock == null) && !group)
                 {
                     var msg = "Cannot use reduce option in view " + Name + " which has no reduce block defined";
-                    Log.W(Database.Tag, msg);
+                    Log.W(Couchbase.Lite.Database.Tag, msg);
                     throw new CouchbaseLiteException(StatusCode.BadRequest);
                 }
 
@@ -436,13 +430,13 @@ namespace Couchbase.Lite {
                             if (lazyValue.Value is IDictionary<string,object> && ((IDictionary<string,object>)lazyValue.Value).ContainsKey("_id"))
                             {
                                 var linkedDocId = (string)((IDictionary<string,object>)lazyValue.Value).Get("_id");
-                                var linkedDoc = Database.GetDocumentWithIDAndRev(linkedDocId, null, DocumentContentOptions.None);
+                                var linkedDoc = DatabaseInternal.GetDocumentWithIDAndRev(linkedDocId, null, DocumentContentOptions.None);
                                 docContents = linkedDoc.GetProperties();
                             }
                             else
                             {
                                 var revId = cursor.GetString(4);
-                                docContents = Database.DocumentPropertiesFromJSON(cursor.GetBlob(5), docId, revId, false, sequenceLong, options.GetContentOptions());
+                                docContents = DatabaseInternal.DocumentPropertiesFromJSON(cursor.GetBlob(5), docId, revId, false, sequenceLong, options.GetContentOptions());
                             }
                         }
                         var row = new QueryRow(docId, sequence, lazyKey.Value, lazyValue.Value, docContents);
@@ -455,7 +449,7 @@ namespace Couchbase.Lite {
             catch (SQLException e)
             {
                 var errMsg = string.Format("Error querying view: {0}", this);
-                Log.E(Database.Tag, errMsg, e);
+                Log.E(Couchbase.Lite.Database.Tag, errMsg, e);
                 throw new CouchbaseLiteException(errMsg, e, new Status(StatusCode.DbError));
             }
             finally
@@ -483,7 +477,7 @@ namespace Couchbase.Lite {
 
             try
             {
-                cursor = Database.StorageEngine.
+                cursor = DatabaseInternal.StorageEngine.
                     RawQuery("SELECT sequence, key, value FROM map WHERE view_id=? ORDER BY key", selectArgs);
 
                 while(cursor.MoveToNext())
@@ -525,7 +519,7 @@ namespace Couchbase.Lite {
             Cursor cursor = null;
             try
             {
-                cursor = Database.StorageEngine.RawQuery(
+                cursor = DatabaseInternal.StorageEngine.RawQuery(
                     "SELECT sequence, key, value FROM maps WHERE view_id=? ORDER BY key", selectArgs);
 
                 while (cursor.MoveToNext()) 
@@ -763,8 +757,8 @@ namespace Couchbase.Lite {
             sql = sql + " LIMIT ? OFFSET ?";
             argsList.AddItem(options.GetLimit().ToString());
             argsList.AddItem(options.GetSkip().ToString());
-            Log.V(Database.Tag, "Query {0}:{1}", Name, sql);
-            var cursor = Database.StorageEngine.RawQuery(sql, argsList.ToArray());
+            Log.V(Couchbase.Lite.Database.Tag, "Query {0}:{1}", Name, sql);
+            var cursor = DatabaseInternal.StorageEngine.RawQuery(sql, argsList.ToArray());
             return cursor;
         }
 
@@ -781,7 +775,7 @@ namespace Couchbase.Lite {
             }
             catch (Exception e)
             {
-                Log.W(Database.Tag, "Exception serializing object to json: " + obj, e);
+                Log.W(Couchbase.Lite.Database.Tag, "Exception serializing object to json: " + obj, e);
             }
             return result;
         }
@@ -799,7 +793,7 @@ namespace Couchbase.Lite {
             }
             catch (Exception e)
             {
-                Log.W(Database.Tag, "Exception parsing json", e);
+                Log.W(Couchbase.Lite.Database.Tag, "Exception parsing json", e);
             }
             return result;
         }
@@ -815,7 +809,7 @@ namespace Couchbase.Lite {
                 } 
                 catch (Exception e)
                 {
-                    Log.E(Database.Tag, "Warning non-numeric value found in totalValues: " + o, e);
+                    Log.E(Couchbase.Lite.Database.Tag, "Warning non-numeric value found in totalValues: " + o, e);
                 }
             }
             return total;
@@ -826,13 +820,13 @@ namespace Couchbase.Lite {
     #endregion
 
     #region Instance Members
-        /// <summary>
-        /// Get the <see cref="Couchbase.Lite.Database"/> that owns the <see cref="Couchbase.Lite.View"/>.
-        /// </summary>
-        /// <value>
-        /// The <see cref="Couchbase.Lite.Database"/> that owns the <see cref="Couchbase.Lite.View"/>.
-        /// </value>
-        public Database Database { get; private set; }
+        ///// <summary>
+        ///// Get the <see cref="Couchbase.Lite.Database"/> that owns the <see cref="Couchbase.Lite.View"/>.
+        ///// </summary>
+        ///// <value>
+        ///// The <see cref="Couchbase.Lite.Database"/> that owns the <see cref="Couchbase.Lite.View"/>.
+        ///// </value>
+        //public IDatabase Database { get; private set; }
 
         /// <summary>
         /// Gets the <see cref="Couchbase.Lite.View"/>'s name.
@@ -856,7 +850,7 @@ namespace Couchbase.Lite {
         /// Gets if the <see cref="Couchbase.Lite.View"/>'s indices are currently out of date.
         /// </summary>
         /// <value><c>true</c> if this instance is stale; otherwise, <c>false</c>.</value>
-        public Boolean IsStale { get { return (LastSequenceIndexed < Database.GetLastSequenceNumber()); } }
+        public Boolean IsStale { get { return (LastSequenceIndexed < DatabaseInternal.GetLastSequenceNumber()); } }
 
         /// <summary>
         /// Gets the last sequence number indexed so far.
@@ -870,7 +864,7 @@ namespace Couchbase.Lite {
                 var result = -1L;
                 try
                 {
-                    cursor = Database.StorageEngine.RawQuery(sql, args);
+                    cursor = DatabaseInternal.StorageEngine.RawQuery(sql, args);
                     if (cursor.MoveToNext())
                     {
                         result = cursor.GetLong(0);
@@ -878,7 +872,7 @@ namespace Couchbase.Lite {
                 }
                 catch (Exception)
                 {
-                    Log.E(Database.Tag, "Error getting last sequence indexed");
+                    Log.E(Couchbase.Lite.Database.Tag, "Error getting last sequence indexed");
                 }
                 finally
                 {
@@ -955,7 +949,7 @@ namespace Couchbase.Lite {
             Map = map;
             Reduce = reduce;
 
-            if (!Database.Open())
+            if (!DatabaseInternal.Open())
             {
                 return false;
             }
@@ -963,7 +957,7 @@ namespace Couchbase.Lite {
             // because we want to
             // avoid modifying the database if the version didn't change, and because the
             // row might not exist yet.
-            var storageEngine = this.Database.StorageEngine;
+            var storageEngine = this.DatabaseInternal.StorageEngine;
 
             // Older Android doesnt have reliable insert or ignore, will to 2 step
             // FIXME review need for change to execSQL, manual call to changes()
@@ -996,7 +990,7 @@ namespace Couchbase.Lite {
             }
             catch (SQLException e)
             {
-                Log.E(Database.Tag, "Error setting map block", e);
+                Log.E(Couchbase.Lite.Database.Tag, "Error setting map block", e);
                 return false;
             }
             finally
@@ -1021,25 +1015,25 @@ namespace Couchbase.Lite {
 
             try
             {
-                Database.BeginTransaction();
+                DatabaseInternal.BeginTransaction();
 
                 var whereArgs = new string[] { Sharpen.Extensions.ToString(Id) };
-                Database.StorageEngine.Delete("maps", "view_id=?", whereArgs);
+                DatabaseInternal.StorageEngine.Delete("maps", "view_id=?", whereArgs);
 
                 var updateValues = new ContentValues();
                 updateValues["lastSequence"] = 0;
 
-                Database.StorageEngine.Update("views", updateValues, "view_id=?", whereArgs); // TODO: Convert to ADO params.
+                DatabaseInternal.StorageEngine.Update("views", updateValues, "view_id=?", whereArgs); // TODO: Convert to ADO params.
 
                 success = true;
             }
             catch (SQLException e)
             {
-                Log.E(Database.Tag, "Error removing index", e);
+                Log.E(Couchbase.Lite.Database.Tag, "Error removing index", e);
             }
             finally
             {
-                Database.EndTransaction(success);
+                DatabaseInternal.EndTransaction(success);
             }
         }
 
@@ -1048,7 +1042,7 @@ namespace Couchbase.Lite {
         /// </summary>
         public void Delete()
         { 
-            Database.DeleteViewNamed(Name);
+            DatabaseInternal.DeleteViewNamed(Name);
             _id = 0;
         }
 
@@ -1056,67 +1050,12 @@ namespace Couchbase.Lite {
         /// Creates a new <see cref="Couchbase.Lite.Query"/> for this view.
         /// </summary>
         /// <returns>A new <see cref="Couchbase.Lite.Query"/> for this view.</returns>
-        public Query CreateQuery() {
+        public IQuery CreateQuery() {
             return new Query(Database, this);
         }
 
     #endregion
     
     }
-
-    /// <summary>
-    /// An object that can be used to compile source code into map and reduce delegates.
-    /// </summary>
-    public partial interface IViewCompiler {
-
-    #region Instance Members
-        //Methods
-        /// <summary>
-        /// Compiles source code into a <see cref="Couchbase.Lite.MapDelegate"/>.
-        /// </summary>
-        /// <returns>A compiled <see cref="Couchbase.Lite.MapDelegate"/>.</returns>
-        /// <param name="source">The source code to compile into a <see cref="Couchbase.Lite.MapDelegate"/>.</param>
-        /// <param name="language">The language of the source.</param>
-        MapDelegate CompileMap(String source, String language);
-
-        /// <summary>
-        /// Compiles source code into a <see cref="Couchbase.Lite.ReduceDelegate"/>.
-        /// </summary>
-        /// <returns>A compiled <see cref="Couchbase.Lite.ReduceDelegate"/>.</returns>
-        /// <param name="source">The source code to compile into a <see cref="Couchbase.Lite.ReduceDelegate"/>.</param>
-        /// <param name="language">The language of the source.</param>
-        ReduceDelegate CompileReduce(String source, String language);
-
-    #endregion
     
-    }
-
-    #region Global Delegates
-
-    /// <summary>
-    /// A delegate that is invoked when a <see cref="Couchbase.Lite.Document"/> 
-    /// is being added to a <see cref="Couchbase.Lite.View"/>.
-    /// </summary>
-    /// <param name="document">The <see cref="Couchbase.Lite.Document"/> being mapped.</param>
-    /// <param name="emit">The delegate to use to add key/values to the <see cref="Couchbase.Lite.View"/>.</param>
-    public delegate void MapDelegate(IDictionary<String, Object> document, EmitDelegate emit);
-        
-    /// <summary>
-    /// A delegate that can be invoked to add key/values to a <see cref="Couchbase.Lite.View"/> 
-    /// during a <see cref="Couchbase.Lite.MapDelegate"/> call.
-    /// </summary>
-    /// <param name="key">The key.</param>
-    /// <param name="value">The value.</param>
-    public delegate void EmitDelegate(Object key, Object value);
-        
-    /// <summary>
-    /// A delegate that can be invoked to summarize the results of a <see cref="Couchbase.Lite.View"/>.
-    /// </summary>
-    /// <param name="keys">A list of keys to be reduced, or null if this is a rereduce.</param>
-    /// <param name="values">A parallel array of values to be reduced, corresponding 1-to-1 with the keys.</param>
-    /// <param name="reduce"><c>true</c> if the input values are the results of previous reductions, otherwise <c>false</c>.</param>
-    public delegate Object ReduceDelegate(IEnumerable<Object> keys, IEnumerable<Object> values, Boolean rereduce);
-
-    #endregion
 }
-

@@ -5,6 +5,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Couchbase.Lite.Portable;
 
 namespace Couchbase.Lite.iOS
 {
@@ -14,8 +15,8 @@ namespace Couchbase.Lite.iOS
         public event EventHandler<ReloadEventArgs> WillReload;
         public event EventHandler<ReloadEventArgs> Reload;
 
-        LiveQuery query;
-        public virtual LiveQuery Query {
+        ILiveQuery query;
+        public virtual ILiveQuery Query {
             get { return query; }
             set {
                 if (query == value) return;
@@ -29,7 +30,7 @@ namespace Couchbase.Lite.iOS
 
         public virtual UITableView TableView { get; set; }
 
-        public virtual QueryEnumerator Rows { get; set; }
+        public virtual IQueryEnumerator Rows { get; set; }
 
         public CouchbaseTableSource ()
         {
@@ -61,30 +62,30 @@ namespace Couchbase.Lite.iOS
             if (enumerator == null) return;
 
             var oldRows = Rows;
-            Rows = new QueryEnumerator(enumerator);
+            Rows = new QueryEnumerator((QueryEnumerator)enumerator);
 
             var evt = WillReload;
             if (evt != null)
             {
-                var args = new ReloadEventArgs(Query);
+                var args = new ReloadEventArgs((Query)Query);
                 evt(this, args);
             }
 
             var reloadEvt = Reload;
             if (reloadEvt != null) {
-                var args = new ReloadEventArgs(Query, oldRows);
+                var args = new ReloadEventArgs((Query)Query, oldRows);
                 reloadEvt(this, args);
             } else {
                 TableView.ReloadData();
             }
         }
 
-        public virtual QueryRow RowAtIndex (int index)
+        public virtual IQueryRow RowAtIndex (int index)
         {
             return Rows.GetRow(index);
         }
 
-        public virtual NSIndexPath IndexPathForDocument (Document document)
+        public virtual NSIndexPath IndexPathForDocument (IDocument document)
         {
             var documentId = document.Id;
             var index = 0;
@@ -97,7 +98,7 @@ namespace Couchbase.Lite.iOS
             return null;
         }
 
-        public virtual QueryRow RowAtIndexPath (NSIndexPath path)
+        public virtual IQueryRow RowAtIndexPath (NSIndexPath path)
         {
             if (path.Section == 0)
             {
@@ -106,7 +107,7 @@ namespace Couchbase.Lite.iOS
             return null;
         }
 
-        public virtual Document DocumentAtIndexPath (NSIndexPath path)
+        public virtual IDocument DocumentAtIndexPath (NSIndexPath path)
         {
             return RowAtIndexPath(path).Document;
         }
@@ -117,13 +118,13 @@ namespace Couchbase.Lite.iOS
             return DeleteDocumentsAtIndexes(documents, indexPaths);
         }
 
-        public virtual bool DeleteDocuments (IEnumerable<Document> documents) 
+        public virtual bool DeleteDocuments (IEnumerable<IDocument> documents) 
         {
             var paths = documents.Select(IndexPathForDocument);
             return DeleteDocumentsAtIndexes(documents, paths);
         }
 
-        public virtual bool DeleteDocumentsAtIndexes (IEnumerable<Document> documents, IEnumerable<NSIndexPath> indexPaths)
+        public virtual bool DeleteDocumentsAtIndexes (IEnumerable<IDocument> documents, IEnumerable<NSIndexPath> indexPaths)
         {
             var result = Query.Database.RunInTransaction(()=>{
                 foreach(var doc in documents) {
@@ -212,7 +213,7 @@ namespace Couchbase.Lite.iOS
 
         public virtual string LabelProperty { get; set; }
 
-        String GetLabel (QueryRow row)
+        String GetLabel (IQueryRow row)
         {
             var value = row.Value;
 
