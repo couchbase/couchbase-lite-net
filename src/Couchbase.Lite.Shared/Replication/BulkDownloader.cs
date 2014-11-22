@@ -172,11 +172,21 @@ namespace Couchbase.Lite.Replicator
 
             try
             {
-                var status = response.StatusCode;
-                if (response == null || !response.IsSuccessStatusCode)
+                if (response == null)
                 {
+                    Log.E(Tag, "Didn't get response for {0}", request);
+
+                    error = new HttpRequestException();
+                    RespondWithResult(fullBody, error, response);
+                }
+                else if (!response.IsSuccessStatusCode)
+                {
+                    HttpStatusCode status = response.StatusCode;
+
                     Log.E(Tag, "Got error status: {0} for {1}.  Reason: {2}", status.GetStatusCode(), request, response.ReasonPhrase);
                     error = new HttpResponseException(status);
+
+                    RespondWithResult(fullBody, error, response);
                 }
                 else
                 {
