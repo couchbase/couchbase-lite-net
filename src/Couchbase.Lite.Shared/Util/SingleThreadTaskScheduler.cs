@@ -101,7 +101,7 @@ namespace Couchbase.Lite.Util
             }
 
             var success = TryExecuteTask(task);
-            if (!success && (task.Status != TaskStatus.Running && task.Status != TaskStatus.Canceled && task.Status != TaskStatus.RanToCompletion))
+            if (!success && (task.Status != TaskStatus.Canceled && task.Status != TaskStatus.RanToCompletion))
                 Log.E(Tag, "Scheduled task faulted", task.Exception);
             return success;
         } 

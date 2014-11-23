@@ -45,6 +45,7 @@ using System.Collections.Generic;
 using System.IO;
 using Couchbase.Lite.Internal;
 using Sharpen;
+using Couchbase.Lite.Portable;
 
 namespace Couchbase.Lite {
 
@@ -58,7 +59,7 @@ namespace Couchbase.Lite {
     /// <summary>
     /// A Couchbase Lite Document Attachment.
     /// </summary>
-    public sealed class Attachment : IDisposable {
+    public sealed class Attachment : IDisposable, Couchbase.Lite.Portable.IAttachment {
 
         #region Constants
 
@@ -159,14 +160,14 @@ namespace Couchbase.Lite {
         /// Gets the owning <see cref="Couchbase.Lite.Revision"/>.
         /// </summary>
         /// <value>the owning <see cref="Couchbase.Lite.Revision"/>.</value>
-        public Revision Revision { get; internal set; }
+        public IRevision Revision { get; internal set; }
 
         /// <summary>
         /// Gets the owning <see cref="Couchbase.Lite.Document"/>.
         /// </summary>
         /// <value>The owning <see cref="Couchbase.Lite.Document"/></value>
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
-        public Document Document {
+        public IDocument Document {
             get {
                 if (Revision == null)
                     throw new CouchbaseLiteException("Revision must not be null.");
@@ -219,13 +220,13 @@ namespace Couchbase.Lite {
                 if (Name == null)
                     throw new CouchbaseLiteException("Name must not be null when retrieving attachment content");
 
-                var attachment = Revision.Database.GetAttachmentForSequence(
-                    Revision.Sequence,
+                var attachment = ((Revision)Revision).DatabaseRef.GetAttachmentForSequence(
+                    ((Revision)Revision).Sequence,
                     Name
                     );
 
                 if (attachment == null)
-                    throw new CouchbaseLiteException("Could not retrieve an attachment for revision sequence {0}.", Revision.Sequence);
+                    throw new CouchbaseLiteException("Could not retrieve an attachment for revision sequence {0}.", ((Revision)Revision).Sequence);
 
                 Body = attachment.ContentStream;
                 Body.Reset();

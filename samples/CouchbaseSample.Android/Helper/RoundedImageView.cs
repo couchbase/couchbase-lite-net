@@ -23,6 +23,7 @@ using Android.Content;
 using Android.Graphics;
 using Android.Widget;
 
+
 namespace CouchbaseSample.Android.Helper
 {
     /// <summary>Created by Pasin Suriyentrakorn <pasin@couchbase.com> on 4/13/14.</summary>
@@ -38,6 +39,7 @@ namespace CouchbaseSample.Android.Helper
         public RoundedImageView(Context context, AttributeSet attrs) : base(context, attrs
             )
         {
+
         }
 
         public RoundedImageView(Context context, AttributeSet attrs, int defStyle) : base

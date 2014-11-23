@@ -55,6 +55,7 @@ using System.Net.Http.Headers;
 using Newtonsoft.Json.Linq;
 using System.Linq;
 using System.Diagnostics;
+using Couchbase.Lite.Portable;
 
 namespace Couchbase.Lite.Replicator
 {
@@ -163,7 +164,7 @@ namespace Couchbase.Lite.Replicator
 
             if (Filter != null)
             {
-                filter = LocalDatabase.GetFilter(Filter);
+                filter = Database.GetFilter(Filter);
             }
 
             if (Filter != null && filter == null)
@@ -181,7 +182,7 @@ namespace Couchbase.Lite.Replicator
 
             var options = new ChangesOptions();
             options.SetIncludeConflicts(true);
-            var changes = LocalDatabase.ChangesSince(lastSequenceLong, options, filter);
+            var changes = DatabaseInternal.ChangesSince(lastSequenceLong, options, filter);
             if (changes.Count > 0)
             {
                 Batcher.QueueObjects(changes);
@@ -192,7 +193,7 @@ namespace Couchbase.Lite.Replicator
             if (continuous)
             {
                 observing = true;
-                LocalDatabase.Changed += OnChanged;
+                Database.Changed += OnChanged;
             }
         }
 
@@ -208,7 +209,7 @@ namespace Couchbase.Lite.Replicator
             if (observing)
             {
                 observing = false;
-                LocalDatabase.Changed -= OnChanged;
+                Database.Changed -= OnChanged;
             }
         }
 
@@ -228,7 +229,7 @@ namespace Couchbase.Lite.Replicator
                 IDictionary<String, Object> paramsFixMe = null;
 
                 // TODO: these should not be null
-                if (LocalDatabase.RunFilter(filter, paramsFixMe, rev))
+                if (DatabaseInternal.RunFilter(filter, paramsFixMe, rev))
                 {
                     AddToInbox(rev);
                 }
@@ -348,7 +349,7 @@ namespace Couchbase.Lite.Replicator
 
                                 RevisionInternal loadedRev;
                                 try {
-                                    loadedRev = LocalDatabase.LoadRevisionBody (rev, contentOptions);
+                                    loadedRev = DatabaseInternal.LoadRevisionBody (rev, contentOptions);
                                     properties = new Dictionary<string, object>(rev.GetProperties());
                                 } catch (CouchbaseLiteException e1) {
                                     Log.W(Tag, string.Format("{0} Couldn't get local contents of {1}", rev, this), e1);
@@ -365,7 +366,7 @@ namespace Couchbase.Lite.Replicator
                                 }
 
                                 properties = new Dictionary<string, object>(populatedRev.GetProperties());
-                                var revisions = LocalDatabase.GetRevisionHistoryDictStartingFromAnyAncestor(populatedRev, possibleAncestors);
+                                var revisions = DatabaseInternal.GetRevisionHistoryDictStartingFromAnyAncestor(populatedRev, possibleAncestors);
                                 properties["_revisions"] = revisions;
                                 populatedRev.SetProperties(properties);
 
@@ -375,7 +376,7 @@ namespace Couchbase.Lite.Replicator
                                     // Look for the latest common ancestor and stuf out older attachments:
                                     var minRevPos = FindCommonAncestor(populatedRev, possibleAncestors);
 
-                                    Database.StubOutAttachmentsInRevBeforeRevPos(populatedRev, minRevPos + 1, false);
+                                    Couchbase.Lite.Database.StubOutAttachmentsInRevBeforeRevPos(populatedRev, minRevPos + 1, false);
 
                                     properties = populatedRev.GetProperties();
 
@@ -578,7 +579,7 @@ namespace Couchbase.Lite.Replicator
                         }
                     }
 
-                    var blobStore = LocalDatabase.Attachments;
+                    var blobStore = DatabaseInternal.Attachments;
                     var base64Digest = (string)attachment.Get("digest");
 
                     var blobKey = new BlobKey(base64Digest);
@@ -682,7 +683,7 @@ namespace Couchbase.Lite.Replicator
         private void UploadJsonRevision(RevisionInternal rev)
         {
             // Get the revision's properties:
-            if (!LocalDatabase.InlineFollowingAttachmentsIn(rev))
+            if (!DatabaseInternal.InlineFollowingAttachmentsIn(rev))
             {
                 SetLastError(new CouchbaseLiteException(StatusCode.BadAttachment));
                 RevisionFailed();
@@ -727,7 +728,7 @@ namespace Couchbase.Lite.Replicator
                 return 0;
             }
 
-            var history = Database.ParseCouchDBRevisionHistory(rev.GetProperties());
+            var history = Couchbase.Lite.Database.ParseCouchDBRevisionHistory(rev.GetProperties());
             Debug.Assert(history != null);
 
             history = history.Intersect(possibleRevIDs).ToList();
@@ -741,7 +742,7 @@ namespace Couchbase.Lite.Replicator
                 return 0;
             }
 
-            var generation = Database.ParseRevIDNumber(ancestorID);
+            var generation = Couchbase.Lite.Database.ParseRevIDNumber(ancestorID);
             return generation;
         }
     }

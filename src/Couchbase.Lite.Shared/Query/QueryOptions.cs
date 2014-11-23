@@ -43,6 +43,7 @@
 using System.Collections.Generic;
 using Couchbase.Lite;
 using Sharpen;
+using Couchbase.Lite.Portable;
 
 namespace Couchbase.Lite
 {

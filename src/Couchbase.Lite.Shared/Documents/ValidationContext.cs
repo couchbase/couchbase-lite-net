@@ -51,6 +51,7 @@ using Couchbase.Lite.Util;
 using Couchbase.Lite.Storage;
 using Couchbase.Lite.Internal;
 using Couchbase.Lite;
+using Couchbase.Lite.Portable;
 
 namespace Couchbase.Lite
 {
@@ -107,7 +108,7 @@ namespace Couchbase.Lite
             return true;
         }
 
-        public SavedRevision CurrentRevision {
+        public ISavedRevision CurrentRevision {
             get {
                 if (InternalRevision != null)
                 {

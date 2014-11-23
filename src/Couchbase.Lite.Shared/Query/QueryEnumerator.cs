@@ -46,13 +46,14 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Net;
 using System.IO;
+using Couchbase.Lite.Portable;
 
 namespace Couchbase.Lite {
     
     /// <summary>
     /// An enumerator for Couchbase Lite <see cref="Couchbase.Lite.View"/> <see cref="Couchbase.Lite.Query"/> results.
     /// </summary>
-    public sealed class QueryEnumerator : IEnumerator<QueryRow>, IEnumerable<QueryRow>
+    public sealed class QueryEnumerator : Couchbase.Lite.Portable.IQueryEnumerator
     {
 
     #region Constructors
@@ -66,7 +67,7 @@ namespace Couchbase.Lite {
             Reset();
         }
 
-        internal QueryEnumerator (Database database, IEnumerable<QueryRow> rows, Int64 lastSequence)
+        internal QueryEnumerator (IDatabase database, IEnumerable<QueryRow> rows, Int64 lastSequence)
         {
             Database = database;
             Rows = rows;
@@ -79,9 +80,9 @@ namespace Couchbase.Lite {
 
     #region Non-public Members
     
-        private Database Database { get; set; }
+        private IDatabase Database { get; set; }
 
-        private IEnumerable<QueryRow> Rows { get; set; }
+        private IEnumerable<IQueryRow> Rows { get; set; }
 
         private Int32 CurrentRow { get; set; }
 
@@ -107,7 +108,7 @@ namespace Couchbase.Lite {
         /// the <see cref="Couchbase.Lite.View"/> results were generated.
         /// </summary>
         /// <value><c>true</c> if stale; otherwise, <c>false</c>.</value>
-        public Boolean Stale { get { return SequenceNumber < Database.GetLastSequenceNumber(); } }
+        public Boolean Stale { get { return SequenceNumber < ((Database)Database).GetLastSequenceNumber(); } }
 
 
         /// <summary>
@@ -115,9 +116,9 @@ namespace Couchbase.Lite {
         /// </summary>
         /// <returns>The <see cref="Couchbase.Lite.QueryRow"/> at the specified index in the results.</returns>
         /// <param name="index">Index.</param>
-        public QueryRow GetRow(Int32 index) {
+        public IQueryRow GetRow(Int32 index) {
             var row = Rows.ElementAt(index);
-            row.Database = Database; // Avoid multiple enumerations by doing this here instead of the constructor.
+            ((QueryRow)row).Database = Database; // Avoid multiple enumerations by doing this here instead of the constructor.
             return row;
         }
 
@@ -140,7 +141,7 @@ namespace Couchbase.Lite {
 
         public override int GetHashCode ()
         {
-            var idString = String.Format("{0}{1}{2}{3}", Database.Path, Count, SequenceNumber, Stale);
+            var idString = String.Format("{0}{1}{2}{3}", ((Database)Database).Path, Count, SequenceNumber, Stale);
             return idString.GetHashCode ();
         }
 
@@ -167,7 +168,7 @@ namespace Couchbase.Lite {
         /// Gets the current <see cref="Couchbase.Lite.QueryRow"/> from the results.
         /// </summary>
         /// <value>The current QueryRow.</value>
-        public QueryRow Current { get; private set; }
+        public IQueryRow Current { get; private set; }
 
         /// <summary>
         /// Gets the next <see cref="Couchbase.Lite.QueryRow"/> from the results.
@@ -211,7 +212,7 @@ namespace Couchbase.Lite {
         /// Gets the enumerator.
         /// </summary>
         /// <returns>The enumerator.</returns>
-        public IEnumerator<QueryRow> GetEnumerator ()
+        public IEnumerator<IQueryRow> GetEnumerator ()
         {
             return new QueryEnumerator(this);
         }
@@ -225,13 +226,10 @@ namespace Couchbase.Lite {
         /// <returns>The enumerator.</returns>
         IEnumerator IEnumerable.GetEnumerator ()
         {
-            return new QueryEnumerator(this);
+            return GetEnumerator();// new QueryEnumerator(this);
         }
 
     #endregion
 
     }
-
-    
-
 }

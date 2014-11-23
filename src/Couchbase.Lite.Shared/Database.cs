@@ -58,14 +58,14 @@ using System.Collections.Concurrent;
 using System.Collections;
 using System.Collections.ObjectModel;
 using System.Net;
+using Couchbase.Lite.Portable;
 
 namespace Couchbase.Lite 
 {
-
     /// <summary>
     /// A Couchbase Lite Database.
     /// </summary>
-    public sealed class Database 
+    public sealed class Database : Couchbase.Lite.Portable.IDatabase 
     {
     #region Constructors
 
@@ -157,7 +157,9 @@ namespace Couchbase.Lite
         /// Gets the <see cref="Couchbase.Lite.Manager"> that owns this <see cref="Couchbase.Lite.Database"/>.
         /// </summary>
         /// <value>The manager object.</value>
-        public Manager Manager { get; private set; }
+        public IManager Manager { get; private set; }
+
+        internal Manager ManagerInternal { get { return (Manager)Manager;} }
 
         /// <summary>
         /// Gets the number of <see cref="Couchbase.Lite.Document"> in the <see cref="Couchbase.Lite.Database"/>.
@@ -242,7 +244,7 @@ namespace Couchbase.Lite
         /// and are still running.
         /// </summary>
         /// <value>All replications.</value>
-        public IEnumerable<Replication> AllReplications { get { return AllReplicators; } }
+        public IEnumerable<IReplication> AllReplications { get { return AllReplicators; } }
 
         //Methods
 
@@ -352,7 +354,7 @@ namespace Couchbase.Lite
         /// </summary>
         /// <returns>The <see cref="Couchbase.Lite.Document" />.</returns>
         /// <param name="id">The id of the Document to get or create.</param>
-        public Document GetDocument(String id) 
+        public IDocument GetDocument(String id) 
         { 
             if (String.IsNullOrWhiteSpace (id)) {
                 return null;
@@ -378,7 +380,7 @@ namespace Couchbase.Lite
         /// </summary>
         /// <returns>The <see cref="Couchbase.Lite.Document" /> with the given id, or null if it does not exist.</returns>
         /// <param name="id">The id of the Document to get.</param>
-        public Document GetExistingDocument(String id) 
+        public IDocument GetExistingDocument(String id) 
         { 
             if (String.IsNullOrWhiteSpace (id)) {
                 return null;
@@ -391,7 +393,7 @@ namespace Couchbase.Lite
         /// Creates a <see cref="Couchbase.Lite.Document" /> with a unique id.
         /// </summary>
         /// <returns>A document with a unique id.</returns>
-        public Document CreateDocument()
+        public IDocument CreateDocument()
         { 
             return GetDocument(Misc.CreateGUID());
         }
@@ -485,10 +487,10 @@ namespace Couchbase.Lite
         } 
 
         /// <summary>
-        /// Creates a <see cref="Couchbase.Lite.Query" /> that matches all <see cref="Couchbase.Lite.Document" />s in the <see cref="Couchbase.Lite.Database" />.
+        /// Creates a <see cref="Couchbase.Lite.Portable.IQuery" /> that matches all <see cref="Couchbase.Lite.Document" />s in the <see cref="Couchbase.Lite.Database" />.
         /// </summary>
-        /// <returns>Returns a <see cref="Couchbase.Lite.Query" /> that matches all <see cref="Couchbase.Lite.Document" />s in the <see cref="Couchbase.Lite.Database" />s.</returns>
-        public Query CreateAllDocumentsQuery() 
+        /// <returns>Returns a <see cref="Couchbase.Lite.Portable.IQuery" /> that matches all <see cref="Couchbase.Lite.Document" />s in the <see cref="Couchbase.Lite.Database" />s.</returns>
+        public IQuery CreateAllDocumentsQuery() 
         {
             return new Query(this, (View)null);
         }
@@ -500,7 +502,7 @@ namespace Couchbase.Lite
         /// </summary>
         /// <returns>The <see cref="Couchbase.Lite.View" /> with the given name.</returns>
         /// <param name="name">The name of the <see cref="Couchbase.Lite.View" /> to get or create.</param>
-        public View GetView(String name) 
+        public IView GetView(String name) 
         {
             View view = null;
 
@@ -522,7 +524,7 @@ namespace Couchbase.Lite
         /// </summary>
         /// <returns>The <see cref="Couchbase.Lite.View" /> with the given name, or null if it does not exist.</returns>
         /// <param name="name">The name of the View to get.</param>
-        public View GetExistingView(String name) 
+        public IView GetExistingView(String name) 
         {
             View view = null;
             if (_views != null)
@@ -647,7 +649,7 @@ namespace Couchbase.Lite
         /// <param name="runAsyncDelegate">The delegate to run asynchronously.</param>
         public Task RunAsync(RunAsyncDelegate runAsyncDelegate) 
         {
-            return Manager
+            return ManagerInternal
                 .RunAsync(runAsyncDelegate, this)
 //                .ContinueWith(task=>{
 //                    if (task.Status != TaskStatus.RanToCompletion)
@@ -692,7 +694,7 @@ namespace Couchbase.Lite
         /// </summary>
         /// <returns>A new <see cref="Couchbase.Lite.Replication"/> that will push to the target <see cref="Couchbase.Lite.Database"/> at the given url.</returns>
         /// <param name="url">The url of the target Database.</param>
-        public Replication CreatePushReplication(Uri url)
+        public IReplication CreatePushReplication(Uri url)
         {
             var scheduler = new SingleThreadTaskScheduler(); //TaskScheduler.FromCurrentSynchronizationContext();
             return new Pusher(this, url, false, new TaskFactory(scheduler));
@@ -703,7 +705,7 @@ namespace Couchbase.Lite
         /// </summary>
         /// <returns>A new <see cref="Couchbase.Lite.Replication"/> that will pull from the source Database at the given url.</returns>
         /// <param name="url">The url of the source Database.</param>
-        public Replication CreatePullReplication(Uri url)
+        public IReplication CreatePullReplication(Uri url)
         {
             var scheduler = new SingleThreadTaskScheduler(); //TaskScheduler.FromCurrentSynchronizationContext();
             return new Puller(this, url, false, new TaskFactory(scheduler));
@@ -1068,7 +1070,8 @@ PRAGMA user_version = 3;";
                     IDictionary<string, object> properties = null;
                     try
                     {
-                        properties = Manager.GetObjectMapper().ReadValue<IDictionary<String, Object>>(json);
+                        properties = Couchbase.Lite.Manager.GetObjectMapper()
+                                            .ReadValue<IDictionary<String, Object>>(json);
                         properties["_id"] = docID;
                         properties["_rev"] = gotRevID;
 
@@ -1371,7 +1374,7 @@ PRAGMA user_version = 3;";
             IEnumerable<QueryRow> rows;
 
             if (!String.IsNullOrEmpty (viewName)) {
-                var view = GetView (viewName);
+                View view = (View)GetView (viewName);
                 if (view == null)
                 {
                     throw new CouchbaseLiteException (StatusCode.NotFound);
@@ -1772,7 +1775,8 @@ PRAGMA user_version = 3;";
             IDictionary<String, Object> docProperties = null;
             try
             {
-                docProperties = Manager.GetObjectMapper().ReadValue<IDictionary<string, object>>(json);
+                docProperties = Couchbase.Lite.Manager.GetObjectMapper()
+                                    .ReadValue<IDictionary<string, object>>(json);
                 docProperties.PutAll(extra);
             }
             catch (Exception e)
@@ -1855,7 +1859,7 @@ PRAGMA user_version = 3;";
                 if (existing == null)
                 {
                     // this name has not been used yet, so let's use it
-                    return GetView(name);
+                    return (View)GetView(name);
                 }
             }
         }
@@ -1871,7 +1875,7 @@ PRAGMA user_version = 3;";
                 if (cursor.MoveToNext())
                 {
                     var name = cursor.GetString(0);
-                    var view = GetView(name);
+                    View view = (View)GetView(name);
                     result.Add(view);
                 }
             }
@@ -2975,7 +2979,7 @@ PRAGMA user_version = 3;";
             Byte[] extraJSON;
             try
             {
-                extraJSON = Manager.GetObjectMapper().WriteValueAsBytes(dict).ToArray();
+                extraJSON = Couchbase.Lite.Manager.GetObjectMapper().WriteValueAsBytes(dict).ToArray();
             }
             catch (Exception e)
             {
@@ -3354,7 +3358,7 @@ PRAGMA user_version = 3;";
                     var isExternal = false;
                     foreach (var change in outgoingChanges)
                     {
-                        var document = GetDocument(change.DocumentId);
+                        Document document = (Document)GetDocument(change.DocumentId);
                         document.RevisionAdded(change);
                         if (change.SourceUrl != null)
                         {
@@ -3362,11 +3366,9 @@ PRAGMA user_version = 3;";
                         }
                     }
 
-                    var args = new DatabaseChangeEventArgs { 
-                        Changes = outgoingChanges,
-                        IsExternal = isExternal,
-                        Source = this
-                    } ;
+                    var args = new DatabaseChangeEventArgs (outgoingChanges,
+                                                            isExternal,
+                                                            this) ;
 
                     var changeEvent = Changed;
                     if (changeEvent != null)
@@ -3795,7 +3797,7 @@ PRAGMA user_version = 3;";
             IEnumerable<byte> json = null;
             try
             {
-                json = Manager.GetObjectMapper().WriteValueAsBytes(properties);
+                json = Couchbase.Lite.Manager.GetObjectMapper().WriteValueAsBytes(properties);
             }
             catch (Exception e)
             {
@@ -4543,7 +4545,7 @@ PRAGMA user_version = 3;";
             {
                 if (!e.Source.IsRunning && ActiveReplicators != null)
                 {
-                    ActiveReplicators.Remove(e.Source);
+                    ActiveReplicators.Remove((Replication)e.Source);
                 }
             };
         }
@@ -4613,67 +4615,6 @@ PRAGMA user_version = 3;";
 
 
     #endregion
-    
+
     }
-
-    #region Global Delegates
-
-    /// <summary>
-    /// A delegate that can validate a key/value change.
-    /// </summary>
-    public delegate Boolean ValidateChangeDelegate(String key, Object oldValue, Object newValue);
-
-    /// <summary>
-    /// A delegate that can be run asynchronously on a <see cref="Couchbase.Lite.Database"/>.
-    /// </summary>
-    public delegate void RunAsyncDelegate(Database database);
-
-    /// <summary>
-    /// A delegate that can be used to accept/reject new <see cref="Couchbase.Lite.Revision"/>s being added to a <see cref="Couchbase.Lite.Database"/>.
-    /// </summary>
-    public delegate Boolean ValidateDelegate(Revision newRevision, IValidationContext context);
-
-    /// <summary>
-    /// A delegate that can be used to include/exclude <see cref="Couchbase.Lite.Revision"/>s during push <see cref="Couchbase.Lite.Replication"/>.
-    /// </summary>
-    public delegate Boolean FilterDelegate(SavedRevision revision, Dictionary<String, Object> filterParams);
-
-    /// <summary>
-    /// A delegate that can be invoked to compile source code into a <see cref="FilterDelegate"/>.
-    /// </summary>
-    public delegate FilterDelegate CompileFilterDelegate(String source, String language);
-
-    /// <summary>
-    /// A delegate that can be run in a transaction on a <see cref="Couchbase.Lite.Database"/>.
-    /// </summary>
-    public delegate Boolean RunInTransactionDelegate();
-
-    ///
-    /// <summary>The event raised when a <see cref="Couchbase.Lite.Database"/> changes</summary>
-    ///
-    public class DatabaseChangeEventArgs : EventArgs 
-    {
-        /// <summary>
-        /// Gets the <see cref="Couchbase.Lite.Database"/> that raised the event.
-        /// </summary>
-        /// <value>The <see cref="Couchbase.Lite.Database"/> that raised the event.</value>
-            public Database Source { get; internal set; }
-
-        /// <summary>
-        /// Returns true if the change was not made by a Document belonging to this Database 
-        /// (e.g. it came from another process or from a pull Replication), otherwise false.
-        /// </summary>
-        /// <value>true if the change was not made by a Document belonging to this Database 
-        /// (e.g. it came from another process or from a pull Replication), otherwise false</value>
-            public Boolean IsExternal { get; internal set; }
-
-        /// <summary>
-        /// Gets the DocumentChange details for the Documents that caused the Database change.
-        /// </summary>
-        /// <value>The DocumentChange details for the Documents that caused the Database change.</value>
-            public IEnumerable<DocumentChange> Changes { get; internal set; }
-    }
-
-    #endregion
 }
-

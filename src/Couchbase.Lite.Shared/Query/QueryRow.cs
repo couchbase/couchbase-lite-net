@@ -48,13 +48,14 @@ using System.Net;
 using System.IO;
 using Sharpen;
 using Couchbase.Lite.Util;
+using Couchbase.Lite.Portable;
 
 namespace Couchbase.Lite 
 {
     /// <summary>
     /// A result row for a Couchbase Lite <see cref="Couchbase.Lite.View"/> <see cref="Couchbase.Lite.Query"/>.
     /// </summary>
-    public sealed class QueryRow 
+    public sealed class QueryRow : Couchbase.Lite.Portable.IQueryRow 
     {
 
     #region Constructors
@@ -76,23 +77,23 @@ namespace Couchbase.Lite
         /// Gets the <see cref="Couchbase.Lite.Database"/> that owns the <see cref="Couchbase.Lite.QueryRow"/>'s <see cref="Couchbase.Lite.View"/>.
         /// </summary>
         /// <value>The <see cref="Couchbase.Lite.Database"/> that owns the <see cref="Couchbase.Lite.QueryRow"/>'s <see cref="Couchbase.Lite.View"/>.</value>
-        public Database Database { get; internal set; }
+        public IDatabase Database { get; internal set; }
 
         /// <summary>
         /// Gets the associated <see cref="Couchbase.Lite.Document"/>.
         /// </summary>
         /// <value>The <see cref="Couchbase.Lite.Document"/> associated with the <see cref="Couchbase.Lite.QueryRow"/>'s <see cref="Couchbase.Lite.View"/>.</value>
-        public Document Document { 
-            get         {
+        public IDocument Document
+        {
+            get
+            {
                 if (DocumentId == null)
-                {
                     return null;
-                }
-                var document = Database.GetDocument(DocumentId);
-                document.LoadCurrentRevisionFrom(this);
+             
+                IDocument document = Database.GetDocument(DocumentId);
+                ((IDocInternal)document).LoadCurrentRevisionFrom(this);
                 return document;
             }
-
         }
 
         /// <summary>
@@ -191,21 +192,21 @@ namespace Couchbase.Lite
         /// whose allDocsMode is set to ShowConflicts or OnlyConflicts, otherwise it returns null.
         /// </remarks>
         /// <returns>The conflicting <see cref="Couchbase.Lite.Revision"/>s of the associated <see cref="Couchbase.Lite.Document"/></returns>
-        public IEnumerable<SavedRevision> GetConflictingRevisions()
+        public IEnumerable<ISavedRevision> GetConflictingRevisions()
         {
             var doc = Database.GetDocument(SourceDocumentId);
-            var valueTmp = (IDictionary<string, object>)Value;
+            IDictionary<string, object> valueTmp = (IDictionary<string, object>)Value;
 
-            var conflicts = (IList<string>)valueTmp["_conflicts"];
+            IList<string> conflicts = (IList<string>)valueTmp["_conflicts"];
             if (conflicts == null)
             {
                 conflicts = new List<string>();
             }
 
-            var conflictingRevisions = new List<SavedRevision>();
-            foreach (var conflictRevisionId in conflicts)
+            List<ISavedRevision> conflictingRevisions = new List<ISavedRevision>();
+            foreach (string conflictRevisionId in conflicts)
             {
-                var revision = doc.GetRevision(conflictRevisionId);
+                ISavedRevision revision = (ISavedRevision)doc.GetRevision(conflictRevisionId);
                 conflictingRevisions.AddItem(revision);
             }
             return conflictingRevisions;

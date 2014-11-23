@@ -76,6 +76,7 @@ namespace Couchbase.Lite.Shared
 
         public bool Open(String path)
         {
+            
             if (IsOpen)
                 return true;
             Path = path;

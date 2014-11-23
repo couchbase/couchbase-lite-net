@@ -56,13 +56,14 @@ using System.Collections.ObjectModel;
 using Couchbase.Lite.Replicator;
 using Couchbase.Lite.Support;
 using System.Net.NetworkInformation;
+using Couchbase.Lite.Portable;
 
 namespace Couchbase.Lite
 {
     /// <summary>
     /// The top-level object that manages Couchbase Lite <see cref="Couchbase.Lite.Database"/>s.
     /// </summary>
-    public sealed class Manager
+    public sealed class Manager : Couchbase.Lite.Portable.IManager
     {
 
     #region Constants
@@ -232,7 +233,7 @@ namespace Couchbase.Lite
         /// <returns>The database.</returns>
         /// <param name="name">Name.</param>
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException">Thrown if an issue occurs while gettings or createing the <see cref="Couchbase.Lite.Database"/>.</exception>
-        public Database GetDatabase(String name) 
+        public IDatabase GetDatabase(String name) 
         {
             var db = GetDatabaseWithoutOpening(name, false);
             if (db != null)
@@ -252,7 +253,7 @@ namespace Couchbase.Lite
         /// <returns>The <see cref="Couchbase.Lite.Database"/> with the given name if it exists, otherwise null.</returns>
         /// <param name="name">The name of the Database to get.</param>
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException">Thrown if an issue occurs while getting the <see cref="Couchbase.Lite.Database"/>.</exception>
-        public Database GetExistingDatabase(String name)
+        public IDatabase GetExistingDatabase(String name)
         {
             var db = GetDatabaseWithoutOpening(name, mustExist: true);
             if (db != null)
@@ -377,7 +378,7 @@ namespace Couchbase.Lite
             return db;
         }
 
-        public void ForgetDatabase (Database database)
+        public void ForgetDatabase (IDatabase database)
         {
             // remove from cached list of dbs
             databases.Remove(database.Name);
@@ -393,7 +394,7 @@ namespace Couchbase.Lite
             for (; i >= 0; i--) 
             {
                 var replication = replications[i];
-                if (replication.LocalDatabase == database) 
+                if (replication.Database == database) 
                 {
                     replications.RemoveAt(i);
                 }
@@ -435,7 +436,7 @@ namespace Couchbase.Lite
         {
             foreach (var replication in replications)
             {
-                if (replication.LocalDatabase == database 
+                if (replication.Database == database 
                     && replication.RemoteUrl.Equals(url) 
                     && replication.IsPull == !push)
                 {
@@ -481,7 +482,7 @@ namespace Couchbase.Lite
 
         internal Task<Boolean> RunAsync(String databaseName, Func<Database, Boolean> action) 
         {
-            var db = GetDatabase(databaseName);
+            Database db = (Database)GetDatabase(databaseName);
             return RunAsync<Boolean>(() => action (db));
         }
 
@@ -494,7 +495,7 @@ namespace Couchbase.Lite
             return task;
         }
 
-        internal Task RunAsync(RunAsyncDelegate action, Database database)
+        internal Task RunAsync(Couchbase.Lite.Portable.RunAsyncDelegate action, Database database)
         {
             return RunAsync(()=>{ action(database); });
         }
@@ -528,6 +529,4 @@ namespace Couchbase.Lite
 
     #endregion
     }
-
 }
-

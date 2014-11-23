@@ -9,6 +9,7 @@ using MonoTouch.CoreGraphics;
 using System.Drawing;
 using Couchbase.Lite;
 using Newtonsoft.Json.Linq;
+using Couchbase.Lite.Portable;
 
 namespace CouchbaseSample
 {
@@ -21,17 +22,17 @@ namespace CouchbaseSample
     internal const String CreationDatePropertyName = "created_at";
     internal const String DeletedKey = "_deleted";
     Boolean showingSyncButton;
-    Replication pull;
-    Replication push;
+    IReplication pull;
+    IReplication push;
     int _lastPushCompleted;
     int _lastPullCompleted;
-    Replication _leader;
+    IReplication _leader;
 
     UIProgressView Progress { get; set; }
 
-    public Database Database { get; set; }
+    public IDatabase Database { get; set; }
 
-    LiveQuery DoneQuery { get; set; }
+    ILiveQuery DoneQuery { get; set; }
 
     #region Initialization/Configuration
     public RootViewController () : base ("RootViewController", null)
@@ -116,7 +117,7 @@ namespace CouchbaseSample
         Database = db;
     }
 
-    View InitializeCouchbaseView ()
+    IView InitializeCouchbaseView ()
     {
         var view = Database.GetView (DefaultViewName);
 
@@ -199,30 +200,34 @@ namespace CouchbaseSample
 
             var doneView = Database.GetExistingView("Done") ?? Database.GetView ("Done");
             DoneQuery = doneView.CreateQuery().ToLiveQuery();
-            DoneQuery.Changed += (sender, e) => {
-                    String val;
-                    var label = TableView.TableHeaderView as UILabel;
+            DoneQuery.Changed += (sender, e) =>
+            {
+                String val;
+                var label = TableView.TableHeaderView as UILabel;
 
-                    if (DoneQuery.Rows.Count == 0) {
-                        val = String.Empty;
-                    } else {
-                        var row = DoneQuery.Rows.ElementAt(0);
-                            var doc = (IDictionary<string,string>)row.Value;
+                if (DoneQuery.Rows.Count == 0)
+                {
+                    val = String.Empty;
+                }
+                else
+                {
+                    var row = DoneQuery.Rows.ElementAt(0);
+                    var doc = (IDictionary<string, string>)row.Value;
 
-                        val = String.Format ("{0}: {1}\t", doc["Label"], doc["Count"]);
-                    }
-                    label.Text = val;
-                };
+                    val = String.Format("{0}: {1}\t", doc["Label"], doc["Count"]);
+                }
+                label.Text = val;
+            };
             DoneQuery.Start();
     }
     #endregion
     #region CRUD Operations
 
-    IEnumerable<Document> CheckedDocuments 
+    IEnumerable<IDocument> CheckedDocuments 
     {
         get 
         {
-            var docs = new List<Document> ();
+            var docs = new List<IDocument> ();
             foreach (var row in Datasource.Rows) 
             {
                 var doc = row.Document;

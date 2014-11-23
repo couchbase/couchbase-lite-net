@@ -13,6 +13,7 @@ using CouchbaseSample.Android.Document;
 using Org.Apache.Http.Conn;
 using Android.Net;
 using Android.Net.Wifi;
+using Couchbase.Lite.Portable;
 
 namespace SimpleAndroidSync
 {
@@ -21,11 +22,11 @@ namespace SimpleAndroidSync
     {
         static readonly string Tag = "SimpleAndroidSync";
 
-        Query Query { get; set; }
-        LiveQuery LiveQuery { get; set; }
-        Database Database { get; set; }
-        Replication Pull { get; set; }
-        Replication Push { get; set; }
+        IQuery Query { get; set; }
+        ILiveQuery LiveQuery { get; set; }
+        IDatabase Database { get; set; }
+        IReplication Pull { get; set; }
+        IReplication Push { get; set; }
 
         protected override void OnCreate (Bundle bundle)
         {
@@ -35,7 +36,7 @@ namespace SimpleAndroidSync
 
             Database = Manager.SharedInstance.GetDatabase(Tag.ToLower());
 
-            Query = List.GetQuery(Database);
+            Query = List.GetQuery((Database)Database);
             Query.Completed += (sender, e) => 
                 Log.Verbose("MainActivity", e.ErrorInfo.ToString() ?? e.Rows.ToString());
             LiveQuery = Query.ToLiveQuery();
@@ -46,12 +47,14 @@ namespace SimpleAndroidSync
                 ViewGroup.LayoutParams.MatchParent);
             layout.Orientation = Orientation.Vertical;
 
-            // Add Items
+            // Add GUI Items
+            //text entry box///////////////////////////////////////////////
             var newItemText = new EditText(this);
             newItemText.LayoutParameters = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MatchParent, 
                 ViewGroup.LayoutParams.WrapContent);
 
+            //key press event
             newItemText.KeyPress += (sender, e) => 
             {
                 e.Handled = false;
@@ -65,7 +68,7 @@ namespace SimpleAndroidSync
                 e.Handled = false;
             };
             layout.AddView(newItemText);
-
+            ////////////////////////////////////////////////////////
             // Create our table
             var listView = new ListView(this);
             listView.LayoutParameters = new LinearLayout.LayoutParams(
@@ -197,7 +200,7 @@ namespace SimpleAndroidSync
 
         private class ListLiveQueryAdapter : LiveQueryAdapter
         {
-            public ListLiveQueryAdapter(Context context, LiveQuery query) 
+            public ListLiveQueryAdapter(Context context, ILiveQuery query) 
                 : base(context, query) { }
 
             public override Android.Views.View GetView(int position,

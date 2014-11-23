@@ -51,6 +51,7 @@ using Sharpen;
 using System.Net.Http;
 using System.Linq;
 using Newtonsoft.Json.Linq;
+using Couchbase.Lite.Portable;
 
 namespace Couchbase.Lite.Support
 {
@@ -70,9 +71,9 @@ namespace Couchbase.Lite.Support
 
         private IDictionary<String, BlobStoreWriter> attachmentsByMd5Digest;
 
-        public MultipartDocumentReader(Database database)
+        public MultipartDocumentReader(IDatabase database)
         {
-            this.database = database;
+            this.database = (Database)database;//save the full obj ref. this might break if 3rd party impls IDatabase...
         }
 
         public IDictionary<String, Object> GetDocumentProperties()

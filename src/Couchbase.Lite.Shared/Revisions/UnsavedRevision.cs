@@ -48,13 +48,15 @@ using System.Net;
 using System.IO;
 using Sharpen;
 using Couchbase.Lite.Util;
+using Couchbase.Lite.Portable;
 
 namespace Couchbase.Lite
 {
     /// <summary>
     /// An unsaved Couchbase Lite Document Revision.
     /// </summary>
-    public partial class UnsavedRevision : Revision {
+    public partial class UnsavedRevision : Revision, IUnsavedRevision 
+    {
 
     #region Non-public Members
         IDictionary<String, Object> properties;
@@ -151,7 +153,7 @@ namespace Couchbase.Lite
         /// Gets the parent <see cref="Couchbase.Lite.Revision"/>.
         /// </summary>
         /// <value>The parent.</value>
-        public override SavedRevision Parent {
+        public override ISavedRevision Parent {
             get {
                 return String.IsNullOrEmpty(ParentId) 
                     ? null 
@@ -175,7 +177,7 @@ namespace Couchbase.Lite
         /// Older, ancestor, revisions are not guaranteed to have their properties available.
         /// </remarks>
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
-        public override IEnumerable<SavedRevision> RevisionHistory {
+        public override IEnumerable<ISavedRevision> RevisionHistory {
             get {
                 // (Don't include self in the array, because this revision doesn't really exist yet)
                 return Parent != null ? Parent.RevisionHistory : new List<SavedRevision>();
@@ -236,8 +238,9 @@ namespace Couchbase.Lite
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException">
         /// Thrown if an issue occurs while saving the <see cref="Couchbase.Lite.UnsavedRevision"/>.
         /// </exception>
-        public SavedRevision Save() { 
-            return Document.PutProperties(Properties, ParentId, allowConflict: false); 
+        public ISavedRevision Save() 
+        { 
+            return ((Document)Document).PutProperties(Properties, ParentId, allowConflict: false); 
         }
 
         /// <summary>
@@ -250,7 +253,7 @@ namespace Couchbase.Lite
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException">
         /// Thrown if an issue occurs while saving the <see cref="Couchbase.Lite.UnsavedRevision"/>.
         /// </exception>
-        public SavedRevision Save(Boolean allowConflict) { return Document.PutProperties(Properties, ParentId, allowConflict); }
+        public ISavedRevision Save(Boolean allowConflict) { return ((Document)Document).PutProperties(Properties, ParentId, allowConflict); }
 
         /// <summary>
         /// Sets the attachment with the given name.
@@ -309,7 +312,7 @@ namespace Couchbase.Lite
             }
             catch (IOException e)
             {
-                Log.E(Database.Tag, "Error opening stream for url: " + contentUrl);
+                Log.E(Couchbase.Lite.Database.Tag, "Error opening stream for url: " + contentUrl);
                 throw new RuntimeException(e);
             }
         }

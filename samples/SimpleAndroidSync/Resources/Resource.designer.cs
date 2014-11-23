@@ -48,6 +48,9 @@ namespace SimpleAndroidSync
 			// aapt resource value: 0x7f020000
 			public const int Icon = 2130837504;
 			
+			// aapt resource value: 0x7f020001
+			public const int monoandroidsplash = 2130837505;
+			
 			static Drawable()
 			{
 				global::Android.Runtime.ResourceIdManager.UpdateIdValues();
@@ -61,14 +64,14 @@ namespace SimpleAndroidSync
 		public partial class Id
 		{
 			
-			// aapt resource value: 0x7f050002
-			public const int check = 2131034114;
+			// aapt resource value: 0x7f060002
+			public const int check = 2131099650;
 			
-			// aapt resource value: 0x7f050001
-			public const int text = 2131034113;
+			// aapt resource value: 0x7f060001
+			public const int text = 2131099649;
 			
-			// aapt resource value: 0x7f050000
-			public const int url = 2131034112;
+			// aapt resource value: 0x7f060000
+			public const int url = 2131099648;
 			
 			static Id()
 			{
@@ -126,6 +129,22 @@ namespace SimpleAndroidSync
 			}
 			
 			private String()
+			{
+			}
+		}
+		
+		public partial class Style
+		{
+			
+			// aapt resource value: 0x7f050000
+			public const int Mono_Android_Theme_Splash = 2131034112;
+			
+			static Style()
+			{
+				global::Android.Runtime.ResourceIdManager.UpdateIdValues();
+			}
+			
+			private Style()
 			{
 			}
 		}

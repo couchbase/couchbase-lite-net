@@ -119,6 +119,9 @@ namespace CouchbaseSample.Android
 			// aapt resource value: 0x7f020005
 			public const int ic_launcher = 2130837509;
 			
+			// aapt resource value: 0x7f020006
+			public const int monoandroidsplash = 2130837510;
+			
 			static Drawable()
 			{
 				global::Android.Runtime.ResourceIdManager.UpdateIdValues();
@@ -303,6 +306,9 @@ namespace CouchbaseSample.Android
 			
 			// aapt resource value: 0x7f070002
 			public const int IndeterminateProgressBar = 2131165186;
+			
+			// aapt resource value: 0x7f070003
+			public const int Mono_Android_Theme_Splash = 2131165187;
 			
 			static Style()
 			{
