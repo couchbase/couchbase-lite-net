@@ -4464,16 +4464,48 @@ PRAGMA user_version = 3;";
                 }
                 dbVersion = 10;
             }
-            if (dbVersion < 11)
+
+            // (Version 11 used to create the index revs_cur_deleted, which is obsoleted in version 16)
+            
+            if (dbVersion < 14)
             {
-                // Version 10: Add another index
-                var upgradeSql = "CREATE INDEX revs_cur_deleted ON revs(current,deleted); " + 
-                    "PRAGMA user_version = 11";
+                // Version 14: Add index for getting a document with doc and rev id
+                var upgradeSql = "CREATE INDEX IF NOT EXISTS revs_by_docid_revid ON revs(doc_id, revid desc, current, deleted); " +
+                    "PRAGMA user_version = 14";
                 if (!Initialize(upgradeSql))
                 {
                     StorageEngine.Close();
                     return false;
                 }
+                dbVersion = 14;
+            }
+            if (dbVersion < 15)
+            {
+                // Version 15: Add sequence index on maps and attachments for revs(sequence) on DELETE CASCADE
+                var upgradeSql = "CREATE INDEX maps_sequence ON maps(sequence);  " +
+                                 "CREATE INDEX attachments_sequence ON attachments(sequence); " +
+                    "PRAGMA user_version = 15";
+                if (!Initialize(upgradeSql))
+                {
+                    StorageEngine.Close();
+                    return false;
+                }
+                dbVersion = 15;
+            }
+            if (dbVersion < 16)
+            {
+                // Version 16: Fix the very suboptimal index revs_cur_deleted.
+                // The new revs_current is an optimal index for finding the winning revision of a doc.
+                var upgradeSql = "DROP INDEX IF EXISTS revs_current; " +
+                                 "DROP INDEX IF EXISTS revs_cur_deleted; " +
+                                 "CREATE INDEX revs_current ON revs(doc_id, current desc, deleted, revid desc); " +
+                    "PRAGMA user_version = 16";
+                if (!Initialize(upgradeSql))
+                {
+                    StorageEngine.Close();
+                    return false;
+                }
+                dbVersion = 16;
             }
 
             try
