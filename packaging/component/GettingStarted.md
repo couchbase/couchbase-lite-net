@@ -72,7 +72,7 @@ Finally you save the document the same way you did when you created it:
 
 ```
     SavedVersion newVersion = doc.PutProperties(newProperties);
-    if (!newVersion)
+    if (newVersion == null)
         ShowErrorAlert("Couldn't update the item.");
 ```
 
