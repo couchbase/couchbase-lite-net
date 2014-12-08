@@ -694,24 +694,25 @@ namespace Couchbase.Lite
                 return shouldCommit;
             });
 
-            // NOTE: Needs better error handling, etc.
-            // TODO: Should have a timeout here. However,
-            //       using one of the timeout overloads results
-            //       in deadlock. Probably need to use a
-            //       TaskCompletionSource instead.
+            var result = false;
+            var mre = new ManualResetEvent(false);
+
             try
             {
-                transactionTask.Wait();
+                result = transactionTask.Result;
+                mre.Set();
             }
             catch (AggregateException ex)
             {
                 throw ex.InnerException;
             }
 
-            if (transactionTask.Status != TaskStatus.RanToCompletion)
-                throw new CouchbaseLiteException("Database transaction timed out.");
+            mre.WaitOne(30000);
 
-            return transactionTask.Result;
+            if (transactionTask.Status != TaskStatus.RanToCompletion)
+                throw new CouchbaseLiteException("Database transaction timed out.", StatusCode.InternalServerError);
+
+            return result;
         }
 
             
