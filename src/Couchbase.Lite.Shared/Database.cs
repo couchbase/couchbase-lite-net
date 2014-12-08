@@ -684,6 +684,7 @@ namespace Couchbase.Lite
                 {
                     shouldCommit = false;
                     Log.E(Tag, e.ToString(), e);
+                    throw;
                 }
                 finally
                 {
@@ -698,10 +699,17 @@ namespace Couchbase.Lite
             //       using one of the timeout overloads results
             //       in deadlock. Probably need to use a
             //       TaskCompletionSource instead.
-            transactionTask.Wait();
+            try
+            {
+                transactionTask.Wait();
+            }
+            catch (AggregateException ex)
+            {
+                throw ex.InnerException;
+            }
 
-            if (transactionTask.Exception != null)
-                throw transactionTask.Exception;
+            if (transactionTask.Status != TaskStatus.RanToCompletion)
+                throw new CouchbaseLiteException("Database transaction timed out.");
 
             return transactionTask.Result;
         }
