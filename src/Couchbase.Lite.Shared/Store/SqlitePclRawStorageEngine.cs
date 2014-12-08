@@ -289,17 +289,19 @@ namespace Couchbase.Lite.Shared
                     command.Dispose();
                 }
             });
-            // NOTE.ZJG: Just a sketch here. Needs better error handling, etc.
-            var mre = new ManualResetEvent(false);
-            t.GetAwaiter().OnCompleted(()=>mre.Set());
 
-            var success = mre.WaitOne(30000);
-            if (!success) {
-                throw new CouchbaseLiteException("ExecSQL timedout", StatusCode.InternalServerError);
+            try
+            {
+                t.Wait(30000);
+            }
+            catch (AggregateException ex)
+            {
+                throw ex.InnerException;
             }
 
-            if (t.Exception != null)
-                throw t.Exception;
+            if (t.Status != TaskStatus.RanToCompletion) {
+                throw new CouchbaseLiteException("ExecSQL timedout", StatusCode.InternalServerError);
+            }
         }
 
         /// <summary>
