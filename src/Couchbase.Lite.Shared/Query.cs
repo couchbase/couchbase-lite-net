@@ -345,7 +345,17 @@ namespace Couchbase.Lite {
             var viewName = (View != null) ? View.Name : null;
             var queryOptions = QueryOptions;
 
-            var rows = Database.QueryViewNamed (viewName, queryOptions, outSequence);
+            IEnumerable<QueryRow> rows = null;
+            var success = Database.RunInTransaction(()=>
+            {
+                rows = Database.QueryViewNamed (viewName, queryOptions, outSequence);
+                return true;
+            });
+
+            if (!success)
+            {
+                throw new CouchbaseLiteException("Failed to query view named " + viewName, StatusCode.DbError);
+            }
 
             LastSequence = outSequence[0]; // potential concurrency issue?
 

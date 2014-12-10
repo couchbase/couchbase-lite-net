@@ -1886,5 +1886,61 @@ namespace Couchbase.Lite
             Assert.AreEqual(attachmentLength, attachment.Length);
             Assert.IsNotNull(attachment.Content);
         }
+
+        [Test]
+        public void TestPushPullAndLiveQueryWithFilledDatabase()
+        {
+            if (!Boolean.Parse((string)Runtime.Properties["replicationTestsEnabled"]))
+            {
+                Assert.Inconclusive("Replication tests disabled.");
+                return;
+            }
+
+            for (int i = 0; i < 100; i++)
+            {
+                var docIdTimestamp = Convert.ToString (Runtime.CurrentTimeMillis ());
+                var docId = string.Format ("doc{0}-{1}", i, docIdTimestamp);
+
+                Log.D(Tag, "Adding " + docId + " directly to sync gateway");           
+                AddDocWithId(docId, "attachment.png");
+            }
+
+            var pusher = database.CreatePushReplication(GetReplicationURL());
+            pusher.Start ();
+
+            var puller = database.CreatePullReplication(GetReplicationURL());
+
+            int numDocsBeforePull = database.DocumentCount;
+            View view = database.GetView("testPullerWithLiveQueryView");
+            view.SetMapReduce((document, emitter) => {
+                if (document.Get ("_id") != null) {
+                    emitter (document.Get ("_id"), null);
+                }
+            }, null, "1");
+
+            LiveQuery allDocsLiveQuery = view.CreateQuery().ToLiveQuery();
+            allDocsLiveQuery.Changed += (sender, e) => {
+                int numTimesCalled = 0;
+                if (e.Error != null)
+                {
+                    throw new RuntimeException(e.Error);
+                }
+                if (numTimesCalled++ > 0)
+                {
+                    NUnit.Framework.Assert.IsTrue(e.Rows.Count > numDocsBeforePull);
+                }
+                Log.D(Database.Tag, "rows " + e.Rows);
+            };
+
+            // the first time this is called back, the rows will be empty.
+            // but on subsequent times we should expect to get a non empty
+            // row set.
+            allDocsLiveQuery.Start();
+            RunReplication (puller);
+            allDocsLiveQuery.Stop();
+
+            pusher.Stop ();
+            puller.Stop ();
+        }
     }
 }
