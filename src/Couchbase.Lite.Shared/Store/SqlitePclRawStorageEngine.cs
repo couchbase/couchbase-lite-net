@@ -93,6 +93,8 @@ namespace Couchbase.Lite.Shared
             var result = true;
             try
             {
+                Log.I(Tag, "Sqlite Version: {0}".Fmt(raw.sqlite3_libversion()));
+                
                 shouldCommit = false;
                 const int writer_flags = SQLITE_OPEN_FILEPROTECTION_COMPLETEUNLESSOPEN | SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE | SQLITE_OPEN_FULLMUTEX;
                 OpenSqliteConnection(writer_flags, out _writeConnection);
@@ -119,7 +121,7 @@ namespace Couchbase.Lite.Shared
                 throw new CouchbaseLiteException(errMessage, StatusCode.DbError);
             }
 #if !__ANDROID__ && VERBOSE
-                            var i = 0;
+                var i = 0;
                 var val = raw.sqlite3_compileoption_get(i);
                 while (val != null)
                 {
@@ -270,7 +272,6 @@ namespace Couchbase.Lite.Shared
         {
             var t = Scheduler.StartNew(()=>
             {
-                RegisterCollationFunctions(_writeConnection);
                 var command = BuildCommand(_writeConnection, sql, paramArgs);
 
                 try
@@ -400,7 +401,7 @@ namespace Couchbase.Lite.Shared
                     int result;
 
                     result = command.step();
-               
+                    command.Dispose();
                     if (result == SQLiteResult.ERROR)
                         throw new CouchbaseLiteException(raw.sqlite3_errmsg(_writeConnection), StatusCode.DbError);
 
@@ -433,21 +434,6 @@ namespace Couchbase.Lite.Shared
             return lastInsertedId;
         }
 
-        [Conditional("MSFT")]
-        internal void RegisterCollationFunctions(sqlite3 db)
-        {
-            lock (dbLock)
-            {
-                var c1 = raw.sqlite3_create_collation(db, "JSON", null, CouchbaseSqliteJsonUnicodeCollationFunction.Compare);
-
-                var c2 = raw.sqlite3_create_collation(db, "JSON_ASCII", null, CouchbaseSqliteJsonAsciiCollationFunction.Compare);
-
-                var c3 = raw.sqlite3_create_collation(db, "JSON_RAW", null, CouchbaseSqliteJsonRawCollationFunction.Compare);
-
-                var c4 = raw.sqlite3_create_collation(db, "REVID", null, CouchbaseSqliteRevIdCollationFunction.Compare);
-            }
-        }
-
         public int Update(String table, ContentValues values, String whereClause, params String[] whereArgs)
         {
             Debug.Assert(!String.IsNullOrWhiteSpace(table));
@@ -466,8 +452,8 @@ namespace Couchbase.Lite.Shared
                 }
                 catch (ugly.sqlite3_exception ex)
                 {
-                    var msg = ex.errmsg ?? raw.sqlite3_extended_errcode(_writeConnection).ToString();
-                    Log.E(Tag, "Error {0}: \"{1}\" while updating table {2}", ex.errcode, msg, table, ex);
+                    var msg = raw.sqlite3_extended_errcode(_writeConnection).ToString();
+                    Log.E(Tag, "Error {0}: \"{1}\" while updating table {2}\r\n{3}", ex.errcode, msg, table, ex);
                 }
 
                 resultCount = _writeConnection.changes();

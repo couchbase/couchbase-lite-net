@@ -148,7 +148,7 @@ namespace Couchbase.Lite {
 
         internal void UpdateIndex()
         {
-            Log.V(Database.Tag, "Re-indexing view {0} ...", Name);
+            Log.I(Database.Tag, "Re-indexing view {0} ...", Name);
             System.Diagnostics.Debug.Assert((Map != null));
 
             if (Id <= 0)
@@ -967,10 +967,11 @@ namespace Couchbase.Lite {
 
             // Older Android doesnt have reliable insert or ignore, will to 2 step
             // FIXME review need for change to execSQL, manual call to changes()
-            var sql = "SELECT name, version FROM views WHERE name=?"; // TODO: Convert to ADO params.
+            const string sql = "SELECT name, version FROM views WHERE name=?"; // TODO: Convert to ADO params.
             var args = new [] { Name };
             Cursor cursor = null;
 
+            // NOTE: Probably needs to be a run in transaction call.
             try
             {
                 cursor = storageEngine.RawQuery(sql, args);
@@ -983,6 +984,11 @@ namespace Couchbase.Lite {
                     insertValues["version"] = version;
                     storageEngine.Insert("views", null, insertValues);
                     return true;
+                }
+                
+                if (cursor != null)
+                {
+                    cursor.Close();
                 }
 
                 var updateValues = new ContentValues();
@@ -998,13 +1004,6 @@ namespace Couchbase.Lite {
             {
                 Log.E(Database.Tag, "Error setting map block", e);
                 return false;
-            }
-            finally
-            {
-                if (cursor != null)
-                {
-                    cursor.Close();
-                }
             }
         }
 
