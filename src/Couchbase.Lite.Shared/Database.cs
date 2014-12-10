@@ -1385,13 +1385,13 @@ PRAGMA user_version = 3;";
             {
                 Log.E(Tag, "Error getting last sequence", e);
             }
-			finally
-			{
-				if (cursor != null)
-				{
-					cursor.Close();
-				}
-			}
+            finally
+            {
+                if (cursor != null)
+                {
+                    cursor.Close();
+                }
+            }
             Log.D(Tag, "LastSequenceWithCheckpointId: {1} -> {0}".Fmt(result, checkpointId));
             return result;
         }
@@ -1736,10 +1736,10 @@ PRAGMA user_version = 3;";
             }
             finally
             {
-				if (cursor != null)
-				{
-					cursor.Close ();
-				}
+                if (cursor != null)
+                {
+                    cursor.Close ();
+                }
             }
             result["rows"] = rows;
             result["total_rows"] = rows.Count;
@@ -2013,10 +2013,10 @@ PRAGMA user_version = 3;";
             }
             finally
             {
-				if (cursor != null)
-				{
-					cursor.Close();
-				}
+                if (cursor != null)
+                {
+                    cursor.Close();
+                }
             }
             return result;
         }
@@ -2128,13 +2128,13 @@ PRAGMA user_version = 3;";
             {
                 Log.E(Tag, "Error querying privateUUID", e);
             }
-			finally
-			{
-				if (cursor != null)
-				{
-					cursor.Close();
-				}
-			}
+            finally
+            {
+                if (cursor != null)
+                {
+                    cursor.Close();
+                }
+            }
             return result;
         }
 

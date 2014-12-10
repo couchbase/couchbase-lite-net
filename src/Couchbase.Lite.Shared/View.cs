@@ -159,7 +159,7 @@ namespace Couchbase.Lite {
 
             var result = new Status(StatusCode.InternalServerError);
             Cursor cursor = null;
-			Cursor cursor2 = null;
+            Cursor cursor2 = null;
 
             try
             {
@@ -281,8 +281,8 @@ namespace Couchbase.Lite {
                                     }
                                 }
 
-								cursor2.Close();
-								cursor2 = null;
+                                cursor2.Close();
+                                cursor2 = null;
                             }
                             // Get the document properties, to pass to the map function:
                             var contentOptions = DocumentContentOptions.None;
@@ -377,10 +377,10 @@ namespace Couchbase.Lite {
             }
             finally
             {
-				if (cursor2 != null)
-				{
-					cursor2.Close();
-				}
+                if (cursor2 != null)
+                {
+                    cursor2.Close();
+                }
 
                 if (cursor != null)
                 {
@@ -999,7 +999,7 @@ namespace Couchbase.Lite {
                 if (cursor != null)
                 {
                     cursor.Close();
-					cursor = null;
+                    cursor = null;
                 }
 
                 var updateValues = new ContentValues();
@@ -1016,13 +1016,13 @@ namespace Couchbase.Lite {
                 Log.E(Database.Tag, "Error setting map block", e);
                 return false;
             }
-			finally
-			{
-				if (cursor != null)
-				{
-					cursor.Close();
-				}
-			}
+            finally
+            {
+                if (cursor != null)
+                {
+                    cursor.Close();
+                }
+            }
         }
 
         /// <summary>
