@@ -1380,17 +1380,11 @@ PRAGMA user_version = 3;";
                 {
                     result = cursor.GetString(0);
                 }
+                cursor.Close();
             }
             catch (SQLException e)
             {
                 Log.E(Tag, "Error getting last sequence", e);
-            }
-            finally
-            {
-                if (cursor != null)
-                {
-                    cursor.Close();
-                }
             }
             Log.D(Tag, "LastSequenceWithCheckpointId: {1} -> {0}".Fmt(result, checkpointId));
             return result;
@@ -2118,17 +2112,11 @@ PRAGMA user_version = 3;";
                 {
                     result = cursor.GetString(0);
                 }
+                cursor.Close();
             }
             catch (SQLException e)
             {
                 Log.E(Tag, "Error querying privateUUID", e);
-            }
-            finally
-            {
-                if (cursor != null)
-                {
-                    cursor.Close();
-                }
             }
             return result;
         }

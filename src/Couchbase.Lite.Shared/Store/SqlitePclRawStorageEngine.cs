@@ -426,10 +426,6 @@ namespace Couchbase.Lite.Shared
                     Log.E(Tag, "Error inserting into table " + table, ex);
                     throw;
                 } 
-                finally
-                {
-                    command.Dispose();
-                }
             }
             return lastInsertedId;
         }

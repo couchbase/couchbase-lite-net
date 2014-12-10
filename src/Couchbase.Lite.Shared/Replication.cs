@@ -1783,7 +1783,7 @@ namespace Couchbase.Lite
             IsRunning = true;
             LastSequence = null;
 
-            WorkExecutor.StartNew(CheckSession);
+            CheckSession();
 
             var reachabilityManager = LocalDatabase.Manager.NetworkReachabilityManager;
             reachabilityManager.StatusChanged += (sender, e) =>
