@@ -159,6 +159,7 @@ namespace Couchbase.Lite {
 
             var result = new Status(StatusCode.InternalServerError);
             Cursor cursor = null;
+			Cursor cursor2 = null;
 
             try
             {
@@ -252,7 +253,7 @@ namespace Couchbase.Lite {
                             {
                                 // Find conflicts with documents from previous indexings.
                                 var selectArgs2 = new[] { Convert.ToString(docID), Convert.ToString(lastSequence) };
-                                var cursor2 = Database.StorageEngine.InIntransactionRawQuery("SELECT revid, sequence FROM revs "
+                                cursor2 = Database.StorageEngine.InIntransactionRawQuery("SELECT revid, sequence FROM revs "
                                     + "WHERE doc_id=? AND sequence<=? AND current!=0 AND deleted=0 " + "ORDER BY revID DESC "
                                     + "LIMIT 1", selectArgs2);
                                 if (cursor2.MoveToNext())
@@ -279,6 +280,9 @@ namespace Couchbase.Lite {
                                         );
                                     }
                                 }
+
+								cursor2.Close();
+								cursor2 = null;
                             }
                             // Get the document properties, to pass to the map function:
                             var contentOptions = DocumentContentOptions.None;
@@ -373,10 +377,16 @@ namespace Couchbase.Lite {
             }
             finally
             {
+				if (cursor2 != null)
+				{
+					cursor2.Close();
+				}
+
                 if (cursor != null)
                 {
                     cursor.Close();
                 }
+
                 if (!result.IsSuccessful)
                 {
                     Log.W(Database.Tag, "Failed to rebuild view {0}:{1}", Name, result.GetCode());
@@ -989,6 +999,7 @@ namespace Couchbase.Lite {
                 if (cursor != null)
                 {
                     cursor.Close();
+					cursor = null;
                 }
 
                 var updateValues = new ContentValues();
@@ -1005,6 +1016,13 @@ namespace Couchbase.Lite {
                 Log.E(Database.Tag, "Error setting map block", e);
                 return false;
             }
+			finally
+			{
+				if (cursor != null)
+				{
+					cursor.Close();
+				}
+			}
         }
 
         /// <summary>
