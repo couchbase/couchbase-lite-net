@@ -18,7 +18,10 @@ Couchbase Lite databases are able to sync with eachother via [Sync Gateway](http
 
 ## Building Couchbase Lite master branch from source
 
-TBD
+If you plan to use Visual Studio, you'll need meet one these prereqs:
+* VS 2013 Pro, Premium, or Ultimate, Update 2 or later.
+	* Must also have the [Shared Project Reference Manager](https://visualstudiogallery.msdn.microsoft.com/315c13a7-2787-4f57-bdf7-adae6ed54450) extension.
+* Xamarin Studio 5 or later.
 
 ## Running Tests
 
