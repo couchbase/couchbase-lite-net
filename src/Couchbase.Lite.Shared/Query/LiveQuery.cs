@@ -78,7 +78,7 @@ namespace Couchbase.Lite
 
         private void OnDatabaseChanged (object sender, DatabaseChangeEventArgs e)
         {
-            Log.I(Tag, "OnDatabaseChanged() called");
+            Log.D(Tag, "OnDatabaseChanged() called");
             Update();
         }
 
@@ -119,22 +119,22 @@ namespace Couchbase.Lite
         private void RunUpdateAfterQueryFinishes(Task updateQueryTask, CancellationTokenSource updateQueryTaskTokenSource) {
             if (!runningState) 
             {
-                Log.I(Tag, "ReRunUpdateAfterQueryFinishes() fired, but running state == false. Ignoring.");
+                Log.D(Tag, "ReRunUpdateAfterQueryFinishes() fired, but running state == false. Ignoring.");
                 return; // NOTE: Assuming that we don't want to lose rows we already retrieved.
             }
 
             try
             {
-                Log.I(Tag, "Waiting for Query to finish");
+                Log.D(Tag, "Waiting for Query to finish");
                 updateQueryTask.Wait(DefaultQueryTimeout, updateQueryTaskTokenSource.Token);
                 if (runningState && !updateQueryTaskTokenSource.IsCancellationRequested)
                 {
-                    Log.I(Tag, "Running Update() since Query finished");
+                    Log.D(Tag, "Running Update() since Query finished");
                     Update();
                 }
                 else
                 {
-                    Log.I(Tag, "Update() not called because either !runningState ({0}) or cancelled ({1})", runningState, updateQueryTaskTokenSource.IsCancellationRequested);
+                    Log.D(Tag, "Update() not called because either !runningState ({0}) or cancelled ({1})", runningState, updateQueryTaskTokenSource.IsCancellationRequested);
                 }
             }
             catch (Exception e)
@@ -154,7 +154,7 @@ namespace Couchbase.Lite
         {
             lock(updateLock)
             {
-                Log.I(Tag, "update() called.");
+                Log.D(Tag, "update() called.");
 
                 if (View == null)
                 {
@@ -171,7 +171,7 @@ namespace Couchbase.Lite
                     UpdateQueryTask.Status != TaskStatus.Canceled && 
                     UpdateQueryTask.Status != TaskStatus.RanToCompletion)
                 {
-                    Log.I(Tag, "already a query in flight, scheduling call to update() once it's done");
+                    Log.D(Tag, "already a query in flight, scheduling call to update() once it's done");
                     if (ReRunUpdateQueryTask != null &&
                         ReRunUpdateQueryTask.Status != TaskStatus.Canceled && 
                         ReRunUpdateQueryTask.Status != TaskStatus.RanToCompletion)
@@ -186,7 +186,7 @@ namespace Couchbase.Lite
                     ReRunUpdateQueryTokenSource = new CancellationTokenSource();
                     Database.Manager.RunAsync(() => 
                     {
-                        Log.I(Tag, "RunUpdateAfterQueryFinishes");
+                        Log.D(Tag, "RunUpdateAfterQueryFinishes");
                         RunUpdateAfterQueryFinishes(updateQueryTaskToWait, updateQueryTaskToWaitTokenSource); 
                     }, ReRunUpdateQueryTokenSource.Token);
 
@@ -204,9 +204,9 @@ namespace Couchbase.Lite
                             return; // NOTE: Assuming that we don't want to lose rows we already retrieved.
                         }
 
-                        Log.I(Tag, "UpdateQueryTask completed.");
+                        Log.D(Tag, "UpdateQueryTask completed.");
                         rows = runTask.Result; // NOTE: Should this be 'append' instead of 'replace' semantics? If append, use a concurrent collection.
-                        Log.I(Tag, "UpdateQueryTask results obtained.");
+                        Log.D(Tag, "UpdateQueryTask results obtained.");
                         LastError = runTask.Exception;
 
                         var evt = Changed;
@@ -267,12 +267,12 @@ namespace Couchbase.Lite
         {
             if (runningState)
             {
-                Log.I(Tag, "start() called, but runningState is already true.  Ignoring.");
+                Log.D(Tag, "start() called, but runningState is already true.  Ignoring.");
                 return;
             }
             else
             {
-                Log.I(Tag, "start() called");
+                Log.D(Tag, "start() called");
                 runningState = true;
             }
 

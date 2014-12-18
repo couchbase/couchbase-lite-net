@@ -504,7 +504,7 @@ namespace Couchbase.Lite
 
         internal void ClearDbRef()
         {
-            Log.I(Tag, "ClearDbRef...");
+            Log.D(Tag, "ClearDbRef...");
             if (LocalDatabase != null && savingCheckpoint && LastSequence != null)
             {
                 LocalDatabase.SetLastSequence(LastSequence, RemoteCheckpointDocID(), !IsPull);
@@ -758,7 +758,7 @@ namespace Couchbase.Lite
 
         internal virtual void Stopping()
         {
-            Log.I(Tag, "STOPPING");
+            Log.V(Tag, "Stopping");
 
             IsRunning = false;
 
@@ -781,7 +781,7 @@ namespace Couchbase.Lite
 
             ClearDbRef();
 
-            Log.I(Tag, "STOPPED");
+            Log.V(Tag, "...stopped");
         }
 
         internal void SaveLastSequence()
@@ -1810,7 +1810,7 @@ namespace Couchbase.Lite
                 return;
             }
 
-            Log.I(Tag, "STOP...");
+            Log.V(Tag, "Stop...");
 
             continuous = false;
 
@@ -1830,12 +1830,12 @@ namespace Couchbase.Lite
 
             if (IsRunning && asyncTaskCount <= 0)
             {
-                Log.V(Tag, "calling stopped()");
+                Log.V(Tag, "calling stopping()");
                 Stopping();
             }
             else
             {
-                Log.V(Tag, "not calling stopped().  running: " + IsRunning + " asyncTaskCount: " + asyncTaskCount);
+                Log.V(Tag, "not calling stopping().  running: " + IsRunning + " asyncTaskCount: " + asyncTaskCount);
             }
         }
 

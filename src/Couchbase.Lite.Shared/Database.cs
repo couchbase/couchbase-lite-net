@@ -678,9 +678,8 @@ namespace Couchbase.Lite
 
                 try
                 {
-                    Log.I(Tag, "Tx delegate starting");
+                    Log.D(Tag, "Tx delegate starting");
                     shouldCommit = transactionDelegate();
-                    Log.I(Tag, "Tx delegate done: {0}", shouldCommit); // NEVER RUNS!!!!
                 }
                 catch (Exception e)
                 {
@@ -690,6 +689,7 @@ namespace Couchbase.Lite
                 }
                 finally
                 {
+                    Log.I(Tag, "Tx delegate done: {0}", shouldCommit);
                     EndTransaction(shouldCommit);
                 }
 
@@ -1410,6 +1410,7 @@ PRAGMA user_version = 3;";
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
         internal IEnumerable<QueryRow> QueryViewNamed(String viewName, QueryOptions options, IList<Int64> outLastSequence)
         {
+            Log.D(Tag, "Starting QueryViewNamed");
             var before = Runtime.CurrentTimeMillis();
             var lastSequence = 0L;
             IEnumerable<QueryRow> rows;
@@ -1423,21 +1424,27 @@ PRAGMA user_version = 3;";
                     
                 lastSequence = view.LastSequenceIndexed;
                 if (options.GetStale () == IndexUpdateMode.Before || lastSequence <= 0) {
+                    Log.D(Tag, "Updating index on view '{0}' before generating query results.", view.Name);
                     view.UpdateIndex ();
                     lastSequence = view.LastSequenceIndexed;
                 } else {
                     if (options.GetStale () == IndexUpdateMode.After 
                         && lastSequence < GetLastSequenceNumber())
-                        // NOTE: The exception is handled inside the thread.
-                        // TODO: Consider using the async keyword instead.
-                        try
+                    {
+                        Log.D(Tag, "Deferring index update on view '{0}'.", view.Name);
+                        RunAsync((db)=>
                         {
-                            view.UpdateIndex();
-                        }
-                        catch (CouchbaseLiteException e)
-                        {
-                            Log.E(Tag, "Error updating view index on background thread", e);
-                        }
+                            try
+                            {
+                                Log.D(Tag, "Updating index on view '{0}'", view.Name);
+                                view.UpdateIndex();
+                            }
+                            catch (CouchbaseLiteException e)
+                            {
+                                Log.E(Tag, "Error updating view index on background thread", e);
+                            }
+                        });
+                    }
                 }
                 rows = view.QueryWithOptions (options);
             } else {
@@ -1445,6 +1452,7 @@ PRAGMA user_version = 3;";
                 // note: this is a little kludgy, but we have to pull out the "rows" field from the
                 // result dictionary because that's what we want.  should be refactored, but
                 // it's a little tricky, so postponing.
+                Log.D(Tag, "Returning an all docs query.");
                 var allDocsResult = GetAllDocs (options);
                 rows = (IList<QueryRow>)allDocsResult.Get ("rows");
                 lastSequence = GetLastSequenceNumber ();
@@ -2353,7 +2361,7 @@ PRAGMA user_version = 3;";
             }
             else
             {
-                Log.I(Tag, "CANCEL transaction (level " + _transactionLevel + ")");
+                Log.V(Tag, "CANCEL transaction (level " + _transactionLevel + ")");
                 try
                 {
                     StorageEngine.EndTransaction();
@@ -4220,7 +4228,7 @@ PRAGMA user_version = 3;";
                 return false;
             }
 
-            return id [0] != '_' || id.StartsWith ("_design/", StringComparison.InvariantCultureIgnoreCase) || id.StartsWith ("_user/", StringComparison.InvariantCultureIgnoreCase);
+            return id [0] != '_' || id.StartsWith ("_design/", StringComparison.InvariantCultureIgnoreCase);
         }
 
         /// <summary>Updates or deletes an attachment, creating a new document revision in the process.

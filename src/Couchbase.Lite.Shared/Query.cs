@@ -352,6 +352,9 @@ namespace Couchbase.Lite {
             var success = Database.RunInTransaction(()=>
             {
                 rows = Database.QueryViewNamed (viewName, queryOptions, outSequence);
+                
+                LastSequence = outSequence[0];
+                
                 return true;
             });
 
@@ -359,9 +362,6 @@ namespace Couchbase.Lite {
             {
                 throw new CouchbaseLiteException("Failed to query view named " + viewName, StatusCode.DbError);
             }
-
-            LastSequence = outSequence[0]; // potential concurrency issue?
-
             return new QueryEnumerator(Database, rows, outSequence[0]);
         }
 

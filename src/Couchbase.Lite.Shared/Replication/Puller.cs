@@ -139,7 +139,7 @@ namespace Couchbase.Lite.Replicator
                 }
             }
 
-            Log.W(Tag, "starting ChangeTracker with since=" + LastSequence);
+            Log.D(Tag, "starting ChangeTracker with since = " + LastSequence);
 
             var mode = Continuous 
                        ? ChangeTrackerMode.LongPoll 
@@ -147,8 +147,6 @@ namespace Couchbase.Lite.Replicator
 
             changeTracker = new ChangeTracker(RemoteUrl, mode, LastSequence, true, this, WorkExecutor);
             changeTracker.Authenticator = Authenticator;
-
-            Log.W(Tag, "started ChangeTracker " + changeTracker);
 
             if (Filter != null)
             {
@@ -226,7 +224,10 @@ namespace Couchbase.Lite.Replicator
 
             if (!LocalDatabase.IsValidDocumentId(docID))
             {
-                Log.W(Tag, string.Format("{0}: Received invalid doc ID from _changes: {1} ({2})", this, docID, JsonConvert.SerializeObject(change)));
+                if (!docID.StartsWith ("_user/", StringComparison.InvariantCultureIgnoreCase))
+                {
+                    Log.W(Tag, string.Format("{0}: Received invalid doc ID from _changes: {1} ({2})", this, docID, JsonConvert.SerializeObject(change)));
+                }
                 return;
             }
 
@@ -793,7 +794,7 @@ namespace Couchbase.Lite.Replicator
         /// <summary>This will be called when _revsToInsert fills up:</summary>
         public void InsertDownloads(IList<RevisionInternal> downloads)
         {
-            Log.I(Tag, "Inserting " + downloads.Count + " revisions...");
+            Log.D(Tag, "Inserting " + downloads.Count + " revisions...");
 
             var time = DateTime.UtcNow;
 
@@ -850,11 +851,11 @@ namespace Couchbase.Lite.Replicator
                         pendingSequences.RemoveSequence(fakeSequence);
                     }
 
-                    Log.I(Tag, " Finished inserting " + downloads.Count + " revisions");
+                    Log.D(Tag, " Finished inserting " + downloads.Count + " revisions");
 
                     return true;
                 });
-                Log.I(Tag, "Finished inserting {0}. Success == {1}", downloads.Count, success);
+                Log.D(Tag, "Finished inserting {0}. Success == {1}", downloads.Count, success);
             }
             catch (Exception e)
             {

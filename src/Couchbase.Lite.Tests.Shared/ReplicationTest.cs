@@ -1896,14 +1896,14 @@ namespace Couchbase.Lite
                 return;
             }
 
-//            for (int i = 0; i < 100; i++)
-//            {
-//                var docIdTimestamp = Convert.ToString (Runtime.CurrentTimeMillis ());
-//                var docId = string.Format ("doc{0}-{1}", i, docIdTimestamp);
-//
-//                Log.D(Tag, "Adding " + docId + " directly to sync gateway");           
-//                AddDocWithId(docId, "attachment.png");
-//            }
+            for (int i = 0; i < 100; i++)
+            {
+                var docIdTimestamp = Convert.ToString (Runtime.CurrentTimeMillis ());
+                var docId = string.Format ("doc{0}-{1}", i, docIdTimestamp);
+
+                Log.D(Tag, "Adding " + docId + " directly to sync gateway");           
+                AddDocWithId(docId, "attachment.png");
+            }
 
             var pusher = database.CreatePushReplication(GetReplicationURL());
             pusher.Start ();
@@ -1911,10 +1911,10 @@ namespace Couchbase.Lite
             var mre = new CountdownEvent(100);
             var puller = database.CreatePullReplication(GetReplicationURL());
             puller.Changed += (sender, e) => {
-                Log.W(Tag, "Puller Changed: {0}/{1}/{2}", puller.Status, puller.ChangesCount, puller.CompletedChangesCount);
+                Log.D(Tag, "Puller Changed: {0}/{1}/{2}", puller.Status, puller.ChangesCount, puller.CompletedChangesCount);
                 if (puller.Status != ReplicationStatus.Stopped)
                     return;
-                Log.W(Tag, "Puller Completed Changes after stopped: {0}", puller.CompletedChangesCount);
+                Log.D(Tag, "Puller Completed Changes after stopped: {0}", puller.CompletedChangesCount);
             };
             int numDocsBeforePull = database.DocumentCount;
             View view = database.GetView("testPullerWithLiveQueryView");
@@ -1935,7 +1935,7 @@ namespace Couchbase.Lite
                 {
                     NUnit.Framework.Assert.IsTrue(e.Rows.Count > numDocsBeforePull, "e.Rows.Count ({0}) <= numDocsBeforePull ({1})".Fmt(e.Rows.Count, numDocsBeforePull));
                 }
-                Log.W(Tag, "rows {0} / times called {1}", e.Rows.Count, numTimesCalled);
+                Log.D(Tag, "rows {0} / times called {1}", e.Rows.Count, numTimesCalled);
                 if (e.Rows.Count == 100)
                 {
                     mre.Signal(e.Rows.Count);
