@@ -67,7 +67,7 @@ namespace Couchbase.Lite
 {
     public class ReplicationTest : LiteTestCase
     {
-        new const string Tag = "ReplicationTest";
+        const string Tag = "ReplicationTest";
 
         private class ReplicationIdleObserver 
         {
@@ -164,7 +164,7 @@ namespace Couchbase.Lite
 
         private void WorkaroundSyncGatewayRaceCondition() 
         {
-            System.Threading.Thread.Sleep(2 * 1000);
+            System.Threading.Thread.Sleep(2 * 100);
         }
 
         private void PutReplicationOffline(Replication replication)
@@ -389,14 +389,14 @@ namespace Couchbase.Lite
             documentProperties["bar"] = false;
 
             var body = new Body(documentProperties);
-            var rev1 = new RevisionInternal(body, database);
+            var rev1 = new RevisionInternal(body);
             var status = new Status();
             rev1 = database.PutRevision(rev1, null, false, status);
             Assert.AreEqual(StatusCode.Created, status.GetCode());
 
             documentProperties.Put("_rev", rev1.GetRevId());
             documentProperties["UPDATED"] = true;
-            database.PutRevision(new RevisionInternal(documentProperties, database), rev1.GetRevId(), false, status);
+            database.PutRevision(new RevisionInternal(documentProperties), rev1.GetRevId(), false, status);
             Assert.AreEqual(StatusCode.Created, status.GetCode());
 
             documentProperties = new Dictionary<string, object>();
@@ -405,7 +405,7 @@ namespace Couchbase.Lite
             documentProperties["baz"] = 666;
             documentProperties["fnord"] = true;
 
-            database.PutRevision(new RevisionInternal(documentProperties, database), null, false, status);
+            database.PutRevision(new RevisionInternal(documentProperties), null, false, status);
             Assert.AreEqual(StatusCode.Created, status.GetCode());
 
             var doc2 = database.GetDocument(doc2Id);
@@ -503,7 +503,7 @@ namespace Couchbase.Lite
             documentProperties["bar"] = false;
 
             var body = new Body(documentProperties);
-            var rev1 = new RevisionInternal(body, database);
+            var rev1 = new RevisionInternal(body);
             var status = new Status();
             rev1 = database.PutRevision(rev1, null, false, status);
             Assert.AreEqual(StatusCode.Created, status.GetCode());
@@ -511,7 +511,7 @@ namespace Couchbase.Lite
             documentProperties["_rev"] = rev1.GetRevId();
             documentProperties["UPDATED"] = true;
             documentProperties["_deleted"] = true;
-            database.PutRevision(new RevisionInternal(documentProperties, database), rev1.GetRevId(), false, status);
+            database.PutRevision(new RevisionInternal(documentProperties), rev1.GetRevId(), false, status);
             Assert.IsTrue((int)status.GetCode() >= 200 && (int)status.GetCode() < 300);
 
             var repl = database.CreatePushReplication(remote);
@@ -1287,7 +1287,7 @@ namespace Couchbase.Lite
             var properties = new Dictionary<string, object>();
             properties["_revisions"] = revDict;
 
-            var rev = new RevisionInternal(properties, database);
+            var rev = new RevisionInternal(properties);
             Assert.AreEqual(Pusher.FindCommonAncestor(rev, new  List<string>()), 0);
             Assert.AreEqual(Pusher.FindCommonAncestor(rev, (new [] {"3-noway", "1-nope"}).ToList()), 0);
             Assert.AreEqual(Pusher.FindCommonAncestor(rev, (new [] {"3-noway", "1-first"}).ToList()), 1);
@@ -1896,20 +1896,26 @@ namespace Couchbase.Lite
                 return;
             }
 
-            for (int i = 0; i < 100; i++)
-            {
-                var docIdTimestamp = Convert.ToString (Runtime.CurrentTimeMillis ());
-                var docId = string.Format ("doc{0}-{1}", i, docIdTimestamp);
-
-                Log.D(Tag, "Adding " + docId + " directly to sync gateway");           
-                AddDocWithId(docId, "attachment.png");
-            }
+//            for (int i = 0; i < 100; i++)
+//            {
+//                var docIdTimestamp = Convert.ToString (Runtime.CurrentTimeMillis ());
+//                var docId = string.Format ("doc{0}-{1}", i, docIdTimestamp);
+//
+//                Log.D(Tag, "Adding " + docId + " directly to sync gateway");           
+//                AddDocWithId(docId, "attachment.png");
+//            }
 
             var pusher = database.CreatePushReplication(GetReplicationURL());
             pusher.Start ();
 
+            var mre = new CountdownEvent(100);
             var puller = database.CreatePullReplication(GetReplicationURL());
-
+            puller.Changed += (sender, e) => {
+                Log.W(Tag, "Puller Changed: {0}/{1}/{2}", puller.Status, puller.ChangesCount, puller.CompletedChangesCount);
+                if (puller.Status != ReplicationStatus.Stopped)
+                    return;
+                Log.W(Tag, "Puller Completed Changes after stopped: {0}", puller.CompletedChangesCount);
+            };
             int numDocsBeforePull = database.DocumentCount;
             View view = database.GetView("testPullerWithLiveQueryView");
             view.SetMapReduce((document, emitter) => {
@@ -1919,28 +1925,37 @@ namespace Couchbase.Lite
             }, null, "1");
 
             LiveQuery allDocsLiveQuery = view.CreateQuery().ToLiveQuery();
+            int numTimesCalled = 0;
             allDocsLiveQuery.Changed += (sender, e) => {
-                int numTimesCalled = 0;
                 if (e.Error != null)
                 {
                     throw new RuntimeException(e.Error);
                 }
-                if (numTimesCalled++ > 0)
+                if (numTimesCalled++ > 0 && e.Rows.Count > 0)
                 {
-                    NUnit.Framework.Assert.IsTrue(e.Rows.Count > numDocsBeforePull);
+                    NUnit.Framework.Assert.IsTrue(e.Rows.Count > numDocsBeforePull, "e.Rows.Count ({0}) <= numDocsBeforePull ({1})".Fmt(e.Rows.Count, numDocsBeforePull));
                 }
-                Log.D(Database.Tag, "rows " + e.Rows);
+                Log.W(Tag, "rows {0} / times called {1}", e.Rows.Count, numTimesCalled);
+                if (e.Rows.Count == 100)
+                {
+                    mre.Signal(e.Rows.Count);
+                }
             };
 
             // the first time this is called back, the rows will be empty.
             // but on subsequent times we should expect to get a non empty
             // row set.
             allDocsLiveQuery.Start();
-            RunReplication (puller);
-            allDocsLiveQuery.Stop();
+            puller.Start();
+
+            Assert.IsTrue(mre.Wait(TimeSpan.FromSeconds(60)), "Replication Timeout");
 
             pusher.Stop ();
             puller.Stop ();
+
+            Thread.Sleep(1000);
+
+            allDocsLiveQuery.Stop();            
         }
     }
 }

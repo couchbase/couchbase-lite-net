@@ -243,7 +243,7 @@ namespace Couchbase.Lite
 
         protected internal Boolean lastSequenceChanged;
 
-        private String lastSequence;
+        private String lastSequence = "0";
         protected internal String LastSequence
         {
             get { return lastSequence; }
@@ -504,7 +504,7 @@ namespace Couchbase.Lite
 
         internal void ClearDbRef()
         {
-            Log.D(Tag, "ClearDbRef...");
+            Log.I(Tag, "ClearDbRef...");
             if (LocalDatabase != null && savingCheckpoint && LastSequence != null)
             {
                 LocalDatabase.SetLastSequence(LastSequence, RemoteCheckpointDocID(), !IsPull);
@@ -758,7 +758,7 @@ namespace Couchbase.Lite
 
         internal virtual void Stopping()
         {
-            Log.V(Tag, "STOPPING");
+            Log.I(Tag, "STOPPING");
 
             IsRunning = false;
 
@@ -781,7 +781,7 @@ namespace Couchbase.Lite
 
             ClearDbRef();
 
-            Log.V(Tag, "STOPPED");
+            Log.I(Tag, "STOPPED");
         }
 
         internal void SaveLastSequence()
@@ -1469,7 +1469,7 @@ namespace Couchbase.Lite
                         if (xformed.GetProperties().ContainsKey("_attachments"))
                         {
                             // Insert 'revpos' properties into any attachments added by the callback:
-                            var mx = new RevisionInternal(xformed.GetProperties(), LocalDatabase);
+                            var mx = new RevisionInternal(xformed.GetProperties());
                             xformed = mx;
                             mx.MutateAttachments((name, info) => {
                                 if (info.Get("revpos") != null)
@@ -1568,7 +1568,7 @@ namespace Couchbase.Lite
                         Debug.Assert (xformedProperties ["_id"].Equals (properties ["_id"]));
                         Debug.Assert (xformedProperties ["_rev"].Equals (properties ["_rev"]));
 
-                        var nuRev = new RevisionInternal (rev.GetProperties (), LocalDatabase);
+                        var nuRev = new RevisionInternal (rev.GetProperties ());
                         nuRev.SetProperties (xformedProperties);
                         return nuRev;
                     }
@@ -1810,7 +1810,7 @@ namespace Couchbase.Lite
                 return;
             }
 
-            Log.V(Tag, "STOP...");
+            Log.I(Tag, "STOP...");
 
             continuous = false;
 

@@ -58,6 +58,7 @@ using Couchbase.Lite.Util;
 using Sharpen;
 using System.Threading;
 using System.Data;
+using Newtonsoft.Json;
 
 namespace Couchbase.Lite.Replicator
 {
@@ -225,7 +226,7 @@ namespace Couchbase.Lite.Replicator
 
             if (!LocalDatabase.IsValidDocumentId(docID))
             {
-                Log.W(Tag, string.Format("{0}: Received invalid doc ID from _changes: {1}", this, change));
+                Log.W(Tag, string.Format("{0}: Received invalid doc ID from _changes: {1} ({2})", this, docID, JsonConvert.SerializeObject(change)));
                 return;
             }
 
@@ -271,7 +272,7 @@ namespace Couchbase.Lite.Replicator
         // The change tracker reached EOF or an error.
         public void ChangeTrackerStopped(ChangeTracker tracker)
         {
-            Log.W(Tag, "ChangeTracker " + tracker + " stopped");
+            Log.V(Tag, "ChangeTracker " + tracker + " stopped");
             if (LastError == null && tracker.Error != null)
             {
                 SetLastError(tracker.Error);
@@ -495,8 +496,8 @@ namespace Couchbase.Lite.Replicator
                     var props = e.DocumentProperties;
 
                     var rev = props.Get ("_id") != null 
-                        ? new RevisionInternal (props, LocalDatabase) 
-                        : new RevisionInternal ((string)props.Get ("id"), (string)props.Get ("rev"), false, LocalDatabase);
+                        ? new RevisionInternal (props) 
+                        : new RevisionInternal ((string)props.Get ("id"), (string)props.Get ("rev"), false);
 
                     Log.D(Tag, "Document downloaded! {0}", rev);
 
@@ -634,7 +635,7 @@ namespace Couchbase.Lite.Replicator
                         var doc = row.Get ("doc").AsDictionary<string, object>();
                         if (doc != null && doc.Get ("_attachments") == null)
                         {
-                            var rev = new RevisionInternal (doc, LocalDatabase);
+                            var rev = new RevisionInternal (doc);
                             var pos = remainingRevs.IndexOf (rev);
                             if (pos > -1) 
                             {
@@ -769,7 +770,7 @@ namespace Couchbase.Lite.Replicator
                     else
                     {
                         var properties = result.AsDictionary<string, object>();
-                        PulledRevision gotRev = new PulledRevision(properties, LocalDatabase);
+                        var gotRev = new PulledRevision(properties);
                         gotRev.SetSequence(rev.GetSequence());
                         AsyncTaskStarted ();
                         Log.D(Tag, "PullRemoteRevision add rev: " + gotRev + " to batcher");
@@ -792,7 +793,7 @@ namespace Couchbase.Lite.Replicator
         /// <summary>This will be called when _revsToInsert fills up:</summary>
         public void InsertDownloads(IList<RevisionInternal> downloads)
         {
-            Log.V(Tag, "Inserting " + downloads.Count + " revisions...");
+            Log.I(Tag, "Inserting " + downloads.Count + " revisions...");
 
             var time = DateTime.UtcNow;
 
@@ -806,7 +807,7 @@ namespace Couchbase.Lite.Replicator
 
             try
             {
-                LocalDatabase.RunInTransaction(() =>
+                var success = LocalDatabase.RunInTransaction(() =>
                 {
                     foreach (var rev in downloads)
                     {
@@ -820,7 +821,7 @@ namespace Couchbase.Lite.Replicator
                             continue;
                         }
 
-                        Log.V(Tag, String.Format("{0}: inserting {1} {2}", this, rev.GetDocId(), history));
+                        Log.D(Tag, String.Format("{0}: inserting {1} {2}", this, rev.GetDocId(), history));
 
                         // Insert the revision:
                         try
@@ -841,13 +842,19 @@ namespace Couchbase.Lite.Replicator
                                 continue;
                             }
                         }
+                        catch (Exception e)
+                        {
+                            Log.E(Tag, "Exception inserting downloads.", e);
+                            throw;
+                        }
                         pendingSequences.RemoveSequence(fakeSequence);
                     }
 
-                    Log.W(Tag, " finished inserting " + downloads.Count + " revisions");
+                    Log.I(Tag, " Finished inserting " + downloads.Count + " revisions");
 
                     return true;
                 });
+                Log.I(Tag, "Finished inserting {0}. Success == {1}", downloads.Count, success);
             }
             catch (Exception e)
             {

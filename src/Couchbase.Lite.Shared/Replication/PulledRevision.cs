@@ -63,17 +63,17 @@ namespace Couchbase.Lite.Replicator
     ///     </remarks>
     internal class PulledRevision : RevisionInternal
     {
-        public PulledRevision(Body body, Database database) : base(body, database)
+        public PulledRevision(Body body) : base(body)
         {
         }
 
         public PulledRevision(string docId, string revId, bool deleted, Database database
-            ) : base(docId, revId, deleted, database)
+            ) : base(docId, revId, deleted)
         {
         }
 
-        public PulledRevision(IDictionary<string, object> properties, Database database) : 
-            base(properties, database)
+        public PulledRevision(IDictionary<string, object> properties) : 
+            base(properties)
         {
         }
 

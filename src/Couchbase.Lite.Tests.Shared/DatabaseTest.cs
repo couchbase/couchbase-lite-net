@@ -271,7 +271,7 @@ namespace Couchbase.Lite
 
             IDictionary<string, object> expected = null;
 
-            var rev = new RevisionInternal(properties, database);
+            var rev = new RevisionInternal(properties);
             Database.StubOutAttachmentsInRevBeforeRevPos(rev, 3, false);
             var checkAttachments = rev.GetProperties()["_attachments"].AsDictionary<string, object>();
             var result = (IDictionary<string, object>)checkAttachments["hello"];
@@ -285,7 +285,7 @@ namespace Couchbase.Lite
             expected["stub"] = true;
             AssertPropertiesAreEqual(expected, result);
 
-            rev = new RevisionInternal(properties, database);
+            rev = new RevisionInternal(properties);
             Database.StubOutAttachmentsInRevBeforeRevPos(rev, 2, false);
             checkAttachments = rev.GetProperties()["_attachments"].AsDictionary<string, object>();
             result = checkAttachments["hello"].AsDictionary<string, object>();
@@ -297,7 +297,7 @@ namespace Couchbase.Lite
             expected = goodbye.AsDictionary<string, object>();
             AssertPropertiesAreEqual(expected, result);
 
-            rev = new RevisionInternal(properties, database);
+            rev = new RevisionInternal(properties);
             Database.StubOutAttachmentsInRevBeforeRevPos(rev, 1, false);
             checkAttachments = rev.GetProperties()["_attachments"].AsDictionary<string, object>();
             result = checkAttachments["hello"].AsDictionary<string, object>();
@@ -308,7 +308,7 @@ namespace Couchbase.Lite
             AssertPropertiesAreEqual(expected, result);
 
             //Test the follows mode
-            rev = new RevisionInternal(properties, database);
+            rev = new RevisionInternal(properties);
             Database.StubOutAttachmentsInRevBeforeRevPos(rev, 3, true);
             checkAttachments = rev.GetProperties()["_attachments"].AsDictionary<string, object>();
             result = checkAttachments["hello"].AsDictionary<string, object>();
@@ -322,7 +322,7 @@ namespace Couchbase.Lite
             expected["stub"] = true;
             AssertPropertiesAreEqual(expected, result);
 
-            rev = new RevisionInternal(properties, database);
+            rev = new RevisionInternal(properties);
             Database.StubOutAttachmentsInRevBeforeRevPos(rev, 2, true);
             checkAttachments = rev.GetProperties()["_attachments"].AsDictionary<string, object>();
             result = checkAttachments["hello"].AsDictionary<string, object>();
@@ -336,7 +336,7 @@ namespace Couchbase.Lite
             expected["follows"] = true;
             AssertPropertiesAreEqual(expected, result);
 
-            rev = new RevisionInternal(properties, database);
+            rev = new RevisionInternal(properties);
             Database.StubOutAttachmentsInRevBeforeRevPos(rev, 1, true);
             checkAttachments = rev.GetProperties()["_attachments"].AsDictionary<string, object>();
             result = checkAttachments["hello"].AsDictionary<string, object>();
@@ -359,7 +359,7 @@ namespace Couchbase.Lite
                 {"_local_seq", ""}
             };
 
-            var revisionInternal = new RevisionInternal(props, database);
+            var revisionInternal = new RevisionInternal(props);
             var encoded = database.EncodeDocumentJSON(revisionInternal);
             Assert.IsNotNull(encoded);
         }

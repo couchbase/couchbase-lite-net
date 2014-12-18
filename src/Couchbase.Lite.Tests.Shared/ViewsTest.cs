@@ -97,7 +97,7 @@ namespace Couchbase.Lite
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
         private RevisionInternal PutDoc(Database db, IDictionary<string, object> props)
         {
-            var rev = new RevisionInternal(props, db);
+            var rev = new RevisionInternal(props);
             var status = new Status();
             rev = db.PutRevision(rev, null, false, status);
             Assert.IsTrue(status.IsSuccessful);
@@ -262,7 +262,7 @@ namespace Couchbase.Lite
             view.UpdateIndex();
 
             // Now add a doc and update a doc:
-            var threeUpdated = new RevisionInternal(rev3.GetDocId(), rev3.GetRevId(), false, database);
+            var threeUpdated = new RevisionInternal(rev3.GetDocId(), rev3.GetRevId(), false);
             numTimesMapFunctionInvoked = numTimesInvoked;
 
             var newdict3 = new Dictionary<string, object>();
@@ -283,7 +283,7 @@ namespace Couchbase.Lite
             var dict4 = new Dictionary<string, object>();
             dict4["key"] = "four";
             var rev4 = PutDoc(database, dict4);
-            var twoDeleted = new RevisionInternal(rev2.GetDocId(), rev2.GetRevId(), true, database);
+            var twoDeleted = new RevisionInternal(rev2.GetDocId(), rev2.GetRevId(), true);
             database.PutRevision(twoDeleted, rev2.GetRevId(), false, status);
             Assert.IsTrue(status.IsSuccessful);
 

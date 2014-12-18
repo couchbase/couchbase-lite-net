@@ -75,7 +75,7 @@ namespace Couchbase.Lite
 
             var status = new Status();
             var rev1 = database.PutRevision(
-                new RevisionInternal(rev1Properties, database), null, false, status);
+                new RevisionInternal(rev1Properties), null, false, status);
             Assert.AreEqual(StatusCode.Created, status.GetCode());
 
             var attach1 = Runtime.GetBytesForString(
@@ -157,8 +157,7 @@ namespace Couchbase.Lite
             rev2Properties.Put("_id", rev1.GetDocId());
             rev2Properties["foo"] = 2;
             rev2Properties["bazz"] = false;
-            var rev2 = database.PutRevision(new RevisionInternal(rev2Properties, 
-                database), rev1.GetRevId(), false, status);
+            var rev2 = database.PutRevision(new RevisionInternal(rev2Properties), rev1.GetRevId(), false, status);
             Assert.AreEqual(StatusCode.Created, status.GetCode());
 
             database.CopyAttachmentNamedFromSequenceToSequence(
@@ -171,7 +170,7 @@ namespace Couchbase.Lite
             rev3Properties["bazz"] = false;
             database.BeginTransaction();
             var rev3 = database.PutRevision(new RevisionInternal(
-                rev3Properties, database), rev2.GetRevId(), false, status);
+                rev3Properties), rev2.GetRevId(), false, status);
             Assert.AreEqual(StatusCode.Created, status.GetCode());
 
             var attach2 = Runtime.GetBytesForString("<html>And this is attach2</html>").ToArray();
@@ -254,8 +253,7 @@ namespace Couchbase.Lite
             rev1Properties["foo"] = 1;
             rev1Properties["bar"] = false;
             database.BeginTransaction();
-            var rev1 = database.PutRevision(new RevisionInternal(rev1Properties, 
-                database), null, false, status);
+            var rev1 = database.PutRevision(new RevisionInternal(rev1Properties), null, false, status);
             Assert.AreEqual(StatusCode.Created, status.GetCode());
             var largeAttachment = new StringBuilder();
             for (int i = 0; i < Database.BigAttachmentLength; i++)
@@ -301,7 +299,7 @@ namespace Couchbase.Lite
             rev2Properties.Put("_id", rev1WithAttachmentsProperties["_id"]);
             rev2Properties["foo"] = 2;
             database.BeginTransaction();
-            var newRev = new RevisionInternal(rev2Properties, database);
+            var newRev = new RevisionInternal(rev2Properties);
             var rev2 = database.PutRevision(newRev, rev1WithAttachments.GetRevId(), false, status);
             Assert.AreEqual(StatusCode.Created, status.GetCode());
             database.CopyAttachmentNamedFromSequenceToSequence(
@@ -320,7 +318,7 @@ namespace Couchbase.Lite
             rev3Properties.Put("_id", rev2.GetProperties().Get("_id"));
             rev3Properties["foo"] = 3;
             rev3Properties["baz"] = false;
-            var rev3 = new RevisionInternal(rev3Properties, database);
+            var rev3 = new RevisionInternal(rev3Properties);
             rev3 = database.PutRevision(rev3, rev2.GetRevId(), false, status);
 
             Assert.AreEqual(StatusCode.Created, status.GetCode());
@@ -369,7 +367,7 @@ namespace Couchbase.Lite
             properties["bar"] = false;
             properties["_attachments"] = attachmentDict;
 
-            var rev1 = database.PutRevision(new RevisionInternal(properties, database), null, false);
+            var rev1 = database.PutRevision(new RevisionInternal(properties), null, false);
 
             // Examine the attachment store:
             Assert.AreEqual(1, attachments.Count());

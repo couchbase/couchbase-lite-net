@@ -369,7 +369,10 @@ namespace Couchbase.Lite.Shared
                     {
                         command.Dispose();
                     }
-                    Log.E(Tag, "Error executing raw query '{0}'".Fmt(sql), e);
+                    var args = paramArgs == null 
+                        ? String.Empty 
+                        : String.Join(",", paramArgs.ToString());
+                    Log.E(Tag, "Error executing raw query '{0}' is values '{1}' {2}".Fmt(sql, args, _readConnection.errmsg()), e);
                     throw;
                 }
             }

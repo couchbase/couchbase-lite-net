@@ -325,6 +325,9 @@ namespace Couchbase.Lite {
             } 
         }
 
+        /// <summary>
+        /// Event raised when a query has finished running.
+        /// </summary>
         public event EventHandler<QueryCompletedEventArgs> Completed;
 
         //Methods

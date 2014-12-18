@@ -773,7 +773,7 @@ namespace Couchbase.Lite {
             sql = sql + " LIMIT ? OFFSET ?";
             argsList.AddItem(options.GetLimit().ToString());
             argsList.AddItem(options.GetSkip().ToString());
-            Log.V(Database.Tag, "Query {0}:{1}", Name, sql);
+            Log.D(Database.Tag, "Query {0}:{1}", Name, sql);
             var cursor = Database.StorageEngine.RawQuery(sql, argsList.ToArray());
             return cursor;
         }

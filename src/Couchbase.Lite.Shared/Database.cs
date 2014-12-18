@@ -437,7 +437,7 @@ namespace Couchbase.Lite
             }
 
             var deleted = false || properties == null;
-            var rev = new RevisionInternal(id, null, deleted, this);
+            var rev = new RevisionInternal(id, null, deleted);
 
             if (properties != null)
             {
@@ -678,7 +678,9 @@ namespace Couchbase.Lite
 
                 try
                 {
+                    Log.I(Tag, "Tx delegate starting");
                     shouldCommit = transactionDelegate();
+                    Log.I(Tag, "Tx delegate done: {0}", shouldCommit); // NEVER RUNS!!!!
                 }
                 catch (Exception e)
                 {
@@ -691,27 +693,26 @@ namespace Couchbase.Lite
                     EndTransaction(shouldCommit);
                 }
 
+                Log.I(Tag, "Tx delegate complete: {0}", shouldCommit);
                 return shouldCommit;
             });
 
             var result = false;
-            var mre = new ManualResetEvent(false);
 
             try
             {
                 result = transactionTask.Result;
-                mre.Set();
             }
             catch (AggregateException ex)
             {
                 throw ex.InnerException;
             }
 
-            mre.WaitOne(30000);
+            Log.I(Tag, "Tx complete: {0}", result);
 
             if (transactionTask.Status != TaskStatus.RanToCompletion)
                 throw new CouchbaseLiteException("Database transaction timed out.", StatusCode.InternalServerError);
-
+            Log.I(Tag, "Tx complete: {0}", result);
             return result;
         }
 
@@ -903,7 +904,7 @@ PRAGMA user_version = 3;";
                 result = new RevisionList();
                 while (!cursor.IsAfterLast())
                 {
-                    var rev = new RevisionInternal(docId, cursor.GetString(1), (cursor.GetInt(2) > 0), this);
+                    var rev = new RevisionInternal(docId, cursor.GetString(1), (cursor.GetInt(2) > 0));
                     rev.SetSequence(cursor.GetLong(0));
                     result.AddItem(rev);
                     cursor.MoveToNext();
@@ -1101,7 +1102,7 @@ PRAGMA user_version = 3;";
                         properties["_id"] = docID;
                         properties["_rev"] = gotRevID;
 
-                        result = new RevisionInternal(docID, gotRevID, false, this);
+                        result = new RevisionInternal(docID, gotRevID, false);
                         result.SetProperties(properties);
                     }
                     catch (Exception e)
@@ -1235,7 +1236,7 @@ PRAGMA user_version = 3;";
                             else
                             {
                                 // It's an intermediate parent, so insert a stub:
-                                newRev = new RevisionInternal(docId, revId, false, this);
+                                newRev = new RevisionInternal(docId, revId, false);
                             }
 
                             // Insert it:
@@ -1503,7 +1504,7 @@ PRAGMA user_version = 3;";
                     }
 
                     var sequence = cursor.GetLong(0);
-                    var rev = new RevisionInternal(cursor.GetString(2), cursor.GetString(3), (cursor.GetInt(4) > 0), this);
+                    var rev = new RevisionInternal(cursor.GetString(2), cursor.GetString(3), (cursor.GetInt(4) > 0));
                     rev.SetSequence(sequence);
 
                     if (includeDocs)
@@ -1710,7 +1711,7 @@ PRAGMA user_version = 3;";
                                     bool deleted;
                                     var outIsDeleted = new List<bool>();
                                     var outIsConflict = new List<bool>();
-                                    var revId = WinningRevIDOfDoc(docNumericID, outIsDeleted, outIsConflict);
+                                    var revId = WinningRevIDOfDoc(docNumericID, outIsDeleted, outIsConflict, true);
                                     if (outIsDeleted.Count > 0)
                                     {
                                         deleted = true;
@@ -1753,7 +1754,7 @@ PRAGMA user_version = 3;";
 
         /// <summary>Returns the rev ID of the 'winning' revision of this document, and whether it's deleted.</summary>
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
-        internal String WinningRevIDOfDoc(Int64 docNumericId, IList<Boolean> outIsDeleted, IList<Boolean> outIsConflict)
+        internal String WinningRevIDOfDoc(Int64 docNumericId, IList<Boolean> outIsDeleted, IList<Boolean> outIsConflict, Boolean readOnly = false)
         {
             Cursor cursor = null;
             var args = new [] { Convert.ToString(docNumericId) };
@@ -1763,7 +1764,9 @@ PRAGMA user_version = 3;";
 
             try
             {
-                cursor = StorageEngine.InIntransactionRawQuery(sql, args);
+                cursor = readOnly 
+                    ? StorageEngine.RawQuery(sql, args)
+                    : StorageEngine.InIntransactionRawQuery(sql, args);
                 cursor.MoveToNext();
 
                 if (!cursor.IsAfterLast())
@@ -1805,7 +1808,7 @@ PRAGMA user_version = 3;";
 
         internal IDictionary<String, Object> DocumentPropertiesFromJSON(IEnumerable<Byte> json, String docId, String revId, Boolean deleted, Int64 sequence, DocumentContentOptions contentOptions)
         {
-            var rev = new RevisionInternal(docId, revId, deleted, this);
+            var rev = new RevisionInternal(docId, revId, deleted);
             rev.SetSequence(sequence);
 
             IDictionary<String, Object> extra = ExtraPropertiesForRevision(rev, contentOptions);
@@ -2007,7 +2010,7 @@ PRAGMA user_version = 3;";
                 {
                     string revId = cursor.GetString(0);
                     bool deleted = (cursor.GetInt(1) > 0);
-                    result = new RevisionInternal(rev.GetDocId(), revId, deleted, this);
+                    result = new RevisionInternal(rev.GetDocId(), revId, deleted);
                     result.SetSequence(seq);
                 }
             }
@@ -2350,7 +2353,7 @@ PRAGMA user_version = 3;";
             }
             else
             {
-                Log.I(Tag, " CANCEL transaction (level " + _transactionLevel + ")");
+                Log.I(Tag, "CANCEL transaction (level " + _transactionLevel + ")");
                 try
                 {
                     StorageEngine.EndTransaction();
@@ -2518,7 +2521,7 @@ PRAGMA user_version = 3;";
                         rev = cursor.GetString(0);
                     }
                     var deleted = cursor.GetInt(1) > 0;
-                    result = new RevisionInternal(id, rev, deleted, this);
+                    result = new RevisionInternal(id, rev, deleted);
                     result.SetSequence(cursor.GetLong(2));
                     if (contentOptions != DocumentContentOptions.NoBody)
                     {
@@ -2737,7 +2740,7 @@ PRAGMA user_version = 3;";
                         var deleted = (cursor.GetInt(3) > 0);
                         var missing = (cursor.GetInt(4) > 0);
 
-                        var aRev = new RevisionInternal(docId, revId, deleted, this);
+                        var aRev = new RevisionInternal(docId, revId, deleted);
                         aRev.SetSequence(sequence);
                         aRev.SetMissing(missing);
                         result.AddItem(aRev);
@@ -3156,7 +3159,7 @@ PRAGMA user_version = 3;";
                         {
                             // Fetch the previous revision and validate the new one against it:
                             var oldRevCopy = oldRev.CopyWithDocID(oldRev.GetDocId(), null);
-                            var prevRev = new RevisionInternal(docId, prevRevId, false, this);
+                            var prevRev = new RevisionInternal(docId, prevRevId, false);
 
                             ValidateRevision(oldRevCopy, prevRev, prevRevId);
                         }
@@ -3373,7 +3376,7 @@ PRAGMA user_version = 3;";
                         else
                         {
                             var deleted = false;
-                            var winningRev = new RevisionInternal(newRev.GetDocId(), winningRevID, deleted, this);
+                            var winningRev = new RevisionInternal(newRev.GetDocId(), winningRevID, deleted);
                             return winningRev;
                         }
                     }
@@ -4217,7 +4220,7 @@ PRAGMA user_version = 3;";
                 return false;
             }
 
-            return id [0] != '_' || id.StartsWith ("_design/", StringComparison.InvariantCultureIgnoreCase);
+            return id [0] != '_' || id.StartsWith ("_design/", StringComparison.InvariantCultureIgnoreCase) || id.StartsWith ("_user/", StringComparison.InvariantCultureIgnoreCase);
         }
 
         /// <summary>Updates or deletes an attachment, creating a new document revision in the process.
@@ -4242,7 +4245,7 @@ PRAGMA user_version = 3;";
             {
                 try
                 {
-                    var oldRev = new RevisionInternal(docID, oldRevID, false, this);
+                    var oldRev = new RevisionInternal(docID, oldRevID, false);
                     if (oldRevID != null)
                     {
                         // Load existing revision if this is a replacement:
@@ -4406,7 +4409,7 @@ PRAGMA user_version = 3;";
             }
 
             // Stuff we need to initialize every time the sqliteDb opens:
-            if (!Initialize("PRAGMA foreign_keys = ON;"))
+            if (!Initialize("PRAGMA foreign_keys = ON; PRAGMA journal_mode=WAL;"))
             {
                 Log.E(Tag, "Error turning on foreign keys");
                 return false;
@@ -4582,6 +4585,7 @@ PRAGMA user_version = 3;";
             {
                 return false;
             }
+            Log.I(Tag, "Closing database {0}", Name);
             if (_views != null)
             {
                 foreach (View view in _views.Values)

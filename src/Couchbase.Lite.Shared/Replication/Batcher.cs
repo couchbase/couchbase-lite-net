@@ -141,13 +141,13 @@ namespace Couchbase.Lite.Support
 
                 if (inbox.Count <= capacity)
                 {
-                    Log.V(Tag, "inbox size <= capacity, adding {0} items from inbox -> toProcess", inbox.Count);
+                    Log.D(Tag, "inbox size <= capacity, adding {0} items from inbox -> toProcess", inbox.Count);
                     toProcess.AddRange(inbox);
                     inbox = null;
                 }
                 else
                 {
-                    Log.V(Tag, "ProcessNow() called, inbox size: {0}", inbox.Count);
+                    Log.D(Tag, "ProcessNow() called, inbox size: {0}", inbox.Count);
 
                     int i = 0;
                     foreach (T item in inbox)
@@ -238,6 +238,7 @@ namespace Couchbase.Lite.Support
 
                     var toProcess = new List<T>(inbox);
                     inbox.Clear();
+                    Log.D(Tag, "Flushing {0} downloads.", inbox.Count);
                     processor(toProcess);
                     lastProcessedTime = DateTime.UtcNow;
                 }
@@ -289,13 +290,15 @@ namespace Couchbase.Lite.Support
                 Log.D(Tag, "ScheduleWithDelay called with delay: {0} ms, scheduler: {1}/{2}", suggestedDelay, workExecutor.Scheduler.GetType().Name, ((SingleThreadTaskScheduler)workExecutor.Scheduler).ScheduledTasks.Count());
 
                 cancellationSource = new CancellationTokenSource();
-                flushFuture = workExecutor.StartNew(()=> 
+                flushFuture = Task.Delay(suggestedDelay).ContinueWith((t)=> 
                     {
+                        Log.D(Tag, "ScheduleWithDelay fired");
                         if(!(cancellationSource.IsCancellationRequested))
                         {
                             processNowRunnable();
                         }
-                    }, cancellationSource.Token, TaskCreationOptions.None, workExecutor.Scheduler);
+                    return true;
+                    }, cancellationSource.Token, TaskContinuationOptions.None, workExecutor.Scheduler);
             }
             else
             {
