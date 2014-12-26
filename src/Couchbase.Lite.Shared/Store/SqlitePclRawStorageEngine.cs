@@ -77,7 +77,7 @@ namespace Couchbase.Lite.Shared
         private Boolean shouldCommit;
 
         private string Path { get; set; }
-        private TaskFactory Scheduler { get; set; }
+        private TaskFactory Factory { get; set; }
 
 
         #region implemented abstract members of SQLiteStorageEngine
@@ -88,7 +88,7 @@ namespace Couchbase.Lite.Shared
                 return true;
 
             Path = path;
-            Scheduler = new TaskFactory(new SingleThreadTaskScheduler());
+            Factory = new TaskFactory(new SingleThreadTaskScheduler());
 
             var result = true;
             try
@@ -270,7 +270,7 @@ namespace Couchbase.Lite.Shared
         /// <param name="paramArgs">Parameter arguments.</param>
         public void ExecSQL(String sql, params Object[] paramArgs)
         {
-            var t = Scheduler.StartNew(()=>
+            var t = Factory.StartNew(()=>
             {
                 var command = BuildCommand(_writeConnection, sql, paramArgs);
 
@@ -393,10 +393,9 @@ namespace Couchbase.Lite.Shared
                 throw e;
             }
 
-            var lastInsertedId = -1L;
-            lock (dbLock)
+            var t = Factory.StartNew(() =>
             {
-
+                var lastInsertedId = -1L;
                 var command = GetInsertCommand(table, initialValues, conflictResolutionStrategy);
 
                 try
@@ -428,9 +427,10 @@ namespace Couchbase.Lite.Shared
                 {
                     Log.E(Tag, "Error inserting into table " + table, ex);
                     throw;
-                } 
-            }
-            return lastInsertedId;
+                }
+                return lastInsertedId;
+            });
+            return t.Result;
         }
 
         public int Update(String table, ContentValues values, String whereClause, params String[] whereArgs)
@@ -438,7 +438,7 @@ namespace Couchbase.Lite.Shared
             Debug.Assert(!String.IsNullOrWhiteSpace(table));
             Debug.Assert(values != null);
 
-            var t = Scheduler.StartNew(() =>
+            var t = Factory.StartNew(() =>
             {
                 var resultCount = 0;
                 var command = GetUpdateCommand(table, values, whereClause, whereArgs);
@@ -476,7 +476,7 @@ namespace Couchbase.Lite.Shared
         {
             Debug.Assert(!String.IsNullOrWhiteSpace(table));
 
-            var t = Scheduler.StartNew(() =>
+            var t = Factory.StartNew(() =>
             {
                 var resultCount = -1;
                 var command = GetDeleteCommand(table, whereClause, whereArgs);
@@ -534,6 +534,7 @@ namespace Couchbase.Lite.Shared
                     next.Dispose();
                 } 
                 db.close();
+                Log.W(Tag, "db connection {0} closed", db);
             }
             catch (KeyNotFoundException ex)
             {
@@ -699,20 +700,17 @@ namespace Couchbase.Lite.Shared
             builder.Append(")");
 
             var sql = builder.ToString();
-            sqlite3_stmt command;
-            lock (dbLock)
+            sqlite3_stmt command = null;
+            if (args != null)
             {
-                if (args != null)
-                {
-                    Log.D(Tag, "Preparing statement: '{0}' with values: {1}", sql, String.Join(", ", args.Select(o => o == null ? "null" : o.ToString())));
-                }
-                else
-                {
-                    Log.D(Tag, "Preparing statement: '{0}'", sql);
-                }
-                command = _writeConnection.prepare(sql);
-                command.bind(args);
+                Log.D(Tag, "Preparing statement: '{0}' with values: {1}", sql, String.Join(", ", args.Select(o => o == null ? "null" : o.ToString())));
             }
+            else
+            {
+                Log.D(Tag, "Preparing statement: '{0}'", sql);
+            }
+            command = _writeConnection.prepare(sql);
+            command.bind(args);               
 
             return command;
         }
