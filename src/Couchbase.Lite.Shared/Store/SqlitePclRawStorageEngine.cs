@@ -88,7 +88,7 @@ namespace Couchbase.Lite.Shared
                 return true;
 
             Path = path;
-            Factory = new TaskFactory(new SingleThreadTaskScheduler());
+            Factory = new TaskFactory(new SingleThreadScheduler());
 
             var result = true;
             try
@@ -319,23 +319,20 @@ namespace Couchbase.Lite.Shared
             }
 
             Cursor cursor = null;
-            lock (dbReadLock) 
+            var command = BuildCommand (transactionCount > 0 ? _writeConnection : _readConnection, sql, paramArgs);
+            try 
             {
-                var command = BuildCommand (transactionCount > 0 ? _writeConnection : _readConnection, sql, paramArgs);
-                try 
+                Log.V(Tag, "RawQuery sql: {0} ({1})", sql, String.Join(", ", paramArgs));
+                cursor = new Cursor(command, dbLock);
+            } 
+            catch (Exception e) 
+            {
+                if (command != null) 
                 {
-                    Log.V(Tag, "RawQuery sql: {0} ({1})", sql, String.Join(", ", paramArgs));
-                    cursor = new Cursor(command, dbLock);
-                } 
-                catch (Exception e) 
-                {
-                    if (command != null) 
-                    {
-                        command.Dispose();
-                    }
-                    Log.E(Tag, "Error executing raw query '{0}'".Fmt(sql), e);
-                    throw;
+                    command.Dispose();
                 }
+                Log.E(Tag, "Error executing raw query '{0}'".Fmt(sql), e);
+                throw;
             }
             return cursor;
         }
@@ -355,26 +352,23 @@ namespace Couchbase.Lite.Shared
             }
 
             Cursor cursor = null;
-            lock (dbReadLock) 
+            var command = BuildCommand (_readConnection, sql, paramArgs);
+            try 
             {
-                var command = BuildCommand (_readConnection, sql, paramArgs);
-                try 
+                Log.V(Tag, "RawQuery sql: {0} ({1})", sql, String.Join(", ", paramArgs));
+                cursor = new Cursor(command, dbLock);
+            } 
+            catch (Exception e) 
+            {
+                if (command != null) 
                 {
-                    Log.V(Tag, "RawQuery sql: {0} ({1})", sql, String.Join(", ", paramArgs));
-                    cursor = new Cursor(command, dbLock);
-                } 
-                catch (Exception e) 
-                {
-                    if (command != null) 
-                    {
-                        command.Dispose();
-                    }
-                    var args = paramArgs == null 
-                        ? String.Empty 
-                        : String.Join(",", paramArgs.ToString());
-                    Log.E(Tag, "Error executing raw query '{0}' is values '{1}' {2}".Fmt(sql, args, _readConnection.errmsg()), e);
-                    throw;
+                    command.Dispose();
                 }
+                var args = paramArgs == null 
+                    ? String.Empty 
+                    : String.Join(",", paramArgs.ToString());
+                Log.E(Tag, "Error executing raw query '{0}' is values '{1}' {2}".Fmt(sql, args, _readConnection.errmsg()), e);
+                throw;
             }
             return cursor;
         }
@@ -513,6 +507,7 @@ namespace Couchbase.Lite.Shared
 
         public void Close()
         {
+            ((SingleThreadScheduler)Factory.Scheduler).Dispose();
             Close(ref _readConnection);
             Close(ref _writeConnection);
             Path = null;

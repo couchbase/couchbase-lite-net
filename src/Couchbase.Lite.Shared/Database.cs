@@ -92,7 +92,7 @@ namespace Couchbase.Lite
 
             _changesToNotify = new List<DocumentChange>();
 
-            Scheduler = new TaskFactory(new SingleThreadTaskScheduler());
+            Scheduler = new TaskFactory(new SingleTaskThreadpoolScheduler());
 
             StartTime = DateTime.UtcNow.ToMillisecondsSinceEpoch ();
 
@@ -724,7 +724,7 @@ namespace Couchbase.Lite
         /// <param name="url">The url of the target Database.</param>
         public Replication CreatePushReplication(Uri url)
         {
-            var scheduler = new SingleThreadTaskScheduler(); //TaskScheduler.FromCurrentSynchronizationContext();
+            var scheduler = new SingleTaskThreadpoolScheduler(); //TaskScheduler.FromCurrentSynchronizationContext();
             return new Pusher(this, url, false, new TaskFactory(scheduler));
         }
 
@@ -735,7 +735,7 @@ namespace Couchbase.Lite
         /// <param name="url">The url of the source Database.</param>
         public Replication CreatePullReplication(Uri url)
         {
-            var scheduler = new SingleThreadTaskScheduler(); //TaskScheduler.FromCurrentSynchronizationContext();
+            var scheduler = new SingleTaskThreadpoolScheduler();
             return new Puller(this, url, false, new TaskFactory(scheduler));
         }
 

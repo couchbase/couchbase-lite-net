@@ -466,7 +466,8 @@ namespace Couchbase.Lite
             {
                 client.CancelPendingRequests();
             }
-            Task.WaitAll(((SingleThreadTaskScheduler)WorkExecutor.Scheduler).ScheduledTasks.ToArray());
+            CancellationTokenSource.Cancel();
+            //Task.WaitAll(((SingleTaskThreadpoolScheduler)WorkExecutor.Scheduler).ScheduledTasks.ToArray());
         }
 
         internal void UpdateProgress()

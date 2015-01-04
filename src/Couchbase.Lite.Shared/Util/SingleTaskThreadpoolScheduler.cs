@@ -9,7 +9,7 @@ using System.Reflection;
 
 namespace Couchbase.Lite.Util
 {
-    sealed internal class SingleThreadTaskScheduler : TaskScheduler 
+    sealed internal class SingleTaskThreadpoolScheduler : TaskScheduler 
     {
         private const string Tag = "SingleThreadTaskScheduler";
         private const int maxConcurrency = 1;
@@ -17,7 +17,7 @@ namespace Couchbase.Lite.Util
         private readonly BlockingCollection<Task> queue;
         private int runningTasks;
 
-        public SingleThreadTaskScheduler()
+        public SingleTaskThreadpoolScheduler()
         {
             queue = new BlockingCollection<Task>(new ConcurrentQueue<Task>());
             runningTasks = 0;

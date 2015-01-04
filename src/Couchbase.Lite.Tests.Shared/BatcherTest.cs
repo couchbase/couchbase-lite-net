@@ -96,7 +96,7 @@ namespace Couchbase.Lite
             processorDelay = 500;
 
             var timeProcessed = default(DateTime);
-            var scheduler = new SingleThreadTaskScheduler();
+            var scheduler = new SingleTaskThreadpoolScheduler();
             var batcher = new Batcher<string>(
                 new TaskFactory(scheduler), 
                 inboxCapacity,
@@ -147,7 +147,7 @@ namespace Couchbase.Lite
 
             maxObservedDelta = -1L;
 
-            var scheduler = new SingleThreadTaskScheduler();
+            var scheduler = new SingleTaskThreadpoolScheduler();
             var batcher = new Batcher<long>(new TaskFactory(scheduler), 
                 inboxCapacity, processorDelay, TestBatcherLatencyTrickleInProcessor);
                 
@@ -203,7 +203,7 @@ namespace Couchbase.Lite
             inboxCapacity = 10;
             processorDelay = 1000;
 
-            var scheduler = new SingleThreadTaskScheduler();
+            var scheduler = new SingleTaskThreadpoolScheduler();
             var batcher = new Batcher<string>(new TaskFactory(scheduler), 
                 inboxCapacity, processorDelay, TestBatcherSingleBatchProcessor);
 
@@ -236,7 +236,7 @@ namespace Couchbase.Lite
             inboxCapacity = 10;
             processorDelay = 1000;
 
-            var scheduler = new SingleThreadTaskScheduler();
+            var scheduler = new SingleTaskThreadpoolScheduler();
             var batcher = new Batcher<string>(new TaskFactory(scheduler), 
                 inboxCapacity, processorDelay, TestBatcherBatchSize5Processor);
 

@@ -78,7 +78,7 @@ namespace Couchbase.Lite
         protected void SetUp()
         {
             Log.V(Tag, "SetUp");
-            ManagerOptions.Default.CallbackScheduler = new SingleThreadTaskScheduler();
+            ManagerOptions.Default.CallbackScheduler = new SingleTaskThreadpoolScheduler();
 
             LoadCustomProperties();
             StartCBLite();
@@ -200,7 +200,7 @@ namespace Couchbase.Lite
 
         protected string GetReplicationServer()
         {
-            return Runtime.GetProperty("replicationServer");
+            return Runtime.GetProperty("replicationServer").Trim();
         }
 
         protected int GetReplicationPort()

@@ -192,7 +192,13 @@ namespace Couchbase.Lite
         public void TestGetActiveReplications()
         {
             var remote = GetReplicationURL();
+            var doneSignal = new ManualResetEvent(false);
             var replication = database.CreatePullReplication(remote);
+            replication.Changed += (sender, e) => {
+                if (!replication.IsRunning) {
+                    doneSignal.Set();
+                }
+            };
 
             Assert.AreEqual(0, database.AllReplications.ToList().Count);
             Assert.AreEqual(0, database.ActiveReplicators.Count);
@@ -203,17 +209,8 @@ namespace Couchbase.Lite
             Assert.AreEqual(1, database.ActiveReplicators.Count);
 
             // TODO: Port full ReplicationFinishedObserver
-            var doneSignal = new CountdownEvent(1);
-            var replicateTask = new TaskFactory().StartNew(()=>
-                {
-                    replication.Changed += (sender, e) => {
-                        if (!replication.IsRunning) {
-                            doneSignal.Signal();
-                        }
-                    };
-                    return doneSignal.Wait(TimeSpan.FromSeconds(30));
-                });
-            var failed = replicateTask.Result;
+            var failed = doneSignal.WaitOne(TimeSpan.FromSeconds(30));
+
             Assert.True(failed);
             Assert.AreEqual(1, database.AllReplications.ToList().Count);
             Assert.AreEqual(0, database.ActiveReplicators.Count);

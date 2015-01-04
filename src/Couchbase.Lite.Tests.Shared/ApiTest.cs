@@ -207,7 +207,7 @@ namespace Couchbase.Lite
 
             var options = new ManagerOptions();
             options.ReadOnly = true;
-            options.CallbackScheduler = new SingleThreadTaskScheduler();
+            options.CallbackScheduler = new SingleTaskThreadpoolScheduler();
 
             var roManager = new Manager(new DirectoryInfo(manager.Directory), options);
             Assert.IsTrue(roManager != null);

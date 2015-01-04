@@ -683,49 +683,43 @@ namespace Couchbase.Lite
             var replicationUrlTrailingDoc1 = new Uri(string.Format("{0}/{1}", GetReplicationURL(), docId));
             var pathToDoc1 = new Uri(replicationUrlTrailingDoc1, docId);
             Log.D(Tag, "Send http request to " + pathToDoc1);
-            CountDownLatch httpRequestDoneSignal = new CountDownLatch(1);
-            Task.Factory.StartNew(() =>
-            {
-                HttpClient httpclient = null;
-                try
-                {
-                    httpclient = new HttpClient();
-                    HttpResponseMessage response;
-                    var request = new HttpRequestMessage();
-                    request.Headers.Add("Accept", "*/*");
-
-                    var postTask = httpclient.PutAsync(pathToDoc1.AbsoluteUri, new StringContent(docJson, Encoding.UTF8, "application/json"));
-                    response = postTask.Result;
-                    var statusLine = response.StatusCode;
-                    Log.D(ReplicationTest.Tag, "Got response: " + statusLine);
-                    Assert.IsTrue(statusLine == HttpStatusCode.Created);
-                }
-                catch (ProtocolViolationException e)
-                {
-                    Assert.IsNull(e, "Got ClientProtocolException: " + e.Message);
-                }
-                catch (IOException e)
-                {
-                    Assert.IsNull(e, "Got IOException: " + e.Message);
-                }
-                finally
-                {
-                    httpclient.Dispose();
-                }
-
-                httpRequestDoneSignal.CountDown();
-            });
-
-            Log.D(Tag, "Waiting for http request to finish");
+            HttpClient httpclient = null;
             try
             {
-                Assert.IsTrue(httpRequestDoneSignal.Await(TimeSpan.FromSeconds(10)));
-                Log.D(Tag, "http request finished");
+                httpclient = new HttpClient();
+                HttpResponseMessage response;
+                var request = new HttpRequestMessage();
+                request.Headers.Add("Accept", "*/*");
+
+                var postTask = httpclient.PutAsync(pathToDoc1.AbsoluteUri, new StringContent(docJson, Encoding.UTF8, "application/json"));
+                response = postTask.Result;
+                var statusLine = response.StatusCode;
+                Log.D(ReplicationTest.Tag, "Got response: " + statusLine);
+                Assert.IsTrue(statusLine == HttpStatusCode.Created);
             }
-            catch (Exception e)
+            catch (ProtocolViolationException e)
             {
-                Sharpen.Runtime.PrintStackTrace(e);
+                Assert.IsNull(e, "Got ClientProtocolException: " + e.Message);
             }
+            catch (IOException e)
+            {
+                Assert.IsNull(e, "Got IOException: " + e.Message);
+            }
+            finally
+            {
+                httpclient.Dispose();
+            }
+
+//            Log.D(Tag, "Waiting for http request to finish");
+//            try
+//            {
+//                Assert.IsTrue(t.Wait(TimeSpan.FromSeconds(10)));
+//                Log.D(Tag, "http request finished");
+//            }
+//            catch (Exception e)
+//            {
+//                Sharpen.Runtime.PrintStackTrace(e);
+//            }
 
             WorkaroundSyncGatewayRaceCondition();
         }
@@ -809,7 +803,7 @@ namespace Couchbase.Lite
             var dbUrlString = "http://fake.test-url.com:4984/fake/";
             var remote = new Uri(dbUrlString);
             var continuous = false;
-            var r1 = new Pusher(database, remote, continuous, mockHttpClientFactory, new TaskFactory(new SingleThreadTaskScheduler()));
+            var r1 = new Pusher(database, remote, continuous, mockHttpClientFactory, new TaskFactory(new SingleTaskThreadpoolScheduler()));
             Assert.IsFalse(r1.Continuous);
             RunReplication(r1);
 
@@ -1887,7 +1881,7 @@ namespace Couchbase.Lite
             Assert.IsNotNull(attachment.Content);
         }
 
-        [Test]
+        [Test, Category("issue348")]
         public void TestPushPullAndLiveQueryWithFilledDatabase()
         {
             if (!Boolean.Parse((string)Runtime.Properties["replicationTestsEnabled"]))

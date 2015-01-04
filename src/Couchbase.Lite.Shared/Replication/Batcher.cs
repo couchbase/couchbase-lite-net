@@ -287,7 +287,7 @@ namespace Couchbase.Lite.Support
                 scheduled = true;
                 scheduledDelay = suggestedDelay;
 
-                Log.D(Tag, "ScheduleWithDelay called with delay: {0} ms, scheduler: {1}/{2}", suggestedDelay, workExecutor.Scheduler.GetType().Name, ((SingleThreadTaskScheduler)workExecutor.Scheduler).ScheduledTasks.Count());
+                Log.D(Tag, "ScheduleWithDelay called with delay: {0} ms, scheduler: {1}/{2}", suggestedDelay, workExecutor.Scheduler.GetType().Name, ((SingleTaskThreadpoolScheduler)workExecutor.Scheduler).ScheduledTasks.Count());
 
                 cancellationSource = new CancellationTokenSource();
                 flushFuture = Task.Delay(suggestedDelay).ContinueWith((t)=> 
