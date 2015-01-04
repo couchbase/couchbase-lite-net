@@ -4,7 +4,7 @@
 // actions made in the UI designer. If it is removed, they will be lost.
 // Manual changes to this file may not be handled correctly.
 //
-using MonoTouch.Foundation;
+using Foundation;
 using System.CodeDom.Compiler;
 
 namespace CouchbaseSample
@@ -13,13 +13,13 @@ namespace CouchbaseSample
     partial class ConfigViewController
     {
         [Outlet]
-        MonoTouch.UIKit.UITextField UrlField { get; set; }
+        UIKit.UITextField UrlField { get; set; }
 
         [Outlet]
-        MonoTouch.UIKit.UILabel VersionField { get; set; }
+        UIKit.UILabel VersionField { get; set; }
 
         [Action ("learnMore:")]
-        partial void LearnMore (MonoTouch.Foundation.NSObject sender);
+        partial void LearnMore (Foundation.NSObject sender);
         
         void ReleaseDesignerOutlets ()
         {

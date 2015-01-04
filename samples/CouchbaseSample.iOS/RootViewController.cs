@@ -1,11 +1,11 @@
 using System;
 using System.Collections.Generic;
-using MonoTouch.UIKit;
-using MonoTouch.Foundation;
+using UIKit;
+using Foundation;
 using System.Linq;
 using Couchbase;
 using System.Diagnostics;
-using MonoTouch.CoreGraphics;
+using CoreGraphics;
 using System.Drawing;
 using Couchbase.Lite;
 using Newtonsoft.Json.Linq;
@@ -85,9 +85,9 @@ namespace CouchbaseSample
       };
       background.AutosizesSubviews = true;
       background.AutoresizingMask = UIViewAutoresizing.FlexibleWidth;
-      var newLocation = background.Frame.Location;
+            var newLocation = background.Frame.Location;
       newLocation.Y = -65f;
-      background.Frame = new System.Drawing.RectangleF (newLocation, background.Frame.Size);
+            background.Frame = new CGRect(newLocation, background.Frame.Size);
 
       // Handle iOS 7 specific code.
       if (AppDelegate.CurrentSystemVersion < AppDelegate.iOS7) {
@@ -426,7 +426,7 @@ namespace CouchbaseSample
         if (Progress == null) {
           Progress = new UIProgressView (UIProgressViewStyle.Bar);
           var frame = Progress.Frame;
-          var size = new SizeF (View.Frame.Size.Width, frame.Height);
+          var size = new CGSize(View.Frame.Size.Width, frame.Height);
           frame.Size = size;
           Progress.Frame = frame;
           Progress.SetProgress (0f, false);
@@ -445,7 +445,7 @@ namespace CouchbaseSample
         if (Progress == null) {
           Progress = new UIProgressView (UIProgressViewStyle.Bar);
           var frame = Progress.Frame;
-          var size = new SizeF (View.Frame.Size.Width / 4f, frame.Height);
+          var size = new CGSize(View.Frame.Size.Width / 4f, frame.Height);
           frame.Size = size;
           Progress.Frame = frame;
         }

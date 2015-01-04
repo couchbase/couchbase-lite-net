@@ -1,8 +1,8 @@
 using System;
 using System.Drawing;
 using System.Collections.Generic;
-using MonoTouch.UIKit;
-using MonoTouch.Foundation;
+using UIKit;
+using Foundation;
 using Couchbase;
 using System.Diagnostics;
 using System.Linq;
@@ -54,12 +54,12 @@ namespace CouchbaseSample
 
         #endregion
 
-        public override float GetHeightForRow (UITableView tableView, NSIndexPath indexPath)
+        public override nfloat GetHeightForRow (UITableView tableView, NSIndexPath indexPath)
         {
           return 50f;
         }
 
-        public override UIView GetViewForHeader (UITableView tableView, int section)
+        public override UIView GetViewForHeader (UITableView tableView, nint section)
         {
           var view = tableView.GetHeaderView (section);
           return view;
