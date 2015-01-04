@@ -4,7 +4,7 @@
 // actions made in the UI designer. If it is removed, they will be lost.
 // Manual changes to this file may not be handled correctly.
 //
-using MonoTouch.Foundation;
+using Foundation;
 using System.CodeDom.Compiler;
 
 namespace CouchbaseSample
@@ -16,13 +16,13 @@ namespace CouchbaseSample
         global::Couchbase.Lite.iOS.CouchbaseTableSource Datasource { get; set; }
 
         [Outlet]
-        MonoTouch.UIKit.UITextField EntryField { get; set; }
+        UIKit.UITextField EntryField { get; set; }
 
         [Outlet]
-        MonoTouch.UIKit.UITableView TableView { get; set; }
+        UIKit.UITableView TableView { get; set; }
 
         [Action ("AddNewEntry:")]
-        partial void AddNewEntry (MonoTouch.Foundation.NSObject sender);
+        partial void AddNewEntry (Foundation.NSObject sender);
         
         void ReleaseDesignerOutlets ()
         {

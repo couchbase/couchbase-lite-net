@@ -3,7 +3,7 @@
   <metadata>
     <id>Couchbase.Lite </id>
     <title>Couchbase Lite</title>
-    <version>1.0.0</version>
+    <version>1.0.4-pre1</version>
     <authors>Zachary Gramana</authors>
     <owners>Couchbase</owners>
     <licenseUrl>https://github.com/couchbase/couchbase-lite-net/blob/master/LICENSE</licenseUrl>
@@ -38,6 +38,6 @@
   <files>
     <file target="lib/net45" src="src/Couchbase.Lite.Net45/bin/Release/Couchbase.Lite.*" />
     <file target="lib/MonoAndroid" src="src/Couchbase.Lite.Android/bin/Release/Couchbase.Lite.*" />
-    <file target="lib/MonoTouch" src="src/Couchbase.Lite.iOS/bin/Release/Couchbase.Lite.*" />
+    <file target="lib/xamarinios10" src="src/Couchbase.Lite.iOS/bin/Release/Couchbase.Lite.*" />
   </files>
 </package>
