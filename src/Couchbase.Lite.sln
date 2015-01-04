@@ -41,6 +41,11 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Packaging", "Packaging", "{
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Component", "Component", "{47BE374F-A87F-4C96-B283-4B62E55D6E5E}"
+	ProjectSection(SolutionItems) = preProject
+		..\packaging\component\component.yaml = ..\packaging\component\component.yaml
+		..\packaging\component\Details.md = ..\packaging\component\Details.md
+		..\packaging\component\GettingStarted.md = ..\packaging\component\GettingStarted.md
+	EndProjectSection
 	ProjectSection(MonoDevelopProperties) = preProject
 		BaseDirectory = ..\packaging\component
 	EndProjectSection
