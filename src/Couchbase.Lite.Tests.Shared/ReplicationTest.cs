@@ -1724,21 +1724,12 @@ namespace Couchbase.Lite
 
             var pusher = database.CreatePushReplication(GetReplicationURL());
             RunReplication(pusher);
-
-            foreach (var request in httpHandler.CapturedRequests)
-            {
-                if (request.Method == HttpMethod.Put)
-                {
-                    var isMultipartContent = (request.Content is MultipartContent);
-                    Assert.IsFalse(isMultipartContent);
-                }
-            }
-
+         
             httpHandler.ClearCapturedRequests();
 
             var oldDoc = database.GetDocument(doc.Id);
             var unsavedRev = oldDoc.CreateRevision();
-            var props = new Dictionary<string, object>(oldDoc.Properties);
+            var props = new Dictionary<string, object>(oldDoc.UserProperties);
             props["dynamic"] = Convert.ToInt64(oldDoc.Properties["dynamic"]) + 1;
             unsavedRev.SetProperties(props);
             var savedRev = unsavedRev.Save();
