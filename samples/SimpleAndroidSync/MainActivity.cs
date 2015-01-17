@@ -46,8 +46,11 @@ namespace SimpleAndroidSync
                 ViewGroup.LayoutParams.MatchParent);
             layout.Orientation = Orientation.Vertical;
 
-            // Add Items
-            var newItemText = new EditText(this);
+            // Allow user to add Items.
+            var newItemText = new EditText(this)
+            {   // Ensure we get a 'done' key instead of carriage return.
+                InputType = Android.Text.InputTypes.ClassText
+            };
             newItemText.LayoutParameters = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MatchParent, 
                 ViewGroup.LayoutParams.WrapContent);
