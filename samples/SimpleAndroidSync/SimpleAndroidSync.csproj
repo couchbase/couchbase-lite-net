@@ -12,11 +12,11 @@
     <AndroidResgenClass>Resource</AndroidResgenClass>
     <AndroidResgenFile>Resources\Resource.designer.cs</AndroidResgenFile>
     <AndroidApplication>True</AndroidApplication>
-    <AndroidUseLatestPlatformSdk>False</AndroidUseLatestPlatformSdk>
+    <AndroidUseLatestPlatformSdk>True</AndroidUseLatestPlatformSdk>
     <AssemblyName>SimpleAndroidSync</AssemblyName>
-    <TargetFrameworkVersion>v4.0.3</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.4</TargetFrameworkVersion>
     <AndroidManifest>Properties\AndroidManifest.xml</AndroidManifest>
-    <ReleaseVersion>1.0.0</ReleaseVersion>
+    <ReleaseVersion>1.0.4</ReleaseVersion>
     <SolutionDir Condition="$(SolutionDir) == '' Or $(SolutionDir) == '*Undefined*'">..\..\src\</SolutionDir>
     <RestorePackages>true</RestorePackages>
   </PropertyGroup>
@@ -46,16 +46,10 @@
     <Reference Include="System.Xml" />
     <Reference Include="System.Core" />
     <Reference Include="Mono.Android" />
-    <Reference Include="SQLitePCL.ugly">
-      <HintPath>..\..\src\packages\SQLitePCL.ugly.0.5.0\lib\portable-net45+netcore45+wp8+MonoAndroid+MonoTouch\SQLitePCL.ugly.dll</HintPath>
-    </Reference>
-    <Reference Include="SQLitePCL.raw">
-      <HintPath>..\..\src\packages\SQLitePCL.raw_basic.0.5.0\lib\MonoAndroid\SQLitePCL.raw.dll</HintPath>
-    </Reference>
     <Reference Include="Newtonsoft.Json">
-      <HintPath>..\..\src\packages\Newtonsoft.Json.6.0.4\lib\portable-net45+wp80+win8+wpa81\Newtonsoft.Json.dll</HintPath>
+      <HintPath>packages\Newtonsoft.Json.6.0.4\lib\portable-net45+wp80+win8+wpa81\Newtonsoft.Json.dll</HintPath>
     </Reference>
-  </ItemGroup>
+    <Reference Include="SQLitePCL.raw">       <HintPath>packages\SQLitePCL.raw_basic.0.7.0\lib\MonoAndroid\SQLitePCL.raw.dll</HintPath>     </Reference>     <Reference Include="SQLitePCL.ugly">       <HintPath>packages\SQLitePCL.ugly.0.7.0\lib\portable-net45+netcore45+wp8+MonoAndroid10+MonoTouch10+Xamarin.iOS10\SQLitePCL.ugly.dll</HintPath>     </Reference>   </ItemGroup>
   <ItemGroup>
     <Compile Include="MainActivity.cs" />
     <Compile Include="Resources\Resource.designer.cs" />
