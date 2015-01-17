@@ -16,11 +16,7 @@ build:
     path: ../../src/Couchbase.Lite.Android/Couchbase.Lite.Android.csproj
     configuration: Release|AnyCPU 
 packages:
-  ios-unified:
-    - Newtonsoft.Json, Version=6.0.4
-    - SQLitePCL.raw_basic, Version=0.7.0
-    - SQLitePCL.ugly, Version=0.7.0
-  android:
+  "":
     - Newtonsoft.Json, Version=6.0.4
     - SQLitePCL.raw_basic, Version=0.7.0
     - SQLitePCL.ugly, Version=0.7.0
