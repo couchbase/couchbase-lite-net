@@ -592,7 +592,13 @@ namespace Couchbase.Lite.Replicator
 
                 if (changesFeedRequestTokenSource != null)
                 {
-                    changesFeedRequestTokenSource.Cancel();
+                    try {
+                        changesFeedRequestTokenSource.Cancel();
+                    }catch(ObjectDisposedException) {
+                        //FIXME Run() will often dispose this token source right out from under us since it
+                        //is running on a separate thread.
+                        Log.W(Tag, "Race condition on changesFeedRequestTokenSource detected");
+                    }
                 }
 
                 Stopped();
