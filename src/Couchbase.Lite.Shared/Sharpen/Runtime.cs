@@ -186,11 +186,6 @@ namespace Sharpen
         {
             sb.Remove (index, 1);
         }
-        
-        internal static IEnumerable<Byte> GetBytesForString (string str)
-        {
-            return Encoding.UTF8.GetBytes (str);
-        }
 
         internal static IEnumerable<Byte> GetBytesForString (string str, string encoding)
         {
