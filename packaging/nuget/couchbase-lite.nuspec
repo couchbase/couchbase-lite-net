@@ -3,7 +3,7 @@
   <metadata>
     <id>Couchbase.Lite </id>
     <title>Couchbase Lite</title>
-    <version>1.0.4</version>
+    <version>1.0.4.1</version>
     <authors>Zachary Gramana</authors>
     <owners>Couchbase</owners>
     <licenseUrl>https://github.com/couchbase/couchbase-lite-net/blob/master/LICENSE</licenseUrl>
@@ -12,12 +12,18 @@
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>A lightweight, document-oriented (NoSQL), syncable database engine for .NET</description>
     <releaseNotes>
-    Fixes:
-	* Remove build error when nuget target file is missing.
-    * Fixed BulkDownloader deadlock in a windows systems without Xamarin.
-    * Fixed NRE in bulk downloader.
-    * Slower than expected performance on Windows.
-    * Migrates Xam.iOS to Unified API.
+      Fixes:
+
+      Implements the Unified API for Xamarin.iOS.
+      Xamarin component now uses Nuget for managing dependencies.
+      Disables TLS fallback to SSL3 (POODLE)
+      Fixed BulkDownloader deadlock in a windows systems without Xamarin.
+      Unknown unhandled exception thrown during Update call to storage engine.
+      Fixed NRE in bulk downloader.
+      Slower than expected performance on Windows
+      Manager static ctor crashes on Azure
+      Update document without re-sending attachments
+      Fixes list item entry problem in Android sample on Nexus 5/Lollipop.
     </releaseNotes>
     <copyright>Copyright 2014</copyright>
     <tags>couchbase couchbase-mobile couchbase-lite sync database mobile xamarin ios android windows linux mac osx</tags>
