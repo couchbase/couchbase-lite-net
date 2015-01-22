@@ -140,3 +140,4 @@ Tools/sync_gateway.exe
 samples/Sync10kDocsSample*
 samples/CouchbaseSample.Android/Resources/Resource.designer.cs
 *.nupkg
+/couchbase-lite-net-master
