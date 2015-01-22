@@ -304,6 +304,7 @@ namespace Couchbase.Lite
             Log.V(Tag, "tearDown");
             StopDatabase();
             StopCBLite();
+            Manager.DefaultOptions.RestoreDefaults();
         }
 
         protected IDictionary<string, object> UserProperties(IDictionary

@@ -422,10 +422,9 @@ namespace Couchbase.Lite
             {
                 return;
             }
-
-            Log.V(Tag, ">>>Updating completedChangesCount from {0} by {1}", completedChangesCount, value);
+                
             Interlocked.Add(ref completedChangesCount, value);
-            Log.V(Tag, "<<<Updated completedChanges count to {0}", completedChangesCount);
+            Log.V(Tag, "    Updated completedChangesCount from {0} to {1}", completedChangesCount - value, completedChangesCount);
             NotifyChangeListeners();
         }
 
@@ -435,14 +434,12 @@ namespace Couchbase.Lite
         /// <param name="value">The amount to add</param>
         protected void SafeAddToChangesCount(int value)
         {
-            if (value == 0) 
-            {
+            if (value == 0) {
                 return;
             }
-
-            Log.V(Tag, ">>>Updating changesCount from {0} by {1}", changesCount, value);
+                
             Interlocked.Add(ref changesCount, value);
-            Log.V(Tag, "<<<Updated changesCount to {0}", changesCount);
+            Log.V(Tag, "    Updated changesCount count from {0} to {1}", changesCount - value, changesCount);
             NotifyChangeListeners();
         }
 
@@ -779,16 +776,13 @@ namespace Couchbase.Lite
         abstract internal void ProcessInbox(RevisionList inbox);
 
         internal void AsyncTaskStarted()
-        {   // TODO.ZJG: Replace lock with Interlocked.CompareExchange.
-            lock (asyncTaskLocker)
+        {   
+            int remainingTasks = Interlocked.Increment(ref asyncTaskCount);
+            if (remainingTasks == 1)
             {
-                Log.D(Tag + ".AsyncTaskStarted", "asyncTaskCount: " + asyncTaskCount);
-                if (asyncTaskCount++ == 0)
-                {
-                    UpdateActive();
-                }
-                Log.D(Tag + ".AsyncTaskStarted", "updated to " + asyncTaskCount);
+                UpdateActive();
             }
+            Log.D(Tag + ".AsyncTaskStarted", "incremented to " + remainingTasks);
         }
 
         internal void AsyncTaskFinished(Int32 numTasks)
@@ -796,16 +790,15 @@ namespace Couchbase.Lite
             var cancel = CancellationTokenSource.IsCancellationRequested;
             if (cancel)
                 return;
+                
+             
+            int remainingTasks = Interlocked.Add(ref asyncTaskCount, -numTasks);
+            Log.D(Tag + ".AsyncTaskFinished", "AsyncTaskCount: {0} > {1}".Fmt(remainingTasks + numTasks, remainingTasks));
 
-            lock (asyncTaskLocker)
+            Debug.Assert(remainingTasks >= 0);
+            if (remainingTasks == 0)
             {
-                Log.D(Tag + ".AsyncTaskFinished", "AsyncTaskCount: {0} > {1}".Fmt(asyncTaskCount, asyncTaskCount - numTasks));
-                asyncTaskCount -= numTasks;
-                Debug.Assert(asyncTaskCount >= 0);
-                if (asyncTaskCount == 0)
-                {
-                    UpdateActive();
-                }
+                UpdateActive();
             }
         }
 
