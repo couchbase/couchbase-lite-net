@@ -16,7 +16,7 @@
     <NuGetPackageImportStamp>f3b8302c</NuGetPackageImportStamp>
     <SolutionDir Condition="$(SolutionDir) == '' Or $(SolutionDir) == '*Undefined*'">..\</SolutionDir>
     <RestorePackages>true</RestorePackages>
-    <ReleaseVersion>1.0.0</ReleaseVersion>
+    <ReleaseVersion>0.9.4</ReleaseVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -101,6 +101,7 @@
     <Reference Include="SQLitePCL.raw">
       <HintPath>..\packages\SQLitePCL.raw_basic.0.6.1\build\net45\pinvoke_sqlite3\anycpu\SQLitePCL.raw.dll</HintPath>
     </Reference>
+    <Reference Include="System.Net" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Properties\" />
@@ -110,7 +111,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Couchbase.Lite.Portable\Couchbase.Lite.Portable.csproj">
-      <Project>{67f9d3a8-f71e-4428-913f-c37ae82cdb24}</Project>
+      <Project>{67F9D3A8-F71E-4428-913F-C37AE82CDB24}</Project>
       <Name>Couchbase.Lite.Portable</Name>
     </ProjectReference>
   </ItemGroup>
