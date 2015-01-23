@@ -218,7 +218,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)Util\ExponentialBackoffStrategy.cs" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="$(MSBuildThisFileDirectory)ClassDiagram.cd" />
     <None Include="$(MSBuildThisFileDirectory)Store\MonoSQLiteStorageEngine.cs" />
     <None Include="$(MSBuildThisFileDirectory)Store\SqlitePclStorageEngine.cs" />
   </ItemGroup>
