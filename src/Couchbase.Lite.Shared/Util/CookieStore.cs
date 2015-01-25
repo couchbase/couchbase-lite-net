@@ -64,8 +64,19 @@ namespace Couchbase.Lite.Util
 
         public CookieStore(String directory) 
         {
+            // NOTE: This is known problem in the .NET community without any
+            //       solid answer. This one isn't either.
+            // HACK: Don't rely on private API details. Temporary workaround for now.
+
+            // Try Mono first...
             cookiesField = typeof(CookieContainer)
                 .GetField("cookies", (BindingFlags.GetField | BindingFlags.Instance | BindingFlags.NonPublic));
+
+            if (cookiesField == null) 
+            {   // Try MSFT .NET next...
+                cookiesField = typeof(CookieContainer)
+                    .GetField("m_domainTable", (BindingFlags.GetField | BindingFlags.Instance | BindingFlags.NonPublic));
+            }
 
             if (directory != null)
             {
