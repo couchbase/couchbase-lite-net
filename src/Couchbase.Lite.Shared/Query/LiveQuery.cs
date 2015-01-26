@@ -102,7 +102,7 @@ namespace Couchbase.Lite
                     WaitForRows();
                     break;
                 }
-                catch (OperationCanceledException e) //TODO: Review
+                catch (OperationCanceledException) //TODO: Review
                 {
                     continue;
                 }
@@ -345,9 +345,13 @@ namespace Couchbase.Lite
             {
                 try
                 {
-
-                    UpdateQueryTask.Wait(DefaultQueryTimeout, UpdateQueryTokenSource.Token);
-                    LastError = UpdateQueryTask.Exception;
+                    //FIXME: JHB: This is painful.  The UpdateQueryTask will null itself once it finishes
+                    //and it will swallow any exceptions it had.  Needs investigation.
+                    var taskToWait = UpdateQueryTask;
+                    if(taskToWait != null) {
+                        taskToWait.Wait(DefaultQueryTimeout, UpdateQueryTokenSource.Token);
+                        LastError = taskToWait.Exception;
+                    }
                     break;
                 }
                 catch (OperationCanceledException e) //TODO: Review

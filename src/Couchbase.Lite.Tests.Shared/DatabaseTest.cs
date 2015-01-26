@@ -191,6 +191,12 @@ namespace Couchbase.Lite
         [Test]
         public void TestGetActiveReplications()
         {
+            if (!Boolean.Parse((string)Runtime.Properties["replicationTestsEnabled"]))
+            {
+                Assert.Inconclusive("Replication tests disabled.");
+                return;
+            }
+
             var remote = GetReplicationURL();
             var doneSignal = new ManualResetEvent(false);
             var replication = database.CreatePullReplication(remote);

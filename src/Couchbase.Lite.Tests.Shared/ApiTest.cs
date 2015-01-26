@@ -115,7 +115,7 @@ namespace Couchbase.Lite
         /// <exception cref="System.Exception"></exception>
         public void RunLiveQuery(String methodNameToCall)
         {
-            var db = StartDatabase();
+            var db = database;
 
             var doneSignal = new CountdownEvent(11); // FIXME.ZJG: Not sure why, but now Changed is only called once.
 
@@ -192,10 +192,9 @@ namespace Couchbase.Lite
 
         //SERVER & DOCUMENTS
         /// <exception cref="System.IO.IOException"></exception>
-        [Test]
+       // [Test]
         public void TestAPIManager()
         {
-            //StartDatabase();
             Manager manager = this.manager;
             Assert.IsTrue(manager != null);
 
@@ -310,7 +309,7 @@ namespace Couchbase.Lite
             var properties = new Dictionary<String, Object>();
             properties["testName"] = "testCreateRevisions";
             properties["tag"] = 1337;
-            var db = StartDatabase();
+            var db = database;
 
             var doc = CreateDocumentWithProperties(db, properties);
             Assert.IsFalse(doc.Deleted);
@@ -378,7 +377,7 @@ namespace Couchbase.Lite
             var properties = new Dictionary<String, Object>();
             properties["testName"] = "testCreateRevisions";
             properties["tag"] = 1337;
-            var db = StartDatabase();
+            var db = database;
 
             var doc = db.CreateDocument();
             var newRev = doc.CreateRevision();
@@ -514,7 +513,7 @@ namespace Couchbase.Lite
         [Test]
         public void TestAllDocuments()
         {
-            var db = manager.GetExistingDatabase(DefaultTestDb); //StartDatabase();
+            var db = manager.GetExistingDatabase(DefaultTestDb); 
 
             const int docsCount = 5;
             CreateDocuments(db, n: docsCount);
@@ -594,7 +593,7 @@ namespace Couchbase.Lite
             var properties = new Dictionary<String, Object>();
             properties["testName"] = "test06_History";
             properties["tag"] = 1L;
-            var db = StartDatabase();
+            var db = database;
 
             var doc = CreateDocumentWithProperties(db, properties);
             var rev1ID = doc.CurrentRevisionId;
@@ -641,7 +640,7 @@ namespace Couchbase.Lite
             var prop = new Dictionary<String, Object>();
             prop["foo"] = "bar";
 
-            var db = StartDatabase();
+            var db = database;
 
             var doc = CreateDocumentWithProperties(db, prop);
 
@@ -739,7 +738,7 @@ namespace Couchbase.Lite
         public void TestChangeTracking()
         {
             var doneSignal = new CountDownLatch(1);
-            var db = StartDatabase();
+            var db = database;
             db.Changed += (sender, e) => 
                 doneSignal.CountDown();
 
@@ -761,7 +760,7 @@ namespace Couchbase.Lite
         [Test]
         public void TestCreateView()
         {
-            var db = StartDatabase();
+            var db = database;
 
             var view = db.GetView("vu");
             Assert.IsNotNull(view);
@@ -806,7 +805,7 @@ namespace Couchbase.Lite
         [Test]
         public void TestValidation()
         {
-            var db = StartDatabase();
+            var db = database;
 
             db.SetValidation("uncool", (newRevision, context)=>
                 {
@@ -846,7 +845,7 @@ namespace Couchbase.Lite
         [Test]
         public void TestViewWithLinkedDocs()
         {
-            var db = StartDatabase();
+            var db = database;
 
             const int numberOfDocs = 50;
             var docs = new Document[50];

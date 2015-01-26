@@ -53,7 +53,6 @@ namespace Couchbase.Lite
         const Int32 DefaultChunkSize = 8192;
 
         private sqlite3_stmt statement;
-        private object dbLock;
 
         private Int32 currentStep = -1;
 
@@ -65,19 +64,18 @@ namespace Couchbase.Lite
 
         Int64 currentRow;
 
-        internal Cursor (sqlite3_stmt stmt, object dbLock)
+        internal Cursor (sqlite3_stmt stmt)
         {
-            this.dbLock = dbLock;
             this.statement = stmt;
             currentRow = -1;
-            lock (dbLock) { currentStep = statement.step(); }
+            currentStep = statement.step();
         }
 
         public bool MoveToNext ()
         {
             if (currentRow >= 0)
             {
-                lock (dbLock) { currentStep = statement.step(); }
+                currentStep = statement.step();
             }
 
             if (HasRows) currentRow++;
@@ -86,23 +84,23 @@ namespace Couchbase.Lite
 
         public int GetInt (int columnIndex)
         {
-            lock (dbLock) { return statement.column_int(columnIndex); }
+            return statement.column_int(columnIndex);
         }
 
         public long GetLong (int columnIndex)
         {
-            lock (dbLock) { return statement.column_int64(columnIndex); }
+            return statement.column_int64(columnIndex);
         }
 
         public string GetString (int columnIndex)
         {
-            lock (dbLock) { return statement.column_text(columnIndex); }
+            return statement.column_text(columnIndex);
         }
 
         // TODO: Refactor this to return IEnumerable<byte>.
         public byte[] GetBlob (int columnIndex)
         {
-            lock (dbLock) { return statement.column_blob(columnIndex); }
+            return statement.column_blob(columnIndex);
         }
 
 //        public byte[] GetBlob (int columnIndex, int chunkSize)
@@ -145,11 +143,6 @@ namespace Couchbase.Lite
 
         public void Dispose ()
         {
-            if (this.dbLock != null)
-            {
-                this.dbLock = null;
-            }
-
             if (statement != null)
             {
                 Close();

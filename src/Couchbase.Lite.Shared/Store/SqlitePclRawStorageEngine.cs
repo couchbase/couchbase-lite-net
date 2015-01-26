@@ -71,14 +71,11 @@ namespace Couchbase.Lite.Shared
         private sqlite3 _writeConnection;
         private sqlite3 _readConnection;
 
-        private object dbReadLock = new Object();
-        private object dbLock = new Object();
-
         private Boolean shouldCommit;
 
         private string Path { get; set; }
         private TaskFactory Factory { get; set; }
-
+        private CancellationTokenSource _cts = new CancellationTokenSource();
 
         #region implemented abstract members of SQLiteStorageEngine
 
@@ -140,7 +137,7 @@ namespace Couchbase.Lite.Shared
             const string commandText = "PRAGMA user_version;";
             sqlite3_stmt statement;
 
-            lock (dbLock) { statement = _writeConnection.prepare(commandText); }
+            statement = _readConnection.prepare(commandText);
 
             var result = -1;
             try
@@ -169,10 +166,9 @@ namespace Couchbase.Lite.Shared
             var errMessage = "Unable to set version to {0}".Fmt(version);
             var commandText = "PRAGMA user_version = ?";
 
-            sqlite3_stmt statement;
-            lock (dbLock) { 
-                statement = _writeConnection.prepare (commandText);
-
+            Factory.StartNew(() =>
+            {
+                sqlite3_stmt statement = _writeConnection.prepare (commandText);
                 if (raw.sqlite3_bind_int(statement, 1, version) == raw.SQLITE_ERROR)
                     throw new CouchbaseLiteException(errMessage, StatusCode.DbError);
 
@@ -186,8 +182,7 @@ namespace Couchbase.Lite.Shared
                 } finally {
                     statement.Dispose();
                 }
-            }
-            return;
+            });
         }
 
         public bool IsOpen
@@ -213,13 +208,14 @@ namespace Couchbase.Lite.Shared
 
             if (value == 1)
             {
-                lock (dbLock)
+                var t = Factory.StartNew(() =>
                 {
                     using (var statement = _writeConnection.prepare("BEGIN TRANSACTION"))
                     {
                         statement.step_done();
                     }
-                }
+                });
+                t.Wait();
             }
         }
 
@@ -232,13 +228,14 @@ namespace Couchbase.Lite.Shared
             if (count > 0)
                 return;
 
-            if (_writeConnection == null)
+            /*if (_writeConnection == null)
             {
                 if (shouldCommit)
                     throw new InvalidOperationException("Transaction missing.");
                 return;
-            }
-            lock (dbLock)
+            }*/
+
+            var t = Factory.StartNew(() =>
             {
                 if (shouldCommit)
                 {
@@ -255,7 +252,8 @@ namespace Couchbase.Lite.Shared
                         stmt.step_done();
                     }
                 }
-            }
+            });
+            t.Wait();
         }
 
         public void SetTransactionSuccessful()
@@ -269,7 +267,7 @@ namespace Couchbase.Lite.Shared
         /// <param name="sql">Sql.</param>
         /// <param name="paramArgs">Parameter arguments.</param>
         public void ExecSQL(String sql, params Object[] paramArgs)
-        {
+        {  
             var t = Factory.StartNew(()=>
             {
                 var command = BuildCommand(_writeConnection, sql, paramArgs);
@@ -289,19 +287,30 @@ namespace Couchbase.Lite.Shared
                 {
                     command.Dispose();
                 }
-            });
+            }, _cts.Token);
 
             try
             {
-                t.Wait(30000);
+                //FIXME.JHB:  This wait should be optional (API change)
+                t.Wait(30000, _cts.Token);
             }
             catch (AggregateException ex)
             {
                 throw ex.InnerException;
             }
+            catch (OperationCanceledException)
+            {
+                //Closing the storage engine will cause the factory to stop processing, but still
+                //accept new jobs into the scheduler.  If execution has gotten here, it means that
+                //ExecSQL was called after Close, and the job will be ignored.  Might consider
+                //subclassing the factory to avoid this awkward behavior
+                Log.D(Tag, "StorageEngine closed, canceling operation");
+                return;
+            }
 
             if (t.Status != TaskStatus.RanToCompletion) {
-                throw new CouchbaseLiteException("ExecSQL timedout", StatusCode.InternalServerError);
+                Log.E(Tag, "ExecSQL timed out waiting for Task #{0}", t.Id);
+                throw new CouchbaseLiteException("ExecSQL timed out", StatusCode.InternalServerError);
             }
         }
 
@@ -318,23 +327,31 @@ namespace Couchbase.Lite.Shared
                 Open(Path);
             }
 
-            Cursor cursor = null;
-            var command = BuildCommand (transactionCount > 0 ? _writeConnection : _readConnection, sql, paramArgs);
-            try 
+            if (transactionCount == 0)
+                return RawQuery(sql, paramArgs);
+
+            var t = Factory.StartNew(() =>
             {
-                Log.V(Tag, "RawQuery sql: {0} ({1})", sql, String.Join(", ", paramArgs));
-                cursor = new Cursor(command, dbLock);
-            } 
-            catch (Exception e) 
-            {
-                if (command != null) 
+                Cursor cursor = null;
+                var command = BuildCommand (_writeConnection, sql, paramArgs);
+                try 
                 {
-                    command.Dispose();
+                    Log.V(Tag, "RawQuery sql: {0} ({1})", sql, String.Join(", ", paramArgs));
+                    cursor = new Cursor(command);
+                } 
+                catch (Exception e) 
+                {
+                    if (command != null) 
+                    {
+                        command.Dispose();
+                    }
+                    Log.E(Tag, "Error executing raw query '{0}'".Fmt(sql), e);
+                    throw;
                 }
-                Log.E(Tag, "Error executing raw query '{0}'".Fmt(sql), e);
-                throw;
-            }
-            return cursor;
+                return cursor;
+            });
+
+            return t.Result;
         }
 
 
@@ -356,7 +373,7 @@ namespace Couchbase.Lite.Shared
             try 
             {
                 Log.V(Tag, "RawQuery sql: {0} ({1})", sql, String.Join(", ", paramArgs));
-                cursor = new Cursor(command, dbLock);
+                cursor = new Cursor(command);
             } 
             catch (Exception e) 
             {
@@ -401,7 +418,7 @@ namespace Couchbase.Lite.Shared
                     if (result == SQLiteResult.ERROR)
                         throw new CouchbaseLiteException(raw.sqlite3_errmsg(_writeConnection), StatusCode.DbError);
 
-                    int changes = changes = _writeConnection.changes();
+                    int changes = _writeConnection.changes();
                     if (changes > 0)
                     {
                         lastInsertedId = _writeConnection.last_insert_rowid();
@@ -507,6 +524,7 @@ namespace Couchbase.Lite.Shared
 
         public void Close()
         {
+            _cts.Cancel();
             ((SingleThreadScheduler)Factory.Scheduler).Dispose();
             Close(ref _readConnection);
             Close(ref _writeConnection);
@@ -572,14 +590,13 @@ namespace Couchbase.Lite.Shared
                 {
                     Open(Path);
                 }
-
-                lock(dbLock) {
-                    raw.sqlite3_prepare_v2(db, sql, out command);
-                    if (paramArgs.Length > 0)
-                    {
-                        command.bind(paramArgs);
-                    }
+                    
+                int err = raw.sqlite3_prepare_v2(db, sql, out command);
+                if (paramArgs.Length > 0)
+                {
+                    command.bind(paramArgs);
                 }
+
             }
             catch (Exception e)
             {
@@ -732,11 +749,8 @@ namespace Couchbase.Lite.Shared
             }
 
             sqlite3_stmt command;
-            lock (dbLock)
-            {
-                command = _writeConnection.prepare(builder.ToString());
-                command.bind(whereArgs);
-            }
+            command = _writeConnection.prepare(builder.ToString());
+            command.bind(whereArgs);
 
             return command;
         }

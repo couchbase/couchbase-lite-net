@@ -397,6 +397,9 @@ namespace Couchbase.Lite
         // This method will be used by Router & Reachability Manager
         internal virtual bool GoOffline()
         {
+            //TODO.JHB: Should we check to see if the replication URL is local (if so,
+            //it would be unaffected by any network status changes)?  Or is that too much
+            //of an edge case...
             if (!online || offline_inprogress)
             {
                 return false;
