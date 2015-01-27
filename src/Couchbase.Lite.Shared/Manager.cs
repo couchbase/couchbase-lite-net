@@ -121,7 +121,16 @@ namespace Couchbase.Lite
             illegalCharactersPattern = new Regex(IllegalCharacters);
             mapper = new ObjectWriter();
             DefaultOptions = ManagerOptions.Default;
-            defaultDirectory = new DirectoryInfo(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData));
+            //
+            // Note: Environment.SpecialFolder.LocalApplicationData returns null on Azure (and possibly other Windows Server environments)
+            // and this is only needed by the default constructor or when accessing the SharedInstanced
+            // So, let's only set it only when GetFolderPath returns something and allow the directory to be
+            // manually specified via the ctor that accepts a DirectoryInfo
+            var defaultDirectoryPath = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+            if (!String.IsNullOrWhiteSpace(defaultDirectoryPath))
+            {
+                defaultDirectory = new DirectoryInfo(defaultDirectoryPath);
+            }
         }
 
         /// <summary>

@@ -14,28 +14,28 @@ build:
     configuration: Release|iPhone
   - 
     path: ../../src/Couchbase.Lite.Android/Couchbase.Lite.Android.csproj
-    configuration: Release|AnyCPU
+    configuration: Release|AnyCPU 
+packages:
+  "":
+    - Newtonsoft.Json, Version=6.0.4
+    - SQLitePCL.raw_basic, Version=0.7.0
+    - SQLitePCL.ugly, Version=0.7.0
 libraries: 
-  ios: 
+  ios-unified: 
      - ../../src/Couchbase.Lite.iOS/bin/Release/Couchbase.Lite.dll
      - ../../src/Couchbase.Lite.iOS/bin/Release/Couchbase.Lite.dll.mdb
      - ../../src/Couchbase.Lite.iOS/bin/Release/Couchbase.Lite.xml
-     - ../../src/Couchbase.Lite.iOS/bin/Release/Newtonsoft.Json.dll
-     - ../../src/Couchbase.Lite.iOS/bin/Release/SQLitePCL.raw.dll
-     - ../../src/Couchbase.Lite.iOS/bin/Release/SQLitePCL.ugly.dll
   android: 
      - ../../src/Couchbase.Lite.Android/bin/Release/Couchbase.Lite.dll
      - ../../src/Couchbase.Lite.Android/bin/Release/Couchbase.Lite.dll.mdb
      - ../../src/Couchbase.Lite.Android/bin/Release/Couchbase.Lite.xml
-     - ../../src/Couchbase.Lite.Android/bin/Release/Newtonsoft.Json.dll
-     - ../../src/Couchbase.Lite.Android/bin/Release/SQLitePCL.raw.dll
-     - ../../src/Couchbase.Lite.Android/bin/Release/SQLitePCL.ugly.dll
 summary: A lightweight, document-oriented (NoSQL), syncable database engine. 
 details: Details.md
 screenshots: 
   - screenshots/screenshot1.png
 getting-started: GettingStarted.md
-version: "1.0.0"
+version: "1.0.4"
+skip_docs: true
 samples:
   iOS Sample: ../../samples/CouchbaseSample.iOS/CouchbaseSample.iOS.sln
   Android Sample: ../../samples/SimpleAndroidSync/SimpleAndroidSync.sln

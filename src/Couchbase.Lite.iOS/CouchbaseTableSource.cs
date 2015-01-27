@@ -1,6 +1,6 @@
 ﻿using System;
-using MonoTouch.UIKit;
-using MonoTouch.Foundation;
+using UIKit;
+using Foundation;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -36,7 +36,7 @@ namespace Couchbase.Lite.iOS
             Initialize ();
         }
 
-        public CouchbaseTableSource(NSCoder coder) : base(coder)
+        public CouchbaseTableSource(NSObjectFlag coder) : base(coder)
         {
             Initialize ();
         }
@@ -204,7 +204,7 @@ namespace Couchbase.Lite.iOS
             return cell;
         }
 
-        public override int RowsInSection (UITableView tableView, int section)
+        public override nint RowsInSection (UITableView tableView, nint section)
         {
             var rows = Rows != null ? Rows.Count : 0;
             return rows;

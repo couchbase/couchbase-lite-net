@@ -1,7 +1,7 @@
 using System;
 using System.Drawing;
-using MonoTouch.Foundation;
-using MonoTouch.UIKit;
+using Foundation;
+using UIKit;
 using System.Reflection;
 using System.Linq;
 
@@ -77,7 +77,7 @@ namespace CouchbaseSample
     void Pop ()
     {
       var navController = (UINavigationController)ParentViewController;
-      navController.PopViewControllerAnimated (true);
+      navController.PopViewController (true);
     }
   }
 }

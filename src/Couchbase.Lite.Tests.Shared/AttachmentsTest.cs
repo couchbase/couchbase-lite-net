@@ -53,6 +53,7 @@ using Sharpen;
 using Newtonsoft.Json.Linq;
 using Couchbase.Lite.Storage;
 using Couchbase.Lite.Util;
+using Newtonsoft.Json;
 
 namespace Couchbase.Lite
 {
@@ -78,8 +79,7 @@ namespace Couchbase.Lite
                 new RevisionInternal(rev1Properties), null, false, status);
             Assert.AreEqual(StatusCode.Created, status.GetCode());
 
-            var attach1 = Runtime.GetBytesForString(
-                "This is the body of attach1").ToArray();
+            var attach1 = Encoding.UTF8.GetBytes("This is the body of attach1");
             database.InsertAttachmentForSequenceWithNameAndType(
                 new ByteArrayInputStream(attach1), 
                 rev1.GetSequence(), 
@@ -173,7 +173,7 @@ namespace Couchbase.Lite
                 rev3Properties), rev2.GetRevId(), false, status);
             Assert.AreEqual(StatusCode.Created, status.GetCode());
 
-            var attach2 = Runtime.GetBytesForString("<html>And this is attach2</html>").ToArray();
+            var attach2 = Encoding.UTF8.GetBytes("<html>And this is attach2</html>");
             database.InsertAttachmentForSequenceWithNameAndType(
                 new ByteArrayInputStream(attach2), rev3.GetSequence(), 
                 testAttachmentName, "text/html", rev2.GetGeneration());
@@ -261,7 +261,7 @@ namespace Couchbase.Lite
                 largeAttachment.Append("big attachment!");
             }
 
-            var attach1 = Runtime.GetBytesForString(largeAttachment.ToString()).ToArray();
+            var attach1 = Encoding.UTF8.GetBytes(largeAttachment.ToString());
             database.InsertAttachmentForSequenceWithNameAndType(
                 new ByteArrayInputStream(attach1), rev1.GetSequence(), 
                 testAttachmentName, "text/plain", rev1.GetGeneration());
@@ -322,7 +322,7 @@ namespace Couchbase.Lite
             rev3 = database.PutRevision(rev3, rev2.GetRevId(), false, status);
 
             Assert.AreEqual(StatusCode.Created, status.GetCode());
-            var attach3 = Runtime.GetBytesForString("<html><blink>attach3</blink></html>").ToArray();
+            var attach3 = Encoding.UTF8.GetBytes("<html><blink>attach3</blink></html>");
             database.InsertAttachmentForSequenceWithNameAndType(
                 new ByteArrayInputStream(attach3), rev3.GetSequence(), 
                 testAttachmentName, "text/html", rev3.GetGeneration());
@@ -344,17 +344,16 @@ namespace Couchbase.Lite
             Assert.AreEqual(1, blobKeys.Count);
         }
 
-        /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
-        /*
+        [Test]
         public virtual void TestPutAttachment()
         {
-            var testAttachmentName = "test_attachment";
+            const string testAttachmentName = "test_attachment";
             var attachments = database.Attachments;
             attachments.DeleteBlobs();
             Assert.AreEqual(0, attachments.Count());
 
             // Put a revision that includes an _attachments dict:
-            var attach1 = Runtime.GetBytesForString("This is the body of attach1").ToArray();
+            var attach1 = Encoding.UTF8.GetBytes("This is the body of attach1");
             var base64 = Convert.ToBase64String(attach1);
             var attachment = new Dictionary<string, object>();
             attachment["content_type"] = "text/plain";
@@ -374,10 +373,10 @@ namespace Couchbase.Lite
             
             // Get the revision:
             var gotRev1 = database.GetDocumentWithIDAndRev(rev1.GetDocId(), 
-                rev1.GetRevId(), EnumSet.NoneOf<TDContentOptions>());
-            var gotAttachmentDict = (IDictionary<string, object>)gotRev1.
-                GetProperties().Get("_attachments");
-            var innerDict = new Dictionary<string, object>();
+                rev1.GetRevId(), DocumentContentOptions.None);
+            var gotAttachmentDict = gotRev1.GetPropertyForKey("_attachments").AsDictionary<string, object>();
+
+            var innerDict = new JObject();
             innerDict["content_type"] = "text/plain";
             innerDict["digest"] = "sha1-gOHUOBmIMoDCrMuGyaLWzf1hQTE=";
             innerDict["length"] = 27;
@@ -388,12 +387,15 @@ namespace Couchbase.Lite
             Assert.AreEqual(expectAttachmentDict, gotAttachmentDict);
 
             // Update the attachment directly:
-            var attachv2 = Runtime.GetBytesForString("Replaced body of attach").ToArray();
+            var attachv2 = Encoding.UTF8.GetBytes("Replaced body of attach");
+            var writer = new BlobStoreWriter(database.Attachments);
+            writer.AppendData(attachv2);
+            writer.Finish();
             var gotExpectedErrorCode = false;
             try
             {
-                database.UpdateAttachment(testAttachmentName, new ByteArrayInputStream(attachv2), 
-                    "application/foo", rev1.GetDocId(), null);
+                database.UpdateAttachment(testAttachmentName, writer, "application/foo", 
+                    AttachmentEncoding.AttachmentEncodingNone, rev1.GetDocId(), null);
             }
             catch (CouchbaseLiteException e)
             {
@@ -404,8 +406,8 @@ namespace Couchbase.Lite
             
             try
             {
-                database.UpdateAttachment(testAttachmentName, new ByteArrayInputStream(attachv2), 
-                    "application/foo", rev1.GetDocId(), "1-bogus");
+                database.UpdateAttachment(testAttachmentName, new BlobStoreWriter(database.Attachments), "application/foo", 
+                    AttachmentEncoding.AttachmentEncodingNone, rev1.GetDocId(), "1-bogus");
             }
             catch (CouchbaseLiteException e)
             {
@@ -417,8 +419,8 @@ namespace Couchbase.Lite
             RevisionInternal rev2 = null;
             try
             {
-                rev2 = database.UpdateAttachment(testAttachmentName, new ByteArrayInputStream(attachv2
-                    ), "application/foo", rev1.GetDocId(), rev1.GetRevId());
+                rev2 = database.UpdateAttachment(testAttachmentName, writer, "application/foo",
+                    AttachmentEncoding.AttachmentEncodingNone, rev1.GetDocId(), rev1.GetRevId());
             }
             catch (CouchbaseLiteException)
             {
@@ -429,10 +431,9 @@ namespace Couchbase.Lite
             Assert.AreEqual(2, rev2.GetGeneration());
             // Get the updated revision:
             RevisionInternal gotRev2 = database.GetDocumentWithIDAndRev(rev2.GetDocId(), rev2
-                .GetRevId(), EnumSet.NoneOf<TDContentOptions>());
-            attachmentDict = (IDictionary<string, object>)gotRev2.Properties.Get("_attachments"
-                );
-            innerDict = new Dictionary<string, object>();
+                .GetRevId(), DocumentContentOptions.None);
+            attachmentDict = (Dictionary<string, object>)gotRev2.GetProperties().Get("_attachments").AsDictionary<string, object>();
+            innerDict = new JObject();
             innerDict["content_type"] = "application/foo";
             innerDict["digest"] = "sha1-mbT3208HI3PZgbG4zYWbDW2HsPk=";
             innerDict["length"] = 23;
@@ -444,8 +445,8 @@ namespace Couchbase.Lite
             gotExpectedErrorCode = false;
             try
             {
-                database.UpdateAttachment("nosuchattach", null, null, rev2.GetDocId(), rev2.GetRevId
-                    ());
+                database.UpdateAttachment("nosuchattach", null, "application/foo",
+                    AttachmentEncoding.AttachmentEncodingNone, rev2.GetDocId(), rev2.GetRevId());
             }
             catch (CouchbaseLiteException e)
             {
@@ -455,25 +456,26 @@ namespace Couchbase.Lite
             gotExpectedErrorCode = false;
             try
             {
-                database.UpdateAttachment("nosuchattach", null, null, "nosuchdoc", "nosuchrev");
+                database.UpdateAttachment("nosuchattach", null, null, 
+                    AttachmentEncoding.AttachmentEncodingNone, "nosuchdoc", "nosuchrev");
             }
             catch (CouchbaseLiteException e)
             {
                 gotExpectedErrorCode = (e.GetCBLStatus().GetCode() == StatusCode.NotFound);
             }
             Assert.IsTrue(gotExpectedErrorCode);
-            RevisionInternal rev3 = database.UpdateAttachment(testAttachmentName, null, null, 
-                rev2.GetDocId(), rev2.GetRevId());
+            RevisionInternal rev3 = database.UpdateAttachment(testAttachmentName, null, null,
+                AttachmentEncoding.AttachmentEncodingNone, rev2.GetDocId(), rev2.GetRevId());
             Assert.AreEqual(rev2.GetDocId(), rev3.GetDocId());
             Assert.AreEqual(3, rev3.GetGeneration());
             // Get the updated revision:
             RevisionInternal gotRev3 = database.GetDocumentWithIDAndRev(rev3.GetDocId(), rev3
-                .GetRevId(), EnumSet.NoneOf<TDContentOptions>());
-            attachmentDict = (IDictionary<string, object>)gotRev3.Properties.Get("_attachments"
+                .GetRevId(), DocumentContentOptions.None);
+            attachmentDict = (Dictionary<string, object>)gotRev3.GetProperties().Get("_attachments"
                 );
             Assert.IsNull(attachmentDict);
             database.Close();
-        }*/
+        }
 
         [Test]
         public void TestStreamAttachmentBlobStoreWriter()
@@ -481,7 +483,7 @@ namespace Couchbase.Lite
             var attachments = database.Attachments;
             var blobWriter = new BlobStoreWriter(attachments);
             var testBlob = "foo";
-            blobWriter.AppendData(Runtime.GetBytesForString(testBlob));
+            blobWriter.AppendData(Encoding.UTF8.GetBytes(testBlob));
             blobWriter.Finish();
 
             var sha1Base64Digest = "sha1-C+7Hteo/D9vJXQ3UfzxbwnXaijM=";
@@ -493,7 +495,7 @@ namespace Couchbase.Lite
             // look it up in blob store and make sure it's there
             var blobKey = new BlobKey(sha1Base64Digest);
             var blob = attachments.BlobForKey(blobKey);
-            Assert.IsTrue(Arrays.Equals(Runtime.GetBytesForString(testBlob).ToArray(), blob));
+            Assert.IsTrue(Arrays.Equals(Encoding.UTF8.GetBytes(testBlob).ToArray(), blob));
         }
 
         /// <summary>https://github.com/couchbase/couchbase-lite-android/issues/134</summary>
@@ -510,7 +512,7 @@ namespace Couchbase.Lite
             properties["foo"] = "bar";
             rev.SetUserProperties(properties);
 
-            var attachBodyBytes = Runtime.GetBytesForString("attach body").ToArray();
+            var attachBodyBytes = Encoding.UTF8.GetBytes("attach body");
             var attachment = new Attachment(new ByteArrayInputStream(attachBodyBytes), "text/plain");
             string attachmentName = "test_attachment.txt";
             rev.AddAttachment(attachment, attachmentName);
@@ -561,7 +563,7 @@ namespace Couchbase.Lite
         {
             var doc = database.CreateDocument();
             var content = "This is a test attachment!";
-            var body = Runtime.GetBytesForString(content).ToArray();
+            var body = Encoding.UTF8.GetBytes(content);
             var rev = doc.CreateRevision();
             rev.SetAttachment("index.html", "text/plain; charset=utf-8", body);
             rev.Save();

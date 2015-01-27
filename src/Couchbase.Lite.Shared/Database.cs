@@ -4281,7 +4281,7 @@ PRAGMA user_version = 3;";
 
                     if (oldRevProps != null)
                     {
-                        attachments = (IDictionary<string, object>)oldRevProps.Get("_attachments");
+                        attachments = oldRevProps.Get("_attachments").AsDictionary<string, object>();
                     }
 
                     if (attachments == null)

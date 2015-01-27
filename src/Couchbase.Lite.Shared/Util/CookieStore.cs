@@ -41,10 +41,12 @@
 //
 
 using System;
+using System.Linq;
 using System.Net;
 using System.IO;
 using System.Reflection;
 using Newtonsoft.Json;
+using System.Collections.Generic;
 
 namespace Couchbase.Lite.Util
 {
@@ -56,7 +58,7 @@ namespace Couchbase.Lite.Util
 
         readonly DirectoryInfo directory;
 
-        readonly FieldInfo cookiesField;
+        private HashSet<Uri> _cookieUriReference = new HashSet<Uri>();
 
         #region Constructors
 
@@ -64,9 +66,6 @@ namespace Couchbase.Lite.Util
 
         public CookieStore(String directory) 
         {
-            cookiesField = typeof(CookieContainer)
-                .GetField("cookies", (BindingFlags.GetField | BindingFlags.Instance | BindingFlags.NonPublic));
-
             if (directory != null)
             {
                 this.directory = new DirectoryInfo(directory);
@@ -80,7 +79,19 @@ namespace Couchbase.Lite.Util
         public new void Add(CookieCollection cookies)
         {
             base.Add(cookies);
+            foreach(Cookie cookie in cookies)
+            {
+                var urlString = String.Format("http://{0}{1}", cookie.Domain, cookie.Path);
+                _cookieUriReference.Add(new Uri(urlString));
+            }
             Save();
+        }
+
+        public new void Add(Cookie cookie)
+        {
+            base.Add(cookie);
+            var urlString = String.Format("http://{0}{1}", cookie.Domain, cookie.Path);
+            _cookieUriReference.Add(new Uri(urlString));
         }
 
         public void Delete(Uri uri, string name)
@@ -154,15 +165,16 @@ namespace Couchbase.Lite.Util
                 return;
             }
 
+            List<Cookie> aggregate = new List<Cookie>();
+            foreach(var uri in _cookieUriReference)
+            {
+                var collection = GetCookies(uri);
+                aggregate.AddRange(collection.Cast<Cookie>());
+            }
+
             using (var writer = new StreamWriter(filePath))
             {
-                var settings = new JsonSerializerSettings 
-                {
-                    Converters = { new CookieCollectionJsonConverter() }
-                };
-
-                var cookies = cookiesField.GetValue(this);
-                var json = JsonConvert.SerializeObject(cookies, settings);
+                var json = JsonConvert.SerializeObject(aggregate);
                 writer.Write(json);
             }
         }
@@ -183,71 +195,13 @@ namespace Couchbase.Lite.Util
 
             using (var reader = new StreamReader(filePath))
             {
-                var settings = new JsonSerializerSettings 
-                {
-                    Converters = { new CookieCollectionJsonConverter() }
-                };
-
                 var json = reader.ReadToEnd();
 
-                var cookies = JsonConvert.DeserializeObject<CookieCollection> (json, settings);
-                if (cookies != null)
+                var cookies = JsonConvert.DeserializeObject<List<Cookie>>(json);
+                foreach(Cookie cookie in cookies)
                 {
-                    cookiesField.SetValue(this, cookies);
+                    Add(cookie);
                 }
-            }
-        }
-
-        private class CookieCollectionJsonConverter : JsonConverter
-        {
-            public override bool CanRead 
-            {
-                get {
-                    return true;
-                }
-            }
-
-            public override bool CanWrite 
-            {
-                get {
-                    return true;
-                }
-            }
-
-            public override bool CanConvert (Type objectType)
-            {
-                var val = objectType == typeof(CookieCollection);
-                return val;
-            }
-
-            public override object ReadJson (JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
-            {
-                var value = (string)reader.Value;
-                if (value == null)
-                {
-                    return null;
-                }
-
-                var collection = new CookieCollection();
-
-                var cookies = JsonConvert.DeserializeObject<Cookie[]>(value);
-                if (cookies != null)
-                {
-                    foreach(var cookie in cookies)
-                    {
-                        collection.Add(cookie);
-                    }
-                }
-
-                return collection;
-            }
-
-            public override void WriteJson (JsonWriter writer, object value, JsonSerializer serializer)
-            {
-                var uri = (CookieCollection)value;
-                var str = JsonConvert.SerializeObject(uri);
-
-                writer.WriteValue(str);
             }
         }
 
