@@ -1123,17 +1123,17 @@ namespace Couchbase.Lite
             Assert.IsNull(query.Rows);
             query.Start();
 
-            var gotExpectedQueryResult = new CountDownLatch(1);
+            var gotExpectedQueryResult = new CountdownEvent(1);
             query.Changed += (sender, e) => 
             {
                 Assert.IsNull(e.Error);
                 if (e.Rows.Count == 1 && Convert.ToInt32(e.Rows.GetRow(0).Value) == numDocs)
                 {
-                    gotExpectedQueryResult.CountDown();
+                    gotExpectedQueryResult.Signal();
                 }
             };
 
-            var success = gotExpectedQueryResult.Await(TimeSpan.FromSeconds(10));
+            var success = gotExpectedQueryResult.Wait(TimeSpan.FromSeconds(10));
             Assert.IsTrue(success);
             query.Stop();
 
@@ -1141,17 +1141,17 @@ namespace Couchbase.Lite
 
             CreateDocumentsAsync(database, numDocs + 5); //10 + 10 + 5
 
-            var gotExpectedQuery1Result = new CountDownLatch(1);
+            var gotExpectedQuery1Result = new CountdownEvent(1);
             query1.Changed += (sender, e) => 
             {
                 Assert.IsNull(e.Error);
                 if (e.Rows.Count == 1 && Convert.ToInt32(e.Rows.GetRow(0).Value) == (2 * numDocs) + 5)
                 {
-                    gotExpectedQuery1Result.CountDown();
+                    gotExpectedQuery1Result.Signal();
                 }
             };
 
-            success = gotExpectedQuery1Result.Await(TimeSpan.FromSeconds(10));
+            success = gotExpectedQuery1Result.Wait(TimeSpan.FromSeconds(10));
             Assert.IsTrue(success);
             query1.Stop();
 

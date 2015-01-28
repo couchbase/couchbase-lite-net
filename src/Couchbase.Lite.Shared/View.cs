@@ -215,7 +215,7 @@ namespace Couchbase.Lite {
                     // Find a better way to propagate this back
                     // Now scan every revision added since the last time the view was indexed:
                     var selectArgs = new[] { lastSequence.ToString() };
-                    cursor = Database.StorageEngine.InIntransactionRawQuery("SELECT revs.doc_id, sequence, docid, revid, json, no_attachments FROM revs, docs "
+                    cursor = Database.StorageEngine.RawQuery("SELECT revs.doc_id, sequence, docid, revid, json, no_attachments FROM revs, docs "
                         + "WHERE sequence>? AND current!=0 AND deleted=0 "
                         + "AND revs.doc_id = docs.doc_id "
                         + "ORDER BY revs.doc_id, revid DESC", selectArgs);

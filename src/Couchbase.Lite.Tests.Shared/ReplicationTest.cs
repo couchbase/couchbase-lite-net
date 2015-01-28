@@ -1421,6 +1421,12 @@ namespace Couchbase.Lite
         */
         [Test]
         public void TestContinuousReplicationErrorNotification() {
+            if (!Boolean.Parse((string)Runtime.Properties["replicationTestsEnabled"]))
+            {
+                Assert.Inconclusive("Replication tests disabled.");
+                return;
+            }
+
             var httpClientFactory = new MockHttpClientFactory();
             manager.DefaultHttpClientFactory = httpClientFactory;
 
@@ -1445,6 +1451,12 @@ namespace Couchbase.Lite
         [Test]
         public void TestContinuousPusherWithAttachment()
         {
+            if (!Boolean.Parse((string)Runtime.Properties["replicationTestsEnabled"]))
+            {
+                Assert.Inconclusive("Replication tests disabled.");
+                return;
+            }
+
             var remote = GetReplicationURL();
 
             var pusher = database.CreatePushReplication(remote);
@@ -1507,6 +1519,12 @@ namespace Couchbase.Lite
 
         [Test]
         public void TestDifferentCheckpointsFilteredReplication() {
+            if (!Boolean.Parse((string)Runtime.Properties["replicationTestsEnabled"]))
+            {
+                Assert.Inconclusive("Replication tests disabled.");
+                return;
+            }
+
             var pullerNoFilter = database.CreatePullReplication(GetReplicationURL());
             var noFilterCheckpointDocId = pullerNoFilter.RemoteCheckpointDocID();
 
@@ -1836,6 +1854,12 @@ namespace Couchbase.Lite
         [Test]
         public void TestPushPullDocumentWithAttachment()
         {
+            if (!Boolean.Parse((string)Runtime.Properties["replicationTestsEnabled"]))
+            {
+                Assert.Inconclusive("Replication tests disabled.");
+                return;
+            }
+
             var props = new Dictionary<string, object>()
             { 
                 {"type", "post"},

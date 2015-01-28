@@ -653,13 +653,7 @@ namespace Couchbase.Lite
         /// <param name="runAsyncDelegate">The delegate to run asynchronously.</param>
         public Task RunAsync(RunAsyncDelegate runAsyncDelegate) 
         {
-            return Manager
-                .RunAsync(runAsyncDelegate, this)
-//                .ContinueWith(task=>{
-//                    if (task.Status != TaskStatus.RanToCompletion)
-//                    throw new CouchbaseLiteException(Tag, task.Exception);
-//                }, TaskScheduler.Current); // Dispatch to original scheduler.
-                    ;
+            return Manager.RunAsync(runAsyncDelegate, this);
         }
 
         /// <summary>
