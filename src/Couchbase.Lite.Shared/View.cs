@@ -207,16 +207,16 @@ namespace Couchbase.Lite {
                     }
 
                     var deleted = 0;
-                    cursor = Database.StorageEngine.InIntransactionRawQuery("SELECT changes()");
+                    cursor = Database.StorageEngine.IntransactionRawQuery("SELECT changes()");
                     cursor.MoveToNext();
                     deleted = cursor.GetInt(0);
                     cursor.Close();
 
                     // Find a better way to propagate this back
                     // Now scan every revision added since the last time the view was indexed:
-                    var selectArgs = new[] { lastSequence.ToString() };
-                    cursor = Database.StorageEngine.RawQuery("SELECT revs.doc_id, sequence, docid, revid, json, no_attachments FROM revs, docs "
-                        + "WHERE sequence>? AND current!=0 AND deleted=0 "
+                    var selectArgs = new[] { lastSequence.ToString(), dbMaxSequence.ToString() };
+                    cursor = Database.StorageEngine.IntransactionRawQuery("SELECT revs.doc_id, sequence, docid, revid, json, no_attachments FROM revs, docs "
+                        + "WHERE sequence>? AND sequence<=? AND current!=0 AND deleted=0 "
                         + "AND revs.doc_id = docs.doc_id "
                         + "ORDER BY revs.doc_id, revid DESC", selectArgs);
 
@@ -253,7 +253,7 @@ namespace Couchbase.Lite {
                             {
                                 // Find conflicts with documents from previous indexings.
                                 var selectArgs2 = new[] { Convert.ToString(docID), Convert.ToString(lastSequence) };
-                                cursor2 = Database.StorageEngine.InIntransactionRawQuery("SELECT revid, sequence FROM revs "
+                                cursor2 = Database.StorageEngine.IntransactionRawQuery("SELECT revid, sequence FROM revs "
                                     + "WHERE doc_id=? AND sequence<=? AND current!=0 AND deleted=0 " + "ORDER BY revID DESC "
                                     + "LIMIT 1", selectArgs2);
                                 if (cursor2.MoveToNext())
@@ -754,7 +754,7 @@ namespace Couchbase.Lite {
             argsList.AddItem(options.GetLimit().ToString());
             argsList.AddItem(options.GetSkip().ToString());
             Log.D(Database.Tag, "Query {0}:{1}", Name, sql);
-            var cursor = Database.StorageEngine.InIntransactionRawQuery(sql, argsList.ToArray());
+            var cursor = Database.StorageEngine.IntransactionRawQuery(sql, argsList.ToArray());
             return cursor;
         }
 

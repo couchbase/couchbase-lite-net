@@ -320,7 +320,7 @@ namespace Couchbase.Lite.Shared
         /// <returns>The query.</returns>
         /// <param name="sql">Sql.</param>
         /// <param name="paramArgs">Parameter arguments.</param>
-        public Cursor InIntransactionRawQuery(String sql, params Object[] paramArgs)
+        public Cursor IntransactionRawQuery(String sql, params Object[] paramArgs)
         {
             if (!IsOpen)
             {

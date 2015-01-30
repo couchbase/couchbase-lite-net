@@ -68,7 +68,7 @@ namespace Couchbase.Lite.Storage
 
         Cursor RawQuery(string sql, params Object[] paramArgs);
 
-        Cursor InIntransactionRawQuery(String sql, params Object[] paramArgs);
+        Cursor IntransactionRawQuery(String sql, params Object[] paramArgs);
 
         long Insert(string table, string nullColumnHack, ContentValues values);
 

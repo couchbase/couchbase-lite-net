@@ -1350,6 +1350,12 @@ namespace Couchbase.Lite
         [Test]
         public void TestContinuousPushReplicationGoesIdle() 
         {
+            if (!Boolean.Parse((string)Runtime.Properties["replicationTestsEnabled"]))
+            {
+                Assert.Inconclusive("Replication tests disabled.");
+                return;
+            }
+
             // make sure we are starting empty
             Assert.AreEqual(0, database.LastSequenceNumber);
 
@@ -1560,6 +1566,12 @@ namespace Couchbase.Lite
         [Test]
         public void TestPusherBatching()
         {
+            if (!Boolean.Parse((string)Runtime.Properties["replicationTestsEnabled"]))
+            {
+                Assert.Inconclusive("Replication tests disabled.");
+                return;
+            }
+
             // Create a bunch (InboxCapacity * 2) local documents
             var numDocsToSend = Replication.InboxCapacity * 2;
             for (var i = 0; i < numDocsToSend; i++)
@@ -1704,6 +1716,12 @@ namespace Couchbase.Lite
         [Test]
         public void TestPushUpdatedDocWithoutReSendingAttachments() 
         {
+            if (!Boolean.Parse((string)Runtime.Properties["replicationTestsEnabled"]))
+            {
+                Assert.Inconclusive("Replication tests disabled.");
+                return;
+            }
+
             Assert.AreEqual(0, database.LastSequenceNumber);
 
             var properties1 = new Dictionary<string, object>() {
@@ -1777,6 +1795,12 @@ namespace Couchbase.Lite
 
         [Test]
         public void TestServerDoesNotSupportMultipart() {
+            if (!Boolean.Parse((string)Runtime.Properties["replicationTestsEnabled"]))
+            {
+                Assert.Inconclusive("Replication tests disabled.");
+                return;
+            }
+
             Assert.AreEqual(0, database.LastSequenceNumber);
 
             var properties1 = new Dictionary<string, object>() {
