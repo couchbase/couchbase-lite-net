@@ -467,7 +467,13 @@ namespace Couchbase.Lite
 
             foreach(var client in remoteRequests)
             {
-                client.CancelPendingRequests();
+                try 
+                {
+                    client.CancelPendingRequests();
+                } catch(ObjectDisposedException)
+                {
+                    //Swallow, our work is already done for us
+                }
             }
             CancellationTokenSource.Cancel();
             //Task.WaitAll(((SingleTaskThreadpoolScheduler)WorkExecutor.Scheduler).ScheduledTasks.ToArray());
@@ -1832,14 +1838,10 @@ namespace Couchbase.Lite
                 LocalDatabase.ForgetReplication(this);
             }
 
-            if (IsRunning && asyncTaskCount <= 0)
+            if (IsRunning)
             {
                 Log.V(Tag, "calling stopping()");
                 Stopping();
-            }
-            else
-            {
-                Log.V(Tag, "not calling stopping().  running: " + IsRunning + " asyncTaskCount: " + asyncTaskCount);
             }
         }
 

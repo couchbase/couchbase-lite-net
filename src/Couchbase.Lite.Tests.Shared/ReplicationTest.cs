@@ -71,32 +71,32 @@ namespace Couchbase.Lite
 
         private class ReplicationIdleObserver 
         {
-            private readonly CountDownLatch doneSignal;
+            private readonly CountdownEvent doneSignal;
 
-            internal ReplicationIdleObserver(CountDownLatch doneSignal) {
+            internal ReplicationIdleObserver(CountdownEvent doneSignal) {
                 this.doneSignal = doneSignal;
             }
                 
             public void Changed(object sender, ReplicationChangeEventArgs args) {
                 var replicator = args.Source;
                 if (replicator.Status == ReplicationStatus.Idle) {
-                    doneSignal.CountDown();
+                    doneSignal.Signal();
                 }
             }
         }
 
         private class ReplicationErrorObserver 
         {
-            private readonly CountDownLatch doneSignal;
+            private readonly CountdownEvent doneSignal;
 
-            internal ReplicationErrorObserver(CountDownLatch doneSignal) {
+            internal ReplicationErrorObserver(CountdownEvent doneSignal) {
                 this.doneSignal = doneSignal;
             }
 
             public void Changed(object sender, ReplicationChangeEventArgs args) {
                 var replicator = args.Source;
                 if (replicator.LastError != null) {
-                    doneSignal.CountDown();
+                    doneSignal.Signal();
                 }
             }
         }
@@ -128,7 +128,7 @@ namespace Couchbase.Lite
 
                     try
                     {
-                        System.Threading.Thread.Sleep(1000);
+                        Thread.Sleep(1000);
                     }
                     catch (Exception e)
                     {
@@ -143,7 +143,7 @@ namespace Couchbase.Lite
 
         private void RunReplication(Replication replication)
         {
-            var replicationDoneSignal = new CountDownLatch(1);
+            var replicationDoneSignal = new CountdownEvent(1);
             var observer = new ReplicationObserver(replicationDoneSignal);
             replication.Changed += observer.Changed;
             replication.Start();
@@ -152,12 +152,10 @@ namespace Couchbase.Lite
 
             Log.D(Tag, "Waiting for replicator to finish.");
 
-                var success = replicationDoneSignal.Await(TimeSpan.FromSeconds(15));
-                Assert.IsTrue(success);
-                success = replicationDoneSignalPolling.Wait(TimeSpan.FromSeconds(15));
-                Assert.IsTrue(success);
+            var success = WaitHandle.WaitAll(new[] { replicationDoneSignal.WaitHandle, replicationDoneSignalPolling.WaitHandle }, 15*1000);
+            Assert.IsTrue(success);
 
-                Log.D(Tag, "replicator finished");
+            Log.D(Tag, "replicator finished");
 
             replication.Changed -= observer.Changed;
         }
@@ -343,7 +341,7 @@ namespace Couchbase.Lite
             unsavedRevision.SetUserProperties(properties);
             unsavedRevision.Save();
 
-            Thread.Sleep(15);
+            //Thread.Sleep(15);
 
             // but then immediately purge it
             doc.Purge();
@@ -364,7 +362,7 @@ namespace Couchbase.Lite
                 }
             }
 
-            Assert.AreEqual(1, numBulkDocRequests);
+            Assert.AreEqual(0, numBulkDocRequests);
             pusher.Stop();
         }
 
@@ -893,6 +891,7 @@ namespace Couchbase.Lite
                 Assert.Inconclusive("Replication tests disabled.");
                 return;
             }
+
             var dbUrlString = new Uri(baseUri);
             var relativeUrlString = dbUrlString.AppendPath(newPath).AbsoluteUri;
             var expected = "http://10.0.0.3:4984/connect-2014/_bulk_get?revs=true&attachments=true";
@@ -1221,13 +1220,13 @@ namespace Couchbase.Lite
             };
             httpHandler.SetResponder(doc2.Id, doc2Responder);
 
-            var replicationDoneSignal = new CountDownLatch(1);
+            var replicationDoneSignal = new CountdownEvent(1);
             var observer = new ReplicationObserver(replicationDoneSignal);
             var pusher = database.CreatePushReplication(GetReplicationURL());
             pusher.Changed += observer.Changed;
             pusher.Start();
 
-            var success = replicationDoneSignal.Await(TimeSpan.FromSeconds(5));
+            var success = replicationDoneSignal.Wait(TimeSpan.FromSeconds(5));
             Assert.IsTrue(success);
 
             Assert.IsNotNull(pusher.LastError);
@@ -1380,12 +1379,12 @@ namespace Couchbase.Lite
             };
             httpHandler.SetResponder("_local", localResponder);
 
-            var replicationIdleSignal = new CountDownLatch(1);
+            var replicationIdleSignal = new CountdownEvent(1);
             var replicationIdleObserver = new ReplicationIdleObserver(replicationIdleSignal);
             firstPusher.Changed += replicationIdleObserver.Changed;
             firstPusher.Start();
 
-            var success = replicationIdleSignal.Await(TimeSpan.FromSeconds(30));
+            var success = replicationIdleSignal.Wait(TimeSpan.FromSeconds(30));
             Assert.IsTrue(success);
             StopReplication(firstPusher);
 
@@ -1409,13 +1408,13 @@ namespace Couchbase.Lite
             httpHandler.SetResponder("_local", localResponder);
 
             // start second replication
-            replicationIdleSignal = new CountDownLatch(1);
+            replicationIdleSignal = new CountdownEvent(1);
             replicationIdleObserver = new ReplicationIdleObserver(replicationIdleSignal);
             secondPusher.Changed += replicationIdleObserver.Changed;
             secondPusher.Start();
 
             // wait until we get an IDLE event
-            success = replicationIdleSignal.Await(TimeSpan.FromSeconds(30));
+            success = replicationIdleSignal.Wait(TimeSpan.FromSeconds(30));
             Assert.IsTrue(success);
             StopReplication(secondPusher);
         }
@@ -1442,12 +1441,12 @@ namespace Couchbase.Lite
             var pusher = database.CreatePushReplication(GetReplicationURL());
             pusher.Continuous = true;
 
-            var signal = new CountDownLatch(1);
+            var signal = new CountdownEvent(1);
             var observer = new ReplicationErrorObserver(signal);
             pusher.Changed += observer.Changed;
             pusher.Start();
 
-            var success = signal.Await(TimeSpan.FromSeconds(30));
+            var success = signal.Wait(TimeSpan.FromSeconds(30));
             Assert.IsTrue(success);
 
             pusher.Stop();
@@ -1643,7 +1642,7 @@ namespace Couchbase.Lite
             httpHandler.SetResponder("_bulk_docs", chainResponder);
 
             // Create a replication observer to wait until replication finishes
-            var replicationDoneSignal = new CountDownLatch(1);
+            var replicationDoneSignal = new CountdownEvent(1);
             var replicationFinishedObserver = new ReplicationObserver(replicationDoneSignal);
             var pusher = database.CreatePushReplication(GetReplicationURL());
             pusher.Changed += replicationFinishedObserver.Changed;
@@ -1655,7 +1654,7 @@ namespace Couchbase.Lite
             pusher.Start();
 
             // wait for it to finish
-            var success = replicationDoneSignal.Await(TimeSpan.FromSeconds(30));
+            var success = replicationDoneSignal.Wait(TimeSpan.FromSeconds(30));
             Assert.IsTrue(success);
 
             if (expectError)
@@ -1929,19 +1928,23 @@ namespace Couchbase.Lite
                 return;
             }
 
-            for (int i = 0; i < 100; i++)
+            const int docsToCreate = 50;
+            HashSet<string> docList = new HashSet<string>();
+            for (int i = 0; i < docsToCreate; i++)
             {
                 var docIdTimestamp = Convert.ToString (Runtime.CurrentTimeMillis ());
                 var docId = string.Format ("doc{0}-{1}", i, docIdTimestamp);
 
                 Log.D(Tag, "Adding " + docId + " directly to sync gateway");           
                 AddDocWithId(docId, "attachment.png");
+                docList.Add(docId);
             }
 
             var pusher = database.CreatePushReplication(GetReplicationURL());
             pusher.Start ();
 
-            var mre = new CountdownEvent(100);
+            var docsBefore = database.DocumentCount;
+            var mre = new CountdownEvent(docsToCreate);
             var puller = database.CreatePullReplication(GetReplicationURL());
             puller.Changed += (sender, e) => {
                 Log.D(Tag, "Puller Changed: {0}/{1}/{2}", puller.Status, puller.ChangesCount, puller.CompletedChangesCount);
@@ -1966,13 +1969,15 @@ namespace Couchbase.Lite
                 }
                 if (numTimesCalled++ > 0 && e.Rows.Count > 0)
                 {
-                    NUnit.Framework.Assert.IsTrue(e.Rows.Count > numDocsBeforePull, "e.Rows.Count ({0}) <= numDocsBeforePull ({1})".Fmt(e.Rows.Count, numDocsBeforePull));
+                    Assert.IsTrue(e.Rows.Count > numDocsBeforePull, "e.Rows.Count ({0}) <= numDocsBeforePull ({1})".Fmt(e.Rows.Count, numDocsBeforePull));
                 }
                 Log.D(Tag, "rows {0} / times called {1}", e.Rows.Count, numTimesCalled);
-                if (e.Rows.Count == 100)
-                {
-                    mre.Signal(e.Rows.Count);
+                foreach(var row in e.Rows) {
+                    if(docList.Contains(row.DocumentId))
+                        mre.Signal();
                 }
+
+                Log.D(Tag, "Remaining docs to be found: {0}", mre.InitialCount - mre.CurrentCount);
             };
 
             // the first time this is called back, the rows will be empty.

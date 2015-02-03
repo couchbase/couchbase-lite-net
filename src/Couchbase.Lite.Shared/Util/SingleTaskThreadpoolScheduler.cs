@@ -71,7 +71,7 @@ namespace Couchbase.Lite.Util
                         } 
                         var task = queue.Take();
                         Log.D(Tag, " --> Dequeued a task: {0}/{1}", queue.Count, runningTasks);
-                        if (task.Status == TaskStatus.Running)
+                        if (task.Status >= TaskStatus.Running)
                         {
                             Log.D(Tag, "       skipping previously inlined task, which is still running.");
                         }
@@ -103,6 +103,14 @@ namespace Couchbase.Lite.Util
             var success = TryExecuteTask(task);
             if (!success && (task.Status != TaskStatus.Running && task.Status != TaskStatus.Canceled && task.Status != TaskStatus.RanToCompletion))
                 Log.E(Tag, "Scheduled task faulted", task.Exception);
+
+            if (success && !task.IsCompleted)
+            {
+                //Mono (Android, at least) will throw an exception if this method returns true
+                //before the task is complete
+                task.Wait(TimeSpan.FromSeconds(10));
+            }
+
             return success;
         } 
 
