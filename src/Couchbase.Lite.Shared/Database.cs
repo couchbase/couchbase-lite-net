@@ -4615,6 +4615,11 @@ PRAGMA user_version = 3;";
 
         internal Boolean Close()
         {
+            if (StorageEngine != null && StorageEngine.IsOpen)
+            {
+                StorageEngine.Close();
+            }
+
             if (!_isOpen)
             {
                 return false;
@@ -4639,10 +4644,7 @@ PRAGMA user_version = 3;";
                 }
                 ActiveReplicators = null;
             }
-            if (StorageEngine != null && StorageEngine.IsOpen)
-            {
-                StorageEngine.Close();
-            }
+
             _isOpen = false;
             _transactionLevel = 0;
             return true;

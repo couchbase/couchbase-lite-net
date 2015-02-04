@@ -137,7 +137,7 @@ namespace Couchbase.Lite.Shared
             const string commandText = "PRAGMA user_version;";
             sqlite3_stmt statement;
 
-            statement = _readConnection.prepare(commandText);
+            statement = _writeConnection.prepare(commandText);
 
             var result = -1;
             try
