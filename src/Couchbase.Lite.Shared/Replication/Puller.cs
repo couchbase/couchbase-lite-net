@@ -618,53 +618,62 @@ namespace Couchbase.Lite.Replicator
 
             SendAsyncRequest(HttpMethod.Post, "/_all_docs?include_docs=true", body, (result, e) =>
             {
-                var res = result.AsDictionary<string, object>();
-                if (e != null) {
-                    SetLastError(e);
-                    RevisionFailed();
-                    SafeAddToCompletedChangesCount(bulkRevs.Count);
-                } else {
-                    // Process the resulting rows' documents.
-                    // We only add a document if it doesn't have attachments, and if its
-                    // revID matches the one we asked for.
-                    var rows = res.Get ("rows").AsList<IDictionary<string, object>>();
-                    Log.V (Tag, "Checking {0} bulk-fetched remote revisions", rows.Count);
-
-                    foreach (var row in rows) {
-                        var doc = row.Get ("doc").AsDictionary<string, object>();
-                        if (doc != null && doc.Get ("_attachments") == null)
-                        {
-                            var rev = new RevisionInternal (doc, LocalDatabase);
-                            var pos = remainingRevs.IndexOf (rev);
-                            if (pos > -1) 
-                            {
-                                rev.SetSequence(remainingRevs[pos].GetSequence());
-                                remainingRevs.Remove (pos);
-                                QueueDownloadedRevision (rev);
-                            }
-                        }
-                    }
-                }
-
-                // Any leftover revisions that didn't get matched will be fetched individually:
-                if (remainingRevs.Count > 0) 
+                try
                 {
-                    Log.V (Tag, "Bulk-fetch didn't work for {0} of {1} revs; getting individually", remainingRevs.Count, bulkRevs.Count);
-                    foreach (var rev in remainingRevs) 
-                    {
-                        QueueRemoteRevision (rev);
-                    }
-                    PullRemoteRevisions ();
+	                var res = result.AsDictionary<string, object>();
+	                if (e != null) {
+	                    SetLastError(e);
+	                    RevisionFailed();
+	                    SafeAddToCompletedChangesCount(bulkRevs.Count);
+	                } else {
+	                    // Process the resulting rows' documents.
+	                    // We only add a document if it doesn't have attachments, and if its
+	                    // revID matches the one we asked for.
+	                    var rows = res.Get ("rows").AsList<IDictionary<string, object>>();
+	                    Log.V (Tag, "Checking {0} bulk-fetched remote revisions", rows.Count);
+
+	                    foreach (var row in rows) {
+	                        var doc = row.Get ("doc").AsDictionary<string, object>();
+	                        if (doc != null && doc.Get ("_attachments") == null)
+	                        {
+	                            var rev = new RevisionInternal (doc, LocalDatabase);
+	                            var pos = remainingRevs.IndexOf (rev);
+	                            if (pos > -1) 
+	                            {
+	                                rev.SetSequence(remainingRevs[pos].GetSequence());
+	                                remainingRevs.Remove (pos);
+	                                QueueDownloadedRevision (rev);
+	                            }
+	                        }
+	                    }
+	                }
+
+	                // Any leftover revisions that didn't get matched will be fetched individually:
+	                if (remainingRevs.Count > 0) 
+	                {
+	                    Log.V (Tag, "Bulk-fetch didn't work for {0} of {1} revs; getting individually", remainingRevs.Count, bulkRevs.Count);
+	                    foreach (var rev in remainingRevs) 
+	                    {
+	                        QueueRemoteRevision (rev);
+	                    }
+	                    PullRemoteRevisions ();
+	                }
+				}
+                catch (Exception exc)
+                {
+                    Log.E(Tag, "Unhandled exception", exc);
                 }
+                finally
+                {
+                    // Note that we've finished this task:
+                    Log.V (Tag, "PullBulkWithAllDocs() calling AsyncTaskFinished()");
+                    AsyncTaskFinished (1);
 
-                // Note that we've finished this task:
-                Log.V (Tag, "PullBulkWithAllDocs() calling AsyncTaskFinished()");
-                AsyncTaskFinished (1);
+                    --httpConnectionCount;
 
-                --httpConnectionCount;
-
-                // Start another task if there are still revisions waiting to be pulled:
-                PullRemoteRevisions();
+                    // Start another task if there are still revisions waiting to be pulled:
+                    PullRemoteRevisions();
+                }
             });
         }
 

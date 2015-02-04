@@ -130,6 +130,10 @@ namespace Couchbase.Lite.Replicator
                         BeginReplicating();
                     }
                 }
+                catch (Exception exc)
+                {
+                    Log.E(Tag, "Unhandled exception", exc);
+                }
                 finally
                 {
                     Log.D(Tag, "maybeCreateRemoteDB.onComplete() calling asyncTaskFinished()");
@@ -489,6 +493,10 @@ namespace Couchbase.Lite.Replicator
                     }
                     SafeAddToCompletedChangesCount(numDocsToSend);
                 }
+                catch (Exception exc)
+                {
+                    Log.E(Tag, "Unhandled exception", exc);
+                }
                 finally
                 {
                     Log.D(Tag, "ProcessInbox() after _bulk_docs() calling AsyncTaskFinished()");
@@ -695,18 +703,28 @@ namespace Couchbase.Lite.Replicator
             var path = string.Format("/{0}?new_edits=false", Uri.EscapeUriString(rev.GetDocId()));
             SendAsyncRequest(HttpMethod.Put, path, rev.GetProperties(), (result, e) =>
             {
-                if (e != null) 
+                try
                 {
-                    SetLastError(e);
-                    RevisionFailed();
-                } 
-                else 
+	                if (e != null) 
+	                {
+	                    SetLastError(e);
+	                    RevisionFailed();
+	                } 
+	                else 
+	                {
+	                    Log.V(Tag, "Sent {0} (JSON), response={1}", rev, result);
+	                    RemovePending (rev);
+	                }
+				}
+                catch (Exception exc)
                 {
-                    Log.V(Tag, "Sent {0} (JSON), response={1}", rev, result);
-                    RemovePending (rev);
+                    Log.E(Tag, "Unhandled exception", exc);
                 }
-                Log.V(Tag, "UploadJsonRevision() calling AsyncTaskFinished()");
-                AsyncTaskFinished (1);
+                finally
+                {
+                    Log.V(Tag, "UploadJsonRevision() calling AsyncTaskFinished()");
+                    AsyncTaskFinished (1);
+                }
             });
         }
 

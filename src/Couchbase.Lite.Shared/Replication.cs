@@ -562,6 +562,10 @@ namespace Couchbase.Lite
                         }
                     }
                 }
+                catch (Exception exc)
+                {
+                    Log.E(Tag, "Unhandled exception", exc);
+                }
                 finally
                 {
                     Log.D(Tag, "checkSessionAtPath() calling asyncTaskFinished()");
@@ -598,6 +602,10 @@ namespace Couchbase.Lite
                         Log.D (Tag, string.Format ("{0}: Successfully logged in!", this));
                         FetchRemoteCheckpointDoc ();
                     }
+                }
+                catch (Exception exc)
+                {
+                    Log.E(Tag, "Unhandled exception", exc);
                 }
                 finally
                 {
@@ -819,58 +827,65 @@ namespace Couchbase.Lite
             savingCheckpoint = true;
             //Log.D(Tag, "put remote _local document.  checkpointID: " + remoteCheckpointDocID);
             SendAsyncRequest(HttpMethod.Put, "/_local/" + remoteCheckpointDocID, body, (result, e) => {
-                savingCheckpoint = false;
-                if (e != null)
+                try
                 {
-                    Log.V (Tag, "Unable to save remote checkpoint", e as HttpResponseException);
-                }
+	                savingCheckpoint = false;
+	                if (e != null)
+	                {
+	                    Log.V (Tag, "Unable to save remote checkpoint", e as HttpResponseException);
+	                }
 
-                if (LocalDatabase == null)
-                {
-                    Log.W(Tag, "Database is null, ignoring remote checkpoint response");
-                    return;
-                }
+	                if (LocalDatabase == null)
+	                {
+	                    Log.W(Tag, "Database is null, ignoring remote checkpoint response");
+	                    return;
+	                }
 
-                if (!LocalDatabase.Open())
-                {
-                    Log.W(Tag, "Database is closed, ignoring remote checkpoint response");
-                    return;
-                }
+	                if (!LocalDatabase.Open())
+	                {
+	                    Log.W(Tag, "Database is closed, ignoring remote checkpoint response");
+	                    return;
+	                }
 
-                if (e != null)
-                {
-                    switch (GetStatusFromError(e))
-                    {
-                        case StatusCode.NotFound:
-                            {
-                                remoteCheckpoint = null;
-                                overdueForSave = true;
-                                break;
-                            }
-                        case StatusCode.Conflict:
-                            {
-                                RefreshRemoteCheckpointDoc();
-                                break;
-                            }
-                        default:
-                            {
-                                // TODO: On 401 or 403, and this is a pull, remember that remote
-                                // TODO: is read-only & don't attempt to read its checkpoint next time.
-                                break;
-                            }
-                    }
-                }
-                else
-                {
-                    Log.D(Tag, "Save checkpoint response: " + result.ToString());
-                    var response = ((JObject)result).ToObject<IDictionary<string, object>>();
-                    body.Put ("_rev", response.Get ("rev"));
-                    remoteCheckpoint = body;
-                    LocalDatabase.SetLastSequence(LastSequence, RemoteCheckpointDocID(), !IsPull);
-                }
+	                if (e != null)
+	                {
+	                    switch (GetStatusFromError(e))
+	                    {
+	                        case StatusCode.NotFound:
+	                            {
+	                                remoteCheckpoint = null;
+	                                overdueForSave = true;
+	                                break;
+	                            }
+	                        case StatusCode.Conflict:
+	                            {
+	                                RefreshRemoteCheckpointDoc();
+	                                break;
+	                            }
+	                        default:
+	                            {
+	                                // TODO: On 401 or 403, and this is a pull, remember that remote
+	                                // TODO: is read-only & don't attempt to read its checkpoint next time.
+	                                break;
+	                            }
+	                    }
+	                }
+	                else
+	                {
+	                    Log.D(Tag, "Save checkpoint response: " + result.ToString());
+	                    var response = ((JObject)result).ToObject<IDictionary<string, object>>();
+	                    body.Put ("_rev", response.Get ("rev"));
+	                    remoteCheckpoint = body;
+	                    LocalDatabase.SetLastSequence(LastSequence, RemoteCheckpointDocID(), !IsPull);
+	                }
 
-                if (overdueForSave) {
-                    SaveLastSequence ();
+	                if (overdueForSave) {
+	                    SaveLastSequence ();
+	                }
+                }
+                catch (Exception exc)
+                {
+                    Log.E(Tag, "Unhandled exception", exc);
                 }
             });
         }
@@ -1374,6 +1389,10 @@ namespace Couchbase.Lite
                         SaveLastSequence();
                     }
 
+                }
+                catch (Exception exc)
+                {
+                    Log.E(Tag, "Unhandled exception", exc);
                 }
                 finally
                 {
