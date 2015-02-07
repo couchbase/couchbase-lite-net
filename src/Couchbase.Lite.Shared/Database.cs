@@ -1291,11 +1291,18 @@ PRAGMA user_version = 3;";
 
         private Int64 GetOrInsertDocNumericID(String docId)
         {
-            var docNumericId = GetDocNumericID(docId);
-            if (docNumericId == 0)
+            Int64 docNumericId = -1L;
+            RunInTransaction(() =>
             {
-                docNumericId = InsertDocumentID(docId);
-            }
+                docNumericId = GetDocNumericID(docId);
+                if (docNumericId == 0)
+                {
+                    docNumericId = InsertDocumentID(docId);
+                }
+
+                return true;
+            });
+
             return docNumericId;
         }
 
@@ -2291,7 +2298,7 @@ PRAGMA user_version = 3;";
             long result = -1;
             try
             {
-                cursor = StorageEngine.RawQuery("SELECT doc_id FROM docs WHERE docid=?", args);
+                cursor = StorageEngine.IntransactionRawQuery("SELECT doc_id FROM docs WHERE docid=?", args);
                 if (cursor.MoveToNext())
                 {
                     result = cursor.GetLong(0);
@@ -3661,14 +3668,14 @@ PRAGMA user_version = 3;";
 
         internal Int64 InsertRevision(RevisionInternal rev, long docNumericID, long parentSequence, bool current, bool hasAttachments, IEnumerable<byte> data)
         {
-            if (docNumericID == -1L)
-            {
-                return -1L;
-            }
-
             var rowId = 0L;
             try
             {
+                if (docNumericID == -1L)
+                {
+                    throw new CouchbaseLiteException(StatusCode.BadRequest);
+                }
+
                 var args = new ContentValues();
                 args["doc_id"] = docNumericID;
                 args.Put("revid", rev.GetRevId());
@@ -3685,7 +3692,7 @@ PRAGMA user_version = 3;";
                     args["json"] = data.ToArray();
                 }
 
-                rowId = StorageEngine.InsertWithOnConflict("revs", null, args, ConflictResolutionStrategy.Ignore);
+                rowId = StorageEngine.Insert("revs", null, args);
                 rev.SetSequence(rowId);
             }
             catch (Exception e)
