@@ -11,7 +11,7 @@ namespace Couchbase.Lite.Util
 {
     sealed internal class SingleTaskThreadpoolScheduler : TaskScheduler 
     {
-        private const string Tag = "SingleThreadTaskScheduler";
+        private const string Tag = "SingleTaskThreadpoolScheduler";
         private const int maxConcurrency = 1;
 
         private readonly BlockingCollection<Task> queue;

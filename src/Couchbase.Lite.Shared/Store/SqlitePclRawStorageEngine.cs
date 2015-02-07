@@ -137,6 +137,8 @@ namespace Couchbase.Lite.Shared
             const string commandText = "PRAGMA user_version;";
             sqlite3_stmt statement;
 
+            //NOTE.JHB Even though this is a read, iOS doesn't return the correct value on the read connection
+            //but someone should try again when the version goes beyond 3.7.13
             statement = _writeConnection.prepare(commandText);
 
             var result = -1;
@@ -424,7 +426,7 @@ namespace Couchbase.Lite.Shared
                         lastInsertedId = _writeConnection.last_insert_rowid();
                     }
 
-                    if (lastInsertedId == -1L)
+                    if (lastInsertedId == -1L && conflictResolutionStrategy != ConflictResolutionStrategy.Ignore)
                     {
                         Log.E(Tag, "Error inserting " + initialValues + " using " + command);
                         throw new CouchbaseLiteException("Error inserting " + initialValues + " using " + command, StatusCode.DbError);

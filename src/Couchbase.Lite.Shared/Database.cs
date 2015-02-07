@@ -3269,7 +3269,7 @@ PRAGMA user_version = 3;";
                     // Now insert the rev itself:
                     var newSequence = InsertRevision(newRev, docNumericID, parentSequence, true, (attachments.Count > 0), json);
 
-                    if (newSequence == 0)
+                    if (newSequence <= 0)
                     {
                         return false;
                     }
@@ -3661,6 +3661,11 @@ PRAGMA user_version = 3;";
 
         internal Int64 InsertRevision(RevisionInternal rev, long docNumericID, long parentSequence, bool current, bool hasAttachments, IEnumerable<byte> data)
         {
+            if (docNumericID == -1L)
+            {
+                return -1L;
+            }
+
             var rowId = 0L;
             try
             {
@@ -3680,7 +3685,7 @@ PRAGMA user_version = 3;";
                     args["json"] = data.ToArray();
                 }
 
-                rowId = StorageEngine.Insert("revs", null, args);
+                rowId = StorageEngine.InsertWithOnConflict("revs", null, args, ConflictResolutionStrategy.Ignore);
                 rev.SetSequence(rowId);
             }
             catch (Exception e)
@@ -4161,7 +4166,7 @@ PRAGMA user_version = 3;";
             {
                 ContentValues args = new ContentValues();
                 args["docid"] = docId;
-                rowId = StorageEngine.Insert("docs", null, args);
+                rowId = StorageEngine.InsertWithOnConflict("docs", null, args, ConflictResolutionStrategy.Ignore);
             }
             catch (Exception e)
             {
