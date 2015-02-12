@@ -750,8 +750,6 @@ namespace Couchbase.Lite
             Assert.IsTrue(success);
             Assert.AreEqual(5, db.GetLastSequenceNumber());
 
-            // Give transaction time to complete.
-            System.Threading.Thread.Sleep(500);
             Assert.IsTrue(task.Status.HasFlag(TaskStatus.RanToCompletion));
         }
 

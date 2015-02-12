@@ -212,7 +212,7 @@ namespace Couchbase.Lite.Shared
             {
                 var t = Factory.StartNew(() =>
                 {
-                    using (var statement = _writeConnection.prepare("BEGIN TRANSACTION"))
+                    using (var statement = _writeConnection.prepare("BEGIN IMMEDIATE TRANSACTION"))
                     {
                         statement.step_done();
                     }

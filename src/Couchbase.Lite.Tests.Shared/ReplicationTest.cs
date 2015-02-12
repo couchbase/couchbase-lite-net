@@ -660,6 +660,50 @@ namespace Couchbase.Lite
         }
 
         /// <exception cref="System.IO.IOException"></exception>
+        private Dictionary<string,object> GetDocWithId(string docId, string attachmentName)
+        {
+            Dictionary<string,object> docBody;
+            if (attachmentName != null)
+            {
+                // add attachment to document
+                var attachmentStream = (InputStream)GetAsset(attachmentName);
+                var baos = new MemoryStream();
+                attachmentStream.Wrapped.CopyTo(baos);
+                var attachmentBase64 = Convert.ToBase64String(baos.ToArray());
+                docBody = new Dictionary<string,object> 
+                {
+                    {"foo", 1},
+                    {"bar", false}, 
+                    {
+                        "_attachments", 
+                        new Dictionary<string,object> 
+                        {
+                            {
+                                "i_use_couchdb.png" , new Dictionary<string,object>
+                                { 
+                                    {"content_type", "image/png"}, 
+                                    {"data", attachmentBase64 }
+                                }
+                            } 
+                        }
+                    }
+                };
+                attachmentStream.Dispose();
+                baos.Dispose();
+            }
+            else
+            {
+                docBody = new Dictionary<string,object> 
+                {
+                    {"foo", 1},
+                    {"bar", false}
+                };
+            }
+
+            return docBody;
+        }
+
+        /// <exception cref="System.IO.IOException"></exception>
         private void AddDocWithId(string docId, string attachmentName)
         {
             string docJson;
@@ -707,17 +751,6 @@ namespace Couchbase.Lite
             {
                 httpclient.Dispose();
             }
-
-//            Log.D(Tag, "Waiting for http request to finish");
-//            try
-//            {
-//                Assert.IsTrue(t.Wait(TimeSpan.FromSeconds(10)));
-//                Log.D(Tag, "http request finished");
-//            }
-//            catch (Exception e)
-//            {
-//                Sharpen.Runtime.PrintStackTrace(e);
-//            }
 
             WorkaroundSyncGatewayRaceCondition();
         }
@@ -1917,6 +1950,96 @@ namespace Couchbase.Lite
             Assert.IsNotNull(attachment);
             Assert.AreEqual(attachmentLength, attachment.Length);
             Assert.IsNotNull(attachment.Content);
+        }
+
+        [Test, Category("issue348")]
+        public void TestConcurrentPushPullAndLiveQueryWithFilledDatabase()
+        {
+            if (!Boolean.Parse((string)Runtime.Properties["replicationTestsEnabled"]))
+            {
+                Assert.Inconclusive("Replication tests disabled.");
+                return;
+            }
+
+            // Create remote docs.
+            const int docsToCreate = 50;
+            var docList = new HashSet<string>();
+            for (int i = 0; i < docsToCreate; i++)
+            {
+                var docIdTimestamp = Convert.ToString (Runtime.CurrentTimeMillis ());
+                var docId = string.Format ("doc{0}-{1}", i, docIdTimestamp);
+
+                Log.D(Tag, "Adding " + docId + " directly to sync gateway");           
+                AddDocWithId(docId, "attachment.png");
+                docList.Add(docId);
+            }
+
+            // Create local docs
+            for (int i = 0; i < docsToCreate; i++)
+            {
+                var docIdTimestamp = Convert.ToString (Runtime.CurrentTimeMillis ());
+                var docId = string.Format ("doc{0}-{1}", i, docIdTimestamp);
+
+                Log.D(Tag, "Adding " + docId + " to database.");           
+                var docBody = GetDocWithId(docId, "attachment.png");
+                var doc = database.CreateDocument();
+                doc.PutProperties(docBody);
+            }
+
+            var docsBefore = database.DocumentCount;
+            var mre = new CountdownEvent(docsToCreate * 2);
+            var puller = database.CreatePullReplication(GetReplicationURL());
+            puller.Changed += (sender, e) => {
+                Log.D(Tag, "Puller Changed: {0}/{1}/{2}", puller.Status, puller.ChangesCount, puller.CompletedChangesCount);
+                if (puller.Status != ReplicationStatus.Stopped)
+                    return;
+                Log.D(Tag, "Puller Completed Changes after stopped: {0}", puller.CompletedChangesCount);
+            };
+            int numDocsBeforePull = database.DocumentCount;
+            View view = database.GetView("testPullerWithLiveQueryView");
+            view.SetMapReduce((document, emitter) => {
+                if (document.Get ("_id") != null) {
+                    emitter (document.Get ("_id"), null);
+                }
+            }, null, "1");
+
+            LiveQuery allDocsLiveQuery = view.CreateQuery().ToLiveQuery();
+            int numTimesCalled = 0;
+            allDocsLiveQuery.Changed += (sender, e) => {
+                if (e.Error != null)
+                {
+                    throw new RuntimeException(e.Error);
+                }
+                if (numTimesCalled++ > 0 && e.Rows.Count > 0)
+                {
+                    Assert.IsTrue(e.Rows.Count > numDocsBeforePull, "e.Rows.Count ({0}) <= numDocsBeforePull ({1})".Fmt(e.Rows.Count, numDocsBeforePull));
+                }
+                Log.D(Tag, "rows {0} / times called {1}", e.Rows.Count, numTimesCalled);
+                foreach(var row in e.Rows) {
+                    if(docList.Contains(row.DocumentId))
+                        mre.Signal();
+                }
+
+                Log.D(Tag, "Remaining docs to be found: {0}", mre.InitialCount - mre.CurrentCount);
+            };
+
+            // the first time this is called back, the rows will be empty.
+            // but on subsequent times we should expect to get a non empty
+            // row set.
+            allDocsLiveQuery.Start();
+            puller.Start();
+
+            var pusher = database.CreatePushReplication(GetReplicationURL());
+            pusher.Start ();
+
+            Assert.IsTrue(mre.Wait(TimeSpan.FromSeconds(60)), "Replication Timeout");
+
+            pusher.Stop ();
+            puller.Stop ();
+
+            Thread.Sleep(1000);
+
+            allDocsLiveQuery.Stop();            
         }
 
         [Test, Category("issue348")]

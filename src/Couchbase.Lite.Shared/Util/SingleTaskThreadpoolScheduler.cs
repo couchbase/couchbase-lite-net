@@ -106,9 +106,9 @@ namespace Couchbase.Lite.Util
 
             if (success && !task.IsCompleted)
             {
-                //Mono (Android, at least) will throw an exception if this method returns true
+                //Mono (Android & iOS, at least) will throw an exception if this method returns true
                 //before the task is complete
-                task.Wait(TimeSpan.FromSeconds(10));
+                success = task.Wait(TimeSpan.FromSeconds(10));
             }
 
             return success;

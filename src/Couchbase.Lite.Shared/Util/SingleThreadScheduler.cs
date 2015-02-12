@@ -4,94 +4,95 @@ using System.Collections.Concurrent;
 using System.Threading.Tasks;
 using System.Threading;
 using System.Linq;
-using System.Reflection;
-using Couchbase.Lite.Shared;
-
 
 namespace Couchbase.Lite.Util
 {
     sealed internal class SingleThreadScheduler : TaskScheduler, IDisposable
     {
         private const string Tag = "SingleThreadScheduler";
-        private bool _isRunning;
-        private PrivateThreadSynchronizationContext _syncContext;
-
-        internal ConcurrentDictionary<Int32, Task> Queue
-        {
-            get;
-            private set;
-        }
+        private readonly BlockingCollection<Task> _jobQueue = new BlockingCollection<Task>();
+        private readonly Thread _thread;
 
         public SingleThreadScheduler()
         {
-            Queue = new ConcurrentDictionary<Int32, Task>();
-            _syncContext = new PrivateThreadSynchronizationContext("Database Thread");
-            _isRunning = true;
+            _thread = new Thread(Run) 
+            {
+                Name = "Database Thread",
+                IsBackground = true, 
+                Priority = ThreadPriority.Highest
+            };
+            _thread.Start();
         }
 
         /// <summary>Queues a task to the scheduler.</summary> 
         /// <param name="task">The task to be queued.</param> 
         protected override void QueueTask(Task task) 
         {
-            if (!_isRunning)
+            if (_jobQueue.IsAddingCompleted)
             {
                 Log.D(Tag, "Currently draining task queue. Ignoring task {0}", task.Id);
                 return;
             }
-            Queue[task.Id] = task;
-            _syncContext.Post(RunTaskInPrivateThread, task);
+                
+            if (Thread.CurrentThread == _thread)
+            {
+                //The only way this can happen is if QueueTask was called from
+                //within a Task executing on the internal thread.  The only way
+                //for it to get there is if it was previously queued, so this
+                //can only be a dependent Task that need to be executed out of
+                //order
+                TryExecuteTask(task);
+            }
+            else
+            {
+                _jobQueue.Add(task);
+            }
         } 
 
-        private void RunTaskInPrivateThread(object state)
+        private void Run()
         {
-            var task = (Task)state;
-            var success = TryExecuteTask(task);
-            if (task.Status == TaskStatus.Faulted)
+            try 
             {
-                Log.E(Tag, "Scheduled task faulted", task.Exception);
+                while (!_jobQueue.IsCompleted)
+                {
+                    Drain();
+                }
+            }
+            catch(OperationCanceledException) 
+            {
             }
 
-            Queue.TryRemove(task.Id, out task);
+            Log.V(Tag, "Consumer thread finished");
+        }
+
+        private void Drain() 
+        {
+            Task nextTask;
+            bool gotTask = _jobQueue.TryTake(out nextTask, -1);
+            if(gotTask && nextTask.Status < TaskStatus.Running)
+            {
+                TryExecuteTask(nextTask);
+            }
         }
 
         #region IDisposable implementation
 
         public void Dispose()
         {
-            _isRunning = false;
-            Task.WaitAll(Queue.Values.ToArray());
-            _syncContext.Dispose();
+            if (!_jobQueue.IsAddingCompleted)
+            {
+                _jobQueue.CompleteAdding();
+                Task.WaitAll(_jobQueue.ToArray());
+            }
         }
 
         #endregion
 
         protected override bool TryExecuteTaskInline(Task task, bool taskWasPreviouslyQueued) 
         {
+            //The whole point of this class is to execute things on a single thread
+            //so inlining defeats the purpose
             return false;
-
-            if (task.Status == TaskStatus.Running)
-            {
-                return false;
-            }
-            Log.D(Tag, "Executing task inline.");
-            if (taskWasPreviouslyQueued) 
-            {
-                Log.D(Tag, "Task was previously Queued, so expect it to error out later.");
-                TryDequeue(task); 
-            }
-
-            var success = false;
-            QueueTask(task);
-            try 
-            {
-                task.Wait();
-                success = true;
-            }
-            catch (Exception e)
-            {
-                Log.E(Tag, "Failed to execute task inline", e);
-            }
-            return success;
         } 
 
         protected override bool TryDequeue(Task task) 
@@ -110,7 +111,7 @@ namespace Couchbase.Lite.Util
 
         protected override IEnumerable<Task> GetScheduledTasks() 
         { 
-            return Queue.Values.AsEnumerable();       
+            return _jobQueue.AsEnumerable();     
         }
     } 
 }
