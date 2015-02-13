@@ -208,7 +208,7 @@ namespace Couchbase.Lite.Util
         {
             if (Logger != null)
             {
-                Logger.D(tag, format, args);
+                Logger.I(tag, format, args);
             }
         }
 

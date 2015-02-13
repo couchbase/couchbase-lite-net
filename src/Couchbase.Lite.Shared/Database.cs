@@ -672,7 +672,7 @@ namespace Couchbase.Lite
 
                 try
                 {
-                    Log.D(Tag, "Tx delegate starting");
+                    Log.V(Tag, "Tx delegate starting");
                     shouldCommit = transactionDelegate();
                 }
                 catch (Exception e)
@@ -683,11 +683,11 @@ namespace Couchbase.Lite
                 }
                 finally
                 {
-                    Log.I(Tag, "Tx delegate done: {0}", shouldCommit);
+                    Log.V(Tag, "Tx delegate done: {0}", shouldCommit);
                     EndTransaction(shouldCommit);
                 }
 
-                Log.I(Tag, "Tx delegate complete: {0}", shouldCommit);
+                Log.V(Tag, "Tx delegate complete: {0}", shouldCommit);
                 return shouldCommit;
             });
 
@@ -702,11 +702,11 @@ namespace Couchbase.Lite
                 throw ex.InnerException;
             }
 
-            Log.I(Tag, "Tx complete: {0}", result);
+            Log.V(Tag, "Tx complete: {0}", result);
 
             if (transactionTask.Status != TaskStatus.RanToCompletion)
                 throw new CouchbaseLiteException("Database transaction timed out.", StatusCode.InternalServerError);
-            Log.I(Tag, "Tx complete: {0}", result);
+  
             return result;
         }
 

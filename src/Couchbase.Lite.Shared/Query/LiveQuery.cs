@@ -185,6 +185,9 @@ namespace Couchbase.Lite
 
         private void UpdateFinished(Task<QueryEnumerator> runTask)
         {
+            if (UpdateQueryTokenSource.IsCancellationRequested)
+                return;
+
             UpdateQueryTask = null;
             if (rerunRequested)
             {

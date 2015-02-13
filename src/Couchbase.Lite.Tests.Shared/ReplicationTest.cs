@@ -152,7 +152,7 @@ namespace Couchbase.Lite
 
             Log.D(Tag, "Waiting for replicator to finish.");
 
-            var success = WaitHandle.WaitAll(new[] { replicationDoneSignal.WaitHandle, replicationDoneSignalPolling.WaitHandle }, 15*1000);
+            var success = WaitHandle.WaitAll(new[] { replicationDoneSignal.WaitHandle, replicationDoneSignalPolling.WaitHandle }, 60*1000);
             Assert.IsTrue(success);
 
             Log.D(Tag, "replicator finished");
@@ -409,7 +409,7 @@ namespace Couchbase.Lite
             var doc2 = database.GetDocument(doc2Id);
             var doc2UnsavedRev = doc2.CreateRevision();
             var attachmentStream = GetAsset("attachment.png");
-            doc2UnsavedRev.SetAttachment("attachment.png", "image/png", attachmentStream);
+            doc2UnsavedRev.SetAttachment("attachment_testPusher.png", "image/png", attachmentStream);
             var doc2Rev = doc2UnsavedRev.Save();
 
             Assert.IsNotNull(doc2Rev);
@@ -1978,12 +1978,13 @@ namespace Couchbase.Lite
             for (int i = 0; i < docsToCreate; i++)
             {
                 var docIdTimestamp = Convert.ToString (Runtime.CurrentTimeMillis ());
-                var docId = string.Format ("doc{0}-{1}", i, docIdTimestamp);
-
-                Log.D(Tag, "Adding " + docId + " to database.");           
+                var docId = string.Format("doc{0}-{1}", i, docIdTimestamp);
+                         
                 var docBody = GetDocWithId(docId, "attachment.png");
                 var doc = database.CreateDocument();
                 doc.PutProperties(docBody);
+                Log.D(Tag, "Adding " + doc.Id + " to database.");  
+                docList.Add(doc.Id);
             }
 
             var docsBefore = database.DocumentCount;
@@ -2017,7 +2018,10 @@ namespace Couchbase.Lite
                 Log.D(Tag, "rows {0} / times called {1}", e.Rows.Count, numTimesCalled);
                 foreach(var row in e.Rows) {
                     if(docList.Contains(row.DocumentId))
+                    {
                         mre.Signal();
+                        docList.Remove(row.DocumentId);
+                    }
                 }
 
                 Log.D(Tag, "Remaining docs to be found: {0}", mre.InitialCount - mre.CurrentCount);
@@ -2034,12 +2038,11 @@ namespace Couchbase.Lite
 
             Assert.IsTrue(mre.Wait(TimeSpan.FromSeconds(60)), "Replication Timeout");
 
-            pusher.Stop ();
-            puller.Stop ();
+            pusher.Stop();
+            puller.Stop();
+            allDocsLiveQuery.Stop();   
 
-            Thread.Sleep(1000);
-
-            allDocsLiveQuery.Stop();            
+            Thread.Sleep(500);
         }
 
         [Test, Category("issue348")]
@@ -2097,7 +2100,10 @@ namespace Couchbase.Lite
                 Log.D(Tag, "rows {0} / times called {1}", e.Rows.Count, numTimesCalled);
                 foreach(var row in e.Rows) {
                     if(docList.Contains(row.DocumentId))
+                    {
                         mre.Signal();
+                        docList.Remove(row.DocumentId);
+                    }
                 }
 
                 Log.D(Tag, "Remaining docs to be found: {0}", mre.InitialCount - mre.CurrentCount);
@@ -2111,11 +2117,8 @@ namespace Couchbase.Lite
 
             Assert.IsTrue(mre.Wait(TimeSpan.FromSeconds(60)), "Replication Timeout");
 
-            pusher.Stop ();
-            puller.Stop ();
-
-            Thread.Sleep(1000);
-
+            pusher.Stop();
+            puller.Stop();  
             allDocsLiveQuery.Stop();            
         }
     }
