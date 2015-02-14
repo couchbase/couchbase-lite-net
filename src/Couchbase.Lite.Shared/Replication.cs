@@ -127,16 +127,13 @@ namespace Couchbase.Lite
             : this(db, remote, continuous, null, workExecutor) { }
 
         /// <summary>Private Constructor</summary>
-        protected Replication(Database db, Uri remote, bool continuous, IHttpClientFactory clientFactory, TaskFactory workExecutor, CancellationTokenSource tokenSource = null)
+        protected Replication(Database db, Uri remote, bool continuous, IHttpClientFactory clientFactory, TaskFactory workExecutor)
         {
             LocalDatabase = db;
             Continuous = continuous;
             // NOTE: Consider running a separate scheduler for all http requests.
             WorkExecutor = workExecutor;
-            var ts = tokenSource != null
-                ? CancellationTokenSource.CreateLinkedTokenSource(tokenSource.Token)
-                : new CancellationTokenSource();
-            CancellationTokenSource = ts;
+            CancellationTokenSource = new CancellationTokenSource();
             RemoteUrl = remote;
             Status = ReplicationStatus.Stopped;
             online = true;
@@ -203,7 +200,7 @@ namespace Couchbase.Lite
                     Log.E(Tag, "ERROR: ProcessInbox failed: ", e);
                     throw new RuntimeException(e);
                 }
-            }, CancellationTokenSource);
+            });
 
             SetClientFactory(clientFactory);
         }
@@ -416,7 +413,6 @@ namespace Couchbase.Lite
                 online = false;
                 // FIXME: Shouldn't we let batcher drain?
                 StopRemoteRequests();
-                UpdateProgress();
                 NotifyChangeListeners();
                 offline_inprogress = false;
             });
@@ -466,7 +462,9 @@ namespace Couchbase.Lite
             {
                 client.CancelPendingRequests();
             }
-            //Task.WaitAll(((SingleThreadTaskScheduler)WorkExecutor.Scheduler).ScheduledTasks.ToArray());
+            CancellationTokenSource.Cancel();
+            CancellationTokenSource = new CancellationTokenSource();
+            //Task.WaitAll(((SingleTaskThreadpoolScheduler)WorkExecutor.Scheduler).ScheduledTasks.ToArray());
         }
 
         internal void UpdateProgress()
@@ -936,6 +934,7 @@ namespace Couchbase.Lite
                 : CancellationTokenSource.Token;
 
             Log.D(Tag, "Sending async {0} request to: {1}", method, url);
+            client.Timeout = TimeSpan.FromSeconds(10);
             client.SendAsync(message, token)
                 .ContinueWith(response =>
                 {
@@ -947,12 +946,12 @@ namespace Couchbase.Lite
                         }
                         HttpResponseMessage result = null;
                         Exception error = null;
-                        if (!response.IsFaulted)
+                        if (!response.IsFaulted && !response.IsCanceled)
                         {
                             result = response.Result;
                             UpdateServerType(result);
                         }
-                        else
+                        else if(response.IsFaulted)
                         {
                             error = response.Exception.InnerException;
                             Log.E(Tag, "Http Message failed to send: {0}", message);
@@ -972,9 +971,16 @@ namespace Couchbase.Lite
                                     Log.D(Tag, "SendAsyncRequest did not run to completion.", response.Exception);
                                 }
 
-                                error = error is AggregateException
-                                    ? response.Exception.Flatten()
-                                    : response.Exception;
+                                if(response.IsCanceled)
+                                {
+                                    error = new Exception("SendAsyncRequest Task has been canceled.");
+                                }
+                                else 
+                                {
+                                    error = error is AggregateException
+                                        ? response.Exception.Flatten()
+                                        : response.Exception;
+                                }
 
                                 if (error == null )
                                 {
@@ -998,12 +1004,6 @@ namespace Couchbase.Lite
                             {
                                 error = e;
                                 Log.E(Tag, "SendAsyncRequest has an error occurred.", e);
-                            }
-
-                            if (response.Status == TaskStatus.Canceled)
-                            {
-                                fullBody = null;
-                                error = new Exception("SendAsyncRequest Task has been canceled.");
                             }
 
                             completionHandler(fullBody, error);
