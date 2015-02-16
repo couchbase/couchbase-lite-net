@@ -280,6 +280,12 @@ namespace Couchbase.Lite.Replicator
 
         internal override void ProcessInbox(RevisionList inbox)
         {
+            if (!online)
+            {
+                Log.V(Tag, "Offline, so skipping inbox process");
+                return;
+            }
+
             // Generate a set of doc/rev IDs in the JSON format that _revs_diff wants:
             // <http://wiki.apache.org/couchdb/HttpPostRevsDiff>
             var diffs = new Dictionary<String, IList<String>>();

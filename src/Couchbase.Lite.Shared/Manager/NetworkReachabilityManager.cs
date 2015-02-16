@@ -1,6 +1,11 @@
 ﻿using System;
 using System.Net.NetworkInformation;
 using Couchbase.Lite.Util;
+using System.Threading;
+using System.Diagnostics;
+using System.Net;
+using System.Net.Sockets;
+using System.Linq;
 
 #if __ANDROID__
 using Android.App;
@@ -15,7 +20,8 @@ namespace Couchbase.Lite
     //       to work around Xamarin.Android bug 
     //       https://bugzilla.xamarin.com/show_bug.cgi?id=1969
 
-    // NOTE: The issue above was fixed as of Xamarin.Android 4.18
+    // NOTE: The issue above was fixed as of Xamarin.Android 4.18, but seems
+    // to have regressed in 4.20
 
     /// <summary>
     /// This uses the NetworkAvailability API to listen for network reachability
@@ -23,6 +29,33 @@ namespace Couchbase.Lite
     /// </summary>
     internal sealed class NetworkReachabilityManager : INetworkReachabilityManager
     {
+        private int _startCount = 0;
+
+        public NetworkReachabilityStatus CurrentStatus
+        {
+            #if __ANDROID__
+            get {
+                var manager = (ConnectivityManager)Application.Context.GetSystemService(Context.ConnectivityService);
+                var networkInfo = manager.ActiveNetworkInfo;
+                return networkInfo == null || !networkInfo.IsConnected
+                    ? NetworkReachabilityStatus.Unreachable
+                        : NetworkReachabilityStatus.Reachable;
+            }
+            #else
+            get {
+                var connectedIp = (from ip in 
+                        (from ni in NetworkInterface.GetAllNetworkInterfaces() 
+                        where ni.GetIPProperties().UnicastAddresses.Count > 0 
+                        select ni.GetIPProperties().UnicastAddresses.First().Address)
+                        where ip.AddressFamily == AddressFamily.InterNetwork
+                        select ip).FirstOrDefault();
+
+                return connectedIp == null ? NetworkReachabilityStatus.Unreachable
+                        : NetworkReachabilityStatus.Reachable;
+            }
+            #endif
+        }
+
         #if __ANDROID__
         private class AndroidNetworkChangeReceiver : BroadcastReceiver
         {
@@ -56,7 +89,9 @@ namespace Couchbase.Lite
 
                 Log.D(Tag + ".OnReceive", "Received intent: {0}", intent.ToString());
 
-                var status = intent.GetBooleanExtra(ConnectivityManager.ExtraNoConnectivity, false)
+                var manager = (ConnectivityManager)context.GetSystemService(Context.ConnectivityService);
+                var networkInfo = manager.ActiveNetworkInfo;
+                var status = networkInfo == null || !networkInfo.IsConnected
                     ? NetworkReachabilityStatus.Unreachable
                     : NetworkReachabilityStatus.Reachable;
 
@@ -94,6 +129,8 @@ namespace Couchbase.Lite
         /// <remarks>This method starts listening for network connectivity state changes.</remarks>
         public void StartListening()
         {
+            Interlocked.Increment(ref _startCount);
+
             #if __ANDROID__
             if (_receiver != null) {
                 return; // We only need one handler.
@@ -114,6 +151,15 @@ namespace Couchbase.Lite
         /// <remarks>This method stops this class from listening for network changes.</remarks>
         public void StopListening()
         {
+            var count = Interlocked.Decrement(ref _startCount);
+            if (count > 0) {
+                return;
+            }
+
+            if (count < 0) {
+                throw new InvalidOperationException("StopListening() called too many times");
+            }
+
             #if __ANDROID__
             if (_receiver == null) {
                 return;

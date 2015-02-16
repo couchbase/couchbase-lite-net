@@ -562,15 +562,15 @@ namespace Couchbase.Lite.Replicator
 
         public bool Start()
         {
+            if (IsRunning)
+            {
+                return false;
+            }
+
             this.Error = null;
-            this.thread = new Thread(Run) { IsBackground = true };
+            this.thread = new Thread(Run) { IsBackground = true, Name = "Change Tracker Thread" };
             thread.Start();
-//            this.runTask = Task.Factory
-//                .StartNew(Run, tokenSource.Token, TaskCreationOptions.LongRunning, WorkExecutor.Scheduler)
-//                .ContinueWith(t =>
-//                {
-//                    Log.E(Tag, "Run task faulted", t.Exception);
-//                }, TaskContinuationOptions.OnlyOnFaulted);
+
             return true;
         }
 
