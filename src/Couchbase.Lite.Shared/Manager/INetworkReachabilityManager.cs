@@ -6,6 +6,7 @@ namespace Couchbase.Lite
     public interface INetworkReachabilityManager
     {
         event EventHandler<NetworkReachabilityChangeEventArgs> StatusChanged;
+        NetworkReachabilityStatus CurrentStatus { get; }
         void StartListening();
         void StopListening();
     }
@@ -14,6 +15,7 @@ namespace Couchbase.Lite
 
     public enum NetworkReachabilityStatus 
     {
+        Unknown,
         Reachable,
         Unreachable
     }

@@ -136,7 +136,7 @@ namespace Couchbase.Lite
             CancellationTokenSource = new CancellationTokenSource();
             RemoteUrl = remote;
             Status = ReplicationStatus.Stopped;
-            online = true;
+            online = Manager.SharedInstance.NetworkReachabilityManager.CurrentStatus == NetworkReachabilityStatus.Reachable;
             RequestHeaders = new Dictionary<String, Object>();
             requests = new HashSet<HttpClient>();
 
@@ -773,6 +773,7 @@ namespace Couchbase.Lite
                 var reachabilityManager = LocalDatabase.Manager.NetworkReachabilityManager;
                 if (reachabilityManager != null)
                 {
+                    reachabilityManager.StatusChanged -= NetworkStatusChanged;
                     reachabilityManager.StopListening();
                 }
             }
@@ -1786,17 +1787,7 @@ namespace Couchbase.Lite
             WorkExecutor.StartNew(CheckSession);
 
             var reachabilityManager = LocalDatabase.Manager.NetworkReachabilityManager;
-            reachabilityManager.StatusChanged += (sender, e) =>
-            {
-                if (e.Status == NetworkReachabilityStatus.Reachable)
-                {
-                    GoOnline();
-                }
-                else
-                {
-                    GoOffline();
-                }
-            };
+            reachabilityManager.StatusChanged += NetworkStatusChanged;
             reachabilityManager.StartListening();
         }
 
@@ -1888,6 +1879,22 @@ namespace Couchbase.Lite
         /// changes.
         /// </summary>
         public event EventHandler<ReplicationChangeEventArgs> Changed;
+
+        #region Private Methods
+
+        private void NetworkStatusChanged(object sender, NetworkReachabilityChangeEventArgs e)
+        {
+            if (e.Status == NetworkReachabilityStatus.Reachable)
+            {
+                GoOnline();
+            }
+            else
+            {
+                GoOffline();
+            }
+        }
+
+        #endregion
     }
     #endregion
 
@@ -1922,4 +1929,5 @@ namespace Couchbase.Lite
     public delegate IDictionary<string, object> PropertyTransformationDelegate(IDictionary<string, object> propertyBag);
 
     #endregion
+
 }
