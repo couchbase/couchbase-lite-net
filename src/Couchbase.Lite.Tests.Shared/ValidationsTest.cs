@@ -84,7 +84,7 @@ namespace Couchbase.Lite
             IDictionary<string, object> props = new Dictionary<string, object>();
             props["name"] = "Zaphod Beeblebrox";
             props["towel"] = "velvet";
-            RevisionInternal rev = new RevisionInternal(props, database);
+            RevisionInternal rev = new RevisionInternal(props);
             Status status = new Status();
             validationCalled = false;
             rev = database.PutRevision(rev, null, false, status);
@@ -119,7 +119,7 @@ namespace Couchbase.Lite
             props = new Dictionary<string, object>();
             props["name"] = "Vogon";
             props["poetry"] = true;
-            rev = new RevisionInternal(props, database);
+            rev = new RevisionInternal(props);
             validationCalled = false;
             gotExpectedError = false;
             try
@@ -138,14 +138,14 @@ namespace Couchbase.Lite
             props["_id"] = "ford";
             props["name"] = "Ford Prefect";
             props["towel"] = "terrycloth";
-            rev = new RevisionInternal(props, database);
+            rev = new RevisionInternal(props);
             validationCalled = false;
             rev = database.PutRevision(rev, null, false, status);
             Assert.IsTrue(validationCalled);
             Assert.AreEqual("ford", rev.GetDocId());
 
             // DELETE a document:
-            rev = new RevisionInternal(rev.GetDocId(), rev.GetRevId(), true, database);
+            rev = new RevisionInternal(rev.GetDocId(), rev.GetRevId(), true);
             Assert.IsTrue(rev.IsDeleted());
             validationCalled = false;
             rev = database.PutRevision(rev, rev.GetRevId(), false, status);
@@ -155,7 +155,7 @@ namespace Couchbase.Lite
             props = new Dictionary<string, object>();
             props["_id"] = "petunias";
             props["name"] = "Pot of Petunias";
-            rev = new RevisionInternal(props, database);
+            rev = new RevisionInternal(props);
             validationCalled = false;
             gotExpectedError = false;
             try

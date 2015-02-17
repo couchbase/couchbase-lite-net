@@ -68,25 +68,24 @@ namespace Couchbase.Lite.Internal
 
         private long sequence;
 
-        private Database database;
+        //private Database database;
 
-        internal RevisionInternal(String docId, String revId, Boolean deleted, Database database)
+        internal RevisionInternal(String docId, String revId, Boolean deleted)
         {
             // TODO: get rid of this field!
             this.docId = docId;
             this.revId = revId;
             this.deleted = deleted;
-            this.database = database;
         }
 
-        internal RevisionInternal(Body body, Database database)
-            : this((string)body.GetPropertyForKey("_id"), (string)body.GetPropertyForKey("_rev"), (body.HasValueForKey("_deleted") && (bool)body.GetPropertyForKey("_deleted")), database)
+        internal RevisionInternal(Body body)
+            : this((string)body.GetPropertyForKey("_id"), (string)body.GetPropertyForKey("_rev"), (body.HasValueForKey("_deleted") && (bool)body.GetPropertyForKey("_deleted")))
         {
             this.body = body;
         }
 
-        internal RevisionInternal(IDictionary<String, Object> properties, Database database)
-            : this(new Body(properties), database) { }
+        internal RevisionInternal(IDictionary<String, Object> properties)
+            : this(new Body(properties)) { }
 
         internal IDictionary<String, Object> GetProperties()
         {
@@ -216,7 +215,7 @@ namespace Couchbase.Lite.Internal
             System.Diagnostics.Debug.Assert((docId != null));
             System.Diagnostics.Debug.Assert(((this.docId == null) || (this.docId.Equals(docId))));
 
-            var result = new RevisionInternal(docId, revId, deleted, database);
+            var result = new RevisionInternal(docId, revId, deleted);
             var unmodifiableProperties = GetProperties();
             var properties = new Dictionary<string, object>();
             if (unmodifiableProperties != null)

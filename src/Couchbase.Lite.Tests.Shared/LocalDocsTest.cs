@@ -65,7 +65,7 @@ namespace Couchbase.Lite
             documentProperties["foo"] = 1;
             documentProperties["bar"] = false;
             var body = new Body(documentProperties);
-            var rev1 = new RevisionInternal(body, database);
+            var rev1 = new RevisionInternal(body);
             rev1 = database.PutLocalRevision(rev1, null);
             Log.V(Tag, "Created " + rev1);
             Assert.AreEqual("_local/doc1", rev1.GetDocId());
@@ -84,7 +84,7 @@ namespace Couchbase.Lite
             documentProperties = (Dictionary<string, object>)readRev.GetProperties();
             documentProperties["status"] = "updated!";
             body = new Body(documentProperties);
-            var rev2 = new RevisionInternal(body, database);
+            var rev2 = new RevisionInternal(body);
             var rev2input = rev2;
             rev2 = database.PutLocalRevision(rev2, rev1.GetRevId());
             Log.V(Tag, "Updated " + rev1);
@@ -111,7 +111,7 @@ namespace Couchbase.Lite
             Assert.IsTrue(gotException);
             
             // Delete it:
-            var revD = new RevisionInternal(rev2.GetDocId(), null, true, database);
+            var revD = new RevisionInternal(rev2.GetDocId(), null, true);
             gotException = false;
             try
             {
@@ -128,7 +128,7 @@ namespace Couchbase.Lite
             
             // Delete nonexistent doc:
             gotException = false;
-            var revFake = new RevisionInternal("_local/fake", null, true, database);
+            var revFake = new RevisionInternal("_local/fake", null, true);
             try
             {
                 database.PutLocalRevision(revFake, null);

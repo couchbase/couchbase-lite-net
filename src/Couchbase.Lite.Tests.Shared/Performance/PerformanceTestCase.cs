@@ -221,14 +221,14 @@ namespace Couchbase.Lite
 
         protected void RunReplication(Replication replication)
         {
-            var replicationDoneSignal = new CountDownLatch(1);
+            var replicationDoneSignal = new CountdownEvent(1);
             var observer = new ReplicationObserver(replicationDoneSignal);
             replication.Changed += observer.Changed;
             replication.Start();
 
             var replicationDoneSignalPolling = ReplicationWatcherThread(replication);
 
-            var success = replicationDoneSignal.Await(TimeSpan.FromSeconds(15));
+            var success = replicationDoneSignal.Wait(TimeSpan.FromSeconds(15));
             Assert.IsTrue(success);
             success = replicationDoneSignalPolling.Wait(TimeSpan.FromSeconds(15));
             Assert.IsTrue(success);
@@ -297,9 +297,9 @@ namespace Couchbase.Lite
                     for (var k = 0; k < repeatCount; k++)
                     {
                         base.TearDown();
-                        Thread.Sleep(2000);
+                        Thread.Sleep(200);
                         base.SetUp();
-                        Thread.Sleep(2000);
+                        //Thread.Sleep(2000);
 
                         // Execute test
                         var parameters = new Dictionary<string, object>() 

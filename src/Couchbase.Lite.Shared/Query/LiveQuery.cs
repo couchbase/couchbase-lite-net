@@ -64,6 +64,7 @@ namespace Couchbase.Lite
         volatile Boolean observing;
 
         Boolean runningState;
+        Boolean rerunRequested;
 
         /// <summary>
         /// If a query is running and the user calls Stop() on this query, the Task
@@ -72,8 +73,7 @@ namespace Couchbase.Lite
         Task UpdateQueryTask { get; set; }
         CancellationTokenSource UpdateQueryTokenSource { get; set; }
 
-        private Task ReRunUpdateQueryTask;
-        private CancellationTokenSource ReRunUpdateQueryTokenSource;
+
         private readonly object updateLock = new object();
 
         private void OnDatabaseChanged (object sender, DatabaseChangeEventArgs e)
@@ -95,10 +95,14 @@ namespace Couchbase.Lite
             {
                 try
                 {
+                    if (this.UpdateQueryTask.Status != TaskStatus.Canceled || UpdateQueryTask.Status != TaskStatus.RanToCompletion)
+                    {
+                        Log.W(Tag, "Run called white update query task still running.");
+                    }
                     WaitForRows();
                     break;
                 }
-                catch (OperationCanceledException e) //TODO: Review
+                catch (OperationCanceledException) //TODO: Review
                 {
                     continue;
                 }
@@ -121,15 +125,25 @@ namespace Couchbase.Lite
 
             try
             {
+                Log.D(Tag, "Waiting for Query to finish");
                 updateQueryTask.Wait(DefaultQueryTimeout, updateQueryTaskTokenSource.Token);
                 if (runningState && !updateQueryTaskTokenSource.IsCancellationRequested)
                 {
+                    Log.D(Tag, "Running Update() since Query finished");
                     Update();
+                }
+                else
+                {
+                    Log.D(Tag, "Update() not called because either !runningState ({0}) or cancelled ({1})", runningState, updateQueryTaskTokenSource.IsCancellationRequested);
                 }
             }
             catch (Exception e)
             {
                 Log.E(Tag, "Got an exception waiting for Update Query Task to finish", e);
+            }
+            finally
+            {
+                UpdateQueryTask = null;
             }
         }
 
@@ -149,7 +163,7 @@ namespace Couchbase.Lite
 
                 if (!runningState)
                 {
-                    Log.D(Tag, "update() called, but running state == false.  Ignoring.");
+                    Log.W(Tag, "update() called, but running state == false.  Ignoring.");
                     return;
                 }
 
@@ -158,49 +172,45 @@ namespace Couchbase.Lite
                     UpdateQueryTask.Status != TaskStatus.RanToCompletion)
                 {
                     Log.D(Tag, "already a query in flight, scheduling call to update() once it's done");
-                    if (ReRunUpdateQueryTask != null &&
-                        ReRunUpdateQueryTask.Status != TaskStatus.Canceled && 
-                        ReRunUpdateQueryTask.Status != TaskStatus.RanToCompletion)
-                    {
-                        ReRunUpdateQueryTokenSource.Cancel();
-                        Log.D(Tag, "cancelled rerun update query token source.");
-                    }
-
-                    var updateQueryTaskToWait = UpdateQueryTask;
-                    var updateQueryTaskToWaitTokenSource = UpdateQueryTokenSource;
-
-                    ReRunUpdateQueryTokenSource = new CancellationTokenSource();
-                    Database.Manager.RunAsync(() => 
-                    { 
-                        RunUpdateAfterQueryFinishes(updateQueryTaskToWait, updateQueryTaskToWaitTokenSource); 
-                    }, ReRunUpdateQueryTokenSource.Token);
-
-                    Log.D(Tag, "RunUpdateAfterQueryFinishes() is fired.");
-
+                    rerunRequested = true;
                     return;
                 }
 
                 UpdateQueryTokenSource = new CancellationTokenSource();
 
-                UpdateQueryTask = RunAsync(base.Run, UpdateQueryTokenSource.Token)
-                    .ContinueWith(runTask =>
-                    {
-                        if (runTask.Status != TaskStatus.RanToCompletion) {
-                            Log.W(String.Format("Query Updated task did not run to completion ({0})", runTask.Status), runTask.Exception);
-                            return; // NOTE: Assuming that we don't want to lose rows we already retrieved.
-                        }
-
-                        rows = runTask.Result; // NOTE: Should this be 'append' instead of 'replace' semantics? If append, use a concurrent collection.
-                        LastError = runTask.Exception;
-
-                        var evt = Changed;
-                        if (evt == null)
-                            return; // No delegates were subscribed, so no work to be done.
-
-                        var args = new QueryChangeEventArgs (this, rows, LastError);
-                        evt (this, args);
-                    }, Database.Manager.CapturedContext.Scheduler);
+                UpdateQueryTask = Task.Factory.StartNew<QueryEnumerator>(base.Run, UpdateQueryTokenSource.Token)
+                    .ContinueWith(UpdateFinished, Database.Manager.CapturedContext.Scheduler);
             }
+        }
+
+        private void UpdateFinished(Task<QueryEnumerator> runTask)
+        {
+            if (UpdateQueryTokenSource.IsCancellationRequested)
+                return;
+
+            UpdateQueryTask = null;
+            if (rerunRequested)
+            {
+                rerunRequested = false;
+                Update();
+            }
+
+            if (runTask.Status != TaskStatus.RanToCompletion) {
+                Log.W(String.Format("Query Updated task did not run to completion ({0})", runTask.Status), runTask.Exception);
+                return; // NOTE: Assuming that we don't want to lose rows we already retrieved.
+            }
+
+            Log.D(Tag, "UpdateQueryTask completed.");
+            rows = runTask.Result; // NOTE: Should this be 'append' instead of 'replace' semantics? If append, use a concurrent collection.
+            Log.D(Tag, "UpdateQueryTask results obtained.");
+            LastError = runTask.Exception;
+
+            var evt = Changed;
+            if (evt == null)
+                return; // No delegates were subscribed, so no work to be done.
+
+            var args = new QueryChangeEventArgs (this, rows, LastError);
+            evt (this, args);
         }
 
     #endregion
@@ -318,16 +328,6 @@ namespace Couchbase.Lite
             {
                 Log.D(Tag, "not cancelling update query token source.");
             }
-
-            if (ReRunUpdateQueryTokenSource != null && ReRunUpdateQueryTokenSource.Token.CanBeCanceled)
-            {
-                ReRunUpdateQueryTokenSource.Cancel();
-                Log.D(Tag, "canceled rerun update query token Source");
-            }
-            else
-            {
-                Log.D(Tag, "not cancelling rerun update query token source.");
-            }
         }
 
         /// <summary>
@@ -344,8 +344,13 @@ namespace Couchbase.Lite
             {
                 try
                 {
-                    UpdateQueryTask.Wait(DefaultQueryTimeout, UpdateQueryTokenSource.Token);
-                    LastError = UpdateQueryTask.Exception;
+                    //FIXME: JHB: This is painful.  The UpdateQueryTask will null itself once it finishes
+                    //and it will swallow any exceptions it had.  Needs investigation.
+                    var taskToWait = UpdateQueryTask;
+                    if(taskToWait != null) {
+                        taskToWait.Wait(DefaultQueryTimeout, UpdateQueryTokenSource.Token);
+                        LastError = taskToWait.Exception;
+                    }
                     break;
                 }
                 catch (OperationCanceledException e) //TODO: Review

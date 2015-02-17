@@ -9,15 +9,15 @@ using System.Reflection;
 
 namespace Couchbase.Lite.Util
 {
-    sealed internal class SingleThreadTaskScheduler : TaskScheduler 
+    sealed internal class SingleTaskThreadpoolScheduler : TaskScheduler 
     {
-        private const string Tag = "SingleThreadTaskScheduler";
+        private const string Tag = "SingleTaskThreadpoolScheduler";
         private const int maxConcurrency = 1;
 
         private readonly BlockingCollection<Task> queue;
         private int runningTasks;
 
-        public SingleThreadTaskScheduler()
+        public SingleTaskThreadpoolScheduler()
         {
             queue = new BlockingCollection<Task>(new ConcurrentQueue<Task>());
             runningTasks = 0;
@@ -71,7 +71,7 @@ namespace Couchbase.Lite.Util
                         } 
                         var task = queue.Take();
                         Log.D(Tag, " --> Dequeued a task: {0}/{1}", queue.Count, runningTasks);
-                        if (task.Status == TaskStatus.Running)
+                        if (task.Status >= TaskStatus.Running)
                         {
                             Log.D(Tag, "       skipping previously inlined task, which is still running.");
                         }
@@ -103,6 +103,14 @@ namespace Couchbase.Lite.Util
             var success = TryExecuteTask(task);
             if (!success && (task.Status != TaskStatus.Running && task.Status != TaskStatus.Canceled && task.Status != TaskStatus.RanToCompletion))
                 Log.E(Tag, "Scheduled task faulted", task.Exception);
+
+            if (success && !task.IsCompleted)
+            {
+                //Mono (Android & iOS, at least) will throw an exception if this method returns true
+                //before the task is complete
+                success = task.Wait(TimeSpan.FromSeconds(10));
+            }
+
             return success;
         } 
 

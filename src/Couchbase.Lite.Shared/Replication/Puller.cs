@@ -58,6 +58,7 @@ using Couchbase.Lite.Util;
 using Sharpen;
 using System.Threading;
 using System.Data;
+using Newtonsoft.Json;
 
 namespace Couchbase.Lite.Replicator
 {
@@ -138,7 +139,7 @@ namespace Couchbase.Lite.Replicator
                 }
             }
 
-            Log.W(Tag, "starting ChangeTracker with since=" + LastSequence);
+            Log.D(Tag, "starting ChangeTracker with since = " + LastSequence);
 
             var mode = Continuous 
                        ? ChangeTrackerMode.LongPoll 
@@ -146,8 +147,6 @@ namespace Couchbase.Lite.Replicator
 
             changeTracker = new ChangeTracker(RemoteUrl, mode, LastSequence, true, this, WorkExecutor);
             changeTracker.Authenticator = Authenticator;
-
-            Log.W(Tag, "started ChangeTracker " + changeTracker);
 
             if (Filter != null)
             {
@@ -225,7 +224,10 @@ namespace Couchbase.Lite.Replicator
 
             if (!LocalDatabase.IsValidDocumentId(docID))
             {
-                Log.W(Tag, string.Format("{0}: Received invalid doc ID from _changes: {1}", this, change));
+                if (!docID.StartsWith ("_user/", StringComparison.InvariantCultureIgnoreCase))
+                {
+                    Log.W(Tag, string.Format("{0}: Received invalid doc ID from _changes: {1} ({2})", this, docID, JsonConvert.SerializeObject(change)));
+                }
                 return;
             }
 
@@ -271,7 +273,7 @@ namespace Couchbase.Lite.Replicator
         // The change tracker reached EOF or an error.
         public void ChangeTrackerStopped(ChangeTracker tracker)
         {
-            Log.W(Tag, "ChangeTracker " + tracker + " stopped");
+            Log.V(Tag, "ChangeTracker " + tracker + " stopped");
             if (LastError == null && tracker.Error != null)
             {
                 SetLastError(tracker.Error);
@@ -501,8 +503,8 @@ namespace Couchbase.Lite.Replicator
                     var props = e.DocumentProperties;
 
                     var rev = props.Get ("_id") != null 
-                        ? new RevisionInternal (props, LocalDatabase) 
-                        : new RevisionInternal ((string)props.Get ("id"), (string)props.Get ("rev"), false, LocalDatabase);
+                        ? new RevisionInternal (props) 
+                        : new RevisionInternal ((string)props.Get ("id"), (string)props.Get ("rev"), false);
 
                     Log.D(Tag, "Document downloaded! {0}", rev);
 
@@ -640,7 +642,7 @@ namespace Couchbase.Lite.Replicator
                         var doc = row.Get ("doc").AsDictionary<string, object>();
                         if (doc != null && doc.Get ("_attachments") == null)
                         {
-                            var rev = new RevisionInternal (doc, LocalDatabase);
+                            var rev = new RevisionInternal (doc);
                             var pos = remainingRevs.IndexOf (rev);
                             if (pos > -1) 
                             {
@@ -775,7 +777,7 @@ namespace Couchbase.Lite.Replicator
                     else
                     {
                         var properties = result.AsDictionary<string, object>();
-                        PulledRevision gotRev = new PulledRevision(properties, LocalDatabase);
+                        var gotRev = new PulledRevision(properties);
                         gotRev.SetSequence(rev.GetSequence());
                         AsyncTaskStarted ();
                         Log.D(Tag, "PullRemoteRevision add rev: " + gotRev + " to batcher");
@@ -798,7 +800,7 @@ namespace Couchbase.Lite.Replicator
         /// <summary>This will be called when _revsToInsert fills up:</summary>
         public void InsertDownloads(IList<RevisionInternal> downloads)
         {
-            Log.V(Tag, "Inserting " + downloads.Count + " revisions...");
+            Log.D(Tag, "Inserting " + downloads.Count + " revisions...");
 
             var time = DateTime.UtcNow;
 
@@ -810,50 +812,56 @@ namespace Couchbase.Lite.Replicator
                 return;
             }
 
-            LocalDatabase.BeginTransaction();
-
-            var success = false;
             try
             {
-                foreach (var rev in downloads)
+                var success = LocalDatabase.RunInTransaction(() =>
                 {
-                    var fakeSequence = rev.GetSequence();
-                    var history = Database.ParseCouchDBRevisionHistory(rev.GetProperties());
-                    if (history.Count == 0 && rev.GetGeneration() > 1) 
+                    foreach (var rev in downloads)
                     {
-                        Log.W(Tag, String.Format("{0}: Missing revision history in response for: {1}", this, rev));
-                        SetLastError(new CouchbaseLiteException(StatusCode.UpStreamError));
-                        RevisionFailed();
-                        continue;
-                    }
-
-                    Log.V(Tag, String.Format("{0}: inserting {1} {2}", this, rev.GetDocId(), history));
-
-                    // Insert the revision:
-                    try
-                    {
-                        LocalDatabase.ForceInsert(rev, history, RemoteUrl);
-                    }
-                    catch (CouchbaseLiteException e)
-                    {
-                        if (e.GetCBLStatus().GetCode() == StatusCode.Forbidden)
+                        var fakeSequence = rev.GetSequence();
+                        var history = Database.ParseCouchDBRevisionHistory(rev.GetProperties());
+                        if (history.Count == 0 && rev.GetGeneration() > 1) 
                         {
-                            Log.I(Tag, "Remote rev failed validation: " + rev);
-                        }
-                        else
-                        {
-                            Log.W(Tag, " failed to write " + rev + ": status=" + e.GetCBLStatus().GetCode());
+                            Log.W(Tag, String.Format("{0}: Missing revision history in response for: {1}", this, rev));
+                            SetLastError(new CouchbaseLiteException(StatusCode.UpStreamError));
                             RevisionFailed();
-                            SetLastError(e);
                             continue;
                         }
+
+                        Log.D(Tag, String.Format("{0}: inserting {1} {2}", this, rev.GetDocId(), history));
+
+                        // Insert the revision:
+                        try
+                        {
+                            LocalDatabase.ForceInsert(rev, history, RemoteUrl);
+                        }
+                        catch (CouchbaseLiteException e)
+                        {
+                            if (e.GetCBLStatus().GetCode() == StatusCode.Forbidden)
+                            {
+                                Log.I(Tag, "Remote rev failed validation: " + rev);
+                            }
+                            else
+                            {
+                                Log.W(Tag, " failed to write " + rev + ": status=" + e.GetCBLStatus().GetCode());
+                                RevisionFailed();
+                                SetLastError(e);
+                                continue;
+                            }
+                        }
+                        catch (Exception e)
+                        {
+                            Log.E(Tag, "Exception inserting downloads.", e);
+                            throw;
+                        }
+                        pendingSequences.RemoveSequence(fakeSequence);
                     }
-                    pendingSequences.RemoveSequence(fakeSequence);
-                }
 
-                Log.W(Tag, " finished inserting " + downloads.Count + " revisions");
+                    Log.D(Tag, " Finished inserting " + downloads.Count + " revisions");
 
-                success = true;
+                    return true;
+                });
+                Log.D(Tag, "Finished inserting {0}. Success == {1}", downloads.Count, success);
             }
             catch (Exception e)
             {
@@ -861,8 +869,6 @@ namespace Couchbase.Lite.Replicator
             }
             finally
             {
-                LocalDatabase.EndTransaction(success);
-
                 Log.D(Tag, "InsertRevisions() calling AsyncTaskFinished()");
                 AsyncTaskFinished(downloads.Count);
             }

@@ -52,6 +52,7 @@ using NUnit.Framework;
 using Sharpen;
 using Newtonsoft.Json.Linq;
 using System.Threading;
+using System.Data;
 
 namespace Couchbase.Lite
 {
@@ -96,7 +97,7 @@ namespace Couchbase.Lite
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
         private RevisionInternal PutDoc(Database db, IDictionary<string, object> props)
         {
-            var rev = new RevisionInternal(props, db);
+            var rev = new RevisionInternal(props);
             var status = new Status();
             rev = db.PutRevision(rev, null, false, status);
             Assert.IsTrue(status.IsSuccessful);
@@ -261,7 +262,7 @@ namespace Couchbase.Lite
             view.UpdateIndex();
 
             // Now add a doc and update a doc:
-            var threeUpdated = new RevisionInternal(rev3.GetDocId(), rev3.GetRevId(), false, database);
+            var threeUpdated = new RevisionInternal(rev3.GetDocId(), rev3.GetRevId(), false);
             numTimesMapFunctionInvoked = numTimesInvoked;
 
             var newdict3 = new Dictionary<string, object>();
@@ -282,7 +283,7 @@ namespace Couchbase.Lite
             var dict4 = new Dictionary<string, object>();
             dict4["key"] = "four";
             var rev4 = PutDoc(database, dict4);
-            var twoDeleted = new RevisionInternal(rev2.GetDocId(), rev2.GetRevId(), true, database);
+            var twoDeleted = new RevisionInternal(rev2.GetDocId(), rev2.GetRevId(), true);
             database.PutRevision(twoDeleted, rev2.GetRevId(), false, status);
             Assert.IsTrue(status.IsSuccessful);
 
@@ -1107,14 +1108,15 @@ namespace Couchbase.Lite
 
             var properties = new Dictionary<string, object>();
             properties.Put("name", "test");
+            database.BeginTransaction();
             var doc = database.CreateDocument();
             var rev = doc.PutProperties(properties);
+            database.EndTransaction(true);
             for (var i = 0; i < 50; i++) {
                 rev = rev.CreateRevision(properties);
             }
-
             // Sleep to ensure that the LiveQuery is done all of its async operations.
-            Thread.Sleep(5000);
+            Thread.Sleep(8000);
 
             liveQuery.Stop();
 
@@ -1142,17 +1144,17 @@ namespace Couchbase.Lite
             Assert.IsNull(query.Rows);
             query.Start();
 
-            var gotExpectedQueryResult = new CountDownLatch(1);
+            var gotExpectedQueryResult = new CountdownEvent(1);
             query.Changed += (sender, e) => 
             {
                 Assert.IsNull(e.Error);
                 if (e.Rows.Count == 1 && Convert.ToInt32(e.Rows.GetRow(0).Value) == numDocs)
                 {
-                    gotExpectedQueryResult.CountDown();
+                    gotExpectedQueryResult.Signal();
                 }
             };
 
-            var success = gotExpectedQueryResult.Await(TimeSpan.FromSeconds(10));
+            var success = gotExpectedQueryResult.Wait(TimeSpan.FromSeconds(10));
             Assert.IsTrue(success);
             query.Stop();
 
@@ -1160,17 +1162,17 @@ namespace Couchbase.Lite
 
             CreateDocumentsAsync(database, numDocs + 5); //10 + 10 + 5
 
-            var gotExpectedQuery1Result = new CountDownLatch(1);
+            var gotExpectedQuery1Result = new CountdownEvent(1);
             query1.Changed += (sender, e) => 
             {
                 Assert.IsNull(e.Error);
                 if (e.Rows.Count == 1 && Convert.ToInt32(e.Rows.GetRow(0).Value) == (2 * numDocs) + 5)
                 {
-                    gotExpectedQuery1Result.CountDown();
+                    gotExpectedQuery1Result.Signal();
                 }
             };
 
-            success = gotExpectedQuery1Result.Await(TimeSpan.FromSeconds(10));
+            success = gotExpectedQuery1Result.Wait(TimeSpan.FromSeconds(10));
             Assert.IsTrue(success);
             query1.Stop();
 

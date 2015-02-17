@@ -155,7 +155,7 @@ namespace Couchbase.Lite
         public static byte[] ByteArrayResultForQuery(ISQLiteStorageEngine database, string query, params string[] args)
         {
             byte[] result = null;
-            using (var cursor = database.RawQuery(query, args))
+            using (var cursor = database.IntransactionRawQuery(query, args))
             {
                 if (cursor.MoveToNext())
                 {

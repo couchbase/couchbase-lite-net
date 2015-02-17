@@ -40,7 +40,7 @@
 // and limitations under the License.
 //
 #if DEBUG
-#define __DEBUGGER__
+#define __CONSOLE__
 #else
 #define __CONSOLE__
 #endif

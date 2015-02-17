@@ -325,6 +325,9 @@ namespace Couchbase.Lite {
             } 
         }
 
+        /// <summary>
+        /// Event raised when a query has finished running.
+        /// </summary>
         public event EventHandler<QueryCompletedEventArgs> Completed;
 
         //Methods
@@ -345,10 +348,20 @@ namespace Couchbase.Lite {
             var viewName = (View != null) ? View.Name : null;
             var queryOptions = QueryOptions;
 
-            var rows = Database.QueryViewNamed (viewName, queryOptions, outSequence);
+            IEnumerable<QueryRow> rows = null;
+            var success = Database.RunInTransaction(()=>
+            {
+                rows = Database.QueryViewNamed (viewName, queryOptions, outSequence);
+                
+                LastSequence = outSequence[0];
+                
+                return true;
+            });
 
-            LastSequence = outSequence[0]; // potential concurrency issue?
-
+            if (!success)
+            {
+                throw new CouchbaseLiteException("Failed to query view named " + viewName, StatusCode.DbError);
+            }
             return new QueryEnumerator(Database, rows, outSequence[0]);
         }
 

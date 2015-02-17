@@ -200,7 +200,7 @@ namespace Couchbase.Lite
             var deleted = false;
 
             var revisionInternal = new RevisionInternal(
-                document.Id, document.CurrentRevisionId, deleted, database);
+                document.Id, document.CurrentRevisionId, deleted);
 
             var contentOptions = DocumentContentOptions.IncludeAttachments | DocumentContentOptions.BigAttachmentsFollow;
 

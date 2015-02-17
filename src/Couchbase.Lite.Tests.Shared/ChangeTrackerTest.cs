@@ -184,7 +184,7 @@ namespace Couchbase.Lite
             });
 
             var testUrl = GetReplicationURL();
-            var scheduler = new SingleThreadTaskScheduler();
+            var scheduler = new SingleTaskThreadpoolScheduler();
             var changeTracker = new ChangeTracker(testUrl, mode, 0, false, client, new TaskFactory(scheduler));
 
             changeTracker.UsePost = IsSyncGateway(testUrl);
@@ -206,7 +206,7 @@ namespace Couchbase.Lite
             client.HttpClientFactory = httpClientFactory;
 
             var testUrl = GetReplicationURL();
-            var scheduler = new SingleThreadTaskScheduler();
+            var scheduler = new SingleTaskThreadpoolScheduler();
             var changeTracker = new ChangeTracker(testUrl, ChangeTrackerMode.LongPoll, 0, false, client, new TaskFactory(scheduler));
 
             changeTracker.UsePost = IsSyncGateway(testUrl);
@@ -287,7 +287,7 @@ namespace Couchbase.Lite
             handler.SetResponder("_changes", chainResponder);
 
             var testUrl = GetReplicationURL();
-            var scheduler = new SingleThreadTaskScheduler();
+            var scheduler = new SingleTaskThreadpoolScheduler();
             var changeTracker = new ChangeTracker(testUrl, mode, 0, false, client, new TaskFactory(scheduler));
 
             changeTracker.UsePost = IsSyncGateway(testUrl);

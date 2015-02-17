@@ -55,6 +55,7 @@ using Couchbase.Lite.Tests;
 using System.Threading.Tasks;
 using System.Linq;
 using System.Text;
+using System.Threading;
 
 namespace Couchbase.Lite
 {
@@ -77,7 +78,7 @@ namespace Couchbase.Lite
         protected void SetUp()
         {
             Log.V(Tag, "SetUp");
-            ManagerOptions.Default.CallbackScheduler = new SingleThreadTaskScheduler();
+            ManagerOptions.Default.CallbackScheduler = new SingleTaskThreadpoolScheduler();
 
             LoadCustomProperties();
             StartCBLite();
@@ -130,6 +131,12 @@ namespace Couchbase.Lite
 
         protected Database StartDatabase()
         {
+            if (database != null)
+            {
+                database.Close();
+                database.Delete();
+                database = null;
+            }
             database = EnsureEmptyDatabase(DefaultTestDb);
             return database;
         }
@@ -193,7 +200,7 @@ namespace Couchbase.Lite
 
         protected string GetReplicationServer()
         {
-            return Runtime.GetProperty("replicationServer");
+            return Runtime.GetProperty("replicationServer").Trim();
         }
 
         protected int GetReplicationPort()
@@ -497,12 +504,12 @@ namespace Couchbase.Lite
             
         public void StopReplication(Replication replication)
         {
-            var replicationDoneSignal = new CountDownLatch(1);
+            var replicationDoneSignal = new CountdownEvent(1);
             var replicationStoppedObserver = new ReplicationObserver(replicationDoneSignal);
             replication.Changed += replicationStoppedObserver.Changed;
             replication.Stop();
 
-            var success = replicationDoneSignal.Await(TimeSpan.FromSeconds(30));
+            var success = replicationDoneSignal.Wait(TimeSpan.FromSeconds(30));
             Assert.IsTrue(success);
 
             // give a little padding to give it a chance to save a checkpoint

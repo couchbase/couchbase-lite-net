@@ -85,7 +85,7 @@ namespace Couchbase.Lite
             documentProperties["baz"] = "touch";
 
             var body = new Body(documentProperties);
-            var rev1 = new RevisionInternal(body, database);
+            var rev1 = new RevisionInternal(body);
 
             var status = new Status();
             rev1 = database.PutRevision(rev1, null, false, status);
@@ -110,7 +110,7 @@ namespace Couchbase.Lite
             documentProperties = (Dictionary<string, object>)readRev.GetProperties();
             documentProperties["status"] = "updated!";
             body = new Body(documentProperties);
-            var rev2 = new RevisionInternal(body, database);
+            var rev2 = new RevisionInternal(body);
             var rev2input = rev2;
             rev2 = database.PutRevision(rev2, rev1.GetRevId(), false, status);
             Log.V(Tag, "Updated " + rev1);
@@ -151,7 +151,7 @@ namespace Couchbase.Lite
             Assert.AreEqual(0, changeRevisions.Count);
 
             // Delete it:
-            var revD = new RevisionInternal(rev2.GetDocId(), null, true, database);
+            var revD = new RevisionInternal(rev2.GetDocId(), null, true);
             RevisionInternal revResult = null;
             gotExpectedError = false;
             try
@@ -171,7 +171,7 @@ namespace Couchbase.Lite
             Assert.IsTrue(revD.GetRevId().StartsWith("3-"));
             
             // Delete nonexistent doc:
-            var revFake = new RevisionInternal("fake", null, true, database);
+            var revFake = new RevisionInternal("fake", null, true);
             gotExpectedError = false;
             try
             {

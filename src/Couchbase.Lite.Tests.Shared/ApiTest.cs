@@ -115,7 +115,7 @@ namespace Couchbase.Lite
         /// <exception cref="System.Exception"></exception>
         public void RunLiveQuery(String methodNameToCall)
         {
-            var db = StartDatabase();
+            var db = database;
 
             var doneSignal = new CountdownEvent(11); // FIXME.ZJG: Not sure why, but now Changed is only called once.
 
@@ -192,10 +192,9 @@ namespace Couchbase.Lite
 
         //SERVER & DOCUMENTS
         /// <exception cref="System.IO.IOException"></exception>
-        [Test]
+       // [Test]
         public void TestAPIManager()
         {
-            //StartDatabase();
             Manager manager = this.manager;
             Assert.IsTrue(manager != null);
 
@@ -207,7 +206,7 @@ namespace Couchbase.Lite
 
             var options = new ManagerOptions();
             options.ReadOnly = true;
-            options.CallbackScheduler = new SingleThreadTaskScheduler();
+            options.CallbackScheduler = new SingleTaskThreadpoolScheduler();
 
             var roManager = new Manager(new DirectoryInfo(manager.Directory), options);
             Assert.IsTrue(roManager != null);
@@ -310,7 +309,7 @@ namespace Couchbase.Lite
             var properties = new Dictionary<String, Object>();
             properties["testName"] = "testCreateRevisions";
             properties["tag"] = 1337;
-            var db = StartDatabase();
+            var db = database;
 
             var doc = CreateDocumentWithProperties(db, properties);
             Assert.IsFalse(doc.Deleted);
@@ -378,7 +377,7 @@ namespace Couchbase.Lite
             var properties = new Dictionary<String, Object>();
             properties["testName"] = "testCreateRevisions";
             properties["tag"] = 1337;
-            var db = StartDatabase();
+            var db = database;
 
             var doc = db.CreateDocument();
             var newRev = doc.CreateRevision();
@@ -514,7 +513,7 @@ namespace Couchbase.Lite
         [Test]
         public void TestAllDocuments()
         {
-            var db = manager.GetExistingDatabase(DefaultTestDb); //StartDatabase();
+            var db = manager.GetExistingDatabase(DefaultTestDb); 
 
             const int docsCount = 5;
             CreateDocuments(db, n: docsCount);
@@ -594,7 +593,7 @@ namespace Couchbase.Lite
             var properties = new Dictionary<String, Object>();
             properties["testName"] = "test06_History";
             properties["tag"] = 1L;
-            var db = StartDatabase();
+            var db = database;
 
             var doc = CreateDocumentWithProperties(db, properties);
             var rev1ID = doc.CurrentRevisionId;
@@ -641,7 +640,7 @@ namespace Couchbase.Lite
             var prop = new Dictionary<String, Object>();
             prop["foo"] = "bar";
 
-            var db = StartDatabase();
+            var db = database;
 
             var doc = CreateDocumentWithProperties(db, prop);
 
@@ -738,20 +737,19 @@ namespace Couchbase.Lite
         [Test]
         public void TestChangeTracking()
         {
-            var doneSignal = new CountDownLatch(1);
-            var db = StartDatabase();
-            db.Changed += (sender, e) => doneSignal.CountDown();
+            var doneSignal = new CountdownEvent(1);
+            var db = database;
+            db.Changed += (sender, e) => 
+                doneSignal.Signal();
 
             var task = CreateDocumentsAsync(db, 5);
 
             // We expect that the changes reported by the server won't be notified, because those revisions
             // are already cached in memory.
-            var success = doneSignal.Await(TimeSpan.FromSeconds(10));
+            var success = doneSignal.Wait(TimeSpan.FromSeconds(10));
             Assert.IsTrue(success);
             Assert.AreEqual(5, db.GetLastSequenceNumber());
 
-            // Give transaction time to complete.
-            System.Threading.Thread.Sleep(500);
             Assert.IsTrue(task.Status.HasFlag(TaskStatus.RanToCompletion));
         }
 
@@ -760,7 +758,7 @@ namespace Couchbase.Lite
         [Test]
         public void TestCreateView()
         {
-            var db = StartDatabase();
+            var db = database;
 
             var view = db.GetView("vu");
             Assert.IsNotNull(view);
@@ -805,7 +803,7 @@ namespace Couchbase.Lite
         [Test]
         public void TestValidation()
         {
-            var db = StartDatabase();
+            var db = database;
 
             db.SetValidation("uncool", (newRevision, context)=>
                 {
@@ -845,7 +843,7 @@ namespace Couchbase.Lite
         [Test]
         public void TestViewWithLinkedDocs()
         {
-            var db = StartDatabase();
+            var db = database;
 
             const int numberOfDocs = 50;
             var docs = new Document[50];
@@ -910,7 +908,7 @@ namespace Couchbase.Lite
         public void TestLiveQueryStop()
         {
             const int numDocs = 10;
-            var doneSignal = new CountDownLatch(1);
+            var doneSignal = new CountdownEvent(1);
 
             // Run a live query
             var view = database.GetView("vu");
@@ -928,7 +926,7 @@ namespace Couchbase.Lite
                 Assert.IsNull(e.Error);
                 if (e.Rows.Count == numDocs)
                 {
-                    doneSignal.CountDown();
+                    doneSignal.Signal();
                 }
             };
 
@@ -937,7 +935,7 @@ namespace Couchbase.Lite
 
             query.Start();
 
-            var success = doneSignal.Await(TimeSpan.FromSeconds(5));
+            var success = doneSignal.Wait(TimeSpan.FromSeconds(5));
             Assert.IsTrue(success);
 
             query.Stop();
@@ -945,8 +943,8 @@ namespace Couchbase.Lite
             CreateDocumentsAsync(database, numDocs);
 
             changedCalled = false;
-            doneSignal = new CountDownLatch(1);
-            doneSignal.Await(TimeSpan.FromSeconds(5));
+            doneSignal.Reset();
+            doneSignal.Wait(TimeSpan.FromSeconds(3));
             Assert.IsTrue(!changedCalled);
         }
 
@@ -954,8 +952,8 @@ namespace Couchbase.Lite
         [Test]
         public void TestAsyncViewQuery()
         {
-            var doneSignal = new CountDownLatch(1);
-            var db = StartDatabase();
+            var doneSignal = new CountdownEvent(1);
+            var db = database;
 
             View view = db.GetView("vu");
             view.SetMap((document, emitter) => emitter (document ["sequence"], null), "1");
@@ -982,7 +980,7 @@ namespace Couchbase.Lite
                     Assert.AreEqual (row.Key, expectedKey);
                     ++expectedKey;
                 }
-                doneSignal.CountDown ();
+                doneSignal.Signal();
             }, manager.CapturedContext.Scheduler);
 
             Log.I(Tag, "Waiting for async query to finish...");

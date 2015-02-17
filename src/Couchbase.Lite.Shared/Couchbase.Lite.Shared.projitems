@@ -188,7 +188,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)Util\StringUtils.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\SystemLogger.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\URIUtils.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Util\SingleThreadTaskScheduler.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Store\ISQLiteStorageEngine.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Store\CouchbaseSqliteCollationFunctions.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Store\SqlitePclRawStorageEngine.cs" />
@@ -217,6 +216,9 @@
     <Compile Include="$(MSBuildThisFileDirectory)Util\TransientErrorRetryHandler.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\IRetryStrategy.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\ExponentialBackoffStrategy.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Util\SingleTaskThreadpoolScheduler.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Util\SingleThreadScheduler.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Util\PrivateThreadSynchronizationContext.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="$(MSBuildThisFileDirectory)Store\MonoSQLiteStorageEngine.cs" />

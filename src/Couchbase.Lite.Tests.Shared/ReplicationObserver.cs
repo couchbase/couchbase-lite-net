@@ -43,7 +43,7 @@
 using System;
 using Couchbase.Lite;
 using Couchbase.Lite.Util;
-using Sharpen;
+using System.Threading;
 
 namespace Couchbase.Lite
 {
@@ -52,9 +52,9 @@ namespace Couchbase.Lite
         const string Tag = "ReplicationObserver";
 
         private bool replicationFinished = false;
-        private readonly CountDownLatch doneSignal;
+        private readonly CountdownEvent doneSignal;
 
-        internal ReplicationObserver(CountDownLatch doneSignal)
+        internal ReplicationObserver(CountdownEvent doneSignal)
         {
             this.doneSignal = doneSignal;
         }
@@ -92,8 +92,7 @@ namespace Couchbase.Lite
                 this.replicationFinished = true;
                 string msg = "ReplicationFinishedObserver.changed called, set replicationFinished to true";
                 Log.D(Tag, msg);
-                this.doneSignal.CountDown();
-                System.Threading.Thread.Sleep(500);
+                this.doneSignal.Signal();
             }
             else
             {

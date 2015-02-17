@@ -125,6 +125,7 @@ namespace Couchbase.Lite.Support
             while (toProcess.Count < capacity && inboxRef.TryDequeue(out next))
             {
                 toProcess.Add(next);
+                    Log.D(Tag, "ProcessNow() called, inbox size: {0}", inbox.Count);
             }
             if(inboxRef.Count > 0)
             {
@@ -222,7 +223,7 @@ namespace Couchbase.Lite.Support
                 scheduled = true;
                 scheduledDelay = suggestedDelay;
 
-                Log.D(Tag, "ScheduleWithDelay called with delay: {0} ms, scheduler: {1}/{2}", suggestedDelay, workExecutor.Scheduler.GetType().Name, ((SingleThreadTaskScheduler)workExecutor.Scheduler).ScheduledTasks.Count());
+                Log.D(Tag, "ScheduleWithDelay called with delay: {0} ms, scheduler: {1}/{2}", suggestedDelay, workExecutor.Scheduler.GetType().Name, ((SingleTaskThreadpoolScheduler)workExecutor.Scheduler).ScheduledTasks.Count());
 
                 flushFuture = workExecutor.StartNew(()=> {
                     if(!(cancellationSource.IsCancellationRequested)) {

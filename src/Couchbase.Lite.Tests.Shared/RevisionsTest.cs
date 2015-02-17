@@ -54,7 +54,7 @@ namespace Couchbase.Lite
     {
         private static RevisionInternal Mkrev(string revID)
         {
-            return new RevisionInternal("docid", revID, false, null);
+            return new RevisionInternal("docid", revID, false);
         }
 
         private static SavedRevision CreateRevisionWithRandomProps(SavedRevision parentRev, Boolean allowConflict) {

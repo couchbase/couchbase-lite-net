@@ -240,7 +240,7 @@ namespace Couchbase.Lite
 
         protected internal Boolean lastSequenceChanged;
 
-        private String lastSequence;
+        private String lastSequence = "0";
         protected internal String LastSequence
         {
             get { return lastSequence; }
@@ -394,6 +394,9 @@ namespace Couchbase.Lite
         // This method will be used by Router & Reachability Manager
         internal virtual bool GoOffline()
         {
+            //TODO.JHB: Should we check to see if the replication URL is local (if so,
+            //it would be unaffected by any network status changes)?  Or is that too much
+            //of an edge case...
             if (!online || offline_inprogress)
             {
                 return false;
@@ -460,7 +463,13 @@ namespace Couchbase.Lite
 
             foreach(var client in remoteRequests)
             {
-                client.CancelPendingRequests();
+                try 
+                {
+                    client.CancelPendingRequests();
+                } catch(ObjectDisposedException)
+                {
+                    //Swallow, our work is already done for us
+                }
             }
             CancellationTokenSource.Cancel();
             CancellationTokenSource = new CancellationTokenSource();
@@ -756,7 +765,7 @@ namespace Couchbase.Lite
 
         internal virtual void Stopping()
         {
-            Log.V(Tag, "STOPPING");
+            Log.V(Tag, "Stopping");
 
             IsRunning = false;
 
@@ -780,7 +789,7 @@ namespace Couchbase.Lite
 
             ClearDbRef();
 
-            Log.V(Tag, "STOPPED");
+            Log.V(Tag, "...stopped");
         }
 
         internal void SaveLastSequence()
@@ -1470,7 +1479,7 @@ namespace Couchbase.Lite
                         if (xformed.GetProperties().ContainsKey("_attachments"))
                         {
                             // Insert 'revpos' properties into any attachments added by the callback:
-                            var mx = new RevisionInternal(xformed.GetProperties(), LocalDatabase);
+                            var mx = new RevisionInternal(xformed.GetProperties());
                             xformed = mx;
                             mx.MutateAttachments((name, info) => {
                                 if (info.Get("revpos") != null)
@@ -1569,7 +1578,7 @@ namespace Couchbase.Lite
                         Debug.Assert (xformedProperties ["_id"].Equals (properties ["_id"]));
                         Debug.Assert (xformedProperties ["_rev"].Equals (properties ["_rev"]));
 
-                        var nuRev = new RevisionInternal (rev.GetProperties (), LocalDatabase);
+                        var nuRev = new RevisionInternal (rev.GetProperties ());
                         nuRev.SetProperties (xformedProperties);
                         return nuRev;
                     }
@@ -1784,7 +1793,7 @@ namespace Couchbase.Lite
             IsRunning = true;
             LastSequence = null;
 
-            WorkExecutor.StartNew(CheckSession);
+            CheckSession();
 
             var reachabilityManager = LocalDatabase.Manager.NetworkReachabilityManager;
             reachabilityManager.StatusChanged += NetworkStatusChanged;
@@ -1801,7 +1810,7 @@ namespace Couchbase.Lite
                 return;
             }
 
-            Log.V(Tag, "STOP...");
+            Log.V(Tag, "Stop...");
 
             continuous = false;
 
@@ -1819,14 +1828,10 @@ namespace Couchbase.Lite
                 LocalDatabase.ForgetReplication(this);
             }
 
-            if (IsRunning && asyncTaskCount <= 0)
+            if (IsRunning)
             {
-                Log.V(Tag, "calling stopped()");
+                Log.V(Tag, "calling stopping()");
                 Stopping();
-            }
-            else
-            {
-                Log.V(Tag, "not calling stopped().  running: " + IsRunning + " asyncTaskCount: " + asyncTaskCount);
             }
         }
 

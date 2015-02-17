@@ -67,7 +67,7 @@ namespace Couchbase.Lite
 
     #region Constants
 
-        const string VersionString = "1.0.0-beta3";
+        const string VersionString = "1.0.4";
         const string Tag = "Manager";
 
         /// <summary>
@@ -168,7 +168,7 @@ namespace Couchbase.Lite
 
             var scheduler = options.CallbackScheduler;
             CapturedContext = new TaskFactory(scheduler);
-            workExecutor = new TaskFactory(new SingleThreadTaskScheduler());
+            workExecutor = new TaskFactory(new SingleTaskThreadpoolScheduler());
             Log.D(Tag, "New Manager uses a scheduler with a max concurrency level of {0}".Fmt(workExecutor.Scheduler.MaximumConcurrencyLevel));
 
             this.NetworkReachabilityManager = new NetworkReachabilityManager();
@@ -457,8 +457,8 @@ namespace Couchbase.Lite
             }
 
             var replicator = push 
-                ? (Replication)new Pusher (database, url, true, new TaskFactory(new SingleThreadTaskScheduler()))
-                : (Replication)new Puller (database, url, true, new TaskFactory(new SingleThreadTaskScheduler()));
+                ? (Replication)new Pusher (database, url, true, new TaskFactory(new SingleTaskThreadpoolScheduler()))
+                : (Replication)new Puller (database, url, true, new TaskFactory(new SingleTaskThreadpoolScheduler()));
 
             replications.AddItem(replicator);
             if (start)

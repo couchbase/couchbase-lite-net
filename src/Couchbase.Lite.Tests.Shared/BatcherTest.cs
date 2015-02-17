@@ -50,7 +50,6 @@ using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
 
 using NUnit.Framework;
-using Sharpen;
 using System.Threading;
 
 namespace Couchbase.Lite
@@ -63,7 +62,7 @@ namespace Couchbase.Lite
 
         private Int32 processorDelay;
 
-        private CountDownLatch doneSignal = null;
+        private CountdownEvent doneSignal = null;
 
         private long maxObservedDelta = -1L;
 
@@ -88,122 +87,14 @@ namespace Couchbase.Lite
         }
 
         [Test]
-        public void TestBatcherLatencyInitialBatch()
-        {
-            var doneEvent = new ManualResetEvent(false);
-
-            inboxCapacity = 100;
-            processorDelay = 500;
-
-            var timeProcessed = default(DateTime);
-            var scheduler = new SingleThreadTaskScheduler();
-            var batcher = new Batcher<string>(
-                new TaskFactory(scheduler), 
-                inboxCapacity,
-                processorDelay, 
-                itemsToProcess =>
-                {
-                    Log.V(Tag, "process called with: " + itemsToProcess);
-
-                    timeProcessed = DateTime.UtcNow;
-
-                    doneEvent.Set();
-                });
-
-            var objectsToQueue = new List<string>();
-            for (var i = 0; i < inboxCapacity + 1; i++) {
-                objectsToQueue.Add(i.ToString());
-            }
-
-            var timeQueued = DateTime.UtcNow;
-
-            batcher.QueueObjects(objectsToQueue);
-
-            var success = doneEvent.WaitOne(TimeSpan.FromSeconds(35));
-            Assert.IsTrue(success);
-
-            var delta = (timeProcessed - timeQueued).TotalMilliseconds;
-            Assert.IsTrue(delta >= 0);
-
-            // we want the delta between the time it was queued until the
-            // time it was processed to be as small as possible.  since
-            // there is some overhead, rather than using a hardcoded number
-            // express it as a ratio of the processor delay, asserting
-            // that the entire processor delay never kicked in.
-            int acceptableDelta = processorDelay - 1;
-
-            Log.V(Tag, string.Format("TestBatcherLatencyInitialBatch : delta: {0}", delta));
-
-            Assert.IsTrue(delta < acceptableDelta);
-        }
-
-        [Test]
-        public void TestBatcherLatencyTrickleIn()
-        {
-            doneSignal = new CountDownLatch(10);
-
-            inboxCapacity = 100;
-            processorDelay = 500;
-
-            maxObservedDelta = -1L;
-
-            var scheduler = new SingleThreadTaskScheduler();
-            var batcher = new Batcher<long>(new TaskFactory(scheduler), 
-                inboxCapacity, processorDelay, TestBatcherLatencyTrickleInProcessor);
-                
-            for (var i = 0; i < 10; i++)
-            {            
-                var objectsToQueue = new List<long>();
-                objectsToQueue.Add(Runtime.CurrentTimeMillis());
-                batcher.QueueObjects(objectsToQueue);
-                System.Threading.Thread.Sleep(1000);
-            }
-
-            var success = doneSignal.Await(TimeSpan.FromSeconds(35));
-            Assert.IsTrue(success);
-
-            // we want the max observed delta between the time it was queued until the
-            // time it was processed to be as small as possible.  since
-            // there is some overhead, rather than using a hardcoded number
-            // express it as a ratio of 1/4th the processor delay, asserting
-            // that the entire processor delay never kicked in.
-            int acceptableMaxDelta = processorDelay - 1;
-
-            Log.V(Tag, string.Format("TestBatcherLatencyTrickleIn : maxObservedDelta: {0}", maxObservedDelta));
-
-            Assert.IsTrue((maxObservedDelta < acceptableMaxDelta));
-        }
-
-        public void TestBatcherLatencyTrickleInProcessor(IList<long> itemsToProcess)
-        {
-            if (itemsToProcess.Count != 1)
-            {
-                throw new RuntimeException("Unexpected itemsToProcess");
-            }
-
-            var timeSubmmitted = itemsToProcess[0];
-            long delta = Runtime.CurrentTimeMillis() - timeSubmmitted;
-
-            lock (mutex)
-            {
-                if (delta > maxObservedDelta)
-                {
-                    maxObservedDelta = delta;
-                }
-            }
-
-            doneSignal.CountDown();
-        }
-
-        [Test]
         public void TestBatcherSingleBatch()
         {
-            doneSignal = new CountDownLatch(10);
+            doneSignal = new CountdownEvent(10);
 
             inboxCapacity = 10;
             processorDelay = 1000;
 
-            var scheduler = new SingleThreadTaskScheduler();
+            var scheduler = new SingleTaskThreadpoolScheduler();
             var batcher = new Batcher<string>(new TaskFactory(scheduler), 
                 inboxCapacity, processorDelay, TestBatcherSingleBatchProcessor);
 
@@ -215,7 +106,7 @@ namespace Couchbase.Lite
 
             batcher.QueueObjects(objectsToQueue);
 
-            var success = doneSignal.Await(TimeSpan.FromSeconds(35));
+            var success = doneSignal.Wait(TimeSpan.FromSeconds(35));
             Assert.IsTrue(success);
         }
 
@@ -225,18 +116,18 @@ namespace Couchbase.Lite
 
             AssertNumbersConsecutive(itemsToProcess);
 
-            doneSignal.CountDown();
+            doneSignal.Signal();
         }
 
         [Test]
         public void TestBatcherBatchSize5()
         {
-            doneSignal = new CountDownLatch(10);
+            doneSignal = new CountdownEvent(10);
 
             inboxCapacity = 10;
             processorDelay = 1000;
 
-            var scheduler = new SingleThreadTaskScheduler();
+            var scheduler = new SingleTaskThreadpoolScheduler();
             var batcher = new Batcher<string>(new TaskFactory(scheduler), 
                 inboxCapacity, processorDelay, TestBatcherBatchSize5Processor);
 
@@ -251,7 +142,7 @@ namespace Couchbase.Lite
                 }
             }
 
-            var success = doneSignal.Await(TimeSpan.FromSeconds(35));
+            var success = doneSignal.Wait(TimeSpan.FromSeconds(35));
             Assert.IsTrue(success);
         }
 
@@ -261,7 +152,7 @@ namespace Couchbase.Lite
 
             AssertNumbersConsecutive(itemsToProcess);
 
-            doneSignal.CountDown();
+            doneSignal.Signal();
         }
     }
 }
