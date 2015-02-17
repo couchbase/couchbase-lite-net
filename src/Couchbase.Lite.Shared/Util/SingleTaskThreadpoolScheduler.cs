@@ -49,7 +49,7 @@ namespace Couchbase.Lite.Util
             Log.D(Tag, " --> Queued a task: {0}/{1}", queue.Count, runningTasks);
             if (runningTasks < maxConcurrency)
             {
-                Interlocked.MemoryBarrier();
+                Thread.MemoryBarrier();
                 Interlocked.Increment(ref runningTasks);
                 QueueThreadPoolWorkItem (); 
             }

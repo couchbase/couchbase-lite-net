@@ -59,6 +59,10 @@ using System.Text;
 using Couchbase.Lite.Support;
 using Newtonsoft.Json;
 
+#if !NET_4_0
+using TaskEx = System.Threading.Tasks.Task;
+#endif
+
 namespace Couchbase.Lite.Replicator
 {
     internal enum ChangeTrackerMode
@@ -360,7 +364,7 @@ namespace Couchbase.Lite.Replicator
 
                     try 
                     {
-                        var completedTask = Task.WhenAll(successHandler, errorHandler);
+                        var completedTask = TaskEx.WhenAll(successHandler, errorHandler);
                         completedTask.Wait((Int32)ManagerOptions.Default.RequestTimeout.TotalMilliseconds, changesFeedRequestTokenSource.Token);
                         Log.D(Tag, "Finished processing changes feed.");
                     } 

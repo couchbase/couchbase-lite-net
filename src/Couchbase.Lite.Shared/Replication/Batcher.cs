@@ -51,6 +51,10 @@ using System.Threading;
 using Couchbase.Lite.Internal;
 using System.Linq;
 
+#if !NET_4_0
+using TaskEx = System.Threading.Tasks.Task;
+#endif
+
 namespace Couchbase.Lite.Support
 {
     /// <summary>
@@ -290,7 +294,7 @@ namespace Couchbase.Lite.Support
                 Log.D(Tag, "ScheduleWithDelay called with delay: {0} ms, scheduler: {1}/{2}", suggestedDelay, workExecutor.Scheduler.GetType().Name, ((SingleTaskThreadpoolScheduler)workExecutor.Scheduler).ScheduledTasks.Count());
 
                 cancellationSource = new CancellationTokenSource();
-                flushFuture = Task.Delay(suggestedDelay).ContinueWith((t)=> 
+                flushFuture = TaskEx.Delay(suggestedDelay).ContinueWith((t)=> 
                     {
                         Log.D(Tag, "ScheduleWithDelay fired");
                         if(!(cancellationSource.IsCancellationRequested))
