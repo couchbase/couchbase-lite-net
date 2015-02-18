@@ -149,7 +149,7 @@ namespace Couchbase.Lite.Support
             // As the handler will not be shared, client.Dispose() needs to be 
             // called once the operation is done to release the unmanaged resources 
             // and disposes of the managed resources.
-            var client =  new HttpClient(authHandler, true) 
+            var client =  new CouchbaseLiteHttpClient(authHandler, true) 
             {
                 Timeout = ManagerOptions.Default.RequestTimeout,
             };

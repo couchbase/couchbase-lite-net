@@ -83,22 +83,59 @@ namespace Couchbase.Lite.Tests
         {
             //var response = base.SendAsync(request, cancellationToken).Result;
 
-            Delay(); // FIXEM: Currently a no-op.
+            Delay();
 
-            capturedRequests.Add(request);
+            var requestDeepCopy = new HttpRequestMessage(request.Method, request.RequestUri) {
+                Version = request.Version
+            };
 
-            foreach(var urlPattern in responders.Keys)
-            {
-                if (urlPattern.Equals("*") || request.RequestUri.PathAndQuery.Contains(urlPattern))
-                {
-                    var responder = responders[urlPattern];
-                    var message = responder(request);
-                    NotifyResponseListeners(request, message);
-                    return TaskEx.FromResult<HttpResponseMessage>(message);
+            foreach (var header in request.Headers) {
+                requestDeepCopy.Headers.Add(header.Key, header.Value);
+            }
+
+            if (request.Content is ByteArrayContent) {
+                byte[] data = request.Content.ReadAsByteArrayAsync().Result;
+                requestDeepCopy.Content = new ByteArrayContent(data);
+            } else {
+                requestDeepCopy.Content = request.Content;
+            }
+
+            capturedRequests.Add(requestDeepCopy);
+
+            HttpResponseDelegate responder;
+            if(!responders.TryGetValue("*", out responder)) {
+                foreach(var urlPattern in responders.Keys) {
+                    if (request.RequestUri.PathAndQuery.Contains(urlPattern)) {
+                        responder = responders[urlPattern];
+                        break;
+                    }
                 }
             }
 
-            throw new Exception("No responders matched for url pattern: " + request.RequestUri.PathAndQuery);
+            if (responder != null) {
+                HttpResponseMessage message = null;
+                Task<HttpResponseMessage> retVal = null;
+
+                try {
+                    message = responder(request);
+                    retVal = TaskEx.FromResult<HttpResponseMessage>(message);
+                } catch (Exception e) {
+                    //.NET 4.0.x logic to bring it inline with 4.5
+                    TaskCompletionSource<HttpResponseMessage> completionSource = new TaskCompletionSource<HttpResponseMessage>();
+                    if (e is OperationCanceledException) {
+                        completionSource.SetCanceled();
+                    } else {
+                        completionSource.SetException(e);
+                    }
+
+                    completionSource.TrySetResult(message);
+                    retVal = completionSource.Task;
+                }
+                NotifyResponseListeners(request, message);
+                return retVal;
+            } else {
+                throw new Exception("No responders matched for url pattern: " + request.RequestUri.PathAndQuery);
+            }
         }
 
         public void SetResponder(string urlPattern, HttpResponseDelegate responder)
