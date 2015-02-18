@@ -418,6 +418,27 @@ namespace Couchbase.Lite
             Assert.AreEqual(dict2["key"], rows[1].Key);
         }
 
+        [Test]
+        public void TestLiveQueryStartEndKey()
+        {
+            var view = CreateView(database);
+
+            var query = view.CreateQuery();
+            query.StartKey = "one";
+            query.EndKey = "one\uFEFF";
+            var liveQuery = query.ToLiveQuery();
+            Assert.IsNotNull(liveQuery.StartKey);
+            Assert.IsNotNull(liveQuery.EndKey);
+
+            liveQuery.Start();
+            Thread.Sleep(2000);
+            Assert.AreEqual(0, liveQuery.Rows.Count);
+
+            PutDocs(database);
+            Thread.Sleep(2000);
+            Assert.AreEqual(1, liveQuery.Rows.Count);
+        }
+
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
         [Test]
         public void TestAllDocsQuery()

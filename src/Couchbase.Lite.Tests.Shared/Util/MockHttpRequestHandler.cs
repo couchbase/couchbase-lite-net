@@ -85,20 +85,7 @@ namespace Couchbase.Lite.Tests
 
             Delay();
 
-            var requestDeepCopy = new HttpRequestMessage(request.Method, request.RequestUri) {
-                Version = request.Version
-            };
-
-            foreach (var header in request.Headers) {
-                requestDeepCopy.Headers.Add(header.Key, header.Value);
-            }
-
-            if (request.Content is ByteArrayContent) {
-                byte[] data = request.Content.ReadAsByteArrayAsync().Result;
-                requestDeepCopy.Content = new ByteArrayContent(data);
-            } else {
-                requestDeepCopy.Content = request.Content;
-            }
+            var requestDeepCopy = CopyRequest(request);
 
             capturedRequests.Add(requestDeepCopy);
 
@@ -229,6 +216,31 @@ namespace Couchbase.Lite.Tests
                 var snapshot = new List<HttpRequestMessage>(capturedRequests);
                 return snapshot;
             }
+        }
+
+        private HttpRequestMessage CopyRequest(HttpRequestMessage request)
+        {
+            //The .NET 4.0 backport of HttpClient uncontrollably disposes the
+            //HttpContent of an HttpRequestMessage once the message is sent
+            //so we need to make a copy of it to store in the capturedRequests 
+            //collection
+            var retVal = new HttpRequestMessage(request.Method, request.RequestUri) {
+                Version = request.Version
+            };
+
+            foreach (var header in request.Headers) {
+                requestDeepCopy.Headers.Add(header.Key, header.Value);
+            }
+
+            //Expand as needed
+            if (request.Content is ByteArrayContent) {
+                byte[] data = request.Content.ReadAsByteArrayAsync().Result;
+                requestDeepCopy.Content = new ByteArrayContent(data);
+            } else {
+                requestDeepCopy.Content = request.Content;
+            }
+
+            return retVal;
         }
 
         private void Delay()

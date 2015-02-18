@@ -1,4 +1,4 @@
-[![Stories in Ready](https://badge.waffle.io/couchbaselabs/couchbase-lite-net.png?label=ready&title=Ready)](https://waffle.io/couchbase/couchbase-lite-net)
+[![Stories in Ready](https://badge.waffle.io/couchbase/couchbase-lite-net.png?label=ready&title=In%20Progress)](https://waffle.io/couchbase/couchbase-lite-net)
 couchbase-lite-net
 ==================
 

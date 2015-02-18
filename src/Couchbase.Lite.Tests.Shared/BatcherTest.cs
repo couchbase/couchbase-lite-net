@@ -154,5 +154,37 @@ namespace Couchbase.Lite
 
             doneSignal.Signal();
         }
+
+        [Test]
+        public void TestBatcherCancel()
+        {
+            var mre = new ManualResetEventSlim();
+            var scheduler = new SingleTaskThreadpoolScheduler();
+            var batcher = new Batcher<int>(new TaskFactory(scheduler), 5, 500, (inbox) =>
+            {
+                mre.Set();
+            });
+
+            batcher.QueueObject(0);
+            batcher.Clear();
+            Assert.False(mre.Wait(TimeSpan.FromSeconds(1)), "Batcher ran after being cancelled");
+        }
+
+        [Test]
+        public void TestBatcherAddAfterCancel()
+        {
+            var evt = new CountdownEvent(2);
+            var scheduler = new SingleTaskThreadpoolScheduler();
+            var batcher = new Batcher<int>(new TaskFactory(scheduler), 5, 500, (inbox) =>
+            {
+                evt.Signal();
+            });
+
+            batcher.QueueObject(0);
+            batcher.Clear();
+            batcher.QueueObject(0);
+            Assert.False(evt.Wait(TimeSpan.FromSeconds(1)), "Batcher ran too many times");
+            Assert.True(evt.CurrentCount == 1, "Batcher never ran");
+        }
     }
 }

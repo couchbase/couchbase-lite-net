@@ -341,8 +341,6 @@ namespace Couchbase.Lite
             unsavedRevision.SetUserProperties(properties);
             unsavedRevision.Save();
 
-            //Thread.Sleep(15);
-
             // but then immediately purge it
             doc.Purge();
 

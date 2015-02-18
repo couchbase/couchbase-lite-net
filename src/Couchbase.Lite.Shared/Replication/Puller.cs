@@ -302,6 +302,12 @@ namespace Couchbase.Lite.Replicator
         /// <summary>Process a bunch of remote revisions from the _changes feed at once</summary>
         internal override void ProcessInbox(RevisionList inbox)
         {
+            if (!online)
+            {
+                Log.V(Tag, "Offline, so skipping inbox process");
+                return;
+            }
+
             Debug.Assert(inbox != null);
 
             if (!canBulkGet)

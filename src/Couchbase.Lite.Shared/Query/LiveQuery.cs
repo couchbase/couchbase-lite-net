@@ -217,7 +217,22 @@ namespace Couchbase.Lite
 
     #region Constructors
 
-        internal LiveQuery(Query query) : base(query.Database, query.View) { }
+        internal LiveQuery(Query query) : base(query.Database, query.View) { 
+            this.StartKey = query.StartKey;
+            this.EndKey = query.EndKey;
+            this.Descending = query.Descending;
+            this.EndKeyDocId = query.EndKeyDocId;
+            this.StartKeyDocId = query.StartKeyDocId;
+            this.Prefetch = query.Prefetch;
+            this.Limit = query.Limit;
+            this.GroupLevel = query.GroupLevel;
+            this.IncludeDeleted = query.IncludeDeleted;
+            this.InclusiveEnd = query.InclusiveEnd;
+            this.IndexUpdateMode = query.IndexUpdateMode;
+            this.Keys = query.Keys;
+            this.MapOnly = query.MapOnly;
+            this.Skip = query.Skip;
+        }
     
     #endregion
 
