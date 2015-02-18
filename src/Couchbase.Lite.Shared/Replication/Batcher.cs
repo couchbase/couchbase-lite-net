@@ -52,6 +52,10 @@ using Couchbase.Lite.Internal;
 using System.Linq;
 using System.Collections.Concurrent;
 
+#if !NET_4_0
+using TaskEx = System.Threading.Tasks.Task;
+#endif
+
 namespace Couchbase.Lite.Support
 {
     /// <summary>
@@ -68,11 +72,11 @@ namespace Couchbase.Lite.Support
 
         private readonly TaskFactory workExecutor;
 
-        private Task flushFuture;
-
         private readonly int capacity;
 
         private readonly int delay;
+
+        private int taskCount = 0;
 
         private int scheduledDelay;
 
@@ -225,8 +229,12 @@ namespace Couchbase.Lite.Support
 
                 Log.D(Tag, "ScheduleWithDelay called with delay: {0} ms, scheduler: {1}/{2}", suggestedDelay, workExecutor.Scheduler.GetType().Name, ((SingleTaskThreadpoolScheduler)workExecutor.Scheduler).ScheduledTasks.Count());
 
-                flushFuture = workExecutor.StartNew(()=> {
-                    if(!(cancellationSource.IsCancellationRequested)) {
+                cancellationSource = new CancellationTokenSource();
+
+                Interlocked.Increment(ref taskCount);
+                TaskEx.Delay(scheduledDelay).ContinueWith((t) =>
+                {
+                    if (!t.IsCanceled) {
                         try {
                             ProcessNow();
                         } catch (Exception e) {
@@ -234,12 +242,10 @@ namespace Couchbase.Lite.Support
                             Log.E(Tag, "BatchProcessor throw exception", e);
                         }
                     }
-                    cancellationSource = new CancellationTokenSource();
-                }, cancellationSource.Token, TaskCreationOptions.None, workExecutor.Scheduler);
-            } else {
-                if (flushFuture == null || flushFuture.IsCompleted) {
-                    throw new InvalidOperationException("Flushfuture missing despite scheduled.");
-                }
+                    Interlocked.Decrement(ref taskCount);
+                }, cancellationSource.Token, TaskContinuationOptions.None, workExecutor.Scheduler);
+            } else if (taskCount == 0) {
+                throw new InvalidOperationException("ScheduledWithDelay logic not executed, but missing scheduled task");
             }
         }
 
@@ -247,7 +253,7 @@ namespace Couchbase.Lite.Support
         {
             Log.V(Tag, "unschedule() called");
             scheduled = false;
-            if (cancellationSource != null && flushFuture != null)
+            if (cancellationSource != null)
             {
                 try
                 {
@@ -261,7 +267,7 @@ namespace Couchbase.Lite.Support
             }
             else
             {
-                Log.V(Tag, "cancellationSource or flushFuture was null, doing nothing");
+                Log.V(Tag, "cancellationSource was null, doing nothing");
             }
         }
 

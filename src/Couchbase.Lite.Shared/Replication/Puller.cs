@@ -433,7 +433,7 @@ namespace Couchbase.Lite.Replicator
                     if (nBulk > 0)
                     {
                         // Prefer to pull bulk revisions:
-                        var range = new ArraySegment<RevisionInternal>(bulkRevsToPull.ToArray(), 0, nBulk);
+                        var range = new Couchbase.Lite.Util.ArraySegment<RevisionInternal>(bulkRevsToPull.ToArray(), 0, nBulk);
                         bulkWorkToStartNow.AddRange(range) ;
                         bulkRevsToPull.RemoveAll(range);
                     }

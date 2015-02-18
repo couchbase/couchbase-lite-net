@@ -47,6 +47,10 @@ using System.Threading;
 using System.Linq;
 using System.Net.Http.Headers;
 
+#if !NET_4_0
+using TaskEx = System.Threading.Tasks.Task;
+#endif
+
 namespace Couchbase.Lite.Replicator
 {
     internal class RemoteRequest
@@ -219,7 +223,7 @@ namespace Couchbase.Lite.Replicator
             {
                 return false;
             }
-            request.ContinueWith((t)=> Task.Delay(RetryDelayMs, _tokenSource.Token), _tokenSource.Token, TaskContinuationOptions.AttachedToParent, workExecutor.Scheduler)
+            request.ContinueWith((t)=> TaskEx.Delay(RetryDelayMs, _tokenSource.Token), _tokenSource.Token, TaskContinuationOptions.AttachedToParent, workExecutor.Scheduler)
                 .ContinueWith((t)=> Run(), _tokenSource.Token, TaskContinuationOptions.LongRunning, workExecutor.Scheduler);
             retryCount += 1;
             Log.D(Tag, "Will retry in {0} ms", RetryDelayMs);

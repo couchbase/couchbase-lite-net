@@ -208,7 +208,7 @@ namespace Couchbase.Lite.Replicator
                             {
                                 if (numBytesRead != bufLen)
                                 {
-                                    var bufferToAppend = new ArraySegment<byte>(buffer, 0, numBytesRead).ToArray();
+                                    var bufferToAppend = new Couchbase.Lite.Util.ArraySegment<byte>(buffer, 0, numBytesRead).ToArray();
                                     _topReader.AppendData(bufferToAppend);
                                 }
                                 else

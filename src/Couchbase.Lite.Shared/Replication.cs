@@ -57,6 +57,9 @@ using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
 using Sharpen;
 
+#if !NET_4_0
+using TaskEx = System.Threading.Tasks.Task;
+#endif
 
 namespace Couchbase.Lite
 {
@@ -254,7 +257,8 @@ namespace Couchbase.Lite
                     if (!lastSequenceChanged)
                     {
                         lastSequenceChanged = true;
-                        Task.Delay(SaveLastSequenceDelay)
+
+                        TaskEx.Delay(SaveLastSequenceDelay)
                             .ContinueWith(task =>
                             {
                                 SaveLastSequence();
@@ -1103,7 +1107,7 @@ namespace Couchbase.Lite
                                     {
                                         if (numBytesRead != bufLen)
                                         {
-                                            var bufferToAppend = new ArraySegment<Byte>(buffer, 0, numBytesRead);
+                                            var bufferToAppend = new Couchbase.Lite.Util.ArraySegment<Byte>(buffer, 0, numBytesRead);
                                             reader.AppendData(bufferToAppend);
                                         }
                                         else
@@ -1551,7 +1555,7 @@ namespace Couchbase.Lite
         protected internal virtual void ScheduleRetryIfReady()
         {
             RetryIfReadyTokenSource = new CancellationTokenSource();
-            RetryIfReadyTask = Task.Delay(RetryDelay * 1000)
+            RetryIfReadyTask = TaskEx.Delay(RetryDelay * 1000)
                 .ContinueWith(task =>
                 {
                     if (RetryIfReadyTokenSource != null && !RetryIfReadyTokenSource.IsCancellationRequested)

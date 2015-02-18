@@ -49,7 +49,10 @@ using System.Threading.Tasks;
 using System.Linq;
 using System.IO;
 using Newtonsoft.Json.Linq;
-using System.Web;
+
+#if !NET_4_0
+using TaskEx = System.Threading.Tasks.Task;
+#endif
 
 namespace Couchbase.Lite.Tests
 {
@@ -80,22 +83,46 @@ namespace Couchbase.Lite.Tests
         {
             //var response = base.SendAsync(request, cancellationToken).Result;
 
-            Delay(); // FIXEM: Currently a no-op.
+            Delay();
 
-            capturedRequests.Add(request);
+            var requestDeepCopy = CopyRequest(request);
 
-            foreach(var urlPattern in responders.Keys)
-            {
-                if (urlPattern.Equals("*") || request.RequestUri.PathAndQuery.Contains(urlPattern))
-                {
-                    var responder = responders[urlPattern];
-                    var message = responder(request);
-                    NotifyResponseListeners(request, message);
-                    return Task.FromResult<HttpResponseMessage>(message);
+            capturedRequests.Add(requestDeepCopy);
+
+            HttpResponseDelegate responder;
+            if(!responders.TryGetValue("*", out responder)) {
+                foreach(var urlPattern in responders.Keys) {
+                    if (request.RequestUri.PathAndQuery.Contains(urlPattern)) {
+                        responder = responders[urlPattern];
+                        break;
+                    }
                 }
             }
 
-            throw new Exception("No responders matched for url pattern: " + request.RequestUri.PathAndQuery);
+            if (responder != null) {
+                HttpResponseMessage message = null;
+                Task<HttpResponseMessage> retVal = null;
+
+                try {
+                    message = responder(request);
+                    retVal = TaskEx.FromResult<HttpResponseMessage>(message);
+                } catch (Exception e) {
+                    //.NET 4.0.x logic to bring it inline with 4.5
+                    TaskCompletionSource<HttpResponseMessage> completionSource = new TaskCompletionSource<HttpResponseMessage>();
+                    if (e is OperationCanceledException) {
+                        completionSource.SetCanceled();
+                    } else {
+                        completionSource.SetException(e);
+                    }
+
+                    completionSource.TrySetResult(message);
+                    retVal = completionSource.Task;
+                }
+                NotifyResponseListeners(request, message);
+                return retVal;
+            } else {
+                throw new Exception("No responders matched for url pattern: " + request.RequestUri.PathAndQuery);
+            }
         }
 
         public void SetResponder(string urlPattern, HttpResponseDelegate responder)
@@ -189,6 +216,31 @@ namespace Couchbase.Lite.Tests
                 var snapshot = new List<HttpRequestMessage>(capturedRequests);
                 return snapshot;
             }
+        }
+
+        private HttpRequestMessage CopyRequest(HttpRequestMessage request)
+        {
+            //The .NET 4.0 backport of HttpClient uncontrollably disposes the
+            //HttpContent of an HttpRequestMessage once the message is sent
+            //so we need to make a copy of it to store in the capturedRequests 
+            //collection
+            var retVal = new HttpRequestMessage(request.Method, request.RequestUri) {
+                Version = request.Version
+            };
+
+            foreach (var header in request.Headers) {
+                requestDeepCopy.Headers.Add(header.Key, header.Value);
+            }
+
+            //Expand as needed
+            if (request.Content is ByteArrayContent) {
+                byte[] data = request.Content.ReadAsByteArrayAsync().Result;
+                requestDeepCopy.Content = new ByteArrayContent(data);
+            } else {
+                requestDeepCopy.Content = request.Content;
+            }
+
+            return retVal;
         }
 
         private void Delay()
