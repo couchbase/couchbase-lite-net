@@ -49,7 +49,10 @@ using System.Threading.Tasks;
 using System.Linq;
 using System.IO;
 using Newtonsoft.Json.Linq;
-using System.Web;
+
+#if !NET_4_0
+using TaskEx = System.Threading.Tasks.Task;
+#endif
 
 namespace Couchbase.Lite.Tests
 {
@@ -91,7 +94,7 @@ namespace Couchbase.Lite.Tests
                     var responder = responders[urlPattern];
                     var message = responder(request);
                     NotifyResponseListeners(request, message);
-                    return Task.FromResult<HttpResponseMessage>(message);
+                    return TaskEx.FromResult<HttpResponseMessage>(message);
                 }
             }
 
