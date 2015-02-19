@@ -229,15 +229,15 @@ namespace Couchbase.Lite.Tests
             };
 
             foreach (var header in request.Headers) {
-                requestDeepCopy.Headers.Add(header.Key, header.Value);
+                retVal.Headers.Add(header.Key, header.Value);
             }
 
             //Expand as needed
             if (request.Content is ByteArrayContent) {
                 byte[] data = request.Content.ReadAsByteArrayAsync().Result;
-                requestDeepCopy.Content = new ByteArrayContent(data);
+                retVal.Content = new ByteArrayContent(data);
             } else {
-                requestDeepCopy.Content = request.Content;
+                retVal.Content = request.Content;
             }
 
             return retVal;
