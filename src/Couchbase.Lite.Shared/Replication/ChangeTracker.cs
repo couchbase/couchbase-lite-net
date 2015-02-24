@@ -594,10 +594,11 @@ namespace Couchbase.Lite.Replicator
 
                 IsRunning = false;
 
-                if (changesFeedRequestTokenSource != null)
+                var tokenSource = changesFeedRequestTokenSource;
+                if (tokenSource != null)
                 {
                     try {
-                        changesFeedRequestTokenSource.Cancel();
+                        tokenSource.Cancel();
                     }catch(ObjectDisposedException) {
                         //FIXME Run() will often dispose this token source right out from under us since it
                         //is running on a separate thread.

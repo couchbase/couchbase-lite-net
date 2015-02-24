@@ -57,6 +57,10 @@ using Couchbase.Lite.Replicator;
 using Couchbase.Lite.Support;
 using System.Net.NetworkInformation;
 
+#if !NET_3_5
+using StringEx = System.String;
+#endif
+
 namespace Couchbase.Lite
 {
     /// <summary>
@@ -127,7 +131,7 @@ namespace Couchbase.Lite
             // So, let's only set it only when GetFolderPath returns something and allow the directory to be
             // manually specified via the ctor that accepts a DirectoryInfo
             var defaultDirectoryPath = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-            if (!String.IsNullOrEmpty(defaultDirectoryPath.Trim()))
+            if (!StringEx.IsNullOrWhiteSpace(defaultDirectoryPath))
             {
                 defaultDirectory = new DirectoryInfo(defaultDirectoryPath);
             }

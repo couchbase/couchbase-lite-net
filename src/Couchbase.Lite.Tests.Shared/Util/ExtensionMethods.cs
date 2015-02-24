@@ -45,6 +45,10 @@ using System.Collections;
 using Sharpen;
 using System.Text;
 
+#if !NET_3_5
+using StringEx = System.String;
+#endif
+
 namespace Couchbase.Lite.Tests
 {
     public static class ExtensionMethods
@@ -59,7 +63,7 @@ namespace Couchbase.Lite.Tests
                 while (!reader.EndOfStream)
                 {
                     var line = reader.ReadLine();
-                    if (!String.IsNullOrEmpty(line.Trim()) && !line.StartsWith("#"))
+                    if (!StringEx.IsNullOrWhiteSpace(line) && !line.StartsWith("#"))
                     {
                         var parts = line.Split('=');
                         if (parts.Length != 2)

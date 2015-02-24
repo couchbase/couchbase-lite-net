@@ -16,7 +16,7 @@
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
     <OutputPath>bin\Debug</OutputPath>
-    <DefineConstants>DEBUG;NET_4_0</DefineConstants>
+    <DefineConstants>DEBUG;NET_3_5</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <ConsolePause>false</ConsolePause>
@@ -28,15 +28,15 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <ConsolePause>false</ConsolePause>
-    <DefineConstants>NET_4_0</DefineConstants>
     <AssemblyName>Couchbase.Lite.Net40.Tests</AssemblyName>
+    <DefineConstants>NET_3_5</DefineConstants>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|x86' ">
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
     <OutputPath>bin\Debug</OutputPath>
-    <DefineConstants>TRACE;DEBUG;NET_4_0</DefineConstants>
+    <DefineConstants>TRACE;DEBUG;NET_3_5</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <ConsolePause>false</ConsolePause>
@@ -58,22 +58,22 @@
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|x86' ">
     <Optimize>true</Optimize>
     <OutputPath>bin\Release</OutputPath>
-    <DefineConstants>NET_4_0</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <ConsolePause>false</ConsolePause>
     <PlatformTarget>x86</PlatformTarget>
     <AssemblyName>Couchbase.Lite.Net40.Tests</AssemblyName>
+    <DefineConstants>NET_3_5</DefineConstants>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|x64' ">
     <Optimize>true</Optimize>
     <OutputPath>bin\Release</OutputPath>
-    <DefineConstants>NET_4_0</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <ConsolePause>false</ConsolePause>
     <PlatformTarget>x64</PlatformTarget>
     <AssemblyName>Couchbase.Lite.Net35.Tests</AssemblyName>
+    <DefineConstants>NET_3_5</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
@@ -86,10 +86,7 @@
       <HintPath>..\packages\Newtonsoft.Json.6.0.8\lib\net35\Newtonsoft.Json.dll</HintPath>
     </Reference>
     <Reference Include="System.Threading.Tasks.NET35">
-      <HintPath>..\Couchbase.Lite.Net35\vendor\System.Net.Http\a.dll</HintPath>
-    </Reference>
-    <Reference Include="System.Net.Http.Net35">
-      <HintPath>..\Couchbase.Lite.Net35\vendor\System.Net.Http\System.Net.Http.Net35.dll</HintPath>
+      <HintPath>..\..\..\dotnet-threading\System.Threading.Tasks.NET35.dll</HintPath>
     </Reference>
   </ItemGroup>
   <Import Project="..\Couchbase.Lite.Tests.Shared\Couchbase.Lite.Tests.Shared.projitems" Label="Shared" Condition="Exists('..\Couchbase.Lite.Tests.Shared\Couchbase.Lite.Tests.Shared.projitems')" />
@@ -109,12 +106,18 @@
     <EmbeddedResource Include="Assets\local-test.properties">
       <LogicalName>Couchbase.Lite.Net35.Tests.Assets.local-test.properties</LogicalName>
     </EmbeddedResource>
-    <EmbeddedResource Include="Assets\noattachments.cblite" />
-    <EmbeddedResource Include="Assets\performance-test.json" />
+    <EmbeddedResource Include="Assets\noattachments.cblite">
+      <LogicalName>Couchbase.Lite.Net35.Tests.Assets.noattachments.cblite</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Assets\performance-test.json">
+      <LogicalName>Couchbase.Lite.Net35.Tests.Assets.performance-test.json</LogicalName>
+    </EmbeddedResource>
     <EmbeddedResource Include="Assets\test.properties">
       <LogicalName>Couchbase.Lite.Net35.Tests.Assets.test.properties</LogicalName>
     </EmbeddedResource>
-    <EmbeddedResource Include="Assets\withattachments.cblite" />
+    <EmbeddedResource Include="Assets\withattachments.cblite">
+      <LogicalName>Couchbase.Lite.Net35.Tests.Assets.withattachments.cblite</LogicalName>
+    </EmbeddedResource>
   </ItemGroup>
   <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">

@@ -221,7 +221,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)Util\PrivateThreadSynchronizationContext.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\ArraySegment.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Replication\CouchbaseLiteHttpClient.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Util\IOExt.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\TaskEx.cs" />
   </ItemGroup>
   <ItemGroup>

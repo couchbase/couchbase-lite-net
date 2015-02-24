@@ -56,6 +56,10 @@ using Newtonsoft.Json.Linq;
 using System.Linq;
 using System.Diagnostics;
 
+#if !NET_3_5
+using StringEx = System.String;
+#endif
+
 namespace Couchbase.Lite.Replicator
 {
     internal sealed class Pusher : Replication
@@ -513,7 +517,7 @@ namespace Couchbase.Lite.Replicator
                 }
 
                 var errorStr = (string)item["error"];
-                if (string.IsNullOrEmpty(errorStr.Trim()))
+                if (StringEx.IsNullOrWhiteSpace(errorStr))
                 {
                     return new Status(StatusCode.Ok);
                 }

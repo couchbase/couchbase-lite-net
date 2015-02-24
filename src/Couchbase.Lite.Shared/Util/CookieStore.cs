@@ -48,6 +48,10 @@ using System.Reflection;
 using Newtonsoft.Json;
 using System.Collections.Generic;
 
+#if !NET_3_5
+using StringEx = System.String;
+#endif
+
 namespace Couchbase.Lite.Util
 {
     public class CookieStore : CookieContainer
@@ -160,7 +164,7 @@ namespace Couchbase.Lite.Util
         private void SerializeToDisk()
         {
             var filePath = GetSaveCookiesFilePath();
-            if (String.IsNullOrEmpty(filePath.Trim()))
+            if (StringEx.IsNullOrWhiteSpace(filePath))
             {
                 return;
             }
@@ -182,7 +186,7 @@ namespace Couchbase.Lite.Util
         private void DeserializeFromDisk()
         {
             var filePath = GetSaveCookiesFilePath();
-            if (String.IsNullOrEmpty(filePath.Trim()))
+            if (StringEx.IsNullOrWhiteSpace(filePath))
             {
                 return;
             }

@@ -60,6 +60,10 @@ using System.Collections.ObjectModel;
 using System.Net;
 using System.Threading;
 
+#if !NET_3_5
+using StringEx = System.String;
+#endif
+
 namespace Couchbase.Lite 
 {
 
@@ -360,7 +364,7 @@ namespace Couchbase.Lite
         /// <param name="id">The id of the Document to get or create.</param>
         public Document GetDocument(String id) 
         { 
-            if (String.IsNullOrEmpty (id.Trim())) {
+            if (StringEx.IsNullOrWhiteSpace (id)) {
                 return null;
             }
 
@@ -386,7 +390,7 @@ namespace Couchbase.Lite
         /// <param name="id">The id of the Document to get.</param>
         public Document GetExistingDocument(String id) 
         { 
-            if (String.IsNullOrEmpty (id.Trim())) {
+            if (StringEx.IsNullOrWhiteSpace (id)) {
                 return null;
             }
             var revisionInternal = GetDocumentWithIDAndRev(id, null, DocumentContentOptions.None);

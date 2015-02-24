@@ -790,16 +790,6 @@ namespace Couchbase.Lite
             }
         }
 
-        #if !NET_3_5
-        void CurrentDomain_FirstChanceException(object sender, System.Runtime.ExceptionServices.FirstChanceExceptionEventArgs e)
-        {
-            if (e.Exception is NullReferenceException && e.Exception.Source.Contains("SQLitePCL"))
-            {
-                Debugger.Break();
-            }
-        }
-        #endif
-
         //API_RunSlowView commented on IOS
         /// <exception cref="System.Exception"></exception>
         [Test]

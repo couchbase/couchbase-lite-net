@@ -59,6 +59,7 @@ using Sharpen;
 
 #if !NET_3_5
 using TaskEx = System.Threading.Tasks.Task;
+using StringEx = System.String;
 #endif
 
 namespace Couchbase.Lite
@@ -144,12 +145,12 @@ namespace Couchbase.Lite
             requests = new HashSet<HttpClient>();
 
             // FIXME: Refactor to visitor pattern.
-            if (RemoteUrl.GetQuery() != null && !RemoteUrl.GetQuery().IsEmpty())
+            if (RemoteUrl.GetQuery() != null && !StringEx.IsNullOrWhiteSpace(RemoteUrl.GetQuery()))
             {
                 var uri = new Uri(remote.ToString());
                 var personaAssertion = URIUtils.GetQueryParameter(uri, PersonaAuthorizer.QueryParameter);
 
-                if (personaAssertion != null && !personaAssertion.IsEmpty())
+                if (personaAssertion != null && !StringEx.IsNullOrWhiteSpace(personaAssertion))
                 {
                     var email = PersonaAuthorizer.RegisterAssertion(personaAssertion);
                     var authorizer = new PersonaAuthorizer(email);
@@ -158,7 +159,7 @@ namespace Couchbase.Lite
 
                 var facebookAccessToken = URIUtils.GetQueryParameter(uri, FacebookAuthorizer.QueryParameter);
 
-                if (facebookAccessToken != null && !facebookAccessToken.IsEmpty())
+                if (facebookAccessToken != null && !StringEx.IsNullOrWhiteSpace(facebookAccessToken))
                 {
                     var email = URIUtils.GetQueryParameter(uri, FacebookAuthorizer.QueryParameterEmail);
                     var authorizer = new FacebookAuthorizer(email);
@@ -475,8 +476,11 @@ namespace Couchbase.Lite
                     //Swallow, our work is already done for us
                 }
             }
-            CancellationTokenSource.Cancel();
+
+            var cts = CancellationTokenSource;
             CancellationTokenSource = new CancellationTokenSource();
+            cts.Cancel();
+
             //Task.WaitAll(((SingleTaskThreadpoolScheduler)WorkExecutor.Scheduler).ScheduledTasks.ToArray());
         }
 
@@ -1265,7 +1269,7 @@ namespace Couchbase.Lite
 
         protected internal bool CheckServerCompatVersion(string minVersion)
         {
-            if (String.IsNullOrEmpty(ServerType.Trim()))
+            if (StringEx.IsNullOrWhiteSpace(ServerType))
             {
                 return false;
             }
@@ -1412,14 +1416,14 @@ namespace Couchbase.Lite
                 }
 
                 var errorStr = item.Get("error") as string;
-                if (errorStr == null || errorStr.IsEmpty())
+                if (StringEx.IsNullOrWhiteSpace(errorStr))
                 {
                     return new Status(StatusCode.Ok);
                 }
 
                 // 'status' property is nonstandard; TouchDB returns it, others don't.
                 var statusString = item.Get("status") as string;
-                if (String.IsNullOrEmpty(statusString.Trim()))
+                if (StringEx.IsNullOrWhiteSpace(statusString))
                 {
                     var status = Convert.ToInt32(statusString);
                     if (status >= 400)
@@ -1676,7 +1680,7 @@ namespace Couchbase.Lite
                 var p = FilterParams.ContainsKey(ChannelsQueryParam)
                     ? (string)FilterParams[ChannelsQueryParam]
                     : null;
-                if (!IsPull || Filter == null || !Filter.Equals(ByChannelFilterName) || p == null || p.IsEmpty())
+                if (!IsPull || Filter == null || !Filter.Equals(ByChannelFilterName) || StringEx.IsNullOrWhiteSpace(p))
                 {
                     return new List<string>();
                 }

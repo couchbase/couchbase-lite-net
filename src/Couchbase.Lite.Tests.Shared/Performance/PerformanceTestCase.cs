@@ -54,6 +54,10 @@ using NUnit.Framework;
 using Newtonsoft.Json.Linq;
 using Sharpen;
 
+#if !NET_3_5
+using StringEx = System.String;
+#endif
+
 namespace Couchbase.Lite
 {
     public abstract class PerformanceTestCase : LiteTestCase
@@ -109,7 +113,7 @@ namespace Couchbase.Lite
         protected void AddDoc(string docId, IDictionary<string, object> properties, 
             string attachmentName, string attachmentContentType)
         {
-            if (!String.IsNullOrEmpty(attachmentName.Trim()))
+            if (!StringEx.IsNullOrWhiteSpace(attachmentName))
             {
                 var attachmentStream = (InputStream)GetAsset(attachmentName);
                 var memStream = new MemoryStream();
@@ -168,7 +172,7 @@ namespace Couchbase.Lite
         protected void AddDocToSyncGateway(string docId, IDictionary<string, object> properties, 
             string attachmentName, string attachmentContentType)
         {
-            if (!String.IsNullOrEmpty(attachmentName.Trim()))
+            if (!StringEx.IsNullOrWhiteSpace(attachmentName))
             {
                 var attachmentStream = (InputStream)GetAsset(attachmentName);
                 var memStream = new MemoryStream();

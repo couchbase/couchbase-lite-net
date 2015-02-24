@@ -49,6 +49,10 @@ using Couchbase.Lite.Internal;
 using Couchbase.Lite.Util;
 using Sharpen;
 
+#if !NET_3_5
+using StringEx = System.String;
+#endif
+
 namespace Couchbase.Lite {
 
     /// <summary>
@@ -375,7 +379,7 @@ namespace Couchbase.Lite {
 
         private SavedRevision GetRevisionWithId(String revId)
         {
-            if (!String.IsNullOrEmpty(revId.Trim()) && revId.Equals(currentRevision.Id))
+            if (!StringEx.IsNullOrWhiteSpace(revId) && revId.Equals(currentRevision.Id))
             {
                 return currentRevision;
             }

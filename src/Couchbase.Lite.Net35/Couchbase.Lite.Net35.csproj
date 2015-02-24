@@ -17,7 +17,7 @@
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
     <OutputPath>bin\Debug</OutputPath>
-    <DefineConstants>DEBUG;NET_4_0;</DefineConstants>
+    <DefineConstants>DEBUG;NET_3_5</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <ConsolePause>false</ConsolePause>
@@ -28,14 +28,14 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <ConsolePause>false</ConsolePause>
-    <DefineConstants>NET_4_0</DefineConstants>
+    <DefineConstants>NET_3_5</DefineConstants>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|x86' ">
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
     <OutputPath>bin\Debug</OutputPath>
-    <DefineConstants>TRACE;DEBUG;NET_4_0;</DefineConstants>
+    <DefineConstants>TRACE;DEBUG;NET_3_5</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <ConsolePause>false</ConsolePause>
@@ -46,7 +46,7 @@
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
     <OutputPath>bin\Debug</OutputPath>
-    <DefineConstants>TRACE;DEBUG;NET_3_5;</DefineConstants>
+    <DefineConstants>TRACE;DEBUG;NET_3_5</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <ConsolePause>false</ConsolePause>
@@ -55,7 +55,7 @@
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|x86' ">
     <Optimize>true</Optimize>
     <OutputPath>bin\Release</OutputPath>
-    <DefineConstants>NET_4_0</DefineConstants>
+    <DefineConstants>NET_3_5</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <ConsolePause>false</ConsolePause>
@@ -64,11 +64,11 @@
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|x64' ">
     <Optimize>true</Optimize>
     <OutputPath>bin\Release</OutputPath>
-    <DefineConstants>NET_4_0</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <ConsolePause>false</ConsolePause>
     <PlatformTarget>x64</PlatformTarget>
+    <DefineConstants>NET_3_5</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
@@ -84,10 +84,7 @@
       <HintPath>vendor\SQLitePCL\ugly_net35.dll</HintPath>
     </Reference>
     <Reference Include="System.Threading.Tasks.NET35">
-      <HintPath>vendor\System.Net.Http\a.dll</HintPath>
-    </Reference>
-    <Reference Include="System.Net.Http.Net35">
-      <HintPath>vendor\System.Net.Http\System.Net.Http.Net35.dll</HintPath>
+      <HintPath>vendor\Rackspace\Rackspace.Threading\System.Threading.Tasks.NET35.dll</HintPath>
     </Reference>
   </ItemGroup>
   <Import Project="..\Couchbase.Lite.Shared\Couchbase.Lite.Shared.projitems" Label="Shared" Condition="Exists('..\Couchbase.Lite.Shared\Couchbase.Lite.Shared.projitems')" />
@@ -110,5 +107,21 @@
     <Compile Include="Lazy.cs" />
     <Compile Include="LazyThreadSafetyMode.cs" />
     <Compile Include="TaskEx.cs" />
+    <Compile Include="BlockingCollection.cs" />
+    <Compile Include="CollectionDebuggerView.cs" />
+    <Compile Include="AtomicBoolean.cs" />
+    <Compile Include="StringEx.cs" />
+    <Compile Include="StreamEx.cs" />
+    <Compile Include="EnumEx.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="vendor\Rackspace\Rackspace.Threading\Rackspace.Threading\Rackspace.Threading.net35-client.csproj">
+      <Project>{52CA4A3B-F296-4489-B5F0-AD375D039B35}</Project>
+      <Name>Rackspace.Threading.net35-client</Name>
+    </ProjectReference>
+    <ProjectReference Include="vendor\Rackspace\System.Net.Http\System.Net.Http-net_4_5.csproj">
+      <Project>{9862694D-E4FA-418B-8692-A0280FEDDF36}</Project>
+      <Name>System.Net.Http-net_4_5</Name>
+    </ProjectReference>
   </ItemGroup>
 </Project>

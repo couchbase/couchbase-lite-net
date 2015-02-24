@@ -58,14 +58,10 @@ namespace Couchbase.Lite.Util
 
         private void Drain() 
         {
-            try {
-                Task nextTask;
-                bool gotTask = _jobQueue.TryTake(out nextTask, -1);
-                if(gotTask && nextTask.Status < TaskStatus.Running) {
-                    TryExecuteTask(nextTask);
-                }
-            } catch(OperationCanceledException) {
-                Log.V(Tag, "Consumer thread finished");
+            Task nextTask;
+            bool gotTask = _jobQueue.TryTake(out nextTask, 15000);
+            if(gotTask && nextTask.Status < TaskStatus.Running) {
+                TryExecuteTask(nextTask);
             }
         }
 

@@ -52,6 +52,10 @@ using System.Linq;
 using SQLitePCL.Ugly;
 using Couchbase.Lite.Store;
 
+#if !NET_3_5
+using StringEx = System.String;
+#endif
+
 namespace Couchbase.Lite.Shared
 {
     internal sealed class SqlitePCLRawStorageEngine : ISQLiteStorageEngine, IDisposable
@@ -399,7 +403,7 @@ namespace Couchbase.Lite.Shared
 
         public long InsertWithOnConflict(String table, String nullColumnHack, ContentValues initialValues, ConflictResolutionStrategy conflictResolutionStrategy)
         {
-            if (!String.IsNullOrEmpty(nullColumnHack.Trim()))
+            if (!StringEx.IsNullOrWhiteSpace(nullColumnHack))
             {
                 var e = new InvalidOperationException("{0} does not support the 'nullColumnHack'.".Fmt(Tag));
                 Log.E(Tag, "Unsupported use of nullColumnHack", e);
@@ -448,7 +452,7 @@ namespace Couchbase.Lite.Shared
 
         public int Update(String table, ContentValues values, String whereClause, params String[] whereArgs)
         {
-            Debug.Assert(!String.IsNullOrEmpty(table.Trim()));
+            Debug.Assert(!StringEx.IsNullOrWhiteSpace(table));
             Debug.Assert(values != null);
 
             var t = Factory.StartNew(() =>
@@ -487,7 +491,7 @@ namespace Couchbase.Lite.Shared
 
         public int Delete(String table, String whereClause, params String[] whereArgs)
         {
-            Debug.Assert(!String.IsNullOrEmpty(table.Trim()));
+            Debug.Assert(!StringEx.IsNullOrWhiteSpace(table));
 
             var t = Factory.StartNew(() =>
             {
@@ -643,7 +647,7 @@ namespace Couchbase.Lite.Shared
                 paramList.Add(column.Value);
             }
 
-            if (!String.IsNullOrEmpty(whereClause.Trim()))
+            if (!StringEx.IsNullOrWhiteSpace(whereClause))
             {
                 builder.Append(" WHERE ");
                 builder.Append(whereClause);
@@ -744,7 +748,7 @@ namespace Couchbase.Lite.Shared
             }
             var builder = new StringBuilder("DELETE FROM ");
             builder.Append(table);
-            if (!String.IsNullOrEmpty(whereClause.Trim()))
+            if (!StringEx.IsNullOrWhiteSpace(whereClause))
             {
                 builder.Append(" WHERE ");
                 builder.Append(whereClause);
