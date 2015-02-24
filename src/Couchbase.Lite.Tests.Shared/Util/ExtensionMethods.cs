@@ -59,7 +59,7 @@ namespace Couchbase.Lite.Tests
                 while (!reader.EndOfStream)
                 {
                     var line = reader.ReadLine();
-                    if (!String.IsNullOrWhiteSpace(line) && !line.StartsWith("#"))
+                    if (!String.IsNullOrEmpty(line.Trim()) && !line.StartsWith("#"))
                     {
                         var parts = line.Split('=');
                         if (parts.Length != 2)

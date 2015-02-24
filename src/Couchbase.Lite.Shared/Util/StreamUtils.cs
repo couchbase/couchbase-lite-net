@@ -5,8 +5,23 @@ using System.Collections.Generic;
 
 namespace Couchbase.Lite.Util
 {
-    internal static class StreamUtils
+    public static class StreamUtils
     {
+        #if NET_3_5
+
+        public static void CopyTo(this Stream input, Stream output)
+        {
+            byte[] buffer = new byte[16 * 1024]; // Fairly arbitrary size
+            int bytesRead;
+
+            while ((bytesRead = input.Read(buffer, 0, buffer.Length)) > 0)
+            {
+                output.Write(buffer, 0, bytesRead);
+            }
+        }
+
+        #endif
+
         /// <exception cref="System.IO.IOException"></exception>
         internal static void CopyStreamsToFolder(IDictionary<String, Stream> streams, FilePath folder)
         {

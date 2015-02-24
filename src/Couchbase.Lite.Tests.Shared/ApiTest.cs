@@ -51,8 +51,8 @@ using System.Text;
 using System.Threading;
 using NUnit.Framework;
 using System.Security.Permissions;
-using System.Threading.Tasks;
 using System.Diagnostics;
+using System.Threading.Tasks;
 
 namespace Couchbase.Lite
 {
@@ -790,6 +790,7 @@ namespace Couchbase.Lite
             }
         }
 
+        #if !NET_3_5
         void CurrentDomain_FirstChanceException(object sender, System.Runtime.ExceptionServices.FirstChanceExceptionEventArgs e)
         {
             if (e.Exception is NullReferenceException && e.Exception.Source.Contains("SQLitePCL"))
@@ -797,6 +798,7 @@ namespace Couchbase.Lite
                 Debugger.Break();
             }
         }
+        #endif
 
         //API_RunSlowView commented on IOS
         /// <exception cref="System.Exception"></exception>

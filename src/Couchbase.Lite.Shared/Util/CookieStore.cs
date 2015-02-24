@@ -160,7 +160,7 @@ namespace Couchbase.Lite.Util
         private void SerializeToDisk()
         {
             var filePath = GetSaveCookiesFilePath();
-            if (String.IsNullOrWhiteSpace(filePath))
+            if (String.IsNullOrEmpty(filePath.Trim()))
             {
                 return;
             }
@@ -182,7 +182,7 @@ namespace Couchbase.Lite.Util
         private void DeserializeFromDisk()
         {
             var filePath = GetSaveCookiesFilePath();
-            if (String.IsNullOrWhiteSpace(filePath))
+            if (String.IsNullOrEmpty(filePath.Trim()))
             {
                 return;
             }

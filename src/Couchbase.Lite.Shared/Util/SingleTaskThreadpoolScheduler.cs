@@ -6,7 +6,6 @@ using System.Threading;
 using System.Linq;
 using System.Reflection;
 
-
 namespace Couchbase.Lite.Util
 {
     sealed internal class SingleTaskThreadpoolScheduler : TaskScheduler 

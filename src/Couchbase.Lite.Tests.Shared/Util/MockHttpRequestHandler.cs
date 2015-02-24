@@ -50,7 +50,7 @@ using System.Linq;
 using System.IO;
 using Newtonsoft.Json.Linq;
 
-#if !NET_4_0
+#if !NET_3_5
 using TaskEx = System.Threading.Tasks.Task;
 #endif
 
@@ -105,7 +105,7 @@ namespace Couchbase.Lite.Tests
 
                 try {
                     message = responder(request);
-                    retVal = TaskEx.FromResult<HttpResponseMessage>(message);
+                    retVal = Task.FromResult<HttpResponseMessage>(message);
                 } catch (Exception e) {
                     //.NET 4.0.x logic to bring it inline with 4.5
                     TaskCompletionSource<HttpResponseMessage> completionSource = new TaskCompletionSource<HttpResponseMessage>();

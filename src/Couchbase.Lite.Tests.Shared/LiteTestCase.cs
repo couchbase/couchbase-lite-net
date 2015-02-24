@@ -96,7 +96,7 @@ namespace Couchbase.Lite
         protected DirectoryInfo GetRootDirectory()
         {
             var rootDirectoryPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-            var rootDirectory = new DirectoryInfo(Path.Combine(rootDirectoryPath, "couchbase", "tests", "files"));
+            var rootDirectory = new DirectoryInfo(Path.Combine(rootDirectoryPath, Path.Combine("couchbase", Path.Combine("tests", "files"))));
             return rootDirectory;
         }
 

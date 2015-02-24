@@ -360,7 +360,7 @@ namespace Couchbase.Lite
         /// <param name="id">The id of the Document to get or create.</param>
         public Document GetDocument(String id) 
         { 
-            if (String.IsNullOrWhiteSpace (id)) {
+            if (String.IsNullOrEmpty (id.Trim())) {
                 return null;
             }
 
@@ -386,7 +386,7 @@ namespace Couchbase.Lite
         /// <param name="id">The id of the Document to get.</param>
         public Document GetExistingDocument(String id) 
         { 
-            if (String.IsNullOrWhiteSpace (id)) {
+            if (String.IsNullOrEmpty (id.Trim())) {
                 return null;
             }
             var revisionInternal = GetDocumentWithIDAndRev(id, null, DocumentContentOptions.None);
@@ -2462,7 +2462,7 @@ PRAGMA user_version = 3;";
                                 Log.I(Tag, String.Format("Purging doc '{0}' revs ({1}); asked for ({2})", docID, revsToPurge, revIDs));
                                 if (seqsToPurge.Count > 0)
                                 {
-                                    string seqsToPurgeList = String.Join(",", seqsToPurge);
+                                    string seqsToPurgeList = String.Join(",", seqsToPurge.ToStringArray());
                                     string sql = string.Format("DELETE FROM revs WHERE sequence in ({0})", seqsToPurgeList);
                                     try
                                     {

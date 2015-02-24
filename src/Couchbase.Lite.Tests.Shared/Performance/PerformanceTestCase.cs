@@ -109,7 +109,7 @@ namespace Couchbase.Lite
         protected void AddDoc(string docId, IDictionary<string, object> properties, 
             string attachmentName, string attachmentContentType)
         {
-            if (!String.IsNullOrWhiteSpace(attachmentName))
+            if (!String.IsNullOrEmpty(attachmentName.Trim()))
             {
                 var attachmentStream = (InputStream)GetAsset(attachmentName);
                 var memStream = new MemoryStream();
@@ -168,7 +168,7 @@ namespace Couchbase.Lite
         protected void AddDocToSyncGateway(string docId, IDictionary<string, object> properties, 
             string attachmentName, string attachmentContentType)
         {
-            if (!String.IsNullOrWhiteSpace(attachmentName))
+            if (!String.IsNullOrEmpty(attachmentName.Trim()))
             {
                 var attachmentStream = (InputStream)GetAsset(attachmentName);
                 var memStream = new MemoryStream();

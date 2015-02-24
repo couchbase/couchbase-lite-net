@@ -59,7 +59,7 @@ using System.Text;
 using Couchbase.Lite.Support;
 using Newtonsoft.Json;
 
-#if !NET_4_0
+#if !NET_3_5
 using TaskEx = System.Threading.Tasks.Task;
 #endif
 
@@ -334,8 +334,8 @@ namespace Couchbase.Lite.Replicator
                         Request, 
                         changesFeedRequestTokenSource.Token
                     );
-                    var infoAwaiter = info.ConfigureAwait(false).GetAwaiter();
-                    infoAwaiter.OnCompleted(()=>
+        
+                    info.ContinueWith((t)=>
                         evt.Set()
                     );
                     evt.WaitOne(ManagerOptions.Default.RequestTimeout);
@@ -364,8 +364,8 @@ namespace Couchbase.Lite.Replicator
 
                     try 
                     {
-                        var completedTask = TaskEx.WhenAll(successHandler, errorHandler);
-                        completedTask.Wait((Int32)ManagerOptions.Default.RequestTimeout.TotalMilliseconds, changesFeedRequestTokenSource.Token);
+
+                        Task.WaitAll(new Task[] { successHandler, errorHandler }, (Int32)ManagerOptions.Default.RequestTimeout.TotalMilliseconds, changesFeedRequestTokenSource.Token);
                         Log.D(Tag, "Finished processing changes feed.");
                     } 
                     catch (Exception ex) {

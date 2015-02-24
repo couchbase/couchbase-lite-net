@@ -575,7 +575,7 @@ namespace Couchbase.Lite
                 {
                     var vacant = (Boolean)document["vacant"];
                     var name = (string)document["name"];
-                    if (vacant && !String.IsNullOrWhiteSpace(name))
+                    if (vacant && !String.IsNullOrEmpty(name.Trim()))
                     {
                         emit(name, vacant);
                     }

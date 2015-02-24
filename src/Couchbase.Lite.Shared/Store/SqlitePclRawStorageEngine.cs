@@ -338,7 +338,7 @@ namespace Couchbase.Lite.Shared
                 var command = BuildCommand (_writeConnection, sql, paramArgs);
                 try 
                 {
-                    Log.V(Tag, "RawQuery sql: {0} ({1})", sql, String.Join(", ", paramArgs));
+                    Log.V(Tag, "RawQuery sql: {0} ({1})", sql, String.Join(", ", paramArgs.ToStringArray()));
                     cursor = new Cursor(command);
                 } 
                 catch (Exception e) 
@@ -374,7 +374,7 @@ namespace Couchbase.Lite.Shared
             var command = BuildCommand (_readConnection, sql, paramArgs);
             try 
             {
-                Log.V(Tag, "RawQuery sql: {0} ({1})", sql, String.Join(", ", paramArgs));
+                Log.V(Tag, "RawQuery sql: {0} ({1})", sql, String.Join(", ", paramArgs.ToStringArray()));
                 cursor = new Cursor(command);
             } 
             catch (Exception e) 
@@ -385,7 +385,7 @@ namespace Couchbase.Lite.Shared
                 }
                 var args = paramArgs == null 
                     ? String.Empty 
-                    : String.Join(",", paramArgs.ToString());
+                    : String.Join(",", paramArgs.ToStringArray());
                 Log.E(Tag, "Error executing raw query '{0}' is values '{1}' {2}".Fmt(sql, args, _readConnection.errmsg()), e);
                 throw;
             }
@@ -399,7 +399,7 @@ namespace Couchbase.Lite.Shared
 
         public long InsertWithOnConflict(String table, String nullColumnHack, ContentValues initialValues, ConflictResolutionStrategy conflictResolutionStrategy)
         {
-            if (!String.IsNullOrWhiteSpace(nullColumnHack))
+            if (!String.IsNullOrEmpty(nullColumnHack.Trim()))
             {
                 var e = new InvalidOperationException("{0} does not support the 'nullColumnHack'.".Fmt(Tag));
                 Log.E(Tag, "Unsupported use of nullColumnHack", e);
@@ -448,7 +448,7 @@ namespace Couchbase.Lite.Shared
 
         public int Update(String table, ContentValues values, String whereClause, params String[] whereArgs)
         {
-            Debug.Assert(!String.IsNullOrWhiteSpace(table));
+            Debug.Assert(!String.IsNullOrEmpty(table.Trim()));
             Debug.Assert(values != null);
 
             var t = Factory.StartNew(() =>
@@ -479,7 +479,7 @@ namespace Couchbase.Lite.Shared
             }, CancellationToken.None);
 
             // NOTE.ZJG: Just a sketch here. Needs better error handling, etc.
-            var r = t.GetAwaiter().GetResult();
+            var r = t.Result;
             if (t.Exception != null)
                 throw t.Exception;
             return r;
@@ -487,7 +487,7 @@ namespace Couchbase.Lite.Shared
 
         public int Delete(String table, String whereClause, params String[] whereArgs)
         {
-            Debug.Assert(!String.IsNullOrWhiteSpace(table));
+            Debug.Assert(!String.IsNullOrEmpty(table.Trim()));
 
             var t = Factory.StartNew(() =>
             {
@@ -518,7 +518,7 @@ namespace Couchbase.Lite.Shared
                 return resultCount;
             });
             // NOTE.ZJG: Just a sketch here. Needs better error handling, etc.
-            var r = t.GetAwaiter().GetResult();
+            var r = t.Result;
             if (t.Exception != null)
                 throw t.Exception;
             return r;
@@ -643,7 +643,7 @@ namespace Couchbase.Lite.Shared
                 paramList.Add(column.Value);
             }
 
-            if (!String.IsNullOrWhiteSpace(whereClause))
+            if (!String.IsNullOrEmpty(whereClause.Trim()))
             {
                 builder.Append(" WHERE ");
                 builder.Append(whereClause);
@@ -717,7 +717,7 @@ namespace Couchbase.Lite.Shared
             sqlite3_stmt command = null;
             if (args != null)
             {
-                Log.D(Tag, "Preparing statement: '{0}' with values: {1}", sql, String.Join(", ", args.Select(o => o == null ? "null" : o.ToString())));
+                Log.D(Tag, "Preparing statement: '{0}' with values: {1}", sql, String.Join(", ", args.Select(o => o == null ? "null" : o.ToString()).ToArray()));
             }
             else
             {
@@ -744,7 +744,7 @@ namespace Couchbase.Lite.Shared
             }
             var builder = new StringBuilder("DELETE FROM ");
             builder.Append(table);
-            if (!String.IsNullOrWhiteSpace(whereClause))
+            if (!String.IsNullOrEmpty(whereClause.Trim()))
             {
                 builder.Append(" WHERE ");
                 builder.Append(whereClause);

@@ -45,7 +45,6 @@ using NUnit.Framework;
 using System.Collections.Generic;
 using System.Linq;
 using Sharpen;
-using System.Threading.Tasks;
 using System.Threading;
 using Newtonsoft.Json.Linq;
 using Couchbase.Lite.Internal;

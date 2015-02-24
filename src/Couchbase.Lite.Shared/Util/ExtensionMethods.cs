@@ -105,7 +105,7 @@ namespace Couchbase.Lite
         public static StatusCode GetStatusCode(this HttpStatusCode code)
         {
             StatusCode status;
-            Enum.TryParse(code.ToString(), out status);
+            status = (StatusCode)Enum.Parse(typeof(StatusCode), code.ToString());
             return status;
         }
 

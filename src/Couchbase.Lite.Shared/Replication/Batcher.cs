@@ -52,7 +52,7 @@ using Couchbase.Lite.Internal;
 using System.Linq;
 using System.Collections.Concurrent;
 
-#if !NET_4_0
+#if !NET_3_5
 using TaskEx = System.Threading.Tasks.Task;
 #endif
 

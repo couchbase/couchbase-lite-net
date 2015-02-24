@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 using System.Threading;
 using Couchbase.Lite.Shared;
 
-#if !NET_4_0
+#if !NET_3_5
 using TaskEx = System.Threading.Tasks.Task;
 #endif
 

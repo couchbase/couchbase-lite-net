@@ -70,7 +70,7 @@ namespace Couchbase.Lite.Replicator
 
         private FilterDelegate filter;
 
-        private SortedSet<long> pendingSequences;
+        private SortedDictionary<long, int> pendingSequences;
 
         private long maxPendingSequence;
 
@@ -150,7 +150,7 @@ namespace Couchbase.Lite.Replicator
                 return;
             }
 
-            pendingSequences = new SortedSet<long>();
+            pendingSequences = new SortedDictionary<long, int>();
             try
             {
                 maxPendingSequence = Int64.Parse(LastSequence);
@@ -240,7 +240,7 @@ namespace Couchbase.Lite.Replicator
             lock(pendingSequences)
             {
                 var seq = revisionInternal.GetSequence();
-                pendingSequences.Add(seq);
+                pendingSequences.Add(seq, 0);
                 if (seq > maxPendingSequence)
                 {
                     maxPendingSequence = seq;
@@ -253,8 +253,8 @@ namespace Couchbase.Lite.Replicator
             lock (pendingSequences)
             {
                 var seq = revisionInternal.GetSequence();
-                var wasFirst = (seq == pendingSequences.FirstOrDefault());
-                if (!pendingSequences.Contains(seq))
+                var wasFirst = (seq == pendingSequences.FirstOrDefault().Key);
+                if (!pendingSequences.ContainsKey(seq))
                 {
                     Log.W(Tag, "Remove Pending: Sequence " + seq + " not in set, for rev " + revisionInternal);
                 }
@@ -270,7 +270,7 @@ namespace Couchbase.Lite.Replicator
                     }
                     else
                     {
-                        maxCompleted = pendingSequences.First();
+                        maxCompleted = pendingSequences.First().Key;
                         --maxCompleted;
                     }
                     LastSequence = maxCompleted.ToString();
@@ -304,7 +304,7 @@ namespace Couchbase.Lite.Replicator
 
             // Call _revs_diff on the target db:
             Log.D(Tag, "processInbox() calling asyncTaskStarted()");
-            Log.D(Tag, "posting to /_revs_diff: {0}", String.Join(Environment.NewLine, Manager.GetObjectMapper().WriteValueAsString(diffs)));
+            Log.D(Tag, "posting to /_revs_diff: {0}", String.Join(Environment.NewLine, new[] { Manager.GetObjectMapper().WriteValueAsString(diffs) }));
 
             AsyncTaskStarted();
             SendAsyncRequest(HttpMethod.Post, "/_revs_diff", diffs, (response, e) =>
@@ -513,7 +513,7 @@ namespace Couchbase.Lite.Replicator
                 }
 
                 var errorStr = (string)item["error"];
-                if (string.IsNullOrWhiteSpace(errorStr))
+                if (string.IsNullOrEmpty(errorStr.Trim()))
                 {
                     return new Status(StatusCode.Ok);
                 }

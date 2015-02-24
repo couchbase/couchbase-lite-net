@@ -57,7 +57,7 @@ using System.Net.Http;
 using System.Web;
 using System.Runtime.CompilerServices;
 
-#if !NET_4_0
+#if !NET_3_5
 using TaskEx = System.Threading.Tasks.Task;
 #endif
 
@@ -67,7 +67,7 @@ namespace Couchbase.Lite.Replicator
     {
         protected override Task<HttpResponseMessage> SendAsync (HttpRequestMessage request, System.Threading.CancellationToken cancellationToken)
         {
-            return TaskEx.FromResult(new HttpResponseMessage (HttpStatusCode.InternalServerError));
+            return Task.FromResult(new HttpResponseMessage (HttpStatusCode.InternalServerError));
         }
     }
 }

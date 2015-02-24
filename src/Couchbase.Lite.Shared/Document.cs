@@ -375,7 +375,7 @@ namespace Couchbase.Lite {
 
         private SavedRevision GetRevisionWithId(String revId)
         {
-            if (!String.IsNullOrWhiteSpace(revId) && revId.Equals(currentRevision.Id))
+            if (!String.IsNullOrEmpty(revId.Trim()) && revId.Equals(currentRevision.Id))
             {
                 return currentRevision;
             }

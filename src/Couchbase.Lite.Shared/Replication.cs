@@ -57,7 +57,7 @@ using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
 using Sharpen;
 
-#if !NET_4_0
+#if !NET_3_5
 using TaskEx = System.Threading.Tasks.Task;
 #endif
 
@@ -1258,14 +1258,14 @@ namespace Couchbase.Lite
             var server = response.Headers.Server;
             if (server != null && server.Any())
             {
-				ServerType = String.Join(" ", server.Select(pi => pi.Product).Where(pi => pi != null));
+                ServerType = String.Join(" ", server.Select(pi => pi.Product).Where(pi => pi != null).ToStringArray());
                 Log.V(Tag, "Server Version: " + ServerType);
             }
         }
 
         protected internal bool CheckServerCompatVersion(string minVersion)
         {
-            if (String.IsNullOrWhiteSpace(ServerType))
+            if (String.IsNullOrEmpty(ServerType.Trim()))
             {
                 return false;
             }
@@ -1419,7 +1419,7 @@ namespace Couchbase.Lite
 
                 // 'status' property is nonstandard; TouchDB returns it, others don't.
                 var statusString = item.Get("status") as string;
-                if (String.IsNullOrWhiteSpace(statusString))
+                if (String.IsNullOrEmpty(statusString.Trim()))
                 {
                     var status = Convert.ToInt32(statusString);
                     if (status >= 400)
@@ -1696,7 +1696,7 @@ namespace Couchbase.Lite
 
                     Filter = ByChannelFilterName;
                     var filterParams = new Dictionary<string, object>();
-                    filterParams.Put(ChannelsQueryParam, String.Join(",", value));
+                    filterParams.Put(ChannelsQueryParam, String.Join(",", value.ToStringArray()));
                     FilterParams = filterParams;
                 }
                 else if (Filter != null && Filter.Equals(ByChannelFilterName))

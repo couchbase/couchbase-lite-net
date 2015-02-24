@@ -51,27 +51,21 @@ namespace Couchbase.Lite.Util
 
         private void Run()
         {
-            try 
-            {
-                while (!_jobQueue.IsCompleted)
-                {
-                    Drain();
-                }
+            while (!_jobQueue.IsCompleted) {
+                Drain();
             }
-            catch(OperationCanceledException) 
-            {
-            }
-
-            Log.V(Tag, "Consumer thread finished");
         }
 
         private void Drain() 
         {
-            Task nextTask;
-            bool gotTask = _jobQueue.TryTake(out nextTask, -1);
-            if(gotTask && nextTask.Status < TaskStatus.Running)
-            {
-                TryExecuteTask(nextTask);
+            try {
+                Task nextTask;
+                bool gotTask = _jobQueue.TryTake(out nextTask, -1);
+                if(gotTask && nextTask.Status < TaskStatus.Running) {
+                    TryExecuteTask(nextTask);
+                }
+            } catch(OperationCanceledException) {
+                Log.V(Tag, "Consumer thread finished");
             }
         }
 

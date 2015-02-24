@@ -47,7 +47,7 @@ using System.Threading;
 using System.Linq;
 using System.Net.Http.Headers;
 
-#if !NET_4_0
+#if !NET_3_5
 using TaskEx = System.Threading.Tasks.Task;
 #endif
 
