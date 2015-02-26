@@ -62,7 +62,7 @@
     <WarningLevel>4</WarningLevel>
     <ConsolePause>false</ConsolePause>
     <PlatformTarget>x86</PlatformTarget>
-    <AssemblyName>Couchbase.Lite.Net40.Tests</AssemblyName>
+    <AssemblyName>Couchbase.Lite.Net35.Tests</AssemblyName>
     <DefineConstants>NET_3_5</DefineConstants>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|x64' ">
