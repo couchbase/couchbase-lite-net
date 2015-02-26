@@ -47,7 +47,6 @@ using NUnit.Framework;
 using Sharpen;
 using Couchbase.Lite.Util;
 using System.Net.Http;
-using System.Web;
 
 namespace Couchbase.Lite
 {

@@ -83,9 +83,6 @@
     <Reference Include="ugly_net35">
       <HintPath>vendor\SQLitePCL\ugly_net35.dll</HintPath>
     </Reference>
-    <Reference Include="System.Threading.Tasks.NET35">
-      <HintPath>vendor\Rackspace\Rackspace.Threading\System.Threading.Tasks.NET35.dll</HintPath>
-    </Reference>
   </ItemGroup>
   <Import Project="..\Couchbase.Lite.Shared\Couchbase.Lite.Shared.projitems" Label="Shared" Condition="Exists('..\Couchbase.Lite.Shared\Couchbase.Lite.Shared.projitems')" />
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
@@ -106,10 +103,6 @@
   <ItemGroup>
     <Compile Include="Lazy.cs" />
     <Compile Include="LazyThreadSafetyMode.cs" />
-    <Compile Include="TaskEx.cs" />
-    <Compile Include="BlockingCollection.cs" />
-    <Compile Include="CollectionDebuggerView.cs" />
-    <Compile Include="AtomicBoolean.cs" />
     <Compile Include="StringEx.cs" />
     <Compile Include="StreamEx.cs" />
     <Compile Include="EnumEx.cs" />
@@ -122,6 +115,10 @@
     <ProjectReference Include="vendor\Rackspace\System.Net.Http\System.Net.Http-net_4_5.csproj">
       <Project>{9862694D-E4FA-418B-8692-A0280FEDDF36}</Project>
       <Name>System.Net.Http-net_4_5</Name>
+    </ProjectReference>
+    <ProjectReference Include="vendor\Rackspace\Rackspace.Threading\System.Threading.Tasks.Net35\System.Threading.Tasks.Net35.csproj">
+      <Project>{DCB5D745-525C-46A1-BFC0-E12F87AB6165}</Project>
+      <Name>System.Threading.Tasks.Net35</Name>
     </ProjectReference>
   </ItemGroup>
 </Project>

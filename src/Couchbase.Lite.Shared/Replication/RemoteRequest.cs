@@ -32,24 +32,20 @@
 // License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
 // either express or implied. See the License for the specific language governing permissions
 // and limitations under the License.
-//using System;
+
+using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Net;
+using System.Net.Http;
+using System.Net.Http.Headers;
+using System.Threading;
 using Couchbase.Lite;
 using Couchbase.Lite.Auth;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
-using System;
 using System.Threading.Tasks;
-using System.Net.Http;
-using System.Threading;
-using System.Linq;
-using System.Net.Http.Headers;
-
-#if !NET_3_5
-using TaskEx = System.Threading.Tasks.Task;
-#endif
 
 namespace Couchbase.Lite.Replicator
 {
@@ -223,7 +219,7 @@ namespace Couchbase.Lite.Replicator
             {
                 return false;
             }
-            request.ContinueWith((t)=> TaskEx.Delay(RetryDelayMs, _tokenSource.Token), _tokenSource.Token, TaskContinuationOptions.AttachedToParent, workExecutor.Scheduler)
+            request.ContinueWith((t)=> Task.Delay(RetryDelayMs, _tokenSource.Token), _tokenSource.Token, TaskContinuationOptions.AttachedToParent, workExecutor.Scheduler)
                 .ContinueWith((t)=> Run(), _tokenSource.Token, TaskContinuationOptions.LongRunning, workExecutor.Scheduler);
             retryCount += 1;
             Log.D(Tag, "Will retry in {0} ms", RetryDelayMs);

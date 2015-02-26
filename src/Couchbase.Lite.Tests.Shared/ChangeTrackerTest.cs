@@ -49,7 +49,6 @@ using Couchbase.Lite.Replicator;
 using Couchbase.Lite.Util;
 using Sharpen;
 
-using System.Web;
 using System.Net.Http;
 using System.Threading.Tasks;
 using NUnit.Framework;

@@ -54,12 +54,7 @@ using NUnit.Framework;
 using Sharpen;
 using System.Threading.Tasks;
 using System.Net.Http;
-using System.Web;
 using System.Runtime.CompilerServices;
-
-#if !NET_3_5
-using TaskEx = System.Threading.Tasks.Task;
-#endif
 
 namespace Couchbase.Lite.Replicator
 {

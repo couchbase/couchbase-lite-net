@@ -44,7 +44,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Threading;
@@ -56,12 +55,7 @@ using Couchbase.Lite.Replicator;
 using Couchbase.Lite.Util;
 using Sharpen;
 using System.Text;
-using Couchbase.Lite.Support;
 using Newtonsoft.Json;
-
-#if !NET_3_5
-using TaskEx = System.Threading.Tasks.Task;
-#endif
 
 namespace Couchbase.Lite.Replicator
 {
@@ -595,7 +589,7 @@ namespace Couchbase.Lite.Replicator
                 IsRunning = false;
 
                 var tokenSource = changesFeedRequestTokenSource;
-                if (tokenSource != null)
+                if (tokenSource != null && !tokenSource.IsCancellationRequested)
                 {
                     try {
                         tokenSource.Cancel();
@@ -603,6 +597,12 @@ namespace Couchbase.Lite.Replicator
                         //FIXME Run() will often dispose this token source right out from under us since it
                         //is running on a separate thread.
                         Log.W(Tag, "Race condition on changesFeedRequestTokenSource detected");
+                    }catch(AggregateException e) {
+                        if (e.InnerException is ObjectDisposedException) {
+                            Log.W(Tag, "Race condition on changesFeedRequestTokenSource detected");
+                        } else {
+                            throw;
+                        }
                     }
                 }
 

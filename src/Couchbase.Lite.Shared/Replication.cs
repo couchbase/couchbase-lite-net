@@ -58,7 +58,6 @@ using Couchbase.Lite.Util;
 using Sharpen;
 
 #if !NET_3_5
-using TaskEx = System.Threading.Tasks.Task;
 using StringEx = System.String;
 #endif
 
@@ -259,7 +258,7 @@ namespace Couchbase.Lite
                     {
                         lastSequenceChanged = true;
 
-                        TaskEx.Delay(SaveLastSequenceDelay)
+                        Task.Delay(SaveLastSequenceDelay)
                             .ContinueWith(task =>
                             {
                                 SaveLastSequence();
@@ -479,7 +478,9 @@ namespace Couchbase.Lite
 
             var cts = CancellationTokenSource;
             CancellationTokenSource = new CancellationTokenSource();
-            cts.Cancel();
+            if (!cts.IsCancellationRequested) {
+                cts.Cancel();
+            }
 
             //Task.WaitAll(((SingleTaskThreadpoolScheduler)WorkExecutor.Scheduler).ScheduledTasks.ToArray());
         }
@@ -1559,7 +1560,7 @@ namespace Couchbase.Lite
         protected internal virtual void ScheduleRetryIfReady()
         {
             RetryIfReadyTokenSource = new CancellationTokenSource();
-            RetryIfReadyTask = TaskEx.Delay(RetryDelay * 1000)
+            RetryIfReadyTask = Task.Delay(RetryDelay * 1000)
                 .ContinueWith(task =>
                 {
                     if (RetryIfReadyTokenSource != null && !RetryIfReadyTokenSource.IsCancellationRequested)

@@ -23,6 +23,8 @@ using System.IO;
 
 namespace Couchbase.Lite
 {
+    #if NET_3_5
+
     public static class StreamEx
     {
         public static void CopyTo(this Stream input, Stream output)
@@ -36,5 +38,7 @@ namespace Couchbase.Lite
             }
         }
     }
+
+    #endif
 }
 

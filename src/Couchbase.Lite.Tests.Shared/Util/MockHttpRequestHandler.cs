@@ -50,10 +50,6 @@ using System.Linq;
 using System.IO;
 using Newtonsoft.Json.Linq;
 
-#if !NET_3_5
-using TaskEx = System.Threading.Tasks.Task;
-#endif
-
 namespace Couchbase.Lite.Tests
 {
     public class MockHttpRequestHandler : HttpClientHandler
