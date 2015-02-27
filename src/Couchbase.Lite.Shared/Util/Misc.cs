@@ -57,6 +57,8 @@ using System.Net.Sockets;
 
 namespace Couchbase.Lite
 {
+    public delegate void TypedEventHandler<SenderType, ArgType>(SenderType sender, ArgType args);
+
     internal static class Misc
     {
         public static string CreateGUID()

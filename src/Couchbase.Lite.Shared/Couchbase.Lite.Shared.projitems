@@ -221,9 +221,26 @@
     <Compile Include="$(MSBuildThisFileDirectory)Util\PrivateThreadSynchronizationContext.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\ArraySegment.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Replication\CouchbaseLiteHttpClient.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\IP2PBroadcasting.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\IP2PStreaming.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\P2PNetwork.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\P2PUser.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\P2PUserList.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\UserStatusChangedEventArgs.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\INetSerializable.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\Messages\P2PMessage.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\Messages\P2PHeartbeatMessage.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\TCPStreaming.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\UDPBroadcasting.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\Messages\P2PHeartbeatMessage_v1.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\Messages\P2PMessageSerializer.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="$(MSBuildThisFileDirectory)Store\MonoSQLiteStorageEngine.cs" />
     <None Include="$(MSBuildThisFileDirectory)Store\SqlitePclStorageEngine.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="$(MSBuildThisFileDirectory)PeerToPeer\" />
+    <Folder Include="$(MSBuildThisFileDirectory)PeerToPeer\Messages\" />
   </ItemGroup>
 </Project>
