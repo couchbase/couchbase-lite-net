@@ -77,7 +77,7 @@ namespace Couchbase.Lite.Util
                         else
                         {
                             var success = TryExecuteTask(task);
-                            if (!success && (task.Status != TaskStatus.Canceled && task.Status != TaskStatus.RanToCompletion))
+                            if (!success && task.Status == TaskStatus.Faulted)
                                 Log.E(Tag, "Scheduled task faulted", task.Exception);
                         }
                     } 
