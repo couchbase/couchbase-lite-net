@@ -221,19 +221,38 @@
     <Compile Include="$(MSBuildThisFileDirectory)Util\PrivateThreadSynchronizationContext.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\ArraySegment.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Replication\CouchbaseLiteHttpClient.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\IP2PBroadcasting.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\IP2PStreaming.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\P2PNetwork.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\P2PUser.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\P2PUserList.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\UserStatusChangedEventArgs.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\INetSerializable.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\Messages\P2PMessage.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\Messages\P2PHeartbeatMessage.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\TCPStreaming.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\UDPBroadcasting.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\Messages\P2PHeartbeatMessage_v1.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\Messages\P2PMessageSerializer.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\CouchbaseLiteServiceBroadcaster.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\CouchbaseLiteServiceBrowser.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\CouchbaseLiteServiceListener.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Mono.Zeroconf\AddressProtocol.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Mono.Zeroconf\IRegisterService.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Mono.Zeroconf\IResolvableService.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Mono.Zeroconf\IService.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Mono.Zeroconf\IServiceBrowser.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Mono.Zeroconf\ITxtRecord.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Mono.Zeroconf\RegisterServiceEventArgs.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Mono.Zeroconf\RegisterServiceEventHandler.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Mono.Zeroconf\ServiceBrowseEventArgs.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Mono.Zeroconf\ServiceBrowseEventHandler.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Mono.Zeroconf\ServiceErrorCode.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Mono.Zeroconf\ServiceResolvedEventArgs.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Mono.Zeroconf\ServiceResolvedEventHandler.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Mono.Zeroconf\TxtRecordItem.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Mono.Zeroconf.Providers.Bonjour\BrowseService.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Mono.Zeroconf.Providers.Bonjour\Native.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Mono.Zeroconf.Providers.Bonjour\RegisterService.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Mono.Zeroconf.Providers.Bonjour\Service.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Mono.Zeroconf.Providers.Bonjour\ServiceBrowser.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Mono.Zeroconf.Providers.Bonjour\ServiceClass.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Mono.Zeroconf.Providers.Bonjour\ServiceError.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Mono.Zeroconf.Providers.Bonjour\ServiceErrorException.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Mono.Zeroconf.Providers.Bonjour\ServiceFlags.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Mono.Zeroconf.Providers.Bonjour\ServiceRef.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Mono.Zeroconf.Providers.Bonjour\ServiceType.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Mono.Zeroconf.Providers.Bonjour\TxtRecord.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Mono.Zeroconf.Providers.Bonjour\TxtRecordEnumerator.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\CouchbaseLiteHTTPHandler.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\CouchbaseLiteLocalHandler.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="$(MSBuildThisFileDirectory)Store\MonoSQLiteStorageEngine.cs" />
@@ -241,6 +260,7 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="$(MSBuildThisFileDirectory)PeerToPeer\" />
-    <Folder Include="$(MSBuildThisFileDirectory)PeerToPeer\Messages\" />
+    <Folder Include="$(MSBuildThisFileDirectory)Mono.Zeroconf\" />
+    <Folder Include="$(MSBuildThisFileDirectory)Mono.Zeroconf.Providers.Bonjour\" />
   </ItemGroup>
 </Project>

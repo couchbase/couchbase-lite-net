@@ -1,5 +1,5 @@
 ﻿//
-//  IP2PStreaming.cs
+//  CouchbaseLiteLocalHandler.cs
 //
 //  Author:
 //  	Jim Borden  <jim.borden@couchbase.com>
@@ -22,10 +22,11 @@ using System;
 
 namespace Couchbase.Lite.PeerToPeer
 {
-    public interface IP2PStreaming
+    public class CouchbaseLiteLocalHandler
     {
-        bool Connect();
-        bool Disconnect();
+        public CouchbaseLiteLocalHandler()
+        {
+        }
     }
 }
 

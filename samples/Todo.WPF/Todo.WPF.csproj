@@ -63,16 +63,6 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
-    <Compile Include="Properties\Resources.Designer.cs">
-      <AutoGen>True</AutoGen>
-      <DesignTime>True</DesignTime>
-      <DependentUpon>Resources.resx</DependentUpon>
-    </Compile>
-    <Compile Include="Properties\Settings.Designer.cs">
-      <AutoGen>True</AutoGen>
-      <DesignTimeSharedInput>True</DesignTimeSharedInput>
-      <DependentUpon>Settings.settings</DependentUpon>
-    </Compile>
     <Page Include="MainPage.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
@@ -114,28 +104,16 @@
   <ItemGroup>
     <Reference Include="PresentationCore" />
     <Reference Include="PresentationFramework" />
-    <Reference Include="SQLitePCL.raw, Version=0.7.1.0, Culture=neutral, processorArchitecture=MSIL" Condition="$(TargetFrameworkVersion) == 'v4.5'">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\src\packages\SQLitePCL.raw_basic.0.7.1\lib\net45\SQLitePCL.raw.dll</HintPath>
-    </Reference>
-    <Reference Include="SQLitePCL.ugly, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL" Condition="$(TargetFrameworkVersion) == 'v4.5'">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\src\packages\SQLitePCL.ugly.0.7.1\lib\portable-net45+netcore45+wp8+MonoAndroid10+MonoTouch10+Xamarin.iOS10\SQLitePCL.ugly.dll</HintPath>
-    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Data" />
     <Reference Include="System.Xaml" />
     <Reference Include="WindowsBase" />
+    <Reference Include="SQLitePCL.raw, Version=0.7.1.0, Culture=neutral, processorArchitecture=MSIL" />
+    <Reference Include="SQLitePCL.ugly, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\src\Couchbase.Lite.Net40\Couchbase.Lite.Net40.csproj" Condition="$(TargetFrameworkVersion) == 'v4.0'">
-      <Project>{81999cc3-2db5-42da-976f-20ef8ae047e1}</Project>
-      <Name>Couchbase.Lite.Net40</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\..\src\Couchbase.Lite.Net45\Couchbase.Lite.Net45.csproj" Condition="$(TargetFrameworkVersion) == 'v4.5'">
-      <Project>{c87e0c01-aad6-46da-9935-c772c112bb18}</Project>
-      <Name>Couchbase.Lite.Net45</Name>
-    </ProjectReference>
+    <ProjectReference Include="..\..\src\Couchbase.Lite.Net40\Couchbase.Lite.Net40.csproj" />
+    <ProjectReference Include="..\..\src\Couchbase.Lite.Net45\Couchbase.Lite.Net45.csproj" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Import Project="$(SolutionDir)\Couchbase.Lite.Net40\vendor\SQLitePCL\sqliteraw.targets" Condition="$(TargetFrameworkVersion) == 'v4.0'" />

@@ -117,6 +117,12 @@
     <Reference Include="Newtonsoft.Json">
       <HintPath>..\packages\Newtonsoft.Json.6.0.4\lib\portable-net45+wp80+win8+wpa81\Newtonsoft.Json.dll</HintPath>
     </Reference>
+    <Reference Include="Mono.Zeroconf">
+      <HintPath>..\Couchbase.Lite.Shared\vendor\Mono.Zeroconf\Mono.Zeroconf.dll</HintPath>
+    </Reference>
+    <Reference Include="Mono.Zeroconf.Providers.Bonjour">
+      <HintPath>..\Couchbase.Lite.Shared\vendor\Mono.Zeroconf\Mono.Zeroconf.Providers.Bonjour.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <ItemGroup />
   <ItemGroup>

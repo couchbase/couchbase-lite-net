@@ -112,6 +112,20 @@ namespace Couchbase.Lite
             return name.Equals(Replication.ReplicatorDatabaseName);
         }
 
+        public static bool IsValidDocumentId(string docId)
+        {
+            // http://wiki.apache.org/couchdb/HTTP_Document_API#Documents
+            if (String.IsNullOrEmpty(docId)) {
+                return false;
+            }
+
+            if (docId[0] == '_') {
+                return docId.StartsWith("_design/");
+            }
+
+            return true;
+        }
+
     #endregion
     
     #region Constructors

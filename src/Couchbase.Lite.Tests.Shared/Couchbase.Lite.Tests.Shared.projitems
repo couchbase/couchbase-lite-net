@@ -44,6 +44,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Util\TestNetworkReachabilityManager.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Performance\PerformanceTestCase.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Performance\PerformanceTest.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)PeerToPeerTest.cs" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="$(MSBuildThisFileDirectory)Assets\GatewayConfig.json" />

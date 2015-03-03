@@ -112,6 +112,12 @@
       <HintPath>vendor\SQLitePCL\SQLitePCL.ugly.dll</HintPath>
     </Reference>
     <Reference Include="System.Data" />
+    <Reference Include="Mono.Zeroconf">
+      <HintPath>..\Couchbase.Lite.Shared\vendor\Mono.Zeroconf\Mono.Zeroconf.dll</HintPath>
+    </Reference>
+    <Reference Include="Mono.Zeroconf.Providers.Bonjour">
+      <HintPath>..\Couchbase.Lite.Shared\vendor\Mono.Zeroconf\Mono.Zeroconf.Providers.Bonjour.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <Import Project="..\Couchbase.Lite.Shared\Couchbase.Lite.Shared.projitems" Label="Shared" Condition="Exists('..\Couchbase.Lite.Shared\Couchbase.Lite.Shared.projitems')" />
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
