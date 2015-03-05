@@ -42,26 +42,24 @@
 
 using System;
 using System.Collections.Generic;
-using System.Data;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Newtonsoft.Json.Linq;
 using Couchbase.Lite.Internal;
 using Couchbase.Lite.Replicator;
 using Couchbase.Lite.Storage;
 using Couchbase.Lite.Util;
 using Sharpen;
-using System.Collections.Concurrent;
 using System.Collections;
-using System.Collections.ObjectModel;
-using System.Net;
-using System.Threading;
+
 
 #if !NET_3_5
 using StringEx = System.String;
+using System.Net;
+#else
+using System.Net.Couchbase;
 #endif
 
 namespace Couchbase.Lite 

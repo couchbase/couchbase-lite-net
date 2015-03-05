@@ -11,6 +11,8 @@
     <SolutionDir Condition="$(SolutionDir) == '' Or $(SolutionDir) == '*Undefined*'">..\</SolutionDir>
     <RestorePackages>true</RestorePackages>
     <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
+    <TargetFrameworkProfile>
+    </TargetFrameworkProfile>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -73,12 +75,12 @@
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.Net" />
-    <Reference Include="SQLitePCL.raw">
-      <HintPath>vendor\SQLitePCL\SQLitePCL.raw.dll</HintPath>
-    </Reference>
     <Reference Include="System.Data" />
     <Reference Include="Newtonsoft.Json">
       <HintPath>..\packages\Newtonsoft.Json.6.0.8\lib\net35\Newtonsoft.Json.dll</HintPath>
+    </Reference>
+    <Reference Include="SQLitePCL.raw">
+      <HintPath>vendor\SQLitePCL\SQLitePCL.raw.dll</HintPath>
     </Reference>
     <Reference Include="ugly_net35">
       <HintPath>vendor\SQLitePCL\ugly_net35.dll</HintPath>
@@ -98,7 +100,9 @@
     <Error Condition="!Exists('$(SolutionDir)\.nuget\NuGet.targets')" Text="$([System.String]::Format('$(ErrorText)', '$(SolutionDir)\.nuget\NuGet.targets'))" />
   </Target>
   <ItemGroup>
-    <None Include="packages.config" />
+    <None Include="packages.config">
+      <SubType>Designer</SubType>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Lazy.cs" />

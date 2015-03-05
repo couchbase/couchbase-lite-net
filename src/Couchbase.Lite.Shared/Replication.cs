@@ -45,7 +45,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Threading;
@@ -59,6 +58,9 @@ using Sharpen;
 
 #if !NET_3_5
 using StringEx = System.String;
+using System.Net;
+#else
+using System.Net.Couchbase;
 #endif
 
 namespace Couchbase.Lite
@@ -555,7 +557,7 @@ namespace Couchbase.Lite
                 {
                     if (e != null)
                     {
-                        if (e is WebException && ((WebException)e).Status == WebExceptionStatus.ProtocolError && ((HttpWebResponse)((WebException)e).Response).StatusCode == HttpStatusCode.NotFound
+                        if (e is WebException && ((WebException)e).Status == System.Net.WebExceptionStatus.ProtocolError && ((HttpWebResponse)((WebException)e).Response).StatusCode == System.Net.HttpStatusCode.NotFound
                             && sessionPath.Equals("/_session", StringComparison.InvariantCultureIgnoreCase)) {
                             CheckSessionAtPath ("_session");
                             return;
@@ -685,8 +687,8 @@ namespace Couchbase.Lite
         {
             var result = false;
             if (e is Couchbase.Lite.HttpResponseException)
-                return ((HttpResponseException)e).StatusCode == HttpStatusCode.NotFound;
-            return (e is HttpResponseException) && ((HttpResponseException)e).StatusCode == HttpStatusCode.NotFound;
+                return ((HttpResponseException)e).StatusCode == System.Net.HttpStatusCode.NotFound;
+            return (e is HttpResponseException) && ((HttpResponseException)e).StatusCode == System.Net.HttpStatusCode.NotFound;
         }
 
         internal abstract void BeginReplicating();
@@ -1169,7 +1171,7 @@ namespace Couchbase.Lite
                             }
                         }
                     }
-                    catch (ProtocolViolationException e)
+                    catch (System.Net.ProtocolViolationException e)
                     {
                         Log.E(Tag, "client protocol exception", e);
                         error = e;

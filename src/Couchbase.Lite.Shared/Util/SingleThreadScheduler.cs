@@ -24,6 +24,27 @@ namespace Couchbase.Lite.Util
             _thread.Start();
         }
 
+        public SingleThreadScheduler(Thread thread, BlockingCollection<Task> jobQueue)
+        {
+            if (thread == null)
+            {
+                throw new ArgumentNullException("thread");
+            }
+
+            if(jobQueue == null)
+            {
+                throw new ArgumentNullException("jobQueue");
+            }
+
+            _thread = thread;
+            _jobQueue = jobQueue;
+        }
+
+        internal void TryExecuteTaskHack(Task task)
+        {
+            TryExecuteTask(task);
+        }
+
         /// <summary>Queues a task to the scheduler.</summary> 
         /// <param name="task">The task to be queued.</param> 
         protected override void QueueTask(Task task) 

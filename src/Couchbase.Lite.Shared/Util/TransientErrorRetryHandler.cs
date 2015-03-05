@@ -2,7 +2,6 @@
 using System.Net.Http;
 using System.Threading.Tasks;
 using System.Threading;
-using System.Diagnostics.Contracts;
 
 namespace Couchbase.Lite.Util
 {

@@ -42,7 +42,6 @@
 
 using System;
 using System.Linq;
-using System.Net;
 using System.IO;
 using System.Reflection;
 using Newtonsoft.Json;
@@ -50,6 +49,9 @@ using System.Collections.Generic;
 
 #if !NET_3_5
 using StringEx = System.String;
+using System.Net;
+#else
+using System.Net.Couchbase;
 #endif
 
 namespace Couchbase.Lite.Util

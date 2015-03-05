@@ -43,7 +43,12 @@
 using System;
 using System.Net.Http;
 using System.Collections.Generic;
+
+#if NET_3_5
+using System.Net.Couchbase;
+#else
 using System.Net;
+#endif
 
 namespace Couchbase.Lite.Support
 {
