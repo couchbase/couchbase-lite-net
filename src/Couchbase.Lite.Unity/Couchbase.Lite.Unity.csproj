@@ -39,7 +39,8 @@
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="System.Data" />
     <Reference Include="UnityEngine">
-      <HintPath>C:\Program Files\Unity5\Editor\Data\Managed\UnityEngine.dll</HintPath>
+      <HintPath>vendor\Unity\UnityEngine.dll</HintPath>
+      <Private>False</Private>
     </Reference>
   </ItemGroup>
   <ItemGroup>
