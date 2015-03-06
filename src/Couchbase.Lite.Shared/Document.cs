@@ -398,6 +398,7 @@ namespace Couchbase.Lite {
             var revId = row.DocumentRevisionId;
             if (currentRevision == null || RevIdGreaterThanCurrent(revId))
             {
+                currentRevision = null;
                 var properties = row.DocumentProperties;
                 if (properties != null)
                 {
