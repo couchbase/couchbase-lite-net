@@ -104,9 +104,16 @@ namespace Couchbase.Lite
 
         public static StatusCode GetStatusCode(this HttpStatusCode code)
         {
-            StatusCode status;
-            status = (StatusCode)Enum.Parse(typeof(StatusCode), code.ToString());
-            return status;
+            var validVals = Enum.GetValues(typeof(StatusCode));
+            foreach (StatusCode validVal in validVals)
+            {
+                if ((Int32)code == (Int32)validVal)
+                {
+                    return validVal;
+                }
+            }
+
+            return StatusCode.Unknown;
         }
 
         public static AuthenticationHeaderValue GetAuthenticationHeader(this Uri uri, string scheme)
