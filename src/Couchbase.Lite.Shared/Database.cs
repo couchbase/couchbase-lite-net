@@ -53,6 +53,7 @@ using Couchbase.Lite.Storage;
 using Couchbase.Lite.Util;
 using Sharpen;
 using System.Collections;
+using System.Runtime.CompilerServices;
 
 
 #if !NET_3_5
@@ -119,6 +120,7 @@ namespace Couchbase.Lite
         }
 
         static readonly ICollection<String> KnownSpecialKeys;
+
 
         static Database()
         {
@@ -884,14 +886,14 @@ PRAGMA user_version = 3;";
             }
         }
 
-        private RevisionList GetAllRevisionsOfDocumentID(string docId, long docNumericID, bool onlyCurrent)
+        private RevisionList GetAllRevisionsOfDocumentID(string docId, long docNumericID, bool onlyCurrent, bool readUncommit = false)
         {
             var sql = onlyCurrent 
                 ? "SELECT sequence, revid, deleted FROM revs " + "WHERE doc_id=? AND current ORDER BY sequence DESC"
                 : "SELECT sequence, revid, deleted FROM revs " + "WHERE doc_id=? ORDER BY sequence DESC";
 
             var args = new [] { Convert.ToString (docNumericID) };
-            var cursor = StorageEngine.RawQuery(sql, args);
+            var cursor = readUncommit ? StorageEngine.IntransactionRawQuery(sql, args) : StorageEngine.RawQuery(sql, args);
 
             RevisionList result;
             try

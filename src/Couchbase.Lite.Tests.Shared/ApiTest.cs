@@ -220,6 +220,29 @@ namespace Couchbase.Lite
         }
 
         [Test]
+        public void TestNestedUpdates()
+        {
+            var url = GetReplicationURL();
+            var pusher = database.CreatePushReplication(url);
+            pusher.continuous = true;
+            pusher.Start();
+
+            var puller = database.CreatePullReplication(url);
+            puller.continuous = true;
+            puller.Start();
+
+            database.StorageEngine.BeginTransaction();
+            var doc = database.CreateDocument();
+            doc.PutProperties(new Dictionary<string, object> {
+                { "Foo", "Bar" }
+            });
+            Task.Delay(1000).ContinueWith(t => database.StorageEngine.EndTransaction());
+
+            Thread.Sleep(90000);
+            Assert.IsTrue(true);
+        }
+
+        [Test]
         public void TestCreateDocument()
         {
             var properties = new Dictionary<String, Object>();
