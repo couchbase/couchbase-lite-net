@@ -141,7 +141,7 @@ namespace Couchbase.Lite
             CancellationTokenSource = new CancellationTokenSource();
             RemoteUrl = remote;
             Status = ReplicationStatus.Stopped;
-            online = Manager.SharedInstance.NetworkReachabilityManager.CurrentStatus == NetworkReachabilityStatus.Reachable;
+            online = db.Manager.NetworkReachabilityManager.CurrentStatus == NetworkReachabilityStatus.Reachable;
             RequestHeaders = new Dictionary<String, Object>();
             requests = new HashSet<HttpClient>();
 
@@ -387,7 +387,7 @@ namespace Couchbase.Lite
         {
             UpdateProgress();
 
-            var evt = Changed;
+            var evt = _changed;
             if (evt == null) return;
 
             var args = new ReplicationChangeEventArgs(this);
@@ -1894,7 +1894,12 @@ namespace Couchbase.Lite
         /// that will be called whenever the <see cref="Couchbase.Lite.Replication"/>
         /// changes.
         /// </summary>
-        public event EventHandler<ReplicationChangeEventArgs> Changed;
+        public event EventHandler<ReplicationChangeEventArgs> Changed 
+        {
+            add { _changed = (EventHandler<ReplicationChangeEventArgs>)Delegate.Combine(_changed, value); }
+            remove { _changed = (EventHandler<ReplicationChangeEventArgs>)Delegate.Remove(_changed, value); }
+        }
+        private EventHandler<ReplicationChangeEventArgs> _changed;
 
         #region Private Methods
 

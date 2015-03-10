@@ -24,6 +24,7 @@ using System.Collections.Generic;
 using Couchbase.Lite.Util;
 using System.Threading;
 using System.Runtime.CompilerServices;
+using System.Collections.Concurrent;
 
 namespace Couchbase.Lite.Unity
 {
@@ -41,8 +42,8 @@ namespace Couchbase.Lite.Unity
             for (bool workaround = false; workaround; )
             {
                 var dummy = new LinkedHashMap<string, Document>();
-                var dummy2 = new KeyValuePair<string, Document>();
-                var dummy3 = new List<KeyValuePair<string, Document>>();
+                var dummy2 = new List<KeyValuePair<string, Document>>();
+                var dummy3 = new SplitOrderedList<string, KeyValuePair<string, string>>(new GenericEqualityComparer<string>());
             }
         }
     }

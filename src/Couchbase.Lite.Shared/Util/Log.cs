@@ -51,7 +51,10 @@ namespace Couchbase.Lite.Util
     /// </summary>
     public static class Log
     {
-        private static ILogger Logger = LoggerFactory.CreateLogger();
+        private static object logger = LoggerFactory.CreateLogger();
+        private static ILogger Logger { 
+            get { return (ILogger)logger; }
+        }
 
         /// <summary>
         /// Sets the logger.
@@ -61,7 +64,7 @@ namespace Couchbase.Lite.Util
         public static bool SetLogger(ILogger customLogger)
         {
             var currentLogger = Logger;
-            Interlocked.CompareExchange(ref Logger, customLogger, currentLogger);
+            Interlocked.CompareExchange(ref logger, customLogger, currentLogger);
             return Logger == customLogger;
         }
 

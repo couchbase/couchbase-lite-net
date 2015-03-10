@@ -745,7 +745,11 @@ namespace Couchbase.Lite
         /// <summary>
         /// Event handler delegate that will be called whenever a <see cref="Couchbase.Lite.Document"/> within the <see cref="Couchbase.Lite.Database"/> changes.
         /// </summary>
-        public event EventHandler<DatabaseChangeEventArgs> Changed;
+        public event EventHandler<DatabaseChangeEventArgs> Changed {
+            add { _changed = (EventHandler<DatabaseChangeEventArgs>)Delegate.Combine(_changed, value); }
+            remove { _changed = (EventHandler<DatabaseChangeEventArgs>)Delegate.Remove(_changed, value); }
+        }
+        private EventHandler<DatabaseChangeEventArgs> _changed;
 
     #endregion
        
@@ -3461,7 +3465,7 @@ PRAGMA user_version = 3;";
                         Source = this
                     } ;
 
-                    var changeEvent = Changed;
+                    var changeEvent = _changed;
                     if (changeEvent != null)
                         changeEvent(this, args);
                 }

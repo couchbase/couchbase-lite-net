@@ -370,7 +370,12 @@ namespace Couchbase.Lite {
         /// <summary>
         /// Adds or Removed a change delegate that will be called whenever the Document changes
         /// </summary>
-        public event EventHandler<DocumentChangeEventArgs> Change;
+        public event EventHandler<DocumentChangeEventArgs> Change
+        {
+            add { _change = (EventHandler<DocumentChangeEventArgs>)Delegate.Combine(_change, value); }
+            remove { _change = (EventHandler<DocumentChangeEventArgs>)Delegate.Remove(_change, value); }
+        }
+        private EventHandler<DocumentChangeEventArgs> _change;
 
     #endregion
 
@@ -521,7 +526,7 @@ namespace Couchbase.Lite {
                 Source = this
             } ;
 
-            var changeEvent = Change;
+            var changeEvent = _change;
             if (changeEvent != null)
                 changeEvent(this, args);
         }

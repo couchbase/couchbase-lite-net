@@ -71,7 +71,12 @@ namespace Couchbase.Lite.Replicator
 
 //        public event EventHandler<RemoteRequestEventArgs> WillComplete;
 
-        public event EventHandler<RemoteRequestEventArgs> Complete;
+        public event EventHandler<RemoteRequestEventArgs> Complete
+        {
+            add { _complete = (EventHandler<RemoteRequestEventArgs>)Delegate.Combine(_complete, value); }
+            remove { _complete = (EventHandler<RemoteRequestEventArgs>)Delegate.Remove(_complete, value); }
+        }
+        private EventHandler<RemoteRequestEventArgs> _complete;
 
 //        public event EventHandler<RemoteRequestEventArgs> HasCompleted;
 
@@ -301,7 +306,7 @@ namespace Couchbase.Lite.Replicator
         public void RespondWithResult(object result, Exception error, HttpResponseMessage response)
         {
             Log.D(Tag + ".RespondWithREsult", "Firing Completed event.");
-            OnEvent(Complete, result, error);
+            OnEvent(_complete, result, error);
         }
     }
 }

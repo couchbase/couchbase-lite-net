@@ -517,7 +517,7 @@ namespace Couchbase.Lite.Storage
         /// <returns>a set of all of the keys and values</returns>
         public ICollection<KeyValuePair<string, object>> ValueSet()
         {
-            return mValues.ToArray();
+            return mValues.AsSafeEnumerable().ToArray();
         }
 
         /// <summary>Returns a set of all of the keys</summary>

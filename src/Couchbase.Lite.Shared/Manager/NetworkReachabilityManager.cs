@@ -127,7 +127,12 @@ namespace Couchbase.Lite
 
         #region INetworkReachabilityManager implementation
 
-        public event EventHandler<NetworkReachabilityChangeEventArgs> StatusChanged;
+        public event EventHandler<NetworkReachabilityChangeEventArgs> StatusChanged
+        {
+            add { _statusChanged = (EventHandler<NetworkReachabilityChangeEventArgs>)Delegate.Combine(_statusChanged, value); }
+            remove { _statusChanged = (EventHandler<NetworkReachabilityChangeEventArgs>)Delegate.Remove(_statusChanged, value); }
+        }
+        private EventHandler<NetworkReachabilityChangeEventArgs> _statusChanged;
 
         /// <summary>This method starts listening for network connectivity state changes.</summary>
         /// <remarks>This method starts listening for network connectivity state changes.</remarks>
@@ -200,7 +205,7 @@ namespace Couchbase.Lite
 
         void InvokeNetworkChangeEvent(NetworkReachabilityStatus status)
         {
-            var evt = StatusChanged;
+            var evt = _statusChanged;
             if (evt == null)
             {
                 return;

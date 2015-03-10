@@ -48,7 +48,7 @@ namespace Sharpen
 
     internal class AtomicReferenceArray<T> where T : class
     {
-        private T[] array;
+        private object[] array;
 
         public AtomicReferenceArray (int size)
         {
@@ -57,12 +57,12 @@ namespace Sharpen
 
         public bool CompareAndSet (int slot, T expect, T update)
         {
-            return (Interlocked.CompareExchange<T> (ref array[slot], update, expect) == expect);
+            return (Interlocked.CompareExchange (ref array[slot], update, expect) == expect);
         }
 
         public T Get (int n)
         {
-            return array[n];
+            return (T)array[n];
         }
         
         public int Length ()
