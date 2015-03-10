@@ -53,6 +53,7 @@ using NUnit.Framework;
 using System.Security.Permissions;
 using System.Threading.Tasks;
 using System.Diagnostics;
+using Couchbase.Lite.Internal;
 
 namespace Couchbase.Lite
 {
