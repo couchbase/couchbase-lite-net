@@ -253,6 +253,33 @@ namespace Couchbase.Lite
             Log.V(Tag, "------");
         }
 
+        [Test]
+        public void TestNestedUpdates() //Issue #388
+        {
+            var doc = database.CreateDocument();
+            doc.PutProperties(new Dictionary<string, object> {
+                { "Foo", "Bar" }
+            });
+
+            RevisionInternal badRev = new RevisionInternal(doc.Id, null, false);
+            badRev.SetProperties(doc.UserProperties);
+            bool flag = false;
+            database.BeginTransaction();
+            doc.Update(rev =>
+            {
+                if(!flag) {
+                    //Simulate a pulled revision occuring during update (but not every time)
+                    database.PutRevision(badRev, doc.CurrentRevisionId, false);
+                    flag = true;
+                }
+                rev.Properties["Foo"] = "Bar2";
+                return true;
+            });
+            database.EndTransaction(true);
+
+            Assert.IsTrue(true);
+        }
+
         // Reproduces issue #167
         // https://github.com/couchbase/couchbase-lite-android/issues/167
         /// <exception cref="System.Exception"></exception>
