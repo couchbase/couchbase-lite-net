@@ -3422,8 +3422,10 @@ PRAGMA user_version = 3;";
             return result;
         }
 
-        internal void PostChangeNotifications()
+        internal bool PostChangeNotifications()
         {
+            bool posted = false;
+
             // This is a 'while' instead of an 'if' because when we finish posting notifications, there
             // might be new ones that have arrived as a result of notification handlers making document
             // changes of their own (the replicator manager will do this.) So we need to check again.
@@ -3444,7 +3446,7 @@ PRAGMA user_version = 3;";
                     foreach (var change in outgoingChanges)
                     {
                         var document = GetDocument(change.DocumentId);
-                        document.RevisionAdded(change);
+                        document.RevisionAdded(change, true);
                         if (change.SourceUrl != null)
                         {
                             isExternal = true;
@@ -3460,6 +3462,8 @@ PRAGMA user_version = 3;";
                     var changeEvent = Changed;
                     if (changeEvent != null)
                         changeEvent(this, args);
+
+                    posted = true;
                 }
                 catch (Exception e)
                 {
@@ -3470,6 +3474,8 @@ PRAGMA user_version = 3;";
                     _isPostingChangeNotifications = false;
                 }
             }
+
+            return posted;
         }
 
         internal void NotifyChange(RevisionInternal rev, RevisionInternal winningRev, Uri source, bool inConflict)
@@ -3477,7 +3483,16 @@ PRAGMA user_version = 3;";
             var change = new DocumentChange(rev, winningRev, inConflict, source);
             _changesToNotify.Add(change);
 
-            PostChangeNotifications();
+            if (!PostChangeNotifications())
+            {
+                // The notification wasn't posted yet, probably because a transaction is open.
+                // But the Document, if any, needs to know right away so it can update its
+                // currentRevision.
+                var doc = DocumentCache.Get(change.DocumentId);
+                if (doc != null) {
+                    doc.RevisionAdded(change, false);
+                }
+            }
         }
 
         /// <summary>

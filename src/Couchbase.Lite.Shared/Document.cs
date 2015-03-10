@@ -501,7 +501,7 @@ namespace Couchbase.Lite {
             }
         }
 
-        internal void RevisionAdded(DocumentChange documentChange)
+        internal void RevisionAdded(DocumentChange documentChange, bool notify)
         {
             var rev = documentChange.WinningRevision;
             if (rev == null)
@@ -515,6 +515,10 @@ namespace Couchbase.Lite {
                 currentRevision = rev.IsDeleted() 
                     ? null 
                     : new SavedRevision(this, rev);
+            }
+
+            if (!notify) {
+                return;
             }
 
             var args = new DocumentChangeEventArgs {
