@@ -43,15 +43,19 @@ namespace Couchbase.Lite
             }
             #else
             get {
-                var connectedIp = (from ip in 
-                        (from ni in NetworkInterface.GetAllNetworkInterfaces() 
-                        where ni.GetIPProperties().UnicastAddresses.Count > 0 
-                        select ni.GetIPProperties().UnicastAddresses.First().Address)
-                        where ip.AddressFamily == AddressFamily.InterNetwork
-                        select ip).FirstOrDefault();
+                try
+                {
+                    using (var client = new WebClient())
+                        using (var stream = client.OpenRead("http://www.google.com"))
+                        {
+                            return NetworkReachabilityStatus.Reachable;
+                        }
+                }
+                catch
+                {
+                    return NetworkReachabilityStatus.Unreachable;
+                }
 
-                return connectedIp == null ? NetworkReachabilityStatus.Unreachable
-                        : NetworkReachabilityStatus.Reachable;
             }
             #endif
         }

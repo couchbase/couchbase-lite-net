@@ -944,7 +944,6 @@ namespace Couchbase.Lite
                 : CancellationTokenSource.Token;
 
             Log.D(Tag, "Sending async {0} request to: {1}", method, url);
-            client.Timeout = TimeSpan.FromSeconds(10);
             client.SendAsync(message, token)
                 .ContinueWith(response =>
                 {
