@@ -121,7 +121,7 @@ namespace Couchbase.Lite.Shared
                 var errMessage = "Cannot open Sqlite Database at path {0} ({1})".Fmt(Path, status);
                 throw new CouchbaseLiteException(errMessage, StatusCode.DbError);
             }
-#if !__ANDROID__ && VERBOSE
+#if !__ANDROID__ && !NET_3_5 && VERBOSE
                 var i = 0;
                 var val = raw.sqlite3_compileoption_get(i);
                 while (val != null)
