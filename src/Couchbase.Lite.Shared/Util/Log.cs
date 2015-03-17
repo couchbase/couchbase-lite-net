@@ -43,6 +43,7 @@
 using System;
 using Couchbase.Lite.Util;
 using System.Threading;
+using System.Diagnostics;
 
 namespace Couchbase.Lite.Util
 {
@@ -66,6 +67,11 @@ namespace Couchbase.Lite.Util
             var currentLogger = Logger;
             Interlocked.CompareExchange(ref logger, customLogger, currentLogger);
             return Logger == customLogger;
+        }
+
+        public static bool SetDefaultLoggerWithLevel(SourceLevels level)
+        {
+            return SetLogger(new CustomLogger(level));
         }
 
         /// <summary>Send a VERBOSE message.</summary>
