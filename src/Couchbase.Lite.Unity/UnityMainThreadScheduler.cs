@@ -1,5 +1,4 @@
-﻿using System.Threading.Tasks;
-//
+﻿//
 //  UnityMainThreadScheduler.cs
 //
 //  Author:
@@ -24,6 +23,7 @@ using Couchbase.Lite.Util;
 using UnityEngine;
 using System.Collections.Concurrent;
 using System;
+using System.Threading.Tasks;
 
 namespace Couchbase.Lite.Unity
 {

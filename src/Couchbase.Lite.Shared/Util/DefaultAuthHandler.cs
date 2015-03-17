@@ -64,13 +64,14 @@ namespace Couchbase.Lite.Replicator
 
         object locker = new object();
 
-        protected override HttpResponseMessage ProcessResponse(System.Net.Http.HttpResponseMessage response, CancellationToken cancellationToken)
+        protected override HttpResponseMessage ProcessResponse(HttpResponseMessage response, CancellationToken cancellationToken)
         {
             if (response.Content != null) {
                 var mre = new ManualResetEvent(false);
                 response.Content.LoadIntoBufferAsync().ContinueWith(t => mre.Set());
                 mre.WaitOne(Manager.DefaultOptions.RequestTimeout, true);
             }
+                
             var hasSetCookie = response.Headers.Contains("Set-Cookie");
             if (hasSetCookie)
             {

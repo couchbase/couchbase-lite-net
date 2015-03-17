@@ -257,7 +257,7 @@ namespace Couchbase.Lite.Replicator
             lock (pendingSequences)
             {
                 var seq = revisionInternal.GetSequence();
-                var wasFirst = (seq == pendingSequences.FirstOrDefault().Key);
+                var wasFirst = (pendingSequences.Count > 0 && seq == pendingSequences.ElementAt(0).Key);
                 if (!pendingSequences.ContainsKey(seq))
                 {
                     Log.W(Tag, "Remove Pending: Sequence " + seq + " not in set, for rev " + revisionInternal);
@@ -274,7 +274,7 @@ namespace Couchbase.Lite.Replicator
                     }
                     else
                     {
-                        maxCompleted = pendingSequences.First().Key;
+                        maxCompleted = pendingSequences.ElementAt(0).Key;
                         --maxCompleted;
                     }
                     LastSequence = maxCompleted.ToString();

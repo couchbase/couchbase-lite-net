@@ -106,7 +106,8 @@ namespace Couchbase.Lite.Util
     where TKey: class 
     where TValue: class
     {
-        private readonly LinkedHashMap<TKey, TValue> map;
+        private readonly Dictionary<TKey, TValue> _hashmap;
+        private readonly LinkedList<TKey> _nodes;
         private readonly Object locker = new Object ();
 
         /// <summary>Size of this cache in units.</summary>
@@ -141,7 +142,8 @@ namespace Couchbase.Lite.Util
                 throw new ArgumentException("maxSize <= 0");
             }
             this.maxSize = maxSize;
-            this.map = new LinkedHashMap<TKey, TValue>(0, 0.75f, true);
+            this._nodes = new LinkedList<TKey>();
+            this._hashmap = new Dictionary<TKey, TValue>();
         }
 
         /// <summary>Sets the size of the cache.</summary>
@@ -158,7 +160,7 @@ namespace Couchbase.Lite.Util
             {
                 this.maxSize = maxSize;
             }
-            TrimToSize(maxSize);
+            Trim();
         }
 
         /// <summary>
@@ -173,48 +175,46 @@ namespace Couchbase.Lite.Util
         /// </summary>
         public TValue Get(TKey key)
         {
-            if (key == null)
-            {
+            if (key == null) {
                 throw new ArgumentNullException("key");
             }
+
             TValue mapValue;
-            lock (locker)
-            {
-                mapValue = map.Get(key);
-                if (mapValue != null)
-                {
+            lock (locker) {
+                mapValue = _hashmap.Get(key);
+                if (mapValue != null) {
                     hitCount++;
+                    _nodes.Remove(key);
+                    _nodes.AddFirst(key);
                     return mapValue;
                 }
                 missCount++;
             }
+
             TValue createdValue = Create(key);
-            if (createdValue == null)
-            {
+            if (createdValue == null) {
                 return default(TValue);
             }
-            lock (locker)
-            {
+
+            lock (locker) {
                 createCount++;
-                mapValue = map.Put(key, createdValue);
-                if (mapValue != null)
-                {
+                mapValue = _hashmap.Put(key, createdValue);
+                _nodes.Remove(key);
+                _nodes.AddFirst(key);
+                if (mapValue != null) {
                     // There was a conflict so undo that last put
-                    map[key] = mapValue;
+                    _hashmap[key] = mapValue;
                 }
-                else
-                {
+                else {
                     size += SafeSizeOf(key, createdValue);
                 }
             }
-            if (mapValue != null)
-            {
+
+            if (mapValue != null) {
                 EntryRemoved(false, key, createdValue, mapValue);
                 return mapValue;
-            }
-            else
-            {
-                TrimToSize(maxSize);
+            } else {
+                Trim();
                 return createdValue;
             }
         }
@@ -239,69 +239,59 @@ namespace Couchbase.Lite.Util
         /// </returns>
         public TValue Put(TKey key, TValue value)
         {
-            if (key == null || value == null)
-            {
+            if (key == null || value == null) {
                 throw new ArgumentNullException("key == null || value == null");
             }
+
             TValue previous;
-            lock (locker)
-            {
+            lock (locker) {
                 putCount++;
                 size += SafeSizeOf(key, value);
-                previous = map.Put(key,value);
-                if (previous != null)
-                {
+                previous = _hashmap.Put(key, value);
+                if (previous != null) {
                     size -= SafeSizeOf(key, previous);
                 }
+                else {
+                    _nodes.AddFirst(key);
+                }
             }
-            if (previous != null)
-            {
+
+            if (previous != null) {
                 EntryRemoved(false, key, previous, value);
             }
-            TrimToSize(maxSize);
+
+            Trim();
             return previous;
         }
-
-        /// <param name="customSize">
-        /// the maximum size of the cache before returning. May be -1
-        /// to evict even 0-sized elements.
-        /// </param>
-        private void TrimToSize(int customSize)
+            
+        private void Trim()
         {
             while (true)
             {
                 TKey key;
                 TValue value;
-                lock (locker)
-                {
-                    if (size < 0 || (map.IsEmpty() && size != 0))
-                    {
+                lock (locker) {
+                    if (size < 0 || _hashmap.Count != size || _nodes.Count != size) {
                         throw new InvalidOperationException(GetType().FullName + ".sizeOf() is reporting inconsistent results!");
                     }
-                    if (size <= maxSize)
-                    {
+
+                    if (size <= maxSize || size == 0) {
                         break;
                     }
+
                     // BEGIN LAYOUTLIB CHANGE
                     // get the last item in the linked list.
                     // This is not efficient, the goal here is to minimize the changes
                     // compared to the platform version.
-                    KeyValuePair<TKey, TValue> toEvict = default(KeyValuePair<TKey, TValue>);
-                    foreach (KeyValuePair<TKey, TValue> entry in map.EntrySet())
-                    {
-                        toEvict = entry;
-                    }
+                    key = _nodes.Last.Value;
+                    value = _hashmap[key];
+                    _hashmap.Remove(key);
+                    _nodes.RemoveLast();
                     // END LAYOUTLIB CHANGE
-                    if (toEvict.Equals(default(KeyValuePair<TKey, TValue>)))
-                    {
-                        break;
-                    }
-                    key = toEvict.Key;
-                    value = toEvict.Value;
-                    Collections.Remove(map, key);
                     size -= SafeSizeOf(key, value);
                     evictionCount++;
                 }
+
                 EntryRemoved(true, key, value, default(TValue));
             }
         }
@@ -318,23 +308,23 @@ namespace Couchbase.Lite.Util
         /// </returns>
         public TValue Remove(TKey key)
         {
-            if (key == null)
-            {
+            if (key == null) {
                 throw new ArgumentNullException("key == null");
             }
+
             TValue previous;
-            lock (locker)
-            {
-                previous = Sharpen.Collections.Remove(map, key);
-                if (previous != null)
-                {
+            lock (locker) {
+                previous = Collections.Remove(_hashmap, key);
+                if (previous != null) {
                     size -= SafeSizeOf(key, previous);
+                    _nodes.Remove(key);
                 }
             }
-            if (previous != null)
-            {
+
+            if (previous != null) {
                 EntryRemoved(false, key, previous, default(TValue));
             }
+
             return previous;
         }
 
@@ -435,7 +425,12 @@ namespace Couchbase.Lite.Util
         /// </summary>
         public void EvictAll()
         {
-            TrimToSize(-1);
+            lock(locker) {
+                int oldMax = maxSize;
+                maxSize = 0;
+                Trim();
+                maxSize = oldMax;
+            }
         }
 
         // -1 will evict 0-sized elements
@@ -548,7 +543,7 @@ namespace Couchbase.Lite.Util
         {
             lock (locker)
             {
-                return new LinkedHashMap<TKey, TValue>(map);
+                return new Dictionary<TKey, TValue>(_hashmap);
             }
         }
 

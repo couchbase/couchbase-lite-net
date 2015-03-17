@@ -57,7 +57,6 @@ using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
 using Sharpen;
 using System.Threading;
-using System.Data;
 using Newtonsoft.Json;
 
 #if !NET_3_5
