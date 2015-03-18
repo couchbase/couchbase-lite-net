@@ -156,5 +156,15 @@ namespace Couchbase.Lite
 
             return String.Join("&", maps.ToArray());
         }
+
+        #if NET_3_5
+
+        public static IEnumerable<FileInfo> EnumerateFiles(this DirectoryInfo info, string searchPattern, SearchOption option) {
+            foreach (var file in info.GetFiles(searchPattern, option)) {
+                yield return file;
+            }
+        }
+
+        #endif
     }
 }

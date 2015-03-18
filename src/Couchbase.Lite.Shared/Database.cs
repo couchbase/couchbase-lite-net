@@ -188,6 +188,7 @@ namespace Couchbase.Lite
                 catch (SQLException e)
                 {   // FIXME: Should we really swallow this exception?
                     Log.E(Tag, "Error getting document count", e);
+                    result = -1;
                 }
                 finally
                 {
@@ -228,6 +229,7 @@ namespace Couchbase.Lite
                 catch (SQLException e)
                 {   // FIXME: Should we really swallow this exception?
                     Log.E(Tag, "Error getting last sequence", e);
+                    result = -1;
                 }
                 finally
                 {
@@ -237,6 +239,19 @@ namespace Couchbase.Lite
                     }
                 }
                 return result;
+            }
+        }
+
+        public long TotalDataSize {
+            get {
+                string dir = System.IO.Path.GetDirectoryName(Path);
+                var info = new DirectoryInfo(dir);
+                long size = 0;
+                foreach (var fileInfo in info.EnumerateFiles("*", SearchOption.AllDirectories)) {
+                    size += fileInfo.Length;
+                }
+
+                return size;
             }
         }
 
@@ -859,7 +874,7 @@ PRAGMA user_version = 3;";
         /// </remarks>
         internal Int32                                  MaxRevTreeDepth { get; set; }
 
-        private Int64                                   StartTime { get; set; }
+        internal Int64                                   StartTime { get; private set; }
         private IDictionary<String, FilterDelegate>     Filters { get; set; }
 
         internal RevisionList GetAllRevisionsOfDocumentID (string id, bool onlyCurrent)
@@ -3661,7 +3676,7 @@ PRAGMA user_version = 3;";
                 }
                 catch (Exception e)
                 {
-                    throw new CouchbaseLiteException(e, StatusCode.StatusAttachmentError);
+                    throw new CouchbaseLiteException(e, StatusCode.AttachmentError);
                 }
             }
         }
@@ -3940,7 +3955,7 @@ PRAGMA user_version = 3;";
                     attachment.SetBlobKey(outBlobKey);
                     if (!storedBlob)
                     {
-                        throw new CouchbaseLiteException(StatusCode.StatusAttachmentError);
+                        throw new CouchbaseLiteException(StatusCode.AttachmentError);
                     }
                 }
                 else

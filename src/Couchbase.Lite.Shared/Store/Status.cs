@@ -42,6 +42,7 @@
 
 using Sharpen;
 using System;
+using System.Collections.Generic;
 
 namespace Couchbase.Lite
 {
@@ -73,21 +74,39 @@ namespace Couchbase.Lite
 
         PreconditionFailed = 412,
 
+        UnsupportedType = 415,
+
         BadEncoding = 490,
 
         BadAttachment = 491,
+
+        AttachmentNotFound = 492,
 
         BadJson = 493,
 
         BadId = 494,
 
+        BadParam = 495,
+
+        Deleted = 496,
+
         InternalServerError = 500,
+
+        BadChangesFeed = 587,
+
+        ChangesFeedTruncated = 588,
 
         UpStreamError = 589,
 
-        StatusAttachmentError = 592,
-
         DbError = 590,
+
+        CorruptError = 591,
+
+        AttachmentError = 592,
+
+        CallbackError = 593,
+
+        Exception = 594,
 
         DbBusy = 595
     }
@@ -95,6 +114,39 @@ namespace Couchbase.Lite
     public class Status {
 
         private StatusCode code;
+        private static readonly Dictionary<StatusCode, Tuple<int, string>> _StatusMap =
+            new Dictionary<StatusCode, Tuple<int, string>>
+        {
+            // For compatibility with CouchDB, return the same strings it does (see couch_httpd.erl)
+            { StatusCode.BadRequest, Tuple.Create(400, "bad_request") },
+            { StatusCode.Unauthorized, Tuple.Create(401, "unauthorized") },
+            { StatusCode.NotFound, Tuple.Create(404, "not_found") },
+            { StatusCode.Forbidden, Tuple.Create(403, "forbidden") },
+            { StatusCode.MethodNotAllowed, Tuple.Create(405, "method_not_allowed") },
+            { StatusCode.NotAcceptable, Tuple.Create(406, "not_acceptable") },
+            { StatusCode.Conflict, Tuple.Create(409, "conflict") },
+            { StatusCode.PreconditionFailed, Tuple.Create(412, "file_exists") },
+            { StatusCode.UnsupportedType, Tuple.Create(415, "bad_content_type") },
+
+            // These are nonstandard status codes; map them to closest HTTP equivalents:
+            { StatusCode.BadEncoding, Tuple.Create(400, "Bad data encoding") },
+            { StatusCode.BadAttachment, Tuple.Create(400, "Bad attachment") },
+            { StatusCode.AttachmentNotFound, Tuple.Create(404, "Attachment not found") },
+            { StatusCode.BadJson, Tuple.Create(400, "Bad JSON") },
+            { StatusCode.BadId, Tuple.Create(400, "Invalid database/document/revision ID") },
+            { StatusCode.BadParam, Tuple.Create(400, "Invalid parameter in HTTP query or JSON body") },
+            { StatusCode.Deleted, Tuple.Create(400, "Deleted") },
+
+            { StatusCode.UpStreamError, Tuple.Create(502, "Invalid response from remote replication server") },
+            { StatusCode.BadChangesFeed, Tuple.Create(502, "Server changes feed parse error") },
+            { StatusCode.ChangesFeedTruncated, Tuple.Create(502, "Server changes feed truncated") },
+            { StatusCode.DbError, Tuple.Create(500, "Database error!") },
+            { StatusCode.CorruptError, Tuple.Create(500, "Invalid data in database") },
+            { StatusCode.AttachmentError, Tuple.Create(500, "Attachment store error") },
+            { StatusCode.CallbackError, Tuple.Create(500, "Application callback block failed") },
+            { StatusCode.Exception, Tuple.Create(500, "Internal error") },
+            { StatusCode.DbBusy, Tuple.Create(500, "Database locked") }
+        };
 
         public Status()
         {
@@ -130,6 +182,16 @@ namespace Couchbase.Lite
         public override string ToString()
         {
             return "Status: " + code;
+        }
+
+        public static Tuple<int, string> ToHttpStatus(StatusCode status)
+        {
+            Tuple<int, string> retVal;
+            if (_StatusMap.TryGetValue(status, out retVal)) {
+                return retVal;
+            }
+
+            return Tuple.Create(-1, string.Empty);
         }
     }
 }

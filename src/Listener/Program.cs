@@ -1,5 +1,6 @@
-﻿//
-//  CouchbaseLiteLocalHandler.cs
+﻿
+//
+//  Program.cs
 //
 //  Author:
 //  	Jim Borden  <jim.borden@couchbase.com>
@@ -19,14 +20,20 @@
 //  limitations under the License.
 //
 using System;
+using Couchbase.Lite.PeerToPeer;
 
-namespace Couchbase.Lite.PeerToPeer
+namespace Listener
 {
-    public class CouchbaseLiteLocalHandler
+    class MainClass
     {
-        public CouchbaseLiteLocalHandler()
+        public static void Main(string[] args)
         {
+            CouchbaseLiteServiceListener listener = new CouchbaseLiteServiceListener();
+            listener.Start();
+
+            Console.ReadKey(true);
+            listener.Stop();
+
         }
     }
 }
-

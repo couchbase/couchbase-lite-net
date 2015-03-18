@@ -26,7 +26,7 @@ namespace Couchbase.Lite.PeerToPeer
 {
     public class CouchbaseLiteServiceListener : IDisposable
     {
-        private HttpListener _listener;
+        private readonly HttpListener _listener;
         private bool _disposed;
 
         public CouchbaseLiteServiceListener()
@@ -65,8 +65,7 @@ namespace Couchbase.Lite.PeerToPeer
 
         private void ProcessContext(HttpListenerContext context)
         {
-            var handler = CouchbaseLiteHTTPHandler.HandlerForContext(context);
-            handler.Process();
+            CouchbaseLiteRouter.HandleContext(context);
             _listener.GetContextAsync().ContinueWith((t) => ProcessContext(t.Result));
         }
 
