@@ -65,8 +65,8 @@ namespace Couchbase.Lite.PeerToPeer
 
         private void ProcessContext(HttpListenerContext context)
         {
-            CouchbaseLiteRouter.HandleContext(context);
             _listener.GetContextAsync().ContinueWith((t) => ProcessContext(t.Result));
+            CouchbaseLiteRouter.HandleContext(context);
         }
 
         public void Dispose()

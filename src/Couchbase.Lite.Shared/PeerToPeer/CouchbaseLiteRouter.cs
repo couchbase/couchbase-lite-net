@@ -30,78 +30,52 @@ namespace Couchbase.Lite.PeerToPeer
 
     internal abstract class CouchbaseLiteRouter
     {
-        private static readonly Dictionary<string, RestMethod> _Get = 
-            new Dictionary<string, RestMethod> {
-            { "", ServerMethods.Greeting },
-            { "_all_dbs", ServerMethods.GetAllDbs },
-            { "_session", ServerMethods.GetSession },
-            { "_uuids", ServerMethods.GetUUIDs }
-        };
+        private static readonly RouteCollection _Get = 
+            new RouteCollection(new Dictionary<string, RestMethod> {
+                { "/", ServerMethods.Greeting },
+                { "/_all_dbs", ServerMethods.GetAllDbs },
+                { "/_session", ServerMethods.GetSession },
+                { "/_uuids", ServerMethods.GetUUIDs },
+                { "/*", DatabaseMethods.GetConfiguration },
+                { "/*/_all_docs", DatabaseMethods.GetAllDocuments }
+            });
 
-        private static readonly Dictionary<string, RestMethod> _Post =
-            new Dictionary<string, RestMethod> {
-            { "_replicate", ServerMethods.ManageReplicationSession }
-        };
+        private static readonly RouteCollection _Post =
+            new RouteCollection(new Dictionary<string, RestMethod> {
+                { "/_replicate", ServerMethods.ManageReplicationSession },
+                { "/*/_all_docs", DatabaseMethods.GetAllSpecifiedDocuments },
+                { "/*/_bulk_docs", DatabaseMethods.ProcessDocumentChangeOperations }
+            });
+
+        private static readonly RouteCollection _Put =
+            new RouteCollection(new Dictionary<string, RestMethod> {
+                { "/*", DatabaseMethods.UpdateConfiguration }
+            });
+
+        private static readonly RouteCollection _Delete =
+            new RouteCollection(new Dictionary<string, RestMethod> {
+                { "/*", DatabaseMethods.DeleteConfiguration }
+            });
 
         public static void HandleContext(HttpListenerContext context)
         {
             var request = context.Request;
-            var url = request.Url.AbsolutePath.Split(new[] { '/' }, StringSplitOptions.RemoveEmptyEntries);
-            if (url.Length == 0) {
-                url = new[] { string.Empty };
-            }
-
             var method = request.HttpMethod;
 
             RestMethod logic = null;
-            bool gotLogic = false;
             if (method.Equals("GET") || method.Equals("HEAD")) {
-                gotLogic = _Get.TryGetValue(url[url.Length - 1], out logic);
-                if (!gotLogic) {
-                    logic = DefaultGetMethod(url.Length);
-                    gotLogic = logic != null;
-                }
+                logic = _Get.LogicForRequest(request);
             } else if (method.Equals("POST")) {
-                gotLogic = _Post.TryGetValue(url[url.Length - 1], out logic);
+                logic = _Post.LogicForRequest(request);
             } else if (method.Equals("PUT")) {
-
+                logic = _Put.LogicForRequest(request);
             } else if (method.Equals("DELETE")) {
-                if (!gotLogic) {
-                    logic = DefaultDeleteMethod(url.Length);
-                    gotLogic = logic != null;
-                }
+                logic = _Delete.LogicForRequest(request);
             }
 
-            CouchbaseLiteResponse res = null;
-            if (gotLogic) {
-                res = logic(context);
-            } else if (url.Length == 1) {
-                
-            } else {
-                res = new CouchbaseLiteResponse();
-                res.InternalStatus = StatusCode.NotFound;
-            }
-
+            CouchbaseLiteResponse res = logic(context);
             res.WriteToContext(context);
             context.Response.Close();
-        }
-
-        private static RestMethod DefaultGetMethod(int urlPortionCount)
-        {
-            if (urlPortionCount == 1) {
-                return DatabaseMethods.GetDatabaseConfiguration;
-            }
-
-            return null;
-        }
-
-        private static RestMethod DefaultDeleteMethod(int urlPortionCount)
-        {
-            if (urlPortionCount == 1) {
-                return DatabaseMethods.DeleteDatabaseConfiguration;
-            }
-
-            return null;
         }
     }
 }

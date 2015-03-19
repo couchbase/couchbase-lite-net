@@ -49,11 +49,39 @@ using System.Linq;
 using System.Net;
 using System.Net.Http.Headers;
 using Newtonsoft.Json.Linq;
+using System.Collections.Specialized;
 
 namespace Couchbase.Lite
 {
+    internal delegate bool TryParseDelegate<T>(string s, out T value);
+
     internal static class ExtensionMethods
     {
+        public static object JsonQuery(this NameValueCollection collection, string key)
+        {
+            string value = collection.Get(key);
+            if (value == null) {
+                return null;
+            }
+
+            return Manager.GetObjectMapper().ReadValue<object>(value);
+        }
+
+        public static T Get<T>(this NameValueCollection collection, string key, TryParseDelegate<T> parser, T defaultVal)
+        {
+            string value = collection.Get(key);
+            if (value == null) {
+                return defaultVal;
+            }
+
+            T retVal;
+            if (!parser(value, out retVal)) {
+                return defaultVal;
+            }
+
+            return retVal;
+        }
+
         internal static IDictionary<TKey,TValue> AsDictionary<TKey, TValue>(this object attachmentProps)
         {
             if (attachmentProps == null)

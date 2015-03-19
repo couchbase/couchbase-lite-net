@@ -128,6 +128,9 @@ namespace Couchbase.Lite
             { StatusCode.PreconditionFailed, Tuple.Create(412, "file_exists") },
             { StatusCode.UnsupportedType, Tuple.Create(415, "bad_content_type") },
 
+            { StatusCode.Ok, Tuple.Create(200, "ok") },
+            { StatusCode.Created, Tuple.Create(201, "created") },
+
             // These are nonstandard status codes; map them to closest HTTP equivalents:
             { StatusCode.BadEncoding, Tuple.Create(400, "Bad data encoding") },
             { StatusCode.BadAttachment, Tuple.Create(400, "Bad attachment") },

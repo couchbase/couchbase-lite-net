@@ -66,9 +66,8 @@ namespace Couchbase.Lite.PeerToPeer
         public string BaseContentType { get; set; }
 
         public CouchbaseLiteResponse() {
-            Status = 200;
-            StatusMessage = "Ok";
             Headers = new Dictionary<string, string>();
+            InternalStatus = StatusCode.Ok;
         }
 
         public void WriteToContext(HttpListenerContext ctx)
@@ -112,8 +111,6 @@ namespace Couchbase.Lite.PeerToPeer
                 var json = this.Body.GetJson().ToArray();
                 ctx.Response.ContentLength64 = json.Length;
                 ctx.Response.OutputStream.Write(json, 0, json.Length);
-
-
             }
         }
 

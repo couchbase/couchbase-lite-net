@@ -78,7 +78,13 @@ namespace Couchbase.Lite
 
         public T ReadValue<T> (String json)
         {
-            var item = JsonConvert.DeserializeObject<T>(json);
+            T item;
+            try {
+                item = JsonConvert.DeserializeObject<T>(json);
+            } catch(JsonException e) {
+                throw new CouchbaseLiteException(e, StatusCode.BadJson);
+            }
+
             return item;
         }
 
@@ -88,7 +94,13 @@ namespace Couchbase.Lite
             using (var jsonReader = new JsonTextReader(new StreamReader(jsonStream))) 
             {
                 var serializer = new JsonSerializer();
-                var item = serializer.Deserialize<T>(jsonReader);
+                T item;
+                try {
+                    item = serializer.Deserialize<T>(jsonReader);
+                } catch (JsonException e) {
+                    throw new CouchbaseLiteException(e, StatusCode.BadJson);
+                }
+
                 return item;
             }
         }
@@ -98,7 +110,13 @@ namespace Couchbase.Lite
             using (var jsonReader = new JsonTextReader(new StreamReader(jsonStream))) 
             {
                 var serializer = new JsonSerializer();
-                var item = serializer.Deserialize<T>(jsonReader);
+                T item;
+                try {
+                    item = serializer.Deserialize<T>(jsonReader);
+                } catch (JsonException e) {
+                    throw new CouchbaseLiteException(e, StatusCode.BadJson);
+                }
+
                 return item;
             }
         }

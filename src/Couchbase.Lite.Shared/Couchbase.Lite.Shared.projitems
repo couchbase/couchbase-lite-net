@@ -255,6 +255,8 @@
     <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\CouchbaseLiteResponse.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\DatabaseMethods.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\CouchbaseLiteRouter.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\RouteCollection.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\RouteTree.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="$(MSBuildThisFileDirectory)Store\MonoSQLiteStorageEngine.cs" />
