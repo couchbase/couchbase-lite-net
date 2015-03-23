@@ -599,7 +599,7 @@ namespace Couchbase.Lite
         /// </summary>
         /// <returns>The <see cref="ValidateDelegate" /> for the given name, or null if it does not exist.</returns>
         /// <param name="name">The name of the validation delegate to get.</param>
-        public FilterDelegate GetFilter(String name) 
+        public FilterDelegate GetFilter(String name, Status status = null) 
         { 
             FilterDelegate result = null;
             if (Filters != null)
@@ -619,6 +619,9 @@ namespace Couchbase.Lite
 
                 if (sourceCode == null)
                 {
+                    if (status != null) {
+                        status.SetCode(StatusCode.NotFound);
+                    }
                     return null;
                 }
 
@@ -627,6 +630,9 @@ namespace Couchbase.Lite
                 var filter = filterCompiler(sourceCode, language);
                 if (filter == null)
                 {
+                    if (status != null) {
+                        status.SetCode(StatusCode.CallbackError);
+                    }
                     Log.W(Tag, string.Format("Filter {0} failed to compile", name));
                     return null;
                 }

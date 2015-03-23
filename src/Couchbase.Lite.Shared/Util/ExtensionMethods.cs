@@ -43,13 +43,16 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Collections.Specialized;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Http.Headers;
+
 using Newtonsoft.Json.Linq;
-using System.Collections.Specialized;
+
+using Sharpen;
 
 namespace Couchbase.Lite
 {
@@ -57,6 +60,22 @@ namespace Couchbase.Lite
 
     internal static class ExtensionMethods
     {
+        public static bool TryGetValue<T>(this IDictionary<string, object> dic, string key, out T value)
+        {
+            value = default(T);
+            object obj;
+            if (!dic.TryGetValue(key, out obj)) {
+                return false;
+            }
+
+            if (!(obj is T)) {
+                return false;
+            }
+
+            value = (T)obj;
+            return true;
+        }
+
         public static object JsonQuery(this NameValueCollection collection, string key)
         {
             string value = collection.Get(key);
@@ -80,6 +99,25 @@ namespace Couchbase.Lite
             }
 
             return retVal;
+        }
+
+        public static T GetCast<T>(this IDictionary<string, object> collection, string key)
+        {
+            return collection.GetCast(key, default(T));
+        }
+
+        public static T GetCast<T>(this IDictionary<string, object> collection, string key, T defaultVal)
+        {
+            object value = collection.Get(key);
+            if (value == null) {
+                return defaultVal;
+            }
+                
+            if (!(value is T)) {
+                return defaultVal;
+            }
+
+            return (T)value;
         }
 
         internal static IDictionary<TKey,TValue> AsDictionary<TKey, TValue>(this object attachmentProps)

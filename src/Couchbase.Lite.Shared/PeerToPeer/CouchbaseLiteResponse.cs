@@ -31,8 +31,15 @@ namespace Couchbase.Lite.PeerToPeer
     internal sealed class CouchbaseLiteResponse
     {
         private const string TAG = "CouchbaseLiteResponse";
+        private readonly HttpListenerContext _context;
+        private bool _headersWritten;
 
         public int Status { get; set; }
+
+        public bool Chunked { 
+            get { return _context.Response.SendChunked; }
+            set { _context.Response.SendChunked = value; }
+        }
 
         private StatusCode _internalStatus;
         public StatusCode InternalStatus { 
@@ -65,41 +72,22 @@ namespace Couchbase.Lite.PeerToPeer
 
         public string BaseContentType { get; set; }
 
-        public CouchbaseLiteResponse() {
+        public CouchbaseLiteResponse(HttpListenerContext context) {
             Headers = new Dictionary<string, string>();
             InternalStatus = StatusCode.Ok;
+            _context = context;
         }
 
-        public void WriteToContext(HttpListenerContext ctx)
+        public ICouchbaseResponseState AsDefaultState()
         {
-            this["Server"] = "Couchbase Lite " + Manager.VersionString;
-            bool accept = false;
-            foreach (var acceptType in ctx.Request.AcceptTypes) {
-                if (acceptType.IndexOf("*/*") != -1 || acceptType.Equals(BaseContentType)) {
-                    accept = true;
-                    break;
-                }
-            }
+            return new DefaultCouchbaseResponseState(this);
+        }
 
-            if (!accept) {
-                if (!ctx.Request.AcceptTypes.Contains(BaseContentType)) {
-                    Log.D(TAG, "Unacceptable type {0} (Valid: {1})", BaseContentType, ctx.Request.AcceptTypes);
-                    Reset();
-                    InternalStatus = StatusCode.NotAcceptable;
-                }
-            }
-
-            if (this.Status == 200 && ctx.Request.HttpMethod.Equals("GET") || ctx.Request.HttpMethod.Equals("HEAD")) {
-                if (!Headers.ContainsKey("Cache-Control")) {
-                    this["Cache-Control"] = "must-revalidate";
-                }
-            }
-
-            ctx.Response.StatusCode = Status;
-            ctx.Response.StatusDescription = StatusMessage;
-
-            foreach (var header in Headers) {
-                ctx.Response.AddHeader(header.Key, header.Value);
+        public void WriteToContext()
+        {
+            if (Chunked) {
+                Log.E(TAG, "Attempt to send one-shot data when in chunked mode");
+                return;
             }
 
             if (this.Body != null) {
@@ -107,10 +95,69 @@ namespace Couchbase.Lite.PeerToPeer
                     this["Content-Type"] = "application/json";
                 }
 
-                ctx.Response.ContentEncoding = Encoding.UTF8;
+                _context.Response.ContentEncoding = Encoding.UTF8;
                 var json = this.Body.GetJson().ToArray();
-                ctx.Response.ContentLength64 = json.Length;
-                ctx.Response.OutputStream.Write(json, 0, json.Length);
+                _context.Response.ContentLength64 = json.Length;
+                _context.Response.OutputStream.Write(json, 0, json.Length);
+            }
+
+            _context.Response.Close();
+        }
+
+        public void WriteData(IEnumerable<byte> data, bool finished)
+        {
+            if (!Chunked) {
+                Log.E(TAG, "Attempt to send streaming data when not in chunked mode");
+                return;
+            }
+
+            var array = data.ToArray();
+            _context.Response.OutputStream.Write(array, array.Length);
+            _context.Response.OutputStream.Flush();
+            if (finished) {
+                _context.Response.Close();
+            }
+        }
+
+        public void WriteHeaders()
+        {
+            if (_headersWritten) {
+                return;
+            }
+
+            _headersWritten = true;
+            Validate();
+            this["Server"] = "Couchbase Lite " + Manager.VersionString;
+            if (this.Status == 200 && _context.Request.HttpMethod.Equals("GET") || _context.Request.HttpMethod.Equals("HEAD")) {
+                if (!Headers.ContainsKey("Cache-Control")) {
+                    this["Cache-Control"] = "must-revalidate";
+                }
+            }
+
+            _context.Response.StatusCode = Status;
+            _context.Response.StatusDescription = StatusMessage;
+
+            foreach (var header in Headers) {
+                _context.Response.AddHeader(header.Key, header.Value);
+            }
+        }
+
+        private void Validate()
+        {
+            bool accept = false;
+            foreach (var acceptType in _context.Request.AcceptTypes) {
+                if (acceptType.IndexOf("*/*") != -1 || acceptType.Equals(BaseContentType)) {
+                    accept = true;
+                    break;
+                }
+            }
+
+            if (!accept) {
+                if (!_context.Request.AcceptTypes.Contains(BaseContentType)) {
+                    Log.D(TAG, "Unacceptable type {0} (Valid: {1})", BaseContentType, _context.Request.AcceptTypes);
+                    Reset();
+                    InternalStatus = StatusCode.NotAcceptable;
+                }
             }
         }
 
@@ -118,11 +165,12 @@ namespace Couchbase.Lite.PeerToPeer
         {
             Headers.Clear();
             Body = null;
+            _headersWritten = false;
         }
 
         public string this[string key]
         {
-            get { return Headers[key]; }
+            get { return Headers == null ? null : Headers[key]; }
             set { Headers[key] = value; }
         }
     }

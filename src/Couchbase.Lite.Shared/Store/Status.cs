@@ -131,6 +131,8 @@ namespace Couchbase.Lite
             { StatusCode.Ok, Tuple.Create(200, "ok") },
             { StatusCode.Created, Tuple.Create(201, "created") },
 
+            { StatusCode.NotModified, Tuple.Create(304, "not_modified") },
+
             // These are nonstandard status codes; map them to closest HTTP equivalents:
             { StatusCode.BadEncoding, Tuple.Create(400, "Bad data encoding") },
             { StatusCode.BadAttachment, Tuple.Create(400, "Bad attachment") },

@@ -87,6 +87,12 @@ namespace Couchbase.Lite.Internal
         internal RevisionInternal(IDictionary<String, Object> properties)
             : this(new Body(properties)) { }
 
+        public static bool IsValid(Body body)
+        {
+            return body.GetPropertyForKey("_id") != null ||
+            (body.GetPropertyForKey("_rev") == null && body.GetPropertyForKey("_deleted") == null);
+        }
+
         internal IDictionary<String, Object> GetProperties()
         {
             IDictionary<string, object> result = null;

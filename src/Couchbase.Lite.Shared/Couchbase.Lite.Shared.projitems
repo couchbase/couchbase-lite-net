@@ -257,6 +257,10 @@
     <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\CouchbaseLiteRouter.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\RouteCollection.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\RouteTree.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Replication\ChangesFeedMode.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\ICouchbaseResponseState.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\DefaultCouchbaseResponseState.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\DBMonitorCouchbaseResponseState.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="$(MSBuildThisFileDirectory)Store\MonoSQLiteStorageEngine.cs" />

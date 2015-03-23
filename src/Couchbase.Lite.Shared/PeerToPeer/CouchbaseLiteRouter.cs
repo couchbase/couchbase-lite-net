@@ -26,10 +26,12 @@ using System.Collections.Specialized;
 
 namespace Couchbase.Lite.PeerToPeer
 {
-    internal delegate CouchbaseLiteResponse RestMethod(HttpListenerContext context);
+    internal delegate ICouchbaseResponseState RestMethod(HttpListenerContext context);
 
-    internal abstract class CouchbaseLiteRouter
+    internal static class CouchbaseLiteRouter
     {
+        private static readonly List<ICouchbaseResponseState> _UnfinishedResponses = new List<ICouchbaseResponseState>();
+
         private static readonly RouteCollection _Get = 
             new RouteCollection(new Dictionary<string, RestMethod> {
                 { "/", ServerMethods.Greeting },
@@ -37,7 +39,8 @@ namespace Couchbase.Lite.PeerToPeer
                 { "/_session", ServerMethods.GetSession },
                 { "/_uuids", ServerMethods.GetUUIDs },
                 { "/*", DatabaseMethods.GetConfiguration },
-                { "/*/_all_docs", DatabaseMethods.GetAllDocuments }
+                { "/*/_all_docs", DatabaseMethods.GetAllDocuments },
+                { "/*/_changes", DatabaseMethods.GetChanges }
             });
 
         private static readonly RouteCollection _Post =
@@ -73,9 +76,19 @@ namespace Couchbase.Lite.PeerToPeer
                 logic = _Delete.LogicForRequest(request);
             }
 
-            CouchbaseLiteResponse res = logic(context);
-            res.WriteToContext(context);
-            context.Response.Close();
+            ICouchbaseResponseState responseState = logic(context);
+            CouchbaseLiteResponse responseObject = responseState.Response;
+            if (!responseState.IsAsync) {
+                responseObject.WriteHeaders();
+                responseObject.WriteToContext();
+            } else {
+                _UnfinishedResponses.Add(responseState);
+            }
+        }
+
+        public static void ResponseFinished(ICouchbaseResponseState responseState)
+        {
+            _UnfinishedResponses.Remove(responseState);
         }
     }
 }

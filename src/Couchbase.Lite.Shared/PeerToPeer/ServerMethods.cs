@@ -30,7 +30,7 @@ namespace Couchbase.Lite.PeerToPeer
 {
     internal static class ServerMethods
     {
-        public static CouchbaseLiteResponse Greeting(HttpListenerContext context)
+        public static ICouchbaseResponseState Greeting(HttpListenerContext context)
         {
             var info = new Dictionary<string, object> {
                 { "couchdb", "Welcome" }, //for compatibility
@@ -44,12 +44,12 @@ namespace Couchbase.Lite.PeerToPeer
             };
 
             var body = new Body(info);
-            var couchResponse = new CouchbaseLiteResponse();
+            var couchResponse = new CouchbaseLiteResponse(context);
             couchResponse.Body = body;
-            return couchResponse;
+            return couchResponse.AsDefaultState();
         }
 
-        public static CouchbaseLiteResponse GetActiveTasks(HttpListenerContext context)
+        public static ICouchbaseResponseState GetActiveTasks(HttpListenerContext context)
         {
             // http://wiki.apache.org/couchdb/HttpGetActiveTasks
 
@@ -57,21 +57,21 @@ namespace Couchbase.Lite.PeerToPeer
 
         }
 
-        public static CouchbaseLiteResponse GetAllDbs(HttpListenerContext context)
+        public static ICouchbaseResponseState GetAllDbs(HttpListenerContext context)
         {
             var names = Manager.SharedInstance.AllDatabaseNames.Cast<object>().ToList();
             var body = new Body(names);
 
-            var couchResponse = new CouchbaseLiteResponse();
+            var couchResponse = new CouchbaseLiteResponse(context);
             couchResponse.Body = body;
-            return couchResponse;
+            return couchResponse.AsDefaultState();
         }
 
-        public static CouchbaseLiteResponse GetSession(HttpListenerContext context)
+        public static ICouchbaseResponseState GetSession(HttpListenerContext context)
         {
             // Even though CouchbaseLite doesn't support user logins, it implements a generic response to the
             // CouchDB _session API, so that apps that call it (such as Futon!) won't barf.
-            var couchResponse = new CouchbaseLiteResponse();
+            var couchResponse = new CouchbaseLiteResponse(context);
             couchResponse.Body = new Body(new Dictionary<string, object> {
                 { "ok", true },
                 { "userCtx", new Dictionary<string, object> {
@@ -81,10 +81,10 @@ namespace Couchbase.Lite.PeerToPeer
                 }
             });
 
-            return couchResponse;
+            return couchResponse.AsDefaultState();
         }
 
-        public static CouchbaseLiteResponse GetUUIDs(HttpListenerContext context)
+        public static ICouchbaseResponseState GetUUIDs(HttpListenerContext context)
         {
             var query = context.Request.QueryString;
             int count = 0;
@@ -98,12 +98,12 @@ namespace Couchbase.Lite.PeerToPeer
                 uuidList.Add(Guid.NewGuid());
             }
 
-            var couchResponse = new CouchbaseLiteResponse();
+            var couchResponse = new CouchbaseLiteResponse(context);
             couchResponse.Body = new Body(uuidList);
-            return couchResponse;
+            return couchResponse.AsDefaultState();
         }
 
-        public static CouchbaseLiteResponse ManageReplicationSession(HttpListenerContext context)
+        public static ICouchbaseResponseState ManageReplicationSession(HttpListenerContext context)
         {
             byte[] buffer = new byte[context.Request.ContentLength64];
             context.Request.InputStream.Read(buffer, 0, buffer.Length);
@@ -113,12 +113,12 @@ namespace Couchbase.Lite.PeerToPeer
             try {
                 rep = Manager.SharedInstance.ReplicationWithProperties(body);
             } catch(CouchbaseLiteException e) {
-                CouchbaseLiteResponse failResponse = new CouchbaseLiteResponse();
+                CouchbaseLiteResponse failResponse = new CouchbaseLiteResponse(context);
                 failResponse.InternalStatus = e.GetCBLStatus().GetCode();
-                return failResponse;
+                return failResponse.AsDefaultState();
             }
 
-            var response = new CouchbaseLiteResponse();
+            var response = new CouchbaseLiteResponse(context);
             bool cancel = body.Get("cancel") is bool && (bool)body.Get("cancel");
             if (cancel) {
                 if (!rep.IsRunning) {
@@ -137,7 +137,7 @@ namespace Couchbase.Lite.PeerToPeer
                 }
             }
 
-            return response;
+            return response.AsDefaultState();
         }
     }
 }
