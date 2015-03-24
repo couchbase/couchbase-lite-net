@@ -37,8 +37,9 @@
 config=Debug
 
 nunit_console_args=""
-unity_location=${UNITY_HOME:?"/Applications/Unity"}
-unity_location=${unity_location%%/}
+: ${UNITY_HOME:="/Applications/Unity"}
+UNITY_HOME=${UNITY_HOME%%/}
+
 while getopts rt:f: FLAG; do
   case $FLAG in
     r) config=Release;;
@@ -50,9 +51,9 @@ done
 echo "Executing nunit-console $nunit_console_args"
 echo
 
-export MONO_PATH=$unity_location/Unity.app/Contents/Frameworks/Mono/lib/mono/2.0 
+export MONO_PATH=$UNITY_HOME/Unity.app/Contents/Frameworks/Mono/lib/mono/2.0 
 
-$unity_location/Unity.app/Contents/Frameworks/Mono/bin/mono \
-$unity_location/Unity.app/Contents/Frameworks/Mono/lib/mono/2.0/nunit-console.exe \
+$UNITY_HOME/Unity.app/Contents/Frameworks/Mono/bin/mono \
+$UNITY_HOME/Unity.app/Contents/Frameworks/Mono/lib/mono/2.0/nunit-console.exe \
 ../src/Couchbase.Lite.Net35.Tests/bin/$config/Couchbase.Lite.Net35.Tests.dll \
 -labels $nunit_console_args
