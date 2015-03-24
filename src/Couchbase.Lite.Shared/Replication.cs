@@ -141,7 +141,7 @@ namespace Couchbase.Lite
             CancellationTokenSource = new CancellationTokenSource();
             RemoteUrl = remote;
             Status = ReplicationStatus.Stopped;
-            online = db.Manager.NetworkReachabilityManager.CurrentStatus == NetworkReachabilityStatus.Reachable;
+            online = db.Manager.NetworkReachabilityManager.CanReach(remote.AbsoluteUri);
             RequestHeaders = new Dictionary<String, Object>();
             requests = new HashSet<HttpClient>();
 

@@ -6,7 +6,7 @@ namespace Couchbase.Lite
     public interface INetworkReachabilityManager
     {
         event EventHandler<NetworkReachabilityChangeEventArgs> StatusChanged;
-        NetworkReachabilityStatus CurrentStatus { get; }
+        bool CanReach(string remoteUri);
         void StartListening();
         void StopListening();
     }
