@@ -198,7 +198,7 @@ namespace Couchbase.Lite.Util
                 var json = reader.ReadToEnd();
 
                 var cookies = JsonConvert.DeserializeObject<List<Cookie>>(json);
-				cookies = cookies ?? new List<Cookie>();
+                cookies = cookies ?? new List<Cookie>();
 
                 foreach(Cookie cookie in cookies)
                 {
