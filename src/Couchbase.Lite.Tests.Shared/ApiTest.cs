@@ -992,7 +992,7 @@ namespace Couchbase.Lite
         [Test]
         public void TestSharedMapBlocks()
         {
-            var path = new DirectoryInfo(Path.Combine(GetRootDirectory().FullName, "API_SharedMapBlocks"));
+            var path = new DirectoryInfo(Path.Combine(RootDirectory.FullName, "API_SharedMapBlocks"));
             var mgr = new Manager(path, Manager.DefaultOptions);
             var db = mgr.GetDatabase("db");
 
@@ -1030,7 +1030,7 @@ namespace Couchbase.Lite
         [Test]
         public void TestChangeUUID()
         {
-            var path = new DirectoryInfo(Path.Combine(GetRootDirectory().FullName, "ChangeUUID"));
+            var path = new DirectoryInfo(Path.Combine(RootDirectory.FullName, "ChangeUUID"));
             var mgr = new Manager(path, Manager.DefaultOptions);
             var db = mgr.GetDatabase("db");
 
