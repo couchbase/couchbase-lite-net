@@ -192,6 +192,7 @@ namespace Couchbase.Lite {
                     }
                     else
                     {
+                        Database.OptimizeSQLIndexes();
                         // Delete all obsolete map results (ones from since-replaced
                         // revisions):
                         var args = new [] {
@@ -202,7 +203,7 @@ namespace Couchbase.Lite {
 
                         Database.StorageEngine.ExecSQL(
                             "DELETE FROM maps WHERE view_id=? AND sequence IN ("
-                            + "SELECT parent FROM revs WHERE sequence>? " + "AND parent>0 AND parent<=?)", 
+                            + "SELECT parent FROM revs WHERE sequence>? " + "AND +parent>0 AND +parent<=?)", 
                                 args);
                     }
 
