@@ -4735,8 +4735,8 @@ PRAGMA user_version = 3;";
                         StorageEngine.ExecSQL("ANALYZE sqlite_master");
 
                         var vals = new ContentValues();
-                        vals["last_optimized"] = curSequence.ToString();
-                        StorageEngine.Update("info", vals, string.Empty);
+                        vals["value"] = curSequence.ToString();
+                        StorageEngine.Update("info", vals, "key=?", "last_optimized");
 
                         return true;
                     });
