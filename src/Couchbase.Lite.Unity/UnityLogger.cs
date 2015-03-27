@@ -19,24 +19,51 @@
 //  limitations under the License.
 //
 using System;
-using Couchbase.Lite.Util;
 using System.Diagnostics;
+
+using Couchbase.Lite.Util;
 
 namespace Couchbase.Lite.Unity
 {
+    /// <summary>
+    /// A logging class that will write its output to the Unity3D console.
+    /// </summary>
+    /// <remarks>
+    /// Really only useful when running in the editor
+    /// </remarks>
     public sealed class UnityLogger : ILogger
     {
+
+        #region Member Variables
+
         private readonly SourceLevels _level;
 
+        #endregion
+
+        #region Constructors 
+
+        /// <summary>
+        /// Convenience constructor initialized with an output level of
+        /// <c>SourceLevels.Information</c>
+        /// </summary>
         public UnityLogger() : this(SourceLevels.Information)
         {
 
         }
 
+        /// <summary>
+        /// The default consructor
+        /// </summary>
+        /// <param name="logLevel">The log levels to log.  Anything
+        /// matching or less verbose than this parameter will be output</param>
         public UnityLogger(SourceLevels logLevel)
         {
             _level = logLevel;
         }
+
+        #endregion
+
+        #region Private Methods
 
         static Exception Flatten (Exception tr)
         {
@@ -45,6 +72,10 @@ namespace Couchbase.Lite.Unity
             var err = ((AggregateException)tr).Flatten().InnerException;
             return err;
         }
+
+        #endregion
+
+        #region ILogger
 
         public void V (string tag, string msg)
         {
@@ -191,6 +222,9 @@ namespace Couchbase.Lite.Unity
         {
             E(tag, string.Format(format, args));
         }
+
+        #endregion
+
     }
 }
 

@@ -19,14 +19,18 @@
 //  limitations under the License.
 //
 
-using Sharpen;
-using System.Collections.Generic;
-using Couchbase.Lite.Util;
-using System.Runtime.CompilerServices;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Runtime.CompilerServices;
+
+using Sharpen;
 
 namespace Couchbase.Lite.Unity
 {
+    /// <summary>
+    /// This class is *not* used directly.  It exists purely to give hints to the compiler
+    /// about generic classes that are overlooked by the AOT compiler otherwise.
+    /// </summary>
     public static class AOTHelper
     {
         [MethodImpl(MethodImplOptions.NoOptimization)]

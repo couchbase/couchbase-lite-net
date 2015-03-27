@@ -18,20 +18,46 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 //
-using System.Threading;
-using Couchbase.Lite.Util;
-using UnityEngine;
-using System.Collections.Concurrent;
 using System;
+using System.Collections.Concurrent;
+using System.Threading;
 using System.Threading.Tasks;
+
+using Couchbase.Lite.Util;
+
+using UnityEngine;
 
 namespace Couchbase.Lite.Unity
 {
+
+    /// <summary>
+    /// A convenience class for running actions on the Unity3D main thread.
+    /// </summary>
+    /// <description>
+    /// Many Unity3D methods are disallowed from outside the main thread, and
+    /// this causes many headaches when trying to do asynchronous logic.  With
+    /// this class it becomes easy to get things back on track.  Just call into
+    /// this class and don't worry about "can only be called from the main thread"
+    /// errors anymore.
+    /// </description>
+    /// <remarks>
+    /// You must attach an instance of this class to an object in the scene in the
+    /// Unity editor for it to perform correctly.
+    /// </remarks>
     public class UnityMainThreadScheduler : MonoBehaviour
     {
+        #region Private Variables
+
         private static readonly BlockingCollection<Task> _jobQueue = new BlockingCollection<Task>();
 
-        private static SingleThreadScheduler _taskScheduler;
+        #endregion
+
+        #region Properties
+
+        /// <summary>
+        /// The task scheduler for scheduling actions to run on the Unity3D
+        /// main thread
+        /// </summary>
         public static TaskScheduler TaskScheduler
         {
             get
@@ -46,8 +72,13 @@ namespace Couchbase.Lite.Unity
                 return _taskScheduler;
             }
         }
+        private static SingleThreadScheduler _taskScheduler;
 
-        private static TaskFactory _taskFactory;
+        /// <summary>
+        /// The task factory for scheduling actions to run on the main
+        /// Unity3D thread
+        /// </summary>
+        /// <value>The task factory.</value>
         public static TaskFactory TaskFactory
         {
             get
@@ -68,6 +99,11 @@ namespace Couchbase.Lite.Unity
                 return _taskFactory;
             }
         }
+        private static TaskFactory _taskFactory;
+
+        #endregion
+
+        #region Unity messages
 
         void OnEnable()
         {
@@ -88,5 +124,7 @@ namespace Couchbase.Lite.Unity
                 _taskScheduler.TryExecuteTaskHack(nextTask);
             }
         }
+
+        #endregion
     }
 }
