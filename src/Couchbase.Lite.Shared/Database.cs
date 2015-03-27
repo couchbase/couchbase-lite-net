@@ -4439,6 +4439,11 @@ PRAGMA user_version = 3;";
 
             // Check the user_version number we last stored in the sqliteDb:
             var dbVersion = StorageEngine.GetVersion();
+            bool isNew = dbVersion == 0;
+            if (isNew && !Initialize("BEGIN TRANSACTION")) {
+                StorageEngine.Close();
+                return false;
+            }
 
             // Incompatible version changes increment the hundreds' place:
             if (dbVersion >= 100)
@@ -4616,6 +4621,26 @@ PRAGMA user_version = 3;";
                 }
                 dbVersion = 16;
             }
+            if (dbVersion < 17) {
+                var upgradeSql = "CREATE INDEX maps_view_sequence ON maps(view_id, sequence);" +
+                                 "PRAGMA user_version = 17";
+
+                if (!Initialize(upgradeSql))
+                {
+                    StorageEngine.Close();
+                    return false;
+                }
+                dbVersion = 17;
+            }
+
+            if (isNew && !Initialize("END TRANSACTION")) {
+                StorageEngine.Close();
+                return false;
+            }
+
+            if (!isNew) {
+                OptimizeSQLIndexes();
+            }
 
             try
             {
@@ -4668,6 +4693,34 @@ PRAGMA user_version = 3;";
             _isOpen = false;
             _transactionLevel = 0;
             return true;
+        }
+
+        internal void OptimizeSQLIndexes()
+        {
+            long curSequence = LastSequenceNumber;
+            if (curSequence > 0) {
+                var c = StorageEngine.RawQuery("SELECT value FROM info WHERE key=?", "last_optimized");
+                long lastOptimized = 0;
+                if (c.MoveToNext()) {
+                    lastOptimized = long.Parse(c.GetString(0));
+                }
+
+                if (lastOptimized <= curSequence / 10) {
+                    RunInTransaction(() =>
+                    {
+                        Log.D(Tag, "Optimizing SQL indexes (curSeq={0}, last run at {1})",
+                            curSequence, lastOptimized);
+                        StorageEngine.ExecSQL("ANALYZE");
+                        StorageEngine.ExecSQL("ANALYZE sqlite_master");
+
+                        var vals = new ContentValues();
+                        vals["last_optimized"] = curSequence.ToString();
+                        StorageEngine.Update("info", vals, string.Empty);
+
+                        return true;
+                    });
+                }
+            }
         }
 
         internal void AddReplication(Replication replication)
