@@ -78,7 +78,7 @@ namespace Couchbase.Lite.PeerToPeer
             }
 
             IsAsync = true;
-            _heartbeatTimer = new Timer(SendHeartbeatResponse, Encoding.UTF8.GetBytes(response), 0, interval);
+            _heartbeatTimer = new Timer(SendHeartbeatResponse, Encoding.UTF8.GetBytes(response), 0, (int)interval);
         }
 
         private void SendHeartbeatResponse(object state)
@@ -122,7 +122,7 @@ namespace Couchbase.Lite.PeerToPeer
 
             if (ChangesMode == ChangesFeedMode.LongPoll && Changes.Count > 0) {
                 Response.WriteHeaders();
-                Response.Body = new Body(DatabaseMethods.ResponseBodyForChanges(Changes, 0));
+                Response.Body = new Body(DatabaseMethods.ResponseBodyForChanges(Changes, 0, this));
                 Response.WriteToContext();
                 CouchbaseLiteRouter.ResponseFinished(this);
             }

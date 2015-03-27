@@ -28,7 +28,7 @@ namespace Couchbase.Lite.PeerToPeer
     {
         private readonly RouteTree _routeTree = new RouteTree();
         private static readonly RestMethod DEFAULT_METHOD = 
-            context => new CouchbaseLiteResponse() { InternalStatus = StatusCode.NotFound };
+            context => new CouchbaseLiteResponse(context) { InternalStatus = StatusCode.NotFound }.AsDefaultState();
 
         public RouteCollection(IDictionary<string, RestMethod> map)
         {

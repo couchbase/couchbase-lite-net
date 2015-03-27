@@ -240,12 +240,10 @@
     <Compile Include="$(MSBuildThisFileDirectory)Mono.Zeroconf\IService.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Mono.Zeroconf\IServiceBrowser.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Mono.Zeroconf\ITxtRecord.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Mono.Zeroconf\RegisterService.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Mono.Zeroconf\RegisterServiceEventArgs.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Mono.Zeroconf\RegisterServiceEventHandler.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Mono.Zeroconf\ServiceBrowseEventArgs.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Mono.Zeroconf\ServiceBrowseEventHandler.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Mono.Zeroconf\ServiceBrowser.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Mono.Zeroconf\ServiceErrorCode.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Mono.Zeroconf\ServiceResolvedEventArgs.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Mono.Zeroconf\ServiceResolvedEventHandler.cs" />

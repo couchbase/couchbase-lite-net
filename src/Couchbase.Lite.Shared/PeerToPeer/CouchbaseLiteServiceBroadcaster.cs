@@ -19,15 +19,9 @@
 //  limitations under the License.
 //
 using System;
-using System.Threading.Tasks;
-using System.Net;
-using System.Net.Sockets;
-using System.Threading;
-using Couchbase.Lite.Util;
-using System.Text;
+
 using Mono.Zeroconf.Providers.Bonjour;
 using Mono.Zeroconf;
-using System.Runtime.CompilerServices;
 
 #if ANDROID
 using Android.App;

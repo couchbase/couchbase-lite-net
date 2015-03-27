@@ -112,7 +112,7 @@ namespace Couchbase.Lite.PeerToPeer
             }
 
             var array = data.ToArray();
-            _context.Response.OutputStream.Write(array, array.Length);
+            _context.Response.OutputStream.Write(array, 0, array.Length);
             _context.Response.OutputStream.Flush();
             if (finished) {
                 _context.Response.Close();

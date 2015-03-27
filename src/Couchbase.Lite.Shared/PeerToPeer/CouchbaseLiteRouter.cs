@@ -76,7 +76,13 @@ namespace Couchbase.Lite.PeerToPeer
                 logic = _Delete.LogicForRequest(request);
             }
 
-            ICouchbaseResponseState responseState = logic(context);
+            ICouchbaseResponseState responseState = null;
+            try {
+                responseState = logic(context);
+            } catch(Exception e) {
+                responseState = new CouchbaseLiteResponse(context) { InternalStatus = StatusCode.Exception }.AsDefaultState();
+            }
+
             CouchbaseLiteResponse responseObject = responseState.Response;
             if (!responseState.IsAsync) {
                 responseObject.WriteHeaders();

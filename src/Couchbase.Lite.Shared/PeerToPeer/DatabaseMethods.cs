@@ -300,7 +300,7 @@ namespace Couchbase.Lite.PeerToPeer
                     if(responseState.ChangesIncludeConflicts) {
                         
                     } else {
-                        response.Body = new Body(ResponseBodyForChanges(changes, since));
+                        response.Body = new Body(ResponseBodyForChanges(changes, since, responseState));
                     }
 
                     return response;
@@ -558,14 +558,14 @@ namespace Couchbase.Lite.PeerToPeer
 
         private static IDictionary<string, object> ResponseBodyForChanges(RevisionList changes, long since, int limit)
         {
-            
+            throw new NotImplementedException();
         }
 
-        public static IDictionary<string, object> ResponseBodyForChanges(RevisionList changes, long since)
+        public static IDictionary<string, object> ResponseBodyForChanges(RevisionList changes, long since, DBMonitorCouchbaseResponseState responseState)
         {
             List<IDictionary<string, object>> results = new List<IDictionary<string, object>>();
             foreach (var change in changes) {
-                results.Add(DatabaseMethods.ChangesDictForRev(change));
+                results.Add(DatabaseMethods.ChangesDictForRev(change, responseState));
             }
 
             if (changes.Count > 0) {

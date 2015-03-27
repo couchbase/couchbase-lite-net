@@ -53,6 +53,7 @@ using System.Net.Http.Headers;
 using Newtonsoft.Json.Linq;
 
 using Sharpen;
+using System.Threading.Tasks;
 
 namespace Couchbase.Lite
 {
@@ -248,6 +249,11 @@ namespace Couchbase.Lite
             foreach (var file in info.GetFiles(searchPattern, option)) {
                 yield return file;
             }
+        }
+
+        public static Task<HttpListenerContext> GetContextAsync(this HttpListener listener)
+        {
+            return Task.Factory.FromAsync<HttpListenerContext>(listener.BeginGetContext, listener.EndGetContext, null);
         }
 
         #endif
