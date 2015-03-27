@@ -6,6 +6,7 @@ using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
 using System.Linq;
+using System.Net.Http;
 
 #if __ANDROID__
 using Android.App;
@@ -30,30 +31,22 @@ namespace Couchbase.Lite
     internal sealed class NetworkReachabilityManager : INetworkReachabilityManager
     {
         private int _startCount = 0;
+        private const string TAG = "NetworkReachabilityManager";
 
-        public NetworkReachabilityStatus CurrentStatus
+        public bool CanReach(string remoteUri)
         {
-            #if __ANDROID__
-            get {
-                var manager = (ConnectivityManager)Application.Context.GetSystemService(Context.ConnectivityService);
-                var networkInfo = manager.ActiveNetworkInfo;
-                return networkInfo == null || !networkInfo.IsConnected
-                    ? NetworkReachabilityStatus.Unreachable
-                        : NetworkReachabilityStatus.Reachable;
+            try {
+                using (var client = new HttpClient())
+                using (var stream = client.GetStreamAsync(remoteUri).Result)
+                {
+                    Log.D(TAG, "Got successful connection to {0}", remoteUri);
+                    return true;
+                }
+            } catch(Exception e) {
+                Log.D(TAG, "Didn't get successful connection to {0}", remoteUri);
+                Log.E(TAG, "Exception: ", e);
+                return false;
             }
-            #else
-            get {
-                var connectedIp = (from ip in 
-                        (from ni in NetworkInterface.GetAllNetworkInterfaces() 
-                        where ni.GetIPProperties().UnicastAddresses.Count > 0 
-                        select ni.GetIPProperties().UnicastAddresses.First().Address)
-                        where ip.AddressFamily == AddressFamily.InterNetwork
-                        select ip).FirstOrDefault();
-
-                return connectedIp == null ? NetworkReachabilityStatus.Unreachable
-                        : NetworkReachabilityStatus.Reachable;
-            }
-            #endif
         }
 
         #if __ANDROID__
@@ -123,7 +116,12 @@ namespace Couchbase.Lite
 
         #region INetworkReachabilityManager implementation
 
-        public event EventHandler<NetworkReachabilityChangeEventArgs> StatusChanged;
+        public event EventHandler<NetworkReachabilityChangeEventArgs> StatusChanged
+        {
+            add { _statusChanged = (EventHandler<NetworkReachabilityChangeEventArgs>)Delegate.Combine(_statusChanged, value); }
+            remove { _statusChanged = (EventHandler<NetworkReachabilityChangeEventArgs>)Delegate.Remove(_statusChanged, value); }
+        }
+        private EventHandler<NetworkReachabilityChangeEventArgs> _statusChanged;
 
         /// <summary>This method starts listening for network connectivity state changes.</summary>
         /// <remarks>This method starts listening for network connectivity state changes.</remarks>
@@ -157,7 +155,9 @@ namespace Couchbase.Lite
             }
 
             if (count < 0) {
-                throw new InvalidOperationException("StopListening() called too many times");
+                Debug.Assert(false, "Too many calls to INetworkReachabilityManager.StopListening()");
+                count = 0;
+                return;
             }
 
             #if __ANDROID__
@@ -196,7 +196,7 @@ namespace Couchbase.Lite
 
         void InvokeNetworkChangeEvent(NetworkReachabilityStatus status)
         {
-            var evt = StatusChanged;
+            var evt = _statusChanged;
             if (evt == null)
             {
                 return;

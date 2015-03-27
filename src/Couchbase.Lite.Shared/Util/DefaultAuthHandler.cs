@@ -64,15 +64,14 @@ namespace Couchbase.Lite.Replicator
 
         object locker = new object();
 
-        protected override HttpResponseMessage ProcessResponse (HttpResponseMessage response, CancellationToken cancellationToken)
+        protected override HttpResponseMessage ProcessResponse(HttpResponseMessage response, CancellationToken cancellationToken)
         {
             if (response.Content != null) {
                 var mre = new ManualResetEvent(false);
-                response.Content.LoadIntoBufferAsync().ConfigureAwait(false).GetAwaiter().OnCompleted(()=>{
-                    mre.Set();
-                });
+                response.Content.LoadIntoBufferAsync().ContinueWith(t => mre.Set());
                 mre.WaitOne(Manager.DefaultOptions.RequestTimeout, true);
             }
+                
             var hasSetCookie = response.Headers.Contains("Set-Cookie");
             if (hasSetCookie)
             {
@@ -90,9 +89,7 @@ namespace Couchbase.Lite.Replicator
         {
             if (request.Content != null) {
                 var mre = new ManualResetEvent(false);
-                request.Content.LoadIntoBufferAsync().ConfigureAwait(false).GetAwaiter().OnCompleted(()=>{
-                    mre.Set();
-                });
+                request.Content.LoadIntoBufferAsync().ContinueWith(t => mre.Set());
                 mre.WaitOne(Manager.DefaultOptions.RequestTimeout, true);
             }
 

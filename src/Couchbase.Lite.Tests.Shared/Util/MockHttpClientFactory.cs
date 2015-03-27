@@ -43,10 +43,15 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Net;
 using System.Net.Http;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
+
+#if NET_3_5
+using System.Net.Couchbase;
+#else
+using System.Net;
+#endif
 
 namespace Couchbase.Lite.Tests
 {

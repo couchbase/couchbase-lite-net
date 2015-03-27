@@ -42,20 +42,25 @@
 
 using System;
 using System.Collections.Generic;
-using System.Net;
+
 
 using Couchbase.Lite.Replicator;
 
 using Couchbase.Lite.Util;
 using Sharpen;
 
-using System.Web;
 using System.Net.Http;
 using System.Threading.Tasks;
 using NUnit.Framework;
 using Couchbase.Lite.Tests;
 using System.Collections;
 using System.Threading;
+
+#if NET_3_5
+using System.Net.Couchbase;
+#else
+using System.Net;
+#endif
 
 namespace Couchbase.Lite
 {
@@ -180,7 +185,7 @@ namespace Couchbase.Lite
                 var json = "{\"results\":[\n" +
                     "{\"seq\":\"1\",\"id\":\"doc1-138\",\"changes\":[{\"rev\":\"1-82d\"}]}],\n" +
                     "\"last_seq\":\"*:50\"}";
-                return MockHttpRequestHandler.GenerateHttpResponseMessage(HttpStatusCode.OK, null, json);
+                return MockHttpRequestHandler.GenerateHttpResponseMessage(System.Net.HttpStatusCode.OK, null, json);
             });
 
             var testUrl = GetReplicationURL();
@@ -251,7 +256,7 @@ namespace Couchbase.Lite
                 var json = "{\"results\":[\n" +
                     "{\"seq\":\"1\",\"id\":\"doc1-138\",\"changes\":[{\"rev\":\"1-82d\"}]}],\n" +
                     "\"last_seq\":\"*:50\"}";
-                return MockHttpRequestHandler.GenerateHttpResponseMessage(HttpStatusCode.OK, null, json);
+                return MockHttpRequestHandler.GenerateHttpResponseMessage(System.Net.HttpStatusCode.OK, null, json);
             };
             return responder;
         }
@@ -362,7 +367,7 @@ namespace Couchbase.Lite
         [Test]
         public void TestChangeTrackerRecoverableError()
         {
-            var errorCode = HttpStatusCode.ServiceUnavailable;
+            var errorCode = System.Net.HttpStatusCode.ServiceUnavailable;
             var statusMessage = "Transient Error";
             var numExpectedChangeCallbacks = 2;
             RunChangeTrackerTransientError(ChangeTrackerMode.LongPoll, (Int32)errorCode, statusMessage, numExpectedChangeCallbacks);
@@ -380,7 +385,7 @@ namespace Couchbase.Lite
         [Test]
         public void TestChangeTrackerNonRecoverableError()
         {
-            var errorCode = HttpStatusCode.NotFound;
+            var errorCode = System.Net.HttpStatusCode.NotFound;
             var statusMessage = "Not Found";
             var numExpectedChangeCallbacks = 1;
             RunChangeTrackerTransientError(ChangeTrackerMode.LongPoll, (Int32)errorCode, statusMessage, numExpectedChangeCallbacks);

@@ -51,8 +51,8 @@ using System.Text;
 using System.Threading;
 using NUnit.Framework;
 using System.Security.Permissions;
-using System.Threading.Tasks;
 using System.Diagnostics;
+using System.Threading.Tasks;
 
 namespace Couchbase.Lite
 {
@@ -790,14 +790,6 @@ namespace Couchbase.Lite
             }
         }
 
-        void CurrentDomain_FirstChanceException(object sender, System.Runtime.ExceptionServices.FirstChanceExceptionEventArgs e)
-        {
-            if (e.Exception is NullReferenceException && e.Exception.Source.Contains("SQLitePCL"))
-            {
-                Debugger.Break();
-            }
-        }
-
         //API_RunSlowView commented on IOS
         /// <exception cref="System.Exception"></exception>
         [Test]
@@ -1000,7 +992,7 @@ namespace Couchbase.Lite
         [Test]
         public void TestSharedMapBlocks()
         {
-            var path = new DirectoryInfo(Path.Combine(GetRootDirectory().FullName, "API_SharedMapBlocks"));
+            var path = new DirectoryInfo(Path.Combine(RootDirectory.FullName, "API_SharedMapBlocks"));
             var mgr = new Manager(path, Manager.DefaultOptions);
             var db = mgr.GetDatabase("db");
 
@@ -1038,7 +1030,7 @@ namespace Couchbase.Lite
         [Test]
         public void TestChangeUUID()
         {
-            var path = new DirectoryInfo(Path.Combine(GetRootDirectory().FullName, "ChangeUUID"));
+            var path = new DirectoryInfo(Path.Combine(RootDirectory.FullName, "ChangeUUID"));
             var mgr = new Manager(path, Manager.DefaultOptions);
             var db = mgr.GetDatabase("db");
 

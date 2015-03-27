@@ -26,7 +26,7 @@ namespace Couchbase.Lite.PeerToPeer
     {
         CouchbaseLiteResponse Response { get; }
 
-        public bool IsAsync { get; }
+        bool IsAsync { get; }
     }
 }
 

@@ -44,7 +44,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Threading;
@@ -56,12 +55,7 @@ using Couchbase.Lite.Replicator;
 using Couchbase.Lite.Util;
 using Sharpen;
 using System.Text;
-using Couchbase.Lite.Support;
 using Newtonsoft.Json;
-
-#if !NET_4_0
-using TaskEx = System.Threading.Tasks.Task;
-#endif
 
 namespace Couchbase.Lite.Replicator
 {
@@ -258,7 +252,8 @@ namespace Couchbase.Lite.Replicator
         {
             IsRunning = true;
 
-            if (client == null)
+            var clientCopy = client;
+            if (clientCopy == null)
             {
                 // This is a race condition that can be reproduced by calling cbpuller.start() and cbpuller.stop()
                 // directly afterwards.  What happens is that by the time the Changetracker thread fires up,
@@ -312,7 +307,7 @@ namespace Couchbase.Lite.Replicator
 
                 HttpClient httpClient = null;
                 try {
-                    httpClient = client.GetHttpClient();
+                    httpClient = clientCopy.GetHttpClient();
                     var authHeader = AuthUtils.GetAuthenticationHeaderValue(Authenticator, Request.RequestUri);
                     if (authHeader != null)
                     {
@@ -334,8 +329,8 @@ namespace Couchbase.Lite.Replicator
                         Request, 
                         changesFeedRequestTokenSource.Token
                     );
-                    var infoAwaiter = info.ConfigureAwait(false).GetAwaiter();
-                    infoAwaiter.OnCompleted(()=>
+        
+                    info.ContinueWith((t)=>
                         evt.Set()
                     );
                     evt.WaitOne(ManagerOptions.Default.RequestTimeout);
@@ -364,14 +359,15 @@ namespace Couchbase.Lite.Replicator
 
                     try 
                     {
-                        var completedTask = TaskEx.WhenAll(successHandler, errorHandler);
-                        completedTask.Wait((Int32)ManagerOptions.Default.RequestTimeout.TotalMilliseconds, changesFeedRequestTokenSource.Token);
+
+                        Task.WaitAll(new Task[] { successHandler, errorHandler }, (Int32)ManagerOptions.Default.RequestTimeout.TotalMilliseconds, changesFeedRequestTokenSource.Token);
                         Log.D(Tag, "Finished processing changes feed.");
                     } 
                     catch (Exception ex) {
+                        var e = ex.InnerException ?? ex;
                         // Swallow TaskCancelledExceptions, which will always happen
                         // if either errorHandler or successHandler don't need to fire.
-                        if (!(ex.InnerException is OperationCanceledException))
+                        if (!(e is OperationCanceledException))
                             throw ex;
                     } 
                     finally 
@@ -448,17 +444,22 @@ namespace Couchbase.Lite.Replicator
                 Log.E(Tag, msg);
                 Error = new CouchbaseLiteException (msg, new Status (status.GetStatusCode ()));
                 Stop();
+                return response;
             }
                 
             switch (mode)
             {
                 case ChangeTrackerMode.LongPoll:
                     {
+                        if (response.Content == null) {
+                            throw new CouchbaseLiteException("Got empty change tracker response", status.GetStatusCode());
+                        }
+
                         var content = response.Content.ReadAsByteArrayAsync().Result;
                         IDictionary<string, object> fullBody;
                         try
                         {
-                            fullBody = Manager.GetObjectMapper().ReadValue<IDictionary<string, object>>(content.AsEnumerable());
+                            fullBody = Manager.GetObjectMapper().ReadValue<IDictionary<string, object>>(content) ?? new Dictionary<string, object>();
                         } 
                         catch (JsonSerializationException ex)
                         {
@@ -594,14 +595,21 @@ namespace Couchbase.Lite.Replicator
 
                 IsRunning = false;
 
-                if (changesFeedRequestTokenSource != null)
+                var feedTokenSource = changesFeedRequestTokenSource;
+                if (feedTokenSource != null && !feedTokenSource.IsCancellationRequested)
                 {
                     try {
-                        changesFeedRequestTokenSource.Cancel();
+                        feedTokenSource.Cancel();
                     }catch(ObjectDisposedException) {
                         //FIXME Run() will often dispose this token source right out from under us since it
                         //is running on a separate thread.
                         Log.W(Tag, "Race condition on changesFeedRequestTokenSource detected");
+                    }catch(AggregateException e) {
+                        if (e.InnerException is ObjectDisposedException) {
+                            Log.W(Tag, "Race condition on changesFeedRequestTokenSource detected");
+                        } else {
+                            throw;
+                        }
                     }
                 }
 

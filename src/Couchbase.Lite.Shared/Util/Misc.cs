@@ -55,6 +55,8 @@ using System.Net.Http;
 using System.Net.Sockets;
 //using System.Net.WebSockets;
 
+
+
 namespace Couchbase.Lite
 {
     public delegate void TypedEventHandler<SenderType, ArgType>(SenderType sender, ArgType args);
@@ -227,4 +229,5 @@ namespace Couchbase.Lite
             return true;
         }
     }
+        
 }

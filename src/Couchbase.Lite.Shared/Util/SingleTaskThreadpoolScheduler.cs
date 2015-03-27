@@ -6,7 +6,6 @@ using System.Threading;
 using System.Linq;
 using System.Reflection;
 
-
 namespace Couchbase.Lite.Util
 {
     sealed internal class SingleTaskThreadpoolScheduler : TaskScheduler 
@@ -78,7 +77,7 @@ namespace Couchbase.Lite.Util
                         else
                         {
                             var success = TryExecuteTask(task);
-                            if (!success && (task.Status != TaskStatus.Canceled && task.Status != TaskStatus.RanToCompletion))
+                            if (!success && task.Status == TaskStatus.Faulted)
                                 Log.E(Tag, "Scheduled task faulted", task.Exception);
                         }
                     } 

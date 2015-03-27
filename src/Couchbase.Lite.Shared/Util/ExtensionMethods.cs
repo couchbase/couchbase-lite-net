@@ -120,6 +120,18 @@ namespace Couchbase.Lite
             return (T)value;
         }
 
+        public static IEnumerable<T> AsSafeEnumerable<T>(this IEnumerable<T> source)
+        {
+            var e = ((IEnumerable)source).GetEnumerator();
+            using (e as IDisposable)
+            {
+                while (e.MoveNext())
+                {
+                    yield return (T)e.Current;
+                }
+            }
+        }
+
         internal static IDictionary<TKey,TValue> AsDictionary<TKey, TValue>(this object attachmentProps)
         {
             if (attachmentProps == null)
@@ -170,9 +182,16 @@ namespace Couchbase.Lite
 
         public static StatusCode GetStatusCode(this HttpStatusCode code)
         {
-            StatusCode status;
-            Enum.TryParse(code.ToString(), out status);
-            return status;
+            var validVals = Enum.GetValues(typeof(StatusCode));
+            foreach (StatusCode validVal in validVals)
+            {
+                if ((Int32)code == (Int32)validVal)
+                {
+                    return validVal;
+                }
+            }
+
+            return StatusCode.Unknown;
         }
 
         public static AuthenticationHeaderValue GetAuthenticationHeader(this Uri uri, string scheme)

@@ -24,6 +24,27 @@ namespace Couchbase.Lite.Util
             _thread.Start();
         }
 
+        public SingleThreadScheduler(Thread thread, BlockingCollection<Task> jobQueue)
+        {
+            if (thread == null)
+            {
+                throw new ArgumentNullException("thread");
+            }
+
+            if(jobQueue == null)
+            {
+                throw new ArgumentNullException("jobQueue");
+            }
+
+            _thread = thread;
+            _jobQueue = jobQueue;
+        }
+
+        internal void TryExecuteTaskHack(Task task)
+        {
+            TryExecuteTask(task);
+        }
+
         /// <summary>Queues a task to the scheduler.</summary> 
         /// <param name="task">The task to be queued.</param> 
         protected override void QueueTask(Task task) 
@@ -51,26 +72,16 @@ namespace Couchbase.Lite.Util
 
         private void Run()
         {
-            try 
-            {
-                while (!_jobQueue.IsCompleted)
-                {
-                    Drain();
-                }
+            while (!_jobQueue.IsCompleted) {
+                Drain();
             }
-            catch(OperationCanceledException) 
-            {
-            }
-
-            Log.V(Tag, "Consumer thread finished");
         }
 
         private void Drain() 
         {
             Task nextTask;
             bool gotTask = _jobQueue.TryTake(out nextTask, -1);
-            if(gotTask && nextTask.Status < TaskStatus.Running)
-            {
+            if(gotTask && nextTask.Status < TaskStatus.Running) {
                 TryExecuteTask(nextTask);
             }
         }
