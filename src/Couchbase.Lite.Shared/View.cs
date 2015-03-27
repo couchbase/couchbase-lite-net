@@ -411,20 +411,20 @@ namespace Couchbase.Lite {
                     cursor.MoveToNext();
                     while (!cursor.IsAfterLast())
                     {
-                        var lazyKey = new Lazy<object>(()=>FromJSON(cursor.GetBlob(0)));
-                        var lazyValue = new Lazy<object>(()=>FromJSON(cursor.GetBlob(1)));
-                        // TODO: ditto
+                        var key = FromJSON(cursor.GetBlob(0));
+                        var value = FromJSON(cursor.GetBlob(1));
                         var docId = cursor.GetString(2);
                         var sequenceLong = cursor.GetLong(3);
                         var sequence = Convert.ToInt32(sequenceLong);
+
 
                         IDictionary<string, object> docContents = null;
                         if (options.IsIncludeDocs())
                         {
                             // http://wiki.apache.org/couchdb/Introduction_to_CouchDB_views#Linked_documents
-                            if (lazyValue.Value is IDictionary<string,object> && ((IDictionary<string,object>)lazyValue.Value).ContainsKey("_id"))
+                            if (value is IDictionary<string,object> && ((IDictionary<string,object>)value).ContainsKey("_id"))
                             {
-                                var linkedDocId = (string)((IDictionary<string,object>)lazyValue.Value).Get("_id");
+                                var linkedDocId = (string)((IDictionary<string,object>)value).Get("_id");
                                 var linkedDoc = Database.GetDocumentWithIDAndRev(linkedDocId, null, DocumentContentOptions.None);
                                 docContents = linkedDoc.GetProperties();
                             }
@@ -434,7 +434,7 @@ namespace Couchbase.Lite {
                                 docContents = Database.DocumentPropertiesFromJSON(cursor.GetBlob(5), docId, revId, false, sequenceLong, options.GetContentOptions());
                             }
                         }
-                        var row = new QueryRow(docId, sequence, lazyKey.Value, lazyValue.Value, docContents);
+                        var row = new QueryRow(docId, sequence, key, value, docContents);
                         row.Database = Database;
                         rows.AddItem<QueryRow>(row);  // NOTE.ZJG: Change to `yield return row` to convert to a generator.
                         cursor.MoveToNext();

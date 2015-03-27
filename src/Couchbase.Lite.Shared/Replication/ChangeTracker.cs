@@ -252,7 +252,8 @@ namespace Couchbase.Lite.Replicator
         {
             IsRunning = true;
 
-            if (client == null)
+            var clientCopy = client;
+            if (clientCopy == null)
             {
                 // This is a race condition that can be reproduced by calling cbpuller.start() and cbpuller.stop()
                 // directly afterwards.  What happens is that by the time the Changetracker thread fires up,
@@ -306,7 +307,7 @@ namespace Couchbase.Lite.Replicator
 
                 HttpClient httpClient = null;
                 try {
-                    httpClient = client.GetHttpClient();
+                    httpClient = clientCopy.GetHttpClient();
                     var authHeader = AuthUtils.GetAuthenticationHeaderValue(Authenticator, Request.RequestUri);
                     if (authHeader != null)
                     {
@@ -363,9 +364,10 @@ namespace Couchbase.Lite.Replicator
                         Log.D(Tag, "Finished processing changes feed.");
                     } 
                     catch (Exception ex) {
+                        var e = ex.InnerException ?? ex;
                         // Swallow TaskCancelledExceptions, which will always happen
                         // if either errorHandler or successHandler don't need to fire.
-                        if (!(ex.InnerException is OperationCanceledException))
+                        if (!(e is OperationCanceledException))
                             throw ex;
                     } 
                     finally 
@@ -442,17 +444,22 @@ namespace Couchbase.Lite.Replicator
                 Log.E(Tag, msg);
                 Error = new CouchbaseLiteException (msg, new Status (status.GetStatusCode ()));
                 Stop();
+                return response;
             }
                 
             switch (mode)
             {
                 case ChangeTrackerMode.LongPoll:
                     {
+                        if (response.Content == null) {
+                            throw new CouchbaseLiteException("Got empty change tracker response", status.GetStatusCode());
+                        }
+
                         var content = response.Content.ReadAsByteArrayAsync().Result;
                         IDictionary<string, object> fullBody;
                         try
                         {
-                            fullBody = Manager.GetObjectMapper().ReadValue<IDictionary<string, object>>(content.AsEnumerable());
+                            fullBody = Manager.GetObjectMapper().ReadValue<IDictionary<string, object>>(content) ?? new Dictionary<string, object>();
                         } 
                         catch (JsonSerializationException ex)
                         {
@@ -588,11 +595,11 @@ namespace Couchbase.Lite.Replicator
 
                 IsRunning = false;
 
-                var tokenSource = changesFeedRequestTokenSource;
-                if (tokenSource != null && !tokenSource.IsCancellationRequested)
+                var feedTokenSource = changesFeedRequestTokenSource;
+                if (feedTokenSource != null && !feedTokenSource.IsCancellationRequested)
                 {
                     try {
-                        tokenSource.Cancel();
+                        feedTokenSource.Cancel();
                     }catch(ObjectDisposedException) {
                         //FIXME Run() will often dispose this token source right out from under us since it
                         //is running on a separate thread.
