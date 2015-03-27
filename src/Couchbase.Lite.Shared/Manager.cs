@@ -57,6 +57,10 @@ using Couchbase.Lite.Replicator;
 using Couchbase.Lite.Support;
 using System.Net.NetworkInformation;
 
+#if !NET_3_5
+using StringEx = System.String;
+#endif
+
 namespace Couchbase.Lite
 {
     /// <summary>
@@ -93,7 +97,14 @@ namespace Couchbase.Lite
         /// </summary>
         /// <value>The shared instance.</value>
         // FIXME: SharedInstance lifecycle is undefined, so returning default manager for now.
-        public static Manager SharedInstance { get { return sharedManager ?? (sharedManager = new Manager(defaultDirectory, ManagerOptions.Default)); } }
+        public static Manager SharedInstance { 
+            get { 
+                return sharedManager ?? (sharedManager = new Manager(defaultDirectory, ManagerOptions.Default)); 
+            }
+            set { 
+                sharedManager = value;
+            }
+        }
 
         //Methods
 
@@ -127,7 +138,7 @@ namespace Couchbase.Lite
             // So, let's only set it only when GetFolderPath returns something and allow the directory to be
             // manually specified via the ctor that accepts a DirectoryInfo
             var defaultDirectoryPath = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-            if (!String.IsNullOrWhiteSpace(defaultDirectoryPath))
+            if (!StringEx.IsNullOrWhiteSpace(defaultDirectoryPath))
             {
                 defaultDirectory = new DirectoryInfo(defaultDirectoryPath);
             }
@@ -194,7 +205,7 @@ namespace Couchbase.Lite
         { 
             get 
             { 
-                var databaseFiles = directoryFile.EnumerateFiles("*" + Manager.DatabaseSuffix, SearchOption.AllDirectories);
+                var databaseFiles = directoryFile.GetFiles("*" + Manager.DatabaseSuffix, SearchOption.AllDirectories);
                 var result = new List<String>();
                 foreach (var databaseFile in databaseFiles)
                 {
@@ -411,7 +422,7 @@ namespace Couchbase.Lite
 
         private void UpgradeOldDatabaseFiles(DirectoryInfo dirInfo)
         {
-            var files = dirInfo.EnumerateFiles("*" + DatabaseSuffixOld, SearchOption.TopDirectoryOnly);
+            var files = dirInfo.GetFiles("*" + DatabaseSuffixOld, SearchOption.TopDirectoryOnly);
             foreach (var file in files)
             {
                 var oldFilename = file.Name;

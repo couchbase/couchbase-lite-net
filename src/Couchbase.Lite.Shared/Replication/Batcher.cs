@@ -52,10 +52,6 @@ using Couchbase.Lite.Internal;
 using System.Linq;
 using System.Collections.Concurrent;
 
-#if !NET_4_0
-using TaskEx = System.Threading.Tasks.Task;
-#endif
-
 namespace Couchbase.Lite.Support
 {
     /// <summary>
@@ -232,7 +228,7 @@ namespace Couchbase.Lite.Support
                 cancellationSource = new CancellationTokenSource();
 
                 Interlocked.Increment(ref taskCount);
-                TaskEx.Delay(scheduledDelay).ContinueWith((t) =>
+                Task.Delay(scheduledDelay).ContinueWith((t) =>
                 {
                     if (!t.IsCanceled) {
                         try {

@@ -41,11 +41,16 @@
 //
 
 using System;
-using System.Net;
 using System.Net.Http;
 using System.Collections.Generic;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Replicator;
+
+#if NET_3_5
+using System.Net.Couchbase;
+#else
+using System.Net;
+#endif
 
 namespace Couchbase.Lite.Tests
 {
@@ -73,7 +78,7 @@ namespace Couchbase.Lite.Tests
             return mockHttpClient;
         }
 
-        public void AddCookies(System.Net.CookieCollection cookies)
+        public void AddCookies(CookieCollection cookies)
         {
             throw new NotImplementedException();
         }

@@ -105,7 +105,7 @@ namespace Couchbase.Lite.Util
                     destinationDirectory.Create();
                 }
                 //list all the directory contents
-                var fileInfos = sourceDirectory.EnumerateFileSystemInfos();
+                var fileInfos = sourceDirectory.GetFileSystemInfos();
                 foreach (var fileInfo in fileInfos)
                 {
                     //construct the src and dest file structure

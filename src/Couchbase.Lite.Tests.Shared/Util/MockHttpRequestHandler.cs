@@ -50,10 +50,6 @@ using System.Linq;
 using System.IO;
 using Newtonsoft.Json.Linq;
 
-#if !NET_4_0
-using TaskEx = System.Threading.Tasks.Task;
-#endif
-
 namespace Couchbase.Lite.Tests
 {
     public class MockHttpRequestHandler : HttpClientHandler
@@ -81,12 +77,8 @@ namespace Couchbase.Lite.Tests
 
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
-            //var response = base.SendAsync(request, cancellationToken).Result;
-
             Delay();
-
             var requestDeepCopy = CopyRequest(request);
-
             capturedRequests.Add(requestDeepCopy);
 
             HttpResponseDelegate responder;
@@ -100,24 +92,8 @@ namespace Couchbase.Lite.Tests
             }
 
             if (responder != null) {
-                HttpResponseMessage message = null;
-                Task<HttpResponseMessage> retVal = null;
-
-                try {
-                    message = responder(request);
-                    retVal = TaskEx.FromResult<HttpResponseMessage>(message);
-                } catch (Exception e) {
-                    //.NET 4.0.x logic to bring it inline with 4.5
-                    TaskCompletionSource<HttpResponseMessage> completionSource = new TaskCompletionSource<HttpResponseMessage>();
-                    if (e is OperationCanceledException) {
-                        completionSource.SetCanceled();
-                    } else {
-                        completionSource.SetException(e);
-                    }
-
-                    completionSource.TrySetResult(message);
-                    retVal = completionSource.Task;
-                }
+                HttpResponseMessage message = responder(request);
+                Task<HttpResponseMessage> retVal = Task.FromResult<HttpResponseMessage>(message);
                 NotifyResponseListeners(request, message);
                 return retVal;
             } else {
@@ -220,7 +196,7 @@ namespace Couchbase.Lite.Tests
 
         private HttpRequestMessage CopyRequest(HttpRequestMessage request)
         {
-            //The .NET 4.0 backport of HttpClient uncontrollably disposes the
+            //The Windows version of HttpClient uncontrollably disposes the
             //HttpContent of an HttpRequestMessage once the message is sent
             //so we need to make a copy of it to store in the capturedRequests 
             //collection

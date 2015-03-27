@@ -247,12 +247,6 @@ namespace Couchbase.Lite
             return json.AsDictionary<string, object>();
         }
 
-        [SetUp]
-        public void Setup()
-        {
-            Log.V(Tag, "------");
-        }
-
         // Reproduces issue #167
         // https://github.com/couchbase/couchbase-lite-android/issues/167
         /// <exception cref="System.Exception"></exception>
@@ -891,7 +885,7 @@ namespace Couchbase.Lite
                 return;
             }
             var dbUrlString = "http://10.0.0.3:4984/todos/";
-            var replicator = new Pusher(null, new Uri(dbUrlString), false, null);
+            var replicator = new Pusher(database, new Uri(dbUrlString), false, null);
             string relativeUrlString = replicator.BuildRelativeURLString("foo");
             string expected = "http://10.0.0.3:4984/todos/foo";
             Assert.AreEqual(expected, relativeUrlString);
@@ -907,7 +901,7 @@ namespace Couchbase.Lite
                 return;
             }
             var dbUrlString = "http://10.0.0.3:4984/todos/";
-            var replicator = new Pusher(null, new Uri(dbUrlString), false, null);
+            var replicator = new Pusher(database, new Uri(dbUrlString), false, null);
             string relativeUrlString = replicator.BuildRelativeURLString("/foo");
             string expected = "http://10.0.0.3:4984/todos/foo";
             Assert.AreEqual(expected, relativeUrlString);
@@ -1164,6 +1158,7 @@ namespace Couchbase.Lite
                 Assert.Inconclusive("Replication tests disabled.");
                 return;
             }
+
             var replicationUrl = GetReplicationURL();
             var puller = database.CreatePullReplication(replicationUrl);
             var cookieContainer = puller.CookieContainer;

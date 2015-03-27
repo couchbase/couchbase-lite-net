@@ -205,7 +205,7 @@ namespace Couchbase.Lite
             Log.D(Tag, "UpdateQueryTask results obtained.");
             LastError = runTask.Exception;
 
-            var evt = Changed;
+            var evt = _changed;
             if (evt == null)
                 return; // No delegates were subscribed, so no work to be done.
 
@@ -371,7 +371,11 @@ namespace Couchbase.Lite
         /// whenever the Database changes in a way that would affect the results of the 
         /// <see cref="Couchbase.Lite.Query"/>.
         /// </summary>
-        public event EventHandler<QueryChangeEventArgs> Changed;
+        public event EventHandler<QueryChangeEventArgs> Changed {
+            add { _changed = (EventHandler<QueryChangeEventArgs>)Delegate.Combine(_changed, value); }
+            remove { _changed = (EventHandler<QueryChangeEventArgs>)Delegate.Remove(_changed, value); }
+        }
+        private EventHandler<QueryChangeEventArgs> _changed;
 
     #endregion
     

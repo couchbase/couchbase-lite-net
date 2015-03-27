@@ -42,23 +42,26 @@
 
 using System;
 using System.Collections.Generic;
-using System.Data;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Newtonsoft.Json.Linq;
 using Couchbase.Lite.Internal;
 using Couchbase.Lite.Replicator;
 using Couchbase.Lite.Storage;
 using Couchbase.Lite.Util;
 using Sharpen;
-using System.Collections.Concurrent;
 using System.Collections;
-using System.Collections.ObjectModel;
+using System.Runtime.CompilerServices;
+
+
+#if !NET_3_5
+using StringEx = System.String;
 using System.Net;
-using System.Threading;
+#else
+using System.Net.Couchbase;
+#endif
 
 namespace Couchbase.Lite 
 {
@@ -117,6 +120,7 @@ namespace Couchbase.Lite
         }
 
         static readonly ICollection<String> KnownSpecialKeys;
+
 
         static Database()
         {
@@ -360,7 +364,7 @@ namespace Couchbase.Lite
         /// <param name="id">The id of the Document to get or create.</param>
         public Document GetDocument(String id) 
         { 
-            if (String.IsNullOrWhiteSpace (id)) {
+            if (StringEx.IsNullOrWhiteSpace (id)) {
                 return null;
             }
 
@@ -386,7 +390,7 @@ namespace Couchbase.Lite
         /// <param name="id">The id of the Document to get.</param>
         public Document GetExistingDocument(String id) 
         { 
-            if (String.IsNullOrWhiteSpace (id)) {
+            if (StringEx.IsNullOrWhiteSpace (id)) {
                 return null;
             }
             var revisionInternal = GetDocumentWithIDAndRev(id, null, DocumentContentOptions.None);
@@ -741,7 +745,11 @@ namespace Couchbase.Lite
         /// <summary>
         /// Event handler delegate that will be called whenever a <see cref="Couchbase.Lite.Document"/> within the <see cref="Couchbase.Lite.Database"/> changes.
         /// </summary>
-        public event EventHandler<DatabaseChangeEventArgs> Changed;
+        public event EventHandler<DatabaseChangeEventArgs> Changed {
+            add { _changed = (EventHandler<DatabaseChangeEventArgs>)Delegate.Combine(_changed, value); }
+            remove { _changed = (EventHandler<DatabaseChangeEventArgs>)Delegate.Remove(_changed, value); }
+        }
+        private EventHandler<DatabaseChangeEventArgs> _changed;
 
     #endregion
        
@@ -882,14 +890,14 @@ PRAGMA user_version = 3;";
             }
         }
 
-        private RevisionList GetAllRevisionsOfDocumentID(string docId, long docNumericID, bool onlyCurrent)
+        private RevisionList GetAllRevisionsOfDocumentID(string docId, long docNumericID, bool onlyCurrent, bool readUncommit = false)
         {
             var sql = onlyCurrent 
                 ? "SELECT sequence, revid, deleted FROM revs " + "WHERE doc_id=? AND current ORDER BY sequence DESC"
                 : "SELECT sequence, revid, deleted FROM revs " + "WHERE doc_id=? ORDER BY sequence DESC";
 
             var args = new [] { Convert.ToString (docNumericID) };
-            var cursor = StorageEngine.RawQuery(sql, args);
+            var cursor = readUncommit ? StorageEngine.IntransactionRawQuery(sql, args) : StorageEngine.RawQuery(sql, args);
 
             RevisionList result;
             try
@@ -2462,7 +2470,7 @@ PRAGMA user_version = 3;";
                                 Log.I(Tag, String.Format("Purging doc '{0}' revs ({1}); asked for ({2})", docID, revsToPurge, revIDs));
                                 if (seqsToPurge.Count > 0)
                                 {
-                                    string seqsToPurgeList = String.Join(",", seqsToPurge);
+                                    string seqsToPurgeList = String.Join(",", seqsToPurge.ToStringArray());
                                     string sql = string.Format("DELETE FROM revs WHERE sequence in ({0})", seqsToPurgeList);
                                     try
                                     {
@@ -3457,7 +3465,7 @@ PRAGMA user_version = 3;";
                         Source = this
                     } ;
 
-                    var changeEvent = Changed;
+                    var changeEvent = _changed;
                     if (changeEvent != null)
                         changeEvent(this, args);
                 }

@@ -65,4 +65,5 @@ using System.Runtime.Versioning;
 [assembly: InternalsVisibleTo("Couchbase.Lite.Net45.Tests")]
 [assembly: InternalsVisibleTo("Couchbase.Lite.Android.Tests")]
 [assembly: InternalsVisibleTo("CouchbaseLiteiOSTests")]
-[assembly: InternalsVisibleTo("Couchbase.Lite.Net40.Tests")]
+[assembly: InternalsVisibleTo("Couchbase.Lite.Net35.Tests")]
+[assembly: InternalsVisibleTo("Couchbase.Lite.Unity")]

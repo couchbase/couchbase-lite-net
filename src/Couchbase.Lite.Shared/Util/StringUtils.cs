@@ -41,6 +41,8 @@
 //
 
 using System;
+using System.Collections;
+using System.Linq;
 
 namespace Couchbase.Lite.Util
 {
@@ -296,6 +298,16 @@ namespace Couchbase.Lite.Util
             var paddedNewContentBase64 = base64String.PadRight (strLength + strLength % 4, '=');
             var newContents = Convert.FromBase64String (paddedNewContentBase64);
             return newContents;
+        }
+    }
+
+    internal static class StringExt
+    {
+        public static string[] ToStringArray(this IEnumerable collection)
+        {
+            var transformedCollection = from object o in collection
+                select o.ToString();
+            return transformedCollection.ToArray();
         }
     }
 }

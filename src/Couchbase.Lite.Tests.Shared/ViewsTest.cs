@@ -52,7 +52,6 @@ using NUnit.Framework;
 using Sharpen;
 using Newtonsoft.Json.Linq;
 using System.Threading;
-using System.Data;
 
 namespace Couchbase.Lite
 {

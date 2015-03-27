@@ -5,7 +5,7 @@ using System.Collections.Generic;
 
 namespace Couchbase.Lite.Util
 {
-    internal static class StreamUtils
+    public static class StreamUtils
     {
         /// <exception cref="System.IO.IOException"></exception>
         internal static void CopyStreamsToFolder(IDictionary<String, Stream> streams, FilePath folder)
