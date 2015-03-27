@@ -6,7 +6,7 @@
     <ProjectGuid>{1B765803-7F61-497E-96D0-3BE5AF32C81A}</ProjectGuid>
     <OutputType>Library</OutputType>
     <RootNamespace>Couchbase.Lite.Tests</RootNamespace>
-    <ReleaseVersion>1.0.4</ReleaseVersion>
+    <ReleaseVersion>1.0.5</ReleaseVersion>
     <SolutionDir Condition="$(SolutionDir) == '' Or $(SolutionDir) == '*Undefined*'">..\</SolutionDir>
     <RestorePackages>true</RestorePackages>
     <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>

@@ -71,7 +71,7 @@ namespace Couchbase.Lite
 
     #region Constants
 
-        const string VersionString = "1.0.4";
+        const string VersionString = "1.0.5_unofficial";
         const string Tag = "Manager";
 
         /// <summary>
