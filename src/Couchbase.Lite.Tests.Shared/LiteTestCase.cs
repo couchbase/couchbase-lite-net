@@ -56,6 +56,7 @@ using System.Threading.Tasks;
 using System.Linq;
 using System.Text;
 using System.Threading;
+using System.Reflection;
 
 namespace Couchbase.Lite
 {
@@ -73,6 +74,23 @@ namespace Couchbase.Lite
         protected Database database = null;
 
         protected string DefaultTestDb = "cblitetest";
+
+        private static DirectoryInfo _rootDir;
+        public static DirectoryInfo RootDirectory { 
+            get {
+                if (_rootDir == null) {
+                    var path = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+                    _rootDir = new DirectoryInfo(Path.Combine(path, Path.Combine("couchbase", Path.Combine("tests", "files"))));
+                }
+
+                return _rootDir;
+            }
+            set { 
+                var path = value.FullName;
+                _rootDir = new DirectoryInfo(Path.Combine(path, Path.Combine("couchbase", Path.Combine("tests", "files"))));;
+            }
+        }
+
 
         [SetUp]
         protected void SetUp()
@@ -93,16 +111,9 @@ namespace Couchbase.Lite
             return stream;
         }
 
-        protected DirectoryInfo GetRootDirectory()
-        {
-            var rootDirectoryPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-            var rootDirectory = new DirectoryInfo(Path.Combine(rootDirectoryPath, "couchbase", "tests", "files"));
-            return rootDirectory;
-        }
-
         protected string GetServerPath()
         {
-            var filesDir = GetRootDirectory().FullName;
+            var filesDir = RootDirectory.FullName;
             return filesDir;
         }
 

@@ -6,7 +6,6 @@ using System.Threading;
 using System.Linq;
 using System.Reflection;
 
-
 namespace Couchbase.Lite.Util
 {
     sealed internal class SingleTaskThreadpoolScheduler : TaskScheduler 
@@ -49,7 +48,7 @@ namespace Couchbase.Lite.Util
             Log.D(Tag, " --> Queued a task: {0}/{1}", queue.Count, runningTasks);
             if (runningTasks < maxConcurrency)
             {
-                Interlocked.MemoryBarrier();
+                Thread.MemoryBarrier();
                 Interlocked.Increment(ref runningTasks);
                 QueueThreadPoolWorkItem (); 
             }
@@ -78,7 +77,7 @@ namespace Couchbase.Lite.Util
                         else
                         {
                             var success = TryExecuteTask(task);
-                            if (!success && (task.Status != TaskStatus.Canceled && task.Status != TaskStatus.RanToCompletion))
+                            if (!success && task.Status == TaskStatus.Faulted)
                                 Log.E(Tag, "Scheduled task faulted", task.Exception);
                         }
                     } 

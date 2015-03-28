@@ -42,11 +42,17 @@
 
 using System;
 using System.Linq;
-using System.Net;
 using System.IO;
 using System.Reflection;
 using Newtonsoft.Json;
 using System.Collections.Generic;
+
+#if !NET_3_5
+using StringEx = System.String;
+using System.Net;
+#else
+using System.Net.Couchbase;
+#endif
 
 namespace Couchbase.Lite.Util
 {
@@ -160,7 +166,7 @@ namespace Couchbase.Lite.Util
         private void SerializeToDisk()
         {
             var filePath = GetSaveCookiesFilePath();
-            if (String.IsNullOrWhiteSpace(filePath))
+            if (StringEx.IsNullOrWhiteSpace(filePath))
             {
                 return;
             }
@@ -182,7 +188,7 @@ namespace Couchbase.Lite.Util
         private void DeserializeFromDisk()
         {
             var filePath = GetSaveCookiesFilePath();
-            if (String.IsNullOrWhiteSpace(filePath))
+            if (StringEx.IsNullOrWhiteSpace(filePath))
             {
                 return;
             }
@@ -198,6 +204,8 @@ namespace Couchbase.Lite.Util
                 var json = reader.ReadToEnd();
 
                 var cookies = JsonConvert.DeserializeObject<List<Cookie>>(json);
+                cookies = cookies ?? new List<Cookie>();
+
                 foreach(Cookie cookie in cookies)
                 {
                     Add(cookie);

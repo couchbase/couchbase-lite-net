@@ -45,7 +45,6 @@ using NUnit.Framework;
 using System.Collections.Generic;
 using System.Linq;
 using Sharpen;
-using System.Threading.Tasks;
 using System.Threading;
 using Newtonsoft.Json.Linq;
 using Couchbase.Lite.Internal;
@@ -215,10 +214,15 @@ namespace Couchbase.Lite
             Assert.AreEqual(1, database.ActiveReplicators.Count);
 
             // TODO: Port full ReplicationFinishedObserver
-            var failed = doneSignal.WaitOne(TimeSpan.FromSeconds(30));
+            var failed = doneSignal.WaitOne(TimeSpan.FromSeconds(60));
 
             Assert.True(failed);
-            Assert.AreEqual(1, database.AllReplications.ToList().Count);
+
+            //Active replicators also get removed in a changed callback and sometimes the done
+            //signal gets set before the changed event that removes the active replicator has a
+            //chance to run
+            Thread.Sleep(TimeSpan.FromMilliseconds(500)); 
+            Assert.AreEqual(1, database.AllReplications.Count());
             Assert.AreEqual(0, database.ActiveReplicators.Count);
         }
 

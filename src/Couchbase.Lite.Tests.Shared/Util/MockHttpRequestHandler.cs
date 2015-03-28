@@ -49,7 +49,6 @@ using System.Threading.Tasks;
 using System.Linq;
 using System.IO;
 using Newtonsoft.Json.Linq;
-using System.Web;
 
 namespace Couchbase.Lite.Tests
 {
@@ -78,24 +77,28 @@ namespace Couchbase.Lite.Tests
 
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
-            //var response = base.SendAsync(request, cancellationToken).Result;
+            Delay();
+            var requestDeepCopy = CopyRequest(request);
+            capturedRequests.Add(requestDeepCopy);
 
-            Delay(); // FIXEM: Currently a no-op.
-
-            capturedRequests.Add(request);
-
-            foreach(var urlPattern in responders.Keys)
-            {
-                if (urlPattern.Equals("*") || request.RequestUri.PathAndQuery.Contains(urlPattern))
-                {
-                    var responder = responders[urlPattern];
-                    var message = responder(request);
-                    NotifyResponseListeners(request, message);
-                    return Task.FromResult<HttpResponseMessage>(message);
+            HttpResponseDelegate responder;
+            if(!responders.TryGetValue("*", out responder)) {
+                foreach(var urlPattern in responders.Keys) {
+                    if (request.RequestUri.PathAndQuery.Contains(urlPattern)) {
+                        responder = responders[urlPattern];
+                        break;
+                    }
                 }
             }
 
-            throw new Exception("No responders matched for url pattern: " + request.RequestUri.PathAndQuery);
+            if (responder != null) {
+                HttpResponseMessage message = responder(request);
+                Task<HttpResponseMessage> retVal = Task.FromResult<HttpResponseMessage>(message);
+                NotifyResponseListeners(request, message);
+                return retVal;
+            } else {
+                throw new Exception("No responders matched for url pattern: " + request.RequestUri.PathAndQuery);
+            }
         }
 
         public void SetResponder(string urlPattern, HttpResponseDelegate responder)
@@ -189,6 +192,31 @@ namespace Couchbase.Lite.Tests
                 var snapshot = new List<HttpRequestMessage>(capturedRequests);
                 return snapshot;
             }
+        }
+
+        private HttpRequestMessage CopyRequest(HttpRequestMessage request)
+        {
+            //The Windows version of HttpClient uncontrollably disposes the
+            //HttpContent of an HttpRequestMessage once the message is sent
+            //so we need to make a copy of it to store in the capturedRequests 
+            //collection
+            var retVal = new HttpRequestMessage(request.Method, request.RequestUri) {
+                Version = request.Version
+            };
+
+            foreach (var header in request.Headers) {
+                retVal.Headers.Add(header.Key, header.Value);
+            }
+
+            //Expand as needed
+            if (request.Content is ByteArrayContent) {
+                byte[] data = request.Content.ReadAsByteArrayAsync().Result;
+                retVal.Content = new ByteArrayContent(data);
+            } else {
+                retVal.Content = request.Content;
+            }
+
+            return retVal;
         }
 
         private void Delay()

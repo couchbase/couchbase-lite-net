@@ -45,7 +45,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Threading;
@@ -57,6 +56,12 @@ using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
 using Sharpen;
 
+#if !NET_3_5
+using StringEx = System.String;
+using System.Net;
+#else
+using System.Net.Couchbase;
+#endif
 
 namespace Couchbase.Lite
 {
@@ -136,17 +141,16 @@ namespace Couchbase.Lite
             CancellationTokenSource = new CancellationTokenSource();
             RemoteUrl = remote;
             Status = ReplicationStatus.Stopped;
-            online = Manager.SharedInstance.NetworkReachabilityManager.CurrentStatus == NetworkReachabilityStatus.Reachable;
             RequestHeaders = new Dictionary<String, Object>();
             requests = new HashSet<HttpClient>();
 
             // FIXME: Refactor to visitor pattern.
-            if (RemoteUrl.GetQuery() != null && !RemoteUrl.GetQuery().IsEmpty())
+            if (RemoteUrl.GetQuery() != null && !StringEx.IsNullOrWhiteSpace(RemoteUrl.GetQuery()))
             {
                 var uri = new Uri(remote.ToString());
                 var personaAssertion = URIUtils.GetQueryParameter(uri, PersonaAuthorizer.QueryParameter);
 
-                if (personaAssertion != null && !personaAssertion.IsEmpty())
+                if (personaAssertion != null && !StringEx.IsNullOrWhiteSpace(personaAssertion))
                 {
                     var email = PersonaAuthorizer.RegisterAssertion(personaAssertion);
                     var authorizer = new PersonaAuthorizer(email);
@@ -155,7 +159,7 @@ namespace Couchbase.Lite
 
                 var facebookAccessToken = URIUtils.GetQueryParameter(uri, FacebookAuthorizer.QueryParameter);
 
-                if (facebookAccessToken != null && !facebookAccessToken.IsEmpty())
+                if (facebookAccessToken != null && !StringEx.IsNullOrWhiteSpace(facebookAccessToken))
                 {
                     var email = URIUtils.GetQueryParameter(uri, FacebookAuthorizer.QueryParameterEmail);
                     var authorizer = new FacebookAuthorizer(email);
@@ -254,6 +258,7 @@ namespace Couchbase.Lite
                     if (!lastSequenceChanged)
                     {
                         lastSequenceChanged = true;
+
                         Task.Delay(SaveLastSequenceDelay)
                             .ContinueWith(task =>
                             {
@@ -381,7 +386,7 @@ namespace Couchbase.Lite
         {
             UpdateProgress();
 
-            var evt = Changed;
+            var evt = _changed;
             if (evt == null) return;
 
             var args = new ReplicationChangeEventArgs(this);
@@ -471,8 +476,13 @@ namespace Couchbase.Lite
                     //Swallow, our work is already done for us
                 }
             }
-            CancellationTokenSource.Cancel();
+
+            var cts = CancellationTokenSource;
             CancellationTokenSource = new CancellationTokenSource();
+            if (!cts.IsCancellationRequested) {
+                cts.Cancel();
+            }
+
             //Task.WaitAll(((SingleTaskThreadpoolScheduler)WorkExecutor.Scheduler).ScheduledTasks.ToArray());
         }
 
@@ -546,7 +556,7 @@ namespace Couchbase.Lite
                 {
                     if (e != null)
                     {
-                        if (e is WebException && ((WebException)e).Status == WebExceptionStatus.ProtocolError && ((HttpWebResponse)((WebException)e).Response).StatusCode == HttpStatusCode.NotFound
+                        if (e is WebException && ((WebException)e).Status == System.Net.WebExceptionStatus.ProtocolError && ((HttpWebResponse)((WebException)e).Response).StatusCode == System.Net.HttpStatusCode.NotFound
                             && sessionPath.Equals("/_session", StringComparison.InvariantCultureIgnoreCase)) {
                             CheckSessionAtPath ("_session");
                             return;
@@ -676,8 +686,8 @@ namespace Couchbase.Lite
         {
             var result = false;
             if (e is Couchbase.Lite.HttpResponseException)
-                return ((HttpResponseException)e).StatusCode == HttpStatusCode.NotFound;
-            return (e is HttpResponseException) && ((HttpResponseException)e).StatusCode == HttpStatusCode.NotFound;
+                return ((HttpResponseException)e).StatusCode == System.Net.HttpStatusCode.NotFound;
+            return (e is HttpResponseException) && ((HttpResponseException)e).StatusCode == System.Net.HttpStatusCode.NotFound;
         }
 
         internal abstract void BeginReplicating();
@@ -1102,7 +1112,7 @@ namespace Couchbase.Lite
                                     {
                                         if (numBytesRead != bufLen)
                                         {
-                                            var bufferToAppend = new ArraySegment<Byte>(buffer, 0, numBytesRead);
+                                            var bufferToAppend = new Couchbase.Lite.Util.ArraySegment<Byte>(buffer, 0, numBytesRead);
                                             reader.AppendData(bufferToAppend);
                                         }
                                         else
@@ -1159,7 +1169,7 @@ namespace Couchbase.Lite
                             }
                         }
                     }
-                    catch (ProtocolViolationException e)
+                    catch (System.Net.ProtocolViolationException e)
                     {
                         Log.E(Tag, "client protocol exception", e);
                         error = e;
@@ -1253,14 +1263,14 @@ namespace Couchbase.Lite
             var server = response.Headers.Server;
             if (server != null && server.Any())
             {
-				ServerType = String.Join(" ", server.Select(pi => pi.Product).Where(pi => pi != null));
+                ServerType = String.Join(" ", server.Select(pi => pi.Product).Where(pi => pi != null).ToStringArray());
                 Log.V(Tag, "Server Version: " + ServerType);
             }
         }
 
         protected internal bool CheckServerCompatVersion(string minVersion)
         {
-            if (String.IsNullOrWhiteSpace(ServerType))
+            if (StringEx.IsNullOrWhiteSpace(ServerType))
             {
                 return false;
             }
@@ -1407,14 +1417,14 @@ namespace Couchbase.Lite
                 }
 
                 var errorStr = item.Get("error") as string;
-                if (errorStr == null || errorStr.IsEmpty())
+                if (StringEx.IsNullOrWhiteSpace(errorStr))
                 {
                     return new Status(StatusCode.Ok);
                 }
 
                 // 'status' property is nonstandard; TouchDB returns it, others don't.
                 var statusString = item.Get("status") as string;
-                if (String.IsNullOrWhiteSpace(statusString))
+                if (StringEx.IsNullOrWhiteSpace(statusString))
                 {
                     var status = Convert.ToInt32(statusString);
                     if (status >= 400)
@@ -1671,7 +1681,7 @@ namespace Couchbase.Lite
                 var p = FilterParams.ContainsKey(ChannelsQueryParam)
                     ? (string)FilterParams[ChannelsQueryParam]
                     : null;
-                if (!IsPull || Filter == null || !Filter.Equals(ByChannelFilterName) || p == null || p.IsEmpty())
+                if (!IsPull || Filter == null || !Filter.Equals(ByChannelFilterName) || StringEx.IsNullOrWhiteSpace(p))
                 {
                     return new List<string>();
                 }
@@ -1691,7 +1701,7 @@ namespace Couchbase.Lite
 
                     Filter = ByChannelFilterName;
                     var filterParams = new Dictionary<string, object>();
-                    filterParams.Put(ChannelsQueryParam, String.Join(",", value));
+                    filterParams.Put(ChannelsQueryParam, String.Join(",", value.ToStringArray()));
                     FilterParams = filterParams;
                 }
                 else if (Filter != null && Filter.Equals(ByChannelFilterName))
@@ -1782,6 +1792,7 @@ namespace Couchbase.Lite
                 return;
             }
 
+            online = LocalDatabase.Manager.NetworkReachabilityManager.CanReach(RemoteUrl.AbsoluteUri);
             LocalDatabase.AddReplication(this);
             LocalDatabase.AddActiveReplication(this);
 
@@ -1882,7 +1893,12 @@ namespace Couchbase.Lite
         /// that will be called whenever the <see cref="Couchbase.Lite.Replication"/>
         /// changes.
         /// </summary>
-        public event EventHandler<ReplicationChangeEventArgs> Changed;
+        public event EventHandler<ReplicationChangeEventArgs> Changed 
+        {
+            add { _changed = (EventHandler<ReplicationChangeEventArgs>)Delegate.Combine(_changed, value); }
+            remove { _changed = (EventHandler<ReplicationChangeEventArgs>)Delegate.Remove(_changed, value); }
+        }
+        private EventHandler<ReplicationChangeEventArgs> _changed;
 
         #region Private Methods
 

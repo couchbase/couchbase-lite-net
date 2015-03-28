@@ -88,7 +88,7 @@ namespace Couchbase.Lite
         public void TestUpgradeOldDatabaseFiles()
         {
             var testDirName = "test-directory-" + Runtime.CurrentTimeMillis();
-            var rootDirPath = GetRootDirectory().FullName;
+            var rootDirPath = RootDirectory.FullName;
             var testDirPath = Path.Combine(rootDirPath, testDirName);
             var testDirInfo = Directory.CreateDirectory(testDirPath);
 
@@ -145,7 +145,7 @@ namespace Couchbase.Lite
         public void TestReplaceDatabaseNamedWithAttachments() {
             var dbStream = GetAsset("withattachments.cblite");
             var attachments = new Dictionary<string, Stream>();
-            attachments["attachment.blob"] = GetAsset("attachment.blob");
+            attachments["356a192b7913b04c54574d18c28d46e6395428ab.blob"] = GetAsset("attachment.blob");
             manager.ReplaceDatabase("replaced", dbStream, attachments);
             dbStream.Dispose();
             //Validate the number of files in the DB
@@ -153,6 +153,8 @@ namespace Couchbase.Lite
 
             var doc = manager.GetDatabase("replaced").GetExistingDocument("168e0c56-4588-4df4-8700-4d5115fa9c74");
             Assert.IsNotNull(doc);
+            Assert.IsNotNull(doc.CurrentRevision.Attachments.ElementAt(0));
+            Assert.IsNotNull(doc.CurrentRevision.Attachments.ElementAt(0).Content);
         }
     }
 }

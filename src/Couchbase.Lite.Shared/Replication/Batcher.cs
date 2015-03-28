@@ -311,7 +311,7 @@ namespace Couchbase.Lite.Support
         {
             Log.V(Tag, "unschedule() called");
             scheduled = false;
-            if (cancellationSource != null && flushFuture != null)
+            if (cancellationSource != null)
             {
                 try
                 {
@@ -325,7 +325,7 @@ namespace Couchbase.Lite.Support
             }
             else
             {
-                Log.V(Tag, "cancellationSource or flushFuture was null, doing nothing");
+                Log.V(Tag, "cancellationSource was null, doing nothing");
             }
         }
 

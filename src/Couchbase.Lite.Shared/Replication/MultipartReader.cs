@@ -98,7 +98,7 @@ namespace Couchbase.Lite.Support
         public IEnumerable<byte> GetBoundaryWithoutLeadingCRLF()
         {
             var rawBoundary = GetBoundary();
-            var result = new ArraySegment<Byte>(rawBoundary, 2, rawBoundary.Length - 2);
+            var result = new Couchbase.Lite.Util.ArraySegment<Byte>(rawBoundary, 2, rawBoundary.Length - 2);
             return result;
         }
 
@@ -263,7 +263,7 @@ namespace Couchbase.Lite.Support
                             var r = SearchFor(kCRLFCRLF, 0);
                             if (r.GetLength() > 0)
                             {
-                                var headersBytes = new ArraySegment<Byte>(buffer.ToArray(), 0, r.GetLocation()); // <-- better?
+                                var headersBytes = new Couchbase.Lite.Util.ArraySegment<Byte>(buffer.ToArray(), 0, r.GetLocation()); // <-- better?
                                 var headersString = Encoding.UTF8.GetString(headersBytes.ToArray());
                                 ParseHeaders(headersString);
                                 DeleteUpThrough(r.GetLocation() + r.GetLength());

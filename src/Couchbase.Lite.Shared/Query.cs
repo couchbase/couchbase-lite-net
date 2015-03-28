@@ -328,7 +328,12 @@ namespace Couchbase.Lite {
         /// <summary>
         /// Event raised when a query has finished running.
         /// </summary>
-        public event EventHandler<QueryCompletedEventArgs> Completed;
+        public event EventHandler<QueryCompletedEventArgs> Completed
+        {
+            add { _completed = (EventHandler<QueryCompletedEventArgs>)Delegate.Combine(_completed, value); }
+            remove { _completed = (EventHandler<QueryCompletedEventArgs>)Delegate.Remove(_completed, value); }
+        }
+        private EventHandler<QueryCompletedEventArgs> _completed;
 
         //Methods
         /// <summary>
@@ -379,7 +384,7 @@ namespace Couchbase.Lite {
                     {
                         var error = runTask.Exception;
 
-                        var completed = Completed;
+                        var completed = _completed;
                         if (completed != null)
                         {
                             var args = new QueryCompletedEventArgs(runTask.Result, error);

@@ -47,7 +47,6 @@ using NUnit.Framework;
 using Sharpen;
 using Couchbase.Lite.Util;
 using System.Net.Http;
-using System.Web;
 
 namespace Couchbase.Lite
 {
@@ -65,7 +64,7 @@ namespace Couchbase.Lite
         }
 
         [Test]
-        public async void TestTransientRetryHandler()
+        public void TestTransientRetryHandler()
         {
             Assert.Inconclusive("Need to implement a scriptable http service, like Square's MockWebServer.");
 
@@ -78,14 +77,15 @@ namespace Couchbase.Lite
             HttpResponseMessage response = null;
 
             try {
-                response = await client.SendAsync(request);
+                client.SendAsync(request).ContinueWith(t => {
+                    Assert.Pass();
+                });
             } catch (HttpRequestException e) {
                 Log.E(Tag, "Transient exception not handled", e);
                 Assert.Fail("Transient exception not handled");
             }
 
-            // Assert
-            Assert.Pass();
+
         }
     }
 }

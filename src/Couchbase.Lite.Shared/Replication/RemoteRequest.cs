@@ -32,20 +32,20 @@
 // License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
 // either express or implied. See the License for the specific language governing permissions
 // and limitations under the License.
-//using System;
+
+using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Net;
+using System.Net.Http;
+using System.Net.Http.Headers;
+using System.Threading;
 using Couchbase.Lite;
 using Couchbase.Lite.Auth;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
-using System;
 using System.Threading.Tasks;
-using System.Net.Http;
-using System.Threading;
-using System.Linq;
-using System.Net.Http.Headers;
 
 namespace Couchbase.Lite.Replicator
 {
@@ -71,7 +71,12 @@ namespace Couchbase.Lite.Replicator
 
 //        public event EventHandler<RemoteRequestEventArgs> WillComplete;
 
-        public event EventHandler<RemoteRequestEventArgs> Complete;
+        public event EventHandler<RemoteRequestEventArgs> Complete
+        {
+            add { _complete = (EventHandler<RemoteRequestEventArgs>)Delegate.Combine(_complete, value); }
+            remove { _complete = (EventHandler<RemoteRequestEventArgs>)Delegate.Remove(_complete, value); }
+        }
+        private EventHandler<RemoteRequestEventArgs> _complete;
 
 //        public event EventHandler<RemoteRequestEventArgs> HasCompleted;
 
@@ -301,7 +306,7 @@ namespace Couchbase.Lite.Replicator
         public void RespondWithResult(object result, Exception error, HttpResponseMessage response)
         {
             Log.D(Tag + ".RespondWithREsult", "Firing Completed event.");
-            OnEvent(Complete, result, error);
+            OnEvent(_complete, result, error);
         }
     }
 }

@@ -1,0 +1,3 @@
+[submodule "src/Couchbase.Lite.Net35/vendor/Rackspace"]
+	path = src/Couchbase.Lite.Net35/vendor/Rackspace
+url=https://github.com/couchbasedeps/dotnet-httpclient35.git

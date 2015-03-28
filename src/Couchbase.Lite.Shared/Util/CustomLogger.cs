@@ -59,6 +59,7 @@ namespace Couchbase.Lite.Util
         {
             level = logLevel;
             ts = new CouchbaseTraceListener(logLevel);
+            Trace.Listeners.Add(ts);
         }
 
         static Exception Flatten (Exception tr)

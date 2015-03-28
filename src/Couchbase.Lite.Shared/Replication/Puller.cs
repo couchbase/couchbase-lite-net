@@ -57,8 +57,11 @@ using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
 using Sharpen;
 using System.Threading;
-using System.Data;
 using Newtonsoft.Json;
+
+#if !NET_3_5
+using StringEx = System.String;
+#endif
 
 namespace Couchbase.Lite.Replicator
 {
@@ -433,7 +436,7 @@ namespace Couchbase.Lite.Replicator
                     if (nBulk > 0)
                     {
                         // Prefer to pull bulk revisions:
-                        var range = new ArraySegment<RevisionInternal>(bulkRevsToPull.ToArray(), 0, nBulk);
+                        var range = new Couchbase.Lite.Util.ArraySegment<RevisionInternal>(bulkRevsToPull.ToArray(), 0, nBulk);
                         bulkWorkToStartNow.AddRange(range) ;
                         bulkRevsToPull.RemoveAll(range);
                     }
@@ -685,7 +688,7 @@ namespace Couchbase.Lite.Replicator
                 }
 
                 var errorStr = (string)item.Get ("error");
-                if (errorStr == null || errorStr.IsEmpty ()) {
+                if (StringEx.IsNullOrWhiteSpace(errorStr)) {
                     return new Status (StatusCode.Ok);
                 }
 

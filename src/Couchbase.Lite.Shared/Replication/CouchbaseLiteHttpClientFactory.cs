@@ -43,7 +43,6 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Net;
 using System.Net.Http;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
@@ -51,7 +50,11 @@ using Couchbase.Lite.Replicator;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
 
-
+#if NET_3_5
+using System.Net.Couchbase;
+#else
+using System.Net;
+#endif
 
 namespace Couchbase.Lite.Support
 {
@@ -67,7 +70,7 @@ namespace Couchbase.Lite.Support
             Headers = new ConcurrentDictionary<string,string>();
 
             // Disable SSL 3 fallback to mitigate POODLE vulnerability.
-            ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls;
+            ServicePointManager.SecurityProtocol = System.Net.SecurityProtocolType.Tls;
 
             //
             // Source: http://msdn.microsoft.com/en-us/library/office/dd633677(v=exchg.80).aspx

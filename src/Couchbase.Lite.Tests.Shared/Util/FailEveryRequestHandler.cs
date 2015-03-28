@@ -54,7 +54,6 @@ using NUnit.Framework;
 using Sharpen;
 using System.Threading.Tasks;
 using System.Net.Http;
-using System.Web;
 using System.Runtime.CompilerServices;
 
 namespace Couchbase.Lite.Replicator
