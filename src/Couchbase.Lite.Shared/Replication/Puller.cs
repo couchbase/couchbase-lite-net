@@ -57,20 +57,13 @@ using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
 using Sharpen;
 using System.Threading;
+using System.Data;
 using Newtonsoft.Json;
-
-#if !NET_3_5
-using StringEx = System.String;
-#endif
 
 namespace Couchbase.Lite.Replicator
 {
     internal sealed class Puller : Replication, IChangeTrackerClient
     {
-        private const int MaxOpenHttpConnections = 16;
-
-        private const int MaxRevsToGetInBulk = 50;
-
         internal const int MaxNumberOfAttsSince = 50;
 
         readonly string Tag = "Puller";
@@ -123,6 +116,9 @@ namespace Couchbase.Lite.Replicator
 
         internal override void BeginReplicating()
         {
+            Log.D(Tag, string.Format("Using MaxOpenHttpConnections({0}), MaxRevsToGetInBulk({1})", 
+                ManagerOptions.Default.MaxOpenHttpConnections, ManagerOptions.Default.MaxRevsToGetInBulk));
+            
             if (downloadsToInsert == null)
             {
                 const int capacity = 200;
@@ -419,12 +415,12 @@ namespace Couchbase.Lite.Replicator
             var bulkWorkToStartNow = new List<RevisionInternal>();
             lock (locker)
             {
-                while (httpConnectionCount + bulkWorkToStartNow.Count + workToStartNow.Count < MaxOpenHttpConnections)
+                while (httpConnectionCount + bulkWorkToStartNow.Count + workToStartNow.Count < ManagerOptions.Default.MaxOpenHttpConnections)
                 {
                     int nBulk = 0;
                     if (bulkRevsToPull != null)
                     {
-                        nBulk = (bulkRevsToPull.Count < MaxRevsToGetInBulk) ? bulkRevsToPull.Count : MaxRevsToGetInBulk;
+                        nBulk = (bulkRevsToPull.Count < ManagerOptions.Default.MaxRevsToGetInBulk) ? bulkRevsToPull.Count : ManagerOptions.Default.MaxRevsToGetInBulk;
                     }
                     if (nBulk == 1)
                     {
@@ -688,7 +684,7 @@ namespace Couchbase.Lite.Replicator
                 }
 
                 var errorStr = (string)item.Get ("error");
-                if (StringEx.IsNullOrWhiteSpace(errorStr)) {
+                if (errorStr == null || errorStr.IsEmpty ()) {
                     return new Status (StatusCode.Ok);
                 }
 
@@ -711,7 +707,7 @@ namespace Couchbase.Lite.Replicator
                 if (errorStr.Equals ("conflict", StringComparison.InvariantCultureIgnoreCase)) {
                     return new Status (StatusCode.Conflict);
                 }
-
+                    
                 return new Status (StatusCode.UpStreamError);
             }
             catch (Exception e)

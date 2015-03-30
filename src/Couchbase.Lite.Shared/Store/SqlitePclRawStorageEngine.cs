@@ -52,10 +52,6 @@ using System.Linq;
 using SQLitePCL.Ugly;
 using Couchbase.Lite.Store;
 
-#if !NET_3_5
-using StringEx = System.String;
-#endif
-
 namespace Couchbase.Lite.Shared
 {
     internal sealed class SqlitePCLRawStorageEngine : ISQLiteStorageEngine, IDisposable
@@ -118,10 +114,10 @@ namespace Couchbase.Lite.Shared
             if (status != raw.SQLITE_OK)
             {
                 Path = null;
-                var errMessage = "Cannot open Sqlite Database at path {0} ({1})".Fmt(Path, status);
+                var errMessage = "Cannot open Sqlite Database at pth {0}".Fmt(Path);
                 throw new CouchbaseLiteException(errMessage, StatusCode.DbError);
             }
-#if !__ANDROID__ && !NET_3_5 && VERBOSE
+//#if !__ANDROID__ && VERBOSE
                 var i = 0;
                 var val = raw.sqlite3_compileoption_get(i);
                 while (val != null)
@@ -129,7 +125,7 @@ namespace Couchbase.Lite.Shared
                     Log.V(Tag, "Sqlite Config: {0}".Fmt(val));
                     val = raw.sqlite3_compileoption_get(++i);
                 }
-#endif
+//#endif
             raw.sqlite3_create_collation(db, "JSON", null, CouchbaseSqliteJsonUnicodeCollationFunction.Compare);
             raw.sqlite3_create_collation(db, "JSON_ASCII", null, CouchbaseSqliteJsonAsciiCollationFunction.Compare);
             raw.sqlite3_create_collation(db, "JSON_RAW", null, CouchbaseSqliteJsonRawCollationFunction.Compare);
@@ -342,7 +338,7 @@ namespace Couchbase.Lite.Shared
                 var command = BuildCommand (_writeConnection, sql, paramArgs);
                 try 
                 {
-                    Log.V(Tag, "RawQuery sql: {0} ({1})", sql, String.Join(", ", paramArgs.ToStringArray()));
+                    Log.V(Tag, "RawQuery sql: {0} ({1})", sql, String.Join(", ", paramArgs));
                     cursor = new Cursor(command);
                 } 
                 catch (Exception e) 
@@ -378,7 +374,7 @@ namespace Couchbase.Lite.Shared
             var command = BuildCommand (_readConnection, sql, paramArgs);
             try 
             {
-                Log.V(Tag, "RawQuery sql: {0} ({1})", sql, String.Join(", ", paramArgs.ToStringArray()));
+                Log.V(Tag, "RawQuery sql: {0} ({1})", sql, String.Join(", ", paramArgs));
                 cursor = new Cursor(command);
             } 
             catch (Exception e) 
@@ -389,7 +385,7 @@ namespace Couchbase.Lite.Shared
                 }
                 var args = paramArgs == null 
                     ? String.Empty 
-                    : String.Join(",", paramArgs.ToStringArray());
+                    : String.Join(",", paramArgs.ToString());
                 Log.E(Tag, "Error executing raw query '{0}' is values '{1}' {2}".Fmt(sql, args, _readConnection.errmsg()), e);
                 throw;
             }
@@ -403,7 +399,7 @@ namespace Couchbase.Lite.Shared
 
         public long InsertWithOnConflict(String table, String nullColumnHack, ContentValues initialValues, ConflictResolutionStrategy conflictResolutionStrategy)
         {
-            if (!StringEx.IsNullOrWhiteSpace(nullColumnHack))
+            if (!String.IsNullOrWhiteSpace(nullColumnHack))
             {
                 var e = new InvalidOperationException("{0} does not support the 'nullColumnHack'.".Fmt(Tag));
                 Log.E(Tag, "Unsupported use of nullColumnHack", e);
@@ -452,7 +448,7 @@ namespace Couchbase.Lite.Shared
 
         public int Update(String table, ContentValues values, String whereClause, params String[] whereArgs)
         {
-            Debug.Assert(!StringEx.IsNullOrWhiteSpace(table));
+            Debug.Assert(!String.IsNullOrWhiteSpace(table));
             Debug.Assert(values != null);
 
             var t = Factory.StartNew(() =>
@@ -483,7 +479,7 @@ namespace Couchbase.Lite.Shared
             }, CancellationToken.None);
 
             // NOTE.ZJG: Just a sketch here. Needs better error handling, etc.
-            var r = t.Result;
+            var r = t.GetAwaiter().GetResult();
             if (t.Exception != null)
                 throw t.Exception;
             return r;
@@ -491,7 +487,7 @@ namespace Couchbase.Lite.Shared
 
         public int Delete(String table, String whereClause, params String[] whereArgs)
         {
-            Debug.Assert(!StringEx.IsNullOrWhiteSpace(table));
+            Debug.Assert(!String.IsNullOrWhiteSpace(table));
 
             var t = Factory.StartNew(() =>
             {
@@ -522,7 +518,7 @@ namespace Couchbase.Lite.Shared
                 return resultCount;
             });
             // NOTE.ZJG: Just a sketch here. Needs better error handling, etc.
-            var r = t.Result;
+            var r = t.GetAwaiter().GetResult();
             if (t.Exception != null)
                 throw t.Exception;
             return r;
@@ -647,7 +643,7 @@ namespace Couchbase.Lite.Shared
                 paramList.Add(column.Value);
             }
 
-            if (!StringEx.IsNullOrWhiteSpace(whereClause))
+            if (!String.IsNullOrWhiteSpace(whereClause))
             {
                 builder.Append(" WHERE ");
                 builder.Append(whereClause);
@@ -721,7 +717,7 @@ namespace Couchbase.Lite.Shared
             sqlite3_stmt command = null;
             if (args != null)
             {
-                Log.D(Tag, "Preparing statement: '{0}' with values: {1}", sql, String.Join(", ", args.Select(o => o == null ? "null" : o.ToString()).ToArray()));
+                Log.D(Tag, "Preparing statement: '{0}' with values: {1}", sql, String.Join(", ", args.Select(o => o == null ? "null" : o.ToString())));
             }
             else
             {
@@ -748,7 +744,7 @@ namespace Couchbase.Lite.Shared
             }
             var builder = new StringBuilder("DELETE FROM ");
             builder.Append(table);
-            if (!StringEx.IsNullOrWhiteSpace(whereClause))
+            if (!String.IsNullOrWhiteSpace(whereClause))
             {
                 builder.Append(" WHERE ");
                 builder.Append(whereClause);
