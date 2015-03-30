@@ -118,7 +118,7 @@ namespace Couchbase.Lite.Shared
             if (status != raw.SQLITE_OK)
             {
                 Path = null;
-                var errMessage = "Cannot open Sqlite Database at path {0} ({1})".Fmt(Path, status);
+                var errMessage = "Cannot open Sqlite Database at pth {0}".Fmt(Path);
                 throw new CouchbaseLiteException(errMessage, StatusCode.DbError);
             }
 #if !__ANDROID__ && !NET_3_5 && VERBOSE
@@ -483,7 +483,7 @@ namespace Couchbase.Lite.Shared
             }, CancellationToken.None);
 
             // NOTE.ZJG: Just a sketch here. Needs better error handling, etc.
-            var r = t.Result;
+            var r = t.GetAwaiter().GetResult();
             if (t.Exception != null)
                 throw t.Exception;
             return r;
@@ -522,7 +522,7 @@ namespace Couchbase.Lite.Shared
                 return resultCount;
             });
             // NOTE.ZJG: Just a sketch here. Needs better error handling, etc.
-            var r = t.Result;
+            var r = t.GetAwaiter().GetResult();
             if (t.Exception != null)
                 throw t.Exception;
             return r;
