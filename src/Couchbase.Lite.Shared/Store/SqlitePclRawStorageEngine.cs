@@ -329,8 +329,10 @@ namespace Couchbase.Lite.Shared
                 Open(Path);
             }
 
-            if (transactionCount == 0)
+            if (transactionCount == 0) 
+            {
                 return RawQuery(sql, paramArgs);
+            }
 
             var t = Factory.StartNew(() =>
             {
@@ -479,6 +481,8 @@ namespace Couchbase.Lite.Shared
             }, CancellationToken.None);
 
             // NOTE.ZJG: Just a sketch here. Needs better error handling, etc.
+
+            //doesn't look good
             var r = t.GetAwaiter().GetResult();
             if (t.Exception != null)
                 throw t.Exception;
@@ -517,10 +521,15 @@ namespace Couchbase.Lite.Shared
                 }
                 return resultCount;
             });
+
             // NOTE.ZJG: Just a sketch here. Needs better error handling, etc.
             var r = t.GetAwaiter().GetResult();
-            if (t.Exception != null)
+            if (t.Exception != null) 
+            {
+                //this is bad: should not arbitrarily crash the app
                 throw t.Exception;
+            }
+                
             return r;
         }
 

@@ -22,6 +22,9 @@ namespace Couchbase.Lite
             });
 
             var result = storageEngine.RawQuery("SELECT EXISTS (SELECT 1 FROM transTest WHERE id=0 AND whatever=1)");
+            if (result == null) {
+                throw new Exception();
+            }
 
             Assert.AreEqual(1, result.GetInt(0));
         }
@@ -41,6 +44,9 @@ namespace Couchbase.Lite
             });
 
             var result = storageEngine.RawQuery("SELECT EXISTS (SELECT 1 FROM transTest WHERE id=0 AND whatever=1)");
+            if (result == null) {
+                throw new Exception();
+            }
 
             Assert.AreEqual(0, result.GetInt(0));
         }
