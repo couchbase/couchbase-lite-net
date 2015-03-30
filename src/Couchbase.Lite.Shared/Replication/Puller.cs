@@ -684,7 +684,7 @@ namespace Couchbase.Lite.Replicator
                 }
 
                 var errorStr = (string)item.Get ("error");
-                if (errorStr == null || errorStr.IsEmpty ()) {
+                if (string.IsNullOrEmpty(errorStr) == true) {
                     return new Status (StatusCode.Ok);
                 }
 
