@@ -117,7 +117,7 @@ namespace Couchbase.Lite.Shared
                 var errMessage = "Cannot open Sqlite Database at pth {0}".Fmt(Path);
                 throw new CouchbaseLiteException(errMessage, StatusCode.DbError);
             }
-//#if !__ANDROID__ && VERBOSE
+#if !__ANDROID__ && VERBOSE
                 var i = 0;
                 var val = raw.sqlite3_compileoption_get(i);
                 while (val != null)
@@ -125,7 +125,7 @@ namespace Couchbase.Lite.Shared
                     Log.V(Tag, "Sqlite Config: {0}".Fmt(val));
                     val = raw.sqlite3_compileoption_get(++i);
                 }
-//#endif
+#endif
             raw.sqlite3_create_collation(db, "JSON", null, CouchbaseSqliteJsonUnicodeCollationFunction.Compare);
             raw.sqlite3_create_collation(db, "JSON_ASCII", null, CouchbaseSqliteJsonAsciiCollationFunction.Compare);
             raw.sqlite3_create_collation(db, "JSON_RAW", null, CouchbaseSqliteJsonRawCollationFunction.Compare);
