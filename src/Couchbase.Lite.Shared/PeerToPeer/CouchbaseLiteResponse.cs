@@ -96,7 +96,7 @@ namespace Couchbase.Lite.PeerToPeer
                 }
 
                 _context.Response.ContentEncoding = Encoding.UTF8;
-                var json = this.Body.GetJson().ToArray();
+                var json = Body.GetJson().ToArray();
                 _context.Response.ContentLength64 = json.Length;
                 _context.Response.OutputStream.Write(json, 0, json.Length);
             }

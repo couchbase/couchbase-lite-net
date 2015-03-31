@@ -56,6 +56,8 @@ namespace Couchbase.Lite
 
         Created = 201,
 
+        Accepted = 202,
+
         NotModified = 304,
 
         BadRequest = 400,
@@ -130,6 +132,7 @@ namespace Couchbase.Lite
 
             { StatusCode.Ok, Tuple.Create(200, "ok") },
             { StatusCode.Created, Tuple.Create(201, "created") },
+            { StatusCode.Accepted, Tuple.Create(202, "accepted") },
 
             { StatusCode.NotModified, Tuple.Create(304, "not_modified") },
 

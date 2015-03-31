@@ -44,6 +44,12 @@
     <Reference Include="Newtonsoft.Json">
       <HintPath>vendor\JSON.NET\Newtonsoft.Json.dll</HintPath>
     </Reference>
+    <Reference Include="Microsoft.Scripting.Core">
+      <HintPath>..\Couchbase.Lite.Shared\vendor\Jint\Microsoft.Scripting.Core.dll</HintPath>
+    </Reference>
+    <Reference Include="Jint">
+      <HintPath>..\Couchbase.Lite.Shared\vendor\Jint\Jint.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <Import Project="..\Couchbase.Lite.Shared\Couchbase.Lite.Shared.projitems" Label="Shared" Condition="Exists('..\Couchbase.Lite.Shared\Couchbase.Lite.Shared.projitems')" />
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />

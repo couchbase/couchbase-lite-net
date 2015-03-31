@@ -181,7 +181,7 @@ namespace Couchbase.Lite.Internal
         public IDictionary<string, object> GetProperties()
         {
             var currentObj = GetObject();
-            return currentObj as IDictionary<string, object>;
+            return currentObj.AsDictionary<string, object>();
         }
 
         public Boolean HasValueForKey(string key)

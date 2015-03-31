@@ -50,6 +50,7 @@ using Couchbase.Lite.Internal;
 using System.Linq;
 using Newtonsoft.Json.Linq;
 using System.Collections;
+using Couchbase.Lite.Views;
 
 namespace Couchbase.Lite {
 
@@ -76,6 +77,10 @@ namespace Couchbase.Lite {
             _id = -1;
             // means 'unknown'
             Collation = ViewCollation.Unicode;
+        }
+
+        static View() {
+            Compiler = new JSViewCompiler();
         }
 
     #endregion
@@ -374,6 +379,18 @@ namespace Couchbase.Lite {
             }
         }
 
+        private bool GroupOrReduce(QueryOptions options) {
+            if (options.IsGroup() || options.GetGroupLevel() > 0) {
+                return true;
+            }
+
+            if (options.IsReduceSpecified()) {
+                return options.IsReduce();
+            }
+
+            return Reduce != null;
+        }
+
         /// <summary>Queries the view.</summary>
         /// <remarks>Queries the view. Does NOT first update the index.</remarks>
         /// <param name="options">The options to use.</param>
@@ -391,8 +408,8 @@ namespace Couchbase.Lite {
                 cursor = ResultSetWithOptions(options);
                 int groupLevel = options.GetGroupLevel();
                 var group = options.IsGroup() || (groupLevel > 0);
-                var reduce = options.IsReduce() || group;
                 var reduceBlock = Reduce;
+                var reduce = GroupOrReduce(options);
 
                 if (reduce && (reduceBlock == null) && !group)
                 {
@@ -811,7 +828,45 @@ namespace Couchbase.Lite {
             return total;
         }
 
+        internal Status Compile(IDictionary<string, object> viewProps, string language)
+        {
+            language = language ?? "javascript";
+            string mapSource = viewProps.Get("map") as string;
+            if (mapSource == null) {
+                return new Status(StatusCode.NotFound);
+            }
 
+            MapDelegate mapDelegate = Compiler.CompileMap(mapSource, language);
+            if (mapDelegate == null) {
+                Log.W(Tag, "View {0} could not compile {1} map fn: {2}", Name, language, mapSource);
+                return new Status(StatusCode.CallbackError);
+            }
+
+            string reduceSource = viewProps.Get("reduce") as string;
+            ReduceDelegate reduceDelegate = null;
+            if (reduceSource != null) {
+                reduceDelegate = Compiler.CompileReduce(reduceSource, language);
+                if (reduceDelegate == null) {
+                    Log.W(Tag, "View {0} could not compile {1} reduce fn: {2}", Name, language, mapSource);
+                    return new Status(StatusCode.CallbackError);
+                }
+            }
+                
+            string version = Misc.HexSHA1Digest(Manager.GetObjectMapper().WriteValueAsBytes(viewProps));
+            SetMapReduce(mapDelegate, reduceDelegate, version);
+            //TODO: DocumentType
+
+            var options = viewProps.Get("options").AsDictionary<string, object>();
+            Collation = ViewCollation.Unicode;
+            if (options != null && options.ContainsKey("collation")) {
+                string collation = options["collation"] as string;
+                if (collation.ToLower().Equals("raw")) {
+                    Collation = ViewCollation.Raw;
+                }
+            }
+
+            return new Status(StatusCode.Ok);
+        }
 
     #endregion
 

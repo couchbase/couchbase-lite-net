@@ -173,10 +173,10 @@ namespace Couchbase.Lite
             do {
                 chunkBuffer.Initialize ();
                 // Resets all values back to zero.
-                bytesRead = stream.Read (chunkBuffer, blob.Count, Attachment.DefaultStreamChunkSize);
+                bytesRead = stream.Read(chunkBuffer, 0, Attachment.DefaultStreamChunkSize);
                 blob.AddRange (chunkBuffer.Take (bytesRead));
             }
-            while (bytesRead < stream.Length);
+            while (bytesRead > 0);
 
             return blob.ToArray();
         }

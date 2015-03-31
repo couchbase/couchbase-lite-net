@@ -19,15 +19,17 @@
 //  limitations under the License.
 //
 using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Net;
+using System.Text;
 
 using Couchbase.Lite.Internal;
-using System.Diagnostics;
 using Couchbase.Lite.Replicator;
 using Couchbase.Lite.Util;
-using System.Text;
+using System.IO;
 
 namespace Couchbase.Lite.PeerToPeer
 {
@@ -234,6 +236,7 @@ namespace Couchbase.Lite.PeerToPeer
             var responseObject = PerformLogicWithDatabase(context, true, db =>
             {
                 var response = new CouchbaseLiteResponse(context);
+                responseState.Response = response;
                 responseState.ChangesMode = ParseChangesOptions(context);
                 if (responseState.ChangesMode < ChangesFeedMode.Continuous) {
                     if(CacheWithEtag(db.LastSequenceNumber.ToString(), context, response)) {
@@ -298,7 +301,7 @@ namespace Couchbase.Lite.PeerToPeer
                     return new CouchbaseLiteResponse(context);
                 } else {
                     if(responseState.ChangesIncludeConflicts) {
-                        
+                        response.Body = new Body(ResponseBodyForChanges(changes, since, options.GetLimit(), responseState));
                     } else {
                         response.Body = new Body(ResponseBodyForChanges(changes, since, responseState));
                     }
@@ -309,6 +312,96 @@ namespace Couchbase.Lite.PeerToPeer
 
             responseState.Response = responseObject;
             return responseState;
+        }
+
+        public static ICouchbaseResponseState Compact(HttpListenerContext context)
+        {
+            return PerformLogicWithDatabase(context, true, db =>
+            {
+                try {
+                    db.Compact();
+                    return new CouchbaseLiteResponse(context) { InternalStatus = StatusCode.Accepted };
+                } catch (CouchbaseLiteException) {
+                    return new CouchbaseLiteResponse(context) { InternalStatus = StatusCode.DbError };
+                }
+            }).AsDefaultState();
+        }
+
+        public static ICouchbaseResponseState Purge(HttpListenerContext context)
+        {
+            // <http://wiki.apache.org/couchdb/Purge_Documents>
+            return PerformLogicWithDatabase(context, true, db =>
+            {
+                var body = GetPostBody<IList<string>>(context);
+                if(body == null) {
+                    return new CouchbaseLiteResponse(context) { InternalStatus = StatusCode.BadJson };
+                }
+
+                var purgedRevisions = db.PurgeRevisions(body);
+                if(purgedRevisions == null) {
+                    return new CouchbaseLiteResponse(context) { InternalStatus = StatusCode.DbError };
+                }
+
+                var responseBody = new Body(new Dictionary<string, object>
+                {
+                    { "purged", purgedRevisions }
+                });
+                return new CouchbaseLiteResponse(context) { Body = responseBody };
+            }).AsDefaultState();
+        }
+
+        public static ICouchbaseResponseState ExecuteTemporaryViewFunction(HttpListenerContext context)
+        {
+            var response = new CouchbaseLiteResponse(context);
+            if (context.Request.Headers["Content-Type"] == null || 
+                !context.Request.Headers["Content-Type"].StartsWith("application/json")) {
+                response.InternalStatus = StatusCode.UnsupportedType;
+                return response.AsDefaultState();
+            }
+
+            IEnumerable<byte> json = context.Request.InputStream.ReadAllBytes();
+            var requestBody = new Body(json);
+            if (!requestBody.IsValidJSON()) {
+                response.InternalStatus = StatusCode.BadJson;
+                return response.AsDefaultState();
+            }
+
+            var props = requestBody.GetProperties();
+            if (props == null) {
+                response.InternalStatus = StatusCode.BadJson;
+                return response.AsDefaultState();
+            }
+
+            var options = GetQueryOptions(context);
+            if (options == null) {
+                response.InternalStatus = StatusCode.BadRequest;
+                return response.AsDefaultState();
+            }
+
+            return PerformLogicWithDatabase(context, true, db =>
+            {
+                if (CacheWithEtag(db.LastSequenceNumber.ToString(), context, response)) {
+                    response.InternalStatus = StatusCode.NotModified;
+                    return response;
+                }
+
+                var view = db.GetView("@@TEMPVIEW@@");
+                var status = view.Compile(props, "javascript");
+                if(status.IsError) {
+                    response.InternalStatus = status.GetCode();
+                    return response;
+                }
+
+                try {
+                    view.UpdateIndex();
+                    return QueryView(context, view, options);
+                } catch(CouchbaseLiteException e) {
+                    response.InternalStatus = e.GetCBLStatus().GetCode();
+                }
+
+                return response;
+            }).AsDefaultState();
+
         }
 
         private static CouchbaseLiteResponse PerformLogicWithDatabase(HttpListenerContext context, bool open, 
@@ -447,16 +540,21 @@ namespace Couchbase.Lite.PeerToPeer
 
         private static IDictionary<string, object> GetPostBody(HttpListenerContext context) 
         {
+            return GetPostBody<object>(context);
+        }
+
+        private static IDictionary<string, T> GetPostBody<T>(HttpListenerContext context)
+        {
             if(context.Request.HasEntityBody) {
                 try {
-                    var body = Manager.GetObjectMapper().ReadValue<IDictionary<string, object>>(context.Request.InputStream);
+                    var body = Manager.GetObjectMapper().ReadValue<IDictionary<string, T>>(context.Request.InputStream);
                     return body;
                 } catch(CouchbaseLiteException) {
                     return null;
                 }
             }
 
-            return new Dictionary<string, object>();
+            return new Dictionary<string, T>();
         }
 
         private static StatusCode UpdateDocument(HttpListenerContext context, Database db, string docId, Body body, bool deleting, 
@@ -556,9 +654,32 @@ namespace Couchbase.Lite.PeerToPeer
             return etag.Equals(context.Request.Headers.Get("If-None-Match"));
         }
 
-        private static IDictionary<string, object> ResponseBodyForChanges(RevisionList changes, long since, int limit)
+        private static IDictionary<string, object> ResponseBodyForChanges(RevisionList changes, long since, int limit, DBMonitorCouchbaseResponseState state)
         {
-            throw new NotImplementedException();
+            string lastDocId = null;
+            IDictionary<string, object> lastEntry = null;
+            var entries = new List<IDictionary<string, object>>();
+            foreach (var rev in changes) {
+                string docId = rev.GetDocId();
+                if (docId.Equals(lastDocId)) {
+                    ((IList)lastEntry["changes"]).Add(new Dictionary<string, object> { { "rev", rev.GetRevId() } });
+                } else {
+                    lastEntry = ChangesDictForRev(rev, state);
+                    entries.Add(lastEntry);
+                    lastDocId = docId;
+                }
+            }
+                    
+            entries.Sort((x, y) => (int)((long)x["seq"] - (long)y["seq"]));
+            if (entries.Count > limit) {
+                entries.RemoveRange(limit, entries.Count - limit);
+            }
+
+            long lastSequence = entries.Any() ? (long)entries.Last()["seq"] : since;
+            return new Dictionary<string, object> {
+                { "results", entries },
+                { "last_seq", lastSequence }
+            };
         }
 
         public static IDictionary<string, object> ResponseBodyForChanges(RevisionList changes, long since, DBMonitorCouchbaseResponseState responseState)
@@ -609,8 +730,25 @@ namespace Couchbase.Lite.PeerToPeer
                 { "doc", responseState.ChangesIncludeDocs ? rev.GetProperties() : null }
             };
         }
+
+        private static CouchbaseLiteResponse QueryView(HttpListenerContext context, View view, QueryOptions options)
+        {
+            var result = view.QueryWithOptions(options);
+            object updateSeq = options.IsUpdateSeq() ? (object)view.LastSequenceIndexed : null;
+            var mappedDic = result.Select(x => new Dictionary<string, object> {
+                { "key", x.Key },
+                { "value", x.Value }
+            });
+
+            var body = new Body(new Dictionary<string, object> {
+                { "rows", mappedDic },
+                { "total_rows", result.Count() },
+                { "offset", options.GetSkip() },
+                { "update_seq", updateSeq }
+            });
+
+            return new CouchbaseLiteResponse(context) { Body = body };
+        }
     }
-
-
 }
 

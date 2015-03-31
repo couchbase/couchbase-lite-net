@@ -30,6 +30,7 @@ namespace Couchbase.Lite.PeerToPeer
 
     internal static class CouchbaseLiteRouter
     {
+        private const string TAG = "CouchbaseLiteRouter";
         private static readonly List<ICouchbaseResponseState> _UnfinishedResponses = new List<ICouchbaseResponseState>();
 
         private static readonly RouteCollection _Get = 
@@ -47,7 +48,10 @@ namespace Couchbase.Lite.PeerToPeer
             new RouteCollection(new Dictionary<string, RestMethod> {
                 { "/_replicate", ServerMethods.ManageReplicationSession },
                 { "/*/_all_docs", DatabaseMethods.GetAllSpecifiedDocuments },
-                { "/*/_bulk_docs", DatabaseMethods.ProcessDocumentChangeOperations }
+                { "/*/_bulk_docs", DatabaseMethods.ProcessDocumentChangeOperations },
+                { "/*/_compact", DatabaseMethods.Compact },
+                { "/*/_purge", DatabaseMethods.Purge },
+                { "/*/_temp_view", DatabaseMethods.ExecuteTemporaryViewFunction }
             });
 
         private static readonly RouteCollection _Put =
@@ -80,13 +84,19 @@ namespace Couchbase.Lite.PeerToPeer
             try {
                 responseState = logic(context);
             } catch(Exception e) {
+                Log.E(TAG, "Exception in routing logic", e);
                 responseState = new CouchbaseLiteResponse(context) { InternalStatus = StatusCode.Exception }.AsDefaultState();
             }
 
             CouchbaseLiteResponse responseObject = responseState.Response;
             if (!responseState.IsAsync) {
-                responseObject.WriteHeaders();
-                responseObject.WriteToContext();
+                try {
+                    responseObject.WriteHeaders();
+                    responseObject.WriteToContext();
+                } catch(Exception e) {
+                    Log.E(TAG, "Exception writing response", e);
+                    responseState = new CouchbaseLiteResponse(context) { InternalStatus = StatusCode.Exception }.AsDefaultState();
+                }
             } else {
                 _UnfinishedResponses.Add(responseState);
             }

@@ -2131,7 +2131,7 @@ PRAGMA user_version = 3;";
         internal IDictionary<String, Object> PurgeRevisions(IDictionary<String, IList<String>> docsToRevs)
         {
             var result = new Dictionary<String, Object>();
-            RunInTransaction(() => PurgeRevisionsTask(this, docsToRevs, result));
+            var success = RunInTransaction(() => PurgeRevisionsTask(this, docsToRevs, result));
             // no such document, skip it
             // Delete all revisions if magic "*" revision ID is given:
             // Iterate over all the revisions of the doc, in reverse sequence order.
@@ -2140,7 +2140,7 @@ PRAGMA user_version = 3;";
             // Purge it and maybe its parent:
             // Keep it and its parent:
             // Now delete the sequences to be purged.
-            return result;
+            return success ? result : null;
         }
 
         internal void RemoveDocumentFromCache(Document document)

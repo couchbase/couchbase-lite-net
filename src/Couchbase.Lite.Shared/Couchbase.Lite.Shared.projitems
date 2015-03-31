@@ -228,7 +228,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\CouchbaseLiteServiceBrowser.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\CouchbaseLiteServiceListener.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\DBMonitorCouchbaseResponseState.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\DatabaseMethods.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\DefaultCouchbaseResponseState.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\ICouchbaseResponseState.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\RouteCollection.cs" />
@@ -267,6 +266,8 @@
     <Compile Include="$(MSBuildThisFileDirectory)Mono.Zeroconf.Providers.Bonjour\TxtRecordEnumerator.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Mono.Zeroconf.Providers.Bonjour\ZeroconfProvider.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Replication\ChangesFeedMode.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)View\JSViewCompiler.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\DatabaseMethods.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="$(MSBuildThisFileDirectory)Store\MonoSQLiteStorageEngine.cs" />
@@ -277,5 +278,6 @@
     <Folder Include="$(MSBuildThisFileDirectory)Mono.Zeroconf\" />
     <Folder Include="$(MSBuildThisFileDirectory)Mono.Zeroconf.Providers\" />
     <Folder Include="$(MSBuildThisFileDirectory)Mono.Zeroconf.Providers.Bonjour\" />
+    <Folder Include="$(MSBuildThisFileDirectory)View\" />
   </ItemGroup>
 </Project>
