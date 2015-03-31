@@ -268,6 +268,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Replication\ChangesFeedMode.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)View\JSViewCompiler.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\DatabaseMethods.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)View\BuiltinReduceFunctions.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="$(MSBuildThisFileDirectory)Store\MonoSQLiteStorageEngine.cs" />

@@ -54,7 +54,7 @@ namespace Couchbase.Lite.Views
             }
 
             if (source.StartsWith("_")) {
-
+                return BuiltinReduceFunctions.Get(source.TrimStart('_'));
             }
 
             source = source.Replace("function", "function _f2");
