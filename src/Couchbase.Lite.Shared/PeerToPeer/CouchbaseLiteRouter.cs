@@ -41,7 +41,9 @@ namespace Couchbase.Lite.PeerToPeer
                 { "/_uuids", ServerMethods.GetUUIDs },
                 { "/*", DatabaseMethods.GetConfiguration },
                 { "/*/_all_docs", DatabaseMethods.GetAllDocuments },
-                { "/*/_changes", DatabaseMethods.GetChanges }
+                { "/*/_changes", DatabaseMethods.GetChanges },
+                { "/*/*", DocumentMethods.GetDocument },
+                { "/*/_local/*", DocumentMethods.GetDocument }
             });
 
         private static readonly RouteCollection _Post =
@@ -106,6 +108,7 @@ namespace Couchbase.Lite.PeerToPeer
         {
             _UnfinishedResponses.Remove(responseState);
         }
+            
     }
 }
 

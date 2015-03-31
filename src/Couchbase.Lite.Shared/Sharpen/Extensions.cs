@@ -220,7 +220,7 @@ namespace Sharpen
 
         public static U Get<T, U> (this IDictionary<T, U> d, T key)
         {
-            U val;
+            U val = default(U);
             d.TryGetValue (key, out val);
             return val;
         }

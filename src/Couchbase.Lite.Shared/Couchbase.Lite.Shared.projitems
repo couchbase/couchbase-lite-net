@@ -106,8 +106,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)Sharpen\FilterInputStream.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Sharpen\FilterOutputStream.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Sharpen\Future.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Sharpen\GZIPInputStream.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Sharpen\GZIPOutputStream.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Sharpen\HttpURLConnection.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Sharpen\InheritableThreadLocal.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Sharpen\InputStream.cs" />
@@ -269,6 +267,8 @@
     <Compile Include="$(MSBuildThisFileDirectory)View\JSViewCompiler.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\DatabaseMethods.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)View\BuiltinReduceFunctions.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\DocumentMethods.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\HttpListenerContextExtensions.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="$(MSBuildThisFileDirectory)Store\MonoSQLiteStorageEngine.cs" />

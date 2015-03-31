@@ -395,7 +395,7 @@ namespace Couchbase.Lite
             try
             {
                 database.UpdateAttachment(testAttachmentName, writer, "application/foo", 
-                    AttachmentEncoding.AttachmentEncodingNone, rev1.GetDocId(), null);
+                    AttachmentEncoding.None, rev1.GetDocId(), null);
             }
             catch (CouchbaseLiteException e)
             {
@@ -407,7 +407,7 @@ namespace Couchbase.Lite
             try
             {
                 database.UpdateAttachment(testAttachmentName, new BlobStoreWriter(database.Attachments), "application/foo", 
-                    AttachmentEncoding.AttachmentEncodingNone, rev1.GetDocId(), "1-bogus");
+                    AttachmentEncoding.None, rev1.GetDocId(), "1-bogus");
             }
             catch (CouchbaseLiteException e)
             {
@@ -420,7 +420,7 @@ namespace Couchbase.Lite
             try
             {
                 rev2 = database.UpdateAttachment(testAttachmentName, writer, "application/foo",
-                    AttachmentEncoding.AttachmentEncodingNone, rev1.GetDocId(), rev1.GetRevId());
+                    AttachmentEncoding.None, rev1.GetDocId(), rev1.GetRevId());
             }
             catch (CouchbaseLiteException)
             {
@@ -446,7 +446,7 @@ namespace Couchbase.Lite
             try
             {
                 database.UpdateAttachment("nosuchattach", null, "application/foo",
-                    AttachmentEncoding.AttachmentEncodingNone, rev2.GetDocId(), rev2.GetRevId());
+                    AttachmentEncoding.None, rev2.GetDocId(), rev2.GetRevId());
             }
             catch (CouchbaseLiteException e)
             {
@@ -457,7 +457,7 @@ namespace Couchbase.Lite
             try
             {
                 database.UpdateAttachment("nosuchattach", null, null, 
-                    AttachmentEncoding.AttachmentEncodingNone, "nosuchdoc", "nosuchrev");
+                    AttachmentEncoding.None, "nosuchdoc", "nosuchrev");
             }
             catch (CouchbaseLiteException e)
             {
@@ -465,7 +465,7 @@ namespace Couchbase.Lite
             }
             Assert.IsTrue(gotExpectedErrorCode);
             RevisionInternal rev3 = database.UpdateAttachment(testAttachmentName, null, null,
-                AttachmentEncoding.AttachmentEncodingNone, rev2.GetDocId(), rev2.GetRevId());
+                AttachmentEncoding.None, rev2.GetDocId(), rev2.GetRevId());
             Assert.AreEqual(rev2.GetDocId(), rev3.GetDocId());
             Assert.AreEqual(3, rev3.GetGeneration());
             // Get the updated revision:

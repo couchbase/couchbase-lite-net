@@ -239,7 +239,7 @@ namespace Couchbase.Lite.PeerToPeer
                 responseState.Response = response;
                 responseState.ChangesMode = ParseChangesOptions(context);
                 if (responseState.ChangesMode < ChangesFeedMode.Continuous) {
-                    if(CacheWithEtag(db.LastSequenceNumber.ToString(), context, response)) {
+                    if(context.CacheWithEtag(db.LastSequenceNumber.ToString(), response)) {
                         response.InternalStatus = StatusCode.NotModified;
                         return response;
                     }
@@ -251,7 +251,7 @@ namespace Couchbase.Lite.PeerToPeer
                 options.SetIncludeDocs(responseState.ChangesIncludeDocs);
                 responseState.ChangesIncludeConflicts = query.Get("style") == "all_docs";
                 options.SetIncludeConflicts(responseState.ChangesIncludeConflicts);
-                options.SetContentOptions(GetContentOptions(context));
+                options.SetContentOptions(context.GetContentOptions());
                 options.SetSortBySequence(!options.IsIncludeConflicts());
                 options.SetLimit(query.Get<int>("limit", int.TryParse, options.GetLimit()));
                 int since = query.Get<int>("since", int.TryParse, 0);
@@ -380,7 +380,7 @@ namespace Couchbase.Lite.PeerToPeer
 
             return PerformLogicWithDatabase(context, true, db =>
             {
-                if (CacheWithEtag(db.LastSequenceNumber.ToString(), context, response)) {
+                if (context.CacheWithEtag(db.LastSequenceNumber.ToString(), response)) {
                     response.InternalStatus = StatusCode.NotModified;
                     return response;
                 }
@@ -404,7 +404,7 @@ namespace Couchbase.Lite.PeerToPeer
 
         }
 
-        private static CouchbaseLiteResponse PerformLogicWithDatabase(HttpListenerContext context, bool open, 
+        public static CouchbaseLiteResponse PerformLogicWithDatabase(HttpListenerContext context, bool open, 
             Func<Database, CouchbaseLiteResponse> action) 
         {
             string[] components = context.Request.Url.AbsolutePath.Split(new[]{ '/' }, StringSplitOptions.RemoveEmptyEntries);
@@ -454,7 +454,7 @@ namespace Couchbase.Lite.PeerToPeer
             options.SetReduceSpecified(queryStr.Get("reduce") != null);
             options.SetReduce(queryStr.Get<bool>("reduce", bool.TryParse, false));
             options.SetGroup(queryStr.Get<bool>("group", bool.TryParse, false));
-            options.SetContentOptions(GetContentOptions(context));
+            options.SetContentOptions(context.GetContentOptions());
 
             // Stale options (ok or update_after):
             string stale = queryStr.Get("stale");
@@ -493,33 +493,6 @@ namespace Couchbase.Lite.PeerToPeer
             }
 
             //TODO:  Full text and bbox
-
-            return options;
-        }
-
-        private static DocumentContentOptions GetContentOptions(HttpListenerContext context)
-        {
-            var queryStr = context.Request.QueryString;
-            DocumentContentOptions options = DocumentContentOptions.None;
-            if (queryStr.Get<bool>("attachments", bool.TryParse, false)) {
-                options |= DocumentContentOptions.IncludeAttachments;
-            }
-
-            if (queryStr.Get<bool>("local_seq", bool.TryParse, false)) {
-                options |= DocumentContentOptions.IncludeLocalSeq;
-            }
-
-            if (queryStr.Get<bool>("conflicts", bool.TryParse, false)) {
-                options |= DocumentContentOptions.IncludeConflicts;
-            }
-
-            if (queryStr.Get<bool>("revs", bool.TryParse, false)) {
-                options |= DocumentContentOptions.IncludeRevs;
-            }
-
-            if (queryStr.Get<bool>("revs_info", bool.TryParse, false)) {
-                options |= DocumentContentOptions.IncludeRevsInfo;
-            }
 
             return options;
         }
@@ -645,13 +618,6 @@ namespace Couchbase.Lite.PeerToPeer
             }
 
             return retVal;
-        }
-
-        private static bool CacheWithEtag(string etag, HttpListenerContext context, CouchbaseLiteResponse response)
-        {
-            etag = String.Format("\"{0}\"", etag);
-            response["Etag"] = etag;
-            return etag.Equals(context.Request.Headers.Get("If-None-Match"));
         }
 
         private static IDictionary<string, object> ResponseBodyForChanges(RevisionList changes, long since, int limit, DBMonitorCouchbaseResponseState state)

@@ -779,7 +779,7 @@ namespace Couchbase.Lite
 
         internal const String TagSql = "CBLSQL";
        
-        internal const Int32 BigAttachmentLength = 16384;
+        internal const Int32 BigAttachmentLength = 2 * 1024;
 
         const Int32 MaxDocCacheSize = 50;
 
@@ -1493,6 +1493,29 @@ PRAGMA user_version = 3;";
             Log.D(Tag, String.Format("Query view {0} completed in {1} milliseconds", viewName, delta));
 
             return rows;
+        }
+
+        internal string FindCommonAncestor(RevisionInternal rev, IList<string> revIds)
+        {
+            if (revIds.Count == 0) {
+                return null;
+            }
+
+            long docNumericId = GetDocNumericID(rev.GetDocId());
+            if (docNumericId <= 0) {
+                return null;
+            }
+
+            string sql = String.Format("SELECT revid FROM revs " +
+                "WHERE doc_id=? and revid in ({0}) and revid <= ? " +
+                "ORDER BY revid DESC LIMIT 1", Database.JoinQuoted(revIds));
+
+            var c = StorageEngine.RawQuery(sql, rev.GetRevId());
+            if (c.MoveToNext()) {
+                return c.GetString(0);
+            }
+
+            return null;
         }
 
         internal RevisionList ChangesSince(long lastSeq, ChangesOptions options, FilterDelegate filter)
@@ -3546,16 +3569,16 @@ PRAGMA user_version = 3;";
                 {
                     // Determine the revpos, i.e. generation # this was added in. Usually this is
                     // implicit, but a rev being pulled in replication will have it set already.
-                    if (attachment.GetRevpos() == 0)
+                    if (attachment.RevPos == 0)
                     {
-                        attachment.SetRevpos(generation);
+                        attachment.RevPos = generation;
                     }
                     else
                     {
-                        if (attachment.GetRevpos() > generation)
+                        if (attachment.RevPos > generation)
                         {
-                            Log.W(Tag, string.Format("Attachment {0} {1} has unexpected revpos {2}, setting to {3}", rev, name, attachment.GetRevpos(), generation));
-                            attachment.SetRevpos(generation);
+                            Log.W(Tag, string.Format("Attachment {0} {1} has unexpected revpos {2}, setting to {3}", rev, name, attachment.RevPos, generation));
+                            attachment.RevPos = generation;
                         }
                     }
                     // Finally insert the attachment:
@@ -3622,7 +3645,7 @@ PRAGMA user_version = 3;";
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
         internal void InsertAttachmentForSequence(AttachmentInternal attachment, long sequence)
         {
-            InsertAttachmentForSequenceWithNameAndType(sequence, attachment.GetName(), attachment.GetContentType(), attachment.GetRevpos(), attachment.GetBlobKey());
+            InsertAttachmentForSequenceWithNameAndType(sequence, attachment.Name, attachment.ContentType, attachment.RevPos, attachment.BlobKey);
         }
 
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
@@ -3685,8 +3708,8 @@ PRAGMA user_version = 3;";
                 {
                     var blobStoreWriter = writer;
                     blobStoreWriter.Install();
-                    attachment.SetBlobKey(blobStoreWriter.GetBlobKey());
-                    attachment.SetLength(blobStoreWriter.GetLength());
+                    attachment.BlobKey = (blobStoreWriter.GetBlobKey());
+                    attachment.Length = blobStoreWriter.GetLength();
                 }
                 catch (Exception e)
                 {
@@ -3755,10 +3778,10 @@ PRAGMA user_version = 3;";
                         var attachmentObject = attachments.Get(kvp.Key);
                         if (attachmentObject != null)
                         {
-                            attachmentValue.Put("length", attachmentObject.GetLength());
-                            if (attachmentObject.GetBlobKey() != null)
+                            attachmentValue.Put("length", attachmentObject.Length);
+                            if (attachmentObject.BlobKey != null)
                             {
-                                attachmentValue.Put("digest", attachmentObject.GetBlobKey().Base64Digest());
+                                attachmentValue.Put("digest", attachmentObject.BlobKey.Base64Digest());
                             }
                         }
                     }
@@ -3798,6 +3821,83 @@ PRAGMA user_version = 3;";
             }
             //NOOP: retval will be null
             return retval;
+        }
+
+        internal static bool ExpandAttachments(RevisionInternal rev, int minRevPos, bool allowFollows, 
+            bool decodeAttachments, Status outStatus)
+        {
+            rev.MutateAttachments((name, attachment) =>
+            {
+                int revPos = attachment.GetCast<int>("revpos");
+                if(revPos < minRevPos && revPos != 0) {
+                    //Stub:
+                    return new Dictionary<string, object> { { "stub", true }, { "revpos", revPos } };
+                }
+
+                var expanded = new Dictionary<string, object>(attachment);
+                expanded.Remove("stub");
+                if(decodeAttachments) {
+                    expanded.Remove("encoding");
+                    expanded.Remove("encoded_length");
+                }
+
+                if(allowFollows && SmallestLength(expanded) >= Database.BigAttachmentLength) {
+                    //Data will follow (multipart):
+                    expanded["follows"] = true;
+                    expanded.Remove("data");
+                } else {
+                    //Put data inline:
+                    expanded.Remove("follows");
+                    Status status = new Status();
+                    var attachObj = AttachmentForDict(attachment, name, status);
+                    if(attachObj == null) {
+                        Log.W(Tag, "Can't get attachment '{0}' of {1} (status {2})", name, rev, status);
+                        outStatus.SetCode(status.GetCode());
+                        return attachment;
+                    }
+
+                    var data = decodeAttachments ? attachObj.Content : attachObj.EncodedContent;
+                    if(data == null) {
+                        Log.W(Tag, "Can't get binary data of attachment '{0}' of {1}", name, rev);
+                        outStatus.SetCode(StatusCode.NotFound);
+                        return attachment;
+                    }
+
+                    expanded["data"] = Convert.ToBase64String(data.ToArray());
+                }
+
+                return expanded;
+            });
+
+            return outStatus.GetCode() == StatusCode.Ok;
+        }
+
+        private static AttachmentInternal AttachmentForDict(IDictionary<string, object> info, string filename, Status status)
+        {
+            if (info == null) {
+                status.SetCode(StatusCode.NotFound);
+                return null;
+            }
+
+            AttachmentInternal attachment;
+            try {
+                attachment = new AttachmentInternal(filename, info);
+            } catch(CouchbaseLiteException e) {
+                status.SetCode(e.GetCBLStatus().GetCode());
+                return null;
+            }
+
+            return attachment;
+        }
+
+        private static ulong SmallestLength(IDictionary<string, object> attachment)
+        {
+            object length = ulong.MaxValue;
+            object encodedLength = ulong.MaxValue;
+            attachment.TryGetValue("length", out length);
+            attachment.TryGetValue("encoded_length", out encodedLength);
+
+            return Math.Min((ulong)length, (ulong)encodedLength);
         }
 
         internal static void StubOutAttachmentsInRevBeforeRevPos(RevisionInternal rev, long minRevPos, bool attachmentsFollow)
@@ -3963,10 +4063,10 @@ PRAGMA user_version = 3;";
                     {
                         throw new CouchbaseLiteException(e, StatusCode.BadEncoding);
                     }
-                    attachment.SetLength(newContents.Length);
+                    attachment.Length = (ulong)newContents.Length;
                     var outBlobKey = new BlobKey();
                     var storedBlob = Attachments.StoreBlob(newContents, outBlobKey);
-                    attachment.SetBlobKey(outBlobKey);
+                    attachment.BlobKey = outBlobKey;
                     if (!storedBlob)
                     {
                         throw new CouchbaseLiteException(StatusCode.AttachmentError);
@@ -4005,23 +4105,23 @@ PRAGMA user_version = 3;";
                 {
                     if (Runtime.EqualsIgnoreCase(encodingStr, "gzip"))
                     {
-                        attachment.SetEncoding(AttachmentEncoding.AttachmentEncodingGZIP);
+                        attachment.Encoding = AttachmentEncoding.GZIP;
                     }
                     else
                     {
                         throw new CouchbaseLiteException("Unnkown encoding: " + encodingStr, StatusCode.BadEncoding
                                                         );
                     }
-                    attachment.SetEncodedLength(attachment.GetLength());
+                    attachment.EncodedLength = attachment.Length;
                     if (attachInfo.ContainsKey("length"))
                     {
-                        attachment.SetLength((long)attachInfo.Get("length"));
+                        attachment.Length = attachInfo.GetCast<ulong>("length");
                     }
                 }
                 if (attachInfo.ContainsKey("revpos"))
                 {
                     var revpos = Convert.ToInt32(attachInfo.Get("revpos"));
-                    attachment.SetRevpos(revpos);
+                    attachment.RevPos = revpos;
                 }
                 attachments[name] = attachment;
             }
@@ -4081,7 +4181,7 @@ PRAGMA user_version = 3;";
             foreach (string key in attachmentKeys)
             {
                 var attachment = attachments.Get(key);
-                md5Digest.Update(attachment.GetBlobKey().GetBytes());
+                md5Digest.Update(attachment.BlobKey.GetBytes());
             }
 
             if (json != null)
@@ -4145,6 +4245,33 @@ PRAGMA user_version = 3;";
             return matchingRevs;
         }
 
+        internal RevisionInternal RevisionByLoadingBody(RevisionInternal rev, Status outStatus)
+        {
+            // First check for no-op -- if we just need the default properties and already have them:
+            if (rev.GetSequence() != 0) {
+                var props = rev.GetProperties();
+                if (props.ContainsKey("_rev") && props.ContainsKey("_id")) {
+                    if (outStatus != null) {
+                        outStatus.SetCode(StatusCode.Ok);
+                    }
+
+                    return rev;
+                }
+            }
+
+            RevisionInternal nuRev = rev.CopyWithDocID(rev.GetDocId(), rev.GetRevId());
+            try {
+                LoadRevisionBody(nuRev, DocumentContentOptions.None);
+            } catch(CouchbaseLiteException e) {
+                if (outStatus != null) {
+                    outStatus.SetCode(e.GetCBLStatus().GetCode());
+                }
+
+                nuRev = null;
+            }
+
+            return nuRev;
+        }
 
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
         internal RevisionInternal LoadRevisionBody(RevisionInternal rev, DocumentContentOptions contentOptions)
@@ -4334,7 +4461,7 @@ PRAGMA user_version = 3;";
 
                         RememberAttachmentWritersForDigests(blobsByDigest);
 
-                        var encodingName = (encoding == AttachmentEncoding.AttachmentEncodingGZIP) ? "gzip" : null;
+                        var encodingName = (encoding == AttachmentEncoding.GZIP) ? "gzip" : null;
                         var dict = new Dictionary<string, object>();
 
                         dict.Put("digest", digest);

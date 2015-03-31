@@ -57,6 +57,7 @@ namespace Couchbase.Lite.PeerToPeer
                     Body = new Body(new Dictionary<string, object> {
                         { "status", Status },
                         { "error", StatusMessage },
+                        { "reason", StatusReason }
                     });
                 }
             }

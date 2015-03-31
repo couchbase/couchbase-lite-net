@@ -388,7 +388,7 @@ namespace Couchbase.Lite
                     Runtime.PrintStackTrace(e, Console.Error);
                 }
             }
-            return magic == GZIPInputStream.GzipMagic;
+            return magic == 0;
         }
 
         public FileInfo TempDir()
