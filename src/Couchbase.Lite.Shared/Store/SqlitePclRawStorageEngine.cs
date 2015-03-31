@@ -610,11 +610,14 @@ namespace Couchbase.Lite.Shared
             {
                 if (!IsOpen)
                 {
-                    Open(Path);
+                    if(Open(Path) == false)
+                    {
+                        throw new CouchbaseLiteException("Failed to Open " + Path, StatusCode.DbError);
+                    }
                 }
-                    
+
                 int err = raw.sqlite3_prepare_v2(db, sql, out command);
-                if (paramArgs.Length > 0 && command != null)
+                if (paramArgs.Length > 0 && command != null && err != raw.SQLITE_ERROR)
                 {
                     command.bind(paramArgs);
                 }
