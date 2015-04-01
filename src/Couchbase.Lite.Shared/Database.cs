@@ -4744,7 +4744,7 @@ PRAGMA user_version = 3;";
             ActiveReplicators.Add(replication);
             replication.Changed += (sender, e) => 
             {
-                if (!e.Source.IsRunning && ActiveReplicators != null)
+                if (e.Source != null && !e.Source.IsRunning && ActiveReplicators != null)
                 {
                     ActiveReplicators.Remove(e.Source);
                 }
