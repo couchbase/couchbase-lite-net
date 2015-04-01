@@ -54,6 +54,7 @@ using Couchbase.Lite.Util;
 using Sharpen;
 using System.Collections;
 using System.Runtime.CompilerServices;
+using Couchbase.Lite.Support;
 
 
 #if !NET_3_5
@@ -2548,7 +2549,7 @@ PRAGMA user_version = 3;";
             return true;
         }
 
-        internal RevisionInternal GetDocumentWithIDAndRev(String id, String rev, DocumentContentOptions contentOptions)
+        internal RevisionInternal GetDocumentWithIDAndRev(String id, String rev, DocumentContentOptions contentOptions, Status status = null)
         {
             RevisionInternal result = null;
             string sql;
@@ -2598,11 +2599,21 @@ PRAGMA user_version = 3;";
                         }
                         ExpandStoredJSONIntoRevisionWithAttachments(json, result, contentOptions);
                     }
+                } else {
+                    if(status != null) {
+                        status.SetCode(StatusCode.NotFound);
+                    }
                 }
             }
             catch (Exception e)
             {
                 Log.E(Tag, "Error getting document with id and rev", e);
+                if (status != null) {
+                    var ce = e as CouchbaseLiteException;
+                    if (ce != null) {
+                        status.SetCode(ce.GetCBLStatus().GetCode());
+                    }
+                }
             }
             finally
             {
@@ -2612,6 +2623,36 @@ PRAGMA user_version = 3;";
                 }
             }
             return result;
+        }
+
+        internal MultipartWriter MultipartWriterForRev(RevisionInternal rev, string contentType)
+        {
+            var writer = new MultipartWriter(contentType, null);
+            writer.SetNextPartHeaders(new Dictionary<string, string> { { "Content-Type", "application/json" } });
+            writer.AddData(rev.GetBody().GetJson());
+            var attachments = rev.GetAttachments();
+            foreach (var entry in attachments) {
+                var attachment = entry.Value as IDictionary<string, object>;
+                if (attachment != null && attachment.GetCast<bool>("follows", false)) {
+                    var disposition = String.Format("attachment; filename={0}", Quote(entry.Key));
+                    writer.SetNextPartHeaders(new Dictionary<string, string> { { "Content-Disposition", disposition } });
+
+                    Status status = new Status();
+                    var attachObj = AttachmentForDict(attachment, entry.Key, status);
+                    if (attachObj == null) {
+                        return null;
+                    }
+
+                    var fileURL = attachObj.ContentUrl;
+                    if (fileURL != null) {
+                        writer.AddFileUrl(fileURL);
+                    } else {
+                        writer.AddStream(attachObj.ContentStream);
+                    }
+                }
+            }
+
+            return writer;
         }
 
         /// <summary>Inserts the _id, _rev and _attachments properties into the JSON data and stores it in rev.

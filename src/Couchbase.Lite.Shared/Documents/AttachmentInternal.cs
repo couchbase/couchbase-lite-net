@@ -120,7 +120,7 @@ namespace Couchbase.Lite.Internal
                     case AttachmentEncoding.None:
                         break;
                     case AttachmentEncoding.GZIP:
-                        data = Inflate(data);
+                        data = data.Decompress();
                         break;
                 }
 
@@ -132,7 +132,7 @@ namespace Couchbase.Lite.Internal
             }
         }
 
-        public InputStream ContentStream { 
+        public Stream ContentStream { 
             get {
                 if (Encoding == AttachmentEncoding.None) {
                     return Database.Attachments.BlobStreamForKey(_blobKey);
@@ -230,15 +230,6 @@ namespace Couchbase.Lite.Internal
                 }
             } else {
                 throw new CouchbaseLiteException(StatusCode.BadAttachment);
-            }
-        }
-
-        public static IEnumerable<byte> Inflate(IEnumerable<byte> compressedData)
-        {
-            
-            using (var ms = new MemoryStream(compressedData.ToArray()))
-            using (var gs = new GZipStream(ms, CompressionMode.Decompress, false)) {
-                return gs.ReadAllBytes();
             }
         }
             

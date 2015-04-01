@@ -46,14 +46,15 @@ using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Diagnostics;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Net;
 using System.Net.Http.Headers;
+using System.Threading.Tasks;
 
 using Newtonsoft.Json.Linq;
 
 using Sharpen;
-using System.Threading.Tasks;
 
 namespace Couchbase.Lite
 {
@@ -61,6 +62,26 @@ namespace Couchbase.Lite
 
     internal static class ExtensionMethods
     {
+        public static IEnumerable<byte> Decompress(this IEnumerable<byte> compressedData)
+        {
+
+            using (var ms = new MemoryStream(compressedData.ToArray()))
+            using (var gs = new GZipStream(ms, CompressionMode.Decompress, false)) {
+                return gs.ReadAllBytes();
+            }
+        }
+
+        public static IEnumerable<byte> Compress(this IEnumerable<byte> data)
+        {
+            var array = data.ToArray();
+
+            using (var ms = new MemoryStream())
+            using (var gs = new GZipStream(ms, CompressionMode.Compress, false)) {
+                gs.Write(array, 0, array.Length);
+                return ms.ToArray();
+            }
+        }
+
         public static bool TryGetValue<T>(this IDictionary<string, object> dic, string key, out T value)
         {
             value = default(T);

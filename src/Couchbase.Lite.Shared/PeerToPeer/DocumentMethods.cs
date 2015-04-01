@@ -35,7 +35,7 @@ namespace Couchbase.Lite.PeerToPeer
             return DatabaseMethods.PerformLogicWithDatabase(context, true, db => {
                 var response = new CouchbaseLiteResponse(context);
                 // http://wiki.apache.org/couchdb/HTTP_Document_API#GET
-                string[] splitUrl = context.Request.RawUrl.Split(new[] { '/' }, StringSplitOptions.RemoveEmptyEntries);
+                string[] splitUrl = context.Request.Url.AbsolutePath.Split(new[] { '/' }, StringSplitOptions.RemoveEmptyEntries);
                 string docId = splitUrl[1];
                 bool isLocalDoc = false;
                 if (docId.Equals("_local")) {
@@ -61,7 +61,7 @@ namespace Couchbase.Lite.PeerToPeer
                         }
 
                         Status status = new Status();
-                        rev = db.GetDocumentWithIDAndRev(docId, revId, options);
+                        rev = db.GetDocumentWithIDAndRev(docId, revId, options, status);
                         if(rev != null) {
                             rev = ApplyOptions(options, rev, context, db, status);
                         }
@@ -73,6 +73,7 @@ namespace Couchbase.Lite.PeerToPeer
                                 response.StatusReason = "missing";
                             }
 
+                            response.InternalStatus = status.GetCode();
                             return response;
                         }
                     }
@@ -104,7 +105,7 @@ namespace Couchbase.Lite.PeerToPeer
                     }
 
                     if(sendMultipart) {
-                        
+                        response.SetMultipartBody(db.MultipartWriterForRev(rev, "multipart/related"));
                     } else {
                         response.Body = rev.GetBody();
                     }
@@ -139,6 +140,38 @@ namespace Couchbase.Lite.PeerToPeer
                         }
                     } else {
                         // ?open_revs=[...] returns an array of specific revisions of the document:
+                        var openRevs = context.Request.QueryString.JsonQuery("open_revs").AsList<object>();
+                        if(openRevs == null) {
+                            response.InternalStatus = StatusCode.BadParam;
+                            return response;
+                        }
+
+                        result = new List<IDictionary<string, object>>();
+                        foreach(var revIDObj in openRevs) {
+                            var revID = revIDObj as string;
+                            if(revID == null) {
+                                response.InternalStatus = StatusCode.BadId;
+                                return response;
+                            }
+
+                            Status status = new Status();
+                            var rev = db.GetDocumentWithIDAndRev(docId, revID, DocumentContentOptions.None, status);
+                            if(rev != null) {
+                                rev = ApplyOptions(options, rev, context, db, status);
+                            }
+
+                            if(rev != null) {
+                                result.Add(new Dictionary<string, object>{ { "ok", rev.GetProperties() } });
+                            } else {
+                                result.Add(new Dictionary<string, object>{ { "missing", revID } });
+                            }
+                        }
+                    }
+
+                    if(mustSendJson) {
+                        response.Body = new Body(result.Cast<object>().ToList());
+                    } else {
+                        response.SetMultipartBody(result.Cast<object>().ToList(), "multipart/mixed");
                     }
                 }
 
@@ -164,14 +197,14 @@ namespace Couchbase.Lite.PeerToPeer
                     dst["_revs_info"] = db.GetRevisionHistory(rev).Select(x =>
                     {
                         string status = "available";
-                        if(rev.IsDeleted()) {
+                        if(x.IsDeleted()) {
                             status = "deleted";
-                        } else if(rev.IsMissing()) {
+                        } else if(x.IsMissing()) {
                             status = "missing";
                         }
 
                         return new Dictionary<string, object> {
-                            { "rev", rev.GetRevId() },
+                            { "rev", x.GetRevId() },
                             { "status", status }
                         };
                     });

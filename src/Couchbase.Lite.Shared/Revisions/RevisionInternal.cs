@@ -166,6 +166,16 @@ namespace Couchbase.Lite.Internal
             return docId.GetHashCode() ^ revId.GetHashCode();
         }
 
+        internal IDictionary<string, object> GetAttachments()
+        {
+            var props = GetProperties();
+            if (props == null) {
+                return null;
+            }
+
+            return props.Get("_attachments").AsDictionary<string, object>();
+        }
+
         internal string GetDocId()
         {
             return docId;

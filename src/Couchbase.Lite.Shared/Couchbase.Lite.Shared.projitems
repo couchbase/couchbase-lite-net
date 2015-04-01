@@ -269,6 +269,8 @@
     <Compile Include="$(MSBuildThisFileDirectory)View\BuiltinReduceFunctions.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\DocumentMethods.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\HttpListenerContextExtensions.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Replication\MultipartWriter.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Replication\MultiStreamWriter.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="$(MSBuildThisFileDirectory)Store\MonoSQLiteStorageEngine.cs" />

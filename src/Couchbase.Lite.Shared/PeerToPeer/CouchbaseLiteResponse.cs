@@ -25,6 +25,7 @@ using System.Collections.Generic;
 using Couchbase.Lite.Internal;
 using Couchbase.Lite.Util;
 using System.Text;
+using Couchbase.Lite.Support;
 
 namespace Couchbase.Lite.PeerToPeer
 {
@@ -141,6 +142,30 @@ namespace Couchbase.Lite.PeerToPeer
             foreach (var header in Headers) {
                 _context.Response.AddHeader(header.Key, header.Value);
             }
+        }
+
+        public void SetMultipartBody(IList<object> parts, string type)
+        {
+            var mp = new MultipartWriter(type, null);
+            object nextPart;
+            foreach (var part in parts) {
+                if (!(part is IEnumerable<byte>)) {
+                    nextPart = Manager.GetObjectMapper().WriteValueAsBytes(part);
+                    mp.SetNextPartHeaders(new Dictionary<string, string> { { "Content-Type", "application/json" } });
+                } else {
+                    nextPart = part;
+                }
+
+                mp.AddData((IEnumerable<byte>)nextPart);
+            }
+
+            SetMultipartBody(mp);
+        }
+
+        public void SetMultipartBody(MultipartWriter mp)
+        {
+            Headers["Content-Type"] = mp.ContentType;
+            Body = new Body(mp.AllOutput());
         }
 
         private void Validate()
