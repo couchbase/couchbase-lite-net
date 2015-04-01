@@ -276,10 +276,11 @@ namespace Couchbase.Lite.Shared
         {  
             var t = Factory.StartNew(()=>
             {
-                var command = BuildCommand(_writeConnection, sql, paramArgs);
-
+                sqlite3_stmt command = null;
+                    
                 try
                 {
+                    command = BuildCommand(_writeConnection, sql, paramArgs);
                     var result = command.step();
                     if (result == SQLiteResult.ERROR)
                         throw new CouchbaseLiteException(raw.sqlite3_errmsg(_writeConnection), StatusCode.DbError);
@@ -291,7 +292,10 @@ namespace Couchbase.Lite.Shared
                 }
                 finally
                 {
-                    command.Dispose();
+                    if(command != null)
+                    {
+                        command.Dispose();
+                    }
                 }
             }, _cts.Token);
 
@@ -341,12 +345,13 @@ namespace Couchbase.Lite.Shared
             var t = Factory.StartNew(() =>
             {
                 Cursor cursor = null;
-                var command = BuildCommand (_writeConnection, sql, paramArgs);
+                sqlite3_stmt command = null;
                 try 
                 {
                     Log.V(Tag, "RawQuery sql: {0} ({1})", sql, String.Join(", ", paramArgs.ToStringArray()));
+                    command = BuildCommand (_writeConnection, sql, paramArgs);
                     cursor = new Cursor(command);
-                } 
+                }
                 catch (Exception e) 
                 {
                     if (command != null) 
@@ -377,10 +382,12 @@ namespace Couchbase.Lite.Shared
             }
 
             Cursor cursor = null;
-            var command = BuildCommand (_readConnection, sql, paramArgs);
+            sqlite3_stmt command = null;
+
             try 
             {
                 Log.V(Tag, "RawQuery sql: {0} ({1})", sql, String.Join(", ", paramArgs.ToStringArray()));
+                command = BuildCommand (_readConnection, sql, paramArgs);
                 cursor = new Cursor(command);
             } 
             catch (Exception e) 
@@ -607,11 +614,10 @@ namespace Couchbase.Lite.Shared
                 }
                     
                 int err = raw.sqlite3_prepare_v2(db, sql, out command);
-                if (paramArgs.Length > 0)
+                if (paramArgs.Length > 0 && command != null)
                 {
                     command.bind(paramArgs);
                 }
-
             }
             catch (Exception e)
             {
