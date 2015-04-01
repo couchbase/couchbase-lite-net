@@ -584,6 +584,10 @@ namespace Couchbase.Lite
         public void DumpTableMaps()
         {
             var cursor = database.StorageEngine.RawQuery("SELECT * FROM maps", null);
+            if (cursor == null) {
+                throw new Exception("RawQuery failed!");
+            }
+
             while (cursor.MoveToNext())
             {
                 var viewId = cursor.GetInt(0);
@@ -615,6 +619,10 @@ namespace Couchbase.Lite
         public void DumpTableRevs()
         {
             var cursor = database.StorageEngine.RawQuery("SELECT * FROM revs", null);
+            if (cursor == null) {
+                throw new Exception("RawQuery failed!");
+            }
+
             while (cursor.MoveToNext())
             {
                 var sequence = cursor.GetInt(0);
