@@ -4699,10 +4699,16 @@ PRAGMA user_version = 3;";
         {
             long curSequence = LastSequenceNumber;
             if (curSequence > 0) {
-                var c = StorageEngine.RawQuery("SELECT value FROM info WHERE key=?", "last_optimized");
+                Cursor cursor = StorageEngine.RawQuery("SELECT value FROM info WHERE key=?", "last_optimized");
+                if (cursor == null) {
+                    //Will not optimize this time
+                    Log.D(Tag, "Optimizing SQL indexes failed");
+                    return;
+                }
+
                 long lastOptimized = 0;
-                if (c.MoveToNext()) {
-                    lastOptimized = long.Parse(c.GetString(0));
+                if (cursor.MoveToNext()) {
+                    lastOptimized = long.Parse(cursor.GetString(0));
                 }
 
                 if (lastOptimized <= curSequence / 10) {
@@ -4738,7 +4744,7 @@ PRAGMA user_version = 3;";
             ActiveReplicators.Add(replication);
             replication.Changed += (sender, e) => 
             {
-                if (!e.Source.IsRunning && ActiveReplicators != null)
+                if (e.Source != null && !e.Source.IsRunning && ActiveReplicators != null)
                 {
                     ActiveReplicators.Remove(e.Source);
                 }

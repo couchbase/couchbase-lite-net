@@ -64,6 +64,10 @@ namespace Couchbase.Lite
 
         Int64 currentRow;
 
+        /// <summary>
+        /// Can throw an exception
+        /// </summary>
+        /// <param name="stmt">Statement.</param>
         internal Cursor (sqlite3_stmt stmt)
         {
             this.statement = stmt;

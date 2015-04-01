@@ -76,6 +76,10 @@ namespace Couchbase.Lite
         {
             MaxRetries = 10;
 
+            MaxOpenHttpConnections = 16;
+
+            MaxRevsToGetInBulk = 50;
+
             RequestTimeout = TimeSpan.FromSeconds(90);
 
             TaskScheduler scheduler = null;
@@ -103,5 +107,17 @@ namespace Couchbase.Lite
         /// </summary>
         /// <value>The request timeout. Defaults to 30 seconds.</value>
         public TimeSpan RequestTimeout { get; set; }
+
+        /// <summary>
+        /// Gets or sets max number of open Http Connections
+        /// </summary>
+        /// <value>Max number of connections</value>
+        public int MaxOpenHttpConnections { get; set; }
+
+        /// <summary>
+        /// Get or sets the max revs to get in a bulk download
+        /// </summary>
+        /// <value>Max revs to get in bulk download</value>
+        public int MaxRevsToGetInBulk { get; set; }
     }
 }

@@ -276,10 +276,11 @@ namespace Couchbase.Lite.Shared
         {  
             var t = Factory.StartNew(()=>
             {
-                var command = BuildCommand(_writeConnection, sql, paramArgs);
-
+                sqlite3_stmt command = null;
+                    
                 try
                 {
+                    command = BuildCommand(_writeConnection, sql, paramArgs);
                     var result = command.step();
                     if (result == SQLiteResult.ERROR)
                         throw new CouchbaseLiteException(raw.sqlite3_errmsg(_writeConnection), StatusCode.DbError);
@@ -291,7 +292,10 @@ namespace Couchbase.Lite.Shared
                 }
                 finally
                 {
-                    command.Dispose();
+                    if(command != null)
+                    {
+                        command.Dispose();
+                    }
                 }
             }, _cts.Token);
 
@@ -333,18 +337,21 @@ namespace Couchbase.Lite.Shared
                 Open(Path);
             }
 
-            if (transactionCount == 0)
+            if (transactionCount == 0) 
+            {
                 return RawQuery(sql, paramArgs);
+            }
 
             var t = Factory.StartNew(() =>
             {
                 Cursor cursor = null;
-                var command = BuildCommand (_writeConnection, sql, paramArgs);
+                sqlite3_stmt command = null;
                 try 
                 {
+                    command = BuildCommand (_writeConnection, sql, paramArgs);
                     Log.V(Tag, "RawQuery sql: {0} ({1})", sql, String.Join(", ", paramArgs.ToStringArray()));
                     cursor = new Cursor(command);
-                } 
+                }
                 catch (Exception e) 
                 {
                     if (command != null) 
@@ -375,9 +382,11 @@ namespace Couchbase.Lite.Shared
             }
 
             Cursor cursor = null;
-            var command = BuildCommand (_readConnection, sql, paramArgs);
+            sqlite3_stmt command = null;
+
             try 
             {
+                command = BuildCommand (_readConnection, sql, paramArgs);
                 Log.V(Tag, "RawQuery sql: {0} ({1})", sql, String.Join(", ", paramArgs.ToStringArray()));
                 cursor = new Cursor(command);
             } 
@@ -389,7 +398,7 @@ namespace Couchbase.Lite.Shared
                 }
                 var args = paramArgs == null 
                     ? String.Empty 
-                    : String.Join(",", paramArgs.ToStringArray());
+                    : StringEx.Join(",", paramArgs.ToStringArray());
                 Log.E(Tag, "Error executing raw query '{0}' is values '{1}' {2}".Fmt(sql, args, _readConnection.errmsg()), e);
                 throw;
             }
@@ -483,7 +492,7 @@ namespace Couchbase.Lite.Shared
             }, CancellationToken.None);
 
             // NOTE.ZJG: Just a sketch here. Needs better error handling, etc.
-            var r = t.Result;
+            var r = t.GetAwaiter().GetResult();
             if (t.Exception != null)
                 throw t.Exception;
             return r;
@@ -521,10 +530,14 @@ namespace Couchbase.Lite.Shared
                 }
                 return resultCount;
             });
+
             // NOTE.ZJG: Just a sketch here. Needs better error handling, etc.
-            var r = t.Result;
-            if (t.Exception != null)
+            var r = t.GetAwaiter().GetResult();
+            if (t.Exception != null) 
+            {
                 throw t.Exception;
+            }
+                
             return r;
         }
 
@@ -594,15 +607,17 @@ namespace Couchbase.Lite.Shared
             {
                 if (!IsOpen)
                 {
-                    Open(Path);
+                    if(Open(Path) == false)
+                    {
+                        throw new Exception("Failed to Open " + Path);
+                    }
                 }
-                    
+
                 int err = raw.sqlite3_prepare_v2(db, sql, out command);
-                if (paramArgs.Length > 0)
+                if (paramArgs.Length > 0 && command != null && err != raw.SQLITE_ERROR)
                 {
                     command.bind(paramArgs);
                 }
-
             }
             catch (Exception e)
             {
