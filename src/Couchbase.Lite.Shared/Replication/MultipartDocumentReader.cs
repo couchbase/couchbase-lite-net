@@ -82,12 +82,11 @@ namespace Couchbase.Lite.Support
 
         public void ParseJsonBuffer()
         {
-            try
-            {
+            try {
                 document = Manager.GetObjectMapper().ReadValue<IDictionary<String, Object>>(jsonBuffer.ToArray());
-            }
-            catch (IOException e)
-            {
+            } catch (IOException e) {
+                throw new InvalidOperationException("Failed to parse json buffer", e);
+            } catch(CouchbaseLiteException e) {
                 throw new InvalidOperationException("Failed to parse json buffer", e);
             }
             jsonBuffer = null;
@@ -106,6 +105,7 @@ namespace Couchbase.Lite.Support
                 || contentType.StartsWith("text/plain", StringComparison.Ordinal)) {
                 // No multipart, so no attachments. Body is pure JSON. (We allow text/plain because CouchDB
                 // sends JSON responses using the wrong content-type.)
+                jsonBuffer = new List<byte>();
             } else {
                 throw new ArgumentException("contentType must start with multipart/");
             }

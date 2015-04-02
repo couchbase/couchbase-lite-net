@@ -271,6 +271,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\HttpListenerContextExtensions.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Replication\MultipartWriter.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Replication\MultiStreamWriter.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\AsyncOpCouchbaseResponseState.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="$(MSBuildThisFileDirectory)Store\MonoSQLiteStorageEngine.cs" />

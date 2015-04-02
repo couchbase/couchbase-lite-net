@@ -182,7 +182,7 @@ namespace Couchbase.Lite.PeerToPeer
                                 }
                             } 
                         } else {
-                            status = UpdateDocument(context, db, docId, body, false, allOrNothing, out rev);
+                            status = DocumentMethods.UpdateDocument(context, db, docId, body, false, allOrNothing, out rev);
                         }
 
                         IDictionary<string, object> result = null;
@@ -239,7 +239,7 @@ namespace Couchbase.Lite.PeerToPeer
                 responseState.Response = response;
                 responseState.ChangesMode = ParseChangesOptions(context);
                 if (responseState.ChangesMode < ChangesFeedMode.Continuous) {
-                    if(context.CacheWithEtag(db.LastSequenceNumber.ToString(), response)) {
+                    if(context.CacheWithEtag(db.LastSequenceNumber.ToString())) {
                         response.InternalStatus = StatusCode.NotModified;
                         return response;
                     }
@@ -380,7 +380,7 @@ namespace Couchbase.Lite.PeerToPeer
 
             return PerformLogicWithDatabase(context, true, db =>
             {
-                if (context.CacheWithEtag(db.LastSequenceNumber.ToString(), response)) {
+                if (context.CacheWithEtag(db.LastSequenceNumber.ToString())) {
                     response.InternalStatus = StatusCode.NotModified;
                     return response;
                 }
@@ -528,76 +528,6 @@ namespace Couchbase.Lite.PeerToPeer
             }
 
             return new Dictionary<string, T>();
-        }
-
-        private static StatusCode UpdateDocument(HttpListenerContext context, Database db, string docId, Body body, bool deleting, 
-            bool allowConflict, out RevisionInternal outRev)
-        {
-            outRev = null;
-            if (body != null && !body.IsValidJSON()) {
-                return StatusCode.BadJson;
-            }
-
-            string prevRevId;
-            if (!deleting) {
-                var properties = body.GetProperties();
-                deleting = properties.GetCast<bool>("_deleted");
-                if (docId == null) {
-                    // POST's doc ID may come from the _id field of the JSON body.
-                    docId = properties.GetCast<string>("_id");
-                    if (docId == null && deleting) {
-                        return StatusCode.BadId;
-                    }
-                }
-
-                // PUT's revision ID comes from the JSON body.
-                prevRevId = properties.GetCast<string>("_rev");
-            } else {
-                // DELETE's revision ID comes from the ?rev= query param
-                prevRevId = context.Request.QueryString.Get("rev");
-            }
-
-            // A backup source of revision ID is an If-Match header:
-            if (prevRevId == null) {
-                prevRevId = IfMatch(context.Request);
-            }
-
-            if (docId == null && deleting) {
-                return StatusCode.BadId;
-            }
-
-            RevisionInternal rev = new RevisionInternal(docId, null, deleting);
-            rev.SetBody(body);
-
-            StatusCode status = StatusCode.Ok;
-            try {
-                if (docId.StartsWith("_local")) {
-                    outRev = db.PutLocalRevision(rev, prevRevId); //TODO: Doesn't match iOS
-                } else {
-                    Status retStatus = new Status();
-                    outRev = db.PutRevision(rev, prevRevId, allowConflict, retStatus);
-                    status = retStatus.GetCode();
-                }
-            } catch(CouchbaseLiteException e) {
-                status = e.Code;
-            }
-
-            return status;
-        }
-
-        private static string IfMatch(HttpListenerRequest request)
-        {
-            string ifMatch = request.Headers.Get("If-Match");
-            if (ifMatch == null) {
-                return null;
-            }
-
-            // Value of If-Match is an ETag, so have to trim the quotes around it:
-            if (ifMatch.Length > 2 && ifMatch.StartsWith("\"") && ifMatch.EndsWith("\"")) {
-                return ifMatch.Trim('"');
-            }
-
-            return null;
         }
 
         private static ChangesFeedMode ParseChangesOptions(HttpListenerContext context)

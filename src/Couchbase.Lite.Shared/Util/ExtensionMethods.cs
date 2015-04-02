@@ -62,6 +62,21 @@ namespace Couchbase.Lite
 
     internal static class ExtensionMethods
     {
+        public static string IfMatch(this HttpListenerRequest request)
+        {
+            string ifMatch = request.Headers.Get("If-Match");
+            if (ifMatch == null) {
+                return null;
+            }
+
+            // Value of If-Match is an ETag, so have to trim the quotes around it:
+            if (ifMatch.Length > 2 && ifMatch.StartsWith("\"") && ifMatch.EndsWith("\"")) {
+                return ifMatch.Trim('"');
+            }
+
+            return null;
+        }
+
         public static IEnumerable<byte> Decompress(this IEnumerable<byte> compressedData)
         {
 

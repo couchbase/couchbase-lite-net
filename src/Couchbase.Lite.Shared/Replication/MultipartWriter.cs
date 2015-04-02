@@ -92,7 +92,7 @@ namespace Couchbase.Lite.Support
         protected override void AddInput(object input, long length)
         {
             StringBuilder headers = new StringBuilder(String.Format("\r\n--{0}\r\n", Boundary));
-            headers.AppendFormat("Content-Length: %{0}\r\n", Length);
+            headers.AppendFormat("Content-Length: {0}\r\n", length);
             foreach (var entry in _nextPartsHeaders) {
                 // Strip any CR or LF in the header value. This isn't real quoting, just enough to ensure
                 // a spoofer can't add bogus headers by putting CRLF into a header value!

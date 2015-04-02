@@ -53,17 +53,23 @@ namespace Couchbase.Lite.PeerToPeer
                 { "/*/_bulk_docs", DatabaseMethods.ProcessDocumentChangeOperations },
                 { "/*/_compact", DatabaseMethods.Compact },
                 { "/*/_purge", DatabaseMethods.Purge },
-                { "/*/_temp_view", DatabaseMethods.ExecuteTemporaryViewFunction }
+                { "/*/_temp_view", DatabaseMethods.ExecuteTemporaryViewFunction },
+                { "/*", DocumentMethods.CreateDocument }, //CouchDB does not have an equivalent for POST to _local
             });
 
         private static readonly RouteCollection _Put =
             new RouteCollection(new Dictionary<string, RestMethod> {
-                { "/*", DatabaseMethods.UpdateConfiguration }
+                { "/*", DatabaseMethods.UpdateConfiguration },
+                { "/*/*", DocumentMethods.UpdateDocument },
+                { "/*/_local/*", DocumentMethods.UpdateDocument },
+                { "/*/*/*", DocumentMethods.UpdateAttachment }
             });
 
         private static readonly RouteCollection _Delete =
             new RouteCollection(new Dictionary<string, RestMethod> {
-                { "/*", DatabaseMethods.DeleteConfiguration }
+                { "/*", DatabaseMethods.DeleteConfiguration },
+                { "/*/*", DocumentMethods.DeleteDocument },
+                { "/*/_local/*", DocumentMethods.DeleteDocument }
             });
 
         public static void HandleContext(HttpListenerContext context)

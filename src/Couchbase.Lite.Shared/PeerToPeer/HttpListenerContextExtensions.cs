@@ -58,10 +58,10 @@ namespace Couchbase.Lite.PeerToPeer
             return accept.Contains(type);
         }
 
-        public static bool CacheWithEtag(this HttpListenerContext context, string etag, CouchbaseLiteResponse response)
+        public static bool CacheWithEtag(this HttpListenerContext context, string etag)
         {
             etag = String.Format("\"{0}\"", etag);
-            response["Etag"] = etag;
+            context.Response.Headers["Etag"] = etag;
             return etag.Equals(context.Request.Headers.Get("If-None-Match"));
         }
     }

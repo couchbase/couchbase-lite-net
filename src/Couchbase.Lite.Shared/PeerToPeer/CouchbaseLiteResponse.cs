@@ -27,6 +27,8 @@ using Couchbase.Lite.Util;
 using System.Text;
 using Couchbase.Lite.Support;
 
+using Sharpen;
+
 namespace Couchbase.Lite.PeerToPeer
 {
     internal sealed class CouchbaseLiteResponse
@@ -72,7 +74,16 @@ namespace Couchbase.Lite.PeerToPeer
 
         public Body Body { get; set; }
 
-        public string BaseContentType { get; set; }
+        public string BaseContentType { 
+            get {
+                string type = Headers.Get("Content-Type");
+                if (type == null) {
+                    return null;
+                }
+
+                return type.Split(';')[0];
+            }
+        }
 
         public CouchbaseLiteResponse(HttpListenerContext context) {
             Headers = new Dictionary<string, string>();
