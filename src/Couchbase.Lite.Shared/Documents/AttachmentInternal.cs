@@ -64,9 +64,9 @@ namespace Couchbase.Lite.Internal
         private IEnumerable<byte> _data;
         private const string TAG = "AttachmentInternal";
 
-        public ulong Length { get; set; }
+        public long Length { get; set; }
 
-        public ulong EncodedLength { get; set; }
+        public long EncodedLength { get; set; }
 
         public AttachmentEncoding Encoding { get; set; }
 
@@ -185,8 +185,8 @@ namespace Couchbase.Lite.Internal
         public AttachmentInternal(string name, IDictionary<string, object> info) 
             : this(name, info.GetCast<string>("content_type"))
         {
-            Length = info.GetCast<ulong>("length");
-            EncodedLength = info.GetCast<ulong>("encoded_length");
+            Length = info.GetCast<long>("length");
+            EncodedLength = info.GetCast<long>("encoded_length");
             _digest = info.GetCast<string>("digest");
             if (_digest != null) {
                 BlobKey = new BlobKey(Digest);
@@ -214,10 +214,10 @@ namespace Couchbase.Lite.Internal
                     throw new CouchbaseLiteException(StatusCode.BadEncoding);
                 }
 
-                SetPossiblyEncodedLength((ulong)_data.LongCount());
+                SetPossiblyEncodedLength(((IEnumerable<byte>)data).LongCount());
             } else if (info.GetCast<bool>("stub", false)) {
                 // This item is just a stub; validate and skip it
-                int revPos = info.GetCast<int>("revpos");
+                int revPos = (int)info.GetCast<long>("revpos");
                 if (revPos <= 0) {
                     throw new CouchbaseLiteException(StatusCode.BadAttachment);
                 }
@@ -258,7 +258,7 @@ namespace Couchbase.Lite.Internal
             return retVal;
         }
 
-        public void SetPossiblyEncodedLength(ulong length)
+        public void SetPossiblyEncodedLength(long length)
         {
             if (Encoding != AttachmentEncoding.None) {
                 EncodedLength = length;

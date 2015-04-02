@@ -154,16 +154,16 @@ namespace Couchbase.Lite.Support
                 var attachmentName = (string)attmt.Key;
                 var attachment = (JObject)attmt.Value;
 
-                ulong length = 0;
+                long length = 0;
                 var lengthValue = attachment["length"];
                 if (lengthValue != null)
                 {
-                    length = (ulong)lengthValue;
+                    length = (long)lengthValue;
                 }
                 var encodedLengthValue = attachment["encoded_length"];
                 if (encodedLengthValue != null)
                 {
-                    length = (ulong)encodedLengthValue;
+                    length = (long)encodedLengthValue;
                 }
 
                 var followsValue = attachment["follows"];

@@ -53,11 +53,11 @@ namespace Couchbase.Lite.PeerToPeer
                 Status = httpStatus.Item1;
                 StatusMessage = httpStatus.Item2;
                 if (Status < 300) {
-                    if (Body == null && !Headers.ContainsKey("Content-Type")) {
-                        Body = new Body(Encoding.UTF8.GetBytes("{\"ok\":true}"));
+                    if (JsonBody == null && !Headers.ContainsKey("Content-Type")) {
+                        JsonBody = new Body(Encoding.UTF8.GetBytes("{\"ok\":true}"));
                     }
                 } else {
-                    Body = new Body(new Dictionary<string, object> {
+                    JsonBody = new Body(new Dictionary<string, object> {
                         { "status", Status },
                         { "error", StatusMessage },
                         { "reason", StatusReason }
@@ -72,7 +72,27 @@ namespace Couchbase.Lite.PeerToPeer
 
         public IDictionary<string, string> Headers { get; set; }
 
-        public Body Body { get; set; }
+        public Body JsonBody { 
+            get {
+                return _jsonBody;
+            }
+            set {
+                _binaryBody = null;
+                _jsonBody = value;
+            }
+        }
+        private Body _jsonBody;
+
+        public IEnumerable<byte> BinaryBody {
+            get {
+                return _binaryBody;
+            }
+            set { 
+                _binaryBody = value;
+                _jsonBody = null;
+            }
+        }
+        private IEnumerable<byte> _binaryBody;
 
         public string BaseContentType { 
             get {
@@ -103,15 +123,21 @@ namespace Couchbase.Lite.PeerToPeer
                 return;
             }
 
-            if (this.Body != null) {
+            if (JsonBody != null) {
                 if (!Headers.ContainsKey("Content-Type")) {
                     this["Content-Type"] = "application/json";
                 }
 
                 _context.Response.ContentEncoding = Encoding.UTF8;
-                var json = Body.GetJson().ToArray();
+                var json = JsonBody.GetJson().ToArray();
                 _context.Response.ContentLength64 = json.Length;
                 _context.Response.OutputStream.Write(json, 0, json.Length);
+            } else if (BinaryBody != null) {
+                this["Content-Type"] = BaseContentType;
+                _context.Response.ContentEncoding = Encoding.UTF8;
+                var data = BinaryBody.ToArray();
+                _context.Response.ContentLength64 = data.LongLength;
+                _context.Response.OutputStream.Write(data, 0, data.Length);
             }
 
             _context.Response.Close();
@@ -176,7 +202,7 @@ namespace Couchbase.Lite.PeerToPeer
         public void SetMultipartBody(MultipartWriter mp)
         {
             Headers["Content-Type"] = mp.ContentType;
-            Body = new Body(mp.AllOutput());
+            JsonBody = new Body(mp.AllOutput());
         }
 
         private void Validate()
@@ -201,7 +227,7 @@ namespace Couchbase.Lite.PeerToPeer
         public void Reset()
         {
             Headers.Clear();
-            Body = null;
+            JsonBody = null;
             _headersWritten = false;
         }
 

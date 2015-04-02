@@ -50,7 +50,7 @@ namespace Couchbase.Lite.PeerToPeer
                 }
 
                 var response = new CouchbaseLiteResponse(context);
-                response.Body = new Body(new Dictionary<string, object> {
+                response.JsonBody = new Body(new Dictionary<string, object> {
                     { "db_name", db.Name },
                     { "doc_count", numDocs },
                     { "update_seq", updateSequence },
@@ -215,7 +215,7 @@ namespace Couchbase.Lite.PeerToPeer
                         }
                     }
 
-                    response.Body = new Body(results.Cast<object>().ToList());
+                    response.JsonBody = new Body(results.Cast<object>().ToList());
                     return true;
                 });
 
@@ -301,9 +301,9 @@ namespace Couchbase.Lite.PeerToPeer
                     return new CouchbaseLiteResponse(context);
                 } else {
                     if(responseState.ChangesIncludeConflicts) {
-                        response.Body = new Body(ResponseBodyForChanges(changes, since, options.GetLimit(), responseState));
+                        response.JsonBody = new Body(ResponseBodyForChanges(changes, since, options.GetLimit(), responseState));
                     } else {
-                        response.Body = new Body(ResponseBodyForChanges(changes, since, responseState));
+                        response.JsonBody = new Body(ResponseBodyForChanges(changes, since, responseState));
                     }
 
                     return response;
@@ -346,7 +346,7 @@ namespace Couchbase.Lite.PeerToPeer
                 {
                     { "purged", purgedRevisions }
                 });
-                return new CouchbaseLiteResponse(context) { Body = responseBody };
+                return new CouchbaseLiteResponse(context) { JsonBody = responseBody };
             }).AsDefaultState();
         }
 
@@ -507,7 +507,7 @@ namespace Couchbase.Lite.PeerToPeer
             var documentProps = from row in (List<QueryRow>)result["rows"] select row.Document.Properties;
             result["rows"] = documentProps;
             var response = new CouchbaseLiteResponse(context);
-            response.Body = new Body(result);
+            response.JsonBody = new Body(result);
             return response;
         }
 
@@ -643,7 +643,7 @@ namespace Couchbase.Lite.PeerToPeer
                 { "update_seq", updateSeq }
             });
 
-            return new CouchbaseLiteResponse(context) { Body = body };
+            return new CouchbaseLiteResponse(context) { JsonBody = body };
         }
     }
 }

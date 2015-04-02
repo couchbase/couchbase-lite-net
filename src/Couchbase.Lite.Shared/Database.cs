@@ -3833,7 +3833,7 @@ PRAGMA user_version = 3;";
             return retval;
         }
 
-        internal static bool ExpandAttachments(RevisionInternal rev, int minRevPos, bool allowFollows, 
+        internal bool ExpandAttachments(RevisionInternal rev, int minRevPos, bool allowFollows, 
             bool decodeAttachments, Status outStatus)
         {
             rev.MutateAttachments((name, attachment) =>
@@ -3882,10 +3882,13 @@ PRAGMA user_version = 3;";
             return outStatus.GetCode() == StatusCode.Ok;
         }
 
-        private static AttachmentInternal AttachmentForDict(IDictionary<string, object> info, string filename, Status status)
+        private AttachmentInternal AttachmentForDict(IDictionary<string, object> info, string filename, Status status)
         {
             if (info == null) {
-                status.SetCode(StatusCode.NotFound);
+                if (status != null) {
+                    status.SetCode(StatusCode.NotFound);
+                }
+
                 return null;
             }
 
@@ -3893,10 +3896,13 @@ PRAGMA user_version = 3;";
             try {
                 attachment = new AttachmentInternal(filename, info);
             } catch(CouchbaseLiteException e) {
-                status.SetCode(e.GetCBLStatus().GetCode());
+                if (status != null) {
+                    status.SetCode(e.GetCBLStatus().GetCode());
+                }
                 return null;
             }
 
+            attachment.Database = this;
             return attachment;
         }
 
@@ -4073,7 +4079,7 @@ PRAGMA user_version = 3;";
                     {
                         throw new CouchbaseLiteException(e, StatusCode.BadEncoding);
                     }
-                    attachment.Length = (ulong)newContents.Length;
+                    attachment.Length = newContents.Length;
                     var outBlobKey = new BlobKey();
                     var storedBlob = Attachments.StoreBlob(newContents, outBlobKey);
                     attachment.BlobKey = outBlobKey;
@@ -4125,7 +4131,7 @@ PRAGMA user_version = 3;";
                     attachment.EncodedLength = attachment.Length;
                     if (attachInfo.ContainsKey("length"))
                     {
-                        attachment.Length = attachInfo.GetCast<ulong>("length");
+                        attachment.Length = attachInfo.GetCast<long>("length");
                     }
                 }
                 if (attachInfo.ContainsKey("revpos"))
@@ -4136,6 +4142,31 @@ PRAGMA user_version = 3;";
                 attachments[name] = attachment;
             }
             return attachments;
+        }
+
+        internal AttachmentInternal GetAttachmentForRevision(RevisionInternal rev, string name, Status status = null)
+        {
+            Debug.Assert(name != null);
+            var attachments = rev.GetAttachments();
+            if (attachments == null) {
+                try {
+                    rev = LoadRevisionBody(rev, DocumentContentOptions.None);
+                } catch(CouchbaseLiteException e) {
+                    if (status != null) {
+                        status.SetCode(e.GetCBLStatus().GetCode());
+                    }
+
+                    return null;
+                }
+
+                attachments = rev.GetAttachments();
+                if (attachments == null) {
+                    status.SetCode(StatusCode.NotFound);
+                    return null;
+                }
+            }
+
+            return AttachmentForDict(attachments[name].AsDictionary<string, object>(), name, status);
         }
 
         internal String GenerateIDForRevision(RevisionInternal rev, IEnumerable<byte> json, IDictionary<string, AttachmentInternal> attachments, string previousRevisionId)

@@ -45,7 +45,7 @@ namespace Couchbase.Lite.PeerToPeer
 
             var body = new Body(info);
             var couchResponse = new CouchbaseLiteResponse(context);
-            couchResponse.Body = body;
+            couchResponse.JsonBody = body;
             return couchResponse.AsDefaultState();
         }
 
@@ -63,7 +63,7 @@ namespace Couchbase.Lite.PeerToPeer
             var body = new Body(names);
 
             var couchResponse = new CouchbaseLiteResponse(context);
-            couchResponse.Body = body;
+            couchResponse.JsonBody = body;
             return couchResponse.AsDefaultState();
         }
 
@@ -72,7 +72,7 @@ namespace Couchbase.Lite.PeerToPeer
             // Even though CouchbaseLite doesn't support user logins, it implements a generic response to the
             // CouchDB _session API, so that apps that call it (such as Futon!) won't barf.
             var couchResponse = new CouchbaseLiteResponse(context);
-            couchResponse.Body = new Body(new Dictionary<string, object> {
+            couchResponse.JsonBody = new Body(new Dictionary<string, object> {
                 { "ok", true },
                 { "userCtx", new Dictionary<string, object> {
                         { "name", null },
@@ -99,7 +99,7 @@ namespace Couchbase.Lite.PeerToPeer
             }
 
             var couchResponse = new CouchbaseLiteResponse(context);
-            couchResponse.Body = new Body(uuidList);
+            couchResponse.JsonBody = new Body(uuidList);
             return couchResponse.AsDefaultState();
         }
 
@@ -129,7 +129,7 @@ namespace Couchbase.Lite.PeerToPeer
             } else {
                 rep.Start();
                 if (rep.Continuous || (body.Get("async") is bool && (bool)body.Get("async"))) {
-                    response.Body = new Body(new Dictionary<string, object> {
+                    response.JsonBody = new Body(new Dictionary<string, object> {
                         { "session_id", rep.sessionID }
                     });
                 } else {

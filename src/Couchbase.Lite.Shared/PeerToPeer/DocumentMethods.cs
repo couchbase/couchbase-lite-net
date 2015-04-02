@@ -94,7 +94,7 @@ namespace Couchbase.Lite.PeerToPeer
 
                         Status status = new Status();
                         bool attEncodingInfo = context.Request.QueryString.Get<bool>("att_encoding_info", bool.TryParse, false);
-                        if(!Database.ExpandAttachments(rev, minRevPos, sendMultipart, attEncodingInfo, status)) {
+                        if(!db.ExpandAttachments(rev, minRevPos, sendMultipart, attEncodingInfo, status)) {
                             response.InternalStatus = status.GetCode();
                             return response;
                         }
@@ -103,7 +103,7 @@ namespace Couchbase.Lite.PeerToPeer
                     if(sendMultipart) {
                         response.SetMultipartBody(db.MultipartWriterForRev(rev, "multipart/related"));
                     } else {
-                        response.Body = rev.GetBody();
+                        response.JsonBody = rev.GetBody();
                     }
                 } else {
                     // open_revs query:
@@ -166,7 +166,7 @@ namespace Couchbase.Lite.PeerToPeer
 
                     if(mustSendJson) {
                         response["Content-Type"] = "application/json";
-                        response.Body = new Body(result.Cast<object>().ToList());
+                        response.JsonBody = new Body(result.Cast<object>().ToList());
                     } else {
                         response.SetMultipartBody(result.Cast<object>().ToList(), "multipart/mixed");
                     }
@@ -207,7 +207,7 @@ namespace Couchbase.Lite.PeerToPeer
                     }
 
                     if(!status.IsError) {
-                        response.Body = new Body(new Dictionary<string, object> {
+                        response.JsonBody = new Body(new Dictionary<string, object> {
                             { "ok", true },
                             { "id", rev.GetDocId() },
                             { "rev", rev.GetRevId() }
@@ -292,7 +292,55 @@ namespace Couchbase.Lite.PeerToPeer
 
         public static ICouchbaseResponseState GetAttachment(HttpListenerContext context)
         {
-            throw new NotImplementedException();
+            return DatabaseMethods.PerformLogicWithDatabase(context, true, db =>
+            {
+                Status status = new Status();
+                var portions = GetDocumentPortions(context, true);
+                var rev = db.GetDocumentWithIDAndRev(portions[0], context.Request.QueryString["rev"], DocumentContentOptions.NoBody, 
+                    status);
+                    
+                if(rev ==null) {
+                    return new CouchbaseLiteResponse(context) { InternalStatus = status.GetCode() };
+                }
+                if(context.CacheWithEtag(rev.GetRevId())) {
+                    return new CouchbaseLiteResponse(context) { InternalStatus = StatusCode.NotModified };
+                }
+
+                string acceptEncoding = context.Request.Headers["Accept-Encoding"];
+                bool acceptEncoded = acceptEncoding != null && acceptEncoding.Contains("gzip") &&
+                    context.Request.Headers["Range"] == null;
+
+                var attachment = db.GetAttachmentForRevision(rev, portions[1], status);
+                if(attachment == null) {
+                    return new CouchbaseLiteResponse(context) { InternalStatus = status.GetCode() };
+                }
+
+                var response = new CouchbaseLiteResponse(context);
+                if(context.Request.HttpMethod.Equals("HEAD")) {
+                    var length = attachment.Length;
+                    if(acceptEncoded && attachment.Encoding == AttachmentEncoding.GZIP &&
+                        attachment.EncodedLength > 0) {
+                        length = attachment.EncodedLength;
+                    }
+
+                    response["Content-Length"] = length.ToString();
+                } else {
+                    var contents = acceptEncoded ? attachment.EncodedContent : attachment.Content;
+                    if(contents == null) {
+                        response.InternalStatus = StatusCode.NotFound;
+                        return response;
+                    }
+
+                    response.BinaryBody = contents;
+                }
+
+                response["Content-Type"] = attachment.ContentType;
+                if(acceptEncoded && attachment.Encoding == AttachmentEncoding.GZIP) {
+                    response["Content-Encoding"] = "gzip";
+                }
+
+                return response;
+            }).AsDefaultState();
         }
 
         public static ICouchbaseResponseState UpdateAttachment(HttpListenerContext context)
@@ -326,7 +374,11 @@ namespace Couchbase.Lite.PeerToPeer
 
         public static ICouchbaseResponseState DeleteAttachment(HttpListenerContext context)
         {
-            throw new NotImplementedException();
+            return DatabaseMethods.PerformLogicWithDatabase(context, true, db =>
+            {
+                var portions = GetDocumentPortions(context, true);
+                return UpdateAttachment(context, db, portions[1], portions[0], null);
+            }).AsDefaultState();
         }
 
         private static CouchbaseLiteResponse PerformLogicWithDocumentBody(HttpListenerContext context, 
@@ -411,7 +463,7 @@ namespace Couchbase.Lite.PeerToPeer
                 RevisionInternal nuRev = new RevisionInternal(dst);
                 if (options.HasFlag(DocumentContentOptions.IncludeAttachments)) {
                     bool attEncodingInfo = context.Request.QueryString.Get<bool>("att_encoding_info", bool.TryParse, false);
-                    if(!Database.ExpandAttachments(nuRev, 0, false, !attEncodingInfo, outStatus)) {
+                    if(!db.ExpandAttachments(nuRev, 0, false, !attEncodingInfo, outStatus)) {
                         return null;
                     }
                 }
@@ -461,7 +513,7 @@ namespace Couchbase.Lite.PeerToPeer
                     }
                 }
 
-                response.Body = new Body(new Dictionary<string, object> {
+                response.JsonBody = new Body(new Dictionary<string, object> {
                     { "ok", true },
                     { "id", rev.GetDocId() },
                     { "rev", rev.GetRevId() }
@@ -484,7 +536,7 @@ namespace Couchbase.Lite.PeerToPeer
             }
 
             var response = new CouchbaseLiteResponse(context);
-            response.Body = new Body(new Dictionary<string, object> {
+            response.JsonBody = new Body(new Dictionary<string, object> {
                 { "ok", true },
                 { "id", rev.GetDocId() },
                 { "rev", rev.GetRevId() }

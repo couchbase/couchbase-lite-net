@@ -61,7 +61,7 @@ namespace Couchbase.Lite
 
         /// <summary>The number of bytes in the blob.</summary>
         /// <remarks>The number of bytes in the blob.</remarks>
-        private ulong length;
+        private long length;
 
         /// <summary>After finishing, this is the key for looking up the blob through the CBL_BlobStore.
         ///     </summary>
@@ -133,7 +133,7 @@ namespace Couchbase.Lite
             {
                 throw new RuntimeException("Unable to write to stream.", e);
             }
-            length += (ulong)dataVector.LongLength;
+            length += dataVector.LongLength;
             sha1Digest.Update(dataVector);
             md5Digest.Update(dataVector);
         }
@@ -150,7 +150,7 @@ namespace Couchbase.Lite
                     outStream.Write(buffer, 0, len);
                     sha1Digest.Update(buffer, 0, len);
                     md5Digest.Update(buffer, 0, len);
-                    length += (ulong)len;
+                    length += len;
                 }
             }
             catch (IOException e)
@@ -235,7 +235,7 @@ namespace Couchbase.Lite
             return string.Format("sha1-{0}", base64Sha1Digest);
         }
 
-        public ulong GetLength()
+        public long GetLength()
         {
             return length;
         }

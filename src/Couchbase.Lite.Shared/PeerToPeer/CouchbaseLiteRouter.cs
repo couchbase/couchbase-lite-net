@@ -43,7 +43,8 @@ namespace Couchbase.Lite.PeerToPeer
                 { "/*/_all_docs", DatabaseMethods.GetAllDocuments },
                 { "/*/_changes", DatabaseMethods.GetChanges },
                 { "/*/*", DocumentMethods.GetDocument },
-                { "/*/_local/*", DocumentMethods.GetDocument }
+                { "/*/_local/*", DocumentMethods.GetDocument },
+                { "/*/*/*", DocumentMethods.GetAttachment }
             });
 
         private static readonly RouteCollection _Post =
@@ -69,7 +70,8 @@ namespace Couchbase.Lite.PeerToPeer
             new RouteCollection(new Dictionary<string, RestMethod> {
                 { "/*", DatabaseMethods.DeleteConfiguration },
                 { "/*/*", DocumentMethods.DeleteDocument },
-                { "/*/_local/*", DocumentMethods.DeleteDocument }
+                { "/*/_local/*", DocumentMethods.DeleteDocument },
+                { "/*/*/*", DocumentMethods.DeleteAttachment }
             });
 
         public static void HandleContext(HttpListenerContext context)

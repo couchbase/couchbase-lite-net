@@ -122,7 +122,7 @@ namespace Couchbase.Lite.PeerToPeer
 
             if (ChangesMode == ChangesFeedMode.LongPoll && Changes.Count > 0) {
                 Response.WriteHeaders();
-                Response.Body = new Body(DatabaseMethods.ResponseBodyForChanges(Changes, 0, this));
+                Response.JsonBody = new Body(DatabaseMethods.ResponseBodyForChanges(Changes, 0, this));
                 Response.WriteToContext();
                 CouchbaseLiteRouter.ResponseFinished(this);
             }
