@@ -68,10 +68,6 @@ namespace Couchbase.Lite.Replicator
 {
     internal sealed class Puller : Replication, IChangeTrackerClient
     {
-        private const int MaxOpenHttpConnections = 16;
-
-        private const int MaxRevsToGetInBulk = 50;
-
         internal const int MaxNumberOfAttsSince = 50;
 
         readonly string Tag = "Puller";
@@ -715,7 +711,7 @@ namespace Couchbase.Lite.Replicator
                 if (errorStr.Equals ("conflict", StringComparison.InvariantCultureIgnoreCase)) {
                     return new Status (StatusCode.Conflict);
                 }
-
+                    
                 return new Status (StatusCode.UpStreamError);
             }
             catch (Exception e)

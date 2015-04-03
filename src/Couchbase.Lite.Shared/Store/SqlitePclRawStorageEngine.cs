@@ -118,7 +118,7 @@ namespace Couchbase.Lite.Shared
             if (status != raw.SQLITE_OK)
             {
                 Path = null;
-                var errMessage = "Cannot open Sqlite Database at path {0} ({1})".Fmt(Path, status);
+                var errMessage = "Cannot open Sqlite Database at pth {0}".Fmt(Path);
                 throw new CouchbaseLiteException(errMessage, StatusCode.DbError);
             }
 #if !__ANDROID__ && !NET_3_5 && VERBOSE
@@ -348,8 +348,8 @@ namespace Couchbase.Lite.Shared
                 sqlite3_stmt command = null;
                 try 
                 {
-                    command = BuildCommand (_writeConnection, sql, paramArgs);
                     Log.V(Tag, "RawQuery sql: {0} ({1})", sql, String.Join(", ", paramArgs.ToStringArray()));
+                    command = BuildCommand (_writeConnection, sql, paramArgs);
                     cursor = new Cursor(command);
                 }
                 catch (Exception e) 
@@ -386,8 +386,8 @@ namespace Couchbase.Lite.Shared
 
             try 
             {
-                command = BuildCommand (_readConnection, sql, paramArgs);
                 Log.V(Tag, "RawQuery sql: {0} ({1})", sql, String.Join(", ", paramArgs.ToStringArray()));
+                command = BuildCommand (_readConnection, sql, paramArgs);
                 cursor = new Cursor(command);
             } 
             catch (Exception e) 
@@ -398,7 +398,7 @@ namespace Couchbase.Lite.Shared
                 }
                 var args = paramArgs == null 
                     ? String.Empty 
-                    : StringEx.Join(",", paramArgs.ToStringArray());
+                    : String.Join(",", paramArgs.ToStringArray());
                 Log.E(Tag, "Error executing raw query '{0}' is values '{1}' {2}".Fmt(sql, args, _readConnection.errmsg()), e);
                 throw;
             }
@@ -492,6 +492,8 @@ namespace Couchbase.Lite.Shared
             }, CancellationToken.None);
 
             // NOTE.ZJG: Just a sketch here. Needs better error handling, etc.
+
+            //doesn't look good
             var r = t.GetAwaiter().GetResult();
             if (t.Exception != null)
                 throw t.Exception;
@@ -535,6 +537,7 @@ namespace Couchbase.Lite.Shared
             var r = t.GetAwaiter().GetResult();
             if (t.Exception != null) 
             {
+                //this is bad: should not arbitrarily crash the app
                 throw t.Exception;
             }
                 
@@ -609,7 +612,7 @@ namespace Couchbase.Lite.Shared
                 {
                     if(Open(Path) == false)
                     {
-                        throw new Exception("Failed to Open " + Path);
+                        throw new CouchbaseLiteException("Failed to Open " + Path, StatusCode.DbError);
                     }
                 }
 
