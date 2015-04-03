@@ -106,7 +106,7 @@ namespace Couchbase.Lite.PeerToPeer
                     }
 
                     if(sendMultipart) {
-                        response.SetMultipartBody(db.MultipartWriterForRev(rev, "multipart/related"));
+                        response.MultipartWriter = db.MultipartWriterForRev(rev, "multipart/related");
                     } else {
                         response.JsonBody = rev.GetBody();
                     }

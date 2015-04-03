@@ -45,41 +45,41 @@ namespace Couchbase.Lite.PeerToPeer
                 { "/_all_dbs", ServerMethods.GetAllDbs },
                 { "/_session", ServerMethods.GetSession },
                 { "/_uuids", ServerMethods.GetUUIDs },
-                { "/*", DatabaseMethods.GetConfiguration },
-                { "/*/_all_docs", DatabaseMethods.GetAllDocuments },
-                { "/*/_changes", DatabaseMethods.GetChanges },
-                { "/*/*", DocumentMethods.GetDocument },
-                { "/*/_local/*", DocumentMethods.GetDocument },
-                { "/*/*/*", DocumentMethods.GetAttachment }
+                { "/{[^_].*}", DatabaseMethods.GetConfiguration },
+                { "/{[^_].*}/_all_docs", DatabaseMethods.GetAllDocuments },
+                { "/{[^_].*}/_changes", DatabaseMethods.GetChanges },
+                { "/{[^_].*}/*", DocumentMethods.GetDocument },
+                { "/{[^_].*}/_local/*", DocumentMethods.GetDocument },
+                { "/{[^_].*}/*/*", DocumentMethods.GetAttachment }
             });
 
         private static readonly RouteCollection _Post =
             new RouteCollection(new Dictionary<string, RestMethod> {
                 { "/_replicate", ServerMethods.ManageReplicationSession },
-                { "/*/_all_docs", DatabaseMethods.GetAllSpecifiedDocuments },
-                { "/*/_bulk_docs", DatabaseMethods.ProcessDocumentChangeOperations },
-                { "/*/_compact", DatabaseMethods.Compact },
-                { "/*/_purge", DatabaseMethods.Purge },
-                { "/*/_temp_view", DatabaseMethods.ExecuteTemporaryViewFunction },
-                { "/*", DocumentMethods.CreateDocument }, //CouchDB does not have an equivalent for POST to _local
+                { "/{[^_].*}/_all_docs", DatabaseMethods.GetAllSpecifiedDocuments },
+                { "/{[^_].*}/_bulk_docs", DatabaseMethods.ProcessDocumentChangeOperations },
+                { "/{[^_].*}/_compact", DatabaseMethods.Compact },
+                { "/{[^_].*}/_purge", DatabaseMethods.Purge },
+                { "/{[^_].*}/_temp_view", DatabaseMethods.ExecuteTemporaryViewFunction },
+                { "/{[^_].*}", DocumentMethods.CreateDocument }, //CouchDB does not have an equivalent for POST to _local
                 { "/_facebook_token", AuthenticationMethods.RegisterFacebookToken },
                 { "/_persona_assertion", AuthenticationMethods.RegisterPersonaToken }
             });
 
         private static readonly RouteCollection _Put =
             new RouteCollection(new Dictionary<string, RestMethod> {
-                { "/*", DatabaseMethods.UpdateConfiguration },
-                { "/*/*", DocumentMethods.UpdateDocument },
-                { "/*/_local/*", DocumentMethods.UpdateDocument },
-                { "/*/*/*", DocumentMethods.UpdateAttachment }
+                { "/{[^_].*}", DatabaseMethods.UpdateConfiguration },
+                { "/{[^_].*}/*", DocumentMethods.UpdateDocument },
+                { "/{[^_].*}/_local/*", DocumentMethods.UpdateDocument },
+                { "/{[^_].*}/*/*", DocumentMethods.UpdateAttachment }
             });
 
         private static readonly RouteCollection _Delete =
             new RouteCollection(new Dictionary<string, RestMethod> {
-                { "/*", DatabaseMethods.DeleteConfiguration },
-                { "/*/*", DocumentMethods.DeleteDocument },
-                { "/*/_local/*", DocumentMethods.DeleteDocument },
-                { "/*/*/*", DocumentMethods.DeleteAttachment }
+                { "/{[^_].*}", DatabaseMethods.DeleteConfiguration },
+                { "/{[^_].*}/*", DocumentMethods.DeleteDocument },
+                { "/{[^_].*}/_local/*", DocumentMethods.DeleteDocument },
+                { "/{[^_].*}/*/*", DocumentMethods.DeleteAttachment }
             });
 
         public CouchbaseLiteRouter(Manager manager) {

@@ -189,7 +189,7 @@ namespace Couchbase.Lite.Internal
             EncodedLength = info.GetCast<long>("encoded_length");
             _digest = info.GetCast<string>("digest");
             if (_digest != null) {
-                BlobKey = new BlobKey(Digest);
+                BlobKey = new BlobKey(_digest);
             }
 
             string encodingString = info.GetCast<string>("encoding");
@@ -225,7 +225,7 @@ namespace Couchbase.Lite.Internal
                 RevPos = revPos;
             } else if (info.GetCast<bool>("follows", false)) {
                 // I can't handle this myself; my caller will look it up from the digest
-                if (_digest == null) {
+                if (Digest == null) {
                     throw new CouchbaseLiteException(StatusCode.BadAttachment);
                 }
             } else {

@@ -23,6 +23,7 @@ using System.Collections.Generic;
 using System.Net;
 using System.Text;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace Couchbase.Lite.Support
 {
@@ -49,7 +50,7 @@ namespace Couchbase.Lite.Support
 
             // Account for the final boundary to be written by -opened. Add its length now, because the
             // client is probably going to ask for my .length *before* it calls -open.
-            string finalBoundaryString = String.Format("\r\n--{0}--", boundary);
+            string finalBoundaryString = String.Format("\r\n--{0}--", Boundary);
             _finalBoundary = Encoding.UTF8.GetBytes(finalBoundaryString);
             Length += _finalBoundary.Count();
         }
@@ -69,12 +70,6 @@ namespace Couchbase.Lite.Support
                 }
             }
             AddData(data);
-        }
-
-        public void WriteToResponse(HttpListenerResponse response)
-        {
-            var stream = OpenForInput();
-            stream.CopyTo(response.OutputStream);
         }
 
         protected override void Opened()

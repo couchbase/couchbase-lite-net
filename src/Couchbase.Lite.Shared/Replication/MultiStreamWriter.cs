@@ -27,6 +27,7 @@ using System.Linq;
 using System.Threading;
 
 using Couchbase.Lite.Util;
+using System.Threading.Tasks;
 
 #if NET_3_5
 using Rackspace.Threading;
@@ -96,23 +97,7 @@ namespace Couchbase.Lite.Support
             return AddFileUrl(new Uri(path));
         }
 
-        public Stream OpenForInput()
-        {
-            if (_isDisposed) {
-                throw new ObjectDisposedException("MultiStreamWriter");
-            }
-
-            if (_output != null) {
-                return _output;
-            }
-
-            Debug.Assert(_output == null, "Already open");
-            _output = new MemoryStream();
-            Opened();
-            return _output;
-        }
-
-        public void OpenForOutputTo(Stream output)
+        public Task<bool> WriteAsync(Stream output)
         {
             if (_isDisposed) {
                 throw new ObjectDisposedException("MultiStreamWriter");
@@ -122,6 +107,12 @@ namespace Couchbase.Lite.Support
             Debug.Assert(_output == null, "Already open");
             _output = output;
             Opened();
+
+            var tcs = new TaskCompletionSource<bool>();
+            ThreadPool.RegisterWaitForSingleObject(_mre.WaitHandle, (o, timeout) => tcs.SetResult(!timeout),
+                null, TimeSpan.FromSeconds(30), true);
+
+            return tcs.Task;
         }
 
         public void Close()
@@ -155,8 +146,7 @@ namespace Couchbase.Lite.Support
         public IEnumerable<byte> AllOutput()
         {
             var ms = new MemoryStream();
-            OpenForOutputTo(ms);
-            if (!_mre.Wait(TimeSpan.FromSeconds(30))) {
+            if(!WriteAsync(ms).Wait(TimeSpan.FromSeconds(30))) {
                 Log.W(TAG, "Unable to get output!");
                 return null;
             }

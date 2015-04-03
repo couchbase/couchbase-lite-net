@@ -80,6 +80,7 @@ namespace Couchbase.Lite.PeerToPeer
             set {
                 _binaryBody = null;
                 _jsonBody = value;
+                _multipartWriter = null;
             }
         }
         private Body _jsonBody;
@@ -91,9 +92,24 @@ namespace Couchbase.Lite.PeerToPeer
             set { 
                 _binaryBody = value;
                 _jsonBody = null;
+                _multipartWriter = null;
             }
         }
         private IEnumerable<byte> _binaryBody;
+
+        public MultipartWriter MultipartWriter
+        {
+            get {
+                return _multipartWriter;
+            }
+            set { 
+                _binaryBody = null;
+                _jsonBody = null;
+                _multipartWriter = value;
+                Headers["Content-Type"] = value.ContentType;
+            }
+        }
+        private MultipartWriter _multipartWriter;
 
         public string BaseContentType { 
             get {
@@ -124,6 +140,7 @@ namespace Couchbase.Lite.PeerToPeer
                 return;
             }
 
+            bool syncWrite = true;
             if (JsonBody != null) {
                 if (!Headers.ContainsKey("Content-Type")) {
                     var accept = _context.Request.Headers["Accept"];
@@ -150,9 +167,14 @@ namespace Couchbase.Lite.PeerToPeer
                 var data = BinaryBody.ToArray();
                 _context.Response.ContentLength64 = data.LongLength;
                 _context.Response.OutputStream.Write(data, 0, data.Length);
+            } else if (MultipartWriter != null) {
+                MultipartWriter.WriteAsync(_context.Response.OutputStream).ContinueWith(t => _context.Response.Close());
+                syncWrite = false;
             }
 
-            _context.Response.Close();
+            if (syncWrite) {
+                _context.Response.Close();
+            }
         }
 
         public void WriteData(IEnumerable<byte> data, bool finished)
@@ -208,13 +230,7 @@ namespace Couchbase.Lite.PeerToPeer
                 mp.AddData((IEnumerable<byte>)nextPart);
             }
 
-            SetMultipartBody(mp);
-        }
-
-        public void SetMultipartBody(MultipartWriter mp)
-        {
-            Headers["Content-Type"] = mp.ContentType;
-            JsonBody = new Body(mp.AllOutput());
+            MultipartWriter = mp;
         }
 
         private bool Validate()

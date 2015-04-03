@@ -1492,7 +1492,7 @@ PRAGMA user_version = 3;";
 
         internal string FindCommonAncestor(RevisionInternal rev, IList<string> revIds)
         {
-            if (revIds.Count == 0) {
+            if (revIds == null || revIds.Count == 0) {
                 return null;
             }
 
@@ -3876,6 +3876,7 @@ PRAGMA user_version = 3;";
                     expanded["data"] = Convert.ToBase64String(data.ToArray());
                 }
 
+                outStatus.SetCode(StatusCode.Ok);
                 return expanded;
             });
 
@@ -3906,14 +3907,15 @@ PRAGMA user_version = 3;";
             return attachment;
         }
 
-        private static ulong SmallestLength(IDictionary<string, object> attachment)
+        private static long SmallestLength(IDictionary<string, object> attachment)
         {
-            object length = ulong.MaxValue;
-            object encodedLength = ulong.MaxValue;
-            attachment.TryGetValue("length", out length);
-            attachment.TryGetValue("encoded_length", out encodedLength);
+            long length = attachment.GetCast<long>("length");
+            long encodedLength = attachment.GetCast<long>("encoded_length", -1);
+            if (encodedLength != -1) {
+                length = encodedLength;
+            }
 
-            return Math.Min((ulong)length, (ulong)encodedLength);
+            return length;
         }
 
         internal static void StubOutAttachmentsInRevBeforeRevPos(RevisionInternal rev, long minRevPos, bool attachmentsFollow)

@@ -20,6 +20,7 @@
 //
 using System;
 using System.Collections.Generic;
+using System.Text.RegularExpressions;
 
 namespace Couchbase.Lite.PeerToPeer
 {
@@ -38,7 +39,8 @@ namespace Couchbase.Lite.PeerToPeer
     {
         private sealed class Branch : IRouteTreeBranch
         {
-            private readonly Dictionary<string, IRouteTreeBranch> _branches = new Dictionary<string, IRouteTreeBranch>();
+            private readonly Dictionary<string, IRouteTreeBranch> _literalBranches = new Dictionary<string, IRouteTreeBranch>();
+            private readonly Dictionary<Regex, IRouteTreeBranch> _regexBranches = new Dictionary<Regex, IRouteTreeBranch>();
             private IRouteTreeBranch _wildcardBranch = null;
 
             public IRouteTreeBranch Parent { get; private set; }
@@ -53,8 +55,14 @@ namespace Couchbase.Lite.PeerToPeer
             public IRouteTreeBranch GetChild(string endpointName, bool create)
             {
                 IRouteTreeBranch retVal = null;
-                if (_branches.TryGetValue(endpointName, out retVal)) {
+                if (_literalBranches.TryGetValue(endpointName, out retVal)) {
                     return retVal;
+                }
+
+                foreach (var pair in _regexBranches) {
+                    if (pair.Key.IsMatch(endpointName)) {
+                        return pair.Value;
+                    }
                 }
 
                 if (!create || (_wildcardBranch != null && endpointName.Equals("*"))) {
@@ -69,8 +77,11 @@ namespace Couchbase.Lite.PeerToPeer
                 var branch = new Branch(this) { Logic = logic };
                 if (endpoint.Equals("*")) {
                     _wildcardBranch = branch;
+                } else if (endpoint.StartsWith("{")) {
+                    endpoint = String.Format("^{0}$", endpoint.Trim('{', '}'));
+                    _regexBranches[new Regex(endpoint)] = branch;
                 } else {
-                    _branches[endpoint] = branch;
+                    _literalBranches[endpoint] = branch;
                 }
 
                 return branch;
