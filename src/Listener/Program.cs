@@ -20,15 +20,17 @@
 //  limitations under the License.
 //
 using System;
+using Couchbase.Lite;
 using Couchbase.Lite.PeerToPeer;
 
 namespace Listener
 {
     class MainClass
     {
+        private const int port = 59840;
         public static void Main(string[] args)
         {
-            CouchbaseLiteServiceListener listener = new CouchbaseLiteServiceListener();
+            CouchbaseLiteServiceListener listener = new CouchbaseLiteServiceListener(Manager.SharedInstance, port);
             listener.Start();
 
             Console.ReadKey(true);

@@ -20,12 +20,17 @@
 //
 using System;
 using System.Collections;
-using System.IO;
 using System.Collections.Generic;
-using System.Linq;
-using Couchbase.Lite.Util;
 using System.Diagnostics;
+using System.IO;
+using System.Linq;
 using System.Threading;
+
+using Couchbase.Lite.Util;
+
+#if NET_3_5
+using Rackspace.Threading;
+#endif
 
 namespace Couchbase.Lite.Support
 {

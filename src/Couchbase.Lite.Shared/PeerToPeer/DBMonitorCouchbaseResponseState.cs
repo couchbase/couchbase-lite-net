@@ -18,15 +18,13 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 //
-using System;
 
-using Couchbase.Lite.Replicator;
-using Couchbase.Lite.Internal;
-using Couchbase.Lite.Util;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
 using System.Text;
+using System.Threading;
+
+using Couchbase.Lite.Internal;
+using Couchbase.Lite.Replicator;
+using Couchbase.Lite.Util;
 
 namespace Couchbase.Lite.PeerToPeer
 {

@@ -19,14 +19,14 @@
 //  limitations under the License.
 //
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Net;
-using System.Collections.Generic;
-using Couchbase.Lite.Internal;
-using Couchbase.Lite.Util;
 using System.Text;
-using Couchbase.Lite.Support;
 
+using Couchbase.Lite.Internal;
+using Couchbase.Lite.Support;
+using Couchbase.Lite.Util;
 using Sharpen;
 
 namespace Couchbase.Lite.PeerToPeer
@@ -62,6 +62,7 @@ namespace Couchbase.Lite.PeerToPeer
                         { "error", StatusMessage },
                         { "reason", StatusReason }
                     });
+                    this["Content-Type"] = "application/json";
                 }
             }
         }
@@ -105,10 +106,10 @@ namespace Couchbase.Lite.PeerToPeer
             }
         }
 
-        public CouchbaseLiteResponse(HttpListenerContext context) {
+        public CouchbaseLiteResponse(ICouchbaseListenerContext context) {
             Headers = new Dictionary<string, string>();
             InternalStatus = StatusCode.Ok;
-            _context = context;
+            _context = context.HttpContext;
         }
 
         public ICouchbaseResponseState AsDefaultState()
@@ -125,9 +126,20 @@ namespace Couchbase.Lite.PeerToPeer
 
             if (JsonBody != null) {
                 if (!Headers.ContainsKey("Content-Type")) {
-                    this["Content-Type"] = "application/json";
+                    var accept = _context.Request.Headers["Accept"];
+                    if (accept != null) {
+                        if (accept.Contains("*/*") || accept.Contains("application/json")) {
+                            _context.Response.AddHeader("Content-Type", "application/json");
+                        } else if (accept.Contains("text/plain")) {
+                            _context.Response.AddHeader("Content-Type", "text/plain; charset=utf-8");
+                        } else {
+                            Reset();
+                            _context.Response.AddHeader("Content-Type", "application/json");
+                            InternalStatus = StatusCode.NotAcceptable;
+                        }
+                    }
                 }
-
+                    
                 _context.Response.ContentEncoding = Encoding.UTF8;
                 var json = JsonBody.GetJson().ToArray();
                 _context.Response.ContentLength64 = json.Length;
@@ -205,29 +217,28 @@ namespace Couchbase.Lite.PeerToPeer
             JsonBody = new Body(mp.AllOutput());
         }
 
-        private void Validate()
+        private bool Validate()
         {
-            bool accept = false;
-            foreach (var acceptType in _context.Request.AcceptTypes) {
-                if (acceptType.IndexOf("*/*") != -1 || acceptType.Equals(BaseContentType)) {
-                    accept = true;
-                    break;
-                }
-            }
-
-            if (!accept) {
-                if (!_context.Request.AcceptTypes.Contains(BaseContentType)) {
+            var accept = _context.Request.Headers["Accept"];
+            if (accept != null && !accept.Contains("*/*")) {
+                var responseType = BaseContentType;
+                if (responseType != null && !accept.Contains(responseType)) {
                     Log.D(TAG, "Unacceptable type {0} (Valid: {1})", BaseContentType, _context.Request.AcceptTypes);
                     Reset();
                     InternalStatus = StatusCode.NotAcceptable;
+                    return false;
                 }
             }
+
+            return true;
         }
 
         public void Reset()
         {
             Headers.Clear();
+            _context.Response.Headers.Clear();
             JsonBody = null;
+            BinaryBody = null;
             _headersWritten = false;
         }
 

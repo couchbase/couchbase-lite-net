@@ -268,10 +268,12 @@
     <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\DatabaseMethods.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)View\BuiltinReduceFunctions.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\DocumentMethods.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\HttpListenerContextExtensions.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Replication\MultipartWriter.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Replication\MultiStreamWriter.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\AsyncOpCouchbaseResponseState.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\AuthenticationMethods.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\ICouchbaseListenerContext.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\CouchbaseLiteRouter_Context.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="$(MSBuildThisFileDirectory)Store\MonoSQLiteStorageEngine.cs" />

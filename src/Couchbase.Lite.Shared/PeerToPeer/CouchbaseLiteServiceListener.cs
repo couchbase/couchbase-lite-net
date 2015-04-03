@@ -20,6 +20,7 @@
 //
 using System;
 using System.Net;
+
 using Couchbase.Lite.Util;
 
 namespace Couchbase.Lite.PeerToPeer
@@ -27,12 +28,15 @@ namespace Couchbase.Lite.PeerToPeer
     public class CouchbaseLiteServiceListener : IDisposable
     {
         private readonly HttpListener _listener;
+        private readonly CouchbaseLiteRouter _router;
         private bool _disposed;
 
-        public CouchbaseLiteServiceListener()
+        public CouchbaseLiteServiceListener(Manager manager, int port)
         {
             _listener = new HttpListener();
-            _listener.Prefixes.Add("http://*:4984/");
+            _router = new CouchbaseLiteRouter(manager);
+            string prefix = String.Format("http://*:{0}/", port);
+            _listener.Prefixes.Add(prefix);
         }
 
         public void Start()
@@ -66,7 +70,7 @@ namespace Couchbase.Lite.PeerToPeer
         private void ProcessContext(HttpListenerContext context)
         {
             _listener.GetContextAsync().ContinueWith((t) => ProcessContext(t.Result));
-            CouchbaseLiteRouter.HandleContext(context);
+            _router.HandleContext(context);
         }
 
         public void Dispose()

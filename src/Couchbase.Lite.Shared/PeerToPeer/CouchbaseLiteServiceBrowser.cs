@@ -19,17 +19,18 @@
 //  limitations under the License.
 //
 using System;
-using System.Net.Sockets;
-using System.Threading;
+using System.Collections;
+using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using System.Net.Sockets;
+using System.Runtime.CompilerServices;
 using System.Text;
-using System.Collections.Generic;
-using System.Collections;
+using System.Threading;
+
 using Mono.Zeroconf.Providers.Bonjour;
 using Mono.Zeroconf;
 using ServiceBrowser = Mono.Zeroconf.Providers.Bonjour.ServiceBrowser;
-using System.Runtime.CompilerServices;
 
 #if ANDROID
 using Android.App;

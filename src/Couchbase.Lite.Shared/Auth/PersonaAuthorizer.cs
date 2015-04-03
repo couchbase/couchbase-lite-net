@@ -155,19 +155,23 @@ namespace Couchbase.Lite.Auth
         {
             lock (typeof(PersonaAuthorizer))
             {
-                IDictionary<string, object> result = ParseAssertion(assertion);
+                IDictionary<string, object> result = null;
+                try {
+                    result = ParseAssertion(assertion);
+                } catch(ArgumentException) {
+                    return null;
+                }
                 var email = (string)result.Get(AssertionFieldEmail);
                 var origin = (string)result.Get(AssertionFieldOrigin);
 
                 // Normalize the origin URL string:
                 try
                 {
-                    Uri originURL = new Uri(origin);
-                    if (origin == null)
-                    {
-                        throw new ArgumentException("Invalid assertion, origin was null");
+                    Uri originURL;
+                    if(origin == null || !Uri.TryCreate(origin, UriKind.Absolute, out originURL)) {
+                        throw new ArgumentException("Invalid origin");
                     }
-                    origin = originURL.ToString().ToLower();
+                    origin = originURL.AbsoluteUri.ToLower();
                 }
                 catch (UriFormatException e)
                 {
@@ -206,6 +210,10 @@ namespace Couchbase.Lite.Auth
         {
             // https://github.com/mozilla/id-specs/blob/prod/browserid/index.md
             // http://self-issued.info/docs/draft-jones-json-web-token-04.html
+            if (assertion == null) {
+                throw new ArgumentNullException("assertion");
+            }
+
             var result = new Dictionary<string, object>();
             var components = assertion.Split('.');
             // split on "."

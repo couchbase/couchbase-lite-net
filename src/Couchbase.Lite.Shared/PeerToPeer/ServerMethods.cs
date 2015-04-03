@@ -19,18 +19,19 @@
 //  limitations under the License.
 //
 using System;
-using System.Net;
 using System.Collections.Generic;
-using Couchbase.Lite.Internal;
-using System.Linq;
 using System.Collections.Specialized;
+using System.Linq;
+using System.Net;
+
+using Couchbase.Lite.Internal;
 using Sharpen;
 
 namespace Couchbase.Lite.PeerToPeer
 {
     internal static class ServerMethods
     {
-        public static ICouchbaseResponseState Greeting(HttpListenerContext context)
+        public static ICouchbaseResponseState Greeting(ICouchbaseListenerContext context)
         {
             var info = new Dictionary<string, object> {
                 { "couchdb", "Welcome" }, //for compatibility
@@ -49,15 +50,16 @@ namespace Couchbase.Lite.PeerToPeer
             return couchResponse.AsDefaultState();
         }
 
-        public static ICouchbaseResponseState GetActiveTasks(HttpListenerContext context)
+        public static ICouchbaseResponseState GetActiveTasks(ICouchbaseListenerContext context)
         {
             // http://wiki.apache.org/couchdb/HttpGetActiveTasks
 
+            // Get the current task info of all replicators:
+            var activity = new List<IDictionary<string, object>>();
             throw new NotImplementedException();
-
         }
 
-        public static ICouchbaseResponseState GetAllDbs(HttpListenerContext context)
+        public static ICouchbaseResponseState GetAllDbs(ICouchbaseListenerContext context)
         {
             var names = Manager.SharedInstance.AllDatabaseNames.Cast<object>().ToList();
             var body = new Body(names);
@@ -67,7 +69,7 @@ namespace Couchbase.Lite.PeerToPeer
             return couchResponse.AsDefaultState();
         }
 
-        public static ICouchbaseResponseState GetSession(HttpListenerContext context)
+        public static ICouchbaseResponseState GetSession(ICouchbaseListenerContext context)
         {
             // Even though CouchbaseLite doesn't support user logins, it implements a generic response to the
             // CouchDB _session API, so that apps that call it (such as Futon!) won't barf.
@@ -84,13 +86,11 @@ namespace Couchbase.Lite.PeerToPeer
             return couchResponse.AsDefaultState();
         }
 
-        public static ICouchbaseResponseState GetUUIDs(HttpListenerContext context)
+        public static ICouchbaseResponseState GetUUIDs(ICouchbaseListenerContext context)
         {
-            var query = context.Request.QueryString;
-            int count = 0;
-            string countStr = query.Get("count");
-            if (!int.TryParse(countStr, out count)) {
-                count = 1000;
+            int count = context.GetQueryParam<int>("count", int.TryParse, 1);
+            if (count > 1000) {
+                return new CouchbaseLiteResponse(context) { InternalStatus = StatusCode.Forbidden }.AsDefaultState();
             }
 
             var uuidList = new List<object>();
@@ -103,10 +103,10 @@ namespace Couchbase.Lite.PeerToPeer
             return couchResponse.AsDefaultState();
         }
 
-        public static ICouchbaseResponseState ManageReplicationSession(HttpListenerContext context)
+        public static ICouchbaseResponseState ManageReplicationSession(ICouchbaseListenerContext context)
         {
-            byte[] buffer = new byte[context.Request.ContentLength64];
-            context.Request.InputStream.Read(buffer, 0, buffer.Length);
+            byte[] buffer = new byte[context.ContentLength];
+            context.HttpBodyStream.Read(buffer, 0, buffer.Length);
             var body = new Body(buffer).GetProperties() ?? new Dictionary<string, object>();
 
             Replication rep = null;
@@ -128,7 +128,7 @@ namespace Couchbase.Lite.PeerToPeer
                 }
             } else {
                 rep.Start();
-                if (rep.Continuous || (body.Get("async") is bool && (bool)body.Get("async"))) {
+                if (rep.Continuous || body.GetCast<bool>("async", false)) {
                     response.JsonBody = new Body(new Dictionary<string, object> {
                         { "session_id", rep.sessionID }
                     });

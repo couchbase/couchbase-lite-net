@@ -22,6 +22,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Text;
@@ -29,7 +30,6 @@ using System.Text;
 using Couchbase.Lite.Internal;
 using Couchbase.Lite.Replicator;
 using Couchbase.Lite.Util;
-using System.IO;
 
 namespace Couchbase.Lite.PeerToPeer
 {
@@ -38,7 +38,7 @@ namespace Couchbase.Lite.PeerToPeer
         private const string TAG = "DatabaseMethods";
         private const double MIN_HEARTBEAT = 5000.0; //NOTE: iOS uses seconds but .NET uses milliseconds
 
-        public static ICouchbaseResponseState GetConfiguration(HttpListenerContext context)
+        public static ICouchbaseResponseState GetConfiguration(ICouchbaseListenerContext context)
         {
             // http://wiki.apache.org/couchdb/HTTP_database_API#Database_Information
             return PerformLogicWithDatabase(context, true, db =>
@@ -64,11 +64,11 @@ namespace Couchbase.Lite.PeerToPeer
             }).AsDefaultState();
         }
 
-        public static ICouchbaseResponseState DeleteConfiguration(HttpListenerContext context) 
+        public static ICouchbaseResponseState DeleteConfiguration(ICouchbaseListenerContext context) 
         {
             return PerformLogicWithDatabase(context, false, db =>
             {
-                if(context.Request.QueryString["rev"] != null) {
+                if(context.GetQueryParam("rev") != null) {
                     // CouchDB checks for this; probably meant to be a document deletion
                     return new CouchbaseLiteResponse(context) { InternalStatus = StatusCode.BadId };
                 }
@@ -83,10 +83,9 @@ namespace Couchbase.Lite.PeerToPeer
             }).AsDefaultState();
         }
 
-        public static ICouchbaseResponseState UpdateConfiguration(HttpListenerContext context)
+        public static ICouchbaseResponseState UpdateConfiguration(ICouchbaseListenerContext context)
         {
-            string[] components = context.Request.Url.AbsolutePath.Split(new[]{ '/' }, StringSplitOptions.RemoveEmptyEntries);
-            string dbName = components[0];
+            string dbName = context.DatabaseName;
             Database db = Manager.SharedInstance.GetDatabaseWithoutOpening(dbName, false);
             if (db != null && db.Exists()) {
                 return new CouchbaseLiteResponse(context) { InternalStatus = StatusCode.PreconditionFailed }.AsDefaultState();
@@ -101,11 +100,11 @@ namespace Couchbase.Lite.PeerToPeer
             return new CouchbaseLiteResponse(context) { InternalStatus = StatusCode.Created }.AsDefaultState();
         }
 
-        public static ICouchbaseResponseState GetAllDocuments(HttpListenerContext context)
+        public static ICouchbaseResponseState GetAllDocuments(ICouchbaseListenerContext context)
         {
             return PerformLogicWithDatabase(context, true, db =>
             {
-                var options = GetQueryOptions(context);
+                var options = context.QueryOptions;
                 if(options == null) {
                     return new CouchbaseLiteResponse(context) { InternalStatus = StatusCode.BadParam };
                 }
@@ -114,17 +113,17 @@ namespace Couchbase.Lite.PeerToPeer
             }).AsDefaultState();
         }
 
-        public static ICouchbaseResponseState GetAllSpecifiedDocuments(HttpListenerContext context)
+        public static ICouchbaseResponseState GetAllSpecifiedDocuments(ICouchbaseListenerContext context)
         {
             // http://wiki.apache.org/couchdb/HTTP_Bulk_Document_API
             return PerformLogicWithDatabase(context, true, db =>
             {
-                var options = GetQueryOptions(context);
+                var options = context.QueryOptions;
                 if(options == null) {
                     return new CouchbaseLiteResponse(context) { InternalStatus = StatusCode.BadParam };
                 }
                     
-                var body = GetPostBody(context);
+                var body = context.HttpBodyAs<Dictionary<string, object>>();
                 if(body == null) {
                     return new CouchbaseLiteResponse(context) { InternalStatus = StatusCode.BadJson };
                 }
@@ -139,12 +138,12 @@ namespace Couchbase.Lite.PeerToPeer
             }).AsDefaultState();
         }
 
-        public static ICouchbaseResponseState ProcessDocumentChangeOperations(HttpListenerContext context)
+        public static ICouchbaseResponseState ProcessDocumentChangeOperations(ICouchbaseListenerContext context)
         {
             // http://wiki.apache.org/couchdb/HTTP_Bulk_Document_API
             return PerformLogicWithDatabase(context, true, db =>
             {
-                var postBody = GetPostBody(context);
+                var postBody = context.HttpBodyAs<Dictionary<string, object>>();
                 if(postBody == null) {
                     return new CouchbaseLiteResponse(context) { InternalStatus = StatusCode.BadJson };
                 }
@@ -227,7 +226,7 @@ namespace Couchbase.Lite.PeerToPeer
             }).AsDefaultState();
         }
 
-        public static ICouchbaseResponseState GetChanges(HttpListenerContext context)
+        public static ICouchbaseResponseState GetChanges(ICouchbaseListenerContext context)
         {
             // http://wiki.apache.org/couchdb/HTTP_database_API#Changes
 
@@ -244,27 +243,24 @@ namespace Couchbase.Lite.PeerToPeer
                         return response;
                     }
                 }
-
-                var query = context.Request.QueryString;
+                    
                 var options = new ChangesOptions();
-                responseState.ChangesIncludeDocs = query.Get<bool>("include_docs", bool.TryParse, false);
+                responseState.ChangesIncludeDocs = context.GetQueryParam<bool>("include_docs", bool.TryParse, false);
                 options.SetIncludeDocs(responseState.ChangesIncludeDocs);
-                responseState.ChangesIncludeConflicts = query.Get("style") == "all_docs";
+                responseState.ChangesIncludeConflicts = context.GetQueryParam("style") == "all_docs";
                 options.SetIncludeConflicts(responseState.ChangesIncludeConflicts);
-                options.SetContentOptions(context.GetContentOptions());
+                options.SetContentOptions(context.ContentOptions);
                 options.SetSortBySequence(!options.IsIncludeConflicts());
-                options.SetLimit(query.Get<int>("limit", int.TryParse, options.GetLimit()));
-                int since = query.Get<int>("since", int.TryParse, 0);
+                options.SetLimit(context.GetQueryParam<int>("limit", int.TryParse, options.GetLimit()));
+                int since = context.GetQueryParam<int>("since", int.TryParse, 0);
 
-                string filterName = query.Get("filter");
+                string filterName = context.GetQueryParam("filter");
                 if(filterName != null) {
                     Status status = new Status();
                     responseState.ChangesFilter = db.GetFilter(filterName, status);
                     if(responseState.ChangesFilter == null) {
                         return new CouchbaseLiteResponse(context) { InternalStatus = status.GetCode() };
                     }
-
-                    Log.D(TAG, "Filter params={0}", query);
                 }
 
 
@@ -285,7 +281,7 @@ namespace Couchbase.Lite.PeerToPeer
                     }
 
                     responseState.SubscribeToDatabase(db);
-                    string heartbeatParam = query.Get("heartbeat");
+                    string heartbeatParam = context.GetQueryParam("heartbeat");
                     if(heartbeatParam != null) {
                         double heartbeat;
                         if(!double.TryParse(heartbeatParam, out heartbeat) || heartbeat <= 0) {
@@ -314,7 +310,7 @@ namespace Couchbase.Lite.PeerToPeer
             return responseState;
         }
 
-        public static ICouchbaseResponseState Compact(HttpListenerContext context)
+        public static ICouchbaseResponseState Compact(ICouchbaseListenerContext context)
         {
             return PerformLogicWithDatabase(context, true, db =>
             {
@@ -327,12 +323,12 @@ namespace Couchbase.Lite.PeerToPeer
             }).AsDefaultState();
         }
 
-        public static ICouchbaseResponseState Purge(HttpListenerContext context)
+        public static ICouchbaseResponseState Purge(ICouchbaseListenerContext context)
         {
             // <http://wiki.apache.org/couchdb/Purge_Documents>
             return PerformLogicWithDatabase(context, true, db =>
             {
-                var body = GetPostBody<IList<string>>(context);
+                var body = context.HttpBodyAs<Dictionary<string, IList<string>>>();
                 if(body == null) {
                     return new CouchbaseLiteResponse(context) { InternalStatus = StatusCode.BadJson };
                 }
@@ -350,16 +346,16 @@ namespace Couchbase.Lite.PeerToPeer
             }).AsDefaultState();
         }
 
-        public static ICouchbaseResponseState ExecuteTemporaryViewFunction(HttpListenerContext context)
+        public static ICouchbaseResponseState ExecuteTemporaryViewFunction(ICouchbaseListenerContext context)
         {
             var response = new CouchbaseLiteResponse(context);
-            if (context.Request.Headers["Content-Type"] == null || 
-                !context.Request.Headers["Content-Type"].StartsWith("application/json")) {
+            if (context.RequestHeaders["Content-Type"] == null || 
+                !context.RequestHeaders["Content-Type"].StartsWith("application/json")) {
                 response.InternalStatus = StatusCode.UnsupportedType;
                 return response.AsDefaultState();
             }
 
-            IEnumerable<byte> json = context.Request.InputStream.ReadAllBytes();
+            IEnumerable<byte> json = context.HttpBodyStream.ReadAllBytes();
             var requestBody = new Body(json);
             if (!requestBody.IsValidJSON()) {
                 response.InternalStatus = StatusCode.BadJson;
@@ -372,7 +368,7 @@ namespace Couchbase.Lite.PeerToPeer
                 return response.AsDefaultState();
             }
 
-            var options = GetQueryOptions(context);
+            var options = context.QueryOptions;
             if (options == null) {
                 response.InternalStatus = StatusCode.BadRequest;
                 return response.AsDefaultState();
@@ -404,11 +400,10 @@ namespace Couchbase.Lite.PeerToPeer
 
         }
 
-        public static CouchbaseLiteResponse PerformLogicWithDatabase(HttpListenerContext context, bool open, 
+        public static CouchbaseLiteResponse PerformLogicWithDatabase(ICouchbaseListenerContext context, bool open, 
             Func<Database, CouchbaseLiteResponse> action) 
         {
-            string[] components = context.Request.Url.AbsolutePath.Split(new[]{ '/' }, StringSplitOptions.RemoveEmptyEntries);
-            string dbName = components[0];
+            string dbName = context.DatabaseName;
             Database db = Manager.SharedInstance.GetDatabaseWithoutOpening(dbName, false);
             if (db == null || !db.Exists()) {
                 return new CouchbaseLiteResponse(context) { InternalStatus = StatusCode.NotFound };
@@ -429,75 +424,8 @@ namespace Couchbase.Lite.PeerToPeer
 
             return action(db);
         }
-
-        private static QueryOptions GetQueryOptions(HttpListenerContext context)
-        {
-            var options = new QueryOptions();
-            var queryStr = context.Request.QueryString;
-            options.SetSkip(queryStr.Get<int>("skip", int.TryParse, options.GetSkip()));
-            options.SetLimit(queryStr.Get<int>("limit", int.TryParse, options.GetLimit()));
-            options.SetGroupLevel(queryStr.Get<int>("group_level", int.TryParse, options.GetGroupLevel()));
-            options.SetDescending(queryStr.Get<bool>("descending", bool.TryParse, options.IsDescending()));
-            options.SetIncludeDocs(queryStr.Get<bool>("include_docs", bool.TryParse, options.IsIncludeDocs()));
-            if (queryStr.Get<bool>("include_deleted", bool.TryParse, false)) {
-                options.SetAllDocsMode(AllDocsMode.IncludeDeleted);
-            } else if (queryStr.Get<bool>("include_conflicts", bool.TryParse, false)) { //non-standard
-                options.SetAllDocsMode(AllDocsMode.ShowConflicts); 
-            } else if(queryStr.Get<bool>("only_conflicts", bool.TryParse, false)) { //non-standard
-                options.SetAllDocsMode(AllDocsMode.OnlyConflicts);
-            }
-
-            options.SetUpdateSeq(queryStr.Get<bool>("update_seq", bool.TryParse, false));
-            options.SetInclusiveEnd(queryStr.Get<bool>("inclusive_end", bool.TryParse, false));
-            //TODO: InclusiveStart
-            //TODO: PrefixMatchLevel
-            options.SetReduceSpecified(queryStr.Get("reduce") != null);
-            options.SetReduce(queryStr.Get<bool>("reduce", bool.TryParse, false));
-            options.SetGroup(queryStr.Get<bool>("group", bool.TryParse, false));
-            options.SetContentOptions(context.GetContentOptions());
-
-            // Stale options (ok or update_after):
-            string stale = queryStr.Get("stale");
-            if(stale != null) {
-                if (stale.Equals("ok")) {
-                    options.SetStale(IndexUpdateMode.Never);
-                } else if (stale.Equals("update_after")) {
-                    options.SetStale(IndexUpdateMode.After);
-                }
-            }
-
-            IList<object> keys = null;
-            try {
-                keys = queryStr.JsonQuery("keys").AsList<object>();
-                if (keys == null) {
-                    var key = queryStr.JsonQuery("key");
-                    if (key != null) {
-                        keys = new List<object> { key };
-                    }
-                }
-            } catch(CouchbaseLiteException) {
-                return null;
-            }
-
-            if (keys != null) {
-                options.SetKeys(keys);
-            } else {
-                try {
-                    options.SetStartKey(queryStr.JsonQuery("start_key"));
-                    options.SetEndKey(queryStr.JsonQuery("end_key"));
-                    options.SetStartKeyDocId(queryStr.JsonQuery("startkey_docid") as string);
-                    options.SetEndKeyDocId(queryStr.JsonQuery("endkey_docid") as string);
-                } catch(CouchbaseLiteException) {
-                    return null;
-                }
-            }
-
-            //TODO:  Full text and bbox
-
-            return options;
-        }
-
-        private static CouchbaseLiteResponse DoAllDocs(HttpListenerContext context, Database db, QueryOptions options)
+            
+        private static CouchbaseLiteResponse DoAllDocs(ICouchbaseListenerContext context, Database db, QueryOptions options)
         {
             var result = db.GetAllDocs(options);
             if (!result.ContainsKey("rows")) {
@@ -511,30 +439,10 @@ namespace Couchbase.Lite.PeerToPeer
             return response;
         }
 
-        private static IDictionary<string, object> GetPostBody(HttpListenerContext context) 
+        private static ChangesFeedMode ParseChangesOptions(ICouchbaseListenerContext context)
         {
-            return GetPostBody<object>(context);
-        }
-
-        private static IDictionary<string, T> GetPostBody<T>(HttpListenerContext context)
-        {
-            if(context.Request.HasEntityBody) {
-                try {
-                    var body = Manager.GetObjectMapper().ReadValue<IDictionary<string, T>>(context.Request.InputStream);
-                    return body;
-                } catch(CouchbaseLiteException) {
-                    return null;
-                }
-            }
-
-            return new Dictionary<string, T>();
-        }
-
-        private static ChangesFeedMode ParseChangesOptions(HttpListenerContext context)
-        {
-            var query = context.Request.QueryString;
             ChangesFeedMode retVal = ChangesFeedMode.Normal;
-            string feed = query.Get("feed");
+            string feed = context.GetQueryParam("feed");
             if (feed == null) {
                 return retVal;
             }
@@ -627,7 +535,7 @@ namespace Couchbase.Lite.PeerToPeer
             };
         }
 
-        private static CouchbaseLiteResponse QueryView(HttpListenerContext context, View view, QueryOptions options)
+        private static CouchbaseLiteResponse QueryView(ICouchbaseListenerContext context, View view, QueryOptions options)
         {
             var result = view.QueryWithOptions(options);
             object updateSeq = options.IsUpdateSeq() ? (object)view.LastSequenceIndexed : null;

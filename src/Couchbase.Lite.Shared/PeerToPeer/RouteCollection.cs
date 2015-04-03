@@ -26,9 +26,11 @@ namespace Couchbase.Lite.PeerToPeer
 {
     internal class RouteCollection
     {
+        public const int EndpointNotFoundStatus = -2;
+
         private readonly RouteTree _routeTree = new RouteTree();
-        private static readonly RestMethod DEFAULT_METHOD = 
-            context => new CouchbaseLiteResponse(context) { InternalStatus = StatusCode.NotFound }.AsDefaultState();
+        private static readonly RestMethod NOT_FOUND = 
+            context => new CouchbaseLiteResponse(context) { Status = EndpointNotFoundStatus }.AsDefaultState();
 
         public RouteCollection(IDictionary<string, RestMethod> map)
         {
@@ -60,12 +62,27 @@ namespace Couchbase.Lite.PeerToPeer
             foreach (var component in components) {
                 var nextBranch = branch.GetChild(component, false);
                 if (nextBranch == null) {
-                    return DEFAULT_METHOD;
+                    return NOT_FOUND;
+                }
+                branch = nextBranch;
+            }
+                
+            return branch.Logic ?? NOT_FOUND;
+        }
+
+        public bool HasLogicForRequest(HttpListenerRequest request)
+        {
+            var branch = _routeTree.Trunk;
+            var components = request.Url.AbsolutePath.Split(new[] { '/' }, StringSplitOptions.RemoveEmptyEntries);
+            foreach (var component in components) {
+                var nextBranch = branch.GetChild(component, false);
+                if (nextBranch == null) {
+                    return false;
                 }
                 branch = nextBranch;
             }
 
-            return branch.Logic ?? DEFAULT_METHOD;
+            return branch.Logic != null;
         }
     }
 }

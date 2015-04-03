@@ -62,21 +62,6 @@ namespace Couchbase.Lite
 
     internal static class ExtensionMethods
     {
-        public static string IfMatch(this HttpListenerRequest request)
-        {
-            string ifMatch = request.Headers.Get("If-Match");
-            if (ifMatch == null) {
-                return null;
-            }
-
-            // Value of If-Match is an ETag, so have to trim the quotes around it:
-            if (ifMatch.Length > 2 && ifMatch.StartsWith("\"") && ifMatch.EndsWith("\"")) {
-                return ifMatch.Trim('"');
-            }
-
-            return null;
-        }
-
         public static IEnumerable<byte> Decompress(this IEnumerable<byte> compressedData)
         {
 
@@ -111,31 +96,6 @@ namespace Couchbase.Lite
 
             value = (T)obj;
             return true;
-        }
-
-        public static object JsonQuery(this NameValueCollection collection, string key)
-        {
-            string value = collection.Get(key);
-            if (value == null) {
-                return null;
-            }
-
-            return Manager.GetObjectMapper().ReadValue<object>(value);
-        }
-
-        public static T Get<T>(this NameValueCollection collection, string key, TryParseDelegate<T> parser, T defaultVal)
-        {
-            string value = collection.Get(key);
-            if (value == null) {
-                return defaultVal;
-            }
-
-            T retVal;
-            if (!parser(value, out retVal)) {
-                return defaultVal;
-            }
-
-            return retVal;
         }
 
         public static T GetCast<T>(this IDictionary<string, object> collection, string key)

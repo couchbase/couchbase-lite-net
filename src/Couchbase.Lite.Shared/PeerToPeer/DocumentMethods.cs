@@ -19,11 +19,16 @@
 //  limitations under the License.
 //
 using System;
-using System.Net;
-using Couchbase.Lite.Internal;
-using System.Linq;
 using System.Collections.Generic;
+using System.Linq;
+using System.Net.Http;
+
+using Couchbase.Lite.Internal;
 using Couchbase.Lite.Support;
+
+#if NET_3_5
+using Rackspace.Threading;
+#endif
 
 namespace Couchbase.Lite.PeerToPeer
 {
@@ -31,20 +36,20 @@ namespace Couchbase.Lite.PeerToPeer
     {
         private const string TAG = "DocumentMethods";
 
-        public static ICouchbaseResponseState GetDocument(HttpListenerContext context)
+        public static ICouchbaseResponseState GetDocument(ICouchbaseListenerContext context)
         {
             return DatabaseMethods.PerformLogicWithDatabase(context, true, db => {
                 var response = new CouchbaseLiteResponse(context);
                 // http://wiki.apache.org/couchdb/HTTP_Document_API#GET
-                string docId = GetDocumentPortions(context)[0];
+                string docId = context.DocumentName;
                 bool isLocalDoc = docId.StartsWith("_local");
 
-                DocumentContentOptions options = context.GetContentOptions();
-                string openRevsParam = context.Request.QueryString["open_revs"];
+                DocumentContentOptions options = context.ContentOptions;
+                string openRevsParam = context.GetQueryParam("open_revs");
                 bool mustSendJson = context.ExplicitlyAcceptsType("application/json");
                 if (openRevsParam == null || isLocalDoc) {
                     //Regular GET:
-                    string revId = context.Request.QueryString["rev"]; //often null
+                    string revId = context.GetQueryParam("rev"); //often null
                     RevisionInternal rev;
                     bool includeAttachments = false, sendMultipart = false;
                     if (isLocalDoc) {
@@ -86,14 +91,14 @@ namespace Couchbase.Lite.PeerToPeer
 
                     if(!isLocalDoc && includeAttachments) {
                         int minRevPos = 1;
-                        IList<string> attsSince = context.Request.QueryString.JsonQuery("atts_since").AsList<string>();
+                        IList<string> attsSince = context.GetJsonQueryParam("atts_since").AsList<string>();
                         string ancestorId = db.FindCommonAncestor(rev, attsSince);
                         if(ancestorId != null) {
                             minRevPos = RevisionInternal.GenerationFromRevID(ancestorId);
                         }
 
                         Status status = new Status();
-                        bool attEncodingInfo = context.Request.QueryString.Get<bool>("att_encoding_info", bool.TryParse, false);
+                        bool attEncodingInfo = context.GetQueryParam<bool>("att_encoding_info", bool.TryParse, false);
                         if(!db.ExpandAttachments(rev, minRevPos, sendMultipart, attEncodingInfo, status)) {
                             response.InternalStatus = status.GetCode();
                             return response;
@@ -110,7 +115,7 @@ namespace Couchbase.Lite.PeerToPeer
                     IList<IDictionary<string, object>> result;
                     if(openRevsParam.Equals("all")) {
                         // ?open_revs=all returns all current/leaf revisions:
-                        bool includeDeleted = context.Request.QueryString.Get<bool>("include_deleted", bool.TryParse, false);
+                        bool includeDeleted = context.GetQueryParam<bool>("include_deleted", bool.TryParse, false);
                         RevisionList allRevs = db.GetAllRevisionsOfDocumentID(docId, true);
 
                         result = new List<IDictionary<string, object>>();
@@ -136,7 +141,7 @@ namespace Couchbase.Lite.PeerToPeer
                         }
                     } else {
                         // ?open_revs=[...] returns an array of specific revisions of the document:
-                        var openRevs = context.Request.QueryString.JsonQuery("open_revs").AsList<object>();
+                        var openRevs = context.GetJsonQueryParam("open_revs").AsList<object>();
                         if(openRevs == null) {
                             response.InternalStatus = StatusCode.BadParam;
                             return response;
@@ -176,13 +181,13 @@ namespace Couchbase.Lite.PeerToPeer
             }).AsDefaultState();
         }
 
-        public static ICouchbaseResponseState UpdateDocument(HttpListenerContext context)
+        public static ICouchbaseResponseState UpdateDocument(ICouchbaseListenerContext context)
         {
             return PerformLogicWithDocumentBody(context, (db, body) =>
             {
                 var response = new CouchbaseLiteResponse(context);
-                string docId = GetDocumentPortions(context)[0];
-                if(context.Request.QueryString.Get<bool>("new_edits", bool.TryParse, true)) {
+                string docId = context.DocumentName;
+                if(context.GetQueryParam<bool>("new_edits", bool.TryParse, true)) {
                     // Regular PUT:
                     return UpdateDb(context, db, docId, body, false);
                 } else {
@@ -220,13 +225,13 @@ namespace Couchbase.Lite.PeerToPeer
             }).AsDefaultState();
         }
 
-        public static ICouchbaseResponseState CreateDocument(HttpListenerContext context)
+        public static ICouchbaseResponseState CreateDocument(ICouchbaseListenerContext context)
         {
             return PerformLogicWithDocumentBody(context, (db, body) => UpdateDb(context, db, null, body, false))
                 .AsDefaultState();
         }
 
-        public static StatusCode UpdateDocument(HttpListenerContext context, Database db, string docId, Body body, bool deleting, 
+        public static StatusCode UpdateDocument(ICouchbaseListenerContext context, Database db, string docId, Body body, bool deleting, 
             bool allowConflict, out RevisionInternal outRev)
         {
             outRev = null;
@@ -250,12 +255,12 @@ namespace Couchbase.Lite.PeerToPeer
                 prevRevId = properties.GetCast<string>("_rev");
             } else {
                 // DELETE's revision ID comes from the ?rev= query param
-                prevRevId = context.Request.QueryString.Get("rev");
+                prevRevId = context.GetQueryParam("rev");
             }
 
             // A backup source of revision ID is an If-Match header:
             if (prevRevId == null) {
-                prevRevId = context.Request.IfMatch();
+                prevRevId = context.IfMatch();
             }
 
             if (docId == null && deleting) {
@@ -281,22 +286,21 @@ namespace Couchbase.Lite.PeerToPeer
             return status;
         }
 
-        public static ICouchbaseResponseState DeleteDocument(HttpListenerContext context)
+        public static ICouchbaseResponseState DeleteDocument(ICouchbaseListenerContext context)
         {
             return DatabaseMethods.PerformLogicWithDatabase(context, true, db =>
             {
-                string docId = GetDocumentPortions(context)[0];
+                string docId = context.DocumentName;
                 return UpdateDb(context, db, docId, null, true);
             }).AsDefaultState();
         }
 
-        public static ICouchbaseResponseState GetAttachment(HttpListenerContext context)
+        public static ICouchbaseResponseState GetAttachment(ICouchbaseListenerContext context)
         {
             return DatabaseMethods.PerformLogicWithDatabase(context, true, db =>
             {
                 Status status = new Status();
-                var portions = GetDocumentPortions(context, true);
-                var rev = db.GetDocumentWithIDAndRev(portions[0], context.Request.QueryString["rev"], DocumentContentOptions.NoBody, 
+                var rev = db.GetDocumentWithIDAndRev(context.DocumentName, context.GetQueryParam("rev"), DocumentContentOptions.NoBody, 
                     status);
                     
                 if(rev ==null) {
@@ -306,17 +310,17 @@ namespace Couchbase.Lite.PeerToPeer
                     return new CouchbaseLiteResponse(context) { InternalStatus = StatusCode.NotModified };
                 }
 
-                string acceptEncoding = context.Request.Headers["Accept-Encoding"];
+                string acceptEncoding = context.RequestHeaders["Accept-Encoding"];
                 bool acceptEncoded = acceptEncoding != null && acceptEncoding.Contains("gzip") &&
-                    context.Request.Headers["Range"] == null;
+                    context.RequestHeaders["Range"] == null;
 
-                var attachment = db.GetAttachmentForRevision(rev, portions[1], status);
+                var attachment = db.GetAttachmentForRevision(rev, context.AttachmentName, status);
                 if(attachment == null) {
                     return new CouchbaseLiteResponse(context) { InternalStatus = status.GetCode() };
                 }
 
                 var response = new CouchbaseLiteResponse(context);
-                if(context.Request.HttpMethod.Equals("HEAD")) {
+                if(context.Method.Equals(HttpMethod.Head)) {
                     var length = attachment.Length;
                     if(acceptEncoded && attachment.Encoding == AttachmentEncoding.GZIP &&
                         attachment.EncodedLength > 0) {
@@ -343,15 +347,15 @@ namespace Couchbase.Lite.PeerToPeer
             }).AsDefaultState();
         }
 
-        public static ICouchbaseResponseState UpdateAttachment(HttpListenerContext context)
+        public static ICouchbaseResponseState UpdateAttachment(ICouchbaseListenerContext context)
         {
             var state = new AsyncOpCouchbaseResponseState();
             DatabaseMethods.PerformLogicWithDatabase(context, true, db =>
             {
                 
                 var blob = db.AttachmentWriter;
-                var httpBody = new byte[context.Request.ContentLength64];
-                context.Request.InputStream.ReadAsync(httpBody, 0, httpBody.Length).ContinueWith(t => {
+                var httpBody = new byte[context.ContentLength];
+                context.HttpBodyStream.ReadAsync(httpBody, 0, httpBody.Length).ContinueWith(t => {
                     if(t.Result == 0) {
                         state.Response = new CouchbaseLiteResponse(context) { InternalStatus = StatusCode.BadAttachment };
                         state.SignalFinished();
@@ -361,8 +365,7 @@ namespace Couchbase.Lite.PeerToPeer
                     blob.AppendData(httpBody);
                     blob.Finish();
 
-                    var portions = GetDocumentPortions(context, true);
-                    state.Response = UpdateAttachment(context, db, portions[1], portions[0], blob);
+                    state.Response = UpdateAttachment(context, db, context.AttachmentName, context.DocumentName, blob);
                     state.SignalFinished();
                 });
 
@@ -372,23 +375,20 @@ namespace Couchbase.Lite.PeerToPeer
             return state;
         }
 
-        public static ICouchbaseResponseState DeleteAttachment(HttpListenerContext context)
+        public static ICouchbaseResponseState DeleteAttachment(ICouchbaseListenerContext context)
         {
             return DatabaseMethods.PerformLogicWithDatabase(context, true, db =>
-            {
-                var portions = GetDocumentPortions(context, true);
-                return UpdateAttachment(context, db, portions[1], portions[0], null);
-            }).AsDefaultState();
+            UpdateAttachment(context, db, context.AttachmentName, context.DocumentName, null)).AsDefaultState();
         }
 
-        private static CouchbaseLiteResponse PerformLogicWithDocumentBody(HttpListenerContext context, 
+        private static CouchbaseLiteResponse PerformLogicWithDocumentBody(ICouchbaseListenerContext context, 
             Func<Database, Body, CouchbaseLiteResponse> callback)
         {
             return DatabaseMethods.PerformLogicWithDatabase(context, true, db =>
             {
                 MultipartDocumentReader reader = new MultipartDocumentReader(db);
-                reader.SetContentType(context.Request.Headers["Content-Type"]);
-                reader.AppendData(context.Request.InputStream.ReadAllBytes());
+                reader.SetContentType(context.RequestHeaders["Content-Type"]);
+                reader.AppendData(context.HttpBodyStream.ReadAllBytes());
                 try {
                     reader.Finish();
                 } catch(InvalidOperationException) {
@@ -399,27 +399,7 @@ namespace Couchbase.Lite.PeerToPeer
             });
         }
 
-        private static string[] GetDocumentPortions(HttpListenerContext context, bool includeAttachment = false)
-        {
-            var retVal = new string[includeAttachment ? 2 : 1];
-            string[] splitUrl = context.Request.Url.AbsolutePath.Split(new[]{ '/' }, StringSplitOptions.RemoveEmptyEntries);
-            string docId = splitUrl[1];
-            bool local = false;
-            if (docId.Equals("_local")) {
-                local = true;
-                docId = String.Format("{0}/{1}", docId, splitUrl[2]);
-            }
-
-            retVal[0] = docId;
-
-            if (includeAttachment) {
-                retVal[1] = splitUrl[local ? 3 : 2];
-            }
-
-            return retVal;
-        }
-
-        private static RevisionInternal ApplyOptions(DocumentContentOptions options, RevisionInternal rev, HttpListenerContext context,
+        private static RevisionInternal ApplyOptions(DocumentContentOptions options, RevisionInternal rev, ICouchbaseListenerContext context,
             Database db, Status outStatus)
         {
             if ((options & (DocumentContentOptions.IncludeRevs | DocumentContentOptions.IncludeRevsInfo | DocumentContentOptions.IncludeConflicts |
@@ -462,7 +442,7 @@ namespace Couchbase.Lite.PeerToPeer
 
                 RevisionInternal nuRev = new RevisionInternal(dst);
                 if (options.HasFlag(DocumentContentOptions.IncludeAttachments)) {
-                    bool attEncodingInfo = context.Request.QueryString.Get<bool>("att_encoding_info", bool.TryParse, false);
+                    bool attEncodingInfo = context.GetQueryParam<bool>("att_encoding_info", bool.TryParse, false);
                     if(!db.ExpandAttachments(nuRev, 0, false, !attEncodingInfo, outStatus)) {
                         return null;
                     }
@@ -474,13 +454,13 @@ namespace Couchbase.Lite.PeerToPeer
             return rev;
         }
 
-        private static CouchbaseLiteResponse UpdateDb(HttpListenerContext context, Database db, string docId, Body body, bool deleting)
+        private static CouchbaseLiteResponse UpdateDb(ICouchbaseListenerContext context, Database db, string docId, Body body, bool deleting)
         {
             var response = new CouchbaseLiteResponse(context);
             if (docId != null) {
                 // On PUT/DELETE, get revision ID from either ?rev= query, If-Match: header, or doc body:
-                string revParam = context.Request.QueryString["rev"];
-                string ifMatch = context.Request.Headers["If-Match"];
+                string revParam = context.GetQueryParam("rev");
+                string ifMatch = context.RequestHeaders["If-Match"];
                 if (ifMatch != null) {
                     if (revParam == null) {
                         revParam = ifMatch;
@@ -507,7 +487,7 @@ namespace Couchbase.Lite.PeerToPeer
             if ((int)status < 300) {
                 context.CacheWithEtag(rev.GetRevId()); // set ETag
                 if (!deleting) {
-                    var url = context.Request.Url;
+                    var url = context.RequestUrl;
                     if (docId != null) {
                         response["Location"] = url.AbsoluteUri;
                     }
@@ -524,13 +504,13 @@ namespace Couchbase.Lite.PeerToPeer
             return response;
         }
            
-        private static CouchbaseLiteResponse UpdateAttachment(HttpListenerContext context, Database db, 
+        private static CouchbaseLiteResponse UpdateAttachment(ICouchbaseListenerContext context, Database db, 
             string attachment, string docId, BlobStoreWriter body)
         {
             RevisionInternal rev = null;
             try {
-                rev = db.UpdateAttachment(attachment, body, context.Request.Headers["Content-Type"], AttachmentEncoding.None,
-                    docId, context.Request.QueryString["rev"] ?? context.Request.IfMatch());
+                rev = db.UpdateAttachment(attachment, body, context.RequestHeaders["Content-Type"], AttachmentEncoding.None,
+                    docId, context.GetQueryParam("rev") ?? context.IfMatch());
             } catch (CouchbaseLiteException e) {
                 return new CouchbaseLiteResponse(context) { InternalStatus = e.GetCBLStatus().GetCode() };
             }
@@ -543,7 +523,7 @@ namespace Couchbase.Lite.PeerToPeer
             });
             context.CacheWithEtag(rev.GetRevId());
             if (body != null) {
-                response["Location"] = context.Request.Url.AbsoluteUri;
+                response["Location"] = context.RequestUrl.AbsoluteUri;
             }
 
             return response;

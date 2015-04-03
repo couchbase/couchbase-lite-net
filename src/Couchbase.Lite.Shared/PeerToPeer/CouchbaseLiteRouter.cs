@@ -19,19 +19,25 @@
 //  limitations under the License.
 //
 using System;
-using System.Net;
 using System.Collections.Generic;
+using System.Net;
+
 using Couchbase.Lite.Util;
-using System.Collections.Specialized;
+using System.Net.Http;
 
 namespace Couchbase.Lite.PeerToPeer
 {
-    internal delegate ICouchbaseResponseState RestMethod(HttpListenerContext context);
+    internal delegate ICouchbaseResponseState RestMethod(ICouchbaseListenerContext context);
 
-    internal static class CouchbaseLiteRouter
+    internal partial class CouchbaseLiteRouter
     {
         private const string TAG = "CouchbaseLiteRouter";
         private static readonly List<ICouchbaseResponseState> _UnfinishedResponses = new List<ICouchbaseResponseState>();
+
+        private static readonly RestMethod NOT_ALLOWED = 
+            context => new CouchbaseLiteResponse(context) { InternalStatus = StatusCode.MethodNotAllowed }.AsDefaultState();
+
+        private readonly Manager _manager;
 
         private static readonly RouteCollection _Get = 
             new RouteCollection(new Dictionary<string, RestMethod> {
@@ -56,6 +62,8 @@ namespace Couchbase.Lite.PeerToPeer
                 { "/*/_purge", DatabaseMethods.Purge },
                 { "/*/_temp_view", DatabaseMethods.ExecuteTemporaryViewFunction },
                 { "/*", DocumentMethods.CreateDocument }, //CouchDB does not have an equivalent for POST to _local
+                { "/_facebook_token", AuthenticationMethods.RegisterFacebookToken },
+                { "/_persona_assertion", AuthenticationMethods.RegisterPersonaToken }
             });
 
         private static readonly RouteCollection _Put =
@@ -74,38 +82,52 @@ namespace Couchbase.Lite.PeerToPeer
                 { "/*/*/*", DocumentMethods.DeleteAttachment }
             });
 
-        public static void HandleContext(HttpListenerContext context)
+        public CouchbaseLiteRouter(Manager manager) {
+            _manager = manager;
+        }
+
+        public void HandleContext(HttpListenerContext context)
         {
             var request = context.Request;
-            var method = request.HttpMethod;
+            var wrappedContext = new CouchbaseListenerContext(context, _manager);
+            var method = wrappedContext.Method;
 
             RestMethod logic = null;
-            if (method.Equals("GET") || method.Equals("HEAD")) {
+            if (method.Equals(HttpMethod.Get) || method.Equals(HttpMethod.Head)) {
                 logic = _Get.LogicForRequest(request);
-            } else if (method.Equals("POST")) {
+            } else if (method.Equals(HttpMethod.Post)) {
                 logic = _Post.LogicForRequest(request);
-            } else if (method.Equals("PUT")) {
+            } else if (method.Equals(HttpMethod.Put)) {
                 logic = _Put.LogicForRequest(request);
-            } else if (method.Equals("DELETE")) {
+            } else if (method.Equals(HttpMethod.Delete)) {
                 logic = _Delete.LogicForRequest(request);
+            } else {
+                logic = NOT_ALLOWED;
             }
 
             ICouchbaseResponseState responseState = null;
+
             try {
-                responseState = logic(context);
+                responseState = logic(wrappedContext);
             } catch(Exception e) {
                 Log.E(TAG, "Exception in routing logic", e);
-                responseState = new CouchbaseLiteResponse(context) { InternalStatus = StatusCode.Exception }.AsDefaultState();
+                var ce = e as CouchbaseLiteException;
+                if (ce != null) {
+                    responseState = new CouchbaseLiteResponse(wrappedContext) { InternalStatus = ce.GetCBLStatus().GetCode() }
+                        .AsDefaultState();
+                } else {
+                    responseState = new CouchbaseLiteResponse(wrappedContext) { InternalStatus = StatusCode.Exception }.AsDefaultState();
+                }
             }
 
-            CouchbaseLiteResponse responseObject = responseState.Response;
+            CouchbaseLiteResponse responseObject = CheckForAltMethod(wrappedContext, responseState.Response);
             if (!responseState.IsAsync) {
                 try {
                     responseObject.WriteHeaders();
                     responseObject.WriteToContext();
                 } catch(Exception e) {
                     Log.E(TAG, "Exception writing response", e);
-                    responseState = new CouchbaseLiteResponse(context) { InternalStatus = StatusCode.Exception }.AsDefaultState();
+                    responseState = new CouchbaseLiteResponse(wrappedContext) { InternalStatus = StatusCode.Exception }.AsDefaultState();
                 }
             } else {
                 _UnfinishedResponses.Add(responseState);
@@ -117,6 +139,22 @@ namespace Couchbase.Lite.PeerToPeer
             _UnfinishedResponses.Remove(responseState);
         }
             
+        private static CouchbaseLiteResponse CheckForAltMethod(ICouchbaseListenerContext context, CouchbaseLiteResponse response)
+        {
+            if (response.Status != RouteCollection.EndpointNotFoundStatus) {
+                return response;
+            }
+                
+            HttpListenerRequest request = context.HttpContext.Request;
+            bool hasAltMethod = _Delete.HasLogicForRequest(request) || _Get.HasLogicForRequest(request)
+                                || _Post.HasLogicForRequest(request) || _Put.HasLogicForRequest(request);
+
+            if (hasAltMethod) {
+                return new CouchbaseLiteResponse(context) { InternalStatus = StatusCode.MethodNotAllowed };
+            }
+
+            return new CouchbaseLiteResponse(context) { InternalStatus = StatusCode.NotFound };
+        }
     }
 }
 
