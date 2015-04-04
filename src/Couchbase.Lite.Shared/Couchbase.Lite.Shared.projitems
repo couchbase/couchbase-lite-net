@@ -274,6 +274,9 @@
     <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\AuthenticationMethods.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\ICouchbaseListenerContext.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\CouchbaseLiteRouter_Context.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Util\NonNullDictionary.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\ReplicationCouchbaseResponseState.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\OneShotCouchbaseResponseState.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="$(MSBuildThisFileDirectory)Store\MonoSQLiteStorageEngine.cs" />

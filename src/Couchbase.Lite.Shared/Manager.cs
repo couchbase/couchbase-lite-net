@@ -398,6 +398,11 @@ namespace Couchbase.Lite
             return db;
         }
 
+        public ICollection<Database> AllOpenDatabases()
+        {
+            return databases.Values;
+        }
+
         public void ForgetDatabase (Database database)
         {
             // remove from cached list of dbs

@@ -26,6 +26,7 @@ using System.Net;
 
 using Couchbase.Lite.Internal;
 using Sharpen;
+using Couchbase.Lite.Replicator;
 
 namespace Couchbase.Lite.PeerToPeer
 {
@@ -55,8 +56,34 @@ namespace Couchbase.Lite.PeerToPeer
             // http://wiki.apache.org/couchdb/HttpGetActiveTasks
 
             // Get the current task info of all replicators:
-            var activity = new List<IDictionary<string, object>>();
-            throw new NotImplementedException();
+            var activity = new List<object>();
+            var replicators = new List<Replication>();
+            foreach (var db in context.DbManager.AllOpenDatabases()) {
+                foreach (var repl in db.ActiveReplicators) {
+                    replicators.Add(repl);
+                    activity.Add(repl.ActiveTaskInfo);
+                }
+            }
+
+            if (context.ChangesFeedMode >= ChangesFeedMode.Continuous) {
+                // Continuous activity feed (this is a CBL-specific API):
+                var response = new CouchbaseLiteResponse(context);
+                response.WriteHeaders();
+                response.Chunked = true;
+
+                foreach(var item in activity) {
+                    response.SendContinuousLine((IDictionary<string, object>)item, context.ChangesFeedMode);
+                }
+
+                return new ReplicationCouchbaseResponseState(replicators) {
+                    Response = response,
+                    ChangesFeedMode = context.ChangesFeedMode
+                };
+            } else {
+                var response = new CouchbaseLiteResponse(context);
+                response.JsonBody = new Body(activity);
+                return response.AsDefaultState();
+            }
         }
 
         public static ICouchbaseResponseState GetAllDbs(ICouchbaseListenerContext context)
@@ -133,7 +160,9 @@ namespace Couchbase.Lite.PeerToPeer
                         { "session_id", rep.sessionID }
                     });
                 } else {
-                    
+                    return new OneShotCouchbaseResponseState(rep) { 
+                        Response = response
+                    };
                 }
             }
 

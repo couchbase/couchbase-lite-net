@@ -2545,6 +2545,15 @@ PRAGMA user_version = 3;";
 
         internal RevisionInternal GetDocumentWithIDAndRev(String id, String rev, DocumentContentOptions contentOptions, Status status = null)
         {
+            var docNumericId = GetDocNumericID(id);
+            if (docNumericId <= 0) {
+                if (status != null) {
+                    status.SetCode(StatusCode.NotFound);
+                }
+
+                return null;
+            }
+
             RevisionInternal result = null;
             string sql;
             Cursor cursor = null;
@@ -2558,17 +2567,13 @@ PRAGMA user_version = 3;";
                 }
                 if (rev != null)
                 {
-                    sql = "SELECT " + cols + " FROM revs, docs WHERE docs.docid=? AND revs.doc_id=docs.doc_id AND revid=? LIMIT 1";
-                    //TODO: mismatch w iOS: {sql = "SELECT " + cols + " FROM revs WHERE revs.doc_id=? AND revid=? AND json notnull LIMIT 1";}
-                    var args = new[] { id, rev };
-                    cursor = StorageEngine.IntransactionRawQuery(sql, args);
+                    sql = "SELECT " + cols + " FROM revs, docs WHERE revs.doc_id=? AND revid=? LIMIT 1";
+                     cursor = StorageEngine.IntransactionRawQuery(sql, docNumericId, rev);
                 }
                 else
                 {
-                    sql = "SELECT " + cols + " FROM revs, docs WHERE docs.docid=? AND revs.doc_id=docs.doc_id and current=1 and deleted=0 ORDER BY revid DESC LIMIT 1";
-                    //TODO: mismatch w iOS: {sql = "SELECT " + cols + " FROM revs WHERE revs.doc_id=? and current=1 and deleted=0 ORDER BY revid DESC LIMIT 1";}
-                    var args = new[] { id };
-                    cursor = StorageEngine.IntransactionRawQuery(sql, args);
+                    sql = "SELECT " + cols + " FROM revs, docs WHERE revs.doc_id=? and current=1 and deleted=0 ORDER BY revid DESC LIMIT 1";
+                    cursor = StorageEngine.IntransactionRawQuery(sql, docNumericId);
                 }
 
                 if(cursor == null) {

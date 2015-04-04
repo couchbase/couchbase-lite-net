@@ -19,6 +19,7 @@
 //  limitations under the License.
 //
 using System;
+using Couchbase.Lite.Replicator;
 
 namespace Couchbase.Lite.PeerToPeer
 {
@@ -27,6 +28,8 @@ namespace Couchbase.Lite.PeerToPeer
         CouchbaseLiteResponse Response { get; }
 
         bool IsAsync { get; }
+
+
     }
 }
 

@@ -135,16 +135,17 @@ namespace Couchbase.Lite
                 return null;
             return attachmentProps is JObject
                 ? ((JObject)attachmentProps).ToObject<IDictionary<TKey, TValue>>()
-                    : (IDictionary<TKey, TValue>)attachmentProps;
+                    : attachmentProps as IDictionary<TKey, TValue>;
         }
 
         internal static IList<TValue> AsList<TValue>(this object value)
         {
             if (value == null)
                 return null;
+            
             return value is JArray
                 ? ((JArray)value).ToObject<IList<TValue>>()
-                    : (IList<TValue>)value;
+                    : value as IList<TValue>;
         }
 
         public static IEnumerable ToEnumerable(this IEnumerator enumerator)

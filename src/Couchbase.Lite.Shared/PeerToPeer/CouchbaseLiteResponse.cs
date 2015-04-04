@@ -28,6 +28,8 @@ using Couchbase.Lite.Internal;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
 using Sharpen;
+using System.IO;
+using Couchbase.Lite.Replicator;
 
 namespace Couchbase.Lite.PeerToPeer
 {
@@ -57,7 +59,7 @@ namespace Couchbase.Lite.PeerToPeer
                         JsonBody = new Body(Encoding.UTF8.GetBytes("{\"ok\":true}"));
                     }
                 } else {
-                    JsonBody = new Body(new Dictionary<string, object> {
+                    JsonBody = new Body(new NonNullDictionary<string, object> {
                         { "status", Status },
                         { "error", StatusMessage },
                         { "reason", StatusReason }
@@ -133,11 +135,11 @@ namespace Couchbase.Lite.PeerToPeer
             return new DefaultCouchbaseResponseState(this);
         }
 
-        public void WriteToContext()
+        public bool WriteToContext()
         {
             if (Chunked) {
                 Log.E(TAG, "Attempt to send one-shot data when in chunked mode");
-                return;
+                return false;
             }
 
             bool syncWrite = true;
@@ -160,36 +162,74 @@ namespace Couchbase.Lite.PeerToPeer
                 _context.Response.ContentEncoding = Encoding.UTF8;
                 var json = JsonBody.GetJson().ToArray();
                 _context.Response.ContentLength64 = json.Length;
-                _context.Response.OutputStream.Write(json, 0, json.Length);
+                if(!WriteToStream(json)) {
+                    return false;
+                }
             } else if (BinaryBody != null) {
                 this["Content-Type"] = BaseContentType;
                 _context.Response.ContentEncoding = Encoding.UTF8;
                 var data = BinaryBody.ToArray();
                 _context.Response.ContentLength64 = data.LongLength;
-                _context.Response.OutputStream.Write(data, 0, data.Length);
+                if (!WriteToStream(data)) {
+                    return false;
+                }
             } else if (MultipartWriter != null) {
-                MultipartWriter.WriteAsync(_context.Response.OutputStream).ContinueWith(t => _context.Response.Close());
+                MultipartWriter.WriteAsync(_context.Response.OutputStream).ContinueWith(t =>
+                {
+                    if(t.IsCompleted && t.Result) {
+                        TryClose();
+                    } else {
+                        Log.E(TAG, "Multipart async write did not finish properly");
+                    }
+                });
                 syncWrite = false;
             }
 
             if (syncWrite) {
-                _context.Response.Close();
+                TryClose();
             }
+
+            return true;
         }
 
-        public void WriteData(IEnumerable<byte> data, bool finished)
+        public bool WriteData(IEnumerable<byte> data, bool finished)
         {
             if (!Chunked) {
                 Log.E(TAG, "Attempt to send streaming data when not in chunked mode");
-                return;
+                return false;
             }
 
-            var array = data.ToArray();
-            _context.Response.OutputStream.Write(array, 0, array.Length);
-            _context.Response.OutputStream.Flush();
-            if (finished) {
-                _context.Response.Close();
+            if (!WriteToStream(data.ToArray())) {
+                return false;
             }
+
+            if (finished) {
+                TryClose();
+            }
+
+            return true;
+        }
+
+        // Send a JSON object followed by a newline without closing the connection.
+        // Used by the continuous mode of _changes and _active_tasks.
+        public bool SendContinuousLine(IDictionary<string, object> changesDict, ChangesFeedMode mode)
+        {
+            if (!Chunked) {
+                Log.E(TAG, "Attempt to send streaming data when not in chunked mode");
+                return false;
+            }
+
+            var json = Manager.GetObjectMapper().WriteValueAsBytes(changesDict).ToList();
+            if (mode == ChangesFeedMode.EventSource) {
+                // https://developer.mozilla.org/en-US/docs/Server-sent_events/Using_server-sent_events#Event_stream_format
+                json.InsertRange(0, Encoding.UTF8.GetBytes("data: "));
+                json.AddRange(Encoding.UTF8.GetBytes("\n\n"));
+            } else {
+                json.AddRange(Encoding.UTF8.GetBytes("\n"));
+            }
+
+            bool written = WriteData(json, false);
+            return written;
         }
 
         public void WriteHeaders()
@@ -249,8 +289,30 @@ namespace Couchbase.Lite.PeerToPeer
             return true;
         }
 
+        private bool WriteToStream(byte[] data) {
+            try {
+                _context.Response.OutputStream.Write(data, 0, data.Length);
+                _context.Response.OutputStream.Flush();
+                return true;
+            } catch(IOException) {
+                Log.W(TAG, "Error writing to HTTP response stream");
+                return false;
+            }
+
+            return true;
+        }
+
+        private void TryClose() {
+            try {
+                _context.Response.Close();
+            } catch(IOException) {
+                Log.W(TAG, "Error closing HTTP response stream");
+            }
+        }
+
         public void Reset()
         {
+            _context.Response.
             Headers.Clear();
             _context.Response.Headers.Clear();
             JsonBody = null;

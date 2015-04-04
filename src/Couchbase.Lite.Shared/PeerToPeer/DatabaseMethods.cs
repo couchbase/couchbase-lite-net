@@ -236,8 +236,7 @@ namespace Couchbase.Lite.PeerToPeer
             {
                 var response = new CouchbaseLiteResponse(context);
                 responseState.Response = response;
-                responseState.ChangesMode = ParseChangesOptions(context);
-                if (responseState.ChangesMode < ChangesFeedMode.Continuous) {
+                if (context.ChangesFeedMode < ChangesFeedMode.Continuous) {
                     if(context.CacheWithEtag(db.LastSequenceNumber.ToString())) {
                         response.InternalStatus = StatusCode.NotModified;
                         return response;
@@ -245,6 +244,7 @@ namespace Couchbase.Lite.PeerToPeer
                 }
                     
                 var options = new ChangesOptions();
+                responseState.ChangesFeedMode = context.ChangesFeedMode;
                 responseState.ChangesIncludeDocs = context.GetQueryParam<bool>("include_docs", bool.TryParse, false);
                 options.SetIncludeDocs(responseState.ChangesIncludeDocs);
                 responseState.ChangesIncludeConflicts = context.GetQueryParam("style") == "all_docs";
@@ -265,18 +265,18 @@ namespace Couchbase.Lite.PeerToPeer
 
 
                 RevisionList changes = db.ChangesSince(since, options, responseState.ChangesFilter);
-                if((responseState.ChangesMode >= ChangesFeedMode.Continuous) || 
-                    (responseState.ChangesMode == ChangesFeedMode.LongPoll && changes.Count == 0)) {
+                if((context.ChangesFeedMode >= ChangesFeedMode.Continuous) || 
+                    (context.ChangesFeedMode == ChangesFeedMode.LongPoll && changes.Count == 0)) {
                     // Response is going to stay open (continuous, or hanging GET):
-                    if(responseState.ChangesMode == ChangesFeedMode.EventSource) {
+                    if(context.ChangesFeedMode == ChangesFeedMode.EventSource) {
                         response["Content-Type"] = "text/event-stream; charset=utf-8";
                     }
 
-                    if(responseState.ChangesMode >= ChangesFeedMode.Continuous) {
+                    if(context.ChangesFeedMode >= ChangesFeedMode.Continuous) {
                         response.WriteHeaders();
                         response.Chunked = true;
                         foreach(var rev in changes) {
-                            SendContinuousLine(ChangesDictForRev(rev, responseState), responseState);
+                            response.SendContinuousLine(ChangesDictForRev(rev, responseState), context.ChangesFeedMode);
                         }
                     }
 
@@ -290,7 +290,7 @@ namespace Couchbase.Lite.PeerToPeer
                         }
 
                         heartbeat = Math.Min(heartbeat, MIN_HEARTBEAT);
-                        string heartbeatResponse = responseState.ChangesMode == ChangesFeedMode.EventSource ? "\n\n" : "\r\n";
+                        string heartbeatResponse = context.ChangesFeedMode == ChangesFeedMode.EventSource ? "\n\n" : "\r\n";
                         responseState.StartHeartbeat(heartbeatResponse, heartbeat);
                     }
 
@@ -439,25 +439,6 @@ namespace Couchbase.Lite.PeerToPeer
             return response;
         }
 
-        private static ChangesFeedMode ParseChangesOptions(ICouchbaseListenerContext context)
-        {
-            ChangesFeedMode retVal = ChangesFeedMode.Normal;
-            string feed = context.GetQueryParam("feed");
-            if (feed == null) {
-                return retVal;
-            }
-
-            if (feed.Equals("longpoll")) {
-                retVal = ChangesFeedMode.LongPoll;
-            } else if (feed.Equals("continuous")) {
-                retVal = ChangesFeedMode.Continuous;
-            } else if (feed.Equals("eventsource")) {
-                retVal = ChangesFeedMode.EventSource;
-            }
-
-            return retVal;
-        }
-
         private static IDictionary<string, object> ResponseBodyForChanges(RevisionList changes, long since, int limit, DBMonitorCouchbaseResponseState state)
         {
             string lastDocId = null;
@@ -503,25 +484,9 @@ namespace Couchbase.Lite.PeerToPeer
             };
         }
 
-        // Send a JSON object followed by a newline without closing the connection.
-        // Used by the continuous mode of _changes and _active_tasks.
-        public static void SendContinuousLine(IDictionary<string, object> changesDict, DBMonitorCouchbaseResponseState responseState)
-        {
-            var json = Manager.GetObjectMapper().WriteValueAsBytes(changesDict).ToList();
-            if (responseState.ChangesMode == ChangesFeedMode.EventSource) {
-                // https://developer.mozilla.org/en-US/docs/Server-sent_events/Using_server-sent_events#Event_stream_format
-                json.InsertRange(0, Encoding.UTF8.GetBytes("data: "));
-                json.AddRange(Encoding.UTF8.GetBytes("\n\n"));
-            } else {
-                json.AddRange(Encoding.UTF8.GetBytes("\n"));
-            }
-
-            responseState.Response.WriteData(json, false);
-        }
-
         public static IDictionary<string, object> ChangesDictForRev(RevisionInternal rev, DBMonitorCouchbaseResponseState responseState)
         {
-            return new Dictionary<string, object> {
+            return new NonNullDictionary<string, object> {
                 { "seq", rev.GetSequence() },
                 { "id", rev.GetDocId() },
                 { "changes", new List<object> { 

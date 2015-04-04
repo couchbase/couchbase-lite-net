@@ -24,6 +24,7 @@ using System.Collections.Specialized;
 using System.Linq;
 using System.Collections.Generic;
 using System.Net.Http;
+using Couchbase.Lite.Replicator;
 
 namespace Couchbase.Lite.PeerToPeer
 {
@@ -34,8 +35,8 @@ namespace Couchbase.Lite.PeerToPeer
             private string[] _urlComponents;
             private bool _localFlag;
             private QueryOptions _queryOptions;
-            private DocumentContentOptions _contentOptions;
-            private bool _contentOptionsLoaded;
+            private DocumentContentOptions? _contentOptions;
+            private ChangesFeedMode? _changesFeedMode;
 
             public HttpListenerContext HttpContext { get; private set; }
 
@@ -162,8 +163,8 @@ namespace Couchbase.Lite.PeerToPeer
 
             public DocumentContentOptions ContentOptions {
                 get {
-                    if (_contentOptionsLoaded) {
-                        return _contentOptions;
+                    if (_contentOptions.HasValue) {
+                        return _contentOptions.Value;
                     }
 
                     _contentOptions = DocumentContentOptions.None;
@@ -186,9 +187,33 @@ namespace Couchbase.Lite.PeerToPeer
                     if (GetQueryParam<bool>("revs_info", bool.TryParse, false)) {
                         _contentOptions |= DocumentContentOptions.IncludeRevsInfo;
                     }
+                        
+                    return _contentOptions.Value;
+                }
+            }
 
-                    _contentOptionsLoaded = true;
-                    return _contentOptions;
+            public ChangesFeedMode ChangesFeedMode 
+            {
+                get {
+                    if (_changesFeedMode.HasValue) {
+                        return _changesFeedMode.Value;
+                    }
+
+                    _changesFeedMode = ChangesFeedMode.Normal;
+                    string feed = GetQueryParam("feed");
+                    if (feed == null) {
+                        return _changesFeedMode.Value;
+                    }
+
+                    if (feed.Equals("longpoll")) {
+                        _changesFeedMode = ChangesFeedMode.LongPoll;
+                    } else if (feed.Equals("continuous")) {
+                        _changesFeedMode = ChangesFeedMode.Continuous;
+                    } else if (feed.Equals("eventsource")) {
+                        _changesFeedMode = ChangesFeedMode.EventSource;
+                    }
+
+                    return _changesFeedMode.Value;
                 }
             }
 

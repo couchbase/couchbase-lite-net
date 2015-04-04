@@ -23,6 +23,7 @@ using System.Net;
 using System.IO;
 using System.Collections.Specialized;
 using System.Net.Http;
+using Couchbase.Lite.Replicator;
 
 namespace Couchbase.Lite.PeerToPeer
 {
@@ -43,6 +44,8 @@ namespace Couchbase.Lite.PeerToPeer
         QueryOptions QueryOptions { get; }
 
         DocumentContentOptions ContentOptions { get; }
+
+        ChangesFeedMode ChangesFeedMode { get; }
 
         string DatabaseName { get; }
 

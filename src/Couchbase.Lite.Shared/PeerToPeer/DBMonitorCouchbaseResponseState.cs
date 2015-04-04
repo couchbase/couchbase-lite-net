@@ -30,7 +30,7 @@ namespace Couchbase.Lite.PeerToPeer
 {
     internal class DBMonitorCouchbaseResponseState : ICouchbaseResponseState
     {
-        private const string TAG = "ICouchbaseResponseState";
+        private const string TAG = "DBMonitorCouchbaseResponseState";
         private Database _db;
         private Timer _heartbeatTimer;
 
@@ -38,7 +38,7 @@ namespace Couchbase.Lite.PeerToPeer
 
         public bool IsAsync { get; set; }
 
-        public ChangesFeedMode ChangesMode { get; set; }
+        public ChangesFeedMode ChangesFeedMode { get; set; }
 
         public bool ChangesIncludeDocs { get; set; }
 
@@ -110,15 +110,18 @@ namespace Couchbase.Lite.PeerToPeer
                     continue;
                 }
 
-                if (ChangesMode == ChangesFeedMode.LongPoll) {
+                if (ChangesFeedMode == ChangesFeedMode.LongPoll) {
                     Changes.Add(rev);
                 } else {
                     Log.D(TAG, "Sending continuous change chunk");
-                    DatabaseMethods.SendContinuousLine(DatabaseMethods.ChangesDictForRev(rev, this), this);
+                    var written = Response.SendContinuousLine(DatabaseMethods.ChangesDictForRev(rev, this), ChangesFeedMode);
+                    if (!written) {
+                        Terminate();
+                    }
                 }
             }
 
-            if (ChangesMode == ChangesFeedMode.LongPoll && Changes.Count > 0) {
+            if (ChangesFeedMode == ChangesFeedMode.LongPoll && Changes.Count > 0) {
                 Response.WriteHeaders();
                 Response.JsonBody = new Body(DatabaseMethods.ResponseBodyForChanges(Changes, 0, this));
                 Response.WriteToContext();
@@ -126,7 +129,18 @@ namespace Couchbase.Lite.PeerToPeer
             }
         }
 
-       
+        private void Terminate()
+        {
+            if (_db == null) {
+                return;
+            }
+
+            _db.Changed -= DatabaseChanged;
+            CouchbaseLiteRouter.ResponseFinished(this);
+            _db = null;
+            _heartbeatTimer.Dispose();
+            _heartbeatTimer = null;
+        }
     }
 }
 
