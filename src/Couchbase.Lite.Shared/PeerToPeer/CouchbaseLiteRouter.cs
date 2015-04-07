@@ -50,7 +50,8 @@ namespace Couchbase.Lite.PeerToPeer
                 { "/{[^_].*}/_changes", DatabaseMethods.GetChanges },
                 { "/{[^_].*}/*", DocumentMethods.GetDocument },
                 { "/{[^_].*}/_local/*", DocumentMethods.GetDocument },
-                { "/{[^_].*}/*/*", DocumentMethods.GetAttachment }
+                { "/{[^_].*}/*/*", DocumentMethods.GetAttachment },
+                { "/{[^_].*}/_design/*/_view/*", ViewMethods.GetDesignView }
             });
 
         private static readonly RouteCollection _Post =
@@ -110,12 +111,14 @@ namespace Couchbase.Lite.PeerToPeer
             try {
                 responseState = logic(wrappedContext);
             } catch(Exception e) {
-                Log.E(TAG, "Exception in routing logic", e);
+                
                 var ce = e as CouchbaseLiteException;
                 if (ce != null) {
+                    Log.I(TAG, "Couchbase exception in routing logic, this message can be ignored if intentional", e);
                     responseState = new CouchbaseLiteResponse(wrappedContext) { InternalStatus = ce.GetCBLStatus().GetCode() }
                         .AsDefaultState();
                 } else {
+                    Log.I(TAG, "Unhandled non-Couchbase exception in routing logic", e);
                     responseState = new CouchbaseLiteResponse(wrappedContext) { InternalStatus = StatusCode.Exception }.AsDefaultState();
                 }
             }

@@ -93,7 +93,7 @@ namespace Couchbase.Lite
 
 
         [SetUp]
-        protected void SetUp()
+        protected virtual void SetUp()
         {
             Log.V(Tag, "SetUp");
             ManagerOptions.Default.CallbackScheduler = new SingleTaskThreadpoolScheduler();
@@ -281,7 +281,7 @@ namespace Couchbase.Lite
         }
 
         [TearDown]
-        protected void TearDown()
+        protected virtual void TearDown()
         {
             Log.V(Tag, "tearDown");
             StopDatabase();
@@ -336,95 +336,6 @@ namespace Couchbase.Lite
             properties["source"] = sourceProperties;
             properties["target"] = DefaultTestDb;
             return properties;
-        }
-
-        internal virtual HttpURLConnection SendRequest(string method, string path, 
-            IDictionary<string, string> headers, IDictionary<string, object> bodyObj)
-        {
-            try
-            {
-                var url = new Uri(new Uri((string)bodyObj["remote_url"]), path);
-                var conn = url.OpenConnection();
-                conn.SetDoOutput(true);
-                conn.SetRequestMethod(method);
-                if (headers != null)
-                {
-                    foreach (string header in headers.Keys)
-                    {
-                        conn.SetRequestProperty(header, headers[header]);
-                    }
-                }
-                var allProperties = conn.GetRequestProperties();
-                if (bodyObj != null)
-                {
-                    //conn.SetDoInput(true);
-                    var bais = mapper.WriteValueAsBytes(bodyObj);
-                    conn.SetRequestInputStream(bais);
-                }
-/*                var router = new Couchbase.Lite.Router.Router(manager, conn);
-                router.Start();
-*/              return conn;
-            }
-            catch (UriFormatException)
-            {
-                Assert.Fail();
-            }
-            catch (IOException)
-            {
-                Assert.Fail();
-            }
-            return null;
-        }
-
-        internal virtual object ParseJSONResponse(HttpURLConnection conn)
-        {
-            Object result = null;
-            var stream = conn.GetOutputStream();
-            var bytesRead = 0L;
-            const Int32 chunkSize = 8192;
-             
-            var bytes = stream.ReadAllBytes();
-
-            var responseBody = new Body(bytes);
-            if (responseBody != null)
-            {
-                var json = responseBody.GetJson();
-                String jsonString = null;
-                if (json != null)
-                {
-                    jsonString = Runtime.GetStringForBytes(json);
-                    try
-                    {
-                        result = mapper.ReadValue<object>(jsonString);
-                    }
-                    catch (Exception)
-                    {
-                        Assert.Fail();
-                    }
-                }
-            }
-            return result;
-        }
-
-        protected object SendBody(string method, string path, IDictionary<string, object> bodyObj, int expectedStatus, object expectedResult)
-        {
-            var conn = SendRequest(method, path, null, bodyObj);
-            var result = ParseJSONResponse(conn);
-
-            Log.V(Tag, string.Format("{0} {1} --> {2}", method, path, conn.GetResponseCode()));
-
-            Assert.AreEqual(expectedStatus, conn.GetResponseCode());
-            
-            if (expectedResult != null)
-            {
-                Assert.AreEqual(expectedResult, result);
-            }
-            return result;
-        }
-
-        protected object Send(string method, string path, HttpStatusCode expectedStatus, object expectedResult)
-        {
-            return SendBody(method, path, null, (int)expectedStatus, expectedResult);
         }
 
         internal static void CreateDocuments(Database db, int n)

@@ -828,6 +828,22 @@ namespace Couchbase.Lite {
             return total;
         }
 
+        internal Status CompileFromDesignDoc()
+        {
+            string language = null;
+            var viewProps = Database.GetDesignDocFunction(Name, "views", out language) as IDictionary<string, object>;
+            if (viewProps == null) {
+                return new Status(StatusCode.NotFound);
+            }
+
+            Log.D(Tag, "{0}: Attempting to compile {1} from design doc", Name, language);
+            if (Compiler == null) {
+                return new Status(StatusCode.NotImplemented);
+            }
+
+            return Compile(viewProps, language);
+        }
+
         internal Status Compile(IDictionary<string, object> viewProps, string language)
         {
             language = language ?? "javascript";

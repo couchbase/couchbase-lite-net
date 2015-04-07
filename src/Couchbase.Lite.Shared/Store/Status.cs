@@ -94,6 +94,8 @@ namespace Couchbase.Lite
 
         InternalServerError = 500,
 
+        NotImplemented = 501,
+
         BadChangesFeed = 587,
 
         ChangesFeedTruncated = 588,
@@ -148,6 +150,7 @@ namespace Couchbase.Lite
             { StatusCode.UpStreamError, Tuple.Create(502, "Invalid response from remote replication server") },
             { StatusCode.BadChangesFeed, Tuple.Create(502, "Server changes feed parse error") },
             { StatusCode.ChangesFeedTruncated, Tuple.Create(502, "Server changes feed truncated") },
+            { StatusCode.NotImplemented, Tuple.Create(501, "Not implemented") },
             { StatusCode.DbError, Tuple.Create(500, "Database error!") },
             { StatusCode.CorruptError, Tuple.Create(500, "Invalid data in database") },
             { StatusCode.AttachmentError, Tuple.Create(500, "Attachment store error") },

@@ -88,7 +88,7 @@ namespace Couchbase.Lite.PeerToPeer
 
         public static ICouchbaseResponseState GetAllDbs(ICouchbaseListenerContext context)
         {
-            var names = Manager.SharedInstance.AllDatabaseNames.Cast<object>().ToList();
+            var names = context.DbManager.AllDatabaseNames.Cast<object>().ToList();
             var body = new Body(names);
 
             var couchResponse = new CouchbaseLiteResponse(context);
@@ -138,7 +138,7 @@ namespace Couchbase.Lite.PeerToPeer
 
             Replication rep = null;
             try {
-                rep = Manager.SharedInstance.ReplicationWithProperties(body);
+                rep =  context.DbManager.ReplicationWithProperties(body);
             } catch(CouchbaseLiteException e) {
                 CouchbaseLiteResponse failResponse = new CouchbaseLiteResponse(context);
                 failResponse.InternalStatus = e.GetCBLStatus().GetCode();

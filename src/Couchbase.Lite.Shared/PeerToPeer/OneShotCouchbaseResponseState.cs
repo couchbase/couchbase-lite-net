@@ -25,7 +25,7 @@ using Couchbase.Lite.Util;
 
 namespace Couchbase.Lite.PeerToPeer
 {
-    public sealed class OneShotCouchbaseResponseState : ICouchbaseResponseState
+    internal sealed class OneShotCouchbaseResponseState : ICouchbaseResponseState
     {
         private readonly Replication _replication;
 

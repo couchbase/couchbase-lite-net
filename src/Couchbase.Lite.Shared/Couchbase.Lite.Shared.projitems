@@ -277,6 +277,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Util\NonNullDictionary.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\ReplicationCouchbaseResponseState.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\OneShotCouchbaseResponseState.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\ViewMethods.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="$(MSBuildThisFileDirectory)Store\MonoSQLiteStorageEngine.cs" />

@@ -65,7 +65,7 @@ namespace Couchbase.Lite.PeerToPeer
 
             public string DatabaseName {
                 get {
-                    var name = UrlComponentAt(0);
+                    var name = Uri.UnescapeDataString(UrlComponentAt(0));
                     if (!Manager.IsValidDatabaseName(name)) {
                         throw new CouchbaseLiteException(StatusCode.BadId);
                     }
@@ -87,6 +87,28 @@ namespace Couchbase.Lite.PeerToPeer
             public string AttachmentName {
                 get {
                     return _localFlag ? UrlComponentAt(3) : UrlComponentAt(2);
+                }
+            }
+
+            public string DesignDocName
+            {
+                get {
+                    if (UrlComponentAt(1).Equals("_design")) {
+                        return UrlComponentAt(2);
+                    }
+
+                    return null;
+                }
+            }
+
+            public string ViewName
+            {
+                get {
+                    if (UrlComponentAt(1).Equals("_design")) {
+                        return UrlComponentAt(4);
+                    }
+
+                    return null;
                 }
             }
 
@@ -275,7 +297,7 @@ namespace Couchbase.Lite.PeerToPeer
             public bool ExplicitlyAcceptsType(string type)
             {
                 string accept = HttpContext.Request.Headers["Accept"];
-                return accept.Contains(type);
+                return accept != null && accept.Contains(type);
             }
 
             public string IfMatch()

@@ -24,6 +24,7 @@ using Mono.Zeroconf.Providers.Bonjour;
 using Mono.Zeroconf;
 
 #if ANDROID
+using System.Runtime.CompilerServices;
 using Android.App;
 #endif
 

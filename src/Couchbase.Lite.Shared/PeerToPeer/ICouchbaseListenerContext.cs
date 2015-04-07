@@ -53,6 +53,10 @@ namespace Couchbase.Lite.PeerToPeer
 
         string AttachmentName { get; }
 
+        string DesignDocName { get; }
+
+        string ViewName { get; }
+
         HttpMethod Method { get; }
 
         Uri RequestUrl { get; }

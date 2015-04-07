@@ -86,7 +86,7 @@ namespace Couchbase.Lite.PeerToPeer
         public static ICouchbaseResponseState UpdateConfiguration(ICouchbaseListenerContext context)
         {
             string dbName = context.DatabaseName;
-            Database db = Manager.SharedInstance.GetDatabaseWithoutOpening(dbName, false);
+            Database db = context.DbManager.GetDatabaseWithoutOpening(dbName, false);
             if (db != null && db.Exists()) {
                 return new CouchbaseLiteResponse(context) { InternalStatus = StatusCode.PreconditionFailed }.AsDefaultState();
             }
@@ -104,6 +104,10 @@ namespace Couchbase.Lite.PeerToPeer
         {
             return PerformLogicWithDatabase(context, true, db =>
             {
+                if(context.CacheWithEtag(db.LastSequenceNumber.ToString())) {
+                    return new CouchbaseLiteResponse(context) { InternalStatus = StatusCode.NotModified };
+                }
+
                 var options = context.QueryOptions;
                 if(options == null) {
                     return new CouchbaseLiteResponse(context) { InternalStatus = StatusCode.BadParam };
@@ -404,7 +408,7 @@ namespace Couchbase.Lite.PeerToPeer
             Func<Database, CouchbaseLiteResponse> action) 
         {
             string dbName = context.DatabaseName;
-            Database db = Manager.SharedInstance.GetDatabaseWithoutOpening(dbName, false);
+            Database db = context.DbManager.GetDatabaseWithoutOpening(dbName, false);
             if (db == null || !db.Exists()) {
                 return new CouchbaseLiteResponse(context) { InternalStatus = StatusCode.NotFound };
             }
@@ -432,7 +436,7 @@ namespace Couchbase.Lite.PeerToPeer
                 return new CouchbaseLiteResponse(context) { InternalStatus = StatusCode.BadJson };
             }
 
-            var documentProps = from row in (List<QueryRow>)result["rows"] select row.Document.Properties;
+            var documentProps = from row in (List<QueryRow>)result["rows"] select row.AsJSONDictionary();
             result["rows"] = documentProps;
             var response = new CouchbaseLiteResponse(context);
             response.JsonBody = new Body(result);
@@ -500,7 +504,7 @@ namespace Couchbase.Lite.PeerToPeer
             };
         }
 
-        private static CouchbaseLiteResponse QueryView(ICouchbaseListenerContext context, View view, QueryOptions options)
+        public static CouchbaseLiteResponse QueryView(ICouchbaseListenerContext context, View view, QueryOptions options)
         {
             var result = view.QueryWithOptions(options);
             object updateSeq = options.IsUpdateSeq() ? (object)view.LastSequenceIndexed : null;

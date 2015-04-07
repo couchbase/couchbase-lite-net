@@ -270,7 +270,7 @@ namespace Couchbase.Lite.PeerToPeer
             RevisionInternal rev = new RevisionInternal(docId, null, deleting);
             rev.SetBody(body);
 
-            StatusCode status = StatusCode.Ok;
+            StatusCode status = StatusCode.Created;
             try {
                 if (docId.StartsWith("_local")) {
                     outRev = db.PutLocalRevision(rev, prevRevId); //TODO: Doesn't match iOS

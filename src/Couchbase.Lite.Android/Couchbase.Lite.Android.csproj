@@ -55,6 +55,9 @@
     <Reference Include="System.Net.Http" />
     <Reference Include="System.Data" />
     <Reference Include="System.Web.Services" />
+    <Reference Include="Jint">
+      <HintPath>..\Couchbase.Lite.Shared\vendor\Jint\Jint.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Resources\Resource.designer.cs" />

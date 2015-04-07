@@ -50,10 +50,10 @@ namespace Couchbase.Lite
         [Test]
         public void TestListener()
         {
-            var listener = new CouchbaseLiteServiceListener();
+            var listener = new CouchbaseLiteServiceListener(Manager.SharedInstance, 59840);
             listener.Start();
             var db = Manager.SharedInstance.GetDatabase("db");
-            var replication = db.CreatePullReplication(new Uri("http://localhost:4984/db"));
+            var replication = db.CreatePullReplication(new Uri("http://localhost:59840/db"));
             replication.Start();
 
             Thread.Sleep(50000);

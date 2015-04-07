@@ -619,8 +619,8 @@ namespace Couchbase.Lite
                     return null;
                 }
 
-                var outLanguageList = new List<string>();
-                var sourceCode = GetDesignDocFunction(name, "filters", outLanguageList);
+                string language = null;
+                var sourceCode = GetDesignDocFunction(name, "filters", out language) as string;
 
                 if (sourceCode == null)
                 {
@@ -629,8 +629,6 @@ namespace Couchbase.Lite
                     }
                     return null;
                 }
-
-                var language = outLanguageList[0];
 
                 var filter = filterCompiler(sourceCode, language);
                 if (filter == null)
@@ -949,33 +947,34 @@ PRAGMA user_version = 3;";
             return result;
         }
 
-        private String GetDesignDocFunction(String fnName, String key, ICollection<String> outLanguageList)
+        internal object GetDesignDocFunction(string fnName, string key, out string language)
         {
+            language = null;
             var path = fnName.Split('/');
-            if (path.Length != 2)
-            {
+            if (path.Length != 2) {
                 return null;
             }
 
             var docId = string.Format("_design/{0}", path[0]);
             var rev = GetDocumentWithIDAndRev(docId, null, DocumentContentOptions.None);
-            if (rev == null)
-            {
+            if (rev == null) {
                 return null;
             }
 
             var outLanguage = (string)rev.GetPropertyForKey("language");
-            if (outLanguage != null)
-            {
-                outLanguageList.AddItem(outLanguage);
+            if (outLanguage != null) {
+                language = outLanguage;
             }
-            else
-            {
-                outLanguageList.AddItem("javascript");
+            else {
+                language = "javascript";
             }
 
-            var container = (IDictionary<String, Object>)rev.GetPropertyForKey(key);
-            return (string)container.Get(path[1]);
+            var container = rev.GetPropertyForKey(key) as IDictionary<string, object>;
+            if (container == null) {
+                return null;
+            }
+
+            return container.Get(path[1]);
         }
 
         internal Boolean Exists()
@@ -1733,7 +1732,10 @@ PRAGMA user_version = 3;";
                     }
                     var value = new Dictionary<string, object>();
                     value["rev"] = revId;
-                    value["_conflicts"] = conflicts;
+                    if(conflicts.Any()) {
+                        value["_conflicts"] = conflicts;
+                    }
+
                     if (includeDeletedDocs)
                     {
                         value["deleted"] = deleted;
