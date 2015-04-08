@@ -51,6 +51,8 @@ namespace Couchbase.Lite
 {
     internal class ObjectWriter 
     {
+        static readonly JsonSerializerSettings settings = new JsonSerializerSettings { ReferenceLoopHandling = ReferenceLoopHandling.Ignore };
+
         readonly Boolean prettyPrintJson;
 
         public ObjectWriter() : this(false) { }
@@ -73,7 +75,7 @@ namespace Couchbase.Lite
 
         public string WriteValueAsString<T> (T item)
         {
-            return JsonConvert.SerializeObject(item, prettyPrintJson ? Formatting.Indented : Formatting.None);
+            return JsonConvert.SerializeObject(item, prettyPrintJson ? Formatting.Indented : Formatting.None, settings);
         }
 
         public T ReadValue<T> (String json)
