@@ -72,7 +72,8 @@ namespace Couchbase.Lite.PeerToPeer
                 { "/{[^_].*}", DatabaseMethods.UpdateConfiguration },
                 { "/{[^_].*}/*", DocumentMethods.UpdateDocument },
                 { "/{[^_].*}/_local/*", DocumentMethods.UpdateDocument },
-                { "/{[^_].*}/*/*", DocumentMethods.UpdateAttachment }
+                { "/{[^_].*}/*/*", DocumentMethods.UpdateAttachment },
+                { "/{[^_].*}/_design/*", DocumentMethods.UpdateDocument }
             });
 
         private static readonly RouteCollection _Delete =

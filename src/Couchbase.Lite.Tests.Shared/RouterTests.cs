@@ -30,6 +30,9 @@ using System.Linq;
 using Couchbase.Lite.Util;
 using System.Collections;
 using System.Text;
+using System.Threading;
+using Couchbase.Lite.Views;
+using Couchbase.Lite.Databases;
 
 #if NET_3_5
 using WebRequest = System.Net.Couchbase.WebRequest;
@@ -52,7 +55,7 @@ namespace Couchbase.Lite
         [Test]
         public void TestServer()
         {
-            Send("GET", "/", StatusCode.Ok, new Dictionary<string, object> {
+            Send("GET", "/", HttpStatusCode.OK, new Dictionary<string, object> {
                 { "CouchbaseLite", "Welcome" },
                 { "couchdb", "Welcome" },
                 { "version", Manager.VersionString }, 
@@ -63,15 +66,15 @@ namespace Couchbase.Lite
                 }
             });
 
-            Send("GET", "/_all_dbs", StatusCode.Ok, new List<object> { database.Name });
-            Send("GET", "/non-existent", StatusCode.NotFound, null);
-            Send("GET", "/BadId", StatusCode.BadRequest, null);
-            var response = Send<IDictionary<string, object>>("PUT", "/", StatusCode.MethodNotAllowed, null);
+            Send("GET", "/_all_dbs", HttpStatusCode.OK, new List<object> { database.Name });
+            Send("GET", "/non-existent", HttpStatusCode.NotFound, null);
+            Send("GET", "/BadId", HttpStatusCode.BadRequest, null);
+            var response = Send<IDictionary<string, object>>("PUT", "/", HttpStatusCode.MethodNotAllowed, null);
 
             Assert.AreEqual(405, response["status"]);
             Assert.AreEqual("method_not_allowed", response["error"]);
 
-            var session = Send<IDictionary<string, object>>("GET", "/_session", StatusCode.Ok, null);
+            var session = Send<IDictionary<string, object>>("GET", "/_session", HttpStatusCode.OK, null);
             Assert.IsTrue(session.GetCast<bool>("ok"));
 
             //FIXME:  I honestly have no idea how this is supposed to work
@@ -96,7 +99,7 @@ namespace Couchbase.Lite
 
             var asserted = SendBody<IDictionary<string, object>>("POST", "/_persona_assertion", new Body(new Dictionary<string, object> {
                 { "assertion", sampleAssertion }
-            }), StatusCode.Ok, null);
+            }), HttpStatusCode.OK, null);
             Assert.IsTrue((asserted.GetCast<bool>("ok")));
             Assert.AreEqual("jens@mooseyard.com", asserted["email"]);*/
         }
@@ -104,23 +107,23 @@ namespace Couchbase.Lite
         [Test]
         public void TestDatabases()
         {
-            Send<IDictionary<string, object>>("PUT", "/database", StatusCode.Created, null);
+            Send<IDictionary<string, object>>("PUT", "/database", HttpStatusCode.Created, null);
 
-            var dbInfo = Send<IDictionary<string, object>>("GET", "/database", StatusCode.Ok, null);
+            var dbInfo = Send<IDictionary<string, object>>("GET", "/database", HttpStatusCode.OK, null);
             Assert.AreEqual(0, dbInfo.GetCast<long>("doc_count", -1));
             Assert.AreEqual(0, dbInfo.GetCast<long>("update_seq", -1));
             Assert.IsTrue(dbInfo.GetCast<long>("disk_size") > 8000);
 
-            Send("PUT", "/database", StatusCode.PreconditionFailed, null);
-            Send("PUT", "/database2", StatusCode.Created, null);
-            Send("GET", "/_all_dbs", StatusCode.Ok, new List<object> { database.Name, "database", "database2" });
-            dbInfo = Send<IDictionary<string, object>>("GET", "/database2", StatusCode.Ok, null);
+            Send("PUT", "/database", HttpStatusCode.PreconditionFailed, null);
+            Send("PUT", "/database2", HttpStatusCode.Created, null);
+            Send("GET", "/_all_dbs", HttpStatusCode.OK, new List<object> { database.Name, "database", "database2" });
+            dbInfo = Send<IDictionary<string, object>>("GET", "/database2", HttpStatusCode.OK, null);
             Assert.AreEqual("database2", dbInfo.GetCast<string>("db_name"));
-            Send("DELETE", "/database2", StatusCode.Ok, null);
-            Send("GET", "/_all_dbs", StatusCode.Ok, new List<object> { database.Name, "database" });
+            Send("DELETE", "/database2", HttpStatusCode.OK, null);
+            Send("GET", "/_all_dbs", HttpStatusCode.OK, new List<object> { database.Name, "database" });
 
-            Send("PUT", "/database%2Fwith%2Fslashes", StatusCode.Created, null);
-            dbInfo = Send<IDictionary<string, object>>("GET", "/database%2Fwith%2Fslashes", StatusCode.Ok, null);
+            Send("PUT", "/database%2Fwith%2Fslashes", HttpStatusCode.Created, null);
+            dbInfo = Send<IDictionary<string, object>>("GET", "/database%2Fwith%2Fslashes", HttpStatusCode.OK, null);
             Assert.AreEqual("database/with/slashes", dbInfo.GetCast<string>("db_name"));
         }
 
@@ -129,14 +132,14 @@ namespace Couchbase.Lite
         {
             var revIDs = PopulateDocs();
             var endpoint = String.Format("/{0}/doc2", database.Name);
-            Send("GET", endpoint, StatusCode.Ok, new Dictionary<string, object> {
+            Send("GET", endpoint, HttpStatusCode.OK, new Dictionary<string, object> {
                 { "_id", "doc2" },
                 { "_rev", revIDs[1] },
                 { "message", "hello" }
             });
             CheckCacheable(endpoint);
             endpoint += "?revs=true";
-            Send("GET", endpoint, StatusCode.Ok, new Dictionary<string, object> {
+            Send("GET", endpoint, HttpStatusCode.OK, new Dictionary<string, object> {
                 { "_id", "doc2" },
                 { "_rev", revIDs[1] },
                 { "message", "hello" },
@@ -148,7 +151,7 @@ namespace Couchbase.Lite
             });
 
             endpoint = String.Format("/{0}/doc2?revs_info=true", database.Name);
-            Send("GET", endpoint, StatusCode.Ok, new Dictionary<string, object> {
+            Send("GET", endpoint, HttpStatusCode.OK, new Dictionary<string, object> {
                 { "_id", "doc2" },
                 { "_rev", revIDs[1] },
                 { "message", "hello" },
@@ -162,7 +165,7 @@ namespace Couchbase.Lite
             });
 
             endpoint = String.Format("/{0}/doc2?conflicts=true", database.Name);
-            Send("GET", endpoint, StatusCode.Ok, new Dictionary<string, object> {
+            Send("GET", endpoint, HttpStatusCode.OK, new Dictionary<string, object> {
                 { "_id", "doc2" },
                 { "_rev", revIDs[1] },
                 { "message", "hello" }
@@ -175,19 +178,19 @@ namespace Couchbase.Lite
             var endpoint = String.Format("/{0}/_local/doc1", database.Name);
             var result = SendBody<IDictionary<string, object>>("PUT", endpoint, new Body(new Dictionary<string, object> {
                 { "message", "hello" }
-            }), StatusCode.Created, null);
+            }), HttpStatusCode.Created, null);
 
             var revID = result.GetCast<string>("rev");
             Assert.IsTrue(revID.StartsWith("1-"));
 
-            Send("GET", endpoint, StatusCode.Ok, new Dictionary<string, object> {
+            Send("GET", endpoint, HttpStatusCode.OK, new Dictionary<string, object> {
                 { "_id", "_local/doc1" },
                 { "_rev", revID },
                 { "message", "hello" }
             });
             CheckCacheable(endpoint);
 
-            Send("GET", String.Format("/{0}/_changes", database.Name), StatusCode.Ok, new Dictionary<string, object> {
+            Send("GET", String.Format("/{0}/_changes", database.Name), HttpStatusCode.OK, new Dictionary<string, object> {
                 { "last_seq", 0 },
                 { "results", new List<object>() }
             });
@@ -199,23 +202,23 @@ namespace Couchbase.Lite
             string endpoint = String.Format("/{0}/doc1", database.Name);
             var result = SendBody<IDictionary<string, object>>("PUT", endpoint, new Body(new Dictionary<string, object> {
                 { "message", "hello" } 
-            }), StatusCode.Created, null);
+            }), HttpStatusCode.Created, null);
             var revId = result.GetCast<string>("rev");
 
             endpoint = endpoint.Replace("doc1", "doc2");
             result = SendBody<IDictionary<string, object>>("PUT", endpoint, new Body(new Dictionary<string, object> {
                 { "message", "bonjour" } 
-            }), StatusCode.Created, null);
+            }), HttpStatusCode.Created, null);
             var revId2 = result.GetCast<string>("rev");
 
             endpoint = endpoint.Replace("doc2", "doc3");
             result = SendBody<IDictionary<string, object>>("PUT", endpoint, new Body(new Dictionary<string, object> {
                 { "message", "guten tag" } 
-            }), StatusCode.Created, null);
+            }), HttpStatusCode.Created, null);
             var revId3 = result.GetCast<string>("rev");
 
             endpoint = String.Format("/{0}/_all_docs?include_docs=true", database.Name);
-            result = Send<IDictionary<string, object>>("GET", endpoint, StatusCode.Ok, null);
+            result = Send<IDictionary<string, object>>("GET", endpoint, HttpStatusCode.OK, null);
             Assert.AreEqual(3, result.GetCast<long>("total_rows", 0));
             Assert.AreEqual(0, result.GetCast<long>("offset", -1));
             var rows = Convert(result["rows"]);
@@ -272,17 +275,17 @@ namespace Couchbase.Lite
             string endpoint = String.Format("/{0}/doc1", database.Name);
             SendBody<IDictionary<string, object>>("PUT", endpoint, new Body(new Dictionary<string, object> {
                 { "message", "hello" } 
-            }), StatusCode.Created, null);
+            }), HttpStatusCode.Created, null);
 
-            endpoint = endpoint.Replace("doc1", "doc2");
+            endpoint = endpoint.Replace("doc1", "doc3");
             SendBody<IDictionary<string, object>>("PUT", endpoint, new Body(new Dictionary<string, object> {
                 { "message", "bonjour" } 
-            }), StatusCode.Created, null);
+            }), HttpStatusCode.Created, null);
 
-            endpoint = endpoint.Replace("doc2", "doc3");
+            endpoint = endpoint.Replace("doc3", "doc2");
             SendBody<IDictionary<string, object>>("PUT", endpoint, new Body(new Dictionary<string, object> {
                 { "message", "guten tag" } 
-            }), StatusCode.Created, null);
+            }), HttpStatusCode.Created, null);
 
             var view = database.GetView("design/view");
             view.SetMap((doc, emit) =>
@@ -295,27 +298,268 @@ namespace Couchbase.Lite
 
             endpoint = String.Format("/{0}/_design/design/_view/view", database.Name);
 
-            Send("GET", endpoint, StatusCode.Ok, new Dictionary<string, object> {
-                { "offset", 0 },
+            Send("GET", endpoint, HttpStatusCode.OK, new Dictionary<string, object> {
+                { "offset", 0L },
                 { "rows", new List<object> {
-                        new Dictionary<string, object> { { "id", "doc3" }, { "key", "guten tag" } },
-                        new Dictionary<string, object> { { "id", "doc2" }, { "key", "bonjour" } },
+                        new Dictionary<string, object> { { "id", "doc3" }, { "key", "bonjour" } },
+                        new Dictionary<string, object> { { "id", "doc2" }, { "key", "guten tag" } },
                         new Dictionary<string, object> { { "id", "doc1" }, { "key", "hello" } }
                     }
                 },
-                { "total_rows", 3 }
+                { "total_rows", 3L }
+            });
+
+            var response = SendRequest("GET", endpoint, null, null);
+            var etag = response.Headers["Etag"];
+            Assert.AreEqual(String.Format("\"{0}\"", view.LastSequenceIndexed), etag);
+            CheckCacheable(endpoint);
+
+            var nextEndpoint = String.Format("/{0}/doc4", database.Name);
+            SendBody("PUT", nextEndpoint, new Body(new Dictionary<string, object> {
+                { "message", "aloha" }
+            }), HttpStatusCode.Created, null);
+
+            response = SendRequest("GET", endpoint, new Dictionary<string, string> {
+                { "If-None-Match", etag }
+            }, null);
+            Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
+            var parsedResponse = ParseJsonResponse<IDictionary<string, object>>(response);
+            Assert.AreEqual(parsedResponse.GetCast<long>("total_rows"), 4L);
+
+            endpoint += "?key=%22bonjour%22";
+            Send("GET", endpoint, HttpStatusCode.OK, new Dictionary<string, object> {
+                { "offset", 0L },
+                { "rows", new List<object> { new Dictionary<string, object> {
+                            { "id", "doc3" },
+                            { "key", "bonjour" }
+                        }
+                    }
+                },
+                { "total_rows", 4L }
+            });
+
+            endpoint = String.Format("/{0}/_design/design/_view/view?keys=%5B%22bonjour%22,%22hello%22%5D", database.Name);
+            Send("GET", endpoint, HttpStatusCode.OK, new Dictionary<string, object> {
+                { "offset", 0L },
+                { "rows", new List<object> { 
+                        new Dictionary<string, object> {
+                            { "id", "doc3" },
+                            { "key", "bonjour" }
+                        },
+                        new Dictionary<string, object> {
+                            { "id", "doc1" },
+                            { "key", "hello" }
+                        }
+                    }
+                },
+                { "total_rows", 4L }
+            });
+        }
+
+        [Test]
+        public void TestViewsStale()
+        {
+            string endpoint = String.Format("/{0}/doc1", database.Name);
+            SendBody("PUT", endpoint, new Body(new Dictionary<string, object> {
+                { "message", "hello" } 
+            }), HttpStatusCode.Created, null);
+
+            var view = database.GetView("design/view");
+            view.SetMap((doc, emit) =>
+            {
+                var message = doc.GetCast<string>("message");
+                if(message != null) {
+                    emit(message, null);
+                }
+            }, "1");
+
+            // No stale (upate_before):
+            endpoint = String.Format("/{0}/_design/design/_view/view", database.Name);
+            Send("GET", endpoint, HttpStatusCode.OK, new Dictionary<string, object> {
+                { "offset", 0L },
+                { "rows", new List<object> { new Dictionary<string, object> {
+                            { "id", "doc1" },
+                            { "key", "hello" }
+                        }
+                    }
+                },
+                { "total_rows", 1L }
+            });
+
+            // Update database:
+            endpoint = String.Format("/{0}/doc2", database.Name);
+            SendBody("PUT", endpoint, new Body(new Dictionary<string, object> {
+                { "message", "guten tag" } 
+            }), HttpStatusCode.Created, null);
+
+            // Stale = ok:
+            endpoint = String.Format("/{0}/_design/design/_view/view?stale=ok", database.Name);
+            Send("GET", endpoint, HttpStatusCode.OK, new Dictionary<string, object> {
+                { "offset", 0L },
+                { "rows", new List<object> { new Dictionary<string, object> {
+                            { "id", "doc1" },
+                            { "key", "hello" }
+                        }
+                    }
+                },
+                { "total_rows", 1L }
+            });
+
+            // Stale = update_after:
+            endpoint = String.Format("/{0}/_design/design/_view/view?stale=update_after", database.Name);
+            long prevSequenceIndexed = view.LastSequenceIndexed;
+            Send("GET", endpoint, HttpStatusCode.OK, new Dictionary<string, object> {
+                { "offset", 0L },
+                { "rows", new List<object> { new Dictionary<string, object> {
+                            { "id", "doc1" },
+                            { "key", "hello" }
+                        }
+                    }
+                },
+                { "total_rows", 1L }
+            });
+
+            // Check if the current last sequence indexed has been changed:
+            Thread.Sleep(5000);
+            Assert.IsTrue(prevSequenceIndexed < view.LastSequenceIndexed);
+
+            // Confirm the result with stale = ok:
+            endpoint = String.Format("/{0}/_design/design/_view/view?stale=ok", database.Name);
+            Send("GET", endpoint, HttpStatusCode.OK, new Dictionary<string, object> {
+                { "offset", 0L },
+                { "rows", new List<object> { 
+                        new Dictionary<string, object> {
+                            { "id", "doc2" },
+                            { "key", "guten tag" }
+                        },
+                        new Dictionary<string, object> {
+                            { "id", "doc1" },
+                            { "key", "hello" }
+                        }
+                    }
+                },
+                { "total_rows", 2L }
+            });
+
+            // Bad stale value:
+            endpoint = String.Format("/{0}/_design/design/_view/view?stale=no", database.Name);
+            Send("GET", endpoint, HttpStatusCode.BadRequest, null);
+        }
+
+        [Test]
+        public void TestJSViews()
+        {
+            View.Compiler = new JSViewCompiler();
+           // Database.FilterCompiler = new JSFilterCompiler();
+
+            string endpoint = String.Format("/{0}/doc1", database.Name);
+            SendBody("PUT", endpoint, new Body(new Dictionary<string, object> {
+                { "message", "hello" } 
+            }), HttpStatusCode.Created, null);
+
+            endpoint = endpoint.Replace("doc1", "doc3");
+            SendBody("PUT", endpoint, new Body(new Dictionary<string, object> {
+                { "message", "bonjour" } 
+            }), HttpStatusCode.Created, null);
+
+            endpoint = endpoint.Replace("doc3", "doc2");
+            SendBody("PUT", endpoint, new Body(new Dictionary<string, object> {
+                { "message", "guten tag" } 
+            }), HttpStatusCode.Created, null);
+
+            endpoint = String.Format("/{0}/_design/design", database.Name);
+            SendBody("PUT", endpoint, new Body(new Dictionary<string, object> {
+                { "views", new Dictionary<string, object> {
+                        { "view", new Dictionary<string, object> {
+                                { "map", "function(doc){emit(doc.message, null);}" }
+                            }
+                        },
+                        { "view2", new Dictionary<string, object> {
+                                { "map", "function(doc){emit(doc.message.length, doc.message);}" }
+                            }
+                        }
+                    }
+                }
+            }), HttpStatusCode.Created, null);
+
+            // Query view and check the result:
+            endpoint = String.Format("/{0}/_design/design/_view/view", database.Name);
+            Send("GET", endpoint, HttpStatusCode.OK, new Dictionary<string, object> {
+                { "offset", 0L },
+                { "rows", new List<object> {
+                        new Dictionary<string, object> { { "id", "doc3" }, { "key", "bonjour" } },
+                        new Dictionary<string, object> { { "id", "doc2" }, { "key", "guten tag" } },
+                        new Dictionary<string, object> { { "id", "doc1" }, { "key", "hello" } }
+                    }
+                },
+                { "total_rows", 3L }
+            });
+
+            // Query view2 and check the result:
+            endpoint += "2";
+            Send("GET", endpoint, HttpStatusCode.OK, new Dictionary<string, object> {
+                { "offset", 0L },
+                { "rows", new List<object> {
+                        new Dictionary<string, object> { { "id", "doc1" }, { "key", 5L }, { "value", "hello" } },
+                        new Dictionary<string, object> { { "id", "doc3" }, { "key", 7L }, { "value", "bonjour" } },
+                        new Dictionary<string, object> { { "id", "doc2" }, { "key", 9L }, { "value", "guten tag" } }
+                    }
+                },
+                { "total_rows", 3L }
+            });
+
+            ReopenDatabase();
+
+            endpoint = String.Format("/{0}/doc4", database.Name);
+            SendBody("PUT", endpoint, new Body(new Dictionary<string, object> {
+                { "message", "hi" } 
+            }), HttpStatusCode.Created, null);
+
+
+            // Query view2 again
+            endpoint = String.Format("/{0}/_design/design/_view/view2", database.Name);
+            Send("GET", endpoint, HttpStatusCode.OK, new Dictionary<string, object> {
+                { "offset", 0L },
+                { "rows", new List<object> {
+                        new Dictionary<string, object> { { "id", "doc4" }, { "key", 2L }, { "value", "hi" } },
+                        new Dictionary<string, object> { { "id", "doc1" }, { "key", 5L }, { "value", "hello" } },
+                        new Dictionary<string, object> { { "id", "doc3" }, { "key", 7L }, { "value", "bonjour" } },
+                        new Dictionary<string, object> { { "id", "doc2" }, { "key", 9L }, { "value", "guten tag" } }
+                    }
+                },
+                { "total_rows", 4L }
+            });
+
+            //TODO: Should .NET also implement views so that groups are updated at once like iOS?
+            //Assert.IsFalse(database.GetView("design/view").IsStale);
+            Assert.IsFalse(database.GetView("design/view2").IsStale);
+
+            // Try include_docs
+            endpoint += "?include_docs=true&limit=1";
+            Send("GET", endpoint, HttpStatusCode.OK, new Dictionary<string, object> {
+                { "offset", 0L }, { "rows", new List<object> {
+                        new Dictionary<string, object> {
+                            { "id", "doc4" }, { "key", 2L }, { "value", "hi" }, 
+                            { "doc", new Dictionary<string, object> {
+                                    { "_id", "doc4" },
+                                    { "_rev", "1-cfdd78e822bbcbc25c91e9deb9537c4b" },
+                                    { "message", "hi" }
+                                }
+                            }
+                        }
+                    }
+                },
+                { "total_rows", 4L }
             });
         }
 
         [TestFixtureSetUp]
         protected void OneTimeSetUp()
         {
-            StartCBLite();
+            ManagerOptions.Default.CallbackScheduler = new SingleTaskThreadpoolScheduler();
 
-            foreach (var name in manager.AllDatabaseNames) {
-                var db = manager.GetDatabaseWithoutOpening(name, true);
-                db.Delete();
-            }
+            LoadCustomProperties();
+            StartCBLite();
 
             _listener = new CouchbaseLiteServiceListener(manager, 59840);
             _listener.Start();
@@ -324,14 +568,19 @@ namespace Couchbase.Lite
         [TestFixtureTearDown]
         protected void OneTimeTearDown()
         {
+            StopCBLite();
             _listener.Stop();
         }
 
         [SetUp]
         protected override void SetUp()
         {
-            base.SetUp();
+            foreach (var name in manager.AllDatabaseNames) {
+                var db = manager.GetDatabaseWithoutOpening(name, true);
+                db.Delete();
+            }
 
+            StartDatabase();
             _savedMinHeartbeat = _minHeartbeat;
             _minHeartbeat = 0;
         }
@@ -339,9 +588,22 @@ namespace Couchbase.Lite
         [TearDown]
         protected override void TearDown()
         {
-            base.TearDown();
-
+            StopDatabase();
             _minHeartbeat = _savedMinHeartbeat;
+        }
+
+        private void ReopenDatabase()
+        {
+            Log.D(TAG, "----- CLOSING DB -----");
+            Assert.IsNotNull(database);
+            var dbName = database.Name;
+            Assert.IsTrue(database.Close(), "Couldn't close DB");
+            database = null;
+
+            Log.D(TAG, "----- REOPENING DB -----");
+            var db2 = manager.GetDatabase(dbName);
+            Assert.IsNotNull(db2, "Couldn't make a new database instance");
+            database = db2;
         }
 
         private static void SetHeader(HttpWebRequest request, string key, string value)
@@ -361,6 +623,7 @@ namespace Couchbase.Lite
         private HttpWebResponse SendRequest(string method, string path, IDictionary<string, string> headers,
             Body bodyObj)
         {
+            headers = headers ?? new Dictionary<string, string>();
             Uri url = null;
             bool validURL = Uri.TryCreate("http://localhost:59840" + path, UriKind.Absolute, out url);
             Assert.IsTrue(validURL, "Invalid URL {0}", path);
@@ -422,28 +685,28 @@ namespace Couchbase.Lite
             return obj;
         }
 
-        private T SendBody<T>(string method, string path, Body bodyObj, StatusCode expectedStatus, T expectedResult)
+        private T SendBody<T>(string method, string path, Body bodyObj, HttpStatusCode expectedStatus, T expectedResult)
         {
             return (T)SendBody(method, path, bodyObj, expectedStatus, (object)expectedResult);
         }
 
-        private T Send<T>(string method, string path, StatusCode expectedStatus, T expectedResult)
+        private T Send<T>(string method, string path, HttpStatusCode expectedStatus, T expectedResult)
         {
             return SendBody(method, path, null, expectedStatus, expectedResult);
         }
 
-        private object Send(string method, string path, StatusCode expectedStatus, object expectedResult)
+        private object Send(string method, string path, HttpStatusCode expectedStatus, object expectedResult)
         {
             return SendBody(method, path, null, expectedStatus, expectedResult);
         }
 
-        private object SendBody(string method, string path, Body bodyObj, StatusCode expectedStatus, object expectedResult)
+        private object SendBody(string method, string path, Body bodyObj, HttpStatusCode expectedStatus, object expectedResult)
         {
             _lastResponse = SendRequest(method, path, new Dictionary<string, string>{ { "Accept", "application/json" } }, bodyObj);
             var result = ParseJsonResponse<object>(_lastResponse);
 
             Assert.IsNotNull(result);
-            Assert.AreEqual((int)expectedStatus, (int)_lastResponse.StatusCode);
+            Assert.AreEqual(expectedStatus, _lastResponse.StatusCode);
 
             if (expectedResult != null) {
                 Assert.AreEqual(expectedResult, result);
@@ -461,7 +724,7 @@ namespace Couchbase.Lite
             string etag = _lastResponse.Headers["Etag"];
             Assert.IsFalse(String.IsNullOrEmpty(etag), "Missing etag in response for {0}", path);
             _lastResponse = SendRequest("GET", path, new Dictionary<string, string> { { "If-None-Match", etag } }, null);
-            Assert.AreEqual((int)StatusCode.NotModified, (int)_lastResponse.StatusCode);
+            Assert.AreEqual(HttpStatusCode.NotModified, _lastResponse.StatusCode);
         }
 
         private IList<string> PopulateDocs()
@@ -469,7 +732,7 @@ namespace Couchbase.Lite
             string endpoint = String.Format("/{0}/doc1", database.Name);
             var result = SendBody<IDictionary<string, object>>("PUT", endpoint, new Body(new Dictionary<string, object> {
                 { "message", "hello" } 
-            }), StatusCode.Created, null);
+            }), HttpStatusCode.Created, null);
             var revId = result.GetCast<string>("rev");
             Assert.IsNotNull(revId);
             Assert.IsTrue(revId.StartsWith("1-"));
@@ -477,7 +740,7 @@ namespace Couchbase.Lite
             result = SendBody<IDictionary<string, object>>("PUT", endpoint, new Body(new Dictionary<string, object> {
                 { "message", "goodbye" },
                 { "_rev", revId }
-            }), StatusCode.Created, null);
+            }), HttpStatusCode.Created, null);
             Log.D(TAG, "PUT returned {0}", result);
             revId = result.GetCast<string>("rev");
             Assert.IsNotNull(revId);
@@ -486,17 +749,17 @@ namespace Couchbase.Lite
             endpoint = endpoint.Replace("doc1", "doc2");
             result = SendBody<IDictionary<string, object>>("PUT", endpoint, new Body(new Dictionary<string, object> {
                 { "message", "hello" } 
-            }), StatusCode.Created, null);
+            }), HttpStatusCode.Created, null);
             var revId2 = result.GetCast<string>("rev");
 
             endpoint = endpoint.Replace("doc2", "doc3");
             result = SendBody<IDictionary<string, object>>("PUT", endpoint, new Body(new Dictionary<string, object> {
                 { "message", "hello" } 
-            }), StatusCode.Created, null);
+            }), HttpStatusCode.Created, null);
             var revId3 = result.GetCast<string>("rev");
 
             endpoint = String.Format("/{0}/_all_docs", database.Name);
-            result = Send<IDictionary<string, object>>("GET", endpoint, StatusCode.Ok, null);
+            result = Send<IDictionary<string, object>>("GET", endpoint, HttpStatusCode.OK, null);
             Assert.AreEqual(3, result.GetCast<long>("total_rows", 0));
             Assert.AreEqual(0, result.GetCast<long>("offset", -1));
             var rows = Convert(result["rows"]);
@@ -531,12 +794,12 @@ namespace Couchbase.Lite
             CheckCacheable(endpoint);
 
             endpoint = string.Format("/{0}/doc1?rev={1}", database.Name, revId);
-            result = Send<IDictionary<string, object>>("DELETE", endpoint, StatusCode.Ok, null);
+            result = Send<IDictionary<string, object>>("DELETE", endpoint, HttpStatusCode.OK, null);
             revId = result.GetCast<string>("rev");
             Assert.IsNotNull(revId);
             Assert.IsTrue(revId.StartsWith("3-"));
 
-            result = Send<IDictionary<string, object>>("GET", String.Format("/{0}/doc1", database.Name), StatusCode.NotFound, null);
+            result = Send<IDictionary<string, object>>("GET", String.Format("/{0}/doc1", database.Name), HttpStatusCode.NotFound, null);
             Assert.AreEqual("deleted", result.GetCast<string>("reason"));
             return new List<string> { revId, revId2, revId3 };
         }

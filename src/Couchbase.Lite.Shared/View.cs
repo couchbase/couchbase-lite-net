@@ -830,8 +830,12 @@ namespace Couchbase.Lite {
 
         internal Status CompileFromDesignDoc()
         {
+            if (Map != null) {
+                return new Status(StatusCode.Ok);
+            }
+
             string language = null;
-            var viewProps = Database.GetDesignDocFunction(Name, "views", out language) as IDictionary<string, object>;
+            var viewProps = Database.GetDesignDocFunction(Name, "views", out language).AsDictionary<string, object>();
             if (viewProps == null) {
                 return new Status(StatusCode.NotFound);
             }
@@ -948,6 +952,28 @@ namespace Couchbase.Lite {
                         cursor.Close();
                     }
                 }
+                return result;
+            }
+        }
+
+        public int TotalRows {
+            get {
+                const string sql = "SELECT count(*) FROM maps WHERE view_id=?";
+                Cursor cursor = null;
+                var result = -1;
+                try {
+                    cursor = Database.StorageEngine.RawQuery(sql, Id);
+                    if (cursor.MoveToNext()) {
+                        result = cursor.GetInt(0);
+                    }
+                } catch (Exception) {
+                    Log.E(Database.Tag, "Error getting last sequence indexed");
+                } finally {
+                    if (cursor != null) {
+                        cursor.Close();
+                    }
+                }
+
                 return result;
             }
         }
@@ -1130,7 +1156,7 @@ namespace Couchbase.Lite {
     /// <summary>
     /// An object that can be used to compile source code into map and reduce delegates.
     /// </summary>
-    public partial interface IViewCompiler {
+    public interface IViewCompiler {
 
     #region Instance Members
         //Methods

@@ -508,14 +508,16 @@ namespace Couchbase.Lite.PeerToPeer
         {
             var result = view.QueryWithOptions(options);
             object updateSeq = options.IsUpdateSeq() ? (object)view.LastSequenceIndexed : null;
-            var mappedDic = result.Select(x => new Dictionary<string, object> {
+            var mappedDic = result.Select(x => new NonNullDictionary<string, object> {
+                { "id", x.DocumentId },
                 { "key", x.Key },
-                { "value", x.Value }
+                { "value", x.Value },
+                { "doc", x.DocumentProperties }
             });
 
-            var body = new Body(new Dictionary<string, object> {
+            var body = new Body(new NonNullDictionary<string, object> {
                 { "rows", mappedDic },
-                { "total_rows", result.Count() },
+                { "total_rows", view.TotalRows },
                 { "offset", options.GetSkip() },
                 { "update_seq", updateSeq }
             });

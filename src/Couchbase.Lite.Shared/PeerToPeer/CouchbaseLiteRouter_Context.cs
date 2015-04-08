@@ -33,7 +33,7 @@ namespace Couchbase.Lite.PeerToPeer
         private sealed class CouchbaseListenerContext : ICouchbaseListenerContext
         {
             private string[] _urlComponents;
-            private bool _localFlag;
+            private string _viewPrefix = String.Empty;
             private QueryOptions _queryOptions;
             private DocumentContentOptions? _contentOptions;
             private ChangesFeedMode? _changesFeedMode;
@@ -76,17 +76,17 @@ namespace Couchbase.Lite.PeerToPeer
 
             public string DocumentName {
                 get {
-                    if (_localFlag) {
-                        return String.Format("_local/{0}", UrlComponentAt(2));
+                    if(String.IsNullOrEmpty(_viewPrefix)) {
+                        return UrlComponentAt(1);
                     }
 
-                    return UrlComponentAt(1);
+                    return _viewPrefix + UrlComponentAt(2);
                 }
             }
 
             public string AttachmentName {
                 get {
-                    return _localFlag ? UrlComponentAt(3) : UrlComponentAt(2);
+                    return !String.IsNullOrEmpty(_viewPrefix) ? UrlComponentAt(3) : UrlComponentAt(2);
                 }
             }
 
@@ -148,6 +148,8 @@ namespace Couchbase.Lite.PeerToPeer
                             _queryOptions.SetStale(IndexUpdateMode.Never);
                         } else if (stale.Equals("update_after")) {
                             _queryOptions.SetStale(IndexUpdateMode.After);
+                        } else {
+                            return null;
                         }
                     }
 
@@ -333,7 +335,12 @@ namespace Couchbase.Lite.PeerToPeer
             {
                 if (_urlComponents == null) {
                     _urlComponents = HttpContext.Request.Url.AbsolutePath.Split(new[]{ '/' }, StringSplitOptions.RemoveEmptyEntries);
-                    _localFlag = _urlComponents.Length >= 3 && _urlComponents[1].Equals("_local");
+                    if (_urlComponents.Length >= 3) {
+                        var secondComponent = _urlComponents[1];
+                        if (secondComponent.Equals("_local") || secondComponent.Equals("_design")) {
+                            _viewPrefix = secondComponent + "/";
+                        }
+                    }
                 }
 
                 return _urlComponents.ElementAtOrDefault(index);

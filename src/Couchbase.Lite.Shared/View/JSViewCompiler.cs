@@ -29,7 +29,7 @@ using System.Collections;
 
 namespace Couchbase.Lite.Views
 {
-    public class JSViewCompiler : IViewCompiler
+    public sealed class JSViewCompiler : IViewCompiler
     {
         public MapDelegate CompileMap(string source, string language)
         {

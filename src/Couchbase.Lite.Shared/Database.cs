@@ -112,7 +112,7 @@ namespace Couchbase.Lite
         /// Gets or sets an object that can compile source code into <see cref="FilterDelegate"/>.
         /// </summary>
         /// <value>The filter compiler object.</value>
-        public static CompileFilterDelegate FilterCompiler { get; set; }
+        public static IFilterCompiler FilterCompiler { get; set; }
 
         // "_local/*" is not a valid document ID. Local docs have their own API and shouldn't get here.
         internal static String GenerateDocumentId()
@@ -630,7 +630,7 @@ namespace Couchbase.Lite
                     return null;
                 }
 
-                var filter = filterCompiler(sourceCode, language);
+                var filter = filterCompiler.CompileFilter(sourceCode, language);
                 if (filter == null)
                 {
                     if (status != null) {
@@ -969,7 +969,7 @@ PRAGMA user_version = 3;";
                 language = "javascript";
             }
 
-            var container = rev.GetPropertyForKey(key) as IDictionary<string, object>;
+            var container = rev.GetPropertyForKey(key).AsDictionary<string, object>();
             if (container == null) {
                 return null;
             }
@@ -5041,11 +5041,6 @@ PRAGMA user_version = 3;";
     public delegate Boolean FilterDelegate(SavedRevision revision, Dictionary<String, Object> filterParams);
 
     /// <summary>
-    /// A delegate that can be invoked to compile source code into a <see cref="FilterDelegate"/>.
-    /// </summary>
-    public delegate FilterDelegate CompileFilterDelegate(String source, String language);
-
-    /// <summary>
     /// A delegate that can be run in a transaction on a <see cref="Couchbase.Lite.Database"/>.
     /// </summary>
     public delegate Boolean RunInTransactionDelegate();
@@ -5074,6 +5069,15 @@ PRAGMA user_version = 3;";
         /// </summary>
         /// <value>The DocumentChange details for the Documents that caused the Database change.</value>
             public IEnumerable<DocumentChange> Changes { get; internal set; }
+    }
+
+    #endregion
+
+    #region IFilterCompiler
+
+    public interface IFilterCompiler
+    {
+        FilterDelegate CompileFilter(string filterSource, string language);
     }
 
     #endregion
