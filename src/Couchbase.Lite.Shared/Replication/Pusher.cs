@@ -165,11 +165,23 @@ namespace Couchbase.Lite.Replicator
             {
                 filter = LocalDatabase.GetFilter(Filter);
             }
+            else
+            {
+                // If not filter function was provided, but DocIds were
+                // specified, then only push the documents listed in the
+                // DocIds property. It is assumed that if the users
+                // specified both a filter name and doc ids that their
+                // custom filter function will handle that. This is 
+                // consistent with the iOS behavior.
+                if (DocIds != null && DocIds.Any())
+                {
+                    filter = (rev, filterParams) => DocIds.Contains(rev.Document.Id);
+                }
+            }
 
             if (Filter != null && filter == null)
             {
-                Log.W(Tag, string.Format("{0}: No ReplicationFilter registered for filter '{1}'; ignoring"
-                    , this, Filter));
+                Log.W(Tag, string.Format("{0}: No ReplicationFilter registered for filter '{1}'; ignoring", this, Filter));
             }
 
             // Process existing changes since the last push:
