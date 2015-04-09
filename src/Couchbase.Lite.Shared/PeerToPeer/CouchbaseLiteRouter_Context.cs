@@ -86,7 +86,8 @@ namespace Couchbase.Lite.PeerToPeer
 
             public string AttachmentName {
                 get {
-                    return !String.IsNullOrEmpty(_viewPrefix) ? UrlComponentAt(3) : UrlComponentAt(2);
+                    int startPos = !String.IsNullOrEmpty(_viewPrefix) ? 3 : 2;
+                    return String.Join("/", _urlComponents, startPos, _urlComponents.Length - startPos);
                 }
             }
 

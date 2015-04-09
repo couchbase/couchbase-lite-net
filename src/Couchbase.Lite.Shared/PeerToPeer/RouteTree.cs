@@ -37,11 +37,34 @@ namespace Couchbase.Lite.PeerToPeer
 
     internal sealed class RouteTree
     {
+        private sealed class GreedyBranch : IRouteTreeBranch
+        {
+            public IRouteTreeBranch Parent { get; private set; }
+
+            public RestMethod Logic { get; set; }
+
+            public GreedyBranch(IRouteTreeBranch parent)
+            {
+                Parent = parent;
+            }
+
+            public IRouteTreeBranch GetChild(string endpointName, bool create)
+            {
+                return this;
+            }
+
+            public IRouteTreeBranch AddBranch(string endpoint, RestMethod logic)
+            {
+                throw new NotSupportedException();
+            }
+        }
+
         private sealed class Branch : IRouteTreeBranch
         {
             private readonly Dictionary<string, IRouteTreeBranch> _literalBranches = new Dictionary<string, IRouteTreeBranch>();
             private readonly Dictionary<Regex, IRouteTreeBranch> _regexBranches = new Dictionary<Regex, IRouteTreeBranch>();
             private IRouteTreeBranch _wildcardBranch = null;
+            private IRouteTreeBranch _greedyBranch = null;
 
             public IRouteTreeBranch Parent { get; private set; }
 
@@ -65,8 +88,18 @@ namespace Couchbase.Lite.PeerToPeer
                     }
                 }
 
-                if (!create || (_wildcardBranch != null && endpointName.Equals("*"))) {
+                if ((_wildcardBranch != null && endpointName.Equals("*"))) {
                     return _wildcardBranch;
+                }
+
+                //NOTE.JHB: Fragile and will break if any other branch fails to return
+                //but so far it is good enough
+                if (_greedyBranch != null && endpointName.Equals("**")) {
+                    return _greedyBranch;
+                }
+
+                if (!create) {
+                    return _wildcardBranch ?? _greedyBranch;
                 }
 
                 return AddBranch(endpointName, null);
@@ -74,9 +107,12 @@ namespace Couchbase.Lite.PeerToPeer
 
             public IRouteTreeBranch AddBranch(string endpoint, RestMethod logic)
             {
-                var branch = new Branch(this) { Logic = logic };
+                IRouteTreeBranch branch = new Branch(this) { Logic = logic };
                 if (endpoint.Equals("*")) {
                     _wildcardBranch = branch;
+                } else if (endpoint.Equals("**")) {
+                    _greedyBranch = new GreedyBranch(this) { Logic = logic };
+                    branch = _greedyBranch;
                 } else if (endpoint.StartsWith("{")) {
                     endpoint = String.Format("^{0}$", endpoint.Trim('{', '}'));
                     _regexBranches[new Regex(endpoint)] = branch;

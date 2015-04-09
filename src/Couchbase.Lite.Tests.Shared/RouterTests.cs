@@ -32,12 +32,13 @@ using System.Collections;
 using System.Text;
 using System.Threading;
 using Couchbase.Lite.Views;
-using Couchbase.Lite.Databases;
+using System.Threading.Tasks;
 
 #if NET_3_5
 using WebRequest = System.Net.Couchbase.WebRequest;
 using HttpWebRequest = System.Net.Couchbase.HttpWebRequest;
 using HttpWebResponse = System.Net.Couchbase.HttpWebResponse;
+using WebResponse = System.Net.Couchbase.WebResponse;
 using WebException = System.Net.Couchbase.WebException;
 #endif
 
@@ -221,7 +222,7 @@ namespace Couchbase.Lite
             result = Send<IDictionary<string, object>>("GET", endpoint, HttpStatusCode.OK, null);
             Assert.AreEqual(3, result.GetCast<long>("total_rows", 0));
             Assert.AreEqual(0, result.GetCast<long>("offset", -1));
-            var rows = Convert(result["rows"]);
+            var rows = ConvertResponse(result["rows"]);
             var expectedResult = new List<object>();
             expectedResult.Add(new Dictionary<string, object> {
                 { "id", "doc1" },
@@ -530,10 +531,11 @@ namespace Couchbase.Lite
                 { "total_rows", 4L }
             });
 
-            //TODO: Should .NET also implement views so that groups are updated at once like iOS?
+            //TODO.JHB: Should .NET also implement views so that groups are updated at once like iOS?
             //Assert.IsFalse(database.GetView("design/view").IsStale);
             Assert.IsFalse(database.GetView("design/view2").IsStale);
 
+            //NOTE.JHB: The _rev property differs from iOS.  Should investigate later.
             // Try include_docs
             endpoint += "?include_docs=true&limit=1";
             Send("GET", endpoint, HttpStatusCode.OK, new Dictionary<string, object> {
@@ -542,7 +544,7 @@ namespace Couchbase.Lite
                             { "id", "doc4" }, { "key", 2L }, { "value", "hi" }, 
                             { "doc", new Dictionary<string, object> {
                                     { "_id", "doc4" },
-                                    { "_rev", "1-cfdd78e822bbcbc25c91e9deb9537c4b" },
+                                    { "_rev", "1-66d2a05927e5851025c6d204956afff4" },
                                     { "message", "hi" }
                                 }
                             }
@@ -551,6 +553,448 @@ namespace Couchbase.Lite
                 },
                 { "total_rows", 4L }
             });
+
+            // Try include_docs with revs=true
+            endpoint += "&revs=true";
+            Send("GET", endpoint, HttpStatusCode.OK, new Dictionary<string, object> {
+                { "offset", 0L }, { "rows", new List<object> {
+                        new Dictionary<string, object> {
+                            { "id", "doc4" }, { "key", 2L }, { "value", "hi" }, 
+                            { "doc", new Dictionary<string, object> {
+                                    { "_id", "doc4" },
+                                    { "_rev", "1-66d2a05927e5851025c6d204956afff4" },
+                                    { "_revisions", new Dictionary<string, object> {
+                                            { "start", 1L },
+                                            { "ids", new List<object> { "66d2a05927e5851025c6d204956afff4" } }
+                                        }
+                                    },
+                                    { "message", "hi" }
+                                }
+                            }
+                        }
+                    }
+                },
+                { "total_rows", 4L }
+            });
+
+            View.Compiler = null;
+        }
+
+        [Test]
+        public void TestNonMappedEndpoints()
+        {
+            Send("GET", "/", HttpStatusCode.OK, null);
+            var response = Send<IDictionary<string, object>>("POST", "/", HttpStatusCode.MethodNotAllowed, null);
+            Assert.AreEqual(405, response.GetCast<long>("status"));
+            Assert.AreEqual("method_not_allowed", response.GetCast<string>("error"));
+
+            response = Send<IDictionary<string, object>>("PUT", "/", HttpStatusCode.MethodNotAllowed, null);
+            Assert.AreEqual(405, response.GetCast<long>("status"));
+            Assert.AreEqual("method_not_allowed", response.GetCast<string>("error"));
+
+            string endpoint = String.Format("/{0}/doc1", database.Name);
+            response = Send<IDictionary<string, object>>("POST", endpoint, HttpStatusCode.MethodNotAllowed, null);
+            Assert.AreEqual(405, response.GetCast<long>("status"));
+            Assert.AreEqual("method_not_allowed", response.GetCast<string>("error"));
+
+            endpoint = String.Format("/{0}/_session", database.Name);
+            response = Send<IDictionary<string, object>>("GET", endpoint, HttpStatusCode.NotFound, null);
+            Assert.AreEqual(404, response.GetCast<long>("status"));
+            Assert.AreEqual("not_found", response.GetCast<string>("error"));
+        }
+
+        [Test]
+        public void TestChanges()
+        {
+            var revIDs = PopulateDocs();
+
+            // _changes:
+            var endpoint = String.Format("/{0}/_changes", database.Name);
+            Send("GET", endpoint, HttpStatusCode.OK, new Dictionary<string, object> {
+                { "last_seq", 5L },
+                { "results", new List<object> {
+                        new Dictionary<string, object> {
+                            { "id", "doc3" },
+                            { "changes", new List<object> {
+                                    new Dictionary<string, object> {
+                                        { "rev", revIDs[2] }
+                                    }
+                                }
+                            },
+                            { "seq", 3L }
+                        },
+                        new Dictionary<string, object> {
+                            { "id", "doc2" },
+                            { "changes", new List<object> {
+                                    new Dictionary<string, object> {
+                                        { "rev", revIDs[1] }
+                                    }
+                                }
+                            },
+                            { "seq", 4L }
+                        },
+                        new Dictionary<string, object> {
+                            { "id", "doc1" },
+                            { "changes", new List<object> {
+                                    new Dictionary<string, object> {
+                                        { "rev", revIDs[0] }
+                                    }
+                                }
+                            },
+                            { "seq", 5L },
+                            { "deleted", true }
+                        }
+                    }
+                }
+            });
+
+            CheckCacheable(endpoint);
+
+            // _changes with ?since:
+            endpoint += "?since=4";
+            Send("GET", endpoint, HttpStatusCode.OK, new Dictionary<string, object> {
+                { "last_seq", 5L }, 
+                { "results", new List<object> {
+                        new Dictionary<string, object> {
+                            { "id", "doc1" }, 
+                            { "changes", new List<object> {
+                                    new Dictionary<string, object> {
+                                        { "rev", revIDs[0] }
+                                    }
+                                }
+                            },
+                            { "seq", 5L },
+                            { "deleted", true }
+                        }
+                    }
+                }
+            });
+
+            endpoint = endpoint.Replace('4', '5');
+            Send("GET", endpoint, HttpStatusCode.OK, new Dictionary<string, object> {
+                { "last_seq", 5L }, 
+                { "results", new List<object>() }
+            });
+
+            // _changes with include_docs:
+            endpoint = endpoint.Replace('5', '4') + "&include_docs=true";
+            Send("GET", endpoint, HttpStatusCode.OK, new Dictionary<string, object> {
+                { "last_seq", 5L }, 
+                { "results", new List<object> {
+                        new Dictionary<string, object> {
+                            { "id", "doc1" }, 
+                            { "changes", new List<object> {
+                                    new Dictionary<string, object> {
+                                        { "rev", revIDs[0] }
+                                    }
+                                }
+                            },
+                            { "seq", 5L },
+                            { "deleted", true },
+                            { "doc", new Dictionary<string, object> {
+                                    { "_id", "doc1" },
+                                    { "_rev", revIDs[0] },
+                                    { "_deleted", true }
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // _changes with include_docs and revs=true:
+            endpoint += "&revs=true";
+            Send("GET", endpoint, HttpStatusCode.OK, new Dictionary<string, object> {
+                { "last_seq", 5L }, 
+                { "results", new List<object> {
+                        new Dictionary<string, object> {
+                            { "id", "doc1" }, 
+                            { "changes", new List<object> {
+                                    new Dictionary<string, object> {
+                                        { "rev", revIDs[0] }
+                                    }
+                                }
+                            },
+                            { "seq", 5L },
+                            { "deleted", true },
+                            { "doc", new Dictionary<string, object> {
+                                    { "_id", "doc1" },
+                                    { "_rev", revIDs[0] },
+                                    { "_revisions", new Dictionary<string, object> {
+                                            { "start", 3L },
+                                            { "ids", new List<object> { 
+                                                    "849ef0cb3227570b179053f30435c834",
+                                                    "f4aa17f89f2d613c362f23148b74b794",
+                                                    "73f49cb1381a29e8d6d50e840c51cfa5"
+                                                } 
+                                            }
+                                        }
+                                    },
+                                    { "_deleted", true }
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        [Test]
+        public void TestLongPollChanges()
+        {
+            PopulateDocs();
+            var path = String.Format("/{0}/_changes?feed=longpoll&since=5", database.Name);
+            var mre = new ManualResetEventSlim();
+            HttpWebResponse response = null;
+            SendRequestAsync("GET", path, null, null).ContinueWith(t =>
+            {
+                if(t.IsFaulted) {
+                    throw t.Exception.InnerException;
+                }
+
+                response = (HttpWebResponse)t.Result;
+                mre.Set();
+            });
+
+            Assert.IsFalse(mre.IsSet);
+
+            // Now make a change to the database:
+            var endpoint = String.Format("/{0}/doc4", database.Name);
+            var result = SendBody<IDictionary<string, object>>("PUT", endpoint, new Body(new Dictionary<string, object> {
+                { "message", "hej" } 
+            }), HttpStatusCode.Created, null);
+            var revID6 = result.GetCast<string>("rev");
+
+            // Should now have received a response from the router with one revision:
+            Assert.IsTrue(mre.Wait(TimeSpan.FromSeconds(5)), "Timed out waiting for response");
+            mre.Dispose();
+            var body = new Body(response.GetResponseStream().ReadAllBytes());
+            Assert.IsNotNull(body.GetProperties(), "Couldn't parse response body:\n{0}", body.GetJSONString());
+            Assert.AreEqual(new Dictionary<string, object> {
+                { "last_seq", 6L },
+                { "results", new List<object> {
+                        new Dictionary<string, object> {
+                            { "id", "doc4" },
+                            { "changes", new List<object> { 
+                                    new Dictionary<string, object> {
+                                        { "rev", revID6 }
+                                    }
+                                } 
+                            },
+                            { "seq", 6L }
+                        }
+                    }
+                }
+            }, ConvertResponse(body.GetProperties()));
+        }
+
+        [Test]
+        public void TestLongPollChanges_Heartbeat()
+        {
+            int heartbeat = 0;
+            var mre = new ManualResetEventSlim();
+
+            // Artificially short heartbeat (made possible by SetUp) to speed up the test
+            SendRequestAsync("GET", String.Format("/{0}/_changes?feed=longpoll&heartbeat=1000", database.Name), null, null)
+                .ContinueWith(t =>
+            {
+                    if(t.IsFaulted) {
+                        throw t.Exception.InnerException;
+                    }
+
+                    var stream = t.Result.GetResponseStream();
+                    byte[] data = new byte[4096];
+                    while (stream.Read(data, 0, data.Length) > 0)
+                    {
+                        if(data[0] == 13 && data[1] == 10) {
+                            heartbeat += 1;
+                        }
+                    }
+
+                    mre.Set();
+            });
+
+            Assert.IsFalse(mre.IsSet);
+            Thread.Sleep(TimeSpan.FromSeconds(2.5));
+            Assert.IsFalse(mre.IsSet);
+            Assert.AreEqual(2, heartbeat);
+
+            // Now make a change to the database:
+            var endpoint = String.Format("/{0}/doc4", database.Name);
+            SendBody<IDictionary<string, object>>("PUT", endpoint, new Body(new Dictionary<string, object> {
+                { "message", "hej" } 
+            }), HttpStatusCode.Created, null);
+
+            Assert.IsTrue(mre.Wait(TimeSpan.FromSeconds(5)), "Timeout waiting for response");
+        }
+
+        [Test]
+        public void TestContinuousChanges()
+        {
+            string endpoint = String.Format("/{0}/doc1", database.Name);
+            SendBody("PUT", endpoint, new Body(new Dictionary<string, object> {
+                { "message", "hello" } 
+            }), HttpStatusCode.Created, null);
+
+            HttpWebResponse response = null;
+            List<byte> body = new List<byte>();
+            var mre = new ManualResetEventSlim();
+            SendRequestAsync("GET", String.Format("/{0}/_changes?feed=continuous", database.Name), null, null)
+                .ContinueWith(t =>
+            {
+                    if(t.IsFaulted) {
+                        throw t.Exception.InnerException;
+                    }
+
+                    response = (HttpWebResponse)t.Result;
+                    var stream = t.Result.GetResponseStream();
+                    byte[] data = new byte[4096];
+                    while (stream.Read(data, 0, data.Length) > 0)
+                    {
+                        body.AddRange(data.TakeWhile(x => x != 0));
+                    }
+                        
+                    mre.Set();
+            });
+
+            // Should initially have a response and one line of output:
+            Thread.Sleep(TimeSpan.FromMilliseconds(500));
+            Assert.IsNotNull(response);
+            Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
+            Assert.IsTrue(body.Count > 0);
+            Assert.IsFalse(mre.IsSet);
+            body.Clear();
+
+            endpoint = String.Format("/{0}/doc2", database.Name);
+            SendBody<IDictionary<string, object>>("PUT", endpoint, new Body(new Dictionary<string, object> {
+                { "message", "hej" } 
+            }), HttpStatusCode.Created, null);
+
+            Thread.Sleep(TimeSpan.FromMilliseconds(500));
+
+            Assert.IsTrue(body.Count > 0);
+            Assert.IsFalse(mre.IsSet);
+
+            mre.Dispose();
+            response.Close();
+        }
+
+        [Test]
+        public void TestContinuousChanges_Heartbeat()
+        {
+            int heartbeat = 0;
+            List<byte> body = new List<byte>();
+            var mre = new ManualResetEventSlim();
+            HttpWebResponse response = null;
+            SendRequestAsync("GET", String.Format("/{0}/_changes?feed=continuous&heartbeat=1000", database.Name), null, null)
+                .ContinueWith(t =>
+            {
+                    if(t.IsFaulted) {
+                        throw t.Exception.InnerException;
+                    }
+
+                    response = (HttpWebResponse)t.Result;
+                    var stream = response.GetResponseStream();
+                    byte[] data = new byte[4096];
+                    while (stream.Read(data, 0, data.Length) > 0)
+                    {
+                        if(data[0] == 13 && data[1] == 10) {
+                            heartbeat += 1;
+                        }
+
+                        body.AddRange(data.TakeWhile(x => x != 0));
+                    }
+
+                    mre.Set();
+            });
+
+            Thread.Sleep(2500);
+            Assert.IsNotNull(response);
+            Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
+            Assert.IsTrue(body.Count > 0);
+            Assert.IsTrue(heartbeat == 2);
+            Assert.IsFalse(mre.IsSet);
+
+            mre.Dispose();
+            response.Close();
+        }
+
+        [Test]
+        public void TestChangesBadParam()
+        {
+            Send("GET", String.Format("/{0}/_changes?feed=continuous&heartbeat=foo", database.Name), HttpStatusCode.BadRequest, null);
+            Send("GET", String.Format("/{0}/_changes?feed=continuous&heartbeat=-1", database.Name), HttpStatusCode.BadRequest, null);
+            Send("GET", String.Format("/{0}/_changes?feed=continuous&heartbeat=-0", database.Name), HttpStatusCode.BadRequest, null);
+            Send("GET", String.Format("/{0}/_changes?feed=longpoll&heartbeat=foo", database.Name), HttpStatusCode.BadRequest, null);
+            Send("GET", String.Format("/{0}/_changes?feed=longpoll&heartbeat=-1", database.Name), HttpStatusCode.BadRequest, null);
+            Send("GET", String.Format("/{0}/_changes?feed=longpoll&heartbeat=-0", database.Name), HttpStatusCode.BadRequest, null);
+        }
+
+        [Test]
+        public void TestGetAttachment()
+        {
+            var attach1 = Encoding.UTF8.GetBytes("This is the body of attach1");
+            var attach2 = Encoding.UTF8.GetBytes("This is the body of path/to/attachment");
+            var result = CreateDocWithAttachments(attach1, attach2);
+            var revID = result.GetCast<string>("rev");
+
+            // Now get the attachment via its URL:
+            var response = SendRequest("GET", String.Format("/{0}/doc1/attach", database.Name), null, null);
+            Assert.IsNotNull(response);
+            Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
+            var data = response.GetResponseStream().ReadAllBytes();
+            Assert.AreEqual(data, attach1);
+            Assert.AreEqual("text/plain", response.ContentType);
+            var etag = response.GetResponseHeader("Etag");
+            Assert.IsTrue(etag.Length > 0);
+
+            // Ditto the 2nd attachment, whose name contains "/"s:
+            response = SendRequest("GET", String.Format("/{0}/doc1/path/to/attachment", database.Name), null, null);
+            Assert.IsNotNull(response);
+            Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
+            data = response.GetResponseStream().ReadAllBytes();
+            Assert.AreEqual(data, attach2);
+            Assert.AreEqual("text/plain", response.ContentType);
+            etag = response.GetResponseHeader("Etag");
+            Assert.IsTrue(etag.Length > 0);
+
+            // A nonexistent attachment should result in a NotFound:
+            response = SendRequest("GET", String.Format("/{0}/doc1/bogus", database.Name), null, null);
+            Assert.IsNotNull(response);
+            Assert.AreEqual(HttpStatusCode.NotFound, response.StatusCode);
+
+            response = SendRequest("GET", String.Format("/{0}/missingdoc/bogus", database.Name), null, null);
+            Assert.IsNotNull(response);
+            Assert.AreEqual(HttpStatusCode.NotFound, response.StatusCode);
+
+            // Get the document with attachment data:
+            response = SendRequest("GET", String.Format("/{0}/doc1?attachments=true", database.Name), null, null);
+            Assert.IsTrue(response.GetResponseHeader("Content-Type").StartsWith("multipart/related"));
+
+            response = SendRequest("GET", String.Format("/{0}/doc1?attachments=true", database.Name), new Dictionary<string, string> {
+                { "Accept", "application/json" }
+            }, null);
+            Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
+            var body = new Body(response.GetResponseStream().ReadAllBytes());
+            var attachments = ConvertResponse(body.GetPropertyForKey("_attachments"));
+            Assert.AreEqual(new Dictionary<string, object> { 
+                { "attach", new Dictionary<string, object> {
+                        { "data", Convert.ToBase64String(attach1) },
+                        { "content_type", "text/plain" },
+                        { "length", attach1.Length },
+                        { "digest", "sha1-gOHUOBmIMoDCrMuGyaLWzf1hQTE=" },
+                        { "revpos", 1L }
+                    }
+                }, 
+                { "path/to/attachment", new Dictionary<string, object> {
+                        { "data", Convert.ToBase64String(attach2) },
+                        { "content_type", "text/plain" },
+                        { "length", attach2.Length },
+                        { "digest", "sha1-IrXQo0jpePvuKPv5nswnenqsIMc=" },
+                        { "revpos", 1L }
+                    }
+                }
+            }, attachments);
         }
 
         [TestFixtureSetUp]
@@ -619,6 +1063,31 @@ namespace Couchbase.Lite
                 default: request.Headers.Set (key, value); break;
             }
         }
+            
+        private Task<WebResponse> SendRequestAsync(string method, string path, IDictionary<string, string> headers,
+            Body bodyObj)
+        {
+            headers = headers ?? new Dictionary<string, string>();
+            Uri url;
+            bool validURL = Uri.TryCreate("http://localhost:59840" + path, UriKind.Absolute, out url);
+            Assert.IsTrue(validURL, "Invalid URL {0}", path);
+            HttpWebRequest request = WebRequest.CreateHttp(url);
+            request.Method = method;
+            foreach (var header in headers) {
+                SetHeader(request, header.Key, header.Value);
+            }
+
+            if (bodyObj != null) {
+                var array = bodyObj.GetJson().ToArray();
+                request.ContentLength = array.Length;
+                request.GetRequestStream().Write(array, 0, array.Length);
+            } else {
+                request.ContentLength = 0;
+            }
+
+
+            return request.GetResponseAsync();
+        }
 
         private HttpWebResponse SendRequest(string method, string path, IDictionary<string, string> headers,
             Body bodyObj)
@@ -659,14 +1128,14 @@ namespace Couchbase.Lite
         {
             var foo = Encoding.UTF8.GetString(response.GetResponseStream().ReadAllBytes());
             var responseObj = Manager.GetObjectMapper().ReadValue<T>(foo);
-            return (T)Convert(responseObj);
+            return (T)ConvertResponse(responseObj);
         }
 
-        private object Convert(object obj) {
+        private object ConvertResponse(object obj) {
             var list = obj.AsList<object>();
             if (list != null) {
                 for (int i = 0; i < list.Count; i++) {
-                    list[i] = Convert(list[i]);
+                    list[i] = ConvertResponse(list[i]);
                 }
 
                 return list;
@@ -676,7 +1145,7 @@ namespace Couchbase.Lite
             if (dictionary != null) {
                 var retVal = new Dictionary<string, object>(dictionary.Count);
                 foreach (var key in dictionary.Keys) {
-                    retVal[(string)key] = Convert(dictionary[key]);
+                    retVal[(string)key] = ConvertResponse(dictionary[key]);
                 }
 
                 return retVal;
@@ -746,13 +1215,13 @@ namespace Couchbase.Lite
             Assert.IsNotNull(revId);
             Assert.IsTrue(revId.StartsWith("2-"));
 
-            endpoint = endpoint.Replace("doc1", "doc2");
+            endpoint = endpoint.Replace("doc1", "doc3");
             result = SendBody<IDictionary<string, object>>("PUT", endpoint, new Body(new Dictionary<string, object> {
                 { "message", "hello" } 
             }), HttpStatusCode.Created, null);
             var revId2 = result.GetCast<string>("rev");
 
-            endpoint = endpoint.Replace("doc2", "doc3");
+            endpoint = endpoint.Replace("doc3", "doc2");
             result = SendBody<IDictionary<string, object>>("PUT", endpoint, new Body(new Dictionary<string, object> {
                 { "message", "hello" } 
             }), HttpStatusCode.Created, null);
@@ -762,7 +1231,7 @@ namespace Couchbase.Lite
             result = Send<IDictionary<string, object>>("GET", endpoint, HttpStatusCode.OK, null);
             Assert.AreEqual(3, result.GetCast<long>("total_rows", 0));
             Assert.AreEqual(0, result.GetCast<long>("offset", -1));
-            var rows = Convert(result["rows"]);
+            var rows = ConvertResponse(result["rows"]);
             var expectedResult = new List<object>();
             expectedResult.Add(new Dictionary<string, object> {
                 { "id", "doc1" },
@@ -802,6 +1271,30 @@ namespace Couchbase.Lite
             result = Send<IDictionary<string, object>>("GET", String.Format("/{0}/doc1", database.Name), HttpStatusCode.NotFound, null);
             Assert.AreEqual("deleted", result.GetCast<string>("reason"));
             return new List<string> { revId, revId2, revId3 };
+        }
+
+        private IDictionary<string, object> CreateDocWithAttachments(byte[] attach1, byte[] attach2)
+        {
+            var attachmentDict = new Dictionary<string, object>(2) {
+                { "attach", new Dictionary<string, object> {
+                        { "content_type", "text/plain" },
+                        { "data", Convert.ToBase64String(attach1) }
+                    }
+                },
+                { "path/to/attachment", new Dictionary<string, object> {
+                        { "content_type", "text/plain" },
+                        { "data", Convert.ToBase64String(attach2) }
+                    }
+                }
+            };
+
+            var props = new Dictionary<string, object>(1) {
+                { "message", "hello" },
+                { "_attachments", attachmentDict }
+            };
+
+            return SendBody<IDictionary<string, object>>("PUT", String.Format("/{0}/doc1", database.Name), new Body(props),
+                HttpStatusCode.Created, null);
         }
     }
 }

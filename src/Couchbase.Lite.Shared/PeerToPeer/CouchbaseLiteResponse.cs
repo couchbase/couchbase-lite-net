@@ -43,7 +43,14 @@ namespace Couchbase.Lite.PeerToPeer
 
         public bool Chunked { 
             get { return _context.Response.SendChunked; }
-            set { _context.Response.SendChunked = value; }
+            set { 
+                if (_headersWritten) {
+                    Log.E(TAG, "Attempting to changed Chunked after headers written, ignoring");
+                    return;
+                }
+
+                _context.Response.SendChunked = value; 
+            }
         }
 
         private StatusCode _internalStatus;
@@ -137,14 +144,9 @@ namespace Couchbase.Lite.PeerToPeer
 
         public bool WriteToContext()
         {
-            if (Chunked) {
-                Log.E(TAG, "Attempt to send one-shot data when in chunked mode");
-                return false;
-            }
-
             bool syncWrite = true;
             if (JsonBody != null) {
-                if (!Headers.ContainsKey("Content-Type")) {
+                if (!Chunked && !Headers.ContainsKey("Content-Type")) {
                     var accept = _context.Request.Headers["Accept"];
                     if (accept != null) {
                         if (accept.Contains("*/*") || accept.Contains("application/json")) {
@@ -159,9 +161,12 @@ namespace Couchbase.Lite.PeerToPeer
                     }
                 }
                     
-                _context.Response.ContentEncoding = Encoding.UTF8;
                 var json = JsonBody.GetJson().ToArray();
-                _context.Response.ContentLength64 = json.Length;
+                if (!Chunked) {
+                    _context.Response.ContentEncoding = Encoding.UTF8;
+                    _context.Response.ContentLength64 = json.Length;
+                }
+
                 if(!WriteToStream(json)) {
                     return false;
                 }
@@ -169,7 +174,10 @@ namespace Couchbase.Lite.PeerToPeer
                 this["Content-Type"] = BaseContentType;
                 _context.Response.ContentEncoding = Encoding.UTF8;
                 var data = BinaryBody.ToArray();
-                _context.Response.ContentLength64 = data.LongLength;
+                if (!Chunked) {
+                    _context.Response.ContentLength64 = data.LongLength;
+                }
+
                 if (!WriteToStream(data)) {
                     return false;
                 }
@@ -297,9 +305,10 @@ namespace Couchbase.Lite.PeerToPeer
             } catch(IOException) {
                 Log.W(TAG, "Error writing to HTTP response stream");
                 return false;
+            } catch(ObjectDisposedException) {
+                Log.E(TAG, "Data written after disposal");
+                return false;
             }
-
-            return true;
         }
 
         private void TryClose() {
@@ -307,6 +316,8 @@ namespace Couchbase.Lite.PeerToPeer
                 _context.Response.Close();
             } catch(IOException) {
                 Log.W(TAG, "Error closing HTTP response stream");
+            } catch(ObjectDisposedException) {
+                //swallow (already closed)
             }
         }
 

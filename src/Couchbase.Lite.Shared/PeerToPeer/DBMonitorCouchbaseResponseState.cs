@@ -33,6 +33,7 @@ namespace Couchbase.Lite.PeerToPeer
         private const string TAG = "DBMonitorCouchbaseResponseState";
         private Database _db;
         private Timer _heartbeatTimer;
+        private RevisionList _changes = new RevisionList();
 
         public CouchbaseLiteResponse Response { get; set; }
 
@@ -45,8 +46,6 @@ namespace Couchbase.Lite.PeerToPeer
         public bool ChangesIncludeConflicts { get; set; }
 
         public FilterDelegate ChangesFilter { get; set; }
-
-        public RevisionList Changes { get; set; }
 
         public DBMonitorCouchbaseResponseState() 
         {
@@ -69,14 +68,15 @@ namespace Couchbase.Lite.PeerToPeer
             _db.Changed += DatabaseChanged;
         }
 
-        public void StartHeartbeat(string response, double interval)
+        public void StartHeartbeat(string response, int interval)
         {
             if (interval <= 0 || _heartbeatTimer != null) {
                 return;
             }
 
             IsAsync = true;
-            _heartbeatTimer = new Timer(SendHeartbeatResponse, Encoding.UTF8.GetBytes(response), 0, (int)interval);
+            Response.WriteHeaders();
+            _heartbeatTimer = new Timer(SendHeartbeatResponse, Encoding.UTF8.GetBytes(response), interval, interval);
         }
 
         private void SendHeartbeatResponse(object state)
@@ -111,7 +111,7 @@ namespace Couchbase.Lite.PeerToPeer
                 }
 
                 if (ChangesFeedMode == ChangesFeedMode.LongPoll) {
-                    Changes.Add(rev);
+                    _changes.Add(rev);
                 } else {
                     Log.D(TAG, "Sending continuous change chunk");
                     var written = Response.SendContinuousLine(DatabaseMethods.ChangesDictForRev(rev, this), ChangesFeedMode);
@@ -121,10 +121,9 @@ namespace Couchbase.Lite.PeerToPeer
                 }
             }
 
-            if (ChangesFeedMode == ChangesFeedMode.LongPoll && Changes.Count > 0) {
-                Response.WriteHeaders();
-                Response.JsonBody = new Body(DatabaseMethods.ResponseBodyForChanges(Changes, 0, this));
-                Response.WriteToContext();
+            if (ChangesFeedMode == ChangesFeedMode.LongPoll && _changes.Count > 0) {
+                var body = new Body(DatabaseMethods.ResponseBodyForChanges(_changes, 0, this));
+                Response.WriteData(body.GetJson(), true);
                 CouchbaseLiteRouter.ResponseFinished(this);
             }
         }

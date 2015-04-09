@@ -36,7 +36,7 @@ namespace Couchbase.Lite.PeerToPeer
     internal static class DatabaseMethods
     {
         private const string TAG = "DatabaseMethods";
-        private const double MIN_HEARTBEAT = 5000.0; //NOTE: iOS uses seconds but .NET uses milliseconds
+        private const int MIN_HEARTBEAT = 5000; //NOTE: iOS uses seconds but .NET uses milliseconds
 
         public static ICouchbaseResponseState GetConfiguration(ICouchbaseListenerContext context)
         {
@@ -277,8 +277,8 @@ namespace Couchbase.Lite.PeerToPeer
                     }
 
                     if(context.ChangesFeedMode >= ChangesFeedMode.Continuous) {
-                        response.WriteHeaders();
                         response.Chunked = true;
+                        response.WriteHeaders();
                         foreach(var rev in changes) {
                             response.SendContinuousLine(ChangesDictForRev(rev, responseState), context.ChangesFeedMode);
                         }
@@ -287,8 +287,8 @@ namespace Couchbase.Lite.PeerToPeer
                     responseState.SubscribeToDatabase(db);
                     string heartbeatParam = context.GetQueryParam("heartbeat");
                     if(heartbeatParam != null) {
-                        double heartbeat;
-                        if(!double.TryParse(heartbeatParam, out heartbeat) || heartbeat <= 0) {
+                        int heartbeat;
+                        if(!int.TryParse(heartbeatParam, out heartbeat) || heartbeat <= 0) {
                             responseState.IsAsync = false;
                             return new CouchbaseLiteResponse(context) { InternalStatus = StatusCode.BadParam };
                         }
@@ -313,7 +313,7 @@ namespace Couchbase.Lite.PeerToPeer
             responseState.Response = responseObject;
             return responseState;
         }
-
+            
         public static ICouchbaseResponseState Compact(ICouchbaseListenerContext context)
         {
             return PerformLogicWithDatabase(context, true, db =>

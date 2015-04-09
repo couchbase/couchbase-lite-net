@@ -50,7 +50,7 @@ namespace Couchbase.Lite.PeerToPeer
                 { "/{[^_].*}/_changes", DatabaseMethods.GetChanges },
                 { "/{[^_].*}/*", DocumentMethods.GetDocument },
                 { "/{[^_].*}/_local/*", DocumentMethods.GetDocument },
-                { "/{[^_].*}/*/*", DocumentMethods.GetAttachment },
+                { "/{[^_].*}/*/**", DocumentMethods.GetAttachment },
                 { "/{[^_].*}/_design/*/_view/*", ViewMethods.GetDesignView }
             });
 
@@ -72,7 +72,7 @@ namespace Couchbase.Lite.PeerToPeer
                 { "/{[^_].*}", DatabaseMethods.UpdateConfiguration },
                 { "/{[^_].*}/*", DocumentMethods.UpdateDocument },
                 { "/{[^_].*}/_local/*", DocumentMethods.UpdateDocument },
-                { "/{[^_].*}/*/*", DocumentMethods.UpdateAttachment },
+                { "/{[^_].*}/*/**", DocumentMethods.UpdateAttachment },
                 { "/{[^_].*}/_design/*", DocumentMethods.UpdateDocument }
             });
 

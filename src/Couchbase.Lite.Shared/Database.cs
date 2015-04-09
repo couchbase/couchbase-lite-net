@@ -4175,7 +4175,7 @@ PRAGMA user_version = 3;";
                 }
             }
 
-            return AttachmentForDict(attachments[name].AsDictionary<string, object>(), name, status);
+            return AttachmentForDict(attachments.Get(name).AsDictionary<string, object>(), name, status);
         }
 
         internal String GenerateIDForRevision(RevisionInternal rev, IEnumerable<byte> json, IDictionary<string, AttachmentInternal> attachments, string previousRevisionId)
