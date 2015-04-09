@@ -9,7 +9,7 @@
     <RootNamespace>Couchbase.Lite.iOS.Tests</RootNamespace>
     <IPhoneResourcePrefix>Resources</IPhoneResourcePrefix>
     <AssemblyName>CouchbaseLiteiOSTests</AssemblyName>
-    <ReleaseVersion>1.0.5</ReleaseVersion>
+    <ReleaseVersion>1.1</ReleaseVersion>
     <SolutionDir Condition="$(SolutionDir) == '' Or $(SolutionDir) == '*Undefined*'">..\</SolutionDir>
     <RestorePackages>true</RestorePackages>
   </PropertyGroup>

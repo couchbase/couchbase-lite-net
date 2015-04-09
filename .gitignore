@@ -142,3 +142,4 @@ samples/Sync10kDocsSample*
 samples/CouchbaseSample.Android/Resources/Resource.designer.cs
 *.nupkg
 UnityEngine.dll
+version

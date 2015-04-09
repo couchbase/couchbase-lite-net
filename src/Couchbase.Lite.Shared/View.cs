@@ -334,7 +334,9 @@ namespace Couchbase.Lite {
 
                                 map(properties, emitBlock);
                             }
-                        }
+                            } else {
+                                keepGoing = cursor.MoveToNext();
+                            }
                     }
 
                     // Finally, record the last revision sequence number that was 

@@ -56,6 +56,7 @@ using System.Collections.ObjectModel;
 using Couchbase.Lite.Replicator;
 using Couchbase.Lite.Support;
 using System.Net.NetworkInformation;
+using System.Reflection;
 
 #if !NET_3_5
 using StringEx = System.String;
@@ -71,7 +72,7 @@ namespace Couchbase.Lite
 
     #region Constants
 
-        const string VersionString = "1.0.5_unofficial";
+        public static readonly string VersionString;
         const string Tag = "Manager";
 
         /// <summary>
@@ -142,6 +143,19 @@ namespace Couchbase.Lite
             {
                 defaultDirectory = new DirectoryInfo(defaultDirectoryPath);
             }
+
+            #if !OFFICIAL
+            string gitVersion= String.Empty;
+            using (Stream stream = Assembly.GetExecutingAssembly()
+                .GetManifestResourceStream("version"))
+            using (StreamReader reader = new StreamReader(stream))
+            {
+                gitVersion= reader.ReadToEnd();
+            }
+            VersionString = String.Format("Unofficial ({0})", gitVersion.TrimEnd());
+            #else
+            VersionString = "1.1";
+            #endif
         }
 
         /// <summary>

@@ -201,7 +201,7 @@ namespace Couchbase.Lite.Shared
 
         int transactionCount = 0;
 
-        public void BeginTransaction()
+        public int BeginTransaction()
         {
             if (!IsOpen)
             {
@@ -223,16 +223,18 @@ namespace Couchbase.Lite.Shared
                 });
                 t.Wait();
             }
+
+            return value;
         }
 
-        public void EndTransaction()
+        public int EndTransaction()
         {
             if (_writeConnection == null)
                 throw new InvalidOperationException("Database is not open.");
 
             var count = Interlocked.Decrement(ref transactionCount);
             if (count > 0)
-                return;
+                return count;
 
             /*if (_writeConnection == null)
             {
@@ -260,6 +262,8 @@ namespace Couchbase.Lite.Shared
                 }
             });
             t.Wait();
+
+            return 0;
         }
 
         public void SetTransactionSuccessful()

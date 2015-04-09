@@ -690,8 +690,7 @@ namespace Couchbase.Lite
                     Log.V(Tag, "Tx delegate done: {0}", shouldCommit);
                     EndTransaction(shouldCommit);
                 }
-
-                Log.V(Tag, "Tx delegate complete: {0}", shouldCommit);
+                        
                 return shouldCommit;
             });
 
@@ -2339,10 +2338,7 @@ PRAGMA user_version = 3;";
         {
             try
             {
-                StorageEngine.BeginTransaction();
-
-                ++_transactionLevel;
-
+                _transactionLevel = StorageEngine.BeginTransaction();
                 Log.D(Tag, "Begin transaction (level " + _transactionLevel + ")");
             }
             catch (SQLException e)
@@ -2363,27 +2359,24 @@ PRAGMA user_version = 3;";
 
             if (commit)
             {
-                Log.D(Tag, "Committing transaction (level " + _transactionLevel + ")");
-
+                Log.V(Tag, "    Committing transaction (level " + _transactionLevel + ")");
                 StorageEngine.SetTransactionSuccessful();
-                StorageEngine.EndTransaction();
             }
             else
             {
-                Log.V(Tag, "CANCEL transaction (level " + _transactionLevel + ")");
-                try
-                {
-                    StorageEngine.EndTransaction();
-                }
-                catch (SQLException e)
-                {
-                    Log.E(Tag, " Error calling endTransaction()", e);
-
-                    return false;
-                }
+                Log.V(Tag, "    CANCEL transaction (level " + _transactionLevel + ")");
             }
 
-            --_transactionLevel;
+            try
+            {
+                _transactionLevel = StorageEngine.EndTransaction();
+            }
+            catch (SQLException e)
+            {
+                Log.E(Tag, " Error calling endTransaction()", e);
+                return false;
+            }
+                
             PostChangeNotifications();
 
             return true;
@@ -3430,8 +3423,10 @@ PRAGMA user_version = 3;";
             return result;
         }
 
-        internal void PostChangeNotifications()
+        internal bool PostChangeNotifications()
         {
+            bool posted = false;
+
             // This is a 'while' instead of an 'if' because when we finish posting notifications, there
             // might be new ones that have arrived as a result of notification handlers making document
             // changes of their own (the replicator manager will do this.) So we need to check again.
@@ -3452,7 +3447,7 @@ PRAGMA user_version = 3;";
                     foreach (var change in outgoingChanges)
                     {
                         var document = GetDocument(change.DocumentId);
-                        document.RevisionAdded(change);
+                        document.RevisionAdded(change, true);
                         if (change.SourceUrl != null)
                         {
                             isExternal = true;
@@ -3468,6 +3463,8 @@ PRAGMA user_version = 3;";
                     var changeEvent = _changed;
                     if (changeEvent != null)
                         changeEvent(this, args);
+
+                    posted = true;
                 }
                 catch (Exception e)
                 {
@@ -3478,6 +3475,11 @@ PRAGMA user_version = 3;";
                     _isPostingChangeNotifications = false;
                 }
             }
+
+            if(!posted) {
+                Log.V(Tag, "    Change notifications not posted (Tx level {0}, change count {1})", _transactionLevel, _changesToNotify.Count);
+            }
+            return posted;
         }
 
         internal void NotifyChange(RevisionInternal rev, RevisionInternal winningRev, Uri source, bool inConflict)
@@ -3485,7 +3487,16 @@ PRAGMA user_version = 3;";
             var change = new DocumentChange(rev, winningRev, inConflict, source);
             _changesToNotify.Add(change);
 
-            PostChangeNotifications();
+            if (!PostChangeNotifications())
+            {
+                // The notification wasn't posted yet, probably because a transaction is open.
+                // But the Document, if any, needs to know right away so it can update its
+                // currentRevision.
+                var doc = DocumentCache.Get(change.DocumentId);
+                if (doc != null) {
+                    doc.RevisionAdded(change, false);
+                }
+            }
         }
 
         /// <summary>

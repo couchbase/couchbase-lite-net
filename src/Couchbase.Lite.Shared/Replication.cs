@@ -141,7 +141,6 @@ namespace Couchbase.Lite
             CancellationTokenSource = new CancellationTokenSource();
             RemoteUrl = remote;
             Status = ReplicationStatus.Stopped;
-            online = db.Manager.NetworkReachabilityManager.CanReach(remote.AbsoluteUri);
             RequestHeaders = new Dictionary<String, Object>();
             requests = new HashSet<HttpClient>();
 
@@ -1793,6 +1792,7 @@ namespace Couchbase.Lite
                 return;
             }
 
+            online = LocalDatabase.Manager.NetworkReachabilityManager.CanReach(RemoteUrl.AbsoluteUri);
             LocalDatabase.AddReplication(this);
             LocalDatabase.AddActiveReplication(this);
 

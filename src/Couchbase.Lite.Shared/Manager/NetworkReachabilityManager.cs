@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Net.NetworkInformation;
 using Couchbase.Lite.Util;
 using System.Threading;
