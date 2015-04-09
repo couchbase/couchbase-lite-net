@@ -609,7 +609,12 @@ namespace Couchbase.Lite.Replicator
             Log.V(Tag, "QueueDownloadedRevision() calling AsyncTaskStarted()");
             AsyncTaskStarted();
 
-            downloadsToInsert.QueueObject(rev);
+			if (downloadsToInsert != null) {
+				downloadsToInsert.QueueObject(rev);
+			}
+			else {
+				Log.E (Tag, "downloadsToInsert is null");
+			}
         }
 
         // Get as many revisions as possible in one _all_docs request.
@@ -784,7 +789,13 @@ namespace Couchbase.Lite.Replicator
                         gotRev.SetSequence(rev.GetSequence());
                         AsyncTaskStarted ();
                         Log.D(Tag, "PullRemoteRevision add rev: " + gotRev + " to batcher");
-                        downloadsToInsert.QueueObject(gotRev);
+						
+						if (downloadsToInsert != null) {
+							downloadsToInsert.QueueObject(gotRev);
+						}
+						else {
+							Log.E (Tag, "downloadsToInsert is null");
+						}
                     }
                 }
                 finally

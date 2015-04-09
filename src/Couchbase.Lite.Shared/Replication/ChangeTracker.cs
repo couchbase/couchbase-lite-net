@@ -333,7 +333,12 @@ namespace Couchbase.Lite.Replicator
                     info.ContinueWith((t)=>
                         evt.Set()
                     );
-                    evt.WaitOne(ManagerOptions.Default.RequestTimeout);
+                    
+					if (evt.WaitOne(ManagerOptions.Default.RequestTimeout) == false)
+					{
+						Log.W(Tag, "SendAsync timeout");
+						continue;
+					}
 
                     changesRequestTask = info;
 
