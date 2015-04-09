@@ -60,7 +60,12 @@ namespace Couchbase.Lite.Replicator
 
         private int _docCount;
 
-        public event EventHandler<BulkDownloadEventArgs> DocumentDownloaded;
+        public event EventHandler<BulkDownloadEventArgs> DocumentDownloaded
+        {
+            add { _documentDownloaded = (EventHandler<BulkDownloadEventArgs>)Delegate.Combine(_documentDownloaded, value); }
+            remove { _documentDownloaded = (EventHandler<BulkDownloadEventArgs>)Delegate.Remove(_documentDownloaded, value); }
+        }
+        private EventHandler<BulkDownloadEventArgs> _documentDownloaded;
 
         /// <exception cref="System.Exception"></exception>
         public BulkDownloader(TaskFactory workExecutor, IHttpClientFactory clientFactory, Uri dbURL, IList<RevisionInternal> revs, Database database, IDictionary<string, object> requestHeaders, CancellationTokenSource tokenSource = null)
@@ -325,7 +330,7 @@ namespace Couchbase.Lite.Replicator
 
         protected virtual void OnDocumentDownloaded (IDictionary<string, object> props)
         {
-            var handler = DocumentDownloaded;
+            var handler = _documentDownloaded;
             if (handler != null)
                 handler (this, new BulkDownloadEventArgs(props));
         }
