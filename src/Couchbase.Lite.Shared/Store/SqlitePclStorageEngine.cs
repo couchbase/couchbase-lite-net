@@ -214,6 +214,7 @@ namespace Couchbase.Lite.Shared
                 command.Dispose();
             }
 
+            //Cursor can be null if there is an exception
             return cursor;
         }
 

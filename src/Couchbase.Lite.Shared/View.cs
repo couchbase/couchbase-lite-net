@@ -756,6 +756,7 @@ namespace Couchbase.Lite {
             argsList.AddItem(options.GetLimit().ToString());
             argsList.AddItem(options.GetSkip().ToString());
             Log.D(Database.Tag, "Query {0}:{1}", Name, sql);
+
             var cursor = Database.StorageEngine.IntransactionRawQuery(sql, argsList.ToArray());
             return cursor;
         }

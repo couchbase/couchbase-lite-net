@@ -118,7 +118,7 @@ namespace Couchbase.Lite.Shared
             if (status != raw.SQLITE_OK)
             {
                 Path = null;
-                var errMessage = "Cannot open Sqlite Database at path {0} ({1})".Fmt(Path, status);
+                var errMessage = "Cannot open Sqlite Database at pth {0}".Fmt(Path);
                 throw new CouchbaseLiteException(errMessage, StatusCode.DbError);
             }
 #if !__ANDROID__ && !NET_3_5 && VERBOSE
@@ -280,10 +280,11 @@ namespace Couchbase.Lite.Shared
         {  
             var t = Factory.StartNew(()=>
             {
-                var command = BuildCommand(_writeConnection, sql, paramArgs);
-
+                sqlite3_stmt command = null;
+                    
                 try
                 {
+                    command = BuildCommand(_writeConnection, sql, paramArgs);
                     var result = command.step();
                     if (result == SQLiteResult.ERROR)
                         throw new CouchbaseLiteException(raw.sqlite3_errmsg(_writeConnection), StatusCode.DbError);
@@ -295,7 +296,10 @@ namespace Couchbase.Lite.Shared
                 }
                 finally
                 {
-                    command.Dispose();
+                    if(command != null)
+                    {
+                        command.Dispose();
+                    }
                 }
             }, _cts.Token);
 
@@ -337,18 +341,21 @@ namespace Couchbase.Lite.Shared
                 Open(Path);
             }
 
-            if (transactionCount == 0)
+            if (transactionCount == 0) 
+            {
                 return RawQuery(sql, paramArgs);
+            }
 
             var t = Factory.StartNew(() =>
             {
                 Cursor cursor = null;
-                var command = BuildCommand (_writeConnection, sql, paramArgs);
+                sqlite3_stmt command = null;
                 try 
                 {
                     Log.V(Tag, "RawQuery sql: {0} ({1})", sql, String.Join(", ", paramArgs.ToStringArray()));
+                    command = BuildCommand (_writeConnection, sql, paramArgs);
                     cursor = new Cursor(command);
-                } 
+                }
                 catch (Exception e) 
                 {
                     if (command != null) 
@@ -379,10 +386,12 @@ namespace Couchbase.Lite.Shared
             }
 
             Cursor cursor = null;
-            var command = BuildCommand (_readConnection, sql, paramArgs);
+            sqlite3_stmt command = null;
+
             try 
             {
                 Log.V(Tag, "RawQuery sql: {0} ({1})", sql, String.Join(", ", paramArgs.ToStringArray()));
+                command = BuildCommand (_readConnection, sql, paramArgs);
                 cursor = new Cursor(command);
             } 
             catch (Exception e) 
@@ -487,7 +496,9 @@ namespace Couchbase.Lite.Shared
             }, CancellationToken.None);
 
             // NOTE.ZJG: Just a sketch here. Needs better error handling, etc.
-            var r = t.Result;
+
+            //doesn't look good
+            var r = t.GetAwaiter().GetResult();
             if (t.Exception != null)
                 throw t.Exception;
             return r;
@@ -525,10 +536,15 @@ namespace Couchbase.Lite.Shared
                 }
                 return resultCount;
             });
+
             // NOTE.ZJG: Just a sketch here. Needs better error handling, etc.
-            var r = t.Result;
-            if (t.Exception != null)
+            var r = t.GetAwaiter().GetResult();
+            if (t.Exception != null) 
+            {
+                //this is bad: should not arbitrarily crash the app
                 throw t.Exception;
+            }
+                
             return r;
         }
 
@@ -598,15 +614,17 @@ namespace Couchbase.Lite.Shared
             {
                 if (!IsOpen)
                 {
-                    Open(Path);
+                    if(Open(Path) == false)
+                    {
+                        throw new CouchbaseLiteException("Failed to Open " + Path, StatusCode.DbError);
+                    }
                 }
-                    
+
                 int err = raw.sqlite3_prepare_v2(db, sql, out command);
-                if (paramArgs.Length > 0)
+                if (paramArgs.Length > 0 && command != null && err != raw.SQLITE_ERROR)
                 {
                     command.bind(paramArgs);
                 }
-
             }
             catch (Exception e)
             {
