@@ -69,7 +69,7 @@ namespace Couchbase.Lite
     /// <summary>
     /// A Couchbase Lite Database.
     /// </summary>
-    public sealed class Database 
+    public sealed class Database : IDisposable
     {
     #region Constructors
 
@@ -4834,7 +4834,17 @@ PRAGMA user_version = 3;";
 
 
     #endregion
+
+        #region IDisposable
+
+        public void Dispose()
+        {
+            if (!Close()) {
+                Log.E(Tag, "Error disposing database (possibly already disposed?)");
+            }
+        }
     
+        #endregion
     }
 
     #region Global Delegates
