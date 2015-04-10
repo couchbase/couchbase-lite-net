@@ -252,7 +252,7 @@ namespace Couchbase.Lite
         /// and are still running.
         /// </summary>
         /// <value>All replications.</value>
-        public IEnumerable<Replication> AllReplications { get { return AllReplicators; } }
+        public IEnumerable<Replication> AllReplications { get { return AllReplicators.ToList(); } }
 
         //Methods
 
