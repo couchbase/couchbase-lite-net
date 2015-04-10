@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Net.NetworkInformation;
 using Couchbase.Lite.Util;
 using System.Threading;
@@ -155,8 +155,8 @@ namespace Couchbase.Lite
             }
 
             if (count < 0) {
-                Debug.Assert(false, "Too many calls to INetworkReachabilityManager.StopListening()");
-                count = 0;
+                Log.W(TAG, "Too many calls to INetworkReachabilityManager.StopListening()");
+                Interlocked.Exchange(ref _startCount, 0);
                 return;
             }
 

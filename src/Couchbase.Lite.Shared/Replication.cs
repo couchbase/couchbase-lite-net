@@ -141,7 +141,6 @@ namespace Couchbase.Lite
             CancellationTokenSource = new CancellationTokenSource();
             RemoteUrl = remote;
             Status = ReplicationStatus.Stopped;
-            online = db.Manager.NetworkReachabilityManager.CanReach(remote.AbsoluteUri);
             RequestHeaders = new Dictionary<String, Object>();
             requests = new HashSet<HttpClient>();
 
@@ -263,7 +262,7 @@ namespace Couchbase.Lite
                         Task.Delay(SaveLastSequenceDelay)
                             .ContinueWith(task =>
                             {
-                                SaveLastSequence();
+                                SaveLastSequence(null);
                             });
                     }
                 }
@@ -515,9 +514,11 @@ namespace Couchbase.Lite
 
         internal void DatabaseClosing()
         {
-            SaveLastSequence();
-            Stop();
-            ClearDbRef();
+			lastSequenceChanged = true; // force save the sequence
+			SaveLastSequence (() => {
+				Stop ();
+				ClearDbRef ();
+			});
         }
 
         internal void ClearDbRef()
@@ -782,31 +783,37 @@ namespace Couchbase.Lite
 
             NotifyChangeListeners();
 
-            SaveLastSequence();
+			lastSequenceChanged = true; // force save the sequence
+			SaveLastSequence (() => {
 
-            Log.V(Tag, "Set batcher to null");
+				Log.V (Tag, "Set batcher to null");
 
-            Batcher = null;
+				Batcher = null;
 
-            if (LocalDatabase != null)
-            {
-                var reachabilityManager = LocalDatabase.Manager.NetworkReachabilityManager;
-                if (reachabilityManager != null)
-                {
-                    reachabilityManager.StatusChanged -= NetworkStatusChanged;
-                    reachabilityManager.StopListening();
-                }
-            }
+				if (LocalDatabase != null) {
+					var reachabilityManager = LocalDatabase.Manager.NetworkReachabilityManager;
+					if (reachabilityManager != null) {
+						reachabilityManager.StatusChanged -= NetworkStatusChanged;
+						reachabilityManager.StopListening ();
+					}
+				}
 
-            ClearDbRef();
+				ClearDbRef ();
 
-            Log.V(Tag, "...stopped");
+				Log.V (Tag, "...stopped");
+			});
         }
 
-        internal void SaveLastSequence()
+		public delegate void SaveLastSequenceCompletionBlock();
+
+		internal void SaveLastSequence(SaveLastSequenceCompletionBlock completionHandler)
         {
             if (!lastSequenceChanged)
             {
+				if (completionHandler != null)
+				{
+					completionHandler ();
+				}
                 return;
             }
             if (savingCheckpoint)
@@ -847,12 +854,20 @@ namespace Couchbase.Lite
                 if (LocalDatabase == null)
                 {
                     Log.W(Tag, "Database is null, ignoring remote checkpoint response");
+					if (completionHandler != null)
+					{
+						completionHandler ();
+					}
                     return;
                 }
 
                 if (!LocalDatabase.Open())
                 {
                     Log.W(Tag, "Database is closed, ignoring remote checkpoint response");
+					if (completionHandler != null)
+					{
+						completionHandler ();
+					}
                     return;
                 }
 
@@ -889,8 +904,14 @@ namespace Couchbase.Lite
                 }
 
                 if (overdueForSave) {
-                    SaveLastSequence ();
+					SaveLastSequence (completionHandler);
                 }
+				else {
+					if (completionHandler != null)
+					{
+						completionHandler ();
+					}
+				}
             });
         }
 
@@ -1391,7 +1412,7 @@ namespace Couchbase.Lite
                         Log.D(Tag, "Refreshed remote checkpoint: " + result);
                         remoteCheckpoint = (IDictionary<string, object>)result;
                         lastSequenceChanged = true;
-                        SaveLastSequence();
+                        SaveLastSequence(null);
                     }
 
                 }
@@ -1846,6 +1867,7 @@ namespace Couchbase.Lite
                 return;
             }
 
+            online = LocalDatabase.Manager.NetworkReachabilityManager.CanReach(RemoteUrl.AbsoluteUri);
             LocalDatabase.AddReplication(this);
             LocalDatabase.AddActiveReplication(this);
 

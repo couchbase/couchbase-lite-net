@@ -64,13 +64,15 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "NuGet", "NuGet", "{3F2E642D
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Couchbase.Lite.Net35", "Couchbase.Lite.Net35\Couchbase.Lite.Net35.csproj", "{81999CC3-2DB5-42DA-976F-20EF8AE047E1}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "System.Threading.Tasks.Net35", "Couchbase.Lite.Net35\vendor\Rackspace\Rackspace.Threading\System.Threading.Tasks.Net35\System.Threading.Tasks.Net35.csproj", "{DCB5D745-525C-46A1-BFC0-E12F87AB6165}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Couchbase.Lite.Unity", "Couchbase.Lite.Unity\Couchbase.Lite.Unity.csproj", "{5831782E-A661-4BD0-8D3B-813B963E7B82}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Vendor", "Vendor", "{6E3DD8B6-60D2-406E-B5EE-8CC4A830CC39}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Rackspace.Threading.net35-client", "Couchbase.Lite.Net35\vendor\Rackspace\Rackspace.Threading\Rackspace.Threading\Rackspace.Threading.net35-client.csproj", "{52CA4A3B-F296-4489-B5F0-AD375D039B35}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "System.Net.Http-net_4_5", "Couchbase.Lite.Net35\vendor\Rackspace\System.Net.Http\System.Net.Http-net_4_5.csproj", "{9862694D-E4FA-418B-8692-A0280FEDDF36}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Couchbase.Lite.Unity", "Couchbase.Lite.Unity\Couchbase.Lite.Unity.csproj", "{5831782E-A661-4BD0-8D3B-813B963E7B82}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "System.Threading.Tasks.Net35", "Couchbase.Lite.Net35\vendor\Rackspace\Rackspace.Threading\System.Threading.Tasks.Net35\System.Threading.Tasks.Net35.csproj", "{DCB5D745-525C-46A1-BFC0-E12F87AB6165}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Listener", "Listener\Listener.csproj", "{A31A98F1-8B95-479A-8E88-C770DDDB0292}"
 EndProject
@@ -237,6 +239,9 @@ Global
 		{1B765803-7F61-497E-96D0-3BE5AF32C81A} = {3D44EF32-EE84-42A0-B586-6AE71AB75CFF}
 		{47BE374F-A87F-4C96-B283-4B62E55D6E5E} = {628D4C66-5E24-40E2-ACD4-67CA9D8D665E}
 		{3F2E642D-D821-4DD0-BE55-5801E924D0EF} = {628D4C66-5E24-40E2-ACD4-67CA9D8D665E}
+		{52CA4A3B-F296-4489-B5F0-AD375D039B35} = {6E3DD8B6-60D2-406E-B5EE-8CC4A830CC39}
+		{9862694D-E4FA-418B-8692-A0280FEDDF36} = {6E3DD8B6-60D2-406E-B5EE-8CC4A830CC39}
+		{DCB5D745-525C-46A1-BFC0-E12F87AB6165} = {6E3DD8B6-60D2-406E-B5EE-8CC4A830CC39}
 	EndGlobalSection
 	GlobalSection(MonoDevelopProperties) = preSolution
 		Policies = $0
@@ -269,7 +274,7 @@ Global
 		$2.inheritsSet = Mono
 		$2.inheritsScope = text/x-csharp
 		$2.scope = text/x-csharp
-		version = 1.0.5
+		version = 1.1
 	EndGlobalSection
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution
 		Couchbase.Lite.Shared\Couchbase.Lite.Shared.projitems*{5615e423-d0fd-4f99-a99c-061679615cee}*SharedItemsImports = 4

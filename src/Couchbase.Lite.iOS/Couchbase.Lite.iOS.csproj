@@ -9,7 +9,7 @@
     <RootNamespace>Couchbase.Lite.iOS</RootNamespace>
     <IPhoneResourcePrefix>Resources</IPhoneResourcePrefix>
     <AssemblyName>Couchbase.Lite</AssemblyName>
-    <ReleaseVersion>1.0.5</ReleaseVersion>
+    <ReleaseVersion>1.1</ReleaseVersion>
     <SolutionDir Condition="$(SolutionDir) == '' Or $(SolutionDir) == '*Undefined*'">..\</SolutionDir>
     <RestorePackages>true</RestorePackages>
   </PropertyGroup>
@@ -24,6 +24,11 @@
     <ConsolePause>false</ConsolePause>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <DocumentationFile>bin\Debug\Couchbase.Lite.xml</DocumentationFile>
+    <CustomCommands>
+      <CustomCommands>
+        <Command type="BeforeBuild" command="git rev-parse --short HEAD &gt; &quot;${ProjectDir}/../Couchbase.Lite.Shared/Properties/version&quot;" workingdir="" externalConsole="True" />
+      </CustomCommands>
+    </CustomCommands>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
     <Platform Condition=" '$(Platform)' == '' ">iPhone</Platform>
@@ -39,23 +44,28 @@
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
+    <CustomCommands>
+      <CustomCommands>
+        <Command type="BeforeBuild" command="git rev-parse --short HEAD &gt; &quot;${SolutionDir}/Couchbase.Lite.Shared/Properties/version&quot;" externalConsole="True" />
+      </CustomCommands>
+    </CustomCommands>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="SQLitePCL.raw">
-      <HintPath>..\packages\SQLitePCL.raw_basic.0.7.0\lib\Xamarin.iOS10\SQLitePCL.raw.dll</HintPath>
-    </Reference>
-    <Reference Include="SQLitePCL.ugly">
-      <HintPath>..\packages\SQLitePCL.ugly.0.7.0\lib\portable-net45+netcore45+wp8+MonoAndroid10+MonoTouch10+Xamarin.iOS10\SQLitePCL.ugly.dll</HintPath>
-    </Reference>
-    <Reference Include="Newtonsoft.Json">
-      <HintPath>..\packages\Newtonsoft.Json.6.0.4\lib\portable-net40+sl5+wp80+win8+wpa81\Newtonsoft.Json.dll</HintPath>
-    </Reference>
     <Reference Include="System.Data" />
     <Reference Include="System.Net.Http" />
     <Reference Include="System.Web.Services" />
     <Reference Include="Xamarin.iOS" />
     <Reference Include="System.Core" />
     <Reference Include="System" />
+    <Reference Include="SQLitePCL.ugly">
+      <HintPath>..\packages\SQLitePCL.ugly.0.7.1\lib\portable-net45+netcore45+wp8+MonoAndroid10+MonoTouch10+Xamarin.iOS10\SQLitePCL.ugly.dll</HintPath>
+    </Reference>
+    <Reference Include="SQLitePCL.raw">
+      <HintPath>..\packages\SQLitePCL.raw_basic.0.7.1\lib\Xamarin.iOS10\SQLitePCL.raw.dll</HintPath>
+    </Reference>
+    <Reference Include="Newtonsoft.Json">
+      <HintPath>..\packages\Newtonsoft.Json.6.0.8\lib\portable-net40+sl5+wp80+win8+wpa81\Newtonsoft.Json.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Properties\" />

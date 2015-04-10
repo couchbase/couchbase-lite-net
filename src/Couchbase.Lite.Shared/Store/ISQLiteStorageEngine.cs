@@ -57,9 +57,9 @@ namespace Couchbase.Lite.Storage
 
         bool IsOpen { get; }
 
-        void BeginTransaction();
+        int BeginTransaction();
 
-        void EndTransaction();
+        int EndTransaction();
 
         void SetTransactionSuccessful();
 

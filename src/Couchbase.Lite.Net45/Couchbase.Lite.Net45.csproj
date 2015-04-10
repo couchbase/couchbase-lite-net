@@ -13,7 +13,7 @@
     <NuGetPackageImportStamp>f3b8302c</NuGetPackageImportStamp>
     <SolutionDir Condition="$(SolutionDir) == '' Or $(SolutionDir) == '*Undefined*'">..\</SolutionDir>
     <RestorePackages>true</RestorePackages>
-    <ReleaseVersion>1.0.5</ReleaseVersion>
+    <ReleaseVersion>1.1</ReleaseVersion>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
@@ -26,6 +26,11 @@
     <WarningLevel>4</WarningLevel>
     <Prefer32Bit>false</Prefer32Bit>
     <DocumentationFile>bin\Debug\Couchbase.Lite.xml</DocumentationFile>
+    <CustomCommands>
+      <CustomCommands>
+        <Command type="BeforeBuild" command="git rev-parse --short HEAD &gt; &quot;${ProjectDir}/../Couchbase.Lite.Shared/Properties/version&quot;" externalConsole="True" />
+      </CustomCommands>
+    </CustomCommands>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <Optimize>True</Optimize>
@@ -35,6 +40,11 @@
     <Prefer32Bit>false</Prefer32Bit>
     <DocumentationFile>bin\Release\Couchbase.Lite.xml</DocumentationFile>
     <DebugType>none</DebugType>
+    <CustomCommands>
+      <CustomCommands>
+        <Command type="BeforeBuild" command="git rev-parse --short HEAD &gt; &quot;${SolutionDir}/Couchbase.Lite.Shared/Properties/version&quot;" />
+      </CustomCommands>
+    </CustomCommands>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />

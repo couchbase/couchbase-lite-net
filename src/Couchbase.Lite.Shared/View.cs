@@ -339,7 +339,9 @@ namespace Couchbase.Lite {
 
                                 map(properties, emitBlock);
                             }
-                        }
+                            } else {
+                                keepGoing = cursor.MoveToNext();
+                            }
                     }
 
                     // Finally, record the last revision sequence number that was 
@@ -771,6 +773,7 @@ namespace Couchbase.Lite {
             argsList.AddItem(options.GetLimit().ToString());
             argsList.AddItem(options.GetSkip().ToString());
             Log.D(Database.Tag, "Query {0}:{1}", Name, sql);
+
             var cursor = Database.StorageEngine.IntransactionRawQuery(sql, argsList.ToArray());
             return cursor;
         }
