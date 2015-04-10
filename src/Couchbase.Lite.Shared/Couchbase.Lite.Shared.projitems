@@ -291,7 +291,7 @@
     <Folder Include="$(MSBuildThisFileDirectory)View\" />
   </ItemGroup>
   <ItemGroup>
-	<EmbeddedResource Include="$(MSBuildThisFileDirectory)Properties\version">
+    <EmbeddedResource Include="$(MSBuildThisFileDirectory)Properties\version">
       <LogicalName>version</LogicalName>
     </EmbeddedResource>
   </ItemGroup>
