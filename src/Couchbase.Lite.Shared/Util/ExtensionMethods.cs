@@ -55,6 +55,7 @@ using System.Threading.Tasks;
 using Newtonsoft.Json.Linq;
 
 using Sharpen;
+using System.ComponentModel;
 
 namespace Couchbase.Lite
 {
@@ -90,12 +91,19 @@ namespace Couchbase.Lite
                 return false;
             }
 
-            if (!(obj is T)) {
-                return false;
+            //If the types already match then things are easy
+            if ((obj is T)) {
+                value = (T)obj;
+                return true;
             }
 
-            value = (T)obj;
-            return true;
+            try {
+                //Take the slow route for things like boxed value types
+                value = (T)Convert.ChangeType(value, typeof(T));
+                return true;
+            } catch(Exception) {
+                return false;
+            }
         }
 
         public static T GetCast<T>(this IDictionary<string, object> collection, string key)
@@ -109,12 +117,18 @@ namespace Couchbase.Lite
             if (value == null) {
                 return defaultVal;
             }
-                
-            if (!(value is T)) {
-                return defaultVal;
+
+            //If the types already match then things are easy
+            if (value is T) {
+                return (T)value;
             }
 
-            return (T)value;
+            try {
+                //Take the slow route for things like boxed value types
+                return (T)Convert.ChangeType(value, typeof(T));
+            } catch(Exception) {
+                return defaultVal;
+            }
         }
 
         public static IEnumerable<T> AsSafeEnumerable<T>(this IEnumerable<T> source)
@@ -254,5 +268,39 @@ namespace Couchbase.Lite
         }
 
         #endif
+
+        private static bool IsNumeric<T>()
+        {
+            Type type = typeof(T);
+            return IsNumeric(type);
+        }
+
+        private static bool IsNumeric(Type type)
+        {
+            switch (Type.GetTypeCode(type)) {
+                case TypeCode.Byte:
+                case TypeCode.Decimal:
+                case TypeCode.Double:
+                case TypeCode.Int16:
+                case TypeCode.Int32:
+                case TypeCode.Int64:
+                case TypeCode.SByte:
+                case TypeCode.Single:
+                case TypeCode.UInt16:
+                case TypeCode.UInt32:
+                case TypeCode.UInt64:
+                    return true;
+
+                case TypeCode.Object:
+                    if ( type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Nullable<>))
+                    {
+                        return IsNumeric(Nullable.GetUnderlyingType(type));
+                    }
+                    return false;
+            }
+
+            return false;
+        }
+            
     }
 }

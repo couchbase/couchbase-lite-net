@@ -109,6 +109,10 @@ namespace Couchbase.Lite.Internal
                     return _data;
                 }
 
+                if (Database == null || Database.Attachments == null) {
+                    return null;
+                }
+
                 return Database.Attachments.BlobForKey(_blobKey);
             }
         }
@@ -201,7 +205,7 @@ namespace Couchbase.Lite.Internal
                 }
             }
 
-            var data = info.Get("Data");
+            var data = info.Get("data");
             if (data != null) {
                 // If there's inline attachment data, decode and store it:
                 if (data is string) {
@@ -214,10 +218,10 @@ namespace Couchbase.Lite.Internal
                     throw new CouchbaseLiteException(StatusCode.BadEncoding);
                 }
 
-                SetPossiblyEncodedLength(((IEnumerable<byte>)data).LongCount());
+                SetPossiblyEncodedLength(_data.LongCount());
             } else if (info.GetCast<bool>("stub", false)) {
                 // This item is just a stub; validate and skip it
-                int revPos = (int)info.GetCast<long>("revpos");
+                var revPos = info.GetCast<int>("revpos");
                 if (revPos <= 0) {
                     throw new CouchbaseLiteException(StatusCode.BadAttachment);
                 }
@@ -235,9 +239,9 @@ namespace Couchbase.Lite.Internal
             
         public IDictionary<string, object> AsStubDictionary()
         {
-            var retVal = new Dictionary<string, object> {
+            var retVal = new NonNullDictionary<string, object> {
                 { "stub", true },
-                { "digest", _blobKey.Base64Digest() },
+                { "digest", Digest },
                 { "content_type", ContentType },
                 { "revpos", RevPos },
                 { "length", Length }

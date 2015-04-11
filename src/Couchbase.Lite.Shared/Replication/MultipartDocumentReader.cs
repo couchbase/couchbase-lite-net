@@ -68,7 +68,7 @@ namespace Couchbase.Lite.Support
 
         private IDictionary<String, BlobStoreWriter> attachmentsByName;
 
-        private IDictionary<String, BlobStoreWriter> attachmentsByMd5Digest;
+        private IDictionary<String, BlobStoreWriter> attachmentsBySHA1Digest;
 
         public MultipartDocumentReader(Database database)
         {
@@ -103,7 +103,7 @@ namespace Couchbase.Lite.Support
             } else if (contentType.StartsWith ("multipart/", StringComparison.InvariantCultureIgnoreCase)) {
                 multipartReader = new MultipartReader(contentType, this);
                 attachmentsByName = new Dictionary<String, BlobStoreWriter>();
-                attachmentsByMd5Digest = new Dictionary<String, BlobStoreWriter>();
+                attachmentsBySHA1Digest = new Dictionary<String, BlobStoreWriter>();
             }  else {
                 throw new ArgumentException("contentType must start with multipart/");
             }
@@ -185,7 +185,7 @@ namespace Couchbase.Lite.Support
                     {
                         if (digest != null)
                         {
-                            writer = attachmentsByMd5Digest.Get(digest);
+                            writer = attachmentsBySHA1Digest.Get(digest);
                             if (writer == null)
                             {
                                 var errMsg = String.Format("Attachment '{0}' does not appear in MIME body ", attachmentName);
@@ -194,10 +194,10 @@ namespace Couchbase.Lite.Support
                         }
                         else
                         {
-                            if (attachments.Count == 1 && attachmentsByMd5Digest.Count == 1)
+                            if (attachments.Count == 1 && attachmentsBySHA1Digest.Count == 1)
                             {
                                 // Else there's only one attachment, so just assume it matches & use it:
-                                writer = attachmentsByMd5Digest.Values.First();
+                                writer = attachmentsBySHA1Digest.Values.First();
                                 attachment["digest"] = writer.MD5DigestString();
                             }
                             else
@@ -229,14 +229,14 @@ namespace Couchbase.Lite.Support
                 }
             }
 
-            if (numAttachmentsInDoc < attachmentsByMd5Digest.Count)
+            if (numAttachmentsInDoc < attachmentsBySHA1Digest.Count)
             {
-                var msg = String.Format("More MIME bodies ({0}) than attachments ({1}) ", attachmentsByMd5Digest.Count, numAttachmentsInDoc);
+                var msg = String.Format("More MIME bodies ({0}) than attachments ({1}) ", attachmentsBySHA1Digest.Count, numAttachmentsInDoc);
                 throw new InvalidOperationException(msg);
             }
 
             // hand over the (uninstalled) blobs to the database to remember:
-            database.RememberAttachmentWritersForDigests(attachmentsByMd5Digest);
+            database.RememberAttachmentWritersForDigests(attachmentsBySHA1Digest);
         }
 
         public void StartedPart(IDictionary<String, String> headers)
@@ -286,7 +286,7 @@ namespace Couchbase.Lite.Support
             {
                 curAttachment.Finish();
                 String md5String = curAttachment.MD5DigestString();
-                attachmentsByMd5Digest.Put(md5String, curAttachment);
+                attachmentsBySHA1Digest.Put(md5String, curAttachment);
                 curAttachment = null;
             }
         }

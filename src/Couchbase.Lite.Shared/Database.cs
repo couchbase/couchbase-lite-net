@@ -1503,7 +1503,7 @@ PRAGMA user_version = 3;";
                 "WHERE doc_id=? and revid in ({0}) and revid <= ? " +
                 "ORDER BY revid DESC LIMIT 1", Database.JoinQuoted(revIds));
 
-            var c = StorageEngine.RawQuery(sql, rev.GetRevId());
+            var c = StorageEngine.RawQuery(sql, docNumericId, rev.GetRevId());
             if (c.MoveToNext()) {
                 return c.GetString(0);
             }
@@ -2335,7 +2335,7 @@ PRAGMA user_version = 3;";
 
         internal void RememberAttachmentWriter (BlobStoreWriter writer)
         {
-            var digest = writer.MD5DigestString();
+            var digest = writer.SHA1DigestString();
             PendingAttachmentsByDigest[digest] = writer;
         }
 
@@ -3196,6 +3196,16 @@ PRAGMA user_version = 3;";
                 throw new CouchbaseLiteException(StatusCode.BadRequest);
             }
 
+            if (oldRev.GetAttachments() != null) {
+                var tmpRev = new RevisionInternal(docId, prevRevId, deleted);
+                tmpRev.SetProperties(oldRev.GetProperties());
+                if (!ProcessAttachmentsForRevision(tmpRev, prevRevId, resultStatus)) {
+                    return null;
+                }
+
+                oldRev.SetProperties(tmpRev.GetProperties());
+            }
+
             Cursor cursor = null;
             var inConflict = false;
             RevisionInternal winningRev = null;
@@ -3304,8 +3314,6 @@ PRAGMA user_version = 3;";
                     || (!deleted && prevRevId != null && oldWinningRevID != null && !prevRevId.Equals(oldWinningRevID));
 
                     // PART II: In which we prepare for insertion...
-                    // Get the attachments:
-                    var attachments = GetAttachmentsFromRevision(oldRev);
 
                     // Bump the revID and update the JSON:
                     IList<byte> json = null;
@@ -3331,12 +3339,13 @@ PRAGMA user_version = 3;";
                         json = Encoding.UTF8.GetBytes("{}"); // NOTE.ZJG: Confirm w/ Traun. This prevents a null reference exception in call to InsertRevision below.
                     }
 
-                    var newRevId = GenerateIDForRevision(oldRev, json, attachments, prevRevId);
+                    var newRevId = GenerateIDForRevision(oldRev, json, prevRevId);
                     newRev = oldRev.CopyWithDocID(docId, newRevId);
-                    StubOutAttachmentsInRevision(attachments, newRev);
 
                     // Now insert the rev itself:
-                    var newSequence = InsertRevision(newRev, docNumericID, parentSequence, true, (attachments.Count > 0), json);
+                    var attachments = newRev.GetAttachments();
+                    var newSequence = InsertRevision(newRev, docNumericID, parentSequence, true, 
+                        (attachments != null && attachments.Count > 0), json);
 
                     if (newSequence <= 0)
                     {
@@ -3354,12 +3363,6 @@ PRAGMA user_version = 3;";
                     {
                         Log.E(Database.Tag, "Error setting parent rev non-current", e);
                         throw new CouchbaseLiteException(StatusCode.InternalServerError);
-                    }
-
-                    // Store any attachments:
-                    if (attachments != null)
-                    {
-                        ProcessAttachmentsForRevision(attachments, newRev, parentSequence);
                     }
 
                     // Figure out what the new winning rev ID is:
@@ -3386,8 +3389,6 @@ PRAGMA user_version = 3;";
                     {
                         cursor.Close();
                     }
-
-
 
                     if (!string.IsNullOrEmpty(docId))
                     {
@@ -3818,6 +3819,8 @@ PRAGMA user_version = 3;";
 
                 properties["_attachments"] = nuAttachments;  
             }
+
+            rev.SetProperties(properties);
         }
 
         internal Uri FileForAttachmentDict(IDictionary<String, Object> attachmentDict)
@@ -3854,9 +3857,10 @@ PRAGMA user_version = 3;";
         internal bool ExpandAttachments(RevisionInternal rev, int minRevPos, bool allowFollows, 
             bool decodeAttachments, Status outStatus)
         {
+            outStatus.SetCode(StatusCode.Ok);
             rev.MutateAttachments((name, attachment) =>
             {
-                int revPos = attachment.GetCast<int>("revpos");
+                var revPos = attachment.GetCast<long>("revpos");
                 if(revPos < minRevPos && revPos != 0) {
                     //Stub:
                     return new Dictionary<string, object> { { "stub", true }, { "revpos", revPos } };
@@ -3893,15 +3897,14 @@ PRAGMA user_version = 3;";
 
                     expanded["data"] = Convert.ToBase64String(data.ToArray());
                 }
-
-                outStatus.SetCode(StatusCode.Ok);
+                    
                 return expanded;
             });
 
             return outStatus.GetCode() == StatusCode.Ok;
         }
 
-        private AttachmentInternal AttachmentForDict(IDictionary<string, object> info, string filename, Status status)
+        internal AttachmentInternal AttachmentForDict(IDictionary<string, object> info, string filename, Status status)
         {
             if (info == null) {
                 if (status != null) {
@@ -4014,53 +4017,132 @@ PRAGMA user_version = 3;";
                 return editedAttachment;
             });
         }
+            
+        static readonly HashSet<string> KEYS_TO_LEAVE = new HashSet<string> { 
+            "_removed", "_attachments"
+        };
 
-        /// <summary>INSERTION:</summary>
-        internal IEnumerable<Byte> EncodeDocumentJSON(RevisionInternal rev)
+        static readonly HashSet<string> KEYS_TO_REMOVE = new HashSet<string> { 
+            "_id", "_rev", "_deleted", "_revisions", "_revs_info", "_conflicts", 
+            "_deleted_conflicts", "_local_seq"
+        };
+
+        internal IEnumerable<byte> EncodeDocumentJSON(RevisionInternal rev)
         {
             var origProps = rev.GetProperties();
-            if (origProps == null)
-            {
+            if (origProps == null) {
                 return null;
             }
-            var specialKeysToLeave = new[] { "_removed", "_replication_id", "_replication_state", "_replication_state_time" };
 
             // Don't allow any "_"-prefixed keys. Known ones we'll ignore, unknown ones are an error.
-            var properties = new Dictionary<String, Object>(origProps.Count);
-            foreach (var key in origProps.Keys)
-            {
-                var shouldAdd = false;
-                if (key.StartsWith("_", StringComparison.InvariantCultureIgnoreCase))
-                {
-                    if (!KnownSpecialKeys.Contains(key))
-                    {
-                        Log.E(Tag, "Database: Invalid top-level key '" + key + "' in document to be inserted");
-                        return null;
-                    }
-                    if (specialKeysToLeave.Contains(key))
-                    {
-                        shouldAdd = true;
-                    }
-                }
-                else
-                {
-                    shouldAdd = true;
-                }
-                if (shouldAdd)
-                {
+            var properties = new Dictionary<string, object>(origProps.Count);
+            foreach (var key in origProps.Keys) {
+                if (!key.StartsWith("_", StringComparison.InvariantCultureIgnoreCase) || KEYS_TO_LEAVE.Contains(key)) {
                     properties.Put(key, origProps.Get(key));
+                } else if(!KEYS_TO_REMOVE.Contains(key)) {
+                    Log.E(Tag, "Database: Invalid top-level key '{0}' in document to be inserted", key);
+                    return null;
                 }
             }
+
             IEnumerable<byte> json = null;
-            try
-            {
+            try {
                 json = Manager.GetObjectMapper().WriteValueAsBytes(properties);
-            }
-            catch (Exception e)
-            {
+            } catch (Exception e) {
                 Log.E(Tag, "Error serializing " + rev + " to JSON", e);
             }
+
             return json;
+        }
+
+        internal bool ProcessAttachmentsForRevision(RevisionInternal rev, string prevRevId, Status status)
+        {
+            status.SetCode(StatusCode.Ok);
+            var revAttachments = rev.GetAttachments();
+            if (revAttachments == null) {
+                return true; // no-op: no attachments
+            }
+
+            // Deletions can't have attachments:
+            if (rev.IsDeleted() || revAttachments.Count == 0) {
+                var body = rev.GetProperties();
+                body.Remove("_attachments");
+                rev.SetProperties(body);
+                return true;
+            }
+
+            int generation = RevisionInternal.GenerationFromRevID(prevRevId) + 1;
+            IDictionary<string, object> parentAttachments = null;
+            return rev.MutateAttachments((name, attachInfo) =>
+            {
+                AttachmentInternal attachment = null;
+                try {
+                    attachment = new AttachmentInternal(name, attachInfo);
+                } catch(CouchbaseLiteException) {
+                    return null;
+                }
+
+                if(attachment.EncodedContent != null) {
+                    // If there's inline attachment data, decode and store it:
+                    BlobKey blobKey = new BlobKey();
+                    if(!Attachments.StoreBlob(attachment.EncodedContent.ToArray(), blobKey)) {
+                        status.SetCode(StatusCode.AttachmentError);
+                        return null;
+                    }
+
+                    attachment.BlobKey = blobKey;
+                } else if(attachInfo.GetCast<bool>("follows")) {
+                    // "follows" means the uploader provided the attachment in a separate MIME part.
+                    // This means it's already been registered in _pendingAttachmentsByDigest;
+                    // I just need to look it up by its "digest" property and install it into the store:
+                    InstallAttachment(attachment, attachInfo);
+                } else if(attachInfo.GetCast<bool>("stub")) {
+                    // "stub" on an incoming revision means the attachment is the same as in the parent.
+                    if(parentAttachments == null && prevRevId != null) {
+                        parentAttachments = GetAttachmentsFromDoc(rev.GetDocId(), prevRevId, status);
+                        if(parentAttachments == null) {
+                            if(status.GetCode() == StatusCode.Ok || status.GetCode() == StatusCode.NotFound) {
+                                status.SetCode(StatusCode.BadAttachment);
+                            }
+
+                            return null;
+                        }
+                    }
+
+                    var parentAttachment = parentAttachments == null ? null : parentAttachments.Get(name).AsDictionary<string, object>();
+                    if(parentAttachment == null) {
+                        status.SetCode(StatusCode.BadAttachment);
+                        return null;
+                    }
+
+                    return parentAttachment;
+                }
+
+
+                // Set or validate the revpos:
+                if(attachment.RevPos == 0) {
+                    attachment.RevPos = generation;
+                } else if(attachment.RevPos >= generation) {
+                    status.SetCode(StatusCode.BadAttachment);
+                    return null;
+                }
+
+                Debug.Assert(attachment.IsValid);
+                return attachment.AsStubDictionary();
+            });
+        }
+
+        internal IDictionary<string, object> GetAttachmentsFromDoc(string docId, string revId, Status status)
+        {
+            var rev = new RevisionInternal(docId, revId, false);
+            try {
+                LoadRevisionBody(rev, DocumentContentOptions.None);
+            } catch(CouchbaseLiteException e) {
+                status.SetCode(e.GetCBLStatus().GetCode());
+                return null;
+            }
+
+            return rev.GetAttachments();
         }
 
         /// <summary>
@@ -4189,17 +4271,15 @@ PRAGMA user_version = 3;";
             return AttachmentForDict(attachments.Get(name).AsDictionary<string, object>(), name, status);
         }
 
-        internal String GenerateIDForRevision(RevisionInternal rev, IEnumerable<byte> json, IDictionary<string, AttachmentInternal> attachments, string previousRevisionId)
+        internal String GenerateIDForRevision(RevisionInternal rev, IEnumerable<byte> json, string previousRevisionId)
         {
             MessageDigest md5Digest;
 
             // Revision IDs have a generation count, a hyphen, and a UUID.
             int generation = 0;
-            if (previousRevisionId != null)
-            {
+            if (previousRevisionId != null) {
                 generation = RevisionInternal.GenerationFromRevID(previousRevisionId);
-                if (generation == 0)
-                {
+                if (generation == 0) {
                     return null;
                 }
             }
@@ -4207,24 +4287,19 @@ PRAGMA user_version = 3;";
             // Generate a digest for this revision based on the previous revision ID, document JSON,
             // and attachment digests. This doesn't need to be secure; we just need to ensure that this
             // code consistently generates the same ID given equivalent revisions.
-            try
-            {
+            try {
                 md5Digest = MessageDigest.GetInstance("MD5");
-            }
-            catch (NoSuchAlgorithmException e)
-            {
+            } catch (NoSuchAlgorithmException e) {
                 throw new RuntimeException(e);
             }
 
             var length = 0;
-            if (previousRevisionId != null)
-            {
+            if (previousRevisionId != null) {
                 var prevIDUTF8 = Encoding.UTF8.GetBytes(previousRevisionId);
                 length = prevIDUTF8.Length;
             }
 
-            if (length > unchecked((0xFF)))
-            {
+            if (length > unchecked((0xFF))) {
                 return null;
             }
 
@@ -4236,14 +4311,14 @@ PRAGMA user_version = 3;";
             var deletedByte = new[] { unchecked((byte)isDeleted) };
             md5Digest.Update(deletedByte);
 
-            var attachmentKeys = new List<String>(attachments.Keys);
+            /*var attachmentKeys = new List<String>(attachments.Keys);
             attachmentKeys.Sort();
 
             foreach (string key in attachmentKeys)
             {
                 var attachment = attachments.Get(key);
                 md5Digest.Update(attachment.BlobKey.GetBytes());
-            }
+            }*/
 
             if (json != null)
             {

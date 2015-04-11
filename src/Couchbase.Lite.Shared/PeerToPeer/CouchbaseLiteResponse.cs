@@ -30,12 +30,14 @@ using Couchbase.Lite.Util;
 using Sharpen;
 using System.IO;
 using Couchbase.Lite.Replicator;
+using System.Text.RegularExpressions;
 
 namespace Couchbase.Lite.PeerToPeer
 {
     internal sealed class CouchbaseLiteResponse
     {
         private const string TAG = "CouchbaseLiteResponse";
+        private static readonly Regex RANGE_HEADER_REGEX = new Regex("^bytes=(\\d+)?-(\\d+)?$");
         private readonly HttpListenerContext _context;
         private bool _headersWritten;
 
@@ -240,6 +242,79 @@ namespace Couchbase.Lite.PeerToPeer
             return written;
         }
 
+        public void ProcessRequestRanges()
+        {
+            if (_context.Response.StatusCode != 200 || (_context.Request.HttpMethod != "GET" 
+                && _context.Request.HttpMethod != "HEAD") || _binaryBody == null) {
+                return;
+            }
+
+            Headers["Accept-Range"] = "bytes";
+
+            int bodyLength = _binaryBody.Count();
+            if (bodyLength == 0) {
+                return;
+            }
+
+            // Range requests: http://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html#sec14.35
+            var rangeHeader = _context.Request.Headers["Range"];
+            if (rangeHeader == null) {
+                return;
+            }
+
+            var match = RANGE_HEADER_REGEX.Match(rangeHeader);
+            if (match == null) {
+                Log.W(TAG, "Invalid request Range header value: '{0}'", rangeHeader);
+                return;
+            }
+
+            var fromStr = match.Groups[1].Value;
+            var toStr = match.Groups[2].Value;
+
+            int start = 0, end = 0;
+            // Now convert those into the integer offsets (remember that 'to' is inclusive):
+            if (fromStr.Length > 0) {
+                Int32.TryParse(fromStr, out start);
+                if (toStr.Length > 0) {
+                    Int32.TryParse(toStr, out end);
+                    end = Math.Min(bodyLength - 1, end);
+                } else {
+                    end = bodyLength - 1;
+                }
+
+                if (end < start) {
+                    return; //Invalid range
+                }
+            } else if (toStr.Length > 0) {
+                end = bodyLength - 1;
+                Int32.TryParse(toStr, out start);
+                start = bodyLength - Math.Min(start, bodyLength);
+            } else {
+                return; // "-" is an invalid range
+            }
+             
+            if (end >= bodyLength || end < start) {
+                Status = 416; // Requested Range Not Satisfiable
+                var contentRangeStr = String.Format("bytes */{0}", bodyLength);
+                Headers["Content-Range"] = contentRangeStr;
+                _binaryBody = null;
+                return;
+            }
+
+            if (start == 0 && end == bodyLength - 1) {
+                return; // No-op; entire body still causes a 200 response
+            }
+
+            var data = _binaryBody.Skip(start).Take(end - start + 1).ToArray();
+            _binaryBody = data;
+
+            // Content-Range: http://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html#sec14.16
+            var contentRange = String.Format("bytes {0}-{1}/{2}", start, end, bodyLength);
+            Headers["Content-Range"] = contentRange;
+            Status = 206; // Partial Content
+            Log.D(TAG, "Content-Range: {0}", contentRange);
+        }
+
         public void WriteHeaders()
         {
             if (_headersWritten) {
@@ -303,7 +378,7 @@ namespace Couchbase.Lite.PeerToPeer
                 _context.Response.OutputStream.Flush();
                 return true;
             } catch(IOException) {
-                Log.W(TAG, "Error writing to HTTP response stream");
+                Log.E(TAG, "Error writing to HTTP response stream");
                 return false;
             } catch(ObjectDisposedException) {
                 Log.E(TAG, "Data written after disposal");

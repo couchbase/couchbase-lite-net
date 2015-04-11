@@ -271,6 +271,10 @@ namespace Couchbase.Lite.Internal
 
         internal static int GenerationFromRevID(string revID)
         {
+            if (revID == null) {
+                return 0;
+            }
+
             var generation = 0;
             var dashPos = revID.IndexOf("-", StringComparison.InvariantCultureIgnoreCase);
             if (dashPos > 0)

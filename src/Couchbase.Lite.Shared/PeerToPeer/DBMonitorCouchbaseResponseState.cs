@@ -81,7 +81,12 @@ namespace Couchbase.Lite.PeerToPeer
 
         private void SendHeartbeatResponse(object state)
         {
-            Response.WriteData((byte[])state, false);
+            if (!Response.WriteData((byte[])state, false)) {
+                if (_heartbeatTimer != null) {
+                    _heartbeatTimer.Dispose();
+                    _heartbeatTimer = null;
+                }
+            }
         }
 
         private void DatabaseChanged(object sender, DatabaseChangeEventArgs args)
@@ -137,8 +142,11 @@ namespace Couchbase.Lite.PeerToPeer
             _db.Changed -= DatabaseChanged;
             CouchbaseLiteRouter.ResponseFinished(this);
             _db = null;
-            _heartbeatTimer.Dispose();
-            _heartbeatTimer = null;
+
+            if (_heartbeatTimer != null) {
+                _heartbeatTimer.Dispose();
+                _heartbeatTimer = null;
+            }
         }
     }
 }

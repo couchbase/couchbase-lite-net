@@ -127,6 +127,7 @@ namespace Couchbase.Lite.PeerToPeer
             CouchbaseLiteResponse responseObject = CheckForAltMethod(wrappedContext, responseState.Response);
             if (!responseState.IsAsync) {
                 try {
+                    responseObject.ProcessRequestRanges();
                     responseObject.WriteHeaders();
                     responseObject.WriteToContext();
                 } catch(Exception e) {

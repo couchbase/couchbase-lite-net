@@ -94,7 +94,7 @@ namespace Couchbase.Lite.PeerToPeer
                         IList<string> attsSince = context.GetJsonQueryParam("atts_since").AsList<string>();
                         string ancestorId = db.FindCommonAncestor(rev, attsSince);
                         if(ancestorId != null) {
-                            minRevPos = RevisionInternal.GenerationFromRevID(ancestorId);
+                            minRevPos = RevisionInternal.GenerationFromRevID(ancestorId) + 1;
                         }
 
                         Status status = new Status();

@@ -33,6 +33,7 @@ using System.Text;
 using System.Threading;
 using Couchbase.Lite.Views;
 using System.Threading.Tasks;
+using System.Reflection;
 
 #if NET_3_5
 using WebRequest = System.Net.Couchbase.WebRequest;
@@ -40,6 +41,7 @@ using HttpWebRequest = System.Net.Couchbase.HttpWebRequest;
 using HttpWebResponse = System.Net.Couchbase.HttpWebResponse;
 using WebResponse = System.Net.Couchbase.WebResponse;
 using WebException = System.Net.Couchbase.WebException;
+using WebHeaderCollection = System.Net.Couchbase.WebHeaderCollection;
 #endif
 
 namespace Couchbase.Lite
@@ -310,9 +312,12 @@ namespace Couchbase.Lite
                 { "total_rows", 3L }
             });
 
-            var response = SendRequest("GET", endpoint, null, null);
-            var etag = response.Headers["Etag"];
-            Assert.AreEqual(String.Format("\"{0}\"", view.LastSequenceIndexed), etag);
+            string etag = null;
+            SendRequest("GET", endpoint, null, null, false, r =>
+            {
+                etag = r.Headers["Etag"];
+                Assert.AreEqual(String.Format("\"{0}\"", view.LastSequenceIndexed), etag);
+            });
             CheckCacheable(endpoint);
 
             var nextEndpoint = String.Format("/{0}/doc4", database.Name);
@@ -320,12 +325,14 @@ namespace Couchbase.Lite
                 { "message", "aloha" }
             }), HttpStatusCode.Created, null);
 
-            response = SendRequest("GET", endpoint, new Dictionary<string, string> {
+            SendRequest("GET", endpoint, new Dictionary<string, string> {
                 { "If-None-Match", etag }
-            }, null);
-            Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
-            var parsedResponse = ParseJsonResponse<IDictionary<string, object>>(response);
-            Assert.AreEqual(parsedResponse.GetCast<long>("total_rows"), 4L);
+            }, null, false, r =>
+            {
+                Assert.AreEqual(HttpStatusCode.OK, r.StatusCode);
+                var parsedResponse = ParseJsonResponse<IDictionary<string, object>>(r);
+                Assert.AreEqual(parsedResponse.GetCast<long>("total_rows"), 4L);
+            });
 
             endpoint += "?key=%22bonjour%22";
             Send("GET", endpoint, HttpStatusCode.OK, new Dictionary<string, object> {
@@ -745,14 +752,10 @@ namespace Couchbase.Lite
             PopulateDocs();
             var path = String.Format("/{0}/_changes?feed=longpoll&since=5", database.Name);
             var mre = new ManualResetEventSlim();
-            HttpWebResponse response = null;
-            SendRequestAsync("GET", path, null, null).ContinueWith(t =>
+            byte[] bodyData = null;
+            SendRequest("GET", path, null, null, true, r =>
             {
-                if(t.IsFaulted) {
-                    throw t.Exception.InnerException;
-                }
-
-                response = (HttpWebResponse)t.Result;
+                bodyData = r.GetResponseStream().ReadAllBytes();
                 mre.Set();
             });
 
@@ -768,7 +771,7 @@ namespace Couchbase.Lite
             // Should now have received a response from the router with one revision:
             Assert.IsTrue(mre.Wait(TimeSpan.FromSeconds(5)), "Timed out waiting for response");
             mre.Dispose();
-            var body = new Body(response.GetResponseStream().ReadAllBytes());
+            var body = new Body(bodyData);
             Assert.IsNotNull(body.GetProperties(), "Couldn't parse response body:\n{0}", body.GetJSONString());
             Assert.AreEqual(new Dictionary<string, object> {
                 { "last_seq", 6L },
@@ -786,6 +789,8 @@ namespace Couchbase.Lite
                     }
                 }
             }, ConvertResponse(body.GetProperties()));
+
+            mre.Dispose();
         }
 
         [Test]
@@ -793,16 +798,11 @@ namespace Couchbase.Lite
         {
             int heartbeat = 0;
             var mre = new ManualResetEventSlim();
-
             // Artificially short heartbeat (made possible by SetUp) to speed up the test
-            SendRequestAsync("GET", String.Format("/{0}/_changes?feed=longpoll&heartbeat=1000", database.Name), null, null)
-                .ContinueWith(t =>
-            {
-                    if(t.IsFaulted) {
-                        throw t.Exception.InnerException;
-                    }
-
-                    var stream = t.Result.GetResponseStream();
+            SendRequest("GET", String.Format("/{0}/_changes?feed=longpoll&heartbeat=1000", database.Name), null, null, true,
+                r =>
+                {
+                    var stream = r.GetResponseStream();
                     byte[] data = new byte[4096];
                     while (stream.Read(data, 0, data.Length) > 0)
                     {
@@ -812,7 +812,7 @@ namespace Couchbase.Lite
                     }
 
                     mre.Set();
-            });
+                });
 
             Assert.IsFalse(mre.IsSet);
             Thread.Sleep(TimeSpan.FromSeconds(2.5));
@@ -826,74 +826,73 @@ namespace Couchbase.Lite
             }), HttpStatusCode.Created, null);
 
             Assert.IsTrue(mre.Wait(TimeSpan.FromSeconds(5)), "Timeout waiting for response");
+            mre.Dispose();
         }
 
         [Test]
         public void TestContinuousChanges()
         {
-            string endpoint = String.Format("/{0}/doc1", database.Name);
-            SendBody("PUT", endpoint, new Body(new Dictionary<string, object> {
-                { "message", "hello" } 
-            }), HttpStatusCode.Created, null);
-
             HttpWebResponse response = null;
-            List<byte> body = new List<byte>();
-            var mre = new ManualResetEventSlim();
-            SendRequestAsync("GET", String.Format("/{0}/_changes?feed=continuous", database.Name), null, null)
-                .ContinueWith(t =>
-            {
-                    if(t.IsFaulted) {
-                        throw t.Exception.InnerException;
-                    }
+            try {
+                string endpoint = String.Format("/{0}/doc1", database.Name);
+                SendBody("PUT", endpoint, new Body(new Dictionary<string, object> {
+                    { "message", "hello" } 
+                }), HttpStatusCode.Created, null);
 
-                    response = (HttpWebResponse)t.Result;
-                    var stream = t.Result.GetResponseStream();
+
+                List<byte> body = new List<byte>();
+                var mre = new ManualResetEventSlim();
+                SendRequest("GET", String.Format("/{0}/_changes?feed=continuous", database.Name), null, null, true, r =>
+                {
+                    response = r;
+                    var stream = r.GetResponseStream();
                     byte[] data = new byte[4096];
                     while (stream.Read(data, 0, data.Length) > 0)
                     {
                         body.AddRange(data.TakeWhile(x => x != 0));
                     }
-                        
+
                     mre.Set();
-            });
+                });
 
-            // Should initially have a response and one line of output:
-            Thread.Sleep(TimeSpan.FromMilliseconds(500));
-            Assert.IsNotNull(response);
-            Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
-            Assert.IsTrue(body.Count > 0);
-            Assert.IsFalse(mre.IsSet);
-            body.Clear();
+                // Should initially have a response and one line of output:
+                Thread.Sleep(TimeSpan.FromMilliseconds(500));
+                Assert.IsNotNull(response);
+                Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
+                Assert.IsTrue(body.Count > 0);
+                Assert.IsFalse(mre.IsSet);
+                body.Clear();
 
-            endpoint = String.Format("/{0}/doc2", database.Name);
-            SendBody<IDictionary<string, object>>("PUT", endpoint, new Body(new Dictionary<string, object> {
-                { "message", "hej" } 
-            }), HttpStatusCode.Created, null);
+                endpoint = String.Format("/{0}/doc2", database.Name);
+                SendBody<IDictionary<string, object>>("PUT", endpoint, new Body(new Dictionary<string, object> {
+                    { "message", "hej" } 
+                }), HttpStatusCode.Created, null);
 
-            Thread.Sleep(TimeSpan.FromMilliseconds(500));
+                Thread.Sleep(TimeSpan.FromMilliseconds(500));
 
-            Assert.IsTrue(body.Count > 0);
-            Assert.IsFalse(mre.IsSet);
+                Assert.IsTrue(body.Count > 0);
+                Assert.IsFalse(mre.IsSet);
 
-            mre.Dispose();
-            response.Close();
+                mre.Dispose();
+            } finally {
+                if (response != null) {
+                    response.Dispose();
+                }
+            }
         }
 
         [Test]
         public void TestContinuousChanges_Heartbeat()
         {
-            int heartbeat = 0;
-            List<byte> body = new List<byte>();
-            var mre = new ManualResetEventSlim();
             HttpWebResponse response = null;
-            SendRequestAsync("GET", String.Format("/{0}/_changes?feed=continuous&heartbeat=1000", database.Name), null, null)
-                .ContinueWith(t =>
-            {
-                    if(t.IsFaulted) {
-                        throw t.Exception.InnerException;
-                    }
+            try {
+                int heartbeat = 0;
+                List<byte> body = new List<byte>();
+                var mre = new ManualResetEventSlim();
 
-                    response = (HttpWebResponse)t.Result;
+                SendRequest("GET", String.Format("/{0}/_changes?feed=continuous&heartbeat=1000", database.Name), null, null, true, r =>
+                {
+                    response = r;
                     var stream = response.GetResponseStream();
                     byte[] data = new byte[4096];
                     while (stream.Read(data, 0, data.Length) > 0)
@@ -906,17 +905,21 @@ namespace Couchbase.Lite
                     }
 
                     mre.Set();
-            });
+                });
 
-            Thread.Sleep(2500);
-            Assert.IsNotNull(response);
-            Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
-            Assert.IsTrue(body.Count > 0);
-            Assert.IsTrue(heartbeat == 2);
-            Assert.IsFalse(mre.IsSet);
+                Thread.Sleep(2500);
+                Assert.IsNotNull(response);
+                Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
+                Assert.IsTrue(body.Count > 0);
+                Assert.IsTrue(heartbeat == 2);
+                Assert.IsFalse(mre.IsSet);
 
-            mre.Dispose();
-            response.Close();
+                mre.Dispose();
+            } finally {
+                if (response != null) {
+                    response.Dispose();
+                }
+            }
         }
 
         [Test]
@@ -939,67 +942,225 @@ namespace Couchbase.Lite
             var revID = result.GetCast<string>("rev");
 
             // Now get the attachment via its URL:
-            var response = SendRequest("GET", String.Format("/{0}/doc1/attach", database.Name), null, null);
-            Assert.IsNotNull(response);
-            Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
-            var data = response.GetResponseStream().ReadAllBytes();
-            Assert.AreEqual(data, attach1);
-            Assert.AreEqual("text/plain", response.ContentType);
-            var etag = response.GetResponseHeader("Etag");
-            Assert.IsTrue(etag.Length > 0);
+            SendRequest("GET", String.Format("/{0}/doc1/attach", database.Name), null, null, false, r =>
+            {
+                Assert.IsNotNull(r);
+                Assert.AreEqual(HttpStatusCode.OK, r.StatusCode);
+                var data = r.GetResponseStream().ReadAllBytes();
+                Assert.AreEqual(data, attach1);
+                Assert.AreEqual("text/plain", r.ContentType);
+                var etag = r.GetResponseHeader("Etag");
+                Assert.IsTrue(etag.Length > 0);
+            });
 
             // Ditto the 2nd attachment, whose name contains "/"s:
-            response = SendRequest("GET", String.Format("/{0}/doc1/path/to/attachment", database.Name), null, null);
-            Assert.IsNotNull(response);
-            Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
-            data = response.GetResponseStream().ReadAllBytes();
-            Assert.AreEqual(data, attach2);
-            Assert.AreEqual("text/plain", response.ContentType);
-            etag = response.GetResponseHeader("Etag");
-            Assert.IsTrue(etag.Length > 0);
+            SendRequest("GET", String.Format("/{0}/doc1/path/to/attachment", database.Name), null, null, false, r =>
+            {
+                Assert.IsNotNull(r);
+                Assert.AreEqual(HttpStatusCode.OK, r.StatusCode);
+                var data = r.GetResponseStream().ReadAllBytes();
+                Assert.AreEqual(data, attach2);
+                Assert.AreEqual("text/plain", r.ContentType);
+                var etag = r.GetResponseHeader("Etag");
+                Assert.IsTrue(etag.Length > 0);
+            });
 
             // A nonexistent attachment should result in a NotFound:
-            response = SendRequest("GET", String.Format("/{0}/doc1/bogus", database.Name), null, null);
-            Assert.IsNotNull(response);
-            Assert.AreEqual(HttpStatusCode.NotFound, response.StatusCode);
+            SendRequest("GET", String.Format("/{0}/doc1/bogus", database.Name), null, null, false, r =>
+            {
+                Assert.IsNotNull(r);
+                Assert.AreEqual(HttpStatusCode.NotFound, r.StatusCode);
+            });
 
-            response = SendRequest("GET", String.Format("/{0}/missingdoc/bogus", database.Name), null, null);
-            Assert.IsNotNull(response);
-            Assert.AreEqual(HttpStatusCode.NotFound, response.StatusCode);
+            SendRequest("GET", String.Format("/{0}/missingdoc/bogus", database.Name), null, null, false, r =>
+            {
+                Assert.IsNotNull(r);
+                Assert.AreEqual(HttpStatusCode.NotFound, r.StatusCode);
+            });
 
             // Get the document with attachment data:
-            response = SendRequest("GET", String.Format("/{0}/doc1?attachments=true", database.Name), null, null);
-            Assert.IsTrue(response.GetResponseHeader("Content-Type").StartsWith("multipart/related"));
+            SendRequest("GET", String.Format("/{0}/doc1?attachments=true", database.Name), null, null, false, r =>
+            {
+                Assert.IsTrue(r.GetResponseHeader("Content-Type").StartsWith("multipart/related"));
+            });
 
-            response = SendRequest("GET", String.Format("/{0}/doc1?attachments=true", database.Name), new Dictionary<string, string> {
+            SendRequest("GET", String.Format("/{0}/doc1?attachments=true", database.Name), new Dictionary<string, string> {
                 { "Accept", "application/json" }
-            }, null);
-            Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
-            var body = new Body(response.GetResponseStream().ReadAllBytes());
-            var attachments = ConvertResponse(body.GetPropertyForKey("_attachments"));
-            Assert.AreEqual(new Dictionary<string, object> { 
+            }, null, false, r =>
+            {
+                Assert.AreEqual(HttpStatusCode.OK, r.StatusCode);
+                var body = new Body(r.GetResponseStream().ReadAllBytes());
+                var attachments = ConvertResponse(body.GetPropertyForKey("_attachments"));
+                Assert.AreEqual(new Dictionary<string, object> { 
+                    { "attach", new Dictionary<string, object> {
+                            { "data", Convert.ToBase64String(attach1) },
+                            { "content_type", "text/plain" },
+                            { "length", attach1.Length },
+                            { "digest", "sha1-gOHUOBmIMoDCrMuGyaLWzf1hQTE=" },
+                            { "revpos", 1L }
+                        }
+                    }, 
+                    { "path/to/attachment", new Dictionary<string, object> {
+                            { "data", Convert.ToBase64String(attach2) },
+                            { "content_type", "text/plain" },
+                            { "length", attach2.Length },
+                            { "digest", "sha1-IrXQo0jpePvuKPv5nswnenqsIMc=" },
+                            { "revpos", 1L }
+                        }
+                    }
+                }, attachments);
+            });
+
+            // Update the document but not the attachments:
+            //FIXME.JHB: iOS doesn't need the revpos property present here
+            var attachmentsDict = new Dictionary<string, object> {
                 { "attach", new Dictionary<string, object> {
-                        { "data", Convert.ToBase64String(attach1) },
                         { "content_type", "text/plain" },
-                        { "length", attach1.Length },
-                        { "digest", "sha1-gOHUOBmIMoDCrMuGyaLWzf1hQTE=" },
+                        { "stub", true },
                         { "revpos", 1L }
                     }
-                }, 
+                },
                 { "path/to/attachment", new Dictionary<string, object> {
-                        { "data", Convert.ToBase64String(attach2) },
                         { "content_type", "text/plain" },
-                        { "length", attach2.Length },
-                        { "digest", "sha1-IrXQo0jpePvuKPv5nswnenqsIMc=" },
+                        { "stub", true },
                         { "revpos", 1L }
+                    }
+                },
+            };
+
+            var props = new Dictionary<string, object> {
+                { "_rev", revID },
+                { "message", "aloha" },
+                { "_attachments", attachmentsDict }
+            };
+
+            result = SendBody<IDictionary<string, object>>("PUT", String.Format("/{0}/doc1", database.Name), new Body(props),
+                HttpStatusCode.Created, null);
+            revID = result.GetCast<string>("rev");
+
+            // Get the doc with attachments modified since rev #1:
+            var endpoint = String.Format("/{0}/doc1?attachments=true&atts_since=[%22{1}%22]", database.Name, revID);
+            Send("GET", endpoint, HttpStatusCode.OK, new Dictionary<string, object> {
+                { "_id", "doc1" }, {@"_rev", revID}, {@"message", @"aloha"},
+                { "_attachments", new Dictionary<string, object> {
+                        { "attach", new Dictionary<string, object> {
+                                { "stub", true },
+                                { "revpos", 1L }
+                            }
+                        },
+                        { "path/to/attachment", new Dictionary<string, object> {
+                                { "stub", true },
+                                { "revpos", 1L }
+                            }
+                        },
                     }
                 }
-            }, attachments);
+            });
+        }
+
+        [Test]
+        public void TestGetJSONAttachment()
+        {
+            // Create a document with two json-like attachments. One with be put as 'text/plain' and
+            // the other one will be put as 'application/json'.
+            var attach1 = Encoding.UTF8.GetBytes("{\"name\": \"foo\"}");
+            var attach2 = Encoding.UTF8.GetBytes("{\"name\": \"bar\"}");
+
+            var base641 = Convert.ToBase64String(attach1);
+            var base642 = Convert.ToBase64String(attach2);
+
+            var attachmentsDict = new Dictionary<string, object> {
+                { "attach1", new Dictionary<string, object> {
+                        { "content_type", "text/plain" },
+                        { "data", base641 }
+                    }
+                },
+                { "attach2", new Dictionary<string, object> {
+                        { "content_type", "application/json" },
+                        { "data", base642 }
+                    }
+                }
+            };
+
+            var props = new Dictionary<string, object> {
+                { "message", "hello" },
+                { "_attachments", attachmentsDict }
+            };
+
+            SendBody("PUT", String.Format("/{0}/doc1", database.Name), new Body(props), HttpStatusCode.Created, null);
+
+            // Get the first attachment
+            SendRequest("GET", String.Format("/{0}/doc1/attach1", database.Name), null, null, false, r =>
+            {
+                Assert.AreEqual(HttpStatusCode.OK, r.StatusCode);
+                var body = new Body(r.GetResponseStream().ReadAllBytes());
+                Assert.AreEqual(attach1, body.GetJson());
+                Assert.AreEqual("text/plain", r.GetResponseHeader("Content-Type"));
+                var etag = r.GetResponseHeader("Etag");
+                Assert.IsTrue(etag.Length > 0);
+            });
+
+            // Get the second attachment
+            SendRequest("GET", String.Format("/{0}/doc1/attach2", database.Name), null, null, false, r =>
+            {
+                Assert.AreEqual(HttpStatusCode.OK, r.StatusCode);
+                Assert.AreEqual(attach2, r.GetResponseStream().ReadAllBytes());
+                Assert.AreEqual("application/json", r.GetResponseHeader("Content-Type"));
+                var etag = r.GetResponseHeader("Etag");
+                Assert.IsTrue(etag.Length > 0);
+            });
+        }
+
+        [Test]
+        public void TestGetRange()
+        {
+            var attach1 = Encoding.UTF8.GetBytes("This is the body of attach1");
+            var attach2 = Encoding.UTF8.GetBytes("This is the body of path/to/attachment");
+            CreateDocWithAttachments(attach1, attach2);
+
+            SendRequest("GET", String.Format("/{0}/doc1/attach", database.Name), new Dictionary<string, string> {
+                { "Range", "bytes=5-15" }
+            }, null, false, r =>
+            {
+                Assert.AreEqual(HttpStatusCode.PartialContent, r.StatusCode);
+                Assert.AreEqual("bytes 5-15/27", r.GetResponseHeader("Content-Range"));
+                Assert.AreEqual(Encoding.UTF8.GetBytes("is the body"), r.GetResponseStream().ReadAllBytes());
+            });
+
+            SendRequest("GET", String.Format("/{0}/doc1/attach", database.Name), new Dictionary<string, string> {
+                { "Range", "bytes=12-" }
+            }, null, false, r =>
+            {
+                Assert.AreEqual(HttpStatusCode.PartialContent, r.StatusCode);
+                Assert.AreEqual("bytes 12-26/27", r.GetResponseHeader("Content-Range"));
+                Assert.AreEqual(Encoding.UTF8.GetBytes("body of attach1"), r.GetResponseStream().ReadAllBytes());
+            });
+
+            string etag = null;
+            SendRequest("GET", String.Format("/{0}/doc1/attach", database.Name), new Dictionary<string, string> {
+                { "Range", "bytes=-7" }
+            }, null, false, r =>
+            {
+                Assert.AreEqual(HttpStatusCode.PartialContent, r.StatusCode);
+                Assert.AreEqual("bytes 20-26/27", r.GetResponseHeader("Content-Range"));
+                Assert.AreEqual(Encoding.UTF8.GetBytes("attach1"), r.GetResponseStream().ReadAllBytes());
+                etag = r.GetResponseHeader("Etag");
+                Assert.IsTrue(etag.Length > 0);
+            });
+
+            SendRequest("GET", String.Format("/{0}/doc1/attach", database.Name), new Dictionary<string, string> {
+                { "Range", "bytes=-7" },
+                { "If-None-Match", etag }
+            }, null, false, r =>
+            {
+                Assert.AreEqual(HttpStatusCode.NotModified, r.StatusCode);
+            });
         }
 
         [TestFixtureSetUp]
         protected void OneTimeSetUp()
         {
+            ServicePointManager.DefaultConnectionLimit = 10;
             ManagerOptions.Default.CallbackScheduler = new SingleTaskThreadpoolScheduler();
 
             LoadCustomProperties();
@@ -1060,37 +1221,24 @@ namespace Couchbase.Lite
                 case "referer": request.Referer = value; break;
                 case "transfer-encoding": request.TransferEncoding = value; break;
                 case "accept": request.Accept = value; break;
+                case "range": SetByteRange(request, value); break;
                 default: request.Headers.Set (key, value); break;
             }
         }
-            
-        private Task<WebResponse> SendRequestAsync(string method, string path, IDictionary<string, string> headers,
-            Body bodyObj)
+
+        private static void SetByteRange(HttpWebRequest request, string input)
         {
-            headers = headers ?? new Dictionary<string, string>();
-            Uri url;
-            bool validURL = Uri.TryCreate("http://localhost:59840" + path, UriKind.Absolute, out url);
-            Assert.IsTrue(validURL, "Invalid URL {0}", path);
-            HttpWebRequest request = WebRequest.CreateHttp(url);
-            request.Method = method;
-            foreach (var header in headers) {
-                SetHeader(request, header.Key, header.Value);
-            }
+            //HACK Use private API because for some unknown reason, HttpWebRequest
+            //does not support the bytes=-# form correctly as defined in W3 and throws
+            //an exception when you try to set the header directly
+            MethodInfo method = typeof(WebHeaderCollection).GetMethod
+                ("AddWithoutValidate", BindingFlags.Instance | BindingFlags.NonPublic);
 
-            if (bodyObj != null) {
-                var array = bodyObj.GetJson().ToArray();
-                request.ContentLength = array.Length;
-                request.GetRequestStream().Write(array, 0, array.Length);
-            } else {
-                request.ContentLength = 0;
-            }
-
-
-            return request.GetResponseAsync();
+            method.Invoke(request.Headers, new object[] { "Range", input });
         }
-
-        private HttpWebResponse SendRequest(string method, string path, IDictionary<string, string> headers,
-            Body bodyObj)
+            
+        private void SendRequest(string method, string path, IDictionary<string, string> headers,
+            Body bodyObj, bool isAsync, Action<HttpWebResponse> callback)
         {
             headers = headers ?? new Dictionary<string, string>();
             Uri url = null;
@@ -1110,18 +1258,38 @@ namespace Couchbase.Lite
                 request.ContentLength = 0;
             }
                 
-            HttpWebResponse response = null;
-            try {
-                response = (HttpWebResponse)request.GetResponse();
-            } catch(WebException e) {
-                Log.D(TAG, "{0} {1} --> {2}", method, path, ((HttpWebResponse)e.Response).StatusCode);
-                return (HttpWebResponse)e.Response;
+            if (isAsync) {
+                request.GetResponseAsync().ContinueWith(t =>
+                {
+                    if(t.IsFaulted) {
+                        throw t.Exception;
+                    }
+
+                    callback((HttpWebResponse)t.Result);
+                    t.Result.Dispose(); //OK to be called multiple times
+                });
+            } else {
+                HttpWebResponse response = null;
+                try {
+                    response = (HttpWebResponse)request.GetResponse();
+                } catch (WebException e) {
+                    if (e.Response == null) {
+                        if (response != null) {
+                            response.Dispose();
+                        }
+                        throw;
+                    } else {
+                        Log.D(TAG, "{0} {1} --> {2}", method, path, ((HttpWebResponse)e.Response).StatusCode);
+                    }
+                    response = (HttpWebResponse)e.Response;
+                }
+
+                Assert.IsNotNull(response);
+                Log.D(TAG, "{0} {1} --> {2}", method, path, response.StatusCode);
+
+                callback(response);
+                response.Dispose();
             }
-
-            Assert.IsNotNull(response);
-            Log.D(TAG, "{0} {1} --> {2}", method, path, response.StatusCode);
-
-            return response;
         }
 
         private T ParseJsonResponse<T>(HttpWebResponse response)
@@ -1171,15 +1339,24 @@ namespace Couchbase.Lite
 
         private object SendBody(string method, string path, Body bodyObj, HttpStatusCode expectedStatus, object expectedResult)
         {
-            _lastResponse = SendRequest(method, path, new Dictionary<string, string>{ { "Accept", "application/json" } }, bodyObj);
-            var result = ParseJsonResponse<object>(_lastResponse);
+            object result = null;
+            SendRequest(method, path, new Dictionary<string, string>{ { "Accept", "application/json" } }, bodyObj,
+                false, r =>
+            {
+                if (_lastResponse != null) {
+                    _lastResponse.Dispose();
+                }
 
-            Assert.IsNotNull(result);
-            Assert.AreEqual(expectedStatus, _lastResponse.StatusCode);
+                _lastResponse = r;
+                result = ParseJsonResponse<object>(_lastResponse);
 
-            if (expectedResult != null) {
-                Assert.AreEqual(expectedResult, result);
-            }
+                Assert.IsNotNull(result);
+                Assert.AreEqual(expectedStatus, _lastResponse.StatusCode);
+
+                if (expectedResult != null) {
+                    Assert.AreEqual(expectedResult, result);
+                }
+            });
 
             return result;
         }
@@ -1192,8 +1369,14 @@ namespace Couchbase.Lite
 
             string etag = _lastResponse.Headers["Etag"];
             Assert.IsFalse(String.IsNullOrEmpty(etag), "Missing etag in response for {0}", path);
-            _lastResponse = SendRequest("GET", path, new Dictionary<string, string> { { "If-None-Match", etag } }, null);
-            Assert.AreEqual(HttpStatusCode.NotModified, _lastResponse.StatusCode);
+            SendRequest("GET", path, new Dictionary<string, string> { { "If-None-Match", etag } }, null, 
+                false, r => 
+            {
+                _lastResponse.Dispose();
+                _lastResponse = r;
+                Assert.AreEqual(HttpStatusCode.NotModified, _lastResponse.StatusCode);
+            });
+
         }
 
         private IList<string> PopulateDocs()

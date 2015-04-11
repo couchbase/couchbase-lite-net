@@ -22,9 +22,31 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Collections;
+using System.Diagnostics;
 
 namespace Couchbase.Lite.Util
 {
+    internal sealed class CollectionDebuggerView<T, U>
+    {
+        readonly ICollection<KeyValuePair<T, U>> c;
+
+        public CollectionDebuggerView (ICollection<KeyValuePair<T, U>> col)
+        {
+            this.c = col;
+        }
+
+        [DebuggerBrowsable (DebuggerBrowsableState.RootHidden)]
+        public KeyValuePair<T, U>[] Items {
+            get {
+                var o = new KeyValuePair<T, U> [c.Count];
+                c.CopyTo (o, 0);
+                return o;
+            }
+        }
+    }
+
+    [DebuggerDisplay ("Count={Count}")]
+    [DebuggerTypeProxy (typeof (CollectionDebuggerView<,>))]
     public sealed class NonNullDictionary<K, V> : IEnumerable<KeyValuePair<K, V>>, IDictionary<K, V>
     {
         private readonly IDictionary<K, V> _data = new Dictionary<K, V>();

@@ -359,7 +359,7 @@ namespace Couchbase.Lite
             attachment["content_type"] = "text/plain";
             attachment["data"] = base64;
 
-            var attachmentDict = new Dictionary<string, object>();
+            IDictionary<string, object> attachmentDict = new Dictionary<string, object>();
             attachmentDict[testAttachmentName] = attachment;
             var properties = new Dictionary<string, object>();
             properties["foo"] = 1;
@@ -432,7 +432,7 @@ namespace Couchbase.Lite
             // Get the updated revision:
             RevisionInternal gotRev2 = database.GetDocumentWithIDAndRev(rev2.GetDocId(), rev2
                 .GetRevId(), DocumentContentOptions.None);
-            attachmentDict = (Dictionary<string, object>)gotRev2.GetProperties().Get("_attachments").AsDictionary<string, object>();
+            attachmentDict = gotRev2.GetProperties().Get("_attachments").AsDictionary<string, object>();
             innerDict = new JObject();
             innerDict["content_type"] = "application/foo";
             innerDict["digest"] = "sha1-mbT3208HI3PZgbG4zYWbDW2HsPk=";
@@ -471,8 +471,7 @@ namespace Couchbase.Lite
             // Get the updated revision:
             RevisionInternal gotRev3 = database.GetDocumentWithIDAndRev(rev3.GetDocId(), rev3
                 .GetRevId(), DocumentContentOptions.None);
-            attachmentDict = (Dictionary<string, object>)gotRev3.GetProperties().Get("_attachments"
-                );
+            attachmentDict = gotRev3.GetProperties().Get("_attachments").AsDictionary<string, object>();
             Assert.IsNull(attachmentDict);
             database.Close();
         }
@@ -569,14 +568,14 @@ namespace Couchbase.Lite
             rev.Save();
 
             // make sure the doc's latest revision has the attachment
-            var attachments = (Dictionary<string, object>)doc.CurrentRevision.GetProperty("_attachments");
+            var attachments = doc.CurrentRevision.GetProperty("_attachments").AsDictionary<string, object>();
             Assert.IsNotNull(attachments);
             Assert.AreEqual(1, attachments.Count);
 
             var rev2 = doc.CreateRevision();
             rev2.Properties.Add("foo", "bar");
             rev2.Save();
-            attachments = (Dictionary<string, object>)rev2.GetProperty("_attachments");
+            attachments = rev2.GetProperty("_attachments").AsDictionary<string, object>();
             Assert.IsNotNull(attachments);
             Assert.AreEqual(1, attachments.Count);
         }

@@ -155,6 +155,10 @@ namespace Couchbase.Lite
 
         public byte[] BlobForKey(BlobKey key)
         {
+            if (key == null) {
+                return null;
+            }
+
             string path = PathForKey(key);
             FilePath file = new FilePath(path);
             byte[] result = null;

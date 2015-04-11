@@ -272,12 +272,12 @@ namespace Couchbase.Lite.PeerToPeer
                 if((context.ChangesFeedMode >= ChangesFeedMode.Continuous) || 
                     (context.ChangesFeedMode == ChangesFeedMode.LongPoll && changes.Count == 0)) {
                     // Response is going to stay open (continuous, or hanging GET):
+                    response.Chunked = true;
                     if(context.ChangesFeedMode == ChangesFeedMode.EventSource) {
                         response["Content-Type"] = "text/event-stream; charset=utf-8";
                     }
 
                     if(context.ChangesFeedMode >= ChangesFeedMode.Continuous) {
-                        response.Chunked = true;
                         response.WriteHeaders();
                         foreach(var rev in changes) {
                             response.SendContinuousLine(ChangesDictForRev(rev, responseState), context.ChangesFeedMode);
