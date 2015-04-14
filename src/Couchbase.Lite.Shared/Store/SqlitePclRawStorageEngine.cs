@@ -143,7 +143,9 @@ namespace Couchbase.Lite.Shared
 
             //NOTE.JHB Even though this is a read, iOS doesn't return the correct value on the read connection
             //but someone should try again when the version goes beyond 3.7.13
-            statement = _writeConnection.prepare(commandText);
+            //statement = _writeConnection.prepare(commandText);
+
+			statement = BuildCommand (_writeConnection, commandText, null);
 
             var result = -1;
             try
@@ -174,7 +176,9 @@ namespace Couchbase.Lite.Shared
 
             Factory.StartNew(() =>
             {
-                sqlite3_stmt statement = _writeConnection.prepare (commandText);
+                //sqlite3_stmt statement = _writeConnection.prepare (commandText);
+				sqlite3_stmt statement = BuildCommand(_writeConnection, commandText, null);
+
                 if (raw.sqlite3_bind_int(statement, 1, version) == raw.SQLITE_ERROR)
                     throw new CouchbaseLiteException(errMessage, StatusCode.DbError);
 
@@ -217,10 +221,15 @@ namespace Couchbase.Lite.Shared
                 var t = Factory.StartNew(() =>
                 {
 					try {
+						/*
 						using (var statement = _writeConnection.prepare("BEGIN IMMEDIATE TRANSACTION"))
 						{
 							statement.step_done();
 						}
+						*/
+
+						var statement = BuildCommand(_writeConnection, "BEGIN IMMEDIATE TRANSACTION", null);
+						statement.step_done();
 					} catch (Exception e) {
 							Log.E(Tag, "Error BeginTransaction", e);
 					}
@@ -252,18 +261,24 @@ namespace Couchbase.Lite.Shared
 				try {
 					if (shouldCommit)
 					{
+						var statement = BuildCommand(_writeConnection, "COMMIT", null);
+						statement.step_done();
+							/*
 						using (var stmt = _writeConnection.prepare("COMMIT"))
 						{
 							stmt.step_done();
-						}
+						}*/
 						shouldCommit = false;
 					}
 					else
 					{
+						var statement = BuildCommand(_writeConnection, "ROLLBACK", null);
+						statement.step_done();
+							/*
 						using (var stmt = _writeConnection.prepare("ROLLBACK"))
 						{
 							stmt.step_done();
-						}
+						}*/
 					}
 				} catch (Exception e) {
 					Log.E(Tag, "Error EndTransaction", e);
@@ -631,12 +646,12 @@ namespace Couchbase.Lite.Shared
 
                 int err = raw.sqlite3_prepare_v2(db, sql, out command);
 
-				if (err != raw.SQLITE_OK)
+				if (err != raw.SQLITE_OK || command == null)
 				{
 					Log.E(Tag, "sqlite3_prepare_v2: " + err);
 				}
 
-                if (paramArgs.Length > 0 && command != null && err != raw.SQLITE_ERROR)
+				if (paramArgs != null && paramArgs.Length > 0 && command != null && err != raw.SQLITE_ERROR)
                 {
                     command.bind(paramArgs);
                 }
@@ -696,8 +711,9 @@ namespace Couchbase.Lite.Shared
             }
 
             var sql = builder.ToString();
-            var command = _writeConnection.prepare(sql);
-            command.bind(paramList.ToArray<object>());
+            //var command = _writeConnection.prepare(sql);
+			var command = BuildCommand(_writeConnection, sql, paramList.ToArray<object>());
+            //command.bind(paramList.ToArray<object>());
 
             return command;
         }
@@ -764,8 +780,9 @@ namespace Couchbase.Lite.Shared
             {
                 Log.D(Tag, "Preparing statement: '{0}'", sql);
             }
-            command = _writeConnection.prepare(sql);
-            command.bind(args);               
+           // command = _writeConnection.prepare(sql);
+			command = BuildCommand(_writeConnection, sql, args);
+            //command.bind(args);               
 
             return command;
         }
@@ -792,8 +809,9 @@ namespace Couchbase.Lite.Shared
             }
 
             sqlite3_stmt command;
-            command = _writeConnection.prepare(builder.ToString());
-            command.bind(whereArgs);
+            //command = _writeConnection.prepare(builder.ToString());
+            //command.bind(whereArgs);
+			command = BuildCommand(_writeConnection, builder.ToString(), whereArgs);
 
             return command;
         }
