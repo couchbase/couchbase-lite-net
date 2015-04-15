@@ -51,6 +51,8 @@ namespace Couchbase.Lite
 {
     public class Cursor : IDisposable
     {
+		static public object StmtDisposeLock = new object();
+
         const Int32 DefaultChunkSize = 8192;
 
         private sqlite3_stmt statement;
@@ -142,9 +144,12 @@ namespace Couchbase.Lite
         {
             if (statement == null) return;
 
-            statement.Dispose();
+			lock (StmtDisposeLock) 
+			{
+				statement.Dispose ();
 
-            statement = null;
+				statement = null;
+			}
         }
 
         public bool IsAfterLast ()

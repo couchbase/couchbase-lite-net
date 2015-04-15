@@ -644,7 +644,12 @@ namespace Couchbase.Lite.Shared
                     }
                 }
 
-                int err = raw.sqlite3_prepare_v2(db, sql, out command);
+				int err = raw.SQLITE_OK;
+
+				lock(Cursor.StmtDisposeLock)
+				{
+                	err = raw.sqlite3_prepare_v2(db, sql, out command);
+				}
 
 				if (err != raw.SQLITE_OK || command == null)
 				{
