@@ -172,7 +172,7 @@ namespace Couchbase.Lite.Support
                     if (writer != null)
                     {
                         // Identified the MIME body by the filename in its Disposition header:
-                        var actualDigest = writer.MD5DigestString();
+                        var actualDigest = writer.SHA1DigestString();
                         if (digest != null && !digest.Equals(actualDigest) && !digest.Equals(writer.SHA1DigestString()))
                         {
                             var errMsg = String.Format("Attachment '{0}' has incorrect MD5 digest ({1}; should be either {2} or {3})", attachmentName, digest, actualDigest, writer.SHA1DigestString());

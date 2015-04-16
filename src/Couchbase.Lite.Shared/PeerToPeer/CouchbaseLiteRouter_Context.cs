@@ -267,7 +267,7 @@ namespace Couchbase.Lite.PeerToPeer
                     return null;
                 }
 
-                return Manager.GetObjectMapper().ReadValue<object>(value);
+                return Manager.GetObjectMapper().ReadValue<object>(Uri.UnescapeDataString(value));
             }
 
             public T GetQueryParam<T>(string key, TryParseDelegate<T> parseDelegate, T defaultVal = default(T))

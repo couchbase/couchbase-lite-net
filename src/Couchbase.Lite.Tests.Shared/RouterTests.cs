@@ -1157,6 +1157,107 @@ namespace Couchbase.Lite
             });
         }
 
+        [Test]
+        public void TestPutMultipart()
+        {
+            var attachmentDict = new Dictionary<string, object> {
+                { "attach", new Dictionary<string, object> {
+                        { "content_type", "text/plain" },
+                        { "length", 36 },
+                        { "follows", true }
+                    }
+                }
+            };
+
+            var props = new Dictionary<string, object> {
+                { "message", "hello" },
+                { "_attachments", attachmentDict }
+            };
+            const string attachmentstring = "This is the value of the attachment.";
+            var body = String.Format("\r\n--BOUNDARY\r\n\r\n" +
+                       "{0}" +
+                       "\r\n--BOUNDARY\r\n" +
+                       "Content-Disposition: attachment; filename=attach\r\n" +
+                       "Content-Type: text/plain\r\n\r\n" +
+                       "{1}" +
+                       "\r\n--BOUNDARY--", Manager.GetObjectMapper().WriteValueAsString(props), attachmentstring);
+
+            SendRequest("PUT", String.Format("/{0}/doc", database.Name), new Dictionary<string, string> {
+                { "Content-Type", "multipart/related; boundary=\"BOUNDARY\"" }
+            }, new Body(Encoding.UTF8.GetBytes(body)), false, r =>
+            {
+                Assert.AreEqual(HttpStatusCode.Created, r.StatusCode);
+            });
+        }
+
+        [Test]
+        public void TestOpenRevs()
+        {
+            // PUT:
+            var result = SendBody<IDictionary<string, object>>("PUT", String.Format("/{0}/doc1", database.Name), new Body(new Dictionary<string, object> {
+                { "message", "hello" }
+            }), HttpStatusCode.Created, null);
+            var revID1 = result.GetCast<string>("rev");
+
+            // PUT to update:
+            result = SendBody<IDictionary<string, object>>("PUT", String.Format("/{0}/doc1", database.Name), new Body(new Dictionary<string, object> {
+                { "message", "goodbye" },
+                { "_rev", revID1 }
+            }), HttpStatusCode.Created, null);
+            var revID2 = result.GetCast<string>("rev");
+
+            Send("GET", String.Format("/{0}/doc1?open_revs=all", database.Name), HttpStatusCode.OK, new List<object> {
+                new Dictionary<string, object> { 
+                    { "ok", new Dictionary<string, object> {
+                            { "_id", "doc1" },
+                            { "_rev", revID2 },
+                            { "message", "goodbye" }
+                        }
+                    }
+                }
+            });
+
+            Send("GET", String.Format("/{0}/doc1?open_revs=[%22{1}%22,%22{2}%22]", database.Name, revID1, revID2), HttpStatusCode.OK, new List<object> {
+                new Dictionary<string, object> {
+                    { "ok", new Dictionary<string, object> {
+                            { "_id", "doc1" },
+                            { "_rev", revID1 },
+                            { "message", "hello" }
+                        }
+                    }
+                },
+                new Dictionary<string, object> {
+                    { "ok", new Dictionary<string, object> {
+                            { "_id", "doc1" },
+                            { "_rev", revID2 },
+                            { "message", "goodbye" }
+                        }
+                    }
+                }
+            });
+
+            var endpoint = String.Format("/{0}/doc1?open_revs=[%22{1}%22,%22{2}%22]", database.Name, revID1, "666-deadbeef");
+            Send("GET", endpoint, HttpStatusCode.OK, new List<object> {
+                new Dictionary<string, object> {
+                    { "ok", new Dictionary<string, object> {
+                            { "_id", "doc1" },
+                            { "_rev", revID1 },
+                            { "message", "hello" }
+                        }
+                    }
+                },
+                new Dictionary<string, object> {
+                    { "missing", "666-deadbeef" }
+                }
+            });
+
+            // We've been forcing JSON, but verify that open_revs defaults to multipart:
+            SendRequest("GET", endpoint, null, null, false, r =>
+            {
+                Assert.IsTrue(r.GetResponseHeader("Content-Type").StartsWith("multipart/mixed"));
+            });
+        }
+
         [TestFixtureSetUp]
         protected void OneTimeSetUp()
         {
