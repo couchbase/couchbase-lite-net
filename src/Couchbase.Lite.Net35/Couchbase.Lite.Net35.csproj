@@ -38,7 +38,7 @@
     <DebugType>none</DebugType>
     <CustomCommands>
       <CustomCommands>
-        <Command type="BeforeBuild" command="git rev-parse --short HEAD &gt; &quot;${SolutionDir}/Couchbase.Lite.Shared/Properties/version&quot;" externalConsole="True" />
+        <Command type="BeforeBuild" command="git rev-parse --short HEAD &gt; &quot;${ProjectDir}/../Couchbase.Lite.Shared/Properties/version&quot;" externalConsole="True" />
       </CustomCommands>
     </CustomCommands>
   </PropertyGroup>
