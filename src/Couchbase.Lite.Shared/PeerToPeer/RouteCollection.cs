@@ -58,7 +58,10 @@ namespace Couchbase.Lite.PeerToPeer
         public RestMethod LogicForRequest(HttpListenerRequest request)
         {
             var branch = _routeTree.Trunk;
-            var components = request.Url.AbsolutePath.Split(new[] { '/' }, StringSplitOptions.RemoveEmptyEntries);
+            //MS .NET will automatically unescape the string so we need to be careful here
+            var tmp = request.RawUrl.Split('?')[0];
+            string[] components = tmp.Split(new[] { '/' }, StringSplitOptions.RemoveEmptyEntries);
+
             foreach (var component in components) {
                 var nextBranch = branch.GetChild(component, false);
                 if (nextBranch == null) {

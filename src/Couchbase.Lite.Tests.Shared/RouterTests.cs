@@ -1364,9 +1364,15 @@ namespace Couchbase.Lite
 
             method.Invoke(request.Headers, new object[] { "Range", input });
         }
-            
+
         private void SendRequest(string method, string path, IDictionary<string, string> headers,
             Body bodyObj, bool isAsync, Action<HttpWebResponse> callback)
+        {
+            SendRequest(method, path, headers, bodyObj, isAsync, false, callback);
+        }
+            
+        private void SendRequest(string method, string path, IDictionary<string, string> headers,
+            Body bodyObj, bool isAsync, bool keepAlive, Action<HttpWebResponse> callback)
         {
             headers = headers ?? new Dictionary<string, string>();
             Uri url = null;
@@ -1416,7 +1422,9 @@ namespace Couchbase.Lite
                 Log.D(TAG, "{0} {1} --> {2}", method, path, response.StatusCode);
 
                 callback(response);
-                response.Dispose();
+                if (!keepAlive) {
+                    response.Dispose();
+                }
             }
         }
 
@@ -1469,12 +1477,8 @@ namespace Couchbase.Lite
         {
             object result = null;
             SendRequest(method, path, new Dictionary<string, string>{ { "Accept", "application/json" } }, bodyObj,
-                false, r =>
+                false, true, r =>
             {
-                if (_lastResponse != null) {
-                    _lastResponse.Dispose();
-                }
-
                 _lastResponse = r;
                 result = ParseJsonResponse<object>(_lastResponse);
 
@@ -1498,9 +1502,8 @@ namespace Couchbase.Lite
             string etag = _lastResponse.Headers["Etag"];
             Assert.IsFalse(String.IsNullOrEmpty(etag), "Missing etag in response for {0}", path);
             SendRequest("GET", path, new Dictionary<string, string> { { "If-None-Match", etag } }, null, 
-                false, r => 
+                false, true, r => 
             {
-                _lastResponse.Dispose();
                 _lastResponse = r;
                 Assert.AreEqual(HttpStatusCode.NotModified, _lastResponse.StatusCode);
             });

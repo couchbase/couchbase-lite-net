@@ -95,4 +95,7 @@
       <Name>System.Net.Http-net_4_5</Name>
     </ProjectReference>
   </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
+  </ItemGroup>
 </Project>

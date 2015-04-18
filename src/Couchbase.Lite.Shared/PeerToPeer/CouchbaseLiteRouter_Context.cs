@@ -335,7 +335,8 @@ namespace Couchbase.Lite.PeerToPeer
             private string UrlComponentAt(int index)
             {
                 if (_urlComponents == null) {
-                    _urlComponents = HttpContext.Request.Url.AbsolutePath.Split(new[]{ '/' }, StringSplitOptions.RemoveEmptyEntries);
+                    var tmp = HttpContext.Request.RawUrl.Split('?')[0];
+                    _urlComponents = tmp.Split(new[] { '/' }, StringSplitOptions.RemoveEmptyEntries);
                     if (_urlComponents.Length >= 3) {
                         var secondComponent = _urlComponents[1];
                         if (secondComponent.Equals("_local") || secondComponent.Equals("_design")) {
