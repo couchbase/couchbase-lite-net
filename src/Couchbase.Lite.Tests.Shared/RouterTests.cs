@@ -1258,6 +1258,33 @@ namespace Couchbase.Lite
             });
         }
 
+        [Test]
+        public void TestAccessCheck()
+        {
+            var url = String.Format("/{0}", database.Name);
+            bool calledOnAccessCheck = false;
+            _listener._router.OnAccessCheck = (method, endpoint) =>
+            {
+                Assert.AreEqual(url, endpoint);
+                calledOnAccessCheck = true;
+                return new Status(StatusCode.Ok);
+            };
+
+            Send("GET", url, HttpStatusCode.OK, null);
+            Assert.IsTrue(calledOnAccessCheck);
+
+            calledOnAccessCheck = false;
+            _listener._router.OnAccessCheck = (method, endpoint) =>
+            {
+                Assert.AreEqual(url, endpoint);
+                calledOnAccessCheck = true;
+                return new Status(StatusCode.Forbidden);
+            };
+
+            Send("GET", url, HttpStatusCode.Forbidden, null);
+            Assert.IsTrue(calledOnAccessCheck);
+        }
+
         [TestFixtureSetUp]
         protected void OneTimeSetUp()
         {

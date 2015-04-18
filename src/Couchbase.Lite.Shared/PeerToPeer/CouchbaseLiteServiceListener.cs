@@ -22,14 +22,40 @@ using System;
 using System.Net;
 
 using Couchbase.Lite.Util;
+using System.Net.Http;
 
 namespace Couchbase.Lite.PeerToPeer
 {
-    public class CouchbaseLiteServiceListener : IDisposable
+    public sealed class CouchbaseLiteServiceListener : IDisposable
     {
         private readonly HttpListener _listener;
-        private readonly CouchbaseLiteRouter _router;
+        internal readonly CouchbaseLiteRouter _router;
         private bool _disposed;
+
+        public bool ReadOnly {
+            get {
+                return _readOnly;
+            }
+            set {
+                if (value) {
+                    _router.OnAccessCheck = (method, endpoint) =>
+                    {
+                        if(method.Equals(HttpMethod.Head) || method.Equals(HttpMethod.Get)) {
+                            return new Status(StatusCode.Ok);
+                        } 
+                        if(method.Equals(HttpMethod.Post) && (endpoint.EndsWith("_all_docs") || endpoint.EndsWith("_revs_diff"))) {
+                            return new Status(StatusCode.Ok);
+                        }
+
+                        return new Status(StatusCode.Forbidden);
+                    };
+                } else {
+                    _router.OnAccessCheck = null;
+                }
+                _readOnly = value;
+            }
+        }
+        private bool _readOnly;
 
         public CouchbaseLiteServiceListener(Manager manager, int port)
         {

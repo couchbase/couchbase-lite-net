@@ -84,6 +84,8 @@ namespace Couchbase.Lite.PeerToPeer
                 { "/{[^_].*}/*/*", DocumentMethods.DeleteAttachment }
             });
 
+        public Func<HttpMethod, string, Status> OnAccessCheck { get; set; }
+
         public CouchbaseLiteRouter(Manager manager) {
             _manager = manager;
         }
@@ -93,6 +95,15 @@ namespace Couchbase.Lite.PeerToPeer
             var request = context.Request;
             var wrappedContext = new CouchbaseListenerContext(context, _manager);
             var method = wrappedContext.Method;
+
+            if (OnAccessCheck != null) {
+                var result = OnAccessCheck(method, request.RawUrl);
+                if (result.IsError) {
+                    var r = new CouchbaseLiteResponse(wrappedContext) { InternalStatus = result.GetCode() };
+                    ProcessResponse(wrappedContext, r.AsDefaultState());
+                    return;
+                }
+            }
 
             RestMethod logic = null;
             if (method.Equals(HttpMethod.Get) || method.Equals(HttpMethod.Head)) {
@@ -124,7 +135,17 @@ namespace Couchbase.Lite.PeerToPeer
                 }
             }
 
-            CouchbaseLiteResponse responseObject = CheckForAltMethod(wrappedContext, responseState.Response);
+            ProcessResponse(wrappedContext, responseState);
+        }
+
+        public static void ResponseFinished(ICouchbaseResponseState responseState)
+        {
+            _UnfinishedResponses.Remove(responseState);
+        }
+
+        private static void ProcessResponse(ICouchbaseListenerContext context, ICouchbaseResponseState responseState)
+        {
+            CouchbaseLiteResponse responseObject = CheckForAltMethod(context, responseState.Response);
             if (!responseState.IsAsync) {
                 try {
                     responseObject.ProcessRequestRanges();
@@ -132,16 +153,11 @@ namespace Couchbase.Lite.PeerToPeer
                     responseObject.WriteToContext();
                 } catch(Exception e) {
                     Log.E(TAG, "Exception writing response", e);
-                    responseState = new CouchbaseLiteResponse(wrappedContext) { InternalStatus = StatusCode.Exception }.AsDefaultState();
+                    responseState = new CouchbaseLiteResponse(context) { InternalStatus = StatusCode.Exception }.AsDefaultState();
                 }
             } else {
                 _UnfinishedResponses.Add(responseState);
             }
-        }
-
-        public static void ResponseFinished(ICouchbaseResponseState responseState)
-        {
-            _UnfinishedResponses.Remove(responseState);
         }
             
         private static CouchbaseLiteResponse CheckForAltMethod(ICouchbaseListenerContext context, CouchbaseLiteResponse response)

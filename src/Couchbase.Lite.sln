@@ -13,7 +13,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Docs", "Docs", "{751921E0-F
 EndProject
 Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "Couchbase.Lite.Shared", "Couchbase.Lite.Shared\Couchbase.Lite.Shared.shproj", "{0A88C2A7-7AD8-46F9-9D31-869E3466B791}"
 EndProject
-Project("{9344BDBB-3E7F-41FC-A0DD-8665D75EE146}") = "Couchbase.Lite.Android", "Couchbase.Lite.Android\Couchbase.Lite.Android.csproj", "{5615E423-D0FD-4F99-A99C-061679615CEE}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Couchbase.Lite.Android", "Couchbase.Lite.Android\Couchbase.Lite.Android.csproj", "{5615E423-D0FD-4F99-A99C-061679615CEE}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Couchbase.Lite.iOS", "Couchbase.Lite.iOS\Couchbase.Lite.iOS.csproj", "{443E1BEE-43B3-45A1-ACEA-F7BA71BDAAB1}"
 EndProject
