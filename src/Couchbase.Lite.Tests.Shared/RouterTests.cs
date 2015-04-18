@@ -224,7 +224,6 @@ namespace Couchbase.Lite
             result = Send<IDictionary<string, object>>("GET", endpoint, HttpStatusCode.OK, null);
             Assert.AreEqual(3, result.GetCast<long>("total_rows", 0));
             Assert.AreEqual(0, result.GetCast<long>("offset", -1));
-            var rows = ConvertResponse(result["rows"]);
             var expectedResult = new List<object>();
             expectedResult.Add(new Dictionary<string, object> {
                 { "id", "doc1" },
@@ -1323,6 +1322,7 @@ namespace Couchbase.Lite
         {
             StopDatabase();
             _minHeartbeat = _savedMinHeartbeat;
+            _listener._router.OnAccessCheck = null;
         }
 
         private void ReopenDatabase()

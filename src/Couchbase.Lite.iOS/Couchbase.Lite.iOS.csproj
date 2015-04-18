@@ -67,7 +67,7 @@
       <HintPath>..\packages\Newtonsoft.Json.6.0.8\lib\portable-net40+sl5+wp80+win8+wpa81\Newtonsoft.Json.dll</HintPath>
     </Reference>
     <Reference Include="Jint">
-      <HintPath>..\Couchbase.Lite.Shared\vendor\Jint\Jint.dll</HintPath>
+      <HintPath>..\packages\Jint.2.4.0\lib\portable-net40+sl50+win+wpa81+wp80\Jint.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>

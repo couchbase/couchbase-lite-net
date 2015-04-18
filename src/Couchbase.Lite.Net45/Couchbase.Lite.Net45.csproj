@@ -68,7 +68,7 @@
     <Reference Include="System.Net.Http.WebRequest" />
     <Reference Include="System.Net.Http" />
     <Reference Include="Jint">
-      <HintPath>..\Couchbase.Lite.Shared\vendor\Jint\Jint.dll</HintPath>
+      <HintPath>..\packages\Jint.2.4.0\lib\portable-net40+sl50+win+wpa81+wp80\Jint.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
