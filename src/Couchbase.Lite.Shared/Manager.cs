@@ -219,12 +219,13 @@ namespace Couchbase.Lite
             { 
                 var databaseFiles = directoryFile.GetFiles("*" + Manager.DatabaseSuffix, SearchOption.AllDirectories);
                 var result = new List<String>();
-                foreach (var databaseFile in databaseFiles)
-                {
+                foreach (var databaseFile in databaseFiles) {
                     var path = Path.GetFileNameWithoutExtension(databaseFile.FullName);
-                    var replaced = path.Replace(':', '/');
+                    var replaced = path.Replace('.', '/');
+                    replaced = replaced.Replace(':', '/'); //For backwards compatibility
                     result.AddItem(replaced);
                 }
+
                 result.Sort();
                 return new ReadOnlyCollection<String>(result);
             }
@@ -688,7 +689,7 @@ namespace Couchbase.Lite
                 return null;
             }
 
-            name = name.Replace('/', ':');
+            name = name.Replace('/', '.');
 
             var fileName = name + Manager.DatabaseSuffix;
             var result = Path.Combine(directoryFile.FullName, fileName);
