@@ -96,14 +96,14 @@ namespace Couchbase.Lite.PeerToPeer
         /// (or Bonjour if null)
         /// </summary>
         /// <param name="registerService">The service that will perform the broadcast</param>
-        public CouchbaseLiteServiceBroadcaster(IRegisterService registerService)
+        public CouchbaseLiteServiceBroadcaster(IRegisterService registerService, ushort port)
         {
             _registerService = registerService ?? new RegisterService() {
                 Name = "CouchbaseLite_" + Environment.MachineName,
                 RegType = "_http._tcp."
             };
 
-            _registerService.UPort = 4984;
+            _registerService.UPort = port;
         }
 
         #endregion

@@ -41,23 +41,12 @@ namespace Couchbase.Lite
             };
             browser.Start();
 
-            CouchbaseLiteServiceBroadcaster broadcaster = new CouchbaseLiteServiceBroadcaster(null);
+            CouchbaseLiteServiceBroadcaster broadcaster = new CouchbaseLiteServiceBroadcaster(null, 59840);
             broadcaster.Name = "Foo";
             broadcaster.Start();
             Assert.IsTrue(mre.Wait(TimeSpan.FromSeconds(10)));
         }
 
-        [Test]
-        public void TestListener()
-        {
-            var listener = new CouchbaseLiteServiceListener(Manager.SharedInstance, 59840);
-            listener.Start();
-            var db = Manager.SharedInstance.GetDatabase("db");
-            var replication = db.CreatePullReplication(new Uri("http://localhost:59840/db"));
-            replication.Start();
-
-            Thread.Sleep(50000);
-        }
     }
 }
 

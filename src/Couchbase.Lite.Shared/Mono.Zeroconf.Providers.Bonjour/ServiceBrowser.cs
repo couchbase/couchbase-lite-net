@@ -26,6 +26,7 @@
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //
 
+using Couchbase.Lite.Util;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -49,6 +50,8 @@ namespace Mono.Zeroconf.Providers.Bonjour
     
     internal class ServiceBrowser : IServiceBrowser, IDisposable
     {
+        private const string TAG = "ServiceBrowser";
+
         private uint interface_index;
         private AddressProtocol address_protocol;
         private string regtype;
@@ -125,8 +128,14 @@ namespace Mono.Zeroconf.Providers.Bonjour
 
         private void ProcessStart()
         {
-            ServiceError error = Native.DNSServiceBrowse(out sd_ref, ServiceFlags.Default,
-                interface_index, regtype,  domain, browse_reply_handler, IntPtr.Zero);
+            ServiceError error = ServiceError.NoError;
+            try {
+                error = Native.DNSServiceBrowse(out sd_ref, ServiceFlags.Default,
+                    interface_index, regtype, domain, browse_reply_handler, IntPtr.Zero);
+            } catch (DllNotFoundException) {
+                Log.E(TAG, "Unable to find required DLL file:  dnssd.dll\n(Windows -> Is Bounjour installed?)\n(Others -> Is a dll.config file included?)");
+                error = ServiceError.Invalid;
+            }
 
             if(error != ServiceError.NoError) {
                 throw new ServiceErrorException(error);
