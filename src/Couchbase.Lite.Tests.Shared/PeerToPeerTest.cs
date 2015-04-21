@@ -20,7 +20,7 @@
 //
 using System;
 using NUnit.Framework;
-using Couchbase.Lite.PeerToPeer;
+using Couchbase.Lite.Listener;
 using Couchbase.Lite.Util;
 using System.Threading;
 

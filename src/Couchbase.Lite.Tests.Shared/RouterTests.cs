@@ -24,7 +24,7 @@ using System.Net;
 
 using NUnit.Framework;
 
-using Couchbase.Lite.PeerToPeer;
+using Couchbase.Lite.Listener;
 using Couchbase.Lite.Internal;
 using System.Linq;
 using Couchbase.Lite.Util;

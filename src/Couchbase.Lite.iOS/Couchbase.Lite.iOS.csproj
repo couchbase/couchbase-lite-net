@@ -1,6 +1,19 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
+    <MSBuildCommunityTasksPath Condition=" '$(MSBuildCommunityTasksPath)' == '' ">$(SolutionDir)\packages\MSBuildTasks.1.4.0.88\tools</MSBuildCommunityTasksPath>
+    <SetAssemblyVersionEnabled Condition=" Exists('$(MSBuildCommunityTasksPath)\MSBuild.Community.Tasks.targets') ">true</SetAssemblyVersionEnabled>
+    <SetAssemblyVersionEnabled Condition=" '$(SetAssemblyVersionEnabled)' == '' ">false</SetAssemblyVersionEnabled>
+  </PropertyGroup>
+  <Import Condition=" '$(SetAssemblyVersionEnabled)' == 'true' " Project="$(MSBuildCommunityTasksPath)\MSBuild.Community.Tasks.targets" />
+  <Target Name="SetAssemblyVersion" Condition=" '$(SetAssemblyVersionEnabled)' == 'true' " BeforeTargets="PrepareForBuild">
+    <GitVersion LocalPath="$(SolutionDir)">
+      <Output TaskParameter="CommitHash" PropertyName="CommitHash" />
+    </GitVersion>
+    <Exec Command="echo $(CommitHash) &gt; &quot;$(ProjectDir)..\Couchbase.Lite.Shared\Properties\version&quot;" />
+  </Target>
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProjectTypeGuids>{FEACFBD2-3405-455C-9665-78FE426C6842};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
@@ -24,11 +37,6 @@
     <ConsolePause>false</ConsolePause>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <DocumentationFile>bin\Debug\Couchbase.Lite.xml</DocumentationFile>
-    <CustomCommands>
-      <CustomCommands>
-        <Command type="BeforeBuild" command="git rev-parse --short HEAD &gt; &quot;${ProjectDir}/../Couchbase.Lite.Shared/Properties/version&quot;" workingdir="" externalConsole="True" />
-      </CustomCommands>
-    </CustomCommands>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
     <Platform Condition=" '$(Platform)' == '' ">iPhone</Platform>
@@ -44,11 +52,7 @@
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
-    <CustomCommands>
-      <CustomCommands>
-        <Command type="BeforeBuild" command="git rev-parse --short HEAD &gt; &quot;${SolutionDir}/Couchbase.Lite.Shared/Properties/version&quot;" externalConsole="True" />
-      </CustomCommands>
-    </CustomCommands>
+    <DefineConstants>__IOS__</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System.Data" />
@@ -78,6 +82,10 @@
   <Import Project="$(MSBuildExtensionsPath)\Xamarin\iOS\Xamarin.iOS.CSharp.targets" />
   <ItemGroup>
     <None Include="packages.config" />
+    <None Include="..\Couchbase.Lite.Shared\Couchbase.Lite.dll.config">
+      <Link>Couchbase.Lite.dll.config</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="CouchBaseTableDelegate.cs" />

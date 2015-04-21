@@ -220,74 +220,18 @@
     <Compile Include="$(MSBuildThisFileDirectory)Util\ArraySegment.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\TaskEx.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\GenericEqualityComparer.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\CouchbaseLiteResponse.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\CouchbaseLiteRouter.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\CouchbaseLiteServiceBroadcaster.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\CouchbaseLiteServiceBrowser.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\CouchbaseLiteServiceListener.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\DBMonitorCouchbaseResponseState.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\DefaultCouchbaseResponseState.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\ICouchbaseResponseState.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\RouteCollection.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\RouteTree.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\ServerMethods.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Mono.Zeroconf\AddressProtocol.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Mono.Zeroconf\IRegisterService.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Mono.Zeroconf\IResolvableService.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Mono.Zeroconf\IService.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Mono.Zeroconf\IServiceBrowser.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Mono.Zeroconf\ITxtRecord.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Mono.Zeroconf\RegisterServiceEventArgs.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Mono.Zeroconf\RegisterServiceEventHandler.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Mono.Zeroconf\ServiceBrowseEventArgs.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Mono.Zeroconf\ServiceBrowseEventHandler.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Mono.Zeroconf\ServiceErrorCode.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Mono.Zeroconf\ServiceResolvedEventArgs.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Mono.Zeroconf\ServiceResolvedEventHandler.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Mono.Zeroconf\TxtRecord.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Mono.Zeroconf\TxtRecordItem.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Mono.Zeroconf.Providers\IZeroconfProvider.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Mono.Zeroconf.Providers\ProviderFactory.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Mono.Zeroconf.Providers\ZeroconfProviderAttribute.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Mono.Zeroconf.Providers.Bonjour\BrowseService.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Mono.Zeroconf.Providers.Bonjour\Native.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Mono.Zeroconf.Providers.Bonjour\RegisterService.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Mono.Zeroconf.Providers.Bonjour\Service.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Mono.Zeroconf.Providers.Bonjour\ServiceBrowser.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Mono.Zeroconf.Providers.Bonjour\ServiceClass.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Mono.Zeroconf.Providers.Bonjour\ServiceError.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Mono.Zeroconf.Providers.Bonjour\ServiceErrorException.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Mono.Zeroconf.Providers.Bonjour\ServiceFlags.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Mono.Zeroconf.Providers.Bonjour\ServiceRef.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Mono.Zeroconf.Providers.Bonjour\ServiceType.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Mono.Zeroconf.Providers.Bonjour\TxtRecord.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Mono.Zeroconf.Providers.Bonjour\TxtRecordEnumerator.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Mono.Zeroconf.Providers.Bonjour\ZeroconfProvider.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Replication\ChangesFeedMode.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)View\JSViewCompiler.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\DatabaseMethods.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)View\BuiltinReduceFunctions.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\DocumentMethods.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Replication\MultipartWriter.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Replication\MultiStreamWriter.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\AsyncOpCouchbaseResponseState.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\AuthenticationMethods.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\ICouchbaseListenerContext.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\CouchbaseLiteRouter_Context.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\NonNullDictionary.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\ReplicationCouchbaseResponseState.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\OneShotCouchbaseResponseState.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\ViewMethods.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)View\JSViewCompiler.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="$(MSBuildThisFileDirectory)Store\MonoSQLiteStorageEngine.cs" />
     <None Include="$(MSBuildThisFileDirectory)Store\SqlitePclStorageEngine.cs" />
   </ItemGroup>
   <ItemGroup>
-    <Folder Include="$(MSBuildThisFileDirectory)PeerToPeer\" />
-    <Folder Include="$(MSBuildThisFileDirectory)Mono.Zeroconf\" />
-    <Folder Include="$(MSBuildThisFileDirectory)Mono.Zeroconf.Providers\" />
-    <Folder Include="$(MSBuildThisFileDirectory)Mono.Zeroconf.Providers.Bonjour\" />
     <Folder Include="$(MSBuildThisFileDirectory)View\" />
   </ItemGroup>
   <ItemGroup>

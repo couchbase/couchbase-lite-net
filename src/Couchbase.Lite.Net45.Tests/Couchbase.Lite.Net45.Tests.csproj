@@ -123,6 +123,10 @@
       <Project>{C87E0C01-AAD6-46DA-9935-C772C112BB18}</Project>
       <Name>Couchbase.Lite.Net45</Name>
     </ProjectReference>
+    <ProjectReference Include="..\ListenerComponent\Couchbase.Lite.Listener\Couchbase.Lite.Listener.Net45.csproj">
+      <Project>{9AD3BADD-4F48-4208-B601-E63987C12049}</Project>
+      <Name>Couchbase.Lite.Listener.Net45</Name>
+    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <Service Include="{82A7F48D-3B50-4B1E-B82E-3ADA8210C358}" />
