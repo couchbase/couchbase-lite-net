@@ -157,8 +157,15 @@ namespace Couchbase.Lite
             {
                 return false;
             }
+
             Couchbase.Lite.BlobKey oBlobKey = (Couchbase.Lite.BlobKey)o;
-            return Arrays.Equals(GetBytes(), oBlobKey.GetBytes());
+
+			if (GetBytes () == null || oBlobKey.GetBytes () == null) 
+			{
+				return false;
+			}
+            
+			return Arrays.Equals(GetBytes(), oBlobKey.GetBytes());
         }
 
         public override int GetHashCode()

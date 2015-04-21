@@ -42,23 +42,26 @@
 
 using System;
 using System.Collections.Generic;
-using System.Data;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Newtonsoft.Json.Linq;
 using Couchbase.Lite.Internal;
 using Couchbase.Lite.Replicator;
 using Couchbase.Lite.Storage;
 using Couchbase.Lite.Util;
 using Sharpen;
-using System.Collections.Concurrent;
 using System.Collections;
-using System.Collections.ObjectModel;
+using System.Runtime.CompilerServices;
+
+
+#if !NET_3_5
+using StringEx = System.String;
 using System.Net;
-using System.Threading;
+#else
+using System.Net.Couchbase;
+#endif
 
 namespace Couchbase.Lite 
 {
@@ -66,7 +69,7 @@ namespace Couchbase.Lite
     /// <summary>
     /// A Couchbase Lite Database.
     /// </summary>
-    public sealed class Database 
+    public sealed class Database : IDisposable
     {
     #region Constructors
 
@@ -117,6 +120,7 @@ namespace Couchbase.Lite
         }
 
         static readonly ICollection<String> KnownSpecialKeys;
+
 
         static Database()
         {
@@ -248,7 +252,7 @@ namespace Couchbase.Lite
         /// and are still running.
         /// </summary>
         /// <value>All replications.</value>
-        public IEnumerable<Replication> AllReplications { get { return AllReplicators; } }
+        public IEnumerable<Replication> AllReplications { get { return AllReplicators.ToList(); } }
 
         //Methods
 
@@ -360,7 +364,7 @@ namespace Couchbase.Lite
         /// <param name="id">The id of the Document to get or create.</param>
         public Document GetDocument(String id) 
         { 
-            if (String.IsNullOrWhiteSpace (id)) {
+            if (StringEx.IsNullOrWhiteSpace (id)) {
                 return null;
             }
 
@@ -386,7 +390,7 @@ namespace Couchbase.Lite
         /// <param name="id">The id of the Document to get.</param>
         public Document GetExistingDocument(String id) 
         { 
-            if (String.IsNullOrWhiteSpace (id)) {
+            if (StringEx.IsNullOrWhiteSpace (id)) {
                 return null;
             }
             var revisionInternal = GetDocumentWithIDAndRev(id, null, DocumentContentOptions.None);
@@ -686,8 +690,7 @@ namespace Couchbase.Lite
                     Log.V(Tag, "Tx delegate done: {0}", shouldCommit);
                     EndTransaction(shouldCommit);
                 }
-
-                Log.V(Tag, "Tx delegate complete: {0}", shouldCommit);
+                        
                 return shouldCommit;
             });
 
@@ -741,7 +744,11 @@ namespace Couchbase.Lite
         /// <summary>
         /// Event handler delegate that will be called whenever a <see cref="Couchbase.Lite.Document"/> within the <see cref="Couchbase.Lite.Database"/> changes.
         /// </summary>
-        public event EventHandler<DatabaseChangeEventArgs> Changed;
+        public event EventHandler<DatabaseChangeEventArgs> Changed {
+            add { _changed = (EventHandler<DatabaseChangeEventArgs>)Delegate.Combine(_changed, value); }
+            remove { _changed = (EventHandler<DatabaseChangeEventArgs>)Delegate.Remove(_changed, value); }
+        }
+        private EventHandler<DatabaseChangeEventArgs> _changed;
 
     #endregion
        
@@ -882,14 +889,14 @@ PRAGMA user_version = 3;";
             }
         }
 
-        private RevisionList GetAllRevisionsOfDocumentID(string docId, long docNumericID, bool onlyCurrent)
+        private RevisionList GetAllRevisionsOfDocumentID(string docId, long docNumericID, bool onlyCurrent, bool readUncommit = false)
         {
             var sql = onlyCurrent 
                 ? "SELECT sequence, revid, deleted FROM revs " + "WHERE doc_id=? AND current ORDER BY sequence DESC"
                 : "SELECT sequence, revid, deleted FROM revs " + "WHERE doc_id=? ORDER BY sequence DESC";
 
             var args = new [] { Convert.ToString (docNumericID) };
-            var cursor = StorageEngine.RawQuery(sql, args);
+            var cursor = readUncommit ? StorageEngine.IntransactionRawQuery(sql, args) : StorageEngine.RawQuery(sql, args);
 
             RevisionList result;
             try
@@ -2331,10 +2338,7 @@ PRAGMA user_version = 3;";
         {
             try
             {
-                StorageEngine.BeginTransaction();
-
-                ++_transactionLevel;
-
+                _transactionLevel = StorageEngine.BeginTransaction();
                 Log.D(Tag, "Begin transaction (level " + _transactionLevel + ")");
             }
             catch (SQLException e)
@@ -2355,27 +2359,24 @@ PRAGMA user_version = 3;";
 
             if (commit)
             {
-                Log.D(Tag, "Committing transaction (level " + _transactionLevel + ")");
-
+                Log.V(Tag, "    Committing transaction (level " + _transactionLevel + ")");
                 StorageEngine.SetTransactionSuccessful();
-                StorageEngine.EndTransaction();
             }
             else
             {
-                Log.V(Tag, "CANCEL transaction (level " + _transactionLevel + ")");
-                try
-                {
-                    StorageEngine.EndTransaction();
-                }
-                catch (SQLException e)
-                {
-                    Log.E(Tag, " Error calling endTransaction()", e);
-
-                    return false;
-                }
+                Log.V(Tag, "    CANCEL transaction (level " + _transactionLevel + ")");
             }
 
-            --_transactionLevel;
+            try
+            {
+                _transactionLevel = StorageEngine.EndTransaction();
+            }
+            catch (SQLException e)
+            {
+                Log.E(Tag, " Error calling endTransaction()", e);
+                return false;
+            }
+                
             PostChangeNotifications();
 
             return true;
@@ -2462,7 +2463,7 @@ PRAGMA user_version = 3;";
                                 Log.I(Tag, String.Format("Purging doc '{0}' revs ({1}); asked for ({2})", docID, revsToPurge, revIDs));
                                 if (seqsToPurge.Count > 0)
                                 {
-                                    string seqsToPurgeList = String.Join(",", seqsToPurge);
+                                    string seqsToPurgeList = String.Join(",", seqsToPurge.ToStringArray());
                                     string sql = string.Format("DELETE FROM revs WHERE sequence in ({0})", seqsToPurgeList);
                                     try
                                     {
@@ -3422,8 +3423,10 @@ PRAGMA user_version = 3;";
             return result;
         }
 
-        internal void PostChangeNotifications()
+        internal bool PostChangeNotifications()
         {
+            bool posted = false;
+
             // This is a 'while' instead of an 'if' because when we finish posting notifications, there
             // might be new ones that have arrived as a result of notification handlers making document
             // changes of their own (the replicator manager will do this.) So we need to check again.
@@ -3444,7 +3447,7 @@ PRAGMA user_version = 3;";
                     foreach (var change in outgoingChanges)
                     {
                         var document = GetDocument(change.DocumentId);
-                        document.RevisionAdded(change);
+                        document.RevisionAdded(change, true);
                         if (change.SourceUrl != null)
                         {
                             isExternal = true;
@@ -3457,9 +3460,11 @@ PRAGMA user_version = 3;";
                         Source = this
                     } ;
 
-                    var changeEvent = Changed;
+                    var changeEvent = _changed;
                     if (changeEvent != null)
                         changeEvent(this, args);
+
+                    posted = true;
                 }
                 catch (Exception e)
                 {
@@ -3470,6 +3475,11 @@ PRAGMA user_version = 3;";
                     _isPostingChangeNotifications = false;
                 }
             }
+
+            if(!posted) {
+                Log.V(Tag, "    Change notifications not posted (Tx level {0}, change count {1})", _transactionLevel, _changesToNotify.Count);
+            }
+            return posted;
         }
 
         internal void NotifyChange(RevisionInternal rev, RevisionInternal winningRev, Uri source, bool inConflict)
@@ -3477,7 +3487,16 @@ PRAGMA user_version = 3;";
             var change = new DocumentChange(rev, winningRev, inConflict, source);
             _changesToNotify.Add(change);
 
-            PostChangeNotifications();
+            if (!PostChangeNotifications())
+            {
+                // The notification wasn't posted yet, probably because a transaction is open.
+                // But the Document, if any, needs to know right away so it can update its
+                // currentRevision.
+                var doc = DocumentCache.Get(change.DocumentId);
+                if (doc != null) {
+                    doc.RevisionAdded(change, false);
+                }
+            }
         }
 
         /// <summary>
@@ -4431,6 +4450,11 @@ PRAGMA user_version = 3;";
 
             // Check the user_version number we last stored in the sqliteDb:
             var dbVersion = StorageEngine.GetVersion();
+            bool isNew = dbVersion == 0;
+            if (isNew && !Initialize("BEGIN TRANSACTION")) {
+                StorageEngine.Close();
+                return false;
+            }
 
             // Incompatible version changes increment the hundreds' place:
             if (dbVersion >= 100)
@@ -4608,6 +4632,26 @@ PRAGMA user_version = 3;";
                 }
                 dbVersion = 16;
             }
+            if (dbVersion < 17) {
+                var upgradeSql = "CREATE INDEX maps_view_sequence ON maps(view_id, sequence);" +
+                                 "PRAGMA user_version = 17";
+
+                if (!Initialize(upgradeSql))
+                {
+                    StorageEngine.Close();
+                    return false;
+                }
+                dbVersion = 17;
+            }
+
+            if (isNew && !Initialize("END TRANSACTION")) {
+                StorageEngine.Close();
+                return false;
+            }
+
+            if (!isNew) {
+                OptimizeSQLIndexes();
+            }
 
             try
             {
@@ -4662,6 +4706,40 @@ PRAGMA user_version = 3;";
             return true;
         }
 
+        internal void OptimizeSQLIndexes()
+        {
+            long curSequence = LastSequenceNumber;
+            if (curSequence > 0) {
+                Cursor cursor = StorageEngine.RawQuery("SELECT value FROM info WHERE key=?", "last_optimized");
+                if (cursor == null) {
+                    //Will not optimize this time
+                    Log.D(Tag, "Optimizing SQL indexes failed");
+                    return;
+                }
+
+                long lastOptimized = 0;
+                if (cursor.MoveToNext()) {
+                    lastOptimized = long.Parse(cursor.GetString(0));
+                }
+
+                if (lastOptimized <= curSequence / 10) {
+                    RunInTransaction(() =>
+                    {
+                        Log.D(Tag, "Optimizing SQL indexes (curSeq={0}, last run at {1})",
+                            curSequence, lastOptimized);
+                        StorageEngine.ExecSQL("ANALYZE");
+                        StorageEngine.ExecSQL("ANALYZE sqlite_master");
+
+                        var vals = new ContentValues();
+                        vals["value"] = curSequence.ToString();
+                        StorageEngine.Update("info", vals, "key=?", "last_optimized");
+
+                        return true;
+                    });
+                }
+            }
+        }
+
         internal void AddReplication(Replication replication)
         {
             lock (_allReplicatorsLocker) { AllReplicators.Add(replication); }
@@ -4677,7 +4755,7 @@ PRAGMA user_version = 3;";
             ActiveReplicators.Add(replication);
             replication.Changed += (sender, e) => 
             {
-                if (!e.Source.IsRunning && ActiveReplicators != null)
+                if (e.Source != null && !e.Source.IsRunning && ActiveReplicators != null)
                 {
                     ActiveReplicators.Remove(e.Source);
                 }
@@ -4756,7 +4834,17 @@ PRAGMA user_version = 3;";
 
 
     #endregion
+
+        #region IDisposable
+
+        public void Dispose()
+        {
+            if (!Close()) {
+                Log.E(Tag, "Error disposing database (possibly already disposed?)");
+            }
+        }
     
+        #endregion
     }
 
     #region Global Delegates

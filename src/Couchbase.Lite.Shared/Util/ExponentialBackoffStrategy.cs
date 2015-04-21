@@ -4,10 +4,6 @@ using System.Threading.Tasks;
 using System.Threading;
 using Couchbase.Lite.Shared;
 
-#if !NET_4_0
-using TaskEx = System.Threading.Tasks.Task;
-#endif
-
 namespace Couchbase.Lite.Util
 {
 
@@ -40,7 +36,7 @@ namespace Couchbase.Lite.Util
         {
             _tries++;
             _millis *= 2; // Double the wait backoff.
-            return TaskEx
+            return Task
                 .Delay(WaitInterval)
                 .ContinueWith(t => Send(_request, Token))
                 .Unwrap();

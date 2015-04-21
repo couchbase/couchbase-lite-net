@@ -44,7 +44,6 @@ using Couchbase.Lite.Storage;
 using Sharpen;
 using System.Collections.Generic;
 using System;
-using System.Data;
 
 namespace Couchbase.Lite.Storage
 {
@@ -58,9 +57,9 @@ namespace Couchbase.Lite.Storage
 
         bool IsOpen { get; }
 
-        void BeginTransaction();
+        int BeginTransaction();
 
-        void EndTransaction();
+        int EndTransaction();
 
         void SetTransactionSuccessful();
 

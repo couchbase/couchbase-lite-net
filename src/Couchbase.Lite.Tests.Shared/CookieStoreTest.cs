@@ -44,7 +44,12 @@ using System;
 using Couchbase.Lite.Util;
 using System.IO;
 using NUnit.Framework;
+
+#if NET_3_5
+using System.Net.Couchbase;
+#else
 using System.Net;
+#endif
 
 namespace Couchbase.Lite
 {

@@ -52,6 +52,10 @@ using System.Linq;
 using SQLitePCL.Ugly;
 using Couchbase.Lite.Store;
 
+#if !NET_3_5
+using StringEx = System.String;
+#endif
+
 namespace Couchbase.Lite.Shared
 {
     internal sealed class SqlitePCLRawStorageEngine : ISQLiteStorageEngine, IDisposable
@@ -117,7 +121,7 @@ namespace Couchbase.Lite.Shared
                 var errMessage = "Cannot open Sqlite Database at pth {0}".Fmt(Path);
                 throw new CouchbaseLiteException(errMessage, StatusCode.DbError);
             }
-#if !__ANDROID__ && VERBOSE
+#if !__ANDROID__ && !NET_3_5 && VERBOSE
                 var i = 0;
                 var val = raw.sqlite3_compileoption_get(i);
                 while (val != null)
@@ -197,7 +201,7 @@ namespace Couchbase.Lite.Shared
 
         int transactionCount = 0;
 
-        public void BeginTransaction()
+        public int BeginTransaction()
         {
             if (!IsOpen)
             {
@@ -212,23 +216,29 @@ namespace Couchbase.Lite.Shared
             {
                 var t = Factory.StartNew(() =>
                 {
-                    using (var statement = _writeConnection.prepare("BEGIN IMMEDIATE TRANSACTION"))
-                    {
-                        statement.step_done();
-                    }
+					try {
+						using (var statement = _writeConnection.prepare("BEGIN IMMEDIATE TRANSACTION"))
+						{
+							statement.step_done();
+						}
+					} catch (Exception e) {
+							Log.E(Tag, "Error BeginTransaction", e);
+					}
                 });
                 t.Wait();
             }
+
+            return value;
         }
 
-        public void EndTransaction()
+        public int EndTransaction()
         {
             if (_writeConnection == null)
                 throw new InvalidOperationException("Database is not open.");
 
             var count = Interlocked.Decrement(ref transactionCount);
             if (count > 0)
-                return;
+                return count;
 
             /*if (_writeConnection == null)
             {
@@ -238,24 +248,30 @@ namespace Couchbase.Lite.Shared
             }*/
 
             var t = Factory.StartNew(() =>
-            {
-                if (shouldCommit)
-                {
-                    using (var stmt = _writeConnection.prepare("COMMIT"))
-                    {
-                        stmt.step_done();
-                    }
-                    shouldCommit = false;
-                }
-                else
-                {
-                    using (var stmt = _writeConnection.prepare("ROLLBACK"))
-                    {
-                        stmt.step_done();
-                    }
-                }
+			{
+				try {
+					if (shouldCommit)
+					{
+						using (var stmt = _writeConnection.prepare("COMMIT"))
+						{
+							stmt.step_done();
+						}
+						shouldCommit = false;
+					}
+					else
+					{
+						using (var stmt = _writeConnection.prepare("ROLLBACK"))
+						{
+							stmt.step_done();
+						}
+					}
+				} catch (Exception e) {
+					Log.E(Tag, "Error EndTransaction", e);
+				}
             });
             t.Wait();
+
+            return 0;
         }
 
         public void SetTransactionSuccessful()
@@ -272,10 +288,11 @@ namespace Couchbase.Lite.Shared
         {  
             var t = Factory.StartNew(()=>
             {
-                var command = BuildCommand(_writeConnection, sql, paramArgs);
-
+                sqlite3_stmt command = null;
+                    
                 try
                 {
+                    command = BuildCommand(_writeConnection, sql, paramArgs);
                     var result = command.step();
                     if (result == SQLiteResult.ERROR)
                         throw new CouchbaseLiteException(raw.sqlite3_errmsg(_writeConnection), StatusCode.DbError);
@@ -287,7 +304,10 @@ namespace Couchbase.Lite.Shared
                 }
                 finally
                 {
-                    command.Dispose();
+                    if(command != null)
+                    {
+                        command.Dispose();
+                    }
                 }
             }, _cts.Token);
 
@@ -329,18 +349,21 @@ namespace Couchbase.Lite.Shared
                 Open(Path);
             }
 
-            if (transactionCount == 0)
+            if (transactionCount == 0) 
+            {
                 return RawQuery(sql, paramArgs);
+            }
 
             var t = Factory.StartNew(() =>
             {
                 Cursor cursor = null;
-                var command = BuildCommand (_writeConnection, sql, paramArgs);
+                sqlite3_stmt command = null;
                 try 
                 {
-                    Log.V(Tag, "RawQuery sql: {0} ({1})", sql, String.Join(", ", paramArgs));
+                    Log.V(Tag, "RawQuery sql: {0} ({1})", sql, String.Join(", ", paramArgs.ToStringArray()));
+                    command = BuildCommand (_writeConnection, sql, paramArgs);
                     cursor = new Cursor(command);
-                } 
+                }
                 catch (Exception e) 
                 {
                     if (command != null) 
@@ -371,25 +394,28 @@ namespace Couchbase.Lite.Shared
             }
 
             Cursor cursor = null;
-            var command = BuildCommand (_readConnection, sql, paramArgs);
-            try 
-            {
-                Log.V(Tag, "RawQuery sql: {0} ({1})", sql, String.Join(", ", paramArgs));
-                cursor = new Cursor(command);
-            } 
-            catch (Exception e) 
-            {
-                if (command != null) 
-                {
-                    command.Dispose();
-                }
-                var args = paramArgs == null 
+            sqlite3_stmt command = null;
+
+			var t = Factory.StartNew (() => 
+			{
+				try {
+					Log.V (Tag, "RawQuery sql: {0} ({1})", sql, String.Join (", ", paramArgs.ToStringArray ()));
+					command = BuildCommand (_readConnection, sql, paramArgs);
+					cursor = new Cursor (command);
+				} catch (Exception e) {
+					if (command != null) {
+						command.Dispose ();
+					}
+					var args = paramArgs == null 
                     ? String.Empty 
-                    : String.Join(",", paramArgs.ToString());
-                Log.E(Tag, "Error executing raw query '{0}' is values '{1}' {2}".Fmt(sql, args, _readConnection.errmsg()), e);
-                throw;
-            }
-            return cursor;
+                    : String.Join (",", paramArgs.ToStringArray ());
+					Log.E (Tag, "Error executing raw query '{0}' is values '{1}' {2}".Fmt (sql, args, _readConnection.errmsg ()), e);
+					throw;
+				}
+				return cursor;
+			});
+
+			return t.Result;
         }
 
         public long Insert(String table, String nullColumnHack, ContentValues values)
@@ -399,7 +425,7 @@ namespace Couchbase.Lite.Shared
 
         public long InsertWithOnConflict(String table, String nullColumnHack, ContentValues initialValues, ConflictResolutionStrategy conflictResolutionStrategy)
         {
-            if (!String.IsNullOrWhiteSpace(nullColumnHack))
+            if (!StringEx.IsNullOrWhiteSpace(nullColumnHack))
             {
                 var e = new InvalidOperationException("{0} does not support the 'nullColumnHack'.".Fmt(Tag));
                 Log.E(Tag, "Unsupported use of nullColumnHack", e);
@@ -448,7 +474,7 @@ namespace Couchbase.Lite.Shared
 
         public int Update(String table, ContentValues values, String whereClause, params String[] whereArgs)
         {
-            Debug.Assert(!String.IsNullOrWhiteSpace(table));
+            Debug.Assert(!StringEx.IsNullOrWhiteSpace(table));
             Debug.Assert(values != null);
 
             var t = Factory.StartNew(() =>
@@ -479,6 +505,8 @@ namespace Couchbase.Lite.Shared
             }, CancellationToken.None);
 
             // NOTE.ZJG: Just a sketch here. Needs better error handling, etc.
+
+            //doesn't look good
             var r = t.GetAwaiter().GetResult();
             if (t.Exception != null)
                 throw t.Exception;
@@ -487,7 +515,7 @@ namespace Couchbase.Lite.Shared
 
         public int Delete(String table, String whereClause, params String[] whereArgs)
         {
-            Debug.Assert(!String.IsNullOrWhiteSpace(table));
+            Debug.Assert(!StringEx.IsNullOrWhiteSpace(table));
 
             var t = Factory.StartNew(() =>
             {
@@ -517,10 +545,15 @@ namespace Couchbase.Lite.Shared
                 }
                 return resultCount;
             });
+
             // NOTE.ZJG: Just a sketch here. Needs better error handling, etc.
             var r = t.GetAwaiter().GetResult();
-            if (t.Exception != null)
+            if (t.Exception != null) 
+            {
+                //this is bad: should not arbitrarily crash the app
                 throw t.Exception;
+            }
+                
             return r;
         }
 
@@ -590,15 +623,23 @@ namespace Couchbase.Lite.Shared
             {
                 if (!IsOpen)
                 {
-                    Open(Path);
+                    if(Open(Path) == false)
+                    {
+                        throw new CouchbaseLiteException("Failed to Open " + Path, StatusCode.DbError);
+                    }
                 }
-                    
+
                 int err = raw.sqlite3_prepare_v2(db, sql, out command);
-                if (paramArgs.Length > 0)
+
+				if (err != raw.SQLITE_OK)
+				{
+					Log.E(Tag, "sqlite3_prepare_v2: " + err);
+				}
+
+                if (paramArgs.Length > 0 && command != null && err != raw.SQLITE_ERROR)
                 {
                     command.bind(paramArgs);
                 }
-
             }
             catch (Exception e)
             {
@@ -643,7 +684,7 @@ namespace Couchbase.Lite.Shared
                 paramList.Add(column.Value);
             }
 
-            if (!String.IsNullOrWhiteSpace(whereClause))
+            if (!StringEx.IsNullOrWhiteSpace(whereClause))
             {
                 builder.Append(" WHERE ");
                 builder.Append(whereClause);
@@ -717,7 +758,7 @@ namespace Couchbase.Lite.Shared
             sqlite3_stmt command = null;
             if (args != null)
             {
-                Log.D(Tag, "Preparing statement: '{0}' with values: {1}", sql, String.Join(", ", args.Select(o => o == null ? "null" : o.ToString())));
+                Log.D(Tag, "Preparing statement: '{0}' with values: {1}", sql, String.Join(", ", args.Select(o => o == null ? "null" : o.ToString()).ToArray()));
             }
             else
             {
@@ -744,7 +785,7 @@ namespace Couchbase.Lite.Shared
             }
             var builder = new StringBuilder("DELETE FROM ");
             builder.Append(table);
-            if (!String.IsNullOrWhiteSpace(whereClause))
+            if (!StringEx.IsNullOrWhiteSpace(whereClause))
             {
                 builder.Append(" WHERE ");
                 builder.Append(whereClause);

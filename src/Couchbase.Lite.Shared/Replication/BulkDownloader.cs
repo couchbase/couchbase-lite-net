@@ -60,7 +60,12 @@ namespace Couchbase.Lite.Replicator
 
         private int _docCount;
 
-        public event EventHandler<BulkDownloadEventArgs> DocumentDownloaded;
+        public event EventHandler<BulkDownloadEventArgs> DocumentDownloaded
+        {
+            add { _documentDownloaded = (EventHandler<BulkDownloadEventArgs>)Delegate.Combine(_documentDownloaded, value); }
+            remove { _documentDownloaded = (EventHandler<BulkDownloadEventArgs>)Delegate.Remove(_documentDownloaded, value); }
+        }
+        private EventHandler<BulkDownloadEventArgs> _documentDownloaded;
 
         /// <exception cref="System.Exception"></exception>
         public BulkDownloader(TaskFactory workExecutor, IHttpClientFactory clientFactory, Uri dbURL, IList<RevisionInternal> revs, Database database, IDictionary<string, object> requestHeaders, CancellationTokenSource tokenSource = null)
@@ -144,7 +149,7 @@ namespace Couchbase.Lite.Replicator
                 var responseTask = httpClient.SendAsync(request, requestTokenSource.Token);
                 if (!responseTask.Wait((Int32)ManagerOptions.Default.RequestTimeout.TotalMilliseconds, requestTokenSource.Token))
                 {
-                    Log.E(Tag, "Response task timed out: {0}, {1}", responseTask, TaskScheduler.Current);
+                    Log.E(Tag, "Response task timed out: {0}, {1}, {2}", responseTask, TaskScheduler.Current, Description());
                     throw new HttpResponseException(HttpStatusCode.RequestTimeout);
                 }
                 requestTokenSource.Dispose();
@@ -153,21 +158,25 @@ namespace Couchbase.Lite.Replicator
             catch (AggregateException e)
             {
                 var err = e.InnerException;
+                Log.E(Tag, "Unhandled Exception: {0}, {1}", TaskScheduler.Current, Description());
                 Log.E(Tag, "Unhandled Exception at Line 129 or 130", err);
                 error = err;
                 RespondWithResult(fullBody, err, response);
+                return;
             }
             catch (IOException e)
             {
                 Log.E(Tag, "IO Exception", e);
                 error = e;
                 RespondWithResult(fullBody, e, response);
+                return;
             }
             catch (Exception e)
             {
                 Log.E(Tag, "ExecuteRequest Exception: ", e);
                 error = e;
                 RespondWithResult(fullBody, e, response);
+                return;
             }
 
             try
@@ -321,7 +330,7 @@ namespace Couchbase.Lite.Replicator
 
         protected virtual void OnDocumentDownloaded (IDictionary<string, object> props)
         {
-            var handler = DocumentDownloaded;
+            var handler = _documentDownloaded;
             if (handler != null)
                 handler (this, new BulkDownloadEventArgs(props));
         }

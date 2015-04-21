@@ -49,6 +49,10 @@ using Couchbase.Lite.Internal;
 using Couchbase.Lite.Util;
 using Sharpen;
 
+#if !NET_3_5
+using StringEx = System.String;
+#endif
+
 namespace Couchbase.Lite {
 
     /// <summary>
@@ -350,6 +354,7 @@ namespace Couchbase.Lite {
                 {
                     currentRevision = null;
                 }
+
                 UnsavedRevision newRev = CreateRevision();
                 if (!updateDelegate(newRev))
                     break;
@@ -373,7 +378,12 @@ namespace Couchbase.Lite {
         /// <summary>
         /// Adds or Removed a change delegate that will be called whenever the Document changes
         /// </summary>
-        public event EventHandler<DocumentChangeEventArgs> Change;
+        public event EventHandler<DocumentChangeEventArgs> Change
+        {
+            add { _change = (EventHandler<DocumentChangeEventArgs>)Delegate.Combine(_change, value); }
+            remove { _change = (EventHandler<DocumentChangeEventArgs>)Delegate.Remove(_change, value); }
+        }
+        private EventHandler<DocumentChangeEventArgs> _change;
 
     #endregion
 
@@ -382,7 +392,7 @@ namespace Couchbase.Lite {
 
         private SavedRevision GetRevisionWithId(String revId)
         {
-            if (!String.IsNullOrWhiteSpace(revId) && revId.Equals(currentRevision.Id))
+            if (!StringEx.IsNullOrWhiteSpace(revId) && revId.Equals(currentRevision.Id))
             {
                 return currentRevision;
             }
@@ -504,7 +514,7 @@ namespace Couchbase.Lite {
             }
         }
 
-        internal void RevisionAdded(DocumentChange documentChange)
+        internal void RevisionAdded(DocumentChange documentChange, bool notify)
         {
             var rev = documentChange.WinningRevision;
             if (rev == null)
@@ -520,12 +530,16 @@ namespace Couchbase.Lite {
                     : new SavedRevision(this, rev);
             }
 
+            if (!notify) {
+                return;
+            }
+
             var args = new DocumentChangeEventArgs {
                 Change = documentChange,
                 Source = this
             } ;
 
-            var changeEvent = Change;
+            var changeEvent = _change;
             if (changeEvent != null)
                 changeEvent(this, args);
         }

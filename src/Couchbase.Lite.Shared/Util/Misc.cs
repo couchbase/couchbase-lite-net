@@ -55,6 +55,8 @@ using System.Net.Http;
 using System.Net.Sockets;
 //using System.Net.WebSockets;
 
+
+
 namespace Couchbase.Lite
 {
     internal static class Misc
@@ -225,4 +227,5 @@ namespace Couchbase.Lite
             return true;
         }
     }
+        
 }

@@ -2,7 +2,6 @@
 using System.Net.Http;
 using System.Threading.Tasks;
 using System.Threading;
-using System.Diagnostics.Contracts;
 
 namespace Couchbase.Lite.Util
 {
@@ -20,7 +19,7 @@ namespace Couchbase.Lite.Util
                 .Unwrap();
         }
 
-        [Pure]
+       
         static Task<HttpResponseMessage> HandleTransientErrors(Task<HttpResponseMessage> request, object state)
         {
             var strategy = (IRetryStrategy)state;

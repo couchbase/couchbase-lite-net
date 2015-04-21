@@ -358,7 +358,7 @@ namespace Couchbase.Lite
                     }
                     else
                     {
-                        Log.E(Database.Tag, "Error deleting attachmetn");
+                        Log.E(Database.Tag, "Error deleting attachment");
                     }
                 }
             }

@@ -14,6 +14,7 @@ TestResults
 *.user
 *.sln.docstates
 local-test.properties
+*.DS_Store
 
 # Build results
 [Dd]ebug/
@@ -37,7 +38,7 @@ x64/
 *.log
 *.vspscc
 *.vssscc
-.builds
+.build
 
 # Package
 *.xam
@@ -140,3 +141,5 @@ Tools/sync_gateway.exe
 samples/Sync10kDocsSample*
 samples/CouchbaseSample.Android/Resources/Resource.designer.cs
 *.nupkg
+UnityEngine.dll
+version

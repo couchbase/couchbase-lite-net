@@ -53,6 +53,10 @@ using Couchbase.Lite.Util;
 using NUnit.Framework;
 using Sharpen;
 
+#if !NET_3_5
+using StringEx = System.String;
+#endif
+
 namespace Couchbase.Lite
 {
     public class PerformanceTest : PerformanceTestCase
@@ -575,7 +579,7 @@ namespace Couchbase.Lite
                 {
                     var vacant = (Boolean)document["vacant"];
                     var name = (string)document["name"];
-                    if (vacant && !String.IsNullOrWhiteSpace(name))
+                    if (vacant && !StringEx.IsNullOrWhiteSpace(name))
                     {
                         emit(name, vacant);
                     }

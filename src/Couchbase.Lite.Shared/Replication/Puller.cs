@@ -60,14 +60,14 @@ using System.Threading;
 using System.Data;
 using Newtonsoft.Json;
 
+#if !NET_3_5
+using StringEx = System.String;
+#endif
+
 namespace Couchbase.Lite.Replicator
 {
     internal sealed class Puller : Replication, IChangeTrackerClient
     {
-        private const int MaxOpenHttpConnections = 16;
-
-        private const int MaxRevsToGetInBulk = 50;
-
         internal const int MaxNumberOfAttsSince = 50;
 
         readonly string Tag = "Puller";
@@ -120,6 +120,9 @@ namespace Couchbase.Lite.Replicator
 
         internal override void BeginReplicating()
         {
+            Log.D(Tag, string.Format("Using MaxOpenHttpConnections({0}), MaxRevsToGetInBulk({1})", 
+                ManagerOptions.Default.MaxOpenHttpConnections, ManagerOptions.Default.MaxRevsToGetInBulk));
+            
             if (downloadsToInsert == null)
             {
                 const int capacity = 200;
@@ -416,12 +419,12 @@ namespace Couchbase.Lite.Replicator
             var bulkWorkToStartNow = new List<RevisionInternal>();
             lock (locker)
             {
-                while (httpConnectionCount + bulkWorkToStartNow.Count + workToStartNow.Count < MaxOpenHttpConnections)
+                while (httpConnectionCount + bulkWorkToStartNow.Count + workToStartNow.Count < ManagerOptions.Default.MaxOpenHttpConnections)
                 {
                     int nBulk = 0;
                     if (bulkRevsToPull != null)
                     {
-                        nBulk = (bulkRevsToPull.Count < MaxRevsToGetInBulk) ? bulkRevsToPull.Count : MaxRevsToGetInBulk;
+                        nBulk = (bulkRevsToPull.Count < ManagerOptions.Default.MaxRevsToGetInBulk) ? bulkRevsToPull.Count : ManagerOptions.Default.MaxRevsToGetInBulk;
                     }
                     if (nBulk == 1)
                     {
@@ -606,7 +609,12 @@ namespace Couchbase.Lite.Replicator
             Log.V(Tag, "QueueDownloadedRevision() calling AsyncTaskStarted()");
             AsyncTaskStarted();
 
-            downloadsToInsert.QueueObject(rev);
+			if (downloadsToInsert != null) {
+				downloadsToInsert.QueueObject(rev);
+			}
+			else {
+				Log.E (Tag, "downloadsToInsert is null");
+			}
         }
 
         // Get as many revisions as possible in one _all_docs request.
@@ -685,7 +693,7 @@ namespace Couchbase.Lite.Replicator
                 }
 
                 var errorStr = (string)item.Get ("error");
-                if (errorStr == null || errorStr.IsEmpty ()) {
+                if (StringEx.IsNullOrWhiteSpace(errorStr)) {
                     return new Status (StatusCode.Ok);
                 }
 
@@ -708,7 +716,7 @@ namespace Couchbase.Lite.Replicator
                 if (errorStr.Equals ("conflict", StringComparison.InvariantCultureIgnoreCase)) {
                     return new Status (StatusCode.Conflict);
                 }
-
+                    
                 return new Status (StatusCode.UpStreamError);
             }
             catch (Exception e)
@@ -781,7 +789,13 @@ namespace Couchbase.Lite.Replicator
                         gotRev.SetSequence(rev.GetSequence());
                         AsyncTaskStarted ();
                         Log.D(Tag, "PullRemoteRevision add rev: " + gotRev + " to batcher");
-                        downloadsToInsert.QueueObject(gotRev);
+						
+						if (downloadsToInsert != null) {
+							downloadsToInsert.QueueObject(gotRev);
+						}
+						else {
+							Log.E (Tag, "downloadsToInsert is null");
+						}
                     }
                 }
                 finally
