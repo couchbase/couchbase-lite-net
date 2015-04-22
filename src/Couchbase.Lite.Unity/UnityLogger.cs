@@ -50,10 +50,10 @@ namespace Couchbase.Lite.Unity
         {
 
         }
-		// Unity 4.x API compatible Unity Logging.
-		public void LogUnity(string log){UnityEngine.Debug.Log(log);}
-		public void LogWarningUnity(string log){UnityEngine.Debug.LogWarning(log);}
-		public void LogErrorUnity(string log){UnityEngine.Debug.LogError(log);}
+        // Unity 4.x API compatible Unity Logging.
+        public void LogUnity(string log){UnityEngine.Debug.Log(log);}
+        public void LogWarningUnity(string log){UnityEngine.Debug.LogWarning(log);}
+        public void LogErrorUnity(string log){UnityEngine.Debug.LogError(log);}
 
         /// <summary>
         /// The default consructor
@@ -88,7 +88,7 @@ namespace Couchbase.Lite.Unity
 
             UnityMainThreadScheduler.TaskFactory.StartNew(() =>
             {
-				LogUnity(string.Format("{0}: {1}", tag, msg));
+                LogUnity(string.Format("{0}: {1}", tag, msg));
             });
         }
 
@@ -99,7 +99,7 @@ namespace Couchbase.Lite.Unity
 
             UnityMainThreadScheduler.TaskFactory.StartNew(() =>
             {
-					LogUnity(string.Format("{0}: {1}: {2}", tag, msg, Flatten(tr)));
+                LogUnity(string.Format("{0}: {1}: {2}", tag, msg, Flatten(tr)));
             });
         }
 
@@ -120,7 +120,7 @@ namespace Couchbase.Lite.Unity
 
             UnityMainThreadScheduler.TaskFactory.StartNew(() =>
             {
-					LogUnity(string.Format("{0}: {1}", tag, msg));
+                LogUnity(string.Format("{0}: {1}", tag, msg));
             });
         }
 
@@ -131,7 +131,7 @@ namespace Couchbase.Lite.Unity
 
             UnityMainThreadScheduler.TaskFactory.StartNew(() =>
             {
-					LogUnity(string.Format("{0}: {1}: {2}", tag, msg, Flatten(tr)));
+                LogUnity(string.Format("{0}: {1}: {2}", tag, msg, Flatten(tr)));
             });
         }
 
@@ -142,7 +142,7 @@ namespace Couchbase.Lite.Unity
 
             UnityMainThreadScheduler.TaskFactory.StartNew(() =>
             {
-				LogUnity(string.Format("{0}: {1}", tag, msg));
+                LogUnity(string.Format("{0}: {1}", tag, msg));
             });
         }
 
@@ -151,9 +151,9 @@ namespace Couchbase.Lite.Unity
             if (!(_level.HasFlag(SourceLevels.Information)))
                 return;
 
-			UnityMainThreadScheduler.TaskFactory.StartNew (() => {
-				LogUnity (string.Format ("{0}: {1}: {2}", tag, msg, Flatten (tr)));
-			});
+            UnityMainThreadScheduler.TaskFactory.StartNew (() => {
+                LogUnity (string.Format ("{0}: {1}: {2}", tag, msg, Flatten (tr)));
+            });
         }
 
         public void I (string tag, string format, params object[] args)
@@ -168,7 +168,7 @@ namespace Couchbase.Lite.Unity
 
             UnityMainThreadScheduler.TaskFactory.StartNew(() =>
             {
-					LogWarningUnity(string.Format("{0}: {1}", tag, msg));
+                LogWarningUnity(string.Format("{0}: {1}", tag, msg));
             });
         }
 
@@ -179,7 +179,7 @@ namespace Couchbase.Lite.Unity
 
             UnityMainThreadScheduler.TaskFactory.StartNew(() =>
             {
-				LogWarningUnity(string.Format("{0}: {1}", tag, Flatten(tr).Message));
+                LogWarningUnity(string.Format("{0}: {1}", tag, Flatten(tr).Message));
             });
         }
 
@@ -190,7 +190,7 @@ namespace Couchbase.Lite.Unity
 
             UnityMainThreadScheduler.TaskFactory.StartNew(() =>
             {
-				LogWarningUnity(string.Format("{0}: {1}: {2}", tag, msg, Flatten(tr)));
+                LogWarningUnity(string.Format("{0}: {1}: {2}", tag, msg, Flatten(tr)));
             });
         }
 
@@ -206,7 +206,7 @@ namespace Couchbase.Lite.Unity
 
             UnityMainThreadScheduler.TaskFactory.StartNew(() =>
             {
-				LogErrorUnity(string.Format("{0}: {1}", tag, msg));
+                LogErrorUnity(string.Format("{0}: {1}", tag, msg));
             });
         }
 
@@ -217,7 +217,7 @@ namespace Couchbase.Lite.Unity
 
             UnityMainThreadScheduler.TaskFactory.StartNew(() =>
             {
-				LogErrorUnity(string.Format("{0}: {1}: {2}", tag, msg, Flatten(tr)));
+                LogErrorUnity(string.Format("{0}: {1}: {2}", tag, msg, Flatten(tr)));
             });
         }
 
