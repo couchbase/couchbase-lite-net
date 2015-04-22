@@ -20,18 +20,31 @@
 //
 using System;
 using System.Collections.Generic;
-using System.Collections.Specialized;
 using System.Linq;
-using System.Net;
 
 using Couchbase.Lite.Internal;
-using Sharpen;
 using Couchbase.Lite.Replicator;
+using Sharpen;
 
 namespace Couchbase.Lite.Listener
 {
+    /// <summary>
+    /// The basic interface to a Couchbase Lite server for obtaining Couchbase Lite information and 
+    /// getting and setting configuration information.
+    /// </summary>
     internal static class ServerMethods
     {
+
+        #region Public Methods
+
+        /// <summary>
+        /// Returns a JSON structure containing information about the server, including a welcome message and the version of the server.
+        /// </summary>
+        /// <returns>The response state for further HTTP processing</returns>
+        /// <param name="context">The context of the Couchbase Lite HTTP request</param>
+        /// <remarks>
+        /// http://docs.couchdb.org/en/latest/api/server/common.html#get--
+        /// <remarks>
         public static ICouchbaseResponseState Greeting(ICouchbaseListenerContext context)
         {
             var info = new Dictionary<string, object> {
@@ -46,15 +59,21 @@ namespace Couchbase.Lite.Listener
             };
 
             var body = new Body(info);
-            var couchResponse = new CouchbaseLiteResponse(context);
+            var couchResponse = context.CreateResponse();
             couchResponse.JsonBody = body;
             return couchResponse.AsDefaultState();
         }
 
+        /// <summary>
+        /// List of running tasks, including the task type, name, status and process ID
+        /// </summary>
+        /// <returns>The response state for further HTTP processing</returns>
+        /// <param name="context">The context of the Couchbase Lite HTTP request</param>
+        /// <remarks>
+        /// http://docs.couchdb.org/en/latest/api/server/common.html#get--_active_tasks
+        /// <remarks>
         public static ICouchbaseResponseState GetActiveTasks(ICouchbaseListenerContext context)
         {
-            // http://wiki.apache.org/couchdb/HttpGetActiveTasks
-
             // Get the current task info of all replicators:
             var activity = new List<object>();
             var replicators = new List<Replication>();
@@ -67,7 +86,7 @@ namespace Couchbase.Lite.Listener
 
             if (context.ChangesFeedMode >= ChangesFeedMode.Continuous) {
                 // Continuous activity feed (this is a CBL-specific API):
-                var response = new CouchbaseLiteResponse(context);
+                var response = context.CreateResponse();
                 response.WriteHeaders();
                 response.Chunked = true;
 
@@ -80,27 +99,43 @@ namespace Couchbase.Lite.Listener
                     ChangesFeedMode = context.ChangesFeedMode
                 };
             } else {
-                var response = new CouchbaseLiteResponse(context);
+                var response = context.CreateResponse();
                 response.JsonBody = new Body(activity);
                 return response.AsDefaultState();
             }
         }
 
+        /// <summary>
+        /// Returns a list of all the databases in the Couchbase Lite instance.
+        /// </summary>
+        /// <returns>The response state for further HTTP processing</returns>
+        /// <param name="context">The context of the Couchbase Lite HTTP request</param>
+        /// <remarks>
+        /// http://docs.couchdb.org/en/latest/api/server/common.html#get--_all_dbs
+        /// <remarks>
         public static ICouchbaseResponseState GetAllDbs(ICouchbaseListenerContext context)
         {
             var names = context.DbManager.AllDatabaseNames.Cast<object>().ToList();
             var body = new Body(names);
 
-            var couchResponse = new CouchbaseLiteResponse(context);
+            var couchResponse = context.CreateResponse();
             couchResponse.JsonBody = body;
             return couchResponse.AsDefaultState();
         }
 
+        /// <summary>
+        /// Returns complete information about authenticated user (stubbed, not actual functionality)
+        /// </summary>
+        /// <returns>The response state for further HTTP processing</returns>
+        /// <param name="context">The context of the Couchbase Lite HTTP request</param>
+        /// <remarks>
+        /// http://docs.couchdb.org/en/latest/api/server/authn.html#get--_session
+        /// <remarks>
         public static ICouchbaseResponseState GetSession(ICouchbaseListenerContext context)
         {
             // Even though CouchbaseLite doesn't support user logins, it implements a generic response to the
             // CouchDB _session API, so that apps that call it (such as Futon!) won't barf.
-            var couchResponse = new CouchbaseLiteResponse(context);
+            var couchResponse = context.CreateResponse();
             couchResponse.JsonBody = new Body(new Dictionary<string, object> {
                 { "ok", true },
                 { "userCtx", new Dictionary<string, object> {
@@ -113,11 +148,19 @@ namespace Couchbase.Lite.Listener
             return couchResponse.AsDefaultState();
         }
 
+        /// <summary>
+        /// Requests one or more Universally Unique Identifiers (UUIDs) from the Couchbase Lite instance.
+        /// </summary>
+        /// <returns>The response state for further HTTP processing</returns>
+        /// <param name="context">The context of the Couchbase Lite HTTP request</param>
+        /// <remarks>
+        /// http://docs.couchdb.org/en/latest/api/server/common.html#get--_uuids
+        /// <remarks>
         public static ICouchbaseResponseState GetUUIDs(ICouchbaseListenerContext context)
         {
             int count = context.GetQueryParam<int>("count", int.TryParse, 1);
             if (count > 1000) {
-                return new CouchbaseLiteResponse(context) { InternalStatus = StatusCode.Forbidden }.AsDefaultState();
+                return context.CreateResponse(StatusCode.Forbidden).AsDefaultState();
             }
 
             var uuidList = new List<object>();
@@ -125,27 +168,27 @@ namespace Couchbase.Lite.Listener
                 uuidList.Add(Guid.NewGuid());
             }
 
-            var couchResponse = new CouchbaseLiteResponse(context);
+            var couchResponse = context.CreateResponse();
             couchResponse.JsonBody = new Body(uuidList);
             return couchResponse.AsDefaultState();
         }
 
+        /// <summary>
+        /// Request, configure, or stop, a replication operation.
+        /// </summary>
+        /// <returns>The response state for further HTTP processing</returns>
+        /// <param name="context">The context of the Couchbase Lite HTTP request</param>
+        /// <remarks>
+        /// http://docs.couchdb.org/en/latest/api/server/common.html#post--_replicate
+        /// <remarks>
         public static ICouchbaseResponseState ManageReplicationSession(ICouchbaseListenerContext context)
         {
             byte[] buffer = new byte[context.ContentLength];
-            context.HttpBodyStream.Read(buffer, 0, buffer.Length);
+            context.BodyStream.Read(buffer, 0, buffer.Length);
             var body = new Body(buffer).GetProperties() ?? new Dictionary<string, object>();
 
-            Replication rep = null;
-            try {
-                rep =  context.DbManager.ReplicationWithProperties(body);
-            } catch(CouchbaseLiteException e) {
-                CouchbaseLiteResponse failResponse = new CouchbaseLiteResponse(context);
-                failResponse.InternalStatus = e.GetCBLStatus().GetCode();
-                return failResponse.AsDefaultState();
-            }
-
-            var response = new CouchbaseLiteResponse(context);
+            Replication rep =  context.DbManager.ReplicationWithProperties(body);
+            var response = context.CreateResponse();
             bool cancel = body.Get("cancel") is bool && (bool)body.Get("cancel");
             if (cancel) {
                 if (!rep.IsRunning) {
@@ -168,6 +211,8 @@ namespace Couchbase.Lite.Listener
 
             return response.AsDefaultState();
         }
+
+        #endregion
     }
 }
 

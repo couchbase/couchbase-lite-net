@@ -20,7 +20,6 @@
 //
 using System;
 using System.Collections.Generic;
-using System.Net;
 
 using Couchbase.Lite.Auth;
 using Couchbase.Lite.Internal;
@@ -42,8 +41,8 @@ namespace Couchbase.Lite.Listener
         /// <param name="context">The context of the Couchbase Lite HTTP request</param>
         public static ICouchbaseResponseState RegisterFacebookToken(ICouchbaseListenerContext context)
         {
-            var response = new CouchbaseLiteResponse(context);
-            var body = context.HttpBodyAs<Dictionary<string, object>>();
+            var response = context.CreateResponse();
+            var body = context.BodyAs<Dictionary<string, object>>();
 
             string email = body.GetCast<string>("email");
             string remoteUrl = body.GetCast<string>("remote_url");
@@ -83,8 +82,8 @@ namespace Couchbase.Lite.Listener
         /// <param name="context">The context of the Couchbase Lite HTTP request</param>
         public static ICouchbaseResponseState RegisterPersonaToken(ICouchbaseListenerContext context)
         {
-            var response = new CouchbaseLiteResponse(context);
-            var body = context.HttpBodyAs<Dictionary<string, object>>();
+            var response = context.CreateResponse();
+            var body = context.BodyAs<Dictionary<string, object>>();
 
             string email = PersonaAuthorizer.RegisterAssertion(body.GetCast<string>("assertion"));
             if (email != null) {

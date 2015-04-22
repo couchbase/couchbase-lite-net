@@ -14,6 +14,7 @@
     <Folder Include="$(MSBuildThisFileDirectory)Mono.Zeroconf.Providers.Bonjour\" />
     <Folder Include="$(MSBuildThisFileDirectory)PeerToPeer\" />
     <Folder Include="$(MSBuildThisFileDirectory)Properties\" />
+    <Folder Include="$(MSBuildThisFileDirectory)PeerToPeer\TCP\" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="$(MSBuildThisFileDirectory)Mono.Zeroconf\AddressProtocol.cs" />
@@ -50,18 +51,14 @@
     <Compile Include="$(MSBuildThisFileDirectory)Mono.Zeroconf.Providers.Bonjour\ZeroconfProvider.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\AsyncOpCouchbaseResponseState.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\AuthenticationMethods.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\CouchbaseLiteResponse.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\CouchbaseLiteRouter.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\CouchbaseLiteRouter_Context.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\CouchbaseLiteServiceBroadcaster.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\CouchbaseLiteServiceBrowser.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\CouchbaseLiteServiceListener.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\DBMonitorCouchbaseResponseState.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\DatabaseMethods.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\DefaultCouchbaseResponseState.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\DocumentMethods.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\ICouchbaseListenerContext.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\ICouchbaseResponseState.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\OneShotCouchbaseResponseState.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\ReplicationCouchbaseResponseState.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\RouteCollection.cs" />
@@ -69,5 +66,13 @@
     <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\ServerMethods.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\ViewMethods.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Properties\AssemblyInfo.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\CouchbaseLiteServiceListener.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\CouchbaseListenerContext.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\ICouchbaseResponseState.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\CouchbaseLiteResponse.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\ICouchbaseResponseWriter.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\TCP\CouchbaseListenerTcpContext.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\TCP\CouchbaseLiteTcpListener.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\TCP\TcpResponseWriter.cs" />
   </ItemGroup>
 </Project>

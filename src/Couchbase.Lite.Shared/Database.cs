@@ -2628,7 +2628,7 @@ PRAGMA user_version = 3;";
         {
             var writer = new MultipartWriter(contentType, null);
             writer.SetNextPartHeaders(new Dictionary<string, string> { { "Content-Type", "application/json" } });
-            writer.AddData(rev.GetBody().GetJson());
+            writer.AddData(rev.GetBody().AsJson());
             var attachments = rev.GetAttachments();
             foreach (var entry in attachments) {
                 var attachment = entry.Value as IDictionary<string, object>;

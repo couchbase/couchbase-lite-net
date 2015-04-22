@@ -19,18 +19,32 @@
 //  limitations under the License.
 //
 using System;
+
 using Couchbase.Lite.Internal;
-using System.Collections.Generic;
 using Couchbase.Lite.Util;
 
 namespace Couchbase.Lite.Listener
 {
+
+    /// <summary>
+    /// A class that will wait for a replication to change before returning a
+    /// response
+    /// </summary>
     internal sealed class OneShotCouchbaseResponseState : ICouchbaseResponseState
     {
+
+        #region Variables
+
         private readonly Replication _replication;
 
+        #endregion
+
+        #region Properties
+
+        // ICouchbaseResponseState
         public CouchbaseLiteResponse Response { get; set; }
 
+        // ICouchbaseResponseState
         public bool IsAsync 
         {
             get {
@@ -38,6 +52,14 @@ namespace Couchbase.Lite.Listener
             }
         }
 
+        #endregion
+
+        #region Constructors
+
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        /// <param name="replication">The replication to observe</param>
         public OneShotCouchbaseResponseState(Replication replication)
         {
             if (replication == null) {
@@ -48,6 +70,11 @@ namespace Couchbase.Lite.Listener
             _replication.Changed += ReplicationChanged;
         }
 
+        #endregion
+
+        #region Private Methods
+
+        // Called when the observed replication changes
         private void ReplicationChanged (object sender, ReplicationChangeEventArgs e)
         {
             var replication = (Replication)sender;
@@ -62,6 +89,8 @@ namespace Couchbase.Lite.Listener
                 Response.WriteToContext();
             }
         }
+
+        #endregion
     }
 }
 

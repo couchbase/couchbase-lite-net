@@ -22,10 +22,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.IO;
 using System.Linq;
-using System.Net;
-using System.Text;
 
 using Couchbase.Lite.Internal;
 using Couchbase.Lite.Replicator;
@@ -57,7 +54,7 @@ namespace Couchbase.Lite.Listener
         /// <returns>The response state for further HTTP processing</returns>
         /// <param name="context">The context of the Couchbase Lite HTTP request</param>
         /// <remarks>
-        /// http://docs.couchdb.org/en/latest/api/database/common.html
+        /// http://docs.couchdb.org/en/latest/api/database/common.html#get--db
         /// <remarks>
         public static ICouchbaseResponseState GetConfiguration(ICouchbaseListenerContext context)
         {
@@ -66,10 +63,10 @@ namespace Couchbase.Lite.Listener
                 int numDocs = db.DocumentCount;
                 long updateSequence = db.LastSequenceNumber;
                 if (numDocs < 0 || updateSequence < 0) {
-                    return new CouchbaseLiteResponse(context) { InternalStatus = StatusCode.DbError };
+                    return context.CreateResponse(StatusCode.DbError);
                 }
 
-                var response = new CouchbaseLiteResponse(context);
+                var response = context.CreateResponse();
                 response.JsonBody = new Body(new Dictionary<string, object> {
                     { "db_name", db.Name },
                     { "doc_count", numDocs },
@@ -90,7 +87,7 @@ namespace Couchbase.Lite.Listener
         /// <returns>The response state for further HTTP processing</returns>
         /// <param name="context">The context of the Couchbase Lite HTTP request</param>
         /// <remarks>
-        /// http://docs.couchdb.org/en/latest/api/database/common.html
+        /// http://docs.couchdb.org/en/latest/api/database/common.html#delete--db
         /// <remarks>
         public static ICouchbaseResponseState DeleteConfiguration(ICouchbaseListenerContext context) 
         {
@@ -98,16 +95,16 @@ namespace Couchbase.Lite.Listener
             {
                 if(context.GetQueryParam("rev") != null) {
                     // CouchDB checks for this; probably meant to be a document deletion
-                    return new CouchbaseLiteResponse(context) { InternalStatus = StatusCode.BadId };
+                    return context.CreateResponse(StatusCode.BadId);
                 }
 
                 try {
                     db.Delete();
                 } catch (CouchbaseLiteException) {
-                    return new CouchbaseLiteResponse(context) { InternalStatus = StatusCode.InternalServerError };
+                    return context.CreateResponse(StatusCode.InternalServerError);
                 }
 
-                return new CouchbaseLiteResponse(context);
+                return context.CreateResponse();
             }).AsDefaultState();
         }
 
@@ -117,23 +114,23 @@ namespace Couchbase.Lite.Listener
         /// <returns>The response state for further HTTP processing</returns>
         /// <param name="context">The context of the Couchbase Lite HTTP request</param>
         /// <remarks>
-        /// http://docs.couchdb.org/en/latest/api/database/common.html
+        /// http://docs.couchdb.org/en/latest/api/database/common.html#put--db
         /// <remarks>
         public static ICouchbaseResponseState UpdateConfiguration(ICouchbaseListenerContext context)
         {
             string dbName = context.DatabaseName;
             Database db = context.DbManager.GetDatabaseWithoutOpening(dbName, false);
             if (db != null && db.Exists()) {
-                return new CouchbaseLiteResponse(context) { InternalStatus = StatusCode.PreconditionFailed }.AsDefaultState();
+                return context.CreateResponse(StatusCode.PreconditionFailed).AsDefaultState();
             }
 
             try {
                 db.Open();
             } catch(CouchbaseLiteException) {
-                return new CouchbaseLiteResponse(context) { InternalStatus = StatusCode.Exception }.AsDefaultState();
+                return context.CreateResponse(StatusCode.Exception).AsDefaultState();
             }
 
-            return new CouchbaseLiteResponse(context) { InternalStatus = StatusCode.Created }.AsDefaultState();
+            return context.CreateResponse(StatusCode.Created).AsDefaultState();
         }
 
         /// <summary>
@@ -142,19 +139,19 @@ namespace Couchbase.Lite.Listener
         /// <returns>The response state for further HTTP processing</returns>
         /// <param name="context">The context of the Couchbase Lite HTTP request</param>
         /// <remarks>
-        /// http://docs.couchdb.org/en/latest/api/database/bulk-api.html
+        /// http://docs.couchdb.org/en/latest/api/database/bulk-api.html#get--db-_all_docs
         /// <remarks>
         public static ICouchbaseResponseState GetAllDocuments(ICouchbaseListenerContext context)
         {
             return PerformLogicWithDatabase(context, true, db =>
             {
                 if(context.CacheWithEtag(db.LastSequenceNumber.ToString())) {
-                    return new CouchbaseLiteResponse(context) { InternalStatus = StatusCode.NotModified };
+                    return context.CreateResponse(StatusCode.NotModified);
                 }
 
                 var options = context.QueryOptions;
                 if(options == null) {
-                    return new CouchbaseLiteResponse(context) { InternalStatus = StatusCode.BadParam };
+                    return context.CreateResponse(StatusCode.BadParam);
                 }
 
                 return DoAllDocs(context, db, options);
@@ -168,7 +165,7 @@ namespace Couchbase.Lite.Listener
         /// <returns>The response state for further HTTP processing</returns>
         /// <param name="context">The context of the Couchbase Lite HTTP request</param>
         /// <remarks>
-        /// http://docs.couchdb.org/en/latest/api/database/bulk-api.html
+        /// http://docs.couchdb.org/en/latest/api/database/bulk-api.html#post--db-_all_docs
         /// <remarks>
         public static ICouchbaseResponseState GetAllSpecifiedDocuments(ICouchbaseListenerContext context)
         {
@@ -176,16 +173,16 @@ namespace Couchbase.Lite.Listener
             {
                 var options = context.QueryOptions;
                 if(options == null) {
-                    return new CouchbaseLiteResponse(context) { InternalStatus = StatusCode.BadParam };
+                    return context.CreateResponse(StatusCode.BadParam);
                 }
                     
-                var body = context.HttpBodyAs<Dictionary<string, object>>();
+                var body = context.BodyAs<Dictionary<string, object>>();
                 if(body == null) {
-                    return new CouchbaseLiteResponse(context) { InternalStatus = StatusCode.BadJson };
+                    return context.CreateResponse(StatusCode.BadJson);
                 }
 
                 if(!body.ContainsKey("rows")) {
-                    return new CouchbaseLiteResponse(context) { InternalStatus = StatusCode.BadParam };
+                    return context.CreateResponse(StatusCode.BadParam);
                 }
 
                 var keys = body["rows"].AsList<object>();
@@ -200,19 +197,19 @@ namespace Couchbase.Lite.Listener
         /// <returns>The response state for further HTTP processing</returns>
         /// <param name="context">The context of the Couchbase Lite HTTP request</param>
         /// <remarks>
-        /// http://docs.couchdb.org/en/latest/api/database/bulk-api.html
+        /// http://docs.couchdb.org/en/latest/api/database/bulk-api.html#post--db-_bulk_docs
         /// <remarks>
         public static ICouchbaseResponseState ProcessDocumentChangeOperations(ICouchbaseListenerContext context)
         {
             return PerformLogicWithDatabase(context, true, db =>
             {
-                var postBody = context.HttpBodyAs<Dictionary<string, object>>();
+                var postBody = context.BodyAs<Dictionary<string, object>>();
                 if(postBody == null) {
-                    return new CouchbaseLiteResponse(context) { InternalStatus = StatusCode.BadJson };
+                    return context.CreateResponse(StatusCode.BadJson);
                 }
                     
                 if(!postBody.ContainsKey("docs")) {
-                    return new CouchbaseLiteResponse(context) { InternalStatus = StatusCode.BadParam };
+                    return context.CreateResponse(StatusCode.BadParam);
                 }
                 var docs = postBody["docs"].AsList<IDictionary<string, object>>();
 
@@ -222,7 +219,7 @@ namespace Couchbase.Lite.Listener
                 bool newEdits;
                 postBody.TryGetValue<bool>("new_edits", out newEdits);
 
-                var response = new CouchbaseLiteResponse(context);
+                var response = context.CreateResponse();
                 StatusCode status = StatusCode.Ok;
                 bool success = db.RunInTransaction(() => {
                     List<IDictionary<string, object>> results = new List<IDictionary<string, object>>(docs.Count);
@@ -295,7 +292,7 @@ namespace Couchbase.Lite.Listener
         /// <returns>The response state for further HTTP processing</returns>
         /// <param name="context">The context of the Couchbase Lite HTTP request</param>
         /// <remarks>
-        /// http://docs.couchdb.org/en/latest/api/database/changes.html
+        /// http://docs.couchdb.org/en/latest/api/database/changes.html#get--db-_changes
         /// <remarks>
         public static ICouchbaseResponseState GetChanges(ICouchbaseListenerContext context)
         {
@@ -303,7 +300,7 @@ namespace Couchbase.Lite.Listener
 
             var responseObject = PerformLogicWithDatabase(context, true, db =>
             {
-                var response = new CouchbaseLiteResponse(context);
+                var response = context.CreateResponse();
                 responseState.Response = response;
                 if (context.ChangesFeedMode < ChangesFeedMode.Continuous) {
                     if(context.CacheWithEtag(db.LastSequenceNumber.ToString())) {
@@ -328,7 +325,7 @@ namespace Couchbase.Lite.Listener
                     Status status = new Status();
                     responseState.ChangesFilter = db.GetFilter(filterName, status);
                     if(responseState.ChangesFilter == null) {
-                        return new CouchbaseLiteResponse(context) { InternalStatus = status.GetCode() };
+                        return context.CreateResponse(status.GetCode());
                     }
                 }
 
@@ -355,7 +352,7 @@ namespace Couchbase.Lite.Listener
                         int heartbeat;
                         if(!int.TryParse(heartbeatParam, out heartbeat) || heartbeat <= 0) {
                             responseState.IsAsync = false;
-                            return new CouchbaseLiteResponse(context) { InternalStatus = StatusCode.BadParam };
+                            return context.CreateResponse(StatusCode.BadParam);
                         }
 
                         heartbeat = Math.Min(heartbeat, MIN_HEARTBEAT);
@@ -363,7 +360,7 @@ namespace Couchbase.Lite.Listener
                         responseState.StartHeartbeat(heartbeatResponse, heartbeat);
                     }
 
-                    return new CouchbaseLiteResponse(context);
+                    return context.CreateResponse();
                 } else {
                     if(responseState.ChangesIncludeConflicts) {
                         response.JsonBody = new Body(ResponseBodyForChanges(changes, since, options.GetLimit(), responseState));
@@ -385,7 +382,7 @@ namespace Couchbase.Lite.Listener
         /// <returns>The response state for further HTTP processing</returns>
         /// <param name="context">The context of the Couchbase Lite HTTP request</param>
         /// <remarks>
-        /// http://docs.couchdb.org/en/latest/api/database/compact.html
+        /// http://docs.couchdb.org/en/latest/api/database/compact.html#post--db-_compact
         /// <remarks>
         public static ICouchbaseResponseState Compact(ICouchbaseListenerContext context)
         {
@@ -393,9 +390,9 @@ namespace Couchbase.Lite.Listener
             {
                 try {
                     db.Compact();
-                    return new CouchbaseLiteResponse(context) { InternalStatus = StatusCode.Accepted };
+                    return context.CreateResponse(StatusCode.Accepted);
                 } catch (CouchbaseLiteException) {
-                    return new CouchbaseLiteResponse(context) { InternalStatus = StatusCode.DbError };
+                    return context.CreateResponse(StatusCode.DbError);
                 }
             }).AsDefaultState();
         }
@@ -406,28 +403,30 @@ namespace Couchbase.Lite.Listener
         /// <returns>The response state for further HTTP processing</returns>
         /// <param name="context">The context of the Couchbase Lite HTTP request</param>
         /// <remarks>
-        /// http://docs.couchdb.org/en/latest/api/database/misc.html
+        /// http://docs.couchdb.org/en/latest/api/database/misc.html#post--db-_purge
         /// <remarks>
         public static ICouchbaseResponseState Purge(ICouchbaseListenerContext context)
         {
-            // <http://wiki.apache.org/couchdb/Purge_Documents>
             return PerformLogicWithDatabase(context, true, db =>
             {
-                var body = context.HttpBodyAs<Dictionary<string, IList<string>>>();
+                var body = context.BodyAs<Dictionary<string, IList<string>>>();
                 if(body == null) {
-                    return new CouchbaseLiteResponse(context) { InternalStatus = StatusCode.BadJson };
+                    return context.CreateResponse(StatusCode.BadJson);
                 }
 
                 var purgedRevisions = db.PurgeRevisions(body);
                 if(purgedRevisions == null) {
-                    return new CouchbaseLiteResponse(context) { InternalStatus = StatusCode.DbError };
+                    return context.CreateResponse(StatusCode.DbError);
                 }
 
                 var responseBody = new Body(new Dictionary<string, object>
                 {
                     { "purged", purgedRevisions }
                 });
-                return new CouchbaseLiteResponse(context) { JsonBody = responseBody };
+
+                var retVal = context.CreateResponse();
+                retVal.JsonBody = responseBody;
+                return retVal;
             }).AsDefaultState();
         }
 
@@ -437,18 +436,18 @@ namespace Couchbase.Lite.Listener
         /// <returns>The response state for further HTTP processing</returns>
         /// <param name="context">The context of the Couchbase Lite HTTP request</param>
         /// <remarks>
-        /// http://docs.couchdb.org/en/latest/api/database/temp-views.html
+        /// http://docs.couchdb.org/en/latest/api/database/temp-views.html#post--db-_temp_view
         /// <remarks>
         public static ICouchbaseResponseState ExecuteTemporaryViewFunction(ICouchbaseListenerContext context)
         {
-            var response = new CouchbaseLiteResponse(context);
+            var response = context.CreateResponse();
             if (context.RequestHeaders["Content-Type"] == null || 
                 !context.RequestHeaders["Content-Type"].StartsWith("application/json")) {
                 response.InternalStatus = StatusCode.UnsupportedType;
                 return response.AsDefaultState();
             }
 
-            IEnumerable<byte> json = context.HttpBodyStream.ReadAllBytes();
+            IEnumerable<byte> json = context.BodyStream.ReadAllBytes();
             var requestBody = new Body(json);
             if (!requestBody.IsValidJSON()) {
                 response.InternalStatus = StatusCode.BadJson;
@@ -506,43 +505,115 @@ namespace Couchbase.Lite.Listener
             string dbName = context.DatabaseName;
             Database db = context.DbManager.GetDatabaseWithoutOpening(dbName, false);
             if (db == null || !db.Exists()) {
-                return new CouchbaseLiteResponse(context) { InternalStatus = StatusCode.NotFound };
+                return context.CreateResponse(StatusCode.NotFound);
             }
 
             if (open) {
-                bool opened = false;
-                try {
-                    opened = db.Open();
-                } catch (CouchbaseLiteException) {
-                    return new CouchbaseLiteResponse(context) { InternalStatus = StatusCode.Exception };
-                }
-
+                bool opened = db.Open();
                 if (!opened) {
-                    return new CouchbaseLiteResponse(context) { InternalStatus = StatusCode.DbError };
+                    return context.CreateResponse(StatusCode.DbError);
                 }
             }
 
             return action(db);
         }
 
+        /// <summary>
+        /// Create a response body for an HTTP response from a given list of DB changes (no conflicts)
+        /// </summary>
+        /// <returns>The response body</returns>
+        /// <param name="changes">The list of changes to be processed</param>
+        /// <param name="since">The first change ID to be processed</param>
+        /// <param name="responseState">The current response state</param>
+        public static IDictionary<string, object> ResponseBodyForChanges(RevisionList changes, long since, DBMonitorCouchbaseResponseState responseState)
+        {
+            List<IDictionary<string, object>> results = new List<IDictionary<string, object>>();
+            foreach (var change in changes) {
+                results.Add(DatabaseMethods.ChangesDictForRev(change, responseState));
+            }
+
+            if (changes.Count > 0) {
+                since = changes.Last().GetSequence();
+            }
+
+            return new Dictionary<string, object> {
+                { "results", results },
+                { "last_seq", since }
+            };
+        }
+
+        /// <summary>
+        /// Creates a dictionary of metadata for one specific revision
+        /// </summary>
+        /// <returns>The metadata dictionary</returns>
+        /// <param name="rev">The revision to examine</param>
+        /// <param name="responseState">The current response state</param>
+        public static IDictionary<string, object> ChangesDictForRev(RevisionInternal rev, DBMonitorCouchbaseResponseState responseState)
+        {
+            return new NonNullDictionary<string, object> {
+                { "seq", rev.GetSequence() },
+                { "id", rev.GetDocId() },
+                { "changes", new List<object> { 
+                        new Dictionary<string, object> { 
+                            { "rev", rev.GetRevId() } 
+                        } 
+                    } 
+                },
+                { "deleted", rev.IsDeleted() ? (object)true : null },
+                { "doc", responseState.ChangesIncludeDocs ? rev.GetProperties() : null }
+            };
+        }
+
+        /// <summary>
+        /// Queries the specified view using the specified options
+        /// </summary>
+        /// <returns>The HTTP response containing the results of the query</returns>
+        /// <param name="context">The request context</param>
+        /// <param name="view">The view to query</param>
+        /// <param name="options">The options to apply to the query</param>
+        public static CouchbaseLiteResponse QueryView(ICouchbaseListenerContext context, View view, QueryOptions options)
+        {
+            var result = view.QueryWithOptions(options);
+            object updateSeq = options.IsUpdateSeq() ? (object)view.LastSequenceIndexed : null;
+            var mappedDic = result.Select(x => new NonNullDictionary<string, object> {
+                { "id", x.DocumentId },
+                { "key", x.Key },
+                { "value", x.Value },
+                { "doc", x.DocumentProperties }
+            });
+
+            var body = new Body(new NonNullDictionary<string, object> {
+                { "rows", mappedDic },
+                { "total_rows", view.TotalRows },
+                { "offset", options.GetSkip() },
+                { "update_seq", updateSeq }
+            });
+
+            var retVal = context.CreateResponse();
+            retVal.JsonBody = body;
+            return retVal;
+        }
+
         #endregion
 
         #region Private Methods
             
+        //Do an all document request on the database (i.e. fetch all docs given some options)
         private static CouchbaseLiteResponse DoAllDocs(ICouchbaseListenerContext context, Database db, QueryOptions options)
         {
             var result = db.GetAllDocs(options);
             if (!result.ContainsKey("rows")) {
-                return new CouchbaseLiteResponse(context) { InternalStatus = StatusCode.BadJson };
+                return context.CreateResponse(StatusCode.BadJson);
             }
 
             var documentProps = from row in (List<QueryRow>)result["rows"] select row.AsJSONDictionary();
             result["rows"] = documentProps;
-            var response = new CouchbaseLiteResponse(context);
+            var response = context.CreateResponse();
             response.JsonBody = new Body(result);
             return response;
         }
 
+        //Create a response body for an HTTP response from a given list of DB changes, including all conflicts
         private static IDictionary<string, object> ResponseBodyForChanges(RevisionList changes, long since, int limit, DBMonitorCouchbaseResponseState state)
         {
             string lastDocId = null;
@@ -571,59 +642,7 @@ namespace Couchbase.Lite.Listener
             };
         }
 
-        public static IDictionary<string, object> ResponseBodyForChanges(RevisionList changes, long since, DBMonitorCouchbaseResponseState responseState)
-        {
-            List<IDictionary<string, object>> results = new List<IDictionary<string, object>>();
-            foreach (var change in changes) {
-                results.Add(DatabaseMethods.ChangesDictForRev(change, responseState));
-            }
-
-            if (changes.Count > 0) {
-                since = changes.Last().GetSequence();
-            }
-
-            return new Dictionary<string, object> {
-                { "results", results },
-                { "last_seq", since }
-            };
-        }
-
-        public static IDictionary<string, object> ChangesDictForRev(RevisionInternal rev, DBMonitorCouchbaseResponseState responseState)
-        {
-            return new NonNullDictionary<string, object> {
-                { "seq", rev.GetSequence() },
-                { "id", rev.GetDocId() },
-                { "changes", new List<object> { 
-                        new Dictionary<string, object> { 
-                            { "rev", rev.GetRevId() } 
-                        } 
-                    } 
-                },
-                { "deleted", rev.IsDeleted() ? (object)true : null },
-                { "doc", responseState.ChangesIncludeDocs ? rev.GetProperties() : null }
-            };
-        }
-
-        public static CouchbaseLiteResponse QueryView(ICouchbaseListenerContext context, View view, QueryOptions options)
-        {
-            var result = view.QueryWithOptions(options);
-            object updateSeq = options.IsUpdateSeq() ? (object)view.LastSequenceIndexed : null;
-            var mappedDic = result.Select(x => new NonNullDictionary<string, object> {
-                { "id", x.DocumentId },
-                { "key", x.Key },
-                { "value", x.Value },
-                { "doc", x.DocumentProperties }
-            });
-
-            var body = new Body(new NonNullDictionary<string, object> {
-                { "rows", mappedDic },
-                { "total_rows", view.TotalRows },
-                { "offset", options.GetSkip() },
-                { "update_seq", updateSeq }
-            });
-
-            return new CouchbaseLiteResponse(context) { JsonBody = body };
-        }
+        #endregion
     }
 }
 

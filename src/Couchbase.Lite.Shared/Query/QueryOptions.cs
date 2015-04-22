@@ -47,7 +47,7 @@ using Sharpen;
 namespace Couchbase.Lite
 {
     /// <summary>Standard query options for views.</summary>
-    internal class QueryOptions
+    public class QueryOptions
     {
         private object startKey = null;
 

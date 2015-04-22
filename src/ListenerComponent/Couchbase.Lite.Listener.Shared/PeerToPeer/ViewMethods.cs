@@ -23,13 +23,33 @@ using System.Collections.Generic;
 
 namespace Couchbase.Lite.Listener
 {
+
+    /// <summary>
+    /// Methods for querying and returning formatted output from database
+    /// </summary>
     internal static class ViewMethods
     {
+
+        #region Public Methods
+
+        /// <summary>
+        /// Executes the specified view function from the specified design document.
+        /// </summary>
+        /// <returns>The response state for further HTTP processing</returns>
+        /// <param name="context">The context of the Couchbase Lite HTTP request</param>
+        /// <remarks>
+        /// http://docs.couchdb.org/en/latest/api/ddoc/views.html#get--db-_design-ddoc-_view-view
+        /// <remarks>
         public static ICouchbaseResponseState GetDesignView(ICouchbaseListenerContext context)
         {
             return QueryDesignDocument(context, null).AsDefaultState();
         }
 
+        #endregion
+
+        #region Private Methods
+
+        // Performs the actual query logic on a design document
         private static CouchbaseLiteResponse QueryDesignDocument(ICouchbaseListenerContext context, IList<object> keys)
         {
             return DatabaseMethods.PerformLogicWithDatabase(context, true, db =>
@@ -37,12 +57,12 @@ namespace Couchbase.Lite.Listener
                 var view = db.GetView(String.Format("{0}/{1}", context.DesignDocName, context.ViewName));
                 var status = view.CompileFromDesignDoc();
                 if(status.IsError) {
-                    return new CouchbaseLiteResponse(context) { InternalStatus = status.GetCode() };
+                    return context.CreateResponse(status.GetCode());
                 }
 
                 var options = context.QueryOptions;
                 if(options == null) {
-                    return new CouchbaseLiteResponse(context) { InternalStatus = StatusCode.BadRequest };
+                    return context.CreateResponse(StatusCode.BadRequest);
                 }
 
                 if(keys != null) {
@@ -59,13 +79,15 @@ namespace Couchbase.Lite.Listener
                 if(keys == null) {
                     long eTag = options.IsIncludeDocs() ? db.LastSequenceNumber : view.LastSequenceIndexed;
                     if(context.CacheWithEtag(eTag.ToString())) {
-                        return new CouchbaseLiteResponse(context) { InternalStatus = StatusCode.NotModified };
+                        return context.CreateResponse(StatusCode.NotModified);
                     }
                 }
 
                 return DatabaseMethods.QueryView(context, view, options);
             });
         }
+
+        #endregion
     }
 }
 

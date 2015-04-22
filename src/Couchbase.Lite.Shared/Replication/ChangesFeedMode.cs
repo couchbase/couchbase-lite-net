@@ -22,7 +22,7 @@ using System;
 
 namespace Couchbase.Lite.Replicator
 {
-    internal enum ChangesFeedMode
+    public enum ChangesFeedMode
     {
         Normal,
         LongPoll,

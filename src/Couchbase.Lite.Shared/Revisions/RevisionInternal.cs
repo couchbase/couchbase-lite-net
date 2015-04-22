@@ -137,7 +137,7 @@ namespace Couchbase.Lite.Internal
             IEnumerable<Byte> result = null;
             if (body != null)
             {
-                result = body.GetJson();
+                result = body.AsJson();
             }
             return result;
         }

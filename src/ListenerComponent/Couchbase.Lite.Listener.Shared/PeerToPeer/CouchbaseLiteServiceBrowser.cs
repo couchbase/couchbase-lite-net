@@ -19,22 +19,11 @@
 //  limitations under the License.
 //
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net;
-using System.Net.Sockets;
-using System.Runtime.CompilerServices;
-using System.Text;
-using System.Threading;
 
-using Mono.Zeroconf.Providers.Bonjour;
 using Mono.Zeroconf;
-using ServiceBrowser = Mono.Zeroconf.Providers.Bonjour.ServiceBrowser;
-
-#if ANDROID
-using Android.App;
-#endif
+using Mono.Zeroconf.Providers.Bonjour;
 
 namespace Couchbase.Lite.Listener
 {
@@ -47,7 +36,7 @@ namespace Couchbase.Lite.Listener
 
         #region Members 
 
-        readonly IServiceBrowser _browser;
+        private readonly IServiceBrowser _browser;
         private bool _running = false;
 
         #endregion
@@ -72,14 +61,13 @@ namespace Couchbase.Lite.Listener
 
         #region Constructors
 
-        #if ANDROID
+        #if __ANDROID__
         /// <summary>
         /// This is needed to start the /system/bin/mdnsd service on Android
         /// (can't find another way to start it)
         /// </summary>
-        [MethodImpl(MethodImplOptions.NoOptimization)]
         static CouchbaseLiteServiceBrowser() {
-            Application.Context.GetSystemService("servicediscovery");
+            global::Android.App.Application.Context.GetSystemService("servicediscovery");
         }
         #endif
 

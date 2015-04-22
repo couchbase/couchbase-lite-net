@@ -18,17 +18,28 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 //
-using System;
-using Couchbase.Lite.Replicator;
 
 namespace Couchbase.Lite.Listener
 {
-    internal interface ICouchbaseResponseState
+    
+    /// <summary>
+    /// An interface that stores information about an operation that
+    /// will result in a P2P response
+    /// </summary>
+    public interface ICouchbaseResponseState
     {
+
+        /// <summary>
+        /// The response object that has the information needed to write
+        /// the HTTP response
+        /// </summary>
         CouchbaseLiteResponse Response { get; }
 
+        /// <summary>
+        /// Whether or not this operation is async
+        /// </summary>
+        /// <value><c>true</c> if this op is async; otherwise, <c>false</c>.</value>
         bool IsAsync { get; }
-
 
     }
 }

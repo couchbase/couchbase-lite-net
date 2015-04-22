@@ -18,22 +18,39 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 //
-using System;
 
 namespace Couchbase.Lite.Listener
 {
+    /// <summary>
+    /// The default response state for a CouchbaseLiteResponse (a simple wrapper)
+    /// </summary>
     internal class DefaultCouchbaseResponseState : ICouchbaseResponseState
     {
+
+        #region Properties
+
+        // ICouchbaseResponseState
         public CouchbaseLiteResponse Response { get; private set; }
 
+        // ICouchbaseResponseState
         public bool IsAsync { 
             get { return false; }
         }
 
+        #endregion
+
+        #region Constructors
+
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        /// <param name="response">The response to write to</param>
         public DefaultCouchbaseResponseState(CouchbaseLiteResponse response)
         {
             Response = response;
         }
+
+        #endregion
     }
 }
 

@@ -20,42 +20,72 @@
 //
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Text;
+using System.Text.RegularExpressions;
 
 using Couchbase.Lite.Internal;
+using Couchbase.Lite.Replicator;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
 using Sharpen;
-using System.IO;
-using Couchbase.Lite.Replicator;
-using System.Text.RegularExpressions;
+using System.Collections.Specialized;
+
 
 namespace Couchbase.Lite.Listener
 {
-    internal sealed class CouchbaseLiteResponse
+    /// <summary>
+    /// A class encapsulating all the information needed to write a response
+    /// to a client in various ways
+    /// </summary>
+    public sealed class CouchbaseLiteResponse
     {
+
+        #region Constants
+
         private const string TAG = "CouchbaseLiteResponse";
         private static readonly Regex RANGE_HEADER_REGEX = new Regex("^bytes=(\\d+)?-(\\d+)?$");
-        private readonly HttpListenerContext _context;
+
+        #endregion
+
+        #region Member Variables
+
+        private readonly ICouchbaseResponseWriter _responseWriter;
+        private readonly NameValueCollection _requestHeaders;
+        private readonly string _requestMethod;
         private bool _headersWritten;
 
+        #endregion
+
+        #region Properties
+
+        /// <summary>
+        /// The status the response will contain
+        /// </summary>
         public int Status { get; set; }
 
+        /// <summary>
+        /// Whether or not the response is written piece by piece or all at once
+        /// </summary>
         public bool Chunked { 
-            get { return _context.Response.SendChunked; }
+            get { return _responseWriter.IsChunked; }
             set { 
                 if (_headersWritten) {
                     Log.E(TAG, "Attempting to changed Chunked after headers written, ignoring");
                     return;
                 }
 
-                _context.Response.SendChunked = value; 
+                _responseWriter.IsChunked = value; 
             }
         }
 
-        private StatusCode _internalStatus;
+        /// <summary>
+        /// Sets the Couchbase Lite status of the response object.  This will
+        /// implicitly set the <see cref="Status"/> property to an appropriate
+        /// value, as well as the <see cref="JsonBody"/>, if needed. 
+        /// </summary>
         public StatusCode InternalStatus { 
             get { return _internalStatus; }
             set {
@@ -77,13 +107,29 @@ namespace Couchbase.Lite.Listener
                 }
             }
         }
+        private StatusCode _internalStatus;
 
+        /// <summary>
+        /// The message corresponding to the status of the response
+        /// </summary>
         public string StatusMessage { get; private set; }
 
+        /// <summary>
+        /// The reason for the status of the status, if known
+        /// </summary>
+        /// <value>The status reason.</value>
         public string StatusReason { get; set; }
 
+        /// <summary>
+        /// The headers of the response
+        /// </summary>
+        /// <value>The headers.</value>
         public IDictionary<string, string> Headers { get; set; }
 
+        /// <summary>
+        /// The body of the response, as JSON (will clear
+        /// the values of the other body objects)
+        /// </summary>
         public Body JsonBody { 
             get {
                 return _jsonBody;
@@ -96,6 +142,10 @@ namespace Couchbase.Lite.Listener
         }
         private Body _jsonBody;
 
+        /// <summary>
+        /// The body of the response, as raw binary (will clear
+        /// the values of the other body objects)
+        /// </summary>
         public IEnumerable<byte> BinaryBody {
             get {
                 return _binaryBody;
@@ -108,6 +158,11 @@ namespace Couchbase.Lite.Listener
         }
         private IEnumerable<byte> _binaryBody;
 
+        /// <summary>
+        /// The multipart writer to use to write the 
+        /// response body (will clear the JSON and binary
+        /// bodies)
+        /// </summary>
         public MultipartWriter MultipartWriter
         {
             get {
@@ -122,6 +177,10 @@ namespace Couchbase.Lite.Listener
         }
         private MultipartWriter _multipartWriter;
 
+        /// <summary>
+        /// Gets the content type of the response, as set
+        /// in the headers
+        /// </summary>
         public string BaseContentType { 
             get {
                 string type = Headers.Get("Content-Type");
@@ -133,40 +192,65 @@ namespace Couchbase.Lite.Listener
             }
         }
 
-        public CouchbaseLiteResponse(ICouchbaseListenerContext context) {
+        #endregion
+
+        #region Constructors
+
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        /// <param name="requestMethod">The method used in the request</param>
+        /// <param name="requestHeaders">The headers sent with the request</param>
+        /// <param name="responseWriter">The object responsible for writing the response to the client</param>
+        public CouchbaseLiteResponse(string requestMethod, NameValueCollection requestHeaders, ICouchbaseResponseWriter responseWriter) {
             Headers = new Dictionary<string, string>();
             InternalStatus = StatusCode.Ok;
-            _context = context.HttpContext;
+            _requestHeaders = requestHeaders;
+            _responseWriter = responseWriter;
+            _requestMethod = requestMethod;
         }
 
+        #endregion
+
+        #region Public Methods
+
+        /// <summary>
+        /// Converts the response to the default state object (most of the time
+        /// this is used, but sometimes a request is async or needs to be continuous)
+        /// </summary>
+        /// <returns>The converted response</returns>
         public ICouchbaseResponseState AsDefaultState()
         {
             return new DefaultCouchbaseResponseState(this);
         }
 
+        /// <summary>
+        /// Writes the response in one-step, and then closes the response stream
+        /// </summary>
+        /// <returns><c>true</c>, if written successfully, <c>false</c> otherwise.</returns>
         public bool WriteToContext()
         {
             bool syncWrite = true;
             if (JsonBody != null) {
                 if (!Chunked && !Headers.ContainsKey("Content-Type")) {
-                    var accept = _context.Request.Headers["Accept"];
+                    var accept = _requestHeaders["Accept"];
                     if (accept != null) {
                         if (accept.Contains("*/*") || accept.Contains("application/json")) {
-                            _context.Response.AddHeader("Content-Type", "application/json");
+                            _responseWriter.AddHeader("Content-Type", "application/json");
                         } else if (accept.Contains("text/plain")) {
-                            _context.Response.AddHeader("Content-Type", "text/plain; charset=utf-8");
+                            _responseWriter.AddHeader("Content-Type", "text/plain; charset=utf-8");
                         } else {
                             Reset();
-                            _context.Response.AddHeader("Content-Type", "application/json");
+                            _responseWriter.AddHeader("Content-Type", "application/json");
                             InternalStatus = StatusCode.NotAcceptable;
                         }
                     }
                 }
                     
-                var json = JsonBody.GetJson().ToArray();
+                var json = JsonBody.AsJson().ToArray();
                 if (!Chunked) {
-                    _context.Response.ContentEncoding = Encoding.UTF8;
-                    _context.Response.ContentLength64 = json.Length;
+                    _responseWriter.ContentEncoding = Encoding.UTF8;
+                    _responseWriter.ContentLength = json.Length;
                 }
 
                 if(!WriteToStream(json)) {
@@ -174,17 +258,17 @@ namespace Couchbase.Lite.Listener
                 }
             } else if (BinaryBody != null) {
                 this["Content-Type"] = BaseContentType;
-                _context.Response.ContentEncoding = Encoding.UTF8;
+                _responseWriter.ContentEncoding = Encoding.UTF8;
                 var data = BinaryBody.ToArray();
                 if (!Chunked) {
-                    _context.Response.ContentLength64 = data.LongLength;
+                    _responseWriter.ContentLength = data.LongLength;
                 }
 
                 if (!WriteToStream(data)) {
                     return false;
                 }
             } else if (MultipartWriter != null) {
-                MultipartWriter.WriteAsync(_context.Response.OutputStream).ContinueWith(t =>
+                MultipartWriter.WriteAsync(_responseWriter.OutputStream).ContinueWith(t =>
                 {
                     if(t.IsCompleted && t.Result) {
                         TryClose();
@@ -202,6 +286,12 @@ namespace Couchbase.Lite.Listener
             return true;
         }
 
+        /// <summary>
+        /// Write a piece of data to the response, and optionally close it
+        /// </summary>
+        /// <returns><c>true</c>, if data was written, <c>false</c> otherwise.</returns>
+        /// <param name="data">The data to write</param>
+        /// <param name="finished">If set to <c>true</c> close the response</param>
         public bool WriteData(IEnumerable<byte> data, bool finished)
         {
             if (!Chunked) {
@@ -220,8 +310,13 @@ namespace Couchbase.Lite.Listener
             return true;
         }
 
-        // Send a JSON object followed by a newline without closing the connection.
-        // Used by the continuous mode of _changes and _active_tasks.
+        /// <summary>
+        /// Send a JSON object followed by a newline without closing the connection.
+        /// Used by the continuous mode of _changes and _active_tasks.
+        /// </summary>
+        /// <returns><c>true</c>, if data was written, <c>false</c> otherwise.</returns>
+        /// <param name="changesDict">The metadata dictionary to write</param>
+        /// <param name="mode">The mode of the response (event source vs continuous)</param>
         public bool SendContinuousLine(IDictionary<string, object> changesDict, ChangesFeedMode mode)
         {
             if (!Chunked) {
@@ -242,10 +337,18 @@ namespace Couchbase.Lite.Listener
             return written;
         }
 
+        /// <summary>
+        /// Processes the Content-Range header of the request and if possible sends the
+        /// corresponding data
+        /// </summary>
+        /// <remarks>
+        /// Range Request: http://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html#sec14.35
+        /// Content-Range: http://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html#sec14.16
+        /// </remarks>
         public void ProcessRequestRanges()
         {
-            if (_context.Response.StatusCode != 200 || (_context.Request.HttpMethod != "GET" 
-                && _context.Request.HttpMethod != "HEAD") || _binaryBody == null) {
+            if (_responseWriter.StatusCode != 200 || (_requestMethod != "GET" 
+                && _requestMethod != "HEAD") || _binaryBody == null) {
                 return;
             }
 
@@ -255,9 +358,8 @@ namespace Couchbase.Lite.Listener
             if (bodyLength == 0) {
                 return;
             }
-
-            // Range requests: http://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html#sec14.35
-            var rangeHeader = _context.Request.Headers["Range"];
+                
+            var rangeHeader = _requestHeaders["Range"];
             if (rangeHeader == null) {
                 return;
             }
@@ -308,13 +410,15 @@ namespace Couchbase.Lite.Listener
             var data = _binaryBody.Skip(start).Take(end - start + 1).ToArray();
             _binaryBody = data;
 
-            // Content-Range: http://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html#sec14.16
             var contentRange = String.Format("bytes {0}-{1}/{2}", start, end, bodyLength);
             Headers["Content-Range"] = contentRange;
             Status = 206; // Partial Content
             Log.D(TAG, "Content-Range: {0}", contentRange);
         }
 
+        /// <summary>
+        /// Write the headers to the HTTP response
+        /// </summary>
         public void WriteHeaders()
         {
             if (_headersWritten) {
@@ -324,20 +428,25 @@ namespace Couchbase.Lite.Listener
             _headersWritten = true;
             Validate();
             this["Server"] = "Couchbase Lite " + Manager.VersionString;
-            if (this.Status == 200 && _context.Request.HttpMethod.Equals("GET") || _context.Request.HttpMethod.Equals("HEAD")) {
+            if (this.Status == 200 && _requestMethod.Equals("GET") || _requestMethod.Equals("HEAD")) {
                 if (!Headers.ContainsKey("Cache-Control")) {
                     this["Cache-Control"] = "must-revalidate";
                 }
             }
 
-            _context.Response.StatusCode = Status;
-            _context.Response.StatusDescription = StatusMessage;
+            _responseWriter.StatusCode = Status;
+            _responseWriter.StatusDescription = StatusMessage;
 
             foreach (var header in Headers) {
-                _context.Response.AddHeader(header.Key, header.Value);
+                _responseWriter.AddHeader(header.Key, header.Value);
             }
         }
 
+        /// <summary>
+        /// Creates and sets a multipart writer given the list of data to send
+        /// </summary>
+        /// <param name="parts">The list of data to transmit</param>
+        /// <param name="type">The base type of the multipart writer</param>
         public void SetMultipartBody(IList<object> parts, string type)
         {
             var mp = new MultipartWriter(type, null);
@@ -356,13 +465,41 @@ namespace Couchbase.Lite.Listener
             MultipartWriter = mp;
         }
 
+        /// <summary>
+        /// Resets the response to its initial state
+        /// </summary>
+        public void Reset()
+        {
+            _responseWriter.ClearHeaders();
+            JsonBody = null;
+            BinaryBody = null;
+            MultipartWriter = null;
+            _headersWritten = false;
+            InternalStatus = StatusCode.Ok;
+        }
+
+        /// <summary>
+        /// Gets or sets the header using the specified name
+        /// </summary>
+        /// <param name="key">The header name</param>
+        public string this[string key]
+        {
+            get { return Headers == null ? null : Headers[key]; }
+            set { Headers[key] = value; }
+        }
+
+        #endregion
+
+        #region Private Methods
+
+        //Makes sure that the request includes a valid content type in its Accept header
         private bool Validate()
         {
-            var accept = _context.Request.Headers["Accept"];
+            var accept = _requestHeaders["Accept"];
             if (accept != null && !accept.Contains("*/*")) {
                 var responseType = BaseContentType;
                 if (responseType != null && !accept.Contains(responseType)) {
-                    Log.D(TAG, "Unacceptable type {0} (Valid: {1})", BaseContentType, _context.Request.AcceptTypes);
+                    Log.D(TAG, "Unacceptable type {0} (Valid: {1})", BaseContentType, _requestHeaders["Accept"]);
                     Reset();
                     InternalStatus = StatusCode.NotAcceptable;
                     return false;
@@ -372,10 +509,11 @@ namespace Couchbase.Lite.Listener
             return true;
         }
 
+        //Attempt to write to the response stream
         private bool WriteToStream(byte[] data) {
             try {
-                _context.Response.OutputStream.Write(data, 0, data.Length);
-                _context.Response.OutputStream.Flush();
+                _responseWriter.OutputStream.Write(data, 0, data.Length);
+                _responseWriter.OutputStream.Flush();
                 return true;
             } catch(IOException) {
                 Log.E(TAG, "Error writing to HTTP response stream");
@@ -386,9 +524,10 @@ namespace Couchbase.Lite.Listener
             }
         }
 
+        //Attempt to close the response
         private void TryClose() {
             try {
-                _context.Response.Close();
+                _responseWriter.Close();
             } catch(IOException) {
                 Log.W(TAG, "Error closing HTTP response stream");
             } catch(ObjectDisposedException) {
@@ -396,21 +535,7 @@ namespace Couchbase.Lite.Listener
             }
         }
 
-        public void Reset()
-        {
-            _context.Response.
-            Headers.Clear();
-            _context.Response.Headers.Clear();
-            JsonBody = null;
-            BinaryBody = null;
-            _headersWritten = false;
-        }
-
-        public string this[string key]
-        {
-            get { return Headers == null ? null : Headers[key]; }
-            set { Headers[key] = value; }
-        }
+        #endregion
     }
 }
 

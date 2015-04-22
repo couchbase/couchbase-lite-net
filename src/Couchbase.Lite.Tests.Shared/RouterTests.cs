@@ -52,7 +52,7 @@ namespace Couchbase.Lite
 
         private int _savedMinHeartbeat;
         private int _minHeartbeat = 5000;
-        private CouchbaseLiteServiceListener _listener;
+        private CouchbaseLiteTcpListener _listener;
         private HttpWebResponse _lastResponse;
 
         [Test]
@@ -771,7 +771,7 @@ namespace Couchbase.Lite
             Assert.IsTrue(mre.Wait(TimeSpan.FromSeconds(5)), "Timed out waiting for response");
             mre.Dispose();
             var body = new Body(bodyData);
-            Assert.IsNotNull(body.GetProperties(), "Couldn't parse response body:\n{0}", body.GetJSONString());
+            Assert.IsNotNull(body.GetProperties(), "Couldn't parse response body:\n{0}", body.AsJSONString());
             Assert.AreEqual(new Dictionary<string, object> {
                 { "last_seq", 6L },
                 { "results", new List<object> {
@@ -1093,7 +1093,7 @@ namespace Couchbase.Lite
             {
                 Assert.AreEqual(HttpStatusCode.OK, r.StatusCode);
                 var body = new Body(r.GetResponseStream().ReadAllBytes());
-                Assert.AreEqual(attach1, body.GetJson());
+                Assert.AreEqual(attach1, body.AsJson());
                 Assert.AreEqual("text/plain", r.GetResponseHeader("Content-Type"));
                 var etag = r.GetResponseHeader("Etag");
                 Assert.IsTrue(etag.Length > 0);
@@ -1293,7 +1293,7 @@ namespace Couchbase.Lite
             LoadCustomProperties();
             StartCBLite();
 
-            _listener = new CouchbaseLiteServiceListener(manager, 59840);
+            _listener = new CouchbaseLiteTcpListener(manager, 59840);
             _listener.Start();
         }
 
@@ -1385,7 +1385,7 @@ namespace Couchbase.Lite
             }
 
             if (bodyObj != null) {
-                var array = bodyObj.GetJson().ToArray();
+                var array = bodyObj.AsJson().ToArray();
                 request.ContentLength = array.Length;
                 request.GetRequestStream().Write(array, 0, array.Length);
             } else {

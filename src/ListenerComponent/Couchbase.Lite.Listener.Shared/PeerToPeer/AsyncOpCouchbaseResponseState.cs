@@ -18,8 +18,6 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 //
-using System;
-using System.Threading.Tasks;
 
 namespace Couchbase.Lite.Listener
 {
@@ -33,9 +31,7 @@ namespace Couchbase.Lite.Listener
 
         #region Properties
 
-        /// <summary>
-        /// The response to write upon signal
-        /// </summary>
+        //ICouchbaseResponseState
         public CouchbaseLiteResponse Response { get; set; }
 
         //ICouchbaseResponseState

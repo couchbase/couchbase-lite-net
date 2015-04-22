@@ -20,13 +20,8 @@
 //
 using System;
 
-using Mono.Zeroconf.Providers.Bonjour;
 using Mono.Zeroconf;
-
-#if ANDROID
-using System.Runtime.CompilerServices;
-using Android.App;
-#endif
+using Mono.Zeroconf.Providers.Bonjour;
 
 namespace Couchbase.Lite.Listener
 {
@@ -37,10 +32,14 @@ namespace Couchbase.Lite.Listener
     /// </summary>
     public sealed class CouchbaseLiteServiceBroadcaster : IDisposable
     {
+        #region Constants
+
+        private const string TAG = "CouchbaseLiteServiceBroadcaster";
+
+        #endregion
 
         #region Members
 
-        private const string TAG = "CouchbaseLiteServiceBroadcaster";
         private volatile bool _running;
         private IRegisterService _registerService;
 
@@ -80,14 +79,13 @@ namespace Couchbase.Lite.Listener
 
         #region Constructors
 
-        #if ANDROID
+        #if __ANDROID__
         /// <summary>
         /// This is needed to start the /system/bin/mdnsd service on Android
         /// (can't find another way to start it)
         /// </summary>
-        [MethodImpl(MethodImplOptions.NoOptimization)]
         static CouchbaseLiteServiceBroadcaster() {
-            Application.Context.GetSystemService("servicediscovery");
+            global::Android.App.Application.Context.GetSystemService("servicediscovery");
         }
         #endif
 
@@ -96,6 +94,8 @@ namespace Couchbase.Lite.Listener
         /// (or Bonjour if null)
         /// </summary>
         /// <param name="registerService">The service that will perform the broadcast</param>
+        /// <param name = "port">The port to advertise the service as being available on (i.e.
+        /// the port that the listener is using)</param>
         public CouchbaseLiteServiceBroadcaster(IRegisterService registerService, ushort port)
         {
             _registerService = registerService ?? new RegisterService() {

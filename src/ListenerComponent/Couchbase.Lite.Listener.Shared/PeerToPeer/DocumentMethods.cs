@@ -32,15 +32,33 @@ using Rackspace.Threading;
 
 namespace Couchbase.Lite.Listener
 {
+    /// <summary>
+    /// Methods that create, read, update and delete documents within a database.
+    /// </summary>
     internal static class DocumentMethods
     {
+
+        #region Constants
+
         private const string TAG = "DocumentMethods";
 
+        #endregion
+
+        #region Public Methods
+
+        /// <summary>
+        /// Returns document by the specified docid from the specified db. Unless you request a 
+        /// specific revision, the latest revision of the document will always be returned.
+        /// </summary>
+        /// <returns>The response state for further HTTP processing</returns>
+        /// <param name="context">The context of the Couchbase Lite HTTP request</param>
+        /// <remarks>
+        /// http://docs.couchdb.org/en/latest/api/document/common.html#get--db-docid
+        /// <remarks>
         public static ICouchbaseResponseState GetDocument(ICouchbaseListenerContext context)
         {
             return DatabaseMethods.PerformLogicWithDatabase(context, true, db => {
-                var response = new CouchbaseLiteResponse(context);
-                // http://wiki.apache.org/couchdb/HTTP_Document_API#GET
+                var response = context.CreateResponse();
                 string docId = context.DocumentName;
                 bool isLocalDoc = docId.StartsWith("_local");
 
@@ -181,11 +199,19 @@ namespace Couchbase.Lite.Listener
             }).AsDefaultState();
         }
 
+        /// <summary>
+        /// Creates a new named document, or creates a new revision of the existing document.
+        /// </summary>
+        /// <returns>The response state for further HTTP processing</returns>
+        /// <param name="context">The context of the Couchbase Lite HTTP request</param>
+        /// <remarks>
+        /// http://docs.couchdb.org/en/latest/api/document/common.html#put--db-docid
+        /// <remarks>
         public static ICouchbaseResponseState UpdateDocument(ICouchbaseListenerContext context)
         {
             return PerformLogicWithDocumentBody(context, (db, body) =>
             {
-                var response = new CouchbaseLiteResponse(context);
+                var response = context.CreateResponse();
                 string docId = context.DocumentName;
                 if(context.GetQueryParam<bool>("new_edits", bool.TryParse, true)) {
                     // Regular PUT:
@@ -225,12 +251,31 @@ namespace Couchbase.Lite.Listener
             }).AsDefaultState();
         }
 
+        /// <summary>
+        /// Creates a new document in the specified database, using the supplied JSON document structure.
+        /// </summary>
+        /// <returns>The response state for further HTTP processing</returns>
+        /// <param name="context">The context of the Couchbase Lite HTTP request</param>
+        /// <remarks>
+        /// http://docs.couchdb.org/en/latest/api/database/common.html#post--db
+        /// <remarks>
         public static ICouchbaseResponseState CreateDocument(ICouchbaseListenerContext context)
         {
             return PerformLogicWithDocumentBody(context, (db, body) => UpdateDb(context, db, null, body, false))
                 .AsDefaultState();
         }
 
+        /// <summary>
+        /// Attempt to update a document based on the information in the HTTP request
+        /// </summary>
+        /// <returns>The resulting status of the operation</returns>
+        /// <param name="context">The request context</param>
+        /// <param name="db">The database in which the document exists</param>
+        /// <param name="docId">The ID of the document being updated</param>
+        /// <param name="body">The new document body</param>
+        /// <param name="deleting">Whether or not the document is being deleted</param>
+        /// <param name="allowConflict">Whether or not to allow a conflict to be inserted</param>
+        /// <param name="outRev">The resulting revision of the document</param>
         public static StatusCode UpdateDocument(ICouchbaseListenerContext context, Database db, string docId, Body body, bool deleting, 
             bool allowConflict, out RevisionInternal outRev)
         {
@@ -286,6 +331,15 @@ namespace Couchbase.Lite.Listener
             return status;
         }
 
+        /// <summary>
+        /// Marks the specified document as deleted by adding a field _deleted with the value true. 
+        /// Documents with this field will not be returned within requests anymore, but stay in the database.
+        /// </summary>
+        /// <returns>The response state for further HTTP processing</returns>
+        /// <param name="context">The context of the Couchbase Lite HTTP request</param>
+        /// <remarks>
+        /// http://docs.couchdb.org/en/latest/api/document/common.html#delete--db-docid
+        /// <remarks>
         public static ICouchbaseResponseState DeleteDocument(ICouchbaseListenerContext context)
         {
             return DatabaseMethods.PerformLogicWithDatabase(context, true, db =>
@@ -295,6 +349,16 @@ namespace Couchbase.Lite.Listener
             }).AsDefaultState();
         }
 
+        /// <summary>
+        /// Returns the file attachment associated with the document. The raw data of the associated attachment is returned 
+        /// (just as if you were accessing a static file. The returned Content-Type will be the same as the content type 
+        /// set when the document attachment was submitted into the database.
+        /// </summary>
+        /// <returns>The response state for further HTTP processing</returns>
+        /// <param name="context">The context of the Couchbase Lite HTTP request</param>
+        /// <remarks>
+        /// http://docs.couchdb.org/en/latest/api/document/attachments.html#get--db-docid-attname
+        /// <remarks>
         public static ICouchbaseResponseState GetAttachment(ICouchbaseListenerContext context)
         {
             return DatabaseMethods.PerformLogicWithDatabase(context, true, db =>
@@ -304,10 +368,10 @@ namespace Couchbase.Lite.Listener
                     status);
                     
                 if(rev ==null) {
-                    return new CouchbaseLiteResponse(context) { InternalStatus = status.GetCode() };
+                    return context.CreateResponse(status.GetCode());
                 }
                 if(context.CacheWithEtag(rev.GetRevId())) {
-                    return new CouchbaseLiteResponse(context) { InternalStatus = StatusCode.NotModified };
+                    return context.CreateResponse(StatusCode.NotModified);
                 }
 
                 string acceptEncoding = context.RequestHeaders["Accept-Encoding"];
@@ -316,10 +380,10 @@ namespace Couchbase.Lite.Listener
 
                 var attachment = db.GetAttachmentForRevision(rev, context.AttachmentName, status);
                 if(attachment == null) {
-                    return new CouchbaseLiteResponse(context) { InternalStatus = status.GetCode() };
+                    return context.CreateResponse(status.GetCode());
                 }
 
-                var response = new CouchbaseLiteResponse(context);
+                var response = context.CreateResponse();
                 if(context.Method.Equals(HttpMethod.Head)) {
                     var length = attachment.Length;
                     if(acceptEncoded && attachment.Encoding == AttachmentEncoding.GZIP &&
@@ -347,6 +411,14 @@ namespace Couchbase.Lite.Listener
             }).AsDefaultState();
         }
 
+        /// <summary>
+        /// Uploads the supplied content as an attachment to the specified document.
+        /// </summary>
+        /// <returns>The response state for further HTTP processing</returns>
+        /// <param name="context">The context of the Couchbase Lite HTTP request</param>
+        /// <remarks>
+        /// http://docs.couchdb.org/en/latest/api/document/attachments.html#put--db-docid-attname
+        /// <remarks>
         public static ICouchbaseResponseState UpdateAttachment(ICouchbaseListenerContext context)
         {
             var state = new AsyncOpCouchbaseResponseState();
@@ -355,9 +427,9 @@ namespace Couchbase.Lite.Listener
                 
                 var blob = db.AttachmentWriter;
                 var httpBody = new byte[context.ContentLength];
-                context.HttpBodyStream.ReadAsync(httpBody, 0, httpBody.Length).ContinueWith(t => {
+                context.BodyStream.ReadAsync(httpBody, 0, httpBody.Length).ContinueWith(t => {
                     if(t.Result == 0) {
-                        state.Response = new CouchbaseLiteResponse(context) { InternalStatus = StatusCode.BadAttachment };
+                        state.Response = context.CreateResponse(StatusCode.BadAttachment);
                         state.SignalFinished();
                         return;
                     }
@@ -375,12 +447,26 @@ namespace Couchbase.Lite.Listener
             return state;
         }
 
+        /// <summary>
+        /// Deletes the attachment of the specified doc.
+        /// </summary>
+        /// <returns>The response state for further HTTP processing</returns>
+        /// <param name="context">The context of the Couchbase Lite HTTP request</param>
+        /// <remarks>
+        /// http://docs.couchdb.org/en/latest/api/document/attachments.html#delete--db-docid-attname
+        /// <remarks>
         public static ICouchbaseResponseState DeleteAttachment(ICouchbaseListenerContext context)
         {
             return DatabaseMethods.PerformLogicWithDatabase(context, true, db =>
             UpdateAttachment(context, db, context.AttachmentName, context.DocumentName, null)).AsDefaultState();
         }
 
+        #endregion
+
+        #region Private Methods
+
+        // Factors out the logic of opening the database and reading the document body from the HTTP request
+        // and performs the specified logic on the body received in the request, barring any problems
         private static CouchbaseLiteResponse PerformLogicWithDocumentBody(ICouchbaseListenerContext context, 
             Func<Database, Body, CouchbaseLiteResponse> callback)
         {
@@ -388,17 +474,18 @@ namespace Couchbase.Lite.Listener
             {
                 MultipartDocumentReader reader = new MultipartDocumentReader(db);
                 reader.SetContentType(context.RequestHeaders["Content-Type"]);
-                reader.AppendData(context.HttpBodyStream.ReadAllBytes());
+                reader.AppendData(context.BodyStream.ReadAllBytes());
                 try {
                     reader.Finish();
                 } catch(InvalidOperationException) {
-                    return new CouchbaseLiteResponse(context) { InternalStatus = StatusCode.BadRequest };
+                    return context.CreateResponse(StatusCode.BadRequest);
                 }
 
                 return callback(db, new Body(reader.GetDocumentProperties()));
             });
         }
 
+        // Apply the options in the URL query to the specified revision and create a new revision object
         private static RevisionInternal ApplyOptions(DocumentContentOptions options, RevisionInternal rev, ICouchbaseListenerContext context,
             Database db, Status outStatus)
         {
@@ -454,9 +541,10 @@ namespace Couchbase.Lite.Listener
             return rev;
         }
 
+        // Perform a document operation on the specified database
         private static CouchbaseLiteResponse UpdateDb(ICouchbaseListenerContext context, Database db, string docId, Body body, bool deleting)
         {
-            var response = new CouchbaseLiteResponse(context);
+            var response = context.CreateResponse();
             if (docId != null) {
                 // On PUT/DELETE, get revision ID from either ?rev= query, If-Match: header, or doc body:
                 string revParam = context.GetQueryParam("rev");
@@ -465,7 +553,7 @@ namespace Couchbase.Lite.Listener
                     if (revParam == null) {
                         revParam = ifMatch;
                     } else if (!revParam.Equals(ifMatch)) {
-                        return new CouchbaseLiteResponse(context) { InternalStatus = StatusCode.BadRequest };
+                        return context.CreateResponse(StatusCode.BadRequest);
                     }
                 }
 
@@ -477,7 +565,7 @@ namespace Couchbase.Lite.Listener
                         props["_rev"] = revParam;
                         body = new Body(props);
                     } else if (!revProp.Equals(revParam)) {
-                        return new CouchbaseLiteResponse(context) { InternalStatus = StatusCode.BadRequest }; // mismatch between _rev and rev
+                        return context.CreateResponse(StatusCode.BadRequest); // mismatch between _rev and rev
                     }
                 }
             }
@@ -504,18 +592,14 @@ namespace Couchbase.Lite.Listener
             return response;
         }
            
+        // Update the given attachment using the provided info
         private static CouchbaseLiteResponse UpdateAttachment(ICouchbaseListenerContext context, Database db, 
             string attachment, string docId, BlobStoreWriter body)
         {
-            RevisionInternal rev = null;
-            try {
-                rev = db.UpdateAttachment(attachment, body, context.RequestHeaders["Content-Type"], AttachmentEncoding.None,
+            RevisionInternal rev = db.UpdateAttachment(attachment, body, context.RequestHeaders["Content-Type"], AttachmentEncoding.None,
                     docId, context.GetQueryParam("rev") ?? context.IfMatch());
-            } catch (CouchbaseLiteException e) {
-                return new CouchbaseLiteResponse(context) { InternalStatus = e.GetCBLStatus().GetCode() };
-            }
 
-            var response = new CouchbaseLiteResponse(context);
+            var response = context.CreateResponse();
             response.JsonBody = new Body(new Dictionary<string, object> {
                 { "ok", true },
                 { "id", rev.GetDocId() },
@@ -528,6 +612,8 @@ namespace Couchbase.Lite.Listener
 
             return response;
         }
+
+        #endregion
     }
 }
 

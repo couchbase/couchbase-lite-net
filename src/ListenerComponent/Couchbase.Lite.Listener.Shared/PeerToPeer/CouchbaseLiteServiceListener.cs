@@ -19,19 +19,29 @@
 //  limitations under the License.
 //
 using System;
-using System.Net;
-
-using Couchbase.Lite.Util;
-using System.Net.Http;
 
 namespace Couchbase.Lite.Listener
 {
-    public sealed class CouchbaseLiteServiceListener : IDisposable
+
+    /// <summary>
+    /// An abstract base class for Listening for a Couchbase Lite P2P connection
+    /// </summary>
+    public abstract class CouchbaseLiteServiceListener : IDisposable
     {
-        private readonly HttpListener _listener;
-        internal readonly CouchbaseLiteRouter _router;
+
+        #region Variables
+
+        internal readonly CouchbaseLiteRouter _router = new CouchbaseLiteRouter();
         private bool _disposed;
 
+        #endregion
+
+        #region Properties
+
+        /// <summary>
+        /// Whether or not this listener is operating in read-only mode (i.e. no changes to databases
+        /// are permitted)
+        /// </summary>
         public bool ReadOnly {
             get {
                 return _readOnly;
@@ -40,10 +50,10 @@ namespace Couchbase.Lite.Listener
                 if (value) {
                     _router.OnAccessCheck = (method, endpoint) =>
                     {
-                        if(method.Equals(HttpMethod.Head) || method.Equals(HttpMethod.Get)) {
+                        if(method.Equals("HEAD") || method.Equals("GET")) {
                             return new Status(StatusCode.Ok);
                         } 
-                        if(method.Equals(HttpMethod.Post) && (endpoint.EndsWith("_all_docs") || endpoint.EndsWith("_revs_diff"))) {
+                        if(method.Equals("POST") && (endpoint.EndsWith("_all_docs") || endpoint.EndsWith("_revs_diff"))) {
                             return new Status(StatusCode.Ok);
                         }
 
@@ -57,47 +67,38 @@ namespace Couchbase.Lite.Listener
         }
         private bool _readOnly;
 
-        public CouchbaseLiteServiceListener(Manager manager, int port)
-        {
-            _listener = new HttpListener();
-            _router = new CouchbaseLiteRouter(manager);
-            string prefix = String.Format("http://*:{0}/", port);
-            _listener.Prefixes.Add(prefix);
-        }
+        #endregion
 
-        public void Start()
-        {
-            if (_listener.IsListening) {
-                return;
-            }
-                
-            _listener.Start();
-            _listener.GetContextAsync().ContinueWith((t) => ProcessContext(t.Result));
-        }
+        #region Public Methods
 
-        public void Stop()
-        {
-            if (!_listener.IsListening) {
-                return;
-            }
-                
-            _listener.Stop();
-        }
+        /// <summary>
+        /// Start listening and processing requests
+        /// </summary>
+        public abstract void Start();
 
-        public void Abort()
-        {
-            if (!_listener.IsListening) {
-                return;
-            }
-                
-            _listener.Abort();
-        }
+        /// <summary>
+        /// Stop listening and processing requests, but handle
+        /// the currently received ones
+        /// </summary>
+        public abstract void Stop();
 
-        private void ProcessContext(HttpListenerContext context)
-        {
-            _listener.GetContextAsync().ContinueWith((t) => ProcessContext(t.Result));
-            _router.HandleContext(context);
-        }
+        /// <summary>
+        /// Stop listening and processing requests immediately
+        /// </summary>
+        public abstract void Abort();
+
+        #endregion
+
+        #region Protected Methods
+
+        /// <summary>
+        /// Used by subclasses to dispose resources
+        /// </summary>
+        protected virtual void DisposeInternal() {}
+
+        #endregion
+
+        #region IDisposable
 
         public void Dispose()
         {
@@ -105,9 +106,11 @@ namespace Couchbase.Lite.Listener
                 return;
             }
 
+            DisposeInternal();
             _disposed = true;
-            ((IDisposable)_listener).Dispose();
         }
+
+        #endregion
     }
 }
 

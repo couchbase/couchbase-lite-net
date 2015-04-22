@@ -20,24 +20,26 @@
 //
 using System;
 using System.Collections.Generic;
-using System.Net;
 
 using Couchbase.Lite.Util;
-using System.Net.Http;
 
 namespace Couchbase.Lite.Listener
 {
+
+    /// <summary>
+    /// The signature for a method containing the logic for a REST endpoint
+    /// </summary>
     internal delegate ICouchbaseResponseState RestMethod(ICouchbaseListenerContext context);
 
-    internal partial class CouchbaseLiteRouter
+    /// <summary>
+    /// The class that handles the routing for an incoming request via Couchbase Lite P2P
+    /// </summary>
+    public sealed class CouchbaseLiteRouter
     {
+
+        #region Constants
+
         private const string TAG = "CouchbaseLiteRouter";
-        private static readonly List<ICouchbaseResponseState> _UnfinishedResponses = new List<ICouchbaseResponseState>();
-
-        private static readonly RestMethod NOT_ALLOWED = 
-            context => new CouchbaseLiteResponse(context) { InternalStatus = StatusCode.MethodNotAllowed }.AsDefaultState();
-
-        private readonly Manager _manager;
 
         private static readonly RouteCollection _Get = 
             new RouteCollection(new Dictionary<string, RestMethod> {
@@ -84,65 +86,98 @@ namespace Couchbase.Lite.Listener
                 { "/{[^_].*}/*/*", DocumentMethods.DeleteAttachment }
             });
 
-        public Func<HttpMethod, string, Status> OnAccessCheck { get; set; }
+        #endregion
 
-        public CouchbaseLiteRouter(Manager manager) {
-            _manager = manager;
-        }
+        #region Variables
 
-        public void HandleContext(HttpListenerContext context)
+        // A storage location for continuous / async responses so they don't get GC'd
+        private static readonly List<ICouchbaseResponseState> _UnfinishedResponses = new List<ICouchbaseResponseState>();
+
+        // The default response when an endpoint is requested via an incorrect method type (i.e. using POST on
+        // a method that only has GET)
+        private static readonly RestMethod NOT_ALLOWED = 
+            context => context.CreateResponse(StatusCode.MethodNotAllowed).AsDefaultState();
+
+        #endregion
+
+        #region Properties
+
+        /// <summary>
+        /// Gets or sets the logic for verifying access to endpoints (e.g. don't allow endpoints
+        /// that modify state on a read-only connection)
+        /// </summary>
+        public Func<string, string, Status> OnAccessCheck { get; set; }
+
+        #endregion
+
+        #region Public Methods
+
+        /// <summary>
+        /// The entry point for routing a request received by an CouchbaseLiteServiceListener
+        /// </summary>
+        /// <param name="context">The context containing information about the
+        /// request</param>
+        public void HandleRequest(ICouchbaseListenerContext context)
         {
-            var request = context.Request;
-            var wrappedContext = new CouchbaseListenerContext(context, _manager);
-            var method = wrappedContext.Method;
+            var method = context.Method;
 
             if (OnAccessCheck != null) {
-                var result = OnAccessCheck(method, request.RawUrl);
+                var result = OnAccessCheck(method, context.RequestUrl.AbsolutePath);
                 if (result.IsError) {
-                    var r = new CouchbaseLiteResponse(wrappedContext) { InternalStatus = result.GetCode() };
-                    ProcessResponse(wrappedContext, r.AsDefaultState());
+                    var r = context.CreateResponse(result.GetCode());
+                    ProcessResponse(context, r.AsDefaultState());
                     return;
                 }
             }
 
             RestMethod logic = null;
-            if (method.Equals(HttpMethod.Get) || method.Equals(HttpMethod.Head)) {
-                logic = _Get.LogicForRequest(request);
-            } else if (method.Equals(HttpMethod.Post)) {
-                logic = _Post.LogicForRequest(request);
-            } else if (method.Equals(HttpMethod.Put)) {
-                logic = _Put.LogicForRequest(request);
-            } else if (method.Equals(HttpMethod.Delete)) {
-                logic = _Delete.LogicForRequest(request);
+            if (method.Equals("GET") || method.Equals("HEAD")) {
+                logic = _Get.LogicForRequest(context.RequestUrl);
+            } else if (method.Equals("POST")) {
+                logic = _Post.LogicForRequest(context.RequestUrl);
+            } else if (method.Equals("PUT")) {
+                logic = _Put.LogicForRequest(context.RequestUrl);
+            } else if (method.Equals("DELETE")) {
+                logic = _Delete.LogicForRequest(context.RequestUrl);
             } else {
-                logic = NOT_ALLOWED;
+                logic = NOT_ALLOWED; // Shouldn't happen
             }
 
             ICouchbaseResponseState responseState = null;
 
             try {
-                responseState = logic(wrappedContext);
+                responseState = logic(context);
             } catch(Exception e) {
-                
                 var ce = e as CouchbaseLiteException;
                 if (ce != null) {
+                    // This is in place so that a response can be written simply by throwing a couchbase lite exception
+                    // in the routing logic
                     Log.I(TAG, "Couchbase exception in routing logic, this message can be ignored if intentional", e);
-                    responseState = new CouchbaseLiteResponse(wrappedContext) { InternalStatus = ce.GetCBLStatus().GetCode() }
-                        .AsDefaultState();
+                    responseState = context.CreateResponse(ce.GetCBLStatus().GetCode()).AsDefaultState();
                 } else {
                     Log.I(TAG, "Unhandled non-Couchbase exception in routing logic", e);
-                    responseState = new CouchbaseLiteResponse(wrappedContext) { InternalStatus = StatusCode.Exception }.AsDefaultState();
+                    responseState = context.CreateResponse(StatusCode.Exception).AsDefaultState();
                 }
             }
 
-            ProcessResponse(wrappedContext, responseState);
+            ProcessResponse(context, responseState);
         }
 
+        /// <summary>
+        /// Inform the router that an async / continuous response has completed and can be
+        /// finalized.
+        /// </summary>
+        /// <param name="responseState">The response that finished</param>
         public static void ResponseFinished(ICouchbaseResponseState responseState)
         {
             _UnfinishedResponses.Remove(responseState);
         }
 
+        #endregion
+
+        #region Private Methods
+
+        // Attempt to write the response over the wire to the client
         private static void ProcessResponse(ICouchbaseListenerContext context, ICouchbaseResponseState responseState)
         {
             CouchbaseLiteResponse responseObject = CheckForAltMethod(context, responseState.Response);
@@ -153,29 +188,33 @@ namespace Couchbase.Lite.Listener
                     responseObject.WriteToContext();
                 } catch(Exception e) {
                     Log.E(TAG, "Exception writing response", e);
-                    responseState = new CouchbaseLiteResponse(context) { InternalStatus = StatusCode.Exception }.AsDefaultState();
+                    responseState = context.CreateResponse(StatusCode.Exception).AsDefaultState();
                 }
             } else {
                 _UnfinishedResponses.Add(responseState);
             }
         }
             
+        // Check for an incorrect request method on a request
         private static CouchbaseLiteResponse CheckForAltMethod(ICouchbaseListenerContext context, CouchbaseLiteResponse response)
         {
             if (response.Status != RouteCollection.EndpointNotFoundStatus) {
                 return response;
             }
                 
-            HttpListenerRequest request = context.HttpContext.Request;
+            var request = context.RequestUrl;
             bool hasAltMethod = _Delete.HasLogicForRequest(request) || _Get.HasLogicForRequest(request)
                                 || _Post.HasLogicForRequest(request) || _Put.HasLogicForRequest(request);
 
             if (hasAltMethod) {
-                return new CouchbaseLiteResponse(context) { InternalStatus = StatusCode.MethodNotAllowed };
+                return context.CreateResponse(StatusCode.MethodNotAllowed);
             }
 
-            return new CouchbaseLiteResponse(context) { InternalStatus = StatusCode.NotFound };
+            return context.CreateResponse(StatusCode.NotFound);
         }
+
+        #endregion
+
     }
 }
 

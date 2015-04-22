@@ -18,28 +18,52 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 //
-using System;
 using System.Collections.Generic;
-using System.Net;
-using System.IO;
+
 using Couchbase.Lite.Replicator;
 
 namespace Couchbase.Lite.Listener
 {
+
+    /// <summary>
+    /// A class that will monitor replications and send data as they
+    /// change
+    /// </summary>
     internal sealed class ReplicationCouchbaseResponseState : ICouchbaseResponseState
     {
-        public CouchbaseLiteResponse Response { get; set; }
 
+        #region Properties
+
+        /// <summary>
+        /// Gets or sets the manager used to open DBs, etc
+        /// </summary>
         public Manager DbManager { get; set; }
 
+        /// <summary>
+        /// Gets or sets the changes feed mode used for listening to
+        /// the replications
+        /// </summary>
+        /// <value>The changes feed mode.</value>
         public ChangesFeedMode ChangesFeedMode { get; set; }
 
+        // ICouchbaseResponseState
+        public CouchbaseLiteResponse Response { get; set; }
+
+        // ICouchbaseResponseState
         public bool IsAsync {
             get {
                 return true;
             }
         }
 
+        #endregion
+
+        #region Constructors
+
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        /// <param name="replications">The list of replications to listen to</param>
         public ReplicationCouchbaseResponseState(IList<Replication> replications)
         {
             foreach (var repl in replications) {
@@ -47,6 +71,11 @@ namespace Couchbase.Lite.Listener
             }
         }
 
+        #endregion
+
+        #region Private Methods
+
+        // This method is called when an observed replication changes
         private void ReplicationChanged(object sender, ReplicationChangeEventArgs e)
         {
             var replication = (Replication)sender;
@@ -57,6 +86,8 @@ namespace Couchbase.Lite.Listener
                 }
             }
         }
+
+        #endregion
 
     }
 }
