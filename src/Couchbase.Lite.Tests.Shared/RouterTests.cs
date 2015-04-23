@@ -34,6 +34,8 @@ using System.Threading;
 using Couchbase.Lite.Views;
 using System.Threading.Tasks;
 using System.Reflection;
+using Couchbase.Lite.Listener.Tcp;
+using System.IO;
 
 #if NET_3_5
 using WebRequest = System.Net.Couchbase.WebRequest;
@@ -1375,9 +1377,11 @@ namespace Couchbase.Lite
             Body bodyObj, bool isAsync, bool keepAlive, Action<HttpWebResponse> callback)
         {
             headers = headers ?? new Dictionary<string, string>();
-            Uri url = null;
-            bool validURL = Uri.TryCreate("http://localhost:59840" + path, UriKind.Absolute, out url);
-            Assert.IsTrue(validURL, "Invalid URL {0}", path);
+
+            //Must escape these for prima donna Unity3D, which will force %2F to become '/'
+            string fullPath = ("http://localhost:59840" + path).Replace("%2F", "%252F");
+            var url = new Uri(fullPath);
+
             HttpWebRequest request = WebRequest.CreateHttp(url);
             request.Method = method;
             foreach (var header in headers) {
@@ -1426,6 +1430,15 @@ namespace Couchbase.Lite
                     response.Dispose();
                 }
             }
+        }
+
+        //HACK: Unity3D version of mono forces all %2F entities before the '?' to become '/'
+        private void ForceCanonicalPathAndQuery(Uri uri){
+            string paq = uri.PathAndQuery; // need to access PathAndQuery
+            FieldInfo flagsFieldInfo = typeof(Uri).GetField("m_Flags", BindingFlags.Instance | BindingFlags.NonPublic);
+            ulong flags = (ulong) flagsFieldInfo.GetValue(uri);
+            flags &= ~((ulong) 0x30); // Flags.PathNotCanonical|Flags.QueryNotCanonical
+            flagsFieldInfo.SetValue(uri, flags);
         }
 
         private T ParseJsonResponse<T>(HttpWebResponse response)

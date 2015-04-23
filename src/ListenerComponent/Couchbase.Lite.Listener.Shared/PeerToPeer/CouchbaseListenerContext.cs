@@ -53,7 +53,8 @@ namespace Couchbase.Lite.Listener
 
         public string DatabaseName {
             get {
-                var name = Uri.UnescapeDataString(UrlComponentAt(0));
+                //Must do this twice because Unity3D requires double escaping of encoded slashes in URL
+                var name = Uri.UnescapeDataString(Uri.UnescapeDataString(UrlComponentAt(0)));
                 if (!Manager.IsValidDatabaseName(name)) {
                     throw new CouchbaseLiteException(StatusCode.BadId);
                 }

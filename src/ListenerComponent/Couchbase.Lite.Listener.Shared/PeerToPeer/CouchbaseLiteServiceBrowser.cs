@@ -61,7 +61,7 @@ namespace Couchbase.Lite.Listener
 
         #region Constructors
 
-        #if __ANDROID__
+        #if __ANDROID__ && !__UNITY__
         /// <summary>
         /// This is needed to start the /system/bin/mdnsd service on Android
         /// (can't find another way to start it)

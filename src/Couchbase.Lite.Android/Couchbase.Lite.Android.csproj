@@ -88,10 +88,6 @@
   <ItemGroup>
     <None Include="Resources\AboutResources.txt" />
     <None Include="packages.config" />
-    <None Include="..\Couchbase.Lite.Shared\Couchbase.Lite.dll.config">
-      <Link>Couchbase.Lite.dll.config</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
   </ItemGroup>
   <ItemGroup>
     <AndroidResource Include="Resources\values\Strings.xml" />
