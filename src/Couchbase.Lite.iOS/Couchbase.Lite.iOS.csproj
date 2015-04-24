@@ -82,10 +82,6 @@
   <Import Project="$(MSBuildExtensionsPath)\Xamarin\iOS\Xamarin.iOS.CSharp.targets" />
   <ItemGroup>
     <None Include="packages.config" />
-    <None Include="..\Couchbase.Lite.Shared\Couchbase.Lite.dll.config">
-      <Link>Couchbase.Lite.dll.config</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="CouchBaseTableDelegate.cs" />

@@ -122,7 +122,14 @@ namespace Couchbase.Lite.Listener
             var method = context.Method;
 
             if (OnAccessCheck != null) {
-                var result = OnAccessCheck(method, context.RequestUrl.AbsolutePath);
+                Status result = null;
+                try {
+                    result = OnAccessCheck(method, context.RequestUrl.AbsolutePath);
+                } catch(Exception e) {
+                    result = new Status(StatusCode.Exception);
+                    Log.E(TAG, "Unhandled non-Couchbase exception in OnAccessCheck", e);
+                }
+
                 if (result.IsError) {
                     var r = context.CreateResponse(result.GetCode());
                     ProcessResponse(context, r.AsDefaultState());
@@ -155,7 +162,7 @@ namespace Couchbase.Lite.Listener
                     Log.I(TAG, "Couchbase exception in routing logic, this message can be ignored if intentional", e);
                     responseState = context.CreateResponse(ce.GetCBLStatus().GetCode()).AsDefaultState();
                 } else {
-                    Log.I(TAG, "Unhandled non-Couchbase exception in routing logic", e);
+                    Log.E(TAG, "Unhandled non-Couchbase exception in routing logic", e);
                     responseState = context.CreateResponse(StatusCode.Exception).AsDefaultState();
                 }
             }

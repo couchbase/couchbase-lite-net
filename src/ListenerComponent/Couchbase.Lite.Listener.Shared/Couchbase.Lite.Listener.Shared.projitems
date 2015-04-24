@@ -76,6 +76,8 @@
     <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\TCP\TcpResponseWriter.cs" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="$(MSBuildThisFileDirectory)Properties\Couchbase.Lite.Listener.dll.config" />
+    <None Include="$(MSBuildThisFileDirectory)Properties\Couchbase.Lite.Listener.dll.config">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 </Project>

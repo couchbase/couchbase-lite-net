@@ -24,6 +24,10 @@ using UnityEngine;
 
 namespace Couchbase.Lite.Listener.Unity
 {
+    // This class is not compiled, but here for reference.  I didn't want to have a project for every
+    // Unity platform so I use a script to modify the outputted DLL.  This class is needed for android
+    // but forbidden on ios.  It will be injected as IL later when I run a script to generate the Unity
+    // platform assemblies
     public static class NsdLauncher
     {
         public static void StartNsd()
