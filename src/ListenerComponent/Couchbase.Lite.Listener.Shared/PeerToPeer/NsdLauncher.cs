@@ -20,26 +20,24 @@
 //
 
 using System;
-using UnityEngine;
 
 namespace Couchbase.Lite.Listener.Unity
 {
-    // This class is not compiled, but here for reference.  I didn't want to have a project for every
-    // Unity platform so I use a script to modify the outputted DLL.  This class is needed for android
-    // but forbidden on ios.  It will be injected as IL later when I run a script to generate the Unity
-    // platform assemblies
+    
     public static class NsdLauncher
     {
         public static void StartNsd()
         {
-            AndroidJavaClass c = new AndroidJavaClass("com.unity3d.player.UnityPlayer");
-            var context = c.GetStatic<AndroidJavaObject>("currentActivity");
-            var arg = new AndroidJavaObject("java.lang.String", "servicediscovery");
-            context.Call<AndroidJavaObject>("getSystemService", arg);
+            #if __UNITY_ANDROID__
+            UnityEngine.AndroidJavaClass c = new UnityEngine.AndroidJavaClass("com.unity3d.player.UnityPlayer");
+            var context = c.GetStatic<UnityEngine.AndroidJavaObject>("currentActivity");
+            var arg = new UnityEngine.AndroidJavaObject("java.lang.String", "servicediscovery");
+            context.Call<UnityEngine.AndroidJavaObject>("getSystemService", arg);
 
             context.Dispose();
             arg.Dispose();
             c.Dispose();
+            #endif
         }
     }
 }

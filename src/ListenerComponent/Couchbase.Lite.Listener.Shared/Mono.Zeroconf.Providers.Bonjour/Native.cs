@@ -33,18 +33,25 @@ namespace Mono.Zeroconf.Providers.Bonjour
 {
     internal static class Native
     {
+        #if __UNITY_APPLE__
+        private const string DNSSD_DLL = "libc";
+        #elif __UNITY_ANDROID__
+        private const string DNSSD_DLL = "mdnssd";
+        #else
+        private const string DNSSD_DLL = "dnssd.dll";
+        #endif
         // ServiceRef
-        
-        [DllImport("dnssd.dll")]
+
+        [DllImport(DNSSD_DLL)]
         public static extern void DNSServiceRefDeallocate(IntPtr sdRef);
         
-        [DllImport("dnssd.dll")]
+        [DllImport(DNSSD_DLL)]
         public static extern ServiceError DNSServiceProcessResult(IntPtr sdRef);
        
-        [DllImport("dnssd.dll")]
+        [DllImport(DNSSD_DLL)]
         public static extern int DNSServiceRefSockFD(IntPtr sdRef);
         
-        [DllImport("dnssd.dll")]
+        [DllImport(DNSSD_DLL)]
         public static extern ServiceError DNSServiceCreateConnection(out ServiceRef sdRef);
         
         // DNSServiceBrowse
@@ -53,7 +60,7 @@ namespace Mono.Zeroconf.Providers.Bonjour
             ServiceError errorCode, string serviceName, string regtype, string replyDomain, 
             IntPtr context);
             
-        [DllImport("dnssd.dll")]
+        [DllImport(DNSSD_DLL)]
         public static extern ServiceError DNSServiceBrowse(out ServiceRef sdRef, ServiceFlags flags,
             uint interfaceIndex, string regtype, string domain, DNSServiceBrowseReply callBack, 
             IntPtr context);
@@ -64,7 +71,7 @@ namespace Mono.Zeroconf.Providers.Bonjour
             ServiceError errorCode, string fullname, string hosttarget, ushort port, ushort txtLen, 
             IntPtr txtRecord, IntPtr context);
             
-        [DllImport("dnssd.dll")]
+        [DllImport(DNSSD_DLL)]
         public static extern ServiceError DNSServiceResolve(out ServiceRef sdRef, ServiceFlags flags,
             uint interfaceIndex, string name, string regtype, string domain, DNSServiceResolveReply callBack,
             IntPtr context);
@@ -74,7 +81,7 @@ namespace Mono.Zeroconf.Providers.Bonjour
         public delegate void DNSServiceRegisterReply(ServiceRef sdRef, ServiceFlags flags, ServiceError errorCode,
             string name, string regtype, string domain, IntPtr context);
     
-        [DllImport("dnssd.dll")]
+        [DllImport(DNSSD_DLL)]
         public static extern ServiceError DNSServiceRegister(out ServiceRef sdRef, ServiceFlags flags,
             uint interfaceIndex, string name, string regtype, string domain, string host, ushort port,
             ushort txtLen, byte [] txtRecord, DNSServiceRegisterReply callBack, IntPtr context);
@@ -85,37 +92,37 @@ namespace Mono.Zeroconf.Providers.Bonjour
             ServiceError errorCode, string fullname, ServiceType rrtype, ServiceClass rrclass, ushort rdlen, 
             IntPtr rdata, uint ttl, IntPtr context);
         
-        [DllImport("dnssd.dll")]
+        [DllImport(DNSSD_DLL)]
         public static extern ServiceError DNSServiceQueryRecord(out ServiceRef sdRef, ServiceFlags flags, 
             uint interfaceIndex, string fullname, ServiceType rrtype, ServiceClass rrclass, 
             DNSServiceQueryRecordReply callBack, IntPtr context);
         
         // TXT Record Handling
         
-        [DllImport("dnssd.dll")]
+        [DllImport(DNSSD_DLL)]
         public static extern void TXTRecordCreate( IntPtr txtRecord, ushort bufferLen, IntPtr buffer);
     
-        [DllImport("dnssd.dll")]
+        [DllImport(DNSSD_DLL)]
         public static extern void TXTRecordDeallocate(IntPtr txtRecord);
     
-        [DllImport("dnssd.dll")]
+        [DllImport(DNSSD_DLL)]
         public static extern ServiceError TXTRecordGetItemAtIndex(ushort txtLen, IntPtr txtRecord,
             ushort index, ushort keyBufLen, byte [] key, out byte valueLen, out IntPtr value);
             
-        [DllImport("dnssd.dll")]
+        [DllImport(DNSSD_DLL)]
         public static extern ServiceError TXTRecordSetValue(IntPtr txtRecord, byte [] key, 
             sbyte valueSize, byte [] value);
             
-        [DllImport("dnssd.dll")]
+        [DllImport(DNSSD_DLL)]
         public static extern ServiceError TXTRecordRemoveValue(IntPtr txtRecord, byte [] key);
         
-        [DllImport("dnssd.dll")]
+        [DllImport(DNSSD_DLL)]
         public static extern ushort TXTRecordGetLength(IntPtr txtRecord);
         
-        [DllImport("dnssd.dll")]
+        [DllImport(DNSSD_DLL)]
         public static extern IntPtr TXTRecordGetBytesPtr(IntPtr txtRecord);
         
-        [DllImport("dnssd.dll")]
+        [DllImport(DNSSD_DLL)]
         public static extern ushort TXTRecordGetCount(ushort txtLen, IntPtr txtRecord);
     }
 }

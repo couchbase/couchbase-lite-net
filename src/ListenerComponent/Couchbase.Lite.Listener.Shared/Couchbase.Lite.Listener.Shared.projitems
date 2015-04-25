@@ -74,9 +74,10 @@
     <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\TCP\CouchbaseListenerTcpContext.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\TCP\CouchbaseLiteTcpListener.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\TCP\TcpResponseWriter.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\NsdLauncher.cs" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="$(MSBuildThisFileDirectory)Properties\Couchbase.Lite.Listener.dll.config">
+    <None Include="$(MSBuildThisFileDirectory)Couchbase.Lite.Listener.dll.config">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
