@@ -14,6 +14,12 @@ using Android.Net;
 using Android.Content;
 using Android.Webkit;
 #endif
+
+#if NET_3_5
+using WebRequest = System.Net.Couchbase.WebRequest;
+using HttpWebRequest = System.Net.Couchbase.HttpWebRequest;
+using HttpWebResponse = System.Net.Couchbase.HttpWebResponse;
+#endif
 namespace Couchbase.Lite
 {
 
@@ -35,12 +41,13 @@ namespace Couchbase.Lite
 
         public bool CanReach(string remoteUri)
         {
+            HttpWebRequest request = WebRequest.CreateHttp(remoteUri);
+            request.AllowWriteStreamBuffering = true;
+            request.Timeout = 5000;
+            request.Method = "GET";
             try {
-                using (var client = new HttpClient())
-                using (var stream = client.GetStreamAsync(remoteUri).Result)
-                {
-                    Log.D(TAG, "Got successful connection to {0}", remoteUri);
-                    return true;
+                using(var response = (HttpWebResponse)request.GetResponse()) {
+                    return true; //We only care that the server responded
                 }
             } catch(Exception e) {
                 Log.D(TAG, "Didn't get successful connection to {0}", remoteUri);
