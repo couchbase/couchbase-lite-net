@@ -1143,60 +1143,63 @@ PRAGMA user_version = 3;";
             var docId = rev.GetDocId();
             var revId = rev.GetRevId();
 
-            if (!IsValidDocumentId(docId) || (revId == null))
-            {
+            if (!IsValidDocumentId(docId) || (revId == null)) {
                 throw new CouchbaseLiteException(StatusCode.BadRequest);
             }
 
             int historyCount = 0;
-
-            if (revHistory != null)
-            {
+            if (revHistory != null) {
                 historyCount = revHistory.Count;
             }
 
-            if (historyCount == 0)
-            {
+            if (historyCount == 0) {
                 revHistory = new List<string>();
                 revHistory.AddItem(revId);
                 historyCount = 1;
-            }
-            else
-            {
-                if (!revHistory[0].Equals(rev.GetRevId()))
-                {
+            } else {
+                if (!revHistory[0].Equals(rev.GetRevId())) {
                     throw new CouchbaseLiteException(StatusCode.BadRequest);
                 }
             }
 
+
             RunInTransaction(() =>
             {
+                bool isNewDoc = historyCount == 1;
+                IList<bool> outIsDeleted = new List<bool>();
+                IList<bool> outIsConflict = new List<bool>();
+                bool oldWinnerWasDeletion = false;
+                string oldWinningRevId = null;
+                var localRevs = new Dictionary<string, RevisionInternal>();
+
                 try
                 {
                     // First look up all locally-known revisions of this document:
                     long docNumericID = GetOrInsertDocNumericID(docId);
 
-                    RevisionList localRevs = GetAllRevisionsOfDocumentID(docId, docNumericID, false);
+                    if(!isNewDoc) {
+                        RevisionList localRevsList = GetAllRevisionsOfDocumentID(docId, docNumericID, false);
+                        if(localRevsList == null) {
+                            throw new CouchbaseLiteException(StatusCode.DbError);
+                        }
 
-                    if (localRevs == null)
-                    {
-                        throw new CouchbaseLiteException(StatusCode.InternalServerError);
+                        localRevs = new Dictionary<string, RevisionInternal>(localRevsList.Count);
+                        foreach(var prevRev in localRevsList) {
+                            localRevs[prevRev.GetRevId()] = prevRev;
+                        }
+
+                        // Look up which rev is the winner, before this insertion
+                        oldWinningRevId = WinningRevIDOfDoc(docNumericID, outIsDeleted, outIsConflict);
+                        if (outIsDeleted.Count > 0) {
+                            oldWinnerWasDeletion = true;
+                        }
+
+                        if (outIsConflict.Count > 0) {
+                            inConflict = true;
+                        }
                     }
 
-                    IList<bool> outIsDeleted = new List<bool>();
-                    IList<bool> outIsConflict = new List<bool>();
-
-                    bool oldWinnerWasDeletion = false;
-                    string oldWinningRevID = WinningRevIDOfDoc(docNumericID, outIsDeleted, outIsConflict
-                                         );
-                    if (outIsDeleted.Count > 0)
-                    {
-                        oldWinnerWasDeletion = true;
-                    }
-                    if (outIsConflict.Count > 0)
-                    {
-                        inConflict = true;
-                    }
+                    //TODO.JHB Validate against the latest common ancestor
 
                     // Walk through the remote history in chronological order, matching each revision ID to
                     // a local revision. When the list diverges, start creating blank local revisions to fill
@@ -1204,41 +1207,33 @@ PRAGMA user_version = 3;";
                     long sequence = 0;
                     long localParentSequence = 0;
 
-                    for (int i = revHistory.Count - 1; i >= 0; --i)
-                    {
+                    for (int i = revHistory.Count - 1; i >= 0; --i) {
                         revId = revHistory[i];
-                        RevisionInternal localRev = localRevs.RevWithDocIdAndRevId(docId, revId);
+                        RevisionInternal localRev = localRevs.Get(revId);
 
-                        if (localRev != null)
-                        {
+                        if (localRev != null) {
                             // This revision is known locally. Remember its sequence as the parent of the next one:
                             sequence = localRev.GetSequence();
                             Debug.Assert((sequence > 0));
                             localParentSequence = sequence;
-                        }
-                        else
-                        {
+                        } else {
                             // This revision isn't known, so add it:
                             RevisionInternal newRev;
                             IEnumerable<Byte> data = null;
                             bool current = false;
 
-                            if (i == 0)
-                            {
+                            if (i == 0) {
                                 // Hey, this is the leaf revision we're inserting:
                                 newRev = rev;
-                                if (!rev.IsDeleted())
-                                {
+                                if (!rev.IsDeleted()) {
                                     data = EncodeDocumentJSON(rev);
-                                    if (data == null)
-                                    {
+                                    if (data == null) {
                                         throw new CouchbaseLiteException(StatusCode.BadRequest);
                                     }
                                 }
+
                                 current = true;
-                            }
-                            else
-                            {
+                            } else {
                                 // It's an intermediate parent, so insert a stub:
                                 newRev = new RevisionInternal(docId, revId, false);
                             }
@@ -1246,19 +1241,16 @@ PRAGMA user_version = 3;";
                             // Insert it:
                             sequence = InsertRevision(newRev, docNumericID, sequence, current, (GetAttachmentsFromRevision(newRev).Count > 0), data);
 
-                            if (sequence <= 0)
-                            {
-                                throw new CouchbaseLiteException(StatusCode.InternalServerError);
+                            if (sequence <= 0) {
+                                throw new CouchbaseLiteException(StatusCode.DbError);
                             }
 
-                            if (i == 0)
-                            {
+                            if (i == 0) {
                                 // Write any changed attachments for the new revision. As the parent sequence use
                                 // the latest local revision (this is to copy attachments from):
                                 var attachments = GetAttachmentsFromRevision(rev);
 
-                                if (attachments != null)
-                                {
+                                if (attachments != null) {
                                     ProcessAttachmentsForRevision(attachments, rev, localParentSequence);
                                     StubOutAttachmentsInRevision(attachments, rev);
                                 }
@@ -1275,28 +1267,22 @@ PRAGMA user_version = 3;";
                     }
 
                     // Mark the latest local rev as no longer current:
-                    if (localParentSequence > 0)
-                    {
+                    if (localParentSequence > 0)  {
                         ContentValues args = new ContentValues();
                         args["current"] = 0;
                         string[] whereArgs = new string[] { Convert.ToString(localParentSequence) };
 
-                        try
-                        {
+                        try  {
                             var numRowsChanged = StorageEngine.Update("revs", args, "sequence=?", whereArgs);
-
-                            if (numRowsChanged == 0)
-                            {
+                            if (numRowsChanged == 0) {
                                 inConflict = true;
                             }
-                        }
-                        catch (Exception)
-                        {
+                        } catch (Exception) {
                             throw new CouchbaseLiteException(StatusCode.InternalServerError);
                         }
                     }
 
-                    var winningRev = Winner(docNumericID, oldWinningRevID, oldWinnerWasDeletion, rev);
+                    var winningRev = Winner(docNumericID, oldWinningRevId, oldWinnerWasDeletion, rev);
                     NotifyChange(rev, winningRev, source, inConflict);
                     if(status != null) {
                         status.SetCode(StatusCode.Created);
