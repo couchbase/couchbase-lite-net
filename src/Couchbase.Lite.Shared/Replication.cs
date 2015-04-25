@@ -1795,6 +1795,59 @@ namespace Couchbase.Lite
 
         //Methods
 
+        public IDictionary<string, object> ActiveTaskInfo
+        {
+            get {
+                // For schema, see http://wiki.apache.org/couchdb/HttpGetActiveTasks
+                var source = RemoteUrl.AbsoluteUri;
+                var target = LocalDatabase.Name;
+                if (!IsPull) {
+                    var temp = source;
+                    source = target;
+                    target = temp;
+                }
+
+                string status;
+                int? progress = null;
+                if (!IsRunning) {
+                    status = "Stopped";
+                } else if (Status == ReplicationStatus.Offline) {
+                    status = "Offline"; //non-standard
+                } else if (Status != ReplicationStatus.Active) {
+                    status = "Idle"; //non-standard
+                } else {
+                    var processed = completedChangesCount;
+                    var total = changesCount;
+                    status = String.Format("Processed {0} / {1} changes", processed, total);
+                    progress = total > 0 ? (int?)Math.Round(100 * (processed / (double)total)) : null;
+                }
+
+                List<object> error = new List<object>();
+                var errorObj = LastError;
+                if (errorObj != null) {
+                    error.Add(errorObj.Message);
+                }
+
+                /*IList<HttpClient> remoteRequests;
+                lock (requests) {
+                    remoteRequests = new List<HttpClient>(requests);
+                }*/
+
+                //TODO: Active requests needs refactor
+
+                return new NonNullDictionary<string, object> {
+                    { "type", "Replication" },
+                    { "task", sessionID },
+                    { "source", source },
+                    { "target", target },
+                    { "continuous", Continuous ? (bool?)true : null },
+                    { "status", status },
+                    { "progress", progress },
+                    { "error", error }
+                };
+            }
+        }
+
         /// <summary>
         /// Starts the <see cref="Couchbase.Lite.Replication"/>.
         /// </summary>

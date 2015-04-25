@@ -87,6 +87,12 @@ namespace Couchbase.Lite.Internal
         internal RevisionInternal(IDictionary<String, Object> properties)
             : this(new Body(properties)) { }
 
+        public static bool IsValid(Body body)
+        {
+            return body.GetPropertyForKey("_id") != null ||
+            (body.GetPropertyForKey("_rev") == null && body.GetPropertyForKey("_deleted") == null);
+        }
+
         internal IDictionary<String, Object> GetProperties()
         {
             IDictionary<string, object> result = null;
@@ -131,7 +137,7 @@ namespace Couchbase.Lite.Internal
             IEnumerable<Byte> result = null;
             if (body != null)
             {
-                result = body.GetJson();
+                result = body.AsJson();
             }
             return result;
         }
@@ -158,6 +164,16 @@ namespace Couchbase.Lite.Internal
         public override int GetHashCode()
         {
             return docId.GetHashCode() ^ revId.GetHashCode();
+        }
+
+        internal IDictionary<string, object> GetAttachments()
+        {
+            var props = GetProperties();
+            if (props == null) {
+                return null;
+            }
+
+            return props.Get("_attachments").AsDictionary<string, object>();
         }
 
         internal string GetDocId()
@@ -255,6 +271,10 @@ namespace Couchbase.Lite.Internal
 
         internal static int GenerationFromRevID(string revID)
         {
+            if (revID == null) {
+                return 0;
+            }
+
             var generation = 0;
             var dashPos = revID.IndexOf("-", StringComparison.InvariantCultureIgnoreCase);
             if (dashPos > 0)

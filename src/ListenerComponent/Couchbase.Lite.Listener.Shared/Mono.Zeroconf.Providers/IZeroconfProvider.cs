@@ -1,10 +1,10 @@
-﻿//
-// Lazy.cs
+//
+// IZeroconfProvider.cs
 //
 // Authors:
-//  Rodrigo Kumpera (kumpera@gmail.com)
+//    Aaron Bockover  <abockover@novell.com>
 //
-// Copyright (C) 2010 Novell
+// Copyright (C) 2006-2007 Novell, Inc (http://www.novell.com)
 //
 // Permission is hereby granted, free of charge, to any person obtaining
 // a copy of this software and associated documentation files (the
@@ -28,12 +28,13 @@
 
 using System;
 
-namespace System.Threading
+namespace Mono.Zeroconf.Providers
 {
-    public enum LazyThreadSafetyMode
+    public interface IZeroconfProvider
     {
-        None,
-        PublicationOnly,
-        ExecutionAndPublication
+        void Initialize();
+        Type ServiceBrowser { get; }
+        Type RegisterService { get; }
+        Type TxtRecord { get; }
     }
 }

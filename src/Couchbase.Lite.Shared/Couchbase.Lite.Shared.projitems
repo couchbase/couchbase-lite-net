@@ -106,8 +106,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)Sharpen\FilterInputStream.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Sharpen\FilterOutputStream.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Sharpen\Future.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Sharpen\GZIPInputStream.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Sharpen\GZIPOutputStream.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Sharpen\HttpURLConnection.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Sharpen\InheritableThreadLocal.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Sharpen\InputStream.cs" />
@@ -222,10 +220,19 @@
     <Compile Include="$(MSBuildThisFileDirectory)Util\ArraySegment.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\TaskEx.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\GenericEqualityComparer.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Replication\ChangesFeedMode.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)View\BuiltinReduceFunctions.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Replication\MultipartWriter.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Replication\MultiStreamWriter.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Util\NonNullDictionary.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)View\JSViewCompiler.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="$(MSBuildThisFileDirectory)Store\MonoSQLiteStorageEngine.cs" />
     <None Include="$(MSBuildThisFileDirectory)Store\SqlitePclStorageEngine.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="$(MSBuildThisFileDirectory)View\" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="$(MSBuildThisFileDirectory)Properties\version">
