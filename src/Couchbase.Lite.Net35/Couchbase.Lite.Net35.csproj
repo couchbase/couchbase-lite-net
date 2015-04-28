@@ -1,6 +1,19 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
+    <MSBuildCommunityTasksPath Condition=" '$(MSBuildCommunityTasksPath)' == '' ">$(SolutionDir)\packages\MSBuildTasks.1.4.0.88\tools</MSBuildCommunityTasksPath>
+    <SetAssemblyVersionEnabled Condition=" Exists('$(MSBuildCommunityTasksPath)\MSBuild.Community.Tasks.targets') ">true</SetAssemblyVersionEnabled>
+    <SetAssemblyVersionEnabled Condition=" '$(SetAssemblyVersionEnabled)' == '' ">false</SetAssemblyVersionEnabled>
+  </PropertyGroup>
+  <Import Condition=" '$(SetAssemblyVersionEnabled)' == 'true' " Project="$(MSBuildCommunityTasksPath)\MSBuild.Community.Tasks.targets" />
+  <Target Name="SetAssemblyVersion" Condition=" '$(SetAssemblyVersionEnabled)' == 'true' " BeforeTargets="PrepareForBuild">
+    <GitVersion LocalPath="$(SolutionDir)">
+      <Output TaskParameter="CommitHash" PropertyName="CommitHash" />
+    </GitVersion>
+    <Exec Command="echo $(CommitHash) &gt; &quot;$(ProjectDir)..\Couchbase.Lite.Shared\Properties\version&quot;" />
+  </Target>
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProjectGuid>{81999CC3-2DB5-42DA-976F-20EF8AE047E1}</ProjectGuid>
@@ -22,11 +35,6 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <ConsolePause>False</ConsolePause>
-    <CustomCommands>
-      <CustomCommands>
-        <Command type="BeforeBuild" command="git rev-parse --short HEAD &gt; &quot;${ProjectDir}/../Couchbase.Lite.Shared/Properties/version&quot;" externalConsole="True" />
-      </CustomCommands>
-    </CustomCommands>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <Optimize>True</Optimize>
@@ -35,12 +43,8 @@
     <WarningLevel>4</WarningLevel>
     <ConsolePause>False</ConsolePause>
     <DefineConstants>NET_3_5</DefineConstants>
-    <DebugType>none</DebugType>
-    <CustomCommands>
-      <CustomCommands>
-        <Command type="BeforeBuild" command="git rev-parse --short HEAD &gt; &quot;${ProjectDir}/../Couchbase.Lite.Shared/Properties/version&quot;" externalConsole="True" />
-      </CustomCommands>
-    </CustomCommands>
+    <DebugType>pdbonly</DebugType>
+    <DebugSymbols>true</DebugSymbols>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
@@ -54,13 +58,16 @@
     <Reference Include="Newtonsoft.Json">
       <HintPath>vendor\JSON.NET\Newtonsoft.Json.dll</HintPath>
     </Reference>
+    <Reference Include="Jint">
+      <HintPath>..\Couchbase.Lite.Shared\vendor\Jint\Jint.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Scripting.Core">
+      <HintPath>..\Couchbase.Lite.Shared\vendor\Jint\Microsoft.Scripting.Core.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <Import Project="..\Couchbase.Lite.Shared\Couchbase.Lite.Shared.projitems" Label="Shared" Condition="Exists('..\Couchbase.Lite.Shared\Couchbase.Lite.Shared.projitems')" />
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <Import Project="vendor/SQLitePCL/sqliteraw.targets" />
-  <ItemGroup>
-    <Folder Include="Properties\" />
-  </ItemGroup>
   <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>
@@ -69,8 +76,6 @@
     <Error Condition="!Exists('$(SolutionDir)\.nuget\NuGet.targets')" Text="$([System.String]::Format('$(ErrorText)', '$(SolutionDir)\.nuget\NuGet.targets'))" />
   </Target>
   <ItemGroup>
-    <Compile Include="Lazy.cs" />
-    <Compile Include="LazyThreadSafetyMode.cs" />
     <Compile Include="StringEx.cs" />
     <Compile Include="StreamEx.cs" />
     <Compile Include="EnumEx.cs" />
@@ -88,5 +93,8 @@
       <Project>{9862694D-E4FA-418B-8692-A0280FEDDF36}</Project>
       <Name>System.Net.Http-net_4_5</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
   </ItemGroup>
 </Project>

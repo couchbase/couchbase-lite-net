@@ -41,22 +41,21 @@
 //
 
 using System;
-using System.Linq;
-using System.Collections;
 using System.Collections.Generic;
-using System.Net;
-using System.IO;
-using Sharpen;
-using System.Threading.Tasks;
-using Couchbase.Lite.Util;
-using System.Threading;
-using System.Text;
-using System.Text.RegularExpressions;
 using System.Collections.ObjectModel;
+using System.IO;
+using System.Linq;
+using System.Reflection;
+using System.Text.RegularExpressions;
+using System.Threading;
+using System.Threading.Tasks;
+
+using Couchbase.Lite.Auth;
 using Couchbase.Lite.Replicator;
 using Couchbase.Lite.Support;
-using System.Net.NetworkInformation;
-using System.Reflection;
+using Couchbase.Lite.Util;
+using Sharpen;
+using Couchbase.Lite.Db;
 
 #if !NET_3_5
 using StringEx = System.String;
@@ -80,9 +79,9 @@ namespace Couchbase.Lite
         /// </summary>
         const string HttpErrorDomain = "CBLHTTP";
 
-        internal const string DatabaseSuffixOld = ".touchdb";
-
-        internal const string DatabaseSuffix = ".cblite";
+        internal const string DatabaseSuffixv0 = ".touchdb";
+        internal const string DatabaseSuffixv1 = ".cblite";
+        internal const string DatabaseSuffix = ".CB2";
 
         // FIXME: Not all of these are valid Windows file chars.
         const string IllegalCharacters = @"(^[^a-z]+)|[^a-z0-9_\$\(\)/\+\-]+";
@@ -117,10 +116,10 @@ namespace Couchbase.Lite
         /// <param name="name">The Database name to validate.</param>
         public static Boolean IsValidDatabaseName(String name) 
         {
-            if (name.Length > 0 && name.Length < 240 && ContainsOnlyLegalCharacters(name) && Char.IsLower(name[0]))
-            {
+            if (name.Length > 0 && name.Length < 240 && ContainsOnlyLegalCharacters(name) && Char.IsLower(name[0])) {
                 return true;
             }
+
             return name.Equals(Replication.ReplicatorDatabaseName);
         }
 
@@ -179,12 +178,10 @@ namespace Couchbase.Lite
             this.replications = new List<Replication>();
 
             //create the directory, but don't fail if it already exists
-            if (!directoryFile.Exists)
-            {
+            if (!directoryFile.Exists) {
                 directoryFile.Create();
                 directoryFile.Refresh();
-                if (!directoryFile.Exists)
-                {
+                if (!directoryFile.Exists) {
                     throw new  DirectoryNotFoundException("Unable to create directory " + directoryFile);
                 }
             }
@@ -221,15 +218,21 @@ namespace Couchbase.Lite
             { 
                 var databaseFiles = directoryFile.GetFiles("*" + Manager.DatabaseSuffix, SearchOption.AllDirectories);
                 var result = new List<String>();
-                foreach (var databaseFile in databaseFiles)
-                {
+                foreach (var databaseFile in databaseFiles) {
                     var path = Path.GetFileNameWithoutExtension(databaseFile.FullName);
-                    var replaced = path.Replace(':', '/');
+                    var replaced = path.Replace('.', '/');
+                    replaced = replaced.Replace(':', '/'); //For backwards compatibility
                     result.AddItem(replaced);
                 }
+
                 result.Sort();
                 return new ReadOnlyCollection<String>(result);
             }
+        }
+
+        public ICollection<Database> AllOpenDatabases()
+        {
+            return databases.Values;
         }
 
         //Methods
@@ -382,32 +385,31 @@ namespace Couchbase.Lite
         internal Database GetDatabaseWithoutOpening(String name, Boolean mustExist)
         {
             var db = databases.Get(name);
-            if (db == null)
-            {
-                if (!IsValidDatabaseName(name))
-                {
+            if (db == null) {
+                if (!IsValidDatabaseName(name)) {
                     throw new ArgumentException("Invalid database name: " + name);
                 }
 
-                if (options.ReadOnly)
-                {
+                if (options.ReadOnly) {
                     mustExist = true;
                 }
+
                 var path = PathForName(name);
-                if (path == null)
-                {
+                if (path == null) {
                     return null;
                 }
+
                 db = new Database(path, this);
-                if (mustExist && !db.Exists())
-                {
+                if (mustExist && !db.Exists()) {
                     var msg = string.Format("mustExist is true and db ({0}) does not exist", name);
                     Log.W(Database.Tag, msg);
                     return null;
                 }
+
                 db.Name = name;
                 databases.Put(name, db);
             }
+
             return db;
         }
 
@@ -436,34 +438,235 @@ namespace Couchbase.Lite
 
         private void UpgradeOldDatabaseFiles(DirectoryInfo dirInfo)
         {
-            var files = dirInfo.GetFiles("*" + DatabaseSuffixOld, SearchOption.TopDirectoryOnly);
-            foreach (var file in files)
-            {
-                var oldFilename = file.Name;
+            var extensions = DatabaseUpgraderFactory.ALL_KNOWN_PREFIXES;
+            var files = dirInfo.GetFiles().Where(f => extensions.Contains(f.Extension.TrimStart('.')));
+            foreach (var file in files) {
+                
+                var oldFilename = file.FullName;
                 var newFilename = String.Concat(Path.GetFileNameWithoutExtension(oldFilename), DatabaseSuffix);
-                var newFile = new FileInfo(Path.Combine (dirInfo.FullName, newFilename));
+                var newFile = new FileInfo(Path.Combine(dirInfo.FullName, newFilename));
 
-                if (newFile.Exists)
-                {
+                if (newFile.Exists) {
                     var msg = String.Format("Cannot rename {0} to {1}, {2} already exists", oldFilename, newFilename, newFilename);
                     Log.W(Database.Tag, msg);
                     continue;
                 }
 
-                try
-                {
-                    // Workaround : using CopyTo() and Delete() as file.MoveTo throws IOException with Sharing Violation Error.
-                    //file.MoveTo (newFile.FullName);
-                    file.CopyTo(newFile.FullName);
-                    file.Delete();
-                } catch (Exception ex) {
-                    var msg = string.Format("Unable to rename {0} to {1}", oldFilename, newFilename);
-                    var error = new InvalidOperationException(msg, ex);
-                    Log.E(Database.Tag, msg, error);
-                    throw error;
+                var tmpDb = new Database(file.FullName, this);
+                tmpDb.Open();
+                tmpDb.Close();
+
+                var name = Path.GetFileNameWithoutExtension(Path.Combine(dirInfo.FullName, newFilename));
+                var db = GetDatabaseWithoutOpening(name, false);
+                if (db == null) {
+                    Log.W(Tag, "Upgrade failed for {0} (Creating new DB failed)", file.Name);
+                    continue;
                 }
+
+                if (!db.Exists()) {
+                    var upgrader = DatabaseUpgraderFactory.CreateUpgrader(db, oldFilename);
+                    var status = upgrader.Import();
+                    if (status.IsError) {
+                        Log.W(Tag, "Upgrade failed for {0} (Status {1})", file.Name, status);
+                        upgrader.Backout();
+                        continue;
+                    }
+                }
+
+                db.Close();
+
+                // Remove old database file and its SQLite side files:
+                File.Delete(file.FullName);
+                File.Delete(file.FullName + "-wal");
+                File.Delete(file.FullName + "-shm");
+                Log.D(Tag, "...Success!");
             }
         }
+
+        internal Replication ReplicationWithProperties(IDictionary<string, object> properties)
+        {
+            // Extract the parameters from the JSON request body:
+            // http://wiki.apache.org/couchdb/Replication
+
+            bool push, createTarget;
+            var results = new Dictionary<string, object>() {
+                { "database", null },
+                { "remote", null },
+                { "headers", null },
+                { "authorizer", null }
+            };
+
+            Status result = ParseReplicationProperties(properties, out push, out createTarget, results);
+            if (result.IsError) {
+                throw new CouchbaseLiteException(result.GetCode());
+            }
+
+            object continuousObj = properties.Get("continuous");
+            bool continuous = false;
+            if (continuousObj is bool) {
+                continuous = (bool)continuousObj;
+            }
+
+            var scheduler = new SingleTaskThreadpoolScheduler();
+            Replication rep = null;
+            if (push) {
+                rep = new Pusher((Database)results["database"], (Uri)results["remote"], continuous, new TaskFactory(scheduler));
+            } else {
+                rep = new Puller((Database)results["database"], (Uri)results["remote"], continuous, new TaskFactory(scheduler));
+            }
+
+            rep.Filter = properties.Get("filter") as string;
+            rep.FilterParams = properties.Get("query_params") as IDictionary<string, object>;
+            rep.DocIds = properties.Get("doc_ids") as IEnumerable<string>;
+            rep.RequestHeaders = results.Get("headers") as IDictionary<string, object>;
+            rep.Authenticator = results.Get("authorizer") as IAuthenticator;
+            if (push) {
+                ((Pusher)rep).CreateTarget = createTarget;
+            }
+
+            var db = (Database)results["database"];
+
+            // If this is a duplicate, reuse an existing replicator:
+            var existing = db.ActiveReplicators.FirstOrDefault(x => x.LocalDatabase == rep.LocalDatabase
+                && x.RemoteUrl == rep.RemoteUrl && x.IsPull == rep.IsPull &&
+                x.RemoteCheckpointDocID().Equals(rep.RemoteCheckpointDocID()));
+
+
+            return existing ?? rep;
+        }
+
+        private Status ParseReplicationProperties(IDictionary<string, object> properties, out bool isPush, out bool createTarget,
+            IDictionary<string, object> results)
+        {
+            // http://wiki.apache.org/couchdb/Replication
+            isPush = false;
+            createTarget = false;
+
+            var sourceDict = ParseSourceOrTarget(properties, "source");
+            var targetDict = ParseSourceOrTarget(properties, "target");
+            var source = sourceDict.Get("url") as string;
+            var target = targetDict.Get("url") as string;
+            if (source == null || target == null) {
+                return new Status(StatusCode.BadRequest);
+            }
+
+            createTarget = properties.Get("create_target") is bool && (bool)properties.Get("create_target");
+
+            IDictionary<string, object> remoteDict = null;
+            bool targetIsLocal = Manager.IsValidDatabaseName(target);
+            if (Manager.IsValidDatabaseName(source)) {
+                //Push replication
+                if (targetIsLocal) {
+                    // This is a local-to-local replication. Turn the remote into a full URL to keep the
+                    // replicator happy:
+                    Database targetDb;
+                    if (createTarget) {
+                        targetDb = Manager.SharedInstance.GetDatabase(target);
+                    } else {
+                        targetDb = Manager.SharedInstance.GetExistingDatabase(target);
+                    }
+
+                    if (targetDb == null) {
+                        return new Status(StatusCode.BadRequest);
+                    }
+
+                    targetDict["url"] = "http://localhost:20000" + targetDb.Path;
+                }
+
+                remoteDict = targetDict;
+                if (results.ContainsKey("database")) {
+                    results["database"] = GetExistingDatabase(source);
+                }
+
+                isPush = true;
+            } else if (targetIsLocal) {
+                //Pull replication
+                remoteDict = sourceDict;
+                if (results.ContainsKey("database")) {
+                    Database db;
+                    if (createTarget) {
+                        db = GetDatabase(target);
+                        if (db == null) {
+                            return new Status(StatusCode.DbError);
+                        } 
+                    } else {
+                        db = GetExistingDatabase(target);
+                    }
+                    results["database"] = db;
+                }
+            } else {
+                return new Status(StatusCode.BadId);
+            }
+
+            Uri remote = new Uri(remoteDict["url"] as string);
+            if (!remote.Scheme.Equals("http") && !remote.Scheme.Equals("https") && !remote.Scheme.Equals("cbl")) {
+                return new Status(StatusCode.BadRequest);
+            }
+
+            var database = results.Get("database");
+            if (database == null) {
+                return new Status(StatusCode.NotFound);
+            }
+
+            if (results.ContainsKey("remote")) {
+                results["remote"] = remote;
+            }
+
+            if (results.ContainsKey("headers")) {
+                results["headers"] = remoteDict.Get("headers");
+            }
+
+            if (results.ContainsKey("authorizer")) {
+                var auth = remoteDict.Get("auth") as IDictionary<string, object>;
+                if (auth != null) {
+                    //var oauth = auth["oauth"] as IDictionary<string, object>;
+                    var persona = auth.Get("persona") as IDictionary<string, object>;
+                    var facebook = auth.Get("facebook") as IDictionary<string, object>;
+                    //TODO: OAuth
+                    /*if (oauth != null) {
+                        string consumerKey = oauth.Get("consumer_key") as string;
+                        string consumerSec = oauth.Get("consumer_secret") as string;
+                        string token = oauth.Get("token") as string;
+                        string tokenSec = oauth.Get("token_secret") as string;
+                        string sigMethod = oauth.Get("signature_method") as string;
+                        results["authorizer"] = 
+                    }*/
+                    if (persona != null) {
+                        string email = persona.Get("email") as string;
+                        results["authorizer"] = new PersonaAuthorizer(email);
+                    } else if (facebook != null) {
+                        string email = facebook.Get("email") as string;
+                        results["authorizer"] = new FacebookAuthorizer(email);
+                    } else {
+                        Log.W(Tag, "Invalid authorizer settings {0}", auth);
+                    }
+                }
+            }
+
+            // Can't specify both a filter and doc IDs
+            if (properties.ContainsKey("filter") && properties.ContainsKey("doc_ids")) {
+                return new Status(StatusCode.BadRequest);
+            }
+
+            return new Status(StatusCode.Ok);
+        }
+
+        private static IDictionary<string, object> ParseSourceOrTarget(IDictionary<string, object> properties, string key)
+        {
+            object val = properties.Get(key);
+            if (val is IDictionary<string, object>) {
+                return (IDictionary<string, object>)val;
+            }
+
+            if (val is string) {
+                return new Dictionary<string, object> {
+                    { "url", val }
+                };
+            }
+
+            return new Dictionary<string, object>();
+        }
+
 
         internal Replication ReplicationWithDatabase (Database database, Uri url, bool push, bool create, bool start)
         {
@@ -495,15 +698,21 @@ namespace Couchbase.Lite
 
         private string PathForName(string name)
         {
-            if (String.IsNullOrEmpty (name) || illegalCharactersPattern.IsMatch (name))
-            {
+            if (String.IsNullOrEmpty(name) || illegalCharactersPattern.IsMatch(name)) {
                 return null;
             }
 
-            name = name.Replace('/', ':');
-
-            var fileName = name + Manager.DatabaseSuffix;
+            //Backwards compatibility
+            var oldStyleName = name.Replace('/', ':');
+            var fileName = oldStyleName + Manager.DatabaseSuffix;
             var result = Path.Combine(directoryFile.FullName, fileName);
+            if (new FilePath(result).Exists()) {
+                return result;
+            }
+            
+            name = name.Replace('/', '.');
+            fileName = name + Manager.DatabaseSuffix;
+            result = Path.Combine(directoryFile.FullName, fileName);
             return result;
         }
 

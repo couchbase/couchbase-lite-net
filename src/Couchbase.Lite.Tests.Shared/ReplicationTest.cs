@@ -1314,6 +1314,43 @@ namespace Couchbase.Lite
         }
 
         [Test]
+        public void TestPushFilteredByDocId()
+        {
+            if (!Boolean.Parse((string)Runtime.Properties["replicationTestsEnabled"]))
+            {
+                Assert.Inconclusive("Replication tests disabled.");
+                return;
+            }
+
+            var countdown = new CountdownEvent(1);
+            var pusher = database.CreatePushReplication(GetReplicationURL());
+            int changesCount = 0;
+            pusher.Changed += (sender, e) => 
+            {
+                if(e.Source.ChangesCount > 0) {
+                    changesCount = e.Source.ChangesCount;
+                    countdown.Signal();
+                }
+            };
+
+
+            var doc1 = database.CreateDocument();
+            doc1.PutProperties(new Dictionary<string, object> {
+                { "doc1", "Foo" }
+            });
+            pusher.DocIds = new List<string> { doc1.GetProperty("_id") as string };
+
+                var doc2 = database.CreateDocument();
+            doc2.PutProperties(new Dictionary<string, object> {
+                { "doc2", "Foo" }
+            });
+
+            pusher.Start();
+            Assert.IsTrue(countdown.Wait(TimeSpan.FromSeconds(10)), "Replication timed out");
+            Assert.AreEqual(1, changesCount);
+        }
+
+        [Test]
         public void TestPushManyNewDocuments()
         {
             if (!Boolean.Parse((string)Runtime.Properties["replicationTestsEnabled"]))

@@ -45,7 +45,7 @@ using System;
 namespace Couchbase.Lite {
     /// <summary>Options for what metadata to include in document bodies</summary>
     [Flags]
-    internal enum DocumentContentOptions
+    public enum DocumentContentOptions
     {
         None,
         IncludeAttachments = 2,

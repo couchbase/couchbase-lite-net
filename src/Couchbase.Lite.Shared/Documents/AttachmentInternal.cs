@@ -43,120 +43,232 @@
 using Couchbase.Lite;
 using Couchbase.Lite.Internal;
 using Sharpen;
+using System.Collections.Generic;
+using System.IO;
+using System;
+using System.Diagnostics;
+using System.Linq;
+using System.IO.Compression;
+using Couchbase.Lite.Util;
 
 namespace Couchbase.Lite.Internal
 {
     internal enum AttachmentEncoding
     {
-        AttachmentEncodingNone,
-        AttachmentEncodingGZIP
+        None,
+        GZIP
     }
-
-    /// <summary>A simple container for attachment metadata.</summary>
-    /// <remarks>A simple container for attachment metadata.</remarks>
-    internal class AttachmentInternal
+        
+    internal sealed class AttachmentInternal
     {
-        private string name;
+        private IEnumerable<byte> _data;
+        private const string TAG = "AttachmentInternal";
 
-        private string contentType;
+        public long Length { get; set; }
 
-        private BlobKey blobKey;
+        public long EncodedLength { get; set; }
 
-        private long length;
+        public AttachmentEncoding Encoding { get; set; }
 
-        private long encodedLength;
+        public int RevPos { get; set; }
 
-        private AttachmentEncoding encoding;
+        public Database Database { get; set; }
 
-        private int revpos;
+        public string Name { get; private set; }
+
+        public string ContentType { get; private set; }
+
+        public BlobKey BlobKey { 
+            get { return _blobKey; }
+            set { 
+                _digest = null;
+                _blobKey = value;
+            }
+        }
+        private BlobKey _blobKey;
+
+        public string Digest { 
+            get { 
+                if (_digest != null) {
+                    return _digest;
+                }
+
+                if (_blobKey != null) {
+                    return _blobKey.Base64Digest();
+                }
+
+                return null;
+            }
+        }
+        private string _digest;
+
+        // only if inline or stored in db blob-store 
+        public IEnumerable<byte> EncodedContent { 
+            get {
+                if (_data != null) {
+                    return _data;
+                }
+
+                if (Database == null || Database.Attachments == null) {
+                    return null;
+                }
+
+                return Database.Attachments.BlobForKey(_blobKey);
+            }
+        }
+
+        public IEnumerable<byte> Content { 
+            get {
+                var data = EncodedContent;
+                switch (Encoding) {
+                    case AttachmentEncoding.None:
+                        break;
+                    case AttachmentEncoding.GZIP:
+                        data = data.Decompress();
+                        break;
+                }
+
+                if (data == null) {
+                    Log.W(TAG, "Unable to decode attachment!");
+                }
+
+                return data;
+            }
+        }
+
+        public Stream ContentStream { 
+            get {
+                if (Encoding == AttachmentEncoding.None) {
+                    return Database.Attachments.BlobStreamForKey(_blobKey);
+                }
+
+                var ms = new MemoryStream(_data.ToArray());
+                return new GZipStream(ms, CompressionMode.Decompress, true);
+            }
+        }
+
+        // only if already stored in db blob-store
+        public Uri ContentUrl { 
+            get {
+                string path = Database.Attachments.PathForKey(_blobKey);
+                return path != null ? new Uri(path) : null;
+            }
+        }
+
+        public bool IsValid { 
+            get {
+                if (Encoding != AttachmentEncoding.None) {
+                    if (EncodedLength == 0 && Length > 0) {
+                        return false;
+                    }
+                } else if (EncodedLength > 0) {
+                    return false;
+                }
+
+                if (RevPos == 0) {
+                    return false;
+                }
+
+                #if DEBUG
+                if(_blobKey == null) {
+                    return false;
+                }
+                #endif
+
+                return true;
+            }
+        }
 
         public AttachmentInternal(string name, string contentType)
         {
-            this.name = name;
-            this.contentType = contentType;
+            Debug.Assert(name != null);
+            Name = name;
+            ContentType = contentType;
         }
 
-        public virtual bool IsValid()
+        public AttachmentInternal(string name, IDictionary<string, object> info) 
+            : this(name, info.GetCast<string>("content_type"))
         {
-            if (encoding != AttachmentEncoding.AttachmentEncodingNone)
-            {
-                if (encodedLength == 0 && length > 0)
-                {
-                    return false;
+            Length = info.GetCast<long>("length");
+            EncodedLength = info.GetCast<long>("encoded_length");
+            _digest = info.GetCast<string>("digest");
+            if (_digest != null) {
+                BlobKey = new BlobKey(_digest);
+            }
+
+            string encodingString = info.GetCast<string>("encoding");
+            if (encodingString != null) {
+                if (encodingString.Equals("gzip")) {
+                    Encoding = AttachmentEncoding.GZIP;
+                } else {
+                    throw new CouchbaseLiteException(StatusCode.BadEncoding);
                 }
             }
-            else
-            {
-                if (encodedLength > 0)
-                {
-                    return false;
+
+            var data = info.Get("data");
+            if (data != null) {
+                // If there's inline attachment data, decode and store it:
+                if (data is string) {
+                    _data = Convert.FromBase64String((string)data);
+                } else {
+                    _data = data as IEnumerable<byte>;
                 }
+
+                if (_data == null) {
+                    throw new CouchbaseLiteException(StatusCode.BadEncoding);
+                }
+
+                SetPossiblyEncodedLength(_data.LongCount());
+            } else if (info.GetCast<bool>("stub", false)) {
+                // This item is just a stub; validate and skip it
+                var revPos = info.GetCast<int>("revpos");
+                if (revPos <= 0) {
+                    throw new CouchbaseLiteException(StatusCode.BadAttachment);
+                }
+
+                RevPos = revPos;
+            } else if (info.GetCast<bool>("follows", false)) {
+                // I can't handle this myself; my caller will look it up from the digest
+                if (Digest == null) {
+                    throw new CouchbaseLiteException(StatusCode.BadAttachment);
+                }
+            } else {
+                throw new CouchbaseLiteException(StatusCode.BadAttachment);
             }
-            if (revpos == 0)
-            {
-                return false;
+        }
+            
+        public IDictionary<string, object> AsStubDictionary()
+        {
+            var retVal = new NonNullDictionary<string, object> {
+                { "stub", true },
+                { "digest", Digest },
+                { "content_type", ContentType },
+                { "revpos", RevPos },
+                { "length", Length }
+            };
+
+            if (EncodedLength > 0) {
+                retVal["encoded_length"] = EncodedLength;
             }
-            return true;
+
+            switch (Encoding) {
+                case AttachmentEncoding.GZIP:
+                    retVal["encoding"] = "gzip";
+                    break;
+                case AttachmentEncoding.None:
+                    break;
+            }
+
+            return retVal;
         }
 
-        public virtual string GetName()
+        public void SetPossiblyEncodedLength(long length)
         {
-            return name;
-        }
-
-        public virtual string GetContentType()
-        {
-            return contentType;
-        }
-
-        public virtual BlobKey GetBlobKey()
-        {
-            return blobKey;
-        }
-
-        public virtual void SetBlobKey(BlobKey blobKey)
-        {
-            this.blobKey = blobKey;
-        }
-
-        public virtual long GetLength()
-        {
-            return length;
-        }
-
-        public virtual void SetLength(long length)
-        {
-            this.length = length;
-        }
-
-        public virtual long GetEncodedLength()
-        {
-            return encodedLength;
-        }
-
-        public virtual void SetEncodedLength(long encodedLength)
-        {
-            this.encodedLength = encodedLength;
-        }
-
-        public virtual AttachmentEncoding GetEncoding()
-        {
-            return encoding;
-        }
-
-        public virtual void SetEncoding(AttachmentEncoding encoding)
-        {
-            this.encoding = encoding;
-        }
-
-        public virtual int GetRevpos()
-        {
-            return revpos;
-        }
-
-        public virtual void SetRevpos(int revpos)
-        {
-            this.revpos = revpos;
+            if (Encoding != AttachmentEncoding.None) {
+                EncodedLength = length;
+            } else {
+                Length = length;
+            }
         }
     }
 }

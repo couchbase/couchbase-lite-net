@@ -54,6 +54,7 @@ using Couchbase.Lite.Util;
 using Sharpen;
 using System.Collections;
 using System.Runtime.CompilerServices;
+using Couchbase.Lite.Support;
 
 
 #if !NET_3_5
@@ -111,7 +112,7 @@ namespace Couchbase.Lite
         /// Gets or sets an object that can compile source code into <see cref="FilterDelegate"/>.
         /// </summary>
         /// <value>The filter compiler object.</value>
-        public static CompileFilterDelegate FilterCompiler { get; set; }
+        public static IFilterCompiler FilterCompiler { get; set; }
 
         // "_local/*" is not a valid document ID. Local docs have their own API and shouldn't get here.
         internal static String GenerateDocumentId()
@@ -192,6 +193,7 @@ namespace Couchbase.Lite
                 catch (SQLException e)
                 {   // FIXME: Should we really swallow this exception?
                     Log.E(Tag, "Error getting document count", e);
+                    result = -1;
                 }
                 finally
                 {
@@ -232,6 +234,7 @@ namespace Couchbase.Lite
                 catch (SQLException e)
                 {   // FIXME: Should we really swallow this exception?
                     Log.E(Tag, "Error getting last sequence", e);
+                    result = -1;
                 }
                 finally
                 {
@@ -241,6 +244,19 @@ namespace Couchbase.Lite
                     }
                 }
                 return result;
+            }
+        }
+
+        public long TotalDataSize {
+            get {
+                string dir = System.IO.Path.GetDirectoryName(Path);
+                var info = new DirectoryInfo(dir);
+                long size = 0;
+                foreach (var fileInfo in info.EnumerateFiles("*", SearchOption.AllDirectories)) {
+                    size += fileInfo.Length;
+                }
+
+                return size;
             }
         }
 
@@ -588,7 +604,7 @@ namespace Couchbase.Lite
         /// </summary>
         /// <returns>The <see cref="ValidateDelegate" /> for the given name, or null if it does not exist.</returns>
         /// <param name="name">The name of the validation delegate to get.</param>
-        public FilterDelegate GetFilter(String name) 
+        public FilterDelegate GetFilter(String name, Status status = null) 
         { 
             FilterDelegate result = null;
             if (Filters != null)
@@ -603,19 +619,23 @@ namespace Couchbase.Lite
                     return null;
                 }
 
-                var outLanguageList = new List<string>();
-                var sourceCode = GetDesignDocFunction(name, "filters", outLanguageList);
+                string language = null;
+                var sourceCode = GetDesignDocFunction(name, "filters", out language) as string;
 
                 if (sourceCode == null)
                 {
+                    if (status != null) {
+                        status.SetCode(StatusCode.NotFound);
+                    }
                     return null;
                 }
 
-                var language = outLanguageList[0];
-
-                var filter = filterCompiler(sourceCode, language);
+                var filter = filterCompiler.CompileFilter(sourceCode, language);
                 if (filter == null)
                 {
+                    if (status != null) {
+                        status.SetCode(StatusCode.CallbackError);
+                    }
                     Log.W(Tag, string.Format("Filter {0} failed to compile", name));
                     return null;
                 }
@@ -757,7 +777,7 @@ namespace Couchbase.Lite
 
         internal const String TagSql = "CBLSQL";
        
-        internal const Int32 BigAttachmentLength = 16384;
+        internal const Int32 BigAttachmentLength = 2 * 1024;
 
         const Int32 MaxDocCacheSize = 50;
 
@@ -866,7 +886,7 @@ PRAGMA user_version = 3;";
         /// </remarks>
         internal Int32                                  MaxRevTreeDepth { get; set; }
 
-        private Int64                                   StartTime { get; set; }
+        internal Int64                                   StartTime { get; private set; }
         private IDictionary<String, FilterDelegate>     Filters { get; set; }
 
         internal RevisionList GetAllRevisionsOfDocumentID (string id, bool onlyCurrent)
@@ -926,33 +946,34 @@ PRAGMA user_version = 3;";
             return result;
         }
 
-        private String GetDesignDocFunction(String fnName, String key, ICollection<String> outLanguageList)
+        internal object GetDesignDocFunction(string fnName, string key, out string language)
         {
+            language = null;
             var path = fnName.Split('/');
-            if (path.Length != 2)
-            {
+            if (path.Length != 2) {
                 return null;
             }
 
             var docId = string.Format("_design/{0}", path[0]);
             var rev = GetDocumentWithIDAndRev(docId, null, DocumentContentOptions.None);
-            if (rev == null)
-            {
+            if (rev == null) {
                 return null;
             }
 
             var outLanguage = (string)rev.GetPropertyForKey("language");
-            if (outLanguage != null)
-            {
-                outLanguageList.AddItem(outLanguage);
+            if (outLanguage != null) {
+                language = outLanguage;
             }
-            else
-            {
-                outLanguageList.AddItem("javascript");
+            else {
+                language = "javascript";
             }
 
-            var container = (IDictionary<String, Object>)rev.GetPropertyForKey(key);
-            return (string)container.Get(path[1]);
+            var container = rev.GetPropertyForKey(key).AsDictionary<string, object>();
+            if (container == null) {
+                return null;
+            }
+
+            return container.Get(path[1]);
         }
 
         internal Boolean Exists()
@@ -964,28 +985,26 @@ PRAGMA user_version = 3;";
         {
             return string.Format("_local/{0}", documentId);
         }
-
+            
         internal RevisionInternal PutLocalRevision(RevisionInternal revision, string prevRevID)
         {
             var docID = revision.GetDocId();
-            if (!docID.StartsWith ("_local/", StringComparison.InvariantCultureIgnoreCase))
-            {
+            if (!docID.StartsWith ("_local/", StringComparison.InvariantCultureIgnoreCase)) {
                 throw new CouchbaseLiteException(StatusCode.BadRequest);
             }
 
-            if (!revision.IsDeleted())
-            {
+            if (!revision.IsDeleted()) {
                 // PUT:
                 string newRevID;
                 var json = EncodeDocumentJSON(revision);
 
-                if (prevRevID != null)
-                {
+                long rowsUpdated = 0;
+                if (prevRevID != null) {
                     var generation = RevisionInternal.GenerationFromRevID(prevRevID);
-                    if (generation == 0)
-                    {
+                    if (generation == 0) {
                         throw new CouchbaseLiteException(StatusCode.BadRequest);
                     }
+
                     newRevID = Sharpen.Extensions.ToString(++generation) + "-local";
 
                     var values = new ContentValues();
@@ -993,21 +1012,13 @@ PRAGMA user_version = 3;";
                     values["json"] = json;
 
                     var whereArgs = new [] { docID, prevRevID };
-                    try
-                    {
-                        var rowsUpdated = StorageEngine.Update("localdocs", values, "docid=? AND revid=?", whereArgs);
-                        if (rowsUpdated == 0)
-                        {
-                            throw new CouchbaseLiteException(StatusCode.Conflict);
-                        }
+                    try {
+                        rowsUpdated = StorageEngine.Update("localdocs", values, "docid=? AND revid=?", whereArgs);
                     }
-                    catch (SQLException e)
-                    {
+                    catch (SQLException e) {
                         throw new CouchbaseLiteException(e, StatusCode.InternalServerError);
                     }
-                }
-                else
-                {
+                } else {
                     newRevID = "1-local";
 
                     var values = new ContentValues();
@@ -1015,15 +1026,18 @@ PRAGMA user_version = 3;";
                     values["revid"] = newRevID;
                     values["json"] = json;
 
-                    try
-                    {
-                        StorageEngine.InsertWithOnConflict("localdocs", null, values, ConflictResolutionStrategy.Ignore);
+                    try {
+                        rowsUpdated = StorageEngine.InsertWithOnConflict("localdocs", null, values, ConflictResolutionStrategy.Ignore);
                     }
-                    catch (SQLException e)
-                    {
+                    catch (SQLException e) {
                         throw new CouchbaseLiteException(e, StatusCode.InternalServerError);
                     }
                 }
+
+                if (rowsUpdated == 0) {
+                    throw new CouchbaseLiteException(StatusCode.Conflict);
+                }
+
                 return revision.CopyWithDocID(docID, newRevID);
             }
             else
@@ -1037,42 +1051,30 @@ PRAGMA user_version = 3;";
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
         internal void DeleteLocalDocument(string docID, string revID)
         {
-            if (docID == null)
-            {
+            if (docID == null) {
                 throw new CouchbaseLiteException(StatusCode.BadRequest);
             }
 
-            if (revID == null)
-            {
+            if (revID == null) {
                 // Didn't specify a revision to delete: 404 or a 409, depending
-                if (GetLocalDocument(docID, null) != null)
-                {
+                if (GetLocalDocument(docID, null) != null) {
                     throw new CouchbaseLiteException(StatusCode.Conflict);
-                }
-                else
-                {
+                } else {
                     throw new CouchbaseLiteException(StatusCode.NotFound);
                 }
             }
 
             var whereArgs = new [] { docID, revID };
-            try
-            {
+            try {
                 int rowsDeleted = StorageEngine.Delete("localdocs", "docid=? AND revid=?", whereArgs);
-                if (rowsDeleted == 0)
-                {
-                    if (GetLocalDocument(docID, null) != null)
-                    {
+                if (rowsDeleted == 0) {
+                    if (GetLocalDocument(docID, null) != null) {
                         throw new CouchbaseLiteException(StatusCode.Conflict);
-                    }
-                    else
-                    {
+                    } else {
                         throw new CouchbaseLiteException(StatusCode.NotFound);
                     }
                 }
-            }
-            catch (SQLException e)
-            {
+            } catch (SQLException e) {
                 throw new CouchbaseLiteException(e, StatusCode.InternalServerError);
             }
         }
@@ -1128,72 +1130,76 @@ PRAGMA user_version = 3;";
             }
         }
 
+        //TODO: Refactor to return status and not throw exceptions since it has two possible return codes
         /// <summary>Inserts an already-existing revision replicated from a remote sqliteDb.</summary>
         /// <remarks>
         /// Inserts an already-existing revision replicated from a remote sqliteDb.
         /// It must already have a revision ID. This may create a conflict! The revision's history must be given; ancestor revision IDs that don't already exist locally will create phantom revisions with no content.
         /// </remarks>
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
-        internal void ForceInsert(RevisionInternal rev, IList<string> revHistory, Uri source)
+        internal void ForceInsert(RevisionInternal rev, IList<string> revHistory, Uri source, Status status = null)
         {
             var inConflict = false;
             var docId = rev.GetDocId();
             var revId = rev.GetRevId();
 
-            if (!IsValidDocumentId(docId) || (revId == null))
-            {
+            if (!IsValidDocumentId(docId) || (revId == null)) {
                 throw new CouchbaseLiteException(StatusCode.BadRequest);
             }
 
             int historyCount = 0;
-
-            if (revHistory != null)
-            {
+            if (revHistory != null) {
                 historyCount = revHistory.Count;
             }
 
-            if (historyCount == 0)
-            {
+            if (historyCount == 0) {
                 revHistory = new List<string>();
                 revHistory.AddItem(revId);
                 historyCount = 1;
-            }
-            else
-            {
-                if (!revHistory[0].Equals(rev.GetRevId()))
-                {
+            } else {
+                if (!revHistory[0].Equals(rev.GetRevId())) {
                     throw new CouchbaseLiteException(StatusCode.BadRequest);
                 }
             }
 
+
             RunInTransaction(() =>
             {
+                bool isNewDoc = historyCount == 1;
+                IList<bool> outIsDeleted = new List<bool>();
+                IList<bool> outIsConflict = new List<bool>();
+                bool oldWinnerWasDeletion = false;
+                string oldWinningRevId = null;
+                var localRevs = new Dictionary<string, RevisionInternal>();
+
                 try
                 {
                     // First look up all locally-known revisions of this document:
                     long docNumericID = GetOrInsertDocNumericID(docId);
 
-                    RevisionList localRevs = GetAllRevisionsOfDocumentID(docId, docNumericID, false);
+                    if(!isNewDoc) {
+                        RevisionList localRevsList = GetAllRevisionsOfDocumentID(docId, docNumericID, false);
+                        if(localRevsList == null) {
+                            throw new CouchbaseLiteException(StatusCode.DbError);
+                        }
 
-                    if (localRevs == null)
-                    {
-                        throw new CouchbaseLiteException(StatusCode.InternalServerError);
+                        localRevs = new Dictionary<string, RevisionInternal>(localRevsList.Count);
+                        foreach(var prevRev in localRevsList) {
+                            localRevs[prevRev.GetRevId()] = prevRev;
+                        }
+
+                        // Look up which rev is the winner, before this insertion
+                        oldWinningRevId = WinningRevIDOfDoc(docNumericID, outIsDeleted, outIsConflict);
+                        if (outIsDeleted.Count > 0) {
+                            oldWinnerWasDeletion = true;
+                        }
+
+                        if (outIsConflict.Count > 0) {
+                            inConflict = true;
+                        }
                     }
 
-                    IList<bool> outIsDeleted = new List<bool>();
-                    IList<bool> outIsConflict = new List<bool>();
-
-                    bool oldWinnerWasDeletion = false;
-                    string oldWinningRevID = WinningRevIDOfDoc(docNumericID, outIsDeleted, outIsConflict
-                                         );
-                    if (outIsDeleted.Count > 0)
-                    {
-                        oldWinnerWasDeletion = true;
-                    }
-                    if (outIsConflict.Count > 0)
-                    {
-                        inConflict = true;
-                    }
+                    //TODO.JHB Validate against the latest common ancestor
 
                     // Walk through the remote history in chronological order, matching each revision ID to
                     // a local revision. When the list diverges, start creating blank local revisions to fill
@@ -1201,41 +1207,33 @@ PRAGMA user_version = 3;";
                     long sequence = 0;
                     long localParentSequence = 0;
 
-                    for (int i = revHistory.Count - 1; i >= 0; --i)
-                    {
+                    for (int i = revHistory.Count - 1; i >= 0; --i) {
                         revId = revHistory[i];
-                        RevisionInternal localRev = localRevs.RevWithDocIdAndRevId(docId, revId);
+                        RevisionInternal localRev = localRevs.Get(revId);
 
-                        if (localRev != null)
-                        {
+                        if (localRev != null) {
                             // This revision is known locally. Remember its sequence as the parent of the next one:
                             sequence = localRev.GetSequence();
                             Debug.Assert((sequence > 0));
                             localParentSequence = sequence;
-                        }
-                        else
-                        {
+                        } else {
                             // This revision isn't known, so add it:
                             RevisionInternal newRev;
                             IEnumerable<Byte> data = null;
                             bool current = false;
 
-                            if (i == 0)
-                            {
+                            if (i == 0) {
                                 // Hey, this is the leaf revision we're inserting:
                                 newRev = rev;
-                                if (!rev.IsDeleted())
-                                {
+                                if (!rev.IsDeleted()) {
                                     data = EncodeDocumentJSON(rev);
-                                    if (data == null)
-                                    {
+                                    if (data == null) {
                                         throw new CouchbaseLiteException(StatusCode.BadRequest);
                                     }
                                 }
+
                                 current = true;
-                            }
-                            else
-                            {
+                            } else {
                                 // It's an intermediate parent, so insert a stub:
                                 newRev = new RevisionInternal(docId, revId, false);
                             }
@@ -1243,19 +1241,16 @@ PRAGMA user_version = 3;";
                             // Insert it:
                             sequence = InsertRevision(newRev, docNumericID, sequence, current, (GetAttachmentsFromRevision(newRev).Count > 0), data);
 
-                            if (sequence <= 0)
-                            {
-                                throw new CouchbaseLiteException(StatusCode.InternalServerError);
+                            if (sequence <= 0) {
+                                throw new CouchbaseLiteException(StatusCode.DbError);
                             }
 
-                            if (i == 0)
-                            {
+                            if (i == 0) {
                                 // Write any changed attachments for the new revision. As the parent sequence use
                                 // the latest local revision (this is to copy attachments from):
                                 var attachments = GetAttachmentsFromRevision(rev);
 
-                                if (attachments != null)
-                                {
+                                if (attachments != null) {
                                     ProcessAttachmentsForRevision(attachments, rev, localParentSequence);
                                     StubOutAttachmentsInRevision(attachments, rev);
                                 }
@@ -1263,30 +1258,36 @@ PRAGMA user_version = 3;";
                         }
                     }
 
+                    if(localParentSequence == sequence) {
+                        // No-op: No new revisions were inserted.
+                        if(status != null) {
+                            status.SetCode(StatusCode.Ok);
+                        }
+                        return true;
+                    }
+
                     // Mark the latest local rev as no longer current:
-                    if (localParentSequence > 0 && localParentSequence != sequence)
-                    {
+                    if (localParentSequence > 0)  {
                         ContentValues args = new ContentValues();
                         args["current"] = 0;
                         string[] whereArgs = new string[] { Convert.ToString(localParentSequence) };
 
-                        try
-                        {
+                        try  {
                             var numRowsChanged = StorageEngine.Update("revs", args, "sequence=?", whereArgs);
-
-                            if (numRowsChanged == 0)
-                            {
+                            if (numRowsChanged == 0) {
                                 inConflict = true;
                             }
-                        }
-                        catch (Exception)
-                        {
+                        } catch (Exception) {
                             throw new CouchbaseLiteException(StatusCode.InternalServerError);
                         }
                     }
 
-                    var winningRev = Winner(docNumericID, oldWinningRevID, oldWinnerWasDeletion, rev);
+                    var winningRev = Winner(docNumericID, oldWinningRevId, oldWinnerWasDeletion, rev);
                     NotifyChange(rev, winningRev, source, inConflict);
+                    if(status != null) {
+                        status.SetCode(StatusCode.Created);
+                    }
+
                     return true;
                 }
                 catch (SQLException)
@@ -1471,6 +1472,29 @@ PRAGMA user_version = 3;";
             Log.D(Tag, String.Format("Query view {0} completed in {1} milliseconds", viewName, delta));
 
             return rows;
+        }
+
+        internal string FindCommonAncestor(RevisionInternal rev, IList<string> revIds)
+        {
+            if (revIds == null || revIds.Count == 0) {
+                return null;
+            }
+
+            long docNumericId = GetDocNumericID(rev.GetDocId());
+            if (docNumericId <= 0) {
+                return null;
+            }
+
+            string sql = String.Format("SELECT revid FROM revs " +
+                "WHERE doc_id=? and revid in ({0}) and revid <= ? " +
+                "ORDER BY revid DESC LIMIT 1", Database.JoinQuoted(revIds));
+
+            var c = StorageEngine.RawQuery(sql, docNumericId, rev.GetRevId());
+            if (c.MoveToNext()) {
+                return c.GetString(0);
+            }
+
+            return null;
         }
 
         internal RevisionList ChangesSince(long lastSeq, ChangesOptions options, FilterDelegate filter)
@@ -1693,7 +1717,10 @@ PRAGMA user_version = 3;";
                     }
                     var value = new Dictionary<string, object>();
                     value["rev"] = revId;
-                    value["_conflicts"] = conflicts;
+                    if(conflicts.Any()) {
+                        value["_conflicts"] = conflicts;
+                    }
+
                     if (includeDeletedDocs)
                     {
                         value["deleted"] = deleted;
@@ -2109,7 +2136,7 @@ PRAGMA user_version = 3;";
         internal IDictionary<String, Object> PurgeRevisions(IDictionary<String, IList<String>> docsToRevs)
         {
             var result = new Dictionary<String, Object>();
-            RunInTransaction(() => PurgeRevisionsTask(this, docsToRevs, result));
+            var success = RunInTransaction(() => PurgeRevisionsTask(this, docsToRevs, result));
             // no such document, skip it
             // Delete all revisions if magic "*" revision ID is given:
             // Iterate over all the revisions of the doc, in reverse sequence order.
@@ -2118,7 +2145,7 @@ PRAGMA user_version = 3;";
             // Purge it and maybe its parent:
             // Keep it and its parent:
             // Now delete the sequences to be purged.
-            return result;
+            return success ? result : null;
         }
 
         internal void RemoveDocumentFromCache(Document document)
@@ -2212,28 +2239,28 @@ PRAGMA user_version = 3;";
             return new BlobStoreWriter(Attachments);
         }
 
-        internal Boolean ReplaceUUIDs()
+        internal Boolean ReplaceUUIDs(string privUUID = null, string pubUUID = null)
         {
-            var query = "UPDATE INFO SET value='" + Misc.CreateGUID() + "' where key = 'privateUUID';";
-
-            try
-            {
-                StorageEngine.ExecSQL(query);
+            if (privUUID == null) {
+                privUUID = Misc.CreateGUID();
             }
-            catch (SQLException e)
-            {
+
+            if (pubUUID == null) {
+                pubUUID = Misc.CreateGUID();
+            }
+
+            var query = "UPDATE INFO SET value='" + privUUID + "' where key = 'privateUUID';";
+            try {
+                StorageEngine.ExecSQL(query);
+            } catch (SQLException e) {
                 Log.E(Tag, "Error updating UUIDs", e);
                 return false;
             }
 
-            query = "UPDATE INFO SET value='" + Misc.CreateGUID() + "' where key = 'publicUUID';";
-
-            try
-            {
+            query = "UPDATE INFO SET value='" + pubUUID + "' where key = 'publicUUID';";
+            try  {
                 StorageEngine.ExecSQL(query);
-            }
-            catch (SQLException e)
-            {
+            } catch (SQLException e) {
                 Log.E(Tag, "Error updating UUIDs", e);
                 return false;
             }
@@ -2294,7 +2321,7 @@ PRAGMA user_version = 3;";
 
         internal void RememberAttachmentWriter (BlobStoreWriter writer)
         {
-            var digest = writer.MD5DigestString();
+            var digest = writer.SHA1DigestString();
             PendingAttachmentsByDigest[digest] = writer;
         }
 
@@ -2497,8 +2524,17 @@ PRAGMA user_version = 3;";
             return true;
         }
 
-        internal RevisionInternal GetDocumentWithIDAndRev(String id, String rev, DocumentContentOptions contentOptions)
+        internal RevisionInternal GetDocumentWithIDAndRev(String id, String rev, DocumentContentOptions contentOptions, Status status = null)
         {
+            var docNumericId = GetDocNumericID(id);
+            if (docNumericId <= 0) {
+                if (status != null) {
+                    status.SetCode(StatusCode.NotFound);
+                }
+
+                return null;
+            }
+
             RevisionInternal result = null;
             string sql;
             Cursor cursor = null;
@@ -2512,18 +2548,19 @@ PRAGMA user_version = 3;";
                 }
                 if (rev != null)
                 {
-                    sql = "SELECT " + cols + " FROM revs, docs WHERE docs.docid=? AND revs.doc_id=docs.doc_id AND revid=? LIMIT 1";
-                    //TODO: mismatch w iOS: {sql = "SELECT " + cols + " FROM revs WHERE revs.doc_id=? AND revid=? AND json notnull LIMIT 1";}
-                    var args = new[] { id, rev };
-                    cursor = StorageEngine.IntransactionRawQuery(sql, args);
+                    sql = "SELECT " + cols + " FROM revs, docs WHERE revs.doc_id=? AND revid=? LIMIT 1";
+                     cursor = StorageEngine.IntransactionRawQuery(sql, docNumericId, rev);
                 }
                 else
                 {
-                    sql = "SELECT " + cols + " FROM revs, docs WHERE docs.docid=? AND revs.doc_id=docs.doc_id and current=1 and deleted=0 ORDER BY revid DESC LIMIT 1";
-                    //TODO: mismatch w iOS: {sql = "SELECT " + cols + " FROM revs WHERE revs.doc_id=? and current=1 and deleted=0 ORDER BY revid DESC LIMIT 1";}
-                    var args = new[] { id };
-                    cursor = StorageEngine.IntransactionRawQuery(sql, args);
+                    sql = "SELECT " + cols + " FROM revs, docs WHERE revs.doc_id=? and current=1 and deleted=0 ORDER BY revid DESC LIMIT 1";
+                    cursor = StorageEngine.IntransactionRawQuery(sql, docNumericId);
                 }
+
+                if(cursor == null) {
+                    return null;
+                }
+
                 if (cursor.MoveToNext())
                 {
                     if (rev == null)
@@ -2547,11 +2584,21 @@ PRAGMA user_version = 3;";
                         }
                         ExpandStoredJSONIntoRevisionWithAttachments(json, result, contentOptions);
                     }
+                } else {
+                    if(status != null) {
+                        status.SetCode(rev != null ? StatusCode.NotFound : StatusCode.Deleted);
+                    }
                 }
             }
             catch (Exception e)
             {
                 Log.E(Tag, "Error getting document with id and rev", e);
+                if (status != null) {
+                    var ce = e as CouchbaseLiteException;
+                    if (ce != null) {
+                        status.SetCode(ce.GetCBLStatus().GetCode());
+                    }
+                }
             }
             finally
             {
@@ -2561,6 +2608,36 @@ PRAGMA user_version = 3;";
                 }
             }
             return result;
+        }
+
+        internal MultipartWriter MultipartWriterForRev(RevisionInternal rev, string contentType)
+        {
+            var writer = new MultipartWriter(contentType, null);
+            writer.SetNextPartHeaders(new Dictionary<string, string> { { "Content-Type", "application/json" } });
+            writer.AddData(rev.GetBody().AsJson());
+            var attachments = rev.GetAttachments();
+            foreach (var entry in attachments) {
+                var attachment = entry.Value as IDictionary<string, object>;
+                if (attachment != null && attachment.GetCast<bool>("follows", false)) {
+                    var disposition = String.Format("attachment; filename={0}", Quote(entry.Key));
+                    writer.SetNextPartHeaders(new Dictionary<string, string> { { "Content-Disposition", disposition } });
+
+                    Status status = new Status();
+                    var attachObj = AttachmentForDict(attachment, entry.Key, status);
+                    if (attachObj == null) {
+                        return null;
+                    }
+
+                    var fileURL = attachObj.ContentUrl;
+                    if (fileURL != null) {
+                        writer.AddFileUrl(fileURL);
+                    } else {
+                        writer.AddStream(attachObj.ContentStream);
+                    }
+                }
+            }
+
+            return writer;
         }
 
         /// <summary>Inserts the _id, _rev and _attachments properties into the JSON data and stores it in rev.
@@ -3101,9 +3178,18 @@ PRAGMA user_version = 3;";
             var docId = oldRev.GetDocId();
             var deleted = oldRev.IsDeleted();
 
-            if ((oldRev == null) || ((prevRevId != null) && (docId == null)) || (deleted && (docId == null)) || ((docId != null) && !IsValidDocumentId(docId)))
-            {
+            if ((oldRev == null) || ((prevRevId != null) && (docId == null)) || (deleted && (docId == null)) || ((docId != null) && !IsValidDocumentId(docId))) {
                 throw new CouchbaseLiteException(StatusCode.BadRequest);
+            }
+
+            if (oldRev.GetAttachments() != null) {
+                var tmpRev = new RevisionInternal(docId, prevRevId, deleted);
+                tmpRev.SetProperties(oldRev.GetProperties());
+                if (!ProcessAttachmentsForRevision(tmpRev, prevRevId, resultStatus)) {
+                    return null;
+                }
+
+                oldRev.SetProperties(tmpRev.GetProperties());
             }
 
             Cursor cursor = null;
@@ -3118,74 +3204,57 @@ PRAGMA user_version = 3;";
                 var parentSequence = 0L;
                 string oldWinningRevID = null;
 
-                try
-                {
+                try {
                     var oldWinnerWasDeletion = false;
                     var wasConflicted = false;
 
-                    if (docNumericID > 0)
-                    {
+                    if (docNumericID > 0) {
                         var outIsDeleted = new List<bool>();
                         var outIsConflict = new List<bool>();
 
-                        try
-                        {
+                        try {
                             oldWinningRevID = WinningRevIDOfDoc(docNumericID, outIsDeleted, outIsConflict);
                             oldWinnerWasDeletion |= outIsDeleted.Count > 0;
                             wasConflicted |= outIsConflict.Count > 0;
-                        }
-                        catch (Exception e)
-                        {
-                            Sharpen.Runtime.PrintStackTrace(e);
+                        } catch (Exception e) {
+                            Log.E(Tag, "Exception getting winning rev ID of Doc", e);
                         }
                     }
-                    if (prevRevId != null)
-                    {
+
+                    if (prevRevId != null) {
                         // Replacing: make sure given prevRevID is current & find its sequence number:
-                        if (docNumericID <= 0)
-                        {
+                        if (docNumericID <= 0) {
                             var msg = string.Format("No existing revision found with doc id: {0}", docId);
                             throw new CouchbaseLiteException(msg, StatusCode.NotFound);
                         }
 
                         parentSequence = GetSequenceOfDocument(docNumericID, prevRevId, !allowConflict);
 
-                        if (parentSequence == 0)
-                        {
+                        if (parentSequence == 0) {
                             // Not found: either a 404 or a 409, depending on whether there is any current revision
-                            if (!allowConflict && ExistsDocumentWithIDAndRev(docId, null))
-                            {
+                            if (!allowConflict && ExistsDocumentWithIDAndRev(docId, null)) {
                                 var msg = string.Format("Conflicts not allowed and there is already an existing doc with id: {0}", docId);
                                 throw new CouchbaseLiteException(msg, StatusCode.Conflict);
-                            }
-                            else
-                            {
+                            } else {
                                 var msg = string.Format("No existing revision found with doc id: {0}", docId);
                                 throw new CouchbaseLiteException(msg, StatusCode.NotFound);
                             }
                         }
 
-                        if (_validations != null && _validations.Count > 0)
-                        {
+                        if (_validations != null && _validations.Count > 0)  {
                             // Fetch the previous revision and validate the new one against it:
                             var oldRevCopy = oldRev.CopyWithDocID(oldRev.GetDocId(), null);
                             var prevRev = new RevisionInternal(docId, prevRevId, false);
 
                             ValidateRevision(oldRevCopy, prevRev, prevRevId);
                         }
-                    }
-                    else
-                    {
+                    } else {
                         // Inserting first revision.
-                        if (deleted && (docId != null))
-                        {
+                        if (deleted && (docId != null)) {
                             // Didn't specify a revision to delete: 404 or a 409, depending
-                            if (ExistsDocumentWithIDAndRev(docId, null))
-                            {
+                            if (ExistsDocumentWithIDAndRev(docId, null)) {
                                 throw new CouchbaseLiteException(StatusCode.Conflict);
-                            }
-                            else
-                            {
+                            } else {
                                 throw new CouchbaseLiteException(StatusCode.NotFound);
                             }
                         }
@@ -3193,45 +3262,33 @@ PRAGMA user_version = 3;";
                         // Validate:
                         ValidateRevision(oldRev, null, null);
 
-                        if (docId != null)
-                        {
+                        if (docId != null)  {
                             // Inserting first revision, with docID given (PUT):
-                            if (docNumericID <= 0)
-                            {
+                            if (docNumericID <= 0) {
                                 // Doc doesn't exist at all; create it:
                                 docNumericID = InsertDocumentID(docId);
 
-                                if (docNumericID <= 0)
-                                {
+                                if (docNumericID <= 0)  {
                                     return false;
                                 }
-                            }
-                            else
-                            {
+                            } else {
                                 // Doc ID exists; check whether current winning revision is deleted:
-                                if (oldWinnerWasDeletion)
-                                {
+                                if (oldWinnerWasDeletion) {
                                     prevRevId = oldWinningRevID;
                                     parentSequence = GetSequenceOfDocument(docNumericID, prevRevId, false);
-                                }
-                                else
-                                {
-                                    if (oldWinningRevID != null)
-                                    {
+                                } else {
+                                    if (oldWinningRevID != null) {
                                         // The current winning revision is not deleted, so this is a conflict
                                         throw new CouchbaseLiteException(StatusCode.Conflict);
                                     }
                                 }
                             }
-                        }
-                        else
-                        {
+                        } else  {
                             // Inserting first revision, with no docID given (POST): generate a unique docID:
                             docId = Database.GenerateDocumentId();
                             docNumericID = InsertDocumentID(docId);
 
-                            if (docNumericID <= 0)
-                            {
+                            if (docNumericID <= 0) {
                                 return false;
                             }
                         }
@@ -3243,8 +3300,6 @@ PRAGMA user_version = 3;";
                     || (!deleted && prevRevId != null && oldWinningRevID != null && !prevRevId.Equals(oldWinningRevID));
 
                     // PART II: In which we prepare for insertion...
-                    // Get the attachments:
-                    var attachments = GetAttachmentsFromRevision(oldRev);
 
                     // Bump the revID and update the JSON:
                     IList<byte> json = null;
@@ -3270,12 +3325,13 @@ PRAGMA user_version = 3;";
                         json = Encoding.UTF8.GetBytes("{}"); // NOTE.ZJG: Confirm w/ Traun. This prevents a null reference exception in call to InsertRevision below.
                     }
 
-                    var newRevId = GenerateIDForRevision(oldRev, json, attachments, prevRevId);
+                    var newRevId = GenerateIDForRevision(oldRev, json, prevRevId);
                     newRev = oldRev.CopyWithDocID(docId, newRevId);
-                    StubOutAttachmentsInRevision(attachments, newRev);
 
                     // Now insert the rev itself:
-                    var newSequence = InsertRevision(newRev, docNumericID, parentSequence, true, (attachments.Count > 0), json);
+                    var attachments = newRev.GetAttachments();
+                    var newSequence = InsertRevision(newRev, docNumericID, parentSequence, true, 
+                        (attachments != null && attachments.Count > 0), json);
 
                     if (newSequence <= 0)
                     {
@@ -3293,12 +3349,6 @@ PRAGMA user_version = 3;";
                     {
                         Log.E(Database.Tag, "Error setting parent rev non-current", e);
                         throw new CouchbaseLiteException(StatusCode.InternalServerError);
-                    }
-
-                    // Store any attachments:
-                    if (attachments != null)
-                    {
-                        ProcessAttachmentsForRevision(attachments, newRev, parentSequence);
                     }
 
                     // Figure out what the new winning rev ID is:
@@ -3325,8 +3375,6 @@ PRAGMA user_version = 3;";
                     {
                         cursor.Close();
                     }
-
-
 
                     if (!string.IsNullOrEmpty(docId))
                     {
@@ -3536,16 +3584,16 @@ PRAGMA user_version = 3;";
                 {
                     // Determine the revpos, i.e. generation # this was added in. Usually this is
                     // implicit, but a rev being pulled in replication will have it set already.
-                    if (attachment.GetRevpos() == 0)
+                    if (attachment.RevPos == 0)
                     {
-                        attachment.SetRevpos(generation);
+                        attachment.RevPos = generation;
                     }
                     else
                     {
-                        if (attachment.GetRevpos() > generation)
+                        if (attachment.RevPos > generation)
                         {
-                            Log.W(Tag, string.Format("Attachment {0} {1} has unexpected revpos {2}, setting to {3}", rev, name, attachment.GetRevpos(), generation));
-                            attachment.SetRevpos(generation);
+                            Log.W(Tag, string.Format("Attachment {0} {1} has unexpected revpos {2}, setting to {3}", rev, name, attachment.RevPos, generation));
+                            attachment.RevPos = generation;
                         }
                     }
                     // Finally insert the attachment:
@@ -3612,7 +3660,7 @@ PRAGMA user_version = 3;";
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
         internal void InsertAttachmentForSequence(AttachmentInternal attachment, long sequence)
         {
-            InsertAttachmentForSequenceWithNameAndType(sequence, attachment.GetName(), attachment.GetContentType(), attachment.GetRevpos(), attachment.GetBlobKey());
+            InsertAttachmentForSequenceWithNameAndType(sequence, attachment.Name, attachment.ContentType, attachment.RevPos, attachment.BlobKey);
         }
 
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
@@ -3675,12 +3723,12 @@ PRAGMA user_version = 3;";
                 {
                     var blobStoreWriter = writer;
                     blobStoreWriter.Install();
-                    attachment.SetBlobKey(blobStoreWriter.GetBlobKey());
-                    attachment.SetLength(blobStoreWriter.GetLength());
+                    attachment.BlobKey = (blobStoreWriter.GetBlobKey());
+                    attachment.Length = blobStoreWriter.GetLength();
                 }
                 catch (Exception e)
                 {
-                    throw new CouchbaseLiteException(e, StatusCode.StatusAttachmentError);
+                    throw new CouchbaseLiteException(e, StatusCode.AttachmentError);
                 }
             }
         }
@@ -3745,10 +3793,10 @@ PRAGMA user_version = 3;";
                         var attachmentObject = attachments.Get(kvp.Key);
                         if (attachmentObject != null)
                         {
-                            attachmentValue.Put("length", attachmentObject.GetLength());
-                            if (attachmentObject.GetBlobKey() != null)
+                            attachmentValue.Put("length", attachmentObject.Length);
+                            if (attachmentObject.BlobKey != null)
                             {
-                                attachmentValue.Put("digest", attachmentObject.GetBlobKey().Base64Digest());
+                                attachmentValue.Put("digest", attachmentObject.BlobKey.Base64Digest());
                             }
                         }
                     }
@@ -3757,6 +3805,8 @@ PRAGMA user_version = 3;";
 
                 properties["_attachments"] = nuAttachments;  
             }
+
+            rev.SetProperties(properties);
         }
 
         internal Uri FileForAttachmentDict(IDictionary<String, Object> attachmentDict)
@@ -3788,6 +3838,91 @@ PRAGMA user_version = 3;";
             }
             //NOOP: retval will be null
             return retval;
+        }
+
+        internal bool ExpandAttachments(RevisionInternal rev, int minRevPos, bool allowFollows, 
+            bool decodeAttachments, Status outStatus)
+        {
+            outStatus.SetCode(StatusCode.Ok);
+            rev.MutateAttachments((name, attachment) =>
+            {
+                var revPos = attachment.GetCast<long>("revpos");
+                if(revPos < minRevPos && revPos != 0) {
+                    //Stub:
+                    return new Dictionary<string, object> { { "stub", true }, { "revpos", revPos } };
+                }
+
+                var expanded = new Dictionary<string, object>(attachment);
+                expanded.Remove("stub");
+                if(decodeAttachments) {
+                    expanded.Remove("encoding");
+                    expanded.Remove("encoded_length");
+                }
+
+                if(allowFollows && SmallestLength(expanded) >= Database.BigAttachmentLength) {
+                    //Data will follow (multipart):
+                    expanded["follows"] = true;
+                    expanded.Remove("data");
+                } else {
+                    //Put data inline:
+                    expanded.Remove("follows");
+                    Status status = new Status();
+                    var attachObj = AttachmentForDict(attachment, name, status);
+                    if(attachObj == null) {
+                        Log.W(Tag, "Can't get attachment '{0}' of {1} (status {2})", name, rev, status);
+                        outStatus.SetCode(status.GetCode());
+                        return attachment;
+                    }
+
+                    var data = decodeAttachments ? attachObj.Content : attachObj.EncodedContent;
+                    if(data == null) {
+                        Log.W(Tag, "Can't get binary data of attachment '{0}' of {1}", name, rev);
+                        outStatus.SetCode(StatusCode.NotFound);
+                        return attachment;
+                    }
+
+                    expanded["data"] = Convert.ToBase64String(data.ToArray());
+                }
+                    
+                return expanded;
+            });
+
+            return outStatus.GetCode() == StatusCode.Ok;
+        }
+
+        internal AttachmentInternal AttachmentForDict(IDictionary<string, object> info, string filename, Status status)
+        {
+            if (info == null) {
+                if (status != null) {
+                    status.SetCode(StatusCode.NotFound);
+                }
+
+                return null;
+            }
+
+            AttachmentInternal attachment;
+            try {
+                attachment = new AttachmentInternal(filename, info);
+            } catch(CouchbaseLiteException e) {
+                if (status != null) {
+                    status.SetCode(e.GetCBLStatus().GetCode());
+                }
+                return null;
+            }
+
+            attachment.Database = this;
+            return attachment;
+        }
+
+        private static long SmallestLength(IDictionary<string, object> attachment)
+        {
+            long length = attachment.GetCast<long>("length");
+            long encodedLength = attachment.GetCast<long>("encoded_length", -1);
+            if (encodedLength != -1) {
+                length = encodedLength;
+            }
+
+            return length;
         }
 
         internal static void StubOutAttachmentsInRevBeforeRevPos(RevisionInternal rev, long minRevPos, bool attachmentsFollow)
@@ -3868,53 +4003,132 @@ PRAGMA user_version = 3;";
                 return editedAttachment;
             });
         }
+            
+        static readonly HashSet<string> KEYS_TO_LEAVE = new HashSet<string> { 
+            "_removed", "_attachments"
+        };
 
-        /// <summary>INSERTION:</summary>
-        internal IEnumerable<Byte> EncodeDocumentJSON(RevisionInternal rev)
+        static readonly HashSet<string> KEYS_TO_REMOVE = new HashSet<string> { 
+            "_id", "_rev", "_deleted", "_revisions", "_revs_info", "_conflicts", 
+            "_deleted_conflicts", "_local_seq"
+        };
+
+        internal IEnumerable<byte> EncodeDocumentJSON(RevisionInternal rev)
         {
             var origProps = rev.GetProperties();
-            if (origProps == null)
-            {
+            if (origProps == null) {
                 return null;
             }
-            var specialKeysToLeave = new[] { "_removed", "_replication_id", "_replication_state", "_replication_state_time" };
 
             // Don't allow any "_"-prefixed keys. Known ones we'll ignore, unknown ones are an error.
-            var properties = new Dictionary<String, Object>(origProps.Count);
-            foreach (var key in origProps.Keys)
-            {
-                var shouldAdd = false;
-                if (key.StartsWith("_", StringComparison.InvariantCultureIgnoreCase))
-                {
-                    if (!KnownSpecialKeys.Contains(key))
-                    {
-                        Log.E(Tag, "Database: Invalid top-level key '" + key + "' in document to be inserted");
-                        return null;
-                    }
-                    if (specialKeysToLeave.Contains(key))
-                    {
-                        shouldAdd = true;
-                    }
-                }
-                else
-                {
-                    shouldAdd = true;
-                }
-                if (shouldAdd)
-                {
+            var properties = new Dictionary<string, object>(origProps.Count);
+            foreach (var key in origProps.Keys) {
+                if (!key.StartsWith("_", StringComparison.InvariantCultureIgnoreCase) || KEYS_TO_LEAVE.Contains(key)) {
                     properties.Put(key, origProps.Get(key));
+                } else if(!KEYS_TO_REMOVE.Contains(key)) {
+                    Log.E(Tag, "Database: Invalid top-level key '{0}' in document to be inserted", key);
+                    return null;
                 }
             }
+
             IEnumerable<byte> json = null;
-            try
-            {
+            try {
                 json = Manager.GetObjectMapper().WriteValueAsBytes(properties);
-            }
-            catch (Exception e)
-            {
+            } catch (Exception e) {
                 Log.E(Tag, "Error serializing " + rev + " to JSON", e);
             }
+
             return json;
+        }
+
+        internal bool ProcessAttachmentsForRevision(RevisionInternal rev, string prevRevId, Status status)
+        {
+            status.SetCode(StatusCode.Ok);
+            var revAttachments = rev.GetAttachments();
+            if (revAttachments == null) {
+                return true; // no-op: no attachments
+            }
+
+            // Deletions can't have attachments:
+            if (rev.IsDeleted() || revAttachments.Count == 0) {
+                var body = rev.GetProperties();
+                body.Remove("_attachments");
+                rev.SetProperties(body);
+                return true;
+            }
+
+            int generation = RevisionInternal.GenerationFromRevID(prevRevId) + 1;
+            IDictionary<string, object> parentAttachments = null;
+            return rev.MutateAttachments((name, attachInfo) =>
+            {
+                AttachmentInternal attachment = null;
+                try {
+                    attachment = new AttachmentInternal(name, attachInfo);
+                } catch(CouchbaseLiteException) {
+                    return null;
+                }
+
+                if(attachment.EncodedContent != null) {
+                    // If there's inline attachment data, decode and store it:
+                    BlobKey blobKey = new BlobKey();
+                    if(!Attachments.StoreBlob(attachment.EncodedContent.ToArray(), blobKey)) {
+                        status.SetCode(StatusCode.AttachmentError);
+                        return null;
+                    }
+
+                    attachment.BlobKey = blobKey;
+                } else if(attachInfo.GetCast<bool>("follows")) {
+                    // "follows" means the uploader provided the attachment in a separate MIME part.
+                    // This means it's already been registered in _pendingAttachmentsByDigest;
+                    // I just need to look it up by its "digest" property and install it into the store:
+                    InstallAttachment(attachment, attachInfo);
+                } else if(attachInfo.GetCast<bool>("stub")) {
+                    // "stub" on an incoming revision means the attachment is the same as in the parent.
+                    if(parentAttachments == null && prevRevId != null) {
+                        parentAttachments = GetAttachmentsFromDoc(rev.GetDocId(), prevRevId, status);
+                        if(parentAttachments == null) {
+                            if(status.GetCode() == StatusCode.Ok || status.GetCode() == StatusCode.NotFound) {
+                                status.SetCode(StatusCode.BadAttachment);
+                            }
+
+                            return null;
+                        }
+                    }
+
+                    var parentAttachment = parentAttachments == null ? null : parentAttachments.Get(name).AsDictionary<string, object>();
+                    if(parentAttachment == null) {
+                        status.SetCode(StatusCode.BadAttachment);
+                        return null;
+                    }
+
+                    return parentAttachment;
+                }
+
+
+                // Set or validate the revpos:
+                if(attachment.RevPos == 0) {
+                    attachment.RevPos = generation;
+                } else if(attachment.RevPos >= generation) {
+                    status.SetCode(StatusCode.BadAttachment);
+                    return null;
+                }
+
+                Debug.Assert(attachment.IsValid);
+                return attachment.AsStubDictionary();
+            });
+        }
+
+        internal IDictionary<string, object> GetAttachmentsFromDoc(string docId, string revId, Status status)
+        {
+            var rev = new RevisionInternal(docId, revId, false);
+            try {
+                LoadRevisionBody(rev, DocumentContentOptions.None);
+            } catch(CouchbaseLiteException e) {
+                status.SetCode(e.GetCBLStatus().GetCode());
+                return null;
+            }
+
+            return rev.GetAttachments();
         }
 
         /// <summary>
@@ -3953,13 +4167,13 @@ PRAGMA user_version = 3;";
                     {
                         throw new CouchbaseLiteException(e, StatusCode.BadEncoding);
                     }
-                    attachment.SetLength(newContents.Length);
+                    attachment.Length = newContents.Length;
                     var outBlobKey = new BlobKey();
                     var storedBlob = Attachments.StoreBlob(newContents, outBlobKey);
-                    attachment.SetBlobKey(outBlobKey);
+                    attachment.BlobKey = outBlobKey;
                     if (!storedBlob)
                     {
-                        throw new CouchbaseLiteException(StatusCode.StatusAttachmentError);
+                        throw new CouchbaseLiteException(StatusCode.AttachmentError);
                     }
                 }
                 else
@@ -3995,40 +4209,63 @@ PRAGMA user_version = 3;";
                 {
                     if (Runtime.EqualsIgnoreCase(encodingStr, "gzip"))
                     {
-                        attachment.SetEncoding(AttachmentEncoding.AttachmentEncodingGZIP);
+                        attachment.Encoding = AttachmentEncoding.GZIP;
                     }
                     else
                     {
                         throw new CouchbaseLiteException("Unnkown encoding: " + encodingStr, StatusCode.BadEncoding
                                                         );
                     }
-                    attachment.SetEncodedLength(attachment.GetLength());
+                    attachment.EncodedLength = attachment.Length;
                     if (attachInfo.ContainsKey("length"))
                     {
-                        attachment.SetLength((long)attachInfo.Get("length"));
+                        attachment.Length = attachInfo.GetCast<long>("length");
                     }
                 }
                 if (attachInfo.ContainsKey("revpos"))
                 {
                     var revpos = Convert.ToInt32(attachInfo.Get("revpos"));
-                    attachment.SetRevpos(revpos);
+                    attachment.RevPos = revpos;
                 }
                 attachments[name] = attachment;
             }
             return attachments;
         }
 
-        internal String GenerateIDForRevision(RevisionInternal rev, IEnumerable<byte> json, IDictionary<string, AttachmentInternal> attachments, string previousRevisionId)
+        internal AttachmentInternal GetAttachmentForRevision(RevisionInternal rev, string name, Status status = null)
+        {
+            Debug.Assert(name != null);
+            var attachments = rev.GetAttachments();
+            if (attachments == null) {
+                try {
+                    rev = LoadRevisionBody(rev, DocumentContentOptions.None);
+                } catch(CouchbaseLiteException e) {
+                    if (status != null) {
+                        status.SetCode(e.GetCBLStatus().GetCode());
+                    }
+
+                    return null;
+                }
+
+                attachments = rev.GetAttachments();
+                if (attachments == null) {
+                    status.SetCode(StatusCode.NotFound);
+                    return null;
+                }
+            }
+
+            return AttachmentForDict(attachments.Get(name).AsDictionary<string, object>(), name, status);
+        }
+
+        internal String GenerateIDForRevision(RevisionInternal rev, IEnumerable<byte> json, string previousRevisionId)
         {
             MessageDigest md5Digest;
 
             // Revision IDs have a generation count, a hyphen, and a UUID.
             int generation = 0;
-            if (previousRevisionId != null)
-            {
+            if (previousRevisionId != null) {
                 generation = RevisionInternal.GenerationFromRevID(previousRevisionId);
-                if (generation == 0)
-                {
+                if (generation == 0) {
                     return null;
                 }
             }
@@ -4036,24 +4273,19 @@ PRAGMA user_version = 3;";
             // Generate a digest for this revision based on the previous revision ID, document JSON,
             // and attachment digests. This doesn't need to be secure; we just need to ensure that this
             // code consistently generates the same ID given equivalent revisions.
-            try
-            {
+            try {
                 md5Digest = MessageDigest.GetInstance("MD5");
-            }
-            catch (NoSuchAlgorithmException e)
-            {
+            } catch (NoSuchAlgorithmException e) {
                 throw new RuntimeException(e);
             }
 
             var length = 0;
-            if (previousRevisionId != null)
-            {
+            if (previousRevisionId != null) {
                 var prevIDUTF8 = Encoding.UTF8.GetBytes(previousRevisionId);
                 length = prevIDUTF8.Length;
             }
 
-            if (length > unchecked((0xFF)))
-            {
+            if (length > unchecked((0xFF))) {
                 return null;
             }
 
@@ -4065,14 +4297,14 @@ PRAGMA user_version = 3;";
             var deletedByte = new[] { unchecked((byte)isDeleted) };
             md5Digest.Update(deletedByte);
 
-            var attachmentKeys = new List<String>(attachments.Keys);
+            /*var attachmentKeys = new List<String>(attachments.Keys);
             attachmentKeys.Sort();
 
             foreach (string key in attachmentKeys)
             {
                 var attachment = attachments.Get(key);
-                md5Digest.Update(attachment.GetBlobKey().GetBytes());
-            }
+                md5Digest.Update(attachment.BlobKey.GetBytes());
+            }*/
 
             if (json != null)
             {
@@ -4135,6 +4367,33 @@ PRAGMA user_version = 3;";
             return matchingRevs;
         }
 
+        internal RevisionInternal RevisionByLoadingBody(RevisionInternal rev, Status outStatus)
+        {
+            // First check for no-op -- if we just need the default properties and already have them:
+            if (rev.GetSequence() != 0) {
+                var props = rev.GetProperties();
+                if (props != null && props.ContainsKey("_rev") && props.ContainsKey("_id")) {
+                    if (outStatus != null) {
+                        outStatus.SetCode(StatusCode.Ok);
+                    }
+
+                    return rev;
+                }
+            }
+
+            RevisionInternal nuRev = rev.CopyWithDocID(rev.GetDocId(), rev.GetRevId());
+            try {
+                LoadRevisionBody(nuRev, DocumentContentOptions.None);
+            } catch(CouchbaseLiteException e) {
+                if (outStatus != null) {
+                    outStatus.SetCode(e.GetCBLStatus().GetCode());
+                }
+
+                nuRev = null;
+            }
+
+            return nuRev;
+        }
 
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
         internal RevisionInternal LoadRevisionBody(RevisionInternal rev, DocumentContentOptions contentOptions)
@@ -4324,7 +4583,7 @@ PRAGMA user_version = 3;";
 
                         RememberAttachmentWritersForDigests(blobsByDigest);
 
-                        var encodingName = (encoding == AttachmentEncoding.AttachmentEncodingGZIP) ? "gzip" : null;
+                        var encodingName = (encoding == AttachmentEncoding.GZIP) ? "gzip" : null;
                         var dict = new Dictionary<string, object>();
 
                         dict.Put("digest", digest);
@@ -4636,12 +4895,21 @@ PRAGMA user_version = 3;";
                 var upgradeSql = "CREATE INDEX maps_view_sequence ON maps(view_id, sequence);" +
                                  "PRAGMA user_version = 17";
 
-                if (!Initialize(upgradeSql))
-                {
+                if (!Initialize(upgradeSql)) {
                     StorageEngine.Close();
                     return false;
                 }
                 dbVersion = 17;
+            }
+            if (dbVersion < 18) {
+                var upgradeSql = "ALTER TABLE revs ADD COLUMNS doc_type TEXT;" +
+                                 "PRAGMA user_version = 18";
+                
+                if (!Initialize(upgradeSql)) {
+                    StorageEngine.Close();
+                    return false;
+                }
+                dbVersion = 18;
             }
 
             if (isNew && !Initialize("END TRANSACTION")) {
@@ -4870,11 +5138,6 @@ PRAGMA user_version = 3;";
     public delegate Boolean FilterDelegate(SavedRevision revision, Dictionary<String, Object> filterParams);
 
     /// <summary>
-    /// A delegate that can be invoked to compile source code into a <see cref="FilterDelegate"/>.
-    /// </summary>
-    public delegate FilterDelegate CompileFilterDelegate(String source, String language);
-
-    /// <summary>
     /// A delegate that can be run in a transaction on a <see cref="Couchbase.Lite.Database"/>.
     /// </summary>
     public delegate Boolean RunInTransactionDelegate();
@@ -4903,6 +5166,15 @@ PRAGMA user_version = 3;";
         /// </summary>
         /// <value>The DocumentChange details for the Documents that caused the Database change.</value>
             public IEnumerable<DocumentChange> Changes { get; internal set; }
+    }
+
+    #endregion
+
+    #region IFilterCompiler
+
+    public interface IFilterCompiler
+    {
+        FilterDelegate CompileFilter(string filterSource, string language);
     }
 
     #endregion

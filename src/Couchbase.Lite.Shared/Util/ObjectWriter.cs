@@ -51,6 +51,8 @@ namespace Couchbase.Lite
 {
     internal class ObjectWriter 
     {
+        static readonly JsonSerializerSettings settings = new JsonSerializerSettings { ReferenceLoopHandling = ReferenceLoopHandling.Ignore };
+
         readonly Boolean prettyPrintJson;
 
         public ObjectWriter() : this(false) { }
@@ -73,12 +75,18 @@ namespace Couchbase.Lite
 
         public string WriteValueAsString<T> (T item)
         {
-            return JsonConvert.SerializeObject(item, prettyPrintJson ? Formatting.Indented : Formatting.None);
+            return JsonConvert.SerializeObject(item, prettyPrintJson ? Formatting.Indented : Formatting.None, settings);
         }
 
         public T ReadValue<T> (String json)
         {
-            var item = JsonConvert.DeserializeObject<T>(json);
+            T item;
+            try {
+                item = JsonConvert.DeserializeObject<T>(json);
+            } catch(JsonException e) {
+                throw new CouchbaseLiteException(e, StatusCode.BadJson);
+            }
+
             return item;
         }
 
@@ -88,7 +96,13 @@ namespace Couchbase.Lite
             using (var jsonReader = new JsonTextReader(new StreamReader(jsonStream))) 
             {
                 var serializer = new JsonSerializer();
-                var item = serializer.Deserialize<T>(jsonReader);
+                T item;
+                try {
+                    item = serializer.Deserialize<T>(jsonReader);
+                } catch (JsonException e) {
+                    throw new CouchbaseLiteException(e, StatusCode.BadJson);
+                }
+
                 return item;
             }
         }
@@ -98,7 +112,13 @@ namespace Couchbase.Lite
             using (var jsonReader = new JsonTextReader(new StreamReader(jsonStream))) 
             {
                 var serializer = new JsonSerializer();
-                var item = serializer.Deserialize<T>(jsonReader);
+                T item;
+                try {
+                    item = serializer.Deserialize<T>(jsonReader);
+                } catch (JsonException e) {
+                    throw new CouchbaseLiteException(e, StatusCode.BadJson);
+                }
+
                 return item;
             }
         }

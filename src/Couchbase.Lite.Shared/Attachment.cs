@@ -125,7 +125,7 @@ namespace Couchbase.Lite {
                         // Copy attachment body into the database's blob store:
                         var writer = BlobStoreWriterForBody(body, database);
                         metadataMutable["length"] = (long)writer.GetLength();
-                        metadataMutable["digest"] = writer.MD5DigestString();
+                        metadataMutable["digest"] = writer.SHA1DigestString();
                         metadataMutable["follows"] = true;
                         database.RememberAttachmentWriter(writer);
                     }
@@ -220,10 +220,7 @@ namespace Couchbase.Lite {
                 if (Name == null)
                     throw new CouchbaseLiteException("Name must not be null when retrieving attachment content");
 
-                var attachment = Revision.Database.GetAttachmentForSequence(
-                    Revision.Sequence,
-                    Name
-                    );
+                var attachment = Revision.Database.AttachmentForDict(Metadata, Name, null);
 
                 if (attachment == null)
                     throw new CouchbaseLiteException("Could not retrieve an attachment for revision sequence {0}.", Revision.Sequence);
