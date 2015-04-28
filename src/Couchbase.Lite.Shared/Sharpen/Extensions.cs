@@ -370,14 +370,14 @@ namespace Sharpen
             return new EnumeratorWrapper<T> (col, col.GetEnumerator ());
         }
 
-        public static T Last<T> (this ICollection<T> col)
+        /*public static T Last<T> (this ICollection<T> col)
         {
             IList<T> list = col as IList<T>;
             if (list != null) {
                 return list[list.Count - 1];
             }
             return col.Last<T> ();
-        }
+        }*/
 
         public static ListIterator<T> ListIterator<T> (this IList<T> col, int n)
         {

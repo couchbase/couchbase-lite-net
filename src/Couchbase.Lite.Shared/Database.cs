@@ -2239,28 +2239,28 @@ PRAGMA user_version = 3;";
             return new BlobStoreWriter(Attachments);
         }
 
-        internal Boolean ReplaceUUIDs()
+        internal Boolean ReplaceUUIDs(string privUUID = null, string pubUUID = null)
         {
-            var query = "UPDATE INFO SET value='" + Misc.CreateGUID() + "' where key = 'privateUUID';";
-
-            try
-            {
-                StorageEngine.ExecSQL(query);
+            if (privUUID == null) {
+                privUUID = Misc.CreateGUID();
             }
-            catch (SQLException e)
-            {
+
+            if (pubUUID == null) {
+                pubUUID = Misc.CreateGUID();
+            }
+
+            var query = "UPDATE INFO SET value='" + privUUID + "' where key = 'privateUUID';";
+            try {
+                StorageEngine.ExecSQL(query);
+            } catch (SQLException e) {
                 Log.E(Tag, "Error updating UUIDs", e);
                 return false;
             }
 
-            query = "UPDATE INFO SET value='" + Misc.CreateGUID() + "' where key = 'publicUUID';";
-
-            try
-            {
+            query = "UPDATE INFO SET value='" + pubUUID + "' where key = 'publicUUID';";
+            try  {
                 StorageEngine.ExecSQL(query);
-            }
-            catch (SQLException e)
-            {
+            } catch (SQLException e) {
                 Log.E(Tag, "Error updating UUIDs", e);
                 return false;
             }
@@ -4895,12 +4895,21 @@ PRAGMA user_version = 3;";
                 var upgradeSql = "CREATE INDEX maps_view_sequence ON maps(view_id, sequence);" +
                                  "PRAGMA user_version = 17";
 
-                if (!Initialize(upgradeSql))
-                {
+                if (!Initialize(upgradeSql)) {
                     StorageEngine.Close();
                     return false;
                 }
                 dbVersion = 17;
+            }
+            if (dbVersion < 18) {
+                var upgradeSql = "ALTER TABLE revs ADD COLUMNS doc_type TEXT;" +
+                                 "PRAGMA user_version = 18";
+                
+                if (!Initialize(upgradeSql)) {
+                    StorageEngine.Close();
+                    return false;
+                }
+                dbVersion = 18;
             }
 
             if (isNew && !Initialize("END TRANSACTION")) {

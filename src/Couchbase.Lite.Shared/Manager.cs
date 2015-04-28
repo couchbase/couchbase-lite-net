@@ -55,6 +55,7 @@ using Couchbase.Lite.Replicator;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
 using Sharpen;
+using Couchbase.Lite.Db;
 
 #if !NET_3_5
 using StringEx = System.String;
@@ -78,9 +79,9 @@ namespace Couchbase.Lite
         /// </summary>
         const string HttpErrorDomain = "CBLHTTP";
 
-        internal const string DatabaseSuffixOld = ".touchdb";
-
-        internal const string DatabaseSuffix = ".cblite";
+        internal const string DatabaseSuffixv0 = ".touchdb";
+        internal const string DatabaseSuffixv1 = ".cblite";
+        internal const string DatabaseSuffix = ".CB2";
 
         // FIXME: Not all of these are valid Windows file chars.
         const string IllegalCharacters = @"(^[^a-z]+)|[^a-z0-9_\$\(\)/\+\-]+";
@@ -115,10 +116,10 @@ namespace Couchbase.Lite
         /// <param name="name">The Database name to validate.</param>
         public static Boolean IsValidDatabaseName(String name) 
         {
-            if (name.Length > 0 && name.Length < 240 && ContainsOnlyLegalCharacters(name) && Char.IsLower(name[0]))
-            {
+            if (name.Length > 0 && name.Length < 240 && ContainsOnlyLegalCharacters(name) && Char.IsLower(name[0])) {
                 return true;
             }
+
             return name.Equals(Replication.ReplicatorDatabaseName);
         }
 
@@ -177,12 +178,10 @@ namespace Couchbase.Lite
             this.replications = new List<Replication>();
 
             //create the directory, but don't fail if it already exists
-            if (!directoryFile.Exists)
-            {
+            if (!directoryFile.Exists) {
                 directoryFile.Create();
                 directoryFile.Refresh();
-                if (!directoryFile.Exists)
-                {
+                if (!directoryFile.Exists) {
                     throw new  DirectoryNotFoundException("Unable to create directory " + directoryFile);
                 }
             }
@@ -386,32 +385,31 @@ namespace Couchbase.Lite
         internal Database GetDatabaseWithoutOpening(String name, Boolean mustExist)
         {
             var db = databases.Get(name);
-            if (db == null)
-            {
-                if (!IsValidDatabaseName(name))
-                {
+            if (db == null) {
+                if (!IsValidDatabaseName(name)) {
                     throw new ArgumentException("Invalid database name: " + name);
                 }
 
-                if (options.ReadOnly)
-                {
+                if (options.ReadOnly) {
                     mustExist = true;
                 }
+
                 var path = PathForName(name);
-                if (path == null)
-                {
+                if (path == null) {
                     return null;
                 }
+
                 db = new Database(path, this);
-                if (mustExist && !db.Exists())
-                {
+                if (mustExist && !db.Exists()) {
                     var msg = string.Format("mustExist is true and db ({0}) does not exist", name);
                     Log.W(Database.Tag, msg);
                     return null;
                 }
+
                 db.Name = name;
                 databases.Put(name, db);
             }
+
             return db;
         }
 
@@ -440,32 +438,48 @@ namespace Couchbase.Lite
 
         private void UpgradeOldDatabaseFiles(DirectoryInfo dirInfo)
         {
-            var files = dirInfo.GetFiles("*" + DatabaseSuffixOld, SearchOption.TopDirectoryOnly);
-            foreach (var file in files)
-            {
-                var oldFilename = file.Name;
+            var extensions = DatabaseUpgraderFactory.ALL_KNOWN_PREFIXES;
+            var files = dirInfo.GetFiles().Where(f => extensions.Contains(f.Extension.TrimStart('.')));
+            foreach (var file in files) {
+                
+                var oldFilename = file.FullName;
                 var newFilename = String.Concat(Path.GetFileNameWithoutExtension(oldFilename), DatabaseSuffix);
-                var newFile = new FileInfo(Path.Combine (dirInfo.FullName, newFilename));
+                var newFile = new FileInfo(Path.Combine(dirInfo.FullName, newFilename));
 
-                if (newFile.Exists)
-                {
+                if (newFile.Exists) {
                     var msg = String.Format("Cannot rename {0} to {1}, {2} already exists", oldFilename, newFilename, newFilename);
                     Log.W(Database.Tag, msg);
                     continue;
                 }
 
-                try
-                {
-                    // Workaround : using CopyTo() and Delete() as file.MoveTo throws IOException with Sharing Violation Error.
-                    //file.MoveTo (newFile.FullName);
-                    file.CopyTo(newFile.FullName);
-                    file.Delete();
-                } catch (Exception ex) {
-                    var msg = string.Format("Unable to rename {0} to {1}", oldFilename, newFilename);
-                    var error = new InvalidOperationException(msg, ex);
-                    Log.E(Database.Tag, msg, error);
-                    throw error;
+                var tmpDb = new Database(file.FullName, this);
+                tmpDb.Open();
+                tmpDb.Close();
+
+                var name = Path.GetFileNameWithoutExtension(Path.Combine(dirInfo.FullName, newFilename));
+                var db = GetDatabaseWithoutOpening(name, false);
+                if (db == null) {
+                    Log.W(Tag, "Upgrade failed for {0} (Creating new DB failed)", file.Name);
+                    continue;
                 }
+
+                if (!db.Exists()) {
+                    var upgrader = DatabaseUpgraderFactory.CreateUpgrader(db, oldFilename);
+                    var status = upgrader.Import();
+                    if (status.IsError) {
+                        Log.W(Tag, "Upgrade failed for {0} (Status {1})", file.Name, status);
+                        upgrader.Backout();
+                        continue;
+                    }
+                }
+
+                db.Close();
+
+                // Remove old database file and its SQLite side files:
+                File.Delete(file.FullName);
+                File.Delete(file.FullName + "-wal");
+                File.Delete(file.FullName + "-shm");
+                Log.D(Tag, "...Success!");
             }
         }
 
@@ -684,15 +698,21 @@ namespace Couchbase.Lite
 
         private string PathForName(string name)
         {
-            if (String.IsNullOrEmpty (name) || illegalCharactersPattern.IsMatch (name))
-            {
+            if (String.IsNullOrEmpty(name) || illegalCharactersPattern.IsMatch(name)) {
                 return null;
             }
 
-            name = name.Replace('/', '.');
-
-            var fileName = name + Manager.DatabaseSuffix;
+            //Backwards compatibility
+            var oldStyleName = name.Replace('/', ':');
+            var fileName = oldStyleName + Manager.DatabaseSuffix;
             var result = Path.Combine(directoryFile.FullName, fileName);
+            if (new FilePath(result).Exists()) {
+                return result;
+            }
+            
+            name = name.Replace('/', '.');
+            fileName = name + Manager.DatabaseSuffix;
+            result = Path.Combine(directoryFile.FullName, fileName);
             return result;
         }
 
