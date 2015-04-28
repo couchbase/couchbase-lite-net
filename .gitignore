@@ -143,3 +143,4 @@ samples/CouchbaseSample.Android/Resources/Resource.designer.cs
 *.nupkg
 UnityEngine.dll
 version
+src/Build.proj

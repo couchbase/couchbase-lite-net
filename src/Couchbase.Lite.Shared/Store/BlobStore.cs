@@ -155,6 +155,10 @@ namespace Couchbase.Lite
 
         public byte[] BlobForKey(BlobKey key)
         {
+            if (key == null) {
+                return null;
+            }
+
             string path = PathForKey(key);
             FilePath file = new FilePath(path);
             byte[] result = null;
@@ -388,7 +392,7 @@ namespace Couchbase.Lite
                     Runtime.PrintStackTrace(e, Console.Error);
                 }
             }
-            return magic == GZIPInputStream.GzipMagic;
+            return magic == 0;
         }
 
         public FileInfo TempDir()

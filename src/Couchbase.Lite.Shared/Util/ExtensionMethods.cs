@@ -43,17 +43,94 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Collections.Specialized;
 using System.Diagnostics;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Net;
 using System.Net.Http.Headers;
+using System.Threading.Tasks;
+
 using Newtonsoft.Json.Linq;
+
+using Sharpen;
+using System.ComponentModel;
 
 namespace Couchbase.Lite
 {
+    internal delegate bool TryParseDelegate<T>(string s, out T value);
+
     internal static class ExtensionMethods
     {
+        public static IEnumerable<byte> Decompress(this IEnumerable<byte> compressedData)
+        {
+
+            using (var ms = new MemoryStream(compressedData.ToArray()))
+            using (var gs = new GZipStream(ms, CompressionMode.Decompress, false)) {
+                return gs.ReadAllBytes();
+            }
+        }
+
+        public static IEnumerable<byte> Compress(this IEnumerable<byte> data)
+        {
+            var array = data.ToArray();
+
+            using (var ms = new MemoryStream())
+            using (var gs = new GZipStream(ms, CompressionMode.Compress, false)) {
+                gs.Write(array, 0, array.Length);
+                return ms.ToArray();
+            }
+        }
+
+        public static bool TryGetValue<T>(this IDictionary<string, object> dic, string key, out T value)
+        {
+            value = default(T);
+            object obj;
+            if (!dic.TryGetValue(key, out obj)) {
+                return false;
+            }
+
+            //If the types already match then things are easy
+            if ((obj is T)) {
+                value = (T)obj;
+                return true;
+            }
+
+            try {
+                //Take the slow route for things like boxed value types
+                value = (T)Convert.ChangeType(value, typeof(T));
+                return true;
+            } catch(Exception) {
+                return false;
+            }
+        }
+
+        public static T GetCast<T>(this IDictionary<string, object> collection, string key)
+        {
+            return collection.GetCast(key, default(T));
+        }
+
+        public static T GetCast<T>(this IDictionary<string, object> collection, string key, T defaultVal)
+        {
+            object value = collection.Get(key);
+            if (value == null) {
+                return defaultVal;
+            }
+
+            //If the types already match then things are easy
+            if (value is T) {
+                return (T)value;
+            }
+
+            try {
+                //Take the slow route for things like boxed value types
+                return (T)Convert.ChangeType(value, typeof(T));
+            } catch(Exception) {
+                return defaultVal;
+            }
+        }
+
         public static IEnumerable<T> AsSafeEnumerable<T>(this IEnumerable<T> source)
         {
             var e = ((IEnumerable)source).GetEnumerator();
@@ -72,16 +149,17 @@ namespace Couchbase.Lite
                 return null;
             return attachmentProps is JObject
                 ? ((JObject)attachmentProps).ToObject<IDictionary<TKey, TValue>>()
-                    : (IDictionary<TKey, TValue>)attachmentProps;
+                    : attachmentProps as IDictionary<TKey, TValue>;
         }
 
         internal static IList<TValue> AsList<TValue>(this object value)
         {
             if (value == null)
                 return null;
+            
             return value is JArray
                 ? ((JArray)value).ToObject<IList<TValue>>()
-                    : (IList<TValue>)value;
+                    : value as IList<TValue>;
         }
 
         public static IEnumerable ToEnumerable(this IEnumerator enumerator)
@@ -106,10 +184,10 @@ namespace Couchbase.Lite
             do {
                 chunkBuffer.Initialize ();
                 // Resets all values back to zero.
-                bytesRead = stream.Read (chunkBuffer, blob.Count, Attachment.DefaultStreamChunkSize);
+                bytesRead = stream.Read(chunkBuffer, 0, Attachment.DefaultStreamChunkSize);
                 blob.AddRange (chunkBuffer.Take (bytesRead));
             }
-            while (bytesRead < stream.Length);
+            while (bytesRead > 0);
 
             return blob.ToArray();
         }
@@ -175,5 +253,54 @@ namespace Couchbase.Lite
 
             return String.Join("&", maps.ToArray());
         }
+
+        #if NET_3_5
+
+        public static IEnumerable<FileInfo> EnumerateFiles(this DirectoryInfo info, string searchPattern, SearchOption option) {
+            foreach (var file in info.GetFiles(searchPattern, option)) {
+                yield return file;
+            }
+        }
+
+        public static Task<HttpListenerContext> GetContextAsync(this HttpListener listener)
+        {
+            return Task.Factory.FromAsync<HttpListenerContext>(listener.BeginGetContext, listener.EndGetContext, null);
+        }
+
+        #endif
+
+        private static bool IsNumeric<T>()
+        {
+            Type type = typeof(T);
+            return IsNumeric(type);
+        }
+
+        private static bool IsNumeric(Type type)
+        {
+            switch (Type.GetTypeCode(type)) {
+                case TypeCode.Byte:
+                case TypeCode.Decimal:
+                case TypeCode.Double:
+                case TypeCode.Int16:
+                case TypeCode.Int32:
+                case TypeCode.Int64:
+                case TypeCode.SByte:
+                case TypeCode.Single:
+                case TypeCode.UInt16:
+                case TypeCode.UInt32:
+                case TypeCode.UInt64:
+                    return true;
+
+                case TypeCode.Object:
+                    if ( type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Nullable<>))
+                    {
+                        return IsNumeric(Nullable.GetUnderlyingType(type));
+                    }
+                    return false;
+            }
+
+            return false;
+        }
+            
     }
 }

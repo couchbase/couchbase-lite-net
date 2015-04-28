@@ -92,13 +92,17 @@ namespace Couchbase.Lite
             var testDirPath = Path.Combine(rootDirPath, testDirName);
             var testDirInfo = Directory.CreateDirectory(testDirPath);
 
-            var oldTouchDb = Path.Combine(testDirPath, "old" + Manager.DatabaseSuffixOld);
-            File.Create(oldTouchDb);
+            var dbStream = GetAsset("noattachments.cblite");
+            var destStream = File.OpenWrite(Path.Combine(testDirPath, "noattachments" + Manager.DatabaseSuffixv1));
+            dbStream.CopyTo(destStream);
+            destStream.Dispose();
+
+            var oldTouchDb = Path.Combine(testDirPath, "noattachments" + Manager.DatabaseSuffixv1);
 
             var newCbLiteDb = Path.Combine(testDirPath, "new" + Manager.DatabaseSuffix);
             File.Create(newCbLiteDb);
 
-            var migratedOldFile = Path.Combine(testDirPath, "old" + Manager.DatabaseSuffix);
+            var migratedOldFile = Path.Combine(testDirPath, "noattachments" + Manager.DatabaseSuffix);
             File.Create(migratedOldFile);
 
             StopCBLite();

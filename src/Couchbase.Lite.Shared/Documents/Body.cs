@@ -41,164 +41,206 @@
 //
 
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.IO;
-using Couchbase.Lite;
+using System.Linq;
+using System.Text;
+
 using Sharpen;
 
-namespace Couchbase.Lite.Internal
+namespace Couchbase.Lite
 {
-    /// <summary>A request/response/document body, stored as either JSON or a Map<String,Object>
-    ///     </summary>
-    internal class Body
+    /// <summary>
+    /// A request/response/document body, stored as either JSON, IDictionary&gt;String,Object&gt;, or IList&gt;object&gt;
+    /// </summary>
+    public sealed class Body
     {
-        private IEnumerable<Byte> json;
 
-        private object obj;
+        #region Variables
 
+        private IEnumerable<byte> _json;
+        private object _jsonObject;
+
+        #endregion
+
+        #region Constructors
+
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        /// <param name="json">An enumerable collection of bytes storing JSON</param>
         public Body(IEnumerable<Byte> json)
         {
-            this.json = json;
+            _json = json;
         }
 
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        /// <param name="properties">An IDictionary containing the properties and objects to serialize</param>
         public Body(IDictionary<string, object> properties)
         {
-            this.obj = properties;
+            _jsonObject = properties;
         }
 
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        /// <param name="properties">An IDictionary containing a list of objects to serialize</param>
         public Body(IList<object> array)
         {
-            this.obj = array;
+            _jsonObject = array;
         }
 
-        public static Body BodyWithProperties(IDictionary<string
-            , object> properties)
-        {
-            var result = new Body(properties);
-            return result;
-        }
+        #endregion
 
-        public static Body BodyWithJSON(IEnumerable<Byte> json)
-        {
-            var result = new Body(json);
-            return result;
-        }
+        #region Public Methods
 
-        public IEnumerable<Byte> GetJson()
-        {
-            if (json == null)
-            {
-                LazyLoadJsonFromObject();
-            }
-            return json;
-        }
-
-        private void LazyLoadJsonFromObject()
-        {
-            if (obj == null)
-            {
-                throw new InvalidOperationException("Both json and object are null for this body: " + this);
-            }
-            try
-            {
-                json = Manager.GetObjectMapper().WriteValueAsBytes(obj);
-            }
-            catch (IOException e)
-            {
-                throw new RuntimeException(e);
-            }
-        }
-
-        public object GetObject()
-        {
-            if (obj == null)
-            {
-                LazyLoadObjectFromJson();
-            }
-            return obj;
-        }
-
-        private void LazyLoadObjectFromJson()
-        {
-            if (json == null)
-            {
-                throw new InvalidOperationException("Both object and json are null for this body: "
-                     + this);
-            }
-            try
-            {
-                obj = Manager.GetObjectMapper().ReadValue<IDictionary<string,object>>(json);
-            }
-            catch (IOException e)
-            {
-                throw new RuntimeException(e);
-            }
-        }
-
+        /// <summary>
+        /// Determines whether this instance is valid JSON.
+        /// </summary>
+        /// <returns><c>true</c> if this instance is valid JSON; otherwise, <c>false</c>.</returns>
         public bool IsValidJSON()
         {
-            if (obj == null)
-            {
-                if (json == null)
-                {
+            if (_jsonObject == null) {
+                if (_json == null) {
                     throw new InvalidOperationException("Both object and json are null for this body: " + this);
                 }
-                try
-                {
-                    obj = Manager.GetObjectMapper().ReadValue<object>(json);
-                }
-                catch (IOException)
-                {
+
+                try {
+                    _jsonObject = Manager.GetObjectMapper().ReadValue<object>(_json);
+                } catch (IOException) {
                 }
             }
-            return obj != null;
+            return _jsonObject != null;
         }
 
-        public IEnumerable<Byte> GetPrettyJson()
+        /// <summary>
+        /// Returns a serialized JSON byte enumerable object containing the properties
+        /// of this object.
+        /// </summary>
+        /// <returns>JSON bytes</returns>
+        public IEnumerable<byte> AsJson()
         {
-            object properties = GetObject();
-            if (properties != null)
-            {
+            if (_json == null) {
+                LazyLoadJsonFromObject();
+            }
+
+            return _json;
+        }
+
+        /// <summary>
+        /// Returns a serialized JSON byte enumerable object containing the properties
+        /// of this object in human readable form.
+        /// </summary>
+        /// <returns>JSON bytes</returns>
+        public IEnumerable<Byte> AsPrettyJson()
+        {
+            object properties = AsObject();
+            if (properties != null) {
                 ObjectWriter writer = Manager.GetObjectMapper().WriterWithDefaultPrettyPrinter();
-                try
-                {
-                    json = writer.WriteValueAsBytes(properties);
-                }
-                catch (IOException e)
-                {
-                    throw new RuntimeException(e);
+
+                try {
+                    _json = writer.WriteValueAsBytes(properties);
+                } catch (IOException e) {
+                    throw new InvalidDataException("The array or dictionary stored is corrupt", e);
                 }
             }
-            return GetJson();
+
+            return AsJson();
         }
 
-        public string GetJSONString()
+        /// <summary>
+        /// Returns a serialized JSON string containing the properties
+        /// of this object
+        /// </summary>
+        /// <returns>JSON string</returns>
+        public string AsJSONString()
         {
-            return Runtime.GetStringForBytes(GetJson());
+            return Encoding.UTF8.GetString(_json.ToArray());
         }
 
+        /// <summary>
+        /// Gets the deserialized object containing the properties of the JSON
+        /// </summary>
+        /// <returns>The deserialized object (either IDictionary or IList)</returns>
+        public object AsObject()
+        {
+            if (_jsonObject == null) {
+                LazyLoadObjectFromJson();
+            }
+
+            return _jsonObject;
+        }
+
+        /// <summary>
+        /// Gets the properties from this object
+        /// </summary>
+        /// <returns>The properties contained in the object</returns>
         public IDictionary<string, object> GetProperties()
         {
-            var currentObj = GetObject();
-            return currentObj as IDictionary<string, object>;
+            var currentObj = AsObject();
+            return currentObj.AsDictionary<string, object>();
         }
 
-        public Boolean HasValueForKey(string key)
+        /// <summary>
+        /// Determines whether this instance has value the specified key.
+        /// </summary>
+        /// <returns><c>true</c> if this instance has value for the specified key; otherwise, <c>false</c>.</returns>
+        /// <param name="key">The key to check</param>
+        public bool HasValueForKey(string key)
         {
             return GetProperties().ContainsKey(key);
         }
 
+        /// <summary>
+        /// Gets the property for the given key
+        /// </summary>
+        /// <returns>The property for the given key</returns>
+        /// <param name="key">Key.</param>
         public object GetPropertyForKey(string key)
         {
             IDictionary<string, object> theProperties = GetProperties();
-
-            if (theProperties == null)
-            {
+            if (theProperties == null) {
                 return null;
             }
 
             return theProperties.Get(key);
         }
+
+        #endregion
+
+        #region Private Methods
+
+        // Attempt to serialize _jsonObject
+        private void LazyLoadJsonFromObject()
+        {
+            if (_jsonObject == null) {
+                throw new InvalidOperationException("Both json and object are null for this body: " + this);
+            }
+
+            try {
+                _json = Manager.GetObjectMapper().WriteValueAsBytes(_jsonObject);
+            } catch (IOException e) {
+                throw new InvalidDataException("The array or dictionary stored is corrupt", e);
+            }
+        }
+          
+        // Attempt to deserialize /json
+        private void LazyLoadObjectFromJson()
+        {
+            if (_json == null) {
+                throw new InvalidOperationException("Both object and json are null for this body: "
+                + this);
+            }
+
+            try {
+                _jsonObject = Manager.GetObjectMapper().ReadValue<IDictionary<string,object>>(_json);
+            } catch (IOException e) {
+                throw new InvalidDataException("The JSON stored is corrupt", e);
+            }
+        }
+
+        #endregion
     }
 }

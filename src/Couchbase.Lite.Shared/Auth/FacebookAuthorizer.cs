@@ -89,10 +89,10 @@ namespace Couchbase.Lite.Auth
 
         public override string LoginPathForSite(Uri site)
         {
-            return "/_facebook";
+            return new Uri(site.AbsolutePath + "/_facebook").AbsoluteUri;
         }
 
-        public static string RegisterAccessToken(string accessToken, string email, string
+        public static bool RegisterAccessToken(string accessToken, string email, string
              origin)
         {
             lock (typeof(FacebookAuthorizer))
@@ -106,7 +106,7 @@ namespace Couchbase.Lite.Auth
                 }
                 Log.D(Database.Tag, "FacebookAuthorizer registering key: " + key);
                 accessTokens[key] = accessToken;
-                return email;
+                return true;
             }
         }
 

@@ -35,8 +35,8 @@
     <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
-    <PlatformTarget>x86</PlatformTarget>
-    <DebugType>none</DebugType>
+    <DebugType>pdbonly</DebugType>
+    <DebugSymbols>true</DebugSymbols>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
@@ -121,6 +121,10 @@
     <ProjectReference Include="..\Couchbase.Lite.Net45\Couchbase.Lite.Net45.csproj">
       <Project>{C87E0C01-AAD6-46DA-9935-C772C112BB18}</Project>
       <Name>Couchbase.Lite.Net45</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\ListenerComponent\Couchbase.Lite.Listener.Net45\Couchbase.Lite.Listener.Net45.csproj">
+      <Project>{9AD3BADD-4F48-4208-B601-E63987C12049}</Project>
+      <Name>Couchbase.Lite.Listener.Net45</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
