@@ -33,7 +33,7 @@
     <DebugType>full</DebugType>
     <Optimize>False</Optimize>
     <OutputPath>bin\Debug\</OutputPath>
-    <DefineConstants>DEBUG;TRACE;VERBOSE</DefineConstants>
+    <DefineConstants>DEBUG;TRACE;VERBOSE;OFFICIAL</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <Prefer32Bit>false</Prefer32Bit>
@@ -48,6 +48,7 @@
     <DocumentationFile>bin\Release\Couchbase.Lite.xml</DocumentationFile>
     <DebugType>pdbonly</DebugType>
     <DebugSymbols>true</DebugSymbols>
+    <DefineConstants>OFFICIAL</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />

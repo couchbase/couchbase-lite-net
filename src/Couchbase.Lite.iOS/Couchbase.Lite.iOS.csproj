@@ -31,7 +31,7 @@
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
     <OutputPath>bin\Debug</OutputPath>
-    <DefineConstants>DEBUG;__IOS__;TRACE;VERBOSE;</DefineConstants>
+    <DefineConstants>DEBUG;__IOS__;TRACE;VERBOSE;OFFICIAL;</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <ConsolePause>false</ConsolePause>
@@ -52,7 +52,7 @@
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
-    <DefineConstants>__IOS__</DefineConstants>
+    <DefineConstants>__IOS__;OFFICIAL</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System.Data" />
