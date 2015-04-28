@@ -4902,7 +4902,7 @@ PRAGMA user_version = 3;";
                 dbVersion = 17;
             }
             if (dbVersion < 18) {
-                var upgradeSql = "ALTER TABLE revs ADD COLUMNS doc_type TEXT;" +
+                var upgradeSql = "ALTER TABLE revs ADD COLUMN doc_type TEXT;" +
                                  "PRAGMA user_version = 18";
                 
                 if (!Initialize(upgradeSql)) {
