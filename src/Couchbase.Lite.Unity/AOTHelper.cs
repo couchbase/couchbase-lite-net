@@ -42,9 +42,8 @@ namespace Couchbase.Lite.Unity
             //it is private.  Furthermore, if this is not in the same assembly it doesn't 
             //help the compiler.  There is no memory storage taking place here so it won't
             //affect the footprint
-            var dummy = new LinkedHashMap<string, Document>();
-            var dummy2 = new List<KeyValuePair<string, Document>>();
-            var dummy3 = new SplitOrderedList<string, KeyValuePair<string, string>>(new GenericEqualityComparer<string>());
+            var dummy = new List<KeyValuePair<string, Document>>();
+            var dummy2 = new SplitOrderedList<string, KeyValuePair<string, string>>(new GenericEqualityComparer<string>());
         }
     }
 }
