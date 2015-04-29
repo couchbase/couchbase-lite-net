@@ -51,7 +51,7 @@ namespace Couchbase.Lite
 {
     public class Cursor : IDisposable
     {
-		static public object StmtDisposeLock = new object();
+        static public object StmtDisposeLock = new object();
 
         const Int32 DefaultChunkSize = 8192;
 
@@ -77,9 +77,9 @@ namespace Couchbase.Lite
             currentRow = -1;
             currentStep = statement.step();
 
-			if (currentStep != raw.SQLITE_OK && currentStep != raw.SQLITE_ROW && currentStep != raw.SQLITE_DONE) {
-				Log.E ("Cursor", "currentStep: " + currentStep);
-			}
+            if (currentStep != raw.SQLITE_OK && currentStep != raw.SQLITE_ROW && currentStep != raw.SQLITE_DONE) {
+                Log.E ("Cursor", "currentStep: " + currentStep);
+            }
         }
 
         public bool MoveToNext ()
@@ -88,9 +88,9 @@ namespace Couchbase.Lite
             {
                 currentStep = statement.step();
 
-				if (currentStep != raw.SQLITE_OK && currentStep != raw.SQLITE_ROW && currentStep != raw.SQLITE_DONE) {
-					Log.E ("Cursor", "currentStep: " + currentStep);
-				}
+                if (currentStep != raw.SQLITE_OK && currentStep != raw.SQLITE_ROW && currentStep != raw.SQLITE_DONE) {
+                    Log.E ("Cursor", "currentStep: " + currentStep);
+                }
             }
 
             if (HasRows) currentRow++;
@@ -144,12 +144,12 @@ namespace Couchbase.Lite
         {
             if (statement == null) return;
 
-			lock (StmtDisposeLock) 
-			{
-				statement.Dispose ();
+            lock (StmtDisposeLock) 
+            {
+                statement.Dispose ();
 
-				statement = null;
-			}
+                statement = null;
+            }
         }
 
         public bool IsAfterLast ()
