@@ -80,8 +80,7 @@ namespace Couchbase.Lite
         const string HttpErrorDomain = "CBLHTTP";
 
         internal const string DatabaseSuffixv0 = ".touchdb";
-        internal const string DatabaseSuffixv1 = ".cblite";
-        internal const string DatabaseSuffix = ".CB2";
+        internal const string DatabaseSuffix = ".cblite";
 
         // FIXME: Not all of these are valid Windows file chars.
         const string IllegalCharacters = @"(^[^a-z]+)|[^a-z0-9_\$\(\)/\+\-]+";
@@ -325,6 +324,7 @@ namespace Couchbase.Lite
                 var destStream = File.OpenWrite(database.Path);
                 databaseStream.CopyTo(destStream);
                 destStream.Dispose();
+                UpgradeDatabase(new FileInfo(database.Path));
 
                 if (File.Exists(dstAttachmentsPath)) 
                 {
@@ -441,46 +441,39 @@ namespace Couchbase.Lite
             var extensions = DatabaseUpgraderFactory.ALL_KNOWN_PREFIXES;
             var files = dirInfo.GetFiles().Where(f => extensions.Contains(f.Extension.TrimStart('.')));
             foreach (var file in files) {
-                
-                var oldFilename = file.FullName;
-                var newFilename = String.Concat(Path.GetFileNameWithoutExtension(oldFilename), DatabaseSuffix);
-                var newFile = new FileInfo(Path.Combine(dirInfo.FullName, newFilename));
-
-                if (newFile.Exists) {
-                    var msg = String.Format("Cannot rename {0} to {1}, {2} already exists", oldFilename, newFilename, newFilename);
-                    Log.W(Database.Tag, msg);
-                    continue;
-                }
-
-                var tmpDb = new Database(file.FullName, this);
-                tmpDb.Open();
-                tmpDb.Close();
-
-                var name = Path.GetFileNameWithoutExtension(Path.Combine(dirInfo.FullName, newFilename));
-                var db = GetDatabaseWithoutOpening(name, false);
-                if (db == null) {
-                    Log.W(Tag, "Upgrade failed for {0} (Creating new DB failed)", file.Name);
-                    continue;
-                }
-
-                if (!db.Exists()) {
-                    var upgrader = DatabaseUpgraderFactory.CreateUpgrader(db, oldFilename);
-                    var status = upgrader.Import();
-                    if (status.IsError) {
-                        Log.W(Tag, "Upgrade failed for {0} (Status {1})", file.Name, status);
-                        upgrader.Backout();
-                        continue;
-                    }
-                }
-
-                db.Close();
-
-                // Remove old database file and its SQLite side files:
-                File.Delete(file.FullName);
-                File.Delete(file.FullName + "-wal");
-                File.Delete(file.FullName + "-shm");
-                Log.D(Tag, "...Success!");
+                UpgradeDatabase(file);
             }
+        }
+
+        private void UpgradeDatabase(FileInfo path)
+        {
+            var oldFilename = path.FullName;
+            var newFilename = Path.ChangeExtension(oldFilename, DatabaseSuffix);
+            var newFile = new FileInfo(newFilename);
+
+            if (!oldFilename.Equals(newFilename) && newFile.Exists) {
+                var msg = String.Format("Cannot rename {0} to {1}, {2} already exists", oldFilename, newFilename, newFilename);
+                Log.W(Database.Tag, msg);
+                return;
+            }
+
+            var name = Path.GetFileNameWithoutExtension(Path.Combine(path.Directory.FullName, newFilename));
+            var db = GetDatabaseWithoutOpening(name, false);
+            if (db == null) {
+                Log.W(Tag, "Upgrade failed for {0} (Creating new DB failed)", path.Name);
+                return;
+            }
+
+            var upgrader = DatabaseUpgraderFactory.CreateUpgrader(db, oldFilename);
+            var status = upgrader.Import();
+            if (status.IsError) {
+                Log.W(Tag, "Upgrade failed for {0} (Status {1})", path.Name, status);
+                upgrader.Backout();
+                return;
+            }
+
+            db.Close();
+            Log.D(Tag, "...Success!");
         }
 
         internal Replication ReplicationWithProperties(IDictionary<string, object> properties)

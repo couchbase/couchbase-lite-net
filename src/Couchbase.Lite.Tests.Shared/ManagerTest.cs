@@ -46,6 +46,7 @@ using System.Linq;
 using Couchbase.Lite;
 using NUnit.Framework;
 using Sharpen;
+using Couchbase.Lite.Db;
 
 namespace Couchbase.Lite
 {
@@ -92,45 +93,26 @@ namespace Couchbase.Lite
             var testDirPath = Path.Combine(rootDirPath, testDirName);
             var testDirInfo = Directory.CreateDirectory(testDirPath);
 
-            var dbStream = GetAsset("noattachments.cblite");
-            var destStream = File.OpenWrite(Path.Combine(testDirPath, "noattachments" + Manager.DatabaseSuffixv1));
+            var dbStream = GetAsset("withattachments.cblite");
+            var destStream = File.OpenWrite(Path.Combine(testDirPath, "withattachments" + Manager.DatabaseSuffix));
             dbStream.CopyTo(destStream);
+            dbStream.Dispose();
             destStream.Dispose();
 
-            var oldTouchDb = Path.Combine(testDirPath, "noattachments" + Manager.DatabaseSuffixv1);
-
-            var newCbLiteDb = Path.Combine(testDirPath, "new" + Manager.DatabaseSuffix);
-            File.Create(newCbLiteDb);
-
-            var migratedOldFile = Path.Combine(testDirPath, "noattachments" + Manager.DatabaseSuffix);
-            File.Create(migratedOldFile);
+            var attStream = GetAsset("attachment.blob");
+            Directory.CreateDirectory(Path.Combine(testDirPath, "withattachments/attachments"));
+            destStream = File.OpenWrite(Path.Combine(testDirPath, "withattachments/attachments/356a192b7913b04c54574d18c28d46e6395428ab.blob"));
+            attStream.CopyTo(destStream);
+            destStream.Dispose();
+            attStream.Dispose();
 
             StopCBLite();
             manager = new Manager(testDirInfo, Manager.DefaultOptions);
-
-            var oldTouchDbInfo = new FileInfo(oldTouchDb);
-            var newCbLiteDbInfo = new FileInfo(newCbLiteDb);
-            var migratedOldInfo = new FileInfo(migratedOldFile);
-
-            Assert.IsTrue(migratedOldInfo.Exists);
-            //cannot rename old.touchdb in old.cblite, old.cblite already exists
-            Assert.IsTrue(oldTouchDbInfo.Exists);
-            Assert.IsTrue(newCbLiteDbInfo.Exists);
-            Assert.AreEqual(3, testDirInfo.GetFiles().Length);
-
-            StopCBLite();
-            migratedOldInfo.Delete();
-            manager = new Manager(testDirInfo, Manager.DefaultOptions);
-
-            oldTouchDbInfo = new FileInfo(oldTouchDb);
-            newCbLiteDbInfo = new FileInfo(newCbLiteDb);
-            migratedOldInfo = new FileInfo(migratedOldFile);
-
-            //rename old.touchdb in old.cblite, previous old.cblite already doesn't exist
-            Assert.IsTrue(migratedOldInfo.Exists);
-            Assert.IsFalse(oldTouchDbInfo.Exists);
-            Assert.IsTrue(newCbLiteDbInfo.Exists);    
-            Assert.AreEqual(2, testDirInfo.GetFiles().Length); 
+            var db = manager.GetDatabaseWithoutOpening("withattachments", true);
+            int version = DatabaseUpgraderFactory.SchemaVersion(db.Path);
+            Assert.IsTrue(version >= 101, "Upgrade failed");
+            Assert.IsFalse(Directory.Exists(Path.Combine(testDirPath, "withattachments/attachments")), "Failed to remove old attachments dir");
+            Assert.IsTrue(Directory.Exists(Path.Combine(testDirPath, "withattachments attachments")), "Failed to create new attachments dir");
         }
 
         [Test]

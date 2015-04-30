@@ -55,6 +55,7 @@ using Sharpen;
 using System.Collections;
 using System.Runtime.CompilerServices;
 using Couchbase.Lite.Support;
+using SQLitePCL.Ugly;
 
 
 #if !NET_3_5
@@ -120,6 +121,8 @@ namespace Couchbase.Lite
             return Misc.CreateGUID();
         }
 
+        internal static int SqliteVersion { get; private set; }
+
         static readonly ICollection<String> KnownSpecialKeys;
 
 
@@ -137,6 +140,7 @@ namespace Couchbase.Lite
             KnownSpecialKeys.Add("_deleted_conflicts");
             KnownSpecialKeys.Add("_local_seq");
             KnownSpecialKeys.Add("_removed");
+            SqliteVersion = SQLitePCL.raw.sqlite3_libversion_number();
         }
 
     #endregion
@@ -282,15 +286,15 @@ namespace Couchbase.Lite
         {
             // Can't delete any rows because that would lose revision tree history.
             // But we can remove the JSON of non-current revisions, which is most of the space.
-            try
-            {
+            try {
                 Log.V(Tag, "Deleting JSON of old revisions...");
                 PruneRevsToMaxDepth(0);
-                Log.V(Tag, "Deleting JSON of old revisions...");
 
                 var args = new ContentValues();
                 args["json"] = null;
-                StorageEngine.Update("revs", args, "current=0 AND json IS NOT NULL", null);
+                args["doc_type"] = null;
+                args["no_attachments"] = 1;
+                StorageEngine.Update("revs", args, "current=0", null);
             }
             catch (SQLException e)
             {
@@ -300,9 +304,8 @@ namespace Couchbase.Lite
 
             Log.V(Tag, "Deleting old attachments...");
             var result = GarbageCollectAttachments();
-            if (!result.IsSuccessful)
-            {
-                throw new CouchbaseLiteException(result.GetCode());
+            if (!result) {
+                throw new CouchbaseLiteException(StatusCode.InternalServerError);
             }
 
             try
@@ -816,14 +819,6 @@ CREATE TABLE maps (
   key TEXT NOT NULL COLLATE JSON, 
   value TEXT); 
 CREATE INDEX maps_keys on maps(view_id, key COLLATE JSON); 
-CREATE TABLE attachments ( 
-  sequence INTEGER NOT NULL REFERENCES revs(sequence) ON DELETE CASCADE, 
-  filename TEXT NOT NULL, 
-  key BLOB NOT NULL, 
-  type TEXT, 
-  length INTEGER NOT NULL, 
-  revpos INTEGER DEFAULT 0); 
-CREATE INDEX attachments_by_sequence on attachments(sequence, filename); 
 CREATE TABLE replicators ( 
   remote TEXT NOT NULL, 
   push BOOLEAN, 
@@ -1139,6 +1134,10 @@ PRAGMA user_version = 3;";
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
         internal void ForceInsert(RevisionInternal rev, IList<string> revHistory, Uri source, Status status = null)
         {
+            if (status == null) {
+                status = new Status();
+            }
+
             var inConflict = false;
             var docId = rev.GetDocId();
             var revId = rev.GetRevId();
@@ -1251,7 +1250,8 @@ PRAGMA user_version = 3;";
                                 var attachments = GetAttachmentsFromRevision(rev);
 
                                 if (attachments != null) {
-                                    ProcessAttachmentsForRevision(attachments, rev, localParentSequence);
+                                    string prevRevId = historyCount >= 2 ? revHistory[1] : null;
+                                    ProcessAttachmentsForRevision(rev, prevRevId, status);
                                     StubOutAttachmentsInRevision(attachments, rev);
                                 }
                             }
@@ -1314,57 +1314,44 @@ PRAGMA user_version = 3;";
             return docNumericId;
         }
 
-        /// <summary>Deletes obsolete attachments from the sqliteDb and blob store.</summary>
-        private Status GarbageCollectAttachments()
+        private IList<BlobKey> FindAllAttachmentKeys()
         {
-            // First delete attachment rows for already-cleared revisions:
-            // OPT: Could start after last sequence# we GC'd up to
-            try
-            {
-                StorageEngine.ExecSQL("DELETE FROM attachments WHERE sequence IN (SELECT sequence from revs WHERE json IS null)");
-            }
-            catch (SQLException e)
-            {
-                Log.E(Tag, "Error deleting attachments", e);
-            }
-
-            // Now collect all remaining attachment IDs and tell the store to delete all but these:
-            Cursor cursor = null;
-            try
-            {
-                cursor = StorageEngine.RawQuery("SELECT DISTINCT key FROM attachments");
-                cursor.MoveToNext();
-
-                var allKeys = new List<BlobKey>();
-                while (!cursor.IsAfterLast())
-                {
-                    var key = new BlobKey(cursor.GetBlob(0));
-                    allKeys.AddItem(key);
-                    cursor.MoveToNext();
+            Cursor c = null;
+            try {
+                c = StorageEngine.RawQuery("SELECT json FROM revs WHERE no_attachments != 1");
+                List<BlobKey> allKeys = new List<BlobKey>();
+                while(c.MoveToNext()) {
+                    var rev = Manager.GetObjectMapper().ReadValue<IDictionary<string, object>>(c.GetBlob(0));
+                    foreach(var pair in rev.Get("_attachments").AsDictionary<string, object>()) {
+                        var key = new BlobKey(pair.Value.AsDictionary<string, object>().GetCast<string>("digest"));
+                        allKeys.Add(key);
+                    }
                 }
 
-                var numDeleted = Attachments.DeleteBlobsExceptWithKeys(allKeys);
-                if (numDeleted < 0)
-                {
-                    return new Status(StatusCode.InternalServerError);
-                }
-
-                Log.V(Tag, "Deleted " + numDeleted + " attachments");
-
-                return new Status(StatusCode.Ok);
-            }
-            catch (SQLException e)
-            {
-                Log.E(Tag, "Error finding attachment keys in use", e);
-                return new Status(StatusCode.InternalServerError);
-            }
-            finally
-            {
-                if (cursor != null)
-                {
-                    cursor.Close();
+                return allKeys;
+            } catch(ugly.sqlite3_exception) {
+                return null;
+            } finally {
+                if (c != null) {
+                    c.Close();
                 }
             }
+        }
+
+        // Deletes obsolete attachments from the sqliteDb and blob store.
+        private bool GarbageCollectAttachments()
+        {
+            Log.D(Tag, "Scanning database revisions for attachments...");
+            var keys = FindAllAttachmentKeys();
+            if (keys == null) {
+                return false;
+            }
+
+            Log.D(Tag, "...found {0} attachments", keys.Count);
+            var numDeleted = Attachments.DeleteBlobsExceptWithKeys(keys);
+            Log.D(Tag, "    ... deleted {0} obsolete attachment files.", numDeleted);
+
+            return true;
         }
 
         internal Boolean SetLastSequence(String lastSequence, String checkpointId, Boolean push)
@@ -2190,7 +2177,7 @@ PRAGMA user_version = 3;";
             var args = new [] { Convert.ToString(sequence) };
             try
             {
-                cursor = StorageEngine.RawQuery("SELECT 1 FROM attachments WHERE sequence=? LIMIT 1", args);
+                cursor = StorageEngine.RawQuery("SELECT no_attachments=0 FROM revs WHERE sequence=? LIMIT 1", args);
                 return cursor.MoveToNext ();
             }
             catch (SQLException e)
@@ -2266,52 +2253,6 @@ PRAGMA user_version = 3;";
             }
 
             return true;
-        }
-
-        internal Attachment GetAttachmentForSequence (long sequence, string filename)
-        {
-            Debug.Assert((sequence > 0));
-            Debug.Assert((filename != null));
-
-            Cursor cursor = null;
-            var args = new [] { Convert.ToString(sequence), filename };
-            try
-            {
-                cursor = StorageEngine.RawQuery("SELECT key, type FROM attachments WHERE sequence=? AND filename=?", args);
-
-                if (!cursor.MoveToNext())
-                {
-                    throw new CouchbaseLiteException(StatusCode.NotFound);
-                }
-
-                var keyData = cursor.GetBlob(0);
-
-                //TODO add checks on key here? (ios version)
-                var key = new BlobKey(keyData);
-                var contentStream = Attachments.BlobStreamForKey(key);
-                if (contentStream == null)
-                {
-                    Log.E(Tag, "Failed to load attachment");
-                    throw new CouchbaseLiteException(StatusCode.InternalServerError);
-                }
-                else
-                {
-                    var result = new Attachment(contentStream, cursor.GetString(1));
-                    result.Compressed = Attachments.IsGZipped(key);
-                    return result;
-                }
-            }
-            catch (SQLException)
-            {
-                throw new CouchbaseLiteException(StatusCode.InternalServerError);
-            }
-            finally
-            {
-                if (cursor != null)
-                {
-                    cursor.Close();
-                }
-            }
         }
 
         internal void RememberAttachmentWritersForDigests(IDictionary<String, BlobStoreWriter> blobsByDigest)
@@ -2680,13 +2621,6 @@ PRAGMA user_version = 3;";
             Debug.Assert((revId != null));
             Debug.Assert((sequenceNumber > 0));
 
-            // Get attachment metadata, and optionally the contents:
-            IDictionary<string, object> attachmentsDict = null;
-
-            if (!contentOptions.HasFlag(DocumentContentOptions.NoAttachments))
-            {
-                attachmentsDict = GetAttachmentsDictForSequenceWithContent (sequenceNumber, contentOptions);
-            }
             // Get more optional stuff to put in the properties:
             //OPT: This probably ends up making redundant SQL queries if multiple options are enabled.
             var localSeq = -1L;
@@ -2746,10 +2680,6 @@ PRAGMA user_version = 3;";
             if (rev.IsDeleted())
             {
                 result["_deleted"] = true;
-            }
-            if (attachmentsDict != null)
-            {
-                result["_attachments"] = attachmentsDict;
             }
             if (localSeq > -1)
             {
@@ -3012,96 +2942,6 @@ PRAGMA user_version = 3;";
                 result = Runtime.Substring(rev, dashPos + 1);
             }
             return result;
-        }
-
-        /// <summary>Constructs an "_attachments" dictionary for a revision, to be inserted in its JSON body.</summary>
-        internal IDictionary<String, Object> GetAttachmentsDictForSequenceWithContent(long sequence, DocumentContentOptions contentOptions)
-        {
-            Debug.Assert((sequence > 0));
-
-            Cursor cursor = null;
-            var args = new Object[] { sequence };
-
-            try
-            {
-                cursor = StorageEngine.RawQuery("SELECT filename, key, type, length, revpos FROM attachments WHERE sequence=?", args);
-                if (!cursor.MoveToNext())
-                {
-                    return null;
-                }
-
-                var result = new Dictionary<String, Object>();
-
-                while (!cursor.IsAfterLast())
-                {
-                    var dataSuppressed = false;
-                    var filename = cursor.GetString(0);
-                    var keyData = cursor.GetBlob(1);
-                    var contentType = cursor.GetString(2);
-                    var length = cursor.GetInt(3);
-                    var revpos = cursor.GetInt(4);
-
-                    var key = new BlobKey(keyData);
-                    var digestString = "sha1-" + Convert.ToBase64String(keyData);
-
-                    var dataBase64 = (string) null;
-                    if (contentOptions.HasFlag(DocumentContentOptions.IncludeAttachments))
-                    {
-                        if (contentOptions.HasFlag(DocumentContentOptions.BigAttachmentsFollow) && 
-                            length >= Database.BigAttachmentLength)
-                        {
-                            dataSuppressed = true;
-                        }
-                        else
-                        {
-                            byte[] data = Attachments.BlobForKey(key);
-                            if (data != null)
-                            {
-                                // <-- very expensive
-                                dataBase64 = Convert.ToBase64String(data);
-                            }
-                            else
-                            {
-                                Log.W(Tag, "Error loading attachment");
-                            }
-                        }
-                    }
-                    var attachment = new Dictionary<string, object>();
-                    if (!(dataBase64 != null || dataSuppressed))
-                    {
-                        attachment["stub"] = true;
-                    }
-                    if (dataBase64 != null)
-                    {
-                        attachment["data"] = dataBase64;
-                    }
-                    if (dataSuppressed) {
-                        attachment.Put ("follows", true);
-                    }
-                    attachment["digest"] = digestString;
-
-                    attachment["content_type"] = contentType;
-                    attachment["length"] = length;
-                    attachment["revpos"] = revpos;
-
-                    result[filename] = attachment;
-
-                    cursor.MoveToNext();
-                }
-                return result;
-            }
-            catch (SQLException e)
-            {
-                Log.E(Tag, "Error getting attachments for sequence", e);
-                return null;
-            }
-            finally
-            {
-                if (cursor != null)
-                {
-                    cursor.Close();
-                }
-            }
         }
 
         /// <summary>Splices the contents of an NSDictionary into JSON data (that already represents a dict), without parsing the JSON.</summary>
@@ -3567,13 +3407,11 @@ PRAGMA user_version = 3;";
             // If there are no attachments in the new rev, there's nothing to do:
             IDictionary<string, object> revAttachments = null;
             var properties = rev.GetProperties ();
-            if (properties != null)
-            {
+            if (properties != null) {
                 revAttachments = properties.Get("_attachments").AsDictionary<string, object>();
             }
 
-            if (revAttachments == null || revAttachments.Count == 0 || rev.IsDeleted())
-            {
+            if (revAttachments == null || revAttachments.Count == 0 || rev.IsDeleted()) {
                 return;
             }
 
@@ -3596,71 +3434,8 @@ PRAGMA user_version = 3;";
                             attachment.RevPos = generation;
                         }
                     }
-                    // Finally insert the attachment:
-                    InsertAttachmentForSequence(attachment, newSequence);
-                }
-                else
-                {
-                    // It's just a stub, so copy the previous revision's attachment entry:
-                    //? Should I enforce that the type and digest (if any) match?
-                    CopyAttachmentNamedFromSequenceToSequence(name, parentSequence, newSequence);
                 }
             }
-        }
-
-        /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
-        internal void CopyAttachmentNamedFromSequenceToSequence(string name, long fromSeq, long toSeq)
-        {
-            Debug.Assert((name != null));
-            Debug.Assert((toSeq > 0));
-
-            if (fromSeq < 0)
-            {
-                throw new CouchbaseLiteException(StatusCode.NotFound);
-            }
-
-            Cursor cursor = null;
-            var args = new [] { Convert.ToString(toSeq), name, Convert.ToString(fromSeq), name };
-
-            try
-            {
-                StorageEngine.ExecSQL("INSERT INTO attachments (sequence, filename, key, type, length, revpos) "
-                    + "SELECT ?, ?, key, type, length, revpos FROM attachments " + "WHERE sequence=? AND filename=?;", args);
-                cursor = StorageEngine.IntransactionRawQuery("SELECT changes()");
-                cursor.MoveToNext();
-
-                int rowsUpdated = cursor.GetInt(0);
-                if (rowsUpdated == 0)
-                {
-                    // Oops. This means a glitch in our attachment-management or pull code,
-                    // or else a bug in the upstream server.
-                    Log.W(Tag, "Can't find inherited attachment " + name 
-                          + " from seq# " + Convert.ToString(fromSeq) + " to copy to " + Convert.ToString(toSeq));
-                    throw new CouchbaseLiteException(StatusCode.NotFound);
-                }
-                else
-                {
-                    return;
-                }
-            }
-            catch (SQLException e)
-            {
-                Log.E(Tag, "Error copying attachment", e);
-                throw new CouchbaseLiteException(StatusCode.InternalServerError);
-            }
-            finally
-            {
-                if (cursor != null)
-                {
-                    cursor.Close();
-                }
-            }
-        }
-
-        /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
-        internal void InsertAttachmentForSequence(AttachmentInternal attachment, long sequence)
-        {
-            InsertAttachmentForSequenceWithNameAndType(sequence, attachment.Name, attachment.ContentType, attachment.RevPos, attachment.BlobKey);
         }
 
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
@@ -3670,39 +3445,7 @@ PRAGMA user_version = 3;";
             Debug.Assert((name != null));
 
             BlobKey key;
-            if (!Attachments.StoreBlobStream(contentStream, out key))
-            {
-                throw new CouchbaseLiteException(StatusCode.InternalServerError);
-            }
-            InsertAttachmentForSequenceWithNameAndType(sequence, name, contentType, revpos, key);
-        }
-
-        /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
-        internal void InsertAttachmentForSequenceWithNameAndType(long sequence, string name, string contentType, int revpos, BlobKey key)
-        {
-            try
-            {
-                var args = new ContentValues(); // TODO: Create Add override and refactor to use initializer syntax.
-                args["sequence"] = sequence;
-                args["filename"] = name;
-                if (key != null)
-                {
-                    args.Put("key", key.GetBytes());
-                    args.Put("length", Attachments.GetSizeOfBlob(key));
-                }
-                args["type"] = contentType;
-                args["revpos"] = revpos;
-                var result = StorageEngine.Insert("attachments", null, args);
-                if (result == -1)
-                {
-                    var msg = "Insert attachment failed (returned -1)";
-                    Log.E(Tag, msg);
-                    throw new CouchbaseLiteException(msg, StatusCode.InternalServerError);
-                }
-            }
-            catch (SQLException e)
-            {
-                Log.E(Tag, "Error inserting attachment", e);
+            if (!Attachments.StoreBlobStream(contentStream, out key)) {
                 throw new CouchbaseLiteException(StatusCode.InternalServerError);
             }
         }
@@ -4671,21 +4414,13 @@ PRAGMA user_version = 3;";
         {
             get 
             {
-                var attachmentStorePath = Path;
-                int lastDotPosition = attachmentStorePath.LastIndexOf(".", StringComparison.InvariantCultureIgnoreCase);
-                if (lastDotPosition > 0)
-                {
-                    attachmentStorePath = attachmentStorePath.Substring(0, lastDotPosition);
-                }
-                attachmentStorePath = attachmentStorePath + FilePath.separator + "attachments";
-                return attachmentStorePath;
+                return System.IO.Path.ChangeExtension(Path, null) + " attachments";
             }
         }
 
         internal Boolean Open()
         {
-            if (_isOpen)
-            {
+            if (_isOpen) {
                 return true;
             }
 
@@ -4693,16 +4428,14 @@ PRAGMA user_version = 3;";
             StorageEngine = SQLiteStorageEngineFactory.CreateStorageEngine();
 
             // Try to open the storage engine and stop if we fail.
-            if (StorageEngine == null || !StorageEngine.Open(Path))
-            {
+            if (StorageEngine == null || !StorageEngine.Open(Path)) {
                 var msg = "Unable to create a storage engine, fatal error";
                 Log.E(Tag, msg);
                 throw new CouchbaseLiteException(msg);
             }
 
             // Stuff we need to initialize every time the sqliteDb opens:
-            if (!Initialize("PRAGMA foreign_keys = ON; PRAGMA journal_mode=WAL;"))
-            {
+            if (!Initialize("PRAGMA foreign_keys = ON; PRAGMA journal_mode=WAL;")) {
                 Log.E(Tag, "Error turning on foreign keys");
                 return false;
             }
@@ -4716,38 +4449,23 @@ PRAGMA user_version = 3;";
             }
 
             // Incompatible version changes increment the hundreds' place:
-            if (dbVersion >= 100)
+            if (dbVersion >= 200)
             {
                 Log.E(Tag, "Database: Database version (" + dbVersion + ") is newer than I know how to work with");
                 StorageEngine.Close();
                 return false;
             }
 
-            if (dbVersion < 1)
-            {
+            if (dbVersion < 1) {
                 // First-time initialization:
                 // (Note: Declaring revs.sequence as AUTOINCREMENT means the values will always be
                 // monotonically increasing, never reused. See <http://www.sqlite.org/autoinc.html>)
-                if (!Initialize(Schema))
-                {
+                if (!Initialize(Schema)) {
                     StorageEngine.Close();
                     return false;
                 }
 
                 dbVersion = 3;
-            }
-
-            if (dbVersion < 2)
-            {
-                // Version 2: added attachments.revpos
-                var upgradeSql = "ALTER TABLE attachments ADD COLUMN revpos INTEGER DEFAULT 0; PRAGMA user_version = 2";
-
-                if (!Initialize(upgradeSql))
-                {
-                    StorageEngine.Close();
-                    return false;
-                }
-                dbVersion = 2;
             }
 
             if (dbVersion < 3)
@@ -4776,18 +4494,7 @@ PRAGMA user_version = 3;";
                 }
                 dbVersion = 4;
             }
-            if (dbVersion < 5)
-            {
-                // Version 5: added encoding for attachments
-                var upgradeSql = "ALTER TABLE attachments ADD COLUMN encoding INTEGER DEFAULT 0; "
-                    + "ALTER TABLE attachments ADD COLUMN encoded_length INTEGER; " + "PRAGMA user_version = 5";
-                if (!Initialize(upgradeSql))
-                {
-                    StorageEngine.Close();
-                    return false;
-                }
-                dbVersion = 5;
-            }
+ 
             if (dbVersion < 6)
             {
                 // Version 6: enable Write-Ahead Log (WAL) <http://sqlite.org/wal.html>
@@ -4867,7 +4574,6 @@ PRAGMA user_version = 3;";
             {
                 // Version 15: Add sequence index on maps and attachments for revs(sequence) on DELETE CASCADE
                 var upgradeSql = "CREATE INDEX maps_sequence ON maps(sequence);  " +
-                                 "CREATE INDEX attachments_sequence ON attachments(sequence); " +
                     "PRAGMA user_version = 15";
                 if (!Initialize(upgradeSql))
                 {
@@ -4902,7 +4608,7 @@ PRAGMA user_version = 3;";
                 dbVersion = 17;
             }
             if (dbVersion < 18) {
-                var upgradeSql = "ALTER TABLE revs ADD COLUMN doc_type TEXT;" +
+                const string upgradeSql = "ALTER TABLE revs ADD COLUMN doc_type TEXT;" +
                                  "PRAGMA user_version = 18";
                 
                 if (!Initialize(upgradeSql)) {
@@ -4910,6 +4616,14 @@ PRAGMA user_version = 3;";
                     return false;
                 }
                 dbVersion = 18;
+            }
+            if (dbVersion < 101) {
+                const string upgradeSql = "PRAGMA user_version = 101";
+                if (!Initialize(upgradeSql)) {
+                    StorageEngine.Close();
+                    return false;
+                }
+                dbVersion = 101;
             }
 
             if (isNew && !Initialize("END TRANSACTION")) {
@@ -4921,12 +4635,9 @@ PRAGMA user_version = 3;";
                 OptimizeSQLIndexes();
             }
 
-            try
-            {
+            try {
                 Attachments = new BlobStore(AttachmentStorePath);
-            }
-            catch (ArgumentException e)
-            {
+            }  catch (ArgumentException e) {
                 Log.E(Tag, "Could not initialize attachment store", e);
                 StorageEngine.Close();
                 return false;

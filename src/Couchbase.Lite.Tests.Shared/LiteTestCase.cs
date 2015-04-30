@@ -57,6 +57,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Reflection;
+using System.IO.Compression;
 
 namespace Couchbase.Lite
 {
@@ -269,6 +270,23 @@ namespace Couchbase.Lite
             return GetReplicationPort() == 4984;
         }
 
+        protected void AssertDictionariesAreEqual(IDictionary<string, object> first, IDictionary<string, object> second)
+        {
+            //I'm tired of NUnit misunderstanding that objects are dictionaries and trying to compare them as collections...
+            Assert.IsTrue(first.Keys.Count == second.Keys.Count);
+            foreach (var key in first.Keys) {
+                var firstObj = first[key];
+                var secondObj = second[key];
+                var firstDic = firstObj.AsDictionary<string, object>();
+                var secondDic = secondObj.AsDictionary<string, object>();
+                if (firstDic != null && secondDic != null) {
+                    AssertDictionariesAreEqual(firstDic, secondDic);
+                } else {
+                    Assert.AreEqual(firstObj, secondObj);
+                }
+            }
+        }
+
         /// <exception cref="System.UriFormatException"></exception>
         protected Uri GetReplicationURLWithoutCredentials()
         {
@@ -300,6 +318,37 @@ namespace Couchbase.Lite
                 }
             }
             return result;
+        }
+
+        protected IDictionary<string, object> CreateAttachmentsStub(string name)
+        {
+            return new Dictionary<string, object> {
+                { name, new Dictionary<string, object> {
+                        { "stub", true }
+                    }
+                }
+            };
+        }
+
+        protected IDictionary<string, object> CreateAttachmentsDict(IEnumerable<byte> data, string name, string type, bool gzipped)
+        {
+            if (gzipped) {
+                using (var ms = new MemoryStream())
+                using (var gs = new GZipStream(ms, CompressionMode.Compress)) {
+                    gs.Write(data.ToArray(), 0, data.Count());
+                    data = ms.ToArray();
+                }
+            }
+
+            var att = new NonNullDictionary<string, object> {
+                { "content_type", type },
+                { "data", data },
+                { "encoding", gzipped ? "gzip" : null }
+            };
+
+            return new Dictionary<string, object> {
+                { name, att }
+            };
         }
 
         /// <exception cref="System.IO.IOException"></exception>
