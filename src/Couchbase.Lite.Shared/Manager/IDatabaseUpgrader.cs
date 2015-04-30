@@ -22,11 +22,13 @@ using System;
 
 namespace Couchbase.Lite.Db
 {
-    internal interface IDatabaseUpgrader
+    internal interface IDatabaseUpgrader : IDisposable
     {
         int NumDocs { get; }
 
         int NumRevs { get; }
+
+        bool CanRemoveOldAttachmentsDir { get; set; }
 
         Status Import();
 

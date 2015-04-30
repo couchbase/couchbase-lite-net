@@ -296,8 +296,7 @@ namespace Couchbase.Lite.Replicator
 
         internal override void ProcessInbox(RevisionList inbox)
         {
-            if (!online)
-            {
+            if (!online) {
                 Log.V(Tag, "Offline, so skipping inbox process");
                 return;
             }
@@ -305,12 +304,10 @@ namespace Couchbase.Lite.Replicator
             // Generate a set of doc/rev IDs in the JSON format that _revs_diff wants:
             // <http://wiki.apache.org/couchdb/HttpPostRevsDiff>
             var diffs = new Dictionary<String, IList<String>>();
-            foreach (var rev in inbox)
-            {
+            foreach (var rev in inbox) {
                 var docID = rev.GetDocId();
                 var revs = diffs.Get(docID);
-                if (revs == null)
-                {
+                if (revs == null) {
                     revs = new List<String>();
                     diffs[docID] = revs;
                 }
@@ -330,38 +327,31 @@ namespace Couchbase.Lite.Replicator
 
                     Log.D(Tag, "/_revs_diff response: {0}\r\n{1}", response, results);
 
-                    if (e != null) 
-                    {
+                    if (e != null) {
                         SetLastError(e);
                         RevisionFailed();
                     } else {
-                        if (results.Count != 0) 
-                        {
+                        if (results.Count != 0)  {
                             // Go through the list of local changes again, selecting the ones the destination server
                             // said were missing and mapping them to a JSON dictionary in the form _bulk_docs wants:
                             var docsToSend = new List<object> ();
                             var revsToSend = new RevisionList();
-                            foreach (var rev in inbox)
-                            {
+                            foreach (var rev in inbox) {
                                 // Is this revision in the server's 'missing' list?
                                 IDictionary<string, object> properties = null;
-                                var revResults = results.Get(rev.GetDocId()).AsDictionary<string, object>();
-
-                                if (revResults == null)
-                                {
+                                var revResults = results.Get(rev.GetDocId()).AsDictionary<string, object>(); 
+                                if (revResults == null) {
                                     continue;
                                 }
 
-                                var revs = ((JArray)revResults.Get("missing")).Values<String>().ToList();
-								if (revs == null || !revs.Any( id => id.Equals(rev.GetRevId(), StringComparison.OrdinalIgnoreCase)))
-                                {
+                                var revs = revResults.Get("missing").AsList<string>();
+								if (revs == null || !revs.Any( id => id.Equals(rev.GetRevId(), StringComparison.OrdinalIgnoreCase))) {
                                     RemovePending(rev);
                                     continue;
                                 }
 
                                 // Get the revision's properties:
                                 var contentOptions = DocumentContentOptions.IncludeAttachments;
-
                                 if (!dontSendMultipart && revisionBodyTransformationFunction == null)
                                 {
                                     contentOptions |= DocumentContentOptions.BigAttachmentsFollow;
@@ -379,10 +369,8 @@ namespace Couchbase.Lite.Replicator
                                 }
 
                                 var populatedRev = TransformRevision(loadedRev);
-
                                 IList<string> possibleAncestors = null;
-                                if (revResults.ContainsKey("possible_ancestors"))
-                                {
+                                if (revResults.ContainsKey("possible_ancestors")) {
                                     possibleAncestors = revResults["possible_ancestors"].AsList<string>();
                                 }
 
@@ -392,26 +380,27 @@ namespace Couchbase.Lite.Replicator
                                 populatedRev.SetProperties(properties);
 
                                 // Strip any attachments already known to the target db:
-                                if (properties.ContainsKey("_attachments")) 
-                                {
+                                if (properties.ContainsKey("_attachments")) {
                                     // Look for the latest common ancestor and stuf out older attachments:
                                     var minRevPos = FindCommonAncestor(populatedRev, possibleAncestors);
-
-                                    Database.StubOutAttachmentsInRevBeforeRevPos(populatedRev, minRevPos + 1, false);
+                                    Status status = new Status();
+                                    if(!LocalDatabase.ExpandAttachments(populatedRev, minRevPos + 1, !dontSendMultipart, false, status)) {
+                                        Log.W(Tag, "Error expanding attachments!");
+                                        RevisionFailed();
+                                        continue;
+                                    }
 
                                     properties = populatedRev.GetProperties();
-
-                                    if (!dontSendMultipart && UploadMultipartRevision(populatedRev)) 
-                                    {
+                                    if (!dontSendMultipart && UploadMultipartRevision(populatedRev)) {
                                         SafeIncrementCompletedChangesCount();
                                         continue;
                                     }
                                 }
 
-                                if (properties == null || !properties.ContainsKey("_id"))
-                                {
+                                if (properties == null || !properties.ContainsKey("_id")) {
                                     throw new InvalidOperationException("properties must contain a document _id");
                                 }
+
                                 // Add the _revisions list:
                                 revsToSend.Add(rev);
 
@@ -420,22 +409,15 @@ namespace Couchbase.Lite.Replicator
                             }
 
                             UploadBulkDocs(docsToSend, revsToSend);
-                        } 
-                        else 
-                        {
-                            foreach (var revisionInternal in inbox)
-                            {
+                        } else {
+                            foreach (var revisionInternal in inbox) {
                                 RemovePending(revisionInternal);
                             }
                         }
                     }
-                }
-                catch (Exception ex)
-                {
+                } catch (Exception ex) {
                     Log.E(Tag, "Unhandled exception in Pusher.ProcessInbox", ex);
-                }
-                finally
-                {
+                } finally {
                     Log.D(Tag, "processInbox() calling AsyncTaskFinished()");
                     AsyncTaskFinished(1);
                 }

@@ -172,8 +172,7 @@ namespace Couchbase.Lite {
                     var lastSequence = LastSequenceIndexed;
                     var dbMaxSequence = Database.LastSequenceNumber;
 
-                    if (lastSequence == dbMaxSequence)
-                    {
+                    if (lastSequence >= dbMaxSequence) {
                         // nothing to do (eg,  kCBLStatusNotModified)
                         Log.V(Database.Tag, "lastSequence ({0}) == dbMaxSequence ({1}), nothing to do", lastSequence, dbMaxSequence);
                         result.SetCode(StatusCode.NotModified);

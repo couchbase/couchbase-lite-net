@@ -198,7 +198,7 @@ namespace Couchbase.Lite.Support
                             {
                                 // Else there's only one attachment, so just assume it matches & use it:
                                 writer = attachmentsBySHA1Digest.Values.First();
-                                attachment["digest"] = writer.MD5DigestString();
+                                attachment["digest"] = writer.SHA1DigestString();
                             }
                             else
                             {
@@ -285,8 +285,8 @@ namespace Couchbase.Lite.Support
             else
             {
                 curAttachment.Finish();
-                String md5String = curAttachment.MD5DigestString();
-                attachmentsBySHA1Digest.Put(md5String, curAttachment);
+                String sha1String = curAttachment.SHA1DigestString();
+                attachmentsBySHA1Digest.Put(sha1String, curAttachment);
                 curAttachment = null;
             }
         }
