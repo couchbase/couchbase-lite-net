@@ -390,9 +390,16 @@ namespace Couchbase.Lite
                                 {"_deleted", true}
                             });
 
+            RevisionInternal revisionWithDeletedString = new RevisionInternal(new Dictionary<string, Object>
+                            {
+                                {"_id", Guid.NewGuid().ToString()},
+                                {"_rev", "1-23243234"},
+                                {"_deleted", "foo"}
+                            });
 
             Assert.IsFalse(revisionWitDeletedNull.IsDeleted());
             Assert.IsFalse(revisionWithDeletedFalse.IsDeleted());
+            Assert.IsFalse(revisionWithDeletedString.IsDeleted());
             Assert.IsTrue(revisionWithDeletedTrue.IsDeleted());
         }
 
