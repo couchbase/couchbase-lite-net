@@ -219,8 +219,10 @@ namespace Couchbase.Lite.Shared
                 var t = Factory.StartNew(() =>
                 {
                     try {
-                        var statement = BuildCommand(_writeConnection, "BEGIN IMMEDIATE TRANSACTION", null);
-                        statement.step_done();
+                        using (var statement = BuildCommand(_writeConnection, "BEGIN IMMEDIATE TRANSACTION", null))
+                        {
+                            statement.step_done();
+                        }
                     } catch (Exception e) {
                         Log.E(Tag, "Error BeginTransaction", e);
                     }
@@ -245,15 +247,19 @@ namespace Couchbase.Lite.Shared
                 try {
                     if (shouldCommit)
                     {
-                        var statement = BuildCommand(_writeConnection, "COMMIT", null);
-                        statement.step_done();
+                        using (var statement = BuildCommand(_writeConnection, "COMMIT", null))
+                        {
+                            statement.step_done();
+                        }
 
                         shouldCommit = false;
                     }
                     else
                     {
-                        var statement = BuildCommand(_writeConnection, "ROLLBACK", null);
-                        statement.step_done();
+                        using (var statement = BuildCommand(_writeConnection, "ROLLBACK", null))
+                        {
+                            statement.step_done();
+                        }
                     }
                 } catch (Exception e) {
                     Log.E(Tag, "Error EndTransaction", e);
