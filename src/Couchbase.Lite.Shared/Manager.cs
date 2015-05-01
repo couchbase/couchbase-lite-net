@@ -56,6 +56,7 @@ using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
 using Sharpen;
 using Couchbase.Lite.Db;
+using System.Diagnostics;
 
 #if !NET_3_5
 using StringEx = System.String;
@@ -326,7 +327,7 @@ namespace Couchbase.Lite
                 destStream.Dispose();
                 UpgradeDatabase(new FileInfo(database.Path));
 
-                if (File.Exists(dstAttachmentsPath)) 
+                if (System.IO.Directory.Exists(dstAttachmentsPath)) 
                 {
                     System.IO.Directory.Delete (dstAttachmentsPath, true);
                 }
@@ -343,6 +344,50 @@ namespace Couchbase.Lite
                 Log.E(Database.Tag, string.Empty, e);
                 throw new CouchbaseLiteException(StatusCode.InternalServerError);
             }
+        }
+
+        /// <summary>
+        /// Replaces or installs a database from a zipped DB folder structure
+        /// </summary>
+        /// <param name="name">The name of the target Database to replace or create.</param>
+        /// <param name="compressedStream">The zip stream containing all of the files required by the DB.</param>
+        /// <remarks>
+        /// The zip stream must be from a regular unencrypted PKZip structure compressed with Deflate (*nix command
+        /// line zip will produce this)
+        /// </remarks>
+        public void ReplaceDatabase(string name, Stream compressedStream)
+        {
+            var database = GetDatabaseWithoutOpening(name, false);
+            var dstAttachmentsPath = database.AttachmentStorePath;
+            if (System.IO.Directory.Exists(dstAttachmentsPath)) {
+                System.IO.Directory.Delete(dstAttachmentsPath, true);
+            }
+
+            System.IO.Directory.CreateDirectory(dstAttachmentsPath);
+
+            foreach (var entry in ZipArchive.GetEntriesFromStream(compressedStream)) {
+                if (entry.IsDirectory) {
+                    System.IO.Directory.CreateDirectory(Path.Combine(Directory, entry.Filename));
+                    continue;
+                }
+
+                if (entry.FileData == null) {
+                    continue;
+                }
+
+                var path = Path.Combine(Directory, entry.Filename);
+                if (File.Exists(path)) {
+                    File.Delete(path);
+                }
+
+                using (var destStream = File.OpenWrite(path)) {
+                    entry.FileData.CopyTo(destStream);
+                }
+            }
+
+            UpgradeDatabase(new FileInfo(database.Path));
+            database.Open();
+            database.ReplaceUUIDs ();
         }
 
     #endregion

@@ -142,5 +142,50 @@ namespace Couchbase.Lite
             Assert.IsNotNull(doc.CurrentRevision.Attachments.ElementAt(0));
             Assert.IsNotNull(doc.CurrentRevision.Attachments.ElementAt(0).Content);
         }
+
+        [Test]
+        public void TestReplaceWithIosDatabase() {
+            using (var assetStream = GetAsset("ios104.zip")) {
+                manager.ReplaceDatabase("iosdb", assetStream);
+            }
+
+            var db = manager.GetExistingDatabase("iosdb");
+            Assert.IsNotNull(db, "Failed to import database");
+            var doc = db.GetExistingDocument("BC38EA44-E153-429A-A698-0CBE6B0090C4");
+            Assert.IsNotNull(doc, "Failed to get doc from imported database");
+            Assert.AreEqual(doc.CurrentRevision.AttachmentNames.Count(), 2, "Failed to get attachments from imported database");
+
+            using (var assetStream = GetAsset("ios110.zip")) {
+                manager.ReplaceDatabase("iosdb", assetStream);
+            }
+            db = manager.GetExistingDatabase("iosdb");
+            Assert.IsNotNull(db, "Failed to import database");
+            doc = db.GetExistingDocument("-iTji_n2zmHpmgYecaRHqZE");
+            Assert.IsNotNull(doc, "Failed to get doc from imported database");
+            Assert.AreEqual(doc.CurrentRevision.AttachmentNames.Count(), 2, "Failed to get attachments from imported database");
+        }
+
+        [Test]
+        public void TestReplaceWithAndroidDatabase() {
+            using (var assetStream = GetAsset("android104.zip")) {
+                manager.ReplaceDatabase("todos", assetStream);
+            }
+
+            var db = manager.GetExistingDatabase("todos");
+            Assert.IsNotNull(db, "Failed to import database");
+            var doc = db.GetExistingDocument("66ac306d-de93-46c8-b60f-946c16ac4a1d");
+            Assert.IsNotNull(doc, "Failed to get doc from imported database");
+            Assert.AreEqual(doc.CurrentRevision.AttachmentNames.Count(), 1, "Failed to get attachments from imported database");
+
+            using (var assetStream = GetAsset("android110.zip")) {
+                manager.ReplaceDatabase("guest", assetStream);
+            }
+
+            db = manager.GetExistingDatabase("guest");
+            Assert.IsNotNull(db, "Failed to import database");
+            doc = db.GetExistingDocument("d3e80747-2568-47c8-81e8-a04ba1b5c5d4");
+            Assert.IsNotNull(doc, "Failed to get doc from imported database");
+            Assert.AreEqual(doc.CurrentRevision.AttachmentNames.Count(), 1, "Failed to get attachments from imported database");
+        }
     }
 }

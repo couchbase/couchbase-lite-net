@@ -218,6 +218,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Manager\IDatabaseUpgrader.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Manager\DatabaseUpgraderFactory.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Manager\DatabaseUpgraderFactory_Upgraders.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Util\ZipEntry.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="$(MSBuildThisFileDirectory)Store\MonoSQLiteStorageEngine.cs" />

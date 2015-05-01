@@ -554,7 +554,10 @@ namespace Couchbase.Lite.Db
                 if (Directory.Exists(newAttachmentsPath)) {
                     var oldAttachmentsPath = Path.ChangeExtension(_db.Path, null) + Path.PathSeparator + "attachments";
                     if (CanRemoveOldAttachmentsDir) {
-                        Directory.Move(newAttachmentsPath, oldAttachmentsPath);
+                        try {
+                            Directory.Move(newAttachmentsPath, oldAttachmentsPath);
+                        } catch(IOException) {
+                        }
                     }
                 }
 

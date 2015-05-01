@@ -1327,7 +1327,7 @@ namespace Couchbase.Lite
             int changesCount = 0;
             pusher.Changed += (sender, e) => 
             {
-                if(e.Source.ChangesCount > 0) {
+                if(e.Source.ChangesCount > 0 && countdown.CurrentCount > 0) {
                     changesCount = e.Source.ChangesCount;
                     countdown.Signal();
                 }

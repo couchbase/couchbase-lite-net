@@ -66,9 +66,6 @@
     <EmbeddedResource Include="Assets\local-test.properties">
       <LogicalName>Couchbase.Lite.Net35.Tests.Assets.local-test.properties</LogicalName>
     </EmbeddedResource>
-    <EmbeddedResource Include="Assets\noattachments.cblite">
-      <LogicalName>Couchbase.Lite.Net35.Tests.Assets.noattachments.cblite</LogicalName>
-    </EmbeddedResource>
     <EmbeddedResource Include="Assets\performance-test.json">
       <LogicalName>Couchbase.Lite.Net35.Tests.Assets.performance-test.json</LogicalName>
     </EmbeddedResource>
@@ -77,6 +74,26 @@
     </EmbeddedResource>
     <EmbeddedResource Include="Assets\withattachments.cblite">
       <LogicalName>Couchbase.Lite.Net35.Tests.Assets.withattachments.cblite</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\android104.zip">
+      <Link>Assets\android104.zip</Link>
+      <LogicalName>Couchbase.Lite.Net35.Tests.Assets.android104.zip</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\android110.zip">
+      <Link>Assets\android110.zip</Link>
+      <LogicalName>Couchbase.Lite.Net35.Tests.Assets.android110.zip</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\ios104.zip">
+      <Link>Assets\ios104.zip</Link>
+      <LogicalName>Couchbase.Lite.Net35.Tests.Assets.ios104.zip</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\ios110.zip">
+      <Link>Assets\ios110.zip</Link>
+      <LogicalName>Couchbase.Lite.Net35.Tests.Assets.ios110.zip</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\noattachments.cblite">
+      <Link>Assets\noattachments.cblite</Link>
+      <LogicalName>Couchbase.Lite.Net35.Tests.Assets.noattachments.cblite</LogicalName>
     </EmbeddedResource>
   </ItemGroup>
   <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
