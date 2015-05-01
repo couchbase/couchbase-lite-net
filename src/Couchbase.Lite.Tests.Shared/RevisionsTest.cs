@@ -363,5 +363,38 @@ namespace Couchbase.Lite
             Assert.AreEqual(1, doc.ConflictingRevisions.Count());
             Assert.AreEqual(2, doc.GetLeafRevisions(true).Count);
         }
+
+        [Test]
+        [Description("Handle the case where _deleted is not a bool.  See: https://github.com/couchbase/couchbase-lite-net/issues/414")]
+        public void TestRevisionWithNull()
+        {
+
+            RevisionInternal revisionWitDeletedNull  = new RevisionInternal(new Dictionary<string, Object>
+                            {
+                                {"_id", Guid.NewGuid().ToString()},
+                                {"_rev", "1-23243234"},
+                                {"_deleted", null}
+                            });
+
+            RevisionInternal revisionWithDeletedFalse = new RevisionInternal(new Dictionary<string, Object>
+                            {
+                                {"_id", Guid.NewGuid().ToString()},
+                                {"_rev", "1-23243234"},
+                                {"_deleted", false}
+                            });
+
+            RevisionInternal revisionWithDeletedTrue = new RevisionInternal(new Dictionary<string, Object>
+                            {
+                                {"_id", Guid.NewGuid().ToString()},
+                                {"_rev", "1-23243234"},
+                                {"_deleted", true}
+                            });
+
+
+            Assert.IsFalse(revisionWitDeletedNull.IsDeleted());
+            Assert.IsFalse(revisionWithDeletedFalse.IsDeleted());
+            Assert.IsTrue(revisionWithDeletedTrue.IsDeleted());
+        }
+
     }
 }
