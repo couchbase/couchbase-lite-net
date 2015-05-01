@@ -92,7 +92,11 @@ namespace Couchbase.Lite
                 this.replicationFinished = true;
                 string msg = "ReplicationFinishedObserver.changed called, set replicationFinished to true";
                 Log.D(Tag, msg);
-                this.doneSignal.Signal();
+                try {
+                    doneSignal.Signal();
+                } catch(InvalidOperationException) {
+                    Log.W(Tag, "Ignoring too many calls to Changed");
+                }
             }
             else
             {
