@@ -68,7 +68,9 @@ namespace Couchbase.Lite.Listener.Tcp
 
         public override Uri RequestUrl {
             get {
-                return _httpContext.Request.Url;
+                //Why I have to do this here again is beyond me...I'm actively fighting
+                //against .NET to keep the %2F entities from turning into slashes
+                return new Uri(_httpContext.Request.Url.OriginalString.Replace("%2F", "%252F"));
             }
         }
 

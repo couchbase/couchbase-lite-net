@@ -2169,10 +2169,10 @@ namespace Couchbase.Lite
             var repl = database.CreatePullReplication(remote);
             repl.Authenticator = new BasicAuthenticator("jim", "borden");
             repl.Continuous = true;
-            var wait = new CountdownEvent(3);
+            var wait = new CountdownEvent(1);
             repl.Changed += (sender, e) => {
                 Log.D("ReplicationTest", "New replication status {0}", e.Source.Status);
-                if(e.Source.Status == ReplicationStatus.Idle && wait.CurrentCount > 0) {
+                if(e.Source.Status == ReplicationStatus.Idle && e.Source.ChangesCount > 0 && e.Source.CompletedChangesCount == e.Source.ChangesCount) {
                     wait.Signal();
                 }
             };
