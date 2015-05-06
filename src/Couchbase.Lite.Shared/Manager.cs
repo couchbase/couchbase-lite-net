@@ -153,7 +153,7 @@ namespace Couchbase.Lite
             }
             VersionString = String.Format("Unofficial ({0})", gitVersion.TrimEnd());
             #else
-            VersionString = "1.1";
+            VersionString = "1.1_b1";
             #endif
         }
 
