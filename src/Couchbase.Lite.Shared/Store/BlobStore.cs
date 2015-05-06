@@ -69,8 +69,7 @@ namespace Couchbase.Lite
             this.path = path;
             FilePath directory = new FilePath(path);
             directory.Mkdirs();
-            if (!directory.IsDirectory())
-            {
+            if (!directory.IsDirectory()) {
                 throw new InvalidOperationException(string.Format("Unable to create directory for: {0}", directory));
             }
         }
@@ -78,15 +77,13 @@ namespace Couchbase.Lite
         public static BlobKey KeyForBlob(byte[] data)
         {
             MessageDigest md;
-            try
-            {
+            try {
                 md = MessageDigest.GetInstance("SHA-1");
-            }
-            catch (NoSuchAlgorithmException)
-            {
+            } catch (NoSuchAlgorithmException) {
                 Log.E(Database.Tag, "Error, SHA-1 digest is unavailable.");
                 return null;
             }
+
             byte[] sha1hash = new byte[40];
             md.Update(data, 0, data.Length);
             sha1hash = md.Digest();
@@ -97,18 +94,15 @@ namespace Couchbase.Lite
         public static BlobKey KeyForBlobFromFile(FileInfo file)
         {
             MessageDigest md;
-            try
-            {
+            try {
                 md = MessageDigest.GetInstance("SHA-1");
-            }
-            catch (NoSuchAlgorithmException)
-            {
+            } catch (NoSuchAlgorithmException) {
                 Log.E(Database.Tag, "Error, SHA-1 digest is unavailable.");
                 return null;
             }
+
             byte[] sha1hash = new byte[40];
-            try
-            {
+            try {
                 var fis = new FileInputStream(file);
                 byte[] buffer = new byte[65536];
                 int lenRead = fis.Read(buffer);
@@ -118,11 +112,10 @@ namespace Couchbase.Lite
                     lenRead = fis.Read(buffer);
                 }
                 fis.Close();
-            }
-            catch (IOException)
-            {
+            } catch (IOException) {
                 Log.E(Database.Tag, "Error readin tmp file to compute key");
             }
+
             sha1hash = md.Digest();
             BlobKey result = new BlobKey(sha1hash);
             return result;
@@ -130,7 +123,7 @@ namespace Couchbase.Lite
 
         public string PathForKey(BlobKey key)
         {
-            return path + FilePath.separator + BlobKey.ConvertToHex(key.GetBytes()) + FileExtension;
+            return path + FilePath.separator + key + FileExtension;
         }
 
         public long GetSizeOfBlob(BlobKey key)
@@ -142,14 +135,14 @@ namespace Couchbase.Lite
 
         public bool GetKeyForFilename(BlobKey outKey, string filename)
         {
-            if (!filename.EndsWith(FileExtension))
-            {
+            if (!filename.EndsWith(FileExtension)) {
                 return false;
             }
+
             //trim off extension
             string rest = Sharpen.Runtime.Substring(filename, path.Length + 1, filename.Length
                  - FileExtension.Length);
-            outKey.SetBytes(BlobKey.ConvertFromHex(rest));
+            outKey.Bytes = BlobKey.ConvertFromHex(rest);
             return true;
         }
 
@@ -159,15 +152,12 @@ namespace Couchbase.Lite
                 return null;
             }
 
-            string path = PathForKey(key);
-            FilePath file = new FilePath(path);
+            string keyPath = PathForKey(key);
+            FilePath file = new FilePath(keyPath);
             byte[] result = null;
-            try
-            {
+            try {
                 result = GetBytesFromFile(file);
-            }
-            catch (IOException e)
-            {
+            } catch (IOException e) {
                 Log.E(Database.Tag, "Error reading file", e);
             }
             return result;
@@ -175,47 +165,41 @@ namespace Couchbase.Lite
 
         public Stream BlobStreamForKey(BlobKey key)
         {
-            var path = PathForKey(key);
-            Log.D(Database.Tag, "Blob Path : " + path);
-            var file = new FilePath(path);
-            if (file.CanRead())
-            {
-                try
-                {
+            var keyPath = PathForKey(key);
+            Log.D(Database.Tag, "Blob Path : " + keyPath);
+            var file = new FilePath(keyPath);
+            if (file.CanRead()) {
+                try {
                     return new FileStream(file, FileMode.Open, FileAccess.ReadWrite, FileShare.ReadWrite);
                 }
-                catch (FileNotFoundException e)
-                {
+                catch (FileNotFoundException e) {
                     Log.E(Database.Tag, "Unexpected file not found in blob store", e);
                     return null;
                 }
-                catch (Exception e)
-                {
+                catch (Exception e) {
                     Log.E(Database.Tag, "Cannot new FileStream", e);
                 }
             }
+
             return null;
         }
 
         public bool StoreBlobStream(Stream inputStream, out BlobKey outKey)
         {
             FilePath tmp = null;
-            try
-            {
+            try {
                 tmp = FilePath.CreateTempFile(TmpFilePrefix, TmpFileExtension, new FilePath(this.path));
                 FileOutputStream fos = new FileOutputStream(tmp);
                 byte[] buffer = new byte[65536];
                 int lenRead = ((InputStream)inputStream).Read(buffer);
-                while (lenRead > 0)
-                {
+                while (lenRead > 0)  {
                     fos.Write(buffer, 0, lenRead);
                     lenRead = ((InputStream)inputStream).Read(buffer);
                 }
+
                 inputStream.Close();
                 fos.Close();
-            }
-            catch (IOException e)
-            {
+            } catch (IOException e) {
                 Log.E(Database.Tag, "Error writing blog to tmp file", e);
                 outKey = null;
                 return false;
@@ -224,13 +208,11 @@ namespace Couchbase.Lite
             outKey = KeyForBlobFromFile(tmp);
             var keyPath = PathForKey(outKey);
             var file = new FilePath(keyPath);
-            if (file.CanRead())
-            {
+            if (file.CanRead()) {
                 // object with this hash already exists, we should delete tmp file and return true
                 tmp.Delete();
             }
-            else
-            {
+            else {
                 // does not exist, we should rename tmp file to this name
                 tmp.RenameTo(file);
             }
@@ -241,39 +223,29 @@ namespace Couchbase.Lite
         public bool StoreBlob(byte[] data, BlobKey outKey)
         {
             BlobKey newKey = KeyForBlob(data);
-            outKey.SetBytes(newKey.GetBytes());
-            string path = PathForKey(outKey);
-            FilePath file = new FilePath(path);
-            if (file.CanRead())
-            {
+            outKey.Bytes = newKey.Bytes;
+            string keyPath = PathForKey(outKey);
+            FilePath file = new FilePath(keyPath);
+            if (file.CanRead()) {
                 return true;
             }
+
             FileOutputStream fos = null;
-            try
-            {
+            try {
                 fos = new FileOutputStream(file);
                 fos.Write(data);
-            }
-            catch (FileNotFoundException e)
-            {
+            } catch (FileNotFoundException e) {
                 Log.E(Database.Tag, "Error opening file for output", e);
                 return false;
-            }
-            catch (IOException ioe)
-            {
+            }  catch (IOException ioe) {
                 Log.E(Database.Tag, "Error writing to file", ioe);
                 return false;
-            }
-            finally
-            {
-                if (fos != null)
-                {
-                    try
-                    {
+            } finally {
+                if (fos != null) {
+                    try {
                         fos.Close();
                     }
-                    catch (IOException)
-                    {
+                    catch (IOException) {
                     }
                 }
             }
@@ -293,15 +265,15 @@ namespace Couchbase.Lite
             int offset = 0;
             int numRead = 0;
             while (offset < bytes.Length && (numRead = @is.Read(bytes, offset, bytes.Length -
-                 offset)) >= 0)
-            {
+                   offset)) >= 0) {
                 offset += numRead;
             }
+
             // Ensure all the bytes have been read in
-            if (offset < bytes.Length)
-            {
+            if (offset < bytes.Length) {
                 throw new IOException("Could not completely read file " + file.GetName());
             }
+
             // Close the input stream and return bytes
             @is.Close();
             return bytes;
@@ -312,16 +284,16 @@ namespace Couchbase.Lite
             ICollection<BlobKey> result = new HashSet<BlobKey>();
             FilePath file = new FilePath(path);
             FilePath[] contents = file.ListFiles();
-            foreach (FilePath attachment in contents)
-            {
-                if (attachment.IsDirectory())
-                {
+            foreach (FilePath attachment in contents) {
+                if (attachment.IsDirectory()) {
                     continue;
                 }
+
                 BlobKey attachmentKey = new BlobKey();
                 GetKeyForFilename(attachmentKey, attachment.GetPath());
                 result.AddItem(attachmentKey);
             }
+
             return result;
         }
 
@@ -337,10 +309,10 @@ namespace Couchbase.Lite
             long total = 0;
             FilePath file = new FilePath(path);
             FilePath[] contents = file.ListFiles();
-            foreach (FilePath attachment in contents)
-            {
+            foreach (FilePath attachment in contents) {
                 total += attachment.Length();
             }
+
             return total;
         }
 
@@ -349,23 +321,20 @@ namespace Couchbase.Lite
             int numDeleted = 0;
             FilePath file = new FilePath(path);
             FilePath[] contents = file.ListFiles();
-            foreach (FilePath attachment in contents)
-            {
+            foreach (FilePath attachment in contents) {
                 BlobKey attachmentKey = new BlobKey();
                 GetKeyForFilename(attachmentKey, attachment.GetPath());
-                if (!keysToKeep.Contains(attachmentKey))
-                {
+                if (!keysToKeep.Contains(attachmentKey)) {
                     bool result = attachment.Delete();
-                    if (result)
-                    {
+                    if (result) {
                         ++numDeleted;
                     }
-                    else
-                    {
+                    else {
                         Log.E(Database.Tag, "Error deleting attachment");
                     }
                 }
             }
+
             return numDeleted;
         }
 
@@ -379,19 +348,17 @@ namespace Couchbase.Lite
             var magic = 0;
             var path = PathForKey(key);
             var file = new FilePath(path);
-            if (file.CanRead())
-            {
-                try
-                {
+            if (file.CanRead()) {
+                try {
                     var raf = new RandomAccessFile(file, "r");
                     magic = raf.Read() & unchecked((0xff)) | ((raf.Read() << 8) & unchecked((0xff00)));
                     raf.Close();
                 }
-                catch (Exception e)
-                {
+                catch (Exception e) {
                     Runtime.PrintStackTrace(e, Console.Error);
                 }
             }
+
             return magic == 0;
         }
 
@@ -400,11 +367,11 @@ namespace Couchbase.Lite
             FilePath directory = new FilePath(path);
             FilePath tempDirectory = new FilePath(directory, "temp_attachments");
             tempDirectory.Mkdirs();
-            if (!tempDirectory.IsDirectory())
-            {
+            if (!tempDirectory.IsDirectory()) {
                 throw new InvalidOperationException(string.Format("Unable to create directory for: {0}"
                     , tempDirectory));
             }
+
             return tempDirectory;
         }
     }

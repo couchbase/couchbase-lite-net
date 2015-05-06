@@ -143,7 +143,7 @@ namespace Couchbase.Lite.Db
                 }
 
                 if (err != 0) {
-                    Log.W("Couldn't compile SQL `{0}` : {1}", sql, raw.sqlite3_errmsg(_sqlite));
+                    Log.W(TAG, "Couldn't compile SQL `{0}` : {1}", sql, raw.sqlite3_errmsg(_sqlite));
                 }
 
                 return SqliteErrToStatus(err);
@@ -395,11 +395,19 @@ namespace Couchbase.Lite.Db
 
                 Log.D(TAG, "Moving {0} to {1}", oldAttachmentsPath, newAttachmentsPath);
                 Directory.Delete(newAttachmentsPath, true);
+                Directory.CreateDirectory(newAttachmentsPath);
 
                 try {
                     if (CanRemoveOldAttachmentsDir) {
-                        Directory.Move(oldAttachmentsPath, newAttachmentsPath);
-                        Directory.Delete(Path.ChangeExtension(_db.Path, null));
+                        // Need to ensure upper case
+                        foreach(var file in Directory.GetFiles(oldAttachmentsPath)) {
+                            var filename = Path.GetFileNameWithoutExtension(file).ToUpperInvariant();
+                            var extension = Path.GetExtension(file);
+                            var newPath = Path.Combine(newAttachmentsPath, filename + extension);
+                            File.Move(file, newPath);
+                        }
+
+                        Directory.Delete(Path.ChangeExtension(_db.Path, null), true);
                     } else {
                         DirectoryCopy(oldAttachmentsPath, newAttachmentsPath);
                     }
@@ -468,6 +476,27 @@ namespace Couchbase.Lite.Db
                     return new Status(StatusCode.CorruptError);
                 }
 
+                // Open source (SQLite) database:
+                var err = raw.sqlite3_open_v2(_path, out _sqlite, raw.SQLITE_OPEN_READWRITE, null);
+                if (err > 0) {
+                    return SqliteErrToStatus(err);
+                }
+
+                raw.sqlite3_create_collation(_sqlite, "JSON", raw.SQLITE_UTF8, CollateRevIDs);
+                sqlite3_stmt stmt = null;
+                var status = PrepareSQL(ref stmt, "CREATE TABLE IF NOT EXISTS maps( " +
+                    "view_id INTEGER NOT NULL REFERENCES views(view_id) ON DELETE CASCADE, " +
+                    "sequence INTEGER NOT NULL REFERENCES revs(sequence) ON DELETE CASCADE, " +
+                    "key TEXT NOT NULL COLLATE JSON, " +
+                    "value TEXT)");
+
+                err = raw.sqlite3_step(stmt);
+                raw.sqlite3_finalize(stmt);
+                raw.sqlite3_close(_sqlite);
+                if (err != raw.SQLITE_DONE) {
+                    return SqliteErrToStatus(err);
+                }
+
                 if (version >= 101) {
                     return new Status(StatusCode.Ok);
                 }
@@ -483,8 +512,7 @@ namespace Couchbase.Lite.Db
                     return new Status(StatusCode.InternalServerError);
                 }
 
-                // Open source (SQLite) database:
-                var err = raw.sqlite3_open_v2(destPath, out _sqlite, raw.SQLITE_OPEN_READONLY, null);
+                err = raw.sqlite3_open_v2(destPath, out _sqlite, raw.SQLITE_OPEN_READONLY, null);
                 if (err > 0) {
                     return SqliteErrToStatus(err);
                 }
@@ -497,7 +525,7 @@ namespace Couchbase.Lite.Db
                     return new Status(StatusCode.DbError);
                 }
 
-                var status = MoveAttachmentsDir();
+                status = MoveAttachmentsDir();
                 if (status.IsError) {
                     return status;
                 }

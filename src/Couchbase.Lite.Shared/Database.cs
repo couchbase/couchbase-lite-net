@@ -4556,6 +4556,17 @@ PRAGMA user_version = 3;";
                 dbVersion = 10;
             }
 
+            if (dbVersion < 13) {
+                // Version 13: Add rows to track number of rows in the views
+                const string upgradeSql = "ALTER TABLE views ADD COLUMN total_docs INTEGER DEFAULT -1; " +
+                    "PRAGMA user_version = 13";
+                if (!Initialize(upgradeSql)) {
+                    return false;
+                }
+
+                dbVersion = 13;
+            }
+
             // (Version 11 used to create the index revs_cur_deleted, which is obsoleted in version 16)
             
             if (dbVersion < 14)
