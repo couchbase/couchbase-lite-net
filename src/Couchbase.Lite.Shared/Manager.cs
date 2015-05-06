@@ -339,7 +339,6 @@ namespace Couchbase.Lite
                     StreamUtils.CopyStreamsToFolder(attachmentStreams, attachmentsFile);
                 }
                 database.Open();
-                database.ReplaceUUIDs ();
             } catch (Exception e) {
                 Log.E(Database.Tag, string.Empty, e);
                 throw new CouchbaseLiteException(StatusCode.InternalServerError);
@@ -387,7 +386,6 @@ namespace Couchbase.Lite
 
             UpgradeDatabase(new FileInfo(database.Path));
             database.Open();
-            database.ReplaceUUIDs ();
         }
 
     #endregion

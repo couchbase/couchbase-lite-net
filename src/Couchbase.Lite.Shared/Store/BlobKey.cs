@@ -46,6 +46,7 @@ using System.Text;
 using Sharpen;
 using Couchbase.Lite;
 using Couchbase.Lite.Util;
+using System.Linq;
 
 namespace Couchbase.Lite
 {
@@ -53,7 +54,7 @@ namespace Couchbase.Lite
     /// <remarks>Key identifying a data blob. This happens to be a SHA-1 digest.</remarks>
     internal class BlobKey
     {
-        private byte[] bytes;
+        public byte[] Bytes { get; set; }
 
         public BlobKey()
         {
@@ -61,7 +62,7 @@ namespace Couchbase.Lite
 
         public BlobKey(byte[] bytes)
         {
-            this.bytes = bytes;
+            Bytes = bytes;
         }
 
         /// <summary>Constructor</summary>
@@ -71,6 +72,19 @@ namespace Couchbase.Lite
         /// </param>
         public BlobKey(string base64Digest) : this(DecodeBase64Digest(base64Digest))
         {
+        }
+
+        public virtual string Base64Digest()
+        {
+            return string.Format("sha1-{0}", Convert.ToBase64String(Bytes));
+        }
+
+        public static byte[] ConvertFromHex(string s)
+        {
+            return Enumerable.Range(0, s.Length)
+                .Where(x => x % 2 == 0)
+                .Select(x => Convert.ToByte(s.Substring(x, 2), 16))
+                .ToArray();
         }
 
         /// <summary>
@@ -105,82 +119,32 @@ namespace Couchbase.Lite
             }
             return bytes;
         }
-
-        public virtual void SetBytes(byte[] bytes)
-        {
-            this.bytes = bytes;
-        }
-
-        public virtual byte[] GetBytes()
-        {
-            return bytes;
-        }
-
-        public static string ConvertToHex(byte[] data)
-        {
-            StringBuilder buf = new StringBuilder();
-            for (int i = 0; i < data.Length; i++)
-            {
-                int halfbyte = (data[i] >> 4) & unchecked((int)(0x0F));
-                int two_halfs = 0;
-                do
-                {
-                    if ((0 <= halfbyte) && (halfbyte <= 9))
-                    {
-                        buf.Append((char)('0' + halfbyte));
-                    }
-                    else
-                    {
-                        buf.Append((char)('a' + (halfbyte - 10)));
-                    }
-                    halfbyte = data[i] & unchecked((int)(0x0F));
-                }
-                while (two_halfs++ < 1);
-            }
-            return buf.ToString();
-        }
-
-        public static byte[] ConvertFromHex(string s)
-        {
-            int len = s.Length;
-            byte[] data = new byte[len / 2];
-            for (int i = 0; i < len; i += 2)
-            {
-                data[i / 2] = unchecked((byte)((CharUtils.Digit(s[i], 16) << 4) + CharUtils.Digit(s[i + 1], 16)));
-            }
-            return data;
-        }
-
+            
         public override bool Equals(object o)
         {
-            if (!(o is Couchbase.Lite.BlobKey))
-            {
+            if (!(o is BlobKey)) {
                 return false;
             }
 
-            Couchbase.Lite.BlobKey oBlobKey = (Couchbase.Lite.BlobKey)o;
+            BlobKey oBlobKey = (BlobKey)o;
 
-			if (GetBytes () == null || oBlobKey.GetBytes () == null) 
-			{
-				return false;
-			}
+            if (Bytes == null || oBlobKey.Bytes == null) {
+                return false;
+            }
             
-			return Arrays.Equals(GetBytes(), oBlobKey.GetBytes());
+			return Arrays.Equals(Bytes, oBlobKey.Bytes);
         }
 
         public override int GetHashCode()
         {
-            return Arrays.HashCode(bytes);
+            return Arrays.HashCode(Bytes);
         }
 
         public override string ToString()
         {
-            return Couchbase.Lite.BlobKey.ConvertToHex(bytes);
+            return BitConverter.ToString(Bytes).Replace("-", String.Empty);
         }
 
-        public virtual string Base64Digest()
-        {
-            return string.Format("sha1-{0}", Convert.ToBase64String(bytes));
-        }
+
     }
 }
