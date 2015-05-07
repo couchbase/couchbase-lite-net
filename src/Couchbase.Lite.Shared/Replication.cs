@@ -848,7 +848,7 @@ namespace Couchbase.Lite
                 savingCheckpoint = false;
                 if (e != null)
                 {
-                    Log.V (Tag, "Unable to save remote checkpoint", e as HttpResponseException);
+                    Log.V (Tag, "Unable to save remote checkpoint", e);
                 }
 
                 if (LocalDatabase == null)
