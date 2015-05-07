@@ -69,9 +69,11 @@ namespace Couchbase.Lite.Replicator
             if (response.Content != null) {
                 var mre = new ManualResetEvent(false);
                 response.Content.LoadIntoBufferAsync().ContinueWith(t => mre.Set());
-                mre.WaitOne(Manager.DefaultOptions.RequestTimeout, true);
+                if (mre.WaitOne (Manager.DefaultOptions.RequestTimeout, true) == false) {
+                    Log.E ("DefaultAuthHandler", "mre.WaitOne timed out");
+                }
             }
-                
+
             var hasSetCookie = response.Headers.Contains("Set-Cookie");
             if (hasSetCookie)
             {

@@ -45,11 +45,14 @@ using System;
 using SQLitePCL;
 using Couchbase.Lite.Store;
 using SQLitePCL.Ugly;
+using Couchbase.Lite.Util;
 
 namespace Couchbase.Lite
 {
     public class Cursor : IDisposable
     {
+        static public object StmtDisposeLock = new object();
+
         const Int32 DefaultChunkSize = 8192;
 
         private sqlite3_stmt statement;
@@ -73,6 +76,10 @@ namespace Couchbase.Lite
             this.statement = stmt;
             currentRow = -1;
             currentStep = statement.step();
+
+            if (currentStep != raw.SQLITE_OK && currentStep != raw.SQLITE_ROW && currentStep != raw.SQLITE_DONE) {
+                Log.E ("Cursor", "currentStep: " + currentStep);
+            }
         }
 
         public bool MoveToNext ()
@@ -80,6 +87,10 @@ namespace Couchbase.Lite
             if (currentRow >= 0)
             {
                 currentStep = statement.step();
+
+                if (currentStep != raw.SQLITE_OK && currentStep != raw.SQLITE_ROW && currentStep != raw.SQLITE_DONE) {
+                    Log.E ("Cursor", "currentStep: " + currentStep);
+                }
             }
 
             if (HasRows) currentRow++;
@@ -133,9 +144,12 @@ namespace Couchbase.Lite
         {
             if (statement == null) return;
 
-            statement.Dispose();
+            lock (StmtDisposeLock) 
+            {
+                statement.Dispose ();
 
-            statement = null;
+                statement = null;
+            }
         }
 
         public bool IsAfterLast ()
