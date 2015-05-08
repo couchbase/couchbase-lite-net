@@ -799,6 +799,7 @@ namespace Couchbase.Lite
         {
             int heartbeat = 0;
             var mre = new ManualResetEventSlim();
+            var start = DateTime.Now;
             // Artificially short heartbeat (made possible by SetUp) to speed up the test
             SendRequest("GET", String.Format("/{0}/_changes?feed=longpoll&heartbeat=1000", database.Name), null, null, true,
                 r =>
@@ -808,6 +809,7 @@ namespace Couchbase.Lite
                     while (stream.Read(data, 0, data.Length) > 0)
                     {
                         if(data[0] == 13 && data[1] == 10) {
+                            Log.D(TAG, "Heartbeat came at {0} seconds", (DateTime.Now - start).TotalSeconds);
                             heartbeat += 1;
                         }
                     }
@@ -816,7 +818,7 @@ namespace Couchbase.Lite
                 });
 
             Assert.IsFalse(mre.IsSet);
-            Thread.Sleep(TimeSpan.FromSeconds(2.5));
+            Thread.Sleep(2500);
             Assert.IsFalse(mre.IsSet);
             Assert.AreEqual(2, heartbeat);
 
@@ -1430,15 +1432,6 @@ namespace Couchbase.Lite
                     response.Dispose();
                 }
             }
-        }
-
-        //HACK: Unity3D version of mono forces all %2F entities before the '?' to become '/'
-        private void ForceCanonicalPathAndQuery(Uri uri){
-            string paq = uri.PathAndQuery; // need to access PathAndQuery
-            FieldInfo flagsFieldInfo = typeof(Uri).GetField("m_Flags", BindingFlags.Instance | BindingFlags.NonPublic);
-            ulong flags = (ulong) flagsFieldInfo.GetValue(uri);
-            flags &= ~((ulong) 0x30); // Flags.PathNotCanonical|Flags.QueryNotCanonical
-            flagsFieldInfo.SetValue(uri, flags);
         }
 
         private T ParseJsonResponse<T>(HttpWebResponse response)

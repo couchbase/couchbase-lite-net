@@ -142,6 +142,7 @@ namespace Couchbase.Lite.Listener
         // Attempts to write the heartbeat message to the client
         private void SendHeartbeatResponse(object state)
         {
+            Log.D(TAG, "Sending heartbeat to client");
             if (!Response.WriteData((byte[])state, false)) {
                 if (_heartbeatTimer != null) {
                     _heartbeatTimer.Dispose();

@@ -519,7 +519,7 @@ namespace Couchbase.Lite.Listener
                 Log.E(TAG, "Error writing to HTTP response stream");
                 return false;
             } catch(ObjectDisposedException) {
-                Log.E(TAG, "Data written after disposal");
+                Log.I(TAG, "Data written after disposal"); // This is normal for hanging connections who write until the client disconnects
                 return false;
             }
         }

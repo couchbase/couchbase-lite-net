@@ -101,14 +101,14 @@ namespace Couchbase.Lite
             }
         }
 
-        private static CountdownEvent ReplicationWatcherThread(Replication replication)
+        private static CountdownEvent ReplicationWatcherThread(Replication replication, ReplicationObserver observer)
         {
             var started = replication.IsRunning;
             var doneSignal = new CountdownEvent(1);
 
             Task.Factory.StartNew(()=>
             {
-                var done = false;
+                var done = observer.IsReplicationFinished(); //Prevent race condition where the replicator stops before this portion is reached
                 while (!done)
                 {
                     if (replication.IsRunning)
@@ -148,7 +148,7 @@ namespace Couchbase.Lite
             replication.Changed += observer.Changed;
             replication.Start();
 
-            var replicationDoneSignalPolling = ReplicationWatcherThread(replication);
+            var replicationDoneSignalPolling = ReplicationWatcherThread(replication, observer);
 
             Log.D(Tag, "Waiting for replicator to finish.");
 
@@ -2172,13 +2172,14 @@ namespace Couchbase.Lite
             var wait = new CountdownEvent(1);
             repl.Changed += (sender, e) => {
                 Log.D("ReplicationTest", "New replication status {0}", e.Source.Status);
-                if(e.Source.Status == ReplicationStatus.Idle && e.Source.ChangesCount > 0 && e.Source.CompletedChangesCount == e.Source.ChangesCount) {
+                if((e.Source.Status == ReplicationStatus.Idle || e.Source.Status == ReplicationStatus.Stopped) && 
+                    e.Source.ChangesCount > 0 && e.Source.CompletedChangesCount == e.Source.ChangesCount) {
                     wait.Signal();
                 }
             };
             repl.Start();
 
-            Assert.IsTrue(wait.Wait(TimeSpan.FromSeconds(10)), "Pull replication timed out");
+            Assert.IsTrue(wait.Wait(TimeSpan.FromSeconds(60)), "Pull replication timed out");
             Assert.IsNotNull(database.GetExistingDocument(doc1Id), "Didn't get doc1 from puller");
             Assert.IsNotNull(database.GetExistingDocument(doc2Id), "Didn't get doc2 from puller");
             Assert.IsNull(repl.LastError);
@@ -2197,7 +2198,7 @@ namespace Couchbase.Lite
             repl.Authenticator = new BasicAuthenticator("jim", "bogus");
             wait.Reset(1);
             repl.Start();
-            Assert.IsTrue(wait.Wait(TimeSpan.FromSeconds(10)), "Pull replication timed out");
+            Assert.IsTrue(wait.Wait(TimeSpan.FromSeconds(60)), "Pull replication timed out");
             Assert.IsNull(database.GetExistingDocument(doc1Id), "Got rogue doc1 from puller");
             Assert.IsNull(database.GetExistingDocument(doc2Id), "Got rogue doc2 from puller");
             repl.Stop();
