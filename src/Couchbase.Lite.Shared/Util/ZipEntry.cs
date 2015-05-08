@@ -92,7 +92,13 @@ namespace Couchbase.Lite.Util
                 return;
             }
 
-            compressedStream.Seek(4, SeekOrigin.Current);
+            compressedStream.Seek(2, SeekOrigin.Current);
+            var generalBit = new byte[2];
+            compressedStream.Read(generalBit, 0, 2);
+            if ((generalBit[1] & 0x1) != 0) {
+                throw new InvalidDataException("Encryption is not supported on zips for this API");
+            }
+
             compressedStream.Read(buffer, 0, 2);
             var compressionType = GetLittleEndianNumberFromByteArray(buffer, 0, 2);
             if (compressionType != 0 && compressionType != 8) {
@@ -112,7 +118,13 @@ namespace Couchbase.Lite.Util
 
             var filenameBytes = new byte[filenameLength];
             compressedStream.Read(filenameBytes, 0, filenameLength);
-            Filename = Encoding.ASCII.GetString(filenameBytes);
+
+            bool dosEncoding = (generalBit[0] & 0x4) == 0;
+            if (dosEncoding) {
+                Filename = Encoding.GetEncoding("CP437").GetString(filenameBytes);
+            } else {
+                Filename = Encoding.UTF8.GetString(filenameBytes);
+            }
 
             var rawData = new byte[compressedLength];
             compressedStream.Seek(extraFieldLength, SeekOrigin.Current);
