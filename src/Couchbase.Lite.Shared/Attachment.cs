@@ -249,6 +249,7 @@ namespace Couchbase.Lite {
                 var bytes = ms.ToArray();
 
                 ms.Dispose();
+                stream.Dispose();
                 return bytes;
             }
         }
