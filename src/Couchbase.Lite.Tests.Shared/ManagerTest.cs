@@ -120,11 +120,13 @@ namespace Couchbase.Lite
             //Copy database from assets to local storage
             var dbStream = GetAsset("noattachments.cblite");
 
-            manager.ReplaceDatabase("replaced", dbStream, null);
+             manager.ReplaceDatabase("replaced", dbStream, null);
             dbStream.Dispose();
 
             //Now validate the number of files in the DB
-            Assert.AreEqual(10, manager.GetDatabase("replaced").DocumentCount);
+            var db = manager.GetDatabase("replaced");
+            Assert.AreEqual(10, db.DocumentCount);
+            db.Dispose();
         }
 
         [Test]

@@ -598,10 +598,21 @@ namespace Couchbase.Lite.Db
 
             public void Dispose()
             {
-                raw.sqlite3_finalize(_docQuery);
-                raw.sqlite3_finalize(_revQuery);
-                raw.sqlite3_finalize(_attQuery);
-                raw.sqlite3_close(_sqlite);
+                if (_docQuery != null) {
+                    raw.sqlite3_finalize(_docQuery);
+                }
+
+                if (_revQuery != null) {
+                    raw.sqlite3_finalize(_revQuery);
+                }
+
+                if (_attQuery != null) {
+                    raw.sqlite3_finalize(_attQuery);
+                }
+
+                if (_sqlite != null) {
+                    raw.sqlite3_close(_sqlite);
+                }
             }
 
             #endregion
