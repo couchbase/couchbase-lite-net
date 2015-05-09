@@ -131,6 +131,26 @@ namespace Couchbase.Lite
             }
         }
 
+        public static T? GetNullable<T>(this IDictionary<string, object> collection, string key) where T : struct
+        {
+            object value = collection.Get(key);
+            if (value == null) {
+                return null;
+            }
+
+            //If the types already match then things are easy
+            if (value is T) {
+                return (T)value;
+            }
+
+            try {
+                //Take the slow route for things like boxed value types
+                return (T)Convert.ChangeType(value, typeof(T));
+            } catch(Exception) {
+                return null;
+            }
+        }
+
         public static IEnumerable<T> AsSafeEnumerable<T>(this IEnumerable<T> source)
         {
             var e = ((IEnumerable)source).GetEnumerator();

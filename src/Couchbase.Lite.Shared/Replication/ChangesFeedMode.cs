@@ -22,11 +22,32 @@ using System;
 
 namespace Couchbase.Lite.Replicator
 {
+
+    /// <summary>
+    /// The mode to send or request a changes feed in
+    /// </summary>
+    [Serializable]
     public enum ChangesFeedMode
     {
+        /// <summary>
+        /// A one-shot
+        /// </summary>
         Normal,
+
+        /// <summary>
+        /// The connection will remain open until the next change made to the database, and then the information
+        /// will be sent and the connection closed
+        /// </summary>
         LongPoll,
+
+        /// <summary>
+        /// Similar to LongPoll, but the connection remains open indefinitely
+        /// </summary>
         Continuous,
+
+        /// <summary>
+        /// Uses the Mozilla event source format to sent changes continuously
+        /// </summary>
         EventSource
     }
 }

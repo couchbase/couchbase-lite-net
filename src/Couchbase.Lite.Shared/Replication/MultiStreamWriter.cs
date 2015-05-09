@@ -145,13 +145,14 @@ namespace Couchbase.Lite.Support
 
         public IEnumerable<byte> AllOutput()
         {
-            var ms = new MemoryStream();
-            if(!WriteAsync(ms).Wait(TimeSpan.FromSeconds(30))) {
-                Log.W(TAG, "Unable to get output!");
-                return null;
-            }
+            using (var ms = new MemoryStream()) {
+                if (!WriteAsync(ms).Wait(TimeSpan.FromSeconds(30))) {
+                    Log.W(TAG, "Unable to get output!");
+                    return null;
+                }
 
-            return ms.ToArray();
+                return ms.ToArray();
+            }
         }
 
         protected virtual void Opened()

@@ -44,7 +44,11 @@ using System.Runtime.CompilerServices;
 // Information about this assembly is defined by the following attributes.
 // Change them to the values specific to your project.
 using System.Runtime.Versioning;
+using System.Runtime.InteropServices;
+using System;
 
+[assembly: ComVisible(false)]
+[assembly: CLSCompliant(false)]
 [assembly: AssemblyTitle ("Couchbase.Lite")]
 [assembly: AssemblyDescription ("A lightweight, document-oriented (NoSQL), syncable database engine for .NET")]
 #if ENTERPRISE

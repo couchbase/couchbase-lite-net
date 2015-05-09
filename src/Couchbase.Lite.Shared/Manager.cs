@@ -319,26 +319,28 @@ namespace Couchbase.Lite
         public void ReplaceDatabase(String name, Stream databaseStream, IDictionary<String, Stream> attachmentStreams)
         {
             try {
-                var database = GetDatabaseWithoutOpening (name, false);
-                var dstAttachmentsPath = database.AttachmentStorePath;
+                using(var database = GetDatabaseWithoutOpening (name, false)) {
+                    var dstAttachmentsPath = database.AttachmentStorePath;
 
-                var destStream = File.OpenWrite(database.Path);
-                databaseStream.CopyTo(destStream);
-                destStream.Dispose();
-                UpgradeDatabase(new FileInfo(database.Path));
+                    using(var destStream = File.OpenWrite(database.Path)) {
+                        databaseStream.CopyTo(destStream);
+                    }
 
-                if (System.IO.Directory.Exists(dstAttachmentsPath)) 
-                {
-                    System.IO.Directory.Delete (dstAttachmentsPath, true);
+                    UpgradeDatabase(new FileInfo(database.Path));
+
+                    if (System.IO.Directory.Exists(dstAttachmentsPath)) 
+                    {
+                        System.IO.Directory.Delete (dstAttachmentsPath, true);
+                    }
+                    System.IO.Directory.CreateDirectory(dstAttachmentsPath);
+
+                    var attachmentsFile = new FilePath(dstAttachmentsPath);
+
+                    if (attachmentStreams != null) {
+                        StreamUtils.CopyStreamsToFolder(attachmentStreams, attachmentsFile);
+                    }
+                    database.Open();
                 }
-                System.IO.Directory.CreateDirectory(dstAttachmentsPath);
-
-                var attachmentsFile = new FilePath(dstAttachmentsPath);
-
-                if (attachmentStreams != null) {
-                    StreamUtils.CopyStreamsToFolder(attachmentStreams, attachmentsFile);
-                }
-                database.Open();
             } catch (Exception e) {
                 Log.E(Database.Tag, string.Empty, e);
                 throw new CouchbaseLiteException(StatusCode.InternalServerError);
