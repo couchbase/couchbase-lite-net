@@ -69,6 +69,22 @@ namespace Couchbase.Lite.Listener
         static CouchbaseLiteServiceBrowser() {
             global::Android.App.Application.Context.GetSystemService("servicediscovery");
         }
+        #elif __UNITY_ANDROID__
+        static CouchbaseLiteServiceBrowser() {
+            UnityEngine.AndroidJavaClass c = new UnityEngine.AndroidJavaClass("com.unity3d.player.UnityPlayer");
+            var context = c.GetStatic<UnityEngine.AndroidJavaObject>("currentActivity");
+            if (context == null) {
+                c.Dispose();
+                throw new Exception("Failed to get context");
+            }
+
+            var arg = new UnityEngine.AndroidJavaObject("java.lang.String", "servicediscovery");
+            context.Call<UnityEngine.AndroidJavaObject>("getSystemService", arg);
+
+            context.Dispose();
+            arg.Dispose();
+            c.Dispose();
+        }
         #endif
 
         /// <summary>
