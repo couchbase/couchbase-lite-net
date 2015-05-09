@@ -201,7 +201,8 @@ namespace Couchbase.Lite {
         }
 
         /// <summary>
-        /// Get the <see cref="Couchbase.Lite.Attachment"/> content stream.
+        /// Get the <see cref="Couchbase.Lite.Attachment"/> content stream.  The caller must not
+        /// dispose it.
         /// </summary>
         /// <value>The <see cref="Couchbase.Lite.Attachment"/> content stream.</value>
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException">
@@ -243,14 +244,12 @@ namespace Couchbase.Lite {
                 ContentStream.Reset();
 
                 var stream = ContentStream;
-                var ms = new MemoryStream();
+                using (var ms = new MemoryStream()) {
+                    stream.CopyTo(ms);
+                    var bytes = ms.ToArray();
 
-                stream.CopyTo(ms);
-                var bytes = ms.ToArray();
-
-                ms.Dispose();
-                stream.Dispose();
-                return bytes;
+                    return bytes;
+                }
             }
         }
 

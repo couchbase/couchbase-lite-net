@@ -49,7 +49,7 @@ using System.Threading;
 
 namespace Couchbase.Lite.Util
 {
-    [Obsolete]
+    [Obsolete("Is incomplete and has been replaced anyway, will be removed in 1.2")]
     public sealed class SystemLogger : ILogger
     {
         public void V(string tag, string msg)

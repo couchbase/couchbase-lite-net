@@ -54,7 +54,7 @@ namespace Couchbase.Lite
     /// <summary>
     /// An unsaved Couchbase Lite Document Revision.
     /// </summary>
-    public partial class UnsavedRevision : Revision {
+    public class UnsavedRevision : Revision, IDisposable {
 
     #region Non-public Members
         IDictionary<String, Object> properties;
@@ -118,6 +118,11 @@ namespace Couchbase.Lite
             {
                 properties = new Dictionary<string, object>(parentRevisionProperties);
             }
+        }
+
+        ~UnsavedRevision() {
+            Log.D("UnsavedRevision", "Finalizer ran");
+            Dispose(true);
         }
 
 
@@ -237,7 +242,7 @@ namespace Couchbase.Lite
         /// Thrown if an issue occurs while saving the <see cref="Couchbase.Lite.UnsavedRevision"/>.
         /// </exception>
         public SavedRevision Save() { 
-            return Document.PutProperties(Properties, ParentId, allowConflict: false); 
+            return Document.PutProperties(Properties, ParentId, false); 
         }
 
         /// <summary>
@@ -267,6 +272,7 @@ namespace Couchbase.Lite
         public void SetAttachment(String name, String contentType, IEnumerable<Byte> content) {
             var attachment = new Attachment(new MemoryStream(content.ToArray()), contentType);
             AddAttachment(attachment, name);
+            
         }
 
         /// <summary>
@@ -299,18 +305,17 @@ namespace Couchbase.Lite
         /// <param name="contentType">The content-type of the <see cref="Couchbase.Lite.Attachment"/>.</param>
         /// <param name="contentUrl">The URL of the <see cref="Couchbase.Lite.Attachment"/> content.</param>
         public void SetAttachment(String name, String contentType, Uri contentUrl) {
-            try
-            {
-                var inputStream = contentUrl.OpenConnection().GetInputStream();
-                var length = inputStream.Length;
-                var inputBytes = inputStream.ReadAllBytes();
-                inputStream.Close();
+            try {
+                byte[] inputBytes = null;
+                using(var inputStream = contentUrl.OpenConnection().GetInputStream()) {
+                    var length = inputStream.Length;
+                    inputBytes = inputStream.ReadAllBytes();
+                }
+
                 SetAttachment(name, contentType, inputBytes);
-            }
-            catch (IOException e)
-            {
-                Log.E(Database.Tag, "Error opening stream for url: " + contentUrl);
-                throw new RuntimeException(e);
+            } catch (IOException e) {
+                Log.E(Database.Tag, "Error opening stream for url: {0}", contentUrl);
+                throw new Exception(String.Format("Error opening stream for url: {0}", contentUrl), e);
             }
         }
 
@@ -329,6 +334,28 @@ namespace Couchbase.Lite
         public void RemoveAttachment(String name) { AddAttachment(null, name); }
 
     #endregion
+
+        #region IDisposable
+
+        public void Dispose() 
+        {
+            Dispose(false);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            var attachments = GetProperty("_attachments").AsDictionary<string, Attachment>();
+            if (attachments == null) {
+                return;
+            }
+
+            foreach (var pair in attachments) {
+                pair.Value.Dispose();
+            }
+        }
+
+        #endregion
     
     }
 

@@ -253,6 +253,11 @@ namespace Couchbase.Lite
             return false;
         }
 
+        public override int GetHashCode()
+        {
+            return DocumentProperties.GetHashCode();
+        }
+
         public override string ToString()
         {
             return AsJSONDictionary().ToString();
