@@ -57,9 +57,12 @@ using Couchbase.Lite.Util;
 using Sharpen;
 using Couchbase.Lite.Db;
 using System.Diagnostics;
+using ICSharpCode.SharpZipLib.Zip;
 
 #if !NET_3_5
 using StringEx = System.String;
+#else
+using Rackspace.Threading;
 #endif
 
 namespace Couchbase.Lite
@@ -137,7 +140,11 @@ namespace Couchbase.Lite
             // and this is only needed by the default constructor or when accessing the SharedInstanced
             // So, let's only set it only when GetFolderPath returns something and allow the directory to be
             // manually specified via the ctor that accepts a DirectoryInfo
+            #if __UNITY__
+            var defaultDirectoryPath = UnityEngine.Application.persistentDataPath;
+            #else
             var defaultDirectoryPath = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+            #endif
             if (!StringEx.IsNullOrWhiteSpace(defaultDirectoryPath))
             {
                 defaultDirectory = new DirectoryInfo(defaultDirectoryPath);
@@ -152,6 +159,8 @@ namespace Couchbase.Lite
                 gitVersion= reader.ReadToEnd();
             }
             VersionString = String.Format("Unofficial ({0})", gitVersion.TrimEnd());
+            #elif __UNITY__
+            VersionString = "1.0";
             #else
             VersionString = "1.1_b1";
             #endif
@@ -353,9 +362,8 @@ namespace Couchbase.Lite
         /// <param name="name">The name of the target Database to replace or create.</param>
         /// <param name="compressedStream">The zip stream containing all of the files required by the DB.</param>
         /// <remarks>
-        /// The zip stream must be from a regular unencrypted PKZip structure compressed with Deflate (*nix command
+        /// The zip stream must be from a regular PKZip structure compressed with Deflate (*nix command
         /// line zip will produce this)
-        /// </remarks>
         public void ReplaceDatabase(string name, Stream compressedStream)
         {
             var database = GetDatabaseWithoutOpening(name, false);
@@ -366,25 +374,27 @@ namespace Couchbase.Lite
 
             System.IO.Directory.CreateDirectory(dstAttachmentsPath);
 
-            foreach (var entry in ZipArchive.GetEntriesFromStream(compressedStream)) {
-                if (entry.IsDirectory) {
-                    System.IO.Directory.CreateDirectory(Path.Combine(Directory, entry.Filename));
-                    continue;
-                }
+            ZipEntry entry = null;
+            using (var zipStream = new ZipInputStream(compressedStream)) {
+                while ((entry = zipStream.GetNextEntry()) != null) {
+                    if (entry.IsDirectory) {
+                        System.IO.Directory.CreateDirectory(Path.Combine(Directory, entry.Name));
+                        continue;
+                    }
 
-                if (entry.FileData == null) {
-                    continue;
-                }
+                    var path = Path.Combine(Directory, entry.Name);
+                    if (File.Exists(path)) {
+                        File.Delete(path);
+                    }
 
-                var path = Path.Combine(Directory, entry.Filename);
-                if (File.Exists(path)) {
-                    File.Delete(path);
-                }
-
-                using (var destStream = File.OpenWrite(path)) {
-                    entry.FileData.CopyTo(destStream);
+                    using (var destStream = File.OpenWrite(path)) {
+                        if (entry.CompressedSize > 0) {
+                            zipStream.CopyTo(destStream);
+                        }
+                    }
                 }
             }
+
 
             UpgradeDatabase(new FileInfo(database.Path));
             database.Open();
@@ -509,15 +519,16 @@ namespace Couchbase.Lite
                 return;
             }
 
-            var upgrader = DatabaseUpgraderFactory.CreateUpgrader(db, oldFilename);
-            var status = upgrader.Import();
-            if (status.IsError) {
-                Log.W(Tag, "Upgrade failed for {0} (Status {1})", path.Name, status);
-                upgrader.Backout();
-                return;
+            using (var upgrader = DatabaseUpgraderFactory.CreateUpgrader(db, oldFilename)) {
+                var status = upgrader.Import();
+                if (status.IsError) {
+                    Log.W(Tag, "Upgrade failed for {0} (Status {1})", path.Name, status);
+                    upgrader.Backout();
+                    return;
+                }
             }
 
-            db.Close();
+            db.Dispose();
             Log.D(Tag, "...Success!");
         }
 

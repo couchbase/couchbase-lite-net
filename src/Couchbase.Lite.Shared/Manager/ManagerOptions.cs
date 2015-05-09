@@ -82,6 +82,9 @@ namespace Couchbase.Lite
 
             RequestTimeout = TimeSpan.FromSeconds(90);
 
+            #if __UNITY__
+            CallbackScheduler = Couchbase.Lite.Unity.UnityMainThreadScheduler.TaskScheduler;
+            #else
             TaskScheduler scheduler = null;
             try {
                 scheduler = TaskScheduler.FromCurrentSynchronizationContext ();
@@ -91,6 +94,7 @@ namespace Couchbase.Lite
             } finally {
                 CallbackScheduler =  scheduler ?? TaskScheduler.Current ?? TaskScheduler.Default;
             }
+            #endif
         }
 
         /// <summary>Gets or sets, whether changes to the database are disallowed.</summary>
