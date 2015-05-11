@@ -71,14 +71,18 @@ namespace Couchbase.Lite
         internal void AddAttachment(Attachment attachment, string name)
         {
             var attachments = Properties.Get("_attachments").AsDictionary<string,object>();
-            if (attachments == null)
-            {
+            if (attachments == null) {
                 attachments = new Dictionary<String, Object>();
             }
+
+            var oldAttach = attachments.GetCast<Attachment>(name);
+            if (oldAttach != null) {
+                oldAttach.Dispose();
+            }
+
             attachments[name] = attachment;
             Properties["_attachments"] = attachments;
-            if (attachment != null)
-            {
+            if (attachment != null) {
                 attachment.Name = name;
                 attachment.Revision = this;
             }
@@ -331,7 +335,10 @@ namespace Couchbase.Lite
         /// <param name="name">
         /// The name of the <see cref="Couchbase.Lite.Attachment"/> to delete.
         /// </param>
-        public void RemoveAttachment(String name) { AddAttachment(null, name); }
+        public void RemoveAttachment(String name) 
+        { 
+            AddAttachment(null, name);
+        }
 
     #endregion
 
