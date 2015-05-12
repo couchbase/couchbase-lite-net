@@ -47,6 +47,7 @@ using Couchbase.Lite;
 using NUnit.Framework;
 using Sharpen;
 using Couchbase.Lite.Db;
+using System;
 
 namespace Couchbase.Lite
 {
@@ -148,7 +149,7 @@ namespace Couchbase.Lite
         [Test]
         public void TestReplaceWithIosDatabase() {
             using (var assetStream = GetAsset("ios104.zip")) {
-                manager.ReplaceDatabase("iosdb", assetStream);
+                manager.ReplaceDatabase("iosdb", assetStream, true);
             }
 
             var db = manager.GetExistingDatabase("iosdb");
@@ -171,7 +172,7 @@ namespace Couchbase.Lite
 
             db.Dispose();
             using (var assetStream = GetAsset("ios110.zip")) {
-                manager.ReplaceDatabase("iosdb", assetStream);
+                manager.ReplaceDatabase("iosdb", assetStream, true);
             }
             db = manager.GetExistingDatabase("iosdb");
             Assert.IsNotNull(db, "Failed to import database");
@@ -195,10 +196,10 @@ namespace Couchbase.Lite
         [Test]
         public void TestReplaceWithAndroidDatabase() {
             using (var assetStream = GetAsset("android104.zip")) {
-                manager.ReplaceDatabase("todos", assetStream);
+                manager.ReplaceDatabase("androiddb", assetStream, true);
             }
 
-            var db = manager.GetExistingDatabase("todos");
+            var db = manager.GetExistingDatabase("androiddb");
             Assert.IsNotNull(db, "Failed to import database");
             var doc = db.GetExistingDocument("66ac306d-de93-46c8-b60f-946c16ac4a1d");
             Assert.IsNotNull(doc, "Failed to get doc from imported database");
@@ -218,10 +219,10 @@ namespace Couchbase.Lite
             db.Dispose();
 
             using (var assetStream = GetAsset("android110.zip")) {
-                manager.ReplaceDatabase("guest", assetStream);
+                manager.ReplaceDatabase("androiddb", assetStream, true);
             }
 
-            db = manager.GetExistingDatabase("guest");
+            db = manager.GetExistingDatabase("androiddb");
             Assert.IsNotNull(db, "Failed to import database");
             doc = db.GetExistingDocument("d3e80747-2568-47c8-81e8-a04ba1b5c5d4");
             Assert.IsNotNull(doc, "Failed to get doc from imported database");
@@ -238,6 +239,27 @@ namespace Couchbase.Lite
             }, "1");
             result = view.CreateQuery().Run();
             Assert.AreEqual(1, result.Count);
+        }
+
+        [Test]
+        public void TestReplaceFailure()
+        {
+            var doc = database.CreateDocument();
+            doc.PutProperties(new Dictionary<string, object> {
+                { "foo", "bar" }
+            });
+                
+            Assert.Throws(typeof(ArgumentException), () =>
+            {
+                using (var assetStream = GetAsset("android104.zip")) {
+                    manager.ReplaceDatabase(database.Name, assetStream, false);
+                }
+            });
+
+            // Verify that the original DB is intact
+            doc = database.GetExistingDocument(doc.Id);
+            Assert.IsNotNull(doc, "Failed to get original document");
+            Assert.AreEqual("bar", doc.UserProperties["foo"]);
         }
     }
 }
