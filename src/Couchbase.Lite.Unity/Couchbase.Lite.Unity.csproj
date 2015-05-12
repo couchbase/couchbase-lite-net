@@ -50,9 +50,6 @@
       <HintPath>..\Couchbase.Lite.Net35\vendor\JSON.NET\Newtonsoft.Json.dll</HintPath>
     </Reference>
     <Reference Include="System.Data" />
-    <Reference Include="Jint">
-      <HintPath>..\Couchbase.Lite.Shared\vendor\Jint\Jint.dll</HintPath>
-    </Reference>
     <Reference Include="ICSharpCode.SharpZipLib">
       <Private>True</Private>
     </Reference>

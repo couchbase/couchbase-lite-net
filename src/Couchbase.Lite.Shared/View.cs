@@ -92,10 +92,6 @@ namespace Couchbase.Lite {
             Collation = ViewCollation.Unicode;
         }
 
-        static View() {
-            Compiler = new JSViewCompiler();
-        }
-
     #endregion
 
     #region Static Members

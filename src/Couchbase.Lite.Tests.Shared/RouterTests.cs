@@ -31,7 +31,6 @@ using Couchbase.Lite.Util;
 using System.Collections;
 using System.Text;
 using System.Threading;
-using Couchbase.Lite.Views;
 using System.Threading.Tasks;
 using System.Reflection;
 using Couchbase.Lite.Listener.Tcp;
