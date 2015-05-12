@@ -124,12 +124,6 @@ namespace Couchbase.Lite
             }
         }
 
-        ~UnsavedRevision() {
-            Log.D("UnsavedRevision", "Finalizer ran");
-            Dispose(true);
-        }
-
-
     #endregion
 
     #region Instance Members
@@ -345,12 +339,6 @@ namespace Couchbase.Lite
         #region IDisposable
 
         public void Dispose() 
-        {
-            Dispose(false);
-            GC.SuppressFinalize(this);
-        }
-
-        protected virtual void Dispose(bool disposing)
         {
             var attachments = GetProperty("_attachments").AsDictionary<string, Attachment>();
             if (attachments == null) {
