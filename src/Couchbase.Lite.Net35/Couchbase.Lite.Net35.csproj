@@ -62,7 +62,7 @@
       <HintPath>..\Couchbase.Lite.Shared\vendor\Jint\Microsoft.Scripting.Core.dll</HintPath>
     </Reference>
     <Reference Include="ICSharpCode.SharpZipLib">
-      <Private>True</Private>
+      <HintPath>vendor\ICSharpCode\ICSharpCode.SharpZipLib.dll</HintPath>
     </Reference>
   </ItemGroup>
   <Import Project="..\Couchbase.Lite.Shared\Couchbase.Lite.Shared.projitems" Label="Shared" Condition="Exists('..\Couchbase.Lite.Shared\Couchbase.Lite.Shared.projitems')" />
