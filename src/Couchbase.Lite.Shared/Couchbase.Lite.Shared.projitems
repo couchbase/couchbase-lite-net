@@ -212,7 +212,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)Replication\MultipartWriter.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Replication\MultiStreamWriter.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\NonNullDictionary.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)View\JSViewCompiler.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Manager\IDatabaseUpgrader.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Manager\DatabaseUpgraderFactory.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Manager\DatabaseUpgraderFactory_Upgraders.cs" />

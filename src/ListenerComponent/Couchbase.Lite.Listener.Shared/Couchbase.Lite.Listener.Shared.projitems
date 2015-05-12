@@ -74,6 +74,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\TCP\CouchbaseListenerTcpContext.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\TCP\CouchbaseLiteTcpListener.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\TCP\TcpResponseWriter.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)PeerToPeer\JSViewCompiler.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="$(MSBuildThisFileDirectory)Couchbase.Lite.Listener.dll.config">
