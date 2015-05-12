@@ -51,7 +51,7 @@
     </Reference>
     <Reference Include="System.Data" />
     <Reference Include="ICSharpCode.SharpZipLib">
-      <Private>True</Private>
+      <HintPath>..\Couchbase.Lite.Net35\vendor\ICSharpCode\ICSharpCode.SharpZipLib.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
