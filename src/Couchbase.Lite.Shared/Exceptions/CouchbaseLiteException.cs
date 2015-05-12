@@ -48,11 +48,15 @@ namespace Couchbase.Lite {
 
         internal StatusCode Code { get; set; }
 
+        public CouchbaseLiteException() : this(StatusCode.Unknown) {  }
+
+        public CouchbaseLiteException(string message, Exception innerException) : base(message, innerException) { Code = StatusCode.Unknown; }
+
         public CouchbaseLiteException (Exception innerException, StatusCode code) : base(String.Format("Database error: {0}", code), innerException) { Code = code; }
 
-        public CouchbaseLiteException (Exception innerException, Status status) : this(innerException, status.GetCode()) { Code = status.GetCode(); }
+        public CouchbaseLiteException (Exception innerException, Status status) : this(innerException, status.Code) { Code = status.Code; }
 
-        public CouchbaseLiteException (StatusCode code) : base(String.Format("Database error: {0}", code)) { Code = code; }
+        public CouchbaseLiteException (StatusCode code) : base(String.Format("Coucbase Lite error: {0}", code)) { Code = code; }
 
         public CouchbaseLiteException (String message, StatusCode code) : base(message) { Code = code; }
 

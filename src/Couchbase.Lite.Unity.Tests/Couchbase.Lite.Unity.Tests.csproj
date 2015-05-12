@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{8424740E-F079-4D37-8B3B-E620043D2752}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <RootNamespace>Couchbase.Lite.Unity.Tests</RootNamespace>
+    <AssemblyName>Couchbase.Lite.Unity.Tests</AssemblyName>
+    <ReleaseVersion>1.1</ReleaseVersion>
+    <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug</OutputPath>
+    <DefineConstants>DEBUG;NET_3_5;__UNITY__;</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <ConsolePause>false</ConsolePause>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release</OutputPath>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <ConsolePause>false</ConsolePause>
+    <DebugSymbols>true</DebugSymbols>
+    <DefineConstants>NET_3_5;__UNITY__;</DefineConstants>
+    <DebugType>pdbonly</DebugType>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="nunitlite">
+      <HintPath>..\Couchbase.Lite.Net35.Tests\NUnit\nunitlite.dll</HintPath>
+    </Reference>
+    <Reference Include="Newtonsoft.Json">
+      <HintPath>..\Couchbase.Lite.Net35\vendor\JSON.NET\Newtonsoft.Json.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Configuration" />
+    <Reference Include="System.Net" />
+  </ItemGroup>
+  <Import Project="..\Couchbase.Lite.Tests.Shared\Couchbase.Lite.Tests.Shared.projitems" Label="Shared" Condition="Exists('..\Couchbase.Lite.Tests.Shared\Couchbase.Lite.Tests.Shared.projitems')" />
+  <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
+  <ItemGroup>
+    <Folder Include="Assets\" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\android104.zip">
+      <Link>Assets\android104.zip</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\android110.zip">
+      <Link>Assets\android110.zip</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Assets\attachment.blob" />
+    <EmbeddedResource Include="Assets\attachment.png" />
+    <EmbeddedResource Include="Assets\attachment2.png" />
+    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\ios104.zip">
+      <Link>Assets\ios104.zip</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\ios110.zip">
+      <Link>Assets\ios110.zip</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Assets\local-test.properties" />
+    <EmbeddedResource Include="Assets\performance-test.json" />
+    <EmbeddedResource Include="Assets\test.properties" />
+    <EmbeddedResource Include="Assets\withattachments.cblite" />
+    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\noattachments.cblite">
+      <Link>Assets\noattachments.cblite</Link>
+    </EmbeddedResource>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\ListenerComponent\Couchbase.Lite.Listener.Unity\Couchbase.Lite.Listener.Unity.csproj">
+      <Project>{DBD30658-44C1-4903-8763-8E23FB4ADD9E}</Project>
+      <Name>Couchbase.Lite.Listener.Unity</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Couchbase.Lite.Net35\vendor\Rackspace\System.Net.Http\System.Net.Http-net_4_5.csproj">
+      <Project>{9862694D-E4FA-418B-8692-A0280FEDDF36}</Project>
+      <Name>System.Net.Http-net_4_5</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Couchbase.Lite.Net35\vendor\Rackspace\Rackspace.Threading\System.Threading.Tasks.Net35\System.Threading.Tasks.Net35.csproj">
+      <Project>{DCB5D745-525C-46A1-BFC0-E12F87AB6165}</Project>
+      <Name>System.Threading.Tasks.Net35</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Couchbase.Lite.Unity\Couchbase.Lite.Unity.csproj">
+      <Project>{5831782E-A661-4BD0-8D3B-813B963E7B82}</Project>
+      <Name>Couchbase.Lite.Unity</Name>
+    </ProjectReference>
+  </ItemGroup>
+</Project>

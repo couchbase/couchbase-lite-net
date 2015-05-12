@@ -701,6 +701,7 @@ namespace Couchbase.Lite
             var newRev = doc.CurrentRevision.CreateRevision();
             newRev.RemoveAttachment(attachmentName);
             var rev4 = newRev.Save();
+            newRev.Dispose();
             Assert.IsNotNull(rev4);
             Assert.AreEqual(0, rev4.AttachmentNames.Count());
         }

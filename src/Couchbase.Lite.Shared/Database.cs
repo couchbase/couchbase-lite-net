@@ -186,26 +186,20 @@ namespace Couchbase.Lite
                 var sql = "SELECT COUNT(DISTINCT doc_id) FROM revs WHERE current=1 AND deleted=0";
                 Cursor cursor = null;
                 int result = 0;
-                try
-                {
+                try {
                     cursor = StorageEngine.RawQuery(sql);
-                    if (cursor.MoveToNext())
-                    {
+                    if (cursor.MoveToNext()) {
                         result = cursor.GetInt(0);
                     }
-                }
-                catch (SQLException e)
-                {   // FIXME: Should we really swallow this exception?
+                } catch (SQLException e) {   // FIXME: Should we really swallow this exception?
                     Log.E(Tag, "Error getting document count", e);
                     result = -1;
-                }
-                finally
-                {
-                    if (cursor != null)
-                    {
-                        cursor.Close();
+                } finally {
+                    if (cursor != null) {
+                        cursor.Dispose();
                     }
                 }
+
                 return result;
             }
         }
@@ -223,30 +217,24 @@ namespace Couchbase.Lite
                 var sql = "SELECT MAX(sequence) FROM revs";
                 Cursor cursor = null;
                 long result = 0;
-                try
-                {
+                try {
                     cursor = StorageEngine.RawQuery(sql);
-                    if (cursor.MoveToNext())
-                    {
+                    if (cursor.MoveToNext()) {
                         result = cursor.GetLong(0);
 
                         // When there is no rows in revs table, the result is -1 which is different
                         // from the Android platform.
                         if (result < 0) result = 0;
                     }
-                }
-                catch (SQLException e)
-                {   // FIXME: Should we really swallow this exception?
+                } catch (SQLException e) {   // FIXME: Should we really swallow this exception?
                     Log.E(Tag, "Error getting last sequence", e);
                     result = -1;
-                }
-                finally
-                {
-                    if (cursor != null)
-                    {
-                        cursor.Close();
+                } finally {
+                    if (cursor != null) {
+                        cursor.Dispose();
                     }
                 }
+
                 return result;
             }
         }
@@ -352,21 +340,9 @@ namespace Couchbase.Lite
             var attachmentsFile = new FilePath(AttachmentStorePath);
             var deleteAttachmentStatus = FileDirUtils.DeleteRecursive(attachmentsFile);
 
-            //recursively delete path where attachments stored( see getAttachmentStorePath())
-            var lastDotPosition = Path.LastIndexOf('.');
-            if (lastDotPosition > 0)
-            {
-                var attachmentsFileUpFolder = new FilePath(Path.Substring(0, lastDotPosition));
-                FileDirUtils.DeleteRecursive(attachmentsFileUpFolder);
-            }
-
             if (!deleteStatus)
             {
                 Log.V(Tag, String.Format("Error deleting the SQLite database file at {0}", file.GetAbsolutePath()));
-            }
-
-            if (!deleteStatus)
-            {
                 throw new CouchbaseLiteException("Was not able to delete the database file", StatusCode.InternalServerError);
             }
 
@@ -628,7 +604,7 @@ namespace Couchbase.Lite
                 if (sourceCode == null)
                 {
                     if (status != null) {
-                        status.SetCode(StatusCode.NotFound);
+                        status.Code = StatusCode.NotFound;
                     }
                     return null;
                 }
@@ -637,7 +613,7 @@ namespace Couchbase.Lite
                 if (filter == null)
                 {
                     if (status != null) {
-                        status.SetCode(StatusCode.CallbackError);
+                        status.Code = StatusCode.CallbackError;
                     }
                     Log.W(Tag, string.Format("Filter {0} failed to compile", name));
                     return null;
@@ -1261,7 +1237,7 @@ PRAGMA user_version = 3;";
                     if(localParentSequence == sequence) {
                         // No-op: No new revisions were inserted.
                         if(status != null) {
-                            status.SetCode(StatusCode.Ok);
+                            status.Code = StatusCode.Ok;
                         }
                         return true;
                     }
@@ -1285,7 +1261,7 @@ PRAGMA user_version = 3;";
                     var winningRev = Winner(docNumericID, oldWinningRevId, oldWinnerWasDeletion, rev);
                     NotifyChange(rev, winningRev, source, inConflict);
                     if(status != null) {
-                        status.SetCode(StatusCode.Created);
+                        status.Code = StatusCode.Created;
                     }
 
                     return true;
@@ -2175,21 +2151,15 @@ PRAGMA user_version = 3;";
         {
             Cursor cursor = null;
             var args = new [] { Convert.ToString(sequence) };
-            try
-            {
+            try {
                 cursor = StorageEngine.RawQuery("SELECT no_attachments=0 FROM revs WHERE sequence=? LIMIT 1", args);
                 return cursor.MoveToNext ();
-            }
-            catch (SQLException e)
-            {
+            } catch (SQLException e) {
                 Log.E(Database.Tag, "Error getting attachments for sequence", e);
                 return false;
-            }
-            finally
-            {
-                if (cursor != null)
-                {
-                    cursor.Close();
+            } finally {
+                if (cursor != null) {
+                    cursor.Dispose();
                 }
             }
         }
@@ -2470,7 +2440,7 @@ PRAGMA user_version = 3;";
             var docNumericId = GetDocNumericID(id);
             if (docNumericId <= 0) {
                 if (status != null) {
-                    status.SetCode(StatusCode.NotFound);
+                    status.Code = StatusCode.NotFound;
                 }
 
                 return null;
@@ -2527,7 +2497,7 @@ PRAGMA user_version = 3;";
                     }
                 } else {
                     if(status != null) {
-                        status.SetCode(rev != null ? StatusCode.NotFound : StatusCode.Deleted);
+                        status.Code = rev != null ? StatusCode.NotFound : StatusCode.Deleted;
                     }
                 }
             }
@@ -2537,7 +2507,7 @@ PRAGMA user_version = 3;";
                 if (status != null) {
                     var ce = e as CouchbaseLiteException;
                     if (ce != null) {
-                        status.SetCode(ce.GetCBLStatus().GetCode());
+                        status.Code = ce.GetCBLStatus().Code;
                     }
                 }
             }
@@ -3613,7 +3583,7 @@ PRAGMA user_version = 3;";
                     var attachObj = AttachmentForDict(attachment, name, status);
                     if(attachObj == null) {
                         Log.W(Tag, "Can't get attachment '{0}' of {1} (status {2})", name, rev, status);
-                        outStatus.SetCode(status.GetCode());
+                        outStatus.SetCode(status.Code);
                         return attachment;
                     }
 
@@ -3637,7 +3607,7 @@ PRAGMA user_version = 3;";
         {
             if (info == null) {
                 if (status != null) {
-                    status.SetCode(StatusCode.NotFound);
+                    status.Code = StatusCode.NotFound;
                 }
 
                 return null;
@@ -3648,7 +3618,7 @@ PRAGMA user_version = 3;";
                 attachment = new AttachmentInternal(filename, info);
             } catch(CouchbaseLiteException e) {
                 if (status != null) {
-                    status.SetCode(e.GetCBLStatus().GetCode());
+                    status.Code = e.GetCBLStatus().Code;
                 }
                 return null;
             }
@@ -3786,7 +3756,7 @@ PRAGMA user_version = 3;";
 
         internal bool ProcessAttachmentsForRevision(RevisionInternal rev, string prevRevId, Status status)
         {
-            status.SetCode(StatusCode.Ok);
+            status.Code = StatusCode.Ok;
             var revAttachments = rev.GetAttachments();
             if (revAttachments == null) {
                 return true; // no-op: no attachments
@@ -3815,7 +3785,7 @@ PRAGMA user_version = 3;";
                     // If there's inline attachment data, decode and store it:
                     BlobKey blobKey = new BlobKey();
                     if(!Attachments.StoreBlob(attachment.EncodedContent.ToArray(), blobKey)) {
-                        status.SetCode(StatusCode.AttachmentError);
+                        status.Code = StatusCode.AttachmentError;
                         return null;
                     }
 
@@ -3830,8 +3800,8 @@ PRAGMA user_version = 3;";
                     if(parentAttachments == null && prevRevId != null) {
                         parentAttachments = GetAttachmentsFromDoc(rev.GetDocId(), prevRevId, status);
                         if(parentAttachments == null) {
-                            if(status.GetCode() == StatusCode.Ok || status.GetCode() == StatusCode.NotFound) {
-                                status.SetCode(StatusCode.BadAttachment);
+                            if(status.Code == StatusCode.Ok || status.Code == StatusCode.NotFound) {
+                                status.Code = StatusCode.BadAttachment;
                             }
 
                             return null;
@@ -3840,7 +3810,7 @@ PRAGMA user_version = 3;";
 
                     var parentAttachment = parentAttachments == null ? null : parentAttachments.Get(name).AsDictionary<string, object>();
                     if(parentAttachment == null) {
-                        status.SetCode(StatusCode.BadAttachment);
+                        status.Code = StatusCode.BadAttachment;
                         return null;
                     }
 
@@ -3852,7 +3822,7 @@ PRAGMA user_version = 3;";
                 if(attachment.RevPos == 0) {
                     attachment.RevPos = generation;
                 } else if(attachment.RevPos >= generation) {
-                    status.SetCode(StatusCode.BadAttachment);
+                    status.Code = StatusCode.BadAttachment;
                     return null;
                 }
 
@@ -3867,7 +3837,7 @@ PRAGMA user_version = 3;";
             try {
                 LoadRevisionBody(rev, DocumentContentOptions.None);
             } catch(CouchbaseLiteException e) {
-                status.SetCode(e.GetCBLStatus().GetCode());
+                status.Code = e.GetCBLStatus().Code;
                 return null;
             }
 
@@ -3984,7 +3954,7 @@ PRAGMA user_version = 3;";
                     rev = LoadRevisionBody(rev, DocumentContentOptions.None);
                 } catch(CouchbaseLiteException e) {
                     if (status != null) {
-                        status.SetCode(e.GetCBLStatus().GetCode());
+                        status.Code = e.GetCBLStatus().Code;
                     }
 
                     return null;
@@ -3992,7 +3962,7 @@ PRAGMA user_version = 3;";
 
                 attachments = rev.GetAttachments();
                 if (attachments == null) {
-                    status.SetCode(StatusCode.NotFound);
+                    status.Code = StatusCode.NotFound;
                     return null;
                 }
             }

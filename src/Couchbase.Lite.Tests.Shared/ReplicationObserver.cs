@@ -61,45 +61,43 @@ namespace Couchbase.Lite
 
         public void Changed(object sender, ReplicationChangeEventArgs args)
         {
+            if (replicationFinished) {
+                return;
+            }
+
             var replicator = args.Source;
             Log.D(Tag, replicator + " changed: " + replicator.CompletedChangesCount + " / " + replicator.ChangesCount);
 
-            if (replicator.CompletedChangesCount < 0)
-            {
+            if (replicator.CompletedChangesCount < 0) {
                 var msg = replicator + ": replicator.CompletedChangesCount < 0";
-                Log.D(Tag, msg);
+                Log.E(Tag, msg);
                 throw new Exception(msg);
             }
 
-            if (replicator.ChangesCount < 0)
-            {
+            if (replicator.ChangesCount < 0) {
                 var msg = replicator + ": replicator.ChangesCount < 0";
                 Log.E(Tag, msg);
                 throw new Exception(msg);
             }
 
-            if (replicator.CompletedChangesCount > replicator.ChangesCount)
-            {
+            if (replicator.CompletedChangesCount > replicator.ChangesCount) {
                 var msgStr = "replicator.CompletedChangesCount : " + replicator.CompletedChangesCount +
-                    " > replicator.ChangesCount : " + replicator.ChangesCount;
+                             " > replicator.ChangesCount : " + replicator.ChangesCount;
 
                 Log.E(Tag, msgStr);
                 throw new Exception(msgStr);
             }
 
-            if (!replicator.IsRunning)
-            {
+            if (!replicator.IsRunning ) {
                 this.replicationFinished = true;
                 string msg = "ReplicationFinishedObserver.changed called, set replicationFinished to true";
                 Log.D(Tag, msg);
-                try {
+                if(doneSignal.CurrentCount > 0) {
                     doneSignal.Signal();
-                } catch(InvalidOperationException) {
-                    Log.W(Tag, "Ignoring too many calls to Changed");
                 }
-            }
-            else
-            {
+
+                replicator.Changed -= Changed;
+            } else {
                 string msg = string.Format("ReplicationFinishedObserver.changed called, but replicator still running, so ignore it");
                 Log.D(Tag, msg);
             }

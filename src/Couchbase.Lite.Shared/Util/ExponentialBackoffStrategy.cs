@@ -2,7 +2,6 @@ using System;
 using System.Net.Http;
 using System.Threading.Tasks;
 using System.Threading;
-using Couchbase.Lite.Shared;
 
 namespace Couchbase.Lite.Util
 {

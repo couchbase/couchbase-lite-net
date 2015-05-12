@@ -35,6 +35,9 @@
     <Reference Include="System.Core" />
     <Reference Include="Xamarin.iOS" />
     <Reference Include="System.Net.Http" />
+    <Reference Include="Jint">
+      <HintPath>..\..\packages\Jint.2.4.0\lib\portable-net40+sl50+win+wpa81+wp80\Jint.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Resources\" />
@@ -46,5 +49,8 @@
       <Project>{443E1BEE-43B3-45A1-ACEA-F7BA71BDAAB1}</Project>
       <Name>Couchbase.Lite.iOS</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
   </ItemGroup>
 </Project>

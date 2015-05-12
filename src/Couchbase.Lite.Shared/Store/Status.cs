@@ -40,84 +40,187 @@
 // and limitations under the License.
 //
 
-using Sharpen;
 using System;
 using System.Collections.Generic;
 
 namespace Couchbase.Lite
 {
-    /// <summary>Same interpretation as HTTP status codes, esp.</summary>
-    /// <remarks>Same interpretation as HTTP status codes, esp. 200, 201, 404, 409, 500.</remarks>
+    /// <summary>
+    /// A list of statuses indicating various results and/or errors for Couchbase Lite
+    /// operations
+    /// </summary>
+    [Serializable]
     public enum StatusCode
     {
+        /// <summary>
+        /// Unknown result (should not be used)
+        /// </summary>
         Unknown = -1,
 
+        /// <summary>
+        /// Successful completion (HTTP compliant)
+        /// </summary>
         Ok = 200,
 
+        /// <summary>
+        /// A new item was created (HTTP compliant)
+        /// </summary>
         Created = 201,
 
+        /// <summary>
+        /// The operation has been successfully queued for execution (HTTP compliant)
+        /// </summary>
         Accepted = 202,
 
+        /// <summary>
+        /// The requested action is redundant and doesn't need to execute (HTTP compliant)
+        /// </summary>
         NotModified = 304,
 
+        /// <summary>
+        /// An invalid request was received (HTTP compliant)
+        /// </summary>
         BadRequest = 400,
 
+        /// <summary>
+        /// The requesting user is not authorized to perform the action (HTTP compliant)
+        /// </summary>
         Unauthorized = 401,
 
+        /// <summary>
+        /// The requested action is not allowed to be executed by any user (HTTP compliant)
+        /// </summary>
         Forbidden = 403,
 
+        /// <summary>
+        /// The requested item does not appear to exist (HTTP compliant)
+        /// </summary>
         NotFound = 404,
 
+        /// <summary>
+        /// The wrong HTTP method was used when requesting an action to be performed (HTTP compliant)
+        /// </summary>
         MethodNotAllowed = 405,
 
+        /// <summary>
+        /// The server is unable to return an acceptable MIME type as specified in the HTTP headers (HTTP compliant)
+        /// </summary>
         NotAcceptable = 406,
 
+        /// <summary>
+        /// The submitted revision put a document into a conflict state (HTTP compliant)
+        /// </summary>
         Conflict = 409,
 
+        /// <summary>
+        /// A condition of the requested action was violated (e.g. Trying to create a DB when it already exists) (HTTP compliant)
+        /// </summary>
         PreconditionFailed = 412,
 
+        /// <summary>
+        /// The server does not support this type of file (HTTP compliant)
+        /// </summary>
         UnsupportedType = 415,
 
+        /// <summary>
+        /// The encoding type for the attachment on a revision is not supported
+        /// </summary>
         BadEncoding = 490,
 
+        /// <summary>
+        /// The received attachment is corrupt
+        /// </summary>
         BadAttachment = 491,
 
+        /// <summary>
+        /// The attachment for the revision was not received
+        /// </summary>
         AttachmentNotFound = 492,
 
+        /// <summary>
+        /// The received JSON was invalid
+        /// </summary>
         BadJson = 493,
 
+        /// <summary>
+        /// A parameter was received that doesn't make sense for the action
+        /// </summary>
         BadId = 494,
 
+        /// <summary>
+        /// An invalid parameter was received
+        /// </summary>
         BadParam = 495,
 
+        /// <summary>
+        /// The document has been deleted
+        /// </summary>
         Deleted = 496,
 
+        /// <summary>
+        /// Internal logic error (i.e. library problem) (HTTP compliant)
+        /// </summary>
         InternalServerError = 500,
 
+        /// <summary>
+        /// The logic has not been implemented yet (HTTP compliant)
+        /// </summary>
         NotImplemented = 501,
 
+        /// <summary>
+        /// An invalid changes feed was received from Sync Gateway
+        /// </summary>
         BadChangesFeed = 587,
 
+        /// <summary>
+        /// The changes feed from Sync Gateway was cut off
+        /// </summary>
         ChangesFeedTruncated = 588,
 
+        /// <summary>
+        /// An error was received fro Sync Gateway
+        /// </summary>
         UpStreamError = 589,
 
+        /// <summary>
+        /// A database error occurred (file locked, etc)
+        /// </summary>
         DbError = 590,
 
+        /// <summary>
+        /// A corrupt database was found
+        /// </summary>
         CorruptError = 591,
 
+        /// <summary>
+        /// A problem with an attachment was found
+        /// </summary>
         AttachmentError = 592,
 
+        /// <summary>
+        /// A callback failed
+        /// </summary>
         CallbackError = 593,
 
+        /// <summary>
+        /// Releated to 500, but not HTTP compliant
+        /// </summary>
         Exception = 594,
 
+        /// <summary>
+        /// The database file is busy, and cannot process changes at the moment
+        /// </summary>
         DbBusy = 595
     }
 
-    public class Status {
+    /// <summary>
+    /// A class for encapsulating a status code, and querying various information about it
+    /// </summary>
+    public class Status 
+    {
 
-        private StatusCode code;
+        #region Constants
+
         private static readonly Dictionary<StatusCode, Tuple<int, string>> _StatusMap =
             new Dictionary<StatusCode, Tuple<int, string>>
         {
@@ -159,42 +262,81 @@ namespace Couchbase.Lite
             { StatusCode.DbBusy, Tuple.Create(500, "Database locked") }
         };
 
-        public Status()
-        {
-            // SQLite DB is busy (this is recoverable!)
-            this.code = StatusCode.Unknown;
-        }
+        #endregion
 
-        public Status(StatusCode code)
-        {
-            this.code = code;
-        }
+        #region Properties
 
-        public virtual StatusCode GetCode()
-        {
-            return code;
-        }
+        /// <summary>
+        /// The status code that this object holds
+        /// </summary>
+        public StatusCode Code { get; set; }
 
-        public virtual void SetCode(StatusCode code)
-        {
-            this.code = code;
-        }
-
+        /// <summary>
+        /// Gets whether or not the status code represents a successful action
+        /// </summary>
         public Boolean IsSuccessful
         {
-            get { return ((Int32)code > 0 && (Int32)code < 400); }
+            get { return ((Int32)Code > 0 && (Int32)Code < 400); }
         }
 
+        /// <summary>
+        /// Gets whether or not the status code represents a failed action
+        /// </summary>
         public Boolean IsError
         {
             get { return !IsSuccessful; }
         }
 
-        public override string ToString()
+        #endregion
+
+        #region Constructors
+
+        /// <summary>
+        /// Convenience constructor
+        /// </summary>
+        public Status()
         {
-            return "Status: " + code;
+            this.Code = StatusCode.Unknown;
         }
 
+        /// <summary>
+        /// Default constructor
+        /// </summary>
+        /// <param name="code">The status code to hold</param>
+        public Status(StatusCode code)
+        {
+            this.Code = code;
+        }
+
+        #endregion
+
+        #region Public Methods
+
+        /// <summary>
+        /// Gets the status code
+        /// </summary>
+        /// <returns>The status code</returns>
+        [Obsolete("Use the Code property")]
+        public virtual StatusCode GetCode()
+        {
+            return Code;
+        }
+
+        /// <summary>
+        /// Modifies the status code being held by this object
+        /// </summary>
+        /// <param name="code">The new status code</param>
+        [Obsolete("Use the Code property")]
+        public virtual void SetCode(StatusCode code)
+        {
+            this.Code = code;
+        }
+
+        /// <summary>
+        /// Converts a StatusCode to an HTTP compliant status
+        /// </summary>
+        /// <returns>A tuple containing the status code, and message to return to the client</returns>
+        /// <param name="status">The status code to convert</param>
         public static Tuple<int, string> ToHttpStatus(StatusCode status)
         {
             Tuple<int, string> retVal;
@@ -204,5 +346,21 @@ namespace Couchbase.Lite
 
             return Tuple.Create(-1, string.Empty);
         }
+
+        #endregion
+
+        #region Overrides
+
+        /// <summary>
+        /// Returns a <see cref="System.String"/> that represents the current <see cref="Couchbase.Lite.Status"/>.
+        /// </summary>
+        /// <returns>A <see cref="System.String"/> that represents the current <see cref="Couchbase.Lite.Status"/>.</returns>
+        public override string ToString()
+        {
+            return String.Format("Status: {0}", Code);
+        }
+
+        #endregion
+
     }
 }

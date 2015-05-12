@@ -449,10 +449,11 @@ namespace Couchbase.Lite
             Assert.AreEqual(rev.AttachmentNames.Count(), 0);
             Assert.IsNull(attachment);
 
-            var body = new ByteArrayInputStream(Encoding.UTF8.GetBytes(content));
+            var body = new MemoryStream(Encoding.UTF8.GetBytes(content));
             var rev2 = doc.CreateRevision();
             rev2.SetAttachment(attachmentName, "text/plain; charset=utf-8", body);
             var rev3 = rev2.Save();
+            rev2.Dispose();
             Assert.IsNotNull(rev3);
             Assert.AreEqual(rev3.Attachments.Count(), 1);
             Assert.AreEqual(rev3.AttachmentNames.Count(), 1);
@@ -468,8 +469,8 @@ namespace Couchbase.Lite
             Assert.AreEqual("text/plain; charset=utf-8", attachment.ContentType);
             Assert.AreEqual(Encoding.UTF8.GetString(attachment.Content.ToArray()), content);
             Assert.AreEqual(Encoding.UTF8.GetBytes(content).Length, attachment.Length);
-
             attachment.Dispose();
+
             return doc;
         }          
             

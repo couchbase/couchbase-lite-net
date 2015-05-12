@@ -55,10 +55,23 @@ using Couchbase.Lite.Views;
 namespace Couchbase.Lite {
 
     // TODO: Either remove or update the API defs to indicate the enum value changes, and global scope.
+    /// <summary>
+    /// Indicates the collation to use for sorted items in the view
+    /// </summary>
+    [Serializable]
     public enum ViewCollation
     {
+        /// <summary>
+        /// Sort via the unicode standard
+        /// </summary>
         Unicode,
+        /// <summary>
+        /// Raw binary sort
+        /// </summary>
         Raw,
+        /// <summary>
+        /// Sort via ASCII comparison
+        /// </summary>
         ASCII
     }
 
@@ -77,10 +90,6 @@ namespace Couchbase.Lite {
             _id = -1;
             // means 'unknown'
             Collation = ViewCollation.Unicode;
-        }
-
-        static View() {
-            Compiler = new JSViewCompiler();
         }
 
     #endregion
@@ -935,25 +944,19 @@ namespace Couchbase.Lite {
                 var args = new[] { Name };
                 Cursor cursor = null;
                 var result = -1L;
-                try
-                {
+                try {
                     cursor = Database.StorageEngine.RawQuery(sql, args);
-                    if (cursor.MoveToNext())
-                    {
+                    if (cursor.MoveToNext()) {
                         result = cursor.GetLong(0);
                     }
-                }
-                catch (Exception)
-                {
+                } catch (SQLException) {
                     Log.E(Database.Tag, "Error getting last sequence indexed");
-                }
-                finally
-                {
-                    if (cursor != null)
-                    {
-                        cursor.Close();
+                } finally {
+                    if (cursor != null) {
+                        cursor.Dispose();
                     }
                 }
+
                 return result;
             }
         }
@@ -968,11 +971,11 @@ namespace Couchbase.Lite {
                     if (cursor.MoveToNext()) {
                         result = cursor.GetInt(0);
                     }
-                } catch (Exception) {
+                } catch (SQLException) {
                     Log.E(Database.Tag, "Error getting last sequence indexed");
                 } finally {
                     if (cursor != null) {
-                        cursor.Close();
+                        cursor.Dispose();
                     }
                 }
 

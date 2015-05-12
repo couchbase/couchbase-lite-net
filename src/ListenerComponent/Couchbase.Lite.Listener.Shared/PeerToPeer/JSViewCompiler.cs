@@ -26,8 +26,9 @@ using Jint.Native.Array;
 using Jint.Native;
 using System.Collections.Generic;
 using System.Collections;
+using Couchbase.Lite.Views;
 
-namespace Couchbase.Lite.Views
+namespace Couchbase.Lite.Listener
 {
     public sealed class JSViewCompiler : IViewCompiler
     {

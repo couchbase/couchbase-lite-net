@@ -101,14 +101,14 @@ namespace Couchbase.Lite
             }
         }
 
-        private static CountdownEvent ReplicationWatcherThread(Replication replication)
+        private static CountdownEvent ReplicationWatcherThread(Replication replication, ReplicationObserver observer)
         {
             var started = replication.IsRunning;
             var doneSignal = new CountdownEvent(1);
 
             Task.Factory.StartNew(()=>
             {
-                var done = false;
+                var done = observer.IsReplicationFinished(); //Prevent race condition where the replicator stops before this portion is reached
                 while (!done)
                 {
                     if (replication.IsRunning)
@@ -148,7 +148,7 @@ namespace Couchbase.Lite
             replication.Changed += observer.Changed;
             replication.Start();
 
-            var replicationDoneSignalPolling = ReplicationWatcherThread(replication);
+            var replicationDoneSignalPolling = ReplicationWatcherThread(replication, observer);
 
             Log.D(Tag, "Waiting for replicator to finish.");
 
@@ -403,6 +403,8 @@ namespace Couchbase.Lite
             var attachmentStream = GetAsset("attachment.png");
             doc2UnsavedRev.SetAttachment("attachment_testPusher.png", "image/png", attachmentStream);
             var doc2Rev = doc2UnsavedRev.Save();
+            doc2UnsavedRev.Dispose();
+            attachmentStream.Dispose();
 
             Assert.IsNotNull(doc2Rev);
 
@@ -640,6 +642,8 @@ namespace Couchbase.Lite
             allDocsLiveQuery.Start();
             DoPullReplication();
             allDocsLiveQuery.Stop();
+
+            Thread.Sleep(2000);
         }
 
         private void DoPullReplication()
@@ -705,7 +709,9 @@ namespace Couchbase.Lite
                 var attachmentStream = (InputStream)GetAsset(attachmentName);
                 var baos = new MemoryStream();
                 attachmentStream.Wrapped.CopyTo(baos);
+                attachmentStream.Dispose();
                 var attachmentBase64 = Convert.ToBase64String(baos.ToArray());
+                baos.Dispose();
                 docJson = String.Format("{{\"foo\":1,\"bar\":false, \"_attachments\": {{ \"i_use_couchdb.png\": {{ \"content_type\": \"image/png\", \"data\": \"{0}\" }} }} }}", attachmentBase64);
             }
             else
@@ -1876,7 +1882,9 @@ namespace Couchbase.Lite
             var attachmentStream = GetAsset("attachment.png");
             unsavedRev2.SetAttachment("attachment.png", "image/png", attachmentStream);
             var rev2 = unsavedRev2.Save();
+            attachmentStream.Dispose();
             Assert.IsNotNull(rev2);
+            unsavedRev2.Dispose();
 
             var httpClientFactory = new MockHttpClientFactory();
             var httpHandler = httpClientFactory.HttpHandler; 
@@ -2171,14 +2179,19 @@ namespace Couchbase.Lite
             repl.Continuous = true;
             var wait = new CountdownEvent(1);
             repl.Changed += (sender, e) => {
+                if(wait.CurrentCount == 0) {
+                    return;
+                }
+
                 Log.D("ReplicationTest", "New replication status {0}", e.Source.Status);
-                if(e.Source.Status == ReplicationStatus.Idle && e.Source.ChangesCount > 0 && e.Source.CompletedChangesCount == e.Source.ChangesCount) {
+                if((e.Source.Status == ReplicationStatus.Idle || e.Source.Status == ReplicationStatus.Stopped) && 
+                    e.Source.ChangesCount > 0 && e.Source.CompletedChangesCount == e.Source.ChangesCount) {
                     wait.Signal();
                 }
             };
             repl.Start();
 
-            Assert.IsTrue(wait.Wait(TimeSpan.FromSeconds(10)), "Pull replication timed out");
+            Assert.IsTrue(wait.Wait(TimeSpan.FromSeconds(60)), "Pull replication timed out");
             Assert.IsNotNull(database.GetExistingDocument(doc1Id), "Didn't get doc1 from puller");
             Assert.IsNotNull(database.GetExistingDocument(doc2Id), "Didn't get doc2 from puller");
             Assert.IsNull(repl.LastError);
@@ -2197,10 +2210,12 @@ namespace Couchbase.Lite
             repl.Authenticator = new BasicAuthenticator("jim", "bogus");
             wait.Reset(1);
             repl.Start();
-            Assert.IsTrue(wait.Wait(TimeSpan.FromSeconds(10)), "Pull replication timed out");
+            Assert.IsTrue(wait.Wait(TimeSpan.FromSeconds(60)), "Pull replication timed out");
             Assert.IsNull(database.GetExistingDocument(doc1Id), "Got rogue doc1 from puller");
             Assert.IsNull(database.GetExistingDocument(doc2Id), "Got rogue doc2 from puller");
             repl.Stop();
+
+            Thread.Sleep(2000);
         }
     }
 }

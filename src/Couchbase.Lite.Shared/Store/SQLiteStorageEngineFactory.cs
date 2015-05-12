@@ -41,8 +41,6 @@
 //
 
 using Couchbase.Lite.Storage;
-using Sharpen;
-using Couchbase.Lite.Shared;
 
 namespace Couchbase.Lite.Storage
 {
@@ -50,7 +48,7 @@ namespace Couchbase.Lite.Storage
     {
         internal static ISQLiteStorageEngine CreateStorageEngine()
         {
-            return new SqlitePCLRawStorageEngine(); //MonoSQLiteStorageEngine();
+            return new SqlitePCLRawStorageEngine();
         }
     }
 }

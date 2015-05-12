@@ -47,6 +47,10 @@
     <DebugSymbols>true</DebugSymbols>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="Newtonsoft.Json, Version=6.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+      <HintPath>..\packages\Newtonsoft.Json.6.0.8\lib\net35\Newtonsoft.Json.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Data" />
     <Reference Include="SQLitePCL.raw">
@@ -55,14 +59,11 @@
     <Reference Include="ugly_net35">
       <HintPath>vendor\SQLitePCL\ugly_net35.dll</HintPath>
     </Reference>
-    <Reference Include="Newtonsoft.Json">
-      <HintPath>vendor\JSON.NET\Newtonsoft.Json.dll</HintPath>
-    </Reference>
-    <Reference Include="Jint">
-      <HintPath>..\Couchbase.Lite.Shared\vendor\Jint\Jint.dll</HintPath>
-    </Reference>
     <Reference Include="Microsoft.Scripting.Core">
       <HintPath>..\Couchbase.Lite.Shared\vendor\Jint\Microsoft.Scripting.Core.dll</HintPath>
+    </Reference>
+    <Reference Include="ICSharpCode.SharpZipLib">
+      <HintPath>vendor\ICSharpCode\ICSharpCode.SharpZipLib.dll</HintPath>
     </Reference>
   </ItemGroup>
   <Import Project="..\Couchbase.Lite.Shared\Couchbase.Lite.Shared.projitems" Label="Shared" Condition="Exists('..\Couchbase.Lite.Shared\Couchbase.Lite.Shared.projitems')" />

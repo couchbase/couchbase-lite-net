@@ -22,7 +22,7 @@ using System;
 
 namespace Couchbase.Lite.Db
 {
-    internal interface IDatabaseUpgrader : IDisposable
+    internal interface IDatabaseUpgrader
     {
         int NumDocs { get; }
 

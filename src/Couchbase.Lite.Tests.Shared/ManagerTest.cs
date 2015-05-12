@@ -120,11 +120,13 @@ namespace Couchbase.Lite
             //Copy database from assets to local storage
             var dbStream = GetAsset("noattachments.cblite");
 
-            manager.ReplaceDatabase("replaced", dbStream, null);
+             manager.ReplaceDatabase("replaced", dbStream, null);
             dbStream.Dispose();
 
             //Now validate the number of files in the DB
-            Assert.AreEqual(10, manager.GetDatabase("replaced").DocumentCount);
+            var db = manager.GetDatabase("replaced");
+            Assert.AreEqual(10, db.DocumentCount);
+            db.Dispose();
         }
 
         [Test]
@@ -154,7 +156,9 @@ namespace Couchbase.Lite
             var doc = db.GetExistingDocument("BC38EA44-E153-429A-A698-0CBE6B0090C4");
             Assert.IsNotNull(doc, "Failed to get doc from imported database");
             Assert.AreEqual(doc.CurrentRevision.AttachmentNames.Count(), 2, "Failed to get attachments from imported database");
-            Assert.IsNotNull(doc.CurrentRevision.Attachments.ElementAt(0).Content, "Failed to get attachment data");
+            using(var attachment = doc.CurrentRevision.Attachments.ElementAt(0)) {
+                Assert.IsNotNull(attachment.Content, "Failed to get attachment data");
+            }
 
             var view = db.GetView("view");
             view.SetMap((d, emit) => {
@@ -165,6 +169,7 @@ namespace Couchbase.Lite
             var result = view.CreateQuery().Run();
             Assert.AreEqual(1, result.Count);
 
+            db.Dispose();
             using (var assetStream = GetAsset("ios110.zip")) {
                 manager.ReplaceDatabase("iosdb", assetStream);
             }
@@ -173,7 +178,9 @@ namespace Couchbase.Lite
             doc = db.GetExistingDocument("-iTji_n2zmHpmgYecaRHqZE");
             Assert.IsNotNull(doc, "Failed to get doc from imported database");
             Assert.AreEqual(doc.CurrentRevision.AttachmentNames.Count(), 2, "Failed to get attachments from imported database");
-            Assert.IsNotNull(doc.CurrentRevision.Attachments.ElementAt(0).Content, "Failed to get attachment data");
+            using(var attachment = doc.CurrentRevision.Attachments.ElementAt(0)) {
+                Assert.IsNotNull(attachment.Content, "Failed to get attachment data");
+            }
 
             view = db.GetView("view");
             view.SetMap((d, emit) => {
@@ -196,7 +203,9 @@ namespace Couchbase.Lite
             var doc = db.GetExistingDocument("66ac306d-de93-46c8-b60f-946c16ac4a1d");
             Assert.IsNotNull(doc, "Failed to get doc from imported database");
             Assert.AreEqual(doc.CurrentRevision.AttachmentNames.Count(), 1, "Failed to get attachments from imported database");
-            Assert.IsNotNull(doc.CurrentRevision.Attachments.ElementAt(0).Content, "Failed to get attachment data");
+            using(var attachment = doc.CurrentRevision.Attachments.ElementAt(0)) {
+                Assert.IsNotNull(attachment.Content, "Failed to get attachment data");
+            }
 
             var view = db.GetView("view");
             view.SetMap((d, emit) => {
@@ -206,6 +215,7 @@ namespace Couchbase.Lite
             }, "1");
             var result = view.CreateQuery().Run();
             Assert.AreEqual(1, result.Count);
+            db.Dispose();
 
             using (var assetStream = GetAsset("android110.zip")) {
                 manager.ReplaceDatabase("guest", assetStream);
@@ -216,7 +226,9 @@ namespace Couchbase.Lite
             doc = db.GetExistingDocument("d3e80747-2568-47c8-81e8-a04ba1b5c5d4");
             Assert.IsNotNull(doc, "Failed to get doc from imported database");
             Assert.AreEqual(doc.CurrentRevision.AttachmentNames.Count(), 1, "Failed to get attachments from imported database");
-            Assert.IsNotNull(doc.CurrentRevision.Attachments.ElementAt(0).Content, "Failed to get attachment data");
+            using(var attachment = doc.CurrentRevision.Attachments.ElementAt(0)) {
+                Assert.IsNotNull(attachment.Content, "Failed to get attachment data");
+            }
 
             view = db.GetView("view");
             view.SetMap((d, emit) => {

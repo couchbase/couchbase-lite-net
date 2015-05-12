@@ -44,7 +44,11 @@ using System.Runtime.CompilerServices;
 // Information about this assembly is defined by the following attributes.
 // Change them to the values specific to your project.
 using System.Runtime.Versioning;
+using System.Runtime.InteropServices;
+using System;
 
+[assembly: ComVisible(false)]
+[assembly: CLSCompliant(false)]
 [assembly: AssemblyTitle ("Couchbase.Lite")]
 [assembly: AssemblyDescription ("A lightweight, document-oriented (NoSQL), syncable database engine for .NET")]
 #if ENTERPRISE
@@ -66,5 +70,5 @@ using System.Runtime.Versioning;
 [assembly: InternalsVisibleTo("Couchbase.Lite.Android.Tests")]
 [assembly: InternalsVisibleTo("CouchbaseLiteiOSTests")]
 [assembly: InternalsVisibleTo("Couchbase.Lite.Net35.Tests")]
-[assembly: InternalsVisibleTo("Couchbase.Lite.Unity")]
+[assembly: InternalsVisibleTo("Couchbase.Lite.Unity.Tests")]
 [assembly: InternalsVisibleTo("Couchbase.Lite.Listener")]

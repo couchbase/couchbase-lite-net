@@ -33,6 +33,12 @@ namespace Couchbase.Lite
         [Test]
         public void TestBrowser()
         {
+            #if __ANDROID__
+            if(global::Android.OS.Build.VERSION.SdkInt < global::Android.OS.BuildVersionCodes.JellyBean) {
+                Assert.Inconclusive("PeerToPeer requires API level 16, but found {0}", global::Android.OS.Build.VERSION.Sdk);
+            }
+            #endif
+
             var mre = new ManualResetEventSlim();
             CouchbaseLiteServiceBrowser browser = new CouchbaseLiteServiceBrowser(null);
             browser.ServiceResolved += (sender, e) => {

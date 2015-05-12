@@ -40,16 +40,27 @@
 // and limitations under the License.
 //
 
-using Couchbase.Lite.Storage;
-using Sharpen;
-using System.Collections.Generic;
+using System;
 
 namespace Couchbase.Lite.Storage
 {
+    /// <summary>
+    /// Indicates the action to take when an insert action finds an existing entry
+    /// </summary>
+    [Serializable]
     public enum ConflictResolutionStrategy
     {
+        /// <summary>
+        /// Do nothing, and error out
+        /// </summary>
         None = 0,
+        /// <summary>
+        /// Abort the operation and continue
+        /// </summary>
         Ignore = 4,
+        /// <summary>
+        /// Replace the existing entry with the one being inserted
+        /// </summary>
         Replace = 5
     }
 
