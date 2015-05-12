@@ -370,8 +370,15 @@ namespace Couchbase.Lite
         /// <remarks>
         /// The zip stream must be from a regular PKZip structure compressed with Deflate (*nix command
         /// line zip will produce this)
-        public void ReplaceDatabase(string name, Stream compressedStream)
+        /// </remarks>
+        public void ReplaceDatabase(string name, Stream compressedStream, bool autoRename)
         {
+            var zipDbName = GetDbNameFromZip(compressedStream);
+            bool namesMatch = name.Equals(zipDbName);
+            if (!namesMatch && !autoRename) {
+                throw new ArgumentException("Names of db file in zip and name passed to function differ", "compressedStream");
+            }
+
             var database = GetDatabaseWithoutOpening(name, false);
             var dstAttachmentsPath = database.AttachmentStorePath;
             if (System.IO.Directory.Exists(dstAttachmentsPath)) {
@@ -381,14 +388,22 @@ namespace Couchbase.Lite
             System.IO.Directory.CreateDirectory(dstAttachmentsPath);
 
             ZipEntry entry = null;
-            using (var zipStream = new ZipInputStream(compressedStream)) {
+            using (var zipStream = new ZipInputStream(compressedStream) { IsStreamOwner = false }) {
                 while ((entry = zipStream.GetNextEntry()) != null) {
+                    string entryName = null;
+                    if (namesMatch) {
+                        entryName = entry.Name;
+                    } else {
+                        entryName = entry.Name.Replace(zipDbName, name);
+                    }
+
                     if (entry.IsDirectory) {
-                        System.IO.Directory.CreateDirectory(Path.Combine(Directory, entry.Name));
+                        System.IO.Directory.CreateDirectory(Path.Combine(Directory, entryName));
                         continue;
                     }
 
-                    var path = Path.Combine(Directory, entry.Name);
+
+                    var path = Path.Combine(Directory, entryName);
                     if (File.Exists(path)) {
                         File.Delete(path);
                     }
@@ -495,6 +510,31 @@ namespace Couchbase.Lite
                     replications.RemoveAt(i);
                 }
             }
+        }
+
+        private string GetDbNameFromZip(Stream compressedStream) {
+            string dbName = null;
+            using (var zipStream = new ZipInputStream(compressedStream) { IsStreamOwner = false }) {
+                ZipEntry next;
+                while ((next = zipStream.GetNextEntry()) != null) {
+                    if (next.IsDirectory) {
+                        continue;
+                    }
+
+                    var fileInfo = new FileInfo(next.Name);
+                    if (DatabaseUpgraderFactory.ALL_KNOWN_PREFIXES.Contains(fileInfo.Extension.TrimStart('.'))) {
+                        dbName = Path.GetFileNameWithoutExtension(fileInfo.Name);
+                        break;
+                    }
+                }
+            }
+
+            if (dbName == null) {
+                throw new ArgumentException("No database found in zip file", "compressedStream");
+            }
+
+            compressedStream.Seek(0, SeekOrigin.Begin);
+            return dbName;
         }
 
         private void UpgradeOldDatabaseFiles(DirectoryInfo dirInfo)
