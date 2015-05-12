@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<package >
+  <metadata>
+    <id>Couchbase.Lite.Listener</id>
+    <title>Couchbase Lite - HTTP Listener</title>
+    <version>1.1-pre</version>
+    <authors>Jim Borden, Zachary Gramana</authors>
+    <owners>Couchbase</owners>
+    <licenseUrl>https://github.com/couchbase/couchbase-lite-net/blob/master/LICENSE</licenseUrl>
+    <projectUrl>https://github.com/couchbase/couchbase-lite-net</projectUrl>
+    <iconUrl>https://raw.githubusercontent.com/couchbaselabs/couchbase-lite-net/master/packaging/nuget/logo.png</iconUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>Use Couchbase Lite via a REST API.</description>
+    <releaseNotes>
+      Enables:
+        * Interprocess communication via HTTP.
+        * Peer-to-Peer Sync.
+        * Integration with apps deployed inside web containers.
+        * Integration with other HTTP-capable languages and services.
+    </releaseNotes>
+    <copyright>Copyright 2015</copyright>
+    <tags>couchbase couchbase-mobile couchbase-lite sync database p2p peer-to-peer mobile xamarin ios android windows linux mac osx nosql</tags>
+    <language>en-US</language>
+    <dependencies>
+      <dependency id="Couchbase.Lite" version="1.1-pre" />
+    </dependencies>
+  </metadata>
+  <files>
+    <file target="lib/net45" src="src/ListenerComponent/Couchbase.Lite.Listener.Net45/bin/Release/Couchbase.Lite.Listener.*" />
+    <file target="lib/MonoAndroid" src="src/ListenerComponent/Couchbase.Lite.Listener.Android/bin/Release/Couchbase.Lite.Listener.*" />
+    <file target="lib/xamarinios10" src="src/ListenerComponent/Couchbase.Lite.Listener.iOS/bin/Release/Couchbase.Lite.Listener.*" />
+  </files>
+</package>
