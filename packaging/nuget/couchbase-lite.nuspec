@@ -3,7 +3,7 @@
   <metadata>
     <id>Couchbase.Lite </id>
     <title>Couchbase Lite</title>
-    <version>1.0.4.1</version>
+    <version>1.1-pre</version>
     <authors>Zachary Gramana</authors>
     <owners>Couchbase</owners>
     <licenseUrl>https://github.com/couchbase/couchbase-lite-net/blob/master/LICENSE</licenseUrl>
@@ -25,12 +25,12 @@
       Update document without re-sending attachments
       Fixes list item entry problem in Android sample on Nexus 5/Lollipop.
     </releaseNotes>
-    <copyright>Copyright 2014</copyright>
-    <tags>couchbase couchbase-mobile couchbase-lite sync database mobile xamarin ios android windows linux mac osx</tags>
+    <copyright>Copyright 2014, 2015</copyright>
+    <tags>couchbase couchbase-mobile couchbase-lite sync database mobile xamarin ios android windows linux mac osx nosql</tags>
     <language>en-US</language>
     <dependencies>
-      <dependency id="SQLitePCL.raw_basic" version="0.7.1" />
-      <dependency id="SQLitePCL.ugly" version="0.7.1" />
+      <dependency id="SQLitePCL.raw_basic" version="0.8.0" />
+      <dependency id="SQLitePCL.ugly" version="0.8.0" />
       <dependency id="Newtonsoft.Json" version="6.0.4" />
     </dependencies>
   </metadata>
