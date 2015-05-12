@@ -340,14 +340,6 @@ namespace Couchbase.Lite
             var attachmentsFile = new FilePath(AttachmentStorePath);
             var deleteAttachmentStatus = FileDirUtils.DeleteRecursive(attachmentsFile);
 
-            //recursively delete path where attachments stored( see getAttachmentStorePath())
-            var lastDotPosition = Path.LastIndexOf('.');
-            if (lastDotPosition > 0)
-            {
-                var attachmentsFileUpFolder = new FilePath(Path.Substring(0, lastDotPosition));
-                FileDirUtils.DeleteRecursive(attachmentsFileUpFolder);
-            }
-
             if (!deleteStatus)
             {
                 Log.V(Tag, String.Format("Error deleting the SQLite database file at {0}", file.GetAbsolutePath()));

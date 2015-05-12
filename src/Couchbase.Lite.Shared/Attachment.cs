@@ -129,6 +129,8 @@ namespace Couchbase.Lite {
                         metadataMutable["follows"] = true;
                         database.RememberAttachmentWriter(writer);
                     }
+
+                    attachment.Dispose();
                     updatedAttachments[name] = metadataMutable;
                 }
                 else if (value is AttachmentInternal)
