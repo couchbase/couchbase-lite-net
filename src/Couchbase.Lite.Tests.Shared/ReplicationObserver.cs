@@ -92,7 +92,10 @@ namespace Couchbase.Lite
                 this.replicationFinished = true;
                 string msg = "ReplicationFinishedObserver.changed called, set replicationFinished to true";
                 Log.D(Tag, msg);
-                doneSignal.Signal();
+                if(doneSignal.CurrentCount > 0) {
+                    doneSignal.Signal();
+                }
+
                 replicator.Changed -= Changed;
             } else {
                 string msg = string.Format("ReplicationFinishedObserver.changed called, but replicator still running, so ignore it");

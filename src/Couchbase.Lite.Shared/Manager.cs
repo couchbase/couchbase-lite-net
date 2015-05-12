@@ -524,17 +524,16 @@ namespace Couchbase.Lite
                 Log.W(Tag, "Upgrade failed for {0} (Creating new DB failed)", path.Name);
                 return;
             }
+            db.Dispose();
 
-            using (var upgrader = DatabaseUpgraderFactory.CreateUpgrader(db, oldFilename)) {
-                var status = upgrader.Import();
-                if (status.IsError) {
-                    Log.W(Tag, "Upgrade failed for {0} (Status {1})", path.Name, status);
-                    upgrader.Backout();
-                    return;
-                }
+            var upgrader = DatabaseUpgraderFactory.CreateUpgrader(db, oldFilename);
+            var status = upgrader.Import();
+            if (status.IsError) {
+                Log.W(Tag, "Upgrade failed for {0} (Status {1})", path.Name, status);
+                upgrader.Backout();
+                return;
             }
 
-            db.Dispose();
             Log.D(Tag, "...Success!");
         }
 

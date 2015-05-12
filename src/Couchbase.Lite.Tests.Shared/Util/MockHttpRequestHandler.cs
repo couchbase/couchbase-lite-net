@@ -92,7 +92,15 @@ namespace Couchbase.Lite.Tests
             }
 
             if (responder != null) {
-                HttpResponseMessage message = responder(request);
+                HttpResponseMessage message = null;
+                try {
+                    message = responder(request);
+                } catch(Exception e) {
+                    var tcs = new TaskCompletionSource<HttpResponseMessage>();
+                    tcs.SetException(e);
+                    return tcs.Task;
+                }
+
                 Task<HttpResponseMessage> retVal = Task.FromResult<HttpResponseMessage>(message);
                 NotifyResponseListeners(request, message);
                 return retVal;

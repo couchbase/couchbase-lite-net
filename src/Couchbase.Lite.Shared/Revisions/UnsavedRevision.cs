@@ -340,13 +340,16 @@ namespace Couchbase.Lite
 
         public void Dispose() 
         {
-            var attachments = GetProperty("_attachments").AsDictionary<string, Attachment>();
+            var attachments = GetProperty("_attachments").AsDictionary<string, object>();
             if (attachments == null) {
                 return;
             }
 
             foreach (var pair in attachments) {
-                pair.Value.Dispose();
+                var cast = pair.Value as IDisposable;
+                if(cast != null) {
+                    cast.Dispose();
+                }
             }
         }
 

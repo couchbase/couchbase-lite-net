@@ -1254,6 +1254,7 @@ namespace Couchbase.Lite
 
             client.SendAsync(message, CancellationTokenSource.Token)
                 .ContinueWith(response=> {
+                    multiPartEntity.Dispose();
                     if (response.Status != TaskStatus.RanToCompletion)
                     {
                         Log.E(Tag, "SendAsyncRequest did not run to completion.", response.Exception);
