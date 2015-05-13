@@ -143,7 +143,8 @@ namespace Couchbase.Lite
 
             //NOTE.JHB Even though this is a read, iOS doesn't return the correct value on the read connection
             //but someone should try again when the version goes beyond 3.7.13
-            statement = _writeConnection.prepare(commandText);
+
+            statement = BuildCommand (_writeConnection, commandText, null);
 
             var result = -1;
             try
@@ -174,7 +175,8 @@ namespace Couchbase.Lite
 
             Factory.StartNew(() =>
             {
-                sqlite3_stmt statement = _writeConnection.prepare (commandText);
+                sqlite3_stmt statement = BuildCommand(_writeConnection, commandText, null);
+
                 if (raw.sqlite3_bind_int(statement, 1, version) == raw.SQLITE_ERROR)
                     throw new CouchbaseLiteException(errMessage, StatusCode.DbError);
 
@@ -216,14 +218,14 @@ namespace Couchbase.Lite
             {
                 var t = Factory.StartNew(() =>
                 {
-					try {
-						using (var statement = _writeConnection.prepare("BEGIN IMMEDIATE TRANSACTION"))
-						{
-							statement.step_done();
-						}
-					} catch (Exception e) {
-							Log.E(Tag, "Error BeginTransaction", e);
-					}
+                    try {
+                        using (var statement = BuildCommand(_writeConnection, "BEGIN IMMEDIATE TRANSACTION", null))
+                        {
+                            statement.step_done();
+                        }
+                    } catch (Exception e) {
+                        Log.E(Tag, "Error BeginTransaction", e);
+                    }
                 });
                 t.Wait();
             }
@@ -240,34 +242,28 @@ namespace Couchbase.Lite
             if (count > 0)
                 return count;
 
-            /*if (_writeConnection == null)
-            {
-                if (shouldCommit)
-                    throw new InvalidOperationException("Transaction missing.");
-                return;
-            }*/
-
             var t = Factory.StartNew(() =>
-			{
-				try {
-					if (shouldCommit)
-					{
-						using (var stmt = _writeConnection.prepare("COMMIT"))
-						{
-							stmt.step_done();
-						}
-						shouldCommit = false;
-					}
-					else
-					{
-						using (var stmt = _writeConnection.prepare("ROLLBACK"))
-						{
-							stmt.step_done();
-						}
-					}
-				} catch (Exception e) {
-					Log.E(Tag, "Error EndTransaction", e);
-				}
+            {
+                try {
+                    if (shouldCommit)
+                    {
+                        using (var statement = BuildCommand(_writeConnection, "COMMIT", null))
+                        {
+                            statement.step_done();
+                        }
+
+                        shouldCommit = false;
+                    }
+                    else
+                    {
+                        using (var statement = BuildCommand(_writeConnection, "ROLLBACK", null))
+                        {
+                            statement.step_done();
+                        }
+                    }
+                } catch (Exception e) {
+                    Log.E(Tag, "Error EndTransaction", e);
+                }
             });
             t.Wait();
 
@@ -396,26 +392,26 @@ namespace Couchbase.Lite
             Cursor cursor = null;
             sqlite3_stmt command = null;
 
-			var t = Factory.StartNew (() => 
-			{
-				try {
-					Log.V (Tag, "RawQuery sql: {0} ({1})", sql, String.Join (", ", paramArgs.ToStringArray ()));
-					command = BuildCommand (_readConnection, sql, paramArgs);
-					cursor = new Cursor (command);
-				} catch (Exception e) {
-					if (command != null) {
-						command.Dispose ();
-					}
-					var args = paramArgs == null 
+            var t = Factory.StartNew (() => 
+            {
+                try {
+                    Log.V (Tag, "RawQuery sql: {0} ({1})", sql, String.Join (", ", paramArgs.ToStringArray ()));
+                    command = BuildCommand (_readConnection, sql, paramArgs);
+                    cursor = new Cursor (command);
+                } catch (Exception e) {
+                    if (command != null) {
+                        command.Dispose ();
+                    }
+                    var args = paramArgs == null 
                     ? String.Empty 
                     : String.Join (",", paramArgs.ToStringArray ());
-					Log.E (Tag, "Error executing raw query '{0}' is values '{1}' {2}".Fmt (sql, args, _readConnection.errmsg ()), e);
-					throw;
-				}
-				return cursor;
-			});
+                    Log.E (Tag, "Error executing raw query '{0}' is values '{1}' {2}".Fmt (sql, args, _readConnection.errmsg ()), e);
+                    throw;
+                }
+                return cursor;
+            });
 
-			return t.Result;
+            return t.Result;
         }
 
         public long Insert(String table, String nullColumnHack, ContentValues values)
@@ -629,14 +625,19 @@ namespace Couchbase.Lite
                     }
                 }
 
-                int err = raw.sqlite3_prepare_v2(db, sql, out command);
+                int err = raw.SQLITE_OK;
 
-				if (err != raw.SQLITE_OK)
-				{
-					Log.E(Tag, "sqlite3_prepare_v2: " + err);
-				}
+                lock(Cursor.StmtDisposeLock)
+                {
+                    err = raw.sqlite3_prepare_v2(db, sql, out command);
+                }
 
-                if (paramArgs.Length > 0 && command != null && err != raw.SQLITE_ERROR)
+                if (err != raw.SQLITE_OK || command == null)
+                {
+                    Log.E(Tag, "sqlite3_prepare_v2: " + err);
+                }
+
+                if (paramArgs != null && paramArgs.Length > 0 && command != null && err != raw.SQLITE_ERROR)
                 {
                     command.bind(paramArgs);
                 }
@@ -696,8 +697,7 @@ namespace Couchbase.Lite
             }
 
             var sql = builder.ToString();
-            var command = _writeConnection.prepare(sql);
-            command.bind(paramList.ToArray<object>());
+            var command = BuildCommand(_writeConnection, sql, paramList.ToArray<object>());
 
             return command;
         }
@@ -764,8 +764,8 @@ namespace Couchbase.Lite
             {
                 Log.D(Tag, "Preparing statement: '{0}'", sql);
             }
-            command = _writeConnection.prepare(sql);
-            command.bind(args);               
+
+            command = BuildCommand(_writeConnection, sql, args);
 
             return command;
         }
@@ -792,8 +792,8 @@ namespace Couchbase.Lite
             }
 
             sqlite3_stmt command;
-            command = _writeConnection.prepare(builder.ToString());
-            command.bind(whereArgs);
+
+            command = BuildCommand(_writeConnection, builder.ToString(), whereArgs);
 
             return command;
         }
