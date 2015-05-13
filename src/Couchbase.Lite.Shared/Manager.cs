@@ -367,6 +367,8 @@ namespace Couchbase.Lite
         /// </summary>
         /// <param name="name">The name of the target Database to replace or create.</param>
         /// <param name="compressedStream">The zip stream containing all of the files required by the DB.</param>
+        /// <param name="autoRename">Whether or not to automatically rename the db inside of the zip file.
+        /// If false, the database name must match the name parameter or an exception is thrown</param>
         /// <remarks>
         /// The zip stream must be from a regular PKZip structure compressed with Deflate (*nix command
         /// line zip will produce this)

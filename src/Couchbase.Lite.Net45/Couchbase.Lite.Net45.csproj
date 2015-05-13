@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <UsingTask AssemblyFile="$(ProjectDir)..\packages\MSBuildTasks.1.4.0.88\tools\MSBuild.Community.Tasks.dll" TaskName="MSBuild.Community.Tasks.Git.GitVersion"  Condition=" '$(Configuration)' == 'Debug' " />
-  <Target  Condition=" '$(Configuration)' == 'Debug' " Name="SetAssemblyVersion" BeforeTargets="PrepareForBuild">
+  <UsingTask AssemblyFile="$(ProjectDir)..\packages\MSBuildTasks.1.4.0.88\tools\MSBuild.Community.Tasks.dll" TaskName="MSBuild.Community.Tasks.Git.GitVersion"  Condition=" !$(DefineConstants.Contains('OFFICIAL')) " />
+  <Target Condition=" !$(DefineConstants.Contains('OFFICIAL')) " Name="SetAssemblyVersion" BeforeTargets="PrepareForBuild">
     <GitVersion LocalPath="$(ProjectDir)">
       <Output TaskParameter="CommitHash" PropertyName="CommitHash" />
     </GitVersion>
