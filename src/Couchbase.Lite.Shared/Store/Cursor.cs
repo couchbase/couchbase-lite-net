@@ -142,14 +142,7 @@ namespace Couchbase.Lite
 
         public void Close ()
         {
-            if (statement == null) return;
-
-            lock (StmtDisposeLock) 
-            {
-                statement.Dispose ();
-
-                statement = null;
-            }
+            Dispose();
         }
 
         public bool IsAfterLast ()
@@ -165,8 +158,11 @@ namespace Couchbase.Lite
                 return;
             }
 
-            statement.Dispose();
-            statement = null;
+            lock (StmtDisposeLock) 
+            {
+                statement.Dispose ();
+                statement = null;
+            }
         }
 
         #endregion
