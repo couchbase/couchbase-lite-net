@@ -166,6 +166,10 @@ namespace Couchbase.Lite
             });
 
             batcher.QueueObject(0);
+            Assert.IsTrue(mre.Wait(1000), "Batcher didn't initially run");
+            mre.Reset();
+
+            batcher.QueueObject(0);
             batcher.Clear();
             Assert.False(mre.Wait(TimeSpan.FromSeconds(1)), "Batcher ran after being cancelled");
         }
@@ -173,12 +177,16 @@ namespace Couchbase.Lite
         [Test]
         public void TestBatcherAddAfterCancel()
         {
-            var evt = new CountdownEvent(2);
+            var evt = new CountdownEvent(1);
             var scheduler = new SingleTaskThreadpoolScheduler();
             var batcher = new Batcher<int>(new TaskFactory(scheduler), 5, 500, (inbox) =>
             {
                 evt.Signal();
             });
+
+            batcher.QueueObject(0);
+            Assert.IsTrue(evt.Wait(1000), "Batcher didn't initially run");
+            evt.Reset(2);
 
             batcher.QueueObject(0);
             batcher.Clear();

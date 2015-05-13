@@ -86,9 +86,23 @@
     <EmbeddedResource Condition="Exists('Assets\local-test.properties')" Include="Assets\local-test.properties" />
     <EmbeddedResource Include="Assets\test.properties" />
     <EmbeddedResource Include="Assets\attachment.blob" />
-    <EmbeddedResource Include="Assets\noattachments.cblite" />
     <EmbeddedResource Include="Assets\withattachments.cblite" />
     <EmbeddedResource Include="Assets\performance-test.json" />
+    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\android104.zip">
+      <Link>Assets\android104.zip</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\android110.zip">
+      <Link>Assets\android110.zip</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\ios104.zip">
+      <Link>Assets\ios104.zip</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\ios110.zip">
+      <Link>Assets\ios110.zip</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\noattachments.cblite">
+      <Link>Assets\noattachments.cblite</Link>
+    </EmbeddedResource>
   </ItemGroup>
   <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
   <Import Project="..\packages\SQLitePCL.raw.0.8.0\build\MonoAndroid\SQLitePCL.raw.targets" Condition="Exists('..\packages\SQLitePCL.raw.0.8.0\build\MonoAndroid\SQLitePCL.raw.targets')" />

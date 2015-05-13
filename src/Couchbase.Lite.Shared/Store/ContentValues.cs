@@ -233,25 +233,18 @@ namespace Couchbase.Lite.Storage
             return mValues.ContainsKey(key);
         }
 
-        /// <summary>Gets a value.</summary>
-        /// <remarks>
-        /// Gets a value. Valid value types are
-        /// <see cref="string">string</see>
-        /// ,
-        /// <see cref="bool">bool</see>
-        /// , and
-        /// <see cref="Sharpen.Number">Sharpen.Number</see>
-        /// implementations.
-        /// </remarks>
-        /// <param name="key">the value to get</param>
-        /// <returns>the data for the value</returns>
+        /// <summary>
+        /// Returns the value of the specified key, or null if not present
+        /// </summary>
+        /// <param name="key">The key to check</param>
         public object Get(string key)
         {
             return mValues.Get(key);
         }
 
-        /// <summary>Gets a value and converts it to a String.</summary>
-        /// <remarks>Gets a value and converts it to a String.</remarks>
+        /// <summary>
+        /// Gets a value and converts it to a String.
+        /// </summary>
         /// <param name="key">the value to get</param>
         /// <returns>the String for the value</returns>
         public string GetAsString(string key)
@@ -260,240 +253,79 @@ namespace Couchbase.Lite.Storage
             return value != null ? value.ToString() : null;
         }
 
-        /// <summary>Gets a value and converts it to a Long.</summary>
-        /// <remarks>Gets a value and converts it to a Long.</remarks>
+        /// <summary>
+        /// Gets a value and converts it to a Long.
+        /// </summary>
         /// <param name="key">the value to get</param>
         /// <returns>the Long value, or null if the value is missing or cannot be converted</returns>
-        public Nullable<Int64> GetAsLong(string key)
+        public long? GetAsLong(string key)
         {
-            object value = mValues.Get(key);
-            try
-            {
-                return value != null ? ((Int64?)value) : null;
-            }
-            catch (InvalidCastException e)
-            {
-                if (value is CharSequence)
-                {
-                    try
-                    {
-                        return Int64.Parse(value.ToString());
-                    }
-                    catch (FormatException)
-                    {
-                        Log.E(Tag, "Cannot parse Long value for " + value + " at key " + key);
-                        return null;
-                    }
-                }
-                else
-                {
-                    Log.E(Tag, "Cannot cast value for " + key + " to a Long: " + value, e);
-                    return null;
-                }
-            }
+            return mValues.GetNullable<long>(key);
         }
 
-        /// <summary>Gets a value and converts it to an Integer.</summary>
-        /// <remarks>Gets a value and converts it to an Integer.</remarks>
+        /// <summary>
+        /// Gets a value and converts it to an Integer.
+        /// </summary>
         /// <param name="key">the value to get</param>
-        /// <returns>the Integer value, or null if the value is missing or cannot be converted
-        ///     </returns>
-        public Nullable<Int32> GetAsInteger(string key)
+        /// <returns>the Integer value, or null if the value is missing or cannot be converted</returns>
+        public int? GetAsInteger(string key)
         {
-            object value = mValues.Get(key);
-            try
-            {
-                return value != null ? ((Int32?)value) : null;
-            }
-            catch (InvalidCastException e)
-            {
-                if (value is CharSequence)
-                {
-                    try
-                    {
-                        return Int32.Parse(value.ToString());
-                    }
-                    catch (FormatException)
-                    {
-                        Log.E(Tag, "Cannot parse Integer value for " + value + " at key " + key);
-                        return null;
-                    }
-                }
-                else
-                {
-                    Log.E(Tag, "Cannot cast value for " + key + " to a Integer: " + value, e);
-                    return null;
-                }
-            }
+            return mValues.GetNullable<int>(key);
         }
 
-        /// <summary>Gets a value and converts it to a Short.</summary>
-        /// <remarks>Gets a value and converts it to a Short.</remarks>
+        /// <summary>
+        /// Gets a value and converts it to a Short.
+        /// </summary>
         /// <param name="key">the value to get</param>
         /// <returns>the Short value, or null if the value is missing or cannot be converted</returns>
-        public Nullable<Int16> GetAsShort(string key)
+        public short? GetAsShort(string key)
         {
-            object value = mValues.Get(key);
-            try
-            {
-                return value != null ? ((Int16?)value) : null;
-            }
-            catch (InvalidCastException e)
-            {
-                if (value is CharSequence)
-                {
-                    try
-                    {
-                        return Int16.Parse(value.ToString());
-                    }
-                    catch (FormatException)
-                    {
-                        Log.E(Tag, "Cannot parse Short value for " + value + " at key " + key);
-                        return null;
-                    }
-                }
-                else
-                {
-                    Log.E(Tag, "Cannot cast value for " + key + " to a Short: " + value, e);
-                    return null;
-                }
-            }
+            return mValues.GetNullable<short>(key);
         }
 
-        /// <summary>Gets a value and converts it to a Byte.</summary>
-        /// <remarks>Gets a value and converts it to a Byte.</remarks>
+        /// <summary>
+        /// Gets a value and converts it to a Byte.
+        /// </summary>
         /// <param name="key">the value to get</param>
         /// <returns>the Byte value, or null if the value is missing or cannot be converted</returns>
-        public Nullable<Byte> GetAsByte(string key)
+        public byte? GetAsByte(string key)
         {
-            object value = mValues.Get(key);
-            try
-            {
-                return value != null ? ((Byte?)value) : null;
-            }
-            catch (InvalidCastException e)
-            {
-                if (value is CharSequence)
-                {
-                    try
-                    {
-                        return Byte.Parse(value.ToString());
-                    }
-                    catch (FormatException)
-                    {
-                        Log.E(Tag, "Cannot parse Byte value for " + value + " at key " + key);
-                        return null;
-                    }
-                }
-                else
-                {
-                    Log.E(Tag, "Cannot cast value for " + key + " to a Byte: " + value, e);
-                    return null;
-                }
-            }
+            return mValues.GetNullable<byte>(key);
         }
 
-        /// <summary>Gets a value and converts it to a Double.</summary>
-        /// <remarks>Gets a value and converts it to a Double.</remarks>
+        /// <summary>
+        /// Gets a value and converts it to a Double.
+        /// </summary>
         /// <param name="key">the value to get</param>
-        /// <returns>the Double value, or null if the value is missing or cannot be converted
-        ///     </returns>
-        public Nullable<Double> GetAsDouble(string key)
+        /// <returns>the Double value, or null if the value is missing or cannot be converted</returns>
+        public double? GetAsDouble(string key)
         {
-            object value = mValues.Get(key);
-            try
-            {
-                return value != null ? ((Double?)value) : null;
-            }
-            catch (InvalidCastException e)
-            {
-                if (value is CharSequence)
-                {
-                    try
-                    {
-                        return Double.Parse(value.ToString());
-                    }
-                    catch (FormatException)
-                    {
-                        Log.E(Tag, "Cannot parse Double value for " + value + " at key " + key);
-                        return null;
-                    }
-                }
-                else
-                {
-                    Log.E(Tag, "Cannot cast value for " + key + " to a Double: " + value, e);
-                    return null;
-                }
-            }
+            return mValues.GetNullable<double>(key);
         }
 
-        /// <summary>Gets a value and converts it to a Float.</summary>
-        /// <remarks>Gets a value and converts it to a Float.</remarks>
+        /// <summary>
+        /// Gets a value and converts it to a Float.
+        /// </summary>
         /// <param name="key">the value to get</param>
         /// <returns>the Float value, or null if the value is missing or cannot be converted</returns>
-        public Nullable<Single> GetAsFloat(string key)
+        public float? GetAsFloat(string key)
         {
-            object value = mValues.Get(key);
-            try
-            {
-                return value != null ? ((Single?)value) : null;
-            }
-            catch (InvalidCastException e)
-            {
-                if (value is CharSequence)
-                {
-                    try
-                    {
-                        return Single.Parse(value.ToString());
-                    }
-                    catch (FormatException)
-                    {
-                        Log.E(Tag, "Cannot parse Float value for " + value + " at key " + key);
-                        return null;
-                    }
-                }
-                else
-                {
-                    Log.E(Tag, "Cannot cast value for " + key + " to a Float: " + value, e);
-                    return null;
-                }
-            }
+            return mValues.GetNullable<float>(key);
         }
 
-        /// <summary>Gets a value and converts it to a Boolean.</summary>
-        /// <remarks>Gets a value and converts it to a Boolean.</remarks>
+        /// <summary>
+        /// Gets a value and converts it to a Boolean.
+        /// </summary>
         /// <param name="key">the value to get</param>
-        /// <returns>the Boolean value, or null if the value is missing or cannot be converted
-        ///     </returns>
-        public Nullable<Boolean> GetAsBoolean(string key)
+        /// <returns>the Boolean value, or null if the value is missing or cannot be converted</returns>
+        public bool? GetAsBoolean(string key)
         {
-            object value = mValues.Get(key);
-            try
-            {
-                return (Boolean)value;
-            }
-            catch (InvalidCastException e)
-            {
-                if (value is CharSequence)
-                {
-                    return Boolean.Parse(value.ToString());
-                }
-                else
-                {
-                    if (value is IConvertible)
-                    {
-                        return Convert.ToBoolean(value);
-                    }
-                    else
-                    {
-                        Log.E(Tag, "Cannot cast value for " + key + " to a Boolean: " + value, e);
-                        return null;
-                    }
-                }
-            }
+            return mValues.GetNullable<bool>(key);
         }
 
-        /// <summary>Gets a value that is a byte array.</summary>
+        /// <summary>
+        /// Gets a value that is a byte array.
+        /// </summary>
         /// <remarks>
         /// Gets a value that is a byte array. Note that this method will not convert
         /// any other types to byte arrays.
@@ -502,18 +334,12 @@ namespace Couchbase.Lite.Storage
         /// <returns>the byte[] value, or null is the value is missing or not a byte[]</returns>
         public byte[] GetAsByteArray(string key)
         {
-            object value = mValues.Get(key);
-            if (value is byte[])
-            {
-                return (byte[])value;
-            }
-            else
-            {
-                return null;
-            }
+            return mValues.GetCast<byte[]>(key);
         }
 
-        /// <summary>Returns a set of all of the keys and values</summary>
+        /// <summary>
+        /// Returns a set of all of the keys and values
+        /// </summary>
         /// <returns>a set of all of the keys and values</returns>
         public ICollection<KeyValuePair<string, object>> ValueSet()
         {
@@ -527,10 +353,9 @@ namespace Couchbase.Lite.Storage
             return mValues.Keys;
         }
 
-        /// <summary>Returns a string containing a concise, human-readable description of this object.
-        ///     </summary>
-        /// <remarks>Returns a string containing a concise, human-readable description of this object.
-        ///     </remarks>
+        /// <summary>
+        /// Returns a string containing a concise, human-readable description of this object.
+        /// </summary>
         /// <returns>a printable representation of this object.</returns>
         public override string ToString()
         {

@@ -41,20 +41,57 @@
 //
 using System;
 
-
 namespace Couchbase.Lite {
-    /// <summary>Options for what metadata to include in document bodies</summary>
+    /// <summary>
+    /// Options for what metadata to include in document bodies
+    /// </summary>
     [Flags]
+    [Serializable]
     public enum DocumentContentOptions
     {
+        /// <summary>
+        /// Include only the default information
+        /// </summary>
         None,
+
+        /// <summary>
+        /// Include attachment data
+        /// </summary>
         IncludeAttachments = 2,
+
+        /// <summary>
+        /// Include currently conflicting revisions
+        /// </summary>
         IncludeConflicts = 4,
+
+        /// <summary>
+        /// Include a list of revisions
+        /// </summary>
         IncludeRevs = 8,
+
+        /// <summary>
+        /// Include the status of each revision (i.e. whether available, missing, or deleted)
+        /// </summary>
         IncludeRevsInfo = 16,
+
+        /// <summary>
+        /// Include the latest sequence number in the database
+        /// </summary>
         IncludeLocalSeq = 32,
+
+        /// <summary>
+        /// Don't include the JSON properties
+        /// </summary>
         NoBody = 64,
+
+        /// <summary>
+        /// Attachments over a certain size are sent via a multipart response
+        /// </summary>
         BigAttachmentsFollow = 128,
+
+        /// <summary>
+        /// Don't include attachments
+        /// </summary>
         NoAttachments = 256
     }
 }

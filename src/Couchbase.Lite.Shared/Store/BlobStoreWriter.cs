@@ -171,7 +171,6 @@ namespace Couchbase.Lite
         }
 
         /// <summary>Call this after all the data has been added.</summary>
-        /// <remarks>Call this after all the data has been added.</remarks>
         public void Finish()
         {
             try
@@ -187,7 +186,6 @@ namespace Couchbase.Lite
         }
 
         /// <summary>Call this to cancel before finishing the data.</summary>
-        /// <remarks>Call this to cancel before finishing the data.</remarks>
         public void Cancel()
         {
             try
@@ -202,7 +200,6 @@ namespace Couchbase.Lite
         }
 
         /// <summary>Installs a finished blob into the store.</summary>
-        /// <remarks>Installs a finished blob into the store.</remarks>
         public void Install()
         {
             if (tempFile == null)
@@ -223,6 +220,7 @@ namespace Couchbase.Lite
             tempFile = null;
         }
 
+        [Obsolete("Use SHA1DigestString")]
         public string MD5DigestString()
         {
             string base64Md5Digest = Convert.ToBase64String(md5DigestResult);
@@ -231,7 +229,7 @@ namespace Couchbase.Lite
 
         public string SHA1DigestString()
         {
-            string base64Sha1Digest = Convert.ToBase64String(blobKey.GetBytes());
+            string base64Sha1Digest = Convert.ToBase64String(blobKey.Bytes);
             return string.Format("sha1-{0}", base64Sha1Digest);
         }
 

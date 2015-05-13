@@ -254,13 +254,13 @@ namespace Couchbase.Lite
 
             var dbPath = deleteme.Path;
             Assert.IsTrue(new FilePath(dbPath).Exists());
-            Assert.IsTrue(new FilePath(dbPath.Substring(0, dbPath.LastIndexOf('.'))).Exists());
+            Assert.IsTrue(new FilePath(deleteme.AttachmentStorePath).Exists());
 
             deleteme.Delete();
             Assert.IsFalse(deleteme.Exists());
             Assert.IsFalse(new FilePath(dbPath).Exists());
             Assert.IsFalse(new FilePath(dbPath + "-journal").Exists());
-            Assert.IsFalse(new FilePath(dbPath.Substring(0, dbPath.LastIndexOf('.'))).Exists());
+            Assert.IsFalse(new FilePath(deleteme.AttachmentStorePath).Exists());
 
             // delete again, even though already deleted
             deleteme.Delete();          
@@ -701,6 +701,7 @@ namespace Couchbase.Lite
             var newRev = doc.CurrentRevision.CreateRevision();
             newRev.RemoveAttachment(attachmentName);
             var rev4 = newRev.Save();
+            newRev.Dispose();
             Assert.IsNotNull(rev4);
             Assert.AreEqual(0, rev4.AttachmentNames.Count());
         }

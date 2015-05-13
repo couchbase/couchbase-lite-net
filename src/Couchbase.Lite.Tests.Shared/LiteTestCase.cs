@@ -57,6 +57,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Reflection;
+using System.IO.Compression;
 
 namespace Couchbase.Lite
 {
@@ -269,6 +270,23 @@ namespace Couchbase.Lite
             return GetReplicationPort() == 4984;
         }
 
+        protected void AssertDictionariesAreEqual(IDictionary<string, object> first, IDictionary<string, object> second)
+        {
+            //I'm tired of NUnit misunderstanding that objects are dictionaries and trying to compare them as collections...
+            Assert.IsTrue(first.Keys.Count == second.Keys.Count);
+            foreach (var key in first.Keys) {
+                var firstObj = first[key];
+                var secondObj = second[key];
+                var firstDic = firstObj.AsDictionary<string, object>();
+                var secondDic = secondObj.AsDictionary<string, object>();
+                if (firstDic != null && secondDic != null) {
+                    AssertDictionariesAreEqual(firstDic, secondDic);
+                } else {
+                    Assert.AreEqual(firstObj, secondObj);
+                }
+            }
+        }
+
         /// <exception cref="System.UriFormatException"></exception>
         protected Uri GetReplicationURLWithoutCredentials()
         {
@@ -300,6 +318,37 @@ namespace Couchbase.Lite
                 }
             }
             return result;
+        }
+
+        protected IDictionary<string, object> CreateAttachmentsStub(string name)
+        {
+            return new Dictionary<string, object> {
+                { name, new Dictionary<string, object> {
+                        { "stub", true }
+                    }
+                }
+            };
+        }
+
+        protected IDictionary<string, object> CreateAttachmentsDict(IEnumerable<byte> data, string name, string type, bool gzipped)
+        {
+            if (gzipped) {
+                using (var ms = new MemoryStream())
+                using (var gs = new GZipStream(ms, CompressionMode.Compress)) {
+                    gs.Write(data.ToArray(), 0, data.Count());
+                    data = ms.ToArray();
+                }
+            }
+
+            var att = new NonNullDictionary<string, object> {
+                { "content_type", type },
+                { "data", data },
+                { "encoding", gzipped ? "gzip" : null }
+            };
+
+            return new Dictionary<string, object> {
+                { name, att }
+            };
         }
 
         /// <exception cref="System.IO.IOException"></exception>
@@ -400,10 +449,11 @@ namespace Couchbase.Lite
             Assert.AreEqual(rev.AttachmentNames.Count(), 0);
             Assert.IsNull(attachment);
 
-            var body = new ByteArrayInputStream(Encoding.UTF8.GetBytes(content));
+            var body = new MemoryStream(Encoding.UTF8.GetBytes(content));
             var rev2 = doc.CreateRevision();
             rev2.SetAttachment(attachmentName, "text/plain; charset=utf-8", body);
             var rev3 = rev2.Save();
+            rev2.Dispose();
             Assert.IsNotNull(rev3);
             Assert.AreEqual(rev3.Attachments.Count(), 1);
             Assert.AreEqual(rev3.AttachmentNames.Count(), 1);
@@ -419,8 +469,8 @@ namespace Couchbase.Lite
             Assert.AreEqual("text/plain; charset=utf-8", attachment.ContentType);
             Assert.AreEqual(Encoding.UTF8.GetString(attachment.Content.ToArray()), content);
             Assert.AreEqual(Encoding.UTF8.GetBytes(content).Length, attachment.Length);
-
             attachment.Dispose();
+
             return doc;
         }          
             

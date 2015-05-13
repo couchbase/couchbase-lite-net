@@ -161,10 +161,12 @@ namespace Couchbase.Lite
 
         public void Dispose ()
         {
-            if (statement != null)
-            {
-                Close();
+            if (statement == null) {
+                return;
             }
+
+            statement.Dispose();
+            statement = null;
         }
 
         #endregion

@@ -158,7 +158,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)Store\JsonCollator.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Store\RevIdCollator.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Store\SQLException.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Store\SQLiteStorageEngineFactory.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Store\Status.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\DefaultAuthHandler.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\ExtensionMethods.cs" />
@@ -205,7 +204,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)Util\ExponentialBackoffStrategy.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\SingleTaskThreadpoolScheduler.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\SingleThreadScheduler.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Util\PrivateThreadSynchronizationContext.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\ArraySegment.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\TaskEx.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\GenericEqualityComparer.cs" />
@@ -214,14 +212,13 @@
     <Compile Include="$(MSBuildThisFileDirectory)Replication\MultipartWriter.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Replication\MultiStreamWriter.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\NonNullDictionary.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)View\JSViewCompiler.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Manager\IDatabaseUpgrader.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Manager\DatabaseUpgraderFactory.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Manager\DatabaseUpgraderFactory_Upgraders.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Store\SQLiteStorageEngineFactory.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="$(MSBuildThisFileDirectory)Store\MonoSQLiteStorageEngine.cs" />
-    <None Include="$(MSBuildThisFileDirectory)Store\SqlitePclStorageEngine.cs" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="$(MSBuildThisFileDirectory)View\" />

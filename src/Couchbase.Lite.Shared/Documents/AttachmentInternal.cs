@@ -221,12 +221,14 @@ namespace Couchbase.Lite.Internal
                 SetPossiblyEncodedLength(_data.LongCount());
             } else if (info.GetCast<bool>("stub", false)) {
                 // This item is just a stub; validate and skip it
-                var revPos = info.GetCast<int>("revpos");
-                if (revPos <= 0) {
-                    throw new CouchbaseLiteException(StatusCode.BadAttachment);
-                }
+                if(info.ContainsKey("revpos")) {
+                    var revPos = info.GetCast<int>("revpos");
+                    if (revPos <= 0) {
+                        throw new CouchbaseLiteException(StatusCode.BadAttachment);
+                    }
 
-                RevPos = revPos;
+                    RevPos = revPos;
+                }
             } else if (info.GetCast<bool>("follows", false)) {
                 // I can't handle this myself; my caller will look it up from the digest
                 if (Digest == null) {

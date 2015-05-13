@@ -28,6 +28,8 @@ namespace Couchbase.Lite.Db
 
         int NumRevs { get; }
 
+        bool CanRemoveOldAttachmentsDir { get; set; }
+
         Status Import();
 
         void Backout();

@@ -56,9 +56,13 @@ using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
 using Sharpen;
 using Couchbase.Lite.Db;
+using System.Diagnostics;
+using ICSharpCode.SharpZipLib.Zip;
 
 #if !NET_3_5
 using StringEx = System.String;
+#else
+using Rackspace.Threading;
 #endif
 
 namespace Couchbase.Lite
@@ -80,8 +84,7 @@ namespace Couchbase.Lite
         const string HttpErrorDomain = "CBLHTTP";
 
         internal const string DatabaseSuffixv0 = ".touchdb";
-        internal const string DatabaseSuffixv1 = ".cblite";
-        internal const string DatabaseSuffix = ".CB2";
+        internal const string DatabaseSuffix = ".cblite";
 
         // FIXME: Not all of these are valid Windows file chars.
         const string IllegalCharacters = @"(^[^a-z]+)|[^a-z0-9_\$\(\)/\+\-]+";
@@ -137,7 +140,17 @@ namespace Couchbase.Lite
             // and this is only needed by the default constructor or when accessing the SharedInstanced
             // So, let's only set it only when GetFolderPath returns something and allow the directory to be
             // manually specified via the ctor that accepts a DirectoryInfo
+            #if __UNITY__
+            string defaultDirectoryPath = null;
+            if(Thread.CurrentThread.ManagedThreadId != 1) {
+                defaultDirectoryPath = Unity.UnityMainThreadScheduler.TaskFactory.StartNew<string>(() => UnityEngine.Application.persistentDataPath).Result;
+            } else {
+                defaultDirectoryPath = UnityEngine.Application.persistentDataPath;
+            }
+
+            #else
             var defaultDirectoryPath = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+            #endif
             if (!StringEx.IsNullOrWhiteSpace(defaultDirectoryPath))
             {
                 defaultDirectory = new DirectoryInfo(defaultDirectoryPath);
@@ -152,6 +165,8 @@ namespace Couchbase.Lite
                 gitVersion= reader.ReadToEnd();
             }
             VersionString = String.Format("Unofficial ({0})", gitVersion.TrimEnd());
+            #elif __UNITY__
+            VersionString = "1.0";
             #else
             VersionString = "1.1";
             #endif
@@ -319,30 +334,76 @@ namespace Couchbase.Lite
         public void ReplaceDatabase(String name, Stream databaseStream, IDictionary<String, Stream> attachmentStreams)
         {
             try {
-                var database = GetDatabaseWithoutOpening (name, false);
-                var dstAttachmentsPath = database.AttachmentStorePath;
+                using(var database = GetDatabaseWithoutOpening (name, false)) {
+                    var dstAttachmentsPath = database.AttachmentStorePath;
 
-                var destStream = File.OpenWrite(database.Path);
-                databaseStream.CopyTo(destStream);
-                destStream.Dispose();
+                    using(var destStream = File.OpenWrite(database.Path)) {
+                        databaseStream.CopyTo(destStream);
+                    }
 
-                if (File.Exists(dstAttachmentsPath)) 
-                {
-                    System.IO.Directory.Delete (dstAttachmentsPath, true);
+                    UpgradeDatabase(new FileInfo(database.Path));
+
+                    if (System.IO.Directory.Exists(dstAttachmentsPath)) 
+                    {
+                        System.IO.Directory.Delete (dstAttachmentsPath, true);
+                    }
+                    System.IO.Directory.CreateDirectory(dstAttachmentsPath);
+
+                    var attachmentsFile = new FilePath(dstAttachmentsPath);
+
+                    if (attachmentStreams != null) {
+                        StreamUtils.CopyStreamsToFolder(attachmentStreams, attachmentsFile);
+                    }
+                    database.Open();
                 }
-                System.IO.Directory.CreateDirectory(dstAttachmentsPath);
-
-                var attachmentsFile = new FilePath(dstAttachmentsPath);
-
-                if (attachmentStreams != null) {
-                    StreamUtils.CopyStreamsToFolder(attachmentStreams, attachmentsFile);
-                }
-                database.Open();
-                database.ReplaceUUIDs ();
             } catch (Exception e) {
                 Log.E(Database.Tag, string.Empty, e);
                 throw new CouchbaseLiteException(StatusCode.InternalServerError);
             }
+        }
+
+        /// <summary>
+        /// Replaces or installs a database from a zipped DB folder structure
+        /// </summary>
+        /// <param name="name">The name of the target Database to replace or create.</param>
+        /// <param name="compressedStream">The zip stream containing all of the files required by the DB.</param>
+        /// <remarks>
+        /// The zip stream must be from a regular PKZip structure compressed with Deflate (*nix command
+        /// line zip will produce this)
+        public void ReplaceDatabase(string name, Stream compressedStream)
+        {
+            var database = GetDatabaseWithoutOpening(name, false);
+            var dstAttachmentsPath = database.AttachmentStorePath;
+            if (System.IO.Directory.Exists(dstAttachmentsPath)) {
+                System.IO.Directory.Delete(dstAttachmentsPath, true);
+            }
+
+            System.IO.Directory.CreateDirectory(dstAttachmentsPath);
+
+            ZipEntry entry = null;
+            using (var zipStream = new ZipInputStream(compressedStream)) {
+                while ((entry = zipStream.GetNextEntry()) != null) {
+                    if (entry.IsDirectory) {
+                        System.IO.Directory.CreateDirectory(Path.Combine(Directory, entry.Name));
+                        continue;
+                    }
+
+                    var path = Path.Combine(Directory, entry.Name);
+                    if (File.Exists(path)) {
+                        File.Delete(path);
+                    }
+
+                    using (var destStream = File.OpenWrite(path)) {
+                        if (entry.CompressedSize > 0) {
+                            zipStream.CopyTo(destStream);
+                        }
+                    }
+                }
+            }
+
+
+            UpgradeDatabase(new FileInfo(database.Path));
+            database.Open();
         }
 
     #endregion
@@ -441,46 +502,39 @@ namespace Couchbase.Lite
             var extensions = DatabaseUpgraderFactory.ALL_KNOWN_PREFIXES;
             var files = dirInfo.GetFiles().Where(f => extensions.Contains(f.Extension.TrimStart('.')));
             foreach (var file in files) {
-                
-                var oldFilename = file.FullName;
-                var newFilename = String.Concat(Path.GetFileNameWithoutExtension(oldFilename), DatabaseSuffix);
-                var newFile = new FileInfo(Path.Combine(dirInfo.FullName, newFilename));
-
-                if (newFile.Exists) {
-                    var msg = String.Format("Cannot rename {0} to {1}, {2} already exists", oldFilename, newFilename, newFilename);
-                    Log.W(Database.Tag, msg);
-                    continue;
-                }
-
-                var tmpDb = new Database(file.FullName, this);
-                tmpDb.Open();
-                tmpDb.Close();
-
-                var name = Path.GetFileNameWithoutExtension(Path.Combine(dirInfo.FullName, newFilename));
-                var db = GetDatabaseWithoutOpening(name, false);
-                if (db == null) {
-                    Log.W(Tag, "Upgrade failed for {0} (Creating new DB failed)", file.Name);
-                    continue;
-                }
-
-                if (!db.Exists()) {
-                    var upgrader = DatabaseUpgraderFactory.CreateUpgrader(db, oldFilename);
-                    var status = upgrader.Import();
-                    if (status.IsError) {
-                        Log.W(Tag, "Upgrade failed for {0} (Status {1})", file.Name, status);
-                        upgrader.Backout();
-                        continue;
-                    }
-                }
-
-                db.Close();
-
-                // Remove old database file and its SQLite side files:
-                File.Delete(file.FullName);
-                File.Delete(file.FullName + "-wal");
-                File.Delete(file.FullName + "-shm");
-                Log.D(Tag, "...Success!");
+                UpgradeDatabase(file);
             }
+        }
+
+        private void UpgradeDatabase(FileInfo path)
+        {
+            var oldFilename = path.FullName;
+            var newFilename = Path.ChangeExtension(oldFilename, DatabaseSuffix);
+            var newFile = new FileInfo(newFilename);
+
+            if (!oldFilename.Equals(newFilename) && newFile.Exists) {
+                var msg = String.Format("Cannot rename {0} to {1}, {2} already exists", oldFilename, newFilename, newFilename);
+                Log.W(Database.Tag, msg);
+                return;
+            }
+
+            var name = Path.GetFileNameWithoutExtension(Path.Combine(path.Directory.FullName, newFilename));
+            var db = GetDatabaseWithoutOpening(name, false);
+            if (db == null) {
+                Log.W(Tag, "Upgrade failed for {0} (Creating new DB failed)", path.Name);
+                return;
+            }
+            db.Dispose();
+
+            var upgrader = DatabaseUpgraderFactory.CreateUpgrader(db, oldFilename);
+            var status = upgrader.Import();
+            if (status.IsError) {
+                Log.W(Tag, "Upgrade failed for {0} (Status {1})", path.Name, status);
+                upgrader.Backout();
+                return;
+            }
+
+            Log.D(Tag, "...Success!");
         }
 
         internal Replication ReplicationWithProperties(IDictionary<string, object> properties)

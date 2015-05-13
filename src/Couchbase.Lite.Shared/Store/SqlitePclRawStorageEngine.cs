@@ -56,7 +56,7 @@ using Couchbase.Lite.Store;
 using StringEx = System.String;
 #endif
 
-namespace Couchbase.Lite.Shared
+namespace Couchbase.Lite
 {
     internal sealed class SqlitePCLRawStorageEngine : ISQLiteStorageEngine, IDisposable
     {

@@ -86,17 +86,47 @@ namespace Couchbase.Lite {
     /// </item>    
     /// </list>
     /// </summary>
+    [Serializable]
     public enum IndexUpdateMode {
+            /// <summary>
+            /// If needed, update the index before running the <see cref="Couchbase.Lite.Query"/> (default). 
+            /// This guarantees up-to-date results at the expense of a potential delay in receiving results.
+            /// </summary>
             Before,
+            /// <summary>
+            /// Never update the index when running a <see cref="Couchbase.Lite.Query"/>. 
+            /// This guarantees receiving results the fastest at the expense of potentially out-of-date results.
+            /// </summary>
             Never,
+            /// <summary>
+            /// If needed, update the index asynchronously after running the <see cref="Couchbase.Lite.Query"/>. 
+            /// This guarantees receiving results the fastest, at the expense of potentially out-of-date results, 
+            /// and that subsequent Queries will return more accurate results.
+            /// </summary>
             After
     }
-                            
+            
+    /// <summary>
+    /// Options for specifying the mode that an all documents query should run in
+    /// </summary>
+    [Serializable]
     public enum AllDocsMode
     {
+        /// <summary>
+        /// Regular mode
+        /// </summary>
         AllDocs,
+        /// <summary>
+        /// Include deleted documents in the results
+        /// </summary>
         IncludeDeleted,
+        /// <summary>
+        /// Include conflicted revisions in the results
+        /// </summary>
         ShowConflicts,
+        /// <summary>
+        /// Include *only* conflicted revisions in the results
+        /// </summary>
         OnlyConflicts
     }
 

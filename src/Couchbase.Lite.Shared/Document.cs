@@ -355,23 +355,22 @@ namespace Couchbase.Lite {
                     currentRevision = null;
                 }
 
-                UnsavedRevision newRev = CreateRevision();
-                if (!updateDelegate(newRev))
-                    break;
-                try
-                {
-                    SavedRevision savedRev = newRev.Save();
-                    if (savedRev != null)
-                    {
-                        return savedRev;
+                using(UnsavedRevision newRev = CreateRevision()) {
+                    if (!updateDelegate(newRev)) {
+                        break;
+                    }
+
+                    try {
+                        SavedRevision savedRev = newRev.Save();
+                        if (savedRev != null) {
+                            return savedRev;
+                        }
+                    } catch (CouchbaseLiteException e) {
+                        lastErrorCode = e.GetCBLStatus().Code;
                     }
                 }
-                catch (CouchbaseLiteException e)
-                {
-                    lastErrorCode = e.GetCBLStatus().GetCode();
-                }
-            }
-            while (lastErrorCode == StatusCode.Conflict);
+            } while (lastErrorCode == StatusCode.Conflict);
+
             return null;
         }
 

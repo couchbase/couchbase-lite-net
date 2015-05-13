@@ -22,18 +22,21 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Sharpen;
+using SQLitePCL;
+using Couchbase.Lite.Util;
 
 namespace Couchbase.Lite.Db
 {
     internal static partial class DatabaseUpgraderFactory
     {
-        public static readonly string[] ALL_KNOWN_PREFIXES = new string[] { "touchdb", "cblite", "cblite2" };
+        private const string TAG = "DatabaseUpgraderFactory";
+
+        public static readonly string[] ALL_KNOWN_PREFIXES = new string[] { "touchdb", "cblite" };
 
         private static readonly Dictionary<string, Func<Database, string, IDatabaseUpgrader>> UPGRADER_MAP = 
             new Dictionary<string, Func<Database, string, IDatabaseUpgrader>> {
             { "touchdb", (db, path) => new v1_upgrader(db, path) },     //Old naming
-            { "cblite", (db, path) => new v1_upgrader(db, path) },      //v1 schema
-            { "cblite2", (db, path) => new NoopUpgrader(db, path) }     //iOS v2 schema
+            { "cblite", (db, path) => new v1_upgrader(db, path) },      //possible v1.0 schema
         };
 
         public static IDatabaseUpgrader CreateUpgrader(Database db, string path)
@@ -44,6 +47,34 @@ namespace Couchbase.Lite.Db
             }
 
             return null;
+        }
+
+        internal static int SchemaVersion(string path) {
+            int version = -1;
+            sqlite3 sqlite;
+            int err = raw.sqlite3_open_v2(path, out sqlite, raw.SQLITE_OPEN_READONLY, null);
+            if (err != 0) {
+                var errMsg = raw.sqlite3_errmsg(sqlite);
+                Log.W(TAG, "Couldn't open SQLite {0} : {1}", path, errMsg);
+                return version;
+            }
+
+            const string sql = "PRAGMA user_version";
+            sqlite3_stmt versionQuery;
+            err = raw.sqlite3_prepare_v2(sqlite, sql, out versionQuery);
+            if (err == 0) {
+                while (raw.SQLITE_ROW == raw.sqlite3_step(versionQuery)) {
+                    version = raw.sqlite3_column_int(versionQuery, 0);
+                }
+            } else {
+                var errMsg = raw.sqlite3_errmsg(sqlite);
+                Log.W(TAG, "Couldn't compile SQL `{0}` : {1}", sql, errMsg);
+            }
+
+            raw.sqlite3_finalize(versionQuery);
+            raw.sqlite3_close(sqlite);
+
+            return version;
         }
     }
 }

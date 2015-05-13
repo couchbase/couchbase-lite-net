@@ -102,10 +102,24 @@ namespace Couchbase.Lite
     /// </item>
     /// </list>
     /// </summary>
+    [Serializable]
     public enum ReplicationStatus {
+        /// <summary>
+        /// The <see cref="Couchbase.Lite.Replication"/> is finished or hit a fatal error.
+        /// </summary>
         Stopped,
+        /// <summary>
+        /// The remote host is currently unreachable.
+        /// </summary>
         Offline,
+        /// <summary>
+        /// The continuous <see cref="Couchbase.Lite.Replication"/> is caught up and
+        /// waiting for more changes.
+        /// </summary>
         Idle,
+        /// <summary>
+        /// The <see cref="Couchbase.Lite.Replication"/> is actively transferring data.
+        /// </summary>
         Active
     }
 
@@ -120,9 +134,9 @@ namespace Couchbase.Lite
 
     #region Constants
 
-        internal static readonly string ChannelsQueryParam = "channels";
-        internal static readonly string ByChannelFilterName = "sync_gateway/bychannel";
-        internal static readonly string ReplicatorDatabaseName = "_replicator";
+        internal const string ChannelsQueryParam = "channels";
+        internal const string ByChannelFilterName = "sync_gateway/bychannel";
+        internal const string ReplicatorDatabaseName = "_replicator";
 
     #endregion
 
@@ -848,7 +862,7 @@ namespace Couchbase.Lite
                 savingCheckpoint = false;
                 if (e != null)
                 {
-                    Log.V (Tag, "Unable to save remote checkpoint", e as HttpResponseException);
+                    Log.V (Tag, "Unable to save remote checkpoint", e);
                 }
 
                 if (LocalDatabase == null)
@@ -1240,6 +1254,7 @@ namespace Couchbase.Lite
 
             client.SendAsync(message, CancellationTokenSource.Token)
                 .ContinueWith(response=> {
+                    multiPartEntity.Dispose();
                     if (response.Status != TaskStatus.RanToCompletion)
                     {
                         Log.E(Tag, "SendAsyncRequest did not run to completion.", response.Exception);
@@ -1873,7 +1888,7 @@ namespace Couchbase.Lite
 
             SetupRevisionBodyTransformationFunction();
 
-            sessionID = string.Format("repl{0:000}", ++lastSessionID);
+            sessionID = string.Format("repl{0:000}", Interlocked.Increment(ref lastSessionID));
             Log.V(Tag, "STARTING ...");
             IsRunning = true;
             LastSequence = null;

@@ -58,6 +58,7 @@
     <MtouchI18n>
     </MtouchI18n>
     <MtouchArch>ARMv7</MtouchArch>
+    <MtouchUseRefCounting>true</MtouchUseRefCounting>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|iPhone' ">
     <DebugType>full</DebugType>
@@ -119,9 +120,6 @@
     <EmbeddedResource Include="Resources\test.properties">
       <LogicalName>CouchbaseLiteiOSTests.Assets.test.properties</LogicalName>
     </EmbeddedResource>
-    <EmbeddedResource Include="Resources\noattachments.cblite">
-      <LogicalName>CouchbaseLiteiOSTests.Assets.noattachments.cblite</LogicalName>
-    </EmbeddedResource>
     <EmbeddedResource Include="Resources\withattachments.cblite">
       <LogicalName>CouchbaseLiteiOSTests.Assets.withattachments.cblite</LogicalName>
     </EmbeddedResource>
@@ -130,6 +128,26 @@
     </EmbeddedResource>
     <EmbeddedResource Include="Resources\performance-test.json">
       <LogicalName>CouchbaseLiteiOSTests.Assets.performance-test.json</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\android104.zip">
+      <Link>Resources\android104.zip</Link>
+      <LogicalName>CouchbaseLiteiOSTests.Assets.android104.zip</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\android110.zip">
+      <Link>Resources\android110.zip</Link>
+      <LogicalName>CouchbaseLiteiOSTests.Assets.android110.zip</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\ios104.zip">
+      <Link>Resources\ios104.zip</Link>
+      <LogicalName>CouchbaseLiteiOSTests.Assets.ios104.zip</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\ios110.zip">
+      <Link>Resources\ios110.zip</Link>
+      <LogicalName>CouchbaseLiteiOSTests.Assets.ios110.zip</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\noattachments.cblite">
+      <Link>Resources\noattachments.cblite</Link>
+      <LogicalName>CouchbaseLiteiOSTests.Assets.noattachments.cblite</LogicalName>
     </EmbeddedResource>
   </ItemGroup>
   <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />

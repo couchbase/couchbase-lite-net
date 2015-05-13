@@ -4,7 +4,7 @@ using System.Collections.Concurrent;
 using System.Threading.Tasks;
 using Couchbase.Lite.Util;
 
-namespace Couchbase.Lite.Shared
+namespace Couchbase.Lite
 {
     public class PrivateThreadSynchronizationContext : SynchronizationContext, IDisposable
     {

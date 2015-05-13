@@ -1,13 +1,14 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <PropertyGroup>
-    <MSBuildCommunityTasksPath Condition=" '$(MSBuildCommunityTasksPath)' == '' ">$(SolutionDir)\packages\MSBuildTasks.1.4.0.88\tools</MSBuildCommunityTasksPath>
-    <SetAssemblyVersionEnabled Condition=" Exists('$(MSBuildCommunityTasksPath)\MSBuild.Community.Tasks.targets') ">true</SetAssemblyVersionEnabled>
-    <SetAssemblyVersionEnabled Condition=" '$(SetAssemblyVersionEnabled)' == '' ">false</SetAssemblyVersionEnabled>
-  </PropertyGroup>
-  <Import Condition=" '$(SetAssemblyVersionEnabled)' == 'true' " Project="$(MSBuildCommunityTasksPath)\MSBuild.Community.Tasks.targets" />
-  <Target Name="SetAssemblyVersion" Condition=" '$(SetAssemblyVersionEnabled)' == 'true' " BeforeTargets="PrepareForBuild">
-    <GitVersion LocalPath="$(SolutionDir)">
+  <UsingTask AssemblyFile="$(ProjectDir)..\packages\MSBuildTasks.1.4.0.88\tools\MSBuild.Community.Tasks.dll" TaskName="MSBuild.Community.Tasks.Git.GitVersion" />
+  <Target Name="SetAssemblyVersion" BeforeTargets="PrepareForBuild">
+    <GitVersion LocalPath="$(ProjectDir)">
+      <Output TaskParameter="CommitHash" PropertyName="CommitHash" />
+    </GitVersion>
+    <Exec Command="echo $(CommitHash) &gt; &quot;$(ProjectDir)..\Couchbase.Lite.Shared\Properties\version&quot;" />
+  </Target>
+  <Target Name="SetAssemblyVersion" BeforeTargets="PrepareForBuild">
+    <GitVersion LocalPath="$(ProjectDir)">
       <Output TaskParameter="CommitHash" PropertyName="CommitHash" />
     </GitVersion>
     <Exec Command="echo $(CommitHash) &gt; &quot;$(ProjectDir)..\Couchbase.Lite.Shared\Properties\version&quot;" />
@@ -52,9 +53,7 @@
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.Core" />
-    <Reference Include="System.Web.Services" />
     <Reference Include="System.Xml.Linq" />
-    <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="System.Data" />
     <Reference Include="System.Xml" />
@@ -64,14 +63,14 @@
     </Reference>
     <Reference Include="System.Net.Http.WebRequest" />
     <Reference Include="System.Net.Http" />
-    <Reference Include="Jint">
-      <HintPath>..\packages\Jint.2.4.0\lib\portable-net40+sl50+win+wpa81+wp80\Jint.dll</HintPath>
-    </Reference>
     <Reference Include="SQLitePCL.raw">
       <HintPath>..\packages\SQLitePCL.raw.0.8.0\lib\net45\SQLitePCL.raw.dll</HintPath>
     </Reference>
     <Reference Include="SQLitePCL.ugly">
       <HintPath>..\packages\SQLitePCL.ugly.0.8.0\lib\portable-net45+netcore45+wp8+MonoAndroid10+MonoTouch10+Xamarin.iOS10\SQLitePCL.ugly.dll</HintPath>
+    </Reference>
+    <Reference Include="ICSharpCode.SharpZipLib.Portable">
+      <HintPath>..\packages\SharpZipLib.Portable.0.86.0.0002\lib\portable-net45+netcore45+wp8+win8+wpa81+MonoTouch+MonoAndroid\ICSharpCode.SharpZipLib.Portable.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>

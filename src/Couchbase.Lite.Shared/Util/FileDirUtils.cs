@@ -80,11 +80,15 @@ namespace Couchbase.Lite.Util
 
         public static bool DeleteRecursive (FilePath attachmentsFile)
         {
+            if(!Directory.Exists(attachmentsFile.GetAbsolutePath())) {
+                return true;
+            }
+
             var success = true;
             try {
                 Directory.Delete (attachmentsFile.GetPath (), true);
             } catch (Exception ex) {
-                Log.V(Tag, "Error deleting the '{0}' directory.".Fmt(attachmentsFile.GetAbsolutePath()), ex);
+                Log.E(Tag, "Error deleting the '{0}' directory.".Fmt(attachmentsFile.GetAbsolutePath()), ex);
                 success = false;
             }
             return success;

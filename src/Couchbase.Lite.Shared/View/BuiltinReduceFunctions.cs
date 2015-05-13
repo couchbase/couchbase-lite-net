@@ -24,23 +24,77 @@ using System.Linq;
 
 namespace Couchbase.Lite.Views
 {
+
+    /// <summary>
+    /// Class containing the built in Reduce functions (e.g. count, sum, min) for use in creating
+    /// views in Couchbase Lite
+    /// </summary>
     public static class BuiltinReduceFunctions
     {
+
+        #region Member Variables
+
+        //For JSViewCompiler
         private static readonly Dictionary<string, ReduceDelegate> MAP = new Dictionary<string, ReduceDelegate>
         {
             //NOTE: None of these support rereduce! They'll need to be reimplemented when we add
             // rereduce support to View.
-            { "count", (k, v, r) => v.Count() },
-            { "sum", (k, v, r) => View.TotalValues(v.ToList()) },
-            { "min", (k, v, r) => v.Min(x => DoubleValue(x)) },
-            { "max", (k, v, r) => v.Max(x => DoubleValue(x)) },
-            { "average", (k, v, r) => v.Average(x => DoubleValue(x)) },
-            { "median", (k, v, r) => Median(v) },
-            { "stddev", (k, v, r) => StdDev(v) },
-            { "stats", (k, v, r) => Stats(v) },
+            { "count", Count },
+            { "sum", Sum },
+            { "min", Min },
+            { "max", Max },
+            { "average", Average },
+            { "median", Median},
+            { "stddev", StdDev },
+            { "stats", Stats }
         };
 
-        public static ReduceDelegate Get(string name) 
+        /// <summary>
+        /// A function that counts the number of documents contained in the map
+        /// </summary>
+        public static readonly ReduceDelegate Count = (k, v, r) => v.Count();
+
+        /// <summary>
+        /// A function that adds all of the items contained in the map
+        /// </summary>
+        public static readonly ReduceDelegate Sum = (k, v, r) => View.TotalValues(v.ToList());
+
+        /// <summary>
+        /// A function that retrieves the minimum value in the map
+        /// </summary>
+        public static readonly ReduceDelegate Min = (k, v, r) => v.Min(x => DoubleValue(x));
+
+        /// <summary>
+        /// A function that retrieves the maximum value in the map
+        /// </summary>
+        public static readonly ReduceDelegate Max = (k, v, r) => v.Max(x => DoubleValue(x));
+
+        /// <summary>
+        /// A function that calculates the average of all the values in the map
+        /// </summary>
+        public static readonly ReduceDelegate Average = (k, v, r) => v.Average(x => DoubleValue(x));
+
+        /// <summary>
+        /// A function that calculates the median of all the values in the map
+        /// </summary>
+        public static readonly ReduceDelegate Median = (k, v, r) => CalculateMedian(v);
+
+        /// <summary>
+        /// A function that calculates the standard deviation for all the values in the map
+        /// </summary>
+        public static readonly ReduceDelegate StdDev = (k, v, r) => CalculateStdDev(v);
+
+        /// <summary>
+        /// A function that outputs various statistics about the map (count, sum, squared sum, min, and max)
+        /// </summary>
+        public static readonly ReduceDelegate Stats = (k, v, r) => CalcuateStats(v);
+
+        #endregion
+
+        #region Internal Methods
+
+        //For JSViewCompiler
+        internal static ReduceDelegate Get(string name) 
         {
             ReduceDelegate retVal = null;
             if (!MAP.TryGetValue(name, out retVal)) {
@@ -49,6 +103,10 @@ namespace Couchbase.Lite.Views
 
             return retVal;
         }
+
+        #endregion
+
+        #region Private Methods
 
         private static double? DoubleValue(object o)
         {
@@ -59,7 +117,7 @@ namespace Couchbase.Lite.Views
             }
         }
 
-        private static double Median(IEnumerable<object> input)
+        private static double CalculateMedian(IEnumerable<object> input)
         {
             int length = input.Count();
             if (length == 0) {
@@ -74,7 +132,7 @@ namespace Couchbase.Lite.Views
             return m;
         }
 
-        private static double StdDev(IEnumerable<object> vals)
+        private static double CalculateStdDev(IEnumerable<object> vals)
         {
             var input = vals.Cast<double>();
             // Via <https://en.wikipedia.org/wiki/Standard_deviation#Rapid_calculation_methods>
@@ -90,7 +148,7 @@ namespace Couchbase.Lite.Views
         }
 
         // https://wiki.apache.org/couchdb/Built-In_Reduce_Functions#A_stats
-        private static IDictionary<string, object> Stats(IEnumerable<object> values) {
+        private static IDictionary<string, object> CalcuateStats(IEnumerable<object> values) {
             double sum=0, sumsqr=0, min=double.PositiveInfinity, max=double.NegativeInfinity;
             foreach(var value in values) {
                 double? n = DoubleValue(value);
@@ -142,6 +200,8 @@ namespace Couchbase.Lite.Views
             }
             return r;
         }
+
+        #endregion
     }
 }
 

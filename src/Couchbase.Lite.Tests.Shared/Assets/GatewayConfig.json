@@ -6,7 +6,10 @@
      "databases": {
           "db": {
              "server":"walrus:",
-             "users": {"GUEST": {"disabled": false, "all_channels": ["*"], "admin_channels": ["*"]}},
+             "users": {
+                "GUEST": {"disabled": false, "admin_channels": ["*"]},
+                "jim" : { "password": "borden", "admin_channels": ["*"]}
+              },
              "bucket":"testing",
              "sync":`function(doc) {channel(doc.channels);}`
           }

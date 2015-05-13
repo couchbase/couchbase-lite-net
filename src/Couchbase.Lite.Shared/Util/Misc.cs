@@ -59,7 +59,7 @@ using System.Net.Sockets;
 
 namespace Couchbase.Lite
 {
-    public delegate void TypedEventHandler<SenderType, ArgType>(SenderType sender, ArgType args);
+    public delegate void TypedEventHandler<TSenderType, TArgType>(TSenderType sender, TArgType args);
 
     internal static class Misc
     {
