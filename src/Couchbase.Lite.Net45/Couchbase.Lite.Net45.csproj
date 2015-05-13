@@ -1,13 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <UsingTask AssemblyFile="$(ProjectDir)..\packages\MSBuildTasks.1.4.0.88\tools\MSBuild.Community.Tasks.dll" TaskName="MSBuild.Community.Tasks.Git.GitVersion" />
-  <Target Name="SetAssemblyVersion" BeforeTargets="PrepareForBuild">
-    <GitVersion LocalPath="$(ProjectDir)">
-      <Output TaskParameter="CommitHash" PropertyName="CommitHash" />
-    </GitVersion>
-    <Exec Command="echo $(CommitHash) &gt; &quot;$(ProjectDir)..\Couchbase.Lite.Shared\Properties\version&quot;" />
-  </Target>
-  <Target Name="SetAssemblyVersion" BeforeTargets="PrepareForBuild">
+  <UsingTask AssemblyFile="$(ProjectDir)..\packages\MSBuildTasks.1.4.0.88\tools\MSBuild.Community.Tasks.dll" TaskName="MSBuild.Community.Tasks.Git.GitVersion"  Condition=" !$(DefineConstants.Contains('OFFICIAL')) " />
+  <Target Condition=" !$(DefineConstants.Contains('OFFICIAL')) " Name="SetAssemblyVersion" BeforeTargets="PrepareForBuild">
     <GitVersion LocalPath="$(ProjectDir)">
       <Output TaskParameter="CommitHash" PropertyName="CommitHash" />
     </GitVersion>
@@ -34,7 +28,7 @@
     <DebugType>full</DebugType>
     <Optimize>False</Optimize>
     <OutputPath>bin\Debug\</OutputPath>
-    <DefineConstants>DEBUG;TRACE;VERBOSE</DefineConstants>
+    <DefineConstants>DEBUG;TRACE;VERBOSE;OFFICIAL</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <Prefer32Bit>false</Prefer32Bit>
@@ -49,6 +43,7 @@
     <DocumentationFile>bin\Release\Couchbase.Lite.xml</DocumentationFile>
     <DebugType>pdbonly</DebugType>
     <DebugSymbols>true</DebugSymbols>
+    <DefineConstants>OFFICIAL</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
