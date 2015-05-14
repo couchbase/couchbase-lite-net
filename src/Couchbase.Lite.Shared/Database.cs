@@ -844,8 +844,6 @@ PRAGMA user_version = 3;";
         internal IDictionary<String, WeakReference>     UnsavedRevisionDocumentCache { get; set; }
 
 
-        //TODO: Should thid be a public member?
-
         /// <summary>
         /// Maximum depth of a document's revision tree (or, max length of its revision history.)
         /// Revisions older than this limit will be deleted during a -compact: operation.
@@ -855,7 +853,7 @@ PRAGMA user_version = 3;";
         /// Revisions older than this limit will be deleted during a -compact: operation.
         /// Smaller values save space, at the expense of making document conflicts somewhat more likely.
         /// </remarks>
-        internal Int32                                  MaxRevTreeDepth { get; set; }
+        public Int32                                     MaxRevTreeDepth { get; set; }
 
         internal Int64                                   StartTime { get; private set; }
         private IDictionary<String, FilterDelegate>     Filters { get; set; }
