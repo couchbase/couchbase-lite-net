@@ -43,14 +43,29 @@ namespace Couchbase.Lite
             CouchbaseLiteServiceBrowser browser = new CouchbaseLiteServiceBrowser(null);
             browser.ServiceResolved += (sender, e) => {
                 Log.D(TAG, "Discovered service: {0}", e.Service.Name);
-                mre.Set();
+                if(e.Service.Name == TAG) {
+                    mre.Set();
+                }
+            };
+
+            browser.ServiceRemoved += (o, args) => {
+                Log.D(TAG, "Service destroyed: {0}", args.Service.Name);
+                if(args.Service.Name == TAG) {
+                    mre.Set();
+                }
             };
             browser.Start();
 
             CouchbaseLiteServiceBroadcaster broadcaster = new CouchbaseLiteServiceBroadcaster(null, 59840);
-            broadcaster.Name = "Foo";
+            broadcaster.Name = TAG;
             broadcaster.Start();
             Assert.IsTrue(mre.Wait(TimeSpan.FromSeconds(10)));
+
+            mre.Reset();
+            broadcaster.Dispose();
+            Assert.IsTrue(mre.Wait(TimeSpan.FromSeconds(10)));
+
+            browser.Dispose();
         }
 
     }

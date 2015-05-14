@@ -37,6 +37,8 @@ namespace Mono.Zeroconf.Providers.Bonjour
         private const string DNSSD_DLL = "libc";
         #elif __UNITY_ANDROID__
         private const string DNSSD_DLL = "mdnssd";
+        #elif __UNITY_LINUX__
+        private const string DNSSD_DLL = "dns_sd";
         #else
         private const string DNSSD_DLL = "dnssd.dll";
         #endif
