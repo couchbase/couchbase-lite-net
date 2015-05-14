@@ -157,11 +157,18 @@ namespace Mono.Zeroconf.Providers.Bonjour
                 error = Native.DNSServiceBrowse(out sd_ref, ServiceFlags.Default,
                     interface_index, regtype, domain, browse_reply_handler, GCHandle.ToIntPtr(_self));
             } catch (DllNotFoundException) {
-                Log.E(TAG, "Unable to find required DLL file:  dnssd.dll\n(Windows -> Is Bounjour installed?)\n(Others -> Is a dll.config file included?)");
-                error = ServiceError.Invalid;
+                Log.E(TAG, "Unable to find required DLL file:  dnssd.dll\n" +
+                    "(Windows -> Is Bonjour installed?)\n" +
+                    "(Linux -> Are the network support files in place?)\n" +
+                    "(Others -> Is a dll.config file included?)");
+                error = ServiceError.BadState;
             }
 
             if(error != ServiceError.NoError) {
+                if ((int)error == -65563) {
+                    Log.E(TAG, "mDNS daemon not started");
+                }
+
                 throw new ServiceErrorException(error);
             }
 

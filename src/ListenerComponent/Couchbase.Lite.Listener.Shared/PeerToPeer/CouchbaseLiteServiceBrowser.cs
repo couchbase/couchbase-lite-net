@@ -57,6 +57,14 @@ namespace Couchbase.Lite.Listener
         /// </summary>
         public event ServiceResolvedEventHandler ServiceResolved;
 
+        /// <summary>
+        /// An event raised when an existing service is destroyed
+        /// </summary>
+        public event ServiceBrowseEventHandler ServiceRemoved {
+            add { _browser.ServiceRemoved += value; }
+            remove { _browser.ServiceRemoved -= value; }
+        }
+
         #endregion
 
         #region Constructors

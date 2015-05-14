@@ -148,7 +148,7 @@ namespace Mono.Zeroconf.Providers.Bonjour
             
             browseService.InterfaceIndex = interfaceIndex;
             browseService.FullName = fullname;
-            browseService.port = port;
+            browseService.port = (ushort)IPAddress.NetworkToHostOrder((short)port);
             browseService.TxtRecord = new TxtRecord(txtLen, txtRecord);
 
             sdRef.Deallocate();
