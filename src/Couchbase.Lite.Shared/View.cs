@@ -328,10 +328,20 @@ namespace Couchbase.Lite {
                                     // TODO: Do we need to do any null checks on key or value?
                                     try
                                     {
-                                        var keyJson = Manager.GetObjectMapper().WriteValueAsString(key);
+                                        string keyJson = " ";
+                                        var insertValues = new ContentValues();
+
+                                        if (key is FullTextKey) {
+                                            var cValues = new ContentValues();
+                                            cValues["content"] = (key as FullTextKey).Text;
+                                            var fullTextId = enclosingView.Database.StorageEngine.Insert("fulltext",
+                                                                                                         null, cValues);
+                                            insertValues["fulltext_id"] = fullTextId;
+                                        } else {
+                                            keyJson = Manager.GetObjectMapper().WriteValueAsString(key);
+                                        }
                                         var valueJson = value == null ? null : Manager.GetObjectMapper().WriteValueAsString(value) ;
 
-                                        var insertValues = new ContentValues();
                                         insertValues.Put("view_id", enclosingView.Id);
                                         insertValues["sequence"] = thisSequence;
                                         insertValues["key"] = keyJson;
@@ -401,12 +411,43 @@ namespace Couchbase.Lite {
             return Reduce != null;
         }
 
+        IEnumerable<QueryRow> FullTextQueryWithOptions(QueryOptions options)
+        {
+            Cursor cursor = null;
+            IList<QueryRow> rows = new List<QueryRow>();
+            try {
+                cursor = FullTextResultSetWithOptions(options);
+                cursor.MoveToNext();
+                while (!cursor.IsAfterLast()) {
+                    var docId = cursor.GetString(0);
+                    var sequenceLong = cursor.GetLong(1);
+                    var sequence = Convert.ToInt32(sequenceLong);
+                    var fullTextID = cursor.GetLong(2);
+                    var value = FromJSON(cursor.GetBlob(3));
+
+                    var row = new FullTextQueryRow(docId, sequence, fullTextID, value);
+                    row.Database = Database;
+                    rows.AddItem<QueryRow>(row);
+                    cursor.MoveToNext();
+                }
+            } catch (SQLException e) {
+                var errMsg = string.Format("Error querying view: {0}", this);
+                Log.E(Database.Tag, errMsg, e);
+                throw new CouchbaseLiteException(errMsg, e, new Status(StatusCode.DbError));
+            } finally {
+                if (cursor != null) {
+                    cursor.Close();
+                }
+            }
+            return rows;
+        }
+
         /// <summary>Queries the view.</summary>
         /// <remarks>Queries the view. Does NOT first update the index.</remarks>
         /// <param name="options">The options to use.</param>
         /// <returns>An array of QueryRow objects.</returns>
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
-        internal IEnumerable<QueryRow> QueryWithOptions(QueryOptions options)
+        internal IEnumerable<QueryRow> RegularQueryWithOptions(QueryOptions options)
         {
             if (options == null)
                 options = new QueryOptions();
@@ -483,6 +524,18 @@ namespace Couchbase.Lite {
                 }
             }
             return rows;
+        }
+
+        internal IEnumerable<QueryRow> QueryWithOptions(QueryOptions options)
+        {
+            if (options == null)
+                options = new QueryOptions();
+
+            if (options.GetFullTextSearch() != null) {
+                return FullTextQueryWithOptions(options);
+            } else {
+                return RegularQueryWithOptions(options);
+            }
         }
 
         internal IList<IDictionary<string, object>> dump() 
@@ -778,6 +831,26 @@ namespace Couchbase.Lite {
                 sql = sql + " DESC";
             }
             sql = sql + " LIMIT ? OFFSET ?";
+            argsList.AddItem(options.GetLimit().ToString());
+            argsList.AddItem(options.GetSkip().ToString());
+            Log.D(Database.Tag, "Query {0}:{1}", Name, sql);
+
+            var cursor = Database.StorageEngine.IntransactionRawQuery(sql, argsList.ToArray());
+            return cursor;
+        }
+
+        internal Cursor FullTextResultSetWithOptions(QueryOptions options)
+        {
+            string sql = "SELECT docs.docid, maps.sequence, maps.fulltext_id, maps.value, offsets(fulltext)" +
+                         " FROM maps, fulltext, revs, docs " +
+                         "WHERE fulltext.content MATCH ? AND maps.fulltext_id = fulltext.rowid " +
+                         "AND revs.sequence = maps.sequence AND docs.doc_id = revs.doc_id " +
+                         "ORDER BY maps.sequence ";
+            if (options.IsDescending())
+                sql += " DESC";
+            sql += " LIMIT ? OFFSET ?";
+            var argsList = new List<string>();
+            argsList.AddItem(options.GetFullTextSearch());
             argsList.AddItem(options.GetLimit().ToString());
             argsList.AddItem(options.GetSkip().ToString());
             Log.D(Database.Tag, "Query {0}:{1}", Name, sql);
@@ -1212,5 +1285,15 @@ namespace Couchbase.Lite {
     public delegate Object ReduceDelegate(IEnumerable<Object> keys, IEnumerable<Object> values, Boolean rereduce);
 
     #endregion
+
+    public class FullTextKey
+    {
+        public FullTextKey(string content)
+        {
+            Text = content;
+        }
+
+        public string Text { get; protected set; }
+    }
 }
 
