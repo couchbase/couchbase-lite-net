@@ -150,7 +150,7 @@ namespace Couchbase.Lite.Listener
             }
 
             _running = true;
-            _browser.Browse(0, AddressProtocol.Any, Type, "local");
+            _browser.Browse(0, AddressProtocol.IPv4, Type, "local");
         }
 
         /// <summary>
