@@ -61,11 +61,12 @@ namespace Couchbase.Lite
             broadcaster.Start();
             Assert.IsTrue(mre.Wait(TimeSpan.FromSeconds(10)));
 
+            //FIXME.JHB:  Why does Linux hate this part sporadically?
             mre.Reset();
             broadcaster.Dispose();
-            Assert.IsTrue(mre.Wait(TimeSpan.FromSeconds(10)));
-
+            var success = mre.Wait(TimeSpan.FromSeconds(10));
             browser.Dispose();
+            Assert.IsTrue(success);
         }
 
     }

@@ -116,7 +116,8 @@ namespace Couchbase.Lite.Listener
         {
             _registerService = registerService ?? new RegisterService() {
                 Name = "CouchbaseLite_" + Environment.MachineName,
-                RegType = "_http._tcp."
+                RegType = "_http._tcp.",
+                AddressProtocol = AddressProtocol.IPv4 //Needed for Linux compat (libnss_mdns)
             };
 
             _registerService.UPort = port;

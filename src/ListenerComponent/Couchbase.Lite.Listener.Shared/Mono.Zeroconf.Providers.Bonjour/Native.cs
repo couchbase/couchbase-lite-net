@@ -55,7 +55,7 @@ namespace Mono.Zeroconf.Providers.Bonjour
         
         [DllImport(DNSSD_DLL)]
         public static extern ServiceError DNSServiceCreateConnection(out ServiceRef sdRef);
-        
+
         // DNSServiceBrowse
         
         public delegate void DNSServiceBrowseReply(ServiceRef sdRef, ServiceFlags flags, uint interfaceIndex,
