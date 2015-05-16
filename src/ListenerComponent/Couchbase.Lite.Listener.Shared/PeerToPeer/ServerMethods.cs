@@ -22,7 +22,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-using Couchbase.Lite.Internal;
 using Couchbase.Lite.Replicator;
 using Sharpen;
 

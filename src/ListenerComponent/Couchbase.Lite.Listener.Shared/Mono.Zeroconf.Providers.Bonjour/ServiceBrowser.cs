@@ -209,7 +209,7 @@ namespace Mono.Zeroconf.Providers.Bonjour
             return GetEnumerator ();
         }
 
-        #if __IOS__ || __UNITY__
+        #if __IOS__ || __UNITY_APPLE__
         [AOT.MonoPInvokeCallback(typeof(Native.DNSServiceBrowseReply))]
         #endif
         private static void OnBrowseReply(ServiceRef sdRef, ServiceFlags flags, uint interfaceIndex, ServiceError errorCode, 

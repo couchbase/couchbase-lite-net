@@ -43,6 +43,6 @@ namespace Mono.Zeroconf
         string HostTarget { get; }
         uint NetworkInterface { get; }
         AddressProtocol AddressProtocol { get; }
-        short Port { get; }
+        ushort Port { get; }
     }
 }

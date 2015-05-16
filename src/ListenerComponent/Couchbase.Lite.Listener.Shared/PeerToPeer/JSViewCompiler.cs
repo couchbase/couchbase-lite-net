@@ -30,8 +30,14 @@ using Couchbase.Lite.Views;
 
 namespace Couchbase.Lite.Listener
 {
+    /// <summary>
+    /// A class for compiling views from Javascript source
+    /// </summary>
     public sealed class JSViewCompiler : IViewCompiler
     {
+
+        #region IViewCompiler
+
         public MapDelegate CompileMap(string source, string language)
         {
             if(!language.Equals("javascript")) {
@@ -70,6 +76,12 @@ namespace Couchbase.Lite.Listener
             };
         }
 
+        #endregion
+
+        #region Private Methods
+
+        //Arrays cannot simply be passed into the Javascript engine, they must be allocated
+        //according to Javascript rules
         private static ArrayInstance ToJSArray(IEnumerable list, Engine engine)
         {
             List<JsValue> wrappedVals = new List<JsValue>();
@@ -79,6 +91,8 @@ namespace Couchbase.Lite.Listener
 
             return (ArrayInstance)engine.Array.Construct(wrappedVals.ToArray());
         }
+
+        #endregion
     }
 }
 

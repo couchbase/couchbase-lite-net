@@ -464,7 +464,7 @@ namespace Couchbase.Lite.Replicator
                                 // 403/Forbidden means validation failed; don't treat it as an error
                                 // because I did my job in sending the revision. Other statuses are
                                 // actual replication errors.
-                                if (status.GetCode() != StatusCode.Forbidden)
+                                if (status.Code != StatusCode.Forbidden)
                                 {
                                     var docId = (string)item["id"];
                                     failedIds.Add(docId);

@@ -41,7 +41,7 @@ namespace Couchbase.Lite.Listener
         #region Members
 
         private volatile bool _running;
-        private IRegisterService _registerService;
+        private readonly IRegisterService _registerService;
 
         #endregion
 
@@ -71,15 +71,15 @@ namespace Couchbase.Lite.Listener
         /// <value>The port.</value>
         public ushort Port
         {
-            get { return _registerService.UPort; }
-            set { _registerService.UPort = value; }
+            get { return _registerService.Port; }
+            set { _registerService.Port = value; }
         }
 
         #endregion
 
         #region Constructors
 
-        #if __ANDROID__ && !__UNITY__
+        #if __ANDROID__
         /// <summary>
         /// This is needed to start the /system/bin/mdnsd service on Android
         /// (can't find another way to start it)
@@ -120,7 +120,7 @@ namespace Couchbase.Lite.Listener
                 AddressProtocol = AddressProtocol.IPv4 //Needed for Linux compat (libnss_mdns)
             };
 
-            _registerService.UPort = port;
+            _registerService.Port = port;
         }
 
         #endregion

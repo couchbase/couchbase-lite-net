@@ -132,7 +132,7 @@ namespace Couchbase.Lite
             }
             catch (CouchbaseLiteException e)
             {
-                gotExpectedError = e.GetCBLStatus().GetCode() == StatusCode.Conflict;
+                gotExpectedError = e.GetCBLStatus().Code == StatusCode.Conflict;
             }
             Assert.IsTrue(gotExpectedError);
 
@@ -160,13 +160,13 @@ namespace Couchbase.Lite
             }
             catch (CouchbaseLiteException e)
             {
-                gotExpectedError = e.GetCBLStatus().GetCode() == StatusCode.Conflict;
+                gotExpectedError = e.GetCBLStatus().Code == StatusCode.Conflict;
             }
             Assert.IsTrue(gotExpectedError);
             Assert.IsNull(revResult);
 
             revD = database.PutRevision(revD, rev2.GetRevId(), false, status);
-            Assert.AreEqual(StatusCode.Ok, status.GetCode());
+            Assert.AreEqual(StatusCode.Ok, status.Code);
             Assert.AreEqual(revD.GetDocId(), rev2.GetDocId());
             Assert.IsTrue(revD.GetRevId().StartsWith("3-"));
             
@@ -179,7 +179,7 @@ namespace Couchbase.Lite
             }
             catch (CouchbaseLiteException e)
             {
-                gotExpectedError = e.GetCBLStatus().GetCode() == StatusCode.NotFound;
+                gotExpectedError = e.GetCBLStatus().Code == StatusCode.NotFound;
             }
             Assert.IsTrue(gotExpectedError);
 

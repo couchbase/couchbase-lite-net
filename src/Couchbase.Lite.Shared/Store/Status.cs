@@ -274,7 +274,7 @@ namespace Couchbase.Lite
         /// <summary>
         /// Gets whether or not the status code represents a successful action
         /// </summary>
-        public Boolean IsSuccessful
+        public bool IsSuccessful
         {
             get { return ((Int32)Code > 0 && (Int32)Code < 400); }
         }
@@ -282,7 +282,7 @@ namespace Couchbase.Lite
         /// <summary>
         /// Gets whether or not the status code represents a failed action
         /// </summary>
-        public Boolean IsError
+        public bool IsError
         {
             get { return !IsSuccessful; }
         }
@@ -296,7 +296,7 @@ namespace Couchbase.Lite
         /// </summary>
         public Status()
         {
-            this.Code = StatusCode.Unknown;
+            Code = StatusCode.Unknown;
         }
 
         /// <summary>
@@ -305,7 +305,7 @@ namespace Couchbase.Lite
         /// <param name="code">The status code to hold</param>
         public Status(StatusCode code)
         {
-            this.Code = code;
+            Code = code;
         }
 
         #endregion
@@ -316,7 +316,7 @@ namespace Couchbase.Lite
         /// Gets the status code
         /// </summary>
         /// <returns>The status code</returns>
-        [Obsolete("Use the Code property")]
+        [Obsolete("Use the Code property, this function is going away")]
         public virtual StatusCode GetCode()
         {
             return Code;
@@ -326,7 +326,7 @@ namespace Couchbase.Lite
         /// Modifies the status code being held by this object
         /// </summary>
         /// <param name="code">The new status code</param>
-        [Obsolete("Use the Code property")]
+        [Obsolete("Use the Code property, this function is going away")]
         public virtual void SetCode(StatusCode code)
         {
             this.Code = code;

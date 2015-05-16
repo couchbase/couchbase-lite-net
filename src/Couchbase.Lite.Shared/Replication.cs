@@ -1393,7 +1393,7 @@ namespace Couchbase.Lite
             var couchbaseLiteException = e as CouchbaseLiteException;
             if (couchbaseLiteException != null)
             {
-                return couchbaseLiteException.GetCBLStatus().GetCode();
+                return couchbaseLiteException.GetCBLStatus().Code;
             }
             return StatusCode.Unknown;
         }

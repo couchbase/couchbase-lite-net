@@ -45,14 +45,13 @@ namespace Mono.Zeroconf.Providers.Bonjour
         protected ITxtRecord txt_record;
         protected string fullname;
         protected string hosttarget;
-        protected ushort port;
         protected IPHostEntry hostentry;
-        
-        public Service()
+
+        protected Service()
         {
         }
         
-        public Service(string name, string replyDomain, string regtype)
+        protected Service(string name, string replyDomain, string regtype)
         {
             Name = name;
             ReplyDomain = replyDomain;
@@ -127,14 +126,11 @@ namespace Mono.Zeroconf.Providers.Bonjour
             get { return interface_index; }
         }
                 
-        public short Port {
-            get { return (short)UPort; }
-            set { UPort = (ushort)value; }
+        public ushort Port
+        {
+            get;
+            set;
         }
-
-        public ushort UPort {
-            get { return port; }
-            set { port = value; }
-        }
+            
     }
 }

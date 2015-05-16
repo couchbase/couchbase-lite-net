@@ -127,7 +127,8 @@ namespace Couchbase.Lite.Listener
         /// </summary>
         /// <returns>The service with the specified name</returns>
         /// <param name="name">The name of the service to retrived</param>
-        public IResolvableService GetService(string name) {
+        public IResolvableService GetService(string name) 
+        {
             return _browser.FirstOrDefault(x => x.IsResolved && x.Name.Equals(name));
         }
 

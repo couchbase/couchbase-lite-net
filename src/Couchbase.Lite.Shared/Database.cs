@@ -1953,11 +1953,11 @@ PRAGMA user_version = 3;";
 
                 if (rowsAffected > 0)
                 {
-                    result.SetCode(StatusCode.Ok);
+                    result.Code = StatusCode.Ok;
                 }
                 else
                 {
-                    result.SetCode(StatusCode.NotFound);
+                    result.Code = StatusCode.NotFound;
                 }
             }
             catch (SQLException e)
@@ -3167,11 +3167,11 @@ PRAGMA user_version = 3;";
                     // Success!
                     if (deleted)
                     {
-                        resultStatus.SetCode(StatusCode.Ok);
+                        resultStatus.Code = StatusCode.Ok;
                     }
                     else
                     {
-                        resultStatus.SetCode(StatusCode.Created);
+                        resultStatus.Code = StatusCode.Created;
                     }
                 }
                 catch (SQLException e1)
@@ -3556,7 +3556,7 @@ PRAGMA user_version = 3;";
         internal bool ExpandAttachments(RevisionInternal rev, int minRevPos, bool allowFollows, 
             bool decodeAttachments, Status outStatus)
         {
-            outStatus.SetCode(StatusCode.Ok);
+            outStatus.Code = StatusCode.Ok;
             rev.MutateAttachments((name, attachment) =>
             {
                 var revPos = attachment.GetCast<long>("revpos");
@@ -3583,14 +3583,14 @@ PRAGMA user_version = 3;";
                     var attachObj = AttachmentForDict(attachment, name, status);
                     if(attachObj == null) {
                         Log.W(Tag, "Can't get attachment '{0}' of {1} (status {2})", name, rev, status);
-                        outStatus.SetCode(status.Code);
+                        outStatus.Code = status.Code;
                         return attachment;
                     }
 
                     var data = decodeAttachments ? attachObj.Content : attachObj.EncodedContent;
                     if(data == null) {
                         Log.W(Tag, "Can't get binary data of attachment '{0}' of {1}", name, rev);
-                        outStatus.SetCode(StatusCode.NotFound);
+                        outStatus.Code = StatusCode.NotFound;
                         return attachment;
                     }
 
@@ -3600,7 +3600,7 @@ PRAGMA user_version = 3;";
                 return expanded;
             });
 
-            return outStatus.GetCode() == StatusCode.Ok;
+            return outStatus.Code == StatusCode.Ok;
         }
 
         internal AttachmentInternal AttachmentForDict(IDictionary<string, object> info, string filename, Status status)
@@ -4087,7 +4087,7 @@ PRAGMA user_version = 3;";
                 var props = rev.GetProperties();
                 if (props != null && props.ContainsKey("_rev") && props.ContainsKey("_id")) {
                     if (outStatus != null) {
-                        outStatus.SetCode(StatusCode.Ok);
+                        outStatus.Code = StatusCode.Ok;
                     }
 
                     return rev;
@@ -4099,7 +4099,7 @@ PRAGMA user_version = 3;";
                 LoadRevisionBody(nuRev, DocumentContentOptions.None);
             } catch(CouchbaseLiteException e) {
                 if (outStatus != null) {
-                    outStatus.SetCode(e.GetCBLStatus().GetCode());
+                    outStatus.Code = e.GetCBLStatus().Code;
                 }
 
                 nuRev = null;
@@ -4133,7 +4133,7 @@ PRAGMA user_version = 3;";
                 cursor = StorageEngine.RawQuery(sql, args);
                 if (cursor.MoveToNext())
                 {
-                    result.SetCode(StatusCode.Ok);
+                    result.Code = StatusCode.Ok;
                     rev.SetSequence(cursor.GetLong(0));
                     ExpandStoredJSONIntoRevisionWithAttachments(cursor.GetBlob(1), rev, contentOptions);
                 }
@@ -4150,9 +4150,9 @@ PRAGMA user_version = 3;";
                     cursor.Close();
                 }
             }
-            if (result.GetCode() == StatusCode.NotFound)
+            if (result.Code == StatusCode.NotFound)
             {
-                throw new CouchbaseLiteException(result.GetCode());
+                throw new CouchbaseLiteException(result.Code);
             }
             return rev;
         }
@@ -4260,7 +4260,7 @@ PRAGMA user_version = 3;";
                         }
                         catch (CouchbaseLiteException e)
                         {
-                            if (e.GetCBLStatus().GetCode() == StatusCode.NotFound && ExistsDocumentWithIDAndRev(docID, null))
+                            if (e.GetCBLStatus().Code == StatusCode.NotFound && ExistsDocumentWithIDAndRev(docID, null))
                             {
                                 throw new CouchbaseLiteException(StatusCode.Conflict);
                             }

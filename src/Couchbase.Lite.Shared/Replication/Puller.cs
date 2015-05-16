@@ -528,7 +528,7 @@ namespace Couchbase.Lite.Replicator
                     else
                     {
                         var status = StatusFromBulkDocsResponseItem(props);
-                        SetLastError(new CouchbaseLiteException(status.GetCode()));
+                        SetLastError(new CouchbaseLiteException(status.Code));
                         RevisionFailed();
                         SafeIncrementCompletedChangesCount();
                     }
@@ -851,13 +851,13 @@ namespace Couchbase.Lite.Replicator
                         }
                         catch (CouchbaseLiteException e)
                         {
-                            if (e.GetCBLStatus().GetCode() == StatusCode.Forbidden)
+                            if (e.GetCBLStatus().Code == StatusCode.Forbidden)
                             {
                                 Log.I(Tag, "Remote rev failed validation: " + rev);
                             }
                             else
                             {
-                                Log.W(Tag, " failed to write " + rev + ": status=" + e.GetCBLStatus().GetCode());
+                                Log.W(Tag, " failed to write " + rev + ": status=" + e.GetCBLStatus().Code);
                                 RevisionFailed();
                                 SetLastError(e);
                                 continue;

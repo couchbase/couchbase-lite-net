@@ -131,7 +131,7 @@ namespace Couchbase.Lite.Listener
                 }
 
                 if (result.IsError) {
-                    var r = context.CreateResponse(result.GetCode());
+                    var r = context.CreateResponse(result.Code);
                     ProcessResponse(context, r.AsDefaultState());
                     return;
                 }
@@ -160,7 +160,7 @@ namespace Couchbase.Lite.Listener
                     // This is in place so that a response can be written simply by throwing a couchbase lite exception
                     // in the routing logic
                     Log.I(TAG, "Couchbase exception in routing logic, this message can be ignored if intentional", e);
-                    responseState = context.CreateResponse(ce.GetCBLStatus().GetCode()).AsDefaultState();
+                    responseState = context.CreateResponse(ce.GetCBLStatus().Code).AsDefaultState();
                 } else {
                     Log.E(TAG, "Unhandled non-Couchbase exception in routing logic", e);
                     responseState = context.CreateResponse(StatusCode.Exception).AsDefaultState();

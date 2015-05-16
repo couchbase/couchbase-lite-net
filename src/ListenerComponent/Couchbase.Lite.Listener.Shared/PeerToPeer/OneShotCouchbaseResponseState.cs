@@ -20,7 +20,6 @@
 //
 using System;
 
-using Couchbase.Lite.Internal;
 using Couchbase.Lite.Util;
 
 namespace Couchbase.Lite.Listener

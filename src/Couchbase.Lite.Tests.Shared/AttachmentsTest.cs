@@ -80,10 +80,10 @@ namespace Couchbase.Lite
 
             Status status = new Status();
             RevisionInternal rev1 = database.PutRevision(new RevisionInternal(props), null, false, status);
-            Assert.AreEqual(StatusCode.Created, status.GetCode());
+            Assert.AreEqual(StatusCode.Created, status.Code);
 
             var att = database.GetAttachmentForRevision(rev1, testAttachmentName, status);
-            Assert.IsNotNull(att, "Couldn't get attachment:  Status {0}", status.GetCode());
+            Assert.IsNotNull(att, "Couldn't get attachment:  Status {0}", status.Code);
             Assert.AreEqual(attach1, att.Content);
             Assert.AreEqual("text/plain", att.ContentType);
             Assert.AreEqual(AttachmentEncoding.None, att.Encoding);
@@ -116,7 +116,7 @@ namespace Couchbase.Lite
                 { "_attachments", CreateAttachmentsStub(testAttachmentName) }
             };
             var rev2 = database.PutRevision(new RevisionInternal(props), rev1.GetRevId(), status);
-            Assert.AreEqual(StatusCode.Created, status.GetCode());
+            Assert.AreEqual(StatusCode.Created, status.Code);
 
             // Add a third revision of the same document:
             var attach2 = Encoding.UTF8.GetBytes("<html>And this is attach2</html>");
@@ -127,11 +127,11 @@ namespace Couchbase.Lite
                 { "_attachments", CreateAttachmentsDict(attach2, testAttachmentName, "text/html", false) }
             };
             var rev3 = database.PutRevision(new RevisionInternal(props), rev2.GetRevId(), status);
-            Assert.AreEqual(StatusCode.Created, status.GetCode());
+            Assert.AreEqual(StatusCode.Created, status.Code);
 
             // Check the second revision's attachment
             att = database.GetAttachmentForRevision(rev2, testAttachmentName, status);
-            Assert.IsNotNull(att, "Couldn't get attachment:  Status {0}", status.GetCode());
+            Assert.IsNotNull(att, "Couldn't get attachment:  Status {0}", status.Code);
             Assert.AreEqual(attach1, att.Content);
             Assert.AreEqual("text/plain", att.ContentType);
             Assert.AreEqual(AttachmentEncoding.None, att.Encoding);
@@ -148,7 +148,7 @@ namespace Couchbase.Lite
 
             // Check the 3rd revision's attachment:
             att = database.GetAttachmentForRevision(rev3, testAttachmentName, status);
-            Assert.IsNotNull(att, "Couldn't get attachment:  Status {0}", status.GetCode());
+            Assert.IsNotNull(att, "Couldn't get attachment:  Status {0}", status.Code);
             Assert.AreEqual(attach2, att.Content);
             Assert.AreEqual("text/html", att.ContentType);
             Assert.AreEqual(AttachmentEncoding.None, att.Encoding);
@@ -199,7 +199,7 @@ namespace Couchbase.Lite
             var attach1 = Encoding.UTF8.GetBytes(largeAttachment.ToString());
             rev1Properties["_attachments"] = CreateAttachmentsDict(attach1, testAttachmentName, "text/plain", false);
             var rev1 = database.PutRevision(new RevisionInternal(rev1Properties), null, false, status);
-            Assert.AreEqual(StatusCode.Created, status.GetCode());
+            Assert.AreEqual(StatusCode.Created, status.Code);
 
             database.InsertAttachmentForSequenceWithNameAndType(
                 new ByteArrayInputStream(attach1), rev1.GetSequence(), 
@@ -240,7 +240,7 @@ namespace Couchbase.Lite
             database.BeginTransaction();
             var newRev = new RevisionInternal(rev2Properties);
             var rev2 = database.PutRevision(newRev, rev1WithAttachments.GetRevId(), false, status);
-            Assert.AreEqual(StatusCode.Created, status.GetCode());
+            Assert.AreEqual(StatusCode.Created, status.Code);
             //database.CopyAttachmentNamedFromSequenceToSequence(
             //    testAttachmentName, rev1WithAttachments.GetSequence(), rev2.GetSequence());
             database.EndTransaction(true);
@@ -260,7 +260,7 @@ namespace Couchbase.Lite
             var rev3 = new RevisionInternal(rev3Properties);
             rev3 = database.PutRevision(rev3, rev2.GetRevId(), false, status);
 
-            Assert.AreEqual(StatusCode.Created, status.GetCode());
+            Assert.AreEqual(StatusCode.Created, status.Code);
             var attach3 = Encoding.UTF8.GetBytes("<html><blink>attach3</blink></html>");
             database.InsertAttachmentForSequenceWithNameAndType(
                 new ByteArrayInputStream(attach3), rev3.GetSequence(), 
@@ -337,7 +337,7 @@ namespace Couchbase.Lite
             }
             catch (CouchbaseLiteException e)
             {
-                gotExpectedErrorCode = (e.GetCBLStatus().GetCode() == StatusCode.Conflict);
+                gotExpectedErrorCode = (e.GetCBLStatus().Code == StatusCode.Conflict);
             }
             Assert.IsTrue(gotExpectedErrorCode);
             gotExpectedErrorCode = false;
@@ -349,7 +349,7 @@ namespace Couchbase.Lite
             }
             catch (CouchbaseLiteException e)
             {
-                gotExpectedErrorCode = (e.GetCBLStatus().GetCode() == StatusCode.Conflict);
+                gotExpectedErrorCode = (e.GetCBLStatus().Code == StatusCode.Conflict);
             }
 
             Assert.IsTrue(gotExpectedErrorCode);
@@ -388,7 +388,7 @@ namespace Couchbase.Lite
             }
             catch (CouchbaseLiteException e)
             {
-                gotExpectedErrorCode = (e.GetCBLStatus().GetCode() == StatusCode.NotFound);
+                gotExpectedErrorCode = (e.GetCBLStatus().Code == StatusCode.NotFound);
             }
             Assert.IsTrue(gotExpectedErrorCode);
             gotExpectedErrorCode = false;
@@ -399,7 +399,7 @@ namespace Couchbase.Lite
             }
             catch (CouchbaseLiteException e)
             {
-                gotExpectedErrorCode = (e.GetCBLStatus().GetCode() == StatusCode.NotFound);
+                gotExpectedErrorCode = (e.GetCBLStatus().Code == StatusCode.NotFound);
             }
             Assert.IsTrue(gotExpectedErrorCode);
             RevisionInternal rev3 = database.UpdateAttachment(testAttachmentName, null, null,

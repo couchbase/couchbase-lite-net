@@ -89,7 +89,7 @@ namespace Couchbase.Lite
             validationCalled = false;
             rev = database.PutRevision(rev, null, false, status);
             Assert.IsTrue(validationCalled);
-            Assert.AreEqual(StatusCode.Created, status.GetCode());
+            Assert.AreEqual(StatusCode.Created, status.Code);
 
             // PUT a valid update:
             props["head_count"] = 3;
@@ -97,7 +97,7 @@ namespace Couchbase.Lite
             validationCalled = false;
             rev = database.PutRevision(rev, rev.GetRevId(), false, status);
             Assert.IsTrue(validationCalled);
-            Assert.AreEqual(StatusCode.Created, status.GetCode());
+            Assert.AreEqual(StatusCode.Created, status.Code);
 
             // PUT an invalid update:
             Sharpen.Collections.Remove(props, "towel");
@@ -110,7 +110,7 @@ namespace Couchbase.Lite
             }
             catch (CouchbaseLiteException e)
             {
-                gotExpectedError = (e.GetCBLStatus().GetCode() == StatusCode.Forbidden);
+                gotExpectedError = (e.GetCBLStatus().Code == StatusCode.Forbidden);
             }
             Assert.IsTrue(validationCalled);
             Assert.IsTrue(gotExpectedError);
@@ -128,7 +128,7 @@ namespace Couchbase.Lite
             }
             catch (CouchbaseLiteException e)
             {
-                gotExpectedError = (e.GetCBLStatus().GetCode() == StatusCode.Forbidden);
+                gotExpectedError = (e.GetCBLStatus().Code == StatusCode.Forbidden);
             }
             Assert.IsTrue(validationCalled);
             Assert.IsTrue(gotExpectedError);
@@ -164,7 +164,7 @@ namespace Couchbase.Lite
             }
             catch (CouchbaseLiteException e)
             {
-                gotExpectedError = (e.GetCBLStatus().GetCode() == StatusCode.Forbidden);
+                gotExpectedError = (e.GetCBLStatus().Code == StatusCode.Forbidden);
             }
             Assert.IsTrue(validationCalled);
             Assert.IsTrue(gotExpectedError);

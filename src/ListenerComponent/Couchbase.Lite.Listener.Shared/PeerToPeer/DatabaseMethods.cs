@@ -325,7 +325,7 @@ namespace Couchbase.Lite.Listener
                     Status status = new Status();
                     responseState.ChangesFilter = db.GetFilter(filterName, status);
                     if(responseState.ChangesFilter == null) {
-                        return context.CreateResponse(status.GetCode());
+                        return context.CreateResponse(status.Code);
                     }
                 }
 
@@ -476,7 +476,7 @@ namespace Couchbase.Lite.Listener
                 var view = db.GetView("@@TEMPVIEW@@");
                 var status = view.Compile(props, "javascript");
                 if(status.IsError) {
-                    response.InternalStatus = status.GetCode();
+                    response.InternalStatus = status.Code;
                     return response;
                 }
 
@@ -484,7 +484,7 @@ namespace Couchbase.Lite.Listener
                     view.UpdateIndex();
                     return QueryView(context, view, options);
                 } catch(CouchbaseLiteException e) {
-                    response.InternalStatus = e.GetCBLStatus().GetCode();
+                    response.InternalStatus = e.GetCBLStatus().Code;
                 }
 
                 return response;
