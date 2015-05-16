@@ -184,7 +184,7 @@ namespace Couchbase.Lite {
                     if (lastSequence >= dbMaxSequence) {
                         // nothing to do (eg,  kCBLStatusNotModified)
                         Log.V(Database.Tag, "lastSequence ({0}) == dbMaxSequence ({1}), nothing to do", lastSequence, dbMaxSequence);
-                        result.SetCode(StatusCode.NotModified);
+                        result.Code = StatusCode.NotModified;
                         return false;
                     }
 
@@ -361,7 +361,7 @@ namespace Couchbase.Lite {
 
                     // FIXME actually count number added :)
                     Log.V(Database.Tag, "...Finished re-indexing view {0} up to sequence {1} (deleted {2} added ?)", Name, Convert.ToString(dbMaxSequence), deleted);
-                    result.SetCode(StatusCode.Ok);
+                    result.Code = StatusCode.Ok;
 
                     return true;
                 });
@@ -384,7 +384,7 @@ namespace Couchbase.Lite {
 
                 if (!result.IsSuccessful)
                 {
-                    Log.W(Database.Tag, "Failed to rebuild view {0}:{1}", Name, result.GetCode());
+                    Log.W(Database.Tag, "Failed to rebuild view {0}:{1}", Name, result.Code);
                 }
             }
         }

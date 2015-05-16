@@ -57,7 +57,7 @@ namespace Couchbase.Lite.Listener
                 var view = db.GetView(String.Format("{0}/{1}", context.DesignDocName, context.ViewName));
                 var status = view.CompileFromDesignDoc();
                 if(status.IsError) {
-                    return context.CreateResponse(status.GetCode());
+                    return context.CreateResponse(status.Code);
                 }
 
                 var options = context.QueryOptions;

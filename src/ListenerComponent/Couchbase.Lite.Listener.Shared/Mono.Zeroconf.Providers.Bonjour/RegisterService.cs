@@ -135,7 +135,7 @@ namespace Mono.Zeroconf.Providers.Bonjour
             _self = GCHandle.Alloc(this);
             ServiceError error = Native.DNSServiceRegister(out sd_ref, 
                 auto_rename ? ServiceFlags.None : ServiceFlags.NoAutoRename, InterfaceIndex,
-                Name, RegType, ReplyDomain, HostTarget, (ushort)IPAddress.HostToNetworkOrder((short)port), txt_rec_length, txt_rec,
+                Name, RegType, ReplyDomain, HostTarget, (ushort)IPAddress.HostToNetworkOrder((short)Port), txt_rec_length, txt_rec,
                 register_reply_handler, GCHandle.ToIntPtr(_self));
 
             if(error != ServiceError.NoError) {
@@ -156,7 +156,7 @@ namespace Mono.Zeroconf.Providers.Bonjour
             sd_ref.Deallocate();
         }
 
-        #if __IOS__ || __UNITY__
+        #if __IOS__ || __UNITY_APPLE__
         [AOT.MonoPInvokeCallback(typeof(Native.DNSServiceRegisterReply))]
         #endif
         private static void OnRegisterReply(ServiceRef sdRef, ServiceFlags flags, ServiceError errorCode,

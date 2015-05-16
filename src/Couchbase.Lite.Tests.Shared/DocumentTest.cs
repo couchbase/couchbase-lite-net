@@ -214,7 +214,7 @@ namespace Couchbase.Lite
                 database.LoadRevisionBody(revisionInternal, contentOptions);
             } catch (CouchbaseLiteException e) {
                 gotExpectedException |= 
-                    e.GetCBLStatus().GetCode() == StatusCode.NotFound;
+                    e.GetCBLStatus().Code == StatusCode.NotFound;
             }
 
             Assert.IsTrue(gotExpectedException);

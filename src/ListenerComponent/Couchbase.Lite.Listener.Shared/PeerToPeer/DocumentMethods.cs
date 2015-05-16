@@ -86,13 +86,13 @@ namespace Couchbase.Lite.Listener
                         }
 
                         if(rev == null) {
-                            if(status.GetCode() == StatusCode.Deleted) {
+                            if(status.Code == StatusCode.Deleted) {
                                 response.StatusReason = "deleted";
                             } else {
                                 response.StatusReason = "missing";
                             }
 
-                            response.InternalStatus = status.GetCode();
+                            response.InternalStatus = status.Code;
                             return response;
                         }
                     }
@@ -118,7 +118,7 @@ namespace Couchbase.Lite.Listener
                         Status status = new Status();
                         bool attEncodingInfo = context.GetQueryParam<bool>("att_encoding_info", bool.TryParse, false);
                         if(!db.ExpandAttachments(rev, minRevPos, sendMultipart, attEncodingInfo, status)) {
-                            response.InternalStatus = status.GetCode();
+                            response.InternalStatus = status.Code;
                             return response;
                         }
                     }
@@ -150,10 +150,10 @@ namespace Couchbase.Lite.Listener
 
                             if(loadedRev != null) {
                                 result.Add(new Dictionary<string, object> { { "ok", loadedRev.GetProperties() } });
-                            } else if(status.GetCode() <= StatusCode.InternalServerError) {
+                            } else if(status.Code <= StatusCode.InternalServerError) {
                                 result.Add(new Dictionary<string, object> { { "missing", rev.GetRevId() } });
                             } else {
-                                response.InternalStatus = status.GetCode();
+                                response.InternalStatus = status.Code;
                                 return response;
                             }
                         }
@@ -245,7 +245,7 @@ namespace Couchbase.Lite.Listener
                         });
                     }
 
-                    response.InternalStatus = status.GetCode();
+                    response.InternalStatus = status.Code;
                     return response;
                 }
             }).AsDefaultState();
@@ -322,7 +322,7 @@ namespace Couchbase.Lite.Listener
                 } else {
                     Status retStatus = new Status();
                     outRev = db.PutRevision(rev, prevRevId, allowConflict, retStatus);
-                    status = retStatus.GetCode();
+                    status = retStatus.Code;
                 }
             } catch(CouchbaseLiteException e) {
                 status = e.Code;
@@ -368,7 +368,7 @@ namespace Couchbase.Lite.Listener
                     status);
                     
                 if(rev ==null) {
-                    return context.CreateResponse(status.GetCode());
+                    return context.CreateResponse(status.Code);
                 }
                 if(context.CacheWithEtag(rev.GetRevId())) {
                     return context.CreateResponse(StatusCode.NotModified);
@@ -380,7 +380,7 @@ namespace Couchbase.Lite.Listener
 
                 var attachment = db.GetAttachmentForRevision(rev, context.AttachmentName, status);
                 if(attachment == null) {
-                    return context.CreateResponse(status.GetCode());
+                    return context.CreateResponse(status.Code);
                 }
 
                 var response = context.CreateResponse();

@@ -594,7 +594,7 @@ namespace Couchbase.Lite
 
             Status result = ParseReplicationProperties(properties, out push, out createTarget, results);
             if (result.IsError) {
-                throw new CouchbaseLiteException(result.GetCode());
+                throw new CouchbaseLiteException(result.Code);
             }
 
             object continuousObj = properties.Get("continuous");

@@ -51,6 +51,7 @@ namespace Couchbase.Lite.Listener
         // ICouchbaseListenerContext
         public Manager DbManager { get; private set; }
 
+        // ICouchbaseListenerContext
         public string DatabaseName {
             get {
                 //Must do this twice because Unity3D requires double escaping of encoded slashes in URL

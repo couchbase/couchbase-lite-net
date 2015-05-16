@@ -22,7 +22,6 @@ using System;
 using System.Collections.Generic;
 
 using Couchbase.Lite.Auth;
-using Couchbase.Lite.Internal;
 
 namespace Couchbase.Lite.Listener
 {

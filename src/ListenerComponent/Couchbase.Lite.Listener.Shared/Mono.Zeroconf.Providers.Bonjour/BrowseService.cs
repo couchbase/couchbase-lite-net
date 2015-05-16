@@ -134,7 +134,7 @@ namespace Mono.Zeroconf.Providers.Bonjour
             sd_ref.Process();
         }
 
-        #if __IOS__ || __UNITY__
+        #if __IOS__ || __UNITY_APPLE__
         [AOT.MonoPInvokeCallback(typeof(Native.DNSServiceResolveReply))]
         #endif
         private static void OnResolveReply(ServiceRef sdRef, ServiceFlags flags, uint interfaceIndex,
@@ -148,7 +148,7 @@ namespace Mono.Zeroconf.Providers.Bonjour
             
             browseService.InterfaceIndex = interfaceIndex;
             browseService.FullName = fullname;
-            browseService.port = (ushort)IPAddress.NetworkToHostOrder((short)port);
+            browseService.Port = (ushort)IPAddress.NetworkToHostOrder((short)port);
             browseService.TxtRecord = new TxtRecord(txtLen, txtRecord);
 
             sdRef.Deallocate();
@@ -179,7 +179,7 @@ namespace Mono.Zeroconf.Providers.Bonjour
             }
         }
      
-        #if __IOS__ || __UNITY__
+        #if __IOS__ || __UNITY_APPLE__
         [AOT.MonoPInvokeCallback(typeof(Native.DNSServiceQueryRecordReply))]
         #endif
         private static void OnQueryRecordReply(ServiceRef sdRef, ServiceFlags flags, uint interfaceIndex,
