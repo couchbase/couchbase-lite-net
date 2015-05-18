@@ -45,11 +45,17 @@ namespace Couchbase.Lite
             request.AllowWriteStreamBuffering = true;
             request.Timeout = 5000;
             request.Method = "GET";
+
             try {
                 using(var response = (HttpWebResponse)request.GetResponse()) {
                     return true; //We only care that the server responded
                 }
             } catch(Exception e) {
+                var we = e as WebException;
+                if(we != null && we.Status == WebExceptionStatus.ProtocolError) {
+                    return true; //Getting an HTTP error technically means we can connect
+                }
+
                 Log.D(TAG, "Didn't get successful connection to {0}", remoteUri);
                 Log.E(TAG, "Exception: ", e);
                 return false;
