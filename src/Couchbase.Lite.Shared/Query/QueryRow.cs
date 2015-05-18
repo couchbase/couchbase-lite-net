@@ -54,7 +54,7 @@ namespace Couchbase.Lite
     /// <summary>
     /// A result row for a Couchbase Lite <see cref="Couchbase.Lite.View"/> <see cref="Couchbase.Lite.Query"/>.
     /// </summary>
-    public sealed class QueryRow 
+    public class QueryRow 
     {
 
     #region Constructors
@@ -99,13 +99,13 @@ namespace Couchbase.Lite
         /// Gets the <see cref="Couchbase.Lite.QueryRow"/>'s key.
         /// </summary>
         /// <value>The <see cref="Couchbase.Lite.QueryRow"/>'s key.</value>
-        public Object Key { get; private set; }
+        public Object Key { get; protected set; }
 
         /// <summary>
         /// Gets the <see cref="Couchbase.Lite.QueryRow"/>'s value.
         /// </summary>
         /// <value>Rhe <see cref="Couchbase.Lite.QueryRow"/>'s value.</value>
-        public Object Value { get; private set; }
+        public Object Value { get; protected set; }
 
         /// <summary>
         /// Gets the Id of the associated <see cref="Couchbase.Lite.Document"/>.
@@ -140,7 +140,7 @@ namespace Couchbase.Lite
         /// don't correspond to individual <see cref="Couchbase.Lite.Document"/>.
         /// </summary>
         /// <value>The source document identifier.</value>
-        public String SourceDocumentId { get; private set; }
+        public String SourceDocumentId { get; protected set; }
 
         /// <summary>
         /// Gets the Id of the associated <see cref="Couchbase.Lite.Revision"/>.
@@ -173,13 +173,13 @@ namespace Couchbase.Lite
         /// Gets the properties of the associated <see cref="Couchbase.Lite.Document"/>.
         /// </summary>
         /// <value>The properties of the associated <see cref="Couchbase.Lite.Document"/>.</value>
-        public IDictionary<String, Object> DocumentProperties { get; private set; }
+        public IDictionary<String, Object> DocumentProperties { get; protected set; }
 
         /// <summary>
         /// Gets the sequence number of the associated <see cref="Couchbase.Lite.Revision"/>.
         /// </summary>
         /// <value>The sequence number.</value>
-        public Int64 SequenceNumber { get; private set; }
+        public Int64 SequenceNumber { get; protected set; }
 
         /// <summary>
         /// Gets the conflicting <see cref="Couchbase.Lite.Revision"/>s of the associated <see cref="Couchbase.Lite.Document"/>. 
@@ -267,7 +267,7 @@ namespace Couchbase.Lite
 
     #region Non-public Members
 
-        public IDictionary<string, object> AsJSONDictionary()
+        public virtual IDictionary<string, object> AsJSONDictionary()
         {
             var result = new Dictionary<string, object>();
             if (Value != null || SourceDocumentId != null)
@@ -294,4 +294,30 @@ namespace Couchbase.Lite
     #endregion
     }
 
+    public class FullTextQueryRow: QueryRow
+    {
+        internal FullTextQueryRow(string documentId, long sequence, long fullTextId, object value) :
+            base(documentId, sequence, null, value, null)
+        {
+            SourceDocumentId = documentId;
+            SequenceNumber = sequence;
+            FullTextID = fullTextId;
+            Value = value;
+        }
+
+        public long FullTextID {
+            get;
+            private set;
+        }
+
+        public override IDictionary<string, object> AsJSONDictionary()
+        {
+            var dict = base.AsJSONDictionary();
+
+            if (!dict.ContainsKey("error")) {
+                dict.Remove("key");
+            }
+            return dict;
+        }
+    }
 }

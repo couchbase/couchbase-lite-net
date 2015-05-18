@@ -87,6 +87,8 @@ namespace Couchbase.Lite
 
         private string endKeyDocId;
 
+        string fullTextSearch;
+
         // only works with _all_docs, not regular views
         public object GetStartKey()
         {
@@ -278,6 +280,16 @@ namespace Couchbase.Lite
         public void SetEndKeyDocId(string endKeyDocId)
         {
             this.endKeyDocId = endKeyDocId;
+        }
+
+        public string GetFullTextSearch()
+        {
+            return fullTextSearch;
+        }
+
+        public void SetFullTextSearch(string fullTextSearch)
+        {
+            this.fullTextSearch = fullTextSearch;
         }
     }
 }
