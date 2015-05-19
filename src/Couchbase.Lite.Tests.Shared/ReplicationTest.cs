@@ -2256,5 +2256,21 @@ namespace Couchbase.Lite
                 Thread.Sleep(2000);
             });
         }
+
+        [Test]
+        public void TestReplicationCheckpointUniqueness()
+        {
+            var repl1 = database.CreatePullReplication(GetReplicationURL());
+            var repl2 = database.CreatePullReplication(GetReplicationURL());
+
+            Assert.AreEqual(repl1.RemoteCheckpointDocID(), repl2.RemoteCheckpointDocID());
+
+            repl1 = database.CreatePullReplication(GetReplicationURL());
+            repl2 = database.CreatePullReplication(GetReplicationURL());
+            repl1.Channels = new List<string> { "A" };
+            repl2.Channels = new List<string> { "A", "B" };
+
+            Assert.AreNotEqual(repl1.RemoteCheckpointDocID(), repl2.RemoteCheckpointDocID());
+        }
     }
 }
