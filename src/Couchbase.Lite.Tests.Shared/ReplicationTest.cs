@@ -759,7 +759,9 @@ namespace Couchbase.Lite
             try
             {
                 var handler = new HttpClientHandler { Credentials = new NetworkCredential("jim", "borden") };
+                handler.PreAuthenticate = true;
                 httpclient = new HttpClient(handler, true);
+
                 HttpResponseMessage response;
                 var request = new HttpRequestMessage();
                 request.Headers.Add("Accept", "*/*");

@@ -4821,7 +4821,7 @@ PRAGMA user_version = 3;";
         /// </remarks>
         public void Dispose()
         {
-            if (!_isOpen && !Close()) {
+            if (_isOpen && !Close()) {
                 Log.E(Tag, "Error disposing database (possibly already disposed?)");
             }
         }
