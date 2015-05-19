@@ -699,6 +699,34 @@ namespace Couchbase.Lite
             return docBody;
         }
 
+        private void PerformWithoutGuestAccess(Action action)
+        {
+            if(action == null) {
+                return;
+            }
+
+            var adminURL = GetReplicationAdminURL();
+            adminURL = adminURL.AppendPath("_user/GUEST");
+            var request = WebRequest.CreateHttp(adminURL);
+            request.Method = "PUT";
+            var data = Manager.GetObjectMapper().WriteValueAsBytes(new Dictionary<string, object> { { "disabled", true } }).ToArray();
+            request.GetRequestStream().Write(data, 0, data.Length);
+            request.GetResponse();
+
+            try {
+                action();
+            } finally {
+                request = WebRequest.CreateHttp(adminURL);
+                request.Method = "PUT";
+                data = Manager.GetObjectMapper().WriteValueAsBytes(new Dictionary<string, object> { 
+                    { "disabled", false },
+                    { "admin_channels", new List<object> { "*" }}
+                }).ToArray();
+                request.GetRequestStream().Write(data, 0, data.Length);
+                request.GetResponse();
+            }
+        }
+
         /// <exception cref="System.IO.IOException"></exception>
         private void AddDocWithId(string docId, string attachmentName)
         {
@@ -726,7 +754,8 @@ namespace Couchbase.Lite
             HttpClient httpclient = null;
             try
             {
-                httpclient = new HttpClient();
+                var handler = new HttpClientHandler { Credentials = new NetworkCredential("jim", "borden") };
+                httpclient = new HttpClient(handler, true);
                 HttpResponseMessage response;
                 var request = new HttpRequestMessage();
                 request.Headers.Add("Accept", "*/*");
@@ -2163,59 +2192,63 @@ namespace Couchbase.Lite
         [Test]
         public void TestPullReplicationWithUsername()
         {
-            var docIdTimestamp = Convert.ToString(Runtime.CurrentTimeMillis());
-            var doc1Id = string.Format("doc1-{0}", docIdTimestamp);
-            var doc2Id = string.Format("doc2-{0}", docIdTimestamp);
+            PerformWithoutGuestAccess(() =>
+            {
+                var docIdTimestamp = Convert.ToString(Runtime.CurrentTimeMillis());
+                var doc1Id = string.Format("doc1-{0}", docIdTimestamp);
+                var doc2Id = string.Format("doc2-{0}", docIdTimestamp);
 
-            Log.D(Tag, "Adding " + doc1Id + " directly to sync gateway");           
-            AddDocWithId(doc1Id, "attachment.png");
+                Log.D(Tag, "Adding " + doc1Id + " directly to sync gateway");
+                AddDocWithId(doc1Id, "attachment.png");
 
-            Log.D(Tag, "Adding " + doc2Id + " directly to sync gateway");
-            AddDocWithId(doc2Id, "attachment2.png");
+                Log.D(Tag, "Adding " + doc2Id + " directly to sync gateway");
+                AddDocWithId(doc2Id, "attachment2.png");
 
-            var remote = GetReplicationURL();
-            var repl = database.CreatePullReplication(remote);
-            repl.Authenticator = new BasicAuthenticator("jim", "borden");
-            repl.Continuous = true;
-            var wait = new CountdownEvent(1);
-            repl.Changed += (sender, e) => {
-                if(wait.CurrentCount == 0) {
-                    return;
-                }
+                var remote = GetReplicationURL();
+                var repl = database.CreatePullReplication(remote);
+                repl.Authenticator = new BasicAuthenticator("jim", "borden");
+                repl.Continuous = true;
+                var wait = new CountdownEvent(1);
+                repl.Changed += (sender, e) =>
+                {
+                    if(wait.CurrentCount == 0) {
+                        return;
+                    }
 
-                Log.D("ReplicationTest", "New replication status {0}", e.Source.Status);
-                if((e.Source.Status == ReplicationStatus.Idle || e.Source.Status == ReplicationStatus.Stopped) && 
-                    e.Source.ChangesCount > 0 && e.Source.CompletedChangesCount == e.Source.ChangesCount) {
-                    wait.Signal();
-                }
-            };
-            repl.Start();
+                    Log.D("ReplicationTest", "New replication status {0}", e.Source.Status);
+                    if((e.Source.Status == ReplicationStatus.Idle || e.Source.Status == ReplicationStatus.Stopped) &&
+                        e.Source.ChangesCount > 0 && e.Source.CompletedChangesCount == e.Source.ChangesCount) {
+                        wait.Signal();
+                    }
+                };
+                repl.Start();
 
-            Assert.IsTrue(wait.Wait(TimeSpan.FromSeconds(60)), "Pull replication timed out");
-            Assert.IsNotNull(database.GetExistingDocument(doc1Id), "Didn't get doc1 from puller");
-            Assert.IsNotNull(database.GetExistingDocument(doc2Id), "Didn't get doc2 from puller");
-            Assert.IsNull(repl.LastError);
-            repl.Stop();
+                Assert.IsTrue(wait.Wait(TimeSpan.FromSeconds(60)), "Pull replication timed out");
+                Assert.IsNotNull(database.GetExistingDocument(doc1Id), "Didn't get doc1 from puller");
+                Assert.IsNotNull(database.GetExistingDocument(doc2Id), "Didn't get doc2 from puller");
+                Assert.IsNull(repl.LastError);
+                repl.Stop();
 
-            docIdTimestamp = Convert.ToString(Runtime.CurrentTimeMillis());
-            doc1Id = string.Format("doc1-{0}", docIdTimestamp);
-            doc2Id = string.Format("doc2-{0}", docIdTimestamp);
+                docIdTimestamp = Convert.ToString(Runtime.CurrentTimeMillis());
+                doc1Id = string.Format("doc1-{0}", docIdTimestamp);
+                doc2Id = string.Format("doc2-{0}", docIdTimestamp);
 
-            Log.D(Tag, "Adding " + doc1Id + " directly to sync gateway");           
-            AddDocWithId(doc1Id, "attachment.png");
+                Log.D(Tag, "Adding " + doc1Id + " directly to sync gateway");
+                AddDocWithId(doc1Id, "attachment.png");
 
-            Log.D(Tag, "Adding " + doc2Id + " directly to sync gateway");
-            AddDocWithId(doc2Id, "attachment2.png");
+                Log.D(Tag, "Adding " + doc2Id + " directly to sync gateway");
+                AddDocWithId(doc2Id, "attachment2.png");
 
-            repl.Authenticator = new BasicAuthenticator("jim", "bogus");
-            wait.Reset(1);
-            repl.Start();
-            Assert.IsTrue(wait.Wait(TimeSpan.FromSeconds(60)), "Pull replication timed out");
-            Assert.IsNull(database.GetExistingDocument(doc1Id), "Got rogue doc1 from puller");
-            Assert.IsNull(database.GetExistingDocument(doc2Id), "Got rogue doc2 from puller");
-            repl.Stop();
+                repl.Authenticator = new BasicAuthenticator("jim", "bogus");
+                wait.Reset(1);
+                repl.Start();
+                Assert.IsTrue(wait.Wait(TimeSpan.FromSeconds(60)), "Pull replication timed out");
+                Assert.IsNull(database.GetExistingDocument(doc1Id), "Got rogue doc1 from puller");
+                Assert.IsNull(database.GetExistingDocument(doc2Id), "Got rogue doc2 from puller");
+                repl.Stop();
 
-            Thread.Sleep(2000);
+                Thread.Sleep(2000);
+            });
         }
     }
 }
