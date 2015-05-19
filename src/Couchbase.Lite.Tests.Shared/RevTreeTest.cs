@@ -208,7 +208,7 @@ namespace Couchbase.Lite
                 {
                     Assert.AreEqual(3, doc.RevisionHistory.ToList().Count);
                 }
-                catch (CouchbaseLiteException ex)
+                catch (CouchbaseLiteException)
                 {
                     Assert.Fail();
                 }
@@ -250,7 +250,7 @@ namespace Couchbase.Lite
                     Assert.AreEqual(2, doc.ConflictingRevisions.ToList().Count);
                     Assert.AreEqual(3, doc.RevisionHistory.ToList().Count);
                 }
-                catch (CouchbaseLiteException ex)
+                catch (CouchbaseLiteException)
                 {
                     Assert.Fail();
                 }

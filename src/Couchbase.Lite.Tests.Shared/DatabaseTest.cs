@@ -417,7 +417,7 @@ namespace Couchbase.Lite
             outIsConflict = new List<Boolean>();
             var newRev2b = rev1.CreateRevision();
             newRev2b.SetUserProperties(properties2b);
-            var rev2b = newRev2b.Save(true);
+            newRev2b.Save(true);
             database.WinningRevIDOfDoc(docNumericId, outIsDeleted, outIsConflict);
             Assert.IsTrue(outIsConflict.Count > 0);
         }

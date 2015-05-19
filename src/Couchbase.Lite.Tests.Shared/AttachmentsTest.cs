@@ -425,7 +425,6 @@ namespace Couchbase.Lite
 
             var sha1Base64Digest = "sha1-C+7Hteo/D9vJXQ3UfzxbwnXaijM=";
             Assert.AreEqual(blobWriter.SHA1DigestString(), sha1Base64Digest);
-            Assert.AreEqual(blobWriter.MD5DigestString(), "md5-rL0Y20zC+Fzt72VPzMSk2A==");
 
             // install it
             blobWriter.Install();

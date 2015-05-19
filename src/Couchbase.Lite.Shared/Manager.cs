@@ -75,8 +75,11 @@ namespace Couchbase.Lite
 
     #region Constants
 
+        /// <summary>
+        /// The version of Couchbase Lite that is running
+        /// </summary>
         public static readonly string VersionString;
-        const string Tag = "Manager";
+        private const string TAG = "Manager";
 
         /// <summary>
         /// The error domain used for HTTP status codes.
@@ -92,7 +95,10 @@ namespace Couchbase.Lite
     #endregion
 
     #region Static Members
-        //Properties
+
+        /// <summary>
+        /// Gets the default options for creating a manager
+        /// </summary>
         public static ManagerOptions DefaultOptions { get; private set; }
 
         /// <summary>
@@ -185,7 +191,7 @@ namespace Couchbase.Lite
         /// <exception cref="T:System.IO.DirectoryNotFoundException">Thrown when there is an error while accessing or creating the given directory.</exception>
         public Manager(DirectoryInfo directoryFile, ManagerOptions options)
         {
-            Log.I(Tag, "Starting Manager version: " + VersionString);
+            Log.I(TAG, "Starting Manager version: " + VersionString);
 
             this.directoryFile = directoryFile;
             this.options = options ?? DefaultOptions;
@@ -206,7 +212,7 @@ namespace Couchbase.Lite
             var scheduler = options.CallbackScheduler;
             CapturedContext = new TaskFactory(scheduler);
             workExecutor = new TaskFactory(new SingleTaskThreadpoolScheduler());
-            Log.D(Tag, "New Manager uses a scheduler with a max concurrency level of {0}".Fmt(workExecutor.Scheduler.MaximumConcurrencyLevel));
+            Log.D(TAG, "New Manager uses a scheduler with a max concurrency level of {0}".Fmt(workExecutor.Scheduler.MaximumConcurrencyLevel));
 
             this.NetworkReachabilityManager = new NetworkReachabilityManager();
 
@@ -245,6 +251,10 @@ namespace Couchbase.Lite
             }
         }
 
+        /// <summary>
+        /// Returns all the databases that are open by this manager.
+        /// </summary>
+        /// <returns>All the databases that are open by this manager.</returns>
         public ICollection<Database> AllOpenDatabases()
         {
             return databases.Values;
@@ -256,16 +266,12 @@ namespace Couchbase.Lite
         /// </summary>
         public void Close() 
         {
-            Log.I(Tag, "Closing " + this);
-
-            foreach (var database in databases.Values)
-            {
+            Log.I(TAG, "Closing " + this);
+            foreach (var database in databases.Values) {
                 var replicators = database.AllReplications;
 
-                if (replicators != null)
-                {
-                    foreach (var replicator in replicators)
-                    {
+                if (replicators != null) {
+                    foreach (var replicator in replicators) {
                         replicator.Stop();
                     }
                 }
@@ -274,8 +280,7 @@ namespace Couchbase.Lite
             }
 
             databases.Clear();
-
-            Log.I(Tag, "Manager is Closed");
+            Log.I(TAG, "Manager is Closed");
         }
 
         /// <summary>
@@ -491,6 +496,10 @@ namespace Couchbase.Lite
             return db;
         }
 
+        /// <summary>
+        /// Removes the given database from the manager, along with any associated replications
+        /// </summary>
+        /// <param name="database">The database to remove</param>
         public void ForgetDatabase (Database database)
         {
             // remove from cached list of dbs
@@ -563,7 +572,7 @@ namespace Couchbase.Lite
             var name = Path.GetFileNameWithoutExtension(Path.Combine(path.Directory.FullName, newFilename));
             var db = GetDatabaseWithoutOpening(name, false);
             if (db == null) {
-                Log.W(Tag, "Upgrade failed for {0} (Creating new DB failed)", path.Name);
+                Log.W(TAG, "Upgrade failed for {0} (Creating new DB failed)", path.Name);
                 return;
             }
             db.Dispose();
@@ -571,12 +580,12 @@ namespace Couchbase.Lite
             var upgrader = DatabaseUpgraderFactory.CreateUpgrader(db, oldFilename);
             var status = upgrader.Import();
             if (status.IsError) {
-                Log.W(Tag, "Upgrade failed for {0} (Status {1})", path.Name, status);
+                Log.W(TAG, "Upgrade failed for {0} (Status {1})", path.Name, status);
                 upgrader.Backout();
                 return;
             }
 
-            Log.D(Tag, "...Success!");
+            Log.D(TAG, "...Success!");
         }
 
         internal Replication ReplicationWithProperties(IDictionary<string, object> properties)
@@ -734,7 +743,7 @@ namespace Couchbase.Lite
                         string email = facebook.Get("email") as string;
                         results["authorizer"] = new FacebookAuthorizer(email);
                     } else {
-                        Log.W(Tag, "Invalid authorizer settings {0}", auth);
+                        Log.W(TAG, "Invalid authorizer settings {0}", auth);
                     }
                 }
             }

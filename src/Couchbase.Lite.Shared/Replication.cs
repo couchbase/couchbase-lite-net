@@ -142,10 +142,24 @@ namespace Couchbase.Lite
 
     #region Constructors
 
+        /// <summary>
+        /// Convenience constructor
+        /// </summary>
+        /// <param name="db">The local database to replicate to/from</param>
+        /// <param name="remote">The remote Uri to sync with</param>
+        /// <param name="continuous">If set to <c>true</c> continuous.</param>
+        /// <param name="workExecutor">The TaskFactory to execute work on</param>
         protected Replication(Database db, Uri remote, bool continuous, TaskFactory workExecutor)
             : this(db, remote, continuous, null, workExecutor) { }
 
-        /// <summary>Private Constructor</summary>
+        /// <summary>
+        /// Default constructor
+        /// </summary>
+        /// <param name="db">The local database to replicate to/from</param>
+        /// <param name="remote">The remote Uri to sync with</param>
+        /// <param name="continuous">If set to <c>true</c> continuous.</param>
+        /// <param name="clientFactory">The client factory for instantiating the HttpClient used to create web requests</param>
+        /// <param name="workExecutor">The TaskFactory to execute work on</param>
         protected Replication(Database db, Uri remote, bool continuous, IHttpClientFactory clientFactory, TaskFactory workExecutor)
         {
             LocalDatabase = db;
@@ -241,24 +255,36 @@ namespace Couchbase.Lite
         private static Int32 lastSessionID = 0;
         private string remoteCheckpointDocID = null;
 
+        /// <summary>
+        /// The task factory on which work is executed
+        /// </summary>
         readonly protected TaskFactory WorkExecutor;
 
+        /// <summary>
+        /// The client factory responsible for creating HttpClient instances
+        /// </summary>
         protected IHttpClientFactory clientFactory;
 
+        /// <summary>
+        /// The ID of the replication session
+        /// </summary>
         protected internal String  sessionID;
 
+
+        /// <summary>
+        /// Sets the last replication error that occurred
+        /// </summary>
+        /// <param name="error">The last replication error that occurred</param>
+        [Obsolete("Set the LastError property directly instead")]
         protected void SetLastError(Exception error) {
-            if (LastError != error)
-            {
-                Log.E(Tag, " Progress: set error = ", error);
-                LastError = error;
-                NotifyChangeListeners();
-            }
+            LastError = error;
         }
 
         protected internal Boolean lastSequenceChanged;
 
-        private String lastSequence = "0";
+        /// <summary>
+        /// Gets or sets the last sequence that this replication processed from its source database
+        /// </summary>
         protected internal String LastSequence
         {
             get { return lastSequence; }
@@ -282,6 +308,7 @@ namespace Couchbase.Lite
                 }
             }
         }
+        private String lastSequence = "0";
 
         internal Boolean savingCheckpoint;
         internal Boolean overdueForSave;
@@ -306,13 +333,23 @@ namespace Couchbase.Lite
 
         internal string ServerType { get; set; }
         internal Batcher<RevisionInternal> Batcher { get; set; }
+
+        /// <summary>
+        /// Gets or sets the cancellation token source to cancel this replication's operation
+        /// </summary>
         protected CancellationTokenSource CancellationTokenSource { get; set; }
         private CancellationTokenSource RetryIfReadyTokenSource { get; set; }
         private Task RetryIfReadyTask { get; set; }
 
+        /// <summary>
+        /// Gets or sets the headers that should be used when making HTTP requests
+        /// </summary>
         protected internal IDictionary<String, Object> RequestHeaders { get; set; }
 
         // FIXME: This probably should become IDictionary<HttpRequestMessage, Task>
+        /// <summary>
+        /// The list of currently active HTTP requests
+        /// </summary>
         protected internal ICollection<HttpClient> requests;
 
         private Int32 revisionsFailed;
@@ -323,11 +360,18 @@ namespace Couchbase.Lite
 
         internal Func<RevisionInternal, RevisionInternal> revisionBodyTransformationFunction;
 
+        /// <summary>
+        /// Safely increments the completed changes count
+        /// </summary>
         protected void SafeIncrementCompletedChangesCount()
         {
             SafeAddToCompletedChangesCount(1);
         }
 
+        /// <summary>
+        /// Safely adds the specified value to the completed changes count
+        /// </summary>
+        /// <param name="value">The amount to add</param>
         protected void SafeAddToCompletedChangesCount(int value)
         {
             if (value == 0) 
@@ -341,6 +385,10 @@ namespace Couchbase.Lite
             NotifyChangeListeners();
         }
 
+        /// <summary>
+        /// Safely adds the specified value to the changes count
+        /// </summary>
+        /// <param name="value">The amount to add</param>
         protected void SafeAddToChangesCount(int value)
         {
             if (value == 0) 
@@ -353,6 +401,7 @@ namespace Couchbase.Lite
             Log.V(Tag, "<<<Updated changesCount to {0}", changesCount);
             NotifyChangeListeners();
         }
+
 
         protected void SetClientFactory(IHttpClientFactory clientFactory)
         {
@@ -462,7 +511,7 @@ namespace Couchbase.Lite
                 if (IsRunning)
                 {
                     lastSequence = null;
-                    SetLastError(null);
+                    LastError = null;;
                 }
 
                 CheckSession();
@@ -578,7 +627,7 @@ namespace Couchbase.Lite
                             return;
                         }
                         Log.E(Tag, "Session check failed", e);
-                        SetLastError(e);
+                        LastError = e;
                     }
                     else
                     {
@@ -624,7 +673,7 @@ namespace Couchbase.Lite
                     if (e != null)
                     {
                         Log.D (Tag, string.Format ("{0}: Login failed for path: {1}", this, loginPath));
-                        SetLastError(e);
+                        LastError = e;
                     }
                     else
                     {
@@ -655,7 +704,7 @@ namespace Couchbase.Lite
                 {
                     if (e != null && !Is404 (e)) {
                         Log.D (Tag, " error getting remote checkpoint: " + e);
-                        SetLastError(e);
+                        LastError = e;
                     } else {
                         if (e != null && Is404 (e)) {
                             Log.D (Tag, " 404 error getting remote checkpoint " + RemoteCheckpointDocID () + ", calling maybeCreateRemoteDB");
@@ -700,18 +749,17 @@ namespace Couchbase.Lite
 
         private static bool Is404(Exception e)
         {
-            var result = false;
-            if (e is Couchbase.Lite.HttpResponseException)
+            if (e is Couchbase.Lite.HttpResponseException) {
                 return ((HttpResponseException)e).StatusCode == System.Net.HttpStatusCode.NotFound;
+            }
+            
             return (e is HttpResponseException) && ((HttpResponseException)e).StatusCode == System.Net.HttpStatusCode.NotFound;
         }
 
         internal abstract void BeginReplicating();
 
-        /// <summary>CHECKPOINT STORAGE:</summary>
         protected internal virtual void MaybeCreateRemoteDB() { }
 
-        // FIXME: No-op.
         abstract internal void ProcessInbox(RevisionList inbox);
 
         internal void AsyncTaskStarted()
@@ -1262,7 +1310,7 @@ namespace Couchbase.Lite
                         return null;
                     }
                     if ((Int32)response.Result.StatusCode > 300) {
-                        SetLastError(new HttpResponseException(response.Result.StatusCode));
+                        LastError = new HttpResponseException(response.Result.StatusCode);
                         Log.E(Tag, "Server returned HTTP Error", LastError);
                         client.Dispose();
                         return null;
@@ -1784,7 +1832,19 @@ namespace Couchbase.Lite
         /// <summary>
         /// Gets the last error, if any, that occurred since the <see cref="Couchbase.Lite.Replication"/> was started.
         /// </summary>
-        public Exception LastError { get; protected set; }
+        public Exception LastError
+        { 
+            get { return _lastError; }
+            set
+            {
+                if (value != _lastError) {
+                    Log.E(Tag, " Progress: set error = ", value);
+                    _lastError = value;
+                    NotifyChangeListeners();
+                }
+            }
+        }
+        private Exception _lastError;
 
         /// <summary>
         /// If the <see cref="Couchbase.Lite.Replication"/> is active, gets the number of completed changes that have been processed, otherwise 0.

@@ -57,14 +57,6 @@ namespace Couchbase.Lite
             return new RevisionInternal("docid", revID, false);
         }
 
-        private static SavedRevision CreateRevisionWithRandomProps(SavedRevision parentRev, Boolean allowConflict) {
-            var properties = new Dictionary<string, object>();
-            properties["val"] = Misc.CreateGUID();
-            var unsavedRevision = parentRev.CreateRevision();
-            unsavedRevision.SetUserProperties(properties);
-            return unsavedRevision.Save(allowConflict);
-        }
-
         [Test]
         public void TestParseRevID()
         {
@@ -194,7 +186,7 @@ namespace Couchbase.Lite
             // Create a conflict on purpose
             var doc = database.CreateDocument();
             var rev1 = doc.CreateRevision().Save();
-            var rev2a = CreateRevisionWithRandomProps(rev1, false);
+            CreateRevisionWithRandomProps(rev1, false);
             var rev2b = CreateRevisionWithRandomProps(rev1, true);
             var rev3b = CreateRevisionWithRandomProps(rev2b, true);
             var rev4b = CreateRevisionWithRandomProps(rev3b, true);

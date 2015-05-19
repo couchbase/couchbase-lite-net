@@ -150,6 +150,9 @@ namespace Couchbase.Lite
 
         private TaskFactory Scheduler { get; set; }
 
+        /// <summary>
+        /// Gets the container the holds cookie information received from the remote replicator
+        /// </summary>
         public CookieContainer PersistentCookieStore
         {
             get
@@ -169,13 +172,13 @@ namespace Couchbase.Lite
         public String Name { get; internal set; }
 
         /// <summary>
-        /// Gets the <see cref="Couchbase.Lite.Manager"> that owns this <see cref="Couchbase.Lite.Database"/>.
+        /// Gets the <see cref="Couchbase.Lite.Manager" /> that owns this <see cref="Couchbase.Lite.Database"/>.
         /// </summary>
         /// <value>The manager object.</value>
         public Manager Manager { get; private set; }
 
         /// <summary>
-        /// Gets the number of <see cref="Couchbase.Lite.Document"> in the <see cref="Couchbase.Lite.Database"/>.
+        /// Gets the number of <see cref="Couchbase.Lite.Document" /> in the <see cref="Couchbase.Lite.Database"/>.
         /// </summary>
         /// <value>The document count.</value>
         /// TODO: Convert this to a standard method call.
@@ -239,6 +242,9 @@ namespace Couchbase.Lite
             }
         }
 
+        /// <summary>
+        /// Gets the total size of the database on the filesystem.
+        /// </summary>
         public long TotalDataSize {
             get {
                 string dir = System.IO.Path.GetDirectoryName(Path);
@@ -583,6 +589,7 @@ namespace Couchbase.Lite
         /// </summary>
         /// <returns>The <see cref="ValidateDelegate" /> for the given name, or null if it does not exist.</returns>
         /// <param name="name">The name of the validation delegate to get.</param>
+        /// <param name="status">The result of the operation</param>
         public FilterDelegate GetFilter(String name, Status status = null) 
         { 
             FilterDelegate result = null;
@@ -735,6 +742,10 @@ namespace Couchbase.Lite
             return new Puller(this, url, false, new TaskFactory(scheduler));
         }
 
+        /// <summary>
+        /// Returns a <see cref="System.String"/> that represents the current <see cref="Couchbase.Lite.Database"/>.
+        /// </summary>
+        /// <returns>A <see cref="System.String"/> that represents the current <see cref="Couchbase.Lite.Database"/>.</returns>
         public override string ToString()
         {
             return GetType().FullName + "[" + Path + "]";
@@ -2147,6 +2158,11 @@ PRAGMA user_version = 3;";
             return result;
         }
 
+        /// <summary>
+        /// Checks the entry identified by the given sequence number in the database for attacments
+        /// </summary>
+        /// <returns><c>true</c>, if attachments were found, <c>false</c> otherwise.</returns>
+        /// <param name="sequence">The sequence to check in the database</param>
         public bool SequenceHasAttachments(long sequence)
         {
             Cursor cursor = null;
@@ -4217,7 +4233,7 @@ PRAGMA user_version = 3;";
             return numRevisionsRemoved;
         }
 
-        /// <summary>DOCUMENT & REV IDS:</summary>
+
         internal Boolean IsValidDocumentId(string id)
         {
             // http://wiki.apache.org/couchdb/HTTP_Document_API#Documents
@@ -4246,7 +4262,7 @@ PRAGMA user_version = 3;";
 
             RevisionInternal newRev = null;
 
-            var transactionSucceeded = RunInTransaction(() =>
+            RunInTransaction(() =>
             {
                 try
                 {
@@ -4797,9 +4813,15 @@ PRAGMA user_version = 3;";
 
         #region IDisposable
 
+        /// <summary>
+        /// Releases all resource used by the <see cref="Couchbase.Lite.Database"/> object.
+        /// </summary>
+        /// <remarks>
+        /// The database file may be used again if open is called
+        /// </remarks>
         public void Dispose()
         {
-            if (!Close()) {
+            if (!_isOpen && !Close()) {
                 Log.E(Tag, "Error disposing database (possibly already disposed?)");
             }
         }
@@ -4864,8 +4886,17 @@ PRAGMA user_version = 3;";
 
     #region IFilterCompiler
 
+    /// <summary>
+    /// An interface for compiling filters on queries in languages other than C#
+    /// </summary>
     public interface IFilterCompiler
     {
+        /// <summary>
+        /// Compiles the filter.
+        /// </summary>
+        /// <returns>The compiled filter.</returns>
+        /// <param name="filterSource">The filter source code</param>
+        /// <param name="language">The language that the source was written in</param>
         FilterDelegate CompileFilter(string filterSource, string language);
     }
 

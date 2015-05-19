@@ -1579,7 +1579,7 @@ namespace Couchbase.Lite
                 {"type" , "attachment_test"},
             };
 
-            var result = document.PutProperties (values);
+            document.PutProperties (values);
 
             long expectedLength = 0;
             document.Update((r) => 

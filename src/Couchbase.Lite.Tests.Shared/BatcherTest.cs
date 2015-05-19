@@ -64,10 +64,6 @@ namespace Couchbase.Lite
 
         private CountdownEvent doneSignal = null;
 
-        private long maxObservedDelta = -1L;
-
-        private readonly object mutex = new object();
-
         private void AssertNumbersConsecutive(IList<string> itemsToProcess)
         {
             var previousItemNumber = -1;

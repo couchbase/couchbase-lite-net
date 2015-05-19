@@ -56,7 +56,7 @@ namespace Couchbase.Lite.Util
         {
             try {
                 Trace.TraceInformation(tag + ": " + msg);
-            } catch (ThreadInterruptedException ex) {
+            } catch (ThreadInterruptedException) {
                 // swallow.
             }
         }

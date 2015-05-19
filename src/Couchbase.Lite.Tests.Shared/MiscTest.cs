@@ -74,7 +74,7 @@ namespace Couchbase.Lite
             var request = new HttpRequestMessage(HttpMethod.Get, "http://localhost/foo");
 
             // Act
-            HttpResponseMessage response = null;
+            //HttpResponseMessage response = null;
 
             try {
                 client.SendAsync(request).ContinueWith(t => {

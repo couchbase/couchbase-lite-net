@@ -286,7 +286,7 @@ namespace Couchbase.Lite {
         public String EndKeyDocId { get; set; }
 
         /// <summary>
-        /// If true the EndKey (or EndKeyDocID) comparison uses "<=". Else it uses "<".
+        /// If true the EndKey (or EndKeyDocID) comparison uses "&lt;=". Else it uses "&lt;".
         /// Default value is <c>true</c>.
         /// </summary>
         /// <value><c>true</c> if InclusiveEnd; otherwise, <c>false</c>.</value>
@@ -452,6 +452,13 @@ namespace Couchbase.Lite {
             return new LiveQuery(this);
         }
 
+        /// <summary>
+        /// Releases all resource used by the <see cref="Couchbase.Lite.Query"/> object.
+        /// </summary>
+        /// <remarks>Call <see cref="Dispose"/> when you are finished using the <see cref="Couchbase.Lite.Query"/>. The
+        /// <see cref="Dispose"/> method leaves the <see cref="Couchbase.Lite.Query"/> in an unusable state. After
+        /// calling <see cref="Dispose"/>, you must release all references to the <see cref="Couchbase.Lite.Query"/> so
+        /// the garbage collector can reclaim the memory that the <see cref="Couchbase.Lite.Query"/> was occupying.</remarks>
         public void Dispose()
         {
             if (TemporaryView)
