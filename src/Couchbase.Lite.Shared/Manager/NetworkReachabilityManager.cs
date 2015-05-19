@@ -19,7 +19,9 @@ using Android.Webkit;
 using WebRequest = System.Net.Couchbase.WebRequest;
 using HttpWebRequest = System.Net.Couchbase.HttpWebRequest;
 using HttpWebResponse = System.Net.Couchbase.HttpWebResponse;
+using WebException = System.Net.Couchbase.WebException;
 #endif
+
 namespace Couchbase.Lite
 {
 
