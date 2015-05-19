@@ -62,6 +62,10 @@ using Couchbase.Lite.Tests;
 using Newtonsoft.Json.Linq;
 using System.Threading;
 
+#if NET_3_5
+using WebRequest = System.Net.Couchbase.WebRequest;
+#endif
+
 
 namespace Couchbase.Lite
 {
