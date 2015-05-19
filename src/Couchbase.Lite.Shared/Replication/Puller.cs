@@ -279,7 +279,7 @@ namespace Couchbase.Lite.Replicator
             Log.V(Tag, "ChangeTracker " + tracker + " stopped");
             if (LastError == null && tracker.Error != null)
             {
-                SetLastError(tracker.Error);
+                LastError = tracker.Error;
             }
             changeTracker = null;
             if (Batcher != null)
@@ -528,7 +528,7 @@ namespace Couchbase.Lite.Replicator
                     else
                     {
                         var status = StatusFromBulkDocsResponseItem(props);
-                        SetLastError(new CouchbaseLiteException(status.Code));
+                        LastError = new CouchbaseLiteException(status.Code);
                         RevisionFailed();
                         SafeIncrementCompletedChangesCount();
                     }
@@ -538,7 +538,7 @@ namespace Couchbase.Lite.Replicator
                 {
                     if (args != null && args.Error != null)
                     {
-                        SetLastError(args.Error);
+                        LastError = args.Error;
                         RevisionFailed();
                         SafeAddToCompletedChangesCount(remainingRevs.Count);
                     }
@@ -636,7 +636,7 @@ namespace Couchbase.Lite.Replicator
             {
                 var res = result.AsDictionary<string, object>();
                 if (e != null) {
-                    SetLastError(e);
+                    LastError = e;
                     RevisionFailed();
                     SafeAddToCompletedChangesCount(bulkRevs.Count);
                 } else {
@@ -775,7 +775,7 @@ namespace Couchbase.Lite.Replicator
                     if (e != null)
                     {
                         Log.E (Tag, "Error pulling remote revision", e);
-                        SetLastError(e);
+                        LastError = e;
                         RevisionFailed();
                         Log.D(Tag, "PullRemoteRevision updating completedChangesCount from " + 
                             CompletedChangesCount + " -> " + (CompletedChangesCount + 1) 
@@ -837,7 +837,7 @@ namespace Couchbase.Lite.Replicator
                         if (history.Count == 0 && rev.GetGeneration() > 1) 
                         {
                             Log.W(Tag, String.Format("{0}: Missing revision history in response for: {1}", this, rev));
-                            SetLastError(new CouchbaseLiteException(StatusCode.UpStreamError));
+                            LastError = new CouchbaseLiteException(StatusCode.UpStreamError);
                             RevisionFailed();
                             continue;
                         }
@@ -859,7 +859,7 @@ namespace Couchbase.Lite.Replicator
                             {
                                 Log.W(Tag, " failed to write " + rev + ": status=" + e.GetCBLStatus().Code);
                                 RevisionFailed();
-                                SetLastError(e);
+                                LastError = e;
                                 continue;
                             }
                         }

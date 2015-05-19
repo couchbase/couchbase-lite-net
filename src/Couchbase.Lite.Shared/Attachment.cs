@@ -267,13 +267,23 @@ namespace Couchbase.Lite {
             }
         }
 
-        /// <summary>The CouchbaseLite metadata about the attachment, that lives in the document.
+        /// <summary>
+        /// The CouchbaseLite metadata about the attachment, that lives in the document.
+        /// </summary>
         public IDictionary<String, Object> Metadata { get ; private set; }
 
         #endregion
 
         #region IDisposable
 
+        /// <summary>
+        /// Releases all resource used by the <see cref="Couchbase.Lite.Attachment"/> object.
+        /// </summary>
+        /// <remarks>Call <see cref="Dispose"/> when you are finished using the <see cref="Couchbase.Lite.Attachment"/>. The
+        /// <see cref="Dispose"/> method leaves the <see cref="Couchbase.Lite.Attachment"/> in an unusable state. After
+        /// calling <see cref="Dispose"/>, you must release all references to the
+        /// <see cref="Couchbase.Lite.Attachment"/> so the garbage collector can reclaim the memory that the
+        /// <see cref="Couchbase.Lite.Attachment"/> was occupying.</remarks>
         public void Dispose()
         {
             if (Body != null)

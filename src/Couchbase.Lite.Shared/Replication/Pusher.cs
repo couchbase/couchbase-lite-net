@@ -124,7 +124,7 @@ namespace Couchbase.Lite.Replicator
                     {
                         // this is fatal: no db to push to!
                         Log.E(Tag, "Failed to create remote db", e);
-                        SetLastError(e);
+                        LastError = e;
                         Stop();
                     }
                     else
@@ -161,7 +161,7 @@ namespace Couchbase.Lite.Replicator
             }
             catch (Exception e)
             {
-                Log.W(Tag, "Error converting lastSequence: " + LastSequence + " to long. Using 0");
+                Log.W(Tag, "Error converting lastSequence: " + LastSequence + " to long. Using 0", e);
                 maxPendingSequence = 0;
             }
 
@@ -328,7 +328,7 @@ namespace Couchbase.Lite.Replicator
                     Log.D(Tag, "/_revs_diff response: {0}\r\n{1}", response, results);
 
                     if (e != null) {
-                        SetLastError(e);
+                        LastError = e;
                         RevisionFailed();
                     } else {
                         if (results.Count != 0)  {
@@ -484,7 +484,7 @@ namespace Couchbase.Lite.Replicator
 
                     if (e != null) 
                     {
-                        SetLastError(e);
+                        LastError = e;
                         RevisionFailed();
                     } 
                     else 
@@ -654,7 +654,7 @@ namespace Couchbase.Lite.Replicator
                         else
                         {
                             Log.E (Tag, "Exception uploading multipart request", e);
-                            SetLastError(e);
+                            LastError = e;
                             RevisionFailed();
                         }
                     }
@@ -688,7 +688,7 @@ namespace Couchbase.Lite.Replicator
             // Get the revision's properties:
             if (!LocalDatabase.InlineFollowingAttachmentsIn(rev))
             {
-                SetLastError(new CouchbaseLiteException(StatusCode.BadAttachment));
+                LastError = new CouchbaseLiteException(StatusCode.BadAttachment);
                 RevisionFailed();
                 return;
             }
@@ -701,7 +701,7 @@ namespace Couchbase.Lite.Replicator
             {
                 if (e != null) 
                 {
-                    SetLastError(e);
+                    LastError = e;
                     RevisionFailed();
                 } 
                 else 
