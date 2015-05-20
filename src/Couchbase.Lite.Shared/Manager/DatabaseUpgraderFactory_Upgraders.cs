@@ -200,7 +200,7 @@ namespace Couchbase.Lite.Db
                         try {
                             _db.ForceInsert(rev, history, null, status);
                         } catch (CouchbaseLiteException e) {
-                            status = e.GetCBLStatus();
+                            status = e.CBLStatus;
                         }
 
                         if (status.IsError) {
@@ -317,7 +317,7 @@ namespace Couchbase.Lite.Db
                         try {
                             _db.PutLocalDocument(docID, props);
                         } catch(CouchbaseLiteException e) {
-                            Log.W(TAG, "Couldn't import local doc '{0}': {1}", docID, e.GetCBLStatus());
+                            Log.W(TAG, "Couldn't import local doc '{0}': {1}", docID, e.CBLStatus);
                         }
                     }
                 }

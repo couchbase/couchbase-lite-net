@@ -47,16 +47,14 @@ using Sharpen;
 
 namespace Couchbase.Lite
 {
-    /// <summary>An ordered list of TDRevisions</summary>
     [System.Serializable]
     internal class RevisionList : List<RevisionInternal>
     {
+        
         public RevisionList() : base()
         {
         }
-
-        /// <summary>Allow converting to RevisionList from List<RevisionInternal></summary>
-        /// <param name="list"></param>
+            
         public RevisionList(IList<RevisionInternal> list) : base(list)
         {
         }

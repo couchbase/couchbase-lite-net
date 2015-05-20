@@ -105,7 +105,7 @@ namespace Couchbase.Lite
             }
             catch (CouchbaseLiteException e)
             {
-                Assert.AreEqual(StatusCode.Conflict, e.GetCBLStatus().Code);
+                Assert.AreEqual(StatusCode.Conflict, e.CBLStatus.Code);
                 gotException = true;
             }
             Assert.IsTrue(gotException);
@@ -120,7 +120,7 @@ namespace Couchbase.Lite
             }
             catch (CouchbaseLiteException e)
             {
-                Assert.AreEqual(StatusCode.Conflict, e.GetCBLStatus().Code);
+                Assert.AreEqual(StatusCode.Conflict, e.CBLStatus.Code);
                 gotException = true;
             }
             Assert.IsTrue(gotException);
@@ -135,7 +135,7 @@ namespace Couchbase.Lite
             }
             catch (CouchbaseLiteException e)
             {
-                Assert.AreEqual(StatusCode.NotFound, e.GetCBLStatus().Code);
+                Assert.AreEqual(StatusCode.NotFound, e.CBLStatus.Code);
                 gotException = true;
             }
             Assert.IsTrue(gotException);

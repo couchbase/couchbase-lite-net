@@ -44,27 +44,80 @@ using System;
 
 namespace Couchbase.Lite {
 
+    /// <summary>
+    /// The main class of exception used for indicating Couchbase Lite errors
+    /// </summary>
     public class CouchbaseLiteException : ApplicationException {
 
         internal StatusCode Code { get; set; }
 
+        /// <summary>
+        /// Gets the Status object holding the error code for this exception
+        /// </summary>
+        public Status CBLStatus {
+            get {
+                return new Status(Code);
+            }
+        }
+
+        /// <summary>
+        /// Constructor
+        /// </summary>
         public CouchbaseLiteException() : this(StatusCode.Unknown) {  }
 
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        /// <param name="message">The message to use</param>
+        /// <param name="innerException">The exception that was caught before the one being made, if applicable</param>
         public CouchbaseLiteException(string message, Exception innerException) : base(message, innerException) { Code = StatusCode.Unknown; }
 
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        /// <param name="innerException">The exception that was caught before the one being made, if applicable</param>
+        /// <param name="code">The status code representing the details of the error</param>
         public CouchbaseLiteException (Exception innerException, StatusCode code) : base(String.Format("Database error: {0}", code), innerException) { Code = code; }
 
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        /// <param name="innerException">The exception that was caught before the one being made, if applicable</param>
+        /// <param name="status">The object holding the code representing the error for this exception</param>
         public CouchbaseLiteException (Exception innerException, Status status) : this(innerException, status.Code) { Code = status.Code; }
 
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        /// <param name="code">The status code representing the details of the error</param>
         public CouchbaseLiteException (StatusCode code) : base(String.Format("Coucbase Lite error: {0}", code)) { Code = code; }
 
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        /// <param name="message">The message to display</param>
+        /// <param name="code">The status code representing the details of the error</param>
         public CouchbaseLiteException (String message, StatusCode code) : base(message) { Code = code; }
 
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        /// <param name="message">The message to display</param>
         public CouchbaseLiteException (String message) : base(message) {  }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Couchbase.Lite.CouchbaseLiteException"/> class.
+        /// </summary>
+        /// <param name="messageFormat">Message format.</param>
+        /// <param name="values">Values.</param>
         public CouchbaseLiteException (String messageFormat, params Object[] values)
             : base(String.Format(messageFormat, values)) {  }
 
+        /// <summary>
+        /// Gets the Status object holding the error code for this exception
+        /// </summary>
+        /// <returns>the Status object holding the error code for this exception</returns>
+        [Obsolete("Use the CBLStatus property instead")]
         public Status GetCBLStatus ()
         {
             return new Status(Code);

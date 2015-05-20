@@ -212,6 +212,31 @@ namespace Couchbase.Lite
         }
 
         /// <summary>
+        /// Returns the query row formatted as a JSON object
+        /// </summary>
+        /// <returns>The query row formatted as a JSON object</returns>
+        public IDictionary<string, object> AsJSONDictionary()
+        {
+            var result = new Dictionary<string, object>();
+            if (Value != null || SourceDocumentId != null) {
+                result.Put("key", Key);
+                if (Value != null) {
+                    result.Put("value", Value);
+                }
+                result.Put("id", SourceDocumentId);
+                if (DocumentProperties != null) {
+                    result.Put("doc", DocumentProperties);
+                }
+            }
+            else {
+                result.Put("key", Key);
+                result.Put("error", "not_found");
+            }
+
+            return result;
+        }
+
+        /// <summary>
         /// This is used implicitly by -[LiveQuery update] to decide whether the query result has changed
         /// enough to notify the client.
         /// </summary>
@@ -253,11 +278,20 @@ namespace Couchbase.Lite
             return false;
         }
 
+        /// <summary>
+        /// Serves as a hash function for a <see cref="Couchbase.Lite.QueryRow"/> object.
+        /// </summary>
+        /// <returns>A hash code for this instance that is suitable for use in hashing algorithms and data structures such as a
+        /// hash table.</returns>
         public override int GetHashCode()
         {
             return DocumentProperties.GetHashCode();
         }
 
+        /// <summary>
+        /// Returns a <see cref="System.String"/> that represents the current <see cref="Couchbase.Lite.QueryRow"/>.
+        /// </summary>
+        /// <returns>A <see cref="System.String"/> that represents the current <see cref="Couchbase.Lite.QueryRow"/>.</returns>
         public override string ToString()
         {
             return AsJSONDictionary().ToString();
@@ -265,33 +299,6 @@ namespace Couchbase.Lite
 
     #endregion
 
-    #region Non-public Members
-
-        public IDictionary<string, object> AsJSONDictionary()
-        {
-            var result = new Dictionary<string, object>();
-            if (Value != null || SourceDocumentId != null)
-            {
-                result.Put("key", Key);
-                if (Value != null)
-                {
-                    result.Put("value", Value);
-                }
-                result.Put("id", SourceDocumentId);
-                if (DocumentProperties != null)
-                {
-                    result.Put("doc", DocumentProperties);
-                }
-            }
-            else
-            {
-                result.Put("key", Key);
-                result.Put("error", "not_found");
-            }
-            return result;
-        }
-
-    #endregion
     }
 
 }

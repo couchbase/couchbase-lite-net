@@ -851,13 +851,13 @@ namespace Couchbase.Lite.Replicator
                         }
                         catch (CouchbaseLiteException e)
                         {
-                            if (e.GetCBLStatus().Code == StatusCode.Forbidden)
+                            if (e.CBLStatus.Code == StatusCode.Forbidden)
                             {
                                 Log.I(Tag, "Remote rev failed validation: " + rev);
                             }
                             else
                             {
-                                Log.W(Tag, " failed to write " + rev + ": status=" + e.GetCBLStatus().Code);
+                                Log.W(Tag, " failed to write " + rev + ": status=" + e.CBLStatus.Code);
                                 RevisionFailed();
                                 LastError = e;
                                 continue;

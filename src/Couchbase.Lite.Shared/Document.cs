@@ -366,7 +366,7 @@ namespace Couchbase.Lite {
                             return savedRev;
                         }
                     } catch (CouchbaseLiteException e) {
-                        lastErrorCode = e.GetCBLStatus().Code;
+                        lastErrorCode = e.CBLStatus.Code;
                     }
                 }
             } while (lastErrorCode == StatusCode.Conflict);

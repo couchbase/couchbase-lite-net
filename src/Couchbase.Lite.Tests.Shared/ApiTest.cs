@@ -827,7 +827,7 @@ namespace Couchbase.Lite
             catch (CouchbaseLiteException e)
             {
                 //TODO
-                Assert.AreEqual(StatusCode.Forbidden, e.GetCBLStatus().Code);
+                Assert.AreEqual(StatusCode.Forbidden, e.CBLStatus.Code);
             }
         }
 

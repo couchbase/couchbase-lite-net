@@ -110,7 +110,7 @@ namespace Couchbase.Lite
             }
             catch (CouchbaseLiteException e)
             {
-                gotExpectedError = (e.GetCBLStatus().Code == StatusCode.Forbidden);
+                gotExpectedError = (e.CBLStatus.Code == StatusCode.Forbidden);
             }
             Assert.IsTrue(validationCalled);
             Assert.IsTrue(gotExpectedError);
@@ -128,7 +128,7 @@ namespace Couchbase.Lite
             }
             catch (CouchbaseLiteException e)
             {
-                gotExpectedError = (e.GetCBLStatus().Code == StatusCode.Forbidden);
+                gotExpectedError = (e.CBLStatus.Code == StatusCode.Forbidden);
             }
             Assert.IsTrue(validationCalled);
             Assert.IsTrue(gotExpectedError);
@@ -164,7 +164,7 @@ namespace Couchbase.Lite
             }
             catch (CouchbaseLiteException e)
             {
-                gotExpectedError = (e.GetCBLStatus().Code == StatusCode.Forbidden);
+                gotExpectedError = (e.CBLStatus.Code == StatusCode.Forbidden);
             }
             Assert.IsTrue(validationCalled);
             Assert.IsTrue(gotExpectedError);

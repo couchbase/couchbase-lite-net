@@ -337,7 +337,7 @@ namespace Couchbase.Lite
             }
             catch (CouchbaseLiteException e)
             {
-                gotExpectedErrorCode = (e.GetCBLStatus().Code == StatusCode.Conflict);
+                gotExpectedErrorCode = (e.CBLStatus.Code == StatusCode.Conflict);
             }
             Assert.IsTrue(gotExpectedErrorCode);
             gotExpectedErrorCode = false;
@@ -349,7 +349,7 @@ namespace Couchbase.Lite
             }
             catch (CouchbaseLiteException e)
             {
-                gotExpectedErrorCode = (e.GetCBLStatus().Code == StatusCode.Conflict);
+                gotExpectedErrorCode = (e.CBLStatus.Code == StatusCode.Conflict);
             }
 
             Assert.IsTrue(gotExpectedErrorCode);
@@ -388,7 +388,7 @@ namespace Couchbase.Lite
             }
             catch (CouchbaseLiteException e)
             {
-                gotExpectedErrorCode = (e.GetCBLStatus().Code == StatusCode.NotFound);
+                gotExpectedErrorCode = (e.CBLStatus.Code == StatusCode.NotFound);
             }
             Assert.IsTrue(gotExpectedErrorCode);
             gotExpectedErrorCode = false;
@@ -399,7 +399,7 @@ namespace Couchbase.Lite
             }
             catch (CouchbaseLiteException e)
             {
-                gotExpectedErrorCode = (e.GetCBLStatus().Code == StatusCode.NotFound);
+                gotExpectedErrorCode = (e.CBLStatus.Code == StatusCode.NotFound);
             }
             Assert.IsTrue(gotExpectedErrorCode);
             RevisionInternal rev3 = database.UpdateAttachment(testAttachmentName, null, null,
