@@ -66,18 +66,18 @@ namespace Couchbase.Lite.Listener
                 }
 
                 if(keys != null) {
-                    options.SetKeys(keys);
+                    options.Keys = keys;
                 }
 
-                if(options.GetStale() == IndexUpdateMode.Before || view.LastSequenceIndexed <= 0) {
+                if(options.Stale == IndexUpdateMode.Before || view.LastSequenceIndexed <= 0) {
                     view.UpdateIndex();
-                } else if(options.GetStale() == IndexUpdateMode.After && view.LastSequenceIndexed < db.LastSequenceNumber) {
+                } else if(options.Stale == IndexUpdateMode.After && view.LastSequenceIndexed < db.LastSequenceNumber) {
                     db.RunAsync(_ => view.UpdateIndex());
                 }
 
                 // Check for conditional GET and set response Etag header:
                 if(keys == null) {
-                    long eTag = options.IsIncludeDocs() ? db.LastSequenceNumber : view.LastSequenceIndexed;
+                    long eTag = options.IncludeDocs ? db.LastSequenceNumber : view.LastSequenceIndexed;
                     if(context.CacheWithEtag(eTag.ToString())) {
                         return context.CreateResponse(StatusCode.NotModified);
                     }

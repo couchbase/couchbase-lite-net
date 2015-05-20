@@ -234,7 +234,7 @@ namespace Couchbase.Lite.Listener
                     try {
                       db.ForceInsert(rev, history, null, status);
                     } catch(CouchbaseLiteException e) {
-                        status = e.GetCBLStatus();
+                        status = e.CBLStatus;
                     }
 
                     if(!status.IsError) {

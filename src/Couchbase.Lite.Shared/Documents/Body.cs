@@ -86,7 +86,7 @@ namespace Couchbase.Lite
         /// <summary>
         /// Constructor
         /// </summary>
-        /// <param name="properties">An IDictionary containing a list of objects to serialize</param>
+        /// <param name="array">An IList containing a list of objects to serialize</param>
         public Body(IList<object> array)
         {
             _jsonObject = array;

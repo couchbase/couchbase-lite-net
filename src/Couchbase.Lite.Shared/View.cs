@@ -390,12 +390,12 @@ namespace Couchbase.Lite {
         }
 
         private bool GroupOrReduce(QueryOptions options) {
-            if (options.IsGroup() || options.GetGroupLevel() > 0) {
+            if (options.Group|| options.GroupLevel> 0) {
                 return true;
             }
 
-            if (options.IsReduceSpecified()) {
-                return options.IsReduce();
+            if (options.ReduceSpecified) {
+                return options.Reduce;
             }
 
             return Reduce != null;
@@ -416,8 +416,8 @@ namespace Couchbase.Lite {
             try
             {
                 cursor = ResultSetWithOptions(options);
-                int groupLevel = options.GetGroupLevel();
-                var group = options.IsGroup() || (groupLevel > 0);
+                int groupLevel = options.GroupLevel;
+                var group = options.Group || (groupLevel > 0);
                 var reduceBlock = Reduce;
                 var reduce = GroupOrReduce(options);
 
@@ -447,7 +447,7 @@ namespace Couchbase.Lite {
 
 
                         IDictionary<string, object> docContents = null;
-                        if (options.IsIncludeDocs())
+                        if (options.IncludeDocs)
                         {
                             // http://wiki.apache.org/couchdb/Introduction_to_CouchDB_views#Linked_documents
                             if (value is IDictionary<string,object> && ((IDictionary<string,object>)value).ContainsKey("_id"))
@@ -459,7 +459,7 @@ namespace Couchbase.Lite {
                             else
                             {
                                 var revId = cursor.GetString(4);
-                                docContents = Database.DocumentPropertiesFromJSON(cursor.GetBlob(5), docId, revId, false, sequenceLong, options.GetContentOptions());
+                                docContents = Database.DocumentPropertiesFromJSON(cursor.GetBlob(5), docId, revId, false, sequenceLong, options.ContentOptions);
                             }
                         }
                         var row = new QueryRow(docId, sequence, key, value, docContents);
@@ -632,49 +632,55 @@ namespace Couchbase.Lite {
             }
             return rows;
         }
-
-        // Are key1 and key2 grouped together at this groupLevel?
+            
+        /// <summary>
+        /// Checks if two keys belong in the same grouping level (i.e. they are equal at all
+        /// levels up to and including groupLevel
+        /// </summary>
+        /// <returns><c>true</c>, if the two keys belong in the same grouping level,
+        ///  <c>false</c> otherwise.</returns>
+        /// <param name="key1">Key1.</param>
+        /// <param name="key2">Key2.</param>
+        /// <param name="groupLevel">Group level.</param>
         public static bool GroupTogether(Lazy<object> key1, Lazy<object> key2, int groupLevel)
         {
-            if (groupLevel == 0 || !(key1 != null && key1.Value is IList) || !(key2 != null && key2.Value is IList))
-            {
+            var key1List = key1 == null ? null : key1.Value as IList;
+            var key2List = key2 == null ? null : key2.Value as IList;
+            if (groupLevel == 0 || key1List == null || key2List == null) {
                 var key2val = key2 != null 
                     ? key2.Value 
                     : null;
                 return key1.Value.Equals(key2val);
             }
-            var key1List = (IList)key1.Value;
-            var key2List = (IList)key2.Value;
 
             var end = Math.Min(groupLevel, Math.Min(key1List.Count, key2List.Count));
-            for (int i = 0; i < end; ++i)
-            {
-                if (!key1List[i].Equals(key2List[i]))
-                {
+            for (int i = 0; i < end; ++i) {
+                if (!key1List[i].Equals(key2List[i])) {
                     return false;
                 }
             }
+
             return true;
         }
-
-        // Returns the prefix of the key to use in the result row, at this groupLevel
+            
+        /// <summary>
+        /// Returns the prefix of the key to use in the result row, at this groupLevel
+        /// </summary>
+        /// <returns>The prefix of the key to use in the result row</returns>
+        /// <param name="key">The key to check.</param>
+        /// <param name="groupLevel">The group level to use.</param>
         public static object GroupKey(object key, int groupLevel)
         {
-            if (groupLevel > 0 && (key is IList) && (((IList)key).Count > groupLevel))
-            {
-                if (key is JArray) {
-                    JArray subArray = new JArray();
-                    for(var i = 0; i < groupLevel; i++)
-                    {
-                        subArray.Add(((JArray)key)[i]);
-                    }
-                    return subArray;
-                } else {
-                    return ((IList<object>)key).SubList(0, groupLevel);
+            
+            if (groupLevel > 0) {
+                var keyList = key.AsList<object>();
+                if (keyList == null) {
+                    return key;
                 }
+
+                return keyList.SubList(0, groupLevel);
             }
-            else
-            {
+            else {
                 return key;
             }
         }
@@ -700,18 +706,18 @@ namespace Couchbase.Lite {
                 }
             }
             var sql = "SELECT key, value, docid, revs.sequence";
-            if (options.IsIncludeDocs())
+            if (options.IncludeDocs)
             {
                 sql = sql + ", revid, json";
             }
             sql = sql + " FROM maps, revs, docs WHERE maps.view_id=?";
             var argsList = new List<string>();
             argsList.AddItem(Sharpen.Extensions.ToString(Id));
-            if (options.GetKeys() != null)
+            if (options.Keys != null)
             {
                 sql += " AND key in (";
                 var item = "?";
-                foreach (object key in options.GetKeys())
+                foreach (object key in options.Keys)
                 {
                     sql += item;
                     item = ", ?";
@@ -719,23 +725,23 @@ namespace Couchbase.Lite {
                 }
                 sql += ")";
             }
-            var startKey = ToJSONString(options.GetStartKey());
-            var endKey = ToJSONString(options.GetEndKey());
+            var startKey = ToJSONString(options.StartKey);
+            var endKey = ToJSONString(options.EndKey);
             var minKey = startKey;
             var maxKey = endKey;
-            var minKeyDocId = options.GetStartKeyDocId();
-            var maxKeyDocId = options.GetEndKeyDocId();
+            var minKeyDocId = options.StartKeyDocId;
+            var maxKeyDocId = options.EndKeyDocId;
             var inclusiveMin = true;
-            var inclusiveMax = options.IsInclusiveEnd();
-            if (options.IsDescending())
+            var inclusiveMax = options.InclusiveEnd;
+            if (options.Descending)
             {
                 var min = minKey;
                 minKey = maxKey;
                 maxKey = min;
                 inclusiveMin = inclusiveMax;
                 inclusiveMax = true;
-                minKeyDocId = options.GetEndKeyDocId();
-                maxKeyDocId = options.GetStartKeyDocId();
+                minKeyDocId = options.EndKeyDocId;
+                maxKeyDocId = options.StartKeyDocId;
             }
             if (minKey != null)
             {
@@ -773,13 +779,13 @@ namespace Couchbase.Lite {
             }
             sql = sql + " AND revs.sequence = maps.sequence AND docs.doc_id = revs.doc_id ORDER BY key";
             sql += collationStr;
-            if (options.IsDescending())
+            if (options.Descending)
             {
                 sql = sql + " DESC";
             }
             sql = sql + " LIMIT ? OFFSET ?";
-            argsList.AddItem(options.GetLimit().ToString());
-            argsList.AddItem(options.GetSkip().ToString());
+            argsList.AddItem(options.Limit.ToString());
+            argsList.AddItem(options.Skip.ToString());
             Log.D(Database.Tag, "Query {0}:{1}", Name, sql);
 
             var cursor = Database.StorageEngine.IntransactionRawQuery(sql, argsList.ToArray());
@@ -961,6 +967,9 @@ namespace Couchbase.Lite {
             }
         }
 
+        /// <summary>
+        /// Gets the total number of rows present in the view
+        /// </summary>
         public int TotalRows {
             get {
                 const string sql = "SELECT count(*) FROM maps WHERE view_id=?";
@@ -1208,7 +1217,7 @@ namespace Couchbase.Lite {
     /// </summary>
     /// <param name="keys">A list of keys to be reduced, or null if this is a rereduce.</param>
     /// <param name="values">A parallel array of values to be reduced, corresponding 1-to-1 with the keys.</param>
-    /// <param name="reduce"><c>true</c> if the input values are the results of previous reductions, otherwise <c>false</c>.</param>
+    /// <param name="rereduce"><c>true</c> if the input values are the results of previous reductions, otherwise <c>false</c>.</param>
     public delegate Object ReduceDelegate(IEnumerable<Object> keys, IEnumerable<Object> values, Boolean rereduce);
 
     #endregion

@@ -115,35 +115,35 @@ namespace Couchbase.Lite.Listener
                 }
 
                 _queryOptions = new QueryOptions();
-                _queryOptions.SetSkip(GetQueryParam<int>("skip", int.TryParse, _queryOptions.GetSkip()));
-                _queryOptions.SetLimit(GetQueryParam<int>("limit", int.TryParse, _queryOptions.GetLimit()));
-                _queryOptions.SetGroupLevel(GetQueryParam<int>("group_level", int.TryParse, _queryOptions.GetGroupLevel()));
-                _queryOptions.SetDescending(GetQueryParam<bool>("descending", bool.TryParse, _queryOptions.IsDescending()));
-                _queryOptions.SetIncludeDocs(GetQueryParam<bool>("include_docs", bool.TryParse, _queryOptions.IsIncludeDocs()));
+                _queryOptions.Skip = GetQueryParam<int>("skip", int.TryParse, _queryOptions.Skip);
+                _queryOptions.Limit = GetQueryParam<int>("limit", int.TryParse, _queryOptions.Limit);
+                _queryOptions.GroupLevel = GetQueryParam<int>("group_level", int.TryParse, _queryOptions.GroupLevel);
+                _queryOptions.Descending = GetQueryParam<bool>("descending", bool.TryParse, _queryOptions.Descending);
+                _queryOptions.IncludeDocs = GetQueryParam<bool>("include_docs", bool.TryParse, _queryOptions.IncludeDocs);
                 if (GetQueryParam<bool>("include_deleted", bool.TryParse, false)) {
-                    _queryOptions.SetAllDocsMode(AllDocsMode.IncludeDeleted);
+                    _queryOptions.AllDocsMode = AllDocsMode.IncludeDeleted;
                 } else if (GetQueryParam<bool>("include_conflicts", bool.TryParse, false)) { //non-standard
-                    _queryOptions.SetAllDocsMode(AllDocsMode.ShowConflicts); 
+                    _queryOptions.AllDocsMode = AllDocsMode.ShowConflicts; 
                 } else if(GetQueryParam<bool>("only_conflicts", bool.TryParse, false)) { //non-standard
-                    _queryOptions.SetAllDocsMode(AllDocsMode.OnlyConflicts);
+                    _queryOptions.AllDocsMode = AllDocsMode.OnlyConflicts;
                 }
 
-                _queryOptions.SetUpdateSeq(GetQueryParam<bool>("update_seq", bool.TryParse, false));
-                _queryOptions.SetInclusiveEnd(GetQueryParam<bool>("inclusive_end", bool.TryParse, false));
+                _queryOptions.UpdateSeq = GetQueryParam<bool>("update_seq", bool.TryParse, false);
+                _queryOptions.InclusiveEnd = GetQueryParam<bool>("inclusive_end", bool.TryParse, false);
                 //TODO: InclusiveStart
                 //TODO: PrefixMatchLevel
-                _queryOptions.SetReduceSpecified(GetQueryParam("reduce") != null);
-                _queryOptions.SetReduce(GetQueryParam<bool>("reduce", bool.TryParse, false));
-                _queryOptions.SetGroup(GetQueryParam<bool>("group", bool.TryParse, false));
-                _queryOptions.SetContentOptions(ContentOptions);
+                _queryOptions.ReduceSpecified = GetQueryParam("reduce") != null;
+                _queryOptions.Reduce = GetQueryParam<bool>("reduce", bool.TryParse, false);
+                _queryOptions.Group = GetQueryParam<bool>("group", bool.TryParse, false);
+                _queryOptions.ContentOptions = ContentOptions;
 
                 // Stale options (ok or update_after):
                 string stale = GetQueryParam("stale");
                 if(stale != null) {
                     if (stale.Equals("ok")) {
-                        _queryOptions.SetStale(IndexUpdateMode.Never);
+                        _queryOptions.Stale = IndexUpdateMode.Never;
                     } else if (stale.Equals("update_after")) {
-                        _queryOptions.SetStale(IndexUpdateMode.After);
+                        _queryOptions.Stale = IndexUpdateMode.After;
                     } else {
                         return null;
                     }
@@ -163,13 +163,13 @@ namespace Couchbase.Lite.Listener
                 }
 
                 if (keys != null) {
-                    _queryOptions.SetKeys(keys);
+                    _queryOptions.Keys = keys;
                 } else {
                     try {
-                        _queryOptions.SetStartKey(GetJsonQueryParam("start_key"));
-                        _queryOptions.SetEndKey(GetJsonQueryParam("end_key"));
-                        _queryOptions.SetStartKeyDocId(GetJsonQueryParam("startkey_docid") as string);
-                        _queryOptions.SetEndKeyDocId(GetJsonQueryParam("endkey_docid") as string);
+                        _queryOptions.StartKey = GetJsonQueryParam("start_key");
+                        _queryOptions.EndKey = GetJsonQueryParam("end_key");
+                        _queryOptions.StartKeyDocId = GetJsonQueryParam("startkey_docid") as string;
+                        _queryOptions.EndKeyDocId = GetJsonQueryParam("endkey_docid") as string;
                     } catch(CouchbaseLiteException) {
                         return null;
                     }

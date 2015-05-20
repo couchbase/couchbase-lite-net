@@ -41,17 +41,33 @@
 //
 
 using System.Collections.Generic;
-using Couchbase.Lite.Support;
-using Sharpen;
 
 namespace Couchbase.Lite.Support
 {
+
+    /// <summary>
+    /// An interface describing an object that can handle the results of a multipart HTTP 
+    /// request parser
+    /// </summary>
     public interface IMultipartReaderDelegate
     {
+
+        /// <summary>
+        /// Starts next part of the multipart request
+        /// </summary>
+        /// <param name="headers">The headers of the next part</param>
         void StartedPart(IDictionary<string, string> headers);
 
+        /// <summary>
+        /// Receives The next chunk of the current part 
+        /// </summary>
+        /// <param name="data">The data being received</param>
         void AppendToPart(IEnumerable<byte> data);
 
+        /// <summary>
+        /// Finishes the current part of the multipart request
+        /// </summary>
         void FinishedPart();
+
     }
 }

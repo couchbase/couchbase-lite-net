@@ -100,11 +100,15 @@ namespace Couchbase.Lite {
             }
         }
 
-
+        /// <summary>
+        /// The revision ID of the parent of this revision
+        /// </summary>
+        /// <value>The parent revision I.</value>
         public string ParentRevisionID {
             get;
             set;
         }
+
     #endregion
 
     #region Instance Members

@@ -234,7 +234,7 @@ namespace Couchbase.Lite
                 }
             });
 
-            SetClientFactory(clientFactory);
+            ClientFactory = clientFactory;
         }
 
     #endregion
@@ -280,6 +280,9 @@ namespace Couchbase.Lite
             LastError = error;
         }
 
+        /// <summary>
+        /// Whether or not the LastSequence property has changed
+        /// </summary>
         protected internal Boolean lastSequenceChanged;
 
         /// <summary>
@@ -328,6 +331,46 @@ namespace Couchbase.Lite
             get
             {
                 return clientFactory.GetCookieContainer();
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the client factory used to create HttpClient objects 
+        /// for connected to remote databases
+        /// </summary>
+        protected IHttpClientFactory ClientFactory {
+            get { return clientFactory; }
+            set { 
+                if (value != null) {
+                    clientFactory = value;
+                }
+                else {
+                    Manager manager = null;
+                    if (LocalDatabase != null) {
+                        manager = LocalDatabase.Manager;
+                    }
+
+                    IHttpClientFactory managerClientFactory = null;
+                    if (manager != null) {
+                        managerClientFactory = manager.DefaultHttpClientFactory;
+                    }
+
+                    if (managerClientFactory != null) {
+                        this.clientFactory = managerClientFactory;
+                    }
+                    else {
+                        CookieStore cookieStore = null;
+                        if (manager != null) {
+                            cookieStore = manager.SharedCookieStore;
+                        }
+
+                        if (cookieStore == null) {
+                            cookieStore = new CookieStore();
+                        }
+
+                        this.clientFactory = new CouchbaseLiteHttpClientFactory(cookieStore);
+                    }
+                }
             }
         }
 
@@ -402,47 +445,14 @@ namespace Couchbase.Lite
             NotifyChangeListeners();
         }
 
-
+        /// <summary>
+        /// Sets the client factory used to generate HttpClient objects
+        /// </summary>
+        /// <param name="clientFactory">The client factory to use</param>
+        [Obsolete("Use the ClientFactory property instead")]
         protected void SetClientFactory(IHttpClientFactory clientFactory)
         {
-            if (clientFactory != null)
-            {
-                this.clientFactory = clientFactory;
-            }
-            else
-            {
-                Manager manager = null;
-                if (LocalDatabase != null)
-                {
-                    manager = LocalDatabase.Manager;
-                }
-
-                IHttpClientFactory managerClientFactory = null;
-                if (manager != null)
-                {
-                    managerClientFactory = manager.DefaultHttpClientFactory;
-                }
-
-                if (managerClientFactory != null)
-                {
-                    this.clientFactory = managerClientFactory;
-                }
-                else
-                {
-                    CookieStore cookieStore = null;
-                    if (manager != null)
-                    {
-                        cookieStore = manager.SharedCookieStore;
-                    }
-
-                    if (cookieStore == null)
-                    {
-                        cookieStore = new CookieStore();
-                    }
-
-                    this.clientFactory = new CouchbaseLiteHttpClientFactory(cookieStore);
-                }
-            }
+            ClientFactory = clientFactory;
         }
 
         void NotifyChangeListeners()
@@ -652,6 +662,9 @@ namespace Couchbase.Lite
             });
         }
 
+        /// <summary>
+        /// Performs login logic for the remote endpoint
+        /// </summary>
         protected internal virtual void Login()
         {
             var loginParameters = Authenticator.LoginParametersForSite(RemoteUrl);
@@ -758,6 +771,9 @@ namespace Couchbase.Lite
 
         internal abstract void BeginReplicating();
 
+        /// <summary>
+        /// Creates the database object on the remote endpoint, if necessary
+        /// </summary>
         protected internal virtual void MaybeCreateRemoteDB() { }
 
         abstract internal void ProcessInbox(RevisionList inbox);
@@ -865,8 +881,6 @@ namespace Couchbase.Lite
 				Log.V (Tag, "...stopped");
 			});
         }
-
-		public delegate void SaveLastSequenceCompletionBlock();
 
 		internal void SaveLastSequence(SaveLastSequenceCompletionBlock completionHandler)
         {
@@ -1353,18 +1367,22 @@ namespace Couchbase.Lite
             }
         }
 
+        /// <summary>
+        /// Checks the remote endpoint against the given version to see if it is at 
+        /// that version or above
+        /// </summary>
+        /// <returns><c>true</c>, if the server is at or above the minimum version, <c>false</c> otherwise.</returns>
+        /// <param name="minVersion">Minimum version.</param>
         protected internal bool CheckServerCompatVersion(string minVersion)
         {
-            if (StringEx.IsNullOrWhiteSpace(ServerType))
-            {
+            if (StringEx.IsNullOrWhiteSpace(ServerType)) {
                 return false;
             }
 
             const string prefix = "Couchbase Sync Gateway/";
-            if (ServerType.StartsWith (prefix, StringComparison.Ordinal))
-            {
-                var version = ServerType.Substring (prefix.Length);
-                return string.Compare (version, minVersion, StringComparison.Ordinal) >= 0;
+            if (ServerType.StartsWith(prefix, StringComparison.Ordinal)) {
+                var version = ServerType.Substring(prefix.Length);
+                return string.Compare(version, minVersion, StringComparison.Ordinal) >= 0;
             }
 
             return false;
@@ -1441,7 +1459,7 @@ namespace Couchbase.Lite
             var couchbaseLiteException = e as CouchbaseLiteException;
             if (couchbaseLiteException != null)
             {
-                return couchbaseLiteException.GetCBLStatus().Code;
+                return couchbaseLiteException.CBLStatus.Code;
             }
             return StatusCode.Unknown;
         }
@@ -1487,65 +1505,59 @@ namespace Couchbase.Lite
             );
         }
 
+        /// <summary>
+        /// Increments the count of failed revisions for the replication
+        /// </summary>
         internal protected void RevisionFailed()
         {
             revisionsFailed++;
         }
 
+        /// <summary>
+        /// Gets the status from a response from _bulk_docs and translates it into
+        /// a Status object
+        /// </summary>
+        /// <returns>The status of the request</returns>
+        /// <param name="item">The response received</param>
         protected internal Status StatusFromBulkDocsResponseItem(IDictionary<string, object> item)
         {
-            try
-            {
-                if (!item.ContainsKey("error"))
-                {
+            try {
+                if (!item.ContainsKey("error")) {
                     return new Status(StatusCode.Ok);
                 }
 
                 var errorStr = item.Get("error") as string;
-                if (StringEx.IsNullOrWhiteSpace(errorStr))
-                {
+                if (StringEx.IsNullOrWhiteSpace(errorStr)) {
                     return new Status(StatusCode.Ok);
                 }
 
                 // 'status' property is nonstandard; TouchDB returns it, others don't.
                 var statusString = item.Get("status") as string;
-                if (StringEx.IsNullOrWhiteSpace(statusString))
-                {
+                if (StringEx.IsNullOrWhiteSpace(statusString)) {
                     var status = Convert.ToInt32(statusString);
-                    if (status >= 400)
-                    {
+                    if (status >= 400) {
                         return new Status((StatusCode)status);
                     }
                 }
 
                 // If no 'status' present, interpret magic hardcoded CouchDB error strings:
-                if (errorStr.Equals("unauthorized", StringComparison.InvariantCultureIgnoreCase))
-                {
+                if (errorStr.Equals("unauthorized", StringComparison.InvariantCultureIgnoreCase)) {
                     return new Status(StatusCode.Unauthorized);
-                }
-                else
-                {
-                    if (errorStr.Equals("forbidden", StringComparison.InvariantCultureIgnoreCase))
-                    {
+                } else {
+                    if (errorStr.Equals("forbidden", StringComparison.InvariantCultureIgnoreCase)) {
                         return new Status(StatusCode.Forbidden);
-                    }
-                    else
-                    {
-                        if (errorStr.Equals("conflict", StringComparison.InvariantCultureIgnoreCase))
-                        {
+                    } else {
+                        if (errorStr.Equals("conflict", StringComparison.InvariantCultureIgnoreCase)) {
                             return new Status(StatusCode.Conflict);
-                        }
-                        else
-                        {
+                        } else {
                             return new Status(StatusCode.UpStreamError);
                         }
                     }
                 }
-            }
-            catch (Exception e)
-            {
+            } catch (Exception e) {
                 Log.E(Database.Tag, "Exception getting status from " + item, e);
             }
+
             return new Status(StatusCode.Ok);
         }
 
@@ -1614,34 +1626,39 @@ namespace Couchbase.Lite
             LastError = null;
         }
 
+        /// <summary>
+        /// Attempts to retry a previously failed replication, if possible
+        /// </summary>
         protected internal virtual void RetryIfReady()
         {
-            if (!IsRunning)
-            {
+            if (!IsRunning) {
                 return;
             }
 
-            if (online)
-            {
+            if (online) {
                 Log.D(Tag, "RETRYING, to transfer missed revisions...");
                 revisionsFailed = 0;
                 CancelPendingRetryIfReady();
                 Retry();
             }
-            else
-            {
+            else {
                 ScheduleRetryIfReady();
             }
         }
 
+        /// <summary>
+        /// Cancels the next scheduled retry attempt
+        /// </summary>
         protected internal virtual void CancelPendingRetryIfReady()
         {
-            if (RetryIfReadyTask != null && !RetryIfReadyTask.IsCanceled && RetryIfReadyTokenSource != null)
-            {
+            if (RetryIfReadyTask != null && !RetryIfReadyTask.IsCanceled && RetryIfReadyTokenSource != null) {
                 RetryIfReadyTokenSource.Cancel();
             }
         }
 
+        /// <summary>
+        /// Schedules a call to retry if ready, using RetryDelay
+        /// </summary>
         protected internal virtual void ScheduleRetryIfReady()
         {
             RetryIfReadyTokenSource = new CancellationTokenSource();
@@ -1685,43 +1702,38 @@ namespace Couchbase.Lite
 
     #region Instance Members
 
+        /// <summary>
+        /// Gets or sets the transformation function used on the properties of the documents
+        /// being replicated
+        /// </summary>
         public PropertyTransformationDelegate TransformationFunction { get; set; }
 
         /// <summary>
         /// Gets the local <see cref="Couchbase.Lite.Database"/> being replicated to/from.
         /// </summary>
-        /// <value>The local <see cref="Couchbase.Lite.Database"/> being replicated to/from.</value>
         public Database LocalDatabase { get; private set; }
 
         /// <summary>
         /// Gets the remote URL being replicated to/from.
         /// </summary>
-        /// <value>The remote URL being replicated to/from.</value>
         public Uri RemoteUrl { get; private set; }
 
         /// <summary>
         /// Gets whether the <see cref="Couchbase.Lite.Replication"/> pulls from,
         /// as opposed to pushes to, the target.
         /// </summary>
-        /// <value>
-        /// <c>true</c> if the <see cref="Couchbase.Lite.Replication"/>
-        /// is pull; otherwise, <c>false</c>.
-        /// </value>
         public abstract Boolean IsPull { get; }
 
         /// <summary>
         /// Gets or sets whether the target <see cref="Couchbase.Lite.Database"/> should be created
         /// if it doesn't already exist. This only has an effect if the target supports it.
         /// </summary>
-        /// <value><c>true</c> if the target <see cref="Couchbase.Lite.Database"/> should be created if
-        /// it doesn't already exist; otherwise, <c>false</c>.</value>
         public abstract Boolean CreateTarget { get; set; }
 
         /// <summary>
         /// Gets or sets whether the <see cref="Couchbase.Lite.Replication"/> operates continuously,
         /// replicating changes as the source <see cref="Couchbase.Lite.Database"/> is modified.
         /// </summary>
-        /// <value><c>true</c> if continuous; otherwise, <c>false</c>.</value>
         public Boolean Continuous
         {
             get { return continuous; }
@@ -1733,10 +1745,6 @@ namespace Couchbase.Lite
         /// <see cref="Couchbase.Lite.Database"/>. Only documents for which the function
         /// returns true are replicated.
         /// </summary>
-        /// <value>
-        /// The name of an optional filter function to run on the source
-        /// <see cref="Couchbase.Lite.Database"/>.
-        /// </value>
         public String Filter { get; set; }
 
         /// <summary>
@@ -1754,7 +1762,6 @@ namespace Couchbase.Lite
         /// Only valid for pull replications whose source database is on a Couchbase Sync Gateway server.
         /// This is a convenience property that just sets the values of filter and filterParams.
         /// </remarks>
-        /// <value>The list of Sync Gateway channel names to filter by for pull <see cref="Couchbase.Lite.Replication"/>.</value>
         public IEnumerable<String> Channels {
             get
             {
@@ -1868,8 +1875,9 @@ namespace Couchbase.Lite
         /// <value>The authenticator.</value>
         public IAuthenticator Authenticator { get; set; }
 
-        //Methods
-
+        /// <summary>
+        /// Gets the active task info for thie replication
+        /// </summary>
         public IDictionary<string, object> ActiveTaskInfo
         {
             get {
@@ -2033,6 +2041,10 @@ namespace Couchbase.Lite
             clientFactory.AddCookies(cookies);
         }
 
+        /// <summary>
+        /// Deletes a cookie specified by name
+        /// </summary>
+        /// <param name="name">The name of the cookie</param>
         public void DeleteCookie(String name)
         {
             clientFactory.DeleteCookie(RemoteUrl, name);
@@ -2096,7 +2108,12 @@ namespace Couchbase.Lite
 
     #region Delegates
 
+    /// <summary>
+    /// The signature of a method that transforms a set of properties
+    /// </summary>
     public delegate IDictionary<string, object> PropertyTransformationDelegate(IDictionary<string, object> propertyBag);
+
+    internal delegate void SaveLastSequenceCompletionBlock();
 
     #endregion
 

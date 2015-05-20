@@ -53,17 +53,23 @@ namespace Couchbase.Lite
     /// <summary>
     /// A Couchbase Lite Document Revision.
     /// </summary>
-    public abstract partial class Revision 
+    public abstract class Revision 
     {
     
     #region Constructors
 
+        /// <summary>
+        /// Convenience constructor
+        /// </summary>
         protected internal Revision() : this(null) { }
 
-        /// <summary>Constructor</summary>
+        /// <summary>
+        /// Default Constructor
+        /// </summary>
+        /// <param name="document">The document that owns this revision</param>
         protected internal Revision(Document document)
         {
-            this.Document = document;
+            Document = document;
         }
 
     #endregion
@@ -246,6 +252,12 @@ namespace Couchbase.Lite
     
     #region Operator/Object Overloads
 
+        /// <summary>
+        /// Determines whether the specified <see cref="System.Object"/> is equal to the current <see cref="Couchbase.Lite.Revision"/>.
+        /// </summary>
+        /// <param name="obj">The <see cref="System.Object"/> to compare with the current <see cref="Couchbase.Lite.Revision"/>.</param>
+        /// <returns><c>true</c> if the specified <see cref="System.Object"/> is equal to the current
+        /// <see cref="Couchbase.Lite.Revision"/>; otherwise, <c>false</c>.</returns>
         public override bool Equals(object obj)
         {
             var result = false;
@@ -260,11 +272,20 @@ namespace Couchbase.Lite
             return result;
         }
 
+        /// <summary>
+        /// Serves as a hash function for a <see cref="Couchbase.Lite.Revision"/> object.
+        /// </summary>
+        /// <returns>A hash code for this instance that is suitable for use in hashing algorithms and data structures such as a
+        /// hash table.</returns>
         public override int GetHashCode()
         {
             return Document.Id.GetHashCode() ^ Id.GetHashCode();
         }
 
+        /// <summary>
+        /// Returns a <see cref="System.String"/> that represents the current <see cref="Couchbase.Lite.Revision"/>.
+        /// </summary>
+        /// <returns>A <see cref="System.String"/> that represents the current <see cref="Couchbase.Lite.Revision"/>.</returns>
         public override string ToString()
         {
             return "{" + Document.Id + " #" + Id + (IsDeletion ? "DEL" : String.Empty) + "}";

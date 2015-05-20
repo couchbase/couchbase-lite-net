@@ -358,8 +358,8 @@ namespace Couchbase.Lite
 
             // Start/end key query:
             options = new QueryOptions();
-            options.SetStartKey("a");
-            options.SetEndKey("one");
+            options.StartKey = "a";
+            options.EndKey = "one";
 
             rows = view.QueryWithOptions(options).ToList();
             expectedRows = new List<object>();
@@ -372,7 +372,7 @@ namespace Couchbase.Lite
             Assert.AreEqual(dict1["key"], rows[2].Key);
 
             // Start/end query without inclusive end:
-            options.SetInclusiveEnd(false);
+            options.InclusiveEnd = false;
             rows = view.QueryWithOptions(options).ToList();
             expectedRows = new List<object>();
             expectedRows.AddItem(dict5);
@@ -382,10 +382,10 @@ namespace Couchbase.Lite
             Assert.AreEqual(dict4["key"], rows[1].Key);
 
             // Reversed:
-            options.SetDescending(true);
-            options.SetStartKey("o");
-            options.SetEndKey("five");
-            options.SetInclusiveEnd(true);
+            options.Descending = true;
+            options.StartKey = "o";
+            options.EndKey = "five";
+            options.InclusiveEnd = true;
             rows = view.QueryWithOptions(options).ToList();
             expectedRows = new List<object>();
             expectedRows.AddItem(dict4);
@@ -395,7 +395,7 @@ namespace Couchbase.Lite
             Assert.AreEqual(dict5["key"], rows[1].Key);
 
             // Reversed, no inclusive end:
-            options.SetInclusiveEnd(false);
+            options.InclusiveEnd = false;
             rows = view.QueryWithOptions(options).ToList();
             expectedRows = new List<object>();
             expectedRows.AddItem(dict4);
@@ -407,7 +407,7 @@ namespace Couchbase.Lite
             var keys = new List<object>();
             keys.AddItem("two");
             keys.AddItem("four");
-            options.SetKeys(keys);
+            options.Keys = keys;
             rows = view.QueryWithOptions(options).ToList();
             expectedRows = new List<object>();
             expectedRows.AddItem(dict4);
@@ -470,8 +470,8 @@ namespace Couchbase.Lite
 
             // Start/end key query:
             options = new QueryOptions();
-            options.SetStartKey("2");
-            options.SetEndKey("44444");
+            options.StartKey = "2";
+            options.EndKey = "44444";
             allDocs = database.GetAllDocs(options);
             expectedRows = new List<QueryRow>();
             expectedRows.AddItem(expectedRow[0]);
@@ -481,7 +481,7 @@ namespace Couchbase.Lite
             Assert.AreEqual(expectedQueryResult.Select(kvp => kvp.Key).OrderBy(k => k), allDocs.Select(kvp => kvp.Key).OrderBy(k => k));
 
             // Start/end query without inclusive end:
-            options.SetInclusiveEnd(false);
+            options.InclusiveEnd = false;
             allDocs = database.GetAllDocs(options);
             expectedRows = new List<QueryRow>();
             expectedRows.AddItem(expectedRow[0]);
@@ -506,7 +506,7 @@ namespace Couchbase.Lite
             IList<object> docIds = new List<object>();
             QueryRow expected2 = expectedRow[2];
             docIds.AddItem(expected2.Document.Id);
-            options.SetKeys(docIds);
+            options.Keys = docIds;
             allDocs = database.GetAllDocs(options);
             expectedRows = new List<QueryRow>();
             expectedRows.AddItem(expected2);
@@ -570,7 +570,7 @@ namespace Couchbase.Lite
             Assert.AreEqual("6.5", dumpResult[2]["value"]);
             Assert.AreEqual(3, dumpResult[2]["seq"]);
             QueryOptions options = new QueryOptions();
-            options.SetReduce(true);
+            options.Reduce = true;
 
             IList<QueryRow> reduced = view.QueryWithOptions(options).ToList();
             Assert.AreEqual(1, reduced.Count);
@@ -679,7 +679,7 @@ namespace Couchbase.Lite
                 
             view.UpdateIndex();
             QueryOptions options = new QueryOptions();
-            options.SetReduce(true);
+            options.Reduce = true;
 
             IList<QueryRow> rows = view.QueryWithOptions(options).ToList();
             IList<IDictionary<string, object>> expectedRows = new List<IDictionary<string, object>>();
@@ -691,7 +691,7 @@ namespace Couchbase.Lite
             Assert.AreEqual(row1["value"], rows[0].Value);
 
             //now group
-            options.SetGroup(true);
+            options.Group = true;
             rows = view.QueryWithOptions(options).ToList();
             expectedRows = new List<IDictionary<string, object>>();
             row1 = new Dictionary<string, object>();
@@ -750,7 +750,7 @@ namespace Couchbase.Lite
             Assert.AreEqual(row5["value"], rows[4].Value);
 
             //group level 1
-            options.SetGroupLevel(1);
+            options.GroupLevel = 1;
             rows = view.QueryWithOptions(options).ToList();
             expectedRows = new List<IDictionary<string, object>>();
             row1 = new Dictionary<string, object>();
@@ -766,13 +766,13 @@ namespace Couchbase.Lite
             row2["key"] = key2;
             row2["value"] = 309.0;
             expectedRows.AddItem(row2);
-            Assert.AreEqual(row1["key"], ((JArray)rows[0].Key).Values<String>().ToList());
+            Assert.AreEqual(row1["key"], rows[0].Key.AsList<object>());
             Assert.AreEqual(row1["value"], rows[0].Value);
-            Assert.AreEqual(row2["key"], ((JArray)rows[1].Key).Values<String>().ToList());
+            Assert.AreEqual(row2["key"], rows[1].Key.AsList<object>());
             Assert.AreEqual(row2["value"], rows[1].Value);
 
             //group level 2
-            options.SetGroupLevel(2);
+            options.GroupLevel = 2;
             rows = view.QueryWithOptions(options).ToList();
             expectedRows = new List<IDictionary<string, object>>();
             row1 = new Dictionary<string, object>();
@@ -796,11 +796,11 @@ namespace Couchbase.Lite
             row3["key"] = key3;
             row3["value"] = 309.0;
             expectedRows.AddItem(row3);
-            Assert.AreEqual(row1["key"], ((JArray)rows[0].Key).Values<String>().ToList());
+            Assert.AreEqual(row1["key"], rows[0].Key.AsList<object>());
             Assert.AreEqual(row1["value"], rows[0].Value);
-            Assert.AreEqual(row2["key"], ((JArray)rows[1].Key).Values<String>().ToList());
+            Assert.AreEqual(row2["key"], rows[1].Key.AsList<object>());
             Assert.AreEqual(row2["value"], rows[1].Value);
-            Assert.AreEqual(row3["key"], ((JArray)rows[2].Key).Values<String>().ToList());
+            Assert.AreEqual(row3["key"], rows[2].Key.AsList<object>());
             Assert.AreEqual(row3["value"], rows[2].Value);
         }
 
@@ -836,7 +836,7 @@ namespace Couchbase.Lite
 
             view.UpdateIndex();
             QueryOptions options = new QueryOptions();
-            options.SetGroupLevel(1);
+            options.GroupLevel = 1;
 
             IList<QueryRow> rows = view.QueryWithOptions(options).ToList();
             IList<IDictionary<string, object>> expectedRows = new List<IDictionary<string, object>>();
@@ -1047,7 +1047,7 @@ namespace Couchbase.Lite
 
             view.UpdateIndex();
             QueryOptions options = new QueryOptions();
-            options.SetIncludeDocs(true);
+            options.IncludeDocs = true;
 
             // required for linked documents
             IList<QueryRow> rows = view.QueryWithOptions(options).ToList();
@@ -1240,9 +1240,9 @@ namespace Couchbase.Lite
             view.UpdateIndex();
 
             var options = new QueryOptions();
-            options.SetStartKey("one");
-            options.SetStartKeyDocId("11112");
-            options.SetEndKey("three");
+            options.StartKey = "one";
+            options.StartKeyDocId = "11112";
+            options.EndKey = "three";
             var rows = view.QueryWithOptions(options).ToList<QueryRow>();
 
             Assert.AreEqual(2, rows.Count);
@@ -1252,8 +1252,8 @@ namespace Couchbase.Lite
             Assert.AreEqual("three", rows[1].Key);
 
             options = new QueryOptions();
-            options.SetEndKey("one");
-            options.SetEndKeyDocId("11111");
+            options.EndKey = "one";
+            options.EndKeyDocId = "11111";
             rows = view.QueryWithOptions(options).ToList<QueryRow>();
 
             Assert.AreEqual(3, rows.Count);
@@ -1264,8 +1264,8 @@ namespace Couchbase.Lite
             Assert.AreEqual("11111", rows[2].DocumentId);
             Assert.AreEqual("one", rows[2].Key);
 
-            options.SetStartKey("one");
-            options.SetStartKeyDocId("11111");
+            options.StartKey = "one";
+            options.StartKeyDocId = "11111";
             rows = view.QueryWithOptions(options).ToList<QueryRow>();
 
             Assert.AreEqual(1, rows.Count);

@@ -87,8 +87,7 @@ namespace Couchbase.Lite.Support
 
         private readonly Object locker;
 
-        /// <summary>Initializes a batcher.</summary>
-        /// <remarks>Initializes a batcher.</remarks>
+        /// <summary>Constructor</summary>
         /// <param name="workExecutor">the work executor that performs actual work</param>
         /// <param name="capacity">The maximum number of objects to batch up. If the queue reaches this size, the queued objects will be sent to the processor immediately.
         ///     </param>
@@ -96,6 +95,7 @@ namespace Couchbase.Lite.Support
         ///     </param>
         /// <param name="processor">The callback/block that will be called to process the objects.
         ///     </param>
+        /// <param name="tokenSource">The token source to use to create the token to cancel this Batcher object</param>
         public Batcher(TaskFactory workExecutor, int capacity, int delay, Action<IList<T>> processor, CancellationTokenSource tokenSource = null)
         {
             Log.D(Tag, "New batcher created with capacity: {0}, delay: {1}", capacity, delay);

@@ -45,12 +45,24 @@ using System.Net;
 
 namespace Couchbase.Lite
 {
+    /// <summary>
+    /// An exception for encapsulating HTTP errors
+    /// </summary>
     public class HttpResponseException : Exception
     {
+
+        /// <summary>
+        /// Gets or sets the status code associated with the error
+        /// </summary>
+        /// <value>The status code.</value>
         public HttpStatusCode StatusCode { get; set; }
 
         internal HttpResponseException (HttpStatusCode statusCode) { StatusCode = statusCode; }
 
+        /// <summary>
+        /// Returns a <see cref="System.String"/> that represents the current <see cref="Couchbase.Lite.HttpResponseException"/>.
+        /// </summary>
+        /// <returns>A <see cref="System.String"/> that represents the current <see cref="Couchbase.Lite.HttpResponseException"/>.</returns>
         public override string ToString ()
         {
             return string.Format ("[HttpResponseException: StatusCode = {0}]", StatusCode);

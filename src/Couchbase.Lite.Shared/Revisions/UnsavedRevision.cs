@@ -193,13 +193,17 @@ namespace Couchbase.Lite
         }
         /// <summary>
         /// Gets the properties of the <see cref="Couchbase.Lite.Revision"/>.
-        /// <value>the properties of the <see cref="Couchbase.Lite.Revision"/>.</value>
+        /// </summary>
         public override IDictionary<String, Object> Properties {
             get {
                 return properties;
             }
         }
 
+        /// <summary>
+        /// Sets the properties of the <see cref="Couchbase.Lite.Revision"/>.
+        /// </summary>
+        /// <param name="newProperties">New properties.</param>
         public void SetProperties(IDictionary<String, Object> newProperties)
         {
             properties = newProperties;
@@ -338,6 +342,14 @@ namespace Couchbase.Lite
 
         #region IDisposable
 
+        /// <summary>
+        /// Releases all resource used by the <see cref="Couchbase.Lite.UnsavedRevision"/> object.
+        /// </summary>
+        /// <remarks>Call <see cref="Dispose"/> when you are finished using the <see cref="Couchbase.Lite.UnsavedRevision"/>. The
+        /// <see cref="Dispose"/> method leaves the <see cref="Couchbase.Lite.UnsavedRevision"/> in an unusable state.
+        /// After calling <see cref="Dispose"/>, you must release all references to the
+        /// <see cref="Couchbase.Lite.UnsavedRevision"/> so the garbage collector can reclaim the memory that the
+        /// <see cref="Couchbase.Lite.UnsavedRevision"/> was occupying.</remarks>
         public void Dispose() 
         {
             var attachments = GetProperty("_attachments").AsDictionary<string, object>();

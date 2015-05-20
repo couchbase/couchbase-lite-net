@@ -132,7 +132,7 @@ namespace Couchbase.Lite
             }
             catch (CouchbaseLiteException e)
             {
-                gotExpectedError = e.GetCBLStatus().Code == StatusCode.Conflict;
+                gotExpectedError = e.CBLStatus.Code == StatusCode.Conflict;
             }
             Assert.IsTrue(gotExpectedError);
 
@@ -160,7 +160,7 @@ namespace Couchbase.Lite
             }
             catch (CouchbaseLiteException e)
             {
-                gotExpectedError = e.GetCBLStatus().Code == StatusCode.Conflict;
+                gotExpectedError = e.CBLStatus.Code == StatusCode.Conflict;
             }
             Assert.IsTrue(gotExpectedError);
             Assert.IsNull(revResult);
@@ -179,7 +179,7 @@ namespace Couchbase.Lite
             }
             catch (CouchbaseLiteException e)
             {
-                gotExpectedError = e.GetCBLStatus().Code == StatusCode.NotFound;
+                gotExpectedError = e.CBLStatus.Code == StatusCode.NotFound;
             }
             Assert.IsTrue(gotExpectedError);
 

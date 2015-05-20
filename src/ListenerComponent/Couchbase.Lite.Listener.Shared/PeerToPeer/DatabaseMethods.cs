@@ -186,7 +186,7 @@ namespace Couchbase.Lite.Listener
                 }
 
                 var keys = body["rows"].AsList<object>();
-                options.SetKeys(keys);
+                options.Keys = keys;
                 return DoAllDocs(context, db, options);
             }).AsDefaultState();
         }
@@ -484,7 +484,7 @@ namespace Couchbase.Lite.Listener
                     view.UpdateIndex();
                     return QueryView(context, view, options);
                 } catch(CouchbaseLiteException e) {
-                    response.InternalStatus = e.GetCBLStatus().Code;
+                    response.InternalStatus = e.CBLStatus.Code;
                 }
 
                 return response;
@@ -574,7 +574,7 @@ namespace Couchbase.Lite.Listener
         public static CouchbaseLiteResponse QueryView(ICouchbaseListenerContext context, View view, QueryOptions options)
         {
             var result = view.QueryWithOptions(options);
-            object updateSeq = options.IsUpdateSeq() ? (object)view.LastSequenceIndexed : null;
+            object updateSeq = options.UpdateSeq ? (object)view.LastSequenceIndexed : null;
             var mappedDic = result.Select(x => new NonNullDictionary<string, object> {
                 { "id", x.DocumentId },
                 { "key", x.Key },
@@ -585,7 +585,7 @@ namespace Couchbase.Lite.Listener
             var body = new Body(new NonNullDictionary<string, object> {
                 { "rows", mappedDic },
                 { "total_rows", view.TotalRows },
-                { "offset", options.GetSkip() },
+                { "offset", options.Skip },
                 { "update_seq", updateSeq }
             });
 

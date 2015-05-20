@@ -41,13 +41,21 @@
 //
 
 using System.Collections.Generic;
-using Couchbase.Lite.Support;
-using Sharpen;
 
 namespace Couchbase.Lite.Support
 {
+
+    /// <summary>
+    /// The interface for an object that can perform batch processing
+    /// </summary>
     public interface IBatchProcessor<T>
     {
+
+        /// <summary>
+        /// Process the specified batch
+        /// </summary>
+        /// <param name="inbox">The collection of items to process</param>
         void Process(IEnumerable<T> inbox);
+
     }
 }

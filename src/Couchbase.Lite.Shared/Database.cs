@@ -1406,12 +1406,12 @@ PRAGMA user_version = 3;";
                 }
                     
                 lastSequence = view.LastSequenceIndexed;
-                if (options.GetStale () == IndexUpdateMode.Before || lastSequence <= 0) {
+                if (options.Stale == IndexUpdateMode.Before || lastSequence <= 0) {
                     Log.D(Tag, "Updating index on view '{0}' before generating query results.", view.Name);
                     view.UpdateIndex ();
                     lastSequence = view.LastSequenceIndexed;
                 } else {
-                    if (options.GetStale () == IndexUpdateMode.After 
+                    if (options.Stale == IndexUpdateMode.After 
                         && lastSequence < GetLastSequenceNumber())
                     {
                         Log.D(Tag, "Deferring index update on view '{0}'.", view.Name);
@@ -1571,16 +1571,16 @@ PRAGMA user_version = 3;";
             if (options == null)
                 options = new QueryOptions();
 
-            var includeDeletedDocs = (options.GetAllDocsMode() == AllDocsMode.IncludeDeleted);
+            var includeDeletedDocs = (options.AllDocsMode == AllDocsMode.IncludeDeleted);
             var updateSeq = 0L;
-            if (options.IsUpdateSeq())
+            if (options.UpdateSeq)
             {
                 updateSeq = GetLastSequenceNumber();
             }
 
             // TODO: needs to be atomic with the following SELECT
             var sql = new StringBuilder("SELECT revs.doc_id, docid, revid, sequence");
-            if (options.IsIncludeDocs())
+            if (options.IncludeDocs)
             {
                 sql.Append(", json");
             }
@@ -1590,13 +1590,13 @@ PRAGMA user_version = 3;";
             }
             sql.Append(" FROM revs, docs WHERE");
 
-            if (options.GetKeys() != null)
+            if (options.Keys != null)
             {
-                if (options.GetKeys().Count() == 0)
+                if (options.Keys.Count() == 0)
                 {
                     return result;
                 }
-                var commaSeperatedIds = JoinQuotedObjects(options.GetKeys());
+                var commaSeperatedIds = JoinQuotedObjects(options.Keys);
                 sql.Append(String.Format(" revs.doc_id IN (SELECT doc_id FROM docs WHERE docid IN ({0})) AND", commaSeperatedIds));
             }
             sql.Append(" docs.doc_id = revs.doc_id AND current=1");
@@ -1607,15 +1607,15 @@ PRAGMA user_version = 3;";
             }
 
             var args = new List<String>();
-            var minKey = options.GetStartKey();
-            var maxKey = options.GetEndKey();
+            var minKey = options.StartKey;
+            var maxKey = options.EndKey;
             var inclusiveMin = true;
-            var inclusiveMax = options.IsInclusiveEnd();
+            var inclusiveMax = options.InclusiveEnd;
 
-            if (options.IsDescending())
+            if (options.Descending)
             {
                 minKey = maxKey;
-                maxKey = options.GetStartKey();
+                maxKey = options.StartKey;
                 inclusiveMin = inclusiveMax;
                 inclusiveMax = true;
             }
@@ -1633,12 +1633,12 @@ PRAGMA user_version = 3;";
             }
             sql.Append(
                 String.Format(" ORDER BY docid {0}, {1} revid DESC LIMIT ? OFFSET ?", 
-                    options.IsDescending() ? "DESC" : "ASC", 
+                    options.Descending ? "DESC" : "ASC", 
                     includeDeletedDocs ? "deleted ASC," : String.Empty
                 )
             );
-            args.AddItem(options.GetLimit().ToString());
-            args.AddItem(options.GetSkip().ToString());
+            args.AddItem(options.Limit.ToString());
+            args.AddItem(options.Skip.ToString());
 
             Cursor cursor = null;
             var docs = new Dictionary<String, QueryRow>();
@@ -1653,7 +1653,7 @@ PRAGMA user_version = 3;";
                 {
                     var docNumericID = cursor.GetLong(0);
 
-                    var includeDocs = options.IsIncludeDocs();
+                    var includeDocs = options.IncludeDocs;
 
                     var docId = cursor.GetString(1);
                     var revId = cursor.GetString(2);
@@ -1669,14 +1669,14 @@ PRAGMA user_version = 3;";
 
                     if (includeDocs)
                     {
-                        docContents = DocumentPropertiesFromJSON(json, docId, revId, deleted, sequenceNumber, options.GetContentOptions());
+                        docContents = DocumentPropertiesFromJSON(json, docId, revId, deleted, sequenceNumber, options.ContentOptions);
                     }
                     // Iterate over following rows with the same doc_id -- these are conflicts.
                     // Skip them, but collect their revIDs if the 'conflicts' option is set:
                     var conflicts = new List<string>();
                     while (((keepGoing = cursor.MoveToNext())) && cursor.GetLong(0) == docNumericID)
                     {
-                       if (options.GetAllDocsMode() == AllDocsMode.ShowConflicts || options.GetAllDocsMode() == AllDocsMode.OnlyConflicts)
+                       if (options.AllDocsMode == AllDocsMode.ShowConflicts || options.AllDocsMode == AllDocsMode.OnlyConflicts)
                        {
                            if (conflicts.IsEmpty())
                            {
@@ -1685,7 +1685,7 @@ PRAGMA user_version = 3;";
                            conflicts.AddItem(cursor.GetString(2));
                        }
                     }
-                    if (options.GetAllDocsMode() == AllDocsMode.OnlyConflicts && conflicts.IsEmpty())
+                    if (options.AllDocsMode == AllDocsMode.OnlyConflicts && conflicts.IsEmpty())
                     {
                        continue;
                     }
@@ -1702,7 +1702,7 @@ PRAGMA user_version = 3;";
                     var change = new QueryRow(docId, sequenceNumber, docId, value, docContents);
                     change.Database = this;
 
-                    if (options.GetKeys() != null)
+                    if (options.Keys != null)
                     {
                         docs[docId] = change;
                     }
@@ -1711,9 +1711,9 @@ PRAGMA user_version = 3;";
                         rows.AddItem(change);
                     }
                 }
-                if (options.GetKeys() != null)
+                if (options.Keys != null)
                 {
-                    foreach (var docIdObject in options.GetKeys())
+                    foreach (var docIdObject in options.Keys)
                     {
                         if (docIdObject is string)
                         {
@@ -1761,7 +1761,7 @@ PRAGMA user_version = 3;";
             }
             result["rows"] = rows;
             result["total_rows"] = rows.Count;
-            result.Put("offset", options.GetSkip());
+            result.Put("offset", options.Skip);
             if (updateSeq != 0)
             {
                 result["update_seq"] = updateSeq;
@@ -1854,7 +1854,7 @@ PRAGMA user_version = 3;";
         {
             Debug.Assert(options != null);
 
-            return options.IsIncludeDocs() ? 5 : 4;
+            return options.IncludeDocs ? 5 : 4;
         }
 
         internal static String JoinQuotedObjects(IEnumerable<Object> objects)
@@ -2523,7 +2523,7 @@ PRAGMA user_version = 3;";
                 if (status != null) {
                     var ce = e as CouchbaseLiteException;
                     if (ce != null) {
-                        status.Code = ce.GetCBLStatus().Code;
+                        status.Code = ce.CBLStatus.Code;
                     }
                 }
             }
@@ -3634,7 +3634,7 @@ PRAGMA user_version = 3;";
                 attachment = new AttachmentInternal(filename, info);
             } catch(CouchbaseLiteException e) {
                 if (status != null) {
-                    status.Code = e.GetCBLStatus().Code;
+                    status.Code = e.CBLStatus.Code;
                 }
                 return null;
             }
@@ -3853,7 +3853,7 @@ PRAGMA user_version = 3;";
             try {
                 LoadRevisionBody(rev, DocumentContentOptions.None);
             } catch(CouchbaseLiteException e) {
-                status.Code = e.GetCBLStatus().Code;
+                status.Code = e.CBLStatus.Code;
                 return null;
             }
 
@@ -3970,7 +3970,7 @@ PRAGMA user_version = 3;";
                     rev = LoadRevisionBody(rev, DocumentContentOptions.None);
                 } catch(CouchbaseLiteException e) {
                     if (status != null) {
-                        status.Code = e.GetCBLStatus().Code;
+                        status.Code = e.CBLStatus.Code;
                     }
 
                     return null;
@@ -4115,7 +4115,7 @@ PRAGMA user_version = 3;";
                 LoadRevisionBody(nuRev, DocumentContentOptions.None);
             } catch(CouchbaseLiteException e) {
                 if (outStatus != null) {
-                    outStatus.Code = e.GetCBLStatus().Code;
+                    outStatus.Code = e.CBLStatus.Code;
                 }
 
                 nuRev = null;
@@ -4276,7 +4276,7 @@ PRAGMA user_version = 3;";
                         }
                         catch (CouchbaseLiteException e)
                         {
-                            if (e.GetCBLStatus().Code == StatusCode.NotFound && ExistsDocumentWithIDAndRev(docID, null))
+                            if (e.CBLStatus.Code == StatusCode.NotFound && ExistsDocumentWithIDAndRev(docID, null))
                             {
                                 throw new CouchbaseLiteException(StatusCode.Conflict);
                             }

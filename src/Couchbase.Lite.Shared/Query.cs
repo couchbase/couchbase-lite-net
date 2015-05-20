@@ -194,23 +194,23 @@ namespace Couchbase.Lite {
         {
             get {
                 var queryOptions = new QueryOptions();
-                queryOptions.SetStartKey(StartKey);
-                queryOptions.SetEndKey(EndKey);
-                queryOptions.SetKeys(Keys);
-                queryOptions.SetSkip(Skip);
-                queryOptions.SetLimit(Limit);
-                queryOptions.SetReduce(!MapOnly);
-                queryOptions.SetReduceSpecified(true);
-                queryOptions.SetGroupLevel(GroupLevel);
-                queryOptions.SetDescending(Descending);
-                queryOptions.SetIncludeDocs(Prefetch);
-                queryOptions.SetUpdateSeq(true);
-                queryOptions.SetInclusiveEnd(InclusiveEnd);
-                queryOptions.SetIncludeDeletedDocs(IncludeDeleted);
-                queryOptions.SetStale(IndexUpdateMode);
-                queryOptions.SetAllDocsMode(AllDocsMode);
-                queryOptions.SetStartKeyDocId(StartKeyDocId);
-                queryOptions.SetEndKeyDocId(EndKeyDocId);
+                queryOptions.StartKey = StartKey;
+                queryOptions.EndKey = EndKey;
+                queryOptions.Keys = Keys;
+                queryOptions.Skip = Skip;
+                queryOptions.Limit = Limit;
+                queryOptions.Reduce = !MapOnly;
+                queryOptions.ReduceSpecified = true;
+                queryOptions.GroupLevel = GroupLevel;
+                queryOptions.Descending = Descending;
+                queryOptions.IncludeDocs = Prefetch;
+                queryOptions.UpdateSeq = true;
+                queryOptions.InclusiveEnd = InclusiveEnd;
+                queryOptions.IncludeDeletedDocs = IncludeDeleted;
+                queryOptions.Stale = IndexUpdateMode;
+                queryOptions.AllDocsMode = AllDocsMode;
+                queryOptions.StartKeyDocId = StartKeyDocId;
+                queryOptions.EndKeyDocId = EndKeyDocId;
                 return queryOptions;
             }
         }
