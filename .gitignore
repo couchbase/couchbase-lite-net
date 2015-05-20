@@ -148,6 +148,9 @@ src/Build.proj
 #Unity generated
 Temp/
 Library/
+Assembly-CSharp*
+UnityDemo-csharp.sln
+UnityDemo.sln
 
 #Sync Gateway
 *.walrus
