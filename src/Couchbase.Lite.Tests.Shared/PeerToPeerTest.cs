@@ -23,6 +23,7 @@ using NUnit.Framework;
 using Couchbase.Lite.Listener;
 using Couchbase.Lite.Util;
 using System.Threading;
+using Mono.Zeroconf.Providers.Bonjour;
 
 namespace Couchbase.Lite
 {
@@ -39,6 +40,11 @@ namespace Couchbase.Lite
             }
             #endif
 
+            //Use a short timeout to speed up the test since it is performed locally
+            //Android will get stuck in DNSProcessResult which hangs indefinitely if
+            //no results are found (Which will happen if registration is aborted between
+            //the resolve reply and query record steps)
+            ServiceParams.Timeout = TimeSpan.FromSeconds(3); 
             var mre = new ManualResetEventSlim();
             CouchbaseLiteServiceBrowser browser = new CouchbaseLiteServiceBrowser(null);
             browser.ServiceResolved += (sender, e) => {

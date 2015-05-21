@@ -144,6 +144,7 @@ namespace Mono.Zeroconf.Providers.Bonjour
                 ProcessStart();
             } catch(ThreadAbortException) {
                 Thread.ResetAbort();
+                Log.D("ServiceBrowser", "Browser thread ended");
             }
             
             thread = null;
@@ -172,22 +173,21 @@ namespace Mono.Zeroconf.Providers.Bonjour
                 throw new ServiceErrorException(error);
             }
 
-            sd_ref.Process();
+            sd_ref.Process(ServiceParams.Timeout.Add(ServiceParams.Timeout));
         }
         
         public void Stop()
         {
+            _self.Free();
             if(sd_ref != ServiceRef.Zero) {
                 sd_ref.Deallocate();
                 sd_ref = ServiceRef.Zero;
             }
-            
+
             if(thread != null) {
                 thread.Abort();
                 thread = null;
             }
-
-            _self.Free();
         }
         
         public void Dispose()
@@ -197,7 +197,7 @@ namespace Mono.Zeroconf.Providers.Bonjour
         
         public IEnumerator<IResolvableService> GetEnumerator ()
         {
-            lock (this) {
+            lock (service_table) {
                 foreach (IResolvableService service in service_table.Values) {
                     yield return service;
                 }

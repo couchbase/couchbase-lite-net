@@ -116,6 +116,7 @@ namespace Mono.Zeroconf.Providers.Bonjour
                 ProcessRegister();
             } catch(ThreadAbortException) {
                 Thread.ResetAbort();
+                Log.D("RegisterService", "Register thread aborted");
             }
             
             thread = null;
@@ -141,19 +142,19 @@ namespace Mono.Zeroconf.Providers.Bonjour
             if(error != ServiceError.NoError) {
                 throw new ServiceErrorException(error);
             }
-            
-            sd_ref.Process();
+
+            sd_ref.Process(ServiceParams.Timeout.Add(ServiceParams.Timeout));
         }
         
         public void Dispose()
         {
-            if(thread != null) {
+            _self.Free();
+            sd_ref.Deallocate();
+
+            if (thread != null) {
                 thread.Abort();
                 thread = null;
             }
-
-            _self.Free();
-            sd_ref.Deallocate();
         }
 
         #if __IOS__ || __UNITY_APPLE__
