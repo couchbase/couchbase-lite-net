@@ -52,7 +52,6 @@ namespace Mono.Zeroconf.Providers.Bonjour
  
         public ServiceError ProcessSingle(TimeSpan timeout)
         {
-            Log.D("ServiceRef", "Processing {0}", Raw);
             var localRaw = Raw;
             var t = Task.Factory.StartNew<ServiceError>(() => Native.DNSServiceProcessResult(localRaw));
             if (t.Wait(timeout)) {
@@ -70,8 +69,6 @@ namespace Mono.Zeroconf.Providers.Bonjour
             do {
                 result = ProcessSingle(timeout);
             } while(result == ServiceError.NoError);
-
-            Log.D("ServiceRef", "Ending Process() due to {0}", result);
         }
 
         public int SocketFD {
