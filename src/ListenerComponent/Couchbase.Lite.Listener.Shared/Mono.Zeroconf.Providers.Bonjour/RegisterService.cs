@@ -47,6 +47,7 @@ using System;
 using System.Net;
 using System.Threading;
 using System.Runtime.InteropServices;
+using Couchbase.Lite.Util;
 
 #if __IOS__
 using AOT = ObjCRuntime;
