@@ -30,6 +30,7 @@ using System;
 using System.Threading;
 using System.Collections;
 using System.Runtime.InteropServices;
+using System.Threading.Tasks;
 
 namespace Mono.Zeroconf.Providers.Bonjour
 {
@@ -49,14 +50,28 @@ namespace Mono.Zeroconf.Providers.Bonjour
             Native.DNSServiceRefDeallocate(Raw);
         }
  
-        public ServiceError ProcessSingle()
+        public ServiceError ProcessSingle(TimeSpan timeout)
         {
-            return Native.DNSServiceProcessResult(Raw);
+            Log.D("ServiceRef", "Processing {0}", Raw);
+            var localRaw = Raw;
+            var t = Task.Factory.StartNew<ServiceError>(() => Native.DNSServiceProcessResult(localRaw));
+            if (t.Wait(timeout)) {
+                return t.Result;
+            }
+
+            Deallocate();
+            return ServiceError.BadState;
         }
         
-        public void Process()
+        public void Process(TimeSpan timeout)
         {
-            while(ProcessSingle() == ServiceError.NoError);
+            ServiceError result = ServiceError.NoError;
+
+            do {
+                result = ProcessSingle(timeout);
+            } while(result == ServiceError.NoError);
+
+            Log.D("ServiceRef", "Ending Process() due to {0}", result);
         }
 
         public int SocketFD {

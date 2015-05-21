@@ -111,8 +111,8 @@ namespace Mono.Zeroconf.Providers.Bonjour
             if(error != ServiceError.NoError) {
                 throw new ServiceErrorException(error);
             }
-            
-            sd_ref.Process();
+
+            sd_ref.Process(ServiceParams.Timeout.Add(ServiceParams.Timeout));
         }
         
         public void RefreshTxtRecord()
@@ -131,7 +131,7 @@ namespace Mono.Zeroconf.Providers.Bonjour
                 throw new ServiceErrorException(error);
             }
             
-            sd_ref.Process();
+            sd_ref.Process(ServiceParams.Timeout);
         }
 
         #if __IOS__ || __UNITY_APPLE__
@@ -164,7 +164,7 @@ namespace Mono.Zeroconf.Providers.Bonjour
                     throw new ServiceErrorException(error);
                 }
             
-                sd_ref.Process();
+                sd_ref.Process(ServiceParams.Timeout);
             }
             
             if (browseService.AddressProtocol == AddressProtocol.Any || browseService.AddressProtocol == AddressProtocol.IPv6) {
@@ -175,7 +175,7 @@ namespace Mono.Zeroconf.Providers.Bonjour
                     throw new ServiceErrorException(error);
                 }
             
-                sd_ref.Process();
+                sd_ref.Process(ServiceParams.Timeout);
             }
         }
      
