@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 echo Starting sync_gateway with option "'$1'"...
 current=`pwd`
 echo "$current"

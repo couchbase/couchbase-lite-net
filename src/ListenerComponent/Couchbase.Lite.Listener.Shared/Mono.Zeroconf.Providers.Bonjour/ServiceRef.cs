@@ -49,6 +49,11 @@ namespace Mono.Zeroconf.Providers.Bonjour
         {
             Native.DNSServiceRefDeallocate(Raw);
         }
+
+        public ServiceError ProcessSingle()
+        {
+            return Native.DNSServiceProcessResult(Raw);
+        }
  
         public ServiceError ProcessSingle(TimeSpan timeout)
         {
@@ -68,6 +73,15 @@ namespace Mono.Zeroconf.Providers.Bonjour
 
             do {
                 result = ProcessSingle(timeout);
+            } while(result == ServiceError.NoError);
+        }
+
+        public void Process()
+        {
+            ServiceError result = ServiceError.NoError;
+
+            do {
+                result = ProcessSingle();
             } while(result == ServiceError.NoError);
         }
 
