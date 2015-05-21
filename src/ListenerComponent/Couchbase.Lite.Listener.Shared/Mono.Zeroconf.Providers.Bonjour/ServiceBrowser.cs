@@ -173,7 +173,7 @@ namespace Mono.Zeroconf.Providers.Bonjour
                 throw new ServiceErrorException(error);
             }
 
-            sd_ref.Process(ServiceParams.Timeout.Add(ServiceParams.Timeout));
+            sd_ref.Process();
         }
         
         public void Stop()

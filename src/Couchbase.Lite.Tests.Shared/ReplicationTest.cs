@@ -127,7 +127,7 @@ namespace Couchbase.Lite
 
                     if (started && statusIsDone)
                     {
-                        done = true;
+                        break;
                     }
 
                     try
