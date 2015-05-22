@@ -219,8 +219,7 @@ namespace Couchbase.Lite
             }
             tempFile = null;
         }
-
-        [Obsolete("Use SHA1DigestString")]
+            
         public string MD5DigestString()
         {
             string base64Md5Digest = Convert.ToBase64String(md5DigestResult);
