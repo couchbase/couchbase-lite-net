@@ -69,6 +69,12 @@ namespace Couchbase.Lite.Util
             return Logger == customLogger;
         }
 
+        /// <summary>
+        /// Sets up Couchbase Lite to use the default logger (an internal class),
+        /// with the specified logging level
+        /// </summary>
+        /// <returns><c>true</c>, if the logger was changed, <c>false</c> otherwise.</returns>
+        /// <param name="level">The levels to log</param>
         public static bool SetDefaultLoggerWithLevel(SourceLevels level)
         {
             return SetLogger(new CustomLogger(level));

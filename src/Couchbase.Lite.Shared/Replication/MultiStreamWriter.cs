@@ -35,10 +35,21 @@ using Rackspace.Threading;
 
 namespace Couchbase.Lite.Support
 {
+
+    /// <summary>
+    /// An object that can write from multiple sources into one stream
+    /// </summary>
     public class MultiStreamWriter : IDisposable
     {
+
+        #region Constants
+
         private const int DEFAULT_BUFFER_SIZE = 32768;
         private const string TAG = "MultiStreamWriter";
+
+        #endregion
+
+        #region Variables
 
         private IList _inputs = new ArrayList();
         private int _nextInputIndex;
@@ -47,22 +58,49 @@ namespace Couchbase.Lite.Support
         private ManualResetEventSlim _mre;
         private bool _isDisposed;
 
+        /// <summary>
+        /// The total bytes written so far.
+        /// </summary>
         protected long _totalBytesWritten;
 
+        #endregion
+
+        #region Properties
+
+        /// <summary>
+        /// Gets the total length of the data, if known
+        /// </summary>
+        /// <value>The length.</value>
         public long Length { get; protected set; }
 
+        /// <summary>
+        /// Gets whether or not the writer is open
+        /// </summary>
+        /// <value><c>true</c> if this instance is open; otherwise, <c>false</c>.</value>
         public bool IsOpen { 
-            get
-            {
+            get {
                 return _mre != null && !_mre.IsSet && !_isDisposed;
             }
         }
 
+        #endregion
+
+        #region Public Methods
+
+        /// <summary>
+        /// Adds a stream with a known length to be processed
+        /// </summary>
+        /// <param name="stream">The stream to be processed.</param>
+        /// <param name="length">The length of the stream.</param>
         public void AddStream(Stream stream, long length)
         {
             AddInput(stream, length);
         }
 
+        /// <summary>
+        /// Adds a stream with an unknown length to be processed
+        /// </summary>
+        /// <param name="stream">The stream to be processed.</param>
         public void AddStream(Stream stream)
         {
             Log.D(TAG, "Adding stream of unknown length: {0}", stream);
@@ -70,6 +108,10 @@ namespace Couchbase.Lite.Support
             Length = -1; // length is now unknown
         }
 
+        /// <summary>
+        /// Adds a blob to be processed
+        /// </summary>
+        /// <param name="data">The blob to be processed</param>
         public void AddData(IEnumerable<byte> data)
         {
             if (!data.Any()) {
@@ -79,6 +121,11 @@ namespace Couchbase.Lite.Support
             AddInput(data, data.LongCount());
         }
 
+        /// <summary>
+        /// Adds a file URL to be processed
+        /// </summary>
+        /// <returns><c>true</c>, if file URL was added, <c>false</c> otherwise.</returns>
+        /// <param name="fileUrl">The file URL to read data from</param>
         public bool AddFileUrl(Uri fileUrl)
         {
             FileInfo info;
@@ -92,11 +139,21 @@ namespace Couchbase.Lite.Support
             return true;
         }
 
+        /// <summary>
+        /// Adds a file path to be processed
+        /// </summary>
+        /// <returns><c>true</c>, if the file was added, <c>false</c> otherwise.</returns>
+        /// <param name="path">The path of the file to read data from.</param>
         public bool AddFile(string path)
         {
             return AddFileUrl(new Uri(path));
         }
 
+        /// <summary>
+        /// Asynchronously writes the accumulated data to an output stream
+        /// </summary>
+        /// <returns>An awaitable task whose result indicates success or failure</returns>
+        /// <param name="output">The output stream to write to</param>
         public Task<bool> WriteAsync(Stream output)
         {
             if (_isDisposed) {
@@ -115,6 +172,9 @@ namespace Couchbase.Lite.Support
             return tcs.Task;
         }
 
+        /// <summary>
+        /// Closes the output stream and stops writing
+        /// </summary>
         public void Close()
         {
             if (_isDisposed) {
@@ -143,6 +203,10 @@ namespace Couchbase.Lite.Support
             _nextInputIndex = 0;
         }
 
+        /// <summary>
+        /// Synchronously retrieves all of the accumulated data as a blob
+        /// </summary>
+        /// <returns>All the accumulated data</returns>
         public IEnumerable<byte> AllOutput()
         {
             using (var ms = new MemoryStream()) {
@@ -155,6 +219,13 @@ namespace Couchbase.Lite.Support
             }
         }
 
+        #endregion
+
+        #region Protected Methods
+
+        /// <summary>
+        /// Called when the output stream is opened
+        /// </summary>
         protected virtual void Opened()
         {
             _totalBytesWritten = 0;
@@ -162,11 +233,20 @@ namespace Couchbase.Lite.Support
             StartWriting();
         }
 
+        /// <summary>
+        /// Add a piece of input and length to the accumulated data
+        /// </summary>
+        /// <param name="input">The input to add.</param>
+        /// <param name="length">The length of the input.</param>
         protected virtual void AddInput(object input, long length)
         {
             _inputs.Add(input);
             Length += length;
         }
+
+        #endregion
+
+        #region Private Methods
 
         private void StartWriting()
         {
@@ -216,10 +296,19 @@ namespace Couchbase.Lite.Support
             return false;
         }
 
+        #endregion
+
+        #region IDisposable
+        #pragma warning disable 1591
+
         public void Dispose()
         {
             Close();
         }
+
+        #pragma warning restore 1591
+        #endregion
+
     }
 }
 

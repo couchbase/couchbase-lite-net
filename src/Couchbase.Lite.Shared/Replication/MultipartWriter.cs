@@ -20,29 +20,57 @@
 //
 using System;
 using System.Collections.Generic;
-using System.Net;
-using System.Text;
 using System.Linq;
-using System.Threading.Tasks;
+using System.Text;
 
 namespace Couchbase.Lite.Support
 {
+
+    /// <summary>
+    /// An object that can write multipart HTTP responses
+    /// </summary>
     public sealed class MultipartWriter : MultiStreamWriter
     {
+
+        #region Constants
+
         private const int MIN_DATA_LENGTH_TO_COMPRESS = 100;
+
+        #endregion
+
+        #region Variables
 
         private IEnumerable<byte> _finalBoundary;
         private IDictionary<string, string> _nextPartsHeaders;
         private string _contentType;
 
+        #endregion
+
+        #region Properties
+
+        /// <summary>
+        /// Gets the content-type for use in the multipart headers
+        /// </summary>
         public string ContentType { 
             get {
                 return String.Format("{0}; boundary=\"{1}\"", _contentType, Boundary);
             }
         }
 
+        /// <summary>
+        /// Gets the boundary ID of this multipart response
+        /// </summary>
         public string Boundary { get; private set; }
 
+        #endregion
+
+        #region Constructors
+
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        /// <param name="contentType">The content type of the multipart response</param>
+        /// <param name="boundary">The boundary ID to use between parts</param>
         public MultipartWriter(string contentType, string boundary)
         {
             _contentType = contentType;
@@ -55,11 +83,23 @@ namespace Couchbase.Lite.Support
             Length += _finalBoundary.Count();
         }
 
+        #endregion
+
+        #region Public Methods
+
+        /// <summary>
+        /// Sets the headers for the next part in the response
+        /// </summary>
+        /// <param name="nextPartHeaders">The next headers</param>
         public void SetNextPartHeaders(IDictionary<string, string> nextPartHeaders)
         {
             _nextPartsHeaders = nextPartHeaders;
         }
 
+        /// <summary>
+        /// GZips data and adds it to the response
+        /// </summary>
+        /// <param name="data">The uncompressed data</param>
         public void AddGZippedData(IEnumerable<byte> data)
         {
             if (data.Count() >= MIN_DATA_LENGTH_TO_COMPRESS) {
@@ -72,6 +112,12 @@ namespace Couchbase.Lite.Support
             AddData(data);
         }
 
+        #endregion
+
+        #region Overrides
+        #pragma warning disable 1591
+
+        // MultiStreamWriter
         protected override void Opened()
         {
             if (_finalBoundary != null) {
@@ -84,6 +130,7 @@ namespace Couchbase.Lite.Support
             base.Opened();
         }
 
+        // MultiStreamWriter
         protected override void AddInput(object input, long length)
         {
             StringBuilder headers = new StringBuilder(String.Format("\r\n--{0}\r\n", Boundary));
@@ -101,6 +148,9 @@ namespace Couchbase.Lite.Support
             base.AddInput(separator, separator.LongLength);
             base.AddInput(input, length);
         }
+
+        #pragma warning restore 1591
+        #endregion
     }
 }
 

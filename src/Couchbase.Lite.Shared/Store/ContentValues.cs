@@ -42,21 +42,47 @@
 
 using System;
 using System.Collections.Generic;
-using System.Text;
-using Couchbase.Lite.Util;
-using Sharpen;
 using System.Linq;
+using System.Text;
+
+using Sharpen;
 
 namespace Couchbase.Lite.Storage
 {
+
+    /// <summary>
+    /// A class for holding arbitrary values for binding to SQL statements and such
+    /// </summary>
     public sealed class ContentValues // TODO: Create Add override and refactor to use initializer syntax.
     {
-        const string Tag = "ContentValues";
 
-        /// <summary>Holds the actual values</summary>
+        #region Constants
+
+        private const string Tag = "ContentValues";
+
+        #endregion
+
+        #region Variables
+
+        //The actual container for storing the values
         private readonly Dictionary<string, object> mValues;
 
-        /// <summary>Creates an empty set of values using the default initial size</summary>
+        #endregion
+
+        #region Properties
+
+        internal object this[string key] {
+            get { return mValues[key]; }
+            set { mValues[key] = value; }
+        }
+
+        #endregion
+
+        #region Constructors
+
+        /// <summary>
+        /// Creates an empty set of values using the default initial size
+        /// </summary>
         public ContentValues()
         {
             // COPY: Copied from android.content.ContentValues
@@ -65,41 +91,29 @@ namespace Couchbase.Lite.Storage
             mValues = new Dictionary<string, object>(8);
         }
 
-        /// <summary>Creates an empty set of values using the given initial size</summary>
+        /// <summary>
+        /// Creates an empty set of values using the given initial size
+        /// </summary>
         /// <param name="size">the initial size of the set of values</param>
         public ContentValues(int size)
         {
             mValues = new Dictionary<String, Object>(size);
         }
 
-        /// <summary>Creates a set of values copied from the given set</summary>
-        /// <param name="from">the values to copy</param>
+        /// <summary>
+        /// Creates a set of values copied from the given set
+        /// </summary>
+        /// <param name="from">The values to copy</param>
         public ContentValues(ContentValues from)
         {
             mValues = new Dictionary<string, object>(from.mValues);
         }
 
-        public override bool Equals(object obj)
-        {
-            if (!(obj is ContentValues))
-            {
-                return false;
-            }
-            return mValues.Equals(((ContentValues)obj).mValues);
-        }
+        #endregion
 
-        public override int GetHashCode()
-        {
-            return mValues.GetHashCode();
-        }
-
-        internal Object this[String key] {
-            get { return mValues[key]; }
-            set { mValues[key] = value; }
-        }
+        #region Public Methods
         
         /// <summary>Adds a value to the set.</summary>
-        /// <remarks>Adds a value to the set.</remarks>
         /// <param name="key">the name of the value to put</param>
         /// <param name="value">the data for the value to put</param>
         public void Put(string key, string value)
@@ -108,7 +122,6 @@ namespace Couchbase.Lite.Storage
         }
 
         /// <summary>Adds all values from the passed in ContentValues.</summary>
-        /// <remarks>Adds all values from the passed in ContentValues.</remarks>
         /// <param name="other">the ContentValues from which to copy</param>
         public void PutAll(Couchbase.Lite.Storage.ContentValues other)
         {
@@ -116,7 +129,6 @@ namespace Couchbase.Lite.Storage
         }
 
         /// <summary>Adds a value to the set.</summary>
-        /// <remarks>Adds a value to the set.</remarks>
         /// <param name="key">the name of the value to put</param>
         /// <param name="value">the data for the value to put</param>
         public void Put(string key, byte value)
@@ -125,7 +137,6 @@ namespace Couchbase.Lite.Storage
         }
 
         /// <summary>Adds a value to the set.</summary>
-        /// <remarks>Adds a value to the set.</remarks>
         /// <param name="key">the name of the value to put</param>
         /// <param name="value">the data for the value to put</param>
         public void Put(string key, short value)
@@ -134,7 +145,6 @@ namespace Couchbase.Lite.Storage
         }
 
         /// <summary>Adds a value to the set.</summary>
-        /// <remarks>Adds a value to the set.</remarks>
         /// <param name="key">the name of the value to put</param>
         /// <param name="value">the data for the value to put</param>
         public void Put(string key, int value)
@@ -143,7 +153,6 @@ namespace Couchbase.Lite.Storage
         }
 
         /// <summary>Adds a value to the set.</summary>
-        /// <remarks>Adds a value to the set.</remarks>
         /// <param name="key">the name of the value to put</param>
         /// <param name="value">the data for the value to put</param>
         public void Put(string key, long value)
@@ -152,7 +161,6 @@ namespace Couchbase.Lite.Storage
         }
 
         /// <summary>Adds a value to the set.</summary>
-        /// <remarks>Adds a value to the set.</remarks>
         /// <param name="key">the name of the value to put</param>
         /// <param name="value">the data for the value to put</param>
         public void Put(string key, float value)
@@ -161,7 +169,6 @@ namespace Couchbase.Lite.Storage
         }
 
         /// <summary>Adds a value to the set.</summary>
-        /// <remarks>Adds a value to the set.</remarks>
         /// <param name="key">the name of the value to put</param>
         /// <param name="value">the data for the value to put</param>
         public void Put(string key, double value)
@@ -170,7 +177,6 @@ namespace Couchbase.Lite.Storage
         }
 
         /// <summary>Adds a value to the set.</summary>
-        /// <remarks>Adds a value to the set.</remarks>
         /// <param name="key">the name of the value to put</param>
         /// <param name="value">the data for the value to put</param>
         public void Put(string key, bool value)
@@ -179,7 +185,6 @@ namespace Couchbase.Lite.Storage
         }
 
         /// <summary>Adds a value to the set.</summary>
-        /// <remarks>Adds a value to the set.</remarks>
         /// <param name="key">the name of the value to put</param>
         /// <param name="value">the data for the value to put</param>
         public void Put(string key, IEnumerable<Byte> value)
@@ -188,7 +193,6 @@ namespace Couchbase.Lite.Storage
         }
 
         /// <summary>Adds a null value to the set.</summary>
-        /// <remarks>Adds a null value to the set.</remarks>
         /// <param name="key">the name of the value to make null</param>
         public void PutNull(string key)
         {
@@ -196,7 +200,6 @@ namespace Couchbase.Lite.Storage
         }
 
         /// <summary>Returns the number of values.</summary>
-        /// <remarks>Returns the number of values.</remarks>
         /// <returns>the number of values</returns>
         public int Size()
         {
@@ -204,7 +207,6 @@ namespace Couchbase.Lite.Storage
         }
 
         /// <summary>Remove a single value.</summary>
-        /// <remarks>Remove a single value.</remarks>
         /// <param name="key">the name of the value to remove</param>
         public void Remove(string key)
         {
@@ -212,14 +214,12 @@ namespace Couchbase.Lite.Storage
         }
 
         /// <summary>Removes all values.</summary>
-        /// <remarks>Removes all values.</remarks>
         public void Clear()
         {
             mValues.Clear();
         }
 
         /// <summary>Returns true if this object has the named value.</summary>
-        /// <remarks>Returns true if this object has the named value.</remarks>
         /// <param name="key">the value to check for</param>
         /// <returns>
         /// 
@@ -353,6 +353,35 @@ namespace Couchbase.Lite.Storage
             return mValues.Keys;
         }
 
+        #endregion
+
+        #region Overrides
+
+        /// <summary>
+        /// Determines whether the specified <see cref="System.Object"/> is equal to the current <see cref="Couchbase.Lite.Storage.ContentValues"/>.
+        /// </summary>
+        /// <param name="obj">The <see cref="System.Object"/> to compare with the current <see cref="Couchbase.Lite.Storage.ContentValues"/>.</param>
+        /// <returns><c>true</c> if the specified <see cref="System.Object"/> is equal to the current
+        /// <see cref="Couchbase.Lite.Storage.ContentValues"/>; otherwise, <c>false</c>.</returns>
+        public override bool Equals(object obj)
+        {
+            if (!(obj is ContentValues))
+            {
+                return false;
+            }
+            return mValues.Equals(((ContentValues)obj).mValues);
+        }
+
+        /// <summary>
+        /// Serves as a hash function for a <see cref="Couchbase.Lite.Storage.ContentValues"/> object.
+        /// </summary>
+        /// <returns>A hash code for this instance that is suitable for use in hashing algorithms and data structures such as a
+        /// hash table.</returns>
+        public override int GetHashCode()
+        {
+            return mValues.GetHashCode();
+        }
+
         /// <summary>
         /// Returns a string containing a concise, human-readable description of this object.
         /// </summary>
@@ -371,5 +400,8 @@ namespace Couchbase.Lite.Storage
             }
             return sb.ToString();
         }
+
+        #endregion
+
     }
 }

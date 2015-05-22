@@ -32,30 +32,28 @@
 // License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
 // either express or implied. See the License for the specific language governing permissions
 // and limitations under the License.
-//using System;
+
 using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Net;
-using System.Net.Http;
-using System.Threading.Tasks;
-using Couchbase.Lite;
-using Couchbase.Lite.Internal;
-using Couchbase.Lite.Replicator;
-using Couchbase.Lite.Support;
-using Couchbase.Lite.Util;
-using Sharpen;
-using System.Threading;
 
 namespace Couchbase.Lite.Replicator
 {
-
+    /// <summary>
+    /// Arguments for an event raised by a bulk downloader (contains the properties
+    /// of the downloaded document)
+    /// </summary>
     public class BulkDownloadEventArgs : EventArgs
     {
+
+        /// <summary>
+        /// Gets the document properties that were received by the downloader
+        /// </summary>
         public IDictionary<string, object> DocumentProperties { get; private set; }
 
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        /// <param name="props">The document properties received by the downloader</param>
         public BulkDownloadEventArgs(IDictionary<string, object> props)
         {
             DocumentProperties = props;

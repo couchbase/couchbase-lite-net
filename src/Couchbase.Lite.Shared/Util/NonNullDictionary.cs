@@ -19,10 +19,10 @@
 //  limitations under the License.
 //
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Collections;
+using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 
 namespace Couchbase.Lite.Util
 {
@@ -45,11 +45,41 @@ namespace Couchbase.Lite.Util
         }
     }
 
+    /// <summary>
+    /// A dictionary that ignores any attempts to insert a null object into it.
+    /// Usefor for creating JSON objects that should not contain null values
+    /// </summary>
     [DebuggerDisplay ("Count={Count}")]
     [DebuggerTypeProxy (typeof (CollectionDebuggerView<,>))]
     public sealed class NonNullDictionary<K, V> : IEnumerable<KeyValuePair<K, V>>, IDictionary<K, V>
     {
+
+        #region Variables
+
         private readonly IDictionary<K, V> _data = new Dictionary<K, V>();
+
+        #endregion
+
+        #region Private Methods
+
+        private bool IsAddable(V item)
+        {
+            if (item is ValueType) {
+                var underlyingType = Nullable.GetUnderlyingType(typeof(V));
+                if (underlyingType != null) {
+                    return item != null;
+                }
+
+                return true;
+            }
+
+            return item != null;
+        }
+
+        #endregion
+
+        #pragma warning disable 1591
+        #region IEnumerable
 
         public IEnumerator<KeyValuePair<K, V>> GetEnumerator()
         {
@@ -60,6 +90,10 @@ namespace Couchbase.Lite.Util
         {
             return _data.GetEnumerator();
         }
+
+        #endregion
+
+        #region IDictionary
 
         public void Add(K key, V value)
         {
@@ -150,19 +184,9 @@ namespace Couchbase.Lite.Util
             }
         }
 
-        private bool IsAddable(V item)
-        {
-            if (item is ValueType) {
-                var underlyingType = Nullable.GetUnderlyingType(typeof(V));
-                if (underlyingType != null) {
-                    return item != null;
-                }
+        #endregion
+        #pragma warning restore 1591
 
-                return true;
-            }
-
-            return item != null;
-        }
     }
 }
 

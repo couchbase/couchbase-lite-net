@@ -45,69 +45,36 @@ using System;
 
 namespace Couchbase.Lite.Storage
 {
-    //[Function(Name = "JSON", FuncType = FunctionType.Collation, Arguments = 2)]
+
     internal static class CouchbaseSqliteJsonUnicodeCollationFunction
     {
-        /// <Docs>Implements the custom collection for JSON strings.</Docs>
-        /// <summary>
-        /// Couchbase custom JSON collation algorithm.
-        /// </summary>
-        /// <param name = "userData"></param>
-        /// <param name = "param1"></param>
-        /// <param name = "param2"></param>
         public static Int32 Compare (object userData, String param1, String param2)
         {
             return JsonCollator.Compare(JsonCollationMode.Unicode, param1, param2, Int32.MaxValue);
         }
     }
-
-    //[SqliteFunction(Name = "JSON_ASCII", FuncType = FunctionType.Collation, Arguments = 2)]
+        
     internal static class CouchbaseSqliteJsonAsciiCollationFunction
     {
-        /// <Docs>Implements the custom collection for JSON strings.</Docs>
-        /// <summary>
-        /// Couchbase custom JSON collation algorithm.
-        /// </summary>
-        /// <remarks>
-        /// This is woefully incomplete.
-        /// For full details, see https://github.com/couchbase/couchbase-lite-ios/blob/580c5f65ebda159ce5d0ce1f75adc16955a2a6ff/Source/CBLCollateJSON.m.
-        /// </remarks>
-        /// <param name = "args"></param>
+        //Woefully incomplete ?
         public static Int32 Compare (object userData, String param1, String param2)
         {
             return JsonCollator.Compare(JsonCollationMode.Ascii, param1, param2, Int32.MaxValue);
         }
     }
-
-    //[SqliteFunction(Name = "JSON_RAW", FuncType = FunctionType.Collation, Arguments = 2)]
+        
     internal static class CouchbaseSqliteJsonRawCollationFunction
     {
-        /// <Docs>Implements the custom collection for JSON strings.</Docs>
-        /// <summary>
-        /// Couchbase custom JSON collation algorithm.
-        /// </summary>
-        /// <remarks>
-        /// This is woefully incomplete.
-        /// For full details, see https://github.com/couchbase/couchbase-lite-ios/blob/580c5f65ebda159ce5d0ce1f75adc16955a2a6ff/Source/CBLCollateJSON.m.
-        /// </remarks>
-        /// <param name = "args"></param>
+        //Woefully incomplete ?
         public static Int32 Compare (object userData, String param1, String param2)
         {
             return JsonCollator.Compare(JsonCollationMode.Raw, param1, param2, Int32.MaxValue);
         }
     }
-
-    //[SqliteFunction(Name = "REVID", FuncType = FunctionType.Collation, Arguments = 2)]
+        
     internal static class CouchbaseSqliteRevIdCollationFunction
     {
-        /// <Docs>Implements a custom collation for Revision ID strings.</Docs>
-        /// <summary>
-        /// Couchbase custom Revision ID collation algorithm.
-        /// </summary>
-        /// <remarks>
-        /// For full details, see https://github.com/couchbase/couchbase-lite-ios/blob/master/Source/CBL_Revision.m
-        /// </remarks>
-        /// <param name = "args"></param>
+        //Woefully incomplete ?
         public static Int32 Compare (object userData, String param1, String param2)
         {
             return RevIdCollator.Compare(param1, param2);

@@ -44,5 +44,10 @@ using System;
 
 namespace Couchbase.Lite.Support
 {
-    public delegate void RemoteRequestCompletionBlock(Object result, Exception e);
+    
+    /// <summary>
+    /// The signature for a method that can be called upon the receipt of
+    /// a reponse from a remote request
+    /// </summary>
+    public delegate void RemoteRequestCompletionBlock(object result, Exception e);
 }

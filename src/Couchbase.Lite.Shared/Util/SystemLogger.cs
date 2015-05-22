@@ -41,11 +41,13 @@
 //
 
 using System;
-using System.IO;
-using Couchbase.Lite.Util;
-using Sharpen;
 using System.Diagnostics;
+using System.IO;
 using System.Threading;
+
+using Sharpen;
+
+#pragma warning disable 1591
 
 namespace Couchbase.Lite.Util
 {
@@ -149,3 +151,5 @@ namespace Couchbase.Lite.Util
         }
     }
 }
+
+#pragma warning restore 1591

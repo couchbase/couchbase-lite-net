@@ -40,29 +40,31 @@
 // and limitations under the License.
 //
 
-using System.Text;
-using Couchbase.Lite;
-using Couchbase.Lite.Util;
-using Sharpen;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Net;
-using Couchbase.Lite.Storage;
-using System.IO;
-using System.Net.NetworkInformation;
 using System.Net.Http;
 using System.Net.Sockets;
-//using System.Net.WebSockets;
+using System.Text;
 
-
+using Couchbase.Lite;
+using Couchbase.Lite.Storage;
+using Couchbase.Lite.Util;
+using Sharpen;
 
 namespace Couchbase.Lite
 {
+
+    /// <summary>
+    /// An event handler that sends a typed sender instead of object
+    /// </summary>
     public delegate void TypedEventHandler<TSenderType, TArgType>(TSenderType sender, TArgType args);
 
     internal static class Misc
     {
+        
         public static string CreateGUID()
         {
             return Guid.NewGuid().ToString().ToLower();

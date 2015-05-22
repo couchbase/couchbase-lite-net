@@ -41,127 +41,167 @@
 //
 
 using System;
+using Couchbase.Lite.Store;
+using Couchbase.Lite.Util;
 
 using SQLitePCL;
-using Couchbase.Lite.Store;
 using SQLitePCL.Ugly;
-using Couchbase.Lite.Util;
 
 namespace Couchbase.Lite
 {
+
+    /// <summary>
+    /// A class for encapsulating a result set from a database
+    /// </summary>
     public class Cursor : IDisposable
     {
-        static public object StmtDisposeLock = new object();
+        #region Constants
 
-        const Int32 DefaultChunkSize = 8192;
+        private const int DEFAULT_CHUNK_SIZE = 8192;
 
-        private sqlite3_stmt statement;
+        #endregion
 
-        private Int32 currentStep = -1;
-
-        Boolean HasRows {
-            get {
-                return currentStep == SQLiteResult.ROW; 
-            }
-        }
-
-        Int64 currentRow;
+        #region Variables
 
         /// <summary>
-        /// Can throw an exception
+        /// An object to lock on when interacting with statements owned by this Cursor
         /// </summary>
-        /// <param name="stmt">Statement.</param>
-        internal Cursor (sqlite3_stmt stmt)
-        {
-            this.statement = stmt;
-            currentRow = -1;
-            currentStep = statement.step();
+        /// <remarks>
+        /// This is a bit of a hack and will be fixed in a later refactor
+        /// </remarks>
+        public static object StmtDisposeLock = new object();
 
-            if (currentStep != raw.SQLITE_OK && currentStep != raw.SQLITE_ROW && currentStep != raw.SQLITE_DONE) {
-                Log.E ("Cursor", "currentStep: " + currentStep);
+        private sqlite3_stmt _statement;
+        private int _currentStep = -1;
+        private long _currentRow;
+
+        #endregion
+
+        #region Properties
+
+        private bool HasRows {
+            get {
+                return _currentStep == SQLiteResult.ROW; 
             }
         }
 
+        #endregion
+
+        #region Constructors
+
+        //NOTE.JHB: Can throw an exception
+        internal Cursor (sqlite3_stmt stmt)
+        {
+            this._statement = stmt;
+            _currentRow = -1;
+            _currentStep = _statement.step();
+
+            if (_currentStep != raw.SQLITE_OK && _currentStep != raw.SQLITE_ROW && _currentStep != raw.SQLITE_DONE) {
+                Log.E ("Cursor", "currentStep: " + _currentStep);
+            }
+        }
+
+        #endregion
+
+        #region Public Methods
+
+        /// <summary>
+        /// Moves to the next result in the set
+        /// </summary>
+        /// <returns><c>true</c>, if the cursor was able to move, <c>false</c> otherwise.</returns>
         public bool MoveToNext ()
         {
-            if (currentRow >= 0)
-            {
-                currentStep = statement.step();
+            if (_currentRow >= 0) {
+                _currentStep = _statement.step();
 
-                if (currentStep != raw.SQLITE_OK && currentStep != raw.SQLITE_ROW && currentStep != raw.SQLITE_DONE) {
-                    Log.E ("Cursor", "currentStep: " + currentStep);
+                if (_currentStep != raw.SQLITE_OK && _currentStep != raw.SQLITE_ROW && _currentStep != raw.SQLITE_DONE) {
+                    Log.E("Cursor", "currentStep: " + _currentStep);
                 }
             }
 
-            if (HasRows) currentRow++;
+            if (HasRows) _currentRow++;
             return HasRows;
         }
 
+        /// <summary>
+        /// Gets the value of the column at the given index as an integer
+        /// </summary>
+        /// <returns>The value of the column as an integer</returns>
+        /// <param name="columnIndex">The index of the column to evaluate</param>
         public int GetInt (int columnIndex)
         {
-            return statement.column_int(columnIndex);
+            return _statement.column_int(columnIndex);
         }
 
+        /// <summary>
+        /// Gets the value of the column at the given index as a long integer
+        /// </summary>
+        /// <returns>The value of the column as a long integer</returns>
+        /// <param name="columnIndex">The index of the column to evaluate</param>
         public long GetLong (int columnIndex)
         {
-            return statement.column_int64(columnIndex);
+            return _statement.column_int64(columnIndex);
         }
 
+        /// <summary>
+        /// Gets the value of the column at the given index as a string
+        /// </summary>
+        /// <returns>The value of the column as a string</returns>
+        /// <param name="columnIndex">The index of the column to evaluate</param>
         public string GetString (int columnIndex)
         {
-            return statement.column_text(columnIndex);
+            return _statement.column_text(columnIndex);
         }
 
         // TODO: Refactor this to return IEnumerable<byte>.
+        /// <summary>
+        /// Gets the value of the column at the given index as a blob
+        /// </summary>
+        /// <returns>The value of the column as a blob</returns>
+        /// <param name="columnIndex">The index of the column to evaluate</param>
         public byte[] GetBlob (int columnIndex)
         {
-            return statement.column_blob(columnIndex);
+            return _statement.column_blob(columnIndex);
         }
 
-//        public byte[] GetBlob (int columnIndex, int chunkSize)
-//        {
-//            SQLitePCL.SQLiteConnection
-//
-//            var result = statement[columnIndex];
-//            if (result == null) return new byte[2]; // NOTE.ZJG: Database.AppendDictToJSON assumes an empty json doc has a for a length of two.
-//            var r = statement;
-//
-//            var chunkBuffer = new byte[chunkSize];
-//            var blob = new List<Byte>(chunkSize); // We know we'll be reading at least 1 chunk, so pre-allocate now to avoid an immediate resize.
-//
-//            long bytesRead;
-//            do
-//            {
-//                chunkBuffer.Initialize(); // Resets all values back to zero.
-//                bytesRead = r[columnIndex](columnIndex, blob.Count, chunkBuffer, 0, chunkSize);
-//                blob.AddRange(chunkBuffer.Take(Convert.ToInt32(bytesRead)));
-//            } while (bytesRead > 0);
-//
-//            return blob.ToArray();
-//        }
-
+        /// <summary>
+        /// Closes the cursor and frees its resources
+        /// </summary>
         public void Close ()
         {
             Dispose();
         }
 
+        /// <summary>
+        /// Returns whether or not the cursor is at the end of the result set
+        /// </summary>
+        /// <returns><c>true</c> if this instance is at the end; otherwise, <c>false</c>.</returns>
         public bool IsAfterLast ()
         {
             return !HasRows;
         }
 
-        #region IDisposable implementation
+        #endregion
 
+        #region IDisposable
+
+        /// <summary>
+        /// Releases all resource used by the <see cref="Couchbase.Lite.Cursor"/> object.
+        /// </summary>
+        /// <remarks>Call <see cref="Dispose"/> when you are finished using the <see cref="Couchbase.Lite.Cursor"/>. The
+        /// <see cref="Dispose"/> method leaves the <see cref="Couchbase.Lite.Cursor"/> in an unusable state. After
+        /// calling <see cref="Dispose"/>, you must release all references to the <see cref="Couchbase.Lite.Cursor"/> so
+        /// the garbage collector can reclaim the memory that the <see cref="Couchbase.Lite.Cursor"/> was occupying.</remarks>
         public void Dispose ()
         {
-            if (statement == null) {
+            if (_statement == null) {
                 return;
             }
 
             lock (StmtDisposeLock) 
             {
-                statement.Dispose ();
-                statement = null;
+                _statement.Dispose ();
+                _statement = null;
             }
         }
 

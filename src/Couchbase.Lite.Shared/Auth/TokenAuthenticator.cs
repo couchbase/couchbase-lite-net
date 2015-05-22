@@ -45,35 +45,67 @@ using System.Collections.Generic;
 
 namespace Couchbase.Lite.Auth
 {
+    /// <summary>
+    /// An object that can verify authentication via token (like Facebook or Persona)
+    /// </summary>
     public class TokenAuthenticator : IAuthenticator
     {
-        private string loginPath;
-        private IDictionary<string, string>loginParams;
 
-        public TokenAuthenticator(string loginPath, IDictionary<String, String> loginParams) 
-        {
-            this.loginPath = loginPath;
-            this.loginParams = loginParams;
-        }
+        #region Variables
 
+        private readonly string _loginPath;
+        private readonly IDictionary<string, string> _loginParams;
+
+        #endregion
+
+        #region Properties
+        #pragma warning disable 1591
+
+        // IAuthenticator
         public bool UsesCookieBasedLogin { get { return true; } }
-            
-        public IDictionary<string, string> LoginParametersForSite(Uri site) 
-        {
-            return loginParams;
-        }
-            
+
+        // IAuthenticator
         public string UserInfo { get { return null; } }
 
+        // IAuthenticator
         public string Scheme { get { return null; } }
+
+        #pragma warning restore 1591
+        #endregion
+
+        #region Constructors
+
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        /// <param name="loginPath">The login path to use</param>
+        /// <param name="loginParams">The login headers to use</param>
+        public TokenAuthenticator(string loginPath, IDictionary<String, String> loginParams) 
+        {
+            _loginPath = loginPath;
+            _loginParams = loginParams;
+        }
+
+        #endregion
+
+        #region IAuthenticator
+        #pragma warning disable 1591
 
         public string LoginPathForSite(Uri site) 
         {
-            var path = loginPath;
+            var path = _loginPath;
             if (path != null && !path.StartsWith("/")) {
                 path = "/" + path;
             }
             return path;
         }
+
+        public IDictionary<string, string> LoginParametersForSite(Uri site) 
+        {
+            return _loginParams;
+        }
+
+        #pragma warning restore 1591
+        #endregion
     }
 }
