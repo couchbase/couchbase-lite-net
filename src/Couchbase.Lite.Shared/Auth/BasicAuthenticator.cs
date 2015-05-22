@@ -45,33 +45,63 @@ using System.Collections.Generic;
 
 namespace Couchbase.Lite.Auth
 {
+
+    /// <summary>
+    /// An object that can authenticate using HTTP basic authentication
+    /// </summary>
     public class BasicAuthenticator : IAuthenticator
     {
-        private string username;
-        private string password;
 
-        public BasicAuthenticator(string username, string password) 
-        {
-            this.username = username;
-            this.password = password;
-        }
+        #region Variables
 
+        private readonly string _username;
+        private readonly string _password;
+
+        #endregion
+
+        #region Properties
+        #pragma warning disable 1591
+
+        // IAuthenticator
         public bool UsesCookieBasedLogin { get { return true; } }
-            
+
+        // IAuthenticator
         public string UserInfo
         {
-            get 
+            get
             {
-                if (this.username != null && this.password != null) 
-                {
-                    return this.username + ":" + this.password;
+                if (this._username != null && this._password != null) {
+                    return this._username + ":" + this._password;
                 }
+
                 return null;
             }
         }
 
+        // IAuthenticator
         public string Scheme { get { return "Basic"; } }
-            
+
+        #pragma warning restore 1591
+        #endregion
+
+        #region Constructors
+
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        /// <param name="username">The username for the auth</param>
+        /// <param name="password">The password for the auth</param>
+        public BasicAuthenticator(string username, string password) 
+        {
+            this._username = username;
+            this._password = password;
+        }
+
+        #endregion
+
+        #region IAuthenticator
+        #pragma warning disable 1591
+
         public string LoginPathForSite(Uri site) 
         {
             return "/_session";
@@ -86,6 +116,10 @@ namespace Couchbase.Lite.Auth
             // to the login url.
             return null;
         }
+
+        #pragma warning restore 1591
+        #endregion
+
     }
 }
 

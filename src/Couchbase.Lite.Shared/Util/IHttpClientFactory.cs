@@ -52,13 +52,47 @@ using System.Net;
 
 namespace Couchbase.Lite.Support
 {
+    /// <summary>
+    /// An interface describing an object capable of creating and customizing 
+    /// an HttpClient object
+    /// </summary>
     public interface IHttpClientFactory
     {
+        /// <summary>
+        /// Gets the HttpClient object for use in replication
+        /// </summary>
+        /// <returns>The http client.</returns>
         HttpClient GetHttpClient();
+
+        /// <summary>
+        /// Gets or sets the headers used by default in the HttpClient
+        /// </summary>
+        /// <value>The headers.</value>
         IDictionary<string,string> Headers { get; set; }
+
+        /// <summary>
+        /// Gets the handler used in the HttpClient
+        /// </summary>
+        /// <value>The handler.</value>
         MessageProcessingHandler Handler { get; }
+
+        /// <summary>
+        /// Adds default cookies to the HttpClient
+        /// </summary>
+        /// <param name="cookies">The cookies to add</param>
         void AddCookies(CookieCollection cookies);
+
+        /// <summary>
+        /// Deletes cookies from the HttpClient
+        /// </summary>
+        /// <param name="domain">The domain to search for the cookie</param>
+        /// <param name="name">The name of the cookie</param>
         void DeleteCookie(Uri domain, string name);
+
+        /// <summary>
+        /// Gets the container holding the cookies for the HttpClient
+        /// </summary>
+        /// <returns>The cookie container.</returns>
         CookieContainer GetCookieContainer();
     }
 }

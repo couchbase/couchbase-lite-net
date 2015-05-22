@@ -41,10 +41,12 @@
 //
 
 using System;
-using Sharpen;
 
 namespace Couchbase.Lite.Storage
 {
+    /// <summary>
+    /// A class representing an SQL error
+    /// </summary>
     [System.Serializable]
     public class SQLException : Exception
     {
@@ -60,6 +62,10 @@ namespace Couchbase.Lite.Storage
         {
         }
 
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        /// <param name="cause">The exception that caused this exception</param>
         public SQLException(Exception cause) : base("SQLException", cause)
         {
         }

@@ -58,8 +58,8 @@ namespace Couchbase.Lite
                     return true; //Getting an HTTP error technically means we can connect
                 }
 
-                Log.D(TAG, "Didn't get successful connection to {0}", remoteUri);
-                Log.E(TAG, "Exception: ", e);
+                Log.W(TAG, "Didn't get successful connection to {0}", remoteUri);
+                Log.W(TAG, "   Cause: ", e);
                 return false;
             }
         }

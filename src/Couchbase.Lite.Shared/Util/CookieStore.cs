@@ -56,43 +56,70 @@ using System.Net.Couchbase;
 
 namespace Couchbase.Lite.Util
 {
+
+    /// <summary>
+    /// An object that holds and serializes cookies
+    /// </summary>
     public class CookieStore : CookieContainer
     {
-        const string FileName = "cookies.json";
 
-        readonly Object locker = new Object();
+        #region Constants
 
-        readonly DirectoryInfo directory;
+        private const string FileName = "cookies.json";
 
+        #endregion
+
+        #region Variables
+
+        private readonly object locker = new object();
+        private readonly DirectoryInfo directory;
         private HashSet<Uri> _cookieUriReference = new HashSet<Uri>();
+
+        #endregion
 
         #region Constructors
 
+        /// <summary>
+        /// Convenience constructor
+        /// </summary>
         public CookieStore() : this (null) { }
 
+        /// <summary>
+        /// Default constructor
+        /// </summary>
+        /// <param name="directory">The directory to serialize the cookies to</param>
         public CookieStore(String directory) 
         {
-            if (directory != null)
-            {
+            if (directory != null) {
                 this.directory = new DirectoryInfo(directory);
             }
+
             DeserializeFromDisk();
         }
 
         #endregion
 
-        #region Public
+        #region Public Methods
+
+        /// <summary>
+        /// Add the specified cookies, force overrides CookieCollection
+        /// </summary>
+        /// <param name="cookies">The cookies to add</param>
         public new void Add(CookieCollection cookies)
         {
             base.Add(cookies);
-            foreach(Cookie cookie in cookies)
-            {
+            foreach (Cookie cookie in cookies) {
                 var urlString = String.Format("http://{0}{1}", cookie.Domain, cookie.Path);
                 _cookieUriReference.Add(new Uri(urlString));
             }
+
             Save();
         }
 
+        /// <summary>
+        /// Add the specified cookie, force overrides CookieCollection
+        /// </summary>
+        /// <param name="cookie">The cookie to add</param>
         public new void Add(Cookie cookie)
         {
             base.Add(cookie);
@@ -100,34 +127,33 @@ namespace Couchbase.Lite.Util
             _cookieUriReference.Add(new Uri(urlString));
         }
 
+        /// <summary>
+        /// Delete the cookie with the specified uri and name.
+        /// </summary>
+        /// <param name="uri">The uri of the cookie.</param>
+        /// <param name="name">The name of the cookie.</param>
         public void Delete(Uri uri, string name)
         {
-            if (uri == null || name == null)
-            {
+            if (uri == null || name == null) {
                 return;
             }
 
-            lock (locker) 
-            {
+            lock (locker) {
                 var delete = false;
                 var cookies = GetCookies(uri);
-                foreach (Cookie cookie in cookies)
-                {
-                    if (name.Equals(cookie.Name))
-                    {
+                foreach (Cookie cookie in cookies) {
+                    if (name.Equals(cookie.Name)) {
                         cookie.Discard = true;
                         cookie.Expired = true;
                         cookie.Expires = DateTime.Now.Subtract(TimeSpan.FromDays(2));
 
-                        if (!delete)
-                        {
+                        if (!delete) {
                             delete = true;
                         }
                     }
                 }
 
-                if (delete)
-                {
+                if (delete) {
                     // Trigger container cookie list refreshment
                     GetCookies(uri);
                     Save();
@@ -135,27 +161,27 @@ namespace Couchbase.Lite.Util
             }
         }
 
+        /// <summary>
+        /// Saves the cookies to disk
+        /// </summary>
         public void Save()
         {
-            lock(locker)
-            {
+            lock (locker) {
                 SerializeToDisk();
             }
         }
 
         #endregion
 
-        #region Private
+        #region Private Methods
 
         private string GetSaveCookiesFilePath()
         {
-            if (directory == null)
-            {
+            if (directory == null) {
                 return null;
             }
 
-            if (!directory.Exists)
-            {
+            if (!directory.Exists) {
                 directory.Create();
                 directory.Refresh();
             }
@@ -166,20 +192,17 @@ namespace Couchbase.Lite.Util
         private void SerializeToDisk()
         {
             var filePath = GetSaveCookiesFilePath();
-            if (StringEx.IsNullOrWhiteSpace(filePath))
-            {
+            if (StringEx.IsNullOrWhiteSpace(filePath)) {
                 return;
             }
 
             List<Cookie> aggregate = new List<Cookie>();
-            foreach(var uri in _cookieUriReference)
-            {
+            foreach (var uri in _cookieUriReference) {
                 var collection = GetCookies(uri);
                 aggregate.AddRange(collection.Cast<Cookie>());
             }
 
-            using (var writer = new StreamWriter(filePath))
-            {
+            using (var writer = new StreamWriter(filePath)) {
                 var json = JsonConvert.SerializeObject(aggregate);
                 writer.Write(json);
             }
@@ -188,26 +211,22 @@ namespace Couchbase.Lite.Util
         private void DeserializeFromDisk()
         {
             var filePath = GetSaveCookiesFilePath();
-            if (StringEx.IsNullOrWhiteSpace(filePath))
-            {
+            if (StringEx.IsNullOrWhiteSpace(filePath)) {
                 return;
             }
 
             var fileInfo = new FileInfo(filePath);
-            if (!fileInfo.Exists)
-            {
+            if (!fileInfo.Exists) {
                 return;
             }
 
-            using (var reader = new StreamReader(filePath))
-            {
+            using (var reader = new StreamReader(filePath)) {
                 var json = reader.ReadToEnd();
 
                 var cookies = JsonConvert.DeserializeObject<List<Cookie>>(json);
                 cookies = cookies ?? new List<Cookie>();
 
-                foreach(Cookie cookie in cookies)
-                {
+                foreach (Cookie cookie in cookies) {
                     Add(cookie);
                 }
             }

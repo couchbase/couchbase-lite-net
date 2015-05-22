@@ -23,23 +23,33 @@ using System.Collections.Generic;
 
 namespace Couchbase.Lite
 {
+    /// <summary>
+    /// A simple equality comparer that just calls default functions
+    /// </summary>
     [Serializable]
     public sealed class GenericEqualityComparer <T> : EqualityComparer <T> where T : IEquatable <T> {
 
+        #pragma warning disable 1591
+
         public override int GetHashCode (T obj)
         {
-            if (obj == null)
+            if (obj == null) {
                 return 0;
+            }
+
             return obj.GetHashCode ();
         }
 
         public override bool Equals (T x, T y)
         {
-            if (x == null)
+            if (x == null) {
                 return y == null;
+            }
 
             return x.Equals (y);
         }
+
+        #pragma warning restore 1591
     }
 }
 

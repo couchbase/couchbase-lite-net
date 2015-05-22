@@ -39,21 +39,44 @@
 // either express or implied. See the License for the specific language governing permissions
 // and limitations under the License.
 //
-using System.Collections.Generic;
 using System;
+using System.Collections.Generic;
 
 namespace Couchbase.Lite.Auth
 {
+    /// <summary>
+    /// An interface describing an object that can perform authentication
+    /// </summary>
     public interface IAuthenticator
     {
+        /// <summary>
+        /// Gets info about the user, if applicable
+        /// </summary>
         string UserInfo { get; }
 
+        /// <summary>
+        /// Get the authentication scheme, if applicable
+        /// </summary>
         string Scheme { get; }
 
+        /// <summary>
+        /// Gets whether or not this login method uses cookies
+        /// </summary>
         bool UsesCookieBasedLogin { get; }
 
+        /// <summary>
+        /// Gets the login path for a particular site
+        /// </summary>
+        /// <returns>The login path</returns>
+        /// <param name="site">The site uri</param>
         string LoginPathForSite(Uri site);
 
+        /// <summary>
+        /// Gets the authentication headers for a particular site, based on the
+        /// authentication info contained
+        /// </summary>
+        /// <returns>The authentication headers</returns>
+        /// <param name="site">The uri of the site</param>
         IDictionary<string, string> LoginParametersForSite(Uri site);
 
     }

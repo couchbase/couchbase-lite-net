@@ -40,18 +40,32 @@
 // and limitations under the License.
 //
 
-using System;
 using System.Collections.Generic;
 
 namespace Couchbase.Lite.Auth
 {
+    /// <summary>
+    /// A factory class for creating IAuthenticator objects
+    /// </summary>
     public class AuthenticatorFactory
     {
+
+        /// <summary>
+        /// Creates an object for handling HTTP Basic authentication
+        /// </summary>
+        /// <returns>The authenticator</returns>
+        /// <param name="username">The username to use</param>
+        /// <param name="password">The password to use</param>
         public static IAuthenticator CreateBasicAuthenticator(string username, string password)
         {
             return new BasicAuthenticator(username, password);
         }
 
+        /// <summary>
+        /// Creates an object for handling Facebook authentication
+        /// </summary>
+        /// <returns>The authenticator</returns>
+        /// <param name="token">The facebook auth token</param>
         public static IAuthenticator CreateFacebookAuthenticator(string token)
         {
             var parameters = new Dictionary<string, string>();
@@ -59,6 +73,12 @@ namespace Couchbase.Lite.Auth
             return new TokenAuthenticator("_facebook", parameters);
         }
 
+        /// <summary>
+        /// Creates an object for handling Persona authentication
+        /// </summary>
+        /// <returns>The authenticator</returns>
+        /// <param name="assertion">The assertion object created by Persona</param>
+        /// <param name="email">The email used in the assertion</param>
         public static IAuthenticator CreatePersonaAuthenticator(string assertion, string email)
         {
             var parameters = new Dictionary<string, string>();
