@@ -106,6 +106,40 @@ namespace Couchbase.Lite
             }
         }
 
+        public static bool TryCast<T>(object obj, out T castVal)
+        {
+            //If the types already match then things are easy
+            if (obj is T) {
+                castVal = (T)obj;
+                return true;
+            }
+
+            try {
+                //Take the slow route for things like boxed value types
+                castVal = (T)Convert.ChangeType(obj, typeof(T));
+            } catch(Exception) {
+                castVal = default(T);
+                return false;
+            }
+
+            return true;
+        }
+
+        public static T CastOrDefault<T>(object obj, T defaultVal)
+        {
+            T retVal;
+            if (obj != null && TryCast<T>(obj, out retVal)) {
+                return retVal;
+            }
+
+            return defaultVal;
+        }
+
+        public static T CastOrDefault<T>(object obj)
+        {
+            return CastOrDefault<T>(obj, default(T));
+        }
+
         public static T GetCast<T>(this IDictionary<string, object> collection, string key)
         {
             return collection.GetCast(key, default(T));
@@ -114,41 +148,13 @@ namespace Couchbase.Lite
         public static T GetCast<T>(this IDictionary<string, object> collection, string key, T defaultVal)
         {
             object value = collection.Get(key);
-            if (value == null) {
-                return defaultVal;
-            }
-
-            //If the types already match then things are easy
-            if (value is T) {
-                return (T)value;
-            }
-
-            try {
-                //Take the slow route for things like boxed value types
-                return (T)Convert.ChangeType(value, typeof(T));
-            } catch(Exception) {
-                return defaultVal;
-            }
+            return CastOrDefault<T>(value, defaultVal);
         }
 
         public static T? GetNullable<T>(this IDictionary<string, object> collection, string key) where T : struct
         {
             object value = collection.Get(key);
-            if (value == null) {
-                return null;
-            }
-
-            //If the types already match then things are easy
-            if (value is T) {
-                return (T)value;
-            }
-
-            try {
-                //Take the slow route for things like boxed value types
-                return (T)Convert.ChangeType(value, typeof(T));
-            } catch(Exception) {
-                return null;
-            }
+            return CastOrDefault<T>(value);
         }
 
         public static IEnumerable<T> AsSafeEnumerable<T>(this IEnumerable<T> source)

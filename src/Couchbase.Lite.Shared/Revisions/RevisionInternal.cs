@@ -79,7 +79,7 @@ namespace Couchbase.Lite.Internal
         }
 
         internal RevisionInternal(Body body)
-            : this((string)body.GetPropertyForKey("_id"), (string)body.GetPropertyForKey("_rev"), (body.HasValueForKey("_deleted") && body.GetPropertyForKey("_deleted") is bool && (bool)body.GetPropertyForKey("_deleted")))
+            : this(body.GetPropertyForKey<string>("_id"), body.GetPropertyForKey<string>("_rev"), body.GetPropertyForKey<bool>("_deleted"))
         {
             this.body = body;
         }
