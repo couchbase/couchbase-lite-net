@@ -616,7 +616,7 @@ namespace Couchbase.Lite.Replicator
                         {
                             FileName = Path.GetFileName(blobStore.PathForKey(blobKey))
                         };
-                        content.Headers.ContentType = new MediaTypeHeaderValue(contentType);
+                        content.Headers.ContentType = new MediaTypeHeaderValue(contentType ?? "application/octet-stream");
 
                         multiPart.Add(content);
                     }
