@@ -32,7 +32,7 @@
     <ConsolePause>False</ConsolePause>
     <CustomCommands>
       <CustomCommands>
-        <Command type="Build" command="make" />
+        <Command type="Build" command="make debug" />
       </CustomCommands>
     </CustomCommands>
   </PropertyGroup>
@@ -43,13 +43,13 @@
     <WarningLevel>4</WarningLevel>
     <ConsolePause>False</ConsolePause>
     <DefineConstants>NET_3_5</DefineConstants>
-    <DebugType>pdbonly</DebugType>
     <DebugSymbols>true</DebugSymbols>
     <CustomCommands>
       <CustomCommands>
-        <Command type="Build" command="make" />
+        <Command type="Build" command="make release" />
       </CustomCommands>
     </CustomCommands>
+    <DebugType>pdbonly</DebugType>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
