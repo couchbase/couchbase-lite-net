@@ -18,8 +18,8 @@ build:
 packages:
   "":
     - Newtonsoft.Json, Version=6.0.4
-    - SQLitePCL.raw_basic, Version=0.7.0
-    - SQLitePCL.ugly, Version=0.7.0
+    - SQLitePCL.raw, Version=0.8.0
+    - SQLitePCL.ugly, Version=0.8.0
 libraries: 
   ios-unified: 
      - ../../src/Couchbase.Lite.iOS/bin/Release/Couchbase.Lite.dll
@@ -34,7 +34,7 @@ details: Details.md
 screenshots: 
   - screenshots/screenshot1.png
 getting-started: GettingStarted.md
-version: "1.0.4"
+version: "1.1.0"
 skip_docs: true
 samples:
   iOS Sample: ../../samples/CouchbaseSample.iOS/CouchbaseSample.iOS.sln
