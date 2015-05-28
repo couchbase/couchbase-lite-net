@@ -209,6 +209,30 @@ namespace Couchbase.Lite
 
             UpgradeOldDatabaseFiles(directoryFile);
 
+            #if __IOS__
+
+            Foundation.NSString protection;
+            switch(options.FileProtection & Foundation.NSDataWritingOptions.FileProtectionMask) {
+            case Foundation.NSDataWritingOptions.FileProtectionNone:
+                protection = Foundation.NSFileManager.FileProtectionNone;
+                break;
+            case Foundation.NSDataWritingOptions.FileProtectionComplete:
+                protection = Foundation.NSFileManager.FileProtectionComplete;
+                break;
+            case Foundation.NSDataWritingOptions.FileProtectionCompleteUntilFirstUserAuthentication:
+                protection = Foundation.NSFileManager.FileProtectionCompleteUntilFirstUserAuthentication;
+                break;
+            default:
+                protection = Foundation.NSFileManager.FileProtectionCompleteUnlessOpen;
+                break;
+            }
+
+            var attributes = new Foundation.NSDictionary(Foundation.NSFileManager.FileProtectionKey, protection);
+            Foundation.NSError error;
+            Foundation.NSFileManager.DefaultManager.SetAttributes(attributes, directoryFile.FullName, out error);
+
+            #endif
+
             var scheduler = options.CallbackScheduler;
             CapturedContext = new TaskFactory(scheduler);
             workExecutor = new TaskFactory(new SingleTaskThreadpoolScheduler());

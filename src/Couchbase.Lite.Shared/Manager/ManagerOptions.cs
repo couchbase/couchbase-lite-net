@@ -64,6 +64,12 @@ namespace Couchbase.Lite
         /// <value>The default option flags.</value>
         public static ManagerOptions Default { get; private set; }
 
+        #if __IOS__
+
+        public Foundation.NSDataWritingOptions FileProtection { get; set; }
+
+        #endif
+
         static ManagerOptions()
         {
             Default = new ManagerOptions();
