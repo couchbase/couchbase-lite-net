@@ -61,6 +61,7 @@ namespace Couchbase.Lite {
     public sealed class Document {
 
         SavedRevision currentRevision;
+        private bool _currentRevisionKnown;
             
     #region Constructors
 
@@ -515,18 +516,20 @@ namespace Couchbase.Lite {
 
         internal void RevisionAdded(DocumentChange documentChange, bool notify)
         {
-            var rev = documentChange.WinningRevision;
-            if (rev == null)
-            {
+            var revId = documentChange.WinningRevisionId;
+            if (revId == null) {
                 return;
             }
-
+                
             // current revision didn't change
-            if (currentRevision != null && !rev.GetRevId().Equals(currentRevision.Id))
+            if (currentRevision != null && !revId.Equals(currentRevision.Id))
             {
-                currentRevision = rev.IsDeleted() 
-                    ? null 
-                    : new SavedRevision(this, rev);
+                var rev = documentChange.WinningRevisionIfKnown;
+                if (rev == null || rev.IsDeleted()) {
+                    currentRevision = null;
+                } else if (rev.IsDeleted()) {
+                    currentRevision = new SavedRevision(this, rev);;
+                }
             }
 
             if (!notify) {

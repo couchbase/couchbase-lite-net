@@ -44,7 +44,7 @@ using System;
 using System.Collections.Generic;
 
 using Couchbase.Lite.Util;
-using Couchbase.Lite.Storage;
+using Couchbase.Lite.Store;
 using Sharpen;
 using Couchbase.Lite.Internal;
 using System.Linq;

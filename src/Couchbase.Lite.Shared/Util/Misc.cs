@@ -50,7 +50,7 @@ using System.Net.Sockets;
 using System.Text;
 
 using Couchbase.Lite;
-using Couchbase.Lite.Storage;
+using Couchbase.Lite.Store;
 using Couchbase.Lite.Util;
 using Sharpen;
 
@@ -115,9 +115,9 @@ namespace Couchbase.Lite
             return buf.ToString();
         }
 
-        public static int TDSequenceCompare(long a, long b)
+        public static int TDSequenceCompare(long a, long b, bool ascending = true)
         {
-            long diff = a - b;
+            long diff = ascending ? a - b : b - a;
             return diff > 0 ? 1 : (diff < 0 ? -1 : 0);
         }
 

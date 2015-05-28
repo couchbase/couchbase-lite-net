@@ -50,6 +50,7 @@ using System.Threading.Tasks;
 using Couchbase.Lite.Internal;
 using Couchbase.Lite.Replicator;
 using Couchbase.Lite.Storage;
+using Couchbase.Lite.Store;
 using Couchbase.Lite.Util;
 using Sharpen;
 using System.Collections;
@@ -1864,10 +1865,9 @@ PRAGMA user_version = 3;";
             return JoinQuoted(strings);
         }
 
-        internal static String JoinQuoted(IList<String> strings)
+        internal static String JoinQuoted(IEnumerable<string> strings)
         {
-            if (strings.Count == 0)
-            {
+            if (!strings.Any()) {
                 return String.Empty;
             }
 
@@ -3355,7 +3355,7 @@ PRAGMA user_version = 3;";
 
         internal void NotifyChange(RevisionInternal rev, RevisionInternal winningRev, Uri source, bool inConflict)
         {
-            var change = new DocumentChange(rev, winningRev, inConflict, source);
+            var change = new DocumentChange(rev, winningRev.GetRevId(), inConflict, source);
             _changesToNotify.Add(change);
 
             if (!PostChangeNotifications())

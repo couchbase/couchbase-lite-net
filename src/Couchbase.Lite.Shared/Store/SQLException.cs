@@ -42,7 +42,7 @@
 
 using System;
 
-namespace Couchbase.Lite.Storage
+namespace Couchbase.Lite.Store
 {
     /// <summary>
     /// A class representing an SQL error

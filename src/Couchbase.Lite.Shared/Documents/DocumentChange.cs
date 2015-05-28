@@ -55,14 +55,14 @@ namespace Couchbase.Lite {
     /// <summary>
     /// Provides details about a Document change.
     /// </summary>
-    public partial class DocumentChange
+    public class DocumentChange
     {
         internal RevisionInternal AddedRevision { get; private set; }
 
-        internal DocumentChange(RevisionInternal addedRevision, RevisionInternal winningRevision, bool isConflict, Uri sourceUrl)
+        internal DocumentChange(RevisionInternal addedRevision, string winningRevisionId, bool isConflict, Uri sourceUrl)
         {
             AddedRevision = addedRevision;
-            WinningRevision = winningRevision;
+            WinningRevisionId = winningRevisionId;
             IsConflict = isConflict;
             SourceUrl = sourceUrl;
         }
@@ -85,13 +85,21 @@ namespace Couchbase.Lite {
         /// Gets a value indicating whether this instance is current revision.
         /// </summary>
         /// <value><c>true</c> if this instance is current revision; otherwise, <c>false</c>.</value>
-        public Boolean IsCurrentRevision { get { return WinningRevision != null && WinningRevision.GetRevId().Equals(AddedRevision.GetRevId()); } }
+        public Boolean IsCurrentRevision { get { return WinningRevisionId != null && WinningRevisionId.Equals(AddedRevision.GetRevId()); } }
+
+        internal string WinningRevisionId { get; private set; }
 
         /// <summary>
         /// Gets the winning revision.
         /// </summary>
         /// <value>The winning revision.</value>
-        internal RevisionInternal WinningRevision { get; private set; }
+        internal RevisionInternal WinningRevisionIfKnown
+        { 
+            get
+            {
+                return IsCurrentRevision ? AddedRevision : null;
+            }
+        }
 
         /// <summary>
         /// Gets a value indicating whether this instance is conflict.

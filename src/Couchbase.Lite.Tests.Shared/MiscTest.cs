@@ -84,8 +84,6 @@ namespace Couchbase.Lite
                 Log.E(Tag, "Transient exception not handled", e);
                 Assert.Fail("Transient exception not handled");
             }
-
-
         }
     }
 }

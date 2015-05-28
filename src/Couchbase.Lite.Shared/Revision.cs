@@ -47,9 +47,13 @@ using System.Collections.Generic;
 using System.Net;
 using System.IO;
 using Sharpen;
+using Couchbase.Lite.Internal;
 
 namespace Couchbase.Lite 
 {
+
+    internal delegate bool RevisionFilter(RevisionInternal rev);
+
     /// <summary>
     /// A Couchbase Lite Document Revision.
     /// </summary>

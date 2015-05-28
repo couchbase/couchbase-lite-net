@@ -93,6 +93,11 @@ namespace Couchbase.Lite.Internal
             (body.GetPropertyForKey("_rev") == null && body.GetPropertyForKey("_deleted") == null);
         }
 
+        public static bool ParseRevId(string revId, out int generation, out string suffix)
+        {
+            throw new NotImplementedException();
+        }
+
         internal IDictionary<String, Object> GetProperties()
         {
             IDictionary<string, object> result = null;

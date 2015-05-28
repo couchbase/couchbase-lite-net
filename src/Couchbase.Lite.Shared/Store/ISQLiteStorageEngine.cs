@@ -44,7 +44,7 @@ using System;
 
 using Couchbase.Lite.Storage;
 
-namespace Couchbase.Lite.Storage
+namespace Couchbase.Lite.Store
 {
 
     /// <summary>
@@ -99,7 +99,7 @@ namespace Couchbase.Lite.Storage
         /// </summary>
         /// <param name="sql">The SQL format string</param>
         /// <param name="paramArgs">The SQL string arguments</param>
-        void ExecSQL(string sql, params object[] paramArgs);
+        int ExecSQL(string sql, params object[] paramArgs);
 
         /// <summary>
         /// Executes a read-commit SQL query (i.e. the changes in the current transaction will not be shown)

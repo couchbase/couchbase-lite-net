@@ -48,6 +48,8 @@ using System.Net;
 using System.IO;
 using Sharpen;
 using Couchbase.Lite.Util;
+using Couchbase.Lite.Internal;
+using Couchbase.Lite.Store;
 
 namespace Couchbase.Lite 
 {
@@ -58,6 +60,11 @@ namespace Couchbase.Lite
     {
 
     #region Constructors
+
+        internal QueryRow(string documentId, long sequence, object key, object value, RevisionInternal revision, IQueryRowStore storage)
+        {
+            throw new NotImplementedException();
+        }
 
         internal QueryRow(string documentId, long sequence, object key, object value, IDictionary<String, Object> documentProperties)
         {

@@ -58,6 +58,8 @@ namespace Couchbase.Lite
 
         private bool sortBySequence = true;
 
+        public bool Descending { get; set; }
+
         public virtual int GetLimit()
         {
             return limit;
