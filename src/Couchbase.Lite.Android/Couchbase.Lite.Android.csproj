@@ -31,7 +31,7 @@
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
     <OutputPath>bin\Debug</OutputPath>
-    <DefineConstants>DEBUG;TRACE;VERBOSE;ANDROID</DefineConstants>
+    <DefineConstants>DEBUG;TRACE;VERBOSE;ANDROID;OFFICIAL</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <AndroidLinkMode>None</AndroidLinkMode>
@@ -47,7 +47,7 @@
     <ConsolePause>false</ConsolePause>
     <DocumentationFile>bin\Release\Couchbase.Lite.xml</DocumentationFile>
     <DebugSymbols>true</DebugSymbols>
-    <DefineConstants>ANDROID</DefineConstants>
+    <DefineConstants>ANDROID;OFFICIAL</DefineConstants>
     <DebugType>pdbonly</DebugType>
   </PropertyGroup>
   <ItemGroup>
