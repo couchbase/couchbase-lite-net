@@ -124,13 +124,13 @@ namespace Couchbase.Lite.Support
                 }
             };
 
-            BuildHandlerPipeline();
+            BuildHandlerPipeline(false);
         }
 
         /// <summary>
         /// Build a pipeline of HttpMessageHandlers.
         /// </summary>
-        internal HttpMessageHandler BuildHandlerPipeline ()
+        internal HttpMessageHandler BuildHandlerPipeline (bool chunkedMode)
         {
             var handler = new HttpClientHandler {
                 CookieContainer = cookieStore,
@@ -138,23 +138,23 @@ namespace Couchbase.Lite.Support
                 UseCookies = true,
             };
 
-            var authHandler = new DefaultAuthHandler (handler, cookieStore);
+            var authHandler = new DefaultAuthHandler (handler, cookieStore, chunkedMode);
 
             var retryHandler = new TransientErrorRetryHandler(authHandler);
 
             return retryHandler;
         }
 
-        public HttpClient GetHttpClient()
+        public HttpClient GetHttpClient(bool chunkedMode)
         {
-            var authHandler = BuildHandlerPipeline();
+            var authHandler = BuildHandlerPipeline(chunkedMode);
 
             // As the handler will not be shared, client.Dispose() needs to be 
             // called once the operation is done to release the unmanaged resources 
             // and disposes of the managed resources.
             var client =  new HttpClient(authHandler, true) 
             {
-                Timeout = ManagerOptions.Default.RequestTimeout,
+                Timeout = ManagerOptions.Default.RequestTimeout
             };
 
             foreach(var header in Headers)

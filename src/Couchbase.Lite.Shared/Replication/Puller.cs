@@ -297,9 +297,9 @@ namespace Couchbase.Lite.Replicator
             }
         }
 
-        public HttpClient GetHttpClient()
+        public HttpClient GetHttpClient(bool longPoll)
         {
-            return clientFactory.GetHttpClient();
+            return clientFactory.GetHttpClient(longPoll);
         }
             
         /// <summary>Process a bunch of remote revisions from the _changes feed at once</summary>

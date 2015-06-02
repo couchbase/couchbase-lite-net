@@ -141,9 +141,9 @@ namespace Couchbase.Lite
 
             #region IHttpClientFactory implementation
 
-            public HttpClient GetHttpClient()
+            public HttpClient GetHttpClient(bool longPoll)
             {
-                return HttpClientFactory.GetHttpClient();
+                return HttpClientFactory.GetHttpClient(longPoll);
             }
 
             public IDictionary<string, string> Headers
@@ -418,5 +418,6 @@ namespace Couchbase.Lite
             var body = changeTracker.GetChangesFeedPostBody();
             Assert.IsTrue(body.Contains(docIdsJson));
         }
+            
     }
 }

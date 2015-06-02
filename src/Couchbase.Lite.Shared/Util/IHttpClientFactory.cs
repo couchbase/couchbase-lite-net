@@ -61,8 +61,9 @@ namespace Couchbase.Lite.Support
         /// <summary>
         /// Gets the HttpClient object for use in replication
         /// </summary>
+        /// <param name="chunkedMode">A flag for chunked mode (i.e. the connection stays open for heartbeat, etc)</param>
         /// <returns>The http client.</returns>
-        HttpClient GetHttpClient();
+        HttpClient GetHttpClient(bool chunkedMode);
 
         /// <summary>
         /// Gets or sets the headers used by default in the HttpClient

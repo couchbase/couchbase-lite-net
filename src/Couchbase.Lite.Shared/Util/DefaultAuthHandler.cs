@@ -53,8 +53,11 @@ namespace Couchbase.Lite.Replicator
 
     internal sealed class DefaultAuthHandler : MessageProcessingHandler
     {
-        public DefaultAuthHandler(HttpClientHandler context, CookieStore cookieStore) : base()
+        private bool _chunkedMode = false;
+
+        public DefaultAuthHandler(HttpClientHandler context, CookieStore cookieStore, bool chunkedMode) : base()
         {
+            _chunkedMode = chunkedMode;
             this.context = context;
             this.cookieStore = cookieStore;
             InnerHandler = this.context;
@@ -66,11 +69,11 @@ namespace Couchbase.Lite.Replicator
 
         protected override HttpResponseMessage ProcessResponse(HttpResponseMessage response, CancellationToken cancellationToken)
         {
-            if (response.Content != null) {
+            if (response.Content != null && !_chunkedMode) {
                 var mre = new ManualResetEvent(false);
                 response.Content.LoadIntoBufferAsync().ConfigureAwait(false).GetAwaiter().OnCompleted(() => mre.Set());
-                if (mre.WaitOne (Manager.DefaultOptions.RequestTimeout, true) == false) {
-                    Log.E ("DefaultAuthHandler", "mre.WaitOne timed out");
+                if (mre.WaitOne(Manager.DefaultOptions.RequestTimeout, true) == false) {
+                    Log.E("DefaultAuthHandler", "mre.WaitOne timed out");
                 }
             }
 

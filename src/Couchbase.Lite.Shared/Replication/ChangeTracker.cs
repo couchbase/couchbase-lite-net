@@ -76,7 +76,7 @@ namespace Couchbase.Lite.Replicator
 
         const Int32 LongPollModeLimit = 50;
 
-        const Int32 HeartbeatMilliseconds = 300000;
+        private Int32 _heartbeatMilliseconds = 300000;
 
         private Uri databaseURL;
 
@@ -89,6 +89,8 @@ namespace Couchbase.Lite.Replicator
         private Boolean includeConflicts;
 
         private TaskFactory WorkExecutor;
+
+        private DateTime _startTime;
 
 //        private Task runTask;
 
@@ -180,7 +182,7 @@ namespace Couchbase.Lite.Replicator
             {
                 path.Append(string.Format("&limit={0}", LongPollModeLimit));
             }
-            path.Append(string.Format("&heartbeat={0}", HeartbeatMilliseconds));
+            path.Append(string.Format("&heartbeat={0}", _heartbeatMilliseconds));
             if (includeConflicts)
             {
                 path.Append("&style=all_docs");
@@ -271,12 +273,14 @@ namespace Couchbase.Lite.Replicator
 
             while (IsRunning && !tokenSource.Token.IsCancellationRequested)
             {
+                _startTime = DateTime.Now;
                 if (Request != null)
                 {
                     Request.Dispose();
                     Request = null;
                 }
-
+                    
+                UsePost = false;
                 var url = GetChangesFeedURL();
                 if (UsePost)
                 {
@@ -302,12 +306,12 @@ namespace Couchbase.Lite.Replicator
                 }
 
                 Task<HttpResponseMessage> changesRequestTask = null;
-                Task<HttpResponseMessage> successHandler;
-                Task<Boolean> errorHandler;
+                Task successHandler;
+                Task errorHandler;
 
                 HttpClient httpClient = null;
                 try {
-                    httpClient = clientCopy.GetHttpClient();
+                    httpClient = clientCopy.GetHttpClient(mode == ChangeTrackerMode.LongPoll);
                     var authHeader = AuthUtils.GetAuthenticationHeaderValue(Authenticator, Request.RequestUri);
                     if (authHeader != null)
                     {
@@ -316,55 +320,35 @@ namespace Couchbase.Lite.Replicator
 
                     changesFeedRequestTokenSource = CancellationTokenSource.CreateLinkedTokenSource(tokenSource.Token);
 
-                    var evt = new ManualResetEvent(false);
-
-                    // We do this akward set of calls in order
-                    // to help minimize the frequency of the error:
-                    //
-                    //   "Cannot re-call start of asynchronous method 
-                    //    while a previous call is still in progress."
-                    // 
-                    // There's got to be a better way to deal with this.
+                    var option = mode == ChangeTrackerMode.LongPoll ? HttpCompletionOption.ResponseHeadersRead : HttpCompletionOption.ResponseContentRead;
                     var info = httpClient.SendAsync(
                         Request, 
+                        option,
                         changesFeedRequestTokenSource.Token
                     );
-        
-                    info.ContinueWith((t)=>
-                        evt.Set()
-                    );
-                    
-					if (evt.WaitOne(ManagerOptions.Default.RequestTimeout) == false)
-					{
-						Log.W(Tag, "SendAsync timeout");
-						continue;
-					}
 
-                    changesRequestTask = info;
-
-                    successHandler = changesRequestTask.ContinueWith<HttpResponseMessage>(
+                    successHandler = info.ContinueWith(
                         ChangeFeedResponseHandler, 
                         changesFeedRequestTokenSource.Token, 
                         TaskContinuationOptions.LongRunning | TaskContinuationOptions.OnlyOnRanToCompletion, 
                         WorkExecutor.Scheduler
                     );
 
-                    errorHandler = changesRequestTask.ContinueWith(t =>
+                    errorHandler = info.ContinueWith(t =>
                     {
                         if (t.IsCanceled) 
                         {
-                            return false; // Not a real error.
+                            return; // Not a real error.
                         }
                         var err = t.Exception.Flatten();
                         Log.D(Tag, "ChangeFeedResponseHandler faulted.", err.InnerException ?? err);
                         Error = err.InnerException ?? err;
                         backoff.SleepAppropriateAmountOfTime();
-                        return true; // a real error.
-                    }, changesFeedRequestTokenSource.Token, TaskContinuationOptions.OnlyOnFaulted, WorkExecutor.Scheduler);
+                    }, changesFeedRequestTokenSource.Token, TaskContinuationOptions.NotOnRanToCompletion, WorkExecutor.Scheduler);
 
                     try 
                     {
-                        Task.WaitAll(new Task[] { successHandler, errorHandler }, (Int32)ManagerOptions.Default.RequestTimeout.TotalMilliseconds, changesFeedRequestTokenSource.Token);
+                        Task.WaitAll(successHandler, errorHandler);
                         Log.D(Tag, "Finished processing changes feed.");
                     } 
                     catch (Exception ex) {
@@ -449,11 +433,12 @@ namespace Couchbase.Lite.Replicator
             }
         }
 
-        HttpResponseMessage ChangeFeedResponseHandler(Task<HttpResponseMessage> responseTask)
+        void ChangeFeedResponseHandler(Task<HttpResponseMessage> responseTask)
         {
             var response = responseTask.Result;
             if (response == null)
-                return null;
+                return;
+            
             var status = response.StatusCode;
 
             if ((Int32)status >= 300 && !Misc.IsTransientError(status))
@@ -464,7 +449,7 @@ namespace Couchbase.Lite.Replicator
                 Log.E(Tag, msg);
                 Error = new CouchbaseLiteException (msg, new Status (status.GetStatusCode ()));
                 Stop();
-                return response;
+                return;
             }
                 
             switch (mode)
@@ -476,32 +461,50 @@ namespace Couchbase.Lite.Replicator
                         }
 
                         var content = response.Content.ReadAsByteArrayAsync().Result;
-                        IDictionary<string, object> fullBody;
+                        Log.D(Tag, "Received long poll response: {0}", Encoding.UTF8.GetString(content));
+                        bool responseOK = false;
                         try
                         {
-                            fullBody = Manager.GetObjectMapper().ReadValue<IDictionary<string, object>>(content) ?? new Dictionary<string, object>();
+                            var fullBody = Manager.GetObjectMapper().ReadValue<IDictionary<string, object>>(content) ?? new Dictionary<string, object>();
+                            responseOK = ReceivedPollResponse(fullBody);
                         } 
-                        catch (JsonSerializationException ex)
+                        catch (CouchbaseLiteException ex)
                         {
+                            if (ex.Code != StatusCode.BadJson) {
+                                throw ex;
+                            }
+
                             const string timeoutContent = "{\"results\":[";
                             if (!Encoding.UTF8.GetString(content).Trim().Equals(timeoutContent))
                                 throw ex;
                             Log.V(Tag, "Timeout while waiting for changes.");
-                            backoff.SleepAppropriateAmountOfTime();
-                            return response;
+
                         }
-                        var responseOK = ReceivedPollResponse(fullBody);
+
                         if (responseOK)
                         {
                             Log.V(Tag, "Starting new longpoll");
                             backoff.ResetBackoff();
-                            return response;
                         }
                         else
                         {
-                            Log.W(Tag, "Change tracker calling stop");
-                            Stop();
+                            backoff.SleepAppropriateAmountOfTime();
+                            var elapsed = DateTime.Now - _startTime;
+                            Log.W(Tag, "Longpoll connection closed (by proxy?) after {0} sec", elapsed.TotalSeconds);
+                            if (elapsed.TotalSeconds >= 30) {
+                                // Looks like the connection got closed by a proxy (like AWS' load balancer) while the
+                                // server was waiting for a change to send, due to lack of activity.
+                                // Lower the heartbeat time to work around this, and reconnect:
+                                _heartbeatMilliseconds = (int)(elapsed.TotalMilliseconds * 0.75f);
+                                Log.V(Tag, "    Starting new longpoll");
+                                backoff.ResetBackoff();
+                            } else {
+                                Log.W(Tag, "Change tracker calling stop");
+                                Stop();
+                            }
                         }
+
+
                     }
                     break;
                 default:
@@ -510,19 +513,15 @@ namespace Couchbase.Lite.Replicator
                         var results = Manager.GetObjectMapper().ReadValue<IDictionary<String, Object>>(content.AsEnumerable());
                         Log.D(Tag, "Received results from changes feed: {0}", results);
                         var resultsValue = results["results"] as JArray;
-                        foreach (var item in resultsValue)
-                        {
+                        foreach (var item in resultsValue) {
                             IDictionary<String, Object> change = null;
-                            try
-                            {
+                            try {
                                 change = item.ToObject<IDictionary<String, Object>>();
                             }
-                            catch (Exception)
-                            {
+                            catch (Exception) {
                                 Log.E(Tag, this + string.Format(": Received unparseable change line from server: {0}", change));
                             }
-                            if (!ReceivedChange(change))
-                            {
+                            if (!ReceivedChange(change)) {
                                 Log.W(Tag, this + string.Format(": Received unparseable change line from server: {0}", change));
                             }
                         }
@@ -533,13 +532,9 @@ namespace Couchbase.Lite.Replicator
                         // (Assuming that the WorkExecutor is a single thread executor).
 
                         WorkExecutor.StartNew(Stop);
-
-                        return response;
                     }
+                    break;
             }
-
-            backoff.ResetBackoff();
-            return response;
         }
 
         public bool ReceivedChange(IDictionary<string, object> change)
@@ -699,7 +694,7 @@ namespace Couchbase.Lite.Replicator
 
             var bodyParams = new Dictionary<string, object>();
             bodyParams["feed"] = GetFeed();
-            bodyParams["heartbeat"] = HeartbeatMilliseconds;
+            bodyParams["heartbeat"] = _heartbeatMilliseconds;
 
             if (includeConflicts) 
             {

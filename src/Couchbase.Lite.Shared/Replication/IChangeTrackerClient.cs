@@ -50,7 +50,7 @@ namespace Couchbase.Lite.Replicator
 {
     internal interface IChangeTrackerClient
     {
-        HttpClient GetHttpClient();
+        HttpClient GetHttpClient(bool longPoll);
         void ChangeTrackerReceivedChange(IDictionary<string, object> change);
         void ChangeTrackerStopped(ChangeTracker tracker);
     }

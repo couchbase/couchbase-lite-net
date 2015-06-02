@@ -77,7 +77,7 @@ namespace Couchbase.Lite.Replicator
             HttpClient httpClient = null;
             try 
             {
-                httpClient = clientFactory.GetHttpClient();
+                httpClient = clientFactory.GetHttpClient(false);
                 requestMessage.Headers.Accept.Add(new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("multipart/related"));
 
                 var authHeader = AuthUtils.GetAuthenticationHeaderValue(Authenticator, requestMessage.RequestUri);

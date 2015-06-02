@@ -80,7 +80,9 @@ namespace Couchbase.Lite.Util
         private void Drain() 
         {
             Task nextTask;
-            bool gotTask = _jobQueue.TryTake(out nextTask, -1);
+
+            //Give it a time limit to prevent it from getting "stuck"
+            bool gotTask = _jobQueue.TryTake(out nextTask, TimeSpan.FromSeconds(90)); 
             if(gotTask && nextTask.Status < TaskStatus.Running) {
                 TryExecuteTask(nextTask);
             }
