@@ -280,7 +280,6 @@ namespace Couchbase.Lite.Replicator
                     Request = null;
                 }
                     
-                UsePost = false;
                 var url = GetChangesFeedURL();
                 if (UsePost)
                 {
@@ -460,8 +459,17 @@ namespace Couchbase.Lite.Replicator
                             throw new CouchbaseLiteException("Got empty change tracker response", status.GetStatusCode());
                         }
 
-                        var content = response.Content.ReadAsByteArrayAsync().Result;
-                        Log.D(Tag, "Received long poll response: {0}", Encoding.UTF8.GetString(content));
+                        var stream = response.Content.ReadAsStreamAsync().Result;
+                        var outString = new StringBuilder();
+                        using (var sr = new StreamReader(stream)) {
+                            string line;
+                            while ((line = sr.ReadLine()) != null) {
+                                outString.AppendLine(line);
+                            }
+                        }
+
+                        var content = outString.ToString();
+                        Log.D(Tag, "Received long poll response: {0}", content);
                         bool responseOK = false;
                         try
                         {
@@ -475,7 +483,7 @@ namespace Couchbase.Lite.Replicator
                             }
 
                             const string timeoutContent = "{\"results\":[";
-                            if (!Encoding.UTF8.GetString(content).Trim().Equals(timeoutContent))
+                            if (!content.Trim().Equals(timeoutContent))
                                 throw ex;
                             Log.V(Tag, "Timeout while waiting for changes.");
 
