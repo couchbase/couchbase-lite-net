@@ -1031,7 +1031,7 @@ namespace Couchbase.Lite
             var mapper = Manager.GetObjectMapper();
             message.Headers.Add("Accept", new[] { "multipart/related", "application/json" });
 
-            var client = clientFactory.GetHttpClient();
+            var client = clientFactory.GetHttpClient(false);
 
             var authHeader = AuthUtils.GetAuthenticationHeaderValue(Authenticator, message.RequestUri);
             if (authHeader != null)
@@ -1159,7 +1159,7 @@ namespace Couchbase.Lite
                 message.Headers.Add("Accept", "*/*");
                 AddRequestHeaders(message);
 
-                var client = clientFactory.GetHttpClient();
+                var client = clientFactory.GetHttpClient(false);
 
                 var authHeader = AuthUtils.GetAuthenticationHeaderValue(Authenticator, message.RequestUri);
                 if (authHeader != null)
@@ -1306,7 +1306,7 @@ namespace Couchbase.Lite
             message.Content = multiPartEntity;
             message.Headers.Add("Accept", "*/*");
 
-            var client = clientFactory.GetHttpClient();
+            var client = clientFactory.GetHttpClient(false);
 
             var authHeader = AuthUtils.GetAuthenticationHeaderValue(Authenticator, message.RequestUri);
             if (authHeader != null)

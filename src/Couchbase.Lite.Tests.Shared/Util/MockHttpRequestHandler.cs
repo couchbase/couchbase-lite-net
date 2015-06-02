@@ -167,7 +167,7 @@ namespace Couchbase.Lite.Tests
 
         public void AddResponderReturnInvalidChangesFeedJson() 
         {
-            var json = "{\"results\":[";
+            var json = "{\"results\":[wedon'tneednoquotes]}";
             HttpResponseDelegate responder = (request) => GenerateHttpResponseMessage(HttpStatusCode.Accepted, null, json);
             SetResponder("_changes", responder);
         }

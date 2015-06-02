@@ -2097,7 +2097,7 @@ namespace Couchbase.Lite
                     }
                 }
 
-                Log.D(Tag, "Remaining docs to be found: {0}", mre.InitialCount - mre.CurrentCount);
+                Log.D(Tag, "Remaining docs to be found: {0}", mre.CurrentCount);
             };
 
             // the first time this is called back, the rows will be empty.
@@ -2109,13 +2109,15 @@ namespace Couchbase.Lite
             var pusher = database.CreatePushReplication(GetReplicationURL());
             pusher.Start ();
 
-            Assert.IsTrue(mre.Wait(TimeSpan.FromSeconds(60)), "Replication Timeout");
+            try {
+                Assert.IsTrue(mre.Wait(TimeSpan.FromSeconds(120)), "Replication Timeout");
+            } finally {
+                pusher.Stop();
+                puller.Stop();
+                allDocsLiveQuery.Stop();   
 
-            pusher.Stop();
-            puller.Stop();
-            allDocsLiveQuery.Stop();   
-
-            Thread.Sleep(500);
+                Thread.Sleep(500);
+            }
         }
 
         [Test, Category("issue348")]
@@ -2272,5 +2274,6 @@ namespace Couchbase.Lite
 
             Assert.AreNotEqual(repl1.RemoteCheckpointDocID(), repl2.RemoteCheckpointDocID());
         }
+            
     }
 }
