@@ -2,40 +2,39 @@ name: Couchbase Lite for .NET
 id: couchbase-lite-net
 publisher: Couchbase
 license: License.md
-icons: 
+icons:
   - icons/couchbase-lite_128x128.png
   - icons/couchbase-lite_512x512.png
 publisher-url: http://www.couchbase.com
-source-url: https://github.com/couchbaselabs/couchbase-lite-net
+source-url: https://github.com/couchbase/couchbase-lite-net
 documentation-url: http://developer.couchbase.com/mobile/develop/guides/couchbase-lite/native-api/index.html
 build:
-  - 
+  -
     path: ../../src/Couchbase.Lite.iOS/Couchbase.Lite.iOS.csproj
     configuration: Release|iPhone
-  - 
+  -
     path: ../../src/Couchbase.Lite.Android/Couchbase.Lite.Android.csproj
-    configuration: Release|AnyCPU 
+    configuration: Release|AnyCPU
 packages:
   "":
-    - Newtonsoft.Json, Version=6.0.4
-    - SQLitePCL.raw, Version=0.8.0
-    - SQLitePCL.ugly, Version=0.8.0
-libraries: 
-  ios-unified: 
+    - Couchbase.Lite, Version=1.1.0
+libraries:
+  ios-unified:
      - ../../src/Couchbase.Lite.iOS/bin/Release/Couchbase.Lite.dll
      - ../../src/Couchbase.Lite.iOS/bin/Release/Couchbase.Lite.dll.mdb
      - ../../src/Couchbase.Lite.iOS/bin/Release/Couchbase.Lite.xml
-  android: 
+  android:
      - ../../src/Couchbase.Lite.Android/bin/Release/Couchbase.Lite.dll
      - ../../src/Couchbase.Lite.Android/bin/Release/Couchbase.Lite.dll.mdb
      - ../../src/Couchbase.Lite.Android/bin/Release/Couchbase.Lite.xml
-summary: A lightweight, document-oriented (NoSQL), syncable database engine. 
+summary: A lightweight, document-oriented (NoSQL), syncable database engine.
 details: Details.md
-screenshots: 
+screenshots:
   - screenshots/screenshot1.png
 getting-started: GettingStarted.md
 version: "1.1.0"
 skip_docs: true
+is_shell: true
 samples:
   iOS Sample: ../../samples/CouchbaseSample.iOS/CouchbaseSample.iOS.sln
   Android Sample: ../../samples/SimpleAndroidSync/SimpleAndroidSync.sln
