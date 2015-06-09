@@ -174,7 +174,7 @@ namespace Couchbase.Lite
             #elif __UNITY__
             VersionString = "1.0";
             #else
-            VersionString = "1.1-pre2";
+            VersionString = "1.1";
             #endif
         }
 

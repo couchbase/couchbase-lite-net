@@ -3,12 +3,12 @@
   <metadata>
     <id>Couchbase.Lite </id>
     <title>Couchbase Lite</title>
-    <version>1.1.0-pre1</version>
+    <version>1.1.0</version>
     <authors>Zachary Gramana</authors>
     <owners>Couchbase</owners>
     <licenseUrl>https://github.com/couchbase/couchbase-lite-net/blob/master/LICENSE</licenseUrl>
     <projectUrl>https://github.com/couchbase/couchbase-lite-net</projectUrl>
-    <iconUrl>https://raw.githubusercontent.com/couchbaselabs/couchbase-lite-net/master/packaging/nuget/logo.png</iconUrl>
+    <iconUrl>https://raw.githubusercontent.com/couchbase/couchbase-lite-net/master/packaging/nuget/logo.png</iconUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>A lightweight, document-oriented (NoSQL), syncable database engine for .NET</description>
     <releaseNotes>
@@ -24,6 +24,7 @@
     </dependencies>
   </metadata>
   <files>
+    <file target="lib/net35" src="src/Couchbase.Lite.Net35/bin/Release/Couchbase.Lite.*" />
     <file target="lib/net45" src="src/Couchbase.Lite.Net45/bin/Release/Couchbase.Lite.*" />
     <file target="lib/MonoAndroid" src="src/Couchbase.Lite.Android/bin/Release/Couchbase.Lite.*" />
     <file target="lib/xamarinios10" src="src/Couchbase.Lite.iOS/bin/Release/Couchbase.Lite.*" />
