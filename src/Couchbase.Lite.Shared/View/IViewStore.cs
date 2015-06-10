@@ -66,7 +66,7 @@ namespace Couchbase.Lite.Store
         /// <summary>
         /// The total number of rows in the index.
         /// </summary>
-        uint TotalRows { get; }
+        int TotalRows { get; }
 
         /// <summary>
         /// The last sequence number that has been indexed.

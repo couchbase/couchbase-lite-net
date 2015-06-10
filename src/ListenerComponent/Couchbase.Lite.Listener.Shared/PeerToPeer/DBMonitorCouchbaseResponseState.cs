@@ -163,7 +163,7 @@ namespace Couchbase.Lite.Listener
         {
             foreach (var change in args.Changes) {
                 var rev = change.AddedRevision;
-                var winningRev = change.WinningRevision;
+                var winningRev = change.WinningRevisionId;
 
                 if (!ChangesIncludeConflicts) {
                     if (winningRev == null) {

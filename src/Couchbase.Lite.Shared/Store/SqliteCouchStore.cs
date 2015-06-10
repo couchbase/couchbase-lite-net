@@ -90,6 +90,15 @@ CREATE TABLE replicators (
   UNIQUE (remote, push)); 
 PRAGMA user_version = 3;";
 
+        private static readonly HashSet<string> SPECIAL_KEYS_TO_REMOVE = new HashSet<string> {
+            "_id", "_rev", "_deleted", "_revision", "_revs_info", "_conflicts", "_deleted_conflicts",
+            "_local_seq"
+        };
+
+        private static readonly HashSet<string> SPECIAL_KEYS_TO_LEAVE = new HashSet<string> {
+            "_removed", "_attachments"
+        };
+
         #endregion
 
         #region Variables
@@ -190,17 +199,58 @@ PRAGMA user_version = 3;";
 
         public IDictionary<string, object> GetDocumentProperties(IEnumerable<byte> json, string docId, string revId, bool deleted, long sequence)
         {
-            throw new NotImplementedException();
+            var realizedJson = json.ToArray();
+            IDictionary<string, object> docProperties;
+            if (realizedJson.Count == 0 || (realizedJson.Count == 2 && Encoding.UTF8.GetString(realizedJson) == "{}")) {
+                docProperties = new Dictionary<string, object>();
+            } else {
+                try {
+                    docProperties = Manager.GetObjectMapper().ReadValue<IDictionary<string, object>>(realizedJson);
+                } catch(CouchbaseLiteException) {
+                    Log.W(TAG, "Unparseable JSON for doc={0}, rev={1}: {2}", docId, revId, Encoding.UTF8.GetString(realizedJson));
+                    docProperties = new Dictionary<string, object>();
+                }
+            }
+
+            docProperties["_id"] = docId;
+            docProperties["_rev"] = revId;
+            if (deleted) {
+                docProperties["_deleted"] = true;
+            }
+
+            return docProperties;
         }
 
-        public RevisionInternal GetDocument(string docId, long sequence, Status status = null)
+        public RevisionInternal GetDocument(string docId, long sequence, Status outStatus = null)
         {
-            throw new NotImplementedException();
+            RevisionInternal result = null;
+            var status = TryQuery(c =>
+            {
+                string revId = c.GetString(0);
+                bool deleted = c.GetInt(1) != 0;
+                result = new RevisionInternal(docId, revId, deleted);
+                result.SetSequence(sequence);
+                result.SetBody(new Body(c.GetBlob(2)));
+
+                return false;
+            }, false, "SELECT revid, deleted, json FROM revs WHERE sequence=?", sequence);
+
+            if (outStatus != null) {
+                outStatus.Code = status.Code;
+            }
+
+            return result;
         }
 
         public RevisionInternal GetRevision(string docId, string revId, bool deleted, long sequence, IEnumerable<byte> json)
         {
-            throw new NotImplementedException();
+            var rev = new RevisionInternal(docId, revId, deleted);
+            rev.SetSequence(sequence);
+            if (json != null) {
+                rev.SetBody(new Body(json));
+            }
+
+            return rev;
         }
 
         public Status TryQuery(Func<Cursor, bool> action, bool readUncommit, string sqlQuery, params object[] args)
@@ -590,7 +640,7 @@ PRAGMA user_version = 3;";
             {
                 docNumericId = c.GetLong(0);
                 return false;
-            }, "SELECT doc_id FROM docs WHERE docid=?", docId);
+            }, true, "SELECT doc_id FROM docs WHERE docid=?", docId);
 
             if (success.Code == StatusCode.DbError) {
                 return -1L;
@@ -661,25 +711,6 @@ PRAGMA user_version = 3;";
             return rev;
         }
 
-        private string WinningRevID(long docNumericId, ValueTypePtr<bool> outDeleted, ValueTypePtr<bool> outConflict)
-        {
-            Debug.Assert(docNumericId > 0);
-            string revId = null;
-            outDeleted.Value = false;
-            outConflict.Value = false;
-            TryQuery(c =>
-            {
-                revId = c.GetString(0);
-                outDeleted.Value = c.GetInt(1) != 0;
-                // The document is in conflict if there are two+ result rows that are not deletions.
-                outConflict.Value = !outDeleted && c.MoveToNext() && c.GetInt(1) != 0;
-                return false;
-            }, false, "SELECT revid, deleted FROM revs WHERE doc_id=? and current=1 ORDER BY deleted asc, revid desc LIMIT ?",
-                docNumericId, (!outConflict.IsNull ? 2 : 1));
-
-            return revId;
-        }
-
         private Status RunInOuterTransaction(Func<Status> action)
         {
             if (!InTransaction) {
@@ -697,30 +728,86 @@ PRAGMA user_version = 3;";
             return status;
         }
 
-        private long GetSequenceOfDocument(long docNumericId, string prevRevId, bool onlyCurrent)
+        private long GetSequenceOfDocument(long docNumericId, string revId, bool onlyCurrent)
         {
-            throw new NotImplementedException();
+            var sql = String.Format("SELECT sequence FROM revs WHERE doc_id=? AND revid=? {0} LIMIT 1",
+                          (onlyCurrent ? "AND current=1" : ""));
+
+            return QueryOrDefault<long>(c => c.GetLong(0), false, 0L, sql, docNumericId, revId);
         }
 
         private bool DocumentExists(string docId, string revId)
         {
-            throw new NotImplementedException();
+            return GetDocument(docId, revId, false) != null;
         }
 
         private long InsertRevision(RevisionInternal rev, long docNumericId, long parentSequence, bool current, bool hasAttachments,
             IEnumerable<byte> json, string docType)
         {
-            throw new NotImplementedException();
+            const string sql = "INSERT INTO revs (doc_id, revid, parent, current, deleted, " +
+                               "no_attachments, json, doc_type) " +
+                               "VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+
+            var vals = new ContentValues();
+            vals["doc_id"] = docNumericId;
+            vals["revid"] = rev.GetRevId();
+            vals["parent"] = parentSequence;
+            vals["current"] = current;
+            vals["deleted"] = rev.IsDeleted();
+            vals["no_attachments"] = !hasAttachments;
+            vals["json"] = json;
+            vals["doc_type"] = docType;
+            try {
+                return StorageEngine.Insert("revs", null, vals);
+            } catch(Exception) {
+                return -1L;
+            }
         }
 
-        private string GetWinner(long docNumericId, string oldWinnerDocId, bool oldWinnerWasDeletion, RevisionInternal newRev)
+        private string GetWinner(long docNumericId, string oldWinnerRevId, bool oldWinnerWasDeletion, RevisionInternal newRev)
         {
-            throw new NotImplementedException();
+            var newRevID = newRev.GetRevId();
+            if (oldWinnerRevId == null) {
+                return newRevID;
+            }
+
+            if (!newRev.IsDeleted()) {
+                if (oldWinnerWasDeletion || RevisionInternal.CBLCompareRevIDs(newRevID, oldWinnerRevId) > 0) {
+                    return newRevID; // this is now the winning live revision
+                }
+            } else if (oldWinnerWasDeletion) {
+                if (RevisionInternal.CBLCompareRevIDs(newRevID, oldWinnerRevId) > 0) {
+                    return newRevID; // doc still deleted, but this beats previous deletion rev
+                }
+            } else {
+                // Doc was alive. How does this deletion affect the winning rev ID?
+                ValueTypePtr<bool> deleted = false;
+                var winningRevId = GetWinner(docNumericId, deleted, ValueTypePtr<bool>.NULL);
+                if (winningRevId != oldWinnerRevId) {
+                    return winningRevId;
+                }
+            }
+
+            return null; // no change
         }
 
-        private string GetWinner(long docNumericId, OutVal<bool> isDeletion, OutVal<bool> isConflict)
+        private string GetWinner(long docNumericId, ValueTypePtr<bool> outDeleted, ValueTypePtr<bool> outConflict)
         {
-            throw new NotImplementedException();
+            Debug.Assert(docNumericId > 0);
+            string revId = null;
+            outDeleted.Value = false;
+            outConflict.Value = false;
+            TryQuery(c =>
+            {
+                revId = c.GetString(0);
+                outDeleted.Value = c.GetInt(1) != 0;
+                // The document is in conflict if there are two+ result rows that are not deletions.
+                outConflict.Value = !outDeleted && c.MoveToNext() && c.GetInt(1) != 0;
+                return false;
+            }, false, "SELECT revid, deleted FROM revs WHERE doc_id=? and current=1 ORDER BY deleted asc, revid desc LIMIT ?",
+                docNumericId, (!outConflict.IsNull ? 2 : 1));
+
+            return revId;
         }
 
         private RevisionList GetAllDocumentRevisions(string docId, long docNumericId, bool onlyCurrent)
@@ -749,17 +836,66 @@ PRAGMA user_version = 3;";
 
         private IEnumerable<byte> EncodeDocumentJSON(RevisionInternal rev)
         {
-            throw new NotImplementedException();
+            var originalProps = rev.GetProperties();
+            if (originalProps == null) {
+                return null;
+            }
+
+            // Don't leave in any "_"-prefixed keys except for the ones in SPECIAL_KEYS_TO_LEAVE.
+            // Keys in SPECIAL_KEYS_TO_REMOVE (_id, _rev, ...) are left out, any others trigger an error.
+            var properties = new Dictionary<string, object>(originalProps.Count);
+            foreach (var pair in originalProps) {
+                if (!pair.Key.StartsWith("_") || SPECIAL_KEYS_TO_LEAVE.Contains(pair.Key)) {
+                    properties[pair.Key] = pair.Value;
+                } else if (!SPECIAL_KEYS_TO_REMOVE.Contains(pair.Key)) {
+                    Log.W(TAG, "Invalid top-level key '{0}' in document to be inserted", pair.Key);
+                    return null;
+                }
+            }
+
+            // Create canonical JSON -- this is important, because the JSON data returned here will be used
+            // to create the new revision ID, and we need to guarantee that equivalent revision bodies
+            // result in equal revision IDs.
+            return Manager.GetObjectMapper().WriteValueAsBytes(properties, true);
         }
 
         private RevisionInternal PutLocalRevisionNoMvcc(RevisionInternal rev)
         {
-            throw new NotImplementedException();
+            RevisionInternal result = null;
+            RunInTransaction(() =>
+            {
+                RevisionInternal prevRev = GetLocalDocument(rev.GetDocId(), null);
+                try {
+                    result = PutLocalRevision(rev, prevRev.GetRevId(), true);
+                } catch(CouchbaseLiteException e) {
+                    return e.CBLStatus;
+                }
+
+                return new Status(StatusCode.Ok);
+            });
+
+            return result;
         }
 
-        private void DeleteLocalRevision(string docId, string prevRevId)
+        private Status DeleteLocalRevision(string docId, string revId)
         {
-            throw new NotImplementedException();
+            if (revId == null) {
+                // Didn't specify a revision to delete: kCBLStatusNotFound or a kCBLStatusConflict, depending
+                return GetLocalDocument(docId, null) != null ? new Status(StatusCode.Conflict) : new Status(StatusCode.NotFound);
+            }
+
+            var changes = 0;
+            try {
+                changes = StorageEngine.Delete("localdocs", "docid=? AND revid=?", docId, revId);
+            } catch(Exception) {
+                return new Status(StatusCode.DbError);
+            }
+
+            if (changes == 0) {
+                return GetLocalDocument(docId, null) != null ? new Status(StatusCode.Conflict) : new Status(StatusCode.NotFound);
+            }
+
+            return new Status(StatusCode.Ok);
         }
 
         #endregion
@@ -1373,9 +1509,9 @@ PRAGMA user_version = 3;";
                         IDictionary<string, object> value = null;
                         var docNumericId = GetDocNumericID(docId as string);
                         if (docNumericId > 0) {
-                            OutVal<bool> deleted = false;
+                            ValueTypePtr<bool> deleted = false;
                             Status status;
-                            string revId = WinningRevID(docNumericId, deleted, OutVal<bool>.None);
+                            string revId = GetWinner(docNumericId, deleted, ValueTypePtr<bool>.NULL);
                             if (revId != null) {
                                 value = new NonNullDictionary<string, object> {
                                     { "rev", revId },
@@ -1478,10 +1614,10 @@ PRAGMA user_version = 3;";
                 //// PART I: In which are performed lookups and validations prior to the insert...
 
                 // Get the doc's numeric ID (doc_id) and its current winning revision:
-                OutVal<bool> isNewDoc = prevRevId == null;
+                bool isNewDoc = prevRevId == null;
                 long docNumericId;
                 if(docId != null) {
-                    docNumericId = GetOrInsertDocNumericID(docId, isNewDoc);
+                    docNumericId = GetOrInsertDocNumericID(docId, ref isNewDoc);
                     if(docNumericId <= 0L) {
                         throw new CouchbaseLiteException(StatusCode.DbError);
                     }
@@ -1490,13 +1626,13 @@ PRAGMA user_version = 3;";
                     isNewDoc = true;
                 }
 
-                OutVal<bool> oldWinnerWasDeletion = false;
-                OutVal<bool> wasConflicted = false;
+                ValueTypePtr<bool> oldWinnerWasDeletion = false;
+                ValueTypePtr<bool> wasConflicted = false;
                 string oldWinningRevId = null;
                 if(!isNewDoc) {
                     try {
                         // Look up which rev is the winner, before this insertion
-                        oldWinningRevId = WinningRevID(docNumericId, oldWinnerWasDeletion, wasConflicted);
+                        oldWinningRevId = GetWinner(docNumericId, oldWinnerWasDeletion, wasConflicted);
                     } catch(CouchbaseLiteException e) {
                         return e.CBLStatus;
                     }
@@ -1538,7 +1674,7 @@ PRAGMA user_version = 3;";
                     } else {
                         // Inserting first revision, with no docID given (POST): generate a unique docID:
                         docId = Misc.CreateGUID();
-                        docNumericId = GetOrInsertDocNumericID(docId, isNewDoc);
+                        docNumericId = GetOrInsertDocNumericID(docId, ref isNewDoc);
                         if(docNumericId <= 0L) {
                             return new Status(StatusCode.DbError);
                         }
@@ -1644,8 +1780,8 @@ PRAGMA user_version = 3;";
                 Dictionary<string, RevisionInternal> localRevs = null;
                 string oldWinningRevId = null;
                 bool oldWinnerWasDeletion = false;
-                OutVal<bool> isNewDoc = revHistory.Count == 1;
-                var docNumericId = GetOrInsertDocNumericID(docId, isNewDoc);
+                bool isNewDoc = revHistory.Count == 1;
+                var docNumericId = GetOrInsertDocNumericID(docId, ref isNewDoc);
                 if(docNumericId <= 0) {
                     return new Status(StatusCode.DbError);
                 }
@@ -1963,9 +2099,8 @@ PRAGMA user_version = 3;";
                 return revision.CopyWithDocID(docId, newRevId);
             } else {
                 // DELETE:
-                try {
-                    DeleteLocalRevision(docId, prevRevId);
-                } catch(CouchbaseLiteException) {
+                var status = DeleteLocalRevision(docId, prevRevId);
+                if (status.IsError) {
                     return null;
                 }
 

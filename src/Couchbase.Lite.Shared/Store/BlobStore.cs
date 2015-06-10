@@ -316,7 +316,7 @@ namespace Couchbase.Lite
             return total;
         }
 
-        public int DeleteBlobsExceptWithKeys(IList<BlobKey> keysToKeep)
+        public int DeleteBlobsExceptWithKeys(ICollection<BlobKey> keysToKeep)
         {
             int numDeleted = 0;
             FilePath file = new FilePath(path);

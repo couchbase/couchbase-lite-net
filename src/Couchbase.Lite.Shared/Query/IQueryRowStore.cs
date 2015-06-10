@@ -51,7 +51,7 @@ namespace Couchbase.Lite.Store
         IDictionary<string, object> DocumentProperties(string docId, long sequenceNumber);
 
         //TODO: full text
-        /// <summary>
+        /*/// <summary>
         /// Fetches the full text that was emitted for the given document.
         /// </summary>
         /// <returns>The full text as UTF-8 data, or null on error.</returns>
@@ -59,7 +59,7 @@ namespace Couchbase.Lite.Store
         /// <param name="sequenceNumber">The sequence representing this revision</param>
         /// <param name="fullTextID">The opaque ID given when the QueryRow was created; this is used to
         /// disambiguate between multiple calls to emit() made for a single document.</param>
-        //byte[] FullTextForDocument(string docId, Int64 sequenceNumber, UInt64 fullTextID);
+        byte[] FullTextForDocument(string docId, Int64 sequenceNumber, UInt64 fullTextID);*/
 
     }
 }

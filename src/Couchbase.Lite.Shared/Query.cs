@@ -127,7 +127,12 @@ namespace Couchbase.Lite {
         /// <summary>
         /// Include *only* conflicted revisions in the results
         /// </summary>
-        OnlyConflicts
+        OnlyConflicts,
+
+        /// <summary>
+        /// Order by sequence number (i.e. chronologically)
+        /// </summary>
+        BySequence
     }
 
     /// <summary>

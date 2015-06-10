@@ -241,6 +241,7 @@ namespace Couchbase.Lite
             this.NetworkReachabilityManager = new NetworkReachabilityManager();
 
             SharedCookieStore = new CookieStore(this.directoryFile.FullName);
+            StorageType = "SQLite";
         }
 
     #endregion
@@ -486,6 +487,7 @@ namespace Couchbase.Lite
         internal IHttpClientFactory DefaultHttpClientFactory { get; set; }
         internal INetworkReachabilityManager NetworkReachabilityManager { get ; private set; }
         internal CookieStore SharedCookieStore { get; set; } 
+            internal string StorageType { get; set; } // @"SQLite" (default) or @"ForestDB"
 
 
         // Instance Methods

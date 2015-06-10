@@ -25,6 +25,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using Couchbase.Lite.Internal;
+using Sharpen;
+using System.Collections;
+using SQLitePCL;
 
 namespace Couchbase.Lite.Store
 {
@@ -34,6 +37,7 @@ namespace Couchbase.Lite.Store
         #region Constants
 
         private const string TAG = "SqliteViewStore";
+        private string _emitSql;
 
         #endregion
 
@@ -42,6 +46,9 @@ namespace Couchbase.Lite.Store
         private SqliteCouchStore _dbStorage;
         private int _viewId;
         private ViewCollation _collation;
+        private bool _initializedFullTextSchema, _initializedRTreeSchema;
+
+        #endregion
 
         #region Properties
 
@@ -49,7 +56,7 @@ namespace Couchbase.Lite.Store
 
         public IViewStoreDelegate Delegate { get; set; }
 
-        public uint TotalRows
+        public int TotalRows
         {
             get {
                 var db = _dbStorage;
@@ -59,7 +66,7 @@ namespace Couchbase.Lite.Store
                     totalRows = db.QueryOrDefault<int>(c => c.GetInt(0), false, 0, QueryString("SELECT COUNT(*) FROM 'maps_#'"));
                     var args = new ContentValues();
                     args["total_docs"] = totalRows;
-                    db.StorageEngine.Update("views", args, "view_id=?", ViewID);
+                    db.StorageEngine.Update("views", args, "view_id=?", ViewID.ToString());
                 }
 
                 Debug.Assert(totalRows >= 0);
@@ -109,8 +116,16 @@ namespace Couchbase.Lite.Store
 
         #region Constructors
 
-        public SqliteViewStore(ICouchStore store, string name, bool create)
+        public SqliteViewStore(SqliteCouchStore store, string name, bool create)
         {
+            _dbStorage = store;
+            Name = name;
+            _viewId = -1;
+            _collation = ViewCollation.Unicode;
+
+            if (!create && ViewID <= 0) {
+                throw new InvalidOperationException("View not found and create not specified");
+            }
         }
 
         #endregion
@@ -119,54 +134,185 @@ namespace Couchbase.Lite.Store
 
         private static string ViewNames(IEnumerable<SqliteViewStore> inputViews)
         {
-            throw new NotImplementedException();
+            var names = inputViews.Select(x => x.Name);
+            return String.Join(", ", names);
         }
 
         private bool RunStatements(string sqlStatements)
         {
-            throw new NotImplementedException();
+            var db = _dbStorage;
+            return db.RunInTransaction(() =>
+            {
+                if(_dbStorage.RunStatements(QueryString(sqlStatements))) {
+                    return new Status(StatusCode.Ok);
+                }
+
+                return new Status(StatusCode.DbError);
+            }).IsSuccessful;
         }
 
         private string QueryString(string statement)
         {
-            throw new NotImplementedException();
+            return statement.Replace("#", MapTableName);
         }
 
         private void CreateIndex()
         {
-            throw new NotImplementedException();
+            const string sql = 
+                "CREATE TABLE IF NOT EXISTS 'maps_#' (" +
+                    "sequence INTEGER NOT NULL REFERENCES revs(sequence) ON DELETE CASCADE," +
+                    "key TEXT NOT NULL COLLATE JSON," +
+                    "value TEXT," +
+                    "fulltext_id INTEGER, " +
+                    "bbox_id INTEGER, " +
+                    "geokey BLOB)";
+
+            if (!RunStatements(sql)) {
+                Log.W(TAG, "Couldn't create view index `{0}`", Name);
+            }
         }
 
+        private object KeyForPrefixMatch(object key, int depth)
+        {
+            if(depth < 1) {
+                return key;
+            }
+
+            var keyStr = key as string;
+            if (keyStr != null) {
+                // Kludge: prefix match a string by appending max possible character value to it
+                return keyStr + "\uffffffff";
+            }
+
+            var keyList = key as IList;
+            if (keyList != null) {
+                if (depth == 1) {
+                    keyList.Add(new Dictionary<string, object>());
+                } else {
+                    var lastObject = KeyForPrefixMatch(keyList[keyList.Count - 1], depth - 1);
+                    keyList[keyList.Count - 1] = lastObject;
+                }
+
+                return keyList;
+            }
+
+            return key;
+        }
 
         private StatusCode Emit(object key, object value, bool valueIsDoc, long sequence)
         {
-            throw new NotImplementedException();
+            var db = _dbStorage;
+            IEnumerable<byte> valueJSON;
+            if (valueIsDoc) {
+                valueJSON = new byte[1] { (byte)'*' };
+            } else {
+                valueJSON = Manager.GetObjectMapper().WriteValueAsBytes(value);
+            }
+
+            IEnumerable<byte> keyJSON;
+            IEnumerable<byte> geoKey = null;
+            if (false) {
+                //TODO: bbox, geo, fulltext
+            } else {
+                keyJSON = Manager.GetObjectMapper().WriteValueAsBytes(key);
+                Log.V(TAG, "    emit({0}, {1}", Encoding.UTF8.GetString(keyJSON), Encoding.UTF8.GetString(valueJSON));
+            }
+
+            if (keyJSON == null) {
+                keyJSON = Encoding.UTF8.GetBytes("null");
+            }
+
+            if (_emitSql == null) {
+                _emitSql = QueryString("INSERT INTO 'maps_#' (sequence, key, value, " +
+                "fulltext_id, bbox_id, geokey) VALUES (?, ?, ?, ?, ?, ?)");
+            }
+
+            //TODO: bbox, geo, fulltext
+            try {
+                _dbStorage.StorageEngine.ExecSQL(_emitSql, sequence, keyJSON, valueJSON, null, null, null);
+            } catch(Exception) {
+                return StatusCode.DbError;
+            }
+
+            return StatusCode.Ok;
         }
             
         private void FinishCreatingIndex()
         {
-            throw new NotImplementedException();
-        }
+            const string sql = "CREATE INDEX IF NOT EXISTS 'maps_#_keys' on 'maps_#'(key COLLATE JSON);" +
+                               "CREATE INDEX IF NOT EXISTS 'maps_#_sequence' ON 'maps_#'(sequence)";
 
-        //TODO: bbox
+            if (!RunStatements(sql)) {
+                Log.W(TAG, "Couldn't create view SQL index `{0}`", Name);
+            }
+        }
+            
         private bool CreateRTreeSchema()
         {
-            throw new NotImplementedException();
+            if (_initializedRTreeSchema) {
+                return true;
+            }
+
+            if (!raw.sqlite3_compileoption_used("SQLITE_ENABLE_RTREE")) {
+                Log.W(TAG, "Can't geo-query: SQLite isn't built with the Rtree module");
+                return false;
+            }
+
+            const string sql = "CREATE VIRTUAL TABLE IF NOT EXISTS bboxes USING rtree(rowid, x0, x1, y0, y1);" +
+            "CREATE TRIGGER IF NOT EXISTS 'del_maps_#_bbox' " +
+            "DELETE ON 'maps_#' WHEN old.bbox_id not null BEGIN " +
+            "DELETE FROM bboxes WHERE rowid=old.bbox_id| END";
+
+            if (!RunStatements(sql)) {
+                Log.W(TAG, "Error initializing rtree schema");
+                return false;
+            }
+
+            _initializedRTreeSchema = true;
+            return true;
         }
 
-        private bool GroupTogether(IEnumerable<byte> keyData, IEnumerable<byte> lastKeyData, int groupLevel)
+        private static bool GroupTogether(IEnumerable<byte> key1, IEnumerable<byte> key2, int groupLevel)
         {
-            throw new NotImplementedException();
+            if (key1 == null || key2 == null) {
+                return false;
+            }
+
+            if (groupLevel == 0) {
+                groupLevel = int.MaxValue;
+            }
+
+            return JsonCollator.Compare(JsonCollationMode.Unicode, Encoding.UTF8.GetString(key1.ToArray()),
+                Encoding.UTF8.GetString(key2.ToArray()), groupLevel) == 0;
         }
 
-        private object GroupKey(IEnumerable<byte> lastKeyData, int groupLevel)
+        private static object GroupKey(IEnumerable<byte> keyJSON, int groupLevel)
         {
-            throw new NotImplementedException();
+            var key = Manager.GetObjectMapper().ReadValue<object>(keyJSON);
+            var keyList = key as IList<object>;
+            if (groupLevel > 0 && keyList != null && keyList.Count > groupLevel) {
+                return keyList.Take(groupLevel);
+            }
+
+            return key;
         }
 
-        private object CallReduce(ReduceDelegate reduce, List<object> keysToReduce, List<object> valuesToReduce)
+        private static object CallReduce(ReduceDelegate reduce, List<object> keysToReduce, List<object> valuesToReduce)
         {
-            throw new NotImplementedException();
+            if (reduce == null) {
+                return null;
+            }
+
+            try {
+                object result = reduce(keysToReduce, valuesToReduce, false);
+                if(result != null) {
+                    return result;
+                }
+            } catch(Exception e) {
+                Log.E(TAG, "Exception in reduce block", e);
+            }
+
+            return null;
         }
 
         private Status RunQuery(QueryOptions options, Func<IEnumerable<byte>, IEnumerable<byte>, string, Cursor, Status> action)
@@ -300,9 +446,10 @@ namespace Couchbase.Lite.Store
                     return false;
                 } else if((int)status.Code <= 0) {
                     status.Code = StatusCode.Ok;
-                    return true;
                 }
-            }, false, sql, args);
+
+                return true;
+            }, false, sql.ToString(), args);
 
             return status;
         }
@@ -382,9 +529,9 @@ namespace Couchbase.Lite.Store
             return true;
         }
 
-        public Status UpdateIndexes(IEnumerable<SqliteViewStore> inputViews)
+        public Status UpdateIndexes(IEnumerable<IViewStore> inputViews)
         {
-            Log.D(TAG, "Checking indexes of ({0}) for {1}", ViewNames(inputViews), Name);
+            Log.D(TAG, "Checking indexes of ({0}) for {1}", ViewNames(inputViews.Cast<SqliteViewStore>()), Name);
             var db = _dbStorage;
 
             var status = db.RunInTransaction(() =>
@@ -408,7 +555,7 @@ namespace Couchbase.Lite.Store
                 IDictionary<int, int> viewTotalRows = new Dictionary<int, int>();
                 List<SqliteViewStore> views = new List<SqliteViewStore>(inputViews.Count());
                 List<MapDelegate> mapBlocks = new List<MapDelegate>();
-                foreach(var view in inputViews) {
+                foreach(var view in inputViews.Cast<SqliteViewStore>()) {
                     var viewDelegate = view.Delegate;
                     var mapBlock = viewDelegate == null ? null : viewDelegate.MapBlock;
                     if(mapBlock == null) {
@@ -453,7 +600,7 @@ namespace Couchbase.Lite.Store
                             allDocTypes = true; 
                         }
 
-                        bool ok;
+                        bool ok = true;
                         int changes = 0;
                         if(last == 0) {
                             try {
@@ -535,7 +682,7 @@ namespace Couchbase.Lite.Store
                 Cursor c = null;
                 Cursor c2 = null;
                 try {
-                    c = db.StorageEngine.IntransactionRawQuery(sql, minLastSequence);
+                    c = db.StorageEngine.IntransactionRawQuery(sql.ToString(), minLastSequence);
                     bool keepGoing = c.MoveToNext();
                     while(keepGoing) {
                         // Get row values now, before the code below advances 'c':
@@ -580,7 +727,7 @@ namespace Couchbase.Lite.Store
                                         revId = oldRevId;
                                         deleted = false;
                                         sequence = oldSequence;
-                                        json = db.QueryOrDefault<IEnumerable<byte>>(x => x.GetBlob(0), true, null, "SELECT json FROM revs WHERE sequence=?", sequence);
+                                        json = db.QueryOrDefault<byte[]>(x => x.GetBlob(0), true, null, "SELECT json FROM revs WHERE sequence=?", sequence);
 
                                     }
                                 }
@@ -616,7 +763,7 @@ namespace Couchbase.Lite.Store
                                 }
 
                                 Log.V(TAG, "    #{0}: map \"{1}\" for view {2}...",
-                                    sequence, docId, curView.Name);
+                                    sequence, docId, e.Current.Name);
                                 try {
                                     mapBlocks[i](currentDoc, emit);
                                 } catch(Exception x) {
@@ -651,7 +798,7 @@ namespace Couchbase.Lite.Store
                     args["lastSequence"] = dbMaxSequence;
                     args["total_docs"] = newTotalRows;
                     try {
-                        db.StorageEngine.Update("views", args, "view_id=?", view.ViewID);
+                        db.StorageEngine.Update("views", args, "view_id=?", view.ViewID.ToString());
                     } catch(Exception) {
                         return new Status(StatusCode.DbError);
                     }
@@ -663,7 +810,7 @@ namespace Couchbase.Lite.Store
             });
 
             if(status.Code >= StatusCode.BadRequest) {
-                Log.W(TAG, "CouchbaseLite: Failed to rebuild views ({0}): {1}", ViewNames(inputViews), status);
+                Log.W(TAG, "CouchbaseLite: Failed to rebuild views ({0}): {1}", ViewNames(inputViews.Cast<SqliteViewStore>()), status);
             }
 
             return status;
@@ -691,7 +838,7 @@ namespace Couchbase.Lite.Store
                 RevisionInternal docRevision = null;
                 if(options.IncludeDocs) {
                     IDictionary<string, object> value = null;
-                    if(valueData != null && RowValueDataIsEntireDoc(valueData)) {
+                    if(valueData != null && RowValueIsEntireDoc(valueData)) {
                         value = Manager.GetObjectMapper().ReadValue<IDictionary<string, object>>(valueData);
                     }
 
@@ -730,7 +877,7 @@ namespace Couchbase.Lite.Store
 
                 rows.Add(row);
                 if(limit-- == 0) {
-                    return 0;
+                    return new Status(StatusCode.Reserved);
                 }
 
                 return new Status(StatusCode.Ok);
@@ -752,7 +899,7 @@ namespace Couchbase.Lite.Store
                 // Now concatenate them in the order the keys are given in options:
                 var sortedRows = new List<QueryRow>();
                 foreach (var key in options.Keys) {
-                    var dictRows = rowsByKey.Get(rows.Key);
+                    var dictRows = rowsByKey.Get(key);
                     if (dictRows != null) {
                         sortedRows.AddRange(dictRows);
                     }
@@ -803,11 +950,11 @@ namespace Couchbase.Lite.Store
                     lastKeyData = keyData;
                 }
 
-                Log.V(TAG, "    Query {0}: Will reduce row with key={1}, value={2}", Name, Encoding.UTF8.GetString(keyData),
-                    Encoding.UTF8.GetString(valueData));
+                Log.V(TAG, "    Query {0}: Will reduce row with key={1}, value={2}", Name, Encoding.UTF8.GetString(keyData.ToArray()),
+                    Encoding.UTF8.GetString(valueData.ToArray()));
 
                 object valueOrData = valueData;
-                if(valuesToReduce != null && RowValueDataIsEntireDoc(valueData)) {
+                if(valuesToReduce != null && RowValueIsEntireDoc(valueData)) {
                     // map fn emitted 'doc' as value, which was stored as a "*" placeholder; expand now:
                     Status status = new Status();
                     var rev = db.GetDocument(docID, c.GetLong(1), status);
@@ -827,11 +974,11 @@ namespace Couchbase.Lite.Store
                 // Finish the last group (or the entire list, if no grouping):
                 var key = group ? GroupKey(lastKeyData, groupLevel) : null;
                 var reduced = CallReduce(reduce, keysToReduce, valuesToReduce);
-                Log.V(TAG, "    Query {0}: Will reduce row with key={1}, value={2}", Name, Encoding.UTF8.GetString(keyData),
-                    Encoding.UTF8.GetString(valueData));
+                Log.V(TAG, "    Query {0}: Will reduce row with key={1}, value={2}", Name, Manager.GetObjectMapper().WriteValueAsString(key),
+                    Manager.GetObjectMapper().WriteValueAsString(reduced));
 
                 var row = new QueryRow(null, 0, key, reduced, null, this);
-                if (options.filter == null || options.filter(row)) {
+                if (options.Filter == null || options.Filter(row)) {
                     rows.Add(row);
                 }
             }
@@ -863,6 +1010,8 @@ namespace Couchbase.Lite.Store
 
                 return true;
             }, false, QueryString("SELECT sequence, key, value FROM 'maps_#' ORDER BY key"));
+
+            return retVal;
         }
 
         #endif
@@ -883,7 +1032,7 @@ namespace Couchbase.Lite.Store
 
         public IDictionary<string, object> DocumentProperties(string docId, long sequenceNumber)
         {
-            return _dbStorage.GetDocument(docId, sequenceNumber);
+            return _dbStorage.GetDocument(docId, sequenceNumber).GetProperties();
         }
 
         #endregion
