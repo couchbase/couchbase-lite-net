@@ -1469,7 +1469,7 @@ PRAGMA user_version = 3;";
             return null;
         }
 
-        internal RevisionList ChangesSince(long lastSeq, ChangesOptions options, FilterDelegate filter)
+        internal RevisionList ChangesSince(long lastSeq, ChangesOptions options, FilterDelegate filter, IDictionary<string, object> filterParams)
         {
             // http://wiki.apache.org/couchdb/HTTP_database_API#Changes
             if (options == null)
@@ -1523,9 +1523,8 @@ PRAGMA user_version = 3;";
                     {
                         ExpandStoredJSONIntoRevisionWithAttachments(cursor.GetBlob(5), rev, options.GetContentOptions());
                     }
-                    IDictionary<string, object> paramsFixMe = null;
-                    // TODO: these should not be null
-                    if (RunFilter(filter, paramsFixMe, rev))
+                        
+                    if (RunFilter(filter, filterParams, rev))
                     {
                         changes.AddItem(rev);
                     }
@@ -1551,14 +1550,14 @@ PRAGMA user_version = 3;";
             return changes;
         }
 
-        internal bool RunFilter(FilterDelegate filter, IDictionary<string, object> paramsIgnored, RevisionInternal rev)
+        internal bool RunFilter(FilterDelegate filter, IDictionary<string, object> filterParams, RevisionInternal rev)
         {
-            if (filter == null)
-            {
+            if (filter == null) {
                 return true;
             }
+
             var publicRev = new SavedRevision(this, rev);
-            return filter(publicRev, null);
+            return filter(publicRev, filterParams);
         }
 
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
@@ -4847,7 +4846,7 @@ PRAGMA user_version = 3;";
     /// <summary>
     /// A delegate that can be used to include/exclude <see cref="Couchbase.Lite.Revision"/>s during push <see cref="Couchbase.Lite.Replication"/>.
     /// </summary>
-    public delegate Boolean FilterDelegate(SavedRevision revision, Dictionary<String, Object> filterParams);
+    public delegate Boolean FilterDelegate(SavedRevision revision, IDictionary<String, Object> filterParams);
 
     /// <summary>
     /// A delegate that can be run in a transaction on a <see cref="Couchbase.Lite.Database"/>.

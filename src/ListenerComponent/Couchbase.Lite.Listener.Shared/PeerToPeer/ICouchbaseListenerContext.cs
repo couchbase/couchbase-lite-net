@@ -23,6 +23,7 @@ using System.Collections.Specialized;
 using System.IO;
 
 using Couchbase.Lite.Replicator;
+using System.Collections.Generic;
 
 namespace Couchbase.Lite.Listener
 {
@@ -138,6 +139,12 @@ namespace Couchbase.Lite.Listener
         /// <returns>The specified item</returns>
         /// <param name="key">The name of the query item to get</param>
         string GetQueryParam(string key);
+
+        /// <summary>
+        /// Returns all of the query parameters
+        /// </summary>
+        /// <returns>The query parameters of the URL.</returns>
+        IDictionary<string, object> GetQueryParams();
 
         /// <summary>
         /// Inserts the given string into the Etag header of the response, and checks to see if

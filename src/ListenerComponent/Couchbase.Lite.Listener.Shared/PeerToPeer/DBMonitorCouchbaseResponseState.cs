@@ -19,6 +19,7 @@
 //  limitations under the License.
 //
 
+using System.Collections.Generic;
 using System.Text;
 using System.Threading;
 
@@ -71,6 +72,12 @@ namespace Couchbase.Lite.Listener
         /// The delegate to filter the changes being written
         /// </summary>
         public FilterDelegate ChangesFilter { get; set; }
+
+        /// <summary>
+        /// The parameters used in the change filter
+        /// </summary>
+        /// <value>The filter parameters.</value>
+        public IDictionary<string, object> FilterParams { get; set; }
 
         //ICouchbaseResponseState
         public CouchbaseLiteResponse Response { get; set; }
@@ -174,7 +181,7 @@ namespace Couchbase.Lite.Listener
                     }
                 }
 
-                if (!_db.RunFilter(ChangesFilter, null, rev)) {
+                if (!_db.RunFilter(ChangesFilter, FilterParams, rev)) {
                     continue;
                 }
 

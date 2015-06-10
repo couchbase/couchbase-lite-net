@@ -327,10 +327,12 @@ namespace Couchbase.Lite.Listener
                     if(responseState.ChangesFilter == null) {
                         return context.CreateResponse(status.Code);
                     }
+
+                    responseState.FilterParams = context.GetQueryParams();
                 }
 
 
-                RevisionList changes = db.ChangesSince(since, options, responseState.ChangesFilter);
+                RevisionList changes = db.ChangesSince(since, options, responseState.ChangesFilter, responseState.FilterParams);
                 if((context.ChangesFeedMode >= ChangesFeedMode.Continuous) || 
                     (context.ChangesFeedMode == ChangesFeedMode.LongPoll && changes.Count == 0)) {
                     // Response is going to stay open (continuous, or hanging GET):

@@ -197,7 +197,7 @@ namespace Couchbase.Lite.Replicator
 
             var options = new ChangesOptions();
             options.SetIncludeConflicts(true);
-            var changes = LocalDatabase.ChangesSince(lastSequenceLong, options, filter);
+            var changes = LocalDatabase.ChangesSince(lastSequenceLong, options, filter, FilterParams);
             if (changes.Count > 0)
             {
                 Batcher.QueueObjects(changes);
@@ -241,10 +241,10 @@ namespace Couchbase.Lite.Replicator
                 }
 
                 var rev = change.AddedRevision;
-                IDictionary<String, Object> paramsFixMe = null;
+                IDictionary<String, Object> paramsFixMe = FilterParams;
 
                 // TODO: these should not be null
-                if (LocalDatabase.RunFilter(filter, paramsFixMe, rev))
+                if (LocalDatabase.RunFilter(filter, FilterParams, rev))
                 {
                     AddToInbox(rev);
                 }

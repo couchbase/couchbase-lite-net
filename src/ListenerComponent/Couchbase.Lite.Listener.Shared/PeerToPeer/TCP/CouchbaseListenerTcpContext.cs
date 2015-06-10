@@ -19,8 +19,10 @@
 //  limitations under the License.
 //
 using System;
+using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.IO;
+using System.Linq;
 using System.Net;
 
 namespace Couchbase.Lite.Listener.Tcp
@@ -90,6 +92,16 @@ namespace Couchbase.Lite.Listener.Tcp
         public override string GetQueryParam(string key)
         {
             return _httpContext.Request.QueryString[key];
+        }
+
+        public override IDictionary<string, object> GetQueryParams()
+        {
+            var retVal = new Dictionary<string, object>(_httpContext.Request.QueryString.Count);
+            foreach (string key in _httpContext.Request.QueryString.AllKeys) {
+                retVal[key] = _httpContext.Request.QueryString[key];
+            }
+
+            return retVal;
         }
 
         public override bool CacheWithEtag(string etag)

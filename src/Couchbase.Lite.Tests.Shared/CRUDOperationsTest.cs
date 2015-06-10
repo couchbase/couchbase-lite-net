@@ -137,17 +137,17 @@ namespace Couchbase.Lite
             Assert.IsTrue(gotExpectedError);
 
             // Check the changes feed, with and without filters:
-            var changeRevisions = database.ChangesSince(0, null, null);
+            var changeRevisions = database.ChangesSince(0, null, null, null);
 
             Log.V(Tag, "Changes = " + changeRevisions);
             Assert.AreEqual(1, changeRevisions.Count);
 
             changeRevisions = database.ChangesSince(0, null, 
-                (revision, items) => "updated!".Equals (revision.Properties.Get("status")));
+                (revision, items) => "updated!".Equals (revision.Properties.Get("status")), null);
             Assert.AreEqual(1, changeRevisions.Count);
 
             changeRevisions = database.ChangesSince(0, null, 
-                (revision, items) => "not updated!".Equals (revision.Properties.Get("status")));
+                (revision, items) => "not updated!".Equals (revision.Properties.Get("status")), null);
             Assert.AreEqual(0, changeRevisions.Count);
 
             // Delete it:
@@ -189,7 +189,7 @@ namespace Couchbase.Lite
             Assert.IsNull(readRev);
 
             // Get Changes feed:
-            changeRevisions = database.ChangesSince(0, null, null);
+            changeRevisions = database.ChangesSince(0, null, null, null);
             Assert.IsTrue(changeRevisions.Count == 1);
 
             // Get Revision History:

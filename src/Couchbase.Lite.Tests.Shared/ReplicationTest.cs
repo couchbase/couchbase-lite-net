@@ -2274,6 +2274,41 @@ namespace Couchbase.Lite
 
             Assert.AreNotEqual(repl1.RemoteCheckpointDocID(), repl2.RemoteCheckpointDocID());
         }
+
+        [Test]
+        [Category("issue_398")]
+        public void TestPusherUsesFilterParams()
+        {
+            var docIdTimestamp = Convert.ToString(Runtime.CurrentTimeMillis());
+            var doc1Id = string.Format("doc1-{0}", docIdTimestamp);
+            var doc2Id = string.Format("doc2-{0}", docIdTimestamp);
+
+            var doc1 = database.GetDocument(doc1Id);
+            doc1.PutProperties(new Dictionary<string, object> { { "foo", "bar" } });
+
+            var doc2 = database.GetDocument(doc2Id);
+            doc2.PutProperties(new Dictionary<string, object> { { "bar", "foo" } });
+
+            var mre = new ManualResetEventSlim();
+            IDictionary<string, object> gotParams = null;
+            database.SetFilter("issue-398", (rev, parameters) =>
+            {
+                gotParams = parameters;
+                if(!mre.IsSet) {
+                    mre.Set();
+                }
+
+                return true;
+            });
+
+            var push = database.CreatePushReplication(GetReplicationURL());
+            push.Filter = "issue-398";
+            push.FilterParams = new Dictionary<string, object>() { { "issue-398", "finished" } };
+            push.Start();
+
+            mre.Wait();
+            Assert.AreEqual(push.FilterParams, gotParams);
+        }
             
     }
 }

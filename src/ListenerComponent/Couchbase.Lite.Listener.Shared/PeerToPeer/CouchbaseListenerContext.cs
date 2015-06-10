@@ -336,6 +336,8 @@ namespace Couchbase.Lite.Listener
 
         public abstract string GetQueryParam(string key);
 
+        public abstract IDictionary<string, object> GetQueryParams();
+
         public abstract bool CacheWithEtag(string etag);
 
         #endregion
