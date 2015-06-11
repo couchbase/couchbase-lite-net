@@ -94,8 +94,8 @@ namespace Couchbase.Lite
             Assert.IsTrue(rev1.GetRevId().StartsWith("1-"));
 
             //read it back
-            var readRev = database.GetDocumentWithIDAndRev(rev1.GetDocId(), null, 
-                DocumentContentOptions.None);
+            var readRev = database.GetDocument(rev1.GetDocId(), null, 
+                true);
             Assert.IsNotNull(readRev);
 
             var userReadRevProps = UserProperties(readRev.GetProperties());
@@ -118,8 +118,8 @@ namespace Couchbase.Lite
             Assert.IsTrue(rev2.GetRevId().StartsWith("2-"));
 
             //read it back
-            readRev = database.GetDocumentWithIDAndRev(rev2.GetDocId(), null, 
-                DocumentContentOptions.None);
+            readRev = database.GetDocument(rev2.GetDocId(), null, 
+                true);
             Assert.IsNotNull(readRev);
             Assert.AreEqual(UserProperties(readRev.GetProperties()), UserProperties
                 (body.GetProperties()));
@@ -184,8 +184,8 @@ namespace Couchbase.Lite
             Assert.IsTrue(gotExpectedError);
 
             // Read it back (should fail):
-            readRev = database.GetDocumentWithIDAndRev(revD.GetDocId(), null, 
-                DocumentContentOptions.None);
+            readRev = database.GetDocument(revD.GetDocId(), null, 
+                true);
             Assert.IsNull(readRev);
 
             // Get Changes feed:
@@ -193,7 +193,7 @@ namespace Couchbase.Lite
             Assert.IsTrue(changeRevisions.Count == 1);
 
             // Get Revision History:
-            IList<RevisionInternal> history = database.GetRevisionHistory(revD);
+            IList<RevisionInternal> history = database.Storage.GetRevisionHistory(revD);
             Assert.AreEqual(revD, history[0]);
             Assert.AreEqual(rev2, history[1]);
             Assert.AreEqual(rev1, history[2]);

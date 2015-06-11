@@ -149,7 +149,7 @@ namespace Couchbase.Lite
             var expectedHistoryDict = new Dictionary<string, object>();
             expectedHistoryDict["start"] = 4;
             expectedHistoryDict["ids"] = expectedSuffixes;
-            
+
             var historyDict = Database.MakeRevisionHistoryDict(revs);
             Assert.AreEqual(expectedHistoryDict, historyDict);
             
@@ -197,7 +197,7 @@ namespace Couchbase.Lite
             var rev9b = CreateRevisionWithRandomProps(rev8b, true);
             var rev10b = CreateRevisionWithRandomProps(rev9b, true);
 
-            var revFound = database.GetDocumentWithIDAndRev(doc.Id, null, DocumentContentOptions.None);
+            var revFound = database.GetDocument(doc.Id, null, true);
             Assert.AreEqual(rev10b.Id, revFound.GetRevId());
         }
 
@@ -214,7 +214,7 @@ namespace Couchbase.Lite
             // rev3b should be picked as the winner since it has a longer branch
             var expectedWinner = rev3b;
 
-            var revFound = database.GetDocumentWithIDAndRev(doc.Id, null, DocumentContentOptions.None);
+            var revFound = database.GetDocument(doc.Id, null, true);
             Assert.AreEqual(expectedWinner.Id, revFound.GetRevId());
         }
 
@@ -234,7 +234,7 @@ namespace Couchbase.Lite
                 expectedWinner = rev2b;
             }
 
-            var revFound = database.GetDocumentWithIDAndRev(doc.Id, null, DocumentContentOptions.None);
+            var revFound = database.GetDocument(doc.Id, null, true);
             Assert.AreEqual(expectedWinner.Id, revFound.GetRevId());
         }
 

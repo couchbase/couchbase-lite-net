@@ -339,13 +339,8 @@ namespace Couchbase.Lite.Replicator
         {
             Func<RevisionInternal, IDictionary<String, Object>> invoke = source =>
             {
-                var hasAttachment = false;
-                var attsSince = database.GetPossibleAncestorRevisionIDs(source, Puller.MaxNumberOfAttsSince, ref hasAttachment);
+                var attsSince = database.Storage.GetPossibleAncestors(source, Puller.MaxNumberOfAttsSince, true);
 
-                if (!hasAttachment || attsSince.Count == 0) 
-                {
-                    attsSince = null;
-                }
 
                 var mapped = new Dictionary<string, object> ();
                 mapped.Put ("id", source.GetDocId ());

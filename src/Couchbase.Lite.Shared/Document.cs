@@ -115,10 +115,10 @@ namespace Couchbase.Lite {
         /// <value>The current/latest <see cref="Couchbase.Lite.Revision"/>.</value>
         public SavedRevision CurrentRevision { 
             get {
-                if (currentRevision == null) 
-                {
+                if (currentRevision == null) {
                     currentRevision = GetRevisionWithId(null);
                 }
+
                 return currentRevision;
             }
         }
@@ -236,7 +236,7 @@ namespace Couchbase.Lite {
             var docsToRevs = new Dictionary<String, IList<String>>();
             docsToRevs[Id] = revs;
 
-            Database.PurgeRevisions(docsToRevs);
+            Database.Storage.PurgeRevisions(docsToRevs);
             Database.RemoveDocumentFromCache(this);
         }
 
@@ -250,8 +250,7 @@ namespace Couchbase.Lite {
             if (CurrentRevision != null && id.Equals(CurrentRevision.Id))
                 return CurrentRevision;
 
-            var contentOptions = DocumentContentOptions.None;
-            var revisionInternal = Database.GetDocumentWithIDAndRev(Id, id, contentOptions);
+            var revisionInternal = Database.GetDocument(Id, id, true);
 
             var revision = GetRevisionFromRev(revisionInternal);
             return revision;
@@ -390,13 +389,18 @@ namespace Couchbase.Lite {
 
     #region Non-public Members
 
+        internal void ForgetCurrentRevision()
+        {
+            currentRevision = null;
+        }
+
         private SavedRevision GetRevisionWithId(String revId)
         {
             if (!StringEx.IsNullOrWhiteSpace(revId) && revId.Equals(currentRevision.Id))
             {
                 return currentRevision;
             }
-            return GetRevisionFromRev(Database.GetDocumentWithIDAndRev(Id, revId, DocumentContentOptions.None));
+            return GetRevisionFromRev(Database.GetDocument(Id, revId, true));
         }
 
         internal void LoadCurrentRevisionFrom(QueryRow row)
@@ -484,7 +488,7 @@ namespace Couchbase.Lite {
         internal IList<SavedRevision> GetLeafRevisions(bool includeDeleted)
         {
             var result = new List<SavedRevision>();
-            var revs = Database.GetAllRevisionsOfDocumentID(Id, true);
+            var revs = Database.Storage.GetAllDocumentRevisions(Id, true);
             foreach (RevisionInternal rev in revs)
             {
                 // add it to result, unless we are not supposed to include deleted and it's deleted

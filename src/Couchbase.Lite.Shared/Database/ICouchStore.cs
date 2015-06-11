@@ -187,7 +187,7 @@ namespace Couchbase.Lite.Store
         /// Looks for each given revision in the local database, and removes each one found from the list.
         /// On return, therefore, `revs` will contain only the revisions that don't exist locally.
         /// </summary>
-        bool FindMissingRevisions(RevisionList revs);
+        int FindMissingRevisions(RevisionList revs);
 
         /// <summary>
         /// Returns the keys (unique IDs) of all attachments referred to by existing un-compacted

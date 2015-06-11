@@ -76,13 +76,19 @@ namespace Couchbase.Lite
         #region Constants
 
         private const bool AUTO_COMPACT = true;
+        private const int NOTIFY_CHANGES_LIMIT = 5000;
 
         #endregion
 
         #region Variables
 
         private bool _readOnly;
-        private ICouchStore _storage;
+
+        #endregion
+
+        #region Properties
+
+        internal ICouchStore Storage { get; private set; }
 
         #endregion
 
@@ -170,7 +176,7 @@ namespace Couchbase.Lite
         public Int32 DocumentCount 
         {
             get {
-                return _storage.DocumentCount;
+                return Storage.DocumentCount;
             }
         }
             
@@ -183,7 +189,7 @@ namespace Couchbase.Lite
         public Int64 LastSequenceNumber 
         {
             get {
-                return _storage.LastSequence;
+                return Storage.LastSequence;
             }
         }
 
@@ -212,6 +218,7 @@ namespace Couchbase.Lite
         /// </summary>
         /// <value>All replications.</value>
         public IEnumerable<Replication> AllReplications { get { return AllReplicators.ToList(); } }
+       
 
         //Methods
 
@@ -224,7 +231,7 @@ namespace Couchbase.Lite
         public bool Compact()
         {
             try {
-                _storage.Compact();
+                Storage.Compact();
             } catch(CouchbaseLiteException) {
                 return false;
             }
@@ -317,7 +324,7 @@ namespace Couchbase.Lite
                 return null;
             }
 
-            var revisionInternal = GetDocumentWithIDAndRev(id, null, DocumentContentOptions.None);
+            var revisionInternal = GetDocumentWithIDAndRev(id, null, true);
             return revisionInternal == null ? null : GetDocument (id);
         }
 
@@ -337,7 +344,7 @@ namespace Couchbase.Lite
         /// <param name="id">Identifier.</param>
         public IDictionary<String, Object> GetExistingLocalDocument(String id) 
         {
-            var gotRev = _storage.GetLocalDocument(MakeLocalDocumentId(id), null);
+            var gotRev = Storage.GetLocalDocument(MakeLocalDocumentId(id), null);
             return gotRev != null ? gotRev.GetProperties() : null;
         }
 
@@ -358,7 +365,7 @@ namespace Couchbase.Lite
                 rev.SetProperties(properties);
             }
                 
-            bool ok = _storage.PutLocalRevision(rev, null, false) != null;
+            bool ok = Storage.PutLocalRevision(rev, null, false) != null;
             return ok;
         }
 
@@ -401,7 +408,7 @@ namespace Couchbase.Lite
                 return view;
             }
 
-            return RegisterView(new View(this, name));
+            return RegisterView(View.MakeView(this, name, true));
         }
 
         /// <summary>
@@ -419,9 +426,9 @@ namespace Couchbase.Lite
             if (view != null) {
                 return view;
             }
-            view = new View(this, name);
+            view = View.MakeView(this, name, false);
 
-            return view.Id == 0 ? null : RegisterView(view);
+            return RegisterView(view);
         }
 
         /// <summary>
@@ -545,7 +552,7 @@ namespace Couchbase.Lite
         /// <param name="transactionDelegate">The delegate to run within a transaction.</param>
         public bool RunInTransaction(RunInTransactionDelegate transactionDelegate)
         {
-            return _storage.RunInTransaction(() => transactionDelegate() ? 
+            return Storage.RunInTransaction(() => transactionDelegate() ? 
                 new Status(StatusCode.Ok) : new Status(StatusCode.Reserved)).Code == StatusCode.Ok;
         }
 
@@ -657,6 +664,11 @@ namespace Couchbase.Lite
         internal Int64                                   StartTime { get; private set; }
         private IDictionary<String, FilterDelegate>     Filters { get; set; }
 
+        private RevisionInternal GetDocumentWithIDAndRev(string docId, string revId, bool withBody)
+        {
+            return Storage.GetDocument(docId, revId, withBody);
+        }
+
         internal object GetDesignDocFunction(string fnName, string key, out string language)
         {
             language = null;
@@ -666,7 +678,7 @@ namespace Couchbase.Lite
             }
 
             var docId = string.Format("_design/{0}", path[0]);
-            var rev = GetDocumentWithIDAndRev(docId, null, DocumentContentOptions.None);
+            var rev = GetDocumentWithIDAndRev(docId, null, true);
             if (rev == null) {
                 return null;
             }
@@ -687,6 +699,61 @@ namespace Couchbase.Lite
             return container.Get(path[1]);
         }
 
+        internal void ForceInsert(RevisionInternal inRev, IList<string> revHistory, Uri source)
+        {
+            var rev = inRev.CopyWithDocID(inRev.GetDocId(), inRev.GetRevId());
+            rev.SetSequence(0);
+            string revID = rev.GetRevId();
+            if (!IsValidDocumentId(rev.GetDocId()) || revID == null) {
+                throw new CouchbaseLiteException(StatusCode.BadId);
+            }
+
+            if (revHistory.Count == 0) {
+                revHistory.Add(revID);
+            } else if (revID != revHistory[0]) {
+                throw new CouchbaseLiteException(StatusCode.BadId);
+            }
+
+            if (inRev.GetAttachments() != null) {
+                var updatedRev = inRev.CopyWithDocID(inRev.GetDocId(), inRev.GetRevId());
+                string prevRevID = revHistory.Count >= 2 ? revHistory[1] : null;
+                Status status = new Status();
+                if (!ProcessAttachmentsForRevision(updatedRev, prevRevID, status)) {
+                    throw new CouchbaseLiteException(status.Code);
+                }
+
+                inRev = updatedRev;
+            }
+
+            //TODO: Validation block
+            var insertStatus = Storage.ForceInsert(inRev, revHistory, null, source);
+            if(insertStatus.IsError) {
+                throw new CouchbaseLiteException(insertStatus.Code);
+            }
+        }
+
+        internal void AddReplication(Replication replication)
+        {
+            lock (_allReplicatorsLocker) { AllReplicators.Add(replication); }
+        }
+
+        internal void ForgetReplication(Replication replication)
+        {
+            lock (_allReplicatorsLocker) { AllReplicators.Remove(replication); }
+        }
+
+        internal void AddActiveReplication(Replication replication)
+        {
+            ActiveReplicators.Add(replication);
+            replication.Changed += (sender, e) => 
+            {
+                if (e.Source != null && !e.Source.IsRunning && ActiveReplicators != null)
+                {
+                    ActiveReplicators.Remove(e.Source);
+                }
+            };
+        }
+
         internal bool Exists()
         {
             return new FilePath(Path).Exists();
@@ -701,7 +768,7 @@ namespace Couchbase.Lite
         private bool GarbageCollectAttachments()
         {
             Log.D(Tag, "Scanning database revisions for attachments...");
-            var keys = _storage.FindAllAttachmentKeys();
+            var keys = Storage.FindAllAttachmentKeys();
             if (keys == null) {
                 return false;
             }
@@ -720,12 +787,12 @@ namespace Couchbase.Lite
 
         internal bool SetLastSequence(string lastSequence, string checkpointId, bool push)
         {
-            return _storage.SetInfo(CheckpointInfoKey(checkpointId), lastSequence).IsSuccessful;
+            return Storage.SetInfo(CheckpointInfoKey(checkpointId), lastSequence).IsSuccessful;
         }
 
         internal string LastSequenceWithCheckpointId(string checkpointId)
         {
-            return _storage.GetInfo(CheckpointInfoKey(checkpointId));
+            return Storage.GetInfo(CheckpointInfoKey(checkpointId));
         }
 
         private IDictionary<string, BlobStoreWriter> PendingAttachmentsByDigest
@@ -784,8 +851,7 @@ namespace Couchbase.Lite
                 // result dictionary because that's what we want.  should be refactored, but
                 // it's a little tricky, so postponing.
                 Log.D(Tag, "Returning an all docs query.");
-                var allDocsResult = GetAllDocs (options);
-                rows = (IList<QueryRow>)allDocsResult.Get ("rows");
+                rows = GetAllDocs (options);
                 lastSequence = LastSequenceNumber;
             }
             outLastSequence.AddItem(lastSequence);
@@ -803,7 +869,7 @@ namespace Couchbase.Lite
                 revFilter = (rev => RunFilter(filter, filterParams, rev));
             }
 
-            return _storage.ChangesSince(lastSeq, options, revFilter);
+            return Storage.ChangesSince(lastSeq, options, revFilter);
         }
 
         internal bool RunFilter(FilterDelegate filter, IDictionary<string, object> filterParams, RevisionInternal rev)
@@ -820,7 +886,9 @@ namespace Couchbase.Lite
         {
             // For regular all-docs, let storage do it all:
             if (options == null || options.AllDocsMode == AllDocsMode.BySequence) {
-                return _storage.GetAllDocs(options);
+                foreach (var row in Storage.GetAllDocs(options)) {
+                    yield return row;
+                }
             }
 
             if (options.Descending) {
@@ -845,12 +913,12 @@ namespace Couchbase.Lite
 
             long minSeq = startSeq, maxSeq = endSeq;
             if (minSeq > maxSeq) {
-                return null; // empty result
+                yield return null; // empty result
             }
 
-            RevisionList revs = _storage.ChangesSince(minSeq - 1, changesOpts, null);
+            RevisionList revs = Storage.ChangesSince(minSeq - 1, changesOpts, null);
             if (revs == null) {
-                return null;
+                yield return null;
             }
 
             var revEnum = options.Descending ? revs.Reverse<RevisionInternal>() : revs;
@@ -947,10 +1015,14 @@ namespace Couchbase.Lite
 
         internal IList<View> GetAllViews()
         {
-            var enumerator = from viewName in _storage.GetAllViews()
+            var enumerator = from viewName in Storage.GetAllViews()
                                       select GetExistingView(viewName);
 
             return enumerator.ToList();
+        }
+
+        internal void ForgetView(string viewName) {
+            _views.Remove(viewName);
         }
 
         /// <summary>
@@ -978,12 +1050,12 @@ namespace Couchbase.Lite
 
         internal string PrivateUUID ()
         {
-            return _storage.GetInfo("privateUUID");
+            return Storage.GetInfo("privateUUID");
         }
 
         internal string PublicUUID()
         {
-            return _storage.GetInfo("publicUUID");
+            return Storage.GetInfo("publicUUID");
         }
 
         internal BlobStoreWriter GetAttachmentWriter()
@@ -997,13 +1069,13 @@ namespace Couchbase.Lite
                 privUUID = Misc.CreateGUID();
             }
 
-            if (PublicUUID == null) {
-                PublicUUID = Misc.CreateGUID();
+            if (pubUUID == null) {
+                pubUUID = Misc.CreateGUID();
             }
 
-            var status = _storage.SetInfo("publicUUID", pubUUID);
+            var status = Storage.SetInfo("publicUUID", pubUUID);
             if (status.IsSuccessful) {
-                status = _storage.SetInfo("privateUUID", privUUID);
+                status = Storage.SetInfo("privateUUID", privUUID);
             }
 
             return status.IsSuccessful;
@@ -1022,7 +1094,7 @@ namespace Couchbase.Lite
 
         internal RevisionInternal GetDocument(string docId, string revId, bool withBody, Status status = null)
         {
-            return _storage.GetDocument(docId, revId, withBody, status);
+            return Storage.GetDocument(docId, revId, withBody, status);
         }
 
         internal MultipartWriter MultipartWriterForRev(RevisionInternal rev, string contentType)
@@ -1053,6 +1125,63 @@ namespace Couchbase.Lite
             }
 
             return writer;
+        }
+
+        internal static IDictionary<string, object> MakeRevisionHistoryDict(IList<RevisionInternal> history)
+        {
+            if (history == null)
+                return null;
+
+            // Try to extract descending numeric prefixes:
+            var suffixes = new List<string>();
+            var start = -1;
+            var lastRevNo = -1;
+
+            foreach (var rev in history)
+            {
+                var revNo = ParseRevIDNumber(rev.GetRevId());
+                var suffix = ParseRevIDSuffix(rev.GetRevId());
+                if (revNo > 0 && suffix.Length > 0)
+                {
+                    if (start < 0)
+                    {
+                        start = revNo;
+                    }
+                    else
+                    {
+                        if (revNo != lastRevNo - 1)
+                        {
+                            start = -1;
+                            break;
+                        }
+                    }
+                    lastRevNo = revNo;
+                    suffixes.AddItem(suffix);
+                }
+                else
+                {
+                    start = -1;
+                    break;
+                }
+            }
+
+            var result = new Dictionary<String, Object>();
+            if (start == -1)
+            {
+                // we failed to build sequence, just stuff all the revs in list
+                suffixes = new List<string>();
+                foreach (RevisionInternal rev_1 in history)
+                {
+                    suffixes.AddItem(rev_1.GetRevId());
+                }
+            }
+            else
+            {
+                result["start"] = start;
+            }
+
+            result["ids"] = suffixes;
+            return result;
         }
 
         /// <summary>Parses the _revisions dict from a document into an array of revision ID strings.</summary>
@@ -1193,7 +1322,7 @@ namespace Couchbase.Lite
             StoreValidation validationBlock = null;
             //TODO: Validation block check
 
-            var putRev = _storage.PutRevision(docId, prevRevId, properties, deleting, allowConflict, validationBlock, resultStatus);
+            var putRev = Storage.PutRevision(docId, prevRevId, properties, deleting, allowConflict, validationBlock);
             if (putRev != null) {
                 Log.D(Tag, "--> created {0}", putRev);
             }
@@ -1699,7 +1828,7 @@ namespace Couchbase.Lite
         {
             var rev = new RevisionInternal(docId, revId, false);
             try {
-                LoadRevisionBody(rev, DocumentContentOptions.None);
+                LoadRevisionBody(rev);
             } catch(CouchbaseLiteException e) {
                 status.Code = e.CBLStatus.Code;
                 return null;
@@ -1815,7 +1944,7 @@ namespace Couchbase.Lite
             var attachments = rev.GetAttachments();
             if (attachments == null) {
                 try {
-                    rev = LoadRevisionBody(rev, DocumentContentOptions.None);
+                    rev = LoadRevisionBody(rev);
                 } catch(CouchbaseLiteException e) {
                     if (status != null) {
                         status.Code = e.CBLStatus.Code;
@@ -1833,67 +1962,7 @@ namespace Couchbase.Lite
 
             return AttachmentForDict(attachments.Get(name).AsDictionary<string, object>(), name, status);
         }
-
-        internal String GenerateIDForRevision(RevisionInternal rev, IEnumerable<byte> json, string previousRevisionId)
-        {
-            MessageDigest md5Digest;
-
-            // Revision IDs have a generation count, a hyphen, and a UUID.
-            int generation = 0;
-            if (previousRevisionId != null) {
-                generation = RevisionInternal.GenerationFromRevID(previousRevisionId);
-                if (generation == 0) {
-                    return null;
-                }
-            }
-
-            // Generate a digest for this revision based on the previous revision ID, document JSON,
-            // and attachment digests. This doesn't need to be secure; we just need to ensure that this
-            // code consistently generates the same ID given equivalent revisions.
-            try {
-                md5Digest = MessageDigest.GetInstance("MD5");
-            } catch (NoSuchAlgorithmException e) {
-                throw new RuntimeException(e);
-            }
-
-            var length = 0;
-            if (previousRevisionId != null) {
-                var prevIDUTF8 = Encoding.UTF8.GetBytes(previousRevisionId);
-                length = prevIDUTF8.Length;
-            }
-
-            if (length > unchecked((0xFF))) {
-                return null;
-            }
-
-            var lengthByte = unchecked((byte)(length & unchecked((0xFF))));
-            var lengthBytes = new[] { lengthByte };
-            md5Digest.Update(lengthBytes);
-
-            var isDeleted = ((rev.IsDeleted()) ? 1 : 0);
-            var deletedByte = new[] { unchecked((byte)isDeleted) };
-            md5Digest.Update(deletedByte);
-
-            /*var attachmentKeys = new List<String>(attachments.Keys);
-            attachmentKeys.Sort();
-
-            foreach (string key in attachmentKeys)
-            {
-                var attachment = attachments.Get(key);
-                md5Digest.Update(attachment.BlobKey.GetBytes());
-            }*/
-
-            if (json != null)
-            {
-                md5Digest.Update(json != null ? json.ToArray() : null);
-            }
-
-            var md5DigestResult = md5Digest.Digest();
-            var digestAsHex = BitConverter.ToString(md5DigestResult).Replace("-", String.Empty);
-            int generationIncremented = generation + 1;
-            return string.Format("{0}-{1}", generationIncremented, digestAsHex).ToLower();
-        }
-
+            
         internal RevisionInternal RevisionByLoadingBody(RevisionInternal rev, Status outStatus)
         {
             // First check for no-op -- if we just need the default properties and already have them:
@@ -1910,7 +1979,7 @@ namespace Couchbase.Lite
 
             RevisionInternal nuRev = rev.CopyWithDocID(rev.GetDocId(), rev.GetRevId());
             try {
-                LoadRevisionBody(nuRev, DocumentContentOptions.None);
+                LoadRevisionBody(nuRev);
             } catch(CouchbaseLiteException e) {
                 if (outStatus != null) {
                     outStatus.Code = e.CBLStatus.Code;
@@ -1933,7 +2002,7 @@ namespace Couchbase.Lite
             }
 
             Debug.Assert(rev.GetDocId() != null && rev.GetRevId() != null);
-            _storage.LoadRevisionBody(rev);
+            Storage.LoadRevisionBody(rev);
             return rev;
         }
 
@@ -2044,6 +2113,40 @@ namespace Couchbase.Lite
             }
         }
 
+        internal bool Close()
+        {
+            var success = true;
+            if (_isOpen) {
+                Log.D("Closing database at {0}", Path);
+                foreach (var view in _views) {
+                    view.Value.Close();
+                }
+
+                var activeReplicatorCopy = new Replication[ActiveReplicators.Count];
+                ActiveReplicators.CopyTo(activeReplicatorCopy, 0);
+                foreach (var repl in activeReplicatorCopy) {
+                    repl.DatabaseClosing();
+                }
+
+                ActiveReplicators = null;
+
+                try {
+                    Storage.Close();
+                } catch(Exception) {
+                    success = false;
+                }
+
+                Storage = null;
+
+                _isOpen = false;
+                UnsavedRevisionDocumentCache.Clear();
+                DocumentCache = new LruCache<string, Document>(DocumentCache.MaxSize);
+            }
+
+            Manager.ForgetDatabase(this);
+            return success;
+        }
+
         internal bool Open()
         {
             if (_isOpen) {
@@ -2053,29 +2156,29 @@ namespace Couchbase.Lite
             Log.D(Tag, "Opening {0}", Name);
 
             // Instantiate storage:
-            string storageType = Manager.StorageType ?? "SQLite";
-            _storage = new SqliteCouchStore();
-            _storage.Delegate = this;
+            //string storageType = Manager.StorageType ?? "SQLite";
+            Storage = new SqliteCouchStore();
+            Storage.Delegate = this;
 
-            Log.D(Tag, "Using {0} for db at {1}", _storage.GetType(), Path);
-            if (!_storage.Open(Path, _readOnly, Manager)) {
+            Log.D(Tag, "Using {0} for db at {1}", Storage.GetType(), Path);
+            if (!Storage.Open(Path, _readOnly, Manager)) {
                 return false;
             }
 
-            _storage.AutoCompact = AUTO_COMPACT;
+            Storage.AutoCompact = AUTO_COMPACT;
 
             // First-time setup:
             if (PrivateUUID() == null) {
-                _storage.SetInfo("privateUUID", Misc.CreateGUID());
-                _storage.SetInfo("publicUUID", Misc.CreateGUID());
+                Storage.SetInfo("privateUUID", Misc.CreateGUID());
+                Storage.SetInfo("publicUUID", Misc.CreateGUID());
             }
 
-            var savedMaxRevDepth = _storage.GetInfo("max_revs");
+            var savedMaxRevDepth = Storage.GetInfo("max_revs");
             int maxRevTreeDepth = 0;
             if (savedMaxRevDepth != null && int.TryParse(savedMaxRevDepth, out maxRevTreeDepth)) {
-                _storage.MaxRevTreeDepth = maxRevTreeDepth;
+                Storage.MaxRevTreeDepth = maxRevTreeDepth;
             } else {
-                _storage.MaxRevTreeDepth = DefaultMaxRevs;
+                Storage.MaxRevTreeDepth = DefaultMaxRevs;
             }
 
             // Open attachment store:
@@ -2085,8 +2188,8 @@ namespace Couchbase.Lite
                 Attachments = new BlobStore(attachmentsPath);
             } catch(Exception e) {
                 Log.W(Tag, String.Format("Couldn't open attachment store at {0}", attachmentsPath), e);
-                _storage.Close();
-                _storage = null;
+                Storage.Close();
+                Storage = null;
                 return false;
             }
            
@@ -2112,6 +2215,115 @@ namespace Couchbase.Lite
             }
         }
     
+        #endregion
+
+        #region ICouchStoreDelegate
+
+        public void StorageExitedTransaction(bool committed)
+        {
+            if (!committed) {
+                // I already told cached Documents about these new revisions. Back that out:
+                foreach(var change in _changesToNotify) {
+                    var doc = DocumentCache.Get(change.DocumentId);
+                    if (doc != null) {
+                        doc.ForgetCurrentRevision();
+                    }
+                }
+
+                _changesToNotify = null;
+            }
+
+            PostChangeNotifications();
+        }
+
+        public void DatabaseStorageChanged(DocumentChange change)
+        {
+            Log.D(Tag, "Added: {0}", change.AddedRevision);
+            if (_changesToNotify == null) {
+                _changesToNotify = new List<DocumentChange>();
+            }
+
+            _changesToNotify.Add(change);
+            if (!PostChangeNotifications()) {
+                // The notification wasn't posted yet, probably because a transaction is open.
+                // But the Document, if any, needs to know right away so it can update its
+                // currentRevision.
+                var doc = DocumentCache.Get(change.DocumentId);
+                if (doc != null) {
+                    doc.RevisionAdded(change, false);
+                }
+            }
+
+            // Squish the change objects if too many of them are piling up
+            if (_changesToNotify.Count >= NOTIFY_CHANGES_LIMIT) {
+                if (_changesToNotify.Count == NOTIFY_CHANGES_LIMIT) {
+                    foreach (var c in _changesToNotify) {
+                        c.ReduceMemoryUsage();
+                    }
+                } else {
+                    change.ReduceMemoryUsage();
+                }
+            }
+        }
+
+        public string GenerateRevID(IEnumerable<byte> json, bool deleted, string previousRevisionId)
+        {
+            MessageDigest md5Digest;
+
+            // Revision IDs have a generation count, a hyphen, and a UUID.
+            int generation = 0;
+            if (previousRevisionId != null) {
+                generation = RevisionInternal.GenerationFromRevID(previousRevisionId);
+                if (generation == 0) {
+                    return null;
+                }
+            }
+
+            // Generate a digest for this revision based on the previous revision ID, document JSON,
+            // and attachment digests. This doesn't need to be secure; we just need to ensure that this
+            // code consistently generates the same ID given equivalent revisions.
+            try {
+                md5Digest = MessageDigest.GetInstance("MD5");
+            } catch (NoSuchAlgorithmException e) {
+                throw new RuntimeException(e);
+            }
+
+            var length = 0;
+            if (previousRevisionId != null) {
+                var prevIDUTF8 = Encoding.UTF8.GetBytes(previousRevisionId);
+                length = prevIDUTF8.Length;
+            }
+
+            if (length > unchecked((0xFF))) {
+                return null;
+            }
+
+            var lengthByte = unchecked((byte)(length & unchecked((0xFF))));
+            var lengthBytes = new[] { lengthByte };
+            md5Digest.Update(lengthBytes);
+
+            var isDeleted = deleted ? 1 : 0;
+            var deletedByte = new[] { unchecked((byte)isDeleted) };
+            md5Digest.Update(deletedByte);
+
+            if (json != null)
+            {
+                md5Digest.Update(json != null ? json.ToArray() : null);
+            }
+
+            var md5DigestResult = md5Digest.Digest();
+            var digestAsHex = BitConverter.ToString(md5DigestResult).Replace("-", String.Empty);
+            int generationIncremented = generation + 1;
+            return string.Format("{0}-{1}", generationIncremented, digestAsHex).ToLower();
+        }
+
+        public SymmetricKey EncryptionKey
+        {
+            get {
+                throw new NotImplementedException();
+            }
+        }
+
         #endregion
     }
 

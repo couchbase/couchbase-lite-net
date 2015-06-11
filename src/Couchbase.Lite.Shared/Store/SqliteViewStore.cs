@@ -215,7 +215,7 @@ namespace Couchbase.Lite.Store
                 //TODO: bbox, geo, fulltext
             } else {
                 keyJSON = Manager.GetObjectMapper().WriteValueAsBytes(key);
-                Log.V(TAG, "    emit({0}, {1}", Encoding.UTF8.GetString(keyJSON), Encoding.UTF8.GetString(valueJSON));
+                Log.V(TAG, "    emit({0}, {1}", Encoding.UTF8.GetString(keyJSON.ToArray()), Encoding.UTF8.GetString(valueJSON.ToArray()));
             }
 
             if (keyJSON == null) {
@@ -253,7 +253,7 @@ namespace Couchbase.Lite.Store
                 return true;
             }
 
-            if (!raw.sqlite3_compileoption_used("SQLITE_ENABLE_RTREE")) {
+            if (raw.sqlite3_compileoption_used("SQLITE_ENABLE_RTREE") == 0) {
                 Log.W(TAG, "Can't geo-query: SQLite isn't built with the Rtree module");
                 return false;
             }
@@ -506,7 +506,7 @@ namespace Couchbase.Lite.Store
 
             long changes = 0;
             try {
-                db.StorageEngine.InsertWithOnConflict("views", null, args, ConflictResolutionStrategy.Ignore);
+                changes = db.StorageEngine.InsertWithOnConflict("views", null, args, ConflictResolutionStrategy.Ignore);
             } catch(Exception) {
                 return false;
             }

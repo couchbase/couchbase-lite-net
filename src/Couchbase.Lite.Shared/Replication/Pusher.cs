@@ -360,7 +360,7 @@ namespace Couchbase.Lite.Replicator
 
                                 RevisionInternal loadedRev;
                                 try {
-                                    loadedRev = LocalDatabase.LoadRevisionBody (rev, contentOptions);
+                                    loadedRev = LocalDatabase.LoadRevisionBody (rev);
                                     properties = new Dictionary<string, object>(rev.GetProperties());
                                 } catch (CouchbaseLiteException e1) {
                                     Log.W(Tag, string.Format("{0} Couldn't get local contents of {1}", rev, this), e1);
@@ -375,7 +375,7 @@ namespace Couchbase.Lite.Replicator
                                 }
 
                                 properties = new Dictionary<string, object>(populatedRev.GetProperties());
-                                var revisions = LocalDatabase.GetRevisionHistoryDictStartingFromAnyAncestor(populatedRev, possibleAncestors);
+                                var revisions = LocalDatabase.Storage.GetRevisionHistory(populatedRev, possibleAncestors);
                                 properties["_revisions"] = revisions;
                                 populatedRev.SetProperties(properties);
 

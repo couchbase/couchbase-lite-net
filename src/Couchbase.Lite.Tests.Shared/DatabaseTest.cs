@@ -49,6 +49,7 @@ using System.Threading;
 using Newtonsoft.Json.Linq;
 using Couchbase.Lite.Internal;
 using Couchbase.Lite.Util;
+using Couchbase.Lite.Store;
 
 namespace Couchbase.Lite
 {
@@ -90,6 +91,11 @@ namespace Couchbase.Lite
         [Test]
         public void TestPruneRevsToMaxDepth()
         {
+            var sqliteStorage = database.Storage as SqliteCouchStore;
+            if (sqliteStorage == null) {
+                Assert.Inconclusive("This test is only valid on a SQLite store");
+            }
+
             var properties = new Dictionary<string, object>();
             properties.Add("testName", "testDatabaseCompaction");
             properties.Add("tag", 1337);
@@ -105,14 +111,14 @@ namespace Couchbase.Lite
                 rev = rev.CreateRevision(properties2);
             }
 
-            var numPruned = database.PruneRevsToMaxDepth(1);
+            var numPruned = sqliteStorage.PruneRevsToMaxDepth(1);
             Assert.AreEqual(10, numPruned);
 
             var fetchedDoc = database.GetDocument(doc.Id);
             var revisions = fetchedDoc.RevisionHistory.ToList();
             Assert.AreEqual(1, revisions.Count);
 
-            numPruned = database.PruneRevsToMaxDepth(1);
+            numPruned = sqliteStorage.PruneRevsToMaxDepth(1);
             Assert.AreEqual(0, numPruned);
         }
 
@@ -361,19 +367,29 @@ namespace Couchbase.Lite
         [Test]
         public void TestEncodeDocumentJSON() 
         {
+            var sqliteStorage = database.Storage as SqliteCouchStore;
+            if (sqliteStorage == null) {
+                Assert.Inconclusive("This test is only valid on an SQLite store");
+            }
+
             var props = new Dictionary<string, object>() 
             {
                 {"_local_seq", ""}
             };
 
             var revisionInternal = new RevisionInternal(props);
-            var encoded = database.EncodeDocumentJSON(revisionInternal);
+            var encoded = sqliteStorage.EncodeDocumentJSON(revisionInternal);
             Assert.IsNotNull(encoded);
         }
 
         [Test]
         public void TestWinningRevIDOfDoc()
         {
+            var sqliteStorage = database.Storage as SqliteCouchStore;
+            if (sqliteStorage == null) {
+                Assert.Inconclusive("This test is only valid on an SQLite store");
+            }
+
             var properties = new Dictionary<string, object>() 
             {
                 {"testName", "testCreateRevisions"},
@@ -397,29 +413,25 @@ namespace Couchbase.Lite
             newRev1.SetUserProperties(properties);
             var rev1 = newRev1.Save();
 
-            var outIsDeleted = new List<Boolean>();
-            var outIsConflict = new List<Boolean>();
+            ValueTypePtr<bool> outIsDeleted = false;
+            ValueTypePtr<bool> outIsConflict = false;
 
-            var docNumericId = database.GetDocNumericID(doc.Id);
+            var docNumericId = sqliteStorage.GetDocNumericID(doc.Id);
             Assert.IsTrue(docNumericId != 0);
-            Assert.AreEqual(rev1.Id, database.WinningRevIDOfDoc(docNumericId, outIsDeleted, outIsConflict));
-            Assert.IsTrue(outIsConflict.Count == 0);
+            Assert.AreEqual(rev1.Id, sqliteStorage.GetWinner(docNumericId, outIsDeleted, outIsConflict));
+            Assert.IsTrue(outIsConflict);
 
-            outIsDeleted = new List<Boolean>();
-            outIsConflict = new List<Boolean>();
             var newRev2a = rev1.CreateRevision();
             newRev2a.SetUserProperties(properties2a);
             var rev2a = newRev2a.Save();
-            Assert.AreEqual(rev2a.Id, database.WinningRevIDOfDoc(docNumericId, outIsDeleted, outIsConflict));
-            Assert.IsTrue(outIsConflict.Count == 0);
+            Assert.AreEqual(rev2a.Id, sqliteStorage.GetWinner(docNumericId, outIsDeleted, outIsConflict));
+            Assert.IsTrue(outIsConflict);
 
-            outIsDeleted = new List<Boolean>();
-            outIsConflict = new List<Boolean>();
             var newRev2b = rev1.CreateRevision();
             newRev2b.SetUserProperties(properties2b);
             newRev2b.Save(true);
-            database.WinningRevIDOfDoc(docNumericId, outIsDeleted, outIsConflict);
-            Assert.IsTrue(outIsConflict.Count > 0);
+            sqliteStorage.GetWinner(docNumericId, outIsDeleted, outIsConflict);
+            Assert.IsTrue(outIsConflict);
         }
     }
 }

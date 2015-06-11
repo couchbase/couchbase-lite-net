@@ -705,17 +705,17 @@ namespace Couchbase.Lite
 
                 database.RunAsync((db) => 
                 {
-                    database.BeginTransaction();
-
-                    for (var i = 0; i < numDocs; i++)
+                    database.RunInTransaction(() =>
                     {
-                        var doc = database.CreateDocument();
-                        props["sequence"] = i;
-                        var rev = doc.PutProperties(props);
-                        Assert.IsNotNull(rev);
-                    }
+                        for (var i = 0; i < numDocs; i++) {
+                            var doc = database.CreateDocument();
+                            props["sequence"] = i;
+                            var rev = doc.PutProperties(props);
+                            Assert.IsNotNull(rev);
+                        }
 
-                    db.EndTransaction(true);
+                        return true;
+                    });
                 });
 
                 var success = doneSignal.Await(TimeSpan.FromSeconds(300));

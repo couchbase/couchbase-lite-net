@@ -1,4 +1,4 @@
-﻿//
+//
 //  DatabaseMethods.cs
 //
 //  Author:
@@ -416,7 +416,7 @@ namespace Couchbase.Lite.Listener
                     return context.CreateResponse(StatusCode.BadJson);
                 }
 
-                var purgedRevisions = db.PurgeRevisions(body);
+                var purgedRevisions = db.Storage.PurgeRevisions(body);
                 if(purgedRevisions == null) {
                     return context.CreateResponse(StatusCode.DbError);
                 }
@@ -603,15 +603,19 @@ namespace Couchbase.Lite.Listener
         //Do an all document request on the database (i.e. fetch all docs given some options)
         private static CouchbaseLiteResponse DoAllDocs(ICouchbaseListenerContext context, Database db, QueryOptions options)
         {
-            var result = db.GetAllDocs(options);
-            if (!result.ContainsKey("rows")) {
+            var iterator = db.GetAllDocs(options);
+            if (iterator == null) {
                 return context.CreateResponse(StatusCode.BadJson);
             }
-
-            var documentProps = from row in (List<QueryRow>)result["rows"] select row.AsJSONDictionary();
-            result["rows"] = documentProps;
+                
             var response = context.CreateResponse();
-            response.JsonBody = new Body(result);
+            var result = iterator.ToList();
+            response.JsonBody = new Body(new NonNullDictionary<string, object> {
+                { "rows", result },
+                { "total_rows", result.Count },
+                { "offset", options.Skip },
+                { "update_seq", options.UpdateSeq ? (object)db.LastSequenceNumber : null }
+            });
             return response;
         }
 

@@ -166,7 +166,7 @@ namespace Couchbase.Lite
                                 }
                             }
                         } else {
-                            value = storage.ParseRowValue(valueData);
+                            value = storage.ParseRowValue<object>(valueData);
                         }
 
                         _parsedValue = value;

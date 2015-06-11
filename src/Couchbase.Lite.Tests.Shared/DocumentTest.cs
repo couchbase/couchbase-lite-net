@@ -204,14 +204,14 @@ namespace Couchbase.Lite
 
             var contentOptions = DocumentContentOptions.IncludeAttachments | DocumentContentOptions.BigAttachmentsFollow;
 
-            database.LoadRevisionBody(revisionInternal, contentOptions);
+            database.LoadRevisionBody(revisionInternal);
 
             // now lets purge the document, and then try to load the revision body again
             document.Purge();
 
             var gotExpectedException = false;
             try {
-                database.LoadRevisionBody(revisionInternal, contentOptions);
+                database.LoadRevisionBody(revisionInternal);
             } catch (CouchbaseLiteException e) {
                 gotExpectedException |= 
                     e.CBLStatus.Code == StatusCode.NotFound;

@@ -40,7 +40,7 @@ namespace Couchbase.Lite.Store
         /// The delegate (in practice, the owning View itself.)
         /// </summary>
         /// <value>The delegate.</value>
-        IViewStoreDelegate Delegate { get; }
+        IViewStoreDelegate Delegate { get; set; }
 
         /// <summary>
         /// Closes the storage.

@@ -122,6 +122,18 @@ namespace Couchbase.Lite.Internal
             return result;
         }
 
+        internal RevisionInternal CopyWithoutBody()
+        {
+            if (body == null) {
+                return this;
+            }
+
+            var rev = new RevisionInternal(docId, revId, deleted);
+            rev.SetSequence(sequence);
+            rev.SetMissing(missing);
+            return rev;
+        }
+
         internal object GetPropertyForKey(string key)
         {
             var prop = GetProperties();

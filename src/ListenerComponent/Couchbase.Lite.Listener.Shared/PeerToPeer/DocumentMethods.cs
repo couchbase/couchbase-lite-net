@@ -71,7 +71,7 @@ namespace Couchbase.Lite.Listener
                     RevisionInternal rev;
                     bool includeAttachments = false, sendMultipart = false;
                     if (isLocalDoc) {
-                        rev = db.GetLocalDocument(docId, revId);
+                        rev = db.Storage.GetLocalDocument(docId, revId);
                     } else {
                         includeAttachments = options.HasFlag(DocumentContentOptions.IncludeAttachments);
                         if(includeAttachments) {
@@ -80,7 +80,7 @@ namespace Couchbase.Lite.Listener
                         }
 
                         Status status = new Status();
-                        rev = db.GetDocumentWithIDAndRev(docId, revId, options, status);
+                        rev = db.GetDocument(docId, revId, true, status);
                         if(rev != null) {
                             rev = ApplyOptions(options, rev, context, db, status);
                         }
@@ -110,7 +110,7 @@ namespace Couchbase.Lite.Listener
                     if(!isLocalDoc && includeAttachments) {
                         int minRevPos = 1;
                         IList<string> attsSince = context.GetJsonQueryParam("atts_since").AsList<string>();
-                        string ancestorId = db.FindCommonAncestor(rev, attsSince);
+                        string ancestorId = db.Storage.FindCommonAncestor(rev, attsSince);
                         if(ancestorId != null) {
                             minRevPos = RevisionInternal.GenerationFromRevID(ancestorId) + 1;
                         }
@@ -134,7 +134,7 @@ namespace Couchbase.Lite.Listener
                     if(openRevsParam.Equals("all")) {
                         // ?open_revs=all returns all current/leaf revisions:
                         bool includeDeleted = context.GetQueryParam<bool>("include_deleted", bool.TryParse, false);
-                        RevisionList allRevs = db.GetAllRevisionsOfDocumentID(docId, true);
+                        RevisionList allRevs = db.Storage.GetAllDocumentRevisions(docId, true);
 
                         result = new List<IDictionary<string, object>>();
                         foreach(var rev in allRevs) {
@@ -174,7 +174,7 @@ namespace Couchbase.Lite.Listener
                             }
 
                             Status status = new Status();
-                            var rev = db.GetDocumentWithIDAndRev(docId, revID, DocumentContentOptions.None, status);
+                            var rev = db.GetDocument(docId, revID, true, status);
                             if(rev != null) {
                                 rev = ApplyOptions(options, rev, context, db, status);
                             }
@@ -232,7 +232,7 @@ namespace Couchbase.Lite.Listener
                     var history = Database.ParseCouchDBRevisionHistory(body.GetProperties());
                     Status status = new Status();
                     try {
-                      db.ForceInsert(rev, history, null, status);
+                      db.ForceInsert(rev, history, null);
                     } catch(CouchbaseLiteException e) {
                         status = e.CBLStatus;
                     }
@@ -318,7 +318,7 @@ namespace Couchbase.Lite.Listener
             StatusCode status = StatusCode.Created;
             try {
                 if (docId.StartsWith("_local")) {
-                    outRev = db.PutLocalRevision(rev, prevRevId); //TODO: Doesn't match iOS
+                    outRev = db.Storage.PutLocalRevision(rev, prevRevId, true); //TODO: Doesn't match iOS
                 } else {
                     Status retStatus = new Status();
                     outRev = db.PutRevision(rev, prevRevId, allowConflict, retStatus);
@@ -364,7 +364,7 @@ namespace Couchbase.Lite.Listener
             return DatabaseMethods.PerformLogicWithDatabase(context, true, db =>
             {
                 Status status = new Status();
-                var rev = db.GetDocumentWithIDAndRev(context.DocumentName, context.GetQueryParam("rev"), DocumentContentOptions.NoBody, 
+                var rev = db.GetDocument(context.DocumentName, context.GetQueryParam("rev"), false, 
                     status);
                     
                 if(rev ==null) {
@@ -497,11 +497,11 @@ namespace Couchbase.Lite.Listener
                 }
 
                 if (options.HasFlag(DocumentContentOptions.IncludeRevs)) {
-                    dst["_revisions"] = db.GetRevisionHistoryDict(rev);
+                    dst["_revisions"] = db.Storage.GetRevisionHistory(rev);
                 }
 
                 if (options.HasFlag(DocumentContentOptions.IncludeRevsInfo)) {
-                    dst["_revs_info"] = db.GetRevisionHistory(rev).Select(x =>
+                    dst["_revs_info"] = db.Storage.GetRevisionHistory(rev).Select(x =>
                     {
                         string status = "available";
                         if(x.IsDeleted()) {
@@ -518,7 +518,7 @@ namespace Couchbase.Lite.Listener
                 }
 
                 if (options.HasFlag(DocumentContentOptions.IncludeConflicts)) {
-                    RevisionList revs = db.GetAllRevisionsOfDocumentID(rev.GetDocId(), true);
+                    RevisionList revs = db.Storage.GetAllDocumentRevisions(rev.GetDocId(), true);
                     if (revs.Count > 1) {
                         dst["_conflicts"] = revs.Select(x =>
                         {

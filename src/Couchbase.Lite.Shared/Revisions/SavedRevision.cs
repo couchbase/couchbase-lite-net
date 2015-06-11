@@ -85,7 +85,7 @@ namespace Couchbase.Lite {
         {
             try
             {
-                var loadRevision = Database.LoadRevisionBody(RevisionInternal, DocumentContentOptions.None);
+                var loadRevision = Database.LoadRevisionBody(RevisionInternal);
                 if (loadRevision == null)
                 {
                     Log.W(Database.Tag, "Couldn't load body/sequence of {0}" + this);
@@ -119,7 +119,7 @@ namespace Couchbase.Lite {
         /// <value>The parent.</value>
         public override SavedRevision Parent {
             get {
-                return Document.GetRevisionFromRev(Database.GetParentRevision(RevisionInternal));
+                return Document.GetRevisionFromRev(Database.Storage.GetParentRevision(RevisionInternal));
             }
         }
 
@@ -129,7 +129,7 @@ namespace Couchbase.Lite {
         /// <value>The parent.</value>
         public override String ParentId {
             get {
-                var parRev = Document.Database.GetParentRevision(RevisionInternal);
+                var parRev = Document.Database.Storage.GetParentRevision(RevisionInternal);
                 if (parRev == null)
                 {
                     return null;
@@ -147,7 +147,7 @@ namespace Couchbase.Lite {
         public override IEnumerable<SavedRevision> RevisionHistory {
             get {
                 var revisions = new List<SavedRevision>();
-                var internalRevisions = Database.GetRevisionHistory(RevisionInternal);
+                var internalRevisions = Database.Storage.GetRevisionHistory(RevisionInternal);
 
                 foreach (var internalRevision in internalRevisions)
                 {

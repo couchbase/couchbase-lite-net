@@ -176,7 +176,7 @@ namespace Couchbase.Lite.Listener
                         // This isn't correct internally (this is an old rev so it has an older sequence)
                         // but consumers of the _changes feed don't care about the internal state.
                         if (ChangesIncludeDocs) {
-                            _db.LoadRevisionBody(rev, DocumentContentOptions.None);
+                            _db.LoadRevisionBody(rev);
                         }
                     }
                 }

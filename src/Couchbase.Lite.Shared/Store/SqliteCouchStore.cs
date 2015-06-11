@@ -201,7 +201,7 @@ PRAGMA user_version = 3;";
         {
             var realizedJson = json.ToArray();
             IDictionary<string, object> docProperties;
-            if (realizedJson.Count == 0 || (realizedJson.Count == 2 && Encoding.UTF8.GetString(realizedJson) == "{}")) {
+            if (realizedJson.Length == 0 || (realizedJson.Length == 2 && Encoding.UTF8.GetString(realizedJson) == "{}")) {
                 docProperties = new Dictionary<string, object>();
             } else {
                 try {
@@ -295,6 +295,76 @@ PRAGMA user_version = 3;";
             }
 
             return retVal;
+        }
+
+        #endregion
+
+        #region Internal Methods
+
+        // Splits a revision ID into its generation number and opaque suffix string
+        internal static int ParseRevIDNumber(string rev)
+        {
+            var result = -1;
+            var dashPos = rev.IndexOf("-", StringComparison.InvariantCultureIgnoreCase);
+
+            if (dashPos >= 0)
+            {
+                try
+                {
+                    var revIdStr = rev.Substring(0, dashPos);
+
+                    // Should return -1 when the string has WC at the beginning or at the end.
+                    if (revIdStr.Length > 0 && 
+                        (char.IsWhiteSpace(revIdStr[0]) || 
+                            char.IsWhiteSpace(revIdStr[revIdStr.Length - 1])))
+                    {
+                        return result;
+                    }
+
+                    result = Int32.Parse(revIdStr);
+                }
+                catch (FormatException)
+                {
+
+                }
+            }
+            // ignore, let it return -1
+            return result;
+        }
+
+        // Splits a revision ID into its generation number and opaque suffix string
+        internal static string ParseRevIDSuffix(string rev)
+        {
+            var result = String.Empty;
+            int dashPos = rev.IndexOf("-", StringComparison.InvariantCultureIgnoreCase);
+            if (dashPos >= 0)
+            {
+                result = Runtime.Substring(rev, dashPos + 1);
+            }
+            return result;
+        }
+
+        internal IDictionary<string, object> GetRevisionHistoryDictStartingFromAnyAncestor(RevisionInternal rev, IList<string>ancestorRevIDs)
+        {
+            var history = GetRevisionHistory(rev); // This is in reverse order, newest ... oldest
+            if (ancestorRevIDs != null && ancestorRevIDs.Any())
+            {
+                for (var i = 0; i < history.Count; i++)
+                {
+                    if (ancestorRevIDs.Contains(history[i].GetRevId()))
+                    {
+                        var newHistory = new List<RevisionInternal>();
+                        for (var index = 0; index < i + 1; index++) 
+                        {
+                            newHistory.Add(history[index]);
+                        }
+                        history = newHistory;
+                        break;
+                    }
+                }
+            }
+
+            return Database.MakeRevisionHistoryDict(history);
         }
 
         #endregion
@@ -534,7 +604,7 @@ PRAGMA user_version = 3;";
             return true;
         }
 
-        private int PruneRevsToMaxDepth(int maxDepth)
+        internal int PruneRevsToMaxDepth(int maxDepth)
         {
             int outPruned = 0;
             IDictionary<long, int> toPrune = new Dictionary<long, int>();
@@ -633,7 +703,7 @@ PRAGMA user_version = 3;";
             return true;
         }
 
-        private long GetDocNumericID(string docId)
+        internal long GetDocNumericID(string docId)
         {
             long docNumericId = 0L;
             var success = TryQuery(c =>
@@ -760,7 +830,7 @@ PRAGMA user_version = 3;";
             try {
                 return StorageEngine.Insert("revs", null, vals);
             } catch(Exception) {
-                return -1L;
+                return 0L;
             }
         }
 
@@ -791,7 +861,7 @@ PRAGMA user_version = 3;";
             return null; // no change
         }
 
-        private string GetWinner(long docNumericId, ValueTypePtr<bool> outDeleted, ValueTypePtr<bool> outConflict)
+        internal string GetWinner(long docNumericId, ValueTypePtr<bool> outDeleted, ValueTypePtr<bool> outConflict)
         {
             Debug.Assert(docNumericId > 0);
             string revId = null;
@@ -834,7 +904,7 @@ PRAGMA user_version = 3;";
             return status.IsError ? null : revs;
         }
 
-        private IEnumerable<byte> EncodeDocumentJSON(RevisionInternal rev)
+        internal IEnumerable<byte> EncodeDocumentJSON(RevisionInternal rev)
         {
             var originalProps = rev.GetProperties();
             if (originalProps == null) {
@@ -1324,27 +1394,29 @@ PRAGMA user_version = 3;";
             return QueryOrDefault(c => c.GetString(0), false, null, sql);
         }
 
-        public bool FindMissingRevisions(RevisionList revs)
+        public int FindMissingRevisions(RevisionList revs)
         {
             if (!revs.Any()) {
-                return true;
+                return 0;
             }
 
             var sql = String.Format("SELECT docid, revid FROM revs, docs " +
                       "WHERE revid in ({0}) AND docid IN ({1}) " +
                 "AND revs.doc_id == docs.doc_id", Database.JoinQuoted(revs.GetAllRevIds()), Database.JoinQuoted(revs.GetAllDocIds()));
 
+            int count = 0;
             var status = TryQuery(c =>
             {
                 var rev = revs.RevWithDocIdAndRevId(c.GetString(0), c.GetString(1));
                 if(rev != null) {
+                    count++;
                     revs.Remove(rev);
                 }
 
                 return true;
             }, false, sql);
 
-            return status.IsSuccessful;
+            return status.IsSuccessful ? count : 0;
         }
 
         public ICollection<BlobKey> FindAllAttachmentKeys()

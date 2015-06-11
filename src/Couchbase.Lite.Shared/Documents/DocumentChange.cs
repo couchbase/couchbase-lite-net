@@ -101,6 +101,11 @@ namespace Couchbase.Lite {
             }
         }
 
+        internal void ReduceMemoryUsage()
+        {
+            AddedRevision = AddedRevision.CopyWithoutBody();
+        }
+
         /// <summary>
         /// Gets a value indicating whether this instance is conflict.
         /// </summary>

@@ -749,7 +749,7 @@ namespace Couchbase.Lite
             // are already cached in memory.
             var success = doneSignal.Wait(TimeSpan.FromSeconds(10));
             Assert.IsTrue(success);
-            Assert.AreEqual(5, db.GetLastSequenceNumber());
+            Assert.AreEqual(5, db.LastSequenceNumber);
 
             Assert.IsTrue(task.Status.HasFlag(TaskStatus.RanToCompletion));
         }
