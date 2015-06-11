@@ -1324,5 +1324,34 @@ namespace Couchbase.Lite
             row = rows.GetRow(0);
             Assert.AreEqual(row.Key, "3");
         }
+
+        [Test]
+        public void TestMultipleQueriesOnSameView()
+        {
+            var view = database.GetView("view1");
+            view.SetMapReduce((doc, emit) =>
+            {
+                emit(doc["jim"], doc["_id"]);
+            }, (keys, vals, rereduce) => 
+            {
+                return keys.Count();
+            }, "1");
+            var query1 = view.CreateQuery().ToLiveQuery();
+            query1.Start();
+
+            var query2 = view.CreateQuery().ToLiveQuery();
+            query2.Start();
+
+            var docIdTimestamp = Convert.ToString(Runtime.CurrentTimeMillis());
+            for(int i = 0; i < 50; i++) {
+                database.GetDocument(string.Format("doc{0}-{1}", i, docIdTimestamp)).PutProperties(new Dictionary<string, object> { {
+                        "jim",
+                        "borden"
+                    } });
+            }
+
+            Thread.Sleep(5000);
+            Assert.AreEqual(50, view.TotalRows);
+        }
     }
 }
