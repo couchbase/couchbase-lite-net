@@ -639,7 +639,6 @@ namespace Couchbase.Lite
         private IDictionary<String, ValidateDelegate>   _validations;
         private IDictionary<String, BlobStoreWriter>    _pendingAttachmentsByDigest;
         private IDictionary<String, View>               _views;
-        private Int32                                   _transactionLevel;
         private IList<DocumentChange>                   _changesToNotify;
         private Boolean                                 _isPostingChangeNotifications;
         private Object                                  _allReplicatorsLocker = new Object();
@@ -881,14 +880,25 @@ namespace Couchbase.Lite
             var publicRev = new SavedRevision(this, rev);
             return filter(publicRev, filterParams);
         }
+
+        long KeyToSequence(object key, long defaultVal)
+        {
+            if (key == null) {
+                return defaultVal;
+            }
+
+            try {
+                return Convert.ToInt64(key);
+            } catch(Exception) {
+                return defaultVal;
+            }
+        }
             
         internal IEnumerable<QueryRow> GetAllDocs(QueryOptions options)
         {
             // For regular all-docs, let storage do it all:
             if (options == null || options.AllDocsMode == AllDocsMode.BySequence) {
-                foreach (var row in Storage.GetAllDocs(options)) {
-                    yield return row;
-                }
+                return Storage.GetAllDocs(options);
             }
 
             if (options.Descending) {
@@ -913,27 +923,30 @@ namespace Couchbase.Lite
 
             long minSeq = startSeq, maxSeq = endSeq;
             if (minSeq > maxSeq) {
-                yield return null; // empty result
+                return null; // empty result
             }
 
             RevisionList revs = Storage.ChangesSince(minSeq - 1, changesOpts, null);
             if (revs == null) {
-                yield return null;
+                return null;
             }
 
+            var result = new List<QueryRow>();
             var revEnum = options.Descending ? revs.Reverse<RevisionInternal>() : revs;
             foreach (var rev in revEnum) {
                 long seq = rev.GetSequence();
                 if (seq < minSeq || seq > maxSeq) {
-                    yield break;
+                    break;
                 }
 
                 var value = new NonNullDictionary<string, object> {
                     { "rev", rev.GetRevId() },
                     { "deleted", rev.IsDeleted() ? (object)true : null }
                 };
-                yield return new QueryRow(rev.GetDocId(), seq, rev.GetDocId(), value, rev, null);
+                result.Add(new QueryRow(rev.GetDocId(), seq, rev.GetDocId(), value, rev, null));
             }
+
+            return result;
         }
             
 
@@ -1358,7 +1371,7 @@ namespace Couchbase.Lite
             // This is a 'while' instead of an 'if' because when we finish posting notifications, there
             // might be new ones that have arrived as a result of notification handlers making document
             // changes of their own (the replicator manager will do this.) So we need to check again.
-            while (_transactionLevel == 0 && _isOpen && !_isPostingChangeNotifications && _changesToNotify.Count > 0)
+            while (!Storage.InTransaction && _isOpen && !_isPostingChangeNotifications && _changesToNotify != null && _changesToNotify.Count > 0)
             {
                 try
                 {
@@ -1403,10 +1416,7 @@ namespace Couchbase.Lite
                     _isPostingChangeNotifications = false;
                 }
             }
-
-            if(!posted) {
-                Log.V(Tag, "    Change notifications not posted (Tx level {0}, change count {1})", _transactionLevel, _changesToNotify.Count);
-            }
+                
             return posted;
         }
 
@@ -1749,6 +1759,10 @@ namespace Couchbase.Lite
 
         internal bool ProcessAttachmentsForRevision(RevisionInternal rev, string prevRevId, Status status)
         {
+            if (status == null) {
+                status = new Status();
+            }
+
             status.Code = StatusCode.Ok;
             var revAttachments = rev.GetAttachments();
             if (revAttachments == null) {
@@ -2118,8 +2132,10 @@ namespace Couchbase.Lite
             var success = true;
             if (_isOpen) {
                 Log.D("Closing database at {0}", Path);
-                foreach (var view in _views) {
-                    view.Value.Close();
+                if (_views != null) {
+                    foreach (var view in _views) {
+                        view.Value.Close();
+                    }
                 }
 
                 var activeReplicatorCopy = new Replication[ActiveReplicators.Count];
@@ -2221,9 +2237,10 @@ namespace Couchbase.Lite
 
         public void StorageExitedTransaction(bool committed)
         {
-            if (!committed) {
+            var changes = _changesToNotify;
+            if (!committed && changes != null) {
                 // I already told cached Documents about these new revisions. Back that out:
-                foreach(var change in _changesToNotify) {
+                foreach(var change in changes) {
                     var doc = DocumentCache.Get(change.DocumentId);
                     if (doc != null) {
                         doc.ForgetCurrentRevision();

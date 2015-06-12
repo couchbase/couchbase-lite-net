@@ -35,7 +35,7 @@ namespace Couchbase.Lite.Store
         /// the entire document. If so, the QueryRow will not parse this data but will instead fetch the
         /// document's body from the database and use that as its value.
         /// </summary>
-        bool RowValueIsEntireDoc(IEnumerable<byte> valueData);
+        bool RowValueIsEntireDoc(object valueData);
 
         /// <summary>
         /// Parses a "normal" (not entire-doc) row value into a JSON-compatible object.

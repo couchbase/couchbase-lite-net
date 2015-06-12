@@ -660,8 +660,8 @@ namespace Couchbase.Lite
             var confRevs = new List<SavedRevision>();
             confRevs.AddItem(rev2b);
             confRevs.AddItem(rev2a);
-            Assert.AreEqual(doc.ConflictingRevisions, confRevs);
-            Assert.AreEqual(doc.LeafRevisions, confRevs);
+            Assert.AreEqual(confRevs, doc.ConflictingRevisions);
+            Assert.AreEqual(confRevs, doc.LeafRevisions);
 
             SavedRevision defaultRev;
             SavedRevision otherRev;
@@ -740,14 +740,18 @@ namespace Couchbase.Lite
         {
             var doneSignal = new CountdownEvent(1);
             var db = database;
-            db.Changed += (sender, e) => 
-                doneSignal.Signal();
+            db.Changed += (sender, e) =>
+            {
+                if (doneSignal.CurrentCount != 0) {
+                    doneSignal.Signal();
+                }
+            };
 
             var task = CreateDocumentsAsync(db, 5);
 
             // We expect that the changes reported by the server won't be notified, because those revisions
             // are already cached in memory.
-            var success = doneSignal.Wait(TimeSpan.FromSeconds(10));
+            var success = doneSignal.Wait(TimeSpan.FromSeconds(100));
             Assert.IsTrue(success);
             Assert.AreEqual(5, db.LastSequenceNumber);
 
@@ -964,7 +968,7 @@ namespace Couchbase.Lite
                 var rows = resultTask.Result;
 
                 Assert.IsNotNull (rows);
-                Assert.AreEqual (rows.Count, 11);
+                Assert.AreEqual (11, rows.Count);
 
                 var expectedKey = 23;
                 for (IEnumerator<QueryRow> it = rows; it.MoveNext ();) {

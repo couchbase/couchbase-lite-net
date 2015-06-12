@@ -814,21 +814,28 @@ PRAGMA user_version = 3;";
         private long InsertRevision(RevisionInternal rev, long docNumericId, long parentSequence, bool current, bool hasAttachments,
             IEnumerable<byte> json, string docType)
         {
-            const string sql = "INSERT INTO revs (doc_id, revid, parent, current, deleted, " +
-                               "no_attachments, json, doc_type) " +
-                               "VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
-
             var vals = new ContentValues();
             vals["doc_id"] = docNumericId;
             vals["revid"] = rev.GetRevId();
-            vals["parent"] = parentSequence;
+            if (parentSequence != 0) {
+                vals["parent"] = parentSequence;
+            }
+
             vals["current"] = current;
             vals["deleted"] = rev.IsDeleted();
             vals["no_attachments"] = !hasAttachments;
-            vals["json"] = json;
-            vals["doc_type"] = docType;
+            if (json != null) {
+                vals["json"] = json;
+            }
+
+            if (docType != null) {
+                vals["doc_type"] = docType;
+            }
+
             try {
-                return StorageEngine.Insert("revs", null, vals);
+                var row = StorageEngine.Insert("revs", null, vals);
+                rev.SetSequence(row);
+                return row;
             } catch(Exception) {
                 return 0L;
             }
@@ -996,10 +1003,9 @@ PRAGMA user_version = 3;";
         public Status SetInfo(string key, string info)
         {
             var vals = new ContentValues(2);
-            vals["key"] = key;
             vals["value"] = info;
             try {
-                StorageEngine.Update("info", vals, null);
+                StorageEngine.Update("info", vals, "key=?", key);
             } catch(Exception) {
                 return new Status(StatusCode.DbError);
             }
@@ -1123,7 +1129,7 @@ PRAGMA user_version = 3;";
 
                 status.Code = StatusCode.Ok;
                 return false;
-            }, false, sb.ToString(), docNumericId, revId);
+            }, true, sb.ToString(), docNumericId, revId);
 
             if (transactionStatus.IsError) {
                 status.Code = transactionStatus.Code;

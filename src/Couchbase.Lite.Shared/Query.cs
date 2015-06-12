@@ -150,6 +150,7 @@ namespace Couchbase.Lite {
             Limit = Int32.MaxValue;
             MapOnly = (view != null && view.Reduce == null);
             InclusiveEnd = true;
+            InclusiveStart = true;
             IndexUpdateMode = IndexUpdateMode.Before;
             AllDocsMode = AllDocsMode.AllDocs;
         }
@@ -177,6 +178,7 @@ namespace Couchbase.Lite {
             MapOnly = query.MapOnly;
             StartKeyDocId = query.StartKeyDocId;
             EndKeyDocId = query.EndKeyDocId;
+            InclusiveStart = query.InclusiveStart;
             InclusiveEnd = query.InclusiveEnd;
             IndexUpdateMode = query.IndexUpdateMode;
             AllDocsMode = query.AllDocsMode;
@@ -210,6 +212,7 @@ namespace Couchbase.Lite {
                 queryOptions.Descending = Descending;
                 queryOptions.IncludeDocs = Prefetch;
                 queryOptions.UpdateSeq = true;
+                queryOptions.InclusiveStart = InclusiveStart;
                 queryOptions.InclusiveEnd = InclusiveEnd;
                 queryOptions.IncludeDeletedDocs = IncludeDeleted;
                 queryOptions.Stale = IndexUpdateMode;
@@ -289,6 +292,11 @@ namespace Couchbase.Lite {
         /// </summary>
         /// <value>The Document id of the last value to return.</value>
         public String EndKeyDocId { get; set; }
+
+        /// <summary>
+        /// If true the StartKey (or StartKeyDocID) comparison uses "&gt;=". Else it uses "&gt;"
+        /// </summary>
+        public bool InclusiveStart { get; set; }
 
         /// <summary>
         /// If true the EndKey (or EndKeyDocID) comparison uses "&lt;=". Else it uses "&lt;".

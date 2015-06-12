@@ -198,8 +198,7 @@ namespace Couchbase.Lite {
                 IDictionary<string, object> properties = RevisionInternal.GetProperties();
                 if (properties == null && !CheckedProperties)
                 {
-                    if (LoadProperties() == true)
-                    {
+                    if (LoadProperties()) {
                         properties = RevisionInternal.GetProperties();
                     }
                     CheckedProperties = true;

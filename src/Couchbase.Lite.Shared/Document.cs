@@ -472,7 +472,8 @@ namespace Couchbase.Lite {
             {
                 return null;
             }
-            return new SavedRevision(this, newRev);
+                
+            return CurrentRevision;
         }
 
         /// <summary>
@@ -531,7 +532,7 @@ namespace Couchbase.Lite {
                 var rev = documentChange.WinningRevisionIfKnown;
                 if (rev == null || rev.IsDeleted()) {
                     currentRevision = null;
-                } else if (rev.IsDeleted()) {
+                } else if (!rev.IsDeleted()) {
                     currentRevision = new SavedRevision(this, rev);;
                 }
             }

@@ -227,7 +227,7 @@ namespace Couchbase.Lite
                 }
 
                 var value = Value as IDictionary<string, object>;
-                var rev = value.GetCast<string>("_rev");
+                var rev = value == null ? null : value.GetCast<string>("_rev");
                 if (value != null && rev == null) {
                     rev = value.GetCast<string>("rev");
                 }

@@ -292,7 +292,7 @@ namespace Couchbase.Lite
         public void Close() 
         {
             Log.I(TAG, "Closing " + this);
-            foreach (var database in databases.Values) {
+            foreach (var database in databases.Values.ToArray()) {
                 var replicators = database.AllReplications;
 
                 if (replicators != null) {

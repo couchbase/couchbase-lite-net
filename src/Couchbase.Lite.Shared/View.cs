@@ -487,13 +487,7 @@ namespace Couchbase.Lite {
             }
         }
 
-        public string DocumentType
-        {
-            get
-            {
-                throw new NotImplementedException();
-            }
-        }
+        public string DocumentType { get; set; }
 
         #endregion
     

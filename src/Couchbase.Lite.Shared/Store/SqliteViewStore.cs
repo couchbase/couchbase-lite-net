@@ -77,7 +77,7 @@ namespace Couchbase.Lite.Store
         public long LastSequenceIndexed
         {
             get {
-                return _dbStorage.QueryOrDefault<long>(c => c.GetLong(0), false, 0, "SELECT lastSequence FROM views WHERE name=?", Name);
+                return _dbStorage.QueryOrDefault<long>(c => c.GetLong(0), false, 0, "SELECT lastsequence FROM views WHERE name=?", Name);
             }
         }
 
@@ -202,24 +202,24 @@ namespace Couchbase.Lite.Store
         private StatusCode Emit(object key, object value, bool valueIsDoc, long sequence)
         {
             var db = _dbStorage;
-            IEnumerable<byte> valueJSON;
+            string valueJSON;
             if (valueIsDoc) {
-                valueJSON = new byte[1] { (byte)'*' };
+                valueJSON = "*";
             } else {
-                valueJSON = Manager.GetObjectMapper().WriteValueAsBytes(value);
+                valueJSON = Manager.GetObjectMapper().WriteValueAsString(value);
             }
 
-            IEnumerable<byte> keyJSON;
+            string keyJSON;
             IEnumerable<byte> geoKey = null;
             if (false) {
                 //TODO: bbox, geo, fulltext
             } else {
-                keyJSON = Manager.GetObjectMapper().WriteValueAsBytes(key);
-                Log.V(TAG, "    emit({0}, {1}", Encoding.UTF8.GetString(keyJSON.ToArray()), Encoding.UTF8.GetString(valueJSON.ToArray()));
+                keyJSON = Manager.GetObjectMapper().WriteValueAsString(key);
+                Log.V(TAG, "    emit({0}, {1}", keyJSON, valueJSON);
             }
 
             if (keyJSON == null) {
-                keyJSON = Encoding.UTF8.GetBytes("null");
+                keyJSON = "null";
             }
 
             if (_emitSql == null) {
@@ -272,29 +272,40 @@ namespace Couchbase.Lite.Store
             return true;
         }
 
-        private static bool GroupTogether(IEnumerable<byte> key1, IEnumerable<byte> key2, int groupLevel)
+        private static bool GroupTogether(Lazy<object> key1, Lazy<object> key2, int groupLevel)
         {
-            if (key1 == null || key2 == null) {
-                return false;
+            var key1List = key1 == null ? null : key1.Value as IList;
+            var key2List = key2 == null ? null : key2.Value as IList;
+            if (groupLevel == 0 || key1List == null || key2List == null) {
+                var key2val = key2 != null 
+                    ? key2.Value 
+                    : null;
+                return key1.Value.Equals(key2val);
             }
 
-            if (groupLevel == 0) {
-                groupLevel = int.MaxValue;
+            var end = Math.Min(groupLevel, Math.Min(key1List.Count, key2List.Count));
+            for (int i = 0; i < end; ++i) {
+                if (!key1List[i].Equals(key2List[i])) {
+                    return false;
+                }
             }
 
-            return JsonCollator.Compare(JsonCollationMode.Unicode, Encoding.UTF8.GetString(key1.ToArray()),
-                Encoding.UTF8.GetString(key2.ToArray()), groupLevel) == 0;
+            return true;
         }
 
-        private static object GroupKey(IEnumerable<byte> keyJSON, int groupLevel)
+        private static object GroupKey(object key, int groupLevel)
         {
-            var key = Manager.GetObjectMapper().ReadValue<object>(keyJSON);
-            var keyList = key as IList<object>;
-            if (groupLevel > 0 && keyList != null && keyList.Count > groupLevel) {
-                return keyList.Take(groupLevel);
-            }
+            if (groupLevel > 0) {
+                var keyList = key.AsList<object>();
+                if (keyList == null) {
+                    return key;
+                }
 
-            return key;
+                return keyList.SubList(0, groupLevel);
+            }
+            else {
+                return key;
+            }
         }
 
         private static object CallReduce(ReduceDelegate reduce, List<object> keysToReduce, List<object> valuesToReduce)
@@ -315,7 +326,37 @@ namespace Couchbase.Lite.Store
             return null;
         }
 
-        private Status RunQuery(QueryOptions options, Func<IEnumerable<byte>, IEnumerable<byte>, string, Cursor, Status> action)
+        private string ToJSONString(object obj)
+        {
+            if (obj == null)
+                return null;
+
+            string result = null;
+            try {
+                result = Manager.GetObjectMapper().WriteValueAsString(obj);
+            } catch (Exception e)  {
+                Log.W(Database.Tag, "Exception serializing object to json: " + obj, e);
+            }
+
+            return result;
+        }
+
+        private object FromJSON(IEnumerable<byte> json)
+        {
+            if (json == null) {
+                return null;
+            }
+
+            object result = null;
+            try  {
+                result = Manager.GetObjectMapper().ReadValue<object>(json);
+            } catch (Exception e) {
+                Log.W(Database.Tag, "Exception parsing json", e);
+            }
+            return result;
+        }
+
+        private Status RunQuery(QueryOptions options, Func<Lazy<object>, Lazy<object>, string, Cursor, Status> action)
         {
             if (options == null) {
                 options = new QueryOptions();
@@ -356,7 +397,7 @@ namespace Couchbase.Lite.Store
                 foreach (var key in options.Keys) {
                     sql.Append(item);
                     item = ",?";
-                    args.Add(Manager.GetObjectMapper().WriteValueAsBytes(key));
+                    args.Add(ToJSONString(key));
                 }
                 sql.Append(")");
             }
@@ -377,7 +418,7 @@ namespace Couchbase.Lite.Store
             }
 
             if (minKey != null) {
-                var minKeyData = Manager.GetObjectMapper().WriteValueAsBytes(minKey);
+                var minKeyData = ToJSONString(minKey);
                 sql.Append(inclusiveMin ? " AND key >= ?" : " AND key > ?");
                 sql.Append(collationStr);
                 args.Add(minKeyData);
@@ -390,7 +431,7 @@ namespace Couchbase.Lite.Store
 
             if (maxKey != null) {
                 maxKey = KeyForPrefixMatch(maxKey, options.PrefixMatchLevel);
-                var maxKeyData = Manager.GetObjectMapper().WriteValueAsBytes(maxKey);
+                var maxKeyData = ToJSONString(maxKey);
                 sql.Append(inclusiveMax ? " AND key <= ?" : " AND key < ?");
                 sql.Append(collationStr);
                 args.Add(maxKeyData);
@@ -424,7 +465,7 @@ namespace Couchbase.Lite.Store
             }
 
             sql.Append(options.Descending ? ", docid DESC" : ", docid");
-            sql.Append("LIMIT ? OFFSET ?");
+            sql.Append(" LIMIT ? OFFSET ?");
             int limit = options.Limit != QueryOptions.DEFAULT_LIMIT ? options.Limit : -1;
             args.Add(limit);
             args.Add(options.Skip);
@@ -435,13 +476,8 @@ namespace Couchbase.Lite.Store
             var status = new Status();
             dbStorage.TryQuery(c => 
             {
-                var keyData = c.GetBlob(0);
                 var docId = c.GetString(2);
-                Debug.Assert(keyData != null);
-
-                // Call the block!
-                var valueData = c.GetBlob(1);
-                status = action(keyData, valueData, docId, c);
+                status = action(new Lazy<object>(() => FromJSON(c.GetBlob(0))), new Lazy<object>(() => FromJSON(c.GetBlob(1))), docId, c);
                 if(status.IsError) {
                     return false;
                 } else if((int)status.Code <= 0) {
@@ -449,7 +485,7 @@ namespace Couchbase.Lite.Store
                 }
 
                 return true;
-            }, false, sql.ToString(), args);
+            }, true, sql.ToString(), args.ToArray());
 
             return status;
         }
@@ -647,7 +683,7 @@ namespace Couchbase.Lite.Store
                 SqliteViewStore currentView = null;
                 IDictionary<string, object> currentDoc = null;
                 long sequence = minLastSequence;
-                Status emitStatus = new Status();
+                Status emitStatus = new Status(StatusCode.Ok);
                 int insertedCount = 0;
                 EmitDelegate emit = (key, value) =>
                 {
@@ -752,8 +788,8 @@ namespace Couchbase.Lite.Store
                         var e = views.GetEnumerator();
                         while(e.MoveNext()) {
                             currentView = e.Current;
-                            ++i;
-                            if(viewLastSequence[i] < realSequence) {
+                            ++viewIndex;
+                            if(viewLastSequence[viewIndex] < realSequence) {
                                 if(checkDocTypes) {
                                     var viewDocType = viewDocTypes[currentView.Name];
                                     if(viewDocType != null && viewDocType != docType) {
@@ -765,7 +801,7 @@ namespace Couchbase.Lite.Store
                                 Log.V(TAG, "    #{0}: map \"{1}\" for view {2}...",
                                     sequence, docId, e.Current.Name);
                                 try {
-                                    mapBlocks[i](currentDoc, emit);
+                                    mapBlocks[viewIndex](currentDoc, emit);
                                 } catch(Exception x) {
                                     Log.E(TAG, String.Format("Exception in map() block for view {0}", currentView.Name), x);
                                     emitStatus.Code = StatusCode.Exception;
@@ -838,8 +874,8 @@ namespace Couchbase.Lite.Store
                 RevisionInternal docRevision = null;
                 if(options.IncludeDocs) {
                     IDictionary<string, object> value = null;
-                    if(valueData != null && RowValueIsEntireDoc(valueData)) {
-                        value = Manager.GetObjectMapper().ReadValue<IDictionary<string, object>>(valueData);
+                    if(valueData != null && !RowValueIsEntireDoc(valueData.Value)) {
+                        value = valueData.AsDictionary<string, object>();
                     }
 
                     string linkedId = value.GetCast<string>("_id");
@@ -854,14 +890,13 @@ namespace Couchbase.Lite.Store
                 }
 
                 Log.V(TAG, "Query {0}: Found row with key={1}, value={2}, id={3}",
-                    Name, BitConverter.ToString(keyData.ToArray()), BitConverter.ToString(valueData.ToArray()),
-                    Manager.GetObjectMapper().WriteValueAsString(docId));
+                    Name, keyData.Value, valueData.Value, docId);
 
                 QueryRow row = null;
                 if(false) {
                     //TODO: bbox
                 } else {
-                    row = new QueryRow(docId, sequence, keyData, valueData, docRevision, this);
+                    row = new QueryRow(docId, sequence, keyData.Value, valueData.Value, docRevision, this);
                 }
 
                 if(filter != null) {
@@ -930,14 +965,14 @@ namespace Couchbase.Lite.Store
                 valuesToReduce = new List<object>(100);
             }
 
-            IEnumerable<byte> lastKeyData = null;
+            Lazy<object> lastKeyData = null;
             List<QueryRow> rows = new List<QueryRow>();
             var outStatus = RunQuery(options, (keyData, valueData, docID, c) =>
             {
                 if(group && !GroupTogether(keyData, lastKeyData, groupLevel)) {
-                    if(lastKeyData != null) {
+                    if(lastKeyData != null && lastKeyData.Value != null) {
                         // This pair starts a new group, so reduce & record the last one:
-                        var key = GroupKey(lastKeyData, groupLevel);
+                        var key = GroupKey(lastKeyData.Value, groupLevel);
                         var reduced = CallReduce(reduce, keysToReduce, valuesToReduce);
                         var row = new QueryRow(null, 0, key, reduced, null, this);
                         if(options.Filter == null || options.Filter(row)) {
@@ -950,8 +985,7 @@ namespace Couchbase.Lite.Store
                     lastKeyData = keyData;
                 }
 
-                Log.V(TAG, "    Query {0}: Will reduce row with key={1}, value={2}", Name, Encoding.UTF8.GetString(keyData.ToArray()),
-                    Encoding.UTF8.GetString(valueData.ToArray()));
+                Log.V(TAG, "    Query {0}: Will reduce row with key={1}, value={2}", Name, keyData.Value, valueData.Value);
 
                 object valueOrData = valueData;
                 if(valuesToReduce != null && RowValueIsEntireDoc(valueData)) {
@@ -959,7 +993,7 @@ namespace Couchbase.Lite.Store
                     Status status = new Status();
                     var rev = db.GetDocument(docID, c.GetLong(1), status);
                     if(rev == null) {
-                        Log.W(TAG, "Couldn't load doc for row value: status {0}", status.GetCode());
+                        Log.W(TAG, "Couldn't load doc for row value: status {0}", status.Code);
                     }
 
                     valueOrData = rev.GetProperties();
@@ -1020,9 +1054,14 @@ namespace Couchbase.Lite.Store
 
         #region IQueryRowStore
 
-        public bool RowValueIsEntireDoc(IEnumerable<byte> valueData)
+        public bool RowValueIsEntireDoc(object valueData)
         {
-            return valueData.FirstOrDefault() == (byte)'*' && valueData.Count() == 1;
+            var valueString = valueData as string;
+            if (valueString == null) {
+                return false;
+            }
+
+            return valueString == "*";
         }
 
         public T ParseRowValue<T>(IEnumerable<byte> valueData)
