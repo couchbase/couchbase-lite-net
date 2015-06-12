@@ -162,13 +162,12 @@ namespace Couchbase.Lite
         public virtual IDictionary<String, Object> UserProperties { 
             get {
                 var result = new Dictionary<String, Object>();
-                foreach (string key in Properties.Keys)
-                {
-                    if (!key.StartsWith("_", StringComparison.InvariantCultureIgnoreCase))
-                    {
+                foreach (string key in Properties.Keys) {
+                    if (!key.StartsWith("_", StringComparison.InvariantCultureIgnoreCase)) {
                         result.Put(key, Properties.Get(key));
                     }
                 }
+
                 return result;
             }
         }

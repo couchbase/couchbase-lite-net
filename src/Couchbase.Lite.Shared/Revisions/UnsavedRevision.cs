@@ -139,12 +139,10 @@ namespace Couchbase.Lite
                 return base.IsDeletion;
             }
             set {
-                if (value)
-                {
+                if (value) {
                     properties["_deleted"] = true;
                 }
-                else
-                {
+                else {
                     properties.Remove("_deleted");
                 }
             }

@@ -139,10 +139,10 @@ namespace Couchbase.Lite {
             Database = null;
         }
 
-        internal void UpdateIndex()
+        internal Status UpdateIndex()
         {
             //TODO: View grouping
-            Storage.UpdateIndexes(new List<IViewStore> { Storage });
+            return Storage.UpdateIndexes(new List<IViewStore> { Storage });
         }
 
         private bool GroupOrReduce(QueryOptions options) {
@@ -341,6 +341,16 @@ namespace Couchbase.Lite {
         public Int64 LastSequenceIndexed { 
             get {
                 return Storage.LastSequenceIndexed;
+            }
+        }
+
+        /// <summary>
+        /// Gets the last sequence that there was a change in the view
+        /// </summary>
+        public long LastSequenceChangedAt
+        {
+            get {
+                return Storage.LastSequenceChangedAt;
             }
         }
 

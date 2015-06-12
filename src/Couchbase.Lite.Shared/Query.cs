@@ -387,30 +387,27 @@ namespace Couchbase.Lite {
         /// </exception>
         public virtual QueryEnumerator Run() 
         {
-            if (!Database.Open())
-            {
+            if (!Database.Open()) {
                 throw new CouchbaseLiteException("The database has been closed.");
             }
 
-            var outSequence = new List<long>();
+            ValueTypePtr<long> outSequence = 0;
             var viewName = (View != null) ? View.Name : null;
             var queryOptions = QueryOptions;
 
             IEnumerable<QueryRow> rows = null;
             var success = Database.RunInTransaction(()=>
             {
-                rows = Database.QueryViewNamed (viewName, queryOptions, outSequence);
-                
-                LastSequence = outSequence[0];
-                
+                rows = Database.QueryViewNamed (viewName, queryOptions, 0, outSequence);
+                LastSequence = outSequence;
                 return true;
             });
 
-            if (!success)
-            {
+            if (!success) {
                 throw new CouchbaseLiteException("Failed to query view named " + viewName, StatusCode.DbError);
             }
-            return new QueryEnumerator(Database, rows, outSequence[0]);
+
+            return new QueryEnumerator(Database, rows, outSequence);
         }
 
         /// <summary>

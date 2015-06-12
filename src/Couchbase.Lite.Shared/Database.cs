@@ -803,62 +803,55 @@ namespace Couchbase.Lite
                 _pendingAttachmentsByDigest = value;
             }
         }
-
-        /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
-        internal IEnumerable<QueryRow> QueryViewNamed(String viewName, QueryOptions options, IList<Int64> outLastSequence)
+            
+        internal IEnumerable<QueryRow> QueryViewNamed(String viewName, QueryOptions options, long ifChangedSince, ValueTypePtr<long> outLastSequence, Status outStatus = null)
         {
-            Log.D(Tag, "Starting QueryViewNamed");
-            var before = Runtime.CurrentTimeMillis();
-            var lastSequence = 0L;
-            IEnumerable<QueryRow> rows;
-
-            if (!String.IsNullOrEmpty (viewName)) {
-                var view = GetView (viewName);
-                if (view == null)
-                {
-                    throw new CouchbaseLiteException (StatusCode.NotFound);
-                }
-                    
-                lastSequence = view.LastSequenceIndexed;
-                if (options.Stale == IndexUpdateMode.Before || lastSequence <= 0) {
-                    Log.D(Tag, "Updating index on view '{0}' before generating query results.", view.Name);
-                    view.UpdateIndex ();
-                    lastSequence = view.LastSequenceIndexed;
-                } else {
-                    if (options.Stale == IndexUpdateMode.After 
-                        && lastSequence < LastSequenceNumber)
-                    {
-                        Log.D(Tag, "Deferring index update on view '{0}'.", view.Name);
-                        RunAsync((db)=>
-                        {
-                            try
-                            {
-                                Log.D(Tag, "Updating index on view '{0}'", view.Name);
-                                view.UpdateIndex();
-                            }
-                            catch (CouchbaseLiteException e)
-                            {
-                                Log.E(Tag, "Error updating view index on background thread", e);
-                            }
-                        });
-                    }
-                }
-                rows = view.QueryWithOptions (options);
-            } else {
-                // nil view means query _all_docs
-                // note: this is a little kludgy, but we have to pull out the "rows" field from the
-                // result dictionary because that's what we want.  should be refactored, but
-                // it's a little tricky, so postponing.
-                Log.D(Tag, "Returning an all docs query.");
-                rows = GetAllDocs (options);
-                lastSequence = LastSequenceNumber;
+            if (outStatus == null) {
+                outStatus = new Status();
             }
-            outLastSequence.AddItem(lastSequence);
 
-            var delta = Runtime.CurrentTimeMillis() - before;
-            Log.D(Tag, String.Format("Query view {0} completed in {1} milliseconds", viewName, delta));
+            IEnumerable<QueryRow> iterator = null;
+            Status status = null;
+            long lastIndexedSequence = 0, lastChangedSequence = 0;
+            do {
+                if(viewName != null) {
+                    var view = GetView(viewName);
+                    if(view == null) {
+                        outStatus.Code = StatusCode.NotFound;
+                        break;
+                    }
 
-            return rows;
+                    lastIndexedSequence = view.LastSequenceIndexed;
+                    if(options.Stale == IndexUpdateMode.Before || lastIndexedSequence <= 0) {
+                        status = view.UpdateIndex();
+                        if(status.IsError) {
+                            Log.W(Tag, "Failed to update index: {0}", status.Code);
+                            break;
+                        }
+
+                        lastIndexedSequence = view.LastSequenceIndexed;
+                    } else if(options.Stale == IndexUpdateMode.After && lastIndexedSequence <= LastSequenceNumber) {
+                        RunAsync(d => view.UpdateIndex());
+                    }
+
+                    lastChangedSequence = view.LastSequenceChangedAt;
+                    iterator = view.QueryWithOptions(options);
+                } else { // null view means query _all_docs
+                    iterator = GetAllDocs(options);
+                    lastIndexedSequence = lastChangedSequence = LastSequenceNumber;
+                }
+
+                if(lastChangedSequence <= ifChangedSince) {
+                    status = new Status(StatusCode.NotModified);
+                }
+            } while(false); // just to allow 'break' within the block
+
+            outLastSequence.Value = lastIndexedSequence;
+            if (status != null) {
+                outStatus.Code = status.Code;
+            }
+
+            return iterator;
         }
             
         internal RevisionList ChangesSince(long lastSeq, ChangesOptions options, FilterDelegate filter, IDictionary<string, object> filterParams)
@@ -897,7 +890,7 @@ namespace Couchbase.Lite
         internal IEnumerable<QueryRow> GetAllDocs(QueryOptions options)
         {
             // For regular all-docs, let storage do it all:
-            if (options == null || options.AllDocsMode == AllDocsMode.BySequence) {
+            if (options == null || options.AllDocsMode != AllDocsMode.BySequence) {
                 return Storage.GetAllDocs(options);
             }
 
@@ -1311,7 +1304,7 @@ namespace Couchbase.Lite
             return PutRevision(rev, prevRevId, false, resultStatus);
         }
 
-        private RevisionInternal PutDocument(string docId, IDictionary<string, object> properties, string prevRevId, bool allowConflict, Status resultStatus)
+        internal RevisionInternal PutDocument(string docId, IDictionary<string, object> properties, string prevRevId, bool allowConflict, Status resultStatus)
         {
             bool deleting = properties == null || properties.GetCast<bool>("_deleted");
             Log.D(Tag, "PUT _id={0}, _rev={1}, _deleted={2}, allowConflict={3}", docId, prevRevId, deleting, allowConflict);
@@ -1322,7 +1315,7 @@ namespace Couchbase.Lite
                 }
             }
 
-            if (properties.Get("_attachments").AsDictionary<string, object>() != null) {
+            if (properties != null && properties.Get("_attachments").AsDictionary<string, object>() != null) {
                 var tmpRev = new RevisionInternal(docId, prevRevId, deleting);
                 tmpRev.SetProperties(properties);
                 if (!ProcessAttachmentsForRevision(tmpRev, prevRevId, resultStatus)) {

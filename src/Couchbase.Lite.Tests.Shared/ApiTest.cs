@@ -334,10 +334,10 @@ namespace Couchbase.Lite
             Assert.IsTrue(doc.CurrentRevisionId.StartsWith("2-"), "Document revision ID is still " + doc.CurrentRevisionId);
             Assert.AreEqual(rev2.Id, doc.CurrentRevisionId);
             Assert.IsNotNull(rev2.PropertiesAvailable);
-            Assert.AreEqual(rev2.UserProperties, properties2);
-            Assert.AreEqual(rev2.Document, doc);
-            Assert.AreEqual(rev2.GetProperty("_id"), doc.Id);
-            Assert.AreEqual(rev2.GetProperty("_rev"), rev2.Id);
+            Assert.AreEqual(properties2, rev2.UserProperties);
+            Assert.AreEqual(doc, rev2.Document);
+            Assert.AreEqual(doc.Id, rev2.GetProperty("_id"));
+            Assert.AreEqual(rev2.Id, rev2.GetProperty("_rev"));
             
             // Test -createRevision:
             var newRev = rev2.CreateRevision();
@@ -680,13 +680,13 @@ namespace Couchbase.Lite
             var query = db.CreateAllDocumentsQuery();
             query.AllDocsMode = AllDocsMode.ShowConflicts;
             var rows = query.Run();
-            Assert.AreEqual(rows.Count, 1);
+            Assert.AreEqual(1, rows.Count);
 
             var row = rows.GetRow(0);
             var revs = row.GetConflictingRevisions().ToList();
             Assert.AreEqual(2, revs.Count);
-            Assert.AreEqual(revs[0], defaultRev);
-            Assert.AreEqual(revs[1], otherRev);
+            Assert.AreEqual(defaultRev, revs[0]);
+            Assert.AreEqual(otherRev, revs[1]);
         }
 
         //ATTACHMENTS

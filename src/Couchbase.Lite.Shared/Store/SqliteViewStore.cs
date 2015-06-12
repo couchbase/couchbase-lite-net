@@ -77,7 +77,7 @@ namespace Couchbase.Lite.Store
         public long LastSequenceIndexed
         {
             get {
-                return _dbStorage.QueryOrDefault<long>(c => c.GetLong(0), false, 0, "SELECT lastsequence FROM views WHERE name=?", Name);
+                return _dbStorage.QueryOrDefault<long>(c => c.GetLong(0), true, 0, "SELECT lastsequence FROM views WHERE name=?", Name);
             }
         }
 

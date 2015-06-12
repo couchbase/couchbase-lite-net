@@ -881,7 +881,7 @@ PRAGMA user_version = 3;";
                 // The document is in conflict if there are two+ result rows that are not deletions.
                 outConflict.Value = !outDeleted && c.MoveToNext() && c.GetInt(1) != 0;
                 return false;
-            }, false, "SELECT revid, deleted FROM revs WHERE doc_id=? and current=1 ORDER BY deleted asc, revid desc LIMIT ?",
+            }, true, "SELECT revid, deleted FROM revs WHERE doc_id=? and current=1 ORDER BY deleted asc, revid desc LIMIT ?",
                 docNumericId, (!outConflict.IsNull ? 2 : 1));
 
             return revId;
@@ -1125,6 +1125,14 @@ PRAGMA user_version = 3;";
                 result.SetSequence(c.GetLong(2));
                 if(withBody) {
                     result.SetJson(c.GetBlob(3));
+                    var props = result.GetProperties();
+                    props["_id"] = result.GetDocId();
+                    props["_rev"] = result.GetRevId();
+                    if(result.IsDeleted()) {
+                        props["_deleted"] = true;
+                    }
+
+                    result.SetProperties(props);
                 }
 
                 status.Code = StatusCode.Ok;
@@ -1546,6 +1554,7 @@ PRAGMA user_version = 3;";
                         if(options.AllDocsMode >= AllDocsMode.ShowConflicts) {
                             if(conflicts == null) {
                                 conflicts = new List<string>();
+                                conflicts.Add(revId);
                             }
 
                             conflicts.Add(c.GetString(2));
@@ -1775,9 +1784,10 @@ PRAGMA user_version = 3;";
                 Debug.Assert(docId != null);
                 newRev = new RevisionInternal(docId, newRevId, deleting);
                 if(properties != null) {
-                    properties["_id"] = docId;
-                    properties["_rev"] = newRevId;
-                    newRev.SetProperties(properties);
+                    var nuProps = new Dictionary<string, object>(properties);
+                    nuProps["_id"] = docId;
+                    nuProps["_rev"] = newRevId;
+                    newRev.SetProperties(nuProps);
                 }
 
                 // Validate:

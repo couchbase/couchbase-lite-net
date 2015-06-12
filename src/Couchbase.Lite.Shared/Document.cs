@@ -94,7 +94,7 @@ namespace Couchbase.Lite {
         /// Gets if the <see cref="Couchbase.Lite.Document"/> is deleted.
         /// </summary>
         /// <value><c>true</c> if deleted; otherwise, <c>false</c>.</value>
-        public Boolean Deleted { get { return CurrentRevision == null && LeafRevisions.Any (); } }
+        public Boolean Deleted { get { return currentRevision == null && LeafRevisions.Any (); } }
 
         /// <summary>
         /// If known, gets the Id of the current <see cref="Couchbase.Lite.Revision"/>, otherwise null.
@@ -396,10 +396,10 @@ namespace Couchbase.Lite {
 
         private SavedRevision GetRevisionWithId(String revId)
         {
-            if (!StringEx.IsNullOrWhiteSpace(revId) && revId.Equals(currentRevision.Id))
-            {
+            if (!StringEx.IsNullOrWhiteSpace(revId) && revId.Equals(currentRevision.Id)) {
                 return currentRevision;
             }
+
             return GetRevisionFromRev(Database.GetDocument(Id, revId, true));
         }
 
@@ -430,50 +430,29 @@ namespace Couchbase.Lite {
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>       
         internal SavedRevision PutProperties(IDictionary<String, Object> properties, String prevID, Boolean allowConflict)
         {
-            string newId = null;
-            if (properties != null && properties.ContainsKey("_id"))
-            {
-                newId = (string)properties.Get("_id");
-            }
-            if (newId != null && !newId.Equals(Id, StringComparison.InvariantCultureIgnoreCase))
-            {
+            string newId = properties == null ? null : properties.GetCast<string>("_id");
+            if (newId != null && !newId.Equals(Id, StringComparison.InvariantCultureIgnoreCase))  {
                 Log.W(Database.Tag, String.Format("Trying to put wrong _id to this: {0} properties: {1}", this, properties)); // TODO: Make sure all string formats use .NET codes, and not Java.
             }
 
             // Process _attachments dict, converting CBLAttachments to dicts:
             IDictionary<string, object> attachments = null;
-            if (properties != null && properties.ContainsKey("_attachments"))
-            {
+            if (properties != null && properties.ContainsKey("_attachments")) {
                 attachments = properties.Get("_attachments").AsDictionary<string,object>();
             }
-            if (attachments != null && attachments.Count > 0)
-            {
+
+            if (attachments != null && attachments.Count > 0) {
                 var updatedAttachments = Attachment.InstallAttachmentBodies(attachments, Database);
                 properties["_attachments"] = updatedAttachments;
             }
-
-            var hasTrueDeletedProperty = false;
-            if (properties != null)
-            {
-                hasTrueDeletedProperty = properties.Get("_deleted") != null && ((bool)properties.Get("_deleted"));
-            }
-
-            var deleted = (properties == null) || hasTrueDeletedProperty;
-            var rev = new RevisionInternal(Id, null, deleted);
-            if (deleted)
-                rev.SetJson(Encoding.UTF8.GetBytes("{}"));
-            if (properties != null)
-            {
-                rev.SetProperties(properties);
-            }
-
-            var newRev = Database.PutRevision(rev, prevID, allowConflict);
-            if (newRev == null)
-            {
-                return null;
+                
+            Status status = new Status();
+            var newRev = Database.PutDocument(Id, properties, prevID, allowConflict, status);
+            if (newRev == null) {
+                throw new CouchbaseLiteException(status.Code);
             }
                 
-            return CurrentRevision;
+            return GetRevisionFromRev(newRev);
         }
 
         /// <summary>
@@ -507,14 +486,14 @@ namespace Couchbase.Lite {
 
         internal SavedRevision GetRevisionFromRev(RevisionInternal internalRevision)
         {
-            if (internalRevision == null) return null;
+            if (internalRevision == null) {
+                return null;
+            }
 
-            if (currentRevision != null && internalRevision.GetRevId().Equals(CurrentRevision.Id))
-            {
+            if (currentRevision != null && internalRevision.GetRevId().Equals(CurrentRevision.Id)) {
                 return currentRevision;
             }
-            else
-            {
+            else {
                 return new SavedRevision(this, internalRevision);
             }
         }
@@ -533,7 +512,7 @@ namespace Couchbase.Lite {
                 if (rev == null || rev.IsDeleted()) {
                     currentRevision = null;
                 } else if (!rev.IsDeleted()) {
-                    currentRevision = new SavedRevision(this, rev);;
+                    currentRevision = new SavedRevision(this, rev);
                 }
             }
 
