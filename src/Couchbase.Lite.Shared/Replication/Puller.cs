@@ -842,7 +842,7 @@ namespace Couchbase.Lite.Replicator
                             continue;
                         }
 
-                        Log.D(Tag, String.Format("{0}: inserting {1} {2}", this, rev.GetDocId(), history));
+                        Log.D(Tag, String.Format("Inserting {0} {1}", rev.GetDocId(), history.ToStringArray()));
 
                         // Insert the revision:
                         try

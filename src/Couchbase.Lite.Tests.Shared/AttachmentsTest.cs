@@ -313,8 +313,9 @@ namespace Couchbase.Lite
             var gotRev1 = database.GetDocument(rev1.GetDocId(), 
                 rev1.GetRevId(), true);
             var gotAttachmentDict = gotRev1.GetPropertyForKey("_attachments").AsDictionary<string, object>();
+            gotAttachmentDict[testAttachmentName] = gotAttachmentDict[testAttachmentName].AsDictionary<string, object>();
 
-            var innerDict = new JObject();
+            var innerDict = new Dictionary<string, object>();
             innerDict["content_type"] = "text/plain";
             innerDict["digest"] = "sha1-gOHUOBmIMoDCrMuGyaLWzf1hQTE=";
             innerDict["length"] = 27;
@@ -371,7 +372,8 @@ namespace Couchbase.Lite
             RevisionInternal gotRev2 = database.GetDocument(rev2.GetDocId(), rev2
                 .GetRevId(), true);
             attachmentDict = gotRev2.GetProperties().Get("_attachments").AsDictionary<string, object>();
-            innerDict = new JObject();
+            attachmentDict[testAttachmentName] = attachmentDict[testAttachmentName].AsDictionary<string, object>();
+            innerDict = new Dictionary<string, object>();
             innerDict["content_type"] = "application/foo";
             innerDict["digest"] = "sha1-mbT3208HI3PZgbG4zYWbDW2HsPk=";
             innerDict["length"] = 23;
@@ -388,7 +390,7 @@ namespace Couchbase.Lite
             }
             catch (CouchbaseLiteException e)
             {
-                gotExpectedErrorCode = (e.CBLStatus.Code == StatusCode.NotFound);
+                gotExpectedErrorCode = (e.CBLStatus.Code == StatusCode.AttachmentNotFound);
             }
             Assert.IsTrue(gotExpectedErrorCode);
             gotExpectedErrorCode = false;

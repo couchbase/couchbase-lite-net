@@ -32,12 +32,12 @@ namespace Couchbase.Lite.Store
         /// <summary>
         /// The current map block. Never null.
         /// </summary>
-        MapDelegate MapBlock { get; }
+        MapDelegate Map { get; }
 
         /// <summary>
         /// The current reduce block, or null if there is none.
         /// </summary>
-        ReduceDelegate ReduceBlock { get; }
+        ReduceDelegate Reduce { get; }
 
         /// <summary>
         /// The current map version string. If this changes, the storage's SetVersion() method will be

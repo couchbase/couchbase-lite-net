@@ -2059,8 +2059,7 @@ namespace Couchbase.Lite
                 Log.D(Tag, "Adding " + doc.Id + " to database.");  
                 docList.Add(doc.Id);
             }
-
-            var docsBefore = database.DocumentCount;
+                
             var mre = new CountdownEvent(docsToCreate * 2);
             var puller = database.CreatePullReplication(GetReplicationURL());
             puller.Changed += (sender, e) => {
@@ -2181,7 +2180,7 @@ namespace Couchbase.Lite
                     }
                 }
 
-                Log.D(Tag, "Remaining docs to be found: {0}", mre.InitialCount - mre.CurrentCount);
+                Log.D(Tag, "Remaining docs to be found: {0}", mre.CurrentCount);
             };
 
             // the first time this is called back, the rows will be empty.

@@ -91,7 +91,7 @@ CREATE TABLE replicators (
 PRAGMA user_version = 3;";
 
         private static readonly HashSet<string> SPECIAL_KEYS_TO_REMOVE = new HashSet<string> {
-            "_id", "_rev", "_deleted", "_revision", "_revs_info", "_conflicts", "_deleted_conflicts",
+            "_id", "_rev", "_deleted", "_revisions", "_revs_info", "_conflicts", "_deleted_conflicts",
             "_local_seq"
         };
 
@@ -131,7 +131,7 @@ PRAGMA user_version = 3;";
         public long LastSequence { 
             get {
                 return QueryOrDefault<long>(c => c.GetLong(0),
-                    false, -1, "SELECT seq FROM sqlite_sequence WHERE name='revs'");
+                    false, 0L, "SELECT seq FROM sqlite_sequence WHERE name='revs'");
             }
         }
 
@@ -879,7 +879,7 @@ PRAGMA user_version = 3;";
                 revId = c.GetString(0);
                 outDeleted.Value = c.GetInt(1) != 0;
                 // The document is in conflict if there are two+ result rows that are not deletions.
-                outConflict.Value = !outDeleted && c.MoveToNext() && c.GetInt(1) != 0;
+                outConflict.Value = !outDeleted && c.MoveToNext() && c.GetInt(1) == 0;
                 return false;
             }, true, "SELECT revid, deleted FROM revs WHERE doc_id=? and current=1 ORDER BY deleted asc, revid desc LIMIT ?",
                 docNumericId, (!outConflict.IsNull ? 2 : 1));
@@ -943,7 +943,7 @@ PRAGMA user_version = 3;";
             {
                 RevisionInternal prevRev = GetLocalDocument(rev.GetDocId(), null);
                 try {
-                    result = PutLocalRevision(rev, prevRev.GetRevId(), true);
+                    result = PutLocalRevision(rev, prevRev == null ? null : prevRev.GetRevId(), true);
                 } catch(CouchbaseLiteException e) {
                     return e.CBLStatus;
                 }
@@ -1301,7 +1301,7 @@ PRAGMA user_version = 3;";
                         nextRev.SetMissing(c.GetInt(4) != 0);
                         history.Add(nextRev);
                         lastSequence = c.GetLong(1);
-                        if(ancestorRevIds.Contains(nextRevId) || lastSequence == 0) {
+                        if((ancestorRevIds != null && ancestorRevIds.Contains(nextRevId)) || lastSequence == 0) {
                             return false;
                         }
                     }
@@ -1672,8 +1672,12 @@ PRAGMA user_version = 3;";
         }
 
         public RevisionInternal PutRevision(string inDocId, string inPrevRevId, IDictionary<string, object> properties,
-            bool deleting, bool allowConflict, StoreValidation validationBlock)
+            bool deleting, bool allowConflict, StoreValidation validationBlock, Status outStatus = null)
         {
+            if (outStatus == null) {
+                outStatus = new Status();
+            }
+
             IEnumerable<byte> json = null;
             if (properties != null) {
                 try {
@@ -1798,7 +1802,7 @@ PRAGMA user_version = 3;";
                         prevRev = new RevisionInternal(docId, prevRevId, false);
                     }
 
-                    var validationStatus = validationBlock(prevRev, newRev, prevRevId);
+                    var validationStatus = validationBlock(newRev, prevRev, prevRevId);
                     if(validationStatus.IsError) {
                         return validationStatus;
                     }
@@ -1813,7 +1817,14 @@ PRAGMA user_version = 3;";
 
                 //// PART III: In which the actual insertion finally takes place:
 
-                var sequence = InsertRevision(newRev, docNumericId, parentSequence, true, properties.Get("_attachments") != null, json, properties.GetCast<string>("type"));
+                bool hasAttachments = false;
+                string docType = null;
+                if(properties != null) {
+                    hasAttachments = properties.Get("_attachments") != null;
+                    docType = properties.GetCast<string>("type");
+                }
+
+                var sequence = InsertRevision(newRev, docNumericId, parentSequence, true, hasAttachments, json, docType);
                 if(sequence == 0L) {
                     //FIXME: This could mean that a duplicate has been encountered
                     newRev.SetBody(null);
@@ -1844,7 +1855,8 @@ PRAGMA user_version = 3;";
                 return deleting ? new Status(StatusCode.Ok) : new Status(StatusCode.Created);
             });
 
-            if (status.IsError) {
+            outStatus.Code = status.Code;
+            if (outStatus.IsError) {
                 return null;
             }
 
@@ -1896,7 +1908,7 @@ PRAGMA user_version = 3;";
                 if(validationBlock != null) {
                     RevisionInternal oldRev = null;
                     for(int i = 1; i < revHistory.Count; i++) {
-                        oldRev = localRevs.Get(revHistory[i]);
+                        oldRev = localRevs == null ? null : localRevs.Get(revHistory[i]);
                         if(oldRev != null) {
                             break;
                         }
@@ -1914,9 +1926,9 @@ PRAGMA user_version = 3;";
                 // in the local history:
                 long sequence = 0L;
                 long localParentSequence = 0L;
-                for(int i = revHistory.Count; i >= 0; --i) {
+                for(int i = revHistory.Count - 1; i >= 0; --i) {
                     var revId = revHistory[i];
-                    var localRev = localRevs.Get(revId);
+                    var localRev = localRevs == null ? null : localRevs.Get(revId);
                     if(localRev != null) {
                         // This revision is known locally. Remember its sequence as the parent of the next one:
                         sequence = localRev.GetSequence();
@@ -2078,7 +2090,7 @@ PRAGMA user_version = 3;";
 
         public IViewStore GetViewStorage(string name, bool create)
         {
-            return new SqliteViewStore(this, name, create);
+            return SqliteViewStore.MakeViewStore(this, name, create);
         }
 
         public IEnumerable<string> GetAllViews()
@@ -2099,7 +2111,7 @@ PRAGMA user_version = 3;";
             TryQuery(c =>
             {
                 string gotRevId = c.GetString(0);
-                if(revId != gotRevId) {
+                if(revId != null && revId != gotRevId) {
                     return false;
                 }
 
@@ -2116,8 +2128,8 @@ PRAGMA user_version = 3;";
                 }
 
                 properties["_id"] = docId;
-                properties["_rev"] = revId;
-                result = new RevisionInternal(docId, revId, false);
+                properties["_rev"] = gotRevId;
+                result = new RevisionInternal(docId, gotRevId, false);
                 result.SetProperties(properties);
 
                 return false;
@@ -2147,7 +2159,7 @@ PRAGMA user_version = 3;";
                 }
 
                 string newRevId;
-                int changes = -1;
+                long changes = -1;
                 if (prevRevId != null) {
                     int generation = RevisionInternal.GenerationFromRevID(prevRevId);
                     if (generation == 0) {
@@ -2173,7 +2185,7 @@ PRAGMA user_version = 3;";
                     args["revid"] = newRevId;
                     args["json"] = json;
                     try {
-                        StorageEngine.InsertWithOnConflict("localdocs", null, args, ConflictResolutionStrategy.Ignore);
+                        changes = StorageEngine.InsertWithOnConflict("localdocs", null, args, ConflictResolutionStrategy.Ignore);
                     } catch (Exception e) {
                         throw new CouchbaseLiteException(e, StatusCode.DbError);
                     }
@@ -2189,7 +2201,7 @@ PRAGMA user_version = 3;";
                 // DELETE:
                 var status = DeleteLocalRevision(docId, prevRevId);
                 if (status.IsError) {
-                    return null;
+                    throw new CouchbaseLiteException(status.Code);
                 }
 
                 return revision;

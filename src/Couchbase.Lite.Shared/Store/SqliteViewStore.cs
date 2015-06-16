@@ -116,16 +116,19 @@ namespace Couchbase.Lite.Store
 
         #region Constructors
 
-        public SqliteViewStore(SqliteCouchStore store, string name, bool create)
+        public static SqliteViewStore MakeViewStore(SqliteCouchStore store, string name, bool create)
         {
-            _dbStorage = store;
-            Name = name;
-            _viewId = -1;
-            _collation = ViewCollation.Unicode;
+            var retVal = new SqliteViewStore();
+            retVal._dbStorage = store;
+            retVal.Name = name;
+            retVal._viewId = -1;
+            retVal._collation = ViewCollation.Unicode;
 
-            if (!create && ViewID <= 0) {
-                throw new InvalidOperationException("View not found and create not specified");
+            if (!create && retVal.ViewID <= 0) {
+                return null;
             }
+
+            return retVal;
         }
 
         #endregion
@@ -593,7 +596,7 @@ namespace Couchbase.Lite.Store
                 List<MapDelegate> mapBlocks = new List<MapDelegate>();
                 foreach(var view in inputViews.Cast<SqliteViewStore>()) {
                     var viewDelegate = view.Delegate;
-                    var mapBlock = viewDelegate == null ? null : viewDelegate.MapBlock;
+                    var mapBlock = viewDelegate == null ? null : viewDelegate.Map;
                     if(mapBlock == null) {
                         Debug.Assert(view != this, String.Format("Cannot index view {0}: no map block registered", view.Name));
                         Log.V(TAG, "    {0} has no map block; skipping it", view.Name);
@@ -875,13 +878,13 @@ namespace Couchbase.Lite.Store
                 if(options.IncludeDocs) {
                     IDictionary<string, object> value = null;
                     if(valueData != null && !RowValueIsEntireDoc(valueData.Value)) {
-                        value = valueData.AsDictionary<string, object>();
+                        value = valueData.Value.AsDictionary<string, object>();
                     }
 
-                    string linkedId = value.GetCast<string>("_id");
+                    string linkedId = value == null ? null : value.GetCast<string>("_id");
                     if(linkedId != null) {
                         // Linked document: http://wiki.apache.org/couchdb/Introduction_to_CouchDB_views#Linked_documents
-                        string linkedRev = value.GetCast<string>("_rev"); //usually null
+                        string linkedRev = value == null ? null : value.GetCast<string>("_rev"); //usually null
                         docRevision = db.GetDocument(linkedId, linkedRev, true);
                         sequence = docRevision == null ? 0 : docRevision.GetSequence();
                     } else {
@@ -951,7 +954,7 @@ namespace Couchbase.Lite.Store
             var db = _dbStorage;
             var groupLevel = options.GroupLevel;
             bool group = options.Group || groupLevel > 0;
-            var reduce = Delegate.ReduceBlock;
+            var reduce = Delegate.Reduce;
             if (options.ReduceSpecified) {
                 if (options.Reduce && reduce == null) {
                     Log.W(TAG, "Cannot use reduce option in view {0} which has no reduce block defined", Name);

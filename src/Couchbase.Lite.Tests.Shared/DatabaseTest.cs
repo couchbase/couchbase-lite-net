@@ -419,13 +419,13 @@ namespace Couchbase.Lite
             var docNumericId = sqliteStorage.GetDocNumericID(doc.Id);
             Assert.IsTrue(docNumericId != 0);
             Assert.AreEqual(rev1.Id, sqliteStorage.GetWinner(docNumericId, outIsDeleted, outIsConflict));
-            Assert.IsTrue(outIsConflict);
+            Assert.IsFalse(outIsConflict);
 
             var newRev2a = rev1.CreateRevision();
             newRev2a.SetUserProperties(properties2a);
             var rev2a = newRev2a.Save();
             Assert.AreEqual(rev2a.Id, sqliteStorage.GetWinner(docNumericId, outIsDeleted, outIsConflict));
-            Assert.IsTrue(outIsConflict);
+            Assert.IsFalse(outIsConflict);
 
             var newRev2b = rev1.CreateRevision();
             newRev2b.SetUserProperties(properties2b);

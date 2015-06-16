@@ -225,6 +225,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Store\SqliteCouchStore.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Store\SqliteViewStore.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Util\ValueTypePtr.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Manager\SharedState.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="$(MSBuildThisFileDirectory)Store\MonoSQLiteStorageEngine.cs" />

@@ -581,7 +581,7 @@ namespace Couchbase.Lite
             
             props = db.GetExistingLocalDocument("dock");
             Assert.IsNull(props);
-            Assert.IsNotNull(!db.DeleteLocalDocument("dock"),"Second delete should have failed");
+            Assert.IsFalse(db.DeleteLocalDocument("dock"),"Second delete should have failed");
         }
 
         //TODO issue: deleteLocalDocument should return error.code( see ios)
@@ -830,7 +830,6 @@ namespace Couchbase.Lite
             }
             catch (CouchbaseLiteException e)
             {
-                //TODO
                 Assert.AreEqual(StatusCode.Forbidden, e.CBLStatus.Code);
             }
         }
@@ -857,7 +856,7 @@ namespace Couchbase.Lite
                 lastDocID = doc.Id;
             }
 
-            var query = db.SlowQuery((document, emitter)=> emitter (document ["sequence"], new object[] { "_id", document ["prev"] }));
+            var query = db.SlowQuery((document, emitter)=> emitter (document ["sequence"], new Dictionary<string, object> { { "_id", document ["prev"] } }));
             query.StartKey = 23;
             query.EndKey = 33;
             query.Prefetch = true;
@@ -871,7 +870,7 @@ namespace Couchbase.Lite
             {
                 Assert.AreEqual(row.Key, rowNumber);
 
-                var prevDoc = docs[rowNumber];
+                var prevDoc = docs[rowNumber - 1];
                 Assert.AreEqual(row.DocumentId, prevDoc.Id);
                 Assert.AreEqual(row.Document, prevDoc);
 

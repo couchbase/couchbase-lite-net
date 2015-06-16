@@ -197,14 +197,12 @@ namespace Couchbase.Lite
             document.PutProperties(properties);
             Assert.IsNotNull(document.CurrentRevision);
 
-            var deleted = false;
-
             var revisionInternal = new RevisionInternal(
-                document.Id, document.CurrentRevisionId, deleted);
-
-            var contentOptions = DocumentContentOptions.IncludeAttachments | DocumentContentOptions.BigAttachmentsFollow;
+                document.Id, document.CurrentRevisionId, false);
 
             database.LoadRevisionBody(revisionInternal);
+            Assert.AreEqual(properties, revisionInternal.GetProperties());
+            revisionInternal.SetBody(null);
 
             // now lets purge the document, and then try to load the revision body again
             document.Purge();

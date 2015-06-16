@@ -90,6 +90,12 @@ namespace Couchbase.Lite
 
         internal ICouchStore Storage { get; private set; }
 
+        internal SharedState Shared { 
+            get {
+                return Manager.Shared;
+            }
+        }
+
         #endregion
 
         #region Constructors
@@ -113,7 +119,6 @@ namespace Couchbase.Lite
             _changesToNotify = new List<DocumentChange>();
             Scheduler = new TaskFactory(new SingleTaskThreadpoolScheduler());
             StartTime = DateTime.UtcNow.ToMillisecondsSinceEpoch ();
-            MaxRevTreeDepth = DefaultMaxRevs;
         }
 
         #endregion
@@ -438,12 +443,12 @@ namespace Couchbase.Lite
         /// <param name="name">The name of the validation delegate to get.</param>
         public ValidateDelegate GetValidation(String name) 
         {
-            ValidateDelegate result = null;
-            if (_validations != null) {
-                result = _validations.Get(name);
+            ValidateDelegate retVal = null;
+            if (!Shared.TryGetValue<ValidateDelegate>("validation", name, Name, out retVal)) {
+                return null;
             }
 
-            return result;
+            return retVal;
         }
 
         /// <summary>
@@ -457,15 +462,7 @@ namespace Couchbase.Lite
         /// <param name="validationDelegate">The validation delegate to set.</param>
         public void SetValidation(String name, ValidateDelegate validationDelegate)
         {
-            if (_validations == null) {
-                _validations = new Dictionary<string, ValidateDelegate>();
-            }
-
-            if (validationDelegate != null) {
-                _validations[name] = validationDelegate;
-            } else {
-                _validations.Remove(name);
-            }
+            Shared.SetValue("validation", name, Name, validationDelegate);
         }
 
         /// <summary>
@@ -477,8 +474,8 @@ namespace Couchbase.Lite
         public FilterDelegate GetFilter(String name, Status status = null) 
         { 
             FilterDelegate result = null;
-            if (Filters != null) {
-                result = Filters.Get(name);
+            if (!Shared.TryGetValue("filter", name, Name, out result)) {
+                result = null;
             }
 
             if (result == null) {
@@ -523,15 +520,7 @@ namespace Couchbase.Lite
         /// <param name="filterDelegate">The filter delegate to set.</param>
         public void SetFilter(String name, FilterDelegate filterDelegate) 
         { 
-            if (Filters == null) {
-                Filters = new Dictionary<String, FilterDelegate>();
-            }
-
-            if (filterDelegate != null) {
-                Filters[name] = filterDelegate;
-            } else {
-                Collections.Remove(Filters, name);
-            }
+            Shared.SetValue("filter", name, Name, filterDelegate);
         }
 
         /// <summary>
@@ -608,7 +597,7 @@ namespace Couchbase.Lite
 
         const Int32 MaxDocCacheSize = 50;
 
-        const Int32 DefaultMaxRevs = Int32.MaxValue;
+        const Int32 DefaultMaxRevs = 20;
 
     #endregion
 
@@ -636,7 +625,6 @@ namespace Couchbase.Lite
         private CookieStore                             _persistentCookieStore; // Not used yet.
 
         private Boolean                                 _isOpen;
-        private IDictionary<String, ValidateDelegate>   _validations;
         private IDictionary<String, BlobStoreWriter>    _pendingAttachmentsByDigest;
         private IDictionary<String, View>               _views;
         private IList<DocumentChange>                   _changesToNotify;
@@ -658,7 +646,26 @@ namespace Couchbase.Lite
         /// Revisions older than this limit will be deleted during a -compact: operation.
         /// Smaller values save space, at the expense of making document conflicts somewhat more likely.
         /// </remarks>
-        public Int32                                     MaxRevTreeDepth { get; set; }
+        public Int32                                     MaxRevTreeDepth 
+        {
+            get {
+                return Storage != null ? Storage.MaxRevTreeDepth : _maxRevTreeDepth;
+            }
+            set {
+                if (value == 0) {
+                    value = DefaultMaxRevs;
+                }
+
+                if (Storage != null && value != Storage.MaxRevTreeDepth) {
+                    Storage.MaxRevTreeDepth = value;
+                    Storage.SetInfo("max_revs", value.ToString());
+                }
+
+                _maxRevTreeDepth = value;
+            }
+        }
+        private int _maxRevTreeDepth;
+
 
         internal Int64                                   StartTime { get; private set; }
         private IDictionary<String, FilterDelegate>     Filters { get; set; }
@@ -724,8 +731,12 @@ namespace Couchbase.Lite
                 inRev = updatedRev;
             }
 
-            //TODO: Validation block
-            var insertStatus = Storage.ForceInsert(inRev, revHistory, null, source);
+            StoreValidation validationBlock = null;
+            if (Shared.HasValues("validation", Name)) {
+                validationBlock = ValidateRevision;
+            }
+
+            var insertStatus = Storage.ForceInsert(inRev, revHistory, validationBlock, source);
             if(insertStatus.IsError) {
                 throw new CouchbaseLiteException(insertStatus.Code);
             }
@@ -1326,11 +1337,16 @@ namespace Couchbase.Lite
             }
 
             StoreValidation validationBlock = null;
-            //TODO: Validation block check
+            if (Shared.HasValues("validation", Name)) {
+                validationBlock = ValidateRevision;
+            }
 
-            var putRev = Storage.PutRevision(docId, prevRevId, properties, deleting, allowConflict, validationBlock);
+            var putRev = Storage.PutRevision(docId, prevRevId, properties, deleting, allowConflict, validationBlock, resultStatus);
             if (putRev != null) {
                 Log.D(Tag, "--> created {0}", putRev);
+                if (!string.IsNullOrEmpty(docId)) {
+                    UnsavedRevisionDocumentCache.Remove(docId);
+                }
             }
 
             return putRev;
@@ -2085,31 +2101,47 @@ namespace Couchbase.Lite
             properties["_attachments"] = attachments;
             oldRev.SetProperties(properties);
 
-            var newRev = PutRevision(oldRev, oldRevID, false);
+            Status status = new Status();
+            var newRev = PutRevision(oldRev, oldRevID, false, status);
+            if (status.IsError) {
+                throw new CouchbaseLiteException(status.Code);
+            }
+
             return newRev;
         }
 
         /// <summary>VALIDATION</summary>
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
-        internal void ValidateRevision(RevisionInternal newRev, RevisionInternal oldRev, String parentRevId)
+        internal Status ValidateRevision(RevisionInternal newRev, RevisionInternal oldRev, String parentRevId)
         {
-            if (_validations == null || _validations.Count == 0)
-            {
-                return;
+            var validations = Shared.GetValues("validation", Name);
+            if (validations == null || validations.Count == 0) {
+                return new Status(StatusCode.Ok);
             }
 
-            var publicRev = new SavedRevision(this, newRev);
-            publicRev.ParentRevisionID = parentRevId;
+            var publicRev = new SavedRevision(this, newRev, parentRevId);
             var context = new ValidationContext(this, oldRev, newRev);
-            foreach (var validationName in _validations.Keys)
+            Status status = new Status(StatusCode.Ok);
+            foreach (var validationName in validations.Keys)
             {
                 var validation = GetValidation(validationName);
-                validation(publicRev, context);
-                if (context.RejectMessage != null)
-                {
-                    throw new CouchbaseLiteException(context.RejectMessage, StatusCode.Forbidden);
+                try {
+                    validation(publicRev, context);
+                } catch(Exception e) {
+                    Log.E(Tag, String.Format("Validation block '{0}'", validationName), e);
+                    status.Code = StatusCode.Exception;
+                    break;
+                }
+                    
+                if (context.RejectMessage != null) {
+                    Log.D(Tag, "Failed update of {0}: {1}:{2} Old doc = {3}{2} New doc = {4}", oldRev, context.RejectMessage,
+                            Environment.NewLine, oldRev == null ? null : oldRev.GetProperties(), newRev.GetProperties());
+                    status.Code = StatusCode.Forbidden;
+                    break;
                 }
             }
+
+            return status;
         }
 
         internal String AttachmentStorePath 
@@ -2131,13 +2163,15 @@ namespace Couchbase.Lite
                     }
                 }
 
-                var activeReplicatorCopy = new Replication[ActiveReplicators.Count];
-                ActiveReplicators.CopyTo(activeReplicatorCopy, 0);
-                foreach (var repl in activeReplicatorCopy) {
-                    repl.DatabaseClosing();
-                }
+                if (ActiveReplicators != null) {
+                    var activeReplicatorCopy = new Replication[ActiveReplicators.Count];
+                    ActiveReplicators.CopyTo(activeReplicatorCopy, 0);
+                    foreach (var repl in activeReplicatorCopy) {
+                        repl.DatabaseClosing();
+                    }
 
-                ActiveReplicators = null;
+                    ActiveReplicators = null;
+                }
 
                 try {
                     Storage.Close();
@@ -2182,12 +2216,12 @@ namespace Couchbase.Lite
                 Storage.SetInfo("publicUUID", Misc.CreateGUID());
             }
 
-            var savedMaxRevDepth = Storage.GetInfo("max_revs");
+            var savedMaxRevDepth = _maxRevTreeDepth != 0 ? _maxRevTreeDepth.ToString() : Storage.GetInfo("max_revs");
             int maxRevTreeDepth = 0;
             if (savedMaxRevDepth != null && int.TryParse(savedMaxRevDepth, out maxRevTreeDepth)) {
-                Storage.MaxRevTreeDepth = maxRevTreeDepth;
+                MaxRevTreeDepth = maxRevTreeDepth;
             } else {
-                Storage.MaxRevTreeDepth = DefaultMaxRevs;
+                MaxRevTreeDepth = DefaultMaxRevs;
             }
 
             // Open attachment store:

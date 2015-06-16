@@ -241,7 +241,8 @@ namespace Couchbase.Lite {
 
         internal Status CompileFromDesignDoc()
         {
-            if (Map != null) {
+            MapDelegate map;
+            if (Database.Shared.TryGetValue("map", Name, Database.Name, out map)) {
                 return new Status(StatusCode.Ok);
             }
 
@@ -316,17 +317,6 @@ namespace Couchbase.Lite {
         /// <value>the <see cref="Couchbase.Lite.View"/>'s name.</value>
         public String Name { get; private set; }
 
-        /// <summary>
-        /// Gets the <see cref="Couchbase.Lite.View"/>'s <see cref="Couchbase.Lite.MapDelegate"/>.
-        /// </summary>
-        /// <value>The map function.</value>
-        public MapDelegate Map { get; private set; }
-
-        /// <summary>
-        /// Gets the <see cref="Couchbase.Lite.View"/>'s <see cref="Couchbase.Lite.ReduceDelegate"/>.
-        /// </summary>
-        /// <value>The reduce function.</value>
-        public ReduceDelegate Reduce { get; set; }
 
         /// <summary>
         /// Gets if the <see cref="Couchbase.Lite.View"/>'s indices are currently out of date.
@@ -424,15 +414,18 @@ namespace Couchbase.Lite {
             System.Diagnostics.Debug.Assert(map != null);
             System.Diagnostics.Debug.Assert(version != null); // String.Empty is valid.
 
-            var success = true;
-            if (_version != version) {
-                Map = map;
-                Reduce = reduce;
-                success = Storage.SetVersion(version);
-                _version = version;
+            var changed = version != MapVersion;
+            var shared = Database.Shared;
+            shared.SetValue("map", Name, Database.Name, map);
+            shared.SetValue("mapVersion", Name, Database.Name, version);
+            shared.SetValue("reduce", Name, Database.Name, reduce);
+
+            if (changed) {
+                Storage.SetVersion(version);
+                Database.PostChangeNotifications();
             }
 
-            return success;
+            return changed;
         }
 
         /// <summary>
@@ -466,12 +459,13 @@ namespace Couchbase.Lite {
 
         #region IViewStoreDelegate
 
-        public MapDelegate MapBlock
+        public MapDelegate Map
         {
             get
             {
-                var map = Map;
-                if (map == null) {
+                MapDelegate map;
+                if (!Database.Shared.TryGetValue("map", Name, Database.Name, out map)) {
+                    map = null;
                     if (CompileFromDesignDoc().IsSuccessful) {
                         map = Map;
                     }
@@ -481,23 +475,43 @@ namespace Couchbase.Lite {
             }
         }
 
-        public ReduceDelegate ReduceBlock
+        public ReduceDelegate Reduce
         {
-            get
-            {
-                return Reduce;
+            get {
+                ReduceDelegate retVal;
+                if (!Database.Shared.TryGetValue("reduce", Name, Database.Name, out retVal)) {
+                    return null;
+                }
+
+                return retVal;
             }
         }
 
         public string MapVersion
         {
-            get
-            {
-                return _version;
+            get {
+                string retVal;
+                if (!Database.Shared.TryGetValue("mapVersion", Name, Database.Name, out retVal)) {
+                    return null;
+                }
+
+                return retVal;
             }
         }
 
-        public string DocumentType { get; set; }
+        public string DocumentType { 
+            get {
+                string retVal;
+                if(!Database.Shared.TryGetValue("docType", Name, Database.Name, out retVal)) {
+                    return null;
+                }
+
+                return retVal;
+            }
+            set { 
+                Database.Shared.SetValue("docType", Name, Database.Name, value);
+            }
+        }
 
         #endregion
     

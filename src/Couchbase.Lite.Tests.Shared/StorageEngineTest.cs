@@ -13,7 +13,7 @@ namespace Couchbase.Lite
         public void TestRunInTransactionCommits()
         {
             var sqliteStorage = database.Storage as SqliteCouchStore;
-            if (sqliteStorage != null) {
+            if (sqliteStorage == null) {
                 Assert.Inconclusive("This test is only valid on a SQLite store");
             }
 
@@ -37,7 +37,7 @@ namespace Couchbase.Lite
         public void TestRunInTransactionRollsback()
         {
             var sqliteStorage = database.Storage as SqliteCouchStore;
-            if (sqliteStorage != null) {
+            if (sqliteStorage == null) {
                 Assert.Inconclusive("This test is only valid on a SQLite store");
             }
 

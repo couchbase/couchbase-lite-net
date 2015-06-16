@@ -242,6 +242,7 @@ namespace Couchbase.Lite
 
             SharedCookieStore = new CookieStore(this.directoryFile.FullName);
             StorageType = "SQLite";
+            Shared = new SharedState();
         }
 
     #endregion
@@ -317,13 +318,13 @@ namespace Couchbase.Lite
         public Database GetDatabase(String name) 
         {
             var db = GetDatabaseWithoutOpening(name, false);
-            if (db != null)
-            {
+            if (db != null) {
                 var opened = db.Open();
-                if (!opened)
-                {
+                if (!opened) {
                     return null;
                 }
+
+                Shared.OpenedDatabase(db);
             }
             return db;
         }
@@ -336,11 +337,12 @@ namespace Couchbase.Lite
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException">Thrown if an issue occurs while getting the <see cref="Couchbase.Lite.Database"/>.</exception>
         public Database GetExistingDatabase(String name)
         {
-            var db = GetDatabaseWithoutOpening(name, mustExist: true);
-            if (db != null)
-            {
+            var db = GetDatabaseWithoutOpening(name, true);
+            if (db != null) {
                 db.Open();
+                Shared.OpenedDatabase(db);
             }
+
             return db;
         }
 
@@ -487,7 +489,8 @@ namespace Couchbase.Lite
         internal IHttpClientFactory DefaultHttpClientFactory { get; set; }
         internal INetworkReachabilityManager NetworkReachabilityManager { get ; private set; }
         internal CookieStore SharedCookieStore { get; set; } 
-            internal string StorageType { get; set; } // @"SQLite" (default) or @"ForestDB"
+        internal string StorageType { get; set; } // @"SQLite" (default) or @"ForestDB"
+            internal SharedState Shared { get; private set; }
 
 
         // Instance Methods
@@ -530,20 +533,18 @@ namespace Couchbase.Lite
         {
             // remove from cached list of dbs
             databases.Remove(database.Name);
+            Shared.ClosedDatabase(database);
 
             // remove from list of replications
             // TODO: should there be something that actually stops the replication(s) first?
-            if (replications.Count == 0)
-            {
+            if (replications.Count == 0) {
                 return;
             }
 
             var i = replications.Count;
-            for (; i >= 0; i--) 
-            {
+            for (; i >= 0; i--) {
                 var replication = replications[i];
-                if (replication.LocalDatabase == database) 
-                {
+                if (replication.LocalDatabase == database) {
                     replications.RemoveAt(i);
                 }
             }

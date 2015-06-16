@@ -95,7 +95,19 @@ namespace Couchbase.Lite.Internal
 
         public static bool ParseRevId(string revId, out int generation, out string suffix)
         {
-            throw new NotImplementedException();
+            generation = 0;
+            suffix = null;
+            var components = revId.Split('-');
+            if (components.Length != 2) {
+                return false;
+            }
+
+            if (!int.TryParse(components[0], out generation)) {
+                return false;
+            }
+
+            suffix = components[1];
+            return true;
         }
 
         internal IDictionary<String, Object> GetProperties()

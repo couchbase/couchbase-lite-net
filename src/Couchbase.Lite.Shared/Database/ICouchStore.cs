@@ -229,8 +229,9 @@ namespace Couchbase.Lite.Store
         /// <param name="validationBlock">If non-null, this block will be called before the revision is added.
         /// It's given the parent revision, with its properties if available, and can reject
         /// the operation by returning an error status.</param>
+        /// <param name="outStatus">A parameter to hold the result of the operation</param>
         RevisionInternal PutRevision(string docId, string prevRevId, IDictionary<string, object> properties,
-            bool deleting, bool allowConflict, StoreValidation validationBlock);
+            bool deleting, bool allowConflict, StoreValidation validationBlock, Status outStatus = null);
 
         /// <summary>
         /// Inserts an already-existing revision (with its revID), plus its ancestry, into a document.
