@@ -83,7 +83,7 @@ namespace Couchbase.Lite
                 
             public void Changed(object sender, ReplicationChangeEventArgs args) {
                 var replicator = args.Source;
-                if (replicator.Status == ReplicationStatus.Idle) {
+                if (replicator.Status == ReplicationStatus.Idle && doneSignal.CurrentCount > 0) {
                     doneSignal.Signal();
                 }
             }
@@ -283,7 +283,6 @@ namespace Couchbase.Lite
             manager.DefaultHttpClientFactory = factory;
 
             var pusher = database.CreatePushReplication(remote);
-            pusher.Continuous = true;
 
             var replicationCaughtUpSignal = new CountdownEvent(1);
             pusher.Changed += (sender, e) => 
@@ -341,6 +340,7 @@ namespace Couchbase.Lite
 
             // but then immediately purge it
             doc.Purge();
+            pusher.Start();
 
             // wait for a while to give the replicator a chance to push it
             // (it should not actually push anything)
@@ -350,10 +350,8 @@ namespace Couchbase.Lite
             // the replicator should not have pushed anything else.
             // (in the case of the bug, it was trying to push the purged revision)
             numBulkDocRequests = 0;
-            foreach (var capturedRequest in handler.CapturedRequests)
-            {
-                if (capturedRequest.Method == HttpMethod.Post && capturedRequest.RequestUri.AbsoluteUri.EndsWith("_bulk_docs", StringComparison.Ordinal))
-                {
+            foreach (var capturedRequest in handler.CapturedRequests) {
+                if (capturedRequest.Method == HttpMethod.Post && capturedRequest.RequestUri.AbsoluteUri.EndsWith("_bulk_docs", StringComparison.Ordinal)) {
                     numBulkDocRequests++;
                 }
             }

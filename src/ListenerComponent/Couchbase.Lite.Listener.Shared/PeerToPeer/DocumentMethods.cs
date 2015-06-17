@@ -486,7 +486,7 @@ namespace Couchbase.Lite.Listener
         }
 
         // Apply the options in the URL query to the specified revision and create a new revision object
-        private static RevisionInternal ApplyOptions(DocumentContentOptions options, RevisionInternal rev, ICouchbaseListenerContext context,
+        internal static RevisionInternal ApplyOptions(DocumentContentOptions options, RevisionInternal rev, ICouchbaseListenerContext context,
             Database db, Status outStatus)
         {
             if ((options & (DocumentContentOptions.IncludeRevs | DocumentContentOptions.IncludeRevsInfo | DocumentContentOptions.IncludeConflicts |
@@ -497,7 +497,7 @@ namespace Couchbase.Lite.Listener
                 }
 
                 if (options.HasFlag(DocumentContentOptions.IncludeRevs)) {
-                    dst["_revisions"] = db.Storage.GetRevisionHistory(rev);
+                    dst["_revisions"] = db.Storage.GetRevisionHistory(rev, null);
                 }
 
                 if (options.HasFlag(DocumentContentOptions.IncludeRevsInfo)) {
@@ -529,7 +529,7 @@ namespace Couchbase.Lite.Listener
 
                 RevisionInternal nuRev = new RevisionInternal(dst);
                 if (options.HasFlag(DocumentContentOptions.IncludeAttachments)) {
-                    bool attEncodingInfo = context.GetQueryParam<bool>("att_encoding_info", bool.TryParse, false);
+                    bool attEncodingInfo = context != null && context.GetQueryParam<bool>("att_encoding_info", bool.TryParse, false);
                     if(!db.ExpandAttachments(nuRev, 0, false, !attEncodingInfo, outStatus)) {
                         return null;
                     }

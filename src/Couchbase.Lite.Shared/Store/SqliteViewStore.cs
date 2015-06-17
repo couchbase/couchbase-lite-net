@@ -47,6 +47,7 @@ namespace Couchbase.Lite.Store
         private int _viewId;
         private ViewCollation _collation;
         private bool _initializedFullTextSchema, _initializedRTreeSchema;
+        private object _updateLock = new object();
 
         #endregion
 
@@ -573,280 +574,284 @@ namespace Couchbase.Lite.Store
             Log.D(TAG, "Checking indexes of ({0}) for {1}", ViewNames(inputViews.Cast<SqliteViewStore>()), Name);
             var db = _dbStorage;
 
-            var status = db.RunInTransaction(() =>
-            {
-                // If the view the update is for doesn't need any update, don't do anything:
-                long dbMaxSequence = db.LastSequence;
-                long forViewLastSequence = LastSequenceIndexed;
-                if(forViewLastSequence >= dbMaxSequence) {
-                    return new Status(StatusCode.NotModified);
-                }
-
-                // Check whether we need to update at all,
-                // and remove obsolete emitted results from the 'maps' table:
-                long minLastSequence = db.LastSequence;
-                long[] viewLastSequence = new long[inputViews.Count()];
-                int deletedCount = 0;
-                int i = 0;
-                HashSet<string> docTypes = new HashSet<string>();
-                IDictionary<string, string> viewDocTypes = null;
-                bool allDocTypes = false;
-                IDictionary<int, int> viewTotalRows = new Dictionary<int, int>();
-                List<SqliteViewStore> views = new List<SqliteViewStore>(inputViews.Count());
-                List<MapDelegate> mapBlocks = new List<MapDelegate>();
-                foreach(var view in inputViews.Cast<SqliteViewStore>()) {
-                    var viewDelegate = view.Delegate;
-                    var mapBlock = viewDelegate == null ? null : viewDelegate.Map;
-                    if(mapBlock == null) {
-                        Debug.Assert(view != this, String.Format("Cannot index view {0}: no map block registered", view.Name));
-                        Log.V(TAG, "    {0} has no map block; skipping it", view.Name);
-                        continue;
+            Status status = null;
+            lock (_updateLock) {
+                status = db.RunInTransaction(() =>
+                {
+                    // If the view the update is for doesn't need any update, don't do anything:
+                    long dbMaxSequence = db.LastSequence;
+                    long forViewLastSequence = LastSequenceIndexed;
+                    if (forViewLastSequence >= dbMaxSequence) {
+                        return new Status(StatusCode.NotModified);
                     }
 
-                    views.Add(view);
-                    mapBlocks.Add(mapBlock);
-
-                    int viewId = view.ViewID;
-                    Debug.Assert(viewId > 0, String.Format("View '{0}' not found in database", view.Name));
-
-                    int totalRows = view.TotalRows;
-                    viewTotalRows[viewId] = totalRows;
-
-                    long last = view == this ? forViewLastSequence : view.LastSequenceIndexed;
-                    viewLastSequence[i++] = last;
-                    if(last < 0) {
-                        return new Status(StatusCode.DbError);
-                    }
-
-                    if(last < dbMaxSequence) {
-                        if(last == 0) {
-                            CreateIndex();
+                    // Check whether we need to update at all,
+                    // and remove obsolete emitted results from the 'maps' table:
+                    long minLastSequence = db.LastSequence;
+                    long[] viewLastSequence = new long[inputViews.Count()];
+                    int deletedCount = 0;
+                    int i = 0;
+                    HashSet<string> docTypes = new HashSet<string>();
+                    IDictionary<string, string> viewDocTypes = null;
+                    bool allDocTypes = false;
+                    IDictionary<int, int> viewTotalRows = new Dictionary<int, int>();
+                    List<SqliteViewStore> views = new List<SqliteViewStore>(inputViews.Count());
+                    List<MapDelegate> mapBlocks = new List<MapDelegate>();
+                    foreach (var view in inputViews.Cast<SqliteViewStore>()) {
+                        var viewDelegate = view.Delegate;
+                        var mapBlock = viewDelegate == null ? null : viewDelegate.Map;
+                        if (mapBlock == null) {
+                            Debug.Assert(view != this, String.Format("Cannot index view {0}: no map block registered", view.Name));
+                            Log.V(TAG, "    {0} has no map block; skipping it", view.Name);
+                            continue;
                         }
 
-                        minLastSequence = Math.Min(minLastSequence, last);
-                        Log.V(TAG, "    {0} last indexed at #{1}", view.Name, last);
+                        views.Add(view);
+                        mapBlocks.Add(mapBlock);
 
-                        string docType = viewDelegate.DocumentType;
-                        if(docType != null) {
-                            docTypes.Add(docType);
-                            if(viewDocTypes == null) {
-                                viewDocTypes = new Dictionary<string, string>();
-                            }
+                        int viewId = view.ViewID;
+                        Debug.Assert(viewId > 0, String.Format("View '{0}' not found in database", view.Name));
 
-                            viewDocTypes[view.Name] = docType;
-                        } else {
-                            // can't filter by doc_type
-                            allDocTypes = true; 
-                        }
+                        int totalRows = view.TotalRows;
+                        viewTotalRows[viewId] = totalRows;
 
-                        bool ok = true;
-                        int changes = 0;
-                        if(last == 0) {
-                            try {
-                                // If the lastSequence has been reset to 0, make sure to remove all map results:
-                                changes = db.StorageEngine.ExecSQL(view.QueryString("DELETE FROM 'maps_#'"));
-                            } catch(Exception) {
-                                ok = false;
-                            }
-                        } else {
-                            db.OptimizeSQLIndexes(); // ensures query will use the right indexes
-                            // Delete all obsolete map results (ones from since-replaced revisions):
-                            try {
-                                changes = db.StorageEngine.ExecSQL(view.QueryString("DELETE FROM 'maps_#' WHERE sequence IN (" +
-                                    "SELECT parent FROM revs WHERE sequence>? " +
-                                    "AND +parent>0 AND +parent<=?)"), last, last);
-                            } catch(Exception) {
-                                ok = false;
-                            }
-                        }
-
-                        if(!ok) {
+                        long last = view == this ? forViewLastSequence : view.LastSequenceIndexed;
+                        viewLastSequence[i++] = last;
+                        if (last < 0) {
                             return new Status(StatusCode.DbError);
                         }
 
-                        // Update #deleted rows
-                        deletedCount += changes;
+                        if (last < dbMaxSequence) {
+                            if (last == 0) {
+                                CreateIndex();
+                            }
 
-                        // Only count these deletes as changes if this isn't a view reset to 0
-                        if(last != 0) {
-                            viewTotalRows[viewId] -= changes;
+                            minLastSequence = Math.Min(minLastSequence, last);
+                            Log.V(TAG, "    {0} last indexed at #{1}", view.Name, last);
+
+                            string docType = viewDelegate.DocumentType;
+                            if (docType != null) {
+                                docTypes.Add(docType);
+                                if (viewDocTypes == null) {
+                                    viewDocTypes = new Dictionary<string, string>();
+                                }
+
+                                viewDocTypes[view.Name] = docType;
+                            } else {
+                                // can't filter by doc_type
+                                allDocTypes = true; 
+                            }
+
+                            bool ok = true;
+                            int changes = 0;
+                            if (last == 0) {
+                                try {
+                                    // If the lastSequence has been reset to 0, make sure to remove all map results:
+                                    changes = db.StorageEngine.ExecSQL(view.QueryString("DELETE FROM 'maps_#'"));
+                                } catch (Exception) {
+                                    ok = false;
+                                }
+                            } else {
+                                db.OptimizeSQLIndexes(); // ensures query will use the right indexes
+                                // Delete all obsolete map results (ones from since-replaced revisions):
+                                try {
+                                    changes = db.StorageEngine.ExecSQL(view.QueryString("DELETE FROM 'maps_#' WHERE sequence IN (" +
+                                    "SELECT parent FROM revs WHERE sequence>? " +
+                                    "AND +parent>0 AND +parent<=?)"), last, last);
+                                } catch (Exception) {
+                                    ok = false;
+                                }
+                            }
+
+                            if (!ok) {
+                                return new Status(StatusCode.DbError);
+                            }
+
+                            // Update #deleted rows
+                            deletedCount += changes;
+
+                            // Only count these deletes as changes if this isn't a view reset to 0
+                            if (last != 0) {
+                                viewTotalRows[viewId] -= changes;
+                            }
                         }
                     }
-                }
 
-                if(minLastSequence == dbMaxSequence) {
-                    return new Status(StatusCode.NotModified);
-                }
-
-                Log.D(TAG, "Updating indexes of ({0}) from #{1} to #{2} ...",
-                    ViewNames(views), minLastSequence, dbMaxSequence);
-
-                // This is the emit() block, which gets called from within the user-defined map() block
-                // that's called down below.
-                SqliteViewStore currentView = null;
-                IDictionary<string, object> currentDoc = null;
-                long sequence = minLastSequence;
-                Status emitStatus = new Status(StatusCode.Ok);
-                int insertedCount = 0;
-                EmitDelegate emit = (key, value) =>
-                {
-                    StatusCode s = currentView.Emit(key, value, value == currentDoc, sequence);
-                    if(s != StatusCode.Ok) {
-                        emitStatus.Code = s;
-                    } else {
-                        viewTotalRows[currentView.ViewID] += 1;
-                        insertedCount++;
+                    if (minLastSequence == dbMaxSequence) {
+                        return new Status(StatusCode.NotModified);
                     }
-                };
 
-                // Now scan every revision added since the last time the views were indexed:
-                bool checkDocTypes = docTypes.Count > 1 || (allDocTypes && docTypes.Count > 0);
-                var sql = new StringBuilder("SELECT revs.doc_id, sequence, docid, revid, json, deleted ");
-                if(checkDocTypes) {
-                    sql.Append(", doc_type ");
-                }
+                    Log.D(TAG, "Updating indexes of ({0}) from #{1} to #{2} ...",
+                        ViewNames(views), minLastSequence, dbMaxSequence);
 
-                sql.Append("FROM revs, docs WHERE sequence>? AND current!=0 ");
-                if(minLastSequence == 0) {
-                    sql.Append("AND deleted=0 ");
-                }
+                    // This is the emit() block, which gets called from within the user-defined map() block
+                    // that's called down below.
+                    SqliteViewStore currentView = null;
+                    IDictionary<string, object> currentDoc = null;
+                    long sequence = minLastSequence;
+                    Status emitStatus = new Status(StatusCode.Ok);
+                    int insertedCount = 0;
+                    EmitDelegate emit = (key, value) =>
+                    {
+                        StatusCode s = currentView.Emit(key, value, value == currentDoc, sequence);
+                        if (s != StatusCode.Ok) {
+                            emitStatus.Code = s;
+                        } else {
+                            viewTotalRows[currentView.ViewID] += 1;
+                            insertedCount++;
+                        }
+                    };
 
-                if(!allDocTypes && docTypes.Count > 0) {
-                    sql.AppendFormat("AND doc_type IN ({0}) ", Database.JoinQuoted(docTypes));
-                }
+                    // Now scan every revision added since the last time the views were indexed:
+                    bool checkDocTypes = docTypes.Count > 1 || (allDocTypes && docTypes.Count > 0);
+                    var sql = new StringBuilder("SELECT revs.doc_id, sequence, docid, revid, json, deleted ");
+                    if (checkDocTypes) {
+                        sql.Append(", doc_type ");
+                    }
 
-                sql.Append("AND revs.doc_id = docs.doc_id " +
+                    sql.Append("FROM revs, docs WHERE sequence>? AND current!=0 ");
+                    if (minLastSequence == 0) {
+                        sql.Append("AND deleted=0 ");
+                    }
+
+                    if (!allDocTypes && docTypes.Count > 0) {
+                        sql.AppendFormat("AND doc_type IN ({0}) ", Database.JoinQuoted(docTypes));
+                    }
+
+                    sql.Append("AND revs.doc_id = docs.doc_id " +
                     "ORDER BY revs.doc_id, deleted, revid DESC");
 
-                Cursor c = null;
-                Cursor c2 = null;
-                try {
-                    c = db.StorageEngine.IntransactionRawQuery(sql.ToString(), minLastSequence);
-                    bool keepGoing = c.MoveToNext();
-                    while(keepGoing) {
-                        // Get row values now, before the code below advances 'c':
-                        long doc_id = c.GetLong(0);
-                        sequence = c.GetLong(1);
-                        string docId = c.GetString(2);
-                        if(docId.StartsWith("_design/")) { // design documents don't get indexed
-                            keepGoing = c.MoveToNext();
-                            continue;
-                        }
-
-                        string revId = c.GetString(3);
-                        var json = c.GetBlob(4);
-                        bool deleted = c.GetInt(5) != 0;
-                        string docType = checkDocTypes ? c.GetString(6) : null;
-
-                        // Skip rows with the same doc_id -- these are losing conflicts.
-                        while((keepGoing = c.MoveToNext()) && c.GetLong(0) == doc_id) {}
-
-                        long realSequence = sequence; // because sequence may be changed, below
-                        if(minLastSequence < 0) {
-                            // Find conflicts with documents from previous indexings.
-                            using(c2 = db.StorageEngine.IntransactionRawQuery("SELECT revid, sequence FROM revs " +
-                                "WHERE doc_id=? AND sequence<=? AND current!=0 AND deleted=0 " +
-                                "ORDER BY revID DESC " +
-                                "LIMIT 1", doc_id, minLastSequence)) {
-
-                                if(c2.MoveToNext()) {
-                                    string oldRevId = c2.GetString(0);
-                                    // This is the revision that used to be the 'winner'.
-                                    // Remove its emitted rows:
-                                    long oldSequence = c2.GetLong(1);
-                                    foreach(var view in views) {
-                                        int changes = db.StorageEngine.ExecSQL(QueryString("DELETE FROM 'maps_#' WHERE sequence=?"), oldSequence);
-                                        deletedCount += changes;
-                                        viewTotalRows[view.ViewID] -= changes;
-                                    }
-
-                                    if(deleted || RevisionInternal.CBLCompareRevIDs(oldRevId, revId) > 0) {
-                                        // It still 'wins' the conflict, so it's the one that
-                                        // should be mapped [again], not the current revision!
-                                        revId = oldRevId;
-                                        deleted = false;
-                                        sequence = oldSequence;
-                                        json = db.QueryOrDefault<byte[]>(x => x.GetBlob(0), true, null, "SELECT json FROM revs WHERE sequence=?", sequence);
-
-                                    }
-                                }
-                            }
-                        }
-
-                        if(deleted) {
-                            continue;
-                        }
-
-                        // Get the document properties, to pass to the map function:
-                        currentDoc = db.GetDocumentProperties(json, docId, revId, deleted, sequence);
-                        if(currentDoc == null) {
-                            Log.W(TAG, "Failed to parse JSON of doc {0} rev {1}", docId, revId);
-                            continue;
-                        }
-
-                        currentDoc["_local_seq"] = sequence;
-
-                        // Call the user-defined map() to emit new key/value pairs from this revision:
-                        int viewIndex = -1;
-                        var e = views.GetEnumerator();
-                        while(e.MoveNext()) {
-                            currentView = e.Current;
-                            ++viewIndex;
-                            if(viewLastSequence[viewIndex] < realSequence) {
-                                if(checkDocTypes) {
-                                    var viewDocType = viewDocTypes[currentView.Name];
-                                    if(viewDocType != null && viewDocType != docType) {
-                                        // skip; view's documentType doesn't match this doc
-                                        continue;
-                                    }
-                                }
-
-                                Log.V(TAG, "    #{0}: map \"{1}\" for view {2}...",
-                                    sequence, docId, e.Current.Name);
-                                try {
-                                    mapBlocks[viewIndex](currentDoc, emit);
-                                } catch(Exception x) {
-                                    Log.E(TAG, String.Format("Exception in map() block for view {0}", currentView.Name), x);
-                                    emitStatus.Code = StatusCode.Exception;
-                                }
-
-                                if(emitStatus.IsError) {
-                                    c.Dispose();
-                                    return emitStatus;
-                                }
-                            }
-                        }
-
-                        currentView = null;
-                    }
-                } catch(Exception) {
-                    return new Status(StatusCode.DbError);
-                } finally {
-                    if(c != null) {
-                        c.Dispose();
-                    }
-                }
-
-                // Finally, record the last revision sequence number that was indexed and update #rows:
-                foreach(var view in views) {
-                    view.FinishCreatingIndex();
-                    int newTotalRows = viewTotalRows[view.ViewID];
-                    Debug.Assert(newTotalRows >= 0);
-
-                    var args = new ContentValues();
-                    args["lastSequence"] = dbMaxSequence;
-                    args["total_docs"] = newTotalRows;
+                    Cursor c = null;
+                    Cursor c2 = null;
                     try {
-                        db.StorageEngine.Update("views", args, "view_id=?", view.ViewID.ToString());
-                    } catch(Exception) {
-                        return new Status(StatusCode.DbError);
-                    }
-                }
+                        c = db.StorageEngine.IntransactionRawQuery(sql.ToString(), minLastSequence);
+                        bool keepGoing = c.MoveToNext();
+                        while (keepGoing) {
+                            // Get row values now, before the code below advances 'c':
+                            long doc_id = c.GetLong(0);
+                            sequence = c.GetLong(1);
+                            string docId = c.GetString(2);
+                            if (docId.StartsWith("_design/")) { // design documents don't get indexed
+                                keepGoing = c.MoveToNext();
+                                continue;
+                            }
 
-                Log.D(TAG, "...Finished re-indexing ({0}) to #{1} (deleted {2}, added {3})",
-                    ViewNames(views), dbMaxSequence, deletedCount, insertedCount);
-                return new Status(StatusCode.Ok);
-            });
+                            string revId = c.GetString(3);
+                            var json = c.GetBlob(4);
+                            bool deleted = c.GetInt(5) != 0;
+                            string docType = checkDocTypes ? c.GetString(6) : null;
+
+                            // Skip rows with the same doc_id -- these are losing conflicts.
+                            while ((keepGoing = c.MoveToNext()) && c.GetLong(0) == doc_id) {
+                            }
+
+                            long realSequence = sequence; // because sequence may be changed, below
+                            if (minLastSequence < 0) {
+                                // Find conflicts with documents from previous indexings.
+                                using (c2 = db.StorageEngine.IntransactionRawQuery("SELECT revid, sequence FROM revs " +
+                                  "WHERE doc_id=? AND sequence<=? AND current!=0 AND deleted=0 " +
+                                  "ORDER BY revID DESC " +
+                                  "LIMIT 1", doc_id, minLastSequence)) {
+
+                                    if (c2.MoveToNext()) {
+                                        string oldRevId = c2.GetString(0);
+                                        // This is the revision that used to be the 'winner'.
+                                        // Remove its emitted rows:
+                                        long oldSequence = c2.GetLong(1);
+                                        foreach (var view in views) {
+                                            int changes = db.StorageEngine.ExecSQL(QueryString("DELETE FROM 'maps_#' WHERE sequence=?"), oldSequence);
+                                            deletedCount += changes;
+                                            viewTotalRows[view.ViewID] -= changes;
+                                        }
+
+                                        if (deleted || RevisionInternal.CBLCompareRevIDs(oldRevId, revId) > 0) {
+                                            // It still 'wins' the conflict, so it's the one that
+                                            // should be mapped [again], not the current revision!
+                                            revId = oldRevId;
+                                            deleted = false;
+                                            sequence = oldSequence;
+                                            json = db.QueryOrDefault<byte[]>(x => x.GetBlob(0), true, null, "SELECT json FROM revs WHERE sequence=?", sequence);
+
+                                        }
+                                    }
+                                }
+                            }
+
+                            if (deleted) {
+                                continue;
+                            }
+
+                            // Get the document properties, to pass to the map function:
+                            currentDoc = db.GetDocumentProperties(json, docId, revId, deleted, sequence);
+                            if (currentDoc == null) {
+                                Log.W(TAG, "Failed to parse JSON of doc {0} rev {1}", docId, revId);
+                                continue;
+                            }
+
+                            currentDoc["_local_seq"] = sequence;
+
+                            // Call the user-defined map() to emit new key/value pairs from this revision:
+                            int viewIndex = -1;
+                            var e = views.GetEnumerator();
+                            while (e.MoveNext()) {
+                                currentView = e.Current;
+                                ++viewIndex;
+                                if (viewLastSequence[viewIndex] < realSequence) {
+                                    if (checkDocTypes) {
+                                        var viewDocType = viewDocTypes[currentView.Name];
+                                        if (viewDocType != null && viewDocType != docType) {
+                                            // skip; view's documentType doesn't match this doc
+                                            continue;
+                                        }
+                                    }
+
+                                    Log.V(TAG, "    #{0}: map \"{1}\" for view {2}...",
+                                        sequence, docId, e.Current.Name);
+                                    try {
+                                        mapBlocks[viewIndex](currentDoc, emit);
+                                    } catch (Exception x) {
+                                        Log.E(TAG, String.Format("Exception in map() block for view {0}", currentView.Name), x);
+                                        emitStatus.Code = StatusCode.Exception;
+                                    }
+
+                                    if (emitStatus.IsError) {
+                                        c.Dispose();
+                                        return emitStatus;
+                                    }
+                                }
+                            }
+
+                            currentView = null;
+                        }
+                    } catch (Exception) {
+                        return new Status(StatusCode.DbError);
+                    } finally {
+                        if (c != null) {
+                            c.Dispose();
+                        }
+                    }
+
+                    // Finally, record the last revision sequence number that was indexed and update #rows:
+                    foreach (var view in views) {
+                        view.FinishCreatingIndex();
+                        int newTotalRows = viewTotalRows[view.ViewID];
+                        Debug.Assert(newTotalRows >= 0);
+
+                        var args = new ContentValues();
+                        args["lastSequence"] = dbMaxSequence;
+                        args["total_docs"] = newTotalRows;
+                        try {
+                            db.StorageEngine.Update("views", args, "view_id=?", view.ViewID.ToString());
+                        } catch (Exception) {
+                            return new Status(StatusCode.DbError);
+                        }
+                    }
+
+                    Log.D(TAG, "...Finished re-indexing ({0}) to #{1} (deleted {2}, added {3})",
+                        ViewNames(views), dbMaxSequence, deletedCount, insertedCount);
+                    return new Status(StatusCode.Ok);
+                });
+            }
 
             if(status.Code >= StatusCode.BadRequest) {
                 Log.W(TAG, "CouchbaseLite: Failed to rebuild views ({0}): {1}", ViewNames(inputViews.Cast<SqliteViewStore>()), status);

@@ -120,8 +120,7 @@ namespace Couchbase.Lite
             // Fetch one of those phantom revisions with no body:
             var rev2 = database.GetDocument(rev.GetDocId(), "2-too", 
                 true);
-            Assert.AreEqual(rev.GetDocId(), rev2.GetDocId());
-            Assert.AreEqual("2-too", rev2.GetRevId());
+            Assert.IsNull(rev2);
 
             // Make sure no duplicate rows were inserted for the common revisions:
             Assert.AreEqual(8, database.LastSequenceNumber);
@@ -136,14 +135,18 @@ namespace Couchbase.Lite
             var expectedChanges = new RevisionList();
             expectedChanges.AddItem(conflict);
             expectedChanges.AddItem(other);
-            Assert.AreEqual(changes, expectedChanges);
+            Assert.AreEqual(expectedChanges, changes);
             options.SetIncludeConflicts(true);
             changes = database.ChangesSince(0, options, null, null);
             expectedChanges = new RevisionList();
             expectedChanges.AddItem(rev);
             expectedChanges.AddItem(conflict);
             expectedChanges.AddItem(other);
-            Assert.AreEqual(changes, expectedChanges);
+            var expectedChangesAlt = new RevisionList();
+            expectedChangesAlt.AddItem(conflict);
+            expectedChangesAlt.AddItem(rev);
+            expectedChangesAlt.AddItem(other);
+            Assert.IsTrue(expectedChanges.SequenceEqual(changes) || expectedChangesAlt.SequenceEqual(changes));
         }
 
         [Test]

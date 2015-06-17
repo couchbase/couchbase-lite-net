@@ -45,6 +45,8 @@ using System.Collections.Generic;
 using Couchbase.Lite;
 using Couchbase.Lite.Internal;
 using Sharpen;
+using System.Text;
+using System.Linq;
 
 namespace Couchbase.Lite.Internal
 {
@@ -113,23 +115,31 @@ namespace Couchbase.Lite.Internal
         internal IDictionary<String, Object> GetProperties()
         {
             IDictionary<string, object> result = null;
-            if (body != null)
-            {
+            if (body != null) {
                 IDictionary<string, object> prop;
-                try
-                {
+                try {
                     prop = body.GetProperties();
-                }
-                catch (InvalidOperationException)
-                {
+                } catch (InvalidOperationException) {
                     // handle when both object and json are null for this body
                     return null;
                 }
-                if (result == null)
-                {
+
+                if (result == null) {
                     result = new Dictionary<string, object>();
                 }
                 result.PutAll(prop);
+
+                if (docId != null) {
+                    result["_id"] = docId;
+                }
+
+                if (revId != null) {
+                    result["_rev"] = revId;
+                }
+
+                if (deleted) {
+                    result["_deleted"] = true;
+                }
             }
             return result;
         }
@@ -148,6 +158,18 @@ namespace Couchbase.Lite.Internal
 
         internal object GetPropertyForKey(string key)
         {
+            if (key == "_id") {
+                return docId;
+            }
+
+            if (key == "_rev") {
+                return revId;
+            }
+
+            if (key == "_deleted") {
+                return deleted ? (object)true : null;
+            }
+
             var prop = GetProperties();
             if (prop == null)
             {

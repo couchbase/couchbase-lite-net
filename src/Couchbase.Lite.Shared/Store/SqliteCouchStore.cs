@@ -1003,9 +1003,10 @@ PRAGMA user_version = 3;";
         public Status SetInfo(string key, string info)
         {
             var vals = new ContentValues(2);
+            vals["key"] = key;
             vals["value"] = info;
             try {
-                StorageEngine.Update("info", vals, "key=?", key);
+                StorageEngine.InsertWithOnConflict("info", null, vals, ConflictResolutionStrategy.Replace);
             } catch(Exception) {
                 return new Status(StatusCode.DbError);
             }
@@ -1140,7 +1141,12 @@ PRAGMA user_version = 3;";
             }, true, sb.ToString(), docNumericId, revId);
 
             if (transactionStatus.IsError) {
-                status.Code = transactionStatus.Code;
+                if (transactionStatus.Code == StatusCode.NotFound && revId == null) {
+                    status.Code = StatusCode.Deleted;
+                } else {
+                    status.Code = transactionStatus.Code;
+                }
+
                 return null;
             }
 
@@ -1405,7 +1411,7 @@ PRAGMA user_version = 3;";
                 "WHERE doc_id=? and revid in ({0}) and revid <= ? " +
                 "ORDER BY revid DESC LIMIT 1", Database.JoinQuoted(revIds));
 
-            return QueryOrDefault(c => c.GetString(0), false, null, sql);
+            return QueryOrDefault(c => c.GetString(0), false, null, sql, docNumericId, rev.GetRevId());
         }
 
         public int FindMissingRevisions(RevisionList revs)
@@ -1664,7 +1670,7 @@ PRAGMA user_version = 3;";
             }, false, sql, lastSequence);
 
             if (options.IsSortBySequence()) {
-                changes.SortBySequence(options.Descending);
+                changes.SortBySequence(!options.Descending);
                 changes.Limit(options.GetLimit());
             }
 

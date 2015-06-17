@@ -551,7 +551,7 @@ namespace Couchbase.Lite
                             { "id", "doc4" }, { "key", 2L }, { "value", "hi" }, 
                             { "doc", new Dictionary<string, object> {
                                     { "_id", "doc4" },
-                                    { "_rev", "1-66d2a05927e5851025c6d204956afff4" },
+                                    { "_rev", "1-dad084453f43d26f789ba2423d5cbd10" },
                                     { "message", "hi" }
                                 }
                             }
@@ -569,10 +569,10 @@ namespace Couchbase.Lite
                             { "id", "doc4" }, { "key", 2L }, { "value", "hi" }, 
                             { "doc", new Dictionary<string, object> {
                                     { "_id", "doc4" },
-                                    { "_rev", "1-66d2a05927e5851025c6d204956afff4" },
+                                    { "_rev", "1-dad084453f43d26f789ba2423d5cbd10" },
                                     { "_revisions", new Dictionary<string, object> {
                                             { "start", 1L },
-                                            { "ids", new List<object> { "66d2a05927e5851025c6d204956afff4" } }
+                                            { "ids", new List<object> { "dad084453f43d26f789ba2423d5cbd10" } }
                                         }
                                     },
                                     { "message", "hi" }
@@ -731,8 +731,8 @@ namespace Couchbase.Lite
                                             { "start", 3L },
                                             { "ids", new List<object> { 
                                                     "849ef0cb3227570b179053f30435c834",
-                                                    "f4aa17f89f2d613c362f23148b74b794",
-                                                    "73f49cb1381a29e8d6d50e840c51cfa5"
+                                                    "75a55e369155983301ea32d42e71ad51",
+                                                    "4be4ad3e8e2a3956dcbbf5b199c0588e"
                                                 } 
                                             }
                                         }
@@ -1014,18 +1014,15 @@ namespace Couchbase.Lite
             });
 
             // Update the document but not the attachments:
-            //FIXME.JHB: iOS doesn't need the revpos property present here
             var attachmentsDict = new Dictionary<string, object> {
                 { "attach", new Dictionary<string, object> {
                         { "content_type", "text/plain" },
-                        { "stub", true },
-                        { "revpos", 1L }
+                        { "stub", true }
                     }
                 },
                 { "path/to/attachment", new Dictionary<string, object> {
                         { "content_type", "text/plain" },
-                        { "stub", true },
-                        { "revpos", 1L }
+                        { "stub", true }
                     }
                 },
             };
@@ -1538,13 +1535,13 @@ namespace Couchbase.Lite
             result = SendBody<IDictionary<string, object>>("PUT", endpoint, new Body(new Dictionary<string, object> {
                 { "message", "hello" } 
             }), HttpStatusCode.Created, null);
-            var revId2 = result.GetCast<string>("rev");
+            var revId3 = result.GetCast<string>("rev");
 
             endpoint = endpoint.Replace("doc3", "doc2");
             result = SendBody<IDictionary<string, object>>("PUT", endpoint, new Body(new Dictionary<string, object> {
                 { "message", "hello" } 
             }), HttpStatusCode.Created, null);
-            var revId3 = result.GetCast<string>("rev");
+            var revId2 = result.GetCast<string>("rev");
 
             endpoint = String.Format("/{0}/_all_docs", database.Name);
             result = Send<IDictionary<string, object>>("GET", endpoint, HttpStatusCode.OK, null);

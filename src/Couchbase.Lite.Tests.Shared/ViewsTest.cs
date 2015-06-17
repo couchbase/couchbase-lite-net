@@ -435,7 +435,9 @@ namespace Couchbase.Lite
             Assert.AreEqual(0, liveQuery.Rows.Count);
 
             PutDocs(database);
-            Thread.Sleep(2000);
+            Thread.Sleep(200000);
+            var foo = liveQuery.Rows.ElementAt(0);
+            var foo2 = liveQuery.Rows.ElementAt(1);
             Assert.AreEqual(1, liveQuery.Rows.Count);
         }
 
@@ -444,75 +446,142 @@ namespace Couchbase.Lite
         public void TestAllDocsQuery()
         {
             var docs = PutDocs(database);
-            var expectedRow = new List<QueryRow>();
+            var expectedRowBase = new List<IDictionary<string, object>>(docs.Count);
             foreach (RevisionInternal rev in docs)
             {
-                var value = new Dictionary<string, object>();
-                value.Put("rev", rev.GetRevId());
-                value.Put("_conflicts", new List<string>());
-
-                var queryRow = new QueryRow(rev.GetDocId(), 0, rev.GetDocId(), value, null, null);
-                queryRow.Database = database;
-                expectedRow.AddItem(queryRow);
+                expectedRowBase.Add(new Dictionary<string, object> {
+                    { "id", rev.GetDocId() },
+                    { "key", rev.GetDocId() },
+                    { "value", new Dictionary<string, object> {
+                            { "rev", rev.GetRevId() }
+                        }
+                    }
+                });
             }
 
+            // Create a conflict, won by the old revision:
+            var props = new Dictionary<string, object> {
+                { "_id", "44444" },
+                { "_rev", "1-00" }, // lower revID, will lose conflict
+                { "key", "40ur" }
+            };
+
+            var leaf2 = new RevisionInternal(props);
+            database.ForceInsert(leaf2, null, null);
+            Assert.AreEqual(docs[1].GetRevId(), database.GetDocument("44444", null, true).GetRevId());
+
+            // Query all rows:
             var options = new QueryOptions();
             var allDocs = database.GetAllDocs(options);
-            var expectedRows = new List<QueryRow>();
-            expectedRows.AddItem(expectedRow[2]);
-            expectedRows.AddItem(expectedRow[0]);
-            expectedRows.AddItem(expectedRow[3]);
-            expectedRows.AddItem(expectedRow[1]);
-            expectedRows.AddItem(expectedRow[4]);
+            var expectedRows = new List<IDictionary<string, object>> {
+                expectedRowBase[2],
+                expectedRowBase[0],
+                expectedRowBase[3],
+                expectedRowBase[1],
+                expectedRowBase[4]
+            };
 
-            var expectedQueryResult = CreateExpectedQueryResult(expectedRows, 0);
-            //CollectionAssert.AreEqual(expectedQueryResult, allDocs);
-            //AssertPropertiesAreEqual(expectedQueryResult, allDocs);
+            Assert.AreEqual(expectedRows, RowsToDicts(allDocs));
+
+            // Limit:
+            options.Limit = 1;
+            allDocs = database.GetAllDocs(options);
+            expectedRows = new List<IDictionary<string, object>>() { expectedRowBase[2] };
+            Assert.AreEqual(expectedRows, RowsToDicts(allDocs));
+
+            // Limit+Skip:
+            options.Skip = 2;
+            allDocs = database.GetAllDocs(options);
+            expectedRows = new List<IDictionary<string, object>>() { expectedRowBase[3] };
+            Assert.AreEqual(expectedRows, RowsToDicts(allDocs));
 
             // Start/end key query:
             options = new QueryOptions();
             options.StartKey = "2";
             options.EndKey = "44444";
             allDocs = database.GetAllDocs(options);
-            expectedRows = new List<QueryRow>();
-            expectedRows.AddItem(expectedRow[0]);
-            expectedRows.AddItem(expectedRow[3]);
-            expectedRows.AddItem(expectedRow[1]);
-            expectedQueryResult = CreateExpectedQueryResult(expectedRows, 0);
-            Assert.AreEqual(expectedQueryResult.Select(kvp => kvp.Key).OrderBy(k => k), allDocs.Select(kvp => kvp.Key).OrderBy(k => k));
+            expectedRows = new List<IDictionary<string, object>>() { expectedRowBase[0], expectedRowBase[3], expectedRowBase[1] };
+            Assert.AreEqual(expectedRows, RowsToDicts(allDocs));
 
             // Start/end query without inclusive end:
             options.InclusiveEnd = false;
             allDocs = database.GetAllDocs(options);
-            expectedRows = new List<QueryRow>();
-            expectedRows.AddItem(expectedRow[0]);
-            expectedRows.AddItem(expectedRow[3]);
-            expectedQueryResult = CreateExpectedQueryResult(expectedRows, 0);
-            Assert.AreEqual(expectedQueryResult.Select(kvp => kvp.Key).OrderBy(k => k), allDocs.Select(kvp => kvp.Key).OrderBy(k => k));
+            expectedRows = new List<IDictionary<string, object>>() { expectedRowBase[0], expectedRowBase[3] };
+            Assert.AreEqual(expectedRows, RowsToDicts(allDocs));
 
-            // Get all documents: with default QueryOptions
+            // Get zero specific documents:
             options = new QueryOptions();
+            options.Keys = new List<string>();
             allDocs = database.GetAllDocs(options);
-            expectedRows = new List<QueryRow>();
-            expectedRows.AddItem(expectedRow[2]);
-            expectedRows.AddItem(expectedRow[0]);
-            expectedRows.AddItem(expectedRow[3]);
-            expectedRows.AddItem(expectedRow[1]);
-            expectedRows.AddItem(expectedRow[4]);
-            expectedQueryResult = CreateExpectedQueryResult(expectedRows, 0);
-            Assert.AreEqual(expectedQueryResult.Select(kvp => kvp.Key).OrderBy(k => k), allDocs.Select(kvp => kvp.Key).OrderBy(k => k));
+            Assert.IsNull(allDocs);
 
             // Get specific documents:
             options = new QueryOptions();
-            IList<object> docIds = new List<object>();
-            QueryRow expected2 = expectedRow[2];
-            docIds.AddItem(expected2.Document.Id);
-            options.Keys = docIds;
+            options.Keys = new List<string> {
+                expectedRowBase[2].GetCast<string>("id"),
+                expectedRowBase[3].GetCast<string>("id")
+            };
             allDocs = database.GetAllDocs(options);
-            expectedRows = new List<QueryRow>();
-            expectedRows.AddItem(expected2);
-            expectedQueryResult = CreateExpectedQueryResult(expectedRows, 0);
-            Assert.AreEqual(expectedQueryResult.Select(kvp => kvp.Key).OrderBy(k => k), allDocs.Select(kvp => kvp.Key).OrderBy(k => k));
+            expectedRows = new List<IDictionary<string, object>>() { expectedRowBase[2], expectedRowBase[3] };
+            Assert.AreEqual(expectedRows, RowsToDicts(allDocs));
+
+            // Delete a document:
+            var del = docs[0];
+            del = new RevisionInternal(del.GetDocId(), del.GetRevId(), true);
+            var status = new Status();
+            del = database.PutRevision(del, del.GetRevId(), false, status);
+            Assert.AreEqual(StatusCode.Ok, status.Code);
+
+            // Get deleted doc, and one bogus one:
+            options = new QueryOptions();
+            options.Keys = new List<string> { "BOGUS", expectedRowBase[0].GetCast<string>("id") };
+            allDocs = database.GetAllDocs(options);
+            var expectedResult = new List<IDictionary<string, object>> {
+                new Dictionary<string, object> {
+                    { "key", "BOGUS" },
+                    { "error", "not_found" }
+                },
+                new Dictionary<string, object> {
+                    { "id", del.GetDocId() },
+                    { "key", del.GetDocId() },
+                    { "value", new Dictionary<string, object> {
+                            { "rev", del.GetRevId() },
+                            { "deleted", true }
+                        }
+                    }
+                }
+            };
+            Assert.AreEqual(expectedResult, RowsToDicts(allDocs));
+
+            // Get conflicts:
+            options = new QueryOptions();
+            options.AllDocsMode = AllDocsMode.ShowConflicts;
+            allDocs = database.GetAllDocs(options);
+            var curRevId = docs[1].GetRevId();
+            var expectedConflict1 = new Dictionary<string, object> {
+                { "id", "44444" },
+                { "key", "44444" },
+                { "value", new Dictionary<string, object> {
+                        { "rev", curRevId },
+                        { "_conflicts", new List<string> {
+                                curRevId, "1-00"
+                            }
+                        }
+                    }
+                }
+            };
+
+            expectedRows = new List<IDictionary<string, object>>() { expectedRowBase[2], expectedRowBase[3], expectedConflict1,
+                expectedRowBase[4]
+            };
+                
+            Assert.AreEqual(expectedRows, RowsToDicts(allDocs));
+
+            // Get _only_ conflicts:
+            options.AllDocsMode = AllDocsMode.OnlyConflicts;
+            allDocs = database.GetAllDocs(options);
+            expectedRows = new List<IDictionary<string, object>>() { expectedConflict1 };
+            Assert.AreEqual(expectedRows, RowsToDicts(allDocs));
         }
 
         private IDictionary<string, object> CreateExpectedQueryResult(IList<QueryRow> rows, int offset)
@@ -1356,6 +1425,17 @@ namespace Couchbase.Lite
 
             Thread.Sleep(5000);
             Assert.AreEqual(50, view.TotalRows);
+        }
+
+        private IList<IDictionary<string, object>> RowsToDicts(IEnumerable<QueryRow> allDocs)
+        {
+            Assert.IsNotNull(allDocs);
+            var rows = new List<IDictionary<string, object>>();
+            foreach (var row in allDocs) {
+                rows.Add(row.AsJSONDictionary());
+            }
+
+            return rows;
         }
     }
 }

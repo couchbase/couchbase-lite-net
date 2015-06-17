@@ -1,4 +1,4 @@
-﻿//
+//
 //  DBMonitorCouchbaseResponseState.cs
 //
 //  Author:
@@ -45,13 +45,16 @@ namespace Couchbase.Lite.Listener
 
         #region Variables
 
-        private Database _db;
         private Timer _heartbeatTimer;
         private RevisionList _changes = new RevisionList();
 
         #endregion
 
         #region Properties
+
+        public ICouchbaseListenerContext Context { get; set; }
+
+        public Database Db { get; set; }
 
         /// <summary>
         /// The changes feed mode being used to listen to the database
@@ -67,6 +70,11 @@ namespace Couchbase.Lite.Listener
         /// Whether or not to include conflict revisions in the changes
         /// </summary>
         public bool ChangesIncludeConflicts { get; set; }
+
+        /// <summary>
+        /// The options for retrieving data from the DB
+        /// </summary>
+        public DocumentContentOptions ContentOptions { get; set; }
 
         /// <summary>
         /// The delegate to filter the changes being written
@@ -122,8 +130,8 @@ namespace Couchbase.Lite.Listener
             }
 
             IsAsync = true;
-            _db = db;
-            _db.Changed += DatabaseChanged;
+            Db = db;
+            Db.Changed += DatabaseChanged;
         }
 
         /// <summary>
@@ -176,7 +184,7 @@ namespace Couchbase.Lite.Listener
                         // This isn't correct internally (this is an old rev so it has an older sequence)
                         // but consumers of the _changes feed don't care about the internal state.
                         if (ChangesIncludeDocs) {
-                            _db.LoadRevisionBody(rev);
+                            Db.LoadRevisionBody(rev);
                         }
                     }
                 }
@@ -206,13 +214,13 @@ namespace Couchbase.Lite.Listener
         // Tear down this object because an error occurred
         private void Terminate()
         {
-            if (_db == null) {
+            if (Db == null) {
                 return;
             }
 
-            _db.Changed -= DatabaseChanged;
+            Db.Changed -= DatabaseChanged;
             CouchbaseLiteRouter.ResponseFinished(this);
-            _db = null;
+            Db = null;
 
             if (_heartbeatTimer != null) {
                 _heartbeatTimer.Dispose();

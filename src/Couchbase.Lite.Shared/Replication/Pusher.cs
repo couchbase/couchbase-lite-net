@@ -195,6 +195,13 @@ namespace Couchbase.Lite.Replicator
                 lastSequenceLong = long.Parse(LastSequence);
             }
 
+            // Now listen for future changes (in continuous mode):
+            if (continuous)
+            {
+                observing = true;
+                LocalDatabase.Changed += OnChanged;
+            }
+
             var options = new ChangesOptions();
             options.SetIncludeConflicts(true);
             var changes = LocalDatabase.ChangesSince(lastSequenceLong, options, filter, FilterParams);
@@ -202,13 +209,6 @@ namespace Couchbase.Lite.Replicator
             {
                 Batcher.QueueObjects(changes);
                 Batcher.Flush();
-            }
-
-            // Now listen for future changes (in continuous mode):
-            if (continuous)
-            {
-                observing = true;
-                LocalDatabase.Changed += OnChanged;
             }
         }
 
@@ -235,17 +235,12 @@ namespace Couchbase.Lite.Replicator
             {
                 // Skip revisions that originally came from the database I'm syncing to:
                 var source = change.SourceUrl;
-                if (source != null && source.Equals(RemoteUrl))
-                {
+                if (source != null && source.Equals(RemoteUrl)) {
                     return;
                 }
 
                 var rev = change.AddedRevision;
-                IDictionary<String, Object> paramsFixMe = FilterParams;
-
-                // TODO: these should not be null
-                if (LocalDatabase.RunFilter(filter, FilterParams, rev))
-                {
+                if (LocalDatabase.RunFilter(filter, FilterParams, rev)) {
                     AddToInbox(rev);
                 }
             }

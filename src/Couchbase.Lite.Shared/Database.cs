@@ -707,6 +707,10 @@ namespace Couchbase.Lite
 
         internal void ForceInsert(RevisionInternal inRev, IList<string> revHistory, Uri source)
         {
+            if (revHistory == null) {
+                revHistory = new List<string>(0);
+            }
+
             var rev = inRev.CopyWithDocID(inRev.GetDocId(), inRev.GetRevId());
             rev.SetSequence(0);
             string revID = rev.GetRevId();

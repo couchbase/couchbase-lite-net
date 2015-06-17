@@ -105,7 +105,7 @@ namespace Couchbase.Lite
         /// <value>The <see cref="Couchbase.Lite.Document"/> associated with the <see cref="Couchbase.Lite.QueryRow"/>'s <see cref="Couchbase.Lite.View"/>.</value>
         public Document Document { 
             get         {
-                if (DocumentId == null) {
+                if (DocumentId == null || Database == null) {
                     return null;
                 }
 
@@ -168,9 +168,9 @@ namespace Couchbase.Lite
                         } else {
                             value = storage.ParseRowValue<object>(valueData);
                         }
-
-                        _parsedValue = value;
                     }
+
+                    _parsedValue = value;
                 }
 
                 return value;
