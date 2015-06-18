@@ -79,6 +79,10 @@
       <Project>{6B64CBD5-8D13-4E88-861D-DBBB87254BBC}</Project>
       <Name>Couchbase.Lite.Listener.Android</Name>
     </ProjectReference>
+    <ProjectReference Include="..\ListenerComponent\Bonjour\Couchbase.Lite.Listener.Bonjour.Android\Couchbase.Lite.Listener.Bonjour.Android.csproj">
+      <Project>{4549834B-28B6-4A54-A3EC-978D0E582444}</Project>
+      <Name>Couchbase.Lite.Listener.Bonjour.Android</Name>
+    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Assets\attachment.png" />

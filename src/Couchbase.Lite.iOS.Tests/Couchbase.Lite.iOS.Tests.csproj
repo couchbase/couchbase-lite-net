@@ -106,6 +106,10 @@
       <Project>{1F2AD9A3-58D5-46A2-8AA5-5863B705921D}</Project>
       <Name>Couchbase.Lite.Listener.iOS</Name>
     </ProjectReference>
+    <ProjectReference Include="..\ListenerComponent\Bonjour\Couchbase.Lite.Listener.Bonjour.iOS\Couchbase.Lite.Listener.Bonjour.iOS.csproj">
+      <Project>{2B3FFAFB-5BE1-493A-9647-901FACAD7801}</Project>
+      <Name>Couchbase.Lite.Listener.Bonjour.iOS</Name>
+    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Resources\attachment.png">

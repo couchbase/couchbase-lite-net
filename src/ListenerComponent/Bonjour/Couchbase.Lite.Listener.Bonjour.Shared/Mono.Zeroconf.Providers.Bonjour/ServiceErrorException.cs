@@ -30,7 +30,8 @@ using System;
 
 namespace Mono.Zeroconf.Providers.Bonjour
 {
-    internal class ServiceErrorException : Exception
+    [Serializable]
+    public class ServiceErrorException : Exception
     {
         internal ServiceErrorException(ServiceError error) : base(error.ToString())
         {

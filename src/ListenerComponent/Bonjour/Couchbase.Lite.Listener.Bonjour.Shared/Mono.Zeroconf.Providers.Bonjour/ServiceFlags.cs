@@ -31,7 +31,7 @@ using System;
 namespace Mono.Zeroconf.Providers.Bonjour
 {
     [Flags]
-    internal enum ServiceFlags {
+    public enum ServiceFlags {
         None = 0,
         MoreComing          = 0x1,
         /* MoreComing indicates to a callback that at least one more result is

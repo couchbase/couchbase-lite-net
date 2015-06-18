@@ -46,7 +46,7 @@ namespace Couchbase.Lite
             //the resolve reply and query record steps)
             ServiceParams.Timeout = TimeSpan.FromSeconds(3); 
             var mre = new ManualResetEventSlim();
-            CouchbaseLiteServiceBrowser browser = new CouchbaseLiteServiceBrowser(null);
+            CouchbaseLiteServiceBrowser browser = new CouchbaseLiteServiceBrowser(new ServiceBrowser());
             browser.ServiceResolved += (sender, e) => {
                 Log.D(TAG, "Discovered service: {0}", e.Service.Name);
                 if(e.Service.Name == TAG) {
@@ -62,7 +62,7 @@ namespace Couchbase.Lite
             };
             browser.Start();
 
-            CouchbaseLiteServiceBroadcaster broadcaster = new CouchbaseLiteServiceBroadcaster(null, 59840);
+            CouchbaseLiteServiceBroadcaster broadcaster = new CouchbaseLiteServiceBroadcaster(new RegisterService(), 59840);
             broadcaster.Name = TAG;
             broadcaster.Start();
             Assert.IsTrue(mre.Wait(TimeSpan.FromSeconds(10)));

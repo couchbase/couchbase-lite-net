@@ -22,9 +22,9 @@ using System;
 
 namespace Mono.Zeroconf.Providers.Bonjour
 {
-    internal static class ServiceParams
+    public static class ServiceParams
     {
-        internal static TimeSpan Timeout { get; set; }
+        public static TimeSpan Timeout { get; set; }
 
         static ServiceParams() {
             Timeout = TimeSpan.FromSeconds(30);

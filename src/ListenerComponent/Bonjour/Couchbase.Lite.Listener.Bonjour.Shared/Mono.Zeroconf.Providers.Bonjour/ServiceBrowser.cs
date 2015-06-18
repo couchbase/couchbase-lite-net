@@ -56,7 +56,7 @@ using AOT = ObjCRuntime;
 
 namespace Mono.Zeroconf.Providers.Bonjour
 {
-    internal class ServiceBrowseEventArgs : Mono.Zeroconf.ServiceBrowseEventArgs
+    public class ServiceBrowseEventArgs : Mono.Zeroconf.ServiceBrowseEventArgs
     {
         private bool more_coming;
         
@@ -70,7 +70,7 @@ namespace Mono.Zeroconf.Providers.Bonjour
         }
     }
     
-    internal class ServiceBrowser : IServiceBrowser, IDisposable
+    public class ServiceBrowser : IServiceBrowser, IDisposable
     {
         private const string TAG = "ServiceBrowser";
 

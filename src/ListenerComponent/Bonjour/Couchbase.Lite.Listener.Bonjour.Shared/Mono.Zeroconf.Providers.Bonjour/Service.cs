@@ -33,7 +33,7 @@ using Mono.Zeroconf;
 
 namespace Mono.Zeroconf.Providers.Bonjour
 {
-    internal abstract class Service : IService
+    public abstract class Service : IService
     {
         protected ServiceFlags flags = ServiceFlags.None;
         protected string name;
@@ -56,6 +56,7 @@ namespace Mono.Zeroconf.Providers.Bonjour
             Name = name;
             ReplyDomain = replyDomain;
             RegType = regtype;
+            address_protocol = AddressProtocol.IPv4;
         }
         
         public override bool Equals(object o)
@@ -84,7 +85,7 @@ namespace Mono.Zeroconf.Providers.Bonjour
 
         public AddressProtocol AddressProtocol {
             get { return address_protocol; }
-            set { address_protocol = value; }
+            internal set { address_protocol = value; }
         }
         
         public string Name {
