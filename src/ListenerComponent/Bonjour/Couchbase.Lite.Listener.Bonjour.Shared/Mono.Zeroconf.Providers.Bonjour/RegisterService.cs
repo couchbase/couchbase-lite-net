@@ -55,7 +55,7 @@ using AOT = ObjCRuntime;
 
 namespace Mono.Zeroconf.Providers.Bonjour
 {
-    internal sealed class RegisterService : Service, IRegisterService, IDisposable
+    public sealed class RegisterService : Service, IRegisterService, IDisposable
     {
         private Thread thread;
         private ServiceRef sd_ref;
@@ -123,7 +123,7 @@ namespace Mono.Zeroconf.Providers.Bonjour
             thread = null;
         }
     
-        public void ProcessRegister()
+        internal void ProcessRegister()
         {
             ushort txt_rec_length = 0;
             byte [] txt_rec = null;

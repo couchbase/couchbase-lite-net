@@ -28,7 +28,6 @@
 
 using System;
 using System.Collections;
-using Mono.Zeroconf.Providers;
 
 namespace Mono.Zeroconf
 {

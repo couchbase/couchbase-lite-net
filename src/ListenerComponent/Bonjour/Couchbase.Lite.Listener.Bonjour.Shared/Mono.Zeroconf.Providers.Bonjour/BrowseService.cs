@@ -55,7 +55,7 @@ using AOT = ObjCRuntime;
 
 namespace Mono.Zeroconf.Providers.Bonjour
 {
-    internal sealed class BrowseService : Service, IResolvableService, IDisposable
+    public sealed class BrowseService : Service, IResolvableService, IDisposable
     {
         private bool is_resolved = false;
         private bool resolve_pending = false;

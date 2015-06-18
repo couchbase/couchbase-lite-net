@@ -28,8 +28,6 @@
 
 using System;
 
-[assembly:Mono.Zeroconf.Providers.ZeroconfProvider(typeof(Mono.Zeroconf.Providers.Bonjour.ZeroconfProvider))]
-
 namespace Mono.Zeroconf.Providers.Bonjour
 {
     internal static class Zeroconf

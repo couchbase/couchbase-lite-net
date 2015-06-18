@@ -23,7 +23,6 @@ using System.Collections.Generic;
 using System.Linq;
 
 using Mono.Zeroconf;
-using Mono.Zeroconf.Providers.Bonjour;
 
 namespace Couchbase.Lite.Listener
 {
@@ -102,7 +101,11 @@ namespace Couchbase.Lite.Listener
         /// <param name="browser">The service that will perform the browsing</param>
         public CouchbaseLiteServiceBrowser(IServiceBrowser browser)
         {
-            _browser = browser ?? new ServiceBrowser();
+            if (browser == null) {
+                throw new ArgumentNullException("browser");
+            }
+
+            _browser = browser;
             _browser.ServiceAdded += (o, args) =>
             {
                 args.Service.Resolved += (_, __) => {

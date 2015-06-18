@@ -21,7 +21,6 @@
 using System;
 
 using Mono.Zeroconf;
-using Mono.Zeroconf.Providers.Bonjour;
 
 namespace Couchbase.Lite.Listener
 {
@@ -114,12 +113,19 @@ namespace Couchbase.Lite.Listener
         /// the port that the listener is using)</param>
         public CouchbaseLiteServiceBroadcaster(IRegisterService registerService, ushort port)
         {
-            _registerService = registerService ?? new RegisterService() {
-                Name = "CouchbaseLite_" + Environment.MachineName,
-                RegType = "_http._tcp.",
-                AddressProtocol = AddressProtocol.IPv4 //Needed for Linux compat (libnss_mdns)
-            };
+            if (registerService == null) {
+                throw new ArgumentNullException("registerService");
+            }
 
+            if (registerService.Name == null) {
+                registerService.Name = "CouchbaseLite_" + Environment.MachineName;   
+            }
+
+            if (registerService.RegType == null) {
+                registerService.RegType = "_http._tcp";
+            }
+
+            _registerService = registerService;
             _registerService.Port = port;
         }
 
