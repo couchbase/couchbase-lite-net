@@ -56,7 +56,7 @@ namespace Couchbase.Lite.Util
         {
             var name = Path.GetFileNameWithoutExtension(path);
             if (name == null) {
-                Log.E(Database.Tag, "Unable to determine database name from path");
+                Log.E(Database.TAG, "Unable to determine database name from path");
             }
             return name;
         }

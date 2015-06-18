@@ -428,7 +428,7 @@ namespace Couchbase.Lite
             });
 
             // Check if the current last sequence indexed has been changed:
-            Thread.Sleep(5000);
+            Thread.Sleep(8000);
             Assert.IsTrue(prevSequenceIndexed < view.LastSequenceIndexed);
 
             // Confirm the result with stale = ok:
@@ -551,7 +551,7 @@ namespace Couchbase.Lite
                             { "id", "doc4" }, { "key", 2L }, { "value", "hi" }, 
                             { "doc", new Dictionary<string, object> {
                                     { "_id", "doc4" },
-                                    { "_rev", "1-dad084453f43d26f789ba2423d5cbd10" },
+                                    { "_rev", "1-66d2a05927e5851025c6d204956afff4" },
                                     { "message", "hi" }
                                 }
                             }
@@ -569,10 +569,10 @@ namespace Couchbase.Lite
                             { "id", "doc4" }, { "key", 2L }, { "value", "hi" }, 
                             { "doc", new Dictionary<string, object> {
                                     { "_id", "doc4" },
-                                    { "_rev", "1-dad084453f43d26f789ba2423d5cbd10" },
+                                    { "_rev", "1-66d2a05927e5851025c6d204956afff4" },
                                     { "_revisions", new Dictionary<string, object> {
                                             { "start", 1L },
-                                            { "ids", new List<object> { "dad084453f43d26f789ba2423d5cbd10" } }
+                                            { "ids", new List<object> { "66d2a05927e5851025c6d204956afff4" } }
                                         }
                                     },
                                     { "message", "hi" }

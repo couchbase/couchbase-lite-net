@@ -48,6 +48,10 @@ using Sharpen;
 using System.Text;
 using System.Linq;
 
+#if !NET_3_5
+using StringEx = System.String;
+#endif
+
 namespace Couchbase.Lite.Internal
 {
     /// <summary>Stores information about a revision -- its docID, revID, and whether it's deleted.
@@ -95,21 +99,29 @@ namespace Couchbase.Lite.Internal
             (body.GetPropertyForKey("_rev") == null && body.GetPropertyForKey("_deleted") == null);
         }
 
-        public static bool ParseRevId(string revId, out int generation, out string suffix)
+        internal static Tuple<int, string> ParseRevId(string revId)
         {
-            generation = 0;
-            suffix = null;
-            var components = revId.Split('-');
-            if (components.Length != 2) {
-                return false;
+            if (revId == null || revId.Contains(" ")) {
+                return Tuple.Create(-1, string.Empty); 
             }
 
-            if (!int.TryParse(components[0], out generation)) {
-                return false;
+            int dashPos = revId.IndexOf("-", StringComparison.InvariantCulture);
+            if (dashPos == -1) {
+                return Tuple.Create(-1, string.Empty);
             }
 
-            suffix = components[1];
-            return true;
+            var genStr = revId.Substring(0, dashPos);
+            int generation;
+            if (!int.TryParse(genStr, out generation)) {
+                return Tuple.Create(-1, string.Empty);
+            }
+
+            var suffix = revId.Substring(dashPos + 1);
+            if (suffix.Length == 0) {
+                return Tuple.Create(-1, string.Empty);
+            }
+
+            return Tuple.Create(generation, suffix);
         }
 
         internal IDictionary<String, Object> GetProperties()

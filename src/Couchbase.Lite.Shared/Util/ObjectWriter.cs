@@ -137,6 +137,10 @@ namespace Couchbase.Lite
 
         private static object MakeCanonical(object input)
         {
+            if (input == null) {
+                return null;
+            }
+
             var t = input.GetType();
             if (t.GetInterface(typeof(IDictionary<,>).FullName) != null) {
                 var sorted = new SortedDictionary<object, object>();

@@ -125,7 +125,6 @@ namespace Couchbase.Lite {
     #region Non-public Members
 
         private object _updateLock = new object();
-        private string _version;
 
         internal IViewStore Storage { get; private set; }
 
@@ -199,7 +198,7 @@ namespace Couchbase.Lite {
             }
             catch (Exception e)
             {
-                Log.W(Database.Tag, "Exception serializing object to json: " + obj, e);
+                Log.W(Database.TAG, "Exception serializing object to json: " + obj, e);
             }
             return result;
         }
@@ -217,7 +216,7 @@ namespace Couchbase.Lite {
             }
             catch (Exception e)
             {
-                Log.W(Database.Tag, "Exception parsing json", e);
+                Log.W(Database.TAG, "Exception parsing json", e);
             }
             return result;
         }
@@ -233,7 +232,7 @@ namespace Couchbase.Lite {
                 } 
                 catch (Exception e)
                 {
-                    Log.E(Database.Tag, "Warning non-numeric value found in totalValues: " + o, e);
+                    Log.E(Database.TAG, "Warning non-numeric value found in totalValues: " + o, e);
                 }
             }
             return total;

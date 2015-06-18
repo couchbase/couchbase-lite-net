@@ -719,7 +719,7 @@ namespace Couchbase.Lite.Replicator
         /// <returns>The common ancestor.</returns>
         /// <param name="rev">Rev.</param>
         /// <param name="possibleRevIDs">Possible rev I ds.</param>
-        internal static Int32 FindCommonAncestor(RevisionInternal rev, IList<string> possibleRevIDs)
+        internal static int FindCommonAncestor(RevisionInternal rev, IList<string> possibleRevIDs)
         {
             if (possibleRevIDs == null || possibleRevIDs.Count == 0)
             {
@@ -740,8 +740,8 @@ namespace Couchbase.Lite.Replicator
                 return 0;
             }
 
-            var generation = Database.ParseRevIDNumber(ancestorID);
-            return generation;
+            var parsed = RevisionInternal.ParseRevId(ancestorID);
+            return parsed.Item1;
         }
     }
 }

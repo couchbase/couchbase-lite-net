@@ -139,7 +139,7 @@ namespace Couchbase.Lite {
             get {
                 if (CurrentRevision == null)
                 {
-                    Log.W(Database.Tag, "get_RevisionHistory called but no CurrentRevision");
+                    Log.W(Database.TAG, "get_RevisionHistory called but no CurrentRevision");
                     return null;
                 }
                 return CurrentRevision.RevisionHistory;
@@ -432,7 +432,7 @@ namespace Couchbase.Lite {
         {
             string newId = properties == null ? null : properties.GetCast<string>("_id");
             if (newId != null && !newId.Equals(Id, StringComparison.InvariantCultureIgnoreCase))  {
-                Log.W(Database.Tag, String.Format("Trying to put wrong _id to this: {0} properties: {1}", this, properties)); // TODO: Make sure all string formats use .NET codes, and not Java.
+                Log.W(Database.TAG, String.Format("Trying to put wrong _id to this: {0} properties: {1}", this, properties)); // TODO: Make sure all string formats use .NET codes, and not Java.
             }
 
             // Process _attachments dict, converting CBLAttachments to dicts:

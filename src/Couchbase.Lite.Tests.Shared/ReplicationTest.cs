@@ -608,7 +608,7 @@ namespace Couchbase.Lite
             // Even though this test is passed, there is a runtime exception
             // thrown regarding the replication's number of changes count versus
             // number of completed changes count. Investigation is required.
-            Log.D(Database.Tag, "testPullerWithLiveQuery");
+            Log.D(Database.TAG, "testPullerWithLiveQuery");
             string docIdTimestamp = System.Convert.ToString(Runtime.CurrentTimeMillis());
             string doc1Id = string.Format("doc1-{0}", docIdTimestamp);
             string doc2Id = string.Format("doc2-{0}", docIdTimestamp);
@@ -635,7 +635,7 @@ namespace Couchbase.Lite
                 {
                     NUnit.Framework.Assert.IsTrue(e.Rows.Count > numDocsBeforePull);
                 }
-                Log.D(Database.Tag, "rows " + e.Rows);
+                Log.D(Database.TAG, "rows " + e.Rows);
             };
 
             // the first time this is called back, the rows will be empty.
@@ -2191,7 +2191,9 @@ namespace Couchbase.Lite
 
             pusher.Stop();
             puller.Stop();  
-            allDocsLiveQuery.Stop();            
+            allDocsLiveQuery.Stop(); 
+
+            Thread.Sleep(500);
         }
 
         [Test]

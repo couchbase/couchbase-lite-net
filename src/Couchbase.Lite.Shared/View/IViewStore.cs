@@ -95,19 +95,24 @@ namespace Couchbase.Lite.Store
         /// </summary>
         IEnumerable<QueryRow> ReducedQuery(QueryOptions options);
 
-        //TODO: Full text
+        /*TODO: Full text
         /// <summary>
         /// Performs a full-text query as per the options.
         /// </summary>
-        //QueryEnumerator FullTextQuery(QueryOptions options);
+        QueryEnumerator FullTextQuery(QueryOptions options);*/
 
+        /// <summary>
+        /// Gets the backing store for the specified query row
+        /// </summary>
+        /// <returns>The backing store for the specified query row</returns>
+        /// <param name="row">The specified query row</param>
         IQueryRowStore StorageForQueryRow(QueryRow row);
 
-        #if DEBUG
-
+        /// <summary>
+        /// Create a JSON string representing the info of this view (for testing purposes)
+        /// </summary>
         IEnumerable<IDictionary<string, object>> Dump();
 
-        #endif
     }
 }
 

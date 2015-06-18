@@ -60,46 +60,34 @@ namespace Couchbase.Lite
         [Test]
         public void TestParseRevID()
         {
-            int num;
-            string suffix;
+            var parsed = RevisionInternal.ParseRevId("1-utiopturoewpt");
+            Assert.AreEqual(1, parsed.Item1);
+            Assert.AreEqual("utiopturoewpt", parsed.Item2);
 
-            num = Database.ParseRevIDNumber("1-utiopturoewpt");
-            Assert.AreEqual(1, num);
-            suffix = Database.ParseRevIDSuffix("1-utiopturoewpt");
-            Assert.AreEqual("utiopturoewpt", suffix);
+            parsed = RevisionInternal.ParseRevId("321-fdjfdsj-e");
+            Assert.AreEqual(321, parsed.Item1);
+            Assert.AreEqual("fdjfdsj-e", parsed.Item2);
 
-            num = Database.ParseRevIDNumber("321-fdjfdsj-e");
-            Assert.AreEqual(321, num);
-            suffix = Database.ParseRevIDSuffix("321-fdjfdsj-e");
-            Assert.AreEqual("fdjfdsj-e", suffix);
-
-            num = Database.ParseRevIDNumber("0-fdjfdsj-e");
-            suffix = Database.ParseRevIDSuffix("0-fdjfdsj-e");
-            Assert.IsTrue(num == 0 || (suffix.Length == 0));
-            num = Database.ParseRevIDNumber("-4-fdjfdsj-e");
-            suffix = Database.ParseRevIDSuffix("-4-fdjfdsj-e");
-            Assert.IsTrue(num < 0 || (suffix.Length == 0));
-            num = Database.ParseRevIDNumber("5_fdjfdsj-e");
-            suffix = Database.ParseRevIDSuffix("5_fdjfdsj-e");
-            Assert.IsTrue(num < 0 || (suffix.Length == 0));
-            num = Database.ParseRevIDNumber(" 5-fdjfdsj-e");
-            suffix = Database.ParseRevIDSuffix(" 5-fdjfdsj-e");
-            Assert.IsTrue(num < 0 || (suffix.Length == 0));
-            num = Database.ParseRevIDNumber("7 -foo");
-            suffix = Database.ParseRevIDSuffix("7 -foo");
-            Assert.IsTrue(num < 0 || (suffix.Length == 0));
-            num = Database.ParseRevIDNumber("7-");
-            suffix = Database.ParseRevIDSuffix("7-");
-            Assert.IsTrue(num < 0 || (suffix.Length == 0));
-            num = Database.ParseRevIDNumber("7");
-            suffix = Database.ParseRevIDSuffix("7");
-            Assert.IsTrue(num < 0 || (suffix.Length == 0));
-            num = Database.ParseRevIDNumber("eiuwtiu");
-            suffix = Database.ParseRevIDSuffix("eiuwtiu");
-            Assert.IsTrue(num < 0 || (suffix.Length == 0));
-            num = Database.ParseRevIDNumber(string.Empty);
-            suffix = Database.ParseRevIDSuffix(string.Empty);
-            Assert.IsTrue(num < 0 || (suffix.Length == 0));
+            parsed = RevisionInternal.ParseRevId("0-fdjfdsj-e");
+            Assert.IsTrue(parsed.Item1 == 0 && parsed.Item2 == "fdjfdsj-e");
+            parsed = RevisionInternal.ParseRevId("-4-fdjfdsj-e");
+            Assert.IsTrue(parsed.Item1 < 0);
+            parsed = RevisionInternal.ParseRevId("5_fdjfdsj-e");
+            Assert.IsTrue(parsed.Item1 < 0);
+            parsed = RevisionInternal.ParseRevId(" 5-fdjfdsj-e");
+            Assert.IsTrue(parsed.Item1 < 0);
+            parsed = RevisionInternal.ParseRevId("7 -foo");
+            Assert.IsTrue(parsed.Item1 < 0);
+            parsed = RevisionInternal.ParseRevId("7-");
+            Assert.IsTrue(parsed.Item1 < 0);
+            parsed = RevisionInternal.ParseRevId("7");
+           
+            Assert.IsTrue(parsed.Item1 < 0);
+            parsed = RevisionInternal.ParseRevId("eiuwtiu");
+           
+            Assert.IsTrue(parsed.Item1 < 0);
+            parsed = RevisionInternal.ParseRevId(string.Empty);
+            Assert.IsTrue(parsed.Item1 < 0);
         }
 
         [Test]

@@ -47,20 +47,18 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+
 using Couchbase.Lite.Internal;
 using Couchbase.Lite.Replicator;
 using Couchbase.Lite.Store;
+using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
 using Sharpen;
-using System.Collections;
-using System.Runtime.CompilerServices;
-using Couchbase.Lite.Support;
-using SQLitePCL.Ugly;
 
 
 #if !NET_3_5
-using StringEx = System.String;
 using System.Net;
+using StringEx = System.String;
 #else
 using System.Net.Couchbase;
 #endif
@@ -75,56 +73,51 @@ namespace Couchbase.Lite
     {
         #region Constants
 
+        internal const string TAG = "Database";
+        internal const string TAG_SQL = "CBLSQL";
+        internal const int BIG_ATTACHMENT_LENGTH = 2 * 1024;
+
         private const bool AUTO_COMPACT = true;
         private const int NOTIFY_CHANGES_LIMIT = 5000;
+        private const int MAX_DOC_CACHE_SIZE = 50;
+        private const int DEFAULT_MAX_REVS = 20;
 
         #endregion
 
         #region Variables
 
         private bool _readOnly;
+        /// <summary>
+        /// Each database can have an associated PersistentCookieStore,
+        /// where the persistent cookie store uses the database to store
+        /// its cookies.
+        /// </summary>
+        /// <remarks>
+        /// Each database can have an associated PersistentCookieStore,
+        /// where the persistent cookie store uses the database to store
+        /// its cookies.
+        /// There are two reasons this has been made an instance variable
+        /// of the Database, rather than of the Replication:
+        /// - The PersistentCookieStore needs to span multiple replications.
+        /// For example, if there is a "push" and a "pull" replication for
+        /// the same DB, they should share a cookie store.
+        /// - PersistentCookieStore lifecycle should be tied to the Database
+        /// lifecycle, since it needs to cease to exist if the underlying
+        /// Database ceases to exist.
+        /// REF: https://github.com/couchbase/couchbase-lite-android/issues/269
+        /// </remarks>
+        private CookieStore                             _persistentCookieStore; // Not used yet.
+
+        private bool                                    _isOpen;
+        private IDictionary<string, BlobStoreWriter>    _pendingAttachmentsByDigest;
+        private IDictionary<string, View>               _views;
+        private IList<DocumentChange>                   _changesToNotify;
+        private bool                                    _isPostingChangeNotifications;
+        private object                                  _allReplicatorsLocker = new object();
 
         #endregion
 
         #region Properties
-
-        internal ICouchStore Storage { get; private set; }
-
-        internal SharedState Shared { 
-            get {
-                return Manager.Shared;
-            }
-        }
-
-        #endregion
-
-        #region Constructors
-
-        internal Database(string path, string name, Manager manager, bool readOnly)
-        {
-            Debug.Assert(System.IO.Path.IsPathRooted(path));
-
-            //path must be absolute
-            Path = path;
-            Name = name ?? FileDirUtils.GetDatabaseNameFromPath(path);
-            Manager = manager;
-            _readOnly = readOnly;
-            DocumentCache = new LruCache<string, Document>(MaxDocCacheSize);
-            UnsavedRevisionDocumentCache = new Dictionary<string, WeakReference>();
- 
-            // FIXME: Not portable to WinRT/WP8.
-            ActiveReplicators = new List<Replication>();
-            AllReplicators = new List<Replication> ();
-
-            _changesToNotify = new List<DocumentChange>();
-            Scheduler = new TaskFactory(new SingleTaskThreadpoolScheduler());
-            StartTime = DateTime.UtcNow.ToMillisecondsSinceEpoch ();
-        }
-
-        #endregion
-
-    #region Static Members
-        //Properties
 
         /// <summary>
         /// Gets or sets an object that can compile source code into <see cref="FilterDelegate"/>.
@@ -132,31 +125,16 @@ namespace Couchbase.Lite
         /// <value>The filter compiler object.</value>
         public static IFilterCompiler FilterCompiler { get; set; }
 
-        // "_local/*" is not a valid document ID. Local docs have their own API and shouldn't get here.
-        internal static String GenerateDocumentId()
-        {
-            return Misc.CreateGUID();
-        }
-
-
-    #endregion
-    
-    #region Instance Members
-        //Properties
-
-        private TaskFactory Scheduler { get; set; }
-
         /// <summary>
         /// Gets the container the holds cookie information received from the remote replicator
         /// </summary>
         public CookieContainer PersistentCookieStore
         {
-            get
-            {
-                if (_persistentCookieStore == null)
-                {
+            get {
+                if (_persistentCookieStore == null) {
                     _persistentCookieStore = new CookieStore(System.IO.Path.GetDirectoryName(Path));
                 }
+
                 return _persistentCookieStore;
             }
         }
@@ -165,7 +143,7 @@ namespace Couchbase.Lite
         /// Gets the <see cref="Couchbase.Lite.Database"/> name.
         /// </summary>
         /// <value>The database name.</value>
-        public String Name { get; internal set; }
+        public string Name { get; internal set; }
 
         /// <summary>
         /// Gets the <see cref="Couchbase.Lite.Manager" /> that owns this <see cref="Couchbase.Lite.Database"/>.
@@ -178,20 +156,20 @@ namespace Couchbase.Lite
         /// </summary>
         /// <value>The document count.</value>
         /// TODO: Convert this to a standard method call.
-        public Int32 DocumentCount 
+        public int DocumentCount 
         {
             get {
                 return Storage.DocumentCount;
             }
         }
-            
+
         /// <summary>
         /// Gets the latest sequence number used by the <see cref="Couchbase.Lite.Database" />.  Every new <see cref="Couchbase.Lite.Revision" /> is assigned a new sequence 
         /// number, so this property increases monotonically as changes are made to the <see cref="Couchbase.Lite.Database" />. This can be used to 
         /// check whether the <see cref="Couchbase.Lite.Database" /> has changed between two points in time.
         /// </summary>
         /// <value>The last sequence number.</value>
-        public Int64 LastSequenceNumber 
+        public long LastSequenceNumber 
         {
             get {
                 return Storage.LastSequence;
@@ -223,9 +201,103 @@ namespace Couchbase.Lite
         /// </summary>
         /// <value>All replications.</value>
         public IEnumerable<Replication> AllReplications { get { return AllReplicators.ToList(); } }
-       
 
-        //Methods
+        /// <summary>
+        /// Maximum depth of a document's revision tree (or, max length of its revision history.)
+        /// Revisions older than this limit will be deleted during a -compact: operation.
+        /// </summary>
+        /// <remarks>
+        /// Maximum depth of a document's revision tree (or, max length of its revision history.)
+        /// Revisions older than this limit will be deleted during a -compact: operation.
+        /// Smaller values save space, at the expense of making document conflicts somewhat more likely.
+        /// </remarks>
+        public Int32 MaxRevTreeDepth 
+        {
+            get {
+                return Storage != null ? Storage.MaxRevTreeDepth : _maxRevTreeDepth;
+            }
+            set {
+                if (value == 0) {
+                    value = DEFAULT_MAX_REVS;
+                }
+
+                if (Storage != null && value != Storage.MaxRevTreeDepth) {
+                    Storage.MaxRevTreeDepth = value;
+                    Storage.SetInfo("max_revs", value.ToString());
+                }
+
+                _maxRevTreeDepth = value;
+            }
+        }
+        private int _maxRevTreeDepth;
+
+        internal ICouchStore Storage { get; private set; }
+
+        internal SharedState Shared { 
+            get {
+                return Manager.Shared;
+            }
+        }
+
+        internal String                                 Path { get; private set; }
+        internal IList<Replication>                     ActiveReplicators { get; set; }
+        internal IList<Replication>                     AllReplicators { get; set; }
+        internal LruCache<String, Document>             DocumentCache { get; set; }
+        internal IDictionary<String, WeakReference>     UnsavedRevisionDocumentCache { get; set; }
+        internal long StartTime { get; private set; }
+        internal BlobStoreWriter AttachmentWriter { get { return new BlobStoreWriter(Attachments); } }
+
+        internal BlobStore Attachments { get; set; }
+
+
+        private IDictionary<String, FilterDelegate>     Filters { get; set; }
+        private TaskFactory Scheduler { get; set; }
+
+        private IDictionary<string, BlobStoreWriter> PendingAttachmentsByDigest
+        {
+            get {
+                return _pendingAttachmentsByDigest ?? (_pendingAttachmentsByDigest = new Dictionary<string, BlobStoreWriter>());
+            }
+            set {
+                _pendingAttachmentsByDigest = value;
+            }
+        }
+
+        #endregion
+
+        #region Constructors
+
+        // "_local/*" is not a valid document ID. Local docs have their own API and shouldn't get here.
+        internal static String GenerateDocumentId()
+        {
+            return Misc.CreateGUID();
+        }
+
+        internal Database(string path, string name, Manager manager, bool readOnly)
+        {
+            Debug.Assert(System.IO.Path.IsPathRooted(path));
+
+            //path must be absolute
+            Path = path;
+            Name = name ?? FileDirUtils.GetDatabaseNameFromPath(path);
+            Manager = manager;
+            _readOnly = readOnly;
+            DocumentCache = new LruCache<string, Document>(MAX_DOC_CACHE_SIZE);
+            UnsavedRevisionDocumentCache = new Dictionary<string, WeakReference>();
+ 
+            // FIXME: Not portable to WinRT/WP8.
+            ActiveReplicators = new List<Replication>();
+            AllReplicators = new List<Replication> ();
+
+            _changesToNotify = new List<DocumentChange>();
+            Scheduler = new TaskFactory(new SingleTaskThreadpoolScheduler());
+            StartTime = DateTime.UtcNow.ToMillisecondsSinceEpoch ();
+        }
+
+        #endregion
+
+    
+        #region Public Methods
 
         /// <summary>
         /// Compacts the <see cref="Couchbase.Lite.Database" /> file by purging non-current 
@@ -282,12 +354,12 @@ namespace Couchbase.Lite
             var deleteAttachmentStatus = FileDirUtils.DeleteRecursive(attachmentsFile);
 
             if (!deleteStatus) {
-                Log.W(Tag, "Error deleting the SQLite database file at {0}", file.GetAbsolutePath());
+                Log.W(TAG, "Error deleting the SQLite database file at {0}", file.GetAbsolutePath());
                 throw new CouchbaseLiteException("Was not able to delete the database file", StatusCode.InternalServerError);
             }
 
             if (!deleteAttachmentStatus) {
-                Log.W(Tag, "Error deleting the attachment files file at {0}", attachmentsFile.GetAbsolutePath());
+                Log.W(TAG, "Error deleting the attachment files file at {0}", attachmentsFile.GetAbsolutePath());
                 throw new CouchbaseLiteException("Was not able to delete the attachments files", StatusCode.InternalServerError);
             }
         }
@@ -499,7 +571,7 @@ namespace Couchbase.Lite
                     if (status != null) {
                         status.Code = StatusCode.CallbackError;
                     }
-                    Log.W(Tag, string.Format("Filter {0} failed to compile", name));
+                    Log.W(TAG, string.Format("Filter {0} failed to compile", name));
                     return null;
                 }
 
@@ -587,93 +659,8 @@ namespace Couchbase.Lite
         private EventHandler<DatabaseChangeEventArgs> _changed;
 
     #endregion
-       
-    #region Constants
-        internal const String Tag = "Database";
 
-        internal const String TagSql = "CBLSQL";
-       
-        internal const Int32 BigAttachmentLength = 2 * 1024;
-
-        const Int32 MaxDocCacheSize = 50;
-
-        const Int32 DefaultMaxRevs = 20;
-
-    #endregion
-
-    #region Non-Public Instance Members
-
-        /// <summary>
-        /// Each database can have an associated PersistentCookieStore,
-        /// where the persistent cookie store uses the database to store
-        /// its cookies.
-        /// </summary>
-        /// <remarks>
-        /// Each database can have an associated PersistentCookieStore,
-        /// where the persistent cookie store uses the database to store
-        /// its cookies.
-        /// There are two reasons this has been made an instance variable
-        /// of the Database, rather than of the Replication:
-        /// - The PersistentCookieStore needs to span multiple replications.
-        /// For example, if there is a "push" and a "pull" replication for
-        /// the same DB, they should share a cookie store.
-        /// - PersistentCookieStore lifecycle should be tied to the Database
-        /// lifecycle, since it needs to cease to exist if the underlying
-        /// Database ceases to exist.
-        /// REF: https://github.com/couchbase/couchbase-lite-android/issues/269
-        /// </remarks>
-        private CookieStore                             _persistentCookieStore; // Not used yet.
-
-        private Boolean                                 _isOpen;
-        private IDictionary<String, BlobStoreWriter>    _pendingAttachmentsByDigest;
-        private IDictionary<String, View>               _views;
-        private IList<DocumentChange>                   _changesToNotify;
-        private Boolean                                 _isPostingChangeNotifications;
-        private Object                                  _allReplicatorsLocker = new Object();
-
-        internal String                                 Path { get; private set; }
-        internal IList<Replication>                     ActiveReplicators { get; set; }
-        internal IList<Replication>                     AllReplicators { get; set; }
-        internal LruCache<String, Document>             DocumentCache { get; set; }
-        internal IDictionary<String, WeakReference>     UnsavedRevisionDocumentCache { get; set; }
-       
-        /// <summary>
-        /// Maximum depth of a document's revision tree (or, max length of its revision history.)
-        /// Revisions older than this limit will be deleted during a -compact: operation.
-        /// </summary>
-        /// <remarks>
-        /// Maximum depth of a document's revision tree (or, max length of its revision history.)
-        /// Revisions older than this limit will be deleted during a -compact: operation.
-        /// Smaller values save space, at the expense of making document conflicts somewhat more likely.
-        /// </remarks>
-        public Int32                                     MaxRevTreeDepth 
-        {
-            get {
-                return Storage != null ? Storage.MaxRevTreeDepth : _maxRevTreeDepth;
-            }
-            set {
-                if (value == 0) {
-                    value = DefaultMaxRevs;
-                }
-
-                if (Storage != null && value != Storage.MaxRevTreeDepth) {
-                    Storage.MaxRevTreeDepth = value;
-                    Storage.SetInfo("max_revs", value.ToString());
-                }
-
-                _maxRevTreeDepth = value;
-            }
-        }
-        private int _maxRevTreeDepth;
-
-
-        internal Int64                                   StartTime { get; private set; }
-        private IDictionary<String, FilterDelegate>     Filters { get; set; }
-
-        private RevisionInternal GetDocumentWithIDAndRev(string docId, string revId, bool withBody)
-        {
-            return Storage.GetDocument(docId, revId, withBody);
-        }
+    #region Internal Methods
 
         internal object GetDesignDocFunction(string fnName, string key, out string language)
         {
@@ -778,27 +765,6 @@ namespace Couchbase.Lite
             return string.Format("_local/{0}", documentId);
         }
 
-        // Deletes obsolete attachments from the sqliteDb and blob store.
-        private bool GarbageCollectAttachments()
-        {
-            Log.D(Tag, "Scanning database revisions for attachments...");
-            var keys = Storage.FindAllAttachmentKeys();
-            if (keys == null) {
-                return false;
-            }
-
-            Log.D(Tag, "...found {0} attachments", keys.Count);
-            var numDeleted = Attachments.DeleteBlobsExceptWithKeys(keys);
-            Log.D(Tag, "    ... deleted {0} obsolete attachment files.", numDeleted);
-
-            return numDeleted >= 0;
-        }
-
-        private string CheckpointInfoKey(string checkpointId) 
-        {
-            return "checkpoint/" + checkpointId;
-        }
-
         internal bool SetLastSequence(string lastSequence, string checkpointId, bool push)
         {
             return Storage.SetInfo(CheckpointInfoKey(checkpointId), lastSequence).IsSuccessful;
@@ -808,17 +774,7 @@ namespace Couchbase.Lite
         {
             return Storage.GetInfo(CheckpointInfoKey(checkpointId));
         }
-
-        private IDictionary<string, BlobStoreWriter> PendingAttachmentsByDigest
-        {
-            get {
-                return _pendingAttachmentsByDigest ?? (_pendingAttachmentsByDigest = new Dictionary<string, BlobStoreWriter>());
-            }
-            set {
-                _pendingAttachmentsByDigest = value;
-            }
-        }
-            
+ 
         internal IEnumerable<QueryRow> QueryViewNamed(String viewName, QueryOptions options, long ifChangedSince, ValueTypePtr<long> outLastSequence, Status outStatus = null)
         {
             if (outStatus == null) {
@@ -840,7 +796,7 @@ namespace Couchbase.Lite
                     if(options.Stale == IndexUpdateMode.Before || lastIndexedSequence <= 0) {
                         status = view.UpdateIndex();
                         if(status.IsError) {
-                            Log.W(Tag, "Failed to update index: {0}", status.Code);
+                            Log.W(TAG, "Failed to update index: {0}", status.Code);
                             break;
                         }
 
@@ -889,19 +845,6 @@ namespace Couchbase.Lite
             return filter(publicRev, filterParams);
         }
 
-        long KeyToSequence(object key, long defaultVal)
-        {
-            if (key == null) {
-                return defaultVal;
-            }
-
-            try {
-                return Convert.ToInt64(key);
-            } catch(Exception) {
-                return defaultVal;
-            }
-        }
-            
         internal IEnumerable<QueryRow> GetAllDocs(QueryOptions options)
         {
             // For regular all-docs, let storage do it all:
@@ -956,18 +899,8 @@ namespace Couchbase.Lite
 
             return result;
         }
-            
 
-        /// <summary>Hack because cursor interface does not support cursor.getColumnIndex("deleted") yet.
-        ///     </summary>
-        internal Int32 GetDeletedColumnIndex(QueryOptions options)
-        {
-            Debug.Assert(options != null);
-
-            return options.IncludeDocs ? 5 : 4;
-        }
-
-        internal static String JoinQuotedObjects(IEnumerable<Object> objects)
+        internal static string JoinQuotedObjects(IEnumerable<Object> objects)
         {
             var strings = new List<String>();
             foreach (var obj in objects)
@@ -977,7 +910,7 @@ namespace Couchbase.Lite
             return JoinQuoted(strings);
         }
 
-        internal static String JoinQuoted(IEnumerable<string> strings)
+        internal static string JoinQuoted(IEnumerable<string> strings)
         {
             if (!strings.Any()) {
                 return String.Empty;
@@ -1065,10 +998,6 @@ namespace Couchbase.Lite
             UnsavedRevisionDocumentCache.Remove(document.Id);
         }
 
-        internal BlobStoreWriter AttachmentWriter { get { return new BlobStoreWriter(Attachments); } }
-
-        internal BlobStore Attachments { get; set; }
-
         internal string PrivateUUID ()
         {
             return Storage.GetInfo("privateUUID");
@@ -1077,11 +1006,6 @@ namespace Couchbase.Lite
         internal string PublicUUID()
         {
             return Storage.GetInfo("publicUUID");
-        }
-
-        internal BlobStoreWriter GetAttachmentWriter()
-        {
-            return new BlobStoreWriter(Attachments);
         }
 
         internal bool ReplaceUUIDs(string privUUID = null, string pubUUID = null)
@@ -1158,20 +1082,16 @@ namespace Couchbase.Lite
             var start = -1;
             var lastRevNo = -1;
 
-            foreach (var rev in history)
-            {
-                var revNo = ParseRevIDNumber(rev.GetRevId());
-                var suffix = ParseRevIDSuffix(rev.GetRevId());
-                if (revNo > 0 && suffix.Length > 0)
-                {
-                    if (start < 0)
-                    {
+            foreach (var rev in history) {
+                var parsed = RevisionInternal.ParseRevId(rev.GetRevId());
+                int revNo = parsed.Item1;
+                string suffix = parsed.Item2;
+                if (revNo > 0 && suffix.Length > 0) {
+                    if (start < 0) {
                         start = revNo;
                     }
-                    else
-                    {
-                        if (revNo != lastRevNo - 1)
-                        {
+                    else {
+                        if (revNo != lastRevNo - 1) {
                             start = -1;
                             break;
                         }
@@ -1179,25 +1099,21 @@ namespace Couchbase.Lite
                     lastRevNo = revNo;
                     suffixes.AddItem(suffix);
                 }
-                else
-                {
+                else {
                     start = -1;
                     break;
                 }
             }
 
             var result = new Dictionary<String, Object>();
-            if (start == -1)
-            {
+            if (start == -1) {
                 // we failed to build sequence, just stuff all the revs in list
                 suffixes = new List<string>();
-                foreach (RevisionInternal rev_1 in history)
-                {
+                foreach (RevisionInternal rev_1 in history) {
                     suffixes.AddItem(rev_1.GetRevId());
                 }
             }
-            else
-            {
+            else {
                 result["start"] = start;
             }
 
@@ -1209,108 +1125,23 @@ namespace Couchbase.Lite
         internal static IList<string> ParseCouchDBRevisionHistory(IDictionary<String, Object> docProperties)
         {
             var revisions = docProperties.Get ("_revisions").AsDictionary<string,object> ();
-            if (revisions == null)
-            {
+            if (revisions == null) {
                 return new List<string>();
             }
 
             var ids = revisions ["ids"].AsList<string> ();
-            if (ids == null || ids.Count == 0)
-            {
+            if (ids == null || ids.Count == 0) {
                 return new List<string>();
             }
 
             var revIDs = new List<string>(ids);
             var start = Convert.ToInt64(revisions.Get("start"));
-            for (var i = 0; i < revIDs.Count; i++)
-            {
+            for (var i = 0; i < revIDs.Count; i++) {
                 var revID = revIDs[i];
                 revIDs.Set(i, Sharpen.Extensions.ToString(start--) + "-" + revID);
             }
 
             return revIDs;
-        }
-
-        // Splits a revision ID into its generation number and opaque suffix string
-        internal static int ParseRevIDNumber(string rev)
-        {
-            var result = -1;
-            var dashPos = rev.IndexOf("-", StringComparison.InvariantCultureIgnoreCase);
-
-            if (dashPos >= 0)
-            {
-                try
-                {
-                    var revIdStr = rev.Substring(0, dashPos);
-
-                    // Should return -1 when the string has WC at the beginning or at the end.
-                    if (revIdStr.Length > 0 && 
-                        (char.IsWhiteSpace(revIdStr[0]) || 
-                            char.IsWhiteSpace(revIdStr[revIdStr.Length - 1])))
-                    {
-                        return result;
-                    }
-
-                    result = Int32.Parse(revIdStr);
-                }
-                catch (FormatException)
-                {
-
-                }
-            }
-            // ignore, let it return -1
-            return result;
-        }
-
-        // Splits a revision ID into its generation number and opaque suffix string
-        internal static string ParseRevIDSuffix(string rev)
-        {
-            var result = String.Empty;
-            int dashPos = rev.IndexOf("-", StringComparison.InvariantCultureIgnoreCase);
-            if (dashPos >= 0)
-            {
-                result = Runtime.Substring(rev, dashPos + 1);
-            }
-            return result;
-        }
-
-        /// <summary>Splices the contents of an NSDictionary into JSON data (that already represents a dict), without parsing the JSON.</summary>
-        internal IEnumerable<Byte> AppendDictToJSON(IEnumerable<Byte> json, IDictionary<String, Object> dict)
-        {
-            if (dict.Count == 0)
-                return json;
-
-            Byte[] extraJSON;
-            try
-            {
-                extraJSON = Manager.GetObjectMapper().WriteValueAsBytes(dict).ToArray();
-            }
-            catch (Exception e)
-            {
-                Log.E(Tag, "Error convert extra JSON to bytes", e);
-                return null;
-            }
-
-            var jsonArray = json.ToArray ();
-            int jsonLength = jsonArray.Length;
-            int extraLength = extraJSON.Length;
-
-            if (jsonLength == 2)
-            {
-                // Original JSON was empty
-                return extraJSON;
-            }
-
-            var newJson = new byte[jsonLength + extraLength - 1];
-            Array.Copy(jsonArray.ToArray(), 0, newJson, 0, jsonLength - 1);
-
-            // Copy json w/o trailing '}'
-            newJson[jsonLength - 1] = (byte)(',');
-
-            // Add a ','
-            Array.Copy(extraJSON, 1, newJson, jsonLength, extraLength - 1);
-
-            return newJson;
         }
 
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
@@ -1322,7 +1153,7 @@ namespace Couchbase.Lite
         internal RevisionInternal PutDocument(string docId, IDictionary<string, object> properties, string prevRevId, bool allowConflict, Status resultStatus)
         {
             bool deleting = properties == null || properties.GetCast<bool>("_deleted");
-            Log.D(Tag, "PUT _id={0}, _rev={1}, _deleted={2}, allowConflict={3}", docId, prevRevId, deleting, allowConflict);
+            Log.D(TAG, "PUT _id={0}, _rev={1}, _deleted={2}, allowConflict={3}", docId, prevRevId, deleting, allowConflict);
             if ((prevRevId != null && docId == null) || (deleting && docId == null)) {
                 if (resultStatus != null) {
                     resultStatus.Code = StatusCode.BadId;
@@ -1347,7 +1178,7 @@ namespace Couchbase.Lite
 
             var putRev = Storage.PutRevision(docId, prevRevId, properties, deleting, allowConflict, validationBlock, resultStatus);
             if (putRev != null) {
-                Log.D(Tag, "--> created {0}", putRev);
+                Log.D(TAG, "--> created {0}", putRev);
                 if (!string.IsNullOrEmpty(docId)) {
                     UnsavedRevisionDocumentCache.Remove(docId);
                 }
@@ -1384,26 +1215,21 @@ namespace Couchbase.Lite
             // This is a 'while' instead of an 'if' because when we finish posting notifications, there
             // might be new ones that have arrived as a result of notification handlers making document
             // changes of their own (the replicator manager will do this.) So we need to check again.
-            while (!Storage.InTransaction && _isOpen && !_isPostingChangeNotifications && _changesToNotify != null && _changesToNotify.Count > 0)
-            {
-                try
-                {
+            while (!Storage.InTransaction && _isOpen && !_isPostingChangeNotifications && _changesToNotify != null && _changesToNotify.Count > 0) {
+                try {
                     _isPostingChangeNotifications = true;
 
                     IList<DocumentChange> outgoingChanges = new List<DocumentChange>();
-                    foreach (var change in _changesToNotify)
-                    {
+                    foreach (var change in _changesToNotify) {
                         outgoingChanges.Add(change);
                     }
                     _changesToNotify.Clear();
                     // TODO: change this to match iOS and call cachedDocumentWithID
                     var isExternal = false;
-                    foreach (var change in outgoingChanges)
-                    {
+                    foreach (var change in outgoingChanges) {
                         var document = GetDocument(change.DocumentId);
                         document.RevisionAdded(change, true);
-                        if (change.SourceUrl != null)
-                        {
+                        if (change.SourceUrl != null) {
                             isExternal = true;
                         }
                     }
@@ -1412,20 +1238,16 @@ namespace Couchbase.Lite
                         Changes = outgoingChanges,
                         IsExternal = isExternal,
                         Source = this
-                    } ;
+                    };
 
                     var changeEvent = _changed;
                     if (changeEvent != null)
                         changeEvent(this, args);
 
                     posted = true;
-                }
-                catch (Exception e)
-                {
-                    Log.E(Tag, " got exception posting change notifications", e);
-                }
-                finally
-                {
+                } catch (Exception e) {
+                    Log.E(TAG, "Got exception posting change notifications", e);
+                } finally {
                     _isPostingChangeNotifications = false;
                 }
             }
@@ -1493,23 +1315,11 @@ namespace Couchbase.Lite
                     {
                         if (attachment.RevPos > generation)
                         {
-                            Log.W(Tag, string.Format("Attachment {0} {1} has unexpected revpos {2}, setting to {3}", rev, name, attachment.RevPos, generation));
+                            Log.W(TAG, string.Format("Attachment {0} {1} has unexpected revpos {2}, setting to {3}", rev, name, attachment.RevPos, generation));
                             attachment.RevPos = generation;
                         }
                     }
                 }
-            }
-        }
-
-        /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
-        internal void InsertAttachmentForSequenceWithNameAndType(InputStream contentStream, long sequence, string name, string contentType, int revpos)
-        {
-            Debug.Assert((sequence > 0));
-            Debug.Assert((name != null));
-
-            BlobKey key;
-            if (!Attachments.StoreBlobStream(contentStream, out key)) {
-                throw new CouchbaseLiteException(StatusCode.InternalServerError);
             }
         }
 
@@ -1533,46 +1343,6 @@ namespace Couchbase.Lite
                     throw new CouchbaseLiteException(e, StatusCode.AttachmentError);
                 }
             }
-        }
-
-        internal void StubOutAttachmentsInRevision(IDictionary<String, AttachmentInternal> attachments, RevisionInternal rev)
-        {
-            var properties = rev.GetProperties();
-            var attachmentProps = properties.Get("_attachments");
-            if (attachmentProps != null)
-            {
-                var nuAttachments = new Dictionary<string, object>();
-                foreach (var kvp in attachmentProps.AsDictionary<string,object>())
-                {
-                    var attachmentValue = kvp.Value.AsDictionary<string,object>();
-                    if (attachmentValue.ContainsKey("follows") || attachmentValue.ContainsKey("data"))
-                    {
-                        attachmentValue.Remove("follows");
-                        attachmentValue.Remove("data");
-
-                        attachmentValue["stub"] = true;
-                        if (attachmentValue.Get("revpos") == null)
-                        {
-                            attachmentValue.Put("revpos", rev.GetGeneration());
-                        }
-
-                        var attachmentObject = attachments.Get(kvp.Key);
-                        if (attachmentObject != null)
-                        {
-                            attachmentValue.Put("length", attachmentObject.Length);
-                            if (attachmentObject.BlobKey != null)
-                            {
-                                attachmentValue.Put("digest", attachmentObject.BlobKey.Base64Digest());
-                            }
-                        }
-                    }
-                    nuAttachments[kvp.Key] = attachmentValue;
-                }
-
-                properties["_attachments"] = nuAttachments;  
-            }
-
-            rev.SetProperties(properties);
         }
 
         internal Uri FileForAttachmentDict(IDictionary<String, Object> attachmentDict)
@@ -1625,7 +1395,7 @@ namespace Couchbase.Lite
                     expanded.Remove("encoded_length");
                 }
 
-                if(allowFollows && SmallestLength(expanded) >= Database.BigAttachmentLength) {
+                if(allowFollows && SmallestLength(expanded) >= Database.BIG_ATTACHMENT_LENGTH) {
                     //Data will follow (multipart):
                     expanded["follows"] = true;
                     expanded.Remove("data");
@@ -1635,14 +1405,14 @@ namespace Couchbase.Lite
                     Status status = new Status();
                     var attachObj = AttachmentForDict(attachment, name, status);
                     if(attachObj == null) {
-                        Log.W(Tag, "Can't get attachment '{0}' of {1} (status {2})", name, rev, status);
+                        Log.W(TAG, "Can't get attachment '{0}' of {1} (status {2})", name, rev, status);
                         outStatus.Code = status.Code;
                         return attachment;
                     }
 
                     var data = decodeAttachments ? attachObj.Content : attachObj.EncodedContent;
                     if(data == null) {
-                        Log.W(Tag, "Can't get binary data of attachment '{0}' of {1}", name, rev);
+                        Log.W(TAG, "Can't get binary data of attachment '{0}' of {1}", name, rev);
                         outStatus.Code = StatusCode.NotFound;
                         return attachment;
                     }
@@ -1679,18 +1449,7 @@ namespace Couchbase.Lite
             attachment.Database = this;
             return attachment;
         }
-
-        private static long SmallestLength(IDictionary<string, object> attachment)
-        {
-            long length = attachment.GetCast<long>("length");
-            long encodedLength = attachment.GetCast<long>("encoded_length", -1);
-            if (encodedLength != -1) {
-                length = encodedLength;
-            }
-
-            return length;
-        }
-
+            
         internal static void StubOutAttachmentsInRevBeforeRevPos(RevisionInternal rev, long minRevPos, bool attachmentsFollow)
         {
             if (minRevPos <= 1 && !attachmentsFollow)
@@ -1724,13 +1483,13 @@ namespace Couchbase.Lite
                     // ...then remove the 'data' and 'follows' key:
                     editedAttachment.Remove("follows");
                     editedAttachment["stub"] = true;
-                    Log.V(Tag, String.Format("Stubbed out attachment {0}: revpos {1} < {2}", rev, revPos, minRevPos));
+                    Log.V(TAG, String.Format("Stubbed out attachment {0}: revpos {1} < {2}", rev, revPos, minRevPos));
                 }
                 else if (addFollows)
                 {
                     editedAttachment.Remove("stub");
                     editedAttachment["follows"] = true;
-                    Log.V(Tag, String.Format("Added 'follows' for attachment {0}: revpos {1} >= {2}", rev, revPos, minRevPos));
+                    Log.V(TAG, String.Format("Added 'follows' for attachment {0}: revpos {1} >= {2}", rev, revPos, minRevPos));
                 }
 
                 return editedAttachment;
@@ -1758,7 +1517,7 @@ namespace Couchbase.Lite
                 }
                 catch (IOException e)
                 {
-                    Log.E(Tag, "could not retrieve attachment data: {0}".Fmt(fileURL.ToString()), e);
+                    Log.E(TAG, "could not retrieve attachment data: {0}".Fmt(fileURL.ToString()), e);
                     return null;
                 }
 
@@ -2132,13 +1891,13 @@ namespace Couchbase.Lite
                 try {
                     validation(publicRev, context);
                 } catch(Exception e) {
-                    Log.E(Tag, String.Format("Validation block '{0}'", validationName), e);
+                    Log.E(TAG, String.Format("Validation block '{0}'", validationName), e);
                     status.Code = StatusCode.Exception;
                     break;
                 }
                     
                 if (context.RejectMessage != null) {
-                    Log.D(Tag, "Failed update of {0}: {1}:{2} Old doc = {3}{2} New doc = {4}", oldRev, context.RejectMessage,
+                    Log.D(TAG, "Failed update of {0}: {1}:{2} Old doc = {3}{2} New doc = {4}", oldRev, context.RejectMessage,
                             Environment.NewLine, oldRev == null ? null : oldRev.GetProperties(), newRev.GetProperties());
                     status.Code = StatusCode.Forbidden;
                     break;
@@ -2200,14 +1959,14 @@ namespace Couchbase.Lite
                 return true;
             }
 
-            Log.D(Tag, "Opening {0}", Name);
+            Log.D(TAG, "Opening {0}", Name);
 
             // Instantiate storage:
             //string storageType = Manager.StorageType ?? "SQLite";
             Storage = new SqliteCouchStore();
             Storage.Delegate = this;
 
-            Log.D(Tag, "Using {0} for db at {1}", Storage.GetType(), Path);
+            Log.D(TAG, "Using {0} for db at {1}", Storage.GetType(), Path);
             if (!Storage.Open(Path, _readOnly, Manager)) {
                 return false;
             }
@@ -2225,7 +1984,7 @@ namespace Couchbase.Lite
             if (savedMaxRevDepth != null && int.TryParse(savedMaxRevDepth, out maxRevTreeDepth)) {
                 MaxRevTreeDepth = maxRevTreeDepth;
             } else {
-                MaxRevTreeDepth = DefaultMaxRevs;
+                MaxRevTreeDepth = DEFAULT_MAX_REVS;
             }
 
             // Open attachment store:
@@ -2234,7 +1993,7 @@ namespace Couchbase.Lite
             try {
                 Attachments = new BlobStore(attachmentsPath);
             } catch(Exception e) {
-                Log.W(Tag, String.Format("Couldn't open attachment store at {0}", attachmentsPath), e);
+                Log.W(TAG, String.Format("Couldn't open attachment store at {0}", attachmentsPath), e);
                 Storage.Close();
                 Storage = null;
                 return false;
@@ -2245,7 +2004,61 @@ namespace Couchbase.Lite
         }
 
 
-    #endregion
+        #endregion
+
+        #region Private Methods
+
+        private static long SmallestLength(IDictionary<string, object> attachment)
+        {
+            long length = attachment.GetCast<long>("length");
+            long encodedLength = attachment.GetCast<long>("encoded_length", -1);
+            if (encodedLength != -1) {
+                length = encodedLength;
+            }
+
+            return length;
+        }
+
+        private RevisionInternal GetDocumentWithIDAndRev(string docId, string revId, bool withBody)
+        {
+            return Storage.GetDocument(docId, revId, withBody);
+        }
+
+        // Deletes obsolete attachments from the sqliteDb and blob store.
+        private bool GarbageCollectAttachments()
+        {
+            Log.D(TAG, "Scanning database revisions for attachments...");
+            var keys = Storage.FindAllAttachmentKeys();
+            if (keys == null) {
+                return false;
+            }
+
+            Log.D(TAG, "...found {0} attachments", keys.Count);
+            var numDeleted = Attachments.DeleteBlobsExceptWithKeys(keys);
+            Log.D(TAG, "    ... deleted {0} obsolete attachment files.", numDeleted);
+
+            return numDeleted >= 0;
+        }
+
+        private string CheckpointInfoKey(string checkpointId) 
+        {
+            return "checkpoint/" + checkpointId;
+        }
+
+        private long KeyToSequence(object key, long defaultVal)
+        {
+            if (key == null) {
+                return defaultVal;
+            }
+
+            try {
+                return Convert.ToInt64(key);
+            } catch(Exception) {
+                return defaultVal;
+            }
+        }
+
+        #endregion
 
         #region IDisposable
 
@@ -2258,7 +2071,7 @@ namespace Couchbase.Lite
         public void Dispose()
         {
             if (_isOpen && !Close()) {
-                Log.E(Tag, "Error disposing database (possibly already disposed?)");
+                Log.E(TAG, "Error disposing database (possibly already disposed?)");
             }
         }
     
@@ -2286,7 +2099,7 @@ namespace Couchbase.Lite
 
         public void DatabaseStorageChanged(DocumentChange change)
         {
-            Log.D(Tag, "Added: {0}", change.AddedRevision);
+            Log.D(TAG, "Added: {0}", change.AddedRevision);
             if (_changesToNotify == null) {
                 _changesToNotify = new List<DocumentChange>();
             }

@@ -389,7 +389,7 @@ namespace Couchbase.Lite
                     database.Open();
                 }
             } catch (Exception e) {
-                Log.E(Database.Tag, string.Empty, e);
+                Log.E(Database.TAG, string.Empty, e);
                 throw new CouchbaseLiteException(StatusCode.InternalServerError);
             }
         }
@@ -514,7 +514,7 @@ namespace Couchbase.Lite
                 db = new Database(path, name, this, options.ReadOnly);
                 if (mustExist && !db.Exists()) {
                     var msg = string.Format("mustExist is true and db ({0}) does not exist", name);
-                    Log.W(Database.Tag, msg);
+                    Log.W(Database.TAG, msg);
                     return null;
                 }
 
@@ -592,7 +592,7 @@ namespace Couchbase.Lite
 
             if (!oldFilename.Equals(newFilename) && newFile.Exists) {
                 var msg = String.Format("Cannot rename {0} to {1}, {2} already exists", oldFilename, newFilename, newFilename);
-                Log.W(Database.Tag, msg);
+                Log.W(Database.TAG, msg);
                 return;
             }
 

@@ -1338,9 +1338,10 @@ PRAGMA user_version = 3;";
             object start = null;
             int lastRevNo = -1;
             foreach (var historyRev in history) {
-                int revNo;
-                string suffix;
-                if (RevisionInternal.ParseRevId(historyRev.GetRevId(), out revNo, out suffix)) {
+                var parsed = RevisionInternal.ParseRevId(historyRev.GetRevId());
+                if (parsed.Item1 > 0) {
+                    int revNo = parsed.Item1;
+                    string suffix = parsed.Item2;
                     if (start == null) {
                         start = revNo;
                     } else if (revNo != lastRevNo - 1) {

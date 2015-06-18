@@ -79,7 +79,7 @@ namespace Couchbase.Lite
             }
             catch (NoSuchAlgorithmException)
             {
-                Log.E(Database.Tag, "Error, SHA-1 digest is unavailable.");
+                Log.E(Database.TAG, "Error, SHA-1 digest is unavailable.");
                 return null;
             }
             byte[] sha1hash;

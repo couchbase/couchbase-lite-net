@@ -100,7 +100,7 @@ namespace Couchbase.Lite {
                 var loadRevision = Database.LoadRevisionBody(RevisionInternal);
                 if (loadRevision == null)
                 {
-                    Log.W(Database.Tag, "Couldn't load body/sequence of {0}" + this);
+                    Log.W(Database.TAG, "Couldn't load body/sequence of {0}" + this);
                     return false;
                 }
                 RevisionInternal = loadRevision;

@@ -339,7 +339,7 @@ namespace Couchbase.Lite.Store
             try {
                 result = Manager.GetObjectMapper().WriteValueAsString(obj);
             } catch (Exception e)  {
-                Log.W(Database.Tag, "Exception serializing object to json: " + obj, e);
+                Log.W(Database.TAG, "Exception serializing object to json: " + obj, e);
             }
 
             return result;
@@ -355,7 +355,7 @@ namespace Couchbase.Lite.Store
             try  {
                 result = Manager.GetObjectMapper().ReadValue<object>(json);
             } catch (Exception e) {
-                Log.W(Database.Tag, "Exception parsing json", e);
+                Log.W(Database.TAG, "Exception parsing json", e);
             }
             return result;
         }
@@ -1033,8 +1033,6 @@ namespace Couchbase.Lite.Store
             return this;
         }
 
-        #if DEBUG
-
         public IEnumerable<IDictionary<string, object>> Dump()
         {
             if (ViewID <= 0) {
@@ -1055,8 +1053,6 @@ namespace Couchbase.Lite.Store
 
             return retVal;
         }
-
-        #endif
 
         #endregion
 
