@@ -237,7 +237,7 @@ namespace Couchbase.Lite
                 httpRequestDoneSignal.CountDown();
             });
 
-            var result = httpRequestDoneSignal.Await(TimeSpan.FromSeconds(10));
+            var result = httpRequestDoneSignal.Await(TimeSpan.FromSeconds(30));
             Assert.IsTrue(result, "Could not retrieve the new doc from the sync gateway.");
         }
 
@@ -2106,15 +2106,12 @@ namespace Couchbase.Lite
             var pusher = database.CreatePushReplication(GetReplicationURL());
             pusher.Start ();
 
-            try {
-                Assert.IsTrue(mre.Wait(TimeSpan.FromSeconds(120)), "Replication Timeout");
-            } finally {
-                pusher.Stop();
-                puller.Stop();
-                allDocsLiveQuery.Stop();   
 
-                Thread.Sleep(500);
-            }
+            pusher.Stop();
+            puller.Stop();
+            allDocsLiveQuery.Stop();   
+
+            Thread.Sleep(1000);
         }
 
         [Test, Category("issue348")]

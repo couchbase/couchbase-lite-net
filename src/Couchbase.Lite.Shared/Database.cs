@@ -371,23 +371,7 @@ namespace Couchbase.Lite
         /// <param name="id">The id of the Document to get or create.</param>
         public Document GetDocument(string id) 
         { 
-            if (StringEx.IsNullOrWhiteSpace (id)) {
-                return null;
-            }
-
-            var unsavedDoc = UnsavedRevisionDocumentCache.Get(id);
-            var doc = unsavedDoc != null 
-                ? (Document)unsavedDoc.Target 
-                : DocumentCache.Get(id);
-
-            if (doc == null)
-            {
-                doc = new Document(this, id);
-                DocumentCache[id] = doc;
-                UnsavedRevisionDocumentCache[id] = new WeakReference(doc);
-            }
-
-            return doc;
+            return GetDocument(id, false);
         }
 
         /// <summary>
@@ -397,12 +381,7 @@ namespace Couchbase.Lite
         /// <param name="id">The id of the Document to get.</param>
         public Document GetExistingDocument(String id) 
         { 
-            if (StringEx.IsNullOrWhiteSpace (id)) {
-                return null;
-            }
-
-            var revisionInternal = GetDocumentWithIDAndRev(id, null, true);
-            return revisionInternal == null ? null : GetDocument (id);
+            return GetDocument(id, true);
         }
 
         /// <summary>
@@ -435,7 +414,6 @@ namespace Couchbase.Lite
         /// while setting the contents of the local document.</exception>
         public bool PutLocalDocument(string id, IDictionary<string, object> properties) 
         { 
-            // TODO: the iOS implementation wraps this in a transaction, this should do the same.
             id = MakeLocalDocumentId(id);
             var rev = new RevisionInternal(id, null, properties == null);
             if (properties != null) {
@@ -2056,6 +2034,39 @@ namespace Couchbase.Lite
             } catch(Exception) {
                 return defaultVal;
             }
+        }
+
+        private Document GetDocument(string docId, bool mustExist)
+        {
+            if (StringEx.IsNullOrWhiteSpace (docId)) {
+                return null;
+            }
+
+            var unsavedDoc = UnsavedRevisionDocumentCache.Get(docId);
+            var doc = unsavedDoc != null 
+                ? (Document)unsavedDoc.Target 
+                : DocumentCache.Get(docId);
+
+            if (doc != null) {
+                if (mustExist && doc.CurrentRevision == null) {
+                    return null;
+                }
+
+                return doc;
+            }
+
+            doc = new Document(this, docId);
+            if (mustExist && doc.CurrentRevision == null) {
+                return null;
+            }
+
+            if (DocumentCache == null) {
+                DocumentCache = new LruCache<string, Document>(MAX_DOC_CACHE_SIZE);
+            }
+
+            DocumentCache[docId] = doc;
+            UnsavedRevisionDocumentCache[docId] = new WeakReference(doc);
+            return doc;
         }
 
         #endregion

@@ -46,11 +46,6 @@ using System.Collections.Generic;
 using Couchbase.Lite.Util;
 using Couchbase.Lite.Store;
 using Sharpen;
-using Couchbase.Lite.Internal;
-using System.Linq;
-using Newtonsoft.Json.Linq;
-using System.Collections;
-using Couchbase.Lite.Views;
 using System.Threading;
 
 namespace Couchbase.Lite {
@@ -82,252 +77,41 @@ namespace Couchbase.Lite {
     /// </summary>
     public sealed class View : IViewStoreDelegate {
 
-    #region Constructors
+        #region Constants
 
-        internal static View MakeView(Database database, string name, bool create)
-        {
-            
-            var storage = database.Storage.GetViewStorage(name, create);
-            if (storage == null) {
-                return null;
-            }
+        internal const string TAG = "View";
+        private const int REDUCE_BATCH_SIZE = 100;
 
-            var view = new View();
-            view.Storage = storage;
-            view.Database = database;
-            storage.Delegate = view;
-            view.Name = name;
+        #endregion
 
-            // means 'unknown'
-            view.Collation = ViewCollation.Unicode;
-            return view;
-        }
+        #region Properties
 
-    #endregion
-
-    #region Static Members
         /// <summary>
         /// Gets or sets an object that can compile source code into map and reduce delegates.
         /// </summary>
-        /// <value>The compiler object.</value>
         public static IViewCompiler Compiler { get; set; }
 
-    #endregion
-    
-    #region Constants
-
-        internal const String Tag = "View";
-
-        const Int32 ReduceBatchSize = 100;
-
-    #endregion
-
-    #region Non-public Members
-
-        private object _updateLock = new object();
-
-        internal IViewStore Storage { get; private set; }
-
-        internal ViewCollation Collation { get; set; }
-
-
-        internal void Close()
-        {
-            Storage.Close();
-            Storage = null;
-            Database = null;
-        }
-
-        internal Status UpdateIndex()
-        {
-            //TODO: View grouping
-            return Storage.UpdateIndexes(new List<IViewStore> { Storage });
-        }
-
-        private bool GroupOrReduce(QueryOptions options) {
-            if (options.Group|| options.GroupLevel> 0) {
-                return true;
-            }
-
-            if (options.ReduceSpecified) {
-                return options.Reduce;
-            }
-
-            return Reduce != null;
-        }
-
-        /// <summary>Queries the view.</summary>
-        /// <remarks>Queries the view. Does NOT first update the index.</remarks>
-        /// <param name="options">The options to use.</param>
-        /// <returns>An array of QueryRow objects.</returns>
-        /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
-        internal IEnumerable<QueryRow> QueryWithOptions(QueryOptions options)
-        {
-            if (options == null) {
-                options = new QueryOptions();
-            }
-
-            IEnumerable<QueryRow> iterator = null;
-            if (false) {
-                //TODO: Full text
-            } else if (GroupOrReduce(options)) {
-                iterator = Storage.ReducedQuery(options);
-            } else {
-                iterator = Storage.RegularQuery(options);
-            }
-
-            if (iterator != null) {
-                Log.D(Tag, "Query {0}: Returning iterator", Name);
-            } else {
-                Log.D(Tag, "Query {0}: Failed", Name);
-            }
-
-            return iterator;
-        }
-
-        /// <summary>Indexing</summary>
-        internal string ToJSONString(Object obj)
-        {
-            if (obj == null)
-                return null;
-
-            String result = null;
-            try
-            {
-                result = Manager.GetObjectMapper().WriteValueAsString(obj);
-            }
-            catch (Exception e)
-            {
-                Log.W(Database.TAG, "Exception serializing object to json: " + obj, e);
-            }
-            return result;
-        }
-
-        internal Object FromJSON(IEnumerable<Byte> json)
-        {
-            if (json == null)
-            {
-                return null;
-            }
-            object result = null;
-            try
-            {
-                result = Manager.GetObjectMapper().ReadValue<Object>(json);
-            }
-            catch (Exception e)
-            {
-                Log.W(Database.TAG, "Exception parsing json", e);
-            }
-            return result;
-        }
-
-        internal static double TotalValues(IList<object> values)
-        {
-            double total = 0;
-            foreach (object o in values)
-            {
-                try {
-                    double number = Convert.ToDouble(o);
-                    total += number;
-                } 
-                catch (Exception e)
-                {
-                    Log.E(Database.TAG, "Warning non-numeric value found in totalValues: " + o, e);
-                }
-            }
-            return total;
-        }
-
-        internal Status CompileFromDesignDoc()
-        {
-            MapDelegate map;
-            if (Database.Shared.TryGetValue("map", Name, Database.Name, out map)) {
-                return new Status(StatusCode.Ok);
-            }
-
-            string language = null;
-            var viewProps = Database.GetDesignDocFunction(Name, "views", out language).AsDictionary<string, object>();
-            if (viewProps == null) {
-                return new Status(StatusCode.NotFound);
-            }
-
-            Log.D(Tag, "{0}: Attempting to compile {1} from design doc", Name, language);
-            if (Compiler == null) {
-                return new Status(StatusCode.NotImplemented);
-            }
-
-            return Compile(viewProps, language);
-        }
-
-        internal Status Compile(IDictionary<string, object> viewProps, string language)
-        {
-            language = language ?? "javascript";
-            string mapSource = viewProps.Get("map") as string;
-            if (mapSource == null) {
-                return new Status(StatusCode.NotFound);
-            }
-
-            MapDelegate mapDelegate = Compiler.CompileMap(mapSource, language);
-            if (mapDelegate == null) {
-                Log.W(Tag, "View {0} could not compile {1} map fn: {2}", Name, language, mapSource);
-                return new Status(StatusCode.CallbackError);
-            }
-
-            string reduceSource = viewProps.Get("reduce") as string;
-            ReduceDelegate reduceDelegate = null;
-            if (reduceSource != null) {
-                reduceDelegate = Compiler.CompileReduce(reduceSource, language);
-                if (reduceDelegate == null) {
-                    Log.W(Tag, "View {0} could not compile {1} reduce fn: {2}", Name, language, mapSource);
-                    return new Status(StatusCode.CallbackError);
-                }
-            }
-                
-            string version = Misc.HexSHA1Digest(Manager.GetObjectMapper().WriteValueAsBytes(viewProps));
-            SetMapReduce(mapDelegate, reduceDelegate, version);
-            //TODO: DocumentType
-
-            var options = viewProps.Get("options").AsDictionary<string, object>();
-            Collation = ViewCollation.Unicode;
-            if (options != null && options.ContainsKey("collation")) {
-                string collation = options["collation"] as string;
-                if (collation.ToLower().Equals("raw")) {
-                    Collation = ViewCollation.Raw;
-                }
-            }
-
-            return new Status(StatusCode.Ok);
-        }
-
-    #endregion
-
-    #region Instance Members
         /// <summary>
         /// Get the <see cref="Couchbase.Lite.Database"/> that owns the <see cref="Couchbase.Lite.View"/>.
         /// </summary>
-        /// <value>
-        /// The <see cref="Couchbase.Lite.Database"/> that owns the <see cref="Couchbase.Lite.View"/>.
-        /// </value>
         public Database Database { get; private set; }
 
         /// <summary>
         /// Gets the <see cref="Couchbase.Lite.View"/>'s name.
         /// </summary>
-        /// <value>the <see cref="Couchbase.Lite.View"/>'s name.</value>
-        public String Name { get; private set; }
+        public string Name { get; private set; }
 
 
         /// <summary>
         /// Gets if the <see cref="Couchbase.Lite.View"/>'s indices are currently out of date.
         /// </summary>
         /// <value><c>true</c> if this instance is stale; otherwise, <c>false</c>.</value>
-        public Boolean IsStale { get { return (LastSequenceIndexed < Database.LastSequenceNumber); } }
+        public bool IsStale { get { return (LastSequenceIndexed < Database.LastSequenceNumber); } }
 
         /// <summary>
         /// Gets the last sequence number indexed so far.
         /// </summary>
-        /// <value>The last sequence number indexed.</value>
-        public Int64 LastSequenceIndexed { 
+        public long LastSequenceIndexed { 
             get {
                 return Storage.LastSequenceIndexed;
             }
@@ -352,6 +136,36 @@ namespace Couchbase.Lite {
             }
         }
 
+        internal IViewStore Storage { get; private set; }
+
+        internal ViewCollation Collation { get; set; }
+
+        #endregion
+
+        #region Constructors
+
+        internal static View MakeView(Database database, string name, bool create)
+        {
+            var storage = database.Storage.GetViewStorage(name, create);
+            if (storage == null) {
+                return null;
+            }
+
+            var view = new View();
+            view.Storage = storage;
+            view.Database = database;
+            storage.Delegate = view;
+            view.Name = name;
+
+            // means 'unknown'
+            view.Collation = ViewCollation.Unicode;
+            return view;
+        }
+
+        #endregion
+    
+        #region Public Methods
+
         /// <summary>
         /// Defines the <see cref="Couchbase.Lite.View"/>'s <see cref="Couchbase.Lite.MapDelegate"/> and sets 
         /// its <see cref="Couchbase.Lite.ReduceDelegate"/> to null.
@@ -368,7 +182,7 @@ namespace Couchbase.Lite {
         /// the <see cref="Couchbase.Lite.MapDelegate"/> is changed in a way that will cause it to 
         /// produce different results.
         /// </param>
-        public Boolean SetMap(MapDelegate mapDelegate, String version) {
+        public Boolean SetMap(MapDelegate mapDelegate, string version) {
             return SetMapReduce(mapDelegate, null, version);
         }
 
@@ -454,9 +268,173 @@ namespace Couchbase.Lite {
             return new Query(Database, this);
         }
 
-    #endregion
+        private object _updateLock = new object();
+
+        #endregion
+   
+
+        #region Internal Methods
+
+
+        internal void Close()
+        {
+            Storage.Close();
+            Storage = null;
+            Database = null;
+        }
+
+        internal Status UpdateIndex()
+        {
+            //TODO: View grouping
+            return Storage.UpdateIndexes(new List<IViewStore> { Storage });
+        }
+
+        /// <summary>Queries the view.</summary>
+        /// <remarks>Queries the view. Does NOT first update the index.</remarks>
+        /// <param name="options">The options to use.</param>
+        /// <returns>An array of QueryRow objects.</returns>
+        /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
+        internal IEnumerable<QueryRow> QueryWithOptions(QueryOptions options)
+        {
+            if (options == null) {
+                options = new QueryOptions();
+            }
+
+            IEnumerable<QueryRow> iterator = null;
+            if (false) {
+                //TODO: Full text
+            } else if (GroupOrReduce(options)) {
+                iterator = Storage.ReducedQuery(options);
+            } else {
+                iterator = Storage.RegularQuery(options);
+            }
+
+            if (iterator != null) {
+                Log.D(TAG, "Query {0}: Returning iterator", Name);
+            } else {
+                Log.D(TAG, "Query {0}: Failed", Name);
+            }
+
+            return iterator;
+        }
+
+        /// <summary>Indexing</summary>
+        internal string ToJSONString(object obj)
+        {
+            if (obj == null)
+                return null;
+
+            string result = null;
+            try
+            {
+                result = Manager.GetObjectMapper().WriteValueAsString(obj);
+            }
+            catch (Exception e)
+            {
+                Log.W(Database.TAG, "Exception serializing object to json: " + obj, e);
+            }
+            return result;
+        }
+
+        internal object FromJSON(IEnumerable<byte> json)
+        {
+            if (json == null)
+            {
+                return null;
+            }
+            object result = null;
+            try
+            {
+                result = Manager.GetObjectMapper().ReadValue<object>(json);
+            }
+            catch (Exception e)
+            {
+                Log.W(Database.TAG, "Exception parsing json", e);
+            }
+            return result;
+        }
+
+        internal Status CompileFromDesignDoc()
+        {
+            MapDelegate map;
+            if (Database.Shared.TryGetValue("map", Name, Database.Name, out map)) {
+                return new Status(StatusCode.Ok);
+            }
+
+            string language = null;
+            var viewProps = Database.GetDesignDocFunction(Name, "views", out language).AsDictionary<string, object>();
+            if (viewProps == null) {
+                return new Status(StatusCode.NotFound);
+            }
+
+            Log.D(TAG, "{0}: Attempting to compile {1} from design doc", Name, language);
+            if (Compiler == null) {
+                return new Status(StatusCode.NotImplemented);
+            }
+
+            return Compile(viewProps, language);
+        }
+
+        internal Status Compile(IDictionary<string, object> viewProps, string language)
+        {
+            language = language ?? "javascript";
+            string mapSource = viewProps.Get("map") as string;
+            if (mapSource == null) {
+                return new Status(StatusCode.NotFound);
+            }
+
+            MapDelegate mapDelegate = Compiler.CompileMap(mapSource, language);
+            if (mapDelegate == null) {
+                Log.W(TAG, "View {0} could not compile {1} map fn: {2}", Name, language, mapSource);
+                return new Status(StatusCode.CallbackError);
+            }
+
+            string reduceSource = viewProps.Get("reduce") as string;
+            ReduceDelegate reduceDelegate = null;
+            if (reduceSource != null) {
+                reduceDelegate = Compiler.CompileReduce(reduceSource, language);
+                if (reduceDelegate == null) {
+                    Log.W(TAG, "View {0} could not compile {1} reduce fn: {2}", Name, language, mapSource);
+                    return new Status(StatusCode.CallbackError);
+                }
+            }
+                
+            string version = Misc.HexSHA1Digest(Manager.GetObjectMapper().WriteValueAsBytes(viewProps));
+            SetMapReduce(mapDelegate, reduceDelegate, version);
+            DocumentType = viewProps.GetCast<string>("documentType");
+
+            var options = viewProps.Get("options").AsDictionary<string, object>();
+            Collation = ViewCollation.Unicode;
+            if (options != null && options.ContainsKey("collation")) {
+                string collation = options["collation"] as string;
+                if (collation.ToLower().Equals("raw")) {
+                    Collation = ViewCollation.Raw;
+                }
+            }
+
+            return new Status(StatusCode.Ok);
+        }
+
+        #endregion
+
+        #region Private Methods
+
+        private bool GroupOrReduce(QueryOptions options) {
+            if (options.Group|| options.GroupLevel> 0) {
+                return true;
+            }
+
+            if (options.ReduceSpecified) {
+                return options.Reduce;
+            }
+
+            return Reduce != null;
+        }
+
+        #endregion
 
         #region IViewStoreDelegate
+        #pragma warning disable 1591
 
         public MapDelegate Map
         {
@@ -512,6 +490,7 @@ namespace Couchbase.Lite {
             }
         }
 
+        #pragma warning restore 1591
         #endregion
     
     }
@@ -519,9 +498,9 @@ namespace Couchbase.Lite {
     /// <summary>
     /// An object that can be used to compile source code into map and reduce delegates.
     /// </summary>
-    public interface IViewCompiler {
+    public interface IViewCompiler 
+    {
 
-    #region Instance Members
         //Methods
         /// <summary>
         /// Compiles source code into a <see cref="Couchbase.Lite.MapDelegate"/>.
@@ -529,7 +508,7 @@ namespace Couchbase.Lite {
         /// <returns>A compiled <see cref="Couchbase.Lite.MapDelegate"/>.</returns>
         /// <param name="source">The source code to compile into a <see cref="Couchbase.Lite.MapDelegate"/>.</param>
         /// <param name="language">The language of the source.</param>
-        MapDelegate CompileMap(String source, String language);
+        MapDelegate CompileMap(string source, string language);
 
         /// <summary>
         /// Compiles source code into a <see cref="Couchbase.Lite.ReduceDelegate"/>.
@@ -537,10 +516,8 @@ namespace Couchbase.Lite {
         /// <returns>A compiled <see cref="Couchbase.Lite.ReduceDelegate"/>.</returns>
         /// <param name="source">The source code to compile into a <see cref="Couchbase.Lite.ReduceDelegate"/>.</param>
         /// <param name="language">The language of the source.</param>
-        ReduceDelegate CompileReduce(String source, String language);
+        ReduceDelegate CompileReduce(string source, string language);
 
-    #endregion
-    
     }
 
     #region Global Delegates
@@ -551,7 +528,7 @@ namespace Couchbase.Lite {
     /// </summary>
     /// <param name="document">The <see cref="Couchbase.Lite.Document"/> being mapped.</param>
     /// <param name="emit">The delegate to use to add key/values to the <see cref="Couchbase.Lite.View"/>.</param>
-    public delegate void MapDelegate(IDictionary<String, Object> document, EmitDelegate emit);
+    public delegate void MapDelegate(IDictionary<string, object> document, EmitDelegate emit);
         
     /// <summary>
     /// A delegate that can be invoked to add key/values to a <see cref="Couchbase.Lite.View"/> 
@@ -559,7 +536,7 @@ namespace Couchbase.Lite {
     /// </summary>
     /// <param name="key">The key.</param>
     /// <param name="value">The value.</param>
-    public delegate void EmitDelegate(Object key, Object value);
+    public delegate void EmitDelegate(object key, object value);
         
     /// <summary>
     /// A delegate that can be invoked to summarize the results of a <see cref="Couchbase.Lite.View"/>.
@@ -567,7 +544,7 @@ namespace Couchbase.Lite {
     /// <param name="keys">A list of keys to be reduced, or null if this is a rereduce.</param>
     /// <param name="values">A parallel array of values to be reduced, corresponding 1-to-1 with the keys.</param>
     /// <param name="rereduce"><c>true</c> if the input values are the results of previous reductions, otherwise <c>false</c>.</param>
-    public delegate Object ReduceDelegate(IEnumerable<Object> keys, IEnumerable<Object> values, Boolean rereduce);
+    public delegate object ReduceDelegate(IEnumerable<object> keys, IEnumerable<object> values, Boolean rereduce);
 
     #endregion
 }

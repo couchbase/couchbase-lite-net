@@ -21,6 +21,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Couchbase.Lite.Util;
 
 namespace Couchbase.Lite.Views
 {
@@ -102,6 +103,21 @@ namespace Couchbase.Lite.Views
             }
 
             return retVal;
+        }
+
+        internal static double TotalValues(IList<object> values)
+        {
+            double total = 0;
+            foreach (object o in values)
+            {
+                try {
+                    double number = Convert.ToDouble(o);
+                    total += number;
+                } catch (Exception e) {
+                    Log.W(Database.TAG, "Warning non-numeric value found in totalValues: " + o, e);
+                }
+            }
+            return total;
         }
 
         #endregion

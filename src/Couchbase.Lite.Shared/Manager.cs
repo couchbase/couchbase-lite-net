@@ -45,19 +45,17 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
-using System.Reflection;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 
 using Couchbase.Lite.Auth;
+using Couchbase.Lite.Db;
 using Couchbase.Lite.Replicator;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
-using Sharpen;
-using Couchbase.Lite.Db;
-using System.Diagnostics;
 using ICSharpCode.SharpZipLib.Zip;
+using Sharpen;
 
 #if !NET_3_5
 using StringEx = System.String;
@@ -84,13 +82,13 @@ namespace Couchbase.Lite
         /// <summary>
         /// The error domain used for HTTP status codes.
         /// </summary>
-        const string HttpErrorDomain = "CBLHTTP";
+        private const string HttpErrorDomain = "CBLHTTP";
 
         internal const string DatabaseSuffixv0 = ".touchdb";
         internal const string DatabaseSuffix = ".cblite";
 
         // FIXME: Not all of these are valid Windows file chars.
-        const string IllegalCharacters = @"(^[^a-z]+)|[^a-z0-9_\$\(\)/\+\-]+";
+        private const string IllegalCharacters = @"(^[^a-z]+)|[^a-z0-9_\$\(\)/\+\-]+";
 
     #endregion
 
