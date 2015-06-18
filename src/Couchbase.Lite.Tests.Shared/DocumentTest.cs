@@ -194,7 +194,9 @@ namespace Couchbase.Lite
             var properties = new Dictionary<string, object>();
             properties["foo"] = "foo";
             properties["bar"] = false;
+            properties["_id"] = document.Id;
             document.PutProperties(properties);
+            properties["_rev"] = document.CurrentRevisionId;
             Assert.IsNotNull(document.CurrentRevision);
 
             var revisionInternal = new RevisionInternal(

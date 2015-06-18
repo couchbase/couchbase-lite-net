@@ -49,6 +49,7 @@ using Newtonsoft.Json;
 using System.Collections;
 using Newtonsoft.Json.Serialization;
 using System.Collections.Specialized;
+using System.Reflection;
 
 namespace Couchbase.Lite 
 {
@@ -136,14 +137,23 @@ namespace Couchbase.Lite
 
         private static object MakeCanonical(object input)
         {
-            var dict = input as IDictionary;
-            if (dict != null) {
+            var t = input.GetType();
+            if (t.GetInterface(typeof(IDictionary<,>).FullName) != null) {
                 var sorted = new SortedDictionary<object, object>();
-                var e = dict.GetEnumerator();
+                var method = t.GetMethod("GetEnumerator");
+                var e = (IEnumerator)method.Invoke(input, null);
+                PropertyInfo keyProp = null, valueProp = null;
                 while(e.MoveNext()) {
-                    sorted[e.Key] = MakeCanonical(e.Value);
+                    if(keyProp == null) {
+                        keyProp = e.Current.GetType().GetProperty("Key");
+                        valueProp = e.Current.GetType().GetProperty("Value");
+                    }
+
+                    var key = keyProp.GetValue(e.Current);
+                    var value = valueProp.GetValue(e.Current);
+                    sorted[key] = MakeCanonical(value);
                 }
-                    
+
                 return sorted;
             }
 
@@ -152,7 +162,7 @@ namespace Couchbase.Lite
                 var newList = new List<object>();
                 var e = array.GetEnumerator();
                 while (e.MoveNext()) {
-                    newList.Add(e.Current);
+                    newList.Add(MakeCanonical(e.Current));
                 }
 
                 newList.Sort();

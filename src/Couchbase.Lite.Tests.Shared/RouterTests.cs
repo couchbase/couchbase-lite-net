@@ -731,8 +731,8 @@ namespace Couchbase.Lite
                                             { "start", 3L },
                                             { "ids", new List<object> { 
                                                     "849ef0cb3227570b179053f30435c834",
-                                                    "75a55e369155983301ea32d42e71ad51",
-                                                    "4be4ad3e8e2a3956dcbbf5b199c0588e"
+                                                    "f4aa17f89f2d613c362f23148b74b794",
+                                                    "73f49cb1381a29e8d6d50e840c51cfa5"
                                                 } 
                                             }
                                         }

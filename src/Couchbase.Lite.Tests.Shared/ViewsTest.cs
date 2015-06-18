@@ -279,7 +279,7 @@ namespace Couchbase.Lite
             view.UpdateIndex();
 
             // Make sure the map function was only invoked one more time (for the document that was added)
-            Assert.AreEqual(numTimesInvoked, numTimesMapFunctionInvoked + 1);
+            Assert.AreEqual(numTimesMapFunctionInvoked + 1, numTimesInvoked);
 
             var dict4 = new Dictionary<string, object>();
             dict4["key"] = "four";

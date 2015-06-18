@@ -259,7 +259,24 @@ namespace Couchbase.Lite.Internal
 
         internal Body GetBody()
         {
-            return body;
+            if (body == null) {
+                return body;
+            }
+
+            var props = body.GetProperties();
+            if (docId != null) {
+                props["_id"] = docId;
+            }
+
+            if (revId != null) {
+                props["_rev"] = revId;
+            }
+
+            if (deleted) {
+                props["_deleted"] = true;
+            }
+
+            return new Body(props);
         }
 
         internal void SetBody(Body body)

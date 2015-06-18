@@ -165,7 +165,20 @@ PRAGMA user_version = 3;";
 
         public void OptimizeSQLIndexes()
         {
-
+            long currentSequence = LastSequence;
+            if (currentSequence > 0) {
+                long lastOptimized = long.Parse(GetInfo("last_optimized") ?? "0");
+                if (lastOptimized <= currentSequence / 10) {
+                    RunInTransaction(() =>
+                    {
+                        Log.D(TAG, "Optimizing SQL indexes (curSeq={0}, last run at {1})", currentSequence, lastOptimized);
+                        StorageEngine.ExecSQL("ANALYZE");
+                        StorageEngine.ExecSQL("ANALYZE sqlite_master");
+                        SetInfo("last_optimized", currentSequence.ToString());
+                        return new Status(StatusCode.Ok);
+                    });
+                }
+            }
         }
 
         public bool RunStatements(string sqlStatements)
@@ -775,7 +788,7 @@ PRAGMA user_version = 3;";
             var rev = new RevisionInternal(docId, revId, deleted);
             rev.SetSequence(sequence);
             if (json != null) {
-                rev.SetBody(new Body(json));
+                rev.SetJson(json);
             }
 
             return rev;
@@ -911,13 +924,8 @@ PRAGMA user_version = 3;";
             return status.IsError ? null : revs;
         }
 
-        internal IEnumerable<byte> EncodeDocumentJSON(RevisionInternal rev)
+        private IDictionary<string, object> StripDocumentJSON(IDictionary<string, object> originalProps)
         {
-            var originalProps = rev.GetProperties();
-            if (originalProps == null) {
-                return null;
-            }
-
             // Don't leave in any "_"-prefixed keys except for the ones in SPECIAL_KEYS_TO_LEAVE.
             // Keys in SPECIAL_KEYS_TO_REMOVE (_id, _rev, ...) are left out, any others trigger an error.
             var properties = new Dictionary<string, object>(originalProps.Count);
@@ -929,6 +937,18 @@ PRAGMA user_version = 3;";
                     return null;
                 }
             }
+
+            return properties;
+        }
+
+        internal IEnumerable<byte> EncodeDocumentJSON(RevisionInternal rev)
+        {
+            var originalProps = rev.GetProperties();
+            if (originalProps == null) {
+                return null;
+            }
+
+            var properties = StripDocumentJSON(originalProps);
 
             // Create canonical JSON -- this is important, because the JSON data returned here will be used
             // to create the new revision ID, and we need to guarantee that equivalent revision bodies
@@ -1126,14 +1146,6 @@ PRAGMA user_version = 3;";
                 result.SetSequence(c.GetLong(2));
                 if(withBody) {
                     result.SetJson(c.GetBlob(3));
-                    var props = result.GetProperties();
-                    props["_id"] = result.GetDocId();
-                    props["_rev"] = result.GetRevId();
-                    if(result.IsDeleted()) {
-                        props["_deleted"] = true;
-                    }
-
-                    result.SetProperties(props);
                 }
 
                 status.Code = StatusCode.Ok;
@@ -1687,7 +1699,7 @@ PRAGMA user_version = 3;";
             IEnumerable<byte> json = null;
             if (properties != null) {
                 try {
-                    json = Manager.GetObjectMapper().WriteValueAsBytes(properties);
+                    json = Manager.GetObjectMapper().WriteValueAsBytes(StripDocumentJSON(properties), true);
                 } catch (Exception e) {
                     throw new CouchbaseLiteException(e, StatusCode.BadJson);
                 }

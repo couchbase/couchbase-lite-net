@@ -657,7 +657,7 @@ namespace Couchbase.Lite.Store
                                 try {
                                     changes = db.StorageEngine.ExecSQL(view.QueryString("DELETE FROM 'maps_#' WHERE sequence IN (" +
                                     "SELECT parent FROM revs WHERE sequence>?" +
-                                    "AND +parent>0 AND +parent<=?)"), dbMaxSequence, last, last);
+                                    "AND +parent>0 AND +parent<=?)"), last, last);
                                 } catch (Exception) {
                                     ok = false;
                                 }
@@ -746,7 +746,7 @@ namespace Couchbase.Lite.Store
                             }
 
                             long realSequence = sequence; // because sequence may be changed, below
-                            if (minLastSequence < 0) {
+                            if (minLastSequence > 0) {
                                 // Find conflicts with documents from previous indexings.
                                 using (c2 = db.StorageEngine.IntransactionRawQuery("SELECT revid, sequence FROM revs " +
                                   "WHERE doc_id=? AND sequence<=? AND current!=0 AND deleted=0 " +
