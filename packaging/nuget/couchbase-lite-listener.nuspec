@@ -3,14 +3,14 @@
   <metadata>
     <id>Couchbase.Lite.Listener</id>
     <title>Couchbase Lite - HTTP Listener</title>
-    <version>1.1.0-pre</version>
+    <version>1.1.0</version>
     <authors>Jim Borden, Zachary Gramana</authors>
     <owners>Couchbase</owners>
     <licenseUrl>https://github.com/couchbase/couchbase-lite-net/blob/master/LICENSE</licenseUrl>
     <projectUrl>https://github.com/couchbase/couchbase-lite-net</projectUrl>
     <iconUrl>https://raw.githubusercontent.com/couchbaselabs/couchbase-lite-net/master/packaging/nuget/logo.png</iconUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
-    <description>Provides Couchbase Lite with a REST API.</description>
+    <description>Provides Couchbase Lite with a self-hosted REST API.</description>
     <releaseNotes>
       Enables:
         * Interprocess communication via HTTP.
@@ -22,7 +22,7 @@
     <tags>couchbase couchbase-mobile couchbase-lite sync database p2p peer-to-peer mobile xamarin ios android windows linux mac osx nosql</tags>
     <language>en-US</language>
     <dependencies>
-      <dependency id="Couchbase.Lite" version="1.1-pre" />
+      <dependency id="Couchbase.Lite" version="1.1.0" />
       <dependency id="Jint" version="2.4.0" />
     </dependencies>
   </metadata>
