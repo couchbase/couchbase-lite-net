@@ -52,6 +52,7 @@ using NUnit.Framework;
 using Sharpen;
 using Newtonsoft.Json.Linq;
 using System.Threading;
+using Couchbase.Lite.Views;
 
 namespace Couchbase.Lite
 {
@@ -403,7 +404,7 @@ namespace Couchbase.Lite
             Assert.AreEqual(1, rows.Count);
             Assert.AreEqual(dict4["key"], rows[0].Key);
 
-            // Specific keys:
+            // Specific keys: (note that rows should be in same order as input keys, not sorted)
             options = new QueryOptions();
             var keys = new List<object>();
             keys.AddItem("two");
@@ -414,8 +415,8 @@ namespace Couchbase.Lite
             expectedRows.AddItem(dict4);
             expectedRows.AddItem(dict2);
             Assert.AreEqual(2, rows.Count);
-            Assert.AreEqual(dict4["key"], rows[0].Key);
-            Assert.AreEqual(dict2["key"], rows[1].Key);
+            Assert.AreEqual(dict2["key"], rows[0].Key);
+            Assert.AreEqual(dict4["key"], rows[1].Key);
         }
 
         [Test]
@@ -435,9 +436,7 @@ namespace Couchbase.Lite
             Assert.AreEqual(0, liveQuery.Rows.Count);
 
             PutDocs(database);
-            Thread.Sleep(200000);
-            var foo = liveQuery.Rows.ElementAt(0);
-            var foo2 = liveQuery.Rows.ElementAt(1);
+            Thread.Sleep(2000);
             Assert.AreEqual(1, liveQuery.Rows.Count);
         }
 
@@ -620,9 +619,7 @@ namespace Couchbase.Lite
                 if (cost != null) {
                     emitter (document.Get ("_id"), cost);
                 }
-            }, (IEnumerable<Object> keys, IEnumerable<Object> values, Boolean rereduce)=> {
-                return View.TotalValues(values.ToList());
-                }, "1");
+            }, BuiltinReduceFunctions.Sum, "1");
 
 
             view.UpdateIndex();
@@ -631,13 +628,13 @@ namespace Couchbase.Lite
             Log.V(Tag, "View dump: " + dumpResult);
             Assert.AreEqual(3, dumpResult.Count);
             Assert.AreEqual("\"App\"", dumpResult[0]["key"]);
-            Assert.AreEqual("1.95", dumpResult[0]["value"]);
+            Assert.AreEqual("1.95", dumpResult[0]["val"]);
             Assert.AreEqual(2, dumpResult[0]["seq"]);
             Assert.AreEqual("\"CD\"", dumpResult[1]["key"]);
-            Assert.AreEqual("8.99", dumpResult[1]["value"]);
+            Assert.AreEqual("8.99", dumpResult[1]["val"]);
             Assert.AreEqual(1, dumpResult[1]["seq"]);
             Assert.AreEqual("\"Dessert\"", dumpResult[2]["key"]);
-            Assert.AreEqual("6.5", dumpResult[2]["value"]);
+            Assert.AreEqual("6.5", dumpResult[2]["val"]);
             Assert.AreEqual(3, dumpResult[2]["seq"]);
             QueryOptions options = new QueryOptions();
             options.Reduce = true;
@@ -736,16 +733,14 @@ namespace Couchbase.Lite
             PutDoc(database, docProperties5);
 
             View view = database.GetView("grouper");
-            view.SetMapReduce((IDictionary<string, object> document, EmitDelegate emitter)=>
+            view.SetMapReduce((document, emitter) =>
             {
                     IList<object> key = new List<object>();
                     key.AddItem(document["artist"]);
                     key.AddItem(document["album"]);
                     key.AddItem(document["track"]);
                     emitter(key, document["time"]);
-            }, (IEnumerable<object> keys, IEnumerable<object> values, bool rereduce) => {
-                return View.TotalValues(values.ToList());
-            }, "1");
+            }, BuiltinReduceFunctions.Sum, "1");
                 
             view.UpdateIndex();
             QueryOptions options = new QueryOptions();
@@ -808,15 +803,15 @@ namespace Couchbase.Lite
             row5["key"] = key5;
             row5["value"] = 309.0;
             expectedRows.AddItem(row5);
-            Assert.AreEqual(row1["key"], ((JArray)rows[0].Key).Values<String>().ToList());
+            Assert.AreEqual(row1["key"], rows[0].Key.AsList<string>());
             Assert.AreEqual(row1["value"], rows[0].Value);
-            Assert.AreEqual(row2["key"], ((JArray)rows[1].Key).Values<String>().ToList());
+            Assert.AreEqual(row2["key"], rows[1].Key.AsList<string>());
             Assert.AreEqual(row2["value"], rows[1].Value);
-            Assert.AreEqual(row3["key"], ((JArray)rows[2].Key).Values<String>().ToList());
+            Assert.AreEqual(row3["key"], rows[2].Key.AsList<string>());
             Assert.AreEqual(row3["value"], rows[2].Value);
-            Assert.AreEqual(row4["key"], ((JArray)rows[3].Key).Values<String>().ToList());
+            Assert.AreEqual(row4["key"], rows[3].Key.AsList<string>());
             Assert.AreEqual(row4["value"], rows[3].Value);
-            Assert.AreEqual(row5["key"], ((JArray)rows[4].Key).Values<String>().ToList());
+            Assert.AreEqual(row5["key"], rows[4].Key.AsList<string>());
             Assert.AreEqual(row5["value"], rows[4].Value);
 
             //group level 1
@@ -1200,13 +1195,13 @@ namespace Couchbase.Lite
         {
             var view = database.GetView("vu");
             view.SetMapReduce((document, emit) => emit(document["sequence"], 1), 
-                (keys, values, rereduce) => View.TotalValues(values.ToList()), "1");
+                BuiltinReduceFunctions.Sum, "1");
 
             var query = view.CreateQuery().ToLiveQuery();
 
             var view1 = database.GetView("vu1");
             view1.SetMapReduce((document, emit) => emit(document["sequence"], 1), 
-                (keys, values, rereduce) => View.TotalValues(values.ToList()), "1");
+                BuiltinReduceFunctions.Sum, "1");
 
             var query1 = view1.CreateQuery().ToLiveQuery();
 
@@ -1226,7 +1221,7 @@ namespace Couchbase.Lite
                 }
             };
 
-            var success = gotExpectedQueryResult.Wait(TimeSpan.FromSeconds(10));
+            var success = gotExpectedQueryResult.Wait(TimeSpan.FromSeconds(1000));
             Assert.IsTrue(success);
             query.Stop();
 

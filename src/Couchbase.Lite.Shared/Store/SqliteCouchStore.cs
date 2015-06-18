@@ -803,7 +803,7 @@ PRAGMA user_version = 3;";
             var sql = String.Format("SELECT sequence FROM revs WHERE doc_id=? AND revid=? {0} LIMIT 1",
                           (onlyCurrent ? "AND current=1" : ""));
 
-            return QueryOrDefault<long>(c => c.GetLong(0), false, 0L, sql, docNumericId, revId);
+            return QueryOrDefault<long>(c => c.GetLong(0), true, 0L, sql, docNumericId, revId);
         }
 
         private bool DocumentExists(string docId, string revId)
@@ -1794,10 +1794,7 @@ PRAGMA user_version = 3;";
                 Debug.Assert(docId != null);
                 newRev = new RevisionInternal(docId, newRevId, deleting);
                 if(properties != null) {
-                    var nuProps = new Dictionary<string, object>(properties);
-                    nuProps["_id"] = docId;
-                    nuProps["_rev"] = newRevId;
-                    newRev.SetProperties(nuProps);
+                    newRev.SetProperties(properties);
                 }
 
                 // Validate:
@@ -1844,7 +1841,7 @@ PRAGMA user_version = 3;";
                     try {
                         StorageEngine.Update("revs", args, "sequence=?", parentSequence.ToString());
                     } catch(Exception) {
-                        StorageEngine.Delete("revs", "sequence=?", parentSequence.ToString());
+                        StorageEngine.Delete("revs", "sequence=?", sequence.ToString());
                         return new Status(StatusCode.DbError);
                     }
                 }

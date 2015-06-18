@@ -587,7 +587,7 @@ namespace Couchbase.Lite.Store
 
                     // Check whether we need to update at all,
                     // and remove obsolete emitted results from the 'maps' table:
-                    long minLastSequence = db.LastSequence;
+                    long minLastSequence = dbMaxSequence;
                     long[] viewLastSequence = new long[inputViews.Count()];
                     int deletedCount = 0;
                     int i = 0;
@@ -656,8 +656,8 @@ namespace Couchbase.Lite.Store
                                 // Delete all obsolete map results (ones from since-replaced revisions):
                                 try {
                                     changes = db.StorageEngine.ExecSQL(view.QueryString("DELETE FROM 'maps_#' WHERE sequence IN (" +
-                                    "SELECT parent FROM revs WHERE sequence>? " +
-                                    "AND +parent>0 AND +parent<=?)"), last, last);
+                                    "SELECT parent FROM revs WHERE sequence>?" +
+                                    "AND +parent>0 AND +parent<=?)"), dbMaxSequence, last, last);
                                 } catch (Exception) {
                                     ok = false;
                                 }
@@ -709,7 +709,7 @@ namespace Couchbase.Lite.Store
                         sql.Append(", doc_type ");
                     }
 
-                    sql.Append("FROM revs, docs WHERE sequence>? AND current!=0 ");
+                    sql.Append("FROM revs, docs WHERE sequence>? AND sequence <=? AND current!=0 ");
                     if (minLastSequence == 0) {
                         sql.Append("AND deleted=0 ");
                     }
@@ -724,7 +724,7 @@ namespace Couchbase.Lite.Store
                     Cursor c = null;
                     Cursor c2 = null;
                     try {
-                        c = db.StorageEngine.IntransactionRawQuery(sql.ToString(), minLastSequence);
+                        c = db.StorageEngine.IntransactionRawQuery(sql.ToString(), minLastSequence, dbMaxSequence);
                         bool keepGoing = c.MoveToNext();
                         while (keepGoing) {
                             // Get row values now, before the code below advances 'c':
@@ -1007,14 +1007,14 @@ namespace Couchbase.Lite.Store
                     valueOrData = rev.GetProperties();
                 }
 
-                keysToReduce.Add(keyData);
-                valuesToReduce.Add(valueData);
+                keysToReduce.Add(keyData.Value);
+                valuesToReduce.Add(valueData.Value);
                 return new Status(StatusCode.Ok);
             });
 
             if((keysToReduce != null && keysToReduce.Count > 0) || lastKeyData != null) {
                 // Finish the last group (or the entire list, if no grouping):
-                var key = group ? GroupKey(lastKeyData, groupLevel) : null;
+                var key = group ? GroupKey(lastKeyData.Value, groupLevel) : null;
                 var reduced = CallReduce(reduce, keysToReduce, valuesToReduce);
                 Log.V(TAG, "    Query {0}: Will reduce row with key={1}, value={2}", Name, Manager.GetObjectMapper().WriteValueAsString(key),
                     Manager.GetObjectMapper().WriteValueAsString(reduced));

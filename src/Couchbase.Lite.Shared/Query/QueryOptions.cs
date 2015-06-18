@@ -170,8 +170,9 @@ namespace Couchbase.Lite
         /// </summary>
         public QueryOptions()
         {
-            Limit = int.MaxValue;
+            Limit = DEFAULT_LIMIT;
             InclusiveEnd = true;
+            InclusiveStart = true;
         }
 
         /// <summary>
