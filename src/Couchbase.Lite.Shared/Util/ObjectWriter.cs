@@ -41,26 +41,46 @@
 //
 
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text;
+
 using Newtonsoft.Json;
 
 namespace Couchbase.Lite 
 {
     internal class ObjectWriter 
     {
-        static readonly JsonSerializerSettings settings = new JsonSerializerSettings { ReferenceLoopHandling = ReferenceLoopHandling.Ignore };
 
-        readonly Boolean prettyPrintJson;
+        #region Constants
+
+        private static readonly JsonSerializerSettings settings = new JsonSerializerSettings { 
+            ReferenceLoopHandling = ReferenceLoopHandling.Ignore
+        };
+
+        #endregion
+
+        #region Variables
+
+        private readonly bool _prettyPrintJson;
+
+        #endregion
+
+        #region Constructors
 
         public ObjectWriter() : this(false) { }
 
         public ObjectWriter(Boolean prettyPrintJson)
         {
-            this.prettyPrintJson = prettyPrintJson;
+            this._prettyPrintJson = prettyPrintJson;
         }
+
+        #endregion
+
+        #region Public Methods
 
         public ObjectWriter WriterWithDefaultPrettyPrinter()
         {
@@ -73,16 +93,21 @@ namespace Couchbase.Lite
             return Encoding.UTF8.GetBytes(json);
         }
 
-        public string WriteValueAsString<T> (T item)
+        public string WriteValueAsString<T> (T item, bool canonical = false)
         {
-            return JsonConvert.SerializeObject(item, prettyPrintJson ? Formatting.Indented : Formatting.None, settings);
+            if (!canonical) {
+                return JsonConvert.SerializeObject(item, _prettyPrintJson ? Formatting.Indented : Formatting.None, settings);
+            }
+
+            var newItem = MakeCanonical(item);
+            return JsonConvert.SerializeObject(newItem, _prettyPrintJson ? Formatting.Indented : Formatting.None, settings);
         }
 
         public T ReadValue<T> (String json)
         {
             T item;
             try {
-                item = JsonConvert.DeserializeObject<T>(json);
+                item = JsonConvert.DeserializeObject<T>(json, settings);
             } catch(JsonException e) {
                 throw new CouchbaseLiteException(e, StatusCode.BadJson);
             }
@@ -95,7 +120,7 @@ namespace Couchbase.Lite
             using (var jsonStream = new MemoryStream(json.ToArray())) 
             using (var jsonReader = new JsonTextReader(new StreamReader(jsonStream))) 
             {
-                var serializer = new JsonSerializer();
+                var serializer = JsonSerializer.Create(settings);
                 T item;
                 try {
                     item = serializer.Deserialize<T>(jsonReader);
@@ -111,7 +136,7 @@ namespace Couchbase.Lite
         {
             using (var jsonReader = new JsonTextReader(new StreamReader(jsonStream))) 
             {
-                var serializer = new JsonSerializer();
+                var serializer = JsonSerializer.Create(settings);
                 T item;
                 try {
                     item = serializer.Deserialize<T>(jsonReader);
@@ -122,6 +147,53 @@ namespace Couchbase.Lite
                 return item;
             }
         }
+
+        #endregion
+
+        #region Private Methods
+
+        private static object MakeCanonical(object input)
+        {
+            if (input == null) {
+                return null;
+            }
+
+            var t = input.GetType();
+            if (t.GetInterface(typeof(IDictionary<,>).FullName) != null) {
+                var sorted = new SortedDictionary<object, object>();
+                var method = t.GetMethod("GetEnumerator");
+                var e = (IEnumerator)method.Invoke(input, null);
+                PropertyInfo keyProp = null, valueProp = null;
+                while(e.MoveNext()) {
+                    if(keyProp == null) {
+                        keyProp = e.Current.GetType().GetProperty("Key");
+                        valueProp = e.Current.GetType().GetProperty("Value");
+                    }
+
+                    var key = keyProp.GetValue(e.Current);
+                    var value = valueProp.GetValue(e.Current);
+                    sorted[key] = MakeCanonical(value);
+                }
+
+                return sorted;
+            }
+
+            var array = input as IList;
+            if (array != null) {
+                var newList = new List<object>();
+                var e = array.GetEnumerator();
+                while (e.MoveNext()) {
+                    newList.Add(MakeCanonical(e.Current));
+                }
+
+                newList.Sort();
+                return newList;
+            }
+
+            return input;
+        }
+
+        #endregion
     }
 }
 
