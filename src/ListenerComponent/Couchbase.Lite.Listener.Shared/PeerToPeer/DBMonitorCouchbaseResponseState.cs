@@ -189,7 +189,7 @@ namespace Couchbase.Lite.Listener
                     }
                 }
 
-                if (!_db.RunFilter(ChangesFilter, FilterParams, rev)) {
+                if (!Db.RunFilter(ChangesFilter, FilterParams, rev)) {
                     continue;
                 }
 

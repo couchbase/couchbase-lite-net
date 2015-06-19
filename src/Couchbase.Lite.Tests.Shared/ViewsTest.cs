@@ -897,7 +897,7 @@ namespace Couchbase.Lite
                 {
                     emitter(Sharpen.Runtime.Substring(name, 0, 1), 1);
                 }
-            }, (keys, values, rereduce) => View.TotalValues(values.ToList()), "1.0");
+            }, BuiltinReduceFunctions.Sum, "1.0");
 
             view.UpdateIndex();
             QueryOptions options = new QueryOptions();

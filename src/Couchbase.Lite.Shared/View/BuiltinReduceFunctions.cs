@@ -58,7 +58,7 @@ namespace Couchbase.Lite.Views
         /// <summary>
         /// A function that adds all of the items contained in the map
         /// </summary>
-        public static readonly ReduceDelegate Sum = (k, v, r) => View.TotalValues(v.ToList());
+        public static readonly ReduceDelegate Sum = (k, v, r) => TotalValues(v.ToList());
 
         /// <summary>
         /// A function that retrieves the minimum value in the map
