@@ -42,7 +42,7 @@
 
 using Couchbase.Lite.Storage;
 
-namespace Couchbase.Lite.Storage
+namespace Couchbase.Lite.Store
 {
     internal static class SQLiteStorageEngineFactory
     {

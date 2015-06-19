@@ -45,19 +45,17 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
-using System.Reflection;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 
 using Couchbase.Lite.Auth;
+using Couchbase.Lite.Db;
 using Couchbase.Lite.Replicator;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
-using Sharpen;
-using Couchbase.Lite.Db;
-using System.Diagnostics;
 using ICSharpCode.SharpZipLib.Zip;
+using Sharpen;
 
 #if !NET_3_5
 using StringEx = System.String;
@@ -84,13 +82,13 @@ namespace Couchbase.Lite
         /// <summary>
         /// The error domain used for HTTP status codes.
         /// </summary>
-        const string HttpErrorDomain = "CBLHTTP";
+        private const string HttpErrorDomain = "CBLHTTP";
 
         internal const string DatabaseSuffixv0 = ".touchdb";
         internal const string DatabaseSuffix = ".cblite";
 
         // FIXME: Not all of these are valid Windows file chars.
-        const string IllegalCharacters = @"(^[^a-z]+)|[^a-z0-9_\$\(\)/\+\-]+";
+        private const string IllegalCharacters = @"(^[^a-z]+)|[^a-z0-9_\$\(\)/\+\-]+";
 
     #endregion
 
@@ -241,6 +239,8 @@ namespace Couchbase.Lite
             this.NetworkReachabilityManager = new NetworkReachabilityManager();
 
             SharedCookieStore = new CookieStore(this.directoryFile.FullName);
+            StorageType = "SQLite";
+            Shared = new SharedState();
         }
 
     #endregion
@@ -291,7 +291,7 @@ namespace Couchbase.Lite
         public void Close() 
         {
             Log.I(TAG, "Closing " + this);
-            foreach (var database in databases.Values) {
+            foreach (var database in databases.Values.ToArray()) {
                 var replicators = database.AllReplications;
 
                 if (replicators != null) {
@@ -316,13 +316,13 @@ namespace Couchbase.Lite
         public Database GetDatabase(String name) 
         {
             var db = GetDatabaseWithoutOpening(name, false);
-            if (db != null)
-            {
+            if (db != null) {
                 var opened = db.Open();
-                if (!opened)
-                {
+                if (!opened) {
                     return null;
                 }
+
+                Shared.OpenedDatabase(db);
             }
             return db;
         }
@@ -335,11 +335,12 @@ namespace Couchbase.Lite
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException">Thrown if an issue occurs while getting the <see cref="Couchbase.Lite.Database"/>.</exception>
         public Database GetExistingDatabase(String name)
         {
-            var db = GetDatabaseWithoutOpening(name, mustExist: true);
-            if (db != null)
-            {
+            var db = GetDatabaseWithoutOpening(name, true);
+            if (db != null) {
                 db.Open();
+                Shared.OpenedDatabase(db);
             }
+
             return db;
         }
 
@@ -386,7 +387,7 @@ namespace Couchbase.Lite
                     database.Open();
                 }
             } catch (Exception e) {
-                Log.E(Database.Tag, string.Empty, e);
+                Log.E(Database.TAG, string.Empty, e);
                 throw new CouchbaseLiteException(StatusCode.InternalServerError);
             }
         }
@@ -486,6 +487,8 @@ namespace Couchbase.Lite
         internal IHttpClientFactory DefaultHttpClientFactory { get; set; }
         internal INetworkReachabilityManager NetworkReachabilityManager { get ; private set; }
         internal CookieStore SharedCookieStore { get; set; } 
+        internal string StorageType { get; set; } // @"SQLite" (default) or @"ForestDB"
+            internal SharedState Shared { get; private set; }
 
 
         // Instance Methods
@@ -506,10 +509,10 @@ namespace Couchbase.Lite
                     return null;
                 }
 
-                db = new Database(path, this);
+                db = new Database(path, name, this, options.ReadOnly);
                 if (mustExist && !db.Exists()) {
                     var msg = string.Format("mustExist is true and db ({0}) does not exist", name);
-                    Log.W(Database.Tag, msg);
+                    Log.W(Database.TAG, msg);
                     return null;
                 }
 
@@ -528,20 +531,18 @@ namespace Couchbase.Lite
         {
             // remove from cached list of dbs
             databases.Remove(database.Name);
+            Shared.ClosedDatabase(database);
 
             // remove from list of replications
             // TODO: should there be something that actually stops the replication(s) first?
-            if (replications.Count == 0)
-            {
+            if (replications.Count == 0) {
                 return;
             }
 
             var i = replications.Count;
-            for (; i >= 0; i--) 
-            {
+            for (; i >= 0; i--) {
                 var replication = replications[i];
-                if (replication.LocalDatabase == database) 
-                {
+                if (replication.LocalDatabase == database) {
                     replications.RemoveAt(i);
                 }
             }
@@ -589,7 +590,7 @@ namespace Couchbase.Lite
 
             if (!oldFilename.Equals(newFilename) && newFile.Exists) {
                 var msg = String.Format("Cannot rename {0} to {1}, {2} already exists", oldFilename, newFilename, newFilename);
-                Log.W(Database.Tag, msg);
+                Log.W(Database.TAG, msg);
                 return;
             }
 

@@ -1555,7 +1555,7 @@ namespace Couchbase.Lite
                     }
                 }
             } catch (Exception e) {
-                Log.E(Database.Tag, "Exception getting status from " + item, e);
+                Log.E(Database.TAG, "Exception getting status from " + item, e);
             }
 
             return new Status(StatusCode.Ok);

@@ -52,6 +52,7 @@ using Couchbase.Lite.Internal;
 using Couchbase.Lite.Util;
 using NUnit.Framework;
 using Sharpen;
+using Couchbase.Lite.Views;
 
 #if !NET_3_5
 using StringEx = System.String;
@@ -385,7 +386,7 @@ namespace Couchbase.Lite
                     {
                         emit(name, vacant);
                     }
-                }, (keys, values, rereduce) => View.TotalValues(values.ToList()), "1.0");
+                }, BuiltinReduceFunctions.Sum, "1.0");
 
                 database.RunInTransaction(() =>
                 {
@@ -437,7 +438,7 @@ namespace Couchbase.Lite
                     {
                         emit(name, vacant);
                     }
-                }, (keys, values, rereduce) => View.TotalValues(values.ToList()), "1.0");
+                }, BuiltinReduceFunctions.Sum, "1.0");
 
                 database.RunInTransaction(() =>
                 {
@@ -500,7 +501,7 @@ namespace Couchbase.Lite
                     {
                         emit(name, vacant);
                     }
-                }, (keys, values, rereduce) => View.TotalValues(values.ToList()), "1.0");
+                }, BuiltinReduceFunctions.Sum, "1.0");
 
                 database.RunInTransaction(() =>
                 {
@@ -583,10 +584,7 @@ namespace Couchbase.Lite
                     {
                         emit(name, vacant);
                     }
-                }, (keys, values, rereduce) => 
-                {
-                    return View.TotalValues(values.ToList());
-                }, "1.0.0");
+                }, BuiltinReduceFunctions.Sum, "1.0.0");
 
                 var query = database.GetView("vacant").CreateQuery();
                 query.Descending = false;
@@ -705,17 +703,17 @@ namespace Couchbase.Lite
 
                 database.RunAsync((db) => 
                 {
-                    database.BeginTransaction();
-
-                    for (var i = 0; i < numDocs; i++)
+                    database.RunInTransaction(() =>
                     {
-                        var doc = database.CreateDocument();
-                        props["sequence"] = i;
-                        var rev = doc.PutProperties(props);
-                        Assert.IsNotNull(rev);
-                    }
+                        for (var i = 0; i < numDocs; i++) {
+                            var doc = database.CreateDocument();
+                            props["sequence"] = i;
+                            var rev = doc.PutProperties(props);
+                            Assert.IsNotNull(rev);
+                        }
 
-                    db.EndTransaction(true);
+                        return true;
+                    });
                 });
 
                 var success = doneSignal.Await(TimeSpan.FromSeconds(300));

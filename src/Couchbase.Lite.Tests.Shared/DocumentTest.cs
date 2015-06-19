@@ -194,24 +194,24 @@ namespace Couchbase.Lite
             var properties = new Dictionary<string, object>();
             properties["foo"] = "foo";
             properties["bar"] = false;
+            properties["_id"] = document.Id;
             document.PutProperties(properties);
+            properties["_rev"] = document.CurrentRevisionId;
             Assert.IsNotNull(document.CurrentRevision);
 
-            var deleted = false;
-
             var revisionInternal = new RevisionInternal(
-                document.Id, document.CurrentRevisionId, deleted);
+                document.Id, document.CurrentRevisionId, false);
 
-            var contentOptions = DocumentContentOptions.IncludeAttachments | DocumentContentOptions.BigAttachmentsFollow;
-
-            database.LoadRevisionBody(revisionInternal, contentOptions);
+            database.LoadRevisionBody(revisionInternal);
+            Assert.AreEqual(properties, revisionInternal.GetProperties());
+            revisionInternal.SetBody(null);
 
             // now lets purge the document, and then try to load the revision body again
             document.Purge();
 
             var gotExpectedException = false;
             try {
-                database.LoadRevisionBody(revisionInternal, contentOptions);
+                database.LoadRevisionBody(revisionInternal);
             } catch (CouchbaseLiteException e) {
                 gotExpectedException |= 
                     e.CBLStatus.Code == StatusCode.NotFound;

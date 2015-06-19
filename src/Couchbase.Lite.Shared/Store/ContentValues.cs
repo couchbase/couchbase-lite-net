@@ -47,7 +47,7 @@ using System.Text;
 
 using Sharpen;
 
-namespace Couchbase.Lite.Storage
+namespace Couchbase.Lite.Store
 {
 
     /// <summary>
@@ -123,7 +123,7 @@ namespace Couchbase.Lite.Storage
 
         /// <summary>Adds all values from the passed in ContentValues.</summary>
         /// <param name="other">the ContentValues from which to copy</param>
-        public void PutAll(Couchbase.Lite.Storage.ContentValues other)
+        public void PutAll(ContentValues other)
         {
             mValues.PutAll(other.mValues);
         }

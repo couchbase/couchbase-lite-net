@@ -42,7 +42,7 @@
 
 using System;
 
-namespace Couchbase.Lite.Storage
+namespace Couchbase.Lite.Store
 {
     /// <summary>
     /// Indicates the action to take when an insert action finds an existing entry

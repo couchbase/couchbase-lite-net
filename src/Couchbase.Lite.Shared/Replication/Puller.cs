@@ -326,7 +326,7 @@ namespace Couchbase.Lite.Replicator
                 // findMissingRevisions is the local equivalent of _revs_diff. it looks at the
                 // array of revisions in inbox and removes the ones that already exist. So whatever's left in inbox
                 // afterwards are the revisions that need to be downloaded.
-                numRevisionsRemoved = LocalDatabase.FindMissingRevisions(inbox);
+                numRevisionsRemoved = LocalDatabase.Storage.FindMissingRevisions(inbox);
             } catch (Exception e) {
                 Log.E(Tag, "Failed to look up local revs", e);
                 inbox = null;
@@ -721,7 +721,7 @@ namespace Couchbase.Lite.Replicator
             }
             catch (Exception e)
             {
-                Log.E(Database.Tag, "Exception getting status from " + item, e);
+                Log.E(Database.TAG, "Exception getting status from " + item, e);
             }
             return new Status(StatusCode.Ok);
         }
@@ -842,7 +842,7 @@ namespace Couchbase.Lite.Replicator
                             continue;
                         }
 
-                        Log.D(Tag, String.Format("{0}: inserting {1} {2}", this, rev.GetDocId(), history));
+                        Log.D(Tag, String.Format("Inserting {0} {1}", rev.GetDocId(), history.ToStringArray()));
 
                         // Insert the revision:
                         try
@@ -915,7 +915,7 @@ namespace Couchbase.Lite.Replicator
         {
             if (LocalDatabase != null)
             {
-                return LocalDatabase.GetAllRevisionsOfDocumentID(rev.GetDocId(), true).GetAllRevIds();
+                return LocalDatabase.Storage.GetAllDocumentRevisions(rev.GetDocId(), true).GetAllRevIds();
             }
             return null;
         }

@@ -104,7 +104,7 @@ namespace Couchbase.Lite.Auth
                 {
                     accessTokens = new Dictionary<IList<string>, string>();
                 }
-                Log.D(Database.Tag, "FacebookAuthorizer registering key: " + key);
+                Log.D(Database.TAG, "FacebookAuthorizer registering key: " + key);
                 accessTokens[key] = accessToken;
                 return true;
             }
@@ -117,12 +117,12 @@ namespace Couchbase.Lite.Auth
                 IList<string> key = new List<string>();
                 key.AddItem(email);
                 key.AddItem(site.ToString().ToLower());
-                Log.D(Database.Tag, "FacebookAuthorizer looking up key: " + key + " from list of access tokens");
+                Log.D(Database.TAG, "FacebookAuthorizer looking up key: " + key + " from list of access tokens");
                 return accessTokens.Get(key);
             }
             catch (Exception e)
             {
-                Log.E(Database.Tag, "Error looking up access token", e);
+                Log.E(Database.TAG, "Error looking up access token", e);
             }
             return null;
         }

@@ -428,7 +428,7 @@ namespace Couchbase.Lite
             });
 
             // Check if the current last sequence indexed has been changed:
-            Thread.Sleep(5000);
+            Thread.Sleep(8000);
             Assert.IsTrue(prevSequenceIndexed < view.LastSequenceIndexed);
 
             // Confirm the result with stale = ok:
@@ -1014,18 +1014,15 @@ namespace Couchbase.Lite
             });
 
             // Update the document but not the attachments:
-            //FIXME.JHB: iOS doesn't need the revpos property present here
             var attachmentsDict = new Dictionary<string, object> {
                 { "attach", new Dictionary<string, object> {
                         { "content_type", "text/plain" },
-                        { "stub", true },
-                        { "revpos", 1L }
+                        { "stub", true }
                     }
                 },
                 { "path/to/attachment", new Dictionary<string, object> {
                         { "content_type", "text/plain" },
-                        { "stub", true },
-                        { "revpos", 1L }
+                        { "stub", true }
                     }
                 },
             };
@@ -1538,13 +1535,13 @@ namespace Couchbase.Lite
             result = SendBody<IDictionary<string, object>>("PUT", endpoint, new Body(new Dictionary<string, object> {
                 { "message", "hello" } 
             }), HttpStatusCode.Created, null);
-            var revId2 = result.GetCast<string>("rev");
+            var revId3 = result.GetCast<string>("rev");
 
             endpoint = endpoint.Replace("doc3", "doc2");
             result = SendBody<IDictionary<string, object>>("PUT", endpoint, new Body(new Dictionary<string, object> {
                 { "message", "hello" } 
             }), HttpStatusCode.Created, null);
-            var revId3 = result.GetCast<string>("rev");
+            var revId2 = result.GetCast<string>("rev");
 
             endpoint = String.Format("/{0}/_all_docs", database.Name);
             result = Send<IDictionary<string, object>>("GET", endpoint, HttpStatusCode.OK, null);

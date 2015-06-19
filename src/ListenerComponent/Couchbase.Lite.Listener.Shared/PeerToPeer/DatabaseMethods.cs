@@ -1,4 +1,4 @@
-﻿//
+//
 //  DatabaseMethods.cs
 //
 //  Author:
@@ -27,6 +27,7 @@ using System.Linq;
 using Couchbase.Lite.Internal;
 using Couchbase.Lite.Replicator;
 using Couchbase.Lite.Util;
+using Sharpen;
 
 namespace Couchbase.Lite.Listener
 {
@@ -310,6 +311,8 @@ namespace Couchbase.Lite.Listener
                 }
                     
                 var options = new ChangesOptions();
+                responseState.Db = db;
+                responseState.ContentOptions = context.ContentOptions;
                 responseState.ChangesFeedMode = context.ChangesFeedMode;
                 responseState.ChangesIncludeDocs = context.GetQueryParam<bool>("include_docs", bool.TryParse, false);
                 options.SetIncludeDocs(responseState.ChangesIncludeDocs);
@@ -416,7 +419,7 @@ namespace Couchbase.Lite.Listener
                     return context.CreateResponse(StatusCode.BadJson);
                 }
 
-                var purgedRevisions = db.PurgeRevisions(body);
+                var purgedRevisions = db.Storage.PurgeRevisions(body);
                 if(purgedRevisions == null) {
                     return context.CreateResponse(StatusCode.DbError);
                 }
@@ -484,7 +487,7 @@ namespace Couchbase.Lite.Listener
 
                 try {
                     view.UpdateIndex();
-                    return QueryView(context, view, options);
+                    return QueryView(context, null, view, options);
                 } catch(CouchbaseLiteException e) {
                     response.InternalStatus = e.CBLStatus.Code;
                 }
@@ -552,6 +555,14 @@ namespace Couchbase.Lite.Listener
         /// <param name="responseState">The current response state</param>
         public static IDictionary<string, object> ChangesDictForRev(RevisionInternal rev, DBMonitorCouchbaseResponseState responseState)
         {
+            if (responseState.ChangesIncludeDocs) {
+                var status = new Status();
+                var rev2 = DocumentMethods.ApplyOptions(responseState.ContentOptions, rev, responseState.Context, responseState.Db, status);
+                if (rev2 != null) {
+                    rev2.SetSequence(rev.GetSequence());
+                    rev = rev2;
+                }
+            }
             return new NonNullDictionary<string, object> {
                 { "seq", rev.GetSequence() },
                 { "id", rev.GetDocId() },
@@ -573,19 +584,33 @@ namespace Couchbase.Lite.Listener
         /// <param name="context">The request context</param>
         /// <param name="view">The view to query</param>
         /// <param name="options">The options to apply to the query</param>
-        public static CouchbaseLiteResponse QueryView(ICouchbaseListenerContext context, View view, QueryOptions options)
+        public static CouchbaseLiteResponse QueryView(ICouchbaseListenerContext context, Database db, View view, QueryOptions options)
         {
             var result = view.QueryWithOptions(options);
+
             object updateSeq = options.UpdateSeq ? (object)view.LastSequenceIndexed : null;
-            var mappedDic = result.Select(x => new NonNullDictionary<string, object> {
-                { "id", x.DocumentId },
-                { "key", x.Key },
-                { "value", x.Value },
-                { "doc", x.DocumentProperties }
-            });
+            var mappedResult = new List<object>();
+            foreach (var row in result) {
+                row.Database = db;
+                var dict = row.AsJSONDictionary();
+                if (context.ContentOptions != DocumentContentOptions.None) {
+                    var doc = dict.Get("doc").AsDictionary<string, object>();
+                    if (doc != null) {
+                        // Add content options:
+                        RevisionInternal rev = new RevisionInternal(doc);
+                        var status = new Status();
+                        rev = DocumentMethods.ApplyOptions(context.ContentOptions, rev, context, db, status);
+                        if (rev != null) {
+                            dict["doc"] = rev.GetProperties();
+                        }
+                    }
+                }
+
+                mappedResult.Add(dict);
+            }
 
             var body = new Body(new NonNullDictionary<string, object> {
-                { "rows", mappedDic },
+                { "rows", mappedResult },
                 { "total_rows", view.TotalRows },
                 { "offset", options.Skip },
                 { "update_seq", updateSeq }
@@ -603,15 +628,20 @@ namespace Couchbase.Lite.Listener
         //Do an all document request on the database (i.e. fetch all docs given some options)
         private static CouchbaseLiteResponse DoAllDocs(ICouchbaseListenerContext context, Database db, QueryOptions options)
         {
-            var result = db.GetAllDocs(options);
-            if (!result.ContainsKey("rows")) {
+            var iterator = db.GetAllDocs(options);
+            if (iterator == null) {
                 return context.CreateResponse(StatusCode.BadJson);
             }
-
-            var documentProps = from row in (List<QueryRow>)result["rows"] select row.AsJSONDictionary();
-            result["rows"] = documentProps;
+                
             var response = context.CreateResponse();
-            response.JsonBody = new Body(result);
+            var result = (from row in iterator
+                select row.AsJSONDictionary()).ToList();
+            response.JsonBody = new Body(new NonNullDictionary<string, object> {
+                { "rows", result },
+                { "total_rows", result.Count },
+                { "offset", options.Skip },
+                { "update_seq", options.UpdateSeq ? (object)db.LastSequenceNumber : null }
+            });
             return response;
         }
 

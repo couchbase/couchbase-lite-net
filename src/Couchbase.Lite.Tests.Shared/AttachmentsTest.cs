@@ -98,12 +98,12 @@ namespace Couchbase.Lite
             var attachmentDict = new Dictionary<string, object> {
                 { testAttachmentName, itemDict }
             };
-            var gotRev1 = database.GetDocumentWithIDAndRev(rev1.GetDocId(), rev1.GetRevId(), DocumentContentOptions.None);
+            var gotRev1 = database.GetDocument(rev1.GetDocId(), rev1.GetRevId(), true);
             AssertDictionariesAreEqual(attachmentDict, gotRev1.GetAttachments());
 
             itemDict.Remove("stub");
             itemDict["data"] = Convert.ToBase64String(attach1);
-            gotRev1 = database.GetDocumentWithIDAndRev(rev1.GetDocId(), rev1.GetRevId(), DocumentContentOptions.IncludeAttachments);
+            gotRev1 = database.GetDocument(rev1.GetDocId(), rev1.GetRevId(), true);
             var expandedRev = gotRev1.CopyWithDocID(rev1.GetDocId(), rev1.GetRevId());
             Assert.IsTrue(database.ExpandAttachments(expandedRev, 0, false, true, status));
             AssertDictionariesAreEqual(attachmentDict, expandedRev.GetAttachments());
@@ -310,11 +310,12 @@ namespace Couchbase.Lite
             Assert.AreEqual(1, attachments.Count());
             
             // Get the revision:
-            var gotRev1 = database.GetDocumentWithIDAndRev(rev1.GetDocId(), 
-                rev1.GetRevId(), DocumentContentOptions.None);
+            var gotRev1 = database.GetDocument(rev1.GetDocId(), 
+                rev1.GetRevId(), true);
             var gotAttachmentDict = gotRev1.GetPropertyForKey("_attachments").AsDictionary<string, object>();
+            gotAttachmentDict[testAttachmentName] = gotAttachmentDict[testAttachmentName].AsDictionary<string, object>();
 
-            var innerDict = new JObject();
+            var innerDict = new Dictionary<string, object>();
             innerDict["content_type"] = "text/plain";
             innerDict["digest"] = "sha1-gOHUOBmIMoDCrMuGyaLWzf1hQTE=";
             innerDict["length"] = 27;
@@ -368,10 +369,11 @@ namespace Couchbase.Lite
             Assert.AreEqual(rev1.GetDocId(), rev2.GetDocId());
             Assert.AreEqual(2, rev2.GetGeneration());
             // Get the updated revision:
-            RevisionInternal gotRev2 = database.GetDocumentWithIDAndRev(rev2.GetDocId(), rev2
-                .GetRevId(), DocumentContentOptions.None);
+            RevisionInternal gotRev2 = database.GetDocument(rev2.GetDocId(), rev2
+                .GetRevId(), true);
             attachmentDict = gotRev2.GetProperties().Get("_attachments").AsDictionary<string, object>();
-            innerDict = new JObject();
+            attachmentDict[testAttachmentName] = attachmentDict[testAttachmentName].AsDictionary<string, object>();
+            innerDict = new Dictionary<string, object>();
             innerDict["content_type"] = "application/foo";
             innerDict["digest"] = "sha1-mbT3208HI3PZgbG4zYWbDW2HsPk=";
             innerDict["length"] = 23;
@@ -388,7 +390,7 @@ namespace Couchbase.Lite
             }
             catch (CouchbaseLiteException e)
             {
-                gotExpectedErrorCode = (e.CBLStatus.Code == StatusCode.NotFound);
+                gotExpectedErrorCode = (e.CBLStatus.Code == StatusCode.AttachmentNotFound);
             }
             Assert.IsTrue(gotExpectedErrorCode);
             gotExpectedErrorCode = false;
@@ -407,8 +409,8 @@ namespace Couchbase.Lite
             Assert.AreEqual(rev2.GetDocId(), rev3.GetDocId());
             Assert.AreEqual(3, rev3.GetGeneration());
             // Get the updated revision:
-            RevisionInternal gotRev3 = database.GetDocumentWithIDAndRev(rev3.GetDocId(), rev3
-                .GetRevId(), DocumentContentOptions.None);
+            RevisionInternal gotRev3 = database.GetDocument(rev3.GetDocId(), rev3
+                .GetRevId(), true);
             attachmentDict = gotRev3.GetProperties().Get("_attachments").AsDictionary<string, object>();
             Assert.IsNull(attachmentDict);
             database.Close();

@@ -21,6 +21,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Couchbase.Lite.Util;
 
 namespace Couchbase.Lite.Views
 {
@@ -57,7 +58,7 @@ namespace Couchbase.Lite.Views
         /// <summary>
         /// A function that adds all of the items contained in the map
         /// </summary>
-        public static readonly ReduceDelegate Sum = (k, v, r) => View.TotalValues(v.ToList());
+        public static readonly ReduceDelegate Sum = (k, v, r) => TotalValues(v.ToList());
 
         /// <summary>
         /// A function that retrieves the minimum value in the map
@@ -102,6 +103,21 @@ namespace Couchbase.Lite.Views
             }
 
             return retVal;
+        }
+
+        internal static double TotalValues(IList<object> values)
+        {
+            double total = 0;
+            foreach (object o in values)
+            {
+                try {
+                    double number = Convert.ToDouble(o);
+                    total += number;
+                } catch (Exception e) {
+                    Log.W(Database.TAG, "Warning non-numeric value found in totalValues: " + o, e);
+                }
+            }
+            return total;
         }
 
         #endregion

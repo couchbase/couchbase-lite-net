@@ -127,7 +127,12 @@ namespace Couchbase.Lite {
         /// <summary>
         /// Include *only* conflicted revisions in the results
         /// </summary>
-        OnlyConflicts
+        OnlyConflicts,
+
+        /// <summary>
+        /// Order by sequence number (i.e. chronologically)
+        /// </summary>
+        BySequence
     }
 
     /// <summary>
@@ -145,6 +150,7 @@ namespace Couchbase.Lite {
             Limit = Int32.MaxValue;
             MapOnly = (view != null && view.Reduce == null);
             InclusiveEnd = true;
+            InclusiveStart = true;
             IndexUpdateMode = IndexUpdateMode.Before;
             AllDocsMode = AllDocsMode.AllDocs;
         }
@@ -172,6 +178,7 @@ namespace Couchbase.Lite {
             MapOnly = query.MapOnly;
             StartKeyDocId = query.StartKeyDocId;
             EndKeyDocId = query.EndKeyDocId;
+            InclusiveStart = query.InclusiveStart;
             InclusiveEnd = query.InclusiveEnd;
             IndexUpdateMode = query.IndexUpdateMode;
             AllDocsMode = query.AllDocsMode;
@@ -205,6 +212,7 @@ namespace Couchbase.Lite {
                 queryOptions.Descending = Descending;
                 queryOptions.IncludeDocs = Prefetch;
                 queryOptions.UpdateSeq = true;
+                queryOptions.InclusiveStart = InclusiveStart;
                 queryOptions.InclusiveEnd = InclusiveEnd;
                 queryOptions.IncludeDeletedDocs = IncludeDeleted;
                 queryOptions.Stale = IndexUpdateMode;
@@ -284,6 +292,11 @@ namespace Couchbase.Lite {
         /// </summary>
         /// <value>The Document id of the last value to return.</value>
         public String EndKeyDocId { get; set; }
+
+        /// <summary>
+        /// If true the StartKey (or StartKeyDocID) comparison uses "&gt;=". Else it uses "&gt;"
+        /// </summary>
+        public bool InclusiveStart { get; set; }
 
         /// <summary>
         /// If true the EndKey (or EndKeyDocID) comparison uses "&lt;=". Else it uses "&lt;".
@@ -374,30 +387,27 @@ namespace Couchbase.Lite {
         /// </exception>
         public virtual QueryEnumerator Run() 
         {
-            if (!Database.Open())
-            {
+            if (!Database.Open()) {
                 throw new CouchbaseLiteException("The database has been closed.");
             }
 
-            var outSequence = new List<long>();
+            ValueTypePtr<long> outSequence = 0;
             var viewName = (View != null) ? View.Name : null;
             var queryOptions = QueryOptions;
 
             IEnumerable<QueryRow> rows = null;
             var success = Database.RunInTransaction(()=>
             {
-                rows = Database.QueryViewNamed (viewName, queryOptions, outSequence);
-                
-                LastSequence = outSequence[0];
-                
+                rows = Database.QueryViewNamed (viewName, queryOptions, 0, outSequence);
+                LastSequence = outSequence;
                 return true;
             });
 
-            if (!success)
-            {
+            if (!success) {
                 throw new CouchbaseLiteException("Failed to query view named " + viewName, StatusCode.DbError);
             }
-            return new QueryEnumerator(Database, rows, outSequence[0]);
+
+            return new QueryEnumerator(Database, rows, outSequence);
         }
 
         /// <summary>

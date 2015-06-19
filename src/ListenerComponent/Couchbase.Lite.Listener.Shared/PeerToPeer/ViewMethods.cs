@@ -83,7 +83,7 @@ namespace Couchbase.Lite.Listener
                     }
                 }
 
-                return DatabaseMethods.QueryView(context, view, options);
+                return DatabaseMethods.QueryView(context, db, view, options);
             });
         }
 

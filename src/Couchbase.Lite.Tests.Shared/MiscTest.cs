@@ -47,6 +47,7 @@ using NUnit.Framework;
 using Sharpen;
 using Couchbase.Lite.Util;
 using System.Net.Http;
+using System.Collections.Generic;
 
 namespace Couchbase.Lite
 {
@@ -84,8 +85,6 @@ namespace Couchbase.Lite
                 Log.E(Tag, "Transient exception not handled", e);
                 Assert.Fail("Transient exception not handled");
             }
-
-
         }
     }
 }

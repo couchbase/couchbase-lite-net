@@ -306,7 +306,7 @@ namespace Couchbase.Lite.Util
         public static string[] ToStringArray(this IEnumerable collection)
         {
             var transformedCollection = from object o in collection
-                select o.ToString();
+                select o == null ? null : o.ToString();
             return transformedCollection.ToArray();
         }
     }

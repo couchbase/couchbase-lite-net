@@ -107,7 +107,7 @@ namespace Couchbase.Lite {
         /// the <see cref="Couchbase.Lite.View"/> results were generated.
         /// </summary>
         /// <value><c>true</c> if stale; otherwise, <c>false</c>.</value>
-        public Boolean Stale { get { return SequenceNumber < Database.GetLastSequenceNumber(); } }
+        public Boolean Stale { get { return SequenceNumber < Database.LastSequenceNumber; } }
 
 
         /// <summary>

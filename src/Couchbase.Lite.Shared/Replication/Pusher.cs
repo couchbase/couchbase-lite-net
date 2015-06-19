@@ -195,6 +195,13 @@ namespace Couchbase.Lite.Replicator
                 lastSequenceLong = long.Parse(LastSequence);
             }
 
+            // Now listen for future changes (in continuous mode):
+            if (continuous)
+            {
+                observing = true;
+                LocalDatabase.Changed += OnChanged;
+            }
+
             var options = new ChangesOptions();
             options.SetIncludeConflicts(true);
             var changes = LocalDatabase.ChangesSince(lastSequenceLong, options, filter, FilterParams);
@@ -202,13 +209,6 @@ namespace Couchbase.Lite.Replicator
             {
                 Batcher.QueueObjects(changes);
                 Batcher.Flush();
-            }
-
-            // Now listen for future changes (in continuous mode):
-            if (continuous)
-            {
-                observing = true;
-                LocalDatabase.Changed += OnChanged;
             }
         }
 
@@ -235,17 +235,12 @@ namespace Couchbase.Lite.Replicator
             {
                 // Skip revisions that originally came from the database I'm syncing to:
                 var source = change.SourceUrl;
-                if (source != null && source.Equals(RemoteUrl))
-                {
+                if (source != null && source.Equals(RemoteUrl)) {
                     return;
                 }
 
                 var rev = change.AddedRevision;
-                IDictionary<String, Object> paramsFixMe = FilterParams;
-
-                // TODO: these should not be null
-                if (LocalDatabase.RunFilter(filter, FilterParams, rev))
-                {
+                if (LocalDatabase.RunFilter(filter, FilterParams, rev)) {
                     AddToInbox(rev);
                 }
             }
@@ -360,7 +355,7 @@ namespace Couchbase.Lite.Replicator
 
                                 RevisionInternal loadedRev;
                                 try {
-                                    loadedRev = LocalDatabase.LoadRevisionBody (rev, contentOptions);
+                                    loadedRev = LocalDatabase.LoadRevisionBody (rev);
                                     properties = new Dictionary<string, object>(rev.GetProperties());
                                 } catch (CouchbaseLiteException e1) {
                                     Log.W(Tag, string.Format("{0} Couldn't get local contents of {1}", rev, this), e1);
@@ -375,7 +370,7 @@ namespace Couchbase.Lite.Replicator
                                 }
 
                                 properties = new Dictionary<string, object>(populatedRev.GetProperties());
-                                var revisions = LocalDatabase.GetRevisionHistoryDictStartingFromAnyAncestor(populatedRev, possibleAncestors);
+                                var revisions = LocalDatabase.Storage.GetRevisionHistory(populatedRev, possibleAncestors);
                                 properties["_revisions"] = revisions;
                                 populatedRev.SetProperties(properties);
 
@@ -724,7 +719,7 @@ namespace Couchbase.Lite.Replicator
         /// <returns>The common ancestor.</returns>
         /// <param name="rev">Rev.</param>
         /// <param name="possibleRevIDs">Possible rev I ds.</param>
-        internal static Int32 FindCommonAncestor(RevisionInternal rev, IList<string> possibleRevIDs)
+        internal static int FindCommonAncestor(RevisionInternal rev, IList<string> possibleRevIDs)
         {
             if (possibleRevIDs == null || possibleRevIDs.Count == 0)
             {
@@ -745,8 +740,8 @@ namespace Couchbase.Lite.Replicator
                 return 0;
             }
 
-            var generation = Database.ParseRevIDNumber(ancestorID);
-            return generation;
+            var parsed = RevisionInternal.ParseRevId(ancestorID);
+            return parsed.Item1;
         }
     }
 }

@@ -102,7 +102,7 @@ namespace Couchbase.Lite.Auth
             var now = DateTime.Now;
             if (exp < now)
             {
-                Log.W(Database.Tag, string.Format("{0} assertion for {1} expired: {2}", GetType(), emailAddress, exp));
+                Log.W(Database.TAG, string.Format("{0} assertion for {1} expired: {2}", GetType(), emailAddress, exp));
                 return true;
             }
 
@@ -114,7 +114,7 @@ namespace Couchbase.Lite.Auth
             var assertion = AssertionForEmailAndSite(emailAddress, site);
             if (assertion == null)
             {
-                Log.W(Database.Tag, String.Format("{0} {1} no assertion found for: {2}", GetType(), emailAddress, site));
+                Log.W(Database.TAG, String.Format("{0} {1} no assertion found for: {2}", GetType(), emailAddress, site));
                 return null;
             }
 
@@ -176,7 +176,7 @@ namespace Couchbase.Lite.Auth
                 catch (UriFormatException e)
                 {
                     string message = "Error registering assertion: " + assertion;
-                    Log.E(Database.Tag, message, e);
+                    Log.E(Database.TAG, message, e);
                     throw new ArgumentException(message, e);
                 }
                 return RegisterAssertion(assertion, email, origin);
@@ -200,7 +200,7 @@ namespace Couchbase.Lite.Auth
                 {
                     assertions = new Dictionary<string, string>();
                 }
-                Log.D(Database.Tag, "PersonaAuthorizer registering key: " + key);
+                Log.D(Database.TAG, "PersonaAuthorizer registering key: " + key);
                 assertions[key] = assertion;
                 return email;
             }
@@ -238,14 +238,14 @@ namespace Couchbase.Lite.Auth
                 result.Put(AssertionFieldOrigin, component3Json.Get("aud"));
 
                 var expObject = (long)component3Json.Get("exp");
-                Log.D(Database.Tag, "PersonaAuthorizer exp: " + expObject + " class: " + expObject.GetType());
+                Log.D(Database.TAG, "PersonaAuthorizer exp: " + expObject + " class: " + expObject.GetType());
                 var expDate = Sharpen.Extensions.CreateDate(expObject);
                 result[AssertionFieldExpiration] = expDate;
             }
             catch (IOException e)
             {
                 string message = "Error parsing assertion: " + assertion;
-                Log.E(Database.Tag, message, e);
+                Log.E(Database.TAG, message, e);
                 throw new ArgumentException(message, e);
             }
             return result;
@@ -254,7 +254,7 @@ namespace Couchbase.Lite.Auth
         public static string AssertionForEmailAndSite(string email, Uri site)
         {
             var key = GetKeyForEmailAndSite(email, site.ToString());
-            Log.D(Database.Tag, "PersonaAuthorizer looking up key: " + key + " from list of assertions");
+            Log.D(Database.TAG, "PersonaAuthorizer looking up key: " + key + " from list of assertions");
             return assertions.Get(key);
         }
 

@@ -216,11 +216,22 @@
     <Compile Include="$(MSBuildThisFileDirectory)Manager\DatabaseUpgraderFactory.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Manager\DatabaseUpgraderFactory_Upgraders.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Store\SQLiteStorageEngineFactory.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Database\ICouchStore.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Database\ICouchStoreDelegate.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)View\IViewStore.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)View\IViewStoreDelegate.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Query\IQueryRowStore.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Store\SymmetricKey.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Store\SqliteCouchStore.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Store\SqliteViewStore.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Util\ValueTypePtr.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Manager\SharedState.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="$(MSBuildThisFileDirectory)Store\MonoSQLiteStorageEngine.cs" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="$(MSBuildThisFileDirectory)View\" />
+    <Folder Include="$(MSBuildThisFileDirectory)Database\" />
   </ItemGroup>
 </Project>

@@ -60,9 +60,6 @@
     <Reference Include="ugly_net35">
       <HintPath>vendor\SQLitePCL\ugly_net35.dll</HintPath>
     </Reference>
-    <Reference Include="Microsoft.Scripting.Core">
-      <HintPath>..\Couchbase.Lite.Shared\vendor\Jint\Microsoft.Scripting.Core.dll</HintPath>
-    </Reference>
     <Reference Include="ICSharpCode.SharpZipLib">
       <HintPath>vendor\ICSharpCode\ICSharpCode.SharpZipLib.dll</HintPath>
     </Reference>

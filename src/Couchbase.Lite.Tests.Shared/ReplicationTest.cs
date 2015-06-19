@@ -83,7 +83,7 @@ namespace Couchbase.Lite
                 
             public void Changed(object sender, ReplicationChangeEventArgs args) {
                 var replicator = args.Source;
-                if (replicator.Status == ReplicationStatus.Idle) {
+                if (replicator.Status == ReplicationStatus.Idle && doneSignal.CurrentCount > 0) {
                     doneSignal.Signal();
                 }
             }
@@ -237,7 +237,7 @@ namespace Couchbase.Lite
                 httpRequestDoneSignal.CountDown();
             });
 
-            var result = httpRequestDoneSignal.Await(TimeSpan.FromSeconds(10));
+            var result = httpRequestDoneSignal.Await(TimeSpan.FromSeconds(30));
             Assert.IsTrue(result, "Could not retrieve the new doc from the sync gateway.");
         }
 
@@ -283,7 +283,6 @@ namespace Couchbase.Lite
             manager.DefaultHttpClientFactory = factory;
 
             var pusher = database.CreatePushReplication(remote);
-            pusher.Continuous = true;
 
             var replicationCaughtUpSignal = new CountdownEvent(1);
             pusher.Changed += (sender, e) => 
@@ -341,6 +340,7 @@ namespace Couchbase.Lite
 
             // but then immediately purge it
             doc.Purge();
+            pusher.Start();
 
             // wait for a while to give the replicator a chance to push it
             // (it should not actually push anything)
@@ -350,10 +350,8 @@ namespace Couchbase.Lite
             // the replicator should not have pushed anything else.
             // (in the case of the bug, it was trying to push the purged revision)
             numBulkDocRequests = 0;
-            foreach (var capturedRequest in handler.CapturedRequests)
-            {
-                if (capturedRequest.Method == HttpMethod.Post && capturedRequest.RequestUri.AbsoluteUri.EndsWith("_bulk_docs", StringComparison.Ordinal))
-                {
+            foreach (var capturedRequest in handler.CapturedRequests) {
+                if (capturedRequest.Method == HttpMethod.Post && capturedRequest.RequestUri.AbsoluteUri.EndsWith("_bulk_docs", StringComparison.Ordinal)) {
                     numBulkDocRequests++;
                 }
             }
@@ -610,7 +608,7 @@ namespace Couchbase.Lite
             // Even though this test is passed, there is a runtime exception
             // thrown regarding the replication's number of changes count versus
             // number of completed changes count. Investigation is required.
-            Log.D(Database.Tag, "testPullerWithLiveQuery");
+            Log.D(Database.TAG, "testPullerWithLiveQuery");
             string docIdTimestamp = System.Convert.ToString(Runtime.CurrentTimeMillis());
             string doc1Id = string.Format("doc1-{0}", docIdTimestamp);
             string doc2Id = string.Format("doc2-{0}", docIdTimestamp);
@@ -637,7 +635,7 @@ namespace Couchbase.Lite
                 {
                     NUnit.Framework.Assert.IsTrue(e.Rows.Count > numDocsBeforePull);
                 }
-                Log.D(Database.Tag, "rows " + e.Rows);
+                Log.D(Database.TAG, "rows " + e.Rows);
             };
 
             // the first time this is called back, the rows will be empty.
@@ -2059,8 +2057,7 @@ namespace Couchbase.Lite
                 Log.D(Tag, "Adding " + doc.Id + " to database.");  
                 docList.Add(doc.Id);
             }
-
-            var docsBefore = database.DocumentCount;
+                
             var mre = new CountdownEvent(docsToCreate * 2);
             var puller = database.CreatePullReplication(GetReplicationURL());
             puller.Changed += (sender, e) => {
@@ -2109,15 +2106,12 @@ namespace Couchbase.Lite
             var pusher = database.CreatePushReplication(GetReplicationURL());
             pusher.Start ();
 
-            try {
-                Assert.IsTrue(mre.Wait(TimeSpan.FromSeconds(120)), "Replication Timeout");
-            } finally {
-                pusher.Stop();
-                puller.Stop();
-                allDocsLiveQuery.Stop();   
 
-                Thread.Sleep(500);
-            }
+            pusher.Stop();
+            puller.Stop();
+            allDocsLiveQuery.Stop();   
+
+            Thread.Sleep(1000);
         }
 
         [Test, Category("issue348")]
@@ -2181,7 +2175,7 @@ namespace Couchbase.Lite
                     }
                 }
 
-                Log.D(Tag, "Remaining docs to be found: {0}", mre.InitialCount - mre.CurrentCount);
+                Log.D(Tag, "Remaining docs to be found: {0}", mre.CurrentCount);
             };
 
             // the first time this is called back, the rows will be empty.
@@ -2194,7 +2188,9 @@ namespace Couchbase.Lite
 
             pusher.Stop();
             puller.Stop();  
-            allDocsLiveQuery.Stop();            
+            allDocsLiveQuery.Stop(); 
+
+            Thread.Sleep(500);
         }
 
         [Test]

@@ -80,7 +80,7 @@ namespace Couchbase.Lite
             try {
                 md = MessageDigest.GetInstance("SHA-1");
             } catch (NoSuchAlgorithmException) {
-                Log.E(Database.Tag, "Error, SHA-1 digest is unavailable.");
+                Log.E(Database.TAG, "Error, SHA-1 digest is unavailable.");
                 return null;
             }
 
@@ -97,7 +97,7 @@ namespace Couchbase.Lite
             try {
                 md = MessageDigest.GetInstance("SHA-1");
             } catch (NoSuchAlgorithmException) {
-                Log.E(Database.Tag, "Error, SHA-1 digest is unavailable.");
+                Log.E(Database.TAG, "Error, SHA-1 digest is unavailable.");
                 return null;
             }
 
@@ -113,7 +113,7 @@ namespace Couchbase.Lite
                 }
                 fis.Close();
             } catch (IOException) {
-                Log.E(Database.Tag, "Error readin tmp file to compute key");
+                Log.E(Database.TAG, "Error readin tmp file to compute key");
             }
 
             sha1hash = md.Digest();
@@ -158,7 +158,7 @@ namespace Couchbase.Lite
             try {
                 result = GetBytesFromFile(file);
             } catch (IOException e) {
-                Log.E(Database.Tag, "Error reading file", e);
+                Log.E(Database.TAG, "Error reading file", e);
             }
             return result;
         }
@@ -166,18 +166,18 @@ namespace Couchbase.Lite
         public Stream BlobStreamForKey(BlobKey key)
         {
             var keyPath = PathForKey(key);
-            Log.D(Database.Tag, "Blob Path : " + keyPath);
+            Log.D(Database.TAG, "Blob Path : " + keyPath);
             var file = new FilePath(keyPath);
             if (file.CanRead()) {
                 try {
                     return new FileStream(file, FileMode.Open, FileAccess.ReadWrite, FileShare.ReadWrite);
                 }
                 catch (FileNotFoundException e) {
-                    Log.E(Database.Tag, "Unexpected file not found in blob store", e);
+                    Log.E(Database.TAG, "Unexpected file not found in blob store", e);
                     return null;
                 }
                 catch (Exception e) {
-                    Log.E(Database.Tag, "Cannot new FileStream", e);
+                    Log.E(Database.TAG, "Cannot new FileStream", e);
                 }
             }
 
@@ -200,7 +200,7 @@ namespace Couchbase.Lite
                 inputStream.Close();
                 fos.Close();
             } catch (IOException e) {
-                Log.E(Database.Tag, "Error writing blog to tmp file", e);
+                Log.E(Database.TAG, "Error writing blog to tmp file", e);
                 outKey = null;
                 return false;
             }
@@ -235,10 +235,10 @@ namespace Couchbase.Lite
                 fos = new FileOutputStream(file);
                 fos.Write(data);
             } catch (FileNotFoundException e) {
-                Log.E(Database.Tag, "Error opening file for output", e);
+                Log.E(Database.TAG, "Error opening file for output", e);
                 return false;
             }  catch (IOException ioe) {
-                Log.E(Database.Tag, "Error writing to file", ioe);
+                Log.E(Database.TAG, "Error writing to file", ioe);
                 return false;
             } finally {
                 if (fos != null) {
@@ -316,7 +316,7 @@ namespace Couchbase.Lite
             return total;
         }
 
-        public int DeleteBlobsExceptWithKeys(IList<BlobKey> keysToKeep)
+        public int DeleteBlobsExceptWithKeys(ICollection<BlobKey> keysToKeep)
         {
             int numDeleted = 0;
             FilePath file = new FilePath(path);
@@ -330,7 +330,7 @@ namespace Couchbase.Lite
                         ++numDeleted;
                     }
                     else {
-                        Log.E(Database.Tag, "Error deleting attachment");
+                        Log.E(Database.TAG, "Error deleting attachment");
                     }
                 }
             }

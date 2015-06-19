@@ -46,12 +46,19 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using Newtonsoft.Json;
+using System.Collections;
+using Newtonsoft.Json.Serialization;
+using System.Collections.Specialized;
+using System.Reflection;
 
 namespace Couchbase.Lite 
 {
+
     internal class ObjectWriter 
     {
-        static readonly JsonSerializerSettings settings = new JsonSerializerSettings { ReferenceLoopHandling = ReferenceLoopHandling.Ignore };
+        static readonly JsonSerializerSettings settings = new JsonSerializerSettings { 
+            ReferenceLoopHandling = ReferenceLoopHandling.Ignore
+        };
 
         readonly Boolean prettyPrintJson;
 
@@ -67,15 +74,20 @@ namespace Couchbase.Lite
             return new ObjectWriter(true); // Currently doesn't do anything, but could use something like http://www.limilabs.com/blog/json-net-formatter in the future.
         }
 
-        public IEnumerable<Byte> WriteValueAsBytes<T> (T item)
+        public IEnumerable<Byte> WriteValueAsBytes<T> (T item, bool canonical = false)
         {
-            var json = WriteValueAsString<T>(item);
+            var json = WriteValueAsString<T>(item, canonical);
             return Encoding.UTF8.GetBytes(json);
         }
 
-        public string WriteValueAsString<T> (T item)
+        public string WriteValueAsString<T> (T item, bool canonical = false)
         {
-            return JsonConvert.SerializeObject(item, prettyPrintJson ? Formatting.Indented : Formatting.None, settings);
+            if (!canonical) {
+                return JsonConvert.SerializeObject(item, prettyPrintJson ? Formatting.Indented : Formatting.None, settings);
+            }
+
+            var newItem = MakeCanonical(item);
+            return JsonConvert.SerializeObject(newItem, prettyPrintJson ? Formatting.Indented : Formatting.None, settings);
         }
 
         public T ReadValue<T> (String json)
@@ -121,6 +133,47 @@ namespace Couchbase.Lite
 
                 return item;
             }
+        }
+
+        private static object MakeCanonical(object input)
+        {
+            if (input == null) {
+                return null;
+            }
+
+            var t = input.GetType();
+            if (t.GetInterface(typeof(IDictionary<,>).FullName) != null) {
+                var sorted = new SortedDictionary<object, object>();
+                var method = t.GetMethod("GetEnumerator");
+                var e = (IEnumerator)method.Invoke(input, null);
+                PropertyInfo keyProp = null, valueProp = null;
+                while(e.MoveNext()) {
+                    if(keyProp == null) {
+                        keyProp = e.Current.GetType().GetProperty("Key");
+                        valueProp = e.Current.GetType().GetProperty("Value");
+                    }
+
+                    var key = keyProp.GetValue(e.Current);
+                    var value = valueProp.GetValue(e.Current);
+                    sorted[key] = MakeCanonical(value);
+                }
+
+                return sorted;
+            }
+
+            var array = input as IList;
+            if (array != null) {
+                var newList = new List<object>();
+                var e = array.GetEnumerator();
+                while (e.MoveNext()) {
+                    newList.Add(MakeCanonical(e.Current));
+                }
+
+                newList.Sort();
+                return newList;
+            }
+
+            return input;
         }
     }
 }
