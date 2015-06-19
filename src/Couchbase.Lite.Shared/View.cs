@@ -603,7 +603,6 @@ namespace Couchbase.Lite {
                         var reduced = (reduce != null) 
                             ? reduce(keysToReduce, valuesToReduce, false) 
                             : null;
-
                         var key = GroupKey(lastKey.Value, groupLevel);
                         var row = new QueryRow(null, 0, key, reduced, null)
                         {

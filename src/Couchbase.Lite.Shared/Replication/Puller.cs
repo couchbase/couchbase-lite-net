@@ -74,7 +74,8 @@ namespace Couchbase.Lite.Replicator
 
         internal bool canBulkGet;
 
-        internal bool caughtUp;
+        //TODO: Socket change tracker
+        //internal bool caughtUp;
 
         internal Batcher<RevisionInternal> downloadsToInsert;
 

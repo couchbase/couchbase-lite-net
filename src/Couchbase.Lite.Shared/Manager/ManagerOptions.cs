@@ -103,7 +103,9 @@ namespace Couchbase.Lite
             #endif
         }
 
+        //TODO: Honor this
         /// <summary>Gets or sets, whether changes to the database are disallowed.</summary>
+        /// <remarks>Not currently enforced</remarks>
         public Boolean ReadOnly { get; set; }
 
         /// <summary>
