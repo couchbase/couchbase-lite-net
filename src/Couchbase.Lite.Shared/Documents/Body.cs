@@ -157,7 +157,7 @@ namespace Couchbase.Lite
         /// <returns>JSON string</returns>
         public string AsJSONString()
         {
-            return Encoding.UTF8.GetString(_json.ToArray());
+            return Encoding.UTF8.GetString(AsJson().ToArray());
         }
 
         /// <summary>

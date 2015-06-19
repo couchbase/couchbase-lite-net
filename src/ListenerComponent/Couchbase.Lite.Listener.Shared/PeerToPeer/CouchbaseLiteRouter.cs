@@ -121,6 +121,7 @@ namespace Couchbase.Lite.Listener
         /// request</param>
         public void HandleRequest(ICouchbaseListenerContext context)
         {
+            Log.V(TAG, "Processing {0} request to {1}", context.Method, context.RequestUrl.AbsoluteUri);
             var method = context.Method;
 
             if (OnAccessCheck != null) {

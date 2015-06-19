@@ -487,12 +487,17 @@ namespace Couchbase.Lite
             var dbCopy = EnsureEmptyDatabase("replicate_end");
   
             var push = database.CreatePushReplication(new Uri("http://localhost:59840/replicate_end"));
-            push.Authenticator = new BasicAuthenticator("jim", "borden");
             CreateDocuments(database, 20);
+            var attachDoc = CreateDocWithAttachment(database, "attachment.png", "image/png");
+            var attachDocId = attachDoc.Id;
             RunReplication(push);
 
             Assert.IsNull(push.LastError);
-            Assert.AreEqual(20, dbCopy.DocumentCount);
+            Assert.AreEqual(21, dbCopy.DocumentCount);
+
+            attachDoc = dbCopy.GetExistingDocument(attachDocId);
+            Assert.IsNotNull(attachDoc, "Failed to store doc with attachment");
+            Assert.IsNotNull(attachDoc.CurrentRevision.Attachments, "Failed to store attachments on attachment doc");
 
             var name = database.Name;
             database.Close();
@@ -501,7 +506,11 @@ namespace Couchbase.Lite
             var pull = database.CreatePullReplication(new Uri("http://localhost:59840/replicate_end"));
             RunReplication(pull);
             Assert.IsNull(pull.LastError);
-            Assert.AreEqual(20, database.DocumentCount);
+            Assert.AreEqual(21, database.DocumentCount);
+
+            attachDoc = database.GetExistingDocument(attachDocId);
+            Assert.IsNotNull(attachDoc, "Failed to retrieve doc with attachment");
+            Assert.IsNotNull(attachDoc.CurrentRevision.Attachments, "Failed to retrieve attachments on attachment doc");
 
             // TODO: Auth
         }
