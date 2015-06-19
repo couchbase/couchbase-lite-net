@@ -41,33 +41,47 @@
 //
 
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
-using Newtonsoft.Json;
-using System.Collections;
-using Newtonsoft.Json.Serialization;
-using System.Collections.Specialized;
 using System.Reflection;
+using System.Text;
+
+using Newtonsoft.Json;
 
 namespace Couchbase.Lite 
 {
 
     internal class ObjectWriter 
     {
-        static readonly JsonSerializerSettings settings = new JsonSerializerSettings { 
+
+        #region Constants
+
+        private static readonly JsonSerializerSettings settings = new JsonSerializerSettings { 
             ReferenceLoopHandling = ReferenceLoopHandling.Ignore
         };
 
-        readonly Boolean prettyPrintJson;
+        #endregion
+
+        #region Variables
+
+        private readonly bool _prettyPrintJson;
+
+        #endregion
+
+        #region Constructors
 
         public ObjectWriter() : this(false) { }
 
         public ObjectWriter(Boolean prettyPrintJson)
         {
-            this.prettyPrintJson = prettyPrintJson;
+            this._prettyPrintJson = prettyPrintJson;
         }
+
+        #endregion
+
+        #region Public Methods
 
         public ObjectWriter WriterWithDefaultPrettyPrinter()
         {
@@ -83,18 +97,18 @@ namespace Couchbase.Lite
         public string WriteValueAsString<T> (T item, bool canonical = false)
         {
             if (!canonical) {
-                return JsonConvert.SerializeObject(item, prettyPrintJson ? Formatting.Indented : Formatting.None, settings);
+                return JsonConvert.SerializeObject(item, _prettyPrintJson ? Formatting.Indented : Formatting.None, settings);
             }
 
             var newItem = MakeCanonical(item);
-            return JsonConvert.SerializeObject(newItem, prettyPrintJson ? Formatting.Indented : Formatting.None, settings);
+            return JsonConvert.SerializeObject(newItem, _prettyPrintJson ? Formatting.Indented : Formatting.None, settings);
         }
 
         public T ReadValue<T> (String json)
         {
             T item;
             try {
-                item = JsonConvert.DeserializeObject<T>(json);
+                item = JsonConvert.DeserializeObject<T>(json, settings);
             } catch(JsonException e) {
                 throw new CouchbaseLiteException(e, StatusCode.BadJson);
             }
@@ -107,7 +121,7 @@ namespace Couchbase.Lite
             using (var jsonStream = new MemoryStream(json.ToArray())) 
             using (var jsonReader = new JsonTextReader(new StreamReader(jsonStream))) 
             {
-                var serializer = new JsonSerializer();
+                var serializer = JsonSerializer.Create(settings);
                 T item;
                 try {
                     item = serializer.Deserialize<T>(jsonReader);
@@ -123,7 +137,7 @@ namespace Couchbase.Lite
         {
             using (var jsonReader = new JsonTextReader(new StreamReader(jsonStream))) 
             {
-                var serializer = new JsonSerializer();
+                var serializer = JsonSerializer.Create(settings);
                 T item;
                 try {
                     item = serializer.Deserialize<T>(jsonReader);
@@ -134,6 +148,10 @@ namespace Couchbase.Lite
                 return item;
             }
         }
+
+        #endregion
+
+        #region Private Methods
 
         private static object MakeCanonical(object input)
         {
@@ -175,6 +193,8 @@ namespace Couchbase.Lite
 
             return input;
         }
+
+        #endregion
     }
 }
 
