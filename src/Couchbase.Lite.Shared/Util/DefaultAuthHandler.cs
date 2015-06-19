@@ -41,48 +41,80 @@
 //
 
 using System;
-using System.Collections;
-using System.Net;
 using System.Net.Http;
 using System.Threading;
+
+using Couchbase.Lite.Auth;
 using Couchbase.Lite.Util;
-using System.Collections.Generic;
+using System.Net;
+using System.Linq;
 
 namespace Couchbase.Lite.Replicator
 {
 
     internal sealed class DefaultAuthHandler : MessageProcessingHandler
     {
-        private bool _chunkedMode = false;
 
-        public DefaultAuthHandler(HttpClientHandler context, CookieStore cookieStore, bool chunkedMode) : base()
+        #region Variables
+
+        private bool _chunkedMode = false;
+        private object _locker = new object();
+        private readonly HttpClientHandler _context;
+        private readonly CookieStore _cookieStore;
+
+        #endregion
+
+
+        #region Properties
+
+        internal IChallengeResponseAuthenticator Authenticator { get; set; }
+
+        #endregion
+
+        #region Constructors
+
+        public DefaultAuthHandler(HttpClientHandler context, CookieStore cookieStore, bool chunkedMode)
         {
             _chunkedMode = chunkedMode;
-            this.context = context;
-            this.cookieStore = cookieStore;
-            InnerHandler = this.context;
+            _context = context;
+            _cookieStore = cookieStore;
+            InnerHandler = _context;
         }
 
-        #region implemented abstract members of MessageProcessingHandler
+        #endregion
 
-        object locker = new object();
+        #region Overrides
 
         protected override HttpResponseMessage ProcessResponse(HttpResponseMessage response, CancellationToken cancellationToken)
         {
             if (response.Content != null && !_chunkedMode) {
                 var mre = new ManualResetEvent(false);
                 response.Content.LoadIntoBufferAsync().ConfigureAwait(false).GetAwaiter().OnCompleted(() => mre.Set());
-                if (mre.WaitOne(Manager.DefaultOptions.RequestTimeout, true) == false) {
+                if (!mre.WaitOne(Manager.DefaultOptions.RequestTimeout, true)) {
                     Log.E("DefaultAuthHandler", "mre.WaitOne timed out");
                 }
             }
 
+            if (Authenticator != null && response.StatusCode == HttpStatusCode.Unauthorized 
+                && !response.RequestMessage.Headers.Contains("Authorization")) {
+                //Challenge received for the first time
+                var newRequest = new HttpRequestMessage(response.RequestMessage.Method, response.RequestMessage.RequestUri);
+                foreach (var header in response.RequestMessage.Headers) {
+                    newRequest.Headers.Add(header.Key, header.Value);
+                }
+
+                newRequest.Content = response.RequestMessage.Content;
+                var challengeResponse = Authenticator.ResponseFromChallenge(response);
+                if (challengeResponse != null) {
+                    newRequest.Headers.Add("Authorization", challengeResponse);
+                    return ProcessResponse(SendAsync(newRequest, cancellationToken).Result, cancellationToken);
+                }
+            }
+
             var hasSetCookie = response.Headers.Contains("Set-Cookie");
-            if (hasSetCookie)
-            {
-                lock (locker)
-                {
-                    cookieStore.Save();
+            if (hasSetCookie) {
+                lock (_locker) {
+                    _cookieStore.Save();
                 }
             }
 
@@ -103,11 +135,5 @@ namespace Couchbase.Lite.Replicator
 
         #endregion
 
-        #region Private
-
-        private readonly HttpClientHandler context;
-        private readonly CookieStore cookieStore;
-
-        #endregion
     }
 }

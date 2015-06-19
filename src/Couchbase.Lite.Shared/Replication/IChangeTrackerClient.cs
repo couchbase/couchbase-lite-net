@@ -45,6 +45,8 @@ using Couchbase.Lite.Replicator;
 using Couchbase.Lite.Support;
 using Sharpen;
 using System.Net.Http;
+using System;
+using Couchbase.Lite.Auth;
 
 namespace Couchbase.Lite.Replicator
 {

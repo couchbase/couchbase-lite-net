@@ -220,6 +220,8 @@
     <Compile Include="$(MSBuildThisFileDirectory)Util\ValueTypePtr.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Manager\IJsonSerializer.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Manager\NewtonsoftJsonSerializer.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Auth\DigestAuthenticator.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Auth\DigestCalculator.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="$(MSBuildThisFileDirectory)Store\MonoSQLiteStorageEngine.cs" />

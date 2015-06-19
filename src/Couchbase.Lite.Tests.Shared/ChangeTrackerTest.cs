@@ -55,6 +55,7 @@ using NUnit.Framework;
 using Couchbase.Lite.Tests;
 using System.Collections;
 using System.Threading;
+using Couchbase.Lite.Auth;
 
 #if NET_3_5
 using System.Net.Couchbase;

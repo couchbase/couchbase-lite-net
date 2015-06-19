@@ -1303,6 +1303,28 @@ namespace Couchbase.Lite
             Assert.IsTrue(calledOnAccessCheck);
         }
 
+        [Test]
+        public void TestAuthentication()
+        {
+            var basicString = Convert.ToBase64String(Encoding.ASCII.GetBytes("jim:borden"));
+            _listener.SetPasswords(new Dictionary<string, string> { { "jim", "borden" } });
+            SendRequest("GET", "/", new Dictionary<string, string> { { "Authorization", "Basic " + basicString } }, null, false, (r) =>
+            {
+                Assert.AreEqual(HttpStatusCode.OK, r.StatusCode);
+            });
+
+            basicString = Convert.ToBase64String(Encoding.ASCII.GetBytes("jim:bogus"));
+            SendRequest("GET", "/", new Dictionary<string, string> { { "Authorization", "Basic " + basicString } }, null, false, (r) =>
+            {
+                Assert.AreEqual(HttpStatusCode.Unauthorized, r.StatusCode);
+            });
+
+            SendRequest("GET", "/", null, null, false, (r) =>
+            {
+                Assert.AreEqual(HttpStatusCode.Unauthorized, r.StatusCode);
+            });
+        }
+
         [TestFixtureSetUp]
         protected void OneTimeSetUp()
         {
@@ -1342,6 +1364,7 @@ namespace Couchbase.Lite
             StopDatabase();
             _minHeartbeat = _savedMinHeartbeat;
             _listener._router.OnAccessCheck = null;
+            _listener.SetPasswords(new Dictionary<string, string>());
         }
 
         private void ReopenDatabase()

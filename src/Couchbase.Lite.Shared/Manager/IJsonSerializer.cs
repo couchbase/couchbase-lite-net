@@ -23,6 +23,11 @@ using System.IO;
 
 namespace Couchbase.Lite
 {
+
+    /// <summary>
+    /// An interface describing a class that can serialize .NET objects 
+    /// to and from their JSON representation
+    /// </summary>
     public interface IJsonSerializer
     {
         /// <summary>

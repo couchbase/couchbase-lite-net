@@ -310,6 +310,11 @@ namespace Couchbase.Lite.Replicator
                 HttpClient httpClient = null;
                 try {
                     httpClient = clientCopy.GetHttpClient(mode == ChangeTrackerMode.LongPoll);
+                    var challengeResponseAuth = Authenticator as IChallengeResponseAuthenticator;
+                    if(challengeResponseAuth != null) {
+                        challengeResponseAuth.PrepareWithRequest(Request);
+                    }
+             
                     var authHeader = AuthUtils.GetAuthenticationHeaderValue(Authenticator, Request.RequestUri);
                     if (authHeader != null)
                     {
