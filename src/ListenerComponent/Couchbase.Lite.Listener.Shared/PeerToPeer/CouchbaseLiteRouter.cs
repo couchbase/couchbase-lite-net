@@ -47,6 +47,7 @@ namespace Couchbase.Lite.Listener
                 { "/_all_dbs", ServerMethods.GetAllDbs },
                 { "/_session", ServerMethods.GetSession },
                 { "/_uuids", ServerMethods.GetUUIDs },
+                { "/{[^_].*}/_session", ServerMethods.GetSession },
                 { "/{[^_].*}", DatabaseMethods.GetConfiguration },
                 { "/{[^_].*}/_all_docs", DatabaseMethods.GetAllDocuments },
                 { "/{[^_].*}/_changes", DatabaseMethods.GetChanges },
@@ -59,6 +60,7 @@ namespace Couchbase.Lite.Listener
         private static readonly RouteCollection _Post =
             new RouteCollection(new Dictionary<string, RestMethod> {
                 { "/_replicate", ServerMethods.ManageReplicationSession },
+                { "/{[^_].*}/_revs_diff", DatabaseMethods.RevsDiff },
                 { "/{[^_].*}/_all_docs", DatabaseMethods.GetAllSpecifiedDocuments },
                 { "/{[^_].*}/_bulk_docs", DatabaseMethods.ProcessDocumentChangeOperations },
                 { "/{[^_].*}/_compact", DatabaseMethods.Compact },

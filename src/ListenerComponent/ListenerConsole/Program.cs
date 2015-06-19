@@ -21,7 +21,8 @@
 //
 using System;
 using Couchbase.Lite;
-using Couchbase.Lite.PeerToPeer;
+using Couchbase.Lite.Listener;
+using Couchbase.Lite.Listener.Tcp;
 
 namespace Listener
 {
@@ -30,7 +31,7 @@ namespace Listener
         private const int port = 59840;
         public static void Main(string[] args)
         {
-            CouchbaseLiteServiceListener listener = new CouchbaseLiteServiceListener(Manager.SharedInstance, port);
+            CouchbaseLiteServiceListener listener = new CouchbaseLiteTcpListener(Manager.SharedInstance, port);
             listener.Start();
 
             Console.ReadKey(true);
