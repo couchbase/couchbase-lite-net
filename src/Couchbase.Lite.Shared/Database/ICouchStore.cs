@@ -43,11 +43,9 @@ namespace Couchbase.Lite.Store
         /// <param name="directory">The existing directory to put data files into. The implementation may
         /// create as many files as it wants here. There will be a subdirectory called "attachments"
         /// which contains attachments; don't mess with that..</param>
-        /// <param name="readOnly">If this is <c>true</c>, the database is opened read-only and any attempt to modify
-        /// it must return an error.</param>
         /// <param name="manager">The owning Manager; this is provided so the storage can examine its
         ///properties.</param>
-        bool Open(string directory, bool readOnly, Manager manager);
+        bool Open(string directory, Manager manager);
 
         /// <summary>
         /// Closes storage before it's deallocated. 

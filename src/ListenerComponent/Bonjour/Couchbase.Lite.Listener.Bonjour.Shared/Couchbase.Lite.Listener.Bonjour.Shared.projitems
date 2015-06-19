@@ -30,8 +30,8 @@
     <Compile Include="$(MSBuildThisFileDirectory)Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="$(MSBuildThisFileDirectory)Couchbase.Lite.Listener.Bonjour.dll.config">
+    <None Include="$(MSBuildThisFileDirectory)Couchbase.Lite.Listener.Bonjour.dll.config">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
+    </None>
   </ItemGroup>
 </Project>

@@ -46,8 +46,11 @@ namespace Couchbase.Lite.Store
         private SqliteCouchStore _dbStorage;
         private int _viewId;
         private ViewCollation _collation;
-        private bool _initializedFullTextSchema, _initializedRTreeSchema;
+        private bool _initializedRTreeSchema;
         private object _updateLock = new object();
+
+        //TODO: Full text
+        //private bool _initializedFullTextSchema;
 
         #endregion
 
@@ -214,7 +217,7 @@ namespace Couchbase.Lite.Store
             }
 
             string keyJSON;
-            IEnumerable<byte> geoKey = null;
+            //IEnumerable<byte> geoKey = null;
             if (false) {
                 //TODO: bbox, geo, fulltext
             } else {
@@ -233,7 +236,7 @@ namespace Couchbase.Lite.Store
 
             //TODO: bbox, geo, fulltext
             try {
-                _dbStorage.StorageEngine.ExecSQL(_emitSql, sequence, keyJSON, valueJSON, null, null, null);
+                db.StorageEngine.ExecSQL(_emitSql, sequence, keyJSON, valueJSON, null, null, null);
             } catch(Exception) {
                 return StatusCode.DbError;
             }
@@ -378,20 +381,20 @@ namespace Couchbase.Lite.Store
                 sql.Append(", revid, json");
             }
 
-            if (false) {
+            /*if (false) {
                 //TODO: bbox
                 if (!CreateRTreeSchema()) {
                     return new Status(StatusCode.NotImplemented);
                 }
 
                 sql.AppendFormat(", bboxes.x0, bboxes.y0, bboxes.x1, bboxes.y1, maps_{0}.geokey", MapTableName);
-            }
+            }*/
 
             sql.AppendFormat(" FROM 'maps_{0}', revs, docs", MapTableName);
-            if (false) {
+            /*if (false) {
                 //TODO: bbox
                 sql.Append(", bboxes");
-            }
+            }*/
 
             sql.Append(" WHERE 1 ");
             var args = new List<object>();
@@ -446,22 +449,22 @@ namespace Couchbase.Lite.Store
                 }
             }
 
-            if (false) {
+            /*if (false) {
                 //TODO: bbox
                 sql.AppendFormat(" AND (bboxes.x1 > ? AND bboxes.x0 < ?)" +
                     " AND (bboxes.y1 > ? AND bboxes.y0 < ?)" +
                     " AND bboxes.rowid = 'maps_{0}'.bbox_id", MapTableName);
                 
-            }
+            }*/
 
             sql.AppendFormat(" AND revs.sequence = 'maps_{0}'.sequence AND docs.doc_id = revs.doc_id " +
                 "ORDER BY", MapTableName);
-            if (false) {
+            /*if (false) {
                 //TODO: bbox
                 sql.Append(" bboxes.y0, bboxes.x0");
-            } else {
+            } else {*/
                 sql.Append(" key");
-            }
+            //}
 
             sql.Append(collationStr);
             if (options.Descending) {
@@ -524,7 +527,7 @@ namespace Couchbase.Lite.Store
                 DeleteIndex();
                 try {
                     db.StorageEngine.Delete("views", "name=?", Name);
-                } catch(Exception e) {
+                } catch(Exception) {
                     return new Status(StatusCode.DbError);
                 }
 
@@ -975,7 +978,7 @@ namespace Couchbase.Lite.Store
 
             Lazy<object> lastKeyData = null;
             List<QueryRow> rows = new List<QueryRow>();
-            var outStatus = RunQuery(options, (keyData, valueData, docID, c) =>
+            RunQuery(options, (keyData, valueData, docID, c) =>
             {
                 if(group && !GroupTogether(keyData, lastKeyData, groupLevel)) {
                     if(lastKeyData != null && lastKeyData.Value != null) {
@@ -995,7 +998,7 @@ namespace Couchbase.Lite.Store
 
                 Log.V(TAG, "    Query {0}: Will reduce row with key={1}, value={2}", Name, keyData.Value, valueData.Value);
 
-                object valueOrData = valueData;
+                object valueOrData = valueData.Value;
                 if(valuesToReduce != null && RowValueIsEntireDoc(valueData)) {
                     // map fn emitted 'doc' as value, which was stored as a "*" placeholder; expand now:
                     Status status = new Status();
@@ -1008,7 +1011,7 @@ namespace Couchbase.Lite.Store
                 }
 
                 keysToReduce.Add(keyData.Value);
-                valuesToReduce.Add(valueData.Value);
+                valuesToReduce.Add(valueOrData);
                 return new Status(StatusCode.Ok);
             });
 

@@ -509,7 +509,7 @@ namespace Couchbase.Lite
                     return null;
                 }
 
-                db = new Database(path, name, this, options.ReadOnly);
+                db = new Database(path, name, this);
                 if (mustExist && !db.Exists()) {
                     var msg = string.Format("mustExist is true and db ({0}) does not exist", name);
                     Log.W(Database.TAG, msg);

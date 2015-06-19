@@ -40,8 +40,8 @@
 // and limitations under the License.
 //
 
-using System.Collections.Generic;
 using System;
+using System.Collections.Generic;
 
 namespace Couchbase.Lite
 {
@@ -51,7 +51,13 @@ namespace Couchbase.Lite
     public class QueryOptions
     {
 
-        public const int DEFAULT_LIMIT = int.MaxValue;
+        #region Constants
+
+        internal const int DEFAULT_LIMIT = int.MaxValue;
+
+        #endregion
+
+        #region Properties
 
         /// <summary>
         /// Gets or sets the start key for the query
@@ -157,6 +163,20 @@ namespace Couchbase.Lite
         /// </summary>
         public string EndKeyDocId { get; set; }
 
+        /// <summary>
+        /// If nonzero, enables prefix matching of string or array keys.
+        ///* A value of 1 treats the endKey itself as a prefix: if it's a string, keys in the index that
+        ///    come after the endKey, but begin with the same prefix, will be matched. (For example, if the
+        ///        endKey is "foo" then the key "foolish" in the index will be matched, but not "fong".) Or if
+        ///    the endKey is an array, any array beginning with those elements will be matched. (For
+        ///        example, if the endKey is [1], then [1, "x"] will match, but not [2].) If the key is any
+        ///    other type, there is no effect.
+        ///    * A value of 2 assumes the endKey is an array and treats its final item as a prefix, using the
+        ///        rules above. (For example, an endKey of [1, "x"] will match [1, "xtc"] but not [1, "y"].)
+        ///        * A value of 3 assumes the key is an array of arrays, etc.
+        ///        Note that if the .Descending property is also set, the search order is reversed and the above
+        ///            discussion applies to the startKey, _not_ the endKey.
+        /// </summary>
         public int PrefixMatchLevel { get; set; }
 
         /// <summary>
@@ -164,6 +184,10 @@ namespace Couchbase.Lite
         /// </summary>
         /// <value>The filter.</value>
         public Func<QueryRow, bool> Filter { get; set; }
+
+        #endregion
+
+        #region Constructors
 
         /// <summary>
         /// Constructor
@@ -174,6 +198,10 @@ namespace Couchbase.Lite
             InclusiveEnd = true;
             InclusiveStart = true;
         }
+
+        #endregion
+
+        #region Public Methods
 
         /// <summary>
         /// Gets the start key for the query
@@ -561,5 +589,7 @@ namespace Couchbase.Lite
         {
             EndKeyDocId = endKeyDocId;
         }
+
+        #endregion
     }
 }

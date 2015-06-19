@@ -86,7 +86,6 @@ namespace Couchbase.Lite
 
         #region Variables
 
-        private bool _readOnly;
         /// <summary>
         /// Each database can have an associated PersistentCookieStore,
         /// where the persistent cookie store uses the database to store
@@ -273,7 +272,7 @@ namespace Couchbase.Lite
             return Misc.CreateGUID();
         }
 
-        internal Database(string path, string name, Manager manager, bool readOnly)
+        internal Database(string path, string name, Manager manager)
         {
             Debug.Assert(System.IO.Path.IsPathRooted(path));
 
@@ -281,7 +280,6 @@ namespace Couchbase.Lite
             Path = path;
             Name = name ?? FileDirUtils.GetDatabaseNameFromPath(path);
             Manager = manager;
-            _readOnly = readOnly;
             DocumentCache = new LruCache<string, Document>(MAX_DOC_CACHE_SIZE);
             UnsavedRevisionDocumentCache = new Dictionary<string, WeakReference>();
  
@@ -1945,7 +1943,7 @@ namespace Couchbase.Lite
             Storage.Delegate = this;
 
             Log.D(TAG, "Using {0} for db at {1}", Storage.GetType(), Path);
-            if (!Storage.Open(Path, _readOnly, Manager)) {
+            if (!Storage.Open(Path, Manager)) {
                 return false;
             }
 
@@ -2089,6 +2087,7 @@ namespace Couchbase.Lite
         #endregion
 
         #region ICouchStoreDelegate
+        #pragma warning disable 1591
 
         public void StorageExitedTransaction(bool committed)
         {
@@ -2196,6 +2195,7 @@ namespace Couchbase.Lite
             }
         }
 
+        #pragma warning restore 1591
         #endregion
     }
 

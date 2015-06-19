@@ -35,7 +35,14 @@ namespace Couchbase.Lite.Store
 
         #region Constants
 
-        public const int DATA_SIZE = 32; //Number of bytes in a 256-bit key
+        /// <summary>
+        /// Number of bytes in a 256-bit key
+        /// </summary>
+        public const int DATA_SIZE = 32;
+
+        /// <summary>
+        /// The data type associated with encrypted content
+        /// </summary>
         public const string ENCRYPTED_CONTENT_TYPE = "application/x-beanbag-aes-256";
 
         private const int KEY_SIZE = 32;
@@ -266,12 +273,14 @@ namespace Couchbase.Lite.Store
         #endregion
 
         #region IDisposable
+        #pragma warning disable 1591
 
         public void Dispose()
         {
             _cryptor.Dispose();
         }
 
+        #pragma warning restore 1591
         #endregion
     }
 }

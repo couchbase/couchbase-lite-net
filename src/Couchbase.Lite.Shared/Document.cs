@@ -61,7 +61,6 @@ namespace Couchbase.Lite {
     public sealed class Document {
 
         SavedRevision currentRevision;
-        private bool _currentRevisionKnown;
             
     #region Constructors
 

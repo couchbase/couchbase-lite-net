@@ -106,7 +106,6 @@ PRAGMA user_version = 3;";
         private static readonly int _SqliteVersion;
 
         private string _path;
-        private bool _readOnly;
         private bool _isOpen;
         private int _transactionCount;
         private LruCache<string, object> _docIDs = new LruCache<string, object>(DOC_ID_CACHE_SIZE);
@@ -1005,11 +1004,9 @@ PRAGMA user_version = 3;";
             return File.Exists(path);
         }
 
-        public bool Open(string path, bool readOnly, Manager manager)
+        public bool Open(string path, Manager manager)
         {
             _path = path;
-            _readOnly = readOnly;
-
             return Open();
         }
 
@@ -1616,7 +1613,6 @@ PRAGMA user_version = 3;";
                         var docNumericId = GetDocNumericID(docId as string);
                         if (docNumericId > 0) {
                             ValueTypePtr<bool> deleted = false;
-                            Status status;
                             string revId = GetWinner(docNumericId, deleted, ValueTypePtr<bool>.NULL);
                             if (revId != null) {
                                 value = new NonNullDictionary<string, object> {

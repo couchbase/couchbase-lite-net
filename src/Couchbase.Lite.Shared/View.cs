@@ -268,8 +268,6 @@ namespace Couchbase.Lite {
             return new Query(Database, this);
         }
 
-        private object _updateLock = new object();
-
         #endregion
    
 

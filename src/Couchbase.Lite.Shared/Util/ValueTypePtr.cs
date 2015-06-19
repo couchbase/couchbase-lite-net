@@ -31,8 +31,15 @@ namespace Couchbase.Lite.Util
     {
         #region Variables
 
+        /// <summary>
+        /// Gets or sets value held by this object
+        /// </summary>
         public T Value { get; set; }
 
+        /// <summary>
+        /// Checks whether or not this instance is semantically null (this helps elimiate null checks
+        /// in methods that accept this type)
+        /// </summary>
         public bool IsNull {
             get {
                 return this == NULL;
@@ -48,12 +55,13 @@ namespace Couchbase.Lite.Util
 
         #region Operators
 
+        /// <param name="val">The object to cast to its contained type</param>
         public static implicit operator T(ValueTypePtr<T> val) 
         {
-            Nullable<bool> t;
             return val.Value;
         }
 
+        /// <param name="val">The value to convert to a value type pointer</param>
         public static implicit operator ValueTypePtr<T>(T val)
         {
             return new ValueTypePtr<T> { Value = val };
