@@ -20,6 +20,8 @@
 //
 using System;
 using System.Net;
+using System.Security.Principal;
+using System.Collections.Generic;
 
 namespace Couchbase.Lite.Listener.Tcp
 {
@@ -32,6 +34,7 @@ namespace Couchbase.Lite.Listener.Tcp
         #region Variables 
 
         private readonly HttpListener _listener;
+        private readonly string _realm;
         private Manager _manager;
 
         #endregion
@@ -48,12 +51,20 @@ namespace Couchbase.Lite.Listener.Tcp
         /// If running on Windows, check <a href="https://github.com/couchbase/couchbase-lite-net/wiki/Gotchas">
         /// This document</a>
         /// </remarks>
-        public CouchbaseLiteTcpListener(Manager manager, ushort port)
+        public CouchbaseLiteTcpListener(Manager manager, ushort port, string realm = "Couchbase")
+            : this(manager, port, false, realm)
+        {
+            
+        }
+
+        public CouchbaseLiteTcpListener(Manager manager, ushort port, bool useTLS, string realm = "Couchbase")
         {
             _manager = manager;
+            _realm = realm;
             _listener = new HttpListener();
             string prefix = String.Format("http://*:{0}/", port);
             _listener.Prefixes.Add(prefix);
+            _listener.AuthenticationSchemes = AuthenticationSchemes.Basic;
         }
 
         #endregion
@@ -63,8 +74,34 @@ namespace Couchbase.Lite.Listener.Tcp
         //This gets called when the listener receives a request
         private void ProcessContext(HttpListenerContext context)
         {
-            _listener.GetContextAsync().ContinueWith((t) => ProcessContext(t.Result));
+            _listener.GetContextAsync().ContinueWith(t => ProcessContext(t.Result));
+            if (RequiresAuth && !PerformAuthorization(context.User)) {
+                RespondUnauthorized(context);
+                return;
+            }
+
             _router.HandleRequest(new CouchbaseListenerTcpContext(context, _manager));
+        }
+
+        private void RespondUnauthorized(HttpListenerContext context)
+        {
+            var response = context.Response;
+            response.StatusCode = 401;
+            response.ContentLength64 = 0;
+            string challenge = String.Format("Basic realm=\"{0}\"", _realm);;
+            response.AddHeader("WWW-Authenticate", challenge);
+            response.Close();
+        }
+
+        private bool PerformAuthorization(IPrincipal user)
+        {
+            if (user == null) {
+                return false;
+            }
+                
+            var name = user.Identity.Name;
+            string password = ((HttpListenerBasicIdentity)user.Identity).Password;
+            return ValidateUser(name, password);
         }
 
         #endregion

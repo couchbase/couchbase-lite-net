@@ -19,6 +19,8 @@
 //  limitations under the License.
 //
 using System;
+using System.Collections.Generic;
+using Couchbase.Lite.Util;
 
 namespace Couchbase.Lite.Listener
 {
@@ -33,6 +35,7 @@ namespace Couchbase.Lite.Listener
 
         internal readonly CouchbaseLiteRouter _router = new CouchbaseLiteRouter();
         private bool _disposed;
+        private Dictionary<string, string> _passwordMap = new Dictionary<string, string>();
 
         #endregion
 
@@ -67,6 +70,12 @@ namespace Couchbase.Lite.Listener
         }
         private bool _readOnly;
 
+        /// <summary>
+        /// Gets a value indicating whether this <see cref="Couchbase.Lite.Listener.CouchbaseLiteServiceListener"/>
+        /// requires authentication for access.
+        /// </summary>
+        protected bool RequiresAuth { get; private set; }
+
         #endregion
 
         #region Public Methods
@@ -87,6 +96,25 @@ namespace Couchbase.Lite.Listener
         /// </summary>
         public abstract void Abort();
 
+        /// <summary>
+        /// Sets up passwords for BASIC HTTP authentication
+        /// </summary>
+        /// <param name="usersAndPasswords">A dictionary containing the users and their passwords</param>
+        public void SetPasswords(IDictionary<string, string> usersAndPasswords)
+        {
+            _passwordMap.Clear();
+            if (usersAndPasswords == null) {
+                return;
+            }
+
+            foreach (var pair in usersAndPasswords) {
+                var hashed = PasswordHash.CreateHash(pair.Value);
+                _passwordMap[pair.Key] = hashed;
+            }
+
+            RequiresAuth = _passwordMap.Count > 0;
+        }
+
         #endregion
 
         #region Protected Methods
@@ -95,6 +123,22 @@ namespace Couchbase.Lite.Listener
         /// Used by subclasses to dispose resources
         /// </summary>
         protected virtual void DisposeInternal() {}
+
+        /// <summary>
+        /// Validates the user.
+        /// </summary>
+        /// <returns><c>true</c>, if user was validated, <c>false</c> otherwise.</returns>
+        /// <param name="user">The username attept</param>
+        /// <param name="passwordAttempt">The password attempt</param>
+        protected bool ValidateUser(string user, string passwordAttempt)
+        {
+            string hash;
+            if (!_passwordMap.TryGetValue(user, out hash)) {
+                return false;
+            }
+
+            return PasswordHash.ValidatePassword(passwordAttempt, hash);
+        }
 
         #endregion
 
