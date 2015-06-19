@@ -61,6 +61,7 @@ using Couchbase.Lite.Util;
 using Couchbase.Lite.Tests;
 using Newtonsoft.Json.Linq;
 using System.Threading;
+using Couchbase.Lite.Listener.Tcp;
 
 #if NET_3_5
 using WebRequest = System.Net.Couchbase.WebRequest;
@@ -477,6 +478,34 @@ namespace Couchbase.Lite
             Log.D(Tag, "testPusher() finished");
         }
 
+        [Test]
+        public void TestReplicateWithListener()
+        {
+            var listener = new CouchbaseLiteTcpListener(manager, 59840);
+            listener.Start();
+
+            var dbCopy = EnsureEmptyDatabase("replicate_end");
+  
+            var push = database.CreatePushReplication(new Uri("http://localhost:59840/replicate_end"));
+            push.Authenticator = new BasicAuthenticator("jim", "borden");
+            CreateDocuments(database, 20);
+            RunReplication(push);
+
+            Assert.IsNull(push.LastError);
+            Assert.AreEqual(20, dbCopy.DocumentCount);
+
+            var name = database.Name;
+            database.Close();
+            database = EnsureEmptyDatabase(name);
+
+            var pull = database.CreatePullReplication(new Uri("http://localhost:59840/replicate_end"));
+            RunReplication(pull);
+            Assert.IsNull(pull.LastError);
+            Assert.AreEqual(20, database.DocumentCount);
+
+            // TODO: Auth
+        }
+
         /// <exception cref="System.Exception"></exception>
         [Test]
         public void TestPusherDeletedDoc()
@@ -756,8 +785,8 @@ namespace Couchbase.Lite
             HttpClient httpclient = null;
             try
             {
-                var handler = new HttpClientHandler { Credentials = new NetworkCredential("jim", "borden") };
-                handler.PreAuthenticate = true;
+                var handler = new HttpClientHandler();// { Credentials = new NetworkCredential("jim", "borden") };
+                //handler.PreAuthenticate = true;
                 httpclient = new HttpClient(handler, true);
 
                 HttpResponseMessage response;

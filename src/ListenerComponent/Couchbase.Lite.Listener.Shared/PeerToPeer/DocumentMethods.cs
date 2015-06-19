@@ -317,7 +317,7 @@ namespace Couchbase.Lite.Listener
 
             StatusCode status = StatusCode.Created;
             try {
-                if (docId.StartsWith("_local")) {
+                if (docId != null && docId.StartsWith("_local")) {
                     outRev = db.Storage.PutLocalRevision(rev, prevRevId, true); //TODO: Doesn't match iOS
                 } else {
                     Status retStatus = new Status();

@@ -182,11 +182,11 @@ namespace Couchbase.Lite.Listener
                     return context.CreateResponse(StatusCode.BadJson);
                 }
 
-                if(!body.ContainsKey("rows")) {
+                if(!body.ContainsKey("keys")) {
                     return context.CreateResponse(StatusCode.BadParam);
                 }
 
-                var keys = body["rows"].AsList<object>();
+                var keys = body["keys"].AsList<object>();
                 options.Keys = keys;
                 return DoAllDocs(context, db, options);
             }).AsDefaultState();
@@ -619,6 +619,75 @@ namespace Couchbase.Lite.Listener
             var retVal = context.CreateResponse();
             retVal.JsonBody = body;
             return retVal;
+        }
+
+        public static ICouchbaseResponseState RevsDiff(ICouchbaseListenerContext context)
+        {
+            // Collect all of the input doc/revision IDs as CBL_Revisions:
+            var revs = new RevisionList();
+            var body = context.BodyAs<Dictionary<string, object>>();
+            if (body == null) {
+                return context.CreateResponse(StatusCode.BadJson).AsDefaultState();
+            }
+
+            foreach (var docPair in body) {
+                var revIDs = docPair.Value.AsList<string>();
+                if (revIDs == null) {
+                    return context.CreateResponse(StatusCode.BadParam).AsDefaultState();
+                }
+
+                foreach (var revID in revIDs) {
+                    var rev = new RevisionInternal(docPair.Key, revID, false);
+                    revs.Add(rev);
+                }
+            }
+
+            return PerformLogicWithDatabase(context, true, db =>
+            {
+                var response = context.CreateResponse();
+                // Look them up, removing the existing ones from revs:
+                int missing = db.Storage.FindMissingRevisions(revs);
+
+                // Return the missing revs in a somewhat different format:
+                IDictionary<string, object> diffs = new Dictionary<string, object>();
+                foreach(var rev in revs) {
+                    var docId = rev.GetDocId();
+                    IList<string> missingRevs = null;
+                    if(!diffs.ContainsKey(docId)) {
+                        missingRevs = new List<string>();
+                        diffs[docId] = new Dictionary<string, IList<string>> { { "missing", missingRevs } };
+                    } else {
+                        missingRevs = ((Dictionary<string, IList<string>>)diffs[docId])["missing"];
+                    }
+
+                    missingRevs.Add(rev.GetRevId());
+                }
+
+                // Add the possible ancestors for each missing revision:
+                foreach(var docPair in diffs) {
+                    IDictionary<string, IList<string>> docInfo = (IDictionary<string, IList<string>>)docPair.Value;
+                    int maxGen = 0;
+                    string maxRevID = null;
+                    foreach(var revId in docInfo["missing"]) {
+                        var parsed = RevisionInternal.ParseRevId(revId);
+                        if(parsed.Item1 > maxGen) {
+                            maxGen = parsed.Item1;
+                            maxRevID = revId;
+                        }
+                    }
+
+                    var rev = new RevisionInternal(docPair.Key, maxRevID, false);
+                    var ancestors = db.Storage.GetPossibleAncestors(rev, 0, false);
+                    var ancestorList = ancestors == null ? null : ancestors.ToList();
+                    if(ancestorList != null && ancestorList.Count > 0) {
+                        docInfo["possible_ancestors"] = ancestorList;
+                    }
+                }
+
+                response.JsonBody = new Body(diffs);
+                return response;
+            }).AsDefaultState();
+
         }
 
         #endregion

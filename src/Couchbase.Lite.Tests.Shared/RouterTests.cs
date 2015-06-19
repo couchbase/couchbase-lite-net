@@ -174,6 +174,22 @@ namespace Couchbase.Lite
                 { "_rev", revIDs[1] },
                 { "message", "hello" }
             });
+
+            SendBody("POST", String.Format("/{0}", database.Name), new Body(new Dictionary<string, object> {
+                { "foo", "bar" }
+            }), HttpStatusCode.Created, null);
+
+            SendBody("POST", String.Format("/{0}", database.Name), new Body(new Dictionary<string, object> {
+                { "_id", "specified-id" },
+                { "foo", "bar" }
+            }), HttpStatusCode.Created, null);
+            var rev = _lastResponse.Headers["Etag"].Trim('"');
+
+            SendBody("POST", String.Format("/{0}", database.Name), new Body(new Dictionary<string, object> {
+                { "_id", "specified-id" },
+                { "_rev", rev },
+                { "foo", "bar2" }
+            }), HttpStatusCode.Created, null);
         }
 
         [Test]
