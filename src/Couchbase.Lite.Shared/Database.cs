@@ -2543,8 +2543,12 @@ PRAGMA user_version = 3;";
             writer.SetNextPartHeaders(new Dictionary<string, string> { { "Content-Type", "application/json" } });
             writer.AddData(rev.GetBody().AsJson());
             var attachments = rev.GetAttachments();
+            if (attachments == null) {
+                return writer;
+            }
+
             foreach (var entry in attachments) {
-                var attachment = entry.Value as IDictionary<string, object>;
+                var attachment = entry.Value.AsDictionary<string, object>();
                 if (attachment != null && attachment.GetCast<bool>("follows", false)) {
                     var disposition = String.Format("attachment; filename={0}", Quote(entry.Key));
                     writer.SetNextPartHeaders(new Dictionary<string, string> { { "Content-Disposition", disposition } });
@@ -3793,7 +3797,7 @@ PRAGMA user_version = 3;";
                 AttachmentInternal attachment = null;
                 try {
                     attachment = new AttachmentInternal(name, attachInfo);
-                } catch(CouchbaseLiteException) {
+                } catch(CouchbaseLiteException e) {
                     return null;
                 }
 

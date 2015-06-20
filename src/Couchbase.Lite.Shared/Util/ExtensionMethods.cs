@@ -43,19 +43,14 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Collections.Specialized;
 using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Net;
 using System.Net.Http.Headers;
-using System.Threading.Tasks;
-
-using Newtonsoft.Json.Linq;
 
 using Sharpen;
-using System.ComponentModel;
 
 namespace Couchbase.Lite
 {
@@ -165,21 +160,12 @@ namespace Couchbase.Lite
 
         internal static IDictionary<TKey,TValue> AsDictionary<TKey, TValue>(this object attachmentProps)
         {
-            if (attachmentProps == null)
-                return null;
-            return attachmentProps is JObject
-                ? ((JObject)attachmentProps).ToObject<IDictionary<TKey, TValue>>()
-                    : attachmentProps as IDictionary<TKey, TValue>;
+            return Manager.GetObjectMapper().ConvertToDictionary<TKey, TValue>(attachmentProps);
         }
 
         internal static IList<TValue> AsList<TValue>(this object value)
         {
-            if (value == null)
-                return null;
-            
-            return value is JArray
-                ? ((JArray)value).ToObject<IList<TValue>>()
-                    : value as IList<TValue>;
+            return Manager.GetObjectMapper().ConvertToList<TValue>(value);
         }
 
         public static IEnumerable ToEnumerable(this IEnumerator enumerator)

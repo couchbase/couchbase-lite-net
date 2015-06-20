@@ -216,6 +216,10 @@
     <Compile Include="$(MSBuildThisFileDirectory)Manager\DatabaseUpgraderFactory.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Manager\DatabaseUpgraderFactory_Upgraders.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Store\SQLiteStorageEngineFactory.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Store\SymmetricKey.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Util\ValueTypePtr.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Manager\IJsonSerializer.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Manager\NewtonsoftJsonSerializer.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="$(MSBuildThisFileDirectory)Store\MonoSQLiteStorageEngine.cs" />

@@ -46,16 +46,15 @@ using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Newtonsoft.Json.Linq;
+
 using Couchbase.Lite;
 using Couchbase.Lite.Auth;
 using Couchbase.Lite.Replicator;
 using Couchbase.Lite.Util;
 using Sharpen;
-using System.Text;
-using Newtonsoft.Json;
 
 namespace Couchbase.Lite.Replicator
 {
@@ -520,11 +519,11 @@ namespace Couchbase.Lite.Replicator
                         var content = response.Content.ReadAsByteArrayAsync().Result;
                         var results = Manager.GetObjectMapper().ReadValue<IDictionary<String, Object>>(content.AsEnumerable());
                         Log.D(Tag, "Received results from changes feed: {0}", results);
-                        var resultsValue = results["results"] as JArray;
+                        var resultsValue = results["results"].AsList<object>();
                         foreach (var item in resultsValue) {
                             IDictionary<String, Object> change = null;
                             try {
-                                change = item.ToObject<IDictionary<String, Object>>();
+                                change = item.AsDictionary<string, Object>();
                             }
                             catch (Exception) {
                                 Log.E(Tag, this + string.Format(": Received unparseable change line from server: {0}", change));

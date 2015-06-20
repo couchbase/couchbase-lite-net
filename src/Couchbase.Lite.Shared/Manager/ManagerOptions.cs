@@ -64,6 +64,9 @@ namespace Couchbase.Lite
         /// <value>The default option flags.</value>
         public static ManagerOptions Default { get; private set; }
 
+        //Make public in the future
+        internal static IJsonSerializer SerializationEngine { get; set; }
+
         #if __IOS__
 
         public Foundation.NSDataWritingOptions FileProtection { get; set; }
@@ -101,6 +104,8 @@ namespace Couchbase.Lite
                 CallbackScheduler =  scheduler ?? TaskScheduler.Current ?? TaskScheduler.Default;
             }
             #endif
+
+            SerializationEngine = new NewtonsoftJsonSerializer();
         }
 
         //TODO: Honor this

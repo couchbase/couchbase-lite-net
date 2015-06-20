@@ -487,7 +487,6 @@ namespace Couchbase.Lite
         internal INetworkReachabilityManager NetworkReachabilityManager { get ; private set; }
         internal CookieStore SharedCookieStore { get; set; } 
 
-
         // Instance Methods
         internal Database GetDatabaseWithoutOpening(String name, Boolean mustExist)
         {
