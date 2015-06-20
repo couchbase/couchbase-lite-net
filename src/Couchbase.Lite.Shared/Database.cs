@@ -668,6 +668,7 @@ namespace Couchbase.Lite
             return container.Get(path[1]);
         }
 
+        /// <exception cref="Couchbase.Lite.CouchbaseLiteException">When attempting to add an invalid revision</exception>
         internal void ForceInsert(RevisionInternal inRev, IList<string> revHistory, Uri source)
         {
             if (revHistory == null) {
@@ -699,7 +700,7 @@ namespace Couchbase.Lite
             }
 
             StoreValidation validationBlock = null;
-            if (Shared.HasValues("validation", Name)) {
+            if (Shared != null && Shared.HasValues("validation", Name)) {
                 validationBlock = ValidateRevision;
             }
 
@@ -1024,8 +1025,12 @@ namespace Couchbase.Lite
             writer.SetNextPartHeaders(new Dictionary<string, string> { { "Content-Type", "application/json" } });
             writer.AddData(rev.GetBody().AsJson());
             var attachments = rev.GetAttachments();
+            if (attachments == null) {
+                return writer;
+            }
+
             foreach (var entry in attachments) {
-                var attachment = entry.Value as IDictionary<string, object>;
+                var attachment = entry.Value.AsDictionary<string, object>();
                 if (attachment != null && attachment.GetCast<bool>("follows", false)) {
                     var disposition = String.Format("attachment; filename={0}", Quote(entry.Key));
                     writer.SetNextPartHeaders(new Dictionary<string, string> { { "Content-Disposition", disposition } });
@@ -1532,7 +1537,7 @@ namespace Couchbase.Lite
                 AttachmentInternal attachment = null;
                 try {
                     attachment = new AttachmentInternal(name, attachInfo);
-                } catch(CouchbaseLiteException) {
+                } catch(CouchbaseLiteException e) {
                     return null;
                 }
 

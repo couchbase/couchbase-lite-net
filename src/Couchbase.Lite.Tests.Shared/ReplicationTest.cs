@@ -512,6 +512,8 @@ namespace Couchbase.Lite
             Assert.IsNotNull(attachDoc, "Failed to retrieve doc with attachment");
             Assert.IsNotNull(attachDoc.CurrentRevision.Attachments, "Failed to retrieve attachments on attachment doc");
 
+            listener.Stop();
+
             // TODO: Auth
         }
 
@@ -591,6 +593,65 @@ namespace Couchbase.Lite
                 Runtime.PrintStackTrace(e);
             }
             Log.D(Tag, "testPusherDeletedDoc() finished");
+        }
+
+        [Test]
+        public void TestUpdateToServerSavesAttachment()
+        {
+            var pull = database.CreatePullReplication(new Uri("http://localhost:5984/db"));
+            pull.Continuous = true;
+            pull.Start();
+
+            try {
+                HttpWebRequest.CreateHttp("http://localhost:5984/").GetResponse();
+            } catch(Exception) {
+                Assert.Inconclusive("Apache CouchDB not running");
+            }
+
+            var docName = "doc" + Convert.ToString(Runtime.CurrentTimeMillis());
+            var endpoint = "http://localhost:5984/db/" + docName;
+            var docContent = Encoding.UTF8.GetBytes("{\"foo\":false}");
+            var putRequest = HttpWebRequest.CreateHttp(endpoint);
+            putRequest.Method = "PUT";
+            putRequest.ContentType = "application/json";
+            putRequest.GetRequestStream().Write(docContent, 0, docContent.Length);
+            var response = (HttpWebResponse)putRequest.GetResponse();
+            Assert.AreEqual(HttpStatusCode.Created, response.StatusCode);
+
+
+            var attachmentStream = (InputStream)GetAsset("attachment.png");
+            var baos = new MemoryStream();
+            attachmentStream.Wrapped.CopyTo(baos);
+            attachmentStream.Dispose();
+            endpoint = "http://localhost:5984/db/" + docName + "/attachment?rev=1-1153b140e4c8674e2e6425c94de860a0";
+            docContent = baos.ToArray();
+
+            putRequest = HttpWebRequest.CreateHttp(endpoint);
+            putRequest.Method = "PUT";
+            putRequest.ContentType = "image/png";
+            putRequest.GetRequestStream().Write(docContent, 0, docContent.Length);
+            response = (HttpWebResponse)putRequest.GetResponse();
+            Assert.AreEqual(HttpStatusCode.Created, response.StatusCode);
+
+            endpoint = "http://localhost:5984/db/" + docName + "?rev=2-bb71ce0da1de19f848177525c4ae5a8b";
+            docContent = Encoding.UTF8.GetBytes("{\"foo\":true,\"_attachments\":{\"attachment\":{\"content_type\":\"image/png\",\"revpos\":2,\"digest\":\"md5-ks1IBwCXbuY7VWAO9CkEjA==\",\"length\":519173,\"stub\":true}}}");
+            putRequest = HttpWebRequest.CreateHttp(endpoint);
+            putRequest.Method = "PUT";
+            putRequest.ContentType = "application/json";
+            putRequest.GetRequestStream().Write(docContent, 0, docContent.Length);
+            response = (HttpWebResponse)putRequest.GetResponse();
+            Assert.AreEqual(HttpStatusCode.Created, response.StatusCode);
+
+            Thread.Sleep(1000);
+            while (pull.Status == ReplicationStatus.Active) {
+                Thread.Sleep(500);
+            }
+
+            Assert.IsNull(pull.LastError);
+            Assert.AreEqual(ReplicationStatus.Idle, pull.Status);
+            var doc = database.GetExistingDocument(docName);
+            Assert.IsNotNull(doc);
+            Assert.IsNotNull(doc.CurrentRevision.Attachments);
         }
 
         /// <exception cref="System.Exception"></exception>
@@ -794,8 +855,8 @@ namespace Couchbase.Lite
             HttpClient httpclient = null;
             try
             {
-                var handler = new HttpClientHandler();// { Credentials = new NetworkCredential("jim", "borden") };
-                //handler.PreAuthenticate = true;
+                var handler = new HttpClientHandler { Credentials = new NetworkCredential("jim", "borden") };
+                handler.PreAuthenticate = true;
                 httpclient = new HttpClient(handler, true);
 
                 HttpResponseMessage response;
@@ -1649,6 +1710,7 @@ namespace Couchbase.Lite
             Log.D(Tag, "TestContinuousPusherWithAttachment() finished");
 
             pusher.Stop ();
+            Thread.Sleep(500);
         }  
 
         private IDictionary<string, object> GetRemoteDocById(Uri remote, string docId)

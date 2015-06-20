@@ -41,16 +41,14 @@
 //
 
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
+
 using Couchbase.Lite;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
 using Sharpen;
-using System.Net.Http;
-using System.Linq;
-using Newtonsoft.Json.Linq;
 
 namespace Couchbase.Lite.Support
 {
@@ -141,33 +139,34 @@ namespace Couchbase.Lite.Support
         {
             var numAttachmentsInDoc = 0;
 
-            var attachments = (JObject)document.Get("_attachments");
+            var attachments = document.Get("_attachments").AsDictionary<string, object>();
             if (attachments == null)
             {
                 return;
             }
 
+            var nuAttachments = new Dictionary<string, object>(attachments.Count);
             foreach (var attmt in attachments)
             {
-                var attachmentName = (string)attmt.Key;
-                var attachment = (JObject)attmt.Value;
+                var attachmentName = attmt.Key;
+                var attachment = attmt.Value.AsDictionary<string, object>();
 
                 long length = 0;
-                var lengthValue = attachment["length"];
+                var lengthValue = attachment.Get("length");
                 if (lengthValue != null)
                 {
                     length = (long)lengthValue;
                 }
-                var encodedLengthValue = attachment["encoded_length"];
+                var encodedLengthValue = attachment.Get("encoded_length");
                 if (encodedLengthValue != null)
                 {
                     length = (long)encodedLengthValue;
                 }
 
-                var followsValue = attachment["follows"];
-                if (followsValue != null && ((bool)followsValue))
+                var followsValue = attachment.GetCast<bool>("follows");
+                if (followsValue)
                 {
-                    var digest = (string)attachment["digest"];
+                    var digest = attachment.GetCast<string>("digest");
                     var writer =  attachmentsByName.Get(attachmentName);
                     if (writer != null)
                     {
@@ -216,11 +215,12 @@ namespace Couchbase.Lite.Support
                         throw new InvalidOperationException(errMsg);
                     }
 
+                    nuAttachments[attachmentName] = attachment;
                     ++numAttachmentsInDoc;
                 }
                 else
                 {
-                    if (attachment["data"] != null && length > 1000)
+                    if (attachment.Get("data") != null && length > 1000)
                     {
                         var msg = String.Format("Attachment '{0}' sent inline (len={1}).  Large attachments "
                             + "should be sent in MIME parts for reduced memory overhead.", attachmentName);
@@ -235,6 +235,7 @@ namespace Couchbase.Lite.Support
                 throw new InvalidOperationException(msg);
             }
 
+            document["_attachments"] = nuAttachments;
             // hand over the (uninstalled) blobs to the database to remember:
             database.RememberAttachmentWritersForDigests(attachmentsBySHA1Digest);
         }

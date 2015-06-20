@@ -49,7 +49,7 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Threading;
 using System.Threading.Tasks;
-using Newtonsoft.Json.Linq;
+
 using Couchbase.Lite.Auth;
 using Couchbase.Lite.Internal;
 using Couchbase.Lite.Support;
@@ -641,8 +641,8 @@ namespace Couchbase.Lite
                     }
                     else
                     {
-                        var response = ((JObject)result).ToObject<IDictionary<string, object>>();
-                        var userCtx = ((JObject)response.Get("userCtx")).ToObject<IDictionary<string, object>>();
+                        var response = result.AsDictionary<string, object>();
+                        var userCtx = response.Get("userCtx").AsDictionary<string, object>();
                         var username = (string)userCtx.Get ("name");
 
                         if (!string.IsNullOrEmpty (username)) {
@@ -727,8 +727,7 @@ namespace Couchbase.Lite
                         IDictionary<string, object> result = null;
 
                         if (response != null) {
-                            var responseData = (JObject)response;
-                            result = responseData.ToObject<IDictionary<string, object>>();
+                            result = response.AsDictionary<string, object>();
                             remoteCheckpoint = result;
                         }
                         remoteCheckpoint = result;
@@ -973,7 +972,7 @@ namespace Couchbase.Lite
                 else
                 {
                     Log.D(Tag, "Save checkpoint response: " + result.ToString());
-                    var response = ((JObject)result).ToObject<IDictionary<string, object>>();
+                    var response = result.AsDictionary<string, object>();
                     body.Put ("_rev", response.Get ("rev"));
                     remoteCheckpoint = body;
                     LocalDatabase.SetLastSequence(LastSequence, RemoteCheckpointDocID(), !IsPull);

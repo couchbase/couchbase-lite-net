@@ -41,15 +41,13 @@
 //
 
 using System;
-using System.Linq;
-using System.IO;
-using System.Reflection;
-using Newtonsoft.Json;
 using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 
 #if !NET_3_5
-using StringEx = System.String;
 using System.Net;
+using StringEx = System.String;
 #else
 using System.Net.Couchbase;
 #endif
@@ -203,7 +201,7 @@ namespace Couchbase.Lite.Util
             }
 
             using (var writer = new StreamWriter(filePath)) {
-                var json = JsonConvert.SerializeObject(aggregate);
+                var json = Manager.GetObjectMapper().WriteValueAsString(aggregate);
                 writer.Write(json);
             }
         }
@@ -223,7 +221,7 @@ namespace Couchbase.Lite.Util
             using (var reader = new StreamReader(filePath)) {
                 var json = reader.ReadToEnd();
 
-                var cookies = JsonConvert.DeserializeObject<List<Cookie>>(json);
+                var cookies = Manager.GetObjectMapper().ReadValue<IList<Cookie>>(json);
                 cookies = cookies ?? new List<Cookie>();
 
                 foreach (Cookie cookie in cookies) {

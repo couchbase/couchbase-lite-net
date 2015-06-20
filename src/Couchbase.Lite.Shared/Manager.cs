@@ -488,7 +488,7 @@ namespace Couchbase.Lite
         internal INetworkReachabilityManager NetworkReachabilityManager { get ; private set; }
         internal CookieStore SharedCookieStore { get; set; } 
         internal string StorageType { get; set; } // @"SQLite" (default) or @"ForestDB"
-            internal SharedState Shared { get; private set; }
+        internal SharedState Shared { get; private set; }
 
 
         // Instance Methods

@@ -42,19 +42,19 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
+using System.Linq;
+using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Text;
+using System.Threading.Tasks;
+
 using Couchbase.Lite;
 using Couchbase.Lite.Internal;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
 using Sharpen;
-using System.Threading.Tasks;
-using System.Net.Http;
-using System.Net.Http.Headers;
-using Newtonsoft.Json.Linq;
-using System.Linq;
-using System.Diagnostics;
 
 #if !NET_3_5
 using StringEx = System.String;
@@ -251,7 +251,10 @@ namespace Couchbase.Lite.Replicator
             lock(pendingSequences)
             {
                 var seq = revisionInternal.GetSequence();
-                pendingSequences.Add(seq, 0);
+                if (!pendingSequences.ContainsKey(seq)) {
+                    pendingSequences.Add(seq, 0);
+                }
+
                 if (seq > maxPendingSequence)
                 {
                     maxPendingSequence = seq;
@@ -446,7 +449,7 @@ namespace Couchbase.Lite.Replicator
                     {
                         var failedIds = new HashSet<string>();
                         // _bulk_docs response is really an array not a dictionary
-                        var items = ((JArray)result).ToList();
+                        var items = result.AsList<object>();
                         foreach(var item in items)
                         {
                             var itemObject = item.AsDictionary<string, object>();
@@ -461,7 +464,7 @@ namespace Couchbase.Lite.Replicator
                                 // actual replication errors.
                                 if (status.Code != StatusCode.Forbidden)
                                 {
-                                    var docId = (string)item["id"];
+                                    var docId = itemObject.GetCast<string>("id");
                                     failedIds.Add(docId);
                                 }
                             }

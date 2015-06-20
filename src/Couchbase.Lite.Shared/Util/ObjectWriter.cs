@@ -49,6 +49,7 @@ using System.Reflection;
 using System.Text;
 
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace Couchbase.Lite 
 {
@@ -74,9 +75,9 @@ namespace Couchbase.Lite
 
         public ObjectWriter() : this(false) { }
 
-        public ObjectWriter(Boolean prettyPrintJson)
+        public ObjectWriter(bool prettyPrintJson)
         {
-            this._prettyPrintJson = prettyPrintJson;
+            _prettyPrintJson = prettyPrintJson;
         }
 
         #endregion
@@ -97,56 +98,39 @@ namespace Couchbase.Lite
         public string WriteValueAsString<T> (T item, bool canonical = false)
         {
             if (!canonical) {
-                return JsonConvert.SerializeObject(item, _prettyPrintJson ? Formatting.Indented : Formatting.None, settings);
+                return ManagerOptions.SerializationEngine.SerializeObject(item, _prettyPrintJson);
             }
 
             var newItem = MakeCanonical(item);
-            return JsonConvert.SerializeObject(newItem, _prettyPrintJson ? Formatting.Indented : Formatting.None, settings);
+            return ManagerOptions.SerializationEngine.SerializeObject(newItem, _prettyPrintJson);
         }
 
-        public T ReadValue<T> (String json)
+        public T ReadValue<T> (string json)
         {
-            T item;
-            try {
-                item = JsonConvert.DeserializeObject<T>(json, settings);
-            } catch(JsonException e) {
-                throw new CouchbaseLiteException(e, StatusCode.BadJson);
-            }
-
-            return item;
+            return ManagerOptions.SerializationEngine.DeserializeObject<T>(json);
         }
 
-        public T ReadValue<T> (IEnumerable<Byte> json)
+        public T ReadValue<T> (IEnumerable<byte> json)
         {
             using (var jsonStream = new MemoryStream(json.ToArray())) 
-            using (var jsonReader = new JsonTextReader(new StreamReader(jsonStream))) 
             {
-                var serializer = JsonSerializer.Create(settings);
-                T item;
-                try {
-                    item = serializer.Deserialize<T>(jsonReader);
-                } catch (JsonException e) {
-                    throw new CouchbaseLiteException(e, StatusCode.BadJson);
-                }
-
-                return item;
+                return ReadValue<T>(jsonStream);
             }
         }
 
         public T ReadValue<T> (Stream jsonStream)
         {
-            using (var jsonReader = new JsonTextReader(new StreamReader(jsonStream))) 
-            {
-                var serializer = JsonSerializer.Create(settings);
-                T item;
-                try {
-                    item = serializer.Deserialize<T>(jsonReader);
-                } catch (JsonException e) {
-                    throw new CouchbaseLiteException(e, StatusCode.BadJson);
-                }
+            return ManagerOptions.SerializationEngine.Deserialize<T>(jsonStream);
+        }
 
-                return item;
-            }
+        public IDictionary<K, V> ConvertToDictionary<K, V>(object obj)
+        {
+            return ManagerOptions.SerializationEngine.ConvertToDictionary<K, V>(obj) ?? obj as IDictionary<K,V>;
+        }
+
+        public IList<T> ConvertToList<T>(object obj)
+        {
+            return ManagerOptions.SerializationEngine.ConvertToList<T>(obj) ?? obj as IList<T>;
         }
 
         #endregion
@@ -183,11 +167,18 @@ namespace Couchbase.Lite
             if (array != null) {
                 var newList = new List<object>();
                 var e = array.GetEnumerator();
+                bool? comparable = null;
                 while (e.MoveNext()) {
+                    if (!comparable.HasValue) {
+                        comparable = e.Current is IComparable;
+                    }
                     newList.Add(MakeCanonical(e.Current));
                 }
 
-                newList.Sort();
+                if (comparable.HasValue && comparable.Value) {
+                    newList.Sort();
+                }
+
                 return newList;
             }
 

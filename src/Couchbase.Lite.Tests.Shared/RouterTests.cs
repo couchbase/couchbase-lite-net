@@ -620,7 +620,7 @@ namespace Couchbase.Lite
             Assert.AreEqual(405, response.GetCast<long>("status"));
             Assert.AreEqual("method_not_allowed", response.GetCast<string>("error"));
 
-            endpoint = String.Format("/{0}/_session", database.Name);
+            endpoint = String.Format("/{0}/_session!", database.Name);
             response = Send<IDictionary<string, object>>("GET", endpoint, HttpStatusCode.NotFound, null);
             Assert.AreEqual(404, response.GetCast<long>("status"));
             Assert.AreEqual("not_found", response.GetCast<string>("error"));

@@ -44,21 +44,17 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Net;
 using System.Net.Http;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
-using System.Web;
-using Newtonsoft.Json.Linq;
+
 using Couchbase.Lite;
 using Couchbase.Lite.Internal;
 using Couchbase.Lite.Replicator;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
 using Sharpen;
-using System.Threading;
-using System.Data;
-using Newtonsoft.Json;
 
 #if !NET_3_5
 using StringEx = System.String;
@@ -221,27 +217,25 @@ namespace Couchbase.Lite.Replicator
         {
             var lastSequence = change.Get("seq").ToString();
             var docID = (string)change.Get("id");
-            if (docID == null)
-            {
+            if (docID == null) {
                 return;
             }
 
-            if (!LocalDatabase.IsValidDocumentId(docID))
-            {
-                if (!docID.StartsWith ("_user/", StringComparison.InvariantCultureIgnoreCase))
-                {
-                    Log.W(Tag, string.Format("{0}: Received invalid doc ID from _changes: {1} ({2})", this, docID, JsonConvert.SerializeObject(change)));
+            if (!LocalDatabase.IsValidDocumentId(docID)) {
+                if (!docID.StartsWith("_user/", StringComparison.InvariantCultureIgnoreCase)) {
+                    Log.W(Tag, string.Format("{0}: Received invalid doc ID from _changes: {1} ({2})", this, docID, Manager.GetObjectMapper().WriteValueAsString(change)));
                 }
+
                 return;
             }
 
             var deleted = (change.ContainsKey("deleted") && ((bool)change.Get("deleted")).Equals(true));
 
-            var changesContainer = change.Get("changes") as JContainer;
+            var changesContainer = change.Get("changes").AsList<object>();
             var changes = changesContainer.ToArray();
             foreach (var changeObj in changes)
             {
-                var changeDict = changeObj.ToObject<IDictionary<string, object>>();
+                var changeDict = changeObj.AsDictionary<string, object>();
                 var revID = (string)changeDict.Get("rev");
                 if (revID == null)
                 {
@@ -306,22 +300,18 @@ namespace Couchbase.Lite.Replicator
         /// <summary>Process a bunch of remote revisions from the _changes feed at once</summary>
         internal override void ProcessInbox(RevisionList inbox)
         {
-            if (!online)
-            {
-                Log.V(Tag, "Offline, so skipping inbox process");
+            if (!online) {
+                Log.D(Tag, "Offline, so skipping inbox process");
                 return;
             }
 
             Debug.Assert(inbox != null);
-
-            if (!canBulkGet)
-            {
+            if (!canBulkGet) {
                 canBulkGet = CheckServerCompatVersion("0.81");
             }
 
             // Ask the local database which of the revs are not known to it:
             var lastInboxSequence = ((PulledRevision)inbox[inbox.Count - 1]).GetRemoteSequenceID();
-
             var numRevisionsRemoved = 0;
             try {
                 // findMissingRevisions is the local equivalent of _revs_diff. it looks at the
@@ -329,81 +319,76 @@ namespace Couchbase.Lite.Replicator
                 // afterwards are the revisions that need to be downloaded.
                 numRevisionsRemoved = LocalDatabase.Storage.FindMissingRevisions(inbox);
             } catch (Exception e) {
-                Log.E(Tag, "Failed to look up local revs", e);
+                Log.W(Tag, "Failed to look up local revs", e);
                 inbox = null;
             }
 
-            //introducing this to java version since inbox may now be null everywhere
             var inboxCount = 0;
-            if (inbox != null)
-            {
+            if (inbox != null) {
                 inboxCount = inbox.Count;
             }
 
             if (numRevisionsRemoved > 0)
             {
-                Log.V(Tag, "processInbox() setting changesCount to: " + (ChangesCount - numRevisionsRemoved));
-                SafeAddToChangesCount(-numRevisionsRemoved);
+                // Some of the revisions originally in the inbox aren't missing; treat those as processed:
+                SafeAddToCompletedChangesCount(numRevisionsRemoved);
             }
 
-            if (inboxCount == 0)
-            {
+            if (inboxCount == 0) {
                 // Nothing to do. Just bump the lastSequence.
-                Log.W(Tag, string.Format("{0} no new remote revisions to fetch", this));
+                Log.V(Tag, string.Format("{0} no new remote revisions to fetch", this));
 
                 var seq = pendingSequences.AddValue(lastInboxSequence);
                 pendingSequences.RemoveSequence(seq);
                 LastSequence = pendingSequences.GetCheckpointedValue();
+                //TODO: Pause and resume
                 return;
             }
 
-            Log.V(Tag, "fetching " + inboxCount + " remote revisions...");
+            Log.V(Tag, "Queuing {0} remote revisions...", inboxCount);
 
             // Dump the revs into the queue of revs to pull from the remote db:
             lock (locker) {
                 int numBulked = 0;
-                for (int i = 0; i < inbox.Count; i++) {
-                    var rev = (PulledRevision)inbox [i];
+                for (int i = 0; i < inboxCount; i++) {
+                    var rev = (PulledRevision)inbox[i];
                     //TODO: add support for rev isConflicted
-                    if (canBulkGet || (rev.GetGeneration() == 1 && !rev.IsDeleted()))
-                    {
-                        // &&!rev.isConflicted)
+                    if (canBulkGet || (rev.GetGeneration() == 1 && !rev.IsDeleted() && !rev.IsConflicted)) {
                         //optimistically pull 1st-gen revs in bulk
-                        if (bulkRevsToPull == null)
-                        {
+                        if (bulkRevsToPull == null) {
                             bulkRevsToPull = new List<RevisionInternal>(100);
                         }
+
                         bulkRevsToPull.AddItem(rev);
                         ++numBulked;
-                    }
-                    else
-                    {
+                    } else {
                         QueueRemoteRevision(rev);
                     }
-                    rev.SetSequence (pendingSequences.AddValue (rev.GetRemoteSequenceID ()));
+                    rev.SetSequence(pendingSequences.AddValue(rev.GetRemoteSequenceID()));
                 }
+
+                Log.D(Tag, "Queued {0} remote revisions from seq={1} ({2} in bulk, {3} individually)", inboxCount, 
+                    ((PulledRevision)inbox[0]).GetRemoteSequenceID(), numBulked, inboxCount - numBulked);
             }
 
             PullRemoteRevisions();
+            //TODO: Pause and resume
         }
 
         /// <summary>Add a revision to the appropriate queue of revs to individually GET</summary>
         internal void QueueRemoteRevision(RevisionInternal rev)
         {
-            if (rev.IsDeleted())
-            {
-                if (deletedRevsToPull == null)
-                {
+            if (rev.IsDeleted()) {
+                if (deletedRevsToPull == null) {
                     deletedRevsToPull = new List<RevisionInternal>(100);
                 }
+
                 deletedRevsToPull.AddItem(rev);
-            }
-            else
-            {
-                if (revsToPull == null)
-                {
+            } else {
+                if (revsToPull == null) {
                     revsToPull = new List<RevisionInternal>(100);
                 }
+
                 revsToPull.AddItem(rev);
             }
         }
@@ -420,53 +405,47 @@ namespace Couchbase.Lite.Replicator
             var bulkWorkToStartNow = new List<RevisionInternal>();
             lock (locker)
             {
-                while (httpConnectionCount + bulkWorkToStartNow.Count + workToStartNow.Count < ManagerOptions.Default.MaxOpenHttpConnections)
+                while (LocalDatabase != null && httpConnectionCount + bulkWorkToStartNow.Count + workToStartNow.Count < ManagerOptions.Default.MaxOpenHttpConnections)
                 {
                     int nBulk = 0;
-                    if (bulkRevsToPull != null)
-                    {
-                        nBulk = (bulkRevsToPull.Count < ManagerOptions.Default.MaxRevsToGetInBulk) ? bulkRevsToPull.Count : ManagerOptions.Default.MaxRevsToGetInBulk;
+                    if (bulkRevsToPull != null) {
+                        nBulk = Math.Min(bulkRevsToPull.Count, ManagerOptions.Default.MaxRevsToGetInBulk);
                     }
-                    if (nBulk == 1)
-                    {
+
+                    if (nBulk == 1) {
                         // Rather than pulling a single revision in 'bulk', just pull it normally:
                         QueueRemoteRevision(bulkRevsToPull[0]);
                         bulkRevsToPull.Remove(0);
                         nBulk = 0;
                     }
-                    if (nBulk > 0)
-                    {
+
+                    if (nBulk > 0) {
                         // Prefer to pull bulk revisions:
                         var range = new Couchbase.Lite.Util.ArraySegment<RevisionInternal>(bulkRevsToPull.ToArray(), 0, nBulk);
-                        bulkWorkToStartNow.AddRange(range) ;
+                        bulkWorkToStartNow.AddRange(range);
                         bulkRevsToPull.RemoveAll(range);
-                    }
-                    else
-                    {
+                    } else {
                         // Prefer to pull an existing revision over a deleted one:
                         IList<RevisionInternal> queue = revsToPull;
-                        if (queue == null || queue.Count == 0)
-                        {
+                        if (queue == null || queue.Count == 0) {
                             queue = deletedRevsToPull;
-                            if (queue == null || queue.Count == 0)
-                            {
-                                break;
+                            if (queue == null || queue.Count == 0) {
+                                break; // both queues are empty
                             }
                         }
-                        // both queues are empty
+
                         workToStartNow.AddItem(queue[0]);
                         queue.Remove(0);
                     }
                 }
             }
+
             //actually run it outside the synchronized block
-            if (bulkWorkToStartNow.Count > 0)
-            {
+            if (bulkWorkToStartNow.Count > 0) {
                 PullBulkRevisions(bulkWorkToStartNow);
             }
 
-            foreach (var rev in workToStartNow)
-            {
+            foreach (var rev in workToStartNow) {
                 PullRemoteRevision(rev);
             }
         }
@@ -474,60 +453,49 @@ namespace Couchbase.Lite.Replicator
         // Get a bunch of revisions in one bulk request. Will use _bulk_get if possible.
         internal void PullBulkRevisions(IList<RevisionInternal> bulkRevs)
         {
-            var nRevs = bulkRevs.Count;
-            if (nRevs == 0)
-            {
+            var nRevs = bulkRevs == null ? 0 : bulkRevs.Count;
+            if (nRevs == 0) {
                 return;
             }
 
-            Log.V(Tag, "{0} bulk-fetching {1} remote revisions...", this, nRevs);
+            Log.D(Tag, "{0} bulk-fetching {1} remote revisions...", this, nRevs);
             Log.V(Tag, "{0} bulk-fetching remote revisions: {1}", this, bulkRevs);
 
-            if (!canBulkGet)
-            {
+            if (!canBulkGet) {
                 PullBulkWithAllDocs(bulkRevs);
                 return;
             }
 
             Log.V(Tag, "POST _bulk_get");
             var remainingRevs = new List<RevisionInternal>(bulkRevs);
-
-            Log.V(Tag, "PullBulkRevisions() calling AsyncTaskStarted()");
             AsyncTaskStarted();
-
             ++httpConnectionCount;
             BulkDownloader dl;
             try
             {
                 dl = new BulkDownloader(WorkExecutor, clientFactory, RemoteUrl, bulkRevs, LocalDatabase, RequestHeaders);
-                // , new _BulkDownloaderDocumentBlock_506(this, remainingRevs), new _RemoteRequestCompletionBlock_537(this, remainingRevs)
-                // TODO: add event handles for completion and documentdownloaded.
-                dl.DocumentDownloaded += (sender, e) =>
+                dl.DocumentDownloaded += (sender, args) =>
                 {
-                    var props = e.DocumentProperties;
+                    var props = args.DocumentProperties;
 
                     var rev = props.Get ("_id") != null 
                         ? new RevisionInternal (props) 
-                        : new RevisionInternal ((string)props.Get ("id"), (string)props.Get ("rev"), false);
+                        : new RevisionInternal (props.GetCast<string> ("id"), props.GetCast<string> ("rev"), false);
 
-                    Log.D(Tag, "Document downloaded! {0}", rev);
 
                     var pos = remainingRevs.IndexOf(rev);
-                    if (pos > -1)
-                    {
+                    if (pos > -1) {
                         rev.SetSequence(remainingRevs[pos].GetSequence());
-                        remainingRevs.Remove(pos);
+                        remainingRevs.RemoveAt(pos);
+                    } else {
+                        Log.W(Tag, "Received unexpected rev {0}; ignoring", rev);
+                        return;
                     }
-                    else
-                    {
-                        Log.W(Tag, "Received unexpected rev rev");
-                    }
-                    if (props.Get("_id") != null)
-                    {
+
+                    if (props.GetCast<string>("_id") != null) {
+                        // Add to batcher ... eventually it will be fed to -insertRevisions:.
                         QueueDownloadedRevision(rev);
-                    }
-                    else
-                    {
+                    } else {
                         var status = StatusFromBulkDocsResponseItem(props);
                         LastError = new CouchbaseLiteException(status.Code);
                         RevisionFailed();
@@ -537,31 +505,26 @@ namespace Couchbase.Lite.Replicator
 
                 dl.Complete += (sender, args) => 
                 {
-                    if (args != null && args.Error != null)
-                    {
+                    if (args != null && args.Error != null) {
                         LastError = args.Error;
                         RevisionFailed();
-                        SafeAddToCompletedChangesCount(remainingRevs.Count);
+
+                    } else if(remainingRevs.Count > 0) {
+                        Log.W(Tag, "{0} revs not returned from _bulk_get: {1}",
+                            remainingRevs.Count, remainingRevs);
                     }
 
-                    Log.V(Tag, "PullBulkRevisions.Completion event handler calling AsyncTaskFinished()");
+                    SafeAddToCompletedChangesCount(remainingRevs.Count);
                     AsyncTaskFinished(1);
 
                     --httpConnectionCount;
 
                     PullRemoteRevisions();
                 };
-            }
-            catch (Exception)
-            {
-                // Got a revision!
-                // Find the matching revision in 'remainingRevs' and get its sequence:
-                // Add to batcher ... eventually it will be fed to -insertRevisions:.
-                // The entire _bulk_get is finished:
-                // Note that we've finished this task:
-                // Start another task if there are still revisions waiting to be pulled:
+            } catch (Exception) {
                 return;
             }
+
             dl.Authenticator = Authenticator;
             WorkExecutor.StartNew(dl.Run, CancellationTokenSource.Token, TaskCreationOptions.LongRunning, WorkExecutor.Scheduler);
 //            dl.Run();
@@ -815,60 +778,51 @@ namespace Couchbase.Lite.Replicator
         /// <summary>This will be called when _revsToInsert fills up:</summary>
         public void InsertDownloads(IList<RevisionInternal> downloads)
         {
-            Log.D(Tag, "Inserting " + downloads.Count + " revisions...");
-
+            Log.V(Tag, "Inserting {0} revisions...", downloads.Count);
             var time = DateTime.UtcNow;
-
             downloads.Sort(new RevisionComparer());
 
-            if (LocalDatabase == null)
-            {
+            if (LocalDatabase == null) {
                 AsyncTaskFinished(downloads.Count);
                 return;
             }
 
-            try
-            {
+            try {
                 var success = LocalDatabase.RunInTransaction(() =>
                 {
-                    foreach (var rev in downloads)
-                    {
+                    foreach (var rev in downloads) {
                         var fakeSequence = rev.GetSequence();
+                        rev.SetSequence(0L);
                         var history = Database.ParseCouchDBRevisionHistory(rev.GetProperties());
-                        if (history.Count == 0 && rev.GetGeneration() > 1) 
-                        {
-                            Log.W(Tag, String.Format("{0}: Missing revision history in response for: {1}", this, rev));
+                        if (history.Count == 0 && rev.GetGeneration() > 1) {
+                            Log.W(Tag, "Missing revision history in response for: {0}", rev);
                             LastError = new CouchbaseLiteException(StatusCode.UpStreamError);
                             RevisionFailed();
                             continue;
                         }
 
-                        Log.D(Tag, String.Format("Inserting {0} {1}", rev.GetDocId(), history.ToStringArray()));
+                        Log.V(Tag, String.Format("Inserting {0} {1}", rev.GetDocId(), history.ToStringArray()));
 
                         // Insert the revision:
-                        try
-                        {
+                        try {
                             LocalDatabase.ForceInsert(rev, history, RemoteUrl);
-                        }
-                        catch (CouchbaseLiteException e)
-                        {
-                            if (e.CBLStatus.Code == StatusCode.Forbidden)
-                            {
+                        } catch (CouchbaseLiteException e) {
+                            if (e.Code == StatusCode.Forbidden) {
                                 Log.I(Tag, "Remote rev failed validation: " + rev);
-                            }
-                            else
-                            {
-                                Log.W(Tag, " failed to write " + rev + ": status=" + e.CBLStatus.Code);
+                            } else if(e.Code == StatusCode.DbBusy) {
+                                // abort transaction; RunInTransaction will retry
+                                return false;
+                            } else {
+                                Log.W(Tag, " failed to write {0}: status={1}", rev, e.Code);
                                 RevisionFailed();
                                 LastError = e;
                                 continue;
                             }
-                        }
-                        catch (Exception e)
-                        {
+                        } catch (Exception e) {
                             Log.E(Tag, "Exception inserting downloads.", e);
                             throw;
                         }
+
                         pendingSequences.RemoveSequence(fakeSequence);
                     }
 
@@ -876,15 +830,12 @@ namespace Couchbase.Lite.Replicator
 
                     return true;
                 });
-                Log.D(Tag, "Finished inserting {0}. Success == {1}", downloads.Count, success);
-            }
-            catch (Exception e)
-            {
+
+                Log.V(Tag, "Finished inserting {0} revisions. Success == {1}", downloads.Count, success);
+            } catch (Exception e) {
                 Log.E(Tag, "Exception inserting revisions", e);
-            }
-            finally
-            {
-                Log.D(Tag, "InsertRevisions() calling AsyncTaskFinished()");
+            } finally {
+                Log.D(Tag, "InsertDownloads() calling AsyncTaskFinished()");
                 AsyncTaskFinished(downloads.Count);
             }
 
@@ -892,14 +843,10 @@ namespace Couchbase.Lite.Replicator
             LastSequence = pendingSequences.GetCheckpointedValue();
 
             var delta = (DateTime.UtcNow - time).TotalMilliseconds;
-            Log.D(Tag, "inserted {0} revs in {1} milliseconds", downloads.Count, delta);
-
+            Log.D(Tag, "Inserted {0} revs in {1} milliseconds", downloads.Count, delta);
             var newCompletedChangesCount = CompletedChangesCount + downloads.Count;
             Log.D(Tag, "InsertDownloads() updating CompletedChangesCount from {0} -> {1}", CompletedChangesCount, newCompletedChangesCount);
-
             SafeAddToCompletedChangesCount(downloads.Count);
-
-            Log.D(Tag, "InsertDownloads updating completedChangesCount from " + newCompletedChangesCount + " -> " + CompletedChangesCount);
         }
 
         private sealed class RevisionComparer : IComparer<RevisionInternal>
