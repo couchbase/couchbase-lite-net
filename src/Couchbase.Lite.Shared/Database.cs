@@ -250,7 +250,8 @@ namespace Couchbase.Lite
                 string dir = System.IO.Path.GetDirectoryName(Path);
                 var info = new DirectoryInfo(dir);
                 long size = 0;
-                foreach (var fileInfo in info.EnumerateFiles("*", SearchOption.AllDirectories)) {
+                var sanitizedName = Name.Replace('/', '.');
+                foreach (var fileInfo in info.EnumerateFiles(sanitizedName + "*", SearchOption.AllDirectories)) {
                     size += fileInfo.Length;
                 }
 
