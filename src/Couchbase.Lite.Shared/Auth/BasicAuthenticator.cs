@@ -63,7 +63,7 @@ namespace Couchbase.Lite.Auth
         #pragma warning disable 1591
 
         // IAuthenticator
-        public bool UsesCookieBasedLogin { get { return true; } }
+        public bool UsesCookieBasedLogin { get { return false; } }
 
         // IAuthenticator
         public string UserInfo
@@ -104,7 +104,7 @@ namespace Couchbase.Lite.Auth
 
         public string LoginPathForSite(Uri site) 
         {
-            return "/_session";
+            return null;
         }
             
         public IDictionary<String, String> LoginParametersForSite(Uri site) 

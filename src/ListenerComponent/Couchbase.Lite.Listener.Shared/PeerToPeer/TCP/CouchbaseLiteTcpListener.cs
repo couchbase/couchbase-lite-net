@@ -64,7 +64,14 @@ namespace Couchbase.Lite.Listener.Tcp
             _listener = new HttpListener();
             string prefix = String.Format("http://*:{0}/", port);
             _listener.Prefixes.Add(prefix);
-            _listener.AuthenticationSchemes = AuthenticationSchemes.Basic;
+            _listener.AuthenticationSchemeSelectorDelegate = request =>
+            { 
+                if(!RequiresAuth) {
+                    return AuthenticationSchemes.None;
+                }
+
+                return AuthenticationSchemes.Basic | AuthenticationSchemes.Digest;
+            };
         }
 
         #endregion
