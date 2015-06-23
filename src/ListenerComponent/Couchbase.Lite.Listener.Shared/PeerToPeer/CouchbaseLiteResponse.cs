@@ -30,6 +30,7 @@ using Couchbase.Lite.Replicator;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
 using Sharpen;
+using System.Net;
 
 
 namespace Couchbase.Lite.Listener
@@ -514,6 +515,9 @@ namespace Couchbase.Lite.Listener
                 _responseWriter.OutputStream.Flush();
                 return true;
             } catch(IOException) {
+                Log.W(TAG, "Error writing to HTTP response stream");
+                return false;
+            } catch(HttpListenerException) {
                 Log.W(TAG, "Error writing to HTTP response stream");
                 return false;
             } catch(ObjectDisposedException) {
