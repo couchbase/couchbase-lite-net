@@ -519,13 +519,12 @@ namespace Couchbase.Lite.Replicator
                     if (args != null && args.Error != null) {
                         LastError = args.Error;
                         RevisionFailed();
-                        SafeAddToCompletedChangesCount(remainingRevs.Count);
-                        for(int i = 0; i < remainingRevs.Count; i++)
-                        {
+                        for(int i = 0; i < remainingRevs.Count; i++) {
                             var rev = remainingRevs[i];
-                            if(ShouldRetryDownload(rev.GetDocId())) 
-                            {
+                            if(ShouldRetryDownload(rev.GetDocId())) {
                                 bulkRevsToPull.Add(remainingRevs[i]);
+                            } else {
+                                SafeIncrementCompletedChangesCount();
                             }
                         }
                     }
