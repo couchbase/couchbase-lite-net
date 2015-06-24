@@ -531,7 +531,9 @@ namespace Couchbase.Lite
         {
             // remove from cached list of dbs
             databases.Remove(database.Name);
-            Shared.ClosedDatabase(database);
+            if (Shared != null) {
+                Shared.ClosedDatabase(database);
+            }
 
             // remove from list of replications
             // TODO: should there be something that actually stops the replication(s) first?
