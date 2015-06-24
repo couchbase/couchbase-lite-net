@@ -154,8 +154,8 @@ namespace Couchbase.Lite
                         valueProp = e.Current.GetType().GetProperty("Value");
                     }
 
-                    var key = keyProp.GetValue(e.Current);
-                    var value = valueProp.GetValue(e.Current);
+                    var key = keyProp.GetValue(e.Current, null);
+                    var value = valueProp.GetValue(e.Current, null);
                     sorted[key] = MakeCanonical(value);
                 }
 

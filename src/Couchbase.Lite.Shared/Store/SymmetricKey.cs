@@ -25,12 +25,19 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Collections.Generic;
 
+#if NET_3_5
+using Rackspace.Threading;
+#endif
+
 namespace Couchbase.Lite.Store
 {
     /// <summary>
     /// Basic AES encryption. Uses a 256-bit (32-byte) key.
     /// </summary>
-    public sealed class SymmetricKey : IDisposable
+    public sealed class SymmetricKey 
+    #if !NET_3_5
+        : IDisposable
+    #endif
     {
 
         #region Constants
@@ -272,6 +279,7 @@ namespace Couchbase.Lite.Store
 
         #endregion
 
+        #if !NET_3_5
         #region IDisposable
         #pragma warning disable 1591
 
@@ -282,5 +290,6 @@ namespace Couchbase.Lite.Store
 
         #pragma warning restore 1591
         #endregion
+        #endif
     }
 }
