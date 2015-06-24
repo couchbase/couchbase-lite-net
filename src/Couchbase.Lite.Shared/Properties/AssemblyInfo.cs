@@ -73,3 +73,4 @@ using System;
 [assembly: InternalsVisibleTo("Couchbase.Lite.Net35.Tests")]
 [assembly: InternalsVisibleTo("Couchbase.Lite.Unity.Tests")]
 [assembly: InternalsVisibleTo("Couchbase.Lite.Listener")]
+[assembly: InternalsVisibleTo("Listener")]

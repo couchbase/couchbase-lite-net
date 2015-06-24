@@ -21,6 +21,12 @@
 using System;
 using System.Collections.Generic;
 using Couchbase.Lite.Util;
+using System.Security;
+using Sharpen;
+using System.Runtime.InteropServices;
+using System.Text;
+using Couchbase.Lite.Listener.Tcp;
+using System.Net.Http.Headers;
 
 namespace Couchbase.Lite.Listener
 {
@@ -35,7 +41,7 @@ namespace Couchbase.Lite.Listener
 
         internal readonly CouchbaseLiteRouter _router = new CouchbaseLiteRouter();
         private bool _disposed;
-        private Dictionary<string, string> _passwordMap = new Dictionary<string, string>();
+        private Dictionary<string, SecureString> _passwordMap = new Dictionary<string, SecureString>();
 
         #endregion
 
@@ -97,19 +103,46 @@ namespace Couchbase.Lite.Listener
         public abstract void Abort();
 
         /// <summary>
-        /// Sets up passwords for BASIC HTTP authentication
+        /// Sets up passwords for HTTP authentication
         /// </summary>
         /// <param name="usersAndPasswords">A dictionary containing the users and their passwords</param>
         public void SetPasswords(IDictionary<string, string> usersAndPasswords)
         {
             _passwordMap.Clear();
             if (usersAndPasswords == null) {
+                RequiresAuth = false;
                 return;
             }
 
             foreach (var pair in usersAndPasswords) {
-                var hashed = PasswordHash.CreateHash(pair.Value);
-                _passwordMap[pair.Key] = hashed;
+                var secureString = new SecureString();
+                foreach (var c in pair.Value) {
+                    secureString.AppendChar(c);
+                }
+
+                secureString.MakeReadOnly();
+                _passwordMap[pair.Key] = secureString;
+            }
+
+            RequiresAuth = _passwordMap.Count > 0;
+        }
+
+        /// <summary>
+        /// Sets up passwords for HTTP authentication
+        /// </summary>
+        /// <param name="usersAndPasswords">A dictionary containing the users and their passwords</param>
+        public void SetPasswords(IDictionary<string, SecureString> usersAndPasswords)
+        {
+            _passwordMap.Clear();
+            if (usersAndPasswords == null) {
+                RequiresAuth = false;
+                return;
+            }
+
+            _passwordMap = new Dictionary<string, SecureString>();
+            foreach (var pair in usersAndPasswords) {
+                pair.Value.MakeReadOnly();
+                _passwordMap[pair.Key] = pair.Value;
             }
 
             RequiresAuth = _passwordMap.Count > 0;
@@ -125,19 +158,77 @@ namespace Couchbase.Lite.Listener
         protected virtual void DisposeInternal() {}
 
         /// <summary>
-        /// Validates the user.
+        /// Validates the user (HTTP Basic).
         /// </summary>
         /// <returns><c>true</c>, if user was validated, <c>false</c> otherwise.</returns>
-        /// <param name="user">The username attept</param>
-        /// <param name="passwordAttempt">The password attempt</param>
-        protected bool ValidateUser(string user, string passwordAttempt)
+        /// <param name="headerValue">The header value received from the HTTP request</param>
+        protected bool ValidateUser(string headerValue)
         {
-            string hash;
-            if (!_passwordMap.TryGetValue(user, out hash)) {
+            var parsed = AuthenticationHeaderValue.Parse(headerValue);
+            if (parsed.Scheme != "Basic") {
                 return false;
             }
 
-            return PasswordHash.ValidatePassword(passwordAttempt, hash);
+            var userAndPassStr = Encoding.UTF8.GetString(Convert.FromBase64String(parsed.Parameter));
+            var firstColon = userAndPassStr.IndexOf(':');
+            if (firstColon == -1) {
+                return false;
+            }
+
+            var user = userAndPassStr.Substring(0, firstColon);
+            var pass = Encoding.UTF8.GetBytes(userAndPassStr.Substring(firstColon + 1));
+            userAndPassStr = null;
+
+            bool equal = false;
+            int pos = 0;
+            bool successful = IteratePassword(user, b =>
+            {
+                equal = pass[pos++] == b;
+                return equal;
+            });
+
+            return successful && equal;
+        }
+
+        protected bool ValidateUser(DigestAuthHeaderValue headerValue)
+        {
+            return headerValue.ValidateAgainst(this);
+        }
+
+        #endregion
+
+        #region Internal Methods
+
+        internal bool HashPasswordToDigest(string user, MessageDigest digest)
+        {
+            return IteratePassword(user, b =>
+            {
+                digest.Update(b);
+                return true;
+            });
+        }
+
+        #endregion
+
+        #region Private Methods
+
+        private bool IteratePassword(string user, Func<byte, bool> func)
+        {
+            SecureString securedPass;
+            if (!_passwordMap.TryGetValue(user, out securedPass)) {
+                return false;
+            }
+
+            var marshaled = Marshal.SecureStringToGlobalAllocAnsi(securedPass);
+            byte next;
+            int offset = 0;
+            bool keepGoing = true;
+            while(keepGoing && (next = Marshal.ReadByte(marshaled, offset++)) != 0) {
+                keepGoing = func(next);
+            }
+
+            Marshal.ZeroFreeGlobalAllocUnicode(marshaled);
+            return true;
         }
 
         #endregion

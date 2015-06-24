@@ -1103,6 +1103,11 @@ namespace Couchbase.Lite
                                     if (!result.IsSuccessStatusCode) 
                                     {
                                         result = response.Result;
+                                        if(result.StatusCode == HttpStatusCode.Unauthorized && 
+                                            RetryRequestWithAuth(message, result, body, completionHandler, requestTokenSource)) {
+                                            return result;
+                                        }
+
                                         error = new HttpResponseException(result.StatusCode);
                                     }
                                 }
@@ -1137,6 +1142,22 @@ namespace Couchbase.Lite
             {
                 requests.Add(client);
             }
+        }
+
+        private bool RetryRequestWithAuth(HttpRequestMessage message, HttpResponseMessage challenge, object body, RemoteRequestCompletionBlock completion,
+            CancellationTokenSource cancellationTokenSource)
+        {
+            if (Authenticator != null) {
+                var newAuth = Authenticator as IAuthenticator2;
+                if(newAuth == null) {
+                    return false;
+                }
+
+                newAuth.RespondToChallenge(message, challenge);
+                SendAsyncRequest(message.Method, message.RequestUri, body, completion, cancellationTokenSource);
+            }
+
+            return false;
         }
 
         private void AddRequestHeaders(HttpRequestMessage request)
