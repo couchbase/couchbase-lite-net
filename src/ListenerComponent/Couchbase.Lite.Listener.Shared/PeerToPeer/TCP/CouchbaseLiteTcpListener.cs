@@ -27,6 +27,14 @@ using System.Net.Http.Headers;
 
 namespace Couchbase.Lite.Listener.Tcp
 {
+    [Flags]
+    public enum CouchbaseLiteTcpOptions
+    {
+        Default = 0,
+        AllowBasicAuth = 1 << 0,
+        UseTLS = 1 << 1
+    }
+
     /// <summary>
     /// An implementation of CouchbaseLiteServiceListener using TCP/IP
     /// </summary>
@@ -46,6 +54,7 @@ namespace Couchbase.Lite.Listener.Tcp
         private Manager _manager;
         private static HashSet<string> _RecentNonces = new HashSet<string>();
         private static Dictionary<string, Tuple<string, int>> _InUseNonces = new Dictionary<string, Tuple<string, int>>();
+        private readonly bool _allowBasicAuth;
 
         #endregion
 
@@ -62,18 +71,19 @@ namespace Couchbase.Lite.Listener.Tcp
         /// This document</a>
         /// </remarks>
         public CouchbaseLiteTcpListener(Manager manager, ushort port, string realm = "Couchbase")
-            : this(manager, port, false, realm)
+            : this(manager, port, CouchbaseLiteTcpOptions.Default, realm)
         {
             
         }
 
-        public CouchbaseLiteTcpListener(Manager manager, ushort port, bool useTLS, string realm = "Couchbase")
+        public CouchbaseLiteTcpListener(Manager manager, ushort port, CouchbaseLiteTcpOptions options, string realm = "Couchbase")
         {
             _manager = manager;
             _realm = realm;
             _listener = new HttpListener();
             string prefix = String.Format("http://*:{0}/", port);
             _listener.Prefixes.Add(prefix);
+            _allowBasicAuth = options.HasFlag(CouchbaseLiteTcpOptions.AllowBasicAuth);
         }
 
         #endregion
@@ -102,7 +112,6 @@ namespace Couchbase.Lite.Listener.Tcp
         //This gets called when the listener receives a request
         private void ProcessContext(HttpListenerContext context)
         {
-            var client = context.Request.RemoteEndPoint.ToString();
             _listener.GetContextAsync().ContinueWith(t => ProcessContext(t.Result));
             if (RequiresAuth && !PerformAuthorization(context)) {
                 RespondUnauthorized(context);
@@ -129,11 +138,11 @@ namespace Couchbase.Lite.Listener.Tcp
                 return false;
             }
 
-            if (authorizationHeader.StartsWith("Basic")) {
-                return DoBasicAuth(authorizationHeader);
+            if (authorizationHeader.StartsWith("Digest")) {
+                return DoDigestAuth(context);
             } 
 
-            return DoDigestAuth(context);
+            return _allowBasicAuth && DoBasicAuth(authorizationHeader);
         }
 
         private bool DoBasicAuth(string authorizationHeader)

@@ -513,11 +513,11 @@ namespace Couchbase.Lite
             Assert.IsNotNull(attachDoc.CurrentRevision.Attachments, "Failed to retrieve attachments on attachment doc");
 
             // Now with auth
+
             listener.SetPasswords(new Dictionary<string, string> { { "jim", "borden" } });
             dbCopy = EnsureEmptyDatabase("replicate_end");
-
             push = database.CreatePushReplication(new Uri("http://localhost:59840/replicate_end"));
-            push.Authenticator = new BasicAuthenticator("jim", "borden");
+            push.CredentialSource = new DigestCredentialSource("jim", "borden");
             RunReplication(push);
 
             Assert.IsNull(push.LastError);
@@ -532,7 +532,7 @@ namespace Couchbase.Lite
             database = EnsureEmptyDatabase(name);
 
             pull = database.CreatePullReplication(new Uri("http://localhost:59840/replicate_end"));
-            pull.Authenticator = new BasicAuthenticator("jim", "borden");
+            pull.CredentialSource = push.CredentialSource;
             RunReplication(pull);
             Assert.IsNull(pull.LastError);
             Assert.AreEqual(21, database.DocumentCount);
@@ -542,6 +542,35 @@ namespace Couchbase.Lite
             Assert.IsNotNull(attachDoc.CurrentRevision.Attachments, "Failed to retrieve attachments on attachment doc");
 
             listener.Stop();
+            listener = new CouchbaseLiteTcpListener(manager, 59840, CouchbaseLiteTcpOptions.AllowBasicAuth);
+            listener.SetPasswords(new Dictionary<string, string> { { "jim", "borden" } });
+            listener.Start();
+
+            dbCopy = EnsureEmptyDatabase("replicate_end");
+            push = database.CreatePushReplication(new Uri("http://localhost:59840/replicate_end"));
+            push.CredentialSource = new DigestCredentialSource("jim", "borden");
+            RunReplication(push);
+
+            Assert.IsNull(push.LastError);
+            Assert.AreEqual(21, dbCopy.DocumentCount);
+
+            attachDoc = dbCopy.GetExistingDocument(attachDocId);
+            Assert.IsNotNull(attachDoc, "Failed to store doc with attachment");
+            Assert.IsNotNull(attachDoc.CurrentRevision.Attachments, "Failed to store attachments on attachment doc");
+
+            name = database.Name;
+            database.Close();
+            database = EnsureEmptyDatabase(name);
+
+            pull = database.CreatePullReplication(new Uri("http://localhost:59840/replicate_end"));
+            pull.CredentialSource = push.CredentialSource;
+            RunReplication(pull);
+            Assert.IsNull(pull.LastError);
+            Assert.AreEqual(21, database.DocumentCount);
+
+            attachDoc = database.GetExistingDocument(attachDocId);
+            Assert.IsNotNull(attachDoc, "Failed to retrieve doc with attachment");
+            Assert.IsNotNull(attachDoc.CurrentRevision.Attachments, "Failed to retrieve attachments on attachment doc");
         }
 
         /// <exception cref="System.Exception"></exception>
@@ -638,7 +667,7 @@ namespace Couchbase.Lite
             var docName = "doc" + Convert.ToString(Runtime.CurrentTimeMillis());
             var endpoint = "http://localhost:5984/db/" + docName;
             var docContent = Encoding.UTF8.GetBytes("{\"foo\":false}");
-            var putRequest = (HttpWebRequest)HttpWebRequest.Create(endpoint);
+            var putRequest = HttpWebRequest.Create(endpoint);
             putRequest.Method = "PUT";
             putRequest.ContentType = "application/json";
             putRequest.GetRequestStream().Write(docContent, 0, docContent.Length);
@@ -653,7 +682,7 @@ namespace Couchbase.Lite
             endpoint = "http://localhost:5984/db/" + docName + "/attachment?rev=1-1153b140e4c8674e2e6425c94de860a0";
             docContent = baos.ToArray();
 
-            putRequest = (HttpWebRequest)HttpWebRequest.Create(endpoint);
+            putRequest = HttpWebRequest.Create(endpoint);
             putRequest.Method = "PUT";
             putRequest.ContentType = "image/png";
             putRequest.GetRequestStream().Write(docContent, 0, docContent.Length);
@@ -662,7 +691,7 @@ namespace Couchbase.Lite
 
             endpoint = "http://localhost:5984/db/" + docName + "?rev=2-bb71ce0da1de19f848177525c4ae5a8b";
             docContent = Encoding.UTF8.GetBytes("{\"foo\":true,\"_attachments\":{\"attachment\":{\"content_type\":\"image/png\",\"revpos\":2,\"digest\":\"md5-ks1IBwCXbuY7VWAO9CkEjA==\",\"length\":519173,\"stub\":true}}}");
-            putRequest = (HttpWebRequest)HttpWebRequest.Create(endpoint);
+            putRequest = HttpWebRequest.Create(endpoint);
             putRequest.Method = "PUT";
             putRequest.ContentType = "application/json";
             putRequest.GetRequestStream().Write(docContent, 0, docContent.Length);

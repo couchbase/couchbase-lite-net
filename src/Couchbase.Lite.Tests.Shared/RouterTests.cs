@@ -1361,7 +1361,7 @@ namespace Couchbase.Lite
             StopDatabase();
             _minHeartbeat = _savedMinHeartbeat;
             _listener._router.OnAccessCheck = null;
-            _listener.SetPasswords(null);
+            _listener.SetPasswords(new Dictionary<string, string>());
         }
 
         private void ReopenDatabase()

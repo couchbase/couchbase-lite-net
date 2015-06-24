@@ -56,8 +56,8 @@ namespace Couchbase.Lite.Listener.Tcp
             var authData = authHeaderValue.Parameter;
             var rawComponents = authData.Split(',');
             foreach (var rawComponent in rawComponents) {
-                var keyAndValue = rawComponent.Trim().Split('=');
-                _components[keyAndValue[0]] = keyAndValue[1].Trim('"');
+                var firstEqual = rawComponent.IndexOf('=');
+                _components[rawComponent.Substring(0, firstEqual).Trim()] = rawComponent.Substring(firstEqual + 1).Trim('"');
             }
         }
 

@@ -43,6 +43,7 @@
 using System;
 using System.Net.Http;
 using System.Collections.Generic;
+using Couchbase.Lite.Auth;
 
 #if NET_3_5
 using System.Net.Couchbase;
@@ -63,7 +64,7 @@ namespace Couchbase.Lite.Support
         /// </summary>
         /// <param name="chunkedMode">A flag for chunked mode (i.e. the connection stays open for heartbeat, etc)</param>
         /// <returns>The http client.</returns>
-        HttpClient GetHttpClient(bool chunkedMode);
+        HttpClient GetHttpClient(bool chunkedMode = false, Uri baseUrl = null, INetworkCredentialSource credentialSource = null);
 
         /// <summary>
         /// Gets or sets the headers used by default in the HttpClient

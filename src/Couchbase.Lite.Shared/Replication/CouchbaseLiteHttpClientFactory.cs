@@ -46,12 +46,15 @@ using System.Collections.Generic;
 using System.Net.Http;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
+
+using Couchbase.Lite.Auth;
 using Couchbase.Lite.Replicator;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
 
 #if NET_3_5
 using System.Net.Couchbase;
+using CredentialCache = System.Net.CredentialCache;
 #else
 using System.Net;
 #endif
@@ -123,20 +126,31 @@ namespace Couchbase.Lite.Support
                     return false;
                 }
             };
-
-            BuildHandlerPipeline(false);
         }
 
         /// <summary>
         /// Build a pipeline of HttpMessageHandlers.
         /// </summary>
-        internal HttpMessageHandler BuildHandlerPipeline (bool chunkedMode)
+        internal HttpMessageHandler BuildHandlerPipeline (bool chunkedMode, Uri url, INetworkCredentialSource credentialSource)
         {
             var handler = new HttpClientHandler {
                 CookieContainer = cookieStore,
-                UseDefaultCredentials = true,
-                UseCookies = true,
+                UseCookies = true
             };
+
+            if (url != null && credentialSource != null) {
+                var credCache = new CredentialCache
+                {
+                    {
+                        new Uri(url.Scheme + "://" + url.Authority), 
+                        credentialSource.CredentialType,
+                        credentialSource.Credential
+                    }
+                };
+
+                handler.Credentials = credCache;
+                handler.PreAuthenticate = true;
+            }
 
             var authHandler = new DefaultAuthHandler (handler, cookieStore, chunkedMode);
 
@@ -145,9 +159,9 @@ namespace Couchbase.Lite.Support
             return retryHandler;
         }
 
-        public HttpClient GetHttpClient(bool chunkedMode)
+        public HttpClient GetHttpClient(bool chunkedMode, Uri url, INetworkCredentialSource credentialSource)
         {
-            var authHandler = BuildHandlerPipeline(chunkedMode);
+            var authHandler = BuildHandlerPipeline(chunkedMode, url, credentialSource);
 
             // As the handler will not be shared, client.Dispose() needs to be 
             // called once the operation is done to release the unmanaged resources 

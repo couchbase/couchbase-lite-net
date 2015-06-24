@@ -55,6 +55,7 @@ using NUnit.Framework;
 using Couchbase.Lite.Tests;
 using System.Collections;
 using System.Threading;
+using Couchbase.Lite.Auth;
 
 #if NET_3_5
 using System.Net.Couchbase;
@@ -141,9 +142,9 @@ namespace Couchbase.Lite
 
             #region IHttpClientFactory implementation
 
-            public HttpClient GetHttpClient(bool longPoll)
+            public HttpClient GetHttpClient(bool longPoll, Uri requestUri, INetworkCredentialSource credSource)
             {
-                return HttpClientFactory.GetHttpClient(longPoll);
+                return HttpClientFactory.GetHttpClient(longPoll, requestUri, credSource);
             }
 
             public IDictionary<string, string> Headers

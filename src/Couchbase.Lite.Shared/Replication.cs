@@ -1030,7 +1030,8 @@ namespace Couchbase.Lite
             var mapper = Manager.GetObjectMapper();
             message.Headers.Add("Accept", new[] { "multipart/related", "application/json" });
 
-            var client = clientFactory.GetHttpClient(false);
+
+            var client = clientFactory.GetHttpClient(false, url, CredentialSource);
 
             var authHeader = AuthUtils.GetAuthenticationHeaderValue(Authenticator, message.RequestUri);
             if (authHeader != null)
@@ -1103,11 +1104,6 @@ namespace Couchbase.Lite
                                     if (!result.IsSuccessStatusCode) 
                                     {
                                         result = response.Result;
-                                        if(result.StatusCode == HttpStatusCode.Unauthorized && 
-                                            RetryRequestWithAuth(message, result, body, completionHandler, requestTokenSource)) {
-                                            return result;
-                                        }
-
                                         error = new HttpResponseException(result.StatusCode);
                                     }
                                 }
@@ -1119,6 +1115,8 @@ namespace Couchbase.Lite
                                     {
                                         fullBody = mapper.ReadValue<object>(content.ReadAsStreamAsync().Result);
                                     }
+
+                                    error = null;
                                 }
                             }
                             catch (Exception e)
@@ -1144,22 +1142,6 @@ namespace Couchbase.Lite
             }
         }
 
-        private bool RetryRequestWithAuth(HttpRequestMessage message, HttpResponseMessage challenge, object body, RemoteRequestCompletionBlock completion,
-            CancellationTokenSource cancellationTokenSource)
-        {
-            if (Authenticator != null) {
-                var newAuth = Authenticator as IAuthenticator2;
-                if(newAuth == null) {
-                    return false;
-                }
-
-                newAuth.RespondToChallenge(message, challenge);
-                SendAsyncRequest(message.Method, message.RequestUri, body, completion, cancellationTokenSource);
-            }
-
-            return false;
-        }
-
         private void AddRequestHeaders(HttpRequestMessage request)
         {
             foreach (string requestHeaderKey in RequestHeaders.Keys)
@@ -1179,7 +1161,7 @@ namespace Couchbase.Lite
                 message.Headers.Add("Accept", "*/*");
                 AddRequestHeaders(message);
 
-                var client = clientFactory.GetHttpClient(false);
+                var client = clientFactory.GetHttpClient(false, url, CredentialSource);
 
                 var authHeader = AuthUtils.GetAuthenticationHeaderValue(Authenticator, message.RequestUri);
                 if (authHeader != null)
@@ -1326,7 +1308,7 @@ namespace Couchbase.Lite
             message.Content = multiPartEntity;
             message.Headers.Add("Accept", "*/*");
 
-            var client = clientFactory.GetHttpClient(false);
+            var client = clientFactory.GetHttpClient(false, null, CredentialSource);
 
             var authHeader = AuthUtils.GetAuthenticationHeaderValue(Authenticator, message.RequestUri);
             if (authHeader != null)
@@ -1894,6 +1876,8 @@ namespace Couchbase.Lite
         /// </summary>
         /// <value>The authenticator.</value>
         public IAuthenticator Authenticator { get; set; }
+
+        public INetworkCredentialSource CredentialSource { get; set; }
 
         /// <summary>
         /// Gets the active task info for thie replication

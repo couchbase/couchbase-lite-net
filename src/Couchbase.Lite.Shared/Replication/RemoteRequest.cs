@@ -69,6 +69,8 @@ namespace Couchbase.Lite.Replicator
 
         protected internal IAuthenticator Authenticator { get; set; }
 
+        protected internal INetworkCredentialSource CredentialSource { get; set; }
+
 //        public event EventHandler<RemoteRequestEventArgs> WillComplete;
 
         public event EventHandler<RemoteRequestEventArgs> Complete
@@ -115,7 +117,7 @@ namespace Couchbase.Lite.Replicator
             HttpClient httpClient = null;
             try
             {
-                httpClient = clientFactory.GetHttpClient(false);
+                httpClient = clientFactory.GetHttpClient(false, requestMessage.RequestUri, CredentialSource);
 
                 //var manager = httpClient.GetConnectionManager();
                 var authHeader = AuthUtils.GetAuthenticationHeaderValue(Authenticator, requestMessage.RequestUri);

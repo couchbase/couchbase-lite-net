@@ -116,6 +116,8 @@ namespace Couchbase.Lite.Replicator
         /// <summary>Set Authenticator for BASIC Authentication</summary>
         public IAuthenticator Authenticator { get; set; }
 
+        public INetworkCredentialSource CredentialSource { get; set; }
+
         public bool UsePost { get; set; }
 
         public Exception Error { get; private set; }
@@ -309,7 +311,7 @@ namespace Couchbase.Lite.Replicator
 
                 HttpClient httpClient = null;
                 try {
-                    httpClient = clientCopy.GetHttpClient(mode == ChangeTrackerMode.LongPoll);
+                    httpClient = clientCopy.GetHttpClient(mode == ChangeTrackerMode.LongPoll, Request.RequestUri, CredentialSource);
                     var authHeader = AuthUtils.GetAuthenticationHeaderValue(Authenticator, Request.RequestUri);
                     if (authHeader != null)
                     {
