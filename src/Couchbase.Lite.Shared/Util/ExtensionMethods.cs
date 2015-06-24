@@ -51,6 +51,7 @@ using System.Net;
 using System.Net.Http.Headers;
 
 using Sharpen;
+using System.Threading.Tasks;
 
 namespace Couchbase.Lite
 {

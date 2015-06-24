@@ -142,7 +142,7 @@ namespace Couchbase.Lite.Store
         private static string ViewNames(IEnumerable<SqliteViewStore> inputViews)
         {
             var names = inputViews.Select(x => x.Name);
-            return String.Join(", ", names);
+            return String.Join(", ", names.ToStringArray());
         }
 
         private bool RunStatements(string sqlStatements)

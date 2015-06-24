@@ -510,13 +510,13 @@ namespace Couchbase.Lite
 
             // Get zero specific documents:
             options = new QueryOptions();
-            options.Keys = new List<string>();
+            options.Keys = new List<object>();
             allDocs = database.GetAllDocs(options);
             Assert.IsNull(allDocs);
 
             // Get specific documents:
             options = new QueryOptions();
-            options.Keys = new List<string> {
+            options.Keys = new List<object> {
                 expectedRowBase[2].GetCast<string>("id"),
                 expectedRowBase[3].GetCast<string>("id")
             };
@@ -533,7 +533,7 @@ namespace Couchbase.Lite
 
             // Get deleted doc, and one bogus one:
             options = new QueryOptions();
-            options.Keys = new List<string> { "BOGUS", expectedRowBase[0].GetCast<string>("id") };
+            options.Keys = new List<object> { "BOGUS", expectedRowBase[0].GetCast<string>("id") };
             allDocs = database.GetAllDocs(options);
             var expectedResult = new List<IDictionary<string, object>> {
                 new Dictionary<string, object> {

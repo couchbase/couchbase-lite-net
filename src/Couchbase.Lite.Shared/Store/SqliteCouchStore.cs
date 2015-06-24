@@ -2072,10 +2072,10 @@ PRAGMA user_version = 3;";
                         }, true, sql, docNumericId);
 
                         seqsToPurge.ExceptWith(seqsToKeep);
-                        Log.D(TAG, "Purging doc '{0}' revs ({1}); asked for ({2})", docId, String.Join(", ", revsToPurge), String.Join(", ", revIDs));
+                        Log.D(TAG, "Purging doc '{0}' revs ({1}); asked for ({2})", docId, String.Join(", ", revsToPurge.ToStringArray()), String.Join(", ", revIDs.ToStringArray()));
                         if(seqsToPurge.Any()) {
                             // Now delete the sequences to be purged.
-                            var deleteSql = String.Format("sequence in ({0})", String.Join(", ", seqsToPurge));
+                            var deleteSql = String.Format("sequence in ({0})", String.Join(", ", seqsToPurge.ToStringArray()));
                             int count = 0;
                             try {
                                 count = StorageEngine.Delete("revs", deleteSql);
@@ -2084,7 +2084,7 @@ PRAGMA user_version = 3;";
                             }
 
                             if(count != seqsToPurge.Count) {
-                                Log.W(TAG, "Only {0} revisions deleted of {1}", count, String.Join(", ", seqsToPurge));
+                                Log.W(TAG, "Only {0} revisions deleted of {1}", count, String.Join(", ", seqsToPurge.ToStringArray()));
                             }
                         }
 

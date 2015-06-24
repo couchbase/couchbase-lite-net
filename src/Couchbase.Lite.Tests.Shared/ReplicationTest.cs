@@ -603,7 +603,7 @@ namespace Couchbase.Lite
             pull.Start();
 
             try {
-                HttpWebRequest.CreateHttp("http://localhost:5984/").GetResponse();
+                HttpWebRequest.Create("http://localhost:5984/").GetResponse();
             } catch(Exception) {
                 Assert.Inconclusive("Apache CouchDB not running");
             }
@@ -611,7 +611,7 @@ namespace Couchbase.Lite
             var docName = "doc" + Convert.ToString(Runtime.CurrentTimeMillis());
             var endpoint = "http://localhost:5984/db/" + docName;
             var docContent = Encoding.UTF8.GetBytes("{\"foo\":false}");
-            var putRequest = HttpWebRequest.CreateHttp(endpoint);
+            var putRequest = (HttpWebRequest)HttpWebRequest.Create(endpoint);
             putRequest.Method = "PUT";
             putRequest.ContentType = "application/json";
             putRequest.GetRequestStream().Write(docContent, 0, docContent.Length);
@@ -626,7 +626,7 @@ namespace Couchbase.Lite
             endpoint = "http://localhost:5984/db/" + docName + "/attachment?rev=1-1153b140e4c8674e2e6425c94de860a0";
             docContent = baos.ToArray();
 
-            putRequest = HttpWebRequest.CreateHttp(endpoint);
+            putRequest = (HttpWebRequest)HttpWebRequest.Create(endpoint);
             putRequest.Method = "PUT";
             putRequest.ContentType = "image/png";
             putRequest.GetRequestStream().Write(docContent, 0, docContent.Length);
@@ -635,7 +635,7 @@ namespace Couchbase.Lite
 
             endpoint = "http://localhost:5984/db/" + docName + "?rev=2-bb71ce0da1de19f848177525c4ae5a8b";
             docContent = Encoding.UTF8.GetBytes("{\"foo\":true,\"_attachments\":{\"attachment\":{\"content_type\":\"image/png\",\"revpos\":2,\"digest\":\"md5-ks1IBwCXbuY7VWAO9CkEjA==\",\"length\":519173,\"stub\":true}}}");
-            putRequest = HttpWebRequest.CreateHttp(endpoint);
+            putRequest = (HttpWebRequest)HttpWebRequest.Create(endpoint);
             putRequest.Method = "PUT";
             putRequest.ContentType = "application/json";
             putRequest.GetRequestStream().Write(docContent, 0, docContent.Length);
