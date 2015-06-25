@@ -517,23 +517,25 @@ namespace Couchbase.Lite.Replicator
                 dl.Complete += (sender, args) => 
                 {
                     if (args != null && args.Error != null) {
-                        LastError = args.Error;
                         RevisionFailed();
+                        if(remainingRevs.Count == 0) {
+                            LastError = args.Error;
+                        }
+
                         for(int i = 0; i < remainingRevs.Count; i++) {
                             var rev = remainingRevs[i];
                             if(ShouldRetryDownload(rev.GetDocId())) {
                                 bulkRevsToPull.Add(remainingRevs[i]);
                             } else {
+                                LastError = args.Error;
                                 SafeIncrementCompletedChangesCount();
                             }
                         }
                     }
-
-                    AsyncTaskFinished(1);
-
+                        
                     --httpConnectionCount;
-
                     PullRemoteRevisions();
+                    WorkExecutor.StartNew(() => AsyncTaskFinished(1));
                 };
             } catch (Exception) {
                 return;
@@ -541,7 +543,6 @@ namespace Couchbase.Lite.Replicator
 
             dl.Authenticator = Authenticator;
             WorkExecutor.StartNew(dl.Run, CancellationTokenSource.Token, TaskCreationOptions.LongRunning, WorkExecutor.Scheduler);
-//            dl.Run();
         }
 
         private bool ShouldRetryDownload(string docId)

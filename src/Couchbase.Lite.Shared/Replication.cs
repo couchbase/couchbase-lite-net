@@ -422,10 +422,9 @@ namespace Couchbase.Lite
             {
                 return;
             }
-
-            Log.V(Tag, ">>>Updating completedChangesCount from {0} by {1}", completedChangesCount, value);
+                
             Interlocked.Add(ref completedChangesCount, value);
-            Log.V(Tag, "<<<Updated completedChanges count to {0}", completedChangesCount);
+            Log.V(Tag, "    Updated completedChangesCount from {0} to {1}", completedChangesCount - value, completedChangesCount);
             NotifyChangeListeners();
         }
 
@@ -435,14 +434,12 @@ namespace Couchbase.Lite
         /// <param name="value">The amount to add</param>
         protected void SafeAddToChangesCount(int value)
         {
-            if (value == 0) 
-            {
+            if (value == 0) {
                 return;
             }
-
-            Log.V(Tag, ">>>Updating changesCount from {0} by {1}", changesCount, value);
+                
             Interlocked.Add(ref changesCount, value);
-            Log.V(Tag, "<<<Updated changesCount to {0}", changesCount);
+            Log.V(Tag, "    Updated changesCount count from {0} to {1}", changesCount - value, changesCount);
             NotifyChangeListeners();
         }
 
