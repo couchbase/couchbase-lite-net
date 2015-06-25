@@ -745,11 +745,19 @@ namespace Couchbase.Lite
 
         internal bool SetLastSequence(string lastSequence, string checkpointId, bool push)
         {
+            if (Storage == null) {
+                return false;
+            }
+
             return Storage.SetInfo(CheckpointInfoKey(checkpointId), lastSequence).IsSuccessful;
         }
 
         internal string LastSequenceWithCheckpointId(string checkpointId)
         {
+            if (Storage == null) {
+                return String.Empty;
+            }
+
             return Storage.GetInfo(CheckpointInfoKey(checkpointId));
         }
  
