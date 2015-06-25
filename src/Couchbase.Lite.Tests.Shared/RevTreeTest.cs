@@ -132,13 +132,13 @@ namespace Couchbase.Lite
             
             // Get the _changes feed and verify only the winner is in it:
             var options = new ChangesOptions();
-            var changes = database.ChangesSince(0, options, null);
+            var changes = database.ChangesSince(0, options, null, null);
             var expectedChanges = new RevisionList();
             expectedChanges.AddItem(conflict);
             expectedChanges.AddItem(other);
             Assert.AreEqual(changes, expectedChanges);
             options.SetIncludeConflicts(true);
-            changes = database.ChangesSince(0, options, null);
+            changes = database.ChangesSince(0, options, null, null);
             expectedChanges = new RevisionList();
             expectedChanges.AddItem(rev);
             expectedChanges.AddItem(conflict);

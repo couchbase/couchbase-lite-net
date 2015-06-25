@@ -141,8 +141,6 @@ namespace Couchbase.Lite {
 
         #region Variables
 
-        protected bool _queryOptionsUpdated;
-
         /// <summary>
         /// Event raised when a query has finished running.
         /// </summary>

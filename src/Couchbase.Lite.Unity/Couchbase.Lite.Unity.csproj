@@ -74,6 +74,9 @@
     <Reference Include="ICSharpCode.SharpZipLib">
       <HintPath>..\Couchbase.Lite.Net35\vendor\ICSharpCode\ICSharpCode.SharpZipLib.dll</HintPath>
     </Reference>
+    <Reference Include="Stateless">
+      <HintPath>..\packages\Stateless.2.5.21.0\lib\Stateless.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="UnityMainThreadScheduler.cs" />
@@ -121,5 +124,8 @@
       <Project>{DCB5D745-525C-46A1-BFC0-E12F87AB6165}</Project>
       <Name>System.Threading.Tasks.Net35</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
   </ItemGroup>
 </Project>

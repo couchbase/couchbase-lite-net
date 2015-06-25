@@ -1485,7 +1485,7 @@ PRAGMA user_version = 3;";
             return null;
         }
 
-        internal RevisionList ChangesSince(long lastSeq, ChangesOptions options, FilterDelegate filter)
+        internal RevisionList ChangesSince(long lastSeq, ChangesOptions options, FilterDelegate filter, IDictionary<string, object> filterParams)
         {
             // http://wiki.apache.org/couchdb/HTTP_database_API#Changes
             if (options == null)
@@ -1539,9 +1539,8 @@ PRAGMA user_version = 3;";
                     {
                         ExpandStoredJSONIntoRevisionWithAttachments(cursor.GetBlob(5), rev, options.GetContentOptions());
                     }
-                    IDictionary<string, object> paramsFixMe = null;
-                    // TODO: these should not be null
-                    if (RunFilter(filter, paramsFixMe, rev))
+
+                    if (RunFilter(filter, filterParams, rev))
                     {
                         changes.AddItem(rev);
                     }

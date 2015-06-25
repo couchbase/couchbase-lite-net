@@ -330,7 +330,7 @@ namespace Couchbase.Lite.Listener
                 }
 
 
-                RevisionList changes = db.ChangesSince(since, options, responseState.ChangesFilter);
+                RevisionList changes = db.ChangesSince(since, options, responseState.ChangesFilter, null);
                 if((context.ChangesFeedMode >= ChangesFeedMode.Continuous) || 
                     (context.ChangesFeedMode == ChangesFeedMode.LongPoll && changes.Count == 0)) {
                     // Response is going to stay open (continuous, or hanging GET):
