@@ -41,142 +41,212 @@
 //
 
 using System;
-using Couchbase.Lite.Util;
 using System.Diagnostics;
 
 namespace Couchbase.Lite.Util
 {
     internal sealed class CustomLogger : ILogger 
     {
-        readonly CouchbaseTraceListener ts;
-        object locker = new object();
 
-        SourceLevels level;
+        #region Variables
+
+        private readonly CouchbaseTraceListener _ts;
+        private readonly object _locker = new object();
+        private readonly SourceLevels _level;
+
+        #endregion
+
+        #region Constructors
 
         public CustomLogger() : this(SourceLevels.Information) { }
 
         public CustomLogger(SourceLevels logLevel)
         {
-            level = logLevel;
-            ts = new CouchbaseTraceListener(logLevel);
-            Trace.Listeners.Add(ts);
+            _level = logLevel;
+            _ts = new CouchbaseTraceListener(logLevel);
+            Trace.Listeners.Add(_ts);
         }
 
-        static Exception Flatten (Exception tr)
+        #endregion
+
+        #region Private Methods
+
+        private static Exception Flatten(Exception tr)
         {
-            if (!(tr is AggregateException))
+            if (!(tr is AggregateException)) {
                 return tr;
+            }
+
             var err = ((AggregateException)tr).Flatten().InnerException;
             return err;
         }
 
-        #region ILogger implementation
+        #endregion
 
-        public void V (string tag, string msg)
+        #region ILogger
+
+        public void V(string tag, string msg)
         {
-            if (!(level.HasFlag(SourceLevels.Verbose)))
+            if (!(_level.HasFlag(SourceLevels.Verbose)))
                 return;
 
-            lock (locker){ ts.WriteLine(SourceLevels.Verbose, msg, tag); }
+            lock (_locker) {
+                _ts.WriteLine(SourceLevels.Verbose, msg, tag); 
+            }
         }
 
-        public void V (string tag, string msg, Exception tr)
+        public void V(string tag, string msg, Exception tr)
         {
-            if (!(level.HasFlag(SourceLevels.Verbose)))
+            if (!(_level.HasFlag(SourceLevels.Verbose)))
                 return;
-            lock (locker){ ts.WriteLine(SourceLevels.Verbose, "{0}:\r\n{1}".Fmt(msg, Flatten(tr).ToString()), tag); }
+
+            if (tr == null) {
+                V(tag, msg);
+            }
+
+            lock (_locker) {
+                _ts.WriteLine(SourceLevels.Verbose, "{0}:\r\n{1}".Fmt(msg, Flatten(tr).ToString()), tag); 
+            }
         }
 
-        public void V (string tag, string format, params object[] args)
+        public void V(string tag, string format, params object[] args)
         {
             V(tag, string.Format(format, args));
         }
 
-        public void D (string tag, string format, params object[] args)
+        public void D(string tag, string format, params object[] args)
         {
             D(tag, string.Format(format, args));
         }
 
-        public void D (string tag, string msg)
+        public void D(string tag, string msg)
         {
-            if (!(level.HasFlag(SourceLevels.ActivityTracing)))
+            if (!(_level.HasFlag(SourceLevels.ActivityTracing))) {
                 return;
-            lock (locker){ ts.WriteLine(SourceLevels.Verbose, msg, tag); }
+            }
+
+            lock (_locker) {
+                _ts.WriteLine(SourceLevels.Verbose, msg, tag); 
+            }
         }
 
-        public void D (string tag, string msg, Exception tr)
+        public void D(string tag, string msg, Exception tr)
         {
-            if (!(level.HasFlag(SourceLevels.ActivityTracing)))
+            if (!(_level.HasFlag(SourceLevels.ActivityTracing)))
                 return;
-            lock (locker){ ts.WriteLine(SourceLevels.Verbose, msg, tag); }
+
+            if (tr == null) {
+                D(tag, msg);
+            }
+
+            lock (_locker) { 
+                _ts.WriteLine(SourceLevels.Verbose, msg, tag); 
+            }
         }
 
-        public void I (string tag, string msg)
+        public void I(string tag, string msg)
         {
-            if (!(level.HasFlag(SourceLevels.Information)))
+            if (!(_level.HasFlag(SourceLevels.Information))) {
                 return;
-            lock (locker){ ts.WriteLine(SourceLevels.Information, msg, tag); }
+            }
+
+            lock (_locker) {
+                _ts.WriteLine(SourceLevels.Information, msg, tag); 
+            }
         }
 
-        public void I (string tag, string msg, Exception tr)
+        public void I(string tag, string msg, Exception tr)
         {
-            if (!(level.HasFlag(SourceLevels.Information)))
+            if (!(_level.HasFlag(SourceLevels.Information)))
                 return;
-            lock (locker){ ts.WriteLine(SourceLevels.Information, "{0}:\r\n{1}".Fmt(msg, Flatten(tr).ToString()), tag); }
+
+            if (tr == null) {
+                I(tag, msg);
+            }
+
+            lock (_locker) {
+                _ts.WriteLine(SourceLevels.Information, "{0}:\r\n{1}".Fmt(msg, Flatten(tr).ToString()), tag); 
+            }
         }
 
-        public void I (string tag, string format, params object[] args)
+        public void I(string tag, string format, params object[] args)
         {
             I(tag, string.Format(format, args));
         }
 
-        public void W (string tag, string msg)
+        public void W(string tag, string msg)
         {
-            if (!(level.HasFlag(SourceLevels.Warning)))
+            if (!(_level.HasFlag(SourceLevels.Warning))) {
                 return;
-            lock (locker){ ts.WriteLine(SourceLevels.Warning, msg, tag); }
+            }
+
+            lock (_locker) {
+                _ts.WriteLine(SourceLevels.Warning, msg, tag);
+            }
         }
 
-        public void W (string tag, Exception tr)
+        public void W(string tag, Exception tr)
         {
-            if (!(level.HasFlag(SourceLevels.Warning)))
+            if (!(_level.HasFlag(SourceLevels.Warning)) || tr == null) {
                 return;
-            lock (locker){ ts.WriteLine(Flatten(tr).Message, tag); }
+            }
+
+            lock (_locker) {
+                _ts.WriteLine(Flatten(tr).Message, tag); 
+            }
         }
 
-        public void W (string tag, string msg, Exception tr)
+        public void W(string tag, string msg, Exception tr)
         {
-            if (!(level.HasFlag(SourceLevels.Warning)))
+            if (!(_level.HasFlag(SourceLevels.Warning))) {
                 return;
-            lock (locker){ ts.WriteLine(SourceLevels.Warning, "{0}:\r\n{1}".Fmt(msg, Flatten(tr).ToString()), tag); }
+            }
+
+            if (tr == null) {
+                W(tag, msg);
+            }
+
+            lock (_locker) { 
+                _ts.WriteLine(SourceLevels.Warning, "{0}:\r\n{1}".Fmt(msg, Flatten(tr).ToString()), tag); 
+            }
         }
 
-        public void W (string tag, string format, params object[] args)
+        public void W(string tag, string format, params object[] args)
         {
             W(tag, string.Format(format, args));
         }
 
-        public void E (string tag, string msg)
+        public void E(string tag, string msg)
         {
-            if (!(level.HasFlag(SourceLevels.Error)))
+            if (!(_level.HasFlag(SourceLevels.Error))) {
                 return;
-            lock (locker){ ts.Fail(tag, msg); }
+            }
+            
+            lock (_locker) { 
+                _ts.Fail(tag, msg); 
+            }
         }
 
-        public void E (string tag, string msg, Exception tr)
+        public void E(string tag, string msg, Exception tr)
         {
-            if (!(level.HasFlag(SourceLevels.Error)))
+            if (!(_level.HasFlag(SourceLevels.Error)))
                 return;
-            lock (locker){ ts.Fail("{0}: {1}".Fmt(tag, msg), Flatten(tr).ToString()); }
+
+            if (tr == null) {
+                E(tag, msg);
+            }
+
+            lock (_locker) { 
+                _ts.Fail("{0}: {1}".Fmt(tag, msg), Flatten(tr).ToString()); 
+            }
         }
 
-        public void E (string tag, string format, params object[] args)
+        public void E(string tag, string format, params object[] args)
         {
             E(tag, string.Format(format, args));
         }
 
         #endregion
-
 
     }
 }
