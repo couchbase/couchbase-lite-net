@@ -2398,7 +2398,7 @@ namespace Couchbase.Lite
                 var remote = GetReplicationURL();
                 var repl = database.CreatePullReplication(remote);
                 repl.Authenticator = new BasicAuthenticator("jim", "borden");
-                repl.Continuous = true;
+                //repl.Continuous = true;
                 var wait = new CountdownEvent(1);
                 repl.Changed += (sender, e) =>
                 {

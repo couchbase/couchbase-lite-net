@@ -221,16 +221,13 @@ namespace Couchbase.Lite
 
             Batcher = new Batcher<RevisionInternal>(workExecutor, InboxCapacity, ProcessorDelay, inbox =>
             {
-                try 
-                {
+                try {
                     Log.V(Tag, "*** BEGIN ProcessInbox ({0} sequences)", inbox.Count);
                     ProcessInbox (new RevisionList(inbox));
                     Log.V(Tag, "*** END ProcessInbox (lastSequence={0})", LastSequence);
                     UpdateActive();
-                } 
-                catch (Exception e) 
-                {
-                    Log.E(Tag, "ERROR: ProcessInbox failed: ", e);
+                } catch (Exception e) {
+                    Log.E(Tag, "ProcessInbox failed: ", e);
                     throw new RuntimeException(e);
                 }
             });
@@ -456,14 +453,18 @@ namespace Couchbase.Lite
         void NotifyChangeListeners()
         {
             UpdateProgress();
-
+            Log.V(Tag, "NotifyChangeListeners ({0}/{1}, active={2} (batch={3}, net={4}), online={5})",
+                CompletedChangesCount, ChangesCount,
+                active, Batcher.Count, asyncTaskCount, online);
+            
             var evt = _changed;
-            if (evt == null) return;
+            if (evt == null) {
+                return;
+            }
 
             var args = new ReplicationChangeEventArgs(this);
 
             // Ensure callback runs on captured context, which should be the UI thread.
-            Log.D(Tag, "Firing NotifyChangeListeners event! [{0} -> {1}]", TaskScheduler.Current.GetType().Name, LocalDatabase.Manager.CapturedContext.Scheduler.GetType().Name);
             LocalDatabase.Manager.CapturedContext.StartNew(()=>evt(this, args));
         }
 
@@ -559,24 +560,18 @@ namespace Couchbase.Lite
 
         internal void UpdateProgress()
         {
-            if (!IsRunning)
-            {
+            if (!IsRunning) {
                 Status = ReplicationStatus.Stopped;
             }
-            else
-            {
-                if (!online)
-                {
+            else {
+                if (!online) {
                     Status = ReplicationStatus.Offline;
                 }
-                else
-                {
-                    if (active)
-                    {
+                else {
+                    if (active) {
                         Status = ReplicationStatus.Active;
                     }
-                    else
-                    {
+                    else {
                         Status = ReplicationStatus.Idle;
                     }
                 }
@@ -604,6 +599,7 @@ namespace Couchbase.Lite
 
         internal void AddToInbox(RevisionInternal rev)
         {
+            Debug.Assert(IsRunning);
             Batcher.QueueObject(rev);
             UpdateActive();
         }
@@ -806,42 +802,30 @@ namespace Couchbase.Lite
         {
             try {
                 var batcherCount = 0;
-                if (Batcher != null)
-                {
+                if (Batcher != null) {
                     batcherCount = Batcher.Count();
-                }
-                else
-                {
+                } else {
                     Log.W(Tag, "batcher object is null");
                 }
 
                 var newActive = batcherCount > 0 || asyncTaskCount > 0;
-                if (active != newActive)
-                {
-                    Log.D(Tag, "Progress: set active = " + newActive + " asyncTaskCount: " + asyncTaskCount + " batcherCount: " + batcherCount );
+                if (active != newActive) {
+                    Log.D(Tag, "Progress: set active = {0}", newActive);
                     active = newActive;
                     NotifyChangeListeners();
 
-                    if (!active)
-                    {
-                        if (!continuous)
-                        {
-                            Log.D(Tag, "since !continuous, calling Stopped()");
+                    if (!active) {
+                        if (!continuous) {
                             WorkExecutor.StartNew(Stopping);
-                        }
-                        else if (LastError != null) /*(revisionsFailed > 0)*/
-                        {
-                            string msg = string.Format("{0}: Failed to xfer {1} revisions, will retry in {2} sec", this, revisionsFailed, RetryDelay);
-                            Log.D(Tag, msg);
+                        } else if (LastError != null) /*(revisionsFailed > 0)*/ {
+                            Log.D(Tag, "{0}: Failed to xfer {1} revisions, will retry in {2} sec", this, revisionsFailed, RetryDelay);
                             CancelPendingRetryIfReady();
                             ScheduleRetryIfReady();
                         }
-
                     }
                 }
             }
-            catch (Exception e)
-            {
+            catch (Exception e) {
                 Log.E(Tag, "Exception in updateActive()", e);
             }
         }

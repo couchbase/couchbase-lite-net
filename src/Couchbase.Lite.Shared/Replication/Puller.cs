@@ -231,39 +231,33 @@ namespace Couchbase.Lite.Replicator
                 return;
             }
 
-            var deleted = (change.ContainsKey("deleted") && ((bool)change.Get("deleted")).Equals(true));
+            var deleted = change.GetCast<bool>("deleted");
+            var changes = change.Get("changes").AsList<object>();
+            SafeAddToChangesCount(changes.Count);
 
-            var changesContainer = change.Get("changes").AsList<object>();
-            var changes = changesContainer.ToArray();
-            foreach (var changeObj in changes)
-            {
+            foreach (var changeObj in changes) {
                 var changeDict = changeObj.AsDictionary<string, object>();
-                var revID = (string)changeDict.Get("rev");
-                if (revID == null)
-                {
+                var revID = changeDict.GetCast<string>("rev");
+                if (revID == null) {
                     continue;
                 }
 
                 var rev = new PulledRevision(docID, revID, deleted, LocalDatabase);
                 rev.SetRemoteSequenceID(lastSequence);
+                if (changes.Count > 1) {
+                    rev.IsConflicted = true;
+                }
 
-                Log.D(Tag, "adding rev to inbox " + rev);
-                Log.V(Tag, "ChangeTrackerReceivedChange() incrementing changesCount by 1");
-
-                SafeAddToChangesCount(changes.Length);
-
+                Log.D(Tag, "Adding rev to inbox " + rev);
                 AddToInbox(rev);
             }
 
-            while (revsToPull != null && revsToPull.Count > 1000)
-            {
-                try
-                {
+            while (revsToPull != null && revsToPull.Count > 1000) {
+                try {
                     // Presumably we are letting 1 or more other threads do something while we wait.
                     Thread.Sleep(500);
                 }
-                catch (Exception e)
-                {
+                catch (Exception e) {
                     Log.W(Tag, "Swalling exception while sleeping after receiving changetracker changes.", e);
                     // swallow
                 }
