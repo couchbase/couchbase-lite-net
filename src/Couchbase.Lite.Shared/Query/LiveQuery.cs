@@ -58,13 +58,18 @@ namespace Couchbase.Lite
 
         const string Tag = "LiveQuery";
         const Int32 DefaultQueryTimeout = 90000; // milliseconds.
+        private const double DEFAULT_UPDATE_INTERVAL = 0.5;
 
         QueryEnumerator rows;
+        private long _lastSequence;
+        private long _isUpdatingAtSequence;
+        private bool _willUpdate;
+        private bool _updateAgain;
+        private double _updateInterval = DEFAULT_UPDATE_INTERVAL;
 
         volatile Boolean observing;
 
         Boolean runningState;
-        Boolean rerunRequested;
 
         /// <summary>
         /// If a query is running and the user calls Stop() on this query, the Task
@@ -73,12 +78,33 @@ namespace Couchbase.Lite
         Task UpdateQueryTask { get; set; }
         CancellationTokenSource UpdateQueryTokenSource { get; set; }
 
-
-        private readonly object updateLock = new object();
-
         private void OnDatabaseChanged (object sender, DatabaseChangeEventArgs e)
         {
-            Log.D(Tag, "OnDatabaseChanged() called");
+            if (_willUpdate) {
+                return;
+            }
+
+            var updateInterval = _updateInterval * 2;
+            foreach (var change in e.Changes) {
+                if (change.SourceUrl == null) {
+                    updateInterval /= 2;
+                    break;
+                }
+            }
+
+            _willUpdate = true;
+            Log.D(Tag, "Will update after {0} sec...", updateInterval);
+            Task.Delay(TimeSpan.FromSeconds(updateInterval)).ContinueWith(t =>
+            {
+                if(_willUpdate) {
+                    Update();
+                }
+            });
+        }
+
+        private void OnViewChanged(View sender, EventArgs e)
+        {
+            _lastSequence = 0;
             Update();
         }
 
@@ -152,46 +178,47 @@ namespace Couchbase.Lite
         /// </summary>
         private void Update()
         {
-            lock(updateLock)
-            {
-                Log.D(Tag, "update() called.");
-
-                if (View == null)
-                {
-                    throw new CouchbaseLiteException("Cannot start LiveQuery when view is null");
-                }
-
-                if (!runningState)
-                {
-                    Log.W(Tag, "update() called, but running state == false.  Ignoring.");
-                    return;
-                }
-
-                if (UpdateQueryTask != null &&
-                    UpdateQueryTask.Status != TaskStatus.Canceled && 
-                    UpdateQueryTask.Status != TaskStatus.RanToCompletion)
-                {
-                    Log.D(Tag, "already a query in flight, scheduling call to update() once it's done");
-                    rerunRequested = true;
-                    return;
-                }
-
-                UpdateQueryTokenSource = new CancellationTokenSource();
-
-                UpdateQueryTask = Task.Factory.StartNew<QueryEnumerator>(base.Run, UpdateQueryTokenSource.Token)
-                    .ContinueWith(UpdateFinished, Database.Manager.CapturedContext.Scheduler);
+            _willUpdate = false;
+            long lastSequence = Database.LastSequenceNumber;
+            if (rows != null && _lastSequence >= lastSequence) {
+                return; // db hasn't changed since last query
             }
+
+            if (_isUpdatingAtSequence > 0) {
+                // Update already in progress; only schedule another one if db has changed since
+                if (_isUpdatingAtSequence < lastSequence) {
+                    _isUpdatingAtSequence = lastSequence;
+                    _updateAgain = true;
+                    return;
+                }
+            }
+
+            if (View == null) {
+                throw new CouchbaseLiteException("Cannot start LiveQuery when view is null");
+            }
+
+            if (!runningState) {
+                Log.W(Tag, "update() called, but running state == false.  Ignoring.");
+                return;
+            }
+
+            _updateAgain = false;
+            _isUpdatingAtSequence = lastSequence;
+            UpdateQueryTokenSource = new CancellationTokenSource();
+
+            UpdateQueryTask = Task.Factory.StartNew<QueryEnumerator>(base.Run, UpdateQueryTokenSource.Token)
+                .ContinueWith(UpdateFinished, Database.Manager.CapturedContext.Scheduler);
         }
 
         private void UpdateFinished(Task<QueryEnumerator> runTask)
         {
+            _isUpdatingAtSequence = 0;
+
             if (UpdateQueryTokenSource.IsCancellationRequested)
                 return;
 
             UpdateQueryTask = null;
-            if (rerunRequested)
-            {
-                rerunRequested = false;
+            if (_updateAgain) {
                 Update();
             }
 
@@ -200,7 +227,6 @@ namespace Couchbase.Lite
                 return; // NOTE: Assuming that we don't want to lose rows we already retrieved.
             }
 
-            Log.D(Tag, "UpdateQueryTask completed.");
             rows = runTask.Result; // NOTE: Should this be 'append' instead of 'replace' semantics? If append, use a concurrent collection.
             Log.D(Tag, "UpdateQueryTask results obtained.");
             LastError = runTask.Exception;
@@ -264,6 +290,11 @@ namespace Couchbase.Lite
 
         //Methods
 
+        public void QueryOptionsChanged()
+        {
+            OnViewChanged(null, null);
+        }
+
         /// <summary>Starts observing database changes.</summary>
         /// <remarks>
         /// Starts the <see cref="Couchbase.Lite.LiveQuery"/> and begins observing <see cref="Couchbase.Lite.Database"/> 
@@ -274,13 +305,11 @@ namespace Couchbase.Lite
         /// </remarks>
         public void Start()
         {
-            if (runningState)
-            {
+            if (runningState) {
                 Log.D(Tag, "start() called, but runningState is already true.  Ignoring.");
                 return;
             }
-            else
-            {
+            else {
                 Log.D(Tag, "start() called");
                 runningState = true;
             }
@@ -289,6 +318,9 @@ namespace Couchbase.Lite
             {
                 observing = true;
                 Database.Changed += OnDatabaseChanged;
+                if (View != null) {
+                    View.Changed += OnViewChanged;
+                }
             }
 
             Update();
@@ -299,19 +331,16 @@ namespace Couchbase.Lite
         /// </summary>
         public void Stop()
         {
-            if (!runningState)
-            {
+            if (!runningState) {
                 Log.D(Tag, "stop() called, but runningState is already false.  Ignoring.");
                 return;
             }
-            else
-            {
+            else {
                 Log.D(Tag, "stop() called");
                 runningState = false;
             }
 
-            if (observing)
-            {
+            if (observing) {
                 Database.Changed -= OnDatabaseChanged;
                 observing = false;
             }
@@ -319,15 +348,15 @@ namespace Couchbase.Lite
             // slight diversion from iOS version -- cancel the queryFuture
             // regardless of the willUpdate value, since there can be an update in flight
             // with willUpdate set to false.  was needed to make testLiveQueryStop() unit test pass.
-            if (UpdateQueryTokenSource != null && UpdateQueryTokenSource.Token.CanBeCanceled)
-            {
+            if (UpdateQueryTokenSource != null && UpdateQueryTokenSource.Token.CanBeCanceled) {
                 UpdateQueryTokenSource.Cancel();
                 Log.D(Tag, "canceled update query token Source");
             }
-            else
-            {
+            else {
                 Log.D(Tag, "not cancelling update query token source.");
             }
+
+            _willUpdate = false;
         }
 
         /// <summary>
