@@ -47,6 +47,9 @@ using Couchbase.Lite.Util;
 using Couchbase.Lite.Store;
 using Sharpen;
 using System.Threading;
+using System.Collections.Concurrent;
+using System.Linq;
+using Couchbase.Lite.Internal;
 
 namespace Couchbase.Lite {
 
@@ -87,6 +90,7 @@ namespace Couchbase.Lite {
         #region Variables
 
         internal event TypedEventHandler<View, EventArgs> Changed;
+        private ConcurrentQueue<UpdateJob> _updateQueue = new ConcurrentQueue<UpdateJob>();
 
         #endregion
 
@@ -292,7 +296,22 @@ namespace Couchbase.Lite {
         internal Status UpdateIndex()
         {
             //TODO: View grouping
-            return Storage.UpdateIndexes(new List<IViewStore> { Storage });
+            var viewsToUpdate = new List<IViewStore> { Storage };
+
+            UpdateJob proposedJob = Storage.CreateUpdateJob(viewsToUpdate);
+            UpdateJob nextJob = null;
+            if (_updateQueue.TryPeek(out nextJob)) {
+                if (!nextJob.LastSequences.SequenceEqual(proposedJob.LastSequences)) {
+                    QueueUpdate(proposedJob);
+                    nextJob = proposedJob;
+                } 
+            } else {
+                QueueUpdate(proposedJob);
+                nextJob = proposedJob;
+            }
+
+            nextJob.Wait();
+            return nextJob.Result;
         }
 
         /// <summary>Queries the view.</summary>
@@ -424,6 +443,24 @@ namespace Couchbase.Lite {
         #endregion
 
         #region Private Methods
+
+        private UpdateJob QueueUpdate(UpdateJob job)
+        {
+            job.Finished += (sender, e) => {
+                UpdateJob nextJob;
+                _updateQueue.TryDequeue(out nextJob);
+                if(_updateQueue.TryPeek(out nextJob)) {
+                    nextJob.Run();
+                }
+            };
+
+            _updateQueue.Enqueue(job);
+            if (_updateQueue.Count == 1) {
+                job.Run();
+            }
+
+            return job;
+        }
 
         private bool GroupOrReduce(QueryOptions options) {
             if (options.Group|| options.GroupLevel> 0) {

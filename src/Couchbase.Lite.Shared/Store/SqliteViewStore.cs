@@ -47,7 +47,6 @@ namespace Couchbase.Lite.Store
         private int _viewId;
         private ViewCollation _collation;
         private bool _initializedRTreeSchema;
-        private object _updateLock = new object();
 
         //TODO: Full text
         //private bool _initializedFullTextSchema;
@@ -575,7 +574,6 @@ namespace Couchbase.Lite.Store
             var db = _dbStorage;
 
             Status status = null;
-            lock (_updateLock) {
                 status = db.RunInTransaction(() =>
                 {
                     // If the view the update is for doesn't need any update, don't do anything:
@@ -851,13 +849,19 @@ namespace Couchbase.Lite.Store
                         ViewNames(views), dbMaxSequence, deletedCount, insertedCount);
                     return new Status(StatusCode.Ok);
                 });
-            }
 
             if(status.Code >= StatusCode.BadRequest) {
                 Log.W(TAG, "CouchbaseLite: Failed to rebuild views ({0}): {1}", ViewNames(inputViews.Cast<SqliteViewStore>()), status);
             }
 
             return status;
+        }
+
+        public UpdateJob CreateUpdateJob(IEnumerable<IViewStore> viewsToUpdate)
+        {
+            var cast = viewsToUpdate.Cast<SqliteViewStore>();
+            return new UpdateJob(UpdateIndexes, viewsToUpdate, from store in cast
+                                                         select store._dbStorage.LastSequence);
         }
 
         public IEnumerable<QueryRow> RegularQuery(QueryOptions options)

@@ -20,6 +20,7 @@
 //
 using System;
 using System.Collections.Generic;
+using Couchbase.Lite.Internal;
 
 namespace Couchbase.Lite.Store
 {
@@ -84,6 +85,8 @@ namespace Couchbase.Lite.Store
         /// <returns>The success/error status.</returns>
         /// <param name="views">An array of IViewStorage instances, always including the receiver.</param>
         Status UpdateIndexes(IEnumerable<IViewStore> views);
+
+        UpdateJob CreateUpdateJob(IEnumerable<IViewStore> views);
 
         /// <summary>
         /// Queries the view without performing any reducing or grouping.
