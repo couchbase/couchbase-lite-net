@@ -98,6 +98,8 @@ namespace Couchbase.Lite {
 
         internal event TypedEventHandler<View, EventArgs> Changed;
 
+        private readonly object _updateLock = new object();
+
         #endregion
 
         #region Properties
@@ -183,195 +185,197 @@ namespace Couchbase.Lite {
 
             try
             {
-                Database.RunInTransaction(() =>
-                {   
-                    var lastSequence = LastSequenceIndexed;
-                    var dbMaxSequence = Database.LastSequenceNumber;
+                lock(_updateLock) {
+                    Database.RunInTransaction(() =>
+                    {   
+                        var lastSequence = LastSequenceIndexed;
+                        var dbMaxSequence = Database.LastSequenceNumber;
 
-                    if (lastSequence >= dbMaxSequence) {
-                        // nothing to do (eg,  kCBLStatusNotModified)
-                        Log.V(Database.Tag, "lastSequence ({0}) == dbMaxSequence ({1}), nothing to do", lastSequence, dbMaxSequence);
-                        result.Code = StatusCode.NotModified;
-                        return false;
-                    }
+                        if (lastSequence >= dbMaxSequence) {
+                            // nothing to do (eg,  kCBLStatusNotModified)
+                            Log.V(Database.Tag, "lastSequence ({0}) == dbMaxSequence ({1}), nothing to do", lastSequence, dbMaxSequence);
+                            result.Code = StatusCode.NotModified;
+                            return false;
+                        }
 
-                    // First remove obsolete emitted results from the 'maps' table:
-                    var sequence = lastSequence;
-                    if (lastSequence < 0)
-                    {
-                        var msg = string.Format("lastSequence < 0 ({0})", lastSequence);
-                        throw new CouchbaseLiteException(msg, new Status(StatusCode.InternalServerError));
-                    }
-                    if (lastSequence == 0)
-                    {
-                        // If the lastSequence has been reset to 0, make sure to remove
-                        // any leftover rows:
-                        var whereArgs = new string[] { Id.ToString() };
-                        Database.StorageEngine.Delete("maps", "view_id=?", whereArgs);
-                    }
-                    else
-                    {
-                        Database.OptimizeSQLIndexes();
-                        // Delete all obsolete map results (ones from since-replaced
-                        // revisions):
-                        var args = new [] {
-                            Id.ToString(),
-                            lastSequence.ToString(),
-                            lastSequence.ToString()
-                        };
-
-                        Database.StorageEngine.ExecSQL(
-                            "DELETE FROM maps WHERE view_id=? AND sequence IN ("
-                            + "SELECT parent FROM revs WHERE sequence>? " + "AND +parent>0 AND +parent<=?)", 
-                                args);
-                    }
-
-                    var deleted = 0;
-                    cursor = Database.StorageEngine.IntransactionRawQuery("SELECT changes()");
-                    cursor.MoveToNext();
-                    deleted = cursor.GetInt(0);
-                    cursor.Close();
-
-                    // Find a better way to propagate this back
-                    // Now scan every revision added since the last time the view was indexed:
-                    var selectArgs = new[] { lastSequence.ToString(), dbMaxSequence.ToString() };
-                    cursor = Database.StorageEngine.IntransactionRawQuery("SELECT revs.doc_id, sequence, docid, revid, json, no_attachments FROM revs, docs "
-                        + "WHERE sequence>? AND sequence<=? AND current!=0 AND deleted=0 "
-                        + "AND revs.doc_id = docs.doc_id "
-                        + "ORDER BY revs.doc_id, revid DESC", selectArgs);
-
-                    var lastDocID = 0L;
-                    var keepGoing = cursor.MoveToNext();
-                    while (keepGoing)
-                    {
-                        long docID = cursor.GetLong(0);
-                        if (docID != lastDocID)
+                        // First remove obsolete emitted results from the 'maps' table:
+                        var sequence = lastSequence;
+                        if (lastSequence < 0)
                         {
-                            // Only look at the first-iterated revision of any document,
-                            // because this is the
-                            // one with the highest revid, hence the "winning" revision
-                            // of a conflict.
-                            lastDocID = docID;
-                            // Reconstitute the document as a dictionary:
-                            sequence = cursor.GetLong(1);
-                            string docId = cursor.GetString(2);
-                            if (docId.StartsWith("_design/", StringComparison.InvariantCultureIgnoreCase))
+                            var msg = string.Format("lastSequence < 0 ({0})", lastSequence);
+                            throw new CouchbaseLiteException(msg, new Status(StatusCode.InternalServerError));
+                        }
+                        if (lastSequence == 0)
+                        {
+                            // If the lastSequence has been reset to 0, make sure to remove
+                            // any leftover rows:
+                            var whereArgs = new string[] { Id.ToString() };
+                            Database.StorageEngine.Delete("maps", "view_id=?", whereArgs);
+                        }
+                        else
+                        {
+                            Database.OptimizeSQLIndexes();
+                            // Delete all obsolete map results (ones from since-replaced
+                            // revisions):
+                            var args = new [] {
+                                Id.ToString(),
+                                lastSequence.ToString(),
+                                lastSequence.ToString()
+                            };
+
+                            Database.StorageEngine.ExecSQL(
+                                "DELETE FROM maps WHERE view_id=? AND sequence IN ("
+                                + "SELECT parent FROM revs WHERE sequence>? " + "AND +parent>0 AND +parent<=?)", 
+                                    args);
+                        }
+
+                        var deleted = 0;
+                        cursor = Database.StorageEngine.IntransactionRawQuery("SELECT changes()");
+                        cursor.MoveToNext();
+                        deleted = cursor.GetInt(0);
+                        cursor.Close();
+
+                        // Find a better way to propagate this back
+                        // Now scan every revision added since the last time the view was indexed:
+                        var selectArgs = new[] { lastSequence.ToString(), dbMaxSequence.ToString() };
+                        cursor = Database.StorageEngine.IntransactionRawQuery("SELECT revs.doc_id, sequence, docid, revid, json, no_attachments FROM revs, docs "
+                            + "WHERE sequence>? AND sequence<=? AND current!=0 AND deleted=0 "
+                            + "AND revs.doc_id = docs.doc_id "
+                            + "ORDER BY revs.doc_id, revid DESC", selectArgs);
+
+                        var lastDocID = 0L;
+                        var keepGoing = cursor.MoveToNext();
+                        while (keepGoing)
+                        {
+                            long docID = cursor.GetLong(0);
+                            if (docID != lastDocID)
                             {
-                                // design docs don't get indexed!
-                                keepGoing = cursor.MoveToNext();
-                                continue;
-                            }
-                            var revId = cursor.GetString(3);
-                            var json = cursor.GetBlob(4);
-
-                            var noAttachments = cursor.GetInt(5) > 0;
-
-                            // Skip rows with the same doc_id -- these are losing conflicts.
-                            while ((keepGoing = cursor.MoveToNext()) && cursor.GetLong(0) == docID) { }
-
-                            if (lastSequence > 0)
-                            {
-                                // Find conflicts with documents from previous indexings.
-                                var selectArgs2 = new[] { Convert.ToString(docID), Convert.ToString(lastSequence) };
-                                cursor2 = Database.StorageEngine.IntransactionRawQuery("SELECT revid, sequence FROM revs "
-                                    + "WHERE doc_id=? AND sequence<=? AND current!=0 AND deleted=0 " + "ORDER BY revID DESC "
-                                    + "LIMIT 1", selectArgs2);
-                                if (cursor2.MoveToNext())
+                                // Only look at the first-iterated revision of any document,
+                                // because this is the
+                                // one with the highest revid, hence the "winning" revision
+                                // of a conflict.
+                                lastDocID = docID;
+                                // Reconstitute the document as a dictionary:
+                                sequence = cursor.GetLong(1);
+                                string docId = cursor.GetString(2);
+                                if (docId.StartsWith("_design/", StringComparison.InvariantCultureIgnoreCase))
                                 {
-                                    var oldRevId = cursor2.GetString(0);
+                                    // design docs don't get indexed!
+                                    keepGoing = cursor.MoveToNext();
+                                    continue;
+                                }
+                                var revId = cursor.GetString(3);
+                                var json = cursor.GetBlob(4);
 
-                                    // This is the revision that used to be the 'winner'.
-                                    // Remove its emitted rows:
-                                    var oldSequence = cursor2.GetLong(1);
-                                    var args = new[] { Sharpen.Extensions.ToString(Id), Convert.ToString(oldSequence) };
-                                    Database.StorageEngine.ExecSQL("DELETE FROM maps WHERE view_id=? AND sequence=?", args);
+                                var noAttachments = cursor.GetInt(5) > 0;
 
-                                    if (RevisionInternal.CBLCompareRevIDs(oldRevId, revId) > 0)
+                                // Skip rows with the same doc_id -- these are losing conflicts.
+                                while ((keepGoing = cursor.MoveToNext()) && cursor.GetLong(0) == docID) { }
+
+                                if (lastSequence > 0)
+                                {
+                                    // Find conflicts with documents from previous indexings.
+                                    var selectArgs2 = new[] { Convert.ToString(docID), Convert.ToString(lastSequence) };
+                                    cursor2 = Database.StorageEngine.IntransactionRawQuery("SELECT revid, sequence FROM revs "
+                                        + "WHERE doc_id=? AND sequence<=? AND current!=0 AND deleted=0 " + "ORDER BY revID DESC "
+                                        + "LIMIT 1", selectArgs2);
+                                    if (cursor2.MoveToNext())
                                     {
-                                        // It still 'wins' the conflict, so it's the one that
-                                        // should be mapped [again], not the current revision!
-                                        revId = oldRevId;
-                                        sequence = oldSequence;
-                                        var selectArgs3 = new[] { Convert.ToString(sequence) };
-                                        json = Misc.ByteArrayResultForQuery(
-                                            Database.StorageEngine, 
-                                            "SELECT json FROM revs WHERE sequence=?", 
-                                            selectArgs3
-                                        );
+                                        var oldRevId = cursor2.GetString(0);
+
+                                        // This is the revision that used to be the 'winner'.
+                                        // Remove its emitted rows:
+                                        var oldSequence = cursor2.GetLong(1);
+                                        var args = new[] { Sharpen.Extensions.ToString(Id), Convert.ToString(oldSequence) };
+                                        Database.StorageEngine.ExecSQL("DELETE FROM maps WHERE view_id=? AND sequence=?", args);
+
+                                        if (RevisionInternal.CBLCompareRevIDs(oldRevId, revId) > 0)
+                                        {
+                                            // It still 'wins' the conflict, so it's the one that
+                                            // should be mapped [again], not the current revision!
+                                            revId = oldRevId;
+                                            sequence = oldSequence;
+                                            var selectArgs3 = new[] { Convert.ToString(sequence) };
+                                            json = Misc.ByteArrayResultForQuery(
+                                                Database.StorageEngine, 
+                                                "SELECT json FROM revs WHERE sequence=?", 
+                                                selectArgs3
+                                            );
+                                        }
                                     }
+
+                                    cursor2.Close();
+                                    cursor2 = null;
+                                }
+                                // Get the document properties, to pass to the map function:
+                                var contentOptions = DocumentContentOptions.None;
+                                if (noAttachments)
+                                {
+                                    contentOptions |= DocumentContentOptions.NoAttachments;
                                 }
 
-                                cursor2.Close();
-                                cursor2 = null;
-                            }
-                            // Get the document properties, to pass to the map function:
-                            var contentOptions = DocumentContentOptions.None;
-                            if (noAttachments)
-                            {
-                                contentOptions |= DocumentContentOptions.NoAttachments;
-                            }
-
-                            var properties = Database.DocumentPropertiesFromJSON(
-                                json, docId, revId, false, sequence, DocumentContentOptions.None
-                            );
-                            if (properties != null)
-                            {
-                                // Call the user-defined map() to emit new key/value
-                                // pairs from this revision:
-
-                                // This is the emit() block, which gets called from within the
-                                // user-defined map() block
-                                // that's called down below.
-
-                                var enclosingView = this;
-                                var thisSequence = sequence;
-                                var map = Map;
-
-                                if (map == null)
-                                    throw new CouchbaseLiteException("Map function is missing.");
-
-                                EmitDelegate emitBlock = (key, value) =>
+                                var properties = Database.DocumentPropertiesFromJSON(
+                                    json, docId, revId, false, sequence, DocumentContentOptions.None
+                                );
+                                if (properties != null)
                                 {
-                                    // TODO: Do we need to do any null checks on key or value?
-                                    try
+                                    // Call the user-defined map() to emit new key/value
+                                    // pairs from this revision:
+
+                                    // This is the emit() block, which gets called from within the
+                                    // user-defined map() block
+                                    // that's called down below.
+
+                                    var enclosingView = this;
+                                    var thisSequence = sequence;
+                                    var map = Map;
+
+                                    if (map == null)
+                                        throw new CouchbaseLiteException("Map function is missing.");
+
+                                    EmitDelegate emitBlock = (key, value) =>
                                     {
-                                        var keyJson = Manager.GetObjectMapper().WriteValueAsString(key);
-                                        var valueJson = value == null ? null : Manager.GetObjectMapper().WriteValueAsString(value) ;
+                                        // TODO: Do we need to do any null checks on key or value?
+                                        try
+                                        {
+                                            var keyJson = Manager.GetObjectMapper().WriteValueAsString(key);
+                                            var valueJson = value == null ? null : Manager.GetObjectMapper().WriteValueAsString(value) ;
 
-                                        var insertValues = new ContentValues();
-                                        insertValues.Put("view_id", enclosingView.Id);
-                                        insertValues["sequence"] = thisSequence;
-                                        insertValues["key"] = keyJson;
-                                        insertValues["value"] = valueJson;
+                                            var insertValues = new ContentValues();
+                                            insertValues.Put("view_id", enclosingView.Id);
+                                            insertValues["sequence"] = thisSequence;
+                                            insertValues["key"] = keyJson;
+                                            insertValues["value"] = valueJson;
 
-                                        enclosingView.Database.StorageEngine.Insert("maps", null, insertValues);
-                                    }
-                                    catch (Exception e)
-                                    {
-                                        Log.E(Database.Tag, "Error emitting", e);
-                                    }
-                                };
+                                            enclosingView.Database.StorageEngine.Insert("maps", null, insertValues);
+                                        }
+                                        catch (Exception e)
+                                        {
+                                            Log.E(Database.Tag, "Error emitting", e);
+                                        }
+                                    };
 
-                                map(properties, emitBlock);
-                            }
-                            } else {
-                                keepGoing = cursor.MoveToNext();
-                            }
-                    }
+                                    map(properties, emitBlock);
+                                }
+                                } else {
+                                    keepGoing = cursor.MoveToNext();
+                                }
+                        }
 
-                    // Finally, record the last revision sequence number that was 
-                    // indexed:
-                    var updateValues = new ContentValues();
-                    updateValues["lastSequence"] = dbMaxSequence;
-                    var whereArgs_1 = new string[] { Id.ToString() };
-                    Database.StorageEngine.Update("views", updateValues, "view_id=?", whereArgs_1);
+                        // Finally, record the last revision sequence number that was 
+                        // indexed:
+                        var updateValues = new ContentValues();
+                        updateValues["lastSequence"] = dbMaxSequence;
+                        var whereArgs_1 = new string[] { Id.ToString() };
+                        Database.StorageEngine.Update("views", updateValues, "view_id=?", whereArgs_1);
 
-                    // FIXME actually count number added :)
-                    Log.V(Database.Tag, "...Finished re-indexing view {0} up to sequence {1} (deleted {2} added ?)", Name, Convert.ToString(dbMaxSequence), deleted);
-                    result.Code = StatusCode.Ok;
+                        // FIXME actually count number added :)
+                        Log.V(Database.Tag, "...Finished re-indexing view {0} up to sequence {1} (deleted {2} added ?)", Name, Convert.ToString(dbMaxSequence), deleted);
+                        result.Code = StatusCode.Ok;
 
-                    return true;
-                });
+                        return true;
+                    }); 
+                }
             }
             catch (Exception e)
             {
