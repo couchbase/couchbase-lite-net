@@ -455,7 +455,7 @@ namespace Couchbase.Lite
             UpdateProgress();
             Log.V(Tag, "NotifyChangeListeners ({0}/{1}, active={2} (batch={3}, net={4}), online={5})",
                 CompletedChangesCount, ChangesCount,
-                active, Batcher.Count, asyncTaskCount, online);
+                active, Batcher == null ? 0 : Batcher.Count(), asyncTaskCount, online);
             
             var evt = _changed;
             if (evt == null) {
@@ -618,7 +618,6 @@ namespace Couchbase.Lite
 
         internal void CheckSessionAtPath(string sessionPath)
         {
-            Log.D(Tag, "checkSessionAtPath() calling asyncTaskStarted()");
             AsyncTaskStarted();
             SendAsyncRequest(HttpMethod.Get, sessionPath, null, (result, e) => {
                 try
@@ -630,7 +629,7 @@ namespace Couchbase.Lite
                             CheckSessionAtPath ("_session");
                             return;
                         }
-                        Log.E(Tag, "Session check failed", e);
+                        Log.W(Tag, "Session check failed", e);
                         LastError = e;
                     }
                     else
@@ -650,7 +649,6 @@ namespace Couchbase.Lite
                 }
                 finally
                 {
-                    Log.D(Tag, "checkSessionAtPath() calling asyncTaskFinished()");
                     AsyncTaskFinished (1);
                 }
             });
@@ -701,8 +699,6 @@ namespace Couchbase.Lite
             lastSequenceChanged = false;
             var checkpointId = RemoteCheckpointDocID();
             var localLastSequence = LocalDatabase.LastSequenceWithCheckpointId(checkpointId);
-
-            Log.D(Tag, "fetchRemoteCheckpointDoc() calling asyncTaskStarted()");
 
             AsyncTaskStarted();
 
@@ -1465,8 +1461,6 @@ namespace Couchbase.Lite
         {
             Log.D(Tag, "Refreshing remote checkpoint to get its _rev...");
             savingCheckpoint = true;
-
-            Log.D(Tag, "RefreshRemoteCheckpointDoc() calling asyncTaskStarted()");
             AsyncTaskStarted();
 
             SendAsyncRequest(HttpMethod.Get, "/_local/" + RemoteCheckpointDocID(), null, (result, e) =>

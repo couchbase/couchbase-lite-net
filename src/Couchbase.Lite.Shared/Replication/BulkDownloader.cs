@@ -299,7 +299,7 @@ namespace Couchbase.Lite.Replicator
         {
             Func<RevisionInternal, IDictionary<String, Object>> invoke = source =>
             {
-                var attsSince = database.Storage.GetPossibleAncestors(source, Puller.MaxNumberOfAttsSince, true);
+                var attsSince = database.Storage.GetPossibleAncestors(source, Puller.MAX_ATTS_SINCE, true);
 
 
                 var mapped = new Dictionary<string, object> ();

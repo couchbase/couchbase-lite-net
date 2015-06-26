@@ -65,9 +65,9 @@ namespace Couchbase.Lite.Replicator
 {
     internal sealed class Puller : Replication, IChangeTrackerClient
     {
-        internal const int MaxNumberOfAttsSince = 50;
+        internal const int MAX_ATTS_SINCE = 50;
 
-        readonly string Tag = "Puller";
+        private const string Tag = "Puller";
 
         internal bool canBulkGet;
 
@@ -121,18 +121,15 @@ namespace Couchbase.Lite.Replicator
             Log.D(Tag, string.Format("Using MaxOpenHttpConnections({0}), MaxRevsToGetInBulk({1})", 
                 ManagerOptions.Default.MaxOpenHttpConnections, ManagerOptions.Default.MaxRevsToGetInBulk));
             
-            if (downloadsToInsert == null)
-            {
+            if (downloadsToInsert == null) {
                 const int capacity = 200;
                 const int delay = 1000;
-                downloadsToInsert = new Batcher<RevisionInternal> (WorkExecutor, capacity, delay, InsertDownloads);
+                downloadsToInsert = new Batcher<RevisionInternal>(WorkExecutor, capacity, delay, InsertDownloads);
             }
 
-            if (pendingSequences == null)
-            {
+            if (pendingSequences == null) {
                 pendingSequences = new SequenceMap();
-                if (LastSequence != null)
-                {
+                if (LastSequence != null) {
                     // Prime _pendingSequences so its checkpointedValue will reflect the last known seq:
                     var seq = pendingSequences.AddValue(LastSequence);
                     pendingSequences.RemoveSequence(seq);
@@ -149,28 +146,23 @@ namespace Couchbase.Lite.Replicator
             changeTracker = new ChangeTracker(RemoteUrl, mode, LastSequence, true, this, WorkExecutor);
             changeTracker.Authenticator = Authenticator;
 
-            if (Filter != null)
-            {
+            if (Filter != null) {
                 changeTracker.SetFilterName(Filter);
-                if (FilterParams != null)
-                {
-                    changeTracker.SetFilterParams(FilterParams.ToDictionary(kvp=>kvp.Key, kvp=>(Object)kvp.Value));
+                if (FilterParams != null) {
+                    changeTracker.SetFilterParams(FilterParams.ToDictionary(kvp => kvp.Key, kvp => (Object)kvp.Value));
                 }
-            }
-            if (!continuous)
-            {
-                Log.D(Tag, "BeginReplicating() calling asyncTaskStarted()");
-                AsyncTaskStarted();
             }
 
             changeTracker.UsePost = CheckServerCompatVersion("0.93");
             changeTracker.Start();
+            if (!continuous) {
+                AsyncTaskStarted();
+            }
         }
 
         public override void Stop()
         {
-            if (!IsRunning)
-            {
+            if (!IsRunning) {
                 return;
             }
             var changeTrackerCopy = changeTracker;
@@ -182,15 +174,14 @@ namespace Couchbase.Lite.Replicator
                 // stop it from calling my changeTrackerStopped()
                 changeTrackerCopy.Stop();
                 changeTracker = null;
-                if (!Continuous)
-                {   
-                    Log.D(Tag, "stop() calling asyncTaskFinished()");
+                if (!Continuous) {   
+                    // balances AsyncTaskStarted() in beginReplicating()
                     AsyncTaskFinished(1);
                 }
             }
-            // balances asyncTaskStarted() in beginReplicating()
-            lock (locker)
-            {
+
+
+            lock (locker) {
                 revsToPull = null;
                 deletedRevsToPull = null;
                 bulkRevsToPull = null;
@@ -198,19 +189,14 @@ namespace Couchbase.Lite.Replicator
 
             base.Stop();
 
-            if (downloadsToInsert != null)
-            {
+            if (downloadsToInsert != null) {
                 downloadsToInsert.FlushAll();
             }
         }
 
         internal override void Stopping()
         {
-//            if (downloadsToInsert != null)
-//            {
-//                downloadsToInsert.Flush();
-                downloadsToInsert = null;
-//            }
+            downloadsToInsert = null;
             base.Stopping();
         }
 
@@ -268,23 +254,18 @@ namespace Couchbase.Lite.Replicator
         public void ChangeTrackerStopped(ChangeTracker tracker)
         {
             Log.V(Tag, "ChangeTracker " + tracker + " stopped");
-            if (LastError == null && tracker.Error != null)
-            {
+            if (LastError == null && tracker.Error != null) {
                 LastError = tracker.Error;
             }
-            changeTracker = null;
-            if (Batcher != null)
-            {
-                Log.D(Tag, "calling batcher.flush().  batcher.count() is " + Batcher.Count());
 
+            changeTracker = null;
+            if (Batcher != null) {
+                Log.D(Tag, "calling batcher.flush().  batcher.count() is " + Batcher.Count());
                 Batcher.FlushAll();
             }
-            if (!Continuous)
-            {
-                WorkExecutor.StartNew(() =>
-                {
-                    AsyncTaskFinished(1);
-                });
+
+            if (!Continuous) {
+                AsyncTaskFinished(1); // balances AsyncTaskStarted() in BeginReplication()
             }
         }
 
@@ -615,7 +596,7 @@ namespace Couchbase.Lite.Replicator
 				downloadsToInsert.QueueObject(rev);
 			}
 			else {
-				Log.E (Tag, "downloadsToInsert is null");
+				Log.I(Tag, "downloadsToInsert is null");
 			}
         }
 
@@ -624,9 +605,7 @@ namespace Couchbase.Lite.Replicator
         internal void PullBulkWithAllDocs(IList<RevisionInternal> bulkRevs)
         {
             // http://wiki.apache.org/couchdb/HTTP_Bulk_Document_API
-            Log.V(Tag, "PullBulkWithAllDocs() calling AsyncTaskStarted()");
             AsyncTaskStarted();
-
             ++httpConnectionCount;
 
             var remainingRevs = new List<RevisionInternal>(bulkRevs);
@@ -737,23 +716,19 @@ namespace Couchbase.Lite.Replicator
         internal void PullRemoteRevision(RevisionInternal rev)
         {
             Log.D(Tag, "PullRemoteRevision with rev: {0}", rev);
-
-            Log.D(Tag, "PullRemoteRevision() calling AsyncTaskStarted()");
             AsyncTaskStarted();
-
             httpConnectionCount++;
 
             // Construct a query. We want the revision history, and the bodies of attachments that have
             // been added since the latest revisions we have locally.
             // See: http://wiki.apache.org/couchdb/HTTP_Document_API#Getting_Attachments_With_a_Document
             var path = new StringBuilder("/" + Uri.EscapeUriString(rev.GetDocId()) + "?rev=" + Uri.EscapeUriString(rev.GetRevId()) + "&revs=true&attachments=true");
-            var knownRevs = KnownCurrentRevIDs(rev);
+            var tmp = LocalDatabase.Storage.GetPossibleAncestors(rev, MAX_ATTS_SINCE, true);
+            var knownRevs = tmp == null ? null : tmp.ToList();
             if (knownRevs == null)
             {
                 //this means something is wrong, possibly the replicator has shut down
-                Log.D(Tag, "PullRemoteRevision() calling AsyncTaskFinished()");
                 AsyncTaskFinished(1);
-
                 httpConnectionCount--;
                 return;
             }
@@ -895,15 +870,6 @@ namespace Couchbase.Lite.Replicator
             {
                 return Misc.TDSequenceCompare(reva.GetSequence(), revb.GetSequence());
             }
-        }
-
-        private IList<String> KnownCurrentRevIDs(RevisionInternal rev)
-        {
-            if (LocalDatabase != null)
-            {
-                return LocalDatabase.Storage.GetAllDocumentRevisions(rev.GetDocId(), true).GetAllRevIds();
-            }
-            return null;
         }
 
         public string JoinQuotedEscaped(IList<string> strings)
