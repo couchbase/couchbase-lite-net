@@ -60,6 +60,51 @@ namespace Couchbase.Lite
         public const string Tag = "Views";
 
         [Test]
+        public void TestLiveQueryUpdateWhenOptionsChanged()
+        {
+            var view = database.GetView("vu");
+            view.SetMap((doc, emit) =>
+                emit(doc.Get("sequence"), null), "1");
+
+            CreateDocuments(database, 5);
+
+            var query = view.CreateQuery();
+            var result = query.Run();
+            Assert.AreEqual(5, result.Count);
+
+            int expectedKey = 0;
+            foreach (var row in result) {
+                Assert.AreEqual(expectedKey++, row.Key);
+            }
+
+            var liveQuery = view.CreateQuery().ToLiveQuery();
+            var changeCount = 0;
+            liveQuery.Changed += (sender, e) => changeCount++;
+            liveQuery.Start();
+            Thread.Sleep(1000);
+
+            Assert.AreEqual(1, changeCount);
+            Assert.AreEqual(5, liveQuery.Rows.Count);
+            expectedKey = 0;
+            foreach (var row in liveQuery.Rows) {
+                Assert.AreEqual(expectedKey++, row.Key);
+            }
+
+            liveQuery.StartKey = 2;
+            liveQuery.QueryOptionsChanged();
+            Thread.Sleep(1000);
+
+            Assert.AreEqual(2, changeCount);
+            Assert.AreEqual(3, liveQuery.Rows.Count);
+            expectedKey = 2;
+            foreach (var row in liveQuery.Rows) {
+                Assert.AreEqual(expectedKey++, row.Key);
+            }
+
+            liveQuery.Stop();
+        }
+
+        [Test]
         public void TestQueryDefaultIndexUpdateMode()
         {
             View view = database.GetView("aview");

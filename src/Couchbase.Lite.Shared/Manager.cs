@@ -58,6 +58,8 @@ using Sharpen;
 using Couchbase.Lite.Db;
 using System.Diagnostics;
 using ICSharpCode.SharpZipLib.Zip;
+using Couchbase.Lite.Internal;
+using System.Diagnostics;
 
 #if !NET_3_5
 using StringEx = System.String;

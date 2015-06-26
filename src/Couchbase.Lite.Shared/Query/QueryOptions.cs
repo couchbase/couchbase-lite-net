@@ -117,6 +117,11 @@ namespace Couchbase.Lite
         public bool UpdateSeq { get; set; }
 
         /// <summary>
+        /// Gets or sets whether or not to include the start key in the result set
+        /// </summary>
+        public bool InclusiveStart { get; set; }
+
+        /// <summary>
         /// Gets or sets whether or not to include the end key in the result set
         /// </summary>
         public bool InclusiveEnd { get; set; }
@@ -157,6 +162,12 @@ namespace Couchbase.Lite
         /// Gets or sets the last document ID to include in the results
         /// </summary>
         public string EndKeyDocId { get; set; }
+
+        /// <summary>
+        /// Gets or sets the filter used for filtering the results of the query
+        /// </summary>
+        /// <value>The filter.</value>
+        public Func<QueryRow, bool> Filter { get; set; }
 
         /// <summary>
         /// If nonzero, enables prefix matching of string or array keys.

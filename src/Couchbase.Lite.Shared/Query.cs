@@ -41,15 +41,12 @@
 //
 
 using System;
-using System.Linq;
-using System.Collections;
 using System.Collections.Generic;
-using System.Net;
-using System.IO;
-using Sharpen;
-using System.Threading.Tasks;
 using System.Threading;
+using System.Threading.Tasks;
+
 using Couchbase.Lite.Util;
+using System.Diagnostics;
 
 namespace Couchbase.Lite {
 
@@ -133,93 +130,33 @@ namespace Couchbase.Lite {
     /// <summary>
     /// A Couchbase Lite <see cref="Couchbase.Lite.View"/> <see cref="Couchbase.Lite.Query"/>.
     /// </summary>
-    public partial class Query : IDisposable
+    public class Query : IDisposable
     {
 
-    #region Constructors
-        internal Query(Database database, View view)
+        #region Constants
+
+        private const string TAG = "Query";
+
+        #endregion
+
+        #region Variables
+
+        protected bool _queryOptionsUpdated;
+
+        /// <summary>
+        /// Event raised when a query has finished running.
+        /// </summary>
+        public event EventHandler<QueryCompletedEventArgs> Completed
         {
-            // null for _all_docs query
-            Database = database;
-            View = view;
-            Limit = Int32.MaxValue;
-            MapOnly = (view != null && view.Reduce == null);
-            InclusiveEnd = true;
-            IndexUpdateMode = IndexUpdateMode.Before;
-            AllDocsMode = AllDocsMode.AllDocs;
+            add { _completed = (EventHandler<QueryCompletedEventArgs>)Delegate.Combine(_completed, value); }
+            remove { _completed = (EventHandler<QueryCompletedEventArgs>)Delegate.Remove(_completed, value); }
         }
+        private EventHandler<QueryCompletedEventArgs> _completed;
 
-        /// <summary>Constructor</summary>
-        internal Query(Database database, MapDelegate mapFunction)
-        : this(database, database.MakeAnonymousView())
-        {
-            TemporaryView = true;
-            View.SetMap(mapFunction, string.Empty);
-        }
+        #endregion
 
-        /// <summary>Constructor</summary>
-        internal Query(Database database, Query query) 
-        : this(database, query.View)
-        {
-            Limit = query.Limit;
-            Skip = query.Skip;
-            StartKey = query.StartKey;
-            EndKey = query.EndKey;
-            Descending = query.Descending;
-            Prefetch = query.Prefetch;
-            Keys = query.Keys;
-            GroupLevel = query.GroupLevel;
-            MapOnly = query.MapOnly;
-            StartKeyDocId = query.StartKeyDocId;
-            EndKeyDocId = query.EndKeyDocId;
-            InclusiveEnd = query.InclusiveEnd;
-            IndexUpdateMode = query.IndexUpdateMode;
-            AllDocsMode = query.AllDocsMode;
-        }
+        #region Properties
 
-
-    #endregion
-       
-    #region Non-public Members
-
-        const string Tag = "Query";
-
-        internal View View { get; private set; }
-
-        private  bool TemporaryView { get; set; }
-
-        private Int64 LastSequence { get; set; }
-
-        private QueryOptions QueryOptions
-        {
-            get {
-                var queryOptions = new QueryOptions();
-                queryOptions.StartKey = StartKey;
-                queryOptions.EndKey = EndKey;
-                queryOptions.Keys = Keys;
-                queryOptions.Skip = Skip;
-                queryOptions.Limit = Limit;
-                queryOptions.Reduce = !MapOnly;
-                queryOptions.ReduceSpecified = true;
-                queryOptions.GroupLevel = GroupLevel;
-                queryOptions.Descending = Descending;
-                queryOptions.IncludeDocs = Prefetch;
-                queryOptions.UpdateSeq = true;
-                queryOptions.InclusiveEnd = InclusiveEnd;
-                queryOptions.IncludeDeletedDocs = IncludeDeleted;
-                queryOptions.Stale = IndexUpdateMode;
-                queryOptions.AllDocsMode = AllDocsMode;
-                queryOptions.StartKeyDocId = StartKeyDocId;
-                queryOptions.EndKeyDocId = EndKeyDocId;
-                return queryOptions;
-            }
-        }
-
-
-    #endregion
-
-    #region Instance Members
-        //Properties
         /// <summary>
         /// Gets the <see cref="Couchbase.Lite.Database"/> that owns 
         /// the <see cref="Couchbase.Lite.Query"/>'s <see cref="Couchbase.Lite.View"/>.
@@ -238,7 +175,7 @@ namespace Couchbase.Lite {
         /// The maximum number of rows to return. 
         /// The default value is 0, meaning 'unlimited'
         /// </value>
-        public Int32 Limit { get; set; }
+        public int Limit { get; set; }
 
         /// <summary>
         /// Gets or sets the number of initial rows to skip. Default value is 0.
@@ -246,28 +183,28 @@ namespace Couchbase.Lite {
         /// <value>
         /// The number of initial rows to skip. Default value is 0
         /// </value>
-        public Int32 Skip { get; set; }
+        public int Skip { get; set; }
 
         /// <summary>
         /// Gets or sets whether the rows be returned in descending key order. 
         /// Default value is <c>false</c>.
         /// </summary>
         /// <value><c>true</c> if descending; otherwise, <c>false</c>.</value>
-        public Boolean Descending { get; set; }
+        public bool Descending { get; set; }
 
         /// <summary>
         /// Gets or sets the key of the first value to return. 
         /// A null value has no effect.
         /// </summary>
         /// <value>The start key.</value>
-        public Object StartKey { get; set; }
+        public object StartKey { get; set; }
 
         /// <summary>
         /// Gets or sets the key of the last value to return. 
         /// A null value has no effect.
         /// </summary>
         /// <value>The end key.</value>
-        public Object EndKey { get; set; }
+        public object EndKey { get; set; }
 
         /// <summary>
         /// Gets or sets the <see cref="Couchbase.Lite.Document"/> id of the first value to return. 
@@ -275,7 +212,7 @@ namespace Couchbase.Lite {
         /// multiple identical keys, making startKey ambiguous.
         /// </summary>
         /// <value>The Document id of the first value to return.</value>
-        public String StartKeyDocId { get; set; }
+        public string StartKeyDocId { get; set; }
 
         /// <summary>
         /// Gets or sets the <see cref="Couchbase.Lite.Document"/> id of the last value to return. 
@@ -283,14 +220,19 @@ namespace Couchbase.Lite {
         /// multiple identical keys, making endKey ambiguous.
         /// </summary>
         /// <value>The Document id of the last value to return.</value>
-        public String EndKeyDocId { get; set; }
+        public string EndKeyDocId { get; set; }
+
+        /// <summary>
+        /// If true the StartKey (or StartKeyDocID) comparison uses "&gt;=". Else it uses "&gt;"
+        /// </summary>
+        public bool InclusiveStart { get; set; }
 
         /// <summary>
         /// If true the EndKey (or EndKeyDocID) comparison uses "&lt;=". Else it uses "&lt;".
         /// Default value is <c>true</c>.
         /// </summary>
         /// <value><c>true</c> if InclusiveEnd; otherwise, <c>false</c>.</value>
-        public Boolean InclusiveEnd { get; set; }
+        public bool InclusiveEnd { get; set; }
 
         /// <summary>
         /// Gets or sets when a <see cref="Couchbase.Lite.View"/> index is updated when running a Query.
@@ -322,13 +264,13 @@ namespace Couchbase.Lite {
         /// Gets or sets whether to only use the map function without using the reduce function.
         /// </summary>
         /// <value><c>true</c> if map only; otherwise, <c>false</c>.</value>
-        public Boolean MapOnly { get; set; }
+        public bool MapOnly { get; set; }
 
         /// <summary>
         /// Gets or sets whether results will be grouped in <see cref="Couchbase.Lite.View"/>s that have reduce functions.
         /// </summary>
         /// <value>The group level.</value>
-        public Int32 GroupLevel { get; set; }
+        public int GroupLevel { get; set; }
 
         /// <summary>
         /// Gets or sets whether to include the entire <see cref="Couchbase.Lite.Document"/> content with the results. 
@@ -336,7 +278,7 @@ namespace Couchbase.Lite {
         /// documentProperties property.
         /// </summary>
         /// <value><c>true</c> if prefetch; otherwise, <c>false</c>.</value>
-        public Boolean Prefetch { get; set; }
+        public bool Prefetch { get; set; }
 
         /// <summary>
         /// Gets or sets whether Queries created via the <see cref="Couchbase.Lite.Database"/> createAllDocumentsQuery method 
@@ -344,28 +286,121 @@ namespace Couchbase.Lite {
         /// This property has no effect in other types of Queries.
         /// </summary>
         /// <value><c>true</c> if include deleted; otherwise, <c>false</c>.</value>
-        public Boolean IncludeDeleted 
+        public bool IncludeDeleted 
         {
             get { return AllDocsMode == AllDocsMode.IncludeDeleted; }
             set 
             {
-                   AllDocsMode = (value)
-                                 ? AllDocsMode.IncludeDeleted
-                                 : AllDocsMode.AllDocs;
+                AllDocsMode = (value)
+                    ? AllDocsMode.IncludeDeleted
+                    : AllDocsMode.AllDocs;
             } 
         }
 
         /// <summary>
-        /// Event raised when a query has finished running.
+        /// Gets or sets an optional predicate that filters the resulting query rows.
+        /// If present, it's called on every row returned from the query, and if it returnsfalseNO
+        /// the row is skipped.
         /// </summary>
-        public event EventHandler<QueryCompletedEventArgs> Completed
-        {
-            add { _completed = (EventHandler<QueryCompletedEventArgs>)Delegate.Combine(_completed, value); }
-            remove { _completed = (EventHandler<QueryCompletedEventArgs>)Delegate.Remove(_completed, value); }
-        }
-        private EventHandler<QueryCompletedEventArgs> _completed;
+        public Func<QueryRow, bool> PostFilter { get; set; }
 
-        //Methods
+        internal View View { get; private set; }
+
+        private bool TemporaryView { get; set; }
+
+        private long LastSequence { get; set; }
+
+        private QueryOptions QueryOptions
+        {
+            get {
+                var queryOptions = new QueryOptions();
+                queryOptions.StartKey = StartKey;
+                queryOptions.EndKey = EndKey;
+                queryOptions.Keys = Keys;
+                queryOptions.Skip = Skip;
+                queryOptions.Limit = Limit;
+                queryOptions.Reduce = !MapOnly;
+                queryOptions.ReduceSpecified = true;
+                queryOptions.GroupLevel = GroupLevel;
+                queryOptions.Descending = Descending;
+                queryOptions.IncludeDocs = Prefetch;
+                queryOptions.UpdateSeq = true;
+                queryOptions.InclusiveStart = InclusiveStart;
+                queryOptions.InclusiveEnd = InclusiveEnd;
+                queryOptions.IncludeDeletedDocs = IncludeDeleted;
+                queryOptions.Stale = IndexUpdateMode;
+                queryOptions.AllDocsMode = AllDocsMode;
+                queryOptions.StartKeyDocId = StartKeyDocId;
+                queryOptions.EndKeyDocId = EndKeyDocId;
+                var postFilter = PostFilter;
+                if (postFilter != null) {
+                    var database = Database;
+                    queryOptions.Filter = r =>
+                    {
+                        r.Database = database;
+                        bool result = postFilter(r);
+                        r.Database = null;
+                        return result;
+                    };
+                }
+                return queryOptions;
+            }
+        }
+
+        #endregion
+
+        #region Constructors
+
+        // null view for _all_docs query
+        internal Query(Database database, View view)
+        {
+            Debug.Assert(database != null);
+
+            Database = database;
+            View = view;
+            Limit = Int32.MaxValue;
+            MapOnly = (view != null && view.Reduce == null);
+            InclusiveEnd = true;
+            InclusiveStart = true;
+            IndexUpdateMode = IndexUpdateMode.Before;
+            AllDocsMode = AllDocsMode.AllDocs;
+        }
+
+        /// <summary>Constructor</summary>
+        internal Query(Database database, MapDelegate mapFunction)
+        : this(database, database.MakeAnonymousView())
+        {
+            TemporaryView = true;
+            View.SetMap(mapFunction, string.Empty);
+        }
+
+        /// <summary>Constructor</summary>
+        internal Query(Database database, Query query) 
+        : this(database, query.View)
+        {
+            Limit = query.Limit;
+            Skip = query.Skip;
+            StartKey = query.StartKey;
+            EndKey = query.EndKey;
+            Descending = query.Descending;
+            Prefetch = query.Prefetch;
+            Keys = query.Keys;
+            GroupLevel = query.GroupLevel;
+            MapOnly = query.MapOnly;
+            StartKeyDocId = query.StartKeyDocId;
+            EndKeyDocId = query.EndKeyDocId;
+            InclusiveStart = query.InclusiveStart;
+            InclusiveEnd = query.InclusiveEnd;
+            IndexUpdateMode = query.IndexUpdateMode;
+            AllDocsMode = query.AllDocsMode;
+        }
+
+
+        #endregion
+       
+
+        #region Public Methods
+
         /// <summary>
         /// Runs the <see cref="Couchbase.Lite.Query"/> and returns an enumerator over the result rows.
         /// </summary>
@@ -422,7 +457,7 @@ namespace Couchbase.Lite {
                         }
 
                         if (error != null) {
-                            Log.E(Tag, "Exception caught in runAsyncInternal", error);
+                            Log.E(TAG, "Exception caught in runAsyncInternal", error);
                             throw error; // Rethrow innner exceptions.
                         }
                         return runTask.Result; // Give additional continuation functions access to the results task.
@@ -452,6 +487,11 @@ namespace Couchbase.Lite {
             return new LiveQuery(this);
         }
 
+        #endregion
+
+        #region IDisposable
+        #pragma warning disable 1591
+
         /// <summary>
         /// Releases all resource used by the <see cref="Couchbase.Lite.Query"/> object.
         /// </summary>
@@ -464,7 +504,9 @@ namespace Couchbase.Lite {
             if (TemporaryView)
                 View.Delete();
         }
-    #endregion    
+    
+        #pragma warning restore 1591
+        #endregion    
     }
 }
 

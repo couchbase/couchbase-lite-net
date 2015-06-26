@@ -94,7 +94,14 @@ namespace Couchbase.Lite {
 
     #endregion
 
-    #region Static Members
+        #region Variables
+
+        internal event TypedEventHandler<View, EventArgs> Changed;
+
+        #endregion
+
+        #region Properties
+
         /// <summary>
         /// Gets or sets an object that can compile source code into map and reduce delegates.
         /// </summary>
