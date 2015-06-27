@@ -48,22 +48,11 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
-
 namespace Couchbase.Lite 
 {
 
     internal class ObjectWriter 
     {
-
-        #region Constants
-
-        private static readonly JsonSerializerSettings settings = new JsonSerializerSettings { 
-            ReferenceLoopHandling = ReferenceLoopHandling.Ignore
-        };
-
-        #endregion
 
         #region Variables
 
