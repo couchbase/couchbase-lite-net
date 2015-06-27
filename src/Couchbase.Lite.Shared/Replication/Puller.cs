@@ -55,6 +55,7 @@ using Couchbase.Lite.Replicator;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
 using Sharpen;
+using Couchbase.Lite.Auth;
 
 #if !NET_3_5
 using StringEx = System.String;
@@ -294,7 +295,16 @@ namespace Couchbase.Lite.Replicator
 
         public HttpClient GetHttpClient(bool longPoll)
         {
-            return clientFactory.GetHttpClient(longPoll);
+            var client = clientFactory.GetHttpClient(longPoll);
+            var challengeResponseAuth = Authenticator as IChallengeResponseAuthenticator;
+            if (challengeResponseAuth != null) {
+                var authHandler = clientFactory.Handler as DefaultAuthHandler;
+                if (authHandler != null) {
+                    authHandler.Authenticator = challengeResponseAuth;
+                }
+            }
+
+            return client;
         }
             
         /// <summary>Process a bunch of remote revisions from the _changes feed at once</summary>

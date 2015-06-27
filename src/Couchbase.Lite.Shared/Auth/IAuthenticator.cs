@@ -41,6 +41,7 @@
 //
 using System;
 using System.Collections.Generic;
+using System.Net.Http;
 
 namespace Couchbase.Lite.Auth
 {
@@ -80,4 +81,27 @@ namespace Couchbase.Lite.Auth
         IDictionary<string, string> LoginParametersForSite(Uri site);
 
     }
+
+    /// <summary>
+    /// A specialized IAuthenticator that will handle a challenge response scenario
+    /// (for example, Digest authentication)
+    /// </summary>
+    public interface IChallengeResponseAuthenticator : IAuthenticator
+    {
+        /// <summary>
+        /// Creates a response for a challenge which will be placed into the 'Authorization'
+        /// HTTP header
+        /// </summary>
+        /// <returns>The challenge, including the scheme (i.e. Digest xxxx)</returns>
+        /// <param name="response">The 401 Unauthorized message that was received</param>
+        string ResponseFromChallenge(HttpResponseMessage response);
+
+        /// <summary>
+        /// Setup the authenticator to make a request (some auth mechanisms
+        /// differ depending on the request URI and even HTTP method)
+        /// </summary>
+        /// <param name="request">Request.</param>
+        void PrepareWithRequest(HttpRequestMessage request);
+    }
+
 }

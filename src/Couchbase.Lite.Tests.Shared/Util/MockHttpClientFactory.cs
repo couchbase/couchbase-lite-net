@@ -46,6 +46,7 @@ using System.IO;
 using System.Net.Http;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
+using Couchbase.Lite.Auth;
 
 #if NET_3_5
 using System.Net.Couchbase;

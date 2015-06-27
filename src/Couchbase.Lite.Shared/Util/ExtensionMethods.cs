@@ -235,10 +235,7 @@ namespace Couchbase.Lite
         public static AuthenticationHeaderValue AsAuthenticationHeader(this string userinfo, string scheme)
         {
             Debug.Assert(userinfo != null);
-
-            var param = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(userinfo));
-
-            return new AuthenticationHeaderValue(scheme, param);
+            return new AuthenticationHeaderValue(scheme, userinfo);
         }
 
         public static string ToQueryString(this IDictionary<string, object> parameters)

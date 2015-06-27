@@ -19,20 +19,43 @@
 //  limitations under the License.
 //
 using System;
+using System.Collections.Generic;
 using System.Net;
+using System.Threading.Tasks;
+
+using Couchbase.Lite.Util;
 
 namespace Couchbase.Lite.Listener.Tcp
 {
+    [Flags]
+    public enum CouchbaseLiteTcpOptions
+    {
+        Default = 0,
+        AllowBasicAuth = 1 << 0,
+        UseTLS = 1 << 1
+    }
+
     /// <summary>
     /// An implementation of CouchbaseLiteServiceListener using TCP/IP
     /// </summary>
     public sealed class CouchbaseLiteTcpListener : CouchbaseLiteServiceListener
     {
 
+        #region Constants
+
+        private const int NONCE_TIMEOUT = 300;
+        private const string TAG = "CouchbaseLiteTcpListener";
+
+        #endregion
+
         #region Variables 
 
         private readonly HttpListener _listener;
+        private readonly string _realm;
         private Manager _manager;
+        private static HashSet<string> _RecentNonces = new HashSet<string>();
+        private static Dictionary<string, Tuple<string, int>> _InUseNonces = new Dictionary<string, Tuple<string, int>>();
+        private readonly bool _allowBasicAuth;
 
         #endregion
 
@@ -48,23 +71,104 @@ namespace Couchbase.Lite.Listener.Tcp
         /// If running on Windows, check <a href="https://github.com/couchbase/couchbase-lite-net/wiki/Gotchas">
         /// This document</a>
         /// </remarks>
-        public CouchbaseLiteTcpListener(Manager manager, ushort port)
+        public CouchbaseLiteTcpListener(Manager manager, ushort port, string realm = "Couchbase")
+            : this(manager, port, CouchbaseLiteTcpOptions.Default, realm)
+        {
+            
+        }
+
+        public CouchbaseLiteTcpListener(Manager manager, ushort port, CouchbaseLiteTcpOptions options, string realm = "Couchbase")
         {
             _manager = manager;
+            _realm = realm;
             _listener = new HttpListener();
             string prefix = String.Format("http://*:{0}/", port);
             _listener.Prefixes.Add(prefix);
+            _allowBasicAuth = options.HasFlag(CouchbaseLiteTcpOptions.AllowBasicAuth);
         }
 
         #endregion
 
         #region Private Methods
 
+        private static string GenerateNonce()
+        {
+            var nonce = Misc.CreateGUID();
+
+            // We have to remember that the HTTP protocol is stateless.
+            // Even though with version 1.1 persistent connections are the norm, they are not guaranteed.
+            // Thus if we generate a nonce for this connection,
+            // it should be honored for other connections in the near future.
+            // 
+            // In fact, this is absolutely necessary in order to support QuickTime.
+            // When QuickTime makes it's initial connection, it will be unauthorized, and will receive a nonce.
+            // It then disconnects, and creates a new connection with the nonce, and proper authentication.
+            // If we don't honor the nonce for the second connection, QuickTime will repeat the process and never connect.
+            _RecentNonces.Add(nonce);
+            Task.Delay(TimeSpan.FromSeconds(NONCE_TIMEOUT)).ContinueWith(t => _RecentNonces.Remove(nonce));
+
+            return nonce;
+        }
+
         //This gets called when the listener receives a request
         private void ProcessContext(HttpListenerContext context)
         {
-            _listener.GetContextAsync().ContinueWith((t) => ProcessContext(t.Result));
+            _listener.GetContextAsync().ContinueWith(t => ProcessContext(t.Result));
+            if (RequiresAuth && !PerformAuthorization(context)) {
+                Log.D(TAG, "Authorization failed for {0}", context.Request.Url.PathAndQuery);
+                RespondUnauthorized(context);
+                return;
+            }
+
             _router.HandleRequest(new CouchbaseListenerTcpContext(context, _manager));
+        }
+
+        private void RespondUnauthorized(HttpListenerContext context)
+        {
+            var response = context.Response;
+            response.StatusCode = 401;
+            response.ContentLength64 = 0;
+            string challenge = String.Format("Digest realm=\"{0}\", qop=\"auth\", nonce=\"{1}\"", _realm, GenerateNonce());;
+            response.AddHeader("WWW-Authenticate", challenge);
+            response.Close();
+        }
+
+        private bool PerformAuthorization(HttpListenerContext context)
+        {
+            var authorizationHeader = context.Request.Headers["Authorization"];
+            if (authorizationHeader == null) {
+                return false;
+            }
+
+            if (authorizationHeader.StartsWith("Digest")) {
+                return DoDigestAuth(context);
+            } 
+
+            return _allowBasicAuth && DoBasicAuth(authorizationHeader);
+        }
+
+        private bool DoBasicAuth(string authorizationHeader)
+        {
+            return ValidateUser(authorizationHeader);
+        }
+
+        private bool DoDigestAuth(HttpListenerContext context)
+        {
+            var client = context.Request.RemoteEndPoint.ToString().Split(':')[0];
+            var parsedHeader = new DigestAuthHeaderValue(context);
+            if (_InUseNonces.ContainsKey(client) && _InUseNonces[client].Item1 == parsedHeader.Nonce) {
+                int lastNc = _InUseNonces[client].Item2;
+                if (lastNc >= parsedHeader.Nc) {
+                    // possible replay attack
+                    return false;
+                }
+            } else if(!_RecentNonces.Contains(parsedHeader.Nonce)){
+                return false; // Stale / non-issued nonce
+            }
+
+            _InUseNonces[client] = Tuple.Create(parsedHeader.Nonce, parsedHeader.Nc);
+            _RecentNonces.Remove(parsedHeader.Nonce);
+            return ValidateUser(parsedHeader);
         }
 
         #endregion
