@@ -86,7 +86,7 @@ namespace Couchbase.Lite.Tests
             Headers = new Dictionary<string,string>();
         }
 
-        public HttpClient GetHttpClient(bool chunkedMode, Uri baseUrl, INetworkCredentialSource credSource)
+        public HttpClient GetHttpClient(bool chunkedMode)
         {
             var client = new HttpClient(HttpHandler, false);
 

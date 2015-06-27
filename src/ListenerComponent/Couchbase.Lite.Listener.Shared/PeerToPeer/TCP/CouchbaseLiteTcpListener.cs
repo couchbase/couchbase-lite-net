@@ -19,11 +19,11 @@
 //  limitations under the License.
 //
 using System;
-using System.Net;
-using System.Security.Principal;
 using System.Collections.Generic;
+using System.Net;
 using System.Threading.Tasks;
-using System.Net.Http.Headers;
+
+using Couchbase.Lite.Util;
 
 namespace Couchbase.Lite.Listener.Tcp
 {
@@ -44,6 +44,7 @@ namespace Couchbase.Lite.Listener.Tcp
         #region Constants
 
         private const int NONCE_TIMEOUT = 300;
+        private const string TAG = "CouchbaseLiteTcpListener";
 
         #endregion
 
@@ -114,6 +115,7 @@ namespace Couchbase.Lite.Listener.Tcp
         {
             _listener.GetContextAsync().ContinueWith(t => ProcessContext(t.Result));
             if (RequiresAuth && !PerformAuthorization(context)) {
+                Log.D(TAG, "Authorization failed for {0}", context.Request.Url.PathAndQuery);
                 RespondUnauthorized(context);
                 return;
             }

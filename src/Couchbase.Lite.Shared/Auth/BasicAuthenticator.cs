@@ -42,6 +42,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Text;
 
 namespace Couchbase.Lite.Auth
 {
@@ -71,7 +72,8 @@ namespace Couchbase.Lite.Auth
             get
             {
                 if (this._username != null && this._password != null) {
-                    return this._username + ":" + this._password;
+                    var plaintext = this._username + ":" + this._password;
+                    return Convert.ToBase64String(Encoding.UTF8.GetBytes(plaintext));
                 }
 
                 return null;

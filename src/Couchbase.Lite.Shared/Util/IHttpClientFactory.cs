@@ -64,7 +64,7 @@ namespace Couchbase.Lite.Support
         /// </summary>
         /// <param name="chunkedMode">A flag for chunked mode (i.e. the connection stays open for heartbeat, etc)</param>
         /// <returns>The http client.</returns>
-        HttpClient GetHttpClient(bool chunkedMode = false, Uri baseUrl = null, INetworkCredentialSource credentialSource = null);
+        HttpClient GetHttpClient(bool chunkedMode);
 
         /// <summary>
         /// Gets or sets the headers used by default in the HttpClient

@@ -73,7 +73,7 @@ namespace Couchbase.Lite.Tests
             HttpHandler = new FailEveryRequestHandler();
         }
 
-        public HttpClient GetHttpClient(bool chunkedMode, Uri baseUrl, INetworkCredentialSource credSource)
+        public HttpClient GetHttpClient(bool chunkedMode)
         {
             var mockHttpClient = new HttpClient(HttpHandler);
             return mockHttpClient;

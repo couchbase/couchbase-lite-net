@@ -131,37 +131,23 @@ namespace Couchbase.Lite.Support
         /// <summary>
         /// Build a pipeline of HttpMessageHandlers.
         /// </summary>
-        internal HttpMessageHandler BuildHandlerPipeline (bool chunkedMode, Uri url, INetworkCredentialSource credentialSource)
+        internal HttpMessageHandler BuildHandlerPipeline (bool chunkedMode)
         {
             var handler = new HttpClientHandler {
                 CookieContainer = cookieStore,
                 UseCookies = true
             };
 
-            if (url != null && credentialSource != null) {
-                var credCache = new CredentialCache
-                {
-                    {
-                        new Uri(url.Scheme + "://" + url.Authority), 
-                        credentialSource.CredentialType,
-                        credentialSource.Credential
-                    }
-                };
+            Handler = new DefaultAuthHandler (handler, cookieStore, chunkedMode);
 
-                handler.Credentials = credCache;
-                handler.PreAuthenticate = true;
-            }
-
-            var authHandler = new DefaultAuthHandler (handler, cookieStore, chunkedMode);
-
-            var retryHandler = new TransientErrorRetryHandler(authHandler);
+            var retryHandler = new TransientErrorRetryHandler(Handler);
 
             return retryHandler;
         }
 
-        public HttpClient GetHttpClient(bool chunkedMode, Uri url, INetworkCredentialSource credentialSource)
+        public HttpClient GetHttpClient(bool chunkedMode)
         {
-            var authHandler = BuildHandlerPipeline(chunkedMode, url, credentialSource);
+            var authHandler = BuildHandlerPipeline(chunkedMode);
 
             // As the handler will not be shared, client.Dispose() needs to be 
             // called once the operation is done to release the unmanaged resources 
@@ -175,7 +161,7 @@ namespace Couchbase.Lite.Support
             {
                 var success = client.DefaultRequestHeaders.TryAddWithoutValidation(header.Key, header.Value);
                 if (!success)
-                    Util.Log.W(Tag, "Unabled to add header to request: {0}: {1}".Fmt(header.Key, header.Value));
+                    Log.W(Tag, "Unabled to add header to request: {0}: {1}".Fmt(header.Key, header.Value));
             }
 
             return client;

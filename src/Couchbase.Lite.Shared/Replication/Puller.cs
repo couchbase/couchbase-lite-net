@@ -148,7 +148,6 @@ namespace Couchbase.Lite.Replicator
 
             changeTracker = new ChangeTracker(RemoteUrl, mode, LastSequence, true, this, WorkExecutor);
             changeTracker.Authenticator = Authenticator;
-            changeTracker.CredentialSource = CredentialSource;
 
             if (Filter != null)
             {
@@ -294,9 +293,18 @@ namespace Couchbase.Lite.Replicator
             }
         }
 
-        public HttpClient GetHttpClient(bool longPoll, Uri uri, INetworkCredentialSource credSource)
+        public HttpClient GetHttpClient(bool longPoll)
         {
-            return clientFactory.GetHttpClient(longPoll, uri, credSource);
+            var client = clientFactory.GetHttpClient(longPoll);
+            var challengeResponseAuth = Authenticator as IChallengeResponseAuthenticator;
+            if (challengeResponseAuth != null) {
+                var authHandler = clientFactory.Handler as DefaultAuthHandler;
+                if (authHandler != null) {
+                    authHandler.Authenticator = challengeResponseAuth;
+                }
+            }
+
+            return client;
         }
             
         /// <summary>Process a bunch of remote revisions from the _changes feed at once</summary>
@@ -528,7 +536,6 @@ namespace Couchbase.Lite.Replicator
             }
 
             dl.Authenticator = Authenticator;
-            dl.CredentialSource = CredentialSource;
             WorkExecutor.StartNew(dl.Run, CancellationTokenSource.Token, TaskCreationOptions.LongRunning, WorkExecutor.Scheduler);
 //            dl.Run();
         }

@@ -55,6 +55,7 @@ using Couchbase.Lite.Internal;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
 using Sharpen;
+using Couchbase.Lite.Replicator;
 
 #if !NET_3_5
 using StringEx = System.String;
@@ -129,7 +130,7 @@ namespace Couchbase.Lite
     /// A Couchbase Lite pull or push <see cref="Couchbase.Lite.Replication"/>
     /// between a local and a remote <see cref="Couchbase.Lite.Database"/>.
     /// </summary>
-    public abstract partial class Replication
+    public abstract class Replication
     {
 
     #region Constants
@@ -1030,8 +1031,16 @@ namespace Couchbase.Lite
             var mapper = Manager.GetObjectMapper();
             message.Headers.Add("Accept", new[] { "multipart/related", "application/json" });
 
+            var client = clientFactory.GetHttpClient(false);
+            var challengeResponseAuth = Authenticator as IChallengeResponseAuthenticator;
+            if (challengeResponseAuth != null) {
+                var authHandler = clientFactory.Handler as DefaultAuthHandler;
+                if (authHandler != null) {
+                    authHandler.Authenticator = challengeResponseAuth;
+                }
 
-            var client = clientFactory.GetHttpClient(false, url, CredentialSource);
+                challengeResponseAuth.PrepareWithRequest(message);
+            }
 
             var authHeader = AuthUtils.GetAuthenticationHeaderValue(Authenticator, message.RequestUri);
             if (authHeader != null)
@@ -1161,7 +1170,16 @@ namespace Couchbase.Lite
                 message.Headers.Add("Accept", "*/*");
                 AddRequestHeaders(message);
 
-                var client = clientFactory.GetHttpClient(false, url, CredentialSource);
+                var client = clientFactory.GetHttpClient(false);
+                var challengeResponseAuth = Authenticator as IChallengeResponseAuthenticator;
+                if (challengeResponseAuth != null) {
+                    var authHandler = clientFactory.Handler as DefaultAuthHandler;
+                    if (authHandler != null) {
+                        authHandler.Authenticator = challengeResponseAuth;
+                    }
+
+                    challengeResponseAuth.PrepareWithRequest(message);
+                }
 
                 var authHeader = AuthUtils.GetAuthenticationHeaderValue(Authenticator, message.RequestUri);
                 if (authHeader != null)
@@ -1308,7 +1326,7 @@ namespace Couchbase.Lite
             message.Content = multiPartEntity;
             message.Headers.Add("Accept", "*/*");
 
-            var client = clientFactory.GetHttpClient(false, null, CredentialSource);
+            var client = clientFactory.GetHttpClient(false);
 
             var authHeader = AuthUtils.GetAuthenticationHeaderValue(Authenticator, message.RequestUri);
             if (authHeader != null)
@@ -1876,8 +1894,6 @@ namespace Couchbase.Lite
         /// </summary>
         /// <value>The authenticator.</value>
         public IAuthenticator Authenticator { get; set; }
-
-        public INetworkCredentialSource CredentialSource { get; set; }
 
         /// <summary>
         /// Gets the active task info for thie replication

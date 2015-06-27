@@ -513,11 +513,11 @@ namespace Couchbase.Lite
             Assert.IsNotNull(attachDoc.CurrentRevision.Attachments, "Failed to retrieve attachments on attachment doc");
 
             // Now with auth
-
+            // Digest
             listener.SetPasswords(new Dictionary<string, string> { { "jim", "borden" } });
             dbCopy = EnsureEmptyDatabase("replicate_end");
             push = database.CreatePushReplication(new Uri("http://localhost:59840/replicate_end"));
-            push.CredentialSource = new DigestCredentialSource("jim", "borden");
+            push.Authenticator = new DigestAuthenticator("jim", "borden");
             RunReplication(push);
 
             Assert.IsNull(push.LastError);
@@ -532,7 +532,7 @@ namespace Couchbase.Lite
             database = EnsureEmptyDatabase(name);
 
             pull = database.CreatePullReplication(new Uri("http://localhost:59840/replicate_end"));
-            pull.CredentialSource = push.CredentialSource;
+            pull.Authenticator = push.Authenticator;
             RunReplication(pull);
             Assert.IsNull(pull.LastError);
             Assert.AreEqual(21, database.DocumentCount);
@@ -541,6 +541,7 @@ namespace Couchbase.Lite
             Assert.IsNotNull(attachDoc, "Failed to retrieve doc with attachment");
             Assert.IsNotNull(attachDoc.CurrentRevision.Attachments, "Failed to retrieve attachments on attachment doc");
 
+            // and now Basic
             listener.Stop();
             listener = new CouchbaseLiteTcpListener(manager, 59840, CouchbaseLiteTcpOptions.AllowBasicAuth);
             listener.SetPasswords(new Dictionary<string, string> { { "jim", "borden" } });
@@ -548,7 +549,7 @@ namespace Couchbase.Lite
 
             dbCopy = EnsureEmptyDatabase("replicate_end");
             push = database.CreatePushReplication(new Uri("http://localhost:59840/replicate_end"));
-            push.CredentialSource = new DigestCredentialSource("jim", "borden");
+            push.Authenticator = new BasicAuthenticator("jim", "borden");
             RunReplication(push);
 
             Assert.IsNull(push.LastError);
@@ -563,7 +564,7 @@ namespace Couchbase.Lite
             database = EnsureEmptyDatabase(name);
 
             pull = database.CreatePullReplication(new Uri("http://localhost:59840/replicate_end"));
-            pull.CredentialSource = push.CredentialSource;
+            pull.Authenticator = push.Authenticator;
             RunReplication(pull);
             Assert.IsNull(pull.LastError);
             Assert.AreEqual(21, database.DocumentCount);

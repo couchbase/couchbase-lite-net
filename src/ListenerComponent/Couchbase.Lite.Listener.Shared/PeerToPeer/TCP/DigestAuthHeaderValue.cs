@@ -24,6 +24,7 @@ using System.Collections.Generic;
 using Sharpen;
 using System.Text;
 using System.Net;
+using Couchbase.Lite.Auth;
 
 namespace Couchbase.Lite.Listener.Tcp
 {
@@ -47,18 +48,8 @@ namespace Couchbase.Lite.Listener.Tcp
         public DigestAuthHeaderValue(HttpListenerContext context)
         {
             var headerValue = context.Request.Headers["Authorization"];
+            _components = DigestCalculator.ParseIntoComponents(headerValue);
             _components["method"] = context.Request.HttpMethod;
-            var authHeaderValue = AuthenticationHeaderValue.Parse(headerValue);
-            if (authHeaderValue.Scheme != "Digest") {
-                throw new InvalidOperationException(String.Format("Invalid digest type {0}", authHeaderValue.Scheme));
-            }
-
-            var authData = authHeaderValue.Parameter;
-            var rawComponents = authData.Split(',');
-            foreach (var rawComponent in rawComponents) {
-                var firstEqual = rawComponent.IndexOf('=');
-                _components[rawComponent.Substring(0, firstEqual).Trim()] = rawComponent.Substring(firstEqual + 1).Trim('"');
-            }
         }
 
         internal bool ValidateAgainst(CouchbaseLiteServiceListener listener)
@@ -73,25 +64,7 @@ namespace Couchbase.Lite.Listener.Tcp
                 return;
             }
 
-            MessageDigest ha1md5 = MessageDigest.GetInstance("md5");
-            MessageDigest ha2md5 = MessageDigest.GetInstance("md5");
-            MessageDigest responsemd5 = MessageDigest.GetInstance("md5");
-
-            var ha1Str = String.Format("{0}:{1}:", _components.Get("username"), _components.Get("realm"));
-            ha1md5.Update(Encoding.UTF8.GetBytes(ha1Str));
-            if (!listener.HashPasswordToDigest(_components.Get("username"), ha1md5)) {
-                return;
-            }
-
-            var ha1 = BitConverter.ToString(ha1md5.Digest()).Replace("-", "").ToLowerInvariant();
-            var ha2Str = String.Format("{0}:{1}", _components.Get("method"), _components.Get("uri"));
-            ha2md5.Update(Encoding.UTF8.GetBytes(ha2Str));
-            var ha2 = BitConverter.ToString(ha2md5.Digest()).Replace("-", "").ToLowerInvariant();
-
-            var responseStr = String.Format("{0}:{1}:{2}:{3}:{4}:{5}", ha1, _components.Get("nonce"), _components.Get("nc"), 
-                _components.Get("cnonce"), _components.Get("qop"), ha2);
-            responsemd5.Update(Encoding.UTF8.GetBytes(responseStr));
-            _calculatedResponse = BitConverter.ToString(responsemd5.Digest()).Replace("-", "").ToLowerInvariant();
+            _calculatedResponse = DigestCalculator.Calculate(_components, listener.HashPasswordToDigest);
         }
     }
 }

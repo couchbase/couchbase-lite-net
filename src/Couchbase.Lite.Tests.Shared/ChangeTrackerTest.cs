@@ -142,9 +142,9 @@ namespace Couchbase.Lite
 
             #region IHttpClientFactory implementation
 
-            public HttpClient GetHttpClient(bool longPoll, Uri requestUri, INetworkCredentialSource credSource)
+            public HttpClient GetHttpClient(bool longPoll)
             {
-                return HttpClientFactory.GetHttpClient(longPoll, requestUri, credSource);
+                return HttpClientFactory.GetHttpClient(longPoll);
             }
 
             public IDictionary<string, string> Headers
