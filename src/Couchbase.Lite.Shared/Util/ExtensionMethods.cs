@@ -102,6 +102,40 @@ namespace Couchbase.Lite
             }
         }
 
+        public static bool TryCast<T>(object obj, out T castVal)
+        {
+            //If the types already match then things are easy
+            if (obj is T) {
+                castVal = (T)obj;
+                return true;
+            }
+
+            try {
+                //Take the slow route for things like boxed value types
+                castVal = (T)Convert.ChangeType(obj, typeof(T));
+            } catch(Exception) {
+                castVal = default(T);
+                return false;
+            }
+
+            return true;
+        }
+
+        public static T CastOrDefault<T>(object obj, T defaultVal)
+        {
+            T retVal;
+            if (obj != null && TryCast<T>(obj, out retVal)) {
+                return retVal;
+            }
+
+            return defaultVal;
+        }
+
+        public static T CastOrDefault<T>(object obj)
+        {
+            return CastOrDefault<T>(obj, default(T));
+        }
+
         public static T GetCast<T>(this IDictionary<string, object> collection, string key)
         {
             return collection.GetCast(key, default(T));

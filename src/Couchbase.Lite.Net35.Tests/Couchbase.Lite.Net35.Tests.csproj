@@ -103,18 +103,6 @@
     <Error Condition="!Exists('$(SolutionDir)\.nuget\NuGet.targets')" Text="$([System.String]::Format('$(ErrorText)', '$(SolutionDir)\.nuget\NuGet.targets'))" />
   </Target>
   <ItemGroup>
-    <ProjectReference Include="..\Couchbase.Lite.Net35\Couchbase.Lite.Net35.csproj">
-      <Project>{81999CC3-2DB5-42DA-976F-20EF8AE047E1}</Project>
-      <Name>Couchbase.Lite.Net35</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\Couchbase.Lite.Net35\vendor\Rackspace\System.Net.Http\System.Net.Http-net_4_5.csproj">
-      <Project>{9862694D-E4FA-418B-8692-A0280FEDDF36}</Project>
-      <Name>System.Net.Http-net_4_5</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\Couchbase.Lite.Net35\vendor\Rackspace\Rackspace.Threading\System.Threading.Tasks.Net35\System.Threading.Tasks.Net35.csproj">
-      <Project>{DCB5D745-525C-46A1-BFC0-E12F87AB6165}</Project>
-      <Name>System.Threading.Tasks.Net35</Name>
-    </ProjectReference>
     <ProjectReference Include="..\ListenerComponent\Couchbase.Lite.Listener.Net35\Couchbase.Lite.Listener.Net35.csproj">
       <Project>{146576DE-EF8A-43EE-AD43-EAF81A2479A4}</Project>
       <Name>Couchbase.Lite.Listener.Net35</Name>
@@ -122,6 +110,22 @@
     <ProjectReference Include="..\ListenerComponent\Bonjour\Couchbase.Lite.Listener.Bonjour.Net35\Couchbase.Lite.Listener.Bonjour.Net35.csproj">
       <Project>{ED22FDF0-B378-4950-9E59-681726AC02F6}</Project>
       <Name>Couchbase.Lite.Listener.Bonjour.Net35</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Couchbase.Lite.Net35\Couchbase.Lite.Net35.csproj">
+      <Project>{81999CC3-2DB5-42DA-976F-20EF8AE047E1}</Project>
+      <Name>Couchbase.Lite.Net35</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Couchbase.Lite.Net35\vendor\Rackspace\Rackspace.Threading\Rackspace.Threading\Rackspace.Threading.net35-client.csproj">
+      <Project>{52CA4A3B-F296-4489-B5F0-AD375D039B35}</Project>
+      <Name>Rackspace.Threading.net35-client</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Couchbase.Lite.Net35\vendor\Rackspace\Rackspace.Threading\System.Threading.Tasks.Net35\System.Threading.Tasks.Net35.csproj">
+      <Project>{DCB5D745-525C-46A1-BFC0-E12F87AB6165}</Project>
+      <Name>System.Threading.Tasks.Net35</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Couchbase.Lite.Net35\vendor\Rackspace\System.Net.Http\System.Net.Http-net_4_5.csproj">
+      <Project>{9862694D-E4FA-418B-8692-A0280FEDDF36}</Project>
+      <Name>System.Net.Http-net_4_5</Name>
     </ProjectReference>
   </ItemGroup>
 </Project>

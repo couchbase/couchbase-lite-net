@@ -72,7 +72,7 @@
   <Import Project="$(MSBuildExtensionsPath)\Novell\Novell.MonoDroid.CSharp.targets" />
   <ItemGroup>
     <ProjectReference Include="..\Couchbase.Lite.Android\Couchbase.Lite.Android.csproj">
-      <Project>{5615E423-D0FD-4F99-A99C-061679615CEE}</Project>
+      <Project>{5615e423-d0fd-4f99-a99c-061679615cee}</Project>
       <Name>Couchbase.Lite.Android</Name>
     </ProjectReference>
     <ProjectReference Include="..\ListenerComponent\Couchbase.Lite.Listener.Android\Couchbase.Lite.Listener.Android.csproj">

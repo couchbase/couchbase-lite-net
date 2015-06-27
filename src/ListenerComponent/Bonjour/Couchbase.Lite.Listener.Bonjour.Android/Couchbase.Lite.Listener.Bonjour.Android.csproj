@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
@@ -14,7 +14,7 @@
     <AndroidUseLatestPlatformSdk>True</AndroidUseLatestPlatformSdk>
     <AssemblyName>Couchbase.Lite.Listener.Bonjour</AssemblyName>
     <ReleaseVersion>1.1</ReleaseVersion>
-    <TargetFrameworkVersion>v5.0</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.4</TargetFrameworkVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -53,16 +53,16 @@
   <ItemGroup>
     <AndroidResource Include="Resources\values\Strings.xml" />
   </ItemGroup>
-  <Import Project="..\Couchbase.Lite.Listener.Bonjour.Shared\Couchbase.Lite.Listener.Bonjour.Shared.projitems" Label="Shared" Condition="Exists('..\Couchbase.Lite.Listener.Bonjour.Shared\Couchbase.Lite.Listener.Bonjour.Shared.projitems')" />
-  <Import Project="$(MSBuildExtensionsPath)\Novell\Novell.MonoDroid.CSharp.targets" />
   <ItemGroup>
-    <ProjectReference Include="..\..\Couchbase.Lite.Listener.Android\Couchbase.Lite.Listener.Android.csproj">
-      <Project>{6B64CBD5-8D13-4E88-861D-DBBB87254BBC}</Project>
-      <Name>Couchbase.Lite.Listener.Android</Name>
-    </ProjectReference>
     <ProjectReference Include="..\..\..\Couchbase.Lite.Android\Couchbase.Lite.Android.csproj">
-      <Project>{5615E423-D0FD-4F99-A99C-061679615CEE}</Project>
+      <Project>{5615e423-d0fd-4f99-a99c-061679615cee}</Project>
       <Name>Couchbase.Lite.Android</Name>
     </ProjectReference>
+    <ProjectReference Include="..\..\Couchbase.Lite.Listener.Android\Couchbase.Lite.Listener.Android.csproj">
+      <Project>{6b64cbd5-8d13-4e88-861d-dbbb87254bbc}</Project>
+      <Name>Couchbase.Lite.Listener.Android</Name>
+    </ProjectReference>
   </ItemGroup>
+  <Import Project="..\Couchbase.Lite.Listener.Bonjour.Shared\Couchbase.Lite.Listener.Bonjour.Shared.projitems" Label="Shared" Condition="Exists('..\Couchbase.Lite.Listener.Bonjour.Shared\Couchbase.Lite.Listener.Bonjour.Shared.projitems')" />
+  <Import Project="$(MSBuildExtensionsPath)\Novell\Novell.MonoDroid.CSharp.targets" />
 </Project>
