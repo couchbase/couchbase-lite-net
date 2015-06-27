@@ -45,12 +45,6 @@
   <Import Project="..\Couchbase.Lite.Listener.Shared\Couchbase.Lite.Listener.Shared.projitems" Label="Shared" Condition="Exists('..\Couchbase.Lite.Listener.Shared\Couchbase.Lite.Listener.Shared.projitems')" />
   <Import Project="$(MSBuildExtensionsPath)\Xamarin\iOS\Xamarin.iOS.CSharp.targets" />
   <ItemGroup>
-    <ProjectReference Include="..\..\Couchbase.Lite.iOS\Couchbase.Lite.iOS.csproj">
-      <Project>{443E1BEE-43B3-45A1-ACEA-F7BA71BDAAB1}</Project>
-      <Name>Couchbase.Lite.iOS</Name>
-    </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
     <None Include="packages.config" />
   </ItemGroup>
 </Project>

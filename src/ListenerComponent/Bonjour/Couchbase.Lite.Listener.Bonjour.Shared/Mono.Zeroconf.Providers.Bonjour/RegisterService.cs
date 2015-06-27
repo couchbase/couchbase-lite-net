@@ -65,6 +65,32 @@ namespace Mono.Zeroconf.Providers.Bonjour
         private GCHandle _self;
     
         public event RegisterServiceEventHandler Response;
+
+        #if __ANDROID__
+        /// <summary>
+        /// This is needed to start the /system/bin/mdnsd service on Android
+        /// (can't find another way to start it)
+        /// </summary>
+        static RegisterService() {
+            global::Android.App.Application.Context.GetSystemService("servicediscovery");
+        }
+        #elif __UNITY_ANDROID__
+        static RegisterService() {
+            UnityEngine.AndroidJavaClass c = new UnityEngine.AndroidJavaClass("com.unity3d.player.UnityPlayer");
+            var context = c.GetStatic<UnityEngine.AndroidJavaObject>("currentActivity");
+            if (context == null) {
+                c.Dispose();
+                throw new Exception("Failed to get context");
+            }
+
+            var arg = new UnityEngine.AndroidJavaObject("java.lang.String", "servicediscovery");
+            context.Call<UnityEngine.AndroidJavaObject>("getSystemService", arg);
+
+            context.Dispose();
+            arg.Dispose();
+            c.Dispose();
+        }
+        #endif
     
         public RegisterService()
         {

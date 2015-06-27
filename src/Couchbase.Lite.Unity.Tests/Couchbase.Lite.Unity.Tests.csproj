@@ -75,17 +75,5 @@
       <Project>{DBD30658-44C1-4903-8763-8E23FB4ADD9E}</Project>
       <Name>Couchbase.Lite.Listener.Unity</Name>
     </ProjectReference>
-    <ProjectReference Include="..\Couchbase.Lite.Net35\vendor\Rackspace\System.Net.Http\System.Net.Http-net_4_5.csproj">
-      <Project>{9862694D-E4FA-418B-8692-A0280FEDDF36}</Project>
-      <Name>System.Net.Http-net_4_5</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\Couchbase.Lite.Net35\vendor\Rackspace\Rackspace.Threading\System.Threading.Tasks.Net35\System.Threading.Tasks.Net35.csproj">
-      <Project>{DCB5D745-525C-46A1-BFC0-E12F87AB6165}</Project>
-      <Name>System.Threading.Tasks.Net35</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\Couchbase.Lite.Unity\Couchbase.Lite.Unity.csproj">
-      <Project>{5831782E-A661-4BD0-8D3B-813B963E7B82}</Project>
-      <Name>Couchbase.Lite.Unity</Name>
-    </ProjectReference>
   </ItemGroup>
 </Project>

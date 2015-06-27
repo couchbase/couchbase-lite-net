@@ -60,10 +60,4 @@
   </ItemGroup>
   <Import Project="..\Couchbase.Lite.Listener.Shared\Couchbase.Lite.Listener.Shared.projitems" Label="Shared" Condition="Exists('..\Couchbase.Lite.Listener.Shared\Couchbase.Lite.Listener.Shared.projitems')" />
   <Import Project="$(MSBuildExtensionsPath)\Novell\Novell.MonoDroid.CSharp.targets" />
-  <ItemGroup>
-    <ProjectReference Include="..\..\Couchbase.Lite.Android\Couchbase.Lite.Android.csproj">
-      <Project>{5615E423-D0FD-4F99-A99C-061679615CEE}</Project>
-      <Name>Couchbase.Lite.Android</Name>
-    </ProjectReference>
-  </ItemGroup>
 </Project>

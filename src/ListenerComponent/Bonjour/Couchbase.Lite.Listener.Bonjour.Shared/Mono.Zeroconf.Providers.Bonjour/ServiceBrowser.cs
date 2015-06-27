@@ -89,6 +89,32 @@ namespace Mono.Zeroconf.Providers.Bonjour
         
         public event ServiceBrowseEventHandler ServiceAdded;
         public event ServiceBrowseEventHandler ServiceRemoved;
+
+        #if __ANDROID__
+        /// <summary>
+        /// This is needed to start the /system/bin/mdnsd service on Android
+        /// (can't find another way to start it)
+        /// </summary>
+        static ServiceBrowser() {
+            global::Android.App.Application.Context.GetSystemService("servicediscovery");
+        }
+        #elif __UNITY_ANDROID__
+        static ServiceBrowser() {
+            UnityEngine.AndroidJavaClass c = new UnityEngine.AndroidJavaClass("com.unity3d.player.UnityPlayer");
+            var context = c.GetStatic<UnityEngine.AndroidJavaObject>("currentActivity");
+            if (context == null) {
+                c.Dispose();
+                throw new Exception("Failed to get context");
+            }
+
+            var arg = new UnityEngine.AndroidJavaObject("java.lang.String", "servicediscovery");
+            context.Call<UnityEngine.AndroidJavaObject>("getSystemService", arg);
+
+            context.Dispose();
+            arg.Dispose();
+            c.Dispose();
+        }
+        #endif
         
         public ServiceBrowser()
         {
