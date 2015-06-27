@@ -3,10 +3,10 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{C3DC01BC-931E-4EF8-B3B8-B74E25225575}</ProjectGuid>
+    <ProjectGuid>{5C23B1D6-96B2-45F6-8C06-B49FAFFC97B1}</ProjectGuid>
     <OutputType>Library</OutputType>
-    <RootNamespace>Couchbase.Lite.Listener.UnityLinux</RootNamespace>
-    <AssemblyName>Couchbase.Lite.Listener</AssemblyName>
+    <RootNamespace>Couchbase.Lite.Listener.Bonjour.Unity</RootNamespace>
+    <AssemblyName>Couchbase.Lite.Listener.Bonjour</AssemblyName>
     <ReleaseVersion>1.1</ReleaseVersion>
     <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
   </PropertyGroup>
@@ -15,7 +15,7 @@
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
     <OutputPath>bin\Debug</OutputPath>
-    <DefineConstants>DEBUG;__UNITY_ANDROID__;NET_3_5;</DefineConstants>
+    <DefineConstants>DEBUG;NET_3_5;__UNITY__;</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <ConsolePause>false</ConsolePause>
@@ -28,35 +28,29 @@
     <WarningLevel>4</WarningLevel>
     <ConsolePause>false</ConsolePause>
     <DebugSymbols>true</DebugSymbols>
-    <DefineConstants>__UNITY_ANDROID__;NET_3_5;</DefineConstants>
+    <DefineConstants>NET_3_5;__UNITY__;</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
-    <Reference Include="UnityEngine">
-      <HintPath>..\..\Couchbase.Lite.Unity\vendor\Unity\UnityEngine.dll</HintPath>
-    </Reference>
-    <Reference Include="Jint">
-      <HintPath>..\..\Couchbase.Lite.Shared\vendor\Jint\Jint.dll</HintPath>
-    </Reference>
   </ItemGroup>
-  <Import Project="..\Couchbase.Lite.Listener.Shared\Couchbase.Lite.Listener.Shared.projitems" Label="Shared" Condition="Exists('..\Couchbase.Lite.Listener.Shared\Couchbase.Lite.Listener.Shared.projitems')" />
+  <Import Project="..\Couchbase.Lite.Listener.Bonjour.Shared\Couchbase.Lite.Listener.Bonjour.Shared.projitems" Label="Shared" Condition="Exists('..\Couchbase.Lite.Listener.Bonjour.Shared\Couchbase.Lite.Listener.Bonjour.Shared.projitems')" />
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>
-    <ProjectReference Include="..\..\Couchbase.Lite.Net35\vendor\Rackspace\Rackspace.Threading\Rackspace.Threading\Rackspace.Threading.net35-client.csproj">
+    <ProjectReference Include="..\..\..\Couchbase.Lite.Unity\Couchbase.Lite.Unity.csproj">
+      <Project>{5831782E-A661-4BD0-8D3B-813B963E7B82}</Project>
+      <Name>Couchbase.Lite.Unity</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\Couchbase.Lite.Listener.Unity\Couchbase.Lite.Listener.Unity.csproj">
+      <Project>{DBD30658-44C1-4903-8763-8E23FB4ADD9E}</Project>
+      <Name>Couchbase.Lite.Listener.Unity</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\..\Couchbase.Lite.Net35\vendor\Rackspace\Rackspace.Threading\Rackspace.Threading\Rackspace.Threading.net35-client.csproj">
       <Project>{52CA4A3B-F296-4489-B5F0-AD375D039B35}</Project>
       <Name>Rackspace.Threading.net35-client</Name>
     </ProjectReference>
-    <ProjectReference Include="..\..\Couchbase.Lite.Net35\vendor\Rackspace\System.Net.Http\System.Net.Http-net_4_5.csproj">
-      <Project>{9862694D-E4FA-418B-8692-A0280FEDDF36}</Project>
-      <Name>System.Net.Http-net_4_5</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\..\Couchbase.Lite.Net35\vendor\Rackspace\Rackspace.Threading\System.Threading.Tasks.Net35\System.Threading.Tasks.Net35.csproj">
+    <ProjectReference Include="..\..\..\Couchbase.Lite.Net35\vendor\Rackspace\Rackspace.Threading\System.Threading.Tasks.Net35\System.Threading.Tasks.Net35.csproj">
       <Project>{DCB5D745-525C-46A1-BFC0-E12F87AB6165}</Project>
       <Name>System.Threading.Tasks.Net35</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\..\Couchbase.Lite.Unity\Couchbase.Lite.Unity.csproj">
-      <Project>{5831782E-A661-4BD0-8D3B-813B963E7B82}</Project>
-      <Name>Couchbase.Lite.Unity</Name>
     </ProjectReference>
   </ItemGroup>
 </Project>
