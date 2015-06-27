@@ -98,6 +98,12 @@
   <Import Project="..\Couchbase.Lite.Tests.Shared\Couchbase.Lite.Tests.Shared.projitems" Label="Shared" Condition="Exists('..\Couchbase.Lite.Tests.Shared\Couchbase.Lite.Tests.Shared.projitems')" />
   <Import Project="$(MSBuildExtensionsPath)\Xamarin\iOS\Xamarin.iOS.CSharp.targets" />
   <ItemGroup>
+    <ProjectReference Include="..\Couchbase.Lite.iOS\Couchbase.Lite.iOS.csproj">
+      <Project>{443e1bee-43b3-45a1-acea-f7ba71bdaab1}</Project>
+      <Name>Couchbase.Lite.iOS</Name>
+      <IsAppExtension>false</IsAppExtension>
+      <IsWatchApp>false</IsWatchApp>
+    </ProjectReference>
     <ProjectReference Include="..\ListenerComponent\Couchbase.Lite.Listener.iOS\Couchbase.Lite.Listener.iOS.csproj">
       <Project>{1F2AD9A3-58D5-46A2-8AA5-5863B705921D}</Project>
       <Name>Couchbase.Lite.Listener.iOS</Name>

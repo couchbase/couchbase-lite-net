@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
@@ -44,9 +44,6 @@
   <Import Project="..\Couchbase.Lite.Tests.Shared\Couchbase.Lite.Tests.Shared.projitems" Label="Shared" Condition="Exists('..\Couchbase.Lite.Tests.Shared\Couchbase.Lite.Tests.Shared.projitems')" />
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>
-    <Folder Include="Assets\" />
-  </ItemGroup>
-  <ItemGroup>
     <EmbeddedResource Include="..\Couchbase.Lite.Tests.Shared\Assets\android104.zip">
       <Link>Assets\android104.zip</Link>
     </EmbeddedResource>
@@ -71,9 +68,32 @@
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\Couchbase.Lite.Net35\vendor\Rackspace\Rackspace.Threading\Rackspace.Threading\Rackspace.Threading.net35-client.csproj">
+      <Project>{52ca4a3b-f296-4489-b5f0-ad375d039b35}</Project>
+      <Name>Rackspace.Threading.net35-client</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Couchbase.Lite.Net35\vendor\Rackspace\Rackspace.Threading\System.Threading.Tasks.Net35\System.Threading.Tasks.Net35.csproj">
+      <Project>{dcb5d745-525c-46a1-bfc0-e12f87ab6165}</Project>
+      <Name>System.Threading.Tasks.Net35</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Couchbase.Lite.Net35\vendor\Rackspace\System.Net.Http\System.Net.Http-net_4_5.csproj">
+      <Project>{9862694d-e4fa-418b-8692-a0280feddf36}</Project>
+      <Name>System.Net.Http-net_4_5</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Couchbase.Lite.Unity\Couchbase.Lite.Unity.csproj">
+      <Project>{5831782e-a661-4bd0-8d3b-813b963e7b82}</Project>
+      <Name>Couchbase.Lite.Unity</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\ListenerComponent\Bonjour\Couchbase.Lite.Listener.Bonjour.Unity\Couchbase.Lite.Listener.Bonjour.Unity.csproj">
+      <Project>{5c23b1d6-96b2-45f6-8c06-b49faffc97b1}</Project>
+      <Name>Couchbase.Lite.Listener.Bonjour.Unity</Name>
+    </ProjectReference>
     <ProjectReference Include="..\ListenerComponent\Couchbase.Lite.Listener.Unity\Couchbase.Lite.Listener.Unity.csproj">
       <Project>{DBD30658-44C1-4903-8763-8E23FB4ADD9E}</Project>
       <Name>Couchbase.Lite.Listener.Unity</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Service Include="{82A7F48D-3B50-4B1E-B82E-3ADA8210C358}" />
   </ItemGroup>
 </Project>
