@@ -1,5 +1,5 @@
 [![Stories in Ready](https://badge.waffle.io/couchbase/couchbase-lite-net.png?label=ready&title=In%20Progress)](https://waffle.io/couchbase/couchbase-lite-net)
-couchbase-lite-net
+Couchbase Lite for .NET
 ==================
 
 Couchbase Lite is a lightweight embedded NoSQL database that has built-in sync to larger backend structures, such as Couchbase Server.
