@@ -238,4 +238,9 @@
     <Folder Include="$(MSBuildThisFileDirectory)View\" />
     <Folder Include="$(MSBuildThisFileDirectory)Database\" />
   </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="$(MSBuildThisFileDirectory)Properties\version">
+      <LogicalName>version</LogicalName>
+    </EmbeddedResource>
+  </ItemGroup>
 </Project>

@@ -161,14 +161,14 @@ namespace Couchbase.Lite
             }
 
             #if !OFFICIAL
-            /*string gitVersion= String.Empty;
-            using (Stream stream = Assembly.GetExecutingAssembly()
+            string gitVersion= String.Empty;
+            using (Stream stream = System.Reflection.Assembly.GetExecutingAssembly()
                 .GetManifestResourceStream("version"))
             using (StreamReader reader = new StreamReader(stream))
             {
                 gitVersion= reader.ReadToEnd();
-            }*/
-            VersionString = String.Format("Unofficial"/*, gitVersion.TrimEnd()*/);
+            }
+            VersionString = String.Format("Unofficial ({0})", gitVersion.TrimEnd());
             #elif __UNITY__
             VersionString = "1.0";
             #else
