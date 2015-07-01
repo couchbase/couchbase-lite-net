@@ -67,6 +67,8 @@ namespace Couchbase.Lite.Replicator
     {
         internal const int MAX_ATTS_SINCE = 50;
 
+        internal const int CHANGE_TRACKER_RESTART_DELAY_MS = 10000;
+
         private const string Tag = "Puller";
 
         internal bool canBulkGet;
@@ -137,11 +139,16 @@ namespace Couchbase.Lite.Replicator
                 }
             }
 
+            StartChangeTracker();
+        }
+
+        private void StartChangeTracker()
+        {
             Log.D(Tag, "starting ChangeTracker with since = " + LastSequence);
 
             var mode = Continuous 
-                       ? ChangeTrackerMode.LongPoll 
-                       : ChangeTrackerMode.OneShot;
+                ? ChangeTrackerMode.LongPoll 
+                : ChangeTrackerMode.OneShot;
 
             changeTracker = new ChangeTracker(RemoteUrl, mode, LastSequence, true, this, WorkExecutor);
             changeTracker.Authenticator = Authenticator;
@@ -149,15 +156,12 @@ namespace Couchbase.Lite.Replicator
             if (Filter != null) {
                 changeTracker.SetFilterName(Filter);
                 if (FilterParams != null) {
-                    changeTracker.SetFilterParams(FilterParams.ToDictionary(kvp => kvp.Key, kvp => (Object)kvp.Value));
+                    changeTracker.SetFilterParams(FilterParams.ToDictionary(kvp => kvp.Key, kvp => kvp.Value));
                 }
             }
 
             changeTracker.UsePost = CheckServerCompatVersion("0.93");
             changeTracker.Start();
-            if (!continuous) {
-                AsyncTaskStarted();
-            }
         }
 
         public override void Stop()
@@ -174,10 +178,6 @@ namespace Couchbase.Lite.Replicator
                 // stop it from calling my changeTrackerStopped()
                 changeTrackerCopy.Stop();
                 changeTracker = null;
-                if (!Continuous) {   
-                    // balances AsyncTaskStarted() in beginReplicating()
-                    AsyncTaskFinished(1);
-                }
             }
 
 
@@ -250,23 +250,49 @@ namespace Couchbase.Lite.Replicator
             }
         }
 
+        private void ProcessChangeTrackerStopped(ChangeTracker tracker)
+        {
+            if (Continuous) {
+                if (_stateMachine.State == ReplicationState.Offline) {
+                    // in this case, we don't want to do anything here, since
+                    // we told the change tracker to go offline ..
+                    Log.D(Tag, "Change tracker stopped because we are going offline");
+                } else if (_stateMachine.State == ReplicationState.Stopping || _stateMachine.State == ReplicationState.Stopped) {
+                    Log.D(Tag, "Change tracker stopped because replicator is stopping or stopped.");
+                } else {
+                    // otherwise, try to restart the change tracker, since it should
+                    // always be running in continuous replications
+                    const string msg = "Change tracker stopped during continuous replication";
+                    Log.E(Tag, msg);
+                    LastError = new Exception(msg);
+                    FireTrigger(ReplicationTrigger.WaitingForChanges);
+                    Log.D(Tag, "Scheduling change tracker restart in {0} ms", CHANGE_TRACKER_RESTART_DELAY_MS);
+                    Task.Delay(CHANGE_TRACKER_RESTART_DELAY_MS).ContinueWith(t =>
+                    {
+                        // the replication may have been stopped by the time this scheduled fires
+                        // so we need to check the state here.
+                        if(_stateMachine.IsInState(ReplicationState.Running)) {
+                            Log.D(Tag, "Still runing, restarting change tracker");
+                            StartChangeTracker();
+                        } else {
+                            Log.D(Tag, "No longer running, not restarting change tracker");
+                        }
+                    });
+                }
+            } else {
+                if (LastError == null && tracker.Error != null) {
+                    LastError = tracker.Error;
+                }
+
+                FireTrigger(ReplicationTrigger.StopGraceful);
+            }
+        }
+
         // The change tracker reached EOF or an error.
         public void ChangeTrackerStopped(ChangeTracker tracker)
         {
-            Log.V(Tag, "ChangeTracker " + tracker + " stopped");
-            if (LastError == null && tracker.Error != null) {
-                LastError = tracker.Error;
-            }
+            WorkExecutor.StartNew(() => ProcessChangeTrackerStopped(tracker));
 
-            changeTracker = null;
-            if (Batcher != null) {
-                Log.D(Tag, "calling batcher.flush().  batcher.count() is " + Batcher.Count());
-                Batcher.FlushAll();
-            }
-
-            if (!Continuous) {
-                AsyncTaskFinished(1); // balances AsyncTaskStarted() in BeginReplication()
-            }
         }
 
         public HttpClient GetHttpClient(bool longPoll)
@@ -454,7 +480,6 @@ namespace Couchbase.Lite.Replicator
 
             Log.V(Tag, "POST _bulk_get");
             var remainingRevs = new List<RevisionInternal>(bulkRevs);
-            AsyncTaskStarted();
             ++httpConnectionCount;
             BulkDownloader dl;
             try
@@ -507,7 +532,9 @@ namespace Couchbase.Lite.Replicator
                             }
                         }
                     }
-                        
+
+                    SafeAddToCompletedChangesCount(remainingRevs.Count);
+
                     --httpConnectionCount;
                     PullRemoteRevisions();
                     WorkExecutor.StartNew(() => AsyncTaskFinished(1));
@@ -589,8 +616,6 @@ namespace Couchbase.Lite.Replicator
             }
 
             //TODO: rev.getBody().compact();
-            Log.V(Tag, "QueueDownloadedRevision() calling AsyncTaskStarted()");
-            AsyncTaskStarted();
 
 			if (downloadsToInsert != null) {
 				downloadsToInsert.QueueObject(rev);
@@ -605,7 +630,6 @@ namespace Couchbase.Lite.Replicator
         internal void PullBulkWithAllDocs(IList<RevisionInternal> bulkRevs)
         {
             // http://wiki.apache.org/couchdb/HTTP_Bulk_Document_API
-            AsyncTaskStarted();
             ++httpConnectionCount;
 
             var remainingRevs = new List<RevisionInternal>(bulkRevs);
@@ -652,11 +676,7 @@ namespace Couchbase.Lite.Replicator
                         QueueRemoteRevision (rev);
                     }
                     PullRemoteRevisions ();
-                }
-
-                // Note that we've finished this task:
-                Log.V (Tag, "PullBulkWithAllDocs() calling AsyncTaskFinished()");
-                AsyncTaskFinished (1);
+                } 
 
                 --httpConnectionCount;
 
@@ -716,7 +736,6 @@ namespace Couchbase.Lite.Replicator
         internal void PullRemoteRevision(RevisionInternal rev)
         {
             Log.D(Tag, "PullRemoteRevision with rev: {0}", rev);
-            AsyncTaskStarted();
             httpConnectionCount++;
 
             // Construct a query. We want the revision history, and the bodies of attachments that have
@@ -728,7 +747,6 @@ namespace Couchbase.Lite.Replicator
             if (knownRevs == null)
             {
                 //this means something is wrong, possibly the replicator has shut down
-                AsyncTaskFinished(1);
                 httpConnectionCount--;
                 return;
             }
@@ -744,41 +762,32 @@ namespace Couchbase.Lite.Replicator
             var pathInside = path.ToString();
             SendAsyncMultipartDownloaderRequest(HttpMethod.Get, pathInside, null, LocalDatabase, (result, e) => 
             {
-                try 
-                {
-                    // OK, now we've got the response revision:
-                    Log.D (Tag, "PullRemoteRevision got response for rev: " + rev);
+                // OK, now we've got the response revision:
+                Log.D (Tag, "PullRemoteRevision got response for rev: " + rev);
 
-                    if (e != null)
-                    {
-                        Log.E (Tag, "Error pulling remote revision", e);
-                        LastError = e;
-                        RevisionFailed();
-                        Log.D(Tag, "PullRemoteRevision updating completedChangesCount from " + 
-                            CompletedChangesCount + " -> " + (CompletedChangesCount + 1) 
-                            + " due to error pulling remote revision");
-                        SafeIncrementCompletedChangesCount();
-                    }
-                    else
-                    {
-                        var properties = result.AsDictionary<string, object>();
-                        var gotRev = new PulledRevision(properties);
-                        gotRev.SetSequence(rev.GetSequence());
-                        AsyncTaskStarted ();
-                        Log.D(Tag, "PullRemoteRevision add rev: " + gotRev + " to batcher");
-						
-						if (downloadsToInsert != null) {
-							downloadsToInsert.QueueObject(gotRev);
-						}
-						else {
-							Log.E (Tag, "downloadsToInsert is null");
-						}
-                    }
-                }
-                finally
+                if (e != null)
                 {
-                    Log.D (Tag, "PullRemoteRevision.onCompletion() calling AsyncTaskFinished()");
-                    AsyncTaskFinished (1);
+                    Log.E (Tag, "Error pulling remote revision", e);
+                    LastError = e;
+                    RevisionFailed();
+                    Log.D(Tag, "PullRemoteRevision updating completedChangesCount from " + 
+                        CompletedChangesCount + " -> " + (CompletedChangesCount + 1) 
+                        + " due to error pulling remote revision");
+                    SafeIncrementCompletedChangesCount();
+                }
+                else
+                {
+                    var properties = result.AsDictionary<string, object>();
+                    var gotRev = new PulledRevision(properties);
+                    gotRev.SetSequence(rev.GetSequence());
+                    Log.D(Tag, "PullRemoteRevision add rev: " + gotRev + " to batcher");
+					
+					if (downloadsToInsert != null) {
+						downloadsToInsert.QueueObject(gotRev);
+					}
+					else {
+						Log.E (Tag, "downloadsToInsert is null");
+					}
                 }
 
                 // Note that we've finished this task; then start another one if there
@@ -796,7 +805,6 @@ namespace Couchbase.Lite.Replicator
             downloads.Sort(new RevisionComparer());
 
             if (LocalDatabase == null) {
-                AsyncTaskFinished(downloads.Count);
                 return;
             }
 
@@ -847,9 +855,6 @@ namespace Couchbase.Lite.Replicator
                 Log.V(Tag, "Finished inserting {0} revisions. Success == {1}", downloads.Count, success);
             } catch (Exception e) {
                 Log.E(Tag, "Exception inserting revisions", e);
-            } finally {
-                Log.D(Tag, "InsertDownloads() calling AsyncTaskFinished()");
-                AsyncTaskFinished(downloads.Count);
             }
 
             // Checkpoint:

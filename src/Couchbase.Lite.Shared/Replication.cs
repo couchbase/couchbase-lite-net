@@ -56,6 +56,7 @@ using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
 using Sharpen;
 using Couchbase.Lite.Replicator;
+using Stateless;
 
 #if !NET_3_5
 using StringEx = System.String;
@@ -140,6 +141,12 @@ namespace Couchbase.Lite
         internal const string ReplicatorDatabaseName = "_replicator";
 
     #endregion
+
+        #region Variables
+
+        protected StateMachine<ReplicationState, ReplicationTrigger> _stateMachine;
+
+        #endregion
 
     #region Constructors
 
@@ -233,6 +240,7 @@ namespace Couchbase.Lite
             });
 
             ClientFactory = clientFactory;
+            InitializeStateMachine();
         }
 
     #endregion
@@ -450,7 +458,13 @@ namespace Couchbase.Lite
             ClientFactory = clientFactory;
         }
 
-        void NotifyChangeListeners()
+        private void NotifyChangeListenersStateTransition(StateMachine<ReplicationState, ReplicationTrigger>.Transition transition)
+        {
+            var stateTransition = new ReplicationStateTransition(transition);
+            NotifyChangeListeners(stateTransition);
+        }
+
+        private void NotifyChangeListeners(ReplicationStateTransition transition = null)
         {
             UpdateProgress();
             Log.V(Tag, "NotifyChangeListeners ({0}/{1}, active={2} (batch={3}, net={4}), online={5})",
@@ -463,6 +477,7 @@ namespace Couchbase.Lite
             }
 
             var args = new ReplicationChangeEventArgs(this);
+            args.ReplicationStateTransition = transition;
 
             // Ensure callback runs on captured context, which should be the UI thread.
             LocalDatabase.Manager.CapturedContext.StartNew(()=>evt(this, args));
@@ -601,55 +616,44 @@ namespace Couchbase.Lite
         {
             Debug.Assert(IsRunning);
             Batcher.QueueObject(rev);
-            UpdateActive();
         }
 
         internal void CheckSession()
         {
-            if (Authenticator != null && Authenticator.UsesCookieBasedLogin)
-            {
+            if (Authenticator != null && Authenticator.UsesCookieBasedLogin) {
                 CheckSessionAtPath("/_session");
             }
-            else
-            {
+            else {
                 FetchRemoteCheckpointDoc();
             }
         }
 
         internal void CheckSessionAtPath(string sessionPath)
         {
-            AsyncTaskStarted();
             SendAsyncRequest(HttpMethod.Get, sessionPath, null, (result, e) => {
-                try
+                if (e != null)
                 {
-                    if (e != null)
-                    {
-                        if (e is WebException && ((WebException)e).Status == System.Net.WebExceptionStatus.ProtocolError && ((HttpWebResponse)((WebException)e).Response).StatusCode == System.Net.HttpStatusCode.NotFound
-                            && sessionPath.Equals("/_session", StringComparison.InvariantCultureIgnoreCase)) {
-                            CheckSessionAtPath ("_session");
-                            return;
-                        }
-                        Log.W(Tag, "Session check failed", e);
-                        LastError = e;
+                    if (e is WebException && ((WebException)e).Status == System.Net.WebExceptionStatus.ProtocolError && ((HttpWebResponse)((WebException)e).Response).StatusCode == System.Net.HttpStatusCode.NotFound
+                        && sessionPath.Equals("/_session", StringComparison.InvariantCultureIgnoreCase)) {
+                        CheckSessionAtPath ("_session");
+                        return;
                     }
-                    else
-                    {
-                        var response = result.AsDictionary<string, object>();
-                        var userCtx = response.Get("userCtx").AsDictionary<string, object>();
-                        var username = (string)userCtx.Get ("name");
-
-                        if (!string.IsNullOrEmpty (username)) {
-                            Log.D (Tag, string.Format ("{0} Active session, logged in as {1}", this, username));
-                            FetchRemoteCheckpointDoc ();
-                        } else {
-                            Log.D (Tag, string.Format ("{0} No active session, going to login", this));
-                            Login ();
-                        }
-                    }
+                    Log.W(Tag, "Session check failed", e);
+                    LastError = e;
                 }
-                finally
+                else
                 {
-                    AsyncTaskFinished (1);
+                    var response = result.AsDictionary<string, object>();
+                    var userCtx = response.Get("userCtx").AsDictionary<string, object>();
+                    var username = (string)userCtx.Get ("name");
+
+                    if (!string.IsNullOrEmpty (username)) {
+                        Log.D (Tag, string.Format ("{0} Active session, logged in as {1}", this, username));
+                        FetchRemoteCheckpointDoc ();
+                    } else {
+                        Log.D (Tag, string.Format ("{0} No active session, going to login", this));
+                        Login ();
+                    }
                 }
             });
         }
@@ -671,25 +675,16 @@ namespace Couchbase.Lite
             Log.D(Tag, string.Format("{0}: Doing login with {1} at {2}", this, Authenticator.GetType(), loginPath));
 
             Log.D(Tag, string.Format("{0} | {1} : login() calling asyncTaskStarted()", this, Thread.CurrentThread));
-            AsyncTaskStarted();
             SendAsyncRequest(HttpMethod.Post, loginPath, loginParameters, (result, e) => {
-                try
+                if (e != null)
                 {
-                    if (e != null)
-                    {
-                        Log.D (Tag, string.Format ("{0}: Login failed for path: {1}", this, loginPath));
-                        LastError = e;
-                    }
-                    else
-                    {
-                        Log.D (Tag, string.Format ("{0}: Successfully logged in!", this));
-                        FetchRemoteCheckpointDoc ();
-                    }
+                    Log.D (Tag, string.Format ("{0}: Login failed for path: {1}", this, loginPath));
+                    LastError = e;
                 }
-                finally
+                else
                 {
-                    Log.D(Tag, "login() calling asyncTaskFinished()");
-                    AsyncTaskFinished (1);
+                    Log.D (Tag, string.Format ("{0}: Successfully logged in!", this));
+                    FetchRemoteCheckpointDoc ();
                 }
             });
         }
@@ -700,14 +695,13 @@ namespace Couchbase.Lite
             var checkpointId = RemoteCheckpointDocID();
             var localLastSequence = LocalDatabase.LastSequenceWithCheckpointId(checkpointId);
 
-            AsyncTaskStarted();
-
             SendAsyncRequest(HttpMethod.Get, "/_local/" + checkpointId, null, (response, e) => {
                 try
                 {
                     if (e != null && !Is404 (e)) {
                         Log.D (Tag, " error getting remote checkpoint: " + e);
                         LastError = e;
+                        FireTrigger(ReplicationTrigger.StopGraceful);
                     } else {
                         if (e != null && Is404 (e)) {
                             Log.D (Tag, " 404 error getting remote checkpoint " + RemoteCheckpointDocID () + ", calling maybeCreateRemoteDB");
@@ -741,11 +735,6 @@ namespace Couchbase.Lite
                 {
                     Log.E(Tag, "Error", ex);
                 }
-                finally
-                {
-                    Log.D(Tag, "fetchRemoteCheckpointDoc() calling asyncTaskFinished()");
-                    AsyncTaskFinished (1);
-                }
             });
         }
 
@@ -766,33 +755,6 @@ namespace Couchbase.Lite
         protected internal virtual void MaybeCreateRemoteDB() { }
 
         abstract internal void ProcessInbox(RevisionList inbox);
-
-        internal void AsyncTaskStarted()
-        {   
-            int remainingTasks = Interlocked.Increment(ref asyncTaskCount);
-            if (remainingTasks == 1)
-            {
-                UpdateActive();
-            }
-            Log.D(Tag + ".AsyncTaskStarted", "incremented to " + remainingTasks);
-        }
-
-        internal void AsyncTaskFinished(Int32 numTasks)
-        {
-            var cancel = CancellationTokenSource.IsCancellationRequested;
-            if (cancel)
-                return;
-                
-             
-            int remainingTasks = Interlocked.Add(ref asyncTaskCount, -numTasks);
-            Log.D(Tag + ".AsyncTaskFinished", "AsyncTaskCount: {0} > {1}".Fmt(remainingTasks + numTasks, remainingTasks));
-
-            Debug.Assert(remainingTasks >= 0);
-            if (remainingTasks == 0)
-            {
-                UpdateActive();
-            }
-        }
 
         internal void UpdateActive()
         {
@@ -1461,37 +1423,29 @@ namespace Couchbase.Lite
         {
             Log.D(Tag, "Refreshing remote checkpoint to get its _rev...");
             savingCheckpoint = true;
-            AsyncTaskStarted();
 
             SendAsyncRequest(HttpMethod.Get, "/_local/" + RemoteCheckpointDocID(), null, (result, e) =>
             {
-                try
+                if (LocalDatabase == null)
                 {
-                    if (LocalDatabase == null)
-                    {
-                        Log.W(Tag, "db == null while refreshing remote checkpoint.  aborting");
-                        return;
-                    }
-
-                    savingCheckpoint = false;
-
-                    if (e != null && GetStatusFromError(e) != StatusCode.NotFound)
-                    {
-                        Log.E(Tag, "Error refreshing remote checkpoint", e);
-                    }
-                    else
-                    {
-                        Log.D(Tag, "Refreshed remote checkpoint: " + result);
-                        remoteCheckpoint = (IDictionary<string, object>)result;
-                        lastSequenceChanged = true;
-                        SaveLastSequence(null);
-                    }
-
+                    Log.W(Tag, "db == null while refreshing remote checkpoint.  aborting");
+                    return;
                 }
-                finally
+
+                savingCheckpoint = false;
+
+                if (e != null && GetStatusFromError(e) != StatusCode.NotFound)
                 {
-                    AsyncTaskFinished(1);
+                    Log.E(Tag, "Error refreshing remote checkpoint", e);
                 }
+                else
+                {
+                    Log.D(Tag, "Refreshed remote checkpoint: " + result);
+                    remoteCheckpoint = (IDictionary<string, object>)result;
+                    lastSequenceChanged = true;
+                    SaveLastSequence(null);
+                }
+                        
             }
             );
         }
@@ -1604,6 +1558,21 @@ namespace Couchbase.Lite
             return rev;
         }
 
+        protected void FireTrigger(ReplicationTrigger trigger)
+        {
+            Log.D(Tag, "Preparing to fire {0}", trigger);
+            WorkExecutor.StartNew(() =>
+            {
+                try {
+                    Log.D(Tag, "Firing {0}", trigger);
+                    _stateMachine.Fire(trigger);
+                } catch(Exception e) {
+                    Log.E(Tag, "State machine error", e);
+                    throw;
+                }
+            });
+        }
+
         /// <summary>
         /// Called after a continuous replication has gone idle, but it failed to transfer some revisions
         /// and so wants to try again in a minute.
@@ -1626,7 +1595,7 @@ namespace Couchbase.Lite
                 return;
             }
 
-            if (online) {
+            if (_stateMachine.State == ReplicationState.Idle) {
                 Log.D(Tag, "RETRYING, to transfer missed revisions...");
                 revisionsFailed = 0;
                 CancelPendingRetryIfReady();
@@ -1687,6 +1656,33 @@ namespace Couchbase.Lite
                     return rev;
                 };
             }
+        }
+
+        protected virtual void StartInternal()
+        {
+            Log.V(Tag, "Replication Start");
+            if (!LocalDatabase.Open()) {
+                // Race condition: db closed before replication starts
+                Log.W(Tag, "Not starting replication because db.isOpen() returned false.");
+                FireTrigger(ReplicationTrigger.StopImmediate);
+                return;
+            }
+
+            online = LocalDatabase.Manager.NetworkReachabilityManager.CanReach(RemoteUrl.AbsoluteUri);
+            LocalDatabase.AddReplication(this);
+            LocalDatabase.AddActiveReplication(this);
+
+            SetupRevisionBodyTransformationFunction();
+
+            sessionID = string.Format("repl{0:000}", Interlocked.Increment(ref lastSessionID));
+            Log.V(Tag, "STARTING ...");
+            LastSequence = null;
+
+            CheckSession();
+
+            var reachabilityManager = LocalDatabase.Manager.NetworkReachabilityManager;
+            reachabilityManager.StatusChanged += NetworkStatusChanged;
+            reachabilityManager.StartListening();
         }
 
     #endregion
@@ -1927,36 +1923,7 @@ namespace Couchbase.Lite
         /// </summary>
         public void Start()
         {
-            Log.V(Tag, "Replication Start");
-
-            if (!LocalDatabase.Open())
-            {
-                // Race condition: db closed before replication starts
-                Log.W(Tag, "Not starting replication because db.isOpen() returned false.");
-                return;
-            }
-
-            if (IsRunning)
-            {
-                return;
-            }
-
-            online = LocalDatabase.Manager.NetworkReachabilityManager.CanReach(RemoteUrl.AbsoluteUri);
-            LocalDatabase.AddReplication(this);
-            LocalDatabase.AddActiveReplication(this);
-
-            SetupRevisionBodyTransformationFunction();
-
-            sessionID = string.Format("repl{0:000}", Interlocked.Increment(ref lastSessionID));
-            Log.V(Tag, "STARTING ...");
-            IsRunning = true;
-            LastSequence = null;
-
-            CheckSession();
-
-            var reachabilityManager = LocalDatabase.Manager.NetworkReachabilityManager;
-            reachabilityManager.StatusChanged += NetworkStatusChanged;
-            reachabilityManager.StartListening();
+            FireTrigger(ReplicationTrigger.Start);
         }
 
         /// <summary>
@@ -2057,14 +2024,113 @@ namespace Couchbase.Lite
 
         private void NetworkStatusChanged(object sender, NetworkReachabilityChangeEventArgs e)
         {
-            if (e.Status == NetworkReachabilityStatus.Reachable)
-            {
+            if (e.Status == NetworkReachabilityStatus.Reachable) {
                 GoOnline();
             }
-            else
-            {
+            else {
                 GoOffline();
             }
+        }
+  
+        private void InitializeStateMachine()
+        {
+            _stateMachine = new StateMachine<ReplicationState, ReplicationTrigger>(ReplicationState.Initial);
+
+            // hierarchy
+            _stateMachine.Configure(ReplicationState.Idle).SubstateOf(ReplicationState.Running);
+            _stateMachine.Configure(ReplicationState.Offline).SubstateOf(ReplicationState.Running);
+
+            // permitted transitions
+            _stateMachine.Configure(ReplicationState.Initial).Permit(ReplicationTrigger.Start, ReplicationState.Running);
+            _stateMachine.Configure(ReplicationState.Idle).Permit(ReplicationTrigger.Resume, ReplicationState.Running);
+            _stateMachine.Configure(ReplicationState.Running).Permit(ReplicationTrigger.WaitingForChanges, ReplicationState.Idle);
+            _stateMachine.Configure(ReplicationState.Running).Permit(ReplicationTrigger.StopImmediate, ReplicationState.Stopped);
+            _stateMachine.Configure(ReplicationState.Running).Permit(ReplicationTrigger.StopGraceful, ReplicationState.Stopping);
+            _stateMachine.Configure(ReplicationState.Running).Permit(ReplicationTrigger.GoOffline, ReplicationState.Offline);
+            _stateMachine.Configure(ReplicationState.Offline).Permit(ReplicationTrigger.GoOnline, ReplicationState.Running);
+            _stateMachine.Configure(ReplicationState.Stopping).Permit(ReplicationTrigger.StopImmediate, ReplicationState.Stopped);
+
+            // ignored transitions
+            _stateMachine.Configure(ReplicationState.Running).Ignore(ReplicationTrigger.Start);
+            _stateMachine.Configure(ReplicationState.Stopping).Ignore(ReplicationTrigger.StopGraceful);
+            _stateMachine.Configure(ReplicationState.Stopped).Ignore(ReplicationTrigger.StopGraceful);
+            _stateMachine.Configure(ReplicationState.Stopped).Ignore(ReplicationTrigger.StopImmediate);
+            _stateMachine.Configure(ReplicationState.Stopping).Ignore(ReplicationTrigger.WaitingForChanges);
+            _stateMachine.Configure(ReplicationState.Stopped).Ignore(ReplicationTrigger.WaitingForChanges);
+            _stateMachine.Configure(ReplicationState.Offline).Ignore(ReplicationTrigger.WaitingForChanges);
+            _stateMachine.Configure(ReplicationState.Initial).Ignore(ReplicationTrigger.GoOffline);
+            _stateMachine.Configure(ReplicationState.Stopping).Ignore(ReplicationTrigger.GoOffline);
+            _stateMachine.Configure(ReplicationState.Stopped).Ignore(ReplicationTrigger.GoOffline);
+            _stateMachine.Configure(ReplicationState.Offline).Ignore(ReplicationTrigger.GoOffline);
+            _stateMachine.Configure(ReplicationState.Initial).Ignore(ReplicationTrigger.GoOnline);
+            _stateMachine.Configure(ReplicationState.Running).Ignore(ReplicationTrigger.GoOnline);
+            _stateMachine.Configure(ReplicationState.Stopping).Ignore(ReplicationTrigger.GoOnline);
+            _stateMachine.Configure(ReplicationState.Stopped).Ignore(ReplicationTrigger.GoOnline);
+            _stateMachine.Configure(ReplicationState.Idle).Ignore(ReplicationTrigger.GoOnline);
+            _stateMachine.Configure(ReplicationState.Offline).Ignore(ReplicationTrigger.Resume);
+            _stateMachine.Configure(ReplicationState.Initial).Ignore(ReplicationTrigger.Resume);
+            _stateMachine.Configure(ReplicationState.Running).Ignore(ReplicationTrigger.Resume);
+            _stateMachine.Configure(ReplicationState.Stopping).Ignore(ReplicationTrigger.Resume);
+            _stateMachine.Configure(ReplicationState.Stopped).Ignore(ReplicationTrigger.Resume);
+
+            // actions
+            _stateMachine.Configure(ReplicationState.Running).OnEntry(transition =>
+            {
+                Log.V(Tag, "{0} => {1}", transition.Source, transition.Destination);
+                StartInternal();
+                NotifyChangeListenersStateTransition(transition);
+            });
+
+            _stateMachine.Configure(ReplicationState.Running).OnExit(transition =>
+                Log.V(Tag, "{0} => {1}", transition.Source, transition.Destination));
+
+            _stateMachine.Configure(ReplicationState.Idle).OnEntry(transition =>
+            {
+                Log.V(Tag, "{0} => {1}", transition.Source, transition.Destination);
+                if(transition.Source == transition.Destination) {
+                    return;
+                }
+
+                NotifyChangeListenersStateTransition(transition);
+            });
+
+            _stateMachine.Configure(ReplicationState.Idle).OnExit(transition =>
+            {
+                Log.V(Tag, "{0} => {1}", transition.Source, transition.Destination);
+                if(transition.Source == transition.Destination) {
+                    return;
+                }
+
+                NotifyChangeListenersStateTransition(transition);
+            });
+
+            _stateMachine.Configure(ReplicationState.Offline).OnEntry(transition =>
+            {
+                Log.V(Tag, "{0} => {1}", transition.Source, transition.Destination);
+                GoOffline();
+                NotifyChangeListenersStateTransition(transition);
+            });
+
+            _stateMachine.Configure(ReplicationState.Offline).OnExit(transition =>
+            {
+                Log.V(Tag, "{0} => {1}", transition.Source, transition.Destination);
+                GoOnline();
+                NotifyChangeListenersStateTransition(transition);
+            });
+
+            _stateMachine.Configure(ReplicationState.Stopped).OnEntry(transition =>
+            {
+                Log.V(Tag, "{0} => {1}", transition.Source, transition.Destination);
+                SaveLastSequence(null);
+                ClearDbRef();
+
+                if(transition.Source == transition.Destination) {
+                    Log.I(Tag, "Concurrency issue with ReplicationState.Stopped");
+                    return;
+                }
+
+                NotifyChangeListenersStateTransition(transition);
+            });
         }
 
         #endregion
@@ -2084,6 +2150,8 @@ namespace Couchbase.Lite
             /// </summary>
             /// <value>The <see cref="Couchbase.Lite.Replication"/> that raised the event.</value>
             public Replication Source { get; private set; }
+
+            public ReplicationStateTransition ReplicationStateTransition { get; internal set; }
 
             /// <summary>
             /// Initializes a new instance of the <see cref="Couchbase.Lite.ReplicationChangeEventArgs"/> class.

@@ -112,32 +112,22 @@ namespace Couchbase.Lite.Replicator
             creatingTarget = true;
 
             Log.V(Tag, "Remote db might not exist; creating it...");
-            Log.D(Tag, "maybeCreateRemoteDB() calling asyncTaskStarted()");
 
-			AsyncTaskStarted();
             SendAsyncRequest(HttpMethod.Put, String.Empty, null, (result, e) =>
             {
-                try
+                creatingTarget = false;
+                if (e is HttpResponseException && ((HttpResponseException)e).StatusCode.GetStatusCode() != StatusCode.PreconditionFailed)
                 {
-                    creatingTarget = false;
-                    if (e != null && e is HttpResponseException && ((HttpResponseException)e).StatusCode.GetStatusCode() != StatusCode.PreconditionFailed)
-                    {
-                        // this is fatal: no db to push to!
-                        Log.E(Tag, "Failed to create remote db", e);
-                        LastError = e;
-                        Stop();
-                    }
-                    else
-                    {
-                        Log.V(Tag, "Created remote db");
-                        CreateTarget = false;
-                        BeginReplicating();
-                    }
+                    // this is fatal: no db to push to!
+                    Log.E(Tag, "Failed to create remote db", e);
+                    LastError = e;
+                    Stop();
                 }
-                finally
+                else
                 {
-                    Log.D(Tag, "maybeCreateRemoteDB.onComplete() calling asyncTaskFinished()");
-                    AsyncTaskFinished(1);
+                    Log.V(Tag, "Created remote db");
+                    CreateTarget = false;
+                    BeginReplicating();
                 }
             });
         }
@@ -314,10 +304,8 @@ namespace Couchbase.Lite.Replicator
             }
 
             // Call _revs_diff on the target db:
-            Log.D(Tag, "processInbox() calling asyncTaskStarted()");
             Log.D(Tag, "posting to /_revs_diff: {0}", String.Join(Environment.NewLine, new[] { Manager.GetObjectMapper().WriteValueAsString(diffs) }));
 
-            AsyncTaskStarted();
             SendAsyncRequest(HttpMethod.Post, "/_revs_diff", diffs, (response, e) =>
             {
                 try {
@@ -415,9 +403,6 @@ namespace Couchbase.Lite.Replicator
                     }
                 } catch (Exception ex) {
                     Log.E(Tag, "Unhandled exception in Pusher.ProcessInbox", ex);
-                } finally {
-                    Log.D(Tag, "processInbox() calling AsyncTaskFinished()");
-                    AsyncTaskFinished(1);
                 }
             });
         }
@@ -440,62 +425,52 @@ namespace Couchbase.Lite.Replicator
             bulkDocsBody["docs"] = docsToSend;
             bulkDocsBody["new_edits"] = false;
 
-            AsyncTaskStarted ();
-
             SendAsyncRequest(HttpMethod.Post, "/_bulk_docs", bulkDocsBody, (result, e) => {
-                try
+                if (e == null)
                 {
-                    if (e == null)
+                    var failedIds = new HashSet<string>();
+                    // _bulk_docs response is really an array not a dictionary
+                    var items = result.AsList<object>();
+                    foreach(var item in items)
                     {
-                        var failedIds = new HashSet<string>();
-                        // _bulk_docs response is really an array not a dictionary
-                        var items = result.AsList<object>();
-                        foreach(var item in items)
+                        var itemObject = item.AsDictionary<string, object>();
+                        var status = StatusFromBulkDocsResponseItem(itemObject);
+                        if (!status.IsSuccessful)
                         {
-                            var itemObject = item.AsDictionary<string, object>();
-                            var status = StatusFromBulkDocsResponseItem(itemObject);
-                            if (!status.IsSuccessful)
-                            {
-                                // One of the docs failed to save.
-                                Log.W(Tag, "_bulk_docs got an error: " + item);
+                            // One of the docs failed to save.
+                            Log.W(Tag, "_bulk_docs got an error: " + item);
 
-                                // 403/Forbidden means validation failed; don't treat it as an error
-                                // because I did my job in sending the revision. Other statuses are
-                                // actual replication errors.
-                                if (status.Code != StatusCode.Forbidden)
-                                {
-                                    var docId = itemObject.GetCast<string>("id");
-                                    failedIds.Add(docId);
-                                }
-                            }
-                        }
-
-                        // Remove from the pending list all the revs that didn't fail:
-                        foreach (var revisionInternal in revChanges)
-                        {
-                            if (!failedIds.Contains(revisionInternal.GetDocId()))
+                            // 403/Forbidden means validation failed; don't treat it as an error
+                            // because I did my job in sending the revision. Other statuses are
+                            // actual replication errors.
+                            if (status.Code != StatusCode.Forbidden)
                             {
-                                RemovePending(revisionInternal);
+                                var docId = itemObject.GetCast<string>("id");
+                                failedIds.Add(docId);
                             }
                         }
                     }
 
-                    if (e != null) 
+                    // Remove from the pending list all the revs that didn't fail:
+                    foreach (var revisionInternal in revChanges)
                     {
-                        LastError = e;
-                        RevisionFailed();
-                    } 
-                    else 
-                    {
-                        Log.V(Tag, string.Format("POSTed to _bulk_docs: {0}", docsToSend));
+                        if (!failedIds.Contains(revisionInternal.GetDocId()))
+                        {
+                            RemovePending(revisionInternal);
+                        }
                     }
-                    SafeAddToCompletedChangesCount(numDocsToSend);
                 }
-                finally
+
+                if (e != null) 
                 {
-                    Log.D(Tag, "ProcessInbox() after _bulk_docs() calling AsyncTaskFinished()");
-                    AsyncTaskFinished(1);
+                    LastError = e;
+                    RevisionFailed();
+                } 
+                else 
+                {
+                    Log.V(Tag, string.Format("POSTed to _bulk_docs: {0}", docsToSend));
                 }
+                SafeAddToCompletedChangesCount(numDocsToSend);
             });
         }
 
@@ -630,43 +605,32 @@ namespace Couchbase.Lite.Replicator
 
             // TODO: need to throttle these requests
             Log.D(Tag, "Uploading multipart request.  Revision: " + revision);
-            Log.D(Tag, "uploadMultipartRevision() calling asyncTaskStarted()");
 
             SafeAddToChangesCount(1);
-            AsyncTaskStarted();
 
             SendAsyncMultipartRequest(HttpMethod.Put, path, multiPart, (result, e) => {
-                try
+                if (e != null)
                 {
-                    if (e != null)
+                    var httpError = e as HttpResponseException;
+                    if (httpError != null)
                     {
-                        var httpError = e as HttpResponseException;
-                        if (httpError != null)
+                        if (httpError.StatusCode == System.Net.HttpStatusCode.UnsupportedMediaType)
                         {
-                            if (httpError.StatusCode == System.Net.HttpStatusCode.UnsupportedMediaType)
-                            {
-                                dontSendMultipart = true;
-                                UploadJsonRevision(revision);
-                            }
-                        }
-                        else
-                        {
-                            Log.E (Tag, "Exception uploading multipart request", e);
-                            LastError = e;
-                            RevisionFailed();
+                            dontSendMultipart = true;
+                            UploadJsonRevision(revision);
                         }
                     }
                     else
                     {
-                        Log.D (Tag, "Uploaded multipart request.  Result: " + result);
-                        RemovePending(revision);
+                        Log.E (Tag, "Exception uploading multipart request", e);
+                        LastError = e;
+                        RevisionFailed();
                     }
                 }
-                finally
+                else
                 {
-                    Log.D(Tag, "uploadMultipartRevision() calling asyncTaskFinished()");
-                    // TODO: calling addToCompleteChangesCount(1)
-                    AsyncTaskFinished (1);
+                    Log.D (Tag, "Uploaded multipart request.  Result: " + result);
+                    RemovePending(revision);
                 }
             });
 
@@ -691,9 +655,6 @@ namespace Couchbase.Lite.Replicator
                 return;
             }
 
-            Log.V(Tag, "UploadJsonRevision() calling AsyncTaskStarted()");
-            AsyncTaskStarted();
-
             var path = string.Format("/{0}?new_edits=false", Uri.EscapeUriString(rev.GetDocId()));
             SendAsyncRequest(HttpMethod.Put, path, rev.GetProperties(), (result, e) =>
             {
@@ -707,8 +668,6 @@ namespace Couchbase.Lite.Replicator
                     Log.V(Tag, "Sent {0} (JSON), response={1}", rev, result);
                     RemovePending (rev);
                 }
-                Log.V(Tag, "UploadJsonRevision() calling AsyncTaskFinished()");
-                AsyncTaskFinished (1);
             });
         }
 
