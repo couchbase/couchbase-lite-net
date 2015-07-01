@@ -160,7 +160,7 @@ namespace Couchbase.Lite.Replicator
                     int pathLastSlashPos = result.LastIndexOf('/');
                     if (pathLastSlashPos > 0)
                     {
-                        result = Sharpen.Runtime.Substring(result, pathLastSlashPos);
+                        result = result.Substring(pathLastSlashPos);
                     }
                 }
             }

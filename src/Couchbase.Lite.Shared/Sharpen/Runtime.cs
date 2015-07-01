@@ -45,83 +45,19 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
-using System.Net;
-using System.Runtime.CompilerServices;
-using System.Reflection;
-using System.Text;
-using System.Threading;
-using ProcessStartInfo = System.Diagnostics.ProcessStartInfo;
 using System.Linq;
+using System.Text;
 
 namespace Sharpen
 {
     internal class Runtime
     {
-        private static Runtime instance;
-        private List<ShutdownHook> shutdownHooks = new List<ShutdownHook> ();
-
-        internal void AddShutdownHook (Runnable r)
-        {
-            ShutdownHook item = new ShutdownHook ();
-            item.Runnable = r;
-            this.shutdownHooks.Add (item);
-        }
-
-        internal int AvailableProcessors ()
-        {
-            return Environment.ProcessorCount;
-        }
 
         internal static long CurrentTimeMillis ()
         {
             return DateTime.UtcNow.ToMillisecondsSinceEpoch ();
         }
-
-        internal SystemProcess Exec (string[] cmd, string[] envp, FilePath dir)
-        {
-            try {
-                ProcessStartInfo psi = new ProcessStartInfo ();
-                psi.FileName = cmd[0];
-                psi.Arguments = string.Join (" ", cmd, 1, cmd.Length - 1);
-                if (dir != null) {
-                    psi.WorkingDirectory = dir.GetPath ();
-                }
-                psi.UseShellExecute = false;
-                psi.RedirectStandardInput = true;
-                psi.RedirectStandardError = true;
-                psi.RedirectStandardOutput = true;
-                psi.CreateNoWindow = true;
-                if (envp != null) {
-                    foreach (string str in envp) {
-                        int index = str.IndexOf ('=');
-                        psi.EnvironmentVariables[str.Substring (0, index)] = str.Substring (index + 1);
-                    }
-                }
-                return SystemProcess.Start (psi);
-            } catch (System.ComponentModel.Win32Exception ex) {
-                throw new IOException (ex.Message);
-            }
-        }
-
-        internal static string Getenv (string var)
-        {
-            return Environment.GetEnvironmentVariable (var);
-        }
-
-        internal static IDictionary<string, string> GetEnv ()
-        {
-            Dictionary<string, string> dictionary = new Dictionary<string, string> ();
-            foreach (DictionaryEntry v in Environment.GetEnvironmentVariables ()) {
-                dictionary[(string)v.Key] = (string)v.Value;
-            }
-            return dictionary;
-        }
-
-        internal static IPAddress GetLocalHost ()
-        {
-            return Dns.GetHostEntry (Dns.GetHostName ()).AddressList[0];
-        }
-        
+            
         static Hashtable properties;
 
         public static Hashtable Properties { get { return GetProperties(); } }
@@ -154,52 +90,9 @@ namespace Sharpen
             GetProperties () [key] = value;
         }
 
-        public static Runtime GetRuntime ()
-        {
-            if (instance == null) {
-                instance = new Runtime ();
-            }
-            return instance;
-        }
-
-        internal static int IdentityHashCode (object ob)
-        {
-            return RuntimeHelpers.GetHashCode (ob);
-        }
-
-        internal long MaxMemory ()
-        {
-            return int.MaxValue;
-        }
-
-        private class ShutdownHook
-        {
-            public Sharpen.Runnable Runnable;
-
-            ~ShutdownHook ()
-            {
-                this.Runnable.Run ();
-            }
-        }
-        
-        internal static void DeleteCharAt (StringBuilder sb, int index)
-        {
-            sb.Remove (index, 1);
-        }
-
         internal static IEnumerable<Byte> GetBytesForString (string str, string encoding)
         {
             return Encoding.GetEncoding (encoding).GetBytes (str);
-        }
-
-        internal static FieldInfo[] GetDeclaredFields (Type t)
-        {
-            return t.GetFields (BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance);
-        }
-
-        internal static void NotifyAll (object ob)
-        {
-            Monitor.PulseAll (ob);
         }
 
         internal static void PrintStackTrace (Exception ex)
@@ -211,84 +104,11 @@ namespace Sharpen
         {
             tw.WriteLine (ex);
         }
-
-        internal static string Substring (string str, int index)
-        {
-            return str.Substring (index);
-        }
-
-        internal static string Substring (string str, int index, int endIndex)
-        {
-            return str.Substring (index, endIndex - index);
-        }
-
-        internal static void Wait (object ob)
-        {
-            Monitor.Wait (ob);
-        }
-
-        internal static bool Wait (object ob, long milis)
-        {
-            return Monitor.Wait (ob, (int)milis);
-        }
-        
-        internal static Type GetType (string name)
-        {
-            foreach (Assembly a in AppDomain.CurrentDomain.GetAssemblies ()) {
-                Type t = a.GetType (name);
-                if (t != null)
-                    return t;
-            }
-            throw new InvalidOperationException ("Type not found: " + name);
-        }
-        
-        internal static void SetCharAt (StringBuilder sb, int index, char c)
-        {
-            sb [index] = c;
-        }
-        
-        internal static bool EqualsIgnoreCase (string s1, string s2)
-        {
-            return s1.Equals (s2, StringComparison.CurrentCultureIgnoreCase);
-        }
-        
-        internal static long NanoTime ()
-        {
-            return Environment.TickCount * 1000 * 1000;
-        }
-        
-        internal static int CompareOrdinal (string s1, string s2)
-        {
-            return string.CompareOrdinal (s1, s2);
-        }
-
+    
         internal static string GetStringForBytes (IEnumerable<Byte> chars)
         {
             return Encoding.UTF8.GetString (chars.ToArray());
         }
-
-        internal static string GetStringForBytes (IEnumerable<Byte> chars, string encoding)
-        {
-            return GetEncoding (encoding).GetString (chars.ToArray());
-        }
-
-        internal static string GetStringForBytes (IEnumerable<Byte> chars, int start, int len)
-        {
-            return Encoding.UTF8.GetString (chars.ToArray(), start, len);
-        }
-
-        internal static string GetStringForBytes (IEnumerable<Byte> chars, int start, int len, string encoding)
-        {
-            return GetEncoding (encoding).Decode (chars.ToArray(), start, len);
-        }
-        
-        internal static Encoding GetEncoding (string name)
-        {
-//          Encoding e = Encoding.GetEncoding (name, EncoderFallback.ExceptionFallback, DecoderFallback.ExceptionFallback);
-            Encoding e = Encoding.GetEncoding (name.Replace ('_','-'));
-            if (e is UTF8Encoding)
-                return new UTF8Encoding (false, true);
-            return e;
-        }
+            
     }
 }

@@ -1501,9 +1501,9 @@ namespace Couchbase.Lite
                 try
                 {
                     var inputStream = fileURL.OpenConnection().GetInputStream();
-                    var os = new ByteArrayOutputStream();
+                    var os = new MemoryStream();
                     inputStream.CopyTo(os);
-                    fileData = os.ToByteArray();
+                    fileData = os.ToArray();
                 }
                 catch (IOException e)
                 {
@@ -1687,20 +1687,16 @@ namespace Couchbase.Lite
                 }
                 // Handle encoded attachment:
                 string encodingStr = (string)attachInfo.Get("encoding");
-                if (encodingStr != null && encodingStr.Length > 0)
-                {
-                    if (Runtime.EqualsIgnoreCase(encodingStr, "gzip"))
-                    {
+                if (!string.IsNullOrEmpty(encodingStr)) {
+                    if ("gzip".Equals(encodingStr, StringComparison.CurrentCultureIgnoreCase)) {
                         attachment.Encoding = AttachmentEncoding.GZIP;
                     }
-                    else
-                    {
+                    else {
                         throw new CouchbaseLiteException("Unnkown encoding: " + encodingStr, StatusCode.BadEncoding
-                                                        );
+                        );
                     }
                     attachment.EncodedLength = attachment.Length;
-                    if (attachInfo.ContainsKey("length"))
-                    {
+                    if (attachInfo.ContainsKey("length")) {
                         attachment.Length = attachInfo.GetCast<long>("length");
                     }
                 }

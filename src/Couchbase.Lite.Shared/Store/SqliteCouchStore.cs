@@ -351,7 +351,7 @@ PRAGMA user_version = 3;";
             int dashPos = rev.IndexOf("-", StringComparison.InvariantCultureIgnoreCase);
             if (dashPos >= 0)
             {
-                result = Runtime.Substring(rev, dashPos + 1);
+                result = rev.Substring(dashPos + 1);
             }
             return result;
         }
