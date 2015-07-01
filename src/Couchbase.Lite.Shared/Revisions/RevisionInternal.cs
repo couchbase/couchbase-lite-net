@@ -335,7 +335,7 @@ namespace Couchbase.Lite.Internal
                 if (rev1Hash != null && rev2Hash != null)
                 {
                     // compare suffixes if possible
-                    return Sharpen.Runtime.CompareOrdinal(rev1Hash, rev2Hash);
+                    return String.CompareOrdinal(rev1Hash, rev2Hash);
                 }
                 else
                 {

@@ -151,10 +151,10 @@ namespace Couchbase.Lite
         public void TestChangeListenerNotificationBatching()
         {
             const int numDocs = 50;
-            var atomicInteger = new AtomicInteger(0);
+            var atomicInteger = 0;
             var doneSignal = new CountDownLatch(1);
 
-            database.Changed += (sender, e) => atomicInteger.IncrementAndGet();
+            database.Changed += (sender, e) => Interlocked.Increment (ref atomicInteger);
 
             database.RunInTransaction(() =>
             {
@@ -165,7 +165,7 @@ namespace Couchbase.Lite
 
             var success = doneSignal.Await(TimeSpan.FromSeconds(30));
             Assert.IsTrue(success);
-            Assert.AreEqual(1, atomicInteger.Get());
+            Assert.AreEqual(1, atomicInteger);
         }
 
         /// <summary>
@@ -176,11 +176,11 @@ namespace Couchbase.Lite
         public void TestChangeListenerNotification()
         {
             const int numDocs = 50;
-            var atomicInteger = new AtomicInteger(0);
+            var atomicInteger = 0;
 
-            database.Changed += (sender, e) => atomicInteger.IncrementAndGet();
+            database.Changed += (sender, e) => Interlocked.Increment (ref atomicInteger);
             CreateDocuments(database, numDocs);
-            Assert.AreEqual(numDocs, atomicInteger.Get());
+            Assert.AreEqual(numDocs, atomicInteger);
         }
 
         /// <summary>

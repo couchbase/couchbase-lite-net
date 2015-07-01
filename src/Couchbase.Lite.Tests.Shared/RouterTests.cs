@@ -1306,6 +1306,9 @@ namespace Couchbase.Lite
         [Test]
         public void TestAuthentication()
         {
+            _listener.Stop();
+            _listener = new CouchbaseLiteTcpListener(manager, 59840, CouchbaseLiteTcpOptions.AllowBasicAuth);
+            _listener.Start();
             var basicString = Convert.ToBase64String(Encoding.ASCII.GetBytes("jim:borden"));
             _listener.SetPasswords(new Dictionary<string, string> { { "jim", "borden" } });
             SendRequest("GET", "/", new Dictionary<string, string> { { "Authorization", "Basic " + basicString } }, null, false, (r) =>
@@ -1323,6 +1326,10 @@ namespace Couchbase.Lite
             {
                 Assert.AreEqual(HttpStatusCode.Unauthorized, r.StatusCode);
             });
+
+            _listener.Stop();
+            _listener = new CouchbaseLiteTcpListener(manager, 59840);
+            _listener.Start();
         }
 
         [TestFixtureSetUp]

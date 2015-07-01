@@ -138,8 +138,8 @@ namespace Couchbase.Lite
             var basicAuth = new BasicAuthenticator(username, password);
 
             Assert.IsNull(basicAuth.LoginParametersForSite(null));
-            Assert.IsTrue(basicAuth.UsesCookieBasedLogin);
-            Assert.AreEqual(basicAuth.UserInfo, username + ":" + password);
+            Assert.IsFalse(basicAuth.UsesCookieBasedLogin);
+            Assert.AreEqual("dXNlcm5hbWU6cGFzc3dvcmQ=", basicAuth.UserInfo);
         }
 
         private void AddUser(string username, string password)

@@ -830,7 +830,7 @@ namespace Couchbase.Lite
                 string name = (string)document["name"];
                 if (name != null)
                 {
-                    emitter(Sharpen.Runtime.Substring(name, 0, 1), 1);
+                    emitter(name.Substring(0, 1), 1);
                 }
             }, (keys, values, rereduce) => View.TotalValues(values.ToList()), "1.0");
 

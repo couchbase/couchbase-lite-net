@@ -679,7 +679,7 @@ namespace Couchbase.Lite
             var loginPath = Authenticator.LoginPathForSite(RemoteUrl);
             Log.D(Tag, string.Format("{0}: Doing login with {1} at {2}", this, Authenticator.GetType(), loginPath));
 
-            Log.D(Tag, string.Format("{0} | {1} : login() calling asyncTaskStarted()", this, Sharpen.SharpenThread.CurrentThread()));
+            Log.D(Tag, string.Format("{0} | {1} : login() calling asyncTaskStarted()", this, Thread.CurrentThread));
             AsyncTaskStarted();
             SendAsyncRequest(HttpMethod.Post, loginPath, loginParameters, (result, e) => {
                 try

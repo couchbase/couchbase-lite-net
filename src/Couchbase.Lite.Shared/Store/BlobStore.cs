@@ -103,13 +103,13 @@ namespace Couchbase.Lite
 
             byte[] sha1hash = new byte[40];
             try {
-                var fis = new FileInputStream(file);
+                var fis = new FileStream(file.FullName, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
                 byte[] buffer = new byte[65536];
-                int lenRead = fis.Read(buffer);
+                int lenRead = fis.Read(buffer, 0, buffer.Length);
                 while (lenRead > 0)
                 {
                     md.Update(buffer, 0, lenRead);
-                    lenRead = fis.Read(buffer);
+                    lenRead = fis.Read(buffer, 0, buffer.Length);
                 }
                 fis.Close();
             } catch (IOException) {
@@ -140,8 +140,7 @@ namespace Couchbase.Lite
             }
 
             //trim off extension
-            string rest = Sharpen.Runtime.Substring(filename, path.Length + 1, filename.Length
-                 - FileExtension.Length);
+            string rest = filename.Substring(path.Length + 1, filename.Length - FileExtension.Length - (path.Length + 1));
             outKey.Bytes = BlobKey.ConvertFromHex(rest);
             return true;
         }
@@ -256,7 +255,7 @@ namespace Couchbase.Lite
         /// <exception cref="System.IO.IOException"></exception>
         private static byte[] GetBytesFromFile(FilePath file)
         {
-            InputStream @is = new FileInputStream(file);
+            InputStream @is = new FileStream (file, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
             // Get the size of the file
             long length = file.Length();
             // Create the byte array to hold the data
@@ -350,8 +349,8 @@ namespace Couchbase.Lite
             var file = new FilePath(path);
             if (file.CanRead()) {
                 try {
-                    var raf = new RandomAccessFile(file, "r");
-                    magic = raf.Read() & unchecked((0xff)) | ((raf.Read() << 8) & unchecked((0xff00)));
+                    var raf = new FileStream (file, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+                    magic = raf.ReadByte() & unchecked((0xff)) | ((raf.ReadByte() << 8) & unchecked((0xff00)));
                     raf.Close();
                 }
                 catch (Exception e) {

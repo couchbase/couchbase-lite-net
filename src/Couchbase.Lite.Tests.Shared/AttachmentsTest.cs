@@ -449,7 +449,7 @@ namespace Couchbase.Lite
             rev.SetUserProperties(properties);
 
             var attachBodyBytes = Encoding.UTF8.GetBytes("attach body");
-            var attachment = new Attachment(new ByteArrayInputStream(attachBodyBytes), "text/plain");
+            var attachment = new Attachment(new MemoryStream(attachBodyBytes), "text/plain");
             string attachmentName = "test_attachment.txt";
             rev.AddAttachment(attachment, attachmentName);
             rev.Save();
