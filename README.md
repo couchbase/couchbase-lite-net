@@ -1,4 +1,5 @@
-[![Stories in Ready](https://badge.waffle.io/couchbase/couchbase-lite-net.png?label=ready&title=In%20Progress)](https://waffle.io/couchbase/couchbase-lite-net)
+[![Stories in Ready](https://badge.waffle.io/couchbase/couchbase-lite-net.png?label=ready&title=Scheduled)](https://waffle.io/couchbase/couchbase-lite-net)
+[![Stories in Progress](https://badge.waffle.io/couchbase/couchbase-lite-net.png?label=in%20progress&title=In%20Progress)](https://waffle.io/couchbase/couchbase-lite-net)
 Couchbase Lite for .NET
 ==================
 
@@ -20,15 +21,15 @@ You can build Couchbase Lite using either of the following:
 
 The solution files ending in **VS2013** are for use in Visual Studio, while the ones that do not are meant for Xamarin Studio.  There are a number of projects and platforms so here are the key parts to look for.  Currently there are three "projects" and five "platforms" and you can identify them as in the following:
 
-<Name>.<Platform>
+\<Name>.\<Platform>
 
-<Name> is one of the following:
+\<Name> is one of the following:
 
 * Couchbase.Lite - The core Couchbase Lite library
 * Couchbase.Lite.Listener - The Couchbase Lite P2P REST API server implementation
 * Couchbase.Lite.Listener.Bonjour - The optional Bonjour service discover mechanism for P2P
 
-<Platform> is one of the following:
+\<Platform> is one of the following:
 
 * Net45 - Mono / .NET 4.5
 * Net35 - Mono / .NET 3.5
