@@ -49,6 +49,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Threading;
 using System.Runtime.InteropServices;
+using Couchbase.Lite.Unity;
 
 #if __IOS__
 using AOT = ObjCRuntime;
@@ -74,6 +75,8 @@ namespace Mono.Zeroconf.Providers.Bonjour
     {
         private const string TAG = "ServiceBrowser";
 
+        private static ManualResetEventSlim _primedEvent = new ManualResetEventSlim();
+
         private uint interface_index;
         private AddressProtocol address_protocol;
         private string regtype;
@@ -87,8 +90,19 @@ namespace Mono.Zeroconf.Providers.Bonjour
         
         private Thread thread;
         
-        public event ServiceBrowseEventHandler ServiceAdded;
-        public event ServiceBrowseEventHandler ServiceRemoved;
+        public event ServiceBrowseEventHandler ServiceAdded
+        {
+            add { _serviceAdded = (ServiceBrowseEventHandler)Delegate.Combine(_serviceAdded, value); }
+            remove { _serviceAdded = (ServiceBrowseEventHandler)Delegate.Remove(_serviceAdded, value); }
+        }
+        private event ServiceBrowseEventHandler _serviceAdded;
+
+        public event ServiceBrowseEventHandler ServiceRemoved
+        {
+            add { _serviceRemoved = (ServiceBrowseEventHandler)Delegate.Combine(_serviceRemoved, value); }
+            remove { _serviceRemoved = (ServiceBrowseEventHandler)Delegate.Remove(_serviceRemoved, value); }
+        }
+        private event ServiceBrowseEventHandler _serviceRemoved;
 
         #if __ANDROID__
         /// <summary>
@@ -100,24 +114,34 @@ namespace Mono.Zeroconf.Providers.Bonjour
         }
         #elif __UNITY_ANDROID__
         static ServiceBrowser() {
-            UnityEngine.AndroidJavaClass c = new UnityEngine.AndroidJavaClass("com.unity3d.player.UnityPlayer");
-            var context = c.GetStatic<UnityEngine.AndroidJavaObject>("currentActivity");
-            if (context == null) {
+            UnityMainThreadScheduler.TaskFactory.StartNew(() =>
+            {
+                UnityEngine.AndroidJavaClass c = new UnityEngine.AndroidJavaClass("com.unity3d.player.UnityPlayer");
+                var context = c.GetStatic<UnityEngine.AndroidJavaObject>("currentActivity");
+                if (context == null) {
+                    c.Dispose();
+                    throw new Exception("Failed to get context");
+                }
+
+                var arg = new UnityEngine.AndroidJavaObject("java.lang.String", "servicediscovery");
+                context.Call<UnityEngine.AndroidJavaObject>("getSystemService", arg);
+
+                context.Dispose();
+                arg.Dispose();
                 c.Dispose();
-                throw new Exception("Failed to get context");
-            }
-
-            var arg = new UnityEngine.AndroidJavaObject("java.lang.String", "servicediscovery");
-            context.Call<UnityEngine.AndroidJavaObject>("getSystemService", arg);
-
-            context.Dispose();
-            arg.Dispose();
-            c.Dispose();
+                _primedEvent.Set();
+            });
         }
         #endif
         
         public ServiceBrowser()
         {
+            #if __UNITY_ANDROID__
+            if (!_primedEvent.Wait(10000)) {
+                throw new TimeoutException("Timeout waiting for mDNS daemon to start");
+            }
+            #endif
+
             browse_reply_handler = new Native.DNSServiceBrowseReply(OnBrowseReply);
         }
         
@@ -263,7 +287,7 @@ namespace Mono.Zeroconf.Providers.Bonjour
                     }
                 }
                 
-                ServiceBrowseEventHandler handler = serviceBrowser.ServiceAdded;
+                ServiceBrowseEventHandler handler = serviceBrowser._serviceAdded;
                 if(handler != null) {
                     handler(serviceBrowser, args);
                 }
@@ -274,7 +298,7 @@ namespace Mono.Zeroconf.Providers.Bonjour
                     }
                 }
                 
-                ServiceBrowseEventHandler handler = serviceBrowser.ServiceRemoved;
+                ServiceBrowseEventHandler handler = serviceBrowser._serviceRemoved;
                 if(handler != null) {
                     handler(serviceBrowser, args);
                 }

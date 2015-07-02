@@ -48,6 +48,7 @@ using System.Net;
 using System.Threading;
 using System.Runtime.InteropServices;
 using Couchbase.Lite.Util;
+using Couchbase.Lite.Unity;
 
 #if __IOS__
 using AOT = ObjCRuntime;
@@ -57,6 +58,8 @@ namespace Mono.Zeroconf.Providers.Bonjour
 {
     public sealed class RegisterService : Service, IRegisterService, IDisposable
     {
+        private static ManualResetEventSlim _primedEvent = new ManualResetEventSlim();
+
         private Thread thread;
         private ServiceRef sd_ref;
         private bool auto_rename = true;
@@ -64,7 +67,12 @@ namespace Mono.Zeroconf.Providers.Bonjour
         private Native.DNSServiceRegisterReply register_reply_handler;
         private GCHandle _self;
     
-        public event RegisterServiceEventHandler Response;
+        public event RegisterServiceEventHandler Response
+        {
+            add { _response = (RegisterServiceEventHandler)Delegate.Combine(_response, value); }
+            remove { _response = (RegisterServiceEventHandler)Delegate.Remove(_response, value); }
+        }
+        private event RegisterServiceEventHandler _response;
 
         #if __ANDROID__
         /// <summary>
@@ -76,29 +84,45 @@ namespace Mono.Zeroconf.Providers.Bonjour
         }
         #elif __UNITY_ANDROID__
         static RegisterService() {
-            UnityEngine.AndroidJavaClass c = new UnityEngine.AndroidJavaClass("com.unity3d.player.UnityPlayer");
-            var context = c.GetStatic<UnityEngine.AndroidJavaObject>("currentActivity");
-            if (context == null) {
+            UnityMainThreadScheduler.TaskFactory.StartNew(() =>
+            {
+                UnityEngine.AndroidJavaClass c = new UnityEngine.AndroidJavaClass("com.unity3d.player.UnityPlayer");
+                var context = c.GetStatic<UnityEngine.AndroidJavaObject>("currentActivity");
+                if (context == null) {
+                    c.Dispose();
+                    throw new Exception("Failed to get context");
+                }
+
+                var arg = new UnityEngine.AndroidJavaObject("java.lang.String", "servicediscovery");
+                context.Call<UnityEngine.AndroidJavaObject>("getSystemService", arg);
+
+                context.Dispose();
+                arg.Dispose();
                 c.Dispose();
-                throw new Exception("Failed to get context");
-            }
-
-            var arg = new UnityEngine.AndroidJavaObject("java.lang.String", "servicediscovery");
-            context.Call<UnityEngine.AndroidJavaObject>("getSystemService", arg);
-
-            context.Dispose();
-            arg.Dispose();
-            c.Dispose();
+                _primedEvent.Set();
+            });
         }
         #endif
     
         public RegisterService()
         {
+            #if __UNITY_ANDROID__
+            if (!_primedEvent.Wait(10000)) {
+                throw new TimeoutException("Timeout waiting for mDNS daemon to start");
+            }
+            #endif
+
             SetupCallback();
         }
         
         public RegisterService(string name, string replyDomain, string regtype) : base(name, replyDomain, regtype)
         {
+            #if __UNITY_ANDROID__
+            if (!_primedEvent.Wait(10000)) {
+                throw new TimeoutException("Timeout waiting for mDNS daemon to start");
+            }
+            #endif
+
             SetupCallback();
         }
         
@@ -205,7 +229,7 @@ namespace Mono.Zeroconf.Providers.Bonjour
                 args.IsRegistered = true;
             }
             
-            RegisterServiceEventHandler handler = registerService.Response;
+            RegisterServiceEventHandler handler = registerService._response;
             if(handler != null) {
                 handler(registerService, args);
             }

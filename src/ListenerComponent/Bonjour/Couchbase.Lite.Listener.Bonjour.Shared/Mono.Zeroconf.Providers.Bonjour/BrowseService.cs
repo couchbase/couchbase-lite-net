@@ -64,7 +64,12 @@ namespace Mono.Zeroconf.Providers.Bonjour
         private Native.DNSServiceQueryRecordReply query_record_reply_handler;
         private GCHandle _self;
         
-        public event ServiceResolvedEventHandler Resolved;
+        public event ServiceResolvedEventHandler Resolved
+        {
+            add { _resolved = (ServiceResolvedEventHandler)Delegate.Combine(_resolved, value); }
+            remove { _resolved = (ServiceResolvedEventHandler)Delegate.Remove(_resolved, value); }
+        }
+        private event ServiceResolvedEventHandler _resolved;
 
         public BrowseService()
         {
@@ -221,7 +226,7 @@ namespace Mono.Zeroconf.Providers.Bonjour
                         browseService.hostentry.AddressList = new IPAddress [] { address };
                     }
                     
-                    ServiceResolvedEventHandler handler = browseService.Resolved;
+                    ServiceResolvedEventHandler handler = browseService._resolved;
                     if(handler != null) {
                         handler(browseService, new ServiceResolvedEventArgs(browseService));
                     }

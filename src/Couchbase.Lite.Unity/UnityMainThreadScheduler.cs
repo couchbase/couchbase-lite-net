@@ -54,6 +54,8 @@ namespace Couchbase.Lite.Unity
 
         #region Properties
 
+        public static string PersistentDataPath { get; private set; }
+
         /// <summary>
         /// The task scheduler for scheduling actions to run on the Unity3D
         /// main thread
@@ -113,6 +115,7 @@ namespace Couchbase.Lite.Unity
             }
 
             _taskScheduler = new SingleThreadScheduler(Thread.CurrentThread, _jobQueue);
+            PersistentDataPath = Application.persistentDataPath;
         }
 
         void FixedUpdate()

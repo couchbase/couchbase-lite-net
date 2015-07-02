@@ -145,12 +145,7 @@ namespace Couchbase.Lite
             // So, let's only set it only when GetFolderPath returns something and allow the directory to be
             // manually specified via the ctor that accepts a DirectoryInfo
             #if __UNITY__
-            string defaultDirectoryPath = null;
-            if(Thread.CurrentThread.ManagedThreadId != 1) {
-                defaultDirectoryPath = Unity.UnityMainThreadScheduler.TaskFactory.StartNew<string>(() => UnityEngine.Application.persistentDataPath).Result;
-            } else {
-                defaultDirectoryPath = UnityEngine.Application.persistentDataPath;
-            }
+            string defaultDirectoryPath = Unity.UnityMainThreadScheduler.PersistentDataPath;
 
             #else
             var defaultDirectoryPath = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);

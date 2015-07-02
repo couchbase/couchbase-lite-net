@@ -54,7 +54,12 @@ namespace Couchbase.Lite.Listener
         /// <summary>
         /// An event raised when a new service is discovered and resolved
         /// </summary>
-        public event ServiceResolvedEventHandler ServiceResolved;
+        public event ServiceResolvedEventHandler ServiceResolved
+        {
+            add { _serviceResolved = (ServiceResolvedEventHandler)Delegate.Combine(_serviceResolved, value); }
+            remove { _serviceResolved = (ServiceResolvedEventHandler)Delegate.Remove(_serviceResolved, value); }
+        }
+        private event ServiceResolvedEventHandler _serviceResolved;
 
         /// <summary>
         /// An event raised when an existing service is destroyed
@@ -83,8 +88,8 @@ namespace Couchbase.Lite.Listener
             _browser.ServiceAdded += (o, args) =>
             {
                 args.Service.Resolved += (_, __) => {
-                    if(ServiceResolved != null) {
-                        ServiceResolved(this, new ServiceResolvedEventArgs(args.Service));
+                    if(_serviceResolved != null) {
+                        _serviceResolved(this, new ServiceResolvedEventArgs(args.Service));
                     }
                 };
 
