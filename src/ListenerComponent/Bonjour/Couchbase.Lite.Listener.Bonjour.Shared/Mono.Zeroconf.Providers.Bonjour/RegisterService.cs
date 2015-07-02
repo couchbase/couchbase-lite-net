@@ -48,7 +48,6 @@ using System.Net;
 using System.Threading;
 using System.Runtime.InteropServices;
 using Couchbase.Lite.Util;
-using Couchbase.Lite.Unity;
 
 #if __IOS__
 using AOT = ObjCRuntime;
@@ -84,7 +83,7 @@ namespace Mono.Zeroconf.Providers.Bonjour
         }
         #elif __UNITY_ANDROID__
         static RegisterService() {
-            UnityMainThreadScheduler.TaskFactory.StartNew(() =>
+            Couchbase.Lite.Unity.UnityMainThreadScheduler.TaskFactory.StartNew(() =>
             {
                 UnityEngine.AndroidJavaClass c = new UnityEngine.AndroidJavaClass("com.unity3d.player.UnityPlayer");
                 var context = c.GetStatic<UnityEngine.AndroidJavaObject>("currentActivity");
