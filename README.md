@@ -13,6 +13,8 @@ This is the source repo of Couchbase Lite C#. It is originally a port of Couchba
 
 ## Building Couchbase Lite master branch from source
 
+Please use `git` to clone the repo, rather than downloading it from a zip file.  This ensures two things:  that I will always know by looking at the logs which git commit you built your source from if you file a bug report, and that you will be able to pull the appropriate submodules if you are targeting .NET 3.5 or Unity.  After you clone the repo, or change branches, be sure to update the submodules with this command `git submodule update --init --recursive`
+
 You can build Couchbase Lite using either of the following:
 
 * Visual Studio 2013 Pro, Premium, or Ultimate, Update 2 or later.
