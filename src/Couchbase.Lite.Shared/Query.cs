@@ -406,11 +406,6 @@ namespace Couchbase.Lite {
 
         #region Public Methods
 
-        public void QueryOptionsUpdated()
-        {
-
-        }
-
         /// <summary>
         /// Runs the <see cref="Couchbase.Lite.Query"/> and returns an enumerator over the result rows.
         /// </summary>
