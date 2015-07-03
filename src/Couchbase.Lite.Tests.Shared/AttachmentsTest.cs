@@ -55,12 +55,179 @@ using Couchbase.Lite.Storage;
 using Couchbase.Lite.Util;
 using Newtonsoft.Json;
 using System.IO;
+using Couchbase.Lite.Store;
+using System.Net;
+using System.Threading;
 
 namespace Couchbase.Lite
 {
     public class AttachmentsTest : LiteTestCase
     {
         public const string Tag = "Attachments";
+
+        [Test]
+        public void TestUpgradeMD5()
+        {
+            try {
+                HttpWebRequest.Create("http://localhost:5984/").GetResponse();
+            } catch(Exception) {
+                Assert.Inconclusive("Apache CouchDB not running");
+            }
+
+            var dbName = "a" + Misc.CreateGUID();
+            var putRequest = HttpWebRequest.Create("http://localhost:5984/" + dbName);
+            putRequest.Method = "PUT";
+            var response = (HttpWebResponse)putRequest.GetResponse();
+            Assert.AreEqual(HttpStatusCode.Created, response.StatusCode);
+
+
+            // The API prevents new insertions with MD5 hashes, so we need to insert this bypassing the API
+            // to simulate a legacy document
+            var engine = database.StorageEngine;
+            var docName = "doc" + Convert.ToString(DateTime.UtcNow.ToMillisecondsSinceEpoch());
+            var contentVals = new ContentValues();
+            contentVals["docid"] = docName;
+            engine.Insert("docs", null, contentVals);
+
+            contentVals = new ContentValues();
+            contentVals["doc_id"] = 1;
+            contentVals["revid"] = "1-1153b140e4c8674e2e6425c94de860a0";
+            contentVals["current"] = false;
+            contentVals["deleted"] = false;
+            contentVals["no_attachments"] = true;
+            string json = "{\"foo\":false}";
+            contentVals["json"] = Encoding.UTF8.GetBytes(json);
+            engine.Insert("revs", null, contentVals);
+
+            contentVals = new ContentValues();
+            contentVals["doc_id"] = 1;
+            contentVals["revid"] = "2-bb71ce0da1de19f848177525c4ae5a8b";
+            contentVals["current"] = false;
+            contentVals["deleted"] = false;
+            contentVals["no_attachments"] = false;
+            contentVals["parent"] = 1;
+            json = "{\"foo\":false,\"_attachments\":{\"attachment\":{\"content_type\":\"image/png\",\"revpos\":2," +
+                "\"digest\":\"md5-ks1IBwCXbuY7VWAO9CkEjA==\",\"length\":519173,\"stub\":true}}}";
+            contentVals["json"] = Encoding.UTF8.GetBytes(json);
+            engine.Insert("revs", null, contentVals);
+
+            contentVals = new ContentValues();
+            contentVals["doc_id"] = 1;
+            contentVals["revid"] = "3-a020d6aae370ab5cbc136c477f4e5928";
+            contentVals["current"] = true;
+            contentVals["deleted"] = false;
+            contentVals["no_attachments"] = false;
+            contentVals["parent"] = 2;
+            json = "{\"foo\":true,\"_attachments\":{\"attachment\":{\"content_type\":\"image/png\",\"revpos\":2," +
+                "\"digest\":\"md5-ks1IBwCXbuY7VWAO9CkEjA==\",\"length\":519173,\"stub\":true}}}";
+            contentVals["json"] = Encoding.UTF8.GetBytes(json);
+            engine.Insert("revs", null, contentVals);
+
+            var attachmentStream = (InputStream)GetAsset("attachment.png");
+            var fileStream = File.OpenWrite(Path.Combine(database.AttachmentStorePath, "92CD480700976EE63B55600EF429048C.blob"));
+            attachmentStream.Wrapped.CopyTo(fileStream);
+            attachmentStream.Dispose();
+            fileStream.Dispose();
+
+            var baseEndpoint = String.Format("http://localhost:5984/{0}/{1}", dbName, docName);
+            var endpoint = baseEndpoint;
+            var docContent = Encoding.UTF8.GetBytes("{\"foo\":false}");
+            putRequest = HttpWebRequest.Create(endpoint);
+            putRequest.Method = "PUT";
+            putRequest.ContentType = "application/json";
+            putRequest.GetRequestStream().Write(docContent, 0, docContent.Length);
+            response = (HttpWebResponse)putRequest.GetResponse();
+            Assert.AreEqual(HttpStatusCode.Created, response.StatusCode);
+
+
+            attachmentStream = (InputStream)GetAsset("attachment.png");
+            var baos = new MemoryStream();
+            attachmentStream.Wrapped.CopyTo(baos);
+            attachmentStream.Dispose();
+            endpoint = baseEndpoint + "/attachment?rev=1-1153b140e4c8674e2e6425c94de860a0";
+            docContent = baos.ToArray();
+            baos.Dispose();
+
+            putRequest = HttpWebRequest.Create(endpoint);
+            putRequest.Method = "PUT";
+            putRequest.ContentType = "image/png";
+            putRequest.GetRequestStream().Write(docContent, 0, docContent.Length);
+            response = (HttpWebResponse)putRequest.GetResponse();
+            Assert.AreEqual(HttpStatusCode.Created, response.StatusCode);
+
+            endpoint = baseEndpoint + "?rev=2-bb71ce0da1de19f848177525c4ae5a8b";
+            docContent = Encoding.UTF8.GetBytes("{\"foo\":true,\"_attachments\":{\"attachment\":{\"content_type\":\"image/png\",\"revpos\":2,\"digest\":\"md5-ks1IBwCXbuY7VWAO9CkEjA==\",\"length\":519173,\"stub\":true}}}");
+            putRequest = HttpWebRequest.Create(endpoint);
+            putRequest.Method = "PUT";
+            putRequest.ContentType = "application/json";
+            putRequest.GetRequestStream().Write(docContent, 0, docContent.Length);
+            response = (HttpWebResponse)putRequest.GetResponse();
+            Assert.AreEqual(HttpStatusCode.Created, response.StatusCode);
+
+            var pull = database.CreatePullReplication(new Uri("http://localhost:5984/" + dbName));
+            pull.Continuous = true;
+            pull.Start();
+
+            endpoint = baseEndpoint + "?rev=3-a020d6aae370ab5cbc136c477f4e5928";
+            docContent = Encoding.UTF8.GetBytes("{\"foo\":false,\"_attachments\":{\"attachment\":{\"content_type\":\"image/png\",\"revpos\":2,\"digest\":\"md5-ks1IBwCXbuY7VWAO9CkEjA==\",\"length\":519173,\"stub\":true}}}");
+            putRequest = HttpWebRequest.Create(endpoint);
+            putRequest.Method = "PUT";
+            putRequest.ContentType = "application/json";
+            putRequest.GetRequestStream().Write(docContent, 0, docContent.Length);
+            response = (HttpWebResponse)putRequest.GetResponse();
+            Assert.AreEqual(HttpStatusCode.Created, response.StatusCode);
+
+            Thread.Sleep(1000);
+            while (pull.Status == ReplicationStatus.Active) {
+                Thread.Sleep(500);
+            }
+
+            var doc = database.GetExistingDocument(docName);
+            Assert.AreEqual("4-a91f8875144c6162874371c07a08ea17", doc.CurrentRevisionId);
+            var attachment = doc.CurrentRevision.Attachments.ElementAtOrDefault(0);
+            Assert.IsNotNull(attachment);
+            var attachmentsDict = doc.GetProperty("_attachments").AsDictionary<string, object>();
+            var attachmentDict = attachmentsDict.Get("attachment").AsDictionary<string, object>();
+            Assert.AreEqual("md5-ks1IBwCXbuY7VWAO9CkEjA==", attachmentDict["digest"]);
+
+            var deleteRequest = HttpWebRequest.Create(baseEndpoint + "/attachment?rev=4-a91f8875144c6162874371c07a08ea17");
+            deleteRequest.Method = "DELETE";
+            response = (HttpWebResponse)deleteRequest.GetResponse();
+            Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
+
+            attachmentStream = (InputStream)GetAsset("attachment2.png");
+            baos = new MemoryStream();
+            attachmentStream.Wrapped.CopyTo(baos);
+            attachmentStream.Dispose();
+            endpoint = baseEndpoint + "/attachment?rev=5-4737cb66c6a7ef1b11e872cb6fa4d51a";
+            docContent = baos.ToArray();
+            baos.Dispose();
+
+            putRequest = HttpWebRequest.Create(endpoint);
+            putRequest.Method = "PUT";
+            putRequest.ContentType = "image/png";
+            putRequest.GetRequestStream().Write(docContent, 0, docContent.Length);
+            response = (HttpWebResponse)putRequest.GetResponse();
+            Assert.AreEqual(HttpStatusCode.Created, response.StatusCode);
+
+            Thread.Sleep(1000);
+            while (pull.Status == ReplicationStatus.Active) {
+                Thread.Sleep(500);
+            }
+
+            doc = database.GetExistingDocument(docName);
+            Assert.AreEqual("6-e3a7423a9a9de094a0d12d7f3b44634c", doc.CurrentRevisionId);
+            attachment = doc.CurrentRevision.Attachments.ElementAtOrDefault(0);
+            Assert.IsNotNull(attachment);
+            attachmentsDict = doc.GetProperty("_attachments").AsDictionary<string, object>();
+            attachmentDict = attachmentsDict.Get("attachment").AsDictionary<string, object>();
+            Assert.AreEqual("sha1-9ijdmMf0mK7c11WQPw7DBQcX5pE=", attachmentDict["digest"]);
+
+            deleteRequest = HttpWebRequest.Create("http://localhost:5984/" + dbName);
+            deleteRequest.Method = "DELETE";
+            response = (HttpWebResponse)deleteRequest.GetResponse();
+            Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
+        }
 
         /// <exception cref="System.Exception"></exception>
         [Test]

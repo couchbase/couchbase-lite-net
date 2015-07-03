@@ -664,10 +664,11 @@ namespace Couchbase.Lite
             try {
                 HttpWebRequest.Create("http://localhost:5984/").GetResponse();
             } catch(Exception) {
+                pull.Stop();
                 Assert.Inconclusive("Apache CouchDB not running");
             }
 
-            var docName = "doc" + Convert.ToString(Runtime.CurrentTimeMillis());
+            var docName = "doc" + Convert.ToString(DateTime.UtcNow.ToMillisecondsSinceEpoch());
             var endpoint = "http://localhost:5984/db/" + docName;
             var docContent = Encoding.UTF8.GetBytes("{\"foo\":false}");
             var putRequest = HttpWebRequest.Create(endpoint);

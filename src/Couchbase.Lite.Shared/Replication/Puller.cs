@@ -173,13 +173,14 @@ namespace Couchbase.Lite.Replicator
             {
                 return;
             }
-            if (changeTracker != null)
+            var changeTrackerCopy = changeTracker;
+            if (changeTrackerCopy != null)
             {
                 Log.D(Tag, "stopping changetracker " + changeTracker);
 
-                changeTracker.SetClient(null);
+                changeTrackerCopy.SetClient(null);
                 // stop it from calling my changeTrackerStopped()
-                changeTracker.Stop();
+                changeTrackerCopy.Stop();
                 changeTracker = null;
                 if (!Continuous)
                 {   
@@ -811,7 +812,7 @@ namespace Couchbase.Lite.Replicator
                             continue;
                         }
 
-                        Log.V(Tag, String.Format("Inserting {0} {1}", rev.GetDocId(), history.ToStringArray()));
+                        Log.V(Tag, String.Format("Inserting {0} {1}", rev.GetDocId(), Manager.GetObjectMapper().WriteValueAsString(history)));
 
                         // Insert the revision:
                         try {
