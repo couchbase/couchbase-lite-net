@@ -918,7 +918,7 @@ PRAGMA user_version = 3;";
                 revs.Add(rev);
 
                 return true;
-            }, false, sql, docNumericId);
+            }, true, sql, docNumericId);
 
             return status.IsError ? null : revs;
         }

@@ -54,6 +54,8 @@ namespace Couchbase.Lite
     /// <remarks>Key identifying a data blob. This happens to be a SHA-1 digest.</remarks>
     internal class BlobKey
     {
+        private const string TAG = "BlobKey";
+
         public byte[] Bytes { get; set; }
 
         public BlobKey()
@@ -103,20 +105,23 @@ namespace Couchbase.Lite
         private static byte[] DecodeBase64Digest(string base64Digest)
         {
             const string expectedPrefix = "sha1-";
-            if (!base64Digest.StartsWith (expectedPrefix, StringComparison.Ordinal))
-            {
-                throw new ArgumentException(base64Digest + " did not start with " + expectedPrefix);
+            var prefixLength = expectedPrefix.Length;
+            if (!base64Digest.StartsWith(expectedPrefix, StringComparison.Ordinal)) {
+                Log.I(TAG, "{0} does not start with sha1-", base64Digest);
+                prefixLength = base64Digest.IndexOf('-') + 1;
+                if (prefixLength == -1) {
+                    throw new ArgumentException(String.Format("{0} is not a valid Base64 digest.", base64Digest));
+                }
             }
-            base64Digest = base64Digest.Remove(0, expectedPrefix.Length);
+
+            base64Digest = base64Digest.Remove(0, prefixLength);
             byte[] bytes;
-            try
-            {
+            try {
                 bytes = StringUtils.ConvertFromUnpaddedBase64String(base64Digest);
-            }
-            catch (IOException e)
-            {
+            } catch (IOException e) {
                 throw new ArgumentException(String.Format("{0} is not a valid Base64 digest.", base64Digest), e.Message);
             }
+
             return bytes;
         }
             
