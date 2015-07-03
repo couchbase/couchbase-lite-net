@@ -84,6 +84,12 @@ namespace Couchbase.Lite {
 
         #endregion
 
+        #region Variables
+
+        internal event TypedEventHandler<View, EventArgs> Changed;
+
+        #endregion
+
         #region Properties
 
         /// <summary>
@@ -235,7 +241,9 @@ namespace Couchbase.Lite {
 
             if (changed) {
                 Storage.SetVersion(version);
-                Database.PostChangeNotifications();
+                if (Changed != null) {
+                    Changed(this, null);
+                }
             }
 
             return changed;

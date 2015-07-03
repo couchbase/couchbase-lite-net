@@ -25,7 +25,7 @@ using DbDict = System.Collections.Concurrent.ConcurrentDictionary<string, System
 
 using Couchbase.Lite;
 
-namespace Couchbase.Lite
+namespace Couchbase.Lite.Internal
 {
     // Container for shared state between Database instances that represent the same database file. API is thread-safe.
     internal sealed class SharedState

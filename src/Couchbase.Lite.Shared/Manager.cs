@@ -56,6 +56,8 @@ using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
 using ICSharpCode.SharpZipLib.Zip;
 using Sharpen;
+using Couchbase.Lite.Internal;
+using System.Diagnostics;
 
 #if !NET_3_5
 using StringEx = System.String;
@@ -484,7 +486,6 @@ namespace Couchbase.Lite
         internal CookieStore SharedCookieStore { get; set; } 
         internal string StorageType { get; set; } // @"SQLite" (default) or @"ForestDB"
         internal SharedState Shared { get; private set; }
-
 
         // Instance Methods
         internal Database GetDatabaseWithoutOpening(String name, Boolean mustExist)
