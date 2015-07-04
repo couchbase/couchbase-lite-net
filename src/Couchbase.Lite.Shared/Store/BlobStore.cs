@@ -322,8 +322,7 @@ namespace Couchbase.Lite
             FilePath[] contents = file.ListFiles();
             foreach (FilePath attachment in contents) {
                 BlobKey attachmentKey = new BlobKey();
-                GetKeyForFilename(attachmentKey, attachment.GetPath());
-                if (!keysToKeep.Contains(attachmentKey)) {
+                if (GetKeyForFilename(attachmentKey, attachment.GetPath()) && !keysToKeep.Contains(attachmentKey)) {
                     bool result = attachment.Delete();
                     if (result) {
                         ++numDeleted;
