@@ -27,8 +27,6 @@
 using System;
 using System.IO;
 
-using GitSharp;
-
 namespace GitVersion
 {
     class MainClass
@@ -41,12 +39,29 @@ namespace GitVersion
             }
             
             string hash = "No git information";
-            if(Repository.IsValid(args[0])) {
-                var repo = new Repository(args[0]);
-                hash = repo.Head.CurrentCommit.ShortHash;
+            DirectoryInfo gitFolder = FindGitFolder(new DirectoryInfo(args[0]));
+            if(gitFolder != null) {
+                var headPath = Path.Combine(gitFolder.FullName, "HEAD");
+                var headRef = File.ReadAllText(headPath).TrimEnd('\r', '\n').Substring(5);
+                var refPath = Path.Combine(gitFolder.FullName, headRef);
+                var fullHash = File.ReadAllText(refPath).TrimEnd('\r', '\n');
+                hash = fullHash.Substring(0, 7);
             }
             
             File.WriteAllText(args[1], hash);
+        }
+        
+        private static DirectoryInfo FindGitFolder(DirectoryInfo startingPath)
+        {
+            if(startingPath.FullName == "/") {
+                return null;
+            }
+            
+            foreach(var dir in startingPath.EnumerateDirectories(".git")) {
+                return dir;
+            }
+            
+            return FindGitFolder(startingPath.Parent);
         }
     }
 }
