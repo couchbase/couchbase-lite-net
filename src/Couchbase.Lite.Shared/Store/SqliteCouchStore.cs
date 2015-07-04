@@ -1063,6 +1063,8 @@ PRAGMA user_version = 3;";
             Log.V(TAG, "Deleting old attachments...");
 
             try {
+                Log.V(TAG, "Flushing SQLite WAL...");
+                StorageEngine.ExecSQL("PRAGMA wal_checkpoint(RESTART)");
                 Log.V(TAG, "Vacuuming SQLite sqliteDb...");
                 StorageEngine.ExecSQL("VACUUM");
             } catch (SQLException e) {
