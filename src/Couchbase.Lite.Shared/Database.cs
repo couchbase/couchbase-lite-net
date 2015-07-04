@@ -193,6 +193,10 @@ namespace Couchbase.Lite
                 // Attachment files
                 dir = AttachmentStorePath;
                 info = new DirectoryInfo(dir);
+                if (!info.Exists) {
+                    return size;
+                }
+
                 foreach (var fileInfo in info.EnumerateFiles()) {
                     size += fileInfo.Length;
                 }
