@@ -403,8 +403,6 @@ namespace Couchbase.Lite
 
         private Int32 revisionsFailed;
 
-        readonly object asyncTaskLocker = new object ();
-
         // FIXME: This is never assigned, as a result Start never initializes revisionBodyTransformationFunction
 
         internal Func<RevisionInternal, RevisionInternal> revisionBodyTransformationFunction;
@@ -791,8 +789,6 @@ namespace Couchbase.Lite
         internal virtual void Stopping()
         {
             Log.V(Tag, "Stopping");
-
-            IsRunning = false;
 
             NotifyChangeListeners();
 
@@ -1595,7 +1591,7 @@ namespace Couchbase.Lite
                 return;
             }
 
-            if (_stateMachine.State == ReplicationState.Idle) {
+            if (_stateMachine.IsInState(ReplicationState.Idle)) {
                 Log.D(Tag, "RETRYING, to transfer missed revisions...");
                 revisionsFailed = 0;
                 CancelPendingRetryIfReady();
@@ -1821,7 +1817,13 @@ namespace Couchbase.Lite
         /// <value>
         /// <c>true</c> if <see cref="Couchbase.Lite.Replication"/> is running; otherwise, <c>false</c>.
         /// </value>
-        public Boolean IsRunning { get; protected set; }
+        public Boolean IsRunning 
+        { 
+            get {
+                return _stateMachine != null && 
+                    _stateMachine.IsInState(ReplicationState.Running);
+            }
+        }
 
         /// <summary>
         /// Gets the last error, if any, that occurred since the <see cref="Couchbase.Lite.Replication"/> was started.
@@ -2139,29 +2141,29 @@ namespace Couchbase.Lite
 
     #region EventArgs Subclasses
 
-        ///
-        /// <see cref="Couchbase.Lite.Replication"/> Change Event Arguments.
-        ///
-        public class ReplicationChangeEventArgs : EventArgs
+    ///
+    /// <see cref="Couchbase.Lite.Replication"/> Change Event Arguments.
+    ///
+    public class ReplicationChangeEventArgs : EventArgs
+    {
+        //Properties
+        /// <summary>
+        /// Gets the <see cref="Couchbase.Lite.Replication"/> that raised the event.
+        /// </summary>
+        /// <value>The <see cref="Couchbase.Lite.Replication"/> that raised the event.</value>
+        public Replication Source { get; private set; }
+
+        public ReplicationStateTransition ReplicationStateTransition { get; internal set; }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Couchbase.Lite.ReplicationChangeEventArgs"/> class.
+        /// </summary>
+        /// <param name="sender">The <see cref="Couchbase.Lite.Replication"/> that raised the event.</param>
+        public ReplicationChangeEventArgs (Replication sender)
         {
-            //Properties
-            /// <summary>
-            /// Gets the <see cref="Couchbase.Lite.Replication"/> that raised the event.
-            /// </summary>
-            /// <value>The <see cref="Couchbase.Lite.Replication"/> that raised the event.</value>
-            public Replication Source { get; private set; }
-
-            public ReplicationStateTransition ReplicationStateTransition { get; internal set; }
-
-            /// <summary>
-            /// Initializes a new instance of the <see cref="Couchbase.Lite.ReplicationChangeEventArgs"/> class.
-            /// </summary>
-            /// <param name="sender">The <see cref="Couchbase.Lite.Replication"/> that raised the event.</param>
-            public ReplicationChangeEventArgs (Replication sender)
-            {
-                Source = sender;
-            }
+            Source = sender;
         }
+    }
 
     #endregion
 

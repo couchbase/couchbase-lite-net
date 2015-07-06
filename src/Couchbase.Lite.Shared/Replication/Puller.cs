@@ -292,7 +292,6 @@ namespace Couchbase.Lite.Replicator
         public void ChangeTrackerStopped(ChangeTracker tracker)
         {
             WorkExecutor.StartNew(() => ProcessChangeTrackerStopped(tracker));
-
         }
 
         public HttpClient GetHttpClient(bool longPoll)
