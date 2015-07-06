@@ -50,6 +50,23 @@ namespace Couchbase.Lite
 {
     public class DocumentTest : LiteTestCase
     {
+
+        [Test] // #447
+        public void TestDocumentArraysMaintainOrder()
+        {
+            List<int> dateArray = new List<int> { 2015, 6, 14, 1, 10, 0 };
+            var props = new Dictionary<string, object> {
+                { "starttime", dateArray }
+            };
+
+            var doc = database.CreateDocument();
+            var docId = doc.Id;
+            doc.PutProperties(props);
+
+            var doc2 = database.GetExistingDocument(docId);
+            CollectionAssert.AreEqual(dateArray, doc2.UserProperties["starttime"].AsList<int>());
+        }
+
         /// <exception cref="Couchbase.Lite.CouchbaseLiteException"></exception>
         [Test]
         public void TestNewDocumentHasCurrentRevision()  {
