@@ -61,6 +61,21 @@ namespace Couchbase.Lite
         public const string Tag = "Views";
 
         [Test]
+        public void TestViewValueIsEntireDoc()
+        {
+            var view = database.GetView("vu");
+            view.SetMap((doc, emit) => emit(doc["_id"], doc), "0.1");
+            CreateDocuments(database, 10);
+            var rows = view.CreateQuery().Run();
+            foreach (var row in rows) {
+                Assert.IsNotNull(row.Value);
+                var dict = row.Value.AsDictionary<string, object>();
+                Assert.IsNotNull(dict);
+                Assert.AreEqual(row.Key, dict["_id"]);
+            }
+        }
+
+        [Test]
         public void TestLiveQueryUpdateWhenOptionsChanged()
         {
             var view = database.GetView("vu");

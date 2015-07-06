@@ -279,15 +279,12 @@ namespace Couchbase.Lite.Store
             return true;
         }
 
-        private static bool GroupTogether(Lazy<object> key1, Lazy<object> key2, int groupLevel)
+        private static bool GroupTogether(object key1, object key2, int groupLevel)
         {
-            var key1List = key1 == null ? null : key1.Value as IList;
-            var key2List = key2 == null ? null : key2.Value as IList;
+            var key1List = key1 == null ? null : key1 as IList;
+            var key2List = key2 == null ? null : key2 as IList;
             if (groupLevel == 0 || key1List == null || key2List == null) {
-                var key2val = key2 != null 
-                    ? key2.Value 
-                    : null;
-                return key1.Value.Equals(key2val);
+                return key1.Equals(key2);
             }
 
             var end = Math.Min(groupLevel, Math.Min(key1List.Count, key2List.Count));
@@ -363,7 +360,7 @@ namespace Couchbase.Lite.Store
             return result;
         }
 
-        private Status RunQuery(QueryOptions options, Func<Lazy<object>, Lazy<object>, string, Cursor, Status> action)
+        private Status RunQuery(QueryOptions options, Func<Lazy<byte[]>, Lazy<byte[]>, string, Cursor, Status> action)
         {
             if (options == null) {
                 options = new QueryOptions();
@@ -484,7 +481,7 @@ namespace Couchbase.Lite.Store
             dbStorage.TryQuery(c => 
             {
                 var docId = c.GetString(2);
-                status = action(new Lazy<object>(() => FromJSON(c.GetBlob(0))), new Lazy<object>(() => FromJSON(c.GetBlob(1))), docId, c);
+                status = action(new Lazy<byte[]>(() => c.GetBlob(0)), new Lazy<byte[]>(() => c.GetBlob(1)), docId, c);
                 if(status.IsError) {
                     return false;
                 } else if((int)status.Code <= 0) {
@@ -976,11 +973,11 @@ namespace Couchbase.Lite.Store
                 valuesToReduce = new List<object>(100);
             }
 
-            Lazy<object> lastKeyData = null;
+            Lazy<byte[]> lastKeyData = null;
             List<QueryRow> rows = new List<QueryRow>();
             RunQuery(options, (keyData, valueData, docID, c) =>
             {
-                if(group && !GroupTogether(keyData, lastKeyData, groupLevel)) {
+                if(group && !GroupTogether(keyData.Value, lastKeyData.Value, groupLevel)) {
                     if(lastKeyData != null && lastKeyData.Value != null) {
                         // This pair starts a new group, so reduce & record the last one:
                         var key = GroupKey(lastKeyData.Value, groupLevel);
@@ -1063,12 +1060,25 @@ namespace Couchbase.Lite.Store
 
         public bool RowValueIsEntireDoc(object valueData)
         {
-            var valueString = valueData as string;
+            var valueString = valueData as IEnumerable<byte>;
             if (valueString == null) {
                 return false;
             }
 
-            return valueString == "*";
+            bool first = true;
+            foreach (var character in valueString) {
+                if (!first) {
+                    return false;
+                }
+
+                if (character != (byte)'*') {
+                    return false;
+                }
+
+                first = false;
+            }
+
+            return true;
         }
 
         public T ParseRowValue<T>(IEnumerable<byte> valueData)
