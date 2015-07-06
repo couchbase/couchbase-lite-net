@@ -167,11 +167,17 @@ namespace Couchbase.Lite
             #if !OFFICIAL
             string gitVersion= String.Empty;
             using (Stream stream = System.Reflection.Assembly.GetExecutingAssembly()
-                .GetManifestResourceStream("version"))
-            using (StreamReader reader = new StreamReader(stream))
-            {
-                gitVersion= reader.ReadToEnd();
+                .GetManifestResourceStream("version")) {
+                if(stream != null) {
+                    using (StreamReader reader = new StreamReader(stream))
+                    {
+                        gitVersion= reader.ReadToEnd();
+                    }
+                } else {
+                    gitVersion = "No git information";
+                }
             }
+
             VersionString = String.Format("Unofficial ({0})", gitVersion.TrimEnd());
             #elif __UNITY__
             VersionString = "1.0";
