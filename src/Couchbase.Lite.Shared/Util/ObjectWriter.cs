@@ -151,25 +151,6 @@ namespace Couchbase.Lite
                 return sorted;
             }
 
-            var array = input as IList;
-            if (array != null) {
-                var newList = new List<object>();
-                var e = array.GetEnumerator();
-                bool? comparable = null;
-                while (e.MoveNext()) {
-                    if (!comparable.HasValue) {
-                        comparable = e.Current is IComparable;
-                    }
-                    newList.Add(MakeCanonical(e.Current));
-                }
-
-                if (comparable.HasValue && comparable.Value) {
-                    newList.Sort();
-                }
-
-                return newList;
-            }
-
             return input;
         }
 
