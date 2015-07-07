@@ -167,6 +167,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Manager\NewtonsoftJsonSerializer.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Auth\DigestAuthenticator.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Auth\DigestCalculator.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)View\UpdateJob.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="$(MSBuildThisFileDirectory)Store\MonoSQLiteStorageEngine.cs" />

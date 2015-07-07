@@ -1480,6 +1480,22 @@ namespace Couchbase.Lite
 
             Thread.Sleep(5000);
             Assert.AreEqual(50, view.TotalRows);
+            Assert.AreEqual(50, view.LastSequenceIndexed);
+
+            query1.Stop();
+            for(int i = 50; i < 60; i++) {
+                database.GetDocument(string.Format("doc{0}-{1}", i, docIdTimestamp)).PutProperties(new Dictionary<string, object> { {
+                        "jim",
+                        "borden"
+                    } });
+                if (i == 55) {
+                    query1.Start();
+                }
+            }
+
+            Thread.Sleep(5000);
+            Assert.AreEqual(60, view.TotalRows);
+            Assert.AreEqual(60, view.LastSequenceIndexed);
         }
 
         private IList<IDictionary<string, object>> RowsToDicts(IEnumerable<QueryRow> allDocs)
