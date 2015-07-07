@@ -446,7 +446,7 @@ namespace Couchbase.Lite
             // TODO: CAssertNil(r1.headers); still not null!
             // Check that the replication hasn't started running:
             Assert.IsFalse(repl.IsRunning);
-            Assert.AreEqual((int)repl.Status, (int)ReplicationStatus.Stopped);
+            Assert.AreEqual(ReplicationStatus.Stopped, repl.Status);
             Assert.AreEqual(0, repl.CompletedChangesCount);
             Assert.AreEqual(0, repl.ChangesCount);
             Assert.IsNull(repl.LastError);
@@ -457,7 +457,7 @@ namespace Couchbase.Lite
             // should already be reset when the replicator stopped.
              Assert.IsTrue(repl.ChangesCount >= 2);
              Assert.IsTrue(repl.CompletedChangesCount >= 2);
-            Assert.IsNull(repl.LastError);
+             Assert.IsNull(repl.LastError);
 
             VerifyRemoteDocExists(remote, doc1Id);
 

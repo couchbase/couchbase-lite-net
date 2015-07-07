@@ -63,7 +63,7 @@ namespace Couchbase.Lite.Support
     /// </remarks>
     internal class Batcher<T>
     {
-        private readonly static string Tag = "Batcher";
+        private const string Tag = "Batcher";
 
         private readonly TaskFactory workExecutor;
 
@@ -338,7 +338,7 @@ namespace Couchbase.Lite.Support
         /// by processing too many batches concurrently.
         /// </remarks>
         /// <returns>The to use.</returns>
-        private Int32 DelayToUse()
+        internal Int32 DelayToUse()
         {
             var delayToUse = delay;
 

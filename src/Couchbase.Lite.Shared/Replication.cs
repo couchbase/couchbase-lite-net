@@ -57,6 +57,7 @@ using Couchbase.Lite.Util;
 using Sharpen;
 using Couchbase.Lite.Replicator;
 using Stateless;
+using System.Collections.Concurrent;
 
 #if !NET_3_5
 using StringEx = System.String;
@@ -176,9 +177,8 @@ namespace Couchbase.Lite
             WorkExecutor = workExecutor;
             CancellationTokenSource = new CancellationTokenSource();
             RemoteUrl = remote;
-            Status = ReplicationStatus.Stopped;
             RequestHeaders = new Dictionary<String, Object>();
-            requests = new HashSet<HttpClient>();
+            _requests = new ConcurrentDictionary<HttpRequestMessage, Task>();
 
             // FIXME: Refactor to visitor pattern.
             if (RemoteUrl.GetQuery() != null && !StringEx.IsNullOrWhiteSpace(RemoteUrl.GetQuery()))
@@ -232,7 +232,6 @@ namespace Couchbase.Lite
                     Log.V(Tag, "*** BEGIN ProcessInbox ({0} sequences)", inbox.Count);
                     ProcessInbox (new RevisionList(inbox));
                     Log.V(Tag, "*** END ProcessInbox (lastSequence={0})", LastSequence);
-                    UpdateActive();
                 } catch (Exception e) {
                     Log.E(Tag, "ProcessInbox failed: ", e);
                     throw new RuntimeException(e);
@@ -395,11 +394,13 @@ namespace Couchbase.Lite
         /// </summary>
         protected internal IDictionary<String, Object> RequestHeaders { get; set; }
 
-        // FIXME: This probably should become IDictionary<HttpRequestMessage, Task>
         /// <summary>
         /// The list of currently active HTTP requests
         /// </summary>
+        [Obsolete("This field will no longer store active requests")]
         protected internal ICollection<HttpClient> requests;
+
+        protected internal IDictionary<HttpRequestMessage, Task> _requests;
 
         private Int32 revisionsFailed;
 
@@ -446,6 +447,21 @@ namespace Couchbase.Lite
             NotifyChangeListeners();
         }
 
+        protected virtual void StopGraceful()
+        {
+            Log.D(Tag, "Stop Graceful...");
+
+            continuous = false;
+            if (Batcher != null)  {
+                Batcher.FlushAll();
+            }
+
+            CancelPendingRetryIfReady();
+            if (LocalDatabase != null) {
+                LocalDatabase.ForgetReplication(this);
+            }
+        }
+
         /// <summary>
         /// Sets the client factory used to generate HttpClient objects
         /// </summary>
@@ -464,10 +480,9 @@ namespace Couchbase.Lite
 
         private void NotifyChangeListeners(ReplicationStateTransition transition = null)
         {
-            UpdateProgress();
             Log.V(Tag, "NotifyChangeListeners ({0}/{1}, active={2} (batch={3}, net={4}), online={5})",
                 CompletedChangesCount, ChangesCount,
-                active, Batcher == null ? 0 : Batcher.Count(), asyncTaskCount, online);
+                Status == ReplicationStatus.Active, Batcher == null ? 0 : Batcher.Count(), asyncTaskCount, online);
             
             var evt = _changed;
             if (evt == null) {
@@ -545,23 +560,6 @@ namespace Couchbase.Lite
 
         internal void StopRemoteRequests()
         {
-            IList<HttpClient> remoteRequests;
-            lock(requests)
-            {
-                remoteRequests = new List<HttpClient>(requests);
-            }
-
-            foreach(var client in remoteRequests)
-            {
-                try 
-                {
-                    client.CancelPendingRequests();
-                } catch(ObjectDisposedException)
-                {
-                    //Swallow, our work is already done for us
-                }
-            }
-
             var cts = CancellationTokenSource;
             CancellationTokenSource = new CancellationTokenSource();
             if (!cts.IsCancellationRequested) {
@@ -569,26 +567,6 @@ namespace Couchbase.Lite
             }
 
             //Task.WaitAll(((SingleTaskThreadpoolScheduler)WorkExecutor.Scheduler).ScheduledTasks.ToArray());
-        }
-
-        internal void UpdateProgress()
-        {
-            if (!IsRunning) {
-                Status = ReplicationStatus.Stopped;
-            }
-            else {
-                if (!online) {
-                    Status = ReplicationStatus.Offline;
-                }
-                else {
-                    if (active) {
-                        Status = ReplicationStatus.Active;
-                    }
-                    else {
-                        Status = ReplicationStatus.Idle;
-                    }
-                }
-            }
         }
 
         internal void DatabaseClosing()
@@ -753,38 +731,6 @@ namespace Couchbase.Lite
         protected internal virtual void MaybeCreateRemoteDB() { }
 
         abstract internal void ProcessInbox(RevisionList inbox);
-
-        internal void UpdateActive()
-        {
-            try {
-                var batcherCount = 0;
-                if (Batcher != null) {
-                    batcherCount = Batcher.Count();
-                } else {
-                    Log.W(Tag, "batcher object is null");
-                }
-
-                var newActive = batcherCount > 0 || asyncTaskCount > 0;
-                if (active != newActive) {
-                    Log.D(Tag, "Progress: set active = {0}", newActive);
-                    active = newActive;
-                    NotifyChangeListeners();
-
-                    if (!active) {
-                        if (!continuous) {
-                            WorkExecutor.StartNew(Stopping);
-                        } else if (LastError != null) /*(revisionsFailed > 0)*/ {
-                            Log.D(Tag, "{0}: Failed to xfer {1} revisions, will retry in {2} sec", this, revisionsFailed, RetryDelay);
-                            CancelPendingRetryIfReady();
-                            ScheduleRetryIfReady();
-                        }
-                    }
-                }
-            }
-            catch (Exception e) {
-                Log.E(Tag, "Exception in updateActive()", e);
-            }
-        }
 
         internal virtual void Stopping()
         {
@@ -992,14 +938,14 @@ namespace Couchbase.Lite
                 : CancellationTokenSource.Token;
 
             Log.D(Tag, "Sending async {0} request to: {1}", method, url);
-            client.SendAsync(message, token)
+            var t = client.SendAsync(message, token)
                 .ContinueWith(response =>
                 {
                     try 
                     {
-                        lock(requests)
+                        lock(_requests)
                         {
-                            requests.Remove(client);
+                            _requests.Remove(message);
                         }
                         HttpResponseMessage result = null;
                         Exception error = null;
@@ -1076,9 +1022,9 @@ namespace Couchbase.Lite
                     }
                 }, token, TaskContinuationOptions.None, WorkExecutor.Scheduler);
 
-            lock(requests)
+            lock(_requests)
             {
-                requests.Add(client);
+                _requests[message] = t;
             }
         }
 
@@ -1807,7 +1753,22 @@ namespace Couchbase.Lite
         /// Gets the <see cref="Couchbase.Lite.Replication"/>'s current status.
         /// </summary>
         /// <value>The <see cref="Couchbase.Lite.Replication"/>'s current status.</value>
-        public ReplicationStatus Status { get; set; }
+        public ReplicationStatus Status 
+        {
+            get {
+                if (_stateMachine == null) {
+                    return ReplicationStatus.Stopped;
+                } else if (_stateMachine.IsInState(ReplicationState.Offline)) {
+                    return ReplicationStatus.Offline;
+                } else if (_stateMachine.IsInState(ReplicationState.Idle)) {
+                    return ReplicationStatus.Idle;
+                } else if (_stateMachine.IsInState(ReplicationState.Stopped) || _stateMachine.IsInState(ReplicationState.Initial)) {
+                    return ReplicationStatus.Stopped;
+                } else {
+                    return ReplicationStatus.Active;
+                }
+            }
+        }
 
         /// <summary>
         /// Gets whether the <see cref="Couchbase.Lite.Replication"/> is running.
@@ -1821,7 +1782,8 @@ namespace Couchbase.Lite
         { 
             get {
                 return _stateMachine != null && 
-                    _stateMachine.IsInState(ReplicationState.Running);
+                    !_stateMachine.IsInState(ReplicationState.Stopped) &&
+                    !_stateMachine.IsInState(ReplicationState.Initial);
             }
         }
 
@@ -1933,34 +1895,7 @@ namespace Couchbase.Lite
         /// </summary>
         public virtual void Stop()
         {
-            if (!IsRunning)
-            {
-                return;
-            }
-
-            Log.V(Tag, "Stop...");
-
-            continuous = false;
-
-            if (Batcher != null)
-            {
-                Batcher.Clear(); // no sense processing any pending changes
-            }
-
-            StopRemoteRequests();
-
-            CancelPendingRetryIfReady();
-
-            if (LocalDatabase != null)
-            {
-                LocalDatabase.ForgetReplication(this);
-            }
-
-            if (IsRunning)
-            {
-                Log.V(Tag, "calling stopping()");
-                Stopping();
-            }
+            FireTrigger(ReplicationTrigger.StopGraceful);
         }
 
         /// <summary>
@@ -2120,11 +2055,24 @@ namespace Couchbase.Lite
                 NotifyChangeListenersStateTransition(transition);
             });
 
+            _stateMachine.Configure(ReplicationState.Stopping).OnEntry(transition =>
+            {
+                Log.V(Tag, "{0} => {1}", transition.Source, transition.Destination);
+                if(transition.Source == transition.Destination) {
+                    Log.I(Tag, "Concurrency issue with ReplicationState.Stopping");
+                    return;
+                }
+
+                WorkExecutor.StartNew(() => {
+                    StopGraceful();
+                    NotifyChangeListenersStateTransition(transition);
+                });
+            });
+
             _stateMachine.Configure(ReplicationState.Stopped).OnEntry(transition =>
             {
                 Log.V(Tag, "{0} => {1}", transition.Source, transition.Destination);
-                SaveLastSequence(null);
-                ClearDbRef();
+                Stopping();
 
                 if(transition.Source == transition.Destination) {
                     Log.I(Tag, "Concurrency issue with ReplicationState.Stopped");

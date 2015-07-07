@@ -55,6 +55,7 @@ using Couchbase.Lite.Internal;
 using Couchbase.Lite.Support;
 using Couchbase.Lite.Util;
 using Sharpen;
+using System.Threading;
 
 #if !NET_3_5
 using StringEx = System.String;
@@ -138,75 +139,64 @@ namespace Couchbase.Lite.Replicator
 
             // If we're still waiting to create the remote db, do nothing now. (This method will be
             // re-invoked after that request finishes; see maybeCreateRemoteDB() above.)
-            if (creatingTarget)
-            {
+            if (creatingTarget) {
                 Log.D(Tag, "creatingTarget == true, doing nothing");
                 return;
             }
 
             pendingSequences = new SortedDictionary<long, int>();
-            try
-            {
+            try {
                 maxPendingSequence = Int64.Parse(LastSequence);
-            }
-            catch (Exception e)
-            {
+            } catch (Exception e) {
                 Log.W(Tag, "Error converting lastSequence: " + LastSequence + " to long. Using 0", e);
                 maxPendingSequence = 0;
             }
 
-            if (Filter != null)
-            {
+            if (Filter != null) {
                 filter = LocalDatabase.GetFilter(Filter);
-            }
-            else
-            {
+            } else {
                 // If not filter function was provided, but DocIds were
                 // specified, then only push the documents listed in the
                 // DocIds property. It is assumed that if the users
                 // specified both a filter name and doc ids that their
                 // custom filter function will handle that. This is 
                 // consistent with the iOS behavior.
-                if (DocIds != null && DocIds.Any())
-                {
+                if (DocIds != null && DocIds.Any()) {
                     filter = (rev, filterParams) => DocIds.Contains(rev.Document.Id);
                 }
             }
 
-            if (Filter != null && filter == null)
-            {
+            if (Filter != null && filter == null) {
                 Log.W(Tag, string.Format("{0}: No ReplicationFilter registered for filter '{1}'; ignoring", this, Filter));
             }
 
             // Process existing changes since the last push:
             long lastSequenceLong = 0;
-            if (LastSequence != null)
-            {
+            if (LastSequence != null) {
                 lastSequenceLong = long.Parse(LastSequence);
-            }
-
-            // Now listen for future changes (in continuous mode):
-            if (continuous)
-            {
-                observing = true;
-                LocalDatabase.Changed += OnChanged;
             }
 
             var options = new ChangesOptions();
             options.SetIncludeConflicts(true);
             var changes = LocalDatabase.ChangesSince(lastSequenceLong, options, filter, FilterParams);
-            if (changes.Count > 0)
-            {
+            if (changes.Count > 0) {
                 Batcher.QueueObjects(changes);
                 Batcher.Flush();
             }
+
+            // Now listen for future changes (in continuous mode):
+            if (continuous) {
+                observing = true;
+                LocalDatabase.Changed += OnChanged;
+            } else {
+                FireTrigger(ReplicationTrigger.StopGraceful);
+            }
         }
 
-        // prevents stopped() from being called when other tasks finish
-        public override void Stop()
+        protected override void StopGraceful()
         {
             StopObserving();
-            base.Stop();
+            base.StopGraceful();
         }
 
         private void StopObserving()

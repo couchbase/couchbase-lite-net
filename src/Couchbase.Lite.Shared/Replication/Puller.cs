@@ -71,6 +71,8 @@ namespace Couchbase.Lite.Replicator
 
         private const string Tag = "Puller";
 
+        private List<Task> pendingBulkDownloads = new List<Task>();
+
         internal bool canBulkGet;
 
         //TODO: Socket change tracker
@@ -162,36 +164,6 @@ namespace Couchbase.Lite.Replicator
 
             changeTracker.UsePost = CheckServerCompatVersion("0.93");
             changeTracker.Start();
-        }
-
-        public override void Stop()
-        {
-            if (!IsRunning) {
-                return;
-            }
-            var changeTrackerCopy = changeTracker;
-            if (changeTrackerCopy != null)
-            {
-                Log.D(Tag, "stopping changetracker " + changeTracker);
-
-                changeTrackerCopy.SetClient(null);
-                // stop it from calling my changeTrackerStopped()
-                changeTrackerCopy.Stop();
-                changeTracker = null;
-            }
-
-
-            lock (locker) {
-                revsToPull = null;
-                deletedRevsToPull = null;
-                bulkRevsToPull = null;
-            }
-
-            base.Stop();
-
-            if (downloadsToInsert != null) {
-                downloadsToInsert.FlushAll();
-            }
         }
 
         internal override void Stopping()
@@ -306,6 +278,37 @@ namespace Couchbase.Lite.Replicator
             }
 
             return client;
+        }
+
+        protected override void StopGraceful()
+        {
+            var changeTrackerCopy = changeTracker;
+            if (changeTrackerCopy != null) {
+                Log.D(Tag, "stopping changetracker " + changeTracker);
+
+                changeTrackerCopy.SetClient(null);
+                // stop it from calling my changeTrackerStopped()
+                changeTrackerCopy.Stop();
+                changeTracker = null;
+            }
+
+            base.StopGraceful();
+
+            Task.WhenAll(pendingBulkDownloads).ContinueWith(t =>
+            {
+                StopRemoteRequests();
+                lock (locker) {
+                    revsToPull = null;
+                    deletedRevsToPull = null;
+                    bulkRevsToPull = null;
+                }
+
+                if (downloadsToInsert != null) {
+                    downloadsToInsert.FlushAll();
+                }
+
+                FireTrigger(ReplicationTrigger.StopImmediate);
+            });
         }
             
         /// <summary>Process a bunch of remote revisions from the _changes feed at once</summary>
@@ -543,10 +546,11 @@ namespace Couchbase.Lite.Replicator
             }
 
             dl.Authenticator = Authenticator;
-            WorkExecutor.StartNew(dl.Run, CancellationTokenSource.Token, TaskCreationOptions.LongRunning, WorkExecutor.Scheduler);
+            var t = WorkExecutor.StartNew(dl.Run, CancellationTokenSource.Token, TaskCreationOptions.LongRunning, WorkExecutor.Scheduler);
+            pendingBulkDownloads.Add(t);
         }
 
-        private bool ShouldRetryDownload(string docId)
+		private bool ShouldRetryDownload(string docId)
         {
             var localDoc = LocalDatabase.GetExistingLocalDocument(docId);
             if (localDoc == null)
@@ -864,6 +868,26 @@ namespace Couchbase.Lite.Replicator
             var newCompletedChangesCount = CompletedChangesCount + downloads.Count;
             Log.D(Tag, "InsertDownloads() updating CompletedChangesCount from {0} -> {1}", CompletedChangesCount, newCompletedChangesCount);
             SafeAddToCompletedChangesCount(downloads.Count);
+        }
+
+        private void WaitForAllTasksCompleted()
+        {
+            while ((Batcher != null && Batcher.Count() > 0) ||
+                  (pendingBulkDownloads != null && pendingBulkDownloads.Count > 0) ||
+                  (downloadsToInsert != null && downloadsToInsert.Count() > 0)) {
+
+                if (Batcher != null) {
+                    Thread.Sleep(Batcher.DelayToUse());
+                    Batcher.FlushAll();
+                }
+
+                Task.WaitAll(pendingBulkDownloads.ToArray());
+
+                if (downloadsToInsert != null) {
+                    Thread.Sleep(downloadsToInsert.DelayToUse());
+                    downloadsToInsert.FlushAll();
+                }
+            }
         }
 
         private sealed class RevisionComparer : IComparer<RevisionInternal>
