@@ -184,7 +184,20 @@ namespace Couchbase.Lite
                 var info = new DirectoryInfo(dir);
                 long size = 0;
                 var sanitizedName = Name.Replace('/', '.');
-                foreach (var fileInfo in info.EnumerateFiles(sanitizedName + "*", SearchOption.AllDirectories)) {
+
+                // Database files
+                foreach (var fileInfo in info.EnumerateFiles(sanitizedName + "*")) {
+                    size += fileInfo.Length;
+                }
+
+                // Attachment files
+                dir = AttachmentStorePath;
+                info = new DirectoryInfo(dir);
+                if (!info.Exists) {
+                    return size;
+                }
+
+                foreach (var fileInfo in info.EnumerateFiles()) {
                     size += fileInfo.Length;
                 }
 
